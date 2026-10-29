@@ -43,7 +43,21 @@ def report_password(hass, entry, default):
         return
     ir.async_create_issue(hass, DOMAIN, issue_id, is_fixable=False, is_persistent=False,
                           severity=ir.IssueSeverity.WARNING, translation_key=DEFAULT_PASSWORD_ISSUE,
-                          translation_placeholders={"name": entry.title})
+                          translation_placeholders={"name": entry.title},
+                          learn_more_url=password_page_url(entry))
+
+
+def password_page_url(entry):
+    """The E32's own password form (About page), or None without a valid stored address.
+
+    Only the address is used: the password itself never leaves the entry.
+    """
+    from .controller_link import ControllerLinkError, controller_address
+    from .controller_setup_flow import CONTROLLER_ADDRESS
+    try:
+        return controller_address(entry.data.get(CONTROLLER_ADDRESS)) + "/#about"
+    except ControllerLinkError:
+        return None
 
 
 @callback

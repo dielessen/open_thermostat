@@ -61,7 +61,7 @@
               "topic_prefix": "Prefiks MQTT sterownika"
             },
             "data_description": {
-              "topic_prefix": "Musi zgadzać się z Twoim E32. Zmiana połączenia może przerwać komunikację; nie przenosi istniejącego sterownika."
+              "topic_prefix": "Musi zgadzać się z Twoim E32: openthermostat w nowym E32, ib-therm w starszych instalacjach. Zmiana połączenia może przerwać komunikację; nie przenosi istniejącego sterownika."
             }
           }
         },
@@ -507,7 +507,7 @@
           "bluetooth_first": "Wł.: E32 używa swoich czujników Bluetooth przed źródłami z Home Assistant.",
           "setpoint_entity": "Opcjonalnie: termostat lub liczba w Home Assistant, której temperaturę docelową stosuje E32. Puste: E32 stosuje program tygodniowy.",
           "fallback_temperature": "Temperatura, którą E32 utrzymuje, gdy Home Assistant nie podaje celu i nie ma programu tygodniowego.",
-          "program": "Jedna linia na grupę dni, na przykład mon-fri: 06:30 20.5; 22:30 18 oraz sat-sun: 08:00 20.5; 23:00 18. Temperatury w jednostce Twojego Home Assistant. Linia bez dni obowiązuje każdego dnia. Do 6 punktów przełączenia na dzień; każda temperatura obowiązuje do następnego punktu. Puste: brak programu tygodniowego."
+          "program": "Najprościej: wizualny planer w widoku Program tygodniowy na pulpicie OpenThermostat. Ten tekst to zaawansowany widok tego samego programu: jedna linia na grupę dni, na przykład mon-fri: 06:30 20.5; 22:30 18 oraz sat-sun: 08:00 20.5; 23:00 18. Temperatury w jednostce Twojego Home Assistant. Linia bez dni obowiązuje każdego dnia. Do 6 punktów przełączenia na dzień; każda temperatura obowiązuje do następnego punktu. Puste: brak programu tygodniowego."
         },
         "sections": {
           "limits": {
@@ -2161,7 +2161,7 @@
       "description": "Kocioł zgłasza ciśnienie wody {pressure} bar. Uzupełnij wodę w instalacji zaworem napełniającym do 1,5–2,0 bar (przy zimnej instalacji). Jeśli musisz często uzupełniać, poszukaj wycieku lub zleć sprawdzenie naczynia wzbiorczego. Ten komunikat zniknie sam, gdy ciśnienie znów przekroczy 1 bar."
     },
     "e32_default_password": {
-      "title": "Zmień domyślne hasło E32",
+      "title": "E32 nadal używa domyślnego hasła",
       "description": "{name}: E32 nadal używa domyślnego hasła admin/admin, więc każdy w Twojej sieci może zmienić Twoje ogrzewanie. Zmień je na stronie internetowej E32: System → Informacje → Hasło. Home Assistant raz poprosi Cię o nowe hasło (Ustawienia → Urządzenia i usługi), a ten komunikat zniknie."
     },
     "legacy_rooms": {

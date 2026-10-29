@@ -141,7 +141,7 @@
 											type="text" class="form-control" id="DeviceMQTTClientID" data-hint="A unique name for the E32 on the broker." placeholder="Automatic (unique per device)" data-i18n-placeholder="Automatic (unique per device)">
 									</div>
 									<div class="col-md mb-2"><label for="DeviceMQTTBase"><span data-i18n="Base">Base</span></label><input type="text"
-											class="form-control" id="DeviceMQTTBase" data-hint="The start of all MQTT topics of the E32." value="ib-therm"></div>
+											class="form-control" id="DeviceMQTTBase" data-hint="The start of all MQTT topics of the E32." value="openthermostat"></div>
 									<div class="col-md-2 mb-2"><label for="DeviceMQTTKeepAlive"><span data-i18n="Keep alive time (s)">Keep alive time (s)</span></label><input type="number" class="form-control"
 											id="DeviceMQTTKeepAlive" data-hint="How often the connection is checked." step="1" min="1" max="360" value="60"></div>
 									<div class="col-md-2 mb-2"><label for="DeviceMQTTInterval"><span data-i18n="Publish interval (s)">Publish interval (s)</span></label><input type="number" class="form-control" id="DeviceMQTTInterval" data-hint="How often values are sent."
@@ -271,6 +271,12 @@
 
 
 </form>
+<div class="row-mt-3 mt-3">
+    <details class="card w-100" id="ConfigBackup">
+        <summary class="card-header" style="min-height:44px;cursor:pointer"><span data-i18n="Backup and restore">Backup and restore</span></summary>
+        <div class="card-body" id="ConfigBackupBody"></div>
+    </details>
+</div>
 
 
 
@@ -389,6 +395,7 @@
 		loadWiFiSettings();
 		loadDeviceSettings();
 		mountDebugSettings();
+		window.ConfigBackupPage?.mount(); // backup.js, loaded by index.html
 
 		$("#loadingprogress").addClass('invisible');
 		$('#networkeditform').removeClass('invisible');

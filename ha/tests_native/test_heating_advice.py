@@ -542,11 +542,12 @@ async def test_heating_route_forwards_energy_values_next_to_the_room_inputs(hass
     await module.async_setup_heating_link(hass, entry, lambda entities, **kw: None)
     await hass.async_block_till_done()
     assert published == [("fixture/v1/ha/heating_input", {"kind": "gas_price", "value": 1.32})]
-    assert "fixture/v1/fw/telemetry/heating_learned/+" in callbacks
+    assert "fixture/v1/fw/telemetry/learned/+" in callbacks
     # The E32 comes online: the values go at once (also without room inputs).
     status = {"schema": 1, "mode": "shadow", "request": {"heat": False, "flow_c": 0, "reason": "idle"},
               "ha_entities": [], "rooms": []}
-    callbacks["fixture/v1/fw/telemetry/heating"](SimpleNamespace(payload=json.dumps(status), retain=False))
+    from e32_telemetry import FakeE32  # the beta.19 topics (fw/state/*, fw/config/*)
+    FakeE32(callbacks).status(status)
     await hass.async_block_till_done()
     assert len(published) == 2
     assert hass.data[DOMAIN]["e"]["energy_forwarder"] is not None

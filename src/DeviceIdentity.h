@@ -14,4 +14,8 @@ inline std::string macSuffix(uint64_t efuseMac) {
 // The hostname and MQTT client ID of a new install (stored settings win), so two
 // controllers never share them: "openthermostat-ddeeff".
 inline std::string defaultDeviceName(uint64_t efuseMac) { return "openthermostat-" + macSuffix(efuseMac); }
+// Setup access point of a board without a stored one (esp32dev/esp32s3 cfgap.json):
+// the same name and documented password as the E32 setup Wi-Fi (SetupNetwork.h).
+inline std::string setupWifiName(uint64_t efuseMac) { return "OpenThermostat-" + macSuffix(efuseMac); }
+inline constexpr const char *setupWifiPassword = "openthermostat";
 }

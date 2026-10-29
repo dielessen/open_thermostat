@@ -33,3 +33,14 @@ TEST(DeviceIdentity, DefaultNameUsesTheLastThreeMacBytes) {
     EXPECT_EQ(heating::defaultDeviceName(efuse & 0xffffff), "openthermostat-000000"); // same vendor prefix only
     EXPECT_LE(heating::defaultDeviceName(~0ull).size(), 21u); // within the 32-char hostname/clientId limits
 }
+
+// esp32dev/esp32s3 without a stored access point: the E32 setup Wi-Fi name and
+// documented password, never the old shared "IntuiBaseHeating" pair.
+TEST(DeviceIdentity, SetupWifiMatchesTheE32SetupNetwork) {
+    const uint64_t efuse = 0x24ull | 0x6full << 8 | 0x28ull << 16 | 0xa1ull << 24 | 0xb2ull << 32 | 0xc3ull << 40;
+    EXPECT_EQ(heating::setupWifiName(efuse), "OpenThermostat-a1b2c3");
+    EXPECT_NE(heating::setupWifiName(efuse), heating::setupWifiName(efuse ^ (1ull << 24)));
+    EXPECT_LE(heating::setupWifiName(~0ull).size(), 31u); // the E32 formats it into char[32]
+    EXPECT_STREQ(heating::setupWifiPassword, "openthermostat");
+    EXPECT_GE(std::string(heating::setupWifiPassword).size(), 8u); // WPA2 minimum: softAP refuses shorter
+}

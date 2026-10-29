@@ -588,7 +588,7 @@ async def test_dashboard_has_no_old_room_settings_view_when_the_e32_plan_is_the_
     buttons = [card["name"] for card in view_cards(config["views"][0]) if card["type"] == "button"]
     assert "room-a1b2c3d4" in paths  # the old record's own subview, linked from its reconfigure dialog
     if credentials:
-        assert "week" not in paths and buttons == ["Set up rooms"]
+        assert "week" not in paths and buttons == ["Set up rooms", "Week program"]
     else:
         assert "week" in paths and buttons == ["room settings"]
 

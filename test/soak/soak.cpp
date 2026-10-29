@@ -22,8 +22,10 @@
 #include "control/HeatingInput.h"
 #include "control/HeatingTelemetry.h"
 #include "control/ManagedBleObserver.h"
+#include "control/MqttOutbox.h"
 #include "control/RoomEngine.h"
 #include "control/ShadowComparison.h"
+#include "control/TelemetryPublisher.h"
 #include "control/WarmupPlanner.h"
 #include "diagnostics/SupervisorPolicy.h"
 #include <cJSON.h>
@@ -2676,8 +2678,10 @@ void reproScenario() {
     }
 }
 
+#include "slow_wifi.h" // scenario slowwifi (MQTT telemetry budget)
+
 void usage() {
-    std::fprintf(stderr, "soak --scenario=chain|guard|active|flow|supervisor|sizes|repro [--name=] [--tz=POSIX] [--start=YYYY-MM-DDTHH:MM:SSZ] [--days=60]\n"
+    std::fprintf(stderr, "soak --scenario=chain|guard|active|flow|supervisor|sizes|repro|slowwifi [--name=] [--tz=POSIX] [--start=YYYY-MM-DDTHH:MM:SSZ] [--days=60]\n"
                          "     [--uptime0=ms] [--seed=n] [--step-ms=10000] [--mqtt-s=300] [--learned-s=900] [--full-s=3600] [--edit-h=4]\n"
                          "     [--live-dhw-flow] [--boiler-outdoor] [--no-oom] [--no-active] [--out=/tmp/soak]\n");
 }
@@ -2724,6 +2728,7 @@ int main(int argc, char** argv) {
     else if (opt.scenario == "active") activeScenario();
     else if (opt.scenario == "sizes") sizesScenario();
     else if (opt.scenario == "repro") reproScenario();
+    else if (opt.scenario == "slowwifi") slowWifiScenario();
     else { usage(); return 2; }
     const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
     std::printf("---- %s: %.1f s wall\n", ctx.scenario.c_str(), seconds);

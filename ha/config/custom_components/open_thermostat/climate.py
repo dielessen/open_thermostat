@@ -20,7 +20,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .room_identity import room_device_name, room_key
 from .room_values import room_value
-from .const import CONF_TOPIC_PREFIX, DOMAIN
+from .const import CONF_TOPIC_PREFIX, DOMAIN, MANUFACTURER
 from .program import room_program_name
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,6 +45,10 @@ async def async_setup_entry(
             vol.Optional('expected_entry_id'):str,vol.Optional('expected_room_id'):str,
             vol.Optional('expected_token'):str,vol.Optional('expected_time_zone'):str,
         },"async_set_comfort")
+        # E32 room plan entries: a thermostat per E32 room (e32_comfort.py).
+        from .e32_comfort import async_setup_e32_climates, register_services
+        register_services(platform)
+        await async_setup_e32_climates(hass, entry, async_add_entities)
         from .v1_climate import async_setup_entry as setup_shadow
         return await setup_shadow(hass, entry, async_add_entities)
 
@@ -172,7 +176,7 @@ class OpenThermostatRoom(ClimateEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={("open_thermostat", self._device_identifier)},
             name=room_device_name(None, index),
-            manufacturer="intuibase",
+            manufacturer=MANUFACTURER,
             model="OpenThermostat room",
             via_device_id=self._hub_id,
         )
@@ -218,7 +222,7 @@ class OpenThermostatRoom(ClimateEntity):
             self._attr_device_info = DeviceInfo(
                 identifiers={("open_thermostat", self._device_identifier)},
                 name=room_device_name(name, self._index),
-                manufacturer="intuibase",
+                manufacturer=MANUFACTURER,
                 model="OpenThermostat room",
                 via_device_id=self._hub_id,
             )

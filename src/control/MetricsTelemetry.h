@@ -6,7 +6,8 @@
 
 namespace heating::control {
 inline constexpr const char* metricsCapability="metrics.observation_total.v2";
-inline constexpr uint64_t metricsIntervalMs=30000,metricsExpiryMs=45000;
+// Every 5 minutes (telemetry budget); HA keeps a snapshot for 345 s.
+inline constexpr uint64_t metricsIntervalMs=300000,metricsExpiryMs=345000;
 inline constexpr size_t maximumMetricsBytes=1024,maximumMetricsEnvelopeBytes=2048;
 inline constexpr std::array<const char*,8> legacyMetricFields{
     "totalEnergyUsedKwh","heatingEnergyUsedKwh","warmWaterEnergyUsedKwh","unattributedEnergyUsedKwh",

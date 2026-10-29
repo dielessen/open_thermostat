@@ -133,6 +133,10 @@ CAPABILITY_V2 = "boiler.fields.v2"
 CATALOG_BASE = 70
 GROUPS_V2 = GROUPS + (len(CATALOG_FIELDS) + PER_GROUP - 1) // PER_GROUP
 INDEXES = tuple(range(len(FIELDS))) + tuple(range(CATALOG_BASE, CATALOG_BASE + len(CATALOG_FIELDS)))
+INDEX_SET = frozenset(INDEXES)
+# Retained state (E32 beta.19): valid while the E32 is online and its heartbeat
+# (every 60 s) is current; three missed heartbeats make it unavailable.
+STATE_STALE_SECONDS = 3 * 60 + 15
 
 
 def spec(index):
@@ -197,6 +201,59 @@ def concept(index):
     return tuple(sorted((index, _TWIN[index]), key=lambda i: (quality(i) == 1, i >= CATALOG_BASE)))
 
 
+def _integer(v, lo=0, hi=9007199254740991):
+    return type(v) is int and lo <= v <= hi
+
+
+def validate_field(field, index, sampled):
+    """One [index, raw, observed_ms, quality, source type] row of the group or state wire."""
+    integer = _integer
+    if (type(field) is not list or len(field) != 5 or not integer(field[0], index, index)
+            or not integer(field[3], 0, 2)):
+        raise ValueError("boiler field shape")
+    _, raw, observed, quality, source = field
+    if observed is None:
+        if raw is not None or type(source) is not int or source != 0 or quality != 0:
+            raise ValueError("unobserved boiler field")
+    elif index >= CATALOG_BASE:
+        _, _, _, _, types, low, high = CATALOG_FIELDS[index - CATALOG_BASE]
+        if (not integer(observed, 0, sampled) or quality != 0
+                or type(source) is not int or source not in types
+                or (raw is not None and not integer(raw, low, high))):
+            raise ValueError("boiler catalog field value")
+    elif (not integer(observed, 0, sampled)
+          or quality != QUALITIES[index]
+          or not integer(source, FIELDS[index][4], FIELDS[index][4])
+          or (raw is not None and not integer(raw, *LIMITS[index]))):
+        raise ValueError("boiler field value")
+    if spec(index)[1] == "text" and raw is not None and not (32 <= raw >> 8 <= 126 and 32 <= raw & 255 <= 126):
+        raise ValueError("boiler display code")
+
+
+def _validate_values(value):
+    if (type(value) is not dict or set(value) != {"schema", "sampled_at_ms", "profile", "fields"}
+            or type(value["schema"]) is not int or value["schema"] != 1
+            or not _integer(value["sampled_at_ms"])
+            or value["profile"] not in ("classic_observed", "plus_observed", "unknown", "conflicting_families")
+            or type(value["fields"]) is not list):
+        raise ValueError("boiler group schema")
+
+
+def validate_rows(value):
+    """``fw/state/boiler``: the same values with any known field indexes, each once."""
+    _validate_values(value)
+    seen = set()
+    if not 1 <= len(value["fields"]) <= 32:
+        raise ValueError("boiler state size")
+    for field in value["fields"]:
+        index = field[0] if type(field) is list and field else None
+        if type(index) is not int or index not in INDEX_SET or index in seen:
+            raise ValueError("boiler state index")
+        seen.add(index)
+        validate_field(field, index, value["sampled_at_ms"])
+    return value
+
+
 def validate_group(value, group):
     def integer(v, lo=0, hi=9007199254740991):
         return type(v) is int and lo <= v <= hi
@@ -236,11 +293,28 @@ def validate_group(value, group):
 
 
 class BoilerFieldCache:
-    """One session cache; an unchanged acquisition never gets a new deadline."""
+    """One session cache; an unchanged acquisition never gets a new deadline.
+
+    Since E32 beta.19 the fields arrive as retained state instead
+    (``accept_state``): not bound to a shadow session, the E32 itself sends a
+    value that outlived its lifetime as null, and a value stays usable while
+    the E32 is alive (``heartbeat``/``availability``), not for its own TTL.
+    """
     def __init__(self):
+        self.state_mode = False
         self.reset()
 
+    def reset_session(self):
+        """A shadow session ended: only the session cache goes; the retained state stays."""
+        if not self.state_mode:
+            self.reset()
+
     def reset(self):
+        self.state_mode = False
+        self.online = None
+        self.heartbeat_at = None
+        self.first_state_at = None
+        self.sampled_by_index = {}
         self.sequence = 0
         self.sampled = -1
         self.profile = "unknown"
@@ -256,6 +330,49 @@ class BoilerFieldCache:
         for index, (field, _) in self.records.items():
             if field[2] is not None:
                 self.retired[index] = max(self.retired.get(index, -1), field[2])
+
+    def alive(self, now):
+        """Retained state: online and heard (from the first state until the first heartbeat)."""
+        if self.online is False:
+            return False
+        since = self.heartbeat_at if self.heartbeat_at is not None else self.first_state_at
+        return since is not None and 0 <= now - since <= STATE_STALE_SECONDS
+
+    def heartbeat(self, now, uptime_s=None):
+        """A live fw/heartbeat; an uptime below what was seen means the E32 restarted."""
+        if (type(uptime_s) is int and self.sampled_by_index
+                and uptime_s * 1000 + 60000 < max(self.sampled_by_index.values())):
+            self.records, self.sampled_by_index = {}, {}
+        self.heartbeat_at, self.online = now, True
+
+    def availability(self, online, now):
+        self.online = online
+        if online and self.heartbeat_at is None:
+            self.heartbeat_at = now
+
+    def accept_state(self, value, group, now):
+        """A retained ``fw/state/boiler_fields/<g>`` (group) or ``fw/state/boiler`` (group None)."""
+        if group is None:
+            validate_rows(value)
+        else:
+            validate_group(value, group)
+        if not self.state_mode:
+            self.reset()
+            self.state_mode = True
+        sampled = value["sampled_at_ms"]
+        for field in value["fields"]:
+            index = field[0]
+            if sampled < self.sampled_by_index.get(index, -1):
+                continue  # a newer value of this field came on the other topic
+            self.records[index] = (tuple(field), math.inf if field[2] is not None else None)
+            self.sampled_by_index[index] = sampled
+        self.profile = value["profile"]
+        self.sampled = max(self.sampled, sampled)
+        self.received = now
+        self.invalid = False
+        self.sequence += 1  # the entities write their state when this changes
+        if self.first_state_at is None:
+            self.first_state_at = now
 
     def accept(self, value, group, sequence, now):
         validate_group(value, group)
@@ -303,8 +420,9 @@ class BoilerFieldCache:
         field, deadline = record
         # The 69 v1 fields are Classic telegrams; catalog fields name their own family.
         family = self.profile == "classic_observed" or index >= CATALOG_BASE
-        usable = (not self.invalid and family
-                  and self.received is not None and 0 <= now-self.received < 20
+        stream = (self.alive(now) if self.state_mode else
+                  self.received is not None and 0 <= now-self.received < 20)
+        usable = (not self.invalid and family and stream
                   and deadline is not None and now < deadline
                   and field[1] is not None and field[3] != 1
                   and field[2] > self.retired.get(index, -1))
@@ -313,7 +431,7 @@ class BoilerFieldCache:
                  else "stale" if deadline is None or now >= deadline else "valid")
         reason = ("invalid_packet" if self.invalid else
                   "protocol_unqualified" if not family else
-                  "stream_unavailable" if self.received is None or not 0 <= now-self.received < 20 else
+                  "stream_unavailable" if not stream else
                   "not_observed" if field[2] is None else
                   "invalid_value" if field[1] is None else
                   "source_expired" if deadline is None or now >= deadline else

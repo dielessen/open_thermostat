@@ -45,6 +45,8 @@ class HeatingPlanRejected(ControllerLinkError):
 
 
 HEATING_PLAN = "/config/heating"
+# Overrides, window pauses and away on top of the plan (E32 beta.19, RoomOverrides.h).
+HEATING_COMFORT = "/config/heating/comfort"
 HEATING_PLAN_BYTES = 8192  # The E32 refuses larger request bodies (413 plan_too_large).
 # Since beta.19 the E32 packs large week programs into its 4 KB store and
 # answers 413 plan_too_large itself when even that form does not fit; older
@@ -451,8 +453,9 @@ class ControllerClient:
     """One scoped operation using the existing firmware cookie/CSRF contract."""
 
     _reads = frozenset(("/auth/session", "/status/version", "/status", "/updates/status",
-                        "/config/device", "/config/rooms", HEATING_PLAN, "/status/heating"))
-    _writes = frozenset(("/auth/login", "/auth/logout", "/config/device", "/updates/reboot", HEATING_PLAN))
+                        "/config/device", "/config/rooms", HEATING_PLAN, HEATING_COMFORT, "/status/heating"))
+    _writes = frozenset(("/auth/login", "/auth/logout", "/config/device", "/updates/reboot", HEATING_PLAN,
+                         HEATING_COMFORT))
 
     def __init__(self, address):
         self.address = controller_address(address)
@@ -518,7 +521,7 @@ class ControllerClient:
                     raise ControllerLoginRejected()
                 if response.status in (401, 403):
                     raise ControllerLinkError("controller_auth_failed")
-                if path == HEATING_PLAN and response.status in (400, 409, 413, 503, 507):
+                if path in (HEATING_PLAN, HEATING_COMFORT) and response.status in (400, 409, 413, 503, 507):
                     raise HeatingPlanRejected(response.status, await _error_name(response))
                 if response.status == 412:
                     raise ControllerLinkError("controller_settings_changed")
@@ -575,6 +578,17 @@ class ControllerClient:
         if type(plan) is not dict:
             raise ControllerLinkError("controller_request_invalid")
         raw, _, _ = await self._request("POST", HEATING_PLAN, document=plan)
+        return _decode(raw)
+
+    async def async_comfort_command(self, command):
+        """POST one override or away command; returns the E32's comfort state.
+
+        A refusal raises HeatingPlanRejected with the E32's error name
+        (unknown_room, invalid_temperature, no_clock, no_schedule, ...).
+        """
+        if type(command) is not dict:
+            raise ControllerLinkError("controller_request_invalid")
+        raw, _, _ = await self._request("POST", HEATING_COMFORT, document=command)
         return _decode(raw)
 
     async def async_save_settings(self, document, etag):

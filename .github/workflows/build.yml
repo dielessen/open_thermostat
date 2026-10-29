@@ -73,6 +73,7 @@ jobs:
           browser test/bluetooth-browser.cjs
           browser test/bluetooth-lifecycle-browser.cjs
           browser test/navigation-browser.cjs
+          browser test/about-password-browser.cjs
           browser test/page-loading-browser.cjs
           browser test/system-log-browser.cjs
           browser test/system-log-lifecycle-browser.cjs

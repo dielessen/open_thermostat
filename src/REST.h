@@ -19,6 +19,7 @@
 #include "control/NativeSourceProvisioning.h"
 #include "control/BleObservationJson.h"
 #include "control/HandoverRequest.h"
+#include "ConfigBackupRoute.h"
 #include <esp_system.h>
 // Pinned Arduino WebServer verbose logging prints HTTP headers and form bodies.
 // Never build the credential endpoint with that unredacted library trace enabled.
@@ -210,6 +211,7 @@ public:
 #ifdef OPENTHERMOSTAT_E32V2
         route("/config/heating/handover",HTTP_POST,[this] { heatingHandover(); });
         route("/config/heating/flow",[this] { heatingFlow(); });
+        route("/config/heating/comfort",[this] { heatingComfort(); });
         route("/config/heating",[this] { heatingPlan(); });
         route("/status/heating",HTTP_GET,[this] { heatingStatus(); });
         route("/config/bluetooth",[this] { bluetoothSettings(); });
@@ -219,6 +221,7 @@ public:
             server_.send(accepted?202:409,"application/json",accepted?"{\"scan_started\":true}":"{\"error\":\"bluetooth_scan_not_started\"}");
         });
         route("/config/logging",[this] { loggingSettings(); });
+        route("/config/backup",HTTP_POST,[this] { configBackupRoute(server_,controller_); }); // ConfigBackupRoute.h
         route("/status/logs",HTTP_GET,[this] { systemLogs(); });
         route("/logs/clear",HTTP_POST,[this] { diagnostics::runtime.log.clear();server_.send(200,"application/json","{}"); });
 #endif
@@ -1187,10 +1190,17 @@ private:
         if(!boot||!cJSON_AddItemToObject(root.get(),"previous_boot",boot)) {cJSON_Delete(boot);server_.send(503);return;}
         cJSON* runtime=diagnostics::runtimeHealthJson();
         if(!runtime||!cJSON_AddItemToObject(root.get(),"runtime",runtime)) {cJSON_Delete(runtime);server_.send(503);return;}
-        cJSON_AddNumberToObject(runtime,"mqtt_budget_disconnects",control::socketBudgetDisconnects.load());
-        cJSON_AddNumberToObject(runtime,"heating_telemetry_dropped",control::heatingTelemetryDropped.load());
-        cJSON_AddNumberToObject(runtime,"heating_telemetry_failed",control::heatingTelemetryFailed.load());
-        cJSON_AddNumberToObject(runtime,"heating_telemetry_large",control::heatingTelemetryLarge.load()); // > 4096 B, still sent
+        // MQTT sessions the E32 itself closed: write-path stall (15 s without progress) or socket error.
+        const auto stalled=control::MqttCounters::stalledDisconnects.load(),socketErrors=control::MqttCounters::socketErrorDisconnects.load();
+        cJSON_AddNumberToObject(runtime,"mqtt_budget_disconnects",stalled+socketErrors);
+        cJSON_AddNumberToObject(runtime,"mqtt_stalled_disconnects",stalled);
+        cJSON_AddNumberToObject(runtime,"mqtt_socket_error_disconnects",socketErrors);
+        cJSON_AddNumberToObject(runtime,"mqtt_queue_rejected",control::MqttCounters::rejected.load());
+        cJSON_AddNumberToObject(runtime,"mqtt_queue_peak_bytes",control::MqttCounters::peakBytes.load());
+        cJSON_AddNumberToObject(runtime,"mqtt_write_latency_max_ms",control::MqttCounters::latencyMaxMs.load());
+        cJSON_AddNumberToObject(runtime,"heating_telemetry_dropped",control::TelemetryCounters::dropped.load());
+        cJSON_AddNumberToObject(runtime,"heating_telemetry_failed",control::TelemetryCounters::failed.load());
+        cJSON_AddNumberToObject(runtime,"heating_telemetry_large",control::TelemetryCounters::large.load()); // > 1 KB, still sent
         cJSON_AddNumberToObject(root.get(),"boot",diagnostics::runtime.boot);
         cJSON_AddNumberToObject(root.get(),"latest",stats.latest);cJSON_AddNumberToObject(root.get(),"oldest",stats.oldest);
         cJSON_AddNumberToObject(root.get(),"retained",stats.retained);cJSON_AddNumberToObject(root.get(),"overwritten",stats.overwritten);
@@ -1305,6 +1315,22 @@ private:
 			}
 		} else if (server_.method() != HTTP_GET) { server_.send(405,"application/json","{\"error\":\"method_not_allowed\"}"); return; }
 		server_.send(200,"application/json",controller_.flowSettingsJson().c_str());
+	}
+	// GET: overrides and away (control/RoomOverrides.h); POST one command:
+	// {"room","override":"boost"|"timed"|"next"|"none","temperature","minutes"} or
+	// {"away":true|false,"temperature","until"}. Answers the state like GET.
+	void heatingComfort() {
+		if (server_.method() == HTTP_POST) {
+			const auto body = server_.arg("plain");
+			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= control::RoomOverrides::commandBytes ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));
+			if (const char* error = root ? controller_.setHeatingComfort(root.get()) : "invalid_json") {
+				server_.send(!std::strcmp(error,"save_unconfirmed") ? 503 : !std::strcmp(error,"no_clock") ? 409 : 400,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
+			}
+		} else if (server_.method() != HTTP_GET) { server_.send(405,"application/json","{\"error\":\"method_not_allowed\"}"); return; }
+		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> state(controller_.heatingComfortJson(),cJSON_Delete);
+		const auto text = state ? control::printJson(state.get()) : std::string();
+		if (text.empty()) { server_.send(503,"application/json","{\"error\":\"status_unavailable\"}"); return; }
+		server_.send(200,"application/json",text.c_str());
 	}
 	void heatingStatus() {
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> status(controller_.heatingStatusJson(),cJSON_Delete);

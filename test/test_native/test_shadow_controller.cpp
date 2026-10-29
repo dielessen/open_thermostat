@@ -1,6 +1,6 @@
 #include "ShadowControllerFixture.h"
 namespace {
-TEST(ModernMetrics, OptionalProviderNoReadBeforeSessionAndOneBoundedSnapshotAtThirtySeconds) {
+TEST(ModernMetrics, OptionalProviderNoReadBeforeSessionAndOneBoundedSnapshotPerInterval) {
     Fixture f;unsigned reads=0;f.metricsProvider=[&](auto& stream){++reads;stream<<metricFixture();};
     f.start();EXPECT_EQ(reads,0u);
     auto hello=f.get("fw/hello");ASSERT_TRUE(cJSON_IsArray(field(hello.get(),"read_only_capabilities")));
@@ -13,7 +13,8 @@ TEST(ModernMetrics, OptionalProviderNoReadBeforeSessionAndOneBoundedSnapshotAtTh
     EXPECT_FALSE(cJSON_IsTrue(field(p.get(),"actuator_output_enabled")));
     EXPECT_TRUE(validMetricsSnapshot(field(p.get(),"metrics")));
     EXPECT_LE(f.output.at("fw/telemetry/ems_metrics").size(),maximumMetricsEnvelopeBytes);
-    for(unsigned i=1;i<=30;++i) {f.now+=1000;f.tick();f.syncSession();f.heartbeat(i+1);}
+    // Every metricsIntervalMs (5 minutes, the telemetry budget).
+    for(unsigned i=1;i<=metricsIntervalMs/1000;++i) {f.now+=1000;f.tick();f.syncSession();f.heartbeat(i+1);}
     EXPECT_EQ(reads,2u);p=f.get("fw/telemetry/ems_metrics");EXPECT_EQ(uintField(p.get(),"sequence"),2u);
     EXPECT_EQ(f.store.writes,1u);auto state=f.state();EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(state),"demand")));
 }

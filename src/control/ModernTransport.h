@@ -19,6 +19,7 @@
 #include "PendingTcpConnect.h"
 #include "ControllerRequestTelemetry.h"
 #include "HeatingTelemetry.h"
+#include "TelemetryPublisher.h"
 #include <PubSubClient.h>
 #include <esp_timer.h>
 #include <esp_system.h>
@@ -29,12 +30,6 @@
 #include <atomic>
 
 namespace heating::control {
-// fw/telemetry/heating*: skipped above this size, or counted when publishing failed.
-// 7900 B: below HA 0.4.0b9's 8192-byte limit and the 8448-byte PubSubClient buffer
-// (PSRAM: CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=4096; publish copies into it, no
-// second buffer). Payloads above 4096 B (two TCP windows) are counted as large.
-inline constexpr std::size_t heatingTelemetryMaxBytes=7900, heatingTelemetryLargeBytes=4096;
-inline std::atomic<uint32_t> heatingTelemetryDropped{0},heatingTelemetryFailed{0},heatingTelemetryLarge{0};
 static_assert(ShadowController::maximumConfigBytes==ControlPartitionBudget::configBytes);
 inline std::string sha256Hex(std::string_view bytes) {
     unsigned char hash[32];
@@ -80,7 +75,7 @@ public:
                              ActuatorFactory actuatorFactory={},StatusSnapshot controllerStatus={})
         :cfg_(std::move(cfg)),client_(network_),
          store_((graphProfile||graphHandoff||topologyHandoff||floorBridge||nativePlanSource||cfg_.nativeSourceRequested)?ControlStorageProfile::graph_shadow_v2:ControlStorageProfile::legacy_api1),
-         controllerStatus_(std::move(controllerStatus)),graph_(graphProfile!=nullptr) {
+         controllerStatus_(std::move(controllerStatus)),boilerFields_(std::move(boilerFields)),graph_(graphProfile!=nullptr) {
         if(graph_&&actuatorFactory){valid_=false;return;}
         char mac[17]; snprintf(mac,sizeof(mac),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));
         std::unique_ptr<NativePlanInstallationSource> locallyProvisioned;
@@ -112,6 +107,7 @@ public:
             ||(floorBridge&&(!seasonalSource||graphProfile||graphHandoff||topologyHandoff))
             ||(nativePlanSource&&(graphProfile||seasonalSource||graphHandoff||topologyHandoff||floorBridge))) {valid_=false;return;} // DATA2 cannot silently select control policy.
         base_=prefix+(graph_?"/v2/":"/v1/");
+        network_.setTopicPrefix(base_);
         client_.setKeepAlive(15); client_.setSocketTimeout(1);
         // Total packet budget: max payload8192 + bounded prefix/topic/header.
         if(!client_.setBufferSize(8448)) { valid_=false; return; }
@@ -145,7 +141,7 @@ public:
                 selectedStore=floorControlView_.get();
             }
             controller_=std::make_unique<ShadowController>(mac,randomControlId(),cfg_.adapterId,*selectedStore,
-                sha256Hex,randomControlId,publish,std::move(metrics),seasonalSource,std::move(safety),nativePlanSource,std::move(boilerFields));
+                sha256Hex,randomControlId,publish,std::move(metrics),seasonalSource,std::move(safety),nativePlanSource);
         }
         if(actuatorFactory) {
             actuatorChannels_=std::make_unique<ActuatorChannels>(std::move(actuatorFactory),
@@ -196,19 +192,33 @@ public:
     }
     bool brokerConnected() const { return wasConnected_; }
     // The one route between the E32 room control and Home Assistant: HA sends
-    // source states on ha/heating_input, the E32 reports fw/telemetry/heating.
+    // source states on ha/heating_input, the E32 reports its state in small
+    // retained topics (TelemetryPublisher): fw/state/heating, room/<id>, ble/<id>,
+    // boiler, boiler_fields/<g>, fw/config/plan, entities, fw/telemetry/learned/<id>,
+    // summary, shadow, and the fw/heartbeat.
     using HeatingInput=std::function<void(std::string_view)>;
-    using HeatingStatus=std::function<std::string()>;
-    // fw/telemetry/heating_learned/<room id>: the plan's room count, and one
-    // room's payload (empty: skip) with its id.
+    // The compact status (heatingStatusJson(true) + compactHeatingTelemetry), caller deletes.
+    using HeatingStatus=std::function<cJSON*()>;
+    // fw/telemetry/learned/<room id>: the plan's room count, and one room's
+    // payload (empty: skip) with its id.
     using HeatingRoomCount=std::function<std::size_t()>;
     using HeatingRoomTelemetry=std::function<std::string(std::size_t,std::string&)>;
-    // fw/telemetry/heating_summary: learned header and today's hot water.
+    // fw/telemetry/summary: learned header and today's hot water.
     using HeatingSummary=std::function<std::string()>;
     void setHeatingRoute(HeatingInput input,HeatingStatus status,HeatingRoomCount roomCount={},HeatingRoomTelemetry room={},
                          HeatingSummary summary={}) {
-        heatingInput_=std::move(input);heatingStatus_=std::move(status);
-        heatingRoomCount_=std::move(roomCount);heatingRoom_=std::move(room);heatingSummary_=std::move(summary);
+        heatingInput_=std::move(input);
+        TelemetryPublisher::Sources sources{std::move(status),std::move(roomCount),std::move(room),std::move(summary),{},
+            [this]{return heartbeatJson();}};
+        if(boilerFields_)sources.boilerGroup=[this](std::string& out,size_t group) {
+            std::ostringstream ss;boilerFields_(ss,group);out=ss.str();
+        };
+        telemetry_=std::make_unique<TelemetryPublisher>(std::move(sources),
+            [this](const std::string& suffix,std::string_view payload,bool retained) {
+                // Same one connection; the outbox takes the whole frame or refuses it.
+                return client_.connected()&&client_.publish((base_+suffix).c_str(),
+                    reinterpret_cast<const uint8_t*>(payload.data()),payload.size(),retained);
+            },[this]{return network_.acceptsTelemetry();});
     }
     bool nativeSourceCurrent(std::string_view expected,std::string_view savedSettings) const {
         return valid_&&!graph_&&cfg_.nativeSourceRequested&&controller_&&controller_->nativeSourceSelected()
@@ -234,7 +244,7 @@ public:
         valid_=false;
         // Same native availability channel; no logging/private wire.
         if(client_.connected()) {
-            client_.publish((base_+"fw/availability").c_str(),"offline",false);
+            client_.publish((base_+"fw/availability").c_str(),"offline",true);
             client_.disconnect();
         }
         network_.stop();
@@ -305,7 +315,7 @@ public:
             // existing one-second CONNACK/read timeout remains separate.
             const auto id=cfg_.clientId.empty()?cfg_.base:cfg_.clientId;
             const auto willTopic=base_+"fw/availability";
-            if(!client_.connect(id.c_str(),cfg_.username.c_str(),cfg_.password.c_str(),willTopic.c_str(),0,false,"offline",true)) return;
+            if(!client_.connect(id.c_str(),cfg_.username.c_str(),cfg_.password.c_str(),willTopic.c_str(),0,true,"offline",true)) return; // retained will
             bool subscriptions=true;
             for(auto suffix:{"ha/open_session","ha/heartbeat","ha/config","ha/observations","ha/user_command","ha/snapshot_request","ha/capabilities"}) {
                 if(graph_&&(std::string_view(suffix)=="ha/observations"||std::string_view(suffix)=="ha/user_command"))continue;
@@ -318,11 +328,14 @@ public:
             if(!subscriptions) { client_.disconnect(); return; }
             now=monotonicMs();
             withOwner([&](auto& owner){owner.connected(now);}); wasConnected_=true; nextDeviceDiagnostics_=0;
-            client_.publish(willTopic.c_str(),"online",false);
+            // Retained like the will: a restarted HA sees at once whether the E32 is there.
+            client_.publish(willTopic.c_str(),"online",true);
+            if(telemetry_)telemetry_->connected(now);
         }
         const auto utc=std::time(nullptr);
         withOwner([&](auto& owner){owner.tick(now,utc,clockValid());});
         client_.loop();
+        network_.poll(); // drains the outbox; closes only on a real stall or a socket error
         if(actuatorChannels_)actuatorChannels_->checkCurrent();
         // Observation only, on the existing native connection. Never control input.
         if(client_.connected() && now>=nextDeviceDiagnostics_) {
@@ -330,32 +343,14 @@ public:
             const auto bytes=deviceDiagnosticsJson(ESP.getFreeHeap(), ESP.getMinFreeHeap(),
                 ESP.getMaxAllocHeap(), temperatureRead(), now/1000);
             client_.publish((base_+"fw/telemetry/device_status").c_str(),bytes.c_str(),false);
-            // Bounded: PubSubClient silently drops anything above its buffer,
-            // and a large frame can overrun the socket budget (disconnect).
-            const auto publishHeating=[this](const std::string& suffix,const std::string& payload) {
-                if(payload.empty())return;
-                if(payload.size()>heatingTelemetryMaxBytes){heatingTelemetryDropped.fetch_add(1,std::memory_order_relaxed);return;}
-                if(payload.size()>heatingTelemetryLargeBytes)heatingTelemetryLarge.fetch_add(1,std::memory_order_relaxed);
-                if(!client_.publish((base_+suffix).c_str(),payload.c_str(),false))heatingTelemetryFailed.fetch_add(1,std::memory_order_relaxed);
-            };
-            if(heatingStatus_)try { publishHeating("fw/telemetry/heating",heatingStatus_()); }
-            catch(const std::exception&) { /* status is observation only */ }
-            if(heatingSummary_)try { publishHeating("fw/telemetry/heating_summary",heatingSummary_()); }
-            catch(const std::exception&) { /* observation only */ }
-            // What was learned per room, two rooms per tick (each <= ~900 B).
-            if(heatingRoomCount_&&heatingRoom_)try {
-                heatingRoomRotation_.tick(heatingRoomCount_(),2,[&](std::size_t room){
-                    std::string id;
-                    const auto payload=heatingRoom_(room,id);
-                    if(topicSafeRoomId(id))publishHeating("fw/telemetry/heating_learned/"+id,payload);
-                });
-            } catch(const std::exception&) { /* observation only */ }
             if(controllerStatus_)try {
                 std::ostringstream status;controllerStatus_(status);
                 const auto command=controllerRequestTelemetry(status.str());
                 if(!command.empty())client_.publish((base_+"fw/telemetry/controller_request").c_str(),command.c_str(),false);
             } catch(const std::exception&) { /* Missing status never supplies a command value. */ }
         }
+        if(telemetry_&&client_.connected())try { telemetry_->tick(now); }
+        catch(const std::exception&) { /* telemetry is observation only */ }
     }
     // Internal callers use the SAME serialized task as loop(), never a REST,
     // MQTT command or a second task. No current product caller selects this.
@@ -364,6 +359,28 @@ public:
     }
 private:
     static uint64_t monotonicMs(){return static_cast<uint64_t>(esp_timer_get_time()/1000);}
+    // fw/heartbeat (every 60 s): liveness for HA (unavailable after 3 missed)
+    // and the link's own traffic since the previous heartbeat.
+    std::string heartbeatJson() {
+        const uint32_t frames=MqttCounters::frames.load(),bytes=MqttCounters::bytes.load(),latency=MqttCounters::latencySumMs.load();
+        size_t peak=0;uint32_t slowest=0;network_.takeWindow(peak,slowest);
+        const uint32_t sent=frames-beatFrames_;
+        char out[480];
+        const int n=snprintf(out,sizeof(out),"{\"schema\":1,\"uptime_s\":%lu,\"heap_free\":%lu,\"heap_min_free\":%lu,"
+            "\"internal_min_free\":%lu,\"mqtt\":{\"messages\":%lu,\"bytes\":%lu,\"queue_peak_bytes\":%lu,"
+            "\"latency_avg_ms\":%lu,\"latency_max_ms\":%lu,\"rejected\":%lu,\"telemetry_dropped\":%lu,"
+            "\"disconnects\":{\"stalled\":%lu,\"socket_error\":%lu}}}",
+            static_cast<unsigned long>(monotonicMs()/1000),static_cast<unsigned long>(ESP.getFreeHeap()),
+            static_cast<unsigned long>(ESP.getMinFreeHeap()),
+            static_cast<unsigned long>(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT)),
+            static_cast<unsigned long>(sent),static_cast<unsigned long>(bytes-beatBytes_),static_cast<unsigned long>(peak),
+            static_cast<unsigned long>(sent?(latency-beatLatency_)/sent:0),static_cast<unsigned long>(slowest),
+            static_cast<unsigned long>(MqttCounters::rejected.load()),static_cast<unsigned long>(TelemetryCounters::dropped.load()),
+            static_cast<unsigned long>(MqttCounters::stalledDisconnects.load()),static_cast<unsigned long>(MqttCounters::socketErrorDisconnects.load()));
+        beatFrames_=frames;beatBytes_=bytes;beatLatency_=latency;
+        return n>0&&size_t(n)<sizeof(out)?std::string(out,size_t(n)):std::string();
+    }
+    uint32_t beatFrames_=0,beatBytes_=0,beatLatency_=0;
     void retireActuators(){
         if(actuatorChannels_)actuatorChannels_->retire();
     }
@@ -378,11 +395,8 @@ private:
     DeadlineWiFiClient network_; PubSubClient client_; NvsControlStore store_;
     StatusSnapshot controllerStatus_;
     HeatingInput heatingInput_;
-    HeatingStatus heatingStatus_;
-    HeatingRoomCount heatingRoomCount_;
-    HeatingRoomTelemetry heatingRoom_;
-    HeatingSummary heatingSummary_;
-    RoomRotation heatingRoomRotation_;
+    ShadowController::BoilerFields boilerFields_;
+    std::unique_ptr<TelemetryPublisher> telemetry_;
     AsyncBrokerDns brokerDns_;
     PendingTcpConnect brokerTcp_;
     std::unique_ptr<GraphControlStoreView> graphControlView_;

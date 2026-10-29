@@ -20,6 +20,7 @@
 #include "DeviceBluetoothSettings.h"
 #include "HeatingPlanStore.h"
 #include "FlowSettingsStore.h"
+#include "RoomOverridesStore.h"
 #include "control/ShadowComparison.h"
 #include "control/RoomEngine.h"
 #include "control/ActiveHeatGuard.h"
@@ -148,15 +149,16 @@ public:
         });
         loadHeatingPlan();
         loadFlowSettings();
+        overrides_.restore(RoomOverridesNvs::read()); // waits for a trusted clock before it applies
         // A stored "thermostat disconnected" (same firmware) resumes active heat
         // after 2 min of bus reception without a foreign 0x1A, which clears it.
         if (handover_.restore()) activeGuard_.restore(bleReceiptClock());
         mqtt_.setHeatingRoute([this](std::string_view payload) { heatingInput(payload); }, [this] {
-            // The compact form (always the same shape): no past days, static plan fields,
-            // learned or hot water (those go to heating_summary / heating_learned/<id>).
-            std::unique_ptr<cJSON, decltype(&cJSON_Delete)> status(heatingStatusJson(true), cJSON_Delete);
-            if (status) control::compactHeatingTelemetry(status.get());
-            return status ? control::printJson(status.get()) : std::string();
+            // The compact form, split into the small MQTT topics (HeatingStateTopics.h): no past
+            // days, static plan fields, learned or hot water (summary and learned/<id> carry those).
+            cJSON* status = heatingStatusJson(true);
+            if (status) control::compactHeatingTelemetry(status);
+            return status;
         }, [this] { return roomEngine_.plan().rooms.size(); }, [this](size_t room, std::string& id) {
             const auto& plan = roomEngine_.plan();
             if (room >= plan.rooms.size()) return std::string();
@@ -305,6 +307,20 @@ public:
         flowPolicy_.setSettings(settings); flowLearner_.setApplied(settings.applyLearned);
         return nullptr;
     }
+    // GET/POST /config/heating/comfort (control/RoomOverrides.h): overrides and away,
+    // stored in NVS only when the record changes; the state is kept only once saved.
+    cJSON* heatingComfortJson() const { return overrides_.json(roomEngine_.plan(), bleReceiptClock()); }
+    const char* setHeatingComfort(const cJSON* root) {
+        std::unique_ptr<control::RoomOverrides> next(new (std::nothrow) control::RoomOverrides(overrides_));
+        if (!next) return "save_unconfirmed";
+        std::optional<uint32_t> utc;
+        if (networkTimeTrusted) utc = static_cast<uint32_t>(std::time(nullptr));
+        bool persist = false;
+        if (const char* error = next->command(root, roomEngine_.plan(), bleReceiptClock(), utc, persist)) return error;
+        if (persist && !RoomOverridesNvs::write(next->stored())) return "save_unconfirmed";
+        overrides_ = *next;
+        return nullptr;
+    }
     cJSON* activeHeatJson() const {
         const auto now = bleReceiptClock();
         cJSON* active = activeGuard_.json(now);
@@ -321,9 +337,11 @@ public:
     }
     // The room engine status plus the E32's own Bluetooth sensors, so HA can
     // show them and offer them as room sources (they stay paired here).
-    // mqtt: for fw/telemetry/heating, without learned and dhw (not computed).
+    // mqtt: for the fw/state/* topics, without learned and dhw (not computed).
     cJSON* heatingStatusJson(bool mqtt = false) {
         cJSON* root = roomEngine_.json();
+        // Overrides, window pauses and away per room, and the house's away (control/RoomOverrides.h).
+        if (root && !overrides_.addStatus(root, roomEngine_.plan(), bleReceiptClock())) { cJSON_Delete(root); return nullptr; }
         cJSON* sensors = root ? cJSON_AddArrayToObject(root, "ble_sensors") : nullptr;
         // Burner starts in the last hour from the flame bit (the adapter's own counters read 0).
         if (root) control::addBurnerJson(root, ems_.burnerCycles());
@@ -674,6 +692,7 @@ private:
     control::BleDeviceDiscovery bleDiscovery_;
     static_assert(sizeof(decltype(managedBle_)) <= 4096, "BLE observer resident budget changed");
     control::RoomEngine roomEngine_;
+    control::RoomOverrides overrides_; // beta.19: temporary overrides, window pauses, away (targets only)
     control::ShadowComparison shadowComparison_; // E32 decision vs the tado's 0x1A, per day
     control::ActiveHeatGuard activeGuard_;
     // Per room how fast it warms per flow (report only; ~1.15 KB heap per room, PSRAM extmem).
@@ -702,7 +721,10 @@ private:
     }
     // ha/heating_input: room states and the learner's gas, price, outdoor and
     // boiler power (control/HeatingInput.h). Anything else is ignored.
-    void heatingInput(std::string_view payload) { haInput_.accept(payload, bleReceiptClock(), roomEngine_, flowLearner_); }
+    void heatingInput(std::string_view payload) {
+        if (overrides_.input(payload, roomEngine_.plan(), bleReceiptClock())) return; // window/door contacts, presence
+        haInput_.accept(payload, bleReceiptClock(), roomEngine_, flowLearner_);
+    }
     // The learner's outdoor: the boiler's (0x19/0xD1) while fresh, else HA's for 15 min.
     control::HeatingInputRoute::Outdoor learnerOutdoor(uint64_t now) const { return haInput_.outdoor(ems_.getOutdoorTemperature(), now); }
     // Clock, fresh room readings (filled into `temperatures`) and outdoor for the learned status.
@@ -729,7 +751,13 @@ private:
             }
         std::optional<uint32_t> unixNow;
         if (networkTimeTrusted) unixNow = static_cast<uint32_t>(std::time(nullptr));
-        const auto rule = roomEngine_.step(now, unixNow);
+        // Overrides, window pauses and away change room targets only; the away end
+        // starts warming up by the learner's (or the default) lead.
+        const auto* adjust = overrides_.step(roomEngine_.plan(), now, unixNow, [&](size_t i, uint32_t until, int16_t away, int16_t target) {
+            return control::RoomOverrides::returnLeadS(flowLearner_, i, until, away, target, roomEngine_.freshTemperature(i, now),
+                                                      *unixNow, learnerOutdoor(now).centiC);
+        });
+        const auto rule = roomEngine_.step(now, unixNow, adjust);
         const auto tadoFlowC = ems_.thermostatRequestedFlowC();
         const auto ems = ems_.activeHeatView();
         const auto request = applyFlowPolicy(now, rule, ems); // the rule itself while the options are off
@@ -758,7 +786,11 @@ private:
     control::FlowDemand::Request applyFlowPolicy(uint64_t now, const control::FlowDemand::Request& rule, const ems::EmsController::ActiveHeatView& ems) {
         const auto& plan = roomEngine_.plan();
         std::array<control::RoomDemand::Result, control::RoomPlan::maxRooms> rooms{};
-        for (size_t i = 0; i < plan.rooms.size() && i < rooms.size(); ++i) rooms[i] = roomEngine_.result(i);
+        for (size_t i = 0; i < plan.rooms.size() && i < rooms.size(); ++i) {
+            rooms[i] = roomEngine_.result(i);
+            // Away or an open window: no optimum start towards the program's next rise.
+            if (overrides_.holdsProgram(i)) rooms[i].status = control::RoomDemand::Status::inactive;
+        }
         control::FlowPolicy::Inputs in;
         in.now = now; in.rule = rule; in.plan = &plan; in.rooms = rooms.data();
         if (networkTimeTrusted) in.utc = static_cast<int64_t>(std::time(nullptr));

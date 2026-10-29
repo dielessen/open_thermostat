@@ -6,7 +6,7 @@ namespace heating::diagnostics {
 // restarted it. Times are monotonic milliseconds; 0 means "never/not tracked".
 struct SupervisorPolicy {
     enum class Reason : uint8_t { none = 0, loopStall = 1, wifiLost = 2, brokerLost = 3, networkDead = 4,
-        updateStuck = 5, bluetoothApply = 6, bluetoothSilent = 7 }; // append only
+        updateStuck = 5, bluetoothApply = 6, bluetoothSilent = 7, settingsRestore = 8 }; // append only
     static constexpr uint32_t loopStallMs = 300000;   // a firmware upload blocks the loop for minutes
     static constexpr uint32_t wifiLostMs = 900000;    // loop already calls WiFi.reconnect() every 10 s
     static constexpr uint32_t brokerLostMs = 900000;  // link "up" but the MQTT broker unreachable
@@ -76,6 +76,7 @@ struct SupervisorPolicy {
             case Reason::updateStuck: return "update_stuck";
             case Reason::bluetoothApply: return "bluetooth_settings";
             case Reason::bluetoothSilent: return "bluetooth_silent";
+            case Reason::settingsRestore: return "settings_restore";
             default: return "none";
         }
     }

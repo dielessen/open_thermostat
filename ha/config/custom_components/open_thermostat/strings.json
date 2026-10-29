@@ -61,7 +61,7 @@
               "topic_prefix": "Controller MQTT prefix"
             },
             "data_description": {
-              "topic_prefix": "Must match your E32. Changing the connection can interrupt communication; it does not move an existing controller."
+              "topic_prefix": "Must match your E32: openthermostat on a new E32, ib-therm on older installations. Changing the connection can interrupt communication; it does not move an existing controller."
             }
           }
         },
@@ -507,7 +507,7 @@
           "bluetooth_first": "On: the E32 uses its Bluetooth sensors before the Home Assistant sources.",
           "setpoint_entity": "Optional: the thermostat or number in Home Assistant whose target temperature the E32 follows. Empty: the E32 follows the week program.",
           "fallback_temperature": "The temperature the E32 keeps when Home Assistant gives no target and there is no week program.",
-          "program": "One line per group of days, for example mon-fri: 06:30 20.5; 22:30 18 and sat-sun: 08:00 20.5; 23:00 18. Temperatures in your Home Assistant unit. A line without days applies to every day. Up to 6 switch points per day; each temperature holds until the next point. Empty: no week program."
+          "program": "Easiest: the visual planner under Week program on the OpenThermostat dashboard. This text is the advanced view of the same program: one line per group of days, for example mon-fri: 06:30 20.5; 22:30 18 and sat-sun: 08:00 20.5; 23:00 18. Temperatures in your Home Assistant unit. A line without days applies to every day. Up to 6 switch points per day; each temperature holds until the next point. Empty: no week program."
         },
         "sections": {
           "limits": {
@@ -2161,7 +2161,7 @@
       "description": "The boiler reports a water pressure of {pressure} bar. Top up the system at the filling tap to 1.5–2.0 bar (with the system cold). If you have to top up often, look for a leak or have the expansion vessel checked. This message disappears by itself once the pressure is back above 1 bar."
     },
     "e32_default_password": {
-      "title": "Change the E32's default password",
+      "title": "E32 still uses the default password",
       "description": "{name}: the E32 still uses the default password admin/admin, so anyone on your network can change your heating. Change it on the E32 web page: System → About → Password. Home Assistant then asks you once for the new password (Settings → Devices & services), and this message disappears."
     },
     "legacy_rooms": {

@@ -16,7 +16,7 @@ from homeassistant.util import dt as dt_util
 from .schedule_compiler import compile_week, WEEKDAYS
 from .v1_program import normalize_program, native_week, change_block, clock_second
 
-from .const import CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DOMAIN
+from .const import CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DEFAULT_TOPIC_PREFIX, DOMAIN
 from .v1_model import (
     CONF_ENABLED, CONF_MODE, MODE_LEGACY, MODE_SHADOW, ROOM_LIMIT,
     EntityReference, RoomBinding, integration_mode, target_centi,
@@ -107,7 +107,7 @@ class V1FlowMixin:
         if not hasattr(self, "_installation_adapter_id"):
             self._installation_adapter_id = uuid.uuid4().hex
         errors = {}
-        prefix = getattr(self, "_prefix", "ib-therm")
+        prefix = getattr(self, "_prefix", DEFAULT_TOPIC_PREFIX)
         if user_input is not None:
             name = user_input.get("name", "").strip()
             prefix = user_input.get("advanced", {}).get(CONF_TOPIC_PREFIX, prefix)
@@ -157,7 +157,7 @@ class V1FlowMixin:
                              CONF_CREATE_DASHBOARD: False},
                 )
         return self.async_show_form(step_id="shadow", data_schema=vol.Schema({
-            vol.Required(CONF_TOPIC_PREFIX, default="ib-therm"): str,
+            vol.Required(CONF_TOPIC_PREFIX, default=DEFAULT_TOPIC_PREFIX): str,
             vol.Required("adapter_id", default=self._shadow_adapter_id): vol.Match(r"^[A-Za-z0-9_-]{1,32}$"),
         }), errors=errors)
 

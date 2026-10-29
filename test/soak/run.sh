@@ -26,7 +26,7 @@ build() {
     [ "$B/cjson.o" -nt "$L/cJSON/cJSON.c" ] || gcc -std=c11 -O1 "${DBG[@]}" "${SAN[@]}" -I"$L/cJSON" -c "$L/cJSON/cJSON.c" -o "$B/cjson.o"
     [ "$B/ems.o" -nt "$ROOT/src/EMS/EmsTelegram.cpp" ] || "$CXX" -std=gnu++2a -O1 "${DBG[@]}" "${SAN[@]}" "${INC[@]}" -c "$ROOT/src/EMS/EmsTelegram.cpp" -o "$B/ems.o"
     # Rebuild when the soak or any header under src/ changed.
-    if [ ! -x "$B/soak" ] || [ "$ROOT/test/soak/soak.cpp" -nt "$B/soak" ] || [ -n "$(find "$ROOT/src" -name '*.h' -newer "$B/soak" -print -quit)" ]; then
+    if [ ! -x "$B/soak" ] || [ "$ROOT/test/soak/soak.cpp" -nt "$B/soak" ] || [ "$ROOT/test/soak/slow_wifi.h" -nt "$B/soak" ] || [ -n "$(find "$ROOT/src" -name '*.h' -newer "$B/soak" -print -quit)" ]; then
         "$CXX" -std=gnu++2a -O1 "${DBG[@]}" -Wall -Wextra "${SAN[@]}" "${INC[@]}" -DSOAK_WRAP_LOCALTIME "$ROOT/test/soak/soak.cpp" \
             "$B/ems.o" "$B/cjson.o" -Wl,--wrap=localtime_r -o "$B/soak.new"
         mv "$B/soak.new" "$B/soak"
@@ -49,6 +49,7 @@ flow|--scenario=flow --days=60 --seed=9
 supervisor|--scenario=supervisor --days=60 --seed=8
 sizes|--scenario=sizes
 repro|--scenario=repro
+slowwifi-8rooms|--scenario=slowwifi --days=2 --seed=11
 LIST
 }
 smoke_scenarios() {
@@ -61,6 +62,7 @@ flow|--scenario=flow --days=10 --seed=9
 supervisor|--scenario=supervisor --days=30 --seed=8
 sizes|--scenario=sizes
 repro|--scenario=repro
+slowwifi-3rooms|--scenario=slowwifi --days=0.5 --seed=11
 LIST
 }
 

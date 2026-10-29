@@ -49,6 +49,8 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
     }
     return json(plan);
    }
+   // This test covers the switch-point list, the fallback without the visual planner (test/week-editor-browser.cjs).
+   if(p==='/week-editor.js')return route.fulfill({status:404,body:''});
    const file=path.join(assets,p==='/'?'index.html':p);
    if(!file.startsWith(assets+'/')||!fs.existsSync(file))return route.fulfill({status:404,body:''});
    let body=fs.readFileSync(file);if(p.endsWith('.gz'))body=zlib.gunzipSync(body);

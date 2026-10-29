@@ -378,7 +378,20 @@ std::vector<GpioExtenderConfig> getGpioExtenders() {
 	return result;
 }
 
+static APConfig readAPConfig();
+
 APConfig getAPConfig() {
+	APConfig config = readAPConfig();
+#ifndef OPENTHERMOSTAT_E32V2
+	// New install: a name of its own per board and the documented setup password
+	// (as the E32 setup Wi-Fi). A stored name/password is used as it is.
+	if (config.ssid.empty()) config.ssid = heating::setupWifiName(ESP.getEfuseMac());
+	if (config.password.empty()) config.password = heating::setupWifiPassword;
+#endif
+	return config;
+}
+
+static APConfig readAPConfig() {
 	File file = SPIFFS.open("/cfg/cfgap.json", FILE_READ);
 	if (!file) {
 		return {};

@@ -276,6 +276,17 @@
       if (useWeek.checked && !rows.querySelector('[data-heating-point]')) draw([[[420, Math.round(fallback.value * 100)]]]);
     });
     draw(given || [[]]); editor.hidden = !useWeek.checked; editor.append(rows); week.append(editor); body.append(week);
+    // Visual week planner (week-editor.js, shared with Home Assistant): it writes the same switch points into the
+    // list above, which stays the fallback when the planner cannot load. Saving still reads the list.
+    if (window.OTWeekEditor) {
+      const list = [...editor.children], host = el('div', null, {'data-heating-planner':''}), cc = i => Math.round(i.value * 100);
+      const days = () => { const d = raw().map(p => p.filter(([m, c]) => Number.isFinite(m) && Number.isFinite(c)).sort((a, b) => a[0] - b[0])); return same.checked ? Array(7).fill(d[0] || []) : d; };
+      const planner = OTWeekEditor.mount(host, {week: given || [[], [], [], [], [], [], []], min: cc(lo), max: cc(hi), lang: OpenThermostatLanguage.language,
+        onChange: w => { same.checked = w.every(d => JSON.stringify(d) === JSON.stringify(w[0])); draw(same.checked ? [w[0]] : w); }});
+      list.forEach(n => { n.hidden = true; }); editor.prepend(host);
+      useWeek.addEventListener('change', () => planner.set(days()));
+      [lo, hi].forEach(i => i.addEventListener('change', () => planner.limits(cc(lo), cc(hi))));
+    }
     const schedule = () => {
       if (!useWeek.checked) return {};
       const days = raw(), min = Math.round(lo.value * 100), max = Math.round(hi.value * 100);

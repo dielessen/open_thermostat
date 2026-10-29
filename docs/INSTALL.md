@@ -275,7 +275,8 @@ On the E32, open **System → Network**, section **MQTT**:
    Mosquitto add-on, the address of your Home Assistant.
 3. **Broker port**: `1883` unless your broker uses another port.
 4. **User name** and **Password**: the login from step 8.1.
-5. Leave **Base** (`ib-therm` on a new E32) and the other advanced fields as
+5. Leave **Base** (`openthermostat` on a new E32; an E32 set up before beta.19
+   keeps `ib-therm`) and the other advanced fields as
    they are; Home Assistant fills in what it needs when it connects.
 6. Choose **Save settings** and let the E32 restart.
 
@@ -305,7 +306,8 @@ release is not needed for OpenThermostat.
    **OpenThermostat**.
 2. **Set up your heating installation:** give it a name and choose whether to
    add the OpenThermostat dashboard (your own dashboards are kept). Under
-   **Advanced**, keep the controller MQTT prefix `ib-therm`, the same as the
+   **Advanced**, keep the controller MQTT prefix `openthermostat` (or `ib-therm`
+   when your E32 still shows that Base), the same as the
    E32's MQTT Base. (Only a second E32 needs another prefix.) Choose **Add
    installation**.
 

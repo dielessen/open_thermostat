@@ -19,7 +19,7 @@ from homeassistant.util.unit_conversion import DurationConverter, EnergyConverte
 from .room_identity import room_device_name, room_key
 from .room_values import room_value
 from .metric_snapshot import finite as finite_number
-from .const import CONF_TOPIC_PREFIX, DOMAIN
+from .const import CONF_TOPIC_PREFIX, DOMAIN, MANUFACTURER
 from .program import room_program_name
 from .heating import HeatingTracker, DEFINITION
 from .metrics_reports import note_legacy_metrics, note_metric_definition_migration
@@ -300,7 +300,7 @@ class RoomMetric(SensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=name,
-            manufacturer="intuibase",
+            manufacturer=MANUFACTURER,
             model="OpenThermostat room",
             via_device_id=hub_id,
         )
@@ -344,7 +344,7 @@ class RoomHeatingSensor(RestoreSensor):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=room_device_name(room_name, index),
-            manufacturer="intuibase",
+            manufacturer=MANUFACTURER,
             model="OpenThermostat room",
             via_device_id=hub_id,
         )
@@ -491,7 +491,7 @@ class RoomProgram(SensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=name,
-            manufacturer="intuibase",
+            manufacturer=MANUFACTURER,
             model="OpenThermostat room",
             via_device_id=hub_id,
         )
@@ -675,7 +675,7 @@ class RoomName(SensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=room_device_name(room_name, index),
-            manufacturer="intuibase",
+            manufacturer=MANUFACTURER,
             model="OpenThermostat room",
             via_device_id=hub_id,
         )

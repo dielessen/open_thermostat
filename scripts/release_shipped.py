@@ -156,10 +156,11 @@ def ha_inventory(root,policy):
 
 def verify_web(root,binary,web,source):
     if web["source"]!=source:raise NoticeError("embedded_web_source_conflict")
-    agg=hashlib.sha256()
+    from verify_e32v2_web_assets import image_sources,source_in_image
+    agg=hashlib.sha256();streams=image_sources(binary)
     for name,sha in sorted(web["assets"].items()):
         data=inside(root,"data/html/"+name).read_bytes()
-        if digest(data)!=sha or data not in binary:raise NoticeError("embedded_asset_identity_conflict:"+name)
+        if digest(data)!=sha or not source_in_image(name,data,binary,streams):raise NoticeError("embedded_asset_identity_conflict:"+name)
         agg.update(name.encode()+b"\0");agg.update(bytes.fromhex(sha))
     if agg.hexdigest()!=web["web_sha256"]:raise NoticeError("embedded_web_digest_conflict")
     marker=f"OT_E32V2_OTA_V1:{web['version']}:{web['source']}:{web['web_sha256']}:END".encode()

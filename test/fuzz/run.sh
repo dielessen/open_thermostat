@@ -19,7 +19,7 @@ WORK="${WORK:-/tmp/fz-work}"
 CXX="${CXX:-clang++}"
 CC="${CC:-clang}"
 L="$ROOT/.pio/libdeps/native"
-TARGETS=(ems_frame ble_advert ble_observer ble_settings room_plan control_json shadow boiler_services)
+TARGETS=(ems_frame ble_advert ble_observer ble_settings room_plan control_json shadow boiler_services config_backup)
 
 # Upper input sizes per harness (the product rejects larger inputs earlier).
 max_len() {
@@ -32,6 +32,7 @@ max_len() {
     control_json) echo 8300 ;;       # parseControlJson accepts 8192 bytes
     shadow) echo 24000 ;;
     boiler_services) echo 4096 ;;
+    config_backup) echo 25100 ;;     # POST /config/backup accepts 24576 + 512 bytes
   esac
 }
 
@@ -49,7 +50,7 @@ build_one() {
   local extra=() sources=("$ROOT/test/fuzz/fuzz_$t.cpp")
   case "$t" in
     ems_frame) sources+=("$ROOT"/src/EMS/*.cpp) ;;
-    ble_advert|ble_observer) extra+=(-Wl,-Bstatic -lmbedcrypto -Wl,-Bdynamic) ;;
+    ble_advert|ble_observer|config_backup) extra+=(-Wl,-Bstatic -lmbedcrypto -Wl,-Bdynamic) ;;
     boiler_services) sources+=("$ROOT/src/EMS/EmsTelegram.cpp") ;;
   esac
   "$CXX" $CXXFLAGS ${COVERAGE:+-fprofile-instr-generate -fcoverage-mapping} -fsanitize=fuzzer \

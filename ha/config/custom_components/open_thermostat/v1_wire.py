@@ -18,7 +18,10 @@ from homeassistant.exceptions import HomeAssistantError
 from .supervisor_status import supervisor_status, MAX_AGE_SECONDS as SUPERVISOR_MAX_AGE
 from .v1_model import Observation, RoomDecision
 from .session_grant import register_grant_proof, consume_grant_proof, MAX_GRANT_PROOFS
-from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, CAPABILITY_V2 as BOILER_CAPABILITY_V2, BoilerFieldCache, MAX_BYTES as MAX_BOILER_BYTES, CATALOG_FIELDS
+from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, CAPABILITY_V2 as BOILER_CAPABILITY_V2, BoilerFieldCache, MAX_BYTES as MAX_BOILER_BYTES, CATALOG_FIELDS, GROUPS_V2 as BOILER_GROUPS_V2
+# Retained E32 telemetry topics (beta.19 telemetry budget): each at most 1.5 KB.
+STATE_TELEMETRY = ("fw/state/", "fw/config/", "fw/telemetry/learned/", "fw/telemetry/summary", "fw/telemetry/shadow")
+MAX_STATE_BYTES = 1536
 from .metric_snapshot import CAPABILITY,MAX_BYTES as MAX_METRIC_BYTES,EXPIRY_SECONDS,valid_snapshot
 
 _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
@@ -94,6 +97,16 @@ def parse(raw):
 
 
 class ShadowClient:
+    @property
+    def boiler_fields_supported(self):
+        """The hello announced boiler.fields (session telemetry), or retained boiler state arrived (beta.19)."""
+        cache = getattr(self, "boiler_fields", None)
+        return self._boiler_fields_supported or bool(cache is not None and cache.state_mode)
+
+    @boiler_fields_supported.setter
+    def boiler_fields_supported(self, value):
+        self._boiler_fields_supported = value
+
     def __init__(self, runtime, adapter_id, send, store, desired, mapping, clock,*,control_plan=None):
         if not identifier(adapter_id):
             raise ValueError("invalid local adapter owner")
@@ -733,7 +746,7 @@ class ShadowClient:
         self._metrics_highwater=0
         self._supervisor=None
         self._supervisor_received=0.0
-        self.boiler_fields.reset()
+        self.boiler_fields.reset_session()
 
     def require_graph_source_review(self):
         if getattr(self.runtime,"graph_controller_source",None) is None:
@@ -750,7 +763,16 @@ class ShadowClient:
         self.changed()
 
     async def receive(self, topic, raw, *, retained=False, received_at=None):
-        if self.closed or retained or self.graph_source_review_required or self.native_plan_fenced:
+        if self.closed:
+            return
+        if topic.startswith(STATE_TELEMETRY) and topic != "fw/state/zones" or topic == "fw/heartbeat":
+            # Retained E32 telemetry (beta.19): never session data. Boiler fields are decoded
+            # here, the rest by heating_link; the heartbeat keeps the boiler values alive.
+            self.receive_boiler_state(topic, raw, retained)
+            return
+        if topic == "fw/availability" and raw in ("online", "offline"):
+            self.boiler_fields.availability(raw == "online", self.clock())
+        if retained or self.graph_source_review_required or self.native_plan_fenced:
             return
         if not self.clock_current():
             self.changed()
@@ -775,6 +797,41 @@ class ShadowClient:
             self.reset_session()
             self.error = "invalid_firmware_message"
             self.changed()
+
+    def receive_boiler_state(self, topic, raw, retained=False):
+        """``fw/state/boiler_fields/<g>`` and ``fw/state/boiler`` (retained), and the heartbeat."""
+        now = self.clock()
+        if topic == "fw/heartbeat":
+            if not retained:
+                try:
+                    beat = json.loads(raw) if isinstance(raw, str) and len(raw) <= MAX_STATE_BYTES else None
+                except ValueError:
+                    beat = None
+                if type(beat) is dict and beat.get("schema") == 1 and type(beat.get("uptime_s")) is int:
+                    self.boiler_fields.heartbeat(now, beat["uptime_s"])
+                    self.runtime._notify()
+            return
+        group = None
+        if topic.startswith("fw/state/boiler_fields/"):
+            tail = topic.rsplit("/", 1)[1]
+            if not tail.isdigit() or len(tail) > 2 or int(tail) >= BOILER_GROUPS_V2:
+                return  # a group of a newer catalog than this HA knows
+            group = int(tail)
+        elif topic != "fw/state/boiler":
+            return
+        if not isinstance(raw, str) or not raw or len(raw) > MAX_STATE_BYTES:
+            return
+        try:
+            p = json.loads(raw)
+            if (type(p) is not dict or p.get("schema") != 1
+                    or set(p) != ({"schema", "group", "values"} if group is not None else {"schema", "values"})
+                    or (group is not None and p["group"] != group)):
+                raise ValueError("boiler state envelope")
+            self.boiler_fields.accept_state(p["values"], group, now)
+            self.runtime.diagnostics["boiler_fields"] = "read_only_not_control_qualified"
+        except (ValueError, TypeError, KeyError, OverflowError):
+            self.runtime.diagnostics["boiler_fields"] = "invalid_read_only_fields"
+        self.runtime._notify()
 
     def receive_boiler_fields(self, raw, received_at=None):
         if not self.ready or not self.boiler_fields_supported:
@@ -927,7 +984,7 @@ class ShadowClient:
             # The firmware sends the catalog groups only after ha/capabilities.
             self.boiler_fields_v2=self.boiler_fields_supported and BOILER_CAPABILITY_V2 in caps
             if not self.boiler_fields_supported:
-                self.boiler_fields.reset()
+                self.boiler_fields.reset_session()
             self.metrics_supported=(type(caps) is list and len(caps)<=8
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in caps) and CAPABILITY in caps)
             if not self.metrics_supported:

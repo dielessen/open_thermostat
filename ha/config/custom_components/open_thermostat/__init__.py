@@ -7,7 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
-from .const import CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DOMAIN, PLATFORMS
+from .const import CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DOMAIN, MANUFACTURER, PLATFORMS
 from .dashboard import RoomDashboard
 from .heating import HeatingTracker
 
@@ -48,7 +48,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await tracker.async_start()
         dr.async_get(hass).async_get_or_create(
             config_entry_id=entry.entry_id, identifiers={(DOMAIN, prefix)},
-            name="OpenThermostat", manufacturer="intuibase", model="OpenThermostat")
+            name="OpenThermostat", manufacturer=MANUFACTURER, model="OpenThermostat")
         if entry.options.get(CONF_CREATE_DASHBOARD, False):
             dashboard = RoomDashboard(hass, prefix, entry.entry_id)
             state["dashboard"] = dashboard
@@ -393,7 +393,7 @@ async def async_setup_entry(hass, entry):
             group_kwargs["config_subentry_id"] = ensure_installation_group(hass, entry)
         dr.async_get(hass).async_get_or_create(
             config_entry_id=entry.entry_id, identifiers={(DOMAIN, entry.data[CONF_TOPIC_PREFIX])},
-            name="OpenThermostat", manufacturer="intuibase", model="OpenThermostat", **group_kwargs)
+            name="OpenThermostat", manufacturer=MANUFACTURER, model="OpenThermostat", **group_kwargs)
         if product:
             tracker = HeatingTracker(hass, entry)
             state["heating_tracker"] = tracker

@@ -33,6 +33,7 @@
 #endif
 
 #include "config.h"
+#include "DeviceIdentity.h"
 #include "Filesystem.h"
 #include "HeatingController.h"
 #include "REST.h"
@@ -296,6 +297,11 @@ void WifiSetUp(config::WiFiConfig const &wifiConfig, config::NetworkConfig const
 		bool softAPResult = WiFi.softAP(apConfig.ssid.c_str(), apConfig.password.c_str(), apConfig.channel);
 
 		DBGLOGFI(heating::logger, appLogFeature(), "Soft AP start: %d\n", softAPResult);
+#ifndef OPENTHERMOSTAT_E32V2
+		// USB console only; a password the owner stored in cfgap.json is never printed.
+		Serial.printf("Setup WiFi: %s, password: %s\n", apConfig.ssid.c_str(),
+			apConfig.password == heating::setupWifiPassword ? heating::setupWifiPassword : "(stored in cfgap.json)");
+#endif
 
 #ifdef OPENTHERMOSTAT_E32V2
 		IPAddress ip, gateway, mask;

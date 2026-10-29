@@ -247,7 +247,11 @@ class ProductRoomFlow(RadiatorRoomSetupFlow):
         }), errors=errors)
 
 
-class ProductOptionsFlow(E32RoomFlow, LegacyRoomsSteps, ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow):
+from .e32_comfort import ComfortOptionsSteps  # noqa: E402
+
+
+class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, ControllerSetupFlow, ShadowOptionsFlow,
+                         ProductRoomFlow):
     """One central options entrypoint, using the same room editor and native Store.
 
     With a stored E32 connection the rooms are the E32 room plan: "E32 rooms"
@@ -269,6 +273,8 @@ class ProductOptionsFlow(E32RoomFlow, LegacyRoomsSteps, ControllerSetupFlow, Sha
         rooms = "e32_rooms" if has_room_plan(self.config_entry) else "room_settings"
         # Everyday settings first; status and plan recovery live under Advanced.
         options = [rooms, "controller_connection", "energy", "installation", "advanced_settings"]
+        if rooms == "e32_rooms":  # windows, away and presence for the E32 rooms (e32_comfort.py)
+            options.insert(1, "comfort")
         return self.async_show_menu(step_id="init", menu_options=options)
 
     async def async_step_energy(self, user_input=None):

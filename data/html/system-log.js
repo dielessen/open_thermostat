@@ -38,7 +38,8 @@ window.SystemLogPage = (() => {
       const p=value?.previous;
       if(!p||typeof p!=='object'||!Number.isSafeInteger(p.uptime_s)){element.textContent='';return;}
       const restart={loop_stall:'the main loop stopped',wifi_lost:'Wi-Fi stayed disconnected',broker_lost:'Home Assistant (MQTT) stayed unreachable',network_dead:'the network stopped answering while Wi-Fi stayed connected',
-        update_stuck:'a firmware update stopped making progress',bluetooth_settings:'new Bluetooth settings had to be applied',bluetooth_silent:'no Bluetooth sensor was heard for a long time'}[p.supervisor_restart];
+        update_stuck:'a firmware update stopped making progress',bluetooth_settings:'new Bluetooth settings had to be applied',bluetooth_silent:'no Bluetooth sensor was heard for a long time',
+        settings_restore:'restored settings had to be applied'}[p.supervisor_restart];
       // Repeated Wi-Fi, network or Bluetooth restarts wait twice as long each time.
       const series=p.supervisor_restart==='wifi_lost'?value.wifi_lost_restarts:p.supervisor_restart==='network_dead'?value.network_dead_restarts
         :p.supervisor_restart==='bluetooth_silent'?value.bluetooth_silent_restarts:0;

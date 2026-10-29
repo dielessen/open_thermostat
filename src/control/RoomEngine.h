@@ -84,8 +84,12 @@ public:
         }
     }
 
+    // A room's comfort adjustment (RoomOverrides.h), per plan room: setpoint replaces
+    // the plan's, ceiling caps it (away), pause: setpoint is the frost floor, also
+    // below the room minimum. Never more than a target: the flow limits stay.
+    struct Adjust { std::optional<int16_t> setpoint, ceiling; bool pause = false; };
     // unixNow: wall clock for temporary pauses; nullopt while unknown (pause holds).
-    FlowDemand::Request step(uint64_t now, std::optional<uint32_t> unixNow) {
+    FlowDemand::Request step(uint64_t now, std::optional<uint32_t> unixNow, const Adjust* adjust = nullptr) {
         bool demand = false;
         std::optional<int16_t> error;
         for (size_t i = 0; i < plan_.rooms.size(); ++i) {
@@ -98,7 +102,14 @@ public:
             spec.sources = static_cast<uint8_t>(room.sources.size());
             spec.minimumCentiC = room.minimumCentiC; spec.maximumCentiC = room.maximumCentiC;
             rt.setpointSource = setpointSource(room, rt, now, unixNow);
-            rt.result = RoomDemand::evaluate(spec, rt.readings, setpoint(room, rt, rt.setpointSource, unixNow), now, rt.lastUsable);
+            auto target = setpoint(room, rt, rt.setpointSource, unixNow);
+            if (adjust) {
+                const auto& a = adjust[i];
+                if (a.pause && a.setpoint) spec.minimumCentiC = std::min(spec.minimumCentiC, *a.setpoint);
+                if (a.setpoint) target = a.setpoint;
+                else if (a.ceiling && (!target || *target > *a.ceiling)) target = a.ceiling;
+            }
+            rt.result = RoomDemand::evaluate(spec, rt.readings, target, now, rt.lastUsable);
             if (rt.result.source >= 0) rt.lastUsable = rt.readings[rt.result.source];
             const auto zone = rt.regulator.step(now, rt.result.temperature, rt.result.setpoint, rt.result.usable);
             rt.demand = zone.demand;

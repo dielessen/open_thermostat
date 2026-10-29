@@ -14,7 +14,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .room_identity import room_device_name, room_key
-from .const import CONF_TOPIC_PREFIX, DOMAIN
+from .const import CONF_TOPIC_PREFIX, DOMAIN, MANUFACTURER
 from .heating import HeatingTracker
 
 _LOGGER = logging.getLogger(__name__)
@@ -118,7 +118,7 @@ class OverrideDuration(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=name,
-            manufacturer="intuibase",
+            manufacturer=MANUFACTURER,
             model="OpenThermostat room",
             via_device_id=hub_id,
         )
@@ -177,7 +177,7 @@ class RadiatorPower(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=room_device_name(room_name, index),
-            manufacturer="intuibase",
+            manufacturer=MANUFACTURER,
             model="OpenThermostat room",
             via_device_id=hub_id,
         )

@@ -204,6 +204,15 @@ and the paired Bluetooth thermometer as fallback.
 3. Save. Home Assistant forwards the selected entities to the E32 on every
    change and every five minutes.
 
+The E32 in turn reports to Home Assistant calmly, in small messages: a room's
+temperature (from 0.1 °C), the requested flow (from 1 °C) and the boiler
+(flow and return from 0.5 °C, modulation from 5 %, burner, hot water and
+faults at once) when they really change, at most every 10 seconds and
+otherwise every 5 minutes; other boiler values at most once a minute; what it
+learned every 15 minutes. The values are kept by the MQTT broker, so a
+restarted Home Assistant shows them at once. They only become unavailable when
+the E32 reports itself offline or about 3 minutes pass without its heartbeat.
+
 With Home Assistant in °F, the editor shows and accepts °F; the plan on the
 E32 stays in °C.
 

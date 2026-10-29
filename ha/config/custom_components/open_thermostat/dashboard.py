@@ -39,6 +39,8 @@ from .const import DOMAIN
 from .product import is_product
 from .week_planner import ROOM_CARD_TYPE
 
+E32_WEEK_CARD_TYPE = "custom:openthermostat-e32-week"
+
 _LOGGER = logging.getLogger(__name__)
 
 DEVICE_DIAGNOSTIC_METRICS = (
@@ -103,7 +105,7 @@ COMPARISON_KEYS = ("shadow_agreement_today", "shadow_tado_heating_time_today", "
 TEXT = {
     "en": {
         "heating": "Heating", "boiler_view": "Boiler", "diagnostics": "Diagnostics",
-        "room_settings": "Room settings", "now": "Now", "rooms": "Rooms", "set_up_rooms": "Set up rooms",
+        "room_settings": "Room settings", "now": "Now", "rooms": "Rooms", "set_up_rooms": "Set up rooms", "week_program": "Week program",
         "settings": "{room} settings",
         "boiler_request": "Boiler request (E32)", "flow": "Flow temperature", "return": "Return temperature",
         "modulation": "Modulation", "pressure": "Pressure", "dhw": "Hot water", "code": "Display code",
@@ -161,7 +163,7 @@ TEXT = {
     },
     "nl": {
         "heating": "Verwarming", "boiler_view": "Ketel", "diagnostics": "Diagnose",
-        "room_settings": "Ruimte-instellingen", "now": "Nu", "rooms": "Ruimtes", "set_up_rooms": "Ruimtes instellen",
+        "room_settings": "Ruimte-instellingen", "now": "Nu", "rooms": "Ruimtes", "set_up_rooms": "Ruimtes instellen", "week_program": "Weekprogramma",
         "settings": "Instellingen {room}",
         "boiler_request": "Ketelvraag (E32)", "flow": "Aanvoertemperatuur", "return": "Retourtemperatuur",
         "modulation": "Modulatie", "pressure": "Waterdruk", "dhw": "Warm water", "code": "Displaycode",
@@ -607,6 +609,9 @@ class RoomDashboard:
                    "cards": [{"type": ROOM_CARD_TYPE, "entry_id": self.entry_id,
                               "room_id": sub.data["room_id"]}]}
                   for sub in legacy],
+                # The E32 rooms' visual week planner (e32_week.py), one card for all rooms.
+                *([{"title": t["week_program"], "path": "week-program", "panel": True, "icon": "mdi:calendar-week",
+                    "cards": [{"type": E32_WEEK_CARD_TYPE, "entry_id": self.entry_id}]}] if e32_rooms else []),
                 {"title": t["boiler_view"], "path": "boiler", "icon": "mdi:water-boiler",
                  "type": "sections", "max_columns": 2, "sections": boiler},
                 {"title": t["diagnostics"], "path": "diagnostics", "icon": "mdi:information-outline",
@@ -644,6 +649,9 @@ class RoomDashboard:
             {"type": "button", "name": t["set_up_rooms"], "icon": "mdi:home-edit-outline",
              "tap_action": {"action": "navigate",
                             "navigation_path": "/config/integrations/integration/" + DOMAIN}}
+            if e32_rooms else None,
+            {"type": "button", "name": t["week_program"], "icon": "mdi:calendar-week",
+             "tap_action": {"action": "navigate", "navigation_path": "/" + self.path + "/week-program"}}
             if e32_rooms else None,
         )
         # First: is everything OK? Then the advice (only while there is any).

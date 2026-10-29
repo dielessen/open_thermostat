@@ -33,12 +33,14 @@ def verify(package, root=None):
         accepted_path_required = "scripts/verify_accepted_update_path.py" in members and "-e32v2-alpha." not in m["version"]
         release = json.loads(archive.extractfile(members["release.json"]).read())
         check(release["version"] == m["version"], "version frozen in source")
+        from verify_e32v2_web_assets import image_sources, source_in_image
         web = hashlib.sha256()
+        streams = image_sources(firmware)
         for name in sorted(n for n in members if n.startswith("data/html/")):
             data = archive.extractfile(members[name]).read()
             web.update(name.removeprefix("data/html/").encode() + b"\0")
             web.update(hashlib.sha256(data).digest())
-            check(data in firmware, "embedded exact webasset " + name)
+            check(source_in_image(name, data, firmware, streams), "embedded exact webasset (gzip) " + name)
         check(web.hexdigest() == m["web_sha256"], "complete web UI revision hash")
         check(archive.extractfile(members["certs/github-ca-bundle.bin"]).read() in firmware, "public trust bundle embedded")
         for prefix, dest in [("docs/",package / "docs"),("ha/config/custom_components/open_thermostat/",package / "home-assistant/custom_components/open_thermostat")]:

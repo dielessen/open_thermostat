@@ -65,13 +65,13 @@ async def test_real_cpp_bad_getter_expires_metrics_not_control_then_new_snapshot
     async with system(hass) as (runtime,client,bus,sensors):
         frame=next(json.loads(raw) for direction,topic,raw in bus.transcript if direction=="fw" and topic=="fw/telemetry/ems_metrics")
         await bus.event("metrics_payload",raw="{invalid")
-        await ordinary_cadence(bus,46000)
+        await ordinary_cadence(bus,346000)  # EXPIRY_SECONDS: ems_metrics every 5 minutes (telemetry budget)
         assert client.ready and client.metrics_payload is None and all(not sensor.available for sensor in sensors)
         await client.receive("fw/telemetry/ems_metrics",canonical(frame))
         assert client.metrics_payload is None
         payload=data();payload["totalEnergyUsedKwhV2"]=.5
         await bus.event("metrics_payload",raw=canonical(payload))
-        await ordinary_cadence(bus,16000)
+        await ordinary_cadence(bus,260000)  # the next 5-minute snapshot
         assert client.ready and client.metrics_payload["totalEnergyUsedKwhV2"]==.5
         energy=next(sensor for sensor in sensors if sensor.unique_id.endswith("_energy_v2"))
         assert energy.native_value==.5 and energy.available

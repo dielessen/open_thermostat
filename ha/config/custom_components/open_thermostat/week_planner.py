@@ -133,6 +133,14 @@ async def async_setup_planner(hass):
         await hass.http.async_register_static_paths([
             StaticPathConfig(url, str(Path(__file__).parent / "frontend/week-planner.js"), False)
             for url in (URL, LEGACY_URL)])
+        # The E32 rooms' visual week planner: the card and the editor shared with the E32 page.
+        from .e32_week import CARD_URL, EDITOR_URL, ws_week_get, ws_week_save
+        await hass.http.async_register_static_paths([
+            StaticPathConfig(CARD_URL, str(Path(__file__).parent / "frontend/e32-week-card.js"), False),
+            StaticPathConfig(EDITOR_URL, str(Path(__file__).parent / "frontend/week-editor.js"), False)])
+        websocket_api.async_register_command(hass, ws_week_get)
+        websocket_api.async_register_command(hass, ws_week_save)
+        frontend.add_extra_js_url(hass, CARD_URL)
         from .room_editor import ws_room_get, ws_room_save, ws_room_device_metadata
         from .room_vacation import ws_vacation_preview
         websocket_api.async_register_command(hass, ws_room_get)

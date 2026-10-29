@@ -72,6 +72,8 @@ public:
     void poll(){if(drain()&&fd()>=0&&outbox_.stalled(now()))fail(MqttCounters::stalledDisconnects);}
     bool acceptsTelemetry()const{return outbox_.acceptsTelemetry();}
     const MqttOutbox& outbox()const{return outbox_;}
+    // fw/heartbeat: the largest queue and the slowest frame since the last call.
+    void takeWindow(size_t& peakBytes,uint32_t& latencyMaxMs){peakBytes=outbox_.peak();latencyMaxMs=windowLatencyMax_;outbox_.resetPeak();windowLatencyMax_=0;}
     int available()override{if(!outbox_.empty())drain();return WiFiClient::available();}
     // PubSubClient's DISCONNECT and the offline notice get one short chance.
     // A failure seen here (the peer already left) is not a write-path disconnect.
@@ -113,11 +115,12 @@ private:
             const auto count=::send(socket,data,length,MSG_DONTWAIT);
             if(count<0&&(errno==EAGAIN||errno==EWOULDBLOCK||errno==EINTR))return 0;
             return count>0?count:-1;
-        },now,[](size_t bytes,uint64_t latency,bool){
+        },now,[this](size_t bytes,uint64_t latency,bool){
             MqttCounters::frames.fetch_add(1,std::memory_order_relaxed);
             MqttCounters::bytes.fetch_add(static_cast<uint32_t>(bytes),std::memory_order_relaxed);
             const auto ms=static_cast<uint32_t>(latency>UINT32_MAX?UINT32_MAX:latency);
             MqttCounters::latencySumMs.fetch_add(ms,std::memory_order_relaxed);
+            if(ms>windowLatencyMax_)windowLatencyMax_=ms;
             if(ms>MqttCounters::latencyMaxMs.load(std::memory_order_relaxed))MqttCounters::latencyMaxMs.store(ms,std::memory_order_relaxed);
         });
         if(result!=MqttOutbox::Pump::error)return true;
@@ -130,6 +133,7 @@ private:
     uint8_t* arena_=nullptr;
     std::string prefix_;
     bool stopping_=false;
+    uint32_t windowLatencyMax_=0;
 };
 }
 #endif

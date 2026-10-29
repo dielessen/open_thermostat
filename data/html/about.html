@@ -25,6 +25,7 @@
 	<article class="ot-about-panel" aria-labelledby="about-password" id="about-password-card" hidden>
 		<h2 id="about-password"><span data-i18n="Password">Password</span></h2>
 		<p class="pd-help"><span data-i18n="The password protects this web page. Home Assistant asks for it too when you use Connect E32. The user name stays admin.">The password protects this web page. Home Assistant asks for it too when you use Connect E32. The user name stays admin.</span></p>
+		<p class="alert alert-warning" id="pw-default" role="status" hidden><span data-i18n="This E32 still uses the default password admin. Choose your own below so nobody else on your network can change your heating.">This E32 still uses the default password admin. Choose your own below so nobody else on your network can change your heating.</span></p>
 		<form id="password-form">
 			<input type="text" name="username" value="admin" autocomplete="username" hidden>
 			<label class="d-block mb-2"><span data-i18n="Current password">Current password</span><input class="form-control" id="pw-current" type="password" autocomplete="current-password" maxlength="128" required></label>
@@ -35,8 +36,8 @@
 	</article>
 	<script>
 	(() => {
-		const card = document.getElementById('about-password-card'), form = document.getElementById('password-form'), out = document.getElementById('pw-status');
-		window.OpenThermostatAuth?.ready().then(s => { card.hidden = !!s.legacy; if (s.default_password) out.textContent = uiText("You still use the default password admin."); }, () => {});
+		const card = document.getElementById('about-password-card'), form = document.getElementById('password-form'), out = document.getElementById('pw-status'), notice = document.getElementById('pw-default');
+		window.OpenThermostatAuth?.ready().then(s => { card.hidden = !!s.legacy; notice.hidden = s.default_password !== true; if (!notice.hidden) document.getElementById('pw-current').placeholder = 'admin'; }, () => {});
 		form.addEventListener('submit', async event => {
 			event.preventDefault();
 			const [current, next, again] = ['pw-current', 'pw-new', 'pw-repeat'].map(id => document.getElementById(id));
@@ -54,7 +55,7 @@
 					: error === 'password_change_busy' ? "An update is running. Change the password after the update has finished."
 					: error === 'password_storage_failed' ? "The E32 could not confirm that the new password was saved. Try again; until then the old password may still apply."
 					: error === 404 ? "This firmware cannot change the password yet. Update the firmware first." : "The password was not changed. Try again.");
-				if (!error) { window.otDefaultPassword = false; form.reset(); } else if (error === 'password_wrong') current.focus();
+				if (!error) { window.otDefaultPassword = false; notice.hidden = true; current.placeholder = ''; form.reset(); } else if (error === 'password_wrong') current.focus();
 			} catch (_) { say("The password was not changed. Try again."); }
 		});
 	})();
@@ -68,8 +69,7 @@
 			<span data-i18n="by Paweł Filipczak / intuibase. The current project is an independent continuation, with its own architecture and product direction.">by Paweł Filipczak / intuibase. The current project is an independent continuation, with its own architecture and product direction.</span>
 		</p>
 		<p>
-			<span data-i18n="Original project:">Original project:</span> Copyright 2023 Paweł Filipczak &middot;
-			<a href="mailto:info@intuibase.pl">info@intuibase.pl</a><br>
+			<span data-i18n="Original project:">Original project:</span> Copyright 2023 Paweł Filipczak<br>
 			<span data-i18n="The original copyright and">The original copyright and</span>
 			<a href="https://github.com/dielessen/open_thermostat/blob/main/LICENSE" target="_blank" rel="noopener noreferrer"><span data-i18n="MIT license">MIT license</span></a>
 			<span data-i18n="are retained. Reused components keep their own licenses and notices.">are retained. Reused components keep their own licenses and notices.</span>

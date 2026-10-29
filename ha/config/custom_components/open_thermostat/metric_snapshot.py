@@ -3,7 +3,7 @@ import math
 
 CAPABILITY="metrics.observation_total.v2"
 MAX_BYTES=2048
-EXPIRY_SECONDS=45
+EXPIRY_SECONDS=345  # the E32 sends ems_metrics every 5 minutes
 LEGACY=("totalEnergyUsedKwh","heatingEnergyUsedKwh","warmWaterEnergyUsedKwh","unattributedEnergyUsedKwh",
         "warmWaterUsage","warmWaterAvgFlow","warmWaterFlow","observedBurnerSeconds")
 VERSIONED=tuple(key+"V2" for key in LEGACY)

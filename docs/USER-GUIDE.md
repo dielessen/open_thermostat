@@ -377,9 +377,9 @@ sensors, the flow options, the boiler model and the page language.
   settings back. When network or Bluetooth settings change, the E32 restarts
   about 10 seconds later; sign in again afterwards.
 - **What a restore never does.** It does not change the Wi-Fi network or the
-  port of the web page, it does not switch to Ethernet unless an Ethernet
-  cable is connected now, and it restores the rooms in shadow mode, so it
-  never starts active boiler control. A restore is refused while the E32
+  port of the web page, it switches from Wi-Fi to Ethernet only while an
+  Ethernet cable is connected and never from Ethernet to Wi-Fi, and it
+  restores the rooms in shadow mode, so it never starts active boiler control. A restore is refused while the E32
   controls the boiler or a boiler test is running.
 
 ## The attended switch-over (not in this beta)

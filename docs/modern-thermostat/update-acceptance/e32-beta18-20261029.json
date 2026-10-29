@@ -72,7 +72,7 @@
     "e32_rollback_available": true,
     "e32_last_native_checkpoint": "beta.3 -> beta.4 (2026-10-26), unchanged: this install did not use the native GitHub route",
     "firmware_identity": "GitHub digest equals the SHA-256 of the public firmware.bin; the ELF SHA-256 in that image's app descriptor equals the E32's reported sha256; version, source commit and web hash equal the public e32v2-update.json and the /updates/status build_marker",
-    "network_mqtt": "HTTP answered every read; the HA sensor heating_advice of this E32 last changed at 2026-10-29T19:53:22Z (MQTT path alive); mqtt_budget_disconnects and heating_telemetry_failed are non-zero since boot (see the capture)",
+    "network_mqtt": "HTTP answered every read; the HA sensor heating_advice of this E32 was last updated at 2026-10-29T19:53:22Z (MQTT path alive); mqtt_budget_disconnects and heating_telemetry_failed are non-zero since boot (see the capture)",
     "previous_release_inferred": "v0.1.0-e32v2-beta.17 (BETA17-INSTALLATION-20261028.json); not read from HA before the install"
   },
   "limits": [

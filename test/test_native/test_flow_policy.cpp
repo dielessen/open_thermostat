@@ -117,6 +117,24 @@ TEST(FlowSettings, ParsesPartialUpdatesStrictly) {
     EXPECT_EQ(s.designFlowC, 0);
 }
 
+// Options on but neither a curve (no outdoor) nor a learned flow: the rule's
+// flow passes through, still within [plan min, min(plan max, 80, 0x16)].
+TEST(FlowPolicy, OptionsOnClampTheRulesFlowToTheBoilerLimit) {
+    Step s;
+    s.in.boilerLimitC = 45;
+    const FlowDemand::Request rule{true, 60, FlowDemand::Reason::heating};
+    FlowSettings on; on.weatherCurve = on.applyLearned = true;
+    s.policy.setSettings(on);
+    auto out = s.apply(rule);
+    EXPECT_EQ(s.policy.source(), FlowPolicy::Source::rule);
+    EXPECT_TRUE(out.heat); EXPECT_EQ(out.flowC, 45); EXPECT_EQ(out.reason, rule.reason);
+    s.in.boilerLimitC = 20; // a limit below the plan minimum: the limit wins
+    EXPECT_EQ(s.apply(rule).flowC, 20);
+    s.policy.setSettings(FlowSettings{}); // off: byte for byte the rule (the guard caps what it sends)
+    out = s.apply(rule);
+    EXPECT_EQ(out.flowC, 60);
+}
+
 TEST(FlowPolicy, OptionsOffLeaveTheRuleAndAdvise) {
     Step s;
     s.in.outdoorCentiC = -1000;

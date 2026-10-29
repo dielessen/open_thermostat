@@ -1251,7 +1251,7 @@ void Chain::stepE32() {
 
 // HeatingController::applyFlowPolicy: the options between the rule and the
 // shadow comparison/guard. Off: exactly the rule, which knows only the plan's
-// limits (the guard applies the boiler's 0x16 limit). An option's flow stays
+// limits (the guard applies the boiler's 0x16 limit). On: every output stays
 // within [plan min, min(plan max, 80, the boiler's 0x16 limit)].
 FlowDemand::Request Chain::applyFlowPolicy(const FlowDemand::Request& rule, std::optional<int16_t> outdoorCentiC, std::optional<int16_t> flowCentiC,
                                            std::optional<bool> burnerOn, std::optional<bool> hotWater) {
@@ -1267,13 +1267,10 @@ FlowDemand::Request Chain::applyFlowPolicy(const FlowDemand::Request& rule, std:
     if (!o_.flowOptions)
         EXPECT(applied.heat == rule.heat && applied.flowC == rule.flowC && applied.reason == rule.reason, "flow_policy_off_differs",
                "options off but applied %u/%u (%s) vs rule %u/%u (%s)", applied.heat, applied.flowC, FlowDemand::name(applied.reason), rule.heat, rule.flowC, FlowDemand::name(rule.reason));
-    // FlowPolicy leaves the rule's own flow untouched when neither option has a
-    // flow (source rule): then only the plan's limits hold, as with the options off.
-    const bool optionFlow = o_.flowOptions && policy_.source() != FlowPolicy::Source::rule;
-    if (o_.flowOptions && !optionFlow && applied.heat && in.boilerLimitC && applied.flowC > *in.boilerLimitC)
-        observe("flow_policy_rule_above_boiler_limit", "options on, no curve or learned flow: the rule's " + std::to_string(applied.flowC)
-                + " degC passes above the boiler's " + std::to_string(*in.boilerLimitC) + " degC (the guard caps it)");
-    const uint8_t cap = std::min<uint8_t>({plan.maximumFlowC, FlowDemand::ceilingC, optionFlow ? in.boilerLimitC.value_or(FlowDemand::ceilingC) : FlowDemand::ceilingC});
+    // Options on: every output, also the rule's flow passed through, within the
+    // boiler's limit. Off: the rule's own limits (the guard applies 0x16).
+    const uint8_t cap = std::min<uint8_t>({plan.maximumFlowC, FlowDemand::ceilingC, o_.flowOptions ? in.boilerLimitC.value_or(FlowDemand::ceilingC) : FlowDemand::ceilingC});
+    if (rule.heat && in.boilerLimitC && rule.flowC > *in.boilerLimitC) count("rule_flow_above_boiler_limit_steps");
     if (applied.heat) {
         EXPECT(applied.flowC <= cap && applied.flowC >= std::min(plan.minimumFlowC, cap), "flow_policy_range",
                "applied %u outside [%u, %u] (plan %u..%u, limit %s)", applied.flowC, std::min(plan.minimumFlowC, cap), cap, plan.minimumFlowC, plan.maximumFlowC,

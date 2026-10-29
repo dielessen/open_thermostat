@@ -44,7 +44,7 @@
         "Made with firmware {v}.": "Gemaakt met firmware {v}.",
         "Skipped, not known by this firmware: {v}": "Overgeslagen, onbekend voor deze firmware: {v}",
         "Invalid value: {v}": "Ongeldige waarde: {v}",
-        "Ethernet stays off: no Ethernet cable is connected now. The current connection stays.": "Ethernet blijft uit: er is nu geen ethernetkabel aangesloten. De huidige verbinding blijft.",
+        "The connection type stays as it is, so you can still reach this page.": "Het verbindingstype blijft zoals het is, zodat je deze pagina kunt blijven bereiken.",
         "The web page port stays the same, so you can still reach this page.": "De poort van de webpagina blijft gelijk, zodat je deze pagina kunt blijven bereiken.",
         "MQTT stays off until you enter the MQTT password.": "MQTT blijft uit tot je het MQTT-wachtwoord invoert.",
         "Weather settings are managed by Home Assistant and stay as they are.": "De weerinstellingen worden door Home Assistant beheerd en blijven zoals ze zijn.",
@@ -125,7 +125,7 @@
         openweather_key: "OpenWeather API key", bluetooth_keys: "Bluetooth sensor keys", bluetooth_key: "Bluetooth key for {v}"};
     const warnings = {
         other_firmware: "Made with firmware {v}.", unknown_key: "Skipped, not known by this firmware: {v}", invalid_value: "Invalid value: {v}",
-        interface_kept: "Ethernet stays off: no Ethernet cable is connected now. The current connection stays.",
+        interface_kept: "The connection type stays as it is, so you can still reach this page.",
         listen_port_kept: "The web page port stays the same, so you can still reach this page.",
         mqtt_off_until_password: "MQTT stays off until you enter the MQTT password.",
         weather_managed_kept: "Weather settings are managed by Home Assistant and stay as they are.",

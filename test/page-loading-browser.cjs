@@ -50,7 +50,7 @@ const telemetry={reception:{state:'classic_reports_received'},transport:{enabled
    await page.goto(base+'/');await page.locator('.product-dashboard').waitFor();
    await page.locator('[data-bluetooth-settings]:not([hidden])').waitFor({state:'attached'});
    const cold=requests.slice(start),coldBytes=cold.reduce((sum,r)=>sum+r.bytes,0);
-   for(const unused of ['/ems-metadata.js','/ems-devices.js','/bluetooth.js','/system-log.js','/deps/chart.umd.js.gz'])
+   for(const unused of ['/ems-metadata.js','/ems-devices.js','/bluetooth.js','/system-log.js','/deps/chart.umd.js.gz','/history-chart.js'])
     assert(!cold.some(r=>r.path===unused),'Home must not load '+unused);
    // beta.18: the Overview also reads the E32's own rooms and both languages grew (about +5 kB gzip).
    assert(coldBytes<168000,'Cold Home payload budget exceeded: '+coldBytes);

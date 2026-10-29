@@ -463,10 +463,12 @@ inline const char* prepareNetwork(const cJSON* backup, const DeviceState& s, con
     for (const char* sec : {"mqtt", "openweather", "bt"})
         if (const auto object = item(net, sec)) if (const char* e = apply(sec, object)) return e;
 
-    // Lock-out rules.
+    // Lock-out rules. The interface changes only to Ethernet while its link is
+    // up: leaving Ethernet for Wi-Fi would drop this session for the setup AP.
     const auto oldMode = text(item(previous.get(), "interface_mode"));
     const auto newMode = text(item(candidate.get(), "interface_mode"));
-    if (newMode == "ethernet" && oldMode != "ethernet" && !s.ethernetUp) {
+    const auto mode = [](std::string_view m) { return m == "ethernet" ? m : std::string_view("wifi"); };
+    if (mode(newMode) != mode(oldMode) && !(mode(newMode) == "ethernet" && s.ethernetUp)) {
         report.warn("interface_kept");
         if (oldMode.empty()) cJSON_DeleteItemFromObjectCaseSensitive(candidate.get(), "interface_mode");
         else if (!put(candidate.get(), "interface_mode", cJSON_CreateString(std::string(oldMode).c_str()))) return "out_of_memory";

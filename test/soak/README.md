@@ -152,9 +152,11 @@ Injected events:
   `inactive_until`. `no_demand` holds exactly when no room is usable.
 - **FlowPolicy** (`HeatingController::applyFlowPolicy`, between RoomEngine and
   the shadow comparison/guard): with both options off the applied request is
-  exactly the rule's; with the options on a heat request stays within
-  [plan min, min(plan max, 80, the boiler's 0x16 limit)] (off: the plan's limits,
-  the guard applies the 0x16 limit); off means 0. heating_summary (with the
+  exactly the rule's; with the options on every heat request, also the
+  rule's flow passed through, stays within [plan min, min(plan max, 80, the
+  boiler's 0x16 limit)] (off: the plan's limits, the guard applies the 0x16
+  limit); off means 0. Steps where the rule itself asks more than the boiler
+  limit are counted (`rule_flow_above_boiler_limit_steps`). heating_summary (with the
   `flow` and `night_gas` blocks) stays ≤ 1100 B.
 - **Plans** are stored as `RoomPlan::storedJson()` (week programs packed when
   the API form does not fit), at most `storeBytes` - 1, and load back to the

@@ -326,6 +326,14 @@ TEST(ConfigBackup, NetworkRestoreCannotLockTheOwnerOut) {
     v = validate(request("validate", doc.get()), onto);
     ASSERT_EQ(v.error, nullptr);
     EXPECT_EQ(field(v.prepared.network, nullptr, "interface_mode"), "\"ethernet\"");
+    // An E32 on Ethernet never drops to Wi-Fi (and its setup AP) through a restore.
+    auto wired = factory();
+    auto doc2 = b::exportDocument(configured(), meta(), "");
+    auto n = parse(wired.network); b::put(n.get(), "interface_mode", cJSON_CreateString("ethernet")); wired.network = print(n.get());
+    v = validate(request("validate", doc2.get()), wired);
+    ASSERT_EQ(v.error, nullptr);
+    EXPECT_TRUE(has(v.report.warnings.get(), "interface_kept"));
+    EXPECT_EQ(field(v.prepared.network, nullptr, "interface_mode"), "\"ethernet\"");
 }
 
 TEST(ConfigBackup, RestoreIsRefusedWhileTheE32OwnsTheBoiler) {

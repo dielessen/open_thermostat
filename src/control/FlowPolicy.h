@@ -277,7 +277,9 @@ public:
             uint8_t flow = in.rule.flowC;
             if (settings_.weatherCurve && curveFlow_) { flow = *curveFlow_; source_ = Source::curve; }
             if (settings_.applyLearned && learnedFlow_) { flow = *learnedFlow_; source_ = Source::learned; }
-            if (source_ != Source::rule) applied_.flowC = bound(flow); // the rule's own flow stays untouched
+            // Options off: the rule's own request, byte for byte. Options on: every
+            // output, also the rule's flow passed through, within [plan min, cap].
+            if (source_ != Source::rule || settings_.weatherCurve || settings_.applyLearned) applied_.flowC = bound(flow);
         }
         optimumStart(in, learner, bound);
         step(in, learner);

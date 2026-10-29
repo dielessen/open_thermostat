@@ -7,10 +7,11 @@ onderdeel 10 van het [beta.19-plan](NEXT-RELEASE.nl.md). Engelse, algemene
 versie voor GitHub: [SWITCHOVER.md](../SWITCHOVER.md). Live bewaking:
 [tools/switchover](../../tools/switchover/README.md).
 
-**Markering.** *(beta.19, te verifiëren)* = gedrag dat in beta.19 nog in
-aanbouw is (firmware: ketelgrens uit 0x16, bewaarde bevestiging, supervisor
-tijdens actief, faalscenario's in `test/soak`). Vóór de overstapdag opnieuw
-controleren tegen de gepubliceerde bron; zie §11.
+**Markering.** *(beta.19, op het apparaat controleren)* = gedrag dat in
+beta.19 gebouwd en met host- en duurtests (`test/test_native`, `test/soak`
+scenario `active`) bewezen is, maar dat alleen een echte busopname of de
+overstapdag zelf kan bevestigen. Vóór de overstapdag opnieuw controleren tegen
+de gepubliceerde bron; zie §11.
 
 **Installatie (eigenaar).** Nefit EcomLine HRC 22H achter een Bosch
 EasyControl Adapter (EMS 0x08). tado (RC10-type, 0x17) stuurt nu 0x1A elke
@@ -29,11 +30,11 @@ woonkamer is actief in beta.19. E32 op `http://192.168.1.206`.
 | --- | --- | --- | --- |
 | E1 | De tado regelt tot hij **fysiek** van de EasyControl Adapter is losgekoppeld; daarna is de E32 de enige regelaar. Geen "tado op Uit". | Elke 0x1A van een ander adres dan 0x08/0x0B na de bevestiging stopt de E32 (`foreign_controller`). | gebouwd |
 | E2 | Overnemen alleen na de expliciete bevestiging van de eigenaar op de E32-pagina. | Knop "Mijn thermostaat is losgekoppeld van de ketel — laat de E32 overnemen" → `POST /config/heating` (`mode: active`) en `POST /config/heating/handover` `{"thermostat_disconnected":true}`. | gebouwd |
-| E3 | De bevestiging blijft bewaard over herstarts; gewist door een vreemde 0x1A, door teruggeven of door een firmwarewissel. | NVS (`HandoverConfirmation`), gebonden aan versie + ELF-hash; `active.confirmation_stored` in `/status/heating`. | *(beta.19, te verifiëren)* |
-| E4 | Na meetverlies hervat de regeling vanzelf. | `stopped_measurement_lost` → `active` zodra er weer een verse meting is, zonder nieuwe bevestiging. | gebouwd; soak `measurement_gone` *(beta.19, te verifiëren)* |
-| E5 | Aanvoer dynamisch tot het planmaximum, nooit boven het eigen maximum van de ketel (0x16), zo laag mogelijk. | Plafond `min(planmaximum, 80, 0x16)`; de E32 leest 0x16 zelf bij opstart en elke 6 h (`BoilerLimitRead`); zonder grens geen positieve vraag (`boiler_limit_unknown`). | *(beta.19, te verifiëren)* |
+| E3 | De bevestiging blijft bewaard over herstarts; gewist door een vreemde 0x1A, door teruggeven of door een firmwarewissel. | NVS (`HandoverConfirmation`), gebonden aan versie + ELF-hash; `active.confirmation_stored` en `active.confirmation.restored` in `/status/heating`. Na een herstart pas warmte na 2 min busontvangst zonder vreemde 0x1A (§2). | gebouwd; native `test_handover_confirmation`, soak `reboot`, `reboot_tado_back` |
+| E4 | Na meetverlies hervat de regeling vanzelf. | `stopped_measurement_lost` → `active` zodra er weer een verse meting is, zonder nieuwe bevestiging. | gebouwd; soak `measurement_gone` |
+| E5 | Aanvoer dynamisch tot het planmaximum, nooit boven het eigen maximum van de ketel (0x16), zo laag mogelijk. | Plafond `min(planmaximum, 80, 0x16)`; de E32 leest 0x16 zelf bij opstart en elke 6 h (`BoilerLimitRead`); zonder grens geen positieve vraag (`boiler_limit_unknown`). | gebouwd; native `test_boiler_limit_read`, soak `boiler_limit`; busopname *(op het apparaat controleren)* |
 | E6 | Vorstbeveiliging aan onder 8 °C, uit bij 9 °C. | Koudste verse meting van **alle** ruimtes (ook inactieve) → minimumaanvoer, reden `frost_minimum`. | gebouwd |
-| E7 | Geen supervisorherstart zolang de E32 de ketel bezit. | `SupervisorPolicy`: `boilerOwned` → alleen `loop_stall` en `update_stuck`; geen `wifi_lost`, `broker_lost`, `network_dead`, `bluetooth_silent`. | *(beta.19, te verifiëren)* |
+| E7 | Geen supervisorherstart zolang de E32 de ketel bezit. | `SupervisorPolicy`: `boilerOwned` → alleen `loop_stall` en `update_stuck`; geen `wifi_lost`, `broker_lost`, `network_dead`, `bluetooth_silent`. | gebouwd; native `test_supervisor`, soak `wifi_gone`, `measurement_gone` |
 | E8 | De actieve vergrendeling (`board::emsActiveHeatAllowed`) gaat pas open op de overstapdag, in een aparte, expliciet goedgekeurde build. | `src/Board.h`, E32V2-tak: nu `false`. | **niet doen vóór de overstapdag** (§4.1) |
 
 Nog open (geen blokkade, wel vóór fase 5 beslissen):
@@ -48,7 +49,7 @@ Nog open (geen blokkade, wel vóór fase 5 beslissen):
   nog niet in de HA-integratie. De bestaande binaire sensor
   "Verwarmingsprobleem" meldt alleen `foreign_controller`, `measurement_lost`,
   `boiler_no_response` en `transmit_failed` na 5 min. Tot de melding er is,
-  dekt het bewakingsscript (§9) dit af. *(beta.19, te verifiëren)*
+  dekt het bewakingsscript (§9) dit af (alarm `awaiting_confirmation`).
 
 ---
 
@@ -61,7 +62,7 @@ pagina **Ruimtes → Actieve regeling**):
 | --- | --- | --- |
 | `shadow` | Schaduwmodus: je thermostaat regelt de ketel. | niets |
 | `awaiting_confirmation` | Wacht op je bevestiging dat je thermostaat van de ketel is losgekoppeld. | niets — **ook geen vorstbeveiliging** |
-| `arming` | Overnemen: wacht op verse ruimtemetingen en de ketelbus. | niets; `active` zodra ≥ 60 s na boot *(beta.19, te verifiëren; was 120 s)*, zendroute klaar en alle actieve ruimtes vers (of na 30 min zonder verse meting: eigenaar met nulvraag) |
+| `arming` | Overnemen: wacht op verse ruimtemetingen en de ketelbus. | niets; `active` zodra ≥ 60 s na boot, zendroute klaar en alle actieve ruimtes vers (of na 30 min zonder verse meting: eigenaar met nulvraag). **Na een herstart met bewaarde bevestiging** bovendien pas na 2 min onafgebroken ontvangst van de ketel (0x08, berichten ≤ 30 s uit elkaar) zonder vreemde 0x1A: ≈ 130 s na boot; tot dan `active.confirmation.restored: true` met `listened_s`. Een vreemde 0x1A in die tijd wist de bevestiging (`blocked_foreign_controller`); ook de vorstbeveiliging wacht hierop. |
 | `active` | De E32 regelt de ketel. | vraag elke 60 s, direct bij aan/uit; na elke stop 60 s lang elke 10 s nul |
 | `stopped_measurement_lost` | Geen ruimtemetingen: de E32 vraagt de ketel geen warmte tot er weer een meting is. | nul (vorstminimum blijft mogelijk); hervat vanzelf |
 | `stopping` | Stoppen: de E32 vraagt de ketel één minuut lang nul. | nul elke 10 s, ≥ 60 s en tot een nul is afgeleverd |
@@ -81,7 +82,13 @@ Bluetooth/HA-meting 15 min geldig ("Laatste waarde (bron weg)"), na 30 min
 "Geen meting: geen warmtevraag" · HA-setpoint 15 min geldig, daarna het
 weekprogramma (met klok), anders "temperatuur zonder HA" · de E32 zendt als
 0x0B, alleen wanneer de ketel 0x0B pollt · 0x16-lezing: `0B 88 16 00 02`, bij
-de eerste poll na boot, opnieuw na 6 h, herhaling na 5 min zonder antwoord.
+de eerste poll na boot, opnieuw als 6 h geen 0x16-melding is gezien (ook een
+antwoord aan de tado telt), herhaling na 5 min zonder antwoord; zonder bekende
+grens geen positieve vraag (`boiler_limit_unknown`) · bewaarde bevestiging:
+NVS-record `<versie>/<ELF-hash>`; elke andere firmware (ook dezelfde versie
+opnieuw gebouwd) wist hem · zolang de E32 de ketel bezit herstart de
+supervisor alleen bij een vastloper (`loop_stall`, RTC-watchdog) of een
+vastgelopen update.
 Aanvoeropties van beta.19 (`/config/heating/flow`: stooklijn, geleerde
 aanvoer) staan standaard op **advies**; `flow.source` = `rule`.
 
@@ -90,8 +97,8 @@ aanvoer) staan standaard op **advies**; `flow.source` = `rule`.
 | Wat | E32-pagina | REST | MQTT (`<prefix>/v1/fw/telemetry/…`, elke 15 s) | Home Assistant |
 | --- | --- | --- | --- | --- |
 | Toestand, vraag, laatst verzonden, waarschuwingen | Ruimtes → Actieve regeling | `GET /status/heating` → `active` | `heating` → `active` | Verwarmingsprobleem (na 5 min); geen eigen toestandsentiteit *(O3)* |
-| Bevestiging bewaard | — | `active.confirmation`, `active.confirmation_stored` *(beta.19)* | idem | — |
-| Ketelgrens (0x16) | Ruimtes → aanvoergrenzen ("Je ketel staat maximaal {max} °C toe") | `active.boiler_limit` `{flow_c, age_s, reads}` *(beta.19)*; `GET /status/ems/telemetry` → `fields.configured_heating_temperature` | `heating` → `active.boiler_limit` | — |
+| Bevestiging bewaard | — | `active.awaiting_confirmation`, `active.confirmation` `{age_s, restored, listened_s}`, `active.confirmation_stored` | idem | — |
+| Ketelgrens (0x16) | Ruimtes → aanvoergrenzen ("Je ketel staat maximaal {max} °C toe") | `active.boiler_limit` `{flow_c, age_s, reads}` (`reads`: eigen 0x16-leesverzoeken deze boot); `GET /status/ems/telemetry` → `fields.configured_heating_temperature` | `heating` → `active.boiler_limit` | — |
 | Berekende vraag | Ruimtes → "Berekende ketelvraag" | `request` `{heat, flow_c, reason}` | `heating` → `request` | Ketelvraag (E32) |
 | Ruimtes | Ruimtes (status, bron, gewenst) | `rooms[]` | `heating` → `rooms` | per ruimte: Temperatuur, Doeltemperatuur, Regelstatus, Warmtevraag |
 | Ketel live | Ketel | `GET /status/ems/telemetry` → `fields.*` | `boiler_fields` | Aanvoertemperatuur, Retourtemperatuur, Gekozen aanvoertemperatuur, Verwarmen actief, Warm water actief, Brandermodulatie, Waterdruk |
@@ -119,8 +126,8 @@ vreemde 0x1A, en het keteldisplay (Nefit doorgaans `-H` = CV, `=H` = tapwater,
 
 **Software**
 - [ ] Beta.19 + HA0.4.0b11 gepubliceerd en geïnstalleerd **met de vergrendeling dicht**, ≥ 24 h stabiel in schaduwmodus op die build.
-- [ ] Hosttests en soak groen: `test_active_heat_guard`, `test_handover_confirmation`, `test_boiler_limit_read`, `test_supervisor`, `test/soak` modus `full` (scenario's `active`: `ha_gone`, `measurement_gone`, `reboot`, `wifi_gone`, `foreign_1a`, `dhw`, `frost`, `stop_until_delivered`, `boiler_limit`). *(beta.19, te verifiëren)*
-- [ ] `/status/heating` toont `active.boiler_limit.flow_c` ≠ null **na een E32-herstart** in schaduwmodus (bewijst dat de E32 0x16 zelf leest). *(beta.19, te verifiëren)*
+- [ ] Hosttests en soak groen: `test_active_heat_guard`, `test_handover_confirmation`, `test_boiler_limit_read`, `test_supervisor`, `test/soak` modus `full` (scenario `active`: `ha_gone`, `measurement_gone`, `reboot`, `reboot_tado_back`, `wifi_gone`, `foreign_1a`, `dhw`, `frost`, `stop_until_delivered`, `boiler_limit`).
+- [ ] `/status/heating` toont `active.boiler_limit.flow_c` ≠ null **na een E32-herstart** in schaduwmodus, met `reads` ≥ 1 (bewijst dat de E32 0x16 zelf leest). *(beta.19, op het apparaat controleren)*
 - [ ] MQTT stabiel: `mqtt_budget_disconnects` loopt niet op over 24 uur (waargenomen op beta.18: 4 in 17 min; beta.19-plan onderdeel 29) en `minimum_free_internal_bytes` ≥ 20000 (waargenomen: 13280). Anders eerst oplossen: een E32 die MQTT verliest, zet HA-bronnen op "bron weg".
 - [ ] Bewakingsscript één uur in schaduwmodus gedraaid (§4.2): geen onverklaard alarm.
 
@@ -211,7 +218,7 @@ Zodat het teruggeven later zonder nadenken kan:
 - [ ] Keteltelemetrie blijft binnenkomen (pagina Ketel / HA Aanvoertemperatuur, Verwarmen actief, Brandermodulatie). Kwam die alleen op vragen van de tado: **afbreken** (§7).
 - [ ] De ketel blijft in rust (geen CV, geen brander). Stookt de adapter zelf: noteren, afbreken.
 - [ ] Tapwater zonder 0x33 van de tado: kraan 1 min open → "Warm water actief", ~55 °C. Anders noteren.
-- [ ] `active.boiler_limit.flow_c` blijft bekend (de E32 leest 0x16 zelf; `reads` ≥ 1 na de herstart door "ketel uit"). *(beta.19, te verifiëren)*
+- [ ] `active.boiler_limit.flow_c` blijft bekend (de E32 leest 0x16 zelf; `reads` ≥ 1 na de herstart door "ketel uit"). *(beta.19, op het apparaat controleren)*
 - [ ] "Gevraagde aanvoertemperatuur (thermostaat)" en "Ruimtetemperatuur (thermostaat)" worden binnen ~3 min onbeschikbaar (verwacht).
 - [ ] Tado in HA: temperatuur en setpoint blijven actueel (via de tado-bridge).
 
@@ -270,26 +277,26 @@ geslaagd**: noteren, en bij een afbreekcriterium (§7) direct terug (§8).
 
 ### T6 E32-herstart (bewaarde bevestiging) en gedrag van de adapter
 - **Doen:** bij een matige vraag (~40 °C, CV actief) Systeem → "Apparaat herstarten". t0 = klik.
-- **Verwacht:** de E32 zendt ~30–60 s niets; na de herstart **zonder nieuwe bevestiging** `arming`, en ≥ 60 s na boot en binnen ~1 min na de eerste verse meting weer `active` met dezelfde vraag; `boiler_limit.reads` ≥ 1. *(beta.19, te verifiëren)*
+- **Verwacht:** de E32 zendt ~30–60 s niets (herstart); daarna **zonder nieuwe bevestiging** `arming` met `confirmation.restored: true`; na 2 min onafgebroken ketelontvangst zonder vreemde 0x1A (≈ 130 s na boot, en binnen ~1 min na de eerste verse meting) weer `active` met dezelfde vraag; `boiler_limit.reads` ≥ 1 en `flow_c` bekend vóór de eerste positieve vraag. (Soak `reboot`; op het apparaat controleren.)
 - **Meten (O2):** blijft "Verwarmen actief"/Brandermodulatie/Gekozen aanvoertemperatuur staan in het gat? Tijd noteren.
-- **Geslaagd:** weer `active` binnen 3 min na t0, geen `awaiting_confirmation`; script `e32_restarted` met `reset_reason` `software`; zwarte doos (Systeemlog / `previous_boot`) toont de handmatige herstart.
+- **Geslaagd:** weer `active` binnen ~4 min na t0, geen `awaiting_confirmation`; script `e32_restarted` met `reset_reason` `software`; zwarte doos (Systeemlog / `previous_boot`) toont de handmatige herstart.
 
 ### T7 E32 stroomloos (adaptergedrag, O2)
 - **Doen:** voeding van de E32 eraf (bij busvoeding: de E32-busdraden los). Stopwatch. Max. 30 min wachten.
 - **Verwacht:** de ketel gedraagt zich zoals de adapter dat doet zonder regelaar: *vasthouden* of *timeout naar nul na X min*.
-- **Geslaagd:** gedrag gemeten en getimed (keteldisplay, aanvoerleiding met de hand/IR, branderlawaai); script `e32_unreachable` na 3 min. E32 weer aan → als T6 binnen 3 min `active` zonder nieuwe bevestiging; `reset_reason` `power_on`.
+- **Geslaagd:** gedrag gemeten en getimed (keteldisplay, aanvoerleiding met de hand/IR, branderlawaai); script `e32_unreachable` na 3 min. E32 weer aan → als T6: ≈ 130 s na boot (2 min busontvangst zonder vreemde 0x1A) `active` zonder nieuwe bevestiging, uiterlijk ~4 min; `reset_reason` `power_on`.
 
 ### T8 Wifi weg (20 min)
 - **Doen:** het accesspoint (of alleen het SSID van de E32) uit; **niet** alleen verkeer blokkeren. 20 min, dus langer dan de oude 15 min van `wifi_lost`.
 - **Verwacht:** de E32 regelt door; na ≤ 15 min woonkamer "Terugvalbron" (Xiaomi) en "Gewenste temperatuur uit het weekprogramma"; pagina, HA en script zien de E32 niet.
-- **Geslaagd:** na terugkeer **geen herstart** (uptime loopt door, script geen `e32_restarted`, `previous_boot` ongewijzigd), toestand `active`, geen gat op het keteldisplay. *(E7, beta.19, te verifiëren)*
+- **Geslaagd:** na terugkeer **geen herstart** (uptime loopt door, script geen `e32_restarted`, `previous_boot` ongewijzigd), toestand `active`, geen gat op het keteldisplay. *(E7; soak `wifi_gone`)*
 - **Controle:** keteldisplay en aanvoerleiding tijdens de test; daarna `/status/logs` en de HA-geschiedenis.
 
 ### T9 Home Assistant weg (HA Core stoppen, broker blijft draaien)
 - **Doen:** HA Core stoppen (bij HA OS blijft de Mosquitto-add-on draaien). Laat een T1-achtige vraag lopen.
 - **Verwacht:** na ≤ 15 min "Terugvalbron" (Xiaomi leidt) en het weekprogramma als setpoint; regeling loopt door; pagina blijft bereikbaar.
 - **Geslaagd:** geen stop, geen herstart, Ketelvraag blijft logisch; na HA-start binnen 5 min weer de tado-bron en het HA-setpoint.
-- **Variant broker weg** (Mosquitto stoppen, 20 min): geen herstart (geen `broker_lost` zolang de E32 de ketel bezit). *(E7, beta.19, te verifiëren)*
+- **Variant broker weg** (Mosquitto stoppen, 20 min): geen herstart (geen `broker_lost` zolang de E32 de ketel bezit). *(E7; native `test_supervisor`)*
 
 ### T10 Meting weg (aansluitend op T9, HA nog uit)
 - **Doen:** batterij uit de Xiaomi op t0.
@@ -356,10 +363,11 @@ Direct terug naar de tado (§8) bij:
    heeft een waarde.
 6. Laat de E32 uit tot de oorzaak bekend is. Zet hem later weer aan **terwijl
    de tado aangesloten is**: de E32 ziet de 0x1A van de tado en blijft dan
-   stil (`blocked_foreign_controller`, bevestiging gewist). Druk daarna toch
-   op "Teruggeven aan de thermostaat", zodat het plan weer op schaduw staat.
-   *(beta.19, te verifiëren: de bootwachttijd van 60 s is korter dan twee
-   tado-intervallen; zie §11, A6)*
+   stil (`blocked_foreign_controller`, bevestiging gewist): na een herstart
+   met bewaarde bevestiging vraagt hij pas warmte na 2 min onafgebroken
+   ketelontvangst zonder vreemde 0x1A, ruim drie tado-intervallen (§11, A6).
+   Druk daarna toch op "Teruggeven aan de thermostaat", zodat het plan weer op
+   schaduw staat.
 7. Vermoeden van een firmwarefout: de bekende goede firmware (§4.1 punt 2) via
    Systeem → Firmware bijwerken terugzetten. Een andere firmware wist de
    bevestiging; de E32 stuurt daarna niets tot er opnieuw bevestigd wordt.
@@ -440,12 +448,12 @@ dan de woonkamer pas na 1–2 weken live.
 
 | # | Draaiboek gaat uit van | Waar | Controle |
 | --- | --- | --- | --- |
-| A1 | De E32 leest 0x16 zelf bij boot en elke 6 h; `active.boiler_limit {flow_c, age_s, reads}`; zonder grens geen warmte. | `src/EMS/BoilerLimitRead.h`, `EmsController`, `HeatingController::activeHeatJson` | §3, §5.2, T6; soak `boiler_limit`; busopname van `0B 88 16 00 02` |
-| A2 | Bevestiging in NVS, gebonden aan de firmware; gewist bij vreemde 0x1A, teruggeven (plan naar schaduw) en firmwarewissel; `active.confirmation_stored`. | `src/control/HandoverConfirmation.h`, `HeatingController` | T5, T6, T7, T11; soak `reboot`, `foreign_1a` |
-| A3 | Bootwachttijd 60 s (was 120 s); na herstart met bewaarde bevestiging binnen ~1 min na de eerste verse meting weer warmte of vorstbeveiliging. | `ActiveHeatGuard::Params::bootHoldoffMs` | T6, T7 |
-| A4 | Geen supervisorherstart (`wifi_lost`, `broker_lost`, `network_dead`, `bluetooth_silent`) zolang `claimsBoiler()`; wel `loop_stall`, `update_stuck`. | `src/diagnostics/SupervisorPolicy.h`, `src/main.cpp` | T8, T9-variant, T10; soak `wifi_gone`, `measurement_gone` |
-| A5 | Plafond `min(plan, 80, 0x16)` in guard én zendroute. | `ActiveHeatGuard`, `ActiveHeatPollDriver` | T2 |
-| A6 | Na een noodterugval met de tado aangesloten ziet de E32 de tado-0x1A vóór hij warmte vraagt. Met 60 s bootwachttijd en een tado-interval van ~40 s is de marge klein (één gemiste 0x1A = ~80 s). Voorstel aan de lead: wachttijd ≥ 2 tado-intervallen, of na boot pas warmte als er 2 min geen vreemde 0x1A was. | `bootHoldoffMs`, soak `foreign_1a` | §8.2 stap 6, T11 met herstart |
+| A1 | De E32 leest 0x16 zelf: `0B 88 16 00 02` bij de eerste poll na boot, opnieuw als 6 h geen 0x16 is gezien, herhaling na 5 min; `active.boiler_limit {flow_c, age_s, reads}`; zonder grens geen warmte. Review: [BOILER-LIMIT-READ.en.md](BOILER-LIMIT-READ.en.md). | `src/EMS/BoilerLimitRead.h`, `EmsController`, `HeatingController::activeHeatJson` | gebouwd; native `test_boiler_limit_read`, soak `boiler_limit`. *Op het apparaat controleren:* busopname van één `0B 88 16 00 02` met antwoord na een herstart zonder tado, daarna 6 h niets |
+| A2 | Bevestiging in NVS, gebonden aan de firmware; gewist bij vreemde 0x1A, teruggeven (plan naar schaduw) en firmwarewissel; `active.confirmation_stored`. | `src/control/HandoverConfirmation.h`, `HeatingController` | gebouwd; native `test_handover_confirmation` (o.a. `NewFirmwareAsksAgain`), soak `reboot`, `foreign_1a`, `stop_until_delivered`; T5, T6, T7, T11 |
+| A3 | Bootwachttijd 60 s (was 120 s) voor een bevestiging van deze boot; na een herstart met bewaarde bevestiging pas na 2 min onafgebroken ketelontvangst zonder vreemde 0x1A (≈ 130 s na boot) en binnen ~1 min na de eerste verse meting weer warmte of vorstbeveiliging. | `ActiveHeatGuard::Params::bootHoldoffMs`, `restoredListenMs`, `busGapMs` | gebouwd; native `test_handover_confirmation`, soak `reboot`; T6, T7 |
+| A4 | Geen supervisorherstart (`wifi_lost`, `broker_lost`, `network_dead`, `bluetooth_silent`) zolang `claimsBoiler()`; wel `loop_stall`, `update_stuck`. | `src/diagnostics/SupervisorPolicy.h`, `src/main.cpp` | gebouwd; native `SupervisorPolicy.OwningTheBoilerRestartsOnlyForARealHang`, soak `wifi_gone`, `measurement_gone`; T8, T9-variant, T10 |
+| A5 | Plafond `min(plan, 80, 0x16)` in guard, zendroute en aanvoeropties (`FlowPolicy`). | `ActiveHeatGuard`, `ActiveHeatPollDriver`, `FlowPolicy` | gebouwd; soak `active` en `chain-ams-options`; T2 |
+| A6 | **Opgelost.** Na een noodterugval met de tado aangesloten ziet de E32 de tado-0x1A vóór hij warmte vraagt: met bewaarde bevestiging pas warmte (en vorstbeveiliging) na 2 min onafgebroken ketelontvangst zonder vreemde 0x1A, ruim drie tado-intervallen van ~40 s; een vreemde 0x1A in die tijd wist de bevestiging zonder dat de E32 iets zendt. | `ActiveHeatGuard::restore`, `restoredListenMs` | gebouwd; native `ThermostatBackBeforeTheRestartIsCaughtBeforeAnyRequest`, `ListeningNeedsContinuousBoilerReception`, soak `reboot_tado_back`; §8.2 stap 6, T11 met herstart |
 | A7 | Soakscenario's `active` groen in CI. | `test/soak` | §3 |
 | A8 | HA meldt `awaiting_confirmation` (O3); tot dan alleen het script. | HA-integratie (`heating_problem.py`) | §3, T6 |
 | A9 | De vergrendelingsbuild verschilt alleen in `emsActiveHeatAllowed`. | `src/Board.h` | §4.1 punt 3 |

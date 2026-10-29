@@ -614,97 +614,81 @@ write support. The trial does not complete physical installation acceptance; its
 results and the independent stop still need to be recorded on site.
 
 # E32 V2 beta3 — controls, diagnostics and update recovery
-<!-- user-release-notes:v1 -->
+<!-- user-release-notes:v2:en -->
 
-## Nieuw
+## New
 
-- Alphabetical boiler selection by brand/model and a more extensive EMS devices page with search across devices, entities and telegrams.
+- Alphabetical boiler selection by brand/model and a more extensive EMS devices page with search across devices, entities, telegrams and the EMS reference.
 - Search for and add Bluetooth devices while keeping draft input; devices that are already saved are recognised.
 - Clearer ESP/EMS system logging and Dutch/English explanations.
-- A prepared one-time boiler configuration read and a separate close-out of manual bus transactions. These routes remain physically blocked.
+- A prepared, bounded one-time boiler configuration read and a separate close-out of manual bus transactions. These routes remain physically blocked; physical transmission stays disabled.
 
-## Opgelost
+## Fixed
 
 - Bluetooth settings confirm storage only after a matching readback; private keys are not read back.
 - The update check retries a failed list check after half an hour. Installation and restart are not repeated automatically. Controls require a fresh status.
-- Stricter EMS message checks, correct product versions and a smaller compressed telegram reference.
+- Stricter EMS message checks and decoding, correct product versions and a smaller compressed telegram reference.
 - An active boiler trial postpones the background update check.
 
-## Bijwerken en gebruik
+## Updating
 
 Joint candidate with HA 0.4.0b3. Update through the existing GitHub updater; after the new boot, check the version, source and that settings were kept. Publication alone does not prove installation.
 
-This is a passive beta: physical boiler/valve control and automatic heating remain blocked. The user confirms that their Ecomline Classic HRC 22H has no digital pressure sensor. The current heat-trial guard still requires a digital pressure reading; the model-specific adjustment and a suitable separate pressure check are still open. No made-up pressure reading is added. Transmitter, installation and stop qualification also remain open.
+## Limitations
 
-## English
-
-Adds alphabetical boiler selection, searchable EMS devices/reference, Bluetooth discovery and clearer logs. Fixes verified Bluetooth storage, update retry/status handling and EMS decoding. Prepares bounded configuration reading and manual bus-transaction closure; physical transmission stays disabled.
-
-Pair with HA 0.4.0b3 and verify the new boot and preserved settings. This release does not enable boiler/valve control or automatic heating. The user's boiler has no digital pressure sensor; adapting the existing heat-trial guard and recording an appropriate separate pressure check remain open work.
+This is a passive beta: physical boiler/valve control and automatic heating remain blocked. The user confirms that their Ecomline Classic HRC 22H has no digital pressure sensor. The current heat-trial guard still requires a digital pressure reading; adapting it to the model and recording a suitable separate pressure check are still open. No made-up pressure reading is added. Transmitter, installation and stop qualification also remain open.
 
 # E32 V2 beta1 — a large bundle for reception, controls and recovery
-<!-- user-release-notes:v1 -->
+<!-- user-release-notes:v2:en -->
 
-## Nieuw
+## New
 
-- **Bluetooth under Settings:** Shelly BLU H&T Display, Xiaomi Monitor 3 and Shelly BLU TRV each have their own diagnostic profile. Reception runs locally on the E32. The TRV shows its reported target, calculated temperature and any external temperature separately.
-- **Hidden keys:** bindkeys stay in separate private storage and are never sent back. Input and open details stay in place while the page refreshes. Explanations and errors are in Dutch and English.
+- **Bluetooth under Settings:** Shelly BLU H&T Display, Xiaomi Monitor 3 and Shelly BLU TRV each have their own local diagnostic profile. Reception runs locally on the E32. The TRV shows its reported target, calculated temperature and any external temperature separately.
+- **Hidden keys:** bindkeys are write-only and stay in separate private storage; they are never sent back. Input and open details stay in place while the page refreshes. Explanations and errors are in Dutch and English.
 - **Automatic update check:** every twelve hours, with a dashboard notice. A successful check stays available for five minutes; installing remains a separate action.
 
-## Opgelost
+## Fixed
 
-- Invalid readings and missing humidity/averages no longer become made-up zero values. Names with quotation marks or line breaks no longer break the room controls or the JSON.
+- Invalid or unknown readings and missing humidity/averages no longer become made-up zero values. Names with quotation marks or line breaks no longer break the room controls or the JSON.
 - The older room control pauses cleanly when the device time is missing. The clock request uses an SDK time-out of 100 ms instead of five seconds per room.
 - Bluetooth recovers after a failed scan. A full discovery list does not block configured sensors; changing a draft source no longer shows readings of the old source.
-- Saving reserves space for control settings and learning models. Running out of memory while loading closes the storage cleanly. An extreme time jump no longer causes an arithmetic overflow in the warm-up model.
+- Saving reserves space for control settings and learning models. Running out of memory while loading cleans up and closes the storage. An extreme time jump no longer causes an arithmetic overflow in the warm-up model clock.
 
-## Bijwerken en gebruik
+## Updating
 
-This is one joint **software candidate**, together with HA 0.4.0b1. For the E32, use only the normal firmware updater with `firmware.bin`; settings and programs are kept. The beta bundle also checks the update path from alpha36 with the real final file. HA has its own download; the optional original Zigbee reports come as a separate source package within the same release.
+This is one joint **software candidate**, together with HA 0.4.0b1. For the E32, use only the normal app-only firmware updater with `firmware.bin`; settings and programs are kept. The beta bundle also checks the update path from alpha36 with the real final file (discovery and image compatibility). HA has its own download; the optional receive-only original Zigbee reports come as a separate source package within the same release.
 
-Bluetooth values are diagnostics, not a qualified heating source. Pairing, valve control, standalone control and the physical boiler trial are not released yet. All prepared control/learning parts are retained. [Current conditions and progress](https://github.com/dielessen/open_thermostat/blob/v0.1.0-e32v2-beta.1/docs/modern-thermostat/WORKBOARD.nl.md) (engineering notes, Dutch).
+## Limitations
 
-## English
-
-**New:** local diagnostic profiles for Shelly BLU H&T Display, Xiaomi Monitor 3 and Shelly BLU TRV, write-only private bindkeys, preserved form/details, Dutch/English messages, and automatic update checks with a dashboard notice. TRV target, calculated and optional external temperature remain separate.
-
-**Fixed:** invalid/unknown values, quoted room names, unavailable device time, BLE scan recovery, stale draft readings, shared storage reservations, allocation cleanup and extreme model clock arithmetic.
-
-**Updating:** this joint software candidate pairs with HA 0.4.0b1. Use normal app-only E32 OTA; HA and the optional receive-only Zigbee companion are separate downloads. The exact final package must pass alpha36 discovery/image compatibility. Physical boiler/valve control, qualified Bluetooth heating inputs and standalone regulation remain unavailable pending their acceptance. Source preparation does not constitute a physical test.
+Bluetooth values are diagnostics, not a qualified heating source. Pairing, valve control, standalone control and the physical boiler trial are not released yet; physical boiler/valve control remains unavailable pending its acceptance. All prepared control/learning parts are retained. Source preparation does not constitute a physical test. [Current conditions and progress](https://github.com/dielessen/open_thermostat/blob/v0.1.0-e32v2-beta.1/docs/modern-thermostat/WORKBOARD.nl.md) (engineering notes, Dutch).
 
 # E32 V2 alpha37 — unpublished preparation, included in beta1
-<!-- user-release-notes:v1 -->
+<!-- user-release-notes:v2:en -->
 
-## Nieuw
+## New
 
 - **The E32 checks for updates itself:** every twelve hours, starting five minutes after start-up. You still download and install yourself.
 - **Update shown on the dashboard:** when a newer compatible version exists, a notice appears with a button to the update page.
 - **Faster re-checks:** a successful check is reused for five minutes. The dashboard reads the local status and does not query GitHub itself.
 
-## Opgelost
+## Fixed
 
 - Prepared Zigbee receivers clean up errors during start and stop better. A restart can no longer let an old and a new receiver run side by side.
 - Simultaneous reception can no longer start a duplicate publication. Stopping also waits for the running publication when cleanup fails.
 - An automatic update check waits while a boiler trial is active.
 
-## Bijwerken en gebruik
+## Updating
 
 Update through the E32 firmware update page. Your network, rooms, programs and log settings are kept. Home Assistant dev48 does not need to be reinstalled.
 
+## Limitations
+
 This is a test version. The reception fixes add no new sensor pairing and do not enable boiler or valve control. After a failed automatic check it does not keep retrying; checking by hand remains possible.
 
-## English
-
-**New:** automatic release checks every twelve hours after a five-minute startup delay, a dashboard update notice, and a five-minute cache for successful checks. Installation remains manual.
-
-**Fixed:** prepared Zigbee receivers clean up failed startup/shutdown safely and prevent overlapping publications or mixed owners. Background release checks wait during an active boiler test.
-
-**Updating:** use the E32 update page. Settings, rooms, programs and logging preferences are retained; HA dev48 needs no reinstall. This test release does not enable new sensor pairing or physical heating control.
-
 # E32 V2 alpha36 — more boiler choices and better logging
-<!-- user-release-notes:v1 -->
+<!-- user-release-notes:v2:en -->
 
-## Nieuw
+## New
 
 - **More boiler choices:** 60 models and model groups under **Settings → My boiler**.
 - **Boiler images:** some models show an original image with a source link. The selection also stays available without internet.
@@ -712,23 +696,17 @@ This is a test version. The reception fixes add no new sensor pairing and do not
 - **Keep logs longer:** choose separately which E32 and EMS messages you send to your own log server (syslog).
 - **About is quicker to reach:** it now sits directly to the right of Settings.
 
-## Opgelost
+## Fixed
 
 - Saving from an older log page that was still open no longer resets your new log choices.
 
-## Bijwerken en gebruik
+## Updating
 
 Update through the E32 firmware update page. Your network, rooms and programs are kept. Home Assistant dev48 does not need to be reinstalled for this.
 
+## Limitations
+
 This is a test version. Choosing a boiler model adapts the display; boiler control is not released yet. Not every model has its own picture yet; one is also still missing for the Ecomline Classic HRC22H.
-
-## English
-
-**New:** 60 boiler/model-group choices, original images for selected models, separate E32/EMS log views and syslog options, and About directly after Settings.
-
-**Fixed:** saving from an older open log page preserves the new log-source choices.
-
-**Updating:** use the E32 firmware-update page. Network settings, rooms and programs are retained; HA dev48 does not need reinstalling. This is a test release; boiler control remains disabled. Images are not available for every model.
 
 # E32 V2 alpha35 — joint HA48 bundle and sensor preparation
 

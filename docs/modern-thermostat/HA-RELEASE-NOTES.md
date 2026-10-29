@@ -288,84 +288,68 @@ Physical wall controls still require their own original-action/echo profile.
 Vacation is session-local: restart, reconnect and room reload clear the selection.
 
 # HA 0.4.0b3 — original measurement diagnostics and field export
-<!-- user-release-notes:v1 -->
+<!-- user-release-notes:v2:en -->
 
-## Nieuw
+## New
 
-- A diagnostics download for the original native boiler fields: raw value, scale, unit, measurement quality, source telegram, original reception time and TTL.
+- A diagnostics download and export for the original native boiler fields: raw value, scale, unit, measurement quality, source telegram, original reception time and expiry (TTL).
 - A distinction between not received, invalid and expired readings and a lost connection. Missing values stay unknown.
 
-## Opgelost
+## Fixed
 
 - Invalid room temperatures and error codes are not offered as valid readings or statistics points; supported real zero values are kept.
 - The field explanation stays available in the diagnostics when Home Assistant leaves out the attributes of an unavailable entity.
 
-## Bijwerken en gebruik
+## Updating
 
 Install `OpenThermostat-HA-0.4.0b3.zip` through the existing HA administration route with a backup and a post-check. This candidate belongs with E32 beta3; rooms, programs and entity identities are kept. The optional original Zigbee reception package remains a separate installation.
 
+## Limitations
+
 No physical boiler/valve release or automatic heating. The confirmed Ecomline setup has no digital pressure sensor; an unknown pressure is not replaced by a made-up value. Adjusting the heat-trial profile remains open.
 
-## English
-
-Adds original native boiler-field diagnostics/export including raw values, quality, source telegrams, original timestamps and expiry. Separates missing/invalid/stale data from connection loss and filters invalid measurements without discarding supported real zeroes.
-
-Install the HA ZIP through the existing administration route with backup and verification; pair with E32 beta3. Rooms, schedules and entity identities are preserved. The optional Zigbee companion remains separate. No physical boiler/valve control is enabled, and no digital pressure reading is invented for the user's boiler without that sensor.
-
 # HA 0.4.0b1 — start-up recovery, monthly export and reliable measurement handling
-<!-- user-release-notes:v1 -->
+<!-- user-release-notes:v2:en -->
 
-## Nieuw
+## New
 
-- **Export history per day, week or month:** up to 31 days from existing Recorder data, with an installation selector and Dutch/English explanations. Missing history stays missing.
+- **Export history per day, week or month:** CSV exports of up to 31 days from existing Recorder data, with an installation selector and Dutch/English explanations. Missing history stays missing.
 - **Clear clock notice:** a faulty local measurement clock gives an installation-specific Repairs notice. Window and presence signals then also become unknown.
-- **Optional Zigbee source package:** the existing original reception extensions come separately in the same release. A checked tool keeps private device bindings before installation; nothing is installed automatically.
+- **Optional Zigbee source package:** the existing receive-only original reception extensions (a Zigbee2MQTT companion) come separately in the same release. A checked tool keeps private device bindings before installation; nothing is installed automatically.
 
-## Opgelost
+## Fixed
 
-- OpenThermostat starts again on Core **2026.10.4**. A version check unintentionally blocked the "Installation and boiler" display group. Core .2 and .3 stay tested separately; unreviewed private configuration writes remain blocked.
-- A screen error or a replaced sensor profile can no longer bring back a withdrawn reading. Invalid temperatures, percentages and extremely large numbers are refused.
+- OpenThermostat starts again on Core **2026.10.4**. A version check unintentionally blocked the "Installation and boiler" display group. Core .2, .3 and .4 compatibility is checked separately; unreviewed private configuration writes remain blocked.
+- A screen error, an interrupted withdrawal, an old-profile callback or a replaced sensor profile can no longer bring back a withdrawn reading. Invalid temperatures, percentages and extremely large numbers are refused.
 - The CSV export re-checks who owns the entities after waiting. Data does not appear under a changed binding.
 - The original Zigbee reception extensions no longer wait indefinitely for MQTT when shutting down. A time-out does not confirm sending and starts no new receiver while old SDK work is still pending.
 
-## Bijwerken en gebruik
+## Updating
 
-Use `OpenThermostat-HA-0.4.0b1.zip` through the existing HA administration route. Rooms, programs, entity identities and bindings are kept. This is the HA half of the same software candidate as E32 beta1. The optional Z2M source package is not an HA component; keep the private pins and follow the included NL/EN instructions.
+Use `OpenThermostat-HA-0.4.0b1.zip` through the existing HA administration route. Rooms, programs, entity identities and bindings are kept. This is the HA half of the same software candidate as E32 beta1; the E32 firmware is a separate download. The optional Z2M source package is not an HA component and is not installed automatically; keep the private pins and follow the included NL/EN instructions.
 
-The E32 also offers local Bluetooth diagnostics. This HA update does not qualify that data as a room source and does not release physical valve/boiler control, standalone heating or active learning control. [Full workboard and remaining conditions](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0b1/docs/modern-thermostat/WORKBOARD.nl.md) (engineering notes, Dutch).
+## Limitations
 
-## English
-
-**New:** day/week/month Recorder CSV exports up to 31 days, an installation selector, Dutch/English guidance, entry-scoped clock Repairs, and an optional receive-only Zigbee2MQTT companion with checked private-binding preservation.
-
-**Fixed:** Core 2026.10.4 startup, interrupted measurement withdrawal, old-profile callbacks, invalid numbers, ownership changes during export and unbounded original-report extension shutdown. Actual Core .2/.3/.4 compatibility is checked separately.
-
-**Updating:** use the HA ZIP through the existing administration method. Rooms, schedules and entity identities are preserved. E32 beta1 and the optional Z2M companion are separate downloads from the same candidate. No automatic companion installation or boiler/valve/learning authority is introduced. Physical acceptance and qualified room-source work remain open.
+The E32 also offers local Bluetooth diagnostics. This HA update does not qualify that data as a room source and does not release physical valve/boiler control, standalone heating or active learning control. Physical acceptance and qualified room-source work remain open. [Full workboard and remaining conditions](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0b1/docs/modern-thermostat/WORKBOARD.nl.md) (engineering notes, Dutch).
 
 # HA 0.4.0.dev48 — more reliable shutdown and reload
-<!-- user-release-notes:v1 -->
+<!-- user-release-notes:v2:en -->
 
-## Nieuw
+## New
 
 This maintenance update focuses on reliability; there are no new settings or controls.
 
-## Opgelost
+## Fixed
 
 - When the integration stops or reloads, background tasks are cleaned up better. Even when one part reports an error, cleaning up the other parts continues.
 
-## Bijwerken en gebruik
+## Updating
 
 Your rooms, week programs, bindings and dashboard cards are kept. This version was checked together with E32 alpha36.
 
+## Limitations
+
 This is a test version. Direct Bluetooth pairing with Shelly and Xiaomi devices is still in development. Boiler control is not released yet.
-
-## English
-
-**New:** this maintenance release focuses on reliability and adds no new settings.
-
-**Fixed:** stopping or reloading the integration continues cleaning up background tasks even if one component reports an error.
-
-**Updating:** rooms, weekly programs, connections and dashboard cards are retained. Verified with E32 alpha36. Direct Shelly/Xiaomi Bluetooth pairing is still in development; boiler control remains disabled.
 
 # HA 0.4.0.dev47 — robust start-up and joint updater diagnostics
 

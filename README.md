@@ -286,12 +286,32 @@ project page, user guide and release descriptions are in English.
 ## Screenshots
 
 <details>
+<summary>E32 Overview</summary>
+
+![E32 Overview with rooms, trend lines, the calculated boiler request and boiler values](docs/img/screenshots/e32-overview-beta18.png)
+
+Demonstration with sample data, not a live capture.
+Two rooms ask for heat; in shadow mode your thermostat keeps controlling the boiler.
+
+</details>
+
+<details>
+<summary>E32 Overview on a phone</summary>
+
+![E32 Overview at phone width](docs/img/screenshots/e32-overview-phone-beta18.png)
+
+Demonstration with sample data, not a live capture.
+
+</details>
+
+<details>
 <summary>E32 Rooms page (light)</summary>
 
-![E32 Rooms page with room cards, boiler request and shadow-mode notice](docs/img/screenshots/e32-rooms-beta18.png)
+![E32 Rooms page with read-only room cards, the Edit here anyway option and the shadow-mode comparison](docs/img/screenshots/e32-rooms-beta18.png)
 
-Demonstration with sample data, not a live capture. Rooms are shown read-only
-because they are managed in Home Assistant.
+Demonstration with sample data, not a live capture. Rooms are shown
+read-only because they are managed in Home Assistant; "Edit here anyway" unlocks
+editing on the E32. The flow limits show the maximum set on the boiler.
 
 </details>
 
@@ -305,18 +325,9 @@ Demonstration with sample data, not a live capture.
 </details>
 
 <details>
-<summary>E32 Overview</summary>
-
-![E32 Overview with heating status, rooms and boiler essentials](docs/img/screenshots/e32-overview-beta18.png)
-
-Demonstration with sample data, not a live capture.
-
-</details>
-
-<details>
 <summary>E32 Boiler page</summary>
 
-![E32 Boiler page with essentials, burner starts and hot water today](docs/img/screenshots/e32-boiler-beta18.png)
+![E32 Boiler page with current values, burner starts, hot water today and all received boiler entities](docs/img/screenshots/e32-boiler-beta18.png)
 
 Demonstration with sample data, not a live capture.
 
@@ -325,7 +336,16 @@ Demonstration with sample data, not a live capture.
 <details>
 <summary>E32 Sensors page</summary>
 
-![E32 Sensors page with paired Bluetooth thermometers](docs/img/screenshots/e32-sensors-beta18.png)
+![E32 Sensors page with nearby and paired Bluetooth thermometers](docs/img/screenshots/e32-sensors-beta18.png)
+
+Demonstration with sample data, not a live capture.
+
+</details>
+
+<details>
+<summary>E32 About page</summary>
+
+![E32 System, About page with the password card](docs/img/screenshots/e32-about-beta18.png)
 
 Demonstration with sample data, not a live capture.
 

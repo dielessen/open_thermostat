@@ -18,8 +18,47 @@ request.
 Active boiler control is built into beta.18 but stays switched off in the
 firmware until an attended switch-over with failure tests.
 
+## Requirements
+
+**Always needed**
+
+- A **BBQKees E32 V2** gateway (ESP32, 16 MB flash, PSRAM). Releases are built
+  for this board only.
+- An **EMS Classic (EMS 1.0) boiler** on the E32's EMS connection, directly or
+  through an adapter such as the Bosch EasyControl Adapter. EMS+ (EMS 2.0)
+  boilers are not supported yet.
+- A local network: **2.4 GHz Wi-Fi** or Ethernet.
+- A phone or computer with a browser for the first setup (the E32 opens its
+  own setup Wi-Fi network `OpenThermostat-xxxxxx`).
+- At least one **temperature source per room**: a supported Bluetooth
+  thermometer, or a Home Assistant temperature entity.
+
+**For the Home Assistant integration (optional)**
+
+- **Home Assistant** (tested with 2026.10).
+- An **MQTT broker**, for example the Mosquitto broker add-on, and Home
+  Assistant's **MQTT integration**. MQTT carries all live values (rooms, heat
+  request, boiler, Bluetooth sensors, advice) and the values of Home Assistant
+  sources and energy inputs. Without MQTT these entities stay unavailable.
+- The E32's address and web password, entered once in the integration. Room
+  editing and firmware updates use them over HTTP.
+- Internet access for Home Assistant, to download firmware updates from
+  GitHub.
+
+**Optional**
+
+- Supported Bluetooth thermometers: Shelly BLU H&T Display ZB, Xiaomi Monitor 3
+  (MJWSD05MMC, with bindkey) or thermometers with pvvx firmware.
+- In Home Assistant: a gas meter, a gas price, an outdoor temperature sensor or
+  weather entity, and your boiler's power, for energy estimates and advice.
+- A USB-C data cable, for the first installation and for a password reset.
+
+**Not needed:** Home Assistant itself (rooms, week programs and Bluetooth
+sensors work on the E32 alone), a P1 meter, a cloud account or a permanent
+internet connection.
+
 [Downloads](https://github.com/dielessen/open_thermostat/releases) ·
-[User guide](docs/USER-GUIDE.md) · [Features](#features) ·
+[Requirements](#requirements) · [User guide](docs/USER-GUIDE.md) · [Features](#features) ·
 [Roadmap](#roadmap) · [Screenshots](#screenshots) ·
 [Installation](#installation) · [Documentation](#documentation)
 

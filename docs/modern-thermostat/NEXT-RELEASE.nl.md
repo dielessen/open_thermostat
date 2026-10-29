@@ -44,6 +44,7 @@ wordt hergebruikt waar die past.
 | 23 | Instellingen back-up en terugzetten | Exporteren/importeren van netwerk, ruimtes en Bluetooth-sensoren (wachtwoord en sleutels alleen versleuteld of niet). | Terugzetten op een nieuwe E32 werkt |
 | 24 | HA-diagnose | Downloadbare diagnose (zonder wachtwoorden/adressen) voor hulp bij problemen. | Geen geheimen in het bestand |
 | 25 | Code opsplitsen | Grote bestanden (`REST.h`, `ShadowController.h`, `config.cpp`) per verantwoordelijkheid, gedrag ongewijzigd. | Alle tests groen, firmware niet groter |
+| 26 | HA-integratie via HACS | Eigenaar 29 oktober (heeft HACS; "kan ook in de volgende release", "wel netter om het via hacs te doen"): eigen repository voor de integratie (bijv. `open_thermostat-ha`) met `hacs.json` (`zip_release`), waar de CI elke HA-release publiceert; firmware-releases blijven in de hoofdrepository. Installatiegids: "Custom repository" toevoegen. Vanaf dan geen Samba-installatie meer. | Integratie-update verschijnt in HA onder Updates |
 
 Volgorde: eerst 1–5 en 10–14 (de overstap), dan 15–18, 19, 23–24, 20–22, 25.
 Flash is krap (93 %): punt 8 (gzip) gaat vóór 20.

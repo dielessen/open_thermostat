@@ -613,28 +613,28 @@ EMS-ESP entity reference do not grant write permission or complete EMS-ESP
 write support. The trial does not complete physical installation acceptance; its actual
 results and the independent stop still need to be recorded on site.
 
-# E32 V2 beta3 — bediening, diagnose en updateherstel
+# E32 V2 beta3 — controls, diagnostics and update recovery
 <!-- user-release-notes:v1 -->
 
 ## Nieuw
 
-- Alfabetische ketelkeuze op merk/model en een uitgebreidere EMS-apparatenpagina met zoeken in apparaten, entiteiten en telegrammen.
-- Bluetoothapparaten zoeken en toevoegen met behoud van conceptinvoer; herkenning van reeds opgeslagen apparaten.
-- Duidelijkere ESP-/EMS-systeemlogging en Nederlandse/Engelse uitleg.
-- Voorbereide eenmalige CV-configuratie-uitlezing en afzonderlijke afsluiting van handmatige buswisselingen. Deze routes blijven fysiek geblokkeerd.
+- Alphabetical boiler selection by brand/model and a more extensive EMS devices page with search across devices, entities and telegrams.
+- Search for and add Bluetooth devices while keeping draft input; devices that are already saved are recognised.
+- Clearer ESP/EMS system logging and Dutch/English explanations.
+- A prepared one-time boiler configuration read and a separate close-out of manual bus transactions. These routes remain physically blocked.
 
 ## Opgelost
 
-- Bluetoothinstellingen bevestigen opslag pas na overeenkomende uitlezing; privésleutels worden niet teruggelezen.
-- Updatecontrole probeert een mislukte lijstcontrole na een halfuur opnieuw. Installatie en herstart worden niet automatisch herhaald. Bediening vereist verse status.
-- Strengere EMS-berichtcontrole, correcte productversies en kleinere gecomprimeerde telegramreferentie.
-- Een actieve ketelproef stelt achtergrond-updatecontrole uit.
+- Bluetooth settings confirm storage only after a matching readback; private keys are not read back.
+- The update check retries a failed list check after half an hour. Installation and restart are not repeated automatically. Controls require a fresh status.
+- Stricter EMS message checks, correct product versions and a smaller compressed telegram reference.
+- An active boiler trial postpones the background update check.
 
 ## Bijwerken en gebruik
 
-Gezamenlijke kandidaat met HA 0.4.0b3. Werk bij via de bestaande GitHub-updater; controleer na de nieuwe boot versie, bron en instellingenbehoud. Publicatie alleen bewijst geen installatie.
+Joint candidate with HA 0.4.0b3. Update through the existing GitHub updater; after the new boot, check the version, source and that settings were kept. Publication alone does not prove installation.
 
-Dit is een passieve bèta: fysieke ketel-/kraansturing en automatische verwarming blijven geblokkeerd. De gebruiker bevestigt dat zijn Ecomline Classic HRC 22H geen digitale druksensor heeft. De huidige warmteproefguard vereist digitale druk nog wel; de modelgebonden aanpassing en passende afzonderlijke drukcontrole zijn nog open. Er wordt geen fictieve drukmeting toegevoegd. Ook zender-, installatie- en stopkwalificatie blijven open.
+This is a passive beta: physical boiler/valve control and automatic heating remain blocked. The user confirms that their Ecomline Classic HRC 22H has no digital pressure sensor. The current heat-trial guard still requires a digital pressure reading; the model-specific adjustment and a suitable separate pressure check are still open. No made-up pressure reading is added. Transmitter, installation and stop qualification also remain open.
 
 ## English
 
@@ -642,27 +642,27 @@ Adds alphabetical boiler selection, searchable EMS devices/reference, Bluetooth 
 
 Pair with HA 0.4.0b3 and verify the new boot and preserved settings. This release does not enable boiler/valve control or automatic heating. The user's boiler has no digital pressure sensor; adapting the existing heat-trial guard and recording an appropriate separate pressure check remain open work.
 
-# E32 V2 beta1 — grote bundel voor ontvangst, bediening en herstel
+# E32 V2 beta1 — a large bundle for reception, controls and recovery
 <!-- user-release-notes:v1 -->
 
 ## Nieuw
 
-- **Bluetooth onder Instellingen:** Shelly BLU H&T Display, Xiaomi Monitor 3 en Shelly BLU TRV hebben een eigen diagnoseprofiel. Ontvangst werkt lokaal op de E32. De TRV toont gemeld doel, berekende temperatuur en eventuele externe temperatuur apart.
-- **Verborgen sleutels:** bindkeys blijven in aparte privéopslag en worden niet teruggestuurd. Invoer en open details blijven staan tijdens verversen. Uitleg en fouten zijn Nederlands en Engels.
-- **Automatische updatecontrole:** iedere twaalf uur, met een dashboardmelding. Een geslaagde controle blijft vijf minuten beschikbaar; installeren blijft een aparte actie.
+- **Bluetooth under Settings:** Shelly BLU H&T Display, Xiaomi Monitor 3 and Shelly BLU TRV each have their own diagnostic profile. Reception runs locally on the E32. The TRV shows its reported target, calculated temperature and any external temperature separately.
+- **Hidden keys:** bindkeys stay in separate private storage and are never sent back. Input and open details stay in place while the page refreshes. Explanations and errors are in Dutch and English.
+- **Automatic update check:** every twelve hours, with a dashboard notice. A successful check stays available for five minutes; installing remains a separate action.
 
 ## Opgelost
 
-- Ongeldige meetwaarden en ontbrekende vochtigheid/gemiddelden worden geen verzonnen nulwaarden. Namen met aanhalingstekens of regeleinden breken de kamerbediening en JSON niet meer.
-- De oudere kamerregeling pauzeert netjes als apparaattijd ontbreekt. De klokaanvraag gebruikt een SDK-time-out van 100 ms in plaats van vijf seconden per kamer.
-- Bluetooth herstelt na een mislukte scan. Een volle ontdeklijst blokkeert ingestelde sensoren niet; wijziging van een conceptbron toont geen metingen van de oude bron.
-- Opslaan bewaakt ruimte voor regelinstellingen en leermodellen. Geheugentekort tijdens laden sluit de opslag netjes af. Een extreme tijdsprong veroorzaakt geen rekenoverloop in het opwarmmodel.
+- Invalid readings and missing humidity/averages no longer become made-up zero values. Names with quotation marks or line breaks no longer break the room controls or the JSON.
+- The older room control pauses cleanly when the device time is missing. The clock request uses an SDK time-out of 100 ms instead of five seconds per room.
+- Bluetooth recovers after a failed scan. A full discovery list does not block configured sensors; changing a draft source no longer shows readings of the old source.
+- Saving reserves space for control settings and learning models. Running out of memory while loading closes the storage cleanly. An extreme time jump no longer causes an arithmetic overflow in the warm-up model.
 
 ## Bijwerken en gebruik
 
-Dit is één gezamenlijke **softwarekandidaat**, samen met HA 0.4.0b1. Gebruik voor E32 uitsluitend de gewone firmware-updater met `firmware.bin`; instellingen en programma's blijven behouden. De bètabundel controleert ook het updatepad vanaf alpha36 met het echte eindbestand. HA heeft zijn eigen download; optionele oorspronkelijke Zigbee-rapporten krijgen een afzonderlijk bronpakket binnen dezelfde release.
+This is one joint **software candidate**, together with HA 0.4.0b1. For the E32, use only the normal firmware updater with `firmware.bin`; settings and programs are kept. The beta bundle also checks the update path from alpha36 with the real final file. HA has its own download; the optional original Zigbee reports come as a separate source package within the same release.
 
-Bluetoothwaarden zijn diagnose, geen gekwalificeerde verwarmingsbron. Pairing, kraanbediening, zelfstandig regelen en de fysieke ketelproef zijn nog niet vrijgegeven. Alle voorbereide regel-/leeronderdelen blijven behouden. [Actuele voorwaarden en voortgang](https://github.com/dielessen/open_thermostat/blob/v0.1.0-e32v2-beta.1/docs/modern-thermostat/WORKBOARD.nl.md).
+Bluetooth values are diagnostics, not a qualified heating source. Pairing, valve control, standalone control and the physical boiler trial are not released yet. All prepared control/learning parts are retained. [Current conditions and progress](https://github.com/dielessen/open_thermostat/blob/v0.1.0-e32v2-beta.1/docs/modern-thermostat/WORKBOARD.nl.md) (engineering notes, Dutch).
 
 ## English
 
@@ -672,26 +672,26 @@ Bluetoothwaarden zijn diagnose, geen gekwalificeerde verwarmingsbron. Pairing, k
 
 **Updating:** this joint software candidate pairs with HA 0.4.0b1. Use normal app-only E32 OTA; HA and the optional receive-only Zigbee companion are separate downloads. The exact final package must pass alpha36 discovery/image compatibility. Physical boiler/valve control, qualified Bluetooth heating inputs and standalone regulation remain unavailable pending their acceptance. Source preparation does not constitute a physical test.
 
-# E32 V2 alpha37 — ongepubliceerde voorbereiding, opgenomen in beta1
+# E32 V2 alpha37 — unpublished preparation, included in beta1
 <!-- user-release-notes:v1 -->
 
 ## Nieuw
 
-- **De E32 controleert zelf op updates:** iedere twaalf uur, vanaf vijf minuten na opstarten. Downloaden en installeren doe je nog steeds zelf.
-- **Update zichtbaar op het dashboard:** bij een nieuwere compatibele versie verschijnt een melding met een knop naar de updatepagina.
-- **Sneller opnieuw controleren:** een geslaagde controle wordt vijf minuten hergebruikt. Het dashboard leest de lokale status en vraagt niet zelf GitHub op.
+- **The E32 checks for updates itself:** every twelve hours, starting five minutes after start-up. You still download and install yourself.
+- **Update shown on the dashboard:** when a newer compatible version exists, a notice appears with a button to the update page.
+- **Faster re-checks:** a successful check is reused for five minutes. The dashboard reads the local status and does not query GitHub itself.
 
 ## Opgelost
 
-- Voorbereide Zigbee-ontvangers ruimen fouten bij starten en stoppen beter op. Een herstart kan geen oude en nieuwe ontvanger door elkaar laten lopen.
-- Gelijktijdige ontvangst kan geen dubbele publicatie starten. Stoppen wacht ook bij opruimfouten op de lopende publicatie.
-- Een automatische updatecontrole wacht zolang een ketelproef actief is.
+- Prepared Zigbee receivers clean up errors during start and stop better. A restart can no longer let an old and a new receiver run side by side.
+- Simultaneous reception can no longer start a duplicate publication. Stopping also waits for the running publication when cleanup fails.
+- An automatic update check waits while a boiler trial is active.
 
 ## Bijwerken en gebruik
 
-Werk bij via de firmware-updatepagina van de E32. Je netwerk, kamers, programma's en loginstellingen blijven behouden. Home Assistant dev48 hoeft niet opnieuw geïnstalleerd te worden.
+Update through the E32 firmware update page. Your network, rooms, programs and log settings are kept. Home Assistant dev48 does not need to be reinstalled.
 
-Dit is een testversie. De ontvangstfixes voegen geen nieuwe sensorkoppeling toe en schakelen geen ketel- of kraansturing in. Na een mislukte automatische controle wordt niet voortdurend opnieuw geprobeerd; handmatig controleren blijft mogelijk.
+This is a test version. The reception fixes add no new sensor pairing and do not enable boiler or valve control. After a failed automatic check it does not keep retrying; checking by hand remains possible.
 
 ## English
 
@@ -701,26 +701,26 @@ Dit is een testversie. De ontvangstfixes voegen geen nieuwe sensorkoppeling toe 
 
 **Updating:** use the E32 update page. Settings, rooms, programs and logging preferences are retained; HA dev48 needs no reinstall. This test release does not enable new sensor pairing or physical heating control.
 
-# E32 V2 alpha36 — meer ketelkeuze en betere logging
+# E32 V2 alpha36 — more boiler choices and better logging
 <!-- user-release-notes:v1 -->
 
 ## Nieuw
 
-- **Meer ketelkeuze:** 60 modellen en modelgroepen onder **Instellingen → Mijn ketel**.
-- **Ketelafbeeldingen:** bij enkele modellen verschijnt een originele afbeelding met een bronlink. De keuze blijft ook zonder internet beschikbaar.
-- **Overzichtelijk systeemlog:** kies alleen E32-meldingen, alleen EMS-berichten van de ketel of beide.
-- **Logs langer bewaren:** kies apart welke E32- en EMS-meldingen je naar je eigen logserver (syslog) stuurt.
-- **Over sneller bereikbaar:** staat nu direct rechts naast Instellingen.
+- **More boiler choices:** 60 models and model groups under **Settings → My boiler**.
+- **Boiler images:** some models show an original image with a source link. The selection also stays available without internet.
+- **Clearer system log:** choose only E32 messages, only EMS messages from the boiler, or both.
+- **Keep logs longer:** choose separately which E32 and EMS messages you send to your own log server (syslog).
+- **About is quicker to reach:** it now sits directly to the right of Settings.
 
 ## Opgelost
 
-- Opslaan vanuit een oudere, nog geopende logpagina zet je nieuwe logkeuzes niet meer terug.
+- Saving from an older log page that was still open no longer resets your new log choices.
 
 ## Bijwerken en gebruik
 
-Werk bij via de firmware-updatepagina van de E32. Je netwerk, kamers en programma's blijven behouden. Home Assistant dev48 hoeft hiervoor niet opnieuw geïnstalleerd te worden.
+Update through the E32 firmware update page. Your network, rooms and programs are kept. Home Assistant dev48 does not need to be reinstalled for this.
 
-Dit is een testversie. Een ketelmodel kiezen past de weergave aan; de ketelaansturing is nog niet vrijgegeven. Niet ieder model heeft al een eigen foto; die ontbreekt ook nog voor de Ecomline Classic HRC22H.
+This is a test version. Choosing a boiler model adapts the display; boiler control is not released yet. Not every model has its own picture yet; one is also still missing for the Ecomline Classic HRC22H.
 
 ## English
 
@@ -730,310 +730,310 @@ Dit is een testversie. Een ketelmodel kiezen past de weergave aan; de ketelaanst
 
 **Updating:** use the E32 firmware-update page. Network settings, rooms and programs are retained; HA dev48 does not need reinstalling. This is a test release; boiler control remains disabled. Images are not available for every model.
 
-# E32 V2 alpha35 — gezamenlijke HA48-bundel en sensorvoorbereiding
+# E32 V2 alpha35 — joint HA48 bundle and sensor preparation
 
-Deze passieve voorbereidingsrelease bundelt alle eerdere functies met HA0.4.0.dev48 en de geteste Shelly SBHT-103C-decoderbasis.
+This passive preparation release bundles all earlier features with HA0.4.0.dev48 and the tested Shelly SBHT-103C decoder foundation.
 
-- Pure BTHomev2-parser voor temperatuur, vochtigheid, batterij, licht en afzonderlijke identificatie-/knopvelden. Afgebroken, dubbele, ongeordende, onbekende of ongeldige objecten leveren geen gedeeltelijke meetwaarde op.
-- Versleutelde frames leveren alleen een key_required-formaatstatus; geen ontsleuteling, authenticatie of meetwaarden. Broadcastmodelinformatie en pakketteller zijn geen vertrouwde identiteit of nieuwe acquisitie.
-- Geen veldcache, dynamische parserallocatie of selectie door de huidige BLE-reader. Settings/onboarding, apparaatsleutels, bron-/replaykwalificatie, Xiaomi Monitor3 en BLUTRV blijven open.
--798native tests,16afzonderlijke decoder-sanitizergevallen en echteESP32-toolchain-syntaxcontrole slagen lokaal. Volledige bevroren builds/CI en werkelijke pakketreviews blijven vereist. De gezamenlijke HA bevat de cleanupcorrectie en de gevalideerde klokfixture.
-- Alle23voorbereide onderdelen/31eisen behouden. Bestaande updatercheckpoints, EN/NL-uitleg, bron-/sessie-/deadlinepoorten blijven behouden; productfabriek, ketel-/kraanuitvoer en EMS-TX blijven gesloten.
+- A pure BTHome v2 parser for temperature, humidity, battery, light and separate identification/button fields. Truncated, duplicate, out-of-order, unknown or invalid objects never yield a partial reading.
+- Encrypted frames only yield a key_required format status; no decryption, authentication or readings. Broadcast model information and the packet counter are not a trusted identity or a new acquisition.
+- No field cache, dynamic parser allocation or selection by the current BLE reader. Settings/onboarding, device keys, source/replay qualification, Xiaomi Monitor 3 and BLU TRV remain open.
+- 798 native tests, 16 separate decoder sanitizer cases and a real ESP32 toolchain syntax check pass locally. Full frozen builds/CI and reviews of the actual packages remain required. The joint HA contains the cleanup fix and the validated clock fixture.
+- All 23 prepared parts/31 requirements retained. Existing updater checkpoints, EN/NL explanations and source/session/deadline gates are kept; the product factory, boiler/valve output and EMS TX stay closed.
 
-Geen actieve bèta, fysieke sensor-/kraankwalificatie, opgelost pendelen of gerepareerde oude upload-watchdog claimen. Publicatie is geen installatiebewijs; firmware-update alleen via aantoonbaar beoordeelde herstelbare route.
+No claim of an active beta, physical sensor/valve qualification, solved short cycling or a repaired old upload watchdog. Publication is not proof of installation; firmware updates only through a demonstrably reviewed, recoverable route.
 
 English: shared HA48/alpha35 maintenance bundle with a strict passive SBHT-103C decoder foundation. The current BLE reader does not select it; encrypted bytes never become measurements, and model/counter declarations never grant physical freshness or authority. Existing updater, settings and output blocks remain. Pairing, keys, physical tests and recovery are separate gates.
 
-# E32 V2 alpha34 — gerichte updaterdiagnose en robuuste HA-opstart
+# E32 V2 alpha34 — targeted updater diagnostics and robust HA start-up
 
-Gezamenlijke bundel met Home Assistant dev47, met behoud van alle 23 voorbereide onderdelen en 31 producteisen. Passieve voorbereidingsrelease; actieve bèta blijft NOT_READY.
+Joint bundle with Home Assistant dev47, keeping all 23 prepared parts and 31 product requirements. Passive preparation release; the active beta remains NOT_READY.
 
-- De bestaande begrensde updatejournal bewaart nu vóór checksumcontrole, native imagevalidatie, onafhankelijk flash-readback en bootselectie een afzonderlijke fase.
-- De bestaande EN/NL-statuspagina maakt duidelijk dat een opgeslagen "vóór"-fase geen uitgevoerde bewerking, geslaagde installatie of resetoorzaak bewijst. Schema 1 / 164 bytes en oude stagenummers 1–5 blijven behouden; geen chunklogging of nieuwe worker/route/retry.
-- Alle verificatiepoorten blijven in dezelfde volgorde verplicht. Een fout, exception of callbackherintrede bereikt geen volgende overdracht of bootselectie. 40 updatergevallen slagen ook onder strikte ASan/UBSan.
-- HA dev47 sluit laat herlevende opstarttaken en listeners bij afsluiten/annuleren en beschermt tegen dubbele start. Programma-, Store- en optionele diagnosegrenzen zijn op echte native HA-runtimes getoetst.
-- 782 native firmwaregevallen, 24 updaterbrowsergevallen en 2.349 HA-gevallen per ondersteunde Core slagen lokaal. De definitieve exacte CI-/bron-/pakketreviews blijven afzonderlijke releasepoorten.
+- The existing bounded update journal now stores a separate stage before the checksum check, native image validation, independent flash readback and boot selection.
+- The existing EN/NL status page makes clear that a saved "before" stage does not prove a completed operation, a successful installation or the cause of a reset. Schema 1 / 164 bytes and the old stage numbers 1–5 are kept; no chunk logging and no new worker/route/retry.
+- All verification gates remain mandatory in the same order. An error, exception or callback re-entry never reaches a next transfer or boot selection. 40 updater cases also pass under strict ASan/UBSan.
+- HA dev47 closes late-reviving start-up tasks and listeners on shutdown/cancellation and protects against a double start. Program, Store and optional diagnostic boundaries were tested on real native HA runtimes.
+- 782 native firmware cases, 24 updater browser cases and 2,349 HA cases per supported Core pass locally. The final exact CI/source/package reviews remain separate release gates.
 
-EMS-TX, forwarding en fysieke uitgangen blijven geblokkeerd. Geschikte oorspronkelijke kamermetingen, causale kraanecho en fysieke start-/stop-/uitvalacceptatie blijven open. Bluetoothdrivers, actieve PID-/leerkwalificatie en overige roadmapdoelen worden niet als voltooid voorgesteld.
+EMS TX, forwarding and physical outputs remain blocked. Suitable original room readings, a causal valve echo and physical start/stop/failure acceptance remain open. Bluetooth drivers, active PID/learning qualification and other roadmap goals are not presented as complete.
 
-Installatiegrens: gerichte checkpoints leveren toekomstig onderzoeksmateriaal, geen herstelbewijs voor de eerdere geïnstalleerde uploaderwatchdog of native HTTPS-afwijking. Handmatige uploads worden niet door deze journal vastgelegd. De eerder waargenomen alpha31-installatiemethode is onbekend; geen blinde nieuwe upload/reboot/HTTPS-proef door deze releaseopdracht. HA kan afzonderlijk worden bijgewerkt met verse back-up en onafhankelijke nacontrole.
+Installation limit: targeted checkpoints provide material for future investigation, not proof of recovery for the earlier installed uploader watchdog or the native HTTPS deviation. Manual uploads are not recorded by this journal. The installation method observed earlier for alpha31 is unknown; this release order performs no blind new upload/reboot/HTTPS trial. HA can be updated separately with a fresh backup and an independent post-check.
 
 English: four bounded persisted pre-operation checkpoints distinguish checksum, image validation, independent flash readback and boot-slot selection. They preserve verification gates and do not imply completion or reset causation. HA dev47 adds single-owner asynchronous startup and bounded optional original-temperature diagnostics. Existing features/settings remain intact. No physical boiler/valve qualification or proven installed-updater recovery is claimed.
 
-# E32 V2 alpha33 — bewaakte callbackgrenzen en oorspronkelijke ontvangstdiagnostiek
+# E32 V2 alpha33 — guarded callback boundaries and original reception diagnostics
 
-Gezamenlijke voorbereidingsrelease met HA dev46; alle 23 voorbereide onderdelen, 31 producteisen en bestaande instellingen blijven behouden.
+Joint preparation release with HA dev46; all 23 prepared parts, 31 product requirements and existing settings are kept.
 
-- De laatste nonblocking overdrachtscontrole heeft een eigen herintredebewaking. Beschikbaarheid en klok bewaken ook hun eigen callbackgrens, zodat dezelfde controle niet via gewone kanaaltoelating kan worden omzeild.
-- Geneste callbacks trekken alle betrokken kanaaleigenaren blijvend in. Beschikbaarheidscallbacks kunnen geen extra eigenaar aanmaken. Normale laatste controle binnen de bestaande zendcallback blijft mogelijk.
-- Zes nieuwe kanaalgevallen en een aanvullende echte lokale socketproef dekken de herintredepaden. De oude code verstuurt in die socketproef een byte; de gecorrigeerde grens houdt dezelfde socket leeg.
-- De meegeleverde HA46-companion voegt begrensde oorspronkelijke ontvangsttellers toe aan de bestaande HA-diagnostiekdownload, zonder extra MQTT-abonnement, worker, opslag of apparaatopdracht.
-- Eerdere oorspronkelijke aanvraagcorrelatie, eenmalige grants, gedeelde klok en oorspronkelijke deadlines blijven behouden. Fysieke productautoriteit blijft standaard gesloten.
+- The final non-blocking transfer check has its own re-entry guard. Availability and the clock also guard their own callback boundary, so the same check cannot be bypassed through ordinary channel admission.
+- Nested callbacks permanently revoke all channel owners involved. Availability callbacks cannot create an extra owner. A normal final check inside the existing send callback remains possible.
+- Six new channel cases and an additional real local socket test cover the re-entry paths. In that socket test the old code sends a byte; the corrected boundary keeps the same socket empty.
+- The included HA46 companion adds bounded original reception counters to the existing HA diagnostics download, without an extra MQTT subscription, worker, storage or device command.
+- Earlier original request correlation, one-time grants, the shared clock and original deadlines are kept. Physical product authority stays closed by default.
 
-De firmwareketen is voorbereid, niet fysiek gekwalificeerd. Geschikte oorspronkelijke kamermeting, causale kraanecho, veiligheidsproducenten en fysieke stop-/uitvalproeven blijven open. Serviceacceptatie en ontvangsttellers zijn geen fysieke ACK. Tado blijft regelen; EMS-TX, forwarding en fysieke uitvoer blijven geblokkeerd. De optionele kanaalroute vereist minimaal HA45, de diagnostiekdownloadfunctie HA46.
+The firmware chain is prepared, not physically qualified. A suitable original room reading, a causal valve echo, safety producers and physical stop/failure tests remain open. Service acceptance and reception counters are not a physical ACK. Tado stays in control; EMS TX, forwarding and physical output remain blocked. The optional channel route needs at least HA45, the diagnostics download feature HA46.
 
-De eerdere uploaderwatchdog, HTTPS-afwijking en pendeloorzaak worden niet als opgelost voorgesteld. Alpha33-publicatie bewijst geen installatie of herstel van de eerder mislukte route. Geen blinde firmwareherhaling. Shelly/Xiaomi-drivers en volledige PID-/leerkwalificatie blijven roadmapwerk.
+The earlier uploader watchdog, HTTPS deviation and the cause of the short cycling are not presented as solved. Publishing alpha33 does not prove installation or recovery of the route that failed earlier. No blind firmware retry. Shelly/Xiaomi drivers and full PID/learning qualification remain roadmap work.
 
 English: independent guards at final handoff, availability and shared-clock callback boundaries retire all channel owners on recursion, including reentry from normal admission. A real local socket regression confirms zero-byte refusal. The included HA46 companion adds bounded receive diagnostics without control authority. Product-source/physical feedback qualification and earlier E32 updater recovery remain open; publication is not installation.
 
-# E32 V2 alpha32 — oorspronkelijke kraanaanvraag en bewaakte socketoverdracht
+# E32 V2 alpha32 — original valve request and guarded socket transfer
 
-Grotere gezamenlijke voorbereidingsrelease met HA dev45. Alle 23 voorbereide onderdelen, 31 producteisen en bestaande instellingen blijven behouden.
+A larger joint preparation release with HA dev45. All 23 prepared parts, 31 product requirements and existing settings are kept.
 
-- Complete voorbereide aanvraag/grant/opdrachtketen: eigen aanvraagvolgnummer, oorspronkelijke lokale begintijd, exacte sessie/config/binding en eenmalig grant. Een vertraagd antwoord krijgt geen nieuw tijdvenster.
-- Optionele kanaalbedrading op dezelfde MQTT-client en loop. Maximaal acht eigenaren; callbackherintrede, SOURCE-wissel en disconnect trekken in zonder heropbouw of automatische retry. Dit kwalificeert geen achtzone-installatie.
-- Eén gedeeld monotone-klokwatermerk en blijvend kleiner deadlineplafond, ook op context- en socketgrenzen. De actuele lokale netwerkstatus telt mee wanneer TCP nog verbonden lijkt.
-- Tijdens uitsluitend de expliciete actuatorpublish gebruikt dezelfde socket een nonblocking write zonder SDK-wacht/retry. Partiële, late of mislukte IO trekt eerst alle eigenaren in en sluit de bestaande socket zonder extra MQTT-write. Gewoon shadowverkeer behoudt zijn SDK-pad.
-- Native kern, echte C++/HA-workeruitwisseling, strikte sanitizer-/iteratorcontroles en vier echte lokale socketproeven; exacte bron-/tag-CI en pakketcontrole blijven publicatievoorwaarden.
+- A complete prepared request/grant/command chain: its own request sequence number, the original local start time, the exact session/config/binding and a one-time grant. A delayed answer gets no new time window.
+- Optional channel wiring on the same MQTT client and loop. At most eight owners; callback re-entry, a SOURCE change and a disconnect revoke without rebuilding or automatic retry. This does not qualify an eight-zone installation.
+- One shared monotonic clock watermark and a permanently lower deadline ceiling, also at context and socket boundaries. The current local network state counts when TCP still seems connected.
+- Only during the explicit actuator publish does the same socket use a non-blocking write without SDK wait/retry. Partial, late or failed IO first revokes all owners and closes the existing socket without an extra MQTT write. Ordinary shadow traffic keeps its SDK path.
+- Native core, real C++/HA worker exchange, strict sanitizer/iterator checks and four real local socket tests; exact source/tag CI and package checks remain publication conditions.
 
-De product-SOURCE-fabriek blijft gesloten. Dit pakket geeft geen kraan-/ketelbevoegdheid, fysieke ACK, afgiftepad of bewezen stopgarantie. Tado blijft regelen. Geschikte oorspronkelijke kamermeting, causale kraanecho, veiligheidsproducenten en fysieke kwalificatie blijven open. De nieuwe aanvraagroute vereist de bijbehorende HA dev45.
+The product SOURCE factory stays closed. This package grants no valve/boiler authority, physical ACK, delivery path or proven stop guarantee. Tado stays in control. A suitable original room reading, a causal valve echo, safety producers and physical qualification remain open. The new request route needs the matching HA dev45.
 
-De eerdere alpha28-uploaderwatchdog en native HTTPS-fout zijn niet als opgelost geclaimd. Alpha32-publicatie bewijst geen installatie; geen blinde uploadherhaling. Shelly/Xiaomi-drivers en actieve PID-/leerkwalificatie blijven roadmapwerk.
+The earlier alpha28 uploader watchdog and the native HTTPS error are not claimed as solved. Publishing alpha32 does not prove installation; no blind upload retry. Shelly/Xiaomi drivers and active PID/learning qualification remain roadmap work.
 
 English: combined preparation release with HA dev45: correlated original requests, single-use grants, bounded channel ownership, a shared lifetime clock and nonblocking writes on the existing MQTT socket. Partial/late/failed IO is never retried. Default product authority remains denied; physical feedback/stop qualification and E32 update recovery remain open.
 
-# E32 V2 alpha31 — gezamenlijke M2-bron-, sessie- en transportbundel
+# E32 V2 alpha31 — joint M2 source, session and transport bundle
 
-Gezamenlijke passieve prerelease met Home Assistant dev44. Behoudt alle 23 voorbereide onderdelen en bestaande instellingen; geen actieve ketelbèta.
+Joint passive prerelease with Home Assistant dev44. Keeps all 23 prepared parts and existing settings; not an active boiler beta.
 
-- Voorbereide C++-kraanencoder en verzendcontrole bewaken exacte bron/sessie/config/binding, oorspronkelijke aanvraagdeadline en actuele lease. Kortere deadlines kunnen later niet opnieuw groeien; onzekere overdracht krijgt geen automatische retry.
-- De echte lokale controller levert een begrensde sessiecontext zonder rechten te vernieuwen of fysieke bevoegdheid te verlenen. Geheugenfouten en intrekking sluiten de eigenaar blijvend.
-- HA dev44 verbindt grantaanvragen en opdrachten aan de bestaande native worker en bewaakt ook scope-/offlineverlies vóór de wachtrij. Serviceacceptatie blijft geen kraan-ACK.
-- Strikte sanitizerpoorten en echte C++→HA-interoperabiliteit controleren de voorbereide keten; alle eerdere diagnose-, EMS-, UI-, bronkeuze- en uploadcontroles blijven behouden.
+- A prepared C++ valve encoder and send check guard the exact source/session/config/binding, the original request deadline and the current lease. Shorter deadlines can never grow again later; an uncertain transfer gets no automatic retry.
+- The real local controller supplies a bounded session context without renewing rights or granting physical authority. Memory errors and revocation close the owner permanently.
+- HA dev44 connects grant requests and commands to the existing native worker and also guards against loss of scope or going offline before the queue. Service acceptance remains no valve ACK.
+- Strict sanitizer gates and real C++→HA interoperability check the prepared chain; all earlier diagnostics, EMS, UI, source-selection and upload checks are kept.
 
-De productfabriek selecteert geen fysieke kraaneigenaar. Firmware-MQTT-zendbedrading, geschikte kamerbron, causale oorspronkelijke kraanecho, installatiekwalificatie en fysieke stop-/uitvalproeven blijven open. EMS-TX, forwarding en fysieke uitgangen blijven geblokkeerd; Tado blijft regelen. Nieuwe Shelly-/Xiaomi-Bluetoothdrivers zijn niet als gereed aangemerkt.
+The product factory selects no physical valve owner. Firmware MQTT send wiring, a suitable room source, a causal original valve echo, installation qualification and physical stop/failure tests remain open. EMS TX, forwarding and physical outputs remain blocked; Tado stays in control. New Shelly/Xiaomi Bluetooth drivers are not marked as ready.
 
-Installatiegrens: de eerdere upload via de geïnstalleerde alpha28 gaf een task-watchdogreset waarvan taak/oorzaak nog onbekend is. Alpha31 bewijst geen herstel van die draaiende uploader. Geen blinde OTA-herhaling; behoud instellingen en bepaal eerst een onderbouwde herstelroute. Het eerdere pendelen en de native HTTPS-updaterfout zijn niet als opgelost geclaimd.
+Installation limit: the earlier upload through the installed alpha28 caused a task watchdog reset whose task/cause is still unknown. Alpha31 does not prove recovery of that running uploader. No blind OTA retry; keep settings and first establish a well-founded recovery route. The earlier short cycling and the native HTTPS updater error are not claimed as solved.
 
 English: combined passive prerelease with HA dev44, preserving prepared features and configuration. Adds source/session/deadline fences and native-worker actuator message handling with default-denied physical authority. No active boiler qualification, original valve ACK, new Bluetooth drivers or proven alpha28 uploader recovery. Do not blindly retry the failed installed upload route.
 
-# E32 V2 alpha30 — ketelrapporten, veiligheidsfeiten en uploadcontrole
+# E32 V2 alpha30 — boiler reports, safety facts and upload checks
 
-Gezamenlijke passieve onderhoudsbundel met Home Assistant dev39; alle eerder voorbereide functies blijven behouden.
+Joint passive maintenance bundle with Home Assistant dev39; all previously prepared features are kept.
 
-- Ketelwaarden volgen de oorspronkelijke ontvangstvolgorde per veld. Oudere telegrammen overschrijven geen nieuwe waarden; tegenstrijdige waarden van dezelfde acquisitie blijven onbruikbaar tot een nieuwe meting.
-- Veiligheids- en hydraulische feiten herleven niet door herhaling, klokterugloop of het verstrijken van een eerder ongeldige toekomsttijd. Een geldige acquisitie bij uptime nul blijft ondersteund.
-- Handmatige app-upload controleert exacte bestandsgrootte, afgebroken overdracht en volledige multipart-afhandeling voordat de opstartpartitie wordt gekozen. Native OTA-handles worden eenmaal afgesloten.
-- HA trekt ongeldig geworden ketelwaarden blijvend in tot oorspronkelijke nieuwe ontvangst, ook na een transportfout of update van een andere veldgroep.
+- Boiler values follow the original reception order per field. Older telegrams do not overwrite newer values; conflicting values from the same acquisition stay unusable until a new reading.
+- Safety and hydraulic facts do not revive through repetition, the clock running backwards or the expiry of an earlier invalid future time. A valid acquisition at uptime zero remains supported.
+- A manual app upload checks the exact file size, an interrupted transfer and complete multipart handling before the boot partition is selected. Native OTA handles are closed once.
+- HA permanently withdraws boiler values that became invalid until new original reception, also after a transport error or an update of another field group.
 
-Lokaal gecontroleerd: 689 firmwaretests, 11 REST-uploadscenario's en 2195 HA-testgevallen per Core 2026.10.2/2026.10.3. De verplichte release-CI controleert de bevroren bron en pakketten afzonderlijk.
+Checked locally: 689 firmware tests, 11 REST upload scenarios and 2195 HA test cases per Core 2026.10.2/2026.10.3. The mandatory release CI checks the frozen source and packages separately.
 
-Installatiegrens: de eerdere alpha29-upload eindigde op de geïnstalleerde alpha28 met een task-watchdogreset; de oorzaak is onbekend. Deze bronwijzigingen bewijzen geen herstel van die al draaiende uploader. Geen blinde OTA-herhaling; installatie vereist een onderbouwde herstelroute en controle van de echte bootidentiteit.
+Installation limit: the earlier alpha29 upload ended on the installed alpha28 with a task watchdog reset; the cause is unknown. These source changes do not prove recovery of that uploader, which was already running. No blind OTA retry; installation needs a well-founded recovery route and a check of the real boot identity.
 
-EMS-TX, forwarding en fysieke uitgangen blijven geblokkeerd. Actieve bèta, fysieke start-/stopproeven en de nieuwe Shelly-/Xiaomi-Bluetoothdrivers blijven open. Pendelen en native HTTPS-updater zijn niet als opgelost aangemerkt.
+EMS TX, forwarding and physical outputs remain blocked. The active beta, physical start/stop tests and the new Shelly/Xiaomi Bluetooth drivers remain open. Short cycling and the native HTTPS updater are not marked as solved.
 
 English: passive combined maintenance release with ordered boiler field acquisition, persistent retirement of rejected safety facts and HA cached values, and transactional manual upload validation. Existing alpha28 upload watchdog recovery remains unproven; no automatic retry or active heating qualification.
 
-[Actueel werkbord](https://github.com/dielessen/open_thermostat/blob/v0.1.0-e32v2-alpha.30/docs/modern-thermostat/WORKBOARD.nl.md).
+[Current workboard (Dutch)](https://github.com/dielessen/open_thermostat/blob/v0.1.0-e32v2-alpha.30/docs/modern-thermostat/WORKBOARD.nl.md).
 
-# E32 V2 alpha29 — gezamenlijke diagnose- en onderhoudsbundel
+# E32 V2 alpha29 — joint diagnostics and maintenance bundle
 
-Bundelt alle voorbereide software met Home Assistant dev38 op bron
+Bundles all prepared software with Home Assistant dev38 at source
 `d131c503f42e6b834a0815db8384983a7fc1b46f`.
 
-- Herstel van TV02-ontvangstdiagnose bij laat beschikbare MQTT-metadata.
-- Oorspronkelijke sensordiagnose wordt ingetrokken bij gewijzigde/uitgeschakelde native apparaatidentiteit; oude informatie herleeft niet.
-- Duidelijke EN/NL-ontvangstmeldingen; frontend v38 behoudt bestaande v35-kaarten.
-- Alle 23 voorbereide onderdelen blijven behouden. Geen wijzigingen aan instellingen of opslaglayout.
+- TV02 reception diagnostics recover when MQTT metadata becomes available late.
+- Original sensor diagnostics are withdrawn when the native device identity is changed or disabled; old information does not revive.
+- Clear EN/NL reception messages; frontend v38 keeps existing v35 cards.
+- All 23 prepared parts are kept. No changes to settings or the storage layout.
 
-Passieve onderhoudsrelease: EMS-TX, forwarding en fysieke ketel-/kraanuitvoer blijven geblokkeerd. Actieve bèta, Shelly-/Xiaomi-Bluetoothdrivers en fysieke stop-/uitvalproeven zijn nog niet gereed. Het eerdere pendelen en de native HTTPS-updaterafwijking zijn niet als opgelost aangemerkt.
+Passive maintenance release: EMS TX, forwarding and physical boiler/valve output remain blocked. The active beta, Shelly/Xiaomi Bluetooth drivers and physical stop/failure tests are not ready yet. The earlier short cycling and the native HTTPS updater deviation are not marked as solved.
 
-Alle zeven softwarepoorten zijn geslaagd; 2189 HA-testgevallen per ondersteunde Core-versie, zonder fouten/skips. Installeer alleen het passende app-only firmwarebestand via de bestaande herstelbare route; behoud instellingen en controleer de echte bootidentiteit.
+All seven software gates passed; 2189 HA test cases per supported Core version, without failures/skips. Install only the matching app-only firmware file through the existing recoverable route; keep settings and check the real boot identity.
 
 English: combined passive maintenance bundle with HA dev38. Fixes diagnostic source lifetime/startup and preserves older room cards. No active heating or Bluetooth device support is enabled.
 
-[Wijzigingen en resterende voorwaarden in de bron](https://github.com/dielessen/open_thermostat/blob/v0.1.0-e32v2-alpha.29/docs/modern-thermostat/WORKBOARD.nl.md). Het aparte historiebestand in deze bron bevat de eerdere releasegeschiedenis.
+[Changes and remaining conditions in the source](https://github.com/dielessen/open_thermostat/blob/v0.1.0-e32v2-alpha.29/docs/modern-thermostat/WORKBOARD.nl.md) (Dutch). The separate history file in this source contains the earlier release history.
 
-# E32 V2 alpha28 + Home Assistant dev37 — stabiele bediening en EMS-apparaten
+# E32 V2 alpha28 + Home Assistant dev37 — stable controls and EMS devices
 
-Gezamenlijke passieve prerelease met alle geteste fixes sinds alpha27/dev36.
+Joint passive prerelease with all tested fixes since alpha27/dev36.
 
-- Settings → EMS-apparaten toont werkelijk ontvangen afzenders, product/versie indien bekend en entiteiten met kwaliteit/ouderdom. Nederlands/Engels, zoekfilter en openklapstatus blijven bij vernieuwen behouden. Geen actieve scan.
-- Verlopen E32- en HA-sessierechten herleven niet na een teruggaande klok. HA trekt bij een ongeldige monotone klok de sessie en wachtende opdrachten in; herstel vereist een nieuwe transportinstantie.
-- Iedere HA-herhaling controleert na wachten opnieuw tijd, lease, SOURCE en de oorspronkelijke wachtrijregistratie. Geen oude opdracht na intrekking of vervanging; oorspronkelijke bytes en deadlines blijven behouden.
-- HA-opstart en annulering ruimen eigen resources op zonder een vervangende eigenaar te verwijderen. Te grote numerieke kraanmetadata veroorzaakt geen editorcrash.
-- Vertraagde webantwoorden kunnen een nieuwere pagina niet overschrijven of oude scripts uitvoeren. De EMS-tabel hergebruikt rijen en controleert waarden en volgorde.
-- Het actuele plan scheidt geïnstalleerd, voorbereid en fysieke acceptatie; de toekomstige stop-/zend-/uitvalproef is concreet beschreven.
+- Settings → EMS devices shows the senders actually received, product/version where known, and entities with quality/age. Dutch/English, the search filter and the expanded state are kept when refreshing. No active scan.
+- Expired E32 and HA session rights do not revive after the clock runs backwards. With an invalid monotonic clock, HA withdraws the session and waiting commands; recovery requires a new transport instance.
+- After waiting, every HA retry re-checks the time, lease, SOURCE and the original queue registration. No old command after revocation or replacement; the original bytes and deadlines are kept.
+- HA start-up and cancellation clean up their own resources without removing a replacement owner. Oversized numeric valve metadata no longer crashes the editor.
+- Delayed web responses can no longer overwrite a newer page or run old scripts. The EMS table reuses rows and checks values and order.
+- The current plan separates installed, prepared and physical acceptance; the future stop/send/failure test is described concretely.
 
-Partities en instellingenformaat blijven gelijk. E32-installatie is app-only; HA heeft een apart pakket. Bestaande instellingen, programma's, SOURCE/journal, registry en ontvangstproducent blijven behouden. Frontend dev35/v35 blijft dezelfde versie met dezelfde bytes.
+Partitions and settings format stay the same. The E32 installation is app-only; HA has a separate package. Existing settings, programs, SOURCE/journal, registry and reception producer are kept. Frontend dev35/v35 stays the same version with the same bytes.
 
-EMS-TX, forwarder en fysieke kraan-/keteluitvoer blijven geblokkeerd; Tado blijft de actieve regelaar. De normale M2-kraanzendroute, geschikte kamerbron en fysieke stop-/uitvalkwalificatie zijn nog open. Het eerdere pendelen en de native HTTPS-updaterafwijking worden niet als gerepareerd geclaimd. Geen blinde herhaling van die HTTPS-route.
+EMS TX, the forwarder and physical valve/boiler output remain blocked; Tado stays the active controller. The normal M2 valve send route, a suitable room source and physical stop/failure qualification are still open. The earlier short cycling and the native HTTPS updater deviation are not claimed as repaired. No blind retry of that HTTPS route.
 
 **English:** Combined passive maintenance release: EMS device inventory under Settings with EN/NL display, stable filtering/expanded rows, monotonic session fences, current-owner/deadline checks after awaited MQTT sends, reliable HA setup cleanup, metadata validation and stale-navigation protection. Configuration is preserved; boiler/valve transmission remains disabled. No active heating qualification or claimed cycling/HTTPS-updater repair.
 
-# E32 V2 alpha27 + Home Assistant dev35 — gebundelde failsafe en bediening
+# E32 V2 alpha27 + Home Assistant dev35 — bundled failsafe and controls
 
-Bundelt alle voorbereide wijzigingen sinds alpha26/dev34 in één passieve prerelease.
+Bundles all prepared changes since alpha26/dev34 in one passive prerelease.
 
-- HA-heartbeat en begrensde naloop bij verbindingsverlies; onbruikbare of verouderde bronmetingen kunnen niet opnieuw geldig worden door herhaalde verwerking.
-- Strengere hydraulische feedback: ongeldige deelbewijzen verliezen hun geldigheid; beperkende foutsignalen blijven behouden. Een klokterugloop blokkeert positieve vrijgave.
-- Begrensde ketelproeven bewaken stopbevestigingen en vragen opnieuw bewijs na verlopen of tegenstrijdige feedback.
-- Persistente, begrensde updatercontrolepunten ondersteunen toekomstige foutdiagnose. De eerdere HTTPS-updatefout is hiermee niet als opgelost aangetoond.
-- Logging verwerkt complete gevalideerde pagina's; onzekere opslag blokkeert een automatische herhaling. Ketelinstellingen worden na opslaan onafhankelijk teruggelezen.
-- EN/NL-bediening en HA frontend dev35/v35, met duidelijkere verouderde TV02-ontvangst en voorbereide opdrachtcontroles.
+- HA heartbeat and a bounded run-on after a lost connection; unusable or outdated source readings cannot become valid again through repeated processing.
+- Stricter hydraulic feedback: invalid partial evidence loses its validity; limiting error signals are kept. A clock running backwards blocks positive release.
+- Bounded boiler trials guard stop confirmations and ask for new evidence after expired or conflicting feedback.
+- Persistent, bounded updater checkpoints support future fault diagnosis. This does not show that the earlier HTTPS update error is solved.
+- Logging processes complete validated pages; uncertain storage blocks an automatic retry. Boiler settings are read back independently after saving.
+- EN/NL controls and HA frontend dev35/v35, with clearer outdated TV02 reception and prepared command checks.
 
-Alle geïnventariseerde voorbereide functies blijven meegenomen. Partities en instellingenformaat blijven gelijk; firmware-installatie is app-only. Bestaande configuratie, programma's, SOURCE en ontvangstpins blijven behouden. De normale kraanzendroute en fysieke acceptatie zijn nog open. EMS-TX, forwarder en fysieke uitgangen blijven geblokkeerd, Tado blijft regelen. Geen automatische zendproef of vrijgave voor actieve ketelregeling.
+All inventoried prepared features are included. Partitions and settings format stay the same; the firmware installation is app-only. Existing configuration, programs, SOURCE and reception pins are kept. The normal valve send route and physical acceptance are still open. EMS TX, the forwarder and physical outputs remain blocked, Tado stays in control. No automatic send test or release for active boiler control.
 
-# E32 V2 alpha26 — ESP-diagnose en duidelijke instellingen
+# E32 V2 alpha26 — ESP diagnostics and clear settings
 
-Herstelt de ESP-eigen diagnose in de native MQTT-modus, samen met HA dev33.
-Alle bestaande voorbereide functies uit alpha24 en de HA-correcties blijven behouden.
+Restores the ESP's own diagnostics in native MQTT mode, together with HA dev33.
+All existing prepared features from alpha24 and the HA fixes are kept.
 
-- Vrije/minimaal vrije interne heap, grootste vrije geheugenblok, CPU-temperatuur en uptime worden elke 15 seconden via dezelfde MQTT-verbinding verstuurd. De uitgeschakelde RTC-temperatuur blijft onbekend.
-- HA dev33 behoudt de bestaande diagnose-identiteiten en trekt de beschikbaarheid na 45 seconden zonder geldige meting in. Een HA-herstart vereist geen E32-herstart.
-- De E32-instellingen en het dashboard leggen schaduwmodus in Engels en Nederlands uit: gegevens uitlezen en warmtevraag berekenen, zonder kraan- of ketelopdrachten. EMS-ontvangst en het installatieprofiel zijn geen vrijgave voor fysieke aansturing.
-- HA dev33 legt configuratiebevestiging, kraandoelcontroles en berekeningen afzonderlijk uit. Betrouwbare bronmetingen, bevestigde opdrachten en veilig stopgedrag moeten nog afzonderlijk worden afgetekend.
+- Free/minimum free internal heap, the largest free memory block, CPU temperature and uptime are sent every 15 seconds over the same MQTT connection. The disabled RTC temperature stays unknown.
+- HA dev33 keeps the existing diagnostic identities and withdraws availability after 45 seconds without a valid reading. An HA restart does not require an E32 restart.
+- The E32 settings and dashboard explain shadow mode in English and Dutch: reading data and calculating heat demand, without valve or boiler commands. EMS reception and the installation profile are no release for physical control.
+- HA dev33 explains configuration confirmation, valve target checks and calculations separately. Reliable source readings, confirmed commands and safe stop behaviour still have to be signed off separately.
 
-De normale HTTPS-update blijft app-only met dezelfde partities en instellingen.
-Home Assistant blijft een apart pakket; de bestaande dev28/v28-kamerkaart blijft gelijk.
-De ketelontvangst blijft passief, Tado blijft regelen en alle fysieke uitgangen blijven geblokkeerd.
+The normal HTTPS update stays app-only with the same partitions and settings.
+Home Assistant remains a separate package; the existing dev28/v28 room card stays the same.
+Boiler reception stays passive, Tado stays in control and all physical outputs remain blocked.
 
-# E32 V2 alpha24 + Home Assistant dev30 — gebundelde controle- en ontvangstbasis
+# E32 V2 alpha24 + Home Assistant dev30 — bundled control and reception foundation
 
-Bundelt alle voorbereide wijzigingen sinds alpha23/dev29 in één gezamenlijke
-passieve kandidaat. Dit is geen actieve ketelbèta of vrijgave van fysieke uitvoer.
+Bundles all prepared changes since alpha23/dev29 in one joint passive
+candidate. This is not an active boiler beta or a release of physical output.
 
-- Eindige ketelproeven bewaken te late basis-/stopbevestigingen en behouden hun
-  oorspronkelijke deadline bij leaseverlies of fasewisseling.
-- De shadow-controller is gekoppeld aan de hydraulische supervisor met afzonderlijke
-  bronleeftijden en boot-/eigenaar-/sessiebinding. Een fout hervat niet vanzelf.
-  De concrete productiebronnen blijven standaard ongeconfigureerd.
-- Logredactie beschermt ook opmaakcodes en lange regels vóór beide logsinks.
-  De EMS-encoder weigert te grote frames en ongeldige READ-payloads.
-- HA dev30 voegt read-only supervisordiagnose, strengere levensduur van wachtende
-  kraandoelen en privé installatiepins voor oorspronkelijke TV02-ontvangst toe.
-  Onzekere gedispatchte kraanacties krijgen geen automatische vervolgopdracht.
-- Het Ecomline-profiel bewaart de actuele passieve veldreview en afzonderlijke
-  Recorder-waarneming. Drie variërende temperatuurvelden zijn kandidaten voor
-  verdere validatie; geen claim van gekalibreerde meting of continu zes uur bewijs.
-- Het installatiedraaiboek bevat back-up, versiecompatibiliteit, bronpins,
-  afzonderlijke Z2M-producentinstallatie, ontvangstacceptatie en beperkte terugval.
+- Bounded boiler trials guard late base/stop confirmations and keep their
+  original deadline on lease loss or a phase change.
+- The shadow controller is linked to the hydraulic supervisor with separate
+  source ages and boot/owner/session binding. An error does not resume by itself.
+  The concrete production sources stay unconfigured by default.
+- Log redaction also protects format codes and long lines before both log sinks.
+  The EMS encoder refuses oversized frames and invalid READ payloads.
+- HA dev30 adds read-only supervisor diagnostics, a stricter lifetime for waiting
+  valve targets and private installation pins for original TV02 reception.
+  Uncertain dispatched valve actions get no automatic follow-up command.
+- The Ecomline profile keeps the current passive field review and a separate
+  Recorder observation. Three varying temperature fields are candidates for
+  further validation; no claim of a calibrated reading or six hours of continuous evidence.
+- The installation runbook covers backup, version compatibility, source pins,
+  a separate Z2M producer installation, reception acceptance and a limited fallback.
 
-Bestaande dashboardverversing, logging/syslog, EN/NL-bediening, modelkeuze,
-69 ketelvelddefinities, weekplanner en instellingen blijven meegenomen.
-Instellingenformaat en partitie-indeling blijven gelijk; de normale HTTPS-update
-is app-only. HA blijft een apart pakket met dezelfde dev28/v28-frontendbytes.
+Existing dashboard refresh, logging/syslog, EN/NL controls, model selection,
+69 boiler field definitions, the week planner and settings are all included.
+Settings format and partition layout stay the same; the normal HTTPS update
+is app-only. HA remains a separate package with the same dev28/v28 frontend bytes.
 
-De openbare bronlijsten blijven leeg. Een privébestand of extension installeren
-verleent geen meet-/flow-/klep-/aansturingskwalificatie. De update wisselt geen
-sensor, kraanmodus, programma, SOURCE-eigenaar of syslogbestemming. EMS-TX,
-forwarder en fysieke uitgangen blijven geblokkeerd; Tado blijft de actieve regelaar.
+The public source lists stay empty. Installing a private file or extension
+grants no measurement/flow/valve/control qualification. The update changes no
+sensor, valve mode, program, SOURCE owner or syslog destination. EMS TX, the
+forwarder and physical outputs remain blocked; Tado stays the active controller.
 
-# E32 V2 alpha23 + Home Assistant dev29 — logging en stabiele bediening
+# E32 V2 alpha23 + Home Assistant dev29 — logging and stable controls
 
-Alpha22 bleef een niet-gepubliceerde kandidaat: de openbare native loggertest
-vereiste een expliciete cstdint-header bij de vendorcompilatie. Die testbuild is
-hersteld; de bestaande tag blijft behouden.
+Alpha22 remained an unpublished candidate: the public native logger test
+needed an explicit cstdint header for the vendor compilation. That test build
+is fixed; the existing tag is kept.
 
-Gezamenlijke passieve testrelease met alle voorbereide wijzigingen sinds
-alpha21/dev27. Geen vrijgave voor actieve ketel- of kraanaansturing.
+Joint passive test release with all prepared changes since alpha21/dev27.
+No release for active boiler or valve control.
 
-- E32: systeemlog in Settings, met niveaus, modulefilter, pauzeren, downloaden
-  en lokaal wissen. Begrensde RAM-opslag; geen logarchief in flash.
-- E32: optionele RFC5424 UDP-syslogserver met IPv4-adres, poort, eigen niveau
-  en markeringen. Instellingen worden pas na NVS-readback toegepast.
-  Extern loggen staat standaard uit; bestemming en ontvangst blijven lokaal
-  in te stellen en te controleren. Zie LOGGING.nl.md.
-- E32-dashboard: meetwaarden verversen zonder open details, toetsenbordfocus,
-  scrollpositie of de ketelillustratie opnieuw op te bouwen. Statusverzoeken
-  overlappen niet; verbindingsfouten laten de pagina staan met een melding.
-- HA dev29: oorspronkelijke TV02-datapointontvangst via de bestaande native MQTT-
-  lifecycle, met expliciete bronpins, ouderdoms- en identiteitscontrole.
-  De kamerpagina toont beschikbare oorspronkelijke rapporten in English of
-  Nederlands, inclusief gerapporteerd doel, eigen kraantemperatuur, programma,
-  verwarmingsstop en vorstbeveiliging. Ontvangst bewijst geen opdrachtbevestiging,
-  klepstand of geleverde warmte. Standaard bronpins blijven leeg: zonder apart
-  beoordeelde bron en extension verschijnen geen oorspronkelijke rapporten.
-- HA-editor krijgt een eigen dev28/v28-identiteit zodat een oude browserkaart
-  de nieuwe weergave niet kan overschrijven. Oude handmatige kaarten blijven
-  compatibel. Geen nieuwe polling of automatische kraancommando's.
+- E32: system log in Settings, with levels, a module filter, pause, download
+  and local clearing. Bounded RAM storage; no log archive in flash.
+- E32: an optional RFC5424 UDP syslog server with IPv4 address, port, its own
+  level and markers. Settings are applied only after an NVS readback.
+  External logging is off by default; destination and reception are set up and
+  checked locally. See LOGGING.nl.md.
+- E32 dashboard: readings refresh without rebuilding open details, keyboard focus,
+  scroll position or the boiler illustration. Status requests do not
+  overlap; connection errors keep the page in place with a message.
+- HA dev29: original TV02 data point reception through the existing native MQTT
+  lifecycle, with explicit source pins, age and identity checks.
+  The room page shows available original reports in English or Dutch,
+  including the reported target, the valve's own temperature, program, heating
+  stop and frost protection. Reception does not prove a command confirmation,
+  valve position or delivered heat. The default source pins stay empty: without a
+  separately reviewed source and extension, no original reports appear.
+- The HA editor gets its own dev28/v28 identity so an old browser card cannot
+  overwrite the new view. Old manual cards stay compatible. No new polling
+  or automatic valve commands.
 
-De app-only HTTPS-update gebruikt dezelfde partitie-indeling en behoudt bestaande
-instellingen. HA is een afzonderlijk pakket; de firmware installeert dit niet.
-Eerdere ketelprofielen, modelonafhankelijke ontvangst, 69 voorbereide velddefinities,
-EN/NL-bediening en configuratie-/programmastructuren blijven behouden.
+The app-only HTTPS update uses the same partition layout and keeps existing
+settings. HA is a separate package; the firmware does not install it.
+Earlier boiler profiles, model-independent reception, 69 prepared field definitions,
+EN/NL controls and the configuration/program structures are kept.
 
-Fysieke bron-/kraan-/zendinterface-/start-stopkwalificatie blijft open. E32 EMS-TX,
-forwarder en fysieke uitgangen blijven compile-time geblokkeerd. Deze release
-verandert geen meetselectie, weekprogramma, SOURCE-eigendom of syslogbestemming.
+Physical source/valve/send interface/start-stop qualification remains open. E32 EMS TX,
+the forwarder and physical outputs remain blocked at compile time. This release
+changes no measurement selection, week program, SOURCE ownership or syslog destination.
 
-# E32 V2 alpha21 — profiel Nefit Ecomline Classic HRC 22H
+# E32 V2 alpha21 — Nefit Ecomline Classic HRC 22H profile
 
-Settings → My boiler bevat nu het afzonderlijke profiel Nefit Ecomline Classic
-HRC 22H, het door de gebruiker bevestigde exacte model. Home toont de volledige
-naam en bestaande familie-illustratie. De oudere generieke Classic-keuze blijft
-bewaard en geldig. Opslaan en oorspronkelijke NVS-readback zijn voor beide
-identiteiten getest; de opslagmelding volgt English/Nederlands.
+Settings → My boiler now includes the separate profile Nefit Ecomline Classic
+HRC 22H, the exact model confirmed by the user. Home shows the full
+name and the existing family illustration. The older generic Classic choice
+is kept and stays valid. Saving and the original NVS readback are tested for
+both identities; the save message follows English/Dutch.
 
-Het bronprofiel bewaart de waargenomen gerapporteerde kandidaatvelden, met apart
-vermelde afgeleide activiteit en nog niet fysiek bewezen bruikbaarheid. Een
-modelkeuze begrenst nooit de EMS-ontvangst en kiest geen busadressen, limieten of
-zendmodus. Alle eerdere uitlees-, taal- en interfacecorrecties blijven behouden.
-E32-TX en fysieke uitgangen blijven geblokkeerd; geen actieve ketelbèta-vrijgave.
+The source profile keeps the observed reported candidate fields, with derived
+activity listed separately and usability not yet physically proven. A model
+choice never limits EMS reception and selects no bus addresses, limits or
+send mode. All earlier readout, language and interface fixes are kept.
+E32 TX and physical outputs remain blocked; no release of the active boiler beta.
 
-# E32 V2 alpha20 — volledige passieve meetrelease met HA dev26
+# E32 V2 alpha20 — full passive measurement release with HA dev26
 
-Bundelt alle alpha19-voorbereiding: native Classic-ketelvelden, EN/NL-bediening,
-ketelprofiel en diagnose. HA dev26 herstelt bovendien de bestaande v2-sensoren
-in de productinstallatie via de gevalideerde native MQTT-cache. Een ontbrekende
-standaardheader in de native BLE-test is expliciet toegevoegd voor een schone
-CI-build. Alpha19 is niet live geïnstalleerd; historische tags worden behouden.
+Bundles all alpha19 preparation: native Classic boiler fields, EN/NL controls,
+boiler profile and diagnostics. HA dev26 also restores the existing v2 sensors
+in the product installation through the validated native MQTT cache. A missing
+standard header in the native BLE test was added explicitly for a clean
+CI build. Alpha19 was not installed live; historical tags are kept.
 
-De normale app-only update behoudt instellingen en dezelfde partitie-indeling.
-EMS-TX en fysieke uitgangen blijven geblokkeerd. Geen actieve ketelbèta-vrijgave.
+The normal app-only update keeps settings and the same partition layout.
+EMS TX and physical outputs remain blocked. No release of the active boiler beta.
 
-# E32 V2 alpha19 — ketelvelden naar HA en tweetalige bediening
+# E32 V2 alpha19 — boiler fields to HA and bilingual controls
 
-Gezamenlijke passieve update met HA dev25. De bestaande native MQTT-verbinding
-publiceert nu alle 69 voorbereide Classic-velddefinities met oorspronkelijke
-rapportleeftijd, kwaliteit en eenheden. Dat maakt geldige ontvangen ketelvelden
-zichtbaar in HA; niet ontvangen, verlopen of onbetrouwbare waarden worden niet
-als werkende meting voorgesteld. Een modelkeuze begrenst de ontvangst nooit.
-Deze decoderdekking is geen maximum voor andere EMS-ketels.
+Joint passive update with HA dev25. The existing native MQTT connection
+now publishes all 69 prepared Classic field definitions with the original
+report age, quality and units. This makes valid received boiler fields
+visible in HA; values that were not received, expired or are unreliable are not
+presented as a working reading. A model choice never limits reception.
+This decoder coverage is not a maximum for other EMS boilers.
 
-Meegeleverd: English/Nederlands met onthouden E32-browserkeuze, aangevulde HA-
-vertalingen, Mijn ketel met lokale illustratie, uitgebreide berichtdiagnose en
-alle eerdere voorbereide correcties. De gewone app-only HTTPS-update behoudt
-netwerk, SOURCE, kamers en programma’s en gebruikt dezelfde partitie-indeling.
+Included: English/Dutch with a remembered E32 browser choice, completed HA
+translations, My boiler with a local illustration, extended message diagnostics and
+all earlier prepared fixes. The ordinary app-only HTTPS update keeps the
+network, SOURCE, rooms and programs and uses the same partition layout.
 
-E32-zenden en fysieke ketel-/kraanuitgangen blijven geblokkeerd. Dit is een
-gebundelde uitleesupdate, geen vrijgave van de actieve ketelbèta. De echte
-meetproducent-, kraan-, zendinterface- en stopacceptatie blijven apart.
+E32 sending and physical boiler/valve outputs remain blocked. This is a
+bundled readout update, not a release of the active boiler beta. The real
+measurement producer, valve, send interface and stop acceptance remain separate.
 
-# E32 V2 alpha18 — gezamenlijke ontvangst- en diagnose-release
+# E32 V2 alpha18 — joint reception and diagnostics release
 
-Deze release bundelt de voorbereide bronwijzigingen met HA dev24. Settings → Keteltest toont ontvangstdiagnose, ouderdom en beschikbare ketelwaarden en biedt een downloadrapport. Originele UART-ontvangsttijden blijven behouden. De begrensde proefpolicy, gedeelde pollroute, Classic-encoder en SDK-zendcontroles zijn meegeleverd als geblokkeerde voorbereiding.
+This release bundles the prepared source changes with HA dev24. Settings → Boiler test shows reception diagnostics, age and available boiler values and offers a downloadable report. Original UART reception times are kept. The bounded trial policy, shared poll route, Classic encoder and SDK send checks are included as blocked preparation.
 
-E32 EMS-zenden en aanvullende GPIO-uitgangen blijven compile-time geblokkeerd. De proefbediening verleent geen verwarmingsvrijgave. Echte meetrapportproducent, fysieke kraanacceptatie, zendinterface en onafhankelijk stopgedrag blijven open. Deze release is bedoeld voor de volgende passieve praktijkcontrole, niet als afgeronde actieve ketelbèta.
+E32 EMS sending and additional GPIO outputs remain blocked at compile time. The trial controls grant no release for heating. A real measurement report producer, physical valve acceptance, the send interface and independent stop behaviour remain open. This release is meant for the next passive field check, not as a finished active boiler beta.
 
-Normale app-only HTTPS-update, met behoud van instellingen en dezelfde partitie-indeling. Alle eerdere update-, web-, About-, dashboard- en sessieverbeteringen blijven behouden.
+Normal app-only HTTPS update, keeping settings and the same partition layout. All earlier update, web, About, dashboard and session improvements are kept.
 
-# E32 V2 alpha17 — gebundelde update- en webverbeteringen
+# E32 V2 alpha17 — bundled update and web improvements
 
-Deze release hoort bij de gezamenlijke testbatch met Home Assistant dev23.
+This release belongs to the joint test batch with Home Assistant dev23.
 
-- De automatische updater vindt de recente alpha-releases via een begrensde tagindex, controleert vervolgens de echte openbare release, assets, het compatibele manifest en de broncommit. Annotated tags worden alleen indien nodig opgelost. De bestaande catalogusroute blijft als terugval beschikbaar.
-- Ingebouwde webbestanden krijgen een expliciete GET-route met de bestaande authenticatie. Hiermee verdwijnt de misleidende seriële melding `request handler not found` voor correct geleverde webpagina's en bestanden; echte onbekende routes blijven een 404.
-- Het dashboard kan de werkelijke kamernamen uit de toegelaten HA-sessie tonen, inclusief UTF-8. De labels zijn begrensd en veranderen geen opgeslagen regelplan, meetbewijs of uitgangsbevoegdheid.
-- De in alpha16 geleverde interne/PSRAM-geheugendiagnostiek en eerdere HTTPS-geheugencorrecties blijven behouden.
+- The automatic updater finds the recent alpha releases through a bounded tag index, then checks the real public release, assets, the compatible manifest and the source commit. Annotated tags are resolved only when needed. The existing catalogue route remains available as a fallback.
+- Built-in web files get an explicit GET route with the existing authentication. This removes the misleading serial message `request handler not found` for web pages and files that are delivered correctly; real unknown routes stay a 404.
+- The dashboard can show the actual room names from the admitted HA session, including UTF-8. The labels are bounded and change no saved control plan, measurement evidence or output authority.
+- The internal/PSRAM memory diagnostics delivered in alpha16 and the earlier HTTPS memory fixes are kept.
 
-App-only update via de normale HTTPS-updater; bestaande instellingen en partitie-indeling blijven behouden. Testrelease voor BBQKees E32 V2 met dual-app/SPIFFS-layout. Geen fabriekswisactie of filesystem-upload nodig. E32-uitgangsblokkades en de bestaande afzonderlijke fysieke acceptatievoorwaarden blijven gelden.
+App-only update through the normal HTTPS updater; existing settings and partition layout are kept. Test release for the BBQKees E32 V2 with a dual-app/SPIFFS layout. No factory erase or filesystem upload needed. The E32 output blocks and the existing separate physical acceptance conditions still apply.
 
-# E32 V2 alpha16 — geheugen uitlezen tijdens normaal apparaatbeheer
+# E32 V2 alpha16 — reading memory during normal device management
 
-De bestaande statusroute meldt nu vrij geheugen, de SDK-minimumtellers en het grootste vrije geheugenblok afzonderlijk voor intern RAM en PSRAM. Deze informatie blijft daarmee ook beschikbaar in HA-beheerd bedrijf, waar de oude MQTT-apparaatreporter bewust niet wordt gestart. Dit voegt geen tweede MQTT-client of regelaar toe.
+The existing status route now reports free memory, the SDK minimum counters and the largest free memory block separately for internal RAM and PSRAM. This information therefore stays available in HA-managed operation, where the old MQTT device reporter is deliberately not started. This adds no second MQTT client or controller.
 
-De tellers zijn uitlezingen van de gepinde SDK. De minimumtellers gelden sinds boot volgens de SDK en zijn geen afzonderlijke 72-uurs- of harde real-timekwalificatie. HTTP-reactietijden zijn apart op het bestaande apparaat gemeten als netwerkbaseline; er wordt geen snelheidswinst geclaimd.
+The counters are readouts of the pinned SDK. According to the SDK, the minimum counters apply since boot; they are not a separate 72-hour or hard real-time qualification. HTTP response times were measured separately on the existing device as a network baseline; no speed gain is claimed.
 
-De native CI logt voortaan testnamen en een stacktrace bij langdurig wachten, met dezelfde tijdslimiet en ongewijzigde releasegates. De meegeleverde HA-bron is dev22; de firmware installeert geen HA-component.
+The native CI now logs test names and a stack trace when a wait takes long, with the same time limit and unchanged release gates. The included HA source is dev22; the firmware installs no HA component.
 
-# E32 V2 alpha15 — navigatie, About en releasebeheer
+# E32 V2 alpha15 — navigation, About and release management
 
-Sign out staat rechts in de bovenbalk, ook op mobiel. Restart device staat onderaan Settings en behoudt de bevestiging. About beschrijft OpenThermostat en Mark Dielessen als ontwikkelaar, met oorspronkelijke auteur- en bibliotheekcredits in een uitklapbaar onderdeel.
+Sign out sits on the right of the top bar, also on mobile. Restart device sits at the bottom of Settings and keeps its confirmation. About describes OpenThermostat and Mark Dielessen as the developer, with the original author and library credits in an expandable part.
 
-De werkende HTTPS-updater uit alpha14 blijft behouden. Na publicatie worden actuele downloads en archieflabels automatisch bijgewerkt. De meegeleverde HA-bron is gelijk aan dev20; deze firmware-update installeert geen HA-component.
+The working HTTPS updater from alpha14 is kept. After publication, current downloads and archive labels are updated automatically. The included HA source equals dev20; this firmware update installs no HA component.
 
-Dit is een experimentele firmware-update met behoud van bestaande instellingen. Hardware- en langdurige acceptatie blijven afzonderlijk open.
+This is an experimental firmware update that keeps existing settings. Hardware and long-term acceptance remain open separately.
 
 # E32 V2 alpha.14 — explicit inactive-task allocator guard
 
@@ -1073,22 +1073,22 @@ acceptance; this release does not assume success from compilation alone.
 Use only firmware.bin for app-only updates; do not erase or upload SPIFFS or
 the factory image. Retain existing settings and programs.
 
-# E32 V2 v0.1.0-e32v2-alpha.11 — testkandidaat
+# E32 V2 v0.1.0-e32v2-alpha.11 — test candidate
 
-De updatecatalogus controleert alle maximaal twaalf releaseberichten voordat
-hij de twee laatst gepubliceerde passende firmwareversies aanbiedt. De echte
-GitHub-lijst plaatste alpha.10 na9,8en7; eerder stopte de controle al bij9en8.
-Publicatietijd wordt alleen gebruikt als geldige UTC-datum. Per release blijven
-de vaste hosts, passende manifesten en alle bestaande download-/image-/readback-
-controles vereist. Een fout later in de scan levert geen gedeeltelijke toelating.
-De meegeleverde HA-bron bevat de afzonderlijk uitgebrachte dev17-correctie.
+The update catalogue checks all up to twelve release messages before
+it offers the two most recently published matching firmware versions. The real
+GitHub list placed alpha.10 after 9, 8 and 7; previously the check already stopped at 9 and 8.
+The publication time is used only as a valid UTC date. Per release, the
+fixed hosts, matching manifests and all existing download/image/readback
+checks remain required. An error later in the scan yields no partial admission.
+The included HA source contains the separately released dev17 fix.
 
-De toelatingsdiagnostiek van alpha.10 blijft aanwezig; er is geen automatische
-commandoherhaling of verruiming van grants, replaycontrole of fysieke uitgangen.
-De eerdere22°C-afwijzing is nog niet verklaard. De alpha.10-HTTP-upload werd
-verbroken; een echte readback bevestigde alpha.9 met ongewijzigde configuratie.
-Die uitval is niet door deze cataloguscorrectie opgelost. Instellingenformaat,
-partities, fysieke voorwaarden en open herstelacceptatie blijven behouden.
+The admission diagnostics of alpha.10 remain; there is no automatic
+command retry or loosening of grants, replay checks or physical outputs.
+The earlier 22 °C rejection is not explained yet. The alpha.10 HTTP upload was
+interrupted; a real readback confirmed alpha.9 with unchanged configuration.
+That failure is not solved by this catalogue fix. The settings format,
+partitions, physical conditions and open recovery acceptance are kept.
 
 # E32 V2 alpha.10 — bounded command-admission diagnostics
 

@@ -1,8 +1,9 @@
 # OpenThermostat user guide
 
 For E32 V2 beta.18, optionally with Home Assistant integration 0.4.0b10. If
-you use Home Assistant, install both together; see the
-[project page](../README.md#installation) for updating.
+you use Home Assistant, install both together. Installing on a new E32, the
+Home Assistant setup, updates and troubleshooting are described step by step
+in the [installation guide](INSTALL.md).
 
 In this beta the E32 runs in **shadow mode**: it calculates what it would ask
 of the boiler and, if a thermostat is connected to the boiler, compares that
@@ -42,6 +43,9 @@ source.
 
 ## First start (no Home Assistant needed)
 
+A new E32 first needs the OpenThermostat firmware over USB; see
+[installing the firmware](INSTALL.md#2-install-the-firmware-on-a-new-e32-usb).
+
 ### 1. Connect the E32 to your Wi-Fi
 
 1. Power the E32. Without Wi-Fi settings it opens its own setup network
@@ -63,18 +67,27 @@ source.
 ### 2. Set the time zone
 
 Week programs, "today" and the daily comparison use the E32's own clock. Go
-to **System → Network**, check the time server and set your time zone. The
-field takes a POSIX time zone, for example `CET-1CEST,M3.5.0,M10.5.0/3`
-(Central Europe), `GMT0BST,M3.5.0/1,M10.5.0` (UK) or
-`EST5EDT,M3.2.0,M11.1.0` (US Eastern). Any time zone and summer-time rule
-works. Without a valid clock the week program is not used and the room keeps
-its temperature without Home Assistant.
+to **System → Network**, section **Time**, check the time server and choose
+your time zone from the list. When the page suggests the time zone of your
+browser, **Use this time zone** fills it in. For a time zone that is not in
+the list, choose "Other" and enter its POSIX text under Advanced, for example
+`EST5EDT,M3.2.0,M11.1.0` (US Eastern); any time zone and summer-time rule
+works. Choose **Save settings** and let the E32 restart. Without a valid clock
+the week program is not used and the room keeps its temperature without Home
+Assistant.
 
 ### 3. Choose your boiler
 
-Under **Boiler**, choose your boiler brand and model and check that boiler
-values arrive (temperatures, status). Only EMS Classic boilers are supported
-in this beta.
+A newly installed E32 does not listen to the boiler yet. Under **System →
+Network → Advanced settings → Hardware services**, tick **EMS bus enabled**,
+save and let the E32 restart. This only lets the E32 receive boiler data; it
+does not send heat requests. Connect the E32 to the boiler's EMS bus as
+described in the [installation guide](INSTALL.md#5-connect-the-e32-to-the-boiler)
+(switch the boiler off first).
+
+Then, under **Boiler**, choose your boiler brand and model and check that
+boiler values arrive (temperatures, status). Only EMS Classic boilers are
+supported in this beta.
 
 ### 4. Pair a Bluetooth thermometer
 
@@ -133,13 +146,23 @@ and the calculated boiler request. The status reads "Measured". The
 
 ## Adding Home Assistant
 
+The [installation guide](INSTALL.md#8-home-assistant-optional) describes
+each step in detail. In short:
+
 1. Set up Home Assistant's MQTT integration with a local MQTT broker, and
-   enter the same broker under E32 **System → Network**.
-2. Install the OpenThermostat integration, then add it under Settings →
-   Devices & services. The E32 address may be an IP address or a local name
-   such as `openthermostat-a1b2c3.local`, `e32.fritz.box` or `e32.home.arpa`.
-3. From then on, rooms are managed in Home Assistant. Your existing E32 rooms
-   appear there unchanged.
+   enter the same broker under E32 **System → Network → MQTT** (tick
+   **Enabled**, with a broker user name and password).
+2. Install the OpenThermostat integration package, restart Home Assistant and
+   add OpenThermostat under Settings → Devices & services.
+3. The current integration needs one starter room (**Add room** on the
+   integration page) before it can connect; see
+   [the installation guide](INSTALL.md#85-add-one-starter-room-current-integration-versions).
+4. Choose **Configure → Connect E32** and enter the E32 address and password.
+   The address may be an IP address or a local name such as
+   `http://openthermostat-a1b2c3.local`, `http://e32.fritz.box` or
+   `http://e32.home.arpa`.
+5. From then on, rooms are managed in Home Assistant under **Configure →
+   Rooms**. Your existing E32 rooms appear there unchanged.
 
 ### A room with a Home Assistant thermostat and a Bluetooth fallback
 

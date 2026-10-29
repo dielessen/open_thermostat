@@ -59,7 +59,7 @@ sensors work on the E32 alone), a P1 meter, a cloud account or a permanent
 internet connection.
 
 [Downloads](https://github.com/dielessen/open_thermostat/releases) ·
-[Requirements](#requirements) · [User guide](docs/USER-GUIDE.md) · [Features](#features) ·
+[Requirements](#requirements) · [Installation guide](docs/INSTALL.md) · [User guide](docs/USER-GUIDE.md) · [Features](#features) ·
 [Roadmap](#roadmap) · [Screenshots](#screenshots) ·
 [Installation](#installation) · [Documentation](#documentation)
 
@@ -325,6 +325,11 @@ Demonstration with sample data, not a live capture.
 
 ## Installation
 
+**New installation?** Follow the step-by-step
+[installation guide](docs/INSTALL.md): flashing a new E32 over USB, the setup
+Wi-Fi, the boiler connection, Bluetooth sensors, Home Assistant, updates and
+troubleshooting.
+
 Download the E32 firmware and, if you use Home Assistant, the HA integration
 separately from the release links above. For the native HA connection,
 configure Home Assistant's MQTT integration and a local MQTT broker. Follow the
@@ -343,7 +348,7 @@ release's compatibility notes.
 
 Back up first, then verify the new boot, version and retained settings. Then
 set up your rooms as described in the [user guide](docs/USER-GUIDE.md); its
-first-start section works without Home Assistant. See also [installation and recovery](docs/FLASHING.md).
+first-start section works without Home Assistant. See also [USB backup and recovery](docs/FLASHING.md).
 
 ## Hardware and development
 
@@ -372,6 +377,8 @@ within a checkout. Other source targets use `pio run -e esp32dev` or
 
 ## Documentation
 
+- [Installation guide: from a new E32 to a working setup](docs/INSTALL.md)
+- [USB backup and recovery](docs/FLASHING.md)
 - [User guide: first start, where to set what, rooms, shadow comparison](docs/USER-GUIDE.md)
 - [Attended switch-over procedure (draft)](docs/SWITCHOVER.md)
 - [Current release work (engineering notes, Dutch)](docs/modern-thermostat/NEXT-RELEASE.nl.md)

@@ -2137,7 +2137,7 @@
     },
     "e32_default_password": {
       "title": "Wijzig het standaardwachtwoord van de E32",
-      "description": "{name}: de E32 gebruikt nog het standaardwachtwoord admin/admin, dus iedereen in je netwerk kan je verwarming wijzigen. Wijzig het op de webpagina van de E32: Systeem → Wachtwoord wijzigen. Home Assistant vraagt daarna één keer om het nieuwe wachtwoord (Instellingen → Apparaten en diensten) en deze melding verdwijnt."
+      "description": "{name}: de E32 gebruikt nog het standaardwachtwoord admin/admin, dus iedereen in je netwerk kan je verwarming wijzigen. Wijzig het op de webpagina van de E32: Systeem → Over → Wachtwoord. Home Assistant vraagt daarna één keer om het nieuwe wachtwoord (Instellingen → Apparaten en diensten) en deze melding verdwijnt."
     }
   },
   "services": {

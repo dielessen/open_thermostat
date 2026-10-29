@@ -2137,7 +2137,7 @@
     },
     "e32_default_password": {
       "title": "Change the E32's default password",
-      "description": "{name}: the E32 still uses the default password admin/admin, so anyone on your network can change your heating. Change it on the E32 web page: System → Change password. Home Assistant then asks you once for the new password (Settings → Devices & services), and this message disappears."
+      "description": "{name}: the E32 still uses the default password admin/admin, so anyone on your network can change your heating. Change it on the E32 web page: System → About → Password. Home Assistant then asks you once for the new password (Settings → Devices & services), and this message disappears."
     }
   },
   "services": {

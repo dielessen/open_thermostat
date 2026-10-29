@@ -51,6 +51,12 @@
       "heat_request": {
         "default": "mdi:water-thermometer"
       },
+      "heating_gas": {
+        "default": "mdi:radiator"
+      },
+      "hot_water_gas": {
+        "default": "mdi:water-boiler"
+      },
       "controller_requested_flow_temperature": {
         "default": "mdi:flask-outline"
       },

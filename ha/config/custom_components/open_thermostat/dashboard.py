@@ -8,6 +8,7 @@ disabled and absent entities are left out) with built-in cards only:
   one section per E32 room (temperature and target; with a small "Learning"
   area once the E32 reports it), what the E32 asks the boiler now, the boiler
   essentials (with today's hot-water taps and the boiler's own maximum), the
+  gas for heating and for hot water per day (once the E32 counts it), the
   E32 next to the current thermostat (only in a home with one) and the
   Bluetooth sensors. Room settings that are easy to change by accident (mode,
   temperature without Home Assistant) stay on the room's device page;
@@ -153,6 +154,10 @@ TEXT = {
         "advice": "Advice", "advice_where": "Where", "advice_confidence": "Confidence",
         "advice_note": "Advice only: nothing is changed automatically.",
         "confidence_low": "low", "confidence_medium": "medium", "confidence_high": "high",
+        "gas": "Gas", "gas_heating": "Heating", "gas_hot_water": "Hot water", "gas_per_day": "Gas per day",
+        "gas_measured": "Measured with your gas meter, split by what the boiler did.",
+        "gas_estimate": "Estimated from the burner modulation and the boiler's power (no gas meter).",
+        "gas_note": "Add these two sensors to the Energy dashboard under Gas consumption.",
     },
     "nl": {
         "heating": "Verwarming", "boiler_view": "Ketel", "diagnostics": "Diagnose",
@@ -210,6 +215,10 @@ TEXT = {
         "advice": "Advies", "advice_where": "Waar", "advice_confidence": "Zekerheid",
         "advice_note": "Alleen advies: er wordt niets automatisch veranderd.",
         "confidence_low": "laag", "confidence_medium": "middel", "confidence_high": "hoog",
+        "gas": "Gas", "gas_heating": "Verwarmen", "gas_hot_water": "Warm water", "gas_per_day": "Gas per dag",
+        "gas_measured": "Gemeten met je gasmeter, verdeeld naar wat de ketel deed.",
+        "gas_estimate": "Geschat uit de brandermodulatie en het vermogen van de ketel (geen gasmeter).",
+        "gas_note": "Voeg deze twee sensoren toe aan het energiedashboard onder Gasverbruik.",
     },
 }
 
@@ -289,6 +298,23 @@ def _advice_section(t, advice):
                        {"type": "markdown", "content": content, "visibility": shown})
     section["visibility"] = shown
     return section
+
+
+def _energy_section(t, heating, hot_water):
+    """Gas for heating and for hot water: the last 7 days per day and how it is counted; only with the sensors."""
+    entities = [entity for entity in (heating, hot_water) if entity]
+    if not entities:
+        return None
+    quoted = json.dumps(entities[0])
+    note = ("{% if state_attr(" + quoted + ", 'estimate') %}" + t["gas_estimate"] + "{% else %}"
+            + t["gas_measured"] + "{% endif %} " + t["gas_note"])
+    return _section(
+        _heading(t["gas"], "mdi:fire"),
+        _tile(heating, t["gas_heating"], "mdi:radiator", visibility=_known(heating) if heating else None),
+        _tile(hot_water, t["gas_hot_water"], "mdi:water-boiler", visibility=_known(hot_water) if hot_water else None),
+        {"type": "statistics-graph", "title": t["gas_per_day"], "entities": entities, "stat_types": ["change"],
+         "period": "day", "days_to_show": 7, "chart_type": "bar"},
+        {"type": "markdown", "content": note})
 
 
 def _tile(entity_id, name=None, icon=None, features=None, visibility=None):
@@ -690,6 +716,10 @@ class RoomDashboard:
         )
         if len(boiler["cards"]) > 1:
             sections.append(boiler)
+        # Gas for heating and for hot water (Energy dashboard sensors), once the E32 counts it.
+        energy = _energy_section(t, hub.get("heating_gas"), hub.get("hot_water_gas"))
+        if energy:
+            sections.append(energy)
 
         # The E32's decision next to the thermostat's (shadow comparison), only in a home
         # with a thermostat on the bus: the comparison entities exist only once the E32 saw one.

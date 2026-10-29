@@ -19,11 +19,15 @@ constexpr bool emsManualTestTransmitAllowed = true;
 // Active heating (ActiveHeatGuard) over that same manual route. Closed until
 // the lead releases the attended switch-over from the tado.
 constexpr bool emsActiveHeatAllowed = false;
+// Read-only request for the boiler's own heating limit (0x16) over that route,
+// at boot and every 6 h (EMS/BoilerLimitRead.h); active heat needs the value.
+constexpr bool emsBoilerLimitReadAllowed = emsManualTestTransmitAllowed;
 constexpr bool auxiliaryGpioAllowed = false;
 #else
 constexpr bool emsTransmitAllowed = true;
 constexpr bool emsManualTestTransmitAllowed = false;
 constexpr bool emsActiveHeatAllowed = false;
+constexpr bool emsBoilerLimitReadAllowed = false;
 constexpr bool auxiliaryGpioAllowed = true;
 #endif
 }

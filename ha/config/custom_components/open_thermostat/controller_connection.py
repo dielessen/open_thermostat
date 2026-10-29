@@ -22,6 +22,8 @@ def _guard(hass, entry, source, expected, private_expected=None):
             or _selected_native_plan_source(entry) != source
             or private_expected is not None and native_entry_state(entry) != private_expected):
         raise ControllerLinkError("setup_changed")
+    if source is None:  # the E32 room plan link has no native room profile
+        return
     try:
         source.validate_native(hass, entry)
     except ValueError:
@@ -167,3 +169,31 @@ async def async_synchronise_controller_plan(hass, entry, source, expected, *, pr
     finally:
         unsubscribe()
         remove_state()
+
+
+TELEMETRY_POLL = 1
+
+
+async def async_wait_room_plan_link(hass, entry, expected, *, private_expected=None):
+    """Wait for the reloaded entry's own link and the E32's first heating report.
+
+    The E32 room plan link has no room plan to confirm over MQTT. Its proof is
+    that the reloaded entry runs its one connection and that the E32's heating
+    report (fw/telemetry/heating, every 15 s) arrives at this installation's
+    MQTT prefix: the E32 is on the same broker as Home Assistant.
+    """
+    connection = await async_wait_controller_connection(hass, entry, None, expected,
+                                                        private_expected=private_expected)
+    try:
+        async with asyncio.timeout(CONNECTION_TIMEOUT):
+            while True:
+                _guard(hass, entry, None, expected, private_expected)
+                if _connection(hass, entry, None) is not connection:
+                    raise ControllerLinkError("controller_connection_changed")
+                hub = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("heating_hub")
+                if hub is not None and hub.fresh:
+                    return {"mqtt_session_verified": True, "room_plan_applied": False,
+                            "heating_report_received": True}
+                await asyncio.sleep(TELEMETRY_POLL)
+    except TimeoutError:
+        raise ControllerLinkError("controller_mqtt_unconfirmed") from None

@@ -557,7 +557,7 @@
           "boiler_kw": "Boiler heating power"
         },
         "data_description": {
-          "gas_meter": "A gas meter reading in m³ or kWh that only goes up (not a usage per hour), for example from a smart meter or a gas pulse counter. A reading in kWh is converted to m³ with the calorific value.",
+          "gas_meter": "A gas meter reading in m³ or kWh that only goes up (not a usage per hour), for example from a smart meter or a gas pulse counter. A reading in kWh is converted to m³ with the calorific value. It also splits your gas into heating and hot water for the Energy dashboard.",
           "gas_price_entity": "A sensor or input number with the gas price per m³ or per kWh (unit such as EUR/m³ or GBP/kWh). Use this or a fixed price, not both.",
           "gas_price": "The price per m³ of gas in your Home Assistant currency when you have no price sensor, for example 1.35.",
           "gas_kwh_per_m3": "Energy per m³ of gas; your gas bill or supplier states it. Empty: 9.77 kWh/m³ (Dutch gas). Elsewhere it differs, for example about 11 kWh/m³ in the UK; natural gas is usually between 8 and 12 kWh/m³.",
@@ -1181,6 +1181,12 @@
       },
       "heating_advice": {
         "name": "Heating advice"
+      },
+      "heating_gas": {
+        "name": "Gas for heating"
+      },
+      "hot_water_gas": {
+        "name": "Gas for hot water"
       }
     },
     "select": {

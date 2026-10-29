@@ -46,7 +46,7 @@ window.BluetoothPage = (() => {
       if(rows.children.length>=8)return;
       const box=el('fieldset'),legend=el('legend',t('Bluetooth device')),sub=el('p'),grid=el('div');sub.className='ble-sub';grid.className='ble-fields';box.append(legend,sub);
       const readings=el('p',t('Waiting for a Bluetooth report'));readings.className='ble-read';readings.dataset.readings='';box.append(readings,grid);
-      const profile=field('Device profile',el('select'),grid,'The sensor type, so the E32 can read its messages.');profile.dataset.bleField='profile';for(const [value,label] of Object.entries(profiles))option(profile,value,label);profile.value=device.profile;
+      const profile=field('Device profile',el('select'),grid,'The sensor type, so the E32 can read its messages.');profile.dataset.bleField='profile';profile.parentElement.classList.add('ble-wide');for(const [value,label] of Object.entries(profiles))option(profile,value,label);profile.value=device.profile;
       const address=field('Bluetooth address',el('input'),grid,'Six pairs, for example 0a:1b:2c:3d:4e:5f. Choose a device above to fill it in.');address.dataset.bleField='address';address.value=device.address.match(/.{1,2}/g)?.join(':')??'';address.maxLength=17;address.required=true;address.autocomplete='off';
       const name=field('Name',el('input'),grid,'Your own name, for example Living room thermometer.');name.dataset.bleField='name';name.value=device.name;name.maxLength=40;
       const encryption=field('Encryption',el('select'),grid,'Encrypted BTHome needs the key; unencrypted readings need none. Xiaomi always uses MiBeacon.');encryption.dataset.bleField='encryption';

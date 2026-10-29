@@ -85,8 +85,8 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
             return self.async_abort(reason="setup_changed")
         # The single subentry-map transaction below is pinned to the actual
         # reviewed HA core implementation. Fail closed on an untested core.
-        from .product import SUPPORTED_HA_VERSIONS
-        if HA_VERSION not in SUPPORTED_HA_VERSIONS:
+        from .product import ha_version_supported
+        if not ha_version_supported(self.hass, HA_VERSION):
             return self.async_abort(reason="setup_platform_unsupported")
         if integration_mode(entry) != MODE_SHADOW:
             return self.async_abort(reason="shadow_mode_required")
@@ -395,7 +395,8 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
             # HA2026.10.2's public add/update_subentry callbacks each notify eager
             # listeners immediately; two callbacks expose an incomplete pair.
             # Use their SAME pinned core transaction with the complete map once.
-            # This is a private core API: _guard explicitly refuses other cores.
+            # This is a private core API: _guard refuses cores older than
+            # MINIMUM_HA_VERSION or whose routine no longer takes these keywords.
             # No direct .storage writes, second owner or deferred reconciliation.
             if is_product(entry):
                 manager._async_update_entry(entry,

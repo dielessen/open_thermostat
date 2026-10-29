@@ -1,4 +1,5 @@
 #pragma once
+#include "control/ControlPartitionBudget.h"
 #include "control/RoomDemand.h"
 #include "control/RoomSchedule.h"
 #include <cJSON.h>
@@ -6,13 +7,27 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 namespace heating::control {
 // The E32-owned room plan (schema 1), stored on the device so control keeps
 // running without Home Assistant. HA and the web pages edit it; this is the
 // only room list the heating control uses.
+//
+// Two JSON forms, both read by parse(): the API form (GET/POST /config/heating,
+// week programs as "schedule" arrays) and the stored form (storedJson(), one
+// NVS blob of at most storeBytes incl. its NUL). The stored form is the API
+// form whenever that fits, so firmware before beta.19 still reads it after a
+// rollback; only a larger plan packs each week program into a "week" string
+// (4 characters per switch point instead of up to 12). 8 rooms with 4 switch
+// points a day no longer exceed the store.
 struct RoomPlan {
     static constexpr size_t maxRooms = 8;
+    static constexpr size_t storeBytes = ControlPartitionBudget::configBytes;
+    // POST /config/heating body bound: the API form of any storable plan stays
+    // below it, also as Home Assistant prints it (ensure_ascii: a 40-byte name
+    // grows by at most 80 bytes). Test: TheApiFormOfAnyStorablePlanFitsTheRequestBound.
+    static constexpr size_t requestBytes = 8192;
     enum class Mode : uint8_t { shadow, active };
     enum class Emitter : uint8_t { floor, radiator };
     enum class SourceType : uint8_t { ha, ble };
@@ -60,7 +75,67 @@ struct RoomPlan {
         out = std::move(plan);
         return nullptr;
     }
-    std::string json() const {
+    // The API form; empty when out of memory.
+    std::string json() const { return print(false); }
+    // The NVS form: the API form when it fits the store, else with packed week
+    // programs (may still exceed storeBytes: the caller refuses plan_too_large).
+    std::string storedJson() const {
+        auto text = json();
+        return text.size() < storeBytes ? text : print(true);
+    }
+    const Room* find(const std::string& id) const {
+        for (const auto& r : rooms) if (r.id == id) return &r;
+        return nullptr;
+    }
+
+private:
+    // "week": the 7 days Mon..Sun separated by '.', each switch point 4 characters
+    // of this alphabet: 24 bits = minute of day << 12 | centi degC (500..3000).
+    static constexpr std::string_view weekAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    static constexpr size_t weekChars = 7 * RoomSchedule::maxPoints * 4 + 6;
+    static std::string packWeek(const RoomSchedule& s) {
+        std::string out;
+        for (size_t d = 0; d < s.days.size(); ++d) {
+            if (d) out += '.';
+            for (uint8_t i = 0; i < s.days[d].count; ++i) {
+                const uint32_t v = uint32_t(s.days[d].points[i].minute) << 12 | uint32_t(s.days[d].points[i].centiC & 4095);
+                for (int shift = 18; shift >= 0; shift -= 6) out += weekAlphabet[(v >> shift) & 63];
+            }
+        }
+        return out;
+    }
+    // The same rules as RoomSchedule::parse: per day at most maxPoints strictly
+    // increasing minutes 0..1439, temperatures within the room's limits.
+    static const char* parseWeek(const char* text, int16_t minimumCentiC, int16_t maximumCentiC, RoomSchedule& out) {
+        if (!text || std::strlen(text) > weekChars) return "invalid_schedule";
+        RoomSchedule s;
+        size_t day = 0, digits = 0;
+        uint32_t value = 0;
+        for (const char* p = text;; ++p) {
+            if (!*p || *p == '.') {
+                if (digits) return "invalid_schedule"; // a partial switch point
+                if (!*p) break;
+                if (++day > 6) return "invalid_schedule";
+                continue;
+            }
+            const auto digit = weekAlphabet.find(*p);
+            if (digit == std::string_view::npos) return "invalid_schedule";
+            value = value << 6 | uint32_t(digit);
+            if (++digits < 4) continue;
+            const auto minute = uint16_t(value >> 12);
+            const auto centi = int16_t(value & 4095);
+            digits = 0; value = 0;
+            auto& today = s.days[day];
+            if (minute > 1439 || today.count >= RoomSchedule::maxPoints
+                || (today.count && minute <= today.points[today.count - 1].minute)) return "invalid_schedule";
+            if (centi < minimumCentiC || centi > maximumCentiC) return "invalid_schedule_limits";
+            today.points[today.count++] = {minute, centi};
+        }
+        if (day != 6) return "invalid_schedule";
+        out = s;
+        return nullptr;
+    }
+    std::string print(bool packedWeek) const {
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_CreateObject(), cJSON_Delete);
         if (!root) return {};
         cJSON_AddNumberToObject(root.get(), "schema", 1);
@@ -88,7 +163,9 @@ struct RoomPlan {
             cJSON_AddNumberToObject(r, "fallback_centi_c", room.fallbackCentiC);
             cJSON_AddNumberToObject(r, "minimum_centi_c", room.minimumCentiC);
             cJSON_AddNumberToObject(r, "maximum_centi_c", room.maximumCentiC);
-            if (!room.schedule.empty()) {
+            if (!room.schedule.empty() && packedWeek) {
+                if (!cJSON_AddStringToObject(r, "week", packWeek(room.schedule).c_str())) return {};
+            } else if (!room.schedule.empty()) {
                 cJSON* schedule = room.schedule.json();
                 if (!schedule || !cJSON_AddItemToObject(r, "schedule", schedule)) { cJSON_Delete(schedule); return {}; }
             }
@@ -96,12 +173,6 @@ struct RoomPlan {
         std::unique_ptr<char, decltype(&cJSON_free)> text(cJSON_PrintUnformatted(root.get()), cJSON_free);
         return text ? text.get() : "";
     }
-    const Room* find(const std::string& id) const {
-        for (const auto& r : rooms) if (r.id == id) return &r;
-        return nullptr;
-    }
-
-private:
     static const char* parseRoom(const cJSON* r, Room& room) {
         const auto* id = string(r, "id");
         const auto* name = string(r, "name");
@@ -138,8 +209,13 @@ private:
         const double fallback = number(r, "fallback_centi_c"), lo = number(r, "minimum_centi_c"), hi = number(r, "maximum_centi_c");
         if (!whole(lo, 500, 3000) || !whole(hi, 500, 3000) || lo > hi || !whole(fallback, lo, hi)) return "invalid_room_limits";
         room.fallbackCentiC = int16_t(fallback); room.minimumCentiC = int16_t(lo); room.maximumCentiC = int16_t(hi);
-        if (const auto* schedule = cJSON_GetObjectItemCaseSensitive(r, "schedule")) // optional; absent in beta.16 plans
-            return RoomSchedule::parse(schedule, room.minimumCentiC, room.maximumCentiC, room.schedule);
+        // Optional (absent in beta.16 plans); "week" only in the stored form of a large plan.
+        const auto* schedule = cJSON_GetObjectItemCaseSensitive(r, "schedule");
+        const auto* week = cJSON_GetObjectItemCaseSensitive(r, "week");
+        if (schedule && week) return "invalid_schedule";
+        if (week) return cJSON_IsString(week) ? parseWeek(week->valuestring, room.minimumCentiC, room.maximumCentiC, room.schedule)
+                                              : "invalid_schedule";
+        if (schedule) return RoomSchedule::parse(schedule, room.minimumCentiC, room.maximumCentiC, room.schedule);
         return nullptr;
     }
     static const char* string(const cJSON* o, const char* key) {

@@ -146,6 +146,57 @@ def quality(index):
     return QUALITIES[index] if index < len(FIELDS) else 0
 
 
+# One physical value, two wire families (F28): each EMS+ catalog field and the
+# Classic field the same boiler quantity arrives in (EMS-ESP decodes both
+# telegrams into one value: 0xE4/0x18 monitor, 0xE5/0x19 counters, 0xE9/0x34
+# hot water, 0xE6/0x16 and 0xEA/0x33 settings). Home Assistant shows one
+# entity per pair and names the source family in an attribute. Catalog fields
+# not listed here (thermostat rows, records, uptime) have no Classic twin.
+PLUS_CLASSIC_TWINS = {
+    'plus_selected_flow_temperature': 'reported_selected_flow_temperature',
+    'plus_flow_temperature': 'measured_flow_temperature',
+    'plus_requested_burner_power': 'reported_requested_power_limit',
+    'plus_burner_modulation': 'reported_burner_modulation',
+    'plus_burner_on': 'raw_burner_bit',
+    'plus_dhw_valve': 'raw_dhw_valve_bit',
+    'plus_return_temperature': 'measured_return_temperature',
+    'plus_flame_current': 'ionisation_current',
+    'plus_pressure': 'pressure',
+    'plus_exhaust_temperature': 'exhaust_temperature',
+    'plus_heating_pump': 'raw_pump_bit',
+    'plus_burner_starts': 'reported_burner_starts',
+    'plus_burner_runtime': 'reported_burner_runtime',
+    'plus_heating_runtime': 'reported_heating_runtime',
+    'plus_heating_pump_modulation': 'reported_heating_pump_modulation',
+    'plus_dhw_target': 'reported_dhw_target',
+    'plus_dhw_temperature': 'measured_dhw_temperature',
+    'plus_dhw_flow': 'dhw_flow',
+    'plus_dhw_runtime': 'reported_dhw_runtime',
+    'plus_dhw_starts': 'reported_dhw_starts',
+    'plus_dhw_selected_temperature': 'selected_dhw_temperature',
+    'plus_heating_temperature': 'configured_heating_temperature',
+    'plus_maximum_burner_power': 'maximum_burner_power',
+}
+INDEX_BY_NAME = {spec(index)[0]: index for index in INDEXES}
+_TWIN = {}
+for _plus, _classic in PLUS_CLASSIC_TWINS.items():
+    if _plus in INDEX_BY_NAME and _classic in INDEX_BY_NAME:
+        _TWIN[INDEX_BY_NAME[_plus]] = INDEX_BY_NAME[_classic]
+        _TWIN[INDEX_BY_NAME[_classic]] = INDEX_BY_NAME[_plus]
+
+
+def concept(index):
+    """The field indexes that carry the same physical value as index.
+
+    Preference order: reported (quality 0) fields before the unreliable
+    Classic raw bits and OEM counters, then Classic before EMS+. A field
+    without a twin is its own concept.
+    """
+    if index not in _TWIN:
+        return (index,)
+    return tuple(sorted((index, _TWIN[index]), key=lambda i: (quality(i) == 1, i >= CATALOG_BASE)))
+
+
 def validate_group(value, group):
     def integer(v, lo=0, hi=9007199254740991):
         return type(v) is int and lo <= v <= hi

@@ -30,7 +30,9 @@ public:
         uint8_t minimumFlowC = 30, maximumFlowC = 60;           // the plan's limits
         uint32_t requestIntervalMs = 60000;                     // refresh of an unchanged request
         uint32_t zeroIntervalMs = 10000, stopWindowMs = 60000;  // zero repeat after a stop
-        uint32_t bootHoldoffMs = 120000;   // after an E32 restart: sources settle first
+        // After an E32 restart: listen for a foreign 0x1A (the tado sends one
+        // every ~40 s) before heating; a stored confirmation resumes within 1 min.
+        uint32_t bootHoldoffMs = 60000;
         uint32_t lostAfterMs = 1800000;    // arming without fresh rooms this long: own, ask zero
         uint32_t feedbackMs = 900000;      // heat asked this long without burner or flow rise: warn
         int16_t flowRiseCentiC = 300;
@@ -76,8 +78,9 @@ public:
     explicit ActiveHeatGuard(Params params) : p_(params) {}
     // Plan change: keeps ownership, so a stop still ends with its zero window.
     void setFlowLimits(uint8_t minimumFlowC, uint8_t maximumFlowC) { p_.minimumFlowC = minimumFlowC; p_.maximumFlowC = maximumFlowC; }
-    // The owner's confirmation that the tado is disconnected (RAM only: a
-    // restart asks again). Leaving active mode or a foreign request clears it.
+    // The owner's confirmation that the tado is disconnected; the caller
+    // stores it (HandoverConfirmation) and confirms again at boot. Leaving
+    // active mode or a foreign request after `now` clears it.
     void confirm(uint64_t now, bool disconnected) {
         if (disconnected) { confirmedAt_ = now; blocked_ = false; } else confirmedAt_.reset();
     }
@@ -145,12 +148,13 @@ public:
             default: return "shadow";
         }
     }
-    // {"state":..,"command":{..},"last_sent":{..}|null,"foreign_controller":{..}|null,
+    // {"state":..,"awaiting_confirmation":bool,"command":{..},"last_sent":{..}|null,"foreign_controller":{..}|null,
     //  "confirmation":{"age_s":..}|null,"warnings":[..]}
     cJSON* json(uint64_t now) const {
         cJSON* root = cJSON_CreateObject();
         if (!root) return nullptr;
         cJSON_AddStringToObject(root, "state", name(state_));
+        cJSON_AddBoolToObject(root, "awaiting_confirmation", state_ == State::awaitingConfirmation);
         cJSON* command = cJSON_AddObjectToObject(root, "command");
         cJSON_AddBoolToObject(command, "send", command_.send);
         cJSON_AddNumberToObject(command, "flow_c", command_.flowC);

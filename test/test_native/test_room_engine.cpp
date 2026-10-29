@@ -1,8 +1,10 @@
 #include "control/RoomEngine.h"
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
+#include <cstdio>
 #include <cstdlib>
 #include <memory>
+#include <string_view>
 
 namespace {
 using heating::control::RoomEngine;
@@ -262,5 +264,144 @@ TEST(RoomEngine, JsonSurvivesEveryAllocationFailure) {
         EXPECT_EQ(engineLive, 0u) << engineFailAt;
     }
     EXPECT_TRUE(completed);
+}
+}
+
+namespace {
+using heating::control::RoomDemand;
+using heating::control::RoomSchedule;
+// A realistic home (beta.19 item 8): 8 rooms, each with an HA thermometer and a
+// Bluetooth sensor, the room's climate entity as target and a week program of
+// 4 switch points per weekday and per weekend day.
+RoomPlan eightRoomHome() {
+    const char* ids[] = {"woonkamer", "keuken", "badkamer", "slaapkamer", "kinderkamer", "logeerkamer", "werkkamer", "zolder"};
+    const char* names[] = {"Woonkamer", "Keuken", "Badkamer", "Slaapkamer", "Kinderkamer", "Logeerkamer", "Werkkamer", "Zolder"};
+    RoomPlan plan;
+    plan.revision = 12;
+    for (int i = 0; i < 8; ++i) {
+        RoomPlan::Room r;
+        r.id = ids[i]; r.name = names[i];
+        r.state = RoomDemand::State::active;
+        r.emitter = i ? RoomPlan::Emitter::radiator : RoomPlan::Emitter::floor;
+        r.sources = {{RoomPlan::SourceType::ha, std::string("sensor.") + ids[i] + "_temperature"},
+                     {RoomPlan::SourceType::ble, "a4c13800000" + std::to_string(i)}};
+        r.setpointEntity = std::string("climate.") + ids[i];
+        r.fallbackCentiC = 2000; r.minimumCentiC = 500; r.maximumCentiC = 2500;
+        const RoomSchedule::Point weekday[] = {{390, 2050}, {480, 1800}, {1020, 2100}, {1350, 1700}};
+        const RoomSchedule::Point weekend[] = {{450, 2100}, {720, 2000}, {1050, 2100}, {1380, 1700}};
+        for (int d = 0; d < 7; ++d) {
+            auto& day = r.schedule.days[d];
+            for (const auto& p : d < 5 ? weekday : weekend) day.points[day.count++] = p;
+        }
+        plan.rooms.push_back(r);
+    }
+    return plan;
+}
+RoomPlan reloaded(const std::string& stored) {
+    Json root(cJSON_Parse(stored.c_str()), cJSON_Delete);
+    RoomPlan plan;
+    EXPECT_EQ(RoomPlan::parse(root.get(), plan), nullptr) << stored;
+    return plan;
+}
+std::string packedPoint(unsigned minute, unsigned centi) {
+    const std::string_view a = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    const unsigned v = minute << 12 | centi;
+    return std::string{a[(v >> 18) & 63], a[(v >> 12) & 63], a[(v >> 6) & 63], a[v & 63]};
+}
+
+TEST(RoomPlan, EightRoomsWithFourSwitchPointsADayFitTheStore) {
+    const auto plan = eightRoomHome();
+    const auto api = plan.json(), stored = plan.storedJson();
+    std::printf("[ room plan ] 8 rooms x 4 points: API form %zu B, stored form %zu B (store %zu B incl. NUL)\n",
+                api.size(), stored.size(), RoomPlan::storeBytes);
+    EXPECT_GT(api.size() + 1, RoomPlan::storeBytes);   // refused before beta.19
+    EXPECT_LE(stored.size() + 1, RoomPlan::storeBytes);
+    EXPECT_LT(stored.size(), 3600u);                   // room left for longer names and entities
+    EXPECT_EQ(stored.find("\"schedule\""), std::string::npos);
+    // Loaded back at the next boot: the same plan, and HA reads the same API form.
+    const auto back = reloaded(stored);
+    EXPECT_EQ(back.json(), api);
+    EXPECT_EQ(back.storedJson(), stored);
+    EXPECT_EQ(back.rooms[3].schedule.at(5, 719), 2100);
+    EXPECT_EQ(back.rooms[3].schedule.at(0, 300), 1700); // Sunday's last point holds into Monday
+}
+TEST(RoomPlan, PlansThatFitAreStoredInTheFormOlderFirmwareReads) {
+    std::string text = ownerPlan;
+    text.insert(text.find("\"fallback_centi_c\":2000"), "\"schedule\":[[[390,2050],[1350,1800]],[],[],[],[],[],[]],");
+    const auto plan = parsed(text.c_str());
+    ASSERT_FALSE(plan.rooms[0].schedule.empty());
+    EXPECT_EQ(plan.storedJson(), plan.json());          // a rollback to beta.18 keeps the week program
+    EXPECT_NE(plan.storedJson().find("\"schedule\":[[[390,2050]"), std::string::npos);
+    // Old stored plans (with or without a week program) load unchanged.
+    EXPECT_EQ(reloaded(plan.storedJson()).json(), plan.json());
+    EXPECT_EQ(reloaded(ownerPlan).json(), parsed(ownerPlan).json());
+}
+TEST(RoomPlan, PackedWeekProgramsAreValidatedLikeArrays) {
+    const auto stored = eightRoomHome().storedJson();
+    const auto week = [&](const std::string& value) {
+        std::string t = stored;
+        const auto at = t.find("\"week\":\"") + 8;
+        t.replace(at, t.find('"', at) - at, value);
+        return t;
+    };
+    const auto p390 = packedPoint(390, 2050), p1350 = packedPoint(1350, 1800);
+    EXPECT_EQ(reloaded(week(p390 + p1350 + "......")).rooms[0].schedule.days[0].count, 2);
+    EXPECT_TRUE(reloaded(week("......")).rooms[0].schedule.empty());
+    EXPECT_STREQ(parseError(week(p390 + ".....")), "invalid_schedule");              // 6 days
+    EXPECT_STREQ(parseError(week(p390 + ".......")), "invalid_schedule");            // 8 days
+    EXPECT_STREQ(parseError(week(p390.substr(0, 3) + "......")), "invalid_schedule"); // a partial point
+    EXPECT_STREQ(parseError(week(p1350 + p390 + "......")), "invalid_schedule");     // not increasing
+    EXPECT_STREQ(parseError(week(p390 + p390 + "......")), "invalid_schedule");      // the same minute twice
+    EXPECT_STREQ(parseError(week(packedPoint(1440, 2000) + "......")), "invalid_schedule");
+    EXPECT_STREQ(parseError(week(packedPoint(390, 2600) + "......")), "invalid_schedule_limits");
+    EXPECT_STREQ(parseError(week(packedPoint(390, 499) + "......")), "invalid_schedule_limits");
+    EXPECT_STREQ(parseError(week("A=AA......")), "invalid_schedule");
+    std::string seven;
+    for (unsigned m = 0; m < 7; ++m) seven += packedPoint(m, 2000);
+    EXPECT_STREQ(parseError(week(seven + "......")), "invalid_schedule");            // above maxPoints
+    EXPECT_STREQ(parseError(week(std::string(400, 'A'))), "invalid_schedule");
+    std::string both = stored;
+    both.insert(both.find("\"week\""), "\"schedule\":[[],[],[],[],[],[],[]],");
+    EXPECT_STREQ(parseError(both), "invalid_schedule");
+    std::string number = stored;
+    const auto at = number.find("\"week\":\"") + 7;
+    number.replace(at, number.find('"', at + 1) + 1 - at, "7");
+    EXPECT_STREQ(parseError(number), "invalid_schedule");
+}
+// POST /config/heating accepts requestBytes: the API form of the largest
+// storable plan (every week program full with the longest points, the rest
+// filled to the store byte) plus Home Assistant's ensure_ascii growth of the
+// names (at most 80 B per 40-byte name) still fits.
+TEST(RoomPlan, TheApiFormOfAnyStorablePlanFitsTheRequestBound) {
+    RoomPlan plan;
+    plan.revision = 4294967295u; plan.minimumFlowC = 20; plan.maximumFlowC = 80;
+    for (int i = 0; i < 8; ++i) {
+        RoomPlan::Room r;
+        r.id = std::string(32, char('a' + i));
+        r.name = std::string(40, '\x01');
+        r.inactiveUntil = 4102444800u;
+        // Full week programs leave room for one source per room (the strings
+        // grow neither form more than the other).
+        r.sources.push_back({RoomPlan::SourceType::ha, "sensor." + std::string(72, char('a' + i))});
+        r.setpointEntity = "climate." + std::string(72, char('a' + i));
+        r.fallbackCentiC = 2999; r.minimumCentiC = 1000; r.maximumCentiC = 3000;
+        for (auto& day : r.schedule.days)
+            for (uint16_t m = 1434; day.count < RoomSchedule::maxPoints; ++m)
+                day.points[day.count++] = {m, int16_t(2990 + day.count)};
+        plan.rooms.push_back(r);
+    }
+    for (size_t turn = 0; plan.storedJson().size() + 1 > RoomPlan::storeBytes; ++turn) {
+        ASSERT_LT(turn, 10000u) << plan.storedJson().size();
+        auto& r = plan.rooms[turn % 8];
+        if (r.name.size() > 1) { r.name.pop_back(); continue; }
+        for (auto& s : r.sources) if (s.id.size() > 9) s.id.erase(7, 1);
+        if (r.setpointEntity.size() > 9) r.setpointEntity.erase(8, 1);
+    }
+    const auto api = plan.json(), stored = plan.storedJson();
+    std::printf("[ room plan ] largest storable plan: stored %zu B, API form %zu B (request bound %zu B)\n",
+                stored.size(), api.size(), RoomPlan::requestBytes);
+    EXPECT_GE(stored.size() + 16, RoomPlan::storeBytes - 1);
+    EXPECT_EQ(reloaded(stored).json(), api);
+    EXPECT_LE(api.size() + 8 * 80, RoomPlan::requestBytes);
 }
 }

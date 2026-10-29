@@ -73,7 +73,7 @@ RTC_NOINIT_ATTR heating::diagnostics::LoopPhaseRecord loopPhaseRecord;
 std::atomic<uint32_t> loopAtS{0}, wifiDownSinceS{0}, brokerDownSinceS{0}, networkQuietSinceS{0}, gatewayProbeFailures{0};
 std::atomic<uint32_t> supervisorBeatS{0}, bluetoothQuietSinceS{0};
 std::atomic<bool> wifiExpected{false}, brokerExpected{false}, gatewayProbeArmed{false};
-std::atomic<bool> bluetoothExpected{false}, restartDeferred{false};
+std::atomic<bool> bluetoothExpected{false}, restartDeferred{false}, boilerOwned{false};
 heating::diagnostics::GatewayProbe gatewayProbe; // loop only
 // Boot confirmation evidence (loop only, latched): since boot an IP address
 // plus a gateway probe reply, an MQTT session or a routed HTTP request; without
@@ -127,6 +127,7 @@ void supervisorTask(void*) {
 		in.networkDeadRestarts = heating::diagnostics::blackBox.networkDeadRestarts();
 		in.bluetoothExpected = bluetoothExpected.load(); in.bluetoothQuietSince = secondsMs(bluetoothQuietSinceS.load());
 		in.bluetoothRestarts = heating::diagnostics::blackBox.bluetoothRestarts(); in.restartDeferred = restartDeferred.load();
+		in.boilerOwned = boilerOwned.load();
 		in.wifiExpected = wifiExpected.load(); in.wifiDownSince = secondsMs(wifiDownSinceS.load());
 		in.brokerExpected = brokerExpected.load(); in.brokerDownSince = secondsMs(brokerDownSinceS.load());
 		in.gatewayProbeArmed = gatewayProbeArmed.load(); in.gatewayProbeFailures = gatewayProbeFailures.load();
@@ -175,6 +176,7 @@ void observeHealth(uint64_t now) {
 	else if (heard > bluetoothQuietSinceS.load()) bluetoothQuietSinceS.store(heard);
 	bluetoothExpected.store(bluetooth);
 	restartDeferred.store(heating::controller && (heating::controller->boilerTestActive() || heating::controller->boilerSettingsActive()));
+	boilerOwned.store(heating::controller && heating::controller->claimsBoiler());
 	const bool broker = heating::controller && heating::controller->brokerConnected();
 	if (broker) brokerExpected.store(true);
 	if (broker || !brokerExpected.load()) brokerDownSinceS.store(0);

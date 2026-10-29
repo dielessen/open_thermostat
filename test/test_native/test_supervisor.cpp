@@ -276,6 +276,26 @@ TEST(SupervisorPolicy, SilentBluetoothRestartsRarelyAndNeverDuringATrial) {
     in.bluetoothRestarts = SupervisorPolicy::maximumBackoff; in.bluetoothQuietSince = 1; // gives up
     EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
 }
+// Owner, 29 Oct: while the E32 owns the boiler, a network or Bluetooth outage
+// never restarts it (the restart would end active heat); a real hang does.
+TEST(SupervisorPolicy, OwningTheBoilerRestartsOnlyForARealHang) {
+    auto in = healthy18(1000 * minute18);
+    in.boilerOwned = true;
+    in.wifiDownSince = in.now - 8 * 60 * minute18;                 // Wi-Fi gone for 8 h
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
+    in.wifiDownSince = 0; in.brokerDownSince = in.now - 8 * 60 * minute18; // broker gone
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
+    in.brokerDownSince = 0; in.gatewayProbeArmed = true; in.gatewayProbeFailures = 50; in.networkQuietSince = 1; // network dead
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
+    in.bluetoothExpected = true; in.bluetoothQuietSince = 1;      // bound sensors silent
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
+    in.boilerOwned = false;                                         // released: the same inputs restart again
+    EXPECT_NE(SupervisorPolicy::decide(in), Reason::none);
+    in.boilerOwned = true; in.loopAt = in.now - 5 * minute18;       // the loop hangs
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::loopStall);
+    in.loopAt = in.now; in.updateRunning = true; in.updateSince = in.now - 20 * minute18; // a stuck update
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::updateStuck);
+}
 TEST(BlackBox, RestartReasonIsASeparateByteAndCountsBackoff) {
     LoopPhaseRecord phase{}; BlackBoxRecord rtc{};
     BlackBox first; first.begin(rtc, phase, 1);

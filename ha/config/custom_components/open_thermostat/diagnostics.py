@@ -1,10 +1,34 @@
 
-"""Minimal non-secret diagnostics; never exports native MQTT broker credentials."""
+"""Non-secret diagnostics for the config entry and its devices; never exports credentials or addresses.
+
+Product entries add the E32 part (support_diagnostics: version, last update,
+plan summary, last telemetry, inputs, gas counting, advice, entity counts).
+The whole document is scrubbed at the end (support_diagnostics.scrub).
+"""
 from .const import DOMAIN
 from .v1_model import integration_mode
 
 
 async def async_get_config_entry_diagnostics(hass, entry):
+    """The download for the config entry: the native part and, for an E32, its own part; redacted."""
+    from .product import is_product
+    from .support_diagnostics import async_product_diagnostics, ble_aliases, scrub
+    result = await _async_native_diagnostics(hass, entry)
+    state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+    if is_product(entry):
+        result["e32"] = await async_product_diagnostics(hass, entry)
+    return scrub(result, ble_aliases(state.get("heating_hub")))
+
+
+async def async_get_device_diagnostics(hass, entry, device):
+    """The download for one device (the E32, a room or a Bluetooth sensor): which device, then the entry's."""
+    from .support_diagnostics import ble_aliases, device_summary, scrub
+    state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+    result = {"device": device_summary(entry, device), **await async_get_config_entry_diagnostics(hass, entry)}
+    return scrub(result, ble_aliases(state.get("heating_hub")))
+
+
+async def _async_native_diagnostics(hass, entry):
     runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("v1_runtime")
     from homeassistant.helpers import issue_registry as ir
     issue = ir.async_get(hass).async_get_issue(DOMAIN, f"legacy_metrics_history_{entry.entry_id}")

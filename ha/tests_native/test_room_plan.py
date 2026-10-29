@@ -355,7 +355,7 @@ async def test_controller_client_speaks_the_heating_plan_contract():
                     await client.async_save_heating_plan({**stored, "mode": mode})
                 assert (error.value.status, error.value.error) == (507, "storage_full")
             with pytest.raises(HeatingPlanRejected) as error:
-                await client.async_save_heating_plan({**stored, "padding": "x" * 4096})
+                await client.async_save_heating_plan({**stored, "padding": "x" * 8192})
             assert error.value.error == "plan_too_large"
     finally:
         await server.close()

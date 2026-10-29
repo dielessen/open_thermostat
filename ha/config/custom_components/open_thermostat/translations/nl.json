@@ -1474,7 +1474,7 @@
           "boiler_kw": "Verwarmingsvermogen ketel"
         },
         "data_description": {
-          "gas_meter": "Een gasmeterstand in m³ of kWh die alleen oploopt (geen verbruik per uur), bijvoorbeeld van een slimme meter of een gaspulsteller. Een stand in kWh wordt met de calorische waarde omgerekend naar m³.",
+          "gas_meter": "Een gasmeterstand in m³ of kWh die alleen oploopt (geen verbruik per uur), bijvoorbeeld van een slimme meter of een gaspulsteller. Een stand in kWh wordt met de calorische waarde omgerekend naar m³. Hij verdeelt ook je gas over verwarmen en warm water voor het energiedashboard.",
           "gas_price_entity": "Een sensor of invoergetal met de gasprijs per m³ of per kWh (eenheid zoals EUR/m³ of GBP/kWh). Gebruik dit of een vaste prijs, niet allebei.",
           "gas_price": "De prijs per m³ gas in de valuta van je Home Assistant als je geen prijssensor hebt, bijvoorbeeld 1,35.",
           "gas_kwh_per_m3": "Energie per m³ gas; die staat op je jaarafrekening of vraag je aan je leverancier. Leeg: 9,77 kWh/m³ (Nederlands gas). Elders is het anders, bijvoorbeeld ongeveer 11 kWh/m³ in het Verenigd Koninkrijk; aardgas zit meestal tussen 8 en 12 kWh/m³.",
@@ -2098,6 +2098,12 @@
       },
       "heating_advice": {
         "name": "CV-advies"
+      },
+      "heating_gas": {
+        "name": "Gas voor verwarmen"
+      },
+      "hot_water_gas": {
+        "name": "Gas voor warm water"
       }
     },
     "select": {

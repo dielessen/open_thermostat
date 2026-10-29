@@ -1,5 +1,6 @@
 #pragma once
 #include "control/FlowDemand.h"
+#include "control/GasCalibration.h"
 #include "control/RoomPlan.h"
 #include "control/ShadowComparison.h"
 #include <algorithm>
@@ -37,7 +38,8 @@ inline double round(double x) { return x < 0 ? -std::floor(-x + 0.5) : std::floo
 // Learns per room how fast it warms up (degC/h) at each flow temperature, and
 // from that the LOWEST flow that still closes a shortfall in an acceptable time
 // (owner, 28/29 Oct: "zo laag mogelijk moduleren ... dat ga je vanzelf leren").
-// Beta.18: shadow/report only; FlowDemand keeps its rule. Evidence: while some
+// Beta.18: report only; beta.19: FlowPolicy applies it with the option "use
+// learned flow" (default off: advice). Evidence: while some
 // controller (now the tado) heats, every room gets stable segments (45 min..3 h,
 // flow within 3 degC, no hot water, fresh data); a segment's least-squares room
 // slope goes into a 2 degC flow bin. Bins are made non-decreasing (more flow is
@@ -45,7 +47,7 @@ inline double round(double x) { return x < 0 ? -std::floor(-x + 0.5) : std::floo
 // slope. Heat-off segments (after the emitter coasted) give the heat-loss rate b
 // (1/h) against room - outdoor; heating segments with burner modulation give the
 // heat capacity C (kWh/K) of the house as seen from this room: P = C (rate + b dT).
-// A gas meter calibrates modulation x nominal power. RAM only: pure,
+// A gas meter calibrates modulation x nominal power (GasCalibration). RAM only: pure,
 // single-threaded, call sample() every 10 s (WarmupPlanner.h uses the models).
 class FlowLearner {
 public:
@@ -139,8 +141,7 @@ public:
 
     void sample(uint64_t now, const Boiler& b, const RoomInput* rooms, size_t count) {
         const bool gap = !haveLast_ || now <= lastMs_ || now - lastMs_ > p_.maxGapMs;
-        if (gap || !b.modulationPct || b.hotWater.value_or(true)) gasValid_ = false; // meter interval not comparable
-        else predictedKwh_ += *b.modulationPct / 100.0 * p_.nominalKw * double(now - lastMs_) / 3600000.0;
+        gas_.burner(gap ? 0 : static_cast<uint32_t>(now - lastMs_), b.modulationPct, b.hotWater, p_.nominalKw);
         lastMs_ = now; haveLast_ = true; outdoor_ = b.outdoorCentiC;
         const bool known = b.flowCentiC && b.hotWater && (b.burnerOn || b.requestedFlowC);
         const bool hotWater = b.hotWater.value_or(false);
@@ -166,25 +167,17 @@ public:
             step(r, now, gap, usable ? Kind::heat : coasted ? Kind::cool : Kind::none, ref, b, heatKw, rooms[i]);
         }
     }
-    // The gas meter total (m3, e.g. HA sensor.gas_consumed). An interval of at
-    // least 1 h without hot water, gaps or unknown modulation calibrates the
-    // modulation x nominal power estimate against the real consumption.
-    void gasMeter(double totalM3, uint64_t atMs) {
-        if (haveGas_ && gasValid_ && totalM3 >= gasM3_ && atMs > gasAtMs_ && atMs - gasAtMs_ >= 3600000 && predictedKwh_ >= 1) {
-            const double measured = (totalM3 - gasM3_) * p_.kwhPerM3, ratio = measured / predictedKwh_;
-            if (ratio >= 0.3 && ratio <= 3) {
-                if (calPredicted_ > 200) { calMeasured_ *= 0.5; calPredicted_ *= 0.5; } // stays current
-                calMeasured_ += measured; calPredicted_ += predictedKwh_; gasIntervals_ = sat(gasIntervals_);
-            }
-        }
-        haveGas_ = gasValid_ = true; gasM3_ = totalM3; gasAtMs_ = atMs; predictedKwh_ = 0;
-    }
+    // The gas meter total (m3, e.g. HA sensor.gas_consumed): GasCalibration
+    // compares intervals of at least 55 min without hot water, gaps or unknown
+    // modulation with the modulation x nominal power estimate.
+    void gasMeter(double totalM3, uint64_t atMs) { gas_.meter(totalM3, atMs, p_.kwhPerM3); }
+    const GasCalibration& gas() const { return gas_; }
     // Gas price per m3 in the currency HA is configured for (HA accepts up to 1000).
     static constexpr float maxGasPrice = 1000;
     void gasPrice(float perM3) { if (perM3 > 0 && perM3 <= maxGasPrice) price_ = perM3; }
     std::optional<float> price() const { return price_; }
     // The last gas meter reading (uptime ms); nullopt: none yet.
-    std::optional<uint64_t> gasMeterAt() const { return haveGas_ ? std::optional<uint64_t>(gasAtMs_) : std::nullopt; }
+    std::optional<uint64_t> gasMeterAt() const { return gas_.meterAt(); }
     // Nominal gas input at 100 % modulation from HA (3..60 kW); until then Params::nominalKw.
     bool setNominalKw(float kw) {
         if (!(kw >= 3 && kw <= 60)) return false;
@@ -201,8 +194,11 @@ public:
     const char* status() const { return status_; }
     uint16_t heatingPeriods() const { return period_; }
     // Real / estimated gas; 1 until three intervals were compared.
-    float calibration() const { return gasIntervals_ >= 3 ? static_cast<float>(std::clamp(calMeasured_ / calPredicted_, 0.5, 2.0)) : 1.0f; }
-    uint16_t gasIntervals() const { return gasIntervals_; }
+    float calibration() const { return gas_.factor(); }
+    uint16_t gasIntervals() const { return gas_.intervals(); }
+    // Beta.19 option "use learned flow": FlowPolicy applies the advice (status "applied").
+    void setApplied(bool applied) { applied_ = applied; }
+    bool applied() const { return applied_; }
     const Params& params() const { return p_; }
     size_t rooms() const { return rooms_.size(); }
     RoomPlan::Emitter emitter(size_t room) const { return rooms_[room].emitter; }
@@ -271,18 +267,18 @@ public:
         return m;
     }
 
-    // {"schema":1,"applied":false,"status":..,"rooms":[{..,"curve":[..],"advice":[..],"now":..}]}
+    // {"schema":1,"applied":bool,"status":..,"rooms":[{..,"curve":[..],"advice":[..],"now":..}]}
     cJSON* json() const {
         cJSON* root = cJSON_CreateObject();
         cJSON* list = root ? cJSON_AddArrayToObject(root, "rooms") : nullptr;
         if (!list) { cJSON_Delete(root); return nullptr; }
         cJSON_AddNumberToObject(root, "schema", 1);
-        cJSON_AddBoolToObject(root, "applied", false); // beta.18: FlowDemand keeps its rule
+        cJSON_AddBoolToObject(root, "applied", applied_); // the "use learned flow" option (FlowPolicy)
         cJSON_AddStringToObject(root, "status", status_);
         cJSON_AddNumberToObject(root, "heating_periods", period_);
         number(root, "outdoor_c", outdoor_ ? std::optional<float>(*outdoor_ / 100.0f) : std::nullopt, 10);
         number(root, "gas_calibration", calibration(), 1000);
-        cJSON_AddNumberToObject(root, "gas_intervals", gasIntervals_);
+        cJSON_AddNumberToObject(root, "gas_intervals", gas_.intervals());
         for (size_t i = 0; i < rooms_.size(); ++i) {
             cJSON* o = roomJson(i);
             if (!o || !cJSON_AddItemToArray(list, o)) { cJSON_Delete(o); cJSON_Delete(root); return nullptr; }
@@ -515,10 +511,10 @@ private:
     Params p_;
     std::vector<Room> rooms_;
     uint8_t minFlowC_ = 30, maxFlowC_ = 60;
-    bool haveLast_ = false, heating_ = false, haveGas_ = false, gasValid_ = false, nominalFromHa_ = false, kwhFromHa_ = false;
-    uint16_t period_ = 0, gasIntervals_ = 0;
-    uint64_t lastMs_ = 0, holdUntil_ = 0, offSince_ = 0, gasAtMs_ = 0;
-    double gasM3_ = 0, predictedKwh_ = 0, calMeasured_ = 0, calPredicted_ = 0;
+    bool haveLast_ = false, heating_ = false, nominalFromHa_ = false, kwhFromHa_ = false, applied_ = false;
+    uint16_t period_ = 0;
+    uint64_t lastMs_ = 0, holdUntil_ = 0, offSince_ = 0;
+    GasCalibration gas_;
     std::optional<int16_t> outdoor_;
     std::optional<float> price_;
     const char* status_ = "boiler_unknown";

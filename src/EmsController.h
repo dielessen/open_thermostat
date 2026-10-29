@@ -25,6 +25,7 @@
 #include "EMS/ClassicSettingsRuntimeGate.h"
 #include "EMS/ManualClassicTransaction.h"
 #include "EMS/ActiveHeatPollDriver.h"
+#include "EMS/BoilerLimitRead.h"
 #include "EMS/ForeignBoilerRequest.h"
 #include <esp_system.h>
 #endif
@@ -413,6 +414,8 @@ public:
         std::optional<bool> hotWater;
         std::optional<uint8_t> modulationPct;
         std::optional<int16_t> returnCentiC;
+        std::optional<uint64_t> limitAtMs; // when the boiler reported limitC (0x16)
+        uint32_t limitReads = 0;           // the E32's own 0x16 read requests this boot
     };
     ActiveHeatView activeHeatView() const {
         std::lock_guard<std::mutex> lock(telemetryMutex_);
@@ -427,7 +430,8 @@ public:
             board::emsActiveHeatAllowed && activeHeatRouteReady(), activeHeat_.last(),
             state ? std::optional<bool>((*state & 0x02) != 0) : std::nullopt,
             modulation && *modulation >= 0 && *modulation <= 100 ? std::optional<uint8_t>(static_cast<uint8_t>(*modulation)) : std::nullopt,
-            ret ? std::optional<int16_t>(static_cast<int16_t>(*ret)) : std::nullopt};
+            ret ? std::optional<int16_t>(static_cast<int16_t>(*ret)) : std::nullopt,
+            ActiveHeatEnvelope::reportedAtMs(monitor_), limitRead_.sent()};
     }
     // Today's and the last 7 days' hot water for /status/heating (nullptr: no memory).
     cJSON* dhwSummaryJson() const {
@@ -650,6 +654,8 @@ private:
     // it never runs beside the trial, a configuration read or a settings write.
     ForeignBoilerRequest foreignRequest_; // telemetry mutex
     ActiveHeatPollDriver activeHeat_{boilerTest_.bootId(), board::emsActiveHeatAllowed}; // telemetry mutex
+    // The boiler's own limit for active heating: read-only 0x16, same route and gates.
+    BoilerLimitRead limitRead_{board::emsBoilerLimitReadAllowed}; // telemetry mutex
     bool activeHeatRouteReady() const {
         return manualTransportReviewed() && monitor_.capabilities().profile()==BoilerProtocol::classic
             && !boilerTest_.active() && !configurationRead_.active() && !boilerSettings_.active();

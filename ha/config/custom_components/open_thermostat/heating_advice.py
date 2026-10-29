@@ -11,7 +11,9 @@ One sensor on the product device ("Heating advice" / "CV-advies") holds the
 current advice: its state is the number of items, the attribute ``items``
 the items ({id, severity, title, observed, why, action, where, confidence,
 since}) in the Home Assistant language (English or Dutch), and
-``not_evaluated`` the rules that lack data, with the reason.
+``not_evaluated`` the rules that lack data, with the reason. The attribute
+``weekly_summary`` holds the last seven days (weekly_summary.py) for the
+opt-in weekly notification blueprint.
 """
 import math
 import time
@@ -951,7 +953,7 @@ class HeatingAdviceSensor(RestoreEntity, SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "heating_advice"
     # The texts are shown, not kept in the history.
-    _unrecorded_attributes = frozenset({"items", "not_evaluated"})
+    _unrecorded_attributes = frozenset({"items", "not_evaluated", "weekly_summary"})
 
     def __init__(self, entry, hub, connection, clock=time.time, local_date=None):
         self.entry, self.hub, self.connection, self.clock = entry, hub, connection, clock
@@ -1049,7 +1051,21 @@ class HeatingAdviceSensor(RestoreEntity, SensorEntity):
             items.append(rendered)
         return {"items": items, "not_evaluated": [render_missing(name, missing, lang) for name, missing in self.missing],
                 "advice_only": True, "observed_hours": round(len(self.history.samples) * SAMPLE_SECONDS / 3600, 1),
-                "observed_days": len(self.history.days)}
+                "observed_days": len(self.history.days),
+                "weekly_summary": self.weekly_summary(lang, [item["title"] for item in items])}
+
+    def weekly_summary(self, lang, titles):
+        """The last seven days for the weekly notification (blueprint weekly_summary.yaml)."""
+        from .weekly_summary import weekly_summary
+        hass = getattr(self, "hass", None)
+        use = hass.data.get(DOMAIN, {}).get(self.entry.entry_id, {}).get("energy_use") if hass is not None else None
+        records = use.data["days"] if use is not None else {}
+        options = energy_options(self.entry)
+        return weekly_summary(records, self._today(self.clock()), titles, lang,
+                              unit=use.unit if use is not None else "m³",
+                              rough=use is not None and not use.power()[1],
+                              price=gas_price(hass, options) if hass is not None else None,
+                              currency=currency(hass) if hass is not None else "EUR")
 
     @property
     def extra_restore_state_data(self):
@@ -1074,3 +1090,6 @@ async def async_setup_heating_advice(hass, entry, async_add_entities, options, h
     sensor = HeatingAdviceSensor(entry, hub, connection)
     hass.data[DOMAIN][entry.entry_id]["heating_advice"] = sensor
     async_add_entities([sensor], **options)
+    # Gas for heating and for hot water (Energy dashboard); its sensors appear once the boiler reports.
+    from .energy_use import async_setup_energy_use
+    await async_setup_energy_use(hass, entry, async_add_entities, options, hub, connection)

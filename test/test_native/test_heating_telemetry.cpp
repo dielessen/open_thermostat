@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <vector>
 
 namespace {
@@ -229,7 +230,7 @@ TEST(HeatingTelemetry, SummaryCarriesTheLearnedHeaderAndTodaysHotWater) {
     const Bench b(true, true, true);
     const auto summary = heatingSummaryTelemetry(b.learner, b.context, Bench::dhw().summaryJson());
     std::printf("[ heating telemetry ] summary %zu B: %s\n", summary.size(), summary.c_str());
-    EXPECT_LE(summary.size(), 600u);
+    EXPECT_LE(summary.size(), 800u);                     // with the gas calibration (beta.19)
     Json j(cJSON_Parse(summary.c_str()), cJSON_Delete);
     ASSERT_TRUE(j);
     EXPECT_EQ(cJSON_GetObjectItem(j.get(), "schema")->valuedouble, 1);
@@ -247,6 +248,10 @@ TEST(HeatingTelemetry, SummaryCarriesTheLearnedHeaderAndTodaysHotWater) {
     EXPECT_STREQ(cJSON_GetObjectItem(inputs, "boiler_kw_source")->valuestring, "default");
     EXPECT_EQ(cJSON_GetObjectItem(inputs, "gas_kwh_per_m3")->valuedouble, 9.77);
     EXPECT_STREQ(cJSON_GetObjectItem(inputs, "gas_kwh_per_m3_source")->valuestring, "default");
+    const cJSON* gas = cJSON_GetObjectItem(learned, "gas");
+    EXPECT_STREQ(cJSON_GetObjectItem(gas, "status")->valuestring, "no_meter");
+    EXPECT_STREQ(cJSON_GetObjectItem(gas, "kw_source")->valuestring, "boiler_kw");
+    EXPECT_FALSE(cJSON_GetObjectItem(j.get(), "flow"));  // without a FlowPolicy
     const cJSON* dhw = cJSON_GetObjectItem(j.get(), "dhw");
     EXPECT_STREQ(cJSON_GetObjectItem(dhw, "method")->valuestring, "flow");
     EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(dhw, "clock_known")));
@@ -254,6 +259,14 @@ TEST(HeatingTelemetry, SummaryCarriesTheLearnedHeaderAndTodaysHotWater) {
     EXPECT_DOUBLE_EQ(cJSON_GetObjectItem(cJSON_GetObjectItem(dhw, "today"), "peak_flow_l_min")->valuedouble, 8.5);
     EXPECT_FALSE(cJSON_GetObjectItem(dhw, "last_7_days"));
     EXPECT_TRUE(heatingSummaryTelemetry(b.learner, b.context, nullptr).empty()); // no memory: nothing sent
+    // With the flow options and the night gas ledger (FlowPolicy::addSummary).
+    FlowPolicy policy;
+    const auto full = heatingSummaryTelemetry(b.learner, b.context, Bench::dhw().summaryJson(), &policy);
+    std::printf("[ heating telemetry ] summary with flow %zu B\n", full.size());
+    EXPECT_LE(full.size(), 2000u);
+    Json f(cJSON_Parse(full.c_str()), cJSON_Delete);
+    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(f.get(), "flow")));
+    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(f.get(), "night_gas")));
 }
 
 TEST(HeatingTelemetry, WorstCasePlanMainPayloadSize) {
@@ -267,15 +280,18 @@ TEST(HeatingTelemetry, WorstCasePlanMainPayloadSize) {
     EXPECT_LE(mqtt.size(), 7900u);                    // ModernTransport's heatingTelemetryMaxBytes
 }
 
-// The bound behind fw/telemetry/heating: setHeatingPlan refuses a plan above
-// the 4095-byte store (plan_too_large) and nothing else reaches RoomEngine. A
-// stored plan holds every entity id at least once and each room's id and name;
-// the payload repeats them at most once more, plus one leading source per room,
-// and its fixed parts are bounded (8 Bluetooth sensors, shadow, guard, ha).
-// So the largest payload comes from the largest storable plan with one long
-// source per room: filled here to the byte with 6-byte escaped names, and
-// with 2-4 sources and no setpoint entity for comparison.
-RoomPlan storablePlan(size_t sources, bool setpointEntity) {
+// The bound behind fw/telemetry/heating: setHeatingPlan refuses a plan whose
+// stored form exceeds the 4095-byte store (plan_too_large) and nothing else
+// reaches RoomEngine. A stored plan holds every entity id at least once and
+// each room's id and name; the payload repeats them at most once more, plus one
+// leading source per room, and its fixed parts are bounded (8 Bluetooth
+// sensors, shadow, guard, ha). Week programs are not in the payload; in the
+// stored form they only take store bytes (packed when the plan is large), so
+// they leave less room for the strings. So the largest payload comes from the
+// largest storable plan with one long source per room and no week program:
+// filled here to the byte with 6-byte escaped names, and with 2-4 sources, no
+// setpoint entity or full week programs for comparison.
+RoomPlan storablePlan(size_t sources, bool setpointEntity, uint8_t points = 0) {
     RoomPlan plan;
     plan.revision = 4294967295u; plan.minimumFlowC = 20; plan.maximumFlowC = 80;
     for (int i = 0; i < 8; ++i) {
@@ -287,11 +303,13 @@ RoomPlan storablePlan(size_t sources, bool setpointEntity) {
             r.sources.push_back({RoomPlan::SourceType::ha, pad("sensor." + std::string(1, char('a' + i)) + char('0' + k) + "_", 80, 't')});
         if (setpointEntity) r.setpointEntity = pad("climate." + std::string(1, char('a' + i)) + "_", 80, 's');
         r.fallbackCentiC = 2155; r.minimumCentiC = 500; r.maximumCentiC = 2999;
+        for (auto& day : r.schedule.days)
+            while (day.count < points) { day.points[day.count] = {uint16_t(1400 + day.count), 2999}; ++day.count; }
         plan.rooms.push_back(r);
     }
     // Trim the names, then the entity ids, until the plan is just inside the store.
     const size_t limit = ControlPartitionBudget::configBytes - 1;
-    for (size_t turn = 0; plan.json().size() > limit; ++turn) {
+    for (size_t turn = 0; plan.storedJson().size() > limit; ++turn) {
         auto& r = plan.rooms[turn % 8];
         if (r.name.size() > 1) { r.name.pop_back(); continue; }
         for (auto& src : r.sources) if (src.id.size() > 12) src.id.pop_back();
@@ -301,9 +319,10 @@ RoomPlan storablePlan(size_t sources, bool setpointEntity) {
 }
 TEST(HeatingTelemetry, AnyStorablePlanFitsTheMainPayload) {
     size_t largest = 0;
-    for (const auto& [sources, setpoint] : {std::pair<size_t, bool>{1, true}, {1, false}, {2, true}, {4, true}}) {
-        const auto plan = storablePlan(sources, setpoint);
-        const auto raw = plan.json();
+    for (const auto& [sources, setpoint, points] : {std::tuple<size_t, bool, uint8_t>{1, true, 0}, {1, false, 0}, {2, true, 0},
+                                                     {4, true, 0}, {1, true, 4}, {1, true, 6}}) {
+        const auto plan = storablePlan(sources, setpoint, points);
+        const auto raw = plan.storedJson();
         ASSERT_LE(raw.size() + 1, ControlPartitionBudget::configBytes);
         ASSERT_GE(raw.size() + 8, ControlPartitionBudget::configBytes - 1); // filled to (nearly) the byte
         Json back(cJSON_Parse(raw.c_str()), cJSON_Delete);
@@ -354,9 +373,13 @@ TEST(HeatingTelemetry, AnyStorablePlanFitsTheMainPayload) {
         cJSON_AddBoolToObject(active, "enabled", false);
         cJSON_AddItemToObject(root.get(), "active", active);
         addHaLink(root.get(), uint64_t(0), 4294967295000ull, false);
+        // FlowPolicy::addStatus(.., true): the request's source and the rule's flow (beta.19).
+        cJSON* flow = cJSON_AddObjectToObject(root.get(), "flow");
+        cJSON_AddStringToObject(flow, "source", "optimum_start"); cJSON_AddNumberToObject(flow, "rule_flow_c", 80);
         compactHeatingTelemetry(root.get());
         const auto mqtt = print(root.get());
-        breakdown(("storable plan " + std::to_string(raw.size()) + " B, " + std::to_string(sources) + " source(s)" + (setpoint ? " + setpoint" : "")).c_str(), mqtt);
+        breakdown(("storable plan " + std::to_string(raw.size()) + " B, " + std::to_string(sources) + " source(s)" + (setpoint ? " + setpoint" : "")
+                   + (points ? ", " + std::to_string(points) + " points a day" : "")).c_str(), mqtt);
         EXPECT_LE(mqtt.size(), 7900u);                   // ModernTransport's heatingTelemetryMaxBytes
         largest = std::max(largest, mqtt.size());
     }

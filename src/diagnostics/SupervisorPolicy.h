@@ -48,10 +48,15 @@ struct SupervisorPolicy {
         uint64_t bluetoothQuietSince = 0; // boot or the last advert of a bound sensor
         uint8_t bluetoothRestarts = 0;  // consecutive bluetoothSilent restarts before this boot
         bool restartDeferred = false;   // a boiler trial/settings session: no optional restart
+        // The E32 owns the boiler (active heat, ActiveHeatGuard::claimsBoiler):
+        // it keeps heating without Wi-Fi, broker or Bluetooth, so only a real
+        // hang (loop stall, RTC watchdog) or a stuck update restarts it.
+        bool boilerOwned = false;
     };
     static Reason decide(const Inputs& in) {
         if (in.updateRunning) return elapsed(in.now, in.updateSince, updateMaxMs) ? Reason::updateStuck : Reason::none;
         if (elapsed(in.now, in.loopAt, loopStallMs)) return Reason::loopStall;
+        if (in.boilerOwned) return Reason::none;
         if (in.wifiExpected && in.wifiDownSince && elapsed(in.now, in.wifiDownSince, backoff(wifiLostMs, in.wifiLostRestarts)))
             return Reason::wifiLost;
         if (in.wifiExpected && !in.wifiDownSince && in.gatewayProbeArmed && in.gatewayProbeFailures >= networkDeadProbes

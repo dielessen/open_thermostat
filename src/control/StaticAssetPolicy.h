@@ -3,7 +3,8 @@
 
 namespace heating::control {
 // Bounded, allocation-free HTTP negotiation. An invalid preference cannot turn
-// on a coding; an absent header retains compatibility with legacy .gz URLs.
+// on a coding. The E32 UI is gzip only: an absent header accepts any coding
+// (RFC 9110), an explicit refusal of gzip is answered 406.
 inline std::string_view assetTrim(std::string_view value) {
     while(!value.empty()&&(value.front()==' '||value.front()=='\t'))value.remove_prefix(1);
     while(!value.empty()&&(value.back()==' '||value.back()=='\t'))value.remove_suffix(1);
@@ -52,11 +53,8 @@ inline bool acceptsAssetCoding(std::string_view header,std::string_view wanted,
     }
     return seen?accepted:wildcardSeen?wildcard:implicit;
 }
-inline bool acceptsAssetGzip(std::string_view header,bool legacyGzipUrl=false) {
-    return acceptsAssetCoding(header,"gzip",legacyGzipUrl,false);
-}
-inline bool acceptsAssetIdentity(std::string_view header) {
-    return acceptsAssetCoding(header,"identity",true,true);
+inline bool acceptsAssetGzip(std::string_view header,bool absentAccepts=false) {
+    return acceptsAssetCoding(header,"gzip",absentAccepts,false);
 }
 // If-None-Match uses weak comparison for GET, but only after route authorization.
 inline bool assetNotModified(std::string_view header,std::string_view etag) {

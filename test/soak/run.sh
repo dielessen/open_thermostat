@@ -44,6 +44,7 @@ chain-santiago|--scenario=chain --tz=<-04>4<-03>,M9.1.6/24,M4.1.6/24 --start=202
 chain-sydney-churn|--scenario=chain --tz=AEST-10AEDT,M10.1.0,M4.1.0/3 --start=2026-09-25T00:00:00Z --days=20 --seed=5 --edit-h=0.25 --no-oom
 chain-kathmandu-30s|--scenario=chain --tz=<+0545>-5:45 --start=2026-12-01T00:00:00Z --days=60 --seed=6 --step-ms=30000 --no-oom
 guard|--scenario=guard --days=60 --seed=7
+active|--scenario=active --days=200 --seed=10
 flow|--scenario=flow --days=60 --seed=9
 supervisor|--scenario=supervisor --days=60 --seed=8
 sizes|--scenario=sizes
@@ -55,6 +56,7 @@ smoke_scenarios() {
 chain-ams|--scenario=chain --tz=CET-1CEST,M3.5.0,M10.5.0/3 --start=2026-10-24T20:00:00Z --days=1.5 --seed=1 --mqtt-s=60 --learned-s=60 --full-s=1800 --no-oom
 chain-nyc-wrap|--scenario=chain --tz=EST5EDT,M3.2.0,M11.1.0 --start=2027-03-13T12:00:00Z --days=1.5 --seed=2 --uptime0=4293167296 --live-dhw-flow --boiler-outdoor --edit-h=0.5 --no-oom
 guard|--scenario=guard --days=10 --seed=7
+active|--scenario=active --days=3 --seed=10
 flow|--scenario=flow --days=10 --seed=9
 supervisor|--scenario=supervisor --days=30 --seed=8
 sizes|--scenario=sizes

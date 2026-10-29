@@ -264,10 +264,17 @@ TEST(ActiveHeatGuard, RestartHoldsOffUntilListenedAndInputsFresh) {
     b.runFor(110 * second);
     EXPECT_TRUE(b.sent.empty());
     EXPECT_EQ(b.guard.state(), State::arming);
-    b.in.rooms.fresh = 1; b.runFor(10 * second); // listened 2 min, room fresh
+    b.in.rooms.fresh = 1; b.runFor(10 * second); // room fresh: the next step heats
     EXPECT_EQ(b.guard.state(), State::active);
     ASSERT_EQ(b.sent.size(), 1u);
     EXPECT_EQ(b.sent[0].at, 2 * minute);
+    // Fresh at once (stored confirmation, owner 29 Oct): heat within 1 min, not before.
+    Bench quick(false); quick.now = 0; quick.guard.confirm(0, true);
+    quick.runFor(50 * second);
+    EXPECT_TRUE(quick.sent.empty());
+    quick.runFor(10 * second);
+    ASSERT_EQ(quick.sent.size(), 1u);
+    EXPECT_EQ(quick.sent[0].at, minute);
     // The transmit route not ready: still nothing.
     Bench route(false); route.now = 0; route.in.routeReady = false; route.guard.confirm(0, true);
     route.runFor(20 * minute);
@@ -371,6 +378,7 @@ TEST(ActiveHeatGuard, StatusJson) {
     b.tick();
     Json j(b.guard.json(b.now), cJSON_Delete);
     EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(j.get(), "state")), "awaiting_confirmation");
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(j.get(), "awaiting_confirmation")));
     EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(j.get(), "last_sent")));
     EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(j.get(), "confirmation")));
     const auto* foreign = cJSON_GetObjectItem(j.get(), "foreign_controller");
@@ -381,6 +389,7 @@ TEST(ActiveHeatGuard, StatusJson) {
     b.now += 10 * second; b.tick();
     Json k(b.guard.json(b.now + 5 * second), cJSON_Delete);
     EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(k.get(), "state")), "active");
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(k.get(), "awaiting_confirmation")));
     const auto* command = cJSON_GetObjectItem(k.get(), "command");
     EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(command, "send")));
     EXPECT_EQ(cJSON_GetObjectItem(command, "flow_c")->valueint, 40);

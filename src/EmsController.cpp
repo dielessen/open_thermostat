@@ -319,9 +319,13 @@ bool EmsController::processBoilerTestPoll() {
             return transmitManualFrame<false>(frame);
 		});
 	if (result != BoilerTestPollDriver::Result::unowned) return true;
-    return activeHeat_.poll(static_cast<uint64_t>(esp_timer_get_time() / 1000), monitor_,
-        [&] { return !transportFault && activeHeatRouteReady(); }, boilerTestEncoder_,
-        [this](const EmsRawFrame& frame) { return transmitManualFrame<false>(frame); });
+    const auto now = static_cast<uint64_t>(esp_timer_get_time() / 1000);
+    const auto routeReady = [&] { return !transportFault && activeHeatRouteReady(); };
+    if (activeHeat_.poll(now, monitor_, routeReady, boilerTestEncoder_,
+        [this](const EmsRawFrame& frame) { return transmitManualFrame<false>(frame); })) return true;
+    // Only a poll without an active-heat command carries the 0x16 read.
+    return limitRead_.poll(now, ActiveHeatEnvelope::reportedAtMs(monitor_), routeReady,
+        [this](const EmsRawFrame& frame) { return transmitManualFrame<true>(frame); });
 }
 #endif
 

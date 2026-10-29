@@ -127,11 +127,11 @@ async def async_migrate_entry(hass, entry):
     if entry.version > 3:
         return False
     if entry.version < 3:
-        from .product import PRODUCT_CONFIG, PRODUCT_VERSION, SUPPORTED_HA_VERSIONS, HA_VERSION, INSTALLATION
+        from .product import PRODUCT_CONFIG, PRODUCT_VERSION, INSTALLATION, ha_version_supported
         from .v1_model import MODE_SHADOW, integration_mode
         data = {**entry.data, "integration_mode": entry.data.get("integration_mode", "legacy")}
         managed = integration_mode(entry) == MODE_SHADOW
-        if managed and HA_VERSION not in SUPPORTED_HA_VERSIONS:
+        if managed and not ha_version_supported(hass):
             return False
         if managed:
             data[PRODUCT_CONFIG] = PRODUCT_VERSION
@@ -312,6 +312,12 @@ async def async_setup_entry(hass, entry):
     graph_profile=_selected_graph_data_profile(entry)
     graph_control_source=_selected_graph_controller_source(entry)
     native_plan_source=_selected_native_plan_source(entry)
+    from .e32_link import stale_native_source
+    # An older HA room deleted after Connect E32: start without that native room
+    # profile (and without its link) instead of failing; Repairs offers the fix.
+    stale_link=stale_native_source(entry,native_plan_source)
+    if stale_link:
+        native_plan_source=None
     if native_plan_source is not None and (graph_profile is not None or graph_control_source is not None):
         from homeassistant.exceptions import ConfigEntryError
         raise ConfigEntryError("native_plan_owner_role_conflict")
@@ -323,7 +329,7 @@ async def async_setup_entry(hass, entry):
     if graph_profile is not None and graph_control_source is not None:
         from homeassistant.exceptions import ConfigEntryError
         raise ConfigEntryError("graph_control_data_owner_conflict")
-    if has_graph_rooms(entry) and (mode != MODE_SHADOW or (entry.options.get(CONF_ENABLED, False) and graph_profile is None and graph_control_source is None and native_plan_source is None)):
+    if has_graph_rooms(entry) and (mode != MODE_SHADOW or (entry.options.get(CONF_ENABLED, False) and not stale_link and graph_profile is None and graph_control_source is None and native_plan_source is None)):
         from homeassistant.exceptions import ConfigEntryError
         raise ConfigEntryError("graph_room_contract_unavailable")
     if mode == MODE_LEGACY:
@@ -393,7 +399,8 @@ async def async_setup_entry(hass, entry):
             state["heating_tracker"] = tracker
             cleanup.push_async_callback(tracker.async_stop)
             await tracker.async_start()
-        await runtime.async_start()
+        if not stale_link:
+            await runtime.async_start()
         if runtime.enabled:
             from .v1_mqtt import NativeShadowConnection
             diagnostic_sources = await _async_selected_original_tv02_sources(hass, entry)
@@ -425,8 +432,17 @@ async def async_setup_entry(hass, entry):
         async_register_entry(hass, entry)
         entry.async_on_unload(lambda: async_unregister_entry(hass, entry.entry_id))
         entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+        if product:
+            from .e32_link import update_legacy_rooms_issue
+            update_legacy_rooms_issue(hass, entry)
         cleanup.pop_all()
     return True
+
+async def async_remove_entry(hass, entry):
+    """A removed installation leaves no Repairs item behind."""
+    from homeassistant.helpers import issue_registry as ir
+    from .e32_link import issue_id
+    ir.async_delete_issue(hass, DOMAIN, issue_id(entry))
 
 async def async_unload_entry(hass, entry):
     state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})

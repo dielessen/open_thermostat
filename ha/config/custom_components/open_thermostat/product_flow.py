@@ -24,6 +24,7 @@ from .native_form import retained_input_schema
 from .schedule_compiler import WEEKDAYS
 from .v1_program import normalize_program
 from .controller_setup_flow import ControllerSetupFlow
+from .legacy_rooms_flow import LegacyRoomsSteps
 from .e32_room_flow import E32RoomFlow
 
 _LOGGER = logging.getLogger(__name__)
@@ -246,7 +247,7 @@ class ProductRoomFlow(RadiatorRoomSetupFlow):
         }), errors=errors)
 
 
-class ProductOptionsFlow(E32RoomFlow, ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow):
+class ProductOptionsFlow(E32RoomFlow, LegacyRoomsSteps, ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow):
     """One central options entrypoint, using the same room editor and native Store.
 
     With a stored E32 connection the rooms are the E32 room plan: "E32 rooms"
@@ -491,7 +492,10 @@ class ProductOptionsFlow(E32RoomFlow, ControllerSetupFlow, ShadowOptionsFlow, Pr
                 "connection": connection_text, "runtime": runtime_text, "actuator_checks": actuator_text})
 
     async def async_step_advanced_settings(self, user_input=None):
+        from .e32_link import legacy_rooms_pending
         options = ["configuration_status", "hot_water"]
         if self._native_plan_review_available():
             options += ["graph_prepare", "graph_status"]
+        if legacy_rooms_pending(self.config_entry):
+            options.append("legacy_rooms")
         return self.async_show_menu(step_id="advanced_settings", menu_options=options)

@@ -6,8 +6,48 @@ from homeassistant.const import __version__ as HA_VERSION
 
 PRODUCT_CONFIG = "product_configuration"
 PRODUCT_VERSION = 1
+# The Home Assistant releases this integration version is tested on (CI and the
+# release evidence in scripts/package_ha_release.py read this tuple).
 SUPPORTED_HA_VERSIONS = ("2026.10.2", "2026.10.3", "2026.10.4")
+# The oldest Home Assistant that works: its schema library (probatio 0.13, which
+# every form uses) and the config entry save routine below match the tested
+# releases from 2026.10.0 on. Newer releases are accepted while that save
+# routine keeps the keywords used here (ha_version_supported checks them).
+MINIMUM_HA_VERSION = "2026.10.0"
 INSTALLATION = "installation_configuration"
+_UPDATE_KEYWORDS = frozenset(("data", "options", "subentries", "title", "version"))
+
+
+def _version_key(value):
+    """(year, month, patch) of a Home Assistant version label, or None."""
+    import re
+    match = re.match(r"(\d{4})\.(\d{1,2})\.(\d+)", value) if type(value) is str else None
+    return tuple(int(part) for part in match.groups()) if match else None
+
+
+def ha_version_supported(hass=None, version=None):
+    """True on Home Assistant MINIMUM_HA_VERSION or newer with the expected save routine.
+
+    Configuration saves use Home Assistant's own one-step entry update
+    (ConfigEntries._async_update_entry: data, options, subentries and title in
+    one save). It is unchanged from 2026.8 to the tested 2026.10 releases; a
+    newer release is accepted as long as it still takes the same keywords.
+    """
+    key = _version_key(HA_VERSION if version is None else version)
+    if key is None or key < _version_key(MINIMUM_HA_VERSION):
+        return False
+    # The class, not a (patched) instance: this checks Home Assistant's own code.
+    from homeassistant.config_entries import ConfigEntries
+    update = getattr(ConfigEntries, "_async_update_entry", None)
+    if not callable(update):
+        return False
+    import inspect
+    try:
+        parameters = inspect.signature(update).parameters
+    except (TypeError, ValueError):
+        return False
+    return _UPDATE_KEYWORDS <= {name for name, item in parameters.items()
+                                if item.kind is inspect.Parameter.KEYWORD_ONLY}
 
 
 def is_product(entry):
@@ -61,7 +101,7 @@ def configuration_snapshot(entry):
 
 def commit_configuration(hass, entry, before, **changes):
     """One pinned HA core Store transaction; never device I/O or activation."""
-    if HA_VERSION not in SUPPORTED_HA_VERSIONS:
+    if not ha_version_supported(hass):
         raise ValueError("setup_platform_unsupported")
     if (hass.config_entries.async_get_entry(entry.entry_id) is not entry
             or configuration_snapshot(entry) != before):

@@ -35,6 +35,17 @@ responses or construct another complete response body in RAM. Original source
 bytes remain embedded for existing independent package verification. The extra
 compressed representations consume flash rather than the runtime heap.
 
+Since beta.19 the UI is gzip only: every HTML, JavaScript and CSS file is in
+the app image only as its generated gzip stream (precompressed `.gz`
+dependencies as stored), and every response carries `Content-Encoding: gzip`
+with `Vary: Accept-Encoding` and the SHA-256 ETag of those bytes. This removed
+about 739 KB of uncompressed duplicates from the app image. A request without
+`Accept-Encoding` accepts any coding (RFC 9110) and gets gzip; a client that
+explicitly refuses gzip (`identity` only, `gzip;q=0`) gets `406`. Every
+supported browser and captive-portal web view sends `gzip`, so this case is
+deliberately not served. Package checks prove each source from the gzip
+streams in the image (`scripts/verify_e32v2_web_assets.py`).
+
 Static UI responses use representation-specific SHA-256 ETags and
 `Cache-Control: private, no-cache`. Authorization runs before conditional
 responses. Every reload revalidates the cached bytes, including after a firmware

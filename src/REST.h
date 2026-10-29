@@ -209,6 +209,7 @@ public:
 		route("/config/debug", [this]() { configDebug(); });
 #ifdef OPENTHERMOSTAT_E32V2
         route("/config/heating/handover",HTTP_POST,[this] { heatingHandover(); });
+        route("/config/heating/flow",[this] { heatingFlow(); });
         route("/config/heating",[this] { heatingPlan(); });
         route("/status/heating",HTTP_GET,[this] { heatingStatus(); });
         route("/config/bluetooth",[this] { bluetoothSettings(); });
@@ -1265,7 +1266,8 @@ private:
 	void heatingPlan() {
 		if (server_.method() == HTTP_POST) {
 			const auto body = server_.arg("plain");
-			if (body.length() > control::ControlPartitionBudget::configBytes) { server_.send(413,"application/json","{\"error\":\"plan_too_large\"}"); return; }
+			// The API form may exceed the store: setHeatingPlan packs week programs and checks the stored size.
+			if (body.length() > control::RoomPlan::requestBytes) { server_.send(413,"application/json","{\"error\":\"plan_too_large\"}"); return; }
 			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(control::parseNestedJson(body,true,10)); // plan depth 5; IDF cJSON: 128 B stack per level
 			const char* error = root ? controller_.setHeatingPlan(root.get()) : "invalid_json";
 			if (error) {
@@ -1279,7 +1281,7 @@ private:
 		server_.send(200,"application/json",plan.c_str());
 	}
 	// POST {"thermostat_disconnected":true|false} (or the older "tado_disconnected"):
-	// the owner's handover for active mode (RAM only); answers the active-control status.
+	// the owner's handover for active mode (kept in NVS); answers the active-control status.
 	void heatingHandover() {
 		const auto body = server_.arg("plain");
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= 64 ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));
@@ -1291,6 +1293,18 @@ private:
 		const auto text = active ? control::printJson(active.get()) : std::string();
 		if (text.empty()) { server_.send(503,"application/json","{\"error\":\"status_unavailable\"}"); return; }
 		server_.send(200,"application/json",text.c_str());
+	}
+	// GET: the beta.19 flow options; POST any of {"weather_curve","apply_learned",
+	// "curve_design_flow_c"} (control/FlowPolicy.h FlowSettings, stored in NVS).
+	void heatingFlow() {
+		if (server_.method() == HTTP_POST) {
+			const auto body = server_.arg("plain");
+			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= 256 ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));
+			if (const char* error = root ? controller_.setFlowSettings(root.get()) : "invalid_json") {
+				server_.send(std::strcmp(error,"save_unconfirmed") ? 400 : 503,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
+			}
+		} else if (server_.method() != HTTP_GET) { server_.send(405,"application/json","{\"error\":\"method_not_allowed\"}"); return; }
+		server_.send(200,"application/json",controller_.flowSettingsJson().c_str());
 	}
 	void heatingStatus() {
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> status(controller_.heatingStatusJson(),cJSON_Delete);
@@ -1652,37 +1666,29 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 		const auto *asset=embedded::find(serverPath);String assetPath=serverPath;
 		if(!asset){assetPath+=".gz";asset=embedded::find(assetPath.c_str());}
 		if(asset){
+			// Gzip only (scripts/e32v2_web_assets.py): every asset has just its gzip
+			// bytes. No Accept-Encoding accepts any coding (RFC 9110); a client that
+			// refuses gzip explicitly gets 406 (all supported browsers send gzip).
 			const auto accept=server_.header("Accept-Encoding");
-			const auto preference=std::string_view(accept.c_str(),accept.length());
-			const bool storedGzip=assetPath.endsWith(".gz");
-			if(storedGzip&&!control::acceptsAssetGzip(preference,true)) {
+			if(!control::acceptsAssetGzip(std::string_view(accept.c_str(),accept.length()),true)) {
 				server_.sendHeader("Cache-Control","no-store");
 				server_.sendHeader("Vary","Accept-Encoding");
 				server_.send(406,"text/plain","Gzip representation required");return;
 			}
-			const bool compressed=asset->gzip&&control::acceptsAssetGzip(preference);
-			if(!storedGzip&&!compressed&&!control::acceptsAssetIdentity(preference)) {
-				server_.sendHeader("Cache-Control","no-store");
-				server_.sendHeader("Vary","Accept-Encoding");
-				server_.send(406,"text/plain","No acceptable representation");return;
-			}
-			const auto *bytes=compressed?asset->gzip:asset->bytes;
-			const auto size=compressed?asset->gzipSize:asset->size;
-			const char *etag=compressed?asset->gzipEtag:asset->etag;
 			// Revalidate on each navigation/reload, including after a firmware change.
 			// This caches public UI bytes only; authorization still ran above.
 			server_.sendHeader("Cache-Control","private, no-cache");
-			server_.sendHeader("ETag",etag);
-			if(asset->gzip||storedGzip)server_.sendHeader("Vary","Accept-Encoding");
-			if(compressed||storedGzip)server_.sendHeader("Content-Encoding","gzip");
+			server_.sendHeader("ETag",asset->etag);
+			server_.sendHeader("Vary","Accept-Encoding");
+			server_.sendHeader("Content-Encoding","gzip");
 			const auto condition=server_.header("If-None-Match");
-			if(control::assetNotModified(std::string_view(condition.c_str(),condition.length()),etag)) {
+			if(control::assetNotModified(std::string_view(condition.c_str(),condition.length()),asset->etag)) {
 				// Pinned WebServer otherwise writes Content-Length: 0. A 304 may
 				// advertise only the selected 200 representation's length.
-				server_.setContentLength(size);
+				server_.setContentLength(asset->size);
 				server_.sendView(304,getContentType(assetPath).second,{});return;
 			}
-			server_.sendView(200,getContentType(assetPath).second,std::string_view(reinterpret_cast<const char*>(bytes),size));return;
+			server_.sendView(200,getContentType(assetPath).second,std::string_view(reinterpret_cast<const char*>(asset->bytes),asset->size));return;
 		}
 		// E32 UI is app-owned. Never cache or serve a stale filesystem shadow.
 		if(staticAssetRequest())server_.sendHeader("Cache-Control","no-store");

@@ -245,6 +245,7 @@ class HeatingHub:
         self.last_seen = None
         self.plan = None  # room_plan.RoomPlanLink when the E32 credentials are stored
         self._listeners = []
+        self._trackers = []  # each track_entities' forget_rooms(room_ids)
 
     @property
     def fresh(self):
@@ -281,6 +282,12 @@ class HeatingHub:
     def notify(self):
         for listener in list(self._listeners):
             listener()
+
+    @callback
+    def forget_removed_rooms(self, room_ids):
+        """Rooms back in the plan whose entities were removed: every tracker adds them again."""
+        for forget_rooms in list(self._trackers):
+            forget_rooms(frozenset(room_ids))
 
     def _merge_learned(self):
         """The learned rooms and plans: from the status (older firmware) and the per-room messages."""
@@ -371,20 +378,61 @@ def add_options(hass, entry, options=None):
 
 @callback
 def track_entities(hub, async_add_entities, options, wanted):
-    """Add each entity wanted(hub) yields ((key, factory) pairs) once, when first seen."""
-    known = set()
+    """Add each entity wanted(hub) yields ((key, factory) pairs) once, when first seen.
+
+    A key whose entity was removed from Home Assistant (its room left the plan,
+    the user deleted the device) is forgotten once wanted(hub) no longer yields
+    it, so the same key coming back (a room added again with the same id) gets
+    a new entity, without a reload. While the E32 still reports it (its status
+    trails a plan change), a removed entity is not created again;
+    hub.forget_removed_rooms() adds the rooms that are back in the plan.
+    """
+    known, current = set(), set()
+    removed = {}  # key: the removed entity, while wanted(hub) still yields the key
+
+    @callback
+    def forget(key, entity):
+        if key in current:
+            removed[key] = entity
+        else:
+            known.discard(key)
 
     @callback
     def refresh():
-        new = []
+        nonlocal current
+        new, keys = [], set()
         for key, factory in wanted(hub):
+            keys.add(key)
             if key not in known:
                 known.add(key)
-                new.append(factory())
+                entity = factory()
+                entity.async_on_remove(lambda key=key, entity=entity: forget(key, entity))
+                new.append(entity)
+        current = keys
+        for key in [key for key in removed if key not in keys]:
+            del removed[key]
+            known.discard(key)
         if new:
             async_add_entities(new, **options)
-    remove = hub.add_listener(refresh)
+
+    @callback
+    def forget_rooms(room_ids):
+        returned = [key for key, entity in removed.items() if getattr(entity, "room_id", None) in room_ids]
+        for key in returned:
+            del removed[key]
+            known.discard(key)
+        if returned:
+            refresh()
+
+    remove_listener = hub.add_listener(refresh)
+    hub._trackers.append(forget_rooms)
     refresh()
+
+    @callback
+    def remove():
+        remove_listener()
+        if forget_rooms in hub._trackers:
+            hub._trackers.remove(forget_rooms)
     return remove
 
 

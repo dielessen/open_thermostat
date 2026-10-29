@@ -5,6 +5,16 @@ firmware.bin, verifies its SHA-256 (GitHub's asset digest), size and embedded
 version marker, and uploads it to the E32 over the local network (/ota, the
 same route as the device's update page). The E32 itself makes no HTTPS
 connection. Credentials are the ones stored by the controller connection step.
+
+Tags: pre-releases such as ``v0.1.0-e32v2-beta.18`` (alpha < beta < rc) and
+stable releases such as ``v1.0.0-e32v2``; a stable release is newer than its
+release candidates. An installation is never offered a less mature channel than
+the one it runs (like the firmware's own catalog): 1.0.0 is not offered 1.1.0-beta.1.
+
+The entity keeps a record of its last install (attribute ``last_install``:
+release, SHA-256, size, start, end, duration, result and the identity the E32
+reports after its restart; never an address or a password). It is the Home
+Assistant side of an update acceptance (docs/modern-thermostat/HA-UPDATE-ACCEPTANCE.en.md).
 """
 from __future__ import annotations
 
@@ -12,12 +22,14 @@ import asyncio
 from datetime import timedelta
 import hashlib
 import re
+import time
 
 import aiohttp
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.util import dt as dt_util
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
 from .controller_link import ControllerClient, ControllerLinkError, ControllerLoginRejected
@@ -25,22 +37,76 @@ from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_PASSWORD
 
 REPOSITORY = "dielessen/open_thermostat"
 CHECK_INTERVAL = timedelta(hours=6)
-TAG = re.compile(r"^v(\d+)\.(\d+)\.(\d+)-e32v2-([a-z]+)\.(\d+)$")
+_NUMBER = r"(0|[1-9]\d{0,8})"
+TAG = re.compile(rf"v{_NUMBER}\.{_NUMBER}\.{_NUMBER}-e32v2(?:-(alpha|beta|rc)\.{_NUMBER})?")
 MAX_IMAGE = 0x3C0000
-CHANNELS = {"alpha": 0, "beta": 1, "rc": 2}
+CHANNELS = {"alpha": 0, "beta": 1, "rc": 2, None: 3}
+STABLE = CHANNELS[None]
+# last_install["result"]: how the last install started from Home Assistant ended.
+RESULTS = ("installed", "download_failed", "verification_failed", "upload_failed", "not_confirmed")
+INSTALL_RECORD = ("tag", "from_version", "sha256", "size", "started_at", "finished_at", "duration_s",
+                  "result", "uploads", "reported")
+_UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
 
 
 def parse_tag(tag):
-    """(major, minor, patch, channel rank, number) or None for a foreign tag."""
-    match = TAG.match(tag) if isinstance(tag, str) else None
-    if not match or match.group(4) not in CHANNELS:
+    """(major, minor, patch, channel rank, number) or None for a foreign tag.
+
+    Channel rank: alpha 0, beta 1, rc 2, stable 3 (number 0).
+    """
+    match = TAG.fullmatch(tag) if isinstance(tag, str) else None
+    if not match:
         return None
     major, minor, patch, channel, number = match.groups()
-    return int(major), int(minor), int(patch), CHANNELS[channel], int(number)
+    return int(major), int(minor), int(patch), CHANNELS[channel], int(number or 0)
 
 
-def select_release(releases):
-    """The newest published E32 release with a firmware.bin and a SHA-256 digest."""
+def is_stable(tag):
+    key = parse_tag(tag)
+    return key is not None and key[3] == STABLE
+
+
+def utc_text(moment):
+    return dt_util.as_utc(moment).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def reported_identity(version):
+    """The identity the E32 reports in /status/version (nothing else it sends)."""
+    if not isinstance(version, dict) or parse_tag(version.get("version")) is None:
+        return None
+    identity = {"version": version["version"]}
+    for key, field, length in (("source_commit", "source", 40), ("web_sha256", "web_sha256", 64),
+                               ("elf_sha256", "sha256", 64)):
+        value = version.get(field)
+        valid = isinstance(value, str) and re.fullmatch(f"[0-9a-f]{{{length}}}", value) is not None
+        identity[key] = value if valid else None
+    return identity
+
+
+def valid_install_record(record):
+    """A last_install record exactly as this module writes it (a restored one is checked again)."""
+    if not isinstance(record, dict) or set(record) != set(INSTALL_RECORD):
+        return False
+    reported = record["reported"]
+    return (parse_tag(record["tag"]) is not None
+            and (record["from_version"] is None or isinstance(record["from_version"], str)
+                 and len(record["from_version"]) <= 64)
+            and isinstance(record["sha256"], str) and re.fullmatch(r"[0-9a-f]{64}", record["sha256"]) is not None
+            and type(record["size"]) is int and 0 < record["size"] <= MAX_IMAGE
+            and all(isinstance(record[key], str) and _UTC.fullmatch(record[key]) is not None
+                    for key in ("started_at", "finished_at"))
+            and type(record["duration_s"]) in (int, float) and 0 <= record["duration_s"] <= 3600
+            and record["result"] in RESULTS and type(record["uploads"]) is int and record["uploads"] in (0, 1)
+            and (reported is None or isinstance(reported, dict) and reported == reported_identity(
+                {"version": reported.get("version"), "source": reported.get("source_commit"),
+                 "web_sha256": reported.get("web_sha256"), "sha256": reported.get("elf_sha256")})))
+
+
+def select_release(releases, minimum_channel=0):
+    """The newest published E32 release with a firmware.bin and a SHA-256 digest.
+
+    Releases of a less mature channel than minimum_channel (a rank) are skipped.
+    """
     best = None
     for release in releases if isinstance(releases, list) else []:
         if not isinstance(release, dict) or release.get("draft"):
@@ -49,7 +115,7 @@ def select_release(releases):
         asset = next((a for a in release.get("assets") or [] if isinstance(a, dict)
                       and a.get("name") == "firmware.bin"
                       and re.fullmatch(r"sha256:[0-9a-f]{64}", a.get("digest") or "")), None)
-        if key is None or asset is None or not isinstance(asset.get("size"), int):
+        if key is None or key[3] < minimum_channel or asset is None or not isinstance(asset.get("size"), int):
             continue
         if not 1000000 <= asset["size"] <= MAX_IMAGE:
             continue
@@ -79,11 +145,30 @@ class E32FirmwareUpdate(UpdateEntity):
         self._attr_unique_id = f"{prefix}_e32_firmware"
         self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, prefix)})
         self._release = None
+        self._last_install = None
+        self._channel = 0  # the channel rank of the last installed version read from the E32
         self._lock = asyncio.Lock()
 
     def version_is_newer(self, latest_version, installed_version):
         latest, installed = parse_tag(latest_version), parse_tag(installed_version)
         return latest is not None and (installed is None or latest > installed)
+
+    @property
+    def last_install(self):
+        return self._last_install
+
+    @property
+    def extra_state_attributes(self):
+        return {"last_install": self._last_install} if self._last_install else None
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        last = await self.async_get_last_state()
+        record = last.attributes.get("last_install") if last is not None else None
+        if self._last_install is None and isinstance(record, dict):
+            record = {key: dict(value) if isinstance(value, dict) else value for key, value in record.items()}
+            if valid_install_record(record):
+                self._last_install = record
 
     async def async_release_notes(self):
         return self._release["notes"] if self._release else None
@@ -111,13 +196,16 @@ class E32FirmwareUpdate(UpdateEntity):
             self._attr_installed_version = None
         except ControllerLinkError:
             self._attr_installed_version = None
+        installed = parse_tag(self._attr_installed_version)
+        if installed is not None:
+            self._channel = installed[3]  # an unreachable E32 keeps its last known channel
         try:
             session = async_get_clientsession(self.hass)
             async with asyncio.timeout(30):
                 async with session.get(f"https://api.github.com/repos/{REPOSITORY}/releases?per_page=20",
                                        headers={"Accept": "application/vnd.github+json"}) as response:
                     releases = await response.json() if response.status == 200 else None
-            self._release = select_release(releases)
+            self._release = select_release(releases, self._channel)
         except (aiohttp.ClientError, TimeoutError, ValueError):
             pass  # GitHub unreachable: keep the last known release
         self._attr_latest_version = self._release["tag"] if self._release else self._attr_installed_version
@@ -132,6 +220,8 @@ class E32FirmwareUpdate(UpdateEntity):
                 raise ValueError("Unknown release; refresh first")
             self._attr_in_progress = True
             self.async_write_ha_state()
+            started, clock, before = dt_util.utcnow(), time.monotonic(), self._attr_installed_version
+            outcome = {"result": "download_failed", "uploads": 0, "reported": None}
             try:
                 session = async_get_clientsession(self.hass)
                 async with asyncio.timeout(300):
@@ -145,11 +235,14 @@ class E32FirmwareUpdate(UpdateEntity):
                                 raise ValueError("Firmware larger than the update slot")
                             chunks.append(chunk)
                         image = b"".join(chunks)
+                outcome["result"] = "verification_failed"
                 if not verify_image(image, release):
                     raise ValueError("SHA-256, size or version marker does not match the release")
+                outcome["result"] = "upload_failed"
                 async with self._client() as client:
                     await client.async_login(self._entry.data[CONTROLLER_PASSWORD])
                     await client.async_upload_firmware(image)
+                outcome["uploads"], outcome["result"] = 1, "not_confirmed"
                 # The E32 restarts itself; confirm the new version is running.
                 for _ in range(36):
                     await asyncio.sleep(5)
@@ -157,8 +250,10 @@ class E32FirmwareUpdate(UpdateEntity):
                         async with self._client() as client:
                             await client.async_login(self._entry.data[CONTROLLER_PASSWORD])
                             running = await client.async_read("/status/version")
+                        outcome["reported"] = reported_identity(running) or outcome["reported"]
                         if isinstance(running, dict) and running.get("version") == release["tag"]:
                             self._attr_installed_version = release["tag"]
+                            outcome["result"] = "installed"
                             return
                     except ControllerLinkError:
                         continue
@@ -168,6 +263,11 @@ class E32FirmwareUpdate(UpdateEntity):
             except (aiohttp.ClientError, TimeoutError):
                 raise ValueError("Firmware download from GitHub failed") from None
             finally:
+                self._last_install = {
+                    "tag": release["tag"], "from_version": before if isinstance(before, str) else None,
+                    "sha256": release["sha256"], "size": release["size"], "started_at": utc_text(started),
+                    "finished_at": utc_text(dt_util.utcnow()),
+                    "duration_s": round(time.monotonic() - clock, 1), **outcome}
                 self._attr_in_progress = False
                 self.async_write_ha_state()
 

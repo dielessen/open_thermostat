@@ -668,13 +668,22 @@ jobs:
               expected,name=line.split('  ',1)
               assert hashlib.sha256((assets/name).read_bytes()).hexdigest()==expected
           PYTHON
-      - name: Publish experimental prerelease without overwriting an existing release
+      - name: Publish the release (a pre-release unless the tag is stable) without overwriting an existing release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           python scripts/organize_releases.py --repository "$GITHUB_REPOSITORY" --publication-notes-for "$RELEASE_TAG" --output out/publication-notes.md
-          gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "OpenThermostat E32 V2 $RELEASE_TAG" --notes-file out/publication-notes.md release-assets/*
+          # A stable tag (v1.0.0-e32v2, ha-v1.0.0) is a normal release; every other tag a pre-release.
+          channel=(--prerelease)
+          if python3 - "$RELEASE_TAG" <<'PYTHON'
+          import sys
+          sys.path.insert(0, 'scripts')
+          from organize_releases import classify, is_stable
+          sys.exit(0 if is_stable(*classify(sys.argv[1])) else 1)
+          PYTHON
+          then channel=(); fi
+          gh release create "$RELEASE_TAG" --verify-tag "${channel[@]}" --title "OpenThermostat E32 V2 $RELEASE_TAG" --notes-file out/publication-notes.md release-assets/*
       - name: Refresh release channels, current downloads and archive labels
         env:
           GH_TOKEN: ${{ github.token }}
@@ -764,7 +773,7 @@ jobs:
           with zipfile.ZipFile(assets/manifest['asset']) as package:
               assert package.testzip() is None
               assert len(package.namelist())==len(set(package.namelist()))
-              assert set(package.namelist())==set(manifest['integration_source_files'])|{'LICENSE','LEESMIJ.nl.txt','SOURCE.json','notices/PLATFORM.txt','SHA256SUMS.txt'}
+              assert set(package.namelist())==set(manifest['integration_source_files'])|{'LICENSE','RELEASE-NOTES.md','SOURCE.json','notices/PLATFORM.txt','SHA256SUMS.txt'}
               for name,expected in manifest['integration_source_files'].items():
                   assert name.startswith('custom_components/open_thermostat/')
                   tagged=Path('ha/config')/name
@@ -779,7 +788,7 @@ jobs:
               assert source['source_kind']=='clean_git_commit'
               assert source['firmware_included'] is False and source['live_HA_data_included'] is False
               assert package.read('LICENSE')==Path('LICENSE').read_bytes()
-              assert package.read('LEESMIJ.nl.txt')==Path('docs/modern-thermostat/HA-RELEASE-NOTES.md').read_bytes()
+              assert package.read('RELEASE-NOTES.md')==Path('docs/modern-thermostat/HA-RELEASE-NOTES.md').read_bytes()
               checked=set()
               for line in package.read('SHA256SUMS.txt').decode().splitlines():
                   expected,name=line.split('  ',1)
@@ -788,13 +797,22 @@ jobs:
                   assert hashlib.sha256(package.read(name)).hexdigest()==expected
               assert checked==set(package.namelist())-{'SHA256SUMS.txt'}
           PYTHON
-      - name: Publish HA prerelease without replacing previous releases
+      - name: Publish the HA release (a pre-release unless the tag is stable) without replacing previous releases
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           python scripts/organize_releases.py --repository "$GITHUB_REPOSITORY" --publication-notes-for "$RELEASE_TAG" --output out/publication-notes.md
-          gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "OpenThermostat Home Assistant $RELEASE_TAG" --notes-file out/publication-notes.md ha-release-assets/*
+          # A stable tag (v1.0.0-e32v2, ha-v1.0.0) is a normal release; every other tag a pre-release.
+          channel=(--prerelease)
+          if python3 - "$RELEASE_TAG" <<'PYTHON'
+          import sys
+          sys.path.insert(0, 'scripts')
+          from organize_releases import classify, is_stable
+          sys.exit(0 if is_stable(*classify(sys.argv[1])) else 1)
+          PYTHON
+          then channel=(); fi
+          gh release create "$RELEASE_TAG" --verify-tag "${channel[@]}" --title "OpenThermostat Home Assistant $RELEASE_TAG" --notes-file out/publication-notes.md ha-release-assets/*
       - name: Refresh release channels, current downloads and archive labels
         env:
           GH_TOKEN: ${{ github.token }}

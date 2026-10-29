@@ -538,13 +538,16 @@ async def test_a_plan_read_from_the_e32_removes_devices_of_rooms_it_no_longer_ha
     assert devices.async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_gast"), parent.entry_id) is None
     assert reloads == []
 
-    # The same room added again (on the E32 page or in the editor): reload so its entities return.
+    # The same room added again (on the E32 page or in the editor): the hub's trackers add
+    # its entities again, without reloading the entry.
+    forgotten = []
+    monkeypatch.setattr(hub, "forget_removed_rooms", forgotten.append)
     e32.plan["rooms"].append({**PLAN["rooms"][1], "id": "zolder", "name": "Zolder"})
     e32.plan["revision"] += 1
     await hub.plan.async_refresh()
-    assert reloads == [parent.entry_id]
+    assert forgotten == [{"zolder"}] and reloads == []
     await hub.plan.async_refresh()
-    assert reloads == [parent.entry_id]  # once
+    assert forgotten == [{"zolder"}] and reloads == []  # once
 
 
 @pytest.mark.asyncio

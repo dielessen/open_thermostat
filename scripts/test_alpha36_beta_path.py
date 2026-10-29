@@ -43,6 +43,15 @@ class Alpha36BetaPathTests(unittest.TestCase):
         self.assertEqual(caught.exception.returncode,3)
 
     def test_noncanonical_beta_is_rejected_before_compilation(self):
-        for tag in ['v0.1.0-e32v2-alpha.37','v0.1.0-e32v2-beta.01','ha-v0.4.0b1']:
+        for tag in ['v0.1.0-e32v2-alpha.37','v0.1.0-e32v2-beta.01','ha-v0.4.0b1','v1.0.0','v1.0.0-e32v2-stable.1']:
             self.manifest['version']=tag
             with self.assertRaisesRegex(ValueError,'expected_beta'):self.run_fixture()
+
+    def test_release_candidate_and_stable_version_one_are_proved_too(self):
+        for tag in ['v0.1.0-e32v2-rc.1','v1.0.0-e32v2']:
+            with self.subTest(tag=tag):
+                self.manifest['version']=tag
+                self.image=(f"OT_E32V2_OTA_V1:{tag}:{'a'*40}:{'b'*64}:END".encode()+b'\0'*1024)
+                self.manifest.update(size=len(self.image),sha256=hashlib.sha256(self.image).hexdigest())
+                report=self.run_fixture()
+                self.assertEqual((report['result'],report['candidate']),('PASS',tag))

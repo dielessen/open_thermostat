@@ -30,7 +30,7 @@ def verify(package, root=None):
     check((package / "SOURCE_COMMIT.txt").read_text().strip() == m["source_commit"], "source identity")
     with tarfile.open(package / "source.tar.gz") as archive:
         members = {a.name:a for a in archive.getmembers() if a.isfile()}
-        accepted_path_required = "scripts/verify_accepted_update_path.py" in members and "-e32v2-beta." in m["version"]
+        accepted_path_required = "scripts/verify_accepted_update_path.py" in members and "-e32v2-alpha." not in m["version"]
         release = json.loads(archive.extractfile(members["release.json"]).read())
         check(release["version"] == m["version"], "version frozen in source")
         web = hashlib.sha256()

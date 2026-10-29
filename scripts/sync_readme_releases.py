@@ -14,7 +14,7 @@ import subprocess
 import tempfile
 from urllib.parse import quote
 
-from organize_releases import classify, fetch, ha_version
+from organize_releases import classify, fetch, ha_version, is_stable
 
 START = '<!-- openthermostat-readme-releases:start -->'
 END = '<!-- openthermostat-readme-releases:end -->'
@@ -29,26 +29,35 @@ def render(readme, releases, repository):
     start, end = readme.index(START), readme.index(END)
     if end < start:
         raise ValueError('reversed_readme_release_markers')
-    latest = {}
+    latest, stable = {}, {}
     for row in releases:
         channel, version = classify(row['tag_name'])
         if channel not in ('firmware', 'ha') or row['draft'] or not row.get('published_at'):
             continue
         if channel not in latest or version > classify(latest[channel]['tag_name'])[1]:
             latest[channel] = row
+        # Stable: a tag without a pre-release suffix that GitHub does not list as a pre-release.
+        if is_stable(channel, version, row) and row.get('prerelease') is False and (
+                channel not in stable or version > classify(stable[channel]['tag_name'])[1]):
+            stable[channel] = row
     if set(latest) != {'firmware', 'ha'}:
         raise ValueError('published_firmware_and_ha_required')
     lines = ['## Latest published releases', '',
              '| Component | Version | Channel |', '| --- | --- | --- |']
     for channel, name in (('firmware', 'E32 V2 firmware'), ('ha', 'Home Assistant integration')):
-        row = latest[channel]
-        version = row['tag_name'] if channel == 'firmware' else ha_version(classify(row['tag_name'])[1])
-        url = f'https://github.com/{repository}/releases/tag/{row["tag_name"]}'
-        lines.append(f'| {name} | [{version}]({url}) | {"Pre-release" if row["prerelease"] else "Release"} |')
+        # The stable release first; a newer pre-release (a test version) below it.
+        shown = [(stable[channel], 'Stable')] if channel in stable else []
+        if latest[channel] is not stable.get(channel):
+            shown.append((latest[channel], 'Pre-release'))
+        for row, kind in shown:
+            version = row['tag_name'] if channel == 'firmware' else ha_version(classify(row['tag_name'])[1])
+            url = f'https://github.com/{repository}/releases/tag/{row["tag_name"]}'
+            lines.append(f'| {name} | [{version}]({url}) | {kind} |')
+    build = stable.get('firmware', latest['firmware'])['tag_name']
     lines += ['', 'Firmware and the HA integration are separate downloads. Read each release’s',
               'changes, compatibility notes and installation instructions before updating.', '',
               'To build the published E32 firmware, start from its exact tag:', '', '```sh',
-              f'git clone --branch {latest["firmware"]["tag_name"]} https://github.com/{repository}.git',
+              f'git clone --branch {build} https://github.com/{repository}.git',
               '```']
     return readme[:start+len(START)] + '\n\n' + '\n'.join(lines) + '\n\n' + readme[end:]
 

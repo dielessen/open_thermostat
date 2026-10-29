@@ -522,6 +522,84 @@ async def test_existing_room_entities_keep_their_entity_ids_and_move_to_a_room_d
     finally:
         await platform.async_reset()
 
+@pytest.mark.asyncio
+async def test_a_room_removed_and_added_again_gets_its_entities_back_without_a_reload(hass, monkeypatch):
+    """track_entities forgets the keys of removed entities (no restart or reload needed)."""
+    import logging
+    from datetime import timedelta
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
+    from homeassistant.helpers.entity_platform import EntityPlatform
+    from custom_components.open_thermostat import heating_link as module
+    from custom_components.open_thermostat.native_entity_cleanup import remove_room_devices
+    from test_v1_native import entry as make_entry
+    config_entry = make_entry(hass)
+    devices, entities = dr.async_get(hass), er.async_get(hass)
+    devices.async_get_or_create(config_entry_id=config_entry.entry_id, identifiers={("open_thermostat", "fixture")})
+    _, hub, _, send = await _setup(hass, monkeypatch)
+    hass.data["open_thermostat"][config_entry.entry_id] = {"heating_hub": hub}
+    platform = EntityPlatform(hass=hass, logger=logging.getLogger(__name__), domain="binary_sensor",
+                              platform_name="open_thermostat", platform=None,
+                              scan_interval=timedelta(seconds=30), entity_namespace=None)
+    platform.config_entry = config_entry
+    created = []
+
+    def add(new, **_):
+        created.extend(new)
+        hass.async_create_task(platform.async_add_entities(new))
+    uid = "fixture_e32_room_woonkamer_demand"
+
+    def entity_id():
+        return entities.async_get_entity_id("binary_sensor", "open_thermostat", uid)
+    without = {**FULL, "rooms": []}
+    trackers = len(hub._trackers)
+    stop = module.track_entities(hub, add, {}, module.wanted_demand)
+    assert len(hub._trackers) == trackers + 1
+    try:
+        send(FULL)
+        await hass.async_block_till_done()
+        assert entity_id() is not None and len(created) == 1
+        first = entity_id()
+        # The room leaves the plan: its device and entities go; the E32 status still lists it for a while.
+        assert remove_room_devices(hass, config_entry, "fixture", ["woonkamer"]) == ["woonkamer"]
+        await hass.async_block_till_done()
+        assert entity_id() is None and hass.states.get(first) is None
+        send(FULL)
+        await hass.async_block_till_done()
+        assert entity_id() is None and len(created) == 1  # not re-created from the trailing status
+        # The status drops it, then the same room comes back: a new entity, same unique ID and entity ID.
+        send(without)
+        send(FULL)
+        await hass.async_block_till_done()
+        assert entity_id() == first and len(created) == 2 and hass.states.get(first) is not None
+        assert devices.async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_woonkamer"),
+                                                      config_entry.entry_id) is not None
+        send(FULL)
+        await hass.async_block_till_done()
+        assert len(created) == 2  # still once per key
+        # Removed and back in the plan before the status ever dropped it: the plan read adds it again.
+        remove_room_devices(hass, config_entry, "fixture", ["woonkamer"])
+        await hass.async_block_till_done()
+        send(FULL)
+        await hass.async_block_till_done()
+        assert entity_id() is None
+        hub.forget_removed_rooms({"other_room"})
+        assert len(created) == 2
+        hub.forget_removed_rooms({"woonkamer"})
+        await hass.async_block_till_done()
+        assert entity_id() == first and len(created) == 3
+        # A device the user deleted while the E32 no longer reports the room returns with the room.
+        send(without)
+        remove_room_devices(hass, config_entry, "fixture", ["woonkamer"])
+        await hass.async_block_till_done()
+        send(FULL)
+        await hass.async_block_till_done()
+        assert entity_id() == first and len(created) == 4
+    finally:
+        stop()
+        await platform.async_reset()
+    assert len(hub._trackers) == trackers  # unloading the entry stops its tracker
+
+
 
 SWITCH_UTC = int(datetime(2026, 10, 30, 5, 30, tzinfo=timezone.utc).timestamp())
 

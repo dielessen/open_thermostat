@@ -38,6 +38,13 @@ def classify(tag):
             return channel, tuple(map(int, match.groups()))
     return None, ()
 
+def is_stable(channel, version, release=None):
+    """A stable firmware/HA release: no pre-release suffix, and not published as a GitHub pre-release."""
+    stage = {'firmware': 3, 'ha': 4}.get(channel)
+    return (stage is not None and bool(version) and version[3] == stage
+            and (release is None or release.get('prerelease') is not True))
+
+
 
 def ha_version(version):
     base = f'{version[0]}.{version[1]}.{version[2]}'
@@ -177,8 +184,11 @@ def archive_summary(tag, notes, root=None):
     if hashlib.sha256(notes.encode()).hexdigest() != entry['original_notes_sha256']:
         raise ValueError('archive_original_notes_changed:'+tag)
     summary = entry['summary']
-    if any(section not in summary for section in (USER_NOTES, '## Nieuw', '## Opgelost',
-                                                  '## Bijwerken en gebruik', '## English')):
+    # English archive summaries (v2:en) use the same four sections as current notes.
+    sections = ((ENGLISH_USER_NOTES, '## New', '## Fixed', '## Updating', '## Limitations')
+                if ENGLISH_USER_NOTES in summary else
+                (USER_NOTES, '## Nieuw', '## Opgelost', '## Bijwerken en gebruik', '## English'))
+    if any(section not in summary for section in sections):
         raise ValueError('incomplete_archive_summary:'+tag)
     return summary
 
@@ -186,32 +196,53 @@ def archive_summary(tag, notes, root=None):
 def plan(releases, repository, include_archive=False):
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*', repository):
         raise ValueError('invalid_repository')
-    latest = {}
+    latest, stable = {}, {}
     for release in releases:
         channel, version = classify(release['tag_name'])
         if channel and not release['draft'] and (
             channel not in latest or version > classify(latest[channel]['tag_name'])[1]
         ):
             latest[channel] = release
+        if channel and not release['draft'] and is_stable(channel, version, release) and (
+            channel not in stable or version > classify(stable[channel]['tag_name'])[1]
+        ):
+            stable[channel] = release
+    # A newer pre-release than the stable release of its component, if any.
+    preview = {channel: row for channel, row in latest.items()
+               if channel in stable and row['id'] != stable[channel]['id']}
     base = 'https://github.com/'+repository+'/releases'
-    table = ['## Which download do you need?', '',
-             '| Component | Current test version | File |',
-             '| --- | --- | --- |']
-    for channel in ('firmware', 'ha'):
-        if channel not in latest:
-            continue
-        release = latest[channel]
+
+    def download(release, channel):
         title, version = label(channel, classify(release['tag_name'])[1])
         filename = 'firmware.bin' if channel == 'firmware' else f'OpenThermostat-HA-{version}.zip'
         asset = next((a for a in release.get('assets', []) if a['name'] == filename), None)
         if asset is None:
             raise ValueError('missing_current_download:'+release['tag_name'])
-        table.append(f'| {title} | [{version}]({base}/tag/{release["tag_name"]}) | '
-                     f'[{filename}]({asset["browser_download_url"]}) |')
+        return title, f'[{version}]({base}/tag/{release["tag_name"]})', f'[{filename}]({asset["browser_download_url"]})'
+    if not stable:
+        # Only test releases so far: the overview stays exactly as published before 1.0.
+        table = ['## Which download do you need?', '',
+                 '| Component | Current test version | File |',
+                 '| --- | --- | --- |']
+        for channel in ('firmware', 'ha'):
+            if channel in latest:
+                table.append('| %s | %s | %s |' % download(latest[channel], channel))
+    else:
+        table = ['## Which download do you need?', '',
+                 '| Component | Version | Channel | File |',
+                 '| --- | --- | --- | --- |']
+        for channel in ('firmware', 'ha'):
+            for row, kind in ((stable.get(channel), 'Stable'), (preview.get(channel), 'Pre-release'),
+                              (latest.get(channel) if channel not in stable else None, 'Pre-release')):
+                if row is not None:
+                    title, version, file = download(row, channel)
+                    table.append(f'| {title} | {version} | {kind} | {file} |')
     if 'source' in latest:
         table += ['', f'[Source and licence material]({base}/tag/{latest["source"]["tag_name"]}) '
                   'is supplied separately; it is not an installation file.']
-    table += ['', 'These are test releases. Firmware and the HA integration have separate version numbers.']
+    table += ['', 'These are test releases. Firmware and the HA integration have separate version numbers.'
+              if not stable else 'Use the stable release; a pre-release is a test version. '
+              'Firmware and the HA integration have separate version numbers.']
     overview = '\n'.join(table)
     changes = []
     for release in releases:
@@ -219,19 +250,28 @@ def plan(releases, repository, include_archive=False):
         if channel is None:
             continue
         title, short = label(channel, version)
-        current = latest.get(channel, {}).get('id') == release['id']
+        newest = latest.get(channel, {}).get('id') == release['id']
+        released = stable.get(channel, {}).get('id') == release['id']
+        current = newest or released
         if release['draft']:
             name = f'Draft · {title} · {short}'
             status = '**Draft — not published yet.**'
         elif channel == 'source':
             name = f'{title} · {short}'
             status = '**Source and licence material for reproducibility.**'
+        elif released:
+            name = f'{title} · {short} · Current'
+            status = f'**Current stable release of {title}.**'
+        elif newest and channel in stable:
+            name = f'{title} · {short} · Pre-release'
+            status = f'**Pre-release — a test version of {title}; the stable release is in the overview below.**'
         elif current:
             name = f'{title} · {short} · Current'
             status = f'**Current test version for {title}.**'
         else:
             name = f'Archive · {title} · {short}'
-            status = '**Archive — use the overview below for current test versions.**'
+            status = ('**Archive — use the overview below for current test versions.**' if not stable
+                      else '**Archive — use the overview below for the current versions.**')
         notes = original_notes(release.get('body'))
         reader_notes = user_summary(release['tag_name'], repository)
         if not reader_notes and include_archive:

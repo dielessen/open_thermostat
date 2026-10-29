@@ -267,7 +267,8 @@ def authenticated_readbacks():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('version_tag',['v0.1.0-e32v2-alpha.9','v0.1.0-e32v2-beta.4','v0.1.0-e32v2-beta.6'])
+@pytest.mark.parametrize('version_tag',['v0.1.0-e32v2-alpha.9','v0.1.0-e32v2-beta.4','v0.1.0-e32v2-beta.6',
+                                         'v0.1.0-e32v2-rc.1','v1.0.0-e32v2'])
 async def test_initial_link_reuses_actual_room_source_preserves_other_settings_and_never_writes(hass,configured,version_tag):
     parent,sub,_=configured;before=configuration_snapshot(parent);reads=authenticated_readbacks();old=deepcopy(reads)
     reads['version']['version']=version_tag;old['version']['version']=version_tag
@@ -286,6 +287,14 @@ async def test_initial_link_reuses_actual_room_source_preserves_other_settings_a
     assert descriptor[6][0][0]==sub.data['room_id']
     assert 'existing-account' not in repr(plan) and TAG not in repr(plan)
 
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('version_tag',['v1.0.0','v1.0.0-e32v2-stable','v1.0.0-e32v2-gamma.1','ha-v1.0.0','v1.0.0-e32v2-'])
+async def test_initial_link_rejects_a_foreign_firmware_version(hass,configured,version_tag):
+    parent,_,_=configured;reads=authenticated_readbacks();reads['version']['version']=version_tag
+    with pytest.raises(link.ControllerLinkError,match='controller_update_required'):
+        link.initial_controller_link(hass,parent,**reads)
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('fault,code',[

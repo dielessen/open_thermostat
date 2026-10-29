@@ -152,7 +152,8 @@ def cleanup_removed_rooms(hass, entry, prefix, plan):
 
     plan is a decoded E32 room plan; None (not read yet, unreadable) removes
     nothing. A room removed during this setup that is back in the plan (the
-    same name added again) reloads the entry, so its entities are created again.
+    same name added again) gets its entities again from the heating hub's
+    trackers (heating_link.track_entities), without reloading the entry.
     """
     state = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     if state is None or type(plan) is not dict or type(plan.get("rooms")) is not list:
@@ -160,9 +161,11 @@ def cleanup_removed_rooms(hass, entry, prefix, plan):
     planned = {room.get("id") for room in plan["rooms"] if type(room) is dict}
     removed = remove_room_devices(hass, entry, prefix, sorted(room_device_ids(hass, entry, prefix) - planned))
     returned = state.get(REMOVED_ROOMS, set()) & planned
-    if returned and hass.config_entries.async_get_entry(entry.entry_id) is entry:
+    if returned:
         state[REMOVED_ROOMS] -= returned
-        _LOGGER.info("E32 rooms %s are back in the room plan; reloading to add their entities again",
-                     ", ".join(sorted(returned)))
-        hass.config_entries.async_schedule_reload(entry.entry_id)
+        hub = state.get("heating_hub")
+        if hub is not None:
+            _LOGGER.info("E32 rooms %s are back in the room plan; adding their entities again",
+                         ", ".join(sorted(returned)))
+            hub.forget_removed_rooms(returned)
     return removed

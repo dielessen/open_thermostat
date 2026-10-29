@@ -45,7 +45,10 @@ class HeatingPlanRejected(ControllerLinkError):
 
 
 HEATING_PLAN = "/config/heating"
-HEATING_PLAN_BYTES = 4096  # The E32 refuses larger plans (413 plan_too_large).
+HEATING_PLAN_BYTES = 8192  # The E32 refuses larger request bodies (413 plan_too_large).
+# Since beta.19 the E32 packs large week programs into its 4 KB store and
+# answers 413 plan_too_large itself when even that form does not fit; older
+# firmware refuses bodies above 4096 bytes with the same 413.
 # A plan that fits but finds its flash storage full is refused with 507 storage_full.
 
 
@@ -200,7 +203,7 @@ def initial_controller_link(hass, entry, *, version, status, updates, settings, 
     if (type(etag) is not str or re.fullmatch(r'"[0-9a-f]{64}"', etag) is None):
         raise ControllerLinkError("controller_update_required")
     if (type(version.get("version")) is not str
-            or re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+-e32v2-(?:alpha|beta)\.[0-9]+", version["version"]) is None
+            or re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+-e32v2(?:-(?:alpha|beta|rc)\.[0-9]+)?", version["version"]) is None
             or type(version.get("source")) is not str
             or re.fullmatch(r"[0-9a-f]{40}", version["source"]) is None
             or any(type(version.get(k)) is not str or re.fullmatch(r"[0-9a-f]{64}",version[k]) is None

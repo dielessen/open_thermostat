@@ -1,18 +1,18 @@
 // Room plan fuzzer: POST /config/heating and the flash copy (cJSON +
 // RoomPlan::parse incl. RoomSchedule::parse), the plan's own JSON round trip,
-// the MQTT ha/heating_input handler and RoomEngine steps over the plan.
+// the MQTT ha/heating_input route (control/HeatingInput.h, as HeatingController
+// uses it), RoomEngine steps over the plan and the FlowLearner fed from them.
 //
 // Input: [mode][plan JSON] 0x00 [heating_input payload] 0x00 [payload] ...
 // mode bit0: parse like REST (cJSON_ParseWithLengthOpts, NUL required) else
 // like loadHeatingPlan (cJSON_Parse); bits1-7: start time offset (hours).
-//
-// HeatingController::heatingInput is not host-buildable (ESP/MQTT includes), so
-// its body is copied verbatim below. Keep in sync with src/HeatingController.h.
 #include "fuzz_common.h"
 #include "control/RoomEngine.h"
 #include "control/RoomPlan.h"
 #include "control/RoomSchedule.h"
 #include "control/BoundedJson.h"
+#include "control/HeatingInput.h"
+#include "control/HeatingTelemetry.h"
 #include <cJSON.h>
 #include <cmath>
 #include <cstring>
@@ -25,20 +25,11 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
 
 struct Engine {
     RoomEngine rooms;
+    FlowLearner learner;
+    HeatingInputRoute input;
     uint64_t now = 0;
-    // --- copy of HeatingController::heatingInput (beta.18) ---
-    void heatingInput(std::string_view payload) {
-        if (payload.size() > 256) return;
-        // A retained deep message would otherwise crash every boot (cJSON recursion).
-        if (!heating::control::jsonNestingWithin(payload.data(), payload.size(), 4)) return;
-        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_ParseWithLength(payload.data(), payload.size()), cJSON_Delete);
-        const auto* entity = root ? cJSON_GetObjectItemCaseSensitive(root.get(), "entity") : nullptr;
-        if (!cJSON_IsString(entity) || !entity->valuestring || std::strlen(entity->valuestring) > 80) return;
-        const auto centi = [&](const char* key, double lo, double hi) -> std::optional<int16_t> {
-            const auto* v = cJSON_GetObjectItemCaseSensitive(root.get(), key);
-            if (!cJSON_IsNumber(v) || !(v->valuedouble >= lo && v->valuedouble <= hi)) return std::nullopt;
-            return static_cast<int16_t>(std::lround(v->valuedouble * 100));
-        };
+    void heatingInput(std::string_view payload) { input.accept(payload, now, rooms, learner); }
+};
         rooms.haState(entity->valuestring, centi("temperature", -40, 85), centi("target", 5, 30), now);
     }
     // --- end copy ---
@@ -88,6 +79,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
             if (room.sources.empty() || room.sources.size() > RoomDemand::maxSources) otfuzz::invariant("room sources out of range");
         }
         e.rooms.setPlan(plan);
+        e.learner.setPlan(plan);
     }
     // Inputs and 10 s control steps, like stepHeating().
     uint32_t unixTime = 1792368000u + (mode >> 1) * 3600u;
@@ -105,11 +97,26 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
                     e.rooms.bleReading(source.id, int16_t(1950 + steps), e.now);
         e.now += 10000; unixTime += 10;
         const auto request = e.rooms.step(e.now, (steps & 1) ? std::optional<uint32_t>(unixTime) : std::nullopt);
-        (void)request;
-        for (std::size_t i = 0; i < e.rooms.plan().rooms.size(); ++i) {
-            (void)e.rooms.result(i);
-            (void)e.rooms.freshTemperature(i, e.now);
+        std::array<FlowLearner::RoomInput, RoomPlan::maxRooms> in{};
+        const std::size_t count = std::min(e.rooms.plan().rooms.size(), in.size());
+        for (std::size_t i = 0; i < count; ++i) {
+            const auto fresh = e.rooms.fresh(i, e.now);
+            in[i] = {fresh.temperature, e.rooms.result(i).setpoint, fresh.source};
         }
+        const auto outdoor = e.input.outdoor(std::nullopt, e.now);
+        FlowLearner::Boiler boiler{int16_t(4000 + steps), request.heat, false, request.flowC, outdoor.centiC, uint8_t(steps * 3), int16_t(3500)};
+        e.learner.sample(e.now, boiler, in.data(), count);
+    }
+    // The status and its MQTT form over whatever the inputs left.
+    LearnedContext context;
+    std::array<std::optional<int16_t>, RoomPlan::maxRooms> temperatures{};
+    for (std::size_t i = 0; i < e.rooms.plan().rooms.size() && i < temperatures.size(); ++i) temperatures[i] = e.rooms.freshTemperature(i, e.now);
+    context.utc = int64_t(unixTime);
+    context.temperatures = temperatures.data(); context.now = e.now;
+    context.outdoorCentiC = e.input.outdoor(std::nullopt, e.now).centiC;
+    if (Json learned{learnedJson(e.learner, e.rooms.plan(), context), cJSON_Delete}) {
+        compactHeatingTelemetry(learned.get());
+        if (!cJSON_IsObject(cJSON_GetObjectItemCaseSensitive(learned.get(), "inputs"))) otfuzz::invariant("learned without inputs");
     }
     // Time helpers used for the week program.
     const auto t = RoomSchedule::amsterdam(int64_t(unixTime) + int64_t(mode) * 86400 * 97);

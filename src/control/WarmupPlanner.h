@@ -154,51 +154,59 @@ struct WarmupPlanner {
         cJSON* rooms = root ? cJSON_AddArrayToObject(root, "rooms") : nullptr;
         if (!rooms) { cJSON_Delete(root); return nullptr; }
         for (size_t i = 0; i < plan.rooms.size() && i < l.rooms(); ++i) {
-            cJSON* o = cJSON_CreateObject();
-            cJSON* st = o ? cJSON_CreateObject() : nullptr;
-            cJSON* ni = st ? cJSON_CreateObject() : nullptr;
-            if (!ni || !cJSON_AddItemToArray(rooms, o)) { cJSON_Delete(o); cJSON_Delete(st); cJSON_Delete(ni); cJSON_Delete(root); return nullptr; }
-            cJSON_AddItemToObject(o, "optimum_start", st); cJSON_AddItemToObject(o, "night", ni);
-            cJSON_AddStringToObject(o, "id", plan.rooms[i].id.c_str());
-            const auto& schedule = plan.rooms[i].schedule;
-            const auto start = optimumStart(l, i, schedule, utc, temperatures[i], outdoor);
-            cJSON_AddStringToObject(st, "reason", start.reason);
-            if (start.reason[0] == 'p') {
-                riseJson(st, start.rise);
-                local(st, "predicted_start", start.startUtc);
-                cJSON_AddNumberToObject(st, "predicted_start_utc", double(start.startUtc));
-                cJSON_AddNumberToObject(st, "lead_minutes", (start.leadS + 30) / 60);
-                FlowLearner::number(st, "start_temperature_c", start.startTemperatureCentiC / 100.0f, 100);
-                cJSON_AddNumberToObject(st, "flow_c", start.flowC);
-                cJSON_AddStringToObject(st, "confidence", start.confidence);
-                cJSON_AddBoolToObject(st, "reachable", start.reachable);
-                cJSON_AddBoolToObject(st, "start_now", start.startNow);
-            }
-            const auto n = night(l, i, schedule, utc, temperatures[i], outdoor);
-            cJSON_AddStringToObject(ni, "reason", n.reason);
-            if (!n.count) continue;
-            cJSON_AddStringToObject(ni, "confidence", n.confidence);
-            cJSON* list = cJSON_AddArrayToObject(ni, "strategies");
-            for (uint8_t k = 0; list && k < n.count; ++k) {
-                const auto& s = n.strategies[k];
-                cJSON* so = cJSON_CreateObject();
-                if (!so || !cJSON_AddItemToArray(list, so)) { cJSON_Delete(so); break; }
-                cJSON_AddStringToObject(so, "name", s.name);
-                FlowLearner::number(so, "night_c", s.nightCentiC / 100.0f, 100);
-                FlowLearner::number(so, "kwh", s.kwh, 100);
-                FlowLearner::number(so, "m3", s.m3, 1000);
-                FlowLearner::number(so, "eur", s.eur, 100);
-                FlowLearner::number(so, "end_c", s.endCentiC / 100.0f, 100);
-                cJSON_AddBoolToObject(so, "on_time", s.onTime);
-            }
-            if (n.reason[0] == 'e') {
-                cJSON_AddStringToObject(ni, "recommended", n.strategies[n.best].name);
-                FlowLearner::number(ni, "recommended_night_c", n.strategies[n.best].nightCentiC / 100.0f, 100);
-                FlowLearner::number(ni, "saving_m3", n.savingM3, 1000);
-                FlowLearner::number(ni, "saving_eur", n.savingEur, 100);
-            }
+            cJSON* o = roomJson(l, plan, i, utc, temperatures[i], outdoor);
+            if (!o || !cJSON_AddItemToArray(rooms, o)) { cJSON_Delete(o); cJSON_Delete(root); return nullptr; }
         }
         return root;
+    }
+
+    // One plan room of json(): {"id":..,"optimum_start":{..},"night":{..}}; nullptr: no memory.
+    static cJSON* roomJson(const FlowLearner& l, const RoomPlan& plan, size_t i, int64_t utc,
+                           std::optional<int16_t> temperature, std::optional<int16_t> outdoor) {
+        if (i >= plan.rooms.size() || i >= l.rooms()) return nullptr;
+        cJSON* o = cJSON_CreateObject();
+        cJSON* st = o ? cJSON_AddObjectToObject(o, "optimum_start") : nullptr;
+        cJSON* ni = st ? cJSON_AddObjectToObject(o, "night") : nullptr;
+        if (!ni) { cJSON_Delete(o); return nullptr; }
+        cJSON_AddStringToObject(o, "id", plan.rooms[i].id.c_str());
+        const auto& schedule = plan.rooms[i].schedule;
+        const auto start = optimumStart(l, i, schedule, utc, temperature, outdoor);
+        cJSON_AddStringToObject(st, "reason", start.reason);
+        if (start.reason[0] == 'p') {
+            riseJson(st, start.rise);
+            local(st, "predicted_start", start.startUtc);
+            cJSON_AddNumberToObject(st, "predicted_start_utc", double(start.startUtc));
+            cJSON_AddNumberToObject(st, "lead_minutes", (start.leadS + 30) / 60);
+            FlowLearner::number(st, "start_temperature_c", start.startTemperatureCentiC / 100.0f, 100);
+            cJSON_AddNumberToObject(st, "flow_c", start.flowC);
+            cJSON_AddStringToObject(st, "confidence", start.confidence);
+            cJSON_AddBoolToObject(st, "reachable", start.reachable);
+            cJSON_AddBoolToObject(st, "start_now", start.startNow);
+        }
+        const auto n = night(l, i, schedule, utc, temperature, outdoor);
+        cJSON_AddStringToObject(ni, "reason", n.reason);
+        if (!n.count) return o;
+        cJSON_AddStringToObject(ni, "confidence", n.confidence);
+        cJSON* list = cJSON_AddArrayToObject(ni, "strategies");
+        for (uint8_t k = 0; list && k < n.count; ++k) {
+            const auto& s = n.strategies[k];
+            cJSON* so = cJSON_CreateObject();
+            if (!so || !cJSON_AddItemToArray(list, so)) { cJSON_Delete(so); break; }
+            cJSON_AddStringToObject(so, "name", s.name);
+            FlowLearner::number(so, "night_c", s.nightCentiC / 100.0f, 100);
+            FlowLearner::number(so, "kwh", s.kwh, 100);
+            FlowLearner::number(so, "m3", s.m3, 1000);
+            FlowLearner::number(so, "eur", s.eur, 100);
+            FlowLearner::number(so, "end_c", s.endCentiC / 100.0f, 100);
+            cJSON_AddBoolToObject(so, "on_time", s.onTime);
+        }
+        if (n.reason[0] == 'e') {
+            cJSON_AddStringToObject(ni, "recommended", n.strategies[n.best].name);
+            FlowLearner::number(ni, "recommended_night_c", n.strategies[n.best].nightCentiC / 100.0f, 100);
+            FlowLearner::number(ni, "saving_m3", n.savingM3, 1000);
+            FlowLearner::number(ni, "saving_eur", n.savingEur, 100);
+        }
+        return o;
     }
 
 private:

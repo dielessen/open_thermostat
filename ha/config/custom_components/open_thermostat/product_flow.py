@@ -265,8 +265,24 @@ class ProductOptionsFlow(E32RoomFlow, ControllerSetupFlow, ShadowOptionsFlow, Pr
         options = ["installation", "controller_connection", rooms, "configuration_status"]
         if self._native_plan_review_available():
             options.append("graph_prepare")
-        options.append("advanced_settings")
+        options += ["energy", "advanced_settings"]
         return self.async_show_menu(step_id="init", menu_options=options)
+
+    async def async_step_energy(self, user_input=None):
+        """Optional gas meter, gas price, outdoor temperature and boiler power (nothing is required)."""
+        from .energy_input import EnergyError, energy_schema, save_energy, validate_energy
+        errors = {}
+        if user_input is not None:
+            try:
+                values = validate_energy(self.hass, user_input)
+            except EnergyError as err:
+                errors[err.field] = err.code
+            else:
+                save_energy(self.hass, self.config_entry, values)
+                return self.async_abort(reason="energy_saved")
+        schema = energy_schema(vol, self.config_entry.options)
+        return self.async_show_form(step_id="energy", data_schema=retained_input_schema(self, schema, user_input),
+                                    errors=errors)
 
     async def async_step_installation(self, user_input=None):
         entry = self.config_entry

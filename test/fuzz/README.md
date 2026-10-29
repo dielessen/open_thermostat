@@ -14,7 +14,7 @@ Nothing here contacts a device, the bus, a radio, a broker or GitHub.
 | `fuzz_ble_advert` | `decodeBleTemperatureAdvertisement`, `findBleServiceData`, `openBthomeV2` (fake CCM and real Mbed TLS CCM), pvvx BTHome and custom 0x181A, Shelly H&T and BLU TRV, MiBeacon v4/v5 envelope + objects, `BleDeviceDiscovery::remember` name hints and its status JSON, BLE address/bindkey text parsers. |
 | `fuzz_ble_observer` | `ManagedBleObserver` state machine (capture queue, replay counters, clock faults, snapshots) with five bindings covering every profile, fake or real CCM. |
 | `fuzz_ble_settings` | `parseControlJson(deviceSettings)`, `readManagedBleBindings`, `prepareManagedBleSettings`, public/committed projections, redact/retain, and the boot read-back of a saved candidate. |
-| `fuzz_room_plan` | `POST /config/heating` and the flash copy (`RoomPlan::parse`, `RoomSchedule::parse`), the plan's JSON round trip, the MQTT `ha/heating_input` handler (copied verbatim from `HeatingController::heatingInput`, which is not host-buildable) and `RoomEngine` steps. |
+| `fuzz_room_plan` | `POST /config/heating` and the flash copy (`RoomPlan::parse`, `RoomSchedule::parse`), the plan's JSON round trip, the MQTT `ha/heating_input` route (`control/HeatingInput.h`, the one `HeatingController` uses: room states, gas meter, gas price, outdoor, boiler power), `RoomEngine` steps and the `FlowLearner` with its status. |
 | `fuzz_control_json` | `parseControlJson` in both modes: never accept more than 8 levels, 512 nodes, 8192 bytes or over-long strings. |
 | `fuzz_shadow` | `ShadowController::receive/tick/connected` for all `ha/*` topics, with session placeholders so sequences get past the handshake. Every publication must be valid JSON. |
 | `fuzz_boiler_services` | `BoilerTestService::action`, `ClassicBoilerSettingsService::request/poll/receive`, `ClassicConfigurationRead::request/poll/observe`, `WebAuthSession::cookieToken`, CSRF and `If-Match` checks. |
@@ -77,8 +77,8 @@ over 1 s) do not fail a run; hangs over 2 s do (`timeout-*`).
 - The fake CCM decryptor returns the ciphertext as plaintext so the decoders
   behind encryption get fuzzed; the real Mbed TLS path is fuzzed with the
   public test key (bit 2 of the first input byte).
-- `HeatingController::heatingInput` is copied into `fuzz_room_plan.cpp`; keep
-  the copy in sync when the original changes.
+- `ha/heating_input` is parsed and routed by `control/HeatingInput.h`, shared
+  with `HeatingController`, so the fuzzer runs the device code.
 
 ## Results of the first run (2026-10-29, beta.17 working tree)
 

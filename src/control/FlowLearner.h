@@ -43,7 +43,10 @@ public:
         uint32_t floorCoastMs = 7200000, radiatorCoastMs = 1800000; // heat off this long: pure cooling
         uint32_t minCoolMs = 3600000, maxCoolMs = 21600000;
         uint8_t modelSegments = 3;                     // cooling / power segments before b and C count
-        float nominalKw = 22;    // gas input at 100 % modulation (EcomLine HRC 22 class; the gas meter calibrates it)
+        // Gas input at 100 % modulation until HA reports the boiler's (boiler_kw): 22 kW,
+        // the owner's EcomLine HRC 22 class; only scales the capacity estimate, and a
+        // gas meter calibrates it either way.
+        float nominalKw = 22;
         float kwhPerM3 = 9.77f;  // NL gas, Groningen-equivalent upper value
         float returnDropK = 6;   // flow - return when the return is not reported
     };
@@ -153,8 +156,17 @@ public:
         }
         haveGas_ = gasValid_ = true; gasM3_ = totalM3; gasAtMs_ = atMs; predictedKwh_ = 0;
     }
-    void gasPrice(float eurPerM3) { if (eurPerM3 > 0 && eurPerM3 < 10) price_ = eurPerM3; }
+    void gasPrice(float eurPerM3) { if (eurPerM3 > 0 && eurPerM3 <= 20) price_ = eurPerM3; }
     std::optional<float> price() const { return price_; }
+    // The last gas meter reading (uptime ms); nullopt: none yet.
+    std::optional<uint64_t> gasMeterAt() const { return haveGas_ ? std::optional<uint64_t>(gasAtMs_) : std::nullopt; }
+    // Nominal gas input at 100 % modulation from HA (3..60 kW); until then Params::nominalKw.
+    bool setNominalKw(float kw) {
+        if (!(kw >= 3 && kw <= 60)) return false;
+        p_.nominalKw = kw; nominalFromHa_ = true; return true;
+    }
+    float nominalKw() const { return p_.nominalKw; }
+    bool nominalFromHa() const { return nominalFromHa_; }
     // Real / estimated gas; 1 until three intervals were compared.
     float calibration() const { return gasIntervals_ >= 3 ? static_cast<float>(std::clamp(calMeasured_ / calPredicted_, 0.5, 2.0)) : 1.0f; }
     uint16_t gasIntervals() const { return gasIntervals_; }
@@ -239,46 +251,53 @@ public:
         number(root, "gas_calibration", calibration(), 1000);
         cJSON_AddNumberToObject(root, "gas_intervals", gasIntervals_);
         for (size_t i = 0; i < rooms_.size(); ++i) {
-            const auto& r = rooms_[i];
-            cJSON* o = cJSON_CreateObject();
+            cJSON* o = roomJson(i);
             if (!o || !cJSON_AddItemToArray(list, o)) { cJSON_Delete(o); cJSON_Delete(root); return nullptr; }
-            cJSON_AddStringToObject(o, "id", r.id.c_str());
-            cJSON_AddStringToObject(o, "emitter", r.emitter == RoomPlan::Emitter::floor ? "floor" : "radiator");
-            cJSON_AddStringToObject(o, "readiness", readiness(r));
-            cJSON_AddNumberToObject(o, "segments", r.segments);
-            cJSON_AddNumberToObject(o, "periods", r.periods);
-            cJSON_AddNumberToObject(o, "rejected", r.rejected);
-            cJSON_AddStringToObject(o, "last", r.last);
-            cJSON_AddBoolToObject(o, "segment_open", r.segment.active);
-            cJSON_AddNumberToObject(o, "accept_base_min", r.acceptance.baseMinutes);
-            cJSON_AddNumberToObject(o, "accept_per_degree_min", r.acceptance.perDegreeMinutes);
-            number(o, "outdoor_slope_c_per_h_per_k", outdoorSlope(r), 1000);
-            const auto m = heatModel(i);
-            number(o, "loss_per_h", m.lossPerHour, 10000);
-            number(o, "capacity_kwh_per_k", m.capacityKwhPerK, 100);
-            cJSON_AddNumberToObject(o, "cool_segments", m.coolSegments);
-            cJSON_AddNumberToObject(o, "power_segments", m.powerSegments);
-            cJSON* curve = cJSON_AddArrayToObject(o, "curve");
-            cJSON* advice = cJSON_AddArrayToObject(o, "advice");
-            if (!curve || !advice) { cJSON_Delete(root); return nullptr; }
-            for (const auto& b : r.bins) {
-                if (!b.segments) continue;
-                cJSON* p = cJSON_CreateObject();
-                if (!p || !cJSON_AddItemToArray(curve, p)) { cJSON_Delete(p); cJSON_Delete(root); return nullptr; }
-                const float mean = b.wr / b.w;
-                number(p, "flow_c", b.wf / b.w, 10);
-                number(p, "rate_c_per_h", mean, 100);
-                number(p, "sd_c_per_h", std::sqrt(std::max(0.0f, b.wrr / b.w - mean * mean)), 100);
-                cJSON_AddNumberToObject(p, "segments", b.segments);
-                cJSON_AddNumberToObject(p, "periods", b.periods);
-                cJSON_AddBoolToObject(p, "ready", ready(b));
-            }
-            for (const auto s : reportShortfalls)
-                if (!adviceJson(advice, nullptr, s, advise(i, s, outdoor_))) { cJSON_Delete(root); return nullptr; }
-            if (r.shortfall) { if (!adviceJson(o, "now", *r.shortfall, advise(i, *r.shortfall, outdoor_))) { cJSON_Delete(root); return nullptr; } }
-            else cJSON_AddNullToObject(o, "now");
         }
         return root;
+    }
+    // One room of json() (also published alone as fw/telemetry/heating_learned/<id>).
+    cJSON* roomJson(size_t i) const {
+        if (i >= rooms_.size()) return nullptr;
+        const auto& r = rooms_[i];
+        cJSON* o = cJSON_CreateObject();
+        if (!o) return nullptr;
+        cJSON_AddStringToObject(o, "id", r.id.c_str());
+        cJSON_AddStringToObject(o, "emitter", r.emitter == RoomPlan::Emitter::floor ? "floor" : "radiator");
+        cJSON_AddStringToObject(o, "readiness", readiness(r));
+        cJSON_AddNumberToObject(o, "segments", r.segments);
+        cJSON_AddNumberToObject(o, "periods", r.periods);
+        cJSON_AddNumberToObject(o, "rejected", r.rejected);
+        cJSON_AddStringToObject(o, "last", r.last);
+        cJSON_AddBoolToObject(o, "segment_open", r.segment.active);
+        cJSON_AddNumberToObject(o, "accept_base_min", r.acceptance.baseMinutes);
+        cJSON_AddNumberToObject(o, "accept_per_degree_min", r.acceptance.perDegreeMinutes);
+        number(o, "outdoor_slope_c_per_h_per_k", outdoorSlope(r), 1000);
+        const auto m = heatModel(i);
+        number(o, "loss_per_h", m.lossPerHour, 10000);
+        number(o, "capacity_kwh_per_k", m.capacityKwhPerK, 100);
+        cJSON_AddNumberToObject(o, "cool_segments", m.coolSegments);
+        cJSON_AddNumberToObject(o, "power_segments", m.powerSegments);
+        cJSON* curve = cJSON_AddArrayToObject(o, "curve");
+        cJSON* advice = cJSON_AddArrayToObject(o, "advice");
+        if (!curve || !advice) { cJSON_Delete(o); return nullptr; }
+        for (const auto& b : r.bins) {
+            if (!b.segments) continue;
+            cJSON* p = cJSON_CreateObject();
+            if (!p || !cJSON_AddItemToArray(curve, p)) { cJSON_Delete(p); cJSON_Delete(o); return nullptr; }
+            const float mean = b.wr / b.w;
+            number(p, "flow_c", b.wf / b.w, 10);
+            number(p, "rate_c_per_h", mean, 100);
+            number(p, "sd_c_per_h", std::sqrt(std::max(0.0f, b.wrr / b.w - mean * mean)), 100);
+            cJSON_AddNumberToObject(p, "segments", b.segments);
+            cJSON_AddNumberToObject(p, "periods", b.periods);
+            cJSON_AddBoolToObject(p, "ready", ready(b));
+        }
+        for (const auto s : reportShortfalls)
+            if (!adviceJson(advice, nullptr, s, advise(i, s, outdoor_))) { cJSON_Delete(o); return nullptr; }
+        if (r.shortfall) { if (!adviceJson(o, "now", *r.shortfall, advise(i, *r.shortfall, outdoor_))) { cJSON_Delete(o); return nullptr; } }
+        else cJSON_AddNullToObject(o, "now");
+        return o;
     }
     static void number(cJSON* o, const char* key, std::optional<float> v, int scale) {
         if (v) cJSON_AddNumberToObject(o, key, std::round(double(*v) * scale) / scale); else cJSON_AddNullToObject(o, key);
@@ -463,7 +482,7 @@ private:
     Params p_;
     std::vector<Room> rooms_;
     uint8_t minFlowC_ = 30, maxFlowC_ = 60;
-    bool haveLast_ = false, heating_ = false, haveGas_ = false, gasValid_ = false;
+    bool haveLast_ = false, heating_ = false, haveGas_ = false, gasValid_ = false, nominalFromHa_ = false;
     uint16_t period_ = 0, gasIntervals_ = 0;
     uint64_t lastMs_ = 0, holdUntil_ = 0, offSince_ = 0, gasAtMs_ = 0;
     double gasM3_ = 0, predictedKwh_ = 0, calMeasured_ = 0, calPredicted_ = 0;

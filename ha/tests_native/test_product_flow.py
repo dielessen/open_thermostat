@@ -30,7 +30,7 @@ async def option(manager,parent,step):
     f=await manager.async_init(parent.entry_id)
     # A stored E32 connection makes the E32 room plan the room editor.
     rooms='e32_rooms' if has_room_plan(parent) else 'room_settings'
-    base=['installation','controller_connection',rooms,'configuration_status','advanced_settings']
+    base=['installation','controller_connection',rooms,'configuration_status','energy','advanced_settings']
     assert f['menu_options'] in [base,base[:4]+['graph_prepare']+base[4:]]
     return await manager.async_configure(f['flow_id'],{'next_step_id':step})
 

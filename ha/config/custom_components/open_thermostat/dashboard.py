@@ -3,7 +3,8 @@
 Three views, built from the entity registry (renamed entity IDs are followed,
 disabled and absent entities are left out) with built-in cards only:
 
-* Heating: now (boiler request, flow, agreement), one section per E32 room
+* Heating: now (boiler request, flow, agreement), the heating advice (only
+  while there is any), one section per E32 room
   (with a small "Learning" area once the E32 reports it), the E32 next to the
   thermostat, the boiler essentials (with today's hot-water taps) and the
   Bluetooth sensors;
@@ -143,6 +144,9 @@ TEXT = {
                          "temperature that still makes up a 1 °C shortfall in time (the recommended flow).",
         "advice_only": "For now this is advice only; the E32 keeps its own rule.",
         "dhw_taps": "Hot water taps today", "dhw_today": "Hot water today",
+        "advice": "Advice", "advice_where": "Where", "advice_confidence": "Confidence",
+        "advice_note": "Advice only: nothing is changed automatically.",
+        "confidence_low": "low", "confidence_medium": "medium", "confidence_high": "high",
     },
     "nl": {
         "heating": "Verwarming", "boiler_view": "Ketel", "diagnostics": "Diagnose",
@@ -198,6 +202,9 @@ TEXT = {
                          "aanvoertemperatuur die een tekort van 1 °C nog op tijd inhaalt (de geadviseerde aanvoer).",
         "advice_only": "Voorlopig is dat alleen advies; de E32 houdt zijn eigen regel aan.",
         "dhw_taps": "Warmwatertappen vandaag", "dhw_today": "Warm water vandaag",
+        "advice": "Advies", "advice_where": "Waar", "advice_confidence": "Zekerheid",
+        "advice_note": "Alleen advies: er wordt niets automatisch veranderd.",
+        "confidence_low": "laag", "confidence_medium": "middel", "confidence_high": "hoog",
     },
 }
 
@@ -252,6 +259,31 @@ def _learning_cards(t, room):
               visibility=[{"condition": "state", "entity": learning, "state": "ready"}, *_known(advice)]),
         _tile(start, t["heating_start"], visibility=_known(start)),
     ]
+
+
+ADVICE_ICONS = {"warning": "mdi:alert-outline", "suggestion": "mdi:lightbulb-on-outline",
+                "info": "mdi:information-outline"}
+
+
+def _advice_section(t, advice):
+    """The current heating advice (title, action, where); hidden while there is none."""
+    if not advice:
+        return None
+    quoted = json.dumps(advice)
+    confidence = json.dumps({key: t["confidence_" + key] for key in ("low", "medium", "high")})
+    icons = json.dumps(ADVICE_ICONS)
+    content = ("{% set icons = " + icons + " %}{% set confidence = " + confidence + " %}"
+               "{% for item in state_attr(" + quoted + ", 'items') or [] %}"
+               "<ha-icon icon=\"{{ icons.get(item.severity, 'mdi:information-outline') }}\"></ha-icon> "
+               "**{{ item.title }}**\n\n{{ item.action }}\n\n"
+               "*" + t["advice_where"] + ": {{ item.where }} · " + t["advice_confidence"]
+               + ": {{ confidence.get(item.confidence, item.confidence) }}*\n\n"
+               "{% endfor %}" + t["advice_note"])
+    shown = [{"condition": "numeric_state", "entity": advice, "above": 0}]
+    section = _section(_heading(t["advice"], "mdi:lightbulb-on-outline", style="title", visibility=shown),
+                       {"type": "markdown", "content": content, "visibility": shown})
+    section["visibility"] = shown
+    return section
 
 
 def _tile(entity_id, name=None, icon=None, features=None, visibility=None):
@@ -583,6 +615,9 @@ class RoomDashboard:
             if e32_rooms else None,
         )
         sections = [now] if len(now["cards"]) > 1 else []
+        advice = _advice_section(t, hub.get("heating_advice"))
+        if advice:
+            sections.append(advice)
 
         from .heating_link import label
         heating_hub = self._heating_hub()

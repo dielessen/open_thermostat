@@ -329,8 +329,9 @@ public:
     }
     void inhibitNativeSourceMutation() {if(modern_)modern_->inhibitNativeSourceMutation();}
     bool brokerConnected() const { return modernMode_&&modern_&&modern_->brokerConnected(); }
-    void setHeatingRoute(control::ModernTransport::HeatingInput input,control::ModernTransport::HeatingStatus status) {
-        if(modern_)modern_->setHeatingRoute(std::move(input),std::move(status));
+    void setHeatingRoute(control::ModernTransport::HeatingInput input,control::ModernTransport::HeatingStatus status,
+                         control::ModernTransport::HeatingRoomCount roomCount={},control::ModernTransport::HeatingRoomTelemetry room={}) {
+        if(modern_)modern_->setHeatingRoute(std::move(input),std::move(status),std::move(roomCount),std::move(room));
     }
 #endif
 private:

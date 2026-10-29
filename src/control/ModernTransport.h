@@ -18,6 +18,7 @@
 #include "AsyncBrokerDns.h"
 #include "PendingTcpConnect.h"
 #include "ControllerRequestTelemetry.h"
+#include "HeatingTelemetry.h"
 #include <PubSubClient.h>
 #include <esp_timer.h>
 #include <esp_system.h>
@@ -195,8 +196,13 @@ public:
     // source states on ha/heating_input, the E32 reports fw/telemetry/heating.
     using HeatingInput=std::function<void(std::string_view)>;
     using HeatingStatus=std::function<std::string()>;
-    void setHeatingRoute(HeatingInput input,HeatingStatus status) {
+    // fw/telemetry/heating_learned/<room id>: the plan's room count, and one
+    // room's payload (empty: skip) with its id.
+    using HeatingRoomCount=std::function<std::size_t()>;
+    using HeatingRoomTelemetry=std::function<std::string(std::size_t,std::string&)>;
+    void setHeatingRoute(HeatingInput input,HeatingStatus status,HeatingRoomCount roomCount={},HeatingRoomTelemetry room={}) {
         heatingInput_=std::move(input);heatingStatus_=std::move(status);
+        heatingRoomCount_=std::move(roomCount);heatingRoom_=std::move(room);
     }
     bool nativeSourceCurrent(std::string_view expected,std::string_view savedSettings) const {
         return valid_&&!graph_&&cfg_.nativeSourceRequested&&controller_&&controller_->nativeSourceSelected()
@@ -326,6 +332,17 @@ public:
                 else if(!heating.empty()&&!client_.publish((base_+"fw/telemetry/heating").c_str(),heating.c_str(),false))
                     heatingTelemetryFailed.fetch_add(1,std::memory_order_relaxed);
             } catch(const std::exception&) { /* status is observation only */ }
+            // What was learned per room, two rooms per tick (each <= ~900 B).
+            if(heatingRoomCount_&&heatingRoom_)try {
+                heatingRoomRotation_.tick(heatingRoomCount_(),2,[&](std::size_t room){
+                    std::string id;
+                    const auto payload=heatingRoom_(room,id);
+                    if(payload.empty()||!topicSafeRoomId(id))return;
+                    if(payload.size()>heatingTelemetryMaxBytes) heatingTelemetryDropped.fetch_add(1,std::memory_order_relaxed);
+                    else if(!client_.publish((base_+"fw/telemetry/heating_learned/"+id).c_str(),payload.c_str(),false))
+                        heatingTelemetryFailed.fetch_add(1,std::memory_order_relaxed);
+                });
+            } catch(const std::exception&) { /* observation only */ }
             if(controllerStatus_)try {
                 std::ostringstream status;controllerStatus_(status);
                 const auto command=controllerRequestTelemetry(status.str());
@@ -355,6 +372,9 @@ private:
     StatusSnapshot controllerStatus_;
     HeatingInput heatingInput_;
     HeatingStatus heatingStatus_;
+    HeatingRoomCount heatingRoomCount_;
+    HeatingRoomTelemetry heatingRoom_;
+    RoomRotation heatingRoomRotation_;
     AsyncBrokerDns brokerDns_;
     PendingTcpConnect brokerTcp_;
     std::unique_ptr<GraphControlStoreView> graphControlView_;

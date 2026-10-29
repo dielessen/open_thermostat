@@ -104,6 +104,12 @@
       },
       "radiator_heating_time": {
         "default": "mdi:timer-outline"
+      },
+      "heating_advice": {
+        "default": "mdi:lightbulb-on-outline",
+        "state": {
+          "0": "mdi:lightbulb-outline"
+        }
       }
     }
   },

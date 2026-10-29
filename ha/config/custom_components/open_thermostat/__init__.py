@@ -79,6 +79,14 @@ async def _async_options_updated(hass, entry):
     # Withdraw current SOURCE control before ANY native config/subentry reload
     # await. A changed draft cannot keep a ready owner while reload is queued.
     state=hass.data.get(DOMAIN,{}).get(entry.entry_id,{})
+    from .energy_input import energy_only_update
+    if energy_only_update(state, entry):
+        # Only the optional energy inputs changed: follow them, no reload (no plan review).
+        if (forwarder:=state.get("energy_forwarder")) is not None:
+            forwarder.reconfigure()
+        if (advice:=state.get("heating_advice")) is not None:
+            advice.reevaluate()
+        return
     runtime=state.get("v1_runtime");connection=state.get("v1_connection")
     if (getattr(runtime,"native_plan_source",None) is not None
             and connection is not None and not connection.closed and connection.client is not None):

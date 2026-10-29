@@ -1007,7 +1007,8 @@
           "advanced_settings": "Geavanceerd en diagnose",
           "controller_connection": "E32 verbinden",
           "graph_prepare": "Ruimteplan controleren en herstellen",
-          "e32_rooms": "Ruimtes"
+          "e32_rooms": "Ruimtes",
+          "energy": "Energie en buitentemperatuur"
         }
       },
       "graph_review": {
@@ -1430,6 +1431,24 @@
         "data_description": {
           "confirm_remove": "Vink aan om te bevestigen. De geschiedenis van de ruimte in Home Assistant blijft bewaard."
         }
+      },
+      "energy": {
+        "title": "Energie en buitentemperatuur",
+        "description": "Optioneel. Met je gasmeter, gasprijs, een buitentemperatuur en het vermogen van je ketel kalibreert de E32 zijn warmte- en gasschattingen, en toont het CV-advies besparingen in m³ en €. Zonder werkt alles gewoon: schattingen gebruiken dan de modulatie van de ketel en een standaardvermogen, en het advies zegt wat er ontbreekt. Laat een veld leeg om het niet te gebruiken.",
+        "data": {
+          "gas_meter": "Gasmeter",
+          "gas_price_entity": "Gasprijssensor",
+          "gas_price": "Vaste gasprijs",
+          "outdoor_entity": "Buitentemperatuur",
+          "boiler_kw": "Verwarmingsvermogen ketel"
+        },
+        "data_description": {
+          "gas_meter": "Een totale gasmeterstand in m³ (bijvoorbeeld van een P1-meter of slimme gasmeter), met statusklasse total of total increasing.",
+          "gas_price_entity": "Een sensor of invoergetal met de prijs per m³ (eenheid zoals EUR/m³). Gebruik dit of een vaste prijs, niet allebei.",
+          "gas_price": "De prijs per m³ gas als je geen prijssensor hebt, bijvoorbeeld 1,35.",
+          "outdoor_entity": "Een temperatuursensor buiten (°C of °F) of een weerentiteit. Daarmee leert de E32 hoe snel ruimtes afkoelen.",
+          "boiler_kw": "Het nominale verwarmingsvermogen van de ketel in kW (typeplaatje of handleiding), 3–60 kW. Leeg: de E32 gebruikt een standaardwaarde."
+        }
       }
     },
     "error": {
@@ -1530,7 +1549,15 @@
       "e32_plan_too_large": "Het ruimteplan is te groot voor de E32 (4 KB). Gebruik kortere namen, minder bronnen of minder schakelpunten. Er is niets opgeslagen.",
       "e32_rejected": "De E32 weigerde het ruimteplan ({error}). Er is niets opgeslagen.",
       "e32_unreachable": "De E32 is niet bereikbaar ({error}). Er is niets opgeslagen.",
-      "e32_room_limit": "Het ruimteplan van de E32 heeft al 8 ruimtes."
+      "e32_room_limit": "Het ruimteplan van de E32 heeft al 8 ruimtes.",
+      "entity_not_found": "Deze entiteit heeft geen status in Home Assistant.",
+      "gas_meter_unit": "Kies een gasmetersensor in m³.",
+      "gas_meter_not_total": "Kies een meterstand (statusklasse total of total increasing), geen verbruikssnelheid.",
+      "gas_price_unit": "Kies een prijs per m³ (eenheid zoals EUR/m³).",
+      "gas_price_invalid": "De gasprijs moet tussen 0,01 en 20 per m³ liggen.",
+      "gas_price_twice": "Gebruik een gasprijssensor of een vaste gasprijs, niet allebei.",
+      "outdoor_unit": "Kies een temperatuursensor in °C of °F, of een weerentiteit met een temperatuur.",
+      "boiler_kw_invalid": "Het ketelvermogen moet tussen 3 en 60 kW liggen."
     },
     "abort": {
       "graph_review_unavailable": "Geen bestaande schema-aansluiting met gekozen bron beschikbaar. Geen profiel ingeschakeld.",
@@ -1578,7 +1605,8 @@
       "e32_room_missing": "Ruimte {room} staat niet meer in het ruimteplan van de E32.",
       "e32_room_saved": "{name} is opgeslagen in het ruimteplan van de E32.",
       "e32_room_removed": "{name} is verwijderd uit het ruimteplan van de E32.",
-      "e32_room_unchanged": "Er is niets gewijzigd; het ruimteplan van de E32 is niet opnieuw geschreven."
+      "e32_room_unchanged": "Er is niets gewijzigd; het ruimteplan van de E32 is niet opnieuw geschreven.",
+      "energy_saved": "Energie-instellingen opgeslagen. Niets is verplicht; de E32 krijgt de waarden binnen een paar minuten."
     },
     "progress": {
       "controller_connect": "Verbinden, ruimteprogramma toepassen en teruglezen…"
@@ -2000,6 +2028,9 @@
       },
       "field_boiler_uptime": {
         "name": "Bedrijfstijd ketel"
+      },
+      "heating_advice": {
+        "name": "CV-advies"
       }
     },
     "select": {
@@ -2033,6 +2064,10 @@
     "measurement_clock": {
       "title": "Ruimtemetingen gestopt: ongeldige lokale klok",
       "description": "OpenThermostat heeft een ongeldige of teruglopende lokale tijdmeting vastgesteld. Eerder gekwalificeerde ruimtemetingen zijn ingetrokken en worden door deze runtime niet opnieuw gebruikt. De verwarmingsregeling kan niet op deze metingen vertrouwen. Controleer de gezondheid van de Home Assistant-host en herlaad daarna deze OpenThermostat-integratie. Alleen een gezonde vervangende runtime wist deze melding; nieuwe metingen moeten nog steeds de normale broncontroles doorlopen. Herladen geeft geen toestemming voor ketel- of kraanopdrachten. Raam- en aanwezigheidssignalen worden eveneens onbekend totdat een gezonde nieuwe eigenaar bruikbare informatie ontvangt."
+    },
+    "low_boiler_pressure": {
+      "title": "Waterdruk ketel laag",
+      "description": "De ketel meldt een waterdruk van {pressure} bar. Vul de installatie bij via de vulkraan tot 1,5–2,0 bar (met de installatie koud). Moet je vaak bijvullen, zoek dan een lek of laat het expansievat nakijken. Deze melding verdwijnt vanzelf zodra de druk weer boven 1 bar is."
     }
   },
   "services": {

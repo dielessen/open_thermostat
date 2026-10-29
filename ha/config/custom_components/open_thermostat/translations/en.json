@@ -91,7 +91,8 @@
           "advanced_settings": "Advanced and diagnostics",
           "controller_connection": "Connect E32",
           "graph_prepare": "Review or recover room plan",
-          "e32_rooms": "Rooms"
+          "e32_rooms": "Rooms",
+          "energy": "Energy and outdoor temperature"
         }
       },
       "graph_review": {
@@ -514,6 +515,24 @@
         "data_description": {
           "confirm_remove": "Tick to confirm. The room's history in Home Assistant stays."
         }
+      },
+      "energy": {
+        "title": "Energy and outdoor temperature",
+        "description": "Optional. With your gas meter, gas price, an outdoor temperature and your boiler's power the E32 calibrates its heat and gas estimates, and the heating advice shows savings in m³ and €. Without them everything keeps working: estimates then use the boiler's modulation and a default power, and the advice says what is missing. Leave a field empty to not use it.",
+        "data": {
+          "gas_meter": "Gas meter",
+          "gas_price_entity": "Gas price sensor",
+          "gas_price": "Fixed gas price",
+          "outdoor_entity": "Outdoor temperature",
+          "boiler_kw": "Boiler heating power"
+        },
+        "data_description": {
+          "gas_meter": "A total gas meter reading in m³ (for example from a P1 meter or a smart gas meter), with state class total or total increasing.",
+          "gas_price_entity": "A sensor or input number with the price per m³ (unit such as EUR/m³). Use this or a fixed price, not both.",
+          "gas_price": "The price per m³ of gas when you have no price sensor, for example 1.35.",
+          "outdoor_entity": "A temperature sensor outside (°C or °F) or a weather entity. It helps the E32 learn how fast rooms cool down.",
+          "boiler_kw": "The boiler's nominal heating power in kW (type plate or manual), 3–60 kW. Empty: the E32 uses a default."
+        }
       }
     },
     "error": {
@@ -614,7 +633,15 @@
       "e32_plan_too_large": "The room plan is too large for the E32 (4 KB). Use shorter names, fewer sources or fewer switch points. Nothing was saved.",
       "e32_rejected": "The E32 refused the room plan ({error}). Nothing was saved.",
       "e32_unreachable": "The E32 could not be reached ({error}). Nothing was saved.",
-      "e32_room_limit": "The E32 room plan already has 8 rooms."
+      "e32_room_limit": "The E32 room plan already has 8 rooms.",
+      "entity_not_found": "This entity has no state in Home Assistant.",
+      "gas_meter_unit": "Choose a gas meter sensor in m³.",
+      "gas_meter_not_total": "Choose a meter reading (state class total or total increasing), not a usage rate.",
+      "gas_price_unit": "Choose a price per m³ (unit such as EUR/m³).",
+      "gas_price_invalid": "The gas price must be between 0.01 and 20 per m³.",
+      "gas_price_twice": "Use a gas price sensor or a fixed gas price, not both.",
+      "outdoor_unit": "Choose a temperature sensor in °C or °F, or a weather entity with a temperature.",
+      "boiler_kw_invalid": "The boiler power must be between 3 and 60 kW."
     },
     "abort": {
       "graph_review_unavailable": "No existing source-selected graph connection is available. No profile was enabled.",
@@ -662,7 +689,8 @@
       "e32_room_missing": "Room {room} is no longer in the E32 room plan.",
       "e32_room_saved": "{name} is saved in the E32 room plan.",
       "e32_room_removed": "{name} is removed from the E32 room plan.",
-      "e32_room_unchanged": "Nothing changed; the E32 room plan was not written."
+      "e32_room_unchanged": "Nothing changed; the E32 room plan was not written.",
+      "energy_saved": "Energy settings saved. Nothing is required; the E32 receives the values within a few minutes."
     },
     "progress": {
       "controller_connect": "Connecting, applying and reading back the room plan…"
@@ -1084,6 +1112,9 @@
       },
       "field_boiler_uptime": {
         "name": "Boiler uptime"
+      },
+      "heating_advice": {
+        "name": "Heating advice"
       }
     },
     "select": {
@@ -2033,6 +2064,10 @@
     "measurement_clock": {
       "title": "Room measurements stopped: invalid local clock",
       "description": "OpenThermostat detected an invalid or backward-running local timing clock. Previously qualified room measurements have been withdrawn and will not be reused by this runtime. Heating control cannot rely on those measurements. Check Home Assistant host health, then reload this OpenThermostat integration. Only a healthy replacement runtime clears this warning; new measurements still need their normal source checks. Reloading does not authorize boiler or valve commands. Window and presence signals also become unknown until a healthy new owner receives usable information."
+    },
+    "low_boiler_pressure": {
+      "title": "Boiler water pressure low",
+      "description": "The boiler reports a water pressure of {pressure} bar. Top up the system at the filling tap to 1.5–2.0 bar (with the system cold). If you have to top up often, look for a leak or have the expansion vessel checked. This message disappears by itself once the pressure is back above 1 bar."
     }
   },
   "services": {

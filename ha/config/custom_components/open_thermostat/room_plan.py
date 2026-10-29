@@ -161,6 +161,9 @@ class RoomPlanLink:
         if room is not None and (status_room is None or (status_revision is not None
                                                         and self.revision > status_revision)):
             return room
+        if status_room is not None and room is not None and "inactive_until" not in status_room:
+            # Newer firmware leaves inactive_until out of the MQTT rooms: the plan has it.
+            return {**status_room, "inactive_until": room.get("inactive_until")}
         return status_room
 
     @callback

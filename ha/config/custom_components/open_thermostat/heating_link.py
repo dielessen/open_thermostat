@@ -6,10 +6,14 @@ entities it reads (``ha_entities``). HA forwards exactly those entities'
 temperature and target to ``ha/heating_input`` on every change and every five
 minutes, so a steady tado stays fresh.
 
-Newer firmware adds what it learned per room (``learned``: readiness, flow
-advice and, with a trusted clock, ``learned.plans``: optimum start and night
-options) and today's hot water (``dhw``); those entities appear only once the
-fields do.
+Newer firmware adds what it learned per room (readiness, flow advice and,
+with a trusted clock, the plan: optimum start and night options) and today's
+hot water (``dhw``); those entities appear only once the fields do. The
+learned rooms come either inside the status (``learned.rooms`` and
+``learned.plans``, beta.18 test builds) or, to stay within the MQTT size
+limit, one message per room on ``fw/telemetry/heating_learned/<room id>``
+(at least every 60 s; stale after ``LEARNED_STALE_SECONDS``); the status
+then keeps only the learned header (schema, applied, status, ...).
 
 One ``HeatingHub`` per entry holds the latest status. Every platform (sensor,
 binary_sensor, select, number, datetime) creates its entities from it for the
@@ -44,6 +48,9 @@ ROOM_STATUSES = ["ok", "fallback", "stale", "lost", "inactive"]
 LEARNING_STATES = ["collecting", "learning", "ready"]
 # A hard bound before parsing (the E32 publishes at most 4096 bytes).
 MAX_STATUS_BYTES = 8192
+# A room's learned message (every room at least every 60 s) expires after three missed ones.
+LEARNED_STALE_SECONDS = 180
+LEARNED_TOPIC = "fw/telemetry/heating_learned/"
 
 
 def decode_status(payload):
@@ -109,6 +116,26 @@ def plan_rooms(status):
     return rooms_by_id(plans.get("rooms")) if type(plans) is dict else {}
 
 
+def decode_learned(topic_room, payload):
+    """(learned room, plan or None) of one ``heating_learned/<room id>`` message, or None.
+
+    The payload's id must be the topic's room id; ``plan`` is null without a trusted clock.
+    """
+    if (not isinstance(payload, (str, bytes)) or len(payload) > MAX_STATUS_BYTES
+            or type(topic_room) is not str or not ROOM_ID.fullmatch(topic_room)):
+        return None
+    try:
+        value = json.loads(payload)
+    except (ValueError, TypeError, UnicodeError):
+        return None
+    if type(value) is not dict or value.get("schema") != 1 or value.get("id") != topic_room:
+        return None
+    learned, plan = value.get("learned"), value.get("plan")
+    if type(learned) is not dict or (plan is not None and type(plan) is not dict):
+        return None
+    return {**learned, "id": topic_room}, ({**plan, "id": topic_room} if plan is not None else None)
+
+
 def status_ble(status):
     """{sensor id: sensor} for the well-formed Bluetooth sensors of a status."""
     sensors = {}
@@ -154,6 +181,8 @@ class HeatingHub:
         self.ble = {}
         self.learned = {}
         self.warmup = {}
+        # {room id: (received, learned room, plan or None)} from heating_learned/<room id>
+        self.learned_messages = {}
         self.received = None
         self.plan = None  # room_plan.RoomPlanLink when the E32 credentials are stored
         self._listeners = []
@@ -182,20 +211,47 @@ class HeatingHub:
         for listener in list(self._listeners):
             listener()
 
+    def _merge_learned(self):
+        """The learned rooms and plans: from the status (older firmware) and the per-room messages."""
+        learned, warmup = learned_rooms(self.status), plan_rooms(self.status)
+        for room_id, (_, room, plan) in self.learned_messages.items():
+            learned[room_id] = room
+            if plan is not None:
+                warmup[room_id] = plan
+            else:
+                warmup.pop(room_id, None)
+        self.learned, self.warmup = learned, warmup
+
     @callback
     def update(self, status):
         self.status = status
         self.rooms = status_rooms(status)
         self.ble = status_ble(status)
-        self.learned = learned_rooms(status)
-        self.warmup = plan_rooms(status)
         self.received = self.clock() if status is not None else None
+        self._merge_learned()
+        self.notify()
+
+    @callback
+    def update_learned(self, room_id, value):
+        """One room's learned message (decode_learned); None (invalid) is ignored."""
+        if value is None:
+            return
+        self.learned_messages[room_id] = (self.clock(), *value)
+        self._merge_learned()
         self.notify()
 
     @callback
     def check_stale(self, _now=None):
-        if self.status is not None and self.clock() - self.received > STALE_SECONDS:
+        now = self.clock()
+        expired = [room_id for room_id, (at, _, _) in self.learned_messages.items()
+                   if now - at > LEARNED_STALE_SECONDS]
+        for room_id in expired:
+            del self.learned_messages[room_id]
+        if self.status is not None and now - self.received > STALE_SECONDS:
             self.update(None)
+        elif expired:
+            self._merge_learned()
+            self.notify()
 
     @callback
     def stop(self):
@@ -410,8 +466,11 @@ class RoomStatusSensor(RoomEntity, SensorEntity):
         room = self.room
         if not room or not self.hub.fresh:
             return None
+        # Newer firmware leaves inactive_until out of the MQTT rooms: the plan has it.
+        until = room.get("inactive_until") if "inactive_until" in room else (
+            (self.hub.plan.room(self.room_id) or {}).get("inactive_until") if self.hub.plan is not None else None)
         return {"room_id": self.room_id, "source": room.get("source"), "state": room.get("state"),
-                "inactive_until": room.get("inactive_until"), "demand": room.get("demand"),
+                "inactive_until": until, "demand": room.get("demand"),
                 "temperature": room.get("temperature"), "setpoint": room.get("setpoint"),
                 "revision": self.hub.revision}
 
@@ -934,13 +993,26 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     sensor = HeatRequestSensor(hub)
     async_add_entities([sensor], **options)
     entry.async_on_unload(track_entities(hub, async_add_entities, options, wanted_sensors))
+    from .product import is_product
+    if is_product(entry):  # the tuning advice (advice only) on the product device
+        from .heating_advice import async_setup_heating_advice
+        await async_setup_heating_advice(hass, entry, async_add_entities, options, hub, connection)
     forwarded = []
     unsubscribe_states = None
+
+    def send(payload):
+        hass.async_create_task(mqtt.async_publish(hass, topic_base + "ha/heating_input", payload, 0, False))
 
     def publish(entity_id):
         payload = input_payload(hass.states.get(entity_id))
         if payload is not None:
-            hass.async_create_task(mqtt.async_publish(hass, topic_base + "ha/heating_input", payload, 0, False))
+            send(payload)
+
+    # The optional gas meter, gas price, outdoor temperature and boiler power
+    # (energy options) go the same route as typed payloads.
+    from .energy_input import EnergyForwarder
+    energy = state["energy_forwarder"] = EnergyForwarder(
+        hass, entry, send, lambda hass, ids, action: async_track_state_change_event(hass, ids, action))
 
     @callback
     def state_changed(event):
@@ -950,6 +1022,7 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     def refresh(_now=None):
         for entity_id in forwarded:
             publish(entity_id)
+        energy.publish()
 
     @callback
     def receive(message):
@@ -957,7 +1030,10 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
         if getattr(message, "retain", False):
             return
         status = decode_status(message.payload)
+        was_fresh = hub.fresh
         hub.update(status)
+        if status is not None and not was_fresh and status["ha_entities"] == forwarded:
+            energy.publish()  # the E32 is (back) online: send the energy values at once
         if status is None or status["ha_entities"] == forwarded:
             return
         forwarded = list(status["ha_entities"])
@@ -969,12 +1045,23 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
         refresh()
 
     @callback
+    def receive_learned(message):
+        if getattr(message, "retain", False):
+            return
+        topic = getattr(message, "topic", "")
+        room_id = topic.rpartition("/")[2] if topic.startswith(topic_base + LEARNED_TOPIC) else ""
+        hub.update_learned(room_id, decode_learned(room_id, message.payload))
+
+    @callback
     def unload():
         if unsubscribe_states is not None:
             unsubscribe_states()
 
     await mqtt.async_wait_for_mqtt_client(hass)
     entry.async_on_unload(await mqtt.async_subscribe(hass, topic_base + "fw/telemetry/heating", receive))
+    entry.async_on_unload(await mqtt.async_subscribe(hass, topic_base + LEARNED_TOPIC + "+", receive_learned))
     entry.async_on_unload(async_track_time_interval(hass, refresh, timedelta(seconds=REFRESH_SECONDS)))
     entry.async_on_unload(async_track_time_interval(hass, hub.check_stale, STALE_CHECK))
     entry.async_on_unload(unload)
+    energy.reconfigure()
+    entry.async_on_unload(energy.stop)

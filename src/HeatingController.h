@@ -22,6 +22,8 @@
 #include "control/ShadowComparison.h"
 #include "control/RoomEngine.h"
 #include "control/ActiveHeatGuard.h"
+#include "control/HeatingInput.h"
+#include "control/HeatingTelemetry.h"
 #include "diagnostics/BlackBox.h"
 #include <cmath>
 #include <cstring>
@@ -143,10 +145,17 @@ public:
         });
         loadHeatingPlan();
         mqtt_.setHeatingRoute([this](std::string_view payload) { heatingInput(payload); }, [this] {
-            // Telemetry carries today's comparison only; the page reads the past days.
+            // The compact form (always the same shape): no past days, curves or night strategies.
             std::unique_ptr<cJSON, decltype(&cJSON_Delete)> status(heatingStatusJson(), cJSON_Delete);
-            if (status) cJSON_DeleteItemFromObjectCaseSensitive(cJSON_GetObjectItemCaseSensitive(status.get(), "shadow"), "days");
+            if (status) control::compactHeatingTelemetry(status.get());
             return status ? control::printJson(status.get()) : std::string();
+        }, [this] { return roomEngine_.plan().rooms.size(); }, [this](size_t room, std::string& id) {
+            const auto& plan = roomEngine_.plan();
+            if (room >= plan.rooms.size()) return std::string();
+            id = plan.rooms[room].id;
+            std::array<std::optional<int16_t>, control::RoomPlan::maxRooms> temperatures{};
+            const auto context = learnedContext(bleReceiptClock(), temperatures);
+            return control::learnedRoomTelemetry(flowLearner_, plan, room, context);
         });
 #endif
 	}
@@ -261,6 +270,7 @@ public:
         if (saved == HeatingPlanSave::storage_full) return "storage_full";
         if (saved != HeatingPlanSave::saved) return "save_unconfirmed";
         roomEngine_.setPlan(plan);
+        flowLearner_.setPlan(plan);
         return nullptr;
     }
     // The owner's handover on the page: true = "the tado is disconnected from
@@ -311,6 +321,15 @@ public:
             scaled("battery", value.battery, 1.0);
             scaled("age_s", value.temperatureAgeMs ? std::optional<uint32_t>(*value.temperatureAgeMs / 1000) : std::nullopt, 1.0);
         }
+        // What the learner found (report only) and, with a trusted clock, its plans.
+        const auto now = bleReceiptClock();
+        std::array<std::optional<int16_t>, control::RoomPlan::maxRooms> temperatures{};
+        cJSON* learned = control::learnedJson(flowLearner_, roomEngine_.plan(), learnedContext(now, temperatures));
+        if (!learned || !cJSON_AddItemToObject(root, "learned", learned)) { cJSON_Delete(learned); cJSON_Delete(root); return nullptr; }
+        cJSON* dhw = ems_.dhwSummaryJson();
+        if (!dhw || !cJSON_AddItemToObject(root, "dhw", dhw)) { cJSON_Delete(dhw); cJSON_Delete(root); return nullptr; }
+        // The HA route's freshness for the rooms page banner.
+        if (!control::addHaLink(root, haInput_.lastAcceptedMs(), now, brokerConnected())) { cJSON_Delete(root); return nullptr; }
         return root;
     }
     // A Home Assistant state (temperature and/or target) for a plan source.
@@ -624,29 +643,32 @@ private:
     control::RoomEngine roomEngine_;
     control::ShadowComparison shadowComparison_; // E32 decision vs the tado's 0x1A, per day
     control::ActiveHeatGuard activeGuard_;
+    // Per room how fast it warms per flow (report only; ~1.15 KB heap per room, PSRAM extmem).
+    control::FlowLearner flowLearner_;
+    control::HeatingInputRoute haInput_;  // ha/heating_input: rooms, gas, price, outdoor, boiler power
     uint32_t activePosted_ = 0; uint64_t activePostedAt_ = 0; // the last command handed to the EMS route
     void loadHeatingPlan() {
         const auto raw = readHeatingPlan();
         const auto root = control::parseNestedJson(raw);
         control::RoomPlan plan;
-        if (root && !control::RoomPlan::parse(root.get(), plan)) roomEngine_.setPlan(plan);
+        if (root && !control::RoomPlan::parse(root.get(), plan)) { roomEngine_.setPlan(plan); flowLearner_.setPlan(plan); }
         else DBGLOGFI(log_, logFeature_, "Room plan unreadable; heating control has no rooms\n");
     }
-    // ha/heating_input: {"entity":"climate.woonkamer","temperature":20.4,"target":21.0}
-    // (either value may be null). Anything else is ignored.
-    void heatingInput(std::string_view payload) {
-        if (payload.size() > 256) return;
-        // A retained deep message would otherwise crash every boot (cJSON recursion).
-        if (!control::jsonNestingWithin(payload.data(), payload.size(), 4)) return;
-        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_ParseWithLength(payload.data(), payload.size()), cJSON_Delete);
-        const auto* entity = root ? cJSON_GetObjectItemCaseSensitive(root.get(), "entity") : nullptr;
-        if (!cJSON_IsString(entity) || !entity->valuestring || std::strlen(entity->valuestring) > 80) return;
-        const auto centi = [&](const char* key, double lo, double hi) -> std::optional<int16_t> {
-            const auto* v = cJSON_GetObjectItemCaseSensitive(root.get(), key);
-            if (!cJSON_IsNumber(v) || !(v->valuedouble >= lo && v->valuedouble <= hi)) return std::nullopt;
-            return static_cast<int16_t>(std::lround(v->valuedouble * 100));
-        };
-        heatingHaState(entity->valuestring, centi("temperature", -40, 85), centi("target", 5, 30));
+    // ha/heating_input: room states and the learner's gas, price, outdoor and
+    // boiler power (control/HeatingInput.h). Anything else is ignored.
+    void heatingInput(std::string_view payload) { haInput_.accept(payload, bleReceiptClock(), roomEngine_, flowLearner_); }
+    // The learner's outdoor: the boiler's (0x19/0xD1) while fresh, else HA's for 15 min.
+    control::HeatingInputRoute::Outdoor learnerOutdoor(uint64_t now) const { return haInput_.outdoor(ems_.getOutdoorTemperature(), now); }
+    // Clock, fresh room readings (filled into `temperatures`) and outdoor for the learned status.
+    control::LearnedContext learnedContext(uint64_t now, std::array<std::optional<int16_t>, control::RoomPlan::maxRooms>& temperatures) const {
+        const auto& plan = roomEngine_.plan();
+        for (size_t i = 0; i < plan.rooms.size() && i < temperatures.size(); ++i) temperatures[i] = roomEngine_.freshTemperature(i, now);
+        const auto outdoor = learnerOutdoor(now);
+        control::LearnedContext context;
+        if (networkTimeTrusted) context.utc = static_cast<int64_t>(std::time(nullptr));
+        context.temperatures = temperatures.data();
+        context.outdoorCentiC = outdoor.centiC; context.outdoorSource = outdoor.source; context.now = now;
+        return context;
     }
     // Every 10 s: feed the Bluetooth sources, then compute the (shadow) request.
     void stepHeating() {
@@ -662,13 +684,28 @@ private:
         std::optional<uint32_t> unixNow;
         if (networkTimeTrusted) unixNow = static_cast<uint32_t>(std::time(nullptr));
         const auto request = roomEngine_.step(now, unixNow);
-        shadowComparison_.sample(now, unixNow, request, ems_.thermostatRequestedFlowC());
-        stepActiveHeat(now, request);
+        const auto tadoFlowC = ems_.thermostatRequestedFlowC();
+        shadowComparison_.sample(now, unixNow, request, tadoFlowC);
+        const auto ems = ems_.activeHeatView();
+        stepFlowLearner(now, ems, tadoFlowC);
+        stepActiveHeat(now, request, ems);
+    }
+    // Report only: the boiler view and per room the fresh leading reading.
+    void stepFlowLearner(uint64_t now, const ems::EmsController::ActiveHeatView& ems, std::optional<uint8_t> tadoFlowC) {
+        const auto& plan = roomEngine_.plan();
+        control::FlowLearner::Boiler boiler{ems.flowCentiC, ems.burnerOn, ems.hotWater, tadoFlowC,
+            learnerOutdoor(now).centiC, ems.modulationPct, ems.returnCentiC};
+        std::array<control::FlowLearner::RoomInput, control::RoomPlan::maxRooms> rooms{};
+        const size_t count = std::min(plan.rooms.size(), rooms.size());
+        for (size_t i = 0; i < count; ++i) {
+            const auto fresh = roomEngine_.fresh(i, now);
+            rooms[i] = {fresh.temperature, roomEngine_.result(i).setpoint, fresh.source};
+        }
+        flowLearner_.sample(now, boiler, rooms.data(), count);
     }
     // Active mode: the guard decides; the EMS route sends at the boiler's next
     // poll of 0x0B and reports {seq, ok}, read back at the following step.
-    void stepActiveHeat(uint64_t now, const control::FlowDemand::Request& request) {
-        const auto ems = ems_.activeHeatView();
+    void stepActiveHeat(uint64_t now, const control::FlowDemand::Request& request, const ems::EmsController::ActiveHeatView& ems) {
         if (ems.last && ems.last->seq == activePosted_) activeGuard_.transmitted(activePostedAt_, ems.last->ok);
         const auto& plan = roomEngine_.plan();
         control::ActiveHeatGuard::Inputs in;

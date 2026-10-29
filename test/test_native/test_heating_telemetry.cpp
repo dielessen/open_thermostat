@@ -263,7 +263,7 @@ TEST(HeatingTelemetry, SummaryCarriesTheLearnedHeaderAndTodaysHotWater) {
     FlowPolicy policy;
     const auto full = heatingSummaryTelemetry(b.learner, b.context, Bench::dhw().summaryJson(), &policy);
     std::printf("[ heating telemetry ] summary with flow %zu B\n", full.size());
-    EXPECT_LE(full.size(), 2000u);
+    EXPECT_LE(full.size(), 1024u);
     Json f(cJSON_Parse(full.c_str()), cJSON_Delete);
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(f.get(), "flow")));
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(f.get(), "night_gas")));
@@ -373,9 +373,6 @@ TEST(HeatingTelemetry, AnyStorablePlanFitsTheMainPayload) {
         cJSON_AddBoolToObject(active, "enabled", false);
         cJSON_AddItemToObject(root.get(), "active", active);
         addHaLink(root.get(), uint64_t(0), 4294967295000ull, false);
-        // FlowPolicy::addStatus(.., true): the request's source and the rule's flow (beta.19).
-        cJSON* flow = cJSON_AddObjectToObject(root.get(), "flow");
-        cJSON_AddStringToObject(flow, "source", "optimum_start"); cJSON_AddNumberToObject(flow, "rule_flow_c", 80);
         compactHeatingTelemetry(root.get());
         const auto mqtt = print(root.get());
         breakdown(("storable plan " + std::to_string(raw.size()) + " B, " + std::to_string(sources) + " source(s)" + (setpoint ? " + setpoint" : "")

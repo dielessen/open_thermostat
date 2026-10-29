@@ -30,9 +30,12 @@ public:
         uint8_t minimumFlowC = 30, maximumFlowC = 60;           // the plan's limits
         uint32_t requestIntervalMs = 60000;                     // refresh of an unchanged request
         uint32_t zeroIntervalMs = 10000, stopWindowMs = 60000;  // zero repeat after a stop
-        // After an E32 restart: listen for a foreign 0x1A (the tado sends one
-        // every ~40 s) before heating; a stored confirmation resumes within 1 min.
-        uint32_t bootHoldoffMs = 60000;
+        uint32_t bootHoldoffMs = 60000;   // after an E32 restart: sources settle first
+        // A confirmation restored at boot (the tado may have been plugged in
+        // while the E32 was off; it sends 0x1A every ~40 s): heat or frost
+        // only after this long of continuous boiler reception without a
+        // foreign 0x1A. Continuous: boiler reports no more than busGapMs apart.
+        uint32_t restoredListenMs = 120000, busGapMs = 30000;
         uint32_t lostAfterMs = 1800000;    // arming without fresh rooms this long: own, ask zero
         uint32_t feedbackMs = 900000;      // heat asked this long without burner or flow rise: warn
         int16_t flowRiseCentiC = 300;
@@ -71,6 +74,7 @@ public:
         bool routeReady = false; // the reviewed transmit route may send now
         std::optional<uint8_t> boilerLimitC; // the boiler's reported heating limit; unknown: no heat
         Boiler boiler{};
+        std::optional<uint64_t> boilerHeardAtMs; // the latest frame from the boiler (0x08), any type
     };
     struct Command { bool send = false; uint8_t flowC = 0; const char* why = "shadow"; };
 
@@ -83,10 +87,17 @@ public:
     // active mode or a foreign request after `now` clears it.
     void confirm(uint64_t now, bool disconnected) {
         if (disconnected) { confirmedAt_ = now; blocked_ = false; } else confirmedAt_.reset();
+        restored_ = false;
     }
+    // The stored confirmation at boot: like confirm(), but it takes over only
+    // after restoredListenMs of healthy bus reception without a foreign 0x1A.
+    void restore(uint64_t now) { confirm(now, true); restored_ = true; }
 
     Command step(uint64_t now, const Inputs& in) {
         if (in.foreign && in.foreign->address != serviceAddress && in.foreign->address != boilerAddress) foreign_ = in.foreign;
+        if (in.boilerHeardAtMs && (!heardAt_ || *in.boilerHeardAtMs < *heardAt_ || *in.boilerHeardAtMs - *heardAt_ > p_.busGapMs))
+            listenSince_ = *in.boilerHeardAtMs; // reception starts (again)
+        if (in.boilerHeardAtMs) heardAt_ = in.boilerHeardAtMs;
         const bool wanted = in.mode == RoomPlan::Mode::active && p_.valid();
         if (!wanted) { confirmedAt_.reset(); blocked_ = false; }
         if (confirmedAt_ && foreign_ && foreign_->receivedAtMs > *confirmedAt_) { confirmedAt_.reset(); blocked_ = true; }
@@ -99,8 +110,8 @@ public:
             else if (!owning()) {
                 if (state_ != State::arming) enter(State::arming, now);
                 const bool inputsFresh = in.rooms.fresh == in.rooms.active;
-                if (in.uptimeMs >= p_.bootHoldoffMs && in.routeReady && (inputsFresh || elapsed(now, since_) >= p_.lostAfterMs))
-                    enter(State::active, now);
+                if (in.uptimeMs >= p_.bootHoldoffMs && in.routeReady && (!restored_ || listenedMs(now) >= p_.restoredListenMs)
+                    && (inputsFresh || elapsed(now, since_) >= p_.lostAfterMs)) { enter(State::active, now); restored_ = false; }
             }
             if (owning()) state_ = in.rooms.active && in.rooms.lost == in.rooms.active ? State::stoppedMeasurementLost : State::active;
         }
@@ -149,7 +160,7 @@ public:
         }
     }
     // {"state":..,"awaiting_confirmation":bool,"command":{..},"last_sent":{..}|null,"foreign_controller":{..}|null,
-    //  "confirmation":{"age_s":..}|null,"warnings":[..]}
+    //  "confirmation":{"age_s":..,"restored":bool[,"listened_s":..]}|null,"warnings":[..]}
     cJSON* json(uint64_t now) const {
         cJSON* root = cJSON_CreateObject();
         if (!root) return nullptr;
@@ -168,7 +179,10 @@ public:
         if (cJSON* sent = ageObject("last_sent", everSent_, lastSentAt_)) cJSON_AddNumberToObject(sent, "flow_c", lastSentFlow_);
         if (cJSON* f = ageObject("foreign_controller", foreign_.has_value(), foreign_ ? foreign_->receivedAtMs : 0))
             cJSON_AddNumberToObject(f, "address", foreign_->address);
-        ageObject("confirmation", confirmedAt_.has_value(), confirmedAt_.value_or(0));
+        if (cJSON* c = ageObject("confirmation", confirmedAt_.has_value(), confirmedAt_.value_or(0))) {
+            cJSON_AddBoolToObject(c, "restored", restored_); // after a restart: still listening for another thermostat
+            if (restored_) cJSON_AddNumberToObject(c, "listened_s", double(listenedMs(now) / 1000));
+        }
         cJSON* warnings = cJSON_AddArrayToObject(root, "warnings");
         static constexpr std::pair<Warning, const char*> names[] = {{foreignController, "foreign_controller"},
             {measurementLost, "measurement_lost"}, {boilerNoResponse, "boiler_no_response"}, {transmitFailed, "transmit_failed"},
@@ -176,6 +190,12 @@ public:
         for (const auto& [w, n] : names) if (warning(w)) cJSON_AddItemToArray(warnings, cJSON_CreateString(n));
         return root;
     }
+
+    // Continuous boiler reception up to now (0: none, or the bus is quiet).
+    uint64_t listenedMs(uint64_t now) const {
+        return heardAt_ && elapsed(now, *heardAt_) <= p_.busGapMs ? elapsed(*heardAt_, listenSince_) : 0;
+    }
+    bool restored() const { return restored_; }
 
 private:
     static uint64_t elapsed(uint64_t now, uint64_t since) { return now >= since ? now - since : 0; }
@@ -224,6 +244,8 @@ private:
     uint8_t lastSentFlow_ = 0, lastTarget_ = 0, warnings_ = 0;
     bool phaseSent_ = false, everSent_ = false, pending_ = false, frost_ = false, zeroWindow_ = false, responded_ = false;
     bool blocked_ = false; // a foreign request after the confirmation: confirm again
+    bool restored_ = false; // confirmation from NVS: listen restoredListenMs before owning
+    std::optional<uint64_t> heardAt_; uint64_t listenSince_ = 0; // continuous boiler reception
     bool holdsPositive_ = false; // a positive request was sent and no zero delivered since
     std::optional<uint64_t> heatSince_;
     std::optional<int16_t> flowBaseline_;

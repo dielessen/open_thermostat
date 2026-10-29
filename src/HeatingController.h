@@ -149,8 +149,8 @@ public:
         loadHeatingPlan();
         loadFlowSettings();
         // A stored "thermostat disconnected" (same firmware) resumes active heat
-        // after the boot holdoff; a foreign 0x1A from now on clears it again.
-        if (handover_.restore()) activeGuard_.confirm(bleReceiptClock(), true);
+        // after 2 min of bus reception without a foreign 0x1A, which clears it.
+        if (handover_.restore()) activeGuard_.restore(bleReceiptClock());
         mqtt_.setHeatingRoute([this](std::string_view payload) { heatingInput(payload); }, [this] {
             // The compact form (always the same shape): no past days, static plan fields,
             // learned or hot water (those go to heating_summary / heating_learned/<id>).
@@ -780,7 +780,7 @@ private:
         }
         if (ems.foreign) in.foreign = control::ActiveHeatGuard::Foreign{ems.foreign->address, ems.foreign->receivedAtMs};
         in.uptimeMs = now; in.routeReady = ems.routeReady; in.boilerLimitC = ems.limitC;
-        in.boiler = {ems.burnerOn, ems.flowCentiC};
+        in.boiler = {ems.burnerOn, ems.flowCentiC}; in.boilerHeardAtMs = ems.boilerHeardAtMs;
         activeGuard_.setFlowLimits(plan.minimumFlowC, plan.maximumFlowC);
         const auto c = activeGuard_.step(now, in);
         handover_.sync(activeGuard_.confirmed()); // a foreign 0x1A or shadow mode erases the stored one

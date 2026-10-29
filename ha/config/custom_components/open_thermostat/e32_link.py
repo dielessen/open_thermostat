@@ -75,7 +75,7 @@ class RoomPlanLink:
 
 def room_plan_link(entry, *, version, status, updates, settings, etag, rooms, heating):
     """Check the authenticated E32 reads and derive the settings to save; no I/O."""
-    from .graph_shadow_validation import canonical
+    from .v1_wire import canonical
     from .room_plan import decode_plan
     from .v1_wire import identifier
     if (type(version) is not dict or type(status) is not dict or type(updates) is not dict
@@ -165,7 +165,7 @@ async def async_prepare_room_plan_link(hass, entry, client):
 
 async def async_provision_room_plan(hass, entry, client, plan, password):
     """Save the link settings once, restart once when needed and read them back."""
-    from .graph_shadow_validation import canonical
+    from .v1_wire import canonical
     if type(plan) is not RoomPlanLink:
         raise ControllerLinkError("controller_readback_invalid")
     changed = wrote = rebooted = False
@@ -264,42 +264,51 @@ def legacy_room_devices(hass, entry, room_ids):
     prefix = entry.data[CONF_TOPIC_PREFIX]
     found = []
     for room_id in room_ids:
-        device = registry.async_get_device(identifiers={(DOMAIN, f"{prefix}_room_{room_id}")})
-        if device is not None and entry.entry_id in device.config_entries:
+        device = registry.async_get_device_by_identifier((DOMAIN, f"{prefix}_room_{room_id}"), entry.entry_id)
+        if device is not None:
             found.append(device)
     return found
+
+
+def _own(item, entry):
+    return item.config_entry_id == entry.entry_id and item.platform == DOMAIN
 
 
 def remove_legacy_room_devices(hass, entry, removed):
     """Remove this entry's entities and devices of removed older rooms.
 
-    removed: (subentry id, room id) pairs. Like Home Assistant's own subentry
-    delete, the registries drop this entry's entities of the subentry; this
-    entry is then detached from each room device, which Home Assistant deletes
-    once no other integration uses it. Entities and devices of other
-    integrations (the temperature sensor, the valve) are never touched.
+    removed: (subentry id, room id) pairs. An entity of another integration
+    that sits on such a device is only detached from it and stays; the room's
+    temperature sensor and valve (other integrations) are never touched.
     """
     devices, entities = dr.async_get(hass), er.async_get(hass)
+    found = legacy_room_devices(hass, entry, [room_id for _, room_id in removed])
+    for device in found:
+        for item in er.async_entries_for_device(entities, device.id, include_disabled_entities=True):
+            if not _own(item, entry):
+                entities.async_update_entity(item.entity_id, device_id=None)
+    # Like Home Assistant's own subentry delete: this entry's entities of the subentry.
     for subentry_id, _ in removed:
         devices.async_clear_config_subentry(entry.entry_id, subentry_id, entry.domain)
         entities.async_clear_config_subentry(entry.entry_id, subentry_id)
     for device in legacy_room_devices(hass, entry, [room_id for _, room_id in removed]):
         for item in er.async_entries_for_device(entities, device.id, include_disabled_entities=True):
-            if item.config_entry_id == entry.entry_id and item.platform == DOMAIN:
+            if _own(item, entry):
                 entities.async_remove(item.entity_id)
-        devices.async_update_device(device.id, remove_config_entry_id=entry.entry_id)
+        devices.async_remove_device(device.id)
 
 
 def without_legacy_rooms(entry):
-    """The entry's subentries, draft and options without its older HA rooms."""
-    from .native_provisioning import SOURCE_OPTION
+    """The entry's subentries and draft without its older HA rooms."""
     from .product import INSTALLATION, central_entry
     from .v1_heating_draft import parse_heating_draft
     zones = legacy_zones(entry)
     room_ids = {s.data["room_id"] for s in zones}
     removed = sorted((s.subentry_id, s.data["room_id"]) for s in zones)
-    changes = {"subentries": {k: s for k, s in entry.subentries.items() if s.subentry_type != "zone"},
-               "options": {k: v for k, v in entry.options.items() if k != SOURCE_OPTION}}
+    # The saved native room profile (SOURCE_OPTION) stays until the E32 link is
+    # confirmed without it: an interrupted removal stays visible (Repairs) and
+    # the entry starts without that profile (stale_native_source).
+    changes = {"subentries": {k: s for k, s in entry.subentries.items() if s.subentry_type != "zone"}}
     current = central_entry(entry)
     if current is not None:
         data = deepcopy(dict(current.data))

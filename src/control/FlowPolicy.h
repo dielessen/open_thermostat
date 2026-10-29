@@ -142,22 +142,28 @@ public:
         if (n.reason[0] == 'e') { r.recommended = n.strategies[n.best].name; r.recommendedM3 = n.strategies[n.best].m3; }
         open_ = r; lastSwitch_ = rise->atUtc;
     }
-    bool json(cJSON* o) const {
-        if (!cJSON_AddStringToObject(o, "state", open_ ? "open" : "waiting") || !cJSON_AddNumberToObject(o, "nights", nights_)) return false;
+    // {"nights","model_ratio","last":{"switch_utc","status","heating_m3","hot_water_m3",
+    // "predicted_program_m3","recommended"}|null}; not compact (the page) adds "state",
+    // "model_nights" and the last night's "start_utc", "measured_m3", the thermostat-like
+    // and recommended predictions. Compact: heating_summary (changes once a night).
+    bool json(cJSON* o, bool compact = false) const {
+        if (!cJSON_AddNumberToObject(o, "nights", nights_)) return false;
         FlowLearner::number(o, "model_ratio", ratioN_ ? std::optional<float>(float(ratioSum_ / ratioN_)) : std::nullopt, 100);
-        cJSON_AddNumberToObject(o, "model_nights", ratioN_);
+        if (!compact) { cJSON_AddStringToObject(o, "state", open_ ? "open" : "waiting"); cJSON_AddNumberToObject(o, "model_nights", ratioN_); }
         if (!last_) return cJSON_AddNullToObject(o, "last") != nullptr;
         cJSON* r = cJSON_AddObjectToObject(o, "last");
         if (!r) return false;
-        cJSON_AddNumberToObject(r, "start_utc", double(last_->startUtc));
+        if (!compact) cJSON_AddNumberToObject(r, "start_utc", double(last_->startUtc));
         cJSON_AddNumberToObject(r, "switch_utc", double(last_->switchUtc));
         cJSON_AddStringToObject(r, "status", last_->status);
-        FlowLearner::number(r, "measured_m3", last_->measuredM3, 1000);
-        FlowLearner::number(r, "hot_water_m3", last_->hotWaterM3, 1000);
+        if (!compact) FlowLearner::number(r, "measured_m3", last_->measuredM3, 1000);
         FlowLearner::number(r, "heating_m3", last_->heatingM3, 1000);
+        FlowLearner::number(r, "hot_water_m3", last_->hotWaterM3, 1000);
         FlowLearner::number(r, "predicted_program_m3", last_->programM3, 1000);
-        FlowLearner::number(r, "predicted_thermostat_like_m3", last_->thermostatM3, 1000);
-        FlowLearner::number(r, "predicted_recommended_m3", last_->recommendedM3, 1000);
+        if (!compact) {
+            FlowLearner::number(r, "predicted_thermostat_like_m3", last_->thermostatM3, 1000);
+            FlowLearner::number(r, "predicted_recommended_m3", last_->recommendedM3, 1000);
+        }
         return (last_->recommended ? cJSON_AddStringToObject(r, "recommended", last_->recommended) : cJSON_AddNullToObject(r, "recommended")) != nullptr;
     }
     const std::optional<Record>& last() const { return last_; }
@@ -278,8 +284,9 @@ public:
         return applied_;
     }
 
-    // "flow" in /status/heating (compact: only what the main topic needs; the
-    // rest is in heating_summary). Also sets "request" to the applied request.
+    // Sets "request" to the applied request and, unless compact (the main MQTT
+    // topic keeps its size: source and advice are in heating_summary), adds
+    // "flow" with every detail for the page.
     bool addStatus(cJSON* root, bool compact) const {
         cJSON* request = cJSON_GetObjectItemCaseSensitive(root, "request");
         if (cJSON_IsObject(request)) {
@@ -287,16 +294,41 @@ public:
             cJSON_ReplaceItemInObjectCaseSensitive(request, "flow_c", cJSON_CreateNumber(applied_.flowC));
             cJSON_ReplaceItemInObjectCaseSensitive(request, "reason", cJSON_CreateString(reason()));
         }
+        if (compact) return true;
         cJSON* flow = cJSON_AddObjectToObject(root, "flow");
-        if (!flow || !cJSON_AddStringToObject(flow, "source", name(source_)) || !cJSON_AddNumberToObject(flow, "rule_flow_c", rule_.flowC)) return false;
-        return compact || detail(flow);
+        return flow && cJSON_AddStringToObject(flow, "source", name(source_)) && cJSON_AddNumberToObject(flow, "rule_flow_c", rule_.flowC)
+            && detail(flow);
     }
-    // heating_summary: {"flow":{..},"night_gas":{..}}.
+    // heating_summary, compact (about 1 KB with the rest of the summary):
+    // "flow":{"source","rule_flow_c","applied_flow_c","curve":{"state","flow_c","slope",
+    // "slope_source"},"learned":{"state","flow_c"},"optimum_start":state,"yesterday":
+    // {"rule_mean_c","applied_mean_c","curve_mean_c","learned_mean_c"}|null} and
+    // "night_gas" (NightLedger::json compact). The options themselves are static:
+    // GET /config/heating/flow.
     bool addSummary(cJSON* root) const {
         cJSON* flow = cJSON_AddObjectToObject(root, "flow");
         cJSON* night = flow ? cJSON_AddObjectToObject(root, "night_gas") : nullptr;
-        return night && cJSON_AddStringToObject(flow, "source", name(source_)) && cJSON_AddNumberToObject(flow, "rule_flow_c", rule_.flowC)
-            && detail(flow) && nights_.json(night);
+        cJSON* curve = night ? cJSON_AddObjectToObject(flow, "curve") : nullptr;
+        cJSON* learned = curve ? cJSON_AddObjectToObject(flow, "learned") : nullptr;
+        if (!learned || !cJSON_AddStringToObject(flow, "source", name(source_)) || !cJSON_AddNumberToObject(flow, "rule_flow_c", rule_.flowC)
+            || !cJSON_AddNumberToObject(flow, "applied_flow_c", applied_.flowC)) return false;
+        cJSON_AddStringToObject(curve, "state", curveState());
+        FlowLearner::number(curve, "flow_c", curveFlow_ ? std::optional<float>(*curveFlow_) : std::nullopt, 1);
+        FlowLearner::number(curve, "slope", slope_, 100);
+        cJSON_AddStringToObject(curve, "slope_source", slopeLearned_ ? "learned" : "design");
+        cJSON_AddStringToObject(learned, "state", learnedState());
+        FlowLearner::number(learned, "flow_c", learnedFlow_ ? std::optional<float>(*learnedFlow_) : std::nullopt, 1);
+        cJSON_AddStringToObject(flow, "optimum_start", startState_);
+        if (const auto& y = compare_.yesterday()) {
+            cJSON* o = cJSON_AddObjectToObject(flow, "yesterday");
+            if (!o) return false;
+            const auto mean = [&](const char* k, uint32_t sum, uint32_t sec) {
+                FlowLearner::number(o, k, sec ? std::optional<float>(float(sum) / sec) : std::nullopt, 10);
+            };
+            mean("rule_mean_c", y->ruleSum, y->heatS); mean("applied_mean_c", y->appliedSum, y->heatS);
+            mean("curve_mean_c", y->curveSum, y->curveS); mean("learned_mean_c", y->learnedSum, y->learnedS);
+        } else if (!cJSON_AddNullToObject(flow, "yesterday")) return false;
+        return nights_.json(night, true);
     }
     static const char* name(Source s) {
         switch (s) {
@@ -358,6 +390,8 @@ private:
             if (in.rooms[i].status != RoomDemand::Status::inactive && !in.plan->rooms[i].schedule.empty()) room = int(i);
         nights_.step(*in.utc, in.now, learner, *in.plan, room, room >= 0 ? in.rooms[room].temperature : std::nullopt, in.outdoorCentiC);
     }
+    const char* curveState() const { return !curveBase_ ? (lead_ < 0 ? "no_room" : "no_outdoor") : settings_.weatherCurve ? "applied" : "advice"; }
+    const char* learnedState() const { return !learnedFlow_ ? learnedReason_ : settings_.applyLearned ? "applied" : "advice"; }
     const char* reason() const { return source_ == Source::optimumStart && !rule_.heat ? "optimum_start" : FlowDemand::name(applied_.reason); }
     bool detail(cJSON* flow) const {
         cJSON* settings = cJSON_CreateObject();
@@ -371,7 +405,7 @@ private:
         cJSON* learned = curve ? cJSON_AddObjectToObject(flow, "learned") : nullptr;
         cJSON* start = learned ? cJSON_AddObjectToObject(flow, "optimum_start") : nullptr;
         if (!start) return false;
-        cJSON_AddStringToObject(curve, "state", !curveBase_ ? (lead_ < 0 ? "no_room" : "no_outdoor") : settings_.weatherCurve ? "applied" : "advice");
+        cJSON_AddStringToObject(curve, "state", curveState());
         FlowLearner::number(curve, "flow_c", curveFlow_ ? std::optional<float>(*curveFlow_) : std::nullopt, 1);
         FlowLearner::number(curve, "base_c", curveBase_ ? std::optional<float>(*curveBase_ / 100.0f) : std::nullopt, 10);
         FlowLearner::number(curve, "slope", slope_, 100);
@@ -379,7 +413,7 @@ private:
         cJSON_AddNumberToObject(curve, "design_flow_c", designFlowC_);
         cJSON_AddNumberToObject(curve, "windows", curveLearner_.windows());
         cJSON_AddStringToObject(curve, "last", curveLearner_.last());
-        cJSON_AddStringToObject(learned, "state", !learnedFlow_ ? learnedReason_ : settings_.applyLearned ? "applied" : "advice");
+        cJSON_AddStringToObject(learned, "state", learnedState());
         FlowLearner::number(learned, "flow_c", learnedFlow_ ? std::optional<float>(*learnedFlow_) : std::nullopt, 1);
         id(learned, leadId_);
         cJSON_AddStringToObject(start, "state", startState_);

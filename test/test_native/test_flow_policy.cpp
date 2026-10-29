@@ -260,8 +260,7 @@ TEST(FlowPolicy, LearnedOptimumStartHeatsAheadOfTheProgram) {
     ASSERT_TRUE(s.policy.addStatus(status.get(), true));
     EXPECT_TRUE(cJSON_IsTrue(at(request, "heat")));
     EXPECT_STREQ(at(request, "reason")->valuestring, "optimum_start");
-    EXPECT_STREQ(at(at(status.get(), "flow"), "source")->valuestring, "optimum_start");
-    EXPECT_FALSE(at(at(status.get(), "flow"), "curve")); // compact: details are in heating_summary
+    EXPECT_FALSE(at(status.get(), "flow"));           // the main topic keeps its size: details are in heating_summary
     // Warmer now, so a fresh plan would start later: the begun start holds until its rise.
     s.rooms[0] = room(2000, 1850); s.in.now += 20 * minute; s.in.utc = *s.in.utc + 1200;
     EXPECT_GT(WarmupPlanner::optimumStart(h.learner, 0, s.p.rooms[0].schedule, *s.in.utc, int16_t(2000), int16_t(500)).startUtc, *s.in.utc);
@@ -386,7 +385,8 @@ TEST(NightLedger, WithoutAMeterTheNightSaysSo) {
     Json summary(cJSON_CreateObject(), cJSON_Delete);
     ASSERT_TRUE(s.policy.addSummary(summary.get()));
     EXPECT_TRUE(cJSON_IsObject(at(summary.get(), "night_gas")));
-    EXPECT_TRUE(cJSON_IsObject(at(at(summary.get(), "flow"), "settings")));
+    EXPECT_TRUE(cJSON_IsObject(at(at(summary.get(), "flow"), "curve")));
+    EXPECT_FALSE(at(at(summary.get(), "flow"), "settings"));   // static: GET /config/heating/flow
 }
 
 // The summary topic at its longest: every option on, a learned curve slope,
@@ -409,7 +409,7 @@ TEST(FlowPolicy, WorstCaseSummaryStaysSmall) {
     LearnedContext c; c.now = now; c.outdoorCentiC = -1234; c.outdoorSource = "boiler";
     const auto summary = heatingSummaryTelemetry(h.learner, c, cJSON_CreateObject(), &s.policy);
     std::printf("[ flow policy ] worst-case summary %zu B: %s\n", summary.size(), summary.c_str());
-    EXPECT_LE(summary.size(), 2000u);
+    EXPECT_LE(summary.size(), 1024u);                  // the telemetry budget: about 1 KB per topic
     Json root(cJSON_Parse(summary.c_str()), cJSON_Delete);
     ASSERT_TRUE(root);
     EXPECT_TRUE(cJSON_IsObject(at(at(root.get(), "flow"), "yesterday")));

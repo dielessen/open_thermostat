@@ -107,8 +107,13 @@ async def test_presentation_group_does_not_block_startup_on_a_different_core_ver
 async def test_presentation_compatibility_does_not_enable_unreviewed_private_configuration_writes(hass,monkeypatch):
     from custom_components.open_thermostat import installation_group,product
     parent,*_=existing(hass);before=configuration_snapshot(parent)
-    monkeypatch.setattr(product,'HA_VERSION','2026.11.0')
-    monkeypatch.setattr(installation_group,'HA_VERSION','2026.11.0',raising=False)
+    # Older than MINIMUM_HA_VERSION: the private one-step save is refused.
+    monkeypatch.setattr(product,'HA_VERSION','2026.9.4')
+    monkeypatch.setattr(installation_group,'HA_VERSION','2026.9.4',raising=False)
     with pytest.raises(ValueError,match='setup_platform_unsupported'):
         product.commit_configuration(hass,parent,before,title='must not be saved')
     assert configuration_snapshot(parent)==before
+    # Newer than tested, but with Home Assistant's same save routine: accepted.
+    monkeypatch.setattr(product,'HA_VERSION','2026.11.0')
+    product.commit_configuration(hass,parent,before,title='saved on a newer core')
+    assert parent.title=='saved on a newer core'

@@ -35,11 +35,15 @@ firmware until an attended switch-over with failure tests.
 
 **For the Home Assistant integration (optional)**
 
-- **Home Assistant** (tested with 2026.10).
+- **Home Assistant 2026.10.0 or newer** (tested with 2026.10.2 to 2026.10.4).
 - An **MQTT broker**, for example the Mosquitto broker add-on, and Home
   Assistant's **MQTT integration**. MQTT carries all live values (rooms, heat
   request, boiler, Bluetooth sensors, advice) and the values of Home Assistant
   sources and energy inputs. Without MQTT these entities stay unavailable.
+- A **broker user name and password for the E32**: the E32 does not connect
+  to Home Assistant through a broker without a login.
+- No room in Home Assistant: rooms live on the E32 and are managed under
+  Configure → Rooms after connecting.
 - The E32's address and web password, entered once in the integration. Room
   editing and firmware updates use them over HTTP.
 - Internet access for Home Assistant, to download firmware updates from

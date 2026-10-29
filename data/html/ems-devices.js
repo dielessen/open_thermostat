@@ -95,7 +95,7 @@ window.EMSDevicesPage=(()=>{
     return result;
   }
   // Entity ids as plain words; "dhw" (domestic hot water) reads "hot water".
-  const label=id=>text(id.replaceAll('_',' ').replace(/dhw/g,'hot water').replace(/^./,c=>c.toUpperCase()));
+  const label=id=>text(id.replaceAll('_',' ').replace(/\bdhw\b/g,'hot water').replace(/^./,c=>c.toUpperCase()));
   const age=ms=>ms===null?text('Unknown'):(ms/1000).toLocaleString(OpenThermostatLanguage.locale,{maximumFractionDigits:1})+' s';
   const update=(node,value)=>{if(node.textContent!==value)node.textContent=value;};
   const el=(tag,value,className)=>{const e=document.createElement(tag);if(value!==undefined)e.textContent=value;if(className)e.className=className;return e;};

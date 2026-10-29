@@ -1938,6 +1938,7 @@ void guardScenario() {
 // ============================================================================
 static_assert(!heating::board::emsActiveHeatAllowed, "the host build has no firmware active gate");
 constexpr bool hostActiveGate = true;
+constexpr uint64_t a6ListenMs = 120000; // review A6: a restored confirmation listens at least 2 min
 
 struct SoakNvs {
     std::string record;
@@ -1960,7 +1961,7 @@ struct ActiveRig {
     SoakNvs nvs; // survives reboots
     // The world, in wall ms since the case started.
     uint64_t wall = 0, bootWall = 0, wifiDownAt = 0, bleHeardAt = 0;
-    bool haUp = true, bleUp = true, wifiUp = true, tadoOn = false, writesOk = true, dhw = false, boilerAnswers = true;
+    bool haUp = true, bleUp = true, wifiUp = true, tadoOn = false, writesOk = true, dhw = false, boilerAnswers = true, busUp = true;
     double livingC = 19.0, bathC = 17.0;
     int16_t targetCentiC = 2100;
     uint8_t boilerLimitC = 60;
@@ -2003,7 +2004,7 @@ struct ActiveRig {
         guard = ActiveHeatGuard(); monitor = ems::ClassicBoilerMonitor(); foreign = ems::ForeignBoilerRequest();
         driver = ems::ActiveHeatPollDriver(boots, hostActiveGate); limitRead = ems::BoilerLimitRead(true);
         handover.reset(new HandoverConfirmation<SoakNvs>(nvs, firmware));
-        if (handover->restore()) guard.confirm(up(), true); // HeatingController's constructor
+        if (handover->restore()) guard.restore(up()); // HeatingController's constructor
         posted = 0; postedAt = 0; last = {};
         nextHa = wall + uint64_t(uniformInt(5, 40)) * 1000;  // MQTT session, then ha/heating_input
         nextBle = wall + uint64_t(uniformInt(1, 60)) * 1000; // the next pvvx advert
@@ -2034,7 +2035,7 @@ struct ActiveRig {
         fast[3] = 100; fast[4] = burner ? 40 : 0;
         fast[5] = uint8_t((burner ? 0x08 : 0) | (dhw ? 0x02 : 0) | (circuit ? 0x01 : 0));
         putWord(fast, 9, 0x8000); putWord(fast, 11, 0x8000); putWord(fast, 13, 280); putWord(fast, 15, 0x7D00);
-        monitor.receive(telegram(0x18, fast), now);
+        if (busUp) monitor.receive(telegram(0x18, fast), now);
         if (tadoOn && wall >= nextTado) { // the tado, while connected: 0x1A every ~40 s
             foreign.observe(telegram(0x1A, {38, 0, 0, 0}, 0x17, 0x08, ems::EmsTelegram::WRITE), now);
             held = {0x17, 38}; nextTado = wall + 40000;
@@ -2062,6 +2063,8 @@ struct ActiveRig {
         const auto modulation = monitor.value(ems::BoilerField::modulation, now);
         const auto flow = monitor.value(ems::BoilerField::flow, now);
         in.boiler = {modulation ? std::optional<bool>(*modulation > 0) : std::nullopt, flow ? std::optional<int16_t>(int16_t(*flow)) : std::nullopt};
+        in.boilerHeardAtMs = monitor.lastReportMs();
+        const bool restoredBefore = guard.restored();
         guard.setFlowLimits(p.minimumFlowC, p.maximumFlowC);
         last = guard.step(now, in);
         handover->sync(guard.confirmed());
@@ -2074,10 +2077,13 @@ struct ActiveRig {
             EXPECT(in.boilerLimitC.has_value(), "active_heat_without_boiler_limit", "positive %u without a 0x16 limit", last.flowC);
             EXPECT(last.flowC <= cap, "active_flow_above_cap", "flow %u > cap %u", last.flowC, cap);
             EXPECT(now >= ActiveHeatGuard::Params{}.bootHoldoffMs, "active_boot_holdoff", "heat %" PRIu64 " ms after boot", now);
+            EXPECT(!restoredBefore || guard.listenedMs(now) >= a6ListenMs, "active_restored_listen",
+                   "heat after %" PRIu64 " s of reception with a restored confirmation", guard.listenedMs(now) / 1000);
         }
+        EXPECT(!(last.send && restoredBefore && foreign.last), "active_restored_foreign", "a write after a foreign 0x1A this boot");
         EXPECT(nvs.fails || handover->stored() == guard.confirmed(), "active_confirmation_store", "stored %d, guard %d", handover->stored(), guard.confirmed());
         // The boiler's polls of 0x0B after the step (EmsController::processBoilerTestPoll).
-        for (int k = 0; k < 3; ++k) {
+        for (int k = 0; busUp && k < 3; ++k) { // a silent boiler polls nobody
             const auto ready = [] { return true; };
             if (driver.poll(now, monitor, ready, encodeActive, [&](const ems::EmsRawFrame& f) {
                     if (!writesOk) return false;
@@ -2088,7 +2094,7 @@ struct ActiveRig {
                 EXPECT(f.length == 6 && f.data[0] == 0x0b && f.data[1] == 0x88 && f.data[2] == 0x16 && f.data[3] == 0 && f.data[4] == 2,
                        "active_limit_read_frame", "not the reviewed 0x16 read");
                 if (!writesOk) return false;
-                if (boilerAnswers) monitor.receive(telegram(0x16, {0xFF, boilerLimitC}, 0x08, 0x0b, ems::EmsTelegram::WRITE), now);
+                if (boilerAnswers && busUp) monitor.receive(telegram(0x16, {0xFF, boilerLimitC}, 0x08, 0x0b, ems::EmsTelegram::WRITE), now);
                 return true;
             });
         }
@@ -2175,8 +2181,10 @@ void activeReboot(ActiveRig& r) {
     const uint64_t valid = frost ? r.firstBleAt : r.firstReadingAt; // the measurement that asks for it
     if (resumed && valid) {
         EXPECT(*resumed - bootAt >= ActiveHeatGuard::Params{}.bootHoldoffMs, "active_reboot_holdoff", "heat %" PRIu64 " s after boot", (*resumed - bootAt) / 1000);
-        // Owner, 29 Oct: within 1 minute once the measurements are valid (+ one 10 s step).
-        EXPECT(*resumed <= std::max(valid, bootAt) + 70000, "active_reboot_slow",
+        // Review A6: 2 min of bus reception without a foreign 0x1A (first 0x18 at +10 s),
+        // and within 1 min (+ one step) of a valid measurement (owner, 29 Oct).
+        EXPECT(*resumed - bootAt >= a6ListenMs, "active_reboot_listen", "heat %" PRIu64 " s after boot", (*resumed - bootAt) / 1000);
+        EXPECT(*resumed <= std::max(valid + 70000, bootAt + 140000), "active_reboot_slow",
                "resumed %" PRIu64 " s after boot, the measurement was valid after %" PRIu64 " s", (*resumed - bootAt) / 1000, (valid - bootAt) / 1000);
         count(frost ? "active_reboot_frost" : "active_reboot_heat");
     }
@@ -2187,6 +2195,41 @@ void activeReboot(ActiveRig& r) {
     r.run(5 * 60000);
     EXPECT(!r.firstDelivered(updated, true) && r.guard.state() == ActiveHeatGuard::State::awaitingConfirmation && r.nvs.record.empty(),
            "active_reboot_new_firmware", "%s after a firmware change", ActiveHeatGuard::name(r.guard.state()));
+}
+
+// Review A6: after an emergency hand-back by power the owner plugs the tado in
+// again; then the E32 restarts with its stored confirmation. The tado's 0x1A
+// arrives within the 2-minute listening window: no request at all, also no
+// frost minimum (the tado's job), the confirmation is cleared. A dead bus delays
+// the takeover until the boiler is heard for 2 minutes.
+void activeRebootTadoBack(ActiveRig& r) {
+    r.livingC = uniform(18.0, 19.0); r.takeOver();
+    r.run(uint64_t(uniformInt(10, 60)) * 60000);
+    if (chance(0.5)) r.bathC = uniform(4.0, 7.5);
+    r.wall += uint64_t(uniformInt(30, 900)) * 1000; // the E32 is without power
+    const bool tado = chance(0.6);
+    r.tadoOn = tado;
+    const uint64_t bootAt = r.wall;
+    r.boot();
+    r.nextTado = r.wall + uint64_t(uniformInt(0, 40)) * 1000; // its period, from an unknown phase
+    r.busUp = tado || chance(0.5); // without the tado: sometimes the boiler is not heard for a while
+    const uint64_t quietMs = r.busUp ? 0 : uint64_t(uniformInt(1, 20)) * 60000;
+    r.run(quietMs);
+    EXPECT(!r.firstDelivered(bootAt, true), "active_reboot_bus_quiet", "heat while the boiler is not heard");
+    r.busUp = true;
+    const uint64_t heardFrom = r.wall;
+    r.run(15 * 60000);
+    if (tado) {
+        EXPECT(!r.firstDelivered(bootAt, true) && !r.firstDelivered(bootAt, false), "active_reboot_tado_request", "the E32 wrote 0x1A beside the tado");
+        EXPECT(r.guard.state() == ActiveHeatGuard::State::blockedForeignController && r.guard.warning(ActiveHeatGuard::foreignController)
+               && r.nvs.record.empty(), "active_reboot_tado_block", "%s, NVS '%s'", ActiveHeatGuard::name(r.guard.state()), r.nvs.record.c_str());
+        count("active_reboot_tado_back");
+    } else {
+        const auto resumed = r.firstDelivered(bootAt, true);
+        EXPECT(resumed && *resumed >= heardFrom + a6ListenMs && *resumed <= heardFrom + 150000,
+               "active_reboot_listen_window", "resumed %" PRIu64 " s after the bus was heard", resumed ? (*resumed - heardFrom) / 1000 : 0);
+        count(quietMs ? "active_reboot_bus_quiet" : "active_reboot_no_tado");
+    }
 }
 
 void activeWifiGone(ActiveRig& r) {
@@ -2328,7 +2371,7 @@ void activeScenario() {
     const std::pair<const char*, void (*)(ActiveRig&)> cases[] = {
         {"ha_gone", activeHaGone}, {"measurement_gone", activeMeasurementGone}, {"reboot", activeReboot}, {"wifi_gone", activeWifiGone},
         {"foreign_1a", activeForeign}, {"dhw", activeDhw}, {"frost", activeFrost}, {"stop_until_delivered", activeStopUntilDelivered},
-        {"boiler_limit", activeBoilerLimit}};
+        {"boiler_limit", activeBoilerLimit}, {"reboot_tado_back", activeRebootTadoBack}};
     const int runs = std::max(1, int(opt.days));
     uint64_t steps = 0;
     for (const auto& [name, run] : cases)

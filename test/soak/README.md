@@ -68,7 +68,8 @@ boiler holds the last 0x1A it received, reports 0x18 every 10 s and answers the
 | --- | --- |
 | `ha_gone` | HA Core stops for 1-3 h: the pvvx leads (fallback), the fallback setpoint applies, no stop, no warning, no restart |
 | `measurement_gone` | HA and pvvx silent: `stopped_measurement_lost` 30-32 min after the last reading, zero at the boiler, warning, no Bluetooth restart while owning; heat resumes by itself within 10 min of the next reading |
-| `reboot` | E32 restart while active (40 % with a freezing bathroom): the stored confirmation is restored; heat or frost protection resumes not before the 60 s holdoff and within 1 min (+ one step) of the first valid measurement. A firmware change asks again |
+| `reboot` | E32 restart while active (40 % with a freezing bathroom): the stored confirmation is restored; heat or frost protection resumes after 2 min of boiler reception without a foreign 0x1A (about 130 s after boot) and within 1 min (+ one step) of the first valid measurement. A firmware change asks again |
+| `reboot_tado_back` | Review A6: the E32 is without power, the owner plugs the tado in again, the E32 restarts with its stored confirmation. The tado's first 0x1A (random phase, every 40 s) falls inside the 2-minute window: no 0x1A from the E32 at all (also no frost minimum), `blocked_foreign_controller`, NVS cleared. Without the tado, sometimes with a silent boiler for 1-20 min: no heat until the boiler was heard for 2 min, then within 150 s |
 | `wifi_gone` | Access point off for 0.5-5 h: no restart while owning, regulation continues on the pvvx; the same outage restarts once released |
 | `foreign_1a` | The tado sends 0x1A again: stop with zero within one step, warning, confirmation cleared in NVS, no positive afterwards, `blocked_foreign_controller`, after a restart `awaiting_confirmation` |
 | `dhw` | A hot tap of 1-6 min while heating: still active, refreshed, no `boiler_no_response` or `transmit_failed` |
@@ -78,11 +79,13 @@ boiler holds the last 0x1A it received, reports 0x18 every 10 s and answers the
 
 Every step also checks: a positive request only with the confirmation, a known
 0x16 limit, after the boot holdoff and ≤ min(plan max, 80, limit); the stored
-confirmation equals the guard's; each 0x16 read is exactly `0B 88 16 00 02`;
+confirmation equals the guard's; with a restored confirmation, no write after a foreign 0x1A of this boot and no heat before 2 min of continuous boiler reception; each 0x16 read is exactly `0B 88 16 00 02`;
 at most one read per boot and per 6 h while the boiler answers; no supervisor
 restart while the E32 claims the boiler. A mutation check (supervisor ignoring
-ownership, no restore, no erase, 120 s holdoff, no 6-hourly refresh, frost
-without hysteresis) was caught 6 of 6 times.
+ownership, no restore, no erase, no 6-hourly refresh, frost without
+hysteresis, a 50 s listening window, a restore without listening) was caught 7
+of 7 times. A 120 s boot holdoff is no longer visible here: after a restart the
+2-minute listening window comes later anyway.
 
 ### The chain
 

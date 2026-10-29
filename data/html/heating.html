@@ -189,7 +189,7 @@
       summary.replaceChildren(head, temps, ...(sourceText[s?.setpoint_source] ? [el('span', uiText(sourceText[s.setpoint_source]), {class:'pd-help hp-src'})] : []));
       leading.textContent = s?.source ? uiText("Measured by") + ': ' + sourceName(s.source) : '';
       // Managed in HA: the brief lists the sources once and marks the one measuring now.
-      sourcesBrief.textContent = room.sources.map(x => sourceName(x.id) + (x.id === s?.source ? ' (' + uiText("measuring") + ')' : '')).join(', ') || '—';
+      sourcesBrief.textContent = room.sources.map(x => sourceName(x.id) + (x.id === s?.source ? ' · ' + uiText("measuring") : '')).join(', ') || '—';
     };
     const leading = el('p', null, {class:'pd-help'}), sourcesBrief = el('dd');
     card.status(status); card.append(summary, body);

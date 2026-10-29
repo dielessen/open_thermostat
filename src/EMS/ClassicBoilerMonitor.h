@@ -373,6 +373,9 @@ public:
         if (closeObject) ss << '}';
     }
 
+    // The latest decoded boiler (0x08) report of any family; nullopt: none yet.
+    std::optional<uint64_t> lastReportMs() const { return reportCount_ ? std::optional<uint64_t>(lastReportMs_) : std::nullopt; }
+
     void writeReceptionJSON(std::ostream &ss, uint64_t now) const {
         const bool fresh = reportCount_ && now >= lastReportMs_ && now - lastReportMs_ < 30000;
         const auto profile = capabilities_.profile();

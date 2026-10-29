@@ -33,7 +33,47 @@ def test_the_integration_names_openthermostat_as_manufacturer_everywhere():
     assert MANUFACTURER == "OpenThermostat"
     for path in sorted(INTEGRATION.rglob("*")):
         if path.suffix in {".py", ".json", ".yaml"}:
-            assert "intuibase" not in path.read_text(encoding="utf-8").lower(), path.name
+            lines = [line for line in path.read_text(encoding="utf-8").splitlines() if "intuibase" in line.lower()]
+            # Only the name older releases stored, so setup can rename those devices.
+            assert lines == (['OLD_MANUFACTURER = "intuibase"'] if path.name == "const.py" else []), path.name
+
+
+@pytest.mark.asyncio
+async def test_setup_renames_every_device_an_older_release_stored(hass, monkeypatch):
+    """Hub, E32 rooms (Badkamer, Woonkamer) and a Bluetooth sensor: before any entity is added again."""
+    import custom_components.open_thermostat as integration
+    from homeassistant.components import mqtt
+    from unittest.mock import AsyncMock
+    from custom_components.open_thermostat.heating_link import ble_device_identifier, room_device_identifier
+    parent = entry(hass)
+    devices, entities = dr.async_get(hass), er.async_get(hass)
+    identifiers = [("open_thermostat", "fixture"), room_device_identifier("fixture", "badkamer"),
+                   room_device_identifier("fixture", "woonkamer"), ble_device_identifier("fixture", "a4c138a3e8db")]
+    old = [devices.async_get_or_create(config_entry_id=parent.entry_id, identifiers={i}, name=i[1],
+                                       manufacturer="intuibase") for i in identifiers]
+    room_entity = entities.async_get_or_create("sensor", "open_thermostat", "fixture_e32_room_badkamer_temperature",
+                                               config_entry=parent, device_id=old[1].id)
+    other = devices.async_get_or_create(config_entry_id=parent.entry_id, identifiers={("zha", "x")},
+                                        manufacturer="_TZE200_other")
+    monkeypatch.setattr(mqtt, "async_wait_for_mqtt_client", AsyncMock(return_value=True))
+    monkeypatch.setattr(mqtt, "async_subscribe", AsyncMock(return_value=lambda: None))
+    monkeypatch.setattr(hass.config_entries, "async_forward_entry_setups", AsyncMock(return_value=None))
+    monkeypatch.setattr(hass.config_entries, "async_unload_platforms", AsyncMock(return_value=True))
+    try:
+        assert await integration.async_setup_entry(hass, parent)
+        after = dr.async_entries_for_config_entry(devices, parent.entry_id)
+        assert {d.id for d in after} == {d.id for d in old} | {other.id}
+        for device in old:
+            current = devices.async_get(device.id)
+            assert current.manufacturer == "OpenThermostat" and current.identifiers == device.identifiers
+        assert devices.async_get(other.id).manufacturer == "_TZE200_other"  # not ours: untouched
+        assert entities.async_get(room_entity.entity_id).device_id == old[1].id
+    finally:
+        await integration.async_unload_entry(hass, parent)
+        state = hass.data.get("open_thermostat", {}).pop(parent.entry_id, {})
+        for key in ("heating_tracker", "v1_runtime"):
+            if state.get(key) is not None:
+                await state[key].async_stop()
 
 
 @pytest.mark.asyncio

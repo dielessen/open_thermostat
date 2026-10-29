@@ -7,7 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
-from .const import CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DOMAIN, MANUFACTURER, PLATFORMS
+from .const import CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DOMAIN, MANUFACTURER, OLD_MANUFACTURER, PLATFORMS
 from .dashboard import RoomDashboard
 from .heating import HeatingTracker
 
@@ -26,6 +26,16 @@ async def async_remove_config_entry_device(hass, entry, device) -> bool:
     """Allow deleting an E32 room or Bluetooth sensor device the E32 no longer reports."""
     from .heating_link import removable_device
     return removable_device(hass, entry, device)
+
+
+def _rename_old_manufacturer(hass, entry):
+    """Devices an older release registered under the old manufacturer (hub, E32 rooms, Bluetooth
+    sensors) show OpenThermostat, also before any of their entities is added again.
+    Metadata only: the device, its identifiers and its entities stay the same."""
+    registry = dr.async_get(hass)
+    for device in dr.async_entries_for_config_entry(registry, entry.entry_id):
+        if device.manufacturer == OLD_MANUFACTURER:
+            registry.async_update_device(device.id, manufacturer=MANUFACTURER)
 
 
 async def _cleanup_setup_bench(hass, entry_id, owner):
@@ -49,6 +59,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         dr.async_get(hass).async_get_or_create(
             config_entry_id=entry.entry_id, identifiers={(DOMAIN, prefix)},
             name="OpenThermostat", manufacturer=MANUFACTURER, model="OpenThermostat")
+        _rename_old_manufacturer(hass, entry)
         if entry.options.get(CONF_CREATE_DASHBOARD, False):
             dashboard = RoomDashboard(hass, prefix, entry.entry_id)
             state["dashboard"] = dashboard
@@ -79,10 +90,15 @@ async def _async_options_updated(hass, entry):
     # Withdraw current SOURCE control before ANY native config/subentry reload
     # await. A changed draft cannot keep a ready owner while reload is queued.
     state=hass.data.get(DOMAIN,{}).get(entry.entry_id,{})
+    from .room_groups import presentation_only_update, remember_configuration
+    if presentation_only_update(hass, entry):
+        # Only the room / installation groups of the integration page changed: no reload.
+        return
     from .e32_access import apply_password, password_only_update
     if password_only_update(state, entry):
         # Only the E32 password changed (re-authentication): use it, no reload or plan review.
         apply_password(hass, entry, state)
+        remember_configuration(hass, entry)
         return
     from .energy_input import energy_only_update
     if energy_only_update(state, entry):
@@ -91,6 +107,7 @@ async def _async_options_updated(hass, entry):
             forwarder.reconfigure()
         if (advice:=state.get("heating_advice")) is not None:
             advice.reevaluate()
+        remember_configuration(hass, entry)
         return
     runtime=state.get("v1_runtime");connection=state.get("v1_connection")
     if (getattr(runtime,"native_plan_source",None) is not None
@@ -395,7 +412,11 @@ async def async_setup_entry(hass, entry):
         dr.async_get(hass).async_get_or_create(
             config_entry_id=entry.entry_id, identifiers={(DOMAIN, entry.data[CONF_TOPIC_PREFIX])},
             name="OpenThermostat", manufacturer=MANUFACTURER, model="OpenThermostat", **group_kwargs)
+        _rename_old_manufacturer(hass, entry)
         if product:
+            # One group per E32 room on the integration page (before the platforms add entities).
+            from .room_groups import async_setup_room_groups
+            async_setup_room_groups(hass, entry, group_kwargs["config_subentry_id"])
             tracker = HeatingTracker(hass, entry)
             state["heating_tracker"] = tracker
             cleanup.push_async_callback(tracker.async_stop)
@@ -434,6 +455,8 @@ async def async_setup_entry(hass, entry):
         entry.async_on_unload(lambda: async_unregister_entry(hass, entry.entry_id))
         entry.async_on_unload(entry.add_update_listener(_async_options_updated))
         if product:
+            from .room_groups import remember_configuration
+            remember_configuration(hass, entry)
             from .e32_link import update_legacy_rooms_issue
             update_legacy_rooms_issue(hass, entry)
         cleanup.pop_all()

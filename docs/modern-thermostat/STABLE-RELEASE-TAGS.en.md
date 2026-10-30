@@ -17,9 +17,9 @@ stable tag or release exists yet.
   PEP 440 (`1.0.0`, `1.0.0rc1`, `1.1.0b1`).
 - **The two components keep separate version numbers.** HA 1.0.0 together
   with E32 1.0.0 is a choice for that release, not a rule.
-- **The path to 1.0:** beta.19 or beta.20 (`v0.1.0-e32v2-beta.20`) is the
-  candidate. After 14 days of active control without problems, the same
-  source becomes `v1.0.0-e32v2`. An optional `v1.0.0-e32v2-rc.N` may come
+- **The path to 1.0:** beta.21 (`v0.1.0-e32v2-beta.21`), with the attended
+  switch-over to active control, is the candidate. After 14 days of active
+  control without problems, the same source becomes `v1.0.0-e32v2`. An optional `v1.0.0-e32v2-rc.N` may come
   first. EMS+ arrives in 1.1 (`v1.1.0-e32v2-beta.N`).
 
 ## Why this form
@@ -45,7 +45,7 @@ Within one version number: alpha < beta < rc < stable. Then the version number:
 `v1.0.0-e32v2` < `v1.0.1-e32v2-beta.1` < `v1.0.1-e32v2` < `v1.1.0-e32v2-beta.1`
 
 An installation is never offered a less mature channel than the one it runs.
-For example, an E32 on beta.19 or beta.20 is offered `v1.0.0-e32v2-rc.N` and
+For example, an E32 on beta.20 or beta.21 is offered `v1.0.0-e32v2-rc.N` and
 then `v1.0.0-e32v2`. An E32 on 1.0.0 is offered 1.0.1, but not
 1.1.0-beta.1. The same rule applies in Home Assistant and on the E32's own
 update page.
@@ -75,7 +75,7 @@ the published 0.1.0 beta.1.
 ## Still needed before `v1.0.0-e32v2` is tagged
 
 1. **Physical acceptance on the Home Assistant route.** The published
-   predecessor (beta.19 or beta.20) must be installed through the HA update
+   predecessor (beta.20 or beta.21) must be installed through the HA update
    entity. Its receipt must be recorded as `accepted` in `E32-UPDATE-GATE.json`
    (`method: home_assistant`). Today, `accepted` is beta.4 (native) and
    `pending` is beta.19.

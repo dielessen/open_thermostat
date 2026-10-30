@@ -11,11 +11,11 @@ receives itself, or Home Assistant entities such as a thermostat), follows the
 room's target or week program in its own time zone, and calculates a boiler
 request. Without Home Assistant everything is set up on the E32 itself.
 
-**E32 beta.19 runs this in shadow mode.** The E32 calculates its boiler
+**E32 beta.20 runs this in shadow mode.** The E32 calculates its boiler
 request, learns how each room warms up and, where a thermostat controls the
 boiler over EMS, compares its decisions with it. It does not send that
 request.
-Active boiler control is built into beta.19 but stays switched off in the
+Active boiler control is built into beta.20 but stays switched off in the
 firmware until an attended switch-over with failure tests.
 
 ## Requirements

@@ -7,8 +7,8 @@ week program. You do not need to be a developer. You do need to be
 comfortable copying files to Home Assistant and, once, connecting the E32 to
 your boiler.
 
-It matches E32 firmware **beta.19 or newer** and the Home Assistant
-integration **0.4.0b11 or newer**. Always install the firmware and the
+It matches E32 firmware **beta.21 or newer** and the Home Assistant
+integration **0.4.0b13 or newer**. Always install the firmware and the
 integration versions that the release notes pair together: a firmware and an
 integration from different releases may not understand each other.
 
@@ -509,8 +509,10 @@ How it works:
   message when it notices that a device runs its own schedule.
 - Home Assistant writes only to the device you chose, at most once a minute,
   and never while the room is off or paused for an open window.
-- If a temperature source of the room is a thermostat or valve, the form may
-  suggest it as setting device. Clear the field if you do not want that.
+- The setting device is never filled in for you. If a temperature source of
+  the room is a thermostat or valve, the form mentions it as a suggestion;
+  choose it yourself only if Home Assistant may write the program's
+  temperature to it.
 
 The setting device is a convenience, not a requirement. It needs Home
 Assistant: without Home Assistant the E32 keeps running the program, but

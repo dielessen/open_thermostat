@@ -1,6 +1,6 @@
 # OpenThermostat user guide
 
-For E32 V2 beta.19, optionally with Home Assistant integration 0.4.0b11. If
+For E32 V2 beta.21, optionally with Home Assistant integration 0.4.0b13. If
 you use Home Assistant, install both together. Installing on a new E32, the
 Home Assistant setup, updates and troubleshooting are described step by step
 in the [installation guide](INSTALL.md).
@@ -430,7 +430,7 @@ sensors, the flow options, the boiler model and the page language.
 
 ## The attended switch-over (not in this beta)
 
-Active control is built into beta.19 but locked in the firmware; the Active
+Active control is built into the firmware but locked there; the Active
 control section on the Rooms page says "Active control is not enabled in this
 firmware." It is opened only in a later release, with someone present at the
 boiler. See [the switch-over procedure](SWITCHOVER.md). It will involve:

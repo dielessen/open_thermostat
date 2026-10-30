@@ -16,6 +16,25 @@ _LOGGER = logging.getLogger(__name__)
 _RELOAD_DASHBOARDS = DOMAIN + "_reload_dashboards"
 
 
+# Dashboard cards (week_planner): set up only through the UI, no YAML.
+from homeassistant.helpers import config_validation as _cv  # noqa: E402
+CONFIG_SCHEMA = _cv.config_entry_only_config_schema(DOMAIN)
+
+
+async def async_setup(hass, config) -> bool:
+    """Domain level, once per HA run: the cards' JavaScript and websocket commands.
+
+    Independent of any installation, its runtime state or the dashboard, so a
+    browser always finds custom:openthermostat-* (the card itself waits for the E32).
+    """
+    from .week_planner import async_setup_planner
+    try:
+        await async_setup_planner(hass)
+    except Exception:  # the dashboard start retries; never block the installations
+        _LOGGER.exception("The OpenThermostat dashboard cards could not be registered yet")
+    return True
+
+
 def _drop_setup_state(hass, entry_id, state):
     """A failed old setup may only remove its own published state."""
     entries = hass.data.get(DOMAIN, {})
@@ -468,6 +487,10 @@ async def async_remove_entry(hass, entry):
     from homeassistant.helpers import issue_registry as ir
     from .e32_link import issue_id
     ir.async_delete_issue(hass, DOMAIN, issue_id(entry))
+    # The last installation removed: browsers stop loading the dashboard cards (week_planner).
+    if not any(other.entry_id != entry.entry_id for other in hass.config_entries.async_entries(DOMAIN)):
+        from .week_planner import async_remove_card_modules
+        async_remove_card_modules(hass)
 
 async def async_unload_entry(hass, entry):
     state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})

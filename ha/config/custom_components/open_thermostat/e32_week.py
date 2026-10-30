@@ -62,12 +62,18 @@ def _program(room):
 
 
 def _link(hass, entry_id):
+    """The entry's RoomPlanLink, or WeekError: unavailable (no such E32 installation),
+    disabled (turned off by the user) or not_ready (still starting: the card waits and retries)."""
     entry = hass.config_entries.async_get_entry(entry_id)
-    if entry is None or entry.domain != DOMAIN or not has_room_plan(entry) or entry_id not in hass.data.get(DOMAIN, {}):
+    if entry is None or entry.domain != DOMAIN or not has_room_plan(entry):
         raise WeekError("unavailable")
+    if entry.disabled_by is not None:
+        raise WeekError("disabled")
+    if entry_id not in hass.data.get(DOMAIN, {}):
+        raise WeekError("not_ready")
     link = heating_hub(hass, entry).plan
     if link is None:
-        raise WeekError("unavailable")
+        raise WeekError("not_ready")
     return link
 
 
@@ -132,7 +138,8 @@ async def ws_week_get(hass, connection, msg):
     except WeekError as err:
         connection.send_error(msg["id"], str(err), "The week programs could not be read")
     else:
-        connection.send_result(msg["id"], result)
+        # The module this backend serves: a page still running an older card asks for a reload.
+        connection.send_result(msg["id"], {**result, "card_url": CARD_URL})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "open_thermostat/e32_week/save",

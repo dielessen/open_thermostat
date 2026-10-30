@@ -4,6 +4,8 @@
   "codeowners": [],
   "config_flow": true,
   "dependencies": [
+    "frontend",
+    "http",
     "lovelace",
     "mqtt"
   ],

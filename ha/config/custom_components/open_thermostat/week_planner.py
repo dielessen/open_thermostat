@@ -123,10 +123,49 @@ async def ws_save(hass, connection, msg):
         connection.send_result(msg["id"], result)
 
 
+# hass.data: the card modules this integration asked the browser to load (frontend extra module URLs).
+_MODULES_KEY = DOMAIN + "_card_modules"
+
+
+def card_modules():
+    """The dashboard cards' modules: each defines its custom elements (custom:openthermostat-*)."""
+    from .e32_week import CARD_URL
+    return (CARD_URL, URL)
+
+
+@callback
+def async_add_card_modules(hass):
+    """Make every browser load the card modules: pages opened later through index.html,
+    open pages through HA's frontend/subscribe_extra_js. Each URL once (no duplicates)."""
+    added = hass.data.setdefault(_MODULES_KEY, set())
+    present = getattr(hass.data.get(frontend.DATA_EXTRA_MODULE_URL), "urls", frozenset())
+    for url in card_modules():
+        if url not in added and url not in present:
+            frontend.add_extra_js_url(hass, url)
+        added.add(url)
+
+
+@callback
+def async_remove_card_modules(hass):
+    """The last installation is removed: browsers stop loading the card modules.
+
+    The static files stay served until Home Assistant restarts (HA cannot
+    unregister a static path); a new installation adds the modules again."""
+    for url in sorted(hass.data.pop(_MODULES_KEY, ())):
+        if url in getattr(hass.data.get(frontend.DATA_EXTRA_MODULE_URL), "urls", frozenset()):
+            frontend.remove_extra_js_url(hass, url)
+
+
 async def async_setup_planner(hass):
-    """One static module and authenticated native WS, shared by managed dashboards."""
+    """The card modules, their static files and the authenticated websocket commands.
+
+    Domain level (async_setup), once per Home Assistant run and independent of
+    any installation, dashboard or E32 state: a card on any dashboard finds its
+    element and asks the backend itself whether the E32 is ready.
+    """
     if task := hass.data.get(_KEY):
         await task
+        async_add_card_modules(hass)
         return
     # No await before claiming setup; parallel entries await the same owned task.
     async def setup():
@@ -140,7 +179,6 @@ async def async_setup_planner(hass):
             StaticPathConfig(EDITOR_URL, str(Path(__file__).parent / "frontend/week-editor.js"), False)])
         websocket_api.async_register_command(hass, ws_week_get)
         websocket_api.async_register_command(hass, ws_week_save)
-        frontend.add_extra_js_url(hass, CARD_URL)
         from .room_editor import ws_room_get, ws_room_save, ws_room_device_metadata
         from .room_vacation import ws_vacation_preview
         websocket_api.async_register_command(hass, ws_room_get)
@@ -149,10 +187,11 @@ async def async_setup_planner(hass):
         websocket_api.async_register_command(hass, ws_room_device_metadata)
         websocket_api.async_register_command(hass, ws_get)
         websocket_api.async_register_command(hass, ws_save)
-        frontend.add_extra_js_url(hass, URL)
     task = hass.data[_KEY] = hass.async_create_task(setup(), "OpenThermostat week editor frontend")
     try:
         await task
     except BaseException:
         hass.data.pop(_KEY, None)
         raise
+    # Only once the files are served and the commands answer.
+    async_add_card_modules(hass)

@@ -404,6 +404,8 @@ class RoomDashboard:
         """Register a Lovelace panel without changing the user's dashboards."""
         entry = self.hass.config_entries.async_get_entry(self.entry_id)
         if entry and is_product(entry):
+            # Normally done once in async_setup; again here (idempotent) so the cards'
+            # modules come back after the last installation was removed and a new one added.
             from .week_planner import async_setup_planner
             await async_setup_planner(self.hass)
         dashboards = self.hass.data[LOVELACE_DATA].dashboards

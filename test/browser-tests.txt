@@ -1,0 +1,50 @@
+# Browser regressions: "<shard> <test file>", one CI job "browser (<shard>/4)" per shard.
+# Every test/**/*-browser.cjs must be listed once (scripts/test_browser_suite.py).
+# Shards are fixed and balanced by measured duration (seconds, local WSL, 30 Oct 2026);
+# put a new test in the shard with the lowest total. Run: test/run-browser-tests.sh.
+# shard 1: about 249 s
+1 test/boiler-test-control-browser.cjs  # 249 s
+# shard 2: about 238 s
+2 test/onboarding/network-browser.cjs  # 1 s
+2 test/rooms/browser.cjs  # 35 s
+2 test/dashboard-browser.cjs  # 4 s
+2 test/dashboard-room-context-browser.cjs  # 4 s
+2 test/ems-devices-browser.cjs  # 9 s
+2 test/boiler-settings-browser.cjs  # 28 s
+2 test/navigation-browser.cjs  # 2 s
+2 test/boiler-test-browser.cjs  # 108 s
+2 test/boiler-configuration-read-browser.cjs  # 7 s
+2 test/ha-device-power-browser.cjs  # 3 s
+2 test/ha-room-program-browser.cjs  # 7 s
+2 test/ha-room-comfort-browser.cjs  # 6 s
+2 test/ha-room-status-ownership-browser.cjs  # 3 s
+2 test/ha-planner-touch-browser.cjs  # 21 s
+# shard 3: about 238 s
+3 test/auth-body-browser.cjs  # 1 s
+3 test/boiler-display-browser.cjs  # 20 s
+3 test/heating-browser.cjs  # 27 s
+3 test/heating-flow-browser.cjs  # 102 s
+3 test/bluetooth-lifecycle-browser.cjs  # 3 s
+3 test/about-password-browser.cjs  # 2 s
+3 test/system-log-browser.cjs  # 42 s
+3 test/config-backup-browser.cjs  # 6 s
+3 test/boiler-trial-guidance-browser.cjs  # 3 s
+3 test/ha-device-metadata-browser.cjs  # 5 s
+3 test/ha-tv02-mode-browser.cjs  # 4 s
+3 test/ha-room-contacts-browser.cjs  # 9 s
+3 test/ha-manual-target-browser.cjs  # 4 s
+3 test/ha-room-vacation-browser.cjs  # 10 s
+# shard 4: about 237 s
+4 test/onboarding/browser.cjs  # 19 s
+4 test/onboarding/body-browser.cjs  # 2 s
+4 test/updates/browser.cjs  # 66 s
+4 test/e32-comfort-browser.cjs  # 4 s
+4 test/history-chart-browser.cjs  # 3 s
+4 test/bluetooth-browser.cjs  # 52 s
+4 test/page-loading-browser.cjs  # 5 s
+4 test/system-log-lifecycle-browser.cjs  # 24 s
+4 test/debug-settings-browser.cjs  # 7 s
+4 test/ui-language-browser.cjs  # 6 s
+4 test/boiler-profile-browser.cjs  # 3 s
+4 test/boiler-test-confirm-browser.cjs  # 30 s
+4 test/week-editor-browser.cjs  # 17 s

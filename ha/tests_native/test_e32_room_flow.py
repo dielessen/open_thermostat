@@ -113,7 +113,7 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
     assert form["step_id"] == "e32_room"
     keys = [str(k) for k in form["data_schema"].schema]
     assert keys == ["name", "state", "emitter", "ha_sources", "ble_sources", "bluetooth_first",
-                    "setpoint_entity", "fallback_temperature", "program", "limits"]
+                    "setpoint_entity", "fallback_temperature", "program", "window", "limits"]
     ble = next(v for k, v in form["data_schema"].schema.items() if str(k) == "ble_sources")
     assert [o["value"] for o in ble.config["options"]] == ["a4c138a3e8db", "112233445566"]
     assert ble.config["options"][0]["label"] == "Slaapkamer (a4c138a3e8db) 19.4 °C"
@@ -322,6 +322,7 @@ async def test_editing_changes_only_the_edited_fields_and_sources_can_be_reorder
                       "ha_sources": ["climate.woonkamer"], "ble_sources": ["a4c138a3e8db"], "bluetooth_first": False,
                       "setpoint_entity": "climate.woonkamer", "fallback_temperature": 20.0,
                       "program": format_program(default_program(1000, 2400), "en", "°C"),
+                      "window": {},  # no window/door contacts yet (test_room_window_contacts.py)
                       "limits": {"minimum_temperature": 10.0, "maximum_temperature": 24.0}}
     # A room without a week program is shown with "Workdays and weekend" and saving gives it that program.
     result = await manager.async_configure(form["flow_id"], values)
@@ -663,6 +664,8 @@ def test_every_flow_key_has_a_translation(filename):
     assert set(room_step["data"]) == {"name", "state", "emitter", "ha_sources", "ble_sources", "bluetooth_first",
                                       "setpoint_entity", "fallback_temperature", "program"}
     assert set(room_step["sections"]["limits"]["data"]) == {"minimum_temperature", "maximum_temperature"}
+    assert set(room_step["sections"]["window"]["data"]) == {"contacts"}
+    assert "{delay}" in room_step["sections"]["window"]["data_description"]["contacts"]
     assert document["exceptions"]["room_plan_too_large"]["message"]
     assert document["exceptions"]["room_plan_storage_full"]["message"]
     full = options["error"]["e32_storage_full"]

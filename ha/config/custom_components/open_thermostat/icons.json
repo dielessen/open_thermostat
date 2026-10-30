@@ -73,7 +73,9 @@
           "fallback": "mdi:thermometer-alert",
           "stale": "mdi:clock-alert-outline",
           "lost": "mdi:access-point-network-off",
-          "inactive": "mdi:power-off"
+          "inactive": "mdi:power-off",
+          "window_open": "mdi:window-open-variant",
+          "window_pending": "mdi:window-open"
         }
       },
       "shadow_e32_heating_time_today": {

@@ -1034,7 +1034,7 @@
         "description": "Raam- en deursensoren pauzeren een ruimte zolang ze open staan; voorinstellingen, afwezig en aanwezigheid bepalen temperaturen voor de thermostaten van je E32-ruimtes. Alles hier is optioneel.",
         "menu_options": {
           "comfort_settings": "Voorinstellingen, aanwezigheid en tijden",
-          "comfort_contacts": "Raam- en deursensoren per ruimte"
+          "comfort_contacts": "Raam- en deurcontacten per ruimte"
         }
       },
       "comfort_settings": {
@@ -1056,15 +1056,23 @@
         }
       },
       "comfort_contacts": {
-        "title": "Raam- en deursensoren",
-        "description": "Kies een ruimte en haar raam- en deursensoren. Zolang er één open staat pauzeert de ruimte (de vorstbeveiliging blijft); zijn ze allemaal dicht, dan verwarmt ze weer. Sensoren nu: {rooms}. Kies geen sensor om ze uit de ruimte te halen.",
+        "title": "Raam- en deurcontacten",
+        "description": "Kies de ruimte waarvan je de raam- en deurcontacten wilt wijzigen. Dat kan ook in de ruimte zelf, onder Configureren → Ruimtes.\n\nContacten nu:\n{rooms}",
         "data": {
-          "room": "Ruimte",
-          "contacts": "Raam- en deursensoren"
+          "room": "Ruimte"
         },
         "data_description": {
-          "room": "Een van de ruimtes op je E32.",
-          "contacts": "Binaire sensoren van het type raam, deur of opening, bijvoorbeeld via Zigbee of Bluetooth. Hun toestand gaat bij elke wijziging naar de E32."
+          "room": "Een van de ruimtes op je E32."
+        }
+      },
+      "comfort_contacts_room": {
+        "title": "Raam- en deurcontacten",
+        "description": "Ruimte: {room}. Staat een van deze sensoren {delay} open, dan pauzeert de ruimte: ze zakt naar vorstbeveiliging (8 °C) en vraagt geen warmte. Zijn ze allemaal weer dicht, dan volgt ze haar programma. Haal alle sensoren weg om dit voor de ruimte uit te zetten.",
+        "data": {
+          "contacts": "Raam- en deurcontacten"
+        },
+        "data_description": {
+          "contacts": "Binaire sensoren van het type raam, deur, opening of garagedeur, van elk merk (Zigbee, Z-Wave, Shelly, Bluetooth …). Home Assistant stuurt hun toestand bij elke wijziging naar de E32."
         }
       },
       "init": {
@@ -1484,6 +1492,16 @@
           "program": "Het makkelijkst: de visuele planner onder Weekprogramma op het OpenThermostat-dashboard. Deze tekst is de geavanceerde weergave van hetzelfde programma: eén regel per groep dagen, bijvoorbeeld ma-vr: 06:30 20,5; 22:30 18 en za-zo: 08:00 20,5; 23:00 18. Temperaturen in de eenheid van je Home Assistant. Een regel zonder dagen geldt voor elke dag. Maximaal 6 schakelpunten per dag; elke temperatuur geldt tot het volgende punt. Leeg: geen weekprogramma."
         },
         "sections": {
+          "window": {
+            "name": "Raam- en deurcontacten",
+            "description": "Optioneel. Kies de raam- en deursensoren van deze ruimte uit Home Assistant, van elk merk: Zigbee, Z-Wave, Shelly, Bluetooth en meer.",
+            "data": {
+              "contacts": "Raam- en deurcontacten"
+            },
+            "data_description": {
+              "contacts": "Staat er één {delay} open, dan pauzeert de ruimte: ze zakt naar vorstbeveiliging (8 °C) en vraagt geen warmte. Zijn ze allemaal weer dicht, dan volgt ze haar programma. Kort luchten pauzeert de ruimte niet. De wachttijd staat onder Configureren → Comfort → Voorinstellingen, aanwezigheid en tijden."
+            }
+          },
           "limits": {
             "name": "Temperatuurgrenzen",
             "description": "De gewenste temperatuur, de temperatuur zonder Home Assistant en het programma blijven binnen deze grenzen.",
@@ -1851,7 +1869,9 @@
           "fallback": "Terugvalstand",
           "stale": "Meting verouderd",
           "lost": "Sensor kwijt",
-          "inactive": "Uit"
+          "inactive": "Uit",
+          "window_open": "Raam open, verwarming gepauzeerd",
+          "window_pending": "Raam open, pauzeert zo"
         }
       },
       "ble_temperature": {

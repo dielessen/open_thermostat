@@ -129,14 +129,22 @@
       },
       "comfort_contacts": {
         "title": "Czujniki okien i drzwi",
-        "description": "Wybierz pomieszczenie i jego czujniki okien i drzwi. Dopóki którykolwiek jest otwarty, pomieszczenie wstrzymuje ogrzewanie (ochrona przed mrozem pozostaje); gdy wszystkie są zamknięte, znowu grzeje. Obecne czujniki: {rooms}. Nie wybieraj żadnego czujnika, aby usunąć je z pomieszczenia.",
+        "description": "Wybierz pomieszczenie, którego czujniki okien i drzwi chcesz zmienić. Możesz to zrobić także w samym pomieszczeniu, w Konfiguruj → Pomieszczenia.\n\nObecne czujniki:\n{rooms}",
         "data": {
-          "room": "Pomieszczenie",
+          "room": "Pomieszczenie"
+        },
+        "data_description": {
+          "room": "Jedno z pomieszczeń na Twoim E32."
+        }
+      },
+      "comfort_contacts_room": {
+        "title": "Czujniki okien i drzwi",
+        "description": "Pomieszczenie: {room}. Gdy jeden z tych czujników jest otwarty przez {delay}, pomieszczenie wstrzymuje ogrzewanie: spada do ochrony przed mrozem (8 °C) i nie żąda ciepła. Gdy wszystkie są znów zamknięte, wraca do swojego programu. Usuń wszystkie czujniki, aby wyłączyć to dla pomieszczenia.",
+        "data": {
           "contacts": "Czujniki okien i drzwi"
         },
         "data_description": {
-          "room": "Jedno z pomieszczeń na Twoim E32.",
-          "contacts": "Czujniki binarne typu okno, drzwi lub otwarcie, na przykład z Zigbee lub Bluetooth. Ich stan jest wysyłany do E32 przy każdej zmianie."
+          "contacts": "Czujniki binarne klasy okno, drzwi, otwarcie lub brama garażowa, dowolnej marki (Zigbee, Z-Wave, Shelly, Bluetooth …). Home Assistant wysyła ich stan do E32 przy każdej zmianie."
         }
       },
       "init": {
@@ -556,6 +564,16 @@
           "program": "Najprościej: wizualny planer w widoku Program tygodniowy na pulpicie OpenThermostat. Ten tekst to zaawansowany widok tego samego programu: jedna linia na grupę dni, na przykład mon-fri: 06:30 20.5; 22:30 18 oraz sat-sun: 08:00 20.5; 23:00 18. Temperatury w jednostce Twojego Home Assistant. Linia bez dni obowiązuje każdego dnia. Do 6 punktów przełączenia na dzień; każda temperatura obowiązuje do następnego punktu. Puste: brak programu tygodniowego."
         },
         "sections": {
+          "window": {
+            "name": "Czujniki okien i drzwi",
+            "description": "Opcjonalnie. Wybierz czujniki okien i drzwi tego pomieszczenia z Home Assistant, dowolnej marki: Zigbee, Z-Wave, Shelly, Bluetooth i inne.",
+            "data": {
+              "contacts": "Czujniki okien i drzwi"
+            },
+            "data_description": {
+              "contacts": "Gdy jeden z nich jest otwarty przez {delay}, pomieszczenie wstrzymuje ogrzewanie: spada do ochrony przed mrozem (8 °C) i nie żąda ciepła. Gdy wszystkie są znów zamknięte, wraca do swojego programu. Krótkie wietrzenie nie wstrzymuje ogrzewania. Opóźnienie zmienisz w Konfiguruj → Komfort → Ustawienia wstępne, obecność i czasy."
+            }
+          },
           "limits": {
             "name": "Limity temperatury",
             "description": "Temperatura docelowa, temperatura bez Home Assistant i program mieszczą się w tych limitach.",
@@ -923,7 +941,9 @@
           "fallback": "Używa wartości zastępczej",
           "stale": "Pomiar nieaktualny",
           "lost": "Utracono czujnik",
-          "inactive": "Wyłączone"
+          "inactive": "Wyłączone",
+          "window_open": "Okno otwarte, ogrzewanie wstrzymane",
+          "window_pending": "Okno otwarte, wkrótce wstrzymanie"
         }
       },
       "ble_temperature": {

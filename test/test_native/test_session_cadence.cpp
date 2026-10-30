@@ -16,7 +16,7 @@ TEST(SessionCadence, HelloIsSlowInASessionAndAtOnceWhenTheSessionIsLost) {
         }
         return n;
     };
-    EXPECT_LE(hellos(120000), 2u);                         // every 60 s while the session lives (was every 3 s)
+    EXPECT_LE(hellos(120000), 120000u / ShadowController::helloSessionMs + 1);  // every 15 s in a session (was every 3 s)
     // HA goes silent: the lease ends after leaseMs and the hello comes at once.
     unsigned silentHellos = 0;
     uint64_t firstHelloAfterLoss = 0;

@@ -125,7 +125,7 @@ summary{cursor:pointer;min-height:var(--ot-tap);padding:10px 0;font-weight:600}d
 .device-navbar .nav-link:hover{background:rgba(255,255,255,.1)}.device-navbar .nav-link.active{color:#fff!important;background:rgba(255,255,255,.14);box-shadow:inset 0 -3px #4cc2b0}
 .device-navbar .dropdown-menu{right:0;left:auto}#auth-sign-out{white-space:nowrap;min-height:var(--ot-tap);color:#fff;border-color:#a3b7bb}
 .ot-foot{max-width:1140px;margin:32px auto 0;padding:8px 15px 24px;border-top:1px solid var(--ot-border);color:var(--ot-muted);display:flex;justify-content:flex-end}#ui-language-choice{min-height:var(--ot-tap);border-radius:var(--ot-r1);border:1px solid var(--ot-field);background:var(--ot-surface);color:var(--ot-text);padding:0 8px}
-@media (max-width:991.98px){.device-navbar .navbar-brand{flex:1 1 0;font-size:1.05rem}.device-navbar .navbar-brand svg{width:1.5rem;height:1.5rem}.device-navbar .nav-link{min-height:48px}}@media (max-width:400px){.device-navbar{padding:4px 6px}.device-navbar .navbar-toggler{margin-right:4px!important;padding:4px 8px}#auth-sign-out{padding:6px 10px}}
+@media (max-width:991.98px){.device-navbar .navbar-brand{flex:1 1 0;font-size:1.05rem}.device-navbar .navbar-brand svg{width:1.5rem;height:1.5rem}.device-navbar .nav-link{min-height:48px}}@media (max-width:400px){.device-navbar .navbar-brand{font-size:.95rem;gap:.35rem}.device-navbar .navbar-brand svg{width:1.25rem;height:1.25rem}.device-navbar{padding:4px 6px}.device-navbar .navbar-toggler{margin-right:4px!important;padding:4px 8px}#auth-sign-out{padding:6px 10px}}
 /* Components (pd-* names are kept for tests and older markup) */
 .product-dashboard,.ot-page{overflow-wrap:anywhere;max-width:1180px;margin:20px auto;padding:8px}.product-dashboard p{margin:8px 0}
 .pd-heading,.ot-head,.pd-section-title,.pd-room-title{display:flex;flex-direction:column;align-items:flex-start;gap:6px}.pd-room-title h3{max-width:100%;overflow-wrap:anywhere}.pd-heading,.ot-head{margin-bottom:20px}.pd-heading p,.ot-head p{margin:4px 0 0;color:var(--ot-muted)}.pd-section-title{margin:24px 0 12px}.pd-section-title h2,.pd-heading h1,.ot-head h1{margin:0}
@@ -1265,10 +1265,10 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             html += '</div>'+(trendPending && cards.length ? uiHtml("<p class=\"pd-help\" data-dashboard-key=\"trend-hint\">The trend appears after two reports.</p>") : '')+
                 (engine && dashboardHistory ? (function(chart) { return chart ? '<section class="pd-panel pd-history" data-dashboard-key="boiler-history">'+chart+'</section>' : ''; })(OpenThermostatHistory.boiler(dashboardHistory)) : '')+
                 '<section class="pd-panel pd-boiler"><div class="pd-facts">'+
-                fact(uiText("Flow temperature"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C')+
-                fact(uiText("Return temperature"),dashboardNumber(ems.currentReturnTemperature,10,-20,150),'°C')+
-                fact(uiText("Burner modulation"),dashboardNumber(ems.currentBurnerPower,1,0,100),'%')+
-                fact(uiText("Water pressure"),dashboardNumber(ems.pressure,10,0,10),'bar')+
+                fact(uiText("Flow"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C')+
+                fact(uiText("Return"),dashboardNumber(ems.currentReturnTemperature,10,-20,150),'°C')+
+                fact(uiText("Modulation"),dashboardNumber(ems.currentBurnerPower,1,0,100),'%')+
+                fact(uiText("Pressure"),dashboardNumber(ems.pressure,10,0,10),'bar')+
                 uiHtml("</div><div class=\"pd-lower\"><details class=\"ot-advanced\"><summary>More boiler data</summary><dl class=\"pd-detail-grid\">");
             // Reliable reported fields only, and only when a value was received.
             // Flame/pump/fan bits, flow rate and the read-back setpoint are not

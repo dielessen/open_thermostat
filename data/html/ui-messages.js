@@ -242,6 +242,7 @@ window.OT_UI_MESSAGES = {
   "Thermostat request": "Vraag van de thermostaat",
   "Flow": "Aanvoer",
   "Return": "Retour",
+  "Modulation": "Modulatie",
   "Last 24 hours": "Laatste 24 uur",
   "Since the restart {duration} ago": "Sinds de herstart {duration} geleden",
   "Kept in the E32's memory since the last restart.": "Bewaard in het geheugen van de E32 sinds de laatste herstart.",

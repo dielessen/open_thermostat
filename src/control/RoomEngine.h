@@ -51,6 +51,12 @@ public:
         rooms_ = std::move(next);
     }
     const RoomPlan& plan() const { return plan_; }
+    // The last HA target of a room (its followed thermostat or setpoint entity) and when it came; fresh
+    // while younger than setpointMaxAgeMs. RoomOverrides holds it for a while once it goes stale.
+    std::optional<RoomDemand::Reading> haTarget(size_t room) const {
+        if (room >= rooms_.size() || !rooms_[room].target) return std::nullopt;
+        return RoomDemand::Reading{rooms_[room].target, rooms_[room].targetAt};
+    }
     // Per plan room after step(): its demand result, and its leading fresh
     // reading whatever its state (frost protection also covers inactive rooms).
     const RoomDemand::Result& result(size_t room) const { return rooms_[room].result; }
@@ -205,7 +211,8 @@ private:
     static std::optional<int16_t> setpoint(const RoomPlan::Room& room, const Runtime& rt, SetpointSource source, std::optional<uint32_t> unixNow) {
         if (source == SetpointSource::ha) return rt.target;
         if (source == SetpointSource::schedule) return room.schedule.at(RoomSchedule::localAt(*unixNow));
-        return room.fallbackCentiC;
+        // Without HA: by day / by night on the local clock, else the day value.
+        return unixNow ? room.fallbackAt(RoomSchedule::localAt(*unixNow).minute) : room.fallbackCentiC;
     }
     static void centi(cJSON* o, const char* key, std::optional<int16_t> v) {
         if (v) cJSON_AddNumberToObject(o, key, *v / 100.0); else cJSON_AddNullToObject(o, key);

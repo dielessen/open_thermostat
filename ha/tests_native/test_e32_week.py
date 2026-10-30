@@ -140,7 +140,7 @@ async def test_the_dashboard_has_a_week_program_view_for_the_e32_rooms(hass, cre
     dashboard = RoomDashboard(hass, "fixture", parent.entry_id)
     config = dashboard._dashboard_config()
     views = {view["path"]: view for view in config["views"]}
-    links = [card for card in view_cards(config["views"][0]) if card.get("tap_action")]
+    links = [card for card in view_cards(config["views"][0]) if card["type"] == "heading" and card.get("tap_action")]
     if credentials:
         assert views["week-program"]["cards"] == [{"type": "custom:openthermostat-e32-week", "entry_id": parent.entry_id}]
         assert links[-1]["heading"] == "Week program"

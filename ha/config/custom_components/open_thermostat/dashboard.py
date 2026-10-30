@@ -123,9 +123,9 @@ TEXT = {
         "agreement": "Agreement with thermostat", "measured": "Measured by E32", "target": "Target temperature",
         "mode": "Mode", "off_until": "Off until", "without_ha": "Temperature without Home Assistant",
         "compare": "E32 and thermostat", "e32_request": "Boiler request E32",
-        "thermostat_request": "Thermostat request", "heating_time_e32": "Heating time today (E32)",
-        "heating_time_thermostat": "Heating time today (thermostat)", "starts_e32": "Burner starts today (E32)",
-        "starts_thermostat": "Burner starts today (thermostat)", "heating_per_day": "Heating time per day",
+        "thermostat_request": "Thermostat request", "heating_time_e32": "Heating time E32",
+        "heating_time_thermostat": "Heating time thermostat", "starts_e32": "Starts E32",
+        "starts_thermostat": "Starts thermostat", "heating_per_day": "Heating time per day",
         "boiler": "Boiler", "bluetooth": "Bluetooth sensors", "temperature": "Temperature",
         "humidity": "Humidity", "battery": "Battery",
         "shadow": "Shadow mode: the E32 calculates along but does not control the boiler yet; your current "
@@ -157,7 +157,7 @@ TEXT = {
         "flame_chart": "Observed flame time per day",
         "models_note": "Room heat models are estimates, not measured heat; unknown or stale inputs leave gaps.",
         "room_history": "{room}: target and measured", "room_measured": "Measured", "room_target": "Target",
-        "learning": "Learning", "flow_advice": "Recommended flow", "heating_start": "Heating starts",
+        "learning": "Learning", "flow_advice": "Flow advice", "heating_start": "Heating starts",
         "learning_note": "The E32 also learns how fast each room warms up and works out the lowest flow "
                          "temperature that still makes up a 1 °C shortfall in time (the recommended flow).",
         "advice_only": "For now this is advice only; the E32 keeps its own rule.",
@@ -171,11 +171,13 @@ TEXT = {
         "gas_note": "Add these two sensors to the Energy dashboard under Gas consumption.",
         "outdoor": "Outdoor",
         "flow_settings": "Heating curve and learning",
-        "flow_source": "Flow set by",
+        "flow_source": "Flow source",
         "weather_curve": "Heating curve",
-        "design_flow": "Flow at −10 °C",
+        "design_flow": "At −10 °C",
         "apply_learned": "Use learning",
-        "agreement_short": "Agreement",
+        "agreement_short": "Comparison",
+        "flow_short": "Flow", "return_short": "Return",
+        "e32": "E32", "thermostat": "Thermostat",
         "comparison_view": "Comparison",
         "room_off": "This room is off and never asks for heat.",
         "room_no_source": "{room} is off and has no working temperature source. Choose a source to "
@@ -195,9 +197,9 @@ TEXT = {
         "target": "Gewenste temperatuur", "mode": "Stand", "off_until": "Uit tot",
         "without_ha": "Temperatuur zonder Home Assistant",
         "compare": "E32 en thermostaat vergeleken", "e32_request": "Ketelvraag E32",
-        "thermostat_request": "Vraag thermostaat", "heating_time_e32": "Stooktijd vandaag (E32)",
-        "heating_time_thermostat": "Stooktijd vandaag (thermostaat)", "starts_e32": "Branderstarts vandaag (E32)",
-        "starts_thermostat": "Branderstarts vandaag (thermostaat)", "heating_per_day": "Stooktijd per dag",
+        "thermostat_request": "Vraag thermostaat", "heating_time_e32": "Stooktijd E32",
+        "heating_time_thermostat": "Stooktijd thermostaat", "starts_e32": "Starts E32",
+        "starts_thermostat": "Starts thermostaat", "heating_per_day": "Stooktijd per dag",
         "boiler": "Ketel", "bluetooth": "Bluetooth-sensoren", "temperature": "Temperatuur",
         "humidity": "Luchtvochtigheid", "battery": "Batterij",
         "shadow": "Schaduwmodus: de E32 rekent mee maar stuurt de ketel nog niet; je huidige thermostaat of de "
@@ -231,7 +233,7 @@ TEXT = {
         "models_note": "Warmtemodellen per ruimte zijn schattingen, geen gemeten warmte; onbekende of verouderde "
                        "invoer laat gaten.",
         "room_history": "{room}: gewenst en gemeten", "room_measured": "Gemeten", "room_target": "Gewenst",
-        "learning": "Leren", "flow_advice": "Geadviseerde aanvoer", "heating_start": "Start verwarmen",
+        "learning": "Leren", "flow_advice": "Aanvoeradvies", "heating_start": "Start verwarmen",
         "learning_note": "De E32 leert ook hoe snel elke ruimte opwarmt en berekent de laagste "
                          "aanvoertemperatuur die een tekort van 1 °C nog op tijd inhaalt (de geadviseerde aanvoer).",
         "advice_only": "Voorlopig is dat alleen advies; de E32 houdt zijn eigen regel aan.",
@@ -245,11 +247,13 @@ TEXT = {
         "gas_note": "Voeg deze twee sensoren toe aan het energiedashboard onder Gasverbruik.",
         "outdoor": "Buiten",
         "flow_settings": "Stooklijn en leren",
-        "flow_source": "Aanvoer bepaald door",
+        "flow_source": "Aanvoerbron",
         "weather_curve": "Stooklijn",
-        "design_flow": "Aanvoer bij −10 °C",
+        "design_flow": "Bij −10 °C",
         "apply_learned": "Leren toepassen",
-        "agreement_short": "Overeenstemming",
+        "agreement_short": "Vergelijking",
+        "flow_short": "Aanvoer", "return_short": "Retour",
+        "e32": "E32", "thermostat": "Thermostaat",
         "comparison_view": "Vergelijking",
         "room_off": "Deze ruimte staat uit en vraagt nooit warmte.",
         "room_no_source": "{room} staat uit en heeft geen werkende temperatuurbron. Kies een bron "
@@ -704,7 +708,7 @@ class RoomDashboard:
             _heading(t["now"], "mdi:home-thermometer"),
             _tile(problem, t["problem"]),
             _tile(request, t["boiler_request"], "mdi:fire", color="deep-orange"),
-            _tile(essential("flow"), t["flow"], ICONS["flow"], color="orange"),
+            _tile(essential("flow"), t["flow_short"], ICONS["flow"], color="orange"),
             _tile(fields.get("outdoor_temperature"), t["outdoor"], "mdi:sun-thermometer-outline", color="blue-grey"),
             _tile(essential("dhw"), t["dhw"], ICONS["dhw"], color="light-blue"),
             _tile(agreement, t["agreement_short"], "mdi:compare-horizontal", color="teal",
@@ -748,10 +752,12 @@ class RoomDashboard:
         # The boiler: what "Now" does not show yet, then its day in one graph.
         taps = hub.get("dhw_taps_today")
         day = [{"entity": entity_id, "name": name} for entity_id, name in (
-            (essential("flow"), t["flow"]), (essential("return"), t["return"]), (request, t["e32_request"])) if entity_id]
+            (essential("flow"), t["flow_short"]), (essential("return"), t["return_short"]),
+            (request, t["e32_request"])) if entity_id]
         boiler = _section(
             _heading(t["boiler"], "mdi:water-boiler"),
-            *(_tile(essential(key), t[key], ICONS[key]) for key in ("return", "modulation", "pressure", "max_ch", "code")),
+            *(_tile(essential(key), t.get(key + "_short", t[key]), ICONS[key])
+              for key in ("return", "modulation", "pressure", "max_ch", "code")),
             _tile(taps, t["dhw_taps"], "mdi:faucet", visibility=_known(taps)) if taps else None,
             _tile(hub.get("burner_starts_last_hour"), t["starts_hour"], "mdi:counter"),
             _tile(hub.get("burner_short_cycling"), t["short_cycling"], "mdi:sync-alert"),
@@ -789,27 +795,28 @@ class RoomDashboard:
             compare = _section(
                 _heading(t["compare"], "mdi:compare-horizontal"),
                 _tile(agreement, t["agreement"], "mdi:compare-horizontal", color="teal"),
-                {"type": "history-graph", "hours_to_show": 24, "entities": compare_entities}
-                if compare_entities else None,
                 _tile(hub.get("shadow_e32_heating_time_today"), t["heating_time_e32"], "mdi:timer-outline"),
                 _tile(hub.get("shadow_tado_heating_time_today"), t["heating_time_thermostat"], "mdi:timer-outline"),
                 _tile(hub.get("shadow_e32_starts_today"), t["starts_e32"], "mdi:counter"),
                 _tile(hub.get("shadow_tado_starts_today"), t["starts_thermostat"], "mdi:counter"),
-                {"type": "statistics-graph", "title": t["heating_per_day"], "entities": heating_time,
-                 "stat_types": ["max"], "period": "day", "days_to_show": 7, "chart_type": "bar"}
-                if heating_time else None,
+                {"type": "history-graph", "hours_to_show": 24, "entities": compare_entities}
+                if compare_entities else None,
             )
             if len(compare["cards"]) > 1:
                 comparison.append(compare)
+            names = {"shadow_e32_heating_time_today": t["e32"], "shadow_tado_heating_time_today": t["thermostat"]}
+            if heating_time:
+                comparison.append(_section(
+                    _heading(t["heating_per_day"], "mdi:chart-bar"),
+                    {"type": "statistics-graph", "entities": [
+                        {"entity": hub[key], "name": name} for key, name in names.items() if key in hub],
+                     "stat_types": ["max"], "period": "day", "days_to_show": 7, "chart_type": "bar"}))
         learning = next((room["learning"] for room in e32_room_entities.values() if room.get("learning")), None)
         if learning:
             quoted = json.dumps(learning)
             note = {"type": "markdown", "visibility": _known(learning), "content": (
                 t["learning_note"] + "{% if not state_attr(" + quoted + ", 'applied') %} " + t["advice_only"] + "{% endif %}")}
-            if comparison:
-                comparison[0]["cards"].append(note)
-            else:
-                comparison.append(_section(_heading(t["learning"], "mdi:school-outline"), note))
+            comparison.append(_section(_heading(t["learning"], "mdi:school-outline"), note))
         loose = [{"type": "glance", "columns": 3, "state_color": False,
                   "title": self._device_name((DOMAIN, f"{self.prefix}_e32_ble_{sensor_id}"), sensor_id),
                   "entities": [{"entity": metrics[key], "name": t[key]} for key in BLE_KEYS if key in metrics]}
@@ -842,7 +849,10 @@ class RoomDashboard:
         if room.get("status"):
             badges.append({"type": "entity", "entity": room["status"], "show_state": True, "show_icon": True,
                            "color": "amber", "visibility": [{"condition": "state", "entity": room["status"],
-                                                             "state_not": "ok"}]})
+                                                             "state_not": ["ok", "inactive"]}]})
+        if state:
+            badges.append({"type": "entity", "entity": state, "show_state": True, "show_icon": True,
+                           "icon": "mdi:power-off", "visibility": inactive})
         if sensor.get("humidity"):
             badges.append({"type": "entity", "entity": sensor["humidity"], "show_state": True, "show_icon": True})
         if sensor.get("battery"):  # only when it needs attention

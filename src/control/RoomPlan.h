@@ -39,13 +39,26 @@ struct RoomPlan {
         Emitter emitter = Emitter::radiator;
         std::vector<Source> sources; // priority order, 1..RoomDemand::maxSources
         std::string setpointEntity;  // HA entity with the target (e.g. the tado climate); empty = fixed only
-        int16_t fallbackCentiC = 2000;  // setpoint without a fresh HA target
+        int16_t fallbackCentiC = 2000;  // setpoint without a fresh HA target: the day value of "without HA"
+        // "Temperature without Home Assistant" (owner, 30 Oct 2026): fallbackCentiC by day, nightCentiC
+        // by night, switching at these local minutes. Not a week program: two values and two times.
+        // JSON "fallback_night":[day from, night from, night centi_c], only when not the default
+        // (06:30, 22:30, 17 degC), so older firmware reads the plan with its day value as before.
+        uint16_t dayFromMinute = 390, nightFromMinute = 1350;
+        int16_t nightCentiC = 1700;
         int16_t minimumCentiC = 500, maximumCentiC = 2500;
         RoomSchedule schedule;  // the E32 week program without HA; empty = fallback only
         // A thermostat or radiator valve in Home Assistant gives this room's target (owner,
         // 30 Oct 2026): its setpoint entity when that is a climate entity, else its first climate
         // source; empty: the E32's own target. Such a room keeps a stored week program, overrides
         // and away, but they are not used (RoomEngine, RoomOverrides). Not part of the stored form.
+        bool defaultNight() const { return dayFromMinute == 390 && nightFromMinute == 1350 && nightCentiC == 1700; }
+        // The "without Home Assistant" target at a local minute of the day.
+        int16_t fallbackAt(uint16_t minute) const {
+            const bool day = dayFromMinute < nightFromMinute ? minute >= dayFromMinute && minute < nightFromMinute
+                                                             : minute >= dayFromMinute || minute < nightFromMinute;
+            return day ? fallbackCentiC : nightCentiC;
+        }
         std::string_view followedThermostat() const {
             const auto climate = [](const std::string& id) { return id.rfind("climate.", 0) == 0 && id.size() > 8; };
             if (climate(setpointEntity)) return setpointEntity;
@@ -173,6 +186,11 @@ private:
             cJSON_AddNumberToObject(r, "fallback_centi_c", room.fallbackCentiC);
             cJSON_AddNumberToObject(r, "minimum_centi_c", room.minimumCentiC);
             cJSON_AddNumberToObject(r, "maximum_centi_c", room.maximumCentiC);
+            if (!room.defaultNight()) {
+                const int night[3]{room.dayFromMinute, room.nightFromMinute, room.nightCentiC};
+                cJSON* n = cJSON_CreateIntArray(night, 3);
+                if (!n || !cJSON_AddItemToObject(r, "fallback_night", n)) { cJSON_Delete(n); return {}; }
+            }
             if (!room.schedule.empty() && packedWeek) {
                 if (!cJSON_AddStringToObject(r, "week", packWeek(room.schedule).c_str())) return {};
             } else if (!room.schedule.empty()) {
@@ -219,6 +237,12 @@ private:
         const double fallback = number(r, "fallback_centi_c"), lo = number(r, "minimum_centi_c"), hi = number(r, "maximum_centi_c");
         if (!whole(lo, 500, 3000) || !whole(hi, 500, 3000) || lo > hi || !whole(fallback, lo, hi)) return "invalid_room_limits";
         room.fallbackCentiC = int16_t(fallback); room.minimumCentiC = int16_t(lo); room.maximumCentiC = int16_t(hi);
+        if (const auto* n = cJSON_GetObjectItemCaseSensitive(r, "fallback_night")) { // optional, beta.19
+            if (!cJSON_IsArray(n) || cJSON_GetArraySize(n) != 3) return "invalid_fallback_night";
+            const auto at = [&](int i) { const auto* v = cJSON_GetArrayItem(n, i); return cJSON_IsNumber(v) ? v->valuedouble : NAN; };
+            if (!whole(at(0), 0, 1439) || !whole(at(1), 0, 1439) || at(0) == at(1) || !whole(at(2), lo, hi)) return "invalid_fallback_night";
+            room.dayFromMinute = uint16_t(at(0)); room.nightFromMinute = uint16_t(at(1)); room.nightCentiC = int16_t(at(2));
+        }
         // Optional (absent in beta.16 plans); "week" only in the stored form of a large plan.
         const auto* schedule = cJSON_GetObjectItemCaseSensitive(r, "schedule");
         const auto* week = cJSON_GetObjectItemCaseSensitive(r, "week");

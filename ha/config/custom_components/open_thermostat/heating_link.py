@@ -39,7 +39,7 @@ from datetime import datetime, timedelta, timezone
 from homeassistant.components import mqtt
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.const import PERCENTAGE, UnitOfTemperature, UnitOfTime
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature, UnitOfTime
 from homeassistant.core import callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -917,7 +917,11 @@ class ShadowSensor(HubEntity, SensorEntity):
     """One value of today's shadow comparison: the E32's decision next to the thermostat's (0x1A).
 
     The counters restart every day (and when the E32 restarts): total_increasing.
+    Diagnostic: the generated dashboard shows them on its Comparison subview, the device page
+    keeps them out of the main list.
     """
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, hub, key):
         self.key = key
@@ -1254,6 +1258,8 @@ class DhwTodaySensor(HubEntity, SensorEntity):
         self.key = key
         self._attach(hub, f"hub_{key}")
         self._attr_translation_key = key
+        if key != "dhw_taps_today":  # the taps are the everyday value; the rest is detail
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
         if key == "dhw_burner_time_today":
             self._attr_device_class = SensorDeviceClass.DURATION
             self._attr_native_unit_of_measurement = UnitOfTime.MINUTES

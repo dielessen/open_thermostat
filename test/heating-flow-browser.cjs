@@ -61,7 +61,11 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await box.getByRole('heading',{name:'Aanvoertemperatuur'}).waitFor();
   const curve=box.getByLabel('Weersafhankelijke stooklijn'),learned=box.getByLabel('Geleerde aanvoer en optimale start gebruiken');
   const design=box.getByLabel('Aanvoer bij −10 °C'),message=box.locator('[data-flow-message]');
-  // Status lines from /status/heating: source, curve, slope, learned, optimum start, gas calibration and boiler power.
+  // Status lines from /status/heating: source, curve, slope, learned, optimum start, gas calibration and boiler power,
+  // collapsed under "Status en leren" below the two settings.
+  const more=box.locator('details.hp-more');
+  assert.equal(await more.evaluate(d=>d.open),false,'the status lines start collapsed');
+  await more.locator('summary').click();
   await box.locator('[data-flow-status] dt').first().waitFor();
   const time=await page.evaluate(()=>new Date(1793248800000).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}));
   assert.deepEqual(await pairs(box.locator('[data-flow-status]')),[['Aanvoer nu','Ruimteregeling · 36 °C'],['Stooklijn','Alleen advies · 41 °C'],

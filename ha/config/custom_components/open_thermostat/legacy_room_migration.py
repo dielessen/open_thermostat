@@ -355,7 +355,7 @@ TEXT = {
                           "the old room, and {room} keeps its other sources.",
         "source_kept": "{room} on the E32 used {old} as its temperature source, and the old room has nothing to "
                        "replace it with: {room} will have no temperature source until you choose one "
-                       "(Configure → E32 rooms, or the Repairs message \"Choose a temperature source for {room}\").",
+                       "(Configure → Rooms, or the Repairs message \"Choose a temperature source for {room}\").",
         "setpoint": "{room} on the E32 took its desired temperature from {old}; it will take it from {new} instead.",
         "setpoint_dropped": "{room} on the E32 took its desired temperature from {old}; it will follow its own week "
                             "program instead.",
@@ -374,7 +374,7 @@ TEXT = {
                           "met de oude ruimte en {room} houdt zijn andere bronnen.",
         "source_kept": "{room} op de E32 gebruikte {old} als temperatuurbron en de oude ruimte heeft niets om die "
                        "te vervangen: {room} heeft geen temperatuurbron tot je er een kiest (Configureren → "
-                       "E32-ruimtes, of de melding \"Kies een temperatuurbron voor {room}\" onder Reparaties).",
+                       "Ruimtes, of de melding \"Kies een temperatuurbron voor {room}\" onder Reparaties).",
         "setpoint": "{room} op de E32 nam de gewenste temperatuur van {old}; dat wordt {new}.",
         "setpoint_dropped": "{room} op de E32 nam de gewenste temperatuur van {old}; voortaan volgt {room} zijn "
                             "eigen weekprogramma.",

@@ -453,7 +453,7 @@ TEXT = {
                 "action": "Lower the flow temperature: the maximum heating temperature or heating curve on "
                           "your boiler, or the E32's maximum flow temperature. If flow and return are close "
                           "together, a lower pump speed gives a cooler return.",
-                "where": "On the boiler: on many models a knob, on others the boiler menu or its app. Home Assistant: OpenThermostat → Configure → Rooms → Flow temperature limits (or on the E32: Rooms → Boiler flow limits).",
+                "where": "On the boiler: on many models a knob, on others the boiler menu or its app. Home Assistant: OpenThermostat → Configure → Heating and boiler (or on the E32: Rooms → Boiler flow limits).",
             },
             "flow_higher_wasteful": {
                 "title": "{room}: a lower flow is enough",
@@ -469,7 +469,7 @@ TEXT = {
                 "action@norule": "No action needed now. Once the E32 controls the boiler, it will ask this lower "
                                  "temperature itself.",
                 "action+maxflow": " It is now {max_flow} °C.",
-                "where": "Home Assistant: OpenThermostat → Configure → Rooms → Flow temperature limits (or on the E32: Rooms → Boiler flow limits).",
+                "where": "Home Assistant: OpenThermostat → Configure → Heating and boiler (or on the E32: Rooms → Boiler flow limits).",
             },
             "flow_lower_too_slow": {
                 "title": "{room} needs a higher flow",
@@ -482,7 +482,7 @@ TEXT = {
                 "action": "Check that the E32's maximum flow temperature and the maximum heating temperature on "
                           "your boiler allow {need} °C, or start heating earlier in the week program.",
                 "action+cap": " The E32's maximum flow ({max_flow} °C) is below what this room needs.",
-                "where": "Home Assistant: OpenThermostat → Configure → Rooms → Flow temperature limits (or on the E32: Rooms → Boiler flow limits). The week program: Configure → Rooms → Edit or remove a "
+                "where": "Home Assistant: OpenThermostat → Configure → Heating and boiler (or on the E32: Rooms → Boiler flow limits). The week program: Configure → Rooms → Edit or remove a "
                          "room.",
             },
             "night_setback": {
@@ -626,7 +626,7 @@ TEXT = {
                 "action": "Verlaag de aanvoertemperatuur: de maximale cv-temperatuur of stooklijn op je ketel, of "
                           "de maximale aanvoertemperatuur van de E32. Liggen aanvoer en retour dicht bij elkaar, "
                           "dan geeft een lagere pompstand een koelere retour.",
-                "where": "Op de ketel: bij veel modellen een draaiknop, bij andere het ketelmenu of de app van de ketel. Home Assistant: OpenThermostat → Configureren → Ruimtes → Grenzen aanvoertemperatuur (of op de E32: Ruimtes → Grenzen aanvoertemperatuur).",
+                "where": "Op de ketel: bij veel modellen een draaiknop, bij andere het ketelmenu of de app van de ketel. Home Assistant: OpenThermostat → Configureren → Verwarming en ketel (of op de E32: Ruimtes → Grenzen aanvoertemperatuur).",
             },
             "flow_higher_wasteful": {
                 "title": "{room}: een lagere aanvoer is genoeg",
@@ -642,7 +642,7 @@ TEXT = {
                 "action@norule": "Nu niets doen. Zodra de E32 de ketel regelt, vraagt hij zelf deze lagere "
                                  "temperatuur.",
                 "action+maxflow": " Die staat nu op {max_flow} °C.",
-                "where": "Home Assistant: OpenThermostat → Configureren → Ruimtes → Grenzen aanvoertemperatuur (of op de E32: Ruimtes → Grenzen aanvoertemperatuur).",
+                "where": "Home Assistant: OpenThermostat → Configureren → Verwarming en ketel (of op de E32: Ruimtes → Grenzen aanvoertemperatuur).",
             },
             "flow_lower_too_slow": {
                 "title": "{room} heeft een hogere aanvoer nodig",
@@ -656,7 +656,7 @@ TEXT = {
                           "op je ketel {need} °C toelaten, of begin eerder met verwarmen in het weekprogramma.",
                 "action+cap": " De maximale aanvoer van de E32 ({max_flow} °C) ligt onder wat deze ruimte nodig "
                               "heeft.",
-                "where": "Home Assistant: OpenThermostat → Configureren → Ruimtes → Grenzen aanvoertemperatuur (of op de E32: Ruimtes → Grenzen aanvoertemperatuur). Het weekprogramma: Configureren → Ruimtes → Ruimte "
+                "where": "Home Assistant: OpenThermostat → Configureren → Verwarming en ketel (of op de E32: Ruimtes → Grenzen aanvoertemperatuur). Het weekprogramma: Configureren → Ruimtes → Ruimte "
                          "bewerken of verwijderen.",
             },
             "night_setback": {

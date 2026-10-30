@@ -38,7 +38,7 @@ public:
                     }
             next[i].result.source = lead;
             if (oldRt.result.source >= 0 && lead < 0) { next[i].result = {}; next[i].lastUsable = {}; } // its sensor was removed
-            if (targetEntity(*old) != targetEntity(room)) next[i].target.reset();
+            if (old->setpointEntity != room.setpointEntity) next[i].target.reset();
         }
         if (!configured_ || plan.minimumFlowC != plan_.minimumFlowC || plan.maximumFlowC != plan_.maximumFlowC) {
             FlowDemand::Params params;
@@ -51,12 +51,6 @@ public:
         rooms_ = std::move(next);
     }
     const RoomPlan& plan() const { return plan_; }
-    // The last HA target of a room (its followed thermostat or setpoint entity) and when it came; fresh
-    // while younger than setpointMaxAgeMs. RoomOverrides holds it for a while once it goes stale.
-    std::optional<RoomDemand::Reading> haTarget(size_t room) const {
-        if (room >= rooms_.size() || !rooms_[room].target) return std::nullopt;
-        return RoomDemand::Reading{rooms_[room].target, rooms_[room].targetAt};
-    }
     // Per plan room after step(): its demand result, and its leading fresh
     // reading whatever its state (frost protection also covers inactive rooms).
     const RoomDemand::Result& result(size_t room) const { return rooms_[room].result; }
@@ -76,8 +70,7 @@ public:
             for (size_t s = 0; s < room.sources.size(); ++s)
                 if (room.sources[s].type == RoomPlan::SourceType::ha && room.sources[s].id == entity)
                     rooms_[i].readings[s] = {temperature, atMs};
-            const auto from = targetEntity(room);
-            if (!from.empty() && from == entity && target) {
+            if (!room.setpointEntity.empty() && room.setpointEntity == entity && target) {
                 rooms_[i].target = target; rooms_[i].targetAt = atMs;
             }
         }
@@ -174,8 +167,6 @@ public:
             else cJSON_AddNullToObject(r, "source");
             centi(r, "temperature", rt.result.temperature);
             centi(r, "setpoint", rt.result.setpoint);
-            // The thermostat this room follows (no E32 program or overrides for it).
-            if (const auto f = room.followedThermostat(); !f.empty()) cJSON_AddStringToObject(r, "follows", std::string(f).c_str());
             cJSON_AddStringToObject(r, "setpoint_source", rt.setpointSource == SetpointSource::ha ? "ha"
                 : rt.setpointSource == SetpointSource::schedule ? "schedule" : "fallback");
             cJSON_AddBoolToObject(r, "demand", rt.demand);
@@ -196,23 +187,19 @@ private:
         bool active = false;  // effective state of the last step
         SetpointSource setpointSource = SetpointSource::fallback;
     };
-    // The HA entity whose target the room uses: the followed thermostat, else its setpoint entity.
-    static std::string_view targetEntity(const RoomPlan::Room& room) {
-        const auto f = room.followedThermostat();
-        return f.empty() ? std::string_view(room.setpointEntity) : f;
-    }
-    // A fresh HA target, else the E32 week program (needs the clock; never for a room that
-    // follows its own thermostat), else the fixed fallback.
+    // The E32 week program (needs the clock), else a fresh HA target, else the fixed fallback.
+    // Owner, 30 Oct 2026: every room runs its E32 program; HA pushes that target to the room's
+    // setting device and sends a knob change as an override "until the next switch point"
+    // (RoomOverrides), so the device's own target never replaces the program here.
     static SetpointSource setpointSource(const RoomPlan::Room& room, const Runtime& rt, uint64_t now, std::optional<uint32_t> unixNow) {
+        if (unixNow && !room.schedule.empty()) return SetpointSource::schedule;
         if (rt.target && rt.targetAt <= now && now - rt.targetAt < setpointMaxAgeMs) return SetpointSource::ha;
-        if (unixNow && !room.schedule.empty() && room.followedThermostat().empty()) return SetpointSource::schedule;
         return SetpointSource::fallback;
     }
     static std::optional<int16_t> setpoint(const RoomPlan::Room& room, const Runtime& rt, SetpointSource source, std::optional<uint32_t> unixNow) {
         if (source == SetpointSource::ha) return rt.target;
         if (source == SetpointSource::schedule) return room.schedule.at(RoomSchedule::localAt(*unixNow));
-        // Without HA: by day / by night on the local clock, else the day value.
-        return unixNow ? room.fallbackAt(RoomSchedule::localAt(*unixNow).minute) : room.fallbackCentiC;
+        return room.fallbackCentiC;
     }
     static void centi(cJSON* o, const char* key, std::optional<int16_t> v) {
         if (v) cJSON_AddNumberToObject(o, key, *v / 100.0); else cJSON_AddNullToObject(o, key);

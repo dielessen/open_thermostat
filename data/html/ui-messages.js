@@ -597,6 +597,5 @@ window.OT_UI_MESSAGES = {
   "This room is off.": "Deze ruimte staat uit.",
   "Saved. The room follows within 10 seconds.": "Opgeslagen. De ruimte volgt binnen 10 seconden.",
   "The change was not saved:": "De wijziging is niet opgeslagen:",
-  "the E32 could not be reached": "de E32 was niet bereikbaar",
-  "This room takes its target from its thermostat in Home Assistant. Change the temperature there; temporary changes are not offered here.": "Deze ruimte neemt haar doel over van haar thermostaat in Home Assistant. Verander de temperatuur daar; tijdelijke wijzigingen zijn hier niet beschikbaar."
+  "the E32 could not be reached": "de E32 was niet bereikbaar"
 };

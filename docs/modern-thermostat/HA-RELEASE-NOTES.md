@@ -1,3 +1,72 @@
+# HA 0.4.0b11 — a room thermostat per E32 room, a week planner and the official update route
+<!-- user-release-notes:v2:en -->
+
+Companion release for E32 beta19. Install both together (see Updating).
+Needs Home Assistant 2026.10.0 or newer.
+
+## New
+
+- **No starter room needed**: Connect E32 links the E32 and its room plan
+  directly. Rooms live in the E32 room plan.
+- **A thermostat per E32 room**: a normal climate entity for the thermostat
+  card and voice assistants, with target, mode and presets, written to the
+  E32 room plan.
+- **One group per room** on the integration page, holding the room's device
+  and the Bluetooth sensors only that room uses, plus an "E32 and boiler"
+  group. Entity IDs, names, areas and history stay.
+- **Safe removal of the old Home Assistant room** (Repairs, or Configure →
+  Advanced): the E32 room plan is updated first, the room thermostat takes
+  over the old thermostat's name, icon, area and entity ID, and a room that
+  would lose its only source is kept with a Repairs note.
+- **Comfort controls**: boost or a temporary target (until the next switch
+  point or for a set time), away or holiday until a date (optionally when
+  everyone is away), and window and door contacts per room that pause it.
+- **Week planner view** on the OpenThermostat dashboard: the same visual
+  planner as on the E32 Rooms page. It never overwrites a change made on the
+  E32 meanwhile.
+- **Redesigned dashboard** with the rooms, the boiler, energy and advice.
+  <!-- TODO-FINAL(S): one sentence on the final dashboard layout. -->
+- **Flow settings**: switches for the weather curve and the learned flow, and
+  the design flow temperature, with status sensors.
+- **Energy**: "Gas for heating" and "Gas for hot water" for the Energy
+  dashboard, from your gas meter or estimated.
+- **Weekly advice**: a blueprint sends a weekly summary with gas use, night
+  setback and advice. Advice only.
+- **Diagnostics download** for help with problems, without passwords, keys,
+  addresses or Wi-Fi names.
+- **Boiler profile**: entities only for values your boiler has; values it
+  never reported are created disabled.
+- **Updating the E32 from Home Assistant is the official route**: the
+  Firmware entity checks GitHub's SHA-256, the size and the version marker
+  before it uploads, and keeps a `last_install` record of the install.
+- The default-password Repairs issue now links to the E32's password page.
+- Complete Polish translation.
+
+## Fixed
+
+- Duplicate boiler entities for the same value (EMS+ and Classic names) are
+  merged into one; leftovers are removed, history is kept.
+- Values no longer go unavailable on a short network hiccup: only after
+  three missed E32 heartbeats or an offline message.
+- Devices from the older "intuibase" name are renamed to OpenThermostat once.
+- Removed room entities come back without a reload when the room returns.
+<!-- TODO-FINAL(J): add the session-protocol fix if it ships. -->
+
+## Updating
+
+Install this integration and E32 beta19 together: HA 0.4.0b11 reads the new
+small E32 topics, and HA 0.4.0b10 does not understand beta19. Install the
+integration package, keep the existing entry, restart Home Assistant, then
+update the E32 with its Firmware entity. Entities of other integrations are
+never removed automatically.
+
+## Limitations
+
+The heat request is shadow-only: active boiler control stays locked in the
+E32 firmware. EMS Classic boilers only; EMS+ comes later. Window and door
+pauses use Home Assistant contacts; Bluetooth contacts come later. The
+advice is advice only.
+
 # HA 0.4.0b10 — one place for rooms, a clean dashboard and far fewer entities
 <!-- user-release-notes:v2:en -->
 

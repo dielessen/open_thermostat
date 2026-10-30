@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "status": "APPROVED",
+  "scope": "one_prerelease_publication",
+  "candidate_tag": "v0.1.0-e32v2-beta.19",
+  "unaccepted_predecessor": "v0.1.0-e32v2-beta.18",
+  "accepted_basis_tag": "v0.1.0-e32v2-beta.4",
+  "accepted_basis_receipt_sha256": "5ec65a6256889878702a6a501842669f903825041f1e96be9448d5336bba55a8",
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "gap_report": "docs/modern-thermostat/BETA18-HA-UPDATE-GAP-20261030.json",
+  "gap_report_sha256": "99c2b942935bba80f44942cdb649de3ae88cf61d211b6db341d122f5a1d909f4",
+  "reason": "Beta18 is published and was installed by the owner with the Home Assistant update button (identity verified), but its home_assistant acceptance receipt is INCOMPLETE (no pre-install capture, backup, last_install record or independent check); the accepted basis stays beta4. Beta19 keeps shadow mode (active heat gate off, boiler settings writes off) and adds the MQTT outbox with small retained topics, the boiler limit read, the stored takeover confirmation, comfort overrides, the week planner, charts, backup/restore and the boiler profile. Beta19 is planned as the first full home_assistant-route acceptance (HA-UPDATE-ACCEPTANCE-BETA19.md). The owner approved publication and installation (statement below). Preserve all evidence and accepted beta4; no acceptance, physical control or TLS repair inferred.",
+  "device_installation_authorized": false,
+  "boiler_trial_authorized": false,
+  "approval": {
+    "actor": "repository_owner",
+    "method": "explicit_user_instruction",
+    "decision": "approve_one_prerelease_publication",
+    "statement": "je hebt sowieso akkoord je hoeft niet op mij te wachten",
+    "at_utc": "2026-10-30T00:30:00Z"
+  },
+  "separate_installation_instruction": "docs/modern-thermostat/BETA19-OWNER-INSTRUCTION-20261030.json"
+}

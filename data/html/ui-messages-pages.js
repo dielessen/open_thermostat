@@ -1007,6 +1007,7 @@ window.OT_UI_PAGE_MESSAGES = {
   "Temperature sources": "Temperatuurbronnen",
   "Target temperature and limits": "Gewenste temperatuur en grenzen",
   "Connection, Home Assistant, time and services of this E32.": "Verbinding, Home Assistant, tijd en diensten van deze E32.",
+  "Network, Home Assistant and MQTT, time, services and backup of this E32.": "Netwerk, Home Assistant en MQTT, tijd, diensten en back-up van deze E32.",
   "Reload WiFi settings": "Wifi-instellingen opnieuw laden",
   "Leave empty to keep the saved password": "Leeg laten behoudt het opgeslagen wachtwoord",
   "Clear the local ESP and EMS logs on this device?": "De lokale ESP- en EMS-logs op dit apparaat wissen?",
@@ -1203,7 +1204,9 @@ window.OT_UI_PAGE_MESSAGES = {
   "Change these in Home Assistant, or choose Edit here anyway.": "Wijzig dit in Home Assistant, of kies Toch hier bewerken.",
   "Not saved yet": "Nog niet opgeslagen",
   "Backup and restore": "Back-up en terugzetten",
-  "restored settings had to be applied": "teruggezette instellingen moesten worden toegepast"
+  "restored settings had to be applied": "teruggezette instellingen moesten worden toegepast",
+  "Setting device in Home Assistant (optional)": "Instelapparaat in Home Assistant (optioneel)",
+  "A thermostat, radiator valve or number to set this room with. Home Assistant shows the week program's temperature on it; turning it changes the room until the next switch point. Turn off the device's own schedule (manual mode), otherwise it changes the temperature by itself.": "Een thermostaat, radiatorkraan of getal om deze ruimte mee in te stellen. Home Assistant zet de temperatuur van het weekprogramma erop; eraan draaien verandert de ruimte tot het volgende schakelpunt. Zet het eigen programma van het apparaat uit (handmatige stand), anders verandert het de temperatuur zelf."
 };
 (() => {
     const messages = window.OT_UI_MESSAGES = window.OT_UI_MESSAGES || {};

@@ -1,6 +1,5 @@
 #pragma once
 #include "control/BoundedJson.h"
-#include "control/LearnedProgram.h"
 #include "control/RoomEngine.h"
 #include "control/WarmupPlanner.h"
 #include <array>
@@ -17,20 +16,6 @@ namespace heating::control {
 // Assistant contacts, and away (until a date, or "everyone away" from HA's
 // presence). Only room TARGETS change: the flow limits, frost protection and
 // ActiveHeatGuard stay as they are (the guard still heats any room below 8 degC).
-//
-// A room that follows its own thermostat or radiator valve in Home Assistant
-// (RoomPlan::Room::followedThermostat()) takes its target only from that device:
-// overrides are refused, and an override or away kept from before is not used
-// ("ignored" in the status); the window pause still applies (it only stops the
-// E32 asking for heat).
-//
-// When its target goes stale (HA or the device unavailable), such a room replays
-// the device's own week program as the E32 learned it (LearnedProgram.h) when it
-// knows the current weekday; else it keeps the last target for holdS (6 h from its last fresh report; kept in NVS with
-// its time, so it survives a restart once the clock is trusted again), then uses
-// its "temperature without Home Assistant" (RoomPlan day/night). Only while the
-// target is stale the E32 page may set a temporary target ("offline"): it ends
-// when a fresh target arrives and at the next day/night switch at the latest.
 //
 // Priority per active room: open window (after its delay; target = frost floor)
 // > override > away return (warm-up before the away end) > away (the plan target,
@@ -57,10 +42,8 @@ public:
     static constexpr uint32_t maxContactDelayS = 1800, defaultContactDelayS = 120;
     static constexpr uint32_t maxAwayS = 366u * 86400u;
     static constexpr uint32_t latestUtc = 4102444800u;   // as RoomPlan's inactive_until
-    static constexpr size_t storeBytes = 1536, inputBytes = 192, commandBytes = 192; // store: 8 rooms with 32-character ids
-    static constexpr uint32_t holdS = 6 * 3600;           // the last followed target while HA is away
-    static constexpr uint32_t offlineMaxS = 12 * 3600;    // a manual target without HA, also without a clock
-    enum class Kind : uint8_t { none, boost, timed, next, offline };
+    static constexpr size_t storeBytes = 768, inputBytes = 192, commandBytes = 192; // store: 8 rooms with 32-character ids
+    enum class Kind : uint8_t { none, boost, timed, next };
 
     // Per plan room after refresh(): what it does now (for the status and HA).
     struct View {
@@ -71,8 +54,6 @@ public:
         std::optional<int16_t> targetCentiC; // the mode's own target
         Kind kind = Kind::none;       // the room's override, also while a window holds it
         bool waiting = false;         // an override (or away) kept across a restart waits for the clock
-        bool follows = false;         // the room follows its own thermostat
-        bool ignored = false;         // ... and keeps an override or away that is not used
     };
 
     // --- commands (POST /config/heating/comfort) ---------------------------------
@@ -116,7 +97,6 @@ public:
         const RoomPlan::Room* room = plan.find(id->valuestring);
         if (!room) return "unknown_room";
         const std::string_view k = kind->valuestring;
-        const bool follows = !room->followedThermostat().empty();
         if (k == "none") {
             Slot* s = find(room->id);
             if (s && s->kind != Kind::none) { persist = s->untilUtc != 0; s->clearOverride(); }
@@ -124,22 +104,14 @@ public:
             return nullptr;
         }
         Slot candidate;
-        candidate.kind = kindFrom(k);
+        candidate.kind = k == "boost" ? Kind::boost : k == "timed" ? Kind::timed : k == "next" ? Kind::next : Kind::none;
         if (candidate.kind == Kind::none) return "invalid_override";
-        // A room following its own thermostat: only "offline", and only while its target is stale.
-        if (follows && candidate.kind != Kind::offline) return "room_follows_thermostat";
-        if (!follows && candidate.kind == Kind::offline) return "invalid_override";
-        if (const Slot* f = find(room->id); candidate.kind == Kind::offline && (!f || f->followFresh)) return "room_follows_thermostat";
         if (room->state != RoomDemand::State::active) return "room_inactive";
         if (candidate.kind == Kind::boost) candidate.centiC = room->maximumCentiC;
         else if (!centi(temperature, room->minimumCentiC, room->maximumCentiC, candidate.centiC)) return "invalid_temperature";
         uint32_t seconds = 0;
         const cJSON* minutes = cJSON_GetObjectItemCaseSensitive(o, "minutes");
-        if (candidate.kind == Kind::offline) {
-            if (minutes) return "invalid_minutes";
-            const uint32_t next = utc ? nextFallbackSwitchUtc(*room, *utc) : 0;
-            seconds = next ? std::min<uint32_t>(next - *utc, offlineMaxS) : offlineMaxS;
-        } else if (candidate.kind == Kind::next) {
+        if (candidate.kind == Kind::next) {
             if (minutes) return "invalid_minutes";
             if (!utc) return "no_clock";
             const uint32_t next = nextSwitchUtc(room->schedule, *utc);
@@ -199,39 +171,6 @@ public:
         return true;
     }
 
-    // --- the followed thermostats' targets ------------------------------------------
-    // Before every step: what each following room's device reported (RoomEngine::haTarget).
-    // A fresh target is remembered (and ends an "offline" target); stale: refresh() holds it.
-    void noteTargets(const RoomPlan& plan, const RoomEngine& engine, uint64_t now, std::optional<uint32_t> utc) {
-        learned_.keepOnly(plan);
-        for (size_t i = 0; i < plan.rooms.size() && i < RoomPlan::maxRooms; ++i) {
-            const auto& room = plan.rooms[i];
-            Slot* s = find(room.id);
-            if (room.followedThermostat().empty()) {
-                if (s && s->heldCentiC) { dirty_ = dirty_ || s->heldUtc; s->clearHeld(); }
-                continue;
-            }
-            if (!s) s = claim(room.id.c_str());
-            if (!s) continue;
-            const auto t = engine.haTarget(i);
-            s->followFresh = t && t->centiC && t->atMs <= now && now - t->atMs < RoomEngine::setpointMaxAgeMs;
-            if (utc) learned_.observe(room.id, s->followFresh ? t->centiC : std::nullopt, now, *utc);
-            if (!s->followFresh) continue;
-            if (s->kind == Kind::offline) { dirty_ = dirty_ || s->untilUtc; s->clearOverride(); } // the thermostat leads again
-            s->heldCentiC = *t->centiC;
-            s->holdEndMs = t->atMs + uint64_t(holdS) * 1000;
-            if (utc) s->heldUtc = *utc - uint32_t(std::min<uint64_t>((now - t->atMs) / 1000, *utc));
-            dirty_ = dirty_ || (s->heldUtc && (s->heldCentiC != s->storedCentiC || s->heldUtc >= s->storedUtc + 1800));
-        }
-    }
-    // True once after a change worth keeping in NVS (a new held target, at most every 30 min otherwise).
-    bool takeDirty() {
-        if (!dirty_) return false;
-        dirty_ = false;
-        for (auto& s : slots_) { s.storedCentiC = s.heldCentiC; s.storedUtc = s.heldUtc; }
-        return true;
-    }
-
     // --- control ---------------------------------------------------------------
     // Every RoomEngine step: expire, then the per-room adjustment for RoomEngine::step().
     // lead(room index, away end, away degC*100, target at the return) -> seconds of
@@ -243,7 +182,7 @@ public:
             leadMinute_ = *utc / 60;
             for (size_t i = 0; i < plan.rooms.size() && i < RoomPlan::maxRooms; ++i) {
                 leadS_[i] = 0;
-                if (plan.rooms[i].state != RoomDemand::State::active || !plan.rooms[i].followedThermostat().empty()) continue;
+                if (plan.rooms[i].state != RoomDemand::State::active) continue;
                 const auto ret = returnTarget(plan.rooms[i]);
                 if (away_.on && away_.until > *utc && away_.until - *utc <= WarmupPlanner::maxLeadS && ret > awayCentiC_)
                     leadS_[i] = std::min<uint32_t>(lead(i, away_.until, awayCentiC_, ret), WarmupPlanner::maxLeadS);
@@ -277,7 +216,6 @@ public:
                 v.until = s->untilUtc;
                 if (!s->untilUtc && s->untilMs > now) v.remainingS = uint32_t((s->untilMs - now + 999) / 1000);
             }
-            v.follows = !room.followedThermostat().empty();
             if (s && s->contactFresh(now) && s->open) {
                 if (now - s->openSince >= uint64_t(s->delayS) * 1000) {
                     v.window = "open"; v.mode = "window_open"; v.targetCentiC = frostCentiC;
@@ -286,30 +224,8 @@ public:
                 }
                 v.window = "pending";
             }
-            if (v.follows) { // the device's own target: kept data is not used
-                const bool offline = overriding && s->kind == Kind::offline;
-                v.ignored = (overriding && !offline) || away_.on || presenceAway;
-                if (!s || s->followFresh) continue;
-                if (offline) { v.mode = "offline"; v.targetCentiC = s->centiC; a.setpoint = s->centiC; continue; }
-                if (const auto l = utc ? learned_.at(room.id, *utc) : std::nullopt) { // the device's own program
-                    v.mode = "learned"; v.targetCentiC = *l; a.setpoint = *l;
-                    continue;
-                }
-                if (s->heldCentiC && !s->holdEndMs && utc && s->heldUtc) { // kept across a restart
-                    const uint32_t age = *utc >= s->heldUtc ? *utc - s->heldUtc : 0;
-                    if (age < holdS) s->holdEndMs = now + uint64_t(holdS - age) * 1000; else s->clearHeld();
-                }
-                if (s->heldCentiC && s->holdEndMs && now < s->holdEndMs) {
-                    v.mode = "holding"; v.targetCentiC = s->heldCentiC; a.setpoint = s->heldCentiC;
-                    v.until = s->heldUtc ? s->heldUtc + holdS : 0;
-                    if (!v.until) v.remainingS = uint32_t((s->holdEndMs - now + 999) / 1000);
-                    continue;
-                }
-                v.mode = "without_ha"; // RoomEngine: the day/night "temperature without Home Assistant"
-                continue;
-            }
             if (overriding) {
-                v.mode = kindName(s->kind);
+                v.mode = s->kind == Kind::boost ? "boost" : s->kind == Kind::next ? "next" : "timed";
                 v.targetCentiC = s->centiC; a.setpoint = s->centiC;
                 continue;
             }
@@ -333,7 +249,7 @@ public:
     // Away or an open window holds the week program: no optimum start towards its next rise.
     bool holdsProgram(size_t room) const {
         const char* m = view(room).mode;
-        return view(room).follows || (m && (!std::strcmp(m, "away") || !std::strcmp(m, "presence_away") || !std::strcmp(m, "window_open")));
+        return m && (!std::strcmp(m, "away") || !std::strcmp(m, "presence_away") || !std::strcmp(m, "window_open"));
     }
 
     // The warm-up before the away end from the learner (WarmupPlanner's optimum
@@ -372,14 +288,6 @@ public:
         return 0;
     }
 
-    // The next day/night switch of a room's "temperature without Home Assistant"; 0: none.
-    static uint32_t nextFallbackSwitchUtc(const RoomPlan::Room& room, uint32_t utc) {
-        RoomSchedule s;
-        const uint16_t a = std::min(room.dayFromMinute, room.nightFromMinute), b = std::max(room.dayFromMinute, room.nightFromMinute);
-        for (auto& d : s.days) { d.points[0] = {a, 0}; d.points[1] = {b, 0}; d.count = 2; }
-        return nextSwitchUtc(s, utc);
-    }
-
     // --- status -------------------------------------------------------------------
     // Adds "comfort" to each room of a /status/heating document (only when the room
     // deviates from its plan) and the top-level "away". False: no memory.
@@ -390,7 +298,7 @@ public:
             const auto* room = cJSON_IsString(id) ? plan.find(id->valuestring) : nullptr;
             if (!room) continue;
             const auto& v = views_[size_t(room - plan.rooms.data())];
-            if (!v.mode && !v.window && v.kind == Kind::none && !v.ignored) continue;
+            if (!v.mode && !v.window && v.kind == Kind::none) continue;
             cJSON* c = cJSON_AddObjectToObject(r, "comfort");
             if (!c || !roomJson(c, v)) return false;
         }
@@ -405,17 +313,13 @@ public:
             cJSON* r = cJSON_CreateObject();
             if (!r || !cJSON_AddItemToArray(rooms, r) || !cJSON_AddStringToObject(r, "id", plan.rooms[i].id.c_str())
                 || !roomJson(r, views_[i])) { cJSON_Delete(root); return nullptr; }
-            if (plan.rooms[i].followedThermostat().empty()) continue;
-            cJSON* l = learned_.json(plan.rooms[i]); // read only: the device's program as the E32 learned it
-            if (!l || !cJSON_AddItemToObject(r, "learned", l)) { cJSON_Delete(l); cJSON_Delete(root); return nullptr; }
         }
         return root;
     }
 
     // --- storage ------------------------------------------------------------------
     // The NVS record: {"v":1,"away_c":1500,"away_until":0 (present while away),
-    // "o":[{"id","k","c","u"}] with only clocked overrides, "h":[{"id","c","u"}] the last
-    // followed target of each room following its thermostat and when it was fresh}. Empty: no memory.
+    // "o":[{"id","k","c","u"}]} with only clocked overrides. Empty: no memory.
     std::string stored() const {
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_CreateObject(), cJSON_Delete);
         cJSON* list = root && cJSON_AddNumberToObject(root.get(), "v", 1) && cJSON_AddNumberToObject(root.get(), "away_c", awayCentiC_)
@@ -428,14 +332,6 @@ public:
                 || !cJSON_AddStringToObject(o, "k", kindName(s.kind)) || !cJSON_AddNumberToObject(o, "c", s.centiC)
                 || !cJSON_AddNumberToObject(o, "u", s.untilUtc)) return {};
         }
-        cJSON* held = cJSON_AddArrayToObject(root.get(), "h");
-        if (!held) return {};
-        for (const auto& s : slots_) {
-            if (!s.id[0] || !s.heldCentiC || !s.heldUtc) continue;
-            cJSON* o = cJSON_CreateObject();
-            if (!o || !cJSON_AddItemToArray(held, o) || !cJSON_AddStringToObject(o, "id", s.id)
-                || !cJSON_AddNumberToObject(o, "c", s.heldCentiC) || !cJSON_AddNumberToObject(o, "u", s.heldUtc)) return {};
-        }
         char* text = cJSON_PrintUnformatted(root.get());
         std::string out = text ? text : "";
         cJSON_free(text);
@@ -444,9 +340,7 @@ public:
     // At boot, before the first step: false (and nothing kept) for a record this
     // firmware cannot read. Overrides wait for a trusted clock (refresh()).
     bool restore(std::string_view text) {
-        auto learned = std::move(learned_);  // its own record (restore it with learned().restore())
         *this = RoomOverrides{};
-        learned_ = std::move(learned);
         if (text.empty() || text.size() > storeBytes || !jsonNestingWithin(text.data(), text.size(), 3)) return false;
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_ParseWithLength(text.data(), text.size()), cJSON_Delete);
         const cJSON* v = cJSON_GetObjectItemCaseSensitive(root.get(), "v");
@@ -473,32 +367,14 @@ public:
             if (s.kind == Kind::none || !centi100(oc, 500, 3500, s.centiC)) return false;
             s.untilUtc = uint32_t(u->valuedouble);
         }
-        const cJSON* held = cJSON_GetObjectItemCaseSensitive(root.get(), "h"); // absent before the hold
-        for (const cJSON* o = cJSON_IsArray(held) ? held->child : nullptr; o; o = o->next) {
-            const cJSON* id = cJSON_GetObjectItemCaseSensitive(o, "id");
-            const cJSON* u = cJSON_GetObjectItemCaseSensitive(o, "u");
-            int16_t c = 0;
-            if (!cJSON_IsString(id) || !*id->valuestring || std::strlen(id->valuestring) >= sizeof(Slot::id)
-                || !centi100(cJSON_GetObjectItemCaseSensitive(o, "c"), 500, 3500, c)
-                || !cJSON_IsNumber(u) || !whole(u->valuedouble, 1, latestUtc)) return false;
-            Slot* s = next.find(id->valuestring);
-            if (!s) s = next.claim(id->valuestring);
-            if (!s) return false;
-            s->heldCentiC = s->storedCentiC = c;
-            s->heldUtc = s->storedUtc = uint32_t(u->valuedouble);
-        }
-        next.learned_ = std::move(learned_);
         *this = next;
         return true;
     }
-    LearnedProgram& learned() { return learned_; }
-    const LearnedProgram& learned() const { return learned_; }
     int16_t awayCentiC() const { return awayCentiC_; }
     bool awayOn() const { return away_.on; }
     uint32_t awayUntil() const { return away_.until; }
     static const char* kindName(Kind k) {
-        return k == Kind::boost ? "boost" : k == Kind::next ? "next" : k == Kind::timed ? "timed"
-            : k == Kind::offline ? "offline" : "none";
+        return k == Kind::boost ? "boost" : k == Kind::next ? "next" : k == Kind::timed ? "timed" : "none";
     }
 
 private:
@@ -511,13 +387,7 @@ private:
         bool contactKnown = false, open = false;
         uint16_t delayS = 0;
         uint64_t contactAt = 0, openSince = 0;
-        // The followed thermostat's last target (rooms that follow one).
-        bool followFresh = false;
-        int16_t heldCentiC = 0, storedCentiC = 0;
-        uint32_t heldUtc = 0, storedUtc = 0;  // when it was last fresh (unix s); stored: in NVS
-        uint64_t holdEndMs = 0;               // uptime end of the hold; 0: after a restart, until the clock
         void clearOverride() { kind = Kind::none; centiC = 0; untilUtc = 0; untilMs = 0; }
-        void clearHeld() { heldCentiC = 0; heldUtc = 0; holdEndMs = 0; }
         bool contactFresh(uint64_t now) const { return contactKnown && contactAt <= now && now - contactAt < inputMaxAgeMs; }
     };
     struct Away { bool on = false; uint32_t until = 0; };
@@ -532,8 +402,7 @@ private:
         return nullptr;
     }
     static Kind kindFrom(std::string_view k) {
-        return k == "boost" ? Kind::boost : k == "next" ? Kind::next : k == "timed" ? Kind::timed
-            : k == "offline" ? Kind::offline : Kind::none;
+        return k == "boost" ? Kind::boost : k == "next" ? Kind::next : k == "timed" ? Kind::timed : Kind::none;
     }
     static bool whole(double v, double lo, double hi) { return std::isfinite(v) && v >= lo && v <= hi && std::floor(v) == v; }
     // degC with at most 0.01 precision, within lo..hi (centi degC).
@@ -553,14 +422,13 @@ private:
         return v ? cJSON_AddNumberToObject(o, key, *v / 100.0) != nullptr : cJSON_AddNullToObject(o, key) != nullptr;
     }
     static bool roomJson(cJSON* c, const View& v) {
-        if (!cJSON_AddStringToObject(c, "mode", v.mode ? v.mode : v.follows ? "follows" : "program")) return false;
+        if (!cJSON_AddStringToObject(c, "mode", v.mode ? v.mode : "program")) return false;
         if (v.window && !cJSON_AddStringToObject(c, "window", v.window)) return false;
         if (v.targetCentiC && !celsius(c, "target_c", v.targetCentiC)) return false;
         if (v.until && !cJSON_AddNumberToObject(c, "until", v.until)) return false;
         if (v.remainingS && !cJSON_AddNumberToObject(c, "remaining_s", v.remainingS)) return false;
         if (v.kind != Kind::none && !cJSON_AddStringToObject(c, "override", kindName(v.kind))) return false;
         if (v.waiting && !cJSON_AddBoolToObject(c, "waiting_for_clock", true)) return false;
-        if (v.ignored && !cJSON_AddBoolToObject(c, "ignored", true)) return false;
         return true;
     }
     bool awayJson(cJSON* a, uint64_t now) const {
@@ -580,8 +448,6 @@ private:
     std::array<View, RoomPlan::maxRooms> views_{};
     std::array<uint32_t, RoomPlan::maxRooms> leadS_{};
     uint32_t leadMinute_ = 0;
-    bool dirty_ = false;
-    LearnedProgram learned_; // its own NVS record ("learned"), written at most once a day
     Away away_{};
     int16_t awayCentiC_ = defaultAwayCentiC;
     bool presenceKnown_ = false, presenceHome_ = true;

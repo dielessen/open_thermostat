@@ -276,7 +276,7 @@
     more.addEventListener('click', () => sources.querySelectorAll('[data-heating-source]').length < 4 && addSource({type:bleSensors.length || neverHa ? 'ble' : 'ha', id:''}));
     body.append(more, el('h3', uiText("Target temperature and limits")));
     const limits = el('div', null, {class:'hp-grid'});
-    const setpoint = field(body, uiText("Target temperature from Home Assistant entity (optional)"), input('text', room.setpoint_entity, {placeholder:'climate.living_room'}), "The Home Assistant entity whose target temperature this room follows, usually its climate entity.");
+    const setpoint = field(body, uiText("Setting device in Home Assistant (optional)"), input('text', room.setpoint_entity, {placeholder:'climate.living_room'}), "A thermostat, radiator valve or number to set this room with. Home Assistant shows the week program's temperature on it; turning it changes the room until the next switch point. Turn off the device's own schedule (manual mode), otherwise it changes the temperature by itself.");
     body.append(limits);
     const fallback = field(limits, uiText("Temperature without Home Assistant (°C)"), input('number', room.fallback_centi_c / 100, {min:'5', max:'30', step:'0.5'}), "The temperature the E32 keeps when Home Assistant gives no target and there is no week program.");
     const lo = field(limits, uiText("Minimum (°C)"), input('number', room.minimum_centi_c / 100, {min:'5', max:'30', step:'0.5'}), "The lowest target temperature allowed for this room.");
@@ -525,7 +525,9 @@
   function addRoom() {
     if (!plan || roomsBox.querySelectorAll('[data-heating-room]').length >= 8) return;
     const room = {id:'', name:uiText("New room"), state:'active', inactive_until:0, emitter:'radiator', sources:[{type:bleSensors.length || neverHa ? 'ble' : 'ha', id:''}],
-      setpoint_entity:'', fallback_centi_c:2000, minimum_centi_c:500, maximum_centi_c:2500};
+      setpoint_entity:'', fallback_centi_c:2000, minimum_centi_c:500, maximum_centi_c:2500,
+      // Every room has a week program: the planner's "Workdays and weekend" (comfort 20, away 18, night 16 °C).
+      schedule:[0, 1, 2, 3, 4, 5, 6].map(d => d < 5 ? [[390, 2000], [510, 1800], [1020, 2000], [1350, 1600]] : [[480, 2000], [1380, 1600]])};
     roomsBox.querySelector('.ot-empty')?.remove(); addRow.hidden = false;
     const card = roomCard(room, plan.rooms.length, null); card.open = true; roomsBox.append(card); setDirty(true);
     card.querySelector('input')?.select();

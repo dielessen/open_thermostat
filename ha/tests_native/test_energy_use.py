@@ -292,10 +292,12 @@ async def test_dashboard_gas_section_shows_both_sensors_per_day_and_how_they_are
     from custom_components.open_thermostat.dashboard import TEXT, _energy_section
     assert _energy_section(TEXT["en"], None, None) is None
     section = _energy_section(TEXT["nl"], "sensor.gas_voor_verwarmen", "sensor.gas_voor_warm_water")
-    heading, heating, hot_water, graph, note = section["cards"]
-    assert heading["heading"] == "Gas" and heating["name"] == "Verwarmen" and hot_water["name"] == "Warm water"
+    # The days in one bar chart (not the meter totals, which tell a user little), and how it is counted.
+    heading, graph, note = section["cards"]
+    assert heading["heading"] == "Gas per dag"
     assert graph["type"] == "statistics-graph" and graph["stat_types"] == ["change"] and graph["period"] == "day"
-    assert graph["entities"] == ["sensor.gas_voor_verwarmen", "sensor.gas_voor_warm_water"]
+    assert graph["entities"] == [{"entity": "sensor.gas_voor_verwarmen", "name": "Verwarmen"},
+                                 {"entity": "sensor.gas_voor_warm_water", "name": "Warm water"}]
     hass.states.async_set("sensor.gas_voor_verwarmen", "1.2", {"estimate": True})
     assert "Geschat" in Template(note["content"], hass).async_render()
     hass.states.async_set("sensor.gas_voor_verwarmen", "1.2", {"estimate": False})

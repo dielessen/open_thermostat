@@ -1,3 +1,77 @@
+# E32 V2 beta19 — a steady Home Assistant link, comfort controls and a visual week planner
+<!-- user-release-notes:v2:en -->
+
+The candidate for version 1.0. The E32 still runs heating in shadow mode: it
+calculates, learns and compares, and does not send its request to the boiler.
+Install it together with HA 0.4.0b11 (see Updating).
+
+## New
+
+- Comfort on top of the week program, on the Overview and in Home Assistant:
+  a temporary override (for example 21 °C for two hours, or until the next
+  switch point), a pause while a window or door is open, and away or holiday
+  until a date. Each ends by itself, also after a restart.
+- A visual week planner per room on the Rooms page: comfort, night and away
+  levels, templates, copy a day, drag the block edges. The text form stays as
+  an advanced view. <!-- TODO-FINAL(N): describe the per-room setting device in one plain sentence once the room model is final. -->
+- 24-hour charts on the Overview, also without Home Assistant: temperature
+  and target per room, and flow, return and burner. They are kept in memory
+  and start again after a restart.
+- Flow temperature options on the Rooms page, all off by default: a weather
+  curve from an outdoor temperature, using the learned lowest flow, and gas
+  calibration from a real gas meter.
+- Backup and restore under System → Network: export your network, rooms,
+  week programs and Bluetooth sensors to a file, see what a restore would
+  change, then apply it. Keys are only included when you set a passphrase,
+  which encrypts them; Wi-Fi and web passwords are never exported.
+- Boiler profile on the Boiler page: the E32 learns which values your boiler
+  really reports, so Home Assistant only creates those. "Show anyway" reveals
+  the rest.
+- The E32 reads the boiler's own maximum heating temperature (0x16) itself,
+  after start-up and every 6 hours, and never asks for more.
+- Prepared for the attended switch-over, still locked: the "thermostat
+  disconnected" confirmation is kept over a restart and cleared by a firmware
+  change, a foreign thermostat or hand-back; after a restart heat resumes
+  only after 2 minutes of listening without another thermostat on the bus;
+  and while the E32 owns the boiler the supervisor holds back restarts for
+  Wi-Fi, broker or Bluetooth problems.
+- Our own name: OpenThermostat in Home Assistant and in MQTT discovery. New
+  installations use the MQTT prefix `openthermostat`; existing ones keep theirs.
+- The About page warns while the default password `admin` is still in use.
+- Room plans are stored compactly: 8 rooms with 4 switch points a day fit.
+
+## Fixed
+
+- A steady link to Home Assistant. Messages go through a queue that merges
+  updates per topic and sends them one at a time, as small retained topics
+  with a heartbeat every 60 seconds. The E32 only drops the connection after
+  15 seconds without progress; beta18 dropped it several times an hour.
+- More room in flash: the web interface is stored compressed only (flash
+  use 93 % → 76 %). <!-- TODO-FINAL: confirm the percentage from the final e32v2 build. -->
+- The firmware no longer fails to build as it grows (a guard runs before
+  every link).
+- Seven small fixes on the Boiler, Overview, Sensors, Rooms and About pages.
+<!-- TODO-FINAL(J/S): add a line for the session-protocol and dashboard/layout fixes if they ship. -->
+
+## Updating
+
+Install E32 beta19 and HA 0.4.0b11 together. The E32 now publishes small
+topics (`fw/state/…`, `fw/heartbeat`, `fw/availability`) and the old
+`fw/telemetry/heating*` topics are gone, so HA 0.4.0b10 does not understand
+beta19 and HA 0.4.0b11 does not understand beta18. Update the integration
+first, then press Install on the E32's Firmware entity in Home Assistant (the
+official update route). Settings, rooms, week programs and Bluetooth
+sensors are kept. The E32 confirms the new firmware after about a minute of
+normal running; until then a failed start rolls back.
+
+## Limitations
+
+Shadow mode only: active boiler control is built in but stays locked in the
+firmware until the attended switch-over. The weather curve, learned flow and
+gas calibration only change the calculated request. EMS Classic (EMS 1.0)
+boilers only; EMS+ comes later. Window and door pauses use Home Assistant
+contacts; Bluetooth contacts come later. Charts are lost on a restart.
+
 # E32 V2 beta18 — a refreshed interface, learning in shadow mode and a sturdier E32
 <!-- user-release-notes:v2:en -->
 

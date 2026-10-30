@@ -102,7 +102,7 @@ with beta.18 for the fields it knows.
   reachable. Without Home Assistant, rooms and week programs are edited on the
   E32 Rooms page.
 - **Any time zone:** week programs, "today" and the daily comparison follow
-  the E32's own time zone (System → Network) with its summer-time rule. Week
+  the E32's own time zone (Settings) with its summer-time rule. Week
   programs compiled by Home Assistant accept any IANA time zone.
 - **Refreshed E32 interface** in English and Dutch, light and dark: five menu
   items (Overview, Rooms, Boiler, Sensors, System), pages that keep their

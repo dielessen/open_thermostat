@@ -321,8 +321,24 @@ class ControllerSetupFlow:
     async def async_step_controller_connected(self, user_input=None):
         if user_input is not None:
             return self.async_abort(reason="controller_connection_complete")
+        rooms = len(self._controller_result["room_ids"])
+        if rooms == 0 and hasattr(self, "async_step_e32_room_add"):
+            # A new installation: the next step is its first room (the same dialog goes on).
+            return self.async_show_form(step_id="controller_connected_first_room", data_schema=vol.Schema({}))
         return self.async_show_form(step_id="controller_connected", data_schema=vol.Schema({}),
-            description_placeholders={"rooms": str(len(self._controller_result["room_ids"]))})
+            description_placeholders={"rooms": str(rooms)})
+
+    async def async_step_controller_connected_first_room(self, user_input=None):
+        """E32 connected without rooms: submit opens the room form (e32_room_flow.py)."""
+        from homeassistant.exceptions import HomeAssistantError
+        link = self._e32_link()
+        if link is None:
+            return self.async_abort(reason="controller_connection_complete")
+        try:
+            self._e32_plan = await link.async_read()
+        except HomeAssistantError as err:
+            return self._e32_abort_failure(err)
+        return await self.async_step_e32_room_add()
 
     @callback
     def async_remove(self):

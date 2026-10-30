@@ -109,7 +109,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await pick.selectOption('a4c138a3e8db');
   // An empty extra row is not saved.
   await card.getByRole('button',{name:'Bron toevoegen'}).click();
-  await card.getByLabel('Gewenste temperatuur uit Home Assistant-entiteit (optioneel)').fill('climate.woonkamer');
+  await card.getByLabel('Instelapparaat in Home Assistant (optioneel)').fill('climate.woonkamer');
   await root.locator('[data-heating-save]').click();
   await root.getByText('Ruimtes opgeslagen.').waitFor();
   assert.equal(posts.length,1);

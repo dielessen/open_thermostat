@@ -1,14 +1,14 @@
 <link rel="stylesheet" href="deps/bms.min.css.gz" crossorigin="anonymous" />
 <script src="deps/bms.min.js.gz" crossorigin="anonymous"></script>
 
-<header class="ot-head mt-4"><div><h1 data-i18n="Network">Network</h1><p data-i18n="Connection, Home Assistant, time and services of this E32.">Connection, Home Assistant, time and services of this E32.</p></div></header>
+<header class="ot-head mt-4"><div><h1 data-i18n="Settings">Settings</h1><p data-i18n="Network, Home Assistant and MQTT, time, services and backup of this E32.">Network, Home Assistant and MQTT, time, services and backup of this E32.</p></div></header>
 <div class="d-flex justify-content-center" id="loadingprogress">
 	<div class="spinner-border" role="status">
 		<span class="sr-only"></span>
 	</div>
 </div>
 
-<style>#networkeditform>.col-md-auto{padding-left:0;padding-right:0}#networkeditform>.col-md-auto>.row{margin-left:0;margin-right:0}</style>
+<style>.col-md-auto:has(>#NetworkSettings){padding-left:0;padding-right:0}.col-md-auto:has(>#NetworkSettings)>.row{margin-left:0;margin-right:0}</style>
 <form id="networkeditform" class="invisible" novalidate>
 
 	<div class="modal fade" id="selectWiFiSSID" tabindex="-1" role="dialog" aria-labelledby="selectWiFiSSIDLabel"

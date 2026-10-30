@@ -133,7 +133,7 @@ TEST(RoomOverrides, CommandsAreCheckedAgainstThePlan) {
     EXPECT_STREQ(command(o, p, R"([1])", 0, monNoon), "invalid_request");
     o.step(p, 0, monNoon, noLead);
     for (size_t i = 0; i < 3; ++i) EXPECT_EQ(o.view(i).mode, nullptr);
-    EXPECT_EQ(o.stored(), R"({"v":1,"away_c":1500,"o":[],"h":[]})");
+    EXPECT_EQ(o.stored(), R"({"v":1,"away_c":1500,"o":[]})");
 }
 
 TEST(RoomOverrides, KeptAcrossARestartOnlyWithATrustedClock) {
@@ -164,13 +164,13 @@ TEST(RoomOverrides, KeptAcrossARestartOnlyWithATrustedClock) {
     ASSERT_TRUE(late.restore(record));
     late.step(p, 0, monNoon + 7200, noLead);
     EXPECT_EQ(late.view(1).kind, RoomOverrides::Kind::none);
-    EXPECT_EQ(late.stored(), R"({"v":1,"away_c":1500,"o":[],"h":[]})");
+    EXPECT_EQ(late.stored(), R"({"v":1,"away_c":1500,"o":[]})");
 
     // A room that left the plan loses its override.
     RoomOverrides moved;
     ASSERT_TRUE(moved.restore(R"({"v":1,"away_c":1500,"o":[{"id":"attic","k":"boost","c":2400,"u":1793621000}]})"));
     moved.step(p, 0, monNoon, noLead);
-    EXPECT_EQ(moved.stored(), R"({"v":1,"away_c":1500,"o":[],"h":[]})");
+    EXPECT_EQ(moved.stored(), R"({"v":1,"away_c":1500,"o":[]})");
 }
 
 TEST(RoomOverrides, WithoutAClockAnOverrideLastsItsUptimeAndIsNotKept) {
@@ -183,7 +183,7 @@ TEST(RoomOverrides, WithoutAClockAnOverrideLastsItsUptimeAndIsNotKept) {
     EXPECT_STREQ(o.view(1).mode, "timed");
     EXPECT_EQ(o.view(1).remainingS, 540u);
     EXPECT_EQ(o.view(1).until, 0u);
-    EXPECT_EQ(o.stored(), R"({"v":1,"away_c":1500,"o":[],"h":[]})");
+    EXPECT_EQ(o.stored(), R"({"v":1,"away_c":1500,"o":[]})");
     // A clock that arrives later (or jumps) never extends it.
     o.step(p, 9 * minute, monNoon, noLead);
     EXPECT_STREQ(o.view(1).mode, "timed");
@@ -203,7 +203,7 @@ TEST(RoomOverrides, StoredRecordsThisFirmwareCannotReadAreIgnored) {
                             R"({"v":1,"o":[{"id":"x","k":"boost","c":2000.5,"u":5}]})",
                             R"({"v":1,"o":[[[[[1]]]]]})"}) {
         EXPECT_FALSE(o.restore(bad)) << bad;
-        EXPECT_EQ(o.stored(), R"({"v":1,"away_c":1500,"o":[],"h":[]})") << bad;
+        EXPECT_EQ(o.stored(), R"({"v":1,"away_c":1500,"o":[]})") << bad;
     }
     EXPECT_FALSE(o.restore(std::string(RoomOverrides::storeBytes + 1, ' ')));
 }
@@ -304,7 +304,7 @@ TEST(RoomOverrides, AwayIsKeptAcrossARestartAndADatedOneWaitsForTheClock) {
     RoomOverrides o;
     ASSERT_EQ(command(o, p, R"({"away":true,"temperature":16,"until":1793700000})", 0, monNoon), nullptr);
     const auto record = o.stored();
-    EXPECT_EQ(record, R"({"v":1,"away_c":1600,"o":[],"away_until":1793700000,"h":[]})");
+    EXPECT_EQ(record, R"({"v":1,"away_c":1600,"o":[],"away_until":1793700000})");
     RoomOverrides after;
     ASSERT_TRUE(after.restore(record));
     after.step(p, 0, std::nullopt, noLead);
@@ -412,14 +412,11 @@ TEST(RoomOverrides, StatusAdditionsStayWithinTheTelemetryBudget) {
     EXPECT_LE(o.stored().size(), RoomOverrides::storeBytes);
 }
 
-// Eight rooms, each with a stored override and a held target: the NVS record stays within its bound.
+// Eight rooms, each with a stored override: the NVS record stays within its bound.
 TEST(RoomOverrides, EightStoredOverridesFitTheRecord) {
     std::string text = R"({"v":1,"away_c":1500,"away_until":4102444000,"o":[)";
     for (int i = 0; i < 8; ++i)
         text += std::string(i ? "," : "") + R"({"id":")" + std::string(31, 'a') + char('0' + i) + R"(","k":"timed","c":2500,"u":4102444000})";
-    text += R"(],"h":[)"; // and each room's last followed target
-    for (int i = 0; i < 8; ++i)
-        text += std::string(i ? "," : "") + R"({"id":")" + std::string(31, 'a') + char('0' + i) + R"(","c":2150,"u":4102444000})";
     text += "]}";
     RoomOverrides o;
     ASSERT_LE(text.size(), RoomOverrides::storeBytes);

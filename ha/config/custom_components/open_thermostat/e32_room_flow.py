@@ -38,6 +38,7 @@ ROOM_ID_LENGTH = 32
 LIMITS_CENTI_C = (500, 3000)
 ENTITY_ID = re.compile(r"[a-z0-9_]+\.[a-z0-9_]+")
 SOURCE_DOMAINS = ("climate", "sensor")
+from .e32_setting_device import default_program, proposed_device  # noqa: E402
 SETPOINT_DOMAINS = ("climate", "input_number", "number")
 CELSIUS = UnitOfTemperature.CELSIUS
 # The plan's flow limits as the E32 accepts them (RoomPlan.h): whole °C, minimum
@@ -526,11 +527,8 @@ class E32RoomFlow:
             "ha_sources": [s["id"] for s in sources if s.get("type") == "ha"],
             "ble_sources": [s["id"] for s in sources if s.get("type") == "ble"],
             "bluetooth_first": bool(sources) and sources[0].get("type") == "ble",
-            "setpoint_entity": room.get("setpoint_entity") or None,
-            # Following one of its own thermostat sources for the target (e32_comfort.py forwards targets to it).
-            "follow_thermostat": bool(room.get("setpoint_entity")) and any(
-                s.get("type") == "ha" and s.get("id") == room.get("setpoint_entity")
-                and s["id"].startswith("climate.") for s in sources),
+            # The setting device; a room's own valve or thermostat source is proposed.
+            "setpoint_entity": room.get("setpoint_entity") or proposed_device(room) or None,
             "fallback_temperature": shown(room.get("fallback_centi_c", 2000), unit),
             "minimum_temperature": shown(room.get("minimum_centi_c", 500), unit),
             "maximum_temperature": shown(room.get("maximum_centi_c", 2500), unit),
@@ -578,16 +576,6 @@ class E32RoomFlow:
             ble_sources = [{"type": "ble", "id": b} for b in ble]
             sources = ble_sources + ha_sources if first else ha_sources + ble_sources
         setpoint = user_input.get("setpoint_entity") or ""
-        # "Follow this room's thermostat": the first HA thermostat among its sources gives
-        # the target. An entity chosen below wins; unticking stops following that source.
-        thermostats = [e for e in ha if e.startswith("climate.")]
-        follow = user_input.get("follow_thermostat", defaults["follow_thermostat"])
-        if follow and not setpoint:
-            if not thermostats:
-                raise FlowError("e32_follow_no_thermostat", "follow_thermostat")
-            setpoint = thermostats[0]
-        elif not follow and defaults["follow_thermostat"] and setpoint == room.get("setpoint_entity"):
-            setpoint = ""
         if setpoint and setpoint != room.get("setpoint_entity") and (
                 problem := source_problem(self.hass, setpoint, setpoint=True)):
             raise FlowError(problem, "setpoint_entity", source=setpoint)
@@ -610,6 +598,8 @@ class E32RoomFlow:
             schedule = deepcopy(stored)  # the program as shown: kept exactly (no °F rounding)
         else:
             schedule = parse_program(text, low, high, self._unit())
+        if not schedule:  # every room has a week program: the planner's "Workdays and weekend"
+            schedule = default_program(low, high)
         return {"name": name, "state": state, "emitter": emitter, "sources": sources,
                 "setpoint_entity": setpoint, "fallback_centi_c": fallback,
                 "minimum_centi_c": low, "maximum_centi_c": high, "schedule": schedule}
@@ -683,7 +673,6 @@ class E32RoomFlow:
                 selector.SelectSelector({"options": ble_options, "multiple": True})
             fields[vol.Optional("bluetooth_first", default=d["bluetooth_first"])] = bool
         fields.update({
-            vol.Optional("follow_thermostat", default=d["follow_thermostat"]): bool,
             vol.Optional("setpoint_entity", description={"suggested_value": d["setpoint_entity"]}):
                 selector.EntitySelector({"filter": [{"domain": domain} for domain in SETPOINT_DOMAINS]}),
             vol.Required("fallback_temperature", default=d["fallback_temperature"]): temperature,

@@ -164,7 +164,7 @@ network is saved.
 
 ## 4. Basic settings
 
-All of these are on **System → Network**. Choose **Save settings** at the
+All of these are on **Settings**. Choose **Save settings** at the
 bottom when you are done; the E32 asks whether to restart so the changes take
 effect. Choose yes.
 
@@ -268,7 +268,7 @@ The E32 and Home Assistant exchange all live values over MQTT.
 
 ### 8.2 Let the E32 use the broker
 
-On the E32, open **System → Network**, section **MQTT**:
+On the E32, open **Settings**, section **MQTT**:
 
 1. Tick **Enabled**.
 2. **Broker address**: the IP address or name of the broker; with the
@@ -349,7 +349,7 @@ unchanged. Choose **Add a room** and fill in:
   sat-sun: 08:00 20.5, 23:00 18
   ```
 
-Check **Flow temperature limits** in the same menu (default 30–60 °C). Floor
+Check the flow temperature limits under **Configure → Heating and boiler** (default 30–60 °C). Floor
 heating fed without a mixing valve usually needs at most 45–50 °C. The E32
 never asks for more than the boiler's own maximum heating temperature.
 
@@ -479,7 +479,7 @@ Two commands work over the USB cable. They need physical access to the E32.
 The live values come over MQTT.
 
 - In Home Assistant, check that the MQTT integration is set up and connected.
-- On the E32, check System → Network → MQTT: **Enabled** ticked, the right
+- On the E32, check Settings → MQTT: **Enabled** ticked, the right
   broker address and port, and a user name and password the broker accepts.
   Save and restart after a change. The system log (System → System log) shows
   connection errors.
@@ -502,7 +502,7 @@ The form says what is wrong. The most common messages:
 - *Home Assistant received nothing from it over MQTT within 90 seconds*: the
   E32 restarted with the Home Assistant settings but sent nothing that Home
   Assistant received. Check that the E32 uses the same broker as Home
-  Assistant's MQTT integration (System → Network → MQTT) and that the broker
+  Assistant's MQTT integration (Settings → MQTT) and that the broker
   accepts its user name and password, then try again.
 - *This integration needs Home Assistant 2026.10.0 or newer*: update Home
   Assistant; if yours is newer than the tested 2026.10.2 to 2026.10.4, check

@@ -498,7 +498,11 @@ class RoomDashboard:
 
     @callback
     def _hub_changed(self) -> None:
-        signature = self._signature(self._hub)
+        # The boiler profile (which fields this boiler has) decides the boiler tiles: rebuild when it
+        # changes; the hub reports often enough to notice it within seconds.
+        from .v1_boiler_fields import boiler_cache
+        cache = boiler_cache(self.hass, self.entry_id)
+        signature = (self._signature(self._hub), getattr(cache, "profile_sequence", None))
         if signature != self._hub_signature:
             self._hub_signature = signature
             self._schedule_refresh()

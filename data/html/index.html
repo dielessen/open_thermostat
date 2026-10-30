@@ -299,6 +299,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
 					<li class="nav-item"><a class="nav-link" href="#rooms" data-page="heating" data-nav="heating"><span data-i18n="Rooms">Rooms</span></a></li>
 					<li class="nav-item"><a class="nav-link" href="#boiler" data-page="boiler_test" data-nav="boiler_test"><span data-i18n="Boiler">Boiler</span></a></li>
 					<li class="nav-item" data-bluetooth-settings hidden><a class="nav-link" href="#sensors" data-page="bluetooth" data-nav="bluetooth"><span data-i18n="Sensors">Sensors</span></a></li>
+					<li class="nav-item"><a class="nav-link" href="#settings" data-page="network" data-nav="network"><span data-i18n="Settings">Settings</span></a></li>
 					<li class="nav-item dropdown">
 						<a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
 							data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -309,7 +310,6 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#room_management" data-page="room_management"><span data-i18n="Rooms and programs">Rooms and programs</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#curve" data-page="curve"><span data-i18n="Boiler and heating curve">Boiler and heating curve</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#hardware" data-page="hardware"><span data-i18n="Hardware configuration">Hardware configuration</span></a></li>
-							<li><a class="dropdown-item" href="#network" data-page="network" data-nav="network"><span data-i18n="Network">Network</span></a></li>
 							<li><a class="dropdown-item" href="#update" data-page="update" data-nav="update"><span data-i18n="Firmware update">Firmware update</span></a></li>
 							<li><a class="dropdown-item" href="#log" data-page="system_log" data-nav="system_log"><span data-i18n="System log">System log</span></a></li>
 							<li><a class="dropdown-item" href="#about" data-page="about" data-nav="about"><span data-i18n="About">About</span></a></li>
@@ -481,8 +481,8 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             } else if (page === 'curve') await ensureChart();
         }
         // Hash routes keep refresh, Back and bookmarks on the same page.
-        const pageRoutes = {heating:'rooms', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', bluetooth:'sensors', network:'network', update:'update', system_log:'log', about:'about'};
-        const pageTitles = {home:"Overview", heating:"Rooms", boiler_test:"Boiler", bluetooth:"Sensors", network:"Network", update:"Firmware update", system_log:"System log", about:"About"};
+        const pageRoutes = {heating:'rooms', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', bluetooth:'sensors', network:'settings', update:'update', system_log:'log', about:'about'};
+        const pageTitles = {home:"Overview", heating:"Rooms", boiler_test:"Boiler", bluetooth:"Sensors", network:"Settings", update:"Firmware update", system_log:"System log", about:"About"};
         function markPage(page) {
             try {
                 document.title = uiText(pageTitles[page] || "System") + ' · OpenThermostat';
@@ -491,13 +491,15 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                     link.classList.toggle('active', current);
                     if (current) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
                 });
-                document.getElementById('navbarDropdownMenuLink').classList.toggle('active', !pageTitles[page] || ['network','update','system_log','about'].includes(page));
+                document.getElementById('navbarDropdownMenuLink').classList.toggle('active', !pageTitles[page] || ['update','system_log','about'].includes(page));
                 $('#navbarNavDropdown.show').collapse('hide');
             } catch (_) {}
         }
         function routePage() {
             const name = location.hash.slice(1);
+            // #network: saved links from before the Settings page had its own menu item.
             const page = Object.keys(pageRoutes).find(key => pageRoutes[key] === name) ||
+                (name === 'network' ? 'network' : null) ||
                 (legacyEditorPages.concat(['ems_devices']).includes(name) ? name : null);
             return page;
         }
@@ -1207,10 +1209,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                     var comfortText = engine.away ? comfortState(r.comfort) : '';
                     var off = r.state !== 'active';
                     cards.push({key:id, id:id, name:name, actual:actual, target:target, demand:r.demand === true, off:off, help:help && !off ? uiText(help) : '',
-                        // A target from Home Assistant (the room follows its own thermostat there): changing it
-                        // here would leave two thermostats that disagree, so only a note.
-                        comfort:engine.away && r.state === 'active' ? (r.setpoint_source === 'ha' ? '<p class="pd-help" data-dashboard-key="comfort-follow">'+
-                            uiText("This room takes its target from its thermostat in Home Assistant. Change the temperature there; temporary changes are not offered here.")+'</p>' : comfortControls(r, target)) : '',
+                        comfort:engine.away && r.state === 'active' ? comfortControls(r, target) : '',
                         chips:(extra ? chip(uiText(extra), r.status === 'fallback' ? 'warn' : r.status === 'stale' || r.status === 'lost' ? 'err' : '') : '')+
                             (comfortText ? chip(comfortText, r.comfort && r.comfort.mode === 'window_open' ? 'warn' : 'ok') : ''),
                         details:uiHtml("<p>Room ID: ")+dashboardText(r.id || '')+(source ? '<br>'+uiText("Measured by")+': '+dashboardText(source) : '')+'</p>'+(ha ? dashboardRoomContext(ha) : '')});

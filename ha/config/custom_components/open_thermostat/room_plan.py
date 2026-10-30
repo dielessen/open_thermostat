@@ -111,6 +111,25 @@ def has_room_plan(entry):
     return bool(is_product(entry) and entry.data.get(CONTROLLER_ADDRESS) and entry.data.get(CONTROLLER_PASSWORD))
 
 
+# Set (True) in the data of every installation the config flow creates from beta.19 on:
+# its rooms are the E32 room plan, also before the E32 is connected. Older entries
+# lack the key and keep their Home Assistant room route until they connect an E32.
+ROOMS_ON_E32 = "rooms_on_e32"
+
+
+def uses_e32_rooms(entry):
+    """True when the rooms of this entry are (or, once connected, will be) the E32 room plan.
+
+    Then the older Home Assistant room records ("zone" subentries) are not offered:
+    a new installation connects the E32 first and adds its rooms under Configure → Rooms.
+    """
+    if has_room_plan(entry):
+        return True
+    from .product import is_product
+    return bool(is_product(entry) and entry.data.get(ROOMS_ON_E32) is True
+                and not any(s.subentry_type == "zone" for s in entry.subentries.values()))
+
+
 def plan_error(err):
     """A clear Home Assistant error for a refused or failed plan read or write."""
     if isinstance(err, ControllerLoginRejected):

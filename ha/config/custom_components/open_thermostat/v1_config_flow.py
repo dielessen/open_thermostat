@@ -118,9 +118,12 @@ class V1FlowMixin:
             else:
                 await self.async_set_unique_id(prefix)
                 self._abort_if_unique_id_configured()
-                return self.async_create_entry(title=name,
+                from .room_plan import ROOMS_ON_E32
+                # The success dialog says what comes next: Configure → Connect E32, then Rooms.
+                return self.async_create_entry(title=name, description="e32_next_steps",
                     data={CONF_TOPIC_PREFIX: prefix, CONF_MODE: MODE_SHADOW,
-                          "adapter_id": self._installation_adapter_id, PRODUCT_CONFIG: PRODUCT_VERSION},
+                          "adapter_id": self._installation_adapter_id, PRODUCT_CONFIG: PRODUCT_VERSION,
+                          ROOMS_ON_E32: True},
                     options={CONF_MODE: MODE_SHADOW, CONF_ENABLED: False,
                              CONF_CREATE_DASHBOARD: user_input.get(CONF_CREATE_DASHBOARD, False)})
         schema = vol.Schema({
@@ -207,10 +210,11 @@ class V1FlowMixin:
     def async_get_supported_subentry_types(cls, config_entry):
         from .product import is_product
         if is_product(config_entry) and integration_mode(config_entry) == MODE_SHADOW:
-            from .room_plan import has_room_plan
-            if has_room_plan(config_entry):
-                # The rooms are the E32 room plan (Configure -> Rooms). The older HA
-                # room records stay listed and readable; no second "Add room" button.
+            from .room_plan import uses_e32_rooms
+            if uses_e32_rooms(config_entry):
+                # The rooms are the E32 room plan (Configure -> Rooms), also for a new
+                # installation before its E32 is connected. The older HA room records
+                # stay listed and readable; no second "Add room" button.
                 return {}
             from .product_flow import ProductRoomFlow
             return {"zone": ProductRoomFlow}

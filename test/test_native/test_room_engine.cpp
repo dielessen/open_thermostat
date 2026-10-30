@@ -187,7 +187,9 @@ TEST(RoomEngine, EditingThePlanKeepsReadingsAndTheRunningRequest) {
 
 namespace {
 // Without HA the E32 follows its own week program; without a clock the fallback.
-TEST(RoomEngine, StaleHomeAssistantTargetFallsBackToTheWeekProgram) {
+// Owner, 30 Oct 2026: the E32 week program leads; HA pushes it to the room's setting device and
+// sends a knob change as an override. The device's reported target counts only without the clock.
+TEST(RoomEngine, TheWeekProgramLeadsAndAnHaTargetCountsOnlyWithoutAClock) {
     ScopedTz tz(ScopedTz::amsterdam);
     std::string text = ownerPlan;
     // Every day: 18.0 from 22:30, 20.5 from 06:30 local time.
@@ -204,7 +206,8 @@ TEST(RoomEngine, StaleHomeAssistantTargetFallsBackToTheWeekProgram) {
         return std::make_pair(cJSON_GetNumberValue(cJSON_GetObjectItem(r, "setpoint")),
                               std::string(cJSON_GetStringValue(cJSON_GetObjectItem(r, "setpoint_source"))));
     };
-    EXPECT_EQ(room(minute, 1761650000), std::make_pair(21.0, std::string("ha")));
+    EXPECT_EQ(room(minute, 1761650000), std::make_pair(18.0, std::string("schedule"))); // a fresh 21 from HA does not lead
+    EXPECT_EQ(room(2 * minute, std::nullopt), std::make_pair(21.0, std::string("ha")));  // no clock: the device's target
     // Mon 26 Oct 2026 03:00 local (CET) = 02:00 UTC: before 06:30, so the 22:30 night value.
     e.bleReading("a4c138a3e8db", 1950, 20 * minute);
     EXPECT_EQ(room(20 * minute, 1792980000), std::make_pair(18.0, std::string("schedule")));

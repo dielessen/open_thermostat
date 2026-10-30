@@ -26,13 +26,13 @@ energy inputs.
 | Temperature sources per room and their order | E32: Rooms (Bluetooth sensors) | Same room editor (HA entities and the E32's Bluetooth sensors) |
 | Target, temperature without Home Assistant, minimum and maximum | E32: Rooms | Same room editor |
 | Week program per room | E32: Rooms | Same room editor |
-| Lowest and highest flow temperature for the boiler request | E32: Rooms → Boiler flow limits | Configure → Rooms → Flow temperature limits |
+| Lowest and highest flow temperature for the boiler request | E32: Rooms → Boiler flow limits | Configure → Heating and boiler |
 | Gas meter, gas price, outdoor temperature, boiler power (all optional) | — | Configure → Energy and outdoor temperature |
 | Pairing Bluetooth sensors (address, profile, encryption key) | E32: Sensors | E32: Sensors |
 | Boiler model | E32: Boiler | E32: Boiler |
-| Network, MQTT broker, time and time zone | E32: System → Network | E32: System → Network |
+| Network, MQTT broker, time and time zone | E32: Settings | E32: Settings |
 | Firmware updates | E32: System → Firmware update | The firmware update entity, or the E32 page |
-| Backup and restore of the settings | E32: System → Network → Backup and restore | E32: System → Network → Backup and restore |
+| Backup and restore of the settings | E32: Settings → Backup and restore | E32: Settings → Backup and restore |
 | Restart | E32: System → Restart device | E32: System → Restart device |
 
 The room plan is stored on the E32, and the E32 runs it. With Home Assistant,
@@ -68,7 +68,7 @@ A new E32 first needs the OpenThermostat firmware over USB; see
 ### 2. Set the time zone
 
 Week programs, "today" and the daily comparison use the E32's own clock. Go
-to **System → Network**, section **Time**, check the time server and choose
+to **Settings**, section **Time**, check the time server and choose
 your time zone from the list. When the page suggests the time zone of your
 browser, **Use this time zone** fills it in. For a time zone that is not in
 the list, choose "Other" and enter its POSIX text under Advanced, for example
@@ -155,7 +155,7 @@ You need Home Assistant 2026.10.0 or newer (tested with 2026.10.2 to
 2026.10.4).
 
 1. Set up Home Assistant's MQTT integration with a local MQTT broker, and
-   enter the same broker under E32 **System → Network → MQTT**: tick
+   enter the same broker under E32 **Settings → MQTT**: tick
    **Enabled** and enter a broker user name and password. The E32 does not
    connect to Home Assistant through a broker without a login.
 2. Install the OpenThermostat integration package, restart Home Assistant and
@@ -357,7 +357,7 @@ burner short-cycling warning.
 
 ## Backup and restore
 
-System → Network → **Backup and restore** saves the settings of the E32 in
+Settings → **Backup and restore** saves the settings of the E32 in
 one file: network and time (host name, time zone, time server), MQTT and the
 Home Assistant link, the room plan with its week programs, the Bluetooth
 sensors, the flow options, the boiler model and the page language.

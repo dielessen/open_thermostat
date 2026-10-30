@@ -60,10 +60,13 @@ class ProductRoomFlow(RadiatorRoomSetupFlow):
     """One guided native flow for adding and editing ordinary radiator rooms."""
 
     async def async_step_user(self, user_input=None):
-        from .room_plan import has_room_plan
+        from .room_plan import has_room_plan, uses_e32_rooms
         if has_room_plan(self._get_entry()):
             # Home Assistant may still show its cached button until a restart.
             return self.async_abort(reason="e32_rooms_elsewhere")
+        if uses_e32_rooms(self._get_entry()):
+            # A new installation: its rooms go on the E32, after Configure → Connect E32.
+            return self.async_abort(reason="e32_connect_first")
         return await RadiatorRoomSetupFlow.async_step_user(self, {"room": "new"})
 
     async def async_step_reconfigure(self, user_input=None):
@@ -269,13 +272,59 @@ class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, Con
         return connection is not None and connection.runtime.native_plan_source is not None
 
     async def async_step_init(self, user_input=None):
-        from .room_plan import has_room_plan
-        rooms = "e32_rooms" if has_room_plan(self.config_entry) else "room_settings"
-        # Everyday settings first; status and plan recovery live under Advanced.
-        options = [rooms, "controller_connection", "energy", "installation", "advanced_settings"]
-        if rooms == "e32_rooms":  # windows, away and presence for the E32 rooms (e32_comfort.py)
-            options.insert(1, "comfort")
-        return self.async_show_menu(step_id="init", menu_options=options)
+        return self.async_show_menu(step_id="init", menu_options=main_menu(self.config_entry))
+
+    async def async_step_heating_boiler(self, user_input=None):
+        """Configure → Heating and boiler: the E32 plan's flow temperature limits (e32_room_flow.py).
+
+        The heating curve and the learned flow are switches on the E32 device page
+        (e32_flow.py); the form says so.
+        """
+        from homeassistant.exceptions import HomeAssistantError
+        link = self._e32_link()
+        if link is None:
+            return self.async_abort(reason="e32_rooms_unavailable")
+        try:
+            self._e32_plan = await link.async_read()
+        except HomeAssistantError as err:
+            return self._e32_abort_failure(err)
+        return await self.async_step_e32_flow_limits()
+
+    async def async_step_general(self, user_input=None):
+        """Name and dashboard of an installation whose rooms are on the E32.
+
+        The older installation form ("installation") also held water limits and a
+        weather curve of the Home Assistant room route; for the E32 room plan those
+        are under Heating and boiler and on the E32 device page, so only these two stay.
+        """
+        entry = self.config_entry
+        if not hasattr(self, "_general_before"):
+            self._general_before = configuration_snapshot(entry)
+        errors = {}
+        if user_input is not None:
+            name = str(user_input.get("name", "")).strip()
+            dashboard = user_input.get(CONF_CREATE_DASHBOARD, False)
+            if not name or len(name) > 80:
+                errors["name"] = "invalid_name"
+            elif type(dashboard) is not bool:
+                errors["base"] = "setup_invalid"
+            elif name == entry.title and dashboard == entry.options.get(CONF_CREATE_DASHBOARD, False):
+                return self.async_abort(reason="installation_saved")
+            else:
+                try:
+                    commit_configuration(self.hass, entry, self._general_before, title=name,
+                                         options={**entry.options, CONF_CREATE_DASHBOARD: dashboard})
+                except ValueError as err:
+                    code = str(err)
+                    return self.async_abort(reason=code if code in {"setup_changed", "setup_platform_unsupported"}
+                                            else "setup_save_uncertain")
+                return self.async_abort(reason="installation_saved")
+        schema = vol.Schema({
+            vol.Required("name", default=entry.title): str,
+            vol.Optional(CONF_CREATE_DASHBOARD, default=entry.options.get(CONF_CREATE_DASHBOARD, False)): bool,
+        })
+        return self.async_show_form(step_id="general", data_schema=retained_input_schema(self, schema, user_input),
+                                    errors=errors)
 
     async def async_step_energy(self, user_input=None):
         """Optional gas meter, gas price, outdoor temperature and boiler power (nothing is required)."""
@@ -498,10 +547,38 @@ class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, Con
                 "connection": connection_text, "runtime": runtime_text, "actuator_checks": actuator_text})
 
     async def async_step_advanced_settings(self, user_input=None):
-        from .e32_link import legacy_rooms_pending
-        options = ["configuration_status", "hot_water"]
+        from .e32_link import legacy_rooms_pending, legacy_zones
+        from .room_plan import uses_e32_rooms
+        entry = self.config_entry
+        e32 = uses_e32_rooms(entry)
+        # "Installation status" counts and checks the older Home Assistant rooms only:
+        # with the E32 room plan it is shown while such rooms are left.
+        options = ["configuration_status"] if not e32 or legacy_zones(entry) else []
+        if e32 and "installation" not in main_menu(entry):
+            from .installation_edit import installation_context
+            if installation_context(self.hass, entry) is not None:
+                # The water limits of an older room profile that still runs (until its removal).
+                options.append("installation")
+        options.append("hot_water")
         if self._native_plan_review_available():
             options += ["graph_prepare", "graph_status"]
-        if legacy_rooms_pending(self.config_entry):
+        if legacy_rooms_pending(entry):
             options.append("legacy_rooms")
         return self.async_show_menu(step_id="advanced_settings", menu_options=options)
+
+
+def main_menu(entry):
+    """Configure's top level, in the order a user needs it.
+
+    E32 room plan (connected): Rooms, Comfort, Heating and boiler, Energy,
+    E32 connection, Name and dashboard, Advanced. A new installation whose E32
+    is not connected yet starts with Connect E32 (rooms and heating need it).
+    Older installations on the Home Assistant room route keep their menu.
+    """
+    from .room_plan import has_room_plan, uses_e32_rooms
+    if has_room_plan(entry):
+        return ["e32_rooms", "comfort", "heating_boiler", "energy", "controller_connection", "general",
+                "advanced_settings"]
+    if uses_e32_rooms(entry):
+        return ["controller_connection", "energy", "general", "advanced_settings"]
+    return ["room_settings", "controller_connection", "energy", "installation", "advanced_settings"]

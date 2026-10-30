@@ -201,8 +201,10 @@ TEST(HeatingTelemetry, MainPayloadKeepsTheShapeWithoutPageOnlyFields) {
     const auto mqtt = print(status.get());
     breakdown("realistic full", full); breakdown("realistic mqtt", mqtt);
     // 8 active rooms with a tado and a Bluetooth sensor each, 8 sensors with
-    // 24-char names: measured 3761 B (40-char names: ~3890 B, still one window).
-    EXPECT_LE(mqtt.size(), 3800u);
+    // 24-char names: measured 3761 B (40-char names: ~3890 B, still one window);
+    // 3860 B since rooms with a program report "schedule" before an HA target (beta.19).
+    // The MQTT budget itself is per topic (test_heating_state_topics).
+    EXPECT_LE(mqtt.size(), 3900u);
     const cJSON* room = cJSON_GetArrayItem(cJSON_GetObjectItem(status.get(), "rooms"), 0);
     for (const char* gone : {"fallback_centi_c", "minimum_centi_c", "maximum_centi_c"}) EXPECT_FALSE(cJSON_GetObjectItem(room, gone)) << gone;
     for (const char* kept : {"id", "name", "state", "inactive_until", "status", "source", "temperature", "setpoint", "setpoint_source", "demand"}) EXPECT_TRUE(cJSON_GetObjectItem(room, kept)) << kept;
@@ -444,7 +446,7 @@ TEST(HeatingTelemetry, WithoutClockPlansAreNullAndTheShapeStays) {
     EXPECT_FALSE(cJSON_GetObjectItem(cJSON_GetObjectItem(status.get(), "learned"), "plans"));
     compactHeatingTelemetry(status.get());
     const auto once = print(status.get());
-    EXPECT_LE(once.size(), 3800u);
+    EXPECT_LE(once.size(), 3900u);
     // Compacting is idempotent and harmless on older documents.
     compactHeatingTelemetry(status.get());
     EXPECT_EQ(print(status.get()), once);

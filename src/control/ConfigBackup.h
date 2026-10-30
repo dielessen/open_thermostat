@@ -503,6 +503,20 @@ inline const char* prepareNetwork(const cJSON* backup, const DeviceState& s, con
             report.need("mqtt_password");
         }
     }
+    // The kept native SOURCE (device-bound, never in a backup) names its HA
+    // adapter and needs the shadow link. A restore that changes the adapter or
+    // turns the shadow link off would leave the MQTT link invalid and silent
+    // for good: clear the SOURCE instead. Its plan record cannot load without
+    // it; the next boot ignores and erases that record.
+    if (auto mq = cJSON_GetObjectItemCaseSensitive(candidate.get(), "mqtt"); cJSON_IsObject(mq)) {
+        const auto source = item(mq, "native_shadow_source");
+        if (source && !cJSON_IsNull(source)
+                && (!cJSON_IsTrue(item(mq, "modern_shadow")) || !oldMq
+                    || text(item(mq, "adapter_id")) != text(item(oldMq, "adapter_id")))) {
+            if (!put(mq, "native_shadow_source", cJSON_CreateNull())) return "out_of_memory";
+            report.warn("native_source_cleared");
+        }
+    }
     // OpenWeather key: restored, else the stored one stays (as POST /config/device).
     const auto oldWeather = item(previous.get(), "openweather");
     if (auto weather = cJSON_GetObjectItemCaseSensitive(candidate.get(), "openweather"); cJSON_IsObject(weather)) {

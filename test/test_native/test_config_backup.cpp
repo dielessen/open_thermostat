@@ -336,6 +336,35 @@ TEST(ConfigBackup, NetworkRestoreCannotLockTheOwnerOut) {
     EXPECT_EQ(field(v.prepared.network, nullptr, "interface_mode"), "\"ethernet\"");
 }
 
+TEST(ConfigBackup, RestoreThatChangesTheHaLinkClearsTheDeviceBoundSource) {
+    // A backup of another HA link (adapter) or without the shadow link: the
+    // kept SOURCE would make the MQTT link invalid and silent for good.
+    for (const char* change : {"adapter", "modern"}) {
+        auto source = configured();
+        auto net = parse(source.network); auto mq = cJSON_GetObjectItemCaseSensitive(net.get(), "mqtt");
+        if (std::string(change) == "adapter") b::put(mq, "adapter_id", cJSON_CreateString("ha_adapter_2"));
+        else b::put(mq, "modern_shadow", cJSON_CreateFalse());
+        source.network = print(net.get());
+        auto doc = b::exportDocument(source, meta(), "");
+        const auto v = validate(request("validate", doc.get()), configured());
+        ASSERT_EQ(v.error, nullptr) << change;
+        EXPECT_TRUE(has(v.report.warnings.get(), "native_source_cleared")) << change;
+        EXPECT_EQ(field(v.prepared.network, "mqtt", "native_shadow_source"), "null") << change;
+    }
+    // The same link keeps it (and changes nothing, see the test above).
+    const auto same = validate(request("validate", b::exportDocument(configured(), meta(), "").get()), configured());
+    ASSERT_EQ(same.error, nullptr);
+    EXPECT_FALSE(has(same.report.warnings.get(), "native_source_cleared"));
+    // Nothing to clear on a device without a SOURCE.
+    auto source = configured(); auto net = parse(source.network);
+    b::put(cJSON_GetObjectItemCaseSensitive(net.get(), "mqtt"), "adapter_id", cJSON_CreateString("ha_adapter_2"));
+    source.network = print(net.get());
+    const auto fresh = validate(request("validate", b::exportDocument(source, meta(), "").get()), factory());
+    ASSERT_EQ(fresh.error, nullptr);
+    EXPECT_FALSE(has(fresh.report.warnings.get(), "native_source_cleared"));
+    EXPECT_EQ(field(fresh.prepared.network, "mqtt", "native_shadow_source"), "<absent>");
+}
+
 TEST(ConfigBackup, RestoreIsRefusedWhileTheE32OwnsTheBoiler) {
     auto doc = b::exportDocument(configured(), meta(), "");
     auto onto = factory(); onto.boilerClaimed = true;

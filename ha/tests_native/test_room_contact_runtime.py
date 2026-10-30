@@ -2,6 +2,7 @@
 from dataclasses import replace
 from datetime import timedelta
 import pytest
+from homeassistant.core import StateMachine
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from custom_components.open_thermostat.comfort_sources import ContextSourceProfile,ContextReport
@@ -14,6 +15,10 @@ from test_v1_native import room,entry
 def setup(hass,monkeypatch,*,age=3600000,close=0,profiles=False):
     utc=dt_util.utcnow();clock=[1000.0];real=clock[0]
     monkeypatch.setattr(dt_util,'utcnow',lambda:utc+timedelta(seconds=clock[0]-real))
+    # States carry the same fake time: HA stamps them with time.time(), so a busy
+    # machine could otherwise make a contact's age negative and the test flaky.
+    set_state=StateMachine.async_set
+    monkeypatch.setattr(StateMachine,'async_set',lambda self,*a,**k:set_state(self,*a,**{'timestamp':dt_util.utcnow().timestamp(),**k}))
     registry=er.async_get(hass);refs=[]
     for name,kind in (('window','window'),('door','door')):
         row=registry.async_get_or_create('binary_sensor','context_fixture','contact_'+name)

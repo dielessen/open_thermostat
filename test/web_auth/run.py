@@ -35,10 +35,10 @@ struct Device {
  bool storePassword(std::string_view p){++stores;if(failStore||control::WebPassword::checkNew(p)!=control::WebPassword::Length::ok)return false;password=std::string(p);factory=false;return true;}
 } deviceAccess;
 namespace heating::update {bool blocked=false;bool mutationBlocked(std::string_view path){assert(path=="/ota"||path=="/boiler/settings/write");return blocked;}}
-struct Controller {bool active=false;unsigned settingsSyncs=0;std::string observe;uint64_t remainingSeen=999;bool boilerTestActive(){return active;}void boilerSettingsSynchronize(const control::WebAuthSession& sessions,uint64_t now,bool){++settingsSyncs;remainingSeen=sessions.remainingMs(observe,now);}};
+struct Controller {bool active=false;unsigned settingsSyncs=0;std::string observe;uint64_t remainingSeen=999;bool boilerTestActive(){return active;}bool settingsWriting=false;bool boilerSettingsActive(){return settingsWriting;}void boilerSettingsSynchronize(const control::WebAuthSession& sessions,uint64_t now,bool){++settingsSyncs;remainingSeen=sessions.remainingMs(observe,now);}};
 struct Fixture {
  Server server_;Controller controller_;control::WebAuthSession sessions_;unsigned entropy=0;bool failEntropy=false;String cookie;
- uint64_t networkNow(){return 200;}String requestToken(){return cookie;}
+ uint64_t nowMs=200;uint64_t networkNow(){return nowMs;}String requestToken(){return cookie;}
  bool randomToken(std::array<char,65>& t){if(failEntropy)return false;t.fill(entropy++%2?'b':'a');t[64]=0;return true;}
 '''
 post=r'''
@@ -60,6 +60,10 @@ int main(){
  {Fixture f;fill(f);for(int i=0;i<5;++i)request(f,true,"wrong");request(f);assert(f.server_.status==429);preserved(f);}
  {Fixture f;fill(f);f.controller_.active=true;request(f);assert(f.server_.status==409);preserved(f);}
  {Fixture f;fill(f);update::blocked=true;request(f);assert(f.server_.status==409);preserved(f);update::blocked=false;}
+ // A full table evicts one session idle for 2 min, but never while a settings write depends on one.
+ {Fixture f;fill(f);f.nowMs=100+120000;request(f,false);assert(f.server_.status==200);unsigned kept=0;for(int i=0;i<4;++i)kept+=f.sessions_.find(token('0'+2*i),f.nowMs)!=nullptr;assert(kept==3);}
+ {Fixture f;fill(f);f.nowMs=100+120000;f.controller_.settingsWriting=true;request(f,false);assert(f.server_.status==429);for(int i=0;i<4;++i)assert(f.sessions_.find(token('0'+2*i),f.nowMs));}
+ {Fixture f;fill(f);f.nowMs=100+120000;f.controller_.active=true;request(f,false);assert(f.server_.status==429);for(int i=0;i<4;++i)assert(f.sessions_.find(token('0'+2*i),f.nowMs));}
  {Fixture f;fill(f);f.failEntropy=true;request(f);assert(f.server_.status==503);preserved(f);}
  {Fixture f;fill(f);f.server_.fields={{"username","admin"},{"password","secret"},{"recover_sessions","false"}};f.login();assert(f.server_.status==400);preserved(f);}
  {Fixture f;fill(f);f.server_.fields={{"username","admin"},{"password","secret"},{"recover_sessions","1"},{"recover_sessions","1"}};f.login();assert(f.server_.status==400);preserved(f);}
@@ -101,7 +105,7 @@ int main(){
  // An update in progress or a storage failure keeps the old password and every session.
  {Fixture f;fill(f);update::blocked=true;change(f,pair("secret","correct horse"));assert(f.server_.status==409&&f.server_.body=="{\"error\":\"password_change_busy\"}");update::blocked=false;unchanged(f);assert(deviceAccess.stores==0);resetDevice();}
  {Fixture f;fill(f);deviceAccess.failStore=true;change(f,pair("secret","correct horse"));assert(f.server_.status==503&&f.server_.body=="{\"error\":\"password_storage_failed\"}");deviceAccess.failStore=false;unchanged(f);resetDevice();}
- std::cout<<"PASS 22 actual login/session/password/logout handler scenarios: full capacity, credentials, cooldown, active trial/update, entropy failure, malformed recovery, explicit success, session JSON, password change limits/shape/rate limit/invalidation/busy/storage\n";
+ std::cout<<"PASS 25 actual login/session/password/logout handler scenarios: full capacity, idle eviction (not during a test or settings write), credentials, cooldown, active trial/update, entropy failure, malformed recovery, explicit success, session JSON, password change limits/shape/rate limit/invalidation/busy/storage\n";
 }
 '''
 p=root/'out/session-recovery';p.mkdir(exist_ok=True);cpp=p/'login-handler.cpp';cpp.write_text(pre+method+logout+post)

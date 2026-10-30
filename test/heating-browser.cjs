@@ -127,8 +127,6 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await root.locator('[data-heating-room="woonkamer"]>summary').getByText('Vraagt warmte').waitFor();
   // Floor heating with a 60 °C maximum: a warning, not a block.
   assert.equal(await root.locator('[data-heating-flow-warn]').isVisible(),true);
-  // Same ranges as the firmware (RoomPlan): minimum 20–79, maximum 21–80 °C.
-  assert.deepEqual(await root.locator('#heating-min-flow,#heating-max-flow').evaluateAll(f=>f.map(i=>[i.min,i.max])),[['20','79'],['21','80']]);
   assert.match(await root.locator('[data-heating-room="woonkamer"]>summary').innerText(),/^Woonkamer\s+Vraagt warmte\s+20,4 °C\s+Gewenst 21,0 °C\s+Gewenste temperatuur uit Home Assistant$/);
   assert.equal(await root.locator('[data-heating-room="woonkamer"]').getByLabel('Weekprogramma gebruiken').isChecked(),true,'a new room has a week program');
   await root.locator('[data-heating-request]').getByText('Berekende ketelvraag: 36 °C · Verwarmen').waitFor();
@@ -240,6 +238,41 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(await root.locator('[data-heating-add]').isVisible(),true);
   assert.equal(await root.locator('[data-heating-lock]').getAttribute('class'),'alert ot-actions alert-info');
   delete status.ha;
+  // The flow limits for all rooms are on the Boiler page; the floor-heating warning here links there.
+  await page.evaluate(()=>sessionStorage.removeItem('ot-rooms-edit'));
+  await page.evaluate(()=>loadNativePage('heating'));
+  const warn=root.locator('[data-heating-flow-warn]');await warn.waitFor();
+  assert.match(await warn.innerText(),/vloerverwarming[\s\S]*De maximale aanvoer is nu 60 °C\./);
+  assert.equal(await page.locator('#heating-min-flow,#heating-max-flow').count(),0,'no flow limits on the Rooms page');
+  await warn.getByRole('link',{name:'Aanvoergrenzen wijzigen'}).click();
+  const limits=page.locator('#boiler-limits'),minFlow=limits.locator('#boiler-min-flow'),maxFlow=limits.locator('#boiler-max-flow');
+  await page.waitForFunction(()=>document.getElementById('boiler-max-flow')?.value==='60');
+  assert.equal(await page.evaluate(()=>location.hash),'#boiler-limits');
+  assert.equal(await limits.evaluate(d=>d.open),true);
+  assert.equal(await limits.locator('[data-limits-summary]').innerText(),'30–60 °C');
+  // Same ranges as the firmware (RoomPlan): minimum 20–79, maximum 21–80 °C.
+  assert.deepEqual(await limits.locator('#boiler-min-flow,#boiler-max-flow').evaluateAll(f=>f.map(i=>[i.min,i.max])),[['20','79'],['21','80']]);
+  assert.equal(await limits.locator('[data-limits-floor-warn]').isVisible(),true);
+  // Home Assistant is the main editor: read-only until unlocked for this tab, as on the Rooms page.
+  assert.equal(await maxFlow.isDisabled(),true);
+  assert.match(await limits.locator('[data-limits-lock]').innerText(),/Configureren → Verwarming en ketel/);
+  await limits.locator('[data-limits-unlock]').click();assert.match(dialogs.at(-1),/tot je dit tabblad sluit/);
+  await maxFlow.fill('45');assert.equal(await limits.locator('[data-limits-floor-warn]').isVisible(),false);
+  const saved=plan,count=posts.length;
+  await limits.locator('[data-limits-save]').click();
+  await limits.getByText('Aanvoergrenzen opgeslagen.').waitFor();
+  assert.equal(posts.length,count+1);assert.deepEqual(posts.at(-1),{...saved,maximum_flow_c:45},'the whole plan, only the maximum changed');
+  assert.equal(await limits.locator('[data-limits-summary]').innerText(),'30–45 °C');
+  // A minimum above the maximum is refused before sending.
+  await minFlow.fill('50');await limits.locator('[data-limits-save]').click();
+  await limits.getByText('Houd de minimale aanvoer lager dan de maximale, tussen 20 en 80 °C.').waitFor();
+  assert.equal(posts.length,count+1);
+  // Home Assistant saved in between: refused by revision, reloaded, nothing overwritten.
+  plan={...plan,revision:plan.revision+1,minimum_flow_c:25};
+  await minFlow.fill('35');await limits.locator('[data-limits-save]').click();
+  await limits.getByText(/Het plan is elders gewijzigd/).waitFor();
+  assert.equal(await minFlow.inputValue(),'25');assert.equal(plan.minimum_flow_c,25);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll on the Boiler page');
   assert.deepEqual(errors,[]);
   results.push({width,result:'PASS'});await page.close();
  }}finally{await browser.close();}

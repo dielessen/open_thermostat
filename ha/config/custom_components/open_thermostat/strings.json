@@ -104,7 +104,7 @@
         "description": "Window and door sensors pause a room while they are open; presets, away and presence set temperatures for the thermostats of your E32 rooms. Everything here is optional.",
         "menu_options": {
           "comfort_settings": "Presets, presence and timing",
-          "comfort_contacts": "Window and door sensors per room"
+          "comfort_contacts": "Window and door contacts per room"
         }
       },
       "comfort_settings": {
@@ -126,15 +126,23 @@
         }
       },
       "comfort_contacts": {
-        "title": "Window and door sensors",
-        "description": "Choose a room and its window and door sensors. While any of them is open the room pauses (its frost protection stays); when all are closed it heats again. Sensors now: {rooms}. Choose no sensor to remove them from the room.",
+        "title": "Window and door contacts",
+        "description": "Choose the room whose window and door contacts you want to change. You can also do this in the room itself, under Configure → Rooms.\n\nContacts now:\n{rooms}",
         "data": {
-          "room": "Room",
-          "contacts": "Window and door sensors"
+          "room": "Room"
         },
         "data_description": {
-          "room": "One of the rooms on your E32.",
-          "contacts": "Binary sensors of the type window, door or opening, for example from Zigbee or Bluetooth. Their state is sent to the E32 on every change."
+          "room": "One of the rooms on your E32."
+        }
+      },
+      "comfort_contacts_room": {
+        "title": "Window and door contacts",
+        "description": "Room: {room}. When one of these sensors has been open for {delay}, the room pauses: it drops to frost protection (8 °C) and asks for no heat. When all are closed again, it follows its program. Remove all sensors to switch this off for the room.",
+        "data": {
+          "contacts": "Window and door contacts"
+        },
+        "data_description": {
+          "contacts": "Binary sensors of the class window, door, opening or garage door, of any brand (Zigbee, Z-Wave, Shelly, Bluetooth …). Home Assistant sends their state to the E32 on every change."
         }
       },
       "init": {
@@ -554,6 +562,16 @@
           "program": "Easiest: the visual planner under Week program on the OpenThermostat dashboard. This text is the advanced view of the same program: one line per group of days, for example mon-fri: 06:30 20.5; 22:30 18 and sat-sun: 08:00 20.5; 23:00 18. Temperatures in your Home Assistant unit. A line without days applies to every day. Up to 6 switch points per day; each temperature holds until the next point. Empty: no week program."
         },
         "sections": {
+          "window": {
+            "name": "Window and door contacts",
+            "description": "Optional. Pick this room's window and door sensors from Home Assistant, of any brand: Zigbee, Z-Wave, Shelly, Bluetooth and more.",
+            "data": {
+              "contacts": "Window and door contacts"
+            },
+            "data_description": {
+              "contacts": "When one of them has been open for {delay}, the room pauses: it drops to frost protection (8 °C) and asks for no heat. When all are closed again, it follows its program. Airing briefly does not pause the room. Change the delay under Configure → Comfort → Presets, presence and timing."
+            }
+          },
           "limits": {
             "name": "Temperature limits",
             "description": "The target temperature, the temperature without Home Assistant and the program stay within these limits.",
@@ -914,7 +932,9 @@
           "fallback": "Using fallback",
           "stale": "Measurement stale",
           "lost": "Sensor lost",
-          "inactive": "Off"
+          "inactive": "Off",
+          "window_open": "Window open, heating paused",
+          "window_pending": "Window open, pausing soon"
         }
       },
       "ble_temperature": {

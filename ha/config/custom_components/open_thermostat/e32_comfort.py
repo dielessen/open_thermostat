@@ -127,16 +127,50 @@ def validate_settings(hass, user_input, current):
     return out
 
 
-def validate_contacts(hass, selections):
-    """Window/door/opening binary sensors for one room (at most eight)."""
+def validate_contacts(hass, selections, known=()):
+    """Window/door/opening binary sensors for one room (at most eight).
+
+    Any brand works: Zigbee, Z-Wave, Shelly, Bluetooth or a template, as long as
+    Home Assistant gives it the device class window, door, opening or garage door.
+    known: the room's sensors so far; they stay accepted while they are
+    unavailable (a sensor with an empty battery never blocks saving the room).
+    """
     if type(selections) is not list or len(selections) > MAX_CONTACTS or len(set(selections)) != len(selections):
         raise ComfortError("contacts", "contacts_invalid")
     for entity_id in selections:
+        if type(entity_id) is not str or not entity_id.startswith("binary_sensor."):
+            raise ComfortError("contacts", "not_contact_sensor")
+        if entity_id in known:
+            continue
         state = hass.states.get(entity_id)
-        if (type(entity_id) is not str or not entity_id.startswith("binary_sensor.") or state is None
-                or state.attributes.get("device_class") not in CONTACT_CLASSES):
+        if state is None or state.attributes.get("device_class") not in CONTACT_CLASSES:
             raise ComfortError("contacts", "not_contact_sensor")
     return list(selections)
+
+
+def room_contacts(entry, room_id):
+    """The window/door sensors of one E32 room (Configure → Rooms or Comfort)."""
+    return list(comfort_options(entry)["contacts"].get(room_id, []))
+
+
+def with_room_contacts(settings, room_id, contacts):
+    """The comfort settings with this room's sensors replaced (none: the room has no sensors)."""
+    rooms = {**settings["contacts"], room_id: list(contacts)}
+    if not contacts:
+        rooms.pop(room_id, None)
+    return {**settings, "contacts": rooms}
+
+
+def contact_delay_text(settings):
+    """The pause delay as the forms show it: "2 min" or "45 s"."""
+    seconds = settings["contact_delay_s"]
+    return f"{seconds // 60} min" if seconds >= 60 and seconds % 60 == 0 else f"{seconds} s"
+
+
+def contact_selector(**extra):
+    """The entity picker for window and door sensors of any brand."""
+    return selector.EntitySelector({"filter": [{"domain": "binary_sensor", "device_class": list(CONTACT_CLASSES)}],
+                                    "multiple": True, **extra})
 
 
 @callback
@@ -170,14 +204,19 @@ def settings_schema(vol, settings):
     })
 
 
-def contacts_schema(vol, rooms, room_id, contacts):
-    """Pick a room and its window/door sensors (prefilled for the chosen room)."""
+def contacts_room_schema(vol, rooms, room_id):
+    """Step one: the room whose window/door sensors to change."""
     options = [{"value": rid, "label": name} for rid, name in rooms]
     return vol.Schema({
         vol.Required("room", default=room_id or (rooms[0][0] if rooms else "")): selector.SelectSelector(
             {"options": options, "mode": "dropdown"}),
-        vol.Optional("contacts", description={"suggested_value": contacts}): selector.EntitySelector(
-            {"filter": [{"domain": "binary_sensor", "device_class": list(CONTACT_CLASSES)}], "multiple": True}),
+    })
+
+
+def contacts_schema(vol, contacts):
+    """Step two: that room's window/door sensors, prefilled with the ones it has."""
+    return vol.Schema({
+        vol.Optional("contacts", description={"suggested_value": contacts or None}): contact_selector(),
     })
 
 
@@ -670,7 +709,17 @@ class ComfortOptionsSteps:
         rooms = hub.rooms if hub is not None else {}
         return [(room_id, room.get("name") or room_id) for room_id, room in sorted(rooms.items())]
 
+    def _comfort_contact_summary(self, rooms, settings):
+        """Per room the names of its window/door sensors (or "none"), one line each."""
+        def name(entity_id):
+            state = self.hass.states.get(entity_id)
+            return (state.attributes.get("friendly_name") if state is not None else None) or entity_id
+        none = "geen" if self.hass.config.language == "nl" else "none"
+        return "\n".join(f"- {room}: {', '.join(name(e) for e in settings['contacts'].get(rid, [])) or none}"
+                         for rid, room in rooms)
+
     async def async_step_comfort_contacts(self, user_input=None):
+        """Pick the room first, so the sensor list below always belongs to the room it shows."""
         import voluptuous as vol
         rooms = self._comfort_rooms()
         if not rooms:
@@ -678,22 +727,33 @@ class ComfortOptionsSteps:
         current = comfort_options(self.config_entry)
         errors = {}
         if user_input is not None:
-            room_id = user_input.get("room")
+            if user_input.get("room") in dict(rooms):
+                self._comfort_room = user_input["room"]
+                return await self.async_step_comfort_contacts_room()
+            errors["room"] = "room_invalid"
+        return self.async_show_form(
+            step_id="comfort_contacts", errors=errors,
+            data_schema=contacts_room_schema(vol, rooms, (user_input or {}).get("room")),
+            description_placeholders={"rooms": self._comfort_contact_summary(rooms, current)})
+
+    async def async_step_comfort_contacts_room(self, user_input=None):
+        import voluptuous as vol
+        rooms = dict(self._comfort_rooms())
+        room_id = getattr(self, "_comfort_room", None)
+        if room_id not in rooms:
+            return self.async_abort(reason="comfort_no_rooms")
+        current = comfort_options(self.config_entry)
+        known = current["contacts"].get(room_id, [])
+        errors = {}
+        if user_input is not None:
             try:
-                if room_id not in dict(rooms):
-                    raise ComfortError("room", "room_invalid")
-                contacts = validate_contacts(self.hass, list(user_input.get("contacts") or []))
+                contacts = validate_contacts(self.hass, list(user_input.get("contacts") or []), known)
             except ComfortError as err:
                 errors[err.field] = err.code
             else:
-                settings = {**current, "contacts": {**current["contacts"], room_id: contacts}}
-                if not contacts:
-                    settings["contacts"].pop(room_id, None)
-                save_comfort(self.hass, self.config_entry, settings)
+                save_comfort(self.hass, self.config_entry, with_room_contacts(current, room_id, contacts))
                 return self.async_abort(reason="comfort_saved")
-        room_id = (user_input or {}).get("room") or rooms[0][0]
         return self.async_show_form(
-            step_id="comfort_contacts", errors=errors,
-            data_schema=contacts_schema(vol, rooms, room_id, current["contacts"].get(room_id, [])),
-            description_placeholders={"rooms": ", ".join(
-                f"{name}: {len(current['contacts'].get(rid, []))}" for rid, name in rooms)})
+            step_id="comfort_contacts_room", errors=errors,
+            data_schema=contacts_schema(vol, (user_input or {}).get("contacts", known) if errors else known),
+            description_placeholders={"room": rooms[room_id], "delay": contact_delay_text(current)})

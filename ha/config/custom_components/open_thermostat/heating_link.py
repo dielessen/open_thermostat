@@ -55,7 +55,26 @@ STALE_SECONDS = 3 * HEARTBEAT_SECONDS + 15
 STALE_CHECK = timedelta(seconds=15)
 ROOM_ID = re.compile(r"[a-z0-9_]{1,32}")
 BLE_ID = re.compile(r"[0-9a-f]{12}")
-ROOM_STATUSES = ["ok", "fallback", "stale", "lost", "inactive"]
+ROOM_STATUSES = ["ok", "fallback", "stale", "lost", "inactive", "window_open", "window_pending"]
+# The E32's own room statuses; the window states come from the room's comfort (RoomOverrides.h).
+E32_ROOM_STATUSES = ROOM_STATUSES[:5]
+
+
+def room_status(room):
+    """The room's control status; a window contact shows while the room has a working measurement.
+
+    The E32 reports "window": "open" (paused at frost protection) or "pending"
+    (open, the delay still runs) in the room's comfort. A missing or old
+    measurement stays visible first: that is a problem to fix.
+    """
+    value = room.get("status") if type(room) is dict else None
+    if value not in E32_ROOM_STATUSES:
+        return None
+    comfort = room.get("comfort")
+    window = comfort.get("window") if type(comfort) is dict else None
+    if value in ("ok", "fallback") and window in ("open", "pending"):
+        return f"window_{window}"
+    return value
 LEARNING_STATES = ["collecting", "learning", "ready"]
 # The highest flow the E32 requests: its plan maximum goes up to 80 °C (RoomPlan 21..80).
 FLOW_REQUEST_MAX_C = 80
@@ -848,7 +867,7 @@ class RoomTemperatureSensor(RoomEntity, SensorEntity):
 
 
 class RoomStatusSensor(RoomEntity, SensorEntity):
-    """How the E32 runs the room: ok, fallback, stale, lost or inactive, and from which source."""
+    """How the E32 runs the room: ok, fallback, stale, lost, inactive or paused by a window, and from which source."""
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = ROOM_STATUSES
@@ -859,8 +878,7 @@ class RoomStatusSensor(RoomEntity, SensorEntity):
     @property
     def native_value(self):
         room = self.room
-        value = room.get("status") if room and self.hub.fresh else None
-        return value if value in ROOM_STATUSES else None
+        return room_status(room) if room and self.hub.fresh else None
 
     @property
     def extra_state_attributes(self):
@@ -873,6 +891,7 @@ class RoomStatusSensor(RoomEntity, SensorEntity):
         return {"room_id": self.room_id, "source": room.get("source"), "state": room.get("state"),
                 "inactive_until": until, "demand": room.get("demand"),
                 "temperature": room.get("temperature"), "setpoint": room.get("setpoint"),
+                "window": room["comfort"].get("window") if type(room.get("comfort")) is dict else None,
                 "revision": self.hub.revision}
 
 

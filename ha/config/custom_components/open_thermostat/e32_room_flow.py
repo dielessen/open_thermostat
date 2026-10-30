@@ -10,6 +10,12 @@ concurrent change on the E32's own page to another field or room survives.
 Each source records who reads it: "ha" (a Home Assistant climate or °C
 temperature sensor that HA forwards to the E32) or "ble" (a Bluetooth sensor
 paired on the E32, read by the E32 itself).
+
+The form also holds the room's window and door contacts: any Home Assistant
+binary sensor of the class window, door, opening or garage door. They are not
+part of the E32 plan but of this entry's comfort settings (e32_comfort.py),
+which forward the room's combined state to the E32 (RoomOverrides.h): open
+for longer than the delay pauses the room at frost protection.
 """
 from __future__ import annotations
 
@@ -26,6 +32,8 @@ from homeassistant.helpers import selector
 from homeassistant.util import slugify
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
+from .e32_comfort import (ComfortError, comfort_options, contact_delay_text, contact_selector, room_contacts,
+                          save_comfort, validate_contacts, with_room_contacts)
 from .heating_link import TEMPERATURE_UNITS, celsius, heating_hub, label, number
 from .native_form import retained_input_schema
 from .room_plan import has_room_plan, plan_room
@@ -329,7 +337,9 @@ class E32RoomFlow:
         for room in plan["rooms"]:
             inactive = "" if room.get("state") == "active" else (" (inactief)" if dutch else " (inactive)")
             sources = ", ".join(self._e32_source_label(s) for s in room.get("sources", []))
-            lines.append(f"- {room.get('name', room['id'])}{inactive}: {sources}")
+            contacts = len(room_contacts(self.config_entry, room["id"]))
+            window = (f"; raam-/deurcontacten: {contacts}" if dutch else f"; window/door contacts: {contacts}")                 if contacts else ""
+            lines.append(f"- {room.get('name', room['id'])}{inactive}: {sources}{window}")
         return "\n".join(lines) or ("Nog geen ruimtes." if dutch else "No rooms yet.")
 
     async def async_step_e32_room_add(self, user_input=None):
@@ -495,6 +505,9 @@ class E32RoomFlow:
         """The room is gone from the E32 plan: remove its device and entities (this entry's only)."""
         from .native_entity_cleanup import remove_room_devices
         remove_room_devices(self.hass, self.config_entry, heating_hub(self.hass, self.config_entry).prefix, [room_id])
+        if room_contacts(self.config_entry, room_id):  # its window/door contacts go with it
+            settings = comfort_options(self.config_entry)
+            save_comfort(self.hass, self.config_entry, with_room_contacts(settings, room_id, []))
 
     def _e32_own_entities(self):
         """This entry's E32 entities (room and Bluetooth values): never an HA source.
@@ -527,6 +540,7 @@ class E32RoomFlow:
             "emitter": room.get("emitter", "radiator"),
             "ha_sources": [s["id"] for s in sources if s.get("type") == "ha"],
             "ble_sources": [s["id"] for s in sources if s.get("type") == "ble"],
+            "contacts": room_contacts(self.config_entry, room["id"]) if room.get("id") else [],
             "bluetooth_first": bool(sources) and sources[0].get("type") == "ble",
             # The setting device; a room's own valve or thermostat source is proposed.
             "setpoint_entity": room.get("setpoint_entity") or proposed_device(room) or None,
@@ -607,6 +621,15 @@ class E32RoomFlow:
                 "setpoint_entity": setpoint, "fallback_centi_c": fallback,
                 "minimum_centi_c": low, "maximum_centi_c": high, "schedule": schedule}
 
+    def _e32_room_contacts(self, user_input, room):
+        """The submitted window/door contacts (the form's "window" section); raises FlowError."""
+        window = user_input.get("window") or {}
+        known = room_contacts(self.config_entry, room["id"]) if room else []
+        try:
+            return validate_contacts(self.hass, list(window.get("contacts") or []), known)
+        except ComfortError as err:
+            raise FlowError(err.code) from None
+
     def _limit_range(self):
         unit = self._unit()
         low, high = LIMITS_CENTI_C
@@ -619,21 +642,31 @@ class E32RoomFlow:
             return self.async_abort(reason="e32_room_missing", description_placeholders={"room": room_id})
         ble_options = self._e32_ble_options(room)
         errors = {}
-        placeholders = {"source": "", "error": "", "line": "", "text": "", **self._limit_range()}
+        placeholders = {"source": "", "error": "", "line": "", "text": "", **self._limit_range(),
+                        "delay": contact_delay_text(comfort_options(self.config_entry))}
         link = self._e32_link()
         if link is None:
             return self.async_abort(reason="e32_rooms_unavailable")
         if user_input is not None:
             try:
                 values = self._e32_room_values(user_input, room, ble_options)
+                contacts = self._e32_room_contacts(user_input, room)
                 if room is not None:
                     edits = {k: v for k, v in values.items() if room.get(k) != v}
-                    if not edits:
+                    if not edits and contacts == room_contacts(self.config_entry, room_id):
                         return self.async_abort(reason="e32_room_unchanged")
                     change, confirm = self._e32_edit(room_id, edits)
+                    saved = room_id
                 else:
-                    change, confirm = self._e32_add(values)
-                await link.async_change_plan(change, confirm)
+                    created = []
+                    change, confirm = self._e32_add(values, created)
+                if room is None or edits:
+                    await link.async_change_plan(change, confirm)
+                if room is None:
+                    saved = created[0]
+                if contacts != room_contacts(self.config_entry, saved):  # after the plan: only for a stored room
+                    save_comfort(self.hass, self.config_entry,
+                                 with_room_contacts(comfort_options(self.config_entry), saved, contacts))
             except FlowError as err:
                 if err.key in ABORTS:
                     return self.async_abort(reason=err.key, description_placeholders={"room": room_id or ""})
@@ -681,6 +714,10 @@ class E32RoomFlow:
             vol.Required("fallback_temperature", default=d["fallback_temperature"]): temperature,
             vol.Optional("program", description={"suggested_value": d["program"] or None}):
                 selector.TextSelector({"multiline": True}),
+            # Open: easy to find in the room itself, not only under Comfort.
+            vol.Optional("window"): section(vol.Schema({
+                vol.Optional("contacts", description={"suggested_value": d["contacts"] or None}): contact_selector(),
+            }), {"collapsed": False}),
             vol.Optional("limits"): section(vol.Schema({
                 vol.Required("minimum_temperature", default=d["minimum_temperature"]): temperature,
                 vol.Required("maximum_temperature", default=d["maximum_temperature"]): temperature,
@@ -706,8 +743,8 @@ class E32RoomFlow:
         return change, lambda stored: plan_room(stored, room_id) is not None
 
     @staticmethod
-    def _e32_add(values):
-        created = []
+    def _e32_add(values, created=None):
+        created = [] if created is None else created
 
         def change(plan):
             candidate = deepcopy(plan)

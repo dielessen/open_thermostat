@@ -293,12 +293,15 @@ def test_entity_names_are_plain_glossary_names_in_both_languages():
             for key, names in items.items():
                 assert entity[platform][key]["name"] == names[column], (name, key)
                 assert "{" not in entity[platform][key]["name"], (name, key)
-        assert set(entity["sensor"]["room_status"]["state"]) == {"ok", "fallback", "stale", "lost", "inactive"}
+        assert set(entity["sensor"]["room_status"]["state"]) == {"ok", "fallback", "stale", "lost", "inactive",
+                                                                 "window_open", "window_pending"}
         assert set(entity["select"]["room_state"]["state"]) == {"active", "inactive"}
     nl = json.loads((COMPONENT / "translations/nl.json").read_text(encoding="utf-8"))["entity"]
     assert nl["sensor"]["room_status"]["state"] == {"ok": "In orde", "fallback": "Terugvalstand",
                                                     "stale": "Meting verouderd", "lost": "Sensor kwijt",
-                                                    "inactive": "Uit"}
+                                                    "inactive": "Uit",
+                                                    "window_open": "Raam open, verwarming gepauzeerd",
+                                                    "window_pending": "Raam open, pauzeert zo"}
     assert nl["select"]["room_state"]["state"] == {"active": "Aan", "inactive": "Uit"}
 
 

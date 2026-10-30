@@ -53,7 +53,7 @@ async def test_async_setup_registers_the_cards_once_without_any_installation(has
     await week_planner.async_setup_planner(hass)
     await week_planner.async_setup_planner(hass)
     assert events == [("added", CARD_URL), ("added", week_planner.URL)]
-    assert hass.http.async_register_static_paths.await_count == 2
+    assert hass.http.async_register_static_paths.await_count == 4  # one route per URL, once
 
 
 @pytest.mark.asyncio
@@ -67,11 +67,35 @@ async def test_a_module_already_listed_is_not_announced_again(hass):
 @pytest.mark.asyncio
 async def test_a_failing_card_setup_never_blocks_the_installations_and_is_retried(hass, monkeypatch, caplog):
     events = browser_side(hass)
-    hass.http.async_register_static_paths = AsyncMock(side_effect=[RuntimeError("busy"), None, None])
+    # The first two files are served, the third fails: a retry serves only what is missing.
+    hass.http.async_register_static_paths = AsyncMock(side_effect=[None, None, RuntimeError("busy"), None, None])
     assert await integration.async_setup(hass, {}) is True
     assert "dashboard cards could not be registered" in caplog.text and modules(hass) == set()
     await week_planner.async_setup_planner(hass)  # the dashboard start tries again
     assert modules(hass) == {CARD_URL, week_planner.URL} and len(events) == 2
+    urls = [call.args[0][0].url_path for call in hass.http.async_register_static_paths.await_args_list]
+    assert urls == [week_planner.URL, week_planner.LEGACY_URL, CARD_URL, CARD_URL, EDITOR_URL], "no duplicate route"
+    await week_planner.async_setup_planner(hass)
+    assert hass.http.async_register_static_paths.await_count == 5
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["planner", "store"])
+async def test_a_failing_optional_dashboard_never_fails_the_installation(hass, monkeypatch, caplog, failure):
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+    from custom_components.open_thermostat import dashboard as module
+    parent, _ = product(hass, FakeE32())
+    hass.data[LOVELACE_DATA] = SimpleNamespace(dashboards={})
+    if failure == "planner":
+        monkeypatch.setattr(week_planner, "async_setup_planner", AsyncMock(side_effect=RuntimeError("no http")))
+    else:
+        monkeypatch.setattr(week_planner, "async_setup_planner", AsyncMock())
+        monkeypatch.setattr(module.LovelaceStorage, "async_save", AsyncMock(side_effect=OSError("disk full")))
+    board = module.RoomDashboard(hass, "fixture", parent.entry_id)
+    await board.async_start()  # no exception: the entry's setup goes on
+    assert "dashboard could not be started" in caplog.text
+    assert hass.data[LOVELACE_DATA].dashboards == {} and board._store is None
+    await board.async_stop()
 
 
 @pytest.mark.asyncio

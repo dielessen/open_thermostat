@@ -399,9 +399,26 @@ class RoomDashboard:
         self._hub = None
         self._hub_unsubscribe = None
         self._hub_signature = None
+        self._candidate: LovelaceStorage | None = None  # registered, panel not yet (async_start)
 
     async def async_start(self) -> None:
-        """Register a Lovelace panel without changing the user's dashboards."""
+        """Register a Lovelace panel without changing the user's dashboards.
+
+        Optional: a failure is logged and undone, never failing the installation's setup.
+        """
+        try:
+            await self._async_start()
+        except Exception:  # noqa: BLE001 - the dashboard is optional
+            _LOGGER.exception("The OpenThermostat dashboard could not be started; "
+                              "the installation works without it and tries again on its next start")
+            candidate, self._candidate = self._candidate, None
+            if self._store is not None:
+                await self.async_stop()
+            elif candidate is not None and self.hass.data[LOVELACE_DATA].dashboards.get(self.path) is candidate:
+                self.hass.data[LOVELACE_DATA].dashboards.pop(self.path, None)
+        self._candidate = None
+
+    async def _async_start(self) -> None:
         entry = self.hass.config_entries.async_get_entry(self.entry_id)
         if entry and is_product(entry):
             # Normally done once in async_setup; again here (idempotent) so the cards'
@@ -423,7 +440,7 @@ class RoomDashboard:
         }
         store = LovelaceStorage(self.hass, config)
         await store.async_save(self._dashboard_config())
-        dashboards[self.path] = store
+        dashboards[self.path] = self._candidate = store
         try:
             frontend.async_register_built_in_panel(
                 self.hass,

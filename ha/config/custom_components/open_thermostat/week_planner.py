@@ -156,6 +156,20 @@ def async_remove_card_modules(hass):
             frontend.remove_extra_js_url(hass, url)
 
 
+# hass.data: the static URLs already served in this HA run (aiohttp cannot remove or replace a route).
+_SERVED_KEY = DOMAIN + "_served_paths"
+
+
+async def _async_serve(hass, url, name):
+    """Serve frontend/<name> at url once per HA run: a retry after a partial failure
+    registers only what is still missing, never a duplicate route."""
+    served = hass.data.setdefault(_SERVED_KEY, set())
+    if url in served:
+        return
+    await hass.http.async_register_static_paths([StaticPathConfig(url, str(Path(__file__).parent / "frontend" / name), False)])
+    served.add(url)
+
+
 async def async_setup_planner(hass):
     """The card modules, their static files and the authenticated websocket commands.
 
@@ -169,14 +183,11 @@ async def async_setup_planner(hass):
         return
     # No await before claiming setup; parallel entries await the same owned task.
     async def setup():
-        await hass.http.async_register_static_paths([
-            StaticPathConfig(url, str(Path(__file__).parent / "frontend/week-planner.js"), False)
-            for url in (URL, LEGACY_URL)])
         # The E32 rooms' visual week planner: the card and the editor shared with the E32 page.
         from .e32_week import CARD_URL, EDITOR_URL, ws_week_get, ws_week_save
-        await hass.http.async_register_static_paths([
-            StaticPathConfig(CARD_URL, str(Path(__file__).parent / "frontend/e32-week-card.js"), False),
-            StaticPathConfig(EDITOR_URL, str(Path(__file__).parent / "frontend/week-editor.js"), False)])
+        for url, name in ((URL, "week-planner.js"), (LEGACY_URL, "week-planner.js"),
+                          (CARD_URL, "e32-week-card.js"), (EDITOR_URL, "week-editor.js")):
+            await _async_serve(hass, url, name)
         websocket_api.async_register_command(hass, ws_week_get)
         websocket_api.async_register_command(hass, ws_week_save)
         from .room_editor import ws_room_get, ws_room_save, ws_room_device_metadata

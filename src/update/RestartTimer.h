@@ -1,6 +1,7 @@
 #pragma once
 #include <atomic>
 #include <cstdint>
+#include <mutex>
 
 namespace heating::update {
 inline bool manualRebootAllowed(bool busy,bool pendingBoot) {
@@ -46,19 +47,43 @@ struct BootConfirmation {
 inline bool controlledRestartAllowed(bool busy, bool pendingBoot, bool sessionActive) {
     return !busy && !pendingBoot && !sessionActive;
 }
-// Shared by the OTA worker and HTTP/main loop. First request wins: polling or
-// duplicate completion cannot postpone a restart. Zero denotes an unarmed timer.
+// Shared by the OTA worker and HTTP/main loop. The EARLIEST requested deadline
+// wins: polling, a duplicate completion or a slower request can never
+// postpone a pending restart. Zero denotes an unarmed timer. Deadlines are
+// millis(); "earlier" is rollover-safe within 24 days.
+inline bool earlierDeadline(uint32_t target,uint32_t current) {return !current||int32_t(target-current)<0;}
 class RestartTimer {
     std::atomic<uint32_t> deadline_{0};
 public:
     void schedule(uint32_t now,uint32_t grace=3000) {
-        uint32_t empty=0,target=now+grace;
-        deadline_.compare_exchange_strong(empty,target?target:1);
+        uint32_t target=now+grace;if(!target)target=1;
+        uint32_t current=deadline_.load();
+        while(earlierDeadline(target,current)&&!deadline_.compare_exchange_weak(current,target)) {}
     }
     bool pending() const {return deadline_.load()!=0;}
     bool due(uint32_t now,bool writing) const {
         const auto deadline=deadline_.load();
         return deadline&&!writing&&int32_t(now-deadline)>=0;
     }
+};
+// The controlled (optional) restart: the earliest deadline together with the
+// reason that asked for it, so a later request neither delays it nor puts its
+// own reason in the black box.
+class ReasonedRestartTimer {
+    mutable std::mutex mutex_;
+    uint32_t deadline_=0;
+    uint8_t reason_=0;
+public:
+    void schedule(uint32_t now,uint32_t grace,uint8_t reason) {
+        uint32_t target=now+grace;if(!target)target=1;
+        std::lock_guard<std::mutex> lock(mutex_);
+        if(earlierDeadline(target,deadline_)) {deadline_=target;reason_=reason;}
+    }
+    bool pending() const {std::lock_guard<std::mutex> lock(mutex_);return deadline_!=0;}
+    bool due(uint32_t now,bool writing) const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return deadline_&&!writing&&int32_t(now-deadline_)>=0;
+    }
+    uint8_t reason() const {std::lock_guard<std::mutex> lock(mutex_);return reason_;}
 };
 }

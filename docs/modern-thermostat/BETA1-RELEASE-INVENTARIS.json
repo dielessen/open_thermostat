@@ -27,7 +27,7 @@
         },
         {
           "path": "scripts/package_e32v2_release.py",
-          "sha256": "632e0d7c0d2e38929e18c55fdc629a5f24bd7312d04a89fe307287e6273b9fc9"
+          "sha256": "524f988d6869912cf3a4596a7892b32608f7f06de31bce6ed26f6323a5e558ea"
         },
         {
           "path": "docs/third-party/shipped-policy.json",
@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "86d0569c615f5ca40d2ee8dad67243e028a147eb53b7fb5ea0602c6a064761b9"
+          "sha256": "e8f51c4b57adc0fb1443f39331b26a9c6ee0d2702cdfe170371df78dc5da8815"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -159,7 +159,7 @@
         },
         {
           "path": ".github/workflows/readme.yml",
-          "sha256": "83da0c1351229d1b5eabea183315b8c0100c9bdecb3103cefaaffd33e2919fdb"
+          "sha256": "b0c72a2f36f79d9dc1cf469f920b07e3cab8d561ba80558084a24c284b8a9b5f"
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
@@ -167,19 +167,19 @@
         },
         {
           "path": "scripts/verify_accepted_update_path.py",
-          "sha256": "36641a0b674834df9d0e6bcfe64b77022e27bccd45e1b0d78c37a151cc46217e"
+          "sha256": "219b368c88811203a14060b72debfafa40675cd4546d55cdec9ef6e6920ce71b"
         },
         {
           "path": "scripts/test_accepted_update_path.py",
-          "sha256": "04ab7b52bdc7c11ea39e0fca1d91e56b83be3c2cb1d514df16da5ed0cba19f88"
+          "sha256": "cf61bfbabe9ba9af0b4bf273685036d8264413ad9ee3c51b835142515b37f3f0"
         },
         {
           "path": "scripts/verify_e32v2_release.py",
-          "sha256": "8e5fc1e3f40cf452f3cfbd9e149d8a890b732340417bd77c97f7c5e34a42e023"
+          "sha256": "7107075ae5184fc77f00f4d159f659c6ad0fbd0ebca1e0356a6e380036cf4425"
         },
         {
           "path": "AGENTS.md",
-          "sha256": "cbf195ae6ff572a5bd880a726513e8c51941fa7e7ebf7470c645963324e9dfe7"
+          "sha256": "1fa240253360d7e1daf4b6d058c7c9b288dfed72a19da1f42927a0a134ddba55"
         },
         {
           "path": "scripts/cleanup_release_artifacts.py",
@@ -336,6 +336,46 @@
         {
           "path": "docs/modern-thermostat/BETA20-PUBLICATION-EXCEPTION-20261030.json",
           "sha256": "d785e276e670c73269a160b7025933bdef83f6019028590b42e8b79cb5cf7ca7"
+        },
+        {
+          "path": "docs/RELEASING.md",
+          "sha256": "d3bce5616af15835ab89b3823352339957d2b3e38c24ab16e8abdf0ffc9a0e88"
+        },
+        {
+          "path": "scripts/ci_reuse.py",
+          "sha256": "7c892fe0ef8cc6e997dd19dc5e8cc2f4f26df361dc89de022c31abb657cd245e"
+        },
+        {
+          "path": "scripts/ci_step.py",
+          "sha256": "64d32b52ba0a7944939c0360d493d10a847b8154eca2b0eea56cced531bf0e73"
+        },
+        {
+          "path": "scripts/final_check.sh",
+          "sha256": "8c4aec6fc0858039e7af06f63cba321632a15c31965b77df47db5c71153617e8"
+        },
+        {
+          "path": "scripts/test_browser_suite.py",
+          "sha256": "bdbf21d88f7caf526a1673add323a5c32786ceeb19291d780bc778cfac364b0d"
+        },
+        {
+          "path": "scripts/test_ci_reuse.py",
+          "sha256": "08a29131694620e1dc4f56bcd64006b4c7d60ad4f3863d161349e32288c2e709"
+        },
+        {
+          "path": "test/browser-tests.txt",
+          "sha256": "c5a64a862ac9265f8edf12a3ac558ca43404edf35d70d0c80fd33c9a1bd1de10"
+        },
+        {
+          "path": "test/interop/prepare_runners.sh",
+          "sha256": "e1bddcbaf270e22fca61d088d622bd2aab080d0113fc6aaf87024d6b1b8cfa59"
+        },
+        {
+          "path": "test/native_harnesses.sh",
+          "sha256": "81dbe7314593518652e59f32ca9ef492ffd69f98556ba2a825309c4de48c62fc"
+        },
+        {
+          "path": "test/run-browser-tests.sh",
+          "sha256": "2c47d99196f4f7483e23d8dee90e8782908c9a23a4d7e12f86b7de4716bc246c"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -379,7 +419,7 @@
         },
         {
           "path": "test/web_auth/run.py",
-          "sha256": "09c100b8ee4faafe61fad9557252c3a12d83b8565c2d476c59dd191bbbd2827f"
+          "sha256": "fa6092d7e0343625f37f760089f1a1e150c0a481e85b1bfe2f6cc9013447d994"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/e32_access.py",
@@ -457,7 +497,7 @@
         },
         {
           "path": "test/manual_ota/run.py",
-          "sha256": "22e93a2421757268edeadbf630fa8585c53bd7e979a48c29626ff28758582abb"
+          "sha256": "6ea16e95d6241d7a1696ff06a9c6c03c005f5b4a86f23e1ae18efcce595e1979"
         },
         {
           "path": "src/update/VerifiedOta.h",
@@ -829,7 +869,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "86d0569c615f5ca40d2ee8dad67243e028a147eb53b7fb5ea0602c6a064761b9"
+          "sha256": "e8f51c4b57adc0fb1443f39331b26a9c6ee0d2702cdfe170371df78dc5da8815"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -1499,7 +1539,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "86d0569c615f5ca40d2ee8dad67243e028a147eb53b7fb5ea0602c6a064761b9"
+          "sha256": "e8f51c4b57adc0fb1443f39331b26a9c6ee0d2702cdfe170371df78dc5da8815"
         },
         {
           "path": "platformio.ini",
@@ -3553,7 +3593,7 @@
         },
         {
           "path": "test/boiler-trial-guidance-browser.cjs",
-          "sha256": "535ab0c00b5251b9bfa70b3cd328d4a9974d7ddcdbb3eda98b84e794fddbea02"
+          "sha256": "2bc112cd23ca836d15f1e65be3cd864b71f7dccd52ee974ce2974e3d5c279e45"
         },
         {
           "path": "test/boiler-trial-result.test.cjs",

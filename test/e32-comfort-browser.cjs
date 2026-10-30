@@ -20,7 +20,10 @@ function heating(){
  try{for(const lang of ['en','nl'])for(const width of [1280,360]){
   const page=await browser.newPage({viewport:{width,height:900}});let engine=heating();const posts=[],errors=[];let answer={status:200};
   page.on('pageerror',e=>errors.push(e.message));
-  const send=async locator=>{const n=posts.length;await locator.click();for(let i=0;i<100&&posts.length===n;i++)await page.waitForTimeout(20);assert.equal(posts.length,n+1);};
+  // A comfort POST ends with a dashboard refresh; wait until it has rendered, so a refresh that read
+  // the previous engine cannot land after the test injects the next state.
+  const settled=()=>page.waitForFunction(()=>statusPoll===null&&!document.querySelector('[data-comfort]:disabled'));
+  const send=async locator=>{const n=posts.length;await locator.click();for(let i=0;i<100&&posts.length===n;i++)await page.waitForTimeout(20);assert.equal(posts.length,n+1);await settled();};
   await page.route('http://opth.test/**',async route=>{
    const req=route.request(),pathname=new URL(req.url()).pathname;
    if(pathname==='/auth/session')return route.fulfill({json:{authenticated:true,csrf:'a'.repeat(64)}});
@@ -38,6 +41,8 @@ function heating(){
   await page.context().addCookies([{name:'ot_ui_lang',value:lang,url:'http://opth.test'}]);
   await page.goto('http://opth.test/');
   await page.waitForFunction(()=>document.querySelectorAll('.pd-room').length===3&&document.querySelector('.pd-away'),null,{timeout:15000});
+  // The test drives every later state itself: stop the 10 s poll so a timed refresh cannot interleave.
+  await page.evaluate(()=>clearInterval(intervalID));
   const rooms=page.locator('.pd-room');
   // The state is visible with its reason.
   assert.match(await rooms.nth(0).locator('.ot-chips').innerText(),lang==='en'?/21 °C until/:/21 °C tot/);

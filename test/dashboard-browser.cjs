@@ -19,7 +19,7 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
    for(let attempt=0;attempt<200&&!pendingStatus;attempt++)await page.waitForTimeout(10);
    assert.equal(typeof pendingStatus,'function','fixture status request did not arrive');
   };
-  const visibility=value=>page.evaluate(v=>{window.__dashboardVisibility=v;document.dispatchEvent(new Event('visibilitychange'));},value);
+  const visibility=(value,events=1)=>page.evaluate(([v,n])=>{window.__dashboardVisibility=v;for(let i=0;i<n;++i)document.dispatchEvent(new Event('visibilitychange'));},[value,events]);
   await page.route('http://opth.test/**',async route=>{
    const req=route.request(),p=new URL(req.url()).pathname;requests.push({path:p,method:req.method()});
    if(p==='/auth/session')return route.fulfill({contentType:'application/json',body:JSON.stringify({authenticated:true,csrf:'a'.repeat(64)})});
@@ -166,6 +166,11 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   assert.match(legacyClockText,/Wachten op de apparaattijd; verwarming is gepauzeerd/);
   // A hidden dashboard retires its pending GET. Resume does not wait on that
   // request's 15-second deadline or allow its response to overwrite current data.
+  // Pause page time (it flows naturally after clock.install): from here only runFor moves it, so a
+  // naturally elapsing poll tick cannot add a request between an action and its count assertion.
+  const pause=async()=>{for(;;){const at=await page.evaluate(()=>Date.now())+500;
+   try{await page.clock.pauseAt(at);return;}catch(e){if(!/past/.test(e.message))throw e;}}};
+  await pause();await page.waitForFunction(()=>statusPoll===null);
   holdStatus=true;pendingStatus=undefined;await page.evaluate(()=>showRooms());
   await page.waitForFunction(()=>statusPoll!==null);await awaitPendingStatus();
   const releaseHidden=pendingStatus,failedBefore=failed.length;
@@ -174,7 +179,9 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   const hiddenCount=requests.filter(r=>r.path==='/status').length;
   await page.clock.runFor(30000);assert.equal(requests.filter(r=>r.path==='/status').length,hiddenCount);
   holdStatus=false;status.control.state.zones[0].name='Resumed owner';
-  await visibility('visible');await visibility('visible');
+  // Two visible events in one task: the second must not start a second request. As two separate calls the
+  // first request could already have finished, and then a second request is correct.
+  await visibility('visible',2);
   await page.waitForFunction(()=>document.querySelector('.pd-room h3')?.textContent==='Resumed owner');
   assert.equal(requests.filter(r=>r.path==='/status').length,hiddenCount+1);
   releaseHidden();await page.waitForTimeout(50);
@@ -189,6 +196,8 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   assert.equal(requests.filter(r=>r.path==='/status').length,deadlineCount);
   assert.equal(await page.locator('#dashboard-poll-error').count(),1);
   await page.clock.runFor(5000);await page.waitForFunction(()=>!document.getElementById('dashboard-poll-error'));
+  // Loading another page needs its timers: let page time flow again.
+  await page.clock.resume();
   // Navigation retires root polling; visibility events cannot start it on About.
   holdStatus=true;pendingStatus=undefined;await page.evaluate(()=>showRooms());
   await awaitPendingStatus();

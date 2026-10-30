@@ -14,7 +14,7 @@ function snapshot(){
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
  try{for(const lang of ['en','nl']){
   const page=await browser.newPage({viewport:{width:390,height:900}}),errors=[],failed=[];
-  let data=snapshot(),statusReads=0,configReads=0,writes=0,scans=0,holdStatus=false,holdConfig=false,holdWrite=false,holdScan=false;
+  let data=snapshot(),statusReads=0,statusInFlight=0,configReads=0,writes=0,scans=0,holdStatus=false,holdConfig=false,holdWrite=false,holdScan=false;
   const statusGates=[],configGates=[],writeGates=[],scanGates=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('requestfailed',r=>failed.push({path:new URL(r.url()).pathname,method:r.method()}));
   await page.addInitScript(()=>{window.__bleVisibility='visible';Object.defineProperty(document,'visibilityState',{configurable:true,get:()=>window.__bleVisibility});});
@@ -26,7 +26,8 @@ function snapshot(){
    if(p==='/status')return json({controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}});
    if(p==='/config/boiler-display')return json({model:'none'});
    if(p==='/bluetooth/status'){
-    ++statusReads;const answer=structuredClone(data);if(holdStatus){holdStatus=false;await new Promise(resolve=>statusGates.push(resolve));}return json(answer);
+    ++statusReads;++statusInFlight;const answer=structuredClone(data);
+    try{if(holdStatus){holdStatus=false;await new Promise(resolve=>statusGates.push(resolve));}return await json(answer);}finally{--statusInFlight;}
    }
    if(p==='/config/bluetooth'&&req.method()==='GET'){
     ++configReads;const answer=structuredClone(data);if(holdConfig){holdConfig=false;await new Promise(resolve=>configGates.push(resolve));}return json(answer,{ETag:'"'+'b'.repeat(64)+'"'});
@@ -46,16 +47,24 @@ function snapshot(){
    return route.fulfill({body,contentType:/\.js(?:\.gz)?$/.test(p)?'application/javascript':/\.css(?:\.gz)?$/.test(p)?'text/css':'text/html'});
   });
   const until=async condition=>{for(let i=0;i<200&&!condition();++i)await page.waitForTimeout(10);assert(condition(),'finite HTTP fixture condition did not arrive');};
-  const visibility=value=>page.evaluate(v=>{window.__bleVisibility=v;document.dispatchEvent(new Event('visibilitychange'));},value);
+  const visibility=(value,events=1)=>page.evaluate(([v,n])=>{window.__bleVisibility=v;for(let i=0;i<n;++i)document.dispatchEvent(new Event('visibilitychange'));},[value,events]);
   await page.context().addCookies([{name:'ot_ui_lang',value:lang,url:'http://opth.test'}]);await page.clock.install();
   await page.goto('http://opth.test/');await page.evaluate(()=>loadNativePage('bluetooth'));await page.locator('#ble-save:enabled').waitFor();
+  // Pause page time (it flows naturally after clock.install): from here only runFor moves it, so a
+  // naturally elapsing poll tick cannot add a request between an action and its count assertion.
+  const pause=async()=>{for(;;){const at=await page.evaluate(()=>Date.now())+500;
+   try{await page.clock.pauseAt(at);return;}catch(e){if(!/past/.test(e.message))throw e;}}};
+  await pause();await until(()=>statusInFlight===0);
   const name=page.locator('[data-ble-field=name]'),key=page.locator('#ble-rows input[type=password]');
   await name.fill('Kept draft');await page.locator('[data-ble-field=key_action]').selectOption('set');await key.fill('1'.repeat(32));
   await page.locator('#ble-rows details summary').click();await key.focus();
   holdStatus=true;await page.clock.runFor(5000);await until(()=>statusGates.length===1);
   await visibility('hidden');await until(()=>failed.some(x=>x.path==='/bluetooth/status'));
   const hiddenReads=statusReads;await page.clock.runFor(20000);assert.equal(statusReads,hiddenReads);
-  data.devices[0].temperature=2400;data.nearby=['0123456789ab'];await visibility('visible');await visibility('visible');
+  data.devices[0].temperature=2400;data.nearby=['0123456789ab'];
+  // Two visible events in one task: the second must not start a second read. As two separate calls the
+  // first read could already have finished, and then a second read is correct.
+  await visibility('visible',2);
   await page.locator('[data-ble-address="0123456789ab"]').waitFor();
   assert.equal(statusReads,hiddenReads+1);statusGates.shift()();await page.waitForTimeout(50);
   assert.equal(await name.inputValue(),'Kept draft');assert.equal(await key.inputValue(),'1'.repeat(32));
@@ -83,6 +92,8 @@ function snapshot(){
   holdWrite=true;await page.locator('#ble-save').click();await until(()=>writeGates.length===1);
   const readsBeforeSave=statusReads;await page.clock.runFor(6000);assert.equal(statusReads,readsBeforeSave);
   await page.evaluate(()=>window.retiredBle=document.getElementById('bluetooth-page'));
+  // Loading another page needs its timers: let page time flow again.
+  await page.clock.resume();
   await visibility('hidden');await page.evaluate(()=>loadNativePage('about'));await page.locator('#about-heading').waitFor();
   assert.equal(await page.evaluate(()=>retiredBle.querySelector('input[type=password]').value),'');
   const retiredConfigReads=configReads;writeGates.shift()();await until(()=>data.devices[0].name==='Kept draft');await page.waitForTimeout(50);

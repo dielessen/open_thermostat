@@ -50,14 +50,15 @@ def _check_installation(hass, entry):
 
 
 def _resume_link(hass, entry, paused):
-    """Switch the link back on after a failed connection attempt that switched it off.
+    """Switch the link back on after a failed or cancelled attempt that switched it off.
 
-    Only while the entry is still exactly as this attempt left it (paused: its
-    private state then), so a change made meanwhile is never overwritten. The
-    entry's update listener restarts the link.
+    Only while the entry is still exactly as this attempt left it (paused: the
+    private states this attempt produced after switching it off), so a change
+    made meanwhile is never overwritten. The entry's update listener restarts
+    the link.
     """
-    if (paused is None or hass.config_entries.async_get_entry(entry.entry_id) is not entry
-            or native_entry_state(entry) != paused or entry.options.get(CONF_ENABLED, False)):
+    if (not paused or hass.config_entries.async_get_entry(entry.entry_id) is not entry
+            or native_entry_state(entry) not in paused or entry.options.get(CONF_ENABLED, False)):
         return
     try:
         commit_configuration(hass, entry, configuration_snapshot(entry),
@@ -91,6 +92,7 @@ async def async_connect_installation(hass, entry, address, password):
     source = None
     device_changed = False
     paused = None  # the entry's private state once this attempt switched the running link off
+    provisioning = False  # from here on the E32 may change (a lost answer, or a cancel)
     try:
         async with ControllerClient(address) as client:
             # A bad password or old firmware must not pause a working runtime.
@@ -114,6 +116,7 @@ async def async_connect_installation(hass, entry, address, password):
                 before_private = paused = native_entry_state(entry)
             plan = await async_prepare_controller_link(hass, entry, client)
             _private_guard(hass, entry, before_private)
+            provisioning = True
             await async_provision_controller(hass, entry, client, plan, password)
             device_changed = not plan.settings_unchanged or plan.needs_reboot
             _private_guard(hass, entry, plan.private_entry_state)
@@ -163,11 +166,13 @@ async def async_connect_installation(hass, entry, address, password):
                     # The saved owner is already disabled. Do not replace the
                     # original failure with a transport exception or its details.
                     _LOGGER.warning("E32 connection cleanup unconfirmed; saved connection disabled")
-        elif not (device_changed or getattr(error, "device_may_have_changed", False)):
+        elif not (device_changed or getattr(error, "device_may_have_changed",
+                                            provisioning and not isinstance(error, ControllerLinkError))):
             # Nothing reached the E32 and nothing was saved: the link that ran
-            # before this attempt runs again. After a possible E32 change the
-            # saved connection stays off (fail closed) until a new Connect E32.
-            _resume_link(hass, entry, paused)
+            # before this attempt runs again. After a possible E32 change (also a
+            # cancel while provisioning) the saved connection stays off (fail
+            # closed) until a new Connect E32.
+            _resume_link(hass, entry, {paused} if paused is not None else None)
         if isinstance(error, asyncio.CancelledError):
             raise
         if isinstance(error, ControllerProvisioningError):
@@ -212,7 +217,12 @@ async def async_link_room_plan(hass, entry, address, password, *, remove_legacy_
     # Where switching the link (back) on is right after a failure: the state this
     # attempt paused it in, or (an entry already linked to the room plan whose
     # link an older release left off) the state it started in.
-    paused = before_private if not entry.options.get(CONF_ENABLED, False) and _room_plan_linked(entry) else None
+    paused = {before_private} if not entry.options.get(CONF_ENABLED, False) and _room_plan_linked(entry) else set()
+
+    def own_change():
+        """Remember the entry state after one of this attempt's own changes (resume target)."""
+        if paused:
+            paused.add(native_entry_state(entry))
     try:
         async with ControllerClient(address) as client:
             await client.async_login(password)
@@ -243,20 +253,22 @@ async def async_link_room_plan(hass, entry, address, password, *, remove_legacy_
             if entry.options.get(CONF_ENABLED, False):
                 commit_configuration(hass, entry, configuration_snapshot(entry),
                     options={**entry.options, CONF_ENABLED: False})
-                before_private = paused = native_entry_state(entry)
+                before_private = native_entry_state(entry)
+                paused.add(before_private)
             plan = await async_prepare_room_plan_link(hass, entry, client)
             _private_guard(hass, entry, before_private)
             if migration is not None and legacy_zones(entry):
                 handover = migrate.capture_handover(hass, entry, migration)
                 changes, removed = without_legacy_rooms(entry)
                 commit_configuration(hass, entry, plan.before, **changes)
+                own_change()  # a cancel from here on still switches the link on again
                 remove_legacy_room_devices(hass, entry, removed)
                 await migrate.async_apply_handover(hass, entry, handover)
+                own_change()
                 migrate.note_rooms_without_source(hass, entry, migration)
                 plan = await async_prepare_room_plan_link(hass, entry, client)
                 before_private = plan.private_entry_state
-                if paused is not None:
-                    paused = before_private
+                own_change()
             await async_provision_room_plan(hass, entry, client, plan, password)
             device_changed = not plan.settings_unchanged or plan.needs_reboot
             _private_guard(hass, entry, plan.private_entry_state)

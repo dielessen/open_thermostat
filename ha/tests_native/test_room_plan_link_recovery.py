@@ -265,3 +265,80 @@ async def test_e32_telemetry_forwarding_and_boiler_values_work_with_the_link_off
         or any(topic == "fixture/v1/ha/heating_input" for topic, _ in published)
     flow = ids["fixture_boiler_fields_v1_measured_flow_temperature"]
     assert flow.available and flow.native_value == 45
+
+
+# --- Cancellation (the progress dialog closed) at every point ------------------------
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("where", ["migration", "handover", "prepare", "provision", "wait"])
+async def test_a_cancelled_room_removal_never_leaves_the_link_off(hass, linked, badkamer, monkeypatch, where):
+    from custom_components.open_thermostat import legacy_room_migration as migrate
+    parent, sub, source, *_ = await owner_setup(hass)
+    linked["e32"] = PlanE32(source=local_device_descriptor(source), modern=True, adapter="ha1")
+
+    async def cancel(*args, **kwargs):
+        raise asyncio.CancelledError
+    if where == "migration":
+        monkeypatch.setattr(migrate, "async_write_migration", cancel)
+    elif where == "handover":
+        monkeypatch.setattr(migrate, "async_apply_handover", cancel)
+    elif where == "prepare":
+        monkeypatch.setattr(setup, "async_prepare_room_plan_link", cancel)
+    elif where == "provision":
+        monkeypatch.setattr(setup, "async_provision_room_plan", cancel)
+    else:
+        monkeypatch.setattr(setup, "async_wait_room_plan_link", cancel)
+    with pytest.raises(asyncio.CancelledError):
+        await setup.async_link_room_plan(hass, parent, "http://192.168.1.206", "e32-password",
+                                         remove_legacy_rooms=True)
+    assert parent.options["shadow_enabled"] is True, where
+
+
+@pytest.mark.asyncio
+async def test_a_cancelled_native_connect_fails_closed_once_the_e32_may_change(hass, linked, badkamer, monkeypatch):
+    parent, sub, source, *_ = await owner_setup(hass)
+    linked["e32"] = PlanE32(source=local_device_descriptor(source), modern=True, adapter="ha1")
+
+    async def cancel(*args, **kwargs):
+        raise asyncio.CancelledError
+    # Cancelled during the reads: nothing reached the E32, the previous link runs again.
+    monkeypatch.setattr(setup, "async_prepare_controller_link", cancel)
+    with pytest.raises(asyncio.CancelledError):
+        await setup.async_connect_installation(hass, parent, "http://192.168.1.206", "e32-password")
+    assert parent.options["shadow_enabled"] is True
+    # Cancelled while provisioning: the E32 may have changed, so the link stays off.
+    plan = SimpleNamespace(private_entry_state=None, settings_unchanged=True, needs_reboot=False)
+    monkeypatch.setattr(setup, "async_prepare_controller_link", AsyncMock(return_value=plan))
+    monkeypatch.setattr(setup, "async_provision_controller", cancel)
+    with pytest.raises(asyncio.CancelledError):
+        await setup.async_connect_installation(hass, parent, "http://192.168.1.206", "e32-password")
+    assert parent.options["shadow_enabled"] is False
+
+
+@pytest.mark.asyncio
+async def test_an_unusable_saved_native_profile_starts_without_it_and_offers_the_fix(hass, linked, badkamer,
+                                                                                     monkeypatch):
+    import custom_components.open_thermostat as integration
+    from homeassistant.exceptions import ConfigEntryError
+    from homeassistant.helpers import issue_registry as ir
+    parent, sub, source, *_ = await owner_setup(hass)
+
+    def unusable(entry):
+        raise ConfigEntryError("native_plan_profile_unsupported")
+    monkeypatch.setattr(integration, "_selected_native_plan_source", unusable)
+    monkeypatch.setattr(mqtt, "async_wait_for_mqtt_client", AsyncMock(return_value=True))
+    monkeypatch.setattr(mqtt, "async_subscribe", AsyncMock(return_value=lambda: None))
+    publish = AsyncMock()
+    monkeypatch.setattr(mqtt, "async_publish", publish)
+    monkeypatch.setattr(hass.config_entries, "async_forward_entry_setups", AsyncMock())
+    monkeypatch.setattr(hass.config_entries, "async_unload_platforms", AsyncMock(return_value=True))
+    try:
+        assert await integration.async_setup_entry(hass, parent)
+        state = hass.data[DOMAIN][parent.entry_id]
+        assert not state["v1_runtime"].enabled and "v1_connection" not in state
+        publish.assert_not_called()
+        assert ir.async_get(hass).async_get_issue(DOMAIN, e32_link.issue_id(parent)) is not None
+    finally:
+        if parent.entry_id in hass.data.get(DOMAIN, {}):
+            assert await integration.async_unload_entry(hass, parent)
+        await parent._async_process_on_unload(hass)

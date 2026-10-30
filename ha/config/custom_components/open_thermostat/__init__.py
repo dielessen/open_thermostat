@@ -349,11 +349,26 @@ async def async_setup_entry(hass, entry):
     from .v1_model import has_graph_rooms, CONF_ENABLED
     graph_profile=_selected_graph_data_profile(entry)
     graph_control_source=_selected_graph_controller_source(entry)
-    native_plan_source=_selected_native_plan_source(entry)
+    from homeassistant.exceptions import ConfigEntryError
+    try:
+        native_plan_source=_selected_native_plan_source(entry)
+        unusable_source=False
+    except ConfigEntryError:
+        # A saved native room profile this release cannot use (a product entry
+        # linked by Connect E32): start without it, like a stale one below, and
+        # let Repairs finish the E32 link without it, instead of a dead entry.
+        from .native_provisioning import SOURCE_OPTION
+        from .room_plan import has_room_plan
+        if not (has_room_plan(entry) and SOURCE_OPTION in entry.options):
+            raise
+        _LOGGER.warning("OpenThermostat %s: the saved native room profile cannot be used; starting without "
+                        "it (Repairs: finish the E32 link)", entry.title)
+        native_plan_source=None
+        unusable_source=True
     from .e32_link import stale_native_source
     # An older HA room deleted after Connect E32: start without that native room
     # profile (and without its link) instead of failing; Repairs offers the fix.
-    stale_link=stale_native_source(entry,native_plan_source)
+    stale_link=unusable_source or stale_native_source(entry,native_plan_source)
     if stale_link:
         native_plan_source=None
     if native_plan_source is not None and (graph_profile is not None or graph_control_source is not None):

@@ -1,3 +1,41 @@
+# HA 0.4.0b13 — window contacts per room and a cleaner dashboard
+<!-- user-release-notes:v2:en -->
+
+Companion release for E32 beta21. Needs Home Assistant 2026.10.0 or newer.
+
+## New
+
+- Window and door contacts in each room's settings: pick the contacts of
+  that room; an open window pauses its heating and the room shows it.
+- A redesigned dashboard: the Boiler view is grouped (heating, hot water,
+  status, settings, thermostat on the bus), and values show only while they
+  have one. The Diagnostics view hides empty counters and explains why.
+- Readable values: On/Off instead of 1/0, the meaning of boiler codes (for
+  example "Eco" or "Three-way valve") instead of numbers, memory in kB and
+  uptime as a duration. Entity IDs, history and statistics stay the same.
+
+## Fixed
+
+- The week planner opens from the plan Home Assistant already has, without
+  signing in to the E32 each time; Reload still reads the E32.
+- The long name "E32-regelaar — ketel en diagnose", left over from an early
+  test setup, is cleared once; names you set yourself are kept.
+- Plainer connection error texts, and the Repairs week-program item only
+  shows for rooms without a week program.
+- About a third less steady MQTT traffic with E32 beta21; 0.4.0b13 also works
+  with E32 beta20.
+
+## Updating
+
+Install 0.4.0b13, restart Home Assistant, then update the E32 to beta21 with
+the Firmware entity. 0.4.0b13 also works with E32 beta20.
+
+## Limitations
+
+Shadow mode only: Home Assistant sets the rooms' setting devices, the E32
+sends nothing to the boiler. EMS Classic boilers only; EMS+ comes later.
+No HACS listing yet: install from the release ZIP.
+
 # HA 0.4.0b12 — a stability release: boiler values back, no dead integration, a working week planner
 <!-- user-release-notes:v2:en -->
 

@@ -1,7 +1,7 @@
 /* Dashboard card: the visual week planner for the rooms of the E32 room plan.
    HA authenticates (admin websocket open_thermostat/e32_week/*); the E32 stores and runs the program.
    The planner itself is week-editor.js, the same file the E32 rooms page uses. */
-const EDITOR = '/open_thermostat/week-editor-0.4.0b12.js';
+const EDITOR = '/open_thermostat/week-editor-0.4.0b13.js';
 const TEXT = {
  en: {title: 'Week program', loading: 'Loading…', reading: 'Reading the week programs from the E32…', intro: 'The E32 follows this program on its own, also when Home Assistant is offline.',
   follows: 'This room follows {entity} while Home Assistant gives a target temperature; the week program applies when it gives none.',

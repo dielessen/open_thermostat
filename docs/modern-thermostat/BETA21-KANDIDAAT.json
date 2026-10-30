@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "date": "2026-10-30",
+  "planned_tag": "v0.1.0-e32v2-beta.21",
+  "previous_published_tag": "v0.1.0-e32v2-beta.20",
+  "state": "FROZEN_SHADOW_AWAITING_EXACT_TAG_CI",
+  "formal_freeze": true,
+  "published": false,
+  "installed": false,
+  "ha_tag": "ha-v0.4.0b13",
+  "ha_installed": false,
+  "install_together": true,
+  "install_order": [
+    "ha-v0.4.0b13 (integration package, HA restart)",
+    "v0.1.0-e32v2-beta.21 (Home Assistant Firmware update entity, one Install press)"
+  ],
+  "observed_installed_e32": "v0.1.0-e32v2-beta.20",
+  "observed_installed_ha": "0.4.0b12",
+  "owner_instruction": "docs/modern-thermostat/BETA21-OWNER-INSTRUCTION-20261030.json",
+  "publication_exception": null,
+  "last_accepted_native_e32": "v0.1.0-e32v2-beta.4",
+  "predecessor_acceptance": {
+    "tag": "v0.1.0-e32v2-beta.20",
+    "receipt": "docs/modern-thermostat/update-acceptance/e32-beta20-20261030.json",
+    "status": "PASS",
+    "receipt_sha256": "7df26ae3525bf863268eb291daf96359a496318f7cff09d3e72e970e7e19a2be"
+  },
+  "planned_acceptance": {
+    "method": "home_assistant",
+    "checklist": "docs/modern-thermostat/HA-UPDATE-ACCEPTANCE-BETA19.md",
+    "receipt": "docs/modern-thermostat/update-acceptance/e32-beta21-<YYYYMMDD>.json"
+  },
+  "changes": [
+    "Window and door contacts per room in the HA room settings; an open window pauses the room",
+    "Flow temperature limits on the Boiler page",
+    "Diagnostics console on the System log page (read-only commands, 512-line log history in PSRAM, end idle sessions, restart) and documented syslog",
+    "Switch-over readiness behind the closed gate: guards audited, heat request withdrawn before a planned restart, shadow exit analysis tool, updated attended checklist",
+    "Compact session messages (session.compact.v1): about a third less steady MQTT traffic, negotiated with older versions",
+    "HA 0.4.0b13: dashboard redesign, readable values (On/Off, boiler codes, kB, durations), week card opens from the stored plan, leftover long hub name cleared",
+    "Password card in Settings, Bluetooth pairing hint, plainer connection errors, Repairs week-program item only without a program",
+    "CI: tag runs reuse the green branch run of the same commit, sharded browser suite, early harness build, a branch build of the accepted version is valid; four browser-test races fixed"
+  ],
+  "not_included": [
+    "opening active control (board::emsActiveHeatAllowed stays false; the attended switch-over is a separate step)",
+    "a HACS repository for the integration",
+    "editing the bodies of earlier published releases (beyond the automatic organize_releases archive labels)"
+  ],
+  "software_validation": {
+    "physical_test_performed": false
+  },
+  "physical_outputs_automatically_enabled": false,
+  "persistent_boiler_setting_writes_enabled": false,
+  "full_ten_minute_physical_success_claimed": false,
+  "native_https_root_cause_fixed": false
+}

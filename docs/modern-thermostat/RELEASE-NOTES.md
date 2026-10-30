@@ -1,3 +1,54 @@
+# E32 V2 beta21 — window contacts per room, a diagnostics console and a quieter link
+<!-- user-release-notes:v2:en -->
+
+Builds on beta20, the first update that passed every acceptance check on the
+Home Assistant route. The E32 still runs heating in shadow mode. Install it
+together with HA 0.4.0b13 (see Updating).
+
+## New
+
+- Window and door contacts per room: choose them in the room's settings in
+  Home Assistant. An open window pauses that room's heating, and the E32 room
+  card says so.
+- The flow temperature limits moved to the Boiler page, next to the boiler's
+  own limit.
+- Diagnostics console on the System log page, behind the E32 sign-in: fixed
+  read-only commands (status, memory, tasks, storage, MQTT, web sessions,
+  Bluetooth, rooms, boiler profile, last restarts, log) and a log history of
+  512 lines. Two actions, each asked first: end idle web sessions and
+  restart. Never during a boiler test, a settings write or an update.
+- The user guide explains the optional syslog (off by default), so the log
+  survives a restart.
+- Prepared for the switch-over to active control: the safety guards (another
+  thermostat on the bus, lost measurements, frost protection, the flow limit,
+  hand-back to the old thermostat, and withdrawing the heat request before a
+  planned restart) are built and tested, but active control stays locked in
+  this release. It opens only in a later step that you confirm.
+
+## Fixed
+
+- About a third less steady MQTT traffic between the E32 and Home Assistant
+  0.4.0b13: routine session messages are sent in a compact form. Older
+  versions on either side keep the full form.
+- The password card moved from About to Settings, and the Bluetooth page
+  explains how to pair a sensor.
+- Browser tests that could fail on a busy test machine are fixed, so releases
+  no longer stall on a false alarm.
+
+## Updating
+
+Update the integration to HA 0.4.0b13 first, restart Home Assistant, then
+press Install once on the E32's Firmware entity. Settings, rooms, week
+programs and Bluetooth sensors are kept. The E32 confirms the new firmware
+after about a minute of normal running; until then a failed start rolls back.
+A new install guide for first-time installers is in docs/INSTALL.md.
+
+## Limitations
+
+Shadow mode only: active boiler control stays locked in the firmware until
+the attended switch-over. EMS Classic (EMS 1.0) boilers only; EMS+ comes
+later. Charts are lost on a restart.
+
 # E32 V2 beta20 — a stability release: no stuck Home Assistant link, fewer restarts
 <!-- user-release-notes:v2:en -->
 

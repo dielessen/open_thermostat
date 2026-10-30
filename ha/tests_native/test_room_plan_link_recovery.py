@@ -477,8 +477,15 @@ async def test_the_link_wait_follows_a_connection_its_own_reloads_replace(hass, 
     parent = product(hass)
     first, second = object(), object()
     current = [first]
-    monkeypatch.setattr(controller_connection, "async_wait_controller_connection",
-                        AsyncMock(side_effect=[first, second]))
+    waits = []
+
+    async def wait_connection(h, e, source, expected, *, private_expected=None, previous_connection=None):
+        # Like the real wait: until the entry runs a connection other than the previous one.
+        waits.append(previous_connection)
+        while current[0] is None or current[0] is previous_connection:
+            await asyncio.sleep(0.001)
+        return current[0]
+    monkeypatch.setattr(controller_connection, "async_wait_controller_connection", wait_connection)
     monkeypatch.setattr(controller_connection, "_connection", lambda h, e, s: current[0])
     monkeypatch.setattr(controller_connection, "_guard", lambda *args: None)
     monkeypatch.setattr(controller_connection, "TELEMETRY_POLL", 0.001)
@@ -496,3 +503,4 @@ async def test_the_link_wait_follows_a_connection_its_own_reloads_replace(hass, 
     result = await controller_connection.async_wait_room_plan_link(hass, parent, None)
     await task
     assert result["heating_report_received"] is True
+    assert waits == [None, first]  # the first connection, then the one after the reload

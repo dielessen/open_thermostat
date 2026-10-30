@@ -848,7 +848,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             return Promise.all([loadHistoryChart(), fetch(hostName + '/status/history', {signal: signal, cache: 'no-store'}).then(res => res.ok ? res.json() : null)])
                 .then(([, doc]) => { if (doc) dashboardHistory = OpenThermostatHistory.parse(doc, Date.now()); }).catch(() => {}).then(() => out);
         }
-        var otDefaultPassword = false; // from /auth/session; the About page clears it after a change
+        var otDefaultPassword = false; // from /auth/session; the Settings page clears it after a change
         function dashboardText(value) {
             return String(value == null ? '' : value).replace(/[&<>"']/g, function(c) {
                 return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
@@ -1065,7 +1065,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
         function dashboardPasswordNotice() {
             return otDefaultPassword !== true ? '' : '<div class="alert alert-warning ot-actions" data-dashboard-key="default-password" role="status"><span>'+
                 uiText("This E32 still uses the default password. Choose your own so nobody else on your network can change your heating.")+'</span> '+
-                '<a class="btn btn-outline-primary" href="#about" data-page="about">'+uiText("Change password")+'</a></div>';
+                '<a class="btn btn-outline-primary" href="#password" data-page="password">'+uiText("Change password")+'</a></div>';
         }
         function dashboardUpdateNotice(update) {
             if (!update || update.known !== true || update.available !== true ||

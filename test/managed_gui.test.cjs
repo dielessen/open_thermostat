@@ -4,7 +4,7 @@ const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 function page(){
  const loads=[],scripts=[],calls=[],alerts=[],values={},checks={},readyCallbacks=[];
  const weatherInputs=[{disabled:false},{disabled:false}];
- const main={innerHTML:'',textContent:''},weather={hidden:true,style:{},querySelectorAll:()=>weatherInputs},note={hidden:false};
+ const main={innerHTML:'',textContent:'',addEventListener(){}},weather={hidden:true,style:{},querySelectorAll:()=>weatherInputs},note={hidden:false};
  const menus=Array.from({length:4},()=>({hidden:true}));
  const document={
   querySelectorAll:()=>menus,

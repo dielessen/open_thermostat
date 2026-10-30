@@ -36,9 +36,10 @@ def test_the_room_editor_says_who_does_what_in_plain_words():
     nl = json.loads((COMPONENT / "translations/nl.json").read_text(encoding="utf-8"))["options"]["step"]
     room = en["e32_room"]["data_description"]
     assert room["fallback_temperature"] == ("The temperature the E32 keeps when Home Assistant gives no target "
-                                            "and there is no week program.")
+                                            "and the room has no week program, or its clock is not set yet.")
     assert nl["e32_room"]["data_description"]["fallback_temperature"] == (
-        "De temperatuur die de E32 aanhoudt als Home Assistant geen doel doorgeeft en er geen weekprogramma is.")
+        "De temperatuur die de E32 aanhoudt als Home Assistant geen doel doorgeeft en de ruimte geen weekprogramma "
+        "heeft, of zijn klok nog niet is gezet.")
     assert room["ble_sources"] == "Sensors paired on the E32 itself; they keep working without Home Assistant."
     assert "without Home Assistant" in en["e32_room"]["description"]
     assert "zonder Home Assistant" in nl["e32_room"]["description"]

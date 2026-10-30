@@ -409,7 +409,7 @@ void setup() {
 		// Never print a changed password: only the factory default is shown.
 		Serial.printf("Local setup WiFi password: %s\nWeb sign-in: user admin, password %s\nType setup + Enter over USB to reboot into WiFi-only setup for 15 minutes; password-reset + Enter restores the web password admin.\n",
 			heating::deviceAccess.setupPassword().c_str(),
-			heating::deviceAccess.defaultPassword()?"admin (factory default; change it under System)":
+			heating::deviceAccess.defaultPassword()?"admin (factory default; change it on the Settings page)":
 			heating::deviceAccess.passwordState()==heating::DeviceAccess::PasswordState::stored?"(changed by the owner)":"(stored password unreadable; use password-reset)");
 	}
 #endif

@@ -119,12 +119,12 @@ async def test_heartbeat_keeps_the_diagnostics_for_three_missed_heartbeats(hass,
     assert all(not e.available for e in added)              # retained: no proof of life
     beat(SimpleNamespace(payload=json.dumps(BEAT), retain=False))
     by_id = {e.unique_id: e for e in added}
-    assert by_id['fixture_hub_memory_max_alloc'].native_value == 81000
+    assert by_id['fixture_hub_memory_max_alloc'].native_value == 81.0   # kB since HA 0.4.0b13
     assert by_id['fixture_hub_cpu_temperature'].native_value == 48.5
     assert all(e.available for e in added)
     clock[0] += 10
     status(SimpleNamespace(payload=json.dumps({**PACKET, 'mem_free': 94000}), retain=False))
-    assert by_id['fixture_hub_memory_free'].native_value == 94000   # the newest packet wins
+    assert by_id['fixture_hub_memory_free'].native_value == 94.0   # the newest packet wins (kB)
     clock[0] += 150                                          # 160 s: past device_status' 45 s, within the heartbeat's
     listeners[0]()
     assert all(e.available for e in added)

@@ -75,14 +75,19 @@ async def async_room_plan_firmware_problem(hass, entry):
         return None
     from . import controller_setup_flow as setup
     try:
-        async with setup.ControllerClient(entry.data[setup.CONTROLLER_ADDRESS]) as client:
-            await client.async_login(entry.data[setup.CONTROLLER_PASSWORD])
-            await async_check_room_plan_firmware(hass, entry, client)
+        # A short look only: an unreachable E32 never holds the form up.
+        async with asyncio.timeout(PRECHECK_SECONDS):
+            async with setup.ControllerClient(entry.data[setup.CONTROLLER_ADDRESS]) as client:
+                await client.async_login(entry.data[setup.CONTROLLER_PASSWORD])
+                await async_check_room_plan_firmware(hass, entry, client)
     except ControllerLinkError as err:
         return str(err) if str(err) == "controller_room_plan_update_required" else None
-    except KeyError:
+    except (KeyError, TimeoutError):
         return None
     return None
+
+
+PRECHECK_SECONDS = 3
 
 
 def legacy_zones(entry):

@@ -395,3 +395,75 @@ async def test_unload_callbacks_return_nothing(hass, monkeypatch):
     for callback in added:
         assert callback() is None
     assert SOURCE_KEY not in state
+
+
+# --- Review follow-ups ------------------------------------------------------------------
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("route", ["room_plan", "native"])
+async def test_a_cancel_while_the_link_stops_never_leaves_it_stopped_but_on(hass, linked, badkamer, route):
+    """The saved switch goes off before the running link stops, so the resume always sees it."""
+    if route == "room_plan":
+        parent = product(hass)
+        hass.config_entries.async_update_entry(parent, options={**parent.options, "shadow_enabled": True})
+        linked["e32"] = PlanE32()
+    else:
+        parent, sub, source, *_ = await owner_setup(hass)
+        linked["e32"] = PlanE32(source=local_device_descriptor(source), modern=True, adapter="ha1")
+    stopped = []
+
+    async def stop():
+        stopped.append(parent.options["shadow_enabled"])
+        raise asyncio.CancelledError
+    runtime = SimpleNamespace(enabled=True, async_stop=stop, native_plan_source=None)
+    hass.data.setdefault(DOMAIN, {})[parent.entry_id] = {"v1_runtime": runtime}
+    with pytest.raises(asyncio.CancelledError):
+        await setup.async_connect_installation(hass, parent, "http://192.168.1.206", "e32-password")
+    assert stopped == [False]  # the switch was already off when the link stopped
+    assert parent.options["shadow_enabled"] is True  # and the cancel switched it on again (a reload restarts it)
+
+
+def test_a_user_cannot_switch_the_link_off_for_a_linked_product_entry():
+    """Why a room-plan entry found "off" may be switched on again by Connect E32 (_room_plan_linked)."""
+    import re
+    from test_polish_translation import COMPONENT
+    writers = {}
+    for path in COMPONENT.glob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        if re.search(r"CONF_ENABLED\s*:\s*(False|mode ==)", text):
+            writers[path.name] = text
+    # Only Connect E32 itself, the non-product options form and the native-profile edits
+    # (which always save a native profile, so the entry is not a room-plan link) set it.
+    assert set(writers) == {"controller_setup_flow.py", "v1_config_flow.py", "installation_edit.py",
+                            "room_profile_apply.py"}, sorted(writers)
+    for name in ("installation_edit.py", "room_profile_apply.py"):
+        assert "SOURCE_OPTION" in writers[name]
+    from custom_components.open_thermostat.config_flow import OpenThermostatConfigFlow
+    from custom_components.open_thermostat.product_flow import ProductOptionsFlow
+    from custom_components.open_thermostat.product import PRODUCT_CONFIG
+    entry = SimpleNamespace(data={PRODUCT_CONFIG: 1}, options={})
+    assert isinstance(OpenThermostatConfigFlow.async_get_options_flow(entry), ProductOptionsFlow)
+
+
+@pytest.mark.asyncio
+async def test_the_repairs_precheck_never_holds_the_form_up(hass, monkeypatch):
+    import time
+    parent = product(hass)
+    hass.config_entries.async_update_entry(parent, data={**parent.data, setup.CONTROLLER_ADDRESS: "http://e32.local",
+                                                         setup.CONTROLLER_PASSWORD: "e32-password"})
+
+    class Hanging:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def async_login(self, password):
+            await asyncio.sleep(60)
+    monkeypatch.setattr(setup, "ControllerClient", lambda address: Hanging())
+    monkeypatch.setattr(e32_link, "PRECHECK_SECONDS", 0.05)
+    started = time.monotonic()
+    assert await e32_link.async_room_plan_firmware_problem(hass, parent) is None
+    assert time.monotonic() - started < 2
+    assert e32_link.PRECHECK_SECONDS == 0.05

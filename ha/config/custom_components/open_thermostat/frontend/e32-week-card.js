@@ -20,7 +20,11 @@ const TEXT = {
    rejected: 'The E32 refused the program. Reload and try again.', editor: 'The week planner could not be loaded. Reload the page (Ctrl+F5) after updating OpenThermostat.',
    not_ready: 'OpenThermostat is still starting or the E32 is not connected yet. This card tries again by itself.',
    disabled: 'This OpenThermostat installation is turned off. Turn it on under Settings → Devices & services → OpenThermostat.',
-   unknown_command: 'This page does not match the installed OpenThermostat. Reload the page (Ctrl+F5) after updating OpenThermostat; if that does not help, restart Home Assistant.'}},
+   unknown_command: 'This page does not match the installed OpenThermostat. Reload the page (Ctrl+F5) after updating OpenThermostat; if that does not help, restart Home Assistant.',
+   session_capacity: 'The E32 has too many open sign-ins (for example its own web page in other browsers). This card tries again shortly.',
+   try_again_later: 'Too many sign-in attempts on the E32. This card tries again shortly.',
+   setup_error: 'OpenThermostat could not start. Open Settings → Devices & services → OpenThermostat to see why, then reload this page.',
+   gave_up: 'The E32 has not answered for several minutes. Check that it is on and connected, then press Reload.'}},
  nl: {title: 'Weekprogramma', loading: 'Laden…', intro: 'De E32 volgt dit programma zelf, ook als Home Assistant offline is.',
   follows: 'Deze ruimte volgt {entity} zolang Home Assistant een gewenste temperatuur geeft; het weekprogramma geldt als die er niet is.',
   save: 'Opslaan op E32', saving: 'Opslaan…', discard: 'Wijzigingen weggooien', remove: 'Weekprogramma verwijderen', reload: 'Opnieuw laden', unsaved: 'Niet opgeslagen wijzigingen',
@@ -38,7 +42,11 @@ const TEXT = {
    rejected: 'De E32 weigerde het programma. Laad opnieuw en probeer het nog eens.', editor: 'De weekplanner kon niet worden geladen. Laad de pagina opnieuw (Ctrl+F5) na het bijwerken van OpenThermostat.',
    not_ready: 'OpenThermostat start nog of de E32 is nog niet verbonden. Deze kaart probeert het vanzelf opnieuw.',
    disabled: 'Deze OpenThermostat-installatie staat uit. Zet hem aan via Instellingen → Apparaten en diensten → OpenThermostat.',
-   unknown_command: 'Deze pagina past niet bij de geïnstalleerde OpenThermostat. Laad de pagina opnieuw (Ctrl+F5) na het bijwerken van OpenThermostat; helpt dat niet, herstart dan Home Assistant.'}}};
+   unknown_command: 'Deze pagina past niet bij de geïnstalleerde OpenThermostat. Laad de pagina opnieuw (Ctrl+F5) na het bijwerken van OpenThermostat; helpt dat niet, herstart dan Home Assistant.',
+   session_capacity: 'De E32 heeft te veel open aanmeldingen (bijvoorbeeld zijn eigen webpagina in andere browsers). Deze kaart probeert het zo opnieuw.',
+   try_again_later: 'Te veel aanmeldpogingen op de E32. Deze kaart probeert het zo opnieuw.',
+   setup_error: 'OpenThermostat kon niet starten. Open Instellingen → Apparaten en diensten → OpenThermostat om te zien waarom en laad daarna deze pagina opnieuw.',
+   gave_up: 'De E32 antwoordt al enkele minuten niet. Controleer of hij aan staat en verbonden is en kies dan Opnieuw laden.'}}};
 const STYLE = `:host{display:block}ha-card{display:block;padding:16px;max-width:1100px;margin:auto;color:var(--primary-text-color)}h2{margin:0 0 4px;font-size:1.3rem}
 p{margin:0 0 12px;line-height:1.45}.muted{color:var(--secondary-text-color);font-size:.9rem}.tabs,.actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 button{font:inherit;font-weight:600;color:inherit;background:transparent;border:1px solid var(--divider-color,#ccd);border-radius:10px;min-height:44px;min-width:44px;padding:6px 14px;cursor:pointer}
@@ -56,7 +64,9 @@ const degrees = (hass, centi) => (fahrenheit(hass) ? Math.round(centi * 9 / 50 +
  .toLocaleString(hass?.locale?.language || 'en') + (fahrenheit(hass) ? ' °F' : ' °C');
 let editorReady = null;
 // Codes after which the card tries again by itself (HA still starting, E32 not reachable yet).
-const RETRY = new Set(['not_ready', 'unreachable']), RETRY_MS = 15000;
+const RETRY = new Set(['not_ready', 'unreachable', 'session_capacity', 'try_again_later']), RETRY_MS = 15000;
+// After this long without an answer the card stops trying by itself and says so (Reload tries again).
+const GIVE_UP_MS = 5 * 60000;
 // This module's own path: compared with the module the backend serves (a page left open over an update).
 const SELF = (() => { try { return new URL(import.meta.url).pathname; } catch (e) { return ''; } })();
 
@@ -65,7 +75,7 @@ class OpenThermostatE32Week extends HTMLElement {
   super();
   this.attachShadow({mode: 'open'});
   this._rooms = null; this._room = null; this._drafts = {}; this._message = ''; this._error = false; this._busy = false;
-  this._waiting = false; this._outdated = false; this._retry = null;
+  this._waiting = false; this._outdated = false; this._retry = null; this._waitSince = null;
  }
  setConfig(config) {
   if (!config || typeof config.entry_id !== 'string' || !config.entry_id)
@@ -98,14 +108,18 @@ class OpenThermostatE32Week extends HTMLElement {
    editorReady = editorReady || import(EDITOR).then(() => { if (!window.OTWeekEditor) throw {code: 'editor'}; }).catch(e => { editorReady = null; throw e?.code ? e : {code: 'editor'}; });
    const [result] = await Promise.all([this._hass.callWS({type: 'open_thermostat/e32_week/get', entry_id: this._config.entry_id}), editorReady]);
    if (!result || !Array.isArray(result.rooms)) throw {code: 'unknown_command'};
-   this._rooms = result.rooms; this._drafts = {}; this._waiting = false;
+   this._rooms = result.rooms; this._drafts = {}; this._waiting = false; this._waitSince = null;
    this._outdated = typeof result.card_url === 'string' && !!SELF && result.card_url !== SELF;
    if (!this._rooms.some(r => r.id === this._room)) this._room = this._rooms[0]?.id ?? null;
   } catch (err) {
    // Still starting or not reachable: say so and try again by itself (never a dead end).
    const code = this._fail(err);
    this._waiting = RETRY.has(code) && !this._rooms;
-   if (RETRY.has(code) && this.isConnected) this._retry = setTimeout(() => this.load(), RETRY_MS);
+   if (RETRY.has(code)) {
+    this._waitSince = this._waitSince ?? Date.now();
+    if (Date.now() - this._waitSince >= GIVE_UP_MS) { this._waiting = false; this._message = this.t.errors.gave_up; }
+    else if (this.isConnected) this._retry = setTimeout(() => this.load(), RETRY_MS);
+   } else this._waitSince = null;
   }
   this._busy = false; this.render();
  }
@@ -152,7 +166,7 @@ class OpenThermostatE32Week extends HTMLElement {
   if (!this._rooms) {
    const status = this._waiting ? (this._busy ? t.retrying : t.waiting) : this._busy ? t.loading : '';
    card.append(el('p', status, {class: this._waiting ? 'waiting' : 'muted'}), msg);
-   if (!this._busy) { const again = el('button', t.reload, {type: 'button'}); again.onclick = () => this.load(); card.append(again); }
+   if (!this._busy) { const again = el('button', t.reload, {type: 'button'}); again.onclick = () => { this._waitSince = null; this.load(); }; card.append(again); }
    return this.refresh();
   }
   if (!this._rooms.length) { card.append(el('p', t.none, {class: 'muted'})); return; }
@@ -180,7 +194,7 @@ class OpenThermostatE32Week extends HTMLElement {
   save.onclick = () => this.save();
   discard.onclick = () => { delete this._drafts[r.id]; this._message = ''; this.render(); };
   remove.onclick = () => { this._drafts[r.id] = Array.from({length: 7}, () => []); this._message = ''; this.render(); };
-  reload.onclick = () => this.load();
+  reload.onclick = () => { this._waitSince = null; this.load(); };
   actions.append(save, discard, remove, reload, el('span', null, {class: 'dirty', role: 'status'}));
   card.append(actions, msg);
   this.refresh();

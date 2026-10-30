@@ -14,6 +14,7 @@ from copy import deepcopy
 
 import probatio as vol
 from homeassistant.components import websocket_api
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
@@ -27,7 +28,9 @@ EDITOR_URL = "/open_thermostat/week-editor-0.4.0b12.js"
 FAILURES = {"room_plan_changed": "plan_changed", "room_plan_too_large": "plan_too_large",
             "room_plan_storage_full": "storage_full", "room_plan_unconfirmed": "save_unconfirmed",
             "room_plan_room_missing": "room_missing", "room_plan_password": "password_changed",
-            "room_plan_rejected": "rejected", "room_plan_invalid": "unreachable", "room_plan_unreachable": "unreachable"}
+            "room_plan_rejected": "rejected", "room_plan_invalid": "unreachable", "room_plan_unreachable": "unreachable",
+            # The E32's web sign-ins (room_plan.SIGN_IN_ERRORS): busy for a while, the card retries.
+            "e32_session_capacity": "session_capacity", "e32_try_again_later": "try_again_later"}
 
 
 class WeekError(Exception):
@@ -63,12 +66,15 @@ def _program(room):
 
 def _link(hass, entry_id):
     """The entry's RoomPlanLink, or WeekError: unavailable (no such E32 installation),
-    disabled (turned off by the user) or not_ready (still starting: the card waits and retries)."""
+    disabled (turned off by the user), setup_error (the installation could not start: a clear
+    message, no retry) or not_ready (still starting: the card waits and retries)."""
     entry = hass.config_entries.async_get_entry(entry_id)
     if entry is None or entry.domain != DOMAIN or not has_room_plan(entry):
         raise WeekError("unavailable")
     if entry.disabled_by is not None:
         raise WeekError("disabled")
+    if entry.state in (ConfigEntryState.SETUP_ERROR, ConfigEntryState.MIGRATION_ERROR):
+        raise WeekError("setup_error")
     if entry_id not in hass.data.get(DOMAIN, {}):
         raise WeekError("not_ready")
     link = heating_hub(hass, entry).plan

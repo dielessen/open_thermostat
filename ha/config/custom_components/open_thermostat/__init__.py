@@ -490,6 +490,9 @@ async def async_setup_entry(hass, entry):
             # One group per E32 room on the integration page (before the platforms add entities).
             from .room_groups import async_setup_room_groups
             async_setup_room_groups(hass, entry, group_kwargs["config_subentry_id"])
+            # The dashboard cards' modules, also without the managed dashboard (idempotent, never raises).
+            from .week_planner import async_ensure_cards
+            await async_ensure_cards(hass)
             tracker = HeatingTracker(hass, entry)
             state["heating_tracker"] = tracker
             cleanup.push_async_callback(tracker.async_stop)

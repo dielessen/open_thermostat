@@ -143,6 +143,12 @@ public:
             }
             controller_=std::make_unique<ShadowController>(mac,randomControlId(),cfg_.adapterId,*selectedStore,
                 sha256Hex,randomControlId,publish,std::move(metrics),seasonalSource,std::move(safety),nativePlanSource);
+            // The load ignored a cleared SOURCE's plan record: erase it now, so a
+            // rollback to beta.19 (which faults on it) finds an empty store. It
+            // is unreadable for this and that firmware alike; nothing is lost.
+            // A failed erase only means the next boot ignores it again.
+            if(controller_->staleNativePlanIgnored()&&selectedStore==&store_)
+                clearStaleNativePlanRecord(store_,[]{return NvsControlStore::eraseConfig();});
         }
         if(actuatorFactory) {
             actuatorChannels_=std::make_unique<ActuatorChannels>(std::move(actuatorFactory),

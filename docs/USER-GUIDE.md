@@ -25,12 +25,14 @@ energy inputs.
 | Rooms: add, rename, remove, active or off | E32: Rooms | Settings → Devices & services → OpenThermostat → Configure → Rooms |
 | Temperature sources per room and their order | E32: Rooms (Bluetooth sensors) | Same room editor (HA entities and the E32's Bluetooth sensors) |
 | Target, temperature without Home Assistant, minimum and maximum | E32: Rooms | Same room editor |
-| Week program per room | E32: Rooms | Same room editor |
-| Lowest and highest flow temperature for the boiler request | E32: Rooms → Boiler flow limits | Configure → Heating and boiler |
+| Week program per room | E32: Rooms (visual planner) | Same room editor, or the Week program view of the OpenThermostat dashboard |
+| Setting device per room (valve, tado, number) | — | Same room editor |
+| Lowest and highest flow temperature for the boiler request | E32: Boiler → Boiler flow limits | Configure → Heating and boiler |
 | Gas meter, gas price, outdoor temperature, boiler power (all optional) | — | Configure → Energy and outdoor temperature |
 | Pairing Bluetooth sensors (address, profile, encryption key) | E32: Sensors | E32: Sensors |
 | Boiler model | E32: Boiler | E32: Boiler |
 | Network, MQTT broker, time and time zone | E32: Settings | E32: Settings |
+| Admin password of the E32 | E32: Settings → Password | E32: Settings → Password |
 | Firmware updates | E32: System → Firmware update | The firmware update entity, or the E32 page |
 | Backup and restore of the settings | E32: Settings → Backup and restore | E32: Settings → Backup and restore |
 | Restart | E32: System → Restart device | E32: System → Restart device |
@@ -45,7 +47,7 @@ source.
 ## First start (no Home Assistant needed)
 
 A new E32 first needs the OpenThermostat firmware over USB; see
-[installing the firmware](INSTALL.md#2-install-the-firmware-on-a-new-e32-usb).
+[installing the firmware](INSTALL.md#2-install-the-firmware-on-the-e32-first-time-over-usb).
 
 ### 1. Connect the E32 to your Wi-Fi
 
@@ -60,8 +62,8 @@ A new E32 first needs the OpenThermostat firmware over USB; see
    for example `http://openthermostat-a1b2c3.local/` where your network
    supports `.local` names.
 5. Sign in with user `admin` and password `admin`. Then choose your own
-   password (8–64 characters) under **System → About**; until you do, the
-   Overview reminds you. Home Assistant asks for this password when you
+   password (8–64 characters) under **Settings → Password**; until you do,
+   the Overview reminds you. Home Assistant asks for this password when you
    connect it. A forgotten password can be reset to `admin` with the
    `password-reset` command over USB.
 
@@ -79,16 +81,23 @@ Assistant.
 
 ### 3. Choose your boiler
 
-A newly installed E32 does not listen to the boiler yet. Under **System →
-Network → Advanced settings → Hardware services**, tick **EMS bus enabled**,
+A newly installed E32 does not listen to the boiler yet. Under **Settings →
+Advanced settings → Hardware services**, tick **EMS bus enabled**,
 save and let the E32 restart. This only lets the E32 receive boiler data; it
 does not send heat requests. Connect the E32 to the boiler's EMS bus as
-described in the [installation guide](INSTALL.md#5-connect-the-e32-to-the-boiler)
+described in the [installation guide](INSTALL.md#6-connect-the-e32-to-the-boiler)
 (switch the boiler off first).
 
-Then, under **Boiler**, choose your boiler brand and model and check that
-boiler values arrive (temperatures, status). Only EMS Classic boilers are
-supported in this beta.
+Then open **Boiler** and check that boiler values arrive (temperatures,
+status). Under **Boiler model**, choose your boiler and **Save boiler
+selection**; this only changes the name and picture shown. Only EMS Classic
+boilers are supported in this beta; EMS+ is planned for version 1.1.
+
+Not every boiler reports every value. **Boiler → Boiler profile** shows which
+values your boiler has (**Values available**), which it does not have (**Not
+fitted on this boiler**) and which have not come in yet (**Not reported
+(yet)**). Home Assistant only creates entities for values the boiler has;
+**Show anyway** reveals a value the boiler marks as not fitted.
 
 ### 4. Pair a Bluetooth thermometer
 
@@ -128,8 +137,8 @@ Assistant — you edit rooms here." on the **Rooms** page.
 5. Turn on **Use a week program** and add switch points per day (time and
    temperature, up to six per day). Each temperature holds until the next
    switch point.
-6. Check **Boiler flow limits** (default 30–60 °C; the maximum can be set up
-   to 80 °C). Floor heating fed directly without a mixing valve usually needs
+6. Check the **Boiler flow limits** on the **Boiler** page (default 30–60 °C;
+   the maximum can be set up to 80 °C). Floor heating fed directly without a mixing valve usually needs
    at most 45–50 °C. The page
    shows your boiler's own maximum heating temperature; the E32 never asks for
    more than that.
@@ -148,7 +157,7 @@ and the calculated boiler request. The status reads "Measured". The
 
 ## Adding Home Assistant
 
-The [installation guide](INSTALL.md#8-home-assistant-optional) describes
+The [installation guide](INSTALL.md#8-mqtt-let-the-e32-talk-to-home-assistant) describes
 each step in detail. In short:
 
 You need Home Assistant 2026.10.0 or newer (tested with 2026.10.2 to
@@ -174,7 +183,7 @@ Installed with an earlier integration version that needed a starter room in
 Home Assistant? That room is no longer used. Remove it with **Settings →
 System → Repairs → "Old Home Assistant room no longer used"** (or Configure →
 Advanced and diagnostics → Remove old Home Assistant rooms); see
-[the installation guide](INSTALL.md#9-updates).
+[the installation guide](INSTALL.md#remove-an-old-home-assistant-room).
 
 ### A room with a Home Assistant thermostat and a Bluetooth fallback
 
@@ -190,19 +199,25 @@ and the paired Bluetooth thermometer as fallback.
    - **Bluetooth sensors on the E32:** the thermometer.
    - **Use the Bluetooth sensors first:** off, so the HA source leads and the
      Bluetooth sensor is the fallback.
-   - **Target temperature from Home Assistant:** optional. Choose your
-     thermostat to make the E32 follow its target. Leave it empty to follow the
-     week program.
+   - **Setting device (optional):** your thermostat, if you want to turn the
+     room up or down on it. Home Assistant then sets it to the week program's
+     temperature at every switch point; see
+     [Week program and setting device](#week-program-and-setting-device).
+     Leave it empty to use the room's own thermostat in Home Assistant.
    - **Temperature without Home Assistant:** for example 19 °C.
-   - **Week program on the E32:** one line per group of days, for example
+   - **Week program on the E32:** the form starts with the "Workdays and
+     weekend" template. Keep it and adjust it in the visual planner (the
+     **Week program** view of the OpenThermostat dashboard), or type one line
+     per group of days, for example
 
      ```text
-     mon-fri: 06:30 20.5, 22:30 18
-     sat-sun: 08:00 20.5, 23:00 18
+     mon-fri: 06:30 20.5; 22:30 18
+     sat-sun: 08:00 20.5; 23:00 18
      ```
 
      A line without days applies to every day. Up to six switch points per day.
-   - **Temperature limits:** the lowest and highest target this room may get.
+   - **Temperature limits** (folded section): the lowest and highest target
+     this room may get.
 3. Save. Home Assistant forwards the selected entities to the E32 on every
    change and every five minutes.
 
@@ -286,7 +301,7 @@ and a room with only a fixed target changes that fixed target in the plan.
 Every room runs its own week program on the E32, also without Home Assistant.
 A new room starts with "Workdays and weekend" (about 20 °C, 18 °C during the
 day on workdays, 16 °C at night); change it in the week planner. If rooms have
-no program yet, Settings → Repairs offers to give them one.
+no program yet, Settings → System → Repairs offers to give them one.
 
 Optionally each room has a **setting device** (the room editor's "Setting
 device" field): a thermostat or radiator valve in Home Assistant (for example a
@@ -303,6 +318,12 @@ the room is off or paused for an open window, and at most once a minute.
 Without Home Assistant the E32 keeps running the program; changes on the
 device are not seen until Home Assistant is back, and then the program's
 temperature is shown on the device again.
+
+A setting device is a real device, also in shadow mode: a radiator valve then
+follows the week program, and a thermostat that controls your boiler (such as
+a tado) gets the program's temperature, so the program decides through it
+when the boiler heats. Leave the field empty if you only want to watch
+first.
 
 Bluetooth window sensors (for example Shelly BLU Door/Window) paired on the
 E32 itself are not supported yet; connect them through Home Assistant.
@@ -396,7 +417,8 @@ sensors, the flow options, the boiler model and the page language.
   setup or Ethernet) and sign in, then choose the file and **Check backup**.
   The E32 checks the whole file and shows what will change, what it skips and
   what you need to enter again. Nothing is saved until you choose **Restore
-  these settings**. If saving one part fails, the E32 puts the earlier
+  these settings**. A backup without a passphrase holds no MQTT password, and
+  MQTT stays off until you enter it again under Settings → MQTT. If saving one part fails, the E32 puts the earlier
   settings back. When network or Bluetooth settings change, the E32 restarts
   about 10 seconds later; sign in again afterwards.
 - **What a restore never does.** It does not change the Wi-Fi network or the

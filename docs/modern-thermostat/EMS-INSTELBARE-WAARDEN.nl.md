@@ -126,11 +126,14 @@ zwak bewijs.
 
 - **Eis:** voor elke instelling L2 én L3 voordat ze als gebruikersinstelling
   wordt aangeboden. Zonder meetbaar effect blijft ze verborgen.
-- **Stap 1, alleen lezen.** De adapterwaarden in 0x16 en de
-  tapwatertelegrammen vergelijken met wat het ketel display toont, bijvoorbeeld
-  de maximale aanvoertemperatuur en de tapwatertemperatuur. De eigenaar leest het
-  display af; de E32 toont de adapterwaarden ernaast. Komen ze overeen, dan is
-  dat een eerste aanwijzing dat de adapter de ketel echt spiegelt.
+- **Stap 1, alleen lezen.** Het display van deze oude ketel toont alleen
+  servicecodes, geen instellingen (eigenaar, 30 oktober). Vergelijk daarom de
+  servicecode op het display met de servicecode die de adapter in zijn
+  monitortelegram meldt, in verschillende toestanden: rust, CV en tapwater.
+  Komen ze steeds overeen, dan spiegelt de adapter de ketelstatus echt. De
+  betekenis van de codes halen we uit de servicedocumentatie van Nefit. De
+  instelwaarden zelf (0x16, tapwater) kunnen we niet met het display
+  vergelijken. Voor die waarden telt alleen L3, dus een gemeten effect.
 - **Stap 2, één schrijftest.** Bijgewoond, op een instelling met weinig risico
   en een goed meetbaar effect, zoals `pumpdelay` of de tapwatertemperatuur een
   paar graden. Met automatisch terugzetten.
@@ -223,8 +226,8 @@ die schrijfroute beoordeeld is. Dat is de bestaande afspraak.
 1. Mag de eigen ketel als eerste proefobject dienen, en welke instelling heeft
    de voorkeur voor de eerste schrijftest: `pumpdelay` of de
    tapwatertemperatuur?
-2. Kan het ketel display de waarden voor stap 1 tonen (maximale aanvoer,
-   tapwatertemperatuur, pompnaloop)? Zo ja, welke?
+2. ~~Kan het ketel display de waarden tonen?~~ Beantwoord op 30 oktober: nee.
+   Het display toont alleen servicecodes; zie stap 1.
 3. Moet "Geavanceerd" ook voor jezelf achter een extra bevestiging per
    schrijfactie blijven, of is één bevestiging in de opties genoeg?
 4. Willen we gedeelde profielen van andere gebruikers verzamelen, bijvoorbeeld

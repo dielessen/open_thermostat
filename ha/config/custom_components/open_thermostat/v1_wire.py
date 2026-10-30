@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections import defaultdict
 import hashlib
 import json
+import logging
 import math
 import re
 import secrets
@@ -20,6 +21,11 @@ from .v1_model import Observation, RoomDecision
 from .session_grant import register_grant_proof, consume_grant_proof, MAX_GRANT_PROOFS
 from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, CAPABILITY_V2 as BOILER_CAPABILITY_V2, BoilerFieldCache, MAX_BYTES as MAX_BOILER_BYTES, CATALOG_FIELDS, GROUPS_V2 as BOILER_GROUPS_V2
 # Retained E32 telemetry topics (beta.19 telemetry budget): each at most 1.5 KB.
+_LOGGER = logging.getLogger(__name__)
+# After the E32 answered a configuration with storage_fault (its flash save failed):
+# the same configuration is proposed again only after 1, 5, 15, then every 60 minutes,
+# so a save that keeps failing never becomes a write loop on the E32's flash.
+CONFIG_FAULT_BACKOFF = (60, 300, 900, 3600)
 STATE_TELEMETRY = ("fw/state/", "fw/config/", "fw/telemetry/learned/", "fw/telemetry/summary", "fw/telemetry/shadow")
 MAX_STATE_BYTES = 1536
 # Session timing, the same as ShadowController (TELEMETRIEBUDGET.nl.md, "Sessieprotocol"):
@@ -240,6 +246,43 @@ class ShadowClient:
         self._metrics_highwater=0
         self._supervisor=None
         self._supervisor_received=0.0
+        # Not session data: survives reset_session (a storage_fault resets the session).
+        self._proposed_key=None
+        self._config_fault=None  # {"key", "count", "until", "changed_once"} after storage_fault
+
+    def _config_key(self):
+        """The desired configuration apart from its revision: what a re-proposal would write."""
+        return digest({"mapping": self.mapping, "zones": self.desired})
+
+    def _config_fault_result(self, status):
+        """A fw/config_result: storage_fault starts or extends the backoff; success ends it."""
+        if status != "storage_fault":
+            if self._config_fault is not None:
+                _LOGGER.info("The E32 saved the Home Assistant configuration again after earlier storage faults")
+            self._config_fault = None
+            return
+        key, fault = self._proposed_key, self._config_fault
+        count = fault["count"] + 1 if fault is not None else 1
+        delay = CONFIG_FAULT_BACKOFF[min(count, len(CONFIG_FAULT_BACKOFF)) - 1]
+        if fault is None:
+            _LOGGER.warning("The E32 could not save the Home Assistant configuration (storage fault in its "
+                            "flash). Home Assistant tries again after 1, 5 and 15 minutes, then hourly, "
+                            "instead of rewriting it every few seconds")
+        self._config_fault = {"key": key, "count": count, "until": self.clock() + delay,
+                              "changed_once": fault["changed_once"] if fault is not None else False}
+
+    def _config_backoff(self, key):
+        """True while this proposal must wait (a storage fault backoff is running).
+
+        A changed desired configuration may go out once at once; after that it waits too.
+        """
+        fault = self._config_fault
+        if fault is None or not self.clock() < fault["until"]:
+            return False
+        if key != fault["key"] and not fault["changed_once"]:
+            fault["changed_once"] = True
+            return False
+        return True
 
     @property
     def last_rejection_payload(self):
@@ -1117,10 +1160,14 @@ class ShadowClient:
                 self.error = status
                 if topic == "fw/user_command_result" and not pending["future"].done():
                     pending["future"].set_exception(HomeAssistantError("Firmware rejected shadow command"))
+                if topic == "fw/config_result":
+                    self._config_fault_result(status)
                 if status == "storage_fault":
                     self.reset_session()
                 self.changed()
                 return
+            if topic == "fw/config_result":
+                self._config_fault_result(status)
             if topic == "fw/heartbeat_result":
                 # Use original publish timestamp, not receipt, as conservative start.
                 self.lease_until = pending["sent"] + LEASE_SECONDS
@@ -1224,6 +1271,14 @@ class ShadowClient:
             return
         if current_revision >= 4294967295:
             raise ValueError("revision exhausted")
+        key = self._config_key()
+        if self._config_backoff(key):
+            # The E32's last save of a configuration failed: wait (CONFIG_FAULT_BACKOFF).
+            self.verified = False
+            self.error = "firmware_storage_fault"
+            self.changed()
+            return
+        self._proposed_key = key
         config = {"schema": 1, "mode": "shadow", "revision": current_revision + 1,
                   "mapping_digest": digest(self.mapping), "zones": json.loads(canonical(self.desired))}
         if len(canonical(config).encode("ascii")) > 4096:

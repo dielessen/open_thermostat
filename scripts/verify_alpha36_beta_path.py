@@ -41,7 +41,9 @@ int main(int argc,char**argv) {
     };
     if(discoverIndexedReleases(indexed,choices,error)!=IndexedCatalogResult::Legacy
         ||calls!=1||choices.size()!=1||choices[0].tag!="previous")return 4;
-    auto entry="[{\"tag_name\":\""+tag+"\",\"draft\":false,\"prerelease\":true,\"published_at\":\"2026-10-25T00:00:00Z\",\"assets\":[{\"name\":\"e32v2-update.json\"},{\"name\":\"firmware.bin\"}]}]";
+    // As published: a stable tag (vX.Y.Z-e32v2) is a normal release, every other tag a pre-release.
+    const bool preview=tag.find("-e32v2-")!=std::string::npos;
+    auto entry="[{\"tag_name\":\""+tag+"\",\"draft\":false,\"prerelease\":"+(preview?"true":"false")+",\"published_at\":\"2026-10-25T00:00:00Z\",\"assets\":[{\"name\":\"e32v2-update.json\"},{\"name\":\"firmware.bin\"}]}]";
     // Prove all twelve possible positions of a newly published beta. Entries
     // for HA are intentionally skipped; the thirteenth position is NOT covered.
     for(unsigned position=1;position<=maxReleasePages;++position) {
@@ -57,7 +59,7 @@ int main(int argc,char**argv) {
             return out.size()<=limit;
         };
         if(!discoverReleases(fetch,choices,error)||choices.size()!=1
-            ||choices[0].tag!=tag||!choices[0].prerelease||calls!=13)return 5;
+            ||choices[0].tag!=tag||choices[0].prerelease!=preview||calls!=13)return 5;
     }
     // A failed manifest transfer preserves previous choices; no partial result.
     calls=0;choices={{"previous",false}};

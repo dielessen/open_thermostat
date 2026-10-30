@@ -28,6 +28,12 @@ or newer.
   signs out of the E32 again.
 - **The week planner view works with any set of custom cards**: another
   dashboard card could hide ours, which showed "Configuration error".
+- **A tidier dashboard**: boiler values without a value are left out instead
+  of showing "Unavailable", a room that is off takes one line instead of a
+  full dial, "no boiler request" replaces "0 °C", rows show short names, and
+  Bluetooth humidity and battery show whole numbers.
+- **The Firmware entity keeps the E32's version** when a check fails, instead
+  of showing "unknown" for hours after a restart.
 - **Steadier and lighter**: one failing part (a sensor group, a listener, the
   dashboard) no longer stops the rest; boiler entities are only written when
   something changed, which removes the "took 0.6 seconds" and "updated while

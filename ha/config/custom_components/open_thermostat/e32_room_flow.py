@@ -38,7 +38,7 @@ ROOM_ID_LENGTH = 32
 LIMITS_CENTI_C = (500, 3000)
 ENTITY_ID = re.compile(r"[a-z0-9_]+\.[a-z0-9_]+")
 SOURCE_DOMAINS = ("climate", "sensor")
-from .e32_setting_device import default_program, proposed_device  # noqa: E402
+from .e32_setting_device import default_program, proposed_device, setting_hint  # noqa: E402
 SETPOINT_DOMAINS = ("climate", "input_number", "number")
 CELSIUS = UnitOfTemperature.CELSIUS
 # The plan's flow limits as the E32 accepts them (RoomPlan.h): whole °C, minimum
@@ -528,8 +528,9 @@ class E32RoomFlow:
             "ha_sources": [s["id"] for s in sources if s.get("type") == "ha"],
             "ble_sources": [s["id"] for s in sources if s.get("type") == "ble"],
             "bluetooth_first": bool(sources) and sources[0].get("type") == "ble",
-            # The setting device; a room's own valve or thermostat source is proposed.
-            "setpoint_entity": room.get("setpoint_entity") or proposed_device(room) or None,
+            # The setting device as stored, never pre-selected: Home Assistant writes its
+            # target at every switch point, so the user picks it (a climate source is only hinted).
+            "setpoint_entity": room.get("setpoint_entity") or None,
             "fallback_temperature": shown(room.get("fallback_centi_c", 2000), unit),
             "minimum_temperature": shown(room.get("minimum_centi_c", 500), unit),
             "maximum_temperature": shown(room.get("maximum_centi_c", 2500), unit),
@@ -647,9 +648,17 @@ class E32RoomFlow:
                 placeholders.update(extra)
             else:
                 return await self.async_step_e32_rooms(done="saved", name=values["name"])
+        placeholders["setting_hint"] = self._e32_setting_hint(room, user_input)
         return self.async_show_form(step_id="e32_room", data_schema=retained_input_schema(
             self, self._e32_room_schema(room, ble_options), user_input),
             errors=errors, description_placeholders=placeholders)
+
+    def _e32_setting_hint(self, room, user_input):
+        """A climate source that could set this room, as a question; never a pre-selection."""
+        if user_input is not None:  # the form shown again: the sources as just submitted
+            room = {"setpoint_entity": user_input.get("setpoint_entity") or "",
+                    "sources": [{"type": "ha", "id": e} for e in user_input.get("ha_sources") or []]}
+        return setting_hint(proposed_device(room), self.hass.config.language)
 
     def _e32_room_schema(self, room, ble_options):
         d = self._e32_defaults(room)

@@ -530,7 +530,7 @@
       },
       "e32_room": {
         "title": "Pomieszczenie E32",
-        "description": "Jedno pomieszczenie: skąd pochodzi jego temperatura, jaka ma być i kiedy. E32 to przechowuje i wykonuje, także bez Home Assistant.",
+        "description": "Jedno pomieszczenie: skąd pochodzi jego temperatura, jaka ma być i kiedy. E32 to przechowuje i wykonuje, także bez Home Assistant.{setting_hint}",
         "data": {
           "name": "Nazwa pomieszczenia",
           "state": "Ogrzewanie",

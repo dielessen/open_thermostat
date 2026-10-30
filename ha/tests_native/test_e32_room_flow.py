@@ -670,3 +670,58 @@ def test_every_flow_key_has_a_translation(filename):
         assert "opslagruimte" in full and "Verwijder een ruimte" in full and "schakelpunten" in full
     else:
         assert "storage" in full and "Remove a room" in full and "switch points" in full
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("language", ["en", "nl"])
+async def test_a_climate_source_is_only_hinted_as_setting_device_never_pre_selected(hass, manager, language):
+    """Home Assistant writes the setting device's target at every switch point: the user picks it explicitly."""
+    hass.config.language = language
+    e32 = FakeE32()
+    room = plan_room(e32.plan, "woonkamer")
+    room["setpoint_entity"], room["schedule"] = "", default_program(1000, 2400)
+    parent, _ = product(hass, e32)
+    form = await room_form(manager, parent, "woonkamer")
+    assert "setpoint_entity" not in shown(form), "never pre-selected"
+    hint = form["description_placeholders"]["setting_hint"]
+    if language == "nl":
+        assert "climate.woonkamer gebruiken als instelapparaat van deze ruimte?" in hint
+        assert "bij elk schakelpunt van het weekprogramma" in hint
+    else:
+        assert "Use climate.woonkamer as this room's setting device?" in hint
+        assert "set its target temperature at every switch point of the week program" in hint
+    # Saving the room as shown leaves it exactly as it was: no setting device appears by itself.
+    posts = len(e32.posts)
+    result = await manager.async_configure(form["flow_id"], shown(form))
+    assert result["reason"] == "e32_room_unchanged" and len(e32.posts) == posts
+    assert plan_room(e32.plan, "woonkamer")["setpoint_entity"] == ""
+    # Picked explicitly: stored, and then no hint any more.
+    form = await room_form(manager, parent, "woonkamer")
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "setpoint_entity": "climate.woonkamer"})
+    assert result["step_id"] == "e32_rooms_saved", result
+    assert plan_room(e32.plan, "woonkamer")["setpoint_entity"] == "climate.woonkamer"
+    form = await room_form(manager, parent, "woonkamer")
+    assert shown(form)["setpoint_entity"] == "climate.woonkamer" and form["description_placeholders"]["setting_hint"] == ""
+
+
+@pytest.mark.asyncio
+async def test_a_new_room_gets_no_setting_device_unless_chosen_and_a_shown_again_form_hints_it(hass, manager):
+    e32 = FakeE32()
+    parent, _ = product(hass, e32)
+    form = await room_form(manager, parent)
+    assert form["description_placeholders"]["setting_hint"] == "" and "setpoint_entity" not in shown(form)
+    # Shown again (a refused value): the climate source just chosen is hinted, still not selected.
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "name": "Hal",
+                                                             "ha_sources": ["climate.woonkamer", "sensor.vocht"]})
+    assert result["step_id"] == "e32_room" and result["errors"]
+    assert "climate.woonkamer" in result["description_placeholders"]["setting_hint"]
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "name": "Hal", "ha_sources": ["climate.woonkamer"]})
+    assert result["step_id"] == "e32_rooms_saved", result
+    assert plan_room(e32.plan, "hal")["setpoint_entity"] == ""
+
+
+@pytest.mark.parametrize("filename", ["strings.json", "translations/en.json", "translations/nl.json",
+                                      "translations/pl.json"])
+def test_the_room_form_has_room_for_the_setting_device_hint(filename):
+    document = json.loads((COMPONENT / filename).read_text(encoding="utf-8"))
+    assert document["options"]["step"]["e32_room"]["description"].endswith("{setting_hint}")

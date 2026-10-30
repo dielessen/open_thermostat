@@ -91,6 +91,22 @@ def proposed_device(room):
     return None
 
 
+def setting_hint(device, language):
+    """The room form's hint for a climate source that could be the setting device ("" without one).
+
+    Only a hint: the form never pre-selects it, the user picks it (Home Assistant
+    then writes the device's target at every switch point)."""
+    if not device:
+        return ""
+    if str(language or "").startswith("nl"):
+        return (f"\n\n**Instelapparaat?** {device} gebruiken als instelapparaat van deze ruimte? Home Assistant "
+                "zet dan bij elk schakelpunt van het weekprogramma de gewenste temperatuur erop. "
+                "Kies het daarvoor zelf bij Instelapparaat.")
+    return (f"\n\n**Setting device?** Use {device} as this room's setting device? Home Assistant will then set "
+            "its target temperature at every switch point of the week program. To do so, choose it under "
+            "Setting device.")
+
+
 def _unit(hass, state):
     if state.domain == "climate":
         return hass.config.units.temperature_unit

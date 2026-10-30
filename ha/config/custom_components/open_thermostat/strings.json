@@ -530,7 +530,7 @@
       },
       "e32_room": {
         "title": "E32 room",
-        "description": "One room: where its temperature comes from, what it should be and when. The E32 stores this and runs it, also without Home Assistant.",
+        "description": "One room: where its temperature comes from, what it should be and when. The E32 stores this and runs it, also without Home Assistant.{setting_hint}",
         "data": {
           "name": "Room name",
           "state": "Heating",

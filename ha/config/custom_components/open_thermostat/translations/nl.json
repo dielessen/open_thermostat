@@ -1458,7 +1458,7 @@
       },
       "e32_room": {
         "title": "E32-ruimte",
-        "description": "Eén ruimte: waar de temperatuur vandaan komt, wat die moet zijn en wanneer. De E32 bewaart dit en regelt het, ook zonder Home Assistant.",
+        "description": "Eén ruimte: waar de temperatuur vandaan komt, wat die moet zijn en wanneer. De E32 bewaart dit en regelt het, ook zonder Home Assistant.{setting_hint}",
         "data": {
           "name": "Naam van de ruimte",
           "state": "Verwarmen",

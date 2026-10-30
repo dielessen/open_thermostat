@@ -2,6 +2,7 @@
 import json
 import logging
 from pathlib import Path
+import time
 
 from datetime import timedelta
 
@@ -263,7 +264,9 @@ def confirm_reported(hass, prefix, indexes, cache=None):
                 entity_id, DOMAIN, {**{k: v for k, v in options.items() if k != PLACEHOLDER}, REPORTED: True})
         reporting = [m for m in concept(index) if cache is not None and plausible(cache, m)]
         reliable = any(quality(m) != 1 for m in reporting) if reporting else quality(index) != 1
-        if reliable and record.disabled_by is er.RegistryEntryDisabler.INTEGRATION:
+        # A record the boiler profile hid comes back through apply_boiler_profile (rate limited).
+        if (reliable and record.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+                and not options.get(PROFILE_HIDDEN)):
             registry.async_update_entity(entity_id, disabled_by=None)
     return pending
 
@@ -286,7 +289,33 @@ def profile_hides(cache, members):
             and not any(plausible(cache, member) for member in members))
 
 
-def apply_boiler_profile(hass, entry, prefix, cache):
+class ReenableLimiter:
+    """At most one batch of boiler records enabled again per hour, per entry.
+
+    Home Assistant reloads the whole entry about 30 s after an entity is enabled
+    again: a boiler profile that flaps must never cause a reload after each
+    flip. Hiding is never limited (it reloads nothing). The limiter outlives
+    those reloads (reenable_limiter); a batch it held back is applied once the
+    hour has passed (pending).
+    """
+    INTERVAL = 3600
+
+    def __init__(self, clock=time.monotonic):
+        self.clock, self.last, self.pending = clock, None, False
+
+    def allowed(self):
+        return self.last is None or not 0 <= self.clock() - self.last < self.INTERVAL
+
+    def used(self):
+        self.last, self.pending = self.clock(), False
+
+
+def reenable_limiter(hass, entry):
+    """The entry's ReenableLimiter, kept across reloads of the entry."""
+    return hass.data.setdefault(DOMAIN + "_boiler_reenable", {}).setdefault(entry.entry_id, ReenableLimiter())
+
+
+def apply_boiler_profile(hass, entry, prefix, cache, limiter=None):
     """This entry's boiler-field records follow the boiler profile (fw/config/boiler_profile).
 
     Universal for every EMS boiler: only what the profile says, never a list of
@@ -316,6 +345,9 @@ def apply_boiler_profile(hass, entry, prefix, cache):
             if options.get(PROFILE_HIDDEN) or options.get(PLACEHOLDER) or (
                     record.disabled_by is _INTEGRATION and quality(index) != 1):
                 if record.disabled_by is not None or record.hidden_by is not None:
+                    if limiter is not None and not limiter.allowed():
+                        limiter.pending = True  # held back: the next batch after the hour
+                        continue
                     registry.async_update_entity(record.entity_id, disabled_by=None, hidden_by=None)
                     shown.append(record.entity_id)
                 registry.async_update_entity_options(record.entity_id, DOMAIN, {
@@ -335,6 +367,8 @@ def apply_boiler_profile(hass, entry, prefix, cache):
         _LOGGER.info("Boiler profile: removed %d and hid %d OpenThermostat boiler entities this boiler has "
                      "no sensor for or never reports: %s", len(removed), len(hidden),
                      ", ".join(sorted(removed + hidden)))
+    if shown and limiter is not None:
+        limiter.used()
     if shown:
         _LOGGER.info("Boiler profile: %d OpenThermostat boiler entities are reported again and shown: %s",
                      len(shown), ", ".join(sorted(shown)))
@@ -375,6 +409,7 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
     translated = await hass.async_add_executor_job(translated_fields)
     entities = []
     last_profile = None
+    limiter = reenable_limiter(hass, entry)
     unconfirmed = set()
     placeholders = set()
     # One evaluation per pass, shared by every entity of it (client.ready costs ~1 ms).
@@ -394,9 +429,10 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
         # (apply_boiler_profile). Unknown values wait for the profile or a real
         # value. Without a profile (older firmware) nothing changes.
         cache = client.boiler_fields
-        if cache.field_profile is not None and cache.profile_sequence != last_profile:
+        if cache.field_profile is not None and (cache.profile_sequence != last_profile
+                                                or limiter.pending and limiter.allowed()):
             last_profile = cache.profile_sequence
-            removed = apply_boiler_profile(hass, entry, prefix, cache)
+            removed = apply_boiler_profile(hass, entry, prefix, cache, limiter)
             if removed:
                 entities[:] = [entity for entity in entities if entity.unique_id not in removed]
         known = {member for entity in entities for member in entity.members}

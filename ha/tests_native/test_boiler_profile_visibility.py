@@ -197,3 +197,34 @@ async def test_a_complete_profile_leaves_no_unavailable_boiler_entity(hass):
     assert all(entity.native_value is not None for entity in added if entity.enabled)
     assert apply_boiler_profile(hass, e, "fixture", c.boiler_fields) == frozenset()
     await r.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_a_flapping_profile_enables_records_again_at_most_once_per_hour(hass):
+    """Each enable makes Home Assistant reload the entry 30 s later: a flapping profile must not loop."""
+    from custom_components.open_thermostat.v1_boiler_fields import reenable_limiter
+    e, r, c, now = await system(hass)
+    reg = er.async_get(hass)
+    pressure = reg.async_get_or_create("sensor", "open_thermostat", uid("pressure"), config_entry=e).entity_id
+    reg.async_update_entity_options(pressure, "open_thermostat", {REPORTED: True})
+    limiter = reenable_limiter(hass, e)
+    clock = [1000.0]
+    limiter.clock = lambda: clock[0]
+    await async_setup_boiler_fields(hass, e, lambda entities, **kw: None)
+    await c.receive("fw/state/boiler_fields/6", group_doc(6), retained=True)
+
+    async def send(*supported, not_fitted=()):
+        await c.receive("fw/config/boiler_profile", profile(supported, not_fitted), retained=True)
+        r._notify()
+    await send(not_fitted=["pressure", "plus_pressure"])
+    assert reg.async_get(pressure).disabled_by is INTEGRATION
+    await send("pressure")                      # back: enabled at once (the first time)
+    assert reg.async_get(pressure).disabled_by is None
+    await send(not_fitted=["pressure", "plus_pressure"])         # gone again: hidden at once (no reload)
+    assert reg.async_get(pressure).disabled_by is INTEGRATION
+    await send("pressure")                      # back within the hour: held back
+    assert reg.async_get(pressure).disabled_by is INTEGRATION and limiter.pending
+    clock[0] += 3601
+    r._notify()                                 # the next pass after the hour applies it
+    assert reg.async_get(pressure).disabled_by is None and not limiter.pending
+    await r.async_stop()

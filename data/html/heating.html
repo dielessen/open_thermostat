@@ -272,6 +272,15 @@
       pair.append(uiText("No Bluetooth sensors paired yet.") + ' ', el('a', uiText("Pair a sensor first → Sensors"), {href:'#sensors', 'data-page':'bluetooth'}));
       body.append(pair);
     }
+    // How a Bluetooth thermometer gets into the list above; open while none is paired.
+    const bleHelp = el('details', null, {class:'ot-advanced', 'data-heating-ble-help':''}), pairSteps = el('p');
+    bleHelp.open = !bleSensors.length;
+    pairSteps.append(uiText("Pair it on the Sensors page: press Search nearby, click your sensor, check its device profile and save. After the E32 restarts, the sensor is listed here.") + ' ',
+      el('a', uiText("Open Sensors"), {href:'#sensors', 'data-page':'bluetooth'}));
+    bleHelp.append(el('summary', uiText("How do I add a Bluetooth sensor?")), pairSteps,
+      el('p', uiText("Supported: thermometers with the pvvx firmware (ATC_MiThermometer, often named ATC_…, for example Xiaomi LYWSD03MMC), Shelly BLU H&T Display and Xiaomi Monitor 3. Encrypted sensors need their bindkey.")),
+      el('p', uiText("Not listed? Keep the sensor within a few metres of the E32 and check its battery. With the pvvx firmware, set the advertising format to BTHome; the original Xiaomi and atc1441 formats are not read. Or use a Home Assistant entity as the source.")));
+    body.append(bleHelp);
     const more = el('button', uiText("Add source"), {type:'button', class:'btn btn-outline-primary mb-2'});
     more.addEventListener('click', () => sources.querySelectorAll('[data-heating-source]').length < 4 && addSource({type:bleSensors.length || neverHa ? 'ble' : 'ha', id:''}));
     body.append(more, el('h3', uiText("Target temperature and limits")));

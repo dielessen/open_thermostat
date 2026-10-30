@@ -92,6 +92,12 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(await root.locator('[data-heating-add]').isVisible(),false);
   await root.locator('[data-heating-add-first]').click();
   const card=root.locator('[data-heating-room]').last();
+  // Next to the Bluetooth choice: how to pair a sensor (closed while sensors are paired), with a link to Sensors.
+  const bleHelp=card.locator('[data-heating-ble-help]');
+  assert.equal(await bleHelp.evaluate(d=>d.open),false);
+  await bleHelp.locator('summary').click();
+  assert.match(await bleHelp.innerText(),/Hoe voeg ik een Bluetooth-sensor toe\?[\s\S]*Zoek in de buurt[\s\S]*pvvx[\s\S]*BTHome[\s\S]*Home Assistant-entiteit/);
+  assert.equal(await bleHelp.locator('a[href="#sensors"][data-page="bluetooth"]').count(),1);
   // A new room asks for heat once saved, and refuses to save without a source.
   assert.equal(await card.getByLabel('Status').inputValue(),'active');
   await root.locator('[data-heating-save]').click();
@@ -118,12 +124,12 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
    setpoint_entity:'climate.woonkamer',fallback_centi_c:2000,minimum_centi_c:500,maximum_centi_c:2500,
    // Every room has a week program: a new one starts with "Workdays and weekend".
    schedule:[0,1,2,3,4,5,6].map(d=>d<5?[[390,2000],[510,1800],[1020,2000],[1350,1600]]:[[480,2000],[1380,1600]])}]});
-  await root.locator('[data-heating-room="woonkamer"] summary').getByText('Vraagt warmte').waitFor();
+  await root.locator('[data-heating-room="woonkamer"]>summary').getByText('Vraagt warmte').waitFor();
   // Floor heating with a 60 °C maximum: a warning, not a block.
   assert.equal(await root.locator('[data-heating-flow-warn]').isVisible(),true);
   // Same ranges as the firmware (RoomPlan): minimum 20–79, maximum 21–80 °C.
   assert.deepEqual(await root.locator('#heating-min-flow,#heating-max-flow').evaluateAll(f=>f.map(i=>[i.min,i.max])),[['20','79'],['21','80']]);
-  assert.match(await root.locator('[data-heating-room="woonkamer"] summary').innerText(),/^Woonkamer\s+Vraagt warmte\s+20,4 °C\s+Gewenst 21,0 °C\s+Gewenste temperatuur uit Home Assistant$/);
+  assert.match(await root.locator('[data-heating-room="woonkamer"]>summary').innerText(),/^Woonkamer\s+Vraagt warmte\s+20,4 °C\s+Gewenst 21,0 °C\s+Gewenste temperatuur uit Home Assistant$/);
   assert.equal(await root.locator('[data-heating-room="woonkamer"]').getByLabel('Weekprogramma gebruiken').isChecked(),true,'a new room has a week program');
   await root.locator('[data-heating-request]').getByText('Berekende ketelvraag: 36 °C · Verwarmen').waitFor();
   // Home Assistant saved in between: the stale write is refused and the page reloads the plan.
@@ -133,7 +139,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await root.getByText(/Het plan is elders gewijzigd/).waitFor();
   assert.equal(posts.at(-1).revision,5);
   const room=root.locator('[data-heating-room="woonkamer"]');
-  assert.match(await room.locator('summary').innerText(),/^Living\s+Vraagt warmte\s+20,4 °C\s+Gewenst 21,0 °C\s+Gewenste temperatuur uit het weekprogramma$/);
+  assert.match(await room.locator(':scope>summary').innerText(),/^Living\s+Vraagt warmte\s+20,4 °C\s+Gewenst 21,0 °C\s+Gewenste temperatuur uit het weekprogramma$/);
   // Prefill of the Home Assistant week: weekdays differ from the weekend, so one row per day.
   await room.evaluate(e=>e.open=true);
   const program=room.locator('[data-heating-week]'),points=()=>program.locator('[data-heating-day]').evaluateAll(days=>days.map(d=>[d.querySelector('strong').textContent,
@@ -147,7 +153,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await root.getByText('Ruimtes opgeslagen.').waitFor();
   assert.equal(posts.at(-1).revision,6);assert.equal(posts.at(-1).rooms[0].name,'Living');
   assert.deepEqual(posts.at(-1).rooms[0].schedule,week,'the week program survives a web save');
-  await room.locator('summary').getByText(/vaste waarde zonder Home Assistant$/).waitFor();
+  await room.locator(':scope>summary').getByText(/vaste waarde zonder Home Assistant$/).waitFor();
   status.rooms[0].setpoint_source='ha';
   // Week program editor: saves re-render the cards, so wait for the new card and open it.
   const save=async text=>{await room.evaluate(e=>e.dataset.old='1');await root.locator('[data-heating-save]').click();await root.getByText(text).waitFor();

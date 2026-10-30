@@ -580,6 +580,10 @@ class BoilerFieldEntity(SensorEntity):
         self._attr_native_unit_of_measurement = {"degC":"°C", "uA":"µA"}.get(unit,unit)
         if unit in ("bool", "bits", "text", "code", "starts"):
             self._attr_native_unit_of_measurement = None
+        # Whole numbers on the wire (codes, on/off, counts, minutes, %): "1" and "37 %", not "1.0" and "37.0 %";
+        # only when every wire family of the value sends whole numbers.
+        if unit != "text" and all(spec(member)[2] == 1 for member in self.members):
+            self._attr_suggested_display_precision = 0
         if unit == "degC":
             self._attr_device_class = SensorDeviceClass.TEMPERATURE
         # Table counters (EMS u24) keep statistics; the unqualified v1 OEM

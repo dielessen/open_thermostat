@@ -146,8 +146,9 @@ async def test_a_busy_e32_and_a_failed_setup_get_their_own_codes(hass, monkeypat
     for key, code in (("e32_session_capacity", "session_capacity"), ("e32_try_again_later", "try_again_later")):
         monkeypatch.setattr(hub.plan, "async_read", AsyncMock(side_effect=HomeAssistantError(
             translation_domain="open_thermostat", translation_key=key)))
+        # A read from the E32 itself (the card's Reload, or no current plan in HA).
         with pytest.raises(WeekError, match=f"^{code}$"):
-            await read_week(hass, parent.entry_id)
+            await read_week(hass, parent.entry_id, fresh=True)
     object.__setattr__(parent, "state", ConfigEntryState.SETUP_ERROR)
     with pytest.raises(WeekError, match="^setup_error$"):
         await read_week(hass, parent.entry_id)

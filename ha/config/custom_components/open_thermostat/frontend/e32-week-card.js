@@ -3,7 +3,7 @@
    The planner itself is week-editor.js, the same file the E32 rooms page uses. */
 const EDITOR = '/open_thermostat/week-editor-0.4.0b12.js';
 const TEXT = {
- en: {title: 'Week program', loading: 'Loading…', intro: 'The E32 follows this program on its own, also when Home Assistant is offline.',
+ en: {title: 'Week program', loading: 'Loading…', reading: 'Reading the week programs from the E32…', intro: 'The E32 follows this program on its own, also when Home Assistant is offline.',
   follows: 'This room follows {entity} while Home Assistant gives a target temperature; the week program applies when it gives none.',
   save: 'Save to E32', saving: 'Saving…', discard: 'Discard changes', remove: 'Remove week program', reload: 'Reload', unsaved: 'Unsaved changes',
   waiting: 'Waiting for the E32…', retrying: 'Trying again…',
@@ -25,7 +25,7 @@ const TEXT = {
    try_again_later: 'Too many sign-in attempts on the E32. This card tries again shortly.',
    setup_error: 'OpenThermostat could not start. Open Settings → Devices & services → OpenThermostat to see why, then reload this page.',
    gave_up: 'The E32 has not answered for several minutes. Check that it is on and connected, then press Reload.'}},
- nl: {title: 'Weekprogramma', loading: 'Laden…', intro: 'De E32 volgt dit programma zelf, ook als Home Assistant offline is.',
+ nl: {title: 'Weekprogramma', loading: 'Laden…', reading: 'Weekprogramma’s lezen van de E32…', intro: 'De E32 volgt dit programma zelf, ook als Home Assistant offline is.',
   follows: 'Deze ruimte volgt {entity} zolang Home Assistant een gewenste temperatuur geeft; het weekprogramma geldt als die er niet is.',
   save: 'Opslaan op E32', saving: 'Opslaan…', discard: 'Wijzigingen weggooien', remove: 'Weekprogramma verwijderen', reload: 'Opnieuw laden', unsaved: 'Niet opgeslagen wijzigingen',
   waiting: 'Wachten op de E32…', retrying: 'Opnieuw proberen…',
@@ -100,13 +100,16 @@ class OpenThermostatE32Week extends HTMLElement {
   this._message = this.t.errors[code] || this.t.errors.rejected; this._error = true;
   return code;
  }
- async load() {
+ // fresh: read from the E32 itself (Reload); otherwise Home Assistant answers from the plan it already
+ // holds while that plan is current, so opening the page costs the E32 no sign-in.
+ async load(fresh = false) {
   clearTimeout(this._retry); this._retry = null;
   if (!this._hass || !this._config) return;
-  this._busy = true; this._message = ''; this.render();
+  this._busy = true; this._fresh = fresh; this._message = ''; this.render();
   try {
    editorReady = editorReady || import(EDITOR).then(() => { if (!window.OTWeekEditor) throw {code: 'editor'}; }).catch(e => { editorReady = null; throw e?.code ? e : {code: 'editor'}; });
-   const [result] = await Promise.all([this._hass.callWS({type: 'open_thermostat/e32_week/get', entry_id: this._config.entry_id}), editorReady]);
+   const request = {type: 'open_thermostat/e32_week/get', entry_id: this._config.entry_id, ...(fresh ? {fresh: true} : {})};
+   const [result] = await Promise.all([this._hass.callWS(request), editorReady]);
    if (!result || !Array.isArray(result.rooms)) throw {code: 'unknown_command'};
    this._rooms = result.rooms; this._drafts = {}; this._waiting = false; this._waitSince = null;
    this._outdated = typeof result.card_url === 'string' && !!SELF && result.card_url !== SELF;
@@ -118,7 +121,7 @@ class OpenThermostatE32Week extends HTMLElement {
    if (RETRY.has(code)) {
     this._waitSince = this._waitSince ?? Date.now();
     if (Date.now() - this._waitSince >= GIVE_UP_MS) { this._waiting = false; this._message = this.t.errors.gave_up; }
-    else if (this.isConnected) this._retry = setTimeout(() => this.load(), RETRY_MS);
+    else if (this.isConnected) this._retry = setTimeout(() => this.load(fresh), RETRY_MS);
    } else this._waitSince = null;
   }
   this._busy = false; this.render();
@@ -164,9 +167,9 @@ class OpenThermostatE32Week extends HTMLElement {
   if (this._outdated) card.append(el('p', t.outdated, {class: 'notice', role: 'status'}));
   const msg = el('p', null, {class: 'msg', role: 'status', 'aria-live': 'polite'});
   if (!this._rooms) {
-   const status = this._waiting ? (this._busy ? t.retrying : t.waiting) : this._busy ? t.loading : '';
+   const status = this._waiting ? (this._busy ? t.retrying : t.waiting) : this._busy ? (this._fresh ? t.reading : t.loading) : '';
    card.append(el('p', status, {class: this._waiting ? 'waiting' : 'muted'}), msg);
-   if (!this._busy) { const again = el('button', t.reload, {type: 'button'}); again.onclick = () => { this._waitSince = null; this.load(); }; card.append(again); }
+   if (!this._busy) { const again = el('button', t.reload, {type: 'button'}); again.onclick = () => { this._waitSince = null; this.load(true); }; card.append(again); }
    return this.refresh();
   }
   if (!this._rooms.length) { card.append(el('p', t.none, {class: 'muted'})); return; }
@@ -194,7 +197,7 @@ class OpenThermostatE32Week extends HTMLElement {
   save.onclick = () => this.save();
   discard.onclick = () => { delete this._drafts[r.id]; this._message = ''; this.render(); };
   remove.onclick = () => { this._drafts[r.id] = Array.from({length: 7}, () => []); this._message = ''; this.render(); };
-  reload.onclick = () => { this._waitSince = null; this.load(); };
+  reload.onclick = () => { this._waitSince = null; this.load(true); };
   actions.append(save, discard, remove, reload, el('span', null, {class: 'dirty', role: 'status'}));
   card.append(actions, msg);
   this.refresh();

@@ -96,8 +96,22 @@ def week_rooms(plan):
         "schedule": _program(room)} for room in plan["rooms"]]}
 
 
-async def read_week(hass, entry_id):
+def _current(link):
+    """The plan HA already read, while the E32 reports exactly its revision and is heard (so it is current):
+    no sign-in on the E32 for every opened card. None: read it from the E32."""
+    plan, hub = link.plan, link.hub
+    if plan is None or link.revision is None or link.revision != hub.revision or not hub.alive:
+        return None
+    return plan
+
+
+async def read_week(hass, entry_id, fresh=False):
+    """The week programs; the plan HA holds while it is current, else (and with ``fresh``) read from the E32.
+
+    A save always reads the E32's plan again and only replaces a program that still equals the one shown."""
     link = _link(hass, entry_id)
+    if not fresh and (plan := _current(link)) is not None:
+        return week_rooms(plan)
     try:
         return week_rooms(await link.async_read())
     except HomeAssistantError as err:
@@ -135,12 +149,12 @@ async def save_week(hass, entry_id, room_id, schedule, expected):
 
 
 @websocket_api.websocket_command({vol.Required("type"): "open_thermostat/e32_week/get",
-                                  vol.Required("entry_id"): str})
+                                  vol.Required("entry_id"): str, vol.Optional("fresh", default=False): bool})
 @websocket_api.require_admin
 @websocket_api.async_response
 async def ws_week_get(hass, connection, msg):
     try:
-        result = await read_week(hass, msg["entry_id"])
+        result = await read_week(hass, msg["entry_id"], msg.get("fresh", False))
     except WeekError as err:
         connection.send_error(msg["id"], str(err), "The week programs could not be read")
     else:

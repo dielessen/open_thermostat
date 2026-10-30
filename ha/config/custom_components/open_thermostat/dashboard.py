@@ -12,9 +12,13 @@ disabled and absent entities are left out) with built-in cards only:
   E32 next to the current thermostat (only in a home with one) and the
   Bluetooth sensors. Room settings that are easy to change by accident (mode,
   temperature without Home Assistant) stay on the room's device page;
-* Boiler: the reported boiler fields and their history;
-* Diagnostics: device and EMS details, hot water, estimates, each with a
-  one-line note.
+* Boiler: the reported boiler fields in groups (heating, hot water, status,
+  counters, settings, the thermostat on the bus) and their last 24 hours;
+* Diagnostics: the E32 itself, today's hot water, the energy and hot water
+  counters and the raw boiler data.
+
+Rows, tiles and graphs without a value stay hidden until they have one, so a
+boiler that never reports a value shows no "Unknown" for it.
 
 A stored Lovelace config has no per-viewer language, so the few fixed
 headings follow the Home Assistant language (English or Dutch) and the
@@ -53,33 +57,38 @@ DEVICE_DIAGNOSTIC_METRICS = (
     "uptime",
 )
 
-EMS_METRICS = (
-    "energy",
-    "energy_warm_water",
-    "energy_heating",
-    "warm_water_usage",
-    "warm_water_avg_flow",
-    "outdoor_temperature",
-    "boiler_heating_enabled",
-    "boiler_hot_water_enabled",
-    "boiler_burner_active",
-    "boiler_pump_active",
-    "boiler_heating_active",
-    "boiler_hot_water_active",
-    "boiler_siphon_filling",
-    "boiler_fan_active",
-    "boiler_pump_venting",
-    "boiler_selected_hot_water_temperature",
-    "boiler_selected_flow_temperature",
-    "boiler_current_flow_temperature",
-    "boiler_pressure",
-    "boiler_burner_power",
-    "boiler_hot_water_flow",
-    "boiler_current_hot_water_temperature",
-    "boiler_display_code",
-    "boiler_service_code",
-    "boiler_protocol_version",
-)
+# The Boiler view's groups, in this order: (key, icon). The raw group (unreliable raw values) goes to Diagnostics.
+BOILER_GROUPS = (("heating", "mdi:radiator"), ("dhw", "mdi:water-thermometer"),
+                 ("status", "mdi:information-outline"), ("counters", "mdi:counter"),
+                 ("settings", "mdi:cog-outline"), ("thermostat", "mdi:thermostat"))
+STATUS_FIELDS = frozenset({"display_code", "service_number", "maintenance_message", "ionisation_current",
+                           "plus_flame_current"})
+SETTINGS_FIELDS = frozenset({"maximum_burner_power", "pump_run_on", "minimum_burner_period", "pump_modulation_maximum",
+                             "pump_modulation_minimum", "pump_start_temperature", "dhw_charge_optimisation_enabled",
+                             "dhw_flow_temperature_offset", "dhw_circulation_enabled", "dhw_disinfection_temperature",
+                             "reported_dhw_type", "plus_heating_temperature", "plus_maximum_burner_power"})
+# The energy and hot water counters (definition v2; only boilers that report them fill these in).
+COUNTER_KEYS = ("energy", "energy_heating", "energy_warm_water", "energy_unattributed", "warm_water_usage",
+                "warm_water_avg_flow", "burner_observed_time")
+
+
+def boiler_group(name):
+    """The Boiler view group of boiler field ``name``; "raw" for the unreliable raw values (Diagnostics)."""
+    from .boiler_fields import INDEX_BY_NAME, quality
+    index = INDEX_BY_NAME.get(name)
+    if (index is not None and quality(index) == 1) or name.startswith("raw_"):
+        return "raw"
+    if name.startswith("thermostat_"):
+        return "thermostat"
+    if name in STATUS_FIELDS or name.startswith("last_"):
+        return "status"
+    if name.endswith(("_starts", "_runtime")) or name == "boiler_uptime":
+        return "counters"
+    if name.startswith("configured_") or "hysteresis" in name or name in SETTINGS_FIELDS:
+        return "settings"
+    if "dhw" in name or name.startswith(("storage_", "solar_")):
+        return "dhw"
+    return "heating"
 
 # E32 room entities: unique ID f"{prefix}_e32_room_{room id}_{key}" (longest key first).
 ROOM_KEYS = ("fallback_setpoint", "inactive_until", "heating_start", "flow_advice", "temperature", "thermostat",
@@ -132,10 +141,20 @@ TEXT = {
                   "thermostat or the boiler's own control stays in charge.",
         "active": "The E32 controls the boiler.",
         "how": "The E32 keeps your rooms running, also without Home Assistant.",
-        "boiler_fields": "Reported boiler fields", "inferred": "Inferred activity — not verified operation",
-        "unreliable": "Unreliable raw boiler diagnostics",
-        "boiler_note": "Values as the boiler reports them. Unknown or stale is not zero; modulation is a percentage, "
-                       "not kW.",
+        "group_heating": "Heating", "group_dhw": "Hot water", "group_status": "Status and faults",
+        "group_counters": "Counters", "group_settings": "Boiler settings",
+        "group_thermostat": "Thermostat on the bus", "history_24h": "Last 24 hours",
+        "boiler_note": "Values as the boiler reports them; a value the boiler does not send is left out. "
+                       "Modulation is a percentage, not kW; \"active\" is read from the boiler's state, "
+                       "not a verified operation.",
+        "raw": "Raw boiler data",
+        "raw_note": "For troubleshooting: values exactly as the boiler sends them, not checked by the E32.",
+        "e32_device": "E32",
+        "estimates": "Energy and hot water counters",
+        "estimates_empty": "This boiler reports no energy or hot water counters yet; boilers that do (EMS+) fill "
+                           "them in here. The Heating page estimates the gas per day from the burner modulation "
+                           "and the boiler's power.",
+        "older_rooms": "Rooms (older setup)",
         "legacy_boiler_note": "Reported by the boiler over EMS, not a proven E32 command. Unknown or stale is not zero.",
         "flow_graph": "Flow selection, flow and return", "flow_selection": "Reported selected flow",
         "measured_flow": "Measured flow", "measured_return": "Measured return",
@@ -145,14 +164,11 @@ TEXT = {
         "dhw_measured": "Measured hot water", "dhw_target": "Reported hot water target",
         "states_graph": "Reported heating / hot water / flame / pump", "state_heating": "Reported heating",
         "state_dhw": "Reported hot water", "state_flame": "Reported flame bit", "state_pump": "Reported pump bit",
-        "device": "Device diagnostics", "ems": "EMS information",
         "dhw_card": "Hot water capability and quality",
         "dhw_note": "Domestic hot water, read-only: last reported values with unverified source age; "
                     "nothing is written to the boiler.",
-        "dhw_none": "No hot water fields on this connection; unknown is not zero or off.",
         "dhw_profile": "Profile", "dhw_status": "status", "unknown": "Unknown",
         "estimates_note": "Energy and volume are estimates from reported values, not gas or heat meters.",
-        "counters": "Reported and estimated counters",
         "energy_chart": "Estimated energy per day (not a meter)", "volume_chart": "Hot water volume per day",
         "flame_chart": "Observed flame time per day",
         "models_note": "Room heat models are estimates, not measured heat; unknown or stale inputs leave gaps.",
@@ -207,10 +223,21 @@ TEXT = {
                   "eigen regeling van de ketel blijft de baas.",
         "active": "De E32 regelt de ketel.",
         "how": "De E32 houdt je ruimtes op temperatuur, ook zonder Home Assistant.",
-        "boiler_fields": "Gemelde ketelwaarden", "inferred": "Afgeleide activiteit — niet geverifieerd",
-        "unreliable": "Onbetrouwbare ruwe keteldiagnose",
-        "boiler_note": "Waarden zoals de ketel ze meldt. Onbekend of verouderd is geen nul; modulatie is een "
-                       "percentage, geen kW.",
+        "group_heating": "Verwarming", "group_dhw": "Warm water", "group_status": "Status en storingen",
+        "group_counters": "Tellers", "group_settings": "Ketelinstellingen",
+        "group_thermostat": "Thermostaat op de bus", "history_24h": "Afgelopen 24 uur",
+        "boiler_note": "Waarden zoals de ketel ze meldt; een waarde die de ketel niet stuurt, staat er niet. "
+                       "Modulatie is een percentage, geen kW; \"actief\" komt uit de toestand van de ketel, "
+                       "geen geverifieerde werking.",
+        "raw": "Ruwe keteldata",
+        "raw_note": "Voor het zoeken naar fouten: waarden precies zoals de ketel ze stuurt, niet gecontroleerd "
+                    "door de E32.",
+        "e32_device": "E32",
+        "estimates": "Tellers voor energie en warm water",
+        "estimates_empty": "Deze ketel meldt nog geen tellers voor energie of warm water; ketels die dat wel doen "
+                           "(EMS+) vullen ze hier in. De pagina Verwarming schat het gas per dag uit de "
+                           "brandermodulatie en het vermogen van de ketel.",
+        "older_rooms": "Ruimtes (oudere opzet)",
         "legacy_boiler_note": "Gemeld door de ketel via EMS, geen bewezen E32-opdracht. Onbekend of verouderd is "
                               "geen nul.",
         "flow_graph": "Aanvoerkeuze, aanvoer en retour", "flow_selection": "Gemelde gekozen aanvoer",
@@ -221,14 +248,11 @@ TEXT = {
         "dhw_measured": "Gemeten warm water", "dhw_target": "Gemeld warmwaterdoel",
         "states_graph": "Gemeld verwarmen / warm water / vlam / pomp", "state_heating": "Gemeld verwarmen",
         "state_dhw": "Gemeld warm water", "state_flame": "Gemelde vlambit", "state_pump": "Gemelde pompbit",
-        "device": "Apparaatdiagnose", "ems": "EMS-informatie",
         "dhw_card": "Warmwatermogelijkheden en kwaliteit",
         "dhw_note": "Warm tapwater, alleen lezen: laatst gemelde waarden met onbevestigde bronleeftijd; "
                     "er wordt niets naar de ketel geschreven.",
-        "dhw_none": "Geen warmwaterwaarden op deze verbinding; onbekend is geen nul of uit.",
         "dhw_profile": "Profiel", "dhw_status": "status", "unknown": "Onbekend",
         "estimates_note": "Energie en volume zijn schattingen uit gemelde waarden, geen gas- of warmtemeter.",
-        "counters": "Gemelde en geschatte tellers",
         "energy_chart": "Geschatte energie per dag (geen meter)", "volume_chart": "Warmwatervolume per dag",
         "flame_chart": "Waargenomen vlamtijd per dag",
         "models_note": "Warmtemodellen per ruimte zijn schattingen, geen gemeten warmte; onbekende of verouderde "
@@ -311,6 +335,26 @@ def _rows(entity_ids):
     """Entities-card rows named by the entity alone: the card title already says whose they are,
     and the device name in front of every row cut the names short."""
     return [{"entity": entity_id, "name": {"type": "entity"}} for entity_id in entity_ids]
+
+
+def _known_rows(entity_ids):
+    """Rows shown only while their entity has a value (no "Unknown" rows for what a boiler never sends)."""
+    return [{"type": "conditional", "conditions": _known(row["entity"]), "row": row} for row in _rows(entity_ids)]
+
+
+def _any_known(entity_ids):
+    """Card visibility: while at least one of the entities has a value."""
+    return [{"condition": "or", "conditions": [condition for entity_id in entity_ids for condition in _known(entity_id)]}]
+
+
+def _none_known(entity_ids):
+    """Card visibility: while none of the entities has a value."""
+    return [{"condition": "state", "entity": entity_id, "state": ["unavailable", "unknown"]} for entity_id in entity_ids]
+
+
+def _known_entities_card(entity_ids):
+    """An entities card (no title: its section heading names it) of rows with a value; hidden while none has one."""
+    return {"type": "entities", "entities": _known_rows(entity_ids), "visibility": _any_known(entity_ids)}
 
 
 def _learning_cards(t, room, active=None):
@@ -691,8 +735,8 @@ class RoomDashboard:
 
         heating, comparison = self._heating_sections(t, entries, hub_entities, native_fields, essential,
                                                      registry, e32_rooms, legacy)
-        boiler, unreliable = self._boiler_sections(t, hub_entities, native_fields, graph)
-        diagnostics = self._diagnostics_cards(t, registry, hub_entities, unreliable)
+        boiler, raw = self._boiler_sections(t, hub_entities, native_fields, graph)
+        diagnostics = self._diagnostics_sections(t, registry, hub_entities, raw)
         return {
             "views": [
                 # Dense: a short section (Now) takes the gap under itself instead of leaving it empty.
@@ -715,9 +759,9 @@ class RoomDashboard:
                 *([{"title": t["week_program"], "path": "week-program", "panel": True, "icon": "mdi:calendar-week",
                     "cards": [{"type": E32_WEEK_CARD_TYPE, "entry_id": self.entry_id}]}] if e32_rooms else []),
                 {"title": t["boiler_view"], "path": "boiler", "icon": "mdi:water-boiler",
-                 "type": "sections", "max_columns": 2, "sections": boiler},
+                 "type": "sections", "max_columns": 3, "dense_section_placement": True, "sections": boiler},
                 {"title": t["diagnostics"], "path": "diagnostics", "icon": "mdi:information-outline",
-                 "cards": diagnostics},
+                 "type": "sections", "max_columns": 3, "dense_section_placement": True, "sections": diagnostics},
                 # Reached from the "E32 compared with your thermostat" link under Now.
                 *([{"title": t["comparison_view"], "path": COMPARISON_PATH, "subview": True,
                     "back_path": "/" + self.path + "/heating", "icon": "mdi:compare-horizontal",
@@ -977,36 +1021,49 @@ class RoomDashboard:
                 and item.domain != "number"}  # the design flow is a select (never a 0 °C number)
 
     def _boiler_sections(self, t, hub, fields, graph):
-        """The boiler view, and the unreliable raw fields (for Diagnostics)."""
-        from .boiler_fields import FIELDS, QUALITIES
-        field_quality = {field[0]: quality for field, quality in zip(FIELDS, QUALITIES)}
-        unreliable = None
+        """The boiler view, and the raw boiler fields (for Diagnostics).
+
+        One section per group (heating, hot water, status, counters, settings, the thermostat on the bus),
+        each a heading and the rows that have a value, then the last 24 hours. Raw values the E32 does not
+        check go to Diagnostics.
+        """
+        from .boiler_fields import INDEX_BY_NAME, quality
+        raw = None
         if fields:
             # Native cards only. Reported selected flow is NOT a controller request,
             # and burner modulation percentage is NOT measured kW or power factor.
-            rows = {quality: [entity_id for name, entity_id in fields.items()
-                              if field_quality.get(name, 1) == quality] for quality in (0, 1, 2)}
-            entity_cards = {quality: ({"type": "entities", "title": title, "show_header_toggle": False,
-                                       "entities": _rows(rows[quality])} if rows[quality] else None)
-                            for quality, title in ((0, t["boiler_fields"]), (1, t["unreliable"]),
-                                                   (2, t["inferred"]))}
-            unreliable = entity_cards[1]
-            sections = [
-                _section(_heading(t["boiler_fields"], "mdi:water-boiler"),
-                         {"type": "markdown", "content": t["boiler_note"]}, entity_cards[0], entity_cards[2]),
-                _section(
-                    _heading(t["flow_graph"], "mdi:chart-line"),
-                    graph(t["flow_graph"], (
-                        ("reported_selected_flow_temperature", t["flow_selection"]),
-                        ("measured_flow_temperature", t["measured_flow"]),
-                        ("measured_return_temperature", t["measured_return"])), fields),
-                    graph(t["modulation_graph"], (
-                        ("reported_burner_modulation", t["modulation_series"]),), fields),
-                    graph(t["dhw_graph"], (
-                        ("selected_dhw_temperature", t["dhw_selected"]),
-                        ("measured_dhw_temperature", t["dhw_measured"]),
-                        ("reported_dhw_target", t["dhw_target"])), fields)),
-            ]
+            def order(name):
+                # Table order; activity inferred from the state bits (quality 2) last in its group.
+                index = INDEX_BY_NAME.get(name)
+                return (index is not None and quality(index) == 2, index if index is not None else len(INDEX_BY_NAME),
+                        name)
+            groups = {}
+            for name in sorted(fields, key=order):
+                groups.setdefault(boiler_group(name), []).append(fields[name])
+            raw = groups.pop("raw", None)
+            sections = []
+            for key, icon in BOILER_GROUPS:
+                if groups.get(key):
+                    sections.append(_section(_heading(t["group_" + key], icon), _known_entities_card(groups[key]),
+                                             None if sections else {"type": "markdown", "content": t["boiler_note"]}))
+
+            def shown(card):
+                # A graph while all its series have a value: no "Unavailable" in its legend.
+                if card is not None:
+                    card["visibility"] = [condition for item in card["entities"] for condition in _known(item["entity"])]
+                return card
+            sections.append(_section(
+                _heading(t["history_24h"], "mdi:chart-line"),
+                shown(graph(t["flow_graph"], (
+                    ("reported_selected_flow_temperature", t["flow_selection"]),
+                    ("measured_flow_temperature", t["measured_flow"]),
+                    ("measured_return_temperature", t["measured_return"])), fields)),
+                shown(graph(t["modulation_graph"], (
+                    ("reported_burner_modulation", t["modulation_series"]),), fields)),
+                shown(graph(t["dhw_graph"], (
+                    ("selected_dhw_temperature", t["dhw_selected"]),
+                    ("measured_dhw_temperature", t["dhw_measured"]),
+                    ("reported_dhw_target", t["dhw_target"])), fields))))
         else:
             sections = [_section(
                 _heading(t["boiler"], "mdi:water-boiler"),
@@ -1022,59 +1079,56 @@ class RoomDashboard:
                     ("boiler_pump_active", t["state_pump"])), hub))]
         # A heading and a note alone are no section.
         return [section for section in sections
-                if any(card["type"] not in ("heading", "markdown") for card in section["cards"])], unreliable
+                if any(card["type"] not in ("heading", "markdown") for card in section["cards"])], raw
 
-    def _diagnostics_cards(self, t, registry, hub, unreliable):
-        cards = []
-        diagnostic_entities = [hub[metric] for metric in DEVICE_DIAGNOSTIC_METRICS if metric in hub]
-        if diagnostic_entities:
-            cards.append({"type": "entities", "title": t["device"], "entities": _rows(diagnostic_entities)})
-        ems_entities = [hub[metric] for metric in EMS_METRICS if metric in hub and metric not in {
-            "boiler_selected_hot_water_temperature", "boiler_current_hot_water_temperature",
-            "boiler_hot_water_flow", "boiler_hot_water_enabled"}]
-        ems_entities += [hub[key] for key in hub if key.endswith("_v2") and key[:-3] in EMS_METRICS]
-        if ems_entities:
-            cards.append({"type": "entities", "title": t["ems"], "entities": _rows(ems_entities)})
-        if unreliable:
-            cards.append(unreliable)
-        # Native read-only DHW card, driven only by the integration-owned status.
-        dhw_id = hub.get("dhw_capabilities")
-        note = t["dhw_note"]
-        if dhw_id:
-            quoted = json.dumps(dhw_id)
-            note += ("\n\n" + t["dhw_profile"] + ": {{ state_attr(" + quoted + ", 'profile') or '"
-                     + t["unknown"] + "' }}; " + t["dhw_status"] + ": {{ states(" + quoted + ") }}.\n"
-                     "{% set fields = state_attr(" + quoted + ", 'fields') or {} %}"
-                     "{% for key, field in fields.items() %}{% if field.supported_read %}"
-                     "\n- {{ key | replace('_', ' ') }}: {{ field.value if field.value is not none else '"
-                     + t["unknown"] + "' }} {{ field.unit or '' }} ({{ field.quality }}){% endif %}{% endfor %}")
-            cards.append({"type": "entities", "title": t["dhw_card"], "entities": _rows([dhw_id])})
-        else:
-            note += " " + t["dhw_none"]
-        cards.append({"type": "markdown", "content": note})
-        # Today's taps, keeping warm and burner time, as the E32 sorts them on the bus.
+    def _diagnostics_sections(self, t, registry, hub, raw):
+        """The Diagnostics view: the E32, today's hot water, the counters, the raw boiler data and older rooms."""
+        sections = []
+        device = [hub[metric] for metric in DEVICE_DIAGNOSTIC_METRICS if metric in hub]
+        # Rows (not tiles) under each heading: whole names, also on a phone.
+        if device:
+            sections.append(_section(_heading(t["e32_device"], "mdi:chip"), _known_entities_card(device)))
+        # Today's taps, keeping warm and burner time, as the E32 sorts them on the bus, and the
+        # read-only hot water capability (only on a connection that reports one).
         dhw_today = [hub[key] for key in DHW_TODAY if key in hub]
-        if dhw_today:
-            cards.append({"type": "entities", "title": t["dhw_today"], "entities": _rows(dhw_today)})
-        # Estimates: only isolated definition-v2 IDs, no legacy counter aggregates or backfill.
-        counter_keys = ("energy", "energy_heating", "energy_warm_water", "energy_unattributed",
-                        "warm_water_usage", "burner_observed_time")
-        counters = [hub[key + "_v2"] for key in counter_keys if key + "_v2" in hub]
-        charts = []
-        for title, keys in (
-            (t["energy_chart"], ("energy", "energy_heating", "energy_warm_water", "energy_unattributed")),
-            (t["volume_chart"], ("warm_water_usage",)),
-            (t["flame_chart"], ("burner_observed_time",)),
-        ):
-            entities = [hub[key + "_v2"] for key in keys if key + "_v2" in hub]
-            if entities:
-                charts.append({"type": "statistics-graph", "title": title, "entities": entities,
-                               "days_to_show": 7, "period": "day", "chart_type": "bar",
-                               "stat_types": ["change"]})
+        dhw_id = hub.get("dhw_capabilities")
+        if dhw_today or dhw_id:
+            cards = [_heading(t["dhw_today"], "mdi:faucet"), _known_entities_card(dhw_today) if dhw_today else None]
+            if dhw_id:
+                quoted = json.dumps(dhw_id)
+                note = (t["dhw_note"] + "\n\n" + t["dhw_profile"] + ": {{ state_attr(" + quoted + ", 'profile') or '"
+                        + t["unknown"] + "' }}; " + t["dhw_status"] + ": {{ states(" + quoted + ") }}.\n"
+                        "{% set fields = state_attr(" + quoted + ", 'fields') or {} %}"
+                        "{% for key, field in fields.items() %}{% if field.supported_read %}"
+                        "\n- {{ key | replace('_', ' ') }}: {{ field.value if field.value is not none else '"
+                        + t["unknown"] + "' }} {{ field.unit or '' }} ({{ field.quality }}){% endif %}{% endfor %}")
+                cards += [{"type": "entities", "title": t["dhw_card"], "entities": _rows([dhw_id])},
+                          {"type": "markdown", "content": note}]
+            sections.append(_section(*cards))
+        # The energy and hot water counters: only isolated definition-v2 IDs, no legacy counter aggregates or
+        # backfill. Each shows once it has a value; until then one line says why there is none.
+        counters = [hub[key + "_v2"] for key in COUNTER_KEYS if key + "_v2" in hub]
         if counters:
-            cards.append({"type": "markdown", "content": t["estimates_note"]})
-            cards.append({"type": "entities", "title": t["counters"], "entities": _rows(counters)})
-        cards.extend(charts)
+            charts = []
+            for title, keys in (
+                (t["energy_chart"], ("energy", "energy_heating", "energy_warm_water", "energy_unattributed")),
+                (t["volume_chart"], ("warm_water_usage",)),
+                (t["flame_chart"], ("burner_observed_time",)),
+            ):
+                entities = [hub[key + "_v2"] for key in keys if key + "_v2" in hub]
+                if entities:
+                    charts.append({"type": "statistics-graph", "title": title, "entities": entities,
+                                   "days_to_show": 7, "period": "day", "chart_type": "bar",
+                                   "stat_types": ["change"], "visibility": _any_known(entities)})
+            sections.append(_section(
+                _heading(t["estimates"], "mdi:chart-bar"),
+                _known_entities_card(counters),
+                {"type": "markdown", "content": t["estimates_note"], "visibility": _any_known(counters)},
+                {"type": "markdown", "content": t["estimates_empty"], "visibility": _none_known(counters)},
+                *charts))
+        if raw:
+            sections.append(_section(_heading(t["raw"], "mdi:wrench-outline"),
+                                     {"type": "markdown", "content": t["raw_note"]}, _known_entities_card(raw)))
         # Older HA rooms: heat model estimates and target / measured history, by room name.
         devices = dr.async_get(self.hass)
         model_cards = []
@@ -1105,6 +1159,6 @@ class RoomDashboard:
                 model_cards.append({"type": "history-graph", "title": t["room_history"].format(room=name),
                                     "hours_to_show": 24, "entities": history})
         if model_cards:
-            cards.append({"type": "markdown", "content": t["models_note"]})
-            cards.extend(model_cards)
-        return cards
+            sections.append(_section(_heading(t["older_rooms"], "mdi:home-thermometer-outline"),
+                                     {"type": "markdown", "content": t["models_note"]}, *model_cards))
+        return sections

@@ -999,6 +999,11 @@ private:
             }
             server_.send(201,"text/plain","Local SOURCE selected without device restart; previous config is readback-only until explicit new plan apply/readback");return;
         }
+        if(oldSource&&!cJSON_IsNull(oldSource)&&cJSON_IsNull(nativeSource)
+            &&!control::ModernTransport::clearStaleNativePlan()) {
+            // Settings stay saved; the next boot ignores the leftover plan anyway.
+            DBGLOGFI(log_,logFeature_,"Native plan record not removed after SOURCE clear\n");
+        }
 		server_.send(201,"text/plain","Saved and verified; restart to apply network settings");
 #else
 

@@ -44,6 +44,17 @@ public:
         if(err==ESP_OK) err=nvs_commit(handle);
         nvs_close(handle); return err==ESP_OK;
     }
+    // Removes the one control config record (never other ot_control keys such
+    // as learned models). Absent namespace/key counts as already removed.
+    static bool eraseConfig() {
+        nvs_handle_t handle;
+        const auto opened=nvs_open("ot_control",NVS_READWRITE,&handle);
+        if(opened==ESP_ERR_NVS_NOT_FOUND) return true;
+        if(opened!=ESP_OK) return false;
+        const auto err=nvs_erase_key(handle,"config");
+        const bool erased=(err==ESP_OK&&nvs_commit(handle)==ESP_OK)||err==ESP_ERR_NVS_NOT_FOUND;
+        nvs_close(handle); return erased;
+    }
 private:
     ControlStorageProfile profile_;
 };

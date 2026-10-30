@@ -236,6 +236,17 @@ public:
             return source&&controller_->nativeSourceCanReplace(*source);
         } catch(...) {return false;}
     }
+    // Settings with native_shadow_source cleared are durably saved: remove the
+    // stored native plan record that no decoder may read any more, so the next
+    // boot starts unconfigured. Same loop task as the MQTT receive path, so no
+    // ha/config save interleaves. The running controller keeps its memory copy
+    // until the restart that applies the settings.
+    static bool clearStaleNativePlan() {
+        try {
+            NvsControlStore store;
+            return clearStaleNativePlanRecord(store,[]{return NvsControlStore::eraseConfig();});
+        } catch(...) {return false;}
+    }
     void inhibitNativeSourceMutation() {
         brokerDns_.cancel();
         brokerTcp_.cancel();

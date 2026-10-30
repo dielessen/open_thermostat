@@ -390,7 +390,7 @@ class EnergyUse:
     def _write(self, now):
         self._written = now
         for sensor in self.sensors:
-            if sensor.hass is not None and sensor.entity_id:
+            if sensor.added:  # never a removed or disabled sensor (it keeps its hass)
                 sensor.async_write_ha_state()
 
     @callback
@@ -467,6 +467,7 @@ class GasUseSensor(RestoreEntity, SensorEntity):
 
     def __init__(self, use, kind):
         self.use, self.kind = use, kind
+        self.added = False  # in Home Assistant now (added, not removed or disabled)
         prefix = use.hub.prefix
         self._attr_unique_id = f"{prefix}_hub_{kind}_gas"
         self._attr_translation_key = f"{kind}_gas"
@@ -500,6 +501,11 @@ class GasUseSensor(RestoreEntity, SensorEntity):
         if (value is not None and last.attributes.get("unit_of_measurement") == self.use.unit
                 and value > self.use.data["totals"][self.kind]):
             self.use.data["totals"][self.kind] = value
+        self.added = True
+
+    async def async_will_remove_from_hass(self):
+        self.added = False
+        await super().async_will_remove_from_hass()
 
 
 async def async_setup_energy_use(hass, entry, async_add_entities, options, hub, connection):

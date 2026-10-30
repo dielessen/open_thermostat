@@ -463,7 +463,10 @@ private:
 		std::array<char,65> token{},proof{};
 		if(!randomToken(token)||!randomToken(proof)){server_.send(503,"application/json","{\"error\":\"session_unavailable\"}");return;}
 		const auto old=requestToken();
-		const auto *session=sessions_.issue(token.data(),proof.data(),now,old.c_str(),recoverySeen);
+		// A full table may evict an idle session, but never while a boiler test,
+		// settings write or update depends on a session (same rule as recovery).
+		const bool evictIdle=!controller_.boilerTestActive()&&!controller_.boilerSettingsActive()&&!update::mutationBlocked("/ota");
+		const auto *session=sessions_.issue(token.data(),proof.data(),now,old.c_str(),recoverySeen,evictIdle);
 		if(!session){server_.send(429,"application/json","{\"error\":\"session_capacity\"}");return;}
 		controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
 		sessions_.loginSucceeded();

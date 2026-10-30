@@ -11,6 +11,9 @@ public:
     static constexpr std::size_t maximumSessions = 4;
     static constexpr uint64_t lifetimeMs = 7ULL * 24 * 60 * 60 * 1000;
     static constexpr uint64_t idleTimeoutMs = 30ULL * 60 * 1000;
+    // A full table may give up its least recently used session idle this long
+    // (a closed browser tab); pages that poll every 10 s are never idle here.
+    static constexpr uint64_t evictIdleMs = 2ULL * 60 * 1000;
     static constexpr const char *cookieName = "OTSESSION";
     enum class SettingsScope : uint8_t { network=0, bluetooth=1 };
     struct SettingsFence { std::array<char,65> hash{}, tag{}; };
@@ -109,7 +112,10 @@ public:
         return hexToken(currentHash)&&quotedTag.size()==66&&quotedTag.front()=='"'&&quotedTag.back()=='"'
             &&hexToken(view(fence.tag))&&equal(quotedTag.substr(1,64),view(fence.tag))&&equal(currentHash,view(fence.hash));
     }
-    const Session *issue(std::string_view token,std::string_view proof,uint64_t now,std::string_view replacing = {}, bool revokeAll = false) {
+    // evictIdle: the caller has checked that no boiler test, boiler settings
+    // write or firmware update relies on an existing session's lifetime.
+    const Session *issue(std::string_view token,std::string_view proof,uint64_t now,std::string_view replacing = {}, bool revokeAll = false,
+                         bool evictIdle = false) {
         if (!hexToken(token) || !hexToken(proof) || equal(token,proof) || now > UINT64_MAX-lifetimeMs) return nullptr;
         Session *slot = nullptr;
         for (auto &session : sessions_) {
@@ -123,7 +129,14 @@ public:
         // Validate entropy, clock and aliases above before invalidating any session.
         if (revokeAll) { sessions_ = {}; slot = &sessions_[0]; }
         if (!slot) for (auto &session : sessions_) if (!live(session,now)) { slot = &session; break; }
-        if (!slot) return nullptr; // Do not evict another browser to admit a new one.
+        if (!slot && evictIdle) {
+            // Full: take the least recently used session idle for evictIdleMs.
+            // Sign-ins (Home Assistant every few minutes, browsers) no longer
+            // fail with session_capacity because closed tabs keep their slots.
+            for (auto &session : sessions_)
+                if (live(session,now) && now-session.lastSeen >= evictIdleMs && (!slot || session.lastSeen < slot->lastSeen)) slot = &session;
+        }
+        if (!slot) return nullptr; // Every session is in active use: never evict it.
         *slot = Session{};
         for (std::size_t i = 0; i < 64; ++i) { slot->token[i] = token[i]; slot->csrf[i] = proof[i]; }
         slot->issued = now; slot->lastSeen = now; slot->until = now+lifetimeMs; slot->occupied = true;

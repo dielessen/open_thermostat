@@ -428,6 +428,7 @@ class Installation:
         self.platforms = Platforms(hass)
         self.setups, self.errors, self.log = 0, [], []
         self._reload_lock = asyncio.Lock()  # HA reloads one entry at a time (its setup lock)
+        self.reloading = 0  # reloads requested and not yet finished (idle)
         monkeypatch.setattr(mqtt, "async_wait_for_mqtt_client", AsyncMock(return_value=True))
         monkeypatch.setattr(mqtt, "async_subscribe", self.broker.subscribe)
         monkeypatch.setattr(mqtt, "async_publish", self.broker.publish)
@@ -554,13 +555,33 @@ class Installation:
     async def reload(self, entry_id):
         assert entry_id == self.entry.entry_id
         self.log.append(("reload",))
-        async with self._reload_lock:
-            try:
-                await self._stop()
-            except Exception as err:
-                self.errors.append(f"unload {type(err).__name__}: {err}")
-                raise
-            return await self._start()
+        self.reloading += 1
+        try:
+            async with self._reload_lock:
+                try:
+                    await self._stop()
+                except Exception as err:
+                    self.errors.append(f"unload {type(err).__name__}: {err}")
+                    raise
+                return await self._start()
+        finally:
+            self.reloading -= 1
+
+    async def idle(self, timeout=30):
+        """Wait until every reload Home Assistant queued has finished.
+
+        A connect or removal saves the entry several times (link off, old rooms
+        removed, link on); each save makes the update listener queue a reload that
+        may still run after the action itself ended (slowly on a loaded machine).
+        What the owner sees is the state after those reloads, so the checks wait
+        for exactly that: no reload running or queued, no task pending.
+        """
+        async with asyncio.timeout(timeout):
+            while True:
+                await self.hass.async_block_till_done()
+                if self.reloading == 0 and not self._reload_lock.locked():
+                    return
+                await asyncio.sleep(0.01)
 
     async def restart(self):
         """An HA restart: everything in memory is gone, the saved entry and the broker's retained topics stay."""
@@ -709,6 +730,7 @@ async def test_repairs_on_a_beta18_e32_says_update_first_and_changes_nothing(own
             assert e32.http_writes() == [], "a refusal changes nothing on the E32 (no plan, settings or restart)"
             assert e32_link.legacy_rooms_pending(entry)  # Repairs offers it again after the update
         assert e32.sessions == 0, "every E32 sign-in ends with a sign-out"
+        await owner.idle()  # the reloads the action queued have finished
         assert_not_dead(owner)
         # Then the E32 updates to beta.19: its topics arrive and the inputs are forwarded.
         await e32_reaches_home_assistant(owner)
@@ -729,6 +751,7 @@ async def test_a_link_the_e32_never_confirms_does_not_leave_a_dead_integration(o
         result = await confirm_removal(flow, form)
         assert result["type"] in ("form", "abort", "create_entry"), result
         assert e32.sessions == 0
+        await owner.idle()  # the reloads the action queued have finished
         assert_not_dead(owner)
         await e32_reaches_home_assistant(owner)
     finally:
@@ -753,6 +776,7 @@ async def test_repairs_on_a_beta19_e32_removes_the_old_room_and_everything_keeps
         badkamer = next(r for r in e32.plan["rooms"] if r["id"] == "badkamer")
         assert badkamer["sources"] == [{"type": "ha", "id": owner.binding.temperature.entity_id}]
         assert e32.sessions == 0
+        await owner.idle()  # the reloads the action queued have finished
         assert_not_dead(owner)
         await e32_reaches_home_assistant(owner)
     finally:
@@ -769,6 +793,7 @@ async def test_the_owner_entry_as_described_without_its_native_profile_still_sta
     entry, e32 = await started_owner(owner, native_profile=False)
     try:
         assert SOURCE_OPTION not in entry.options and e32_link.legacy_zones(entry)
+        await owner.idle()  # the reloads the action queued have finished
         assert_not_dead(owner)
         assert ir.async_get(owner.hass).async_get_issue(DOMAIN, e32_link.issue_id(entry)) is not None
         await e32_reaches_home_assistant(owner)
@@ -861,6 +886,7 @@ async def test_connect_e32_on_a_full_e32_names_the_cause_and_changes_nothing(own
         assert error in strings["options"]["error"]
         assert snapshot(entry) == before and entry.options["shadow_enabled"] is True
         assert e32.http_writes() == [] and e32.sessions == 0
+        await owner.idle()  # the reloads the action queued have finished
         assert_not_dead(owner)
     finally:
         await teardown(owner)

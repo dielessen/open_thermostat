@@ -146,4 +146,7 @@ async def test_rows_in_entities_cards_are_named_by_the_entity_alone(hass):
     rows = [row for view in config["views"] for card in view_cards(view) if card["type"] == "entities"
             for row in card["entities"]]
     assert rows
-    assert all(row == {"entity": row["entity"], "name": {"type": "entity"}} for row in rows)
+    # Boiler rows show only while they have a value: a conditional row around the same plain row.
+    plain = [row["row"] if row.get("type") == "conditional" else row for row in rows]
+    assert all(row == {"entity": row["entity"], "name": {"type": "entity"}} for row in plain)
+    assert all(row["conditions"] == [known(row["row"]["entity"])] for row in rows if row.get("type") == "conditional")

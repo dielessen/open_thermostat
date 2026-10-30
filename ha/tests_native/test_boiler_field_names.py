@@ -45,8 +45,12 @@ def test_every_field_has_a_short_english_and_dutch_name():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("language,name", [("en", "Flow temperature"), ("nl", "Aanvoertemperatuur")])
-async def test_existing_field_entity_keeps_its_entity_id_and_gets_the_translated_name(hass, monkeypatch, language, name):
+@pytest.mark.parametrize("language,name,user_name", [("en", "Flow temperature", None),
+                                                     ("nl", "Aanvoertemperatuur", None),
+                                                     ("pl", "Temperatura zasilania", None),
+                                                     ("nl", "Aanvoer vloer", "Aanvoer vloer")])
+async def test_existing_field_entity_keeps_its_entity_id_and_gets_the_translated_name(hass, monkeypatch, language, name,
+                                                                                      user_name):
     from homeassistant import loader
     from homeassistant.helpers import device_registry as dr, entity_registry as er, translation
     from test_modern_metrics import system
@@ -65,13 +69,15 @@ async def test_existing_field_entity_keeps_its_entity_id_and_gets_the_translated
     er.async_get(hass).async_get_or_create("sensor", "open_thermostat", "fixture_boiler_fields_v1_measured_flow_temperature",
                                            config_entry=e, device_id=device.id,
                                            suggested_object_id=owner_id.split(".")[1])
+    if user_name:  # a name the user gave the entity wins over the translation
+        er.async_get(hass).async_update_entity(owner_id, name=user_name)
     await actual.platform_data.async_load_translations()
     flow = BoilerFieldEntity("fixture", client, 1, translated_fields())
     try:
         await actual.async_add_entities([flow])
         await hass.async_block_till_done()
         assert flow.entity_id == owner_id
-        assert hass.states.get(owner_id).attributes["friendly_name"] == "E32 " + name
+        assert hass.states.get(owner_id).attributes["friendly_name"] == (user_name or "E32 " + name)
     finally:
         await actual.async_reset()
         await runtime.async_stop()

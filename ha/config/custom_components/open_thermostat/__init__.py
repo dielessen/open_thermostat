@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
 from .const import (CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DOMAIN, E32_DEVICE_NAME, MANUFACTURER,
-                    OLD_MANUFACTURER, PLATFORMS)
+                    OLD_MANUFACTURER, PLATFORMS, TEST_SETUP_DEVICE_NAMES)
 from .dashboard import RoomDashboard
 from .heating import HeatingTracker
 
@@ -58,6 +58,16 @@ def _rename_old_manufacturer(hass, entry):
             registry.async_update_device(device.id, manufacturer=MANUFACTURER)
 
 
+def _drop_test_setup_name(hass, entry):
+    """The hub device's long name from the project's test setup (TEST_SETUP_DEVICE_NAMES) goes: its entities
+    read "OpenThermostat E32 …" again instead of "E32-regelaar — ketel en diagnose …". Only that exact name;
+    a name the user chose stays. The entity IDs never change with a device name."""
+    registry = dr.async_get(hass)
+    device = registry.async_get_device(identifiers={(DOMAIN, entry.data[CONF_TOPIC_PREFIX])})
+    if device is not None and device.name_by_user in TEST_SETUP_DEVICE_NAMES:
+        registry.async_update_device(device.id, name_by_user=None)
+
+
 async def _cleanup_setup_bench(hass, entry_id, owner):
     from .v1_bench_actions import KEY, async_unregister_entry
     if hass.data.get(KEY, {}).get(entry_id) is owner:
@@ -80,6 +90,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             config_entry_id=entry.entry_id, identifiers={(DOMAIN, prefix)},
             name="OpenThermostat", manufacturer=MANUFACTURER, model="OpenThermostat")
         _rename_old_manufacturer(hass, entry)
+        _drop_test_setup_name(hass, entry)
         if entry.options.get(CONF_CREATE_DASHBOARD, False):
             dashboard = RoomDashboard(hass, prefix, entry.entry_id)
             state["dashboard"] = dashboard

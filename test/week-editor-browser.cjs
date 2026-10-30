@@ -255,6 +255,34 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    await card.locator('.wpe-seg').first().waitFor();assert.equal(await card.getByText(W.outdated).count(),0,'the served module: no notice');
    assert.deepEqual(errors,[]);await page.close();results.push({part:'ha-waiting',lang});
   }
+  // 6. Another dashboard card (a HACS resource) replaces window.customElements after our modules ran, with a
+  //    scoped-registry polyfill whose get() does not see earlier definitions (the owner's HA, 30 Oct 2026):
+  //    every OpenThermostat card element is defined again in the registry in use, without errors.
+  {
+   const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+   await page.route('http://ha.test/**',route=>{const p=new URL(route.request().url()).pathname;
+    if(p==='/')return route.fulfill({contentType:'text/html',body:'<body><main></main></body>'});
+    if(p==='/card.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'e32-week-card.js'))});
+    if(p==='/planner.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'week-planner.js'))});
+    return route.fulfill({status:404,body:''});});
+   await page.goto('http://ha.test/');
+   await page.evaluate(()=>customElements.define('home-assistant',class extends HTMLElement{}));
+   await page.addScriptTag({url:'/card.js',type:'module'});await page.addScriptTag({url:'/planner.js',type:'module'});
+   const names=['openthermostat-e32-week','openthermostat-room-editor-v42','openthermostat-week-planner','openthermostat-room-editor'];
+   await page.waitForFunction(names=>names.every(n=>customElements.get(n)),names);
+   const replace=()=>page.evaluate(()=>{const h=new Map(),waits=new Map();
+    const fake={h,define(n,c){if(h.has(n))throw new DOMException('already defined','NotSupportedError');h.set(n,{g:c});(waits.get(n)||[]).forEach(r=>r(c));},
+     get(n){const t=h.get(n);return t==null?void 0:t.g;},whenDefined(n){return h.has(n)?Promise.resolve(h.get(n).g):new Promise(r=>waits.set(n,[...(waits.get(n)||[]),r]));}};
+    const define=fake.define;fake.define=function(e,t,i){fake.get(e)||define.call(fake,e,t,i);};
+    Object.defineProperty(window,'customElements',{value:fake,configurable:true});});
+   await replace();
+   assert.equal(await page.evaluate(()=>customElements.get('openthermostat-e32-week')),undefined,'the polyfill hides earlier definitions');
+   await page.waitForFunction(names=>names.every(n=>typeof customElements.get(n)==='function'),names,{timeout:5000});
+   // Replaced again much later: the next navigation inside Home Assistant defines them again.
+   await replace();await page.evaluate(()=>window.dispatchEvent(new Event('location-changed')));
+   assert.deepEqual(await page.evaluate(names=>names.filter(n=>typeof customElements.get(n)!=='function'),names),[]);
+   assert.deepEqual(errors,[]);await page.close();results.push({part:'ha-registry-replaced'});
+  }
  }finally{await browser.close();}
  fs.writeFileSync(path.join(output,'RESULT.json'),JSON.stringify({status:'PASS',results},null,2)+'\n');
  console.log(JSON.stringify({status:'PASS',cases:results.length}));

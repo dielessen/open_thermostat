@@ -142,3 +142,17 @@ def test_the_asset_urls_follow_the_integration_version():
     assert CARD_URL.endswith(f"-{version}.js") and EDITOR_URL.endswith(f"-{version}.js")
     manifest = json.loads((COMPONENT / "manifest.json").read_text(encoding="utf-8"))
     assert {"frontend", "http"} <= set(manifest["dependencies"])
+
+
+def test_every_card_element_survives_a_replaced_registry():
+    """A HACS card's scoped-registry polyfill may replace customElements after our modules ran: every
+    OpenThermostat element goes through ensureDefined, which defines it again (browser case 6 in
+    test/week-editor-browser.cjs)."""
+    for name in ("e32-week-card.js", "week-planner.js"):
+        source = (COMPONENT / "frontend" / name).read_text(encoding="utf-8")
+        assert source.count("customElements.define(") == 1, name  # only inside ensureDefined
+        assert "const ensureDefined = (name, cls) =>" in source and "'location-changed', check" in source, name
+    planner = (COMPONENT / "frontend/week-planner.js").read_text(encoding="utf-8")
+    from custom_components.open_thermostat.week_planner import ROOM_CARD_TYPE
+    assert f"ensureDefined('{ROOM_CARD_TYPE.removeprefix('custom:')}'" in planner
+    assert "ensureDefined('openthermostat-e32-week', OpenThermostatE32Week);" in CARD

@@ -186,4 +186,21 @@ class OpenThermostatE32Week extends HTMLElement {
   this.refresh();
  }
 }
-if (!customElements.get('openthermostat-e32-week')) customElements.define('openthermostat-e32-week', OpenThermostatE32Week);
+// Other dashboard cards (HACS resources) may later replace window.customElements with a scoped-registry
+// polyfill whose get() does not see elements defined before it; Home Assistant then reports "Custom element
+// doesn't exist". So: define now, and again (a fresh subclass) whenever the registry in use lacks the element.
+// Never throws.
+const ensureDefined = (name, cls) => {
+ let own = cls;
+ const check = () => {
+  try { if (!customElements.get(name)) { customElements.define(name, own); own = class extends cls {}; } }
+  catch (e) { own = class extends cls {}; }
+ };
+ check();
+ if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', check, {once: true});
+ if (document.readyState !== 'complete') window.addEventListener('load', check, {once: true});
+ for (const ms of [0, 250, 1000, 3000, 10000]) setTimeout(check, ms);
+ window.addEventListener('location-changed', check);
+ return check;
+};
+ensureDefined('openthermostat-e32-week', OpenThermostatE32Week);

@@ -79,6 +79,27 @@ public:
         const auto idleRemaining = idleTimeoutMs-(now-session->lastSeen);
         return session->until-now < idleRemaining ? session->until-now : idleRemaining;
     }
+    // Diagnostics: the live sessions without any token, CSRF proof or fence.
+    struct Summary { uint64_t ageMs = 0, idleMs = 0, remainingMs = 0; bool current = false; };
+    template<class Visit>
+    void summaries(std::string_view token,uint64_t now,Visit visit) const {
+        for (const auto &session : sessions_) if (live(session,now)) {
+            const auto idleRemaining = idleTimeoutMs-(now-session.lastSeen);
+            visit(Summary{now-session.issued,now-session.lastSeen,
+                          session.until-now < idleRemaining ? session.until-now : idleRemaining,
+                          hexToken(token) && equal(token,view(session.token))});
+        }
+    }
+    // Ends the live sessions idle at least evictIdleMs (closed tabs), never
+    // `keep`. Same idle rule and caller checks as issue(...,evictIdle).
+    std::size_t revokeIdle(std::string_view keep,uint64_t now) {
+        std::size_t ended = 0;
+        for (auto &session : sessions_)
+            if (live(session,now) && now-session.lastSeen >= evictIdleMs && !(hexToken(keep) && equal(keep,view(session.token)))) {
+                session = Session{}; ++ended;
+            }
+        return ended;
+    }
     bool csrf(std::string_view token,std::string_view proof,uint64_t now) const {
         const auto *session = find(token,now);
         return session && hexToken(proof) && equal(proof,view(session->csrf));

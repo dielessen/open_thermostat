@@ -28,6 +28,24 @@
     <p id="log-loop-timing" class="small mb-1" role="status" aria-live="polite"></p>
     <p class="small text-muted" data-i18n="Intervals include network, HTTP and scheduler delays. They are not page-load times. Counters reset after restart; the observation window renews every minute.">Intervals include network, HTTP and scheduler delays. They are not page-load times. Counters reset after restart; the observation window renews every minute.</p>
   </details>
+  <section class="pd-panel" id="diag-console">
+  <h2 data-i18n="Diagnostics console">Diagnostics console</h2>
+  <p class="pd-help" data-i18n="Read-only commands for troubleshooting. Type help for the list. The console never changes settings.">Read-only commands for troubleshooting. Type help for the list. The console never changes settings.</p>
+  <form id="diag-form" class="d-flex flex-wrap gap-2 align-items-end mb-2">
+    <label class="flex-grow-1"><span data-i18n="Command">Command</span> <input id="diag-command" class="form-control" maxlength="32" list="diag-commands" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="help"></label>
+    <datalist id="diag-commands"></datalist>
+    <button id="diag-run" class="btn btn-primary" type="submit" data-i18n="Run">Run</button>
+    <button id="diag-copy" class="btn btn-secondary" type="button" data-i18n="Copy output">Copy output</button>
+  </form>
+  <pre id="diag-output" tabindex="0" aria-live="polite"></pre>
+  <h3 data-i18n="Actions">Actions</h3>
+  <p class="small text-muted" data-i18n="Each action asks for confirmation first. Neither runs while a boiler test, a boiler settings write or a firmware update is in progress.">Each action asks for confirmation first. Neither runs while a boiler test, a boiler settings write or a firmware update is in progress.</p>
+  <div class="d-flex flex-wrap gap-2">
+    <button id="diag-end-idle" class="btn btn-outline-secondary" type="button" data-i18n="End idle web sessions">End idle web sessions</button>
+    <button id="diag-restart" class="btn btn-outline-danger" type="button" data-i18n="Restart device">Restart device</button>
+  </div>
+  <p id="diag-action-status" role="status" aria-live="polite"></p>
+  </section>
   <section class="pd-panel">
   <h2 data-i18n="Logging settings">Logging settings</h2>
   <p class="pd-help" data-i18n="Choose how much is logged and whether logs also go to a server on your network.">Choose how much is logged and whether logs also go to a server on your network.</p>
@@ -48,5 +66,5 @@
   </form>
   </section>
 </section>
-<style>#log-lines{max-height:420px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.82rem}#log-lines .log-warn{color:var(--ot-warn)}#log-lines .log-err{color:var(--ot-err);font-weight:600}</style>
+<style>#log-lines,#diag-output{max-height:420px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.82rem}#diag-output:empty{display:none}#log-lines .log-warn{color:var(--ot-warn)}#log-lines .log-err{color:var(--ot-err);font-weight:600}</style>
 <script>SystemLogPage.mount(document.getElementById('system-log'));</script>

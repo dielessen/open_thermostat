@@ -6,7 +6,7 @@ window.SystemLogPage = (() => {
     if(active)active.abort();
     const controller=new AbortController();active=controller;
     const {signal}=controller, get=id=>root.querySelector('#'+id), text=s=>uiText(s);
-    const state={rows:[],cursor:0,boot:null,paused:false,busy:false,dirty:false,saving:false,uncertain:false,epoch:0};
+    const state={rows:[],cursor:0,boot:null,paused:false,busy:false,dirty:false,saving:false,uncertain:false,epoch:0,more:false};
     const alive=()=>!signal.aborted&&root.isConnected;
     const visible=()=>document.visibilityState!=='hidden';
     let timer=null,pollRequest=null;
@@ -91,7 +91,7 @@ window.SystemLogPage = (() => {
       try{
         const data=await request('/status/logs?after='+state.cursor,{},read);
         if(!alive()||!visible()||read.signal.aborted||state.paused||epoch!==state.epoch)return;
-        if(!Number.isSafeInteger(data.boot)||data.boot<0||!Number.isSafeInteger(data.latest)||data.latest<0||!Array.isArray(data.records)||data.records.length>8)throw Error('invalid');
+        if(!Number.isSafeInteger(data.boot)||data.boot<0||!Number.isSafeInteger(data.latest)||data.latest<0||!Array.isArray(data.records)||data.records.length>24)throw Error('invalid');
         const restarted=state.boot!==null&&state.boot!==data.boot;
         let cursor=restarted?0:state.cursor;
         if(!restarted&&data.latest<cursor)throw Error('invalid');
@@ -104,15 +104,17 @@ window.SystemLogPage = (() => {
         // An old-boot cursor can suppress the new boot's first response. Retry
         // from zero instead of treating that empty page as complete history.
         if(data.records.length===0&&!restarted)cursor=Math.max(cursor,data.latest);
-        state.rows=(restarted?[]:state.rows).concat(data.records).slice(-256);
+        state.rows=(restarted?[]:state.rows).concat(data.records).slice(-512);
+        // A full page with newer records left (512-record history): read the next page at once.
+        state.more=data.more===true&&data.records.length>0;
         state.cursor=cursor;state.boot=data.boot;
         const count=k=>Number.isSafeInteger(data[k])&&data[k]>=0?data[k]:'?';
         get('log-counters').textContent=`${text('Overwritten')}: ${count('overwritten')} · ${text('Redacted')}: ${count('redacted')} · ${text('Truncated')}: ${count('truncated')} · ${text('Syslog sent (unconfirmed)')}: ${count('syslog_sent')} · ${text('Syslog dropped')}: ${count('syslog_dropped')} · ${text('Busy drops')}: ${count('contention_dropped')}`;
         loopTiming(data.loop_intervals);
         previousBoot(data.previous_boot);runtime(data.runtime);
         get('log-status').textContent='';render();
-      }catch(error){if(alive()&&(!read.signal.aborted||read.signal.reason==='deadline')&&epoch===state.epoch){get('log-status').textContent=text('Log unavailable. Retrying.');loopTiming(null);}}
-      finally{if(pollRequest===read)pollRequest=null;state.busy=false;if(alive()&&visible()&&!state.paused)timer=setTimeout(poll,read.signal.aborted&&read.signal.reason!=='deadline'?0:2000);}
+      }catch(error){state.more=false;if(alive()&&(!read.signal.aborted||read.signal.reason==='deadline')&&epoch===state.epoch){get('log-status').textContent=text('Log unavailable. Retrying.');loopTiming(null);}}
+      finally{if(pollRequest===read)pollRequest=null;state.busy=false;if(alive()&&visible()&&!state.paused)timer=setTimeout(poll,(read.signal.aborted&&read.signal.reason!=='deadline')||state.more?0:2000);}
     }
     on(document,'visibilitychange',()=>{clearTimeout(timer);if(!visible()){++state.epoch;pollRequest?.abort('hidden');}else if(!state.paused)poll();});
     on(get('log-pause'),'click',()=>{state.paused=!state.paused;++state.epoch;clearTimeout(timer);pollRequest?.abort('paused');render();if(!state.paused)poll();});
@@ -151,6 +153,72 @@ window.SystemLogPage = (() => {
     });
     request('/config/logging').then(s=>{if(alive()){if(!state.dirty&&!state.saving&&!state.uncertain)fill(s);get('log-save').disabled=state.saving||state.uncertain;}})
       .catch(()=>{if(alive())get('log-settings-status').textContent=text('Logging settings unavailable. Reload to retry.');});
+    // Diagnostics console: a fixed list of read-only commands, each one GET of an
+    // existing endpoint. Nothing is evaluated or sent as a command to the device.
+    const commands={
+      help:{about:'List the commands'},
+      status:{url:'/status/diagnostics',about:'All diagnostics sections'},
+      version:{url:'/status/version',about:'Firmware version and build'},
+      memory:{url:'/status/diagnostics?section=memory',about:'Internal memory and PSRAM'},
+      tasks:{url:'/status/diagnostics?section=tasks',about:'Tasks and their lowest free stack'},
+      nvs:{url:'/status/diagnostics?section=nvs',about:'Settings storage (NVS) use'},
+      mqtt:{url:'/status/diagnostics?section=mqtt',about:'MQTT connection and counters'},
+      sessions:{url:'/status/diagnostics?section=sessions',about:'Signed-in web sessions (never their keys)'},
+      restarts:{url:'/status/diagnostics?section=restarts',about:'Last restart reason and the previous run'},
+      bluetooth:{url:'/bluetooth/status',about:'Bluetooth sensors'},
+      rooms:{url:'/status/heating',about:'Rooms, targets and the heating request'},
+      'boiler-profile':{url:'/status/boiler/profile',about:'Which boiler values this boiler has'},
+      log:{about:'The last N log lines: log 50 (1 to 100, default 20)'},
+    };
+    const console_={busy:false,output:get('diag-output'),status:get('diag-action-status')};
+    for(const name of Object.keys(commands)){const option=document.createElement('option');option.value=name;get('diag-commands').append(option);}
+    const show=value=>{const out=typeof value==='string'?value:JSON.stringify(value,null,2);console_.output.textContent=out.length>20000?out.slice(0,20000)+'\n…':out;};
+    function parse(input){
+      const words=input.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      const name=words[0]||'help',command=commands[name];
+      if(!command||(name!=='log'&&words.length>1)||words.length>2)return {error:text('Unknown command. Type help for the list.')};
+      if(name!=='log')return {name,command};
+      const lines=words.length>1?Number(words[1]):20;
+      return Number.isInteger(lines)&&lines>=1&&lines<=100&&/^\d+$/.test(words[1]??'20')?{name,url:'/status/logs?tail='+lines}:{error:text('Use log followed by a number from 1 to 100.')};
+    }
+    on(get('diag-form'),'submit',async event=>{
+      event.preventDefault();if(console_.busy)return;
+      const parsed=parse(get('diag-command').value);
+      if(parsed.error){show(parsed.error);return;}
+      if(parsed.name==='help'){show(Object.entries(commands).map(([name,c])=>name.padEnd(16)+text(c.about)).join('\n'));return;}
+      console_.busy=true;get('diag-run').disabled=true;show(text('Reading…'));
+      try{
+        const data=await request(parsed.url||parsed.command.url);
+        if(!alive())return;
+        if(parsed.name!=='log'){show(data);return;}
+        const rows=Array.isArray(data.records)?data.records:[];
+        show(rows.length?rows.map(r=>`${(Number(r.uptime_ms)/1000).toFixed(3)}s #${r.sequence} ${text(levels[r.level]??'?').toLocaleUpperCase()} [${String(r.source??'esp').toUpperCase()}] [${r.feature}] ${r.message}`).join('\n'):text('No log lines kept yet.'));
+      }catch{if(alive())show(text('Command failed: the device did not answer. Try again.'));}
+      finally{console_.busy=false;if(alive())get('diag-run').disabled=false;}
+    });
+    on(get('diag-copy'),'click',async()=>{
+      try{await navigator.clipboard.writeText(console_.output.textContent);console_.status.textContent=text('Output copied.');}
+      catch{console_.status.textContent=text('Copy failed. Select the output and copy it yourself.');}
+    });
+    on(get('diag-end-idle'),'click',async()=>{
+      const button=get('diag-end-idle');
+      if(button.disabled||!confirm(text('End the web sessions that have been idle for at least 2 minutes? Your own session stays signed in.')))return;
+      button.disabled=true;
+      // A mutation is never replayed: one request, one answer.
+      try{
+        const response=await fetch('/diagnostics/sessions/end-idle',{method:'POST',cache:'no-store'});
+        const answer=response.ok?await response.json():null;
+        if(!alive())return;
+        console_.status.textContent=answer&&Number.isSafeInteger(answer.ended)?text('Idle web sessions ended: {n}.').replace('{n}',answer.ended)
+          :response.status===429?text('Wait a few seconds before trying again.')
+          :response.status===409?text('Not possible now: a boiler test, a boiler settings write or a firmware update is in progress.')
+          :text('Not confirmed. Check the sessions before trying again.');
+      }catch{if(alive())console_.status.textContent=text('Not confirmed. Check the sessions before trying again.');}
+      finally{if(alive())button.disabled=false;}
+    });
+    const restartButton=get('diag-restart');
+    if(typeof window.OpenThermostatRestart==='function')on(restartButton,'click',()=>window.OpenThermostatRestart(restartButton,console_.status));
+    else restartButton.hidden=true;
     render();loopTiming(null);poll();
   }
   return {mount,unmount(){active?.abort();}};

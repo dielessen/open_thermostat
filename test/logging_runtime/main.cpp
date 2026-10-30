@@ -70,6 +70,20 @@ int main(){
     fake_microseconds+=100000;runtime.poll(true,"heatingtest");assert(send_calls==sent);
     runtime.log.append(3,"App","once",uptimeMs());fail_send=true;fake_microseconds+=100000;runtime.poll(true,"heatingtest");
     assert(runtime.log.stats().syslogDropped==2);fail_send=false;fake_microseconds+=100000;runtime.poll(true,"heatingtest");assert(send_calls==sent+1);
+    // Pacing: at most one datagram per 100 ms however often the main loop polls; never a burst.
+    {
+        const auto paced=send_calls;
+        for(int i=0;i<3;++i){runtime.log.append(3,"App","paced",uptimeMs());}
+        for(unsigned i=0;i<1000;++i){runtime.poll(true,"heatingtest");}
+        assert(send_calls==paced);
+        fake_microseconds+=99000;runtime.poll(true,"heatingtest");assert(send_calls==paced);
+        for(unsigned n=1;n<=3;++n){
+            fake_microseconds+=100000;
+            for(unsigned i=0;i<100;++i){runtime.poll(true,"heatingtest");}
+            assert(send_calls==paced+n);assert(recv(receiver,bytes,sizeof(bytes),0)>0);
+        }
+        assert(runtime.log.stats().pending==0);
+    }
     auto changed=s;changed.webLevel=5;
     write_error=true;assert(!runtime.save(changed));write_error=false;assert(runtime.log.settings().webLevel==3);
     commit_error=true;assert(!runtime.save(changed));commit_error=false;assert(runtime.log.settings().webLevel==3);

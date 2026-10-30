@@ -91,7 +91,9 @@
       "invalid_name": "Enter a name of 1 to 80 characters.",
       "reauth_password_invalid": "Enter the E32 password (1 to 128 characters).",
       "reauth_password_wrong": "The E32 did not accept this password. Check it and try again.",
-      "reauth_unreachable": "The E32 could not be reached. Check that it is on and connected to your network, then try again."
+      "reauth_unreachable": "The E32 could not be reached. Check that it is on and connected to your network, then try again.",
+      "reauth_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
+      "reauth_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again."
     },
     "create_entry": {
       "e32_next_steps": "Next: choose Configure on this integration and then Connect E32. Before that, switch on MQTT on the E32 web page (Settings → MQTT). After connecting, Home Assistant goes straight on to your first room."
@@ -784,7 +786,10 @@
       "controller_mqtt_unconfirmed": "The E32 restarted with the Home Assistant settings, but Home Assistant received nothing from it over MQTT within 90 seconds. On the E32, check Settings → MQTT: the same broker as the MQTT integration in Home Assistant, and a user name and password that the broker accepts.",
       "legacy_rooms_plan_changed": "The E32 room plan changed since this list was made (on the E32 page or elsewhere). Nothing has been removed. Check the updated list and submit again.",
       "legacy_rooms_plan_failed": "The E32 did not save the updated room plan, so nothing has been removed. Check that the E32 is ready and try again.",
-      "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again."
+      "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again.",
+      "controller_room_plan_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (Home Assistant: Settings → Updates → OpenThermostat E32 Firmware → Install), then try again. Nothing has been changed.",
+      "controller_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
+      "controller_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -2418,7 +2423,10 @@
           "connection_failed": "The E32 connection could not be confirmed. Open Configure → Connect E32 for details, then try again here.",
           "legacy_rooms_plan_changed": "The E32 room plan changed since this list was made (on the E32 page or elsewhere). Nothing has been removed. Check the updated list and submit again.",
           "legacy_rooms_plan_failed": "The E32 did not save the updated room plan, so nothing has been removed. Check that the E32 is ready and try again.",
-          "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again."
+          "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again.",
+          "e32_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (Home Assistant: Settings → Updates → OpenThermostat E32 Firmware → Install), then try again. Nothing has been changed.",
+          "e32_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
+          "e32_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again."
         },
         "abort": {
           "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
@@ -2456,7 +2464,10 @@
           "connection_failed": "The E32 connection could not be confirmed. Open Configure → Connect E32 for details, then try again here.",
           "legacy_rooms_plan_changed": "The E32 room plan changed since this list was made (on the E32 page or elsewhere). Nothing has been removed. Check the updated list and submit again.",
           "legacy_rooms_plan_failed": "The E32 did not save the updated room plan, so nothing has been removed. Check that the E32 is ready and try again.",
-          "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again."
+          "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again.",
+          "e32_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (Home Assistant: Settings → Updates → OpenThermostat E32 Firmware → Install), then try again. Nothing has been changed.",
+          "e32_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
+          "e32_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again."
         },
         "abort": {
           "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
@@ -2641,6 +2652,12 @@
     },
     "flow_design_invalid": {
       "message": "Choose Automatic, or {minimum}–{maximum} °C."
+    },
+    "e32_session_capacity": {
+      "message": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again."
+    },
+    "e32_try_again_later": {
+      "message": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again."
     }
   }
 }

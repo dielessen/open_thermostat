@@ -1019,7 +1019,9 @@
       "invalid_name": "Geef een naam van 1 tot 80 tekens.",
       "reauth_password_invalid": "Vul het E32-wachtwoord in (1 tot 128 tekens).",
       "reauth_password_wrong": "De E32 accepteert dit wachtwoord niet. Controleer het en probeer het opnieuw.",
-      "reauth_unreachable": "De E32 is niet bereikbaar. Controleer of hij aan staat en met je netwerk verbonden is, en probeer het opnieuw."
+      "reauth_unreachable": "De E32 is niet bereikbaar. Controleer of hij aan staat en met je netwerk verbonden is, en probeer het opnieuw.",
+      "reauth_session_capacity": "De E32 heeft te veel open aanmeldingen. Meld je af op de webpagina van de E32 (of meld je daar aan met “Eerdere websessies beëindigen en aanmelden”) of herstart de E32, en probeer het daarna opnieuw.",
+      "reauth_try_again_later": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw."
     },
     "create_entry": {
       "e32_next_steps": "Volgende stap: kies bij deze integratie Configureren en daarna E32 verbinden. Zet vooraf MQTT aan op de webpagina van de E32 (Instellingen → MQTT). Na het koppelen gaat Home Assistant meteen verder met je eerste ruimte."
@@ -1712,7 +1714,10 @@
       "controller_mqtt_unconfirmed": "De E32 is herstart met de Home Assistant-instellingen, maar Home Assistant heeft binnen 90 seconden niets van de E32 via MQTT ontvangen. Controleer op de E32 Instellingen → MQTT: dezelfde broker als de MQTT-integratie in Home Assistant, en een gebruikersnaam en wachtwoord die de broker accepteert.",
       "legacy_rooms_plan_changed": "Het ruimteplan van de E32 is veranderd sinds dit overzicht gemaakt is (op de E32-pagina of elders). Er is niets verwijderd. Bekijk het bijgewerkte overzicht en verstuur opnieuw.",
       "legacy_rooms_plan_failed": "De E32 heeft het bijgewerkte ruimteplan niet opgeslagen, dus er is niets verwijderd. Controleer of de E32 klaar is en probeer het opnieuw.",
-      "legacy_rooms_plan_unreadable": "Het ruimteplan van de E32 kon niet gelezen worden, dus er is niets verwijderd. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw."
+      "legacy_rooms_plan_unreadable": "Het ruimteplan van de E32 kon niet gelezen worden, dus er is niets verwijderd. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw.",
+      "controller_room_plan_update_required": "De E32 heeft hiervoor te oude firmware. Werk de E32 eerst bij naar beta.19 of nieuwer (Home Assistant: Instellingen → Updates → OpenThermostat E32 Firmware → Installeren) en probeer het daarna opnieuw. Er is niets gewijzigd.",
+      "controller_session_capacity": "De E32 heeft te veel open aanmeldingen. Meld je af op de webpagina van de E32 (of meld je daar aan met “Eerdere websessies beëindigen en aanmelden”) of herstart de E32, en probeer het daarna opnieuw.",
+      "controller_try_again_later": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",
@@ -2418,7 +2423,10 @@
           "connection_failed": "De E32-verbinding kon niet worden bevestigd. Open Configureren → E32 verbinden voor details en probeer het hier daarna opnieuw.",
           "legacy_rooms_plan_changed": "Het ruimteplan van de E32 is veranderd sinds dit overzicht gemaakt is (op de E32-pagina of elders). Er is niets verwijderd. Bekijk het bijgewerkte overzicht en verstuur opnieuw.",
           "legacy_rooms_plan_failed": "De E32 heeft het bijgewerkte ruimteplan niet opgeslagen, dus er is niets verwijderd. Controleer of de E32 klaar is en probeer het opnieuw.",
-          "legacy_rooms_plan_unreadable": "Het ruimteplan van de E32 kon niet gelezen worden, dus er is niets verwijderd. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw."
+          "legacy_rooms_plan_unreadable": "Het ruimteplan van de E32 kon niet gelezen worden, dus er is niets verwijderd. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw.",
+          "e32_update_required": "De E32 heeft hiervoor te oude firmware. Werk de E32 eerst bij naar beta.19 of nieuwer (Home Assistant: Instellingen → Updates → OpenThermostat E32 Firmware → Installeren) en probeer het daarna opnieuw. Er is niets gewijzigd.",
+          "e32_session_capacity": "De E32 heeft te veel open aanmeldingen. Meld je af op de webpagina van de E32 (of meld je daar aan met “Eerdere websessies beëindigen en aanmelden”) of herstart de E32, en probeer het daarna opnieuw.",
+          "e32_try_again_later": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw."
         },
         "abort": {
           "legacy_rooms_none": "Er zijn geen oude Home Assistant-ruimtes om te verwijderen.",
@@ -2456,7 +2464,10 @@
           "connection_failed": "De E32-verbinding kon niet worden bevestigd. Open Configureren → E32 verbinden voor details en probeer het hier daarna opnieuw.",
           "legacy_rooms_plan_changed": "Het ruimteplan van de E32 is veranderd sinds dit overzicht gemaakt is (op de E32-pagina of elders). Er is niets verwijderd. Bekijk het bijgewerkte overzicht en verstuur opnieuw.",
           "legacy_rooms_plan_failed": "De E32 heeft het bijgewerkte ruimteplan niet opgeslagen, dus er is niets verwijderd. Controleer of de E32 klaar is en probeer het opnieuw.",
-          "legacy_rooms_plan_unreadable": "Het ruimteplan van de E32 kon niet gelezen worden, dus er is niets verwijderd. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw."
+          "legacy_rooms_plan_unreadable": "Het ruimteplan van de E32 kon niet gelezen worden, dus er is niets verwijderd. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw.",
+          "e32_update_required": "De E32 heeft hiervoor te oude firmware. Werk de E32 eerst bij naar beta.19 of nieuwer (Home Assistant: Instellingen → Updates → OpenThermostat E32 Firmware → Installeren) en probeer het daarna opnieuw. Er is niets gewijzigd.",
+          "e32_session_capacity": "De E32 heeft te veel open aanmeldingen. Meld je af op de webpagina van de E32 (of meld je daar aan met “Eerdere websessies beëindigen en aanmelden”) of herstart de E32, en probeer het daarna opnieuw.",
+          "e32_try_again_later": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw."
         },
         "abort": {
           "legacy_rooms_none": "Er zijn geen oude Home Assistant-ruimtes om te verwijderen.",
@@ -2641,6 +2652,12 @@
     },
     "flow_design_invalid": {
       "message": "Kies Automatisch, of {minimum}–{maximum} °C."
+    },
+    "e32_session_capacity": {
+      "message": "De E32 heeft te veel open aanmeldingen. Meld je af op de webpagina van de E32 (of meld je daar aan met “Eerdere websessies beëindigen en aanmelden”) of herstart de E32, en probeer het daarna opnieuw."
+    },
+    "e32_try_again_later": {
+      "message": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw."
     }
   }
 }

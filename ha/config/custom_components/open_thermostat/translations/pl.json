@@ -91,7 +91,9 @@
       "invalid_name": "Podaj nazwę o długości od 1 do 80 znaków.",
       "reauth_password_invalid": "Podaj hasło E32 (od 1 do 128 znaków).",
       "reauth_password_wrong": "E32 nie zaakceptował tego hasła. Sprawdź je i spróbuj ponownie.",
-      "reauth_unreachable": "Nie udało się połączyć z E32. Sprawdź, czy jest włączony i podłączony do Twojej sieci, a potem spróbuj ponownie."
+      "reauth_unreachable": "Nie udało się połączyć z E32. Sprawdź, czy jest włączony i podłączony do Twojej sieci, a potem spróbuj ponownie.",
+      "reauth_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
+      "reauth_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie."
     },
     "create_entry": {
       "e32_next_steps": "Dalej: wybierz Konfiguruj przy tej integracji, a potem Połącz E32. Wcześniej włącz MQTT na stronie internetowej E32 (Settings → MQTT). Po połączeniu Home Assistant od razu przejdzie do pierwszego pomieszczenia."
@@ -784,7 +786,10 @@
       "controller_mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź Settings → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker.",
       "legacy_rooms_plan_changed": "Plan pomieszczeń E32 zmienił się od czasu utworzenia tej listy (na stronie E32 lub gdzie indziej). Nic nie zostało usunięte. Sprawdź zaktualizowaną listę i zatwierdź ponownie.",
       "legacy_rooms_plan_failed": "E32 nie zapisał zaktualizowanego planu pomieszczeń, więc nic nie zostało usunięte. Sprawdź, czy E32 jest gotowy, i spróbuj ponownie.",
-      "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie."
+      "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie.",
+      "controller_room_plan_update_required": "E32 ma do tego zbyt stare oprogramowanie. Najpierw zaktualizuj E32 do beta.19 lub nowszego (Home Assistant: Ustawienia → Aktualizacje → OpenThermostat E32 Firmware → Zainstaluj), a potem spróbuj ponownie. Nic nie zostało zmienione.",
+      "controller_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
+      "controller_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -2418,7 +2423,10 @@
           "connection_failed": "Nie udało się potwierdzić połączenia z E32. Otwórz Konfiguruj → Połącz E32, aby zobaczyć szczegóły, a potem spróbuj tu ponownie.",
           "legacy_rooms_plan_changed": "Plan pomieszczeń E32 zmienił się od czasu utworzenia tej listy (na stronie E32 lub gdzie indziej). Nic nie zostało usunięte. Sprawdź zaktualizowaną listę i zatwierdź ponownie.",
           "legacy_rooms_plan_failed": "E32 nie zapisał zaktualizowanego planu pomieszczeń, więc nic nie zostało usunięte. Sprawdź, czy E32 jest gotowy, i spróbuj ponownie.",
-          "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie."
+          "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie.",
+          "e32_update_required": "E32 ma do tego zbyt stare oprogramowanie. Najpierw zaktualizuj E32 do beta.19 lub nowszego (Home Assistant: Ustawienia → Aktualizacje → OpenThermostat E32 Firmware → Zainstaluj), a potem spróbuj ponownie. Nic nie zostało zmienione.",
+          "e32_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
+          "e32_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie."
         },
         "abort": {
           "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
@@ -2456,7 +2464,10 @@
           "connection_failed": "Nie udało się potwierdzić połączenia z E32. Otwórz Konfiguruj → Połącz E32, aby zobaczyć szczegóły, a potem spróbuj tu ponownie.",
           "legacy_rooms_plan_changed": "Plan pomieszczeń E32 zmienił się od czasu utworzenia tej listy (na stronie E32 lub gdzie indziej). Nic nie zostało usunięte. Sprawdź zaktualizowaną listę i zatwierdź ponownie.",
           "legacy_rooms_plan_failed": "E32 nie zapisał zaktualizowanego planu pomieszczeń, więc nic nie zostało usunięte. Sprawdź, czy E32 jest gotowy, i spróbuj ponownie.",
-          "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie."
+          "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie.",
+          "e32_update_required": "E32 ma do tego zbyt stare oprogramowanie. Najpierw zaktualizuj E32 do beta.19 lub nowszego (Home Assistant: Ustawienia → Aktualizacje → OpenThermostat E32 Firmware → Zainstaluj), a potem spróbuj ponownie. Nic nie zostało zmienione.",
+          "e32_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
+          "e32_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie."
         },
         "abort": {
           "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
@@ -2641,6 +2652,12 @@
     },
     "flow_design_invalid": {
       "message": "Wybierz tryb automatyczny albo {minimum}–{maximum} °C."
+    },
+    "e32_session_capacity": {
+      "message": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie."
+    },
+    "e32_try_again_later": {
+      "message": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie."
     }
   }
 }

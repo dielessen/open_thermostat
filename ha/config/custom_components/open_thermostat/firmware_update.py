@@ -21,6 +21,7 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 import hashlib
+import logging
 import re
 import time
 
@@ -28,15 +29,20 @@ import aiohttp
 from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import async_call_later, async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
 from .controller_link import ControllerClient, ControllerLinkError, ControllerLoginRejected
 from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_PASSWORD
 
+_LOGGER = logging.getLogger(__name__)
 REPOSITORY = "dielessen/open_thermostat"
 CHECK_INTERVAL = timedelta(hours=6)
+# After a failed read of the installed version (E32 restarting, unreachable, all
+# its web sessions in use, ...): try again after 1, 5 and 15 minutes, then the
+# normal interval. A known version is kept meanwhile.
+RETRY_DELAYS = (60, 300, 900)
 _NUMBER = r"(0|[1-9]\d{0,8})"
 TAG = re.compile(rf"v{_NUMBER}\.{_NUMBER}\.{_NUMBER}-e32v2(?:-(alpha|beta|rc)\.{_NUMBER})?")
 MAX_IMAGE = 0x3C0000
@@ -148,6 +154,25 @@ class E32FirmwareUpdate(UpdateEntity):
         self._last_install = None
         self._channel = 0  # the channel rank of the last installed version read from the E32
         self._lock = asyncio.Lock()
+        self._failures = 0  # failed reads in a row (RETRY_DELAYS)
+        self._retry = None  # the scheduled retry (async_call_later), or None
+
+    @property
+    def available(self):
+        """Unavailable only while no installed version was ever known (never "unknown" for a
+        known E32 that is briefly unreachable: its last known version stays)."""
+        return self._attr_installed_version is not None
+
+    def _set_installed(self, version):
+        """A version the E32 reported (or that a restart restored); its channel follows."""
+        key = parse_tag(version)
+        if key is None:
+            return False
+        self._attr_installed_version = version
+        self._channel = key[3]
+        if self._attr_latest_version is None:
+            self._attr_latest_version = version
+        return True
 
     def version_is_newer(self, latest_version, installed_version):
         latest, installed = parse_tag(latest_version), parse_tag(installed_version)
@@ -169,6 +194,35 @@ class E32FirmwareUpdate(UpdateEntity):
             record = {key: dict(value) if isinstance(value, dict) else value for key, value in record.items()}
             if valid_install_record(record):
                 self._last_install = record
+        # The last known versions survive a Home Assistant restart: the state before it,
+        # else what the last install confirmed. The E32's MQTT topics carry no version.
+        if self._attr_installed_version is None:
+            restored = last.attributes.get("installed_version") if last is not None else None
+            if not self._set_installed(restored) and self._last_install is not None:
+                reported = self._last_install.get("reported")
+                self._set_installed(reported.get("version") if isinstance(reported, dict) else None) or (
+                    self._last_install["result"] == "installed" and self._set_installed(self._last_install["tag"]))
+            latest = last.attributes.get("latest_version") if last is not None else None
+            if parse_tag(latest) is not None and self._attr_installed_version is not None:
+                self._attr_latest_version = latest
+        self.async_on_remove(self._cancel_retry)
+
+    def _cancel_retry(self):
+        if self._retry is not None:
+            self._retry()
+            self._retry = None
+
+    def _schedule_retry(self):
+        """The next read soon after a failure (1, 5, 15 min), then only the normal interval."""
+        self._cancel_retry()
+        if self._failures > len(RETRY_DELAYS) or self.hass is None:
+            return
+        delay = RETRY_DELAYS[self._failures - 1]
+
+        async def retry(_now):
+            self._retry = None
+            await self.async_refresh()
+        self._retry = async_call_later(self.hass, delay, retry)
 
     async def async_release_notes(self):
         return self._release["notes"] if self._release else None
@@ -180,25 +234,30 @@ class E32FirmwareUpdate(UpdateEntity):
         """Read the installed version from the E32 and the newest release from GitHub."""
         if self._lock.locked():
             return
+        # Only a successful read changes the installed version: an unreachable or busy
+        # E32 (restarting, all web sessions in use) or a refused password keeps the
+        # last known one (and its channel). A refused password is a Repairs item.
         try:
             if self._entry.data.get(CONTROLLER_PASSWORD) == getattr(self, "_rejected_password", None):
-                raise ControllerLinkError("controller_auth_failed")  # wait for the new password
+                raise ControllerLoginRejected()  # wait for the new password; Repairs asks for it
             async with self._client() as client:
                 await client.async_login(self._entry.data[CONTROLLER_PASSWORD])
                 version = await client.async_read("/status/version")
                 from .e32_access import report_password
                 report_password(self.hass, self._entry, getattr(client, "default_password", None))
-            self._attr_installed_version = version.get("version") if isinstance(version, dict) else None
+            if not self._set_installed(version.get("version") if isinstance(version, dict) else None):
+                raise ControllerLinkError("controller_response_invalid")
+            self._failures = 0
+            self._cancel_retry()
         except ControllerLoginRejected:
-            from .e32_access import login_rejected
-            self._rejected_password = self._entry.data.get(CONTROLLER_PASSWORD)
-            login_rejected(self.hass, self._entry)
-            self._attr_installed_version = None
-        except ControllerLinkError:
-            self._attr_installed_version = None
-        installed = parse_tag(self._attr_installed_version)
-        if installed is not None:
-            self._channel = installed[3]  # an unreachable E32 keeps its last known channel
+            if self._entry.data.get(CONTROLLER_PASSWORD) != getattr(self, "_rejected_password", None):
+                from .e32_access import login_rejected
+                self._rejected_password = self._entry.data.get(CONTROLLER_PASSWORD)
+                login_rejected(self.hass, self._entry)
+        except (ControllerLinkError, TimeoutError) as err:
+            self._failures += 1
+            _LOGGER.debug("E32 firmware version not read (%s); attempt %d", err, self._failures)
+            self._schedule_retry()
         try:
             session = async_get_clientsession(self.hass)
             async with asyncio.timeout(30):

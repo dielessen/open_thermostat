@@ -233,7 +233,8 @@ async def test_a_stable_installation_keeps_the_stable_channel(hass, monkeypatch)
             raise module.ControllerLinkError("controller_unreachable")
     monkeypatch.setattr(module, "ControllerClient", Offline)
     await entity.async_refresh()  # the E32 unreachable: still no beta offered to a stable installation
-    assert entity.installed_version is None and entity.latest_version == "v1.0.0-e32v2"
+    # (0.4.0b12: an unreachable E32 keeps its last known version instead of blanking it)
+    assert entity.installed_version == "v1.0.0-e32v2" and entity.latest_version == "v1.0.0-e32v2"
     monkeypatch.setattr(module, "ControllerClient", IdentityClient)
     FakeClient.running = "v0.1.0-e32v2-beta.19"
     await entity.async_refresh()
@@ -313,3 +314,93 @@ async def test_the_last_install_survives_a_restart_only_when_well_formed(hass, m
         await fresh.async_added_to_hass()
         assert fresh.last_install == restored
         assert valid_install_record(record) is (restored is not None)
+
+
+# --- 0.4.0b12: a failed read never blanks a known version -------------------------------
+
+
+class Refusing(IdentityClient):
+    error = "controller_session_capacity"
+
+    async def async_login(self, password):
+        raise module.ControllerLinkError(Refusing.error)
+
+
+async def _restored(hass, monkeypatch, attributes, client=Refusing):
+    from homeassistant.core import State
+    entity = _entity(hass, monkeypatch, IMAGE, client=client)
+    scheduled = []
+    monkeypatch.setattr(module, "async_call_later",
+                        lambda hass, delay, action: scheduled.append((delay, action)) or (lambda: None))
+
+    async def last_state():
+        return State("update.fixture_firmware", "off", attributes)
+    entity.async_get_last_state = last_state
+    await entity.async_added_to_hass()
+    return entity, scheduled
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("error", ["controller_session_capacity", "controller_unreachable", "controller_try_again_later"])
+async def test_a_failed_startup_read_keeps_the_restored_version_and_retries_within_minutes(hass, monkeypatch, error):
+    Refusing.error = error
+    FakeClient.running = "v0.1.0-e32v2-beta.19"
+    entity, scheduled = await _restored(hass, monkeypatch, {"installed_version": "v0.1.0-e32v2-beta.19",
+                                                            "latest_version": "v0.1.0-e32v2-beta.19"})
+    assert entity.installed_version == "v0.1.0-e32v2-beta.19" and entity.available
+    await entity.async_refresh()  # the start-up read fails (E32 busy or still restarting)
+    assert entity.installed_version == "v0.1.0-e32v2-beta.19" and entity.available
+    assert entity.state is not None  # never "unknown"
+    assert [delay for delay, _ in scheduled] == [60]
+    await scheduled[-1][1](None)  # 1 minute later: still failing, next try after 5 minutes
+    assert [delay for delay, _ in scheduled] == [60, 300]
+    monkeypatch.setattr(module, "ControllerClient", IdentityClient)
+    FakeClient.running = "v0.1.0-e32v2-beta.20"
+    await scheduled[-1][1](None)  # the retry succeeds: the read version replaces the restored one
+    assert entity.installed_version == "v0.1.0-e32v2-beta.20"
+    assert len(scheduled) == 2  # no more retries after a success
+
+
+@pytest.mark.asyncio
+async def test_retries_stop_after_15_minutes_until_the_normal_interval(hass, monkeypatch):
+    entity, scheduled = await _restored(hass, monkeypatch, {})
+    assert entity.installed_version is None and not entity.available  # never known: unavailable
+    for _ in range(5):
+        await entity.async_refresh()
+    assert [delay for delay, _ in scheduled] == [60, 300, 900]
+
+
+@pytest.mark.asyncio
+async def test_the_last_install_restores_the_version_when_the_state_did_not(hass, monkeypatch):
+    FakeClient.uploads = []; FakeClient.running = "v0.1.0-e32v2-beta.15"
+    done = _entity(hass, monkeypatch, IMAGE)
+    await done.async_refresh()
+    await done.async_install(TAG, False)
+    entity, _ = await _restored(hass, monkeypatch, {"last_install": done.last_install})
+    assert entity.installed_version == TAG and entity.available
+
+
+@pytest.mark.asyncio
+async def test_a_wrong_password_raises_the_repair_but_keeps_the_version(hass, monkeypatch):
+    calls = []
+
+    class Rejected(IdentityClient):
+        async def async_login(self, password):
+            raise module.ControllerLoginRejected()
+    from custom_components.open_thermostat import e32_access
+    monkeypatch.setattr(e32_access, "login_rejected", lambda hass, entry: calls.append("reauth"))
+    entity, scheduled = await _restored(hass, monkeypatch, {"installed_version": "v0.1.0-e32v2-beta.19"},
+                                        client=Rejected)
+    await entity.async_refresh()
+    await entity.async_refresh()  # the same refused password is not tried again
+    assert calls == ["reauth"] and entity.installed_version == "v0.1.0-e32v2-beta.19" and entity.available
+    assert scheduled == []  # no retries for a refused password: Repairs asks for the new one
+
+
+@pytest.mark.asyncio
+async def test_a_successful_read_updates_the_version(hass, monkeypatch):
+    FakeClient.running = "v0.1.0-e32v2-beta.19"
+    entity, scheduled = await _restored(hass, monkeypatch, {"installed_version": "v0.1.0-e32v2-beta.18"},
+                                        client=IdentityClient)
+    await entity.async_refresh()
+    assert entity.installed_version == "v0.1.0-e32v2-beta.19" and scheduled == []

@@ -42,6 +42,16 @@ struct RoomPlan {
         int16_t fallbackCentiC = 2000;  // setpoint without a fresh HA target
         int16_t minimumCentiC = 500, maximumCentiC = 2500;
         RoomSchedule schedule;  // the E32 week program without HA; empty = fallback only
+        // A thermostat or radiator valve in Home Assistant gives this room's target (owner,
+        // 30 Oct 2026): its setpoint entity when that is a climate entity, else its first climate
+        // source; empty: the E32's own target. Such a room keeps a stored week program, overrides
+        // and away, but they are not used (RoomEngine, RoomOverrides). Not part of the stored form.
+        std::string_view followedThermostat() const {
+            const auto climate = [](const std::string& id) { return id.rfind("climate.", 0) == 0 && id.size() > 8; };
+            if (climate(setpointEntity)) return setpointEntity;
+            for (const auto& s : sources) if (s.type == SourceType::ha && climate(s.id)) return s.id;
+            return {};
+        }
     };
     uint32_t revision = 0;  // +1 on every save; a write must name the revision it was based on
     Mode mode = Mode::shadow;

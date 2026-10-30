@@ -433,6 +433,8 @@ public:
 		ss << "}";
 	}
 	void getEMSDeviceStatus(std::ostream &ss) const { ems_.getDeviceStatus(ss); }
+	void getBoilerProfile(std::ostream &ss) const { ems_.getBoilerProfile(ss); }
+	bool setBoilerProfileShown(size_t wireIndex, bool show) { return ems_.setBoilerProfileShown(wireIndex, show); }
 	void getEMSTelemetryStatus(std::ostream &ss, std::string_view operatorSession = {}) const {
 		ems_.getTelemetryStatus(ss, operatorSession);
 	}

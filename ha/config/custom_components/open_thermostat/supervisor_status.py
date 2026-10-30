@@ -15,7 +15,8 @@ FEEDBACK = frozenset({"hydraulic_feedback_unavailable", "hydraulic_feedback_owne
                      "hydraulic_feedback_future", "hydraulic_feedback_reordered", "hydraulic_feedback_clock_invalid", "hydraulic_feedback_received"})
 INTENT_KEYS = frozenset({"feedback_status", "heat_intent", "pump_intent", "path_intent",
                          "opening_command", "water_target_centi_c"})
-MAX_AGE_SECONDS = 15
+# The zone state carrying it comes on a change and at least every 30 s (beta.19): three missed refreshes.
+MAX_AGE_SECONDS = 100
 
 
 def supervisor_status(value):

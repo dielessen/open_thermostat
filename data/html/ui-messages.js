@@ -62,6 +62,9 @@ window.OT_UI_MESSAGES = {
   "Bluetooth sensor": "Bluetooth-sensor",
   "Source": "Bron",
   "Calculated boiler request": "Berekende ketelvraag",
+  "limited by the boiler's own maximum": "begrensd door het eigen maximum van de ketel",
+  "Off: this room never asks for heat.": "Uit: deze ruimte vraagt nooit warmte.",
+  "Change or remove on the Rooms page": "Wijzigen of verwijderen op de pagina Ruimtes",
   "off": "uit",
   "setpoint": "setpoint",
   "from Home Assistant": "uit Home Assistant",
@@ -593,5 +596,6 @@ window.OT_UI_MESSAGES = {
   "This room is off.": "Deze ruimte staat uit.",
   "Saved. The room follows within 10 seconds.": "Opgeslagen. De ruimte volgt binnen 10 seconden.",
   "The change was not saved:": "De wijziging is niet opgeslagen:",
-  "the E32 could not be reached": "de E32 was niet bereikbaar"
+  "the E32 could not be reached": "de E32 was niet bereikbaar",
+  "This room takes its target from its thermostat in Home Assistant. Change the temperature there; temporary changes are not offered here.": "Deze ruimte neemt haar doel over van haar thermostaat in Home Assistant. Verander de temperatuur daar; tijdelijke wijzigingen zijn hier niet beschikbaar."
 };

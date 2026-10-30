@@ -573,6 +573,8 @@ def heating_hub(hass, entry):
         from .room_plan import RoomPlanLink
         hub.plan = RoomPlanLink.for_entry(hass, entry, hub)
         entry.async_on_unload(hub.stop)
+        from .room_groups import attach_hub
+        attach_hub(hass, entry, hub)  # product entries: each room's entities in its own group
         from .e32_access import clear
         entry.async_on_unload(lambda: clear(hass, entry))
     return hub
@@ -625,7 +627,8 @@ def track_entities(hub, async_add_entities, options, wanted):
             del removed[key]
             known.discard(key)
         if new:
-            async_add_entities(new, **options)
+            from .room_groups import add_grouped
+            add_grouped(hub, async_add_entities, new, options)
 
     @callback
     def forget_rooms(room_ids):

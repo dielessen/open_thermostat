@@ -787,6 +787,9 @@
     },
     "installation": {
       "entry_type": "Installatiegegevens"
+    },
+    "e32_room": {
+      "entry_type": "Ruimte"
     }
   },
   "selector": {
@@ -1451,6 +1454,7 @@
         "title": "E32-ruimte",
         "description": "Eén ruimte: waar de temperatuur vandaan komt, wat die moet zijn en wanneer. De E32 bewaart dit en regelt het, ook zonder Home Assistant.",
         "data": {
+          "follow_thermostat": "Doel van de thermostaat van de ruimte volgen",
           "name": "Naam van de ruimte",
           "state": "Verwarmen",
           "emitter": "Verwarmingstype",
@@ -1462,6 +1466,7 @@
           "program": "Weekprogramma op de E32"
         },
         "data_description": {
+          "follow_thermostat": "Neemt de doeltemperatuur over van de eerste Home Assistant-thermostaat bij de temperatuurbronnen hierboven, bijvoorbeeld een tado of een radiatorkraan. De thermostaat van de ruimte in Home Assistant stelt dan het doel van die thermostaat in, zodat ze altijd overeenkomen. Een doelentiteit die je hieronder kiest gaat voor.",
           "name": "De naam die je in Home Assistant en op de E32 ziet. Maximaal 40 tekens (minder met accenten of emoji); hernoemen behoudt de ruimte en haar geschiedenis.",
           "state": "Aan: de ruimte kan warmte vragen. Uit: de ruimte vraagt geen warmte. Een tijdelijk \"Uit tot\" staat op de apparaatpagina van de ruimte.",
           "emitter": "Radiatoren of vloerverwarming; elk type krijgt een eigen aanvoertemperatuur.",
@@ -1549,7 +1554,7 @@
       },
       "legacy_rooms": {
         "title": "Oude Home Assistant-ruimtes verwijderen",
-        "description": "Je ruimtes staan nu in het ruimteplan van de E32 (Configureren → Ruimtes). Deze oudere Home Assistant-ruimtes waren alleen nodig om de E32 te koppelen en worden niet meer gebruikt: {rooms}.\n\nBij verwijderen verdwijnen hun ruimteapparaten en entiteiten van deze integratie. Je sensoren, thermostaten en radiatorkranen, en de ruimtes op de E32, blijven zoals ze zijn. De E32 blijft verbonden; hij kan eenmaal herstarten (ongeveer 30 seconden)."
+        "description": "Je ruimtes staan nu in het ruimteplan van de E32 (Configureren → Ruimtes). Deze oudere Home Assistant-ruimtes waren alleen nodig om de E32 te koppelen en worden niet meer gebruikt: {rooms}.\n\nWat er gebeurt:\n{changes}\n\nBij verwijderen verdwijnen hun ruimteapparaten en entiteiten van deze integratie. Je sensoren, thermostaten en radiatorkranen van andere integraties blijven zoals ze zijn. De E32 blijft verbonden; hij kan eenmaal herstarten (ongeveer 30 seconden)."
       },
       "legacy_rooms_finish": {
         "title": "Verwijderen van de oude ruimte afronden",
@@ -1561,6 +1566,7 @@
       }
     },
     "error": {
+      "e32_follow_no_thermostat": "Voeg de thermostaat (een climate-entiteit) eerst toe als temperatuurbron, of kies hieronder een doelentiteit.",
       "presence_entity_invalid": "Kies een bestaande persoon, groep, zone of schakelaar.",
       "temperature_invalid": "Vul een temperatuur tussen 5 en 30 °C in.",
       "whole_number_invalid": "Vul een heel getal binnen de grenzen in.",
@@ -1685,7 +1691,10 @@
       "e32_flow_limits_floor_warning": "Een ruimte heeft vloerverwarming. Boven {floor_maximum} kan vloerverwarming zonder mengklep te heet worden. Sla opnieuw op om dit maximum te houden.",
       "e32_flow_limits_above_boiler": "Dit maximum ligt boven het eigen maximum van je ketel; de ketel gaat toch niet hoger. Sla opnieuw op om het te houden, of verlaag het.",
       "controller_ha_version_unsupported": "Deze integratie heeft Home Assistant 2026.10.0 of nieuwer nodig (getest met 2026.10.2 tot en met 2026.10.4). Werk Home Assistant bij; is jouw versie nieuwer, kijk dan of er een integratie-update is. Er is niets aangepast.",
-      "controller_mqtt_unconfirmed": "De E32 is herstart met de Home Assistant-instellingen, maar Home Assistant heeft binnen 90 seconden niets van de E32 via MQTT ontvangen. Controleer op de E32 Systeem → Netwerk → MQTT: dezelfde broker als de MQTT-integratie in Home Assistant, en een gebruikersnaam en wachtwoord die de broker accepteert."
+      "controller_mqtt_unconfirmed": "De E32 is herstart met de Home Assistant-instellingen, maar Home Assistant heeft binnen 90 seconden niets van de E32 via MQTT ontvangen. Controleer op de E32 Systeem → Netwerk → MQTT: dezelfde broker als de MQTT-integratie in Home Assistant, en een gebruikersnaam en wachtwoord die de broker accepteert.",
+      "legacy_rooms_plan_changed": "Het ruimteplan van de E32 is veranderd sinds dit overzicht gemaakt is (op de E32-pagina of elders). Er is niets verwijderd. Bekijk het bijgewerkte overzicht en verstuur opnieuw.",
+      "legacy_rooms_plan_failed": "De E32 heeft het bijgewerkte ruimteplan niet opgeslagen, dus er is niets verwijderd. Controleer of de E32 klaar is en probeer het opnieuw.",
+      "legacy_rooms_plan_unreadable": "Het ruimteplan van de E32 kon niet gelezen worden, dus er is niets verwijderd. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",
@@ -1768,7 +1777,11 @@
         "name": "Radiatoren verwarmen"
       },
       "room_demand": {
-        "name": "Warmtevraag"
+        "name": "Warmtevraag",
+        "state": {
+          "on": "Vraagt warmte",
+          "off": "Geen vraag"
+        }
       },
       "burner_short_cycling": {
         "name": "Brander pendelt"
@@ -2285,7 +2298,7 @@
         "step": {
           "legacy_rooms": {
             "title": "Oude Home Assistant-ruimtes verwijderen",
-            "description": "Je ruimtes staan nu in het ruimteplan van de E32 (Configureren → Ruimtes). Deze oudere Home Assistant-ruimtes waren alleen nodig om de E32 te koppelen en worden niet meer gebruikt: {rooms}.\n\nBij verwijderen verdwijnen hun ruimteapparaten en entiteiten van deze integratie. Je sensoren, thermostaten en radiatorkranen, en de ruimtes op de E32, blijven zoals ze zijn. De E32 blijft verbonden; hij kan eenmaal herstarten (ongeveer 30 seconden)."
+            "description": "Je ruimtes staan nu in het ruimteplan van de E32 (Configureren → Ruimtes). Deze oudere Home Assistant-ruimtes waren alleen nodig om de E32 te koppelen en worden niet meer gebruikt: {rooms}.\n\nWat er gebeurt:\n{changes}\n\nBij verwijderen verdwijnen hun ruimteapparaten en entiteiten van deze integratie. Je sensoren, thermostaten en radiatorkranen van andere integraties blijven zoals ze zijn. De E32 blijft verbonden; hij kan eenmaal herstarten (ongeveer 30 seconden)."
           },
           "legacy_rooms_finish": {
             "title": "Verwijderen van de oude ruimte afronden",
@@ -2306,7 +2319,10 @@
           "mqtt_unconfirmed": "De E32 is herstart met de Home Assistant-instellingen, maar Home Assistant heeft binnen 90 seconden niets van de E32 via MQTT ontvangen. Controleer op de E32 Systeem → Netwerk → MQTT: dezelfde broker als de MQTT-integratie in Home Assistant, en een gebruikersnaam en wachtwoord die de broker accepteert.",
           "e32_busy": "De E32 is bezig met bijwerken of herstarten. Wacht tot hij klaar is en probeer het opnieuw.",
           "ha_version_unsupported": "Deze integratie heeft Home Assistant 2026.10.0 of nieuwer nodig (getest met 2026.10.2 tot en met 2026.10.4). Werk Home Assistant bij; is jouw versie nieuwer, kijk dan of er een integratie-update is. Er is niets aangepast.",
-          "connection_failed": "De E32-verbinding kon niet worden bevestigd. Open Configureren → E32 verbinden voor details en probeer het hier daarna opnieuw."
+          "connection_failed": "De E32-verbinding kon niet worden bevestigd. Open Configureren → E32 verbinden voor details en probeer het hier daarna opnieuw.",
+          "legacy_rooms_plan_changed": "Het ruimteplan van de E32 is veranderd sinds dit overzicht gemaakt is (op de E32-pagina of elders). Er is niets verwijderd. Bekijk het bijgewerkte overzicht en verstuur opnieuw.",
+          "legacy_rooms_plan_failed": "De E32 heeft het bijgewerkte ruimteplan niet opgeslagen, dus er is niets verwijderd. Controleer of de E32 klaar is en probeer het opnieuw.",
+          "legacy_rooms_plan_unreadable": "Het ruimteplan van de E32 kon niet gelezen worden, dus er is niets verwijderd. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw."
         },
         "abort": {
           "legacy_rooms_none": "Er zijn geen oude Home Assistant-ruimtes om te verwijderen.",
@@ -2320,7 +2336,7 @@
         "step": {
           "legacy_rooms": {
             "title": "Oude Home Assistant-ruimtes verwijderen",
-            "description": "Je ruimtes staan nu in het ruimteplan van de E32 (Configureren → Ruimtes). Deze oudere Home Assistant-ruimtes waren alleen nodig om de E32 te koppelen en worden niet meer gebruikt: {rooms}.\n\nBij verwijderen verdwijnen hun ruimteapparaten en entiteiten van deze integratie. Je sensoren, thermostaten en radiatorkranen, en de ruimtes op de E32, blijven zoals ze zijn. De E32 blijft verbonden; hij kan eenmaal herstarten (ongeveer 30 seconden)."
+            "description": "Je ruimtes staan nu in het ruimteplan van de E32 (Configureren → Ruimtes). Deze oudere Home Assistant-ruimtes waren alleen nodig om de E32 te koppelen en worden niet meer gebruikt: {rooms}.\n\nWat er gebeurt:\n{changes}\n\nBij verwijderen verdwijnen hun ruimteapparaten en entiteiten van deze integratie. Je sensoren, thermostaten en radiatorkranen van andere integraties blijven zoals ze zijn. De E32 blijft verbonden; hij kan eenmaal herstarten (ongeveer 30 seconden)."
           },
           "legacy_rooms_finish": {
             "title": "Verwijderen van de oude ruimte afronden",
@@ -2341,13 +2357,51 @@
           "mqtt_unconfirmed": "De E32 is herstart met de Home Assistant-instellingen, maar Home Assistant heeft binnen 90 seconden niets van de E32 via MQTT ontvangen. Controleer op de E32 Systeem → Netwerk → MQTT: dezelfde broker als de MQTT-integratie in Home Assistant, en een gebruikersnaam en wachtwoord die de broker accepteert.",
           "e32_busy": "De E32 is bezig met bijwerken of herstarten. Wacht tot hij klaar is en probeer het opnieuw.",
           "ha_version_unsupported": "Deze integratie heeft Home Assistant 2026.10.0 of nieuwer nodig (getest met 2026.10.2 tot en met 2026.10.4). Werk Home Assistant bij; is jouw versie nieuwer, kijk dan of er een integratie-update is. Er is niets aangepast.",
-          "connection_failed": "De E32-verbinding kon niet worden bevestigd. Open Configureren → E32 verbinden voor details en probeer het hier daarna opnieuw."
+          "connection_failed": "De E32-verbinding kon niet worden bevestigd. Open Configureren → E32 verbinden voor details en probeer het hier daarna opnieuw.",
+          "legacy_rooms_plan_changed": "Het ruimteplan van de E32 is veranderd sinds dit overzicht gemaakt is (op de E32-pagina of elders). Er is niets verwijderd. Bekijk het bijgewerkte overzicht en verstuur opnieuw.",
+          "legacy_rooms_plan_failed": "De E32 heeft het bijgewerkte ruimteplan niet opgeslagen, dus er is niets verwijderd. Controleer of de E32 klaar is en probeer het opnieuw.",
+          "legacy_rooms_plan_unreadable": "Het ruimteplan van de E32 kon niet gelezen worden, dus er is niets verwijderd. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw."
         },
         "abort": {
           "legacy_rooms_none": "Er zijn geen oude Home Assistant-ruimtes om te verwijderen.",
           "legacy_rooms_cancelled": "Geannuleerd. Kies Configureren → E32 verbinden om de verbinding te controleren; sommige instellingen kunnen al op de E32 zijn opgeslagen."
         }
       }
+    },
+    "e32_room_choose_source": {
+      "title": "Kies een temperatuurbron voor {room}",
+      "description": "{room} op de E32 gebruikte een thermostaat van een oude Home Assistant-ruimte als temperatuurbron. Die oude ruimte is verwijderd en had niets om die bron te vervangen. {room} blijft zoals hij was (ook als hij inactief is), maar heeft geen werkende temperatuurbron tot je er een kiest.\n\nKies Repareren om een thermostaat of temperatuursensor te kiezen, of open Configureren → E32-ruimtes → {room}.",
+      "fix_flow": {
+        "step": {
+          "choose_source": {
+            "title": "Kies een temperatuurbron voor {room}",
+            "description": "Kies de thermostaat of temperatuursensor die de temperatuur in {room} meet. Alleen de temperatuurbron verandert; de andere instellingen en het weekprogramma van de ruimte blijven.",
+            "data": {
+              "source": "Temperatuurbron"
+            },
+            "data_description": {
+              "source": "Een thermostaat die de ruimtetemperatuur meet, of een temperatuursensor."
+            }
+          }
+        },
+        "error": {
+          "e32_source_invalid_id": "De E32 kan {source} niet gebruiken: entiteit-ID's mogen hoogstens 80 tekens hebben.",
+          "e32_source_wrong_domain": "{source} kan hier niet gebruikt worden. Kies een thermostaat of temperatuursensor.",
+          "e32_source_not_found": "{source} bestaat niet in Home Assistant.",
+          "e32_source_no_temperature": "{source} meldt geen actuele temperatuur. Kies een thermostaat die de ruimtetemperatuur meet, of een temperatuursensor.",
+          "e32_source_not_celsius": "{source} meldt geen temperatuur (°C of °F). Kies een temperatuursensor.",
+          "save_failed": "De E32 heeft het ruimteplan niet opgeslagen. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw."
+        },
+        "abort": {
+          "e32_rooms_unavailable": "Verbind eerst de E32 (Configureren → E32 verbinden) zodat Home Assistant het ruimteplan kan bewerken.",
+          "e32_unreachable": "De E32 is niet bereikbaar. Controleer of hij aan staat en met je netwerk verbonden is en probeer het opnieuw.",
+          "room_missing": "Deze ruimte staat niet meer in het ruimteplan van de E32."
+        }
+      }
+    },
+    "room_group_restored": {
+      "title": "{room} staat weer op de integratiepagina",
+      "description": "Je hebt de groep van de ruimte {room} onder {installation} verwijderd, maar {room} is nog een ruimte in het ruimteplan van de E32 en de E32 blijft die verwarmen. De groep, het apparaat en de entiteiten zijn teruggezet met dezelfde namen, gebieden en geschiedenis. Wil je de ruimte verwijderen, open dan {installation} → Configureren → Ruimtes → Ruimte bewerken of verwijderen, kies {room} en verwijder hem daar. Je kunt deze melding negeren."
     }
   },
   "services": {
@@ -2423,6 +2477,12 @@
     }
   },
   "exceptions": {
+    "comfort_followed_thermostat": {
+      "message": "Deze ruimte volgt {entity} voor haar doel. Verander de temperatuur op die thermostaat of met de thermostaat van deze ruimte; tijdelijke wijzigingen en voorinstellingen zijn er niet, omdat het eigen doel van die andere thermostaat niet betrouwbaar terug te zetten is."
+    },
+    "comfort_followed_unavailable": {
+      "message": "{entity} is niet beschikbaar of heeft geen doeltemperatuur, dus het nieuwe doel kon niet worden ingesteld."
+    },
     "comfort_no_clock": {
       "message": "De E32 weet de tijd nog niet (geen tijdserver bereikt). Probeer het over een minuut opnieuw, of kies een duur in plaats van een datum of schakelpunt."
     },

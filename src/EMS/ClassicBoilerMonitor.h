@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BoilerCapabilities.h"
+#include "BoilerProfile.h"
 #include "BoilerTelegramInventory.h"
 #include "EmsTelegram.h"
 #include <array>
@@ -118,6 +119,8 @@ struct BoilerSample {
 class ClassicBoilerMonitor {
 public:
     const BoilerCapabilities &capabilities() const { return capabilities_; }
+    // The boiler profile this monitor reports its field verdicts to (same owner and lock).
+    void attachProfile(BoilerProfile* profile) { profile_ = profile; }
     const BoilerSample &sample(BoilerField f) const { return samples_[index(f)]; }
     std::optional<int32_t> value(BoilerField f, uint64_t now, bool allowUnreliable = false) const {
         const auto &s = sample(f);
@@ -138,9 +141,14 @@ public:
         if (reportCount_ != UINT64_MAX) ++reportCount_;
         lastReportMs_ = std::max(lastReportMs_, now);
         capabilities_.observe(t.getTypeId());
+        if (profile_) profile_->observeFamily(family, now);
         if (family != BoilerProtocol::classic) return false; // Plus processors remain intact.
         const auto put = [&](BoilerField field, std::optional<int32_t> v,
                              BoilerQuality quality = BoilerQuality::reported) {
+            // Boiler profile: the decoder's own verdict, every frame (an
+            // unreliable field's 0 proves nothing either way).
+            if (profile_) profile_->observe(index(field), !v ? FieldEvidence::absent
+                : quality == BoilerQuality::unreliable && *v == 0 ? FieldEvidence::inconclusive : FieldEvidence::value, now);
             auto& current=samples_[index(field)];
             if(current.observed&&now<=current.observedMs) {
                 // Packet order is not acquisition order. Keep the newest fact
@@ -400,6 +408,8 @@ public:
     }
 
 private:
+    static_assert(static_cast<size_t>(BoilerField::count) == classicBoilerFieldCount, "boiler profile covers every Classic field");
+    BoilerProfile* profile_ = nullptr;
     uint64_t reportCount_ = 0;
     uint64_t lastReportMs_ = 0;
     static constexpr size_t index(BoilerField f) { return static_cast<size_t>(f); }

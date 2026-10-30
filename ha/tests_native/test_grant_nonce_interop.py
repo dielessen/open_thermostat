@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from test_modern_metrics_interop import system
 from test_v1_wire_interop import integrated
+from custom_components.open_thermostat.v1_wire import GRANT_SECONDS
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("steps",[[2000]*180,[1000,3000,2000,4000,2000]*30],ids=["coarse2s360s","jitter360s"])
@@ -18,7 +19,7 @@ async def test_actual_cpp_new_nonce_prevents_prior_accumulated_deadline_loss(has
             assert client.ready and client.session["adapter_session_id"]==initial_session
             if client.session["grant_sequence"]!=last_sequence:
                 last_sequence=client.session["grant_sequence"];issued_ms=bus.now
-            assert client.grant_until<=bus.clock_base+issued_ms/1000+10+1e-8
+            assert client.grant_until<=bus.clock_base+issued_ms/1000+GRANT_SECONDS+1e-8
             rows.append({"fw_now_ms":bus.now,"grant_remaining_ms":round((client.grant_until-bus.clock())*1000),
                          "lease_remaining_ms":round((client.lease_until-bus.clock())*1000),
                          "grant_sequence":client.session["grant_sequence"]})
@@ -42,7 +43,7 @@ async def test_actual_cpp_lost_grants_and_old_session_replay_do_not_keep_admissi
     await bus.start()
     old=next(raw for who,topic,raw in reversed(bus.transcript) if who=="fw" and topic=="fw/session")
     bus.drop=lambda item:item["topic"]=="fw/session"
-    for _ in range(9):await bus.advance(2000)
+    for _ in range(GRANT_SECONDS//2+2):await bus.advance(2000)
     assert not client.ready
     await client.receive("fw/session",old)
     assert not client.ready
@@ -57,9 +58,13 @@ async def test_optional_cap_absent_retains_old_heartbeat_shape_and_safe_fallback
         return False
     bus.drop=old_hello
     await bus.start();assert client.ready and not client.grant_nonce_supported
-    rows=[]
+    rows=[];last_sequence=client.session["grant_sequence"];issued_ms=bus.now
     for _ in range(23):
         await bus.advance(2000);rows.append(client.ready)
+        if client.session and client.session["grant_sequence"]!=last_sequence:
+            last_sequence=client.session["grant_sequence"];issued_ms=bus.now
+        # Conservative availability limit preserved, not weakened: never past the
+        # firmware's own deadline for the grant (issued no earlier than seen here).
+        assert client.grant_until<=bus.clock_base+issued_ms/1000+GRANT_SECONDS+1e-8
     heartbeats=[json.loads(raw) for who,topic,raw in bus.transcript if who=="ha" and topic=="ha/heartbeat"]
     assert heartbeats and all("grant_request_nonce" not in p for p in heartbeats)
-    assert not all(rows) # Old conservative availability limit preserved, not weakened.

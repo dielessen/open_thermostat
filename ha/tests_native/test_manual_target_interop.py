@@ -34,12 +34,14 @@ async def test_original_manual_helper_expires_in_cpp_without_replay_or_bypassing
     assert runtime.decisions[other.room_id].target_centi_c==2100
     assert ShadowRoom('fixture',room,runtime).extra_state_attributes['override_remaining_minutes']==1
     assert len(commands(bus))==1 and json.loads(commands(bus)[0])['duration_ms']==60000
-    await bus.advance(5000);await bus.event('receive',topic='ha/user_command',raw=commands(bus)[0]);await bus.pump()
-    assert runtime.decisions[room.room_id].override_remaining_ms==55000
+    # The zone state carries the countdown with its 30 s refresh (a countdown alone is no change).
+    for _ in range(4):await bus.advance(10000)
+    await bus.event('receive',topic='ha/user_command',raw=commands(bus)[0]);await bus.pump()
+    assert 20000<=runtime.decisions[room.room_id].override_remaining_ms<=30000  # counted down, never renewed
     await contact(comfort,0,'on')
     assert not runtime.decisions[room.room_id].demand and runtime.decisions[room.room_id].reason=='window_open'
     await contact(comfort,0,'off');assert runtime.decisions[room.room_id].target_centi_c==2300
-    for _ in range(11):await bus.advance(5000)
+    for _ in range(5):await bus.advance(5000)
     assert runtime.decisions[room.room_id].override_remaining_ms==0
     assert runtime.decisions[room.room_id].target_centi_c==2100 and len(commands(bus))==1
     # Status reads and the still-visible helper never renew an expired override.

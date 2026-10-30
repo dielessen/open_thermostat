@@ -11,6 +11,32 @@ from .const import DOMAIN, CONF_TOPIC_PREFIX
 
 # Registry option (under our domain) set once a field delivered a real value.
 REPORTED = "reported"
+# Registry option of a record made, disabled, for a value this boiler's profile
+# lists as not reported (yet): kept by the setup cleanup, removed once not fitted.
+PLACEHOLDER = "not_reported_placeholder"
+
+
+def boiler_cache(hass, entry_id):
+    """The boiler-field cache of a config entry, or None."""
+    state = hass.data.get(DOMAIN, {}).get(entry_id, {})
+    client = getattr(state.get("v1_connection"), "client", None) if isinstance(state, dict) else None
+    return getattr(client, "boiler_fields", None)
+
+
+def boiler_field_shown(hass, entry_id, name):
+    """Dashboards: whether a tile for boiler field ``name`` (a field id) belongs on them.
+
+    True without a boiler profile (older firmware, or before the retained profile
+    arrived: every tile as before); with one only when this boiler has the value
+    (supported, an EMS+ field and its Classic twin together). Regenerate when
+    ``boiler_cache(...).profile_sequence`` changes.
+    """
+    index = INDEX_BY_NAME.get(name)
+    cache = boiler_cache(hass, entry_id)
+    if index is None or cache is None:
+        return True
+    state = cache.concept_state(concept(index))
+    return state is None or state == "supported"
 
 
 def field_unique_id(prefix, index):
@@ -127,12 +153,29 @@ def confirm_reported(hass, prefix, indexes, cache=None):
             continue
         record = registry.async_get(entity_id)
         options = record.options.get(DOMAIN, {})
-        if not options.get(REPORTED):
-            registry.async_update_entity_options(entity_id, DOMAIN, {**options, REPORTED: True})
+        if not options.get(REPORTED) or options.get(PLACEHOLDER):
+            registry.async_update_entity_options(
+                entity_id, DOMAIN, {**{k: v for k, v in options.items() if k != PLACEHOLDER}, REPORTED: True})
         reporting = [m for m in concept(index) if cache is not None and plausible(cache, m)]
         reliable = any(quality(m) != 1 for m in reporting) if reporting else quality(index) != 1
         if reliable and record.disabled_by is er.RegistryEntryDisabler.INTEGRATION:
             registry.async_update_entity(entity_id, disabled_by=None)
+    return pending
+
+
+def mark_placeholders(hass, prefix, indexes):
+    """Mark the new disabled records of not-reported values (PLACEHOLDER); the
+    indexes whose record does not exist yet are returned, retried later."""
+    registry = er.async_get(hass)
+    pending = set()
+    for index in indexes:
+        entity_id = registry.async_get_entity_id("sensor", DOMAIN, field_unique_id(prefix, index))
+        if entity_id is None:
+            pending.add(index)
+            continue
+        options = registry.async_get(entity_id).options.get(DOMAIN, {})
+        if not options.get(REPORTED) and not options.get(PLACEHOLDER):
+            registry.async_update_entity_options(entity_id, DOMAIN, {**options, PLACEHOLDER: True})
     return pending
 
 
@@ -147,16 +190,30 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
     translated = await hass.async_add_executor_job(translated_fields)
     entities = []
     last_key = None
+    last_profile = None
     unconfirmed = set()
+    placeholders = set()
     def refresh():
-        nonlocal last_key, unconfirmed
+        nonlocal last_key, unconfirmed, placeholders, last_profile
         # A field (Classic or catalog) gets its entity only after its first real
         # value, like the BLE sensors: a boiler never shows rows it does not report.
         # Once created, an entity stays for this run even if a new session resets the cache.
         # One entity per physical value (F28): an EMS+ field and its Classic twin
         # share it, under the unique ID the registry already has.
-        known = {member for entity in entities for member in entity.members}
+        # The boiler profile (fw/config/boiler_profile) refines this: a value the
+        # boiler has (supported) gets its entity at once, one it has no sensor for
+        # (not fitted) never a new one and its untouched record is removed, and one
+        # whose telegram never came (not reported) a disabled one once the profile
+        # settled. Without a profile (older firmware) nothing changes.
         cache = client.boiler_fields
+        if (client.boiler_fields_supported and cache.field_profile is not None
+                and cache.profile_sequence != last_profile):
+            last_profile = cache.profile_sequence
+            from .native_entity_cleanup import cleanup_not_fitted
+            removed = cleanup_not_fitted(hass, entry, prefix, cache)
+            if removed:
+                entities[:] = [entity for entity in entities if entity.unique_id not in removed]
+        known = {member for entity in entities for member in entity.members}
         new = []
         registry = None
         for index in INDEXES if client.boiler_fields_supported else ():
@@ -165,22 +222,45 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
             members = concept(index)
             known.update(members)
             reporting = {member for member in members if plausible(cache, member)}
-            if reporting:
+            state = cache.concept_state(members)
+            placeholder = False
+            if state == "not_fitted":
+                # Never a new entity; a record the user kept shows why it has no value.
                 registry = registry or er.async_get(hass)
-                new.append(BoilerFieldEntity(prefix, client, holder(registry, prefix, members, reporting),
-                                             translated))
+                if not any(registry.async_get_entity_id("sensor", DOMAIN, field_unique_id(prefix, member))
+                           for member in members):
+                    continue
+            elif not reporting and state != "supported":
+                if state != "not_reported" or not cache.profile_settled:
+                    continue
+                placeholder = True
+            registry = registry or er.async_get(hass)
+            preferred = reporting or {member for member in members if cache.field_state(member) == "supported"}
+            entity = BoilerFieldEntity(prefix, client, holder(registry, prefix, members, preferred), translated,
+                                       placeholder=placeholder)
+            entity.confirmed = bool(reporting) or state == "supported"
+            new.append(entity)
+        for entity in entities:
+            # A placeholder (or a kept not-fitted record) whose value arrived after all.
+            if not entity.confirmed and any(plausible(cache, member) for member in entity.members):
+                entity.confirmed = True
+                unconfirmed.add(entity.index)
         if new:
             entities.extend(new)
-            unconfirmed |= {entity.index for entity in new}
+            unconfirmed |= {entity.index for entity in new if entity.confirmed}
+            placeholders |= {entity.index for entity in new if entity.placeholder}
             from .product import is_product
             if is_product(entry):
                 from .installation_group import ensure_installation_group
                 async_add_entities(new, config_subentry_id=ensure_installation_group(hass,entry))
             else:
                 async_add_entities(new)
-        elif unconfirmed:
-            unconfirmed = confirm_reported(hass, prefix, unconfirmed, cache)
-        key = (client.boiler_fields.sequence, client.boiler_fields.invalid, client.ready,
+        else:
+            if unconfirmed:
+                unconfirmed = confirm_reported(hass, prefix, unconfirmed, cache)
+            if placeholders:
+                placeholders = mark_placeholders(hass, prefix, placeholders)
+        key = (client.boiler_fields.sequence, client.boiler_fields.invalid, client.ready, cache.profile_sequence,
                tuple(entity.available for entity in entities))
         if key == last_key:
             return
@@ -196,11 +276,14 @@ class BoilerFieldEntity(SensorEntity):
     _attr_should_poll = False
     _attr_has_entity_name = True
 
-    def __init__(self, prefix, client, index, translated=None):
+    def __init__(self, prefix, client, index, translated=None, placeholder=False):
         # index: the field whose unique ID (so entity ID and history) this entity
         # keeps; members: every field that carries the same physical value.
         self.client, self.index = client, index
         self.members = concept(index)
+        # placeholder: made, disabled, for a value the boiler profile lists as not
+        # reported; confirmed: its REPORTED mark is (being) set.
+        self.placeholder, self.confirmed = placeholder, not placeholder
         name, unit, _, _ = spec(index)
         self._attr_unique_id = field_unique_id(prefix, index)
         # Named in English and Dutch by translation key; the unique ID (and so the
@@ -214,6 +297,8 @@ class BoilerFieldEntity(SensorEntity):
         if quality(index) == 1:
             self._attr_entity_registry_enabled_default = False
             self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        if placeholder:
+            self._attr_entity_registry_enabled_default = False
         self._attr_device_info = DeviceInfo(identifiers={(DOMAIN,prefix)})
         self._attr_native_unit_of_measurement = {"degC":"°C", "uA":"µA"}.get(unit,unit)
         if unit in ("bool", "bits", "text", "code", "starts"):
@@ -266,8 +351,10 @@ class BoilerFieldEntity(SensorEntity):
     def extra_state_attributes(self):
         index, value = self.source
         name, _, divisor, ttl = spec(index)
+        profile = self.client.boiler_fields.concept_state(self.members)
         reason = ("session_unavailable" if not self.client.ready else
                   "capability_unavailable" if not self.client.boiler_fields_supported else
+                  "not_fitted" if profile == "not_fitted" and not (value and value["usable"]) else
                   value["availability_reason"] if value else "not_received")
         return {"data_role":"read_only_boiler_field", "control_qualified":False,
                 "field_name":name, "raw_divisor":divisor, "source_ttl_ms":ttl,
@@ -278,6 +365,7 @@ class BoilerFieldEntity(SensorEntity):
                 "source_type":value["source_type"] if value else None,
                 "source_observed_at_ms":value["observed_at_ms"] if value else None,
                 "protocol_profile":self.client.boiler_fields.profile,
+                **({"boiler_profile":profile} if profile is not None else {}),
                 **({"source_protocol":"ems_classic" if index < CATALOG_BASE else "ems_plus",
                     "source_fields":[spec(member)[0] for member in self.members]}
                    if len(self.members) > 1 else {})}

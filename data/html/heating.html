@@ -74,7 +74,7 @@
 <style>#heating-plan [hidden]{display:none!important}#heating-plan table{font-size:.85rem}#heating-plan th,#heating-plan td{padding:4px}.hp-wait>:not(.ot-head):not([data-heating-error]){display:none!important}
 .hp-rooms>details{padding:0;overflow:hidden}.hp-rooms>details>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:14px 20px;list-style:none}.hp-rooms>details>summary::-webkit-details-marker{display:none}.hp-rooms>details>summary::after{content:"▾";grid-area:1/2;justify-self:end;color:var(--ot-muted)}.hp-rooms>details[open]>summary{border-bottom:1px solid var(--ot-border);margin:0}.hp-rooms>details[open]>summary::after{content:"▴"}
 .hp-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.hp-name{font-size:1.15rem}.hp-temps{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-weight:400}.hp-src{grid-column:1/-1;font-weight:400}.hp-body{padding:4px 20px 16px}.hp-body h3{font-size:.95rem;margin:16px 0 8px;color:var(--ot-muted)}
-.hp-grid{display:grid;gap:0 16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}.hp-grid label{display:block;margin-bottom:8px}#heating-plan [data-heating-source]{display:grid;grid-template-columns:minmax(0,13rem) minmax(0,1fr) 44px;gap:8px;margin-bottom:8px}#heating-plan [data-heating-source] .btn,#heating-plan [data-heating-point] .btn{width:44px;min-width:44px;flex:none;padding:0}
+.hp-grid{display:grid;gap:0 16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}.hp-grid label{display:block;margin-bottom:8px}#heating-plan [data-heating-source]{display:grid;grid-template-columns:minmax(0,15rem) minmax(0,1fr) 44px;gap:8px;margin-bottom:8px}#heating-plan [data-heating-source] .btn,#heating-plan [data-heating-point] .btn{width:44px;min-width:44px;flex:none;padding:0}
 #heating-plan [data-heating-point]{gap:8px}#heating-plan [data-heating-point] input{min-width:0;padding:6px}#heating-plan [data-heating-point] [type=time]{flex:0 0 auto;width:auto}.hp-remove{margin-top:16px;padding-top:12px;border-top:1px solid var(--ot-border)}.ot-sticky [data-heating-message]{flex:1 1 12rem}.ot-empty .btn{margin-top:12px}
 .hp-locked [data-heating-add],.hp-locked [data-heating-add-first],.hp-locked .ot-sticky,.hp-locked .hp-remove{display:none!important}.hp-body{border:0;margin:0;min-width:0}.hp-brief,.hp-locked .hp-body>:not(.hp-brief){display:none!important}[data-heating-active-warnings]:empty,[data-heating-active-message]:empty{display:none}.hp-locked .hp-brief{display:grid!important}.hp-locked p.hp-brief{display:block!important}.hp-body:disabled .form-control{background:var(--ot-surface-2);opacity:1}
 .hp-flow{list-style:none;padding:0;margin:8px 0;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}.hp-flow li{position:relative;border:1px solid var(--ot-border);border-radius:var(--ot-r1);background:var(--ot-surface);padding:10px 12px;font-size:.88rem}.hp-flow strong{display:block;margin-bottom:2px}.hp-flow li+li::before{content:"→";position:absolute;left:-14px;top:38%;color:var(--ot-accent);font-weight:700}
@@ -199,18 +199,37 @@
     const summary = el('summary'), body = el('fieldset', null, {class:'hp-body'});
     card.status = s => {
       const chips = el('span', null, {class:'ot-chips'}), chip = (text, tone) => chips.append(el('span', uiText(text), {class:'ot-chip' + (tone ? ' ot-chip--' + tone : '')}));
-      if (s) chip(s.demand ? "Requesting heat" : "No request", s.demand ? 'ok' : '');
+      const off = s?.status === 'inactive' || (!s && room.state === 'inactive');
+      if (s && !off) chip(s.demand ? "Requesting heat" : "No request", s.demand ? 'ok' : '');
       if (s?.status !== 'ok') chip(!s && !room.id ? "Not saved yet" : s?.status === 'stale' && typeof s.temperature !== 'number' ? "No measurement" : statusText[s?.status] || statusText.inactive,
         s?.status === 'fallback' ? 'warn' : ['stale', 'lost'].includes(s?.status) ? 'err' : '');
       const head = el('span', null, {class:'hp-head'}), temps = el('span', null, {class:'hp-temps'});
       head.append(el('strong', room.name, {class:'hp-name'}), chips);
-      temps.append(el('span', degrees(s?.temperature), {class:'ot-big'}), el('span', uiText("Target") + ' ' + degrees(s?.setpoint), {class:'pd-help'}));
-      summary.replaceChildren(head, temps, ...(sourceText[s?.setpoint_source] ? [el('span', uiText(sourceText[s.setpoint_source]), {class:'pd-help hp-src'})] : []));
+      if (off) temps.append(el('span', uiText("Off: this room never asks for heat."), {class:'pd-help'}));
+      else temps.append(el('span', degrees(s?.temperature), {class:'ot-big'}), el('span', uiText("Target") + ' ' + degrees(s?.setpoint), {class:'pd-help'}));
+      summary.replaceChildren(head, temps, ...(sourceText[s?.setpoint_source] && !off ? [el('span', uiText(sourceText[s.setpoint_source]), {class:'pd-help hp-src'})] : []),
+        ...(off && room.id && !room.inactive_until && unused() ? [unusedHint()] : []));
       leading.textContent = s?.source ? uiText("Measured by") + ': ' + sourceName(s.source) : '';
       // Managed in HA: the brief lists the sources once and marks the one measuring now.
       sourcesBrief.textContent = room.sources.map(x => sourceName(x.id) + (x.id === s?.source ? ' · ' + uiText("measuring") : '')).join(', ') || '—';
     };
     const leading = el('p', null, {class:'pd-help'}), sourcesBrief = el('dd');
+    // Switched off for good and no paired Bluetooth sensor of it reports: probably a room that is no longer used.
+    const unused = () => !room.sources.some(x => x.type === 'ble' && bleSensors.some(b => b.id === x.id && typeof b.temperature === 'number'));
+    const unusedHint = () => {
+      const hint = el('span', null, {class:'hp-unused', 'data-heating-unused':''}), actions = el('span', null, {class:'ot-actions'});
+      const pick = el('button', uiText("Choose a source"), {type:'button', class:'btn btn-outline-primary'}), drop = el('button', uiText("Remove room"), {type:'button', class:'btn btn-outline-danger'});
+      // First: give the room a working source (opens the editor; Home Assistant-managed plans ask to unlock first).
+      pick.addEventListener('click', event => {
+        event.preventDefault();
+        if (locked) { unlock.click(); if (locked) return; }
+        card.open = true; sources.querySelector('[data-heating-source] select')?.focus();
+      });
+      drop.addEventListener('click', event => { event.preventDefault(); removeUnused(room, drop); });
+      actions.append(pick, drop);
+      hint.append(el('span', uiText("This room is off and has no working temperature source. Choose a source to use it again, or remove it if you no longer need it.")), actions);
+      return hint;
+    };
     card.status(status); card.append(summary, body);
     // While Home Assistant manages the plan, a short summary instead of a long greyed-out form.
     const brief = el('dl', null, {class:'pd-detail-grid hp-brief'}), given = Array.isArray(room.schedule) && room.schedule.length === 7 ? room.schedule : null;
@@ -430,7 +449,8 @@
   function renderRequest(status) {
     const r = status?.request;
     requestBox.textContent = !r ? uiText("Status unavailable")
-      : uiText("Calculated boiler request") + ': ' + (r.heat ? r.flow_c + ' °C' : uiText("off")) + ' · ' + uiText(reasonText[r.reason] || r.reason);
+      : uiText("Calculated boiler request") + ': ' + (r.heat ? r.flow_c + ' °C' : uiText("off")) + (r.heat && r.capped_by === 'boiler_limit' ? ' (' + uiText("limited by the boiler's own maximum") + ')' : '')
+        + ' · ' + uiText(reasonText[r.reason] || r.reason);
     requestBox.classList.toggle('ot-chip--ok', !!r?.heat);
     if (status?.ha && typeof status.ha === 'object') {
       haLink = true;
@@ -488,6 +508,19 @@
     render(status); if (!status) renderRequest(null); readControl();
   }
   root.querySelector('[data-heating-retry]').addEventListener('click', load);
+  async function removeUnused(room, button) {
+    if (!plan || !confirm(uiText("Remove the room {name}? It is deleted from the E32 and from Home Assistant at once. You can add it again later.").replace('{name}', room.name)
+      + (dirtyChip.hidden ? '' : ' ' + uiText("Your unsaved changes on this page are discarded.")))) return;
+    button.disabled = true; message.textContent = uiText("Saving…");
+    try {
+      plan = await json('/config/heating', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...plan, rooms: plan.rooms.filter(r => r.id !== room.id)})});
+      await load(); message.textContent = uiText("Room removed.");
+    } catch (error) {
+      button.disabled = false;
+      if (error.code === 'plan_changed') { await load(); message.textContent = uiText("The plan was changed elsewhere (Home Assistant). It has been reloaded; make your change again."); }
+      else message.textContent = refused(error.code);
+    }
+  }
   // A new room starts active, on radiators, with one source row to fill in.
   function addRoom() {
     if (!plan || roomsBox.querySelectorAll('[data-heating-room]').length >= 8) return;
@@ -550,7 +583,7 @@
   timer = setInterval(refreshStatus, 10000);
 })();
 </script>
-<style>#heating-plan .hp-flow-design{margin:0 0 8px 34px;max-width:30rem}#heating-plan .hp-flow-design label{display:block;margin-bottom:4px}#heating-plan [data-flow-message]:empty{display:none}
+<style>#heating-plan .hp-flow-design{margin:0 0 8px 34px;max-width:30rem}#heating-plan .hp-flow-design label{display:block;margin-bottom:4px}#heating-plan [data-flow-message]:empty{display:none}#heating-plan .hp-more{margin:12px 0 0}#heating-plan .hp-unused{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:6px;padding:10px 12px;border-radius:var(--ot-r1);background:var(--ot-surface-2);font-weight:400;font-size:.9rem}
 @media(max-width:560px){#heating-plan .hp-flow-design{margin-left:0}}</style>
 <script>
 // Flow temperature (E32 beta.19): the weather curve, the learned flow and optimum start, gas calibration and last night.

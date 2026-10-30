@@ -140,13 +140,13 @@ async def test_the_dashboard_has_a_week_program_view_for_the_e32_rooms(hass, cre
     dashboard = RoomDashboard(hass, "fixture", parent.entry_id)
     config = dashboard._dashboard_config()
     views = {view["path"]: view for view in config["views"]}
-    buttons = [card for card in view_cards(config["views"][0]) if card["type"] == "button"]
+    links = [card for card in view_cards(config["views"][0]) if card.get("tap_action")]
     if credentials:
         assert views["week-program"]["cards"] == [{"type": "custom:openthermostat-e32-week", "entry_id": parent.entry_id}]
-        assert buttons[-1]["name"] == "Week program"
-        assert buttons[-1]["tap_action"]["navigation_path"] == "/" + dashboard.path + "/week-program"
+        assert links[-1]["heading"] == "Week program"
+        assert links[-1]["tap_action"]["navigation_path"] == "/" + dashboard.path + "/week-program"
     else:
-        assert "week-program" not in views and all(b["name"] != "Week program" for b in buttons)
+        assert "week-program" not in views and all(b.get("heading") != "Week program" for b in links)
 
 
 def test_the_planner_is_one_file_shared_by_the_e32_page_and_home_assistant():

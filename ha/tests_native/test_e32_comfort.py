@@ -21,9 +21,9 @@ LIVING = {"id": "living", "name": "Living", "state": "active", "inactive_until":
           "sources": [{"type": "ble", "id": "a4c138000001"}], "setpoint_entity": "", "fallback_centi_c": 2000,
           "minimum_centi_c": 500, "maximum_centi_c": 2400, "schedule": WEEK}
 STUDY = {**LIVING, "id": "study", "name": "Study", "schedule": [[], [], [], [], [], [], []]}
-TADO = {**STUDY, "id": "tado", "name": "Tado room", "setpoint_entity": "climate.tado"}
+HELPER = {**STUDY, "id": "tado", "name": "Tado room", "setpoint_entity": "input_number.tado_doel"}
 PLAN = {"schema": 1, "revision": 2, "mode": "shadow", "minimum_flow_c": 30, "maximum_flow_c": 60,
-        "rooms": [LIVING, STUDY, TADO]}
+        "rooms": [LIVING, STUDY, HELPER]}
 
 
 def room_state(room_id, **extra):
@@ -221,7 +221,7 @@ async def test_a_new_target_holds_until_the_next_switch_point_else_for_the_set_t
     assert e32.plan_posts == []  # the plan itself is never touched for an override
     link.stop()
 
-    # A room following an HA thermostat (no own program): a timed override.
+    # A room whose target is an own HA helper (input_number), no program: a timed override.
     e32 = FakeE32()
     entity, hub, link = await climate(hass, e32, room_state("tado"))
     await entity.async_set_temperature(temperature=19)
@@ -339,3 +339,112 @@ def test_every_message_and_action_is_translated():
         "eco": "Night", "away": "Away"}
     for step in ("comfort", "comfort_settings", "comfort_contacts"):
         assert step in strings["options"]["step"]
+
+
+# -- a room that follows its own Home Assistant thermostat -----------------------------------
+
+TADO = "climate.tado_woonkamer"
+TV02 = "climate.thermostaat_badkamer"
+WOONKAMER = {**LIVING, "id": "woonkamer", "name": "Woonkamer", "emitter": "floor",
+             "sources": [{"type": "ha", "id": TADO}, {"type": "ble", "id": "a4c138a3e8db"}], "setpoint_entity": TADO}
+BADKAMER = {**STUDY, "id": "badkamer", "name": "Badkamer", "sources": [{"type": "ha", "id": TV02}],
+            "setpoint_entity": "", "maximum_centi_c": 2500}
+
+
+def owner_e32():
+    e32 = FakeE32()
+    e32.plan = {**deepcopy(PLAN), "rooms": [deepcopy(WOONKAMER), deepcopy(BADKAMER)]}
+    return e32
+
+
+def thermostats(hass, unit="°C"):
+    """tado and the Tuya TV02 as other integrations show them; climate.set_temperature recorded."""
+    hass.states.async_set(TADO, "heat", {"temperature": 19.5, "current_temperature": 20.1, "min_temp": 5,
+                                         "max_temp": 25, "target_temp_step": 0.1, "supported_features": 385})
+    hass.states.async_set(TV02, "heat", {"temperature": 21, "current_temperature": 19.8, "min_temp": 5,
+                                         "max_temp": 29.5, "target_temp_step": 0.5, "supported_features": 385})
+    calls = []
+
+    async def set_temperature(call):
+        calls.append(dict(call.data))
+        state = hass.states.get(call.data["entity_id"])
+        hass.states.async_set(state.entity_id, state.state, {**state.attributes, "temperature": call.data["temperature"]})
+    hass.services.async_register("climate", "set_temperature", set_temperature)
+    return calls
+
+
+async def followed_climate(hass, e32, room):
+    entity, hub, link = await climate(hass, e32, room_state(room["id"], setpoint=20.0, setpoint_source="ha"))
+    entity.hass = hass
+    return entity, hub, link
+
+
+@pytest.mark.asyncio
+async def test_woonkamer_follows_the_tado_and_a_new_target_goes_to_the_tado(hass):
+    calls, e32 = thermostats(hass), owner_e32()
+    entity, hub, link = await followed_climate(hass, e32, WOONKAMER)
+    # Our thermostat shows the tado's own target, not a second one.
+    assert entity.followed == TADO and entity.target_temperature == 19.5
+    assert (entity.min_temp, entity.max_temp, entity.target_temperature_step) == (5.0, 24.0, 0.1)
+    assert entity.hvac_modes == [HVACMode.AUTO, HVACMode.OFF] and entity.hvac_mode == HVACMode.AUTO
+    assert not entity.supported_features & module.ClimateEntityFeature.PRESET_MODE
+    attributes = entity.extra_state_attributes
+    assert attributes["target_control"] == "followed_thermostat" and attributes["followed_entity"] == TADO
+    assert attributes["overrides_offered"] is False and attributes["e32_setpoint"] == 20.0
+    await entity.async_set_temperature(temperature=21.5)
+    assert calls == [{"entity_id": TADO, "temperature": 21.5}]
+    assert e32.commands == [] and e32.plan_posts == []  # no E32 override: the E32 follows the tado
+    assert entity.target_temperature == 21.5
+    # Temporary changes and presets are not offered (the tado's own target cannot be restored reliably).
+    for action in (entity.async_set_room_override("boost"), entity.async_set_room_override("timed", 21, 60),
+                   entity.async_set_preset_mode("comfort"), entity.async_set_hvac_mode(HVACMode.HEAT)):
+        with pytest.raises(ServiceValidationError) as error:
+            await action
+        assert error.value.translation_key == "comfort_followed_thermostat"
+        assert error.value.translation_placeholders == {"entity": TADO}
+    assert len(calls) == 1 and e32.commands == []
+    # Off is the E32 room (inactive in the plan); the tado itself is not switched.
+    await entity.async_set_hvac_mode(HVACMode.OFF)
+    assert e32.plan["rooms"][0]["state"] == "inactive" and len(calls) == 1
+    link.stop()
+
+
+@pytest.mark.asyncio
+async def test_badkamer_follows_its_tv02_once_chosen_and_never_writes_it_before(hass):
+    calls, e32 = thermostats(hass), owner_e32()
+    entity, hub, link = await followed_climate(hass, e32, BADKAMER)
+    # Not following yet: the E32's own behaviour (a fixed target in the plan), the valve untouched.
+    assert entity.followed is None and entity.target_temperature == 20.0
+    assert entity.extra_state_attributes["target_control"] == "e32"
+    await entity.async_set_temperature(temperature=20.5)
+    assert calls == [] and e32.plan["rooms"][1]["fallback_centi_c"] == 2050
+    # Following the TV02 (the room editor's one tick): our target is the valve's and goes to it.
+    await link.async_change_room("badkamer", lambda room: room.update(setpoint_entity=TV02))
+    assert entity.followed == TV02 and entity.target_temperature == 21.0 and entity.target_temperature_step == 0.5
+    await entity.async_set_temperature(temperature=22)
+    assert calls == [{"entity_id": TV02, "temperature": 22.0}] and e32.commands == []
+    link.stop()
+
+
+@pytest.mark.asyncio
+async def test_a_fahrenheit_home_and_an_unavailable_thermostat(hass):
+    from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
+    calls, e32 = thermostats(hass), owner_e32()
+    hass.config.units = US_CUSTOMARY_SYSTEM
+    hass.states.async_set(TADO, "heat", {"temperature": 68, "min_temp": 41, "max_temp": 77, "supported_features": 385})
+    entity, hub, link = await followed_climate(hass, e32, WOONKAMER)
+    assert entity.target_temperature == 20.0  # 68 °F, in our °C
+    await entity.async_set_temperature(temperature=21)  # HA hands us °C
+    assert calls == [{"entity_id": TADO, "temperature": 69.8}]  # the service takes HA's own unit
+    hass.states.async_set(TADO, "unavailable", {})
+    assert entity.target_temperature == 20.0  # the E32's own target meanwhile
+    with pytest.raises(ServiceValidationError) as error:
+        await entity.async_set_temperature(temperature=22)
+    assert error.value.translation_key == "comfort_followed_unavailable" and len(calls) == 1
+    link.stop()
+
+
+def test_only_a_climate_setpoint_entity_is_followed():
+    assert module.followed_entity(WOONKAMER) == TADO
+    assert module.followed_entity({**WOONKAMER, "setpoint_entity": "input_number.doel"}) is None  # an own helper
+    assert module.followed_entity(BADKAMER) is None and module.followed_entity(None) is None

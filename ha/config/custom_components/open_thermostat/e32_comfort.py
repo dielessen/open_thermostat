@@ -27,6 +27,17 @@ without Home Assistant. This module adds, on top of that plan (E32 beta.19,
   resumes when all are closed. Unknown states are not sent: the E32 then
   forgets the report after 15 minutes and the room heats normally.
 
+A room whose target comes from a Home Assistant thermostat (its plan
+``setpoint_entity`` is a ``climate`` entity, for example a tado or a radiator
+valve of another integration) follows that thermostat: our thermostat shows
+its target, and a new target is sent to it (``climate.set_temperature``, only
+on the user's own action on our entity), so there are never two thermostats
+that disagree; the E32 follows it as before. Temporary overrides and presets
+are not offered for such a room: restoring the thermostat's own target
+afterwards is not reliable (a Home Assistant restart loses the timer, and the
+thermostat may run its own schedule), which the attributes say
+(``target_control: followed_thermostat``, ``overrides_offered: false``).
+
 The entity reads the room from the E32 telemetry (``fw/state/room/<id>``: the
 room's ``temperature``, ``setpoint``, ``state``, ``demand`` and, while it
 deviates from its plan, ``comfort``; ``fw/state/heating``: ``away``) through the
@@ -37,6 +48,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 import json
+import logging
 
 from homeassistant.components import mqtt
 from homeassistant.components.climate import ClimateEntity
@@ -50,7 +62,7 @@ from homeassistant.helpers.event import async_track_state_change_event, async_tr
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
-from .heating_link import RoomEntity, add_options, heating_hub, number, track_entities
+from .heating_link import RoomEntity, add_options, celsius, heating_hub, number, track_entities
 
 CONF_COMFORT = "comfort_settings"
 DEFAULTS = {"presence_entity": None, "comfort_c": 20.0, "eco_c": 16.0,  # the week planner's defaults
@@ -368,6 +380,16 @@ def program_levels(plan_room, settings):
 
 
 
+FOLLOW_DOMAIN = "climate"
+_LOGGER = logging.getLogger(__name__)
+
+
+def followed_entity(plan_room):
+    """The HA thermostat (climate entity) whose target this room follows, or None."""
+    entity_id = (plan_room or {}).get("setpoint_entity")
+    return entity_id if type(entity_id) is str and entity_id.split(".")[0] == FOLLOW_DOMAIN else None
+
+
 def _iso(value):
     return datetime.fromtimestamp(value, timezone.utc).isoformat() if type(value) is int and value > 0 else None
 
@@ -386,6 +408,74 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
     def __init__(self, hub, room, entry):
         self._attach_room(hub, room, "thermostat")
         self.entry = entry
+        self._following = None      # the entity whose state changes we track
+        self._unfollow = None
+
+    # -- the followed thermostat ----------------------------------------------------
+    @property
+    def followed(self):
+        return followed_entity(self.plan_room)
+
+    def _followed_state(self):
+        followed = self.followed
+        hass = getattr(self, "hass", None)
+        state = hass.states.get(followed) if followed and hass is not None else None
+        return state if state is not None and state.state not in ("unavailable", "unknown") else None
+
+    def _followed_value(self, key, low=5, high=35):
+        state = self._followed_state()
+        if state is None:
+            return None
+        return celsius(state.attributes.get(key), self.hass.config.units.temperature_unit, low, high)
+
+    @callback
+    def _track_followed(self):
+        """Show the followed thermostat's own changes at once (its target is ours)."""
+        followed = self.followed
+        if followed == self._following:
+            return
+        if self._unfollow is not None:
+            self._unfollow()
+            self._unfollow = None
+        self._following = followed
+        if followed and self.hass is not None:
+            self._unfollow = async_track_state_change_event(self.hass, [followed], self._followed_changed)
+
+    @callback
+    def _followed_changed(self, _event):
+        if self.hass is not None and self.entity_id:
+            self.async_write_ha_state()
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self._track_followed()
+        self.async_on_remove(lambda: self._unfollow() if self._unfollow is not None else None)
+
+    @callback
+    def _hub_changed(self):
+        if self.hass is not None and self.entity_id:
+            self._track_followed()
+        super()._hub_changed()
+
+    async def _forward(self, temperature):
+        """Set the followed thermostat's target (a normal service call, on the user's action only)."""
+        followed, state = self.followed, self._followed_state()
+        if state is None or "temperature" not in state.attributes:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="comfort_followed_unavailable",
+                                         translation_placeholders={"entity": followed or ""})
+        unit = self.hass.config.units.temperature_unit
+        value = float(temperature)
+        if unit != UnitOfTemperature.CELSIUS:
+            from homeassistant.util.unit_conversion import TemperatureConverter
+            value = TemperatureConverter.convert(value, UnitOfTemperature.CELSIUS, unit)
+        _LOGGER.info("E32 room %s follows %s: setting its target to %.1f %s", self.room_id, followed, value, unit)
+        await self.hass.services.async_call(FOLLOW_DOMAIN, "set_temperature",
+                                            {"entity_id": followed, "temperature": round(value, 1)},
+                                            blocking=True, context=self._context)
+
+    def _not_offered(self):
+        return ServiceValidationError(translation_domain=DOMAIN, translation_key="comfort_followed_thermostat",
+                                      translation_placeholders={"entity": self.followed or ""})
 
     # -- state ---------------------------------------------------------------------
     @property
@@ -416,17 +506,41 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
 
     @property
     def target_temperature(self):
+        if self.followed:  # the followed thermostat's own target (the E32 follows it)
+            target = self._followed_value("temperature")
+            if target is not None:
+                return target
         return number((self.room or {}).get("setpoint"), 5, 35)
 
     @property
     def min_temp(self):
         from .room_plan import setpoint_range
-        return setpoint_range(self.plan_room)[0]
+        low = setpoint_range(self.plan_room)[0]
+        other = self._followed_value("min_temp", -50, 100) if self.followed else None
+        return max(low, other) if other is not None and other <= setpoint_range(self.plan_room)[1] else low
 
     @property
     def max_temp(self):
         from .room_plan import setpoint_range
-        return setpoint_range(self.plan_room)[1]
+        high = setpoint_range(self.plan_room)[1]
+        other = self._followed_value("max_temp", -50, 100) if self.followed else None
+        return min(high, other) if other is not None and other >= self.min_temp else high
+
+    @property
+    def target_temperature_step(self):
+        state = self._followed_state() if self.followed else None
+        step = number(state.attributes.get("target_temp_step"), 0.01, 5) if state is not None else None
+        # The other thermostat's own step (in HA's unit; its Celsius step is close enough for a card).
+        return step if step is not None else 0.5
+
+    @property
+    def supported_features(self):
+        features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
+        return features if self.followed else features | ClimateEntityFeature.PRESET_MODE
+
+    @property
+    def hvac_modes(self):
+        return [HVACMode.AUTO, HVACMode.OFF] if self.followed else [HVACMode.AUTO, HVACMode.HEAT, HVACMode.OFF]
 
     @property
     def hvac_mode(self):
@@ -435,6 +549,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
             return None
         if room.get("state") == "inactive":
             return HVACMode.OFF
+        if self.followed:
+            return HVACMode.AUTO
         return HVACMode.HEAT if self.comfort.get("override") in OVERRIDES else HVACMode.AUTO
 
     @property
@@ -466,8 +582,12 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
         room = self.room
         if room is None:
             return None
-        comfort, away = self.comfort, self.away
+        comfort, away, followed = self.comfort, self.away, self.followed
         return {"room_id": self.room_id, "comfort_mode": comfort.get("mode", "program"),
+                # Who sets the target: the E32 (week program, overrides) or the followed thermostat.
+                "target_control": "followed_thermostat" if followed else "e32", "followed_entity": followed,
+                "overrides_offered": not followed,
+                "e32_setpoint": number(room.get("setpoint"), 5, 35),
                 "window": comfort.get("window"), "override": comfort.get("override"),
                 "until": _iso(comfort.get("until")), "waiting_for_clock": comfort.get("waiting_for_clock") is True,
                 "setpoint_source": room.get("setpoint_source"),
@@ -519,6 +639,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
         if kwargs.get("hvac_mode") == HVACMode.OFF:
             return await self.async_set_hvac_mode(HVACMode.OFF)
         await self._ensure_active()
+        if self.followed:
+            return await self._forward(float(temperature))
         await self.async_hold(float(temperature))
 
     async def async_set_hvac_mode(self, hvac_mode):
@@ -530,6 +652,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
             if self.comfort.get("override") in OVERRIDES:
                 await self._command(override_command(self.room_id, "none"))
         elif hvac_mode == HVACMode.HEAT:
+            if self.followed:
+                raise self._not_offered()
             await self._ensure_active()
             target = self.target_temperature
             if self.comfort.get("override") not in OVERRIDES and target is not None:
@@ -544,6 +668,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
         await self.async_set_hvac_mode(HVACMode.OFF)
 
     async def async_set_preset_mode(self, preset_mode):
+        if self.followed:
+            raise self._not_offered()
         if preset_mode == PRESET_BOOST:
             await self._ensure_active()
             await self._command(override_command(self.room_id, "boost"))
@@ -566,6 +692,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
     async def async_set_room_override(self, mode, temperature=None, duration_minutes=None):
         if mode not in ("boost", "timed", "until_next"):
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="room_state_invalid")
+        if self.followed:
+            raise self._not_offered()
         await self._ensure_active()
         if mode == "boost":
             return await self._command(override_command(self.room_id, "boost", None, duration_minutes))

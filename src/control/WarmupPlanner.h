@@ -191,7 +191,9 @@ struct WarmupPlanner {
         cJSON* ni = st ? cJSON_AddObjectToObject(o, "night") : nullptr;
         if (!ni) { cJSON_Delete(o); return nullptr; }
         cJSON_AddStringToObject(o, "id", plan.rooms[i].id.c_str());
-        const auto& schedule = plan.rooms[i].schedule;
+        // A room following its own thermostat has no E32 program to start for.
+        static const RoomSchedule none{};
+        const auto& schedule = plan.rooms[i].followedThermostat().empty() ? plan.rooms[i].schedule : none;
         const auto start = optimumStart(l, i, schedule, utc, temperature, outdoor);
         cJSON_AddStringToObject(st, "reason", start.reason);
         if (start.reason[0] == 'p') {

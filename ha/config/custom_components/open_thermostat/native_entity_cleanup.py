@@ -68,9 +68,12 @@ def stale_reason(record, prefix, legacy, reporting_ids, zones):
         # "Never reported": disabled by us (as unreported, or by default as
         # unreliable), never marked as having delivered a real value since
         # 0.4.0b10, and no real value now. A disabled record records no state.
-        from .v1_boiler_fields import REPORTED
+        from .v1_boiler_fields import PLACEHOLDER, REPORTED
+        options = record.options.get(DOMAIN, {})
+        # A disabled record of a value the boiler profile lists as not reported
+        # (PLACEHOLDER) is still provided; cleanup_not_fitted owns it.
         if (record.disabled_by is _INTEGRATION and uid not in reporting_ids
-                and not record.options.get(DOMAIN, {}).get(REPORTED)):
+                and not options.get(REPORTED) and not options.get(PLACEHOLDER)):
             return "boiler_field_never_reported"
         return None
     match = re.fullmatch(re.escape(prefix) + r"_room_(.+)_climate", uid)
@@ -111,6 +114,38 @@ def cleanup_stale_entities(hass, entry, prefix):
         _LOGGER.info("Removed %d OpenThermostat entities this installation no longer provides: %s",
                      len(removed), ", ".join(sorted(removed)))
     return removed
+
+
+def cleanup_not_fitted(hass, entry, prefix, cache):
+    """Remove untouched records of boiler values this boiler has no sensor for.
+
+    The boiler profile (fw/config/boiler_profile) says which fields are not
+    fitted; an EMS+ field and its Classic twin count as one value (F28), not
+    fitted only when neither is supported. Only this entry's boiler-field
+    sensors, and only while untouched (see untouched) and never marked as having
+    delivered a real value (REPORTED); a kept record reads unavailable with
+    availability_reason "not_fitted". Returns the removed unique IDs.
+    """
+    from .boiler_fields import INDEX_BY_NAME, concept
+    from .v1_boiler_fields import REPORTED
+    if cache is None or cache.field_profile is None:
+        return frozenset()
+    registry = er.async_get(hass)
+    head = f"{prefix}_boiler_fields_v1_"
+    removed = {}
+    for record in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
+        if record.domain != "sensor" or record.platform != DOMAIN or not record.unique_id.startswith(head):
+            continue
+        index = INDEX_BY_NAME.get(record.unique_id.removeprefix(head))
+        if index is None or cache.concept_state(concept(index)) != "not_fitted":
+            continue
+        if untouched(record) and not record.options.get(DOMAIN, {}).get(REPORTED):
+            registry.async_remove(record.entity_id)
+            removed[record.unique_id] = record.entity_id
+    if removed:
+        _LOGGER.info("Removed %d OpenThermostat boiler entities this boiler has no sensor for: %s",
+                     len(removed), ", ".join(sorted(removed.values())))
+    return frozenset(removed)
 
 
 # hass.data key: room ids whose device was removed during this setup.

@@ -38,7 +38,7 @@ public:
                     }
             next[i].result.source = lead;
             if (oldRt.result.source >= 0 && lead < 0) { next[i].result = {}; next[i].lastUsable = {}; } // its sensor was removed
-            if (old->setpointEntity != room.setpointEntity) next[i].target.reset();
+            if (targetEntity(*old) != targetEntity(room)) next[i].target.reset();
         }
         if (!configured_ || plan.minimumFlowC != plan_.minimumFlowC || plan.maximumFlowC != plan_.maximumFlowC) {
             FlowDemand::Params params;
@@ -70,7 +70,8 @@ public:
             for (size_t s = 0; s < room.sources.size(); ++s)
                 if (room.sources[s].type == RoomPlan::SourceType::ha && room.sources[s].id == entity)
                     rooms_[i].readings[s] = {temperature, atMs};
-            if (!room.setpointEntity.empty() && room.setpointEntity == entity && target) {
+            const auto from = targetEntity(room);
+            if (!from.empty() && from == entity && target) {
                 rooms_[i].target = target; rooms_[i].targetAt = atMs;
             }
         }
@@ -167,6 +168,8 @@ public:
             else cJSON_AddNullToObject(r, "source");
             centi(r, "temperature", rt.result.temperature);
             centi(r, "setpoint", rt.result.setpoint);
+            // The thermostat this room follows (no E32 program or overrides for it).
+            if (const auto f = room.followedThermostat(); !f.empty()) cJSON_AddStringToObject(r, "follows", std::string(f).c_str());
             cJSON_AddStringToObject(r, "setpoint_source", rt.setpointSource == SetpointSource::ha ? "ha"
                 : rt.setpointSource == SetpointSource::schedule ? "schedule" : "fallback");
             cJSON_AddBoolToObject(r, "demand", rt.demand);
@@ -187,10 +190,16 @@ private:
         bool active = false;  // effective state of the last step
         SetpointSource setpointSource = SetpointSource::fallback;
     };
-    // A fresh HA target, else the E32 week program (needs the clock), else the fixed fallback.
+    // The HA entity whose target the room uses: the followed thermostat, else its setpoint entity.
+    static std::string_view targetEntity(const RoomPlan::Room& room) {
+        const auto f = room.followedThermostat();
+        return f.empty() ? std::string_view(room.setpointEntity) : f;
+    }
+    // A fresh HA target, else the E32 week program (needs the clock; never for a room that
+    // follows its own thermostat), else the fixed fallback.
     static SetpointSource setpointSource(const RoomPlan::Room& room, const Runtime& rt, uint64_t now, std::optional<uint32_t> unixNow) {
         if (rt.target && rt.targetAt <= now && now - rt.targetAt < setpointMaxAgeMs) return SetpointSource::ha;
-        if (unixNow && !room.schedule.empty()) return SetpointSource::schedule;
+        if (unixNow && !room.schedule.empty() && room.followedThermostat().empty()) return SetpointSource::schedule;
         return SetpointSource::fallback;
     }
     static std::optional<int16_t> setpoint(const RoomPlan::Room& room, const Runtime& rt, SetpointSource source, std::optional<uint32_t> unixNow) {

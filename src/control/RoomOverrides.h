@@ -17,6 +17,12 @@ namespace heating::control {
 // presence). Only room TARGETS change: the flow limits, frost protection and
 // ActiveHeatGuard stay as they are (the guard still heats any room below 8 degC).
 //
+// A room that follows its own thermostat or radiator valve in Home Assistant
+// (RoomPlan::Room::followedThermostat()) takes its target only from that device:
+// overrides are refused, and an override or away kept from before is not used
+// ("ignored" in the status); the window pause still applies (it only stops the
+// E32 asking for heat).
+//
 // Priority per active room: open window (after its delay; target = frost floor)
 // > override > away return (warm-up before the away end) > away (the plan target,
 // at most the away temperature) > the plan (HA target, week program, fallback).
@@ -54,6 +60,8 @@ public:
         std::optional<int16_t> targetCentiC; // the mode's own target
         Kind kind = Kind::none;       // the room's override, also while a window holds it
         bool waiting = false;         // an override (or away) kept across a restart waits for the clock
+        bool follows = false;         // the room follows its own thermostat
+        bool ignored = false;         // ... and keeps an override or away that is not used
     };
 
     // --- commands (POST /config/heating/comfort) ---------------------------------
@@ -97,6 +105,7 @@ public:
         const RoomPlan::Room* room = plan.find(id->valuestring);
         if (!room) return "unknown_room";
         const std::string_view k = kind->valuestring;
+        const bool follows = !room->followedThermostat().empty();
         if (k == "none") {
             Slot* s = find(room->id);
             if (s && s->kind != Kind::none) { persist = s->untilUtc != 0; s->clearOverride(); }
@@ -106,6 +115,7 @@ public:
         Slot candidate;
         candidate.kind = k == "boost" ? Kind::boost : k == "timed" ? Kind::timed : k == "next" ? Kind::next : Kind::none;
         if (candidate.kind == Kind::none) return "invalid_override";
+        if (follows) return "room_follows_thermostat"; // its target is the device's own
         if (room->state != RoomDemand::State::active) return "room_inactive";
         if (candidate.kind == Kind::boost) candidate.centiC = room->maximumCentiC;
         else if (!centi(temperature, room->minimumCentiC, room->maximumCentiC, candidate.centiC)) return "invalid_temperature";
@@ -182,7 +192,7 @@ public:
             leadMinute_ = *utc / 60;
             for (size_t i = 0; i < plan.rooms.size() && i < RoomPlan::maxRooms; ++i) {
                 leadS_[i] = 0;
-                if (plan.rooms[i].state != RoomDemand::State::active) continue;
+                if (plan.rooms[i].state != RoomDemand::State::active || !plan.rooms[i].followedThermostat().empty()) continue;
                 const auto ret = returnTarget(plan.rooms[i]);
                 if (away_.on && away_.until > *utc && away_.until - *utc <= WarmupPlanner::maxLeadS && ret > awayCentiC_)
                     leadS_[i] = std::min<uint32_t>(lead(i, away_.until, awayCentiC_, ret), WarmupPlanner::maxLeadS);
@@ -216,6 +226,7 @@ public:
                 v.until = s->untilUtc;
                 if (!s->untilUtc && s->untilMs > now) v.remainingS = uint32_t((s->untilMs - now + 999) / 1000);
             }
+            v.follows = !room.followedThermostat().empty();
             if (s && s->contactFresh(now) && s->open) {
                 if (now - s->openSince >= uint64_t(s->delayS) * 1000) {
                     v.window = "open"; v.mode = "window_open"; v.targetCentiC = frostCentiC;
@@ -223,6 +234,10 @@ public:
                     continue;
                 }
                 v.window = "pending";
+            }
+            if (v.follows) { // the device's own target: kept data is not used
+                v.ignored = overriding || away_.on || presenceAway;
+                continue;
             }
             if (overriding) {
                 v.mode = s->kind == Kind::boost ? "boost" : s->kind == Kind::next ? "next" : "timed";
@@ -249,7 +264,7 @@ public:
     // Away or an open window holds the week program: no optimum start towards its next rise.
     bool holdsProgram(size_t room) const {
         const char* m = view(room).mode;
-        return m && (!std::strcmp(m, "away") || !std::strcmp(m, "presence_away") || !std::strcmp(m, "window_open"));
+        return view(room).follows || (m && (!std::strcmp(m, "away") || !std::strcmp(m, "presence_away") || !std::strcmp(m, "window_open")));
     }
 
     // The warm-up before the away end from the learner (WarmupPlanner's optimum
@@ -298,7 +313,7 @@ public:
             const auto* room = cJSON_IsString(id) ? plan.find(id->valuestring) : nullptr;
             if (!room) continue;
             const auto& v = views_[size_t(room - plan.rooms.data())];
-            if (!v.mode && !v.window && v.kind == Kind::none) continue;
+            if (!v.mode && !v.window && v.kind == Kind::none && !v.ignored) continue;
             cJSON* c = cJSON_AddObjectToObject(r, "comfort");
             if (!c || !roomJson(c, v)) return false;
         }
@@ -422,13 +437,14 @@ private:
         return v ? cJSON_AddNumberToObject(o, key, *v / 100.0) != nullptr : cJSON_AddNullToObject(o, key) != nullptr;
     }
     static bool roomJson(cJSON* c, const View& v) {
-        if (!cJSON_AddStringToObject(c, "mode", v.mode ? v.mode : "program")) return false;
+        if (!cJSON_AddStringToObject(c, "mode", v.mode ? v.mode : v.follows ? "follows" : "program")) return false;
         if (v.window && !cJSON_AddStringToObject(c, "window", v.window)) return false;
         if (v.targetCentiC && !celsius(c, "target_c", v.targetCentiC)) return false;
         if (v.until && !cJSON_AddNumberToObject(c, "until", v.until)) return false;
         if (v.remainingS && !cJSON_AddNumberToObject(c, "remaining_s", v.remainingS)) return false;
         if (v.kind != Kind::none && !cJSON_AddStringToObject(c, "override", kindName(v.kind))) return false;
         if (v.waiting && !cJSON_AddBoolToObject(c, "waiting_for_clock", true)) return false;
+        if (v.ignored && !cJSON_AddBoolToObject(c, "ignored", true)) return false;
         return true;
     }
     bool awayJson(cJSON* a, uint64_t now) const {

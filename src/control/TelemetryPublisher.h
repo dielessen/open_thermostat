@@ -78,12 +78,13 @@ public:
         budget_ = burst;
         if (phase_++ % 2 == 0) heating(now); else boilerState(now);
         boilerGroup(now);
+        boilerProfile(now);
         learned(now);
         if (sources_.summary) summary(now);
     }
 
 private:
-    enum class Kind : uint8_t { heating, room, ble, plan, entities, shadow, learned, summary, boiler, group };
+    enum class Kind : uint8_t { heating, room, ble, plan, entities, shadow, learned, summary, boiler, group, profile };
     struct Slot {
         std::string topic;
         Kind kind;
@@ -97,7 +98,7 @@ private:
     }
     static const TelemetryCadence& cadence(Kind k) {
         switch (k) {
-        case Kind::plan: case Kind::entities: return configCadence;
+        case Kind::plan: case Kind::entities: case Kind::profile: return configCadence;
         case Kind::shadow: case Kind::summary: return summaryCadence;
         case Kind::learned: return learnedCadence;
         case Kind::group: return fieldsCadence;
@@ -191,6 +192,15 @@ private:
         if (!sources_.boilerGroup || !budget_) return;
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> doc(boilerStateDocument(sources_.boilerGroup), cJSON_Delete);
         if (Slot* s = doc ? slot("fw/state/boiler", Kind::boiler) : nullptr) consider(*s, print(doc.get()), doc.get(), now);
+    }
+    // fw/config/boiler_profile (agent T): which boiler fields this boiler has
+    // (EMS/BoilerProfile.h), from the boiler-fields source at boilerProfileGroup;
+    // looked at every 10 s, sent on change.
+    void boilerProfile(uint64_t now) {
+        if (!sources_.boilerGroup || !budget_ || phase_ % 10 != 1) return;
+        std::string raw;
+        sources_.boilerGroup(raw, boilerProfileGroup);
+        if (Slot* s = raw.empty() ? nullptr : slot("fw/config/boiler_profile", Kind::profile)) consider(*s, raw, nullptr, now);
     }
     void boilerGroup(uint64_t now) {
         if (!sources_.boilerGroup || !budget_) return;

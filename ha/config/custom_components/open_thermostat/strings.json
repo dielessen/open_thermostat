@@ -527,6 +527,7 @@
         "title": "E32 room",
         "description": "One room: where its temperature comes from, what it should be and when. The E32 stores this and runs it, also without Home Assistant.",
         "data": {
+          "follow_thermostat": "Follow the room's thermostat for the target",
           "name": "Room name",
           "state": "Heating",
           "emitter": "Heating type",
@@ -538,6 +539,7 @@
           "program": "Week program on the E32"
         },
         "data_description": {
+          "follow_thermostat": "Takes the target temperature from the first Home Assistant thermostat among the temperature sources above, for example a tado or a radiator valve. The room's thermostat in Home Assistant then sets that thermostat's target, so both always agree. A target entity chosen below takes precedence.",
           "name": "The name you see in Home Assistant and on the E32. Up to 40 letters (fewer with accents or emoji); renaming keeps the room and its history.",
           "state": "On: the room can ask for heat. Off: the room asks for no heat. A temporary \"Off until\" is on the room's device page.",
           "emitter": "Radiators or floor heating; each type gets its own flow temperature.",
@@ -625,7 +627,7 @@
       },
       "legacy_rooms": {
         "title": "Remove old Home Assistant rooms",
-        "description": "Your rooms now live in the E32 room plan (Configure → Rooms). These older Home Assistant rooms were only needed to connect the E32 and are no longer used: {rooms}.\n\nRemoving them deletes their room devices and entities from this integration. Your sensors, thermostats and radiator valves, and the rooms on the E32, stay as they are. The E32 stays connected; it may restart once (about 30 seconds)."
+        "description": "Your rooms now live in the E32 room plan (Configure → Rooms). These older Home Assistant rooms were only needed to connect the E32 and are no longer used: {rooms}.\n\nWhat happens:\n{changes}\n\nRemoving them deletes their room devices and entities from this integration. Your sensors, thermostats and radiator valves of other integrations stay as they are. The E32 stays connected; it may restart once (about 30 seconds)."
       },
       "legacy_rooms_finish": {
         "title": "Finish removing the old room",
@@ -637,6 +639,7 @@
       }
     },
     "error": {
+      "e32_follow_no_thermostat": "Add the thermostat (a climate entity) as a temperature source first, or choose a target entity below.",
       "presence_entity_invalid": "Choose a person, group, zone or switch that exists.",
       "temperature_invalid": "Enter a temperature between 5 and 30 °C.",
       "whole_number_invalid": "Enter a whole number within the limits.",
@@ -761,7 +764,10 @@
       "e32_flow_limits_floor_warning": "A room has floor heating. Above {floor_maximum} floor heating without a mixing valve can get too hot. Save again to keep this maximum.",
       "e32_flow_limits_above_boiler": "This maximum is above your boiler's own maximum; the boiler does not go higher anyway. Save again to keep it, or lower it.",
       "controller_ha_version_unsupported": "This integration needs Home Assistant 2026.10.0 or newer (tested with 2026.10.2 to 2026.10.4). Update Home Assistant; if yours is newer, check for an integration update. Nothing has been changed.",
-      "controller_mqtt_unconfirmed": "The E32 restarted with the Home Assistant settings, but Home Assistant received nothing from it over MQTT within 90 seconds. On the E32, check System → Network → MQTT: the same broker as the MQTT integration in Home Assistant, and a user name and password that the broker accepts."
+      "controller_mqtt_unconfirmed": "The E32 restarted with the Home Assistant settings, but Home Assistant received nothing from it over MQTT within 90 seconds. On the E32, check System → Network → MQTT: the same broker as the MQTT integration in Home Assistant, and a user name and password that the broker accepts.",
+      "legacy_rooms_plan_changed": "The E32 room plan changed since this list was made (on the E32 page or elsewhere). Nothing has been removed. Check the updated list and submit again.",
+      "legacy_rooms_plan_failed": "The E32 did not save the updated room plan, so nothing has been removed. Check that the E32 is ready and try again.",
+      "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -844,7 +850,11 @@
         "name": "Radiators heating"
       },
       "room_demand": {
-        "name": "Heat demand"
+        "name": "Heat demand",
+        "state": {
+          "on": "Requesting heat",
+          "off": "No request"
+        }
       },
       "burner_short_cycling": {
         "name": "Burner short cycling"
@@ -2118,6 +2128,9 @@
     },
     "installation": {
       "entry_type": "Installation overview"
+    },
+    "e32_room": {
+      "entry_type": "Room"
     }
   },
   "selector": {
@@ -2285,7 +2298,7 @@
         "step": {
           "legacy_rooms": {
             "title": "Remove old Home Assistant rooms",
-            "description": "Your rooms now live in the E32 room plan (Configure → Rooms). These older Home Assistant rooms were only needed to connect the E32 and are no longer used: {rooms}.\n\nRemoving them deletes their room devices and entities from this integration. Your sensors, thermostats and radiator valves, and the rooms on the E32, stay as they are. The E32 stays connected; it may restart once (about 30 seconds)."
+            "description": "Your rooms now live in the E32 room plan (Configure → Rooms). These older Home Assistant rooms were only needed to connect the E32 and are no longer used: {rooms}.\n\nWhat happens:\n{changes}\n\nRemoving them deletes their room devices and entities from this integration. Your sensors, thermostats and radiator valves of other integrations stay as they are. The E32 stays connected; it may restart once (about 30 seconds)."
           },
           "legacy_rooms_finish": {
             "title": "Finish removing the old room",
@@ -2306,7 +2319,10 @@
           "mqtt_unconfirmed": "The E32 restarted with the Home Assistant settings, but Home Assistant received nothing from it over MQTT within 90 seconds. On the E32, check System → Network → MQTT: the same broker as the MQTT integration in Home Assistant, and a user name and password that the broker accepts.",
           "e32_busy": "The E32 is updating or restarting. Wait until it is ready and try again.",
           "ha_version_unsupported": "This integration needs Home Assistant 2026.10.0 or newer (tested with 2026.10.2 to 2026.10.4). Update Home Assistant; if yours is newer, check for an integration update. Nothing has been changed.",
-          "connection_failed": "The E32 connection could not be confirmed. Open Configure → Connect E32 for details, then try again here."
+          "connection_failed": "The E32 connection could not be confirmed. Open Configure → Connect E32 for details, then try again here.",
+          "legacy_rooms_plan_changed": "The E32 room plan changed since this list was made (on the E32 page or elsewhere). Nothing has been removed. Check the updated list and submit again.",
+          "legacy_rooms_plan_failed": "The E32 did not save the updated room plan, so nothing has been removed. Check that the E32 is ready and try again.",
+          "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again."
         },
         "abort": {
           "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
@@ -2320,7 +2336,7 @@
         "step": {
           "legacy_rooms": {
             "title": "Remove old Home Assistant rooms",
-            "description": "Your rooms now live in the E32 room plan (Configure → Rooms). These older Home Assistant rooms were only needed to connect the E32 and are no longer used: {rooms}.\n\nRemoving them deletes their room devices and entities from this integration. Your sensors, thermostats and radiator valves, and the rooms on the E32, stay as they are. The E32 stays connected; it may restart once (about 30 seconds)."
+            "description": "Your rooms now live in the E32 room plan (Configure → Rooms). These older Home Assistant rooms were only needed to connect the E32 and are no longer used: {rooms}.\n\nWhat happens:\n{changes}\n\nRemoving them deletes their room devices and entities from this integration. Your sensors, thermostats and radiator valves of other integrations stay as they are. The E32 stays connected; it may restart once (about 30 seconds)."
           },
           "legacy_rooms_finish": {
             "title": "Finish removing the old room",
@@ -2341,13 +2357,51 @@
           "mqtt_unconfirmed": "The E32 restarted with the Home Assistant settings, but Home Assistant received nothing from it over MQTT within 90 seconds. On the E32, check System → Network → MQTT: the same broker as the MQTT integration in Home Assistant, and a user name and password that the broker accepts.",
           "e32_busy": "The E32 is updating or restarting. Wait until it is ready and try again.",
           "ha_version_unsupported": "This integration needs Home Assistant 2026.10.0 or newer (tested with 2026.10.2 to 2026.10.4). Update Home Assistant; if yours is newer, check for an integration update. Nothing has been changed.",
-          "connection_failed": "The E32 connection could not be confirmed. Open Configure → Connect E32 for details, then try again here."
+          "connection_failed": "The E32 connection could not be confirmed. Open Configure → Connect E32 for details, then try again here.",
+          "legacy_rooms_plan_changed": "The E32 room plan changed since this list was made (on the E32 page or elsewhere). Nothing has been removed. Check the updated list and submit again.",
+          "legacy_rooms_plan_failed": "The E32 did not save the updated room plan, so nothing has been removed. Check that the E32 is ready and try again.",
+          "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again."
         },
         "abort": {
           "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
           "legacy_rooms_cancelled": "Cancelled. Choose Configure → Connect E32 to check the connection; some settings may already be saved on the E32."
         }
       }
+    },
+    "e32_room_choose_source": {
+      "title": "Choose a temperature source for {room}",
+      "description": "{room} on the E32 used a thermostat of an old Home Assistant room as its temperature source. That old room has been removed, and it had nothing to replace it with. {room} stays as it was (also when it is inactive), but it has no working temperature source until you choose one.\n\nSelect Fix to choose a thermostat or temperature sensor, or open Configure → E32 rooms → {room}.",
+      "fix_flow": {
+        "step": {
+          "choose_source": {
+            "title": "Choose a temperature source for {room}",
+            "description": "Choose the thermostat or temperature sensor that measures the temperature in {room}. Only the temperature source changes; the room's other settings and week program stay.",
+            "data": {
+              "source": "Temperature source"
+            },
+            "data_description": {
+              "source": "A thermostat that measures the room temperature, or a temperature sensor."
+            }
+          }
+        },
+        "error": {
+          "e32_source_invalid_id": "The E32 cannot use {source}: entity IDs may have up to 80 characters.",
+          "e32_source_wrong_domain": "{source} cannot be used here. Choose a thermostat or a temperature sensor.",
+          "e32_source_not_found": "{source} does not exist in Home Assistant.",
+          "e32_source_no_temperature": "{source} reports no current temperature. Choose a thermostat that measures the room temperature, or a temperature sensor.",
+          "e32_source_not_celsius": "{source} does not report a temperature (°C or °F). Choose a temperature sensor.",
+          "save_failed": "The E32 did not save the room plan. Check that the E32 is on and connected, then try again."
+        },
+        "abort": {
+          "e32_rooms_unavailable": "Connect the E32 first (Configure → Connect E32) so Home Assistant can edit its room plan.",
+          "e32_unreachable": "The E32 could not be reached. Check that it is on and connected to your network, then try again.",
+          "room_missing": "This room is no longer in the E32 room plan."
+        }
+      }
+    },
+    "room_group_restored": {
+      "title": "{room} is back on the integration page",
+      "description": "You deleted the group of the room {room} under {installation}, but {room} is still a room in the E32 room plan, and the E32 keeps heating it. Its group, device and entities have been restored with the same names, areas and history. To remove the room, open {installation} → Configure → Rooms → Edit or remove a room, choose {room} and remove it there. You can dismiss this message."
     }
   },
   "services": {
@@ -2423,6 +2477,12 @@
     }
   },
   "exceptions": {
+    "comfort_followed_thermostat": {
+      "message": "This room follows {entity} for its target. Change the temperature on that thermostat or with this room's thermostat; temporary changes and presets are not offered, because the other thermostat's own target cannot be restored reliably."
+    },
+    "comfort_followed_unavailable": {
+      "message": "{entity} is unavailable or has no target temperature, so the new target could not be set."
+    },
     "comfort_no_clock": {
       "message": "The E32 does not know the time yet (no time server reached). Try again in a minute, or choose a duration instead of a date or switch point."
     },

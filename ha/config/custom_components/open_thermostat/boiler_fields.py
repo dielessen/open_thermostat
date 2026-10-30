@@ -1,4 +1,5 @@
 """Immutable boiler.fields.v1 IDs; source values are read-only, never control evidence."""
+import json
 import math
 
 CAPABILITY = "boiler.fields.v1"
@@ -201,6 +202,42 @@ def concept(index):
     return tuple(sorted((index, _TWIN[index]), key=lambda i: (quality(i) == 1, i >= CATALOG_BASE)))
 
 
+# fw/config/boiler_profile (retained, E32 beta.19, src/EMS/BoilerProfile.h): which
+# fields THIS boiler has, learned on the E32 from its own reports. A field in none
+# of the lists is still "unknown" (too few observations). "supported" includes a
+# not-fitted field the owner chose to show anyway on the E32 boiler page.
+PROFILE_TOPIC = "fw/config/boiler_profile"
+PROFILE_MAX_BYTES = 1024
+PROFILE_LISTS = ("supported", "not_fitted", "not_reported")
+
+
+def validate_profile(value):
+    """{index: state} of a boiler profile; indexes this HA does not know are ignored."""
+    if (type(value) is not dict or value.get("schema") != 1 or type(value.get("boiler")) is not dict
+            or not set(PROFILE_LISTS) <= set(value)):
+        raise ValueError("boiler profile schema")
+    states = {}
+    for key in PROFILE_LISTS:
+        items = value[key]
+        if type(items) is not list or len(items) > 256:
+            raise ValueError("boiler profile list")
+        for index in items:
+            if not _integer(index, 0, 255) or index in states:
+                raise ValueError("boiler profile index")
+            states[index] = key
+    return {index: state for index, state in states.items() if index in INDEX_SET}
+
+
+def combined_state(states):
+    """One physical value (F28 concept) from the profile states of its fields:
+    supported when any field is, unknown while any may still turn out, not
+    fitted when one is and none is supported, else not reported."""
+    for state in ("supported", "unknown", "not_fitted"):
+        if state in states:
+            return state
+    return "not_reported"
+
+
 def _integer(v, lo=0, hi=9007199254740991):
     return type(v) is int and lo <= v <= hi
 
@@ -302,6 +339,11 @@ class BoilerFieldCache:
     """
     def __init__(self):
         self.state_mode = False
+        # The boiler profile is retained configuration, not session data: no reset clears it.
+        self.field_profile = None   # {index: state}; None: no profile (older firmware)
+        self.profile_boiler = None
+        self.profile_settled = False
+        self.profile_sequence = 0
         self.reset()
 
     def reset_session(self):
@@ -322,6 +364,39 @@ class BoilerFieldCache:
         self.records = {}
         self.received = None
         self.retired = {}
+
+    def accept_profile(self, raw):
+        """A retained ``fw/config/boiler_profile``; empty clears it. False: invalid, ignored."""
+        if raw in ("", b"", None):
+            changed = self.field_profile is not None
+            self.field_profile, self.profile_boiler, self.profile_settled = None, None, False
+        else:
+            try:
+                if not isinstance(raw, str) or len(raw) > PROFILE_MAX_BYTES:
+                    raise ValueError("boiler profile bytes")
+                value = json.loads(raw)
+                states = validate_profile(value)
+            except (ValueError, TypeError):
+                return False
+            settled = value.get("settled") is True
+            changed = (states, value["boiler"], settled) != (self.field_profile, self.profile_boiler, self.profile_settled)
+            self.field_profile, self.profile_boiler, self.profile_settled = states, value["boiler"], settled
+        if changed:
+            self.profile_sequence += 1
+        return True
+
+    def field_state(self, index):
+        """This boiler's profile state of one field: supported, not_fitted, not_reported,
+        unknown; None without a profile."""
+        if self.field_profile is None:
+            return None
+        return self.field_profile.get(index, "unknown")
+
+    def concept_state(self, members):
+        """The profile state of one physical value (its F28 members); None without a profile."""
+        if self.field_profile is None:
+            return None
+        return combined_state({self.field_state(index) for index in members})
 
     def invalidate(self):
         # A later valid GROUP cannot restore old permission for OTHER fields.

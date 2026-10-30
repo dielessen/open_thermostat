@@ -527,6 +527,7 @@
         "title": "Pomieszczenie E32",
         "description": "Jedno pomieszczenie: skąd pochodzi jego temperatura, jaka ma być i kiedy. E32 to przechowuje i wykonuje, także bez Home Assistant.",
         "data": {
+          "follow_thermostat": "Stosuj cel termostatu pomieszczenia",
           "name": "Nazwa pomieszczenia",
           "state": "Ogrzewanie",
           "emitter": "Rodzaj ogrzewania",
@@ -538,6 +539,7 @@
           "program": "Program tygodniowy na E32"
         },
         "data_description": {
+          "follow_thermostat": "Pobiera temperaturę docelową z pierwszego termostatu Home Assistant wśród powyższych źródeł temperatury, na przykład tado lub głowicy grzejnikowej. Termostat pomieszczenia w Home Assistant ustawia wtedy cel tego termostatu, więc oba zawsze się zgadzają. Encja celu wybrana poniżej ma pierwszeństwo.",
           "name": "Nazwa widoczna w Home Assistant i na E32. Do 40 liter (mniej przy znakach diakrytycznych lub emoji); zmiana nazwy zachowuje pomieszczenie i jego historię.",
           "state": "Wł.: pomieszczenie może prosić o ciepło. Wył.: pomieszczenie nie prosi o ciepło. Tymczasowe \"Wyłączone do\" jest na stronie urządzenia pomieszczenia.",
           "emitter": "Grzejniki lub ogrzewanie podłogowe; każdy rodzaj ma własną temperaturę zasilania.",
@@ -625,7 +627,7 @@
       },
       "legacy_rooms": {
         "title": "Usuń stare pomieszczenia Home Assistant",
-        "description": "Twoje pomieszczenia są teraz w planie pomieszczeń E32 (Konfiguruj → Pomieszczenia). Te starsze pomieszczenia Home Assistant były potrzebne tylko do połączenia E32 i nie są już używane: {rooms}.\n\nIch usunięcie kasuje ich urządzenia pomieszczeń i encje z tej integracji. Twoje czujniki, termostaty i zawory grzejnikowe oraz pomieszczenia na E32 pozostają bez zmian. E32 pozostaje połączony; może raz się zrestartować (około 30 sekund)."
+        "description": "Twoje pomieszczenia są teraz w planie pomieszczeń E32 (Konfiguruj → Pomieszczenia). Te starsze pomieszczenia Home Assistant były potrzebne tylko do połączenia E32 i nie są już używane: {rooms}.\n\nCo się stanie:\n{changes}\n\nIch usunięcie kasuje ich urządzenia pomieszczeń i encje z tej integracji. Twoje czujniki, termostaty i zawory grzejnikowe innych integracji pozostają bez zmian. E32 pozostaje połączony; może raz się zrestartować (około 30 sekund)."
       },
       "legacy_rooms_finish": {
         "title": "Dokończ usuwanie starego pomieszczenia",
@@ -637,6 +639,7 @@
       }
     },
     "error": {
+      "e32_follow_no_thermostat": "Najpierw dodaj termostat (encję climate) jako źródło temperatury albo wybierz poniżej encję celu.",
       "presence_entity_invalid": "Wybierz istniejącą osobę, grupę, strefę lub przełącznik.",
       "temperature_invalid": "Podaj temperaturę od 5 do 30 °C.",
       "whole_number_invalid": "Podaj liczbę całkowitą w dozwolonym zakresie.",
@@ -761,7 +764,10 @@
       "e32_flow_limits_floor_warning": "W jednym pomieszczeniu jest ogrzewanie podłogowe. Powyżej {floor_maximum} ogrzewanie podłogowe bez zaworu mieszającego może się zbytnio nagrzać. Zapisz ponownie, aby zachować to maksimum.",
       "e32_flow_limits_above_boiler": "To maksimum jest wyższe niż maksimum samego kotła; kocioł i tak nie pójdzie wyżej. Zapisz ponownie, aby je zachować, albo je obniż.",
       "controller_ha_version_unsupported": "Ta integracja wymaga Home Assistant 2026.10.0 lub nowszego (testowano z 2026.10.2 do 2026.10.4). Zaktualizuj Home Assistant; jeśli Twoja wersja jest nowsza, sprawdź, czy jest aktualizacja integracji. Nic nie zostało zmienione.",
-      "controller_mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź System → Sieć → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker."
+      "controller_mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź System → Sieć → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker.",
+      "legacy_rooms_plan_changed": "Plan pomieszczeń E32 zmienił się od czasu utworzenia tej listy (na stronie E32 lub gdzie indziej). Nic nie zostało usunięte. Sprawdź zaktualizowaną listę i zatwierdź ponownie.",
+      "legacy_rooms_plan_failed": "E32 nie zapisał zaktualizowanego planu pomieszczeń, więc nic nie zostało usunięte. Sprawdź, czy E32 jest gotowy, i spróbuj ponownie.",
+      "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -844,7 +850,11 @@
         "name": "Grzejniki grzeją"
       },
       "room_demand": {
-        "name": "Zapotrzebowanie na ciepło"
+        "name": "Zapotrzebowanie na ciepło",
+        "state": {
+          "on": "Potrzebuje ciepła",
+          "off": "Brak zapotrzebowania"
+        }
       },
       "burner_short_cycling": {
         "name": "Krótkie cykle palnika"
@@ -2118,6 +2128,9 @@
     },
     "installation": {
       "entry_type": "Przegląd instalacji"
+    },
+    "e32_room": {
+      "entry_type": "Pomieszczenie"
     }
   },
   "selector": {
@@ -2285,7 +2298,7 @@
         "step": {
           "legacy_rooms": {
             "title": "Usuń stare pomieszczenia Home Assistant",
-            "description": "Twoje pomieszczenia są teraz w planie pomieszczeń E32 (Konfiguruj → Pomieszczenia). Te starsze pomieszczenia Home Assistant były potrzebne tylko do połączenia E32 i nie są już używane: {rooms}.\n\nIch usunięcie kasuje ich urządzenia pomieszczeń i encje z tej integracji. Twoje czujniki, termostaty i zawory grzejnikowe oraz pomieszczenia na E32 pozostają bez zmian. E32 pozostaje połączony; może raz się zrestartować (około 30 sekund)."
+            "description": "Twoje pomieszczenia są teraz w planie pomieszczeń E32 (Konfiguruj → Pomieszczenia). Te starsze pomieszczenia Home Assistant były potrzebne tylko do połączenia E32 i nie są już używane: {rooms}.\n\nCo się stanie:\n{changes}\n\nIch usunięcie kasuje ich urządzenia pomieszczeń i encje z tej integracji. Twoje czujniki, termostaty i zawory grzejnikowe innych integracji pozostają bez zmian. E32 pozostaje połączony; może raz się zrestartować (około 30 sekund)."
           },
           "legacy_rooms_finish": {
             "title": "Dokończ usuwanie starego pomieszczenia",
@@ -2306,7 +2319,10 @@
           "mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź System → Sieć → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker.",
           "e32_busy": "E32 aktualizuje się lub restartuje. Poczekaj, aż będzie gotowy, i spróbuj ponownie.",
           "ha_version_unsupported": "Ta integracja wymaga Home Assistant 2026.10.0 lub nowszego (testowano z 2026.10.2 do 2026.10.4). Zaktualizuj Home Assistant; jeśli Twoja wersja jest nowsza, sprawdź, czy jest aktualizacja integracji. Nic nie zostało zmienione.",
-          "connection_failed": "Nie udało się potwierdzić połączenia z E32. Otwórz Konfiguruj → Połącz E32, aby zobaczyć szczegóły, a potem spróbuj tu ponownie."
+          "connection_failed": "Nie udało się potwierdzić połączenia z E32. Otwórz Konfiguruj → Połącz E32, aby zobaczyć szczegóły, a potem spróbuj tu ponownie.",
+          "legacy_rooms_plan_changed": "Plan pomieszczeń E32 zmienił się od czasu utworzenia tej listy (na stronie E32 lub gdzie indziej). Nic nie zostało usunięte. Sprawdź zaktualizowaną listę i zatwierdź ponownie.",
+          "legacy_rooms_plan_failed": "E32 nie zapisał zaktualizowanego planu pomieszczeń, więc nic nie zostało usunięte. Sprawdź, czy E32 jest gotowy, i spróbuj ponownie.",
+          "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie."
         },
         "abort": {
           "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
@@ -2320,7 +2336,7 @@
         "step": {
           "legacy_rooms": {
             "title": "Usuń stare pomieszczenia Home Assistant",
-            "description": "Twoje pomieszczenia są teraz w planie pomieszczeń E32 (Konfiguruj → Pomieszczenia). Te starsze pomieszczenia Home Assistant były potrzebne tylko do połączenia E32 i nie są już używane: {rooms}.\n\nIch usunięcie kasuje ich urządzenia pomieszczeń i encje z tej integracji. Twoje czujniki, termostaty i zawory grzejnikowe oraz pomieszczenia na E32 pozostają bez zmian. E32 pozostaje połączony; może raz się zrestartować (około 30 sekund)."
+            "description": "Twoje pomieszczenia są teraz w planie pomieszczeń E32 (Konfiguruj → Pomieszczenia). Te starsze pomieszczenia Home Assistant były potrzebne tylko do połączenia E32 i nie są już używane: {rooms}.\n\nCo się stanie:\n{changes}\n\nIch usunięcie kasuje ich urządzenia pomieszczeń i encje z tej integracji. Twoje czujniki, termostaty i zawory grzejnikowe innych integracji pozostają bez zmian. E32 pozostaje połączony; może raz się zrestartować (około 30 sekund)."
           },
           "legacy_rooms_finish": {
             "title": "Dokończ usuwanie starego pomieszczenia",
@@ -2341,13 +2357,51 @@
           "mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź System → Sieć → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker.",
           "e32_busy": "E32 aktualizuje się lub restartuje. Poczekaj, aż będzie gotowy, i spróbuj ponownie.",
           "ha_version_unsupported": "Ta integracja wymaga Home Assistant 2026.10.0 lub nowszego (testowano z 2026.10.2 do 2026.10.4). Zaktualizuj Home Assistant; jeśli Twoja wersja jest nowsza, sprawdź, czy jest aktualizacja integracji. Nic nie zostało zmienione.",
-          "connection_failed": "Nie udało się potwierdzić połączenia z E32. Otwórz Konfiguruj → Połącz E32, aby zobaczyć szczegóły, a potem spróbuj tu ponownie."
+          "connection_failed": "Nie udało się potwierdzić połączenia z E32. Otwórz Konfiguruj → Połącz E32, aby zobaczyć szczegóły, a potem spróbuj tu ponownie.",
+          "legacy_rooms_plan_changed": "Plan pomieszczeń E32 zmienił się od czasu utworzenia tej listy (na stronie E32 lub gdzie indziej). Nic nie zostało usunięte. Sprawdź zaktualizowaną listę i zatwierdź ponownie.",
+          "legacy_rooms_plan_failed": "E32 nie zapisał zaktualizowanego planu pomieszczeń, więc nic nie zostało usunięte. Sprawdź, czy E32 jest gotowy, i spróbuj ponownie.",
+          "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie."
         },
         "abort": {
           "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
           "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połącz E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32."
         }
       }
+    },
+    "e32_room_choose_source": {
+      "title": "Wybierz źródło temperatury dla {room}",
+      "description": "{room} na E32 używało termostatu starego pomieszczenia Home Assistant jako źródła temperatury. To stare pomieszczenie zostało usunięte i nie miało czym go zastąpić. {room} pozostaje bez zmian (także gdy jest nieaktywne), ale nie ma działającego źródła temperatury, dopóki go nie wybierzesz.\n\nWybierz Napraw, aby wybrać termostat lub czujnik temperatury, albo otwórz Konfiguruj → Pomieszczenia E32 → {room}.",
+      "fix_flow": {
+        "step": {
+          "choose_source": {
+            "title": "Wybierz źródło temperatury dla {room}",
+            "description": "Wybierz termostat lub czujnik temperatury, który mierzy temperaturę w {room}. Zmienia się tylko źródło temperatury; pozostałe ustawienia i program tygodniowy pomieszczenia zostają.",
+            "data": {
+              "source": "Źródło temperatury"
+            },
+            "data_description": {
+              "source": "Termostat mierzący temperaturę pomieszczenia lub czujnik temperatury."
+            }
+          }
+        },
+        "error": {
+          "e32_source_invalid_id": "E32 nie może użyć {source}: identyfikatory encji mogą mieć najwyżej 80 znaków.",
+          "e32_source_wrong_domain": "Nie można tu użyć {source}. Wybierz termostat lub czujnik temperatury.",
+          "e32_source_not_found": "{source} nie istnieje w Home Assistant.",
+          "e32_source_no_temperature": "{source} nie podaje bieżącej temperatury. Wybierz termostat mierzący temperaturę pomieszczenia lub czujnik temperatury.",
+          "e32_source_not_celsius": "{source} nie podaje temperatury (°C lub °F). Wybierz czujnik temperatury.",
+          "save_failed": "E32 nie zapisał planu pomieszczeń. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie."
+        },
+        "abort": {
+          "e32_rooms_unavailable": "Najpierw połącz E32 (Konfiguruj → Połącz E32), aby Home Assistant mógł edytować jego plan pomieszczeń.",
+          "e32_unreachable": "Nie można połączyć się z E32. Sprawdź, czy jest włączony i połączony z siecią, i spróbuj ponownie.",
+          "room_missing": "Tego pomieszczenia nie ma już w planie pomieszczeń E32."
+        }
+      }
+    },
+    "room_group_restored": {
+      "title": "{room} wróciło na stronę integracji",
+      "description": "Usunięto grupę pomieszczenia {room} w {installation}, ale {room} nadal jest pomieszczeniem w planie pomieszczeń E32 i E32 nadal je ogrzewa. Grupa, urządzenie i encje zostały przywrócone z tymi samymi nazwami, obszarami i historią. Aby usunąć pomieszczenie, otwórz {installation} → Konfiguruj → Pomieszczenia → Edytuj lub usuń pomieszczenie, wybierz {room} i usuń je tam. Możesz zignorować ten komunikat."
     }
   },
   "services": {
@@ -2423,6 +2477,12 @@
     }
   },
   "exceptions": {
+    "comfort_followed_thermostat": {
+      "message": "To pomieszczenie stosuje cel z {entity}. Zmień temperaturę na tym termostacie lub termostatem tego pomieszczenia; tymczasowe zmiany i ustawienia wstępne nie są dostępne, ponieważ własnego celu tamtego termostatu nie da się niezawodnie przywrócić."
+    },
+    "comfort_followed_unavailable": {
+      "message": "{entity} jest niedostępna lub nie ma temperatury docelowej, więc nie można ustawić nowego celu."
+    },
     "comfort_no_clock": {
       "message": "E32 nie zna jeszcze czasu (nie osiągnięto serwera czasu). Spróbuj ponownie za minutę albo wybierz czas trwania zamiast daty lub punktu przełączenia."
     },

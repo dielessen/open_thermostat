@@ -75,10 +75,10 @@ public:
     // Session timing (TELEMETRIEBUDGET.nl.md, "Sessieprotocol"); HA's v1_wire holds the
     // same values. Grants rotate every 10 s and last 30 s, HA heartbeats every 10 s and
     // the lease lasts 30 s: three missed messages before anything expires. hello goes
-    // every 3 s only while no session is open; the zone state is evaluated every 3 s
+    // every 3 s while no session is open, else every 15 s; the zone state is evaluated every 3 s
     // and published on a change, otherwise every 30 s.
     static constexpr uint32_t grantMs=30000, leaseMs=30000, grantRotationMs=10000;
-    static constexpr uint32_t helloIdleMs=3000, helloSessionMs=60000, stateStepMs=3000, stateRefreshMs=30000;
+    static constexpr uint32_t helloIdleMs=3000, helloSessionMs=15000, stateStepMs=3000, stateRefreshMs=30000;
     ShadowController(std::string controller,std::string boot,std::string owner,
                      ControlStore &store,Hash hash,Nonce nonce,Publish publish,Metrics metrics={},
                      const SeasonalControllerSource* seasonalSource=nullptr,
@@ -665,8 +665,16 @@ private:
             stringField(o,"adapter_id")!=owner_||!SessionAdmission::validId(stringField(o,"client_nonce"))||
             !cJSON_IsString(field(o,"known_digest"))) return;
         const auto request=printJson(o);
-        if(session_) { if(request==lastOpen_) sessionStatus(); return; }
-        if(stringField(o,"challenge_id")!=challenge_||now>=challengeUntil_) return;
+        if(session_&&request==lastOpen_) { sessionStatus(); return; }
+        if(stringField(o,"challenge_id")!=challenge_||now>=challengeUntil_) {
+            // A stale challenge (a restarted HA, a retained hello): answer with the
+            // current one, at most once a second, so HA never waits for the slow hello.
+            if(now>=nextHelloReply_) { hello(); nextHelloReply_=now+1000; }
+            return;
+        }
+        // A fresh open with the CURRENT challenge replaces a session HA no longer
+        // holds (an HA restart): no waiting for the old lease to expire.
+        if(session_) invalidate();
         sessionId_=nonce_();
         SessionIdentity identity{controller_,boot_,owner_,sessionId_,epoch_,revision()};
         // New legitimate same-connection sessions get a fresh local primitive.
@@ -1071,6 +1079,7 @@ private:
     size_t catalogFieldsKnown_=catalogFieldsWithoutCount;
     uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0,statePublishedAt_=0;
     uint32_t stateKey_=0;
+    uint64_t nextHelloReply_=0;
     bool session_=false,mappingReady_=false,connected_=false,fault_=false,leaseWasAlive_=false;
 };
 }

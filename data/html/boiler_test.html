@@ -15,6 +15,21 @@
     </div>
   </section>
   <details class="ot-advanced" data-boiler-model><summary data-i18n="Boiler model">Boiler model</summary><div data-boiler-display-host></div></details>
+  <details class="ot-advanced" data-boiler-profile id="boiler-profile"><summary><span data-i18n="Boiler profile">Boiler profile</span> <small class="bp-summary" data-profile-summary></small></summary>
+    <p class="pd-help" data-i18n="The E32 learns from the boiler's own messages which values this boiler actually has. Home Assistant only shows those.">The E32 learns from the boiler's own messages which values this boiler actually has. Home Assistant only shows those.</p>
+    <p role="status" aria-live="polite" data-profile-status><span data-i18n="Loading boiler profile…">Loading boiler profile…</span></p>
+    <div data-profile-groups hidden>
+      <h3 data-i18n="Values available">Values available</h3>
+      <ul class="bp-list" data-profile-group="supported"></ul>
+      <h3 data-i18n="Not fitted on this boiler">Not fitted on this boiler</h3>
+      <p class="ot-hint" data-i18n="The boiler always reports “no sensor” for these values, for at least 10 minutes. A value that appears later is added automatically.">The boiler always reports “no sensor” for these values, for at least 10 minutes. A value that appears later is added automatically.</p>
+      <ul class="bp-list" data-profile-group="not_fitted"></ul>
+      <h3 data-i18n="Not reported (yet)">Not reported (yet)</h3>
+      <p class="ot-hint" data-i18n="Some messages only come when another controller asks for them, or in certain situations such as a fault.">Some messages only come when another controller asks for them, or in certain situations such as a fault.</p>
+      <ul class="bp-list" data-profile-group="pending"></ul>
+      <p class="ot-hint" data-profile-family hidden data-i18n="Values of the other EMS protocol family are not listed.">Values of the other EMS protocol family are not listed.</p>
+    </div>
+  </details>
   <div data-boiler-entities-host id="boiler-entities-panel"><p role="status" data-i18n="Loading boiler entities…">Loading boiler entities…</p></div>
   <details class="ot-advanced bt-trial" id="boiler-test-trial">
   <summary data-i18n="Boiler test (attended)">Boiler test (attended)</summary>
@@ -992,3 +1007,92 @@
   BoilerData.subscribe(refresh,{signal:lifecycle.signal});
 })();
 </script>
+<script>
+// Boiler profile (EMS/BoilerProfile.h): which values this boiler has. Read only,
+// apart from the owner's "show anyway" for a value that is not fitted.
+(() => {
+  'use strict';
+  const box = document.querySelector('#boiler-test [data-boiler-profile]');
+  if (!box) return;
+  const NAMES = {"reported_selected_flow_temperature":"Selected flow temperature","measured_flow_temperature":"Flow temperature","measured_return_temperature":"Return temperature","outdoor_temperature":"Outdoor temperature","reported_burner_modulation":"Burner modulation","reported_requested_power_limit":"Requested power limit","pressure":"Water pressure","raw_burner_bit":"Burner bit (raw)","raw_pump_bit":"Pump bit (raw)","raw_fan_bit":"Fan bit (raw)","raw_boiler_state":"Boiler state bits (raw)","heating_active":"Heating active","dhw_active":"Hot water active","selected_dhw_temperature":"Selected hot water temperature","measured_dhw_temperature":"Hot water temperature","dhw_flow":"Hot water flow","heating_enabled":"Heating enabled","dhw_enabled":"Hot water enabled","reported_burner_starts":"Burner starts","reported_burner_runtime":"Burner runtime","reported_heating_runtime":"Heating runtime","reported_heating_starts":"Heating starts","reported_dhw_runtime":"Hot water runtime","reported_dhw_starts":"Hot water starts","display_code":"Display code","service_number":"Service number","maximum_burner_power":"Maximum burner power","pump_run_on":"Pump run-on","configured_heating_temperature":"Heating temperature setting","reported_dhw_target":"Hot water target temperature","storage_temperature_1":"Storage temperature 1","storage_temperature_2":"Storage temperature 2","ionisation_current":"Ionisation current","raw_second_burner_bit":"Second burner bit (raw)","raw_ignition_bit":"Ignition bit (raw)","raw_oil_preheat_bit":"Oil preheat bit (raw)","raw_dhw_valve_bit":"Hot water valve bit (raw)","raw_dhw_circulation_bit":"Circulation bit (raw)","boiler_temperature":"Boiler temperature","exhaust_temperature":"Exhaust temperature","hydraulic_switch_temperature":"Hydraulic switch temperature","reported_heating_pump_modulation":"Heating pump modulation","reported_second_burner_runtime":"Second burner runtime","heating_hysteresis_off":"Heating hysteresis off","heating_hysteresis_on":"Heating hysteresis on","minimum_burner_period":"Minimum burner period","pump_modulation_maximum":"Maximum pump modulation","pump_modulation_minimum":"Minimum pump modulation","configured_pump_mode":"Pump mode setting","secondary_heating_hysteresis_off":"Second heating hysteresis off","secondary_heating_hysteresis_on":"Second heating hysteresis on","pump_start_temperature":"Pump start temperature","dhw_hysteresis_on":"Hot water hysteresis on","dhw_charge_optimisation_enabled":"Hot water charge optimisation","dhw_flow_temperature_offset":"Hot water flow offset","dhw_circulation_enabled":"Circulation enabled","configured_dhw_circulation_mode":"Circulation mode setting","dhw_disinfection_temperature":"Disinfection temperature","configured_dhw_charge_type":"Hot water charge type","configured_dhw_comfort_mode":"Hot water comfort mode","secondary_dhw_temperature":"Second hot water temperature","solar_dhw_temperature":"Solar hot water temperature","reported_dhw_type":"Hot water type","raw_dhw_one_time_bit":"One-time charge bit (raw)","raw_dhw_disinfection_bit":"Disinfection bit (raw)","raw_dhw_charging_bit":"Charging bit (raw)","raw_dhw_recharging_bit":"Recharging bit (raw)","raw_dhw_temperature_ok_bit":"Hot water temperature OK bit (raw)","raw_dhw_active_bit":"Hot water active bit (raw)","thermostat_requested_flow_temperature":"Requested flow temperature (thermostat)","thermostat_requested_burner_power":"Requested burner power (thermostat)","thermostat_requested_pump_modulation":"Requested pump modulation (thermostat)","thermostat_requested_dhw_temperature":"Requested hot water temperature (thermostat)","maintenance_message":"Maintenance message","thermostat_setpoint":"Target temperature (thermostat)","thermostat_room_temperature":"Room temperature (thermostat)","thermostat_target_flow_temperature":"Target flow temperature (thermostat)","plus_selected_flow_temperature":"Selected flow temperature (EMS+)","plus_flow_temperature":"Flow temperature (EMS+)","plus_requested_burner_power":"Requested burner power (EMS+)","plus_burner_modulation":"Burner modulation (EMS+)","plus_burner_on":"Burner on (EMS+)","plus_dhw_valve":"Hot water valve (EMS+)","plus_return_temperature":"Return temperature (EMS+)","plus_flame_current":"Flame current (EMS+)","plus_pressure":"Water pressure (EMS+)","plus_exhaust_temperature":"Exhaust temperature (EMS+)","plus_heating_pump":"Heating pump (EMS+)","plus_burner_starts":"Burner starts (EMS+)","plus_burner_runtime":"Burner runtime (EMS+)","plus_heating_runtime":"Heating runtime (EMS+)","plus_heating_pump_modulation":"Heating pump modulation (EMS+)","plus_dhw_target":"Hot water target temperature (EMS+)","plus_dhw_temperature":"Hot water temperature (EMS+)","plus_dhw_flow":"Hot water flow (EMS+)","plus_dhw_runtime":"Hot water runtime (EMS+)","plus_dhw_starts":"Hot water starts (EMS+)","plus_dhw_selected_temperature":"Selected hot water temperature (EMS+)","plus_heating_temperature":"Heating temperature setting (EMS+)","plus_maximum_burner_power":"Maximum burner power (EMS+)","last_locking_error_code":"Last locking fault code","last_locking_error_number":"Last locking fault number","last_blocking_error_code":"Last blocking fault code","last_blocking_error_number":"Last blocking fault number","boiler_uptime":"Boiler uptime"};
+  const status = box.querySelector('[data-profile-status]'), groups = box.querySelector('[data-profile-groups]');
+  const summary = box.querySelector('[data-profile-summary]'), lifecycle = new AbortController();
+  const label = name => uiText(NAMES[name] || name.replaceAll('_', ' ').replace(/^./, c => c.toUpperCase()));
+  const valid = p => p && typeof p === 'object' && Array.isArray(p.fields) && p.fields.length <= 256 && p.identity && typeof p.identity === 'object'
+    && p.fields.every(f => f && Number.isInteger(f.index) && typeof f.name === 'string' && ['supported', 'not_fitted', 'not_reported', 'unknown'].includes(f.state));
+  let timer = null, busy = false, signature = '';
+  function item(field, family) {
+    const li = document.createElement('li'), name = document.createElement('span');
+    name.textContent = label(field.name); li.append(name);
+    if (field.state === 'unknown') { const s = document.createElement('small'); s.textContent = ' · ' + uiText("seen, too few messages yet"); li.append(s); }
+    if (field.state === 'not_fitted') {
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'btn btn-sm btn-outline-secondary';
+      button.textContent = field.shown_anyway ? uiText("Hide again") : uiText("Show anyway");
+      button.dataset.profileShow = String(field.index);
+      button.setAttribute('aria-pressed', field.shown_anyway ? 'true' : 'false');
+      button.addEventListener('click', () => show(field.index, !field.shown_anyway, button), {signal: lifecycle.signal});
+      li.append(' ', button);
+    }
+    return li;
+  }
+  function paint(p) {
+    const family = p.identity.family;
+    // On a Classic boiler the EMS+ fields never come (and the other way round): not listed.
+    const other = f => (family === 'classic' && f.name.startsWith('plus_')) || (family === 'plus' && f.index < 70);
+    const sets = {supported: [], not_fitted: [], pending: []};
+    for (const f of p.fields) {
+      if (f.state === 'supported') sets.supported.push(f);
+      else if (f.state === 'not_fitted') sets.not_fitted.push(f);
+      else if (!other(f)) sets.pending.push(f);
+    }
+    const next = JSON.stringify([family, sets]);
+    if (next === signature) return;
+    signature = next;
+    for (const [key, list] of Object.entries(sets)) {
+      const ul = groups.querySelector(`[data-profile-group="${key}"]`);
+      ul.replaceChildren(...(list.length ? list.map(f => item(f, family)) : [Object.assign(document.createElement('li'), {textContent: uiText("None")})]));
+    }
+    groups.querySelector('[data-profile-family]').hidden = family !== 'classic' && family !== 'plus';
+    summary.textContent = '· ' + sets.supported.length + ' ' + uiText("available") + ', ' + sets.not_fitted.length + ' ' + uiText("not fitted");
+    groups.hidden = false;
+    status.textContent = p.settled ? '' : uiText("Still learning: the profile is complete after about 10 minutes of boiler messages.");
+    status.hidden = !status.textContent;
+  }
+  async function refresh() {
+    clearTimeout(timer);
+    if (!box.isConnected || lifecycle.signal.aborted) return;
+    try {
+      const response = await fetch('/status/boiler/profile', {cache: 'no-store', signal: lifecycle.signal});
+      if (response.status === 404) { box.hidden = true; return; }  // older firmware: no card
+      if (!response.ok) throw Error('profile');
+      const text = await response.text(); if (text.length > 32768) throw Error('profile size');
+      const p = JSON.parse(text); if (!valid(p)) throw Error('profile shape');
+      if (box.isConnected) { box.hidden = false; paint(p); }
+    } catch (_) {
+      if (lifecycle.signal.aborted || !box.isConnected) return;
+      status.hidden = false; status.textContent = uiText("The boiler profile is not available on this firmware or right now.");
+    }
+    if (box.open && document.visibilityState === 'visible' && !lifecycle.signal.aborted) timer = setTimeout(refresh, 60000);
+  }
+  async function show(index, value, button) {
+    if (busy) return;
+    busy = true; button.disabled = true;
+    try {
+      const response = await fetch('/config/boiler-profile', {method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({index, show: value}), signal: lifecycle.signal});
+      if (!response.ok) throw Error('save');
+      signature = '';
+    } catch (_) {
+      if (!lifecycle.signal.aborted) { status.hidden = false; status.textContent = uiText("Could not save. Try again."); }
+    } finally { busy = false; button.disabled = false; }
+    await refresh();
+  }
+  box.addEventListener('toggle', () => { if (box.open) refresh(); else clearTimeout(timer); }, {signal: lifecycle.signal});
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && box.open) refresh(); else clearTimeout(timer); }, {signal: lifecycle.signal});
+  const removal = new MutationObserver(() => { if (!box.isConnected) { lifecycle.abort(); clearTimeout(timer); removal.disconnect(); } });
+  removal.observe(document.body, {childList: true, subtree: true});
+  refresh();
+})();
+</script>
+<style>#boiler-test .bp-list{columns:2 260px;padding-left:20px;margin:6px 0 14px}#boiler-test .bp-list li{break-inside:avoid;margin:3px 0}#boiler-test .bp-list small{color:var(--ot-muted);font-size:.85rem}#boiler-test .bp-summary{color:var(--ot-muted);font-weight:400;font-size:.85rem}#boiler-test [data-boiler-profile] h3{font-size:1rem;margin-top:12px}</style>

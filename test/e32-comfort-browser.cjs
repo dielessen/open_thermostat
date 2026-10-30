@@ -83,6 +83,12 @@ function heating(){
   assert.match(await page.locator('.pd-away summary').innerText(),lang==='en'?/Away until/:/Afwezig tot/);
   await send(page.locator('[data-comfort="home"]'));
   assert.deepEqual(posts.at(-1),{away:false});
+  // A room that takes its target from its HA thermostat: a note, no temporary changes (two thermostats would disagree).
+  const followed=heating();followed.rooms[0].setpoint_source='ha';delete followed.rooms[0].comfort;engine=followed;
+  await page.evaluate(s=>updateRooms({controlMode:'shadow',ems:{},control:{},heating:s}),followed);
+  assert.equal(await rooms.nth(0).locator('.pd-room-comfort').count(),0);
+  assert.match(await rooms.nth(0).innerText(),lang==='en'?/takes its target from its thermostat in Home Assistant/:/neemt haar doel over van haar thermostaat/);
+  assert.equal(await rooms.nth(1).locator('.pd-room-comfort').count(),1);
   // Firmware without comfort (no "away"): no controls at all.
   const old=heating();delete old.away;old.rooms.forEach(r=>delete r.comfort);engine=old; // also for the next poll
   await page.evaluate(s=>updateRooms({controlMode:'shadow',ems:{},control:{},heating:s}),old);

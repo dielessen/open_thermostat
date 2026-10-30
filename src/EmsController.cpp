@@ -26,6 +26,8 @@ namespace heating { extern bool networkTimeTrusted; } // main.cpp: NTP synchroni
 namespace heating::ems {
 
 EmsController::EmsController(std::shared_ptr<ib::logger::LoggerInterface> log) : log_(std::move(log)) {
+	monitor_.attachProfile(&profile_);
+	entities_.attachProfile(&profile_);
 	if (log_) {
 		logFeature_ = log_->addFeature("EmsControl");
 		verboseFeature_ = log_->addFeature("EmsVerbose");
@@ -472,6 +474,8 @@ void EmsController::decodeTelegram(uint8_t *data, uint8_t length, uint64_t recei
             // A queued pre-command report must never become post-command stop
             // evidence simply because loop() decodes it after the command.
             deviceInventory_.observe(telegram, receivedAtMs);
+            if (telegram.getSenderId() == EmsEntityObserver::boilerAddress)
+                if (const auto version = readDeviceVersion(telegram)) profile_.observeVersion(*version, receivedAtMs);
             monitor_.receive(telegram, receivedAtMs);
             burnerCycles_.observe(monitor_, receivedAtMs);
             std::optional<uint32_t> unixNow; // DHW episodes count per local day once the clock is trusted

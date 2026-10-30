@@ -45,7 +45,8 @@ async def test_real_cpp_publishes_bounded_groups_to_native_entities_without_comm
         assert c.boiler_fields_v2 and len(CATALOG_FIELDS) and set(by_index(entities))<=set(REAL)
         assert by_index(entities)[1].native_value==45
         deadline=c.boiler_fields.records[1][1]
-        for second in range(1,15):
+        # HA announces boiler.fields.v2 with its next heartbeat (every 10 s since beta.19).
+        for second in range(1,31):
             bus.now+=1000;bus.utc+=1
             await bus.event('tick');await bus.pump()
             if second%2==0:

@@ -88,6 +88,16 @@ def default_document():
         "groups": [], "actuators": []}
 
 
+# Subentries that only arrange the integration page (room_groups.py, installation_group.py):
+# empty, never configuration, so never part of a configuration snapshot or guard.
+PRESENTATION_SUBENTRY_TYPES = frozenset({"e32_room", "installation"})
+
+
+def configuration_subentries(entry):
+    return {key: sub for key, sub in entry.subentries.items()
+            if sub.subentry_type not in PRESENTATION_SUBENTRY_TYPES}
+
+
 def configuration_snapshot(entry):
     # Room/editor concurrency tokens are public digests of this snapshot. Never
     # turn an E32 access password into an offline password-checking oracle.
@@ -96,7 +106,7 @@ def configuration_snapshot(entry):
     data = dict(entry.data)
     data.pop("controller_password", None)
     return deepcopy((entry.title, data, dict(entry.options),
-                     {key: sub.as_dict() for key, sub in entry.subentries.items()}))
+                     {key: sub.as_dict() for key, sub in configuration_subentries(entry).items()}))
 
 
 def commit_configuration(hass, entry, before, **changes):

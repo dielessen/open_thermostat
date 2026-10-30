@@ -134,3 +134,64 @@ met reden, laagste vrije geheugen.
    berichten verdwijnen.
 3. **Niet beschikbaar** in HA pas na ~3 minuten stilte (3 gemiste heartbeats)
    of als de E32 zelf offline meldt.
+
+## 10. Sessieprotocol (beta.19 + HA 0.4.0b11)
+
+Naast de telemetrie praat de E32 met HA via de schaduwsessie (`ShadowController`
+↔ `v1_wire.py`). Gemeten met de echte C++-regelaar en de echte HA-client
+(1 ruimte, 600 s): **vóór 664 B/s, na 122 B/s** van de E32 naar HA
+(HA → E32: ~100 → 28 B/s).
+
+### Waar elk bericht voor is
+
+| Bericht | Waarvoor | Wat hangt van het ritme af | Was | Nu |
+| --- | --- | --- | --- | --- |
+| `fw/hello` | identiteit (boot, epoch), configuratierevisie, capabilities en de *challenge* om een sessie te openen | alleen het openen van een nieuwe sessie; een herstart van HA, de broker of de E32 | elke 3 s, 472 B | zonder sessie elke 3 s, in een sessie elke 15 s, direct na het verlies van een sessie en als antwoord op een open met een verlopen challenge; **retained** |
+| `fw/session` (grant) | het grant-token dat elk HA-bericht moet dragen; de geldigheid begrenst hoe oud een binnenkomend bericht mag zijn (leeftijd + grant-leeftijd) | HA moet een nieuwe grant hebben voor de oude verloopt | elke 5 s, 10 s geldig (2 rotaties marge) | elke 10 s, 30 s geldig (**3 rotaties marge**) |
+| `ha/heartbeat` → `fw/heartbeat_result` | HA leeft: verlengt de *lease* | lease bepaalt of metingen/opdrachten van HA worden aangenomen en `adapter_alive` in de zonestatus | HA elke 2 s, lease 15 s | HA elke 10 s, lease 30 s (**3 gemiste heartbeats**) |
+| `fw/state/zones` | schaduwbesluiten per zone (vraag, doel, reden, meetstatus) en de hydraulische toezichtstatus | HA's schaduwthermostaten en het verifiëren van het plan | elke 3 s gepubliceerd | elke 3 s **berekend** (de regelaar stapt even vaak als vroeger), gepubliceerd bij een echte verandering (oplopende leeftijden en een aftellende override tellen niet), direct na een opdracht of snapshot-verzoek, anders elke 30 s; HA's venster 100 s |
+| `*_result` | antwoord op één verzoek | – | ongewijzigd | ongewijzigd |
+
+### Veiligheid
+
+- **De ketel hangt niet van de sessie af.** De echte regeling
+  (`RoomEngine`, `FlowPolicy`, `ActiveHeatGuard`) krijgt HA-waarden via
+  `ha/heating_input` met eigen versheidsgrenzen en valt bij stilte terug op
+  Bluetooth, het weekprogramma of de vaste temperatuur. Niets daarvan leest de
+  lease of de grant; de schaduwuitgangen zijn uit (`physical_outputs_enabled:
+  false`). Een langere lease maakt de ketel dus niet trager veilig.
+- **Actuatorkanalen** (nog niet in het product) vragen per opdracht een eigen
+  HA-bevestiging met een deadline van 5 s (`fw/actuator_grant_request` →
+  `ha/actuator_grant`), altijd binnen de lease: dat blijft het snelle,
+  kleine levensteken.
+- De grant-leeftijd die bij metingen wordt opgeteld is nu hoogstens ~10 s
+  (was 5 s); gangbare bronnen mogen minuten oud zijn (temperatuur 120 s,
+  contacten tot 1 uur). Een zeer korte ingestelde maximale leeftijd (< ~20 s)
+  geldt daardoor ~5 s eerder als verlopen: veilig, niet ruimer.
+
+### Herstel zonder herladen
+
+Eis voor b11: na (a) een HA-herstart, (b) een brokerherstart, (c) een
+E32-herstart, (d) een verbreking aan de E32-kant en (e) een lange wifi-uitval
+herstelt de sessie zelf binnen één traag interval (`test_session_recovery.py`,
+echte C++ tegen echte HA):
+
+- HA beëindigt een sessie altijd: bij het verlopen van de lease, en zolang
+  er nog geen heartbeat bevestigd is bij het verlopen van de grant. Een
+  `fw/hello` telt niet meer als levensteken van een lopende sessie.
+- Een nieuwe challenge vervangt een openstaand open-verzoek direct (vroeger
+  alleen bij de native bron, anders pas na 10 s).
+- De E32 vervangt een sessie als een nieuw open-verzoek met de *huidige*
+  challenge komt (een herstarte HA hoeft niet op de oude lease te wachten), en
+  beantwoordt een open met een verlopen challenge met een nieuwe hello
+  (hoogstens één per seconde). De hello is retained, dus een herstarte HA heeft
+  de challenge meteen.
+
+**Oorzaak van de storing op b10** (29 oktober, 5,5 uur zonder sessie na een
+HA-herstart): HA hield een sessie vast waarvan nog geen heartbeat bevestigd
+was (`lease_until` 0). De E32 beëindigde die sessie na 15 s zonder geldige
+heartbeat en stuurde daarna elke 3 s een hello met dezelfde identiteit; HA
+zette bij elke hello `last_rx` opnieuw, en een sessie zonder lease verliep
+alleen op `last_rx`. Zo bleef HA eindeloos in een dode sessie hangen tot de
+integratie herladen werd (`test_lost_first_heartbeats_never_leave_a_session_open_forever`
+faalt op b10 en slaagt met één regel extra in `poll()`).

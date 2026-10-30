@@ -18,6 +18,9 @@ inline constexpr size_t boilerFieldGroupCountV2=7+(ems::entityFieldCount+9)/10;
 // many it knows ("catalog_fields"), and only those groups are sent.
 inline constexpr size_t catalogFieldsWithoutCount=30;
 inline constexpr size_t catalogGroupCount(size_t known){return 7+(std::min(known,ems::entityFieldCount)+9)/10;}
+// Not a field group: EmsController::getBoilerFieldGroup writes the boiler
+// profile (fw/config/boiler_profile, EMS/BoilerProfileReport.h) for this index.
+inline constexpr size_t boilerProfileGroup=255;
 inline constexpr uint8_t catalogFieldQuality=0; // reported values; offsets follow the EMS-ESP reference
 inline constexpr uint64_t boilerGroupIntervalMs=1800,maximumBoilerTimestamp=9007199254740991ULL;
 inline constexpr std::array<uint16_t,69> boilerFieldSourceTypes{24,24,24,25,24,24,24,24,24,24,24,24,24,51,52,52,22,51,25,25,25,25,52,52,24,24,22,22,22,52,24,24,24,24,24,24,24,24,25,25,25,25,25,22,22,22,22,22,22,22,22,22,51,51,51,51,51,51,51,51,52,52,52,52,52,52,52,52,52};

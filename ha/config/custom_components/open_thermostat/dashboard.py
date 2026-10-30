@@ -82,7 +82,8 @@ EMS_METRICS = (
 )
 
 # E32 room entities: unique ID f"{prefix}_e32_room_{room id}_{key}" (longest key first).
-ROOM_KEYS = ("fallback_setpoint", "inactive_until", "heating_start", "flow_advice", "temperature", "learning",
+ROOM_KEYS = ("fallback_setpoint", "inactive_until", "heating_start", "flow_advice", "temperature", "thermostat",
+             "learning",
              "setpoint", "status", "demand", "state")
 # Today's hot water from the E32 (unique ID f"{prefix}_hub_{key}").
 DHW_TODAY = ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today")
@@ -99,6 +100,14 @@ ESSENTIALS = (
     ("code", "display_code", "boiler_display_code"),
 )
 
+# Heating curve and learning on the product device (e32_flow.py): unique ID f"{prefix}_flow_{key}".
+FLOW_KEYS = ("source", "weather_curve", "curve_design_flow_c", "apply_learned")
+COMPARISON_PATH = "comparison"
+# One icon per boiler value, the same in every view.
+ICONS = {"flow": "mdi:thermometer-chevron-up", "return": "mdi:thermometer-chevron-down",
+         "max_ch": "mdi:thermometer-high", "modulation": "mdi:fire", "pressure": "mdi:gauge",
+         "dhw": "mdi:water-thermometer", "code": "mdi:information-outline"}
+
 # The shadow comparison entities: created only once the E32 saw a thermostat to compare with.
 COMPARISON_KEYS = ("shadow_agreement_today", "shadow_tado_heating_time_today", "shadow_tado_starts_today")
 
@@ -109,8 +118,8 @@ TEXT = {
         "settings": "{room} settings",
         "boiler_request": "Boiler request (E32)", "flow": "Flow temperature", "return": "Return temperature",
         "modulation": "Modulation", "pressure": "Pressure", "dhw": "Hot water", "code": "Display code",
-        "max_ch": "Boiler maximum (heating)", "status": "Status", "problem": "Heating",
-        "starts_hour": "Burner starts last hour", "short_cycling": "Short cycling",
+        "max_ch": "Boiler maximum", "status": "Status", "problem": "Heating",
+        "starts_hour": "Starts per hour", "short_cycling": "Short cycling",
         "agreement": "Agreement with thermostat", "measured": "Measured by E32", "target": "Target temperature",
         "mode": "Mode", "off_until": "Off until", "without_ha": "Temperature without Home Assistant",
         "compare": "E32 and thermostat", "e32_request": "Boiler request E32",
@@ -152,14 +161,27 @@ TEXT = {
         "learning_note": "The E32 also learns how fast each room warms up and works out the lowest flow "
                          "temperature that still makes up a 1 °C shortfall in time (the recommended flow).",
         "advice_only": "For now this is advice only; the E32 keeps its own rule.",
-        "dhw_taps": "Hot water taps today", "dhw_today": "Hot water today",
+        "dhw_taps": "Taps today", "dhw_today": "Hot water today",
         "advice": "Advice", "advice_where": "Where", "advice_confidence": "Confidence",
         "advice_note": "Advice only: nothing is changed automatically.",
         "confidence_low": "low", "confidence_medium": "medium", "confidence_high": "high",
-        "gas": "Gas", "gas_heating": "Heating", "gas_hot_water": "Hot water", "gas_per_day": "Gas per day",
+        "gas_heating": "Heating", "gas_hot_water": "Hot water", "gas_per_day": "Gas per day",
         "gas_measured": "Measured with your gas meter, split by what the boiler did.",
         "gas_estimate": "Estimated from the burner modulation and the boiler's power (no gas meter).",
         "gas_note": "Add these two sensors to the Energy dashboard under Gas consumption.",
+        "outdoor": "Outdoor",
+        "flow_settings": "Heating curve and learning",
+        "flow_source": "Flow set by",
+        "weather_curve": "Heating curve",
+        "design_flow": "Flow at −10 °C",
+        "apply_learned": "Use learning",
+        "agreement_short": "Agreement",
+        "comparison_view": "Comparison",
+        "room_off": "This room is off and never asks for heat.",
+        "room_no_source": "{room} is off and has no working temperature source. Choose a source to "
+            "use it again, or remove the room if you no longer need it.",
+        "choose_source": "Choose a source",
+        "remove_room": "Remove room",
     },
     "nl": {
         "heating": "Verwarming", "boiler_view": "Ketel", "diagnostics": "Diagnose",
@@ -167,8 +189,8 @@ TEXT = {
         "settings": "Instellingen {room}",
         "boiler_request": "Ketelvraag (E32)", "flow": "Aanvoertemperatuur", "return": "Retourtemperatuur",
         "modulation": "Modulatie", "pressure": "Waterdruk", "dhw": "Warm water", "code": "Displaycode",
-        "max_ch": "Maximum ketel (verwarming)", "status": "Status", "problem": "Verwarming",
-        "starts_hour": "Branderstarts afgelopen uur", "short_cycling": "Pendelen",
+        "max_ch": "Ketelmaximum", "status": "Status", "problem": "Verwarming",
+        "starts_hour": "Starts per uur", "short_cycling": "Pendelen",
         "agreement": "Overeenstemming met thermostaat", "measured": "Gemeten door E32",
         "target": "Gewenste temperatuur", "mode": "Stand", "off_until": "Uit tot",
         "without_ha": "Temperatuur zonder Home Assistant",
@@ -213,14 +235,27 @@ TEXT = {
         "learning_note": "De E32 leert ook hoe snel elke ruimte opwarmt en berekent de laagste "
                          "aanvoertemperatuur die een tekort van 1 °C nog op tijd inhaalt (de geadviseerde aanvoer).",
         "advice_only": "Voorlopig is dat alleen advies; de E32 houdt zijn eigen regel aan.",
-        "dhw_taps": "Warmwatertappen vandaag", "dhw_today": "Warm water vandaag",
+        "dhw_taps": "Tappen vandaag", "dhw_today": "Warm water vandaag",
         "advice": "Advies", "advice_where": "Waar", "advice_confidence": "Zekerheid",
         "advice_note": "Alleen advies: er wordt niets automatisch veranderd.",
         "confidence_low": "laag", "confidence_medium": "middel", "confidence_high": "hoog",
-        "gas": "Gas", "gas_heating": "Verwarmen", "gas_hot_water": "Warm water", "gas_per_day": "Gas per dag",
+        "gas_heating": "Verwarmen", "gas_hot_water": "Warm water", "gas_per_day": "Gas per dag",
         "gas_measured": "Gemeten met je gasmeter, verdeeld naar wat de ketel deed.",
         "gas_estimate": "Geschat uit de brandermodulatie en het vermogen van de ketel (geen gasmeter).",
         "gas_note": "Voeg deze twee sensoren toe aan het energiedashboard onder Gasverbruik.",
+        "outdoor": "Buiten",
+        "flow_settings": "Stooklijn en leren",
+        "flow_source": "Aanvoer bepaald door",
+        "weather_curve": "Stooklijn",
+        "design_flow": "Aanvoer bij −10 °C",
+        "apply_learned": "Leren toepassen",
+        "agreement_short": "Overeenstemming",
+        "comparison_view": "Vergelijking",
+        "room_off": "Deze ruimte staat uit en vraagt nooit warmte.",
+        "room_no_source": "{room} staat uit en heeft geen werkende temperatuurbron. Kies een bron "
+            "om de ruimte weer te gebruiken, of verwijder hem als je hem niet meer nodig hebt.",
+        "choose_source": "Kies een bron",
+        "remove_room": "Ruimte verwijderen",
     },
 }
 
@@ -251,6 +286,13 @@ def _heading(text, icon=None, badges=None, style="title", visibility=None):
         card["badges"] = badges
     if visibility:
         card["visibility"] = visibility
+    return card
+
+
+def _link(text, icon, path, visibility=None):
+    """A one-line link row (a heading with a chevron) to another page."""
+    card = _heading(text, icon, style="subtitle", visibility=visibility)
+    card["tap_action"] = {"action": "navigate", "navigation_path": path}
     return card
 
 
@@ -303,7 +345,7 @@ def _advice_section(t, advice):
 
 
 def _energy_section(t, heating, hot_water):
-    """Gas for heating and for hot water: the last 7 days per day and how it is counted; only with the sensors."""
+    """Gas for heating and for hot water per day (the last 7 days) and how it is counted; only with the sensors."""
     entities = [entity for entity in (heating, hot_water) if entity]
     if not entities:
         return None
@@ -311,15 +353,14 @@ def _energy_section(t, heating, hot_water):
     note = ("{% if state_attr(" + quoted + ", 'estimate') %}" + t["gas_estimate"] + "{% else %}"
             + t["gas_measured"] + "{% endif %} " + t["gas_note"])
     return _section(
-        _heading(t["gas"], "mdi:fire"),
-        _tile(heating, t["gas_heating"], "mdi:radiator", visibility=_known(heating) if heating else None),
-        _tile(hot_water, t["gas_hot_water"], "mdi:water-boiler", visibility=_known(hot_water) if hot_water else None),
-        {"type": "statistics-graph", "title": t["gas_per_day"], "entities": entities, "stat_types": ["change"],
-         "period": "day", "days_to_show": 7, "chart_type": "bar"},
+        _heading(t["gas_per_day"], "mdi:fire"),
+        {"type": "statistics-graph", "entities": [{"entity": entity_id, "name": name} for entity_id, name in (
+            (heating, t["gas_heating"]), (hot_water, t["gas_hot_water"])) if entity_id],
+         "stat_types": ["change"], "period": "day", "days_to_show": 7, "chart_type": "bar"},
         {"type": "markdown", "content": note})
 
 
-def _tile(entity_id, name=None, icon=None, features=None, visibility=None):
+def _tile(entity_id, name=None, icon=None, features=None, visibility=None, color=None, tap_action=None):
     if entity_id is None:
         return None
     card = {"type": "tile", "entity": entity_id}
@@ -327,6 +368,10 @@ def _tile(entity_id, name=None, icon=None, features=None, visibility=None):
         card["name"] = name
     if icon:
         card["icon"] = icon
+    if color:
+        card["color"] = color
+    if tap_action:
+        card["tap_action"] = tap_action
     if features:
         card["features"] = features
     if visibility:
@@ -569,6 +614,10 @@ class RoomDashboard:
             for item in entries
             if item.domain == "sensor" and item.unique_id.startswith(f"{self.prefix}_boiler_fields_v1_")
         }
+        # No tiles for values this boiler does not have (its boiler profile).
+        from .v1_boiler_fields import boiler_field_shown
+        native_fields = {name: entity_id for name, entity_id in native_fields.items()
+                         if boiler_field_shown(self.hass, self.entry_id, name)}
         entry = self.hass.config_entries.async_get_entry(self.entry_id)
         product = entry is not None and is_product(entry)
         from .room_plan import has_room_plan
@@ -586,10 +635,12 @@ class RoomDashboard:
 
         def essential(key):
             _, field, metric = next(item for item in ESSENTIALS if item[0] == key)
+            if not boiler_field_shown(self.hass, self.entry_id, field):
+                return None  # not on this boiler: no older hub tile either
             return native_fields.get(field) or (hub_entities.get(metric) if metric else None)
 
-        heating = self._heating_sections(t, entries, hub_entities, native_fields, essential,
-                                         registry, e32_rooms, legacy)
+        heating, comparison = self._heating_sections(t, entries, hub_entities, native_fields, essential,
+                                                     registry, e32_rooms, legacy)
         boiler, unreliable = self._boiler_sections(t, hub_entities, native_fields, graph)
         diagnostics = self._diagnostics_cards(t, registry, hub_entities, unreliable)
         return {
@@ -616,87 +667,69 @@ class RoomDashboard:
                  "type": "sections", "max_columns": 2, "sections": boiler},
                 {"title": t["diagnostics"], "path": "diagnostics", "icon": "mdi:information-outline",
                  "cards": diagnostics},
+                # Reached from the "Agreement with thermostat" tile under Now.
+                *([{"title": t["comparison_view"], "path": COMPARISON_PATH, "subview": True,
+                    "back_path": "/" + self.path + "/heating", "icon": "mdi:compare-horizontal",
+                    "type": "sections", "max_columns": 2, "sections": comparison}] if comparison else []),
             ]
         }
 
     def _heating_sections(self, t, entries, hub, fields, essential, registry, e32_rooms, legacy):
+        """The Heating view (sections) and the sections of its Comparison subview.
+
+        Order for a quick look: "Now" (is all well, what does the heating do, the boiler at a
+        glance), the advice, one section per room (thermostat, the day, its sensor), the boiler,
+        the heating curve settings and the gas. The shadow comparison and loose sensors go to
+        the Comparison subview; a tile under "Now" leads there.
+        """
         request = hub.get("heat_request")
         e32_room_entities = self._e32_rooms(entries)
-        # One small card says who does what; the mode line follows the E32's own status.
+        flow = self._flow_entities(entries)
+        problem = hub.get("heating_problem")
+        # The comparison entities exist only once the E32 saw a thermostat to compare with.
+        thermostat_on_bus = any(key in hub for key in COMPARISON_KEYS)
+        sub_path = "/" + self.path + "/" + COMPARISON_PATH
+
         explain = None
-        if request or e32_room_entities:
-            content = ""
-            if request:
-                quoted = json.dumps(request)
-                content += ("{% set mode = state_attr(" + quoted + ", 'mode') %}"
-                            "{% if mode == 'active' %}" + t["active"] + " "
-                            + "{% elif mode == 'shadow' %}" + t["shadow"] + " {% endif %}")
-            content += t["how"]
-            # One line for the learning, once, while the E32 reports it.
-            learning = next((room["learning"] for room in e32_room_entities.values() if room.get("learning")), None)
-            if learning:
-                quoted = json.dumps(learning)
-                content += ("{% if states(" + quoted + ") not in ['unavailable', 'unknown'] %}\n\n"
-                            + t["learning_note"] + "{% if not state_attr(" + quoted + ", 'applied') %} "
-                            + t["advice_only"] + "{% endif %}{% endif %}")
-            explain = {"type": "markdown", "content": content}
+        if request:
+            quoted = json.dumps(request)
+            explain = {"type": "markdown", "content": (
+                "{% set mode = state_attr(" + quoted + ", 'mode') %}"
+                "{% if mode == 'active' %}" + t["active"] + " "
+                + "{% elif mode == 'shadow' %}" + t["shadow"] + " {% endif %}" + t["how"])}
+        elif e32_room_entities:
+            explain = {"type": "markdown", "content": t["how"]}
+        agreement = hub.get("shadow_agreement_today")
         now = _section(
             _heading(t["now"], "mdi:home-thermometer"),
-            _tile(request, t["boiler_request"], "mdi:water-thermometer"),
-            _tile(essential("flow"), t["flow"]),
-            _tile(hub.get("shadow_agreement_today"), t["agreement"]),
+            _tile(problem, t["problem"]),
+            _tile(request, t["boiler_request"], "mdi:fire", color="deep-orange"),
+            _tile(essential("flow"), t["flow"], ICONS["flow"], color="orange"),
+            _tile(fields.get("outdoor_temperature"), t["outdoor"], "mdi:sun-thermometer-outline", color="blue-grey"),
+            _tile(essential("dhw"), t["dhw"], ICONS["dhw"], color="light-blue"),
+            _tile(agreement, t["agreement_short"], "mdi:compare-horizontal", color="teal",
+                  tap_action={"action": "navigate", "navigation_path": sub_path}) if thermostat_on_bus else None,
+            {"type": "markdown", "content": "{% for reason in state_attr(" + json.dumps(problem)
+             + ", 'reasons') or [] %}- {{ reason }}\n{% endfor %}",
+             "visibility": [{"condition": "state", "entity": problem, "state": "on"}]} if problem else None,
             explain,
-            {"type": "button", "name": t["set_up_rooms"], "icon": "mdi:home-edit-outline",
-             "tap_action": {"action": "navigate",
-                            "navigation_path": "/config/integrations/integration/" + DOMAIN}}
-            if e32_rooms else None,
-            {"type": "button", "name": t["week_program"], "icon": "mdi:calendar-week",
-             "tap_action": {"action": "navigate", "navigation_path": "/" + self.path + "/week-program"}}
-            if e32_rooms else None,
         )
-        # First: is everything OK? Then the advice (only while there is any).
-        sections = []
-        problem = hub.get("heating_problem")
-        if problem:
-            quoted = json.dumps(problem)
-            sections.append(_section(
-                _heading(t["status"], "mdi:shield-check-outline"),
-                _tile(problem, t["problem"], "mdi:radiator"),
-                {"type": "markdown", "content": "{% for reason in state_attr(" + quoted + ", 'reasons') or [] %}"
-                 "- {{ reason }}\n{% endfor %}",
-                 "visibility": [{"condition": "state", "entity": problem, "state": "on"}]}))
+        sections = [now] if len(now["cards"]) > 1 else []
         advice = _advice_section(t, hub.get("heating_advice"))
         if advice:
             sections.append(advice)
 
         from .heating_link import label
         heating_hub = self._heating_hub()
+        ble = self._e32_ble(entries)
+        in_room = {}  # Bluetooth sensor -> the one room it feeds (None: several rooms)
+        for room_id in e32_room_entities:
+            plan_room = self._plan_room(heating_hub, room_id)
+            for source in (plan_room or {}).get("sources", []):
+                if type(source) is dict and source.get("type") == "ble" and source.get("id") in ble:
+                    in_room[source["id"]] = None if source["id"] in in_room else room_id
         for room_id, room in e32_room_entities.items():
-            reported = heating_hub.rooms.get(room_id) if heating_hub is not None else None
-            name = self._device_name((DOMAIN, f"{self.prefix}_e32_room_{room_id}"),
-                                     label(reported) if reported else room_id)
-            badges = []
-            if room.get("demand"):
-                badges.append({"type": "entity", "entity": room["demand"], "show_state": True,
-                               "show_icon": True, "color": "deep-orange"})
-            if room.get("status"):
-                badges.append({"type": "entity", "entity": room["status"], "show_state": True,
-                               "show_icon": True, "color": "amber",
-                               "visibility": [{"condition": "state", "entity": room["status"],
-                                               "state_not": "ok"}]})
-            thermostat = self._room_thermostat(room_id)
-            state = room.get("state")
-            sections.append(_section(
-                _heading(name, "mdi:home-thermometer-outline", badges),
-                {"type": "thermostat", "entity": thermostat} if thermostat else None,
-                _tile(room.get("temperature"), t["measured"]),
-                None if thermostat else _tile(room.get("setpoint"), t["target"]),
-                _tile(room.get("inactive_until"), t["off_until"],
-                      visibility=[{"condition": "state", "entity": state, "state": "inactive"}] if state else None),
-            *_learning_cards(t, room),
-            ))
-        if len(now["cards"]) > 1:
-            sections.append(now)
+            sections.append(self._room_section(t, room_id, room, heating_hub, label, ble, in_room))
 
         # Older HA rooms (one climate per MQTT room) and their settings.
         legacy_cards = []
@@ -712,57 +745,165 @@ class RoomDashboard:
         if legacy_cards:
             sections.append(_section(_heading(t["rooms"], "mdi:thermostat"), *legacy_cards))
 
-        # Today's hot-water taps (E32 firmware that sorts them) sit next to the hot water temperature.
+        # The boiler: what "Now" does not show yet, then its day in one graph.
         taps = hub.get("dhw_taps_today")
-        taps = _tile(taps, t["dhw_taps"], visibility=_known(taps)) if taps else None
+        day = [{"entity": entity_id, "name": name} for entity_id, name in (
+            (essential("flow"), t["flow"]), (essential("return"), t["return"]), (request, t["e32_request"])) if entity_id]
         boiler = _section(
             _heading(t["boiler"], "mdi:water-boiler"),
-            *(card for key, _, _ in ESSENTIALS
-              for card in (_tile(essential(key), t[key]), taps if key == "dhw" else None)),
-            _tile(hub.get("burner_starts_last_hour"), t["starts_hour"]),
-            _tile(hub.get("burner_short_cycling"), t["short_cycling"]),
+            *(_tile(essential(key), t[key], ICONS[key]) for key in ("return", "modulation", "pressure", "max_ch", "code")),
+            _tile(taps, t["dhw_taps"], "mdi:faucet", visibility=_known(taps)) if taps else None,
+            _tile(hub.get("burner_starts_last_hour"), t["starts_hour"], "mdi:counter"),
+            _tile(hub.get("burner_short_cycling"), t["short_cycling"], "mdi:sync-alert"),
+            {"type": "history-graph", "hours_to_show": 24, "entities": day} if day else None,
         )
         if len(boiler["cards"]) > 1:
             sections.append(boiler)
-        # Gas for heating and for hot water (Energy dashboard sensors), once the E32 counts it.
+        # The heating curve and learning switches (stored on the E32), and the rooms editor.
+        settings = _section(
+            _heading(t["flow_settings"], "mdi:chart-bell-curve-cumulative"),
+            _tile(flow.get("source"), t["flow_source"], "mdi:source-branch"),
+            _tile(flow.get("weather_curve"), t["weather_curve"], "mdi:sun-snowflake-variant"),
+            _tile(flow.get("curve_design_flow_c"), t["design_flow"], "mdi:thermometer-lines"),
+            _tile(flow.get("apply_learned"), t["apply_learned"], "mdi:school-outline"),
+            _link(t["set_up_rooms"], "mdi:home-edit-outline", "/config/integrations/integration/" + DOMAIN)
+            if e32_rooms else None,
+            _link(t["week_program"], "mdi:calendar-week", "/" + self.path + "/week-program") if e32_rooms else None,
+        )
+        if len(settings["cards"]) > 1:
+            sections.append(settings)
         energy = _energy_section(t, hub.get("heating_gas"), hub.get("hot_water_gas"))
         if energy:
             sections.append(energy)
 
-        # The E32's decision next to the thermostat's (shadow comparison), only in a home
-        # with a thermostat on the bus: the comparison entities exist only once the E32 saw one.
-        thermostat = any(key in hub for key in COMPARISON_KEYS)
-        compare_entities = [] if not thermostat else [{"entity": entity_id, "name": name} for entity_id, name in (
-            (request, t["e32_request"]),
-            (fields.get("thermostat_requested_flow_temperature"), t["thermostat_request"]),
-            (essential("flow"), t["flow"])) if entity_id]
-        history = ({"type": "history-graph", "hours_to_show": 24, "entities": compare_entities}
-                   if compare_entities else None)
-        heating_time = [hub[key] for key in ("shadow_e32_heating_time_today", "shadow_tado_heating_time_today")
-                        if key in hub]
-        compare = _section(
-            _heading(t["compare"], "mdi:compare-horizontal"),
-            history,
-            _tile(hub.get("shadow_e32_heating_time_today"), t["heating_time_e32"]),
-            _tile(hub.get("shadow_tado_heating_time_today"), t["heating_time_thermostat"]),
-            _tile(hub.get("shadow_e32_starts_today"), t["starts_e32"]),
-            _tile(hub.get("shadow_tado_starts_today"), t["starts_thermostat"]),
-            {"type": "statistics-graph", "title": t["heating_per_day"], "entities": heating_time,
-             "stat_types": ["max"], "period": "day", "days_to_show": 7, "chart_type": "bar"}
-            if heating_time else None,
-        )
-        if thermostat and len(compare["cards"]) > 1:
-            sections.append(compare)
+        # Comparison subview: the E32's decision next to the thermostat's, the learning note and
+        # the Bluetooth sensors that feed no single room.
+        comparison = []
+        if thermostat_on_bus:
+            compare_entities = [{"entity": entity_id, "name": name} for entity_id, name in (
+                (request, t["e32_request"]),
+                (fields.get("thermostat_requested_flow_temperature"), t["thermostat_request"]),
+                (essential("flow"), t["flow"])) if entity_id]
+            heating_time = [hub[key] for key in ("shadow_e32_heating_time_today", "shadow_tado_heating_time_today")
+                            if key in hub]
+            compare = _section(
+                _heading(t["compare"], "mdi:compare-horizontal"),
+                _tile(agreement, t["agreement"], "mdi:compare-horizontal", color="teal"),
+                {"type": "history-graph", "hours_to_show": 24, "entities": compare_entities}
+                if compare_entities else None,
+                _tile(hub.get("shadow_e32_heating_time_today"), t["heating_time_e32"], "mdi:timer-outline"),
+                _tile(hub.get("shadow_tado_heating_time_today"), t["heating_time_thermostat"], "mdi:timer-outline"),
+                _tile(hub.get("shadow_e32_starts_today"), t["starts_e32"], "mdi:counter"),
+                _tile(hub.get("shadow_tado_starts_today"), t["starts_thermostat"], "mdi:counter"),
+                {"type": "statistics-graph", "title": t["heating_per_day"], "entities": heating_time,
+                 "stat_types": ["max"], "period": "day", "days_to_show": 7, "chart_type": "bar"}
+                if heating_time else None,
+            )
+            if len(compare["cards"]) > 1:
+                comparison.append(compare)
+        learning = next((room["learning"] for room in e32_room_entities.values() if room.get("learning")), None)
+        if learning:
+            quoted = json.dumps(learning)
+            note = {"type": "markdown", "visibility": _known(learning), "content": (
+                t["learning_note"] + "{% if not state_attr(" + quoted + ", 'applied') %} " + t["advice_only"] + "{% endif %}")}
+            if comparison:
+                comparison[0]["cards"].append(note)
+            else:
+                comparison.append(_section(_heading(t["learning"], "mdi:school-outline"), note))
+        loose = [{"type": "glance", "columns": 3, "state_color": False,
+                  "title": self._device_name((DOMAIN, f"{self.prefix}_e32_ble_{sensor_id}"), sensor_id),
+                  "entities": [{"entity": metrics[key], "name": t[key]} for key in BLE_KEYS if key in metrics]}
+                 for sensor_id, metrics in sorted(ble.items()) if not in_room.get(sensor_id)]
+        if loose:
+            comparison.append(_section(_heading(t["bluetooth"], "mdi:bluetooth"), *loose))
+        return sections, comparison
 
-        ble_cards = []
-        for sensor_id, metrics in sorted(self._e32_ble(entries).items()):
-            ble_cards.append({
-                "type": "glance", "columns": 3, "state_color": False,
-                "title": self._device_name((DOMAIN, f"{self.prefix}_e32_ble_{sensor_id}"), sensor_id),
-                "entities": [{"entity": metrics[key], "name": t[key]} for key in BLE_KEYS if key in metrics]})
-        if ble_cards:
-            sections.append(_section(_heading(t["bluetooth"], "mdi:bluetooth"), *ble_cards))
-        return sections
+    @staticmethod
+    def _plan_room(heating_hub, room_id):
+        plan = getattr(heating_hub, "plan", None) if heating_hub is not None else None
+        return plan.room(room_id) if plan is not None else None
+
+    def _room_section(self, t, room_id, room, heating_hub, label, ble, in_room):
+        """One E32 room: its thermostat, the last 24 hours, and the Bluetooth sensor that feeds it.
+
+        An inactive room shows one calm line; without any working source, a hint with
+        "Choose a source" first and "Remove room" second (both in Home Assistant's own pages).
+        """
+        reported = heating_hub.rooms.get(room_id) if heating_hub is not None else None
+        name = self._device_name((DOMAIN, f"{self.prefix}_e32_room_{room_id}"), label(reported) if reported else room_id)
+        state = room.get("state")
+        active = [{"condition": "state", "entity": state, "state_not": "inactive"}] if state else None
+        inactive = [{"condition": "state", "entity": state, "state": "inactive"}] if state else None
+        sensor = next((metrics for sensor_id, metrics in sorted(ble.items()) if in_room.get(sensor_id) == room_id), {})
+        badges = []
+        if room.get("demand"):
+            badges.append({"type": "entity", "entity": room["demand"], "show_state": True, "show_icon": True,
+                           "color": "deep-orange", **({"visibility": active} if active else {})})
+        if room.get("status"):
+            badges.append({"type": "entity", "entity": room["status"], "show_state": True, "show_icon": True,
+                           "color": "amber", "visibility": [{"condition": "state", "entity": room["status"],
+                                                             "state_not": "ok"}]})
+        if sensor.get("humidity"):
+            badges.append({"type": "entity", "entity": sensor["humidity"], "show_state": True, "show_icon": True})
+        if sensor.get("battery"):  # only when it needs attention
+            badges.append({"type": "entity", "entity": sensor["battery"], "show_state": True, "show_icon": True,
+                           "color": "red", "visibility": [{"condition": "numeric_state", "entity": sensor["battery"],
+                                                           "below": 20}]})
+        own = room.get("thermostat")
+        thermostat = own or self._room_thermostat(room_id)
+        working = self._room_has_working_source(room_id, heating_hub)
+        history = [{"entity": room[key], "name": t[name]} for key, name in (("temperature", "room_measured"),
+                                                                             ("setpoint", "room_target")) if room.get(key)]
+        when_active = {"visibility": active} if active else {}
+        cards = [
+            _heading(name, "mdi:home-thermometer-outline", badges),
+            # Without a working source, an inactive room's dial has nothing to show.
+            {"type": "thermostat", "entity": thermostat, **({} if working else when_active)} if thermostat else None,
+            # The E32's own measurement next to another thermostat; the room's own climate already shows it.
+            None if own else _tile(room.get("temperature"), t["measured"], visibility=active),
+            None if thermostat else _tile(room.get("setpoint"), t["target"], visibility=active),
+            {"type": "history-graph", "hours_to_show": 24, "entities": history, **when_active}
+            if history else None,
+            _tile(room.get("inactive_until"), t["off_until"], visibility=inactive + _known(room["inactive_until"]))
+            if inactive and room.get("inactive_until") else None,
+            *_learning_cards(t, room),
+        ]
+        if inactive and working:
+            cards.append({"type": "markdown", "content": t["room_off"], "visibility": inactive})
+        elif inactive:
+            from homeassistant.helpers import issue_registry as ir
+            integration = "/config/integrations/integration/" + DOMAIN
+            repair = ir.async_get(self.hass).async_get_issue(DOMAIN, f"e32_room_choose_source_{self.entry_id}_{room_id}")
+            cards += [
+                {"type": "markdown", "content": t["room_no_source"].format(room=name), "visibility": inactive},
+                _link(t["choose_source"], "mdi:thermometer-plus", "/config/repairs" if repair else integration, inactive),
+                _link(t["remove_room"], "mdi:delete-outline", integration, inactive),
+            ]
+        return _section(*cards)
+
+    def _room_has_working_source(self, room_id, heating_hub):
+        """Any source of the room that measures now: a Bluetooth sensor with a reading, or an HA entity with a state."""
+        plan_room = self._plan_room(heating_hub, room_id)
+        if not plan_room:
+            return True  # plan not read yet: no hint
+        for source in plan_room.get("sources", []):
+            if type(source) is not dict:
+                continue
+            if source.get("type") == "ble":
+                sensor = heating_hub.ble.get(source.get("id")) or {}
+                if isinstance(sensor.get("temperature"), (int, float)):
+                    return True
+            elif type(source.get("id")) is str:
+                state = self.hass.states.get(source["id"])
+                if state is not None and state.state not in ("unavailable", "unknown"):
+                    return True
+        return False
+
+    def _flow_entities(self, entries):
+        """The heating curve and learning entities on the product device: {key: entity id}."""
+        head = f"{self.prefix}_flow_"
+        return {item.unique_id.removeprefix(head): item.entity_id for item in entries
+                if item.unique_id.startswith(head) and item.unique_id.removeprefix(head) in FLOW_KEYS}
 
     def _boiler_sections(self, t, hub, fields, graph):
         """The boiler view, and the unreliable raw fields (for Diagnostics)."""

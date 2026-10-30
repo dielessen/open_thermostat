@@ -1207,7 +1207,10 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                     var comfortText = engine.away ? comfortState(r.comfort) : '';
                     var off = r.state !== 'active';
                     cards.push({key:id, id:id, name:name, actual:actual, target:target, demand:r.demand === true, off:off, help:help && !off ? uiText(help) : '',
-                        comfort:engine.away && r.state === 'active' ? comfortControls(r, target) : '',
+                        // A target from Home Assistant (the room follows its own thermostat there): changing it
+                        // here would leave two thermostats that disagree, so only a note.
+                        comfort:engine.away && r.state === 'active' ? (r.setpoint_source === 'ha' ? '<p class="pd-help" data-dashboard-key="comfort-follow">'+
+                            uiText("This room takes its target from its thermostat in Home Assistant. Change the temperature there; temporary changes are not offered here.")+'</p>' : comfortControls(r, target)) : '',
                         chips:(extra ? chip(uiText(extra), r.status === 'fallback' ? 'warn' : r.status === 'stale' || r.status === 'lost' ? 'err' : '') : '')+
                             (comfortText ? chip(comfortText, r.comfort && r.comfort.mode === 'window_open' ? 'warn' : 'ok') : ''),
                         details:uiHtml("<p>Room ID: ")+dashboardText(r.id || '')+(source ? '<br>'+uiText("Measured by")+': '+dashboardText(source) : '')+'</p>'+(ha ? dashboardRoomContext(ha) : '')});
@@ -1232,7 +1235,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             // In shadow mode the thermostat controls the boiler: a calm chip, no "Blocked".
             var controlChip = !activePlan ? chip(uiText("Your thermostat controls the boiler")) : controlling ? chip(uiText("The E32 controls the boiler"),'ok') :
                 !engine || /^(stopped|blocked)/.test(activeState) ? chip(uiText("Boiler control")+': '+uiText("Blocked"),'err') : chip(uiText("Switch-over in progress"),'warn');
-            var statusHelp = request ? uiText("Calculated boiler request")+': '+(request.heat ? dashboardText(request.flow_c)+' °C' : uiText("off"))+' · '+uiText(dashboardKnown(engineReasons,request.reason) || "No heat needed") :
+            var statusHelp = request ? uiText("Calculated boiler request")+': '+(request.heat ? dashboardText(request.flow_c)+' °C'+(request.capped_by === 'boiler_limit' ? ' ('+uiText("limited by the boiler's own maximum")+')' : '') : uiText("off"))+' · '+uiText(dashboardKnown(engineReasons,request.reason) || "No heat needed") :
                 state ? (controlling ? dashboardReason(supervisor.reason) : '') : uiText("Set up rooms on the Rooms page, or connect Home Assistant.");
             var html = '<section class="product-dashboard" aria-label="OpenThermostat">'+
                 uiHtml("<header class=\"pd-heading\"><div><h1>Your heating system</h1><p>Rooms and boiler at a glance.</p></div>")+

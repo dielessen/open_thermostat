@@ -84,6 +84,7 @@ jobs:
           browser test/config-backup-browser.cjs
           browser test/ui-language-browser.cjs
           browser test/boiler-test-browser.cjs
+          browser test/boiler-profile-browser.cjs
           browser test/boiler-test-control-browser.cjs
           browser test/boiler-trial-guidance-browser.cjs
           browser test/boiler-configuration-read-browser.cjs

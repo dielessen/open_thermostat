@@ -236,7 +236,7 @@ class ShadowClient:
             return None
         # Compare the deadline directly: subtracting across a binary exponent
         # boundary can round an expired 15-second interval down below 15.
-        if not self.ready or not self._supervisor_received<=now<self._supervisor_received+max(SUPERVISOR_MAX_AGE,STATE_STALE_SECONDS):
+        if not self.ready or not self._supervisor_received<=now<self._supervisor_received+SUPERVISOR_MAX_AGE:
             self._supervisor=None # Observed expiry/loss cannot revive after clock recovery.
             return None
         return dict(self._supervisor, receipt_age_ms=int(age*1000))
@@ -783,7 +783,8 @@ class ShadowClient:
             return
         if topic == "fw/availability" and raw in ("online", "offline"):
             self.boiler_fields.availability(raw == "online", self.clock())
-        if retained or self.graph_source_review_required or self.native_plan_fenced:
+        # The retained hello (beta.19) lets a restarted HA open a session at once.
+        if (retained and topic != "fw/hello") or self.graph_source_review_required or self.native_plan_fenced:
             return
         if not self.clock_current():
             self.changed()
@@ -821,6 +822,10 @@ class ShadowClient:
                 if type(beat) is dict and beat.get("schema") == 1 and type(beat.get("uptime_s")) is int:
                     self.boiler_fields.heartbeat(now, beat["uptime_s"])
                     self.runtime._notify()
+            return
+        if topic == "fw/config/boiler_profile":  # which fields this boiler has (boiler_fields.py, agent T)
+            if self.boiler_fields.accept_profile(raw):
+                self.runtime._notify()
             return
         group = None
         if topic.startswith("fw/state/boiler_fields/"):
@@ -1000,20 +1005,21 @@ class ShadowClient:
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in caps) and CAPABILITY in caps)
             if not self.metrics_supported:
                 self._metrics=None
-            self.last_rx = self.clock()
             if self.session:
+                # A hello is no proof that THIS session lives (the firmware may have
+                # ended it): only session messages refresh last_rx.
                 return
+            self.last_rx = self.clock()
             known = self.known(p["config_revision"], p["config_digest"])
             if self.native_plan_source is not None and known is not None and not self.native_desired_matches(known["config"]):
                 known=None # Config-only session; old samples cannot run a dirty desired plan.
             # Unknown remote revision is diagnostic-only: never silently adopt.
             revision, known_digest = ((p["config_revision"], p["config_digest"])
                                       if known else (0, ""))
-            if (self.native_plan_source is not None and self.open_request is not None
-                    and self.open_request["challenge_id"] != p["challenge_id"]):
-                # Same-identity lease expiry rotates the firmware challenge. A
-                # pending request is NOT authority and must not replay the old
-                # challenge. Fresh nonce and unchanged independent SOURCE policy.
+            if self.open_request is not None and self.open_request["challenge_id"] != p["challenge_id"]:
+                # The firmware rotated its challenge (lease expiry, a reply to a
+                # stale open). A pending request is NOT authority and must not
+                # replay the old challenge: fresh nonce, fresh request, at once.
                 self.open_request = None
             if self.open_request is None:
                 self.open_request = dict(
@@ -1377,8 +1383,11 @@ class ShadowClient:
                 self.require_native_plan_review()
                 return None
             now = self.clock()
+            # A session ends when its lease ran out, or, before any heartbeat was
+            # confirmed, when its grant ran out: never an open-ended session.
             if self.session and (now - self.last_rx >= RX_STALE_SECONDS
-                    or (self.lease_until and now >= self.lease_until)):
+                    or (self.lease_until and now >= self.lease_until)
+                    or (not self.lease_until and now >= self.grant_until)):
                 await self.async_disconnected()
                 return None
             return now

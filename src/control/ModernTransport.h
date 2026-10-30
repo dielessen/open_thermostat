@@ -115,7 +115,8 @@ public:
             ui_.capture(suffix,payload,static_cast<uint64_t>(esp_timer_get_time()/1000));
             const std::string topic=base_+std::string(suffix);
             // Same one native connection; no raw private wire logging.
-            client_.publish(topic.c_str(),reinterpret_cast<const uint8_t *>(payload.data()),payload.size(),false);
+            // hello is retained: a restarted HA has the current challenge at once.
+            client_.publish(topic.c_str(),reinterpret_cast<const uint8_t *>(payload.data()),payload.size(),suffix=="fw/hello");
         };
         if(graph_) {
             if(graphProfile->controllerId!=mac||!hexString(graphProfile->qualificationDigest,64)) {

@@ -3,7 +3,8 @@ import json
 from copy import deepcopy
 import pytest
 import pytest_asyncio
-from custom_components.open_thermostat.v1_wire import canonical,MAX_GRANT_PROOFS
+from custom_components.open_thermostat.v1_wire import (canonical,MAX_GRANT_PROOFS,GRANT_SECONDS as G,
+    GRANT_ROTATION_SECONDS as R,LEASE_SECONDS)
 from test_modern_metrics import system
 
 @pytest_asyncio.fixture
@@ -20,7 +21,7 @@ def status(c,sequence=2,nonce=None,**change):
     p={"api":1,"controller_id":c.identity[0],"boot_id":c.identity[1],"epoch":c.identity[2],
        "config_revision":1,"config_digest":"a"*64,"client_nonce":"client1","adapter_id":"ha1",
        "adapter_session_id":c.session["adapter_session_id"],"grant_id":f"grant{sequence}",
-       "grant_sequence":sequence,"grant_ms":10000,"mapping_ready":True}
+       "grant_sequence":sequence,"grant_ms":G*1000,"mapping_ready":True}
     if nonce is not None:p["grant_request_nonce"]=nonce
     p.update(change);return p
 
@@ -33,7 +34,7 @@ async def test_fresh_echo_anchors_original_send_not_receipt_and_never_renews_lea
     c,now=client;nonce=await heartbeat(c);c.grant_until=101
     now[0]=106;old_lease=c.lease_until;old_source=deepcopy(c.runtime.observations)
     await c.receive("fw/session",canonical(status(c,nonce=nonce)))
-    assert c.grant_until==110<now[0]+10 and c.lease_until==old_lease
+    assert c.grant_until==100+G<now[0]+G and c.lease_until==old_lease
     assert c.runtime.observations==old_source and c.ready
     assert nonce not in c._grant_proofs
 
@@ -44,7 +45,7 @@ async def test_exact_heartbeat_retry_keeps_nonce_and_first_send_timestamp(client
     assert c.send.await_args.args[1]==original and c._grant_proofs[nonce]==100
     pending=next(iter(c.pending.values()));assert pending["sent"]==100 and pending["last"]==102
     c.grant_until=101;now[0]=106
-    await c.receive("fw/session",canonical(status(c,nonce=nonce)));assert c.grant_until==110
+    await c.receive("fw/session",canonical(status(c,nonce=nonce)));assert c.grant_until==100+G
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("proof",["missing","unknown","expired","future","malformed","unsupported","evicted"])
@@ -52,7 +53,7 @@ async def test_unproven_echo_uses_safe_old_bound_never_receipt_renewal(client,pr
     c,now=client;nonce=await heartbeat(c)
     if proof=="missing":nonce=None
     if proof=="unknown":nonce="unknown"
-    if proof=="expired":c._grant_proofs[nonce]=95
+    if proof=="expired":c._grant_proofs[nonce]=106-G-1
     if proof=="future":c._grant_proofs[nonce]=108
     if proof=="malformed":nonce="bad/slash"
     if proof=="unsupported":c.grant_nonce_supported=False
@@ -61,18 +62,19 @@ async def test_unproven_echo_uses_safe_old_bound_never_receipt_renewal(client,pr
         assert nonce not in c._grant_proofs
     c.grant_until=105;now[0]=106
     await c.receive("fw/session",canonical(status(c,nonce=nonce)))
-    assert c.grant_until==110<now[0]+10
+    assert c.grant_until==105+R<now[0]+G  # one rotation period, not receipt+grant
 
 @pytest.mark.asyncio
 async def test_repeated_or_reordered_session_never_consumes_or_renews_proof(client):
     c,now=client;nonce=await heartbeat(c);c.grant_until=101;now[0]=106
-    p=status(c,nonce=nonce);await c.receive("fw/session",canonical(p));assert c.grant_until==110
+    p=status(c,nonce=nonce);await c.receive("fw/session",canonical(p));assert c.grant_until==100+G
     proofs=deepcopy(c._grant_proofs);now[0]=108
     await c.receive("fw/session",canonical(p))
-    assert c.grant_until==110 and c._grant_proofs==proofs
+    assert c.grant_until==100+G and c._grant_proofs==proofs
     # Consumed nonce can't reanchor a genuinely newer grant; safe fallback only.
+    now[0]=115
     await c.receive("fw/session",canonical(status(c,3,nonce)))
-    assert c.grant_until==115<now[0]+10
+    assert c.grant_until==100+G+R<now[0]+G
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("change",[{"boot_id":"oldBoot"},{"epoch":2},{"adapter_id":"other"},
@@ -98,7 +100,7 @@ async def test_old_peer_heartbeat_shape_and_readonly_cap_do_not_enable_grant_pro
 
 @pytest.mark.asyncio
 async def test_expired_unproven_grant_fails_closed_instead_of_receipt_extension(client):
-    c,now=client;await heartbeat(c);c.grant_until=100;now[0]=106
+    c,now=client;await heartbeat(c);c.grant_until=100;now[0]=100+R+G+1
     await c.receive("fw/session",canonical(status(c,nonce="unknown")))
     assert c.session is None and not c.ready and c.error=="invalid_firmware_message"
 
@@ -108,7 +110,7 @@ async def test_absent_or_malformed_control_capability_cannot_enable_receipt_rean
     c,now=client;await heartbeat(c)
     hello={"api":1,"mode":"shadow","controller_id":"e32_lab","boot_id":"boot1","epoch":1,
            "challenge_id":"challenge1","config_revision":1,"config_digest":"a"*64,
-           "lease_ms":15000,"grant_ms":10000,
+           "lease_ms":LEASE_SECONDS*1000,"grant_ms":G*1000,
            "read_only_capabilities":["session.grant_nonce.v1"]}
     if caps is not None:hello["session_capabilities"]=caps
     await c.receive("fw/hello",canonical(hello))
@@ -122,6 +124,6 @@ async def test_initial_grant_still_uses_open_request_roundtrip_not_an_echo(clien
     p={"api":1,"controller_id":"e32_lab","boot_id":"boot1","epoch":1,
        "config_revision":1,"config_digest":"a"*64,"client_nonce":"client1","adapter_id":"ha1",
        "adapter_session_id":"newSession","grant_id":"newGrant","grant_sequence":1,
-       "grant_ms":10000,"mapping_ready":True,"grant_request_nonce":nonce}
+       "grant_ms":G*1000,"mapping_ready":True,"grant_request_nonce":nonce}
     await c.receive("fw/session",canonical(p))
-    assert c.grant_until==110
+    assert c.grant_until==100+G

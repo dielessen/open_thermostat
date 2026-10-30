@@ -214,6 +214,24 @@ public:
         route("/config/heating/comfort",[this] { heatingComfort(); });
         route("/config/heating",[this] { heatingPlan(); });
         route("/status/heating",HTTP_GET,[this] { heatingStatus(); });
+        route("/status/boiler/profile",HTTP_GET,[this] { // which boiler fields this boiler has (EMS/BoilerProfile.h)
+            auto &buf=jsonResponse_;
+            if(!buf.reset()) {server_.send(503,"application/json","{\"error\":\"boiler_profile_unavailable\"}");return;}
+            std::ostream out(&buf);controller_.getBoilerProfile(out);
+            if(!out.good()||buf.failed()) {server_.send(503,"application/json","{\"error\":\"boiler_profile_unavailable\"}");return;}
+            server_.sendView(200,"application/json"sv,buf.view());
+        });
+        route("/config/boiler-profile",HTTP_POST,[this] { // owner "show anyway" for a not-fitted field: {"index":n,"show":bool}
+            auto body=server_.arg("plain");auto root=control::parseControlJson(std::string_view(body.c_str(),body.length()),true);
+            const cJSON* index=root?cJSON_GetObjectItemCaseSensitive(root.get(),"index"):nullptr;
+            const cJSON* show=root?cJSON_GetObjectItemCaseSensitive(root.get(),"show"):nullptr;
+            if(body.length()>64||!root||!control::exactFields(root.get(),{"index","show"})||!cJSON_IsNumber(index)||!cJSON_IsBool(show)
+                ||index->valuedouble<0||index->valuedouble>255||index->valuedouble!=double(int(index->valuedouble))) {
+                server_.send(400,"application/json","{\"error\":\"invalid_request\"}");return;
+            }
+            const bool ok=controller_.setBoilerProfileShown(size_t(index->valueint),cJSON_IsTrue(show));
+            server_.send(ok?200:409,"application/json",ok?"{\"saved\":true}":"{\"error\":\"field_not_fitted\"}");
+        });
         route("/status/history",HTTP_GET,[this] { // 24 h charts, RAM only (control/HeatingHistory.h)
             auto &buf=jsonResponse_;
             if(!buf.reset()) {server_.send(503,"application/json","{\"error\":\"history_unavailable\"}");return;}

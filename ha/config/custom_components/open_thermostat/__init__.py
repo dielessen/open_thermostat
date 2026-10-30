@@ -382,6 +382,19 @@ async def async_setup_entry(hass, entry):
     if graph_profile is not None and graph_control_source is not None:
         from homeassistant.exceptions import ConfigEntryError
         raise ConfigEntryError("graph_control_data_owner_conflict")
+    if (has_graph_rooms(entry) and mode == MODE_SHADOW and entry.options.get(CONF_ENABLED, False) and not stale_link
+            and graph_profile is None and graph_control_source is None and native_plan_source is None):
+        # An older Home Assistant room with the link on but no native room profile
+        # (however the entry got there): no runtime can serve that room. A product
+        # entry linked by Connect E32 starts without the runtime (the E32 rooms,
+        # telemetry, boiler values and forwarding need none) and Repairs offers
+        # "remove the old room", instead of a dead entry.
+        from .product import is_product
+        from .room_plan import has_room_plan
+        if is_product(entry) and has_room_plan(entry):
+            _LOGGER.warning("OpenThermostat %s: an older Home Assistant room has no native room profile; "
+                            "starting without it (Repairs: remove the old room)", entry.title)
+            stale_link = True
     if has_graph_rooms(entry) and (mode != MODE_SHADOW or (entry.options.get(CONF_ENABLED, False) and not stale_link and graph_profile is None and graph_control_source is None and native_plan_source is None)):
         from homeassistant.exceptions import ConfigEntryError
         raise ConfigEntryError("graph_room_contract_unavailable")

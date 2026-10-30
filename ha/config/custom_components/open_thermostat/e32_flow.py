@@ -40,7 +40,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import logging
 
-from homeassistant.components.number import NumberEntity, NumberMode
+from homeassistant.components.select import SelectEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import EntityCategory, UnitOfPower, UnitOfTemperature, UnitOfVolume
@@ -57,6 +57,7 @@ KEY = "e32_flow"
 REFRESH = timedelta(minutes=5)
 OPTIONS = ("weather_curve", "apply_learned")
 DESIGN_FLOW_KEY = "curve_design_flow_c"
+DESIGN_FLOW_AUTOMATIC = "automatic"  # the select option for the stored 0
 DESIGN_FLOW_LIMITS = (25, 80)  # the E32's own bound (WeatherCurve::min/maxDesignFlowC); 0 is automatic
 SOURCES = ["rule", "curve", "learned", "optimum_start"]
 GAS_STATUSES = ["no_meter", "collecting", "calibrated", "meter_stale"]
@@ -246,34 +247,30 @@ class FlowOptionSwitch(FlowOptionEntity, SwitchEntity):
         await self._change(False)
 
 
-class FlowDesignNumber(FlowOptionEntity, NumberEntity):
-    """The heating curve's flow at −10 °C outside: 0 automatic (by heating type), else 25–80 °C."""
+class FlowDesignSelect(FlowOptionEntity, SelectEntity):
+    """The heating curve's flow at −10 °C outside: "automatic" (by heating type) or 25–80 °C.
 
-    _attr_native_min_value = 0
-    _attr_native_max_value = DESIGN_FLOW_LIMITS[1]
-    _attr_native_step = 1
-    _attr_mode = NumberMode.BOX
-    # No temperature device class: 0 means "automatic" and must never be converted to °F.
-    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    The E32 stores 0 for automatic (/config/heating/flow curve_design_flow_c); a choice list
+    never shows that 0 as a temperature, and it is never converted to °F.
+    """
+
+    _attr_options = [DESIGN_FLOW_AUTOMATIC, *(str(c) for c in range(DESIGN_FLOW_LIMITS[0], DESIGN_FLOW_LIMITS[1] + 1))]
 
     def __init__(self, link):
-        self._attach_link(link, DESIGN_FLOW_KEY)  # unique id <prefix>_flow_curve_design_flow_c
+        self._attach_link(link, DESIGN_FLOW_KEY)  # unique id <prefix>_flow_curve_design_flow_c (select)
 
     @property
-    def native_value(self):
-        return self.stored if type(self.stored) is int else None
+    def current_option(self):
+        if type(self.stored) is not int:
+            return None
+        return DESIGN_FLOW_AUTOMATIC if self.stored == 0 else str(self.stored)
 
-    @property
-    def extra_state_attributes(self):
-        return {"automatic": self.stored == 0} if type(self.stored) is int else None
-
-    async def async_set_native_value(self, value):
-        if (number(value, 0, DESIGN_FLOW_LIMITS[1]) is None or value != int(value)
-                or 0 < value < DESIGN_FLOW_LIMITS[0]):
+    async def async_select_option(self, option):
+        if option not in self._attr_options:
             raise ServiceValidationError(
                 translation_domain=DOMAIN, translation_key="flow_design_invalid",
                 translation_placeholders={"minimum": str(DESIGN_FLOW_LIMITS[0]), "maximum": str(DESIGN_FLOW_LIMITS[1])})
-        await self._change(int(value))
+        await self._change(0 if option == DESIGN_FLOW_AUTOMATIC else int(option))
 
 
 def _wanted_switches(link):
@@ -282,9 +279,9 @@ def _wanted_switches(link):
             yield key, lambda key=key: FlowOptionSwitch(link, key)
 
 
-def _wanted_numbers(link):
+def _wanted_selects(link):
     if link.settings is not None:
-        yield DESIGN_FLOW_KEY, lambda: FlowDesignNumber(link)
+        yield DESIGN_FLOW_KEY, lambda: FlowDesignSelect(link)
 
 
 async def _async_setup_controls(hass, entry, async_add_entities, wanted):
@@ -301,8 +298,8 @@ async def async_setup_switches(hass, entry, async_add_entities):
     await _async_setup_controls(hass, entry, async_add_entities, _wanted_switches)
 
 
-async def async_setup_numbers(hass, entry, async_add_entities):
-    await _async_setup_controls(hass, entry, async_add_entities, _wanted_numbers)
+async def async_setup_selects(hass, entry, async_add_entities):
+    await _async_setup_controls(hass, entry, async_add_entities, _wanted_selects)
 
 
 # -- the sensors -----------------------------------------------------------------------

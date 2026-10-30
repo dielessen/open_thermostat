@@ -41,7 +41,8 @@ async def test_an_entry_with_an_e32_room_plan_offers_no_second_add_room(hass, ma
     with_plan, _ = product(hass, FakeE32())
     assert has_room_plan(with_plan)
     assert OpenThermostatConfigFlow.async_get_supported_subentry_types(with_plan) == {}
-    # Before the E32 is connected the guided room flow stays: Connect E32 needs one room first.
+    # An older entry (no "rooms_on_e32") without its E32 connection keeps the guided HA room flow;
+    # a new installation does not (test_menu_structure.py).
     hass.config_entries.async_update_entry(with_plan, data={
         k: v for k, v in with_plan.data.items() if k not in CREDENTIALS})
     assert list(OpenThermostatConfigFlow.async_get_supported_subentry_types(with_plan)) == ["zone"]
@@ -358,8 +359,10 @@ async def test_a_program_error_names_the_line_that_could_not_be_read(hass, manag
 
 
 async def flow_form(manager, parent):
-    flow = await rooms_menu(manager, parent)
-    return await manager.async_configure(flow["flow_id"], {"next_step_id": "e32_flow_limits"})
+    # Configure -> Heating and boiler opens the flow limits form directly.
+    await manager.hass.async_block_till_done()
+    flow = await manager.async_init(parent.entry_id)
+    return await manager.async_configure(flow["flow_id"], {"next_step_id": "heating_boiler"})
 
 
 @pytest.mark.asyncio
@@ -482,10 +485,11 @@ async def test_e32_refusals_are_plain_messages(hass, manager, error, key):
 async def test_the_main_menu_starts_with_the_rooms_and_keeps_status_under_advanced(hass, manager):
     parent, _ = product(hass, FakeE32())
     flow = await manager.async_init(parent.entry_id)
-    assert flow["menu_options"] == ["e32_rooms", "comfort", "controller_connection", "energy", "installation",
-                                    "advanced_settings"]
+    assert flow["menu_options"] == ["e32_rooms", "comfort", "heating_boiler", "energy", "controller_connection",
+                                    "general", "advanced_settings"]
     advanced = await manager.async_configure(flow["flow_id"], {"next_step_id": "advanced_settings"})
-    assert advanced["menu_options"][0] == "configuration_status"
+    # Installation status counts the older HA rooms only: not shown without them.
+    assert advanced["menu_options"][0] == "hot_water" and "configuration_status" not in advanced["menu_options"]
 
 
 # -- Language: EN and NL say the same things --------------------------------------------------
@@ -574,8 +578,8 @@ def test_advice_never_assumes_a_knob_or_a_menu_and_has_one_place_for_the_flow_li
         assert "never asks for more" in en["action"] and "nooit meer" in nl["action"]
     assert "knob" in rules["en"]["short_cycling"]["where"] and "draaiknop" in rules["nl"]["short_cycling"]["where"]
     for rule in ("return_too_warm", "flow_higher_wasteful", "flow_lower_too_slow"):
-        assert "Configure → Rooms → Flow temperature limits" in rules["en"][rule]["where"], rule
-        assert "Configureren → Ruimtes → Grenzen aanvoertemperatuur" in rules["nl"][rule]["where"], rule
+        assert "Configure → Heating and boiler" in rules["en"][rule]["where"], rule
+        assert "Configureren → Verwarming en ketel" in rules["nl"][rule]["where"], rule
     for lang, words in (("en", ("active mode", "CH temperature", "E32 web page")),
                         ("nl", ("actieve modus", "CV-temperatuur", "E32-webpagina"))):
         text = json.dumps(heating_advice.TEXT[lang], ensure_ascii=False)

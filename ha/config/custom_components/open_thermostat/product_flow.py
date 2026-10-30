@@ -554,11 +554,9 @@ class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, Con
         # "Installation status" counts and checks the older Home Assistant rooms only:
         # with the E32 room plan it is shown while such rooms are left.
         options = ["configuration_status"] if not e32 or legacy_zones(entry) else []
-        if e32 and "installation" not in main_menu(entry):
-            from .installation_edit import installation_context
-            if installation_context(self.hass, entry) is not None:
-                # The water limits of an older room profile that still runs (until its removal).
-                options.append("installation")
+        if e32 and legacy_zones(entry):
+            # The water limits of the older room profile, while its rooms are left.
+            options.append("installation")
         options.append("hot_water")
         if self._native_plan_review_available():
             options += ["graph_prepare", "graph_status"]

@@ -20,7 +20,7 @@ Install it together with HA 0.4.0b11 (see Updating).
 - Flow temperature options on the Rooms page, all off by default: a weather
   curve from an outdoor temperature, using the learned lowest flow, and gas
   calibration from a real gas meter.
-- Backup and restore under System → Network: export your network, rooms,
+- Backup and restore under Settings: export your network, rooms,
   week programs and Bluetooth sensors to a file, see what a restore would
   change, then apply it. Keys are only included when you set a passphrase,
   which encrypts them; Wi-Fi and web passwords are never exported.

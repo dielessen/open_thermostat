@@ -299,8 +299,9 @@ class E32RoomFlow:
             except HomeAssistantError as err:
                 return self._e32_abort_failure(err)
         self._e32_plan = plan
+        # The flow limits are for all rooms together: Configure → Heating and boiler (product_flow.py).
         options = (["e32_room_add"] if len(plan["rooms"]) < MAX_ROOMS else []) + (
-            ["e32_room_pick"] if plan["rooms"] else []) + ["e32_flow_limits"]
+            ["e32_room_pick"] if plan["rooms"] else [])
         placeholders = {"rooms": self._e32_room_list(plan), "revision": str(plan["revision"])}
         if done is not None:
             placeholders["name"] = name or ""
@@ -532,7 +533,9 @@ class E32RoomFlow:
             "fallback_temperature": shown(room.get("fallback_centi_c", 2000), unit),
             "minimum_temperature": shown(room.get("minimum_centi_c", 500), unit),
             "maximum_temperature": shown(room.get("maximum_centi_c", 2500), unit),
-            "program": format_program(room.get("schedule"), self.hass.config.language, unit),
+            # A room without a program is shown (and saved) with the template: every room has one.
+            "program": format_program(room.get("schedule") or default_program(
+                room.get("minimum_centi_c", 500), room.get("maximum_centi_c", 3000)), self.hass.config.language, unit),
         }
 
     def _e32_centi(self, value, field, defaults, room):

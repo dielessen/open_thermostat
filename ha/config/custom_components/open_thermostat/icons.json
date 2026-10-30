@@ -37,12 +37,12 @@
       },
       "radiator_rated_power": {
         "default": "mdi:radiator"
-      },
-      "flow_curve_design_flow_c": {
-        "default": "mdi:chart-line"
       }
     },
     "select": {
+      "flow_curve_design_flow_c": {
+        "default": "mdi:chart-line"
+      },
       "room_state": {
         "default": "mdi:power",
         "state": {

@@ -18,6 +18,8 @@ from custom_components.open_thermostat.controller_link import ControllerLinkErro
 from custom_components.open_thermostat.controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_PASSWORD
 from custom_components.open_thermostat.dashboard import RoomDashboard
 from custom_components.open_thermostat.e32_room_flow import format_program, parse_program, unique_room_id
+from custom_components.open_thermostat.e32_setting_device import default_program
+from custom_components.open_thermostat.room_plan import plan_room
 from custom_components.open_thermostat.heating_link import HeatingHub, input_payload
 from custom_components.open_thermostat.product import PRODUCT_CONFIG
 from custom_components.open_thermostat.room_plan import RoomPlanLink, has_room_plan
@@ -136,13 +138,13 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
         "schedule": [[[390, 2050], [1350, 1800]]] * 5 + [[[480, 2050], [1380, 1800]]] * 2}
     assert hub.plan.plan == e32.plan  # the writer's cache follows the stored plan
 
-    # The same name again gets its own id; a room without a program has no schedule key.
+    # The same name again gets its own id; a room saved without a program gets "Workdays and weekend".
     form = await room_form(manager, parent)
     result = await manager.async_configure(form["flow_id"], {
         **NEW_ROOM, "ble_sources": [], "program": "", "bluetooth_first": False})
     assert result["step_id"] == "e32_rooms_saved", result
     added = e32.plan["rooms"][3]
-    assert added["id"] == "slaapkamer_zoe_2" and "schedule" not in added
+    assert added["id"] == "slaapkamer_zoe_2" and added["schedule"] == default_program(1000, 2400)
     assert added["sources"] == [{"type": "ha", "id": "sensor.hal"}, {"type": "ha", "id": "climate.woonkamer"}]
 
 
@@ -319,16 +321,22 @@ async def test_editing_changes_only_the_edited_fields_and_sources_can_be_reorder
     assert values == {"name": "Woonkamer", "state": "active", "emitter": "floor",
                       "ha_sources": ["climate.woonkamer"], "ble_sources": ["a4c138a3e8db"], "bluetooth_first": False,
                       "setpoint_entity": "climate.woonkamer", "fallback_temperature": 20.0,
+                      "program": format_program(default_program(1000, 2400), "en", "°C"),
                       "limits": {"minimum_temperature": 10.0, "maximum_temperature": 24.0}}
-    posts = len(e32.posts)
+    # A room without a week program is shown with "Workdays and weekend" and saving gives it that program.
     result = await manager.async_configure(form["flow_id"], values)
+    assert result["step_id"] == "e32_rooms_saved", result
+    assert plan_room(e32.plan, "woonkamer")["schedule"] == default_program(1000, 2400)
+    form = await room_form(manager, parent, "woonkamer")
+    posts = len(e32.posts)
+    result = await manager.async_configure(form["flow_id"], shown(form))
     assert result["reason"] == "e32_room_unchanged" and len(e32.posts) == posts  # nothing written
 
     # Bluetooth first: the same two sources in the other order.
     form = await room_form(manager, parent, "woonkamer")
     result = await manager.async_configure(form["flow_id"], {**shown(form), "bluetooth_first": True})
     assert result["step_id"] == "e32_rooms_saved"
-    expected = deepcopy(PLAN["rooms"][0])
+    expected = {**deepcopy(PLAN["rooms"][0]), "schedule": default_program(1000, 2400)}  # given above
     expected["sources"] = [{"type": "ble", "id": "a4c138a3e8db"}, {"type": "ha", "id": "climate.woonkamer"}]
     assert e32.plan["rooms"][0] == expected and e32.plan["rooms"][1] == PLAN["rooms"][1]
 
@@ -348,13 +356,13 @@ async def test_editing_changes_only_the_edited_fields_and_sources_can_be_reorder
     assert result["step_id"] == "e32_rooms_saved"
     room_ = e32.plan["rooms"][0]
     assert (room_["state"], room_["inactive_until"], room_["schedule"]) == ("inactive", 0, [[[420, 2100]]] * 7)
-    # Clearing the program removes the schedule: fallback only.
+    # Clearing the program gives "Workdays and weekend": a room is never without one.
     form = await room_form(manager, parent, "woonkamer")
     assert shown(form)["program"] == "07:00 21"
     values = shown(form)
     del values["program"]
     result = await manager.async_configure(form["flow_id"], values)
-    assert result["step_id"] == "e32_rooms_saved" and "schedule" not in e32.plan["rooms"][0]
+    assert result["step_id"] == "e32_rooms_saved" and e32.plan["rooms"][0]["schedule"] == default_program(1000, 2400)
 
 
 @pytest.mark.asyncio

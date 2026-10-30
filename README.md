@@ -11,11 +11,11 @@ receives itself, or Home Assistant entities such as a thermostat), follows the
 room's target or week program in its own time zone, and calculates a boiler
 request. Without Home Assistant everything is set up on the E32 itself.
 
-**E32 beta.18 runs this in shadow mode.** The E32 calculates its boiler
+**E32 beta.19 runs this in shadow mode.** The E32 calculates its boiler
 request, learns how each room warms up and, where a thermostat controls the
 boiler over EMS, compares its decisions with it. It does not send that
 request.
-Active boiler control is built into beta.18 but stays switched off in the
+Active boiler control is built into beta.19 but stays switched off in the
 firmware until an attended switch-over with failure tests.
 
 ## Requirements
@@ -87,78 +87,54 @@ git clone --branch v0.1.0-e32v2-beta.18 https://github.com/dielessen/open_thermo
 
 <!-- openthermostat-readme-releases:end -->
 
-## What's new in E32 beta.18 + HA 0.4.0b10
+## What's new in E32 beta.19 + HA 0.4.0b11
 
-Install both together if you use Home Assistant. HA 0.4.0b9 keeps working
-with beta.18 for the fields it knows.
+Install both together if you use Home Assistant. The E32 now sends small MQTT
+topics with a heartbeat, so HA 0.4.0b10 does not understand beta.19 and HA
+0.4.0b11 does not understand beta.18. Update the integration first, then the
+E32 from its Firmware entity in Home Assistant.
 
 **New**
 
-- **Rooms are edited in one place.** With Home Assistant: Settings → Devices &
-  services → OpenThermostat → Configure → Rooms, with sources (HA entities in
-  °C or °F and the E32's Bluetooth sensors), target, limits, a week program
-  per room and the flow temperature limits. The E32 Rooms page then shows the
-  plan read-only and offers "Edit here anyway" for when Home Assistant is not
-  reachable. Without Home Assistant, rooms and week programs are edited on the
-  E32 Rooms page.
-- **Any time zone:** week programs, "today" and the daily comparison follow
-  the E32's own time zone (Settings) with its summer-time rule. Week
-  programs compiled by Home Assistant accept any IANA time zone.
-- **Refreshed E32 interface** in English and Dutch, light and dark: five menu
-  items (Overview, Rooms, Boiler, Sensors, System), pages that keep their
-  address on refresh, larger touch targets and a short help line at each
-  setting.
-- **Learning per room, in shadow mode:** how fast a room warms up at which flow
-  temperature, the lowest flow that still warms it in time, when to start
-  before the next week-program switch, and whether holding the night
-  temperature or letting it drop uses less gas (estimate in kWh, m³ and €).
-  The results appear as HA sensors per room; they are advice only and are not
-  applied.
-- **Boiler page starts with the essentials:** temperatures, pressure where the
-  boiler reports it, burner starts in the last hour with a short-cycling
-  warning, and hot water today (tapping versus keeping warm). The last locking
-  and blocking fault and the boiler's own uptime are added to the EMS table.
-- **Home Assistant:** each E32 room and Bluetooth sensor is its own device with
-  plain names and icons; a "Heating" dashboard; shadow-comparison sensors
-  (only once a thermostat to compare with is seen on the bus); a
-  short-cycling warning; learned advice per room and hot water today.
-- **Heating advice and energy inputs in Home Assistant:** a "Heating advice"
-  sensor and dashboard section (advice only) on short cycling, flow and
-  return temperatures, night setback, hot water and pressure; and an optional
-  "Energy and outdoor temperature" step for a gas meter (m³ or kWh), gas
-  price, calorific value, outdoor sensor or weather entity and boiler power.
-- **Unique device names:** a new E32 is called `openthermostat-` plus the end
-  of its MAC address, as network name and MQTT client ID.
-- **Your own web password** under System → About; until then the sign-in is
-  `admin` / `admin` and the Overview reminds you. A "Heating problem" sensor
-  in Home Assistant answers "is my heating OK?".
-- **Active control, prepared and locked:** takeover only after you confirm the
-  thermostat is disconnected from the boiler, a stop when another controller
-  still sends boiler requests, frost protection below 8 °C and a "Hand back to
-  the thermostat" button. A firmware gate keeps all of this switched off in
-  beta.18.
+- **Comfort on top of the week program:** a temporary target or boost (until
+  the next switch point or for a set time), away or holiday until a date, and
+  a pause while a window or door is open. Each ends by itself, also after a
+  restart. On the E32 Overview and in Home Assistant, where every E32 room
+  now has its own thermostat (climate entity).
+- **Visual week planner** per room, on the E32 Rooms page and as a view of
+  the Home Assistant dashboard: comfort, night and away levels, templates,
+  copy a day, drag the block edges.
+- **24-hour charts on the E32**, also without Home Assistant: temperature and
+  target per room, flow, return and burner.
+- **Flow temperature options**, all off by default: a weather curve from an
+  outdoor temperature, using the learned lowest flow, and gas calibration
+  from a real gas meter.
+- **Backup and restore** of the E32 settings (Settings → Backup and restore),
+  with keys only included, encrypted, when you set a passphrase.
+- **Boiler profile:** the E32 learns which values your boiler reports, so
+  Home Assistant only creates those. The E32 also reads the boiler's own
+  maximum heating temperature itself.
+- **Home Assistant:** no starter room needed, one group per room, safe
+  removal of the old Home Assistant room, a redesigned dashboard, gas for
+  heating and hot water in the Energy dashboard, a weekly advice blueprint,
+  a diagnostics download without secrets, and a complete Polish translation.
+- **Updates through Home Assistant are the official route:** the Firmware
+  entity checks GitHub's SHA-256, the size and the version marker before it
+  uploads, and records the install.
+- **Our own name:** OpenThermostat in Home Assistant and MQTT discovery.
+- **Active control, prepared and locked:** the "thermostat disconnected"
+  confirmation now survives a restart (never a firmware change), heat resumes
+  only after 2 minutes of listening, and the supervisor holds back restarts
+  while the E32 owns the boiler. A firmware gate keeps all of this switched
+  off in beta.19.
 
 **Fixed**
 
-- Bluetooth thermometers deliver readings reliably: every report is heard,
-  readings stay valid for 15 minutes, a sensor whose counter restarts (new
-  battery) is accepted again, and one bad report no longer clears the values.
-- A firmware update is confirmed only after about a minute of normal running
-  with a working network; until then other restarts wait, and a firmware that
-  fails to start or never reaches the network rolls back. Update errors are
-  shown in English.
-- The watchdog also covers start-up; a stalled download can no longer switch
-  off the supervisor; the E32 restarts itself when Wi-Fi reports "connected"
-  but the network no longer answers, and backs off during a long Wi-Fi outage
-  instead of restarting every 15 minutes.
-- Deeply nested JSON from the network can no longer crash the E32, and all
-  parsers of outside input are fuzz-tested in CI; JSON and larger buffers use
-  PSRAM, leaving more memory for Wi-Fi.
-- Bluetooth settings apply by themselves: the E32 restarts 30 seconds after
-  you save them.
-- HA creates boiler entities only once the boiler reports them and removes its
-  own old duplicate or never-reported entities (history is kept). In the
-  owner's installation this went from 155 to about 74 entities.
+- A steady link to Home Assistant: the E32 queues and merges its messages and
+  only drops the connection after 15 seconds without progress (beta.18
+  dropped it several times an hour).
+- More room in flash: the web interface is stored compressed only (93 % → 76 %).
+- Duplicate boiler entities for the same value are merged; history is kept.
 
 [User guide](docs/USER-GUIDE.md) ·
 [Firmware release notes](docs/modern-thermostat/RELEASE-NOTES.md) ·
@@ -188,8 +164,8 @@ qualification is required.
 | Heating advice | **Available in Home Assistant, advice only:** short cycling, a maximum heating temperature above what the house needs, a return too warm for condensing, the flow the rooms need, night setback, hot-water temperature and water pressure, each with what to change, where, and a confidence. Never changes a setting. |
 | Active boiler control | **Prepared, locked in the firmware:** takeover after confirmation, stop on a foreign controller, frost protection (on below 8 °C, off at 9 °C), flow never above the plan maximum (up to 80 °C) or the boiler's own maximum heating temperature, hand back to the thermostat. Opened only at the attended switch-over. |
 | Radiator valves (TRVs) | **Planned** for the E32 room plan. The older HA room records with TRV valves still exist for existing installations but are not used by the E32 heating control. |
-| Comfort, eco, away, holiday and boost | Priority and expiry logic **prepared**; everyday controls remain to be connected. |
-| Window and door contacts | **Planned:** select contacts per room, pause demand while open and resume with valid readings. |
+| Comfort, away, holiday and boost | **Shadow:** a temporary target or boost (until the next switch point or for a set time) and away or holiday until a date, on the E32 Overview and in Home Assistant (a thermostat per E32 room with presets). Each ends by itself, also after a restart; only room targets change, never the flow limits or frost protection. |
+| Window and door contacts | **Shadow:** Home Assistant contacts per room, with a delay; while one is open the room pauses (its frost limit stays). Bluetooth contacts on the E32 are **planned**. |
 
 ### Bluetooth sensors
 
@@ -215,7 +191,7 @@ qualification is required.
 | Passive EMS reception | **Available:** Classic boiler messages, temperatures, targets, modulation and other supported fields. Coverage depends on the boiler and the messages actually received. EMS Plus decoder foundations exist; this is not full EMS-ESP parity. |
 | Data quality | **Available:** measured, derived, stale, unreliable and unavailable values remain distinguishable. |
 | Attended boiler test | **Available for commissioning**, with someone at the boiler: asks for heat at a chosen flow (default 50 °C, up to 10 minutes), then checks that heating stops. It is refused while the E32 owns the boiler. One trial passed on the owner's installation; that is not a general qualification. |
-| Weather compensation | Calculations **prepared**; full outside-source setup and installation tests remain open. |
+| Weather compensation | **Shadow, off by default:** an optional weather curve from an outdoor temperature as the base flow, never above the plan or boiler limit. Installation tests remain open. |
 | Boiler settings writes | Writable-entity metadata is inventoried. **Persistent setting writes remain disabled.** |
 | Domestic hot water control | **Planned**, model specific. Readout and statistics are available. |
 | Underfloor heating and mixed emitters | Floor heating is a room heating type with its own flow limit. Valve, pump and mixer routes are **prepared** and require separate hardware acceptance. |
@@ -266,11 +242,12 @@ depend on HA and MQTT; Bluetooth sensors and week programs on the E32 do not.
 3. **Active mode** with daily monitoring for one to two weeks, then the first
    non-beta release.
 4. **Gas-meter calibration** checked against real gas use (the optional inputs
-   and a first calibration are in beta.18).
+   and the calibration are in beta.19, off by default).
 5. **Optimum start applied** in active mode, and the learned lowest flow used
    for the boiler request.
-6. Then: radiator valves in the E32 room plan, comfort modes, window and door
-   contacts, outside sources, further devices and floor-heating functions.
+6. Then: radiator valves in the E32 room plan, Bluetooth window and door
+   contacts, EMS+ boilers, outside sources, further devices and floor-heating
+   functions.
 
 No release dates are promised for these steps. The detailed requirements and
 remaining acceptance are tracked in engineering notes in Dutch
@@ -366,7 +343,7 @@ release's compatibility notes.
   uses a different procedure.
 - **Home Assistant (optional):** install the separate integration package,
   keep existing entries and restart HA; the E32 updater does not install it.
-  Install E32 beta.18 and HA 0.4.0b10 together.
+  Install E32 beta.19 and HA 0.4.0b11 together.
 - **Optional Zigbee report companion:** source-only material for original
   receive reports; no automatic installation or valve-control enablement.
 

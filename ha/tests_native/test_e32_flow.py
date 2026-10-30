@@ -102,7 +102,7 @@ async def test_controls_appear_once_read_and_write_one_field_through_the_stored_
     hub, link = flow_link(hass, e32)
     added = []
     remove = [track_entities(link, added.extend, {}, module._wanted_switches),
-              track_entities(link, added.extend, {}, module._wanted_numbers)]
+              track_entities(link, added.extend, {}, module._wanted_selects)]
     link.hub_changed()
     await hass.async_block_till_done()
     assert e32.calls == [] and added == []  # the E32 is not online yet: nothing is asked
@@ -116,26 +116,25 @@ async def test_controls_appear_once_read_and_write_one_field_through_the_stored_
     assert [e.translation_key for e in added] == ["flow_weather_curve", "flow_apply_learned", "flow_curve_design_flow_c"]
     assert all(e.entity_category is EntityCategory.CONFIG and e.available for e in added)
     assert all(e.device_info["identifiers"] == {("open_thermostat", "fixture")} for e in added)  # the product device
-    assert (curve.is_on, learned.is_on, design.native_value) == (False, False, 0)
-    assert design.extra_state_attributes == {"automatic": True}
-    assert (design.native_min_value, design.native_max_value, design.native_step) == (0, 80, 1)
-    assert design.device_class is None  # 0 means automatic: never converted to °F
+    # The stored 0 is "automatic": a choice, never shown as 0 °C (nor converted to °F).
+    assert (curve.is_on, learned.is_on, design.current_option) == (False, False, "automatic")
+    assert design.options == ["automatic", *(str(c) for c in range(25, 81))]
+    assert design.device_class is None
     # Each write is one partial change; the E32's answer is the read-back.
     curve.async_write_ha_state = learned.async_write_ha_state = design.async_write_ha_state = Mock()
     await curve.async_turn_on()
-    await design.async_set_native_value(45.0)
+    await design.async_select_option("45")
     await learned.async_turn_on()
     await learned.async_turn_off()
     assert e32.calls[1:] == [{"weather_curve": True}, {"curve_design_flow_c": 45}, {"apply_learned": True},
                              {"apply_learned": False}]
-    assert (curve.is_on, learned.is_on, design.native_value) == (True, False, 45)
-    assert design.extra_state_attributes == {"automatic": False}
-    await design.async_set_native_value(0)
-    assert design.native_value == 0 and e32.calls[-1] == {"curve_design_flow_c": 0}
+    assert (curve.is_on, learned.is_on, design.current_option) == (True, False, "45")
+    await design.async_select_option("automatic")
+    assert design.current_option == "automatic" and e32.calls[-1] == {"curve_design_flow_c": 0}
     # Values the E32 would refuse never leave Home Assistant.
-    for value in (10, 24, 45.5, 81):
+    for value in ("0", "10", "24", "45.5", "81"):
         with pytest.raises(ServiceValidationError) as error:
-            await design.async_set_native_value(value)
+            await design.async_select_option(value)
         assert error.value.translation_key == "flow_design_invalid"
         assert error.value.translation_placeholders == {"minimum": "25", "maximum": "80"}
     assert len(e32.calls) == 6
@@ -295,7 +294,7 @@ async def test_platforms_add_flow_entities_only_for_a_product_with_a_stored_conn
         unload, added = [], []
         entry = SimpleNamespace(entry_id="e", data={"topic_prefix": "fixture", **data}, async_on_unload=unload.append)
         await module.async_setup_switches(hass, entry, added.extend)
-        await module.async_setup_numbers(hass, entry, added.extend)
+        await module.async_setup_selects(hass, entry, added.extend)
         hub = hass.data[DOMAIN]["e"].get("heating_hub")
         if hub is not None:
             hub.update(STATUS)
@@ -311,12 +310,12 @@ async def test_platforms_add_flow_entities_only_for_a_product_with_a_stored_conn
 @pytest.mark.parametrize("language,names", [
     ("en", {"switch.weather_curve": "OpenThermostat Weather-compensated heating curve",
             "switch.apply_learned": "OpenThermostat Use learned flow and optimum start",
-            "number": "OpenThermostat Flow at −10 °C", "sensor.source": "OpenThermostat Flow source",
+            "select": "OpenThermostat Flow at −10 °C", "sensor.source": "OpenThermostat Flow source",
             "sensor.gas": "OpenThermostat Gas calibration", "sensor.night": "OpenThermostat Last night's heating gas"},
      ),
     ("nl", {"switch.weather_curve": "OpenThermostat Weersafhankelijke stooklijn",
             "switch.apply_learned": "OpenThermostat Geleerde aanvoer en optimale start gebruiken",
-            "number": "OpenThermostat Aanvoer bij −10 °C", "sensor.source": "OpenThermostat Bron aanvoertemperatuur",
+            "select": "OpenThermostat Aanvoer bij −10 °C", "sensor.source": "OpenThermostat Bron aanvoertemperatuur",
             "sensor.gas": "OpenThermostat Gasijking", "sensor.night": "OpenThermostat Gas voor verwarmen afgelopen nacht"}),
 ])
 async def test_entities_on_real_platforms_have_translated_names_and_valid_states(hass, monkeypatch, language, names):
@@ -347,7 +346,7 @@ async def test_entities_on_real_platforms_have_translated_names_and_valid_states
     await link.async_refresh()
     entities = {"switch.weather_curve": module.FlowOptionSwitch(link, "weather_curve"),
                 "switch.apply_learned": module.FlowOptionSwitch(link, "apply_learned"),
-                "number": module.FlowDesignNumber(link), "sensor.source": module.FlowSourceSensor(hub),
+                "select": module.FlowDesignSelect(link), "sensor.source": module.FlowSourceSensor(hub),
                 "sensor.gas": module.GasCalibrationSensor(hub), "sensor.night": module.NightGasSensor(hub)}
     platforms = {}
     try:

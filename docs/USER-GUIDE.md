@@ -1,6 +1,6 @@
 # OpenThermostat user guide
 
-For E32 V2 beta.18, optionally with Home Assistant integration 0.4.0b10. If
+For E32 V2 beta.19, optionally with Home Assistant integration 0.4.0b11. If
 you use Home Assistant, install both together. Installing on a new E32, the
 Home Assistant setup, updates and troubleshooting are described step by step
 in the [installation guide](INSTALL.md).
@@ -281,6 +281,29 @@ planner. A new target on the thermostat lasts until the next switch point; a roo
 without a week program keeps it for the time set under Configure → Comfort,
 and a room with only a fixed target changes that fixed target in the plan.
 
+### Week program and setting device
+
+Every room runs its own week program on the E32, also without Home Assistant.
+A new room starts with "Workdays and weekend" (about 20 °C, 18 °C during the
+day on workdays, 16 °C at night); change it in the week planner. If rooms have
+no program yet, Settings → Repairs offers to give them one.
+
+Optionally each room has a **setting device** (the room editor's "Setting
+device" field): a thermostat or radiator valve in Home Assistant (for example a
+tado or a TV02), or a number with a target. Home Assistant then shows the
+program's temperature on that device at every switch point, and when the room
+or the E32 changes or comes back. Turning the device changes the room until the
+next switch point, like a change on the room's thermostat in Home Assistant or
+on the E32 page. Turn off the device's own schedule (manual mode); otherwise it
+changes the temperature by itself, and Repairs says so when it notices.
+Without a setting device the room's thermostat in Home Assistant and the E32
+page set the room. Only the device you chose is ever written to, never while
+the room is off or paused for an open window, and at most once a minute.
+
+Without Home Assistant the E32 keeps running the program; changes on the
+device are not seen until Home Assistant is back, and then the program's
+temperature is shown on the device again.
+
 Bluetooth window sensors (for example Shelly BLU Door/Window) paired on the
 E32 itself are not supported yet; connect them through Home Assistant.
 
@@ -384,7 +407,7 @@ sensors, the flow options, the boiler model and the page language.
 
 ## The attended switch-over (not in this beta)
 
-Active control is built into beta.18 but locked in the firmware; the Active
+Active control is built into beta.19 but locked in the firmware; the Active
 control section on the Rooms page says "Active control is not enabled in this
 firmware." It is opened only in a later release, with someone present at the
 boiler. See [the switch-over procedure](SWITCHOVER.md). It will involve:

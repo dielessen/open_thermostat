@@ -67,7 +67,7 @@ It saves:
       The device redacts secrets in these documents. The SHA-256 of
       `backup/BACKUP-MANIFEST.json` becomes `backup_manifest_sha256`.
 - [ ] **After the update (beta.19)** also save an export from the new
-      backup endpoint: System → Network → Backup and restore → export,
+      backup endpoint: E32 Settings → Backup and restore → export,
       **without a passphrase**. Without a passphrase the file contains no
       keys, and Wi-Fi and web passwords are never exported. This is
       `POST /config/backup {"action":"export"}`. It is read-only, but it is

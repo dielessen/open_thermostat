@@ -7,7 +7,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
-from .const import CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DOMAIN, MANUFACTURER, OLD_MANUFACTURER, PLATFORMS
+from .const import (CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DOMAIN, E32_DEVICE_NAME, MANUFACTURER,
+                    OLD_MANUFACTURER, PLATFORMS)
 from .dashboard import RoomDashboard
 from .heating import HeatingTracker
 
@@ -411,7 +412,7 @@ async def async_setup_entry(hass, entry):
             group_kwargs["config_subentry_id"] = ensure_installation_group(hass, entry)
         dr.async_get(hass).async_get_or_create(
             config_entry_id=entry.entry_id, identifiers={(DOMAIN, entry.data[CONF_TOPIC_PREFIX])},
-            name="OpenThermostat", manufacturer=MANUFACTURER, model="OpenThermostat", **group_kwargs)
+            name=E32_DEVICE_NAME, manufacturer=MANUFACTURER, model="OpenThermostat", **group_kwargs)
         _rename_old_manufacturer(hass, entry)
         if product:
             # One group per E32 room on the integration page (before the platforms add entities).

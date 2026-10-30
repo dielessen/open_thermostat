@@ -3,8 +3,10 @@
 This guide takes you from a new BBQKees E32 V2 gateway to a working
 OpenThermostat: firmware installed, connected to your network and boiler,
 rooms set up, and, if you want, linked to Home Assistant. It is written for
-E32 firmware beta.18 or newer and the Home Assistant integration 0.4.0b10 or
-newer. If a newer release changes a step, its release notes say so.
+E32 firmware beta.19 or newer and the Home Assistant integration 0.4.0b11 or
+newer. Install those two together: HA 0.4.0b10 does not understand beta.19,
+and HA 0.4.0b11 does not understand beta.18. If a newer release changes a
+step, its release notes say so.
 
 **What you get:** the E32 measures your rooms, follows a week program per room
 and calculates what it would ask of the boiler. In the current releases it
@@ -60,7 +62,7 @@ You do this once. Later updates go over the network and keep your settings
 
 1. Open the [releases page](https://github.com/dielessen/open_thermostat/releases)
    and choose the newest **E32 V2** release (its tag starts with `v` and
-   contains `e32v2`, for example `v0.1.0-e32v2-beta.18`).
+   contains `e32v2`, for example `v0.1.0-e32v2-beta.19`).
 2. Under **Assets**, download `open-thermostat-e32v2-<version>.zip`. Do not use
    the automatically generated "Source code" files.
 3. Extract the ZIP into a new folder. You need two files from it:
@@ -286,7 +288,7 @@ The integration is installed by hand; it is not offered through HACS.
 
 1. On the [releases page](https://github.com/dielessen/open_thermostat/releases),
    choose the Home Assistant release that its notes pair with your E32
-   firmware (its tag starts with `ha-v`, for example `ha-v0.4.0b10`) and download
+   firmware (its tag starts with `ha-v`, for example `ha-v0.4.0b11`) and download
    `OpenThermostat-HA-<version>.zip`.
 2. Extract the ZIP on your computer. Copy the folder
    `custom_components/open_thermostat` into your Home Assistant configuration

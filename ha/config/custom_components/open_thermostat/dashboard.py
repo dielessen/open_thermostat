@@ -917,7 +917,8 @@ class RoomDashboard:
         """The heating curve and learning entities on the product device: {key: entity id}."""
         head = f"{self.prefix}_flow_"
         return {item.unique_id.removeprefix(head): item.entity_id for item in entries
-                if item.unique_id.startswith(head) and item.unique_id.removeprefix(head) in FLOW_KEYS}
+                if item.unique_id.startswith(head) and item.unique_id.removeprefix(head) in FLOW_KEYS
+                and item.domain != "number"}  # the design flow is a select (never a 0 °C number)
 
     def _boiler_sections(self, t, hub, fields, graph):
         """The boiler view, and the unreliable raw fields (for Diagnostics)."""

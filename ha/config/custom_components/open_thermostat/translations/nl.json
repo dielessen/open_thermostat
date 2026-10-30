@@ -1814,9 +1814,6 @@
       },
       "room_fallback_setpoint": {
         "name": "Temperatuur zonder Home Assistant"
-      },
-      "flow_curve_design_flow_c": {
-        "name": "Aanvoer bij −10 °C"
       }
     },
     "sensor": {
@@ -2263,6 +2260,68 @@
       }
     },
     "select": {
+      "flow_curve_design_flow_c": {
+        "name": "Aanvoer bij −10 °C",
+        "state": {
+          "automatic": "Automatisch (vloer 40 °C, radiatoren 55 °C)",
+          "25": "25 °C",
+          "26": "26 °C",
+          "27": "27 °C",
+          "28": "28 °C",
+          "29": "29 °C",
+          "30": "30 °C",
+          "31": "31 °C",
+          "32": "32 °C",
+          "33": "33 °C",
+          "34": "34 °C",
+          "35": "35 °C",
+          "36": "36 °C",
+          "37": "37 °C",
+          "38": "38 °C",
+          "39": "39 °C",
+          "40": "40 °C",
+          "41": "41 °C",
+          "42": "42 °C",
+          "43": "43 °C",
+          "44": "44 °C",
+          "45": "45 °C",
+          "46": "46 °C",
+          "47": "47 °C",
+          "48": "48 °C",
+          "49": "49 °C",
+          "50": "50 °C",
+          "51": "51 °C",
+          "52": "52 °C",
+          "53": "53 °C",
+          "54": "54 °C",
+          "55": "55 °C",
+          "56": "56 °C",
+          "57": "57 °C",
+          "58": "58 °C",
+          "59": "59 °C",
+          "60": "60 °C",
+          "61": "61 °C",
+          "62": "62 °C",
+          "63": "63 °C",
+          "64": "64 °C",
+          "65": "65 °C",
+          "66": "66 °C",
+          "67": "67 °C",
+          "68": "68 °C",
+          "69": "69 °C",
+          "70": "70 °C",
+          "71": "71 °C",
+          "72": "72 °C",
+          "73": "73 °C",
+          "74": "74 °C",
+          "75": "75 °C",
+          "76": "76 °C",
+          "77": "77 °C",
+          "78": "78 °C",
+          "79": "79 °C",
+          "80": "80 °C"
+        }
+      },
       "room_state": {
         "name": "Verwarmen",
         "state": {
@@ -2581,7 +2640,7 @@
       "message": "De E32 was niet bereikbaar om de aanvoerinstelling te wijzigen ({error}). Er is niets gewijzigd."
     },
     "flow_design_invalid": {
-      "message": "Gebruik 0 voor automatisch, of {minimum}–{maximum} °C."
+      "message": "Kies Automatisch, of {minimum}–{maximum} °C."
     }
   }
 }

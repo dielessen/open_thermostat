@@ -263,6 +263,41 @@ def label(item):
     return name.strip()[:64] if type(name) is str and name.strip() else item["id"]
 
 
+# A broadcast name: letters, then the end of the sensor's address (BTE_A3E8DB, ATC_E8DB, LYWSD03MMC excluded).
+_BROADCAST_NAME = re.compile(r"[A-Za-z][A-Za-z0-9]{1,11}[ _-]?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{4})")
+_THERMOMETER = "Thermometer "  # the same word in English and Dutch
+
+
+def ble_broadcast_name(sensor):
+    """True while the E32 still has the name the sensor broadcasts (no own name was given)."""
+    name = sensor.get("name")
+    name = name.strip() if type(name) is str else ""
+    if not name or name.lower() == sensor["id"]:
+        return True
+    match = _BROADCAST_NAME.fullmatch(name)
+    return match is not None and sensor["id"].endswith(match.group(1).lower())
+
+
+def ble_device_name(sensor, rooms, current=None):
+    """The device name of a Bluetooth sensor, or None to keep ``current``.
+
+    A name given on the E32 wins. A sensor with its broadcast name that exactly
+    one room measures with reads "Thermometer <room>". While no room reports it
+    as its source for a moment (lost, fallback), a "Thermometer <room>" name of
+    a room that still exists stays, so the name never flips back and forth.
+    A name the user gives in Home Assistant (name_by_user) is never touched.
+    """
+    if not ble_broadcast_name(sensor):
+        return label(sensor)
+    using = [room for room in rooms.values() if room.get("source") == sensor["id"]]
+    if len(using) == 1:
+        return (_THERMOMETER + label(using[0]))[:64]
+    if (not using and type(current) is str and current.startswith(_THERMOMETER)
+            and any(_THERMOMETER + label(room) == current for room in rooms.values())):
+        return None
+    return label(sensor)
+
+
 TEMPERATURE_UNITS = (UnitOfTemperature.CELSIUS, UnitOfTemperature.FAHRENHEIT, UnitOfTemperature.KELVIN)
 
 
@@ -682,8 +717,19 @@ class HubEntity:
         entry = getattr(getattr(self, "platform", None), "config_entry", None)
         if not self._on_own_device or getattr(self, "hass", None) is None or entry is None:
             return info
-        product = dr.async_get(self.hass).async_get_device_by_identifier((DOMAIN, self.hub.prefix), entry.entry_id)
-        return {**info, "via_device_id": product.id} if product is not None else info
+        registry = dr.async_get(self.hass)
+        product = registry.async_get_device_by_identifier((DOMAIN, self.hub.prefix), entry.entry_id)
+        extra = {"via_device_id": product.id} if product is not None else {}
+        item = self._named_item()
+        if item is not None:
+            # The same name _follow_name keeps: adding the entity again (a restart) never resets it.
+            current = registry.async_get_device_by_identifier(next(iter(info["identifiers"])), entry.entry_id)
+            name = self._device_name(item, current.name if current is not None else None)
+            if name is None and current is not None:
+                name = current.name
+            if name is not None:
+                extra["name"] = name
+        return {**info, **extra}
 
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
@@ -704,11 +750,16 @@ class HubEntity:
             return
         registry = dr.async_get(self.hass)
         current = registry.async_get(device.id)
-        if current is not None and current.name != label(item):
-            registry.async_update_device(current.id, name=label(item))
+        name = self._device_name(item, current.name) if current is not None else None
+        if name is not None and current.name != name:
+            registry.async_update_device(current.id, name=name)
 
     def _named_item(self):
         return None
+
+    def _device_name(self, item, current):
+        """The device's own name for ``item`` (None: keep ``current``); name_by_user is never changed."""
+        return label(item)
 
 
 def _own_device(identifier, item):
@@ -854,9 +905,13 @@ class BleSensor(HubEntity, SensorEntity):
     def __init__(self, hub, sensor, metric):
         self.sensor_id, self.metric = sensor["id"], metric
         device = _own_device(ble_device_identifier(hub.prefix, self.sensor_id), sensor)
+        device["name"] = ble_device_name(sensor, hub.rooms) or label(sensor)  # a new device's first name
         self._attach(hub, f"e32_ble_{self.sensor_id}_{metric}", device)
         self._attr_device_class, self._attr_native_unit_of_measurement, self._low, self._high = BLE_METRICS[metric]
         self._attr_translation_key = f"ble_{metric}"
+
+    def _device_name(self, item, current):
+        return ble_device_name(item, self.hub.rooms, current)
 
     def _named_item(self):
         return self.sensor

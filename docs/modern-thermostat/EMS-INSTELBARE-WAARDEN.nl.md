@@ -210,10 +210,16 @@ op eigen risico aan"):
 
 ## Fasering (na 1.0, naast het lezen van EMS+ in 1.1)
 
+**Bijgesteld op 30 oktober (eigenaar).** Voor de eigen ketel is weinig bruikbaars
+te schrijven. `selflowtemp` gebruikt de E32 al voor de regeling. Het doel van dit
+plan is ondersteuning voor andere ketels en wat die kunnen. De bewijsketen moet
+dus vooral werken voor ketels die rechtstreeks EMS praten. Daarvoor zijn testers
+met zo'n ketel nodig, en gedeelde profielen (vraag 4) worden belangrijker.
+
 | Fase | Werk | Klaar wanneer |
 | --- | --- | --- |
 | W1 | Eigen tabel met schrijfmetadata per apparaatklasse: telegram, offset, type, schaal, catalogusbereik, categorie (gebruiker, geavanceerd of nooit) en het vereiste bewijsniveau. Eén bron voor C++ en HA (`--check` in CI), in het formaat van de geplande tabel voor EMS+-lezen. | Tabel en generator met tests; geen nieuwe schrijfroute |
-| W2 | Controleroute voor L0–L3 met terugzetten, capaciteitsprofiel in NVS, back-up en MQTT; daarna de bijgewoonde proef op de adapter van de eigenaar (eerst stap 1, alleen lezen) | Profiel van product 211 met echte uitkomsten, inclusief "niet ondersteund" |
+| W2 | Controleroute voor L0–L3 met terugzetten, capaciteitsprofiel in NVS, back-up en MQTT, getest met ketels die rechtstreeks EMS praten (testers met zo'n ketel). De adapter van de eigenaar krijgt alleen de servicecodevergelijking en hooguit één schrijftest | Profielen met echte uitkomsten per ketelgroep, inclusief "niet ondersteund" |
 | W3 | HA: gebruikersinstellingen als entiteiten volgens het profiel | Alleen bewezen instellingen zichtbaar; geen optimistische toestand |
 | W4 | Geavanceerde sectie op de E32-pagina en in HA, met waarschuwing en bevestiging | Standaard verborgen en uitgeschakeld |
 | W5 | Schrijven op EMS+-ketels (telegramfamilie 0xE3–0xEA) | Dezelfde bewijsketen, eerst met een tester die zo'n ketel heeft |

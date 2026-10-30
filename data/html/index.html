@@ -1090,14 +1090,14 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
         function comfortState(c) {
             if (!c || typeof c !== 'object') return '';
             var until = Number.isFinite(c.until) && c.until > 0 ? comfortTime(c.until) : null, t = dashboardNumber(c.target_c,1,5,35);
-            if (c.mode === 'window_open') return uiText("Window open: paused");
+            if (c.mode === 'window_open') return uiText("Window open: heating paused");
             if (c.mode === 'boost') return until ? uiText("Boost until {time}").replace('{time}',until) : uiText("Boost");
             if ((c.mode === 'timed' || c.mode === 'next') && t !== null) return until ? uiText("{temp} °C until {time}").replace('{time}',until).replace('{temp}',t) :
                 Number.isFinite(c.remaining_s) ? uiText("{temp} °C for {minutes} min").replace('{minutes}',Math.ceil(c.remaining_s/60)).replace('{temp}',t) : '';
             if (c.mode === 'away') return until ? uiText("Away until {time}").replace('{time}',until) : uiText("Away");
             if (c.mode === 'presence_away') return uiText("Everyone away");
             if (c.mode === 'away_return') return uiText("Warming up for your return");
-            if (c.window === 'pending') return uiText("Window open: pauses soon");
+            if (c.window === 'pending') return uiText("Window open: heating pauses soon");
             return c.waiting_for_clock ? uiText("Waiting for the clock") : '';
         }
         function comfortNoticeHtml(room) {

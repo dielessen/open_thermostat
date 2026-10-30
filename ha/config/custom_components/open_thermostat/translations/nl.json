@@ -961,7 +961,7 @@
       },
       "shadow": {
         "title": "Een OpenThermostat E32 koppelen",
-        "description": "De E32 rekent mee; je huidige thermostaat blijft de ketel regelen. Er gaat niets naar radiatorkranen of de ketel. Normaal koppel je de E32 later via Configureren → E32 verbinden; dat vult het verbindings-ID voor je in.",
+        "description": "De E32 rekent mee; je huidige thermostaat blijft de ketel regelen. Er gaat niets naar de ketel. Home Assistant zet wel de gewenste temperatuur op het instelapparaat van elke ruimte (radiatorkraan, tado of getalhelper), volgens het weekprogramma van die ruimte. Normaal koppel je de E32 later via Configureren → E32 verbinden; dat vult het verbindings-ID voor je in.",
         "data": {
           "topic_prefix": "MQTT-prefix van de E32",
           "adapter_id": "Verbindings-ID (al ingevuld)"

@@ -33,7 +33,7 @@
       },
       "shadow": {
         "title": "Connect an OpenThermostat E32",
-        "description": "The E32 calculates along; your current thermostat keeps controlling the boiler. Nothing is sent to valves or the boiler. Normally you connect the E32 later with Configure → Connect E32, which fills in the connection ID for you.",
+        "description": "The E32 calculates along; your current thermostat keeps controlling the boiler. Nothing is sent to the boiler. Home Assistant does set the target temperature on each room's setting device (radiator valve, tado or number helper) according to that room's week program. Normally you connect the E32 later with Configure → Connect E32, which fills in the connection ID for you.",
         "data": {
           "topic_prefix": "MQTT prefix of the E32",
           "adapter_id": "Connection ID (filled in for you)"

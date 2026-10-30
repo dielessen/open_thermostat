@@ -33,7 +33,7 @@
       },
       "shadow": {
         "title": "Połącz OpenThermostat E32",
-        "description": "E32 liczy równolegle; Twój obecny termostat nadal steruje kotłem. Nic nie jest wysyłane do zaworów ani do kotła. Zwykle łączysz E32 później przez Konfiguruj → Połącz E32, co samo wypełnia identyfikator połączenia.",
+        "description": "E32 liczy równolegle; Twój obecny termostat nadal steruje kotłem. Nic nie jest wysyłane do kotła. Home Assistant ustawia jednak temperaturę zadaną na urządzeniu nastawczym każdego pomieszczenia (zawór termostatyczny, tado lub pomocnik liczbowy) zgodnie z programem tygodniowym tego pomieszczenia. Zwykle łączysz E32 później przez Konfiguruj → Połącz E32, co samo wypełnia identyfikator połączenia.",
         "data": {
           "topic_prefix": "Prefiks MQTT urządzenia E32",
           "adapter_id": "Identyfikator połączenia (wypełniany automatycznie)"

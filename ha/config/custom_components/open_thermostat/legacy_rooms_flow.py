@@ -32,12 +32,20 @@ class LegacyRoomsSteps:
     async def async_step_legacy_rooms(self, user_input=None):
         from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_PASSWORD
         entry = self._legacy_entry()
-        if entry is None or not legacy_rooms_pending(entry):
+        if entry is None:
             return self.async_abort(reason="legacy_rooms_none")
         errors = {}
         if (error := getattr(self, "_legacy_failure", None)) is not None:
             errors["base"] = error
             self._legacy_failure = None
+        if not legacy_rooms_pending(entry):
+            # The old rooms are gone, but the E32 link did not finish (for example
+            # not confirmed over MQTT): show why, and let a submit try the link again.
+            if errors:
+                self._legacy_retry = True
+                return self._legacy_finish_form(errors)
+            if user_input is None or not getattr(self, "_legacy_retry", False):
+                return self.async_abort(reason="legacy_rooms_none")
         zones = legacy_zones(entry)
         if user_input is None and not errors:
             # Firmware before beta.19 cannot confirm the change: say so before the user confirms.
@@ -51,6 +59,7 @@ class LegacyRoomsSteps:
                 self.hass, entry, entry.data[CONTROLLER_ADDRESS], entry.data[CONTROLLER_PASSWORD],
                 remove_legacy_rooms=True, confirmed_migration=shown), "OpenThermostat remove old rooms")
             self._legacy_shown = None  # a new form after a failure reads the plan again
+            self._legacy_retry = False
             return await self.async_step_legacy_rooms_removing()
         # What happens to the E32 rooms: read the plan now, write it only after the user confirmed.
         migration = self._legacy_shown = None
@@ -68,6 +77,10 @@ class LegacyRoomsSteps:
             data_schema=vol.Schema({}), errors=errors,
             description_placeholders={"rooms": ", ".join(names), "count": str(len(names)),
                                       "changes": describe(self.hass, migration) if names else ""})
+
+    def _legacy_finish_form(self, errors):
+        return self.async_show_form(step_id="legacy_rooms_finish", data_schema=vol.Schema({}), errors=errors,
+                                    description_placeholders={"rooms": "", "count": "0", "changes": ""})
 
     async def async_step_legacy_rooms_finish(self, user_input=None):
         """Same action when the rooms are already gone but the E32 link is not finished."""

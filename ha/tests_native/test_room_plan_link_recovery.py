@@ -342,3 +342,56 @@ async def test_an_unusable_saved_native_profile_starts_without_it_and_offers_the
         if parent.entry_id in hass.data.get(DOMAIN, {}):
             assert await integration.async_unload_entry(hass, parent)
         await parent._async_process_on_unload(hass)
+
+
+@pytest.mark.asyncio
+async def test_repairs_shows_the_real_error_when_the_link_fails_after_the_room_is_gone(hass, linked, badkamer,
+                                                                                       monkeypatch):
+    """Not "nothing to remove": the old room is gone, the link is not confirmed; say so and offer a retry."""
+    from homeassistant.helpers import issue_registry as ir
+    from custom_components.open_thermostat import repairs
+    parent, sub, source, *_ = await owner_setup(hass)
+    e32_link.update_legacy_rooms_issue(hass, parent)
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, e32_link.issue_id(parent))
+    linked["e32"] = PlanE32(source=local_device_descriptor(source), modern=True, adapter="ha1")
+    confirmed = setup.async_wait_room_plan_link
+
+    async def unconfirmed(*args, **kwargs):
+        raise ControllerLinkError("controller_mqtt_unconfirmed")
+    monkeypatch.setattr(setup, "async_wait_room_plan_link", unconfirmed)
+    flow = await repairs.async_create_fix_flow(hass, issue.issue_id, issue.data)
+    flow.hass, flow.handler, flow.flow_id = hass, DOMAIN, "fix"
+    form = await flow.async_step_init()
+    await flow.async_step_legacy_rooms({})
+    await asyncio.wait([flow._legacy_task])
+    done = await flow.async_step_legacy_rooms_removing()
+    assert done["type"] == "progress_done"
+    form = await flow.async_step_legacy_rooms()
+    assert not e32_link.legacy_zones(parent) and not e32_link.legacy_rooms_pending(parent)
+    assert form["type"] == "form" and form["step_id"] == "legacy_rooms_finish", form
+    assert form["errors"] == {"base": "mqtt_unconfirmed"}
+    assert parent.options["shadow_enabled"] is True
+    # The E32 reaches Home Assistant now: submitting finishes the link.
+    monkeypatch.setattr(setup, "async_wait_room_plan_link", confirmed)
+    linked["e32"] = PlanE32(modern=True, adapter="ha1")
+    linked["e32"].settings["mqtt"].update(base="fixture", native_shadow_source=None)
+    await flow.async_step_legacy_rooms_finish({})
+    await asyncio.wait([flow._legacy_task])
+    await flow.async_step_legacy_rooms_removing()
+    assert (await flow.async_step_legacy_rooms_done())["type"] == "create_entry"
+
+
+@pytest.mark.asyncio
+async def test_unload_callbacks_return_nothing(hass, monkeypatch):
+    """Home Assistant awaits a truthy unload callback result as a coroutine; one TypeError skips the rest."""
+    from custom_components.open_thermostat.v1_boiler_fields import SOURCE_KEY, _async_retained_source
+    parent = product(hass)
+    state = hass.data.setdefault(DOMAIN, {})[parent.entry_id] = {}
+    callbacks, published, send = broker(monkeypatch)
+    callbacks_before = len(parent._on_unload or [])
+    await _async_retained_source(hass, parent, state)
+    added = (parent._on_unload or [])[callbacks_before:]
+    assert SOURCE_KEY in state and added
+    for callback in added:
+        assert callback() is None
+    assert SOURCE_KEY not in state

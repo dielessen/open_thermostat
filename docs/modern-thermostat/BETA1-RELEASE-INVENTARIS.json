@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "9535b23a056286b3d718204899f7b6b770122174826c27ebf60c28df43c42378"
+          "sha256": "9079cc3b648adaf8b4a53c42837271fff7bbb34d3f8c147c664a653167172389"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -937,15 +937,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
-          "sha256": "556a7b21b3acb22174d32330309767af5755f36dbfdd23f81018d2d18bf9c2f2"
+          "sha256": "bac5ace3e3c39caf8ca41992b2a9acb2f59761bdeb7c7c4aab861b7ba5008d56"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/en.json",
-          "sha256": "556a7b21b3acb22174d32330309767af5755f36dbfdd23f81018d2d18bf9c2f2"
+          "sha256": "bac5ace3e3c39caf8ca41992b2a9acb2f59761bdeb7c7c4aab861b7ba5008d56"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "b546325c76355ca1090c6267ee76baa5f9033c8a13a99ba5502e5227e08db3e2"
+          "sha256": "a5bcf1ed2fb50c2dddda417a43b09aa069e69b62f810dbcfe14d820c072cab57"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -1149,7 +1149,7 @@
         },
         {
           "path": "ha/tests_native/test_polish_translation.py",
-          "sha256": "eff0d3c99903ff89150bed03396afb02772c0ab74604807384d409e28df4e10c"
+          "sha256": "af926921e6416651321f03ffb4bf9b287ae129e379eb9131e43851fd73cd4126"
         }
       ],
       "remaining_acceptance": "HRC22H/modelkeuze, EN/NL, About/navigatie en incrementeel dashboard geleverd in alpha23/HA29. Normale HTTPS-update, exacte running-ELF/web/source en modelreadback geverifieerd. Shipped-browserproeven bewijzen behoud van openstatus/focus/scroll; op de module zijn exacte geserveerde webbytes bewezen, geen live browserpixels. Modelkeuze verandert geen decoder/adressen/ontvangst/aansturing en verleent geen technische ketelvrijgave. Lange beheer-/herstel- en fysieke kwalificatie blijven afzonderlijk open. Voor volgende release:60 presentatiekeuzes uit31 EMS-ESP-productgroepen plus officiële keteldocumentatie; bronverwijzingen behouden, afbeelding buiten ESP. Nieuwe modellen niet als ondersteunde driver gekwalificeerd; modelafbeeldingen en functionele profielimport/opslag nog open. Vier oorspronkelijke modelafbeeldingen voor vijf keuzes met bronvermelding; modellen met onzekere afbeelding en Ecomline Classic HRC22H blijven zonder foto. Geen generieke vervanging of firmware-installatie. Beta6-ontwikkeling: build-time gzip/ETag, beperkte luie paginamodules en verborgen-tab-pollpauze gebouwd; HTTP-/browserfixtures en echte E32-build getoetst. Snellere werking op de echte E32 moet na afzonderlijke installatie nog opnieuw worden gemeten; niets geïnstalleerd."
@@ -1611,7 +1611,7 @@
         },
         {
           "path": "ha/tests_native/test_device_diagnostics.py",
-          "sha256": "44535f84e0bdf145c21d74aa98ce9a2590fdac883d6cd17abbcf0e398e5187ff"
+          "sha256": "a7523b7730a3ce272ec1391a760e5ec20aee9720083caeb7b1a7e6d8a325c8af"
         },
         {
           "path": "test/test_native/test_device_diagnostics.cpp",
@@ -2982,7 +2982,11 @@
         },
         {
           "path": "ha/tests_native/test_dashboard_redesign.py",
-          "sha256": "9abeda8f8520babc3b666c7849e0d4c12c7874865538f82e26dc5364fa81eb56"
+          "sha256": "a09755df65f89fe8fb933b1fc4da5d0c3636d9e8f8660598c3b2d8acceb1d2d3"
+        },
+        {
+          "path": "ha/tests_native/test_value_presentation.py",
+          "sha256": "6cc836cf4a477a2931ec7a340a1b32117ddf39f082aa1206e7efd283e4e45b77"
         }
       ],
       "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open. B06 toekomstige-feitquarantaine en klokfences bronmatig afgerond met twaalf regressies/677 native tests en gedeelde veiligheidscontrole voor zonepolicy/storingsbevestiging; HA-deel opgenomen in geverifieerde HA43-bronbestanden; E32-deel opgenomen in alpha31; de module is nu op alpha31 waargenomen zonder uitvoerder-/methodebewijs. Geen fysieke producent- of regelkwalificatie."
@@ -3070,7 +3074,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/dashboard.py",
-          "sha256": "4d80e36b08fa2e3c168e4d9fb19cf124e60d0c7e710c58316d1e5ae492bfe24e"
+          "sha256": "bec43a00dec4812475698f1a9badb9d8c50a170377644e4f36a758bc3ae2b2f9"
         },
         {
           "path": "src/control/MetricsTelemetry.h",
@@ -3086,7 +3090,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_boiler_fields.py",
-          "sha256": "912d94555219e7e4512b6ac16059d4cb984bddf36950d98e6eef5f325016a1e1"
+          "sha256": "54291dfed9c4ba159adda68be6fb281431384b9b55eca45a7e64ba118c2844bc"
         },
         {
           "path": "ha/tests_native/test_boiler_fields.py",
@@ -3118,7 +3122,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/sensor.py",
-          "sha256": "6623ef16eeac22be303712094a83f066286d82f0f83fe886c42f206651d4a22f"
+          "sha256": "71f8c2b0c0ce2886ef824f20ee11dcaa653798eb93cef6f77aab5ff828d7b9fb"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/product_telemetry.py",

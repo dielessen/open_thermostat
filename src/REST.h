@@ -1002,11 +1002,8 @@ private:
             }
             server_.send(201,"text/plain","Local SOURCE selected without device restart; previous config is readback-only until explicit new plan apply/readback");return;
         }
-        if(oldSource&&!cJSON_IsNull(oldSource)&&cJSON_IsNull(nativeSource)
-            &&!control::ModernTransport::clearStaleNativePlan()) {
-            // Settings stay saved; the next boot ignores the leftover plan anyway.
-            DBGLOGFI(log_,logFeature_,"Native plan record not removed after SOURCE clear\n");
-        }
+        // Clearing a SOURCE keeps its plan record until the restart (it may be
+        // selected again before that); the next boot ignores and erases it.
         if((!oldSource||cJSON_IsNull(oldSource))&&nativeSource&&!cJSON_IsNull(nativeSource)
             &&!control::ModernTransport::clearRecordUnreadableBySelectedSource(mq)) {
             // Settings stay saved; a record this SOURCE cannot load still faults.

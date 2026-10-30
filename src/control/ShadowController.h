@@ -80,8 +80,8 @@ inline bool staleNativePlanRecord(const cJSON *o) {
         &&hexString(stringField(o,"profile_digest"),64)&&hexString(stringField(o,"mapping_digest"),64)
         &&cJSON_IsObject(field(o,"mapping"))&&cJSON_IsArray(field(o,"groups"))&&cJSON_IsArray(field(o,"zones"));
 }
-// Called only after a settings save that cleared the native SOURCE committed.
-// Erases the stored record only when it is such a native plan; a legacy
+// Called at boot (ModernTransport) after the plain controller ignored such a
+// record. Erases the stored record only when it is such a native plan; a legacy
 // config or unrecognised bytes stay untouched (and keep failing closed on
 // load). true = no native plan record remains; false = read or erase failed,
 // in which case the next boot still ignores the leftover (see above).

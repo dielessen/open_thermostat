@@ -583,7 +583,7 @@ TEST(StaleNativePlan, PinnedSeasonalSourceStillFailsClosedOnANativePlanRecord) {
     f.store.bytes=staleNativePlan(*source);f.start();
     EXPECT_TRUE(f.core->faulted());EXPECT_FALSE(f.core->staleNativePlanIgnored());EXPECT_EQ(f.core->revision(),0u);
 }
-TEST(StaleNativePlan, SourceClearErasesOnlyTheNativePlanRecord) {
+TEST(StaleNativePlan, BootEraseRemovesOnlyTheNativePlanRecord) {
     const auto source=staleWeekSource();ASSERT_TRUE(source);
     unsigned erased=0;bool eraseResult=true;
     const auto erase=[&]{++erased;return eraseResult;};

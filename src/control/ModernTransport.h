@@ -242,21 +242,13 @@ public:
             return source&&controller_->nativeSourceCanReplace(*source);
         } catch(...) {return false;}
     }
-    // Settings with native_shadow_source cleared are durably saved: remove the
-    // stored native plan record that no decoder may read any more, so the next
-    // boot starts unconfigured. Same loop task as the MQTT receive path, so no
-    // ha/config save interleaves. The running controller keeps its memory copy
-    // until the restart that applies the settings.
-    static bool clearStaleNativePlan() {
-        try {
-            NvsControlStore store;
-            return clearStaleNativePlanRecord(store,[]{return NvsControlStore::eraseConfig();});
-        } catch(...) {return false;}
-    }
     // Settings that newly select a native SOURCE (null -> descriptor) are
     // durably saved: erase a stored record that SOURCE can never load and that
-    // holds no plan (see clearRecordUnreadableBySource). Same task and timing
-    // as clearStaleNativePlan.
+    // holds no plan (see clearRecordUnreadableBySource). Runs in the loop task,
+    // like the MQTT receive path, so no ha/config save interleaves. Needed at
+    // this point: at boot a record the selected SOURCE cannot read must fail
+    // closed and keep its bytes (HA interop contract), so nothing later
+    // removes it.
     static bool clearRecordUnreadableBySelectedSource(const cJSON* mqtt) {
         try {
             char mac[17];snprintf(mac,sizeof(mac),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));

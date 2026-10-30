@@ -127,7 +127,7 @@ def stale_reason(record, prefix, legacy, reporting_ids, zones, metrics=None):
         from .v1_boiler_fields import PLACEHOLDER, REPORTED as FIELD_REPORTED
         options = record.options.get(DOMAIN, {})
         # A disabled record of a value the boiler profile lists as not reported
-        # (PLACEHOLDER) is still provided; cleanup_not_fitted owns it.
+        # (PLACEHOLDER, older releases) belongs to the boiler profile: apply_boiler_profile shows or removes it.
         if (record.disabled_by is _INTEGRATION and uid not in reporting_ids
                 and not options.get(FIELD_REPORTED) and not options.get(PLACEHOLDER)):
             return "boiler_field_never_reported"

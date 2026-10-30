@@ -155,7 +155,10 @@ def test_the_planner_is_one_file_shared_by_the_e32_page_and_home_assistant():
     assert b"\r" not in shared and len(shared) < 34000
     card = (FRONTEND / "e32-week-card.js").read_text(encoding="utf-8")
     assert f"const EDITOR = '{e32_week.EDITOR_URL}';" in card
-    assert "customElements.define('openthermostat-e32-week'" in card
+    # Defined through ensureDefined, which defines it again when another card replaces the registry,
+    # and the planner itself comes only from the one shared file (no other module import).
+    assert "ensureDefined('openthermostat-e32-week', OpenThermostatE32Week);" in card
+    assert re.findall(r"\bimport\b\W*\w*", card) == ["import.meta", "import(EDITOR"]
 
 
 def test_the_planner_fahrenheit_text_matches_the_options_flow():

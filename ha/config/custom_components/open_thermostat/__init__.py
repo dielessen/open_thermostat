@@ -343,6 +343,26 @@ def _shadow_platforms(product):
         platforms.append(Platform.SWITCH)  # the E32 flow options (e32_flow)
     return platforms
 
+async def _async_mqtt_ready(hass):
+    """False while the MQTT integration's client is retrying or still starting and does not come.
+
+    Only an MQTT entry that is retrying (broker unreachable) or still setting up
+    counts; without an MQTT entry, or with one not (yet) loaded otherwise, the
+    setup goes on as before (its subscriptions report their own errors).
+    """
+    from homeassistant.components import mqtt
+    from homeassistant.config_entries import ConfigEntryState
+    entries = hass.config_entries.async_entries("mqtt")
+    if not entries or entries[0].disabled_by is not None:
+        return True
+    state = entries[0].state
+    if state is ConfigEntryState.SETUP_RETRY:
+        return False
+    if state is ConfigEntryState.SETUP_IN_PROGRESS:
+        return bool(await mqtt.async_wait_for_mqtt_client(hass))
+    return True
+
+
 async def async_setup_entry(hass, entry):
     from .v1_model import integration_mode, MODE_LEGACY, MODE_SHADOW, RoomBinding
     mode = integration_mode(entry)
@@ -408,9 +428,7 @@ async def async_setup_entry(hass, entry):
         return result
     if mode != MODE_SHADOW:
         return False
-    from homeassistant.components import mqtt
-    from homeassistant.components.mqtt.util import mqtt_config_entry_enabled
-    if mqtt_config_entry_enabled(hass) and not await mqtt.async_wait_for_mqtt_client(hass):
+    if not await _async_mqtt_ready(hass):
         # The MQTT integration is set up but its client is not available (yet):
         # Home Assistant retries this entry, instead of one without its E32 topics.
         from homeassistant.exceptions import ConfigEntryNotReady

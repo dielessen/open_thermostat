@@ -76,10 +76,16 @@ def test_a_failing_boiler_listener_never_stops_the_others():
 
 @pytest.mark.asyncio
 async def test_an_unavailable_mqtt_client_makes_home_assistant_retry(hass, monkeypatch):
-    from homeassistant.components.mqtt import util
+    from homeassistant.config_entries import ConfigEntryState
     parent = product(hass)
-    monkeypatch.setattr(util, "mqtt_config_entry_enabled", lambda hass: True)
+    broker_entry = SimpleNamespace(disabled_by=None, state=ConfigEntryState.SETUP_RETRY)
+    real = hass.config_entries.async_entries
+    monkeypatch.setattr(hass.config_entries, "async_entries",
+                        lambda domain=None, **kw: [broker_entry] if domain == "mqtt" else real(domain, **kw))
+    with pytest.raises(ConfigEntryNotReady):  # the broker is unreachable: retry later
+        await integration.async_setup_entry(hass, parent)
+    assert parent.entry_id not in hass.data.get(DOMAIN, {})
+    broker_entry.state = ConfigEntryState.SETUP_IN_PROGRESS  # still starting and its client never comes
     monkeypatch.setattr(mqtt, "async_wait_for_mqtt_client", AsyncMock(return_value=False))
     with pytest.raises(ConfigEntryNotReady):
         await integration.async_setup_entry(hass, parent)
-    assert parent.entry_id not in hass.data.get(DOMAIN, {})

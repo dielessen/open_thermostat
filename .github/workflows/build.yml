@@ -745,6 +745,9 @@ jobs:
           from zigbee_report_companion import SOURCES
           from ha_test_evidence import snapshot
           assert manifest['native_test_evidence']['source_sha256']==snapshot(Path.cwd())['source_sha256']
+          from organize_releases import classify, is_stable
+          # ha-v1.0.0 is packaged and published as a normal release, every other tag as a pre-release.
+          assert manifest['prerelease'] is (not is_stable(*classify(os.environ['EXPECTED_TAG'])))
           assert manifest['optional_companions']==report['optional_companions']
           assert len(manifest['optional_companions'])==1
           companion=manifest['optional_companions'][0]

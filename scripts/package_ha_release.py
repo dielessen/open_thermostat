@@ -75,7 +75,7 @@ def package(root, output, results):
     integration = root/'ha/config/custom_components/open_thermostat'
     manifest = json.loads((integration/'manifest.json').read_text())
     version = manifest['version']
-    from organize_releases import classify
+    from organize_releases import classify, is_stable
     if manifest['domain'] != 'open_thermostat' or classify('ha-v'+version)[0] != 'ha':
         raise ValueError('invalid_HA_release_identity')
     tests = native_summary(results)
@@ -120,7 +120,8 @@ def package(root, output, results):
     metadata = dict(version=version, tag='ha-v'+version, source_commit=head, asset=archive.name,
                     sha256=digest(archive.read_bytes()), size=archive.stat().st_size,
                     integration_source_files=source_hashes, native_test_summary=tests, native_test_evidence=evidence,
-                    firmware_included=False, prerelease=True, optional_companions=[companion])
+                    firmware_included=False, prerelease=not is_stable(*classify('ha-v'+version)),
+                    optional_companions=[companion])  # ha-v1.0.0 is a normal release, 1.0.0b1 a pre-release
     (output/'ha-release.json').write_text(json.dumps(metadata, indent=2)+'\n')
     report = dict(status='PASS_PACKAGE_INTEGRITY_ONLY', source_commit=head, integration_version=version,
                   integration_source_files=len(source_hashes), native_test_summary=tests, native_test_evidence=evidence,

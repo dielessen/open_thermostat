@@ -253,6 +253,21 @@ public:
             return clearStaleNativePlanRecord(store,[]{return NvsControlStore::eraseConfig();});
         } catch(...) {return false;}
     }
+    // Settings that newly select a native SOURCE (null -> descriptor) are
+    // durably saved: erase a stored record that SOURCE can never load and that
+    // holds no plan (see clearRecordUnreadableBySource). Same task and timing
+    // as clearStaleNativePlan.
+    static bool clearRecordUnreadableBySelectedSource(const cJSON* mqtt) {
+        try {
+            char mac[17];snprintf(mac,sizeof(mac),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));
+            const auto adapter=cJSON_GetObjectItemCaseSensitive(mqtt,"adapter_id");
+            const auto next=cJSON_IsString(adapter)?nativeSourceFromLocalSettings(
+                cJSON_GetObjectItemCaseSensitive(mqtt,"native_shadow_source"),mac,adapter->valuestring,sha256Hex):nullptr;
+            if(!next)return false;
+            NvsControlStore store;
+            return clearRecordUnreadableBySource(store,*next,[]{return NvsControlStore::eraseConfig();});
+        } catch(...) {return false;}
+    }
     void inhibitNativeSourceMutation() {
         brokerDns_.cancel();
         brokerTcp_.cancel();

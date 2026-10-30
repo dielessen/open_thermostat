@@ -1004,6 +1004,11 @@ private:
             // Settings stay saved; the next boot ignores the leftover plan anyway.
             DBGLOGFI(log_,logFeature_,"Native plan record not removed after SOURCE clear\n");
         }
+        if((!oldSource||cJSON_IsNull(oldSource))&&nativeSource&&!cJSON_IsNull(nativeSource)
+            &&!control::ModernTransport::clearRecordUnreadableBySelectedSource(mq)) {
+            // Settings stay saved; a record this SOURCE cannot load still faults.
+            DBGLOGFI(log_,logFeature_,"Stored control record not checked after SOURCE selection\n");
+        }
 		server_.send(201,"text/plain","Saved and verified; restart to apply network settings");
 #else
 

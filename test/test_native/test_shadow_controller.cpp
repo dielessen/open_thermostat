@@ -573,6 +573,35 @@ TEST(StaleNativePlan, SourceClearErasesOnlyTheNativePlanRecord) {
     Store unreadable;unreadable.bytes=staleNativePlan(*source);unreadable.failLoad=true;
     EXPECT_FALSE(clearStaleNativePlanRecord(unreadable,erase));EXPECT_EQ(erased,2u);
 }
+TEST(StaleNativePlan, NewlySelectedSourceErasesOnlyRecordsItCanNeverLoad) {
+    const auto planA=staleWeekSource('d'),planB=staleWeekSource('e');ASSERT_TRUE(planA);ASSERT_TRUE(planB);
+    unsigned erased=0;const auto erase=[&]{++erased;return true;};
+    const std::string empty="{\"mapping_digest\":\""+mapping+"\",\"mode\":\"shadow\",\"revision\":3,\"schema\":1,\"zones\":[]}";
+    // The plain session's empty config faults under any native SOURCE; so does
+    // a plan of another profile. Both carry nothing the new SOURCE can read.
+    for(const auto& bytes:{empty,staleNativePlan(*planA)}) {
+        Store store;store.bytes=bytes;erased=0;
+        EXPECT_TRUE(clearRecordUnreadableBySource(store,*planB,erase));EXPECT_EQ(erased,1u)<<bytes;
+    }
+    // Kept: its own plan (re-selection restores it), its predecessor's plan
+    // (evolution readback), a legacy plan with rooms (reviewed readback owns
+    // it), unknown bytes (still fail closed), an empty store.
+    auto evolved=*planB;evolved.predecessor=std::shared_ptr<const NativePlanInstallationSource>(staleWeekSource('d'));
+    const std::vector<std::pair<const NativePlanInstallationSource*,std::string>> kept{
+        {planA.get(),staleNativePlan(*planA)},{&evolved,staleNativePlan(*planA)},{planB.get(),config(4)},
+        {planB.get(),"{broken"},{planB.get(),""},
+        {planB.get(),replaced(empty,"\"zones\":[]","\"zones\":{}")}};
+    for(const auto& [next,bytes]:kept) {
+        Store store;store.bytes=bytes;erased=0;
+        EXPECT_TRUE(clearRecordUnreadableBySource(store,*next,erase))<<bytes;EXPECT_EQ(erased,0u)<<bytes;
+        EXPECT_EQ(store.bytes,bytes);EXPECT_EQ(store.writes,0u);
+    }
+    Store unreadable;unreadable.bytes=empty;unreadable.failLoad=true;erased=0;
+    EXPECT_FALSE(clearRecordUnreadableBySource(unreadable,*planB,erase));EXPECT_EQ(erased,0u);
+    // Boot behaviour is unchanged: that empty config still faults under a SOURCE.
+    Store boot;boot.bytes=empty;std::map<std::string,std::string> output;
+    EXPECT_TRUE(nativeCore(boot,*planB,output)->faulted());
+}
 TEST(StaleNativePlan, LegacySchemaOneConfigStillLoadsUnchanged) {
     Fixture f;f.store.bytes=config(4);f.start();
     EXPECT_FALSE(f.core->faulted());EXPECT_FALSE(f.core->staleNativePlanIgnored());

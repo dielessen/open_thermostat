@@ -94,6 +94,35 @@ bool clearStaleNativePlanRecord(ControlStore &store,Erase erase) {
     if(!root||!staleNativePlanRecord(root.get())) return true;
     return erase();
 }
+// A schema-1 shadow config without zones: what a plain session stores before
+// any room exists. It carries no plan, only a revision number.
+inline bool emptyLegacyRecord(const cJSON *o) {
+    const auto zones=field(o,"zones");
+    return canonicalConfig(o)&&exactFields(o,{"mapping_digest","mode","revision","schema","zones"})
+        &&integerField(o,"schema",1,1)&&stringField(o,"mode")=="shadow"&&integerField(o,"revision",1,UINT32_MAX)
+        &&hexString(stringField(o,"mapping_digest"),64)&&cJSON_IsArray(zones)&&cJSON_GetArraySize(zones)==0;
+}
+// Called only after a settings save that selected native SOURCE `next` where
+// none was selected (null -> descriptor) committed. The mirror of a cleared
+// SOURCE: erase the stored record when it can never load under `next` and
+// holds nothing to read back, else every boot reports storage_fault. That is
+// an empty schema-1 config, or a native plan record of a profile other than
+// `next` or its reviewed predecessor. A non-empty schema-1 config stays: the
+// reviewed legacy readback, or its fail-closed review, owns those bytes.
+// true = nothing such remains; false = read or erase failed.
+template<class Erase>
+bool clearRecordUnreadableBySource(ControlStore &store,const NativePlanInstallationSource &next,Erase erase) {
+    std::string saved;
+    if(!store.load(saved)) return false;
+    if(saved.empty()) return true;
+    const auto root=parseControlJson(saved);
+    if(!root) return true;
+    const auto digest=stringField(root.get(),"profile_digest");
+    const bool foreignPlan=staleNativePlanRecord(root.get())&&digest!=next.profileDigest
+        &&!(next.predecessor&&digest==next.predecessor->profileDigest);
+    if(!foreignPlan&&!emptyLegacyRecord(root.get())) return true;
+    return erase();
+}
 
 
 // Single serialized controller owner, including feedback and local fault

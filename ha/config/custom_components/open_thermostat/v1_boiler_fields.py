@@ -281,6 +281,16 @@ def ours(record):
             and record.disabled_by in (None, _INTEGRATION) and record.hidden_by in (None, _HIDDEN))
 
 
+def renamed_id(record):
+    """The user changed this record's entity_id: it no longer ends in the object ID Home
+    Assistant generated from the entity's name (object_id_base). A device or area prefix
+    may differ (a renamed device); a numbered or otherwise different ending counts as the
+    user's own ID. Without a stored base nothing can be told: not renamed."""
+    from homeassistant.util import slugify
+    base = slugify(record.object_id_base or record.original_name or "")
+    return bool(base) and not record.entity_id.split(".", 1)[1].endswith(base)
+
+
 def profile_hides(cache, members):
     """True when the boiler profile says this boiler lacks the value of members (F28 concept).
 
@@ -328,8 +338,10 @@ def apply_boiler_profile(hass, entry, prefix, cache, limiter=None):
     disabled and hidden (PROFILE_HIDDEN, keeping its history). A value that is
     supported again comes back: a record this integration disabled (hidden by
     the profile, an older placeholder, or any reliable value) is enabled and
-    shown again. Records the user renamed, hid, disabled or placed are never
-    changed. Without a profile (older firmware) nothing happens. Returns the
+    shown again, also when the user gave it a name or an area meanwhile (only
+    what this integration did is undone). Records the user renamed, hid,
+    disabled or placed, or whose entity_id the user changed, are never hidden or
+    removed. Without a profile (older firmware) nothing happens. Returns the
     unique IDs that are removed or hidden.
     """
     if cache is None or cache.field_profile is None:
@@ -342,30 +354,36 @@ def apply_boiler_profile(hass, entry, prefix, cache, limiter=None):
         if record.domain != "sensor" or record.platform != DOMAIN or not record.unique_id.startswith(head):
             continue
         index = INDEX_BY_NAME.get(record.unique_id.removeprefix(head))
-        if index is None or not ours(record):
+        if index is None:
             continue
         members = concept(index)
         options = record.options.get(DOMAIN, {})
-        if cache.concept_state(members) == "supported":
+        supported = cache.concept_state(members) == "supported"
+        # A record the profile hid comes back whatever the user added to it since.
+        if not ours(record) and not (supported and options.get(PROFILE_HIDDEN)):
+            continue
+        if supported:
             # An unreliable field (quality 1: adapters such as EasyControl zero-fill it)
             # stays disabled by default; it is only shown (unhidden) again.
             enable = quality(index) != 1
             if options.get(PROFILE_HIDDEN) or options.get(PLACEHOLDER) or (
                     record.disabled_by is _INTEGRATION and enable):
-                if enable and record.disabled_by is not None:
+                # Only what this integration did is undone (never the user's own disable or hide).
+                unhide = {"hidden_by": None} if record.hidden_by is _HIDDEN else {}
+                if enable and record.disabled_by is _INTEGRATION:
                     # Enabling makes Home Assistant reload the entry: rate limited.
                     if limiter is not None and not limiter.allowed():
                         held = True  # held back: the next batch after the hour
                         continue
-                    registry.async_update_entity(record.entity_id, disabled_by=None, hidden_by=None)
+                    registry.async_update_entity(record.entity_id, disabled_by=None, **unhide)
                     shown.append(record.entity_id)
-                elif record.hidden_by is not None:
-                    registry.async_update_entity(record.entity_id, hidden_by=None)
+                elif unhide:
+                    registry.async_update_entity(record.entity_id, **unhide)
                 registry.async_update_entity_options(record.entity_id, DOMAIN, {
                     k: v for k, v in options.items() if k not in (PROFILE_HIDDEN, PLACEHOLDER)})
             continue
-        if not profile_hides(cache, members):
-            continue
+        if not profile_hides(cache, members) or renamed_id(record):
+            continue  # still reported, or the user gave it an entity_id of their own
         gone.add(record.unique_id)
         if not options.get(REPORTED):
             registry.async_remove(record.entity_id)

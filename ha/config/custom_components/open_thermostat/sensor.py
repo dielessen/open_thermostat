@@ -579,8 +579,8 @@ class HubMetric(SensorEntity):
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = unit
         self._attr_state_class = state_class
-        # Named by translation key (EN/NL/PL; the English names are unchanged): an existing
-        # entity keeps its entity_id, the registry holds it.
+        # Named by translation key (EN/NL/PL): the boiler counters got short, plain names, the
+        # others kept their English names. An existing entity keeps its entity_id (the registry holds it).
         self._attr_translation_key = f"hub_{metric}"
         versioned = topic == "ems_metrics" and metric in VERSIONED_METRICS
         if versioned and definition_version not in (1, 2):

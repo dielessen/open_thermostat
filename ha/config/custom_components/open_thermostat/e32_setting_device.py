@@ -102,6 +102,10 @@ def setting_hint(device, language):
         return (f"\n\n**Instelapparaat?** {device} gebruiken als instelapparaat van deze ruimte? Home Assistant "
                 "zet dan bij elk schakelpunt van het weekprogramma de gewenste temperatuur erop. "
                 "Kies het daarvoor zelf bij Instelapparaat.")
+    if str(language or "").startswith("pl"):
+        return (f"\n\n**Urządzenie nastawcze?** Użyć {device} jako urządzenia nastawczego tego pomieszczenia? "
+                "Home Assistant ustawi wtedy jego temperaturę zadaną w każdym punkcie przełączenia programu "
+                "tygodniowego. Aby tak było, wybierz je w polu Urządzenie nastawcze.")
     return (f"\n\n**Setting device?** Use {device} as this room's setting device? Home Assistant will then set "
             "its target temperature at every switch point of the week program. To do so, choose it under "
             "Setting device.")

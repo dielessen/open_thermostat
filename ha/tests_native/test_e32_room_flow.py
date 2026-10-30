@@ -673,7 +673,7 @@ def test_every_flow_key_has_a_translation(filename):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("language", ["en", "nl"])
+@pytest.mark.parametrize("language", ["en", "nl", "pl"])
 async def test_a_climate_source_is_only_hinted_as_setting_device_never_pre_selected(hass, manager, language):
     """Home Assistant writes the setting device's target at every switch point: the user picks it explicitly."""
     hass.config.language = language
@@ -687,6 +687,8 @@ async def test_a_climate_source_is_only_hinted_as_setting_device_never_pre_selec
     if language == "nl":
         assert "climate.woonkamer gebruiken als instelapparaat van deze ruimte?" in hint
         assert "bij elk schakelpunt van het weekprogramma" in hint
+    elif language == "pl":
+        assert "Użyć climate.woonkamer jako urządzenia nastawczego" in hint and "Urządzenie nastawcze" in hint
     else:
         assert "Use climate.woonkamer as this room's setting device?" in hint
         assert "set its target temperature at every switch point of the week program" in hint
@@ -725,3 +727,14 @@ async def test_a_new_room_gets_no_setting_device_unless_chosen_and_a_shown_again
 def test_the_room_form_has_room_for_the_setting_device_hint(filename):
     document = json.loads((COMPONENT / filename).read_text(encoding="utf-8"))
     assert document["options"]["step"]["e32_room"]["description"].endswith("{setting_hint}")
+
+
+def test_the_setting_hint_follows_the_language_the_flow_knows():
+    from types import SimpleNamespace
+    flow = module.E32RoomFlow()
+    flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
+    room = {"setpoint_entity": "", "sources": [{"type": "ha", "id": "climate.hal"}]}
+    flow.context = {"language": "nl"}
+    assert "climate.hal gebruiken als instelapparaat" in flow._e32_setting_hint(room, None)
+    flow.context = {}
+    assert "Use climate.hal as this room's setting device?" in flow._e32_setting_hint(room, None)

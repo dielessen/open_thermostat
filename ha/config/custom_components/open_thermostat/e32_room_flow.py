@@ -658,7 +658,10 @@ class E32RoomFlow:
         if user_input is not None:  # the form shown again: the sources as just submitted
             room = {"setpoint_entity": user_input.get("setpoint_entity") or "",
                     "sources": [{"type": "ha", "id": e} for e in user_input.get("ha_sources") or []]}
-        return setting_hint(proposed_device(room), self.hass.config.language)
+        # The user's language when the flow context carries it; Home Assistant's own otherwise
+        # (a flow is not told the browser's language). The texts: EN, NL and PL.
+        language = (getattr(self, "context", None) or {}).get("language") or self.hass.config.language
+        return setting_hint(proposed_device(room), language)
 
     def _e32_room_schema(self, room, ble_options):
         d = self._e32_defaults(room)

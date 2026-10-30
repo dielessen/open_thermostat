@@ -107,13 +107,15 @@ async def async_connect_installation(hass, entry, address, password):
                 raise ControllerLinkError("controller_source_conflict")
             state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
             runtime = state.get("v1_runtime")
-            if runtime is not None and runtime.enabled:
-                await runtime.async_stop()
-                _private_guard(hass, entry, before_private)
+            # The saved switch first, then the running link: a cancel or a changed
+            # entry in between never leaves a stopped link while the options say on.
             if entry.options.get(CONF_ENABLED, False):
                 commit_configuration(hass, entry, configuration_snapshot(entry),
                     options={**entry.options, CONF_ENABLED: False})
                 before_private = paused = native_entry_state(entry)
+            if runtime is not None and runtime.enabled:
+                await runtime.async_stop()
+                _private_guard(hass, entry, before_private)
             plan = await async_prepare_controller_link(hass, entry, client)
             _private_guard(hass, entry, before_private)
             provisioning = True
@@ -216,7 +218,11 @@ async def async_link_room_plan(hass, entry, address, password, *, remove_legacy_
     device_changed = False
     # Where switching the link (back) on is right after a failure: the state this
     # attempt paused it in, or (an entry already linked to the room plan whose
-    # link an older release left off) the state it started in.
+    # link an older release left off) the state it started in. A user cannot
+    # switch the link off for such an entry (product entries have no shadow
+    # switch in their options; only Connect E32 and the native-profile edits,
+    # which keep a native profile, change it), so "off" there is always a
+    # left-over of a failed link (test_room_plan_link_recovery).
     paused = {before_private} if not entry.options.get(CONF_ENABLED, False) and _room_plan_linked(entry) else set()
 
     def own_change():
@@ -247,14 +253,15 @@ async def async_link_room_plan(hass, entry, address, password, *, remove_legacy_
                 _private_guard(hass, entry, before_private)
             state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
             runtime = state.get("v1_runtime")
-            if runtime is not None and runtime.enabled:
-                await runtime.async_stop()
-                _private_guard(hass, entry, before_private)
+            # The saved switch first, then the running link (see the native route).
             if entry.options.get(CONF_ENABLED, False):
                 commit_configuration(hass, entry, configuration_snapshot(entry),
                     options={**entry.options, CONF_ENABLED: False})
                 before_private = native_entry_state(entry)
                 paused.add(before_private)
+            if runtime is not None and runtime.enabled:
+                await runtime.async_stop()
+                _private_guard(hass, entry, before_private)
             plan = await async_prepare_room_plan_link(hass, entry, client)
             _private_guard(hass, entry, before_private)
             if migration is not None and legacy_zones(entry):

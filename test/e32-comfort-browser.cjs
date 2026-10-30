@@ -46,7 +46,7 @@ function heating(){
   const rooms=page.locator('.pd-room');
   // The state is visible with its reason.
   assert.match(await rooms.nth(0).locator('.ot-chips').innerText(),lang==='en'?/21 °C until/:/21 °C tot/);
-  assert.match(await rooms.nth(1).locator('.ot-chips').innerText(),lang==='en'?/Window open: paused/:/Raam open: gepauzeerd/);
+  assert.match(await rooms.nth(1).locator('.ot-chips').innerText(),lang==='en'?/Window open: heating paused/:/Raam open: verwarming gepauzeerd/);
   // Controls only for active rooms; "back to the program" only while overriding.
   assert.equal(await page.locator('.pd-room-comfort').count(),2);
   assert.equal(await rooms.nth(0).locator('[data-comfort="none"]').count(),1);

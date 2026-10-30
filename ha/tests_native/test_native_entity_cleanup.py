@@ -194,5 +194,6 @@ async def test_product_sensor_platform_cleans_before_adding_and_creates_no_legac
     telemetry = AsyncMock(side_effect=lambda *a, **k: calls.append(("telemetry", k)))
     monkeypatch.setattr(product_telemetry, "async_setup_sensors", telemetry)
     await sensor.async_setup_entry(hass, p, lambda entities, **kw: None)
-    assert calls == [("cleanup", "fixture"), "async_setup_boiler_fields", "async_setup_heating_link",
+    # The E32 rooms first (sensor.py: every later step is optional).
+    assert calls == [("cleanup", "fixture"), "async_setup_heating_link", "async_setup_boiler_fields",
                      ("telemetry", {"native_metrics": True}), "async_setup_shadow_metrics"]

@@ -18,14 +18,21 @@ from test_v1_native import entry
 COMPONENT = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
 
 
+# The boiler counters got short, plain names (entity names stay <= 45 characters); the rest keep theirs.
+COUNTERS = {"energy": "Estimated energy", "energy_warm_water": "Estimated hot water energy",
+            "energy_heating": "Estimated heating energy", "energy_unattributed": "Estimated unattributed energy",
+            "burner_observed_time": "Observed flame time", "warm_water_usage": "Hot water volume",
+            "warm_water_avg_flow": "Average hot water flow"}
+
+
 def expected_english():
-    """The names the entities had before (hard-coded English), by translation key."""
+    """The English names by translation key: the old hard-coded ones, the counters shortened."""
     names = {}
     for topic, metrics in HUB_METRICS.items():
         for metric, (*_, name) in metrics.items():
             if topic == "ems_metrics" and metric in VERSIONED_METRICS:
-                names[f"hub_{metric}_v2"] = name + " (definition v2)"
-                names[f"hub_{metric}_legacy"] = "Legacy history: " + name
+                names[f"hub_{metric}_v2"] = COUNTERS[metric]
+                names[f"hub_{metric}_legacy"] = "Old: " + COUNTERS[metric]
             else:
                 names[f"hub_{metric}"] = name
     return names
@@ -42,8 +49,8 @@ def test_every_hub_name_is_translated_and_english_is_unchanged(filename):
             "Connected", "Firmware")
     elif filename.endswith("nl.json"):
         assert names["hub_memory_free"] == "Vrij geheugen" and names["hub_uptime"] == "Bedrijfstijd apparaat"
-        assert names["hub_energy_v2"].endswith("(definitie v2)") and entity["binary_sensor"]["hub_connected"]["name"] == "Verbonden"
-    assert all(names.values())
+        assert names["hub_energy_v2"] == "Geschatte energie" and entity["binary_sensor"]["hub_connected"]["name"] == "Verbonden"
+    assert all(names.values()) and all(len(name) <= 45 for name in names.values())
 
 
 def test_no_hard_coded_english_name_is_left_on_these_entities():
@@ -94,7 +101,7 @@ async def test_names_follow_the_language_and_existing_entity_ids_stay(hass, monk
         assert memory.entity_id == "sensor.openthermostat_free_memory"
         assert hass.states.get(memory.entity_id).attributes["friendly_name"] == "OpenThermostat Vrij geheugen"
         assert hass.states.get(energy.entity_id).attributes["friendly_name"] == (
-            "OpenThermostat Geschatte energie (nominale modulatie) (definitie v2)")
+            "OpenThermostat Geschatte energie")
         assert hass.states.get(connected.entity_id).attributes["friendly_name"] == "OpenThermostat Verbonden"
         assert hass.states.get(uptime.entity_id).attributes["friendly_name"] == "OpenThermostat Bedrijfstijd apparaat"
     finally:

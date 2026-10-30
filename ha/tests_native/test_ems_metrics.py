@@ -11,7 +11,7 @@ def test_estimated_energy_is_boot_counter_with_explicit_not_meter_label(key):
     assert sensor.device_class == SensorDeviceClass.ENERGY
     assert sensor.extra_state_attributes["not_a_gas_meter"] is True
     assert sensor.extra_state_attributes["counter_scope"] == "boot"
-    assert sensor.name.startswith("Estimated")
+    assert sensor.translation_key == f"hub_{key}_v2"  # named "Estimated ..." in strings.json
     # Versioned statistic definition; old registry identities are retained separately, never reused.
     assert sensor.unique_id == f"thermostat_hub_{key}_v2"
 

@@ -380,6 +380,13 @@ async def async_setup_entry(hass, entry):
         return result
     if mode != MODE_SHADOW:
         return False
+    from homeassistant.components import mqtt
+    from homeassistant.components.mqtt.util import mqtt_config_entry_enabled
+    if mqtt_config_entry_enabled(hass) and not await mqtt.async_wait_for_mqtt_client(hass):
+        # The MQTT integration is set up but its client is not available (yet):
+        # Home Assistant retries this entry, instead of one without its E32 topics.
+        from homeassistant.exceptions import ConfigEntryNotReady
+        raise ConfigEntryNotReady("mqtt_unavailable")
     from .v1_heating_graph import reconcile_removed_rooms
     reconcile_removed_rooms(hass, entry)
     from .v1_runtime import ShadowRuntime

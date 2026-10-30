@@ -76,6 +76,19 @@ HUB_DIVISORS = {
 }
 
 
+async def _cleanup_stale(hass, entry):
+    from .native_entity_cleanup import cleanup_stale_entities
+    cleanup_stale_entities(hass, entry, entry.data[CONF_TOPIC_PREFIX])
+
+
+async def _optional_step(name, step, *args, **kwargs):
+    """One optional part of the sensor setup: a failure is logged, the rest still loads."""
+    try:
+        await step(*args, **kwargs)
+    except Exception:  # noqa: BLE001 - never let one optional part take the room entities down
+        _LOGGER.exception("OpenThermostat: setting up the %s failed; the other entities still load", name)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -84,21 +97,25 @@ async def async_setup_entry(
     """Create sensors for room values published by the thermostat."""
     if "v1_runtime" in hass.data.get(DOMAIN,{}).get(entry.entry_id,{}):
         from .product import is_product
-        if is_product(entry):
+        product = is_product(entry)
+        if product:
             # Before any entity is added: stale records must not be re-adopted.
-            from .native_entity_cleanup import cleanup_stale_entities
-            cleanup_stale_entities(hass, entry, entry.data[CONF_TOPIC_PREFIX])
-        from .v1_boiler_fields import async_setup_boiler_fields
-        await async_setup_boiler_fields(hass,entry,async_add_entities)
+            await _optional_step("entity cleanup", _cleanup_stale, hass, entry)
+        # The E32 rooms and the ha/heating_input forwarding first: every other
+        # step is optional, and one that fails never leaves the rooms dead.
         from .heating_link import async_setup_heating_link
         await async_setup_heating_link(hass,entry,async_add_entities)
-        if is_product(entry):
+        from .v1_boiler_fields import async_setup_boiler_fields
+        await _optional_step("boiler values", async_setup_boiler_fields, hass, entry, async_add_entities)
+        if product:
             from .product_telemetry import async_setup_sensors
-            await async_setup_sensors(hass, entry, async_add_entities, native_metrics=True)
+            await _optional_step("E32 telemetry", async_setup_sensors, hass, entry, async_add_entities,
+                                 native_metrics=True)
             from .v1_metrics import async_setup_shadow_metrics
-            await async_setup_shadow_metrics(hass, entry, async_add_entities)
+            await _optional_step("metrics", async_setup_shadow_metrics, hass, entry, async_add_entities)
             from .e32_flow import async_setup_sensors as async_setup_flow_sensors
-            await async_setup_flow_sensors(hass, entry, async_add_entities)  # flow source, gas calibration, last night
+            # flow source, gas calibration, last night
+            await _optional_step("flow sensors", async_setup_flow_sensors, hass, entry, async_add_entities)
             return
         from .device_diagnostics import async_setup_device_diagnostics
         await async_setup_device_diagnostics(hass,entry,async_add_entities)

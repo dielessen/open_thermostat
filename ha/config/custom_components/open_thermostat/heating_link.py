@@ -930,6 +930,8 @@ BLE_METRICS = {
     "humidity": (SensorDeviceClass.HUMIDITY, PERCENTAGE, 0, 100),
     "battery": (SensorDeviceClass.BATTERY, PERCENTAGE, 0, 100),
 }
+# Shown decimals only ("57 %", not "56,96 %"); the recorded value keeps its precision.
+BLE_PRECISION = {"temperature": 1, "humidity": 0, "battery": 0}
 
 
 class BleSensor(HubEntity, SensorEntity):
@@ -943,6 +945,7 @@ class BleSensor(HubEntity, SensorEntity):
         device["name"] = ble_device_name(sensor, hub.rooms) or label(sensor)  # a new device's first name
         self._attach(hub, f"e32_ble_{self.sensor_id}_{metric}", device)
         self._attr_device_class, self._attr_native_unit_of_measurement, self._low, self._high = BLE_METRICS[metric]
+        self._attr_suggested_display_precision = BLE_PRECISION[metric]
         self._attr_translation_key = f"ble_{metric}"
 
     def _device_name(self, item, current):

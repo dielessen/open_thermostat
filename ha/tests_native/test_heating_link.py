@@ -1027,3 +1027,18 @@ async def test_lean_rooms_without_plan_fields_keep_the_plan_entities(hass, monke
         assert RoomStateSelect(hub, hub.rooms["woonkamer"]).current_option == "inactive"
     finally:
         hub.plan = None
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_readings_show_sensible_decimals_and_keep_their_value(hass, monkeypatch):
+    """"57 %" instead of "56,96 %"; the state (recorded value) and the entity IDs stay as they are."""
+    entry, hub, added, send = await _setup(hass, monkeypatch)
+    status = json.loads(json.dumps(FULL))
+    status["ble_sensors"][0].update(humidity=56.96, battery=87.4, temperature=20.437)
+    send(status)
+    by_id = {e.unique_id: e for e in added}
+    precision = {metric: by_id[f"fixture_e32_ble_a4c138a3e8db_{metric}"].suggested_display_precision
+                 for metric in ("temperature", "humidity", "battery")}
+    assert precision == {"temperature": 1, "humidity": 0, "battery": 0}
+    assert by_id["fixture_e32_ble_a4c138a3e8db_humidity"].native_value == 56.96
+    assert by_id["fixture_e32_ble_a4c138a3e8db_battery"].native_value == 87.4

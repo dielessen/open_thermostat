@@ -228,6 +228,10 @@ def test_the_owners_two_rooms_get_a_program_and_badkamer_its_tv02():
     assert done["rooms"][1]["schedule"] == PROGRAM and done["rooms"][1]["setpoint_entity"] == TV02
     assert done["rooms"][1]["sources"] == BADKAMER["sources"]  # the TV02 stays a source too
     assert room_program_changes(done) == []
+    # A room with a program whose owner left the setting device empty raises no Repairs change.
+    left = plan({**BADKAMER, "schedule": PROGRAM})
+    assert room_program_changes(left) == []
+    assert not apply_room_program_changes(left)["rooms"][0].get("setpoint_entity")
     # Workdays 06:30 20, 08:30 18, 17:00 20, 22:30 16; weekend 08:00 20, 23:00 16; within the room's limits.
     assert PROGRAM[0] == [[390, 2000], [510, 1800], [1020, 2000], [1350, 1600]] and PROGRAM[6] == [[480, 2000], [1380, 1600]]
     assert default_program(1700, 1900)[0] == [[390, 1900], [510, 1800], [1020, 1900], [1350, 1700]]

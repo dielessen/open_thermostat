@@ -147,7 +147,8 @@ Injected events:
   documented `{..}|null` value does not count).
 - **RoomEngine/RoomDemand against an oracle**: the leading source, status
   (ok/fallback/stale/lost/inactive), temperature and setpoint
-  (HA < 15 min, else the week program, else the fallback, clamped). The oracle
+  (the week program once the clock is known, else HA < 15 min, else the
+  fallback, clamped). The oracle
   carries readings across plan edits as `setPlan` does. Pauses end at
   `inactive_until`. `no_demand` holds exactly when no room is usable.
 - **FlowPolicy** (`HeatingController::applyFlowPolicy`, between RoomEngine and

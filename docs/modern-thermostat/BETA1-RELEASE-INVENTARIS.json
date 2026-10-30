@@ -299,7 +299,7 @@
         },
         {
           "path": "test/soak/README.md",
-          "sha256": "89b74df2441f0417f93c504ca95e3ce56531c90a5695f9ee7b81db77acdb499a"
+          "sha256": "342155eb2b76c62254326cd2bf81f353d320821c8455a68b7a5d27eb8a22a3e2"
         },
         {
           "path": "test/soak/run.sh",
@@ -307,7 +307,7 @@
         },
         {
           "path": "test/soak/soak.cpp",
-          "sha256": "c5600165fe3dd23383cd6e53f1aee055332622c9178355967694188ea4a729d4"
+          "sha256": "944c48d8d219ed9af394fdf27b7f9b8748262d4740cbfb8e5d19e8b4a4f460b4"
         },
         {
           "path": "test/time-zone-picker.test.cjs",

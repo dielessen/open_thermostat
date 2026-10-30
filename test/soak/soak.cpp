@@ -1335,9 +1335,10 @@ void Chain::checkEngine(const FlowDemand::Request& request) {
             if (held) temperature = o.lastUsable.centiC;
             o.lead.reset();
         }
+        // The room model of 30 Oct 2026: the week program wins over the setting device's target.
         std::optional<int16_t> setpoint;
-        if (o.target && o.targetAt <= now_ && now_ - o.targetAt < RoomEngine::setpointMaxAgeMs) setpoint = o.target;
-        else if (clockKnown_ && !room.schedule.empty()) setpoint = scheduleOracle(room.schedule, utc_);
+        if (clockKnown_ && !room.schedule.empty()) setpoint = scheduleOracle(room.schedule, utc_);
+        else if (o.target && o.targetAt <= now_ && now_ - o.targetAt < RoomEngine::setpointMaxAgeMs) setpoint = o.target;
         else setpoint = room.fallbackCentiC;
         if (setpoint) setpoint = std::clamp(*setpoint, room.minimumCentiC, room.maximumCentiC);
         EXPECT(r.status == status, "room_status", "%s: status %s, expected %s", room.id.c_str(), RoomDemand::name(r.status), RoomDemand::name(status));

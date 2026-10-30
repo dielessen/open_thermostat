@@ -9,8 +9,8 @@ from pathlib import Path
 
 COMPONENT = Path(__file__).resolve().parents[2] / "ha/config/custom_components/open_thermostat"
 PLACEHOLDER = re.compile(r"\{[^{}]*\}")
-# Names that stay the same in every language.
-SAME_IN_POLISH = {"OK", "OpenThermostat"}
+# Names that stay the same in every language, and the temperatures of a choice list ("45 °C").
+SAME_IN_POLISH = {"OK", "OpenThermostat", *(f"{c} °C" for c in range(25, 81))}
 
 
 def flat(node, path=""):

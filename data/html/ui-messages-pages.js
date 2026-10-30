@@ -1205,6 +1205,7 @@ window.OT_UI_PAGE_MESSAGES = {
   "Not saved yet": "Nog niet opgeslagen",
   "Backup and restore": "Back-up en terugzetten",
   "restored settings had to be applied": "teruggezette instellingen moesten worden toegepast",
+  "the link with Home Assistant hit a storage or internal error": "de koppeling met Home Assistant liep tegen een opslag- of interne fout aan",
   "Setting device in Home Assistant (optional)": "Instelapparaat in Home Assistant (optioneel)",
   "A thermostat, radiator valve or number to set this room with. Home Assistant shows the week program's temperature on it; turning it changes the room until the next switch point. Turn off the device's own schedule (manual mode), otherwise it changes the temperature by itself.": "Een thermostaat, radiatorkraan of getal om deze ruimte mee in te stellen. Home Assistant zet de temperatuur van het weekprogramma erop; eraan draaien verandert de ruimte tot het volgende schakelpunt. Zet het eigen programma van het apparaat uit (handmatige stand), anders verandert het de temperatuur zelf."
 };

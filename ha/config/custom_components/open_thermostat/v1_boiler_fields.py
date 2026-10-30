@@ -371,12 +371,14 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
     prefix = entry.data[CONF_TOPIC_PREFIX]
     translated = await hass.async_add_executor_job(translated_fields)
     entities = []
-    last_key = None
     last_profile = None
     unconfirmed = set()
     placeholders = set()
+    # One evaluation per pass, shared by every entity of it (client.ready costs ~1 ms).
+    shared = {"valid": False, "live": False}
+
     def refresh():
-        nonlocal last_key, unconfirmed, placeholders, last_profile
+        nonlocal unconfirmed, placeholders, last_profile
         # A field (Classic or catalog) gets its entity only after its first real
         # value, like the BLE sensors: a boiler never shows rows it does not report.
         # Once created, an entity stays for this run even if a new session resets the cache.
@@ -418,7 +420,7 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
             registry = registry or er.async_get(hass)
             preferred = reporting or {member for member in members if cache.field_state(member) == "supported"}
             entity = BoilerFieldEntity(prefix, client, holder(registry, prefix, members, preferred), translated,
-                                       placeholder=placeholder)
+                                       placeholder=placeholder, shared=shared)
             entity.confirmed = bool(reporting) or state == "supported"
             new.append(entity)
         for entity in entities:
@@ -441,14 +443,22 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
                 unconfirmed = confirm_reported(hass, prefix, unconfirmed, cache)
             if placeholders:
                 placeholders = mark_placeholders(hass, prefix, placeholders)
-        key = (client.boiler_fields.sequence, client.boiler_fields.invalid, client.ready, cache.profile_sequence,
-               tuple(entity.available for entity in entities))
-        if key == last_key:
-            return
-        last_key = key
-        for entity in entities:
-            if entity.hass is not None:
-                entity.async_write_ha_state()
+        # Only entities that are in Home Assistant now (never a disabled or removed
+        # one) and whose state really changed are written: (available, value, reason).
+        shared.update(valid=True, live=boiler_values_live(client))
+        try:
+            for entity in entities:
+                entity.evaluate()
+                if not entity.added:
+                    continue
+                signature = entity.signature()
+                if signature != entity.written:
+                    entity.written = signature
+                    entity.async_write_ha_state()
+        finally:
+            shared["valid"] = False
+            for entity in entities:
+                entity.evaluate()
 
     @callback
     def check_stale(_now=None):
@@ -463,8 +473,17 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
 class BoilerFieldEntity(SensorEntity):
     _attr_should_poll = False
     _attr_has_entity_name = True
+    # Diagnostics that change with every sample: shown, not recorded with each state.
+    _unrecorded_attributes = frozenset({"source_observed_at_ms", "age_basis", "raw_divisor", "source_ttl_ms",
+                                        "protocol_profile", "source_fields"})
 
-    def __init__(self, prefix, client, index, translated=None, placeholder=False):
+    def __init__(self, prefix, client, index, translated=None, placeholder=False, shared=None):
+        # shared: the setup's per-pass evaluation (whether the values may show at all).
+        self._shared = shared
+        self._source = None  # this pass's source, while shared["valid"]
+        # In Home Assistant now (added, not yet removed or disabled), and the last written state.
+        self.added = False
+        self.written = None
         # index: the field whose unique ID (so entity ID and history) this entity
         # keeps; members: every field that carries the same physical value.
         self.client, self.index = client, index
@@ -500,10 +519,41 @@ class BoilerFieldEntity(SensorEntity):
             if unit == "min":
                 self._attr_device_class = SensorDeviceClass.DURATION
 
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self.added, self.written = True, None
+
+    async def async_will_remove_from_hass(self):
+        # Also when the user or the boiler profile disables it: no writes from now on.
+        self.added = False
+        await super().async_will_remove_from_hass()
+
+    def evaluate(self):
+        """Forget this pass's cached source (the setup's refresh calls it per pass)."""
+        self._source = None
+
+    def _live(self):
+        shared = self._shared
+        return shared["live"] if shared is not None and shared["valid"] else boiler_values_live(self.client)
+
+    def signature(self):
+        """What a state write would change: availability, value and why there is none."""
+        available = self.available
+        value = self.native_value if available else None
+        _, reading = self.source
+        return available, value, reading["availability_reason"] if reading else None
+
     @property
     def source(self):
         """(field index, reading) the value comes from: the freshest usable member,
         else this entity's own field, whose reading explains why there is no value."""
+        shared = self._shared
+        if self._source is not None and shared is not None and shared["valid"]:
+            return self._source
+        self._source = self._find_source()
+        return self._source
+
+    def _find_source(self):
         cache, now = self.client.boiler_fields, self.client.clock()
         readings = [(index, cache.reading(index, now)) for index in self.members]
         usable = [(index, value) for index, value in readings if value and value["usable"]]
@@ -526,7 +576,7 @@ class BoilerFieldEntity(SensorEntity):
             # offline or silent; a value it has none of now reads unknown.
             return cache.alive(self.client.clock())
         value = self.reading
-        return bool(boiler_values_live(self.client) and value and value["usable"])
+        return bool(self._live() and value and value["usable"])
 
     @property
     def native_value(self):
@@ -546,7 +596,7 @@ class BoilerFieldEntity(SensorEntity):
         index, value = self.source
         name, _, divisor, ttl = spec(index)
         profile = self.client.boiler_fields.concept_state(self.members)
-        live = boiler_values_live(self.client)
+        live = self._live()
         reason = ("session_unavailable" if not live and not self.client.ready else
                   "capability_unavailable" if not live else
                   "not_fitted" if profile == "not_fitted" and not (value and value["usable"]) else

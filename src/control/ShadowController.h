@@ -58,6 +58,42 @@ inline bool canonicalConfig(const cJSON *o) {
     }
     return true;
 }
+// A schema-2 "shadow_plan" record is only ever stored after
+// validateNativeControlPlan accepted it for a selected native plan SOURCE
+// (mqtt.native_shadow_source). Clearing that SOURCE (HA "Connect E32" sets it to
+// null) leaves the record in ot_control/config, where no remaining decoder may
+// read it. Without a selected native SOURCE such a record is a recognisable
+// leftover, NOT corrupt storage: the controller then starts unconfigured
+// (revision 0) instead of reporting storage_fault on every boot. Deliberately
+// narrow: a canonical object with exactly the native plan keys, schema 2, mode
+// shadow_plan, 64-hex digests, revision >= 1, structured mapping/groups/zones
+// and, when present, the week plan contract. Anything else still fails closed.
+inline bool staleNativePlanRecord(const cJSON *o) {
+    if(!cJSON_IsObject(o)||!canonicalConfig(o))return false;
+    const auto contract=field(o,"plan_contract");
+    const bool keys=contract
+        ?exactFields(o,{"groups","mapping","mapping_digest","mode","plan_contract","profile_digest","revision","schema","zones"})
+            &&cJSON_IsString(contract)&&std::strcmp(contract->valuestring,NativePlanInstallationSource::weekContract)==0
+        :exactFields(o,{"groups","mapping","mapping_digest","mode","profile_digest","revision","schema","zones"});
+    return keys&&integerField(o,"schema",2,2)&&stringField(o,"mode")=="shadow_plan"
+        &&integerField(o,"revision",1,UINT32_MAX)
+        &&hexString(stringField(o,"profile_digest"),64)&&hexString(stringField(o,"mapping_digest"),64)
+        &&cJSON_IsObject(field(o,"mapping"))&&cJSON_IsArray(field(o,"groups"))&&cJSON_IsArray(field(o,"zones"));
+}
+// Called only after a settings save that cleared the native SOURCE committed.
+// Erases the stored record only when it is such a native plan; a legacy
+// config or unrecognised bytes stay untouched (and keep failing closed on
+// load). true = no native plan record remains; false = read or erase failed,
+// in which case the next boot still ignores the leftover (see above).
+template<class Erase>
+bool clearStaleNativePlanRecord(ControlStore &store,Erase erase) {
+    std::string saved;
+    if(!store.load(saved)) return false;
+    if(saved.empty()) return true;
+    const auto root=parseControlJson(saved);
+    if(!root||!staleNativePlanRecord(root.get())) return true;
+    return erase();
+}
 
 
 // Single serialized controller owner, including feedback and local fault
@@ -290,7 +326,7 @@ private:
                 ||(nativePlanSource_&&fault_)) {
                 result(resultTopic,e,"storage_fault"); fault_=true; invalidate(); return;
             }
-            config_=std::move(candidate);legacyQuarantine_=false; configBytes_=candidateBytes; digest_=stringField(root.get(),"config_digest");
+            config_=std::move(candidate);legacyQuarantine_=staleNativePlanIgnored_=false; configBytes_=candidateBytes; digest_=stringField(root.get(),"config_digest");
             result(resultTopic,e,"applied"); invalidate(); newChallenge(now); hello(); return;
         }
         if(topic=="ha/snapshot_request") { result(resultTopic,e,"accepted"); snapshot(e.sequence); state(now,utc,clockValid,true); return; }
@@ -330,6 +366,8 @@ public:
     uint32_t revision() const { return config_->revision; }
     const std::string &digest() const { return digest_; }
     bool faulted() const { return fault_; }
+    // Diagnostic only: boot found a cleared native SOURCE's plan and ignored it.
+    bool staleNativePlanIgnored() const { return staleNativePlanIgnored_; }
     bool nativeSourceSelected() const {
         return nativePlanSource_&&!fault_&&!policySourceFault_&&!nativeReceiving_&&!safetyReading_;
     }
@@ -410,6 +448,15 @@ private:
             if(transitions>NativePlanInstallationSource::maximumTransitions) {fault_=true;return;}
             config_->revision=old->revision; // Metadata only. ZERO active zones.
             legacyQuarantine_=true;
+        } else if(!nativePlanSource_&&!seasonalSource_&&staleNativePlanRecord(root.get())) {
+            // Leftover of a cleared native SOURCE, not corruption. Same state as
+            // an empty store: revision 0, no zones, no digest, no fault. HA can
+            // open a session and write a fresh config with expected_revision 0;
+            // that save replaces these bytes. Nothing of the old plan is used.
+            // Only the plain product controller (no SOURCE selected at all);
+            // pinned seasonal/graph sources keep failing closed.
+            staleNativePlanIgnored_=true;
+            return;
         } else if(!decodeConfig(root.get(),*config_)) { fault_=true; return; }
         configBytes_=printJson(root.get());
         if(configBytes_.empty()) {fault_=true;return;} // failed serialization is not a successful readback.
@@ -1056,7 +1103,7 @@ private:
     bool hydraulicReading_=false,hydraulicSourceFault_=false,hydraulicStarted_=false;
     std::unique_ptr<SeasonalControllerSource> seasonalSource_;
     std::unique_ptr<NativePlanInstallationSource> nativePlanSource_;
-    bool nativeReceiving_=false,legacyQuarantine_=false;
+    bool nativeReceiving_=false,legacyQuarantine_=false,staleNativePlanIgnored_=false;
     SeasonalControllerSource::Safety seasonalSafety_;
     uint32_t policyGeneration_=0;
     bool safetyReading_=false,policySourceFault_=false;

@@ -1,4 +1,5 @@
 #include "ShadowControllerFixture.h"
+#include "control/NativeSourceProvisioning.h"
 namespace {
 TEST(ModernMetrics, OptionalProviderNoReadBeforeSessionAndOneBoundedSnapshotPerInterval) {
     Fixture f;unsigned reads=0;f.metricsProvider=[&](auto& stream){++reads;stream<<metricFixture();};
@@ -396,5 +397,158 @@ TEST(ComfortContactsRuntime, InvalidOrPresenceOnlyContactAgeCannotBeCommitted) {
     cJSON_AddNumberToObject(cJSON_GetObjectItemCaseSensitive(z,"comfort"),"window_max_age_ms",3600000);
     auto request=f.configuration(printJson(record.get()));f.send("ha/config",request.get());
     EXPECT_EQ(f.core->revision(),0u);
+}
+}
+
+namespace {
+// Live E32, 30 Oct 2026: a week native plan (schema 2, revision 9) stored while
+// a native SOURCE was selected; HA "Connect E32" later cleared that SOURCE. The
+// stored record is exactly the "config" member of HA's ha/config (the
+// config_digest sits in the envelope, never in the stored bytes).
+const std::string staleSensorResource(64,'b'),staleOutputResource(64,'c');
+std::unique_ptr<NativePlanInstallationSource> staleWeekSource(char layout='d') {
+    const auto descriptor=R"(["native.source.local.week.v1","e32_lab","ha1",")"+std::string(64,layout)
+        +R"(",1,false,[["1234abcd","room1","trv1","grp1",0,")"+staleSensorResource+R"(",")"+staleOutputResource
+        +R"(",500,2500,120000,2000,5500,0,[0,50,0,0,0,0]]]])";
+    auto parsed=parseControlJson(descriptor,true);
+    return parsed?nativeSourceFromLocalSettingsBase(parsed.get(),"e32_lab","ha1",controlTestHash):nullptr;
+}
+std::string staleNativePlan(const NativePlanInstallationSource& source,unsigned revision=9) {
+    const std::string channels=R"({"channels":[{"channel_id":"room1","direction":"input","owner_id":"1234abcd","resource_id":")"
+        +staleSensorResource+R"("},{"channel_id":"trv1","direction":"output","owner_id":"trv1","resource_id":")"
+        +staleOutputResource+R"("}],"mapping_revision":1,"mapping_schema":2})";
+    return R"({"groups":[{"emitter":"radiator","group_id":"grp1","maximum_supply_centi_c":5500,"minimum_supply_centi_c":2000}],"mapping":)"
+        +channels+R"(,"mapping_digest":")"+controlTestHash(channels)
+        +R"(","mode":"shadow_plan","plan_contract":"control.plan.week.v1","profile_digest":")"+source.profileDigest
+        +R"(","revision":)"+std::to_string(revision)
+        +R"(,"schema":2,"zones":[{"actuator_id":"trv1","actuator_profile":"trv_room_setpoint","base_centi_c":1700,"group_id":"grp1","max_age_ms":120000,"report_evidence":"physical_report","schedule":{"base_centi_c":1700,"policy":"wall-clock-packed/v1","timezone":"Europe/Amsterdam","transitions":["AAAAakAGJwfQATVgakAbPwfQ"],"valid_from_utc":1792368000,"valid_until_utc":1792972800},"sensor_id":"room1","zone_id":"1234abcd"}]})";
+}
+std::string replaced(std::string bytes,const std::string& from,const std::string& to) {
+    const auto at=bytes.find(from);
+    if(at==std::string::npos)ADD_FAILURE()<<"fixture text not found: "<<from;
+    else bytes.replace(at,from.size(),to);
+    return bytes;
+}
+std::unique_ptr<ShadowController> nativeCore(Store& store,const NativePlanInstallationSource& source,
+                                             std::map<std::string,std::string>& output) {
+    return std::make_unique<ShadowController>("e32_lab","boot1","ha1",store,controlTestHash,[]{return std::string("nonce1");},
+        [&output](auto topic,auto bytes){output[std::string(topic)]=bytes;},ShadowController::Metrics{},nullptr,
+        []{return SeasonalSafetySnapshot{};},&source);
+}
+
+TEST(StaleNativePlan, FixtureIsTheRealAcceptedNativeWeekPlanWhileItsSourceIsSelected) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);ASSERT_TRUE(source->weekReviewed);
+    const auto blob=staleNativePlan(*source);
+    auto root=parseControlJson(blob);ASSERT_TRUE(root);
+    EXPECT_TRUE(canonicalConfig(root.get()));
+    EXPECT_TRUE(validateNativeControlPlan(root.get(),*source,controlTestHash));
+    EXPECT_TRUE(staleNativePlanRecord(root.get()));
+    Store store;store.bytes=blob;std::map<std::string,std::string> output;
+    auto core=nativeCore(store,*source,output);
+    EXPECT_FALSE(core->faulted());EXPECT_EQ(core->revision(),9u);EXPECT_FALSE(core->staleNativePlanIgnored());
+    // A different selected SOURCE still treats it as a conflict: the stale
+    // rule never applies while any native SOURCE is selected.
+    const auto other=staleWeekSource('e');ASSERT_TRUE(other);
+    Store second;second.bytes=blob;
+    auto conflicting=nativeCore(second,*other,output);
+    EXPECT_TRUE(conflicting->faulted());EXPECT_FALSE(conflicting->staleNativePlanIgnored());
+}
+TEST(StaleNativePlan, ClearedSourceBootsUnconfiguredWithoutStorageFault) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    Fixture f;f.store.bytes=staleNativePlan(*source);const auto before=f.store.bytes;
+    f.start();
+    EXPECT_FALSE(f.core->faulted());EXPECT_TRUE(f.core->staleNativePlanIgnored());
+    EXPECT_EQ(f.core->revision(),0u);EXPECT_EQ(f.core->digest(),"");
+    auto hello=f.get("fw/hello");
+    EXPECT_TRUE(cJSON_IsFalse(field(hello.get(),"storage_fault")));
+    EXPECT_EQ(uintField(hello.get(),"config_revision"),0u);
+    EXPECT_EQ(stringField(hello.get(),"config_digest"),"");
+    // Boot itself never writes; the record stays until HA replaces it.
+    EXPECT_EQ(f.store.writes,0u);EXPECT_EQ(f.store.bytes,before);
+}
+TEST(StaleNativePlan, SessionOpensAndExpectedRevisionZeroConfigReplacesTheRecord) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    Fixture f;f.store.bytes=staleNativePlan(*source);f.start();f.connect();
+    ASSERT_TRUE(f.output.count("fw/session"));EXPECT_FALSE(f.session.empty());
+    f.heartbeat();
+    EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"accepted");
+    auto request=f.configuration();EXPECT_EQ(uintField(request.get(),"expected_revision"),0u);
+    f.send("ha/config",request.get());
+    EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"applied");
+    EXPECT_FALSE(f.core->faulted());EXPECT_EQ(f.core->revision(),1u);EXPECT_FALSE(f.core->staleNativePlanIgnored());
+    EXPECT_EQ(f.store.writes,1u);EXPECT_EQ(f.store.bytes,config());
+    auto hello=f.get("fw/hello");EXPECT_TRUE(cJSON_IsFalse(field(hello.get(),"storage_fault")));
+    EXPECT_EQ(uintField(hello.get(),"config_revision"),1u);
+    f.connect();f.heartbeat();auto o=f.observation();f.send("ha/observations",o.get());
+    EXPECT_EQ(stringField(f.get("fw/observation_result").get(),"status"),"accepted");
+    f.boot="boot2";f.start();
+    EXPECT_FALSE(f.core->faulted());EXPECT_EQ(f.core->revision(),1u);EXPECT_FALSE(f.core->staleNativePlanIgnored());
+}
+TEST(StaleNativePlan, CorruptOrUnknownStoredDataStillFailsClosed) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    const auto blob=staleNativePlan(*source);
+    const std::vector<std::pair<const char*,std::string>> cases{
+        {"truncated",blob.substr(0,blob.size()/2)},
+        {"broken","{broken"},
+        {"schema3",replaced(blob,"\"schema\":2","\"schema\":3")},
+        {"schema1",replaced(blob,"\"schema\":2","\"schema\":1")},
+        {"legacy mode",replaced(blob,"\"mode\":\"shadow_plan\"","\"mode\":\"shadow\"")},
+        {"unknown contract",replaced(blob,"control.plan.week.v1","control.plan.week.v2")},
+        {"revision0",replaced(blob,"\"revision\":9","\"revision\":0")},
+        {"fractional revision",replaced(blob,"\"revision\":9","\"revision\":9.5")},
+        {"short profile digest",replaced(blob,"\"profile_digest\":\""+source->profileDigest,
+            "\"profile_digest\":\""+source->profileDigest.substr(1))},
+        {"extra key",replaced(blob,"\"revision\":9","\"revision\":9,\"rogue\":1")},
+        {"config_digest inside record",replaced(blob,"{\"groups\"","{\"config_digest\":\""+std::string(64,'f')+"\",\"groups\"")},
+        {"unsorted keys",replaced(replaced(blob,"\"mode\":\"shadow_plan\",",""),"\"zones\"","\"mode\":\"shadow_plan\",\"zones\"")},
+        {"zones not array",replaced(blob,"\"zones\":[","\"zones\":{\"x\":[")+"}"},
+        {"legacy schema1 invalid",replaced(config(4),"\"mode\":\"shadow\"","\"mode\":\"active\"")},
+        {"oversized",blob+std::string(ShadowController::maximumConfigBytes,' ')},
+    };
+    for(const auto& [name,bytes]:cases) {
+        Fixture f;f.store.bytes=bytes;f.start();
+        EXPECT_TRUE(f.core->faulted())<<name;EXPECT_FALSE(f.core->staleNativePlanIgnored())<<name;
+        auto hello=f.get("fw/hello");EXPECT_TRUE(cJSON_IsTrue(field(hello.get(),"storage_fault")))<<name;
+        EXPECT_EQ(f.store.writes,0u)<<name;
+    }
+    Fixture unreadable;unreadable.store.bytes=blob;unreadable.store.failLoad=true;unreadable.start();
+    EXPECT_TRUE(unreadable.core->faulted());EXPECT_FALSE(unreadable.core->staleNativePlanIgnored());
+}
+TEST(StaleNativePlan, PinnedSeasonalSourceStillFailsClosedOnANativePlanRecord) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    SeasonalControllerSource pinned;
+    pinned.controllerId="e32_lab";pinned.configDigest=controlTestHash(config());pinned.count=1;pinned.maximumSafetyAgeMs=2000;
+    auto& z=pinned.zones[0];z.zoneId="1234abcd";z.sensorId="room1";z.actuatorId="trv1";
+    z.seasonal.enabled=z.seasonal.installationQualified=z.seasonal.frostAdviceReviewed=true;
+    z.seasonal.maximumSensorAgeMs=120000;z.seasonal.maximumStepGapMs=300000;
+    ASSERT_TRUE(pinned.valid());
+    Fixture f;f.seasonalSource=&pinned;f.seasonalSafety=[]{return SeasonalSafetySnapshot{};};
+    f.store.bytes=staleNativePlan(*source);f.start();
+    EXPECT_TRUE(f.core->faulted());EXPECT_FALSE(f.core->staleNativePlanIgnored());EXPECT_EQ(f.core->revision(),0u);
+}
+TEST(StaleNativePlan, SourceClearErasesOnlyTheNativePlanRecord) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    unsigned erased=0;bool eraseResult=true;
+    const auto erase=[&]{++erased;return eraseResult;};
+    Store stale;stale.bytes=staleNativePlan(*source);
+    EXPECT_TRUE(clearStaleNativePlanRecord(stale,erase));EXPECT_EQ(erased,1u);
+    eraseResult=false;EXPECT_FALSE(clearStaleNativePlanRecord(stale,erase));EXPECT_EQ(erased,2u);
+    for(const auto& bytes:{std::string(),config(4),std::string("{broken"),
+            replaced(staleNativePlan(*source),"\"schema\":2","\"schema\":3")}) {
+        Store kept;kept.bytes=bytes;
+        EXPECT_TRUE(clearStaleNativePlanRecord(kept,erase))<<bytes;EXPECT_EQ(erased,2u)<<bytes;
+        EXPECT_EQ(kept.bytes,bytes);EXPECT_EQ(kept.writes,0u);
+    }
+    Store unreadable;unreadable.bytes=staleNativePlan(*source);unreadable.failLoad=true;
+    EXPECT_FALSE(clearStaleNativePlanRecord(unreadable,erase));EXPECT_EQ(erased,2u);
+}
+TEST(StaleNativePlan, LegacySchemaOneConfigStillLoadsUnchanged) {
+    Fixture f;f.store.bytes=config(4);f.start();
+    EXPECT_FALSE(f.core->faulted());EXPECT_FALSE(f.core->staleNativePlanIgnored());
+    EXPECT_EQ(f.core->revision(),4u);EXPECT_EQ(f.core->digest(),controlTestHash(config(4)));
+    auto hello=f.get("fw/hello");EXPECT_TRUE(cJSON_IsFalse(field(hello.get(),"storage_fault")));
+    EXPECT_EQ(uintField(hello.get(),"config_revision"),4u);
+    f.connect();f.heartbeat();auto next=f.configuration(config(5));f.send("ha/config",next.get());
+    EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"applied");EXPECT_EQ(f.core->revision(),5u);
 }
 }

@@ -949,7 +949,7 @@
         },
         {
           "path": "test/dashboard-browser.cjs",
-          "sha256": "313b8ae9c25d00a06713d1238b53cf4d3112d6c3901f0a29271d8eab50d1f47c"
+          "sha256": "2004ad11fc4c1764474bcfbfff329d518d4b3281d64d6add15f31a79643fc7de"
         },
         {
           "path": "test/device_restart.test.cjs",
@@ -1301,7 +1301,7 @@
         },
         {
           "path": "test/week-editor-browser.cjs",
-          "sha256": "00620142b2ce151832436e7367c9debeb7d03f586f2a0d469d7bbeb6bdc9b0d5"
+          "sha256": "a78da9bedfd12ebcc84971f5604468694b3ab9565f7478b81639994a0053b104"
         },
         {
           "path": "test/week-editor.test.cjs",
@@ -1963,7 +1963,7 @@
         },
         {
           "path": "test/bluetooth-lifecycle-browser.cjs",
-          "sha256": "08611fb2e4949f5485f14fc5df02456baa50993a0b02370ee1b7cf400088b935"
+          "sha256": "16379b68617abdf5a0a8552d3d6093b7f9b82a8d8a4b1a23c598219fe26d168d"
         },
         {
           "path": "docs/modern-thermostat/BLUETOOTH-PAGE-LIFETIME-20261027.json",
@@ -3218,7 +3218,7 @@
         },
         {
           "path": "ha/tests_native/test_room_contact_runtime.py",
-          "sha256": "9782c09add09f5b890aff0a424e14c7f25adbfcfaa1b8c3bac3f8c2e2dded13b"
+          "sha256": "6b2c73f2b7f7addfef9c7fb1fc5209ccc68d68511bbd1134b72822f804a21e33"
         },
         {
           "path": "ha/tests_native/test_room_editor_contacts.py",
@@ -3378,7 +3378,7 @@
         },
         {
           "path": "test/e32-comfort-browser.cjs",
-          "sha256": "65aa0083d8aa7cca092fccb5aec0cbb3a546d44d972173df299cb54d0b73705c"
+          "sha256": "91e18d592228d27c13878bdb0b5301a8e32c601c09f52ff6e0d14dcf5ab092c8"
         },
         {
           "path": "test/test_native/test_room_overrides.cpp",

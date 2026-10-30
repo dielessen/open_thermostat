@@ -45,7 +45,7 @@ button{font:inherit;font-weight:600;color:inherit;background:transparent;border:
 button[aria-selected=true]{box-shadow:inset 0 0 0 2px var(--primary-text-color)}button.primary{background:var(--primary-color,#03a9f4);border-color:var(--primary-color,#03a9f4);color:var(--text-primary-color,#fff)}
 button:disabled{opacity:.45;cursor:default}button:focus-visible{outline:3px solid var(--primary-color);outline-offset:2px}
 .msg:empty{display:none}.msg{border-left:4px solid var(--primary-color);padding:8px 12px;background:var(--secondary-background-color);border-radius:6px}.msg.error{border-color:var(--error-color,#db4437)}
-.dirty{color:var(--warning-color,#b26b00);font-weight:600}.waiting{font-weight:600;margin:4px 0 8px}.msg.notice{border-color:var(--warning-color,#b26b00);margin-bottom:12px}@media(max-width:480px){ha-card{padding:12px}}`;
+.dirty{color:var(--warning-color,#b26b00);font-weight:600}.waiting{font-weight:600;margin:4px 0 8px}.notice{border-left:4px solid var(--warning-color,#b26b00);padding:8px 12px;background:var(--secondary-background-color);border-radius:6px;margin:0 0 12px}@media(max-width:480px){ha-card{padding:12px}}`;
 const language = hass => /^nl\b/i.test(hass?.locale?.language || hass?.language || '') ? 'nl' : 'en';
 const fill = (s, v) => s.replace(/\{(\w+)\}/g, (a, k) => k in v ? v[k] : a);
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -147,7 +147,7 @@ class OpenThermostatE32Week extends HTMLElement {
   };
   root.replaceChildren(el('style', STYLE), card);
   card.append(el('h2', t.title));
-  if (this._outdated) card.append(el('p', t.outdated, {class: 'msg notice', role: 'status'}));
+  if (this._outdated) card.append(el('p', t.outdated, {class: 'notice', role: 'status'}));
   const msg = el('p', null, {class: 'msg', role: 'status', 'aria-live': 'polite'});
   if (!this._rooms) {
    const status = this._waiting ? (this._busy ? t.retrying : t.waiting) : this._busy ? t.loading : '';

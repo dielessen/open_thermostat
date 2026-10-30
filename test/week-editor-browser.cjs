@@ -152,7 +152,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal scroll');
    assert.deepEqual(errors,[]);await page.close();results.push({part:'e32',width,posts:posts.length});
   }
-  const haCard=async(width,lang,dark,imperial=false)=>{
+  const haCard=async(width,lang,dark,imperial=false,{getFail=null,cardUrl=null}={})=>{
    const page=await browser.newPage({viewport:{width,height:1000},hasTouch:true}),errors=[];
    page.on('pageerror',e=>errors.push(e.message));
    await page.route('http://ha.test/**',route=>{const p=new URL(route.request().url()).pathname;
@@ -163,13 +163,13 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    await page.goto('http://ha.test/');await page.addScriptTag({url:'/card.js',type:'module'});
    const rooms=[{id:'woonkamer',name:'Woonkamer',minimum_centi_c:1000,maximum_centi_c:2400,fallback_centi_c:2000,setpoint_entity:'climate.woonkamer',schedule:null},
     {id:'zolder',name:'Zolder',minimum_centi_c:500,maximum_centi_c:2500,fallback_centi_c:1800,setpoint_entity:'',schedule:[[[420,2000],[1350,1700]],[],[],[],[],[],[]]}];
-   await page.evaluate(({rooms,lang,dark,imperial})=>{window.calls=[];window.fail=null;let state=structuredClone(rooms);
+   await page.evaluate(({rooms,lang,dark,imperial,getFail,cardUrl})=>{window.calls=[];window.fail=null;let state=structuredClone(rooms);
     const card=window.card=document.createElement('openthermostat-e32-week');card.setConfig({entry_id:'entry'});document.querySelector('main').append(card);
     card.hass={language:lang,config:{unit_system:{temperature:imperial?'°F':'°C'}},locale:{language:lang},themes:{darkMode:dark},callWS:async r=>{calls.push(structuredClone(r));
-     if(r.type==='open_thermostat/e32_week/get')return {revision:4,rooms:structuredClone(state)};
+     if(r.type==='open_thermostat/e32_week/get'){if(getFail){const f=getFail;getFail=null;throw {code:f};}return {revision:4,rooms:structuredClone(state),...(cardUrl?{card_url:cardUrl}:{})};}
      if(r.type!=='open_thermostat/e32_week/save')throw {code:'unexpected'};
      if(fail){const f=fail;fail=null;throw {code:f};}
-     state=state.map(x=>x.id===r.room_id?{...x,schedule:r.schedule}:x);return {revision:5,rooms:structuredClone(state)};}};},{rooms,lang,dark,imperial});
+     state=state.map(x=>x.id===r.room_id?{...x,schedule:r.schedule}:x);return {revision:5,rooms:structuredClone(state)};}};},{rooms,lang,dark,imperial,getFail,cardUrl});
    return {page,errors,rooms};
   };
   // 3. The Home Assistant card: rooms as tabs, save with the loaded program as the guard, errors in plain words.
@@ -231,6 +231,29 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    assert.deepEqual((await page.evaluate(()=>calls.at(-1))).schedule,[...Array(5)].map(()=>[[390,2111],[1320,1600]]).concat([[],[]]));
    await page.screenshot({path:path.join(output,`ha-card-fahrenheit-${lang}.png`),fullPage:true});
    assert.deepEqual(errors,[]);await page.close();results.push({part:'ha-fahrenheit',lang});
+  }
+  // 5. Not ready yet (HA starting, E32 not connected): "Waiting for the E32…", never a dead card; a page left
+  //    open over an update asks for a reload (Ctrl+F5) but keeps working.
+  for(const lang of ['en','nl']){
+   const W=lang==='nl'?{wait:'Wachten op de E32…',why:/probeert het vanzelf opnieuw/,reload:'Opnieuw laden',outdated:/bijgewerkt\. Laad de pagina opnieuw \(Ctrl\+F5\)/}
+    :{wait:'Waiting for the E32…',why:/tries again by itself/,reload:'Reload',outdated:/was updated\. Reload the page \(Ctrl\+F5\)/};
+   let {page,errors}=await haCard(390,lang,false,false,{getFail:'not_ready'}),card=page.locator('openthermostat-e32-week');
+   await card.getByText(W.wait).waitFor();await card.getByText(W.why).waitFor();
+   assert.equal(await page.evaluate(()=>card._retry!==null),true,'a retry is scheduled');
+   await page.screenshot({path:path.join(output,`ha-card-waiting-${lang}.png`),fullPage:true});
+   assert.equal(await card.getByRole('button',{name:W.reload}).isVisible(),true,'the user can also try at once');
+   // Off screen (another view): no timer; back on screen: it tries again at once and shows the planner.
+   await page.evaluate(()=>card.remove());assert.equal(await page.evaluate(()=>card._retry),null,'no timer after removal');
+   await page.evaluate(()=>document.querySelector('main').append(card));await card.locator('.wpe-seg').first().waitFor();
+   assert.equal(await card.getByText(W.wait).count(),0);
+   assert.deepEqual(errors,[]);await page.close();
+   ({page,errors}=await haCard(390,lang,false,false,{cardUrl:'/open_thermostat/e32-week-card-0.0.0.js'}));card=page.locator('openthermostat-e32-week');
+   await card.locator('.wpe-seg').first().waitFor();await card.getByText(W.outdated).waitFor();
+   await page.screenshot({path:path.join(output,`ha-card-outdated-${lang}.png`),fullPage:true});
+   assert.deepEqual(errors,[]);await page.close();
+   ({page,errors}=await haCard(390,lang,false,false,{cardUrl:'/card.js'}));card=page.locator('openthermostat-e32-week');
+   await card.locator('.wpe-seg').first().waitFor();assert.equal(await card.getByText(W.outdated).count(),0,'the served module: no notice');
+   assert.deepEqual(errors,[]);await page.close();results.push({part:'ha-waiting',lang});
   }
  }finally{await browser.close();}
  fs.writeFileSync(path.join(output,'RESULT.json'),JSON.stringify({status:'PASS',results},null,2)+'\n');

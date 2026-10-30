@@ -30,6 +30,8 @@ then the version number: `v0.1.0-e32v2-beta.19` < `v1.0.0-e32v2-rc.1` <
 `v1.0.0-e32v2` < `v1.0.1-e32v2-beta.1`. Home Assistant (like the E32's own
 catalog) never offers an installation a less mature channel than the one it
 runs: an E32 on 1.0.0 is offered 1.0.1, not 1.1.0-beta.1.
+The tag decision and what remains before `v1.0.0-e32v2`:
+[STABLE-RELEASE-TAGS.en.md](STABLE-RELEASE-TAGS.en.md).
 
 ## One accepted update, step by step
 

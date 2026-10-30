@@ -136,6 +136,27 @@ actions:
 | `alarms.jsonl` | every alarm event: `raised`, `repeat`, `cleared`, `logged` |
 | `summary-<day>.json` | per local day: guard-state shares, heat-request, burner and hot-water shares, flow range while heating, highest request, most starts per hour, boiler limits seen, restarts, alarm counts, heap and stack minimums, MQTT disconnects, and per room min/max/mean and mean deviation from target. Rewritten every 10 samples, at the day change and on exit |
 
+## Shadow exit criteria
+
+`shadow_exit.py` answers "may the E32 take over?" after the shadow period. It
+reads Home Assistant's history (GET only, a long-lived token in
+`OT_HA_TOKEN`) and prints PASS, FAIL or WAIT per criterion: 72 h without a
+restart, at least 10 thermostat heating periods with a night setback, a
+morning warm-up and a quiet period, start/stop timing within minutes, the
+E32's flow request in the 31–43 °C band, and no more heat periods than the
+thermostat. With `--mqtt-log` (the output of a read-only MQTT listener) it
+also checks availability and the 60 s heartbeat.
+
+```sh
+export OT_HA_TOKEN='your long-lived token'
+python3 -I tools/switchover/shadow_exit.py --ha-url https://homeassistant.local:8123     --climate climate.living_room --since 2026-10-30T17:10:00Z --json shadow-exit.json
+```
+
+`--since` starts at the install of the current firmware (default: the last
+`--days 3`). `--insecure` accepts a self-signed certificate on your own
+network. The E32 entities are found by their suffix; pass `--uptime`,
+`--e32-request` or `--thermostat-request` when you have more than one E32.
+
 ## Tests
 
 ```sh

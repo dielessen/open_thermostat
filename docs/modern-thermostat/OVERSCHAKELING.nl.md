@@ -1,7 +1,9 @@
 # Bijgewoonde overstap: de E32 neemt de ketel over van de tado
 
-**Status:** draaiboek voor beta.19 (kandidaat voor 1.0), bijgewerkt 29 oktober
-2026, nog niet uitgevoerd. Fase 4 en 5 van het
+**Status:** draaiboek voor beta.21 (de overstap; besluit eigenaar 30 oktober:
+in beta.21 als beta.20 stabiel draait), bijgewerkt 30 oktober 2026, nog niet
+uitgevoerd. Beta.20 + HA 0.4.0b12 draaien sinds 30 oktober in schaduwmodus en
+zijn de geaccepteerde basis (PASS-ontvangstbewijs). Eerder voor beta.19 geschreven. Fase 4 en 5 van het
 [plan naar volledige aansturing](NEXT-RELEASE.nl.md#plan-naar-volledige-aansturing-eigenaar-vroeg-28-oktober);
 onderdeel 10 van het [beta.19-plan](NEXT-RELEASE.nl.md). Engelse, algemene
 versie voor GitHub: [SWITCHOVER.md](../SWITCHOVER.md). Live bewaking:
@@ -65,7 +67,7 @@ pagina **Ruimtes → Actieve regeling**):
 | `arming` | Overnemen: wacht op verse ruimtemetingen en de ketelbus. | niets; `active` zodra ≥ 60 s na boot, zendroute klaar en alle actieve ruimtes vers (of na 30 min zonder verse meting: eigenaar met nulvraag). **Na een herstart met bewaarde bevestiging** bovendien pas na 2 min onafgebroken ontvangst van de ketel (0x08, berichten ≤ 30 s uit elkaar) zonder vreemde 0x1A: ≈ 130 s na boot; tot dan `active.confirmation.restored: true` met `listened_s`. Een vreemde 0x1A in die tijd wist de bevestiging (`blocked_foreign_controller`); ook de vorstbeveiliging wacht hierop. |
 | `active` | De E32 regelt de ketel. | vraag elke 60 s, direct bij aan/uit; na elke stop 60 s lang elke 10 s nul |
 | `stopped_measurement_lost` | Geen ruimtemetingen: de E32 vraagt de ketel geen warmte tot er weer een meting is. | nul (vorstminimum blijft mogelijk); hervat vanzelf |
-| `stopping` | Stoppen: de E32 vraagt de ketel één minuut lang nul. | nul elke 10 s, ≥ 60 s en tot een nul is afgeleverd |
+| `stopping` | Stoppen: de E32 vraagt de ketel één minuut lang nul. | nul elke 10 s, ≥ 60 s en tot een nul is afgeleverd; vóór een geplande herstart tot die herstart |
 | `blocked_foreign_controller` | Gestopt: een andere regelaar stuurde na de overname een ketelvraag. | niets; bevestiging gewist |
 
 **Waarschuwingen** (`active.warnings`, pagina onder de toestand):
@@ -88,7 +90,13 @@ grens geen positieve vraag (`boiler_limit_unknown`) · bewaarde bevestiging:
 NVS-record `<versie>/<ELF-hash>`; elke andere firmware (ook dezelfde versie
 opnieuw gebouwd) wist hem · zolang de E32 de ketel bezit herstart de
 supervisor alleen bij een vastloper (`loop_stall`, RTC-watchdog) of een
-vastgelopen update.
+vastgelopen update · **geplande herstart** (update, firmware-upload via HA,
+"Apparaat herstarten", Bluetooth-instellingen, herstel van een back-up,
+`control_fault`, terugrol van onbevestigde firmware): de E32 trekt eerst zijn
+vraag in (`stopping`, nul) en herstart pas als een nul is afgeleverd, uiterlijk
+na 90 s; tot de herstart neemt hij niet opnieuw over. Daarna gaat het als bij
+elke herstart met bewaarde bevestiging (`arming`, ≈ 130 s na boot).
+*(beta.21, op het apparaat controleren: T6)*
 Aanvoeropties van beta.19 (`/config/heating/flow`: stooklijn, geleerde
 aanvoer) staan standaard op **advies**; `flow.source` = `rule`.
 
@@ -117,7 +125,23 @@ vreemde 0x1A, en het keteldisplay (Nefit doorgaans `-H` = CV, `=H` = tapwater,
 
 ## 3. Voorwaarden (alles afvinken)
 
-**Schaduwperiode geslaagd** (exitcriteria uit [NEXT-RELEASE](NEXT-RELEASE.nl.md#plan-naar-volledige-aansturing-eigenaar-vroeg-28-oktober), minimaal 3 dagen, liefst ~5):
+**Schaduwperiode geslaagd** (exitcriteria uit [NEXT-RELEASE](NEXT-RELEASE.nl.md#plan-naar-volledige-aansturing-eigenaar-vroeg-28-oktober), minimaal 3 dagen, liefst ~5).
+Automatisch te controleren, alleen lezend (HA-geschiedenis en MQTT), vanaf de
+installatie van beta.20:
+
+```sh
+export OT_HA_TOKEN='…'     # langdurig HA-token, nooit op de opdrachtregel
+python3 -I tools/switchover/shadow_exit.py --ha-url https://192.168.1.130:8123 --insecure     --climate climate.tado_smart_thermostat_ru1884754176 --since 2026-10-30T17:10:00Z     [--mqtt-log luister.txt] --json out/switchover-<datum>/shadow-exit.json
+```
+
+Uitslag per criterium `PASS`, `FAIL` of `WAIT` (nog te weinig gegevens); alle
+`PASS` is de voorwaarde. Eerste meting 30 oktober 18:36 UTC (1,5 h na de
+installatie): stabiel, perioden, timing en pendelen `WAIT`, MQTT `PASS`,
+aanvoer `FAIL`: de E32 vroeg die eerste koude avond 30–48 °C (mediaan 44), de
+tado tegelijk tot 49 °C. **Met de eigenaar te bespreken:** de band 31–43 °C komt
+uit de metingen van 28 oktober; als de tado bij kou ook boven 43 °C vraagt, is
+"in hetzelfde gebied als de tado" de betere maat (de vloerverwarming beschermt
+zich met haar eigen klep van ~50 °C, het planmaximum blijft het plafond).
 - [ ] ≥ 72 uur geen hang of herstart (zwarte doos leeg, geen wifi- of Bluetooth-uitval).
 - [ ] ≥ 10 verwarmingsperiodes van de tado vergeleken, inclusief nachtverlaging, ochtendopwarming en een periode zonder warmtevraag.
 - [ ] Beslissingen ongeveer gelijk: warmtevraag op ongeveer dezelfde momenten (enkele minuten), aanvoer in hetzelfde gebied (±31–43 °C), niet vaker aan/uit dan de tado (pagina Ruimtes → "Vergelijking met je thermostaat").
@@ -125,8 +149,8 @@ vreemde 0x1A, en het keteldisplay (Nefit doorgaans `-H` = CV, `=H` = tapwater,
 - [ ] Tado-rijen (0x17) tegen echte busdata geverifieerd (beta.19-plan, onderdeel 14).
 
 **Software**
-- [ ] Beta.19 + HA0.4.0b11 gepubliceerd en geïnstalleerd **met de vergrendeling dicht**, ≥ 24 h stabiel in schaduwmodus op die build.
-- [ ] Hosttests en soak groen: `test_active_heat_guard`, `test_handover_confirmation`, `test_boiler_limit_read`, `test_supervisor`, `test/soak` modus `full` (scenario `active`: `ha_gone`, `measurement_gone`, `reboot`, `reboot_tado_back`, `wifi_gone`, `foreign_1a`, `dhw`, `frost`, `stop_until_delivered`, `boiler_limit`).
+- [ ] Beta.21 + bijbehorende HA-versie gepubliceerd en geïnstalleerd **met de vergrendeling dicht**, ≥ 24 h stabiel in schaduwmodus op die build (beta.20 is de geaccepteerde basis).
+- [ ] Hosttests en soak groen: `test_active_heat_guard` (ook `PlannedRestartWithdrawsWithZeroAndReleases`, `PlannedRestartWithFailingWritesIsNotReleased`, `ShadowStaysSilentWithEveryInputAndTheRestartHook`, `HotWaterTapDuringHeatingKeepsTheRequest`, `SlowLoopKeepsTheRefreshAndTheStop`, `FallbackSourceKeepsHeating`, `PowerLossThenForeignControllerNeverHeats`), `test_device_restart` (`BoilerReleaseHoldWaitsForTheZeroAtMostNinetySeconds`), `test_handover_confirmation`, `test_boiler_limit_read`, `test_supervisor`, `test/soak` modus `full` (scenario `active`: `ha_gone`, `measurement_gone`, `reboot`, `reboot_tado_back`, `wifi_gone`, `foreign_1a`, `dhw`, `frost`, `stop_until_delivered`, `boiler_limit`).
 - [ ] `/status/heating` toont `active.boiler_limit.flow_c` ≠ null **na een E32-herstart** in schaduwmodus, met `reads` ≥ 1 (bewijst dat de E32 0x16 zelf leest). *(beta.19, op het apparaat controleren)*
 - [ ] MQTT stabiel: `mqtt_budget_disconnects` loopt niet op over 24 uur (waargenomen op beta.18: 4 in 17 min; beta.19-plan onderdeel 29) en `minimum_free_internal_bytes` ≥ 20000 (waargenomen: 13280). Anders eerst oplossen: een E32 die MQTT verliest, zet HA-bronnen op "bron weg".
 - [ ] Bewakingsscript één uur in schaduwmodus gedraaid (§4.2): geen onverklaard alarm.
@@ -153,12 +177,12 @@ vreemde 0x1A, en het keteldisplay (Nefit doorgaans `-H` = CV, `=H` = tapwater,
    en `GET /config/heating/flow` opslaan in `out/switchover-<datum>/`;
    Bluetoothkoppeling (adres, profiel) noteren.
 2. **Bekende goede terugvalfirmware:** het ZIP en `firmware.bin` van de
-   gepubliceerde beta.19 **met vergrendeling dicht** (de schaduwbuild die nu
-   draait), plus beta.18 als tweede terugval. Lokaal op de laptop, zodat de
+   gepubliceerde beta.21 **met vergrendeling dicht** (de schaduwbuild die nu
+   draait), plus beta.20 (geaccepteerde basis) als tweede terugval. Lokaal op de laptop, zodat de
    upload via Systeem → Firmware bijwerken ook zonder internet of HA werkt.
 3. **De vergrendelingsbuild (alleen beschrijven; aparte goedkeuring).**
    Op de overstapdag, en alleen na expliciete goedkeuring door de lead en de
-   eigenaar, wordt een aparte build gemaakt: beta.19 met
+   eigenaar, wordt een aparte build gemaakt: beta.21 met
    `constexpr bool emsActiveHeatAllowed = true;` in de `OPENTHERMOSTAT_E32V2`-tak
    van `src/Board.h`, verder bit-voor-bit dezelfde bron. Die build volgt de
    releaseafspraken (eigen tag, CI groen, review van de zendroute, eigen
@@ -277,7 +301,7 @@ geslaagd**: noteren, en bij een afbreekcriterium (§7) direct terug (§8).
 
 ### T6 E32-herstart (bewaarde bevestiging) en gedrag van de adapter
 - **Doen:** bij een matige vraag (~40 °C, CV actief) Systeem → "Apparaat herstarten". t0 = klik.
-- **Verwacht:** de E32 zendt ~30–60 s niets (herstart); daarna **zonder nieuwe bevestiging** `arming` met `confirmation.restored: true`; na 2 min onafgebroken ketelontvangst zonder vreemde 0x1A (≈ 130 s na boot, en binnen ~1 min na de eerste verse meting) weer `active` met dezelfde vraag; `boiler_limit.reads` ≥ 1 en `flow_c` bekend vóór de eerste positieve vraag. (Soak `reboot`; op het apparaat controleren.)
+- **Verwacht:** vóór de herstart eerst `stopping` met nul (gepland: de E32 trekt zijn vraag in en herstart pas als een nul is afgeleverd, uiterlijk na 90 s; zendteller loopt op met nullen); dan ~30–60 s niets (herstart); daarna **zonder nieuwe bevestiging** `arming` met `confirmation.restored: true`; na 2 min onafgebroken ketelontvangst zonder vreemde 0x1A (≈ 130 s na boot, en binnen ~1 min na de eerste verse meting) weer `active` met dezelfde vraag; `boiler_limit.reads` ≥ 1 en `flow_c` bekend vóór de eerste positieve vraag. (Soak `reboot`; op het apparaat controleren.)
 - **Meten (O2):** blijft "Verwarmen actief"/Brandermodulatie/Gekozen aanvoertemperatuur staan in het gat? Tijd noteren.
 - **Geslaagd:** weer `active` binnen ~4 min na t0, geen `awaiting_confirmation`; script `e32_restarted` met `reset_reason` `software`; zwarte doos (Systeemlog / `previous_boot`) toont de handmatige herstart.
 
@@ -444,7 +468,7 @@ dan de woonkamer pas na 1–2 weken live.
 
 ---
 
-## 11. Afhankelijkheden van beta.19-werk in uitvoering (opnieuw controleren)
+## 11. Afhankelijkheden van eerder werk (opnieuw controleren vóór beta.21)
 
 | # | Draaiboek gaat uit van | Waar | Controle |
 | --- | --- | --- | --- |
@@ -457,3 +481,5 @@ dan de woonkamer pas na 1–2 weken live.
 | A7 | Soakscenario's `active` groen in CI. | `test/soak` | §3 |
 | A8 | HA meldt `awaiting_confirmation` (O3); tot dan alleen het script. | HA-integratie (`heating_problem.py`) | §3, T6 |
 | A9 | De vergrendelingsbuild verschilt alleen in `emsActiveHeatAllowed`. | `src/Board.h` | §4.1 punt 3 |
+| A10 | Geplande herstart trekt eerst de ketelvraag in (nul afgeleverd, uiterlijk 90 s) en neemt tot de herstart niet opnieuw over; in schaduwmodus verandert er niets. | `ActiveHeatGuard::withdraw`/`released`, `update::BoilerReleaseHold`, `update::loop`, `HeatingController::releaseBoilerForRestart` | gebouwd (beta.21); native `PlannedRestart…`, `WithdrawWithoutAClaimNeverSendsOrTakesOver`, `ShadowStaysSilentWithEveryInputAndTheRestartHook`, `BoilerReleaseHold…`; T6 |
+| A11 | Uitstapcriteria schaduwperiode automatisch gemeten. | `tools/switchover/shadow_exit.py` | §3; `test_shadow_exit.py` |

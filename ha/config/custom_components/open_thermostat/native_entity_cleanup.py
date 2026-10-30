@@ -52,6 +52,14 @@ RETIRED = {
     # boiler it never reported and the boiler field "outdoor temperature" is the
     # one outdoor entity. A record that ever had a value stays.
     "hub_outdoor_temperature": ("0.4.0b10", "outdoor_temperature_without_value"),
+    # 0.4.0b12: the "Legacy history: ..." counters. Since 0.4.0b2 the boiler
+    # counters are the definition v2 sensors (<prefix>_hub_<metric>_v2); the old
+    # identity was only re-added, always unavailable and without a state class,
+    # to keep its history in view, and it kept a Repairs item open. Firmware
+    # that still sends old-format values keeps it (a value now).
+    **{f"hub_{metric}": ("0.4.0b12", "legacy_metric_history") for metric in (
+        "energy", "energy_warm_water", "energy_heating", "energy_unattributed",
+        "burner_observed_time", "warm_water_usage", "warm_water_avg_flow")},
 }
 
 
@@ -171,6 +179,9 @@ def cleanup_stale_entities(hass, entry, prefix):
         _LOGGER.info("Removed %d OpenThermostat entities this installation no longer provides: %s. "
                      "Their history and long-term statistics are kept",
                      len(removed), ", ".join(sorted(removed)))
+    # Repairs items about records that are gone now close as well.
+    from .metrics_reports import reconcile_migration_issues
+    reconcile_migration_issues(hass, entry, prefix)
     return removed
 
 

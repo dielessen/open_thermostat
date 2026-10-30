@@ -487,6 +487,10 @@ async def async_remove_entry(hass, entry):
     from homeassistant.helpers import issue_registry as ir
     from .e32_link import issue_id
     ir.async_delete_issue(hass, DOMAIN, issue_id(entry))
+    # Every other item of this installation too (room sources, setting devices, metrics, ...).
+    for domain, other in list(ir.async_get(hass).issues):
+        if domain == DOMAIN and entry.entry_id in other:
+            ir.async_delete_issue(hass, DOMAIN, other)
     # The last installation removed: browsers stop loading the dashboard cards (week_planner).
     if not any(other.entry_id != entry.entry_id for other in hass.config_entries.async_entries(DOMAIN)):
         from .week_planner import async_remove_card_modules

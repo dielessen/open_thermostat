@@ -47,7 +47,9 @@ def records(hass, owner):
 
 
 def test_every_retired_identity_names_the_version_and_a_reason():
-    assert RETIRED == {"hub_outdoor_temperature": ("0.4.0b10", "outdoor_temperature_without_value")}
+    assert RETIRED["hub_outdoor_temperature"] == ("0.4.0b10", "outdoor_temperature_without_value")
+    assert {reason for _, reason in RETIRED.values()} == {"outdoor_temperature_without_value", "legacy_metric_history"}
+    assert all(version.startswith("0.4.0b") for version, _ in RETIRED.values())
 
 
 @pytest.mark.asyncio
@@ -109,3 +111,60 @@ async def test_the_outdoor_entity_marks_its_record_on_its_first_real_value(hass)
     await client.receive("fw/telemetry/ems_metrics", canonical(packet(client, 2)))
     assert registry.async_get(entity_id).options["open_thermostat"] == {REPORTED: True}
     await runtime.async_stop()
+
+
+def test_the_legacy_history_counters_are_retired_by_name_and_version():
+    from custom_components.open_thermostat.sensor import VERSIONED_METRICS
+    legacy = {key.removeprefix("hub_") for key, (version, reason) in RETIRED.items() if reason == "legacy_metric_history"}
+    assert legacy == set(VERSIONED_METRICS) and all(RETIRED[f"hub_{m}"][0] == "0.4.0b12" for m in legacy)
+
+
+@pytest.mark.asyncio
+async def test_legacy_history_records_go_and_their_repairs_items_close(hass, caplog):
+    from homeassistant.helpers import issue_registry as ir
+    from custom_components.open_thermostat.metrics_reports import (
+        note_legacy_metrics, note_metric_definition_migration, note_room_definition_migration)
+    p = product(hass, room(hass))
+    registry, record = records(hass, p)
+    old = [record(f"fixture_hub_{metric}") for metric in ("energy", "warm_water_usage", "burner_observed_time")]
+    kept = record("fixture_hub_energy_heating", name="Old heating energy")  # customised: stays
+    v2 = record("fixture_hub_energy_v2")
+    for note in (note_legacy_metrics, note_metric_definition_migration, note_room_definition_migration):
+        note(hass, p.entry_id)
+    issues = ir.async_get(hass)
+    with caplog.at_level(logging.INFO):
+        removed = cleanup_stale_entities(hass, p, "fixture")
+    assert sorted(item.split(" ")[0] for item in removed) == sorted(old)
+    assert registry.async_get(kept) is not None and registry.async_get(v2) is not None
+    # The customised old record keeps the counters item open; the other two close.
+    assert issues.async_get_issue("open_thermostat", f"metrics_definition_v2_{p.entry_id}") is not None
+    assert issues.async_get_issue("open_thermostat", f"room_model_v2_{p.entry_id}") is None
+    assert issues.async_get_issue("open_thermostat", f"legacy_metrics_history_{p.entry_id}") is None
+    registry.async_remove(kept)  # the user deletes it
+    cleanup_stale_entities(hass, p, "fixture")
+    assert issues.async_get_issue("open_thermostat", f"metrics_definition_v2_{p.entry_id}") is None
+    # Firmware that still sends old-format values keeps the old record (a value now).
+    again = record("fixture_hub_energy")
+    hass.data["open_thermostat"][p.entry_id] = {
+        "v1_connection": SimpleNamespace(client=SimpleNamespace(metrics_payload={"totalEnergyUsedKwh": 12.5}))}
+    assert cleanup_stale_entities(hass, p, "fixture") == [] and registry.async_get(again) is not None
+
+
+@pytest.mark.asyncio
+async def test_removing_an_installation_closes_every_repairs_item_of_it(hass):
+    from homeassistant.helpers import issue_registry as ir
+    import custom_components.open_thermostat as integration
+    p = product(hass, room(hass))
+    other = entry(hass)
+    ids = [f"e32_room_choose_source_{p.entry_id}_woonkamer", f"device_own_schedule_{p.entry_id}_woonkamer",
+           f"metrics_definition_v2_{p.entry_id}", f"room_group_restored_{p.entry_id}_woonkamer"]
+    for issue in ids + [f"metrics_definition_v2_{other.entry_id}"]:
+        ir.async_create_issue(hass, "open_thermostat", issue, is_fixable=False, severity=ir.IssueSeverity.WARNING,
+                              translation_key="metrics_definition_v2")
+    ir.async_create_issue(hass, "other_domain", f"x_{p.entry_id}", is_fixable=False,
+                          severity=ir.IssueSeverity.WARNING, translation_key="x")
+    await integration.async_remove_entry(hass, p)
+    registry = ir.async_get(hass)
+    assert all(registry.async_get_issue("open_thermostat", issue) is None for issue in ids)
+    assert registry.async_get_issue("open_thermostat", f"metrics_definition_v2_{other.entry_id}") is not None
+    assert registry.async_get_issue("other_domain", f"x_{p.entry_id}") is not None

@@ -1438,7 +1438,8 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     state = hass.data[DOMAIN][entry.entry_id]
     connection = state.get("v1_connection")
     if connection is None or connection.client is None:
-        if not is_product(entry):
+        from .room_plan import has_room_plan
+        if not has_room_plan(entry):  # only an installation with a connected E32 (no rows before that)
             return
         from types import SimpleNamespace
         from .v1_boiler_fields import SOURCE_KEY

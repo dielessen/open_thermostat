@@ -362,9 +362,9 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
         client, add_listener = connection.client, runtime.add_listener
     else:
         # No running link (shadow off, Connect E32 not finished): the retained
-        # boiler values of E32 beta.19 still show (product entries).
-        from .product import is_product
-        if not is_product(entry):
+        # boiler values of E32 beta.19 still show (product entries with a connected E32).
+        from .room_plan import has_room_plan
+        if not has_room_plan(entry):
             return
         client = await _async_retained_source(hass, entry, state)
         add_listener = client.add_listener

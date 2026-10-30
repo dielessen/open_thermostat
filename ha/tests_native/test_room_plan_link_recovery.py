@@ -233,6 +233,14 @@ async def test_e32_telemetry_forwarding_and_boiler_values_work_with_the_link_off
     from test_boiler_state import group_doc
     parent = product(hass)
     assert parent.options.get("shadow_enabled", False) is False
+    # Before Connect E32 nothing is set up without the link (no rows that can only stay unavailable).
+    hass.data.setdefault(DOMAIN, {})[parent.entry_id] = {"v1_runtime": SimpleNamespace(enabled=False)}
+    added = []
+    await async_setup_boiler_fields(hass, parent, added.extend)
+    await async_setup_heating_link(hass, parent, added.extend)
+    assert added == []
+    hass.config_entries.async_update_entry(parent, data={**parent.data, setup.CONTROLLER_ADDRESS: "http://e32.local",
+        setup.CONTROLLER_PASSWORD: "e32-password", setup.CONTROLLER_ID: CONTROLLER})
     runtime = SimpleNamespace(enabled=False)
     hass.data.setdefault(DOMAIN, {})[parent.entry_id] = {"v1_runtime": runtime}  # no v1_connection
     callbacks, published, send = broker(monkeypatch)

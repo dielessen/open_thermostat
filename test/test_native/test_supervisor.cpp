@@ -209,6 +209,12 @@ TEST(SupervisorPolicy, UpdateExemptionEndsAfterTwentyMinutes) {
     EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
     EXPECT_STREQ(SupervisorPolicy::name(Reason::updateStuck), "update_stuck");
 }
+TEST(SupervisorPolicy, ControlFaultReasonIsAppendedAndNamed) {
+    // Stored in RTC memory by earlier boots: existing values never move.
+    EXPECT_EQ(static_cast<int>(Reason::settingsRestore), 8);
+    EXPECT_EQ(static_cast<int>(Reason::controlFault), 9);
+    EXPECT_STREQ(SupervisorPolicy::name(Reason::controlFault), "control_fault");
+}
 TEST(SupervisorPolicy, WifiLostRestartsBackOffExponentially) {
     auto in = healthy18(1000 * minute18);
     const uint32_t expected[] = {15, 30, 60, 120, 240, 240, 240};

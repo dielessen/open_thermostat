@@ -9,10 +9,14 @@ namespace {
 using namespace heating::control;
 struct Store:ControlStore {
     std::string bytes;
-    bool failSave=false,failLoad=false,commitOnError=false,corruptReadback=false;
-    unsigned writes=0;
-    bool load(std::string &out) override { if(failLoad) return false; out=bytes; if(corruptReadback&&writes)out+=" "; return true; }
-    bool save(std::string_view value) override { ++writes; if(!failSave||commitOnError) bytes=value; return !failSave; }
+    bool failSave=false,failLoad=false,commitOnError=false,corruptReadback=false,refuseSave=false;
+    unsigned writes=0,reads=0;
+    bool load(std::string &out) override { ++reads; if(failLoad) return false; out=bytes; if(corruptReadback&&writes)out+=" "; return true; }
+    bool save(std::string_view value) override {
+        if(refuseSave) return false; // budget refusal: no write attempt at all
+        ++writes; if(!failSave||commitOnError) bytes=value; return !failSave;
+    }
+    bool lastSaveRefused() const override { return refuseSave; }
 };
 const std::string mapping(64,'a');
 inline std::string config(unsigned revision=1,const std::string &zones="") {

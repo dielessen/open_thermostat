@@ -145,6 +145,7 @@ public:
             supervisor_=HydraulicSupervisor(hydraulicSource_->profile);
         }
         loadSavedConfiguration();
+        healthyAtStart_=!fault_; // every earlier return above leaves it false
     }
     // Only the already selected local native factory may call this after an
     // independently authenticated source-only settings commit. No remote config,
@@ -322,8 +323,21 @@ private:
             // Storage can have committed despite a timeout/error. Never continue
             // operating old memory after an ambiguous durable write/read-back.
             std::string readback;
-            if(!store_.save(candidateBytes)||!store_.load(readback)||readback!=candidateBytes
-                ||(nativePlanSource_&&fault_)) {
+            const bool saved=store_.save(candidateBytes);
+            if(!saved&&store_.lastSaveRefused()&&!(nativePlanSource_&&fault_)) {
+                // Refused before any write (storage budget): durable bytes and
+                // memory are unchanged, nothing is ambiguous. Reply, no latch.
+                result(resultTopic,e,"storage_fault"); return;
+            }
+            if(!saved&&!nativePlanSource_&&store_.load(readback)&&unchangedStore(readback)) {
+                // Plain controller: one read settles a failed save. The old
+                // bytes mean nothing was written: reply, no latch. The
+                // candidate means it landed anyway: applied below. Anything
+                // else stays ambiguous and latches. The native plan path keeps
+                // its reviewed latch (recovery is an explicit fresh readback).
+                result(resultTopic,e,"storage_fault"); return;
+            }
+            if((saved&&!store_.load(readback))||readback!=candidateBytes||(nativePlanSource_&&fault_)) {
                 result(resultTopic,e,"storage_fault"); fault_=true; invalidate(); return;
             }
             config_=std::move(candidate);legacyQuarantine_=staleNativePlanIgnored_=false; configBytes_=candidateBytes; digest_=stringField(root.get(),"config_digest");
@@ -368,6 +382,10 @@ public:
     bool faulted() const { return fault_; }
     // Diagnostic only: boot found a cleared native SOURCE's plan and ignored it.
     bool staleNativePlanIgnored() const { return staleNativePlanIgnored_; }
+    // A fault latched while running (storage ambiguity, exception, hash
+    // failure, SOURCE lockout), not one found at construction: only a fresh
+    // boot's readback can clear it. The device glue restarts once for it.
+    bool runtimeFaulted() const { return fault_&&healthyAtStart_; }
     bool nativeSourceSelected() const {
         return nativePlanSource_&&!fault_&&!policySourceFault_&&!nativeReceiving_&&!safetyReading_;
     }
@@ -417,6 +435,13 @@ private:
             seasonalSource_->maximumSafetyAgeMs=nativePlanSource_->maximumSafetyAgeMs;
             for(size_t i=0;i<nativePlanSource_->count;++i)seasonalSource_->zones[i]=nativePlanSource_->zones[i].policy;
             seasonalSafety_=std::move(safety);
+    }
+    // The store still holds what this controller loaded or last applied.
+    bool unchangedStore(const std::string& bytes) const {
+        if(bytes==configBytes_)return true;
+        if(!staleNativePlanIgnored_)return false;
+        const auto root=parseControlJson(bytes);
+        return root&&staleNativePlanRecord(root.get());
     }
     void loadSavedConfiguration() {
         std::string saved;
@@ -1103,7 +1128,7 @@ private:
     bool hydraulicReading_=false,hydraulicSourceFault_=false,hydraulicStarted_=false;
     std::unique_ptr<SeasonalControllerSource> seasonalSource_;
     std::unique_ptr<NativePlanInstallationSource> nativePlanSource_;
-    bool nativeReceiving_=false,legacyQuarantine_=false,staleNativePlanIgnored_=false;
+    bool nativeReceiving_=false,legacyQuarantine_=false,staleNativePlanIgnored_=false,healthyAtStart_=false;
     SeasonalControllerSource::Safety seasonalSafety_;
     uint32_t policyGeneration_=0;
     bool safetyReading_=false,policySourceFault_=false;

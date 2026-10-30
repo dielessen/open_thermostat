@@ -122,14 +122,45 @@ TEST(ShadowRuntime, ChangedDuplicateDiagnosticDoesNotReapplyAndNewOwnerClearsIt)
     EXPECT_EQ(field(state.get(),"last_user_command_admission"),nullptr);
     EXPECT_EQ(uintField(Fixture::row(state),"target_centi_c"),2100u);
 }
-TEST(ShadowRuntime, AtomicCommitFailuresIncludingCommittedButLostAckForceRecovery) {
+// beta.20: on the plain controller one read settles a failed save. The old
+// bytes mean nothing landed (storage_fault reply, no latch: the hello stays
+// healthy and a later config may apply); the candidate means it landed despite
+// the error (applied). Until beta.19 both latched until a manual reboot.
+TEST(ShadowRuntime, FailedSaveIsSettledByOneReadAndOnlyAmbiguityLatches) {
     for(bool committed:{false,true}) {
         Fixture f; f.start(); f.connect(); f.heartbeat(); f.store.failSave=true; f.store.commitOnError=committed;
-        f.configure(); EXPECT_TRUE(f.core->faulted()); EXPECT_EQ(f.core->revision(),0u);
-        auto ack=f.get("fw/config_result"); EXPECT_EQ(stringField(ack.get(),"status"),"storage_fault");
-        f.store.failSave=false; f.boot="boot2"; f.start();
-        EXPECT_FALSE(f.core->faulted()); EXPECT_EQ(f.core->revision(),committed?1u:0u);
+        f.configure(); EXPECT_FALSE(f.core->faulted()); EXPECT_FALSE(f.core->runtimeFaulted());
+        EXPECT_EQ(f.core->revision(),committed?1u:0u);
+        auto ack=f.get("fw/config_result"); EXPECT_EQ(stringField(ack.get(),"status"),committed?"applied":"storage_fault");
+        EXPECT_TRUE(cJSON_IsFalse(field(f.get("fw/hello").get(),"storage_fault")));
+        f.store.failSave=false;
+        if(!committed) {
+            auto again=f.configuration(config(),2);f.send("ha/config",again.get());
+            EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"applied");EXPECT_EQ(f.core->revision(),1u);
+        }
+        f.boot="boot2"; f.start();
+        EXPECT_FALSE(f.core->faulted()); EXPECT_EQ(f.core->revision(),1u);
     }
+    // Neither old nor candidate bytes, or no settling read: ambiguous, latched.
+    for(bool readFails:{false,true}) {
+        Fixture f; f.start(); f.connect(); f.heartbeat(); f.store.failSave=true;
+        if(readFails)f.store.failLoad=true; else {f.store.commitOnError=true;f.store.corruptReadback=true;}
+        f.configure(); EXPECT_TRUE(f.core->faulted()); EXPECT_TRUE(f.core->runtimeFaulted()); EXPECT_EQ(f.core->revision(),0u);
+        EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");
+        f.now+=ShadowController::helloIdleMs;f.tick();
+        EXPECT_TRUE(cJSON_IsTrue(field(f.get("fw/hello").get(),"storage_fault")));
+    }
+}
+TEST(ShadowRuntime, RefusedSaveRepliesStorageFaultWithoutLatchWriteOrRead) {
+    Fixture f; f.start(); f.connect(); f.heartbeat(); f.store.refuseSave=true;
+    const auto reads=f.store.reads;
+    f.configure();
+    EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");
+    EXPECT_FALSE(f.core->faulted()); EXPECT_FALSE(f.core->runtimeFaulted()); EXPECT_EQ(f.core->revision(),0u);
+    EXPECT_EQ(f.store.writes,0u); EXPECT_EQ(f.store.reads,reads);
+    EXPECT_TRUE(cJSON_IsFalse(field(f.get("fw/hello").get(),"storage_fault")));
+    f.store.refuseSave=false; auto again=f.configuration(config(),2); f.send("ha/config",again.get());
+    EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"applied"); EXPECT_EQ(f.core->revision(),1u);
 }
 TEST(ShadowRuntime, RebootReadbackMismatchAndDisconnectFenceAllOldPackets) {
     Fixture f; f.ready(); auto old=f.observation(); f.send("ha/observations",old.get());
@@ -157,14 +188,14 @@ TEST(ShadowRuntime, InvalidConfigDoesNotConsumeSequenceOrTouchStoreAndWrongOwner
     auto boolean=f.configuration(duplicate); f.send("ha/config",boolean.get()); EXPECT_EQ(f.store.writes,1u);
 }
 TEST(ShadowRuntime, StoreCorruptionIsDiagnosedAndReadOnlySnapshotsNeverWrite) {
-    Fixture f; f.store.bytes="{broken"; f.start(); EXPECT_TRUE(f.core->faulted());
+    Fixture f; f.store.bytes="{broken"; f.start(); EXPECT_TRUE(f.core->faulted()); EXPECT_FALSE(f.core->runtimeFaulted());
     Fixture ok; ok.ready(); auto request=ok.envelope("snapshot"); ok.send("ha/snapshot_request",request.get());
     auto snapshot=ok.get("fw/config_snapshot"); EXPECT_EQ(uintField(snapshot.get(),"config_revision"),1u);
     EXPECT_EQ(controlTestHash(printJson(field(snapshot.get(),"config"))),ok.core->digest()); EXPECT_EQ(ok.store.writes,1u);
 }
 TEST(ShadowRuntime, ReadbackErrorNeverPartiallyActivatesAndWrongOwnerCannotOpen) {
     Fixture f; f.start(); f.connect(); f.heartbeat(); f.store.corruptReadback=true; f.configure();
-    EXPECT_TRUE(f.core->faulted()); EXPECT_EQ(f.core->revision(),0u);
+    EXPECT_TRUE(f.core->faulted()); EXPECT_TRUE(f.core->runtimeFaulted()); EXPECT_EQ(f.core->revision(),0u);
     Fixture wrong; wrong.start(); auto hello=wrong.get("fw/hello");
     std::string raw=R"({"api":1,"controller_id":"e32_lab","boot_id":"boot1","epoch":1,"challenge_id":")"+
         stringField(hello.get(),"challenge_id")+R"(","adapter_id":"other_ha","client_nonce":"new","known_revision":0,"known_digest":""})";

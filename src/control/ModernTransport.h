@@ -287,6 +287,7 @@ public:
     void loop() {
         if(!controller_&&!graphController_) return;
         auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
+        restartForRuntimeFault(now);
         if(!valid_) {
             brokerDns_.cancel();
             brokerTcp_.cancel();
@@ -409,6 +410,20 @@ private:
     // Validated SNTP event in main sets this trust flag. A plausible cached or
     // manual wall time is not sufficient after boot; no RTC assumed on E32.
     static bool clockValid();
+    // Once per boot: a controller fault latched while running (ambiguous
+    // storage, exception, hash failure, SOURCE lockout) clears only with a
+    // fresh boot readback, so the hello would carry storage_fault for good.
+    // Never before 15 min uptime, so a lasting cause cannot restart-loop the
+    // device; the controlled restart also waits for updates, the boot check
+    // and boiler sessions (update::loop).
+    static constexpr uint64_t faultRestartUptimeMs=15ULL*60*1000;
+    static void scheduleFaultRestart(uint32_t delayMs);
+    void restartForRuntimeFault(uint64_t now) {
+        if(faultRestartScheduled_||!controller_||!controller_->runtimeFaulted())return;
+        faultRestartScheduled_=true;
+        scheduleFaultRestart(static_cast<uint32_t>((now<faultRestartUptimeMs?faultRestartUptimeMs-now:0)+60000));
+    }
+    bool faultRestartScheduled_=false;
     config::MqttConfig cfg_; std::string base_,sourceNetworkBase_; // ephemeral bounded<2048, never logged/persisted.
     DeadlineWiFiClient network_; PubSubClient client_; NvsControlStore store_;
     StatusSnapshot controllerStatus_;

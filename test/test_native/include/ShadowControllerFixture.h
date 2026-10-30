@@ -10,9 +10,10 @@ using namespace heating::control;
 struct Store:ControlStore {
     std::string bytes;
     bool failSave=false,failLoad=false,commitOnError=false,corruptReadback=false,refuseSave=false;
-    unsigned writes=0,reads=0;
+    unsigned writes=0,reads=0,saves=0; // saves: every save() call, refused ones too
     bool load(std::string &out) override { ++reads; if(failLoad) return false; out=bytes; if(corruptReadback&&writes)out+=" "; return true; }
     bool save(std::string_view value) override {
+        ++saves;
         if(refuseSave) return false; // budget refusal: no write attempt at all
         ++writes; if(!failSave||commitOnError) bytes=value; return !failSave;
     }

@@ -137,6 +137,12 @@ public:
     // Existing NVS partition is20KiB, with GC + old/new atomic blob overhead.
     // Do not turn a JSON transport ceiling into a hidden persistence promise.
     static constexpr size_t maximumZones=8, maximumConfigBytes=4096;
+    // A save that failed without latching (refused, or provably nothing
+    // written) blocks further ha/config saves for saveBackoffMs: HA's retries
+    // are answered storage_fault without an NVS write. The third such failure
+    // in one boot latches, as every failure did until beta.19.
+    static constexpr uint64_t saveBackoffMs=5ULL*60*1000;
+    static constexpr uint32_t maximumFailedSaves=3;
     // Session timing (TELEMETRIEBUDGET.nl.md, "Sessieprotocol"); HA's v1_wire holds the
     // same values. Grants rotate every 10 s and last 30 s, HA heartbeats every 10 s and
     // the lease lasts 30 s: three missed messages before anything expires. hello goes
@@ -349,22 +355,30 @@ private:
             if(uintField(root.get(),"expected_revision")!=revision() || revision()==UINT32_MAX || candidate->revision!=revision()+1) {
                 result(resultTopic,e,"conflict"); return;
             }
+            if(now<saveBackoffUntil_) { result(resultTopic,e,"storage_fault"); return; } // no NVS write
             // Storage can have committed despite a timeout/error. Never continue
             // operating old memory after an ambiguous durable write/read-back.
             std::string readback;
             const bool saved=store_.save(candidateBytes);
             if(!saved&&store_.lastSaveRefused()&&!(nativePlanSource_&&fault_)) {
-                // Refused before any write (storage budget): durable bytes and
-                // memory are unchanged, nothing is ambiguous. Reply, no latch.
-                result(resultTopic,e,"storage_fault"); return;
+                // Refused before any write (storage budget), plain or native
+                // path: durable bytes and memory are unchanged, nothing is
+                // ambiguous. Reply without a latch (bounded, see below).
+                failedSaveWithoutLatch(resultTopic,e,now); return;
             }
             if(!saved&&!nativePlanSource_&&store_.load(readback)&&unchangedStore(readback)) {
-                // Plain controller: one read settles a failed save. The old
-                // bytes mean nothing was written: reply, no latch. The
+                // Plain controller only: one read settles a failed save. The old
+                // bytes mean nothing was written: reply without a latch. The
                 // candidate means it landed anyway: applied below. Anything
-                // else stays ambiguous and latches. The native plan path keeps
-                // its reviewed latch (recovery is an explicit fresh readback).
-                result(resultTopic,e,"storage_fault"); return;
+                // else stays ambiguous and latches. A save that really failed
+                // on the native plan path latches as before (recovery there is
+                // an explicit fresh readback); only a refusal is spared.
+                // Accepted risk: NVS writes a new blob before it erases the old
+                // one; after a flash error inside nvs_set_blob both versions
+                // could exist and a later boot might read the other one. NVS
+                // resolves that at its next init, so this read and a boot read
+                // agree in practice; the bound below limits the exposure.
+                failedSaveWithoutLatch(resultTopic,e,now); return;
             }
             if((saved&&!store_.load(readback))||readback!=candidateBytes||(nativePlanSource_&&fault_)) {
                 result(resultTopic,e,"storage_fault"); fault_=true; invalidate(); return;
@@ -464,6 +478,11 @@ private:
             seasonalSource_->maximumSafetyAgeMs=nativePlanSource_->maximumSafetyAgeMs;
             for(size_t i=0;i<nativePlanSource_->count;++i)seasonalSource_->zones[i]=nativePlanSource_->zones[i].policy;
             seasonalSafety_=std::move(safety);
+    }
+    void failedSaveWithoutLatch(const char* resultTopic,const Envelope& e,uint64_t now) {
+        result(resultTopic,e,"storage_fault");
+        if(++failedSaves_>=maximumFailedSaves) {fault_=true;invalidate();return;}
+        saveBackoffUntil_=now+saveBackoffMs;
     }
     // The store still holds what this controller loaded or last applied.
     bool unchangedStore(const std::string& bytes) const {
@@ -1158,6 +1177,7 @@ private:
     std::unique_ptr<SeasonalControllerSource> seasonalSource_;
     std::unique_ptr<NativePlanInstallationSource> nativePlanSource_;
     bool nativeReceiving_=false,legacyQuarantine_=false,staleNativePlanIgnored_=false,healthyAtStart_=false;
+    uint32_t failedSaves_=0; uint64_t saveBackoffUntil_=0; // per boot, see saveBackoffMs
     SeasonalControllerSource::Safety seasonalSafety_;
     uint32_t policyGeneration_=0;
     bool safetyReading_=false,policySourceFault_=false;

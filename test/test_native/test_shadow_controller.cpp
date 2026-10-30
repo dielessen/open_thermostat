@@ -135,7 +135,12 @@ TEST(ShadowRuntime, FailedSaveIsSettledByOneReadAndOnlyAmbiguityLatches) {
         EXPECT_TRUE(cJSON_IsFalse(field(f.get("fw/hello").get(),"storage_fault")));
         f.store.failSave=false;
         if(!committed) {
+            // An immediate retry is answered without touching the store ...
+            const auto writes=f.store.writes;
             auto again=f.configuration(config(),2);f.send("ha/config",again.get());
+            EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");EXPECT_EQ(f.store.writes,writes);
+            // ... and after the backoff a new session's config applies.
+            f.now+=ShadowController::saveBackoffMs;f.connect();f.heartbeat();f.configure();
             EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"applied");EXPECT_EQ(f.core->revision(),1u);
         }
         f.boot="boot2"; f.start();
@@ -159,8 +164,29 @@ TEST(ShadowRuntime, RefusedSaveRepliesStorageFaultWithoutLatchWriteOrRead) {
     EXPECT_FALSE(f.core->faulted()); EXPECT_FALSE(f.core->runtimeFaulted()); EXPECT_EQ(f.core->revision(),0u);
     EXPECT_EQ(f.store.writes,0u); EXPECT_EQ(f.store.reads,reads);
     EXPECT_TRUE(cJSON_IsFalse(field(f.get("fw/hello").get(),"storage_fault")));
-    f.store.refuseSave=false; auto again=f.configuration(config(),2); f.send("ha/config",again.get());
+    f.store.refuseSave=false; f.now+=ShadowController::saveBackoffMs; f.connect(); f.heartbeat(); f.configure();
     EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"applied"); EXPECT_EQ(f.core->revision(),1u);
+}
+// Review probe PersistentFailingSaveNeverLatchesAndKeepsWriting: HA reopens
+// and re-proposes within 15-30 s after every storage_fault. A store that keeps
+// failing gets at most maximumFailedSaves write attempts per boot, one per
+// saveBackoffMs; then the controller latches as beta.19 did after one.
+TEST(ShadowRuntime, PersistentFailingSaveIsBoundedThenLatches) {
+    for(bool refused:{false,true}) {
+        Fixture f; f.start(); f.connect(); f.heartbeat();
+        if(refused)f.store.refuseSave=true; else f.store.failSave=true;
+        for(unsigned i=0;i<40&&!f.core->faulted();++i) {
+            f.now+=20000; f.connect(); f.heartbeat(); f.configure();
+            EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");
+        }
+        // 40 retries, 20 s apart: three store attempts (0, 5, 10 min), then latched.
+        EXPECT_TRUE(f.core->faulted()); EXPECT_TRUE(f.core->runtimeFaulted());
+        EXPECT_EQ(f.store.saves,ShadowController::maximumFailedSaves);
+        EXPECT_EQ(f.store.writes,refused?0u:ShadowController::maximumFailedSaves);
+        // Latched: nothing more reaches the store.
+        f.now+=ShadowController::saveBackoffMs; f.connect(); f.configure();
+        EXPECT_EQ(f.store.saves,ShadowController::maximumFailedSaves);
+    }
 }
 TEST(ShadowRuntime, RebootReadbackMismatchAndDisconnectFenceAllOldPackets) {
     Fixture f; f.ready(); auto old=f.observation(); f.send("ha/observations",old.get());

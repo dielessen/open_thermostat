@@ -145,8 +145,14 @@ def plan_error(err):
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unconfirmed")
         return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_rejected",
                                   translation_placeholders={"error": err.error})
+    if str(err) in SIGN_IN_ERRORS:  # all E32 web sessions in use, or too many sign-in attempts
+        return HomeAssistantError(translation_domain=DOMAIN, translation_key=SIGN_IN_ERRORS[str(err)])
     return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unreachable",
                               translation_placeholders={"error": str(err)})
+
+
+SIGN_IN_ERRORS = {"controller_session_capacity": "e32_session_capacity",
+                  "controller_try_again_later": "e32_try_again_later"}
 
 
 class RoomPlanLink:

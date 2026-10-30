@@ -464,6 +464,9 @@ class ControllerClient:
         self.address = controller_address(address)
         self._session = None
         self._csrf = None
+        # True once /auth/login answered 200: the E32 holds a session for this
+        # client, even when the CSRF read after it failed (closed with a logout).
+        self._signed_in = False
         self.logout_confirmed = False
         # From /auth/session after a login: True while the E32 still has its
         # factory password, False once changed, None on firmware that does not say.
@@ -474,6 +477,7 @@ class ControllerClient:
             raise ControllerLinkError("controller_request_invalid")
         self.logout_confirmed = False
         self._csrf = None
+        self._signed_in = False
         self._session = aiohttp.ClientSession(
             cookie_jar=aiohttp.CookieJar(unsafe=True),  # Native E32 uses LAN IP cookies.
             timeout=aiohttp.ClientTimeout(total=10), trust_env=False,
@@ -528,6 +532,12 @@ class ControllerClient:
                     raise HeatingPlanRejected(response.status, await _error_name(response))
                 if path == HEATING_FLOW and response.status == 404:
                     raise ControllerLinkError("controller_update_required")  # firmware before beta.19
+                if response.status == 429:
+                    # /auth/login: all E32 web sessions are in use (session_capacity), or
+                    # too many failed sign-ins (try_again_later, Retry-After 30 s).
+                    raise ControllerLinkError("controller_session_capacity"
+                                              if await _error_name(response) == "session_capacity"
+                                              else "controller_try_again_later")
                 if response.status == 412:
                     raise ControllerLinkError("controller_settings_changed")
                 if response.status == 409:
@@ -560,14 +570,20 @@ class ControllerClient:
             raise ControllerLinkError("controller_auth_failed")
         # Do not retain the supplied password in this object or an HA entry.
         await self._request("POST", "/auth/login", form={"username": "admin", "password": password})
+        self._signed_in = True
+        session = await self._read_session()
+        self._csrf = session["csrf"]
+        flag = session.get("default_password")
+        self.default_password = flag if type(flag) is bool else None
+
+    async def _read_session(self):
+        """GET /auth/session of a signed-in client: its CSRF proof (and default_password)."""
         session = await self.async_read("/auth/session")
         if (type(session) is not dict or session.get("authenticated") is not True
                 or type(session.get("csrf")) is not str
                 or re.fullmatch(r"[0-9a-f]{64}", session["csrf"]) is None):
             raise ControllerLinkError("controller_auth_failed")
-        self._csrf = session["csrf"]
-        flag = session.get("default_password")
-        self.default_password = flag if type(flag) is bool else None
+        return session
 
     async def async_read_heating_plan(self):
         """The E32 room plan (GET /config/heating), parsed but not yet validated."""
@@ -663,14 +679,19 @@ class ControllerClient:
         if self._session is None:
             return
         try:
-            if self._csrf and not self._session.closed:
+            # Every sign-in ends with a logout: the E32 has only 4 web sessions and
+            # refuses new sign-ins (429 session_capacity) while they are all in use.
+            if (self._csrf or self._signed_in) and not self._session.closed:
                 try:
                     async with asyncio.timeout(3):
+                        if not self._csrf:
+                            self._csrf = (await self._read_session())["csrf"]
                         await self._request("POST", "/auth/logout")
                     self.logout_confirmed = True
                 except (ControllerLinkError, TimeoutError):
                     pass
         finally:
             self._csrf = None
+            self._signed_in = False
             self._session.cookie_jar.clear()
             await self._session.close()

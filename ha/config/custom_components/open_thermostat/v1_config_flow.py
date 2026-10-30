@@ -194,8 +194,11 @@ class V1FlowMixin:
                         default = getattr(client, "default_password", None)
                 except ControllerLoginRejected:
                     errors["password"] = "reauth_password_wrong"
-                except ControllerLinkError:
-                    errors["base"] = "reauth_unreachable"
+                except ControllerLinkError as err:
+                    # 429 from the E32: all its web sessions in use, or too many attempts.
+                    errors["base"] = {"controller_session_capacity": "reauth_session_capacity",
+                                      "controller_try_again_later": "reauth_try_again_later"}.get(
+                                          str(err), "reauth_unreachable")
                 else:
                     from .e32_access import save_password
                     report_password(self.hass, entry, default)

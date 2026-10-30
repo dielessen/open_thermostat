@@ -10,7 +10,7 @@ from e32_source_inputs import verify as verify_source_inputs
 from release_notices import canonical, digest as canonical_digest
 
 
-def verify(package, root=None):
+def verify(package, root=None, allow_accepted=False):
     package = Path(package)
     checks = []
     def check(ok, name):
@@ -63,8 +63,9 @@ def verify(package, root=None):
     if accepted_path_required:
         from verify_accepted_update_path import verify_report
         compatibility = json.loads((package / "accepted-predecessor-compatibility.json").read_text())
-        verify_report(package,compatibility,package/"e32v2-update.json",source_root=root)
-        check(True,"receipt-bound accepted updater catalog and image compatibility")
+        verify_report(package,compatibility,package/"e32v2-update.json",source_root=root,allow_accepted=allow_accepted)
+        check(True,"accepted version: reproduced and verified, no successor update path (development build)"
+              if compatibility["result"]=="ALREADY_ACCEPTED" else "receipt-bound accepted updater catalog and image compatibility")
     # Independently inspect the delivered material, rather than relying on the
     # packager's claim that source/notices/relink objects were supplied.
     third_party = package / "third-party"
@@ -125,8 +126,9 @@ if __name__ == "__main__":
     parser.add_argument("package",type=Path)
     parser.add_argument("--root",type=Path)
     parser.add_argument("--report",type=Path)
+    parser.add_argument("--allow-accepted-version",action="store_true",help="branch/PR builds only: the package may carry the accepted release")
     args = parser.parse_args()
-    report = verify(args.package,args.root)
+    report = verify(args.package,args.root,args.allow_accepted_version)
     if args.report:
         args.report.write_text(json.dumps(report,indent=2)+"\n")
     print(json.dumps({k:v for k,v in report.items() if k!="checks"},indent=2))

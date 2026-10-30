@@ -36,6 +36,7 @@
 #include <esp_timer.h>
 #include <esp_ota_ops.h>
 #include "update/GitHubUpdate.h"
+#include "update/RestartTimer.h"
 #endif
 #include <esp_system.h>
 #include "Room.h"
@@ -401,6 +402,13 @@ public:
     // The E32 owns the boiler or still withdraws its request (loop task): the
     // supervisor then restarts only for a real hang.
     bool claimsBoiler() const { return activeGuard_.claimsBoiler(); }
+    // A restart is about to happen (update::loop, loop task): the guard stops
+    // and takes no new control this boot; true once no positive request can
+    // still be held, or after BoilerReleaseHold::maxMs. Shadow mode: at once.
+    bool releaseBoilerForRestart() {
+        activeGuard_.withdraw(bleReceiptClock());
+        return restartHold_.ready(static_cast<uint32_t>(bleReceiptClock()), activeGuard_.released());
+    }
     uint32_t managedBleQueueDrops() const { return managedBle_.queueDrops(); }
     // Queued, not refused: a running automatic scan ends first (loop() starts the Search).
     bool requestBleDiscovery() {
@@ -707,6 +715,7 @@ private:
     control::RoomOverrides overrides_; // beta.19: temporary overrides, window pauses, away (targets only)
     control::ShadowComparison shadowComparison_; // E32 decision vs the tado's 0x1A, per day
     control::ActiveHeatGuard activeGuard_;
+    update::BoilerReleaseHold restartHold_;
     // Per room how fast it warms per flow (report only; ~1.15 KB heap per room, PSRAM extmem).
     control::FlowLearner flowLearner_;
     control::FlowPolicy flowPolicy_; // beta.19 options: weather curve, learned flow, optimum start (default: advice)

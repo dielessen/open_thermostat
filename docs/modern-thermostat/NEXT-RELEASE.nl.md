@@ -211,8 +211,13 @@ ketel en EasyControl Adapter op onze vraag reageren; dat test fase 4.
 2. minstens 10 verwarmingsperiodes van de tado vergeleken, inclusief
    nachtverlaging en ochtendopwarming en een periode zonder warmtevraag;
 3. de beslissingen ongeveer gelijk zijn: warmtevraag op ongeveer dezelfde
-   momenten (enkele minuten verschil), aanvoer in hetzelfde gebied (±31–43 °C)
-   en niet vaker aan/uit dan de tado;
+   momenten (enkele minuten verschil) en niet vaker aan/uit dan de tado; de
+   gevraagde aanvoer komt nooit boven de harde grens (het laagste van het
+   planmaximum 60 °C, de eigen ketelgrens en 80 °C). Het aanvoerniveau leert de
+   E32 zelf, zo laag mogelijk; de eerdere band ±31–43 °C is geen criterium meer
+   (eigenaar, 30 oktober: "ja ik zou daar de harde grens aanhouden en gewoon
+   leren"). Het verschil met de tado blijft ter informatie in het rapport
+   (`tools/switchover/shadow_exit.py`);
 4. de bronnen werken: de tado-waarde komt via HA binnen en de Xiaomi heeft
    minstens één keer overgenomen (HA of de tado-integratie even uitgezet).
 
@@ -230,9 +235,11 @@ Doel: de E32 neemt de ketelvraag over van de tado. Eerst alleen de woonkamer.
   zij worden warm zodra de woonkamer warmte vraagt, ook de inactieve badkamer.
 - **Ketelzijde:** de EasyControl Adapter (0x08) krijgt na ontkoppeling van de
   tado alleen nog vraag van de E32. Harde grens aanvoer 60 °C.
-- **Regeling:** de E32 moduleert de aanvoertemperatuur (zoals de tado nu doet:
-  waargenomen 31–43 °C) op basis van ruimtetemperatuur en setpoint, met
-  minimale brander-aan/uit-tijden.
+- **Regeling:** de E32 moduleert de aanvoertemperatuur (zoals de tado nu doet;
+  op 28 oktober waargenomen 31–43 °C, op 30 oktober bij kou tot 49 °C) op basis
+  van ruimtetemperatuur en setpoint, met minimale brander-aan/uit-tijden. Het
+  niveau leert de E32 zelf binnen de harde grens; geen vaste band (eigenaar,
+  30 oktober).
 - **Ruimtes:** woonkamer actief, alleen een thermostaat/temperatuurbron, geen
   kranen. Badkamer inactief. Een ruimte kan tijdelijk worden gedeactiveerd.
 - **Bron:** eerst de tado via Home Assistant (klimaatentiteit: gemeten en

@@ -20,7 +20,10 @@ std::string availability(); // Cached local summary; never starts network work.
 // (confirms a new OTA image, see BootConfirmation). networkProven: since boot
 // the device had an IP address and served a request, held an MQTT session or
 // got a gateway probe reply (also required for that confirmation).
-void loop(bool automaticAllowed,bool supervisorAlive,bool networkProven);
+// releaseBoiler: called when a restart is about to happen (reboot, controlled
+// restart, rollback); false = wait, the E32 still withdraws its boiler request
+// (BoilerReleaseHold bounds it). nullptr: restart at once.
+void loop(bool automaticAllowed,bool supervisorAlive,bool networkProven,bool (*releaseBoiler)()=nullptr);
 // A restart after delayMs at the first moment without an update, an
 // unconfirmed boot or a boiler session; reason: SupervisorPolicy::Reason.
 bool scheduleControlledRestart(uint32_t delayMs,uint8_t reason);

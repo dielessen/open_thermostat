@@ -37,6 +37,8 @@ jobs:
           python3 test/static_assets/run.py
       - name: Test release metadata and installed updater size compatibility
         run: python3 -m unittest discover -s scripts -p test_organize_releases.py -v
+      - name: Test the switch-over monitor and the shadow exit criteria (no device)
+        run: python3 -I -m unittest discover -s tools/switchover -p "test_*.py" -v
       - uses: actions/setup-node@v4
         with:
           node-version: '24'

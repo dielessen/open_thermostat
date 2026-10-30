@@ -628,6 +628,44 @@ TEST(StaleNativePlan, NewlySelectedSourceErasesOnlyRecordsItCanNeverLoad) {
     Store boot;boot.bytes=empty;std::map<std::string,std::string> output;
     EXPECT_TRUE(nativeCore(boot,*planB,output)->faulted());
 }
+// Review probes: a failed save while the stale record is ignored, or after the
+// boot erased it, is settled like any other plain failed save (no latch).
+TEST(StaleNativePlan, FailedSaveWhileTheRecordIsIgnoredOrErasedDoesNotLatch) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    for(bool erasedAtBoot:{false,true}) {
+        Fixture f;f.store.bytes=staleNativePlan(*source);f.start();ASSERT_TRUE(f.core->staleNativePlanIgnored());
+        if(erasedAtBoot)f.store.bytes.clear(); // ModernTransport's boot erase
+        const auto before=f.store.bytes;
+        f.connect();f.heartbeat();f.store.failSave=true;f.configure();
+        EXPECT_FALSE(f.core->faulted())<<erasedAtBoot;EXPECT_EQ(f.core->revision(),0u);
+        EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");
+        EXPECT_EQ(f.store.bytes,before);
+    }
+}
+// The native plan path: a refusal is spared the latch like on the plain path;
+// a save that really failed still latches (recovery: explicit fresh readback).
+TEST(StaleNativePlan, NativePathLatchesAFailedSaveButNotARefusal) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    const auto plan=staleNativePlan(*source,1);
+    const auto ready=[&](Fixture& f){
+        f.nativeSource=source.get();f.seasonalSafety=[]{return SeasonalSafetySnapshot{};};
+        f.start();ASSERT_FALSE(f.core->faulted());f.connect();f.heartbeat();
+        ASSERT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"accepted");
+    };
+    { Fixture f;ready(f);auto o=f.configuration(plan);f.send("ha/config",o.get());
+      EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"applied");EXPECT_EQ(f.core->revision(),1u); }
+    for(bool committed:{false,true}) {
+        Fixture f;ready(f);f.store.failSave=true;f.store.commitOnError=committed;
+        auto o=f.configuration(plan);f.send("ha/config",o.get());
+        EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");
+        EXPECT_TRUE(f.core->faulted())<<committed;EXPECT_TRUE(f.core->runtimeFaulted());EXPECT_EQ(f.core->revision(),0u);
+        EXPECT_EQ(f.store.saves,1u);
+    }
+    Fixture f;ready(f);f.store.refuseSave=true;
+    auto o=f.configuration(plan);f.send("ha/config",o.get());
+    EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");
+    EXPECT_FALSE(f.core->faulted());EXPECT_EQ(f.core->revision(),0u);EXPECT_EQ(f.store.writes,0u);EXPECT_EQ(f.store.bytes,"");
+}
 TEST(StaleNativePlan, LegacySchemaOneConfigStillLoadsUnchanged) {
     Fixture f;f.store.bytes=config(4);f.start();
     EXPECT_FALSE(f.core->faulted());EXPECT_FALSE(f.core->staleNativePlanIgnored());

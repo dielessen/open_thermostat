@@ -5,6 +5,7 @@ No actual network, credentials, device operations or timing claims. The
 password store is a fake here; test/onboarding/firmware.cpp runs DeviceAccess.
 """
 from pathlib import Path
+import os
 import subprocess
 root=Path(__file__).resolve().parents[2];source=(root/'src/REST.h').read_text();start=source.index('\tvoid login() {');method=source[start:source.index('\n\tvoid logout()',start)]
 logout_start=source.index('\tvoid logout() {');logout=source[logout_start:source.index('\n#endif',logout_start)]
@@ -111,4 +112,6 @@ int main(){
 p=root/'out/session-recovery';p.mkdir(exist_ok=True);cpp=p/'login-handler.cpp';cpp.write_text(pre+method+logout+post)
 subprocess.run(['gcc','-std=c11','-c',str(cjson/'cJSON.c'),'-o',str(p/'cjson.o')],check=True)
 subprocess.run(['g++','-std=c++17','-Wall','-Wextra','-Werror','-I'+str(root/'src'),'-I'+str(cjson),str(cpp),str(p/'cjson.o'),'-o',str(p/'login-handler')],check=True)
-subprocess.run([str(p/'login-handler')],check=True)
+# test/native_harnesses.sh build: compile only, a stale stub fails before anything runs.
+if os.environ.get('OT_HARNESS_BUILD_ONLY')!='1':
+    subprocess.run([str(p/'login-handler')],check=True)

@@ -9,6 +9,8 @@ const initial=()=>({schema:1,boot_id:'000000000000002a',revision:0,state_sequenc
  zero_test_available:true,site_confirmation_required:true,pressure_check_required:true,pressure_reading_required:true,
  pressure_reading_limits:{minimum_decibar:11,maximum_decibar:25},operator_lease_ms:5000,can_start:false,can_stop:false,
  reported_stop_confirmed:false,positive_frames:0,zero_frames:0,heat_remaining_ms:0,requested_flow_c:null,limits,progress:progress()});
+// Node-side wait for a request the route handler records asynchronously (no fixed sleep).
+const until=async(check,what)=>{for(const end=Date.now()+10000;!check();await new Promise(r=>setTimeout(r,20)))if(Date.now()>end)throw new Error('timed out waiting for '+what);};
 (async()=>{
  fs.mkdirSync(out,{recursive:true});const results=[];
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});
@@ -131,7 +133,9 @@ const initial=()=>({schema:1,boot_id:'000000000000002a',revision:0,state_sequenc
   assert.equal(await page.locator('[data-test-stop]').isEnabled(),true);
   assert.match(await page.locator('[data-workflow-help]').innerText(),language==='nl'?/eerdere proef niet/:/not supervising the previous test/);
   const stoppedBefore=posts.filter(p=>p.endsWith('/stop')).length;
-  await page.locator('[data-test-stop]').click();assert.equal(posts.filter(p=>p.endsWith('/stop')).length,stoppedBefore+1);
+  // The click resolves before the page's POST reaches the route handler: wait for it, then count exactly.
+  await page.locator('[data-test-stop]').click();await until(()=>posts.filter(p=>p.endsWith('/stop')).length>stoppedBefore,'the stop request');
+  assert.equal(posts.filter(p=>p.endsWith('/stop')).length,stoppedBefore+1);
   update({phase:'completed',can_start:false,can_stop:false,can_prepare:true,reported_stop_confirmed:true,zero_frames:3});await refresh();
   assert.doesNotMatch(await page.locator('[data-test-action]').innerText(),/Wait for a reported stop|Wacht op een gemelde stop/);
   assert.deepEqual(errors,[]);results.push({width,language,result:'PASS',guidedActions:true,blockedReasons:true,liveBoilerValues:true,honestOutcomes:true,reopenPreservesResult:true,physicalProof:false});await page.close();

@@ -76,6 +76,8 @@ Assistant.
 
 **Not needed:** a cloud account, HACS or the ESPHome integration.
 
+<a id="2-install-the-firmware-on-a-new-e32-usb"></a>
+
 ## 2. Install the firmware on the E32 (first time, over USB)
 
 You do this only once. Later updates go over your network and keep your
@@ -589,6 +591,8 @@ later release, together with an attended switch-over procedure in which
 someone is present at the boiler; see the [switch-over procedure](SWITCHOVER.md)
 (draft). Until then, keep your existing thermostat connected.
 
+<a id="9-updates"></a>
+
 ## 13. Updates
 
 Updates keep your network settings, rooms, programs and paired sensors.
@@ -679,6 +683,8 @@ puts the rooms back in shadow mode. It is refused while a boiler test runs.
 Home Assistant's own backup (Settings → System → Backups) covers the
 integration's settings in Home Assistant, including the copied
 `custom_components` folder.
+
+<a id="10-forgotten-password-and-wi-fi-recovery-over-usb"></a>
 
 ## 15. Forgotten password and Wi-Fi recovery over USB
 

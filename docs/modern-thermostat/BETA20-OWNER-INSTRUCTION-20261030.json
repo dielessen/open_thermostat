@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-30T10:35:00Z",
+  "requests": [
+    "Owner, 30 Oct 2026, chose \"E32 + HA hotfix (Aanbevolen)\" for the stability hotfix, then: \"Dit word een release waar we vooral fixes gaan toepassen. zet er zoveel agents op als nodig. controleer de code dubbel . stabiliteit en betrouwbaarhoud en gebruiksvriendelijkheid staat voorop. geen fouten meer nu\". Standing approval for publishing and installing: \"je hebt sowieso akkoord je hoeft niet op mij te wachten\"."
+  ],
+  "scope": "Beta20 + HA 0.4.0b12 stability hotfix: publish both releases and install them on the owner's Home Assistant and E32 (HA first, then the E32 with the HA Firmware update entity). Shadow mode only: board::emsActiveHeatAllowed stays false, no boiler output, boiler settings writes disabled.",
+  "not_included": [
+    "opening active control (board::emsActiveHeatAllowed stays false; no attended switch-over)",
+    "a HACS repository for the integration",
+    "editing the bodies of earlier published releases (beyond the automatic organize_releases archive labels)"
+  ],
+  "publication_approval_reply": "Owner, 30 Oct 2026, chose \"E32 + HA hotfix (Aanbevolen)\" for the stability hotfix, then: \"Dit word een release waar we vooral fixes gaan toepassen. zet er zoveel agents op als nodig. controleer de code dubbel . stabiliteit en betrouwbaarhoud en gebruiksvriendelijkheid staat voorop. geen fouten meer nu\". Standing approval for publishing and installing: \"je hebt sowieso akkoord je hoeft niet op mij te wachten\".",
+  "publication_approval_at_utc": "2026-10-30T10:35:00Z",
+  "installation_approval_reply": "Owner, 30 Oct 2026, chose \"E32 + HA hotfix (Aanbevolen)\" for the stability hotfix, then: \"Dit word een release waar we vooral fixes gaan toepassen. zet er zoveel agents op als nodig. controleer de code dubbel . stabiliteit en betrouwbaarhoud en gebruiksvriendelijkheid staat voorop. geen fouten meer nu\". Standing approval for publishing and installing: \"je hebt sowieso akkoord je hoeft niet op mij te wachten\"."
+}

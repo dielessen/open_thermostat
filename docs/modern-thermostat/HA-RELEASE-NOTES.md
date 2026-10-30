@@ -1,3 +1,56 @@
+# HA 0.4.0b12 — a stability release: boiler values back, no dead integration, a working week planner
+<!-- user-release-notes:v2:en -->
+
+Companion release for E32 beta20, fixes only. Needs Home Assistant 2026.10.0
+or newer.
+
+## New
+
+- Nothing new on purpose: this release only makes 0.4.0b11 dependable.
+
+## Fixed
+
+- **Boiler values without a session**: flow, return, hot water, modulation
+  and the other boiler values come straight from the E32's retained topics,
+  so they no longer disappear when the session with the E32 is refused.
+  "Unavailable" now only means that the E32 itself is offline.
+- **Only what your boiler has**: values that the boiler profile marks as not
+  fitted or never reported are no longer shown. A value that appears later
+  (for example after fitting a pressure sensor) comes back by itself.
+  Entities you renamed or changed are never touched.
+- **No dead integration after a failed step**: a Connect E32 or Repairs
+  "remove the old room" that fails, times out or is cancelled no longer
+  leaves the link switched off. An installation left in that state by
+  0.4.0b11 is repaired by the next Connect E32. Removing the old room now
+  first checks that the E32 runs beta19 or newer and says so when it does not.
+- **Clear sign-in messages**: "too many open sign-ins" and "too many
+  attempts" instead of "unexpected response", and Home Assistant always
+  signs out of the E32 again.
+- **The week planner view works with any set of custom cards**: another
+  dashboard card could hide ours, which showed "Configuration error".
+- **Steadier and lighter**: one failing part (a sensor group, a listener, the
+  dashboard) no longer stops the rest; boiler entities are only written when
+  something changed, which removes the "took 0.6 seconds" and "updated while
+  disabled" warnings and much database traffic; Home Assistant retries while
+  MQTT is still starting.
+- **Tidy entity list**: old counters and a duplicate outdoor temperature that
+  this version never fills are removed (history and statistics stay).
+  Repairs items now disappear once their cause is gone.
+- **Clearer texts**: entity names in Dutch and Polish, an honest description
+  of shadow mode, and a new room's setting device is never filled in for you:
+  Home Assistant asks first.
+
+## Updating
+
+Install 0.4.0b12, restart Home Assistant, then update the E32 to beta20 with
+the Firmware entity. 0.4.0b12 also works with E32 beta19.
+
+## Limitations
+
+Shadow mode only: Home Assistant sets the rooms' setting devices, the E32
+sends nothing to the boiler. EMS Classic boilers only; EMS+ comes later.
+No HACS listing yet: install from the release ZIP.
+
 # HA 0.4.0b11 — a room thermostat per E32 room, a week planner and the official update route
 <!-- user-release-notes:v2:en -->
 

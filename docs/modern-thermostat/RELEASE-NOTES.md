@@ -1,3 +1,55 @@
+# E32 V2 beta20 — a stability release: no stuck Home Assistant link, fewer restarts
+<!-- user-release-notes:v2:en -->
+
+A fix-only release on top of beta19, with no new features. The E32 still runs
+heating in shadow mode. Install it together with HA 0.4.0b12 (see Updating).
+
+## New
+
+- Nothing new on purpose: this release only makes beta19 dependable.
+
+## Fixed
+
+- The E32 no longer reports a storage fault for a session record from an
+  earlier Home Assistant link. On some installations every start reported
+  one after "Connect E32", so Home Assistant refused its session and the
+  boiler values stayed unavailable. The leftover record is now ignored and
+  removed, also when the link is changed again later.
+- A failed save of the Home Assistant session settings no longer leaves the
+  E32 stuck until a manual restart. It checks what was stored and recovers;
+  only a truly unclear state leads to one automatic restart, at the earliest
+  15 minutes after start-up.
+- Signing in no longer fails because all four web sessions are taken: the
+  E32 makes room by ending the oldest session that has been idle for at least
+  2 minutes. A running boiler test or update is never interrupted.
+- One silent Bluetooth thermometer (for example an empty battery) no longer
+  restarts the E32. The room reading turns stale instead; the E32 only
+  restarts Bluetooth when it hears no sensor at all.
+- Restoring a backup from another Home Assistant link no longer silences the
+  link: the old link setting is cleared and the restore says so.
+- After an unfinished Wi-Fi setup the E32 rejoins its saved Wi-Fi at once
+  instead of after 15 minutes.
+- Settings and Home Assistant now describe shadow mode correctly: the E32
+  sends nothing to the boiler, but Home Assistant does set each room's
+  setting device to its week program.
+- The system log names the new automatic restart reason.
+
+## Updating
+
+Update the integration to HA 0.4.0b12 first, restart Home Assistant, then
+press Install on the E32's Firmware entity. beta19 and beta20 use the same
+topics, so HA 0.4.0b11 keeps working with beta20 and HA 0.4.0b12 with beta19.
+Settings, rooms, week programs and Bluetooth sensors are kept. The E32
+confirms the new firmware after about a minute of normal running; until then
+a failed start rolls back.
+
+## Limitations
+
+Shadow mode only: active boiler control stays locked in the firmware until
+the attended switch-over. EMS Classic (EMS 1.0) boilers only; EMS+ comes
+later. Window and door pauses use Home Assistant contacts. Charts are lost on
+a restart.
+
 # E32 V2 beta19 — a steady Home Assistant link, comfort controls and a visual week planner
 <!-- user-release-notes:v2:en -->
 

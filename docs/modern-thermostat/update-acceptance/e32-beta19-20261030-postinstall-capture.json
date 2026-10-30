@@ -1,0 +1,141 @@
+{
+ "captured_at_utc": "2026-10-30T11:04:43Z",
+ "ha_core_version": "2026.10.4",
+ "ha_update_entity": {
+  "state": "unknown",
+  "last_changed": "2026-10-30T09:36:10.337725+00:00",
+  "installed_version": null,
+  "latest_version": "v0.1.0-e32v2-beta.19",
+  "last_install": {
+   "tag": "v0.1.0-e32v2-beta.19",
+   "from_version": "v0.1.0-e32v2-beta.18",
+   "sha256": "350c8fc84aae86c73881e52d46e8e9ae500dd89171ee78beb46a21e36b628f54",
+   "size": 2810192,
+   "started_at": "2026-10-30T08:24:33Z",
+   "finished_at": "2026-10-30T08:25:54Z",
+   "duration_s": 80.5,
+   "result": "installed",
+   "uploads": 1,
+   "reported": {
+    "version": "v0.1.0-e32v2-beta.19",
+    "source_commit": "01919c83b42e6d7dac7818435b5df1043042cbad",
+    "web_sha256": "0994817a26f699b513b912b3253870cbcb506759b8ff7c3ca07c727de8e09ac5",
+    "elf_sha256": "79b22821427e51affda5a8c8de9c1e5f6778089ed9b8ddc6b759cce862eb4a68"
+   }
+  },
+  "release_url": "https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.19"
+ },
+ "/status/version": {
+  "project": "arduino-lib-builder",
+  "version": "v0.1.0-e32v2-beta.19",
+  "source": "01919c83b42e6d7dac7818435b5df1043042cbad",
+  "web_sha256": "0994817a26f699b513b912b3253870cbcb506759b8ff7c3ca07c727de8e09ac5",
+  "date": "Mar  5 2024",
+  "time": "12:36:24",
+  "idf": "v4.4.7-dirty",
+  "sha256": "79b22821427e51affda5a8c8de9c1e5f6778089ed9b8ddc6b759cce862eb4a68"
+ },
+ "/updates/status": {
+  "installed": "v0.1.0-e32v2-beta.19",
+  "source_commit": "01919c83b42e6d7dac7818435b5df1043042cbad",
+  "web_sha256": "0994817a26f699b513b912b3253870cbcb506759b8ff7c3ca07c727de8e09ac5",
+  "repository": "https://github.com/dielessen/open_thermostat",
+  "build_marker": "OT_E32V2_OTA_V1:v0.1.0-e32v2-beta.19:01919c83b42e6d7dac7818435b5df1043042cbad:0994817a26f699b513b912b3253870cbcb506759b8ff7c3ca07c727de8e09ac5:END",
+  "phase": "idle",
+  "error": "",
+  "operation": "none",
+  "download_error": null,
+  "selected": "",
+  "busy": false,
+  "can_check": true,
+  "boot_pending": false,
+  "reboot_required": false,
+  "rollback_available": true,
+  "reboot_scheduled": false,
+  "received": 0,
+  "total": 0,
+  "reset_reason": 3,
+  "running_partition_address": 65536,
+  "boot_partition_address": 65536,
+  "checkpoint_save_failed": false,
+  "last_saved_checkpoint": {
+   "scope": "native_https_install_only",
+   "attempt": 6,
+   "stage": "boot_slot_selected",
+   "from_version": "v0.1.0-e32v2-beta.3",
+   "from_source": "996587da4a05c8a9de4a25a5b8ab3d9ed4c6f99a",
+   "target_version": "v0.1.0-e32v2-beta.4",
+   "received": 2877856,
+   "total": 2877856,
+   "http_status": 200
+  },
+  "check_cached": false,
+  "automatic_check_interval_seconds": 43200,
+  "automatic_failure_retry_seconds": 1800,
+  "releases": []
+ },
+ "/status/logs": {
+  "previous_boot": {
+   "reset_reason": 3,
+   "wifi_lost_restarts": 0,
+   "bluetooth_silent_restarts": 0,
+   "network_dead_restarts": 0,
+   "previous": {
+    "uptime_s": 2822,
+    "minimum_free_heap_bytes": 29680,
+    "loop_stack_minimum_bytes": 3692,
+    "loop_age_ms": 243,
+    "wifi_rssi": -78,
+    "wifi_connected": true,
+    "broker_connected": true,
+    "supervisor_restart": "none",
+    "minimum_largest_internal_block_bytes": 31732,
+    "supervisor_stack_minimum_bytes": 2456,
+    "ems_uart_stack_minimum_bytes": 2952,
+    "bluetooth_host_stack_minimum_bytes": 2512,
+    "last_request": "/status/logs",
+    "loop_phase": "update"
+   }
+  },
+  "runtime": {
+   "free_internal_bytes": 53548,
+   "minimum_free_internal_bytes": 14548,
+   "largest_internal_block_bytes": 51188,
+   "free_psram_bytes": 3944067,
+   "atomics_in_psram": 0,
+   "stack_minimum_bytes": {
+    "loop": 3692,
+    "supervisor": 2444,
+    "ems_uart": 2940,
+    "bluetooth_host": 2516
+   },
+   "nvs": {
+    "used_entries": 198,
+    "free_entries": 432,
+    "total_entries": 630,
+    "namespaces": 13
+   },
+   "mqtt_budget_disconnects": 0,
+   "mqtt_stalled_disconnects": 0,
+   "mqtt_socket_error_disconnects": 0,
+   "mqtt_queue_rejected": 0,
+   "mqtt_queue_peak_bytes": 1857,
+   "mqtt_write_latency_max_ms": 389,
+   "heating_telemetry_dropped": 0,
+   "heating_telemetry_failed": 0,
+   "heating_telemetry_large": 0
+  },
+  "boot": 402689778
+ },
+ "github_release": {
+  "tag_name": "v0.1.0-e32v2-beta.19",
+  "draft": false,
+  "prerelease": true,
+  "published_at": "2026-10-30T04:13:16Z",
+  "asset": {
+   "name": "firmware.bin",
+   "size": 2810192,
+   "digest": "sha256:350c8fc84aae86c73881e52d46e8e9ae500dd89171ee78beb46a21e36b628f54"
+  }
+ }
+}

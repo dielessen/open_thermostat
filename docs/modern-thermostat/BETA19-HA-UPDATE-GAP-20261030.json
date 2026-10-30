@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "date": "2026-10-30",
+  "status": "INCOMPLETE",
+  "scope": "Beta19 update evidence gap (Home Assistant route); do not replace the accepted beta4 basis",
+  "candidate_tag": "v0.1.0-e32v2-beta.19",
+  "published": true,
+  "installed_tag": "v0.1.0-e32v2-beta.19",
+  "install_route": "home_assistant",
+  "native_install_commands": 0,
+  "manual_upload_commands": 0,
+  "manual_result": "Installed by the owner with the Home Assistant Firmware update entity (HA 0.4.0b11, last_install: one upload, digest/size/marker verified, reported identity exact); no pre-install capture, backup or independent check",
+  "acceptance_receipt": "docs/modern-thermostat/update-acceptance/e32-beta19-20261030.json",
+  "acceptance_receipt_sha256": "dbffdf683a4a35a9aa41cf1ad1f0992e5b87fb71024bffd97c4e65e1c00013ea",
+  "acceptance_receipt_status": "INCOMPLETE",
+  "missing_checks": [
+    "backup_verified",
+    "fresh_preflight_passed",
+    "independent_postcheck_passed",
+    "settings_programs_bindings_preserved"
+  ],
+  "last_full_native_accepted": "v0.1.0-e32v2-beta.4",
+  "native_https_root_cause_fixed": false
+}

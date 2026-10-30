@@ -157,7 +157,7 @@ async def test_room_dashboard_uses_registry_v2_not_old_history_and_english_quali
     dashboard=RoomDashboard(hass,"fixture",e.entry_id);dashboard._rooms={KEY}
     config=dashboard._dashboard_config();raw=str(config)
     from custom_components.open_thermostat.dashboard import view_cards
-    entities=[item for view in config["views"] for card in view_cards(view) if card["type"]=="entities" for item in card["entities"]]
+    entities=[item for view in config["views"] for card in view_cards(view) if card["type"]=="entities" for item in [row["entity"] for row in card["entities"]]]
     assert new.entity_id in entities and old.entity_id not in entities
     assert "unknown or stale inputs leave gaps" in raw and "not measured heat" in raw
     import os

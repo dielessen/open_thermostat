@@ -175,7 +175,8 @@ TEXT = {
         "weather_curve": "Heating curve",
         "design_flow": "At −10 °C",
         "apply_learned": "Use learning",
-        "agreement_short": "Comparison",
+        "compare_link": "E32 compared with your thermostat",
+        "no_request": "No boiler request",
         "flow_short": "Flow", "return_short": "Return",
         "e32": "E32", "thermostat": "Thermostat",
         "comparison_view": "Comparison",
@@ -251,7 +252,8 @@ TEXT = {
         "weather_curve": "Stooklijn",
         "design_flow": "Bij −10 °C",
         "apply_learned": "Leren toepassen",
-        "agreement_short": "Vergelijking",
+        "compare_link": "E32 vergeleken met je thermostaat",
+        "no_request": "Geen ketelvraag",
         "flow_short": "Aanvoer", "return_short": "Retour",
         "e32": "E32", "thermostat": "Thermostaat",
         "comparison_view": "Vergelijking",
@@ -305,21 +307,29 @@ def _known(entity_id):
     return [{"condition": "state", "entity": entity_id, "state_not": ["unavailable", "unknown"]}]
 
 
-def _learning_cards(t, room):
+def _rows(entity_ids):
+    """Entities-card rows named by the entity alone: the card title already says whose they are,
+    and the device name in front of every row cut the names short."""
+    return [{"entity": entity_id, "name": {"type": "entity"}} for entity_id in entity_ids]
+
+
+def _learning_cards(t, room, active=None):
     """A compact "Learning" area under a room: status badge, recommended flow, predicted start.
 
-    Nothing without the learned entities (older firmware); hidden while the E32 reports none.
+    Nothing without the learned entities (older firmware); hidden while the E32 reports none
+    and while the room is off (``active``: the room's "on" condition).
     """
     learning, advice, start = room.get("learning"), room.get("flow_advice"), room.get("heating_start")
     if not learning:
         return []
+    on = list(active or [])
     badge = {"type": "entity", "entity": learning, "show_state": True, "show_icon": True, "color": "teal"}
     return [
-        _heading(t["learning"], "mdi:school-outline", [badge], "subtitle", _known(learning)),
+        _heading(t["learning"], "mdi:school-outline", [badge], "subtitle", on + _known(learning)),
         # The advice only means something once the room is learned.
         _tile(advice, t["flow_advice"],
-              visibility=[{"condition": "state", "entity": learning, "state": "ready"}, *_known(advice)]),
-        _tile(start, t["heating_start"], visibility=_known(start)),
+              visibility=[*on, {"condition": "state", "entity": learning, "state": "ready"}, *_known(advice)]),
+        _tile(start, t["heating_start"], visibility=on + _known(start)),
     ]
 
 
@@ -362,6 +372,19 @@ def _energy_section(t, heating, hot_water):
             (heating, t["gas_heating"]), (hot_water, t["gas_hot_water"])) if entity_id],
          "stat_types": ["change"], "period": "day", "days_to_show": 7, "chart_type": "bar"},
         {"type": "markdown", "content": note})
+
+
+def _value_tile(entity_id, name, icon, color=None):
+    """A boiler value, shown only while it has one. Without the E32 the "Heating" tile says why,
+    instead of a row of "Unavailable" tiles."""
+    return _tile(entity_id, name, icon, color=color, visibility=_known(entity_id)) if entity_id else None
+
+
+def _wide(card):
+    """A card across the whole section (12 of 12 grid columns), so its state is not cut short."""
+    if card is not None:
+        card["grid_options"] = {"columns": 12}
+    return card
 
 
 def _tile(entity_id, name=None, icon=None, features=None, visibility=None, color=None, tap_action=None):
@@ -672,8 +695,9 @@ class RoomDashboard:
         diagnostics = self._diagnostics_cards(t, registry, hub_entities, unreliable)
         return {
             "views": [
+                # Dense: a short section (Now) takes the gap under itself instead of leaving it empty.
                 {"title": t["heating"], "path": "heating", "icon": "mdi:home-thermometer",
-                 "type": "sections", "max_columns": 3, "sections": heating},
+                 "type": "sections", "max_columns": 3, "dense_section_placement": True, "sections": heating},
                 *([{
                     "title": t["room_settings"],
                     "panel": True,
@@ -694,7 +718,7 @@ class RoomDashboard:
                  "type": "sections", "max_columns": 2, "sections": boiler},
                 {"title": t["diagnostics"], "path": "diagnostics", "icon": "mdi:information-outline",
                  "cards": diagnostics},
-                # Reached from the "Agreement with thermostat" tile under Now.
+                # Reached from the "E32 compared with your thermostat" link under Now.
                 *([{"title": t["comparison_view"], "path": COMPARISON_PATH, "subview": True,
                     "back_path": "/" + self.path + "/heating", "icon": "mdi:compare-horizontal",
                     "type": "sections", "max_columns": 2, "sections": comparison}] if comparison else []),
@@ -727,19 +751,28 @@ class RoomDashboard:
         elif e32_room_entities:
             explain = {"type": "markdown", "content": t["how"]}
         agreement = hub.get("shadow_agreement_today")
+        # The request in °C while there is one; "No boiler request" (not "0,0 °C") while there is none.
+        no_request = None
+        if request:
+            no_request = _tile(request, t["no_request"], "mdi:fire-off",
+                               visibility=[{"condition": "numeric_state", "entity": request, "below": 0.1}])
+            no_request["hide_state"] = True
         now = _section(
             _heading(t["now"], "mdi:home-thermometer"),
             _tile(problem, t["problem"]),
-            _tile(request, t["boiler_request"], "mdi:fire", color="deep-orange"),
-            _tile(essential("flow"), t["flow_short"], ICONS["flow"], color="orange"),
-            _tile(fields.get("outdoor_temperature"), t["outdoor"], "mdi:sun-thermometer-outline", color="blue-grey"),
-            _tile(essential("dhw"), t["dhw"], ICONS["dhw"], color="light-blue"),
-            _tile(agreement, t["agreement_short"], "mdi:compare-horizontal", color="teal",
-                  tap_action={"action": "navigate", "navigation_path": sub_path}) if thermostat_on_bus else None,
+            _tile(request, t["boiler_request"], "mdi:fire", color="deep-orange",
+                  visibility=[{"condition": "numeric_state", "entity": request, "above": 0}]) if request else None,
+            no_request,
+            _value_tile(essential("flow"), t["flow_short"], ICONS["flow"], color="orange"),
+            _value_tile(fields.get("outdoor_temperature"), t["outdoor"], "mdi:sun-thermometer-outline",
+                        color="blue-grey"),
+            _value_tile(essential("dhw"), t["dhw"], ICONS["dhw"], color="light-blue"),
             {"type": "markdown", "content": "{% for reason in state_attr(" + json.dumps(problem)
              + ", 'reasons') or [] %}- {{ reason }}\n{% endfor %}",
              "visibility": [{"condition": "state", "entity": problem, "state": "on"}]} if problem else None,
             explain,
+            # A bare percentage meant nothing here: a link to the comparison, which explains it.
+            _link(t["compare_link"], "mdi:compare-horizontal", sub_path) if thermostat_on_bus and agreement else None,
         )
         sections = [now] if len(now["cards"]) > 1 else []
         advice = _advice_section(t, hub.get("heating_advice"))
@@ -779,7 +812,7 @@ class RoomDashboard:
             (request, t["e32_request"])) if entity_id]
         boiler = _section(
             _heading(t["boiler"], "mdi:water-boiler"),
-            *(_tile(essential(key), t.get(key + "_short", t[key]), ICONS[key])
+            *(_value_tile(essential(key), t.get(key + "_short", t[key]), ICONS[key])
               for key in ("return", "modulation", "pressure", "max_ch", "code")),
             _tile(taps, t["dhw_taps"], "mdi:faucet", visibility=_known(taps)) if taps else None,
             _tile(hub.get("burner_starts_last_hour"), t["starts_hour"], "mdi:counter"),
@@ -793,7 +826,8 @@ class RoomDashboard:
             _heading(t["flow_settings"], "mdi:chart-bell-curve-cumulative"),
             _tile(flow.get("source"), t["flow_source"], "mdi:source-branch"),
             _tile(flow.get("weather_curve"), t["weather_curve"], "mdi:sun-snowflake-variant"),
-            _tile(flow.get("curve_design_flow_c"), t["design_flow"], "mdi:thermometer-lines"),
+            # Its choice reads "Automatic (floor 40 °C, radiators 55 °C)": the full section width.
+            _wide(_tile(flow.get("curve_design_flow_c"), t["design_flow"], "mdi:thermometer-lines")),
             _tile(flow.get("apply_learned"), t["apply_learned"], "mdi:school-outline"),
             _link(t["set_up_rooms"], "mdi:home-edit-outline", "/config/integrations/integration/" + DOMAIN)
             if e32_rooms else None,
@@ -877,7 +911,8 @@ class RoomDashboard:
             badges.append({"type": "entity", "entity": state, "show_state": True, "show_icon": True,
                            "icon": "mdi:power-off", "visibility": inactive})
         if sensor.get("humidity"):
-            badges.append({"type": "entity", "entity": sensor["humidity"], "show_state": True, "show_icon": True})
+            badges.append({"type": "entity", "entity": sensor["humidity"], "name": t["humidity"],
+                           "icon": "mdi:water-percent", "show_state": True, "show_icon": True})
         if sensor.get("battery"):  # only when it needs attention
             badges.append({"type": "entity", "entity": sensor["battery"], "show_state": True, "show_icon": True,
                            "color": "red", "visibility": [{"condition": "numeric_state", "entity": sensor["battery"],
@@ -890,8 +925,8 @@ class RoomDashboard:
         when_active = {"visibility": active} if active else {}
         cards = [
             _heading(name, "mdi:home-thermometer-outline", badges),
-            # Without a working source, an inactive room's dial has nothing to show.
-            {"type": "thermostat", "entity": thermostat, **({} if working else when_active)} if thermostat else None,
+            # An inactive room stays compact: its heading says "Off"; no dial, so no way to switch it on here.
+            {"type": "thermostat", "entity": thermostat, **when_active} if thermostat else None,
             # The E32's own measurement next to another thermostat; the room's own climate already shows it.
             None if own else _tile(room.get("temperature"), t["measured"], visibility=active),
             None if thermostat else _tile(room.get("setpoint"), t["target"], visibility=active),
@@ -899,10 +934,12 @@ class RoomDashboard:
             if history else None,
             _tile(room.get("inactive_until"), t["off_until"], visibility=inactive + _known(room["inactive_until"]))
             if inactive and room.get("inactive_until") else None,
-            *_learning_cards(t, room),
+            *_learning_cards(t, room, active),
         ]
         if inactive and working:
-            cards.append({"type": "markdown", "content": t["room_off"], "visibility": inactive})
+            cards += [{"type": "markdown", "content": t["room_off"], "visibility": inactive},
+                      _link(t["settings"].format(room=name), "mdi:cog",
+                            "/config/integrations/integration/" + DOMAIN, inactive)]
         elif inactive:
             from homeassistant.helpers import issue_registry as ir
             integration = "/config/integrations/integration/" + DOMAIN
@@ -950,7 +987,7 @@ class RoomDashboard:
             rows = {quality: [entity_id for name, entity_id in fields.items()
                               if field_quality.get(name, 1) == quality] for quality in (0, 1, 2)}
             entity_cards = {quality: ({"type": "entities", "title": title, "show_header_toggle": False,
-                                       "entities": rows[quality]} if rows[quality] else None)
+                                       "entities": _rows(rows[quality])} if rows[quality] else None)
                             for quality, title in ((0, t["boiler_fields"]), (1, t["unreliable"]),
                                                    (2, t["inferred"]))}
             unreliable = entity_cards[1]
@@ -991,13 +1028,13 @@ class RoomDashboard:
         cards = []
         diagnostic_entities = [hub[metric] for metric in DEVICE_DIAGNOSTIC_METRICS if metric in hub]
         if diagnostic_entities:
-            cards.append({"type": "entities", "title": t["device"], "entities": diagnostic_entities})
+            cards.append({"type": "entities", "title": t["device"], "entities": _rows(diagnostic_entities)})
         ems_entities = [hub[metric] for metric in EMS_METRICS if metric in hub and metric not in {
             "boiler_selected_hot_water_temperature", "boiler_current_hot_water_temperature",
             "boiler_hot_water_flow", "boiler_hot_water_enabled"}]
         ems_entities += [hub[key] for key in hub if key.endswith("_v2") and key[:-3] in EMS_METRICS]
         if ems_entities:
-            cards.append({"type": "entities", "title": t["ems"], "entities": ems_entities})
+            cards.append({"type": "entities", "title": t["ems"], "entities": _rows(ems_entities)})
         if unreliable:
             cards.append(unreliable)
         # Native read-only DHW card, driven only by the integration-owned status.
@@ -1011,14 +1048,14 @@ class RoomDashboard:
                      "{% for key, field in fields.items() %}{% if field.supported_read %}"
                      "\n- {{ key | replace('_', ' ') }}: {{ field.value if field.value is not none else '"
                      + t["unknown"] + "' }} {{ field.unit or '' }} ({{ field.quality }}){% endif %}{% endfor %}")
-            cards.append({"type": "entities", "title": t["dhw_card"], "entities": [dhw_id]})
+            cards.append({"type": "entities", "title": t["dhw_card"], "entities": _rows([dhw_id])})
         else:
             note += " " + t["dhw_none"]
         cards.append({"type": "markdown", "content": note})
         # Today's taps, keeping warm and burner time, as the E32 sorts them on the bus.
         dhw_today = [hub[key] for key in DHW_TODAY if key in hub]
         if dhw_today:
-            cards.append({"type": "entities", "title": t["dhw_today"], "entities": dhw_today})
+            cards.append({"type": "entities", "title": t["dhw_today"], "entities": _rows(dhw_today)})
         # Estimates: only isolated definition-v2 IDs, no legacy counter aggregates or backfill.
         counter_keys = ("energy", "energy_heating", "energy_warm_water", "energy_unattributed",
                         "warm_water_usage", "burner_observed_time")
@@ -1036,7 +1073,7 @@ class RoomDashboard:
                                "stat_types": ["change"]})
         if counters:
             cards.append({"type": "markdown", "content": t["estimates_note"]})
-            cards.append({"type": "entities", "title": t["counters"], "entities": counters})
+            cards.append({"type": "entities", "title": t["counters"], "entities": _rows(counters)})
         cards.extend(charts)
         # Older HA rooms: heat model estimates and target / measured history, by room name.
         devices = dr.async_get(self.hass)
@@ -1058,7 +1095,7 @@ class RoomDashboard:
                 if entity_id is not None:
                     heating_entities.append(entity_id)
             if heating_entities:
-                model_cards.append({"type": "entities", "title": name, "entities": heating_entities})
+                model_cards.append({"type": "entities", "title": name, "entities": _rows(heating_entities)})
             history = []
             for metric, label in (("temperature", t["room_measured"]), ("temperature_set", t["room_target"])):
                 entity_id = registry.async_get_entity_id("sensor", DOMAIN, f"{self.prefix}_room_{key}_{metric}")

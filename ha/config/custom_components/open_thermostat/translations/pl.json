@@ -1358,46 +1358,46 @@
         "name": "Czas pracy urządzenia"
       },
       "hub_energy_v2": {
-        "name": "Szacowana energia (modulacja nominalna) (definicja v2)"
+        "name": "Szacowana energia"
       },
       "hub_energy_legacy": {
-        "name": "Stara historia: Szacowana energia (modulacja nominalna)"
+        "name": "Stare: Szacowana energia"
       },
       "hub_energy_warm_water_v2": {
-        "name": "Szacowana energia CWU (modulacja nominalna) (definicja v2)"
+        "name": "Szacowana energia CWU"
       },
       "hub_energy_warm_water_legacy": {
-        "name": "Stara historia: Szacowana energia CWU (modulacja nominalna)"
+        "name": "Stare: Szacowana energia CWU"
       },
       "hub_energy_heating_v2": {
-        "name": "Szacowana energia ogrzewania (modulacja nominalna) (definicja v2)"
+        "name": "Szacowana energia ogrzewania"
       },
       "hub_energy_heating_legacy": {
-        "name": "Stara historia: Szacowana energia ogrzewania (modulacja nominalna)"
+        "name": "Stare: Szacowana energia ogrzewania"
       },
       "hub_energy_unattributed_v2": {
-        "name": "Szacowana nieprzypisana energia (modulacja nominalna) (definicja v2)"
+        "name": "Szacowana energia nieprzypisana"
       },
       "hub_energy_unattributed_legacy": {
-        "name": "Stara historia: Szacowana nieprzypisana energia (modulacja nominalna)"
+        "name": "Stare: Szacowana energia nieprzypisana"
       },
       "hub_burner_observed_time_v2": {
-        "name": "Obserwowany czas zgłoszonego płomienia (definicja v2)"
+        "name": "Obserwowany czas płomienia"
       },
       "hub_burner_observed_time_legacy": {
-        "name": "Stara historia: Obserwowany czas zgłoszonego płomienia"
+        "name": "Stare: Obserwowany czas płomienia"
       },
       "hub_warm_water_usage_v2": {
-        "name": "Zsumowana zgłoszona objętość ciepłej wody (definicja v2)"
+        "name": "Objętość ciepłej wody"
       },
       "hub_warm_water_usage_legacy": {
-        "name": "Stara historia: Zsumowana zgłoszona objętość ciepłej wody"
+        "name": "Stare: Objętość ciepłej wody"
       },
       "hub_warm_water_avg_flow_v2": {
-        "name": "Średni przepływ ciepłej wody (obserwowane okresy) (definicja v2)"
+        "name": "Średni przepływ ciepłej wody"
       },
       "hub_warm_water_avg_flow_legacy": {
-        "name": "Stara historia: Średni przepływ ciepłej wody (obserwowane okresy)"
+        "name": "Stare: Średni przepływ ciepłej wody"
       },
       "hub_outdoor_temperature": {
         "name": "Temperatura zewnętrzna"

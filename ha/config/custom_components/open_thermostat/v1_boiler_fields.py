@@ -125,7 +125,11 @@ async def _async_retained_source(hass, entry, state):
     for suffix in ("fw/state/boiler_fields/+", "fw/state/boiler", "fw/config/boiler_profile", "fw/heartbeat",
                    "fw/availability"):
         entry.async_on_unload(await mqtt.async_subscribe(hass, base + suffix, received))
-    entry.async_on_unload(lambda: state.pop(SOURCE_KEY, None))
+    @callback
+    def forget():
+        # Returns None: Home Assistant awaits a truthy unload callback result as a coroutine.
+        state.pop(SOURCE_KEY, None)
+    entry.async_on_unload(forget)
     return source
 
 

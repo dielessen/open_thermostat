@@ -2286,46 +2286,46 @@
         "name": "Bedrijfstijd apparaat"
       },
       "hub_energy_v2": {
-        "name": "Geschatte energie (nominale modulatie) (definitie v2)"
+        "name": "Geschatte energie"
       },
       "hub_energy_legacy": {
-        "name": "Oude geschiedenis: Geschatte energie (nominale modulatie)"
+        "name": "Oud: Geschatte energie"
       },
       "hub_energy_warm_water_v2": {
-        "name": "Geschatte energie warm water (nominale modulatie) (definitie v2)"
+        "name": "Geschatte energie warm water"
       },
       "hub_energy_warm_water_legacy": {
-        "name": "Oude geschiedenis: Geschatte energie warm water (nominale modulatie)"
+        "name": "Oud: Geschatte energie warm water"
       },
       "hub_energy_heating_v2": {
-        "name": "Geschatte energie ruimteverwarming (nominale modulatie) (definitie v2)"
+        "name": "Geschatte energie verwarming"
       },
       "hub_energy_heating_legacy": {
-        "name": "Oude geschiedenis: Geschatte energie ruimteverwarming (nominale modulatie)"
+        "name": "Oud: Geschatte energie verwarming"
       },
       "hub_energy_unattributed_v2": {
-        "name": "Geschatte niet-toegewezen energie (nominale modulatie) (definitie v2)"
+        "name": "Geschatte niet-toegewezen energie"
       },
       "hub_energy_unattributed_legacy": {
-        "name": "Oude geschiedenis: Geschatte niet-toegewezen energie (nominale modulatie)"
+        "name": "Oud: Geschatte niet-toegewezen energie"
       },
       "hub_burner_observed_time_v2": {
-        "name": "Waargenomen tijd met gemelde vlam (definitie v2)"
+        "name": "Waargenomen vlamtijd"
       },
       "hub_burner_observed_time_legacy": {
-        "name": "Oude geschiedenis: Waargenomen tijd met gemelde vlam"
+        "name": "Oud: Waargenomen vlamtijd"
       },
       "hub_warm_water_usage_v2": {
-        "name": "Opgeteld gemeld warmwatervolume (definitie v2)"
+        "name": "Warmwatervolume"
       },
       "hub_warm_water_usage_legacy": {
-        "name": "Oude geschiedenis: Opgeteld gemeld warmwatervolume"
+        "name": "Oud: Warmwatervolume"
       },
       "hub_warm_water_avg_flow_v2": {
-        "name": "Gemiddeld warmwaterdebiet (waargenomen perioden) (definitie v2)"
+        "name": "Gemiddeld warmwaterdebiet"
       },
       "hub_warm_water_avg_flow_legacy": {
-        "name": "Oude geschiedenis: Gemiddeld warmwaterdebiet (waargenomen perioden)"
+        "name": "Oud: Gemiddeld warmwaterdebiet"
       },
       "hub_outdoor_temperature": {
         "name": "Buitentemperatuur"

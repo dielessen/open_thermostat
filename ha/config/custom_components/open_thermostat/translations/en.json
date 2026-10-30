@@ -1358,46 +1358,46 @@
         "name": "Device uptime"
       },
       "hub_energy_v2": {
-        "name": "Estimated nominal-modulation energy (definition v2)"
+        "name": "Estimated energy"
       },
       "hub_energy_legacy": {
-        "name": "Legacy history: Estimated nominal-modulation energy"
+        "name": "Old: Estimated energy"
       },
       "hub_energy_warm_water_v2": {
-        "name": "Estimated nominal-modulation DHW energy (definition v2)"
+        "name": "Estimated hot water energy"
       },
       "hub_energy_warm_water_legacy": {
-        "name": "Legacy history: Estimated nominal-modulation DHW energy"
+        "name": "Old: Estimated hot water energy"
       },
       "hub_energy_heating_v2": {
-        "name": "Estimated nominal-modulation space-heating energy (definition v2)"
+        "name": "Estimated heating energy"
       },
       "hub_energy_heating_legacy": {
-        "name": "Legacy history: Estimated nominal-modulation space-heating energy"
+        "name": "Old: Estimated heating energy"
       },
       "hub_energy_unattributed_v2": {
-        "name": "Estimated nominal-modulation unattributed energy (definition v2)"
+        "name": "Estimated unattributed energy"
       },
       "hub_energy_unattributed_legacy": {
-        "name": "Legacy history: Estimated nominal-modulation unattributed energy"
+        "name": "Old: Estimated unattributed energy"
       },
       "hub_burner_observed_time_v2": {
-        "name": "Observed reported-flame time (definition v2)"
+        "name": "Observed flame time"
       },
       "hub_burner_observed_time_legacy": {
-        "name": "Legacy history: Observed reported-flame time"
+        "name": "Old: Observed flame time"
       },
       "hub_warm_water_usage_v2": {
-        "name": "Integrated reported warm water volume (definition v2)"
+        "name": "Hot water volume"
       },
       "hub_warm_water_usage_legacy": {
-        "name": "Legacy history: Integrated reported warm water volume"
+        "name": "Old: Hot water volume"
       },
       "hub_warm_water_avg_flow_v2": {
-        "name": "Mean warm water flow (observed intervals) (definition v2)"
+        "name": "Average hot water flow"
       },
       "hub_warm_water_avg_flow_legacy": {
-        "name": "Legacy history: Mean warm water flow (observed intervals)"
+        "name": "Old: Average hot water flow"
       },
       "hub_outdoor_temperature": {
         "name": "Outdoor temperature"

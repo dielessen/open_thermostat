@@ -11,7 +11,9 @@ One sensor on the product device ("Heating advice" / "CV-advies") holds the
 current advice: its state is the number of items, the attribute ``items``
 the items ({id, severity, title, observed, why, action, where, confidence,
 since}) in the Home Assistant language (English or Dutch), and
-``not_evaluated`` the rules that lack data, with the reason.
+``not_evaluated`` the rules that lack data, with the reason. The attribute
+``weekly_summary`` holds the last seven days (weekly_summary.py) for the
+opt-in weekly notification blueprint.
 """
 import math
 import time
@@ -451,7 +453,7 @@ TEXT = {
                 "action": "Lower the flow temperature: the maximum heating temperature or heating curve on "
                           "your boiler, or the E32's maximum flow temperature. If flow and return are close "
                           "together, a lower pump speed gives a cooler return.",
-                "where": "On the boiler: on many models a knob, on others the boiler menu or its app. Home Assistant: OpenThermostat → Configure → Rooms → Flow temperature limits (or on the E32: Rooms → Boiler flow limits).",
+                "where": "On the boiler: on many models a knob, on others the boiler menu or its app. Home Assistant: OpenThermostat → Configure → Heating and boiler (or on the E32: Rooms → Boiler flow limits).",
             },
             "flow_higher_wasteful": {
                 "title": "{room}: a lower flow is enough",
@@ -467,7 +469,7 @@ TEXT = {
                 "action@norule": "No action needed now. Once the E32 controls the boiler, it will ask this lower "
                                  "temperature itself.",
                 "action+maxflow": " It is now {max_flow} °C.",
-                "where": "Home Assistant: OpenThermostat → Configure → Rooms → Flow temperature limits (or on the E32: Rooms → Boiler flow limits).",
+                "where": "Home Assistant: OpenThermostat → Configure → Heating and boiler (or on the E32: Rooms → Boiler flow limits).",
             },
             "flow_lower_too_slow": {
                 "title": "{room} needs a higher flow",
@@ -480,7 +482,7 @@ TEXT = {
                 "action": "Check that the E32's maximum flow temperature and the maximum heating temperature on "
                           "your boiler allow {need} °C, or start heating earlier in the week program.",
                 "action+cap": " The E32's maximum flow ({max_flow} °C) is below what this room needs.",
-                "where": "Home Assistant: OpenThermostat → Configure → Rooms → Flow temperature limits (or on the E32: Rooms → Boiler flow limits). The week program: Configure → Rooms → Edit or remove a "
+                "where": "Home Assistant: OpenThermostat → Configure → Heating and boiler (or on the E32: Rooms → Boiler flow limits). The week program: Configure → Rooms → Edit or remove a "
                          "room.",
             },
             "night_setback": {
@@ -624,7 +626,7 @@ TEXT = {
                 "action": "Verlaag de aanvoertemperatuur: de maximale cv-temperatuur of stooklijn op je ketel, of "
                           "de maximale aanvoertemperatuur van de E32. Liggen aanvoer en retour dicht bij elkaar, "
                           "dan geeft een lagere pompstand een koelere retour.",
-                "where": "Op de ketel: bij veel modellen een draaiknop, bij andere het ketelmenu of de app van de ketel. Home Assistant: OpenThermostat → Configureren → Ruimtes → Grenzen aanvoertemperatuur (of op de E32: Ruimtes → Grenzen aanvoertemperatuur).",
+                "where": "Op de ketel: bij veel modellen een draaiknop, bij andere het ketelmenu of de app van de ketel. Home Assistant: OpenThermostat → Configureren → Verwarming en ketel (of op de E32: Ruimtes → Grenzen aanvoertemperatuur).",
             },
             "flow_higher_wasteful": {
                 "title": "{room}: een lagere aanvoer is genoeg",
@@ -640,7 +642,7 @@ TEXT = {
                 "action@norule": "Nu niets doen. Zodra de E32 de ketel regelt, vraagt hij zelf deze lagere "
                                  "temperatuur.",
                 "action+maxflow": " Die staat nu op {max_flow} °C.",
-                "where": "Home Assistant: OpenThermostat → Configureren → Ruimtes → Grenzen aanvoertemperatuur (of op de E32: Ruimtes → Grenzen aanvoertemperatuur).",
+                "where": "Home Assistant: OpenThermostat → Configureren → Verwarming en ketel (of op de E32: Ruimtes → Grenzen aanvoertemperatuur).",
             },
             "flow_lower_too_slow": {
                 "title": "{room} heeft een hogere aanvoer nodig",
@@ -654,7 +656,7 @@ TEXT = {
                           "op je ketel {need} °C toelaten, of begin eerder met verwarmen in het weekprogramma.",
                 "action+cap": " De maximale aanvoer van de E32 ({max_flow} °C) ligt onder wat deze ruimte nodig "
                               "heeft.",
-                "where": "Home Assistant: OpenThermostat → Configureren → Ruimtes → Grenzen aanvoertemperatuur (of op de E32: Ruimtes → Grenzen aanvoertemperatuur). Het weekprogramma: Configureren → Ruimtes → Ruimte "
+                "where": "Home Assistant: OpenThermostat → Configureren → Verwarming en ketel (of op de E32: Ruimtes → Grenzen aanvoertemperatuur). Het weekprogramma: Configureren → Ruimtes → Ruimte "
                          "bewerken of verwijderen.",
             },
             "night_setback": {
@@ -803,9 +805,10 @@ def render_missing(name, missing, lang):
 
 def boiler_field(client, name, low, high):
     """A usable boiler field value (boiler-fields cache), or None."""
+    from .v1_boiler_fields import boiler_values_live
     cache = getattr(client, "boiler_fields", None)
-    if (not isinstance(cache, BoilerFieldCache) or not getattr(client, "ready", False)
-            or not getattr(client, "boiler_fields_supported", False)):
+    # Retained boiler state (E32 beta.19) needs no session; older firmware does.
+    if not isinstance(cache, BoilerFieldCache) or not boiler_values_live(client):
         return None
     reading = cache.reading(INDEX[name], client.clock())
     if not reading or not reading["usable"] or reading["raw"] is None:
@@ -951,7 +954,7 @@ class HeatingAdviceSensor(RestoreEntity, SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "heating_advice"
     # The texts are shown, not kept in the history.
-    _unrecorded_attributes = frozenset({"items", "not_evaluated"})
+    _unrecorded_attributes = frozenset({"items", "not_evaluated", "weekly_summary"})
 
     def __init__(self, entry, hub, connection, clock=time.time, local_date=None):
         self.entry, self.hub, self.connection, self.clock = entry, hub, connection, clock
@@ -1049,7 +1052,21 @@ class HeatingAdviceSensor(RestoreEntity, SensorEntity):
             items.append(rendered)
         return {"items": items, "not_evaluated": [render_missing(name, missing, lang) for name, missing in self.missing],
                 "advice_only": True, "observed_hours": round(len(self.history.samples) * SAMPLE_SECONDS / 3600, 1),
-                "observed_days": len(self.history.days)}
+                "observed_days": len(self.history.days),
+                "weekly_summary": self.weekly_summary(lang, [item["title"] for item in items])}
+
+    def weekly_summary(self, lang, titles):
+        """The last seven days for the weekly notification (blueprint weekly_summary.yaml)."""
+        from .weekly_summary import weekly_summary
+        hass = getattr(self, "hass", None)
+        use = hass.data.get(DOMAIN, {}).get(self.entry.entry_id, {}).get("energy_use") if hass is not None else None
+        records = use.data["days"] if use is not None else {}
+        options = energy_options(self.entry)
+        return weekly_summary(records, self._today(self.clock()), titles, lang,
+                              unit=use.unit if use is not None else "m³",
+                              rough=use is not None and not use.power()[1],
+                              price=gas_price(hass, options) if hass is not None else None,
+                              currency=currency(hass) if hass is not None else "EUR")
 
     @property
     def extra_restore_state_data(self):
@@ -1074,3 +1091,6 @@ async def async_setup_heating_advice(hass, entry, async_add_entities, options, h
     sensor = HeatingAdviceSensor(entry, hub, connection)
     hass.data[DOMAIN][entry.entry_id]["heating_advice"] = sensor
     async_add_entities([sensor], **options)
+    # Gas for heating and for hot water (Energy dashboard); its sensors appear once the boiler reports.
+    from .energy_use import async_setup_energy_use
+    await async_setup_energy_use(hass, entry, async_add_entities, options, hub, connection)

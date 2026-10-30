@@ -156,7 +156,7 @@ TEST(SessionAdmission, InvalidIdsAndOverflowingClockWindowsAreRejected) {
     SessionIdentity id{"e32","boot","ha-one","session",1,1};
     ASSERT_TRUE(g.begin(id));
     EXPECT_FALSE(g.issueGrant("g",1,UINT64_MAX-5,10));
-    EXPECT_FALSE(g.issueGrant("g",1,1000,15001));
+    EXPECT_FALSE(g.issueGrant("g",1,1000,SessionAdmission::maximumGrantMs+1));
     EXPECT_FALSE(g.issueGrant("g",0,1000,1000));
 }
 TEST_F(SessionTest, ExpiredGrantCannotReviveAfterBackwardAdmissionOrRotation) {

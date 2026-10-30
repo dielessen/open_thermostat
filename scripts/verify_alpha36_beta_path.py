@@ -1,4 +1,4 @@
-"""Run the unmodified accepted alpha36 discovery code against a beta package.
+"""Run the unmodified accepted alpha36 discovery code against a beta, rc or stable package.
 
 Local host proof only: no HTTP, device, flash or physical acceptance. The final
 package must separately pass verify_e32v2_release and the native update gate.
@@ -74,8 +74,9 @@ def verify(root, manifest_path, image_path):
     root = Path(root).resolve()
     raw = Path(manifest_path).read_bytes()
     manifest = json.loads(raw)
-    if not re.fullmatch(r'v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)-e32v2-beta\.(?:0|[1-9]\d*)', manifest['version']):
-        raise ValueError('expected_beta_candidate')
+    # beta, rc or stable (v1.0.0-e32v2): the retained alpha36 index only knows alpha tags.
+    if not re.fullmatch(r'v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)-e32v2(?:-(?:beta|rc)\.(?:0|[1-9]\d*))?', manifest['version']):
+        raise ValueError('expected_beta_rc_or_stable_candidate')
     image = Path(image_path).read_bytes()
     marker = f"OT_E32V2_OTA_V1:{manifest['version']}:{manifest['source_commit']}:{manifest['web_sha256']}:END".encode()
     if len(image) != manifest['size'] or hashlib.sha256(image).hexdigest() != manifest['sha256'] or marker not in image:

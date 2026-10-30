@@ -19,9 +19,9 @@ async def async_setup_shadow_metrics(hass,entry,async_add_entities):
     from .installation_group import ensure_installation_group
     add_options = ({"config_subentry_id": ensure_installation_group(hass, entry)}
                    if is_product(entry) else {})
-    client=connection.client;entities=[];last_key=None;gated=None
+    client=connection.client;entities=[];last_key=None;gated=None;marked=False
     def refresh():
-        nonlocal last_key,gated
+        nonlocal last_key,gated,marked
         if client.metrics_supported and not entities:
             for metric in HUB_METRICS["ems_metrics"]:
                 if metric==VALUE_GATED:
@@ -40,11 +40,19 @@ async def async_setup_shadow_metrics(hass,entry,async_add_entities):
         if key==last_key:
             return # Existing2s control poll must not rewrite every metric state.
         last_key=key;payload=client.metrics_payload
+        if payload is not None:
+            # Retired records without a value go once the metrics have been seen for a while.
+            from .native_entity_cleanup import note_metrics
+            note_metrics(hass,entry,entry.data[CONF_TOPIC_PREFIX],payload)
         field=HUB_METRICS["ems_metrics"][VALUE_GATED][0]
         if gated is None and entities and payload is not None and finite(payload.get(field)):
             gated=HubMetric(entry.data[CONF_TOPIC_PREFIX],"ems_metrics",VALUE_GATED,entry.entry_id)
             entities.append(gated)
             async_add_entities([gated], **add_options)
+        if gated is not None and not marked and payload is not None and finite(payload.get(field)):
+            # A real value: the stale-entity cleanup keeps this record (native_entity_cleanup.RETIRED).
+            from .native_entity_cleanup import mark_reported
+            marked=mark_reported(hass,gated.unique_id)
         for entity in entities:
             entity._attr_extra_state_attributes={**(entity.extra_state_attributes or {}),
                 "data_role":"read_only_snapshot","control_qualified":False}

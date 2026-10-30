@@ -18,6 +18,11 @@ struct ActiveHeatEnvelope {
             || limit.quality != BoilerQuality::reported || limit.sourceType != 0x16) return std::nullopt;
         return static_cast<uint8_t>(std::clamp<int32_t>(*limit.raw / 100, 0, maximumFlowC));
     }
+    // When that limit was reported (any requester); nullopt: none usable this boot.
+    static std::optional<uint64_t> reportedAtMs(const ClassicBoilerMonitor& monitor) {
+        if (!limitC(monitor)) return std::nullopt;
+        return monitor.sample(BoilerField::heatingLimit).observedMs;
+    }
     static bool admits(const ClassicBoilerMonitor& monitor, uint8_t flowC) {
         const auto limit = limitC(monitor);
         return !flowC || (limit && flowC <= *limit);

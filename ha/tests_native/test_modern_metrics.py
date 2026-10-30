@@ -60,7 +60,7 @@ async def test_retained_duplicate_reorder_and_rotated_grant_replay_never_refresh
     await c.receive("fw/telemetry/ems_metrics",canonical(packet(c,2)))
     await c.receive("fw/telemetry/ems_metrics",canonical(packet(c,1)))
     assert c._metrics_received==100 and c._metrics_highwater==2
-    now[0]=145;c.grant_until=155;c.lease_until=160;c.last_rx=145
+    now[0]=445;c.grant_until=455;c.lease_until=460;c.last_rx=445  # past EXPIRY_SECONDS (345 s)
     c.session["grant_id"]="grant10";c.session["grant_sequence"]=10
     assert c.metrics_payload is None
     await c.receive("fw/telemetry/ems_metrics",canonical(packet(c,2)))

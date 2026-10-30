@@ -10,10 +10,10 @@ const source=html.slice(html.indexOf('async function loadWiFiSettings()'),html.i
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('http://opth.test/**',async route=>{
    const p=new URL(route.request().url()).pathname;
-   if(['/ui-language.js','/ui-messages.js'].includes(p))return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(path.resolve(__dirname,'../../data/html',p.slice(1)),'utf8')});
+   if(['/ui-language.js','/ui-messages.js','/ui-messages-pages.js'].includes(p))return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(path.resolve(__dirname,'../../data/html',p.slice(1)),'utf8')});
    if(p==='/setup/status')return route.fulfill({status,contentType:'application/json',json:{setup_active:active}});
    if(p==='/setup/reenter'){reentries++;return route.fulfill({status:202,body:'accepted'});}
-   return route.fulfill({contentType:'text/html',body:'<script src="/ui-messages.js"></script><script src="/ui-language.js"></script><div id="WiFiSettings"><input id="WiFiSSID"></div>'});
+   return route.fulfill({contentType:'text/html',body:'<script src="/ui-messages.js"></script><script src="/ui-messages-pages.js"></script><script src="/ui-language.js"></script><div id="WiFiSettings"><input id="WiFiSSID"></div>'});
   });
   await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://opth.test'}]);
   await page.goto('http://opth.test/settings');

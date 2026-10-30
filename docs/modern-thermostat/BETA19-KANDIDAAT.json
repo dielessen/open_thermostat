@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "date": "2026-10-30",
+  "planned_tag": "v0.1.0-e32v2-beta.19",
+  "previous_published_tag": "v0.1.0-e32v2-beta.18",
+  "state": "FROZEN_SHADOW_AWAITING_EXACT_TAG_CI",
+  "formal_freeze": true,
+  "published": false,
+  "installed": false,
+  "ha_tag": "ha-v0.4.0b11",
+  "ha_installed": false,
+  "install_together": true,
+  "install_order": [
+    "ha-v0.4.0b11 (integration package, HA restart)",
+    "v0.1.0-e32v2-beta.19 (Home Assistant Firmware update entity, one Install press)"
+  ],
+  "observed_installed_e32": "v0.1.0-e32v2-beta.18",
+  "observed_installed_ha": "0.4.0b10",
+  "owner_instruction": "docs/modern-thermostat/BETA19-OWNER-INSTRUCTION-20261030.json",
+  "publication_exception": "docs/modern-thermostat/BETA19-PUBLICATION-EXCEPTION-20261030.json",
+  "last_accepted_native_e32": "v0.1.0-e32v2-beta.4",
+  "predecessor_acceptance": {
+    "tag": "v0.1.0-e32v2-beta.18",
+    "receipt": "docs/modern-thermostat/update-acceptance/e32-beta18-20261029.json",
+    "status": "INCOMPLETE",
+    "gap_report": "docs/modern-thermostat/BETA18-HA-UPDATE-GAP-20261030.json"
+  },
+  "planned_acceptance": {
+    "method": "home_assistant",
+    "checklist": "docs/modern-thermostat/HA-UPDATE-ACCEPTANCE-BETA19.md",
+    "receipt": "docs/modern-thermostat/update-acceptance/e32-beta19-<YYYYMMDD>.json",
+    "first_full_home_assistant_route_acceptance": true
+  },
+  "changes": [
+    "MQTT outbox in PSRAM with per-topic coalescing and priorities; small retained topics fw/state/*, fw/config/*, fw/telemetry/{learned,summary,shadow,flow}; fw/heartbeat every 60 s and retained fw/availability; disconnect only after 15 s without progress or a socket error; old fw/telemetry/heating* topics removed (HA 0.4.0b11 required)",
+    "Boiler limit read from the boiler (0x16) after boot and every 6 h; request capped at min(plan, 80, 0x16)",
+    "Takeover confirmation kept in NVS for the running build only; cleared on a foreign 0x1A, hand-back or a firmware change; 2-minute listening rule after a restart",
+    "Supervisor hold: no restart for network, broker or Bluetooth problems while the E32 owns the boiler",
+    "Weather curve, learned flow and gas calibration (FlowPolicy), all off by default",
+    "Comfort: temporary overrides, window/door pause, away/holiday (RoomOverrides), HA climate per room",
+    "Visual week planner per room (shared week-editor.js), compact room plan (8 rooms x 4 points)",
+    "24-hour charts (HeatingHistory, /status/history), settings backup/restore (/config/backup), boiler capability profile",
+    "Gzip-only web UI (flash 93 % -> about 76 %), own name OpenThermostat, default-password warning, l32r literal-reach build guard",
+    "HA: no starter room, official update route with last_install, one group per room, safe removal of the old HA room, flow settings, week planner view, redesigned dashboard, energy, weekly advice, diagnostics, boiler profile entities, Polish translation, duplicate EMS entity cleanup",
+    "Active heating control prepared but compiled off (board::emsActiveHeatAllowed = false); takeover refused"
+  ],
+  "not_included": [
+    "opening active control (board::emsActiveHeatAllowed stays false; no attended switch-over)",
+    "a HACS repository for the integration",
+    "editing the bodies of earlier published releases (beyond the automatic organize_releases archive labels)"
+  ],
+  "software_validation": {
+    "physical_test_performed": false
+  },
+  "physical_outputs_automatically_enabled": false,
+  "persistent_boiler_setting_writes_enabled": false,
+  "full_ten_minute_physical_success_claimed": false,
+  "native_https_root_cause_fixed": false
+}

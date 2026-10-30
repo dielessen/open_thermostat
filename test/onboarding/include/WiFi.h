@@ -32,5 +32,7 @@ struct FakeWiFi {
     bool isConnected(){return connected;}
     IPAddress localIP(){return ip;}
     void begin(const char* name,const char*){checkCoexistence();++joins;joined=name;}
+    std::string hostname;
+    void setHostname(const char* name){hostname=name;}
 };
 inline FakeWiFi WiFi;

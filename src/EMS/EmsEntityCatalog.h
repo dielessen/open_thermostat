@@ -1,4 +1,5 @@
 #pragma once
+#include "BoilerProfile.h"
 #include "EmsEntityTable.h"
 #include "EmsTelegram.h"
 #include <array>
@@ -14,6 +15,7 @@ class EmsEntityObserver {
 public:
     static constexpr size_t capacity=48;
     static constexpr uint8_t boilerAddress=0x08,serviceAddress=0x0b;
+    void attachProfile(BoilerProfile* profile){profile_=profile;} // boiler profile, same owner and lock
     void observe(const EmsTelegram& t,uint64_t now) {
         if(!t.dataSize()||t.getOperationType()==EmsTelegram::READ||t.getOperationType()==EmsTelegram::READ_WITH_DATA)return;
         const uint8_t sender=t.getSenderId();
@@ -23,6 +25,8 @@ public:
             if(spec.type!=t.getTypeId()||(spec.source==EntitySource::boiler)!=(sender==boilerAddress))continue;
             const auto value=decode(t,spec);
             if(!value.has_value()&&!present(t,spec))continue; // outside this (partial) frame
+            if(profile_)profile_->observe(BoilerProfile::catalogSlot(entityRowFields[i]),
+                value?FieldEvidence::value:FieldEvidence::absent,now);
             store(sender,i,value,now);
         }
     }
@@ -109,6 +113,7 @@ private:
         *slot={now,value.value_or(0),address,static_cast<uint8_t>(spec),value.has_value()};
     }
     std::array<Slot,capacity> slots_{};
+    BoilerProfile* profile_=nullptr;
     size_t used_=0;uint32_t dropped_=0;
 };
 }

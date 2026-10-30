@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "tag": "v0.1.0-e32v2-beta.20",
+  "method": "home_assistant",
+  "acceptance_decision": "ACCEPTED",
+  "checks": {
+    "public_release_exact": true,
+    "fresh_preflight_passed": true,
+    "backup_verified": true,
+    "single_ha_install_action": true,
+    "ha_download_digest_size_marker_verified": true,
+    "local_upload_accepted": true,
+    "new_boot_observed": true,
+    "installed_version_source_elf_web_exact": true,
+    "boot_confirmed": true,
+    "stable_uptime_observed": true,
+    "settings_programs_bindings_preserved": true,
+    "control_state_safe_after_restart": true,
+    "ha_entity_reports_new_version": true,
+    "independent_postcheck_passed": true
+  },
+  "github_release": {
+    "tag_name": "v0.1.0-e32v2-beta.20",
+    "draft": false,
+    "prerelease": true,
+    "published_at": "2026-10-30T16:54:26Z",
+    "asset": {
+      "name": "firmware.bin",
+      "size": 2814592,
+      "digest": "sha256:d1e2a179816d6367e95501b429b37108fd8811894c8b6dd8aac8a2889b1aab87"
+    }
+  },
+  "firmware_sha256": "d1e2a179816d6367e95501b429b37108fd8811894c8b6dd8aac8a2889b1aab87",
+  "firmware_bytes": 2814592,
+  "source_commit": "c98c9085626c08492dc88eef3d942d6d6b6bbdd7",
+  "web_sha256": "0862d3ecdb43b76a00a92a56e8e3b80560808192ac6ca748170cd8a601c74c1e",
+  "elf_sha256": "18ba73c43bf8f798f17a8df9b08cda4193d7b9ed948a9590d854c485cccb636f",
+  "ha_entity_id": "update.woonkamer_e32_regelaar_ketel_en_diagnose_firmware",
+  "ha_installed_version_before": "v0.1.0-e32v2-beta.19",
+  "ha_latest_version_before": "v0.1.0-e32v2-beta.20",
+  "ha_installed_version_after": "v0.1.0-e32v2-beta.20",
+  "install_actions": 1,
+  "ha_integration_version": "0.4.0b12",
+  "ha_core_version": "2026.10.4",
+  "ha_install_record": {
+    "tag": "v0.1.0-e32v2-beta.20",
+    "from_version": "v0.1.0-e32v2-beta.19",
+    "sha256": "d1e2a179816d6367e95501b429b37108fd8811894c8b6dd8aac8a2889b1aab87",
+    "size": 2814592,
+    "started_at": "2026-10-30T17:05:02Z",
+    "finished_at": "2026-10-30T17:06:34Z",
+    "duration_s": 91.4,
+    "result": "installed",
+    "uploads": 1,
+    "reported": {
+      "version": "v0.1.0-e32v2-beta.20",
+      "source_commit": "c98c9085626c08492dc88eef3d942d6d6b6bbdd7",
+      "web_sha256": "0862d3ecdb43b76a00a92a56e8e3b80560808192ac6ca748170cd8a601c74c1e",
+      "elf_sha256": "18ba73c43bf8f798f17a8df9b08cda4193d7b9ed948a9590d854c485cccb636f"
+    }
+  },
+  "observations": [
+    {
+      "at_utc": "2026-10-30T17:19:40Z",
+      "version": "v0.1.0-e32v2-beta.20",
+      "boot_pending": false,
+      "uptime_seconds": 797
+    },
+    {
+      "at_utc": "2026-10-30T17:22:51Z",
+      "version": "v0.1.0-e32v2-beta.20",
+      "boot_pending": false,
+      "uptime_seconds": 990
+    }
+  ],
+  "installer_receipt_sha256": "b981799d79c01ebf8dfa31730d90171d65b2db2b6fd743d7adc3dc999e35f0f7",
+  "independent_receipt_sha256": "eabba004c5e822df31bce479e1875a8ebf5b39caf706aad9e3fd2a58bd6688af",
+  "backup_manifest_sha256": "97524a695214b8dc78e3199d91921289b6ee34554febba1a52002cb39a75c31e",
+  "preflight": {
+    "ci_commit": "c98c9085626c08492dc88eef3d942d6d6b6bbdd7",
+    "tag_runs": [
+      {
+        "id": 41087103943,
+        "name": "PlatformIO CI",
+        "head_branch": "v0.1.0-e32v2-beta.20",
+        "event": "push",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/dielessen/open_thermostat/actions/runs/41087103943",
+        "created_at": "2026-10-30T16:08:09Z"
+      }
+    ],
+    "local_check_logs": []
+  },
+  "mqtt_counters": {
+    "first": {
+      "mqtt_budget_disconnects": 0,
+      "mqtt_stalled_disconnects": 0,
+      "mqtt_socket_error_disconnects": 0,
+      "mqtt_queue_rejected": 0,
+      "mqtt_queue_peak_bytes": 2044,
+      "mqtt_write_latency_max_ms": 497
+    },
+    "last": {
+      "mqtt_budget_disconnects": 0,
+      "mqtt_stalled_disconnects": 0,
+      "mqtt_socket_error_disconnects": 0,
+      "mqtt_queue_rejected": 0,
+      "mqtt_queue_peak_bytes": 2044,
+      "mqtt_write_latency_max_ms": 497
+    }
+  },
+  "limits": [
+    "The independent post-check is a separately written tool (capture_beta20_independent.py, own HTTP code, own folder and manifest), run by the same assistant session, not by a second person.",
+    "Physical boiler behaviour is not part of this acceptance: shadow mode, board::emsActiveHeatAllowed false.",
+    "A first observation (post1-20261030T171623Z, uptime 606 s) is kept but not used: its settings diff flagged only the Bluetooth runtime counters frames_ignored (634 -> 12) and frames_rejected (10 -> 0), which reset on restart. The checker then counted frames_* as volatile; observations 2 and 3 and the independent check found rooms, programs, bindings and settings unchanged."
+  ]
+}

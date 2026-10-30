@@ -26,7 +26,7 @@ build() {
     [ "$B/cjson.o" -nt "$L/cJSON/cJSON.c" ] || gcc -std=c11 -O1 "${DBG[@]}" "${SAN[@]}" -I"$L/cJSON" -c "$L/cJSON/cJSON.c" -o "$B/cjson.o"
     [ "$B/ems.o" -nt "$ROOT/src/EMS/EmsTelegram.cpp" ] || "$CXX" -std=gnu++2a -O1 "${DBG[@]}" "${SAN[@]}" "${INC[@]}" -c "$ROOT/src/EMS/EmsTelegram.cpp" -o "$B/ems.o"
     # Rebuild when the soak or any header under src/ changed.
-    if [ ! -x "$B/soak" ] || [ "$ROOT/test/soak/soak.cpp" -nt "$B/soak" ] || [ -n "$(find "$ROOT/src" -name '*.h' -newer "$B/soak" -print -quit)" ]; then
+    if [ ! -x "$B/soak" ] || [ "$ROOT/test/soak/soak.cpp" -nt "$B/soak" ] || [ "$ROOT/test/soak/slow_wifi.h" -nt "$B/soak" ] || [ -n "$(find "$ROOT/src" -name '*.h' -newer "$B/soak" -print -quit)" ]; then
         "$CXX" -std=gnu++2a -O1 "${DBG[@]}" -Wall -Wextra "${SAN[@]}" "${INC[@]}" -DSOAK_WRAP_LOCALTIME "$ROOT/test/soak/soak.cpp" \
             "$B/ems.o" "$B/cjson.o" -Wl,--wrap=localtime_r -o "$B/soak.new"
         mv "$B/soak.new" "$B/soak"
@@ -43,22 +43,28 @@ chain-lordhowe|--scenario=chain --tz=<+1030>-10:30<+11>-11,M10.1.0,M4.1.0 --star
 chain-santiago|--scenario=chain --tz=<-04>4<-03>,M9.1.6/24,M4.1.6/24 --start=2027-03-25T03:00:00Z --days=21 --seed=4 --no-oom
 chain-sydney-churn|--scenario=chain --tz=AEST-10AEDT,M10.1.0,M4.1.0/3 --start=2026-09-25T00:00:00Z --days=20 --seed=5 --edit-h=0.25 --no-oom
 chain-kathmandu-30s|--scenario=chain --tz=<+0545>-5:45 --start=2026-12-01T00:00:00Z --days=60 --seed=6 --step-ms=30000 --no-oom
+chain-ams-options|--scenario=chain --tz=CET-1CEST,M3.5.0,M10.5.0/3 --start=2026-09-20T12:34:50Z --days=60 --seed=12 --flow-options --boiler-outdoor --no-oom
 guard|--scenario=guard --days=60 --seed=7
+active|--scenario=active --days=200 --seed=10
 flow|--scenario=flow --days=60 --seed=9
 supervisor|--scenario=supervisor --days=60 --seed=8
 sizes|--scenario=sizes
 repro|--scenario=repro
+slowwifi-8rooms|--scenario=slowwifi --days=2 --seed=11
 LIST
 }
 smoke_scenarios() {
     cat <<'LIST'
 chain-ams|--scenario=chain --tz=CET-1CEST,M3.5.0,M10.5.0/3 --start=2026-10-24T20:00:00Z --days=1.5 --seed=1 --mqtt-s=60 --learned-s=60 --full-s=1800 --no-oom
 chain-nyc-wrap|--scenario=chain --tz=EST5EDT,M3.2.0,M11.1.0 --start=2027-03-13T12:00:00Z --days=1.5 --seed=2 --uptime0=4293167296 --live-dhw-flow --boiler-outdoor --edit-h=0.5 --no-oom
+chain-ams-options|--scenario=chain --tz=CET-1CEST,M3.5.0,M10.5.0/3 --start=2026-10-24T20:00:00Z --days=1.5 --seed=12 --flow-options --boiler-outdoor --mqtt-s=60 --learned-s=60 --full-s=1800 --no-oom
 guard|--scenario=guard --days=10 --seed=7
+active|--scenario=active --days=3 --seed=10
 flow|--scenario=flow --days=10 --seed=9
 supervisor|--scenario=supervisor --days=30 --seed=8
 sizes|--scenario=sizes
 repro|--scenario=repro
+slowwifi-3rooms|--scenario=slowwifi --days=0.5 --seed=11
 LIST
 }
 

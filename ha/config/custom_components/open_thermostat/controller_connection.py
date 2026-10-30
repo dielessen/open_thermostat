@@ -22,6 +22,8 @@ def _guard(hass, entry, source, expected, private_expected=None):
             or _selected_native_plan_source(entry) != source
             or private_expected is not None and native_entry_state(entry) != private_expected):
         raise ControllerLinkError("setup_changed")
+    if source is None:  # the E32 room plan link has no native room profile
+        return
     try:
         source.validate_native(hass, entry)
     except ValueError:
@@ -167,3 +169,40 @@ async def async_synchronise_controller_plan(hass, entry, source, expected, *, pr
     finally:
         unsubscribe()
         remove_state()
+
+
+TELEMETRY_POLL = 1
+
+
+async def async_wait_room_plan_link(hass, entry, expected, *, private_expected=None):
+    """Wait for the reloaded entry's own link and the E32's first heating report.
+
+    The E32 room plan link has no room plan to confirm over MQTT. Its proof is
+    that the reloaded entry runs its one connection and that the E32's heating
+    state arrives at this installation's MQTT prefix (the retained
+    fw/state/heating and fw/config/plan, with the E32 online: its heartbeat
+    comes every 60 s): the E32 is on the same broker as Home Assistant.
+    """
+    connection = await async_wait_controller_connection(hass, entry, None, expected,
+                                                        private_expected=private_expected)
+    try:
+        async with asyncio.timeout(CONNECTION_TIMEOUT):
+            while True:
+                _guard(hass, entry, None, expected, private_expected)
+                current = _connection(hass, entry, None)
+                if current is not connection:
+                    # A reload this link's own saves queued (the link switched off,
+                    # the old rooms removed, switched on) replaced the connection:
+                    # follow the new one instead of reporting a failure. The saved
+                    # entry itself is still exactly this link's (_guard).
+                    connection = current if current is not None else await async_wait_controller_connection(
+                        hass, entry, None, expected, private_expected=private_expected,
+                        previous_connection=connection)
+                    continue
+                hub = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("heating_hub")
+                if hub is not None and hub.fresh:
+                    return {"mqtt_session_verified": True, "room_plan_applied": False,
+                            "heating_report_received": True}
+                await asyncio.sleep(TELEMETRY_POLL)
+    except TimeoutError:
+        raise ControllerLinkError("controller_mqtt_unconfirmed") from None

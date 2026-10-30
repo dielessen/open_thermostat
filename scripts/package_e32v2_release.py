@@ -77,27 +77,34 @@ export_symbols(build,pkg)
 subprocess.run([sys.executable,str(core/"tool-esptoolpy/esptool.py"),"--chip","esp32","merge_bin","--output",str(pkg/"e32v2-factory.bin"),"--target-offset","0","--flash_mode","dio","--flash_freq","80m","--flash_size","16MB","0x1000",str(pkg/"bootloader.bin"),"0x8000",str(pkg/"partitions.bin"),"0xe000",str(pkg/"boot_app0.bin"),"0x10000",str(pkg/"firmware.bin"),"0x710000",str(pkg/"spiffs.bin")],check=True)
 (pkg/"README.md").write_text(f"""# OpenThermostat E32 V2 — {release['version']}
 
-Experimental prerelease. Read the release notes and
-`docs/modern-thermostat/BETA1-KETELPROEF.nl.md` before an attended boiler trial.
+Firmware for the BBQKees E32 V2 only. Read the release notes of this version
+for what it does and does not control, and which Home Assistant integration
+version belongs with it.
+
+Step-by-step installation guide (first installation, Home Assistant, updates,
+troubleshooting): `docs/INSTALL.md` in `source.tar.gz`, or online at
+https://github.com/dielessen/open_thermostat/blob/{release['version']}/docs/INSTALL.md
 
 ## Updating an existing installation
 
-Use the E32's normal GitHub updater with `firmware.bin`. It preserves settings
-and includes the web interface. Installation does not start a boiler trial.
+Use `firmware.bin`. It keeps settings and includes the web interface.
 
-Automatic boiler and valve control and persistent boiler-setting writes remain
-disabled. The separate Ecomline Classic commissioning route permits a one-shot
-configuration read and an explicitly attended zero-demand/heat/stop trial.
-Every heat preparation needs current setup confirmations and a boiler-gauge
-reading of 1.1–2.5 bar. The software limits demand to 40–50 °C and at most
-600 seconds, with a five-second operator lease and a separate Stop action.
-Software verification does not complete physical installation, stop or recovery
-acceptance. Record the actual trial results separately.
+- With Home Assistant: install the update from the E32's Firmware update entity
+  (Settings → Updates). Home Assistant downloads `firmware.bin` from this
+  release, checks its SHA-256, size and version, and uploads it to the E32.
+- Without Home Assistant: on the E32, open System → Firmware update and upload
+  `firmware.bin` under Manual upload, or let the E32 check for updates itself.
 
-## Clean USB installation
+A new firmware confirms itself after about a minute of normal running with a
+working network; if it fails to start or gets no working network connection,
+the E32 goes back to the previous version. Installing an update does not start
+a boiler test.
+
+## First installation over USB
 
 `e32v2-factory.bin` is a separate clean-install image at offset 0x0.
-A full erase DELETES SETTINGS. Never use this factory image for application OTA.
+`FACTORY-CHECK.txt` gives its length and the MD5 to check before the first start.
+A full erase DELETES ALL SETTINGS. Never use this factory image for an update.
 
 ## Source, symbols and licences
 
@@ -114,7 +121,9 @@ A full erase DELETES SETTINGS. Never use this factory image for application OTA.
 """)
 factory=(pkg/"e32v2-factory.bin").read_bytes()
 (pkg/"FACTORY-CHECK.txt").write_text("Offset:0x0; full clean installation deletes settings\nLength:"+str(len(factory))+"\nMD5 before first boot:"+hashlib.md5(factory).hexdigest()+"\n")
-if "-e32v2-beta." in release["version"]:
+# Every non-alpha release (beta, rc, stable) proves the retained alpha36 and
+# accepted-predecessor updaters still find and verify it.
+if "-e32v2-alpha." not in release["version"]:
     from verify_alpha36_beta_path import verify as verify_predecessor
     compatibility = verify_predecessor(root,pkg/"e32v2-update.json",pkg/"firmware.bin")
     (pkg/"alpha36-beta-compatibility.json").write_text(json.dumps(compatibility,indent=2)+"\n")

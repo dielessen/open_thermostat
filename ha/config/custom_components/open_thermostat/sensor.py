@@ -19,7 +19,7 @@ from homeassistant.util.unit_conversion import DurationConverter, EnergyConverte
 from .room_identity import room_device_name, room_key
 from .room_values import room_value
 from .metric_snapshot import finite as finite_number
-from .const import CONF_TOPIC_PREFIX, DOMAIN
+from .const import CONF_TOPIC_PREFIX, DOMAIN, MANUFACTURER
 from .program import room_program_name
 from .heating import HeatingTracker, DEFINITION
 from .metrics_reports import note_legacy_metrics, note_metric_definition_migration
@@ -76,6 +76,19 @@ HUB_DIVISORS = {
 }
 
 
+async def _cleanup_stale(hass, entry):
+    from .native_entity_cleanup import cleanup_stale_entities
+    cleanup_stale_entities(hass, entry, entry.data[CONF_TOPIC_PREFIX])
+
+
+async def _optional_step(name, step, *args, **kwargs):
+    """One optional part of the sensor setup: a failure is logged, the rest still loads."""
+    try:
+        await step(*args, **kwargs)
+    except Exception:  # noqa: BLE001 - never let one optional part take the room entities down
+        _LOGGER.exception("OpenThermostat: setting up the %s failed; the other entities still load", name)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -84,19 +97,25 @@ async def async_setup_entry(
     """Create sensors for room values published by the thermostat."""
     if "v1_runtime" in hass.data.get(DOMAIN,{}).get(entry.entry_id,{}):
         from .product import is_product
-        if is_product(entry):
+        product = is_product(entry)
+        if product:
             # Before any entity is added: stale records must not be re-adopted.
-            from .native_entity_cleanup import cleanup_stale_entities
-            cleanup_stale_entities(hass, entry, entry.data[CONF_TOPIC_PREFIX])
-        from .v1_boiler_fields import async_setup_boiler_fields
-        await async_setup_boiler_fields(hass,entry,async_add_entities)
+            await _optional_step("entity cleanup", _cleanup_stale, hass, entry)
+        # The E32 rooms and the ha/heating_input forwarding first: every other
+        # step is optional, and one that fails never leaves the rooms dead.
         from .heating_link import async_setup_heating_link
         await async_setup_heating_link(hass,entry,async_add_entities)
-        if is_product(entry):
+        from .v1_boiler_fields import async_setup_boiler_fields
+        await _optional_step("boiler values", async_setup_boiler_fields, hass, entry, async_add_entities)
+        if product:
             from .product_telemetry import async_setup_sensors
-            await async_setup_sensors(hass, entry, async_add_entities, native_metrics=True)
+            await _optional_step("E32 telemetry", async_setup_sensors, hass, entry, async_add_entities,
+                                 native_metrics=True)
             from .v1_metrics import async_setup_shadow_metrics
-            await async_setup_shadow_metrics(hass, entry, async_add_entities)
+            await _optional_step("metrics", async_setup_shadow_metrics, hass, entry, async_add_entities)
+            from .e32_flow import async_setup_sensors as async_setup_flow_sensors
+            # flow source, gas calibration, last night
+            await _optional_step("flow sensors", async_setup_flow_sensors, hass, entry, async_add_entities)
             return
         from .device_diagnostics import async_setup_device_diagnostics
         await async_setup_device_diagnostics(hass,entry,async_add_entities)
@@ -300,7 +319,7 @@ class RoomMetric(SensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=name,
-            manufacturer="intuibase",
+            manufacturer=MANUFACTURER,
             model="OpenThermostat room",
             via_device_id=hub_id,
         )
@@ -344,7 +363,7 @@ class RoomHeatingSensor(RestoreSensor):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=room_device_name(room_name, index),
-            manufacturer="intuibase",
+            manufacturer=MANUFACTURER,
             model="OpenThermostat room",
             via_device_id=hub_id,
         )
@@ -491,7 +510,7 @@ class RoomProgram(SensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=name,
-            manufacturer="intuibase",
+            manufacturer=MANUFACTURER,
             model="OpenThermostat room",
             via_device_id=hub_id,
         )
@@ -560,7 +579,9 @@ class HubMetric(SensorEntity):
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = unit
         self._attr_state_class = state_class
-        self._attr_name = name
+        # Named by translation key (EN/NL/PL): the boiler counters got short, plain names, the
+        # others kept their English names. An existing entity keeps its entity_id (the registry holds it).
+        self._attr_translation_key = f"hub_{metric}"
         versioned = topic == "ems_metrics" and metric in VERSIONED_METRICS
         if versioned and definition_version not in (1, 2):
             raise ValueError("Unsupported metric definition")
@@ -568,7 +589,7 @@ class HubMetric(SensorEntity):
         self._versioned = versioned
         self._attr_unique_id = f"{prefix}_hub_{metric}" + ("_v2" if versioned and not self._legacy_compat else "")
         if versioned:
-            self._attr_name = ("Legacy history: " + name if self._legacy_compat else name + " (definition v2)")
+            self._attr_translation_key = f"hub_{metric}" + ("_legacy" if self._legacy_compat else "_v2")
         if self._legacy_compat:
             self._attr_state_class = None
             self._attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -675,7 +696,7 @@ class RoomName(SensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=room_device_name(room_name, index),
-            manufacturer="intuibase",
+            manufacturer=MANUFACTURER,
             model="OpenThermostat room",
             via_device_id=hub_id,
         )

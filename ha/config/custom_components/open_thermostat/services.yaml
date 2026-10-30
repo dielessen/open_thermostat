@@ -127,3 +127,63 @@ set_comfort:
       description: Vacation only. Future ISO date/time with explicit timezone, e.g. 2026-10-30T18:00:00+01:00. Ambiguous local/DST times are rejected.
       selector:
         text:
+set_room_override:
+  name: Set a temporary room override
+  description: A temporary target for an E32 room. Boost heats to the room's maximum (one hour unless you choose a duration). The E32 ends the override itself, also after a restart, and the room returns to its week program. Only the room's target changes; the flow limits and frost protection stay.
+  target:
+    entity:
+      domain: climate
+      integration: open_thermostat
+  fields:
+    mode:
+      required: true
+      selector:
+        select:
+          options: ['boost', 'timed', 'until_next']
+          translation_key: room_override_mode
+    temperature:
+      selector:
+        number:
+          min: 5
+          max: 30
+          step: 0.5
+          unit_of_measurement: "°C"
+    duration_minutes:
+      selector:
+        number:
+          min: 1
+          max: 1440
+          mode: box
+          unit_of_measurement: min
+clear_room_override:
+  name: End the room override
+  description: The room follows its week program again.
+  target:
+    entity:
+      domain: climate
+      integration: open_thermostat
+set_away:
+  name: Away
+  description: A lower temperature for the whole house, optionally until a date and time. The E32 starts warming up early enough to be at the program's temperature when you are back.
+  target:
+    entity:
+      domain: climate
+      integration: open_thermostat
+  fields:
+    temperature:
+      selector:
+        number:
+          min: 5
+          max: 25
+          step: 0.5
+          unit_of_measurement: "°C"
+    until:
+      selector:
+        datetime:
+clear_away:
+  name: End away
+  description: Every room follows its week program again.
+  target:
+    entity:
+      domain: climate
+      integration: open_thermostat

@@ -9,6 +9,10 @@
 #include "EMS/ClassicBoilerMonitor.h"
 #include "EMS/EmsDeviceInventory.h"
 #include "EMS/EmsEntityCatalog.h"
+#include "EMS/BoilerProfileReport.h"
+#if __has_include(<nvs.h>)
+#include "EMS/BoilerProfileStore.h"
+#endif
 #include "control/BoilerFieldTelemetry.h"
 #include "control/BurnerCycleMonitor.h"
 #include "control/DhwEpisodes.h"
@@ -25,6 +29,7 @@
 #include "EMS/ClassicSettingsRuntimeGate.h"
 #include "EMS/ManualClassicTransaction.h"
 #include "EMS/ActiveHeatPollDriver.h"
+#include "EMS/BoilerLimitRead.h"
 #include "EMS/ForeignBoilerRequest.h"
 #include <esp_system.h>
 #endif
@@ -200,7 +205,9 @@ public:
 			reset();
 		}
 		captureForeignTelegrams_.store(log_ && log_->isFeatureEnabled(verboseFeature()), std::memory_order_relaxed);
+		loadBoilerProfile();
 		processTelegrams();
+		saveBoilerProfile();
 #ifndef OPENTHERMOSTAT_E32V2
 		refreshClassicStatus();
 #endif
@@ -265,6 +272,7 @@ public:
         std::lock_guard<std::mutex> lock(telemetryMutex_);
         if(!emsConfig_.emsEnabled)return;
         const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
+        if(group==control::boilerProfileGroup){writeBoilerProfileTopic(out,profile_);return;} // fw/config/boiler_profile
         if(group<control::boilerFieldGroupCount){monitor_.writeFieldGroup(out,now,group);return;}
         // Groups 7..: the entity catalog (boiler.fields.v2), same field shape.
         if(group>=control::boilerFieldGroupCountV2)return;
@@ -288,6 +296,17 @@ public:
         const auto f=entities_.field(0,static_cast<uint64_t>(esp_timer_get_time()/1000));
         if(!f||!f->valid||f->raw<0||f->raw>100)return std::nullopt;
         return static_cast<uint8_t>(f->raw);
+    }
+    // GET /status/boiler/profile: which boiler fields this boiler has.
+    void getBoilerProfile(std::ostream& out) const {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        writeBoilerProfileJSON(out,profile_,static_cast<uint64_t>(esp_timer_get_time()/1000));
+    }
+    // The owner's "show anyway" for a not_fitted field (wire index); false: not allowed.
+    bool setBoilerProfileShown(size_t wireIndex,bool show) {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        const auto slot=BoilerProfile::slotOf(wireIndex);
+        return slot&&profile_.setShown(*slot,show,static_cast<uint64_t>(esp_timer_get_time()/1000));
     }
     control::BurnerCycleMonitor::Summary burnerCycles() const {
         std::lock_guard<std::mutex> lock(telemetryMutex_);
@@ -413,6 +432,9 @@ public:
         std::optional<bool> hotWater;
         std::optional<uint8_t> modulationPct;
         std::optional<int16_t> returnCentiC;
+        std::optional<uint64_t> limitAtMs; // when the boiler reported limitC (0x16)
+        uint32_t limitReads = 0;           // the E32's own 0x16 read requests this boot
+        std::optional<uint64_t> boilerHeardAtMs; // the latest boiler report (proof the bus is heard)
     };
     ActiveHeatView activeHeatView() const {
         std::lock_guard<std::mutex> lock(telemetryMutex_);
@@ -427,7 +449,8 @@ public:
             board::emsActiveHeatAllowed && activeHeatRouteReady(), activeHeat_.last(),
             state ? std::optional<bool>((*state & 0x02) != 0) : std::nullopt,
             modulation && *modulation >= 0 && *modulation <= 100 ? std::optional<uint8_t>(static_cast<uint8_t>(*modulation)) : std::nullopt,
-            ret ? std::optional<int16_t>(static_cast<int16_t>(*ret)) : std::nullopt};
+            ret ? std::optional<int16_t>(static_cast<int16_t>(*ret)) : std::nullopt,
+            ActiveHeatEnvelope::reportedAtMs(monitor_), limitRead_.sent(), monitor_.lastReportMs()};
     }
     // Today's and the last 7 days' hot water for /status/heating (nullptr: no memory).
     cJSON* dhwSummaryJson() const {
@@ -557,6 +580,31 @@ private:
 	ClassicBoilerMonitor monitor_;
     EmsDeviceInventory deviceInventory_;
     EmsEntityObserver entities_; // passive EMS+/thermostat table, telemetry mutex
+    BoilerProfile profile_; // which fields this boiler has (fed by monitor_ and entities_), telemetry mutex
+    bool profileLoaded_ = false; // loop() only
+    // Once, before the first decoded frame of the boot; then debounced writes,
+    // NVS IO outside the telemetry lock.
+    void loadBoilerProfile() {
+        if(profileLoaded_)return;
+        profileLoaded_=true;
+#if __has_include(<nvs.h>)
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        BoilerProfileStore::load(profile_,static_cast<uint64_t>(esp_timer_get_time()/1000));
+#endif
+    }
+    void saveBoilerProfile() {
+#if __has_include(<nvs.h>)
+        std::optional<BoilerProfile::Record> record;
+        {
+            std::lock_guard<std::mutex> lock(telemetryMutex_);
+            record=profile_.takeWrite(static_cast<uint64_t>(esp_timer_get_time()/1000));
+        }
+        if(!record)return;
+        const bool ok=BoilerProfileStore::write(*record);
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        profile_.written(ok);
+#endif
+    }
     control::BurnerCycleMonitor burnerCycles_; // short-cycling from the 0x18 flame bit, telemetry mutex
     control::DhwEpisodes dhwEpisodes_; // tapping vs keeping warm from 0x18/0x34, telemetry mutex
 #ifdef OPENTHERMOSTAT_E32V2
@@ -650,6 +698,8 @@ private:
     // it never runs beside the trial, a configuration read or a settings write.
     ForeignBoilerRequest foreignRequest_; // telemetry mutex
     ActiveHeatPollDriver activeHeat_{boilerTest_.bootId(), board::emsActiveHeatAllowed}; // telemetry mutex
+    // The boiler's own limit for active heating: read-only 0x16, same route and gates.
+    BoilerLimitRead limitRead_{board::emsBoilerLimitReadAllowed}; // telemetry mutex
     bool activeHeatRouteReady() const {
         return manualTransportReviewed() && monitor_.capabilities().profile()==BoilerProtocol::classic
             && !boilerTest_.active() && !configurationRead_.active() && !boilerSettings_.active();

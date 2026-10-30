@@ -14,7 +14,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .room_identity import room_device_name, room_key
-from .const import CONF_TOPIC_PREFIX, DOMAIN
+from .const import CONF_TOPIC_PREFIX, DOMAIN, MANUFACTURER
 from .heating import HeatingTracker, boolean_state
 
 _LOGGER = logging.getLogger(__name__)
@@ -169,7 +169,7 @@ class RoomState(BinarySensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=name,
-            manufacturer="intuibase",
+            manufacturer=MANUFACTURER,
             model="OpenThermostat room",
             via_device_id=hub_id,
         )
@@ -192,7 +192,7 @@ class HubConnection(BinarySensorEntity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
-    _attr_name = "Connected"
+    _attr_translation_key = "hub_connected"  # "Connected" (EN/NL/PL)
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
@@ -282,7 +282,7 @@ class RadiatorHeating(BinarySensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=room_device_name(room_name, index),
-            manufacturer="intuibase",
+            manufacturer=MANUFACTURER,
             model="OpenThermostat room",
             via_device_id=hub_id,
         )

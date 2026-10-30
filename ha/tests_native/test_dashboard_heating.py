@@ -73,62 +73,96 @@ def installation(hass, language="en", *, with_hub=True):
 @pytest.mark.asyncio
 async def test_heating_view_is_sections_of_built_in_cards_per_room_with_the_essentials(hass):
     e, rooms, sensors, hub, fields = installation(hass)
-    config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
-    assert [v["path"] for v in config["views"]] == ["heating", "boiler", "diagnostics"]
-    heating = config["views"][0]
+    dashboard = RoomDashboard(hass, "fixture", e.entry_id)
+    config = dashboard._dashboard_config()
+    # The shadow comparison and the loose Bluetooth sensor live on a subview reached from "Now".
+    assert [v["path"] for v in config["views"]] == ["heating", "boiler", "diagnostics", "comparison"]
+    heating, comparison = config["views"][0], config["views"][3]
     assert (heating["title"], heating["type"], heating["max_columns"]) == ("Heating", "sections", 3)
+    assert (comparison["title"], comparison["subview"], comparison["type"]) == ("Comparison", True, "sections")
     assert {card["type"] for view in config["views"] for card in view_cards(view)} <= BUILT_IN
     assert None not in list(walk(config))
     headings = [section["cards"][0]["heading"] for section in heating["sections"]]
-    # For a quick look on a phone: the rooms (in the E32's order, by name, never the id) come first;
-    # then what the E32 asks now, the boiler, the comparison and Bluetooth.
-    assert headings == ["Woonkamer", "Badkamer", "Now", "Boiler", "E32 and thermostat", "Bluetooth sensors"]
-    now = heating["sections"][2]["cards"]
+    # For a quick look: "Now" (status, what the heating does, the boiler at a glance), then the rooms
+    # (in the E32's order, by name, never the id), then the rest of the boiler.
+    assert headings == ["Now", "Woonkamer", "Badkamer", "Boiler"]
+    now = heating["sections"][0]["cards"]
+    # The request twice, never both shown: in °C while there is one, "No boiler request" while there is none.
     assert [c.get("entity") for c in now if c["type"] == "tile"] == [
-        hub["heat_request"], fields["measured_flow_temperature"], hub["shadow_agreement_today"]]
+        hub["heat_request"], hub["heat_request"], fields["measured_flow_temperature"],
+        fields["measured_dhw_temperature"]]
+    # The comparison is a link to the subview that explains it, not a bare percentage.
+    link = now[-1]
+    assert (link["type"], link["heading"]) == ("heading", "E32 compared with your thermostat")
+    assert link["tap_action"] == {"action": "navigate", "navigation_path": "/" + dashboard.path + "/comparison"}
+    assert hub["shadow_agreement_today"] not in [c.get("entity") for c in now]
     explain = next(c for c in now if c["type"] == "markdown")
     # One short line instead of a "How it works" block.
     assert "How it works" not in explain["content"] and "You set the rooms" not in explain["content"]
     assert "also without Home Assistant" in explain["content"] and "Shadow mode" in explain["content"]
     assert hub["heat_request"] in explain["content"]  # the mode line follows the E32's own status
 
-    living = heating["sections"][0]["cards"]
+    living = heating["sections"][1]["cards"]
+    active = [{"condition": "state", "entity": rooms["woonkamer"]["state"], "state_not": "inactive"}]
+    inactive = [{"condition": "state", "entity": rooms["woonkamer"]["state"], "state": "inactive"}]
     badges = living[0]["badges"]
-    assert [b["entity"] for b in badges] == [rooms["woonkamer"]["demand"], rooms["woonkamer"]["status"]]
+    assert [b["entity"] for b in badges] == [rooms["woonkamer"][k] for k in ("demand", "status", "state")]
+    assert badges[0]["visibility"] == active
+    # A problem is amber; an inactive room is a plain grey "Off", never a warning.
     assert badges[1]["visibility"] == [{"condition": "state", "entity": rooms["woonkamer"]["status"],
-                                        "state_not": "ok"}]
-    assert living[1] == {"type": "thermostat", "entity": "climate.tado_woonkamer"}  # the thermostat it follows
+                                        "state_not": ["ok", "inactive"]}]
+    assert badges[2]["visibility"] == inactive and "color" not in badges[2]
+    # The thermostat it follows; only while the room is on (an inactive room stays compact).
+    assert living[1] == {"type": "thermostat", "entity": "climate.tado_woonkamer", "visibility": active}
     tiles = {c["entity"]: c for c in living if c["type"] == "tile"}
     # The thermostat card shows the target; the mode and the temperature without Home Assistant
     # (easy to change by accident at night) stay on the room's device page.
     assert list(tiles) == [rooms["woonkamer"][k] for k in ("temperature", "inactive_until")]
     assert not any(c.get("features") for c in living)
-    assert tiles[rooms["woonkamer"]["inactive_until"]]["visibility"] == [
-        {"condition": "state", "entity": rooms["woonkamer"]["state"], "state": "inactive"}]
+    assert tiles[rooms["woonkamer"]["inactive_until"]]["visibility"] == inactive + [
+        {"condition": "state", "entity": rooms["woonkamer"]["inactive_until"], "state_not": ["unavailable", "unknown"]}]
     assert tiles[rooms["woonkamer"]["temperature"]]["name"] == "Measured by E32"
+    assert tiles[rooms["woonkamer"]["temperature"]]["visibility"] == active
+    # One graph per room: measured and target over the last 24 hours, only while the room is on.
+    day = next(c for c in living if c["type"] == "history-graph")
+    assert [x["entity"] for x in day["entities"]] == [rooms["woonkamer"][k] for k in ("temperature", "setpoint")]
+    assert day["visibility"] == active and "title" not in day
+    # An inactive room says so in one calm line (its sources work, so no hint to choose one).
+    off = next(c for c in living if c["type"] == "markdown")
+    assert off == {"type": "markdown", "content": "This room is off and never asks for heat.", "visibility": inactive}
     # A Bluetooth-only room has no thermostat card, so it shows its target.
-    bathroom = heating["sections"][1]["cards"]
+    bathroom = heating["sections"][2]["cards"]
     assert not any(c["type"] == "thermostat" for c in bathroom)
     assert [c["entity"] for c in bathroom if c["type"] == "tile"] == [
         rooms["badkamer"][k] for k in ("temperature", "setpoint", "inactive_until")]
 
-    compare = heating["sections"][4]["cards"]
+    compare = comparison["sections"][0]["cards"]
+    assert compare[0]["heading"] == "E32 and thermostat"
     history = next(c for c in compare if c["type"] == "history-graph")
     assert [x["entity"] for x in history["entities"]] == [
         hub["heat_request"], fields["thermostat_requested_flow_temperature"], fields["measured_flow_temperature"]]
     assert [x["name"] for x in history["entities"]] == ["Boiler request E32", "Thermostat request", "Flow temperature"]
-    statistics = next(c for c in compare if c["type"] == "statistics-graph")
-    assert statistics["entities"] == [hub["shadow_e32_heating_time_today"], hub["shadow_tado_heating_time_today"]]
+    per_day = comparison["sections"][1]["cards"]
+    assert per_day[0]["heading"] == "Heating time per day"
+    assert per_day[1]["type"] == "statistics-graph" and "title" not in per_day[1]
+    assert per_day[1]["entities"] == [{"entity": hub["shadow_e32_heating_time_today"], "name": "E32"},
+                                      {"entity": hub["shadow_tado_heating_time_today"], "name": "Thermostat"}]
     assert {c["entity"] for c in compare if c["type"] == "tile"} == {
-        hub[k] for k in ("shadow_e32_heating_time_today", "shadow_tado_heating_time_today",
+        hub[k] for k in ("shadow_agreement_today", "shadow_e32_heating_time_today", "shadow_tado_heating_time_today",
                          "shadow_e32_starts_today", "shadow_tado_starts_today")}
 
+    # The boiler: what "Now" does not show yet (no duplicate flow or hot water tile), then its day.
     boiler = heating["sections"][3]["cards"]
     assert [c["entity"] for c in boiler if c["type"] == "tile"] == [
-        fields["measured_flow_temperature"], fields["measured_return_temperature"],
-        fields["reported_burner_modulation"], fields["pressure"], fields["measured_dhw_temperature"],
+        fields["measured_return_temperature"], fields["reported_burner_modulation"], fields["pressure"],
         fields["display_code"], hub["burner_starts_last_hour"], hub["burner_short_cycling"]]
-    bluetooth = heating["sections"][5]["cards"][1]
+    shown = [c["entity"] for c in view_cards(heating) if c["type"] == "tile" and not c.get("hide_state")]
+    assert len(shown) == len(set(shown)), "no tile twice on the Heating view"
+    graph = next(c for c in boiler if c["type"] == "history-graph")
+    assert [x["entity"] for x in graph["entities"]] == [
+        fields["measured_flow_temperature"], fields["measured_return_temperature"], hub["heat_request"]]
+    # No plan read yet: the sensor feeds no known room, so it is listed on the subview.
+    bluetooth = comparison["sections"][2]["cards"][1]
     assert bluetooth["type"] == "glance" and bluetooth["title"] == "Thermometer badkamer"
     assert [x["entity"] for x in bluetooth["entities"]] == [sensors[k] for k in ("temperature", "humidity", "battery")]
 
@@ -141,13 +175,62 @@ async def test_no_comparison_without_a_thermostat_on_the_bus(hass):
         entities.async_remove(hub.pop(key))
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     heating = config["views"][0]
-    assert [s["cards"][0]["heading"] for s in heating["sections"]] == [
-        "Woonkamer", "Badkamer", "Now", "Boiler", "Bluetooth sensors"]
-    text = json.dumps(heating)
-    assert "Thermostat request" not in text and "Agreement with thermostat" not in text
-    explain = next(c for c in heating["sections"][2]["cards"] if c["type"] == "markdown")
+    assert [s["cards"][0]["heading"] for s in heating["sections"]] == ["Now", "Woonkamer", "Badkamer", "Boiler"]
+    text = json.dumps(config)
+    assert "Thermostat request" not in text and "Agreement" not in text and "shadow_agreement" not in text
+    # The subview keeps only the loose Bluetooth sensor.
+    assert [s["cards"][0]["heading"] for s in config["views"][3]["sections"]] == ["Bluetooth sensors"]
+    explain = next(c for c in heating["sections"][0]["cards"] if c["type"] == "markdown")
     assert "your thermostat controls" not in explain["content"]
     assert "current thermostat or the boiler's own control" in explain["content"]
+
+
+@pytest.mark.asyncio
+async def test_a_room_in_the_plan_shows_its_e32_thermostat_and_its_own_sensor(hass):
+    """The E32 room climate is the room's dial; the Bluetooth sensor that feeds only this room is in its heading."""
+    e, rooms, sensors, hub, fields = installation(hass)
+    entities, devices = er.async_get(hass), dr.async_get(hass)
+    device = devices.async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_woonkamer"), e.entry_id)
+    own = entities.async_get_or_create("climate", "open_thermostat", "fixture_e32_room_woonkamer_thermostat",
+                                       config_entry=e, device_id=device.id, suggested_object_id="woonkamer").entity_id
+    plan = {"rooms": [{"id": "woonkamer", "sources": [{"type": "ble", "id": "a4c138a3e8db"}]},
+                      {"id": "badkamer", "state": "inactive", "sources": [{"type": "ha", "id": "climate.gone"}]}]}
+    hass.data["open_thermostat"][e.entry_id]["heating_hub"].plan = SimpleNamespace(
+        plan=plan, room=lambda room_id: next((r for r in plan["rooms"] if r["id"] == room_id), None))
+    config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
+    heating = config["views"][0]
+    living = heating["sections"][1]["cards"]
+    assert living[1] == {"type": "thermostat", "entity": own, "visibility": [
+        {"condition": "state", "entity": rooms["woonkamer"]["state"], "state_not": "inactive"}]}
+    # Its own climate shows the measurement: no second "Measured by E32" tile.
+    assert rooms["woonkamer"]["temperature"] not in [c.get("entity") for c in living if c["type"] == "tile"]
+    badges = living[0]["badges"]
+    assert [b["entity"] for b in badges] == [rooms["woonkamer"]["demand"], rooms["woonkamer"]["status"],
+                                             rooms["woonkamer"]["state"], sensors["humidity"], sensors["battery"]]
+    assert badges[4]["visibility"] == [{"condition": "numeric_state", "entity": sensors["battery"], "below": 20}]
+    # The humidity says what it is (name and a humidity icon), not a bare percentage.
+    assert (badges[3]["name"], badges[3]["icon"]) == ("Humidity", "mdi:water-percent")
+    assert "Bluetooth sensors" not in json.dumps(config)  # the sensor is in its room
+    # The bathroom follows an entity that no longer exists: when it is off, a hint to choose a source
+    # first, removing the room second (both in Home Assistant's own pages).
+    bathroom = heating["sections"][2]["cards"]
+    inactive = [{"condition": "state", "entity": rooms["badkamer"]["state"], "state": "inactive"}]
+    hint = [c for c in bathroom if c.get("visibility") == inactive and c["type"] in ("markdown", "heading")]
+    assert [c.get("heading") or c["content"] for c in hint] == [
+        "Badkamer is off and has no working temperature source. Choose a source to use it again, "
+        "or remove the room if you no longer need it.", "Choose a source", "Remove room"]
+    integration = "/config/integrations/integration/open_thermostat"
+    assert [c["tap_action"]["navigation_path"] for c in hint[1:]] == [integration, integration]
+    # With the Repairs item for it, "Choose a source" opens Repairs.
+    from homeassistant.helpers import issue_registry as ir
+    ir.async_create_issue(hass, "open_thermostat", f"e32_room_choose_source_{e.entry_id}_badkamer", is_fixable=True,
+                          severity=ir.IssueSeverity.WARNING, translation_key="e32_room_choose_source")
+    bathroom = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"][0]["sections"][2]["cards"]
+    choose = next(c for c in bathroom if c.get("heading") == "Choose a source")
+    assert choose["tap_action"]["navigation_path"] == "/config/repairs"
+    hass.config.language = "nl"
+    text = json.dumps(RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config(), ensure_ascii=False)
+    assert "Badkamer staat uit en heeft geen werkende temperatuurbron" in text and "Kies een bron" in text
 
 
 def _add_learned(hass, e, rooms, hub):
@@ -174,40 +257,44 @@ async def test_learning_area_per_room_and_hot_water_today_only_once_reported(has
     assert None not in list(walk(config))
     heating = config["views"][0]
     # Same sections; the learned values sit inside the room they belong to.
-    assert [s["cards"][0]["heading"] for s in heating["sections"]] == [
-        "Woonkamer", "Badkamer", "Now", "Boiler", "E32 and thermostat", "Bluetooth sensors"]
-    living = heating["sections"][0]["cards"]
+    assert [s["cards"][0]["heading"] for s in heating["sections"]] == ["Now", "Woonkamer", "Badkamer", "Boiler"]
+    living = heating["sections"][1]["cards"]
     room = rooms["woonkamer"]
     area = living[next(i for i, c in enumerate(living) if c.get("heading") == "Learning"):]
-    assert [c["type"] for c in area] == ["heading", "tile", "tile"]
-    heading, advice, start = area
+    # Then the "room is off" line and the link to the room's settings.
+    assert [c["type"] for c in area] == ["heading", "tile", "tile", "markdown", "heading"]
+    heading, advice, start = area[:3]
     assert heading["heading_style"] == "subtitle" and heading["icon"] == "mdi:school-outline"
     assert heading["badges"] == [{"type": "entity", "entity": room["learning"], "show_state": True,
                                   "show_icon": True, "color": "teal"}]
     known = lambda entity: {"condition": "state", "entity": entity, "state_not": ["unavailable", "unknown"]}
-    assert heading["visibility"] == [known(room["learning"])]  # hidden while the E32 reports none
-    assert (advice["entity"], advice["name"]) == (room["flow_advice"], "Recommended flow")
-    assert advice["visibility"] == [{"condition": "state", "entity": room["learning"], "state": "ready"},
+    on = {"condition": "state", "entity": room["state"], "state_not": "inactive"}
+    # Hidden while the E32 reports none, and while the room is off.
+    assert heading["visibility"] == [on, known(room["learning"])]
+    assert (advice["entity"], advice["name"]) == (room["flow_advice"], "Flow advice")
+    assert advice["visibility"] == [on, {"condition": "state", "entity": room["learning"], "state": "ready"},
                                     known(room["flow_advice"])]
     assert (start["entity"], start["name"], start["visibility"]) == (
-        room["heating_start"], "Heating starts", [known(room["heating_start"])])
+        room["heating_start"], "Heating starts", [on, known(room["heating_start"])])
     # A room without learned entities gets no learning area.
-    assert not any(c.get("heading") == "Learning" for c in heating["sections"][1]["cards"])
-    # One line under "Now", only while the E32 reports the learning.
-    explain = next(c for c in heating["sections"][2]["cards"] if c["type"] == "markdown")["content"]
-    assert "learns how fast each room warms up" in explain and room["learning"] in explain
-    assert "advice only" in explain and "'applied'" in explain
-    # The hot-water tile sits next to the hot water temperature; the day's details in Diagnostics.
-    boiler = [c["entity"] for c in heating["sections"][3]["cards"] if c["type"] == "tile"]
-    assert boiler[boiler.index(fields["measured_dhw_temperature"]) + 1] == hub["dhw_taps_today"]
+    assert not any(c.get("heading") == "Learning" for c in heating["sections"][2]["cards"])
+    # How the learning works: one note on the Comparison subview, only while the E32 reports it.
+    learning = next(x for x in config["views"][3]["sections"] if x["cards"][0]["heading"] == "Learning")
+    note = learning["cards"][1]
+    assert "learns how fast each room warms up" in note["content"] and room["learning"] in note["content"]
+    assert "advice only" in note["content"] and "'applied'" in note["content"]
+    assert note["visibility"] == [known(room["learning"])]
+    assert "learns how fast" not in json.dumps(heating)
+    # Today's hot-water taps are a boiler tile; the day's details in Diagnostics.
     taps = next(c for c in heating["sections"][3]["cards"] if c.get("entity") == hub["dhw_taps_today"])
-    assert (taps["name"], taps["visibility"]) == ("Hot water taps today", [known(hub["dhw_taps_today"])])
+    assert (taps["name"], taps["visibility"]) == ("Taps today", [known(hub["dhw_taps_today"])])
     today = next(c for c in config["views"][2]["cards"] if c.get("title") == "Hot water today")
-    assert today["entities"] == [hub[k] for k in ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today")]
+    assert today["entities"] == [{"entity": hub[k], "name": {"type": "entity"}}
+                                 for k in ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today")]
     # In Dutch.
     hass.config.language = "nl"
     text = json.dumps(RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config(), ensure_ascii=False)
-    for words in ('"Leren"', "Geadviseerde aanvoer", "Start verwarmen", "Warmwatertappen vandaag",
+    for words in ('"Leren"', "Aanvoeradvies", "Start verwarmen", "Tappen vandaag",
                   "Warm water vandaag", "leert ook hoe snel elke ruimte opwarmt", "alleen advies"):
         assert words in text, words
 
@@ -228,9 +315,10 @@ async def test_dutch_headings_and_only_existing_enabled_entities(hass):
     registry.async_remove(hub["burner_short_cycling"])
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     heating = config["views"][0]
-    assert [v["title"] for v in config["views"]] == ["Verwarming", "Ketel", "Diagnose"]
-    assert [s["cards"][0]["heading"] for s in heating["sections"]] == [
-        "Badkamer", "Woonkamer", "Nu", "Ketel", "E32 en thermostaat vergeleken", "Bluetooth-sensoren"]
+    assert [v["title"] for v in config["views"]] == ["Verwarming", "Ketel", "Diagnose", "Vergelijking"]
+    assert [s["cards"][0]["heading"] for s in heating["sections"]] == ["Nu", "Badkamer", "Woonkamer", "Ketel"]
+    assert [s["cards"][0]["heading"] for s in config["views"][3]["sections"]] == [
+        "E32 en thermostaat vergeleken", "Stooktijd per dag", "Bluetooth-sensoren"]
     text = json.dumps(config, ensure_ascii=False)
     for gone in (hub["heat_request"], rooms["woonkamer"]["fallback_setpoint"], sensors["humidity"],
                  fields["thermostat_requested_flow_temperature"], hub["burner_short_cycling"]):
@@ -244,7 +332,7 @@ async def test_dutch_headings_and_only_existing_enabled_entities(hass):
         ("open_thermostat", "fixture_e32_room_badkamer"), e.entry_id)
     dr.async_get(hass).async_update_device(device.id, name_by_user="Badkamer boven")
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
-    assert config["views"][0]["sections"][0]["cards"][0]["heading"] == "Badkamer boven"
+    assert config["views"][0]["sections"][1]["cards"][0]["heading"] == "Badkamer boven"
 
 
 @pytest.mark.asyncio
@@ -307,17 +395,18 @@ async def test_status_comes_first_with_the_reasons_only_while_there_is_a_problem
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     heating = config["views"][0]
     assert [s["cards"][0]["heading"] for s in heating["sections"]] == [
-        "Status", "Advice", "Woonkamer", "Badkamer", "Now", "Boiler", "E32 and thermostat", "Bluetooth sensors"]
+        "Now", "Advice", "Woonkamer", "Badkamer", "Boiler"]
     status = heating["sections"][0]["cards"]
-    assert status[1] == {"type": "tile", "entity": hub["heating_problem"], "name": "Heating", "icon": "mdi:radiator"}
-    reasons = status[2]
+    # The problem sensor's own icon: a check when all is well, a warning when not.
+    assert status[1] == {"type": "tile", "entity": hub["heating_problem"], "name": "Heating"}
+    reasons = next(c for c in status if c["type"] == "markdown" and "'reasons'" in c["content"])
     assert reasons["type"] == "markdown" and hub["heating_problem"] in reasons["content"]
     assert "'reasons'" in reasons["content"]
     assert reasons["visibility"] == [{"condition": "state", "entity": hub["heating_problem"], "state": "on"}]
     # The boiler's own maximum (a knob on some boilers, a menu on others) is a boiler essential.
     boiler = next(s for s in heating["sections"] if s["cards"][0]["heading"] == "Boiler")["cards"]
     maximum = next(c for c in boiler if c.get("entity") == field)
-    assert maximum["name"] == "Boiler maximum (heating)"
+    assert (maximum["name"], maximum["icon"]) == ("Boiler maximum", "mdi:thermometer-high")
     hass.config.language = "nl"
     text = json.dumps(RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config(), ensure_ascii=False)
-    assert '"Status"' in text and '"Verwarming"' in text and "Maximum ketel (verwarming)" in text
+    assert '"Nu"' in text and '"Verwarming"' in text and '"Ketelmaximum"' in text

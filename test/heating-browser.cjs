@@ -49,6 +49,8 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
     }
     return json(plan);
    }
+   // This test covers the switch-point list, the fallback without the visual planner (test/week-editor-browser.cjs).
+   if(p==='/week-editor.js')return route.fulfill({status:404,body:''});
    const file=path.join(assets,p==='/'?'index.html':p);
    if(!file.startsWith(assets+'/')||!fs.existsSync(file))return route.fulfill({status:404,body:''});
    let body=fs.readFileSync(file);if(p.endsWith('.gz'))body=zlib.gunzipSync(body);
@@ -107,20 +109,22 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await pick.selectOption('a4c138a3e8db');
   // An empty extra row is not saved.
   await card.getByRole('button',{name:'Bron toevoegen'}).click();
-  await card.getByLabel('Gewenste temperatuur uit Home Assistant-entiteit (optioneel)').fill('climate.woonkamer');
+  await card.getByLabel('Instelapparaat in Home Assistant (optioneel)').fill('climate.woonkamer');
   await root.locator('[data-heating-save]').click();
   await root.getByText('Ruimtes opgeslagen.').waitFor();
   assert.equal(posts.length,1);
   assert.deepEqual(posts[0],{schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[{id:'woonkamer',name:'Woonkamer',
    state:'active',inactive_until:0,emitter:'floor',sources:[{type:'ha',id:'climate.woonkamer'},{type:'ble',id:'a4c138a3e8db'}],
-   setpoint_entity:'climate.woonkamer',fallback_centi_c:2000,minimum_centi_c:500,maximum_centi_c:2500}]});
+   setpoint_entity:'climate.woonkamer',fallback_centi_c:2000,minimum_centi_c:500,maximum_centi_c:2500,
+   // Every room has a week program: a new one starts with "Workdays and weekend".
+   schedule:[0,1,2,3,4,5,6].map(d=>d<5?[[390,2000],[510,1800],[1020,2000],[1350,1600]]:[[480,2000],[1380,1600]])}]});
   await root.locator('[data-heating-room="woonkamer"] summary').getByText('Vraagt warmte').waitFor();
   // Floor heating with a 60 °C maximum: a warning, not a block.
   assert.equal(await root.locator('[data-heating-flow-warn]').isVisible(),true);
   // Same ranges as the firmware (RoomPlan): minimum 20–79, maximum 21–80 °C.
   assert.deepEqual(await root.locator('#heating-min-flow,#heating-max-flow').evaluateAll(f=>f.map(i=>[i.min,i.max])),[['20','79'],['21','80']]);
   assert.match(await root.locator('[data-heating-room="woonkamer"] summary').innerText(),/^Woonkamer\s+Vraagt warmte\s+20,4 °C\s+Gewenst 21,0 °C\s+Gewenste temperatuur uit Home Assistant$/);
-  assert.equal(await root.locator('[data-heating-room="woonkamer"]').getByLabel('Weekprogramma gebruiken').isChecked(),false,'no week program');
+  assert.equal(await root.locator('[data-heating-room="woonkamer"]').getByLabel('Weekprogramma gebruiken').isChecked(),true,'a new room has a week program');
   await root.locator('[data-heating-request]').getByText('Berekende ketelvraag: 36 °C · Verwarmen').waitFor();
   // Home Assistant saved in between: the stale write is refused and the page reloads the plan.
   plan={...plan,revision:plan.revision+1,rooms:plan.rooms.map(r=>({...r,name:'Living',schedule:week}))};

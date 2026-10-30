@@ -13,7 +13,9 @@ from .controller_link import (
     ControllerClient, ControllerLinkError, ControllerProvisioningError,
     controller_address, async_prepare_controller_link, async_provision_controller,
 )
-from .controller_connection import async_synchronise_controller_plan
+from .controller_connection import async_synchronise_controller_plan, async_wait_room_plan_link
+from .e32_link import (async_check_room_plan_firmware, async_prepare_room_plan_link, async_provision_room_plan,
+                       legacy_zones, remove_legacy_room_devices, without_legacy_rooms)
 from .native_plan import native_entry_state
 from .native_provisioning import SOURCE_OPTION, source_selection
 from .product import configuration_snapshot, commit_configuration, is_product
@@ -31,29 +33,66 @@ def _private_guard(hass, entry, before):
         raise ControllerLinkError("setup_changed")
 
 
-async def async_connect_installation(hass, entry, address, password):
-    """One explicit configure/apply operation; never a physical qualification."""
+def _check_installation(hass, entry):
+    """Checks shared by both connection routes, before any E32 contact."""
     from . import (_selected_graph_data_profile, _selected_graph_controller_source,
                    _selected_controller_policy_source_profile, _NATIVE_PLAN_SOURCE_PROFILES)
-    from homeassistant.config_entries import ConfigEntryState
-    from .product import HA_VERSION, SUPPORTED_HA_VERSIONS
-
-    if (HA_VERSION not in SUPPORTED_HA_VERSIONS or not is_product(entry)
-            or integration_mode(entry) != MODE_SHADOW):
+    from .product import ha_version_supported
+    if not ha_version_supported(hass):
+        raise ControllerLinkError("controller_ha_version_unsupported")
+    if not is_product(entry) or integration_mode(entry) != MODE_SHADOW:
         raise ControllerLinkError("controller_room_configuration_invalid")
-    if not any(s.subentry_type == "zone" for s in entry.subentries.values()):
-        raise ControllerLinkError("controller_add_room_first")
     if (any(p.policy.entry_unique_id == entry.unique_id for p in _NATIVE_PLAN_SOURCE_PROFILES)
             or _selected_graph_data_profile(entry) is not None
             or _selected_graph_controller_source(entry) is not None
             or _selected_controller_policy_source_profile(entry) is not None):
         raise ControllerLinkError("controller_source_conflict")
+
+
+def _resume_link(hass, entry, paused):
+    """Switch the link back on after a failed or cancelled attempt that switched it off.
+
+    Only while the entry is still exactly as this attempt left it (paused: the
+    private states this attempt produced after switching it off), so a change
+    made meanwhile is never overwritten. The entry's update listener restarts
+    the link.
+    """
+    if (not paused or hass.config_entries.async_get_entry(entry.entry_id) is not entry
+            or native_entry_state(entry) not in paused or entry.options.get(CONF_ENABLED, False)):
+        return
+    try:
+        commit_configuration(hass, entry, configuration_snapshot(entry),
+                             options={**entry.options, CONF_ENABLED: True})
+    except ValueError:
+        _LOGGER.warning("E32 connection attempt failed; the previous link could not be switched on again")
+
+
+def _room_plan_linked(entry):
+    """Linked to the E32 room plan before: a stored E32, no native room profile, no older HA rooms."""
+    return (entry.data.get(CONTROLLER_ID) is not None and SOURCE_OPTION not in entry.options
+            and not legacy_zones(entry))
+
+
+async def async_connect_installation(hass, entry, address, password):
+    """One explicit configure/apply operation; never a physical qualification.
+
+    Without older Home Assistant rooms (zone subentries) this links the E32 room
+    plan only (async_link_room_plan). Installations that still have such rooms
+    keep the native room-profile route below, unchanged.
+    """
+    from homeassistant.config_entries import ConfigEntryState
+
+    _check_installation(hass, entry)
+    if not legacy_zones(entry):
+        return await async_link_room_plan(hass, entry, address, password)
     address = controller_address(address)
     before_private = native_entry_state(entry)
     committed_private = None
     expected = None
     source = None
     device_changed = False
+    paused = None  # the entry's private state once this attempt switched the running link off
+    provisioning = False  # from here on the E32 may change (a lost answer, or a cancel)
     try:
         async with ControllerClient(address) as client:
             # A bad password or old firmware must not pause a working runtime.
@@ -68,15 +107,18 @@ async def async_connect_installation(hass, entry, address, password):
                 raise ControllerLinkError("controller_source_conflict")
             state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
             runtime = state.get("v1_runtime")
-            if runtime is not None and runtime.enabled:
-                await runtime.async_stop()
-                _private_guard(hass, entry, before_private)
+            # The saved switch first, then the running link: a cancel or a changed
+            # entry in between never leaves a stopped link while the options say on.
             if entry.options.get(CONF_ENABLED, False):
                 commit_configuration(hass, entry, configuration_snapshot(entry),
                     options={**entry.options, CONF_ENABLED: False})
-                before_private = native_entry_state(entry)
+                before_private = paused = native_entry_state(entry)
+            if runtime is not None and runtime.enabled:
+                await runtime.async_stop()
+                _private_guard(hass, entry, before_private)
             plan = await async_prepare_controller_link(hass, entry, client)
             _private_guard(hass, entry, before_private)
+            provisioning = True
             await async_provision_controller(hass, entry, client, plan, password)
             device_changed = not plan.settings_unchanged or plan.needs_reboot
             _private_guard(hass, entry, plan.private_entry_state)
@@ -126,6 +168,142 @@ async def async_connect_installation(hass, entry, address, password):
                     # The saved owner is already disabled. Do not replace the
                     # original failure with a transport exception or its details.
                     _LOGGER.warning("E32 connection cleanup unconfirmed; saved connection disabled")
+        elif not (device_changed or getattr(error, "device_may_have_changed",
+                                            provisioning and not isinstance(error, ControllerLinkError))):
+            # Nothing reached the E32 and nothing was saved: the link that ran
+            # before this attempt runs again. After a possible E32 change (also a
+            # cancel while provisioning) the saved connection stays off (fail
+            # closed) until a new Connect E32.
+            _resume_link(hass, entry, {paused} if paused is not None else None)
+        if isinstance(error, asyncio.CancelledError):
+            raise
+        if isinstance(error, ControllerProvisioningError):
+            raise
+        code = str(error) if isinstance(error, ControllerLinkError) else "controller_connection_failed"
+        raise ControllerProvisioningError(code, device_may_have_changed=device_changed) from None
+
+
+async def async_link_room_plan(hass, entry, address, password, *, remove_legacy_rooms=False,
+                               confirmed_migration=None):
+    """Connect the E32 room plan, without (or after removing) older Home Assistant rooms.
+
+    Same order as the native route: log in, stop this entry's own link, read and
+    check the E32, save and restart once, store the address and password, then
+    wait for the E32's heating report over MQTT. With remove_legacy_rooms the
+    older Home Assistant rooms (and only this entry's devices of them) are
+    removed in one save after the E32 checks passed and before the E32 is
+    changed; a later Connect E32 then finishes any interrupted link.
+
+    Before that removal, E32 rooms that use an entity of an older room are moved
+    to the entity it was built on (legacy_room_migration): the E32 plan is
+    written first (revision checked); when that write fails nothing is removed.
+    confirmed_migration is the outcome the user confirmed (Migration.signature());
+    a different one stops with legacy_rooms_plan_changed. Afterwards the older
+    room's thermostat is handed over to the E32 room's thermostat.
+
+    Nothing changes before the E32 is known to run firmware that confirms the
+    link (beta.19, async_check_room_plan_firmware). This link grants no control
+    authority (no native room profile), so a failure never leaves the entry's
+    link switched off: before the save the previous link runs again, after it
+    the new link keeps running.
+    """
+    from homeassistant.config_entries import ConfigEntryState
+    from .native_provisioning import SOURCE_OPTION
+    _check_installation(hass, entry)
+    if legacy_zones(entry) and not remove_legacy_rooms:
+        raise ControllerLinkError("controller_room_configuration_invalid")
+    address = controller_address(address)
+    before_private = native_entry_state(entry)
+    committed_private = expected = None
+    device_changed = False
+    # Where switching the link (back) on is right after a failure: the state this
+    # attempt paused it in, or (an entry already linked to the room plan whose
+    # link an older release left off) the state it started in. A user cannot
+    # switch the link off for such an entry (product entries have no shadow
+    # switch in their options; only Connect E32 and the native-profile edits,
+    # which keep a native profile, change it), so "off" there is always a
+    # left-over of a failed link (test_room_plan_link_recovery).
+    paused = {before_private} if not entry.options.get(CONF_ENABLED, False) and _room_plan_linked(entry) else set()
+
+    def own_change():
+        """Remember the entry state after one of this attempt's own changes (resume target)."""
+        if paused:
+            paused.add(native_entry_state(entry))
+    try:
+        async with ControllerClient(address) as client:
+            await client.async_login(password)
+            _private_guard(hass, entry, before_private)
+            device, _ = await client.async_read("/config/device")
+            _private_guard(hass, entry, before_private)
+            if type(device.get("mqtt")) is not dict:
+                raise ControllerLinkError("controller_response_invalid")
+            identity = device["mqtt"].get("native_source_device_id")
+            if entry.data.get(CONTROLLER_ID) not in (None, identity):
+                raise ControllerLinkError("controller_source_conflict")
+            # Firmware before beta.19 never confirms this link: stop before any change.
+            await async_check_room_plan_firmware(hass, entry, client)
+            _private_guard(hass, entry, before_private)
+            migration = None
+            if remove_legacy_rooms and legacy_zones(entry):
+                # The E32 rooms first: when this write fails, everything (also the
+                # running link) stays as it was and nothing is removed.
+                from . import legacy_room_migration as migrate
+                migration, _ = await migrate.async_write_migration(
+                    hass, entry, client, legacy_zones(entry), confirmed_migration)
+                _private_guard(hass, entry, before_private)
+            state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+            runtime = state.get("v1_runtime")
+            # The saved switch first, then the running link (see the native route).
+            if entry.options.get(CONF_ENABLED, False):
+                commit_configuration(hass, entry, configuration_snapshot(entry),
+                    options={**entry.options, CONF_ENABLED: False})
+                before_private = native_entry_state(entry)
+                paused.add(before_private)
+            if runtime is not None and runtime.enabled:
+                await runtime.async_stop()
+                _private_guard(hass, entry, before_private)
+            plan = await async_prepare_room_plan_link(hass, entry, client)
+            _private_guard(hass, entry, before_private)
+            if migration is not None and legacy_zones(entry):
+                handover = migrate.capture_handover(hass, entry, migration)
+                changes, removed = without_legacy_rooms(entry)
+                commit_configuration(hass, entry, plan.before, **changes)
+                own_change()  # a cancel from here on still switches the link on again
+                remove_legacy_room_devices(hass, entry, removed)
+                await migrate.async_apply_handover(hass, entry, handover)
+                own_change()
+                migrate.note_rooms_without_source(hass, entry, migration)
+                plan = await async_prepare_room_plan_link(hass, entry, client)
+                before_private = plan.private_entry_state
+                own_change()
+            await async_provision_room_plan(hass, entry, client, plan, password)
+            device_changed = not plan.settings_unchanged or plan.needs_reboot
+            _private_guard(hass, entry, plan.private_entry_state)
+        needs_reload = entry.state is not ConfigEntryState.LOADED
+        commit_configuration(hass, entry, plan.before,
+            data={**entry.data, CONTROLLER_ADDRESS: address, CONTROLLER_PASSWORD: password,
+                  CONTROLLER_ID: plan.controller_id},
+            options={**{k: v for k, v in entry.options.items() if k != SOURCE_OPTION}, CONF_ENABLED: True})
+        expected = configuration_snapshot(entry)
+        committed_private = native_entry_state(entry)
+        # The rooms are the E32 room plan: drop HA's cached subentry buttons.
+        if hasattr(entry, "_supported_subentry_types"):
+            object.__setattr__(entry, "_supported_subentry_types", None)
+        if needs_reload:
+            await hass.config_entries.async_reload(entry.entry_id)
+            _private_guard(hass, entry, committed_private)
+        result = await async_wait_room_plan_link(hass, entry, expected, private_expected=committed_private)
+        _private_guard(hass, entry, committed_private)
+        return {**result, "controller_id": plan.controller_id, "room_ids": list(plan.room_ids),
+                "admin_logout_confirmed": client.logout_confirmed, "authorizes_physical_outputs": False}
+    except BaseException as error:
+        # Unlike the native route, this link authorizes nothing: once its
+        # settings are saved (committed) the saved link keeps running, so the
+        # session's values stay alive while the user reads the error (the E32
+        # telemetry and the boiler values need no link). Before that, the
+        # previous link runs again.
+        if committed_private is None:
+            _resume_link(hass, entry, paused)
         if isinstance(error, asyncio.CancelledError):
             raise
         if isinstance(error, ControllerProvisioningError):
@@ -198,8 +376,24 @@ class ControllerSetupFlow:
     async def async_step_controller_connected(self, user_input=None):
         if user_input is not None:
             return self.async_abort(reason="controller_connection_complete")
+        rooms = len(self._controller_result["room_ids"])
+        if rooms == 0 and hasattr(self, "async_step_e32_room_add"):
+            # A new installation: the next step is its first room (the same dialog goes on).
+            return self.async_show_form(step_id="controller_connected_first_room", data_schema=vol.Schema({}))
         return self.async_show_form(step_id="controller_connected", data_schema=vol.Schema({}),
-            description_placeholders={"rooms": str(len(self._controller_result["room_ids"]))})
+            description_placeholders={"rooms": str(rooms)})
+
+    async def async_step_controller_connected_first_room(self, user_input=None):
+        """E32 connected without rooms: submit opens the room form (e32_room_flow.py)."""
+        from homeassistant.exceptions import HomeAssistantError
+        link = self._e32_link()
+        if link is None:
+            return self.async_abort(reason="controller_connection_complete")
+        try:
+            self._e32_plan = await link.async_read()
+        except HomeAssistantError as err:
+            return self._e32_abort_failure(err)
+        return await self.async_step_e32_room_add()
 
     @callback
     def async_remove(self):

@@ -22,8 +22,10 @@ from .v1_wire import digest
 
 _LOGGER = logging.getLogger(__name__)
 _KEY = DOMAIN + "_week_frontend"
-URL = "/open_thermostat/week-planner-0.4.0b4.js"
-LEGACY_URL = "/open_thermostat/week-planner-0.4.0.dev41.js"
+# Versioned like the card and editor URLs (the manifest version): a changed module is never taken
+# from the browser cache. The older URLs stay served for pages loaded before an update.
+URL = "/open_thermostat/week-planner-0.4.0b12.js"
+LEGACY_URLS = ("/open_thermostat/week-planner-0.4.0b4.js", "/open_thermostat/week-planner-0.4.0.dev41.js")
 ROOM_CARD_TYPE = "custom:openthermostat-room-editor-v42"
 
 
@@ -123,16 +125,84 @@ async def ws_save(hass, connection, msg):
         connection.send_result(msg["id"], result)
 
 
+# hass.data: the card modules this integration asked the browser to load (frontend extra module URLs).
+_MODULES_KEY = DOMAIN + "_card_modules"
+
+
+def card_modules():
+    """The dashboard cards' modules: each defines its custom elements (custom:openthermostat-*)."""
+    from .e32_week import CARD_URL
+    return (CARD_URL, URL)
+
+
+@callback
+def async_add_card_modules(hass):
+    """Make every browser load the card modules: pages opened later through index.html,
+    open pages through HA's frontend/subscribe_extra_js. Each URL once (no duplicates)."""
+    added = hass.data.setdefault(_MODULES_KEY, set())
+    present = getattr(hass.data.get(frontend.DATA_EXTRA_MODULE_URL), "urls", frozenset())
+    for url in card_modules():
+        if url not in added and url not in present:
+            frontend.add_extra_js_url(hass, url)
+        added.add(url)
+
+
+@callback
+def async_remove_card_modules(hass):
+    """The last installation is removed: browsers stop loading the card modules.
+
+    The static files stay served until Home Assistant restarts (HA cannot
+    unregister a static path); a new installation adds the modules again."""
+    for url in sorted(hass.data.pop(_MODULES_KEY, ())):
+        if url in getattr(hass.data.get(frontend.DATA_EXTRA_MODULE_URL), "urls", frozenset()):
+            frontend.remove_extra_js_url(hass, url)
+
+
+# hass.data: the static URLs already served in this HA run (aiohttp cannot remove or replace a route).
+_SERVED_KEY = DOMAIN + "_served_paths"
+
+
+async def _async_serve(hass, url, name):
+    """Serve frontend/<name> at url once per HA run: a retry after a partial failure
+    registers only what is still missing, never a duplicate route."""
+    served = hass.data.setdefault(_SERVED_KEY, set())
+    if url in served:
+        return
+    await hass.http.async_register_static_paths([StaticPathConfig(url, str(Path(__file__).parent / "frontend" / name), False)])
+    served.add(url)
+
+
+async def async_ensure_cards(hass):
+    """Entry setup of an E32 installation: the card modules, also without the managed dashboard
+    and after an earlier last installation was removed in this HA run. Idempotent; never raises."""
+    if getattr(hass, "http", None) is None:
+        return  # no web server (a test or a broken HTTP setup): nothing to serve
+    try:
+        await async_setup_planner(hass)
+    except Exception:  # noqa: BLE001 - the cards are optional; the dashboard start retries
+        _LOGGER.exception("The OpenThermostat dashboard cards could not be registered")
+
+
 async def async_setup_planner(hass):
-    """One static module and authenticated native WS, shared by managed dashboards."""
+    """The card modules, their static files and the authenticated websocket commands.
+
+    Domain level (async_setup), once per Home Assistant run and independent of
+    any installation, dashboard or E32 state: a card on any dashboard finds its
+    element and asks the backend itself whether the E32 is ready.
+    """
     if task := hass.data.get(_KEY):
         await task
+        async_add_card_modules(hass)
         return
     # No await before claiming setup; parallel entries await the same owned task.
     async def setup():
-        await hass.http.async_register_static_paths([
-            StaticPathConfig(url, str(Path(__file__).parent / "frontend/week-planner.js"), False)
-            for url in (URL, LEGACY_URL)])
+        # The E32 rooms' visual week planner: the card and the editor shared with the E32 page.
+        from .e32_week import CARD_URL, EDITOR_URL, ws_week_get, ws_week_save
+        for url, name in ((URL, "week-planner.js"), *((old, "week-planner.js") for old in LEGACY_URLS),
+                          (CARD_URL, "e32-week-card.js"), (EDITOR_URL, "week-editor.js")):
+            await _async_serve(hass, url, name)
+        websocket_api.async_register_command(hass, ws_week_get)
+        websocket_api.async_register_command(hass, ws_week_save)
         from .room_editor import ws_room_get, ws_room_save, ws_room_device_metadata
         from .room_vacation import ws_vacation_preview
         websocket_api.async_register_command(hass, ws_room_get)
@@ -141,10 +211,11 @@ async def async_setup_planner(hass):
         websocket_api.async_register_command(hass, ws_room_device_metadata)
         websocket_api.async_register_command(hass, ws_get)
         websocket_api.async_register_command(hass, ws_save)
-        frontend.add_extra_js_url(hass, URL)
     task = hass.data[_KEY] = hass.async_create_task(setup(), "OpenThermostat week editor frontend")
     try:
         await task
     except BaseException:
         hass.data.pop(_KEY, None)
         raise
+    # Only once the files are served and the commands answer.
+    async_add_card_modules(hass)

@@ -1,0 +1,1783 @@
+{
+"schema": 1,
+"kind": "tado_0x17_bus_sample",
+"firmware": "v0.1.0-e32v2-beta.18",
+"boot_id": "84fc31678a87bcc0",
+"method": "read-only GET /status/logs every 15 s and /status/ems/telemetry every 60 s; frames include CRC, trailing break byte",
+"source_frames_jsonl_sha256": "394d28c6989174966e9c5ecaa6093a186618e1dac62c05f155391e2afa24b124",
+"columns": [
+"captured_at_utc",
+"uptime_ms",
+"log_sequence",
+"summary",
+"frame"
+],
+"frames": [
+[
+"2026-10-29T20:10:32Z",
+14048648,
+8903,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:10:47Z",
+14058768,
+8912,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:11:02Z",
+14078731,
+8923,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:11:17Z",
+14088722,
+8928,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:11:17Z",
+14093740,
+8933,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:11:47Z",
+14128550,
+8952,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:12:02Z",
+14143580,
+8963,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:12:02Z",
+14148537,
+8964,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:12:17Z",
+14153505,
+8969,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:12:17Z",
+14158585,
+8971,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:12:32Z",
+14163569,
+8976,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:12:32Z",
+14168528,
+8977,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:12:47Z",
+14178624,
+8986,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:13:02Z",
+14208579,
+9001,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:13:17Z",
+14218525,
+9007,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:13:32Z",
+14223509,
+9012,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:13:32Z",
+14228466,
+9013,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:13:47Z",
+14233638,
+9022,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:13:47Z",
+14238462,
+9024,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:14:02Z",
+14268394,
+9039,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:14:17Z",
+14273565,
+9044,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:14:47Z",
+14298379,
+9060,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:14:47Z",
+14303359,
+9065,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:14:47Z",
+14308547,
+9066,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:15:02Z",
+14323347,
+9078,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:15:02Z",
+14328509,
+9079,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:15:17Z",
+14338329,
+9085,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:15:32Z",
+14353392,
+9099,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:15:48Z",
+14358344,
+9101,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:15:48Z",
+14363348,
+9106,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:16:02Z",
+14373276,
+9112,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:16:02Z",
+14383315,
+9118,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:16:02Z",
+14388270,
+9119,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:16:17Z",
+14393264,
+9124,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:16:32Z",
+14403328,
+9130,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:16:47Z",
+14418258,
+9139,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:17:02Z",
+14433292,
+9150,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:17:32Z",
+14463265,
+9164,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:17:32Z",
+14468224,
+9165,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:17:47Z",
+14478324,
+9175,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:18:02Z",
+14503194,
+9190,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:18:02Z",
+14508158,
+9191,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:18:17Z",
+14513176,
+9196,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:18:32Z",
+14528268,
+9202,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:18:47Z",
+14538167,
+9211,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:19:02Z",
+14558164,
+9223,
+"Boiler(08) W Thermostat(17) UBAParameters(0016) off=1 len=7",
+"08 17 16 01 37 55 00"
+],
+[
+"2026-10-29T20:19:02Z",
+14563129,
+9228,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:19:02Z",
+14568115,
+9229,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:19:17Z",
+14573095,
+9234,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:19:17Z",
+14578090,
+9235,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:19:32Z",
+14588153,
+9240,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:19:47Z",
+14598179,
+9249,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:19:47Z",
+14603208,
+9255,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:19:47Z",
+14608192,
+9256,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:20:17Z",
+14633191,
+9272,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:20:17Z",
+14638157,
+9273,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:20:32Z",
+14653028,
+9289,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:20:47Z",
+14658197,
+9290,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:20:47Z",
+14663076,
+9296,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:21:02Z",
+14673017,
+9302,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:21:02Z",
+14677987,
+9303,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:21:02Z",
+14683016,
+9309,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:21:17Z",
+14693010,
+9314,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:21:47Z",
+14713075,
+9328,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:22:02Z",
+14747967,
+9345,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:22:17Z",
+14752956,
+9350,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:22:17Z",
+14757922,
+9351,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:22:32Z",
+14762976,
+9357,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:22:32Z",
+14767958,
+9358,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:22:47Z",
+14777963,
+9367,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:23:02Z",
+14803032,
+9383,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:23:02Z",
+14808018,
+9384,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:23:17Z",
+14812974,
+9389,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:23:17Z",
+14817944,
+9390,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:23:32Z",
+14822972,
+9396,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:23:48Z",
+14832841,
+9404,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:23:48Z",
+14838007,
+9405,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:24:02Z",
+14867958,
+9422,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:24:17Z",
+14872815,
+9427,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:24:32Z",
+14887945,
+9434,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:24:47Z",
+14892859,
+9443,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:24:47Z",
+14897826,
+9444,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:25:02Z",
+14927827,
+9461,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:25:17Z",
+14932807,
+9466,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:25:17Z",
+14937778,
+9467,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:25:32Z",
+14952725,
+9481,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:25:47Z",
+14957719,
+9482,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:25:47Z",
+14962896,
+9488,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:26:02Z",
+14982713,
+9500,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:26:02Z",
+14987694,
+9501,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:26:17Z",
+14992679,
+9506,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:26:32Z",
+15012724,
+9522,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:26:47Z",
+15017690,
+9523,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:27:02Z",
+15037679,
+9535,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:27:02Z",
+15042757,
+9542,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:27:17Z",
+15052724,
+9547,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:27:32Z",
+15067627,
+9553,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:27:47Z",
+15077685,
+9561,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:28:02Z",
+15092552,
+9572,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:28:02Z",
+15097672,
+9573,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:28:02Z",
+15107681,
+9579,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:28:17Z",
+15117661,
+9584,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:28:32Z",
+15137555,
+9598,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:28:47Z",
+15142505,
+9604,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:28:47Z",
+15147715,
+9605,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:29:02Z",
+15162543,
+9616,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:29:17Z",
+15172474,
+9622,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:29:17Z",
+15177459,
+9623,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:29:32Z",
+15182535,
+9628,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:29:32Z",
+15187484,
+9630,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:29:47Z",
+15197554,
+9638,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:30:02Z",
+15217517,
+9648,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:30:02Z",
+15222537,
+9653,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:30:17Z",
+15232527,
+9658,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:30:17Z",
+15237485,
+9659,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:30:47Z",
+15252566,
+9673,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:30:47Z",
+15257523,
+9674,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:30:47Z",
+15262371,
+9679,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:31:02Z",
+15277516,
+9685,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:31:02Z",
+15282508,
+9690,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:31:17Z",
+15292368,
+9696,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:31:17Z",
+15297331,
+9697,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:31:47Z",
+15317370,
+9711,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:31:47Z",
+15322362,
+9716,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:32:02Z",
+15332397,
+9723,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:32:02Z",
+15337358,
+9724,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:32:18Z",
+15342355,
+9729,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:32:18Z",
+15357274,
+9735,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:32:47Z",
+15377385,
+9748,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:33:02Z",
+15392366,
+9759,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:33:17Z",
+15417347,
+9769,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:33:32Z",
+15432248,
+9783,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:33:47Z",
+15437211,
+9784,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:33:47Z",
+15442229,
+9789,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:33:47Z",
+15447208,
+9791,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:34:02Z",
+15462170,
+9801,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:34:17Z",
+15472181,
+9807,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:34:17Z",
+15477141,
+9808,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:34:32Z",
+15487316,
+9815,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:34:47Z",
+15497210,
+9824,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:35:02Z",
+15517172,
+9835,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:35:02Z",
+15522191,
+9840,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:35:17Z",
+15532128,
+9846,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:35:17Z",
+15537113,
+9847,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:35:47Z",
+15552216,
+9861,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:36:02Z",
+15582012,
+9877,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:36:02Z",
+15587017,
+9879,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:36:17Z",
+15592023,
+9884,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:36:32Z",
+15602033,
+9889,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:36:32Z",
+15607008,
+9891,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:36:47Z",
+15616977,
+9899,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:37:02Z",
+15641989,
+9915,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:37:17Z",
+15652025,
+9920,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:37:17Z",
+15656980,
+9921,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:37:32Z",
+15671986,
+9934,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:37:47Z",
+15677000,
+9937,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:38:02Z",
+15696990,
+9948,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:38:02Z",
+15701985,
+9953,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:38:02Z",
+15707010,
+9955,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:38:47Z",
+15732210,
+9973,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:39:02Z",
+15761829,
+9990,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:39:02Z",
+15766800,
+9991,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:39:17Z",
+15776965,
+9997,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:39:32Z",
+15786766,
+10003,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:39:47Z",
+15792022,
+10012,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:39:47Z",
+15796827,
+10014,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:40:02Z",
+15811837,
+10024,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:40:02Z",
+15826747,
+10029,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:40:17Z",
+15836783,
+10035,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:40:47Z",
+15856848,
+10049,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:41:02Z",
+15876843,
+10061,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:41:02Z",
+15881653,
+10066,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:41:02Z",
+15886826,
+10067,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:41:32Z",
+15912417,
+10086,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:41:47Z",
+15916699,
+10087,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:41:47Z",
+15921686,
+10092,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:42:02Z",
+15941700,
+10104,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:42:02Z",
+15946697,
+10105,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:42:17Z",
+15961718,
+10115,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:42:32Z",
+15976751,
+10126,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:42:47Z",
+15981759,
+10131,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:42:47Z",
+15986731,
+10132,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:43:02Z",
+16001723,
+10144,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:43:02Z",
+16006690,
+10145,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:43:18Z",
+16011669,
+10151,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:43:18Z",
+16016650,
+10152,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:43:32Z",
+16031635,
+10162,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:43:47Z",
+16036540,
+10168,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:44:17Z",
+16071614,
+10185,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:44:17Z",
+16076597,
+10188,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:44:32Z",
+16091976,
+10201,
+"Thermostat(17) W Boiler(08) UBASetPoints(001A) off=0 len=10",
+"17 08 1A 00 00 00 00 00 3A 00"
+],
+[
+"2026-10-29T20:44:32Z",
+16096637,
+10203,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:44:47Z",
+16101645,
+10206,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:44:47Z",
+16106617,
+10209,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:45:02Z",
+16116626,
+10216,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+],
+[
+"2026-10-29T20:45:02Z",
+16121610,
+10219,
+"Thermostat(17) W Boiler(08) UBAFlags(0035) off=0 len=8",
+"17 08 35 00 11 11 D0 00"
+],
+[
+"2026-10-29T20:45:02Z",
+16126577,
+10222,
+"Thermostat(17) W Boiler(08) UBAParameterWW(0033) off=2 len=7",
+"17 08 33 02 37 D6 00"
+],
+[
+"2026-10-29T20:45:17Z",
+16136440,
+10228,
+"Thermostat(17) B All(00) RC10Monitor(00B1) off=0 len=14",
+"17 00 B1 00 04 26 00 D0 00 00 00 00 C7 00"
+]
+],
+"e32_decoded_columns": [
+"captured_at_utc",
+"entities_of_0x17"
+],
+"e32_decoded": [
+[
+"2026-10-29T20:10:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:11:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:12:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:13:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:14:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:15:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:16:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:17:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:18:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:19:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:20:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:21:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:22:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:23:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:24:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:25:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:26:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:27:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:28:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:30:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:31:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:32:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:33:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:34:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:35:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:36:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:37:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:38:35Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:39:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:40:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:41:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:42:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:43:32Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+],
+[
+"2026-10-29T20:44:33Z",
+{
+"thermostat_requested_dhw_temperature": 55,
+"thermostat_setpoint": 19,
+"thermostat_room_temperature": 20.8,
+"thermostat_requested_flow_temperature": 0,
+"thermostat_requested_burner_power": 0,
+"thermostat_requested_pump_modulation": 0
+}
+]
+]
+}

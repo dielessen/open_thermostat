@@ -40,6 +40,9 @@
       }
     },
     "select": {
+      "flow_curve_design_flow_c": {
+        "default": "mdi:chart-line"
+      },
       "room_state": {
         "default": "mdi:power",
         "state": {
@@ -50,6 +53,12 @@
     "sensor": {
       "heat_request": {
         "default": "mdi:water-thermometer"
+      },
+      "heating_gas": {
+        "default": "mdi:radiator"
+      },
+      "hot_water_gas": {
+        "default": "mdi:water-boiler"
       },
       "controller_requested_flow_temperature": {
         "default": "mdi:flask-outline"
@@ -116,6 +125,26 @@
         "state": {
           "0": "mdi:lightbulb-outline"
         }
+      },
+      "flow_source": {
+        "default": "mdi:thermometer-water"
+      },
+      "flow_curve_slope": {
+        "default": "mdi:chart-line"
+      },
+      "gas_calibration": {
+        "default": "mdi:meter-gas"
+      },
+      "night_heating_gas": {
+        "default": "mdi:weather-night"
+      }
+    },
+    "switch": {
+      "flow_weather_curve": {
+        "default": "mdi:sun-thermometer"
+      },
+      "flow_apply_learned": {
+        "default": "mdi:school"
       }
     }
   },
@@ -134,6 +163,18 @@
     },
     "source_bench_status": {
       "service": "mdi:information-outline"
+    },
+    "set_room_override": {
+      "service": "mdi:thermometer-plus"
+    },
+    "clear_room_override": {
+      "service": "mdi:calendar-sync"
+    },
+    "set_away": {
+      "service": "mdi:home-export-outline"
+    },
+    "clear_away": {
+      "service": "mdi:home-import-outline"
     }
   }
 }

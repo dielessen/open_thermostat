@@ -6,7 +6,10 @@
 // diagnostics::SupervisorPolicy) with simulated time and a simulated house for
 // weeks, and checks invariants on every step. Nothing here talks to a device.
 // See test/soak/README.md for scenarios, invariants and how to run it.
+#include "Board.h"
 #include "EMS/ActiveHeatPollDriver.h"
+#include "EMS/BoilerLimitRead.h"
+#include "EMS/ClassicBoilerTestEncoder.h"
 #include "EMS/ClassicBoilerMonitor.h"
 #include "EMS/EmsTelegram.h"
 #include "EMS/ForeignBoilerRequest.h"
@@ -15,11 +18,15 @@
 #include "control/ControlPartitionBudget.h"
 #include "control/DhwEpisodes.h"
 #include "control/FlowLearner.h"
+#include "control/FlowPolicy.h"
+#include "control/HandoverConfirmation.h"
 #include "control/HeatingInput.h"
 #include "control/HeatingTelemetry.h"
 #include "control/ManagedBleObserver.h"
+#include "control/MqttOutbox.h"
 #include "control/RoomEngine.h"
 #include "control/ShadowComparison.h"
+#include "control/TelemetryPublisher.h"
 #include "control/WarmupPlanner.h"
 #include "diagnostics/SupervisorPolicy.h"
 #include <cJSON.h>
@@ -265,7 +272,7 @@ struct Options {
     uint32_t stepMs = 10000;
     uint32_t mqttEveryS = 300, learnedEveryS = 900, fullEveryS = 3600;
     double editEveryH = 4;
-    bool liveDhwFlow = false, boilerOutdoor = false, oom = true, activePhases = true;
+    bool liveDhwFlow = false, boilerOutdoor = false, oom = true, activePhases = true, flowOptions = false;
     std::string outDir = "/tmp";
 };
 Options opt;
@@ -399,7 +406,9 @@ struct OracleRoom {
 // ============================================================================
 class Chain {
 public:
-    explicit Chain(const Options& o) : o_(o) {}
+    explicit Chain(const Options& o) : o_(o) {
+        if (o_.flowOptions) { FlowSettings f; f.weatherCurve = f.applyLearned = true; policy_.setSettings(f); learner_.setApplied(true); }
+    }
     int run();
 
 private:
@@ -456,6 +465,7 @@ private:
     // --- the E32
     RoomEngine engine_;
     ShadowComparison shadow_;
+    FlowPolicy policy_; // the beta.19 flow options (HeatingController::applyFlowPolicy), on with --flow-options
     FlowLearner learner_;
     HeatingInputRoute haRoute_;
     ems::ClassicBoilerMonitor monitor_;
@@ -524,6 +534,8 @@ private:
     void bleAdverts();
     void stepE32();
     void checkEngine(const FlowDemand::Request& request);
+    FlowDemand::Request applyFlowPolicy(const FlowDemand::Request& rule, std::optional<int16_t> outdoorCentiC, std::optional<int16_t> flowCentiC,
+                                        std::optional<bool> burnerOn, std::optional<bool> hotWater);
     void checkShadow(const FlowDemand::Request& request, std::optional<uint8_t> tadoFlowC);
     void checkDay();
     void checkBle();
@@ -680,21 +692,24 @@ bool Chain::applyPlan(const RoomPlan& candidate, const char* why) {
     cJSON_Delete(root);
     if (error) { ++planRefused_; count(std::string("plan_refused_") + error); return false; }
     if (plan.json() == engine_.plan().json()) { count("plan_unchanged"); return true; }
+    if (body.size() > RoomPlan::requestBytes) { ++planRefused_; count("plan_refused_request_too_large"); return false; }
     plan.revision = engine_.plan().revision + 1;
-    const auto raw = plan.json();
+    // The stored form (setHeatingPlan): week programs packed only when the API form does not fit.
+    const auto raw = plan.storedJson();
     maxPlanBytes_ = std::max(maxPlanBytes_, raw.size());
-    if (raw.size() + 1 > ControlPartitionBudget::configBytes) { ++planTooLarge_; count("plan_refused_plan_too_large"); return false; }
+    if (raw.size() + 1 > RoomPlan::storeBytes) { ++planTooLarge_; count("plan_refused_plan_too_large"); return false; }
+    if (raw.size() != plan.json().size()) count("plan_stored_packed");
     // Stored and loaded back as the next boot would.
     RoomPlan reloaded;
     cJSON* again = parseBack(raw);
-    EXPECT(again && !RoomPlan::parse(again, reloaded) && reloaded.json() == raw, "plan_roundtrip", "%s: stored plan does not load back identically", why);
+    EXPECT(again && !RoomPlan::parse(again, reloaded) && reloaded.json() == plan.json(), "plan_roundtrip", "%s: stored plan does not load back identically", why);
     cJSON_Delete(again);
     const bool flowChanged = plan.minimumFlowC != engine_.plan().minimumFlowC || plan.maximumFlowC != engine_.plan().maximumFlowC;
     oracleSetPlan(plan);
     engine_.setPlan(plan); learner_.setPlan(plan);
     plan_ = plan;
     if (flowChanged) { flowRebuiltAt_ = now_; haveHeatEdge_ = false; } // FlowDemand restarts: no minimum off time
-    EXPECT(engine_.plan().json() == raw, "plan_applied_differs", "engine plan differs from the saved plan");
+    EXPECT(engine_.plan().storedJson() == raw, "plan_applied_differs", "engine plan differs from the saved plan");
     ++planApplied_;
     count(std::string("plan_edit_") + why);
     return true;
@@ -1148,10 +1163,10 @@ void Chain::stepE32() {
         }
     const std::optional<uint32_t> unixNow = clockKnown_ ? std::optional<uint32_t>(uint32_t(utc_)) : std::nullopt;
     const uint64_t calls0 = localtimeCalls;
-    const auto request = engine_.step(now_, unixNow);
+    engine_.setBoilerLimit(ems::ActiveHeatEnvelope::limitC(monitor_)); // HeatingController::stepHeating
+    const auto rule = engine_.step(now_, unixNow);
     noteLocaltime("room_engine_step", localtimeCalls - calls0, utc_);
     const auto tadoFlowC = tadoLast1A_ && now_ - tadoLast1A_->second <= 150000 ? std::optional<uint8_t>(tadoLast1A_->first) : std::nullopt;
-    shadow_.sample(now_, unixNow, request, tadoFlowC);
     // The EMS view (EmsController::activeHeatView).
     const auto modulation = monitor_.value(ems::BoilerField::modulation, now_);
     const auto flow = monitor_.value(ems::BoilerField::flow, now_);
@@ -1160,6 +1175,8 @@ void Chain::stepE32() {
     const std::optional<bool> burnerOn = modulation ? std::optional<bool>(*modulation > 0) : std::nullopt;
     const std::optional<int16_t> flowCentiC = flow ? std::optional<int16_t>(int16_t(*flow)) : std::nullopt;
     const auto outdoorView = haRoute_.outdoor(monitor_.value(ems::BoilerField::outdoor, now_) ? std::optional<int16_t>(int16_t(*monitor_.value(ems::BoilerField::outdoor, now_))) : std::nullopt, now_);
+    const auto request = applyFlowPolicy(rule, outdoorView.centiC, flowCentiC, burnerOn, state ? std::optional<bool>((*state & 0x02) != 0) : std::nullopt);
+    shadow_.sample(now_, unixNow, request, tadoFlowC);
     FlowLearner::Boiler boiler{flowCentiC, burnerOn, state ? std::optional<bool>((*state & 0x02) != 0) : std::nullopt, tadoFlowC,
         outdoorView.centiC, modulation && *modulation >= 0 && *modulation <= 100 ? std::optional<uint8_t>(uint8_t(*modulation)) : std::nullopt,
         ret ? std::optional<int16_t>(int16_t(*ret)) : std::nullopt};
@@ -1170,7 +1187,7 @@ void Chain::stepE32() {
         rooms[i] = {fresh.temperature, engine_.result(i).setpoint, fresh.source};
     }
     learner_.sample(now_, boiler, rooms.data(), plan.rooms.size());
-    checkEngine(request);
+    checkEngine(rule);
     checkShadow(request, tadoFlowC);
 
     // ActiveHeatGuard (HeatingController::stepActiveHeat): last step's post is reported first.
@@ -1233,11 +1250,49 @@ void Chain::stepE32() {
     if (phase_ == Phase::active && phaseUntil_ && now_ >= phaseUntil_) { tadoConnected_ = true; phaseUntil_ = 0; count("tado_reconnected"); }
 }
 
+// HeatingController::applyFlowPolicy: the options between the rule and the
+// shadow comparison/guard. Off: exactly the rule (capped by the boiler's 0x16
+// limit itself). On or off: every output stays within [plan min, min(plan max,
+// 80, the boiler's 0x16 limit)], below the plan minimum only for a lower limit.
+FlowDemand::Request Chain::applyFlowPolicy(const FlowDemand::Request& rule, std::optional<int16_t> outdoorCentiC, std::optional<int16_t> flowCentiC,
+                                           std::optional<bool> burnerOn, std::optional<bool> hotWater) {
+    const auto& plan = engine_.plan();
+    std::array<RoomDemand::Result, RoomPlan::maxRooms> rooms{};
+    for (size_t i = 0; i < plan.rooms.size() && i < rooms.size(); ++i) rooms[i] = engine_.result(i);
+    FlowPolicy::Inputs in;
+    in.now = now_; in.rule = rule; in.plan = &plan; in.rooms = rooms.data();
+    if (clockKnown_) in.utc = utc_;
+    in.outdoorCentiC = outdoorCentiC; in.boilerLimitC = ems::ActiveHeatEnvelope::limitC(monitor_);
+    in.flowCentiC = flowCentiC; in.burnerOn = burnerOn; in.hotWater = hotWater;
+    const auto applied = policy_.apply(in, learner_);
+    if (!o_.flowOptions)
+        EXPECT(applied.heat == rule.heat && applied.flowC == rule.flowC && applied.reason == rule.reason && applied.capped == rule.capped, "flow_policy_off_differs",
+               "options off but applied %u/%u (%s) vs rule %u/%u (%s)", applied.heat, applied.flowC, FlowDemand::name(applied.reason), rule.heat, rule.flowC, FlowDemand::name(rule.reason));
+    // On or off: within the boiler's limit (the rule itself is capped by it).
+    const uint8_t cap = std::min<uint8_t>({plan.maximumFlowC, FlowDemand::ceilingC, in.boilerLimitC.value_or(FlowDemand::ceilingC)});
+    // The rule itself never asks more than the boiler accepts (its 0x16 limit, when known).
+    EXPECT(!(rule.heat && in.boilerLimitC && rule.flowC > *in.boilerLimitC), "rule_flow_above_boiler_limit",
+           "rule %u degC above the boiler's %u degC", rule.flowC, in.boilerLimitC.value_or(0));
+    EXPECT(!rule.capped || (rule.heat && in.boilerLimitC && rule.flowC == *in.boilerLimitC && *in.boilerLimitC < plan.maximumFlowC),
+           "rule_capped_flag", "capped at %u (limit %s, plan max %u)", rule.flowC, in.boilerLimitC ? std::to_string(*in.boilerLimitC).c_str() : "unknown", plan.maximumFlowC);
+    if (rule.capped) count("rule_capped_by_boiler_limit_steps");
+    if (applied.heat) {
+        EXPECT(applied.flowC <= cap && applied.flowC >= std::min(plan.minimumFlowC, cap), "flow_policy_range",
+               "applied %u outside [%u, %u] (plan %u..%u, limit %s)", applied.flowC, std::min(plan.minimumFlowC, cap), cap, plan.minimumFlowC, plan.maximumFlowC,
+               in.boilerLimitC ? std::to_string(*in.boilerLimitC).c_str() : "unknown");
+        if (applied.flowC != rule.flowC || !rule.heat) count("flow_policy_changed_steps");
+    } else EXPECT(applied.flowC == 0, "flow_policy_off_nonzero", "no heat but %u", applied.flowC);
+    return applied;
+}
+
 void Chain::checkEngine(const FlowDemand::Request& request) {
     const auto& plan = engine_.plan();
     // FlowDemand: within the plan's limits; minimum on/off times.
-    if (request.heat) EXPECT(request.flowC >= plan.minimumFlowC && request.flowC <= plan.maximumFlowC && request.flowC <= ActiveHeatGuard::hardMaximumFlowC,
-                             "flow_request_out_of_limits", "flow %u outside [%u, %u]", request.flowC, plan.minimumFlowC, plan.maximumFlowC);
+    // ... and the boiler's own limit when known (then also below the plan minimum).
+    const auto limit = ems::ActiveHeatEnvelope::limitC(monitor_);
+    const uint8_t top = std::min<uint8_t>(plan.maximumFlowC, limit.value_or(ActiveHeatGuard::hardMaximumFlowC));
+    if (request.heat) EXPECT(request.flowC >= std::min(plan.minimumFlowC, top) && request.flowC <= top && request.flowC <= ActiveHeatGuard::hardMaximumFlowC,
+                             "flow_request_out_of_limits", "flow %u outside [%u, %u]", request.flowC, std::min(plan.minimumFlowC, top), top);
     else EXPECT(request.flowC == 0, "flow_request_off_nonzero", "off with flow %u", request.flowC);
     if (prevRequest_ && request.heat != prevRequest_->heat && now_ - flowRebuiltAt_ > 20000) {
         if (request.heat) {
@@ -1280,9 +1335,10 @@ void Chain::checkEngine(const FlowDemand::Request& request) {
             if (held) temperature = o.lastUsable.centiC;
             o.lead.reset();
         }
+        // The room model of 30 Oct 2026: the week program wins over the setting device's target.
         std::optional<int16_t> setpoint;
-        if (o.target && o.targetAt <= now_ && now_ - o.targetAt < RoomEngine::setpointMaxAgeMs) setpoint = o.target;
-        else if (clockKnown_ && !room.schedule.empty()) setpoint = scheduleOracle(room.schedule, utc_);
+        if (clockKnown_ && !room.schedule.empty()) setpoint = scheduleOracle(room.schedule, utc_);
+        else if (o.target && o.targetAt <= now_ && now_ - o.targetAt < RoomEngine::setpointMaxAgeMs) setpoint = o.target;
         else setpoint = room.fallbackCentiC;
         if (setpoint) setpoint = std::clamp(*setpoint, room.minimumCentiC, room.maximumCentiC);
         EXPECT(r.status == status, "room_status", "%s: status %s, expected %s", room.id.c_str(), RoomDemand::name(r.status), RoomDemand::name(status));
@@ -1467,8 +1523,19 @@ cJSON* Chain::heatingStatusJson(bool mqtt) {
     cJSON* shadow = sensors ? shadow_.json() : nullptr;
     if (!shadow || !cJSON_AddItemToObject(root, "shadow", shadow)) { cJSON_Delete(shadow); cJSON_Delete(root); return nullptr; }
     cJSON* active = guard_.json(now_);
-    if (active) cJSON_AddBoolToObject(active, "enabled", true);
+    if (active) {
+        cJSON_AddBoolToObject(active, "enabled", true);
+        cJSON_AddBoolToObject(active, "confirmation_stored", guard_.confirmed());
+        cJSON* limit = cJSON_AddObjectToObject(active, "boiler_limit");
+        const auto limitC = ems::ActiveHeatEnvelope::limitC(monitor_);
+        const auto limitAt = ems::ActiveHeatEnvelope::reportedAtMs(monitor_);
+        if (limitC) cJSON_AddNumberToObject(limit, "flow_c", *limitC); else cJSON_AddNullToObject(limit, "flow_c");
+        if (limitAt && now_ >= *limitAt) cJSON_AddNumberToObject(limit, "age_s", double((now_ - *limitAt) / 1000));
+        else cJSON_AddNullToObject(limit, "age_s");
+        cJSON_AddNumberToObject(limit, "reads", 0);
+    }
     if (!active || !cJSON_AddItemToObject(root, "active", active)) { cJSON_Delete(active); cJSON_Delete(root); return nullptr; }
+    if (!policy_.addStatus(root, mqtt)) { cJSON_Delete(root); return nullptr; }
     for (size_t i = 0; i < bindings_.count; ++i) {
         const auto& binding = bindings_.devices[i];
         const auto value = ble_->snapshot(binding.address);
@@ -1530,10 +1597,10 @@ void Chain::publish(bool mqtt, bool learned, bool full) {
         }
         // fw/telemetry/heating_summary
         std::array<std::optional<int16_t>, RoomPlan::maxRooms> temperatures{};
-        const auto summary = heatingSummaryTelemetry(learner_, learnedContext(temperatures), dhwEpisodes_.summaryJson());
-        checkPayload("mqtt_summary", summary, 600);
+        const auto summary = heatingSummaryTelemetry(learner_, learnedContext(temperatures), dhwEpisodes_.summaryJson(), &policy_);
+        checkPayload("mqtt_summary", summary, 1100);
         // The plan and the per-module status objects.
-        checkPayload("plan", engine_.plan().json(), ControlPartitionBudget::configBytes - 1);
+        checkPayload("plan", engine_.plan().storedJson(), RoomPlan::storeBytes - 1);
         std::ostringstream b; cycles_.writeJSON(b, now_); checkPayload("burner_cycles", b.str(), 0);
         std::ostringstream d; dhwEpisodes_.writeJSON(d, now_); checkPayload("dhw_status", d.str(), 0);
         EXPECT(cycles_.observedStarts() >= burnerStartsSeen_, "burner_starts_monotonic", "observed starts went back");
@@ -1608,7 +1675,7 @@ void Chain::oomSweep() {
         {"learner_json", [&] { cJSON* o = learner_.json(); auto t = printed(o); cJSON_Delete(o); return t; }},
         {"learned_json_plans", [&] { cJSON* o = learnedJson(learner_, engine_.plan(), context); auto t = printed(o); cJSON_Delete(o); return t; }},
         {"learned_room_telemetry", [&] { return learnedRoomTelemetry(learner_, engine_.plan(), 0, context); }},
-        {"summary_telemetry", [&] { return heatingSummaryTelemetry(learner_, context, dhwEpisodes_.summaryJson()); }},
+        {"summary_telemetry", [&] { return heatingSummaryTelemetry(learner_, context, dhwEpisodes_.summaryJson(), &policy_); }},
         {"dhw_summary_json", [&] { cJSON* o = dhwEpisodes_.summaryJson(); auto t = printed(o); cJSON_Delete(o); return t; }},
         {"plan_json", [&] { return engine_.plan().json(); }},
         {"schedule_json", [&] { cJSON* o = catalog_[0].schedule.json(); auto t = printed(o); cJSON_Delete(o); return t; }},
@@ -1883,7 +1950,7 @@ void guardScenario() {
             EXPECT(!foreignAfter, "guard_heat_with_foreign", "positive %u after a foreign 0x1A", c.flowC);
             EXPECT(routeReady, "guard_send_route_not_ready", "send without route");
             EXPECT(c.flowC <= cap, "guard_flow_above_cap", "flow %u > cap %u", c.flowC, cap);
-            EXPECT(in.uptimeMs >= 120000, "guard_boot_holdoff", "heat %" PRIu64 " ms after boot", in.uptimeMs);
+            EXPECT(in.uptimeMs >= ActiveHeatGuard::Params{}.bootHoldoffMs, "guard_boot_holdoff", "heat %" PRIu64 " ms after boot", in.uptimeMs);
             if (cap >= planMin) EXPECT(c.flowC >= planMin, "guard_flow_below_min", "flow %u < min %u", c.flowC, planMin);
             else count("flow_below_plan_min_by_boiler_limit");
         }
@@ -1913,6 +1980,469 @@ void guardScenario() {
 }
 
 // ============================================================================
+// Active mode: the switch-over failure cases (OVERSCHAKELING.nl.md, owner
+// decisions of 29 Oct), scripted through the firmware's wiring of
+// HeatingController::stepActiveHeat and EmsController::processBoilerTestPoll:
+// RoomEngine -> ActiveHeatGuard -> ActiveHeatPollDriver at the boiler's polls
+// of 0x0B, BoilerLimitRead for 0x16, HandoverConfirmation over an NVS
+// stand-in that survives reboots, and SupervisorPolicy. The active gate is
+// forced on here (host build only; board::emsActiveHeatAllowed stays false
+// in the firmware). Each case runs --days times with random timing.
+// ============================================================================
+static_assert(!heating::board::emsActiveHeatAllowed, "the host build has no firmware active gate");
+constexpr bool hostActiveGate = true;
+constexpr uint64_t a6ListenMs = 120000; // review A6: a restored confirmation listens at least 2 min
+
+struct SoakNvs {
+    std::string record;
+    bool fails = false;
+    uint32_t writes = 0;
+    std::string read() const { return record; }
+    bool write(std::string_view r) { ++writes; if (fails) return false; record = std::string(r); return true; }
+    bool erase() { if (fails) return false; record.clear(); return true; }
+};
+bool encodeActive(const ems::BoilerTestSession::Intent& intent, ems::EmsRawFrame& frame) {
+    constexpr auto a = ems::ClassicBoilerTestEncoder::Addressing::classicService();
+    return ems::ClassicBoilerTestEncoder::encode(a, intent, frame) && ems::ClassicBoilerTestEncoder::matches(a, intent, frame);
+}
+int16_t centi(double c) { return int16_t(std::lround(c * 100)); }
+
+struct ActiveRig {
+    static constexpr const char* firmware = "v1.0.0-soak/0011223344556677";
+    static constexpr const char* bleLiving = "a4c138001001";
+    static constexpr const char* bleBath = "a4c138001002";
+    SoakNvs nvs; // survives reboots
+    // The world, in wall ms since the case started.
+    uint64_t wall = 0, bootWall = 0, wifiDownAt = 0, bleHeardAt = 0;
+    bool haUp = true, bleUp = true, wifiUp = true, tadoOn = false, writesOk = true, dhw = false, boilerAnswers = true, busUp = true;
+    double livingC = 19.0, bathC = 17.0;
+    int16_t targetCentiC = 2100;
+    uint8_t boilerLimitC = 60;
+    struct Held { uint8_t from = 0, flowC = 0; } held; // the boiler's current 0x1A request
+    std::vector<std::pair<uint64_t, uint8_t>> delivered; // the E32's 0x1A writes that arrived (wall, flow)
+    uint32_t boots = 0, limitReads = 0;
+    uint64_t firstReadingAt = 0, firstBleAt = 0; // this boot (wall; 0 = none yet)
+    // The E32, rebuilt at every boot.
+    RoomEngine engine;
+    ActiveHeatGuard guard;
+    ems::ClassicBoilerMonitor monitor;
+    ems::ForeignBoilerRequest foreign;
+    ems::ActiveHeatPollDriver driver{1, hostActiveGate};
+    ems::BoilerLimitRead limitRead{true};
+    std::unique_ptr<HandoverConfirmation<SoakNvs>> handover;
+    ActiveHeatGuard::Command last{};
+    uint32_t posted = 0;
+    uint64_t postedAt = 0, nextHa = 0, nextBle = 0, nextTado = 0;
+
+    ActiveRig() { boot(); }
+    uint64_t up() const { return wall - bootWall; }
+    static RoomPlan plan() {
+        RoomPlan p;
+        p.mode = RoomPlan::Mode::active; p.minimumFlowC = 30; p.maximumFlowC = 60;
+        RoomPlan::Room living;
+        living.id = "woonkamer"; living.name = "Woonkamer"; living.state = RoomDemand::State::active;
+        living.emitter = RoomPlan::Emitter::floor; living.fallbackCentiC = 2000;
+        living.sources = {{RoomPlan::SourceType::ha, "climate.woonkamer"}, {RoomPlan::SourceType::ble, bleLiving}};
+        living.setpointEntity = "climate.woonkamer";
+        RoomPlan::Room bath;
+        bath.id = "badkamer"; bath.name = "Badkamer"; bath.state = RoomDemand::State::inactive;
+        bath.sources = {{RoomPlan::SourceType::ble, bleBath}}; bath.fallbackCentiC = 1800;
+        p.rooms = {living, bath};
+        return p;
+    }
+    // A (re)boot: RAM state is gone, NVS and the boiler's held request stay.
+    void boot() {
+        ++boots; bootWall = wall; firstReadingAt = firstBleAt = 0;
+        engine = RoomEngine(); engine.setPlan(plan());
+        guard = ActiveHeatGuard(); monitor = ems::ClassicBoilerMonitor(); foreign = ems::ForeignBoilerRequest();
+        driver = ems::ActiveHeatPollDriver(boots, hostActiveGate); limitRead = ems::BoilerLimitRead(true);
+        handover.reset(new HandoverConfirmation<SoakNvs>(nvs, firmware));
+        if (handover->restore()) guard.restore(up()); // HeatingController's constructor
+        posted = 0; postedAt = 0; last = {};
+        nextHa = wall + uint64_t(uniformInt(5, 40)) * 1000;  // MQTT session, then ha/heating_input
+        nextBle = wall + uint64_t(uniformInt(1, 60)) * 1000; // the next pvvx advert
+        nextTado = wall + uint64_t(uniformInt(0, 40)) * 1000;
+    }
+    void confirm(bool on) { guard.confirm(up(), on); handover->sync(guard.confirmed()); } // setHeatingHandover
+    void run(uint64_t ms, const std::function<void()>& each = {}) {
+        for (const uint64_t end = wall + ms; wall < end;) { step(); if (each) each(); }
+    }
+    // Steps until done() (true) or the limit (false).
+    bool until(uint64_t limitMs, const std::function<bool()>& done) {
+        for (const uint64_t end = wall + limitMs; wall < end;) { step(); if (done()) return true; }
+        return false;
+    }
+    std::optional<uint64_t> firstDelivered(uint64_t from, bool positive) const {
+        for (const auto& [at, flow] : delivered) if (at >= from && (flow > 0) == positive) return at;
+        return std::nullopt;
+    }
+    void step() {
+        wall += 10000;
+        ctx.uptime = up(); ctx.utc = ctx.startUtc + int64_t(wall / 1000);
+        const uint64_t now = up();
+        // The living room warms while the boiler heats the circuit (not while it heats hot water).
+        const bool circuit = held.flowC > 0 && !dhw, burner = circuit || dhw;
+        livingC += circuit ? 0.5 / 360 : -0.25 / 360;
+        std::vector<uint8_t> fast(22, 0); // 0x18 every 10 s: flow, modulation, state
+        fast[0] = held.flowC; putWord(fast, 1, dhw ? 750 : circuit ? held.flowC * 10 - 30 : 300);
+        fast[3] = 100; fast[4] = burner ? 40 : 0;
+        fast[5] = uint8_t((burner ? 0x08 : 0) | (dhw ? 0x02 : 0) | (circuit ? 0x01 : 0));
+        putWord(fast, 9, 0x8000); putWord(fast, 11, 0x8000); putWord(fast, 13, 280); putWord(fast, 15, 0x7D00);
+        if (busUp) monitor.receive(telegram(0x18, fast), now);
+        if (tadoOn && wall >= nextTado) { // the tado, while connected: 0x1A every ~40 s
+            foreign.observe(telegram(0x1A, {38, 0, 0, 0}, 0x17, 0x08, ems::EmsTelegram::WRITE), now);
+            held = {0x17, 38}; nextTado = wall + 40000;
+        }
+        if (haUp && wifiUp && wall >= nextHa) {
+            engine.haState("climate.woonkamer", centi(livingC), targetCentiC, now);
+            nextHa = wall + 30000; if (!firstReadingAt) firstReadingAt = wall;
+        }
+        if (bleUp && wall >= nextBle) {
+            engine.bleReading(bleLiving, centi(livingC + 0.1), now); engine.bleReading(bleBath, centi(bathC), now);
+            nextBle = wall + 60000; bleHeardAt = wall;
+            if (!firstReadingAt) firstReadingAt = wall;
+            if (!firstBleAt) firstBleAt = wall;
+        }
+        // HeatingController::stepActiveHeat: last step's post is reported first.
+        if (driver.last() && driver.last()->seq == posted) guard.transmitted(postedAt, driver.last()->ok);
+        engine.setBoilerLimit(ems::ActiveHeatEnvelope::limitC(monitor));
+        const auto request = engine.step(now, std::nullopt);
+        const auto& p = engine.plan();
+        ActiveHeatGuard::Inputs in;
+        in.mode = hostActiveGate ? p.mode : RoomPlan::Mode::shadow;
+        in.request = request;
+        for (size_t i = 0; i < p.rooms.size(); ++i) { in.rooms.add(engine.result(i)); in.rooms.measured(engine.freshTemperature(i, now)); }
+        if (foreign.last) in.foreign = ActiveHeatGuard::Foreign{foreign.last->address, foreign.last->receivedAtMs};
+        in.uptimeMs = now; in.routeReady = true; in.boilerLimitC = ems::ActiveHeatEnvelope::limitC(monitor);
+        const auto modulation = monitor.value(ems::BoilerField::modulation, now);
+        const auto flow = monitor.value(ems::BoilerField::flow, now);
+        in.boiler = {modulation ? std::optional<bool>(*modulation > 0) : std::nullopt, flow ? std::optional<int16_t>(int16_t(*flow)) : std::nullopt};
+        in.boilerHeardAtMs = monitor.lastReportMs();
+        const bool restoredBefore = guard.restored();
+        guard.setFlowLimits(p.minimumFlowC, p.maximumFlowC);
+        last = guard.step(now, in);
+        handover->sync(guard.confirmed());
+        posted = driver.post(now, last.send ? std::optional<uint8_t>(last.flowC) : std::nullopt,
+                             in.mode == RoomPlan::Mode::active && guard.confirmed(), guard.claimsBoiler());
+        postedAt = now;
+        const uint8_t cap = std::min<uint8_t>({p.maximumFlowC, ActiveHeatGuard::hardMaximumFlowC, in.boilerLimitC.value_or(0)});
+        if (last.send && last.flowC) {
+            EXPECT(guard.confirmed(), "active_heat_unconfirmed", "positive %u without the confirmation", last.flowC);
+            EXPECT(in.boilerLimitC.has_value(), "active_heat_without_boiler_limit", "positive %u without a 0x16 limit", last.flowC);
+            EXPECT(last.flowC <= cap, "active_flow_above_cap", "flow %u > cap %u", last.flowC, cap);
+            EXPECT(now >= ActiveHeatGuard::Params{}.bootHoldoffMs, "active_boot_holdoff", "heat %" PRIu64 " ms after boot", now);
+            EXPECT(!restoredBefore || guard.listenedMs(now) >= a6ListenMs, "active_restored_listen",
+                   "heat after %" PRIu64 " s of reception with a restored confirmation", guard.listenedMs(now) / 1000);
+        }
+        EXPECT(!(last.send && restoredBefore && foreign.last), "active_restored_foreign", "a write after a foreign 0x1A this boot");
+        EXPECT(nvs.fails || handover->stored() == guard.confirmed(), "active_confirmation_store", "stored %d, guard %d", handover->stored(), guard.confirmed());
+        // The boiler's polls of 0x0B after the step (EmsController::processBoilerTestPoll).
+        for (int k = 0; busUp && k < 3; ++k) { // a silent boiler polls nobody
+            const auto ready = [] { return true; };
+            if (driver.poll(now, monitor, ready, encodeActive, [&](const ems::EmsRawFrame& f) {
+                    if (!writesOk) return false;
+                    held = {0x0b, f.data[4]}; delivered.emplace_back(wall, f.data[4]); return true;
+                })) continue;
+            limitRead.poll(now, ems::ActiveHeatEnvelope::reportedAtMs(monitor), ready, [&](const ems::EmsRawFrame& f) {
+                ++limitReads;
+                EXPECT(f.length == 6 && f.data[0] == 0x0b && f.data[1] == 0x88 && f.data[2] == 0x16 && f.data[3] == 0 && f.data[4] == 2,
+                       "active_limit_read_frame", "not the reviewed 0x16 read");
+                if (!writesOk) return false;
+                if (boilerAnswers && busUp) monitor.receive(telegram(0x16, {0xFF, boilerLimitC}, 0x08, 0x0b, ems::EmsTelegram::WRITE), now);
+                return true;
+            });
+        }
+        supervisor();
+    }
+    // The supervisor task's decision on this boot (monotonic s + 1, as main.cpp).
+    diag::SupervisorPolicy::Inputs supervisorInputs() const {
+        diag::SupervisorPolicy::Inputs s;
+        const auto since = [&](uint64_t at) { return (at > bootWall ? at - bootWall : 0) + 1000; };
+        s.now = up() + 1000; s.loopAt = s.now; s.wifiExpected = true; s.brokerExpected = true;
+        s.wifiDownSince = wifiUp ? 0 : since(wifiDownAt);
+        s.bluetoothExpected = true; s.bluetoothQuietSince = since(bleHeardAt);
+        s.gatewayProbeArmed = true; s.networkQuietSince = s.now;
+        s.boilerOwned = guard.claimsBoiler();
+        return s;
+    }
+    void supervisor() {
+        const auto reason = diag::SupervisorPolicy::decide(supervisorInputs());
+        if (reason == diag::SupervisorPolicy::Reason::none) return;
+        EXPECT(!guard.claimsBoiler(), "active_supervisor_restart_while_owning", "%s while %s", diag::SupervisorPolicy::name(reason), ActiveHeatGuard::name(guard.state()));
+        count(std::string("active_supervisor_") + diag::SupervisorPolicy::name(reason));
+        boot();
+    }
+    // The owner confirms after the tado is unplugged; the E32 owns the boiler within 2 min.
+    void takeOver() {
+        run(uint64_t(uniformInt(2, 10)) * 60000);
+        EXPECT(delivered.empty(), "active_sent_before_confirmation", "%zu writes before the confirmation", delivered.size());
+        EXPECT(guard.state() == ActiveHeatGuard::State::awaitingConfirmation, "active_awaiting", "%s before the confirmation", ActiveHeatGuard::name(guard.state()));
+        confirm(true);
+        EXPECT(nvs.record == firmware, "active_confirmation_not_stored", "NVS holds '%s'", nvs.record.c_str());
+        EXPECT(until(2 * 60000, [&] { return guard.state() == ActiveHeatGuard::State::active; }), "active_takeover", "still %s", ActiveHeatGuard::name(guard.state()));
+    }
+};
+
+void activeHaGone(ActiveRig& r) {
+    r.livingC = uniform(18.0, 19.5); r.takeOver();
+    r.run(uint64_t(uniformInt(10, 40)) * 60000);
+    r.haUp = false; // HA Core stopped; the broker and the pvvx keep working
+    r.run(uint64_t(uniformInt(60, 180)) * 60000, [&] {
+        EXPECT(r.guard.state() == ActiveHeatGuard::State::active, "active_ha_gone_stopped", "%s without HA", ActiveHeatGuard::name(r.guard.state()));
+        EXPECT(!r.guard.warning(ActiveHeatGuard::measurementLost), "active_ha_gone_warning", "measurement_lost with the pvvx working");
+    });
+    EXPECT(r.engine.result(0).status == RoomDemand::Status::fallback, "active_ha_gone_fallback", "room %s", RoomDemand::name(r.engine.result(0).status));
+    EXPECT(r.engine.result(0).setpoint == std::optional<int16_t>(2000), "active_ha_gone_setpoint", "setpoint not the fallback");
+    r.haUp = true; r.run(5 * 60000);
+    EXPECT(r.engine.result(0).status == RoomDemand::Status::ok, "active_ha_back", "room %s", RoomDemand::name(r.engine.result(0).status));
+    EXPECT(r.boots == 1, "active_ha_gone_restart", "%u boots", r.boots);
+}
+
+void activeMeasurementGone(ActiveRig& r) {
+    r.livingC = uniform(18.0, 19.0); r.takeOver();
+    r.run(uint64_t(uniformInt(10, 30)) * 60000);
+    r.haUp = r.bleUp = false;
+    const uint64_t lastReading = std::max(r.bleHeardAt, r.nextHa - 30000);
+    EXPECT(r.until(40 * 60000, [&] { return r.guard.state() == ActiveHeatGuard::State::stoppedMeasurementLost; }), "active_lost_not_stopped", "still %s", ActiveHeatGuard::name(r.guard.state()));
+    EXPECT(r.wall - lastReading >= 30 * 60000 && r.wall - lastReading <= 32 * 60000, "active_lost_timing", "stopped %" PRIu64 " s after the last reading", (r.wall - lastReading) / 1000);
+    const uint64_t stoppedAt = r.wall;
+    r.run(20000);
+    EXPECT(r.held.from == 0x0b && r.held.flowC == 0, "active_lost_zero", "the boiler holds %u from 0x%02x", r.held.flowC, r.held.from);
+    EXPECT(r.guard.warning(ActiveHeatGuard::measurementLost), "active_lost_warning", "no measurement_lost warning");
+    r.run(uint64_t(uniformInt(10, 60)) * 60000, [&] {
+        EXPECT(!r.firstDelivered(stoppedAt + 20000, true), "active_lost_heat", "positive without a measurement");
+    });
+    EXPECT(r.boots == 1, "active_lost_restart", "restarted (Bluetooth silent) while owning: %u boots", r.boots);
+    r.bleUp = true; r.nextBle = r.wall + 10000; r.livingC = 18.0; // the battery is back; the room cooled down
+    const uint64_t back = r.wall;
+    EXPECT(r.until(10 * 60000, [&] { return r.firstDelivered(back, true).has_value(); }), "active_lost_no_resume", "no heat %" PRIu64 " s after the measurement returned (%s)", (r.wall - back) / 1000, ActiveHeatGuard::name(r.guard.state()));
+    EXPECT(r.guard.confirmed() && r.guard.state() == ActiveHeatGuard::State::active, "active_lost_resume_state", "%s", ActiveHeatGuard::name(r.guard.state()));
+}
+
+void activeReboot(ActiveRig& r) {
+    const bool frost = chance(0.4);
+    r.livingC = frost ? 22.5 : uniform(18.0, 19.0); r.targetCentiC = frost ? 2000 : 2100;
+    r.takeOver();
+    r.run(uint64_t(uniformInt(10, 60)) * 60000);
+    if (frost) r.bathC = uniform(4.0, 7.5); // the inactive bathroom freezes during the outage
+    else r.livingC = std::min(r.livingC, 19.5);
+    r.wall += uint64_t(uniformInt(5, 120)) * 1000; // the E32 is off (restart, power cut)
+    const uint64_t bootAt = r.wall;
+    r.boot();
+    EXPECT(r.guard.confirmed(), "active_reboot_not_restored", "confirmation not restored from NVS");
+    EXPECT(r.until(10 * 60000, [&] { return r.firstDelivered(bootAt, true).has_value(); }), "active_reboot_no_resume", "no %s after the reboot (%s)", frost ? "frost protection" : "heat", ActiveHeatGuard::name(r.guard.state()));
+    const auto resumed = r.firstDelivered(bootAt, true);
+    const uint64_t valid = frost ? r.firstBleAt : r.firstReadingAt; // the measurement that asks for it
+    if (resumed && valid) {
+        EXPECT(*resumed - bootAt >= ActiveHeatGuard::Params{}.bootHoldoffMs, "active_reboot_holdoff", "heat %" PRIu64 " s after boot", (*resumed - bootAt) / 1000);
+        // Review A6: 2 min of bus reception without a foreign 0x1A (first 0x18 at +10 s),
+        // and within 1 min (+ one step) of a valid measurement (owner, 29 Oct).
+        EXPECT(*resumed - bootAt >= a6ListenMs, "active_reboot_listen", "heat %" PRIu64 " s after boot", (*resumed - bootAt) / 1000);
+        EXPECT(*resumed <= std::max(valid + 70000, bootAt + 140000), "active_reboot_slow",
+               "resumed %" PRIu64 " s after boot, the measurement was valid after %" PRIu64 " s", (*resumed - bootAt) / 1000, (valid - bootAt) / 1000);
+        count(frost ? "active_reboot_frost" : "active_reboot_heat");
+    }
+    if (frost) EXPECT(std::strcmp(r.last.why, "frost_minimum") == 0 || r.held.flowC == 30, "active_reboot_frost_flow", "why %s, flow %u", r.last.why, r.held.flowC);
+    // New firmware: the stored confirmation is not used.
+    r.handover.reset(); r.nvs.record = "v0.9.9-old/ffffffffffffffff";
+    r.wall += 30000; const uint64_t updated = r.wall; r.boot();
+    r.run(5 * 60000);
+    EXPECT(!r.firstDelivered(updated, true) && r.guard.state() == ActiveHeatGuard::State::awaitingConfirmation && r.nvs.record.empty(),
+           "active_reboot_new_firmware", "%s after a firmware change", ActiveHeatGuard::name(r.guard.state()));
+}
+
+// Review A6: after an emergency hand-back by power the owner plugs the tado in
+// again; then the E32 restarts with its stored confirmation. The tado's 0x1A
+// arrives within the 2-minute listening window: no request at all, also no
+// frost minimum (the tado's job), the confirmation is cleared. A dead bus delays
+// the takeover until the boiler is heard for 2 minutes.
+void activeRebootTadoBack(ActiveRig& r) {
+    r.livingC = uniform(18.0, 19.0); r.takeOver();
+    r.run(uint64_t(uniformInt(10, 60)) * 60000);
+    if (chance(0.5)) r.bathC = uniform(4.0, 7.5);
+    r.wall += uint64_t(uniformInt(30, 900)) * 1000; // the E32 is without power
+    const bool tado = chance(0.6);
+    r.tadoOn = tado;
+    const uint64_t bootAt = r.wall;
+    r.boot();
+    r.nextTado = r.wall + uint64_t(uniformInt(0, 40)) * 1000; // its period, from an unknown phase
+    r.busUp = tado || chance(0.5); // without the tado: sometimes the boiler is not heard for a while
+    const uint64_t quietMs = r.busUp ? 0 : uint64_t(uniformInt(1, 20)) * 60000;
+    r.run(quietMs);
+    EXPECT(!r.firstDelivered(bootAt, true), "active_reboot_bus_quiet", "heat while the boiler is not heard");
+    r.busUp = true;
+    const uint64_t heardFrom = r.wall;
+    r.run(15 * 60000);
+    if (tado) {
+        EXPECT(!r.firstDelivered(bootAt, true) && !r.firstDelivered(bootAt, false), "active_reboot_tado_request", "the E32 wrote 0x1A beside the tado");
+        EXPECT(r.guard.state() == ActiveHeatGuard::State::blockedForeignController && r.guard.warning(ActiveHeatGuard::foreignController)
+               && r.nvs.record.empty(), "active_reboot_tado_block", "%s, NVS '%s'", ActiveHeatGuard::name(r.guard.state()), r.nvs.record.c_str());
+        count("active_reboot_tado_back");
+    } else {
+        const auto resumed = r.firstDelivered(bootAt, true);
+        EXPECT(resumed && *resumed >= heardFrom + a6ListenMs && *resumed <= heardFrom + 150000,
+               "active_reboot_listen_window", "resumed %" PRIu64 " s after the bus was heard", resumed ? (*resumed - heardFrom) / 1000 : 0);
+        count(quietMs ? "active_reboot_bus_quiet" : "active_reboot_no_tado");
+    }
+}
+
+void activeWifiGone(ActiveRig& r) {
+    r.livingC = uniform(18.0, 19.5); r.takeOver();
+    r.run(uint64_t(uniformInt(5, 30)) * 60000);
+    r.wifiUp = false; r.wifiDownAt = r.wall; // the access point is off: no HA, no broker
+    r.run(uint64_t(uniformInt(30, 300)) * 60000, [&] {
+        EXPECT(r.guard.owning(), "active_wifi_gone_released", "%s without Wi-Fi", ActiveHeatGuard::name(r.guard.state()));
+    });
+    EXPECT(r.boots == 1, "active_wifi_gone_restart", "%u boots", r.boots);
+    // The exemption is what holds it: released, the same outage restarts.
+    auto in = r.supervisorInputs(); in.boilerOwned = false;
+    EXPECT(diag::SupervisorPolicy::decide(in) != diag::SupervisorPolicy::Reason::none, "active_wifi_gone_exemption", "no restart without the boiler either");
+    r.wifiUp = true; r.run(10 * 60000);
+    EXPECT(r.guard.state() == ActiveHeatGuard::State::active && r.engine.result(0).status == RoomDemand::Status::ok, "active_wifi_back",
+           "%s, room %s", ActiveHeatGuard::name(r.guard.state()), RoomDemand::name(r.engine.result(0).status));
+}
+
+void activeForeign(ActiveRig& r) {
+    r.livingC = uniform(18.0, 19.0); r.takeOver();
+    r.run(uint64_t(uniformInt(10, 60)) * 60000);
+    r.tadoOn = true; r.nextTado = r.wall + uint64_t(uniformInt(0, 30)) * 1000; // the tado is plugged in again
+    EXPECT(r.until(2 * 60000, [&] { return r.foreign.last.has_value(); }), "active_foreign_unseen", "no 0x1A from the tado");
+    const uint64_t seen = r.wall;
+    r.run(10000);
+    EXPECT(r.guard.state() == ActiveHeatGuard::State::stopping && r.guard.warning(ActiveHeatGuard::foreignController), "active_foreign_no_stop",
+           "%s one step after the foreign 0x1A", ActiveHeatGuard::name(r.guard.state()));
+    EXPECT(!r.guard.confirmed() && r.nvs.record.empty(), "active_foreign_confirmation", "confirmation kept after a foreign 0x1A");
+    EXPECT(r.firstDelivered(seen, false).has_value(), "active_foreign_zero", "no zero after the foreign 0x1A");
+    r.run(30 * 60000, [&] { EXPECT(!r.firstDelivered(seen, true), "active_foreign_heat", "positive after the foreign 0x1A"); });
+    EXPECT(r.guard.state() == ActiveHeatGuard::State::blockedForeignController && r.guard.warning(ActiveHeatGuard::foreignController), "active_foreign_blocked",
+           "%s", ActiveHeatGuard::name(r.guard.state()));
+    const auto sent = r.delivered.size();
+    r.run(10 * 60000);
+    EXPECT(r.delivered.size() == sent, "active_foreign_quiet", "%zu more writes while blocked", r.delivered.size() - sent);
+    r.wall += 20000; r.boot(); r.run(5 * 60000); // after a restart it asks again
+    EXPECT(r.guard.state() == ActiveHeatGuard::State::awaitingConfirmation && r.delivered.size() == sent, "active_foreign_reboot", "%s", ActiveHeatGuard::name(r.guard.state()));
+}
+
+void activeDhw(ActiveRig& r) {
+    r.livingC = uniform(17.5, 18.5); r.takeOver();
+    r.run(uint64_t(uniformInt(5, 20)) * 60000);
+    EXPECT(r.held.from == 0x0b && r.held.flowC > 0, "active_dhw_no_heat", "boiler holds %u before the tap", r.held.flowC);
+    r.dhw = true; // a hot tap: the boiler serves hot water first
+    const uint64_t tap = r.wall;
+    r.run(uint64_t(uniformInt(1, 6)) * 60000, [&] {
+        EXPECT(r.guard.state() == ActiveHeatGuard::State::active, "active_dhw_stopped", "%s during hot water", ActiveHeatGuard::name(r.guard.state()));
+        EXPECT(!r.guard.warning(ActiveHeatGuard::boilerNoResponse) && !r.guard.warning(ActiveHeatGuard::transmitFailed), "active_dhw_warning", "warning during hot water");
+    });
+    EXPECT(r.firstDelivered(tap, true).has_value() || r.wall - tap < 60000, "active_dhw_refresh", "no refresh during hot water");
+    r.dhw = false; r.run(10 * 60000);
+    EXPECT(r.guard.state() == ActiveHeatGuard::State::active && r.held.from == 0x0b, "active_dhw_after", "%s after the tap", ActiveHeatGuard::name(r.guard.state()));
+}
+
+void activeFrost(ActiveRig& r) {
+    r.livingC = 22.5; r.targetCentiC = 2000; r.bathC = 9.5;
+    r.takeOver();
+    r.run(5 * 60000);
+    EXPECT(!r.firstDelivered(0, true), "active_frost_early", "positive without frost or demand");
+    r.bathC = 7.9;
+    uint64_t at = r.wall;
+    EXPECT(r.until(80000, [&] { return r.firstDelivered(at, true).has_value(); }), "active_frost_on", "no frost minimum below 8 degC");
+    EXPECT(r.held.flowC == 30 && std::strcmp(r.last.why, "frost_minimum") == 0, "active_frost_flow", "flow %u (%s)", r.held.flowC, r.last.why);
+    r.bathC = 8.5; at = r.wall; // inside the hysteresis: stays on
+    r.run(5 * 60000);
+    EXPECT(!r.firstDelivered(at, false) && r.held.flowC == 30, "active_frost_hysteresis", "frost minimum left at 8.5 degC");
+    r.bathC = 9.0; at = r.wall;
+    EXPECT(r.until(80000, [&] { return r.firstDelivered(at, false).has_value(); }), "active_frost_off", "frost minimum still on at 9 degC");
+    EXPECT(r.livingC > 21.0, "active_frost_setup", "living room %.1f", r.livingC);
+}
+
+void activeStopUntilDelivered(ActiveRig& r) {
+    r.livingC = uniform(18.0, 19.0); r.takeOver();
+    r.run(uint64_t(uniformInt(5, 20)) * 60000);
+    EXPECT(r.held.from == 0x0b && r.held.flowC > 0, "active_stop_no_heat", "boiler holds %u", r.held.flowC);
+    r.writesOk = false; // the bus refuses the E32's writes
+    r.confirm(false);   // "back to the thermostat"
+    EXPECT(r.nvs.record.empty(), "active_stop_store", "confirmation kept after the hand-back");
+    uint32_t zeros = 0;
+    const uint64_t failing = uint64_t(uniformInt(2, 30)) * 60000, from = r.wall;
+    r.run(failing, [&] {
+        EXPECT(r.guard.claimsBoiler() && r.guard.state() == ActiveHeatGuard::State::stopping, "active_stop_released", "%s with the boiler at %u", ActiveHeatGuard::name(r.guard.state()), r.held.flowC);
+        if (r.last.send && r.last.flowC == 0) ++zeros;
+        if (r.wall - from > 70000) EXPECT(r.guard.warning(ActiveHeatGuard::transmitFailed), "active_stop_warning", "no transmit_failed");
+    });
+    EXPECT(zeros + 1 >= failing / 10000, "active_stop_zero_repeat", "%u zeros in %" PRIu64 " s", zeros, failing / 1000);
+    // The window is long over: the first delivered zero ends the stop.
+    r.writesOk = true;
+    EXPECT(r.until(30000, [&] { return r.held.flowC == 0; }), "active_stop_zero_delivered", "zero not delivered");
+    EXPECT(r.until(20000, [&] { return !r.guard.claimsBoiler(); }), "active_stop_end", "still %s", ActiveHeatGuard::name(r.guard.state()));
+    EXPECT(r.guard.state() == ActiveHeatGuard::State::awaitingConfirmation && r.held.flowC == 0, "active_stop_state", "%s, boiler %u",
+           ActiveHeatGuard::name(r.guard.state()), r.held.flowC);
+    auto sent = r.delivered.size();
+    r.run(10 * 60000);
+    EXPECT(r.delivered.size() == sent, "active_stop_quiet", "%zu writes after the hand-back", r.delivered.size() - sent);
+    // A normal hand-back: zero every 10 s for one minute, then nothing.
+    r.livingC = 18.0; r.confirm(true);
+    EXPECT(r.until(3 * 60000, [&] { return r.held.from == 0x0b && r.held.flowC > 0; }), "active_stop_retake", "no heat after confirming again");
+    r.run(uint64_t(uniformInt(1, 10)) * 60000);
+    r.confirm(false);
+    const uint64_t handBack = r.wall;
+    r.run(3 * 60000);
+    size_t zeros2 = 0;
+    for (const auto& [at, flow] : r.delivered) {
+        if (at <= handBack) continue; // (the last write before the hand-back)
+        EXPECT(flow == 0 && at <= handBack + 70000, "active_stop_window", "flow %u %" PRIu64 " s after the hand-back", flow, (at - handBack) / 1000);
+        ++zeros2;
+    }
+    EXPECT(zeros2 >= 6, "active_stop_zero_window", "%zu zeros in the stop window", zeros2);
+    EXPECT(r.guard.state() == ActiveHeatGuard::State::awaitingConfirmation && r.held.flowC == 0, "active_stop_after", "%s", ActiveHeatGuard::name(r.guard.state()));
+}
+
+// The boiler's own limit (0x16): read by the E32 itself; unknown means no heat.
+void activeBoilerLimit(ActiveRig& r) {
+    r.boilerAnswers = false; r.livingC = uniform(17.5, 18.5); r.targetCentiC = 2300;
+    r.takeOver(); // the guard owns the boiler, asking zero
+    const uint64_t unknownMs = uint64_t(uniformInt(10, 40)) * 60000;
+    r.run(unknownMs, [&] {
+        EXPECT(!r.firstDelivered(0, true), "active_limit_unknown_heat", "positive without a 0x16 limit");
+        EXPECT(r.guard.warning(ActiveHeatGuard::boilerLimitUnknown) && std::strcmp(r.last.why, "boiler_limit_unknown") == 0,
+               "active_limit_unknown_reason", "why %s", r.last.why);
+    });
+    EXPECT(r.limitReads + 1 >= unknownMs / ems::BoilerLimitRead::retryMs, "active_limit_retry", "%u reads in %" PRIu64 " min", r.limitReads, unknownMs / 60000);
+    r.boilerAnswers = true;
+    const uint64_t answers = r.wall;
+    EXPECT(r.until(6 * 60000, [&] { return r.firstDelivered(answers, true).has_value(); }), "active_limit_known_heat", "no heat once the limit is known");
+    // The owner lowers the boiler's own setting to 45 degC: the next 6-hourly read applies it.
+    const uint32_t reads = r.limitReads;
+    r.boilerLimitC = 45;
+    r.run(ems::BoilerLimitRead::refreshMs + 60000);
+    EXPECT(r.limitReads == reads + 1, "active_limit_refresh", "%u reads in 6 h", r.limitReads - reads);
+    const uint64_t lowered = r.wall;
+    r.run(30 * 60000);
+    for (const auto& [at, flow] : r.delivered) if (at >= lowered) EXPECT(flow <= 45, "active_limit_lowered", "flow %u above the new limit", flow);
+    EXPECT(r.firstDelivered(lowered, true).has_value(), "active_limit_lowered_heat", "no heat under the lowered limit");
+}
+
+void activeScenario() {
+    const std::pair<const char*, void (*)(ActiveRig&)> cases[] = {
+        {"ha_gone", activeHaGone}, {"measurement_gone", activeMeasurementGone}, {"reboot", activeReboot}, {"wifi_gone", activeWifiGone},
+        {"foreign_1a", activeForeign}, {"dhw", activeDhw}, {"frost", activeFrost}, {"stop_until_delivered", activeStopUntilDelivered},
+        {"boiler_limit", activeBoilerLimit}, {"reboot_tado_back", activeRebootTadoBack}};
+    const int runs = std::max(1, int(opt.days));
+    uint64_t steps = 0;
+    for (const auto& [name, run] : cases)
+        for (int i = 0; i < runs; ++i) {
+            ActiveRig rig;
+            run(rig);
+            // Bus traffic: one read per boot and per 6 h while the boiler answers.
+            const bool answered = std::strcmp(name, "boiler_limit") != 0;
+            EXPECT(rig.limitReads >= 1 && (!answered || rig.limitReads <= rig.boots * (1 + rig.wall / ems::BoilerLimitRead::refreshMs + 1)),
+                   "active_limit_reads", "%u reads in %u boots over %" PRIu64 " min", rig.limitReads, rig.boots, rig.wall / 60000);
+            count(std::string("active_case_") + name);
+            steps += rig.wall / 10000;
+        }
+    counters[ctx.scenario + ":steps"] = steps;
+}
+
+// ============================================================================
 // FlowDemand alone: random demand flips (schedule switch points, HA targets,
 // pauses) far more often than a house produces them, so the minimum on/off
 // times, the limits and the integral are exercised hard.
@@ -1924,6 +2454,7 @@ void flowScenario() {
     const uint64_t steps = uint64_t(opt.days * 86400000.0 / 10000);
     bool demand = false, heat = false, haveOff = false;
     std::optional<int16_t> error = int16_t(0);
+    std::optional<uint8_t> limit;
     uint64_t onAt = 0, offAt = 0, nextFlip = now, demandSince = now;
     for (uint64_t i = 0; i < steps; ++i) {
         now += chance(0.001) ? uint64_t(uniformInt(20, 600)) * 1000 : 10000; // a stalled loop now and then
@@ -1936,11 +2467,18 @@ void flowScenario() {
         else if (error) error = int16_t(std::clamp<int>(*error + int(uniformInt(-5, 5)), -3000, 3000));
         if (chance(0.00005)) { // a plan edit of the flow limits rebuilds FlowDemand (RoomEngine::setPlan)
             p.minimumFlowC = uint8_t(uniformInt(20, 40)); p.maximumFlowC = uint8_t(uniformInt(p.minimumFlowC + 1, 60));
-            flow = FlowDemand(p); haveOff = false; heat = false; count("flow_rebuild");
+            flow = FlowDemand(p); flow.setBoilerLimit(limit); haveOff = false; heat = false; count("flow_rebuild");
+        }
+        if (chance(0.0002)) { // the boiler's own limit (0x16) changes, or is unknown
+            limit = chance(0.2) ? std::optional<uint8_t>() : std::optional<uint8_t>(uint8_t(uniformInt(25, 80)));
+            flow.setBoilerLimit(limit);
         }
         const auto r = flow.update(now, demand, error);
-        if (r.heat) EXPECT(r.flowC >= p.minimumFlowC && r.flowC <= p.maximumFlowC, "flow_limits", "flow %u outside [%u, %u]", r.flowC, p.minimumFlowC, p.maximumFlowC);
+        const uint8_t top = std::min<uint8_t>(p.maximumFlowC, limit.value_or(FlowDemand::ceilingC));
+        if (r.heat) EXPECT(r.flowC >= std::min(p.minimumFlowC, top) && r.flowC <= top, "flow_limits", "flow %u outside [%u, %u]", r.flowC, std::min(p.minimumFlowC, top), top);
         else EXPECT(r.flowC == 0, "flow_off_nonzero", "off with %u", r.flowC);
+        EXPECT(!r.capped || (r.heat && limit && r.flowC == *limit && *limit < p.maximumFlowC), "flow_capped_flag", "capped %u", r.flowC);
+        if (r.capped) count("flow_capped_steps");
         if (!error) EXPECT(!r.heat && r.reason == FlowDemand::Reason::noDemand, "flow_no_error_stop", "no usable room but %s", FlowDemand::name(r.reason));
         if (r.heat && !heat) {
             if (haveOff) EXPECT(now - offAt >= p.minimumOffMs, "flow_minimum_off", "restart %" PRIu64 " s after the stop", (now - offAt) / 1000);
@@ -2079,19 +2617,19 @@ void sizesScenario() {
         // worst cases to the largest plan the device can hold, names first, then
         // the entity ids after their domain (their distinct ends stay).
         const auto shorten = [](std::string& id) { if (id.size() > 16) id.erase(id.find('.') + 1, 1); };
-        for (size_t turn = 0; variant && plan.json().size() + 1 > ControlPartitionBudget::configBytes; ++turn) {
+        for (size_t turn = 0; variant && plan.storedJson().size() + 1 > RoomPlan::storeBytes; ++turn) {
             auto& r = plan.rooms[turn % plan.rooms.size()];
             if (r.name.size() > 2) { r.name.resize(r.name.size() - 2); continue; } // whole UTF-8 characters
             for (auto& src : r.sources) shorten(src.id);
             shorten(r.setpointEntity);
         }
-        const auto raw = plan.json();
+        const auto raw = plan.storedJson(); // as setHeatingPlan stores it
         RoomPlan parsed;
         cJSON* back = parseBack(raw);
         const char* error = back ? RoomPlan::parse(back, parsed) : "invalid_json";
         cJSON_Delete(back);
-        observe(std::string("plan_bytes_") + label, std::to_string(raw.size()) + " B (store limit " + std::to_string(ControlPartitionBudget::configBytes - 1) + " B)" + (error ? std::string(", parse error ") + error : std::string()));
-        if (raw.size() + 1 > ControlPartitionBudget::configBytes)
+        observe(std::string("plan_bytes_") + label, std::to_string(raw.size()) + " B (store limit " + std::to_string(RoomPlan::storeBytes - 1) + " B)" + (error ? std::string(", parse error ") + error : std::string()));
+        if (raw.size() + 1 > RoomPlan::storeBytes)
             observe(std::string("plan_too_large_") + label, "a valid plan of " + std::to_string(raw.size()) + " B is refused with plan_too_large");
         if (error) { fail(std::string("sizes_plan_invalid_") + label, "the %s plan does not parse: %s", label, error); continue; }
         RoomEngine engine; engine.setPlan(parsed);
@@ -2120,7 +2658,10 @@ void sizesScenario() {
         cJSON_AddItemToObject(root, "shadow", shadow.json());
         ActiveHeatGuard guard; ActiveHeatGuard::Inputs in; in.mode = RoomPlan::Mode::active; in.foreign = ActiveHeatGuard::Foreign{0x17, 5};
         guard.confirm(1, true); guard.step(1000, in); guard.transmitted(1000, true);
-        cJSON* active = guard.json(2000000000ull); cJSON_AddBoolToObject(active, "enabled", true); cJSON_AddItemToObject(root, "active", active);
+        cJSON* active = guard.json(2000000000ull); cJSON_AddBoolToObject(active, "enabled", true); cJSON_AddBoolToObject(active, "confirmation_stored", true);
+        cJSON* limit = cJSON_AddObjectToObject(active, "boiler_limit");
+        cJSON_AddNumberToObject(limit, "flow_c", 80); cJSON_AddNumberToObject(limit, "age_s", 4294967); cJSON_AddNumberToObject(limit, "reads", 4294967295.0);
+        cJSON_AddItemToObject(root, "active", active);
         addHaLink(root, uint64_t(1), 4000000000ull, true);
         compactHeatingTelemetry(root);
         const auto text = printed(root);
@@ -2197,10 +2738,12 @@ void reproScenario() {
     }
 }
 
+#include "slow_wifi.h" // scenario slowwifi (MQTT telemetry budget)
+
 void usage() {
-    std::fprintf(stderr, "soak --scenario=chain|guard|flow|supervisor|sizes|repro [--name=] [--tz=POSIX] [--start=YYYY-MM-DDTHH:MM:SSZ] [--days=60]\n"
+    std::fprintf(stderr, "soak --scenario=chain|guard|active|flow|supervisor|sizes|repro|slowwifi [--name=] [--tz=POSIX] [--start=YYYY-MM-DDTHH:MM:SSZ] [--days=60]\n"
                          "     [--uptime0=ms] [--seed=n] [--step-ms=10000] [--mqtt-s=300] [--learned-s=900] [--full-s=3600] [--edit-h=4]\n"
-                         "     [--live-dhw-flow] [--boiler-outdoor] [--no-oom] [--no-active] [--out=/tmp/soak]\n");
+                         "     [--live-dhw-flow] [--boiler-outdoor] [--no-oom] [--no-active] [--flow-options] [--out=/tmp/soak]\n");
 }
 
 } // namespace
@@ -2226,6 +2769,7 @@ int main(int argc, char** argv) {
         else if (a == "--boiler-outdoor") opt.boilerOutdoor = true;
         else if (a == "--no-oom") opt.oom = false;
         else if (a == "--no-active") opt.activePhases = false;
+        else if (a == "--flow-options") opt.flowOptions = true;
         else { usage(); return 2; }
     }
     if (opt.stepMs < 1000 || opt.stepMs % 1000 || opt.stepMs > 30000) { std::fprintf(stderr, "--step-ms must be whole seconds in 1..30 s\n"); return 2; }
@@ -2242,8 +2786,10 @@ int main(int argc, char** argv) {
     else if (opt.scenario == "guard") guardScenario();
     else if (opt.scenario == "flow") flowScenario();
     else if (opt.scenario == "supervisor") supervisorScenario();
+    else if (opt.scenario == "active") activeScenario();
     else if (opt.scenario == "sizes") sizesScenario();
     else if (opt.scenario == "repro") reproScenario();
+    else if (opt.scenario == "slowwifi") slowWifiScenario();
     else { usage(); return 2; }
     const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
     std::printf("---- %s: %.1f s wall\n", ctx.scenario.c_str(), seconds);

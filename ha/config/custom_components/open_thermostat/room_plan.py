@@ -111,6 +111,25 @@ def has_room_plan(entry):
     return bool(is_product(entry) and entry.data.get(CONTROLLER_ADDRESS) and entry.data.get(CONTROLLER_PASSWORD))
 
 
+# Set (True) in the data of every installation the config flow creates from beta.19 on:
+# its rooms are the E32 room plan, also before the E32 is connected. Older entries
+# lack the key and keep their Home Assistant room route until they connect an E32.
+ROOMS_ON_E32 = "rooms_on_e32"
+
+
+def uses_e32_rooms(entry):
+    """True when the rooms of this entry are (or, once connected, will be) the E32 room plan.
+
+    Then the older Home Assistant room records ("zone" subentries) are not offered:
+    a new installation connects the E32 first and adds its rooms under Configure → Rooms.
+    """
+    if has_room_plan(entry):
+        return True
+    from .product import is_product
+    return bool(is_product(entry) and entry.data.get(ROOMS_ON_E32) is True
+                and not any(s.subentry_type == "zone" for s in entry.subentries.values()))
+
+
 def plan_error(err):
     """A clear Home Assistant error for a refused or failed plan read or write."""
     if isinstance(err, ControllerLoginRejected):
@@ -126,8 +145,14 @@ def plan_error(err):
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unconfirmed")
         return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_rejected",
                                   translation_placeholders={"error": err.error})
+    if str(err) in SIGN_IN_ERRORS:  # all E32 web sessions in use, or too many sign-in attempts
+        return HomeAssistantError(translation_domain=DOMAIN, translation_key=SIGN_IN_ERRORS[str(err)])
     return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unreachable",
                               translation_placeholders={"error": str(err)})
+
+
+SIGN_IN_ERRORS = {"controller_session_capacity": "e32_session_capacity",
+                  "controller_try_again_later": "e32_try_again_later"}
 
 
 class RoomPlanLink:
@@ -252,6 +277,9 @@ class RoomPlanLink:
         if self.entry is not None:
             from .native_entity_cleanup import cleanup_removed_rooms
             cleanup_removed_rooms(self.hass, self.entry, self.hub.prefix, plan)
+            # "Choose a temperature source for <room>" goes once the room has a new source.
+            from .legacy_room_migration import update_choose_source_issues
+            update_choose_source_issues(self.hass, self.entry, plan)
         self.hub.notify()
 
     async def async_change_room(self, room_id, change):

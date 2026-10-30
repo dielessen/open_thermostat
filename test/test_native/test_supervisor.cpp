@@ -151,6 +151,20 @@ TEST(BlackBox, SupervisorRestartKeepsTheLastStateForTheNextBoot) {
     BlackBox third; third.begin(rtc, phaseRtc, 3); // the new boot's record replaced it
     EXPECT_EQ(third.previous().uptimeS, 0u);
 }
+TEST(BlackBox, ControlFaultSeriesLastsOneBootAndAHeldLatchIsShown) {
+    BlackBoxRecord rtc{};
+    BlackBox first; first.begin(rtc, phaseRtc, 1); first.restartReason(Reason::controlFault);
+    BlackBox second; second.begin(rtc, phaseRtc, 3);
+    EXPECT_EQ(second.previousRestart(), Reason::controlFault); // the next fault is held
+    std::unique_ptr<cJSON, decltype(&cJSON_Delete)> j(second.json(), cJSON_Delete);
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(j.get(), "control_fault_held")));
+    second.controlFaultHeld();
+    j.reset(second.json());
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(j.get(), "control_fault_held")));
+    // A restart without a reason (update, manual) ends the series.
+    BlackBox third; third.begin(rtc, phaseRtc, 3);
+    EXPECT_EQ(third.previousRestart(), Reason::none);
+}
 TEST(BlackBox, CorruptedRecordIsNotReported) {
     BlackBoxRecord rtc{};
     BlackBox first; first.begin(rtc, phaseRtc, 1); first.note(10, 1, 1, 1, 0, true, true);
@@ -208,6 +222,26 @@ TEST(SupervisorPolicy, UpdateExemptionEndsAfterTwentyMinutes) {
     in.updateSince = 0; // start unknown: never restart an update
     EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
     EXPECT_STREQ(SupervisorPolicy::name(Reason::updateStuck), "update_stuck");
+}
+TEST(SupervisorPolicy, ControlFaultRestartsOnceInARowAndOnlyWhenDue) {
+    using A = SupervisorPolicy::ControlFaultAction;
+    constexpr uint64_t min = 60000, due = SupervisorPolicy::controlFaultUptimeMs, day = SupervisorPolicy::controlFaultHealthyMs;
+    // First time: wait until 15 min uptime (checked every pass, not pre-scheduled), then restart.
+    EXPECT_EQ(SupervisorPolicy::controlFault(min, min, Reason::none), A::wait);
+    EXPECT_EQ(SupervisorPolicy::controlFault(due - 1, min, Reason::none), A::wait);
+    EXPECT_EQ(SupervisorPolicy::controlFault(due, min, Reason::none), A::restart);
+    EXPECT_EQ(SupervisorPolicy::controlFault(due, min, Reason::bluetoothApply), A::restart);
+    // Back right after a control_fault restart: hold the latch at once (no loop).
+    EXPECT_EQ(SupervisorPolicy::controlFault(min, min, Reason::controlFault), A::hold);
+    EXPECT_EQ(SupervisorPolicy::controlFault(10 * day, day - 1, Reason::controlFault), A::hold);
+    // A day without a runtime fault ends the series.
+    EXPECT_EQ(SupervisorPolicy::controlFault(day, day, Reason::controlFault), A::restart);
+}
+TEST(SupervisorPolicy, ControlFaultReasonIsAppendedAndNamed) {
+    // Stored in RTC memory by earlier boots: existing values never move.
+    EXPECT_EQ(static_cast<int>(Reason::settingsRestore), 8);
+    EXPECT_EQ(static_cast<int>(Reason::controlFault), 9);
+    EXPECT_STREQ(SupervisorPolicy::name(Reason::controlFault), "control_fault");
 }
 TEST(SupervisorPolicy, WifiLostRestartsBackOffExponentially) {
     auto in = healthy18(1000 * minute18);
@@ -275,6 +309,26 @@ TEST(SupervisorPolicy, SilentBluetoothRestartsRarelyAndNeverDuringATrial) {
     in.bluetoothQuietSince = in.now - 60 * minute18; EXPECT_EQ(SupervisorPolicy::decide(in), Reason::bluetoothSilent);
     in.bluetoothRestarts = SupervisorPolicy::maximumBackoff; in.bluetoothQuietSince = 1; // gives up
     EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
+}
+// Owner, 29 Oct: while the E32 owns the boiler, a network or Bluetooth outage
+// never restarts it (the restart would end active heat); a real hang does.
+TEST(SupervisorPolicy, OwningTheBoilerRestartsOnlyForARealHang) {
+    auto in = healthy18(1000 * minute18);
+    in.boilerOwned = true;
+    in.wifiDownSince = in.now - 8 * 60 * minute18;                 // Wi-Fi gone for 8 h
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
+    in.wifiDownSince = 0; in.brokerDownSince = in.now - 8 * 60 * minute18; // broker gone
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
+    in.brokerDownSince = 0; in.gatewayProbeArmed = true; in.gatewayProbeFailures = 50; in.networkQuietSince = 1; // network dead
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
+    in.bluetoothExpected = true; in.bluetoothQuietSince = 1;      // bound sensors silent
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
+    in.boilerOwned = false;                                         // released: the same inputs restart again
+    EXPECT_NE(SupervisorPolicy::decide(in), Reason::none);
+    in.boilerOwned = true; in.loopAt = in.now - 5 * minute18;       // the loop hangs
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::loopStall);
+    in.loopAt = in.now; in.updateRunning = true; in.updateSince = in.now - 20 * minute18; // a stuck update
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::updateStuck);
 }
 TEST(BlackBox, RestartReasonIsASeparateByteAndCountsBackoff) {
     LoopPhaseRecord phase{}; BlackBoxRecord rtc{};

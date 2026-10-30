@@ -16,7 +16,11 @@ def test_configuration_version_error_has_translated_recovery_without_a_stale_pat
             for child in value:walk(child)
     walk(document)
     assert messages and len(set(messages))==1
-    assert all('Home Assistant' in text and '2026.' not in text for text in messages)
+    # Names the one minimum version, never a list of patch releases that goes stale.
+    from custom_components.open_thermostat.product import MINIMUM_HA_VERSION
+    import re
+    assert all('Home Assistant' in text and re.findall(r'20\d\d\.\d+\.\d+', text)==[MINIMUM_HA_VERSION]
+               for text in messages)
     assert all('update' in text.lower() for text in messages)
     assert all('private' not in text.lower() and 'Store' not in text for text in messages)
     if filename.endswith('/nl.json'):

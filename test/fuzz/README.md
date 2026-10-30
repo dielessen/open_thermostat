@@ -17,6 +17,7 @@ Nothing here contacts a device, the bus, a radio, a broker or GitHub.
 | `fuzz_room_plan` | `POST /config/heating` and the flash copy (`RoomPlan::parse`, `RoomSchedule::parse`), the plan's JSON round trip, the MQTT `ha/heating_input` route (`control/HeatingInput.h`, the one `HeatingController` uses: room states, gas meter, gas price, outdoor, boiler power), `RoomEngine` steps and the `FlowLearner` with its status. |
 | `fuzz_control_json` | `parseControlJson` in both modes: never accept more than 8 levels, 512 nodes, 8192 bytes or over-long strings. |
 | `fuzz_shadow` | `ShadowController::receive/tick/connected` for all `ha/*` topics, with session placeholders so sequences get past the handshake. Every publication must be valid JSON. |
+| `fuzz_config_backup` | `POST /config/backup` restore (`control/ConfigBackup.h`): request and envelope checks, real Mbed TLS opening of a sealed secrets box, every section through its own validator, and ordered apply with rollback. Accepted candidates must pass the real readers; Ethernet, the web port and the device SOURCE profile never change unsafely. |
 | `fuzz_boiler_services` | `BoilerTestService::action`, `ClassicBoilerSettingsService::request/poll/receive`, `ClassicConfigurationRead::request/poll/observe`, `WebAuthSession::cookieToken`, CSRF and `If-Match` checks. |
 
 Input formats are described at the top of each `fuzz_*.cpp`. Seeds are in

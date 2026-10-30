@@ -96,6 +96,24 @@ TEST(IndexedRelease, UpgradeNotificationCrossesToBetaButNeverBackToLessMatureCha
  EXPECT_EQ(newerFirmwareRelease(stable,{{"v0.2.0-e32v2-beta.1",true}}),"");
  EXPECT_EQ(newerFirmwareRelease(stable,{{"v0.2.0-e32v2",false}}),"v0.2.0-e32v2");
 }
+TEST(IndexedRelease, VersionOneIsNewerThanEveryBetaAndItsReleaseCandidates) {
+ const std::vector<std::string> order{"v0.1.0-e32v2-beta.19","v1.0.0-e32v2-alpha.1","v1.0.0-e32v2-beta.1",
+   "v1.0.0-e32v2-rc.1","v1.0.0-e32v2-rc.2","v1.0.0-e32v2","v1.0.1-e32v2-beta.1","v1.0.1-e32v2","v1.1.0-e32v2"};
+ std::array<uint32_t,5> previous{},current{};
+ ASSERT_TRUE(firmwareVersion(order.front(),previous));
+ for(size_t i=1;i<order.size();++i){ASSERT_TRUE(firmwareVersion(order[i],current))<<order[i];EXPECT_LT(previous,current)<<order[i];previous=current;}
+ EXPECT_TRUE(firmwareVersion("v1.0.0-e32v2",current));
+ EXPECT_EQ(current,(std::array<uint32_t,5>{1,0,0,3,0}));
+ for(const auto bad:{"v1.0.0","v1.0.0-e32v2-","v1.0.0-e32v2-stable","v01.0.0-e32v2","v1.0.0-e32v2x"})
+   EXPECT_FALSE(firmwareVersion(bad,current))<<bad;
+ // beta.19 is offered 1.0.0; 1.0.0 is never offered a later beta, only the next stable release.
+ const std::string beta="v0.1.0-e32v2-beta.19",one="v1.0.0-e32v2";
+ EXPECT_EQ(newerFirmwareRelease(beta,{{"v1.0.0-e32v2-rc.1",true},{one,false}}),one);
+ EXPECT_EQ(newerFirmwareRelease("v1.0.0-e32v2-rc.1",{{one,false}}),one);
+ EXPECT_EQ(newerFirmwareRelease(one,{{"v1.1.0-e32v2-beta.1",true},{"v1.0.0-e32v2-rc.9",true}}),"");
+ EXPECT_EQ(newerFirmwareRelease(one,{{"v1.0.1-e32v2",false}}),"v1.0.1-e32v2");
+ EXPECT_EQ(assetUrl(one,"firmware.bin"),"https://github.com/dielessen/open_thermostat/releases/download/v1.0.0-e32v2/firmware.bin");
+}
 TEST(IndexedRelease, MixedAlphaAndBetaIndexStillVerifiesExactPublicReleaseAndManifest) {
  Fetch f;f.index("["+ref(36)+","+ref(37)+"]");f.add(36);f.add(37);
  const auto old=tag(37),beta=std::string("v0.1.0-e32v2-beta.1");

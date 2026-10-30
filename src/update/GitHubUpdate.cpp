@@ -58,7 +58,7 @@ struct State {std::string phase="idle",error,selected,operation="none";DownloadF
 State state;std::mutex stateMutex;ReleaseCheckSchedule checkSchedule;
 std::atomic<bool> working{false};RestartTimer rebootTimer;
 // Optional restarts (applying Bluetooth settings): wait for a quiet moment.
-RestartTimer controlledRestart;std::atomic<uint8_t> controlledReason{0};
+ReasonedRestartTimer controlledRestart;
 struct CheckpointStorage {
     bool read(UpdateCheckpoint &value) {
         nvs_handle_t handle;
@@ -277,7 +277,7 @@ void firmwareInstalled(){
 }
 bool requestReboot(){if(!manualRebootAllowed(busy(),pendingBoot()))return false;rebootTimer.schedule(millis(),1000);return true;}
 bool scheduleControlledRestart(uint32_t delayMs,uint8_t reason){
-    controlledReason.store(reason);controlledRestart.schedule(millis(),delayMs);return true;
+    controlledRestart.schedule(millis(),delayMs,reason);return true;
 }
 bool controlledRestartPending(){return controlledRestart.pending();}
 bool bootPending(){return pendingBoot();}
@@ -354,7 +354,7 @@ void loop(bool automaticAllowed,bool supervisorAlive,bool networkProven) {
     const auto now=millis();if(rebootTimer.due(now,working.load())){ESP.restart();return;}
     static bool pending=pendingBoot();
     if(controlledRestart.due(now,working.load())&&controlledRestartAllowed(busy(),pending,!automaticAllowed)) {
-        heating::diagnostics::blackBox.restartReason(static_cast<heating::diagnostics::SupervisorPolicy::Reason>(controlledReason.load()));
+        heating::diagnostics::blackBox.restartReason(static_cast<heating::diagnostics::SupervisorPolicy::Reason>(controlledRestart.reason()));
         Serial.println("Controlled restart (deferred until no update, boot check or boiler session)");
         ESP.restart();return;
     }

@@ -1,6 +1,6 @@
 {
-	"ssid": "IntuiBaseHeating",
-	"password": "IntuiBaseHeating",
+	"ssid": "",
+	"password": "",
 	"channel": 10,
 	"hostname": "heating",
 	"ip": "10.10.10.1",

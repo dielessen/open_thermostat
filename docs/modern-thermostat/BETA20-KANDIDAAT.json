@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "date": "2026-10-30",
+  "planned_tag": "v0.1.0-e32v2-beta.20",
+  "previous_published_tag": "v0.1.0-e32v2-beta.19",
+  "state": "FROZEN_SHADOW_AWAITING_EXACT_TAG_CI",
+  "formal_freeze": true,
+  "published": false,
+  "installed": false,
+  "ha_tag": "ha-v0.4.0b12",
+  "ha_installed": false,
+  "install_together": true,
+  "install_order": [
+    "ha-v0.4.0b12 (integration package, HA restart)",
+    "v0.1.0-e32v2-beta.20 (Home Assistant Firmware update entity, one Install press)"
+  ],
+  "observed_installed_e32": "v0.1.0-e32v2-beta.19",
+  "observed_installed_ha": "0.4.0b11",
+  "owner_instruction": "docs/modern-thermostat/BETA20-OWNER-INSTRUCTION-20261030.json",
+  "publication_exception": "docs/modern-thermostat/BETA20-PUBLICATION-EXCEPTION-20261030.json",
+  "last_accepted_native_e32": "v0.1.0-e32v2-beta.4",
+  "predecessor_acceptance": {
+    "tag": "v0.1.0-e32v2-beta.19",
+    "receipt": "docs/modern-thermostat/update-acceptance/e32-beta19-20261030.json",
+    "status": "INCOMPLETE",
+    "gap_report": "docs/modern-thermostat/BETA19-HA-UPDATE-GAP-20261030.json"
+  },
+  "planned_acceptance": {
+    "method": "home_assistant",
+    "checklist": "docs/modern-thermostat/HA-UPDATE-ACCEPTANCE-BETA19.md",
+    "receipt": "docs/modern-thermostat/update-acceptance/e32-beta20-<YYYYMMDD>.json"
+  },
+  "changes": [
+    "Stale native-plan session record ignored and erased (no storage_fault); erased when the source is cleared or re-selected over an unreadable record",
+    "Failed ha/config save settled by one read; refused saves never latch; one controlled restart per boot for a latched runtime fault (reason control_fault, not before 15 min uptime)",
+    "Web sessions: least recently used idle (>= 2 min) session evicted when all 4 are taken; never during a boiler test, settings write or update",
+    "Bluetooth supervisor: any advert proves the host alive; a silent bound sensor no longer restarts the E32",
+    "Backup restore clears a native source that no longer matches the restored link (warning native_source_cleared)",
+    "Setup expiry rejoins the saved Wi-Fi at once; honest shadow-mode texts; system log control_fault label",
+    "HA 0.4.0b12: boiler values from retained topics without a session, boiler-profile visibility, no dead integration after a failed or cancelled link, firmware precheck, sign-in errors and logout, setup/listener isolation, write-storm and recorder fixes, robust card registration, retired-entity and Repairs cleanup, translated entity names, explicit setting-device choice"
+  ],
+  "not_included": [
+    "opening active control (board::emsActiveHeatAllowed stays false; no attended switch-over)",
+    "a HACS repository for the integration",
+    "editing the bodies of earlier published releases (beyond the automatic organize_releases archive labels)"
+  ],
+  "software_validation": {
+    "physical_test_performed": false
+  },
+  "physical_outputs_automatically_enabled": false,
+  "persistent_boiler_setting_writes_enabled": false,
+  "full_ten_minute_physical_success_claimed": false,
+  "native_https_root_cause_fixed": false
+}

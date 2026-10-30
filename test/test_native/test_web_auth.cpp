@@ -253,3 +253,27 @@ TEST(WebAuth, RejectedRequestsCannotRefreshAStoredSession) {
     EXPECT_EQ(webAuthDecision(s,"/status","GET",token('c'),"",at,false),WebAuthDecision::authentication_required);
     EXPECT_EQ(s.find(token('a'),at+1),nullptr);
 }
+TEST(WebAuth, FullTableEvictsOnlyTheLeastRecentlyUsedIdleSessionWhenAllowed) {
+    // Live on 30 Oct 2026: four slots held by polling pages and closed tabs,
+    // Home Assistant got session_capacity on every sign-in.
+    WebAuthSession s;
+    for(int i=0;i<4;++i) ASSERT_NE(s.issue(token('0'+i*2),token('1'+i*2),100+i),nullptr);
+    const uint64_t later=200+WebAuthSession::evictIdleMs;
+    ASSERT_TRUE(s.touch(token('0'),later-1000)); ASSERT_TRUE(s.touch(token('4'),later-5000)); // polling pages
+    // Not allowed (boiler test, settings write or update active): no eviction.
+    EXPECT_EQ(s.issue(token('8'),token('9'),later,{},false,false),nullptr);
+    // Allowed: the oldest idle one ('2', last seen at 101) gives way; the
+    // other idle one ('6', 103) and the two active pages stay.
+    ASSERT_NE(s.issue(token('8'),token('9'),later,{},false,true),nullptr);
+    EXPECT_EQ(s.find(token('2'),later),nullptr);
+    for(char c:{'0','4','6','8'}) EXPECT_NE(s.find(token(c),later),nullptr) << c;
+    // Next: '6' is the only idle one left.
+    ASSERT_NE(s.issue(token('a'),token('b'),later+1,{},false,true),nullptr);
+    EXPECT_EQ(s.find(token('6'),later+1),nullptr);
+    // Every remaining session active within evictIdleMs: refused, nobody evicted.
+    EXPECT_EQ(s.issue(token('c'),token('d'),later+2,{},false,true),nullptr);
+    for(char c:{'0','4','8','a'}) EXPECT_NE(s.find(token(c),later+2),nullptr) << c;
+    // Explicit recovery still revokes all and admits the caller.
+    ASSERT_NE(s.issue(token('c'),token('d'),later+3,{},true),nullptr);
+    EXPECT_EQ(s.find(token('0'),later+3),nullptr); EXPECT_NE(s.find(token('c'),later+3),nullptr);
+}

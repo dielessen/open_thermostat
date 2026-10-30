@@ -5,7 +5,7 @@ from homeassistant.const import UnitOfTemperature
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers import device_registry as dr
 
-from .const import DOMAIN, CONF_TOPIC_PREFIX
+from .const import DOMAIN, CONF_TOPIC_PREFIX, MANUFACTURER
 from .v1_model import RoomBinding
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -39,7 +39,7 @@ class ShadowRoom(ClimateEntity):
         hub = dr.async_get(runtime.hass).async_get_device_by_identifier((DOMAIN, prefix), runtime.entry.entry_id)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{room.room_id}")},
-            name=f"OpenThermostat — {room.name}", manufacturer="intuibase",
+            name=f"OpenThermostat — {room.name}", manufacturer=MANUFACTURER,
             model="OpenThermostat room", **({"via_device_id": hub.id} if hub else {}))
 
     async def async_added_to_hass(self):

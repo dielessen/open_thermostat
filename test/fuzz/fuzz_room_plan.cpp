@@ -70,6 +70,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
         RoomPlan back;
         if (!again || RoomPlan::parse(again.get(), back)) otfuzz::invariant("printed room plan does not parse again");
         if (back.json() != text) otfuzz::invariant("room plan changed in a JSON round trip");
+        // The NVS form (packed week programs when large) loads back as the same plan.
+        const auto stored = plan.storedJson();
+        Json reloaded(cJSON_Parse(stored.c_str()), cJSON_Delete);
+        RoomPlan boot;
+        if (!reloaded || RoomPlan::parse(reloaded.get(), boot) || boot.json() != text)
+            otfuzz::invariant("stored room plan does not load back as the same plan");
+        if (stored.size() > text.size()) otfuzz::invariant("stored room plan larger than its API form");
         for (const auto& room : plan.rooms) {
             checkSchedule(room.schedule, room.minimumCentiC, room.maximumCentiC);
             if (room.sources.empty() || room.sources.size() > RoomDemand::maxSources) otfuzz::invariant("room sources out of range");

@@ -55,7 +55,7 @@ receipts. They are host-verification or cached test tooling, not shipped device
 crypto. Firmware actually retains mbedTLS archives. This does not assert that
 a separately installed HA platform never uses OpenSSL transitively.
 
-The HA subtree is a **package-source candidate**,52 hash-bound files, not a
+The HA subtree is a **package-source candidate**, 126 hash-bound files, not a
 newly produced/deployed HA release. Its manifest declares native lovelace/MQTT
 dependencies and no separate requirements. homeassistant/voluptuous are
 platform-provided, not vendored here. Pinned test HA2026.10.2 is not evidence of

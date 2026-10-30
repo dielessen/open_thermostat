@@ -46,5 +46,37 @@ inline HeatingPlanSave saveHeatingPlan(const std::string& raw) {
     nvs_close(handle);
     return committed && readHeatingPlan() == raw ? HeatingPlanSave::saved : HeatingPlanSave::failed;
 }
+// The owner's handover confirmation (control/HandoverConfirmation.h): one short
+// string beside the plan, written only when the confirmation changes.
+struct HandoverNvs {
+    static constexpr const char* key = "handover";
+    std::string read() const {
+        nvs_handle_t handle;
+        if (nvs_open("ot_heating", NVS_READONLY, &handle) != ESP_OK) return {};
+        char text[64] = {};
+        size_t size = sizeof(text);
+        const bool ok = nvs_get_str(handle, key, text, &size) == ESP_OK;
+        nvs_close(handle);
+        return ok ? std::string(text) : std::string();
+    }
+    bool write(std::string_view record) {
+        if (record.empty() || record.size() >= 64) return false;
+        nvs_handle_t handle;
+        if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
+        const bool committed = nvs_set_str(handle, key, std::string(record).c_str()) == ESP_OK && nvs_commit(handle) == ESP_OK;
+        nvs_close(handle);
+        return committed && read() == record;
+    }
+    bool erase() {
+        nvs_handle_t handle;
+        const auto opened = nvs_open("ot_heating", NVS_READWRITE, &handle);
+        if (opened == ESP_ERR_NVS_NOT_FOUND) return true;
+        if (opened != ESP_OK) return false;
+        const auto error = nvs_erase_key(handle, key);
+        const bool erased = (error == ESP_OK && nvs_commit(handle) == ESP_OK) || error == ESP_ERR_NVS_NOT_FOUND;
+        nvs_close(handle);
+        return erased;
+    }
+};
 }
 #endif

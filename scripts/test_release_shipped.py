@@ -1,6 +1,6 @@
 """Finite negative tests for actual-receipt audit semantics; no network/build."""
 from pathlib import Path
-import hashlib,json,struct,tempfile,unittest
+import gzip,hashlib,json,struct,tempfile,unittest
 import release_shipped as r
 from release_notices import NoticeError
 
@@ -95,7 +95,7 @@ class Shipped(unittest.TestCase):
             aggregate=hashlib.sha256(b"index.html\0"+bytes.fromhex(sha)).hexdigest()
             web=dict(assets={"index.html":sha},source="exactsource",version="alpha6-label-only",web_sha256=aggregate)
             marker=f"OT_E32V2_OTA_V1:{web['version']}:{web['source']}:{aggregate}:END".encode()
-            binary=p.read_bytes()+marker
+            binary=gzip.compress(p.read_bytes(),mtime=0)+marker
             r.verify_web(root,binary,web,"exactsource")
             for altered,source in ((marker,"exactsource"),(binary,"other-source"),(p.read_bytes(),"exactsource")):
                 with self.assertRaises(NoticeError):r.verify_web(root,altered,web,source)

@@ -6,7 +6,8 @@ namespace heating::diagnostics {
 // restarted it. Times are monotonic milliseconds; 0 means "never/not tracked".
 struct SupervisorPolicy {
     enum class Reason : uint8_t { none = 0, loopStall = 1, wifiLost = 2, brokerLost = 3, networkDead = 4,
-        updateStuck = 5, bluetoothApply = 6, bluetoothSilent = 7 }; // append only
+        updateStuck = 5, bluetoothApply = 6, bluetoothSilent = 7, settingsRestore = 8,
+        controlFault = 9 }; // append only
     static constexpr uint32_t loopStallMs = 300000;   // a firmware upload blocks the loop for minutes
     static constexpr uint32_t wifiLostMs = 900000;    // loop already calls WiFi.reconnect() every 10 s
     static constexpr uint32_t brokerLostMs = 900000;  // link "up" but the MQTT broker unreachable
@@ -30,6 +31,21 @@ struct SupervisorPolicy {
     // NimBLE host or its start failed. After maximumBackoff restarts in a row
     // (30 min .. 4 h) it gives up until a frame arrives or power is cycled.
     static constexpr uint32_t bluetoothSilentMs = 1800000;
+    // A controller fault latched while running (ShadowController::runtimeFaulted)
+    // clears only with a fresh boot's readback. One controlled restart, never
+    // before controlFaultUptimeMs, scheduled only when due (it must not hold up
+    // or relabel another controlled restart). If the previous boot ended with
+    // a control_fault restart, the fault came back: the controller stays
+    // latched as in beta.19 (shown as control_fault_held), unless this boot ran
+    // controlFaultHealthyMs without one. Any other restart, a power cycle or a
+    // firmware update ends the series (the reason byte lasts one boot).
+    static constexpr uint32_t controlFaultUptimeMs = 900000;
+    static constexpr uint32_t controlFaultHealthyMs = 86400000;
+    enum class ControlFaultAction : uint8_t { wait, restart, hold };
+    static ControlFaultAction controlFault(uint64_t uptimeMs, uint64_t faultAtMs, Reason previousRestart) {
+        if (previousRestart == Reason::controlFault && faultAtMs < controlFaultHealthyMs) return ControlFaultAction::hold;
+        return uptimeMs >= controlFaultUptimeMs ? ControlFaultAction::restart : ControlFaultAction::wait;
+    }
 
     struct Inputs {
         uint64_t now = 0, loopAt = 0;
@@ -45,13 +61,18 @@ struct SupervisorPolicy {
         uint8_t wifiLostRestarts = 0;   // consecutive wifiLost restarts before this boot
         uint8_t networkDeadRestarts = 0; // consecutive networkDead restarts before this boot
         bool bluetoothExpected = false; // bound sensors and automatic scanning
-        uint64_t bluetoothQuietSince = 0; // boot or the last advert of a bound sensor
+        uint64_t bluetoothQuietSince = 0; // boot or the last advert of any device (BLE host alive)
         uint8_t bluetoothRestarts = 0;  // consecutive bluetoothSilent restarts before this boot
         bool restartDeferred = false;   // a boiler trial/settings session: no optional restart
+        // The E32 owns the boiler (active heat, ActiveHeatGuard::claimsBoiler):
+        // it keeps heating without Wi-Fi, broker or Bluetooth, so only a real
+        // hang (loop stall, RTC watchdog) or a stuck update restarts it.
+        bool boilerOwned = false;
     };
     static Reason decide(const Inputs& in) {
         if (in.updateRunning) return elapsed(in.now, in.updateSince, updateMaxMs) ? Reason::updateStuck : Reason::none;
         if (elapsed(in.now, in.loopAt, loopStallMs)) return Reason::loopStall;
+        if (in.boilerOwned) return Reason::none;
         if (in.wifiExpected && in.wifiDownSince && elapsed(in.now, in.wifiDownSince, backoff(wifiLostMs, in.wifiLostRestarts)))
             return Reason::wifiLost;
         if (in.wifiExpected && !in.wifiDownSince && in.gatewayProbeArmed && in.gatewayProbeFailures >= networkDeadProbes
@@ -71,6 +92,8 @@ struct SupervisorPolicy {
             case Reason::updateStuck: return "update_stuck";
             case Reason::bluetoothApply: return "bluetooth_settings";
             case Reason::bluetoothSilent: return "bluetooth_silent";
+            case Reason::settingsRestore: return "settings_restore";
+            case Reason::controlFault: return "control_fault";
             default: return "none";
         }
     }

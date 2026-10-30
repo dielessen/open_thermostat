@@ -58,6 +58,71 @@ inline bool canonicalConfig(const cJSON *o) {
     }
     return true;
 }
+// A schema-2 "shadow_plan" record is only ever stored after
+// validateNativeControlPlan accepted it for a selected native plan SOURCE
+// (mqtt.native_shadow_source). Clearing that SOURCE (HA "Connect E32" sets it to
+// null) leaves the record in ot_control/config, where no remaining decoder may
+// read it. Without a selected native SOURCE such a record is a recognisable
+// leftover, NOT corrupt storage: the controller then starts unconfigured
+// (revision 0) instead of reporting storage_fault on every boot. Deliberately
+// narrow: a canonical object with exactly the native plan keys, schema 2, mode
+// shadow_plan, 64-hex digests, revision >= 1, structured mapping/groups/zones
+// and, when present, the week plan contract. Anything else still fails closed.
+inline bool staleNativePlanRecord(const cJSON *o) {
+    if(!cJSON_IsObject(o)||!canonicalConfig(o))return false;
+    const auto contract=field(o,"plan_contract");
+    const bool keys=contract
+        ?exactFields(o,{"groups","mapping","mapping_digest","mode","plan_contract","profile_digest","revision","schema","zones"})
+            &&cJSON_IsString(contract)&&std::strcmp(contract->valuestring,NativePlanInstallationSource::weekContract)==0
+        :exactFields(o,{"groups","mapping","mapping_digest","mode","profile_digest","revision","schema","zones"});
+    return keys&&integerField(o,"schema",2,2)&&stringField(o,"mode")=="shadow_plan"
+        &&integerField(o,"revision",1,UINT32_MAX)
+        &&hexString(stringField(o,"profile_digest"),64)&&hexString(stringField(o,"mapping_digest"),64)
+        &&cJSON_IsObject(field(o,"mapping"))&&cJSON_IsArray(field(o,"groups"))&&cJSON_IsArray(field(o,"zones"));
+}
+// Called at boot (ModernTransport) after the plain controller ignored such a
+// record. Erases the stored record only when it is such a native plan; a legacy
+// config or unrecognised bytes stay untouched (and keep failing closed on
+// load). true = no native plan record remains; false = read or erase failed,
+// in which case the next boot still ignores the leftover (see above).
+template<class Erase>
+bool clearStaleNativePlanRecord(ControlStore &store,Erase erase) {
+    std::string saved;
+    if(!store.load(saved)) return false;
+    if(saved.empty()) return true;
+    const auto root=parseControlJson(saved);
+    if(!root||!staleNativePlanRecord(root.get())) return true;
+    return erase();
+}
+// A schema-1 shadow config without zones: what a plain session stores before
+// any room exists. It carries no plan, only a revision number.
+inline bool emptyLegacyRecord(const cJSON *o) {
+    const auto zones=field(o,"zones");
+    return canonicalConfig(o)&&exactFields(o,{"mapping_digest","mode","revision","schema","zones"})
+        &&integerField(o,"schema",1,1)&&stringField(o,"mode")=="shadow"&&integerField(o,"revision",1,UINT32_MAX)
+        &&hexString(stringField(o,"mapping_digest"),64)&&cJSON_IsArray(zones)&&cJSON_GetArraySize(zones)==0;
+}
+// Called only after a settings save that selected native SOURCE `next` where
+// none was selected (null -> descriptor) committed. The mirror of a cleared
+// SOURCE: erase the stored record when it can never load under `next` and
+// holds nothing to read back, else every boot reports storage_fault. That is
+// an empty schema-1 config, or a native plan record of a profile other than
+// `next` or its reviewed predecessor. A non-empty schema-1 config stays: the
+// reviewed legacy readback, or its fail-closed review, owns those bytes.
+// true = nothing such remains; false = read or erase failed.
+template<class Erase>
+bool clearRecordUnreadableBySource(ControlStore &store,const NativePlanInstallationSource &next,Erase erase) {
+    std::string saved;
+    if(!store.load(saved)) return false;
+    if(saved.empty()) return true;
+    const auto root=parseControlJson(saved);
+    if(!root) return true;
+    const auto digest=stringField(root.get(),"profile_digest");
+    const bool foreignPlan=staleNativePlanRecord(root.get())&&digest!=next.profileDigest
+        &&!(next.predecessor&&digest==next.predecessor->profileDigest);
+    if(!foreignPlan&&!emptyLegacyRecord(root.get())) return true;
+    return erase();
+}
 
 
 // Single serialized controller owner, including feedback and local fault
@@ -72,7 +137,19 @@ public:
     // Existing NVS partition is20KiB, with GC + old/new atomic blob overhead.
     // Do not turn a JSON transport ceiling into a hidden persistence promise.
     static constexpr size_t maximumZones=8, maximumConfigBytes=4096;
-    static constexpr uint32_t grantMs=10000, leaseMs=15000;
+    // A save that failed without latching (refused, or provably nothing
+    // written) blocks further ha/config saves for saveBackoffMs: HA's retries
+    // are answered storage_fault without an NVS write. The third such failure
+    // in one boot latches, as every failure did until beta.19.
+    static constexpr uint64_t saveBackoffMs=5ULL*60*1000;
+    static constexpr uint32_t maximumFailedSaves=3;
+    // Session timing (TELEMETRIEBUDGET.nl.md, "Sessieprotocol"); HA's v1_wire holds the
+    // same values. Grants rotate every 10 s and last 30 s, HA heartbeats every 10 s and
+    // the lease lasts 30 s: three missed messages before anything expires. hello goes
+    // every 3 s while no session is open, else every 15 s; the zone state is evaluated every 3 s
+    // and published on a change, otherwise every 30 s.
+    static constexpr uint32_t grantMs=30000, leaseMs=30000, grantRotationMs=10000;
+    static constexpr uint32_t helloIdleMs=3000, helloSessionMs=15000, stateStepMs=3000, stateRefreshMs=30000;
     ShadowController(std::string controller,std::string boot,std::string owner,
                      ControlStore &store,Hash hash,Nonce nonce,Publish publish,Metrics metrics={},
                      const SeasonalControllerSource* seasonalSource=nullptr,
@@ -103,6 +180,7 @@ public:
             supervisor_=HydraulicSupervisor(hydraulicSource_->profile);
         }
         loadSavedConfiguration();
+        healthyAtStart_=!fault_; // every earlier return above leaves it false
     }
     // Only the already selected local native factory may call this after an
     // independently authenticated source-only settings commit. No remote config,
@@ -184,8 +262,8 @@ public:
             if(grantSequence_==UINT32_MAX || !newGrant(now)) { invalidate(); newChallenge(now); }
             else sessionStatus();
         }
-        if(now>=nextHello_) { hello(); nextHello_=now+3000; }
-        if(now>=nextState_) { state(now,utc,clockValid); nextState_=now+3000; }
+        if(now>=nextHello_) { hello(); nextHello_=now+(session_?helloSessionMs:helloIdleMs); }
+        if(now>=nextState_) { state(now,utc,clockValid); nextState_=now+stateStepMs; }
         metricsSnapshot(now);
         boilerFieldSnapshot(now);
     }
@@ -277,17 +355,38 @@ private:
             if(uintField(root.get(),"expected_revision")!=revision() || revision()==UINT32_MAX || candidate->revision!=revision()+1) {
                 result(resultTopic,e,"conflict"); return;
             }
+            if(now<saveBackoffUntil_) { result(resultTopic,e,"storage_fault"); return; } // no NVS write
             // Storage can have committed despite a timeout/error. Never continue
             // operating old memory after an ambiguous durable write/read-back.
             std::string readback;
-            if(!store_.save(candidateBytes)||!store_.load(readback)||readback!=candidateBytes
-                ||(nativePlanSource_&&fault_)) {
+            const bool saved=store_.save(candidateBytes);
+            if(!saved&&store_.lastSaveRefused()&&!(nativePlanSource_&&fault_)) {
+                // Refused before any write (storage budget), plain or native
+                // path: durable bytes and memory are unchanged, nothing is
+                // ambiguous. Reply without a latch (bounded, see below).
+                failedSaveWithoutLatch(resultTopic,e,now); return;
+            }
+            if(!saved&&!nativePlanSource_&&store_.load(readback)&&unchangedStore(readback)) {
+                // Plain controller only: one read settles a failed save. The old
+                // bytes mean nothing was written: reply without a latch. The
+                // candidate means it landed anyway: applied below. Anything
+                // else stays ambiguous and latches. A save that really failed
+                // on the native plan path latches as before (recovery there is
+                // an explicit fresh readback); only a refusal is spared.
+                // Accepted risk: NVS writes a new blob before it erases the old
+                // one; after a flash error inside nvs_set_blob both versions
+                // could exist and a later boot might read the other one. NVS
+                // resolves that at its next init, so this read and a boot read
+                // agree in practice; the bound below limits the exposure.
+                failedSaveWithoutLatch(resultTopic,e,now); return;
+            }
+            if((saved&&!store_.load(readback))||readback!=candidateBytes||(nativePlanSource_&&fault_)) {
                 result(resultTopic,e,"storage_fault"); fault_=true; invalidate(); return;
             }
-            config_=std::move(candidate);legacyQuarantine_=false; configBytes_=candidateBytes; digest_=stringField(root.get(),"config_digest");
+            config_=std::move(candidate);legacyQuarantine_=staleNativePlanIgnored_=false; configBytes_=candidateBytes; digest_=stringField(root.get(),"config_digest");
             result(resultTopic,e,"applied"); invalidate(); newChallenge(now); hello(); return;
         }
-        if(topic=="ha/snapshot_request") { result(resultTopic,e,"accepted"); snapshot(e.sequence); state(now,utc,clockValid); return; }
+        if(topic=="ha/snapshot_request") { result(resultTopic,e,"accepted"); snapshot(e.sequence); state(now,utc,clockValid,true); return; }
         auto &z=config_->zones[index];
         if(kind==StreamKind::observation) {
             if(z.comfortEnabled||z.contactsEnabled) {
@@ -318,12 +417,18 @@ private:
             z.overrideUntil=mode=="temporary" && now<=UINT64_MAX-uintField(root.get(),"duration_ms") ? now+uintField(root.get(),"duration_ms") : 0;
             z.overrideTarget=static_cast<int16_t>(uintField(root.get(),"temperature_centi_c"));
         }
-        result(resultTopic,e,"accepted"); state(now,utc,clockValid);
+        result(resultTopic,e,"accepted"); state(now,utc,clockValid,kind==StreamKind::user_command);
     }
 public:
     uint32_t revision() const { return config_->revision; }
     const std::string &digest() const { return digest_; }
     bool faulted() const { return fault_; }
+    // Diagnostic only: boot found a cleared native SOURCE's plan and ignored it.
+    bool staleNativePlanIgnored() const { return staleNativePlanIgnored_; }
+    // A fault latched while running (storage ambiguity, exception, hash
+    // failure, SOURCE lockout), not one found at construction: only a fresh
+    // boot's readback can clear it. The device glue restarts once for it.
+    bool runtimeFaulted() const { return fault_&&healthyAtStart_; }
     bool nativeSourceSelected() const {
         return nativePlanSource_&&!fault_&&!policySourceFault_&&!nativeReceiving_&&!safetyReading_;
     }
@@ -374,6 +479,18 @@ private:
             for(size_t i=0;i<nativePlanSource_->count;++i)seasonalSource_->zones[i]=nativePlanSource_->zones[i].policy;
             seasonalSafety_=std::move(safety);
     }
+    void failedSaveWithoutLatch(const char* resultTopic,const Envelope& e,uint64_t now) {
+        result(resultTopic,e,"storage_fault");
+        if(++failedSaves_>=maximumFailedSaves) {fault_=true;invalidate();return;}
+        saveBackoffUntil_=now+saveBackoffMs;
+    }
+    // The store still holds what this controller loaded or last applied.
+    bool unchangedStore(const std::string& bytes) const {
+        if(bytes==configBytes_)return true;
+        if(!staleNativePlanIgnored_)return false;
+        const auto root=parseControlJson(bytes);
+        return root&&staleNativePlanRecord(root.get());
+    }
     void loadSavedConfiguration() {
         std::string saved;
         if(!store_.load(saved)) { fault_=true; return; }
@@ -404,6 +521,15 @@ private:
             if(transitions>NativePlanInstallationSource::maximumTransitions) {fault_=true;return;}
             config_->revision=old->revision; // Metadata only. ZERO active zones.
             legacyQuarantine_=true;
+        } else if(!nativePlanSource_&&!seasonalSource_&&staleNativePlanRecord(root.get())) {
+            // Leftover of a cleared native SOURCE, not corruption. Same state as
+            // an empty store: revision 0, no zones, no digest, no fault. HA can
+            // open a session and write a fresh config with expected_revision 0;
+            // that save replaces these bytes. Nothing of the old plan is used.
+            // Only the plain product controller (no SOURCE selected at all);
+            // pinned seasonal/graph sources keep failing closed.
+            staleNativePlanIgnored_=true;
+            return;
         } else if(!decodeConfig(root.get(),*config_)) { fault_=true; return; }
         configBytes_=printJson(root.get());
         if(configBytes_.empty()) {fault_=true;return;} // failed serialization is not a successful readback.
@@ -623,6 +749,7 @@ private:
         for(auto &name:roomNamesHex_)name.fill(0);
         supervisor_.invalidate();
         admission_.invalidateTransport(); session_=mappingReady_=leaseWasAlive_=false;
+        nextHello_=lastNow_; statePublishedAt_=0; stateKey_=0; // a lost session is announced at once
         sessionId_.clear(); lastOpen_.clear(); pendingGrantNonce_.clear(); issuedGrantNonce_.clear();
         nextMetrics_=0;metricsSequence_=0;nextBoilerFields_=0;boilerSequence_=0;boilerGroup_=0;boilerFieldsV2_=false;catalogFieldsKnown_=catalogFieldsWithoutCount;
         for(size_t i=0;i<config_->count;++i) {
@@ -637,7 +764,7 @@ private:
         if(!SessionAdmission::validId(challenge_)) fault_=true;
     }
     bool newGrant(uint64_t now) {
-        grant_=nonce_(); ++grantSequence_; nextGrant_=now+5000;
+        grant_=nonce_(); ++grantSequence_; nextGrant_=now+grantRotationMs;
         // Issue strictly AFTER receipt of the accepted heartbeat. No immediate
         // extra rotation that could invalidate another in-flight command.
         issuedGrantNonce_=std::move(pendingGrantNonce_); pendingGrantNonce_.clear();
@@ -658,8 +785,16 @@ private:
             stringField(o,"adapter_id")!=owner_||!SessionAdmission::validId(stringField(o,"client_nonce"))||
             !cJSON_IsString(field(o,"known_digest"))) return;
         const auto request=printJson(o);
-        if(session_) { if(request==lastOpen_) sessionStatus(); return; }
-        if(stringField(o,"challenge_id")!=challenge_||now>=challengeUntil_) return;
+        if(session_&&request==lastOpen_) { sessionStatus(); return; }
+        if(stringField(o,"challenge_id")!=challenge_||now>=challengeUntil_) {
+            // A stale challenge (a restarted HA, a retained hello): answer with the
+            // current one, at most once a second, so HA never waits for the slow hello.
+            if(now>=nextHelloReply_) { hello(); nextHelloReply_=now+1000; }
+            return;
+        }
+        // A fresh open with the CURRENT challenge replaces a session HA no longer
+        // holds (an HA restart): no waiting for the old lease to expire.
+        if(session_) invalidate();
         sessionId_=nonce_();
         SessionIdentity identity{controller_,boot_,owner_,sessionId_,epoch_,revision()};
         // New legitimate same-connection sessions get a fresh local primitive.
@@ -851,7 +986,20 @@ private:
         }
         send("fw/config_snapshot",o.get());
     }
-    void state(uint64_t now,int64_t utc,bool clockValid) {
+    // Published on a change (ages that only grow are no change), when forced, else every stateRefreshMs.
+    void publishState(const cJSON* o,uint64_t now,bool force) {
+        const auto bytes=printJson(o);
+        if(bytes.empty()||bytes.size()>8192) return;
+        ControlJson key(cJSON_Duplicate(o,true),cJSON_Delete);
+        for(cJSON* row=key?field(key.get(),"zones")->child:nullptr;row;row=row->next)
+            for(const char* volatileKey:{"sample_age_ms","override_remaining_ms"})cJSON_DeleteItemFromObjectCaseSensitive(row,volatileKey);
+        uint32_t hash=2166136261u;
+        for(const char c:printJson(key.get()))hash=(hash^uint8_t(c))*16777619u;
+        if(!force&&statePublishedAt_&&hash==stateKey_&&now>=statePublishedAt_&&now-statePublishedAt_<stateRefreshMs) return;
+        stateKey_=hash; statePublishedAt_=now?now:1;
+        publish_("fw/state/zones",bytes);
+    }
+    void state(uint64_t now,int64_t utc,bool clockValid,bool force=false) {
         auto o=base(); sourcePolicy(o.get()); cJSON_AddStringToObject(o.get(),"mode","shadow");
         cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false); cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
         // Same owner's bounded last admission, not a command receipt/authority
@@ -1011,7 +1159,7 @@ private:
             if(hydraulic.waterTarget)cJSON_AddNumberToObject(status,"water_target_centi_c",*hydraulic.waterTarget);
             else cJSON_AddNullToObject(status,"water_target_centi_c");
         }
-        send("fw/state/zones",o.get());
+        publishState(o.get(),now,force);
     }
     std::string controller_,boot_,owner_,digest_,configBytes_,challenge_,grant_,sessionId_,clientNonce_,lastOpen_;
     std::string pendingGrantNonce_,issuedGrantNonce_;
@@ -1028,7 +1176,8 @@ private:
     bool hydraulicReading_=false,hydraulicSourceFault_=false,hydraulicStarted_=false;
     std::unique_ptr<SeasonalControllerSource> seasonalSource_;
     std::unique_ptr<NativePlanInstallationSource> nativePlanSource_;
-    bool nativeReceiving_=false,legacyQuarantine_=false;
+    bool nativeReceiving_=false,legacyQuarantine_=false,staleNativePlanIgnored_=false,healthyAtStart_=false;
+    uint32_t failedSaves_=0; uint64_t saveBackoffUntil_=0; // per boot, see saveBackoffMs
     SeasonalControllerSource::Safety seasonalSafety_;
     uint32_t policyGeneration_=0;
     bool safetyReading_=false,policySourceFault_=false;
@@ -1049,7 +1198,9 @@ private:
     size_t boilerGroup_=0;
     bool boilerFieldsV2_=false; // HA announced boiler.fields.v2 in this session
     size_t catalogFieldsKnown_=catalogFieldsWithoutCount;
-    uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0;
+    uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0,statePublishedAt_=0;
+    uint32_t stateKey_=0;
+    uint64_t nextHelloReply_=0;
     bool session_=false,mappingReady_=false,connected_=false,fault_=false,leaseWasAlive_=false;
 };
 }

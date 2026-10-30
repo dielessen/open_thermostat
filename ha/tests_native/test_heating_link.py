@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from custom_components.open_thermostat.heating_link import decode_status, input_payload
+from e32_telemetry import FakeE32, split_status
 
 STATUS = {"schema": 1, "mode": "shadow", "request": {"heat": True, "flow_c": 36, "reason": "heating"},
           "ha_entities": ["climate.woonkamer"],
@@ -97,15 +98,17 @@ async def test_forwards_exactly_the_plan_entities(hass, monkeypatch):
     hass.states.async_set("climate.woonkamer", "heat", {"current_temperature": 20.4, "temperature": 21})
     await module.async_setup_heating_link(hass, entry, added.extend)
     sensor = added[0]
-    callbacks["fixture/v1/fw/telemetry/heating"](SimpleNamespace(payload=json.dumps(STATUS), retain=False))
+    e32 = FakeE32(callbacks)
+    e32.status(STATUS)
     await hass.async_block_till_done()
     assert tracked == [["climate.woonkamer"]]
     assert published == [("fixture/v1/ha/heating_input", {"entity": "climate.woonkamer", "temperature": 20.4, "target": 21.0}, False)]
     assert sensor.native_value == 36 and sensor.available
-    # A retained or invalid status changes nothing; an unchanged plan is not re-tracked.
-    callbacks["fixture/v1/fw/telemetry/heating"](SimpleNamespace(payload=json.dumps(STATUS), retain=True))
-    callbacks["fixture/v1/fw/telemetry/heating"](SimpleNamespace(payload=json.dumps(STATUS), retain=False))
-    assert tracked == [["climate.woonkamer"]]
+    # The same plan again (retained at an HA start, or live) is not re-tracked; an invalid entity list changes nothing.
+    e32.status(STATUS, retain=True)
+    e32.status(STATUS)
+    e32.message("fw/config/entities", json.dumps({"schema": 1, "revision": 0, "part": 0, "parts": 1, "entities": ["no_domain"]}))
+    assert tracked == [["climate.woonkamer"]] and sensor.available
 
 
 @pytest.mark.asyncio
@@ -132,7 +135,7 @@ async def test_a_fahrenheit_home_assistant_forwards_celsius(hass, monkeypatch):
     entry = SimpleNamespace(entry_id="e", data={"topic_prefix": "fixture"}, async_on_unload=lambda _: None)
     hass.states.async_set("climate.woonkamer", "heat", {"current_temperature": 68, "temperature": 70.7})
     await module.async_setup_heating_link(hass, entry, lambda *_a, **_k: None)
-    callbacks["fixture/v1/fw/telemetry/heating"](SimpleNamespace(payload=json.dumps(STATUS), retain=False))
+    FakeE32(callbacks).status(STATUS)
     await hass.async_block_till_done()
     assert {"entity": "climate.woonkamer", "temperature": 20.0, "target": 21.5} in published
 
@@ -168,8 +171,7 @@ async def _setup(hass, monkeypatch, entry_data=None):
                             async_on_unload=unload.append)
     await module.async_setup_heating_link(hass, entry, added.extend)
     hub = hass.data[DOMAIN]["e"]["heating_hub"]
-    return entry, hub, added, lambda status: callbacks["fixture/v1/fw/telemetry/heating"](
-        SimpleNamespace(payload=json.dumps(status), retain=False))
+    return entry, hub, added, FakeE32(callbacks).status
 
 
 @pytest.mark.asyncio
@@ -204,7 +206,7 @@ async def test_rooms_and_bluetooth_sensors_become_entities_for_the_ids_seen(hass
     for key in ("temperature", "setpoint", "status"):
         assert devices[f"fixture_e32_room_woonkamer_{key}"] == {
             "identifiers": {("open_thermostat", "fixture_e32_room_woonkamer")}, "name": "Woonkamer",
-            "manufacturer": "intuibase"}
+            "manufacturer": "OpenThermostat"}
     assert devices["fixture_e32_ble_a4c138a3e8db_battery"]["identifiers"] == {
         ("open_thermostat", "fixture_e32_ble_a4c138a3e8db")}
     assert devices["fixture_e32_ble_a4c138a3e8db_battery"]["name"] == "Woonkamer BLE"
@@ -522,6 +524,84 @@ async def test_existing_room_entities_keep_their_entity_ids_and_move_to_a_room_d
     finally:
         await platform.async_reset()
 
+@pytest.mark.asyncio
+async def test_a_room_removed_and_added_again_gets_its_entities_back_without_a_reload(hass, monkeypatch):
+    """track_entities forgets the keys of removed entities (no restart or reload needed)."""
+    import logging
+    from datetime import timedelta
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
+    from homeassistant.helpers.entity_platform import EntityPlatform
+    from custom_components.open_thermostat import heating_link as module
+    from custom_components.open_thermostat.native_entity_cleanup import remove_room_devices
+    from test_v1_native import entry as make_entry
+    config_entry = make_entry(hass)
+    devices, entities = dr.async_get(hass), er.async_get(hass)
+    devices.async_get_or_create(config_entry_id=config_entry.entry_id, identifiers={("open_thermostat", "fixture")})
+    _, hub, _, send = await _setup(hass, monkeypatch)
+    hass.data["open_thermostat"][config_entry.entry_id] = {"heating_hub": hub}
+    platform = EntityPlatform(hass=hass, logger=logging.getLogger(__name__), domain="binary_sensor",
+                              platform_name="open_thermostat", platform=None,
+                              scan_interval=timedelta(seconds=30), entity_namespace=None)
+    platform.config_entry = config_entry
+    created = []
+
+    def add(new, **_):
+        created.extend(new)
+        hass.async_create_task(platform.async_add_entities(new))
+    uid = "fixture_e32_room_woonkamer_demand"
+
+    def entity_id():
+        return entities.async_get_entity_id("binary_sensor", "open_thermostat", uid)
+    without = {**FULL, "rooms": []}
+    trackers = len(hub._trackers)
+    stop = module.track_entities(hub, add, {}, module.wanted_demand)
+    assert len(hub._trackers) == trackers + 1
+    try:
+        send(FULL)
+        await hass.async_block_till_done()
+        assert entity_id() is not None and len(created) == 1
+        first = entity_id()
+        # The room leaves the plan: its device and entities go; the E32 status still lists it for a while.
+        assert remove_room_devices(hass, config_entry, "fixture", ["woonkamer"]) == ["woonkamer"]
+        await hass.async_block_till_done()
+        assert entity_id() is None and hass.states.get(first) is None
+        send(FULL)
+        await hass.async_block_till_done()
+        assert entity_id() is None and len(created) == 1  # not re-created from the trailing status
+        # The status drops it, then the same room comes back: a new entity, same unique ID and entity ID.
+        send(without)
+        send(FULL)
+        await hass.async_block_till_done()
+        assert entity_id() == first and len(created) == 2 and hass.states.get(first) is not None
+        assert devices.async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_woonkamer"),
+                                                      config_entry.entry_id) is not None
+        send(FULL)
+        await hass.async_block_till_done()
+        assert len(created) == 2  # still once per key
+        # Removed and back in the plan before the status ever dropped it: the plan read adds it again.
+        remove_room_devices(hass, config_entry, "fixture", ["woonkamer"])
+        await hass.async_block_till_done()
+        send(FULL)
+        await hass.async_block_till_done()
+        assert entity_id() is None
+        hub.forget_removed_rooms({"other_room"})
+        assert len(created) == 2
+        hub.forget_removed_rooms({"woonkamer"})
+        await hass.async_block_till_done()
+        assert entity_id() == first and len(created) == 3
+        # A device the user deleted while the E32 no longer reports the room returns with the room.
+        send(without)
+        remove_room_devices(hass, config_entry, "fixture", ["woonkamer"])
+        await hass.async_block_till_done()
+        send(FULL)
+        await hass.async_block_till_done()
+        assert entity_id() == first and len(created) == 4
+    finally:
+        stop()
+        await platform.async_reset()
+    assert len(hub._trackers) == trackers  # unloading the entry stops its tracker
+
+
 
 SWITCH_UTC = int(datetime(2026, 10, 30, 5, 30, tzinfo=timezone.utc).timestamp())
 
@@ -653,8 +733,8 @@ async def test_learned_advice_becomes_room_entities_once_the_e32_reports_it(hass
     assert learning.native_value is None and advice.native_value is None
     assert advice.extra_state_attributes["warmup_h"] is None and advice.extra_state_attributes["rule"] is None
 
-    # Another schema, a status without it, or stale telemetry: unavailable.
-    send({**FULL, "learned": {**LEARNED, "schema": 2}})
+    # A learned room the E32 cleared, or stale telemetry: unavailable.
+    send.__self__.learned("woonkamer", "")
     assert not learning.available and not advice.available
     send({**FULL, "learned": {**LEARNED, "plans": PLANS}})
     assert learning.available and advice.available and start.available
@@ -767,24 +847,14 @@ async def _setup_topics(hass, monkeypatch):
     hub = hass.data[DOMAIN]["e"]["heating_hub"]
     now = [1000.0]
     hub.clock = lambda: now[0]
-
-    def status(value):
-        callbacks["fixture/v1/fw/telemetry/heating"](SimpleNamespace(payload=json.dumps(value), retain=False))
-
-    def learned(room_id, value, retain=False):
-        callbacks["fixture/v1/fw/telemetry/heating_learned/+"](SimpleNamespace(
-            topic=f"fixture/v1/fw/telemetry/heating_learned/{room_id}", payload=json.dumps(value), retain=retain))
-
-    def summary(value, retain=False):
-        callbacks["fixture/v1/fw/telemetry/heating_summary"](SimpleNamespace(
-            topic="fixture/v1/fw/telemetry/heating_summary",
-            payload=value if type(value) is str else json.dumps(value), retain=retain))
-    hub.send_summary = summary
-    return hub, added, now, status, learned
+    e32 = FakeE32(callbacks)
+    hub.send_summary = e32.summary
+    hub.e32 = e32
+    return hub, added, now, e32.status, e32.learned
 
 
 @pytest.mark.asyncio
-async def test_learned_rooms_arrive_per_room_and_expire_on_their_own(hass, monkeypatch):
+async def test_learned_rooms_arrive_per_room_and_stay_while_the_e32_is_alive(hass, monkeypatch):
     hub, added, now, status, learned = await _setup_topics(hass, monkeypatch)
     # The newer status keeps only the learned header (and no room details the plan holds).
     header = {"schema": 1, "applied": False, "status": "learning", "heating_periods": 5}
@@ -796,8 +866,8 @@ async def test_learned_rooms_arrive_per_room_and_expire_on_their_own(hass, monke
                "learned": {**{k: woonkamer[k] for k in ("id", "emitter", "readiness", "segments", "periods",
                                                        "loss_per_h", "capacity_kwh_per_k", "now")},
                            "advice": [woonkamer["advice"][2]]}}
-    learned("woonkamer", message, retain=True)  # retained: ignored
-    assert hub.learned == {}
+    learned("woonkamer", message, retain=True)  # retained: the last value at an HA start
+    assert set(hub.learned) == {"woonkamer"}
     learned("woonkamer", message)
     assert _learned_ids(added) == ["fixture_e32_room_woonkamer_flow_advice", "fixture_e32_room_woonkamer_heating_start",
                                    "fixture_e32_room_woonkamer_learning"]
@@ -813,17 +883,22 @@ async def test_learned_rooms_arrive_per_room_and_expire_on_their_own(hass, monke
     # A message for another room or with a wrong id changes nothing.
     learned("zolder", {**message, "id": "woonkamer"})
     assert set(hub.learned) == {"woonkamer"}
-    # The main status every 15 s keeps the learned room; its own message expires after 180 s.
-    now[0] += 170
-    status({**FULL, "rooms": [room], "learned": header})
+    # Sent every 15 minutes: the learned room stays while the E32's heartbeat is current.
+    for _ in range(20):
+        now[0] += 60
+        hub.e32.heartbeat()
+        hub.check_stale()
+    assert advice.available and learning.available
+    # Three missed heartbeats: unavailable; the retained value is back with the next heartbeat.
+    now[0] += 3 * 60 + 16
+    hub.check_stale()
+    assert not advice.available and not learning.available
+    hub.e32.heartbeat()
     hub.check_stale()
     assert advice.available
-    now[0] += 20
-    hub.check_stale()
+    # The E32 clears the topic when it has no learned room any more.
+    learned("woonkamer", "")
     assert hub.learned == {} and not advice.available and not learning.available
-    # Older firmware (learned rooms inside the status) still works.
-    status({**FULL, "rooms": [room], "learned": LEARNED})
-    assert advice.available and advice.native_value == 34
 
 
 @pytest.mark.asyncio
@@ -893,8 +968,8 @@ async def test_the_heating_summary_feeds_the_learned_header_and_hot_water(hass, 
     learning = next(e for e in added if e.unique_id == "fixture_e32_room_woonkamer_learning")
     assert learning.available and learning.extra_state_attributes["heating_periods"] is None  # no header yet
     assert not any("_hub_dhw_" in e.unique_id for e in added)
-    summary(SUMMARY, retain=True)  # retained: ignored
-    assert hub.summary is None
+    summary(SUMMARY, retain=True)  # retained: the last value at an HA start
+    assert hub.summary == SUMMARY
     summary(SUMMARY)
     attributes = learning.extra_state_attributes
     assert (attributes["heating_periods"], attributes["learner"], attributes["applied"]) == (37, "learning", False)
@@ -904,11 +979,6 @@ async def test_the_heating_summary_feeds_the_learned_header_and_hot_water(hass, 
     assert (taps.native_value, warm.native_value, burner.native_value) == (6, 2, 12.5)
     assert taps.extra_state_attributes == {"method": "flow", "clock_known": True, "minutes": 9.0, "last_7_days": None,
                                            "peak_flow_l_min": 7.5, "unknown_count": 1}
-    # The summary wins over an older status that still carries both.
-    status({**LEAN, "learned": {**SUMMARY["learned"], "heating_periods": 5}, "dhw": DHW})
-    assert learning.extra_state_attributes["heating_periods"] == 37
-    assert taps.extra_state_attributes["last_7_days"] is None
-    status(LEAN)
     # An invalid or oversized summary drops the previous one: header and hot water unknown.
     for bad in ({**SUMMARY, "schema": 2}, json.dumps({**SUMMARY, "pad": "x" * module.MAX_SUMMARY_BYTES}), "nope"):
         summary(SUMMARY)
@@ -919,20 +989,14 @@ async def test_the_heating_summary_feeds_the_learned_header_and_hot_water(hass, 
     # A learned header of another schema is not used; the hot water still is.
     summary({**SUMMARY, "learned": {**SUMMARY["learned"], "schema": 2}})
     assert hub.learned_header is None and taps.available
-    # Stale on its own clock (60 s), while the main status stays fresh.
+    # Sent every 5 minutes: it stays while the E32 is alive.
     summary(SUMMARY)
-    now[0] += 45
-    status(LEAN)
-    hub.check_stale()
+    for _ in range(10):
+        now[0] += 60
+        hub.e32.heartbeat()
+        hub.check_stale()
     assert taps.available and learning.extra_state_attributes["heating_periods"] == 37
-    now[0] += module.SUMMARY_STALE_SECONDS - 44
-    status(LEAN)
-    hub.check_stale()
-    assert hub.fresh and hub.summary is None and not any(e.available for e in by_key.values())
-    assert learning.available and learning.extra_state_attributes["heating_periods"] is None
-    # Back again; a stale main status makes the summary entities unavailable too.
-    summary(SUMMARY)
-    assert taps.available
+    # A stale E32 makes the summary entities unavailable too.
     now[0] += module.STALE_SECONDS + 1
     hub.check_stale()
     assert not hub.fresh and not taps.available
@@ -963,3 +1027,18 @@ async def test_lean_rooms_without_plan_fields_keep_the_plan_entities(hass, monke
         assert RoomStateSelect(hub, hub.rooms["woonkamer"]).current_option == "inactive"
     finally:
         hub.plan = None
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_readings_show_sensible_decimals_and_keep_their_value(hass, monkeypatch):
+    """"57 %" instead of "56,96 %"; the state (recorded value) and the entity IDs stay as they are."""
+    entry, hub, added, send = await _setup(hass, monkeypatch)
+    status = json.loads(json.dumps(FULL))
+    status["ble_sensors"][0].update(humidity=56.96, battery=87.4, temperature=20.437)
+    send(status)
+    by_id = {e.unique_id: e for e in added}
+    precision = {metric: by_id[f"fixture_e32_ble_a4c138a3e8db_{metric}"].suggested_display_precision
+                 for metric in ("temperature", "humidity", "battery")}
+    assert precision == {"temperature": 1, "humidity": 0, "battery": 0}
+    assert by_id["fixture_e32_ble_a4c138a3e8db_humidity"].native_value == 56.96
+    assert by_id["fixture_e32_ble_a4c138a3e8db_battery"].native_value == 87.4

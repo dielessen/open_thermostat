@@ -8,8 +8,10 @@ namespace heating::control {
 // largest shortfall (PI) and minimum burner on/off times, between the plan's
 // minimum and maximum flow (each home sets its own; 80 degC is the absolute
 // ceiling). A floor circuit is protected by the plan's maximum or by its own
-// mixing valve; the boiler's own heating limit caps the request further
-// (ActiveHeatGuard).
+// mixing valve; the boiler's own heating limit (0x16, when known) caps the
+// request further, also in shadow mode: the calculated request never exceeds
+// what the boiler accepts (`capped`). Unknown: the plan's ceiling; the active
+// guard then refuses heat itself.
 // Pure: the caller transmits (or, in shadow mode, only reports) the result.
 class FlowDemand {
 public:
@@ -24,10 +26,13 @@ public:
         }
     };
     enum class Reason : uint8_t { idle, heating, holdOn, holdOff, satisfied, noDemand, invalid };
-    struct Request { bool heat = false; uint8_t flowC = 0; Reason reason = Reason::idle; };
+    // capped: the boiler's own limit, not the plan, lowered this flow.
+    struct Request { bool heat = false; uint8_t flowC = 0; Reason reason = Reason::idle; bool capped = false; };
 
     FlowDemand() = default;
     explicit FlowDemand(Params params) : p_(params) {}
+    // The boiler's reported heating limit (ActiveHeatEnvelope::limitC); nullopt: unknown.
+    void setBoilerLimit(std::optional<uint8_t> limitC) { limitC_ = limitC; }
 
     // demand: some room's regulator wants heat. error: largest (setpoint -
     // temperature) over usable rooms; nullopt when no room can ask for heat
@@ -42,14 +47,14 @@ public:
             if (changedAt_ && now - changedAt_ < p_.minimumOffMs) return {false, 0, Reason::holdOff};
             heating_ = true; changedAt_ = now; integralCentiCs_ = 0;
         } else if (!demand) {
-            if (now - changedAt_ < p_.minimumOnMs) return {true, flow(*error), Reason::holdOn};
+            if (now - changedAt_ < p_.minimumOnMs) return heat(*error, Reason::holdOn);
             return stop(now, Reason::satisfied);
         } else {
             // Anti-windup: integrate only while the request is inside its limits.
             const int64_t next = integralCentiCs_ + int64_t(*error) * int64_t(dt / 1000);
-            if (flowFor(*error, next) < p_.maximumFlowC || next < integralCentiCs_) integralCentiCs_ = std::max<int64_t>(0, next);
+            if (flowFor(*error, next) < ceiling() || next < integralCentiCs_) integralCentiCs_ = std::max<int64_t>(0, next);
         }
-        return {true, flow(*error), Reason::heating};
+        return heat(*error, Reason::heating);
     }
     bool heating() const { return heating_; }
     static const char* name(Reason r) {
@@ -69,7 +74,12 @@ private:
         integralCentiCs_ = 0; lastNow_ = now; haveTime_ = true;
         return {false, 0, reason};
     }
-    uint8_t flow(int16_t error) const { return flowFor(error, integralCentiCs_); }
+    uint8_t ceiling() const { return limitC_ ? std::min(p_.maximumFlowC, *limitC_) : p_.maximumFlowC; }
+    // Below the plan's minimum only when the boiler's limit is lower still.
+    Request heat(int16_t error, Reason reason) const {
+        const uint8_t planned = flowFor(error, integralCentiCs_), cap = ceiling();
+        return {true, std::min(planned, cap), reason, planned > cap};
+    }
     uint8_t flowFor(int16_t error, int64_t integral) const {
         const int64_t proportional = int64_t(std::max<int16_t>(error, 0)) * p_.flowPerDegreeC / 100;
         const int64_t integralPart = integral * p_.flowPerDegreeC / (100 * int64_t(p_.integralSeconds));
@@ -77,6 +87,7 @@ private:
                                                         p_.minimumFlowC, p_.maximumFlowC));
     }
     Params p_;
+    std::optional<uint8_t> limitC_;
     bool heating_ = false, haveTime_ = false;
     uint64_t changedAt_ = 0, lastNow_ = 0;
     int64_t integralCentiCs_ = 0;

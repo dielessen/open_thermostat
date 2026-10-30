@@ -21,7 +21,7 @@
 		"username": "",
 		"password": "",
 		"clientId": "",
-		"base": "ib-therm",
+		"base": "openthermostat",
 		"keepAlive": 60,
 		"interval": 30
 	},

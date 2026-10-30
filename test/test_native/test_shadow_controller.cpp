@@ -1,6 +1,7 @@
 #include "ShadowControllerFixture.h"
+#include "control/NativeSourceProvisioning.h"
 namespace {
-TEST(ModernMetrics, OptionalProviderNoReadBeforeSessionAndOneBoundedSnapshotAtThirtySeconds) {
+TEST(ModernMetrics, OptionalProviderNoReadBeforeSessionAndOneBoundedSnapshotPerInterval) {
     Fixture f;unsigned reads=0;f.metricsProvider=[&](auto& stream){++reads;stream<<metricFixture();};
     f.start();EXPECT_EQ(reads,0u);
     auto hello=f.get("fw/hello");ASSERT_TRUE(cJSON_IsArray(field(hello.get(),"read_only_capabilities")));
@@ -13,7 +14,8 @@ TEST(ModernMetrics, OptionalProviderNoReadBeforeSessionAndOneBoundedSnapshotAtTh
     EXPECT_FALSE(cJSON_IsTrue(field(p.get(),"actuator_output_enabled")));
     EXPECT_TRUE(validMetricsSnapshot(field(p.get(),"metrics")));
     EXPECT_LE(f.output.at("fw/telemetry/ems_metrics").size(),maximumMetricsEnvelopeBytes);
-    for(unsigned i=1;i<=30;++i) {f.now+=1000;f.tick();f.syncSession();f.heartbeat(i+1);}
+    // Every metricsIntervalMs (5 minutes, the telemetry budget).
+    for(unsigned i=1;i<=metricsIntervalMs/1000;++i) {f.now+=1000;f.tick();f.syncSession();f.heartbeat(i+1);}
     EXPECT_EQ(reads,2u);p=f.get("fw/telemetry/ems_metrics");EXPECT_EQ(uintField(p.get(),"sequence"),2u);
     EXPECT_EQ(f.store.writes,1u);auto state=f.state();EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(state),"demand")));
 }
@@ -82,7 +84,7 @@ TEST(ShadowRuntime, DuplicateChangedPayloadAndOldSequenceNeverReapplyOverride) {
 TEST(ShadowRuntime, ExpiredGrantDiagnosticNeverAppliesOrRetriesTheCommand) {
     Fixture f;f.ready();auto command=f.command("temporary",1,2300);
     const auto saved=f.store.bytes;const auto writes=f.store.writes;
-    f.now+=5000;f.tick(); // Rotate real firmware grant, keep old in-flight packet.
+    f.now+=ShadowController::grantRotationMs;f.tick(); // Rotate real firmware grant, keep old in-flight packet.
     f.send("ha/user_command",command.get());
     auto result=f.get("fw/user_command_result");
     EXPECT_EQ(stringField(result.get(),"status"),"rejected");
@@ -120,13 +122,70 @@ TEST(ShadowRuntime, ChangedDuplicateDiagnosticDoesNotReapplyAndNewOwnerClearsIt)
     EXPECT_EQ(field(state.get(),"last_user_command_admission"),nullptr);
     EXPECT_EQ(uintField(Fixture::row(state),"target_centi_c"),2100u);
 }
-TEST(ShadowRuntime, AtomicCommitFailuresIncludingCommittedButLostAckForceRecovery) {
+// beta.20: on the plain controller one read settles a failed save. The old
+// bytes mean nothing landed (storage_fault reply, no latch: the hello stays
+// healthy and a later config may apply); the candidate means it landed despite
+// the error (applied). Until beta.19 both latched until a manual reboot.
+TEST(ShadowRuntime, FailedSaveIsSettledByOneReadAndOnlyAmbiguityLatches) {
     for(bool committed:{false,true}) {
         Fixture f; f.start(); f.connect(); f.heartbeat(); f.store.failSave=true; f.store.commitOnError=committed;
-        f.configure(); EXPECT_TRUE(f.core->faulted()); EXPECT_EQ(f.core->revision(),0u);
-        auto ack=f.get("fw/config_result"); EXPECT_EQ(stringField(ack.get(),"status"),"storage_fault");
-        f.store.failSave=false; f.boot="boot2"; f.start();
-        EXPECT_FALSE(f.core->faulted()); EXPECT_EQ(f.core->revision(),committed?1u:0u);
+        f.configure(); EXPECT_FALSE(f.core->faulted()); EXPECT_FALSE(f.core->runtimeFaulted());
+        EXPECT_EQ(f.core->revision(),committed?1u:0u);
+        auto ack=f.get("fw/config_result"); EXPECT_EQ(stringField(ack.get(),"status"),committed?"applied":"storage_fault");
+        EXPECT_TRUE(cJSON_IsFalse(field(f.get("fw/hello").get(),"storage_fault")));
+        f.store.failSave=false;
+        if(!committed) {
+            // An immediate retry is answered without touching the store ...
+            const auto writes=f.store.writes;
+            auto again=f.configuration(config(),2);f.send("ha/config",again.get());
+            EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");EXPECT_EQ(f.store.writes,writes);
+            // ... and after the backoff a new session's config applies.
+            f.now+=ShadowController::saveBackoffMs;f.connect();f.heartbeat();f.configure();
+            EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"applied");EXPECT_EQ(f.core->revision(),1u);
+        }
+        f.boot="boot2"; f.start();
+        EXPECT_FALSE(f.core->faulted()); EXPECT_EQ(f.core->revision(),1u);
+    }
+    // Neither old nor candidate bytes, or no settling read: ambiguous, latched.
+    for(bool readFails:{false,true}) {
+        Fixture f; f.start(); f.connect(); f.heartbeat(); f.store.failSave=true;
+        if(readFails)f.store.failLoad=true; else {f.store.commitOnError=true;f.store.corruptReadback=true;}
+        f.configure(); EXPECT_TRUE(f.core->faulted()); EXPECT_TRUE(f.core->runtimeFaulted()); EXPECT_EQ(f.core->revision(),0u);
+        EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");
+        f.now+=ShadowController::helloIdleMs;f.tick();
+        EXPECT_TRUE(cJSON_IsTrue(field(f.get("fw/hello").get(),"storage_fault")));
+    }
+}
+TEST(ShadowRuntime, RefusedSaveRepliesStorageFaultWithoutLatchWriteOrRead) {
+    Fixture f; f.start(); f.connect(); f.heartbeat(); f.store.refuseSave=true;
+    const auto reads=f.store.reads;
+    f.configure();
+    EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");
+    EXPECT_FALSE(f.core->faulted()); EXPECT_FALSE(f.core->runtimeFaulted()); EXPECT_EQ(f.core->revision(),0u);
+    EXPECT_EQ(f.store.writes,0u); EXPECT_EQ(f.store.reads,reads);
+    EXPECT_TRUE(cJSON_IsFalse(field(f.get("fw/hello").get(),"storage_fault")));
+    f.store.refuseSave=false; f.now+=ShadowController::saveBackoffMs; f.connect(); f.heartbeat(); f.configure();
+    EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"applied"); EXPECT_EQ(f.core->revision(),1u);
+}
+// Review probe PersistentFailingSaveNeverLatchesAndKeepsWriting: HA reopens
+// and re-proposes within 15-30 s after every storage_fault. A store that keeps
+// failing gets at most maximumFailedSaves write attempts per boot, one per
+// saveBackoffMs; then the controller latches as beta.19 did after one.
+TEST(ShadowRuntime, PersistentFailingSaveIsBoundedThenLatches) {
+    for(bool refused:{false,true}) {
+        Fixture f; f.start(); f.connect(); f.heartbeat();
+        if(refused)f.store.refuseSave=true; else f.store.failSave=true;
+        for(unsigned i=0;i<40&&!f.core->faulted();++i) {
+            f.now+=20000; f.connect(); f.heartbeat(); f.configure();
+            EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");
+        }
+        // 40 retries, 20 s apart: three store attempts (0, 5, 10 min), then latched.
+        EXPECT_TRUE(f.core->faulted()); EXPECT_TRUE(f.core->runtimeFaulted());
+        EXPECT_EQ(f.store.saves,ShadowController::maximumFailedSaves);
+        EXPECT_EQ(f.store.writes,refused?0u:ShadowController::maximumFailedSaves);
+        // Latched: nothing more reaches the store.
+        f.now+=ShadowController::saveBackoffMs; f.connect(); f.configure();
+        EXPECT_EQ(f.store.saves,ShadowController::maximumFailedSaves);
     }
 }
 TEST(ShadowRuntime, RebootReadbackMismatchAndDisconnectFenceAllOldPackets) {
@@ -143,7 +202,7 @@ TEST(ShadowRuntime, RebootReadbackMismatchAndDisconnectFenceAllOldPackets) {
 }
 TEST(ShadowRuntime, MissingHeartbeatSessionExpiresAndDelayedHeartbeatCannotReviveIt) {
     Fixture f; f.start(); f.connect(); const auto oldSession=f.session; auto heartbeat=f.envelope("adapter");
-    f.now+=15000; f.send("ha/heartbeat",heartbeat.get()); f.tick(); f.connect(); EXPECT_NE(f.session,oldSession);
+    f.now+=ShadowController::leaseMs; f.send("ha/heartbeat",heartbeat.get()); f.tick(); f.connect(); EXPECT_NE(f.session,oldSession);
 }
 TEST(ShadowRuntime, InvalidConfigDoesNotConsumeSequenceOrTouchStoreAndWrongOwnerFailsClosed) {
     Fixture f; f.start(); f.connect(); f.heartbeat(); auto bad=f.configuration();
@@ -155,14 +214,14 @@ TEST(ShadowRuntime, InvalidConfigDoesNotConsumeSequenceOrTouchStoreAndWrongOwner
     auto boolean=f.configuration(duplicate); f.send("ha/config",boolean.get()); EXPECT_EQ(f.store.writes,1u);
 }
 TEST(ShadowRuntime, StoreCorruptionIsDiagnosedAndReadOnlySnapshotsNeverWrite) {
-    Fixture f; f.store.bytes="{broken"; f.start(); EXPECT_TRUE(f.core->faulted());
+    Fixture f; f.store.bytes="{broken"; f.start(); EXPECT_TRUE(f.core->faulted()); EXPECT_FALSE(f.core->runtimeFaulted());
     Fixture ok; ok.ready(); auto request=ok.envelope("snapshot"); ok.send("ha/snapshot_request",request.get());
     auto snapshot=ok.get("fw/config_snapshot"); EXPECT_EQ(uintField(snapshot.get(),"config_revision"),1u);
     EXPECT_EQ(controlTestHash(printJson(field(snapshot.get(),"config"))),ok.core->digest()); EXPECT_EQ(ok.store.writes,1u);
 }
 TEST(ShadowRuntime, ReadbackErrorNeverPartiallyActivatesAndWrongOwnerCannotOpen) {
     Fixture f; f.start(); f.connect(); f.heartbeat(); f.store.corruptReadback=true; f.configure();
-    EXPECT_TRUE(f.core->faulted()); EXPECT_EQ(f.core->revision(),0u);
+    EXPECT_TRUE(f.core->faulted()); EXPECT_TRUE(f.core->runtimeFaulted()); EXPECT_EQ(f.core->revision(),0u);
     Fixture wrong; wrong.start(); auto hello=wrong.get("fw/hello");
     std::string raw=R"({"api":1,"controller_id":"e32_lab","boot_id":"boot1","epoch":1,"challenge_id":")"+
         stringField(hello.get(),"challenge_id")+R"(","adapter_id":"other_ha","client_nonce":"new","known_revision":0,"known_digest":""})";
@@ -229,7 +288,7 @@ TEST(GrantNonce, ExplicitCapabilityAndAcceptedHeartbeatOnlyAnchorsNextScheduledR
     auto hb=nonceHeartbeat(f,2,"requestA");auto before=f.output.at("fw/session");f.send("ha/heartbeat",hb.get());
     EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"accepted");
     EXPECT_EQ(f.output.at("fw/session"),before); // Not an immediate grant rotation.
-    f.now+=5000;f.tick();f.syncSession();
+    f.now+=ShadowController::grantRotationMs;f.tick();f.syncSession();
     auto issued=f.get("fw/session");EXPECT_EQ(stringField(issued.get(),"grant_request_nonce"),"requestA");
     EXPECT_EQ(uintField(issued.get(),"grant_sequence"),2u);EXPECT_FALSE(f.core->faulted());
     auto state=f.state();EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"boiler_output_enabled")));
@@ -241,16 +300,16 @@ TEST(GrantNonce, DuplicateOrChangedOrWrongOwnerCannotReplaceAcceptedProof) {
     auto changed=nonceHeartbeat(f,2,"requestChanged");f.send("ha/heartbeat",changed.get());
     EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"rejected");
     auto foreign=nonceHeartbeat(f,3,"requestForeign");cJSON_SetValuestring(cJSON_GetObjectItemCaseSensitive(foreign.get(),"adapter_id"),"other");
-    f.send("ha/heartbeat",foreign.get());f.now+=5000;f.tick();f.syncSession();
+    f.send("ha/heartbeat",foreign.get());f.now+=ShadowController::grantRotationMs;f.tick();f.syncSession();
     EXPECT_EQ(stringField(f.get("fw/session").get(),"grant_request_nonce"),"requestA");
-    f.now+=5000;f.tick();f.syncSession();EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
+    f.now+=ShadowController::grantRotationMs;f.tick();f.syncSession();EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
 }
 TEST(GrantNonce, MalformedNonceNeverConsumesHeartbeatSequence) {
     for(const char *bad:{"","x/y","abcdefghijklmnopqrstuvwxyz0123456789"}) {
         Fixture f;f.ready();auto hb=nonceHeartbeat(f,2,bad);f.send("ha/heartbeat",hb.get());
         auto good=nonceHeartbeat(f,2,"valid");f.send("ha/heartbeat",good.get());
         EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"accepted");
-        f.now+=5000;f.tick();f.syncSession();EXPECT_EQ(stringField(f.get("fw/session").get(),"grant_request_nonce"),"valid");
+        f.now+=ShadowController::grantRotationMs;f.tick();f.syncSession();EXPECT_EQ(stringField(f.get("fw/session").get(),"grant_request_nonce"),"valid");
     }
     Fixture f;f.ready();auto hb=nonceHeartbeat(f,2,nullptr);cJSON_AddNullToObject(hb.get(),"grant_request_nonce");
     f.send("ha/heartbeat",hb.get());auto good=nonceHeartbeat(f,2,"valid");f.send("ha/heartbeat",good.get());
@@ -258,10 +317,10 @@ TEST(GrantNonce, MalformedNonceNeverConsumesHeartbeatSequence) {
 }
 TEST(GrantNonce, LatestNewHeartbeatWinsAndOldPeerBodyStillAccepted) {
     Fixture f;f.ready();auto one=nonceHeartbeat(f,2,"first"),two=nonceHeartbeat(f,3,"second");
-    f.send("ha/heartbeat",one.get());f.send("ha/heartbeat",two.get());f.now+=5000;f.tick();f.syncSession();
+    f.send("ha/heartbeat",one.get());f.send("ha/heartbeat",two.get());f.now+=ShadowController::grantRotationMs;f.tick();f.syncSession();
     EXPECT_EQ(stringField(f.get("fw/session").get(),"grant_request_nonce"),"second");
     auto three=nonceHeartbeat(f,4,"third");f.send("ha/heartbeat",three.get());f.heartbeat(5);
-    f.now+=5000;f.tick();f.syncSession();EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
+    f.now+=ShadowController::grantRotationMs;f.tick();f.syncSession();EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
     EXPECT_FALSE(f.core->faulted());
 }
 TEST(GrantNonce, ReconnectAndConfigurationInvalidationClearPendingAndIssuedProofs) {
@@ -395,5 +454,225 @@ TEST(ComfortContactsRuntime, InvalidOrPresenceOnlyContactAgeCannotBeCommitted) {
     cJSON_AddNumberToObject(cJSON_GetObjectItemCaseSensitive(z,"comfort"),"window_max_age_ms",3600000);
     auto request=f.configuration(printJson(record.get()));f.send("ha/config",request.get());
     EXPECT_EQ(f.core->revision(),0u);
+}
+}
+
+namespace {
+// Live E32, 30 Oct 2026: a week native plan (schema 2, revision 9) stored while
+// a native SOURCE was selected; HA "Connect E32" later cleared that SOURCE. The
+// stored record is exactly the "config" member of HA's ha/config (the
+// config_digest sits in the envelope, never in the stored bytes).
+const std::string staleSensorResource(64,'b'),staleOutputResource(64,'c');
+std::unique_ptr<NativePlanInstallationSource> staleWeekSource(char layout='d') {
+    const auto descriptor=R"(["native.source.local.week.v1","e32_lab","ha1",")"+std::string(64,layout)
+        +R"(",1,false,[["1234abcd","room1","trv1","grp1",0,")"+staleSensorResource+R"(",")"+staleOutputResource
+        +R"(",500,2500,120000,2000,5500,0,[0,50,0,0,0,0]]]])";
+    auto parsed=parseControlJson(descriptor,true);
+    return parsed?nativeSourceFromLocalSettingsBase(parsed.get(),"e32_lab","ha1",controlTestHash):nullptr;
+}
+std::string staleNativePlan(const NativePlanInstallationSource& source,unsigned revision=9) {
+    const std::string channels=R"({"channels":[{"channel_id":"room1","direction":"input","owner_id":"1234abcd","resource_id":")"
+        +staleSensorResource+R"("},{"channel_id":"trv1","direction":"output","owner_id":"trv1","resource_id":")"
+        +staleOutputResource+R"("}],"mapping_revision":1,"mapping_schema":2})";
+    return R"({"groups":[{"emitter":"radiator","group_id":"grp1","maximum_supply_centi_c":5500,"minimum_supply_centi_c":2000}],"mapping":)"
+        +channels+R"(,"mapping_digest":")"+controlTestHash(channels)
+        +R"(","mode":"shadow_plan","plan_contract":"control.plan.week.v1","profile_digest":")"+source.profileDigest
+        +R"(","revision":)"+std::to_string(revision)
+        +R"(,"schema":2,"zones":[{"actuator_id":"trv1","actuator_profile":"trv_room_setpoint","base_centi_c":1700,"group_id":"grp1","max_age_ms":120000,"report_evidence":"physical_report","schedule":{"base_centi_c":1700,"policy":"wall-clock-packed/v1","timezone":"Europe/Amsterdam","transitions":["AAAAakAGJwfQATVgakAbPwfQ"],"valid_from_utc":1792368000,"valid_until_utc":1792972800},"sensor_id":"room1","zone_id":"1234abcd"}]})";
+}
+std::string replaced(std::string bytes,const std::string& from,const std::string& to) {
+    const auto at=bytes.find(from);
+    if(at==std::string::npos)ADD_FAILURE()<<"fixture text not found: "<<from;
+    else bytes.replace(at,from.size(),to);
+    return bytes;
+}
+std::unique_ptr<ShadowController> nativeCore(Store& store,const NativePlanInstallationSource& source,
+                                             std::map<std::string,std::string>& output) {
+    return std::make_unique<ShadowController>("e32_lab","boot1","ha1",store,controlTestHash,[]{return std::string("nonce1");},
+        [&output](auto topic,auto bytes){output[std::string(topic)]=bytes;},ShadowController::Metrics{},nullptr,
+        []{return SeasonalSafetySnapshot{};},&source);
+}
+
+TEST(StaleNativePlan, FixtureIsTheRealAcceptedNativeWeekPlanWhileItsSourceIsSelected) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);ASSERT_TRUE(source->weekReviewed);
+    const auto blob=staleNativePlan(*source);
+    auto root=parseControlJson(blob);ASSERT_TRUE(root);
+    EXPECT_TRUE(canonicalConfig(root.get()));
+    EXPECT_TRUE(validateNativeControlPlan(root.get(),*source,controlTestHash));
+    EXPECT_TRUE(staleNativePlanRecord(root.get()));
+    Store store;store.bytes=blob;std::map<std::string,std::string> output;
+    auto core=nativeCore(store,*source,output);
+    EXPECT_FALSE(core->faulted());EXPECT_EQ(core->revision(),9u);EXPECT_FALSE(core->staleNativePlanIgnored());
+    // A different selected SOURCE still treats it as a conflict: the stale
+    // rule never applies while any native SOURCE is selected.
+    const auto other=staleWeekSource('e');ASSERT_TRUE(other);
+    Store second;second.bytes=blob;
+    auto conflicting=nativeCore(second,*other,output);
+    EXPECT_TRUE(conflicting->faulted());EXPECT_FALSE(conflicting->staleNativePlanIgnored());
+}
+TEST(StaleNativePlan, ClearedSourceBootsUnconfiguredWithoutStorageFault) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    Fixture f;f.store.bytes=staleNativePlan(*source);const auto before=f.store.bytes;
+    f.start();
+    EXPECT_FALSE(f.core->faulted());EXPECT_TRUE(f.core->staleNativePlanIgnored());
+    EXPECT_EQ(f.core->revision(),0u);EXPECT_EQ(f.core->digest(),"");
+    auto hello=f.get("fw/hello");
+    EXPECT_TRUE(cJSON_IsFalse(field(hello.get(),"storage_fault")));
+    EXPECT_EQ(uintField(hello.get(),"config_revision"),0u);
+    EXPECT_EQ(stringField(hello.get(),"config_digest"),"");
+    // Boot itself never writes; the record stays until HA replaces it.
+    EXPECT_EQ(f.store.writes,0u);EXPECT_EQ(f.store.bytes,before);
+}
+TEST(StaleNativePlan, SessionOpensAndExpectedRevisionZeroConfigReplacesTheRecord) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    Fixture f;f.store.bytes=staleNativePlan(*source);f.start();f.connect();
+    ASSERT_TRUE(f.output.count("fw/session"));EXPECT_FALSE(f.session.empty());
+    f.heartbeat();
+    EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"accepted");
+    auto request=f.configuration();EXPECT_EQ(uintField(request.get(),"expected_revision"),0u);
+    f.send("ha/config",request.get());
+    EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"applied");
+    EXPECT_FALSE(f.core->faulted());EXPECT_EQ(f.core->revision(),1u);EXPECT_FALSE(f.core->staleNativePlanIgnored());
+    EXPECT_EQ(f.store.writes,1u);EXPECT_EQ(f.store.bytes,config());
+    auto hello=f.get("fw/hello");EXPECT_TRUE(cJSON_IsFalse(field(hello.get(),"storage_fault")));
+    EXPECT_EQ(uintField(hello.get(),"config_revision"),1u);
+    f.connect();f.heartbeat();auto o=f.observation();f.send("ha/observations",o.get());
+    EXPECT_EQ(stringField(f.get("fw/observation_result").get(),"status"),"accepted");
+    f.boot="boot2";f.start();
+    EXPECT_FALSE(f.core->faulted());EXPECT_EQ(f.core->revision(),1u);EXPECT_FALSE(f.core->staleNativePlanIgnored());
+}
+TEST(StaleNativePlan, CorruptOrUnknownStoredDataStillFailsClosed) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    const auto blob=staleNativePlan(*source);
+    const std::vector<std::pair<const char*,std::string>> cases{
+        {"truncated",blob.substr(0,blob.size()/2)},
+        {"broken","{broken"},
+        {"schema3",replaced(blob,"\"schema\":2","\"schema\":3")},
+        {"schema1",replaced(blob,"\"schema\":2","\"schema\":1")},
+        {"legacy mode",replaced(blob,"\"mode\":\"shadow_plan\"","\"mode\":\"shadow\"")},
+        {"unknown contract",replaced(blob,"control.plan.week.v1","control.plan.week.v2")},
+        {"revision0",replaced(blob,"\"revision\":9","\"revision\":0")},
+        {"fractional revision",replaced(blob,"\"revision\":9","\"revision\":9.5")},
+        {"short profile digest",replaced(blob,"\"profile_digest\":\""+source->profileDigest,
+            "\"profile_digest\":\""+source->profileDigest.substr(1))},
+        {"extra key",replaced(blob,"\"revision\":9","\"revision\":9,\"rogue\":1")},
+        {"config_digest inside record",replaced(blob,"{\"groups\"","{\"config_digest\":\""+std::string(64,'f')+"\",\"groups\"")},
+        {"unsorted keys",replaced(replaced(blob,"\"mode\":\"shadow_plan\",",""),"\"zones\"","\"mode\":\"shadow_plan\",\"zones\"")},
+        {"zones not array",replaced(blob,"\"zones\":[","\"zones\":{\"x\":[")+"}"},
+        {"legacy schema1 invalid",replaced(config(4),"\"mode\":\"shadow\"","\"mode\":\"active\"")},
+        {"oversized",blob+std::string(ShadowController::maximumConfigBytes,' ')},
+    };
+    for(const auto& [name,bytes]:cases) {
+        Fixture f;f.store.bytes=bytes;f.start();
+        EXPECT_TRUE(f.core->faulted())<<name;EXPECT_FALSE(f.core->staleNativePlanIgnored())<<name;
+        auto hello=f.get("fw/hello");EXPECT_TRUE(cJSON_IsTrue(field(hello.get(),"storage_fault")))<<name;
+        EXPECT_EQ(f.store.writes,0u)<<name;
+    }
+    Fixture unreadable;unreadable.store.bytes=blob;unreadable.store.failLoad=true;unreadable.start();
+    EXPECT_TRUE(unreadable.core->faulted());EXPECT_FALSE(unreadable.core->staleNativePlanIgnored());
+}
+TEST(StaleNativePlan, PinnedSeasonalSourceStillFailsClosedOnANativePlanRecord) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    SeasonalControllerSource pinned;
+    pinned.controllerId="e32_lab";pinned.configDigest=controlTestHash(config());pinned.count=1;pinned.maximumSafetyAgeMs=2000;
+    auto& z=pinned.zones[0];z.zoneId="1234abcd";z.sensorId="room1";z.actuatorId="trv1";
+    z.seasonal.enabled=z.seasonal.installationQualified=z.seasonal.frostAdviceReviewed=true;
+    z.seasonal.maximumSensorAgeMs=120000;z.seasonal.maximumStepGapMs=300000;
+    ASSERT_TRUE(pinned.valid());
+    Fixture f;f.seasonalSource=&pinned;f.seasonalSafety=[]{return SeasonalSafetySnapshot{};};
+    f.store.bytes=staleNativePlan(*source);f.start();
+    EXPECT_TRUE(f.core->faulted());EXPECT_FALSE(f.core->staleNativePlanIgnored());EXPECT_EQ(f.core->revision(),0u);
+}
+TEST(StaleNativePlan, BootEraseRemovesOnlyTheNativePlanRecord) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    unsigned erased=0;bool eraseResult=true;
+    const auto erase=[&]{++erased;return eraseResult;};
+    Store stale;stale.bytes=staleNativePlan(*source);
+    EXPECT_TRUE(clearStaleNativePlanRecord(stale,erase));EXPECT_EQ(erased,1u);
+    eraseResult=false;EXPECT_FALSE(clearStaleNativePlanRecord(stale,erase));EXPECT_EQ(erased,2u);
+    for(const auto& bytes:{std::string(),config(4),std::string("{broken"),
+            replaced(staleNativePlan(*source),"\"schema\":2","\"schema\":3")}) {
+        Store kept;kept.bytes=bytes;
+        EXPECT_TRUE(clearStaleNativePlanRecord(kept,erase))<<bytes;EXPECT_EQ(erased,2u)<<bytes;
+        EXPECT_EQ(kept.bytes,bytes);EXPECT_EQ(kept.writes,0u);
+    }
+    Store unreadable;unreadable.bytes=staleNativePlan(*source);unreadable.failLoad=true;
+    EXPECT_FALSE(clearStaleNativePlanRecord(unreadable,erase));EXPECT_EQ(erased,2u);
+}
+TEST(StaleNativePlan, NewlySelectedSourceErasesOnlyRecordsItCanNeverLoad) {
+    const auto planA=staleWeekSource('d'),planB=staleWeekSource('e');ASSERT_TRUE(planA);ASSERT_TRUE(planB);
+    unsigned erased=0;const auto erase=[&]{++erased;return true;};
+    const std::string empty="{\"mapping_digest\":\""+mapping+"\",\"mode\":\"shadow\",\"revision\":3,\"schema\":1,\"zones\":[]}";
+    // The plain session's empty config faults under any native SOURCE; so does
+    // a plan of another profile. Both carry nothing the new SOURCE can read.
+    for(const auto& bytes:{empty,staleNativePlan(*planA)}) {
+        Store store;store.bytes=bytes;erased=0;
+        EXPECT_TRUE(clearRecordUnreadableBySource(store,*planB,erase));EXPECT_EQ(erased,1u)<<bytes;
+    }
+    // Kept: its own plan (re-selection restores it), its predecessor's plan
+    // (evolution readback), a legacy plan with rooms (reviewed readback owns
+    // it), unknown bytes (still fail closed), an empty store.
+    auto evolved=*planB;evolved.predecessor=std::shared_ptr<const NativePlanInstallationSource>(staleWeekSource('d'));
+    const std::vector<std::pair<const NativePlanInstallationSource*,std::string>> kept{
+        {planA.get(),staleNativePlan(*planA)},{&evolved,staleNativePlan(*planA)},{planB.get(),config(4)},
+        {planB.get(),"{broken"},{planB.get(),""},
+        {planB.get(),replaced(empty,"\"zones\":[]","\"zones\":{}")}};
+    for(const auto& [next,bytes]:kept) {
+        Store store;store.bytes=bytes;erased=0;
+        EXPECT_TRUE(clearRecordUnreadableBySource(store,*next,erase))<<bytes;EXPECT_EQ(erased,0u)<<bytes;
+        EXPECT_EQ(store.bytes,bytes);EXPECT_EQ(store.writes,0u);
+    }
+    Store unreadable;unreadable.bytes=empty;unreadable.failLoad=true;erased=0;
+    EXPECT_FALSE(clearRecordUnreadableBySource(unreadable,*planB,erase));EXPECT_EQ(erased,0u);
+    // Boot behaviour is unchanged: that empty config still faults under a SOURCE.
+    Store boot;boot.bytes=empty;std::map<std::string,std::string> output;
+    EXPECT_TRUE(nativeCore(boot,*planB,output)->faulted());
+}
+// Review probes: a failed save while the stale record is ignored, or after the
+// boot erased it, is settled like any other plain failed save (no latch).
+TEST(StaleNativePlan, FailedSaveWhileTheRecordIsIgnoredOrErasedDoesNotLatch) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    for(bool erasedAtBoot:{false,true}) {
+        Fixture f;f.store.bytes=staleNativePlan(*source);f.start();ASSERT_TRUE(f.core->staleNativePlanIgnored());
+        if(erasedAtBoot)f.store.bytes.clear(); // ModernTransport's boot erase
+        const auto before=f.store.bytes;
+        f.connect();f.heartbeat();f.store.failSave=true;f.configure();
+        EXPECT_FALSE(f.core->faulted())<<erasedAtBoot;EXPECT_EQ(f.core->revision(),0u);
+        EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");
+        EXPECT_EQ(f.store.bytes,before);
+    }
+}
+// The native plan path: a refusal is spared the latch like on the plain path;
+// a save that really failed still latches (recovery: explicit fresh readback).
+TEST(StaleNativePlan, NativePathLatchesAFailedSaveButNotARefusal) {
+    const auto source=staleWeekSource();ASSERT_TRUE(source);
+    const auto plan=staleNativePlan(*source,1);
+    const auto ready=[&](Fixture& f){
+        f.nativeSource=source.get();f.seasonalSafety=[]{return SeasonalSafetySnapshot{};};
+        f.start();ASSERT_FALSE(f.core->faulted());f.connect();f.heartbeat();
+        ASSERT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"accepted");
+    };
+    { Fixture f;ready(f);auto o=f.configuration(plan);f.send("ha/config",o.get());
+      EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"applied");EXPECT_EQ(f.core->revision(),1u); }
+    for(bool committed:{false,true}) {
+        Fixture f;ready(f);f.store.failSave=true;f.store.commitOnError=committed;
+        auto o=f.configuration(plan);f.send("ha/config",o.get());
+        EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");
+        EXPECT_TRUE(f.core->faulted())<<committed;EXPECT_TRUE(f.core->runtimeFaulted());EXPECT_EQ(f.core->revision(),0u);
+        EXPECT_EQ(f.store.saves,1u);
+    }
+    Fixture f;ready(f);f.store.refuseSave=true;
+    auto o=f.configuration(plan);f.send("ha/config",o.get());
+    EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"storage_fault");
+    EXPECT_FALSE(f.core->faulted());EXPECT_EQ(f.core->revision(),0u);EXPECT_EQ(f.store.writes,0u);EXPECT_EQ(f.store.bytes,"");
+}
+TEST(StaleNativePlan, LegacySchemaOneConfigStillLoadsUnchanged) {
+    Fixture f;f.store.bytes=config(4);f.start();
+    EXPECT_FALSE(f.core->faulted());EXPECT_FALSE(f.core->staleNativePlanIgnored());
+    EXPECT_EQ(f.core->revision(),4u);EXPECT_EQ(f.core->digest(),controlTestHash(config(4)));
+    auto hello=f.get("fw/hello");EXPECT_TRUE(cJSON_IsFalse(field(hello.get(),"storage_fault")));
+    EXPECT_EQ(uintField(hello.get(),"config_revision"),4u);
+    f.connect();f.heartbeat();auto next=f.configuration(config(5));f.send("ha/config",next.get());
+    EXPECT_EQ(stringField(f.get("fw/config_result").get(),"status"),"applied");EXPECT_EQ(f.core->revision(),5u);
 }
 }

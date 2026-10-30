@@ -70,7 +70,8 @@ async def test_two_contacts_pause_only_their_room_and_wait_for_all_closed(comfor
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('comfort', [{'contacts': True, 'maximum_age_ms': 6000, 'contact_only':only} for only in (False,True)], indirect=True)
+# 15 s: above the grant-age delivery envelope (grants rotate every 10 s since beta.19).
+@pytest.mark.parametrize('comfort', [{'contacts': True, 'maximum_age_ms': 15000, 'contact_only':only} for only in (False,True)], indirect=True)
 async def test_expired_or_lost_contact_cannot_be_renewed_by_temperature_or_status_reads(comfort):
     runtime, _, bus, room, _ = comfort
     await bus.start()
@@ -85,7 +86,7 @@ async def test_expired_or_lost_contact_cannot_be_renewed_by_temperature_or_statu
     assert runtime.comfort_context(room)['window_age_ms'] == before
     # The receiver also adds the existing grant-age delivery envelope. Keep
     # that conservative contract; do not relax it to match a tiny test TTL.
-    await bus.advance(4001)
+    await bus.advance(13001)
     decision = await temperature(comfort, room)
     assert decision.target_centi_c is None and decision.reason == 'window_state_unknown'
     await contact(comfort, 0, 'on')

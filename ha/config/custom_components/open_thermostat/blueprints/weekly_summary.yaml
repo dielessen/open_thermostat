@@ -1,0 +1,83 @@
+blueprint:
+  name: OpenThermostat - weekly heating summary
+  description: >-
+    Once a week, sends a short summary of the last seven days in your Home
+    Assistant language (English or Dutch): the gas for heating and for hot
+    water (measured with your gas meter, or estimated without one), the
+    change from the week before, what a different night temperature could
+    save, and the top advice items. It is advice only: nothing is changed.
+    Turn the automation off to stop the messages.
+  domain: automation
+  input:
+    advice:
+      name: Heating advice sensor
+      description: The "Heating advice" sensor of your OpenThermostat; it carries the weekly summary.
+      selector:
+        entity:
+          filter:
+            integration: open_thermostat
+            domain: sensor
+    weekday:
+      name: Day
+      description: The day of the week to send the summary.
+      default: sun
+      selector:
+        select:
+          options:
+            - label: Monday
+              value: mon
+            - label: Tuesday
+              value: tue
+            - label: Wednesday
+              value: wed
+            - label: Thursday
+              value: thu
+            - label: Friday
+              value: fri
+            - label: Saturday
+              value: sat
+            - label: Sunday
+              value: sun
+    time:
+      name: Time
+      description: The time of day to send the summary.
+      default: "19:00:00"
+      selector:
+        time: {}
+    notification:
+      name: Notification action
+      description: >-
+        The default creates a persistent notification in Home Assistant. You
+        can replace it with a mobile notification action. Templates may use
+        title, message and summary (all figures of the week).
+      default:
+        - action: persistent_notification.create
+          data:
+            title: "{{ title }}"
+            message: "{{ message }}"
+            notification_id: open_thermostat_weekly_summary
+      selector:
+        action: {}
+
+variables:
+  advice: !input advice
+
+triggers:
+  - trigger: time
+    at: !input time
+
+conditions:
+  - condition: time
+    weekday: !input weekday
+  - condition: template
+    value_template: "{{ state_attr(advice, 'weekly_summary') is mapping }}"
+
+actions:
+  - variables:
+      summary: "{{ state_attr(advice, 'weekly_summary') }}"
+      title: "{{ summary.title }}"
+      message: "{{ summary.message }}"
+  - choose: []
+    default: !input notification
+
+mode: single

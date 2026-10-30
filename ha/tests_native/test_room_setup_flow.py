@@ -186,11 +186,31 @@ async def test_late_cross_entry_valve_claim_blocks_final_commit(hass,manager):
     assert r['errors']['base']=='setup_invalid' and not p.subentries
 
 @pytest.mark.asyncio
-async def test_unsupported_core_never_starts_the_pinned_map_transaction(hass,manager,monkeypatch):
+@pytest.mark.parametrize('version',['2026.9.4','2025.12.0','not-a-version'])
+async def test_unsupported_core_never_starts_the_pinned_map_transaction(hass,manager,monkeypatch,version):
     from custom_components.open_thermostat import room_setup_flow
-    p=entry(hass);monkeypatch.setattr(room_setup_flow,'HA_VERSION','2026.11.0')
+    p=entry(hass);monkeypatch.setattr(room_setup_flow,'HA_VERSION',version)
     r=await manager.async_init((p.entry_id,'room_setup'),context={'source':'user'})
     assert r['reason']=='setup_platform_unsupported' and not p.subentries
+
+@pytest.mark.asyncio
+async def test_changed_core_save_routine_never_starts_the_pinned_map_transaction(hass,manager,monkeypatch):
+    """A newer core is accepted only while its one-step entry save still takes the same keywords."""
+    from homeassistant.config_entries import ConfigEntries
+    from custom_components.open_thermostat import room_setup_flow
+    p=entry(hass);monkeypatch.setattr(room_setup_flow,'HA_VERSION','2027.1.0')
+    monkeypatch.setattr(ConfigEntries,'_async_update_entry',lambda self,entry,*,data=None,options=None:False)
+    r=await manager.async_init((p.entry_id,'room_setup'),context={'source':'user'})
+    assert r['reason']=='setup_platform_unsupported' and not p.subentries
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('version',['2026.10.0','2026.10.1','2026.11.0','2027.3.0b1'])
+async def test_minimum_or_newer_core_opens_room_setup(hass,manager,monkeypatch,version):
+    from custom_components.open_thermostat import room_setup_flow
+    p=entry(hass);monkeypatch.setattr(room_setup_flow,'HA_VERSION',version)
+    r=await manager.async_init((p.entry_id,'room_setup'),context={'source':'user'})
+    assert r.get('reason')!='setup_platform_unsupported' and r['type']=='form'
+    manager.async_abort(r['flow_id'])
 
 @pytest.mark.asyncio
 async def test_registry_rename_at_review_preserves_identity(hass,manager):

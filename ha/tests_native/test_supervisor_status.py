@@ -3,8 +3,8 @@ import copy
 import json
 
 import pytest
-from custom_components.open_thermostat.supervisor_status import supervisor_status
-from custom_components.open_thermostat.v1_wire import canonical
+from custom_components.open_thermostat.supervisor_status import supervisor_status, MAX_AGE_SECONDS
+from custom_components.open_thermostat.v1_wire import canonical, LEASE_SECONDS
 from custom_components.open_thermostat.diagnostics import async_get_config_entry_diagnostics
 from custom_components.open_thermostat.const import DOMAIN
 from test_v1_wire_interop import integrated
@@ -96,7 +96,7 @@ async def test_missing_or_invalid_diagnostic_clears_old_intent_but_keeps_room_st
 async def test_expiry_clock_reversal_disconnect_and_adapter_loss_hide_cached_intents(integrated):
     _,client,bus,_=integrated
     await bus.start();wire=frame(bus);start=bus.now
-    bus.now+=14999;client.last_rx=bus.clock();client.grant_until=client.lease_until=bus.clock()+100
+    bus.now+=MAX_AGE_SECONDS*1000-1;client.last_rx=bus.clock();client.grant_until=client.lease_until=bus.clock()+100
     assert client.supervisor_payload is not None
     bus.now+=1
     assert client.supervisor_payload is None
@@ -289,7 +289,7 @@ async def test_last_rejection_is_single_history_and_success_keeps_normal_lease_s
         pending_rejection(client, now[0], 3)
         p=rejection_reply(client,3);p['status']='accepted';p.pop('rejection_reason')
         await client.receive('fw/heartbeat_result',canonical(p))
-        assert client.lease_until==now[0]+15
+        assert client.lease_until==now[0]+LEASE_SECONDS
         assert client.last_rejection_payload['reason']=='old_sequence'
         assert client.pending=={}
         client.send.assert_not_awaited()
@@ -301,11 +301,11 @@ async def test_last_rejection_is_single_history_and_success_keeps_normal_lease_s
 async def test_fractional_monotonic_epoch_does_not_extend_supervisor_receipt(integrated):
     _,client,bus,_=integrated
     # Straddles a binary exponent boundary; subtracting clocks yields
-    # 14.99999999999909 instead of exactly 15 at this integer-ms deadline.
+    # 99.99999999999909 instead of exactly 100 at this integer-ms deadline.
     # The new epoch must also be ahead of the runtime fixture clock.
     bus.clock_base=2**(int(bus.clock_base).bit_length()+1)-0.6666666667
     await bus.start()
-    bus.now+=14999
+    bus.now+=MAX_AGE_SECONDS*1000-1
     client.last_rx=bus.clock();client.grant_until=client.lease_until=bus.clock()+100
     assert client.supervisor_payload is not None
     bus.now+=1

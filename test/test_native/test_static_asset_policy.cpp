@@ -13,10 +13,10 @@ TEST(StaticAssetPolicy, NegotiatesCompressionWithoutIgnoringExplicitExclusions) 
     EXPECT_TRUE(acceptsAssetGzip("",true));
     EXPECT_FALSE(acceptsAssetGzip("identity",true));
     EXPECT_FALSE(acceptsAssetGzip(std::string(1025,' ')+"gzip",true));
-    EXPECT_TRUE(acceptsAssetIdentity("gzip;q=0"));
-    EXPECT_TRUE(acceptsAssetIdentity("*;q=0, identity"));
-    EXPECT_FALSE(acceptsAssetIdentity("identity;q=0,gzip;q=0"));
-    EXPECT_FALSE(acceptsAssetIdentity("*;q=0"));
+    // As served (gzip only): no header accepts gzip, explicit refusals do not.
+    for(const auto value:{"identity","identity;q=1,gzip;q=0","*;q=0","gzip;q=0,*;q=1","br"})
+        EXPECT_FALSE(acceptsAssetGzip(value,true))<<value;
+    EXPECT_TRUE(acceptsAssetGzip("gzip, deflate, br, zstd",true));
 }
 TEST(StaticAssetPolicy, RevalidatesOnlyTheSelectedRepresentationWithBoundedWeakComparison) {
     const auto etag='"'+std::string(64,'a')+'"';

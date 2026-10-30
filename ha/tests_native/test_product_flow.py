@@ -25,14 +25,24 @@ def product(hass, binding=None):
     hass.data.setdefault("open_thermostat", {})[p.entry_id] = {}
     return p
 
+# Configure's top level (product_flow.main_menu). With a stored E32 connection the rooms
+# are the E32 room plan: Rooms, Comfort, Heating and boiler, Energy, Connect E32, Name and
+# dashboard, Advanced. A new installation (config flow from beta.19) starts with Connect E32.
+# Older entries without an E32 connection keep the Home Assistant room route.
+E32_MENU=['e32_rooms','comfort','heating_boiler','energy','controller_connection','general','advanced_settings']
+NEW_MENU=['controller_connection','energy','general','advanced_settings']
+LEGACY_MENU=['room_settings','controller_connection','energy','installation','advanced_settings']
+
+def expected_menu(parent):
+    from custom_components.open_thermostat.room_plan import has_room_plan, uses_e32_rooms
+    return E32_MENU if has_room_plan(parent) else NEW_MENU if uses_e32_rooms(parent) else LEGACY_MENU
+
 async def option(manager,parent,step):
-    from custom_components.open_thermostat.room_plan import has_room_plan
     f=await manager.async_init(parent.entry_id)
-    # A stored E32 connection makes the E32 room plan the room editor.
-    rooms='e32_rooms' if has_room_plan(parent) else 'room_settings'
-    # Everyday settings first; status and plan recovery are under Advanced.
-    assert f['menu_options']==[rooms,'controller_connection','energy','installation','advanced_settings']
-    if step in ('configuration_status','hot_water','graph_prepare','graph_status'):
+    menu=expected_menu(parent)
+    assert f['menu_options']==menu
+    # Status, plan recovery and the rest live under Advanced.
+    if step not in menu:
         f=await manager.async_configure(f['flow_id'],{'next_step_id':'advanced_settings'})
     return await manager.async_configure(f['flow_id'],{'next_step_id':step})
 
@@ -54,7 +64,10 @@ async def test_user_flow_is_ordinary_installation_no_internal_mode_or_owner(hass
     result=await f.async_step_installation({'name':'My home'})
     assert result['title']=='My home' and result['data'][PRODUCT_CONFIG]==1
     assert len(result['data']['adapter_id'])==32 and result['options']['shadow_enabled'] is False
-    assert OpenThermostatConfigFlow.async_get_supported_subentry_types(type('E',(),{'data':result['data'],'options':result['options']})())=={'zone':ProductRoomFlow}
+    # A new installation's rooms are the E32 room plan: no older "Add room" button, and the
+    # success dialog says what comes next (Configure -> Connect E32, then the first room).
+    assert result['data']['rooms_on_e32'] is True and result['description']=='e32_next_steps'
+    assert OpenThermostatConfigFlow.async_get_supported_subentry_types(type('E',(),{'data':result['data'],'options':result['options'],'subentries':{}})())=={}
 
 @pytest.mark.asyncio
 async def test_product_options_selector_and_migration_preserve_all_existing_configuration(hass):

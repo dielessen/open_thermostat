@@ -120,23 +120,23 @@ input[type=checkbox],input[type=radio]{width:24px;height:24px;accent-color:var(-
 .border{border-color:var(--ot-border)!important}.bg-light{background:var(--ot-surface-2)!important}.progress{background:var(--ot-surface-2)}.progress-bar{background:var(--ot-accent)}.gap-2{gap:.5rem}
 summary{cursor:pointer;min-height:var(--ot-tap);padding:10px 0;font-weight:600}details[open]>summary{margin-bottom:8px}
 /* Navigation */
-.device-navbar{background:var(--ot-nav)!important;padding:4px 12px}.device-navbar .navbar-brand{display:flex;align-items:center;gap:.5rem;min-width:0;font-weight:700;color:#fff}.device-navbar .navbar-brand svg{flex-shrink:0}.device-navbar .navbar-brand{min-height:var(--ot-tap)}.device-navbar .navbar-toggler{min-height:var(--ot-tap);min-width:48px}
+.device-navbar{background:var(--ot-nav)!important;padding:4px 12px}.device-navbar .navbar-brand{display:flex;align-items:center;gap:.5rem;min-width:0;font-weight:700;color:#fff}.device-navbar .navbar-brand svg{flex-shrink:0}.device-navbar .navbar-brand span{min-width:0;overflow:hidden;text-overflow:ellipsis}.device-navbar .navbar-brand{min-height:var(--ot-tap)}.device-navbar .navbar-toggler{min-height:var(--ot-tap);min-width:48px}
 .device-navbar .nav-link{color:#e3eeef!important;min-height:var(--ot-tap);display:flex;align-items:center;padding:8px 12px!important;border-radius:var(--ot-r1)}
 .device-navbar .nav-link:hover{background:rgba(255,255,255,.1)}.device-navbar .nav-link.active{color:#fff!important;background:rgba(255,255,255,.14);box-shadow:inset 0 -3px #4cc2b0}
 .device-navbar .dropdown-menu{right:0;left:auto}#auth-sign-out{white-space:nowrap;min-height:var(--ot-tap);color:#fff;border-color:#a3b7bb}
 .ot-foot{max-width:1140px;margin:32px auto 0;padding:8px 15px 24px;border-top:1px solid var(--ot-border);color:var(--ot-muted);display:flex;justify-content:flex-end}#ui-language-choice{min-height:var(--ot-tap);border-radius:var(--ot-r1);border:1px solid var(--ot-field);background:var(--ot-surface);color:var(--ot-text);padding:0 8px}
-@media (max-width:991.98px){.device-navbar .navbar-brand{flex:1 1 0;font-size:1.05rem}.device-navbar .navbar-brand svg{width:1.5rem;height:1.5rem}.device-navbar .nav-link{min-height:48px}}
+@media (max-width:991.98px){.device-navbar .navbar-brand{flex:1 1 0;font-size:1.05rem}.device-navbar .navbar-brand svg{width:1.5rem;height:1.5rem}.device-navbar .nav-link{min-height:48px}}@media (max-width:400px){.device-navbar .navbar-brand{font-size:.95rem;gap:.35rem}.device-navbar .navbar-brand svg{width:1.25rem;height:1.25rem}.device-navbar{padding:4px 6px}.device-navbar .navbar-toggler{margin-right:4px!important;padding:4px 8px}#auth-sign-out{padding:6px 10px}}
 /* Components (pd-* names are kept for tests and older markup) */
 .product-dashboard,.ot-page{overflow-wrap:anywhere;max-width:1180px;margin:20px auto;padding:8px}.product-dashboard p{margin:8px 0}
-.pd-heading,.ot-head,.pd-section-title,.pd-room-title{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.pd-heading,.ot-head{margin-bottom:20px}.pd-heading p,.ot-head p{margin:4px 0 0;color:var(--ot-muted)}.pd-section-title{margin:24px 0 12px}.pd-section-title h2,.pd-heading h1,.ot-head h1{margin:0}
+.pd-heading,.ot-head,.pd-section-title,.pd-room-title{display:flex;flex-direction:column;align-items:flex-start;gap:6px}.pd-room-title h3{max-width:100%;overflow-wrap:anywhere}.pd-heading,.ot-head{margin-bottom:20px}.pd-heading p,.ot-head p{margin:4px 0 0;color:var(--ot-muted)}.pd-section-title{margin:24px 0 12px}.pd-section-title h2,.pd-heading h1,.ot-head h1{margin:0}
 .pd-panel,.pd-room,.pd-status{background:var(--ot-surface);border:1px solid var(--ot-border);border-radius:var(--ot-r2);padding:16px 20px;margin-bottom:16px}.pd-status{border-left:4px solid var(--ot-accent)}
 .ot-chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:.8rem;font-weight:600;line-height:1.4;background:var(--ot-off-bg);color:var(--ot-off)}.ot-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
 .ot-chip--ok{background:var(--ot-ok-bg);color:var(--ot-ok)}.ot-chip--warn{background:var(--ot-warn-bg);color:var(--ot-warn)}.ot-chip--err{background:var(--ot-err-bg);color:var(--ot-err)}.ot-chips{display:flex;flex-wrap:wrap;gap:6px}
 .pd-headline{font-size:1.3rem;font-weight:700;margin:0 0 10px!important}.pd-help,.pd-missing,.ot-hint{color:var(--ot-muted);font-size:.87rem}small.ot-hint,.ot-hint{display:block;font-size:.85rem!important;font-weight:400;margin:2px 0 4px;line-height:1.35}.product-dashboard small{font-size:.55em;font-weight:400;color:var(--ot-muted)}
-.pd-rooms{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}.pd-rooms{margin-bottom:8px}.pd-rooms .pd-room{margin:0}
+.pd-rooms{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));align-items:start;margin-bottom:8px}.pd-room-off{color:var(--ot-muted);margin:10px 0 4px!important}.pd-room details.ot-advanced{border:0;background:none;padding:0;margin:0}details.pd-away{padding-top:0;padding-bottom:0}details.pd-away[open]{padding-bottom:12px}.pd-rooms .pd-room{margin:0}
 .pd-room-temperatures{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:1.9rem;font-weight:600;font-variant-numeric:tabular-nums;margin:12px 0 4px}.pd-flow-label{display:block;font-size:.8rem;font-weight:500;color:var(--ot-muted)}
-.pd-facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:12px 0}.pd-fact{margin:0;padding:10px 14px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}.pd-fact h3{font-size:.85rem;font-weight:500;color:var(--ot-muted);margin:0;overflow-wrap:normal;hyphens:auto}.pd-value{font-size:1.5rem;font-weight:600;font-variant-numeric:tabular-nums}
-.pd-trend{display:block;width:100%;height:56px;margin-top:10px}.pd-actual-line{fill:none;stroke:var(--ot-accent);stroke-width:2.5;stroke-linejoin:round}.pd-target-line{fill:none;stroke:var(--ot-focus);stroke-width:2;stroke-dasharray:5 4}
+.pd-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,132px),1fr));gap:10px;margin:12px 0}.pd-fact{margin:0;padding:10px 14px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}.pd-fact h3{font-size:.85rem;font-weight:500;color:var(--ot-muted);margin:0;overflow-wrap:normal;hyphens:auto}.pd-value{font-size:1.5rem;font-weight:600;font-variant-numeric:tabular-nums}
+.pd-trend{display:block;width:100%;height:56px;margin-top:10px}.pd-trend-legend{display:flex;flex-wrap:wrap;gap:2px 14px}.pd-trend-legend span{white-space:nowrap}.pd-trend-legend span[data-line]::before{content:"";display:inline-block;width:18px;margin-right:6px;vertical-align:middle;border-top:2.5px solid var(--ot-accent)}.pd-trend-legend span[data-line=target]::before{border-top:2px dashed var(--ot-focus)}.pd-actual-line{fill:none;stroke:var(--ot-accent);stroke-width:2.5;stroke-linejoin:round}.pd-target-line{fill:none;stroke:var(--ot-focus);stroke-width:2;stroke-dasharray:5 4}
 details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1);background:var(--ot-surface-2);padding:0 16px;margin-bottom:10px}details.ot-advanced[open]{padding-bottom:8px}
 .pd-empty,.ot-empty{grid-column:1/-1;border:1px dashed var(--ot-field);border-radius:var(--ot-r2);padding:24px;text-align:center;color:var(--ot-muted)}.ot-empty strong{display:block;color:var(--ot-text);font-size:1.05rem;margin-bottom:4px}
 .pd-detail-grid,.ot-kv{display:grid;grid-template-columns:minmax(min(11rem,55%),1fr) minmax(0,auto);gap:8px 16px;margin:12px 0 0;font-size:.9rem}.pd-detail-grid dd,.ot-kv dd{margin:0;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.pd-detail-grid dt,.ot-kv dt{font-weight:500;overflow-wrap:normal;hyphens:auto}
@@ -299,6 +299,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
 					<li class="nav-item"><a class="nav-link" href="#rooms" data-page="heating" data-nav="heating"><span data-i18n="Rooms">Rooms</span></a></li>
 					<li class="nav-item"><a class="nav-link" href="#boiler" data-page="boiler_test" data-nav="boiler_test"><span data-i18n="Boiler">Boiler</span></a></li>
 					<li class="nav-item" data-bluetooth-settings hidden><a class="nav-link" href="#sensors" data-page="bluetooth" data-nav="bluetooth"><span data-i18n="Sensors">Sensors</span></a></li>
+					<li class="nav-item"><a class="nav-link" href="#settings" data-page="network" data-nav="network"><span data-i18n="Settings">Settings</span></a></li>
 					<li class="nav-item dropdown">
 						<a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
 							data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -309,7 +310,6 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#room_management" data-page="room_management"><span data-i18n="Rooms and programs">Rooms and programs</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#curve" data-page="curve"><span data-i18n="Boiler and heating curve">Boiler and heating curve</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#hardware" data-page="hardware"><span data-i18n="Hardware configuration">Hardware configuration</span></a></li>
-							<li><a class="dropdown-item" href="#network" data-page="network" data-nav="network"><span data-i18n="Network">Network</span></a></li>
 							<li><a class="dropdown-item" href="#update" data-page="update" data-nav="update"><span data-i18n="Firmware update">Firmware update</span></a></li>
 							<li><a class="dropdown-item" href="#log" data-page="system_log" data-nav="system_log"><span data-i18n="System log">System log</span></a></li>
 							<li><a class="dropdown-item" href="#about" data-page="about" data-nav="about"><span data-i18n="About">About</span></a></li>
@@ -475,11 +475,14 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 await ensurePageScript('/bluetooth.js', () => !!window.BluetoothPage);
             } else if (page === 'system_log') {
                 await ensurePageScript('/system-log.js', () => !!window.SystemLogPage);
+            } else if (page === 'heating') {
+                // The visual week planner is optional: without it the rooms page keeps its switch-point list.
+                await ensurePageScript('/week-editor.js', () => !!window.OTWeekEditor).catch(() => {});
             } else if (page === 'curve') await ensureChart();
         }
         // Hash routes keep refresh, Back and bookmarks on the same page.
-        const pageRoutes = {heating:'rooms', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', bluetooth:'sensors', network:'network', update:'update', system_log:'log', about:'about'};
-        const pageTitles = {home:"Overview", heating:"Rooms", boiler_test:"Boiler", bluetooth:"Sensors", network:"Network", update:"Firmware update", system_log:"System log", about:"About"};
+        const pageRoutes = {heating:'rooms', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', bluetooth:'sensors', network:'settings', update:'update', system_log:'log', about:'about'};
+        const pageTitles = {home:"Overview", heating:"Rooms", boiler_test:"Boiler", bluetooth:"Sensors", network:"Settings", update:"Firmware update", system_log:"System log", about:"About"};
         function markPage(page) {
             try {
                 document.title = uiText(pageTitles[page] || "System") + ' · OpenThermostat';
@@ -488,13 +491,15 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                     link.classList.toggle('active', current);
                     if (current) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
                 });
-                document.getElementById('navbarDropdownMenuLink').classList.toggle('active', !pageTitles[page] || ['network','update','system_log','about'].includes(page));
+                document.getElementById('navbarDropdownMenuLink').classList.toggle('active', !pageTitles[page] || ['update','system_log','about'].includes(page));
                 $('#navbarNavDropdown.show').collapse('hide');
             } catch (_) {}
         }
         function routePage() {
             const name = location.hash.slice(1);
+            // #network: saved links from before the Settings page had its own menu item.
             const page = Object.keys(pageRoutes).find(key => pageRoutes[key] === name) ||
+                (name === 'network' ? 'network' : null) ||
                 (legacyEditorPages.concat(['ems_devices']).includes(name) ? name : null);
             return page;
         }
@@ -521,6 +526,11 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 if (legacyEditorPages.includes(page) && mode !== 'legacy') {
                     managedControlNotice(); return false;
                 }
+                // Dutch for the pages other than Home loads with the first such page, so
+                // Home stays small. Without it a page shows English; the next visit retries.
+                if (window.OpenThermostatLanguage?.language === 'nl')
+                    await ensurePageScript('/ui-messages-pages.js', () => !!window.OT_UI_PAGE_MESSAGES).catch(() => {});
+                if (navigation !== navigationGeneration) return false;
                 // Boiler controls mount immediately; the optional entity panel
                 // owns its larger dependencies in parallel after mounting.
                 if (page !== 'boiler_test') await ensurePageScripts(page);
@@ -547,6 +557,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
         }
 
 		$(document).ready(function () {
+			$(document).on('click', '[data-comfort]', function (event) { event.preventDefault(); sendComfort(this); });
 			$(document).on('click', '[data-page]', function (event) {
 				if (event.ctrlKey || event.metaKey || event.shiftKey) return; // New tab keeps the link target.
 				event.preventDefault();
@@ -654,6 +665,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 .then(validateResponse)
 				.then(res => res.json())
                 .then(out => heatingRead.then(heating => { if (out && heating && typeof heating === 'object') out.heating = heating; return out; }))
+                .then(out => readDashboardHistory(out, request.signal))
 				.then((out) => {
 					if (navigation !== navigationGeneration || statusPoll !== request ||
                         request.signal.aborted || document.visibilityState === 'hidden') return;
@@ -816,6 +828,25 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
 
         // Read-only dashboard. No new polling, commands, scheduler or chart dependency.
         var installationHistory = Object.create(null), installationHistoryBoot = null;
+        // GET /status/history: every sixth 10 s poll, only with the E32's own rooms. The chart
+        // code (history-chart.js) loads with the first read, so Home without rooms stays small.
+        var dashboardHistory = null, dashboardHistoryAt = -Infinity, historyChartLoad = null;
+        function loadHistoryChart() {
+            if (typeof OpenThermostatHistory !== 'undefined') return Promise.resolve();
+            if (!historyChartLoad) historyChartLoad = new Promise((resolve, reject) => {
+                const script = document.createElement('script'); script.src = '/history-chart.js';
+                script.onload = () => typeof OpenThermostatHistory !== 'undefined' ? resolve() : reject(Error('history chart'));
+                script.onerror = () => reject(Error('history chart'));
+                document.head.append(script);
+            }).catch(error => { historyChartLoad = null; throw error; });
+            return historyChartLoad;
+        }
+        function readDashboardHistory(out, signal) {
+            if (!out || !out.heating || !Array.isArray(out.heating.rooms) || Date.now() - dashboardHistoryAt < 55000) return out;
+            dashboardHistoryAt = Date.now();
+            return Promise.all([loadHistoryChart(), fetch(hostName + '/status/history', {signal: signal, cache: 'no-store'}).then(res => res.ok ? res.json() : null)])
+                .then(([, doc]) => { if (doc) dashboardHistory = OpenThermostatHistory.parse(doc, Date.now()); }).catch(() => {}).then(() => out);
+        }
         var otDefaultPassword = false; // from /auth/session; the About page clears it after a change
         function dashboardText(value) {
             return String(value == null ? '' : value).replace(/[&<>"']/g, function(c) {
@@ -995,7 +1026,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 return path;
             }
             return '<svg class="pd-trend" viewBox="0 0 260 56" role="img" aria-label="Recent temperature feedback and target" data-i18n-aria-label="Recent temperature feedback and target"><path d="'+line(2)+'" class="pd-target-line"/><path d="'+line(1)+'" class="pd-actual-line"/></svg>'+
-                uiHtml("<p class=\"pd-help\">Solid: reported · dotted: target · ")+Math.max(1,Math.round(span/1000))+' s</p>';
+                '<p class="pd-help pd-trend-legend"><span data-line="actual">'+dashboardText(uiText("Reported"))+'</span><span data-line="target">'+dashboardText(uiText("Target"))+'</span><span>'+Math.max(1,Math.round(span/1000))+' s</span></p>';
         }
         // Reconcile the trusted, escaped dashboard template against existing nodes.
         // Native details.open and the separately owned boiler illustration remain untouched.
@@ -1048,6 +1079,88 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
         var engineReasons = {heating:"Heating", minimum_on:"Minimum burner time", minimum_off:"Minimum pause", satisfied:"Warm enough", no_demand:"No room can ask for heat", idle:"No heat needed", invalid_parameters:"Invalid limits"};
         var engineRoomStatus = {fallback:"Fallback source", stale:"Last value (source lost)", lost:"No measurement: no heat request", inactive:"Inactive"};
         var engineTargetSource = {ha:"Target temperature from Home Assistant", schedule:"Target temperature from the week program", fallback:"Target temperature: fixed value without Home Assistant"};
+        // Beta.19 comfort on the E32 (POST /config/heating/comfort): a temporary room
+        // override, the window pause and away. Shown only by firmware that reports "away".
+        var comfortNotice = null; // {room ('' = away), text, until (ms)}
+        function comfortTime(unix) {
+            var d = new Date(unix * 1000), today = new Date().toDateString() === d.toDateString();
+            try { return d.toLocaleString(document.documentElement.lang || undefined, today ? {hour:'2-digit', minute:'2-digit'} : {weekday:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}); }
+            catch (_) { return d.toISOString().slice(0,16).replace('T',' '); }
+        }
+        function comfortState(c) {
+            if (!c || typeof c !== 'object') return '';
+            var until = Number.isFinite(c.until) && c.until > 0 ? comfortTime(c.until) : null, t = dashboardNumber(c.target_c,1,5,35);
+            if (c.mode === 'window_open') return uiText("Window open: paused");
+            if (c.mode === 'boost') return until ? uiText("Boost until {time}").replace('{time}',until) : uiText("Boost");
+            if ((c.mode === 'timed' || c.mode === 'next') && t !== null) return until ? uiText("{temp} °C until {time}").replace('{time}',until).replace('{temp}',t) :
+                Number.isFinite(c.remaining_s) ? uiText("{temp} °C for {minutes} min").replace('{minutes}',Math.ceil(c.remaining_s/60)).replace('{temp}',t) : '';
+            if (c.mode === 'away') return until ? uiText("Away until {time}").replace('{time}',until) : uiText("Away");
+            if (c.mode === 'presence_away') return uiText("Everyone away");
+            if (c.mode === 'away_return') return uiText("Warming up for your return");
+            if (c.window === 'pending') return uiText("Window open: pauses soon");
+            return c.waiting_for_clock ? uiText("Waiting for the clock") : '';
+        }
+        function comfortNoticeHtml(room) {
+            return comfortNotice && comfortNotice.room === room && comfortNotice.until > Date.now() ?
+                '<p class="pd-help" role="status" data-dashboard-key="comfort-notice">'+dashboardText(comfortNotice.text)+'</p>' : '';
+        }
+        function comfortControls(r, target) {
+            var id = dashboardText(r.id), c = r.comfort && typeof r.comfort === 'object' ? r.comfort : {};
+            var overriding = c.override === 'boost' || c.override === 'timed' || c.override === 'next';
+            return '<details class="pd-room-comfort" data-dashboard-key="comfort-'+id+'"><summary>'+uiText("Change temporarily")+'</summary>'+
+                '<div class="ot-actions"><button type="button" class="btn btn-outline-primary" data-comfort="boost" data-room="'+id+'">'+uiText("Boost 1 hour")+'</button></div>'+
+                '<div class="ot-actions"><label>'+uiText("Temperature")+' <input type="number" class="form-control" step="0.5" min="5" max="30" value="'+dashboardText(target === null ? 20 : target)+'" data-comfort-temp data-dashboard-key="comfort-temp"></label> '+
+                '<select class="form-control" data-comfort-length data-dashboard-key="comfort-length" aria-label="'+uiText("Duration")+'"><option value="next">'+uiText("Until the next switch point")+'</option><option value="60">'+uiText("1 hour")+
+                '</option><option value="120" selected>'+uiText("2 hours")+'</option><option value="240">'+uiText("4 hours")+'</option></select> '+
+                '<button type="button" class="btn btn-primary" data-comfort="set" data-room="'+id+'">'+uiText("Set")+'</button></div>'+
+                (overriding ? '<div class="ot-actions"><button type="button" class="btn btn-outline-secondary" data-comfort="none" data-room="'+id+'">'+uiText("Back to the week program")+'</button></div>' : '')+
+                '<p class="pd-help">'+uiText("Only the room's target changes; flow limits and frost protection stay.")+'</p>'+comfortNoticeHtml(r.id)+'</details>';
+        }
+        function comfortAway(away) {
+            if (!away || typeof away !== 'object') return '';
+            var until = Number.isFinite(away.until) && away.until > 0 ? comfortTime(away.until) : null;
+            var state = away.on !== true ? '' : away.source === 'presence' ? uiText("Everyone away") : until ? uiText("Away until {time}").replace('{time}',until) : uiText("Away");
+            var temperature = dashboardNumber(away.target_c,1,5,25);
+            return '<details class="pd-panel pd-away" data-dashboard-key="away"><summary>'+uiText("Away")+(state ? ' · '+dashboardText(state) : '')+'</summary>'+
+                '<p class="pd-help">'+uiText("A lower temperature for the whole house, optionally until a date. The rooms are warm again when you are back.")+'</p>'+
+                '<div class="ot-actions"><label>'+uiText("Away temperature")+' <input type="number" class="form-control" step="0.5" min="5" max="25" value="'+dashboardText(temperature === null ? 15 : temperature)+'" data-comfort-away-temp data-dashboard-key="away-temp"></label> '+
+                '<label>'+uiText("Back on (optional)")+' <input type="datetime-local" class="form-control" data-comfort-away-until data-dashboard-key="away-until"></label></div>'+
+                '<div class="ot-actions"><button type="button" class="btn btn-primary" data-comfort="away" data-room="">'+uiText("Start away")+'</button>'+
+                (away.on === true && away.source === 'manual' ? ' <button type="button" class="btn btn-outline-secondary" data-comfort="home" data-room="">'+uiText("End away")+'</button>' : '')+
+                '</div>'+comfortNoticeHtml('')+'</details>';
+        }
+        // The command of a [data-comfort] button, from the inputs next to it.
+        function comfortCommand(button) {
+            var action = button.getAttribute('data-comfort'), room = button.getAttribute('data-room') || '', scope = button.closest('details') || document;
+            var value = function(selector) { var input = scope.querySelector(selector); return input ? input.value : ''; };
+            if (action === 'home') return {away:false};
+            if (action === 'away') {
+                var body = {away:true}, t = parseFloat(value('[data-comfort-away-temp]')), when = value('[data-comfort-away-until]');
+                if (Number.isFinite(t)) body.temperature = t;
+                if (when && Number.isFinite(new Date(when).getTime())) body.until = Math.round(new Date(when).getTime() / 1000);
+                return body;
+            }
+            if (action === 'set') {
+                var length = value('[data-comfort-length]'), temperature = parseFloat(value('[data-comfort-temp]'));
+                return length === 'next' ? {room:room, override:'next', temperature:temperature} : {room:room, override:'timed', temperature:temperature, minutes:parseInt(length,10) || 120};
+            }
+            return {room:room, override:action === 'boost' ? 'boost' : 'none'};
+        }
+        var comfortErrors = {no_clock:"The E32 does not know the time yet. Choose a duration.", no_schedule:"This room has no week program. Choose a duration.",
+            invalid_temperature:"This temperature is outside the room's limits.", invalid_until:"Choose a moment in the future, at most a year ahead.", room_inactive:"This room is off."};
+        function sendComfort(button) {
+            var body = comfortCommand(button), room = body.room || '';
+            button.disabled = true;
+            postJSON('/config/heating/comfort', body).then(function(res) {
+                return res.json().catch(function() { return {}; }).then(function(out) {
+                    var error = out && typeof out.error === 'string' ? out.error : '';
+                    comfortNotice = {room:room, until:Date.now() + 15000, text:res.ok ? uiText("Saved. The room follows within 10 seconds.") :
+                        comfortErrors[error] ? uiText(comfortErrors[error]) : uiText("The change was not saved:") + ' ' + (error || res.status)};
+                });
+            }).catch(function() {
+                comfortNotice = {room:room, until:Date.now() + 15000, text:uiText("The change was not saved:") + ' ' + uiText("the E32 could not be reached")};
+            }).finally(function() { button.disabled = false; showRooms(); });
+        }
         function dashboardKnown(map, key) { return typeof key === 'string' && Object.prototype.hasOwnProperty.call(map, key) ? map[key] : null; }
         function dashboardAge(s) { return s < 120 ? s + ' s' : s < 7200 ? Math.round(s/60) + ' min' : Math.round(s/3600) + ' h'; }
         function dashboardSourceName(sensors, id) {
@@ -1093,8 +1206,12 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                     var source = typeof r.source === 'string' && r.source ? dashboardSourceName(sensors,r.source) : null, ha = byName[name.trim().toLowerCase()];
                     var help = dashboardKnown(engineTargetSource,r.setpoint_source);
                     series.push({id:id, actual:actual, target:target});
-                    cards.push({key:id, id:id, name:name, actual:actual, target:target, demand:r.demand === true, help:help ? uiText(help) : '',
-                        chips:extra ? chip(uiText(extra), r.status === 'fallback' ? 'warn' : r.status === 'stale' || r.status === 'lost' ? 'err' : '') : '',
+                    var comfortText = engine.away ? comfortState(r.comfort) : '';
+                    var off = r.state !== 'active';
+                    cards.push({key:id, id:id, name:name, actual:actual, target:target, demand:r.demand === true, off:off, help:help && !off ? uiText(help) : '',
+                        comfort:engine.away && r.state === 'active' ? comfortControls(r, target) : '',
+                        chips:(extra ? chip(uiText(extra), r.status === 'fallback' ? 'warn' : r.status === 'stale' || r.status === 'lost' ? 'err' : '') : '')+
+                            (comfortText ? chip(comfortText, r.comfort && r.comfort.mode === 'window_open' ? 'warn' : 'ok') : ''),
                         details:uiHtml("<p>Room ID: ")+dashboardText(r.id || '')+(source ? '<br>'+uiText("Measured by")+': '+dashboardText(source) : '')+'</p>'+(ha ? dashboardRoomContext(ha) : '')});
                 });
                 recordRoomSeries(Date.now(), 'e32', series);
@@ -1117,7 +1234,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             // In shadow mode the thermostat controls the boiler: a calm chip, no "Blocked".
             var controlChip = !activePlan ? chip(uiText("Your thermostat controls the boiler")) : controlling ? chip(uiText("The E32 controls the boiler"),'ok') :
                 !engine || /^(stopped|blocked)/.test(activeState) ? chip(uiText("Boiler control")+': '+uiText("Blocked"),'err') : chip(uiText("Switch-over in progress"),'warn');
-            var statusHelp = request ? uiText("Calculated boiler request")+': '+(request.heat ? dashboardText(request.flow_c)+' °C' : uiText("off"))+' · '+uiText(dashboardKnown(engineReasons,request.reason) || "No heat needed") :
+            var statusHelp = request ? uiText("Calculated boiler request")+': '+(request.heat ? dashboardText(request.flow_c)+' °C'+(request.capped_by === 'boiler_limit' ? ' ('+uiText("limited by the boiler's own maximum")+')' : '') : uiText("off"))+' · '+uiText(dashboardKnown(engineReasons,request.reason) || "No heat needed") :
                 state ? (controlling ? dashboardReason(supervisor.reason) : '') : uiText("Set up rooms on the Rooms page, or connect Home Assistant.");
             var html = '<section class="product-dashboard" aria-label="OpenThermostat">'+
                 uiHtml("<header class=\"pd-heading\"><div><h1>Your heating system</h1><p>Rooms and boiler at a glance.</p></div>")+
@@ -1129,24 +1246,28 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 (statusHelp?'<p class="pd-help">'+dashboardText(statusHelp)+'</p>':'')+
                 (freshText?'<p class="pd-help"><span>'+dashboardText(freshText)+'</span></p>':'')+'</section>'+
                 uiHtml("<div class=\"pd-section-title\"><h2>Rooms</h2>")+(engine && !haFresh ? '<a href="#rooms" data-page="heating">'+uiText("Change rooms and week programs")+'</a>' :
-                uiHtml("<span class=\"pd-help\">Controls and programs in Home Assistant</span>"))+'</div><div class="pd-rooms">';
+                uiHtml("<span class=\"pd-help\">Controls and programs in Home Assistant</span>"))+'</div>'+(engine ? comfortAway(engine.away) : '')+'<div class="pd-rooms">';
             if (!cards.length) html += '<div class="pd-empty ot-empty"><strong>'+(known?uiText("No rooms yet"):uiText("No current control status"))+'</strong>'+
                 (state && !engine?uiText("There are no rooms in the configuration read back yet."):uiText("Set up rooms on the Rooms page, or connect Home Assistant."))+
                 (engine?'<br><a class="btn btn-primary mt-2" href="#rooms" data-page="heating">'+uiText("Add room")+'</a>':'')+'</div>';
             var trendPending = false;
             cards.forEach(function(c) {
-                var trend = dashboardTrend(c.id); if (!trend) trendPending = true;
+                // The E32's 24 h history (RAM, since restart) when it has this room; else the live trend.
+                var trend = c.off ? '' : (engine && dashboardHistory && c.id.indexOf('e32:') === 0 ? OpenThermostatHistory.room(dashboardHistory,c.id.slice(4),c.name) : '') || dashboardTrend(c.id); if (!trend && !c.off) trendPending = true;
                 html += '<article class="pd-room" data-dashboard-key="'+dashboardText(c.key)+'"><div class="pd-room-title"><h3>'+dashboardText(c.name)+'</h3><span class="ot-chips">'+
-                    chip(dashboardBool(c.demand,uiText("Requesting heat"),uiText("No request")),c.demand===true?'ok':'')+c.chips+'</span>'+
-                    uiHtml("</div><div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Now</span>")+dashboardValue(c.actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(c.target,'°C')+'</div></div>'+
-                    (c.help?'<p class="pd-help">'+dashboardText(c.help)+'</p>':'')+trend+
+                    (c.off ? '' : chip(dashboardBool(c.demand,uiText("Requesting heat"),uiText("No request")),c.demand===true?'ok':''))+c.chips+'</span></div>'+
+                    (c.off ? '<p class="pd-room-off">'+uiText("Off: this room never asks for heat.")+' <a href="#rooms" data-page="heating">'+uiText("Change or remove on the Rooms page")+'</a></p>' :
+                    uiHtml("<div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Now</span>")+dashboardValue(c.actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(c.target,'°C')+'</div></div>')+
+                    (c.help?'<p class="pd-help">'+dashboardText(c.help)+'</p>':'')+trend+(c.comfort||'')+
                     uiHtml("<details class=\"pd-room-detail\"><summary>Technical details</summary>")+c.details+'</details></article>';
             });
-            html += '</div>'+(trendPending && cards.length ? uiHtml("<p class=\"pd-help\" data-dashboard-key=\"trend-hint\">The trend appears after two reports.</p>") : '')+'<section class="pd-panel pd-boiler"><div class="pd-facts">'+
-                fact(uiText("Flow temperature"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C')+
-                fact(uiText("Return temperature"),dashboardNumber(ems.currentReturnTemperature,10,-20,150),'°C')+
-                fact(uiText("Burner modulation"),dashboardNumber(ems.currentBurnerPower,1,0,100),'%')+
-                fact(uiText("Water pressure"),dashboardNumber(ems.pressure,10,0,10),'bar')+
+            html += '</div>'+(trendPending && cards.length ? uiHtml("<p class=\"pd-help\" data-dashboard-key=\"trend-hint\">The trend appears after two reports.</p>") : '')+
+                (engine && dashboardHistory ? (function(chart) { return chart ? '<section class="pd-panel pd-history" data-dashboard-key="boiler-history">'+chart+'</section>' : ''; })(OpenThermostatHistory.boiler(dashboardHistory)) : '')+
+                '<section class="pd-panel pd-boiler"><div class="pd-facts">'+
+                fact(uiText("Flow"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C')+
+                fact(uiText("Return"),dashboardNumber(ems.currentReturnTemperature,10,-20,150),'°C')+
+                fact(uiText("Modulation"),dashboardNumber(ems.currentBurnerPower,1,0,100),'%')+
+                fact(uiText("Pressure"),dashboardNumber(ems.pressure,10,0,10),'bar')+
                 uiHtml("</div><div class=\"pd-lower\"><details class=\"ot-advanced\"><summary>More boiler data</summary><dl class=\"pd-detail-grid\">");
             // Reliable reported fields only, and only when a value was received.
             // Flame/pump/fan bits, flow rate and the read-back setpoint are not

@@ -70,6 +70,14 @@ class AcceptedUpdatePathTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'newer_than_accepted'):
                 self.run_fixture()
 
+    def test_the_accepted_updater_also_finds_and_verifies_version_one(self):
+        self.manifest = {**self.base,'version':'v1.0.0-e32v2'}
+        image = self.image.replace(self.base['version'].encode(),b'v1.0.0-e32v2')
+        self.manifest.update(size=len(image),sha256=hashlib.sha256(image).hexdigest())
+        (self.work/'firmware.bin').write_bytes(image)
+        report = self.run_fixture()
+        self.assertEqual((report['result'],report['candidate']),('PASS','v1.0.0-e32v2'))
+
     def test_wrong_layout_is_rejected_by_unmodified_accepted_parser(self):
         self.manifest['layout']='unreviewed-layout'
         with self.assertRaises(subprocess.CalledProcessError) as caught:

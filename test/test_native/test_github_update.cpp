@@ -20,6 +20,23 @@ TEST(GitHubOtaRestart, DuplicateRequestsCannotPostponeRestart) {
     RestartTimer explicitRestart;explicitRestart.schedule(1000,1000);
     EXPECT_FALSE(explicitRestart.due(1999,false));EXPECT_TRUE(explicitRestart.due(2000,false));
 }
+TEST(GitHubOtaRestart, EarliestRequestWinsAndKeepsItsReason) {
+    // A pending restart is never postponed by a slower request ...
+    RestartTimer timer;timer.schedule(1000,30000);timer.schedule(2000,1000);
+    EXPECT_TRUE(timer.due(3000,false));
+    // ... and the controlled restart keeps the reason of the earliest request:
+    // a Bluetooth settings save (30 s) is not held up by a later deadline.
+    ReasonedRestartTimer controlled;
+    EXPECT_FALSE(controlled.pending());EXPECT_EQ(controlled.reason(),0);
+    controlled.schedule(1000,900000,9);controlled.schedule(2000,30000,6);
+    EXPECT_FALSE(controlled.due(31999,false));EXPECT_TRUE(controlled.due(32000,false));
+    EXPECT_EQ(controlled.reason(),6);
+    controlled.schedule(3000,60000,8); // later: neither deadline nor reason change
+    EXPECT_TRUE(controlled.due(32000,false));EXPECT_EQ(controlled.reason(),6);
+    EXPECT_FALSE(controlled.due(40000,true)); // never during a flash write
+    ReasonedRestartTimer wrapped;wrapped.schedule(UINT32_MAX-1000,2000,6);wrapped.schedule(UINT32_MAX-500,600000,9);
+    EXPECT_FALSE(wrapped.due(UINT32_MAX,false));EXPECT_TRUE(wrapped.due(999,false));EXPECT_EQ(wrapped.reason(),6);
+}
 TEST(GitHubOtaRestart, MillisRolloverAndZeroSentinelRemainBounded) {
     RestartTimer timer;timer.schedule(UINT32_MAX-1000);
     EXPECT_FALSE(timer.due(UINT32_MAX,false));EXPECT_FALSE(timer.due(1998,false));

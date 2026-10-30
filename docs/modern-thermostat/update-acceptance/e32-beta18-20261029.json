@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "status": "INCOMPLETE",
+  "tag": "v0.1.0-e32v2-beta.18",
+  "method": "home_assistant",
+  "acceptance_decision": "NOT_ACCEPTED_PENDING_OWNER",
+  "checks": {
+    "public_release_exact": true,
+    "fresh_preflight_passed": false,
+    "backup_verified": false,
+    "single_ha_install_action": false,
+    "ha_download_digest_size_marker_verified": false,
+    "local_upload_accepted": true,
+    "new_boot_observed": true,
+    "installed_version_source_elf_web_exact": true,
+    "boot_confirmed": true,
+    "stable_uptime_observed": true,
+    "settings_programs_bindings_preserved": false,
+    "control_state_safe_after_restart": true,
+    "ha_entity_reports_new_version": true,
+    "independent_postcheck_passed": false
+  },
+  "github_release": {
+    "tag_name": "v0.1.0-e32v2-beta.18",
+    "draft": false,
+    "prerelease": true,
+    "published_at": "2026-10-29T16:01:41Z",
+    "asset": {
+      "name": "firmware.bin",
+      "size": 3425184,
+      "digest": "sha256:533ab9c08d1c8cbe043fdbd5c38c9730d953bd1ac00fd7e7b8490ad06fc8a157"
+    }
+  },
+  "firmware_sha256": "533ab9c08d1c8cbe043fdbd5c38c9730d953bd1ac00fd7e7b8490ad06fc8a157",
+  "firmware_bytes": 3425184,
+  "source_commit": "14d25d914b304eb65971834cb5c353e3e4b878a5",
+  "web_sha256": "764165f9726b60eb204e3f4a48cff7e694de582f895faf37ed8b9fca62de3616",
+  "elf_sha256": "3f64921f70e6b992ded7b7a6c233d36485c1b1e1681e41c563b1f29833146c09",
+  "ha_entity_id": "update.woonkamer_e32_regelaar_ketel_en_diagnose_firmware",
+  "ha_installed_version_before": null,
+  "ha_latest_version_before": null,
+  "ha_installed_version_after": "v0.1.0-e32v2-beta.18",
+  "install_actions": null,
+  "ha_integration_version": "0.4.0b10",
+  "ha_core_version": "2026.10.4",
+  "ha_install_record": null,
+  "observations": [
+    {
+      "at_utc": "2026-10-29T20:08:08Z",
+      "uptime_seconds": 13948,
+      "boot_pending": false,
+      "version": "v0.1.0-e32v2-beta.18"
+    },
+    {
+      "at_utc": "2026-10-29T20:45:51Z",
+      "uptime_seconds": 16212,
+      "boot_pending": false,
+      "version": "v0.1.0-e32v2-beta.18"
+    }
+  ],
+  "installer_receipt_sha256": null,
+  "independent_receipt_sha256": null,
+  "backup_manifest_sha256": null,
+  "postinstall_capture": {
+    "file": "docs/modern-thermostat/update-acceptance/e32-beta18-20261029-postinstall-capture.json",
+    "sha256": "53e23600b531ff16ee2554e7d17addbe868b2c442634226fd74f2c60921153b7"
+  },
+  "evidence_summary": {
+    "ha_entity_last_changed_utc": "2026-10-29T16:15:48.801041+00:00",
+    "e32_boot_estimate_utc": "2026-10-29T16:15:40Z",
+    "e32_reset_reason": 3,
+    "e32_rollback_available": true,
+    "e32_last_native_checkpoint": "beta.3 -> beta.4 (2026-10-26), unchanged: this install did not use the native GitHub route",
+    "firmware_identity": "GitHub digest equals the SHA-256 of the public firmware.bin; the ELF SHA-256 in that image's app descriptor equals the E32's reported sha256; version, source commit and web hash equal the public e32v2-update.json and the /updates/status build_marker",
+    "network_mqtt": "HTTP answered every read; the HA sensor heating_advice of this E32 was last updated at 2026-10-29T19:53:22Z (MQTT path alive); mqtt_budget_disconnects and heating_telemetry_failed are non-zero since boot (see the capture)",
+    "previous_release_inferred": "v0.1.0-e32v2-beta.17 (BETA17-INSTALLATION-20261028.json); not read from HA before the install"
+  },
+  "limits": [
+    "HA integration 0.4.0b10 has no last_install attribute (added in beta.19 tooling): no HA record of the download, the digest/size/marker check, the upload count, start and end time or the reported identity.",
+    "No pre-install capture: the update entity's installed_version and latest_version before the install, the number of Install presses and the integration/Core versions at install time were not recorded. The owner reports one install via the HA button at about 17:15 local time (16:15 UTC).",
+    "No settings backup was taken before the install, so settings, programs and Bluetooth bindings cannot be compared with a backup.",
+    "No beta.18-specific release preflight receipt was checked for this acceptance.",
+    "No independent second capture by another person or tool; the post-install capture is one read-only capture by agent O.",
+    "HA's digest/size/marker verification is implied by firmware_update.py (verify_image runs before every upload) and by the running image's identity matching the public firmware.bin, but it was not recorded.",
+    "Observations are finite post-install reads hours after the restart; no soak or power-loss proof."
+  ]
+}

@@ -45,7 +45,14 @@ class HeatingPlanRejected(ControllerLinkError):
 
 
 HEATING_PLAN = "/config/heating"
-HEATING_PLAN_BYTES = 4096  # The E32 refuses larger plans (413 plan_too_large).
+# Overrides, window pauses and away on top of the plan (E32 beta.19, RoomOverrides.h).
+HEATING_COMFORT = "/config/heating/comfort"
+# The flow options: weather curve, learned flow and optimum start (E32 beta.19, FlowPolicy.h).
+HEATING_FLOW = "/config/heating/flow"
+HEATING_PLAN_BYTES = 8192  # The E32 refuses larger request bodies (413 plan_too_large).
+# Since beta.19 the E32 packs large week programs into its 4 KB store and
+# answers 413 plan_too_large itself when even that form does not fit; older
+# firmware refuses bodies above 4096 bytes with the same 413.
 # A plan that fits but finds its flash storage full is refused with 507 storage_full.
 
 
@@ -200,7 +207,7 @@ def initial_controller_link(hass, entry, *, version, status, updates, settings, 
     if (type(etag) is not str or re.fullmatch(r'"[0-9a-f]{64}"', etag) is None):
         raise ControllerLinkError("controller_update_required")
     if (type(version.get("version")) is not str
-            or re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+-e32v2-(?:alpha|beta)\.[0-9]+", version["version"]) is None
+            or re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+-e32v2(?:-(?:alpha|beta|rc)\.[0-9]+)?", version["version"]) is None
             or type(version.get("source")) is not str
             or re.fullmatch(r"[0-9a-f]{40}", version["source"]) is None
             or any(type(version.get(k)) is not str or re.fullmatch(r"[0-9a-f]{64}",version[k]) is None
@@ -448,13 +455,18 @@ class ControllerClient:
     """One scoped operation using the existing firmware cookie/CSRF contract."""
 
     _reads = frozenset(("/auth/session", "/status/version", "/status", "/updates/status",
-                        "/config/device", "/config/rooms", HEATING_PLAN, "/status/heating"))
-    _writes = frozenset(("/auth/login", "/auth/logout", "/config/device", "/updates/reboot", HEATING_PLAN))
+                        "/config/device", "/config/rooms", HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW,
+                        "/status/heating"))
+    _writes = frozenset(("/auth/login", "/auth/logout", "/config/device", "/updates/reboot", HEATING_PLAN,
+                         HEATING_COMFORT, HEATING_FLOW))
 
     def __init__(self, address):
         self.address = controller_address(address)
         self._session = None
         self._csrf = None
+        # True once /auth/login answered 200: the E32 holds a session for this
+        # client, even when the CSRF read after it failed (closed with a logout).
+        self._signed_in = False
         self.logout_confirmed = False
         # From /auth/session after a login: True while the E32 still has its
         # factory password, False once changed, None on firmware that does not say.
@@ -465,6 +477,7 @@ class ControllerClient:
             raise ControllerLinkError("controller_request_invalid")
         self.logout_confirmed = False
         self._csrf = None
+        self._signed_in = False
         self._session = aiohttp.ClientSession(
             cookie_jar=aiohttp.CookieJar(unsafe=True),  # Native E32 uses LAN IP cookies.
             timeout=aiohttp.ClientTimeout(total=10), trust_env=False,
@@ -515,8 +528,16 @@ class ControllerClient:
                     raise ControllerLoginRejected()
                 if response.status in (401, 403):
                     raise ControllerLinkError("controller_auth_failed")
-                if path == HEATING_PLAN and response.status in (400, 409, 413, 503, 507):
+                if path in (HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW) and response.status in (400, 409, 413, 503, 507):
                     raise HeatingPlanRejected(response.status, await _error_name(response))
+                if path == HEATING_FLOW and response.status == 404:
+                    raise ControllerLinkError("controller_update_required")  # firmware before beta.19
+                if response.status == 429:
+                    # /auth/login: all E32 web sessions are in use (session_capacity), or
+                    # too many failed sign-ins (try_again_later, Retry-After 30 s).
+                    raise ControllerLinkError("controller_session_capacity"
+                                              if await _error_name(response) == "session_capacity"
+                                              else "controller_try_again_later")
                 if response.status == 412:
                     raise ControllerLinkError("controller_settings_changed")
                 if response.status == 409:
@@ -549,14 +570,20 @@ class ControllerClient:
             raise ControllerLinkError("controller_auth_failed")
         # Do not retain the supplied password in this object or an HA entry.
         await self._request("POST", "/auth/login", form={"username": "admin", "password": password})
+        self._signed_in = True
+        session = await self._read_session()
+        self._csrf = session["csrf"]
+        flag = session.get("default_password")
+        self.default_password = flag if type(flag) is bool else None
+
+    async def _read_session(self):
+        """GET /auth/session of a signed-in client: its CSRF proof (and default_password)."""
         session = await self.async_read("/auth/session")
         if (type(session) is not dict or session.get("authenticated") is not True
                 or type(session.get("csrf")) is not str
                 or re.fullmatch(r"[0-9a-f]{64}", session["csrf"]) is None):
             raise ControllerLinkError("controller_auth_failed")
-        self._csrf = session["csrf"]
-        flag = session.get("default_password")
-        self.default_password = flag if type(flag) is bool else None
+        return session
 
     async def async_read_heating_plan(self):
         """The E32 room plan (GET /config/heating), parsed but not yet validated."""
@@ -572,6 +599,31 @@ class ControllerClient:
         if type(plan) is not dict:
             raise ControllerLinkError("controller_request_invalid")
         raw, _, _ = await self._request("POST", HEATING_PLAN, document=plan)
+        return _decode(raw)
+
+    async def async_comfort_command(self, command):
+        """POST one override or away command; returns the E32's comfort state.
+
+        A refusal raises HeatingPlanRejected with the E32's error name
+        (unknown_room, invalid_temperature, no_clock, no_schedule, ...).
+        """
+        if type(command) is not dict:
+            raise ControllerLinkError("controller_request_invalid")
+        raw, _, _ = await self._request("POST", HEATING_COMFORT, document=command)
+        return _decode(raw)
+
+    async def async_flow_settings(self, change=None):
+        """GET the flow options, or POST a partial change; returns the stored options.
+
+        A refusal raises HeatingPlanRejected (invalid_key, invalid_value: 400;
+        save_unconfirmed: 503); firmware without the options raises
+        controller_update_required.
+        """
+        if change is None:
+            return await self.async_read(HEATING_FLOW)
+        if type(change) is not dict or not change:
+            raise ControllerLinkError("controller_request_invalid")
+        raw, _, _ = await self._request("POST", HEATING_FLOW, document=change)
         return _decode(raw)
 
     async def async_save_settings(self, document, etag):
@@ -627,14 +679,19 @@ class ControllerClient:
         if self._session is None:
             return
         try:
-            if self._csrf and not self._session.closed:
+            # Every sign-in ends with a logout: the E32 has only 4 web sessions and
+            # refuses new sign-ins (429 session_capacity) while they are all in use.
+            if (self._csrf or self._signed_in) and not self._session.closed:
                 try:
                     async with asyncio.timeout(3):
+                        if not self._csrf:
+                            self._csrf = (await self._read_session())["csrf"]
                         await self._request("POST", "/auth/logout")
                     self.logout_confirmed = True
                 except (ControllerLinkError, TimeoutError):
                     pass
         finally:
             self._csrf = None
+            self._signed_in = False
             self._session.cookie_jar.clear()
             await self._session.close()

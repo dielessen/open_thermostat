@@ -94,7 +94,8 @@ window.EMSDevicesPage=(()=>{
     }
     return result;
   }
-  const label=id=>text(id.replaceAll('_',' ').replace(/^./,c=>c.toUpperCase()));
+  // Entity ids as plain words; "dhw" (domestic hot water) reads "hot water".
+  const label=id=>text(id.replaceAll('_',' ').replace(/\bdhw\b/g,'hot water').replace(/^./,c=>c.toUpperCase()));
   const age=ms=>ms===null?text('Unknown'):(ms/1000).toLocaleString(OpenThermostatLanguage.locale,{maximumFractionDigits:1})+' s';
   const update=(node,value)=>{if(node.textContent!==value)node.textContent=value;};
   const el=(tag,value,className)=>{const e=document.createElement(tag);if(value!==undefined)e.textContent=value;if(className)e.className=className;return e;};
@@ -134,10 +135,12 @@ window.EMSDevicesPage=(()=>{
       const alias=reference.aliases[id],spec=group?.fields.map(i=>reference.entities[i]).find(v=>v[0]===alias);
       if(spec?.[4]&&!Object.hasOwn(nativeFields,id)&&id!=='reported_selected_flow_temperature')
         return {kind:'write',label:text('Configurable in EMS-ESP')+' · '+text('Read only on E32')};
-      if(Object.hasOwn(nativeFields,id))return {kind:'write',label:text('Configurable settings')};
+      // Without the settings transmitter in this firmware the four Classic settings are plain readings.
+      if(Object.hasOwn(nativeFields,id))return readOnly()?{kind:'read',label:text('Read only on E32')}:{kind:'write',label:text('Configurable settings')};
       if(id==='reported_selected_flow_temperature')return {kind:'command',label:text('Manual Classic trial only')};
       return {kind:'read',label:text('Read only on E32')};
     }
+    const readOnly=()=>settingsPolicy?.transmit_compiled===false;
     function badge(access,label){const node=el('span',label,'ems-access');node.dataset.access=access;return node;}
     function clearConfirmations(){confirmUntil=0;clearTimeout(confirmTimer);if(editor){editor.exclusive.checked=false;editor.stop.checked=false;}}
     const confirmed=()=>performance.now()<confirmUntil&&editor?.exclusive.checked&&editor?.stop.checked;
@@ -239,7 +242,10 @@ window.EMSDevicesPage=(()=>{
     }
     function renderSettings(){
       renderEditor();
-      const note=get('ems-settings-status');
+      const note=get('ems-settings-status'),intro=get('ems-devices-intro');
+      intro.dataset.i18n=readOnly()?'Everything the E32 receives from the EMS bus, per device. Boiler settings are read-only in this firmware.'
+        :'Everything the E32 receives from the EMS bus, per device. Settings marked as configurable can be changed here.';
+      intro.textContent=text(intro.dataset.i18n);
       note.textContent=settingsPolicy?.transmit_compiled===false?text('Boiler settings are read-only in this firmware. The separate heating test remains available when its preparation is complete.')
         :!settingsSnapshot?text('Settings control is unavailable.')
         :settingsSnapshot.available?'':text('Changing settings is unavailable. Protocol ranges do not confirm support by your boiler.');
@@ -324,7 +330,7 @@ window.EMSDevicesPage=(()=>{
           const accessKey=JSON.stringify([local.kind,local.label,editable]);
           if(row.dataset.accessKey!==accessKey){
             row.dataset.accessKey=accessKey;cells[2].replaceChildren(...local.kind==='read'?[]:[badge(local.kind,local.label)]);
-            if(Object.hasOwn(nativeFields,id)){
+            if(Object.hasOwn(nativeFields,id)&&!readOnly()){
               const edit=el('button',text('Edit'),'btn btn-sm btn-outline-primary');edit.type='button';
               edit.disabled=!editable;
               edit.title=editable?text('Edit'):nativeSupport(nativeFields[id]);

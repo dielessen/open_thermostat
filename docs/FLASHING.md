@@ -1,200 +1,101 @@
-# Flash the E32 V2 — easy step-by-step guide
+# USB installation, backup and recovery
 
-**Current release route (23 October 2026):** alpha17 / HA dev23 is the verified
-installed baseline. Use the normal in-device HTTPS updater for future verified
-app updates; preserve settings. The first boiler-test beta is being prepared.
-The USB and alpha.1 instructions below are historical/recovery guidance, not a
-request to flash another image now. See the current modern-thermostat WORKBOARD.
+**Installing OpenThermostat for the first time?** Follow the
+[installation guide](INSTALL.md). It covers downloading the release, flashing
+`e32v2-factory.bin` over USB, the first start and everything after it.
 
+This page covers the less common USB tasks: a full backup before the first
+installation, a clean reinstall, and going back to the original firmware.
 
-**Modern shadow candidate:** first read [the candidate guide](modern-thermostat/INTEGRATED-TEST.nl.md).
-The 20 October WiFi-fix build uses owner-requested fixed local credentials;
-see [its short installation guide](modern-thermostat/WIFI-FIX.nl.md).
-Its checksum, SSID and network modes differ from historical alpha.1 below.
-
-**Use a USB-C data cable and a browser. No Python, PlatformIO or separate programmer needed.**
-
-> This guide is for **test release v0.1.0-e32v2-alpha.1** on a **BBQKees E32 V2 with 16 MB flash**.
-> This version **cannot control the boiler**: EMS transmission is locked and full classic EMS support is still missing.
-> Keep the gateway **disconnected from the boiler/EMS bus** throughout this test. Flashing erases the current firmware and settings.
-
-## What you need
-
-- The E32 V2 and a **USB-C cable that supports data**, not just charging.
-- A computer with **Chrome or Edge**. Safari and Firefox do not support this browser-based route.
-- The free, open-source browser tool [ESPConnect](https://thelastoutpostworkshop.github.io/ESPConnect/).
-- A folder on your computer, such as **E32-test**, for the firmware and backups.
-
-Use the regular ESPConnect page, **not the preview version**. The button labels below are in English.
-
-## 1. Save your current settings first
-
-1. Open the existing **EMS-ESP web interface** while it is still accessible normally.
-2. Go to **Settings → Upload/Download** and download the configuration. The wording may differ between EMS-ESP versions.
-3. Save your current EMS-ESP version and board profile too: take a screenshot of the system information.
-4. Save the matching official **EMS-ESP ESP32-16MB+ recovery firmware** and the [recovery procedure](BBQKEES_E32V2.md#backup-before-any-future-physical-experiment).
-
-**Important:** a settings export is not a full firmware backup. We will make that in step 3.
-
-## 2. Connect the gateway to your computer
-
-1. Disconnect the **EMS/boiler cable and any separate power supply** from the gateway.
-2. Connect the **external USB-C port** on the E32 V2 to your computer.
-   USB supplies power during flashing; no extra power adapter is needed.
-3. Open [ESPConnect](https://thelastoutpostworkshop.github.io/ESPConnect/) in Chrome or Edge.
-4. Select **115200** baud if available and click **Connect**.
-5. Select the gateway's USB/serial port and confirm with **Connect**.
-6. Check **Device Info**: it must show **ESP32** and **16 MB flash**, not ESP32-S3 or 4 MB.
-
-In the security information, **Flash Encryption** and **Secure Boot** must be disabled.
-If either is enabled, or you cannot confirm their status, **stop before erasing or writing** and have the recovery route checked first.
-
-## 3. Make two complete backups
-
-This is the most important preparation. **Do not click Erase or Flash Firmware yet.**
-
-1. Open **Flash Tools** on the left.
-2. Find **Flash Backup & Erase** and enter:
-
-   | Field | Value |
-   | --- | --- |
-   | Start offset | `0x0` |
-   | Length (bytes) | `0x1000000` |
-
-3. Click **Download Flash Region** and wait for the download to finish completely.
-4. Save the file in **E32-test** as **e32-backup-a.bin**.
-5. Click **Download Flash Region again**, using the same values. Save this file as **e32-backup-b.bin**.
-   Do not copy the first file: this must be a second read from the device. Do not let the gateway boot normally between reads.
-   A full read can take a long time, especially at 115200 baud. Keep the computer awake and do not unplug the cable.
-6. Both files must be exactly **16,777,216 bytes**. In file properties, check the actual size, not “size on disk”.
-7. Check that their contents match. The following short command is the only computer command needed for this backup check; nothing needs installing.
-
-**Windows:** open **E32-test** in File Explorer, click the address bar, type `powershell` and press Enter. Paste:
-
-```powershell
-Get-FileHash .\e32-backup-a.bin, .\e32-backup-b.bin -Algorithm SHA256
-```
-
-The two values under **Hash** must be **exactly the same**.
-
-<details>
-<summary>Using macOS or Linux? Click here.</summary>
-
-Open a terminal in the folder containing the backups.
-
-macOS:
-
-```sh
-shasum -a 256 e32-backup-a.bin e32-backup-b.bin
-```
-
-Linux:
-
-```sh
-sha256sum e32-backup-a.bin e32-backup-b.bin
-```
-
-The two hashes must be identical.
-
-</details>
-
-**Continue only with two complete, identical backups and a documented recovery route.**
-Keep an extra copy outside this computer. Backups may contain passwords: **do not upload them to GitHub**.
-Do not rely only on **Download Flash Backup** or **Download All Partitions**: this guide explicitly uses the full range shown above.
-
-## 4. Download our firmware
-
-1. Open [the E32 V2 test release on GitHub](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.1).
-2. Under **Assets**, download **open-thermostat-e32v2-v0.1.0-e32v2-alpha.1.zip**.
-   Do not choose the automatically generated **Source code** files.
-3. Extract the ZIP into **E32-test**. The file you will select for flashing is **e32v2-factory.bin**.
-
-This single file contains the bootloader, partition layout, firmware and web interface.
-You **do not need to flash the other `.bin` files separately**.
-This file is **not** for the existing EMS-ESP web updater or a flasher that automatically adds EMS-ESP partitions.
-
-## 5. Flash one file
-
-**From this step onward, the current firmware and settings will be erased.** The backups and recovery route from steps 1–3 must be ready.
-
-1. In ESPConnect, go to **Flash Tools → Flash Firmware**.
-2. Under **Firmware binary (.bin)**, select the extracted **e32v2-factory.bin**.
-3. Set **Flash offset** to exactly **`0x0`**. Do **not** choose an app/OTA offset preset.
-4. Check **Erase entire flash before writing**.
-5. Click **Flash Firmware** and double-check the filename and **`0x0`** in the confirmation.
-6. Confirm with **Flash** and wait for successful completion with no errors.
-
-Keep the cable connected and the browser open. **Do not restart the gateway yet:** complete step 6 first.
-If an error or interruption occurs, do not connect it to the boiler. Save the log and have the failure checked before restoring or retrying.
-
-## 6. Check that the firmware was written correctly
-
-Before the first normal restart, go to **Flash Tools → Flash Integrity**:
-
-| Field | Value |
+| Task | Where |
 | --- | --- |
-| Start offset | `0x0` |
-| Length (bytes) | `0xB80000` |
+| First installation on a new E32 V2 | [Installation guide, section 2](INSTALL.md#2-install-the-firmware-on-a-new-e32-usb) |
+| Normal firmware update (keeps settings) | [Installation guide, section 9](INSTALL.md#9-updates) |
+| Forgotten web password (`password-reset`) | [Installation guide, section 10](INSTALL.md#10-forgotten-password-and-wi-fi-recovery-over-usb) |
+| New router or Wi-Fi password (`setup`) | [Installation guide, section 10](INSTALL.md#10-forgotten-password-and-wi-fi-recovery-over-usb) |
+| Full backup before the first installation | [Below](#make-a-full-backup-first) |
+| Clean reinstall (erases all settings) | [Below](#clean-reinstall) |
+| Back to the original EMS-ESP firmware | [Below](#go-back-to-the-original-firmware) |
 
-Click **Compute MD5**. For **alpha.1**, the result must be exactly:
+The steps below use the browser tool
+[ESPConnect](https://thelastoutpostworkshop.github.io/ESPConnect/) in Chrome
+or Edge, as in the installation guide. ESPConnect is made by an independent
+developer. `esptool` can do the same; see the
+[hardware guide](BBQKEES_E32V2.md#backup-before-any-future-physical-experiment)
+for its backup commands.
 
-```text
-3b8e061b32ea05f1886a4993028bfc8c
-```
+## Make a full backup first
 
-This checks all **12,058,624 bytes** of the combined installation image on the chip.
-If the result differs, **stop**: a correct write has not been proven.
-This value applies only to this release. Settings may change after normal startup, so perform this check before the first restart.
+A BBQKees E32 V2 usually comes with EMS-ESP. Installing OpenThermostat erases
+it. Make this backup if you may want to go back.
 
-## 7. Start the test firmware
-
-1. Click **Disconnect**. Unplug the USB cable and reconnect it.
-2. Keep the gateway **disconnected from the boiler/EMS bus**.
-3. On your computer or phone, find the setup Wi-Fi network **OpenThermostat-xxxxxx**
-   (the last six characters are unique per device).
-4. Connect using the setup password **openthermostat**.
-5. Open **http://10.10.10.1/** in your browser and sign in with **admin / admin**.
-6. Choose your own web password under System before using the gateway further on a
-   network (a `password-reset` command on the USB console restores the default).
-
-**The web page should become accessible.** The LED does not need to blink: LED control is disabled in this test firmware.
-This first test checks startup and the web interface, not working heating control.
-
-## Restore the old firmware
-
-This requires a complete, verified backup from **the same gateway**, without flash encryption or secure boot.
-
-1. Keep the gateway disconnected from the boiler and reconnect it to ESPConnect using USB-C.
-2. Select **e32-backup-a.bin** under **Flash Firmware**.
-3. Set **Flash offset** to **`0x0`** and check **Erase entire flash before writing**.
-4. Flash and wait for successful completion. Before restarting, read back the entire restored 16 MB twice using **Download Flash Region**, with start `0x0` and length `0x1000000`.
-   Save the new files as **e32-restore-a.bin** and **e32-restore-b.bin**. **Do not overwrite the original backups.**
-   Compare their hashes with the original backup; on Windows, from the same folder:
+1. In the EMS-ESP web interface, download its settings (**Settings →
+   Upload/Download**; the wording may differ between EMS-ESP versions), and take
+   a screenshot of its system information (version and board profile).
+2. Disconnect the E32 from the boiler and any other power supply, and connect
+   its USB-C port to your computer.
+3. Open ESPConnect, connect at **115200** baud and check **Device Info**: an
+   **ESP32** with **16 MB** flash. In the security information, **Flash
+   Encryption** and **Secure Boot** must be off. If they are on, or you cannot
+   tell, stop: a raw backup may not be restorable.
+4. Go to **Flash Tools → Flash Backup & Erase**. Enter start offset `0x0` and
+   length `0x1000000` (the full 16 MB). Click **Download Flash Region** and
+   save the file as `e32-backup-a.bin`. This takes a while; keep the computer
+   awake and the cable connected.
+5. Read it a second time with the same values and save it as
+   `e32-backup-b.bin`. Do not copy the first file.
+6. Both files must be exactly **16,777,216 bytes** and identical. On Windows,
+   open PowerShell in that folder and run:
 
    ```powershell
-   Get-FileHash .\e32-backup-a.bin, .\e32-restore-a.bin, .\e32-restore-b.bin -Algorithm SHA256
+   Get-FileHash .\e32-backup-a.bin, .\e32-backup-b.bin -Algorithm SHA256
    ```
 
-   All three hashes must be identical. On macOS/Linux, use the command from step 3 with these three filenames.
-5. Restart only after the hashes match. Then check the old EMS-ESP web interface, settings, board profile and network.
+   On macOS use `shasum -a 256 e32-backup-a.bin e32-backup-b.bin`, on Linux
+   `sha256sum e32-backup-a.bin e32-backup-b.bin`. The two hashes must be the
+   same.
 
-**Do not reconnect to the boiler without checking first.** The old backup also restores the old transmission settings. Have those settings and the restoration checked before reconnecting the bus.
-If restoration fails, use the [official recovery route](BBQKEES_E32V2.md#backup-before-any-future-physical-experiment) saved during preparation.
+Keep a copy somewhere other than this computer. A backup can contain your
+Wi-Fi and other passwords: never upload it to GitHub or share it.
 
-## If the connection fails
+## Clean reinstall
 
-- Try another **data cable**, connect directly to the computer and fully insert the USB-C plug into the slightly recessed port.
-- Close other serial programs and browser windows using the same port.
-- Disconnect and reconnect at **115200** baud. If no port appears, check the USB driver according to the manufacturer's instructions.
-- If the bootloader still does not connect, follow the BOOT/RESET instructions for your exact board. Do not bridge arbitrary pins.
+Flashing `e32v2-factory.bin` again gives a factory-fresh E32: Wi-Fi, password,
+rooms, paired sensors and all other settings are erased. Use it only when an
+ordinary update or the USB commands cannot help. Follow
+[section 2 of the installation guide](INSTALL.md#2-install-the-firmware-on-a-new-e32-usb)
+and then continue with the first start. If Home Assistant was connected, use
+**Configure → Connect E32** again afterwards.
 
-## Verification and sources
+## Go back to the original firmware
 
-This guide was checked against the release files, manufacturer documentation and **ESPConnect v1.1.23** source code.
-The browser tool is maintained by an independent developer; we are not building a custom flasher.
-**No physical flashing or restoration test has been performed on an E32 V2.** These instructions do not claim that this firmware already works on hardware.
+You need a complete, verified backup of **this same E32** (see above), or
+BBQKees' official EMS-ESP recovery route.
 
-- [BBQKees: E32 V2 using external USB-C, without a separate power supply](https://bbqkees-electronics.nl/wiki/gateway/firmware-update-and-downgrade.html#gateway-s3-s3-lr-and-e32-v2)
-- [ESPConnect: usage and features](https://github.com/thelastoutpostworkshop/ESPConnect/tree/v1.1.23)
-- [Detailed technical installation guide](BBQKEES_E32V2_TEST_RELEASE.md)
-- [Hardware, full backup and recovery](BBQKEES_E32V2.md)
+1. Disconnect the E32 from the boiler and connect it to ESPConnect over USB.
+2. Go to **Flash Tools → Flash Firmware**, select `e32-backup-a.bin`, set the
+   offset to `0x0`, tick **Erase entire flash before writing** and flash.
+3. Before restarting, read the full 16 MB back (start `0x0`, length
+   `0x1000000`) into a new file such as `e32-restore-a.bin`, without
+   overwriting the backups. Its SHA-256 must equal that of the backup.
+4. Restart and check the EMS-ESP web interface, its settings, board profile
+   and network.
+
+Without a working backup, reinstall EMS-ESP as BBQKees describes in its
+[firmware update and downgrade guide](https://bbqkees-electronics.nl/wiki/gateway/firmware-update-and-downgrade.html#gateway-s3-s3-lr-and-e32-v2)
+and import the settings you downloaded in step 1 of the backup.
+
+Check the EMS-ESP settings before you connect the E32 to the boiler again: a
+restored backup also restores EMS-ESP's own settings for sending on the bus.
+
+## If the USB connection fails
+
+- Use a USB-C cable that carries data, plug it in fully and connect directly
+  to the computer.
+- Close other programs and browser tabs that use the same serial port.
+- If no port appears, install the USB driver BBQKees recommends for the
+  gateway.
+- If the tool still cannot connect, follow BBQKees' instructions for starting
+  the board in download mode. Do not bridge pins on the board.
+
+More technical background: [E32 V2 hardware, backup and recovery](BBQKEES_E32V2.md).

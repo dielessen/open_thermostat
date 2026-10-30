@@ -43,7 +43,21 @@ def report_password(hass, entry, default):
         return
     ir.async_create_issue(hass, DOMAIN, issue_id, is_fixable=False, is_persistent=False,
                           severity=ir.IssueSeverity.WARNING, translation_key=DEFAULT_PASSWORD_ISSUE,
-                          translation_placeholders={"name": entry.title})
+                          translation_placeholders={"name": entry.title},
+                          learn_more_url=password_page_url(entry))
+
+
+def password_page_url(entry):
+    """The E32's own password form (About page), or None without a valid stored address.
+
+    Only the address is used: the password itself never leaves the entry.
+    """
+    from .controller_link import ControllerLinkError, controller_address
+    from .controller_setup_flow import CONTROLLER_ADDRESS
+    try:
+        return controller_address(entry.data.get(CONTROLLER_ADDRESS)) + "/#about"
+    except ControllerLinkError:
+        return None
 
 
 @callback
@@ -58,8 +72,16 @@ def save_password(hass, entry, password):
     data = {**entry.data, CONTROLLER_PASSWORD: password}
     state = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     if entry.state is ConfigEntryState.LOADED and state is not None:
-        state[PASSWORD_ONLY_UPDATE] = data
-        hass.config_entries.async_update_entry(entry, data=data)
+        if data == dict(entry.data):
+            # Unchanged (the same password entered again): no update, so no marker
+            # that a later, real change would be mistaken for.
+            apply_password(hass, entry, state)
+            return
+        # The marker names the whole entry it expects (data and options): a stale
+        # one never matches a later options change.
+        state[PASSWORD_ONLY_UPDATE] = (data, dict(entry.options))
+        if not hass.config_entries.async_update_entry(entry, data=data):
+            state.pop(PASSWORD_ONLY_UPDATE, None)
         return
     hass.config_entries.async_update_entry(entry, data=data)
     hass.config_entries.async_schedule_reload(entry.entry_id)
@@ -68,7 +90,7 @@ def save_password(hass, entry, password):
 def password_only_update(state, entry):
     """True (once) when the last entry change was a password-only save (save_password)."""
     pending = state.pop(PASSWORD_ONLY_UPDATE, None) if state is not None else None
-    return pending is not None and pending == dict(entry.data)
+    return pending is not None and pending == (dict(entry.data), dict(entry.options))
 
 
 @callback

@@ -18,6 +18,8 @@ from custom_components.open_thermostat.controller_link import ControllerLinkErro
 from custom_components.open_thermostat.controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_PASSWORD
 from custom_components.open_thermostat.dashboard import RoomDashboard
 from custom_components.open_thermostat.e32_room_flow import format_program, parse_program, unique_room_id
+from custom_components.open_thermostat.e32_setting_device import default_program
+from custom_components.open_thermostat.room_plan import plan_room
 from custom_components.open_thermostat.heating_link import HeatingHub, input_payload
 from custom_components.open_thermostat.product import PRODUCT_CONFIG
 from custom_components.open_thermostat.room_plan import RoomPlanLink, has_room_plan
@@ -28,7 +30,8 @@ COMPONENT = Path(__file__).resolve().parents[1] / "config/custom_components/open
 CREDENTIALS = {CONTROLLER_ADDRESS: "http://192.168.1.206", CONTROLLER_PASSWORD: "secret"}
 BLE = [{"id": "a4c138a3e8db", "name": "Slaapkamer", "profile": "atc", "temperature": 19.4},
        {"id": "112233445566", "name": "Zolder", "profile": "atc", "temperature": 17.0}]
-MENU = ["e32_rooms", "controller_connection", "energy", "installation", "advanced_settings"]
+# Configure's top level for an E32 install (product_flow.main_menu); flow limits are under Heating and boiler.
+MENU = ["e32_rooms", "comfort", "heating_boiler", "energy", "controller_connection", "general", "advanced_settings"]
 
 
 @pytest.fixture
@@ -103,7 +106,7 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
     e32 = FakeE32()
     parent, hub = product(hass, e32)
     menu = await rooms_menu(manager, parent)
-    assert menu["menu_options"] == ["e32_room_add", "e32_room_pick", "e32_flow_limits"]
+    assert menu["menu_options"] == ["e32_room_add", "e32_room_pick"]
     assert menu["description_placeholders"]["revision"] == "4"
     assert "- Woonkamer: climate.woonkamer, Bluetooth Slaapkamer (a4c138a3e8db)" in menu["description_placeholders"]["rooms"]
     form = await manager.async_configure(menu["flow_id"], {"next_step_id": "e32_room_add"})
@@ -122,7 +125,7 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
     assert result["type"] == "menu" and result["step_id"] == "e32_rooms_saved", result
     assert result["description_placeholders"]["name"] == "Slaapkamer Zoë"
     assert "Slaapkamer Zoë" in result["description_placeholders"]["rooms"]
-    assert result["menu_options"] == ["e32_room_add", "e32_room_pick", "e32_flow_limits"]
+    assert result["menu_options"] == ["e32_room_add", "e32_room_pick"]
     assert len(e32.posts) == posts + 1 and e32.posts[-1]["revision"] == 4
     assert e32.plan["rooms"][:2] == PLAN["rooms"]  # the other rooms travel back unchanged
     assert e32.plan["rooms"][2] == {
@@ -135,13 +138,13 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
         "schedule": [[[390, 2050], [1350, 1800]]] * 5 + [[[480, 2050], [1380, 1800]]] * 2}
     assert hub.plan.plan == e32.plan  # the writer's cache follows the stored plan
 
-    # The same name again gets its own id; a room without a program has no schedule key.
+    # The same name again gets its own id; a room saved without a program gets "Workdays and weekend".
     form = await room_form(manager, parent)
     result = await manager.async_configure(form["flow_id"], {
         **NEW_ROOM, "ble_sources": [], "program": "", "bluetooth_first": False})
     assert result["step_id"] == "e32_rooms_saved", result
     added = e32.plan["rooms"][3]
-    assert added["id"] == "slaapkamer_zoe_2" and "schedule" not in added
+    assert added["id"] == "slaapkamer_zoe_2" and added["schedule"] == default_program(1000, 2400)
     assert added["sources"] == [{"type": "ha", "id": "sensor.hal"}, {"type": "ha", "id": "climate.woonkamer"}]
 
 
@@ -197,8 +200,10 @@ async def test_fahrenheit_sources_and_home_assistant_are_accepted_non_temperatur
 
 
 async def flow_limits_form(manager, parent):
-    flow = await rooms_menu(manager, parent)
-    form = await manager.async_configure(flow["flow_id"], {"next_step_id": "e32_flow_limits"})
+    await manager.hass.async_block_till_done()
+    flow = await manager.async_init(parent.entry_id)
+    assert flow["menu_options"] == MENU
+    form = await manager.async_configure(flow["flow_id"], {"next_step_id": "heating_boiler"})
     assert form["type"] == "form" and form["step_id"] == "e32_flow_limits", form
     return form
 
@@ -316,16 +321,22 @@ async def test_editing_changes_only_the_edited_fields_and_sources_can_be_reorder
     assert values == {"name": "Woonkamer", "state": "active", "emitter": "floor",
                       "ha_sources": ["climate.woonkamer"], "ble_sources": ["a4c138a3e8db"], "bluetooth_first": False,
                       "setpoint_entity": "climate.woonkamer", "fallback_temperature": 20.0,
+                      "program": format_program(default_program(1000, 2400), "en", "°C"),
                       "limits": {"minimum_temperature": 10.0, "maximum_temperature": 24.0}}
-    posts = len(e32.posts)
+    # A room without a week program is shown with "Workdays and weekend" and saving gives it that program.
     result = await manager.async_configure(form["flow_id"], values)
+    assert result["step_id"] == "e32_rooms_saved", result
+    assert plan_room(e32.plan, "woonkamer")["schedule"] == default_program(1000, 2400)
+    form = await room_form(manager, parent, "woonkamer")
+    posts = len(e32.posts)
+    result = await manager.async_configure(form["flow_id"], shown(form))
     assert result["reason"] == "e32_room_unchanged" and len(e32.posts) == posts  # nothing written
 
     # Bluetooth first: the same two sources in the other order.
     form = await room_form(manager, parent, "woonkamer")
     result = await manager.async_configure(form["flow_id"], {**shown(form), "bluetooth_first": True})
     assert result["step_id"] == "e32_rooms_saved"
-    expected = deepcopy(PLAN["rooms"][0])
+    expected = {**deepcopy(PLAN["rooms"][0]), "schedule": default_program(1000, 2400)}  # given above
     expected["sources"] = [{"type": "ble", "id": "a4c138a3e8db"}, {"type": "ha", "id": "climate.woonkamer"}]
     assert e32.plan["rooms"][0] == expected and e32.plan["rooms"][1] == PLAN["rooms"][1]
 
@@ -345,13 +356,13 @@ async def test_editing_changes_only_the_edited_fields_and_sources_can_be_reorder
     assert result["step_id"] == "e32_rooms_saved"
     room_ = e32.plan["rooms"][0]
     assert (room_["state"], room_["inactive_until"], room_["schedule"]) == ("inactive", 0, [[[420, 2100]]] * 7)
-    # Clearing the program removes the schedule: fallback only.
+    # Clearing the program gives "Workdays and weekend": a room is never without one.
     form = await room_form(manager, parent, "woonkamer")
     assert shown(form)["program"] == "07:00 21"
     values = shown(form)
     del values["program"]
     result = await manager.async_configure(form["flow_id"], values)
-    assert result["step_id"] == "e32_rooms_saved" and "schedule" not in e32.plan["rooms"][0]
+    assert result["step_id"] == "e32_rooms_saved" and e32.plan["rooms"][0]["schedule"] == default_program(1000, 2400)
 
 
 @pytest.mark.asyncio
@@ -538,13 +549,16 @@ async def test_a_plan_read_from_the_e32_removes_devices_of_rooms_it_no_longer_ha
     assert devices.async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_gast"), parent.entry_id) is None
     assert reloads == []
 
-    # The same room added again (on the E32 page or in the editor): reload so its entities return.
+    # The same room added again (on the E32 page or in the editor): the hub's trackers add
+    # its entities again, without reloading the entry.
+    forgotten = []
+    monkeypatch.setattr(hub, "forget_removed_rooms", forgotten.append)
     e32.plan["rooms"].append({**PLAN["rooms"][1], "id": "zolder", "name": "Zolder"})
     e32.plan["revision"] += 1
     await hub.plan.async_refresh()
-    assert reloads == [parent.entry_id]
+    assert forgotten == [{"zolder"}] and reloads == []
     await hub.plan.async_refresh()
-    assert reloads == [parent.entry_id]  # once
+    assert forgotten == [{"zolder"}] and reloads == []  # once
 
 
 @pytest.mark.asyncio
@@ -552,7 +566,7 @@ async def test_menu_offers_no_add_with_eight_rooms_and_an_unreachable_e32_aborts
     e32 = FakeE32({**PLAN, "rooms": [{**PLAN["rooms"][0], "id": f"room_{n}"} for n in range(8)]})
     parent, hub = product(hass, e32)
     menu = await rooms_menu(manager, parent)
-    assert menu["menu_options"] == ["e32_room_pick", "e32_flow_limits"]
+    assert menu["menu_options"] == ["e32_room_pick"]
     attempts = []
     hub.plan._client = lambda: _Failing(attempts)
     flow = await manager.async_init(parent.entry_id)
@@ -583,9 +597,10 @@ async def test_dashboard_has_no_old_room_settings_view_when_the_e32_plan_is_the_
     config = RoomDashboard(hass, "fixture", parent.entry_id)._dashboard_config()
     paths = [view["path"] for view in config["views"]]
     buttons = [card["name"] for card in view_cards(config["views"][0]) if card["type"] == "button"]
+    links = [card["heading"] for card in view_cards(config["views"][0]) if card["type"] == "heading" and card.get("tap_action")]
     assert "room-a1b2c3d4" in paths  # the old record's own subview, linked from its reconfigure dialog
     if credentials:
-        assert "week" not in paths and buttons == ["Set up rooms"]
+        assert "week" not in paths and buttons == [] and links[-2:] == ["Set up rooms", "Week program"]
     else:
         assert "week" in paths and buttons == ["room settings"]
 
@@ -639,7 +654,8 @@ def test_every_flow_key_has_a_translation(filename):
         assert key in options["error"] or key in options["abort"], key
     for key in selectors:
         assert document["selector"][key]["options"], key
-    assert set(options["step"]["e32_rooms"]["menu_options"]) == {"e32_room_add", "e32_room_pick", "e32_flow_limits"}
+    assert set(options["step"]["e32_rooms"]["menu_options"]) == {"e32_room_add", "e32_room_pick"}
+    assert options["step"]["init"]["menu_options"]["heating_boiler"]
     assert set(options["step"]["e32_flow_limits"]["data"]) == {"minimum_flow_temperature", "maximum_flow_temperature"}
     assert "45–50 °C" in options["step"]["e32_flow_limits"]["data_description"]["maximum_flow_temperature"]
     assert options["step"]["init"]["menu_options"]["e32_rooms"]
@@ -654,3 +670,71 @@ def test_every_flow_key_has_a_translation(filename):
         assert "opslagruimte" in full and "Verwijder een ruimte" in full and "schakelpunten" in full
     else:
         assert "storage" in full and "Remove a room" in full and "switch points" in full
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("language", ["en", "nl", "pl"])
+async def test_a_climate_source_is_only_hinted_as_setting_device_never_pre_selected(hass, manager, language):
+    """Home Assistant writes the setting device's target at every switch point: the user picks it explicitly."""
+    hass.config.language = language
+    e32 = FakeE32()
+    room = plan_room(e32.plan, "woonkamer")
+    room["setpoint_entity"], room["schedule"] = "", default_program(1000, 2400)
+    parent, _ = product(hass, e32)
+    form = await room_form(manager, parent, "woonkamer")
+    assert "setpoint_entity" not in shown(form), "never pre-selected"
+    hint = form["description_placeholders"]["setting_hint"]
+    if language == "nl":
+        assert "climate.woonkamer gebruiken als instelapparaat van deze ruimte?" in hint
+        assert "bij elk schakelpunt van het weekprogramma" in hint
+    elif language == "pl":
+        assert "Użyć climate.woonkamer jako urządzenia nastawczego" in hint and "Urządzenie nastawcze" in hint
+    else:
+        assert "Use climate.woonkamer as this room's setting device?" in hint
+        assert "set its target temperature at every switch point of the week program" in hint
+    # Saving the room as shown leaves it exactly as it was: no setting device appears by itself.
+    posts = len(e32.posts)
+    result = await manager.async_configure(form["flow_id"], shown(form))
+    assert result["reason"] == "e32_room_unchanged" and len(e32.posts) == posts
+    assert plan_room(e32.plan, "woonkamer")["setpoint_entity"] == ""
+    # Picked explicitly: stored, and then no hint any more.
+    form = await room_form(manager, parent, "woonkamer")
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "setpoint_entity": "climate.woonkamer"})
+    assert result["step_id"] == "e32_rooms_saved", result
+    assert plan_room(e32.plan, "woonkamer")["setpoint_entity"] == "climate.woonkamer"
+    form = await room_form(manager, parent, "woonkamer")
+    assert shown(form)["setpoint_entity"] == "climate.woonkamer" and form["description_placeholders"]["setting_hint"] == ""
+
+
+@pytest.mark.asyncio
+async def test_a_new_room_gets_no_setting_device_unless_chosen_and_a_shown_again_form_hints_it(hass, manager):
+    e32 = FakeE32()
+    parent, _ = product(hass, e32)
+    form = await room_form(manager, parent)
+    assert form["description_placeholders"]["setting_hint"] == "" and "setpoint_entity" not in shown(form)
+    # Shown again (a refused value): the climate source just chosen is hinted, still not selected.
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "name": "Hal",
+                                                             "ha_sources": ["climate.woonkamer", "sensor.vocht"]})
+    assert result["step_id"] == "e32_room" and result["errors"]
+    assert "climate.woonkamer" in result["description_placeholders"]["setting_hint"]
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "name": "Hal", "ha_sources": ["climate.woonkamer"]})
+    assert result["step_id"] == "e32_rooms_saved", result
+    assert plan_room(e32.plan, "hal")["setpoint_entity"] == ""
+
+
+@pytest.mark.parametrize("filename", ["strings.json", "translations/en.json", "translations/nl.json",
+                                      "translations/pl.json"])
+def test_the_room_form_has_room_for_the_setting_device_hint(filename):
+    document = json.loads((COMPONENT / filename).read_text(encoding="utf-8"))
+    assert document["options"]["step"]["e32_room"]["description"].endswith("{setting_hint}")
+
+
+def test_the_setting_hint_follows_the_language_the_flow_knows():
+    from types import SimpleNamespace
+    flow = module.E32RoomFlow()
+    flow.hass = SimpleNamespace(config=SimpleNamespace(language="en"))
+    room = {"setpoint_entity": "", "sources": [{"type": "ha", "id": "climate.hal"}]}
+    flow.context = {"language": "nl"}
+    assert "climate.hal gebruiken als instelapparaat" in flow._e32_setting_hint(room, None)
+    flow.context = {}
+    assert "Use climate.hal as this room's setting device?" in flow._e32_setting_hint(room, None)

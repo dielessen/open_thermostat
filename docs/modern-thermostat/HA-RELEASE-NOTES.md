@@ -1,3 +1,142 @@
+# HA 0.4.0b12 — a stability release: boiler values back, no dead integration, a working week planner
+<!-- user-release-notes:v2:en -->
+
+Companion release for E32 beta20, fixes only. Needs Home Assistant 2026.10.0
+or newer.
+
+## New
+
+- Nothing new on purpose: this release only makes 0.4.0b11 dependable.
+
+## Fixed
+
+- **Boiler values without a session**: flow, return, hot water, modulation
+  and the other boiler values come straight from the E32's retained topics,
+  so they no longer disappear when the session with the E32 is refused.
+  "Unavailable" now only means that the E32 itself is offline.
+- **Only what your boiler has**: values that the boiler profile marks as not
+  fitted or never reported are no longer shown. A value that appears later
+  (for example after fitting a pressure sensor) comes back by itself.
+  Entities you renamed or changed are never touched.
+- **No dead integration after a failed step**: a Connect E32 or Repairs
+  "remove the old room" that fails, times out or is cancelled no longer
+  leaves the link switched off. An installation left in that state by
+  0.4.0b11 is repaired by the next Connect E32. Removing the old room now
+  first checks that the E32 runs beta19 or newer and says so when it does not.
+- **Clear sign-in messages**: "too many open sign-ins" and "too many
+  attempts" instead of "unexpected response", and Home Assistant always
+  signs out of the E32 again.
+- **The week planner view works with any set of custom cards**: another
+  dashboard card could hide ours, which showed "Configuration error".
+- **A tidier dashboard**: boiler values without a value are left out instead
+  of showing "Unavailable", a room that is off takes one line instead of a
+  full dial, "no boiler request" replaces "0 °C", rows show short names, and
+  Bluetooth humidity and battery show whole numbers.
+- **The Firmware entity keeps the E32's version** when a check fails, instead
+  of showing "unknown" for hours after a restart.
+- **Steadier and lighter**: one failing part (a sensor group, a listener, the
+  dashboard) no longer stops the rest; boiler entities are only written when
+  something changed, which removes the "took 0.6 seconds" and "updated while
+  disabled" warnings and much database traffic; Home Assistant retries while
+  MQTT is still starting.
+- **Tidy entity list**: old counters and a duplicate outdoor temperature that
+  this version never fills are removed (history and statistics stay).
+  Repairs items now disappear once their cause is gone.
+- **Clearer texts**: entity names in Dutch and Polish, an honest description
+  of shadow mode, and a new room's setting device is never filled in for you:
+  Home Assistant asks first.
+
+## Updating
+
+Install 0.4.0b12, restart Home Assistant, then update the E32 to beta20 with
+the Firmware entity. 0.4.0b12 also works with E32 beta19.
+
+## Limitations
+
+Shadow mode only: Home Assistant sets the rooms' setting devices, the E32
+sends nothing to the boiler. EMS Classic boilers only; EMS+ comes later.
+No HACS listing yet: install from the release ZIP.
+
+# HA 0.4.0b11 — a room thermostat per E32 room, a week planner and the official update route
+<!-- user-release-notes:v2:en -->
+
+Companion release for E32 beta19. Install both together (see Updating).
+Needs Home Assistant 2026.10.0 or newer.
+
+## New
+
+- **No starter room needed**: Connect E32 links the E32 and its room plan
+  directly. Rooms live in the E32 room plan.
+- **A week program and a thermostat per E32 room**: every room runs its E32
+  week program. A normal climate entity serves the thermostat card and voice
+  assistants. An optional setting device per room (radiator valve, tado or
+  any thermostat, or a number entity) is set to the program's temperature at
+  every switch point; turning it yourself is an override until the next
+  switch point. Repairs offers to give existing rooms a program and warns
+  when a device runs its own schedule.
+- **One group per room** on the integration page, holding the room's device
+  and the Bluetooth sensors only that room uses, plus an "E32 and boiler"
+  group. Entity IDs, names, areas and history stay.
+- **Safe removal of the old Home Assistant room** (Repairs, or Configure →
+  Advanced): the E32 room plan is updated first, the room thermostat takes
+  over the old thermostat's name, icon, area and entity ID, and a room that
+  would lose its only source is kept with a Repairs note.
+- **Comfort controls**: boost or a temporary target (until the next switch
+  point or for a set time), away or holiday until a date (optionally when
+  everyone is away), and window and door contacts per room that pause it.
+- **Week planner view** on the OpenThermostat dashboard: the same visual
+  planner as on the E32 Rooms page. It never overwrites a change made on the
+  E32 meanwhile.
+- **Redesigned dashboard**: "Now" at a glance, advice when there is any, one
+  section per room with its thermostat and a 24-hour graph, then the boiler,
+  curve and learning, and gas per day. The comparison with your thermostat
+  has its own view.
+- **Clearer menus**: Configure now reads Rooms, Comfort, Heating and boiler,
+  Energy and outdoor temperature, Connect E32, Name and dashboard, and
+  Advanced. After adding the integration you are guided to connecting the
+  E32 and your first room.
+- **Flow settings**: switches for the weather curve and the learned flow, and
+  the design flow temperature, with status sensors.
+- **Energy**: "Gas for heating" and "Gas for hot water" for the Energy
+  dashboard, from your gas meter or estimated.
+- **Weekly advice**: a blueprint sends a weekly summary with gas use, night
+  setback and advice. Advice only.
+- **Diagnostics download** for help with problems, without passwords, keys,
+  addresses or Wi-Fi names.
+- **Boiler profile**: entities only for values your boiler has; values it
+  never reported are created disabled.
+- **Updating the E32 from Home Assistant is the official route**: the
+  Firmware entity checks GitHub's SHA-256, the size and the version marker
+  before it uploads, and keeps a `last_install` record of the install.
+- The default-password Repairs issue now links to the E32's password page.
+- Complete Polish translation.
+
+## Fixed
+
+- Duplicate boiler entities for the same value (EMS+ and Classic names) are
+  merged into one; leftovers are removed, history is kept.
+- Values no longer go unavailable on a short network hiccup: only after
+  three missed E32 heartbeats or an offline message.
+- Devices from the older "intuibase" name are renamed to OpenThermostat once.
+- Removed room entities come back without a reload when the room returns.
+- After a restart of Home Assistant the link to the E32 now comes back by
+  itself; HA 0.4.0b10 could stay without boiler values until a reload.
+
+## Updating
+
+Install this integration and E32 beta19 together: HA 0.4.0b11 reads the new
+small E32 topics, and HA 0.4.0b10 does not understand beta19. Install the
+integration package, keep the existing entry, restart Home Assistant, then
+update the E32 with its Firmware entity. Entities of other integrations are
+never removed automatically.
+
+## Limitations
+
+The heat request is shadow-only: active boiler control stays locked in the
+E32 firmware. EMS Classic boilers only; EMS+ comes later. Window and door
+pauses use Home Assistant contacts; Bluetooth contacts come later. The
+advice is advice only.
+
 # HA 0.4.0b10 — one place for rooms, a clean dashboard and far fewer entities
 <!-- user-release-notes:v2:en -->
 
@@ -287,183 +426,167 @@ Installing this package does not authorize physical device commands.
 Physical wall controls still require their own original-action/echo profile.
 Vacation is session-local: restart, reconnect and room reload clear the selection.
 
-# HA 0.4.0b3 — oorspronkelijke meetdiagnose en veldexport
-<!-- user-release-notes:v1 -->
+# HA 0.4.0b3 — original measurement diagnostics and field export
+<!-- user-release-notes:v2:en -->
 
-## Nieuw
+## New
 
-- Diagnosedownload voor de oorspronkelijke native ketelvelden: ruwe waarde, schaal, eenheid, meetkwaliteit, brontelegram, oorspronkelijke ontvangsttijd en TTL.
-- Onderscheid tussen niet ontvangen, ongeldige en verlopen metingen en verlies van de verbinding. Ontbrekende waarden blijven onbekend.
+- A diagnostics download and export for the original native boiler fields: raw value, scale, unit, measurement quality, source telegram, original reception time and expiry (TTL).
+- A distinction between not received, invalid and expired readings and a lost connection. Missing values stay unknown.
 
-## Opgelost
+## Fixed
 
-- Ongeldige kamertemperaturen en foutcodes worden niet als geldige meetwaarden of statistiekpunten aangeboden; ondersteunde echte nulwaarden blijven behouden.
-- De veldtoelichting blijft beschikbaar in de diagnose als Home Assistant de kenmerken van een onbeschikbare entiteit weglaat.
+- Invalid room temperatures and error codes are not offered as valid readings or statistics points; supported real zero values are kept.
+- The field explanation stays available in the diagnostics when Home Assistant leaves out the attributes of an unavailable entity.
 
-## Bijwerken en gebruik
+## Updating
 
-Installeer `OpenThermostat-HA-0.4.0b3.zip` via de bestaande HA-beheerroute met back-up en nacontrole. Deze kandidaat hoort bij E32 beta3; kamers, programma's en entiteitidentiteiten blijven behouden. Het optionele oorspronkelijke Zigbee-ontvangstpakket blijft een afzonderlijke installatie.
+Install `OpenThermostat-HA-0.4.0b3.zip` through the existing HA administration route with a backup and a post-check. This candidate belongs with E32 beta3; rooms, programs and entity identities are kept. The optional original Zigbee reception package remains a separate installation.
 
-Geen fysieke ketel-/kraanvrijgave of automatische verwarming. De bevestigde Ecomline-opstelling heeft geen digitale druksensor; onbekende druk wordt niet door een verzonnen waarde vervangen. Aanpassing van het warmteproefprofiel blijft open.
+## Limitations
 
-## English
+No physical boiler/valve release or automatic heating. The confirmed Ecomline setup has no digital pressure sensor; an unknown pressure is not replaced by a made-up value. Adjusting the heat-trial profile remains open.
 
-Adds original native boiler-field diagnostics/export including raw values, quality, source telegrams, original timestamps and expiry. Separates missing/invalid/stale data from connection loss and filters invalid measurements without discarding supported real zeroes.
+# HA 0.4.0b1 — start-up recovery, monthly export and reliable measurement handling
+<!-- user-release-notes:v2:en -->
 
-Install the HA ZIP through the existing administration route with backup and verification; pair with E32 beta3. Rooms, schedules and entity identities are preserved. The optional Zigbee companion remains separate. No physical boiler/valve control is enabled, and no digital pressure reading is invented for the user's boiler without that sensor.
+## New
 
-# HA 0.4.0b1 — opstartherstel, maandexport en betrouwbare meetverwerking
-<!-- user-release-notes:v1 -->
+- **Export history per day, week or month:** CSV exports of up to 31 days from existing Recorder data, with an installation selector and Dutch/English explanations. Missing history stays missing.
+- **Clear clock notice:** a faulty local measurement clock gives an installation-specific Repairs notice. Window and presence signals then also become unknown.
+- **Optional Zigbee source package:** the existing receive-only original reception extensions (a Zigbee2MQTT companion) come separately in the same release. A checked tool keeps private device bindings before installation; nothing is installed automatically.
 
-## Nieuw
+## Fixed
 
-- **Historie exporteren per dag, week of maand:** tot 31 dagen uit bestaande Recorder-gegevens, met installatiekeuze en Nederlandse/Engelse uitleg. Ontbrekende historie blijft ontbreken.
-- **Duidelijke klokmelding:** een defecte lokale meetklok geeft een installatiegebonden Repairs-melding. Ook raam- en aanwezigheidssignalen worden dan onbekend.
-- **Optioneel Zigbee-bronpakket:** de bestaande oorspronkelijke ontvangstextensies komen apart mee in dezelfde release. Een gecontroleerd hulpmiddel bewaart privé apparaatkoppelingen vóór installatie; niets wordt automatisch geïnstalleerd.
+- OpenThermostat starts again on Core **2026.10.4**. A version check unintentionally blocked the "Installation and boiler" display group. Core .2, .3 and .4 compatibility is checked separately; unreviewed private configuration writes remain blocked.
+- A screen error, an interrupted withdrawal, an old-profile callback or a replaced sensor profile can no longer bring back a withdrawn reading. Invalid temperatures, percentages and extremely large numbers are refused.
+- The CSV export re-checks who owns the entities after waiting. Data does not appear under a changed binding.
+- The original Zigbee reception extensions no longer wait indefinitely for MQTT when shutting down. A time-out does not confirm sending and starts no new receiver while old SDK work is still pending.
 
-## Opgelost
+## Updating
 
-- OpenThermostat start weer op Core **2026.10.4**. Een versiecontrole blokkeerde onbedoeld de weergavegroep ‘Installatie en ketel’. Core .2 en .3 blijven afzonderlijk getest; onbeoordeelde private configuratiewrites blijven geblokkeerd.
-- Een schermfout of vervangen sensorprofiel kan geen ingetrokken meting terugbrengen. Ongeldige temperaturen, percentages en extreem grote getallen worden geweigerd.
-- CSV-export controleert na wachten opnieuw wie de entiteiten bezit. Gegevens verschijnen niet onder een gewijzigde koppeling.
-- De oorspronkelijke Zigbee-ontvangstextensies wachten bij afsluiten niet onbeperkt op MQTT. Een time-out bevestigt geen verzending en start geen nieuwe ontvanger zolang oud SDK-werk nog openstaat.
+Use `OpenThermostat-HA-0.4.0b1.zip` through the existing HA administration route. Rooms, programs, entity identities and bindings are kept. This is the HA half of the same software candidate as E32 beta1; the E32 firmware is a separate download. The optional Z2M source package is not an HA component and is not installed automatically; keep the private pins and follow the included NL/EN instructions.
 
-## Bijwerken en gebruik
+## Limitations
 
-Gebruik `OpenThermostat-HA-0.4.0b1.zip` via de bestaande HA-beheerroute. Kamers, programma's, entiteitidentiteiten en koppelingen blijven behouden. Dit is de HA-helft van dezelfde softwarekandidaat als E32 beta1. Het optionele Z2M-bronpakket is geen HA-component; bewaar private pins en volg de meegeleverde NL/EN-instructies.
+The E32 also offers local Bluetooth diagnostics. This HA update does not qualify that data as a room source and does not release physical valve/boiler control, standalone heating or active learning control. Physical acceptance and qualified room-source work remain open. [Full workboard and remaining conditions](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0b1/docs/modern-thermostat/WORKBOARD.nl.md) (engineering notes, Dutch).
 
-De E32 biedt daarnaast lokale Bluetoothdiagnose. Deze HA-update kwalificeert die gegevens niet als kamerbron en geeft geen fysieke kraan-/ketelsturing, zelfstandig verwarmen of actieve leerregeling vrij. [Volledig werkbord en resterende voorwaarden](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0b1/docs/modern-thermostat/WORKBOARD.nl.md).
+# HA 0.4.0.dev48 — more reliable shutdown and reload
+<!-- user-release-notes:v2:en -->
 
-## English
+## New
 
-**New:** day/week/month Recorder CSV exports up to 31 days, an installation selector, Dutch/English guidance, entry-scoped clock Repairs, and an optional receive-only Zigbee2MQTT companion with checked private-binding preservation.
+This maintenance update focuses on reliability; there are no new settings or controls.
 
-**Fixed:** Core 2026.10.4 startup, interrupted measurement withdrawal, old-profile callbacks, invalid numbers, ownership changes during export and unbounded original-report extension shutdown. Actual Core .2/.3/.4 compatibility is checked separately.
+## Fixed
 
-**Updating:** use the HA ZIP through the existing administration method. Rooms, schedules and entity identities are preserved. E32 beta1 and the optional Z2M companion are separate downloads from the same candidate. No automatic companion installation or boiler/valve/learning authority is introduced. Physical acceptance and qualified room-source work remain open.
+- When the integration stops or reloads, background tasks are cleaned up better. Even when one part reports an error, cleaning up the other parts continues.
 
-# HA 0.4.0.dev48 — betrouwbaarder afsluiten en herladen
-<!-- user-release-notes:v1 -->
+## Updating
 
-## Nieuw
+Your rooms, week programs, bindings and dashboard cards are kept. This version was checked together with E32 alpha36.
 
-Deze onderhoudsupdate richt zich op betrouwbaarheid; er zijn geen nieuwe instellingen of bedieningsopties.
+## Limitations
 
-## Opgelost
+This is a test version. Direct Bluetooth pairing with Shelly and Xiaomi devices is still in development. Boiler control is not released yet.
 
-- Bij het stoppen of herladen van de integratie worden achtergrondtaken beter opgeruimd. Ook als één onderdeel een fout geeft, gaat het opruimen van de overige onderdelen door.
+# HA 0.4.0.dev47 — robust start-up and joint updater diagnostics
 
-## Bijwerken en gebruik
+Joint bundle with E32 alpha34. All 23 prepared parts and 31 requirements are kept, including earlier reception diagnostics and send checks.
 
-Je kamers, weekprogramma's, koppelingen en dashboardkaarten blijven behouden. Deze versie is samen met E32 alpha36 gecontroleerd.
+- One native start-up owner across program, Store and MQTT read boundaries. Shutdown/cancellation can never restart an old worker, listener or timer later.
+- A double start does not replace the first connection. Late unsubscribe handles are cleaned up immediately; another receiver is kept.
+- The optional original temperature diagnostics share one subscription budget of one second; a diagnostics error leaves the existing control connection available. No new subscriptions, workers, routes or retries.
+- The joint firmware stores four targeted checkpoints before the checksum, image validation, flash readback and boot selection. The existing status page explains them in Dutch and English.
+- Ten new HA boundary cases demonstrably fail before the fix; 2,349 complete HA cases per supported Core pass locally. Native firmware: 782 cases, including 40 updater cases also under ASan/UBSan; 24 updater browser cases.
+- Frontend dev41/v41 with v38/v35 aliases stays byte-identical. No card, settings, source or physical authorisation migration.
 
-Dit is een testversie. Directe Bluetooth-koppeling met Shelly- en Xiaomi-apparaten is nog in ontwikkeling. De ketelaansturing is nog niet vrijgegeven.
+HA47 stays compatible with the observed E32 alpha31. An original TV02 worker reception was observed passively but is stale and unqualified; this is no causal valve ACK. A suitable room source, the product SOURCE factory, physical stop/failure qualification and the earlier E32 recovery route remain open. Tado stays the active controller; this bundle releases no physical output.
 
-## English
-
-**New:** this maintenance release focuses on reliability and adds no new settings.
-
-**Fixed:** stopping or reloading the integration continues cleaning up background tasks even if one component reports an error.
-
-**Updating:** rooms, weekly programs, connections and dashboard cards are retained. Verified with E32 alpha36. Direct Shelly/Xiaomi Bluetooth pairing is still in development; boiler control remains disabled.
-
-# HA 0.4.0.dev47 — robuuste opstart en gezamenlijke updaterdiagnose
-
-Gezamenlijke bundel met E32 alpha34. Alle 23 voorbereide onderdelen en 31 eisen blijven behouden, inclusief eerdere ontvangstdiagnostiek en verzendcontroles.
-
-- Eén native opstarteigenaar over programma-, Store- en MQTT-leesgrenzen. Afsluiten/annuleren kan geen oude worker, listener of timer later opnieuw starten.
-- Dubbele start vervangt de eerste verbinding niet. Late unsubscribe-handles worden direct opgeruimd; een andere ontvanger blijft behouden.
-- De optionele oorspronkelijke temperatuurdiagnose deelt één aanmeldbudget van één seconde; een diagnosefout laat de bestaande besturingsverbinding beschikbaar. Geen nieuwe abonnementen, workers, routes of retries.
-- De gezamenlijke firmware bewaart vier gerichte checkpoints vóór checksum, imagevalidatie, flash-readback en bootselectie. De bestaande statuspagina verklaart die in Nederlands en Engels.
-- Tien nieuwe HA-grensgevallen falen aantoonbaar vóór herstel; 2.349 volledige HA-gevallen per ondersteunde Core slagen lokaal. Native firmware: 782 gevallen, waaronder 40 updatergevallen ook onder ASan/UBSan; 24 updaterbrowsergevallen.
-- Frontend dev41/v41 met v38/v35-aliases blijft bytegelijk. Geen kaart-, instellingen-, bron- of fysieke autorisatiemigratie.
-
-HA47 blijft compatibel met de waargenomen E32 alpha31. Een oorspronkelijke TV02-workerontvangst is passief geobserveerd maar stale en ongekwalificeerd; dit is geen causale kraan-ACK. Geschikte kamerbron, product-SOURCE-fabriek, fysieke stop-/uitvalkwalificatie en eerdere E32-herstelroute blijven open. Tado blijft de actieve regelaar; deze bundel geeft geen fysieke uitvoer vrij.
-
-Publicatie/HA-uitrol vereist exacte bevroren bron, volledige CI, onafhankelijke daadwerkelijke pakketreview, verse actuele HA46-back-up en afzonderlijke nacontrole. Geen blinde E32-flashherhaling of claim dat de eerdere watchdog/HTTPS/pendeloorzaak is opgelost.
+Publication/HA roll-out requires the exact frozen source, full CI, an independent review of the actual package, a fresh current HA46 backup and a separate post-check. No blind E32 flash retry and no claim that the earlier watchdog/HTTPS/short-cycling cause is solved.
 
 English: native HA startup retains one owner across asynchronous configuration, journal and subscription boundaries. Closing/cancelling cannot revive a worker/listener/timer; duplicate startup cannot replace the first owner. Original-temperature diagnostics have one bounded optional subscription wait. The combined firmware adds four persisted pre-verification checkpoints with EN/NL explanations. Existing cards/settings and alpha31 compatibility are preserved; source/valve feedback, physical stop qualification and updater recovery remain separate open gates.
 
-# HA 0.4.0.dev46 — oorspronkelijke ontvangstdiagnostiek en gezamenlijke verzendcontrole
+# HA 0.4.0.dev46 — original reception diagnostics and joint send checks
 
-Gezamenlijke voorbereidingsrelease met E32 alpha33. Alle 23 voorbereide onderdelen en bestaande instellingen, programma's en kaarten blijven behouden.
+Joint preparation release with E32 alpha33. All 23 prepared parts and existing settings, programs and cards are kept.
 
-- De bestaande HA-diagnostiekdownload toont begrensde RAM-tellers voor oorspronkelijke temperatuur- en TV02-ontvangst: callbacks, plaatsing, vroege drops en workeracceptatie/-afwijzing/-fouten.
-- Twee vaste groepen zonder topics, apparaat-ID's, berichtinhoud of exceptionteksten. Tellers zijn per verbindingseigenaar, niet per apparaat of blijvend. Geen teller of snapshot kwalificeert een meetbron of kraan-ACK.
-- De bestaande queue en halve-queue-reservering blijven leidend. Een mislukte timestampregistratie wordt als drop zichtbaar en kan de MQTT-callback niet laten vastlopen op die exception.
-- De gezamenlijke E32-bundel bewaakt herintrede op de laatste overdrachtsgrens én op beschikbaarheids-/klokcallbacks tijdens kanaaltoelating. De bestaande socketproef bevestigt dat geweigerde herintrede geen byte overdraagt.
-- Bestaande kamer- en firmwareberichten blijven bytecontractueel gelijk. Frontend dev41/v41 en v38/v35-aliases blijven behouden; er is geen kaart- of instellingenmigratie.
+- The existing HA diagnostics download shows bounded RAM counters for original temperature and TV02 reception: callbacks, placement, early drops and worker acceptance/rejection/errors.
+- Two fixed groups without topics, device IDs, message content or exception texts. Counters are per connection owner, not per device or persistent. No counter or snapshot qualifies a measurement source or valve ACK.
+- The existing queue and half-queue reservation stay in charge. A failed timestamp registration becomes visible as a drop and cannot make the MQTT callback hang on that exception.
+- The joint E32 bundle guards re-entry at the final transfer boundary and at availability/clock callbacks during channel admission. The existing socket test confirms that a refused re-entry transfers no byte.
+- Existing room and firmware messages stay the same by byte contract. Frontend dev41/v41 and the v38/v35 aliases are kept; there is no card or settings migration.
 
-HA46 blijft compatibel met de waargenomen alpha31 en de eerdere alpha28; de optionele voorbereide kanaalroute vereist minimaal HA45. Ontvangsttellers lossen een onbekende externe producent- of bindingsfout niet op en geven geen geschikte kamermeting, fysieke feedback of regelbevoegdheid. Product-SOURCE blijft gesloten; Tado blijft actief.
+HA46 stays compatible with the observed alpha31 and the earlier alpha28; the optional prepared channel route needs at least HA45. Reception counters do not solve an unknown external producer or binding error and give no suitable room reading, physical feedback or control authority. Product SOURCE stays closed; Tado stays active.
 
-Publicatie/uitrol vereist exacte bron-, CI-, pakket- en downloadcontrole, verse actuele HA-back-up en afzonderlijke nacontrole via de bestaande HA-agent. Eerdere E32-uploaderwatchdog, native HTTPS-fout en pendeloorzaak blijven open; geen blinde firmwareherhaling.
+Publication/roll-out requires exact source, CI, package and download checks, a fresh current HA backup and a separate post-check through the existing HA agent. The earlier E32 uploader watchdog, native HTTPS error and short-cycling cause remain open; no blind firmware retry.
 
 English: bounded original-ingress counters in the existing HA diagnostics download distinguish callback drops from worker outcomes without payloads or identifiers. Counter scope is the connection owner's RAM lifetime, not per-device traffic or control authority. The combined firmware bundle closes handoff/availability/clock callback recursion. Existing frontend aliases and alpha31 compatibility remain. Physical feedback, ambient qualification and E32 updater recovery are separate open gates.
 
-# HA 0.4.0.dev45 — oorspronkelijke grantcorrelatie en grotere firmwarebundel
+# HA 0.4.0.dev45 — original grant correlation and a larger firmware bundle
 
-Gezamenlijke voorbereidingsrelease met E32 alpha32; bestaande functies, programma's en alle 23 voorbereide onderdelen blijven behouden.
+Joint preparation release with E32 alpha32; existing features, programs and all 23 prepared parts are kept.
 
-- De bestaande native worker antwoordt met het oorspronkelijke aanvraagvolgnummer. Vertraagde grants kunnen geen nieuw firmwarevenster lenen.
-- Een nog ongebruikt grant blijft bij zijn oorspronkelijke aanvraag; een hoger aanvraagvolgnummer kan het niet herlabelen. Een verkorte ontvangerdeadline blijft ook na zo'n geweigerde aanvraag bewaard.
-- De echte C++-aanvraag/grant/opdracht gaat door de native HA-worker naar de bewaakte serviceadapter, inclusief duplicaat- en uitvalproeven. Serviceacceptatie blijft geen oorspronkelijke kraanecho of regelbevoegdheid.
-- De ACK-zonder-snapshotproef bereikt nu eerst de echte ACK-fase voordat haar echte asyncio-timeout afloopt. Vertraagde voorbereiding is apart getoetst; de productie-timeout van 90 seconden blijft ongewijzigd. De oudere incidentele CI-kameroorzaak blijft afzonderlijk onbekend.
-- Frontend dev41/v41 met v38/v35-compatibiliteit blijft bytegelijk; geen kaartmigratie, automatische sensorwissel of nieuwe productfabriek. Instellingen en identiteiten behouden.
+- The existing native worker answers with the original request sequence number. Delayed grants cannot borrow a new firmware window.
+- A grant that is not yet used stays with its original request; a higher request sequence number cannot relabel it. A shortened receiver deadline is also kept after such a refused request.
+- The real C++ request/grant/command goes through the native HA worker to the guarded service adapter, including duplicate and failure tests. Service acceptance remains no original valve echo or control authority.
+- The ACK-without-snapshot test now first reaches the real ACK stage before its real asyncio time-out expires. Delayed preparation is tested separately; the production time-out of 90 seconds is unchanged. The cause of the older occasional CI room failure remains unknown separately.
+- Frontend dev41/v41 with v38/v35 compatibility stays byte-identical; no card migration, automatic sensor change or new product factory. Settings and identities are kept.
 
-HA dev45 blijft compatibel met E32 alpha28 en de vers waargenomen alpha31; de nieuwe voorbereide firmwarekanaalroute vereist dev45. Product-SOURCE-selectie, geschikte oorspronkelijke meetbron, causale kraanecho en fysieke acceptatie blijven open. Dit is geen actieve ketelbèta: Tado blijft regelen en fysieke uitgangen blijven geblokkeerd.
+HA dev45 stays compatible with E32 alpha28 and the freshly observed alpha31; the new prepared firmware channel route needs dev45. Product SOURCE selection, a suitable original measurement source, a causal valve echo and physical acceptance remain open. This is not an active boiler beta: Tado stays in control and physical outputs remain blocked.
 
-Uitrol vereist exacte CI-/pakketcontrole, verse actuele back-up en onafhankelijke nacontrole. De eerdere E32-uploaderwatchdog, native HTTPS-fout en gemeld pendelen worden niet als gerepareerd voorgesteld.
+Roll-out requires exact CI/package checks, a fresh current backup and an independent post-check. The earlier E32 uploader watchdog, native HTTPS error and the reported short cycling are not presented as repaired.
 
 English: original request-sequence correlation on the existing worker; unconsumed grants cannot be relabelled or regain a shortened deadline. Actual C++/worker/service and disconnect regressions preserve one-use ownership. Existing cards and alpha28 compatibility remain; product actuation, original physical feedback and E32 recovery are still unqualified.
 
-# HA 0.4.0.dev44 — native kraanroute en gezamenlijke ontvangstcontrole
+# HA 0.4.0.dev44 — native valve route and joint reception checks
 
-Gezamenlijke prerelease met E32 alpha31; alle bestaande functies, instellingen en 23 voorbereide onderdelen blijven behouden.
+Joint prerelease with E32 alpha31; all existing features, settings and 23 prepared parts are kept.
 
-- Grantaanvragen en kraanopdrachten gebruiken de bestaande native MQTT-worker en verbinding, zonder extra clients, timers, opslag of wachtrijen. De productfabriek blijft standaard gesloten.
-- Lokale controller-/sessie-/config-/bindingcontrole en oorspronkelijke ontvangst-/leasedeadlines begrenzen opdrachten. Eén grant laat één nieuwe opdracht toe; duplicaten vernieuwen geen venster of serviceaanroep.
-- Firmware-offline of gewijzigde scope trekt een bestaande eigenaar direct vóór de workerqueue in, ook als die op de servicelock wacht. De adapter controleert de context opnieuw vóór en na de oorspronkelijke bronautorisatie.
-- Uitgeschakeld, ingetrokken of overmatig optioneel kraanverkeer kan de shadow-sessie niet via de gedeelde queue resetten. Normale periodieke hello-berichten verlengen geen kraangrant.
-- Alle eerdere ESP-/EMS-diagnose, bronkeuze-uitleg en EN/NL-bediening blijven behouden. Frontend dev41/v41 met v38/v35-compatibiliteit blijft bytegelijk; geen automatische bronwissel of nieuwe fysieke autorisatie.
+- Grant requests and valve commands use the existing native MQTT worker and connection, without extra clients, timers, storage or queues. The product factory stays closed by default.
+- Local controller/session/config/binding checks and the original reception/lease deadlines bound commands. One grant admits one new command; duplicates renew no window or service call.
+- Firmware going offline or a changed scope revokes an existing owner immediately before the worker queue, even while it waits for the service lock. The adapter re-checks the context before and after the original source authorisation.
+- Disabled, revoked or excessive optional valve traffic cannot reset the shadow session through the shared queue. Normal periodic hello messages do not extend a valve grant.
+- All earlier ESP/EMS diagnostics, source selection explanations and EN/NL controls are kept. Frontend dev41/v41 with v38/v35 compatibility stays byte-identical; no automatic source change or new physical authorisation.
 
-Dit pakket kan met de laatst geverifieerde E32alpha28 blijven werken: het veronderstelt geen nieuwe firmwarefunctie. Een daadwerkelijk gekwalificeerde product-SOURCE-fabriek, normale firmware-MQTT-zendroute, oorspronkelijke causale Tuya-echo en fysieke acceptatie blijven open. Serviceacceptatie is geen kraan-ACK of bewezen afgiftepad. Dit is geen actieve ketelbèta; Tado blijft regelen en fysieke uitgangen blijven geblokkeerd.
+This package can keep working with the last verified E32 alpha28: it assumes no new firmware feature. A truly qualified product SOURCE factory, a normal firmware MQTT send route, an original causal Tuya echo and physical acceptance remain open. Service acceptance is no valve ACK or proven delivery path. This is not an active boiler beta; Tado stays in control and physical outputs remain blocked.
 
-E32-updateherstel is afzonderlijk geblokkeerd door de eerdere onverklaarde watchdogreset. HA-installatie vereist het exact geteste pakket, verse back-up, één normale herstart en onafhankelijke nacontrole. Geen claims over opgelost pendelen, native HTTPS-herstel of nieuwe Shelly-/Xiaomi-drivers.
+E32 update recovery is blocked separately by the earlier unexplained watchdog reset. HA installation requires the exactly tested package, a fresh backup, one normal restart and an independent post-check. No claims about solved short cycling, native HTTPS recovery or new Shelly/Xiaomi drivers.
 
 English: native-worker actuator grant/command handling with default-denied product authority, original receiver deadlines, one-use grants, immediate scope/offline fencing and optional-queue isolation. Configuration and frontend remain compatible with installed alpha28. Service acceptance is not a physical valve acknowledgement; active heating and E32 recovery remain separate acceptance gates.
 
-# HA 0.4.0.dev43 — duidelijke temperatuurbronkeuze en M2-ontvangertoelating
+# HA 0.4.0.dev43 — clear temperature source selection and M2 receiver admission
 
-Grotere onderhoudskandidaat met behoud van alle bestaande functies en instellingen.
+A larger maintenance candidate that keeps all existing features and settings.
 
-- De kamereditor waarschuwt direct in Nederlands/Engels wanneer de gekozen bron interne apparaattemperatuur is. Diagnostische sensoren krijgen een herkenbaar label; geen verborgen automatische bronwissel of kwalificatie van een gewone cachewaarde.
-- Ontbrekende/corrupte optionele native MQTT-metadata verhindert het laden van de kamer niet. De waarschuwing volgt de actuele conceptkeuze en blijft niet aan een vervangende sensor plakken.
-- Frontend dev41/v41 met expliciete v38/v35-compatibiliteit; bestaande handmatige kaarten blijven werken. Alleen eigen gegenereerde kaart-/resourceverwijzingen mogen bij de update meegaan.
-- Nieuwe voorbereide M2-ontvangerkern: standaard gesloten, exact lokaal bron-/sessie-/config-/bindingbezit, vijf seconden geldigheid op de HA-klok, één lopende opdracht en geen verlenging bij ontvangst. Duplicates zijn alleen historisch; onzekere of geannuleerde acties worden niet herhaald. Callback-intrekking en hergebruik van dezelfde adapter kunnen de eigenaar niet omzeilen.
+- The room editor warns immediately in Dutch/English when the chosen source is an internal device temperature. Diagnostic sensors get a recognisable label; no hidden automatic source change or qualification of an ordinary cached value.
+- Missing/corrupt optional native MQTT metadata no longer prevents the room from loading. The warning follows the current draft choice and does not stick to a replacement sensor.
+- Frontend dev41/v41 with explicit v38/v35 compatibility; existing manual cards keep working. Only the integration's own generated card/resource references may move along with the update.
+- A new prepared M2 receiver core: closed by default, exact local source/session/config/binding ownership, five seconds of validity on the HA clock, one command in progress and no extension on reception. Duplicates are historical only; uncertain or cancelled actions are not repeated. Callback revocation and reuse of the same adapter cannot bypass the owner.
 
-De ontvangerkern wordt niet door de productie-fabriek geselecteerd. Normale
-FW→HA-bedrading, actuele leasebinding, causale oorspronkelijke kraanecho en fysieke
-kwalificatie blijven open. Dit is geen actieve bèta of vrijgave van kraan-/keteluitvoer.
+The receiver core is not selected by the production factory. Normal
+FW→HA wiring, current lease binding, a causal original valve echo and physical
+qualification remain open. This is not an active beta or a release of valve/boiler output.
 
-59 nieuwe basisgevallen plus vier aanvullende eigenaarsgrensregressies,
-een extra afrondingsgrensgeval en een opstartverliesregressie.
-Een extra regressie toetst vertraagde eerste kamerberichten. De testopstelling
-begint de minimum-uit-wachttijd pas na beide werkelijke firmwaremetingen;
-de 120-secondenregel en alle oorspronkelijke vraag-/stopasserties blijven behouden.
-De vijfseconden-grens wordt vanuit het oorspronkelijke klokanker getest,
-zodat optellen van kommagetallen geen vals testresultaat oplevert. De kamertest
-loopt achtmaal per Core-versie met afzonderlijke naspeelbare, kunstmatige
-berichtenreeksen. De eerdere intermitterende kamerassertie is hiermee onderzocht;
-de opstartverliesregressie bewijst op zichzelf niet de oorspronkelijke CI-oorzaak. Gerichte
-HA- en koude browserproeven op desktop/mobiel in beide talen slagen; volledige
-Core 2026.10.2/2026.10.3- en exacte tag-CI blijven afzonderlijke leveringsvoorwaarden.
+59 new base cases plus four additional owner-boundary regressions,
+an extra rounding-boundary case and a start-up loss regression.
+An extra regression tests delayed first room messages. The test setup
+starts the minimum-off waiting time only after both real firmware readings;
+the 120-second rule and all original demand/stop assertions are kept.
+The five-second boundary is tested from the original clock anchor,
+so adding decimal numbers cannot produce a false test result. The room test
+runs eight times per Core version with separate replayable, artificial
+message sequences. The earlier intermittent room assertion is investigated with this;
+the start-up loss regression does not by itself prove the original CI cause. Targeted
+HA and cold browser tests on desktop/mobile in both languages pass; full
+Core 2026.10.2/2026.10.3 and exact tag CI remain separate delivery conditions.
 
-Entiteits-ID’s, eenheden, statistieken, SOURCE/journal en instellingenformaat blijven
-behouden. E32-runtimecode is niet gewijzigd: firmwaredownload alpha30 blijft staan,
-de module blijft alpha28 totdat de onbekende uploader-watchdogoorzaak en een
-onderbouwde herstelroute zijn vastgesteld. Geen blinde upload/herstart/rollback.
-Bluetoothondersteuning, fysieke bron-/kraan-/ketelproeven en langdurige stabiliteit
-worden niet als afgevinkt voorgesteld.
+Entity IDs, units, statistics, SOURCE/journal and the settings format are
+kept. E32 runtime code is unchanged: firmware download alpha30 stays in place,
+the module stays on alpha28 until the unknown uploader watchdog cause and a
+well-founded recovery route are established. No blind upload/restart/rollback.
+Bluetooth support, physical source/valve/boiler tests and long-term stability
+are not presented as ticked off.
 
 English: room setup now explains internal/diagnostic temperature sources immediately,
 without new broker traffic or source replacement. Missing optional native metadata
@@ -474,27 +597,27 @@ Test warmup now waits for both actual firmware measurements before counting
 the unchanged minimum-off interval; a lost-startup-report regression covers this.
 E32 firmware and physical output blocks remain unchanged.
 
-[Werkbord en resterende voorwaarden](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev43/docs/modern-thermostat/WORKBOARD.nl.md).
+[Workboard and remaining conditions (Dutch)](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev43/docs/modern-thermostat/WORKBOARD.nl.md).
 
-# HA 0.4.0.dev40 — blijvende klokbewaking van de M2-kraanadapter
+# HA 0.4.0.dev40 — persistent clock monitoring of the M2 valve adapter
 
-Onderhoudsrelease met alle eerdere functies en de voorbereide B05/M2-reparatie.
-De E32-firmware heeft geen nieuwe runtimewijzigingen; alpha30 blijft de actuele
-firmwaredownload. Geen overbodige nieuwe firmwaretag of E32-installatie.
+A maintenance release with all earlier features and the prepared B05/M2 repair.
+The E32 firmware has no new runtime changes; alpha30 stays the current
+firmware download. No unnecessary new firmware tag or E32 installation.
 
-- Een teruggaande, ongeldige of niet-eindige monotone klok trekt de bestaande kraanadapter blijvend in. Herstelde tijd, een nieuw doel of herstelde autorisatie kan oude bevoegdheid niet herstellen.
-- De controle omvat wachten, iedere autorisatiecallback, de laatste controle vóór verzending en de terugkeer van de HA-service. Ook een weigering of exception kan klokverlies niet verbergen.
-- Klokverlies tijdens een mogelijk verzonden opdracht houdt de fysieke uitkomst onbekend en verhindert herhaling. Een exacte duplicate blijft uitsluitend een historisch service-acceptatiereceipt, zonder nieuwe IO of kraanbevestiging.
-- Geen wijziging aan entiteits-ID’s, statistieken, instellingen, MQTT-contracten of frontend v38/v35-compatibiliteit.
+- A monotonic clock that runs backwards, is invalid or is not finite permanently revokes the existing valve adapter. Restored time, a new target or restored authorisation cannot restore old authority.
+- The check covers waiting, every authorisation callback, the final check before sending and the return of the HA service. A refusal or exception cannot hide a clock loss either.
+- A clock loss during a command that may have been sent keeps the physical outcome unknown and prevents a retry. An exact duplicate remains only a historical service acceptance receipt, without new IO or valve confirmation.
+- No change to entity IDs, statistics, settings, MQTT contracts or frontend v38/v35 compatibility.
 
-14 nieuwe regressiegevallen; 13 faalden op de oude bron. Alle 141 gerichte gevallen
-slagen op echte Core 2026.10.2 en 2026.10.3; onafhankelijke bronreview geslaagd.
-Definitieve tag-CI en pakketcontrole blijven afzonderlijke leveringsvoorwaarden.
+14 new regression cases; 13 failed on the old source. All 141 targeted cases
+pass on real Core 2026.10.2 and 2026.10.3; the independent source review passed.
+Final tag CI and package checks remain separate delivery conditions.
 
-Passieve onderhoudsrelease. De M2-adapter heeft nog geen normale FW→HA-zendroute
-of gekwalificeerde fysieke terugmelding; ketel-/kraanuitgangen blijven geblokkeerd.
-De geïnstalleerde E32 blijft alpha28 zolang de eerdere watchdogoorzaak/herstelroute
-onbekend is. Geen actieve bèta-, Bluetooth-, pendel- of updaterreparatieclaim.
+Passive maintenance release. The M2 adapter has no normal FW→HA send route yet
+and no qualified physical feedback; boiler/valve outputs remain blocked.
+The installed E32 stays on alpha28 as long as the earlier watchdog cause/recovery route
+is unknown. No claim of an active beta or of a Bluetooth, short-cycling or updater repair.
 
 English: preserves every existing feature and adds latched monotonic-clock
 validation throughout the prepared M2 actuator adapter. Invalid/reversed time
@@ -502,260 +625,260 @@ cannot revive an old command budget; uncertain dispatch is never retried.
 Historical duplicates remain acceptance-only. No physical actuation is enabled;
 E32 alpha30 remains the latest firmware release, with alpha28 still installed.
 
-[Actueel werkbord](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev40/docs/modern-thermostat/WORKBOARD.nl.md).
+[Current workboard (Dutch)](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev40/docs/modern-thermostat/WORKBOARD.nl.md).
 
-# HA 0.4.0.dev39 — betrouwbare ketelwaarden na fouten en intrekking
+# HA 0.4.0.dev39 — reliable boiler values after errors and withdrawal
 
-Gezamenlijke passieve onderhoudsbundel met E32 alpha30; alle eerdere functies en frontend v38 blijven behouden.
+Joint passive maintenance bundle with E32 alpha30; all earlier features and frontend v38 are kept.
 
-- Een transportfout trekt de eerder opgeslagen acquisities van ketelwaarden in. Een geldig bericht voor een andere veldgroep maakt die oude waarden niet opnieuw beschikbaar.
-- Een expliciete ongeldige waarde mag dezelfde acquisitie intrekken; een herhaalde oude numerieke waarde kan die intrekking niet ongedaan maken. Alleen aantoonbaar nieuwe ontvangst herstelt beschikbaarheid.
-- Firmware verwerkt telegrammen per oorspronkelijke veldtijd, behoudt recente waarden bij vertraagde ontvangst en trekt tegenstrijdige gelijktijdige waarden in.
-- Bestaande entiteitsidentiteiten, eenheden, statistieken, instellingen en MQTT-contracten blijven behouden.
+- A transport error withdraws the previously stored acquisitions of boiler values. A valid message for another field group does not make those old values available again.
+- An explicit invalid value may withdraw the same acquisition; a repeated old numeric value cannot undo that withdrawal. Only demonstrably new reception restores availability.
+- The firmware processes telegrams by original field time, keeps recent values on delayed reception and withdraws conflicting simultaneous values.
+- Existing entity identities, units, statistics, settings and MQTT contracts are kept.
 
-Lokaal getest op echte Core 2026.10.2 en 2026.10.3: 2195 testgevallen per versie, zonder fouten of skips; de gezamenlijke firmwarebasis heeft 689 geslaagde tests. Release-CI en onafhankelijke pakketcontrole zijn afzonderlijke leveringsvoorwaarden.
+Tested locally on real Core 2026.10.2 and 2026.10.3: 2195 test cases per version, without failures or skips; the joint firmware base has 689 passing tests. Release CI and an independent package check are separate delivery conditions.
 
-Geen fysieke regelvrijgave. De geïnstalleerde E32 kan achterblijven op alpha28 zolang de eerdere task-watchdogreset geen onderbouwde herstelroute heeft; HA-installatie en E32-installatie worden afzonderlijk gecontroleerd. Nieuwe Bluetoothdrivers en M2/start-/stopkwalificatie blijven open.
+No physical control release. The installed E32 may stay on alpha28 as long as the earlier task watchdog reset has no well-founded recovery route; HA installation and E32 installation are checked separately. New Bluetooth drivers and M2/start/stop qualification remain open.
 
 English: retires boiler field acquisitions across invalid transport frames and explicit withdrawal. Unrelated valid groups or cached replay cannot revive them; strictly newer original readings are required. Entity IDs and storage contracts are preserved; passive operation remains enforced.
 
-[Actueel werkbord](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev39/docs/modern-thermostat/WORKBOARD.nl.md).
+[Current workboard (Dutch)](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev39/docs/modern-thermostat/WORKBOARD.nl.md).
 
-# HA 0.4.0.dev38 — oorspronkelijke rapporten en compatibele bediening
+# HA 0.4.0.dev38 — original reports and compatible controls
 
-Onderdeel van de gezamenlijke onderhoudsbundel met E32 alpha29 op bron
+Part of the joint maintenance bundle with E32 alpha29 at source
 `d131c503f42e6b834a0815db8384983a7fc1b46f`.
 
-- TV02-diagnose kan wachten op late MQTT-discovery met vooraf vastgelegde apparaatidentiteit; geen automatische bronvervanging.
-- Native registrywijzigingen trekken oorspronkelijke temperatuurdiagnose in, ook wanneer instellingen daarna worden teruggezet. Gewone naamswijzigingen blijven werken.
-- EN/NL-meldingen voor ontbrekende metadata en niet-beschikbare ontvangst; geen oude waarden bij fout-/wachtstatus.
-- Frontend dev38/v38 met compatibiliteitsalias voor bestaande v35-kaarten, gecontroleerd bij koude browserlading.
+- TV02 diagnostics can wait for late MQTT discovery with a pre-recorded device identity; no automatic source replacement.
+- Native registry changes withdraw the original temperature diagnostics, also when settings are restored afterwards. Ordinary name changes keep working.
+- EN/NL messages for missing metadata and unavailable reception; no old values in an error/waiting state.
+- Frontend dev38/v38 with a compatibility alias for existing v35 cards, checked with a cold browser load.
 
-Getest op echte Home Assistant Core 2026.10.2 en 2026.10.3: 2189 gevallen per versie zonder fouten/skips. Browserregressies en upgradeproef geslaagd. Geen fysieke regelvrijgave of automatische sensorwissel. Shelly-/Xiaomi-Bluetoothondersteuning blijft gepland; M2 en fysieke ketel-/kraanproeven blijven open.
+Tested on real Home Assistant Core 2026.10.2 and 2026.10.3: 2189 cases per version without failures/skips. Browser regressions and the upgrade test passed. No physical control release or automatic sensor change. Shelly/Xiaomi Bluetooth support stays planned; M2 and physical boiler/valve tests remain open.
 
 English: restores optional original-report diagnostics safely, retires changed sensor identities, and adds clear reception states while preserving existing v35 room cards. Passive operation remains enforced.
 
-[Wijzigingen en resterende voorwaarden in de bron](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev38/docs/modern-thermostat/WORKBOARD.nl.md). Het aparte historiebestand in deze bron bevat de eerdere releasegeschiedenis.
+[Changes and remaining conditions in the source](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev38/docs/modern-thermostat/WORKBOARD.nl.md) (Dutch). The separate history file in this source contains the earlier release history.
 
-# HA 0.4.0.dev37 — sessies, wachtrij en betrouwbaar opstarten
+# HA 0.4.0.dev37 — sessions, queue and reliable start-up
 
-Gezamenlijke uitgave met E32 alpha28; alle eerdere functies en fixes blijven behouden.
+Joint release with E32 alpha28; all earlier features and fixes are kept.
 
-- Ongeldige/teruggaande monotone klok trekt sessie, grants en wachtende opdrachten in; reconnect herstelt geen oude bevoegdheid.
-- Retries controleren na iedere wachtende verzending opnieuw de actuele lease/deadline, SOURCE en de oorspronkelijke opdrachtregistratie. Ingetrokken/vervangen opdrachten worden niet opnieuw aangeboden; geen heartbeat op een verlopen sessie.
-- Opstartfouten en annulering ruimen ook vroeg aangemaakte resources op; oude cleanup kan een nieuwe eigenaar niet verwijderen.
-- Te grote numerieke kraanmetadata wordt als onbruikbare capability afgewezen zonder editorcrash.
+- An invalid/backward-running monotonic clock withdraws the session, grants and waiting commands; reconnecting restores no old authority.
+- After every waiting send, retries re-check the current lease/deadline, SOURCE and the original command registration. Revoked/replaced commands are not offered again; no heartbeat on an expired session.
+- Start-up errors and cancellation also clean up resources created early; an old cleanup cannot remove a new owner.
+- Oversized numeric valve metadata is refused as an unusable capability without crashing the editor.
 
-Ondersteunde native Core-versies blijven 2026.10.2 en 2026.10.3, met volledige tests op beide echte runtimes. Geen frontendwijziging: module dev35/v35 blijft byte-identiek. Kamers, programma's, SOURCE, registry, ontvangstpins en producent blijven behouden.
+The supported native Core versions stay 2026.10.2 and 2026.10.3, with full tests on both real runtimes. No frontend change: module dev35/v35 stays byte-identical. Rooms, programs, SOURCE, registry, reception pins and producer are kept.
 
-Geen automatische kraan-/ketelopdrachten of nieuwe ontvangergrant-route. Een ontvangen TV02-temperatuurbericht is geen causale kraanbevestiging. Tado blijft regelen; actieve M2-/ketelacceptatie blijft open.
+No automatic valve/boiler commands or new receiver grant route. A received TV02 temperature message is no causal valve confirmation. Tado stays in control; active M2/boiler acceptance remains open.
 
 **English:** Combined with E32 alpha28. Retires session evidence on invalid/backward monotonic time, rechecks queue ownership and original deadlines after awaited publishes, fixes failed/cancelled HA setup cleanup and oversized target metadata. Supports actual Core2026.10.2/2026.10.3; unchanged frontend and preserved configuration. Boiler/valve actuation stays disabled.
 
-# HA 0.4.0.dev36 — Core 2026.10.3 en gezamenlijke E32 alpha27-bundel
+# HA 0.4.0.dev36 — Core 2026.10.3 and the joint E32 alpha27 bundle
 
-Neemt alle wijzigingen uit dev35 mee en herstelt de opstartblokkade na een Core-update naar 2026.10.3. De expliciete ondersteunde versies zijn nu 2026.10.2 en 2026.10.3; andere versies blijven geweigerd voor de native configuratietransactie. Alle vijf versiecontroles gebruiken dezelfde lijst. De volledige suite draait op beide echte Core-versies; er wordt geen versienummer of HA-API nagebootst. Instellingen en registry worden niet opnieuw aangemaakt.
+Includes all changes from dev35 and fixes the start-up block after a Core update to 2026.10.3. The explicitly supported versions are now 2026.10.2 and 2026.10.3; other versions stay refused for the native configuration transaction. All five version checks use the same list. The full suite runs on both real Core versions; no version number or HA API is simulated. Settings and registry are not recreated.
 
-Gezamenlijke passieve uitgave met E32 alpha27; geen nieuwe firmwarevariant nodig. De eerder gepubliceerde dev35 blijft historisch behouden en wordt niet geïnstalleerd. Dit is geen vrijgave voor kraan- of ketelopdrachten.
+Joint passive release with E32 alpha27; no new firmware variant needed. The previously published dev35 is kept as history and is not installed. This is no release for valve or boiler commands.
 
-# HA 0.4.0.dev35 — gezamenlijke diagnose- en veiligheidsbundel
+# HA 0.4.0.dev35 — joint diagnostics and safety bundle
 
-Bundelt alle voorbereide HA-wijzigingen sinds dev34, samen met E32 alpha27.
+Bundles all prepared HA changes since dev34, together with E32 alpha27.
 
-- Frontend dev35/v35 met duidelijkere EN/NL-status voor verouderde TV02-ontvangst, zonder oude waarden als actuele kraanbevestiging te presenteren.
-- Strengere binding en levensduur van kraanopdrachten: herhaalde opdrachten delen één serviceaanroep en oorspronkelijke deadline; annulering of onzekere uitvoering veroorzaakt geen automatische herhaling.
-- Verlies van eigenaar, koppeling of kraanmodus tijdens een serviceaanroep blokkeert automatische vervolgacties.
-- Aanvullende supervisordiagnose voor ongeldige feedbackklokken.
+- Frontend dev35/v35 with a clearer EN/NL status for outdated TV02 reception, without presenting old values as a current valve confirmation.
+- Stricter binding and lifetime of valve commands: repeated commands share one service call and the original deadline; cancellation or uncertain execution causes no automatic retry.
+- Loss of the owner, binding or valve mode during a service call blocks automatic follow-up actions.
+- Additional supervisor diagnostics for invalid feedback clocks.
 
-De opdrachtadapter is voorbereid, maar nog niet aangesloten als normale firmware-naar-HA-zendroute. Een HA-servicebevestiging bewijst geen kraanbeweging. Bestaande kamers, programma's, SOURCE, registry, ontvangstpins en producent blijven behouden. Geen automatische bronkwalificatie of apparaatopdrachten. Tado blijft regelen; dit is een passieve prerelease, geen actieve ketelbèta.
+The command adapter is prepared, but not yet connected as a normal firmware-to-HA send route. An HA service confirmation does not prove that a valve moved. Existing rooms, programs, SOURCE, registry, reception pins and producer are kept. No automatic source qualification or device commands. Tado stays in control; this is a passive prerelease, not an active boiler beta.
 
-# HA 0.4.0.dev34 — diagnose en duidelijke bediening afgerond
+# HA 0.4.0.dev34 — diagnostics and clear controls completed
 
-Bundelt alle eerdere HA-correcties en de native ESP-diagnose met de EN/NL-uitleg van instellingen en controles. Hoort bij E32 alpha26; die firmware hoeft hiervoor niet opnieuw geflasht te worden.
+Bundles all earlier HA fixes and the native ESP diagnostics with the EN/NL explanations of settings and checks. Belongs with E32 alpha26; that firmware does not need to be flashed again for this.
 
-- Ontvangstouderdom van de alleen-lezen supervisordiagnose vergelijkt direct met de vervaldeadline. Daarmee blijft een exact verlopen rapport niet zichtbaar door afronding bij het aftrekken van twee klokwaarden.
-- Een deterministische proef met een fractioneel klokbegin toont de oorspronkelijke fout en het herstel. Regelbevoegdheid, opdrachten, leases, bronkwalificatie en fysieke uitgangen veranderen niet.
+- The reception age of the read-only supervisor diagnostics is compared directly with the expiry deadline. This keeps an exactly expired report from staying visible through rounding when two clock values are subtracted.
+- A deterministic test with a fractional clock start shows the original error and the fix. Control authority, commands, leases, source qualification and physical outputs do not change.
 
-# HA 0.4.0.dev33 — ESP-eigen diagnose via native MQTT
+# HA 0.4.0.dev33 — the ESP's own diagnostics over native MQTT
 
-Herstelt vrije/minimaal vrije heap, grootste vrije blok, CPU-temperatuur en uptime samen met E32 alpha25. Bestaande entity unique IDs en geschiedenis blijven behouden. De HA-entiteiten bestaan ook vóór het eerste rapport. Live rapporten zijn elke 15 seconden beschikbaar; na 45 seconden zonder geldig rapport of bij offline wordt beschikbaarheid ingetrokken. Een HA-only herstart vereist geen E32-herstart. Uitgeschakelde RTC-temperatuur blijft onbekend. Legacy modus blijft intact.
+Restores free/minimum free heap, the largest free block, CPU temperature and uptime together with E32 alpha25. Existing entity unique IDs and history are kept. The HA entities also exist before the first report. Live reports are available every 15 seconds; after 45 seconds without a valid report, or when offline, availability is withdrawn. An HA-only restart does not require an E32 restart. The disabled RTC temperature stays unknown. Legacy mode stays intact.
 
-Instellingen en status maken in Engels en Nederlands duidelijk dat schaduwmodus alleen uitleest en berekent. Een bevestigde configuratie en passende kraandoelen worden apart uitgelegd; zij worden niet gepresenteerd als bewijs van kraanbeweging of veilig ketelstoppen.
+Settings and status make clear in English and Dutch that shadow mode only reads and calculates. A confirmed configuration and matching valve targets are explained separately; they are not presented as proof of valve movement or of safely stopping the boiler.
 
-Dit gebruikt dezelfde native verbinding en bestaande HA-runtime voor verval; er worden geen kraan- of ketelopdrachten toegevoegd. Alle functies en correcties uit dev32 zijn meegenomen. Zonder bijbehorende E32 alpha25 blijven deze native diagnosewaarden niet beschikbaar.
+This uses the same native connection and the existing HA runtime for expiry; no valve or boiler commands are added. All features and fixes from dev32 are included. Without the matching E32 alpha25 these native diagnostic values stay unavailable.
 
-# HA 0.4.0.dev32 — rapportlevensduur en verklaarbare transportafwijzingen
+# HA 0.4.0.dev32 — report lifetime and explainable transport rejections
 
-Bundelt alle HA-correcties sinds dev31. E32 alpha24 blijft staan; deze uitgave
-verleent geen fysieke meet-, kraan- of ketelkwalificatie.
+Bundles all HA fixes since dev31. E32 alpha24 stays in place; this release
+grants no physical measurement, valve or boiler qualification.
 
-- Oorspronkelijke temperatuur- en TV02-rapporten blijven gebonden aan de gekozen
-  maximale rapportleeftijd. Een policywijziging trekt de oude ontvanger in;
-  terugzetten hergebruikt geen oude rapporten. Een nieuwe eigenaar begint leeg.
-- Ongeldige klokwaarden en overlopende tijdsdelta's worden veilig afgehandeld.
-- De bestaande ontvanger bewaart maximaal één historische afwijzing voor een
-  actuele, aangevraagde reply. HA-diagnostiek toont alleen vaste stroom-, status-
-  en redencodes met ontvangstouderdom. Onbekende peer-tekst wordt niet uitgevoerd
-  of geëxporteerd. Een latere gezonde status maakt dit geen actuele storing.
-  Een sessiewissel of geconstateerde klokfout verwijdert deze diagnose.
-- Native configuratieafwijzingen met het optionele `rejection_reason`-veld worden
-  correct als afwijzing verwerkt; zij verdwijnen niet door een te strikt schema.
-  Succes blijft uitsluitend via de bestaande readback-/SOURCE-controles geldig.
+- Original temperature and TV02 reports stay bound to the chosen
+  maximum report age. A policy change revokes the old receiver;
+  restoring it does not reuse old reports. A new owner starts empty.
+- Invalid clock values and overflowing time deltas are handled safely.
+- The existing receiver keeps at most one historical rejection for a
+  current, requested reply. HA diagnostics show only fixed stream, status
+  and reason codes with the reception age. Unknown peer text is not executed
+  or exported. A later healthy status does not turn this into a current fault.
+  A session change or a detected clock error removes this diagnosis.
+- Native configuration rejections with the optional `rejection_reason` field are
+  processed correctly as a rejection; they no longer disappear because of an overly strict schema.
+  Success remains valid only through the existing readback/SOURCE checks.
 
-Kamers, programma's, koppelingen, accepted SOURCE/journal, registry, dashboard,
-privé TV02-pins en ontvangende producent blijven behouden. Geen extra client,
-watcher, automatische retry of apparaatopdracht. De frontendbytes en bestaande
-dev28/v28-kaartidentiteit blijven gelijk. Natuurlijke TV02-ontvangst, causale
-opdrachtbevestiging en fysieke acceptaties blijven afzonderlijke open checks.
+Rooms, programs, bindings, accepted SOURCE/journal, registry, dashboard,
+private TV02 pins and the receiving producer are kept. No extra client,
+watcher, automatic retry or device command. The frontend bytes and the existing
+dev28/v28 card identity stay the same. Natural TV02 reception, causal
+command confirmation and physical acceptances remain separate open checks.
 
-# HA 0.4.0.dev31 — TV02-ontvangst voor native installatiekamers
+# HA 0.4.0.dev31 — TV02 reception for native installation rooms
 
-Herstelt de oorspronkelijke TV02-ontvanger voor kamers waarvan de gekozen kraan
-in de centrale installatieconfiguratie staat. De ontvanger valideert dezelfde
-native configuratie-eigenaar als de kamereditor. Ontbrekende, dubbele, gewijzigde
-of ongeldige koppelingen worden afgewezen; een ingetrokken bron herleeft niet
-vanzelf. Identiteits-, ouderdoms- en replaycontroles blijven behouden.
+Restores the original TV02 receiver for rooms whose chosen valve is in
+the central installation configuration. The receiver validates the same
+native configuration owner as the room editor. Missing, duplicate, changed
+or invalid bindings are refused; a revoked source does not revive
+by itself. Identity, age and replay checks are kept.
 
-Deze gerichte vervolgupdate maakt ontvangstacceptatie mogelijk na de gezamenlijke
-alpha24/dev30-bundel. E32 alpha24 blijft staan. Geen apparaatopdracht, automatische
-kraanmoduswijziging of bronkwalificatie. De al geplaatste privé ontvangstpins en
-ontvangende Zigbee2MQTT-extension blijven behouden; het pakket bevat geen privé
-pins. Kamers, programma's, SOURCE, registry en historie blijven behouden.
-Frontendbytes en dev28/v28-kaartidentiteit blijven gelijk.
+This targeted follow-up update enables reception acceptance after the joint
+alpha24/dev30 bundle. E32 alpha24 stays in place. No device command, automatic
+valve mode change or source qualification. The private reception pins already in place
+and the receiving Zigbee2MQTT extension are kept; the package contains no private
+pins. Rooms, programs, SOURCE, registry and history are kept.
+Frontend bytes and the dev28/v28 card identity stay the same.
 
-# HA 0.4.0.dev30 — supervisor, eindige kraandoelen en privé ontvangstpins
+# HA 0.4.0.dev30 — supervisor, bounded valve targets and private reception pins
 
-Gezamenlijke kandidaat met E32 alpha24; bundelt alle HA-wijzigingen sinds dev29.
-De standaard fysieke uitvoer blijft geblokkeerd. Dit is geen actieve ketelbèta.
+Joint candidate with E32 alpha24; bundles all HA changes since dev29.
+The default physical output stays blocked. This is not an active boiler beta.
 
-- Read-only supervisordiagnose toont gemelde fase en regelintenties met beperkte
-  ontvangstouderdom. Verlopen, ontbrekende of ongeldige status wordt ingetrokken;
-  diagnose verleent geen bevoegdheid en verwerpt geen geldige kamerbeslissingen.
-- De voorbereide kraanadapter begrenst wachttijd én serviceaanroep binnen dezelfde
-  actiedeadline. Een nieuwer wachtend doel vervangt een ouder. Een onzekere afloop
-  na dispatch blokkeert vervolgacties binnen dezelfde adapter, zonder retry.
-- Oorspronkelijke TV02-ontvangstpins kunnen uit het privébestand
-  `.openthermostat-original-tv02.json` op de HA-configroot worden gelezen bij
-  normale native opstart. Strikt schema, privérechten, identiteitsbinding en
-  foutisolatie; geen Store, watcher, extra MQTT-client of apparaatopdracht.
-  Ontbrekend/ongeldig bestand laat normale controlleropstart werken.
+- Read-only supervisor diagnostics show the reported phase and control intentions with a limited
+  reception age. Expired, missing or invalid status is withdrawn;
+  diagnostics grant no authority and do not discard valid room decisions.
+- The prepared valve adapter bounds both the waiting time and the service call within the same
+  action deadline. A newer waiting target replaces an older one. An uncertain outcome
+  after dispatch blocks follow-up actions within the same adapter, without retry.
+- Original TV02 reception pins can be read from the private file
+  `.openthermostat-original-tv02.json` in the HA config root during a
+  normal native start-up. Strict schema, private permissions, identity binding and
+  error isolation; no Store, watcher, extra MQTT client or device command.
+  A missing/invalid file lets the normal controller start-up work.
 
-De update installeert geen Zigbee2MQTT-producent, verandert geen meetselectie of
-kraanmodus en kent geen bron-/flow-/klepkwalificatie toe. Werkelijke originele
-ontvangst vereist afzonderlijk beoordeelde private pins en producentinstallatie.
-Kamers, programma's, SOURCE, registry-identiteiten en historie blijven behouden.
-De frontendbytes veranderen niet: de bestaande dev28/v28-resource-/kaartidentiteit
-blijft geldig en wordt niet op basis van het manifestnummer vervangen.
+The update installs no Zigbee2MQTT producer, changes no measurement selection or
+valve mode and grants no source/flow/valve qualification. Real original
+reception requires separately reviewed private pins and a producer installation.
+Rooms, programs, SOURCE, registry identities and history are kept.
+The frontend bytes do not change: the existing dev28/v28 resource/card identity
+stays valid and is not replaced on the basis of the manifest number.
 
-# HA 0.4.0.dev29 — oorspronkelijke TV02-ontvangst zichtbaar
+# HA 0.4.0.dev29 — original TV02 reception visible
 
-Bundelt de voorbereide oorspronkelijke TV02-datapointontvangst via de bestaande
-native MQTT-verbinding en registry-lifecycle. Ontvangst is begrensd, controleert
-de expliciet vastgelegde apparaatidentiteit en bronleeftijd en maakt verouderde,
-retained, herhaalde of verkeerd gekoppelde rapporten niet opnieuw actueel.
-De standaard bronpinlijst blijft leeg. Productiebronpins, Zigbee2MQTT-extension
-installatie en echte oorspronkelijke rapportontvangst moeten apart beoordeeld
-worden; de update schakelt deze niet automatisch in.
+Bundles the prepared original TV02 data point reception through the existing
+native MQTT connection and registry lifecycle. Reception is bounded, checks
+the explicitly recorded device identity and source age, and does not make outdated,
+retained, repeated or wrongly bound reports current again.
+The default source pin list stays empty. Production source pins, the Zigbee2MQTT extension
+installation and real original report reception must be reviewed
+separately; the update does not enable them automatically.
 
-De kamereditor toont beschikbare oorspronkelijke rapporten in Nederlands of
-Engels: gemeld doel, eigen kraantemperatuur, programma, verwarmingsstop en
-vorstbeveiliging. De ontvangstouderdom geldt bij laden. Ontvangst is geen
-opdrachtbevestiging, klepstand, bewezen warmteafgifte of aansturingsvrijgave.
-Verlopen, onderbroken of ongeldige rapporten tonen geen oude datapointwaarden.
-Conceptwijzigingen gebruiken niet de diagnose van een oude opgeslagen koppeling.
+The room editor shows available original reports in Dutch or
+English: reported target, the valve's own temperature, program, heating stop and
+frost protection. The reception age applies at load time. Reception is no
+command confirmation, valve position, proven heat delivery or control release.
+Expired, interrupted or invalid reports show no old data point values.
+Draft changes do not use the diagnostics of an old saved binding.
 
-De gewijzigde editor heeft de eigen dev28/v28-cache-/kaartidentiteit; dev29
-behoudt diezelfde frontendbytes en voegt complete pakketnotities toe.
-Bestaande handmatige kaarten blijven compatibel. Er is geen extra polling,
-MQTT-client, automatische kraanmodusreparatie of setpointopdracht toegevoegd.
-Bestaande meetentiteiten, historie, kamers, weekprogramma's, SOURCE en apparaat-
-identiteiten blijven behouden. Dit is de gezamenlijke passieve testbatch met
-E32 alpha23 (logging/syslog en stabiele dashboardverversing). Fysieke
-ketel-/kraanuitgangen blijven geblokkeerd en de actieve bèta blijft open.
+The changed editor has its own dev28/v28 cache/card identity; dev29
+keeps those same frontend bytes and adds complete package notes.
+Existing manual cards stay compatible. No extra polling,
+MQTT client, automatic valve mode repair or setpoint command was added.
+Existing measurement entities, history, rooms, week programs, SOURCE and device
+identities are kept. This is the joint passive test batch with
+E32 alpha23 (logging/syslog and stable dashboard refresh). Physical
+boiler/valve outputs remain blocked and the active beta remains open.
 
-Dev28 bleef een ongepubliceerde pakketkandidaat; de bestaande tag blijft
-behouden. Dev29 bevat de volledige bijgewerkte Nederlandstalige pakketnotities.
+Dev28 remained an unpublished package candidate; the existing tag is
+kept. Dev29 contains the complete updated Dutch package notes.
 
-# HA 0.4.0.dev27 — actuele ketelvelden zichtbaar in het overzicht
+# HA 0.4.0.dev27 — current boiler fields visible in the overview
 
-Het beheerde keteloverzicht gebruikt nu de native ketelsensoren die met
-alpha20/dev26 beschikbaar zijn gekomen. Aanvoer, retour, gerapporteerde
-modulatie en tapwatertemperaturen krijgen eigen historiekaarten. Alle
-beschikbare velddefinities worden via de geregistreerde entiteits-ID opgenomen;
-hernoemen, uitschakelen en installatie-eigendom blijven gerespecteerd.
-Gerapporteerde velden en afgeleide activiteit staan afzonderlijk. Ingeschakelde
-onbetrouwbare ruwe diagnostiek blijft bij Diagnostics en wordt geen vlam- of
-pompbewijs. Er worden geen oude statistieken samengevoegd of counters aangevuld.
+The managed boiler overview now uses the native boiler sensors that became
+available with alpha20/dev26. Flow, return, reported
+modulation and hot-water temperatures get their own history cards. All
+available field definitions are included through the registered entity ID;
+renaming, disabling and installation ownership are respected.
+Reported fields and derived activity are listed separately. Enabled
+unreliable raw diagnostics stay under Diagnostics and do not become flame or
+pump evidence. No old statistics are merged and no counters are filled in.
 
-Dit rondt de HA-presentatie van de uitleesupdate af; E32 alpha20 blijft staan.
-Geen SOURCE-, kamer-, programma-, regelaar- of uitgangswijzigingen. De bestaande
-kamereditor en zijn dev25-cache-identiteit veranderen niet.
+This completes the HA presentation of the readout update; E32 alpha20 stays in place.
+No SOURCE, room, program, controller or output changes. The existing
+room editor and its dev25 cache identity do not change.
 
-# HA 0.4.0.dev26 — native meetkoppeling voor de productinstallatie
+# HA 0.4.0.dev26 — native measurement binding for the product installation
 
-Bundelt alle voorbereide dev25-functies met de correctie voor bestaande v2-
-meetentiteiten. De productinstallatie gebruikt nu dezelfde gevalideerde native
-MQTT-cache als de native sensorplatformtests. Eén eigenaar per meetidentiteit
-voorkomt dubbele sensoren door legacy-berichten. Entiteitsidentiteiten,
-statistiekdefinities en installatiegroep blijven behouden; verlopen of niet
-ondersteunde waarden blijven onbeschikbaar. De frontend blijft op dezelfde
-reeds vernieuwde dev25-kaartversie omdat de frontendbytes niet veranderen.
+Bundles all prepared dev25 features with the fix for existing v2
+measurement entities. The product installation now uses the same validated native
+MQTT cache as the native sensor platform tests. One owner per measurement identity
+prevents duplicate sensors from legacy messages. Entity identities,
+statistics definitions and the installation group are kept; expired or
+unsupported values stay unavailable. The frontend stays on the same
+already refreshed dev25 card version because the frontend bytes do not change.
 
-Samen met E32 alpha20 worden beschikbare Classic-ketelvelden zichtbaar.
-Uitgangen blijven geblokkeerd; geen wijziging van SOURCE, kamers of programma’s.
+Together with E32 alpha20, available Classic boiler fields become visible.
+Outputs remain blocked; no change to SOURCE, rooms or programs.
 
-# HA 0.4.0.dev25 — actuele ketelvelden en consistente EN/NL-bediening
+# HA 0.4.0.dev25 — current boiler fields and consistent EN/NL controls
 
-Samen met E32 alpha19 worden beschikbare Classic-ketelvelden via de bestaande
-native MQTT-sessie als leessensoren op de bestaande installatie aangeboden.
-De bronleeftijd, kwaliteit, eenheid en geldigheid blijven zichtbaar. Dit herstelt
-het ontbrekende moderne uitleespad; oude legacy-aliassen en hun historie worden
-behouden en worden niet met nieuwe meetdefinities samengevoegd. Niet door de
-ketel geleverde waarden blijven onbekend; onbetrouwbare diagnostiek blijft
-standaard uitgeschakeld.
+Together with E32 alpha19, available Classic boiler fields are offered as read sensors
+on the existing installation through the existing native MQTT session.
+The source age, quality, unit and validity stay visible. This restores
+the missing modern readout path; old legacy aliases and their history are
+kept and are not merged with new measurement definitions. Values the
+boiler does not deliver stay unknown; unreliable diagnostics stay
+disabled by default.
 
-De volledige EN/NL-formuliercatalogi zijn aangevuld. De kamereditor volgt de
-HA-profieltaal, met nieuwe cache-/kaartidentiteit en behoud van oudere kaarten.
-Opgeslagen native dashboardteksten gebruiken de afgesproken Engelse terugval.
-Alle voorbereide apparaat-/meetdiagnostiek, weekplanner- en opslagcorrecties
-blijven meegenomen. Er worden geen kamerkoppelingen, programma’s, kraanmodi of
-verwarmingsvrijgaven gewijzigd. Fysieke uitgangen blijven geblokkeerd.
+The complete EN/NL form catalogues were completed. The room editor follows the
+HA profile language, with a new cache/card identity while older cards are kept.
+Saved native dashboard texts use the agreed English fallback.
+All prepared device/measurement diagnostics, week planner and storage fixes
+are included. No room bindings, programs, valve modes or
+heating releases are changed. Physical outputs remain blocked.
 
-# HA 0.4.0.dev24 — gezamenlijke bron- en apparaatcontroles
+# HA 0.4.0.dev24 — joint source and device checks
 
-Deze release bundelt de voorbereide bronwijzigingen met E32 alpha18. Meetkwalificatie wordt ingetrokken bij vervanging van een observer of wijziging/uitschakeling van de native sensor of het apparaat. Wachtende metingen worden opnieuw gecontroleerd vóór overdracht; cache en herregistratie maken een oude meting niet vers.
+This release bundles the prepared source changes with E32 alpha18. Measurement qualification is withdrawn when an observer is replaced or the native sensor or device is changed/disabled. Waiting readings are re-checked before handover; the cache and re-registration do not make an old reading fresh.
 
-De kraanadapter controleert identiteit en actuele temperatuurcapaciteit vlak vóór dispatch. TV02 auto-/vakantie-/uit-/onbekende modus wordt als conflict getoond en verleent geen doelautorisatie. De apparaatcontrole toont expliciet gemelde Zigbee2MQTT- en converterpakketversies. De frontend krijgt een nieuwe cache- en kaartidentiteit.
+The valve adapter checks the identity and the current temperature capability just before dispatch. TV02 auto/vacation/off/unknown mode is shown as a conflict and grants no target authorisation. The device check shows the explicitly reported Zigbee2MQTT and converter package versions. The frontend gets a new cache and card identity.
 
-Programma, kameridentiteiten, bindings en SOURCE blijven behouden. Deze installatie wijzigt geen profiel, kraanmodus of fysieke uitgang. Het productiemeetprofiel en fysieke kraan-/ketelacceptatie blijven open; ontbrekende kwalificatie blijft zichtbaar. Alle eerdere planner-, koude-start-, inrichting- en verbindingsfixes blijven behouden.
+Program, room identities, bindings and SOURCE are kept. This installation changes no profile, valve mode or physical output. The production measurement profile and physical valve/boiler acceptance remain open; missing qualification stays visible. All earlier planner, cold-start, setup and connection fixes are kept.
 
-# HA 0.4.0.dev23 — gebundelde kamer- en verbindingsverbeteringen
+# HA 0.4.0.dev23 — bundled room and connection improvements
 
-Deze release hoort bij de gezamenlijke testbatch met E32 alpha17.
+This release belongs to the joint test batch with E32 alpha17.
 
-- De kamerpagina wacht bij opstarten op het HA-hoofdelement. Zo blijft de kaart geregistreerd nadat HA zijn custom-elementregister heeft ingericht; herhaald verversen hoort niet nodig te zijn.
-- Bij een normaal gekoppelde native regelaar kunnen de temperatuursensor, radiatorknop en kamergrenzen via de kamerpagina worden gewijzigd. Het complete toekomstige plan wordt vooraf gecontroleerd; kamer, graph en nieuw profiel worden samen opgeslagen en via de bestaande beveiligde controllerverbinding toegepast.
-- Als toepassing niet kan worden bevestigd, blijven de opgeslagen instellingen behouden. De pagina blokkeert verdere wijzigingen en biedt een expliciete knop om precies die opgeslagen instellingen opnieuw toe te passen. Er is geen automatische herhaling of terugzetten van een oud profiel.
-- De bestaande native heartbeat kan begrensde UTF-8-kamernamen aan een ondersteunende E32 doorgeven. Oude firmware blijft compatibel.
-- De oude tijdelijke bronbench wordt geweigerd bij een door SOURCE beheerd regelplan, voordat hij configuratie, timers of eigendom kan wijzigen.
+- At start-up the room page waits for the HA root element. That keeps the card registered after HA has set up its custom element registry; refreshing repeatedly should not be needed.
+- With a normally linked native controller, the temperature sensor, radiator valve and room limits can be changed on the room page. The complete future plan is checked beforehand; the room, graph and new profile are saved together and applied through the existing secured controller connection.
+- If applying cannot be confirmed, the saved settings are kept. The page blocks further changes and offers an explicit button to apply exactly those saved settings again. There is no automatic retry or restoring of an old profile.
+- The existing native heartbeat can pass bounded UTF-8 room names to an E32 that supports them. Old firmware stays compatible.
+- The old temporary source bench is refused for a control plan managed by SOURCE, before it can change configuration, timers or ownership.
 
-Bestaande kameridentiteiten, programma's en bindings worden bij de update behouden. Apparaatwijzigingen gebeuren alleen na expliciet opslaan. Eén radiatorknop per native kamer blijft de huidige contractgrens; programmabronwissels blijven een afzonderlijke inrichting. Beschikbaarheid van een HA-entiteit bewijst geen gekwalificeerde temperatuurmeting. Een ontbrekend meetprofiel blijft zichtbaar en krijgt door deze update geen automatische kwalificatie of verwarmingsvrijgave.
+Existing room identities, programs and bindings are kept by the update. Device changes happen only after an explicit save. One radiator valve per native room remains the current contract limit; program source changes remain a separate setup. Availability of an HA entity does not prove a qualified temperature reading. A missing measurement profile stays visible and gets no automatic qualification or heating release from this update.
 
-Verificatie omvat native HA-opslag/herlaadcycli, de normale controller-provisioning met gecontroleerde externe HTTP-antwoorden, echte MQTT-pakketuitwisseling met de C++-controller en desktop/mobiele browserregressies. Fysieke apparaatacceptatie staat daar los van.
+Verification includes native HA save/reload cycles, the normal controller provisioning with checked external HTTP responses, real MQTT packet exchange with the C++ controller and desktop/mobile browser regressions. Physical device acceptance is separate from that.
 
-# HA 0.4.0.dev22 — meetstatus in de kamerbediening
+# HA 0.4.0.dev22 — measurement status in the room controls
 
-Bij de gekoppelde sensor staat nu afzonderlijk of de regeling een gekwalificeerde meting heeft, op een nog ontbrekend meetprofiel wacht, of een onbevestigde/verlopen meting heeft. De status is een momentopname bij laden. Hij verandert geen sensorinstellingen en schrijft geen programma of actuatoropdrachten.
+Next to the linked sensor, the page now shows separately whether the control has a qualified reading, is waiting for a measurement profile that is still missing, or has an unconfirmed/expired reading. The status is a snapshot at load time. It changes no sensor settings and writes no program or actuator commands.
 
-Beschikbaarheid in Home Assistant en meetactualiteit blijven afzonderlijk. Een leesactie vernieuwt nooit de leeftijd van een meting. Rapport-ID's en andere bronpayloads worden niet in deze samenvatting opgenomen. De bestaande planner- en koude-startcorrecties blijven behouden.
+Availability in Home Assistant and how current a reading is stay separate. A read action never renews the age of a reading. Report IDs and other source payloads are not included in this summary. The existing planner and cold-start fixes are kept.
 
-# HA 0.4.0.dev21 — korte weekblokken betrouwbaar verplaatsen
+# HA 0.4.0.dev21 — moving short week blocks reliably
 
-Een kort temperatuurblok wordt op een aanraakscherm bij slepen nu als geheel verplaatst, met behoud van duur en temperatuur. De vaste randzone kon voorheen het hele blok innemen en daardoor onbedoeld de begintijd wijzigen. Op muisbediening houdt ieder blok een middengebied om te verplaatsen; grotere blokken blijven aan de randen te verlengen of in te korten. Exacte tijden blijven in de velden onder de planner instelbaar.
+On a touch screen, a short temperature block is now moved as a whole when dragged, keeping its duration and temperature. The fixed edge zone could previously take up the whole block and so unintentionally change its start time. With a mouse, every block keeps a middle area for moving; larger blocks can still be extended or shortened at the edges. Exact times stay adjustable in the fields below the planner.
 
-De browserregressie gebruikt echte Chromium-aanraakgebeurtenissen op 320, 390 en 1440px, Nederlands en Engels. Deze controleert korte blokken, muisbediening, tijdvelden, overlap, daggrenzen, annuleren en afwezigheid van automatisch opslaan. Dit is schermemulatie, geen fysieke telefoonacceptatie.
+The browser regression uses real Chromium touch events at 320, 390 and 1440 px, in Dutch and English. It checks short blocks, mouse use, time fields, overlap, day boundaries, cancelling and the absence of automatic saving. This is screen emulation, not acceptance on a physical phone.
 
-De koude-startoplossing uit dev20 blijft behouden. Deze HA-update bevat geen firmware en verandert geen opgeslagen kamerprogramma of apparaatbindingen.
+The cold-start fix from dev20 is kept. This HA update contains no firmware and changes no saved room program or device bindings.
 
 # Home Assistant 0.4.0.dev20 — room page registration on direct opening
 
@@ -776,106 +899,106 @@ rules are changed. No firmware is included. Browser fixtures use simulated
 admin WebSocket responses; live deployment and the user's exact browser
 session are separate verification steps.
 
-# OpenThermostat Home Assistant 0.4.0.dev19 — testrelease
+# OpenThermostat Home Assistant 0.4.0.dev19 — test release
 
-Dev19 herstelt opslaan na langer geopende kamerinstellingen. Een verse
-kamerstatus bewijst niet dat de eerdere configuratie-uitlezing nog actueel is.
-Bij Alles opslaan vraagt de bestaande verbinding zo nodig eerst een nieuwe
-configuratiebevestiging op. Pas daarna wordt de ruimte opgeslagen en het
-gewijzigde plan via dezelfde regelaar bevestigd. De bestaande leeftijdsgrens
-blijft gelden; er worden geen bevoegdheden of bronkwalificaties gefabriceerd.
-Als die uitlezing ontbreekt, blijft het concept zichtbaar en wordt niets
-opgeslagen. Geen automatische herhaling van een wijziging. De live dev18-proef
-werd vóór opslaan geweigerd; 21°C en revisie1 bleven daarbij behouden.
+Dev19 fixes saving after room settings have been open for a longer time. A fresh
+room status does not prove that the earlier configuration readout is still current.
+On Save all, the existing connection first asks for a new
+configuration confirmation when needed. Only then is the room saved and the
+changed plan confirmed through the same controller. The existing age limit
+still applies; no authority or source qualification is fabricated.
+If that readout is missing, the draft stays visible and nothing is
+saved. No automatic retry of a change. The live dev18 test
+was refused before saving; 21 °C and revision 1 were kept.
 
-Bij een verbonden regelaar kun je nu de **naam, basistemperatuur en lokale
-weekblokken** direct in het kamerscherm wijzigen. Alles opslaan bewaart de
-ruimte, wacht op de normale HA-herlaadcyclus en bevestigt het werkelijke E32-plan
-via de bestaande MQTT-worker. Een ACK alleen geldt niet als voltooiing. Bij
-gewijzigde temperaturen/blokken vervalt een tijdelijke temperatuur wanneer het
-nieuwe programma wordt toegepast. Apparaatkoppelingen en profielgrenzen blijven
-bij een actieve regeling voorlopig zichtbaar maar vergrendeld; hun volledige
-profielmigratie is nog open.
+With a connected controller you can now change the **name, base temperature and local
+week blocks** directly on the room screen. Save all stores the
+room, waits for the normal HA reload cycle and confirms the actual E32 plan
+through the existing MQTT worker. An ACK alone does not count as completion. When
+temperatures/blocks change, a temporary temperature expires when the
+new program is applied. With active control, device bindings and profile limits
+stay visible but locked for now; their full
+profile migration is still open.
 
-Als toepassing niet kan worden bevestigd, blijft het concept behouden en wordt
-geen automatische opdracht herhaald. Na opnieuw laden kan de gebruiker het
-opgeslagen programma expliciet opnieuw toepassen. De bestaande SOURCE,
-credentials, kranen en fysieke bevoegdheden worden niet vervangen. Dit pad
-fabriceert geen gekwalificeerde temperatuurbron of fysieke werking. De eerdere
-afwijzing van een losse tijdelijke22°C-opdracht blijft afzonderlijk open;
-deze versie verklaart of verhelpt die nog niet.
+If applying cannot be confirmed, the draft is kept and no
+command is retried automatically. After reloading, the user can explicitly apply the
+saved program again. The existing SOURCE,
+credentials, valves and physical authority are not replaced. This path
+fabricates no qualified temperature source or physical operation. The earlier
+rejection of a single temporary 22 °C command remains open separately;
+this version does not yet explain or fix it.
 
-Eén installatie met centrale instellingen en kamers. Nieuwe kamers gebruiken
-een wizard; bestaande kamers hebben één direct configuratiescherm met gekoppelde
-apparaten, temperaturen en een grafisch weekprogramma met temperatuurblokken.
-Apparaatidentiteit, beschikbaarheid en kraangrenzen worden bij de kamer getoond.
-Deze versie herkent de officiële Home Assistant-featureflags van een klimaatapparaat
-correct; geldige temperatuurgrenzen hoeven daardoor niet onbekend te lijken.
+One installation with central settings and rooms. New rooms use
+a wizard; existing rooms have one direct configuration screen with linked
+devices, temperatures and a graphical week program with temperature blocks.
+Device identity, availability and valve limits are shown with the room.
+This version correctly recognises the official Home Assistant feature flags of a climate device;
+valid temperature limits therefore no longer need to look unknown.
 
-Dev17 herkent Zigbee2MQTT-klimaatapparaten zonder algemeen `state_topic`.
-De prefix wordt uitsluitend afgeleid uit zowel de gepubliceerde bridge- als
-de exacte apparaatbeschikbaarheid, gekoppeld aan de bestaande apparaatidentiteit.
-Ontbrekende, ongeldige en tegenstrijdige gegevens blijven geweigerd. Deze versie
-verandert geen apparaatinstellingen of fysieke aansturing.
+Dev17 recognises Zigbee2MQTT climate devices without a general `state_topic`.
+The prefix is derived only from both the published bridge and
+the exact device availability, bound to the existing device identity.
+Missing, invalid and conflicting data stay refused. This version
+changes no device settings or physical control.
 
-Dev16 herstelt de uitlezing voor Home Assistants eigen `MQTTDiscoveryPayload`-
-object. De regressietest gebruikt nu dat echte native object, ook samen met de
-werkelijke HA-MQTT-client en een lokale testbroker. De eerdere dev15-tag en
-bestanden blijven behouden; gebruik dev19 voor de actuele apparaatcontrole.
+Dev16 fixes reading Home Assistant's own `MQTTDiscoveryPayload`
+object. The regression test now uses that real native object, also together with the
+actual HA MQTT client and a local test broker. The earlier dev15 tag and
+files are kept; use dev19 for the current device check.
 
-Aanwezig sinds dev15: in het kamerscherm staat onder **Geavanceerde instellingen**
-**Apparaatinformatie controleren**. Dit leest uitsluitend op verzoek de laatst
-gemelde Zigbee2MQTT-definities voor de opgeslagen sensor en kranen. Doeltemperatuur,
-externe temperatuurinvoer, klepstand en converteropties worden apart getoond.
-Ontbrekende informatie blijft onbekend. Een diagnostische apparaattemperatuur
-krijgt een duidelijke toelichting; die is niet automatisch een gekwalificeerde
-kamermeting. Dit is informatie over apparaatmogelijkheden, geen geslaagde fysieke
-kraanproef. Er worden geen instellingen, interviews of verwarmingscommando’s verstuurd.
-Deze uitlezing gebruikt de bestaande HA-MQTT-verbinding, twee exacte topics en
-een korte wachttijd. Andere apparaten en ruwe discovery-/brokergegevens worden
-niet naar het scherm gestuurd. Andere apparaatbronnen blijven normaal gekoppeld;
-ze kunnen deze specifieke Zigbee2MQTT-uitlezing niet altijd aanbieden.
+Present since dev15: on the room screen, under **Advanced settings**, there is
+**Check device information**. Only on request, it reads the most recently
+reported Zigbee2MQTT definitions for the saved sensor and valves. Target temperature,
+external temperature input, valve position and converter options are shown separately.
+Missing information stays unknown. A diagnostic device temperature
+gets a clear explanation; it is not automatically a qualified
+room reading. This is information about device capabilities, not a successful physical
+valve test. No settings, interviews or heating commands are sent.
+This readout uses the existing HA MQTT connection, two exact topics and
+a short waiting time. Other devices and raw discovery/broker data are
+not sent to the screen. Other device sources stay linked normally;
+they cannot always offer this specific Zigbee2MQTT readout.
 
-Ook aanwezig sinds dev14: kies **E32 verbinden** in de centrale integratie-instellingen.
-Vul het lokale webadres en beheerderswachtwoord in. De integratie controleert de
-werkelijke E32, bewaart de bestaande netwerkinstellingen en synchroniseert het
-kamerprogramma via de bestaande verbinding. Alleen ontvangst van een opdracht
-is geen succes: de E32 moet de juiste configuratie en actuele kamerstatus teruggeven.
-Een eerste koppeling kan de E32 eenmaal herstarten. E32-alpha.9 of nieuwere
-compatibele firmware is nodig; het huidige profiel ondersteunt één of twee kamers.
-Het beheerderswachtwoord wordt in de bestaande HA-integratie bewaard; cookies en
-controlecodes blijven tijdelijk. Gewone kamerschermen en diagnoses exporteren
-het wachtwoord niet. Bij een onderbroken koppeling wordt geen bevestigde uitvoering
-voorgewend; controleer de installatiestatus voordat je opnieuw probeert.
+Also present since dev14: choose **Connect E32** in the central integration settings.
+Enter the local web address and administrator password. The integration checks the
+actual E32, keeps the existing network settings and synchronises the
+room program through the existing connection. Receiving a command alone
+is no success: the E32 must return the correct configuration and the current room status.
+A first link can restart the E32 once. E32 alpha.9 or newer
+compatible firmware is needed; the current profile supports one or two rooms.
+The administrator password is stored in the existing HA integration; cookies and
+check codes stay temporary. Ordinary room screens and diagnostics do not export
+the password. With an interrupted link, no confirmed execution is
+pretended; check the installation status before you try again.
 
-Dit is een ontwikkelrelease. De normale HA→E32-configuratieketen is met dev14
-live bevestigd; de fysieke sensor-/kraan-/ketelproef en verwarmingsvrijgave
-zijn nog niet afgerond. Naam, basistemperatuur en lokale weekblokken zijn in
-dev18 bij een actieve koppeling bewerkbaar. Apparaten en profielgrenzen wijzigen,
-de optionele externe kamerdoelbron, raamcontact en meerdere gekwalificeerde
-kraanprofielen blijven vervolgwerk.
-De nieuwe E32-firmware wordt afzonderlijk getest en uitgebracht; deze release
-bevat uitsluitend de Home Assistant-integratie. Een opgeslagen instelling is
-nog geen bevestigde uitvoering op de E32.
+This is a development release. The normal HA→E32 configuration chain was
+confirmed live with dev14; the physical sensor/valve/boiler test and heating release
+are not finished yet. Name, base temperature and local week blocks are editable in
+dev18 with an active link. Changing devices and profile limits,
+the optional external room target source, a window contact and several qualified
+valve profiles remain follow-up work.
+The new E32 firmware is tested and released separately; this release
+contains only the Home Assistant integration. A saved setting is
+not yet a confirmed execution on the E32.
 
-Download `OpenThermostat-HA-0.4.0.dev19.zip` en controleer de SHA256 met
-`HA-SHA256SUMS.txt`. Maak vóór installatie een back-up van de bestaande
-integratie/configuratie. Kopieer `custom_components/open_thermostat` uit de ZIP
-naar de Home Assistant-configuratiemap, controleer de configuratie en herstart
-Home Assistant. Bestaande gebruikers hoeven de integratie niet opnieuw toe te
-voegen. Controleer na herstart versie, kamers, apparaatkoppelingen en programma.
-Behoud het vorige pakket als terugvalmogelijkheid.
+Download `OpenThermostat-HA-0.4.0.dev19.zip` and check the SHA256 with
+`HA-SHA256SUMS.txt`. Before installing, make a backup of the existing
+integration/configuration. Copy `custom_components/open_thermostat` from the ZIP
+to the Home Assistant configuration folder, check the configuration and restart
+Home Assistant. Existing users do not need to add the integration
+again. After the restart, check the version, rooms, device bindings and program.
+Keep the previous package as a fallback.
 
-Dev14 behoudt de bestaande dagelijkse bediening en neemt de eerdere klokcorrectie mee. Voor reproduceerbare proeven
-hebben ontvangst, wachtrij en protocol nu één expliciete monotone klokbron;
-standaard blijft dat de bestaande HA-loopklok. De tests gebruiken dezelfde
-virtuele klok als hun C++-peer, onafhankelijk van hoe lang de testmachine draait.
-De proef bewaakt ook dat vertraagde metingen hun echte leeftijd behouden en
-op de ingestelde leeftijdsgrens worden geweigerd. Versheidscontroles blijven staan.
+Dev14 keeps the existing everyday controls and includes the earlier clock fix. For reproducible tests,
+reception, the queue and the protocol now have one explicit monotonic clock source;
+by default that remains the existing HA loop clock. The tests use the same
+virtual clock as their C++ peer, independent of how long the test machine has been running.
+The test also checks that delayed readings keep their real age and are
+refused at the configured age limit. Freshness checks stay in place.
 
-De pipeline bouwt beide benodigde C++-testprobes in een schone CI-omgeving.
-De mislukte `ha-v0.4.0.dev11`- en `ha-v0.4.0.dev12`-tags blijven behouden;
-daarvan is geen release gepubliceerd. Bestaande instellingen en apparaatkoppelingen
-blijven bij deze update behouden.
-Het pakket bevat `SOURCE.json`, oorspronkelijke projectlicentie en checksums.
-Geen live HA-opslag, firmware, ketelvrijgave of apparaatcommando's zijn inbegrepen.
+The pipeline builds both required C++ test probes in a clean CI environment.
+The failed `ha-v0.4.0.dev11` and `ha-v0.4.0.dev12` tags are kept;
+no release was published from them. Existing settings and device bindings
+are kept with this update.
+The package contains `SOURCE.json`, the original project licence and checksums.
+No live HA storage, firmware, boiler release or device commands are included.

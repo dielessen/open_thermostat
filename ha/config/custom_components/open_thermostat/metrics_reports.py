@@ -60,6 +60,26 @@ def note_room_definition_migration(hass, entry_id):
         translation_key="room_model_v2")
 
 
+@callback
+def reconcile_migration_issues(hass, entry, prefix):
+    """A native E32 entry: the three information items close once nothing they describe is left.
+
+    - metrics_definition_v2: while an old <prefix>_hub_<metric> record of this
+      entry remains (the stale-entity cleanup retires untouched ones; a record
+      the user customised keeps it open);
+    - room_model_v2: native mode has no legacy room heat estimates at all;
+    - legacy_metrics_history: created again only when an old-format counter
+      packet actually arrives (note_legacy_metrics).
+    """
+    from .sensor import VERSIONED_METRICS
+    own = {record.unique_id for record in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+           if record.platform == DOMAIN}
+    if not any(f"{prefix}_hub_{metric}" in own for metric in VERSIONED_METRICS):
+        ir.async_delete_issue(hass, DOMAIN, f"metrics_definition_v2_{entry.entry_id}")
+    ir.async_delete_issue(hass, DOMAIN, f"room_model_v2_{entry.entry_id}")
+    ir.async_delete_issue(hass, DOMAIN, f"legacy_metrics_history_{entry.entry_id}")
+
+
 def _utc(value):
     try:
         result = datetime.fromisoformat(value)

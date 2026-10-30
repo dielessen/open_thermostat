@@ -55,8 +55,8 @@ class ReleaseNotesTests(unittest.TestCase):
         row=self.row('Original technical record.')
         row['tag_name']='v0.1.0-e32v2-alpha.36'
         result=release.plan([row],'owner/project')[0]
-        self.assertLess(result['body'].index('## Nieuw'), result['body'].index('## Which download'))
-        self.assertIn('## Opgelost',result['body']);self.assertIn('## English',result['body'])
+        self.assertLess(result['body'].index('## New'), result['body'].index('## Which download'))
+        self.assertIn('## Fixed',result['body']);self.assertIn('## Limitations',result['body'])
         self.assertEqual(release.original_notes(result['body']),row['body'])
         self.assertEqual(release.plan([{**row,**{k:result[k] for k in ('name','body')}}], 'owner/project'),[])
 
@@ -155,6 +155,7 @@ class BetaReleaseNotesTests(unittest.TestCase):
         self.assertIn('Archive',changes[0]['name'])
         self.assertIn('Current',changes[1]['name'])
         self.assertIn('OpenThermostat-HA-0.4.0b1.zip',changes[1]['body'])
+        self.assertIn('| Component | Current test version | File |',changes[1]['body'])  # unchanged before 1.0
         self.assertEqual(release.original_notes(changes[0]['body']),'Original 0.4.0.dev48')
         updated=[{**row,**{k:change[k] for k in ('name','body')}} for row,change in zip(rows,changes)]
         self.assertEqual(release.plan(updated,'owner/project'),[])
@@ -167,6 +168,70 @@ class BetaReleaseNotesTests(unittest.TestCase):
             release.publication_notes(notes,'owner/project','v0.1.0-e32v2-alpha.1',True)
 
 
+class StableReleaseTests(unittest.TestCase):
+    def rows(self,*tags,prerelease=None):
+        rows=[]
+        for index,tag in enumerate(tags,1):
+            channel,version=release.classify(tag)
+            name='firmware.bin' if channel=='firmware' else 'OpenThermostat-HA-'+release.ha_version(version)+'.zip'
+            row=dict(id=index,tag_name=tag,draft=False,name='old',body='Original '+tag,
+                     assets=[dict(name=name,browser_download_url='https://example.test/'+tag+'/'+name)])
+            if prerelease is not None:row['prerelease']=prerelease(tag)
+            rows.append(row)
+        return rows
+
+    def test_version_one_tags_order_after_every_pre_release(self):
+        tags=['v0.1.0-e32v2-beta.19','v1.0.0-e32v2-alpha.1','v1.0.0-e32v2-beta.1','v1.0.0-e32v2-rc.1',
+              'v1.0.0-e32v2','v1.0.1-e32v2-beta.1','v1.0.1-e32v2']
+        versions=[release.classify(tag)[1] for tag in tags]
+        self.assertEqual(sorted(reversed(versions)),versions)
+        self.assertEqual(release.label('firmware',release.classify('v1.0.0-e32v2')[1]),('E32 firmware','1.0.0'))
+        self.assertEqual(release.firmware_heading(release.classify('v1.0.0-e32v2')[1]),'# E32 V2 1.0.0')
+        ha=['ha-v0.4.0b11','ha-v1.0.0rc1','ha-v1.0.0','ha-v1.0.1b1']
+        self.assertEqual(sorted(reversed([release.classify(t)[1] for t in ha])),[release.classify(t)[1] for t in ha])
+        self.assertTrue(release.is_stable(*release.classify('ha-v1.0.0')))
+        self.assertTrue(release.is_stable(*release.classify('v1.0.0-e32v2')))
+        for tag in ['v1.0.0-e32v2-rc.1','ha-v1.0.0rc1','sources-e32v2-20261029.1']:
+            self.assertFalse(release.is_stable(*release.classify(tag)),tag)
+        self.assertFalse(release.is_stable(*release.classify('v1.0.0-e32v2'),{'prerelease':True}))
+        for tag in ['v1.0.0','v1.0.0-e32v2-','ha-v1.0','ha-v1.0.0.0']:
+            self.assertIsNone(release.classify(tag)[0],tag)
+        notes='# E32 V2 1.0.0\n'+release.ENGLISH_USER_NOTES+'\n## New\nA\n## Fixed\nB\n## Updating\nC\n## Limitations\nD'
+        self.assertIn('/blob/v1.0.0-e32v2/',release.publication_notes(notes,'owner/project','v1.0.0-e32v2',True))
+
+    def test_stable_release_is_current_and_a_newer_test_version_is_labelled_pre_release(self):
+        rows=self.rows('v0.1.0-e32v2-beta.19','v1.0.0-e32v2','v1.1.0-e32v2-beta.1','ha-v0.4.0b11','ha-v1.0.0',
+                       prerelease=lambda tag:not release.is_stable(*release.classify(tag)))
+        changes={change['tag']:change for change in release.plan(rows,'owner/project')}
+        self.assertEqual(changes['v1.0.0-e32v2']['name'],'E32 firmware · 1.0.0 · Current')
+        self.assertEqual(changes['v1.1.0-e32v2-beta.1']['name'],'E32 firmware · beta.1 · Pre-release')
+        self.assertEqual(changes['v0.1.0-e32v2-beta.19']['name'],'Archive · E32 firmware · beta.19')
+        self.assertEqual(changes['ha-v1.0.0']['name'],'Home Assistant · 1.0.0 · Current')
+        self.assertEqual(changes['ha-v0.4.0b11']['name'],'Archive · Home Assistant · 0.4.0b11')
+        body=changes['v1.0.0-e32v2']['body']
+        self.assertIn('**Current stable release of E32 firmware.**',body)
+        self.assertIn('| Component | Version | Channel | File |',body)
+        self.assertIn('| E32 firmware | [1.0.0](https://github.com/owner/project/releases/tag/v1.0.0-e32v2) | Stable | '
+                      '[firmware.bin](https://example.test/v1.0.0-e32v2/firmware.bin) |\n'
+                      '| E32 firmware | [beta.1](https://github.com/owner/project/releases/tag/v1.1.0-e32v2-beta.1) | Pre-release | '
+                      '[firmware.bin](https://example.test/v1.1.0-e32v2-beta.1/firmware.bin) |\n'
+                      '| Home Assistant | [1.0.0](https://github.com/owner/project/releases/tag/ha-v1.0.0) | Stable |',body)
+        self.assertIn('Use the stable release',body)
+        self.assertNotIn('These are test releases',body)
+        self.assertIn('**Pre-release — a test version of E32 firmware',changes['v1.1.0-e32v2-beta.1']['body'])
+        updated=[{**row,'name':changes[row['tag_name']]['name'],'body':changes[row['tag_name']]['body']} for row in rows]
+        self.assertEqual(release.plan(updated,'owner/project'),[])
+
+    def test_a_component_without_a_stable_release_keeps_its_test_version_and_github_pre_release_is_not_stable(self):
+        rows=self.rows('v1.0.0-e32v2','ha-v0.4.0b11','ha-v1.0.0',
+                       prerelease=lambda tag:tag!='v1.0.0-e32v2')  # ha-v1.0.0 still published as a pre-release
+        changes={change['tag']:change for change in release.plan(rows,'owner/project')}
+        self.assertEqual(changes['ha-v1.0.0']['name'],'Home Assistant · 1.0.0 · Current')
+        self.assertIn('**Current test version for Home Assistant.**',changes['ha-v1.0.0']['body'])
+        self.assertIn('| Home Assistant | [1.0.0](https://github.com/owner/project/releases/tag/ha-v1.0.0) | Pre-release |',
+                      changes['v1.0.0-e32v2']['body'])
+
+
 class HistoricalNotesTests(unittest.TestCase):
     def test_all_curated_records_have_sections_and_bound_original(self):
         from pathlib import Path
@@ -176,7 +241,7 @@ class HistoricalNotesTests(unittest.TestCase):
         for tag,entry in records.items():
             self.assertIsNotNone(release.classify(tag)[0])
             self.assertEqual(len(entry['original_notes_sha256']),64)
-            for header in ('## Nieuw','## Opgelost','## Bijwerken en gebruik','## English'):
+            for header in (release.ENGLISH_USER_NOTES,'## New','## Fixed','## Updating','## Limitations'):
                 self.assertIn(header,entry['summary'])
             with self.assertRaisesRegex(ValueError,'original_notes_changed'):
                 release.archive_summary(tag,'changed original')
@@ -185,9 +250,9 @@ class HistoricalNotesTests(unittest.TestCase):
         from pathlib import Path
         records=json.loads((Path(release.__file__).resolve().parents[1]/
             'docs/modern-thermostat/USER-RELEASE-NOTES.json').read_text())['releases']
-        self.assertIn('Bekend probleem',records['ha-v0.4.0.dev18']['summary'])
-        self.assertIn('niet in deze oorspronkelijke download',records['v0.1.0-e32v2-alpha.1']['summary'])
-        self.assertIn('geen firmwarebestand',records['sources-e32v2-20261023.1']['summary'])
+        self.assertIn('Known issue',records['ha-v0.4.0.dev18']['summary'])
+        self.assertIn('not in this original download',records['v0.1.0-e32v2-alpha.1']['summary'])
+        self.assertIn('not a firmware file',records['sources-e32v2-20261023.1']['summary'])
 
 
 class PublicationPreflightTests(unittest.TestCase):

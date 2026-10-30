@@ -84,8 +84,14 @@ public:
         }
     }
 
+    // A room's comfort adjustment (RoomOverrides.h), per plan room: setpoint replaces
+    // the plan's, ceiling caps it (away), pause: setpoint is the frost floor, also
+    // below the room minimum. Never more than a target: the flow limits stay.
+    struct Adjust { std::optional<int16_t> setpoint, ceiling; bool pause = false; };
     // unixNow: wall clock for temporary pauses; nullopt while unknown (pause holds).
-    FlowDemand::Request step(uint64_t now, std::optional<uint32_t> unixNow) {
+    // The boiler's own heating limit (0x16) for the flow request; nullopt: unknown.
+    void setBoilerLimit(std::optional<uint8_t> limitC) { boilerLimitC_ = limitC; }
+    FlowDemand::Request step(uint64_t now, std::optional<uint32_t> unixNow, const Adjust* adjust = nullptr) {
         bool demand = false;
         std::optional<int16_t> error;
         for (size_t i = 0; i < plan_.rooms.size(); ++i) {
@@ -98,7 +104,14 @@ public:
             spec.sources = static_cast<uint8_t>(room.sources.size());
             spec.minimumCentiC = room.minimumCentiC; spec.maximumCentiC = room.maximumCentiC;
             rt.setpointSource = setpointSource(room, rt, now, unixNow);
-            rt.result = RoomDemand::evaluate(spec, rt.readings, setpoint(room, rt, rt.setpointSource, unixNow), now, rt.lastUsable);
+            auto target = setpoint(room, rt, rt.setpointSource, unixNow);
+            if (adjust) {
+                const auto& a = adjust[i];
+                if (a.pause && a.setpoint) spec.minimumCentiC = std::min(spec.minimumCentiC, *a.setpoint);
+                if (a.setpoint) target = a.setpoint;
+                else if (a.ceiling && (!target || *target > *a.ceiling)) target = a.ceiling;
+            }
+            rt.result = RoomDemand::evaluate(spec, rt.readings, target, now, rt.lastUsable);
             if (rt.result.source >= 0) rt.lastUsable = rt.readings[rt.result.source];
             const auto zone = rt.regulator.step(now, rt.result.temperature, rt.result.setpoint, rt.result.usable);
             rt.demand = zone.demand;
@@ -106,6 +119,7 @@ public:
             demand = demand || zone.demand;
             error = error ? std::max(*error, rt.result.errorCentiC) : rt.result.errorCentiC;
         }
+        flow_.setBoilerLimit(boilerLimitC_);
         request_ = flow_.update(now, demand, error);
         return request_;
     }
@@ -122,6 +136,7 @@ public:
         cJSON_AddBoolToObject(request, "heat", request_.heat);
         cJSON_AddNumberToObject(request, "flow_c", request_.flowC);
         cJSON_AddStringToObject(request, "reason", FlowDemand::name(request_.reason));
+        if (request_.capped) cJSON_AddStringToObject(request, "capped_by", "boiler_limit"); else cJSON_AddNullToObject(request, "capped_by");
         // The HA entities this plan reads: HA forwards exactly these to ha/heating_input.
         cJSON* entities = cJSON_AddArrayToObject(root, "ha_entities");
         if (!entities) { cJSON_Delete(root); return nullptr; }
@@ -172,10 +187,13 @@ private:
         bool active = false;  // effective state of the last step
         SetpointSource setpointSource = SetpointSource::fallback;
     };
-    // A fresh HA target, else the E32 week program (needs the clock), else the fixed fallback.
+    // The E32 week program (needs the clock), else a fresh HA target, else the fixed fallback.
+    // Owner, 30 Oct 2026: every room runs its E32 program; HA pushes that target to the room's
+    // setting device and sends a knob change as an override "until the next switch point"
+    // (RoomOverrides), so the device's own target never replaces the program here.
     static SetpointSource setpointSource(const RoomPlan::Room& room, const Runtime& rt, uint64_t now, std::optional<uint32_t> unixNow) {
-        if (rt.target && rt.targetAt <= now && now - rt.targetAt < setpointMaxAgeMs) return SetpointSource::ha;
         if (unixNow && !room.schedule.empty()) return SetpointSource::schedule;
+        if (rt.target && rt.targetAt <= now && now - rt.targetAt < setpointMaxAgeMs) return SetpointSource::ha;
         return SetpointSource::fallback;
     }
     static std::optional<int16_t> setpoint(const RoomPlan::Room& room, const Runtime& rt, SetpointSource source, std::optional<uint32_t> unixNow) {
@@ -189,6 +207,7 @@ private:
     RoomPlan plan_;
     std::vector<Runtime> rooms_;
     FlowDemand flow_;
+    std::optional<uint8_t> boilerLimitC_;
     FlowDemand::Request request_{};
     bool configured_ = false;
 };

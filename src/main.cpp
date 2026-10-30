@@ -33,6 +33,7 @@
 #endif
 
 #include "config.h"
+#include "DeviceIdentity.h"
 #include "Filesystem.h"
 #include "HeatingController.h"
 #include "REST.h"
@@ -73,7 +74,7 @@ RTC_NOINIT_ATTR heating::diagnostics::LoopPhaseRecord loopPhaseRecord;
 std::atomic<uint32_t> loopAtS{0}, wifiDownSinceS{0}, brokerDownSinceS{0}, networkQuietSinceS{0}, gatewayProbeFailures{0};
 std::atomic<uint32_t> supervisorBeatS{0}, bluetoothQuietSinceS{0};
 std::atomic<bool> wifiExpected{false}, brokerExpected{false}, gatewayProbeArmed{false};
-std::atomic<bool> bluetoothExpected{false}, restartDeferred{false};
+std::atomic<bool> bluetoothExpected{false}, restartDeferred{false}, boilerOwned{false};
 heating::diagnostics::GatewayProbe gatewayProbe; // loop only
 // Boot confirmation evidence (loop only, latched): since boot an IP address
 // plus a gateway probe reply, an MQTT session or a routed HTTP request; without
@@ -127,6 +128,7 @@ void supervisorTask(void*) {
 		in.networkDeadRestarts = heating::diagnostics::blackBox.networkDeadRestarts();
 		in.bluetoothExpected = bluetoothExpected.load(); in.bluetoothQuietSince = secondsMs(bluetoothQuietSinceS.load());
 		in.bluetoothRestarts = heating::diagnostics::blackBox.bluetoothRestarts(); in.restartDeferred = restartDeferred.load();
+		in.boilerOwned = boilerOwned.load();
 		in.wifiExpected = wifiExpected.load(); in.wifiDownSince = secondsMs(wifiDownSinceS.load());
 		in.brokerExpected = brokerExpected.load(); in.brokerDownSince = secondsMs(brokerDownSinceS.load());
 		in.gatewayProbeArmed = gatewayProbeArmed.load(); in.gatewayProbeFailures = gatewayProbeFailures.load();
@@ -167,14 +169,16 @@ void observeHealth(uint64_t now) {
 	if (!wifi || WiFi.isConnected()) wifiDownSinceS.store(0);
 	else if (!wifiDownSinceS.load()) wifiDownSinceS.store(monotonicS());
 	if (wifi && WiFi.isConnected()) heating::diagnostics::blackBox.wifiRecovered();
-	// Bluetooth: bound sensors and scanning wanted; quiet since boot or the last advert.
+	// Bluetooth: bound sensors and scanning wanted; quiet since boot or the last advert
+	// of any device (proof that the BLE host works, not that every sensor does).
 	const bool bluetooth = heating::controller && heating::controller->managedBleExpected();
-	const uint32_t heard = heating::controller ? heating::controller->managedBleHeardS() : 0;
+	const uint32_t heard = heating::controller ? heating::controller->bleAdvertHeardS() : 0;
 	if (heard) heating::diagnostics::blackBox.bluetoothHeard();
 	if (!bluetooth || !bluetoothQuietSinceS.load()) bluetoothQuietSinceS.store(monotonicS());
 	else if (heard > bluetoothQuietSinceS.load()) bluetoothQuietSinceS.store(heard);
 	bluetoothExpected.store(bluetooth);
 	restartDeferred.store(heating::controller && (heating::controller->boilerTestActive() || heating::controller->boilerSettingsActive()));
+	boilerOwned.store(heating::controller && heating::controller->claimsBoiler());
 	const bool broker = heating::controller && heating::controller->brokerConnected();
 	if (broker) brokerExpected.store(true);
 	if (broker || !brokerExpected.load()) brokerDownSinceS.store(0);
@@ -294,6 +298,11 @@ void WifiSetUp(config::WiFiConfig const &wifiConfig, config::NetworkConfig const
 		bool softAPResult = WiFi.softAP(apConfig.ssid.c_str(), apConfig.password.c_str(), apConfig.channel);
 
 		DBGLOGFI(heating::logger, appLogFeature(), "Soft AP start: %d\n", softAPResult);
+#ifndef OPENTHERMOSTAT_E32V2
+		// USB console only; a password the owner stored in cfgap.json is never printed.
+		Serial.printf("Setup WiFi: %s, password: %s\n", apConfig.ssid.c_str(),
+			apConfig.password == heating::setupWifiPassword ? heating::setupWifiPassword : "(stored in cfgap.json)");
+#endif
 
 #ifdef OPENTHERMOSTAT_E32V2
 		IPAddress ip, gateway, mask;

@@ -26,6 +26,8 @@ namespace heating { extern bool networkTimeTrusted; } // main.cpp: NTP synchroni
 namespace heating::ems {
 
 EmsController::EmsController(std::shared_ptr<ib::logger::LoggerInterface> log) : log_(std::move(log)) {
+	monitor_.attachProfile(&profile_);
+	entities_.attachProfile(&profile_);
 	if (log_) {
 		logFeature_ = log_->addFeature("EmsControl");
 		verboseFeature_ = log_->addFeature("EmsVerbose");
@@ -319,9 +321,13 @@ bool EmsController::processBoilerTestPoll() {
             return transmitManualFrame<false>(frame);
 		});
 	if (result != BoilerTestPollDriver::Result::unowned) return true;
-    return activeHeat_.poll(static_cast<uint64_t>(esp_timer_get_time() / 1000), monitor_,
-        [&] { return !transportFault && activeHeatRouteReady(); }, boilerTestEncoder_,
-        [this](const EmsRawFrame& frame) { return transmitManualFrame<false>(frame); });
+    const auto now = static_cast<uint64_t>(esp_timer_get_time() / 1000);
+    const auto routeReady = [&] { return !transportFault && activeHeatRouteReady(); };
+    if (activeHeat_.poll(now, monitor_, routeReady, boilerTestEncoder_,
+        [this](const EmsRawFrame& frame) { return transmitManualFrame<false>(frame); })) return true;
+    // Only a poll without an active-heat command carries the 0x16 read.
+    return limitRead_.poll(now, ActiveHeatEnvelope::reportedAtMs(monitor_), routeReady,
+        [this](const EmsRawFrame& frame) { return transmitManualFrame<true>(frame); });
 }
 #endif
 
@@ -468,6 +474,8 @@ void EmsController::decodeTelegram(uint8_t *data, uint8_t length, uint64_t recei
             // A queued pre-command report must never become post-command stop
             // evidence simply because loop() decodes it after the command.
             deviceInventory_.observe(telegram, receivedAtMs);
+            if (telegram.getSenderId() == EmsEntityObserver::boilerAddress)
+                if (const auto version = readDeviceVersion(telegram)) profile_.observeVersion(*version, receivedAtMs);
             monitor_.receive(telegram, receivedAtMs);
             burnerCycles_.observe(monitor_, receivedAtMs);
             std::optional<uint32_t> unixNow; // DHW episodes count per local day once the clock is trusted

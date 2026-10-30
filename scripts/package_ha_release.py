@@ -99,7 +99,7 @@ def package(root, output, results):
         raise ValueError('untracked_HA_release_source')
     source_hashes = {name: digest(data) for name, data in files.items()}
     files['LICENSE'] = (root/'LICENSE').read_bytes()
-    files['LEESMIJ.nl.txt'] = (root/'docs/modern-thermostat/HA-RELEASE-NOTES.md').read_bytes()
+    files['RELEASE-NOTES.md'] = (root/'docs/modern-thermostat/HA-RELEASE-NOTES.md').read_bytes()
     source = dict(source_commit=head, source_kind='clean_git_commit', integration_version=version,
                   source_files=source_hashes, native_test_summary=tests, native_test_evidence=evidence,
                   firmware_included=False, live_HA_data_included=False)

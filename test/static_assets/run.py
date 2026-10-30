@@ -56,13 +56,14 @@ void heap_caps_free(void *bytes){std::free(bytes);}
 struct {bool available=true;bool ready(){return available;}} deviceAccess;
 namespace heating::update {bool mutationBlocked(const char*){return false;}std::atomic<bool> httpUploadActive{false};}
 namespace heating::embedded {
-constexpr unsigned char raw[]="raw UI",packed[]={31,139,8,0,1,2,3};
+// Gzip only (scripts/e32v2_web_assets.py): one representation per asset.
+constexpr unsigned char packed[]={31,139,8,0,1,2,3},stored[]={31,139,8,0,4,5,6,7};
 constexpr char tag[]="\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"";
 constexpr char gzipTag[]="\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"";
-struct Asset {const char *path;const uint8_t *bytes;size_t size;const char *etag;const uint8_t *gzip;size_t gzipSize;const char *gzipEtag;};
-constexpr Asset assets[]={{"/index.html",raw,sizeof(raw)-1,tag,packed,sizeof(packed),gzipTag},
- {"/ui-messages.js",raw,sizeof(raw)-1,tag,packed,sizeof(packed),gzipTag},
- {"/deps/lib.js.gz",packed,sizeof(packed),gzipTag,nullptr,0,nullptr}};
+struct Asset {const char *path;const uint8_t *bytes;size_t size;const char *etag;};
+constexpr Asset assets[]={{"/index.html",packed,sizeof(packed),tag},
+ {"/ui-messages.js",packed,sizeof(packed),tag},
+ {"/deps/lib.js.gz",stored,sizeof(stored),gzipTag}};
 const Asset *find(const char *path){for(auto& a:assets)if(!strcmp(a.path,path))return &a;return nullptr;}
 }
 struct Server {
@@ -96,21 +97,25 @@ struct Fixture {
 post = r'''
 };
 int main(){
- {Fixture f;f.get();assert(f.server_.status==200);assert(f.server_.body=="raw UI");assert(f.server_.response("Cache-Control")=="private, no-cache");assert(f.server_.response("ETag")==embedded::tag);assert(f.server_.response("Content-Encoding").empty());assert(f.server_.response("Vary")=="Accept-Encoding");}
- {Fixture f;f.server_.incoming["Accept-Encoding"]="gzip";f.get();assert(f.server_.status==200);assert(f.server_.body==std::string((const char*)embedded::packed,sizeof(embedded::packed)));assert(f.server_.response("Content-Encoding")=="gzip");assert(f.server_.response("ETag")==embedded::gzipTag);}
- {Fixture f;f.server_.incoming["Accept-Encoding"]="gzip;q=0,*;q=1";f.get();assert(f.server_.body=="raw UI");}
- {Fixture f;f.server_.incoming["If-None-Match"]=embedded::tag;f.get();assert(f.server_.status==304);assert(f.server_.body.empty());assert(f.server_.contentLength==sizeof(embedded::raw)-1);assert(f.server_.response("ETag")==embedded::tag);assert(f.server_.response("Cache-Control")=="private, no-cache");}
- {Fixture f;f.server_.incoming["Accept-Encoding"]="gzip";f.server_.incoming["If-None-Match"]="W/"+std::string(embedded::gzipTag);f.get();assert(f.server_.status==304);assert(f.server_.body.empty());assert(f.server_.contentLength==sizeof(embedded::packed));}
- {Fixture f;f.server_.incoming["Accept-Encoding"]="gzip";f.server_.incoming["If-None-Match"]=embedded::tag;f.get();assert(f.server_.status==200);}
+ const std::string gz((const char*)embedded::packed,sizeof(embedded::packed)),lib((const char*)embedded::stored,sizeof(embedded::stored));
+ {Fixture f;f.get();assert(f.server_.status==200);assert(f.server_.body==gz);assert(f.server_.type=="text/html");assert(f.server_.response("Cache-Control")=="private, no-cache");assert(f.server_.response("ETag")==embedded::tag);assert(f.server_.response("Content-Encoding")=="gzip");assert(f.server_.response("Vary")=="Accept-Encoding");}
+ {Fixture f;f.server_.incoming["Accept-Encoding"]="gzip, deflate, br";f.get();assert(f.server_.status==200);assert(f.server_.body==gz);assert(f.server_.response("Content-Encoding")=="gzip");assert(f.server_.response("ETag")==embedded::tag);}
+ {Fixture f;f.server_.incoming["Accept-Encoding"]="gzip;q=0,*;q=1";f.get();assert(f.server_.status==406);assert(f.server_.body!=gz);assert(f.server_.response("Cache-Control")=="no-store");assert(f.server_.response("Vary")=="Accept-Encoding");assert(f.server_.response("Content-Encoding").empty());}
+ {Fixture f;f.server_.incoming["Accept-Encoding"]="identity";f.get();assert(f.server_.status==406);assert(f.server_.response("Cache-Control")=="no-store");assert(f.server_.response("ETag").empty());}
+ {Fixture f;f.server_.incoming["If-None-Match"]=embedded::tag;f.get();assert(f.server_.status==304);assert(f.server_.body.empty());assert(f.server_.contentLength==sizeof(embedded::packed));assert(f.server_.response("ETag")==embedded::tag);assert(f.server_.response("Cache-Control")=="private, no-cache");assert(f.server_.response("Content-Encoding")=="gzip");}
+ {Fixture f;f.server_.incoming["Accept-Encoding"]="gzip";f.server_.incoming["If-None-Match"]="W/"+std::string(embedded::tag);f.get();assert(f.server_.status==304);assert(f.server_.body.empty());assert(f.server_.contentLength==sizeof(embedded::packed));}
+ {Fixture f;f.server_.incoming["Accept-Encoding"]="gzip";f.server_.incoming["If-None-Match"]=embedded::gzipTag;f.get();assert(f.server_.status==200);assert(f.server_.body==gz);}
  {Fixture f;f.cookie="";f.server_.incoming["If-None-Match"]="*";f.get();assert(f.server_.status==303);assert(f.server_.response("Cache-Control")=="no-store");assert(f.server_.response("ETag").empty());}
  {Fixture f;f.now+=control::WebAuthSession::idleTimeoutMs;f.server_.incoming["If-None-Match"]="*";f.get();assert(f.server_.status==303);assert(f.server_.response("Cache-Control")=="no-store");}
- {Fixture f;f.cookie="";f.server_.incoming["If-None-Match"]="*";f.get("/ui-messages.js");assert(f.server_.status==304);}
+ {Fixture f;f.cookie="";f.server_.incoming["If-None-Match"]="*";f.get("/ui-messages.js");assert(f.server_.status==304);assert(f.server_.type=="text/javascript");}
  {Fixture f;f.server_.path="/status";f.server_.incoming["If-None-Match"]="*";assert(f.authorize());assert(f.server_.response("Cache-Control")=="no-store");assert(f.server_.response("ETag").empty());}
  {Fixture f;f.server_.incoming["Origin"]="http://foreign.test";f.server_.incoming["If-None-Match"]="*";f.get();assert(f.server_.status==403);assert(f.server_.response("Cache-Control")=="no-store");}
  {Fixture f;f.server_.verb=HTTP_POST;f.get();assert(f.server_.status==405);assert(f.server_.response("Cache-Control")=="no-store");}
  {Fixture f;deviceAccess.available=false;f.get();deviceAccess.available=true;assert(f.server_.status==503);assert(f.server_.response("Cache-Control")=="no-store");}
  {Fixture f;f.get("/missing.html");assert(f.server_.status==404);assert(f.server_.response("Cache-Control")=="no-store");}
- {Fixture f;f.get("/deps/lib.js");assert(f.server_.status==200);assert(f.server_.response("Content-Encoding")=="gzip");}
+ {Fixture f;f.get("/index.html.gz");assert(f.server_.status==404);}
+ {Fixture f;f.get("/deps/lib.js");assert(f.server_.status==200);assert(f.server_.body==lib);assert(f.server_.type=="text/javascript");assert(f.server_.response("Content-Encoding")=="gzip");assert(f.server_.response("ETag")==embedded::gzipTag);}
+ {Fixture f;f.get("/deps/lib.js.gz");assert(f.server_.status==200);assert(f.server_.body==lib);assert(f.server_.response("Content-Encoding")=="gzip");}
  {Fixture f;f.server_.incoming["Accept-Encoding"]="identity";f.get("/deps/lib.js.gz");assert(f.server_.status==406);assert(f.server_.response("Cache-Control")=="no-store");}
  {Fixture f;f.server_.incoming["Accept-Encoding"]="identity;q=0,gzip;q=0";f.get();assert(f.server_.status==406);assert(f.server_.response("Cache-Control")=="no-store");}
  {Fixture f;f.server_.incoming["Accept-Encoding"]="identity;q=0,gzip";f.get();assert(f.server_.status==200);assert(f.server_.response("Content-Encoding")=="gzip");}
@@ -121,7 +126,7 @@ int main(){
  {Fixture f;f.server_.path="/status";f.controller_.oversized=true;assert(f.authorize());f.status();assert(f.server_.status==503);assert(f.controller_.statusSnapshots==1);assert(f.server_.body=="{\"error\":\"status_response_too_large\"}");assert(f.jsonResponse_.view().empty());}
  {Fixture f;f.server_.path="/status";f.controller_.failStream=true;assert(f.authorize());f.status();assert(f.server_.status==503);assert(f.server_.body=="{\"error\":\"status_response_too_large\"}");}
  {Fixture f;const auto before=bufferAllocations;for(int i=0;i<3;++i){f.server_.path="/status";f.server_.outgoing.clear();assert(f.authorize());f.status();assert(f.server_.status==200);assert(f.server_.body=="{\"rooms\":[],\"controlMode\":\"shadow\",\"ems\":{\"selectedFlowTemperature\":50,\"currentFlowTemperature\":432}}");assert(f.server_.response("Cache-Control")=="no-store");assert(!f.server_.cors);f.server_.path="/status/ems/telemetry";f.server_.outgoing.clear();assert(f.authorize());f.telemetry();assert(f.server_.status==200);assert(f.server_.body=="{\"fields\":{}}");}assert(bufferAllocations==before+1);assert(f.controller_.snapshots==3);assert(f.controller_.statusSnapshots==3);}
- std::cout<<"PASS 25 actual E32 response/authorization scenarios\n";
+ std::cout<<"PASS 28 actual E32 response/authorization scenarios (gzip-only UI)\n";
 }
 '''
 out = Path(os.environ.get("OPENTHERMOSTAT_HTTP_RESPONSE_EVIDENCE",ROOT / "out/static-assets"))

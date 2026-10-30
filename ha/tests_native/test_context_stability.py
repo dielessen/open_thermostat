@@ -79,7 +79,9 @@ async def test_heartbeat_gap_reconnect_and_new_runtime_fw_boot_cannot_restore_ca
         clock=NativeClock(hass,b,patch);await both(context)
         await command(b,r.async_comfort(room.room_id,"boost",temperature=23,duration_ms=60000))
         # No native packet/heartbeat during interval; actual firmware lease expires.
-        clock.ms+=16000;clock.offset+=16;b.now+=16000;b.utc+=16
+        from custom_components.open_thermostat.v1_wire import LEASE_SECONDS
+        gap=LEASE_SECONDS+1
+        clock.ms+=gap*1000;clock.offset+=gap;b.now+=gap*1000;b.utc+=gap
         await b.event("tick");await c.poll();await b.pump()
         assert r.comfort_context(room)["window_open"] is None
         assert r.comfort_context(room)["presence_away"] is None

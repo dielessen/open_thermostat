@@ -50,8 +50,10 @@ std::optional<PinConfig> getBoilerPin();
 std::vector<GpioExtenderConfig> getGpioExtenders();
 
 struct APConfig {
-	std::string ssid = "IntuiBaseHeating";
-	std::string password = "IntuiBaseHeating";
+	// Empty in a new install: getAPConfig() derives "OpenThermostat-xxxxxx" and
+	// the documented setup password. A value stored in cfgap.json is kept.
+	std::string ssid;
+	std::string password;
 	uint8_t channel = 10;
 	std::string hostname = "heating";
 	std::string ip = "10.10.10.1";

@@ -19,6 +19,7 @@
 #include "control/NativeSourceProvisioning.h"
 #include "control/BleObservationJson.h"
 #include "control/HandoverRequest.h"
+#include "ConfigBackupRest.h"
 #include <esp_system.h>
 // Pinned Arduino WebServer verbose logging prints HTTP headers and form bodies.
 // Never build the credential endpoint with that unredacted library trace enabled.
@@ -209,8 +210,35 @@ public:
 		route("/config/debug", [this]() { configDebug(); });
 #ifdef OPENTHERMOSTAT_E32V2
         route("/config/heating/handover",HTTP_POST,[this] { heatingHandover(); });
+        route("/config/heating/flow",[this] { heatingFlow(); });
+        route("/config/heating/comfort",[this] { heatingComfort(); });
         route("/config/heating",[this] { heatingPlan(); });
         route("/status/heating",HTTP_GET,[this] { heatingStatus(); });
+        route("/status/boiler/profile",HTTP_GET,[this] { // which boiler fields this boiler has (EMS/BoilerProfile.h)
+            auto &buf=jsonResponse_;
+            if(!buf.reset()) {server_.send(503,"application/json","{\"error\":\"boiler_profile_unavailable\"}");return;}
+            std::ostream out(&buf);controller_.getBoilerProfile(out);
+            if(!out.good()||buf.failed()) {server_.send(503,"application/json","{\"error\":\"boiler_profile_unavailable\"}");return;}
+            server_.sendView(200,"application/json"sv,buf.view());
+        });
+        route("/config/boiler-profile",HTTP_POST,[this] { // owner "show anyway" for a not-fitted field: {"index":n,"show":bool}
+            auto body=server_.arg("plain");auto root=control::parseControlJson(std::string_view(body.c_str(),body.length()),true);
+            const cJSON* index=root?cJSON_GetObjectItemCaseSensitive(root.get(),"index"):nullptr;
+            const cJSON* show=root?cJSON_GetObjectItemCaseSensitive(root.get(),"show"):nullptr;
+            if(body.length()>64||!root||!control::exactFields(root.get(),{"index","show"})||!cJSON_IsNumber(index)||!cJSON_IsBool(show)
+                ||index->valuedouble<0||index->valuedouble>255||index->valuedouble!=double(int(index->valuedouble))) {
+                server_.send(400,"application/json","{\"error\":\"invalid_request\"}");return;
+            }
+            const bool ok=controller_.setBoilerProfileShown(size_t(index->valueint),cJSON_IsTrue(show));
+            server_.send(ok?200:409,"application/json",ok?"{\"saved\":true}":"{\"error\":\"field_not_fitted\"}");
+        });
+        route("/status/history",HTTP_GET,[this] { // 24 h charts, RAM only (control/HeatingHistory.h)
+            auto &buf=jsonResponse_;
+            if(!buf.reset()) {server_.send(503,"application/json","{\"error\":\"history_unavailable\"}");return;}
+            std::ostream out(&buf);controller_.historyJson(out);
+            if(!out.good()||buf.failed()) {server_.send(503,"application/json","{\"error\":\"history_unavailable\"}");return;}
+            server_.sendView(200,"application/json"sv,buf.view());
+        });
         route("/config/bluetooth",[this] { bluetoothSettings(); });
         route("/bluetooth/status",HTTP_GET,[this] { bluetoothSettings(true); });
         route("/config/bluetooth/scan",HTTP_POST,[this] {
@@ -218,6 +246,7 @@ public:
             server_.send(accepted?202:409,"application/json",accepted?"{\"scan_started\":true}":"{\"error\":\"bluetooth_scan_not_started\"}");
         });
         route("/config/logging",[this] { loggingSettings(); });
+        route("/config/backup",HTTP_POST,[this] { configBackupRoute(server_,controller_); }); // ConfigBackupRest.h
         route("/status/logs",HTTP_GET,[this] { systemLogs(); });
         route("/logs/clear",HTTP_POST,[this] { diagnostics::runtime.log.clear();server_.send(200,"application/json","{}"); });
 #endif
@@ -434,7 +463,10 @@ private:
 		std::array<char,65> token{},proof{};
 		if(!randomToken(token)||!randomToken(proof)){server_.send(503,"application/json","{\"error\":\"session_unavailable\"}");return;}
 		const auto old=requestToken();
-		const auto *session=sessions_.issue(token.data(),proof.data(),now,old.c_str(),recoverySeen);
+		// A full table may evict an idle session, but never while a boiler test,
+		// settings write or update depends on a session (same rule as recovery).
+		const bool evictIdle=!controller_.boilerTestActive()&&!controller_.boilerSettingsActive()&&!update::mutationBlocked("/ota");
+		const auto *session=sessions_.issue(token.data(),proof.data(),now,old.c_str(),recoverySeen,evictIdle);
 		if(!session){server_.send(429,"application/json","{\"error\":\"session_capacity\"}");return;}
 		controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
 		sessions_.loginSucceeded();
@@ -970,6 +1002,13 @@ private:
             }
             server_.send(201,"text/plain","Local SOURCE selected without device restart; previous config is readback-only until explicit new plan apply/readback");return;
         }
+        // Clearing a SOURCE keeps its plan record until the restart (it may be
+        // selected again before that); the next boot ignores and erases it.
+        if((!oldSource||cJSON_IsNull(oldSource))&&nativeSource&&!cJSON_IsNull(nativeSource)
+            &&!control::ModernTransport::clearRecordUnreadableBySelectedSource(mq)) {
+            // Settings stay saved; a record this SOURCE cannot load still faults.
+            DBGLOGFI(log_,logFeature_,"Stored control record not checked after SOURCE selection\n");
+        }
 		server_.send(201,"text/plain","Saved and verified; restart to apply network settings");
 #else
 
@@ -1186,10 +1225,17 @@ private:
         if(!boot||!cJSON_AddItemToObject(root.get(),"previous_boot",boot)) {cJSON_Delete(boot);server_.send(503);return;}
         cJSON* runtime=diagnostics::runtimeHealthJson();
         if(!runtime||!cJSON_AddItemToObject(root.get(),"runtime",runtime)) {cJSON_Delete(runtime);server_.send(503);return;}
-        cJSON_AddNumberToObject(runtime,"mqtt_budget_disconnects",control::socketBudgetDisconnects.load());
-        cJSON_AddNumberToObject(runtime,"heating_telemetry_dropped",control::heatingTelemetryDropped.load());
-        cJSON_AddNumberToObject(runtime,"heating_telemetry_failed",control::heatingTelemetryFailed.load());
-        cJSON_AddNumberToObject(runtime,"heating_telemetry_large",control::heatingTelemetryLarge.load()); // > 4096 B, still sent
+        // MQTT sessions the E32 itself closed: write-path stall (15 s without progress) or socket error.
+        const auto stalled=control::MqttCounters::stalledDisconnects.load(),socketErrors=control::MqttCounters::socketErrorDisconnects.load();
+        cJSON_AddNumberToObject(runtime,"mqtt_budget_disconnects",stalled+socketErrors);
+        cJSON_AddNumberToObject(runtime,"mqtt_stalled_disconnects",stalled);
+        cJSON_AddNumberToObject(runtime,"mqtt_socket_error_disconnects",socketErrors);
+        cJSON_AddNumberToObject(runtime,"mqtt_queue_rejected",control::MqttCounters::rejected.load());
+        cJSON_AddNumberToObject(runtime,"mqtt_queue_peak_bytes",control::MqttCounters::peakBytes.load());
+        cJSON_AddNumberToObject(runtime,"mqtt_write_latency_max_ms",control::MqttCounters::latencyMaxMs.load());
+        cJSON_AddNumberToObject(runtime,"heating_telemetry_dropped",control::TelemetryCounters::dropped.load());
+        cJSON_AddNumberToObject(runtime,"heating_telemetry_failed",control::TelemetryCounters::failed.load());
+        cJSON_AddNumberToObject(runtime,"heating_telemetry_large",control::TelemetryCounters::large.load()); // > 1 KB, still sent
         cJSON_AddNumberToObject(root.get(),"boot",diagnostics::runtime.boot);
         cJSON_AddNumberToObject(root.get(),"latest",stats.latest);cJSON_AddNumberToObject(root.get(),"oldest",stats.oldest);
         cJSON_AddNumberToObject(root.get(),"retained",stats.retained);cJSON_AddNumberToObject(root.get(),"overwritten",stats.overwritten);
@@ -1265,7 +1311,8 @@ private:
 	void heatingPlan() {
 		if (server_.method() == HTTP_POST) {
 			const auto body = server_.arg("plain");
-			if (body.length() > control::ControlPartitionBudget::configBytes) { server_.send(413,"application/json","{\"error\":\"plan_too_large\"}"); return; }
+			// The API form may exceed the store: setHeatingPlan packs week programs and checks the stored size.
+			if (body.length() > control::RoomPlan::requestBytes) { server_.send(413,"application/json","{\"error\":\"plan_too_large\"}"); return; }
 			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(control::parseNestedJson(body,true,10)); // plan depth 5; IDF cJSON: 128 B stack per level
 			const char* error = root ? controller_.setHeatingPlan(root.get()) : "invalid_json";
 			if (error) {
@@ -1279,7 +1326,7 @@ private:
 		server_.send(200,"application/json",plan.c_str());
 	}
 	// POST {"thermostat_disconnected":true|false} (or the older "tado_disconnected"):
-	// the owner's handover for active mode (RAM only); answers the active-control status.
+	// the owner's handover for active mode (kept in NVS); answers the active-control status.
 	void heatingHandover() {
 		const auto body = server_.arg("plain");
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= 64 ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));
@@ -1289,6 +1336,34 @@ private:
 		}
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> active(controller_.activeHeatJson(),cJSON_Delete);
 		const auto text = active ? control::printJson(active.get()) : std::string();
+		if (text.empty()) { server_.send(503,"application/json","{\"error\":\"status_unavailable\"}"); return; }
+		server_.send(200,"application/json",text.c_str());
+	}
+	// GET: the beta.19 flow options; POST any of {"weather_curve","apply_learned",
+	// "curve_design_flow_c"} (control/FlowPolicy.h FlowSettings, stored in NVS).
+	void heatingFlow() {
+		if (server_.method() == HTTP_POST) {
+			const auto body = server_.arg("plain");
+			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= 256 ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));
+			if (const char* error = root ? controller_.setFlowSettings(root.get()) : "invalid_json") {
+				server_.send(std::strcmp(error,"save_unconfirmed") ? 400 : 503,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
+			}
+		} else if (server_.method() != HTTP_GET) { server_.send(405,"application/json","{\"error\":\"method_not_allowed\"}"); return; }
+		server_.send(200,"application/json",controller_.flowSettingsJson().c_str());
+	}
+	// GET: overrides and away (control/RoomOverrides.h); POST one command:
+	// {"room","override":"boost"|"timed"|"next"|"none","temperature","minutes"} or
+	// {"away":true|false,"temperature","until"}. Answers the state like GET.
+	void heatingComfort() {
+		if (server_.method() == HTTP_POST) {
+			const auto body = server_.arg("plain");
+			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= control::RoomOverrides::commandBytes ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));
+			if (const char* error = root ? controller_.setHeatingComfort(root.get()) : "invalid_json") {
+				server_.send(!std::strcmp(error,"save_unconfirmed") ? 503 : !std::strcmp(error,"no_clock") ? 409 : 400,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
+			}
+		} else if (server_.method() != HTTP_GET) { server_.send(405,"application/json","{\"error\":\"method_not_allowed\"}"); return; }
+		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> state(controller_.heatingComfortJson(),cJSON_Delete);
+		const auto text = state ? control::printJson(state.get()) : std::string();
 		if (text.empty()) { server_.send(503,"application/json","{\"error\":\"status_unavailable\"}"); return; }
 		server_.send(200,"application/json",text.c_str());
 	}
@@ -1652,37 +1727,29 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 		const auto *asset=embedded::find(serverPath);String assetPath=serverPath;
 		if(!asset){assetPath+=".gz";asset=embedded::find(assetPath.c_str());}
 		if(asset){
+			// Gzip only (scripts/e32v2_web_assets.py): every asset has just its gzip
+			// bytes. No Accept-Encoding accepts any coding (RFC 9110); a client that
+			// refuses gzip explicitly gets 406 (all supported browsers send gzip).
 			const auto accept=server_.header("Accept-Encoding");
-			const auto preference=std::string_view(accept.c_str(),accept.length());
-			const bool storedGzip=assetPath.endsWith(".gz");
-			if(storedGzip&&!control::acceptsAssetGzip(preference,true)) {
+			if(!control::acceptsAssetGzip(std::string_view(accept.c_str(),accept.length()),true)) {
 				server_.sendHeader("Cache-Control","no-store");
 				server_.sendHeader("Vary","Accept-Encoding");
 				server_.send(406,"text/plain","Gzip representation required");return;
 			}
-			const bool compressed=asset->gzip&&control::acceptsAssetGzip(preference);
-			if(!storedGzip&&!compressed&&!control::acceptsAssetIdentity(preference)) {
-				server_.sendHeader("Cache-Control","no-store");
-				server_.sendHeader("Vary","Accept-Encoding");
-				server_.send(406,"text/plain","No acceptable representation");return;
-			}
-			const auto *bytes=compressed?asset->gzip:asset->bytes;
-			const auto size=compressed?asset->gzipSize:asset->size;
-			const char *etag=compressed?asset->gzipEtag:asset->etag;
 			// Revalidate on each navigation/reload, including after a firmware change.
 			// This caches public UI bytes only; authorization still ran above.
 			server_.sendHeader("Cache-Control","private, no-cache");
-			server_.sendHeader("ETag",etag);
-			if(asset->gzip||storedGzip)server_.sendHeader("Vary","Accept-Encoding");
-			if(compressed||storedGzip)server_.sendHeader("Content-Encoding","gzip");
+			server_.sendHeader("ETag",asset->etag);
+			server_.sendHeader("Vary","Accept-Encoding");
+			server_.sendHeader("Content-Encoding","gzip");
 			const auto condition=server_.header("If-None-Match");
-			if(control::assetNotModified(std::string_view(condition.c_str(),condition.length()),etag)) {
+			if(control::assetNotModified(std::string_view(condition.c_str(),condition.length()),asset->etag)) {
 				// Pinned WebServer otherwise writes Content-Length: 0. A 304 may
 				// advertise only the selected 200 representation's length.
-				server_.setContentLength(size);
+				server_.setContentLength(asset->size);
 				server_.sendView(304,getContentType(assetPath).second,{});return;
 			}
-			server_.sendView(200,getContentType(assetPath).second,std::string_view(reinterpret_cast<const char*>(bytes),size));return;
+			server_.sendView(200,getContentType(assetPath).second,std::string_view(reinterpret_cast<const char*>(asset->bytes),asset->size));return;
 		}
 		// E32 UI is app-owned. Never cache or serve a stale filesystem shadow.
 		if(staticAssetRequest())server_.sendHeader("Cache-Control","no-store");

@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "status": "INCOMPLETE",
+  "tag": "v0.1.0-e32v2-beta.19",
+  "method": "home_assistant",
+  "acceptance_decision": "NOT_ACCEPTED_PENDING_OWNER",
+  "checks": {
+    "public_release_exact": true,
+    "fresh_preflight_passed": false,
+    "backup_verified": false,
+    "single_ha_install_action": true,
+    "ha_download_digest_size_marker_verified": true,
+    "local_upload_accepted": true,
+    "new_boot_observed": true,
+    "installed_version_source_elf_web_exact": true,
+    "boot_confirmed": true,
+    "stable_uptime_observed": true,
+    "settings_programs_bindings_preserved": false,
+    "control_state_safe_after_restart": true,
+    "ha_entity_reports_new_version": true,
+    "independent_postcheck_passed": false
+  },
+  "github_release": {
+    "tag_name": "v0.1.0-e32v2-beta.19",
+    "draft": false,
+    "prerelease": true,
+    "published_at": "2026-10-30T04:13:16Z",
+    "asset": {
+      "name": "firmware.bin",
+      "size": 2810192,
+      "digest": "sha256:350c8fc84aae86c73881e52d46e8e9ae500dd89171ee78beb46a21e36b628f54"
+    }
+  },
+  "firmware_sha256": "350c8fc84aae86c73881e52d46e8e9ae500dd89171ee78beb46a21e36b628f54",
+  "firmware_bytes": 2810192,
+  "source_commit": "01919c83b42e6d7dac7818435b5df1043042cbad",
+  "web_sha256": "0994817a26f699b513b912b3253870cbcb506759b8ff7c3ca07c727de8e09ac5",
+  "elf_sha256": "79b22821427e51affda5a8c8de9c1e5f6778089ed9b8ddc6b759cce862eb4a68",
+  "ha_entity_id": "update.woonkamer_e32_regelaar_ketel_en_diagnose_firmware",
+  "ha_integration_version": "0.4.0b11",
+  "ha_core_version": "2026.10.4",
+  "ha_install_record": {
+    "tag": "v0.1.0-e32v2-beta.19",
+    "from_version": "v0.1.0-e32v2-beta.18",
+    "sha256": "350c8fc84aae86c73881e52d46e8e9ae500dd89171ee78beb46a21e36b628f54",
+    "size": 2810192,
+    "started_at": "2026-10-30T08:24:33Z",
+    "finished_at": "2026-10-30T08:25:54Z",
+    "duration_s": 80.5,
+    "result": "installed",
+    "uploads": 1,
+    "reported": {
+      "version": "v0.1.0-e32v2-beta.19",
+      "source_commit": "01919c83b42e6d7dac7818435b5df1043042cbad",
+      "web_sha256": "0994817a26f699b513b912b3253870cbcb506759b8ff7c3ca07c727de8e09ac5",
+      "elf_sha256": "79b22821427e51affda5a8c8de9c1e5f6778089ed9b8ddc6b759cce862eb4a68"
+    }
+  },
+  "installer_receipt_sha256": null,
+  "independent_receipt_sha256": null,
+  "backup_manifest_sha256": null,
+  "postinstall_capture": {
+    "file": "docs/modern-thermostat/update-acceptance/e32-beta19-20261030-postinstall-capture.json",
+    "sha256": "0feccea13c66fb865801682de91bb477228c7383effe3c7328f78a326b27c574"
+  },
+  "limits": [
+    "No pre-install capture and no settings backup: the owner pressed Install before the read-only capture ran.",
+    "No independent second capture.",
+    "Settings were not compared with a backup; rooms, Bluetooth sensor and MQTT settings were observed intact on the E32 afterwards.",
+    "After the install the E32 hello reported storage_fault (stale native-plan session record from an earlier Connect E32); Home Assistant refused the session and boiler values stayed unavailable. Fixed in beta20 / HA 0.4.0b12.",
+    "At capture time the HA update entity showed installed_version null (state unknown) although last_install and the E32 report beta19."
+  ]
+}

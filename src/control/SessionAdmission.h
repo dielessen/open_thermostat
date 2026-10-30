@@ -55,7 +55,7 @@ struct Envelope {
 class SessionAdmission {
 public:
     static constexpr std::size_t maximumStreams = 48;
-    static constexpr uint32_t maximumGrantMs = 15000;
+    static constexpr uint32_t maximumGrantMs = 30000;  // ShadowController grants last 30 s
     explicit SessionAdmission(std::string_view expectedAdapter,
                               Direction direction = Direction::ha_to_fw, uint16_t expectedMajor = 1)
         : expectedAdapter_(validId(expectedAdapter) ? expectedAdapter : ""), direction_(direction), expectedMajor_(expectedMajor) {}

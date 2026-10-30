@@ -5,7 +5,7 @@ import pytest
 
 from custom_components.open_thermostat.heating_link import HeatingHub
 from custom_components.open_thermostat.heating_problem import (
-    ACTIVE_WARNING_SECONDS, ROOM_LOST_SECONDS, SHORT_CYCLING_SECONDS, TELEMETRY_STALE_SECONDS, TEXT,
+    ACTIVE_WARNING_SECONDS, AWAITING_CONFIRMATION_SECONDS, ROOM_LOST_SECONDS, SHORT_CYCLING_SECONDS, TELEMETRY_STALE_SECONDS, TEXT,
     HeatingProblemSensor, ProblemTracker, render)
 
 MIN = 60
@@ -127,6 +127,51 @@ def test_active_control_warnings_count_only_in_active_mode():
     assert problems(tracker, hub, clock) == []
 
 
+def test_active_control_waiting_for_the_owners_confirmation_for_10_minutes():
+    clock, hub, tracker = setup()
+    waiting = {"state": "awaiting_confirmation", "awaiting_confirmation": True, "enabled": True,
+               "confirmation": None, "warnings": []}
+    hub.update(status(mode="active", active=waiting))
+    assert problems(tracker, hub, clock) == []
+    clock.now += AWAITING_CONFIRMATION_SECONDS - MIN
+    hub.update(status(mode="active", active=waiting))
+    assert problems(tracker, hub, clock) == []
+    clock.now += MIN
+    hub.update(status(mode="active", active=waiting))
+    assert problems(tracker, hub, clock) == ["awaiting_confirmation"]
+    found = tracker.problems(hub, clock())
+    assert render(found, "en") == [
+        "The E32 is waiting for you to confirm that the old thermostat is disconnected; it is not heating until "
+        "you do. Open the E32 Rooms page → Active control."]
+    assert render(found, "nl")[0].startswith("De E32 wacht tot je bevestigt dat de oude thermostaat is losgekoppeld")
+    # Confirmed (active) or back to the thermostat (shadow): over at once, and the 10 minutes start again.
+    hub.update(status(mode="active", active={"state": "active", "awaiting_confirmation": False, "warnings": []}))
+    assert problems(tracker, hub, clock) == []
+    hub.update(status(mode="active", active=waiting))
+    clock.now += 5 * MIN
+    assert problems(tracker, hub, clock) == []
+    hub.update(status(mode="shadow", active={"state": "shadow", "awaiting_confirmation": False, "warnings": []}))
+    assert problems(tracker, hub, clock) == []
+    # The state alone counts too; shadow mode and firmware without the field never raise it.
+    hub.update(status(mode="active", active={"state": "awaiting_confirmation", "warnings": []}))
+    tracker.observe(hub, clock())
+    clock.now += AWAITING_CONFIRMATION_SECONDS
+    assert problems(tracker, hub, clock) == ["awaiting_confirmation"]
+    hub.update(status())
+    tracker.observe(hub, clock())
+    clock.now += AWAITING_CONFIRMATION_SECONDS
+    assert problems(tracker, hub, clock) == []
+    # A hub that keeps the active-control block apart (``hub.active``) is read the same way.
+    hub.update(status(mode="active"))
+    hub.active = waiting
+    tracker.observe(hub, clock())
+    clock.now += AWAITING_CONFIRMATION_SECONDS
+    assert problems(tracker, hub, clock) == ["awaiting_confirmation"]
+    # While the E32 is silent only that is reported (its last confirmation state is not current).
+    hub.update(None)
+    assert "awaiting_confirmation" not in problems(tracker, hub, clock)
+
+
 def test_every_reason_has_plain_english_and_dutch():
     assert set(TEXT["en"]) == set(TEXT["nl"])
     for key, text in TEXT["en"].items():
@@ -171,3 +216,4 @@ def test_the_notification_blueprint_is_a_valid_automation_blueprint():
     assert raw == {"integration": "open_thermostat", "domain": "binary_sensor", "device_class": "problem"}
     text = path.read_text(encoding="utf-8")
     assert "state_attr(problem, 'reasons')" in text  # the plain-language reasons of the sensor
+    assert "old thermostat is disconnected" in text  # awaiting_confirmation is in its description

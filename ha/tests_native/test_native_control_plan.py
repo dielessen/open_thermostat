@@ -588,7 +588,9 @@ async def test_room_display_labels_roundtrip_without_config_or_measurement_chang
     before=await n.peer.request('durable_readback')
     expected={room_id:room.name.encode('utf-8')[:80].decode('utf-8',errors='ignore').encode('utf-8').hex()
               for room_id,room in n.runtime.rooms.items()}
-    for _ in range(7):
+    # The labels ride on HA's next heartbeat (every 10 s since beta.19).
+    from custom_components.open_thermostat.v1_wire import HEARTBEAT_SECONDS
+    for _ in range(HEARTBEAT_SECONDS+5):
         n.peer.clock[0]+=1
         await n.client.poll();await n.drain();await n.event('tick');await n.drain()
     frames=[json.loads(frame['raw']) for _,_,result in n.peer.trace for frame in result['frames']

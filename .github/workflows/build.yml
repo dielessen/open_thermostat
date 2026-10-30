@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     # Dependency installation previously consumed most of the 15-minute job.
     # Keep a separate 15-minute limit for the actual browser scenarios below.
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Validate mandatory E32 update acceptance policy
@@ -47,7 +47,7 @@ jobs:
           npm install --no-save --package-lock=false playwright-core@1.63.0
           npx playwright-core install --with-deps chromium
       - name: Exercise shipped setup and room pages (simulated HTTP)
-        timeout-minutes: 15
+        timeout-minutes: 30 # about 15 min since beta.19 (882 s on 30 Oct 2026)
         run: |
           # A failing page test and its last output lines go into a public
           # annotation, because the job log itself needs a login.
@@ -66,19 +66,25 @@ jobs:
           browser test/updates/browser.cjs
           browser test/dashboard-browser.cjs
           browser test/dashboard-room-context-browser.cjs
+          browser test/e32-comfort-browser.cjs
+          browser test/history-chart-browser.cjs
           browser test/boiler-display-browser.cjs
           browser test/heating-browser.cjs
+          browser test/heating-flow-browser.cjs
           browser test/ems-devices-browser.cjs
           browser test/boiler-settings-browser.cjs
           browser test/bluetooth-browser.cjs
           browser test/bluetooth-lifecycle-browser.cjs
           browser test/navigation-browser.cjs
+          browser test/about-password-browser.cjs
           browser test/page-loading-browser.cjs
           browser test/system-log-browser.cjs
           browser test/system-log-lifecycle-browser.cjs
           browser test/debug-settings-browser.cjs
+          browser test/config-backup-browser.cjs
           browser test/ui-language-browser.cjs
           browser test/boiler-test-browser.cjs
+          browser test/boiler-profile-browser.cjs
           browser test/boiler-test-control-browser.cjs
           browser test/boiler-trial-guidance-browser.cjs
           browser test/boiler-configuration-read-browser.cjs
@@ -93,7 +99,8 @@ jobs:
           browser test/ha-room-status-ownership-browser.cjs
           browser test/ha-room-vacation-browser.cjs
           browser test/ha-planner-touch-browser.cjs
-          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs test/boiler-data.test.cjs test/boiler-trial-result.test.cjs test/time-zone-picker.test.cjs
+          browser test/week-editor-browser.cjs
+          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs test/boiler-data.test.cjs test/boiler-trial-result.test.cjs test/time-zone-picker.test.cjs test/week-editor.test.cjs
 
   source-reproduction:
     if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
@@ -198,7 +205,7 @@ jobs:
           /tmp/open-thermostat-echo-adapter-test
           g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_actuator_intent.cpp test/test_native/test_actuator_dispatch.cpp test/test_native/test_actuator_channel.cpp test/test_native/test_actuator_channels.cpp test/test_native/test_deadline_write.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-actuator-test
           /tmp/open-thermostat-actuator-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -DOPENTHERMOSTAT_E32V2 -Itest/deadline_write/include -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/deadline_write/adapter.cpp test/test_native/test_socket_write_budget.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-deadline-socket-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -DOPENTHERMOSTAT_E32V2 -Itest/deadline_write/include -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/deadline_write/adapter.cpp test/test_native/test_mqtt_outbox.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-deadline-socket-test
           /tmp/open-thermostat-deadline-socket-test
           g++ -std=c++17 -O1 -g -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer -Itest/deadline_write/include -I/tmp/open-thermostat-mqtt-source/PubSubClient/src -c /tmp/open-thermostat-mqtt-source/PubSubClient/src/PubSubClient.cpp -o /tmp/open-thermostat-pinned-mqtt.o
           g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -DOPENTHERMOSTAT_E32V2 -Itest/pending_tcp/include -Itest/deadline_write/include -Isrc -I/tmp/open-thermostat-mqtt-source/PubSubClient/src -I.pio/libdeps/native/googletest/googletest/include test/pending_tcp/adapter.cpp /tmp/open-thermostat-pinned-mqtt.o .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-pending-tcp-test
@@ -211,7 +218,7 @@ jobs:
           /tmp/open-thermostat-update-checkpoint-test
           g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_shelly_ht_advertisement.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-shelly-ht-test
           /tmp/open-thermostat-shelly-ht-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/googletest/googletest/include test/ble_crypto/mbedtls.cpp test/ble_crypto/mibeacon.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -Wl,--wrap=calloc -Wl,-Bstatic -lmbedcrypto -Wl,-Bdynamic -lpthread -o /tmp/open-thermostat-ble-crypto-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/googletest/googletest/include test/ble_crypto/mbedtls.cpp test/ble_crypto/mibeacon.cpp test/ble_crypto/backup_cipher.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -Wl,--wrap=calloc -Wl,-Bstatic -lmbedcrypto -Wl,-Bdynamic -lpthread -o /tmp/open-thermostat-ble-crypto-test
           /tmp/open-thermostat-ble-crypto-test
           g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_ble_device_settings.cpp test/test_native/test_managed_ble_observer.cpp test/test_native/test_mibeacon_monitor3.cpp test/test_native/test_shelly_trv.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-ble-owner-test
           /tmp/open-thermostat-ble-owner-test
@@ -238,6 +245,8 @@ jobs:
         run: pio run -e ${{ matrix.environment }}
       - name: Test actual OTA binary size guard
         run: python scripts/test_esp32_size_link.py
+      - name: Test the E32 l32r literal reach guard (runs before every E32 link)
+        run: python scripts/test_e32v2_literal_reach.py
       - name: Verify actual firmware image fits every OTA app slot
         if: matrix.environment != 'native'
         env:
@@ -504,6 +513,11 @@ jobs:
           python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.2.xml
           pip install --no-deps homeassistant==2026.10.3
           python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.3.xml
+          # Minimum accepted Core. The two provenance tests deliberately pin the
+          # tested 2026.10.2-.4 sources, so they are left out for this run only.
+          pip install --no-deps homeassistant==2026.10.0
+          python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.0.xml \
+            --ignore=ha/tests_native/test_native_provider.py --ignore=ha/tests_native/test_native_schema_contract.py
           pip install --no-deps homeassistant==2026.10.4
       - name: Verify and package exact HA-only candidate
         run: |
@@ -523,6 +537,7 @@ jobs:
           name: home-assistant-acceptance
           path: |
             out/ha-acceptance.xml
+            out/ha-core-2026.10.0.xml
             out/ha-core-2026.10.2.xml
             out/ha-core-2026.10.3.xml
             out/ha-core-2026.10.4.xml
@@ -668,13 +683,22 @@ jobs:
               expected,name=line.split('  ',1)
               assert hashlib.sha256((assets/name).read_bytes()).hexdigest()==expected
           PYTHON
-      - name: Publish experimental prerelease without overwriting an existing release
+      - name: Publish the release (a pre-release unless the tag is stable) without overwriting an existing release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           python scripts/organize_releases.py --repository "$GITHUB_REPOSITORY" --publication-notes-for "$RELEASE_TAG" --output out/publication-notes.md
-          gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "OpenThermostat E32 V2 $RELEASE_TAG" --notes-file out/publication-notes.md release-assets/*
+          # A stable tag (v1.0.0-e32v2, ha-v1.0.0) is a normal release; every other tag a pre-release.
+          channel=(--prerelease)
+          if python3 - "$RELEASE_TAG" <<'PYTHON'
+          import sys
+          sys.path.insert(0, 'scripts')
+          from organize_releases import classify, is_stable
+          sys.exit(0 if is_stable(*classify(sys.argv[1])) else 1)
+          PYTHON
+          then channel=(); fi
+          gh release create "$RELEASE_TAG" --verify-tag "${channel[@]}" --title "OpenThermostat E32 V2 $RELEASE_TAG" --notes-file out/publication-notes.md release-assets/*
       - name: Refresh release channels, current downloads and archive labels
         env:
           GH_TOKEN: ${{ github.token }}
@@ -764,7 +788,7 @@ jobs:
           with zipfile.ZipFile(assets/manifest['asset']) as package:
               assert package.testzip() is None
               assert len(package.namelist())==len(set(package.namelist()))
-              assert set(package.namelist())==set(manifest['integration_source_files'])|{'LICENSE','LEESMIJ.nl.txt','SOURCE.json','notices/PLATFORM.txt','SHA256SUMS.txt'}
+              assert set(package.namelist())==set(manifest['integration_source_files'])|{'LICENSE','RELEASE-NOTES.md','SOURCE.json','notices/PLATFORM.txt','SHA256SUMS.txt'}
               for name,expected in manifest['integration_source_files'].items():
                   assert name.startswith('custom_components/open_thermostat/')
                   tagged=Path('ha/config')/name
@@ -779,7 +803,7 @@ jobs:
               assert source['source_kind']=='clean_git_commit'
               assert source['firmware_included'] is False and source['live_HA_data_included'] is False
               assert package.read('LICENSE')==Path('LICENSE').read_bytes()
-              assert package.read('LEESMIJ.nl.txt')==Path('docs/modern-thermostat/HA-RELEASE-NOTES.md').read_bytes()
+              assert package.read('RELEASE-NOTES.md')==Path('docs/modern-thermostat/HA-RELEASE-NOTES.md').read_bytes()
               checked=set()
               for line in package.read('SHA256SUMS.txt').decode().splitlines():
                   expected,name=line.split('  ',1)
@@ -788,13 +812,22 @@ jobs:
                   assert hashlib.sha256(package.read(name)).hexdigest()==expected
               assert checked==set(package.namelist())-{'SHA256SUMS.txt'}
           PYTHON
-      - name: Publish HA prerelease without replacing previous releases
+      - name: Publish the HA release (a pre-release unless the tag is stable) without replacing previous releases
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           python scripts/organize_releases.py --repository "$GITHUB_REPOSITORY" --publication-notes-for "$RELEASE_TAG" --output out/publication-notes.md
-          gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "OpenThermostat Home Assistant $RELEASE_TAG" --notes-file out/publication-notes.md ha-release-assets/*
+          # A stable tag (v1.0.0-e32v2, ha-v1.0.0) is a normal release; every other tag a pre-release.
+          channel=(--prerelease)
+          if python3 - "$RELEASE_TAG" <<'PYTHON'
+          import sys
+          sys.path.insert(0, 'scripts')
+          from organize_releases import classify, is_stable
+          sys.exit(0 if is_stable(*classify(sys.argv[1])) else 1)
+          PYTHON
+          then channel=(); fi
+          gh release create "$RELEASE_TAG" --verify-tag "${channel[@]}" --title "OpenThermostat Home Assistant $RELEASE_TAG" --notes-file out/publication-notes.md ha-release-assets/*
       - name: Refresh release channels, current downloads and archive labels
         env:
           GH_TOKEN: ${{ github.token }}

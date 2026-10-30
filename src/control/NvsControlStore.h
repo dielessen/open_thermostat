@@ -29,6 +29,7 @@ public:
         } catch(...) {return false;}
     }
     bool save(std::string_view bytes) override {
+        refused_=true; // until the first NVS write call below
         if(bytes.empty()||bytes.size()>ControlPartitionBudget::configBytes) return false;
         if(profile_==ControlStorageProfile::graph_shadow_v2) {
             nvs_stats_t stats{};
@@ -40,12 +41,26 @@ public:
         } else if(profile_!=ControlStorageProfile::legacy_api1) return false;
         nvs_handle_t handle;
         if(nvs_open("ot_control",NVS_READWRITE,&handle)!=ESP_OK) return false;
+        refused_=false;
         auto err=nvs_set_blob(handle,"config",bytes.data(),bytes.size());
         if(err==ESP_OK) err=nvs_commit(handle);
         nvs_close(handle); return err==ESP_OK;
     }
+    // Removes the one control config record (never other ot_control keys such
+    // as learned models). Absent namespace/key counts as already removed.
+    static bool eraseConfig() {
+        nvs_handle_t handle;
+        const auto opened=nvs_open("ot_control",NVS_READWRITE,&handle);
+        if(opened==ESP_ERR_NVS_NOT_FOUND) return true;
+        if(opened!=ESP_OK) return false;
+        const auto err=nvs_erase_key(handle,"config");
+        const bool erased=(err==ESP_OK&&nvs_commit(handle)==ESP_OK)||err==ESP_ERR_NVS_NOT_FOUND;
+        nvs_close(handle); return erased;
+    }
+    bool lastSaveRefused() const override {return refused_;}
 private:
     ControlStorageProfile profile_;
+    bool refused_=false;
 };
 
 }

@@ -109,7 +109,8 @@ async def test_room_state_receipt_cannot_outlive_deadline_or_reconnect(native_pl
     assert n.client.current_native_room_state_verified
     scope,received=n.client._native_state_receipt
     # Age a real verified receipt conservatively; no permission is created.
-    n.client._native_state_receipt=(scope,n.client.clock()-15)
+    from custom_components.open_thermostat.v1_wire import STATE_STALE_SECONDS
+    n.client._native_state_receipt=(scope,n.client.clock()-STATE_STALE_SECONDS)
     assert n.client.ready and not n.client.current_native_room_state_verified
     n.client._native_state_receipt=(scope,received)
     n.client.reset_session()

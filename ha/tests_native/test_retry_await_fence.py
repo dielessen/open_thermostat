@@ -116,7 +116,8 @@ async def test_expired_session_cannot_retry_or_renew_heartbeat(hass, expired):
         if expired == 'lease':
             client.lease_until = 102
         else:
-            client.last_rx = 87
+            from custom_components.open_thermostat.v1_wire import RX_STALE_SECONDS
+            client.last_rx = 102 - RX_STALE_SECONDS
         client.send.reset_mock()
         await client.poll()
         client.send.assert_not_awaited()

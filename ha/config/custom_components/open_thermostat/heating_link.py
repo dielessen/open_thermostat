@@ -1,30 +1,37 @@
 """The one route between the E32 room control and Home Assistant.
 
-The E32 owns the room plan. It publishes ``fw/telemetry/heating`` with its
-computed boiler request, its rooms, its paired Bluetooth sensors and the HA
-entities it reads (``ha_entities``). HA forwards exactly those entities'
-temperature and target to ``ha/heating_input`` on every change and every five
-minutes, so a steady thermostat stays fresh.
+The E32 owns the room plan. It reports its state in small retained MQTT
+topics (E32 beta.19, docs/modern-thermostat/TELEMETRIEBUDGET.nl.md), each at
+most 1.5 KB, sent on a real change (deadbands), at most every 10 s, else every
+5 minutes:
 
-Newer firmware adds what it learned per room (readiness, flow advice and,
-with a trusted clock, the plan: optimum start and night options) and today's
-hot water (``dhw``); those entities appear only once the fields do. The
-learned rooms come either inside the status (``learned.rooms`` and
-``learned.plans``, beta.18 test builds) or, to stay within the MQTT size
-limit, one message per room on ``fw/telemetry/heating_learned/<room id>``
-(at least every 60 s; stale after ``LEARNED_STALE_SECONDS``). The learned
-header (schema, applied, status, heating periods, the energy inputs it uses)
-and today's hot water come inside the status on older firmware, and on
-``fw/telemetry/heating_summary`` (every 15 s, stale after
-``SUMMARY_STALE_SECONDS``) on newer firmware, whose status no longer carries
-them; the summary wins when both are there.
+- ``fw/state/heating``: the computed boiler request, mode, the active-control
+  block (``active``), burner starts and the HA link;
+- ``fw/state/room/<id>`` and ``fw/state/ble/<id>``: one room, one paired
+  Bluetooth sensor;
+- ``fw/config/plan``: the plan's room and sensor ids and how many parts the
+  entity list has; ``fw/config/entities`` (and ``.../entities/<k>``): the HA
+  entities the plan reads (``ha_entities``);
+- ``fw/telemetry/learned/<id>`` (every 15 min or on a new result),
+  ``fw/telemetry/summary`` (learned header, hot water; 5 min) and
+  ``fw/telemetry/shadow`` (today's comparison; 5 min);
+- ``fw/availability`` (retained online/offline, the LWT) and ``fw/heartbeat``
+  every 60 s.
 
-One ``HeatingHub`` per entry holds the latest status. Every platform (sensor,
+The hub assembles them into the status the entities always read (``status``,
+the shape of ``/status/heating``), so a restarted Home Assistant is complete at
+once from the retained messages. Values stay available until the E32 says it
+is offline or three heartbeats are missed (``STALE_SECONDS``). HA forwards
+exactly the listed entities' temperature and target to ``ha/heating_input`` on
+every change and every five minutes, so a steady thermostat stays fresh.
+
+One ``HeatingHub`` per entry holds the latest state. Every platform (sensor,
 binary_sensor, select, number, datetime) creates its entities from it for the
 room and Bluetooth ids it actually reports; all of them are unavailable while
-the telemetry is missing or stale.
+the E32 is offline or silent.
 """
 import json
+import logging
 import math
 import re
 import time
@@ -33,7 +40,7 @@ from datetime import datetime, timedelta, timezone
 from homeassistant.components import mqtt
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.const import PERCENTAGE, UnitOfTemperature, UnitOfTime
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature, UnitOfTime
 from homeassistant.core import callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -41,10 +48,12 @@ from homeassistant.helpers.event import async_track_state_change_event, async_tr
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
 
+_LOGGER = logging.getLogger(__name__)
 REFRESH_SECONDS = 300
 MAX_ENTITIES = 40  # the E32 plan: 8 rooms x (4 sources + setpoint entity)
-# The E32 publishes every 15 s; four missed messages make every value stale.
-STALE_SECONDS = 60
+# fw/heartbeat every 60 s: unavailable after three missed ones (or fw/availability offline).
+HEARTBEAT_SECONDS = 60
+STALE_SECONDS = 3 * HEARTBEAT_SECONDS + 15
 STALE_CHECK = timedelta(seconds=15)
 ROOM_ID = re.compile(r"[a-z0-9_]{1,32}")
 BLE_ID = re.compile(r"[0-9a-f]{12}")
@@ -52,15 +61,79 @@ ROOM_STATUSES = ["ok", "fallback", "stale", "lost", "inactive"]
 LEARNING_STATES = ["collecting", "learning", "ready"]
 # The highest flow the E32 requests: its plan maximum goes up to 80 °C (RoomPlan 21..80).
 FLOW_REQUEST_MAX_C = 80
-# A hard bound before parsing (the E32 publishes at most 4096 bytes).
+# A hard bound for the assembled status (the parts are each at most MAX_DOC_BYTES).
 MAX_STATUS_BYTES = 8192
-# A room's learned message (every room at least every 60 s) expires after three missed ones.
-LEARNED_STALE_SECONDS = 180
-LEARNED_TOPIC = "fw/telemetry/heating_learned/"
-# The learned header and today's hot water, every 15 s like the status (about 430 bytes).
-SUMMARY_TOPIC = "fw/telemetry/heating_summary"
-SUMMARY_STALE_SECONDS = 60
+# Every E32 telemetry message (the E32's hard limit; usually <= 1 KB).
+MAX_DOC_BYTES = 1536
 MAX_SUMMARY_BYTES = 2048
+MAX_ENTITY_PARTS = 8
+MAX_BLE = 16
+HEATING_TOPIC = "fw/state/heating"
+ROOM_TOPIC = "fw/state/room/"
+BLE_TOPIC = "fw/state/ble/"
+PLAN_TOPIC = "fw/config/plan"
+ENTITIES_TOPIC = "fw/config/entities"
+LEARNED_TOPIC = "fw/telemetry/learned/"
+SUMMARY_TOPIC = "fw/telemetry/summary"
+SHADOW_TOPIC = "fw/telemetry/shadow"
+# The flow policy's part of the summary ("flow", "night_gas"), sent apart to keep both within 1 KB.
+FLOW_TOPIC = "fw/telemetry/flow"
+FLOW_KEYS = ("flow", "night_gas")
+HEARTBEAT_TOPIC = "fw/heartbeat"
+AVAILABILITY_TOPIC = "fw/availability"
+
+
+def decode_document(payload, max_bytes=MAX_DOC_BYTES):
+    """One schema 1 JSON object of at most max_bytes, or None."""
+    if not isinstance(payload, (str, bytes)) or len(payload) > max_bytes:
+        return None
+    try:
+        value = json.loads(payload)
+    except (ValueError, TypeError, UnicodeError):
+        return None
+    return value if type(value) is dict and value.get("schema") == 1 else None
+
+
+def _ids(value, pattern, limit):
+    return (type(value) is list and len(value) <= limit and len(set(value)) == len(value)
+            and all(type(i) is str and pattern.fullmatch(i) for i in value))
+
+
+def decode_plan(payload):
+    """``fw/config/plan``: {"revision","mode","rooms":[ids],"ble":[ids],"entity_parts"}, or None."""
+    value = decode_document(payload)
+    if (value is None or type(value.get("revision")) is not int or value.get("mode") not in ("shadow", "active")
+            or not _ids(value.get("rooms"), ROOM_ID, 8) or not _ids(value.get("ble"), BLE_ID, MAX_BLE)
+            or type(value.get("entity_parts")) is not int or not 1 <= value["entity_parts"] <= MAX_ENTITY_PARTS):
+        return None
+    return value
+
+
+def decode_entities(payload, part):
+    """One ``fw/config/entities[/<part>]`` part, or None."""
+    value = decode_document(payload)
+    entities = value.get("entities") if value else None
+    if (value is None or value.get("part") != part or type(value.get("parts")) is not int
+            or not 1 <= value["parts"] <= MAX_ENTITY_PARTS or not 0 <= part < value["parts"]
+            or type(value.get("revision")) is not int or type(entities) is not list or len(entities) > MAX_ENTITIES
+            or any(type(e) is not str or "." not in e or len(e) > 80 for e in entities)):
+        return None
+    return value
+
+
+def decode_item(payload, topic_id, pattern):
+    """One ``fw/state/room/<id>`` or ``fw/state/ble/<id>`` document whose id is the topic's, or None."""
+    value = decode_document(payload)
+    if value is None or type(topic_id) is not str or not pattern.fullmatch(topic_id) or value.get("id") != topic_id:
+        return None
+    value = dict(value)
+    del value["schema"]
+    return value
+
+
+def decode_heartbeat(payload):
+    value = decode_document(payload)
+    return value if value is not None and type(value.get("uptime_s")) is int and value["uptime_s"] >= 0 else None
 
 
 def decode_status(payload):
@@ -71,6 +144,11 @@ def decode_status(payload):
         value = json.loads(payload)
     except (ValueError, TypeError, UnicodeError):
         return None
+    return valid_status(value)
+
+
+def valid_status(value):
+    """The (assembled) status when it is well-formed, else None."""
     if type(value) is not dict or value.get("schema") != 1 or value.get("mode") not in ("shadow", "active"):
         return None
     request, entities, rooms = value.get("request"), value.get("ha_entities"), value.get("rooms")
@@ -127,7 +205,7 @@ def plan_rooms(status):
 
 
 def decode_learned(topic_room, payload):
-    """(learned room, plan or None) of one ``heating_learned/<room id>`` message, or None.
+    """(learned room, plan or None) of one ``learned/<room id>`` message, or None.
 
     The payload's id must be the topic's room id; ``plan`` is null without a trusted clock.
     """
@@ -149,7 +227,7 @@ def decode_learned(topic_room, payload):
 
 
 def decode_summary(payload):
-    """The ``heating_summary`` document (schema 1: ``learned`` header, ``dhw``), or None.
+    """The ``summary`` document (schema 1: ``learned`` header, ``dhw``), or None.
 
     Either part may be missing; a part that is there must be an object.
     """
@@ -185,6 +263,41 @@ def status_ble(status):
 def label(item):
     name = item.get("name")
     return name.strip()[:64] if type(name) is str and name.strip() else item["id"]
+
+
+# A broadcast name: letters, then the end of the sensor's address (BTE_A3E8DB, ATC_E8DB, LYWSD03MMC excluded).
+_BROADCAST_NAME = re.compile(r"[A-Za-z][A-Za-z0-9]{1,11}[ _-]?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{4})")
+_THERMOMETER = "Thermometer "  # the same word in English and Dutch
+
+
+def ble_broadcast_name(sensor):
+    """True while the E32 still has the name the sensor broadcasts (no own name was given)."""
+    name = sensor.get("name")
+    name = name.strip() if type(name) is str else ""
+    if not name or name.lower() == sensor["id"]:
+        return True
+    match = _BROADCAST_NAME.fullmatch(name)
+    return match is not None and sensor["id"].endswith(match.group(1).lower())
+
+
+def ble_device_name(sensor, rooms, current=None):
+    """The device name of a Bluetooth sensor, or None to keep ``current``.
+
+    A name given on the E32 wins. A sensor with its broadcast name that exactly
+    one room measures with reads "Thermometer <room>". While no room reports it
+    as its source for a moment (lost, fallback), a "Thermometer <room>" name of
+    a room that still exists stays, so the name never flips back and forth.
+    A name the user gives in Home Assistant (name_by_user) is never touched.
+    """
+    if not ble_broadcast_name(sensor):
+        return label(sensor)
+    using = [room for room in rooms.values() if room.get("source") == sensor["id"]]
+    if len(using) == 1:
+        return (_THERMOMETER + label(using[0]))[:64]
+    if (not using and type(current) is str and current.startswith(_THERMOMETER)
+            and any(_THERMOMETER + label(room) == current for room in rooms.values())):
+        return None
+    return label(sensor)
 
 
 TEMPERATURE_UNITS = (UnitOfTemperature.CELSIUS, UnitOfTemperature.FAHRENHEIT, UnitOfTemperature.KELVIN)
@@ -225,26 +338,49 @@ def input_payload(state, temperature_unit=UnitOfTemperature.CELSIUS):
 
 
 class HeatingHub:
-    """The latest E32 heating status of one entry and who listens to it."""
+    """The latest E32 heating state of one entry and who listens to it.
+
+    ``status`` is assembled from the retained parts (``receive``); ``update``
+    sets it directly (and is what the rest of the integration and its tests
+    call). ``fresh`` while the E32 is online and its heartbeat is current.
+    """
 
     def __init__(self, prefix, clock=time.monotonic):
         self.prefix = prefix
         self.clock = clock
         self.status = None
+        # The E32's active-control block (``fw/state/heating`` ``active``), or None (heating_problem reads it).
+        self.active = None
         self.rooms = {}
         self.ble = {}
         self.learned = {}
         self.warmup = {}
-        # {room id: (received, learned room, plan or None)} from heating_learned/<room id>
+        # {room id: (received, learned room, plan or None)} from learned/<room id>
         self.learned_messages = {}
-        # The latest heating_summary (decode_summary) and when it arrived (monotonic).
+        # The latest summary (decode_summary) and when it arrived (monotonic).
         self.summary = None
         self.summary_received = None
+        # fw/telemetry/summary and fw/telemetry/flow as received; summary is the two merged.
+        self.summary_doc = None
+        self.flow_doc = None
         self.received = None
-        # The last status received (monotonic), kept while the telemetry is stale.
+        # The last live sign of the E32 (monotonic), kept while it is silent.
         self.last_seen = None
         self.plan = None  # room_plan.RoomPlanLink when the E32 credentials are stored
+        # The retained parts the status is assembled from.
+        self.heating = None
+        self.room_states = {}
+        self.ble_states = {}
+        self.config = None
+        self.entity_parts = {}
+        self.entities = None  # the last complete entity list
+        self.shadow = None
+        self.online = None  # fw/availability: None until known
+        self.heartbeat = None
+        self.heartbeat_received = None
+        self.started = clock()
         self._listeners = []
+        self._trackers = []  # each track_entities' forget_rooms(room_ids)
 
     @property
     def fresh(self):
@@ -254,6 +390,14 @@ class HeatingHub:
     def revision(self):
         revision = self.status.get("revision") if self.status else None
         return revision if type(revision) is int else None
+
+    @property
+    def alive(self):
+        """Online and heard: a heartbeat within STALE_SECONDS (from HA start until the first one)."""
+        if self.online is False:
+            return False
+        since = self.heartbeat_received if self.heartbeat_received is not None else self.started
+        return 0 <= self.clock() - since <= STALE_SECONDS
 
     @property
     def learned_header(self):
@@ -268,8 +412,12 @@ class HeatingHub:
         return dhw if dhw is not None else dhw_status(self.status)
 
     @callback
-    def add_listener(self, listener):
-        self._listeners.append(listener)
+    def add_listener(self, listener, first=False):
+        """first: called before the others (the ha/heating_input forwarding)."""
+        if first:
+            self._listeners.insert(0, listener)
+        else:
+            self._listeners.append(listener)
 
         @callback
         def remove():
@@ -279,13 +427,26 @@ class HeatingHub:
 
     @callback
     def notify(self):
+        # One failing listener (an entity, a forwarder) never stops the others.
         for listener in list(self._listeners):
-            listener()
+            try:
+                listener()
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception("OpenThermostat: an E32 telemetry listener failed")
+
+    @callback
+    def forget_removed_rooms(self, room_ids):
+        """Rooms back in the plan whose entities were removed: every tracker adds them again."""
+        for forget_rooms in list(self._trackers):
+            forget_rooms(frozenset(room_ids))
 
     def _merge_learned(self):
         """The learned rooms and plans: from the status (older firmware) and the per-room messages."""
         learned, warmup = learned_rooms(self.status), plan_rooms(self.status)
+        plan_ids = set(self.config["rooms"]) if self.config else None
         for room_id, (_, room, plan) in self.learned_messages.items():
+            if plan_ids is not None and room_id not in plan_ids:
+                continue
             learned[room_id] = room
             if plan is not None:
                 warmup[room_id] = plan
@@ -296,6 +457,8 @@ class HeatingHub:
     @callback
     def update(self, status):
         self.status = status
+        active = status.get("active") if status else None
+        self.active = active if type(active) is dict else None
         self.rooms = status_rooms(status)
         self.ble = status_ble(status)
         self.received = self.clock() if status is not None else None
@@ -303,6 +466,115 @@ class HeatingHub:
             self.last_seen = self.received
         self._merge_learned()
         self.notify()
+
+    def _assemble(self):
+        """The status from the parts, or None while the E32 is not alive or a part is missing."""
+        config, heating = self.config, self.heating
+        if not self.alive or config is None or heating is None:
+            return None
+        parts = [self.entity_parts.get(k) for k in range(config["entity_parts"])]
+        if all(p is not None and p["parts"] == config["entity_parts"] and p["revision"] == config["revision"] for p in parts):
+            entities = [e for p in parts for e in p["entities"]]
+            if len(entities) <= MAX_ENTITIES:
+                self.entities = entities
+        status = {key: value for key, value in heating.items() if key not in ("rooms", "ble_sensors", "ha_entities", "shadow")}
+        status["ha_entities"] = list(self.entities or [])
+        status["rooms"] = [self.room_states[i] for i in config["rooms"] if i in self.room_states]
+        status["ble_sensors"] = [self.ble_states[i] for i in config["ble"] if i in self.ble_states]
+        if self.shadow is not None:
+            status["shadow"] = {key: value for key, value in self.shadow.items() if key != "schema"}
+        return valid_status(status)
+
+    @callback
+    def refresh(self):
+        """Assemble again after a part changed (or the E32 went quiet)."""
+        status = self._assemble()
+        if status is None and self.status is None:
+            return
+        live = self.last_seen
+        self.update(status)
+        if status is not None and live is not None and self.received is not None:
+            self.last_seen = max(live, self.last_seen)
+
+    @callback
+    def receive(self, suffix, payload, retained=False):
+        """One E32 message (topic after the prefix). A retained one is state too."""
+        empty = payload in ("", b"")
+        if suffix == AVAILABILITY_TOPIC:
+            if payload not in ("online", "offline"):
+                return
+            self.online = payload == "online"
+            if self.online and not retained:
+                self.last_seen = self.clock()
+        elif suffix == HEARTBEAT_TOPIC:
+            beat = decode_heartbeat(payload)
+            if beat is None or retained:
+                return
+            self.heartbeat, self.heartbeat_received = beat, self.clock()
+            self.online = True if self.online is None else self.online
+            self.last_seen = self.heartbeat_received
+        elif suffix == HEATING_TOPIC:
+            self.heating = None if empty else decode_document(payload)
+        elif suffix == PLAN_TOPIC:
+            plan = decode_plan(payload)
+            if plan is None and not empty:
+                return  # a malformed plan never drops the rooms
+            self.config = plan
+            if plan is not None:
+                for key, store in ((tuple(plan["rooms"]), self.room_states), (tuple(plan["ble"]), self.ble_states)):
+                    for item in [i for i in store if i not in key]:
+                        del store[item]
+                for room_id in [r for r in self.learned_messages if r not in plan["rooms"]]:
+                    del self.learned_messages[room_id]
+                for part in [k for k in self.entity_parts if k >= plan["entity_parts"]]:
+                    del self.entity_parts[part]
+        elif suffix == ENTITIES_TOPIC or suffix.startswith(ENTITIES_TOPIC + "/"):
+            tail = suffix[len(ENTITIES_TOPIC) + 1:]
+            part = 0 if suffix == ENTITIES_TOPIC else int(tail) if tail.isdigit() and len(tail) == 1 else None
+            if part is None:
+                return
+            value = None if empty else decode_entities(payload, part)
+            if value is None:
+                self.entity_parts.pop(part, None)
+            else:
+                self.entity_parts[part] = value
+        elif suffix.startswith(ROOM_TOPIC) or suffix.startswith(BLE_TOPIC):
+            room = suffix.startswith(ROOM_TOPIC)
+            key = suffix[len(ROOM_TOPIC if room else BLE_TOPIC):]
+            store = self.room_states if room else self.ble_states
+            value = None if empty else decode_item(payload, key, ROOM_ID if room else BLE_ID)
+            if value is None:
+                store.pop(key, None)
+            else:
+                store[key] = value
+        elif suffix.startswith(LEARNED_TOPIC):
+            room_id = suffix[len(LEARNED_TOPIC):]
+            if empty:
+                self.learned_messages.pop(room_id, None)
+            else:
+                value = decode_learned(room_id, payload)
+                if value is None:
+                    return
+                self.learned_messages[room_id] = (self.clock(), *value)
+        elif suffix in (SUMMARY_TOPIC, FLOW_TOPIC):
+            if suffix == SUMMARY_TOPIC:
+                self.summary_doc = None if empty else decode_summary(payload)
+            else:
+                flow = None if empty else decode_document(payload)
+                self.flow_doc = ({k: flow[k] for k in FLOW_KEYS if type(flow.get(k)) is dict}
+                                 if flow is not None else None)
+            summary = self.summary_doc
+            if summary is not None and self.flow_doc:
+                summary = {**summary, **self.flow_doc}
+            self.summary = summary
+            self.summary_received = self.clock() if summary is not None else None
+        elif suffix == SHADOW_TOPIC:
+            self.shadow = None if empty else decode_document(payload)
+        else:
+            return
+        if not retained and suffix != AVAILABILITY_TOPIC:
+            self.last_seen = self.clock()
+        self.refresh()
 
     @callback
     def update_learned(self, room_id, value):
@@ -315,7 +587,7 @@ class HeatingHub:
 
     @callback
     def update_summary(self, summary):
-        """The latest heating_summary (decode_summary); None (invalid) drops the previous one."""
+        """The latest summary (decode_summary); None (invalid) drops the previous one."""
         if summary is None and self.summary is None:
             return
         self.summary = summary
@@ -324,25 +596,42 @@ class HeatingHub:
 
     @callback
     def check_stale(self, _now=None):
-        now = self.clock()
-        expired = [room_id for room_id, (at, _, _) in self.learned_messages.items()
-                   if now - at > LEARNED_STALE_SECONDS]
-        for room_id in expired:
-            del self.learned_messages[room_id]
-        summary_expired = self.summary is not None and now - self.summary_received > SUMMARY_STALE_SECONDS
-        if summary_expired:
-            self.summary, self.summary_received = None, None
-        if self.status is not None and now - self.received > STALE_SECONDS:
+        """Periodically: three missed heartbeats make every value unavailable; a heartbeat restores them."""
+        if self.status is not None and not self.alive:
             self.update(None)
-        elif expired or summary_expired:
-            self._merge_learned()
-            self.notify()
+        elif self.status is None and self.alive and self.heating is not None:
+            self.refresh()
 
     @callback
     def stop(self):
         if self.plan is not None:
             self.plan.stop()
         self._listeners.clear()
+
+
+def topic_base(hass, entry):
+    """The E32's MQTT topic base of an entry: the running link's, else ``<topic_prefix>/v1/``.
+
+    The E32 publishes its retained telemetry there whether or not this entry
+    runs its shadow link, so the telemetry never depends on that link.
+    """
+    connection = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("v1_connection")
+    prefix = getattr(connection, "prefix", None)
+    return prefix if type(prefix) is str and prefix else entry.data[CONF_TOPIC_PREFIX] + "/v1/"
+
+
+class _RetainedLink:
+    """Stands in for the link's connection without a running link: its client is the
+    retained boiler source (v1_boiler_fields), looked up when read, so the order in
+    which the sensor setup steps run does not matter."""
+
+    def __init__(self, state, prefix):
+        self._state, self.prefix = state, prefix
+
+    @property
+    def client(self):
+        from .v1_boiler_fields import SOURCE_KEY
+        return self._state.get(SOURCE_KEY)
 
 
 def heating_hub(hass, entry):
@@ -354,6 +643,8 @@ def heating_hub(hass, entry):
         from .room_plan import RoomPlanLink
         hub.plan = RoomPlanLink.for_entry(hass, entry, hub)
         entry.async_on_unload(hub.stop)
+        from .room_groups import attach_hub
+        attach_hub(hass, entry, hub)  # product entries: each room's entities in its own group
         from .e32_access import clear
         entry.async_on_unload(lambda: clear(hass, entry))
     return hub
@@ -371,20 +662,62 @@ def add_options(hass, entry, options=None):
 
 @callback
 def track_entities(hub, async_add_entities, options, wanted):
-    """Add each entity wanted(hub) yields ((key, factory) pairs) once, when first seen."""
-    known = set()
+    """Add each entity wanted(hub) yields ((key, factory) pairs) once, when first seen.
+
+    A key whose entity was removed from Home Assistant (its room left the plan,
+    the user deleted the device) is forgotten once wanted(hub) no longer yields
+    it, so the same key coming back (a room added again with the same id) gets
+    a new entity, without a reload. While the E32 still reports it (its status
+    trails a plan change), a removed entity is not created again;
+    hub.forget_removed_rooms() adds the rooms that are back in the plan.
+    """
+    known, current = set(), set()
+    removed = {}  # key: the removed entity, while wanted(hub) still yields the key
+
+    @callback
+    def forget(key, entity):
+        if key in current:
+            removed[key] = entity
+        else:
+            known.discard(key)
 
     @callback
     def refresh():
-        new = []
+        nonlocal current
+        new, keys = [], set()
         for key, factory in wanted(hub):
+            keys.add(key)
             if key not in known:
                 known.add(key)
-                new.append(factory())
+                entity = factory()
+                entity.async_on_remove(lambda key=key, entity=entity: forget(key, entity))
+                new.append(entity)
+        current = keys
+        for key in [key for key in removed if key not in keys]:
+            del removed[key]
+            known.discard(key)
         if new:
-            async_add_entities(new, **options)
-    remove = hub.add_listener(refresh)
+            from .room_groups import add_grouped
+            add_grouped(hub, async_add_entities, new, options)
+
+    @callback
+    def forget_rooms(room_ids):
+        returned = [key for key, entity in removed.items() if getattr(entity, "room_id", None) in room_ids]
+        for key in returned:
+            del removed[key]
+            known.discard(key)
+        if returned:
+            refresh()
+
+    remove_listener = hub.add_listener(refresh)
+    hub._trackers.append(forget_rooms)
     refresh()
+
+    @callback
+    def remove():
+        remove_listener()
+        if forget_rooms in hub._trackers:
+            hub._trackers.remove(forget_rooms)
     return remove
 
 
@@ -419,8 +752,19 @@ class HubEntity:
         entry = getattr(getattr(self, "platform", None), "config_entry", None)
         if not self._on_own_device or getattr(self, "hass", None) is None or entry is None:
             return info
-        product = dr.async_get(self.hass).async_get_device_by_identifier((DOMAIN, self.hub.prefix), entry.entry_id)
-        return {**info, "via_device_id": product.id} if product is not None else info
+        registry = dr.async_get(self.hass)
+        product = registry.async_get_device_by_identifier((DOMAIN, self.hub.prefix), entry.entry_id)
+        extra = {"via_device_id": product.id} if product is not None else {}
+        item = self._named_item()
+        if item is not None:
+            # The same name _follow_name keeps: adding the entity again (a restart) never resets it.
+            current = registry.async_get_device_by_identifier(next(iter(info["identifiers"])), entry.entry_id)
+            name = self._device_name(item, current.name if current is not None else None)
+            if name is None and current is not None:
+                name = current.name
+            if name is not None:
+                extra["name"] = name
+        return {**info, **extra}
 
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
@@ -441,16 +785,21 @@ class HubEntity:
             return
         registry = dr.async_get(self.hass)
         current = registry.async_get(device.id)
-        if current is not None and current.name != label(item):
-            registry.async_update_device(current.id, name=label(item))
+        name = self._device_name(item, current.name) if current is not None else None
+        if name is not None and current.name != name:
+            registry.async_update_device(current.id, name=name)
 
     def _named_item(self):
         return None
 
+    def _device_name(self, item, current):
+        """The device's own name for ``item`` (None: keep ``current``); name_by_user is never changed."""
+        return label(item)
+
 
 def _own_device(identifier, item):
     """A device of its own (one room, one Bluetooth sensor); device_info adds the product device link."""
-    return DeviceInfo(identifiers={identifier}, name=label(item), manufacturer="intuibase")
+    return DeviceInfo(identifiers={identifier}, name=label(item), manufacturer="OpenThermostat")
 
 
 class RoomEntity(HubEntity):
@@ -581,6 +930,8 @@ BLE_METRICS = {
     "humidity": (SensorDeviceClass.HUMIDITY, PERCENTAGE, 0, 100),
     "battery": (SensorDeviceClass.BATTERY, PERCENTAGE, 0, 100),
 }
+# Shown decimals only ("57 %", not "56,96 %"); the recorded value keeps its precision.
+BLE_PRECISION = {"temperature": 1, "humidity": 0, "battery": 0}
 
 
 class BleSensor(HubEntity, SensorEntity):
@@ -591,9 +942,14 @@ class BleSensor(HubEntity, SensorEntity):
     def __init__(self, hub, sensor, metric):
         self.sensor_id, self.metric = sensor["id"], metric
         device = _own_device(ble_device_identifier(hub.prefix, self.sensor_id), sensor)
+        device["name"] = ble_device_name(sensor, hub.rooms) or label(sensor)  # a new device's first name
         self._attach(hub, f"e32_ble_{self.sensor_id}_{metric}", device)
         self._attr_device_class, self._attr_native_unit_of_measurement, self._low, self._high = BLE_METRICS[metric]
+        self._attr_suggested_display_precision = BLE_PRECISION[metric]
         self._attr_translation_key = f"ble_{metric}"
+
+    def _device_name(self, item, current):
+        return ble_device_name(item, self.hub.rooms, current)
 
     def _named_item(self):
         return self.sensor
@@ -654,7 +1010,11 @@ class ShadowSensor(HubEntity, SensorEntity):
     """One value of today's shadow comparison: the E32's decision next to the thermostat's (0x1A).
 
     The counters restart every day (and when the E32 restarts): total_increasing.
+    Diagnostic: the generated dashboard shows them on its Comparison subview, the device page
+    keeps them out of the main list.
     """
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, hub, key):
         self.key = key
@@ -991,6 +1351,8 @@ class DhwTodaySensor(HubEntity, SensorEntity):
         self.key = key
         self._attach(hub, f"hub_{key}")
         self._attr_translation_key = key
+        if key != "dhw_taps_today":  # the taps are the everyday value; the rest is detail
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
         if key == "dhw_burner_time_today":
             self._attr_device_class = SensorDeviceClass.DURATION
             self._attr_native_unit_of_measurement = UnitOfTime.MINUTES
@@ -1093,25 +1455,40 @@ async def async_setup_demand(hass, entry, async_add_entities):
 
 
 async def async_setup_heating_link(hass, entry, async_add_entities, **options):
+    """The E32 telemetry, its entities and the ha/heating_input forwarding.
+
+    Product entries need only the MQTT prefix and the broker, not the shadow
+    link: a stopped link (shadow off, an interrupted Connect E32) never hides
+    the E32 rooms or stops the forwarding. Other entries keep needing the link.
+    """
+    from .product import is_product
     state = hass.data[DOMAIN][entry.entry_id]
     connection = state.get("v1_connection")
     if connection is None or connection.client is None:
-        return
-    topic_base = connection.prefix
+        from .room_plan import has_room_plan
+        if not has_room_plan(entry):  # only an installation with a connected E32 (no rows before that)
+            return
+        # The advice reads the boiler values of the retained source instead.
+        connection = _RetainedLink(state, topic_base(hass, entry))
+    base = topic_base(hass, entry)
     hub = heating_hub(hass, entry)
     options = add_options(hass, entry, options)
     sensor = HeatRequestSensor(hub)
     async_add_entities([sensor], **options)
     entry.async_on_unload(track_entities(hub, async_add_entities, options, wanted_sensors))
-    from .product import is_product
     if is_product(entry):  # the tuning advice (advice only) on the product device
         from .heating_advice import async_setup_heating_advice
-        await async_setup_heating_advice(hass, entry, async_add_entities, options, hub, connection)
+        try:
+            await async_setup_heating_advice(hass, entry, async_add_entities, options, hub, connection)
+        except Exception:  # noqa: BLE001 - the advice is optional; the rooms and forwarding are not
+            _LOGGER.exception("OpenThermostat: setting up the heating advice and gas use failed; "
+                              "the E32 rooms still load")
     forwarded = []
     unsubscribe_states = None
+    was_fresh = False
 
     def send(payload):
-        hass.async_create_task(mqtt.async_publish(hass, topic_base + "ha/heating_input", payload, 0, False))
+        hass.async_create_task(mqtt.async_publish(hass, base + "ha/heating_input", payload, 0, False))
 
     def publish(entity_id):
         payload = input_payload(hass.states.get(entity_id), hass.config.units.temperature_unit)
@@ -1135,16 +1512,17 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
         energy.publish()
 
     @callback
-    def receive(message):
-        nonlocal forwarded, unsubscribe_states
-        if getattr(message, "retain", False):
+    def follow():
+        """After every hub change: track exactly the plan's entities; send all at once when new or back."""
+        nonlocal forwarded, unsubscribe_states, was_fresh
+        status = hub.status
+        back = status is not None and not was_fresh
+        was_fresh = status is not None
+        if status is None:
             return
-        status = decode_status(message.payload)
-        was_fresh = hub.fresh
-        hub.update(status)
-        if status is not None and not was_fresh and status["ha_entities"] == forwarded:
-            energy.publish()  # the E32 is (back) online: send the energy values at once
-        if status is None or status["ha_entities"] == forwarded:
+        if status["ha_entities"] == forwarded:
+            if back:
+                energy.publish()  # the E32 is (back) online: send the energy values at once
             return
         forwarded = list(status["ha_entities"])
         if unsubscribe_states is not None:
@@ -1155,18 +1533,10 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
         refresh()
 
     @callback
-    def receive_learned(message):
-        if getattr(message, "retain", False):
-            return
+    def receive(message):
         topic = getattr(message, "topic", "")
-        room_id = topic.rpartition("/")[2] if topic.startswith(topic_base + LEARNED_TOPIC) else ""
-        hub.update_learned(room_id, decode_learned(room_id, message.payload))
-
-    @callback
-    def receive_summary(message):
-        if getattr(message, "retain", False):
-            return
-        hub.update_summary(decode_summary(message.payload))
+        if type(topic) is str and topic.startswith(base):
+            hub.receive(topic[len(base):], message.payload, retained=getattr(message, "retain", False))
 
     @callback
     def unload():
@@ -1174,9 +1544,10 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
             unsubscribe_states()
 
     await mqtt.async_wait_for_mqtt_client(hass)
-    entry.async_on_unload(await mqtt.async_subscribe(hass, topic_base + "fw/telemetry/heating", receive))
-    entry.async_on_unload(await mqtt.async_subscribe(hass, topic_base + LEARNED_TOPIC + "+", receive_learned))
-    entry.async_on_unload(await mqtt.async_subscribe(hass, topic_base + SUMMARY_TOPIC, receive_summary))
+    entry.async_on_unload(hub.add_listener(follow, first=True))
+    for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", PLAN_TOPIC,
+                  ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, SHADOW_TOPIC):
+        entry.async_on_unload(await mqtt.async_subscribe(hass, base + topic, receive))
     entry.async_on_unload(async_track_time_interval(hass, refresh, timedelta(seconds=REFRESH_SECONDS)))
     entry.async_on_unload(async_track_time_interval(hass, hub.check_stale, STALE_CHECK))
     entry.async_on_unload(unload)

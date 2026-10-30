@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections import defaultdict
 import hashlib
 import json
+import logging
 import math
 import re
 import secrets
@@ -18,7 +19,25 @@ from homeassistant.exceptions import HomeAssistantError
 from .supervisor_status import supervisor_status, MAX_AGE_SECONDS as SUPERVISOR_MAX_AGE
 from .v1_model import Observation, RoomDecision
 from .session_grant import register_grant_proof, consume_grant_proof, MAX_GRANT_PROOFS
-from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, CAPABILITY_V2 as BOILER_CAPABILITY_V2, BoilerFieldCache, MAX_BYTES as MAX_BOILER_BYTES, CATALOG_FIELDS
+from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, CAPABILITY_V2 as BOILER_CAPABILITY_V2, BoilerFieldCache, MAX_BYTES as MAX_BOILER_BYTES, CATALOG_FIELDS, GROUPS_V2 as BOILER_GROUPS_V2
+# Retained E32 telemetry topics (beta.19 telemetry budget): each at most 1.5 KB.
+_LOGGER = logging.getLogger(__name__)
+# After the E32 answered a configuration with storage_fault (its flash save failed):
+# the same configuration is proposed again only after 1, 5, 15, then every 60 minutes,
+# so a save that keeps failing never becomes a write loop on the E32's flash.
+CONFIG_FAULT_BACKOFF = (60, 300, 900, 3600)
+STATE_TELEMETRY = ("fw/state/", "fw/config/", "fw/telemetry/learned/", "fw/telemetry/summary", "fw/telemetry/shadow")
+MAX_STATE_BYTES = 1536
+# Session timing, the same as ShadowController (TELEMETRIEBUDGET.nl.md, "Sessieprotocol"):
+# grants rotate every 10 s and last 30 s, HA heartbeats every 10 s for a 30 s lease, the
+# zone state comes on a change and at least every 30 s, hello every 60 s in a session.
+# Three missed messages before anything expires.
+GRANT_SECONDS = 30
+GRANT_ROTATION_SECONDS = 10
+LEASE_SECONDS = 30
+HEARTBEAT_SECONDS = 10
+RX_STALE_SECONDS = 45
+STATE_STALE_SECONDS = 100
 from .metric_snapshot import CAPABILITY,MAX_BYTES as MAX_METRIC_BYTES,EXPIRY_SECONDS,valid_snapshot
 
 _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
@@ -93,7 +112,64 @@ def parse(raw):
     return value
 
 
+BOILER_STATE_TOPICS = ("fw/state/boiler_fields/", "fw/state/boiler", "fw/config/boiler_profile", "fw/heartbeat")
+
+
+def apply_boiler_state(cache, topic, raw, retained, now):
+    """One retained boiler message (E32 beta.19) into a BoilerFieldCache; no session involved.
+
+    ``fw/state/boiler_fields/<g>`` and ``fw/state/boiler`` (the values),
+    ``fw/config/boiler_profile`` (which fields this boiler has) and a live
+    ``fw/heartbeat`` (keeps the values usable). Returns (changed, diagnostic):
+    whether listeners should look again, and the diagnostics value for a value
+    message (None for the others).
+    """
+    if topic == "fw/heartbeat":
+        if retained:
+            return False, None
+        try:
+            beat = json.loads(raw) if isinstance(raw, str) and len(raw) <= MAX_STATE_BYTES else None
+        except ValueError:
+            beat = None
+        if type(beat) is dict and beat.get("schema") == 1 and type(beat.get("uptime_s")) is int:
+            cache.heartbeat(now, beat["uptime_s"])
+            return True, None
+        return False, None
+    if topic == "fw/config/boiler_profile":  # which fields this boiler has (boiler_fields.py, agent T)
+        return cache.accept_profile(raw), None
+    group = None
+    if topic.startswith("fw/state/boiler_fields/"):
+        tail = topic.rsplit("/", 1)[1]
+        if not tail.isdigit() or len(tail) > 2 or int(tail) >= BOILER_GROUPS_V2:
+            return False, None  # a group of a newer catalog than this HA knows
+        group = int(tail)
+    elif topic != "fw/state/boiler":
+        return False, None
+    if not isinstance(raw, str) or not raw or len(raw) > MAX_STATE_BYTES:
+        return False, None
+    try:
+        p = json.loads(raw)
+        if (type(p) is not dict or p.get("schema") != 1
+                or set(p) != ({"schema", "group", "values"} if group is not None else {"schema", "values"})
+                or (group is not None and p["group"] != group)):
+            raise ValueError("boiler state envelope")
+        cache.accept_state(p["values"], group, now)
+        return True, "read_only_not_control_qualified"
+    except (ValueError, TypeError, KeyError, OverflowError):
+        return True, "invalid_read_only_fields"
+
+
 class ShadowClient:
+    @property
+    def boiler_fields_supported(self):
+        """The hello announced boiler.fields (session telemetry), or retained boiler state arrived (beta.19)."""
+        cache = getattr(self, "boiler_fields", None)
+        return self._boiler_fields_supported or bool(cache is not None and cache.state_mode)
+
+    @boiler_fields_supported.setter
+    def boiler_fields_supported(self, value):
+        self._boiler_fields_supported = value
+
     def __init__(self, runtime, adapter_id, send, store, desired, mapping, clock,*,control_plan=None):
         if not identifier(adapter_id):
             raise ValueError("invalid local adapter owner")
@@ -143,6 +219,7 @@ class ShadowClient:
         self.open_request = None
         self.open_sent = 0.0
         self.grant_until = 0.0
+        self._heartbeat_sent = float("-inf")
         self.lease_until = 0.0
         self.last_rx = 0.0
         self.sequence = defaultdict(int)
@@ -169,6 +246,43 @@ class ShadowClient:
         self._metrics_highwater=0
         self._supervisor=None
         self._supervisor_received=0.0
+        # Not session data: survives reset_session (a storage_fault resets the session).
+        self._proposed_key=None
+        self._config_fault=None  # {"key", "count", "until", "changed_once"} after storage_fault
+
+    def _config_key(self):
+        """The desired configuration apart from its revision: what a re-proposal would write."""
+        return digest({"mapping": self.mapping, "zones": self.desired})
+
+    def _config_fault_result(self, status):
+        """A fw/config_result: storage_fault starts or extends the backoff; success ends it."""
+        if status != "storage_fault":
+            if self._config_fault is not None:
+                _LOGGER.info("The E32 saved the Home Assistant configuration again after earlier storage faults")
+            self._config_fault = None
+            return
+        key, fault = self._proposed_key, self._config_fault
+        count = fault["count"] + 1 if fault is not None else 1
+        delay = CONFIG_FAULT_BACKOFF[min(count, len(CONFIG_FAULT_BACKOFF)) - 1]
+        if fault is None:
+            _LOGGER.warning("The E32 could not save the Home Assistant configuration (storage fault in its "
+                            "flash). Home Assistant tries again after 1, 5 and 15 minutes, then hourly, "
+                            "instead of rewriting it every few seconds")
+        self._config_fault = {"key": key, "count": count, "until": self.clock() + delay,
+                              "changed_once": fault["changed_once"] if fault is not None else False}
+
+    def _config_backoff(self, key):
+        """True while this proposal must wait (a storage fault backoff is running).
+
+        A changed desired configuration may go out once at once; after that it waits too.
+        """
+        fault = self._config_fault
+        if fault is None or not self.clock() < fault["until"]:
+            return False
+        if key != fault["key"] and not fault["changed_once"]:
+            fault["changed_once"] = True
+            return False
+        return True
 
     @property
     def last_rejection_payload(self):
@@ -239,7 +353,7 @@ class ShadowClient:
                 and (self.native_plan_source is None or self.native_source_current()) and self.verified and (self.controller_policy is None or self.source_policy_matched) and self.session is not None
                 and self.session.get("mapping_ready") is True
                 and now < self.grant_until and now < self.lease_until
-                and now - self.last_rx < 15)
+                and now - self.last_rx < RX_STALE_SECONDS)
 
     def actuator_scope(self, binding):
         """Current local transport context only; never physical qualification."""
@@ -339,7 +453,7 @@ class ShadowClient:
         from .graph_shadow_validation import GraphValidationError
         if (not self.clock_current() or not self.native_source_current() or not self.identity or not self.session
                 or not self.source_policy_matched or self.clock()>=self.grant_until
-                or self.clock()>=self.lease_until or self.clock()-self.last_rx>=15):
+                or self.clock()>=self.lease_until or self.clock()-self.last_rx>=RX_STALE_SECONDS):
             raise GraphValidationError("native_plan_live_readback_required")
         return (self.identity,self.session["adapter_session_id"],self.session["config_revision"],
                 self.session["config_digest"],self.controller_policy.profile_digest,self._native_entry_state)
@@ -398,7 +512,7 @@ class ShadowClient:
         except GraphValidationError:
             return False
         received_scope,received_at=self._native_state_receipt
-        return received_scope==scope and 0<=self.clock()-received_at<15
+        return received_scope==scope and 0<=self.clock()-received_at<STATE_STALE_SECONDS
 
     async def async_request_native_plan_readback(self):
         """Explicit read-only refresh on the owning worker; never stage or apply."""
@@ -733,7 +847,7 @@ class ShadowClient:
         self._metrics_highwater=0
         self._supervisor=None
         self._supervisor_received=0.0
-        self.boiler_fields.reset()
+        self.boiler_fields.reset_session()
 
     def require_graph_source_review(self):
         if getattr(self.runtime,"graph_controller_source",None) is None:
@@ -750,7 +864,17 @@ class ShadowClient:
         self.changed()
 
     async def receive(self, topic, raw, *, retained=False, received_at=None):
-        if self.closed or retained or self.graph_source_review_required or self.native_plan_fenced:
+        if self.closed:
+            return
+        if topic.startswith(STATE_TELEMETRY) and topic != "fw/state/zones" or topic == "fw/heartbeat":
+            # Retained E32 telemetry (beta.19): never session data. Boiler fields are decoded
+            # here, the rest by heating_link; the heartbeat keeps the boiler values alive.
+            self.receive_boiler_state(topic, raw, retained)
+            return
+        if topic == "fw/availability" and raw in ("online", "offline"):
+            self.boiler_fields.availability(raw == "online", self.clock())
+        # The retained hello (beta.19) lets a restarted HA open a session at once.
+        if (retained and topic != "fw/hello") or self.graph_source_review_required or self.native_plan_fenced:
             return
         if not self.clock_current():
             self.changed()
@@ -775,6 +899,14 @@ class ShadowClient:
             self.reset_session()
             self.error = "invalid_firmware_message"
             self.changed()
+
+    def receive_boiler_state(self, topic, raw, retained=False):
+        """``fw/state/boiler_fields/<g>`` and ``fw/state/boiler`` (retained), and the heartbeat."""
+        changed, diagnostic = apply_boiler_state(self.boiler_fields, topic, raw, retained, self.clock())
+        if diagnostic is not None:
+            self.runtime.diagnostics["boiler_fields"] = diagnostic
+        if changed:
+            self.runtime._notify()
 
     def receive_boiler_fields(self, raw, received_at=None):
         if not self.ready or not self.boiler_fields_supported:
@@ -869,7 +1001,7 @@ class ShadowClient:
                 or not isinstance(p.get("config_digest"), str)
                 or (p["config_revision"] == 0 and p["config_digest"] != "")
                 or (p["config_revision"] != 0 and not _HEX.fullmatch(p["config_digest"]))
-                or p.get("lease_ms") != 15000 or p.get("grant_ms") != 10000
+                or p.get("lease_ms") != LEASE_SECONDS * 1000 or p.get("grant_ms") != GRANT_SECONDS * 1000
                 or type(p.get("storage_fault", False)) is not bool):
                 raise ValueError("hello")
             new_identity = (p["controller_id"], p["boot_id"], p["epoch"])
@@ -927,25 +1059,26 @@ class ShadowClient:
             # The firmware sends the catalog groups only after ha/capabilities.
             self.boiler_fields_v2=self.boiler_fields_supported and BOILER_CAPABILITY_V2 in caps
             if not self.boiler_fields_supported:
-                self.boiler_fields.reset()
+                self.boiler_fields.reset_session()
             self.metrics_supported=(type(caps) is list and len(caps)<=8
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in caps) and CAPABILITY in caps)
             if not self.metrics_supported:
                 self._metrics=None
-            self.last_rx = self.clock()
             if self.session:
+                # A hello is no proof that THIS session lives (the firmware may have
+                # ended it): only session messages refresh last_rx.
                 return
+            self.last_rx = self.clock()
             known = self.known(p["config_revision"], p["config_digest"])
             if self.native_plan_source is not None and known is not None and not self.native_desired_matches(known["config"]):
                 known=None # Config-only session; old samples cannot run a dirty desired plan.
             # Unknown remote revision is diagnostic-only: never silently adopt.
             revision, known_digest = ((p["config_revision"], p["config_digest"])
                                       if known else (0, ""))
-            if (self.native_plan_source is not None and self.open_request is not None
-                    and self.open_request["challenge_id"] != p["challenge_id"]):
-                # Same-identity lease expiry rotates the firmware challenge. A
-                # pending request is NOT authority and must not replay the old
-                # challenge. Fresh nonce and unchanged independent SOURCE policy.
+            if self.open_request is not None and self.open_request["challenge_id"] != p["challenge_id"]:
+                # The firmware rotated its challenge (lease expiry, a reply to a
+                # stale open). A pending request is NOT authority and must not
+                # replay the old challenge: fresh nonce, fresh request, at once.
                 self.open_request = None
             if self.open_request is None:
                 self.open_request = dict(
@@ -972,7 +1105,7 @@ class ShadowClient:
                 or p.get("adapter_id") != self.adapter_id
                 or not all(identifier(p.get(k)) for k in ("adapter_session_id", "grant_id"))
                 or not integer(p.get("grant_sequence"), 1)
-                or p.get("grant_ms") != 10000 or type(p.get("mapping_ready")) is not bool
+                or p.get("grant_ms") != GRANT_SECONDS * 1000 or type(p.get("mapping_ready")) is not bool
                 or not integer(p.get("config_revision"))):
                 raise ValueError("session")
             if self.session:
@@ -982,22 +1115,22 @@ class ShadowClient:
                     return  # Repeated status may NOT extend a grant.
                 if not self.same_config(p):
                     raise ValueError("session config changed")
-                # Safe old-peer fallback: minimum5s per rotation, NOT receipt+10.
-                grant_deadline = min(self.clock() + 10, self.grant_until +
-                                     5 * (p["grant_sequence"] - self.session["grant_sequence"]))
+                # Safe fallback: at most one rotation period per new grant, NOT receipt+grant.
+                grant_deadline = min(self.clock() + GRANT_SECONDS, self.grant_until +
+                                     GRANT_ROTATION_SECONDS * (p["grant_sequence"] - self.session["grant_sequence"]))
                 proof=p.get("grant_request_nonce")
                 if self.grant_nonce_supported and identifier(proof):
-                    deadline=consume_grant_proof(self._grant_proofs,proof,self.clock())
+                    deadline=consume_grant_proof(self._grant_proofs,proof,self.clock(),GRANT_SECONDS)
                     if deadline is not None:
                         # SAME original-send proof used by explicit graph owner.
                         grant_deadline=max(grant_deadline,deadline)
-                delay_bound = self.clock() + 10 - grant_deadline
+                delay_bound = self.clock() + GRANT_SECONDS - grant_deadline
             else:
                 delay_bound = self.clock() - self.open_sent
-            if delay_bound < 0 or delay_bound >= 10:
+            if delay_bound < 0 or delay_bound >= GRANT_SECONDS:
                 raise ValueError("late grant")
             self.session = p
-            self.grant_until = self.clock() + 10 - delay_bound
+            self.grant_until = self.clock() + GRANT_SECONDS - delay_bound
             self.last_rx = self.clock()
             await self.message("ha/heartbeat", "adapter", {})
             self.changed()
@@ -1027,13 +1160,17 @@ class ShadowClient:
                 self.error = status
                 if topic == "fw/user_command_result" and not pending["future"].done():
                     pending["future"].set_exception(HomeAssistantError("Firmware rejected shadow command"))
+                if topic == "fw/config_result":
+                    self._config_fault_result(status)
                 if status == "storage_fault":
                     self.reset_session()
                 self.changed()
                 return
+            if topic == "fw/config_result":
+                self._config_fault_result(status)
             if topic == "fw/heartbeat_result":
                 # Use original publish timestamp, not receipt, as conservative start.
-                self.lease_until = pending["sent"] + 15
+                self.lease_until = pending["sent"] + LEASE_SECONDS
                 if not self.verified:
                     await self.message("ha/snapshot_request", "snapshot", {})
             if topic == "fw/user_command_result" and not pending["future"].done():
@@ -1134,6 +1271,14 @@ class ShadowClient:
             return
         if current_revision >= 4294967295:
             raise ValueError("revision exhausted")
+        key = self._config_key()
+        if self._config_backoff(key):
+            # The E32's last save of a configuration failed: wait (CONFIG_FAULT_BACKOFF).
+            self.verified = False
+            self.error = "firmware_storage_fault"
+            self.changed()
+            return
+        self._proposed_key = key
         config = {"schema": 1, "mode": "shadow", "revision": current_revision + 1,
                   "mapping_digest": digest(self.mapping), "zones": json.loads(canonical(self.desired))}
         if len(canonical(config).encode("ascii")) > 4096:
@@ -1170,6 +1315,8 @@ class ShadowClient:
     async def message(self, topic, binding, body, future=None):
         p = self.envelope(binding)
         p.update(body)
+        if topic == "ha/heartbeat":
+            self._heartbeat_sent = self.clock()  # poll() heartbeats every HEARTBEAT_SECONDS after this
         if (topic=="ha/heartbeat" and self.ready and self.boiler_fields_v2
                 and self._capabilities_sent!=self.session["adapter_session_id"]):
             self._capabilities_sent=self.session["adapter_session_id"]
@@ -1307,8 +1454,11 @@ class ShadowClient:
                 self.require_native_plan_review()
                 return None
             now = self.clock()
-            if self.session and (now - self.last_rx >= 15
-                    or (self.lease_until and now >= self.lease_until)):
+            # A session ends when its lease ran out, or, before any heartbeat was
+            # confirmed, when its grant ran out: never an open-ended session.
+            if self.session and (now - self.last_rx >= RX_STALE_SECONDS
+                    or (self.lease_until and now >= self.lease_until)
+                    or (not self.lease_until and now >= self.grant_until)):
                 await self.async_disconnected()
                 return None
             return now
@@ -1334,7 +1484,7 @@ class ShadowClient:
         now = await current_time()
         if now is None:
             return
-        if self.session and now < self.grant_until:
+        if self.session and now < self.grant_until and now - self._heartbeat_sent >= HEARTBEAT_SECONDS:
             if not any(k[0] == "fw/heartbeat_result" for k in self.pending):
                 await self.message("ha/heartbeat", "adapter", {})
         now = await current_time()

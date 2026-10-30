@@ -5,7 +5,7 @@ Local review is never physical readiness, a new worker/store or per-config pin.
 """
 
 from .room_contacts import context_record
-from .product import heating_entries
+from .product import configuration_subentries,heating_entries
 from copy import deepcopy
 from dataclasses import dataclass
 import json,re
@@ -91,7 +91,8 @@ def _native_layout(hass,entry,*,allow_single=False,room_replacement=None,draft_r
 
 def native_entry_state(entry):
     return canonical(dict(entry_id=entry.entry_id,unique_id=entry.unique_id,data=dict(entry.data),options=dict(entry.options),
-        subentries={key:dict(kind=s.subentry_type,data=dict(s.data)) for key,s in entry.subentries.items()}))
+        # The presentation groups (one per E32 room) come and go with the telemetry; never a guard.
+        subentries={key:dict(kind=s.subentry_type,data=dict(s.data)) for key,s in configuration_subentries(entry).items()}))
 
 @dataclass(frozen=True,slots=True)
 class NativePlanSource:

@@ -41,7 +41,32 @@ class ReadmeReleaseTests(unittest.TestCase):
 
     def test_stable_release_displaces_prerelease(self):
         output = page.render(self.text, self.rows + [row('v0.1.0-e32v2', prerelease=False)], 'owner/project')
-        self.assertIn('[v0.1.0-e32v2](https://github.com/owner/project/releases/tag/v0.1.0-e32v2) | Release |', output)
+        self.assertIn('[v0.1.0-e32v2](https://github.com/owner/project/releases/tag/v0.1.0-e32v2) | Stable |', output)
+        self.assertNotIn('beta.3', output)  # an older pre-release is not shown next to the stable release
+
+    def test_version_one_and_a_newer_pre_release_are_both_shown_with_their_channel(self):
+        rows = self.rows + [row('v0.1.0-e32v2-beta.19'), row('v1.0.0-e32v2-rc.1'),
+                            row('v1.0.0-e32v2', prerelease=False), row('v1.1.0-e32v2-beta.1'),
+                            row('ha-v1.0.0', prerelease=False), row('ha-v0.4.0b11')]
+        output = page.render(self.text, rows, 'owner/project')
+        table = output.split(page.START)[1].split(page.END)[0]
+        self.assertIn('| E32 V2 firmware | [v1.0.0-e32v2](https://github.com/owner/project/releases/tag/v1.0.0-e32v2) | Stable |\n'
+                      '| E32 V2 firmware | [v1.1.0-e32v2-beta.1](https://github.com/owner/project/releases/tag/v1.1.0-e32v2-beta.1)'
+                      ' | Pre-release |\n'
+                      '| Home Assistant integration | [1.0.0](https://github.com/owner/project/releases/tag/ha-v1.0.0) | Stable |\n',
+                      table)
+        for hidden in ('rc.1', 'beta.19', '0.4.0b11', 'beta.3'):
+            self.assertNotIn(hidden, table)
+        self.assertIn('git clone --branch v1.0.0-e32v2 ', table)  # build the stable release
+        self.assertEqual(page.render(output, rows, 'owner/project'), output)
+
+    def test_a_suffix_or_github_pre_release_is_never_labelled_stable(self):
+        rows = [row('ha-v1.0.0', prerelease=True), row('v0.1.0-e32v2-beta.18', prerelease=False),
+                row('v1.0.0-e32v2'), {**row('v0.1.0-e32v2-beta.17'), 'prerelease': None}]
+        table = page.render(self.text, rows, 'owner/project').split(page.START)[1]
+        self.assertNotIn('Stable', table)
+        self.assertIn('[v1.0.0-e32v2](https://github.com/owner/project/releases/tag/v1.0.0-e32v2) | Pre-release |', table)
+        self.assertIn('[1.0.0](https://github.com/owner/project/releases/tag/ha-v1.0.0) | Pre-release |', table)
 
     def test_incomplete_catalog_or_ambiguous_markers_fail_closed(self):
         for text in (self.text.replace(page.START, ''), self.text + page.END,

@@ -16,7 +16,7 @@ from homeassistant.util import dt as dt_util
 from .schedule_compiler import compile_week, WEEKDAYS
 from .v1_program import normalize_program, native_week, change_block, clock_second
 
-from .const import CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DOMAIN
+from .const import CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DEFAULT_TOPIC_PREFIX, DOMAIN
 from .v1_model import (
     CONF_ENABLED, CONF_MODE, MODE_LEGACY, MODE_SHADOW, ROOM_LIMIT,
     EntityReference, RoomBinding, integration_mode, target_centi,
@@ -107,7 +107,7 @@ class V1FlowMixin:
         if not hasattr(self, "_installation_adapter_id"):
             self._installation_adapter_id = uuid.uuid4().hex
         errors = {}
-        prefix = getattr(self, "_prefix", "ib-therm")
+        prefix = getattr(self, "_prefix", DEFAULT_TOPIC_PREFIX)
         if user_input is not None:
             name = user_input.get("name", "").strip()
             prefix = user_input.get("advanced", {}).get(CONF_TOPIC_PREFIX, prefix)
@@ -118,9 +118,12 @@ class V1FlowMixin:
             else:
                 await self.async_set_unique_id(prefix)
                 self._abort_if_unique_id_configured()
-                return self.async_create_entry(title=name,
+                from .room_plan import ROOMS_ON_E32
+                # The success dialog says what comes next: Configure → Connect E32, then Rooms.
+                return self.async_create_entry(title=name, description="e32_next_steps",
                     data={CONF_TOPIC_PREFIX: prefix, CONF_MODE: MODE_SHADOW,
-                          "adapter_id": self._installation_adapter_id, PRODUCT_CONFIG: PRODUCT_VERSION},
+                          "adapter_id": self._installation_adapter_id, PRODUCT_CONFIG: PRODUCT_VERSION,
+                          ROOMS_ON_E32: True},
                     options={CONF_MODE: MODE_SHADOW, CONF_ENABLED: False,
                              CONF_CREATE_DASHBOARD: user_input.get(CONF_CREATE_DASHBOARD, False)})
         schema = vol.Schema({
@@ -157,7 +160,7 @@ class V1FlowMixin:
                              CONF_CREATE_DASHBOARD: False},
                 )
         return self.async_show_form(step_id="shadow", data_schema=vol.Schema({
-            vol.Required(CONF_TOPIC_PREFIX, default="ib-therm"): str,
+            vol.Required(CONF_TOPIC_PREFIX, default=DEFAULT_TOPIC_PREFIX): str,
             vol.Required("adapter_id", default=self._shadow_adapter_id): vol.Match(r"^[A-Za-z0-9_-]{1,32}$"),
         }), errors=errors)
 
@@ -191,8 +194,11 @@ class V1FlowMixin:
                         default = getattr(client, "default_password", None)
                 except ControllerLoginRejected:
                     errors["password"] = "reauth_password_wrong"
-                except ControllerLinkError:
-                    errors["base"] = "reauth_unreachable"
+                except ControllerLinkError as err:
+                    # 429 from the E32: all its web sessions in use, or too many attempts.
+                    errors["base"] = {"controller_session_capacity": "reauth_session_capacity",
+                                      "controller_try_again_later": "reauth_try_again_later"}.get(
+                                          str(err), "reauth_unreachable")
                 else:
                     from .e32_access import save_password
                     report_password(self.hass, entry, default)
@@ -207,10 +213,11 @@ class V1FlowMixin:
     def async_get_supported_subentry_types(cls, config_entry):
         from .product import is_product
         if is_product(config_entry) and integration_mode(config_entry) == MODE_SHADOW:
-            from .room_plan import has_room_plan
-            if has_room_plan(config_entry):
-                # The rooms are the E32 room plan (Configure -> Rooms). The older HA
-                # room records stay listed and readable; no second "Add room" button.
+            from .room_plan import uses_e32_rooms
+            if uses_e32_rooms(config_entry):
+                # The rooms are the E32 room plan (Configure -> Rooms), also for a new
+                # installation before its E32 is connected. The older HA room records
+                # stay listed and readable; no second "Add room" button.
                 return {}
             from .product_flow import ProductRoomFlow
             return {"zone": ProductRoomFlow}

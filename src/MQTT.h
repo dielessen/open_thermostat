@@ -277,7 +277,7 @@ public:
 		ib::mqtt::MQTT::HomeAssistantDeviceInfo deviceInfo;
 		deviceInfo.name = "OpenThermostat";
 		deviceInfo.model = "OpenThermostat";
-		deviceInfo.manufacturer = "intuibase";
+		deviceInfo.manufacturer = "OpenThermostat";
 		deviceInfo.swVersion = "1.0.0";
 
 		roomsReporter_ = std::make_shared<RoomsReporter>(log_, std::move(getRoomIds), std::move(getRoomsStatus), std::move(getActiveProgram), std::move(getBoilerStarted), std::move(roomContext));

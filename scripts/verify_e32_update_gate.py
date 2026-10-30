@@ -3,6 +3,14 @@
 This validates evidence correspondence; it never performs an update or claims
 that synthetic/CI tests prove a physical installation. A hash-bound owner
 exception can permit one beta publication while preserving the evidence gap.
+
+Two physical update routes can be accepted, each with its own evidence:
+``native_github`` (the E32 downloads from GitHub itself) and
+``home_assistant`` (the official route since beta.19: the Home Assistant update
+entity downloads firmware.bin, verifies GitHub's digest, size and version
+marker, and uploads it to the E32 over the local network). A stable release
+(``vX.Y.Z-e32v2``) is only published on an accepted ``home_assistant`` update.
+See docs/modern-thermostat/HA-UPDATE-ACCEPTANCE.en.md.
 """
 from pathlib import Path
 import argparse
@@ -18,6 +26,18 @@ REQUIRED = ('public_package_exact', 'fresh_preflight_passed', 'backup_verified',
     'installed_version_source_elf_web_exact', 'boot_confirmed',
     'stable_uptime_observed', 'settings_programs_bindings_preserved',
     'outputs_remained_disabled', 'independent_postcheck_passed')
+# The Home Assistant route. The E32 may own the boiler by then (active mode),
+# so its control state after the restart must be the documented safe one
+# instead of "outputs remained disabled".
+HA_REQUIRED = ('public_release_exact', 'fresh_preflight_passed', 'backup_verified',
+    'single_ha_install_action', 'ha_download_digest_size_marker_verified',
+    'local_upload_accepted', 'new_boot_observed', 'installed_version_source_elf_web_exact',
+    'boot_confirmed', 'stable_uptime_observed', 'settings_programs_bindings_preserved',
+    'control_state_safe_after_restart', 'ha_entity_reports_new_version',
+    'independent_postcheck_passed')
+HA_MIN_IMAGE, HA_MAX_IMAGE = 1000000, 0x3C0000  # firmware_update.py's limits
+STABLE_UPTIME_SECONDS = 600  # beyond the E32's 10-minute boot-confirmation window
+UTC = r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z'
 
 
 def require(ok, message):
@@ -40,6 +60,117 @@ def version(value):
 
 def valid_tag(value):
     return version(value) is not None
+
+
+def stable(value):
+    """A stable release (vX.Y.Z-e32v2, no alpha/beta/rc suffix)."""
+    return valid_tag(value) and version(value)[3] == 3
+
+
+def hexadecimal(value, length):
+    return isinstance(value, str) and re.fullmatch('[0-9a-f]{'+str(length)+'}', value) is not None
+
+
+def integer(value):
+    return type(value) is int
+
+
+def utc_time(value, label):
+    require(isinstance(value, str) and re.fullmatch(UTC, value) is not None, 'Missing UTC time: '+label)
+    try:
+        return datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
+    except ValueError:
+        raise ValueError('Missing UTC time: '+label) from None
+
+
+def native_acceptance(record):
+    """The E32 downloaded and installed the release itself (evidence rules unchanged)."""
+    checks = record.get('checks', {})
+    require(all(checks.get(key) is True for key in REQUIRED), 'Incomplete physical update acceptance')
+    require(record.get('catalog_check_commands') in (0, 1)
+            and type(record.get('catalog_check_commands')) is int, 'Unexpected catalog retries')
+    require(type(record.get('install_commands')) is int and record['install_commands'] == 1,
+            'Install was missing/repeated')
+    require(record.get('install_http_status') == 202, 'Original worker admission missing')
+    for key, length in (('source_commit', 40), ('elf_sha256', 64), ('web_sha256', 64),
+                        ('firmware_sha256', 64), ('installer_receipt_sha256', 64),
+                        ('independent_receipt_sha256', 64), ('backup_manifest_sha256', 64)):
+        require(isinstance(record.get(key), str)
+                and re.fullmatch('[0-9a-f]{'+str(length)+'}', record[key]), 'Missing identity: '+key)
+
+
+def home_assistant_acceptance(record):
+    """Home Assistant's update entity installed exactly the published firmware.bin."""
+    tag = record['tag']
+    checks = record.get('checks')
+    require(isinstance(checks, dict) and all(checks.get(key) is True for key in HA_REQUIRED),
+            'Incomplete physical update acceptance')
+    for key, length in (('source_commit', 40), ('elf_sha256', 64), ('web_sha256', 64),
+                        ('firmware_sha256', 64), ('installer_receipt_sha256', 64),
+                        ('independent_receipt_sha256', 64), ('backup_manifest_sha256', 64)):
+        require(hexadecimal(record.get(key), length), 'Missing identity: '+key)
+    require(record['installer_receipt_sha256'] != record['independent_receipt_sha256'],
+            'Independent check must be a separate receipt')
+    # The published GitHub release, as Home Assistant read it.
+    release = record.get('github_release')
+    require(isinstance(release, dict) and release.get('tag_name') == tag and release.get('draft') is False,
+            'Release is not the published one')
+    require(release.get('prerelease') is (not stable(tag)), 'Release channel does not match the tag')
+    published = utc_time(release.get('published_at'), 'release publication')
+    asset = release.get('asset')
+    require(isinstance(asset, dict) and asset.get('name') == 'firmware.bin', 'Missing firmware.bin asset')
+    require(isinstance(asset.get('digest'), str) and asset['digest'] == 'sha256:'+record['firmware_sha256'],
+            'firmware.bin SHA-256 differs from the GitHub digest')
+    require(integer(asset.get('size')) and HA_MIN_IMAGE <= asset['size'] <= HA_MAX_IMAGE
+            and integer(record.get('firmware_bytes')) and record['firmware_bytes'] == asset['size'],
+            'firmware.bin size differs from the GitHub asset')
+    # The update entity: offered exactly this release, one install action, new version after.
+    require(isinstance(record.get('ha_entity_id'), str)
+            and re.fullmatch(r'update\.[a-z0-9_]{1,200}', record['ha_entity_id']) is not None,
+            'Missing HA update entity')
+    before = record.get('ha_installed_version_before')
+    require(valid_tag(before) and version(before) < version(tag), 'HA installed version before is not older')
+    require(record.get('ha_latest_version_before') == tag, 'HA did not offer this release')
+    require(record.get('ha_installed_version_after') == tag, 'HA does not report the new version')
+    require(integer(record.get('install_actions')) and record['install_actions'] == 1,
+            'Install was missing/repeated')
+    require(isinstance(record.get('ha_integration_version'), str)
+            and re.fullmatch(r'\d+\.\d+\.\d+(?:(?:\.dev|a|b|rc)\d+)?', record['ha_integration_version']) is not None,
+            'Missing HA integration version')
+    require(isinstance(record.get('ha_core_version'), str)
+            and re.fullmatch(r'\d{4}\.\d{1,2}\.\d+', record['ha_core_version']) is not None,
+            'Missing HA Core version')
+    # firmware_update.py's own record of the install (its last_install attribute).
+    last = record.get('ha_install_record')
+    require(isinstance(last, dict) and last.get('result') == 'installed', 'HA install record missing/failed')
+    require(last.get('tag') == tag and last.get('from_version') == before
+            and last.get('sha256') == record['firmware_sha256'] and last.get('size') == record['firmware_bytes']
+            and integer(last.get('uploads')) and last['uploads'] == 1, 'HA install record belongs to another install')
+    started = utc_time(last.get('started_at'), 'install start')
+    finished = utc_time(last.get('finished_at'), 'install end')
+    duration = last.get('duration_s')
+    require(type(duration) in (int, float) and 0 < duration <= 900 and started <= finished
+            and published <= started, 'Implausible install timing')
+    reported = last.get('reported')
+    require(isinstance(reported, dict) and reported.get('version') == tag
+            and reported.get('source_commit') == record['source_commit']
+            and reported.get('web_sha256') == record['web_sha256']
+            and reported.get('elf_sha256') == record['elf_sha256'],
+            'E32-reported identity after restart differs')
+    # The E32 after its restart: the new version, a confirmed boot, stable uptime.
+    observations = record.get('observations')
+    require(isinstance(observations, list) and len(observations) >= 2, 'Missing boot observations')
+    uptime = -1
+    for item in observations:
+        require(isinstance(item, dict) and item.get('version') == tag and item.get('boot_pending') is False
+                and integer(item.get('uptime_seconds')) and item['uptime_seconds'] > uptime,
+                'Boot not confirmed or restarted during observation')
+        require(utc_time(item.get('at_utc'), 'observation') >= finished, 'Observation before the install ended')
+        uptime = item['uptime_seconds']
+    require(uptime >= STABLE_UPTIME_SECONDS, 'Uptime after the update too short')
+
+
+METHODS = {'native_github': native_acceptance, 'home_assistant': home_assistant_acceptance}
 
 
 def document(root, name, label, expected_sha=None):
@@ -115,21 +246,12 @@ def verify(root, policy, candidate=None):
         raw = path.read_bytes()
         require(hashlib.sha256(raw).hexdigest() == accepted.get('sha256'), 'Acceptance receipt changed')
         record = json.loads(raw)
-        require(record.get('schema') == 1 and record.get('status') == 'PASS', 'Update not accepted')
+        require(isinstance(record, dict) and record.get('schema') == 1 and record.get('status') == 'PASS',
+                'Update not accepted')
         require(record.get('tag') == accepted['tag'], 'Acceptance belongs to another release')
-        require(record.get('method') == 'native_github', 'Wrong update route')
-        checks = record.get('checks', {})
-        require(all(checks.get(key) is True for key in REQUIRED), 'Incomplete physical update acceptance')
-        require(record.get('catalog_check_commands') in (0, 1)
-                and type(record.get('catalog_check_commands')) is int, 'Unexpected catalog retries')
-        require(type(record.get('install_commands')) is int and record['install_commands'] == 1,
-                'Install was missing/repeated')
-        require(record.get('install_http_status') == 202, 'Original worker admission missing')
-        for key, length in (('source_commit', 40), ('elf_sha256', 64), ('web_sha256', 64),
-                            ('firmware_sha256', 64), ('installer_receipt_sha256', 64),
-                            ('independent_receipt_sha256', 64), ('backup_manifest_sha256', 64)):
-            require(isinstance(record.get(key), str)
-                    and re.fullmatch('[0-9a-f]{'+str(length)+'}', record[key]), 'Missing identity: '+key)
+        method = record.get('method')
+        require(isinstance(method, str) and method in METHODS, 'Wrong update route')
+        METHODS[method](record)
     exception = publication_exception(root, policy.get('publication_exception'))
     plan = None
     if policy.get('candidate_plan') is not None:
@@ -148,6 +270,10 @@ def verify(root, policy, candidate=None):
         previous = plan.get('previous_published_tag')
         require(plan.get('planned_tag') == candidate and valid_tag(previous)
                 and version(previous) < version(candidate), 'Candidate plan identity/order mismatch')
+        if stable(candidate):
+            # Version 1.0 and later: one update on the official route succeeded.
+            require(record['method'] == 'home_assistant',
+                    'A stable release needs an accepted Home Assistant update')
         basis = 'accepted_previous_release'
         if accepted['tag'] != previous:
             require(exception is not None, 'Previous published release is not accepted; explicit exception required')

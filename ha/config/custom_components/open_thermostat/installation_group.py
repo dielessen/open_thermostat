@@ -13,7 +13,16 @@ from .product import is_product
 
 GROUP_TYPE = "installation"
 GROUP_UNIQUE_ID = "controller_overview"
-GROUP_TITLE = "Installatie en ketel"
+GROUP_TITLE = "E32 and boiler"
+GROUP_TITLES = {"en": GROUP_TITLE, "nl": "E32 en ketel"}
+# Titles this integration gave the group (older releases too); a title the user chose stays.
+DEFAULT_TITLES = frozenset({*GROUP_TITLES.values(), "Installatie en ketel"})
+
+
+def group_title(hass):
+    """The group's name in Home Assistant's language: "E32 and boiler", "E32 en ketel"."""
+    language = (getattr(hass.config, "language", None) or "en").split("-")[0].lower()
+    return GROUP_TITLES.get(language, GROUP_TITLE)
 
 
 def ensure_installation_group(hass, entry):
@@ -33,7 +42,7 @@ def ensure_installation_group(hass, entry):
         raise ValueError("installation_group_conflict")
     group = groups[0] if groups else ConfigSubentry(
         data=MappingProxyType({}), subentry_type=GROUP_TYPE,
-        title=GROUP_TITLE, unique_id=GROUP_UNIQUE_ID)
+        title=group_title(hass), unique_id=GROUP_UNIQUE_ID)
     devices, entities = dr.async_get(hass), er.async_get(hass)
     hub = devices.async_get_device_by_identifier((DOMAIN, entry.data[CONF_TOPIC_PREFIX]), entry.entry_id)
     members = [] if hub is None else [
@@ -45,6 +54,9 @@ def ensure_installation_group(hass, entry):
     created = not groups
     if created:
         hass.config_entries.async_add_subentry(entry, group)
+    elif group.title in DEFAULT_TITLES and group.title != group_title(hass):
+        # "Installatie en ketel" (beta.18) becomes "E32 en ketel": the rooms have their own groups now.
+        hass.config_entries.async_update_subentry(entry, group, title=group_title(hass))
     previous = {e.entity_id: e.config_subentry_id for e in members}
     try:
         for member in members:

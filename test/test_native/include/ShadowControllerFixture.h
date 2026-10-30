@@ -9,10 +9,15 @@ namespace {
 using namespace heating::control;
 struct Store:ControlStore {
     std::string bytes;
-    bool failSave=false,failLoad=false,commitOnError=false,corruptReadback=false;
-    unsigned writes=0;
-    bool load(std::string &out) override { if(failLoad) return false; out=bytes; if(corruptReadback&&writes)out+=" "; return true; }
-    bool save(std::string_view value) override { ++writes; if(!failSave||commitOnError) bytes=value; return !failSave; }
+    bool failSave=false,failLoad=false,commitOnError=false,corruptReadback=false,refuseSave=false;
+    unsigned writes=0,reads=0,saves=0; // saves: every save() call, refused ones too
+    bool load(std::string &out) override { ++reads; if(failLoad) return false; out=bytes; if(corruptReadback&&writes)out+=" "; return true; }
+    bool save(std::string_view value) override {
+        ++saves;
+        if(refuseSave) return false; // budget refusal: no write attempt at all
+        ++writes; if(!failSave||commitOnError) bytes=value; return !failSave;
+    }
+    bool lastSaveRefused() const override { return refuseSave; }
 };
 const std::string mapping(64,'a');
 inline std::string config(unsigned revision=1,const std::string &zones="") {
@@ -28,6 +33,7 @@ struct Fixture {
     const SeasonalControllerSource* seasonalSource=nullptr;
     SeasonalControllerSource::Safety seasonalSafety;
     const HydraulicControllerSource* hydraulicSource=nullptr;
+    const NativePlanInstallationSource* nativeSource=nullptr; // with seasonalSafety set
     HydraulicFeedbackProvider hydraulicFeedback;
     unsigned seasonalObservationSequence=0;
     uint32_t nonce=0;
@@ -38,7 +44,7 @@ struct Fixture {
     void start() {
         core=std::make_unique<ShadowController>("e32_lab",boot,"ha1",store,controlTestHash,
             [this]{return "nonce"+std::to_string(++nonce);},
-            [this](auto topic,auto bytes){output[std::string(topic)]=bytes; if(afterPublish)afterPublish();},metricsProvider,seasonalSource,seasonalSafety,nullptr,boilerProvider,hydraulicSource,hydraulicFeedback);
+            [this](auto topic,auto bytes){output[std::string(topic)]=bytes; if(afterPublish)afterPublish();},metricsProvider,seasonalSource,seasonalSafety,nativeSource,boilerProvider,hydraulicSource,hydraulicFeedback);
         core->connected(now); tick();
     }
     ControlJson get(const std::string &topic) { return parseControlJson(output.at(topic)); }
@@ -53,6 +59,10 @@ struct Fixture {
         cJSON_AddStringToObject(o.get(),"adapter_id","ha1"); cJSON_AddStringToObject(o.get(),"client_nonce","client1");
         cJSON_AddStringToObject(o.get(),"challenge_id",stringField(h.get(),"challenge_id").c_str());
         cJSON_AddNumberToObject(o.get(),"known_revision",wrongMapping?0:rev); cJSON_AddStringToObject(o.get(),"known_digest",wrongMapping?"":digest.c_str());
+        if(nativeSource) {
+            cJSON_AddStringToObject(o.get(),"source_profile_digest",nativeSource->profileDigest.c_str());
+            cJSON_AddStringToObject(o.get(),"plan_contract",nativeSource->planContract());
+        }
         if(seasonalSource&&!seasonalSource->profileDigest.empty()) {
             cJSON_AddStringToObject(o.get(),"source_profile_digest",seasonalSource->profileDigest.c_str());
             cJSON_AddStringToObject(o.get(),"source_config_pin",seasonalSource->configDigest.c_str());

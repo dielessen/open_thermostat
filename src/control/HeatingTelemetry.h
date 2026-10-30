@@ -1,6 +1,7 @@
 #pragma once
 #include "control/BurnerCycleMonitor.h"
 #include "control/FlowLearner.h"
+#include "control/FlowPolicy.h"
 #include "control/WarmupPlanner.h"
 #include <cJSON.h>
 #include <cstring>
@@ -40,12 +41,20 @@ inline bool addLearnedInputs(cJSON* parent, const FlowLearner& learner, const Le
         && cJSON_AddStringToObject(inputs, "gas_kwh_per_m3_source", learner.kwhPerM3FromHa() ? "ha" : "default");
 }
 
-// "learned" (/status/heating): FlowLearner::json() plus "inputs" and, with a
+// "gas": the gas calibration (GasCalibration::json): status, confidence, factor,
+// kW at full modulation and whether it comes from the meter or boiler_kw
+// (compact: without the interval counts, for heating_summary).
+inline bool addGasCalibration(cJSON* parent, const FlowLearner& learner, const LearnedContext& c, bool compact = false) {
+    cJSON* gas = cJSON_AddObjectToObject(parent, "gas");
+    return gas && learner.gas().json(gas, c.now, gasMeterFreshMs, learner.nominalKw(), compact);
+}
+
+// "learned" (/status/heating): FlowLearner::json() plus "inputs", "gas" and, with a
 // trusted clock, "plans" from WarmupPlanner. nullptr: no memory.
 inline cJSON* learnedJson(const FlowLearner& learner, const RoomPlan& plan, const LearnedContext& c) {
     cJSON* root = learner.json();
     if (!root) return nullptr;
-    if (!addLearnedInputs(root, learner, c)) { cJSON_Delete(root); return nullptr; }
+    if (!addLearnedInputs(root, learner, c) || !addGasCalibration(root, learner, c)) { cJSON_Delete(root); return nullptr; }
     if (!c.utc || !c.temperatures) return root;
     cJSON* plans = WarmupPlanner::json(learner, plan, *c.utc, c.temperatures, c.outdoorCentiC);
     if (!plans || !cJSON_AddItemToObject(root, "plans", plans)) { cJSON_Delete(plans); cJSON_Delete(root); return nullptr; }
@@ -121,7 +130,8 @@ inline void compactPlanRoom(cJSON* p) {
 //    from the plan; inactive_until stays: HA 0.4.0b9 reads it here);
 //  - shadow: no past days;
 //  - no learned and no dhw: fw/telemetry/heating_summary (header, hot water) and
-//    fw/telemetry/heating_learned/<id> (per room) carry them.
+//    fw/telemetry/heating_learned/<id> (per room) carry them;
+//  - request.capped_by only while set (no bytes in the usual case).
 inline void compactHeatingTelemetry(cJSON* status) {
     using telemetry_detail::keepOnly;
     if (!cJSON_IsObject(status)) return;
@@ -132,20 +142,27 @@ inline void compactHeatingTelemetry(cJSON* status) {
     cJSON_DeleteItemFromObjectCaseSensitive(cJSON_GetObjectItemCaseSensitive(status, "shadow"), "days");
     cJSON_DeleteItemFromObjectCaseSensitive(status, "learned");
     cJSON_DeleteItemFromObjectCaseSensitive(status, "dhw");
+    // request.capped_by only while the boiler's limit lowers the request (HA reads a missing key as none).
+    cJSON* request = cJSON_GetObjectItemCaseSensitive(status, "request");
+    if (cJSON_IsNull(cJSON_GetObjectItemCaseSensitive(request, "capped_by"))) cJSON_DeleteItemFromObjectCaseSensitive(request, "capped_by");
 }
 
-// fw/telemetry/heating_summary: {"schema":1,"learned":{"schema":1,"applied":false,
-// "status":..,"heating_periods":..,"inputs":{..}},"dhw":{"method","clock_known",
-// "today":{..}}}. dhw: DhwEpisodes::summaryJson() (taken over). Empty: no memory.
-inline std::string heatingSummaryTelemetry(const FlowLearner& learner, const LearnedContext& c, cJSON* dhw) {
+// fw/telemetry/heating_summary: {"schema":1,"learned":{"schema":1,"applied":bool,
+// "status":..,"heating_periods":..,"inputs":{..},"gas":{..}},"dhw":{"method","clock_known",
+// "today":{..}},"flow":{..},"night_gas":{..}}. dhw: DhwEpisodes::summaryJson() (taken
+// over); flow and night_gas: FlowPolicy::addSummary() (with a policy). Empty: no memory.
+inline std::string heatingSummaryTelemetry(const FlowLearner& learner, const LearnedContext& c, cJSON* dhw,
+                                           const FlowPolicy* policy = nullptr) {
     std::unique_ptr<cJSON, decltype(&cJSON_Delete)> owned(dhw, cJSON_Delete);
     std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_CreateObject(), cJSON_Delete);
     cJSON* learned = root && dhw && cJSON_AddNumberToObject(root.get(), "schema", 1) ? cJSON_AddObjectToObject(root.get(), "learned") : nullptr;
     if (!learned || !cJSON_AddNumberToObject(learned, "schema", 1)
-        || !cJSON_AddBoolToObject(learned, "applied", false) || !cJSON_AddStringToObject(learned, "status", learner.status())
-        || !cJSON_AddNumberToObject(learned, "heating_periods", learner.heatingPeriods()) || !addLearnedInputs(learned, learner, c)) return {};
+        || !cJSON_AddBoolToObject(learned, "applied", learner.applied()) || !cJSON_AddStringToObject(learned, "status", learner.status())
+        || !cJSON_AddNumberToObject(learned, "heating_periods", learner.heatingPeriods()) || !addLearnedInputs(learned, learner, c)
+        || !addGasCalibration(learned, learner, c, true)) return {};
     telemetry_detail::keepOnly(dhw, {"method", "clock_known", "today"});
     if (!cJSON_AddItemToObject(root.get(), "dhw", owned.release())) { cJSON_Delete(dhw); return {}; }
+    if (policy && !policy->addSummary(root.get())) return {};
     char* text = cJSON_PrintUnformatted(root.get());
     std::string out = text ? text : "";
     cJSON_free(text);

@@ -38,6 +38,7 @@ ROOM_ID_LENGTH = 32
 LIMITS_CENTI_C = (500, 3000)
 ENTITY_ID = re.compile(r"[a-z0-9_]+\.[a-z0-9_]+")
 SOURCE_DOMAINS = ("climate", "sensor")
+from .e32_setting_device import default_program, proposed_device, setting_hint  # noqa: E402
 SETPOINT_DOMAINS = ("climate", "input_number", "number")
 CELSIUS = UnitOfTemperature.CELSIUS
 # The plan's flow limits as the E32 accepts them (RoomPlan.h): whole °C, minimum
@@ -298,8 +299,9 @@ class E32RoomFlow:
             except HomeAssistantError as err:
                 return self._e32_abort_failure(err)
         self._e32_plan = plan
+        # The flow limits are for all rooms together: Configure → Heating and boiler (product_flow.py).
         options = (["e32_room_add"] if len(plan["rooms"]) < MAX_ROOMS else []) + (
-            ["e32_room_pick"] if plan["rooms"] else []) + ["e32_flow_limits"]
+            ["e32_room_pick"] if plan["rooms"] else [])
         placeholders = {"rooms": self._e32_room_list(plan), "revision": str(plan["revision"])}
         if done is not None:
             placeholders["name"] = name or ""
@@ -526,11 +528,15 @@ class E32RoomFlow:
             "ha_sources": [s["id"] for s in sources if s.get("type") == "ha"],
             "ble_sources": [s["id"] for s in sources if s.get("type") == "ble"],
             "bluetooth_first": bool(sources) and sources[0].get("type") == "ble",
+            # The setting device as stored, never pre-selected: Home Assistant writes its
+            # target at every switch point, so the user picks it (a climate source is only hinted).
             "setpoint_entity": room.get("setpoint_entity") or None,
             "fallback_temperature": shown(room.get("fallback_centi_c", 2000), unit),
             "minimum_temperature": shown(room.get("minimum_centi_c", 500), unit),
             "maximum_temperature": shown(room.get("maximum_centi_c", 2500), unit),
-            "program": format_program(room.get("schedule"), self.hass.config.language, unit),
+            # A room without a program is shown (and saved) with the template: every room has one.
+            "program": format_program(room.get("schedule") or default_program(
+                room.get("minimum_centi_c", 500), room.get("maximum_centi_c", 3000)), self.hass.config.language, unit),
         }
 
     def _e32_centi(self, value, field, defaults, room):
@@ -596,6 +602,8 @@ class E32RoomFlow:
             schedule = deepcopy(stored)  # the program as shown: kept exactly (no °F rounding)
         else:
             schedule = parse_program(text, low, high, self._unit())
+        if not schedule:  # every room has a week program: the planner's "Workdays and weekend"
+            schedule = default_program(low, high)
         return {"name": name, "state": state, "emitter": emitter, "sources": sources,
                 "setpoint_entity": setpoint, "fallback_centi_c": fallback,
                 "minimum_centi_c": low, "maximum_centi_c": high, "schedule": schedule}
@@ -640,9 +648,20 @@ class E32RoomFlow:
                 placeholders.update(extra)
             else:
                 return await self.async_step_e32_rooms(done="saved", name=values["name"])
+        placeholders["setting_hint"] = self._e32_setting_hint(room, user_input)
         return self.async_show_form(step_id="e32_room", data_schema=retained_input_schema(
             self, self._e32_room_schema(room, ble_options), user_input),
             errors=errors, description_placeholders=placeholders)
+
+    def _e32_setting_hint(self, room, user_input):
+        """A climate source that could set this room, as a question; never a pre-selection."""
+        if user_input is not None:  # the form shown again: the sources as just submitted
+            room = {"setpoint_entity": user_input.get("setpoint_entity") or "",
+                    "sources": [{"type": "ha", "id": e} for e in user_input.get("ha_sources") or []]}
+        # The user's language when the flow context carries it; Home Assistant's own otherwise
+        # (a flow is not told the browser's language). The texts: EN, NL and PL.
+        language = (getattr(self, "context", None) or {}).get("language") or self.hass.config.language
+        return setting_hint(proposed_device(room), language)
 
     def _e32_room_schema(self, room, ble_options):
         d = self._e32_defaults(room)

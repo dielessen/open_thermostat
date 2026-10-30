@@ -78,7 +78,8 @@ async def test_registry_cleanup_removes_exactly_the_stale_patterns(hass, caplog)
         # Unique diagnostics and estimates, the E32 heat request and new E32 rooms.
         record("sensor", "fixture_hub_memory_free"), record("sensor", "fixture_hub_uptime"),
         record("sensor", "fixture_hub_cpu_temperature"), record("sensor", "fixture_hub_energy_v2"),
-        record("sensor", "fixture_hub_outdoor_temperature"), record("sensor", "fixture_hub_heat_request"),
+        record("sensor", "fixture_hub_outdoor_temperature"),  # RETIRED: decided later, never at setup
+        record("sensor", "fixture_hub_heat_request"),
         record("sensor", "fixture_e32_room_badkamer_state"),
         # Classic fields that reported: enabled, or disabled but marked as having had a value.
         record("sensor", field("measured_flow_temperature")),
@@ -193,5 +194,6 @@ async def test_product_sensor_platform_cleans_before_adding_and_creates_no_legac
     telemetry = AsyncMock(side_effect=lambda *a, **k: calls.append(("telemetry", k)))
     monkeypatch.setattr(product_telemetry, "async_setup_sensors", telemetry)
     await sensor.async_setup_entry(hass, p, lambda entities, **kw: None)
-    assert calls == [("cleanup", "fixture"), "async_setup_boiler_fields", "async_setup_heating_link",
+    # The E32 rooms first (sensor.py: every later step is optional).
+    assert calls == [("cleanup", "fixture"), "async_setup_heating_link", "async_setup_boiler_fields",
                      ("telemetry", {"native_metrics": True}), "async_setup_shadow_metrics"]

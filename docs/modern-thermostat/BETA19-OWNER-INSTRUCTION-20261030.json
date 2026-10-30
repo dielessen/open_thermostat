@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-30T00:30:00Z",
+  "requests": [
+    "je hebt sowieso akkoord je hoeft niet op mij te wachten"
+  ],
+  "scope": "Beta19 + HA0.4.0b11: publish both releases and install them on the owner's E32 and Home Assistant (HA first, then the E32 with the HA Firmware update entity). Shadow mode only: board::emsActiveHeatAllowed stays false, no boiler output, boiler settings writes disabled.",
+  "not_included": [
+    "opening active control (board::emsActiveHeatAllowed stays false; no attended switch-over)",
+    "a HACS repository for the integration",
+    "editing the bodies of earlier published releases (beyond the automatic organize_releases archive labels)"
+  ],
+  "publication_approval_reply": "je hebt sowieso akkoord je hoeft niet op mij te wachten",
+  "publication_approval_at_utc": "2026-10-30T00:30:00Z",
+  "installation_approval_reply": "je hebt sowieso akkoord je hoeft niet op mij te wachten"
+}

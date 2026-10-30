@@ -1,13 +1,14 @@
 <link rel="stylesheet" href="deps/bms.min.css.gz" crossorigin="anonymous" />
 <script src="deps/bms.min.js.gz" crossorigin="anonymous"></script>
 
-<header class="ot-head mt-4"><div><h1 data-i18n="Network">Network</h1><p data-i18n="Connection, Home Assistant, time and services of this E32.">Connection, Home Assistant, time and services of this E32.</p></div></header>
+<header class="ot-head mt-4"><div><h1 data-i18n="Settings">Settings</h1><p data-i18n="Network, Home Assistant and MQTT, time, services and backup of this E32.">Network, Home Assistant and MQTT, time, services and backup of this E32.</p></div></header>
 <div class="d-flex justify-content-center" id="loadingprogress">
 	<div class="spinner-border" role="status">
 		<span class="sr-only"></span>
 	</div>
 </div>
 
+<style>.col-md-auto:has(>#NetworkSettings){padding-left:0;padding-right:0}.col-md-auto:has(>#NetworkSettings)>.row{margin-left:0;margin-right:0}</style>
 <form id="networkeditform" class="invisible" novalidate>
 
 	<div class="modal fade" id="selectWiFiSSID" tabindex="-1" role="dialog" aria-labelledby="selectWiFiSSIDLabel"
@@ -99,8 +100,8 @@
 <label for="InterfaceMode"><span data-i18n="E32 network (active after restart)">E32 network (active after restart)</span></label><select class="form-control" id="InterfaceMode"><option value="wifi" data-i18n="WiFi only">WiFi only</option><option value="ethernet" data-i18n="Ethernet only">Ethernet only</option></select><small><span data-i18n="The USB setup command opens temporary WiFi recovery after restart, without an Ethernet clock.">The USB setup command opens temporary WiFi recovery after restart, without an Ethernet clock.</span></small>
 		</section>
 		<section class="pd-panel"><h2>Home Assistant</h2><p class="pd-help" data-i18n="How the E32 works together with Home Assistant.">How the E32 works together with Home Assistant.</p>
-<div class="alert alert-info" id="ShadowModeHelp"><span data-i18n="This mode receives data and calculates heat demand. It sends no valve or boiler commands. Keep your current thermostat in control until measurement, command and safe-stop tests are completed.">This mode receives data and calculates heat demand. It sends no valve or boiler commands. Keep your current thermostat in control until measurement, command and safe-stop tests are completed.</span></div>
-<div class="form-check"><input class="form-check-input" type="checkbox" id="ModernShadow" aria-describedby="ShadowModeHelp"><label class="form-check-label" for="ModernShadow"><span data-i18n="Home Assistant: read and calculate only (shadow mode)">Home Assistant: read and calculate only (shadow mode)</span></label></div>
+<div class="alert alert-info" id="ShadowModeHelp"><span data-i18n="In this mode the E32 receives data and calculates the heat demand, but sends nothing to the boiler: your current thermostat keeps controlling it until the attended switch-over. Home Assistant does set the target temperature on each room's setting device (radiator valve, tado or number helper) according to that room's week program.">In this mode the E32 receives data and calculates the heat demand, but sends nothing to the boiler: your current thermostat keeps controlling it until the attended switch-over. Home Assistant does set the target temperature on each room's setting device (radiator valve, tado or number helper) according to that room's week program.</span></div>
+<div class="form-check"><input class="form-check-input" type="checkbox" id="ModernShadow" aria-describedby="ShadowModeHelp"><label class="form-check-label" for="ModernShadow"><span data-i18n="Home Assistant link in shadow mode (no boiler control)">Home Assistant link in shadow mode (no boiler control)</span></label></div>
 <label for="ModernAdapter"><span data-i18n="HA adapter ID (from the integration)">HA adapter ID (from the integration)</span></label><input class="form-control" id="ModernAdapter" maxlength="32" pattern="[A-Za-z0-9_-]{1,32}" placeholder="Copy from Home Assistant" data-i18n-placeholder="Copy from Home Assistant"><small class="ot-hint" data-i18n="Filled in automatically when you use Connect E32 in Home Assistant. Otherwise copy it from the integration; both must be the same.">Filled in automatically when you use Connect E32 in Home Assistant. Otherwise copy it from the integration; both must be the same.</small>
 <details id="NativeShadowSourceSection" hidden><summary><span data-i18n="Installation identity and limits (advanced)">Installation identity and limits (advanced)</span></summary>
 <p><span data-i18n="Device controller ID:">Device controller ID:</span> <code id="NativeSourceDeviceID"><span data-i18n="Load settings">Load settings</span></code></p>
@@ -141,7 +142,7 @@
 											type="text" class="form-control" id="DeviceMQTTClientID" data-hint="A unique name for the E32 on the broker." placeholder="Automatic (unique per device)" data-i18n-placeholder="Automatic (unique per device)">
 									</div>
 									<div class="col-md mb-2"><label for="DeviceMQTTBase"><span data-i18n="Base">Base</span></label><input type="text"
-											class="form-control" id="DeviceMQTTBase" data-hint="The start of all MQTT topics of the E32." value="ib-therm"></div>
+											class="form-control" id="DeviceMQTTBase" data-hint="The start of all MQTT topics of the E32." value="openthermostat"></div>
 									<div class="col-md-2 mb-2"><label for="DeviceMQTTKeepAlive"><span data-i18n="Keep alive time (s)">Keep alive time (s)</span></label><input type="number" class="form-control"
 											id="DeviceMQTTKeepAlive" data-hint="How often the connection is checked." step="1" min="1" max="360" value="60"></div>
 									<div class="col-md-2 mb-2"><label for="DeviceMQTTInterval"><span data-i18n="Publish interval (s)">Publish interval (s)</span></label><input type="number" class="form-control" id="DeviceMQTTInterval" data-hint="How often values are sent."
@@ -271,6 +272,12 @@
 
 
 </form>
+<div class="row-mt-3 mt-3">
+    <details class="card w-100" id="ConfigBackup">
+        <summary class="card-header" style="min-height:44px;cursor:pointer"><span data-i18n="Backup and restore">Backup and restore</span></summary>
+        <div class="card-body" id="ConfigBackupBody"></div>
+    </details>
+</div>
 
 
 
@@ -389,6 +396,7 @@
 		loadWiFiSettings();
 		loadDeviceSettings();
 		mountDebugSettings();
+		mountConfigBackup();
 
 		$("#loadingprogress").addClass('invisible');
 		$('#networkeditform').removeClass('invisible');
@@ -505,6 +513,22 @@
     }
     function loadDebugSettings(){return window.DebugSettingsPage?.load();}
     function saveDebugSettings(){return window.DebugSettingsPage?.save();}
+    // Backup and restore (backup.js) loads only when its panel is first opened.
+    function mountConfigBackup() {
+        const root=document.getElementById('ConfigBackup');
+        if(!root||typeof root.addEventListener!=='function')return;
+        const body=root.querySelector('#ConfigBackupBody');
+        root.addEventListener('toggle',()=>{
+            if(!root.open||root.dataset.loading)return;
+            if(window.ConfigBackupPage){window.ConfigBackupPage.mount(root);return;}
+            root.dataset.loading='1';body.textContent='';
+            const script=document.createElement('script');script.src='/backup.js';
+            script.onload=()=>{delete root.dataset.loading;window.ConfigBackupPage?.mount(root);};
+            script.onerror=()=>{delete root.dataset.loading;script.remove();
+                body.textContent=uiText("The page could not be loaded. Check the connection and try again.");};
+            document.head.appendChild(script);
+        });
+    }
 
 	async function loadWiFiSettings() {
 		// E32 uses the same tested onboarding for both first boot and later

@@ -79,6 +79,31 @@ TEST(FlowDemand, NeverExceedsThePlanMaximum) {
     EXPECT_FALSE(tooHot.valid());
     EXPECT_FALSE(FlowDemand(tooHot).update(0, true, 500).heat);
 }
+// The boiler's own limit (0x16) caps the rule too, flagged as capped; unknown:
+// the plan's ceiling. The integral does not wind up above the limit.
+TEST(FlowDemand, TheBoilersOwnLimitCapsTheRequestAndSaysSo) {
+    FlowDemand f;
+    f.setBoilerLimit(45);
+    auto r = f.update(0, true, 100); // 1 degC short: 40, below the limit
+    EXPECT_EQ(r.flowC, 40); EXPECT_FALSE(r.capped);
+    for (uint64_t t = minute; t < 600 * minute; t += minute) r = f.update(t, true, 1000);
+    EXPECT_EQ(r.flowC, 45); EXPECT_TRUE(r.capped); EXPECT_EQ(r.reason, FlowDemand::Reason::heating);
+    f.setBoilerLimit(std::nullopt); // unknown: back to the plan maximum
+    r = f.update(601 * minute, true, 1000);
+    EXPECT_EQ(r.flowC, 60); EXPECT_FALSE(r.capped);
+    f.setBoilerLimit(70); // above the plan maximum: the plan limits, not capped
+    EXPECT_FALSE(f.update(602 * minute, true, 1000).capped);
+    f.setBoilerLimit(25); // below the plan minimum: the boiler's limit wins
+    r = f.update(603 * minute, true, 100);
+    EXPECT_EQ(r.flowC, 25); EXPECT_TRUE(r.capped);
+    // No wind-up while capped: a limit of 34 for an hour at 0.5 degC short (35 wanted), then lifted.
+    FlowDemand g; g.setBoilerLimit(34);
+    for (uint64_t t = 0; t <= 60 * minute; t += minute) r = g.update(t, true, 50);
+    EXPECT_EQ(r.flowC, 34); EXPECT_TRUE(r.capped);
+    g.setBoilerLimit(std::nullopt);
+    EXPECT_EQ(g.update(61 * minute, true, 50).flowC, 35); // no integral built up behind the cap (without it: 45 after 1 h)
+    EXPECT_FALSE(g.update(62 * minute, false, -50).capped); // satisfied: off, nothing capped
+}
 TEST(FlowDemand, PersistentSmallShortfallSlowlyRaisesTheFlow) {
     FlowDemand f;
     const auto first = f.update(0, true, 50).flowC;

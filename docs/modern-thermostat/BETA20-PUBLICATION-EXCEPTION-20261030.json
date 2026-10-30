@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "status": "APPROVED",
+  "scope": "one_prerelease_publication",
+  "candidate_tag": "v0.1.0-e32v2-beta.20",
+  "unaccepted_predecessor": "v0.1.0-e32v2-beta.19",
+  "accepted_basis_tag": "v0.1.0-e32v2-beta.4",
+  "accepted_basis_receipt_sha256": "5ec65a6256889878702a6a501842669f903825041f1e96be9448d5336bba55a8",
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "gap_report": "docs/modern-thermostat/BETA19-HA-UPDATE-GAP-20261030.json",
+  "gap_report_sha256": "76f74828cefccb6c1854f6772f40c6b4403b73daa311342831f819eaa77512f0",
+  "reason": "Beta19 is published and installed by the owner with the Home Assistant update entity (identity verified, last_install recorded), but its acceptance receipt is INCOMPLETE (no pre-install capture, backup or independent check); the accepted basis stays beta4. Beta20 is a fix-only hotfix for the field problems of 30 Oct 2026: a stale native-plan session record that made every boot report storage_fault, latched control faults, web session exhaustion, a silent Bluetooth sensor restarting the E32, backup restore and setup-expiry Wi-Fi. Shadow mode unchanged. The owner chose this hotfix route (statement below). No acceptance, physical control or TLS repair inferred.",
+  "device_installation_authorized": false,
+  "boiler_trial_authorized": false,
+  "approval": {
+    "actor": "repository_owner",
+    "method": "explicit_user_instruction",
+    "decision": "approve_one_prerelease_publication",
+    "statement": "Owner, 30 Oct 2026, chose \"E32 + HA hotfix (Aanbevolen)\" for the stability hotfix, then: \"Dit word een release waar we vooral fixes gaan toepassen. zet er zoveel agents op als nodig. controleer de code dubbel . stabiliteit en betrouwbaarhoud en gebruiksvriendelijkheid staat voorop. geen fouten meer nu\". Standing approval for publishing and installing: \"je hebt sowieso akkoord je hoeft niet op mij te wachten\".",
+    "at_utc": "2026-10-30T10:35:00Z"
+  },
+  "separate_installation_instruction": "docs/modern-thermostat/BETA20-OWNER-INSTRUCTION-20261030.json"
+}

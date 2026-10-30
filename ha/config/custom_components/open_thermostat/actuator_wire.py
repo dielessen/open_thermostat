@@ -59,7 +59,8 @@ class ActuatorWire:
                 self.transport_lost()
             return
         if (not topic.startswith('fw/') or topic.startswith('fw/telemetry/')
-                or actuator_topic(topic)):
+                or (topic.startswith(('fw/state/', 'fw/config/')) and topic != 'fw/state/zones')
+                or topic == 'fw/heartbeat' or actuator_topic(topic)):  # retained telemetry (beta.19)
             return
         try:
             payload = parse(raw)

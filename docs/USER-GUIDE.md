@@ -34,6 +34,7 @@ energy inputs.
 | Firmware updates | E32: System → Firmware update | The firmware update entity, or the E32 page |
 | Backup and restore of the settings | E32: Settings → Backup and restore | E32: Settings → Backup and restore |
 | Restart | E32: System → Restart device | E32: System → Restart device |
+| Logs, diagnostics console and syslog | E32: System → System log | E32: System → System log |
 
 The room plan is stored on the E32, and the E32 runs it. With Home Assistant,
 the HA room editor is the main place to edit it; it reads the plan from the
@@ -404,6 +405,57 @@ sensors, the flow options, the boiler model and the page language.
   Ethernet cable is connected and never from Ethernet to Wi-Fi, and it
   restores the rooms in shadow mode, so it never starts active boiler control. A restore is refused while the E32
   controls the boiler or a boiler test is running.
+
+## Logs and the diagnostics console
+
+System → **System log** shows what the E32 is doing. It keeps the last 512 log
+lines in its external memory (PSRAM); they are gone after a restart. Filter by
+source (ESP or EMS), level or text, pause the view or download it.
+
+The **diagnostics console** on the same page answers a fixed list of
+read-only commands. Type `help` for the list:
+
+| Command | Shows |
+| --- | --- |
+| `status` | All sections below at once |
+| `version` | Firmware version and build |
+| `memory` | Internal memory and PSRAM |
+| `tasks` | Tasks and their lowest free stack |
+| `nvs` | How full the settings storage is |
+| `mqtt` | MQTT connection and its counters |
+| `sessions` | Signed-in web sessions (age and idle time, never their keys) |
+| `restarts` | The last restart reason and the previous run |
+| `bluetooth` | The Bluetooth sensors |
+| `rooms` | Rooms, targets and the heating request |
+| `boiler-profile` | Which boiler values this boiler has |
+| `log 50` | The last 50 log lines (1 to 100) |
+
+The console never changes a setting and cannot run anything else. Two
+actions sit below it, each with a confirmation: **End idle web sessions** signs out
+the browsers and Home Assistant sessions that have not been used for 2
+minutes (yours stays), and **Restart device**. Neither runs during a boiler
+test, a boiler settings write or a firmware update.
+
+The same data is available to scripts with a signed-in session:
+`GET /status/diagnostics` (all sections) or
+`GET /status/diagnostics?section=memory,mqtt` (sections: `memory`, `tasks`,
+`nvs`, `mqtt`, `sessions`, `restarts`, `log`), and `GET /status/logs?tail=50`.
+
+### Keeping logs after a restart: syslog
+
+The E32 can also send its log to a syslog server on your network (RFC 5424
+over UDP). It is off by default. Under **Logging settings** on the System log
+page, tick *Enable syslog*, enter the server's IPv4 address and UDP port
+(usually 514), and choose the level. Messages that might hold a password,
+key or other private content are left out. The E32 sends at most ten
+messages a second and never waits for the server, so a slow or missing server
+cannot hold it up; dropped messages are counted on the page.
+
+To receive the log next to Home Assistant, run a syslog server on any machine
+on your network: for example a syslog server app (add-on) in Home Assistant
+OS, rsyslog or syslog-ng on a Linux machine or NAS, or the log centre of your
+NAS. Give it a fixed IPv4 address and enter that address on the E32. Syslog
+over UDP is not encrypted and not acknowledged; keep it on your home network.
 
 ## The attended switch-over (not in this beta)
 

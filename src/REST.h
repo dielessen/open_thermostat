@@ -34,6 +34,7 @@
 #include "diagnostics/LoopIntervals.h"
 #include "diagnostics/ResponseBuffer.h"
 #include "diagnostics/RuntimeHealth.h"
+#include "diagnostics/DiagnosticsQuery.h"
 #include <esp_heap_caps.h>
 #endif
 
@@ -249,6 +250,8 @@ public:
         route("/config/backup",HTTP_POST,[this] { configBackupRoute(server_,controller_); }); // ConfigBackupRest.h
         route("/status/logs",HTTP_GET,[this] { systemLogs(); });
         route("/logs/clear",HTTP_POST,[this] { diagnostics::runtime.log.clear();server_.send(200,"application/json","{}"); });
+        route("/status/diagnostics",HTTP_GET,[this] { diagnosticsStatus(); });
+        route("/diagnostics/sessions/end-idle",HTTP_POST,[this] { endIdleSessions(); });
 #endif
 
 		route("/config/program/current", [this]() { configProgramCurrent(); }); // get selected program
@@ -417,6 +420,7 @@ private:
 	}
 #ifdef OPENTHERMOSTAT_E32V2
 	control::WebAuthSession sessions_;
+	diagnostics::ActionGate endIdleGate_{10000};
     // WebServer completes each response synchronously on one HTTP owner. Reuse
     // the same PSRAM storage for dashboard and telemetry; never cache its values.
     diagnostics::ResponseBuffer jsonResponse_{65536,[](size_t size)->void* {
@@ -1210,11 +1214,98 @@ private:
         if(!diagnostics::runtime.storageReady){server_.send(503,"text/plain","Logging settings unavailable");return;}
         server_.send(200,"application/json",diagnostics::settingsJson(diagnostics::runtime.log.settings()).c_str());
     }
+    // Read-only sections for the diagnostics console and tooling, by name
+    // (diagnostics/DiagnosticsQuery.h). No tokens, secrets or settings.
+    void diagnosticsStatus() {
+        const auto query=server_.arg("section");
+        const auto sections=diagnostics::parseSections(std::string_view(query.c_str(),query.length()));
+        if(!sections){server_.send(400,"application/json","{\"error\":\"unknown_section\"}");return;}
+        auto root=control::objectJson();
+        if(!root){server_.send(503);return;}
+        const auto want=[&](uint8_t bit){return (*sections&bit)!=0;};
+        const auto number=[](cJSON* parent,const char* key,double value){cJSON_AddNumberToObject(parent,key,value);};
+        number(root.get(),"schema",1);number(root.get(),"uptime_s",double(diagnostics::uptimeMs()/1000));
+        if(want(diagnostics::sectionMemory))if(auto* memory=cJSON_AddObjectToObject(root.get(),"memory")){
+            constexpr auto internal=MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT;
+            number(memory,"free_internal_bytes",heap_caps_get_free_size(internal));
+            number(memory,"minimum_free_internal_bytes",heap_caps_get_minimum_free_size(internal));
+            number(memory,"largest_internal_block_bytes",heap_caps_get_largest_free_block(internal));
+            number(memory,"total_psram_bytes",heap_caps_get_total_size(MALLOC_CAP_SPIRAM));
+            number(memory,"free_psram_bytes",heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+            number(memory,"minimum_free_psram_bytes",heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM));
+            number(memory,"largest_psram_block_bytes",heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
+        }
+        if(want(diagnostics::sectionTasks))if(auto* tasks=cJSON_AddObjectToObject(root.get(),"tasks")){
+            const auto marks=diagnostics::taskStackMarks();
+            number(tasks,"count",uxTaskGetNumberOfTasks());
+            if(auto* stacks=cJSON_AddObjectToObject(tasks,"stack_minimum_bytes")){
+                number(stacks,"loop",marks.loop);number(stacks,"supervisor",marks.supervisor);
+                number(stacks,"ems_uart",marks.emsUart);number(stacks,"bluetooth_host",marks.bluetoothHost);
+            }
+        }
+        if(want(diagnostics::sectionNvs)){
+            nvs_stats_t stats{};
+            if(nvs_get_stats("nvs",&stats)==ESP_OK){if(auto* nvs=cJSON_AddObjectToObject(root.get(),"nvs")){
+                number(nvs,"used_entries",stats.used_entries);number(nvs,"free_entries",stats.free_entries);
+                number(nvs,"total_entries",stats.total_entries);number(nvs,"namespaces",stats.namespace_count);
+            }}else cJSON_AddNullToObject(root.get(),"nvs");
+        }
+        if(want(diagnostics::sectionMqtt))if(auto* mqtt=cJSON_AddObjectToObject(root.get(),"mqtt")){
+            cJSON_AddBoolToObject(mqtt,"connected",controller_.brokerConnected());
+            number(mqtt,"stalled_disconnects",control::MqttCounters::stalledDisconnects.load());
+            number(mqtt,"socket_error_disconnects",control::MqttCounters::socketErrorDisconnects.load());
+            number(mqtt,"queue_rejected",control::MqttCounters::rejected.load());
+            number(mqtt,"queue_peak_bytes",control::MqttCounters::peakBytes.load());
+            number(mqtt,"write_latency_max_ms",control::MqttCounters::latencyMaxMs.load());
+        }
+        if(want(diagnostics::sectionSessions))if(auto* list=cJSON_AddArrayToObject(root.get(),"sessions")){
+            const auto token=requestToken();
+            sessions_.summaries(token.c_str(),networkNow(),[&](const control::WebAuthSession::Summary& session){
+                if(auto* row=cJSON_CreateObject()){
+                    number(row,"age_s",double(session.ageMs/1000));number(row,"idle_s",double(session.idleMs/1000));
+                    number(row,"expires_in_s",double(session.remainingMs/1000));cJSON_AddBoolToObject(row,"current",session.current);
+                    cJSON_AddItemToArray(list,row);
+                }
+            });
+        }
+        if(want(diagnostics::sectionRestarts))if(auto* restarts=cJSON_AddObjectToObject(root.get(),"restarts")){
+            number(restarts,"reset_reason",esp_reset_reason());
+            if(cJSON* previous=diagnostics::blackBox.json())cJSON_AddItemToObject(restarts,"previous_boot",previous);
+        }
+        if(want(diagnostics::sectionLog))if(auto* log=cJSON_AddObjectToObject(root.get(),"log")){
+            const auto& systemLog=diagnostics::runtime.log;const auto stats=systemLog.stats();
+            number(log,"capacity",systemLog.capacity());cJSON_AddBoolToObject(log,"in_psram",systemLog.attached());
+            number(log,"retained",stats.retained);number(log,"latest",stats.latest);number(log,"overwritten",stats.overwritten);
+            cJSON_AddBoolToObject(log,"syslog_enabled",systemLog.syslogEnabled());
+            number(log,"syslog_sent",stats.sent);number(log,"syslog_dropped",stats.syslogDropped);
+        }
+        auto text=std::unique_ptr<char,decltype(&cJSON_free)>(cJSON_PrintUnformatted(root.get()),cJSON_free);
+        if(!text){server_.send(503);return;}
+        server_.send(200,"application/json",text.get());
+    }
+    // Confirmed on the page. authorize() already required the session's CSRF
+    // proof and refused it during a boiler test, settings write or update.
+    // Never ends the caller's own session; at most once per 10 s.
+    void endIdleSessions() {
+        const auto now=networkNow();
+        if(!endIdleGate_.allow(now)){server_.send(429,"application/json","{\"error\":\"try_again_later\"}");return;}
+        const auto token=requestToken();
+        const auto ended=sessions_.revokeIdle(token.c_str(),now);
+        server_.send(200,"application/json",("{\"ended\":"+std::to_string(ended)+"}").c_str());
+    }
     void systemLogs() {
         const auto afterText=server_.arg("after");uint64_t after=0;
         if(afterText.length()>16){server_.send(400,"text/plain","Invalid log cursor");return;}
         for(char c:afterText){if(c<'0'||c>'9'){server_.send(400,"text/plain","Invalid log cursor");return;}after=after*10+uint64_t(c-'0');}
         if(after>9007199254740991ULL){server_.send(400,"text/plain","Invalid log cursor");return;}
+        // tail=N (1..100, without a cursor): the last N retained records, for "log N".
+        const auto tailText=server_.arg("tail");size_t limit=diagnostics::SystemLog::PageSize;
+        if(tailText.length()){
+            size_t tail=0;
+            for(char c:tailText){if(c<'0'||c>'9'||tail>diagnostics::SystemLog::TailMaximum){tail=0;break;}tail=tail*10+size_t(c-'0');}
+            if(afterText.length()||!tail||tail>diagnostics::SystemLog::TailMaximum){server_.send(400,"text/plain","Invalid log tail");return;}
+            after=diagnostics::runtime.log.tailCursor(tail);limit=tail;
+        }
         auto& log=diagnostics::runtime.log;const auto stats=log.stats();
         auto root=std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(cJSON_CreateObject(),cJSON_Delete);
         if(!root){server_.send(503);return;}
@@ -1242,12 +1333,16 @@ private:
         cJSON_AddNumberToObject(root.get(),"truncated",stats.truncated);cJSON_AddNumberToObject(root.get(),"redacted",stats.redacted);
         cJSON_AddNumberToObject(root.get(),"syslog_dropped",stats.syslogDropped);cJSON_AddNumberToObject(root.get(),"syslog_sent",stats.sent);
         cJSON_AddNumberToObject(root.get(),"contention_dropped",stats.contention);
+        cJSON_AddNumberToObject(root.get(),"capacity",log.capacity());
         auto rows=cJSON_AddArrayToObject(root.get(),"records");diagnostics::Record record;
-        for(size_t i=0;i<diagnostics::SystemLog::PageSize&&log.next(after,record);++i){
+        size_t added=0;
+        for(;added<limit&&log.next(after,record);++added){
             auto row=cJSON_CreateObject();cJSON_AddItemToArray(rows,row);
             cJSON_AddNumberToObject(row,"sequence",record.sequence);cJSON_AddNumberToObject(row,"uptime_ms",record.uptimeMs);
             cJSON_AddNumberToObject(row,"level",record.level);cJSON_AddStringToObject(row,"source",diagnostics::sourceName(record.source));cJSON_AddStringToObject(row,"feature",record.feature.data());cJSON_AddStringToObject(row,"message",record.text.data());after=record.sequence;
         }
+        // A full page with newer records left: the page reads the next one at once.
+        cJSON_AddBoolToObject(root.get(),"more",added==limit&&log.next(after,record));
         auto text=std::unique_ptr<char,decltype(&cJSON_free)>(cJSON_PrintUnformatted(root.get()),cJSON_free);
         if(!text){server_.send(503);return;}
         server_.send(200,"application/json",text.get());

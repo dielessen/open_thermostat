@@ -80,6 +80,7 @@ jobs:
           browser test/page-loading-browser.cjs
           browser test/system-log-browser.cjs
           browser test/system-log-lifecycle-browser.cjs
+          browser test/diagnostics-console-browser.cjs
           browser test/debug-settings-browser.cjs
           browser test/config-backup-browser.cjs
           browser test/ui-language-browser.cjs

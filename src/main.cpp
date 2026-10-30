@@ -415,6 +415,15 @@ void setup() {
 #endif
 #ifdef OPENTHERMOSTAT_E32V2
     heating::diagnostics::runtime.begin();
+    // Web log history: 512 records (~120 KB) in PSRAM, allocated once and never
+    // freed. Without PSRAM the 32-record internal ring stays.
+    using LogRecord = heating::diagnostics::Record;
+    constexpr size_t logRecords = heating::diagnostics::SystemLog::RetainedCapacity;
+    if (void* history = heap_caps_malloc(logRecords * sizeof(LogRecord), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) {
+        auto* records = static_cast<LogRecord*>(history);
+        for (size_t i = 0; i < logRecords; ++i) new (records + i) LogRecord();
+        if (!heating::diagnostics::runtime.log.attach(records, logRecords)) heap_caps_free(history);
+    }
     heating::logger = std::make_shared<heating::diagnostics::BufferedLogger>(
         std::vector<std::shared_ptr<ib::logger::LoggerSinkInterface>>{
             std::make_shared<ib::logger::LoggerSerialSink>(ib::logger::LoggerInterface::LogLevel::TRACE)},

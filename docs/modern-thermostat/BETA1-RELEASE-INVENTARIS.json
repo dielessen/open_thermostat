@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "86d0569c615f5ca40d2ee8dad67243e028a147eb53b7fb5ea0602c6a064761b9"
+          "sha256": "073d5570c43d734adb6656e332f03224a2e492d57b70a31a00d090dcd3af8701"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -227,7 +227,7 @@
         },
         {
           "path": "docs/USER-GUIDE.md",
-          "sha256": "62706d32f17dd884d54927505cf0f2a547ce05d9c4568c21ba05e1636aedbdc7"
+          "sha256": "87698063cbb73087685fb131050dcdafc6e44da85a81fa499470da110226fa17"
         },
         {
           "path": "docs/modern-thermostat/OVERSCHAKELING.nl.md",
@@ -336,6 +336,10 @@
         {
           "path": "docs/modern-thermostat/BETA20-PUBLICATION-EXCEPTION-20261030.json",
           "sha256": "d785e276e670c73269a160b7025933bdef83f6019028590b42e8b79cb5cf7ca7"
+        },
+        {
+          "path": "test/diagnostics-console-browser.cjs",
+          "sha256": "748df6b359f294070736cfe0256800449907f16cd04a7bfebda15d128d9e2f32"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -351,11 +355,11 @@
       "files": [
         {
           "path": "src/control/WebAuthSession.h",
-          "sha256": "3d6b10d2d8878c0e8b74889e904a163876234af396472a06b5122bc98b563677"
+          "sha256": "5a61ad8b8afe7b5384f747d0684d12fae937320d38099b4a82bead25c3d8d9bd"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
-          "sha256": "09023c01e3c9179c40316282d6e1c2923ea7889a9b802aface569f083ecc2f90"
+          "sha256": "3902da057fd1860daa4ea5e561d052864fac20c7b92caff7e7d9547617647af5"
         },
         {
           "path": "data/html/auth-client.js",
@@ -829,7 +833,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "86d0569c615f5ca40d2ee8dad67243e028a147eb53b7fb5ea0602c6a064761b9"
+          "sha256": "073d5570c43d734adb6656e332f03224a2e492d57b70a31a00d090dcd3af8701"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -1145,7 +1149,7 @@
         },
         {
           "path": "data/html/ui-messages-pages.js",
-          "sha256": "640e855f70c6197a4033d1ba0f46ecf1e5a4607923ca00cb3cf0c8baef851b2a"
+          "sha256": "1bf840710964f59ae4fa790c36561e6f38554efc32b00a6a811b832c508de6dc"
         },
         {
           "path": "ha/tests_native/test_polish_translation.py",
@@ -1393,7 +1397,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "961925853bb80fa00ce2f97722d5c58338354c957563b00f1a486e17dc90acad"
+          "sha256": "413a1bf426d3f3c50a25f2aa421ed60529d59f73fb81d4a499bddcba392b1973"
         },
         {
           "path": "src/Room.cpp",
@@ -1499,7 +1503,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "86d0569c615f5ca40d2ee8dad67243e028a147eb53b7fb5ea0602c6a064761b9"
+          "sha256": "073d5570c43d734adb6656e332f03224a2e492d57b70a31a00d090dcd3af8701"
         },
         {
           "path": "platformio.ini",
@@ -1507,15 +1511,15 @@
         },
         {
           "path": "src/main.cpp",
-          "sha256": "3740d62ae0f0d52219a67a1a93199c7e5cf11b2fe6edd3665f7a562c73486b28"
+          "sha256": "62d21f5c0fe4f8163f0811d2293e0423dcaa2bf83e2be735735149622de4b223"
         },
         {
           "path": "src/REST.h",
-          "sha256": "961925853bb80fa00ce2f97722d5c58338354c957563b00f1a486e17dc90acad"
+          "sha256": "413a1bf426d3f3c50a25f2aa421ed60529d59f73fb81d4a499bddcba392b1973"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
-          "sha256": "09023c01e3c9179c40316282d6e1c2923ea7889a9b802aface569f083ecc2f90"
+          "sha256": "3902da057fd1860daa4ea5e561d052864fac20c7b92caff7e7d9547617647af5"
         },
         {
           "path": "data/html/index.html",
@@ -1527,11 +1531,11 @@
         },
         {
           "path": "data/html/system-log.js",
-          "sha256": "8833e9f94c958d9f76f0365f6fc339ecf0b409f102a8f16dcdc11e9fbae1adf1"
+          "sha256": "52b7fb4b69a4c848099cf85ccbf80485f5d0c6ac28984e489d73fab78edb09bf"
         },
         {
           "path": "data/html/system_log.html",
-          "sha256": "90032879b0aef290cfff51ea02191cd0e855d031ef5d8eda1bf098926e313442"
+          "sha256": "de3a6c1c39e2049ec45b6e4ed238e4e6bbe0d722611489a4e96b1c8857afcac2"
         },
         {
           "path": "test/test_native/test_system_log.cpp",
@@ -1571,7 +1575,7 @@
         },
         {
           "path": "src/diagnostics/SystemLog.h",
-          "sha256": "7027a434c2b740a96941c8fe34537a9cad138eb29472d3481103b9e15ed4d50f"
+          "sha256": "5ce8e9e7c84c0ccdc2819c97d5e2c0feaf5e7ea2bbcb1e5a13139de62cb8b12c"
         },
         {
           "path": "test/logging_runtime/include/esp_log.h",
@@ -1595,7 +1599,7 @@
         },
         {
           "path": "test/logging_runtime/main.cpp",
-          "sha256": "566d7a6c140e9c5c79137576e22874f7e2f807dbbc15ee653316da91d1291a89"
+          "sha256": "35a2baa4a4064f546e278de67ec11b6bffbb88367adfe1eb94eeb45271b4669b"
         },
         {
           "path": "src/control/DeviceDiagnostics.h",
@@ -1807,7 +1811,7 @@
         },
         {
           "path": "src/control/WebAuthSession.h",
-          "sha256": "3d6b10d2d8878c0e8b74889e904a163876234af396472a06b5122bc98b563677"
+          "sha256": "5a61ad8b8afe7b5384f747d0684d12fae937320d38099b4a82bead25c3d8d9bd"
         },
         {
           "path": "test/test_native/test_web_auth.cpp",
@@ -2128,6 +2132,10 @@
         {
           "path": "test/test_native/test_telemetry_publisher.cpp",
           "sha256": "59167de8752290df801fdb888499a0a24cad158d289cf07d2a133be47404f8af"
+        },
+        {
+          "path": "src/diagnostics/DiagnosticsQuery.h",
+          "sha256": "1f25a766f0b23d067b9e5cca4bbf184e145ad01bf2b3986fc7e736e54f73fc89"
         }
       ],
       "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie. Geleverd in HA47: één native opstart over async-programma/Store/MQTT-grenzen, cleanup bij cancel/close en begrensde optionele temperatuurdiagnose. Tien baselinegevallen falen vóór correctie, 139 gerichte/2349volledigeHA-gevallen perCore slagen. HA47 uitgerold met verse HA46-back-up96 en44 afzonderlijke nacontroles. Beperkte HA46-controle05:46UTC ziet1TV02-callback/enqueue/workeracceptatie; stale en ongekwalificeerd, geen upstreamoorzaak of fysieke ACK. Na Coreherstart nieuweRAMowner: bij06:47UTC nul counters/TV02waiting, geen oudbericht alsnieuwekwalificatie. Actieve/fysiekevrijgave blijftopen. X01: pure SBHT-103C-BTHome-decoder voorbereid,798native/16sanitizer/ESP32syntaxPASS; NIETgeselecteerd door BLE-runtime. Geen nieuwe reader, Settings/onboarding, AES/sleutels, replay-/acquisitiekwalificatie of fysieke apparaatondersteuning. Xiaomi/BLUTRV blijven open. HA48 geïnstalleerd: cleanup na gewone callbackexception; aparte nacontrole08:43UTC46PASS,86 live/96back-up exact. Nieuwe RAM-owner blijft ongekwalificeerd. Pure Shelly-decoderbron gepubliceerd in alpha35, niet op E32 geïnstalleerd en niet runtimegeselecteerd. Voor volgende firmware: ESP/EMS/beide-weergave, begrensde deferred RX-framelogging en onafhankelijke syslogbronkeuze met oude6/nieuwe8veldinstellingen. Native25/UDPloopback/NVS/vierbrowserprofielen PASS; echte EMS-/collector-/belastingproeven nog open. Geen installatie. Grote-beta-uitvoering: normale E32 SBHT-103C-diagnoseontvangst/EN-NL-settings nu aangesloten met acht bindings, echte SDK AES-CCM/MIC, verborgen sleutels, conditionele duurzame save, oorspronkelijke callbackleeftijden, vaste wachtrij en boot-lokale tellerafwijzing. Geen extra task/client of actuatorwrite; geen QualifiedReport of kamerregelbron. 871 native gevallen PASS; volledige actuele board/browser/sanitizerresultaten bij bundelbewijs. Historische pure-decoderstatus hierboven beschrijft oudere bron. Echte sensor-/radio-/sleutelverkrijgings-/reboot-/resourceproeven, blijvende replay-/acquisitiekwalificatie, Xiaomi/TRV en zelfstandig regelen blijven open. Niets geïnstalleerd. Core4-P0 in dezelfde bètabron hersteld: publieke installatiegroep erft private transactiepin niet meer; echte Core2026.10.4 toegevoegd na RECORD/sourcevergelijking met .3. 2428 volledige gevallen perCore.2/.3/.4 PASS, resources daarna afzonderlijk30/3/3 PASS. Native HA-readback bevestigt liveCore4/dev48/setup_error; geïnstalleerde Python-bronhashes UNKNOWN, niets geïnstalleerd. Globale finale freeze/liveherstel blijven open. Voor eerste uitrol private BLE-opslag afgezonderd in één begrensde ot_bluetooth/settings-blob: sleutels komen niet in het netwerkdocument dat rollbackfirmware terugstuurt. Netwerkrestore importeert geen nieuwe bindings. Onafhankelijke boot-/sessielokale readbackfences voor netwerk/Bluetooth; huidige harde RAM-grens2048bytes. 875 native,18auth/26owner-sanitizer,15opslag-/36bestaandeonboardinggevallen en4browserprofielen PASS; drie boardbuilds en ongewijzigde layout/default/noTX-check PASS. Eerdere onuitgerolde netwerkblobopslag hierboven is door deze private route vervangen. Geen fysieke kwalificatie/installatie. Monitor3-software aangesloten in dezelfde beta: apart MiBeacon4/5-profiel, upstreamproductdeclaraties0x2832/0x4c47, eigen omgekeerde MAC/nonce12/AAD11/MIC4; geen CGG1/legacy/Shellyfallback. Strikte TLV/floatgrenzen en boot-lokale tellerbewaking via bestaande ontvanger. 888native/39eigenaar-parser-sanitizer/24echtecrypto-sanitizer,8browserprofielen/47node/2navigatie/2dashboard/4taal,3boards/layoutPASS. Geen oude metingen onder gewijzigde conceptbron/-sleutel. Echte modelopname, sleutelverkrijging, acquisitie-/blijvende replaykwalificatie en zelfstandige kamer-/TRV-regeling blijven open. Historische oude ontwerptekst is geen actuele claim van afwezige software. Geen installatie. EMS-referentie uitgebreid met6042entiteiten/105groepen,274benoemde telegram-ID’s/1853offsetdefinities, productherkenning en ESP-default. Dit is volledige referentiedekking van de vastgelegde exports, geen volledige functionele decoder-/schrijfdekking. Productfamiliedecoders, HA-entiteiten, schrijfencoders en fysieke kwalificatie blijven open; zie EMS-DEKKING.nl.md. Nog niet geïnstalleerd. Eigenaar heeft de dubbele catalogusweergave vervangen door één apparaat-/entiteitentabel. Alle vastgelegde EMS-referentiegegevens blijven als bron behouden; de UI gebruikt kleine apparaatmetadata en één gedeelde momentopname. Herkenning uitsluitend uit ontvangen identiteit; eigen E32-bron niet als externe thermostaat. Geen nieuwe decoder-/schrijfkwalificatie."
@@ -2979,6 +2987,10 @@
         {
           "path": "ha/tests_native/test_upgrade_path_hotfix.py",
           "sha256": "b04a4be8583911b1a7142ee9314e4bb6bcf316489c9939452bd309a7a4d5d8f4"
+        },
+        {
+          "path": "test/test_native/test_diagnostics_console.cpp",
+          "sha256": "c287d877c374822cc00595caf1d64d19d3e5513dd16cd256e954734040bd6a8f"
         }
       ],
       "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open. B06 toekomstige-feitquarantaine en klokfences bronmatig afgerond met twaalf regressies/677 native tests en gedeelde veiligheidscontrole voor zonepolicy/storingsbevestiging; HA-deel opgenomen in geverifieerde HA43-bronbestanden; E32-deel opgenomen in alpha31; de module is nu op alpha31 waargenomen zonder uitvoerder-/methodebewijs. Geen fysieke producent- of regelkwalificatie."
@@ -3657,11 +3669,11 @@
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
-          "sha256": "09023c01e3c9179c40316282d6e1c2923ea7889a9b802aface569f083ecc2f90"
+          "sha256": "3902da057fd1860daa4ea5e561d052864fac20c7b92caff7e7d9547617647af5"
         },
         {
           "path": "src/update/ReleasePolicy.h",
-          "sha256": "d85d8968ae156d995114f3128075e8078aa3f500cd7f1948a31a6e4b2a1ced4b"
+          "sha256": "1ba365eeb6b71f38dd0ec24e5528f41802d6a46dee1db19544d35e7398997181"
         },
         {
           "path": "test/test_native/test_boiler_test_service.cpp",

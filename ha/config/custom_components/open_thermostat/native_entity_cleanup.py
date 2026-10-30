@@ -15,6 +15,17 @@ state). A customised legacy record is kept, disabled. Removing a registry
 record never deletes Recorder history, and Home Assistant restores the same
 entity_id if the integration provides that unique_id again.
 
+Retired identities (RETIRED): records an older release created that this
+version only provides on a condition the record itself shows, listed with the
+version that changed them. Each is removed only while untouched and never
+marked as having delivered a value (REPORTED). Entities that are still
+provided but appear only once their data arrives (the shadow comparison, the
+predicted heating start, the definition v2 counters) are never removed here.
+
+Removing a record keeps the Recorder history and the long-term statistics of
+its entity_id; the entity comes back under the same entity_id (and continues
+those statistics) when the integration provides it again.
+
 E32 rooms: a room that is no longer in the E32 room plan (removed in the HA
 room editor or on the E32's own page) loses its room device and that device's
 entities, but only once a plan has actually been read from the E32 (never on
@@ -30,6 +41,18 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 _INTEGRATION = er.RegistryEntryDisabler.INTEGRATION
+# Registry option (under DOMAIN): this record's entity delivered a real value once.
+REPORTED = "reported"
+
+# unique ID after f"{prefix}_" -> (version that retired it, reason in the log).
+RETIRED = {
+    # 0.4.0b10 (E32 beta.18): the hub outdoor temperature is the EMS+ outdoor
+    # telegram (0xD1) and is created only on its first real value
+    # (v1_metrics.VALUE_GATED). Older releases created it always; on a Classic
+    # boiler it never reported and the boiler field "outdoor temperature" is the
+    # one outdoor entity. A record that ever had a value stays.
+    "hub_outdoor_temperature": ("0.4.0b10", "outdoor_temperature_without_value"),
+}
 
 
 def legacy_unique_ids(prefix):
@@ -49,6 +72,34 @@ def untouched(record):
             and record.disabled_by in (None, _INTEGRATION))
 
 
+def mark_reported(hass, unique_id, domain="sensor"):
+    """Mark this entry's record as having delivered a real value (kept by RETIRED).
+    False while the record does not exist yet (entities register asynchronously)."""
+    registry = er.async_get(hass)
+    entity_id = registry.async_get_entity_id(domain, DOMAIN, unique_id)
+    if entity_id is None:
+        return False
+    options = registry.async_get(entity_id).options.get(DOMAIN, {})
+    if not options.get(REPORTED):
+        registry.async_update_entity_options(entity_id, DOMAIN, {**options, REPORTED: True})
+    return True
+
+
+def _metric_values(hass, entry):
+    """The metrics payload the connection holds now (empty without one)."""
+    state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+    payload = getattr(getattr(state.get("v1_connection"), "client", None), "metrics_payload", None)
+    return payload if type(payload) is dict else {}
+
+
+def _has_value(payload, unique_id, prefix):
+    from .metric_snapshot import finite
+    from .sensor import HUB_METRICS
+    metric = unique_id.removeprefix(f"{prefix}_hub_")
+    field = HUB_METRICS["ems_metrics"].get(metric, (None,))[0]
+    return field is not None and finite(payload.get(field))
+
+
 def _reporting_fields(hass, entry):
     state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     client = getattr(state.get("v1_connection"), "client", None)
@@ -59,21 +110,26 @@ def _reporting_fields(hass, entry):
     return frozenset(index for index in cache.records if plausible(cache, index))
 
 
-def stale_reason(record, prefix, legacy, reporting_ids, zones):
+def stale_reason(record, prefix, legacy, reporting_ids, zones, metrics=None):
     """Why this record is no longer provided, or None when it still is (or may be)."""
     uid = record.unique_id
     if uid in legacy:
         return "legacy_hub"
+    retired = RETIRED.get(uid.removeprefix(f"{prefix}_")) if uid.startswith(f"{prefix}_") else None
+    if retired is not None:
+        if record.options.get(DOMAIN, {}).get(REPORTED) or _has_value(metrics or {}, uid, prefix):
+            return None
+        return retired[1]
     if uid.startswith(f"{prefix}_boiler_fields_v1_"):
         # "Never reported": disabled by us (as unreported, or by default as
         # unreliable), never marked as having delivered a real value since
         # 0.4.0b10, and no real value now. A disabled record records no state.
-        from .v1_boiler_fields import PLACEHOLDER, REPORTED
+        from .v1_boiler_fields import PLACEHOLDER, REPORTED as FIELD_REPORTED
         options = record.options.get(DOMAIN, {})
         # A disabled record of a value the boiler profile lists as not reported
         # (PLACEHOLDER) is still provided; cleanup_not_fitted owns it.
         if (record.disabled_by is _INTEGRATION and uid not in reporting_ids
-                and not options.get(REPORTED) and not options.get(PLACEHOLDER)):
+                and not options.get(FIELD_REPORTED) and not options.get(PLACEHOLDER)):
             return "boiler_field_never_reported"
         return None
     match = re.fullmatch(re.escape(prefix) + r"_room_(.+)_climate", uid)
@@ -92,7 +148,8 @@ def cleanup_stale_entities(hass, entry, prefix):
              if subentry.subentry_type == "zone"}
     records = [record for record in er.async_entries_for_config_entry(registry, entry.entry_id)
                if record.platform == DOMAIN]
-    reasons = {record.entity_id: stale_reason(record, prefix, legacy, reporting_ids, zones)
+    metrics = _metric_values(hass, entry)
+    reasons = {record.entity_id: stale_reason(record, prefix, legacy, reporting_ids, zones, metrics)
                for record in records}
     # F28: of an EMS+ / Classic pair that carries one physical value, only the
     # record that stays (the one the user has) is kept; the other is a duplicate.
@@ -111,7 +168,8 @@ def cleanup_stale_entities(hass, entry, prefix):
         elif reason == "legacy_hub" and record.disabled_by is None:
             registry.async_update_entity(record.entity_id, disabled_by=_INTEGRATION)
     if removed:
-        _LOGGER.info("Removed %d OpenThermostat entities this installation no longer provides: %s",
+        _LOGGER.info("Removed %d OpenThermostat entities this installation no longer provides: %s. "
+                     "Their history and long-term statistics are kept",
                      len(removed), ", ".join(sorted(removed)))
     return removed
 

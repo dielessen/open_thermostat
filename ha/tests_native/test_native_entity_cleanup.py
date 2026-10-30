@@ -78,7 +78,8 @@ async def test_registry_cleanup_removes_exactly_the_stale_patterns(hass, caplog)
         # Unique diagnostics and estimates, the E32 heat request and new E32 rooms.
         record("sensor", "fixture_hub_memory_free"), record("sensor", "fixture_hub_uptime"),
         record("sensor", "fixture_hub_cpu_temperature"), record("sensor", "fixture_hub_energy_v2"),
-        record("sensor", "fixture_hub_outdoor_temperature"), record("sensor", "fixture_hub_heat_request"),
+        record("sensor", "fixture_hub_outdoor_temperature", reported=True),  # it had a value (RETIRED)
+        record("sensor", "fixture_hub_heat_request"),
         record("sensor", "fixture_e32_room_badkamer_state"),
         # Classic fields that reported: enabled, or disabled but marked as having had a value.
         record("sensor", field("measured_flow_temperature")),

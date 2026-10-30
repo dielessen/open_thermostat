@@ -481,7 +481,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             } else if (page === 'curve') await ensureChart();
         }
         // Hash routes keep refresh, Back and bookmarks on the same page.
-        const pageRoutes = {heating:'rooms', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', bluetooth:'sensors', network:'settings', update:'update', system_log:'log', about:'about'};
+        const pageRoutes = {heating:'rooms', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', boiler_limits:'boiler-limits', bluetooth:'sensors', network:'settings', password:'password', update:'update', system_log:'log', about:'about'};
         const pageTitles = {home:"Overview", heating:"Rooms", boiler_test:"Boiler", bluetooth:"Sensors", network:"Settings", update:"Firmware update", system_log:"System log", about:"About"};
         function markPage(page) {
             try {
@@ -514,7 +514,8 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             // boiler choice, data, EMS devices and the attended test together.
             // The section alias opens the matching part of that page.
             window.otPageSection = page;
-            if (page === 'ems_devices' || page === 'boiler_display' || page === 'boiler_trial') page = 'boiler_test';
+            if (page === 'ems_devices' || page === 'boiler_display' || page === 'boiler_trial' || page === 'boiler_limits') page = 'boiler_test';
+            if (page === 'password') page = 'network'; // #password: the password card on the Settings page
             clearMainContainer();
             markPage(page);
             const navigation = navigationGeneration;

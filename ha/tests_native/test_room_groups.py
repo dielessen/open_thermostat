@@ -262,6 +262,28 @@ async def test_a_room_group_deleted_in_home_assistant_comes_back_with_its_ids(ha
 
 
 @pytest.mark.asyncio
+async def test_the_group_restored_note_goes_by_itself_a_day_after_the_group_is_back(hass, monkeypatch):
+    from datetime import timedelta
+    from homeassistant.util import dt as dt_util
+    o = await owner(hass)
+    groups = module.async_setup_room_groups(hass, o.entry, o.install)
+    groups.attach(fake_hub())
+    groups.reconcile()
+    await hass.async_block_till_done()
+    assert "woonkamer" in groups_of(o.entry)  # the group is back
+    issue_id = module.restored_issue_id(o.entry, "woonkamer")
+    ir.async_create_issue(hass, DOMAIN, issue_id, is_fixable=False, severity=ir.IssueSeverity.WARNING,
+                          translation_key="room_group_restored")
+    groups.reconcile()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is not None  # shown first
+    later = dt_util.utcnow() + module.RESTORED_NOTICE + timedelta(minutes=1)
+    monkeypatch.setattr(module.dt_util, "utcnow", lambda: later)
+    groups.reconcile()  # the next telemetry message
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
+    groups.stop()
+
+
+@pytest.mark.asyncio
 async def test_a_group_deleted_for_a_room_no_longer_on_the_e32_stays_deleted(hass, monkeypatch):
     o = await owner(hass)
     groups = module.async_setup_room_groups(hass, o.entry, o.install)

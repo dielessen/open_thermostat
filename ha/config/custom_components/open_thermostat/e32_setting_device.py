@@ -189,6 +189,7 @@ class SettingDevicePusher:
             return
         self._follow_devices()
         update_room_programs_issue(self.hass, self.entry, self.hub)
+        self._clear_own_schedule_issues()
         wait = None
         for room_id, _room, status, device in self.rooms():
             want, state = self.desired(status), self.hass.states.get(device)
@@ -279,10 +280,32 @@ class SettingDevicePusher:
             _LOGGER.warning("E32 room %s: could not take over %s °C from its setting device: %s", room_id, value, err)
 
     # -- the device's own schedule ------------------------------------------------------
+    def _recent_unasked(self, entity_id):
+        now = self.now()
+        return [(d, q) for d, q in self.unasked.get(entity_id, []) if (now.date() - d).days < SCHEDULE_WINDOW_DAYS]
+
+    def _own_schedule(self, entity_id):
+        """Unasked changes at about the same quarter on SCHEDULE_DAYS days within the window."""
+        seen = self._recent_unasked(entity_id)
+        return any(len({d for d, other in seen if abs(other - q) <= 1}) >= SCHEDULE_DAYS for _, q in seen)
+
+    @callback
+    def _clear_own_schedule_issues(self):
+        """The "own schedule" item goes once the condition is gone: the device stopped changing by
+        itself for SCHEDULE_WINDOW_DAYS, it is no longer the room's setting device, or the room is gone."""
+        head = f"{OWN_SCHEDULE_ISSUE}_{self.entry.entry_id}_"
+        devices = {room_id: device for room_id, _room, _status, device in self.rooms()}
+        for domain, issue in list(ir.async_get(self.hass).issues):
+            if domain != DOMAIN or not issue.startswith(head):
+                continue
+            device = devices.get(issue.removeprefix(head))
+            if device is None or not self._own_schedule(device):
+                ir.async_delete_issue(self.hass, DOMAIN, issue)
+
     def _note_unasked(self, room_id, room, entity_id, state):
         now = self.now()
         quarter = (now.hour * 60 + now.minute) // 15
-        seen = [(d, q) for d, q in self.unasked.get(entity_id, []) if (now.date() - d).days < SCHEDULE_WINDOW_DAYS]
+        seen = self._recent_unasked(entity_id)
         seen.append((now.date(), quarter))
         self.unasked[entity_id] = seen[-64:]
         days = {d for d, q in seen if abs(q - quarter) <= 1}

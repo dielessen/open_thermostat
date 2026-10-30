@@ -31,6 +31,7 @@ created.
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import timedelta
 import logging
 from types import MappingProxyType
 
@@ -38,6 +39,7 @@ from homeassistant.config_entries import ConfigSubentry
 from homeassistant.core import callback
 from homeassistant.helpers import area_registry as ar, device_registry as dr, entity_registry as er
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.util import dt as dt_util
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
 from .product import configuration_subentries
@@ -48,6 +50,8 @@ GROUP_TYPE = "e32_room"
 GROUP_PREFIX = "e32_room_"
 STATE_KEY = "room_groups"
 RESTORED_ISSUE = "room_group_restored"
+# The "group restored" note stays this long after its group is back, then goes by itself.
+RESTORED_NOTICE = timedelta(hours=24)
 
 
 def group_unique_id(room_id):
@@ -311,6 +315,7 @@ class RoomGroups:
         """Follow the plan: titles, moved Bluetooth sensors, removed rooms, a group the user deleted."""
         if self._restoring or self.hass.config_entries.async_get_entry(self.entry.entry_id) is not self.entry:
             return
+        self._expire_restored()
         if self._current_signature() == self._signature and not force:
             return  # every telemetry message notifies the hub; nothing that matters here changed
         try:
@@ -318,6 +323,16 @@ class RoomGroups:
         except Exception:  # presentation only: never break the telemetry path
             _LOGGER.exception("Could not arrange the OpenThermostat room groups")
         self._signature = self._current_signature()
+
+    @callback
+    def _expire_restored(self):
+        """Information only: the "group restored" note goes once its group is back and the
+        note has been shown for RESTORED_NOTICE (a restart clears it too: not persistent)."""
+        registry, now = ir.async_get(self.hass), dt_util.utcnow()
+        for room_id in room_group_ids(self.entry):
+            issue = registry.async_get_issue(DOMAIN, restored_issue_id(self.entry, room_id))
+            if issue is not None and issue.created is not None and now - issue.created >= RESTORED_NOTICE:
+                ir.async_delete_issue(self.hass, DOMAIN, issue.issue_id)
 
     def _current_signature(self):
         plan = self._plan()

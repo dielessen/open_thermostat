@@ -187,6 +187,32 @@ async def test_a_device_running_its_own_schedule_is_reported(hass):
         await hass.async_block_till_done()
     issue = ir.async_get(hass).async_get_issue("open_thermostat", "device_own_schedule_e1_woonkamer")
     assert issue is not None and issue.translation_placeholders["room"] == "Woonkamer"
+    # Still running its own schedule the next update: the item stays.
+    hub.update(status(room("woonkamer", 20.0)))
+    await hass.async_block_till_done()
+    assert ir.async_get(hass).async_get_issue("open_thermostat", "device_own_schedule_e1_woonkamer") is not None
+    # Its own schedule turned off: no unasked change for the whole window, and the item goes by itself.
+    pusher.now = lambda: day + timedelta(days=2 + 8)
+    hub.update(status(room("woonkamer", 20.5)))
+    await hass.async_block_till_done()
+    assert ir.async_get(hass).async_get_issue("open_thermostat", "device_own_schedule_e1_woonkamer") is None
+    stop()
+    link.stop()
+
+
+@pytest.mark.asyncio
+async def test_the_own_schedule_item_goes_with_the_setting_device(hass):
+    devices(hass)
+    e32, hub, link, pusher, clock, stop = await setup(hass, plan({**WOONKAMER, "schedule": PROGRAM}), room("woonkamer", 20.0))
+    ir.async_create_issue(hass, "open_thermostat", "device_own_schedule_e1_woonkamer", is_fixable=False,
+                          severity=ir.IssueSeverity.WARNING, translation_key="device_own_schedule")
+    ir.async_create_issue(hass, "open_thermostat", "device_own_schedule_e1_zolder", is_fixable=False,
+                          severity=ir.IssueSeverity.WARNING, translation_key="device_own_schedule")
+    hub.update(status(room("woonkamer", 20.5)))
+    await hass.async_block_till_done()
+    # No unasked changes known (for example after a restart) and a room that is gone: both go.
+    assert ir.async_get(hass).async_get_issue("open_thermostat", "device_own_schedule_e1_woonkamer") is None
+    assert ir.async_get(hass).async_get_issue("open_thermostat", "device_own_schedule_e1_zolder") is None
     stop()
     link.stop()
 

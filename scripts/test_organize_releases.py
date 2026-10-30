@@ -199,12 +199,44 @@ class StableReleaseTests(unittest.TestCase):
         notes='# E32 V2 1.0.0\n'+release.ENGLISH_USER_NOTES+'\n## New\nA\n## Fixed\nB\n## Updating\nC\n## Limitations\nD'
         self.assertIn('/blob/v1.0.0-e32v2/',release.publication_notes(notes,'owner/project','v1.0.0-e32v2',True))
 
+    def test_pre_releases_after_0_1_0_name_their_version_so_beta_1_is_never_ambiguous(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        cases={'v0.1.0-e32v2-beta.19':('beta.19','# E32 V2 beta19'),
+               'v0.1.0-e32v2-alpha.36':('alpha.36','# E32 V2 alpha36'),
+               'v1.0.0-e32v2-rc.1':('1.0.0-rc.1','# E32 V2 1.0.0-rc.1'),
+               'v1.0.0-e32v2':('1.0.0','# E32 V2 1.0.0'),
+               'v1.1.0-e32v2-beta.1':('1.1.0-beta.1','# E32 V2 1.1.0-beta.1'),
+               'v1.0.1-e32v2':('1.0.1','# E32 V2 1.0.1')}
+        for tag,(short,heading) in cases.items():
+            version=release.classify(tag)[1]
+            self.assertEqual(release.label('firmware',version),('E32 firmware',short),tag)
+            self.assertEqual(release.firmware_heading(version),heading,tag)
+        sections=release.ENGLISH_USER_NOTES+'\n## New\n{0}\n## Fixed\nF\n## Updating\nU\n## Limitations\nL\n'
+        notes=('# E32 V2 1.1.0-beta.1 — next\n'+sections.format('Next beta')+
+               '# E32 V2 1.0.0 — stable\n'+sections.format('Stable one')+
+               '# E32 V2 1.0.0-rc.1 — candidate\n'+sections.format('Candidate')+
+               '# E32 V2 beta1 — first beta\n'+sections.format('First beta'))
+        with TemporaryDirectory() as tmp:
+            path=Path(tmp)/'docs/modern-thermostat/RELEASE-NOTES.md'
+            path.parent.mkdir(parents=True)
+            path.write_text(notes)
+            for tag,text in (('v1.1.0-e32v2-beta.1','Next beta'),('v1.0.0-e32v2','Stable one'),
+                             ('v1.0.0-e32v2-rc.1','Candidate'),('v0.1.0-e32v2-beta.1','First beta')):
+                summary=release.user_summary(tag,'owner/project',tmp)
+                self.assertIn(text,summary,tag)
+                self.assertEqual(sum(t in summary for t in ('Next beta','Stable one','Candidate','First beta')),1,tag)
+        with self.assertRaisesRegex(ValueError,'version_mismatch'):
+            release.publication_notes(notes,'owner/project','v0.1.0-e32v2-beta.1',True)  # newest section is 1.1.0-beta.1
+        with self.assertRaisesRegex(ValueError,'version_mismatch'):
+            release.publication_notes('# E32 V2 1.0.0-rc.1\n'+sections.format('x'),'owner/project','v1.0.0-e32v2',True)
+
     def test_stable_release_is_current_and_a_newer_test_version_is_labelled_pre_release(self):
         rows=self.rows('v0.1.0-e32v2-beta.19','v1.0.0-e32v2','v1.1.0-e32v2-beta.1','ha-v0.4.0b11','ha-v1.0.0',
                        prerelease=lambda tag:not release.is_stable(*release.classify(tag)))
         changes={change['tag']:change for change in release.plan(rows,'owner/project')}
         self.assertEqual(changes['v1.0.0-e32v2']['name'],'E32 firmware · 1.0.0 · Current')
-        self.assertEqual(changes['v1.1.0-e32v2-beta.1']['name'],'E32 firmware · beta.1 · Pre-release')
+        self.assertEqual(changes['v1.1.0-e32v2-beta.1']['name'],'E32 firmware · 1.1.0-beta.1 · Pre-release')
         self.assertEqual(changes['v0.1.0-e32v2-beta.19']['name'],'Archive · E32 firmware · beta.19')
         self.assertEqual(changes['ha-v1.0.0']['name'],'Home Assistant · 1.0.0 · Current')
         self.assertEqual(changes['ha-v0.4.0b11']['name'],'Archive · Home Assistant · 0.4.0b11')
@@ -213,7 +245,7 @@ class StableReleaseTests(unittest.TestCase):
         self.assertIn('| Component | Version | Channel | File |',body)
         self.assertIn('| E32 firmware | [1.0.0](https://github.com/owner/project/releases/tag/v1.0.0-e32v2) | Stable | '
                       '[firmware.bin](https://example.test/v1.0.0-e32v2/firmware.bin) |\n'
-                      '| E32 firmware | [beta.1](https://github.com/owner/project/releases/tag/v1.1.0-e32v2-beta.1) | Pre-release | '
+                      '| E32 firmware | [1.1.0-beta.1](https://github.com/owner/project/releases/tag/v1.1.0-e32v2-beta.1) | Pre-release | '
                       '[firmware.bin](https://example.test/v1.1.0-e32v2-beta.1/firmware.bin) |\n'
                       '| Home Assistant | [1.0.0](https://github.com/owner/project/releases/tag/ha-v1.0.0) | Stable |',body)
         self.assertIn('Use the stable release',body)

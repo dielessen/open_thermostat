@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "1329dcb04566b71b564f60c1759545b581f89d55e54d3b23508bd638f5c9755b"
+          "sha256": "86d0569c615f5ca40d2ee8dad67243e028a147eb53b7fb5ea0602c6a064761b9"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -801,7 +801,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "1329dcb04566b71b564f60c1759545b581f89d55e54d3b23508bd638f5c9755b"
+          "sha256": "86d0569c615f5ca40d2ee8dad67243e028a147eb53b7fb5ea0602c6a064761b9"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -1471,7 +1471,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "1329dcb04566b71b564f60c1759545b581f89d55e54d3b23508bd638f5c9755b"
+          "sha256": "86d0569c615f5ca40d2ee8dad67243e028a147eb53b7fb5ea0602c6a064761b9"
         },
         {
           "path": "platformio.ini",

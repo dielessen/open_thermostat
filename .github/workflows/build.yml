@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     # Dependency installation previously consumed most of the 15-minute job.
     # Keep a separate 15-minute limit for the actual browser scenarios below.
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Validate mandatory E32 update acceptance policy
@@ -47,7 +47,7 @@ jobs:
           npm install --no-save --package-lock=false playwright-core@1.63.0
           npx playwright-core install --with-deps chromium
       - name: Exercise shipped setup and room pages (simulated HTTP)
-        timeout-minutes: 15
+        timeout-minutes: 30 # about 15 min since beta.19 (882 s on 30 Oct 2026)
         run: |
           # A failing page test and its last output lines go into a public
           # annotation, because the job log itself needs a login.

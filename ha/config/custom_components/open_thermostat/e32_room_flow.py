@@ -338,7 +338,8 @@ class E32RoomFlow:
             inactive = "" if room.get("state") == "active" else (" (inactief)" if dutch else " (inactive)")
             sources = ", ".join(self._e32_source_label(s) for s in room.get("sources", []))
             contacts = len(room_contacts(self.config_entry, room["id"]))
-            window = (f"; raam-/deurcontacten: {contacts}" if dutch else f"; window/door contacts: {contacts}")                 if contacts else ""
+            window = "" if not contacts else (
+                f"; raam-/deurcontacten: {contacts}" if dutch else f"; window/door contacts: {contacts}")
             lines.append(f"- {room.get('name', room['id'])}{inactive}: {sources}{window}")
         return "\n".join(lines) or ("Nog geen ruimtes." if dutch else "No rooms yet.")
 
@@ -542,8 +543,9 @@ class E32RoomFlow:
             "ble_sources": [s["id"] for s in sources if s.get("type") == "ble"],
             "contacts": room_contacts(self.config_entry, room["id"]) if room.get("id") else [],
             "bluetooth_first": bool(sources) and sources[0].get("type") == "ble",
-            # The setting device; a room's own valve or thermostat source is proposed.
-            "setpoint_entity": room.get("setpoint_entity") or proposed_device(room) or None,
+            # Never pre-selected: Home Assistant writes the program's target to the setting device,
+            # so it is the owner's explicit choice. A valve or thermostat source is only suggested (setting_hint).
+            "setpoint_entity": room.get("setpoint_entity") or None,
             "fallback_temperature": shown(room.get("fallback_centi_c", 2000), unit),
             "minimum_temperature": shown(room.get("minimum_centi_c", 500), unit),
             "maximum_temperature": shown(room.get("maximum_centi_c", 2500), unit),
@@ -643,7 +645,8 @@ class E32RoomFlow:
         ble_options = self._e32_ble_options(room)
         errors = {}
         placeholders = {"source": "", "error": "", "line": "", "text": "", **self._limit_range(),
-                        "delay": contact_delay_text(comfort_options(self.config_entry))}
+                        "delay": contact_delay_text(comfort_options(self.config_entry)),
+                        "setting_hint": setting_hint(proposed_device(room), self.hass.config.language)}
         link = self._e32_link()
         if link is None:
             return self.async_abort(reason="e32_rooms_unavailable")

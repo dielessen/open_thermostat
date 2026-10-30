@@ -961,7 +961,7 @@
       },
       "shadow": {
         "title": "Een OpenThermostat E32 koppelen",
-        "description": "De E32 rekent mee; je huidige thermostaat blijft de ketel regelen. Er gaat niets naar radiatorkranen of de ketel. Normaal koppel je de E32 later via Configureren → E32 verbinden; dat vult het verbindings-ID voor je in.",
+        "description": "De E32 rekent mee en stuurt niets naar de ketel: je huidige thermostaat blijft die regelen. Home Assistant zet wel de gewenste temperatuur op het instelapparaat van een ruimte (een radiatorkraan of thermostaat die je per ruimte kiest), volgens het weekprogramma van die ruimte. Normaal koppel je de E32 later via Configureren → E32 verbinden; dat vult het verbindings-ID voor je in.",
         "data": {
           "topic_prefix": "MQTT-prefix van de E32",
           "adapter_id": "Verbindings-ID (al ingevuld)"
@@ -1400,14 +1400,14 @@
       },
       "controller_connection": {
         "title": "E32 verbinden",
-        "description": "Koppel deze installatie aan je E32. Zet vooraf MQTT aan op de E32, met een gebruikersnaam en wachtwoord voor de broker (op de webpagina van de E32: Instellingen → MQTT). In Home Assistant is geen ruimte nodig: na het koppelen voeg je de ruimtes toe onder Configureren → Ruimtes, de eerste meteen hier. Een eerste koppeling kan de E32 eenmaal herstarten.\n\nHet E32-wachtwoord wordt bij deze Home Assistant-integratie bewaard. Wijzig je het later op de E32, dan vraagt Home Assistant om het nieuwe. Koppelen schakelt de verwarmingsaansturing niet in.",
+        "description": "Koppel deze installatie aan je E32. Je hebt eerst twee dingen nodig:\n\n1. Een brokerlogin voor de E32. Met de Mosquitto broker-add-on werkt elke Home Assistant-gebruiker: maak er een aan via Instellingen → Personen → Gebruikers → Gebruiker toevoegen (Gebruikers zie je als Geavanceerde modus aan staat in je gebruikersprofiel), bijvoorbeeld openthermostat met een eigen wachtwoord.\n2. MQTT op de E32: open op de webpagina van de E32 Instellingen → MQTT, vink Ingeschakeld aan, vul het brokeradres in (meestal het adres van Home Assistant), poort 1883 en die gebruikersnaam en dat wachtwoord, sla op en laat de E32 herstarten.\n\nIn Home Assistant is geen ruimte nodig: na het koppelen voeg je de ruimtes toe onder Configureren → Ruimtes, de eerste meteen hier. Een eerste koppeling kan de E32 eenmaal herstarten.\n\nHet E32-wachtwoord wordt bij deze Home Assistant-integratie bewaard. Wijzig je het later op de E32, dan vraagt Home Assistant om het nieuwe. Koppelen schakelt de verwarmingsaansturing niet in.",
         "data": {
           "address": "Webadres van de E32",
           "password": "E32-wachtwoord"
         },
         "data_description": {
           "address": "Het adres van de E32 in je netwerk, bijvoorbeeld http://192.168.1.50.",
-          "password": "Het wachtwoord waarmee je op de webpagina van de E32 inlogt (gebruiker admin). Een nieuwe E32 begint met admin; wijzig het daar onder Systeem. Laat leeg om het bewaarde wachtwoord te houden."
+          "password": "Het wachtwoord waarmee je op de webpagina van de E32 inlogt (gebruiker admin). Een nieuwe E32 begint met admin; wijzig het daar onder Instellingen → Wachtwoord. Laat leeg om het bewaarde wachtwoord te houden."
         }
       },
       "controller_connecting": {
@@ -1485,9 +1485,9 @@
           "ha_sources": "Thermostaten of temperatuursensoren (°C of °F) in Home Assistant die deze ruimte meten. De eerste met een actuele waarde wordt gebruikt; sleep om de volgorde te wijzigen.",
           "ble_sources": "Sensoren die aan de E32 zelf gekoppeld zijn; ze blijven werken zonder Home Assistant.",
           "bluetooth_first": "Aan: de E32 gebruikt zijn Bluetooth-sensoren vóór de bronnen uit Home Assistant.",
-          "setpoint_entity": "Optioneel: een thermostaat of radiatorkraan (bijvoorbeeld een tado of TV02), of een getal met een doel, om de ruimte mee in te stellen. Home Assistant zet bij elk schakelpunt de temperatuur van het weekprogramma erop; eraan draaien verandert de ruimte tot het volgende schakelpunt. Zet het eigen programma van het apparaat uit (handmatige stand), anders verandert het de temperatuur zelf. Leeg: stel de ruimte in met haar thermostaat in Home Assistant of op de E32-pagina.",
-          "fallback_temperature": "De temperatuur die de E32 aanhoudt als Home Assistant geen doel doorgeeft en er geen weekprogramma is.",
-          "program": "Het makkelijkst: de visuele planner onder Weekprogramma op het OpenThermostat-dashboard. Deze tekst is de geavanceerde weergave van hetzelfde programma: eén regel per groep dagen, bijvoorbeeld ma-vr: 06:30 20,5; 22:30 18 en za-zo: 08:00 20,5; 23:00 18. Temperaturen in de eenheid van je Home Assistant. Een regel zonder dagen geldt voor elke dag. Maximaal 6 schakelpunten per dag; elke temperatuur geldt tot het volgende punt. Leeg: geen weekprogramma."
+          "setpoint_entity": "Optioneel: een thermostaat of radiatorkraan (bijvoorbeeld een tado of TV02), of een getal met een doel, om de ruimte mee in te stellen. Home Assistant zet bij elk schakelpunt de temperatuur van het weekprogramma erop; eraan draaien verandert de ruimte tot het volgende schakelpunt. Zet het eigen programma van het apparaat uit (handmatige stand), anders verandert het de temperatuur zelf. Leeg: geen instelapparaat; stel de ruimte in met haar thermostaat in Home Assistant of op de E32-pagina.{setting_hint}",
+          "fallback_temperature": "De temperatuur die de E32 aanhoudt zolang hij het weekprogramma niet kan volgen (zijn klok is nog niet gezet) en Home Assistant geen doel doorgeeft.",
+          "program": "Het makkelijkst: de visuele planner onder Weekprogramma op het OpenThermostat-dashboard. Deze tekst is de geavanceerde weergave van hetzelfde programma: één regel per groep dagen, bijvoorbeeld ma-vr: 06:30 20,5; 22:30 18 en za-zo: 08:00 20,5; 23:00 18. Temperaturen in de eenheid van je Home Assistant. Een regel zonder dagen geldt voor elke dag. Maximaal 6 schakelpunten per dag; elke temperatuur geldt tot het volgende punt. Elke ruimte heeft een weekprogramma: laat je dit leeg, dan krijgt de ruimte het standaardprogramma \"Werkdagen en weekend\" (overdag 20 °C, 18 °C als je op werkdagen weg bent, 's nachts 16 °C)."
         },
         "sections": {
           "window": {
@@ -1666,27 +1666,27 @@
       "controller_password_required": "Vul het beheerderswachtwoord van de E32 in. Een bewaard wachtwoord wordt alleen voor hetzelfde adres hergebruikt.",
       "controller_auth_failed": "De E32 accepteert dit wachtwoord niet. Gebruik het wachtwoord van de webpagina van de E32 (gebruiker admin).",
       "controller_unreachable": "De E32 is niet bereikbaar. Controleer het adres en de netwerkverbinding.",
-      "controller_update_required": "Werk de E32 eerst bij naar alpha.9 of nieuwere compatibele firmware.",
-      "controller_busy_or_conflict": "De E32 wordt bijgewerkt, herstart of heeft een conflicterende configuratie. Controleer eerst de status.",
-      "controller_legacy_rooms_present": "Er staan nog lokale ruimtes op de E32. Beoordeel eerst hoe die worden overgezet.",
+      "controller_update_required": "De firmware op deze E32 is te oud voor deze versie van de integratie. Werk de E32 eerst bij: open op zijn webpagina Systeem → Firmware bijwerken en installeer de nieuwste release; verbind daarna opnieuw.",
+      "controller_busy_or_conflict": "De E32 wordt bijgewerkt of herstart, of wacht op een herstart. Wacht tot zijn webpagina weer normaal opent (herstart hem daar via Systeem → Apparaat herstarten als hij daarom vraagt) en probeer het opnieuw.",
+      "controller_legacy_rooms_present": "De E32 heeft nog eigen ruimtes uit zijn oudere zelfstandige opzet (op zijn webpagina: Systeem → Ruimtes en programma’s). Home Assistant neemt die niet over. Verwijder die ruimtes daar en sla op, en verbind dan opnieuw; daarna voeg je je ruimtes toe onder Configureren → Ruimtes.",
       "controller_broker_setup_required": "De E32 heeft eerst een eigen MQTT-login nodig. Open op de E32 Instellingen → MQTT, vink Ingeschakeld aan, vul het adres en de poort van de broker en een gebruikersnaam en wachtwoord voor de broker in, sla op en laat de E32 herstarten. Zonder login maakt de E32 via een broker geen verbinding met Home Assistant.",
-      "controller_source_conflict": "Deze E32 of installatie hoort al bij een andere configuratie. Controleer de installatiestatus.",
+      "controller_source_conflict": "Deze E32 is al gekoppeld aan een andere OpenThermostat-installatie, of deze installatie was eerder aan een andere E32 gekoppeld. Controleer eerst of het adres bij de juiste E32 hoort. Om deze E32 naar deze installatie te verhuizen: open op zijn webpagina Instellingen → Home Assistant → Geavanceerd, haal het vinkje bij schaduwmodus weg, maak het installatieprofiel leeg als dat er staat, sla op en laat de E32 herstarten; verbind daarna opnieuw.",
       "controller_settings_too_large": "De configuratie overschrijdt de opslagruimte van de E32. Er wordt niet automatisch opnieuw geprobeerd.",
       "controller_response_invalid": "De E32 geeft een onverwacht antwoord. Controleer de firmware en verbinding.",
       "controller_response_too_large": "Het antwoord van de E32 is te groot. Controleer de firmware.",
       "controller_request_invalid": "De verbindingsaanvraag kon niet worden gecontroleerd. Open het formulier opnieuw.",
-      "controller_readback_invalid": "De E32-configuratie kon niet worden bevestigd. Controleer eerst de status.",
-      "controller_settings_changed": "De E32-instellingen zijn tijdens het verbinden gewijzigd. Controleer de opgeslagen configuratie voordat je opnieuw verbindt.",
-      "controller_changed": "De identiteit of firmware van de E32 is tijdens het verbinden gewijzigd. Controleer de status.",
-      "controller_room_configuration_invalid": "De bewaarde ruimtes of programma’s passen niet binnen het huidige E32-verbindingsprofiel. Controleer de ruimte-instellingen en installatiestatus.",
-      "controller_runtime_off_required": "De vorige verbinding wordt nog gestopt. Controleer de installatiestatus.",
-      "controller_boot_unconfirmed": "De herstart van de E32 kon niet worden bevestigd. Controleer de status voordat je opnieuw probeert.",
-      "controller_connection_failed": "De verbinding kon niet worden bevestigd. Controleer de installatiestatus voordat je opnieuw probeert.",
-      "controller_connection_unconfirmed": "Home Assistant heeft de E32-verbinding niet op tijd bevestigd. Controleer de installatiestatus.",
-      "controller_connection_changed": "De verbinding is tijdens het toepassen van het ruimteprogramma gewijzigd. Controleer de installatiestatus.",
+      "controller_readback_invalid": "Home Assistant kon de E32-instellingen niet teruglezen. Wacht tot de webpagina van de E32 weer normaal opent en verstuur dan opnieuw.",
+      "controller_settings_changed": "De E32-instellingen werden elders gewijzigd (bijvoorbeeld op zijn webpagina) tijdens het verbinden. Verstuur opnieuw om met de huidige instellingen te verbinden.",
+      "controller_changed": "Tijdens het verbinden antwoordde een andere E32 of andere firmware op dit adres (bijvoorbeeld na een update). Controleer het adres en verstuur opnieuw.",
+      "controller_room_configuration_invalid": "De ruimtes die in Home Assistant bewaard zijn passen niet bij deze E32-verbinding. Biedt Configureren → Geavanceerd en diagnose Oude Home Assistant-ruimtes verwijderen aan, doe dat dan eerst; verbind daarna opnieuw.",
+      "controller_runtime_off_required": "De vorige verbinding wordt nog gestopt. Wacht een minuut en verstuur opnieuw.",
+      "controller_boot_unconfirmed": "De E32 kwam na zijn herstart niet op tijd terug. Wacht tot zijn webpagina weer opent en verstuur dan opnieuw.",
+      "controller_connection_failed": "De verbinding kon niet worden afgerond. Controleer of de E32 aan staat en zijn webpagina opent, wacht een minuut en verstuur opnieuw. Blijft het misgaan, dan staat de reden op de webpagina van de E32 onder Systeem → Systeemlog.",
+      "controller_connection_unconfirmed": "Home Assistant hoorde niet op tijd iets terug van de E32. Controleer op de webpagina van de E32 onder Instellingen → MQTT dat hij dezelfde broker gebruikt als Home Assistant en dat zijn gebruikersnaam en wachtwoord worden geaccepteerd; verstuur daarna opnieuw.",
+      "controller_connection_changed": "De E32-verbinding veranderde terwijl het ruimteplan werd opgeslagen, bijvoorbeeld door een herstart of een tweede keer E32 verbinden. Wacht een minuut en verstuur opnieuw.",
       "controller_plan_pending": "Een eerdere wijziging van het ruimteprogramma is nog niet opgehelderd. Controleer eerst wat de E32 werkelijk heeft opgeslagen.",
-      "controller_plan_unconfirmed": "De E32 heeft het ruimteprogramma nog niet bevestigd. Alleen ontvangst van een opdracht is geen bevestiging. Controleer de installatiestatus.",
-      "controller_partial_connection": "Een deel van de verbindingsinstellingen kan al op de E32 staan. De volledige verbinding en het ruimteprogramma zijn nog niet bevestigd. Controleer de installatiestatus voordat je opnieuw verbindt.",
+      "controller_plan_unconfirmed": "De E32 heeft het ruimteplan niet op tijd bevestigd. Wacht tot de E32 terug is na zijn herstart (zijn webpagina opent weer) en verstuur dan opnieuw.",
+      "controller_partial_connection": "Het verbinden stopte halverwege: een deel van de instellingen kan al op de E32 staan. Verstuur opnieuw om de verbinding af te maken; Home Assistant controleert wat er al staat.",
       "setup_changed": "De installatie is tijdens het verbinden gewijzigd. Controleer de huidige instellingen voordat je opnieuw verbindt.",
       "installation_native_settings_only": "Dit verbonden profiel ondersteunt de installatienaam, het dashboard en gedeelde watergrenzen. Weerregeling en andere instellingen vragen een ander profiel.",
       "installation_limits_conflict": "Deze grenzen botsen met een bestaand circuit of een terugvaltemperatuur. Kies passende grenzen; de huidige installatie is niet gewijzigd.",
@@ -1770,7 +1770,7 @@
       "configuration_status_closed": "Status gesloten.",
       "product_upgrade_required": "Deze oude inrichting moet eerst worden overgenomen naar de normale productconfiguratie.",
       "controller_connection_complete": "De E32-verbinding en het ruimteprogramma zijn bevestigd.",
-      "controller_connection_cancelled": "Verbinden geannuleerd. Controleer de installatiestatus; instellingen kunnen al op de E32 staan.",
+      "controller_connection_cancelled": "Verbinden geannuleerd. Een deel van de instellingen kan al op de E32 staan: open Configureren → E32 verbinden opnieuw om de verbinding af te maken.",
       "installation_applied": "Installatie opgeslagen en gecontroleerd tegen het E32-plan. Fysieke ketel- en kraanuitvoer blijven uitgeschakeld.",
       "installation_apply_pending": "Een eerdere profielwijziging is nog niet bevestigd. Open E32-verbinding en pas de opgeslagen instellingen toe voordat je de installatie opnieuw wijzigt.",
       "e32_rooms_unavailable": "Verbind eerst de E32 (E32 verbinden) zodat Home Assistant het ruimteplan kan bewerken.",
@@ -2406,7 +2406,7 @@
     },
     "e32_default_password": {
       "title": "E32 gebruikt nog het standaardwachtwoord",
-      "description": "{name}: de E32 gebruikt nog het standaardwachtwoord admin/admin, dus iedereen in je netwerk kan je verwarming wijzigen. Wijzig het op de webpagina van de E32: Systeem → Over → Wachtwoord. Home Assistant vraagt daarna één keer om het nieuwe wachtwoord (Instellingen → Apparaten en diensten) en deze melding verdwijnt."
+      "description": "{name}: de E32 gebruikt nog het standaardwachtwoord admin/admin, dus iedereen in je netwerk kan je verwarming wijzigen. Wijzig het op de webpagina van de E32: Instellingen → Wachtwoord (het Overzicht daar heeft ook een knop Wachtwoord wijzigen). Home Assistant vraagt daarna één keer om het nieuwe wachtwoord (Instellingen → Apparaten en diensten) en deze melding verdwijnt."
     },
     "legacy_rooms": {
       "title": "Oude Home Assistant-ruimte niet meer in gebruik: {rooms}",
@@ -2486,7 +2486,7 @@
     },
     "e32_room_choose_source": {
       "title": "Kies een temperatuurbron voor {room}",
-      "description": "{room} op de E32 gebruikte een thermostaat van een oude Home Assistant-ruimte als temperatuurbron. Die oude ruimte is verwijderd en had niets om die bron te vervangen. {room} blijft zoals hij was (ook als hij inactief is), maar heeft geen werkende temperatuurbron tot je er een kiest.\n\nKies Repareren om een thermostaat of temperatuursensor te kiezen, of open Configureren → E32-ruimtes → {room}.",
+      "description": "{room} op de E32 gebruikte een thermostaat van een oude Home Assistant-ruimte als temperatuurbron. Die oude ruimte is verwijderd en had niets om die bron te vervangen. {room} blijft zoals hij was (ook als hij inactief is), maar heeft geen werkende temperatuurbron tot je er een kiest.\n\nKies Repareren om een thermostaat of temperatuursensor te kiezen, of open Configureren → Ruimtes → {room}.",
       "fix_flow": {
         "step": {
           "choose_source": {

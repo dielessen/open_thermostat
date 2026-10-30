@@ -79,6 +79,14 @@ public:
     // and published on a change, otherwise every 30 s.
     static constexpr uint32_t grantMs=30000, leaseMs=30000, grantRotationMs=10000;
     static constexpr uint32_t helloIdleMs=3000, helloSessionMs=15000, stateStepMs=3000, stateRefreshMs=30000;
+    // session.compact.v1 (beta.20): an HA that understands it (0.4.0b12) asks for it with
+    // "compact":1 in ha/open_session; older HA never does and keeps the beta.19 form.
+    // In such a session the static fields travel once: the hello and the first fw/session
+    // carry them, later grants, the heartbeat/observation/command results and the zone
+    // state carry only the session id and what changes, and no periodic hello is sent
+    // (a lost session, a reconnect and a stale open still get one at once).
+    static constexpr const char* compactCapability="session.compact.v1";
+    bool compactSession() const { return session_&&compact_; }
     ShadowController(std::string controller,std::string boot,std::string owner,
                      ControlStore &store,Hash hash,Nonce nonce,Publish publish,Metrics metrics={},
                      const SeasonalControllerSource* seasonalSource=nullptr,
@@ -188,9 +196,9 @@ public:
         if(now>=challengeUntil_) newChallenge(now);
         if(session_ && now>=nextGrant_) {
             if(grantSequence_==UINT32_MAX || !newGrant(now)) { invalidate(); newChallenge(now); }
-            else sessionStatus();
+            else sessionStatus(true);
         }
-        if(now>=nextHello_) { hello(); nextHello_=now+(session_?helloSessionMs:helloIdleMs); }
+        if(now>=nextHello_&&!compactSession()) { hello(); nextHello_=now+(session_?helloSessionMs:helloIdleMs); }
         if(now>=nextState_) { state(now,utc,clockValid); nextState_=now+stateStepMs; }
         metricsSnapshot(now);
         boilerFieldSnapshot(now);
@@ -628,7 +636,7 @@ private:
         lastUserCommand_=UserCommandAdmission{};
         for(auto &name:roomNamesHex_)name.fill(0);
         supervisor_.invalidate();
-        admission_.invalidateTransport(); session_=mappingReady_=leaseWasAlive_=false;
+        admission_.invalidateTransport(); session_=mappingReady_=leaseWasAlive_=compact_=false;
         nextHello_=lastNow_; statePublishedAt_=0; stateKey_=0; // a lost session is announced at once
         sessionId_.clear(); lastOpen_.clear(); pendingGrantNonce_.clear(); issuedGrantNonce_.clear();
         nextMetrics_=0;metricsSequence_=0;nextBoilerFields_=0;boilerSequence_=0;boilerGroup_=0;boilerFieldsV2_=false;catalogFieldsKnown_=catalogFieldsWithoutCount;
@@ -652,10 +660,18 @@ private:
     }
     void open(const cJSON *o,uint64_t now) {
         const bool namedPolicy=seasonalSource_&&!seasonalSource_->profileDigest.empty();
-        const bool fields=nativePlanSource_?
-            exactFields(o,{"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest","source_profile_digest","plan_contract"}):
-            namedPolicy?exactFields(o,{"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest","source_profile_digest","source_config_pin"}):
-            exactFields(o,{"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest"});
+        // Optional "compact":1 (session.compact.v1), never anything else.
+        const bool compact=field(o,"compact")!=nullptr;
+        if(compact&&!integerField(o,"compact",1,1)) return;
+        const auto exact=[&](std::initializer_list<const char*> keys) {
+            if(cJSON_GetArraySize(o)!=static_cast<int>(keys.size()+(compact?1:0))) return false;
+            for(auto key:keys) if(!field(o,key)) return false;
+            return true;
+        };
+        const bool fields=cJSON_IsObject(o)&&(nativePlanSource_?
+            exact({"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest","source_profile_digest","plan_contract"}):
+            namedPolicy?exact({"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest","source_profile_digest","source_config_pin"}):
+            exact({"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest"}));
         if(!fields||(nativePlanSource_&&(stringField(o,"source_profile_digest")!=nativePlanSource_->profileDigest
                 ||stringField(o,"plan_contract")!=nativePlanSource_->planContract()))
             ||(!nativePlanSource_&&namedPolicy&&(stringField(o,"source_profile_digest")!=seasonalSource_->profileDigest
@@ -696,7 +712,7 @@ private:
         mappingReady_=!legacyQuarantine_&&uintField(o,"known_revision")==revision()&&stringField(o,"known_digest")==digest_;
         if(seasonalSource_&&policyGeneration_==UINT32_MAX) {fault_=true;invalidate();return;}
         if(seasonalSource_)++policyGeneration_;
-        session_=true; sessionStart_=now; grantSequence_=0; clientNonce_=stringField(o,"client_nonce"); lastOpen_=request;
+        session_=true; compact_=compact; sessionStart_=now; grantSequence_=0; clientNonce_=stringField(o,"client_nonce"); lastOpen_=request;
         if(!newGrant(now)) { invalidate(); return; }
         newChallenge(now); sessionStatus();
     }
@@ -744,6 +760,7 @@ private:
         cJSON_AddNumberToObject(o.get(),"grant_ms",grantMs); cJSON_AddBoolToObject(o.get(),"storage_fault",fault_);
         auto controlCaps=cJSON_AddArrayToObject(o.get(),"session_capabilities");
         if(controlCaps)cJSON_AddItemToArray(controlCaps,cJSON_CreateString("session.grant_nonce.v1"));
+        if(controlCaps)cJSON_AddItemToArray(controlCaps,cJSON_CreateString(compactCapability));
         auto comfortCaps=cJSON_AddArrayToObject(o.get(),"control_capabilities");
         if(comfortCaps)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString("comfort.target.v1"));
         if(comfortCaps)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString("comfort.contacts.v1"));
@@ -837,7 +854,14 @@ private:
         catalogFieldsKnown_=known?static_cast<size_t>(known->valuedouble):catalogFieldsWithoutCount;
         boilerGroup_=0;
     }
-    void sessionStatus() {
+    void sessionStatus(bool rotation=false) {
+        if(rotation&&compactSession()) {
+            // A new grant of the SAME session: identity, config, nonce and timing are unchanged.
+            auto o=objectJson(); cJSON_AddStringToObject(o.get(),"adapter_session_id",sessionId_.c_str());
+            cJSON_AddStringToObject(o.get(),"grant_id",grant_.c_str()); cJSON_AddNumberToObject(o.get(),"grant_sequence",grantSequence_);
+            if(!issuedGrantNonce_.empty()) cJSON_AddStringToObject(o.get(),"grant_request_nonce",issuedGrantNonce_.c_str());
+            send("fw/session",o.get()); return;
+        }
         auto o=base(); cJSON_AddStringToObject(o.get(),"adapter_id",owner_.c_str());
         cJSON_AddStringToObject(o.get(),"adapter_session_id",sessionId_.c_str()); cJSON_AddStringToObject(o.get(),"client_nonce",clientNonce_.c_str());
         cJSON_AddStringToObject(o.get(),"grant_id",grant_.c_str()); cJSON_AddNumberToObject(o.get(),"grant_sequence",grantSequence_);
@@ -846,8 +870,13 @@ private:
         send("fw/session",o.get());
     }
     void result(const char *topic,const Envelope &e,const char *status,const char *rejectionReason=nullptr) {
-        auto o=base(); cJSON_AddStringToObject(o.get(),"adapter_session_id",std::string(e.session).c_str());
-        cJSON_AddStringToObject(o.get(),"binding_id",std::string(e.binding).c_str());
+        // Compact: results of the session's own streams. Config and snapshot results
+        // keep the full form (rare, and they speak about the configuration itself).
+        const std::string_view t(topic);
+        const bool heartbeat=t=="fw/heartbeat_result";
+        const bool compact=compactSession()&&(heartbeat||t=="fw/observation_result"||t=="fw/user_command_result");
+        auto o=compact?objectJson():base(); cJSON_AddStringToObject(o.get(),"adapter_session_id",std::string(e.session).c_str());
+        if(!(compact&&heartbeat)) cJSON_AddStringToObject(o.get(),"binding_id",std::string(e.binding).c_str());
         cJSON_AddNumberToObject(o.get(),"sequence",e.sequence); cJSON_AddStringToObject(o.get(),"status",status);
         if(rejectionReason)cJSON_AddStringToObject(o.get(),"rejection_reason",rejectionReason);
         send(topic,o.get());
@@ -1039,6 +1068,13 @@ private:
             if(hydraulic.waterTarget)cJSON_AddNumberToObject(status,"water_target_centi_c",*hydraulic.waterTarget);
             else cJSON_AddNullToObject(status,"water_target_centi_c");
         }
+        if(compactSession()&&alive) {
+            // Bound to the session that carried the identity, config and source policy.
+            // boot_id stays: the E32 web UI keys its room history on it.
+            for(const char* key:{"api","controller_id","epoch","config_revision","config_digest","source_policy"})
+                cJSON_DeleteItemFromObjectCaseSensitive(o.get(),key);
+            cJSON_AddStringToObject(o.get(),"adapter_session_id",sessionId_.c_str());
+        }
         publishState(o.get(),now,force);
     }
     std::string controller_,boot_,owner_,digest_,configBytes_,challenge_,grant_,sessionId_,clientNonce_,lastOpen_;
@@ -1080,6 +1116,6 @@ private:
     uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0,statePublishedAt_=0;
     uint32_t stateKey_=0;
     uint64_t nextHelloReply_=0;
-    bool session_=false,mappingReady_=false,connected_=false,fault_=false,leaseWasAlive_=false;
+    bool session_=false,mappingReady_=false,connected_=false,fault_=false,leaseWasAlive_=false,compact_=false;
 };
 }

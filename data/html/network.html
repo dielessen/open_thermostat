@@ -1,7 +1,55 @@
 <link rel="stylesheet" href="deps/bms.min.css.gz" crossorigin="anonymous" />
 <script src="deps/bms.min.js.gz" crossorigin="anonymous"></script>
 
-<header class="ot-head mt-4"><div><h1 data-i18n="Settings">Settings</h1><p data-i18n="Network, Home Assistant and MQTT, time, services and backup of this E32.">Network, Home Assistant and MQTT, time, services and backup of this E32.</p></div></header>
+<header class="ot-head mt-4"><div><h1 data-i18n="Settings">Settings</h1><p data-i18n="Password, network, Home Assistant and MQTT, time, services and backup of this E32.">Password, network, Home Assistant and MQTT, time, services and backup of this E32.</p></div></header>
+<!-- The web password (POST /auth/password); first on this page, open while the default password is in use. Also reached as #password. -->
+<details class="card w-100 mb-3" id="settings-password" hidden>
+	<summary class="card-header" style="min-height:44px;cursor:pointer"><span data-i18n="Password">Password</span> <span class="ot-chip ot-chip--warn" id="pw-default-chip" hidden><span data-i18n="Default password in use">Default password in use</span></span></summary>
+	<div class="card-body">
+		<p class="pd-help"><span data-i18n="The password protects this web page. Home Assistant asks for it too when you use Connect E32. The user name stays admin.">The password protects this web page. Home Assistant asks for it too when you use Connect E32. The user name stays admin.</span></p>
+		<p class="alert alert-warning" id="pw-default" role="status" hidden><span data-i18n="This E32 still uses the default password admin. Choose your own below so nobody else on your network can change your heating.">This E32 still uses the default password admin. Choose your own below so nobody else on your network can change your heating.</span></p>
+		<form id="password-form">
+			<input type="text" name="username" value="admin" autocomplete="username" hidden>
+			<label class="d-block mb-2"><span data-i18n="Current password">Current password</span><input class="form-control" id="pw-current" type="password" autocomplete="current-password" maxlength="128" required></label>
+			<label class="d-block mb-2"><span data-i18n="New password">New password</span><input class="form-control" id="pw-new" type="password" autocomplete="new-password" minlength="8" maxlength="128" required data-hint="8 to 64 characters."></label>
+			<label class="d-block mb-2"><span data-i18n="Repeat the new password">Repeat the new password</span><input class="form-control" id="pw-repeat" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label>
+			<p class="ot-actions mb-0"><button type="submit" class="btn btn-primary"><span data-i18n="Change password">Change password</span></button><span id="pw-status" role="status" aria-live="polite"></span></p>
+		</form>
+	</div>
+</details>
+<script>
+(() => {
+	const card = document.getElementById('settings-password'), form = document.getElementById('password-form'), out = document.getElementById('pw-status');
+	const notice = document.getElementById('pw-default'), chip = document.getElementById('pw-default-chip'), current = document.getElementById('pw-current');
+	const asked = window.otPageSection === 'password'; // #password: the Overview reminder and older links open this card
+	const showDefault = on => { notice.hidden = chip.hidden = !on; current.placeholder = on ? 'admin' : ''; };
+	window.OpenThermostatAuth?.ready().then(s => {
+		card.hidden = !!s.legacy; showDefault(s.default_password === true);
+		if (!card.hidden && (asked || s.default_password === true)) card.open = true;
+		if (!card.hidden && asked) { card.scrollIntoView({block: 'start'}); current.focus({preventScroll: true}); }
+	}, () => {});
+	form.addEventListener('submit', async event => {
+		event.preventDefault();
+		const [next, again] = ['pw-new', 'pw-repeat'].map(id => document.getElementById(id));
+		if (next.value !== again.value) { out.textContent = uiText("The two new passwords are not the same."); again.focus(); return; }
+		// Characters like the firmware counts them (code points), not bytes or UTF-16 units: "Zoë" is 3.
+		const length = [...next.value].length;
+		if (length < 8 || length > 64) { out.textContent = uiText(length < 8 ? "The new password is too short." : "The new password is too long (at most 64 characters)."); next.focus(); return; }
+		out.textContent = uiText("Saving…");
+		const say = text => { out.textContent = uiText(text); };
+		try {
+			const r = await fetch('/auth/password', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({current:current.value, new:next.value})});
+			const error = r.ok ? null : (await r.json().catch(() => ({}))).error || r.status;
+			say(!error ? "Password changed. Use it the next time you sign in, also in Home Assistant." : error === 'password_wrong' ? "The current password is not correct."
+				: error === 'password_too_short' ? "The new password is too short." : error === 'password_too_long' ? "The new password is too long (at most 64 characters)."
+				: error === 'password_change_busy' ? "An update is running. Change the password after the update has finished."
+				: error === 'password_storage_failed' ? "The E32 could not confirm that the new password was saved. Try again; until then the old password may still apply."
+				: error === 404 ? "This firmware cannot change the password yet. Update the firmware first." : "The password was not changed. Try again.");
+			if (!error) { window.otDefaultPassword = false; showDefault(false); form.reset(); } else if (error === 'password_wrong') current.focus();
+		} catch (_) { say("The password was not changed. Try again."); }
+	});
+})();
+</script>
 <div class="d-flex justify-content-center" id="loadingprogress">
 	<div class="spinner-border" role="status">
 		<span class="sr-only"></span>

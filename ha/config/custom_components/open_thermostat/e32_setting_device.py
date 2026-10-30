@@ -304,12 +304,16 @@ class SettingDevicePusher:
 
 
 def room_program_changes(plan):
-    """[(room id, room name, adds program, proposed device or None)] for rooms that need one."""
+    """[(room id, room name, adds program, proposed device or None)] for rooms without a week program.
+
+    The proposed setting device travels with that explicit confirmation only: a room that has a
+    program but no setting device was left so by its owner (the room form suggests one, never
+    pre-selects it), so it does not raise a Repairs issue of its own.
+    """
     changes = []
     for room in (plan or {}).get("rooms", []):
-        program, device = not has_program(room), proposed_device(room)
-        if program or device:
-            changes.append((room["id"], room.get("name") or room["id"], program, device))
+        if not has_program(room):
+            changes.append((room["id"], room.get("name") or room["id"], True, proposed_device(room)))
     return changes
 
 
@@ -337,13 +341,30 @@ def apply_room_program_changes(plan, room_ids=None):
     """The plan with the template program and the proposed setting device for these rooms."""
     candidate = deepcopy(plan)
     for room in candidate["rooms"]:
-        if room_ids is not None and room["id"] not in room_ids:
+        if room_ids is not None and room["id"] not in room_ids or has_program(room):
             continue
-        if not has_program(room):
-            room["schedule"] = default_program(room.get("minimum_centi_c", 500), room.get("maximum_centi_c", 3000))
+        room["schedule"] = default_program(room.get("minimum_centi_c", 500), room.get("maximum_centi_c", 3000))
         if device := proposed_device(room):
             room["setpoint_entity"] = device
     return candidate
+
+
+SETTING_HINT = {
+    "en": " Suggestion: use {entity}, one of this room's temperature sources, as the setting device? "
+          "Choose it above only if Home Assistant may write the week program's temperature to it.",
+    "nl": " Suggestie: {entity}, een van de temperatuurbronnen van deze ruimte, als instelapparaat gebruiken? "
+          "Kies het hierboven alleen als Home Assistant de temperatuur van het weekprogramma erop mag zetten.",
+    "pl": " Sugestia: użyć {entity}, jednego ze źródeł temperatury tego pomieszczenia, jako urządzenia nastawczego? "
+          "Wybierz je powyżej tylko wtedy, gdy Home Assistant może zapisywać na nim temperaturę z programu tygodniowego.",
+}
+
+
+def setting_hint(device, language):
+    """The room form's suggestion for a setting device (it is never pre-selected), or ""."""
+    if not device:
+        return ""
+    text = SETTING_HINT.get(str(language or "en").split("-")[0].split("_")[0], SETTING_HINT["en"])
+    return text.format(entity=device)
 
 
 def describe_changes(changes, language):

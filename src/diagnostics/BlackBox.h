@@ -98,6 +98,9 @@ public:
     uint8_t wifiLostRestarts() const { return phase_ ? phase_->wifiLostRestarts : 0; }
     uint8_t bluetoothRestarts() const { return phase_ ? phase_->bluetoothRestarts : 0; }
     uint8_t networkDeadRestarts() const { return phase_ ? phase_->networkDeadRestarts : 0; }
+    // A runtime controller fault came back right after its control_fault
+    // restart: it stays latched until a manual restart (SupervisorPolicy).
+    void controlFaultHeld() { controlFaultHeld_ = true; }
     // {"reset_reason":n,"previous":{...}|null}
     cJSON* json() const {
         cJSON* root = cJSON_CreateObject();
@@ -106,6 +109,7 @@ public:
         cJSON_AddNumberToObject(root, "wifi_lost_restarts", wifiLostRestarts());
         cJSON_AddNumberToObject(root, "bluetooth_silent_restarts", bluetoothRestarts());
         cJSON_AddNumberToObject(root, "network_dead_restarts", networkDeadRestarts());
+        cJSON_AddBoolToObject(root, "control_fault_held", controlFaultHeld_);
         if (!havePrevious_) { cJSON_AddNullToObject(root, "previous"); return root; }
         cJSON* p = cJSON_AddObjectToObject(root, "previous");
         if (!p) { cJSON_Delete(root); return nullptr; }
@@ -170,6 +174,7 @@ private:
     uint8_t previousReason_ = 0;
     uint32_t requests_ = 0;
     bool havePrevious_ = false;
+    bool controlFaultHeld_ = false;
 };
 inline BlackBox blackBox;
 }

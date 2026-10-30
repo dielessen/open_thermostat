@@ -425,20 +425,18 @@ private:
     // Validated SNTP event in main sets this trust flag. A plausible cached or
     // manual wall time is not sufficient after boot; no RTC assumed on E32.
     static bool clockValid();
-    // Once per boot: a controller fault latched while running (ambiguous
-    // storage, exception, hash failure, SOURCE lockout) clears only with a
-    // fresh boot readback, so the hello would carry storage_fault for good.
-    // Never before 15 min uptime, so a lasting cause cannot restart-loop the
-    // device; the controlled restart also waits for updates, the boot check
-    // and boiler sessions (update::loop).
-    static constexpr uint64_t faultRestartUptimeMs=15ULL*60*1000;
-    static void scheduleFaultRestart(uint32_t delayMs);
+    // A controller fault latched while running (ambiguous storage, exception,
+    // hash failure, SOURCE lockout) clears only with a fresh boot readback.
+    // SupervisorPolicy::controlFault decides once per boot: one controlled
+    // restart when due (checked every pass, never pre-scheduled), or hold the
+    // latch when the previous boot already ended with such a restart.
+    static bool decideFaultRestart(uint64_t now,uint64_t faultAt); // true = decided
     void restartForRuntimeFault(uint64_t now) {
-        if(faultRestartScheduled_||!controller_||!controller_->runtimeFaulted())return;
-        faultRestartScheduled_=true;
-        scheduleFaultRestart(static_cast<uint32_t>((now<faultRestartUptimeMs?faultRestartUptimeMs-now:0)+60000));
+        if(faultRestartDecided_||!controller_||!controller_->runtimeFaulted())return;
+        if(!faultSeenAt_)faultSeenAt_=now?now:1;
+        faultRestartDecided_=decideFaultRestart(now,faultSeenAt_);
     }
-    bool faultRestartScheduled_=false;
+    bool faultRestartDecided_=false; uint64_t faultSeenAt_=0;
     config::MqttConfig cfg_; std::string base_,sourceNetworkBase_; // ephemeral bounded<2048, never logged/persisted.
     DeadlineWiFiClient network_; PubSubClient client_; NvsControlStore store_;
     StatusSnapshot controllerStatus_;

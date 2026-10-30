@@ -31,6 +31,21 @@ struct SupervisorPolicy {
     // NimBLE host or its start failed. After maximumBackoff restarts in a row
     // (30 min .. 4 h) it gives up until a frame arrives or power is cycled.
     static constexpr uint32_t bluetoothSilentMs = 1800000;
+    // A controller fault latched while running (ShadowController::runtimeFaulted)
+    // clears only with a fresh boot's readback. One controlled restart, never
+    // before controlFaultUptimeMs, scheduled only when due (it must not hold up
+    // or relabel another controlled restart). If the previous boot ended with
+    // a control_fault restart, the fault came back: the controller stays
+    // latched as in beta.19 (shown as control_fault_held), unless this boot ran
+    // controlFaultHealthyMs without one. Any other restart, a power cycle or a
+    // firmware update ends the series (the reason byte lasts one boot).
+    static constexpr uint32_t controlFaultUptimeMs = 900000;
+    static constexpr uint32_t controlFaultHealthyMs = 86400000;
+    enum class ControlFaultAction : uint8_t { wait, restart, hold };
+    static ControlFaultAction controlFault(uint64_t uptimeMs, uint64_t faultAtMs, Reason previousRestart) {
+        if (previousRestart == Reason::controlFault && faultAtMs < controlFaultHealthyMs) return ControlFaultAction::hold;
+        return uptimeMs >= controlFaultUptimeMs ? ControlFaultAction::restart : ControlFaultAction::wait;
+    }
 
     struct Inputs {
         uint64_t now = 0, loopAt = 0;

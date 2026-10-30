@@ -151,6 +151,20 @@ TEST(BlackBox, SupervisorRestartKeepsTheLastStateForTheNextBoot) {
     BlackBox third; third.begin(rtc, phaseRtc, 3); // the new boot's record replaced it
     EXPECT_EQ(third.previous().uptimeS, 0u);
 }
+TEST(BlackBox, ControlFaultSeriesLastsOneBootAndAHeldLatchIsShown) {
+    BlackBoxRecord rtc{};
+    BlackBox first; first.begin(rtc, phaseRtc, 1); first.restartReason(Reason::controlFault);
+    BlackBox second; second.begin(rtc, phaseRtc, 3);
+    EXPECT_EQ(second.previousRestart(), Reason::controlFault); // the next fault is held
+    std::unique_ptr<cJSON, decltype(&cJSON_Delete)> j(second.json(), cJSON_Delete);
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(j.get(), "control_fault_held")));
+    second.controlFaultHeld();
+    j.reset(second.json());
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(j.get(), "control_fault_held")));
+    // A restart without a reason (update, manual) ends the series.
+    BlackBox third; third.begin(rtc, phaseRtc, 3);
+    EXPECT_EQ(third.previousRestart(), Reason::none);
+}
 TEST(BlackBox, CorruptedRecordIsNotReported) {
     BlackBoxRecord rtc{};
     BlackBox first; first.begin(rtc, phaseRtc, 1); first.note(10, 1, 1, 1, 0, true, true);
@@ -208,6 +222,20 @@ TEST(SupervisorPolicy, UpdateExemptionEndsAfterTwentyMinutes) {
     in.updateSince = 0; // start unknown: never restart an update
     EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
     EXPECT_STREQ(SupervisorPolicy::name(Reason::updateStuck), "update_stuck");
+}
+TEST(SupervisorPolicy, ControlFaultRestartsOnceInARowAndOnlyWhenDue) {
+    using A = SupervisorPolicy::ControlFaultAction;
+    constexpr uint64_t min = 60000, due = SupervisorPolicy::controlFaultUptimeMs, day = SupervisorPolicy::controlFaultHealthyMs;
+    // First time: wait until 15 min uptime (checked every pass, not pre-scheduled), then restart.
+    EXPECT_EQ(SupervisorPolicy::controlFault(min, min, Reason::none), A::wait);
+    EXPECT_EQ(SupervisorPolicy::controlFault(due - 1, min, Reason::none), A::wait);
+    EXPECT_EQ(SupervisorPolicy::controlFault(due, min, Reason::none), A::restart);
+    EXPECT_EQ(SupervisorPolicy::controlFault(due, min, Reason::bluetoothApply), A::restart);
+    // Back right after a control_fault restart: hold the latch at once (no loop).
+    EXPECT_EQ(SupervisorPolicy::controlFault(min, min, Reason::controlFault), A::hold);
+    EXPECT_EQ(SupervisorPolicy::controlFault(10 * day, day - 1, Reason::controlFault), A::hold);
+    // A day without a runtime fault ends the series.
+    EXPECT_EQ(SupervisorPolicy::controlFault(day, day, Reason::controlFault), A::restart);
 }
 TEST(SupervisorPolicy, ControlFaultReasonIsAppendedAndNamed) {
     // Stored in RTC memory by earlier boots: existing values never move.

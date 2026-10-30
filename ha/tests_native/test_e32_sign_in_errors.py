@@ -120,3 +120,16 @@ async def test_reauthentication_shows_the_sign_in_refusal(hass, monkeypatch):
     flow._get_reauth_entry = lambda: parent
     result = await flow.async_step_reauth_confirm({"password": "new-password"})
     assert result["errors"] == {"base": "reauth_session_capacity"}
+
+
+def test_every_raised_controller_error_code_has_a_text():
+    """Each code a connection step can raise is shown as a sentence, never as a bare key."""
+    import re
+    from test_polish_translation import COMPONENT
+    raised = set()
+    for path in COMPONENT.glob("*.py"):
+        raised |= set(re.findall(r'ControllerLinkError\(\s*["\'](controller_[a-z_]+)["\']', path.read_text(encoding="utf-8")))
+    assert "controller_readback_unconfirmed" in raised
+    for name in ("strings.json", "translations/nl.json", "translations/pl.json"):
+        errors = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["options"]["error"]
+        assert "controller_readback_unconfirmed" in errors, name

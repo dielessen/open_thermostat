@@ -789,7 +789,8 @@
       "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again.",
       "controller_room_plan_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (Home Assistant: Settings → Updates → OpenThermostat E32 Firmware → Install), then try again. Nothing has been changed.",
       "controller_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
-      "controller_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again."
+      "controller_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again.",
+      "controller_readback_unconfirmed": "The E32 did not send back its current room settings within 90 seconds, so this save is not confirmed. Check that the E32 is online and connected to the MQTT broker, then try again."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",

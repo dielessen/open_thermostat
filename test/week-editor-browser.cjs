@@ -126,28 +126,32 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    assert(!requests.includes('/week-editor.js'),'Home does not load the planner');
    await page.evaluate(()=>loadNativePage('heating'));
    const room=page.locator('[data-heating-room="woonkamer"]');await room.waitFor();await room.evaluate(e=>e.open=true);
+   // A save re-renders the room cards: mark the old card, wait for its replacement and open that one,
+   // so a still visible earlier "saved" message or the old card cannot race the next step.
+   const saved=async()=>{await room.evaluate(e=>e.dataset.old='1');await page.locator('[data-heating-save]').click();await page.getByText('Ruimtes opgeslagen.').waitFor();
+    await page.locator('[data-heating-room="woonkamer"]:not([data-old])').waitFor({state:'attached'});await room.evaluate(e=>e.open=true);};
    const planner=room.locator('[data-heating-planner]');await planner.locator('.wpe-seg').first().waitFor();
    assert.equal(await room.locator('[data-heating-point]').first().isVisible(),false,'the list is the hidden fallback');
    assert.equal(await planner.getByRole('button',{name:'Comfort warmer'}).isVisible(),true,'Dutch planner');
    // Levels come from the program: 20.5 comfort, 18 night, 19.5 away; the template uses them.
    await planner.locator('select').selectOption({label:'Werkdagen en weekend'});
    await page.screenshot({path:path.join(output,`e32-rooms-${width}.png`),fullPage:true});
-   await page.locator('[data-heating-save]').click();await page.getByText('Ruimtes opgeslagen.').waitFor();
+   await saved();
    assert.deepEqual(posts.at(-1).rooms[0].schedule,template(levelsOf(2050,1950,1800)));
    assert.equal(posts.at(-1).revision,4);
    // A same-every-day program goes through the page's own "same every day" path unchanged.
    await room.evaluate(e=>e.open=true);
    await page.locator('[data-heating-room="woonkamer"] [data-heating-planner] select').selectOption({label:'Elke dag hetzelfde'});
-   await page.locator('[data-heating-save]').click();await page.getByText('Ruimtes opgeslagen.').waitFor();
+   await saved();
    assert.deepEqual(posts.at(-1).rooms[0].schedule,Array(7).fill([[420,2050],[1350,1800]]));
    // Week program off, saved; turning it on again starts from "Workdays and weekend" at the room's target (21 °C).
    await room.evaluate(e=>e.open=true);
    await room.getByLabel('Weekprogramma gebruiken').uncheck();
-   await page.locator('[data-heating-save]').click();await page.getByText('Ruimtes opgeslagen.').waitFor();
+   await saved();
    assert.equal('schedule' in posts.at(-1).rooms[0],false);
    await room.evaluate(e=>e.open=true);await room.getByLabel('Weekprogramma gebruiken').check();
    await room.locator('[data-heating-planner] .wpe-seg.lv-away').first().waitFor();
-   await page.locator('[data-heating-save]').click();await page.getByText('Ruimtes opgeslagen.').waitFor();
+   await saved();
    assert.deepEqual(posts.at(-1).rooms[0].schedule,template(levelsOf(2100,1850,1600)));
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal scroll');
    assert.deepEqual(errors,[]);await page.close();results.push({part:'e32',width,posts:posts.length});

@@ -70,6 +70,64 @@ class AcceptedUpdatePathTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'newer_than_accepted'):
                 self.run_fixture()
 
+    def accepted_fixture(self):
+        """The manifest and image of a development build that still carries the accepted version."""
+        accepted,_=accepted_source(self.root)
+        image = self.image.replace(self.base['version'].encode(),accepted['tag'].encode())
+        self.manifest = {**self.base,'version':accepted['tag'],'size':len(image),'sha256':hashlib.sha256(image).hexdigest()}
+        (self.work/'manifest.json').write_text(json.dumps(self.manifest))
+        (self.work/'firmware.bin').write_bytes(image)
+        return accepted
+
+    def verify_allowed(self):
+        return verify(self.root,self.work/'manifest.json',self.work/'firmware.bin',allow_accepted=True)
+
+    def test_a_branch_build_may_still_carry_the_accepted_version(self):
+        # Between an acceptance and the next version bump, branch and PR builds reproduce and verify only.
+        accepted = self.accepted_fixture()
+        report = self.verify_allowed()
+        self.assertEqual((report['result'],report['candidate'],report['accepted_tag']),('ALREADY_ACCEPTED',accepted['tag'],accepted['tag']))
+        self.assertFalse(report['successor_publication_approved'])
+        self.assertNotIn('image_commit_gate_cases',report)
+        verify_report(self.root,report,self.work/'manifest.json',source_root=self.root,allow_accepted=True)
+
+    def test_a_tag_build_of_the_accepted_version_stays_refused(self):
+        self.accepted_fixture()
+        with self.assertRaisesRegex(ValueError,'newer_than_accepted'):
+            verify(self.root,self.work/'manifest.json',self.work/'firmware.bin')
+        report = self.verify_allowed()
+        with self.assertRaisesRegex(ValueError,'newer_than_accepted'):
+            verify_report(self.root,report,self.work/'manifest.json')
+
+    def test_the_accepted_version_allowance_is_narrow(self):
+        self.accepted_fixture()
+        (self.work/'firmware.bin').write_bytes(self.image)  # still an exact image identity
+        with self.assertRaisesRegex(ValueError,'identity_mismatch'):
+            self.verify_allowed()
+        for tag in ('v0.1.0-e32v2-alpha.1','ha-v0.4.0b3'):  # never an older or foreign version
+            (self.work/'manifest.json').write_text(json.dumps({**self.base,'version':tag}))
+            with self.subTest(tag=tag),self.assertRaisesRegex(ValueError,'newer_than_accepted'):
+                self.verify_allowed()
+        self.setUp()  # a newer candidate cannot skip the update path with an ALREADY_ACCEPTED report
+        with self.assertRaisesRegex(ValueError,'scope_mismatch'):
+            verify_report(self.root,{**self.report,'result':'ALREADY_ACCEPTED'},self.work/'manifest.json',allow_accepted=True)
+        self.accepted_fixture()  # and an accepted-version report must be exactly the one for this payload
+        report = self.verify_allowed()
+        for field,value in [('candidate','v9.9.9-e32v2'),('accepted_source','f'*40),('firmware_sha256','f'*64),
+                            ('successor_publication_approved',True),('extra',1)]:
+            with self.subTest(field=field),self.assertRaisesRegex(ValueError,'scope_mismatch'):
+                verify_report(self.root,{**report,field:value},self.work/'manifest.json',allow_accepted=True)
+
+    def test_the_packager_refuses_the_allowance_on_a_tag_build(self):
+        import os,sys
+        env = {**os.environ,'GITHUB_REF':'refs/tags/v0.1.0-e32v2-beta.99'}
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run([sys.executable,str(self.root/'scripts/package_e32v2_release.py'),'--allow-accepted-version',
+                                     '--output',directory+'/pkg','--release-output',directory+'/assets'],
+                                    cwd=self.root,env=env,capture_output=True,text=True)
+        self.assertNotEqual(result.returncode,0)
+        self.assertIn('A tag build must be newer than the accepted release',result.stderr)
+
     def test_the_accepted_updater_also_finds_and_verifies_version_one(self):
         self.manifest = {**self.base,'version':'v1.0.0-e32v2'}
         image = self.image.replace(self.base['version'].encode(),b'v1.0.0-e32v2')

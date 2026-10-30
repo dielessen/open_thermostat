@@ -18,7 +18,12 @@ parser.add_argument("--output",type=Path,default=root/"out/e32v2")
 parser.add_argument("--release-output",type=Path,default=root/"out/release")
 parser.add_argument("--source-inputs",type=Path,help="Exact pinned vendor source/notice ZIP; never an approval flag")
 parser.add_argument("--sdk-reproduction",type=Path,help="Successful current-commit independently checked CI reproduction receipt")
+parser.add_argument("--allow-accepted-version",action="store_true",
+                    help="Branch and pull-request builds only: release.json may still equal the accepted release "
+                         "(reproduce and verify only). Refused for a tag build, which must be newer.")
 args = parser.parse_args()
+if args.allow_accepted_version and __import__('os').environ.get("GITHUB_REF","").startswith("refs/tags/"):
+    raise RuntimeError("A tag build must be newer than the accepted release: --allow-accepted-version is refused")
 pkg = args.output.resolve();assets = args.release_output.resolve()
 if (pkg.exists() and any(pkg.iterdir())) or (assets.exists() and any(assets.iterdir())):
     raise RuntimeError("Use empty release output directories; do not mix old assets")
@@ -129,11 +134,11 @@ if "-e32v2-alpha." not in release["version"]:
     (pkg/"alpha36-beta-compatibility.json").write_text(json.dumps(compatibility,indent=2)+"\n")
     shutil.copy2(pkg/"alpha36-beta-compatibility.json",assets/"alpha36-beta-compatibility.json")
     from verify_accepted_update_path import verify as verify_accepted
-    accepted_compatibility = verify_accepted(root,pkg/"e32v2-update.json",pkg/"firmware.bin")
+    accepted_compatibility = verify_accepted(root,pkg/"e32v2-update.json",pkg/"firmware.bin",args.allow_accepted_version)
     (pkg/"accepted-predecessor-compatibility.json").write_text(json.dumps(accepted_compatibility,indent=2)+"\n")
     shutil.copy2(pkg/"accepted-predecessor-compatibility.json",assets/"accepted-predecessor-compatibility.json")
 (pkg/"SHA256SUMS.txt").write_text("".join(hashlib.sha256(p.read_bytes()).hexdigest()+"  "+str(p.relative_to(pkg))+"\n" for p in sorted(pkg.rglob("*")) if p.is_file() and p.name!="SHA256SUMS.txt"))
-report = verify(pkg,root)
+report = verify(pkg,root,args.allow_accepted_version)
 (assets/"software-verification.json").write_text(json.dumps(report,indent=2)+"\n")
 for name in ["firmware.bin","e32v2-update.json"]:shutil.copy2(pkg/name,assets/name)
 zip_path = assets/("open-thermostat-e32v2-"+release["version"]+".zip")

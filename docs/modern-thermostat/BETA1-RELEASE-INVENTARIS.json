@@ -27,7 +27,7 @@
         },
         {
           "path": "scripts/package_e32v2_release.py",
-          "sha256": "632e0d7c0d2e38929e18c55fdc629a5f24bd7312d04a89fe307287e6273b9fc9"
+          "sha256": "524f988d6869912cf3a4596a7892b32608f7f06de31bce6ed26f6323a5e558ea"
         },
         {
           "path": "docs/third-party/shipped-policy.json",
@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "86d0569c615f5ca40d2ee8dad67243e028a147eb53b7fb5ea0602c6a064761b9"
+          "sha256": "0cf0f331e8dfe2833d6ca85f7cb1304ad02cdbec1e54c55cc63e2794aa97431a"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -167,15 +167,15 @@
         },
         {
           "path": "scripts/verify_accepted_update_path.py",
-          "sha256": "36641a0b674834df9d0e6bcfe64b77022e27bccd45e1b0d78c37a151cc46217e"
+          "sha256": "219b368c88811203a14060b72debfafa40675cd4546d55cdec9ef6e6920ce71b"
         },
         {
           "path": "scripts/test_accepted_update_path.py",
-          "sha256": "04ab7b52bdc7c11ea39e0fca1d91e56b83be3c2cb1d514df16da5ed0cba19f88"
+          "sha256": "cf61bfbabe9ba9af0b4bf273685036d8264413ad9ee3c51b835142515b37f3f0"
         },
         {
           "path": "scripts/verify_e32v2_release.py",
-          "sha256": "8e5fc1e3f40cf452f3cfbd9e149d8a890b732340417bd77c97f7c5e34a42e023"
+          "sha256": "7107075ae5184fc77f00f4d159f659c6ad0fbd0ebca1e0356a6e380036cf4425"
         },
         {
           "path": "AGENTS.md",
@@ -829,7 +829,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "86d0569c615f5ca40d2ee8dad67243e028a147eb53b7fb5ea0602c6a064761b9"
+          "sha256": "0cf0f331e8dfe2833d6ca85f7cb1304ad02cdbec1e54c55cc63e2794aa97431a"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -1499,7 +1499,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "86d0569c615f5ca40d2ee8dad67243e028a147eb53b7fb5ea0602c6a064761b9"
+          "sha256": "0cf0f331e8dfe2833d6ca85f7cb1304ad02cdbec1e54c55cc63e2794aa97431a"
         },
         {
           "path": "platformio.ini",

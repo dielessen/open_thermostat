@@ -89,18 +89,43 @@ def accepted_source(root):
     return record, hashlib.sha256(receipt.read_bytes()).hexdigest()
 
 
-def verify(root, manifest_path, image_path):
+def comparable(manifest, accepted, allow_accepted):
+    """The candidate's version, or ValueError when it cannot follow the accepted release.
+
+    A tag (and every publication) must be newer than the accepted release. A
+    branch or pull-request build may still carry the accepted version between an
+    acceptance and the next version bump (allow_accepted); it is reproduced and
+    verified, but proves no successor update path.
+    """
+    target, basis = version(manifest['version']), version(accepted['tag'])
+    if target is None or target < basis or (target == basis and not allow_accepted):
+        raise ValueError('candidate_must_be_newer_than_accepted')
+    return target == basis
+
+
+def already_accepted(accepted, receipt_sha, manifest, raw):
+    return {'result': 'ALREADY_ACCEPTED', 'accepted_tag': accepted['tag'], 'accepted_source': accepted['source_commit'],
+            'acceptance_receipt_sha256': receipt_sha, 'candidate': manifest['version'],
+            'source_commit': manifest['source_commit'], 'manifest_sha256': hashlib.sha256(raw).hexdigest(),
+            'firmware_sha256': manifest['sha256'], 'network_used': False, 'physical_update_tested': False,
+            'successor_publication_approved': False,
+            'reason': 'release.json equals the accepted release: a development build, reproduced and verified only; '
+                      'a tag must be newer than the accepted release'}
+
+
+def verify(root, manifest_path, image_path, allow_accepted=False):
     root = Path(root).resolve()
     accepted, receipt_sha = accepted_source(root)
     raw = Path(manifest_path).read_bytes()
     manifest = json.loads(raw)
-    target = version(manifest['version'])
-    if target is None or target <= version(accepted['tag']):
-        raise ValueError('candidate_must_be_newer_than_accepted')
+    same = comparable(manifest, accepted, allow_accepted)
     image = Path(image_path).read_bytes()
     marker = f'OT_E32V2_OTA_V1:{manifest["version"]}:{manifest["source_commit"]}:{manifest["web_sha256"]}:END'.encode()
     if len(image) != manifest['size'] or hashlib.sha256(image).hexdigest() != manifest['sha256'] or marker not in image:
         raise ValueError('candidate_image_identity_mismatch')
+    if same:
+        # The accepted updater rightly never offers its own version: no update path to exercise.
+        return already_accepted(accepted, receipt_sha, manifest, raw)
     cjson = root / '.pio/libdeps/native/cJSON'
     retained = {}
     with tempfile.TemporaryDirectory(prefix='ot-accepted-updater-') as temp:
@@ -138,13 +163,16 @@ def verify(root, manifest_path, image_path):
             'network_used': False, 'physical_update_tested': False, 'successor_publication_approved': False}
 
 
-def verify_report(root, report, manifest_path, source_root=None):
+def verify_report(root, report, manifest_path, source_root=None, allow_accepted=False):
     """Check a delivered report against the packaged receipt and exact payload."""
     accepted, receipt_sha = accepted_source(root)
     raw = Path(manifest_path).read_bytes()
     manifest = json.loads(raw)
-    if version(manifest['version']) is None or version(manifest['version']) <= version(accepted['tag']):
-        raise ValueError('candidate_must_be_newer_than_accepted')
+    same = comparable(manifest, accepted, allow_accepted)
+    if same or report.get('result') == 'ALREADY_ACCEPTED':
+        if not same or report != already_accepted(accepted, receipt_sha, manifest, raw):
+            raise ValueError('accepted_updater_report_identity_or_scope_mismatch')
+        return
     expected = {'result': 'PASS', 'accepted_tag': accepted['tag'], 'accepted_source': accepted['source_commit'],
                 'acceptance_receipt_sha256': receipt_sha, 'candidate': manifest['version'],
                 'source_commit': manifest['source_commit'], 'manifest_sha256': hashlib.sha256(raw).hexdigest(),
@@ -171,8 +199,10 @@ if __name__ == '__main__':
     parser.add_argument('manifest', type=Path)
     parser.add_argument('image', type=Path)
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--allow-accepted-version', action='store_true',
+                        help='branch/PR builds only: the candidate may equal the accepted release')
     args = parser.parse_args()
-    result = verify(Path(__file__).resolve().parents[1], args.manifest, args.image)
+    result = verify(Path(__file__).resolve().parents[1], args.manifest, args.image, args.allow_accepted_version)
     encoded = json.dumps(result, indent=2)+'\n'
     if args.output:
         args.output.write_text(encoded)

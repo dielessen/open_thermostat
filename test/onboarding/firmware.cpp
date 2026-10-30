@@ -7,13 +7,14 @@
 #include <cassert>
 #include <iostream>
 namespace heating {bool boardEthernetStarted=false,wifiAPMode=false;}
-namespace config {WiFiConfig getWiFiConfig(){WiFiConfig cfg;heating::readSetupWifi(cfg);return cfg;}}
+config::NetworkConfig testNetwork;
+namespace config {WiFiConfig getWiFiConfig(){WiFiConfig cfg;heating::readSetupWifi(cfg);return cfg;}NetworkConfig getNetworkConfig(){return testNetwork;}}
 using namespace heating;
 int cases=0;
 void pass(const char* name){++cases;std::cout<<"PASS "<<name<<'\n';}
 void reset(){
  testNvs::committed.clear();testNvs::handles.clear();testNvs::failCommit.clear();testNvs::corruptRead.clear();
- WiFi={};testNow=1000;boardEthernetStarted=false;wifiAPMode=false;
+ WiFi={};testNow=1000;testNetwork={};boardEthernetStarted=false;wifiAPMode=false;
  setupUntil=setupAttemptUntil=setupCloseAt=setupJoinAt=0;setupCandidate={};setupResult="idle";
  setupDns={};setupDnsActive=false;setupSavedSsid.clear();setupCloseIP=IPAddress();
  setupRebootRequested=false;setupRestartHeld=false;wifiScanState="idle";wifiScanRows="[]";wifiScanStarted=0;
@@ -46,6 +47,11 @@ int main(){
  reset();boardEthernetStarted=true;assert(!startSetupWifi()&&!startWifiScan());assert(WiFi.modeValue==0);pass("Ethernet-clock guard prevents powering up WiFi");
  reset();ap();assert(!trySetupWifi({"","test-pass"})&&!trySetupWifi({"home","short"})&&!trySetupWifi({std::string(33,'x'),"test-pass"}));assert(trySetupWifi({"open",""}));pass("invalid lengths rejected and open-network manual entry supported");
  reset();ap();testNow=setupUntil+1;pollSetupWifi();assert(!WiFi.ap&&setupResult=="setup_expired");pass("bounded setup window closes normally");
+ reset();ap();join();connected();assert(finishSetupWifi());testNow+=8001;pollSetupWifi();assert(!WiFi.ap&&setupResult=="connected_saved");
+ WiFi.connected=false;WiFi.ip={};testNetwork.hostname="ot-test";ap();WiFi.reconnect=false;const int joins=WiFi.joins;testNow=setupUntil+1;pollSetupWifi();
+ assert(!WiFi.ap&&setupResult=="setup_expired"&&WiFi.joins==joins+1&&WiFi.joined=="home"&&WiFi.hostname=="ot-test"&&WiFi.reconnect&&WiFi.modeValue==WIFI_STA);pass("expired setup rejoins the saved Wi-Fi at once");
+ reset();ap();join();connected();assert(finishSetupWifi());testNow+=8001;pollSetupWifi();WiFi.connected=false;testNetwork.interfaceMode="ethernet";ap();
+ {const int joins=WiFi.joins;testNow=setupUntil+1;pollSetupWifi();assert(setupResult=="setup_expired"&&WiFi.joins==joins);}pass("expired setup on Ethernet does not start Wi-Fi");
  reset();ap();join();connected();assert(finishSetupWifi());WiFi.connected=false;testNow+=8001;pollSetupWifi();assert(WiFi.ap&&setupCloseAt==0);pass("station loss during finish grace period preserves recovery AP");
  reset();ap();join();connected();assert(trySetupWifi({"wrong-new-network","test-pass"}));testNow+=751;pollSetupWifi();testNow+=30001;pollSetupWifi();assert(setupResult=="connection_failed"&&readSetupWifi(cfg)&&cfg.ssid=="home");pass("failed replacement preserves previously accepted credentials");
  reset();Serial.input="setup\n";pollSetupWifi();assert(setupRebootRequested);setupRebootRequested=false;assert(consumeSetupBoot()&&!consumeSetupBoot());pass("USB recovery flag is durable and one-shot");

@@ -730,6 +730,8 @@ BLE-proxy, automatische zones en zelfleren blijven op hun eigen roadmap staan.
 Deze onderhoudsbron claimt die functies niet als geleverd of fysiek vrijgegeven.
 Alle voorbereide bron en bestaande acceptatiegrenzen blijven behouden.
 
+Instelbare EMS-ketelwaarden (na 1.0, met bewijsniveaus en een geavanceerde sectie): [plan](EMS-INSTELBARE-WAARDEN.nl.md).
+
 ## Vaste releaseafspraken
 
 - Grotere samenhangende bundels; geen tag of installatie per losse reparatie.

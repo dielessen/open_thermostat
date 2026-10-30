@@ -1129,7 +1129,7 @@
         },
         {
           "path": "ha/tests_native/test_boiler_field_names.py",
-          "sha256": "ab79ca972c141ba4ac9f0babf05a093d3f9dceef9bfec8005df77a3db859998e"
+          "sha256": "0921cc11692e863f845b3327d4f7c5a5cedaa9e4b152464fc1c9c006ead6a130"
         },
         {
           "path": "ha/tests_native/test_dashboard_heating.py",

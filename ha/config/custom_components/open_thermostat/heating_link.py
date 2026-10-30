@@ -31,6 +31,7 @@ room and Bluetooth ids it actually reports; all of them are unavailable while
 the E32 is offline or silent.
 """
 import json
+import logging
 import math
 import re
 import time
@@ -47,6 +48,7 @@ from homeassistant.helpers.event import async_track_state_change_event, async_tr
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
 
+_LOGGER = logging.getLogger(__name__)
 REFRESH_SECONDS = 300
 MAX_ENTITIES = 40  # the E32 plan: 8 rooms x (4 sources + setpoint entity)
 # fw/heartbeat every 60 s: unavailable after three missed ones (or fw/availability offline).
@@ -410,8 +412,12 @@ class HeatingHub:
         return dhw if dhw is not None else dhw_status(self.status)
 
     @callback
-    def add_listener(self, listener):
-        self._listeners.append(listener)
+    def add_listener(self, listener, first=False):
+        """first: called before the others (the ha/heating_input forwarding)."""
+        if first:
+            self._listeners.insert(0, listener)
+        else:
+            self._listeners.append(listener)
 
         @callback
         def remove():
@@ -421,8 +427,12 @@ class HeatingHub:
 
     @callback
     def notify(self):
+        # One failing listener (an entity, a forwarder) never stops the others.
         for listener in list(self._listeners):
-            listener()
+            try:
+                listener()
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception("OpenThermostat: an E32 telemetry listener failed")
 
     @callback
     def forget_removed_rooms(self, room_ids):
@@ -608,6 +618,20 @@ def topic_base(hass, entry):
     connection = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("v1_connection")
     prefix = getattr(connection, "prefix", None)
     return prefix if type(prefix) is str and prefix else entry.data[CONF_TOPIC_PREFIX] + "/v1/"
+
+
+class _RetainedLink:
+    """Stands in for the link's connection without a running link: its client is the
+    retained boiler source (v1_boiler_fields), looked up when read, so the order in
+    which the sensor setup steps run does not matter."""
+
+    def __init__(self, state, prefix):
+        self._state, self.prefix = state, prefix
+
+    @property
+    def client(self):
+        from .v1_boiler_fields import SOURCE_KEY
+        return self._state.get(SOURCE_KEY)
 
 
 def heating_hub(hass, entry):
@@ -1441,10 +1465,8 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
         from .room_plan import has_room_plan
         if not has_room_plan(entry):  # only an installation with a connected E32 (no rows before that)
             return
-        from types import SimpleNamespace
-        from .v1_boiler_fields import SOURCE_KEY
         # The advice reads the boiler values of the retained source instead.
-        connection = SimpleNamespace(client=state.get(SOURCE_KEY), prefix=topic_base(hass, entry))
+        connection = _RetainedLink(state, topic_base(hass, entry))
     base = topic_base(hass, entry)
     hub = heating_hub(hass, entry)
     options = add_options(hass, entry, options)
@@ -1453,7 +1475,11 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     entry.async_on_unload(track_entities(hub, async_add_entities, options, wanted_sensors))
     if is_product(entry):  # the tuning advice (advice only) on the product device
         from .heating_advice import async_setup_heating_advice
-        await async_setup_heating_advice(hass, entry, async_add_entities, options, hub, connection)
+        try:
+            await async_setup_heating_advice(hass, entry, async_add_entities, options, hub, connection)
+        except Exception:  # noqa: BLE001 - the advice is optional; the rooms and forwarding are not
+            _LOGGER.exception("OpenThermostat: setting up the heating advice and gas use failed; "
+                              "the E32 rooms still load")
     forwarded = []
     unsubscribe_states = None
     was_fresh = False
@@ -1515,7 +1541,7 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
             unsubscribe_states()
 
     await mqtt.async_wait_for_mqtt_client(hass)
-    entry.async_on_unload(hub.add_listener(follow))
+    entry.async_on_unload(hub.add_listener(follow, first=True))
     for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", PLAN_TOPIC,
                   ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, SHADOW_TOPIC):
         entry.async_on_unload(await mqtt.async_subscribe(hass, base + topic, receive))

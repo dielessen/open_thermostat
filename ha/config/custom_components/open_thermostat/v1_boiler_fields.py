@@ -101,7 +101,10 @@ class RetainedBoilerSource:
             changed, _ = apply_boiler_state(self.boiler_fields, topic, raw, retained, self.clock())
         if changed:
             for listener in list(self._listeners):
-                listener()
+                try:
+                    listener()
+                except Exception:  # noqa: BLE001 - one failing listener never stops the others
+                    _LOGGER.exception("OpenThermostat: a boiler value listener failed")
 
 
 async def _async_retained_source(hass, entry, state):

@@ -18,7 +18,10 @@ entity_id if the integration provides that unique_id again.
 Retired identities (RETIRED): records an older release created that this
 version only provides on a condition the record itself shows, listed with the
 version that changed them. Each is removed only while untouched and never
-marked as having delivered a value (REPORTED). Entities that are still
+marked as having delivered a value (REPORTED), and never at setup: only once
+the E32's metrics have arrived for RETIRED_GRACE_S without a value for it
+(note_metrics). A record from before the REPORTED mark existed whose value
+still comes is thus marked and kept, never removed. Entities that are still
 provided but appear only once their data arrives (the shadow comparison, the
 predicted heating start, the definition v2 counters) are never removed here.
 
@@ -33,6 +36,7 @@ a missing or unreadable plan) and only this entry's own devices.
 """
 import logging
 import re
+import time
 
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -44,6 +48,9 @@ _INTEGRATION = er.RegistryEntryDisabler.INTEGRATION
 # Registry option (under DOMAIN): this record's entity delivered a real value once.
 REPORTED = "reported"
 
+# How long the metrics must have arrived without a value before a RETIRED record goes.
+RETIRED_GRACE_S = 600
+_clock = time.monotonic
 # unique ID after f"{prefix}_" -> (version that retired it, reason in the log).
 RETIRED = {
     # 0.4.0b10 (E32 beta.18): the hub outdoor temperature is the EMS+ outdoor
@@ -93,19 +100,56 @@ def mark_reported(hass, unique_id, domain="sensor"):
     return True
 
 
-def _metric_values(hass, entry):
-    """The metrics payload the connection holds now (empty without one)."""
-    state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-    payload = getattr(getattr(state.get("v1_connection"), "client", None), "metrics_payload", None)
-    return payload if type(payload) is dict else {}
-
-
 def _has_value(payload, unique_id, prefix):
     from .metric_snapshot import finite
     from .sensor import HUB_METRICS
     metric = unique_id.removeprefix(f"{prefix}_hub_")
     field = HUB_METRICS["ems_metrics"].get(metric, (None,))[0]
     return field is not None and finite(payload.get(field))
+
+
+def retired_reason(record, prefix, metrics=None):
+    """The RETIRED reason of this record, or None when it is not retired or still has a value.
+
+    metrics None: only whether the identity is retired at all."""
+    uid = record.unique_id
+    retired = RETIRED.get(uid.removeprefix(f"{prefix}_")) if uid.startswith(f"{prefix}_") else None
+    if retired is None:
+        return None
+    if metrics is not None and (record.options.get(DOMAIN, {}).get(REPORTED) or _has_value(metrics, uid, prefix)):
+        return None
+    return retired[1]
+
+
+def note_metrics(hass, entry, prefix, payload):
+    """Every new metrics snapshot (v1_metrics): once they have arrived for RETIRED_GRACE_S,
+    remove the untouched RETIRED records that still have no value (once per setup)."""
+    state = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if state is None or type(payload) is not dict:
+        return
+    watch = state.setdefault("retired_watch", {"since": _clock(), "done": False})
+    if watch["done"] or _clock() - watch["since"] < RETIRED_GRACE_S:
+        return
+    watch["done"] = True
+    cleanup_retired(hass, entry, prefix, payload)
+
+
+def cleanup_retired(hass, entry, prefix, payload):
+    """Remove this entry's untouched RETIRED records without a value now or ever (REPORTED)."""
+    registry = er.async_get(hass)
+    removed = []
+    for record in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if record.platform != DOMAIN or not untouched(record):
+            continue
+        if (reason := retired_reason(record, prefix, payload)) is not None:
+            registry.async_remove(record.entity_id)
+            removed.append(f"{record.entity_id} ({reason})")
+    if removed:
+        _LOGGER.info("Removed %d OpenThermostat entities this version no longer provides: %s. "
+                     "Their history and long-term statistics are kept", len(removed), ", ".join(sorted(removed)))
+    from .metrics_reports import reconcile_migration_issues
+    reconcile_migration_issues(hass, entry, prefix)
+    return removed
 
 
 def _reporting_fields(hass, entry):
@@ -118,16 +162,13 @@ def _reporting_fields(hass, entry):
     return frozenset(index for index in cache.records if plausible(cache, index))
 
 
-def stale_reason(record, prefix, legacy, reporting_ids, zones, metrics=None):
+def stale_reason(record, prefix, legacy, reporting_ids, zones):
     """Why this record is no longer provided, or None when it still is (or may be)."""
     uid = record.unique_id
     if uid in legacy:
         return "legacy_hub"
-    retired = RETIRED.get(uid.removeprefix(f"{prefix}_")) if uid.startswith(f"{prefix}_") else None
-    if retired is not None:
-        if record.options.get(DOMAIN, {}).get(REPORTED) or _has_value(metrics or {}, uid, prefix):
-            return None
-        return retired[1]
+    if retired_reason(record, prefix) is not None:
+        return None  # decided later, once the metrics have been seen (note_metrics)
     if uid.startswith(f"{prefix}_boiler_fields_v1_"):
         # "Never reported": disabled by us (as unreported, or by default as
         # unreliable), never marked as having delivered a real value since
@@ -156,8 +197,7 @@ def cleanup_stale_entities(hass, entry, prefix):
              if subentry.subentry_type == "zone"}
     records = [record for record in er.async_entries_for_config_entry(registry, entry.entry_id)
                if record.platform == DOMAIN]
-    metrics = _metric_values(hass, entry)
-    reasons = {record.entity_id: stale_reason(record, prefix, legacy, reporting_ids, zones, metrics)
+    reasons = {record.entity_id: stale_reason(record, prefix, legacy, reporting_ids, zones)
                for record in records}
     # F28: of an EMS+ / Classic pair that carries one physical value, only the
     # record that stays (the one the user has) is kept; the other is a duplicate.

@@ -14,8 +14,9 @@ from types import SimpleNamespace
 import pytest
 from homeassistant.helpers import entity_registry as er
 
+from custom_components.open_thermostat import native_entity_cleanup
 from custom_components.open_thermostat.native_entity_cleanup import (
-    REPORTED, RETIRED, cleanup_stale_entities, mark_reported)
+    REPORTED, RETIRED, RETIRED_GRACE_S, cleanup_stale_entities, mark_reported, note_metrics)
 from custom_components.open_thermostat.v1_metrics import async_setup_shadow_metrics
 from custom_components.open_thermostat.v1_wire import canonical
 from test_modern_metrics import packet, system
@@ -46,6 +47,22 @@ def records(hass, owner):
     return registry, record
 
 
+class Clock:
+    """native_entity_cleanup._clock, moved by the test."""
+
+    def __init__(self, monkeypatch):
+        self.now = 1000.0
+        monkeypatch.setattr(native_entity_cleanup, "_clock", lambda: self.now)
+
+
+def metrics_for(hass, p, payload, clock, seconds):
+    """Snapshots arriving for this long (v1_metrics calls note_metrics on each)."""
+    hass.data.setdefault("open_thermostat", {}).setdefault(p.entry_id, {})
+    note_metrics(hass, p, "fixture", payload)
+    clock.now += seconds
+    note_metrics(hass, p, "fixture", payload)
+
+
 def test_every_retired_identity_names_the_version_and_a_reason():
     assert RETIRED["hub_outdoor_temperature"] == ("0.4.0b10", "outdoor_temperature_without_value")
     assert {reason for _, reason in RETIRED.values()} == {"outdoor_temperature_without_value", "legacy_metric_history"}
@@ -53,16 +70,22 @@ def test_every_retired_identity_names_the_version_and_a_reason():
 
 
 @pytest.mark.asyncio
-async def test_a_never_reported_outdoor_record_is_removed_and_the_still_provided_ones_stay(hass, caplog):
+async def test_a_never_reported_outdoor_record_is_removed_and_the_still_provided_ones_stay(hass, caplog, monkeypatch):
     p = product(hass, room(hass))
     registry, record = records(hass, p)
     outdoor = record(OUTDOOR)
     kept = [record(uid) for uid in STILL_PROVIDED]
     foreign = [record(OUTDOOR, platform="other_integration"), record("fixture_hub_outdoor_temperature_x"),
                record(OUTDOOR, config_entry=entry(hass), platform="open_thermostat_other")]
+    clock = Clock(monkeypatch)
+    # Never at setup: the metrics have not been seen yet.
+    assert cleanup_stale_entities(hass, p, "fixture") == [] and registry.async_get(outdoor) is not None
+    # Metrics without an outdoor value, but not for long enough yet.
+    metrics_for(hass, p, {"outdoorTemperature": None}, clock, RETIRED_GRACE_S - 1)
+    assert registry.async_get(outdoor) is not None
     with caplog.at_level(logging.INFO):
-        removed = cleanup_stale_entities(hass, p, "fixture")
-    assert removed == [f"{outdoor} (outdoor_temperature_without_value)"]
+        clock.now += 1
+        note_metrics(hass, p, "fixture", {"outdoorTemperature": None})
     assert registry.async_get(outdoor) is None
     assert all(registry.async_get(entity_id) is not None for entity_id in kept + foreign)
     assert "history and long-term statistics are kept" in caplog.text and outdoor in caplog.text
@@ -73,27 +96,46 @@ async def test_a_never_reported_outdoor_record_is_removed_and_the_still_provided
 @pytest.mark.parametrize("choice", [{"name": "Buiten"}, {"icon": "mdi:sun"}, {"area_id": "tuin"},
                                     {"disabled_by": er.RegistryEntryDisabler.USER},
                                     {"hidden_by": er.RegistryEntryHider.USER}])
-async def test_a_customised_outdoor_record_is_never_removed(hass, choice):
+async def test_a_customised_outdoor_record_is_never_removed(hass, choice, monkeypatch):
     p = product(hass, room(hass))
     registry, record = records(hass, p)
     outdoor = record(OUTDOOR, **choice)
-    assert cleanup_stale_entities(hass, p, "fixture") == [] and registry.async_get(outdoor) is not None
+    metrics_for(hass, p, {"outdoorTemperature": None}, Clock(monkeypatch), RETIRED_GRACE_S + 1)
+    assert registry.async_get(outdoor) is not None
 
 
 @pytest.mark.asyncio
-async def test_an_outdoor_record_with_a_value_now_or_ever_is_kept(hass):
+async def test_an_outdoor_record_with_a_value_now_or_ever_is_kept(hass, monkeypatch):
     p = product(hass, room(hass))
     registry, record = records(hass, p)
     outdoor = record(OUTDOOR)
-    hass.data["open_thermostat"][p.entry_id] = {
-        "v1_connection": SimpleNamespace(client=SimpleNamespace(metrics_payload={"outdoorTemperature": -5.7}))}
-    assert cleanup_stale_entities(hass, p, "fixture") == []
-    hass.data["open_thermostat"][p.entry_id] = {
-        "v1_connection": SimpleNamespace(client=SimpleNamespace(metrics_payload={"outdoorTemperature": None}))}
+    metrics_for(hass, p, {"outdoorTemperature": -5.7}, Clock(monkeypatch), RETIRED_GRACE_S + 1)
+    assert registry.async_get(outdoor) is not None  # a value now
     assert mark_reported(hass, OUTDOOR) is True
     assert registry.async_get(outdoor).options["open_thermostat"] == {REPORTED: True}
-    assert cleanup_stale_entities(hass, p, "fixture") == [] and registry.async_get(outdoor) is not None
+    hass.data["open_thermostat"][p.entry_id].pop("retired_watch")  # the next setup
+    metrics_for(hass, p, {"outdoorTemperature": None}, Clock(monkeypatch), RETIRED_GRACE_S + 1)
+    assert registry.async_get(outdoor) is not None  # a value ever
     assert mark_reported(hass, "fixture_hub_no_such_record") is False
+
+
+@pytest.mark.asyncio
+async def test_upgrade_a_record_with_values_before_the_mark_existed_is_kept(hass, monkeypatch):
+    """b10/b11 had no REPORTED mark: an EMS+ outdoor record with history and no mark, started on b12."""
+    clock = Clock(monkeypatch)
+    e, runtime, client, now = await system(hass)
+    registry = er.async_get(hass)
+    old = registry.async_get_or_create("sensor", "open_thermostat", OUTDOOR, config_entry=e).entity_id
+    assert cleanup_stale_entities(hass, e, "fixture") == [] and registry.async_get(old) is not None
+    added = []
+    await async_setup_shadow_metrics(hass, e, lambda entities, **kw: added.extend(entities))
+    await client.receive("fw/telemetry/ems_metrics", canonical(packet(client)))  # outdoor -5.7
+    assert registry.async_get(old).options["open_thermostat"] == {REPORTED: True}
+    clock.now += RETIRED_GRACE_S + 1
+    now[0] = 102
+    await client.receive("fw/telemetry/ems_metrics", canonical(packet(client, 2)))
+    assert registry.async_get(old) is not None and any(s.unique_id == OUTDOOR for s in added)
+    await runtime.async_stop()
 
 
 @pytest.mark.asyncio
@@ -120,7 +162,7 @@ def test_the_legacy_history_counters_are_retired_by_name_and_version():
 
 
 @pytest.mark.asyncio
-async def test_legacy_history_records_go_and_their_repairs_items_close(hass, caplog):
+async def test_legacy_history_records_go_and_their_repairs_items_close(hass, caplog, monkeypatch):
     from homeassistant.helpers import issue_registry as ir
     from custom_components.open_thermostat.metrics_reports import (
         note_legacy_metrics, note_metric_definition_migration, note_room_definition_migration)
@@ -132,9 +174,13 @@ async def test_legacy_history_records_go_and_their_repairs_items_close(hass, cap
     for note in (note_legacy_metrics, note_metric_definition_migration, note_room_definition_migration):
         note(hass, p.entry_id)
     issues = ir.async_get(hass)
+    clock = Clock(monkeypatch)
+    assert cleanup_stale_entities(hass, p, "fixture") == []  # at setup: only the room item closes
+    assert issues.async_get_issue("open_thermostat", f"room_model_v2_{p.entry_id}") is None
     with caplog.at_level(logging.INFO):
-        removed = cleanup_stale_entities(hass, p, "fixture")
-    assert sorted(item.split(" ")[0] for item in removed) == sorted(old)
+        metrics_for(hass, p, {"totalEnergyUsedKwh": None}, clock, RETIRED_GRACE_S + 1)
+    assert all(registry.async_get(entity_id) is None for entity_id in old)
+    assert all(entity_id in caplog.text for entity_id in old)
     assert registry.async_get(kept) is not None and registry.async_get(v2) is not None
     # The customised old record keeps the counters item open; the other two close.
     assert issues.async_get_issue("open_thermostat", f"metrics_definition_v2_{p.entry_id}") is not None
@@ -145,9 +191,9 @@ async def test_legacy_history_records_go_and_their_repairs_items_close(hass, cap
     assert issues.async_get_issue("open_thermostat", f"metrics_definition_v2_{p.entry_id}") is None
     # Firmware that still sends old-format values keeps the old record (a value now).
     again = record("fixture_hub_energy")
-    hass.data["open_thermostat"][p.entry_id] = {
-        "v1_connection": SimpleNamespace(client=SimpleNamespace(metrics_payload={"totalEnergyUsedKwh": 12.5}))}
-    assert cleanup_stale_entities(hass, p, "fixture") == [] and registry.async_get(again) is not None
+    hass.data["open_thermostat"][p.entry_id].pop("retired_watch")  # the next setup
+    metrics_for(hass, p, {"totalEnergyUsedKwh": 12.5}, clock, RETIRED_GRACE_S + 1)
+    assert registry.async_get(again) is not None
 
 
 @pytest.mark.asyncio

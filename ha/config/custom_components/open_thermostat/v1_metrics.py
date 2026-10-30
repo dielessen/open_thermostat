@@ -40,6 +40,10 @@ async def async_setup_shadow_metrics(hass,entry,async_add_entities):
         if key==last_key:
             return # Existing2s control poll must not rewrite every metric state.
         last_key=key;payload=client.metrics_payload
+        if payload is not None:
+            # Retired records without a value go once the metrics have been seen for a while.
+            from .native_entity_cleanup import note_metrics
+            note_metrics(hass,entry,entry.data[CONF_TOPIC_PREFIX],payload)
         field=HUB_METRICS["ems_metrics"][VALUE_GATED][0]
         if gated is None and entities and payload is not None and finite(payload.get(field)):
             gated=HubMetric(entry.data[CONF_TOPIC_PREFIX],"ems_metrics",VALUE_GATED,entry.entry_id)

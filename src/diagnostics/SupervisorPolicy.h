@@ -46,7 +46,7 @@ struct SupervisorPolicy {
         uint8_t wifiLostRestarts = 0;   // consecutive wifiLost restarts before this boot
         uint8_t networkDeadRestarts = 0; // consecutive networkDead restarts before this boot
         bool bluetoothExpected = false; // bound sensors and automatic scanning
-        uint64_t bluetoothQuietSince = 0; // boot or the last advert of a bound sensor
+        uint64_t bluetoothQuietSince = 0; // boot or the last advert of any device (BLE host alive)
         uint8_t bluetoothRestarts = 0;  // consecutive bluetoothSilent restarts before this boot
         bool restartDeferred = false;   // a boiler trial/settings session: no optional restart
         // The E32 owns the boiler (active heat, ActiveHeatGuard::claimsBoiler):

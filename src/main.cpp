@@ -169,9 +169,10 @@ void observeHealth(uint64_t now) {
 	if (!wifi || WiFi.isConnected()) wifiDownSinceS.store(0);
 	else if (!wifiDownSinceS.load()) wifiDownSinceS.store(monotonicS());
 	if (wifi && WiFi.isConnected()) heating::diagnostics::blackBox.wifiRecovered();
-	// Bluetooth: bound sensors and scanning wanted; quiet since boot or the last advert.
+	// Bluetooth: bound sensors and scanning wanted; quiet since boot or the last advert
+	// of any device (proof that the BLE host works, not that every sensor does).
 	const bool bluetooth = heating::controller && heating::controller->managedBleExpected();
-	const uint32_t heard = heating::controller ? heating::controller->managedBleHeardS() : 0;
+	const uint32_t heard = heating::controller ? heating::controller->bleAdvertHeardS() : 0;
 	if (heard) heating::diagnostics::blackBox.bluetoothHeard();
 	if (!bluetooth || !bluetoothQuietSinceS.load()) bluetoothQuietSinceS.store(monotonicS());
 	else if (heard > bluetoothQuietSinceS.load()) bluetoothQuietSinceS.store(heard);

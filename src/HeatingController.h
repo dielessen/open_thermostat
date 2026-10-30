@@ -141,9 +141,13 @@ public:
         else managedBle_.disable(control::BleObserverStop::configuration_invalid);
         tempReader_.setRawObserver([this](const BleAddress_t& address, int rssi, const uint8_t* data, size_t size) {
             const auto now = bleReceiptClock();
-            // Seconds since boot + 1: the supervisor's proof that bound sensors are heard.
-            if (managedBle_.capture(address, rssi, data, size, now))
-                managedBleHeardS_.store(static_cast<uint32_t>(now / 1000) + 1, std::memory_order_relaxed);
+            // Seconds since boot + 1: the supervisor's proof that the NimBLE host
+            // still delivers adverts. ANY advert counts: one bound sensor with a
+            // dead battery must not restart the E32 (30 min .. 4 h); its room
+            // shows the stale reading instead. Only a host that hears nothing
+            // at all is restarted.
+            bleAdvertHeardS_.store(static_cast<uint32_t>(now / 1000) + 1, std::memory_order_relaxed);
+            managedBle_.capture(address, rssi, data, size, now);
             // Nearby hints only while the user's Search runs: automatic scans never fill the list.
             if (!tempReader_.discovering()) return;
             std::lock_guard<std::mutex> lock(roomsAccessMutex_);
@@ -393,7 +397,7 @@ public:
     bool managedBlePending() const { return !managedBle_.enabled(); }
     // Bound sensors and automatic scanning: their adverts are expected.
     bool managedBleExpected() const { return mqtt_.modernMode() && bluetoothScan_ && managedBle_.wantsAutomaticScan() && tempReader_.scanEnabled(); }
-    uint32_t managedBleHeardS() const { return managedBleHeardS_.load(std::memory_order_relaxed); }
+    uint32_t bleAdvertHeardS() const { return bleAdvertHeardS_.load(std::memory_order_relaxed); }
     // The E32 owns the boiler or still withdraws its request (loop task): the
     // supervisor then restarts only for a real hang.
     bool claimsBoiler() const { return activeGuard_.claimsBoiler(); }
@@ -696,7 +700,7 @@ private:
     static uint64_t bleReceiptClock() { return static_cast<uint64_t>(esp_timer_get_time()) / 1000; }
     control::MbedTlsBleCcm bleCrypto_;
     control::ManagedBleObserver<control::MbedTlsBleCcm> managedBle_{bleCrypto_, bleReceiptClock};
-    std::atomic<uint32_t> managedBleHeardS_{0};
+    std::atomic<uint32_t> bleAdvertHeardS_{0};
     control::BleDeviceDiscovery bleDiscovery_;
     static_assert(sizeof(decltype(managedBle_)) <= 4096, "BLE observer resident budget changed");
     control::RoomEngine roomEngine_;

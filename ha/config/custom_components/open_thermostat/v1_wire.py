@@ -30,7 +30,7 @@ STATE_TELEMETRY = ("fw/state/", "fw/config/", "fw/telemetry/learned/", "fw/telem
 MAX_STATE_BYTES = 1536
 # Session timing, the same as ShadowController (TELEMETRIEBUDGET.nl.md, "Sessieprotocol"):
 # grants rotate every 10 s and last 30 s, HA heartbeats every 10 s for a 30 s lease, the
-# zone state comes on a change and at least every 30 s, hello every 60 s in a session.
+# zone state comes on a change and at least every 30 s, hello every 15 s in a session.
 # Three missed messages before anything expires.
 GRANT_SECONDS = 30
 GRANT_ROTATION_SECONDS = 10
@@ -44,6 +44,13 @@ _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
 _HEX = re.compile(r"[0-9a-f]{64}")
 MAX_BYTES = 8192
 GRANT_NONCE_CAPABILITY = "session.grant_nonce.v1"
+# session.compact.v1 (E32 beta.21): announced in the hello, asked for with "compact":1 in
+# ha/open_session. The first fw/session of such a session is complete; later grants and
+# the heartbeat/observation/command results carry the session id instead of the
+# identity and config. The hello and the zone state keep their full form. An E32 that
+# does not announce it (beta.19) keeps the full form, and so does HA without it.
+COMPACT_CAPABILITY = "session.compact.v1"
+_COMPACT_RESULTS = {"fw/heartbeat_result", "fw/observation_result", "fw/user_command_result"}
 ROOM_NAMES_CAPABILITY = "display.room_names.v1"
 COMFORT_CAPABILITY = "comfort.target.v1"
 CONTACTS_CAPABILITY = "comfort.contacts.v1"
@@ -232,6 +239,8 @@ class ShadowClient:
         self._close_io = None
         self.room_names_supported=False
         self.grant_nonce_supported=False
+        self.compact_supported=False
+        self.session_compact=False
         self._grant_proofs={}
         self.boiler_fields_supported=False
         self.boiler_fields_v2=False
@@ -834,6 +843,8 @@ class ShadowClient:
         self.open_request = None
         self.room_names_supported = False
         self.grant_nonce_supported = False
+        self.compact_supported = False
+        self.session_compact = False
         self.comfort_supported = False
         self.contacts_supported = False
         self.manual_target_supported = False
@@ -992,6 +1003,40 @@ class ShadowClient:
         self.source_policy_matched=True
         return True
 
+    def expand_compact(self, topic, p):
+        """A session.compact.v1 frame with this session's identity and config filled in.
+
+        None (ignored) unless this HA opened a compact session and the frame names
+        it: the session id stands for the identity and config that the session's
+        complete first fw/session carried. A full frame never comes here, so an E32
+        without the capability (beta.20 or older) is handled as before.
+        """
+        if not self.session_compact or self.session is None or self.identity is None:
+            return None
+        if topic == "fw/session":
+            required, optional = {"adapter_session_id", "grant_id", "grant_sequence"}, {"grant_request_nonce"}
+        elif topic in _COMPACT_RESULTS:
+            required = {"adapter_session_id", "sequence", "status"}
+            if topic != "fw/heartbeat_result":
+                required.add("binding_id")
+            optional = {"rejection_reason"}
+        else:
+            return None
+        if p.get("adapter_session_id") != self.session["adapter_session_id"]:
+            return None
+        if not required <= set(p) or not set(p) <= required | optional:
+            raise ValueError("compact frame")
+        if topic == "fw/session":
+            # A new grant of the same session: everything else stays as the session began.
+            full = {k: v for k, v in self.session.items() if k != "grant_request_nonce"}
+        else:
+            full = dict(api=1, controller_id=self.identity[0], boot_id=self.identity[1], epoch=self.identity[2],
+                        config_revision=self.session["config_revision"], config_digest=self.session["config_digest"])
+            if topic == "fw/heartbeat_result":
+                full["binding_id"] = "adapter"
+        full.update(p)
+        return full
+
     async def _receive(self, topic, p):
         if topic == "fw/hello":
             if (not integer(p.get("api"), 1, 1) or p.get("mode") != "shadow"
@@ -1022,6 +1067,9 @@ class ShadowClient:
                 and GRANT_NONCE_CAPABILITY in session_caps)
             if not self.grant_nonce_supported:
                 self._grant_proofs.clear()
+            self.compact_supported=(type(session_caps) is list and len(session_caps)<=8
+                and all(isinstance(cap,str) and len(cap)<=64 for cap in session_caps)
+                and COMPACT_CAPABILITY in session_caps)
             comfort_caps=p.get("control_capabilities",[])
             self.room_names_supported = (self.native_plan_source is not None
                 and type(comfort_caps) is list and len(comfort_caps)<=8
@@ -1091,6 +1139,8 @@ class ShadowClient:
                 elif self.controller_policy is not None:
                     self.open_request.update(source_profile_digest=self.controller_policy.profile_digest,
                                              source_config_pin=self.controller_policy.config_digest)
+                if self.compact_supported:
+                    self.open_request["compact"] = 1
                 self.open_sent = self.clock()
             elif self.clock() - self.open_sent >= 10:
                 self.open_request = None
@@ -1098,6 +1148,11 @@ class ShadowClient:
             await self.send("ha/open_session", canonical(self.open_request))
             return
 
+        compact = "api" not in p
+        if compact:
+            p = self.expand_compact(topic, p)
+            if p is None:
+                return
         if not self.same_identity(p):
             return
         if topic == "fw/session":
@@ -1127,6 +1182,8 @@ class ShadowClient:
                 delay_bound = self.clock() + GRANT_SECONDS - grant_deadline
             else:
                 delay_bound = self.clock() - self.open_sent
+                # The firmware answers our open: compact if we asked for it.
+                self.session_compact = self.open_request.get("compact") == 1
             if delay_bound < 0 or delay_bound >= GRANT_SECONDS:
                 raise ValueError("late grant")
             self.session = p

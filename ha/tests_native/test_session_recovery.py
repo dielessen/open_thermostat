@@ -79,12 +79,13 @@ def new_client(runtime, bus, store_key):
 
 
 @asynccontextmanager
-async def system(hass):
+async def system(hass, metrics=False):
     binding = room(hass, age=10000)
     config_entry = entry(hass, enabled=True, room=binding)
     runtime = ShadowRuntime(hass, config_entry, [binding])
     zones, mapping = await async_build_configuration(runtime)
-    process = await asyncio.create_subprocess_exec(str(RUNNER), stdin=asyncio.subprocess.PIPE,
+    args = [str(RUNNER)] + (["ha1", "metrics"] if metrics else [])
+    process = await asyncio.create_subprocess_exec(*args, stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
     bus = Bus(process, hass.loop.time)
     bus.zones, bus.mapping, bus.binding, bus.entry = zones, mapping, binding, config_entry

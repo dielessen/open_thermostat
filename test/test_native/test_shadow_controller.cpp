@@ -294,6 +294,44 @@ TEST(GrantNonce, ExplicitCapabilityAndAcceptedHeartbeatOnlyAnchorsNextScheduledR
     auto state=f.state();EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"boiler_output_enabled")));
     EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"actuator_output_enabled")));
 }
+TEST(CompactSession, AskedForByTheOpenOnlyAndHelloAndZoneStateStayFull) {
+    Fixture f;f.compact=1;f.ready();
+    auto hello=f.get("fw/hello");auto caps=field(hello.get(),"session_capabilities");bool announced=false;
+    for(auto c=caps?caps->child:nullptr;c;c=c->next)announced|=std::string(c->valuestring)=="session.compact.v1";
+    EXPECT_TRUE(announced);ASSERT_TRUE(f.core->compactSession());
+    // The session's first fw/session is complete.
+    EXPECT_EQ(stringField(f.get("fw/session").get(),"controller_id"),"e32_lab");
+    // A grant rotation of the same session carries only what changes.
+    f.now+=ShadowController::grantRotationMs;f.tick();auto rotated=f.get("fw/session");
+    EXPECT_EQ(field(rotated.get(),"controller_id"),nullptr);EXPECT_EQ(field(rotated.get(),"config_digest"),nullptr);
+    EXPECT_EQ(stringField(rotated.get(),"adapter_session_id"),f.session);
+    EXPECT_EQ(uintField(rotated.get(),"grant_sequence"),2u);f.syncSession();
+    // The heartbeat result names the session only.
+    f.heartbeat(2);auto result=f.get("fw/heartbeat_result");
+    EXPECT_EQ(stringField(result.get(),"status"),"accepted");EXPECT_EQ(field(result.get(),"controller_id"),nullptr);
+    EXPECT_EQ(field(result.get(),"binding_id"),nullptr);EXPECT_EQ(stringField(result.get(),"adapter_session_id"),f.session);
+    // The hello keeps coming in the session (a restarted HA finds it), and the zone state stays complete.
+    f.output.erase("fw/hello");f.now+=ShadowController::helloSessionMs;f.tick();ASSERT_TRUE(f.output.count("fw/hello"));
+    auto state=f.state();EXPECT_EQ(stringField(state.get(),"controller_id"),"e32_lab");
+    EXPECT_FALSE(stringField(state.get(),"config_digest").empty());
+    EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"boiler_output_enabled")));
+}
+TEST(CompactSession, AnOpenWithoutTheFlagKeepsTheFullForm) {
+    Fixture f;f.ready();EXPECT_FALSE(f.core->compactSession());
+    f.now+=ShadowController::grantRotationMs;f.tick();
+    EXPECT_EQ(stringField(f.get("fw/session").get(),"controller_id"),"e32_lab");
+    f.syncSession();f.heartbeat(2);EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"binding_id"),"adapter");
+}
+TEST(CompactSession, AnyOtherValueIsRefusedAndALostSessionForgetsIt) {
+    Fixture f;f.start();f.compact=2;
+    EXPECT_THROW(f.connect(),std::out_of_range);  // no fw/session: the open is ignored
+    EXPECT_EQ(f.output.count("fw/session"),0u);EXPECT_FALSE(f.core->compactSession());
+    Fixture g;g.compact=1;g.ready();ASSERT_TRUE(g.core->compactSession());
+    g.compact=0;g.connect();g.heartbeat();  // a new open (an HA without the capability) replaces it
+    EXPECT_FALSE(g.core->compactSession());
+    g.now+=ShadowController::grantRotationMs;g.tick();
+    EXPECT_EQ(stringField(g.get("fw/session").get(),"controller_id"),"e32_lab");
+}
 TEST(GrantNonce, DuplicateOrChangedOrWrongOwnerCannotReplaceAcceptedProof) {
     Fixture f;f.ready();auto hb=nonceHeartbeat(f,2,"requestA");f.send("ha/heartbeat",hb.get());f.send("ha/heartbeat",hb.get());
     EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"duplicate");

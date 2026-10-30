@@ -41,6 +41,7 @@ struct Fixture {
     uint64_t now=1000;
     std::string session,grant,boot="boot1",digest;
     uint32_t epoch=1,gseq=1,rev=0;
+    int compact=0; // session.compact.v1: the "compact" value HA sends in ha/open_session (0: none)
     void start() {
         core=std::make_unique<ShadowController>("e32_lab",boot,"ha1",store,controlTestHash,
             [this]{return "nonce"+std::to_string(++nonce);},
@@ -67,6 +68,7 @@ struct Fixture {
             cJSON_AddStringToObject(o.get(),"source_profile_digest",seasonalSource->profileDigest.c_str());
             cJSON_AddStringToObject(o.get(),"source_config_pin",seasonalSource->configDigest.c_str());
         }
+        if(compact) cJSON_AddNumberToObject(o.get(),"compact",compact);
         send("ha/open_session",o.get()); syncSession();
     }
     void syncSession() {

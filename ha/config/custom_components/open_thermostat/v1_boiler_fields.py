@@ -337,6 +337,7 @@ def apply_boiler_profile(hass, entry, prefix, cache, limiter=None):
     registry = er.async_get(hass)
     head = f"{prefix}_boiler_fields_v1_"
     gone, removed, hidden, shown = set(), [], [], []
+    held = False
     for record in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
         if record.domain != "sensor" or record.platform != DOMAIN or not record.unique_id.startswith(head):
             continue
@@ -346,14 +347,20 @@ def apply_boiler_profile(hass, entry, prefix, cache, limiter=None):
         members = concept(index)
         options = record.options.get(DOMAIN, {})
         if cache.concept_state(members) == "supported":
+            # An unreliable field (quality 1: adapters such as EasyControl zero-fill it)
+            # stays disabled by default; it is only shown (unhidden) again.
+            enable = quality(index) != 1
             if options.get(PROFILE_HIDDEN) or options.get(PLACEHOLDER) or (
-                    record.disabled_by is _INTEGRATION and quality(index) != 1):
-                if record.disabled_by is not None or record.hidden_by is not None:
+                    record.disabled_by is _INTEGRATION and enable):
+                if enable and record.disabled_by is not None:
+                    # Enabling makes Home Assistant reload the entry: rate limited.
                     if limiter is not None and not limiter.allowed():
-                        limiter.pending = True  # held back: the next batch after the hour
+                        held = True  # held back: the next batch after the hour
                         continue
                     registry.async_update_entity(record.entity_id, disabled_by=None, hidden_by=None)
                     shown.append(record.entity_id)
+                elif record.hidden_by is not None:
+                    registry.async_update_entity(record.entity_id, hidden_by=None)
                 registry.async_update_entity_options(record.entity_id, DOMAIN, {
                     k: v for k, v in options.items() if k not in (PROFILE_HIDDEN, PLACEHOLDER)})
             continue
@@ -371,8 +378,10 @@ def apply_boiler_profile(hass, entry, prefix, cache, limiter=None):
         _LOGGER.info("Boiler profile: removed %d and hid %d OpenThermostat boiler entities this boiler has "
                      "no sensor for or never reports: %s", len(removed), len(hidden),
                      ", ".join(sorted(removed + hidden)))
-    if shown and limiter is not None:
-        limiter.used()
+    if limiter is not None:
+        if shown:
+            limiter.used()
+        limiter.pending = held  # nothing held back: no more passes for it
     if shown:
         _LOGGER.info("Boiler profile: %d OpenThermostat boiler entities are reported again and shown: %s",
                      len(shown), ", ".join(sorted(shown)))

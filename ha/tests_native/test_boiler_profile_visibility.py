@@ -228,3 +228,28 @@ async def test_a_flapping_profile_enables_records_again_at_most_once_per_hour(ha
     r._notify()                                 # the next pass after the hour applies it
     assert reg.async_get(pressure).disabled_by is None and not limiter.pending
     await r.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_an_unreliable_field_stays_disabled_and_no_pass_stays_pending(hass):
+    """Quality 1 (adapter zero-fill) stays disabled by default; nothing held back means no more passes."""
+    from custom_components.open_thermostat.boiler_fields import BoilerFieldCache, quality
+    from custom_components.open_thermostat.v1_boiler_fields import reenable_limiter
+    e, r, c, now = await system(hass)
+    reg = er.async_get(hass)
+    name = "raw_dhw_one_time_bit"
+    assert quality(at(name)) == 1 and concept(at(name)) == (at(name),)
+    bit = reg.async_get_or_create("sensor", "open_thermostat", uid(name), config_entry=e,
+                                  disabled_by=INTEGRATION, hidden_by=HIDDEN).entity_id
+    reg.async_update_entity_options(bit, "open_thermostat", {PLACEHOLDER: True, PROFILE_HIDDEN: True})
+    cache = BoilerFieldCache()
+    cache.accept_profile(profile([name]))
+    limiter = reenable_limiter(hass, e)
+    limiter.pending = True  # left over from an earlier held-back batch
+    apply_boiler_profile(hass, e, "fixture", cache, limiter)
+    record = reg.async_get(bit)
+    assert record.disabled_by is INTEGRATION and record.hidden_by is None  # shown in the list, still off
+    assert PLACEHOLDER not in record.options["open_thermostat"]
+    assert PROFILE_HIDDEN not in record.options["open_thermostat"]
+    assert limiter.pending is False and limiter.last is None  # no enable, no reload, nothing pending
+    await r.async_stop()

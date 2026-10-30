@@ -540,6 +540,43 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
     refresh()
 
 
+# How a whole-number code is shown: the state is a word that Home Assistant translates (entity.sensor.field_<id>.state).
+# The raw Classic values as the E32 decodes them (ClassicBoilerMonitor), named as in the EMS-ESP entity list.
+# Only fields without statistics (no state class, no unit) are shown this way, so recorded history keeps its
+# meaning and no statistics change; the raw number stays in the raw_value attribute.
+ON_OFF = "on_off"
+MAINTENANCE = "maintenance"
+CODE_STATES = {
+    "configured_dhw_comfort_mode": {0x00: "hot", 0xD8: "eco", 0xEC: "intelligent"},  # 0x33 byte 9
+    "configured_dhw_charge_type": {0: "charge_pump", 1: "three_way_valve"},           # 0x33 byte 10 bit 0
+    "configured_dhw_circulation_mode": {0: "off", 1: "1x3min", 2: "2x3min", 3: "3x3min", 4: "4x3min",
+                                        5: "5x3min", 6: "6x3min", 7: "continuous"},   # 0x33 byte 7
+    "reported_dhw_type": {0: "off", 1: "flow", 2: "buffered_flow", 3: "buffer", 4: "layered_buffer"},  # 0x34 byte 8
+    "configured_pump_mode": {0: "proportional", 1: "delta_p_1", 2: "delta_p_2", 3: "delta_p_3",
+                             4: "delta_p_4"},                                         # 0x16 byte 11
+}
+
+
+def presentation(index):
+    """ON_OFF, MAINTENANCE, the code table of the field, or None (a number)."""
+    members = concept(index)
+    if all(spec(member)[1] == "bool" for member in members):
+        return ON_OFF
+    name = spec(index)[0]
+    if len(members) == 1 and name == "maintenance_message":
+        return MAINTENANCE
+    return CODE_STATES.get(name) if len(members) == 1 else None
+
+
+def shown_value(kind, raw):
+    """The state for raw value ``raw`` of a field shown as ``kind`` (see presentation)."""
+    if kind == ON_OFF:
+        return "on" if raw else "off"
+    if kind == MAINTENANCE:
+        return "none" if raw == 0 else f"H{raw:02d}"  # EMS-ESP's maintenance message format
+    return kind.get(raw, f"Code {raw}")
+
+
 class BoilerFieldEntity(SensorEntity):
     _attr_should_poll = False
     _attr_has_entity_name = True
@@ -580,9 +617,12 @@ class BoilerFieldEntity(SensorEntity):
         self._attr_native_unit_of_measurement = {"degC":"°C", "uA":"µA"}.get(unit,unit)
         if unit in ("bool", "bits", "text", "code", "starts"):
             self._attr_native_unit_of_measurement = None
-        # Whole numbers on the wire (codes, on/off, counts, minutes, %): "1" and "37 %", not "1.0" and "37.0 %";
-        # only when every wire family of the value sends whole numbers.
-        if unit != "text" and all(spec(member)[2] == 1 for member in self.members):
+        # On/off and known codes as words (see presentation); never for a field with statistics.
+        self._presentation = presentation(index) if name not in CATALOG_COUNTERS else None
+        # Other whole numbers on the wire (counts, minutes, %, state bits): "9" and "37 %", not "9.0" and
+        # "37.0 %"; only when every wire family of the value sends whole numbers.
+        if (self._presentation is None and unit != "text"
+                and all(spec(member)[2] == 1 for member in self.members)):
             self._attr_suggested_display_precision = 0
         if unit == "degC":
             self._attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -663,13 +703,19 @@ class BoilerFieldEntity(SensorEntity):
         name, unit, divisor, _ = spec(index)
         if unit == "text":
             return chr(raw >> 8) + chr(raw & 255)
+        if self._presentation is not None:
+            return shown_value(self._presentation, raw)
         return raw / divisor
 
     @property
     def extra_state_attributes(self):
         index, value = self.source
-        name, _, divisor, ttl = spec(index)
+        name, unit, divisor, ttl = spec(index)
         profile = self.client.boiler_fields.concept_state(self.members)
+        usable = bool(value and value["usable"])
+        # The number behind a word (on/off, a code), and state bits also in hex ("0x09").
+        raw = ({"raw_value": value["raw"]} if usable and self._presentation is not None else {}) | (
+            {"hex": f"0x{value['raw']:02X}"} if usable and unit == "bits" else {})
         live = self._live()
         reason = ("session_unavailable" if not live and not self.client.ready else
                   "capability_unavailable" if not live else
@@ -685,6 +731,7 @@ class BoilerFieldEntity(SensorEntity):
                 "source_observed_at_ms":value["observed_at_ms"] if value else None,
                 "protocol_profile":self.client.boiler_fields.profile,
                 **({"boiler_profile":profile} if profile is not None else {}),
+                **raw,
                 **({"source_protocol":"ems_classic" if index < CATALOG_BASE else "ems_plus",
                     "source_fields":[spec(member)[0] for member in self.members]}
                    if len(self.members) > 1 else {})}

@@ -53,7 +53,7 @@ async def test_native_values_identity_expiry_and_disconnect(hass, monkeypatch):
     assert all(not e.available for e in added)
     receive(SimpleNamespace(payload=json.dumps(PACKET), retain=False))
     by_id = {e.unique_id: e for e in added}
-    assert by_id['fixture_hub_memory_free'].native_value == 95000
+    assert by_id['fixture_hub_memory_free'].native_value == 95.0  # kB (the E32 sends bytes)
     assert by_id['fixture_hub_cpu_temperature'].native_value == 48.5
     assert 'fixture_hub_rtc_temperature' not in by_id  # E32 has no RTC temperature sensor.
     assert all(e.available for e in added)

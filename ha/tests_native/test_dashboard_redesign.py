@@ -93,8 +93,11 @@ async def test_the_boiler_view_groups_the_values_and_shows_only_rows_with_a_valu
         # No title: the section heading names the card, so nothing is said twice.
         assert "title" not in card and card["visibility"] == [{"condition": "or", "conditions": [
             known(row["row"]["entity"]) for row in card["entities"]]}]
-        assert all(row["type"] == "conditional" and row["conditions"] == [known(row["row"]["entity"])]
-                   for row in card["entities"])
+        # Only while a value; the maintenance message also not while there is none.
+        assert all(row["type"] == "conditional" and row["conditions"] == [
+            {**known(row["row"]["entity"]), "state_not": ["unavailable", "unknown", *(
+                ["none"] if row["row"]["entity"] == fields["maintenance_message"] else [])]}]
+            for row in card["entities"])
         return [row["row"]["entity"] for row in card["entities"]]
     assert rows("Heating") == [fields[n] for n in (
         "reported_selected_flow_temperature", "measured_flow_temperature", "measured_return_temperature",
@@ -229,11 +232,13 @@ def test_whole_numbers_show_without_decimals_and_measured_temperatures_keep_thei
     at.update({field[0]: CATALOG_BASE + index for index, field in enumerate(CATALOG_FIELDS)})
     precision = lambda name: getattr(BoilerFieldEntity("fixture", client, at[name]),
                                      "_attr_suggested_display_precision", None)
-    for name in ("dhw_enabled", "configured_dhw_comfort_mode", "reported_burner_modulation", "service_number",
-                 "dhw_hysteresis_on", "maintenance_message", "thermostat_requested_flow_temperature"):
+    for name in ("reported_burner_modulation", "service_number", "dhw_hysteresis_on", "raw_boiler_state",
+                 "thermostat_requested_flow_temperature", "reported_burner_starts"):
         assert precision(name) == 0, name
+    # Words (on/off, codes) have no precision, so Home Assistant accepts their text state.
     for name in ("measured_flow_temperature", "selected_dhw_temperature", "pressure", "ionisation_current",
-                 "display_code", "thermostat_setpoint"):
+                 "display_code", "thermostat_setpoint", "dhw_enabled", "configured_dhw_comfort_mode",
+                 "maintenance_message"):
         assert precision(name) is None, name
 
 
@@ -253,12 +258,13 @@ async def test_a_whole_number_field_keeps_its_entity_id(hass, monkeypatch):
     monkeypatch.setattr(translation, "async_get_integrations", AsyncMock(return_value={"open_thermostat": integration}))
     device = dr.async_get(hass).async_get_or_create(config_entry_id=e.entry_id, name="E32",
                                                     identifiers={("open_thermostat", "fixture")})
-    owner_id = "sensor.woonkamer_e32_regelaar_ketel_en_diagnose_boiler_dhw_enabled"
-    er.async_get(hass).async_get_or_create("sensor", "open_thermostat", "fixture_boiler_fields_v1_dhw_enabled",
+    owner_id = "sensor.woonkamer_e32_regelaar_ketel_en_diagnose_boiler_reported_burner_modulation"
+    er.async_get(hass).async_get_or_create("sensor", "open_thermostat",
+                                           "fixture_boiler_fields_v1_reported_burner_modulation",
                                            config_entry=e, device_id=device.id,
                                            suggested_object_id=owner_id.split(".")[1])
     await actual.platform_data.async_load_translations()
-    index = next(i for i, field in enumerate(FIELDS) if field[0] == "dhw_enabled")
+    index = next(i for i, field in enumerate(FIELDS) if field[0] == "reported_burner_modulation")
     enabled = BoilerFieldEntity("fixture", client, index, translated_fields())
     try:
         await actual.async_add_entities([enabled])

@@ -231,12 +231,12 @@ async def test_product_telemetry_has_no_legacy_room_subscription_or_commands(has
     for callback in callbacks['fixture/status']:callback(SimpleNamespace(payload='on'))
     callbacks['fixture/device_status'][0](SimpleNamespace(payload=json.dumps({'mem_free':12345})))
     metric=next(e for e in added if e.unique_id=='fixture_hub_memory_free')
-    assert metric.native_value==12345 and metric.available
+    assert metric.native_value==12.345 and metric.available  # kB (the E32 sends bytes)
     assert not any('room_' in e.unique_id for e in added)
     for callback in callbacks['fixture/status']:callback(SimpleNamespace(payload='off'))
     assert not metric.available
     callbacks['fixture/device_status'][0](SimpleNamespace(payload='x'*8193))
-    assert metric.native_value==12345
+    assert metric.native_value==12.345  # an oversized payload changes nothing
     publish.assert_not_called()
     await tracker.async_stop()
 

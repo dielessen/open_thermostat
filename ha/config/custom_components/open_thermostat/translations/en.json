@@ -1001,22 +1001,42 @@
         "name": "Water pressure"
       },
       "field_raw_burner_bit": {
-        "name": "Burner bit (raw)"
+        "name": "Burner bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_raw_pump_bit": {
-        "name": "Pump bit (raw)"
+        "name": "Pump bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_raw_fan_bit": {
-        "name": "Fan bit (raw)"
+        "name": "Fan bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_raw_boiler_state": {
         "name": "Boiler state bits (raw)"
       },
       "field_heating_active": {
-        "name": "Heating active"
+        "name": "Heating active",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_dhw_active": {
-        "name": "Hot water active"
+        "name": "Hot water active",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_selected_dhw_temperature": {
         "name": "Selected hot water temperature"
@@ -1028,10 +1048,18 @@
         "name": "Hot water flow"
       },
       "field_heating_enabled": {
-        "name": "Heating enabled"
+        "name": "Heating enabled",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_dhw_enabled": {
-        "name": "Hot water enabled"
+        "name": "Hot water enabled",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_reported_burner_starts": {
         "name": "Burner starts"
@@ -1079,19 +1107,39 @@
         "name": "Ionisation current"
       },
       "field_raw_second_burner_bit": {
-        "name": "Second burner bit (raw)"
+        "name": "Second burner bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_raw_ignition_bit": {
-        "name": "Ignition bit (raw)"
+        "name": "Ignition bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_raw_oil_preheat_bit": {
-        "name": "Oil preheat bit (raw)"
+        "name": "Oil preheat bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_raw_dhw_valve_bit": {
-        "name": "Hot water valve bit (raw)"
+        "name": "Hot water valve bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_raw_dhw_circulation_bit": {
-        "name": "Circulation bit (raw)"
+        "name": "Circulation bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_boiler_temperature": {
         "name": "Boiler temperature"
@@ -1124,7 +1172,14 @@
         "name": "Minimum pump modulation"
       },
       "field_configured_pump_mode": {
-        "name": "Pump mode setting"
+        "name": "Pump mode setting",
+        "state": {
+          "proportional": "Proportional",
+          "delta_p_1": "Constant pressure 1",
+          "delta_p_2": "Constant pressure 2",
+          "delta_p_3": "Constant pressure 3",
+          "delta_p_4": "Constant pressure 4"
+        }
       },
       "field_secondary_heating_hysteresis_off": {
         "name": "Second heating hysteresis off"
@@ -1139,25 +1194,52 @@
         "name": "Hot water hysteresis on"
       },
       "field_dhw_charge_optimisation_enabled": {
-        "name": "Hot water charge optimisation"
+        "name": "Hot water charge optimisation",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_dhw_flow_temperature_offset": {
         "name": "Hot water flow offset"
       },
       "field_dhw_circulation_enabled": {
-        "name": "Circulation enabled"
+        "name": "Circulation enabled",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_configured_dhw_circulation_mode": {
-        "name": "Circulation mode setting"
+        "name": "Circulation mode setting",
+        "state": {
+          "off": "Off",
+          "1x3min": "1 × 3 min per hour",
+          "2x3min": "2 × 3 min per hour",
+          "3x3min": "3 × 3 min per hour",
+          "4x3min": "4 × 3 min per hour",
+          "5x3min": "5 × 3 min per hour",
+          "6x3min": "6 × 3 min per hour",
+          "continuous": "Continuous"
+        }
       },
       "field_dhw_disinfection_temperature": {
         "name": "Disinfection temperature"
       },
       "field_configured_dhw_charge_type": {
-        "name": "Hot water charge type"
+        "name": "Hot water charge type",
+        "state": {
+          "charge_pump": "Charge pump",
+          "three_way_valve": "Three-way valve"
+        }
       },
       "field_configured_dhw_comfort_mode": {
-        "name": "Hot water comfort mode"
+        "name": "Hot water comfort mode",
+        "state": {
+          "hot": "Hot (comfort)",
+          "eco": "Eco (saving)",
+          "intelligent": "Smart (learns tap times)"
+        }
       },
       "field_secondary_dhw_temperature": {
         "name": "Second hot water temperature"
@@ -1166,25 +1248,56 @@
         "name": "Solar hot water temperature"
       },
       "field_reported_dhw_type": {
-        "name": "Hot water type"
+        "name": "Hot water type",
+        "state": {
+          "off": "None",
+          "flow": "Instantaneous (combi)",
+          "buffered_flow": "Instantaneous with buffer",
+          "buffer": "Storage tank",
+          "layered_buffer": "Stratified storage tank"
+        }
       },
       "field_raw_dhw_one_time_bit": {
-        "name": "One-time charge bit (raw)"
+        "name": "One-time charge bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_raw_dhw_disinfection_bit": {
-        "name": "Disinfection bit (raw)"
+        "name": "Disinfection bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_raw_dhw_charging_bit": {
-        "name": "Charging bit (raw)"
+        "name": "Charging bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_raw_dhw_recharging_bit": {
-        "name": "Recharging bit (raw)"
+        "name": "Recharging bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_raw_dhw_temperature_ok_bit": {
-        "name": "Hot water temperature OK bit (raw)"
+        "name": "Hot water temperature OK bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_raw_dhw_active_bit": {
-        "name": "Hot water active bit (raw)"
+        "name": "Hot water active bit (raw)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_thermostat_requested_flow_temperature": {
         "name": "Requested flow temperature (thermostat)"
@@ -1199,7 +1312,10 @@
         "name": "Requested hot water temperature (thermostat)"
       },
       "field_maintenance_message": {
-        "name": "Maintenance message"
+        "name": "Maintenance message",
+        "state": {
+          "none": "No message"
+        }
       },
       "field_thermostat_setpoint": {
         "name": "Target temperature (thermostat)"
@@ -1223,10 +1339,18 @@
         "name": "Burner modulation (EMS+)"
       },
       "field_plus_burner_on": {
-        "name": "Burner on (EMS+)"
+        "name": "Burner on (EMS+)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_plus_dhw_valve": {
-        "name": "Hot water valve (EMS+)"
+        "name": "Hot water valve (EMS+)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_plus_return_temperature": {
         "name": "Return temperature (EMS+)"
@@ -1241,7 +1365,11 @@
         "name": "Exhaust temperature (EMS+)"
       },
       "field_plus_heating_pump": {
-        "name": "Heating pump (EMS+)"
+        "name": "Heating pump (EMS+)",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
       },
       "field_plus_burner_starts": {
         "name": "Burner starts (EMS+)"

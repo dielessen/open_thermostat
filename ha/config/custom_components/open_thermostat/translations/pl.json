@@ -1001,22 +1001,42 @@
         "name": "Ciśnienie wody"
       },
       "field_raw_burner_bit": {
-        "name": "Bit palnika (surowy)"
+        "name": "Bit palnika (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_raw_pump_bit": {
-        "name": "Bit pompy (surowy)"
+        "name": "Bit pompy (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_raw_fan_bit": {
-        "name": "Bit wentylatora (surowy)"
+        "name": "Bit wentylatora (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_raw_boiler_state": {
         "name": "Bity stanu kotła (surowe)"
       },
       "field_heating_active": {
-        "name": "Ogrzewanie aktywne"
+        "name": "Ogrzewanie aktywne",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_dhw_active": {
-        "name": "Ciepła woda aktywna"
+        "name": "Ciepła woda aktywna",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_selected_dhw_temperature": {
         "name": "Wybrana temperatura ciepłej wody"
@@ -1028,10 +1048,18 @@
         "name": "Przepływ ciepłej wody"
       },
       "field_heating_enabled": {
-        "name": "Ogrzewanie włączone"
+        "name": "Ogrzewanie włączone",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_dhw_enabled": {
-        "name": "Ciepła woda włączona"
+        "name": "Ciepła woda włączona",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_reported_burner_starts": {
         "name": "Starty palnika"
@@ -1079,19 +1107,39 @@
         "name": "Prąd jonizacji"
       },
       "field_raw_second_burner_bit": {
-        "name": "Bit drugiego palnika (surowy)"
+        "name": "Bit drugiego palnika (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_raw_ignition_bit": {
-        "name": "Bit zapłonu (surowy)"
+        "name": "Bit zapłonu (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_raw_oil_preheat_bit": {
-        "name": "Bit podgrzewu oleju (surowy)"
+        "name": "Bit podgrzewu oleju (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_raw_dhw_valve_bit": {
-        "name": "Bit zaworu ciepłej wody (surowy)"
+        "name": "Bit zaworu ciepłej wody (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_raw_dhw_circulation_bit": {
-        "name": "Bit cyrkulacji (surowy)"
+        "name": "Bit cyrkulacji (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_boiler_temperature": {
         "name": "Temperatura kotła"
@@ -1124,7 +1172,14 @@
         "name": "Minimalna modulacja pompy"
       },
       "field_configured_pump_mode": {
-        "name": "Ustawiony tryb pompy"
+        "name": "Ustawiony tryb pompy",
+        "state": {
+          "proportional": "Proporcjonalny",
+          "delta_p_1": "Stałe ciśnienie 1",
+          "delta_p_2": "Stałe ciśnienie 2",
+          "delta_p_3": "Stałe ciśnienie 3",
+          "delta_p_4": "Stałe ciśnienie 4"
+        }
       },
       "field_secondary_heating_hysteresis_off": {
         "name": "Histereza wyłączenia drugiego ogrzewania"
@@ -1139,25 +1194,52 @@
         "name": "Histereza włączenia ciepłej wody"
       },
       "field_dhw_charge_optimisation_enabled": {
-        "name": "Optymalizacja ładowania ciepłej wody"
+        "name": "Optymalizacja ładowania ciepłej wody",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_dhw_flow_temperature_offset": {
         "name": "Podwyższenie zasilania dla ciepłej wody"
       },
       "field_dhw_circulation_enabled": {
-        "name": "Cyrkulacja włączona"
+        "name": "Cyrkulacja włączona",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_configured_dhw_circulation_mode": {
-        "name": "Ustawiony tryb cyrkulacji"
+        "name": "Ustawiony tryb cyrkulacji",
+        "state": {
+          "off": "Wyłączona",
+          "1x3min": "1 × 3 min na godzinę",
+          "2x3min": "2 × 3 min na godzinę",
+          "3x3min": "3 × 3 min na godzinę",
+          "4x3min": "4 × 3 min na godzinę",
+          "5x3min": "5 × 3 min na godzinę",
+          "6x3min": "6 × 3 min na godzinę",
+          "continuous": "Ciągła"
+        }
       },
       "field_dhw_disinfection_temperature": {
         "name": "Temperatura dezynfekcji"
       },
       "field_configured_dhw_charge_type": {
-        "name": "Rodzaj ładowania ciepłej wody"
+        "name": "Rodzaj ładowania ciepłej wody",
+        "state": {
+          "charge_pump": "Pompa ładująca",
+          "three_way_valve": "Zawór trójdrożny"
+        }
       },
       "field_configured_dhw_comfort_mode": {
-        "name": "Tryb komfortu ciepłej wody"
+        "name": "Tryb komfortu ciepłej wody",
+        "state": {
+          "hot": "Ciepła (komfort)",
+          "eco": "Eko (oszczędna)",
+          "intelligent": "Inteligentna (uczy się poboru)"
+        }
       },
       "field_secondary_dhw_temperature": {
         "name": "Druga temperatura ciepłej wody"
@@ -1166,25 +1248,56 @@
         "name": "Temperatura solarnej ciepłej wody"
       },
       "field_reported_dhw_type": {
-        "name": "Rodzaj ciepłej wody"
+        "name": "Rodzaj ciepłej wody",
+        "state": {
+          "off": "Brak",
+          "flow": "Przepływowa (kombi)",
+          "buffered_flow": "Przepływowa z buforem",
+          "buffer": "Zasobnik",
+          "layered_buffer": "Zasobnik warstwowy"
+        }
       },
       "field_raw_dhw_one_time_bit": {
-        "name": "Bit jednorazowego ładowania (surowy)"
+        "name": "Bit jednorazowego ładowania (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_raw_dhw_disinfection_bit": {
-        "name": "Bit dezynfekcji (surowy)"
+        "name": "Bit dezynfekcji (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_raw_dhw_charging_bit": {
-        "name": "Bit ładowania (surowy)"
+        "name": "Bit ładowania (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_raw_dhw_recharging_bit": {
-        "name": "Bit doładowania (surowy)"
+        "name": "Bit doładowania (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_raw_dhw_temperature_ok_bit": {
-        "name": "Bit temperatura ciepłej wody OK (surowy)"
+        "name": "Bit temperatura ciepłej wody OK (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_raw_dhw_active_bit": {
-        "name": "Bit ciepła woda aktywna (surowy)"
+        "name": "Bit ciepła woda aktywna (surowy)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_thermostat_requested_flow_temperature": {
         "name": "Żądana temperatura zasilania (termostat)"
@@ -1199,7 +1312,10 @@
         "name": "Żądana temperatura ciepłej wody (termostat)"
       },
       "field_maintenance_message": {
-        "name": "Komunikat serwisowy"
+        "name": "Komunikat serwisowy",
+        "state": {
+          "none": "Brak komunikatu"
+        }
       },
       "field_thermostat_setpoint": {
         "name": "Temperatura docelowa (termostat)"
@@ -1223,10 +1339,18 @@
         "name": "Modulacja palnika (EMS+)"
       },
       "field_plus_burner_on": {
-        "name": "Palnik włączony (EMS+)"
+        "name": "Palnik włączony (EMS+)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_plus_dhw_valve": {
-        "name": "Zawór ciepłej wody (EMS+)"
+        "name": "Zawór ciepłej wody (EMS+)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_plus_return_temperature": {
         "name": "Temperatura powrotu (EMS+)"
@@ -1241,7 +1365,11 @@
         "name": "Temperatura spalin (EMS+)"
       },
       "field_plus_heating_pump": {
-        "name": "Pompa obiegu grzewczego (EMS+)"
+        "name": "Pompa obiegu grzewczego (EMS+)",
+        "state": {
+          "on": "Włączone",
+          "off": "Wyłączone"
+        }
       },
       "field_plus_burner_starts": {
         "name": "Starty palnika (EMS+)"

@@ -326,9 +326,13 @@ def _link(text, icon, path, visibility=None):
     return card
 
 
-def _known(entity_id):
-    """Card visibility: only while the entity has a value."""
-    return [{"condition": "state", "entity": entity_id, "state_not": ["unavailable", "unknown"]}]
+def _known(entity_id, also=()):
+    """Card visibility: only while the entity has a value (and none of the states ``also``)."""
+    return [{"condition": "state", "entity": entity_id, "state_not": ["unavailable", "unknown", *also]}]
+
+
+# Rows hidden in this state too: the maintenance message while there is none.
+HIDDEN_STATES = {"maintenance_message": ("none",)}
 
 
 def _rows(entity_ids):
@@ -337,9 +341,12 @@ def _rows(entity_ids):
     return [{"entity": entity_id, "name": {"type": "entity"}} for entity_id in entity_ids]
 
 
-def _known_rows(entity_ids):
-    """Rows shown only while their entity has a value (no "Unknown" rows for what a boiler never sends)."""
-    return [{"type": "conditional", "conditions": _known(row["entity"]), "row": row} for row in _rows(entity_ids)]
+def _known_rows(entity_ids, hidden=None):
+    """Rows shown only while their entity has a value (no "Unknown" rows for what a boiler never sends);
+    ``hidden``: {entity id: more states that hide the row}."""
+    hidden = hidden or {}
+    return [{"type": "conditional", "conditions": _known(row["entity"], hidden.get(row["entity"], ())), "row": row}
+            for row in _rows(entity_ids)]
 
 
 def _any_known(entity_ids):
@@ -352,9 +359,9 @@ def _none_known(entity_ids):
     return [{"condition": "state", "entity": entity_id, "state": ["unavailable", "unknown"]} for entity_id in entity_ids]
 
 
-def _known_entities_card(entity_ids):
+def _known_entities_card(entity_ids, hidden=None):
     """An entities card (no title: its section heading names it) of rows with a value; hidden while none has one."""
-    return {"type": "entities", "entities": _known_rows(entity_ids), "visibility": _any_known(entity_ids)}
+    return {"type": "entities", "entities": _known_rows(entity_ids, hidden), "visibility": _any_known(entity_ids)}
 
 
 def _learning_cards(t, room, active=None):
@@ -1041,10 +1048,12 @@ class RoomDashboard:
             for name in sorted(fields, key=order):
                 groups.setdefault(boiler_group(name), []).append(fields[name])
             raw = groups.pop("raw", None)
+            hidden = {fields[name]: states for name, states in HIDDEN_STATES.items() if name in fields}
             sections = []
             for key, icon in BOILER_GROUPS:
                 if groups.get(key):
-                    sections.append(_section(_heading(t["group_" + key], icon), _known_entities_card(groups[key]),
+                    sections.append(_section(_heading(t["group_" + key], icon),
+                                             _known_entities_card(groups[key], hidden),
                                              None if sections else {"type": "markdown", "content": t["boiler_note"]}))
 
             def shown(card):

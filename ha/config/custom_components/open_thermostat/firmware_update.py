@@ -136,7 +136,7 @@ def verify_image(image, release):
 
 class E32FirmwareUpdate(UpdateEntity):
     _attr_has_entity_name = True
-    _attr_name = "Firmware"
+    _attr_translation_key = "e32_firmware"  # "Firmware" (EN/NL/PL)
     _attr_supported_features = UpdateEntityFeature.INSTALL | UpdateEntityFeature.RELEASE_NOTES
 
     def __init__(self, hass, entry):

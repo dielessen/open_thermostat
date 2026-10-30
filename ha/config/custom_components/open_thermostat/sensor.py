@@ -579,7 +579,9 @@ class HubMetric(SensorEntity):
         self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = unit
         self._attr_state_class = state_class
-        self._attr_name = name
+        # Named by translation key (EN/NL/PL; the English names are unchanged): an existing
+        # entity keeps its entity_id, the registry holds it.
+        self._attr_translation_key = f"hub_{metric}"
         versioned = topic == "ems_metrics" and metric in VERSIONED_METRICS
         if versioned and definition_version not in (1, 2):
             raise ValueError("Unsupported metric definition")
@@ -587,7 +589,7 @@ class HubMetric(SensorEntity):
         self._versioned = versioned
         self._attr_unique_id = f"{prefix}_hub_{metric}" + ("_v2" if versioned and not self._legacy_compat else "")
         if versioned:
-            self._attr_name = ("Legacy history: " + name if self._legacy_compat else name + " (definition v2)")
+            self._attr_translation_key = f"hub_{metric}" + ("_legacy" if self._legacy_compat else "_v2")
         if self._legacy_compat:
             self._attr_state_class = None
             self._attr_entity_category = EntityCategory.DIAGNOSTIC

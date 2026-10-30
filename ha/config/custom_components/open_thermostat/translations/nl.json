@@ -1811,6 +1811,9 @@
       },
       "heating_problem": {
         "name": "Verwarmingsprobleem"
+      },
+      "hub_connected": {
+        "name": "Verbonden"
       }
     },
     "number": {
@@ -2262,6 +2265,99 @@
       },
       "night_heating_gas": {
         "name": "Gas voor verwarmen afgelopen nacht"
+      },
+      "hub_memory_free": {
+        "name": "Vrij geheugen"
+      },
+      "hub_memory_min_free": {
+        "name": "Minimaal vrij geheugen"
+      },
+      "hub_memory_max_alloc": {
+        "name": "Grootste toewijsbare geheugenblok"
+      },
+      "hub_rtc_temperature": {
+        "name": "RTC-temperatuur"
+      },
+      "hub_cpu_temperature": {
+        "name": "ESP32-processortemperatuur"
+      },
+      "hub_uptime": {
+        "name": "Bedrijfstijd apparaat"
+      },
+      "hub_energy_v2": {
+        "name": "Geschatte energie (nominale modulatie) (definitie v2)"
+      },
+      "hub_energy_legacy": {
+        "name": "Oude geschiedenis: Geschatte energie (nominale modulatie)"
+      },
+      "hub_energy_warm_water_v2": {
+        "name": "Geschatte energie warm water (nominale modulatie) (definitie v2)"
+      },
+      "hub_energy_warm_water_legacy": {
+        "name": "Oude geschiedenis: Geschatte energie warm water (nominale modulatie)"
+      },
+      "hub_energy_heating_v2": {
+        "name": "Geschatte energie ruimteverwarming (nominale modulatie) (definitie v2)"
+      },
+      "hub_energy_heating_legacy": {
+        "name": "Oude geschiedenis: Geschatte energie ruimteverwarming (nominale modulatie)"
+      },
+      "hub_energy_unattributed_v2": {
+        "name": "Geschatte niet-toegewezen energie (nominale modulatie) (definitie v2)"
+      },
+      "hub_energy_unattributed_legacy": {
+        "name": "Oude geschiedenis: Geschatte niet-toegewezen energie (nominale modulatie)"
+      },
+      "hub_burner_observed_time_v2": {
+        "name": "Waargenomen tijd met gemelde vlam (definitie v2)"
+      },
+      "hub_burner_observed_time_legacy": {
+        "name": "Oude geschiedenis: Waargenomen tijd met gemelde vlam"
+      },
+      "hub_warm_water_usage_v2": {
+        "name": "Opgeteld gemeld warmwatervolume (definitie v2)"
+      },
+      "hub_warm_water_usage_legacy": {
+        "name": "Oude geschiedenis: Opgeteld gemeld warmwatervolume"
+      },
+      "hub_warm_water_avg_flow_v2": {
+        "name": "Gemiddeld warmwaterdebiet (waargenomen perioden) (definitie v2)"
+      },
+      "hub_warm_water_avg_flow_legacy": {
+        "name": "Oude geschiedenis: Gemiddeld warmwaterdebiet (waargenomen perioden)"
+      },
+      "hub_outdoor_temperature": {
+        "name": "Buitentemperatuur"
+      },
+      "hub_boiler_selected_hot_water_temperature": {
+        "name": "Gekozen warmwatertemperatuur ketel"
+      },
+      "hub_boiler_selected_flow_temperature": {
+        "name": "Gekozen aanvoertemperatuur ketel"
+      },
+      "hub_boiler_current_flow_temperature": {
+        "name": "Huidige aanvoertemperatuur ketel"
+      },
+      "hub_boiler_pressure": {
+        "name": "Keteldruk"
+      },
+      "hub_boiler_burner_power": {
+        "name": "Gemelde brandermodulatie"
+      },
+      "hub_boiler_hot_water_flow": {
+        "name": "Warmwaterdebiet ketel"
+      },
+      "hub_boiler_current_hot_water_temperature": {
+        "name": "Huidige warmwatertemperatuur ketel"
+      },
+      "hub_boiler_protocol_version": {
+        "name": "Protocolversie ketel"
+      },
+      "hub_boiler_service_code": {
+        "name": "Servicecode ketel"
+      },
+      "hub_boiler_display_code": {
+        "name": "Displaycode ketel"
       }
     },
     "select": {
@@ -2346,6 +2442,11 @@
       },
       "flow_apply_learned": {
         "name": "Geleerde aanvoer en optimale start gebruiken"
+      }
+    },
+    "update": {
+      "e32_firmware": {
+        "name": "Firmware"
       }
     }
   },

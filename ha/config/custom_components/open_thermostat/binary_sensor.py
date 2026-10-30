@@ -192,7 +192,7 @@ class HubConnection(BinarySensorEntity):
 
     _attr_should_poll = False
     _attr_has_entity_name = True
-    _attr_name = "Connected"
+    _attr_translation_key = "hub_connected"  # "Connected" (EN/NL/PL)
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 

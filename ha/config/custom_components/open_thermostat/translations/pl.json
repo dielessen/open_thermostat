@@ -883,6 +883,9 @@
       },
       "heating_problem": {
         "name": "Problem z ogrzewaniem"
+      },
+      "hub_connected": {
+        "name": "Połączono"
       }
     },
     "number": {
@@ -1334,6 +1337,99 @@
       },
       "night_heating_gas": {
         "name": "Gaz na ogrzewanie ostatniej nocy"
+      },
+      "hub_memory_free": {
+        "name": "Wolna pamięć"
+      },
+      "hub_memory_min_free": {
+        "name": "Minimalna wolna pamięć"
+      },
+      "hub_memory_max_alloc": {
+        "name": "Największy przydzielalny blok pamięci"
+      },
+      "hub_rtc_temperature": {
+        "name": "Temperatura RTC"
+      },
+      "hub_cpu_temperature": {
+        "name": "Temperatura procesora ESP32"
+      },
+      "hub_uptime": {
+        "name": "Czas pracy urządzenia"
+      },
+      "hub_energy_v2": {
+        "name": "Szacowana energia (modulacja nominalna) (definicja v2)"
+      },
+      "hub_energy_legacy": {
+        "name": "Stara historia: Szacowana energia (modulacja nominalna)"
+      },
+      "hub_energy_warm_water_v2": {
+        "name": "Szacowana energia CWU (modulacja nominalna) (definicja v2)"
+      },
+      "hub_energy_warm_water_legacy": {
+        "name": "Stara historia: Szacowana energia CWU (modulacja nominalna)"
+      },
+      "hub_energy_heating_v2": {
+        "name": "Szacowana energia ogrzewania (modulacja nominalna) (definicja v2)"
+      },
+      "hub_energy_heating_legacy": {
+        "name": "Stara historia: Szacowana energia ogrzewania (modulacja nominalna)"
+      },
+      "hub_energy_unattributed_v2": {
+        "name": "Szacowana nieprzypisana energia (modulacja nominalna) (definicja v2)"
+      },
+      "hub_energy_unattributed_legacy": {
+        "name": "Stara historia: Szacowana nieprzypisana energia (modulacja nominalna)"
+      },
+      "hub_burner_observed_time_v2": {
+        "name": "Obserwowany czas zgłoszonego płomienia (definicja v2)"
+      },
+      "hub_burner_observed_time_legacy": {
+        "name": "Stara historia: Obserwowany czas zgłoszonego płomienia"
+      },
+      "hub_warm_water_usage_v2": {
+        "name": "Zsumowana zgłoszona objętość ciepłej wody (definicja v2)"
+      },
+      "hub_warm_water_usage_legacy": {
+        "name": "Stara historia: Zsumowana zgłoszona objętość ciepłej wody"
+      },
+      "hub_warm_water_avg_flow_v2": {
+        "name": "Średni przepływ ciepłej wody (obserwowane okresy) (definicja v2)"
+      },
+      "hub_warm_water_avg_flow_legacy": {
+        "name": "Stara historia: Średni przepływ ciepłej wody (obserwowane okresy)"
+      },
+      "hub_outdoor_temperature": {
+        "name": "Temperatura zewnętrzna"
+      },
+      "hub_boiler_selected_hot_water_temperature": {
+        "name": "Wybrana temperatura ciepłej wody kotła"
+      },
+      "hub_boiler_selected_flow_temperature": {
+        "name": "Wybrana temperatura zasilania kotła"
+      },
+      "hub_boiler_current_flow_temperature": {
+        "name": "Bieżąca temperatura zasilania kotła"
+      },
+      "hub_boiler_pressure": {
+        "name": "Ciśnienie kotła"
+      },
+      "hub_boiler_burner_power": {
+        "name": "Zgłoszona modulacja palnika"
+      },
+      "hub_boiler_hot_water_flow": {
+        "name": "Przepływ ciepłej wody kotła"
+      },
+      "hub_boiler_current_hot_water_temperature": {
+        "name": "Bieżąca temperatura ciepłej wody kotła"
+      },
+      "hub_boiler_protocol_version": {
+        "name": "Wersja protokołu kotła"
+      },
+      "hub_boiler_service_code": {
+        "name": "Kod serwisowy kotła"
+      },
+      "hub_boiler_display_code": {
+        "name": "Kod wyświetlacza kotła"
       }
     },
     "select": {
@@ -1418,6 +1514,11 @@
       },
       "flow_apply_learned": {
         "name": "Wyuczone zasilanie i optymalny start"
+      }
+    },
+    "update": {
+      "e32_firmware": {
+        "name": "Oprogramowanie układowe"
       }
     }
   },

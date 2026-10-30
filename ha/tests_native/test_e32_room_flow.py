@@ -28,7 +28,8 @@ COMPONENT = Path(__file__).resolve().parents[1] / "config/custom_components/open
 CREDENTIALS = {CONTROLLER_ADDRESS: "http://192.168.1.206", CONTROLLER_PASSWORD: "secret"}
 BLE = [{"id": "a4c138a3e8db", "name": "Slaapkamer", "profile": "atc", "temperature": 19.4},
        {"id": "112233445566", "name": "Zolder", "profile": "atc", "temperature": 17.0}]
-MENU = ["e32_rooms", "comfort", "controller_connection", "energy", "installation", "advanced_settings"]
+# Configure's top level for an E32 install (product_flow.main_menu); flow limits are under Heating and boiler.
+MENU = ["e32_rooms", "comfort", "heating_boiler", "energy", "controller_connection", "general", "advanced_settings"]
 
 
 @pytest.fixture
@@ -103,7 +104,7 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
     e32 = FakeE32()
     parent, hub = product(hass, e32)
     menu = await rooms_menu(manager, parent)
-    assert menu["menu_options"] == ["e32_room_add", "e32_room_pick", "e32_flow_limits"]
+    assert menu["menu_options"] == ["e32_room_add", "e32_room_pick"]
     assert menu["description_placeholders"]["revision"] == "4"
     assert "- Woonkamer: climate.woonkamer, Bluetooth Slaapkamer (a4c138a3e8db)" in menu["description_placeholders"]["rooms"]
     form = await manager.async_configure(menu["flow_id"], {"next_step_id": "e32_room_add"})
@@ -122,7 +123,7 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
     assert result["type"] == "menu" and result["step_id"] == "e32_rooms_saved", result
     assert result["description_placeholders"]["name"] == "Slaapkamer Zoë"
     assert "Slaapkamer Zoë" in result["description_placeholders"]["rooms"]
-    assert result["menu_options"] == ["e32_room_add", "e32_room_pick", "e32_flow_limits"]
+    assert result["menu_options"] == ["e32_room_add", "e32_room_pick"]
     assert len(e32.posts) == posts + 1 and e32.posts[-1]["revision"] == 4
     assert e32.plan["rooms"][:2] == PLAN["rooms"]  # the other rooms travel back unchanged
     assert e32.plan["rooms"][2] == {
@@ -197,8 +198,10 @@ async def test_fahrenheit_sources_and_home_assistant_are_accepted_non_temperatur
 
 
 async def flow_limits_form(manager, parent):
-    flow = await rooms_menu(manager, parent)
-    form = await manager.async_configure(flow["flow_id"], {"next_step_id": "e32_flow_limits"})
+    await manager.hass.async_block_till_done()
+    flow = await manager.async_init(parent.entry_id)
+    assert flow["menu_options"] == MENU
+    form = await manager.async_configure(flow["flow_id"], {"next_step_id": "heating_boiler"})
     assert form["type"] == "form" and form["step_id"] == "e32_flow_limits", form
     return form
 
@@ -555,7 +558,7 @@ async def test_menu_offers_no_add_with_eight_rooms_and_an_unreachable_e32_aborts
     e32 = FakeE32({**PLAN, "rooms": [{**PLAN["rooms"][0], "id": f"room_{n}"} for n in range(8)]})
     parent, hub = product(hass, e32)
     menu = await rooms_menu(manager, parent)
-    assert menu["menu_options"] == ["e32_room_pick", "e32_flow_limits"]
+    assert menu["menu_options"] == ["e32_room_pick"]
     attempts = []
     hub.plan._client = lambda: _Failing(attempts)
     flow = await manager.async_init(parent.entry_id)
@@ -643,7 +646,8 @@ def test_every_flow_key_has_a_translation(filename):
         assert key in options["error"] or key in options["abort"], key
     for key in selectors:
         assert document["selector"][key]["options"], key
-    assert set(options["step"]["e32_rooms"]["menu_options"]) == {"e32_room_add", "e32_room_pick", "e32_flow_limits"}
+    assert set(options["step"]["e32_rooms"]["menu_options"]) == {"e32_room_add", "e32_room_pick"}
+    assert options["step"]["init"]["menu_options"]["heating_boiler"]
     assert set(options["step"]["e32_flow_limits"]["data"]) == {"minimum_flow_temperature", "maximum_flow_temperature"}
     assert "45–50 °C" in options["step"]["e32_flow_limits"]["data_description"]["maximum_flow_temperature"]
     assert options["step"]["init"]["menu_options"]["e32_rooms"]

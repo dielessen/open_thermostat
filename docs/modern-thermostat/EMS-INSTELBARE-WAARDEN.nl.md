@@ -208,6 +208,36 @@ op eigen risico aan"):
 - **Teksten.** Alle teksten volledig in het Engels en het Nederlands, en de
   waarschuwing in gewone taal.
 
+## Testerprogramma: resultaten delen via GitHub
+
+De eigenaar vroeg op 30 oktober om een optie "tester": wie die kiest, deelt de
+testresultaten met het project op GitHub.
+
+- **Aanmelden.** In de HA-opties kies je "Tester". De E32 en HA voeren dan de
+  begeleide controles uit zodra de gebruiker ze start, nooit ongevraagd.
+- **Wat gedeeld wordt.** Alleen het capaciteitsprofiel:
+  - productnummer, apparaatklasse en firmwareversies (E32 en ketel);
+  - per instelling het bewijsniveau, het gemeten effect en "niet ondersteund";
+  - het waargenomen bereik.
+
+  Geen namen van ruimtes, geen IP- of MAC-adressen, geen Wi-Fi-gegevens,
+  geen locatie en geen HA-entiteitnamen. De gebruiker ziet de volledige tekst
+  voordat er iets verstuurd wordt.
+- **Hoe het verstuurd wordt.** Met één klik op "Deel resultaat" in HA opent
+  GitHub een vooraf ingevuld issue, via een issueformulier met het profiel als
+  JSON. De tester verstuurt het met zijn eigen GitHub-account. Is de tekst te
+  lang voor een URL, dan downloadt hij het bestand en voegt het als bijlage toe.
+- **Aan onze kant.** Een GitHub Action controleert de JSON tegen het schema,
+  geeft het issue labels (ketelgroep, productnummer) en zet resultaten van
+  dezelfde ketelgroep naast elkaar. Een profiel gaat pas met de firmware mee
+  na beoordeling, en na bevestiging door meerdere testers waar dat kan.
+- **Waarom niet volledig automatisch.** Dan zou de E32 of HA zelf met een
+  sleutel naar GitHub moeten schrijven. Een sleutel in openbare firmware wordt
+  misbruikt (spam). Een eigen tussendienst kost onderhoud en verwerkt
+  IP-adressen (privacy). Daar kijken we pas naar bij veel testers.
+- **Terugtrekken.** De tester kan de optie altijd uitzetten. Eerdere issues
+  blijven van de tester zelf en kan hij zelf sluiten.
+
 ## Fasering (na 1.0, naast het lezen van EMS+ in 1.1)
 
 **Bijgesteld op 30 oktober (eigenaar).** Voor de eigen ketel is weinig bruikbaars

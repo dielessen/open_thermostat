@@ -27,7 +27,7 @@ energy inputs.
 | Target, temperature without Home Assistant, minimum and maximum | E32: Rooms | Same room editor |
 | Week program per room | E32: Rooms (visual planner) | Same room editor, or the Week program view of the OpenThermostat dashboard |
 | Setting device per room (valve, tado, number) | — | Same room editor |
-| Lowest and highest flow temperature for the boiler request | E32: Boiler → Boiler flow limits | Configure → Heating and boiler |
+| Lowest and highest flow temperature for the boiler request | E32: Boiler → Flow temperature limits | Configure → Heating and boiler |
 | Gas meter, gas price, outdoor temperature, boiler power (all optional) | — | Configure → Energy and outdoor temperature |
 | Pairing Bluetooth sensors (address, profile, encryption key) | E32: Sensors | E32: Sensors |
 | Boiler model | E32: Boiler | E32: Boiler |
@@ -137,12 +137,12 @@ Assistant — you edit rooms here." on the **Rooms** page.
 5. Turn on **Use a week program** and add switch points per day (time and
    temperature, up to six per day). Each temperature holds until the next
    switch point.
-6. Check the **Boiler flow limits** on the **Boiler** page (default 30–60 °C;
-   the maximum can be set up to 80 °C). Floor heating fed directly without a mixing valve usually needs
-   at most 45–50 °C. The page
-   shows your boiler's own maximum heating temperature; the E32 never asks for
-   more than that.
-7. Choose **Save rooms**.
+6. Choose **Save rooms**.
+7. Then check the **Flow temperature limits** on the **Boiler** page and
+   choose **Save limits** after a change (default 30–60 °C; the maximum can
+   be set up to 80 °C). Floor heating fed directly without a mixing valve
+   usually needs at most 45–50 °C. The page shows your boiler's own maximum
+   heating temperature; the E32 never asks for more than that.
 
 The E32 stores large week programs in a compact form, so 8 rooms with four
 switch points a day fit. A plan that is still too large is refused with a
@@ -274,8 +274,9 @@ everything else.
   E32 waits for a valid clock before it applies a stored change; until then
   the room follows its plan. A change made while the E32 has no valid clock
   lasts its duration and is not kept across a restart.
-- **Window and door sensors** (Home Assistant: Configure → **Comfort** →
-  Window and door sensors per room): while any sensor of a room is open for
+- **Window and door contacts** (Home Assistant: in the room form under
+  Configure → **Rooms**, or Configure → **Comfort** → Window and door contacts
+  per room): while any contact of a room is open for
   longer than the delay (120 s by default), the room pauses and only heats
   below 8 °C. When all are closed it resumes at once. The room card and the
   thermostat show the pause and its reason.

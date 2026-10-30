@@ -519,16 +519,20 @@ changes on the device are not seen until Home Assistant is back.
 ### 11.4 Flow temperature limits
 
 The flow temperature is how warm the boiler water is that the E32 would ask
-for. Check the limits under **Configure → Heating and boiler** (also shown on
-the E32 **Boiler** page). The default is 30–60 °C. Floor heating fed without a
+for. Check the limits under **Configure → Heating and boiler** in Home
+Assistant (without Home Assistant: the E32 **Boiler** page, section **Flow
+temperature limits**, then **Save limits**). The default is 30–60 °C. Floor heating fed without a
 mixing valve usually needs at most 45–50 °C; radiators often need 60–75 °C on
 cold days. The E32 never asks for more than the maximum heating temperature
 set on the boiler itself.
 
 ### 11.5 More options (optional)
 
-- **Configure → Comfort: window sensors, away and presence**: window and door
-  sensors per room that pause the room while open, and who-is-home presence.
+- **Window and door contacts**: sensors that pause a room while a window or
+  door is open (it drops to frost protection and asks for no heat). Choose
+  them per room in the room form, or under **Configure → Comfort: window
+  sensors, away and presence**, where you also find away and who-is-home
+  presence.
 - **Configure → Energy and outdoor temperature**: a gas meter, gas price,
   outdoor temperature and your boiler's power. All optional; they make the gas
   and cost estimates and the heating advice more accurate.

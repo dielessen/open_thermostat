@@ -210,7 +210,8 @@ def save_energy(hass, entry, values):
     if state is not None:
         # Only energy keys changed: the update listener refreshes instead of reloading.
         state[ENERGY_ONLY_UPDATE] = dict(options)
-    hass.config_entries.async_update_entry(entry, options=options)
+    if not hass.config_entries.async_update_entry(entry, options=options) and state is not None:
+        state.pop(ENERGY_ONLY_UPDATE, None)  # no listener runs: never leave the marker behind
     return True
 
 

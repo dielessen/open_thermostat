@@ -148,7 +148,8 @@ def save_comfort(hass, entry, settings):
     state = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     if state is not None:
         state[ENERGY_ONLY_UPDATE] = dict(options)
-    hass.config_entries.async_update_entry(entry, options=options)
+    if not hass.config_entries.async_update_entry(entry, options=options) and state is not None:
+        state.pop(ENERGY_ONLY_UPDATE, None)  # no listener runs: never leave the marker behind
     if state is not None and (forwarder := state.get("comfort_forwarder")) is not None:
         forwarder.reconfigure()
     return True

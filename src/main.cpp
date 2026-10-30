@@ -552,7 +552,8 @@ void loop() {
 	{
 		const uint32_t beat = supervisorBeatS.load(), nowS = monotonicS();
 		heating::update::loop(heating::controller && !heating::controller->boilerTestActive() && !heating::controller->boilerSettingsActive(),
-			beat && nowS - beat <= 15, networkProven);
+			beat && nowS - beat <= 15, networkProven,
+			[] { return !heating::controller || heating::controller->releaseBoilerForRestart(); });
 	}
 	heating::diagnostics::blackBox.loopPhase(heating::diagnostics::LoopPhase::network);
 	// Only while asked: bootPending() reads the OTA state from flash.

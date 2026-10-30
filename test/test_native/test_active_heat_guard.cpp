@@ -1,4 +1,7 @@
 #include "control/ActiveHeatGuard.h"
+#include "update/RestartTimer.h"
+#include <array>
+#include <string>
 #include <gtest/gtest.h>
 #include <memory>
 #include <vector>
@@ -406,5 +409,148 @@ TEST(ActiveHeatGuard, StatusJson) {
     ASSERT_EQ(cJSON_GetArraySize(warnings), 1);
     EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetArrayItem(warnings, 0)), "foreign_controller");
     EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(l.get(), "confirmation")));
+}
+
+// A planned restart (update, settings, controlled restart) while the E32 heats:
+// zero first, released once delivered, and no new takeover before the restart.
+TEST(ActiveHeatGuard, PlannedRestartWithdrawsWithZeroAndReleases) {
+    Bench b; b.runFor(minute);
+    ASSERT_EQ(b.guard.state(), State::active);
+    ASSERT_EQ(b.sent.back().flowC, 40);
+    EXPECT_FALSE(b.guard.released());
+    const auto t0 = b.now;
+    b.guard.withdraw(b.now);
+    EXPECT_EQ(b.guard.state(), State::stopping);
+    b.runFor(10 * second);
+    ASSERT_FALSE(b.since(t0).empty());
+    EXPECT_EQ(b.since(t0).front().flowC, 0);
+    EXPECT_TRUE(b.guard.released());
+    EXPECT_TRUE(b.guard.confirmed()); // the next boot resumes after its restore listening
+    b.runFor(30 * minute); // the restart is late: still no positive request
+    for (const auto& s : b.since(t0)) EXPECT_EQ(s.flowC, 0);
+    EXPECT_EQ(b.guard.state(), State::stopping);
+    EXPECT_TRUE(b.guard.claimsBoiler());
+}
+
+TEST(ActiveHeatGuard, PlannedRestartWithFailingWritesIsNotReleased) {
+    Bench b; b.runFor(minute);
+    b.writesSucceed = false;
+    b.guard.withdraw(b.now);
+    b.runFor(2 * minute);
+    EXPECT_FALSE(b.guard.released()); // the boiler may still hold 40 degC
+    // The restart is bounded: BoilerReleaseHold lets it go after 90 s.
+    heating::update::BoilerReleaseHold hold;
+    EXPECT_FALSE(hold.ready(1000, b.guard.released()));
+    EXPECT_FALSE(hold.ready(1000 + 89999, b.guard.released()));
+    EXPECT_TRUE(hold.ready(1000 + 90000, b.guard.released()));
+    b.writesSucceed = true; b.runFor(10 * second);
+    EXPECT_TRUE(b.guard.released());
+}
+
+TEST(ActiveHeatGuard, WithdrawWithoutAClaimNeverSendsOrTakesOver) {
+    Bench shadow(false); shadow.in.mode = RoomPlan::Mode::shadow;
+    shadow.guard.withdraw(shadow.now);
+    shadow.runFor(10 * minute);
+    EXPECT_TRUE(shadow.sent.empty());
+    EXPECT_TRUE(shadow.guard.released());
+    EXPECT_FALSE(shadow.guard.claimsBoiler());
+    // Arming after a restart (stored confirmation) when the next restart comes: no takeover.
+    Bench arming(false); arming.now = 0; arming.guard.restore(0);
+    arming.guard.withdraw(0);
+    arming.in.boilerHeardAtMs = 0;
+    for (int i = 0; i < 60; ++i) { arming.in.boilerHeardAtMs = arming.now; arming.runFor(10 * second); }
+    EXPECT_TRUE(arming.sent.empty());
+    EXPECT_EQ(arming.guard.state(), State::arming);
+    EXPECT_TRUE(arming.guard.released());
+}
+
+// Shadow mode (the firmware gate is false): the new restart hook changes nothing.
+TEST(ActiveHeatGuard, ShadowStaysSilentWithEveryInputAndTheRestartHook) {
+    for (bool withdrawn : {false, true}) {
+        Bench b(false); b.in.mode = RoomPlan::Mode::shadow;
+        if (withdrawn) b.guard.withdraw(b.now);
+        std::vector<std::string> states;
+        for (int i = 0; i < 2000; ++i) {
+            b.heat(uint8_t(i % 7 ? 30 + i % 25 : 0));
+            b.in.rooms.coldestCentiC = int16_t(i % 50 == 0 ? 700 : 2000);
+            b.in.foreign = i % 9 ? std::optional<ActiveHeatGuard::Foreign>{} : ActiveHeatGuard::Foreign{0x17, b.now};
+            b.in.boiler = {i % 3 == 0, int16_t(3000 + i % 40 * 50)};
+            b.in.routeReady = i % 5 != 0;
+            if (i == 700) b.guard.confirm(b.now, true); // a confirmation in shadow mode is forgotten
+            const auto c = b.tick(); b.now += 10 * second;
+            EXPECT_FALSE(c.send);
+            states.push_back(ActiveHeatGuard::name(b.guard.state()));
+        }
+        EXPECT_TRUE(b.sent.empty());
+        for (const auto& s : states) EXPECT_EQ(s, "shadow");
+        EXPECT_FALSE(b.guard.confirmed());
+        EXPECT_TRUE(b.guard.released());
+    }
+}
+
+// A hot water tap while heating: the boiler serves DHW first; the E32 keeps
+// its request unchanged (refreshed every 60 s) and raises no warning.
+TEST(ActiveHeatGuard, HotWaterTapDuringHeatingKeepsTheRequest) {
+    Bench b; b.runFor(minute);
+    b.in.boiler = {true, int16_t(5500)}; // burner on for the tap, flow hot
+    const auto t0 = b.now;
+    b.runFor(10 * minute);
+    b.in.boiler = {false, int16_t(4200)}; b.runFor(5 * minute);
+    const auto sent = b.since(t0);
+    ASSERT_GE(sent.size(), 14u);
+    for (size_t i = 0; i < sent.size(); ++i) {
+        EXPECT_EQ(sent[i].flowC, 40);
+        if (i) { EXPECT_LE(sent[i].at - sent[i - 1].at, minute); }
+    }
+    EXPECT_EQ(b.guard.state(), State::active);
+    for (auto w : {ActiveHeatGuard::boilerNoResponse, ActiveHeatGuard::transmitFailed, ActiveHeatGuard::measurementLost})
+        EXPECT_FALSE(b.guard.warning(w));
+}
+
+// A slow loop (MQTT storm, slow Wi-Fi): steps up to 25 s apart. The request is
+// still refreshed at the first step after 60 s, no false transmit warning, and
+// a stop still sends its zero.
+TEST(ActiveHeatGuard, SlowLoopKeepsTheRefreshAndTheStop) {
+    Bench b; b.runFor(minute);
+    const auto t0 = b.now;
+    const uint64_t gaps[] = {25, 7, 18, 25, 3, 25, 25, 11, 25, 9};
+    for (int round = 0; round < 20; ++round)
+        for (auto g : gaps) { b.now += g * second; b.tick(); }
+    const auto sent = b.since(t0);
+    ASSERT_GT(sent.size(), 20u);
+    for (size_t i = 1; i < sent.size(); ++i) EXPECT_LE(sent[i].at - sent[i - 1].at, minute + 25 * second);
+    EXPECT_FALSE(b.guard.warning(ActiveHeatGuard::transmitFailed));
+    b.heat(0);
+    b.now += 25 * second; const auto c = b.tick();
+    EXPECT_TRUE(c.send); EXPECT_EQ(c.flowC, 0);
+}
+
+// Wi-Fi or HA gone but the Bluetooth fallback still measures: heating goes on.
+TEST(ActiveHeatGuard, FallbackSourceKeepsHeating) {
+    Bench b; b.runFor(minute);
+    RoomDemand::Spec spec; spec.state = RoomDemand::State::active; spec.sources = 2;
+    std::array<RoomDemand::Reading, RoomDemand::maxSources> readings{};
+    readings[1] = {2010, b.now}; // HA source gone, Bluetooth reading fresh
+    const auto r = RoomDemand::evaluate(spec, readings, int16_t(2100), b.now, RoomDemand::Reading{2010, b.now});
+    ASSERT_EQ(r.status, RoomDemand::Status::fallback);
+    b.in.rooms = {}; b.in.rooms.add(r);
+    const auto t0 = b.now;
+    b.runFor(10 * minute);
+    EXPECT_EQ(b.guard.state(), State::active);
+    for (const auto& s : b.since(t0)) EXPECT_EQ(s.flowC, 40);
+    EXPECT_FALSE(b.guard.warning(ActiveHeatGuard::measurementLost));
+}
+
+// Power loss with the tado plugged back in meanwhile: the stored confirmation
+// listens first; the tado's 0x1A in that window blocks before any heat.
+TEST(ActiveHeatGuard, PowerLossThenForeignControllerNeverHeats) {
+    Bench b(false); b.now = 0; b.guard.restore(0);
+    for (int i = 0; i < 9; ++i) { b.in.boilerHeardAtMs = b.now; b.runFor(10 * second); }
+    b.in.foreign = ActiveHeatGuard::Foreign{0x17, b.now};
+    for (int i = 0; i < 60; ++i) { b.in.boilerHeardAtMs = b.now; b.runFor(10 * second); }
+    EXPECT_TRUE(b.sent.empty());
+    EXPECT_EQ(b.guard.state(), State::blockedForeignController);
+    EXPECT_FALSE(b.guard.confirmed());
+    EXPECT_TRUE(b.guard.warning(ActiveHeatGuard::foreignController));
 }
 }

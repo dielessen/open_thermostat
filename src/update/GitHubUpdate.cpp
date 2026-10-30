@@ -350,10 +350,12 @@ std::string status() {
     auto list=cJSON_AddArrayToObject(root.get(),"releases");for(const auto &r:snapshot.releases){auto entry=cJSON_CreateObject();cJSON_AddStringToObject(entry,"tag",r.tag.c_str());cJSON_AddBoolToObject(entry,"prerelease",r.prerelease);cJSON_AddItemToArray(list,entry);}
     char *raw=cJSON_PrintUnformatted(root.get());std::string result=raw?raw:"{}";cJSON_free(raw);return result;
 }
-void loop(bool automaticAllowed,bool supervisorAlive,bool networkProven) {
-    const auto now=millis();if(rebootTimer.due(now,working.load())){ESP.restart();return;}
+void loop(bool automaticAllowed,bool supervisorAlive,bool networkProven,bool (*releaseBoiler)()) {
+    const auto released=[releaseBoiler]{return !releaseBoiler||releaseBoiler();};
+    const auto now=millis();if(rebootTimer.due(now,working.load())){if(released())ESP.restart();return;}
     static bool pending=pendingBoot();
     if(controlledRestart.due(now,working.load())&&controlledRestartAllowed(busy(),pending,!automaticAllowed)) {
+        if(!released())return;
         heating::diagnostics::blackBox.restartReason(static_cast<heating::diagnostics::SupervisorPolicy::Reason>(controlledRestart.reason()));
         Serial.println("Controlled restart (deferred until no update, boot check or boiler session)");
         ESP.restart();return;
@@ -380,6 +382,7 @@ void loop(bool automaticAllowed,bool supervisorAlive,bool networkProven) {
             break;
         }
         case BootConfirmation::Action::rollback:
+            if(!released())break;
             Serial.println(supervisorAlive?"OTA boot unconfirmed (network not proven within 10 min); restarting for bootloader rollback"
                 :"OTA boot unconfirmed (no supervisor); restarting for bootloader rollback");
             ESP.restart();return;

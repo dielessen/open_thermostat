@@ -134,8 +134,7 @@ inline void rejoinSavedWifi() {
     if(!network.hostname.empty()) WiFi.setHostname(network.hostname.c_str());
     WiFi.begin(saved.ssid.c_str(),saved.password.empty()?nullptr:saved.password.c_str());
     WiFi.setAutoReconnect(true);
-    Serial.printf("Setup ended: joining the saved Wi-Fi again
-");
+    Serial.printf("Setup ended: joining the saved Wi-Fi again\n");
 }
 inline void pollSetupWifi() {
     static bool restartHeldNoted=false;

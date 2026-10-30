@@ -12,6 +12,9 @@ ERRORS = {"controller_auth_failed": "e32_password", "controller_unreachable": "e
           "controller_broker_setup_required": "broker_login", "controller_mqtt_unconfirmed": "mqtt_unconfirmed",
           "controller_busy_or_conflict": "e32_busy", "controller_boot_unconfirmed": "e32_busy",
           "controller_ha_version_unsupported": "ha_version_unsupported",
+          "controller_room_plan_update_required": "e32_update_required",
+          "controller_session_capacity": "e32_session_capacity",
+          "controller_try_again_later": "e32_try_again_later",
           "legacy_rooms_plan_changed": "legacy_rooms_plan_changed",
           "legacy_rooms_plan_failed": "legacy_rooms_plan_failed",
           "legacy_rooms_plan_unreadable": "legacy_rooms_plan_unreadable"}

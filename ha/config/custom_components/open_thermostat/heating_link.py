@@ -599,6 +599,17 @@ class HeatingHub:
         self._listeners.clear()
 
 
+def topic_base(hass, entry):
+    """The E32's MQTT topic base of an entry: the running link's, else ``<topic_prefix>/v1/``.
+
+    The E32 publishes its retained telemetry there whether or not this entry
+    runs its shadow link, so the telemetry never depends on that link.
+    """
+    connection = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("v1_connection")
+    prefix = getattr(connection, "prefix", None)
+    return prefix if type(prefix) is str and prefix else entry.data[CONF_TOPIC_PREFIX] + "/v1/"
+
+
 def heating_hub(hass, entry):
     """The entry's one hub, created by whichever platform asks first."""
     state = hass.data[DOMAIN][entry.entry_id]
@@ -1417,17 +1428,28 @@ async def async_setup_demand(hass, entry, async_add_entities):
 
 
 async def async_setup_heating_link(hass, entry, async_add_entities, **options):
+    """The E32 telemetry, its entities and the ha/heating_input forwarding.
+
+    Product entries need only the MQTT prefix and the broker, not the shadow
+    link: a stopped link (shadow off, an interrupted Connect E32) never hides
+    the E32 rooms or stops the forwarding. Other entries keep needing the link.
+    """
+    from .product import is_product
     state = hass.data[DOMAIN][entry.entry_id]
     connection = state.get("v1_connection")
     if connection is None or connection.client is None:
-        return
-    topic_base = connection.prefix
+        if not is_product(entry):
+            return
+        from types import SimpleNamespace
+        from .v1_boiler_fields import SOURCE_KEY
+        # The advice reads the boiler values of the retained source instead.
+        connection = SimpleNamespace(client=state.get(SOURCE_KEY), prefix=topic_base(hass, entry))
+    base = topic_base(hass, entry)
     hub = heating_hub(hass, entry)
     options = add_options(hass, entry, options)
     sensor = HeatRequestSensor(hub)
     async_add_entities([sensor], **options)
     entry.async_on_unload(track_entities(hub, async_add_entities, options, wanted_sensors))
-    from .product import is_product
     if is_product(entry):  # the tuning advice (advice only) on the product device
         from .heating_advice import async_setup_heating_advice
         await async_setup_heating_advice(hass, entry, async_add_entities, options, hub, connection)
@@ -1436,7 +1458,7 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     was_fresh = False
 
     def send(payload):
-        hass.async_create_task(mqtt.async_publish(hass, topic_base + "ha/heating_input", payload, 0, False))
+        hass.async_create_task(mqtt.async_publish(hass, base + "ha/heating_input", payload, 0, False))
 
     def publish(entity_id):
         payload = input_payload(hass.states.get(entity_id), hass.config.units.temperature_unit)
@@ -1483,8 +1505,8 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     @callback
     def receive(message):
         topic = getattr(message, "topic", "")
-        if type(topic) is str and topic.startswith(topic_base):
-            hub.receive(topic[len(topic_base):], message.payload, retained=getattr(message, "retain", False))
+        if type(topic) is str and topic.startswith(base):
+            hub.receive(topic[len(base):], message.payload, retained=getattr(message, "retain", False))
 
     @callback
     def unload():
@@ -1495,7 +1517,7 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     entry.async_on_unload(hub.add_listener(follow))
     for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", PLAN_TOPIC,
                   ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, SHADOW_TOPIC):
-        entry.async_on_unload(await mqtt.async_subscribe(hass, topic_base + topic, receive))
+        entry.async_on_unload(await mqtt.async_subscribe(hass, base + topic, receive))
     entry.async_on_unload(async_track_time_interval(hass, refresh, timedelta(seconds=REFRESH_SECONDS)))
     entry.async_on_unload(async_track_time_interval(hass, hub.check_stale, STALE_CHECK))
     entry.async_on_unload(unload)

@@ -35,6 +35,56 @@ CONTROLLER = re.compile(r"e32_[0-9a-f]{12}")
 EVOLUTION = "native.source.evolution.v1"
 
 
+# The first firmware that publishes the retained room-plan topics (fw/state/heating,
+# fw/config/plan) Home Assistant confirms this link with: E32 beta.19.
+ROOM_PLAN_TOPICS_FIRMWARE = (0, 1, 0, 1, 19)
+
+
+def room_plan_topics_firmware(version):
+    """True for an E32 firmware version (``v0.1.0-e32v2-beta.19``) with the room-plan topics."""
+    from .firmware_update import parse_tag
+    key = parse_tag(version)
+    return key is not None and key >= ROOM_PLAN_TOPICS_FIRMWARE
+
+
+async def async_check_room_plan_firmware(hass, entry, client):
+    """Stop before any change when the E32 cannot confirm the room plan link.
+
+    The link is confirmed by the E32's retained heating report over MQTT, which
+    firmware before beta.19 does not send: linking it would wait in vain and
+    leave a half-finished change. Telemetry already arriving (the heating hub is
+    fresh) proves the firmware too; otherwise /status/version is read.
+    """
+    hub = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("heating_hub")
+    if hub is not None and hub.fresh:
+        return
+    version = await client.async_read("/status/version")
+    if not room_plan_topics_firmware(version.get("version") if type(version) is dict else None):
+        raise ControllerLinkError("controller_room_plan_update_required")
+
+
+async def async_room_plan_firmware_problem(hass, entry):
+    """controller_room_plan_update_required when the stored E32 runs firmware before beta.19.
+
+    For a form shown before the user confirms: None when the firmware is new
+    enough and also when it cannot be checked now (the action itself checks
+    again before it changes anything).
+    """
+    hub = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("heating_hub")
+    if hub is not None and hub.fresh:
+        return None
+    from . import controller_setup_flow as setup
+    try:
+        async with setup.ControllerClient(entry.data[setup.CONTROLLER_ADDRESS]) as client:
+            await client.async_login(entry.data[setup.CONTROLLER_PASSWORD])
+            await async_check_room_plan_firmware(hass, entry, client)
+    except ControllerLinkError as err:
+        return str(err) if str(err) == "controller_room_plan_update_required" else None
+    except KeyError:
+        return None
+    return None
+
+
 def legacy_zones(entry):
     """The older Home Assistant rooms (zone subentries) of an entry."""
     return [s for s in entry.subentries.values() if s.subentry_type == "zone"]

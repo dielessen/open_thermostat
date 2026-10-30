@@ -627,10 +627,9 @@ async def async_setup_e32_climates(hass, entry, async_add_entities):
     from .e32_setting_device import SettingDevicePusher
     pusher = state["setting_device_pusher"] = SettingDevicePusher(hass, entry, hub)
     entry.async_on_unload(pusher.start())
-    connection = state.get("v1_connection")
-    if connection is None or getattr(connection, "client", None) is None:
-        return
-    topic = connection.prefix + "ha/heating_input"
+    # Only the MQTT prefix and the broker, not the shadow link (heating_link.topic_base).
+    from .heating_link import topic_base
+    topic = topic_base(hass, entry) + "ha/heating_input"
 
     def send(payload):
         hass.async_create_task(mqtt.async_publish(hass, topic, payload, 0, False))

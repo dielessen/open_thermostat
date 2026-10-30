@@ -39,6 +39,11 @@ class LegacyRoomsSteps:
             errors["base"] = error
             self._legacy_failure = None
         zones = legacy_zones(entry)
+        if user_input is None and not errors:
+            # Firmware before beta.19 cannot confirm the change: say so before the user confirms.
+            from .e32_link import async_room_plan_firmware_problem
+            if (problem := await async_room_plan_firmware_problem(self.hass, entry)) is not None:
+                errors["base"] = self._legacy_error(problem)
         shown = getattr(self, "_legacy_shown", None)
         if user_input is not None and (shown is not None or not zones):
             from .controller_setup_flow import async_link_room_plan

@@ -9,17 +9,24 @@ plan (docs/SWITCHOVER.md, OVERSCHAKELING.nl.md section 3):
   2. periods         at least 10 heating periods of the thermostat, among them
                      a night setback, a morning warm-up and a no-demand period
   3. timing          the E32 starts and stops heat within minutes of the thermostat
-  4. flow            the E32's flow request stays in the agreed band (31-43 degC)
+  4. flow            the E32's flow request never exceeds the hard limit: the lowest
+                     of the plan maximum (--plan-max), the boiler's own heating limit
+                     and 80 degC (owner, 30 Oct 2026: keep the hard limit and learn;
+                     the flow level itself is not judged, the E32 learns it)
   5. cycling         the E32 would not start the burner more often than the thermostat
 
-WAIT means there is not enough data yet; it is not a failure.
+WAIT means there is not enough data yet; it is not a failure. The difference
+between the E32's and the thermostat's requested flow is reported as INFO
+(median and spread), never as PASS or FAIL.
 
     export OT_HA_TOKEN='<long-lived token>'
     python3 -I tools/switchover/shadow_exit.py --ha-url https://homeassistant.local:8123 \\
-        --climate climate.living_room [--days 3 | --since 2026-10-30T17:10Z] [--mqtt-log listener.txt] [--json out.json]
+        --climate climate.living_room --plan-max 60 [--days 3 | --since 2026-10-30T17:10Z] \\
+        [--mqtt-log listener.txt] [--json out.json]
 
 The E32 entities are found by their suffix (_heat_request,
-_thermostat_requested_flow_temperature, _device_uptime) unless given.
+_thermostat_requested_flow_temperature, _device_uptime and the optional
+_boiler_configured_heating_temperature) unless given.
 --insecure skips the TLS check for a Home Assistant with a self-signed
 certificate on your own network. Exit status 0 only when every criterion passes.
 """
@@ -34,18 +41,17 @@ import sys
 import urllib.parse
 import urllib.request
 
-FLOW_BAND = (31.0, 43.0)
+HARD_CEILING_C = 80.0  # the firmware's absolute ceiling (ActiveHeatGuard / ActiveHeatEnvelope)
 STABLE_HOURS = 72
 MIN_PERIODS = 10
 OFFLINE_MINUTES = 5
 MERGE_GAP_S = 120          # a heat request that drops for less than this is one period
 MATCH_WINDOW_S = 30 * 60   # a start or stop further apart than this is not the same event
 TIMING_MEDIAN_S, TIMING_P90_S, TIMING_MATCHED = 5 * 60, 15 * 60, 0.8
-FLOW_SHARE = 0.9
 SETBACK_C = 0.5
 NO_DEMAND_S = 60 * 60
 
-PASS, FAIL, WAIT = 'PASS', 'FAIL', 'WAIT'
+PASS, FAIL, WAIT, INFO = 'PASS', 'FAIL', 'WAIT', 'INFO'
 
 
 def number(state):
@@ -172,25 +178,64 @@ def timing(tado, e32):
     return {'result': PASS if ok else FAIL, 'why': why, **detail}
 
 
-def flow(e32_series, end, band=FLOW_BAND):
-    """Time-weighted share of the E32's positive requests inside the band."""
-    inside = total = 0.0
-    values = []
+def value_at(series, t):
+    """The step series' value at t (the latest sample at or before t), else None."""
+    value = None
+    for at, v in series:
+        if at > t:
+            break
+        value = v
+    return value
+
+
+def flow(e32_series, end, plan_max=None, boiler=()):
+    """The E32's positive requests against the hard limit: min(plan maximum, the
+    boiler's own heating limit at that moment, 80 degC). Any request above it fails."""
+    total, breaches, values = 0.0, [], []
     for (t, v), nxt in zip(e32_series, e32_series[1:] + [(end, None)]):
         if v is None or v <= 0:
             continue
-        span = max(0.0, nxt[0] - t)
-        total += span
+        limits = [HARD_CEILING_C] + ([plan_max] if plan_max else [])
+        reported = value_at(boiler, t)
+        if reported is not None and reported > 0:
+            limits.append(reported)
+        limit = min(limits)
+        total += max(0.0, nxt[0] - t)
         values.append(v)
-        if band[0] <= v <= band[1]:
-            inside += span
+        if v > limit:
+            breaches.append({'at': dt.datetime.fromtimestamp(t, dt.timezone.utc).isoformat(timespec='minutes'),
+                             'flow_c': v, 'limit_c': limit})
+    known = 'plan maximum ' + (f'{plan_max:.0f}' if plan_max else 'not given') + ', boiler limit ' + (
+        'reported' if boiler else 'unknown') + f', ceiling {HARD_CEILING_C:.0f} degC'
+    detail = {'requests_min': round(total / 60), 'breaches': breaches[:20], 'breach_count': len(breaches),
+              'plan_max_c': plan_max, 'max_c': max(values) if values else None, 'limits': known}
+    if breaches:
+        worst = max(breaches, key=lambda b: b['flow_c'] - b['limit_c'])
+        return {'result': FAIL, 'why': f"{len(breaches)} request(s) above the hard limit, worst {worst['flow_c']:.0f} > "
+                                        f"{worst['limit_c']:.0f} degC at {worst['at']}", **detail}
     if total < 3600:
-        return {'result': WAIT, 'why': f'{total / 60:.0f} min of E32 heat requests so far'}
-    share = inside / total
-    detail = {'share_in_band': round(share, 2), 'min_c': min(values), 'median_c': statistics.median(values), 'max_c': max(values),
-              'band_c': list(band)}
-    why = f"{share:.0%} of the time within {band[0]:.0f}-{band[1]:.0f} degC (min {detail['min_c']:.0f}, max {detail['max_c']:.0f})"
-    return {'result': PASS if share >= FLOW_SHARE else FAIL, 'why': why, **detail}
+        return {'result': WAIT, 'why': f'{total / 60:.0f} min of E32 heat requests so far, none above the hard limit ({known})',
+                **detail}
+    return {'result': PASS, 'why': f"never above the hard limit (max {detail['max_c']:.0f} degC; {known})", **detail}
+
+
+def comparison(e32_series, tado_series, start, end, step_s=60):
+    """INFO only: E32 minus thermostat requested flow while both ask heat, sampled every minute."""
+    diffs = []
+    t = start
+    while t < end:
+        a, b = value_at(e32_series, t), value_at(tado_series, t)
+        if a and b and a > 0 and b > 0:
+            diffs.append(a - b)
+        t += step_s
+    if not diffs:
+        return {'result': INFO, 'why': 'no minute in which both asked heat yet', 'minutes': 0}
+    ordered = sorted(diffs)
+    pick = lambda q: ordered[min(len(ordered) - 1, int(q * len(ordered)))]
+    detail = {'minutes': len(diffs), 'median_c': statistics.median(diffs), 'p10_c': pick(0.1), 'p90_c': pick(0.9)}
+    return {'result': INFO, 'why': f"E32 minus thermostat while both heat: median {detail['median_c']:+.0f} degC, "
+                                   f"10-90% {detail['p10_c']:+.0f} to {detail['p90_c']:+.0f} degC over {len(diffs)} min",
+            **detail}
 
 
 def cycling(tado, e32):
@@ -230,17 +275,19 @@ def mqtt_health(lines):
     return {'result': PASS if ok else FAIL, 'why': f'{len(beats)} heartbeats, largest gap {max(gaps):.0f} s', **detail}
 
 
-def evaluate(history, end, tz, mqtt_lines=None):
-    """history: {'uptime', 'e32', 'tado', 'target': [(t, value)], 'offline': [(start, stop)]}."""
+def evaluate(history, end, tz, mqtt_lines=None, plan_max=None):
+    """history: {'uptime', 'e32', 'tado', 'target', optional 'boiler': [(t, value)], 'offline': [(start, stop)]}."""
     tado = periods(history['tado'], end)
     e32 = periods(history['e32'], end)
     out = {
         'stable': stability(history['uptime'], end, history.get('offline', ())),
         'periods': heating_periods(tado, e32, history['target'], tz, end),
         'timing': timing(tado, e32),
-        'flow': flow(history['e32'], end),
+        'flow': flow(history['e32'], end, plan_max, history.get('boiler', ())),
         'cycling': cycling(tado, e32),
     }
+    first = min((t for key in ('e32', 'tado') for t, _ in history[key][:1]), default=end)
+    out['comparison'] = comparison(history['e32'], history['tado'], first, end)
     if mqtt_lines is not None:
         out['mqtt'] = mqtt_health(mqtt_lines)
     return out
@@ -276,8 +323,10 @@ def parse_since(text):
     return value if value.tzinfo else value.replace(tzinfo=dt.timezone.utc)
 
 
-def find(states, suffix):
+def find(states, suffix, optional=False):
     ids = sorted(s['entity_id'] for s in states if s['entity_id'].startswith('sensor.') and s['entity_id'].endswith(suffix))
+    if optional and not ids:
+        return None
     if len(ids) != 1:
         raise SystemExit(f'expected one sensor ending in {suffix}, found {ids or "none"}: pass it explicitly')
     return ids[0]
@@ -288,6 +337,9 @@ def load(ha, args, start, end):
     ids = {'uptime': args.uptime or find(states, '_device_uptime'),
            'e32': args.e32_request or find(states, '_heat_request'),
            'tado': args.thermostat_request or find(states, '_thermostat_requested_flow_temperature')}
+    boiler = args.boiler_limit or find(states, '_boiler_configured_heating_temperature', optional=True)
+    if boiler:
+        ids['boiler'] = boiler
     sensors = ha.history(list(ids.values()), start, end, minimal=True)
     climate = ha.history([args.climate], start, end, minimal=False).get(args.climate, [])
     history = {}
@@ -314,7 +366,9 @@ def main(argv=None):
     parser.add_argument('--climate', required=True, help='the old thermostat (its target temperature)')
     parser.add_argument('--days', type=float, default=3.0)
     parser.add_argument('--since', help='start here instead (ISO time, e.g. the install of the current firmware)')
+    parser.add_argument('--plan-max', type=float, help="the room plan's maximum flow in degC (this house: 60)")
     parser.add_argument('--uptime'); parser.add_argument('--e32-request'); parser.add_argument('--thermostat-request')
+    parser.add_argument('--boiler-limit', help="the boiler's reported heating limit sensor (found by its suffix)")
     parser.add_argument('--mqtt-log', help='output of the read-only MQTT listener (optional)')
     parser.add_argument('--json', help='also write the result here')
     parser.add_argument('--insecure', action='store_true', help='self-signed certificate on your own network')
@@ -334,12 +388,13 @@ def main(argv=None):
     start = parse_since(args.since) if args.since else end - dt.timedelta(days=args.days)
     ids, history = load(ha, args, start, end)
     lines = open(args.mqtt_log, encoding='utf-8').read().splitlines() if args.mqtt_log else None
-    result = evaluate(history, end.timestamp(), tz, lines)
+    result = evaluate(history, end.timestamp(), tz, lines, args.plan_max)
     print(f'Shadow exit criteria, {start:%Y-%m-%d %H:%M} to {end:%Y-%m-%d %H:%M} UTC ({tz_name})')
     for name, r in result.items():
-        print(f'  {r["result"]:<4}  {name:<8} {r["why"]}')
-    overall = PASS if all(r['result'] == PASS for r in result.values()) else (
-        FAIL if any(r['result'] == FAIL for r in result.values()) else WAIT)
+        print(f'  {r["result"]:<4}  {name:<10} {r["why"]}')
+    judged = [r for r in result.values() if r['result'] != INFO]
+    overall = PASS if all(r['result'] == PASS for r in judged) else (
+        FAIL if any(r['result'] == FAIL for r in judged) else WAIT)
     print(f'Overall: {overall}')
     if args.json:
         with open(args.json, 'w', encoding='utf-8', newline='\n') as f:

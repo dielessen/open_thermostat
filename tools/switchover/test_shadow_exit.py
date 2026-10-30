@@ -39,15 +39,15 @@ def history(days=6, **kw):
     end = days * 24 * H
     uptime = [(t, float(t + 3600)) for t in range(0, end, 3 * H)]  # running since an hour before the window
     return {'tado': steps(*tado), 'e32': steps(*sorted(e32)), 'target': steps(*target),
-            'uptime': steps(*uptime), 'offline': []}, DAY0 + end
+            'uptime': steps(*uptime), 'boiler': steps((0, 55.0)), 'offline': []}, DAY0 + end
 
 
 class Criteria(unittest.TestCase):
     def test_six_good_days_pass_everything(self):
         h, end = history(e32_shift_s=2 * M)
-        result = se.evaluate(h, end, UTC)
+        result = se.evaluate(h, end, UTC, plan_max=60)
         for name, r in result.items():
-            self.assertEqual(r['result'], se.PASS, (name, r))
+            self.assertEqual(r['result'], se.INFO if name == 'comparison' else se.PASS, (name, r))
         self.assertEqual(result['periods']['thermostat_periods'], 12)
         self.assertEqual(result['timing']['median_min'], 2.0)
 
@@ -81,11 +81,35 @@ class Criteria(unittest.TestCase):
         self.assertEqual(r['result'], se.FAIL)
         self.assertGreater(r['median_min'], 5)
 
-    def test_flow_outside_the_band_fails(self):
+    def test_flow_judges_only_the_hard_limit(self):
+        # Owner, 30 Oct: keep the hard limit and learn; 48 degC under a 55 degC boiler limit passes.
         h, end = history(e32_flow=48.0)
-        r = se.evaluate(h, end, UTC)['flow']
+        self.assertEqual(se.evaluate(h, end, UTC, plan_max=60)['flow']['result'], se.PASS)
+        h, end = history(e32_flow=58.0)  # above the boiler's own 55 degC
+        r = se.evaluate(h, end, UTC, plan_max=60)['flow']
         self.assertEqual(r['result'], se.FAIL)
-        self.assertEqual(r['max_c'], 48.0)
+        self.assertEqual(r['breaches'][0]['limit_c'], 55.0)
+        h, end = history(e32_flow=58.0)
+        h['boiler'] = []  # unknown boiler limit: the plan maximum applies
+        self.assertEqual(se.evaluate(h, end, UTC, plan_max=60)['flow']['result'], se.PASS)
+        self.assertEqual(se.evaluate(h, end, UTC, plan_max=50)['flow']['result'], se.FAIL)
+        h, end = history(e32_flow=85.0)
+        h['boiler'] = []  # nothing known: the 80 degC ceiling
+        self.assertEqual(se.evaluate(h, end, UTC)['flow']['result'], se.FAIL)
+
+    def test_a_lowered_boiler_limit_counts_from_its_report_on(self):
+        h, end = history(e32_flow=50.0)
+        h['boiler'] = steps((0, 55.0), (5 * 24 * H, 45.0))  # lowered on day 6
+        r = se.evaluate(h, end, UTC, plan_max=60)['flow']
+        self.assertEqual(r['result'], se.FAIL)
+        self.assertTrue(all(b['limit_c'] == 45.0 for b in r['breaches']))
+
+    def test_comparison_with_the_thermostat_is_info_only(self):
+        h, end = history(e32_flow=38.0)
+        r = se.evaluate(h, end, UTC, plan_max=60)['comparison']
+        self.assertEqual(r['result'], se.INFO)
+        self.assertLess(r['median_c'], 0)  # the thermostat asked 42-45, the E32 38
+        self.assertGreater(r['minutes'], 0)
 
     def test_extra_e32_cycles_fail(self):
         h, end = history(extra_e32_cycles=2)

@@ -131,20 +131,29 @@ installatie van beta.20:
 
 ```sh
 export OT_HA_TOKEN='…'     # langdurig HA-token, nooit op de opdrachtregel
-python3 -I tools/switchover/shadow_exit.py --ha-url https://192.168.1.130:8123 --insecure     --climate climate.tado_smart_thermostat_ru1884754176 --since 2026-10-30T17:10:00Z     [--mqtt-log luister.txt] --json out/switchover-<datum>/shadow-exit.json
+python3 -I tools/switchover/shadow_exit.py --ha-url https://192.168.1.130:8123 --insecure \
+    --climate climate.tado_smart_thermostat_ru1884754176 --plan-max 60 \
+    --since 2026-10-30T17:10:00Z [--mqtt-log luister.txt] --json out/switchover-<datum>/shadow-exit.json
 ```
 
 Uitslag per criterium `PASS`, `FAIL` of `WAIT` (nog te weinig gegevens); alle
-`PASS` is de voorwaarde. Eerste meting 30 oktober 18:36 UTC (1,5 h na de
-installatie): stabiel, perioden, timing en pendelen `WAIT`, MQTT `PASS`,
-aanvoer `FAIL`: de E32 vroeg die eerste koude avond 30–48 °C (mediaan 44), de
-tado tegelijk tot 49 °C. **Met de eigenaar te bespreken:** de band 31–43 °C komt
-uit de metingen van 28 oktober; als de tado bij kou ook boven 43 °C vraagt, is
-"in hetzelfde gebied als de tado" de betere maat (de vloerverwarming beschermt
-zich met haar eigen klep van ~50 °C, het planmaximum blijft het plafond).
+`PASS` is de voorwaarde; `INFO` (de vergelijking met de tado) telt niet mee.
+
+**Aanvoer: harde grens, geen band (besluit eigenaar 30 oktober: "ja ik zou daar
+de harde grens aanhouden en gewoon leren").** De E32 mag nooit meer vragen dan
+de harde grens: het laagste van het planmaximum (hier 60 °C, de ingang van de
+vloerverwarmingsklep), de eigen CV-grens van de ketel (0x16, nu 55 °C) en
+80 °C. Eén overschrijding is `FAIL`. Het niveau zelf leert de E32 (zo laag
+mogelijk); de vaste band 31–43 °C van 28 oktober vervalt als criterium. Het
+verschil met de gevraagde aanvoer van de tado staat alleen als `INFO` in het
+rapport (mediaan en spreiding).
+
+Eerste meting 30 oktober 18:36 UTC (1,5 h na de installatie): stabiel,
+perioden, timing en pendelen `WAIT`, MQTT `PASS`; de E32 vroeg 30–48 °C, onder
+de harde grens van 55 °C.
 - [ ] ≥ 72 uur geen hang of herstart (zwarte doos leeg, geen wifi- of Bluetooth-uitval).
 - [ ] ≥ 10 verwarmingsperiodes van de tado vergeleken, inclusief nachtverlaging, ochtendopwarming en een periode zonder warmtevraag.
-- [ ] Beslissingen ongeveer gelijk: warmtevraag op ongeveer dezelfde momenten (enkele minuten), aanvoer in hetzelfde gebied (±31–43 °C), niet vaker aan/uit dan de tado (pagina Ruimtes → "Vergelijking met je thermostaat").
+- [ ] Beslissingen ongeveer gelijk: warmtevraag op ongeveer dezelfde momenten (enkele minuten) en niet vaker aan/uit dan de tado (pagina Ruimtes → "Vergelijking met je thermostaat"); de gevraagde aanvoer **nooit boven de harde grens** (min(planmaximum 60 °C, ketelgrens 0x16, 80 °C)). Het aanvoerniveau zelf leert de E32; geen vaste band meer (eigenaar, 30 oktober).
 - [ ] Bronnen werken: de tado-waarde komt via HA binnen en de Xiaomi heeft minstens één keer overgenomen.
 - [ ] Tado-rijen (0x17) tegen echte busdata geverifieerd (beta.19-plan, onderdeel 14).
 

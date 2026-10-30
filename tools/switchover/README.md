@@ -143,13 +143,17 @@ reads Home Assistant's history (GET only, a long-lived token in
 `OT_HA_TOKEN`) and prints PASS, FAIL or WAIT per criterion: 72 h without a
 restart, at least 10 thermostat heating periods with a night setback, a
 morning warm-up and a quiet period, start/stop timing within minutes, the
-E32's flow request in the 31–43 °C band, and no more heat periods than the
-thermostat. With `--mqtt-log` (the output of a read-only MQTT listener) it
+E32's flow request never above the hard limit (the lowest of `--plan-max`, the
+boiler's reported heating limit and 80 °C), and no more heat periods than the
+thermostat. The difference from the thermostat's requested flow is printed as
+INFO (median and spread), never as a pass or fail: the E32 learns the flow
+level itself. With `--mqtt-log` (the output of a read-only MQTT listener) it
 also checks availability and the 60 s heartbeat.
 
 ```sh
 export OT_HA_TOKEN='your long-lived token'
-python3 -I tools/switchover/shadow_exit.py --ha-url https://homeassistant.local:8123     --climate climate.living_room --since 2026-10-30T17:10:00Z --json shadow-exit.json
+python3 -I tools/switchover/shadow_exit.py --ha-url https://homeassistant.local:8123 \
+    --climate climate.living_room --plan-max 60 --since 2026-10-30T17:10:00Z --json shadow-exit.json
 ```
 
 `--since` starts at the install of the current firmware (default: the last

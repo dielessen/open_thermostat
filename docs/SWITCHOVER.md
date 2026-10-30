@@ -108,8 +108,12 @@ foreign 0x1A keeps growing. Also check the boiler's own display.
   1. at least 72 hours without a hang or restart;
   2. at least 10 heating periods compared, including a night setback, a
      morning warm-up and a period without demand;
-  3. similar decisions: heat at about the same moments (minutes apart), flow
-     in the same range, not more on/off cycles than the thermostat;
+  3. similar decisions: heat at about the same moments (minutes apart) and not
+     more on/off cycles than the thermostat; the requested flow never above the
+     hard limit (the lowest of the plan maximum, the boiler's own heating limit
+     and 80 °C). The flow level itself is learned, as low as possible, and not
+     judged against a fixed band; its difference from the thermostat's request
+     is reported for information only;
   4. the sources work, and a fallback source (for example a Bluetooth sensor)
      has taken over at least once.
   Without an EMS thermostat to compare with, judge the period on the room

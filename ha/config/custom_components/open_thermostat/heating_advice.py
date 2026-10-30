@@ -805,9 +805,10 @@ def render_missing(name, missing, lang):
 
 def boiler_field(client, name, low, high):
     """A usable boiler field value (boiler-fields cache), or None."""
+    from .v1_boiler_fields import boiler_values_live
     cache = getattr(client, "boiler_fields", None)
-    if (not isinstance(cache, BoilerFieldCache) or not getattr(client, "ready", False)
-            or not getattr(client, "boiler_fields_supported", False)):
+    # Retained boiler state (E32 beta.19) needs no session; older firmware does.
+    if not isinstance(cache, BoilerFieldCache) or not boiler_values_live(client):
         return None
     reading = cache.reading(INDEX[name], client.clock())
     if not reading or not reading["usable"] or reading["raw"] is None:

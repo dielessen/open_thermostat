@@ -1,26 +1,128 @@
-"""Read-only entities over the existing runtime listener, with no new MQTT IO."""
+"""Read-only boiler value entities: the runtime link's cache, or the retained E32 state without it."""
 import json
+import logging
 from pathlib import Path
 
+from datetime import timedelta
+
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
+from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.const import EntityCategory
 from homeassistant.helpers import entity_registry as er
-from .boiler_fields import CATALOG_BASE, CATALOG_COUNTERS, INDEX_BY_NAME, INDEXES, concept, quality, spec
+from homeassistant.helpers.event import async_track_time_interval
+from .boiler_fields import (BoilerFieldCache, CATALOG_BASE, CATALOG_COUNTERS, INDEX_BY_NAME, INDEXES, concept,
+                            quality, spec)
 from .const import DOMAIN, CONF_TOPIC_PREFIX
+
+_LOGGER = logging.getLogger(__name__)
 
 # Registry option (under our domain) set once a field delivered a real value.
 REPORTED = "reported"
 # Registry option of a record made, disabled, for a value this boiler's profile
 # lists as not reported (yet): kept by the setup cleanup, removed once not fitted.
+# Releases before 0.4.0b12 made these; apply_boiler_profile now removes them.
 PLACEHOLDER = "not_reported_placeholder"
+# Registry option: disabled and hidden by apply_boiler_profile (this boiler lacks
+# the value); the record comes back by itself once the profile says supported.
+PROFILE_HIDDEN = "hidden_by_boiler_profile"
+_INTEGRATION = er.RegistryEntryDisabler.INTEGRATION
+_HIDDEN = er.RegistryEntryHider.INTEGRATION
 
 
 def boiler_cache(hass, entry_id):
     """The boiler-field cache of a config entry, or None."""
     state = hass.data.get(DOMAIN, {}).get(entry_id, {})
-    client = getattr(state.get("v1_connection"), "client", None) if isinstance(state, dict) else None
+    if not isinstance(state, dict):
+        return None
+    client = getattr(state.get("v1_connection"), "client", None) or state.get(SOURCE_KEY)
     return getattr(client, "boiler_fields", None)
+
+
+# hass.data[DOMAIN][entry_id] key of the RetainedBoilerSource (no runtime link).
+SOURCE_KEY = "boiler_source"
+STALE_CHECK = timedelta(seconds=15)
+
+
+def boiler_values_live(client):
+    """Whether this client's boiler readings may be shown at all.
+
+    E32 beta.19 keeps the boiler values retained (fw/state/boiler_fields/<g>,
+    fw/state/boiler): they need no shadow session, only a live E32 (heartbeat
+    and availability), which BoilerFieldCache.reading() checks per value. The
+    older session telemetry (fw/telemetry/boiler_fields) keeps its rule: a
+    ready session that announced boiler.fields.
+    """
+    cache = getattr(client, "boiler_fields", None)
+    if cache is None:
+        return False
+    if cache.state_mode:
+        return True
+    return bool(getattr(client, "ready", False) and getattr(client, "boiler_fields_supported", False))
+
+
+class RetainedBoilerSource:
+    """The retained boiler values of an E32 (beta.19) while the entry runs no shadow link.
+
+    The same cache and entities as the link's ShadowClient, fed from the same
+    retained topics (v1_wire.apply_boiler_state), so a stopped or never started
+    link (shadow off, an unfinished Connect E32) never hides the boiler values.
+    Read-only: it never sends anything and has no session.
+    """
+    ready = False
+    boiler_fields_v2 = False
+
+    def __init__(self, clock):
+        self.clock = clock
+        self.boiler_fields = BoilerFieldCache()
+        self._listeners = []
+
+    @property
+    def boiler_fields_supported(self):
+        return self.boiler_fields.state_mode
+
+    def add_listener(self, listener):
+        self._listeners.append(listener)
+
+        def remove():
+            if listener in self._listeners:
+                self._listeners.remove(listener)
+        return remove
+
+    def receive(self, topic, raw, retained=False):
+        """One message, topic after the prefix (fw/...)."""
+        from .v1_wire import apply_boiler_state
+        if topic == "fw/availability":
+            if raw not in ("online", "offline"):
+                return
+            self.boiler_fields.availability(raw == "online", self.clock())
+            changed = True
+        else:
+            changed, _ = apply_boiler_state(self.boiler_fields, topic, raw, retained, self.clock())
+        if changed:
+            for listener in list(self._listeners):
+                listener()
+
+
+async def _async_retained_source(hass, entry, state):
+    """A RetainedBoilerSource subscribed to the entry's E32 topics (product entries only)."""
+    from homeassistant.components import mqtt
+    from .heating_link import topic_base
+    base = topic_base(hass, entry)
+    source = state[SOURCE_KEY] = RetainedBoilerSource(hass.loop.time)
+
+    @callback
+    def received(message):
+        topic = getattr(message, "topic", "")
+        if type(topic) is str and topic.startswith(base):
+            source.receive(topic[len(base):], message.payload, retained=getattr(message, "retain", False))
+
+    await mqtt.async_wait_for_mqtt_client(hass)
+    for suffix in ("fw/state/boiler_fields/+", "fw/state/boiler", "fw/config/boiler_profile", "fw/heartbeat",
+                   "fw/availability"):
+        entry.async_on_unload(await mqtt.async_subscribe(hass, base + suffix, received))
+    entry.async_on_unload(lambda: state.pop(SOURCE_KEY, None))
+    return source
 
 
 def boiler_field_shown(hass, entry_id, name):
@@ -163,6 +265,79 @@ def confirm_reported(hass, prefix, indexes, cache=None):
     return pending
 
 
+def ours(record):
+    """No user choice on this registry record: only this integration disabled or hid it."""
+    return (record.name is None and record.icon is None and record.area_id is None and not record.labels
+            and record.disabled_by in (None, _INTEGRATION) and record.hidden_by in (None, _HIDDEN))
+
+
+def profile_hides(cache, members):
+    """True when the boiler profile says this boiler lacks the value of members (F28 concept).
+
+    Not fitted (a sentinel instead of a value), or not reported once the profile
+    settled. The E32's "Show anyway" makes a not-fitted value supported. A value
+    that is real now (plausible) is never hidden.
+    """
+    state = cache.concept_state(members)
+    return ((state == "not_fitted" or state == "not_reported" and cache.profile_settled)
+            and not any(plausible(cache, member) for member in members))
+
+
+def apply_boiler_profile(hass, entry, prefix, cache):
+    """This entry's boiler-field records follow the boiler profile (fw/config/boiler_profile).
+
+    Universal for every EMS boiler: only what the profile says, never a list of
+    this house. A value the boiler lacks (profile_hides) leaves no "unavailable"
+    row behind: its record goes when it never delivered a value, else it is
+    disabled and hidden (PROFILE_HIDDEN, keeping its history). A value that is
+    supported again comes back: a record this integration disabled (hidden by
+    the profile, an older placeholder, or any reliable value) is enabled and
+    shown again. Records the user renamed, hid, disabled or placed are never
+    changed. Without a profile (older firmware) nothing happens. Returns the
+    unique IDs that are removed or hidden.
+    """
+    if cache is None or cache.field_profile is None:
+        return frozenset()
+    registry = er.async_get(hass)
+    head = f"{prefix}_boiler_fields_v1_"
+    gone, removed, hidden, shown = set(), [], [], []
+    for record in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
+        if record.domain != "sensor" or record.platform != DOMAIN or not record.unique_id.startswith(head):
+            continue
+        index = INDEX_BY_NAME.get(record.unique_id.removeprefix(head))
+        if index is None or not ours(record):
+            continue
+        members = concept(index)
+        options = record.options.get(DOMAIN, {})
+        if cache.concept_state(members) == "supported":
+            if options.get(PROFILE_HIDDEN) or options.get(PLACEHOLDER) or (
+                    record.disabled_by is _INTEGRATION and quality(index) != 1):
+                if record.disabled_by is not None or record.hidden_by is not None:
+                    registry.async_update_entity(record.entity_id, disabled_by=None, hidden_by=None)
+                    shown.append(record.entity_id)
+                registry.async_update_entity_options(record.entity_id, DOMAIN, {
+                    k: v for k, v in options.items() if k not in (PROFILE_HIDDEN, PLACEHOLDER)})
+            continue
+        if not profile_hides(cache, members):
+            continue
+        gone.add(record.unique_id)
+        if not options.get(REPORTED):
+            registry.async_remove(record.entity_id)
+            removed.append(record.entity_id)
+        elif record.disabled_by is None or record.hidden_by is None or not options.get(PROFILE_HIDDEN):
+            registry.async_update_entity(record.entity_id, disabled_by=_INTEGRATION, hidden_by=_HIDDEN)
+            registry.async_update_entity_options(record.entity_id, DOMAIN, {**options, PROFILE_HIDDEN: True})
+            hidden.append(record.entity_id)
+    if removed or hidden:
+        _LOGGER.info("Boiler profile: removed %d and hid %d OpenThermostat boiler entities this boiler has "
+                     "no sensor for or never reports: %s", len(removed), len(hidden),
+                     ", ".join(sorted(removed + hidden)))
+    if shown:
+        _LOGGER.info("Boiler profile: %d OpenThermostat boiler entities are reported again and shown: %s",
+                     len(shown), ", ".join(sorted(shown)))
+    return frozenset(gone)
+
+
 def mark_placeholders(hass, prefix, indexes):
     """Mark the new disabled records of not-reported values (PLACEHOLDER); the
     indexes whose record does not exist yet are returned, retried later."""
@@ -183,9 +358,16 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
     state = hass.data[DOMAIN][entry.entry_id]
     runtime = state["v1_runtime"]
     connection = state.get("v1_connection")
-    if not runtime.enabled or connection is None or connection.client is None:
-        return
-    client = connection.client
+    if runtime.enabled and connection is not None and connection.client is not None:
+        client, add_listener = connection.client, runtime.add_listener
+    else:
+        # No running link (shadow off, Connect E32 not finished): the retained
+        # boiler values of E32 beta.19 still show (product entries).
+        from .product import is_product
+        if not is_product(entry):
+            return
+        client = await _async_retained_source(hass, entry, state)
+        add_listener = client.add_listener
     prefix = entry.data[CONF_TOPIC_PREFIX]
     translated = await hass.async_add_executor_job(translated_fields)
     entities = []
@@ -201,16 +383,15 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
         # One entity per physical value (F28): an EMS+ field and its Classic twin
         # share it, under the unique ID the registry already has.
         # The boiler profile (fw/config/boiler_profile) refines this: a value the
-        # boiler has (supported) gets its entity at once, one it has no sensor for
-        # (not fitted) never a new one and its untouched record is removed, and one
-        # whose telegram never came (not reported) a disabled one once the profile
-        # settled. Without a profile (older firmware) nothing changes.
+        # boiler has (supported) gets its entity at once and is shown again; one it
+        # has no sensor for (not fitted) or never reports (not reported, once the
+        # profile settled) never gets one, and its record goes or is hidden
+        # (apply_boiler_profile). Unknown values wait for the profile or a real
+        # value. Without a profile (older firmware) nothing changes.
         cache = client.boiler_fields
-        if (client.boiler_fields_supported and cache.field_profile is not None
-                and cache.profile_sequence != last_profile):
+        if cache.field_profile is not None and cache.profile_sequence != last_profile:
             last_profile = cache.profile_sequence
-            from .native_entity_cleanup import cleanup_not_fitted
-            removed = cleanup_not_fitted(hass, entry, prefix, cache)
+            removed = apply_boiler_profile(hass, entry, prefix, cache)
             if removed:
                 entities[:] = [entity for entity in entities if entity.unique_id not in removed]
         known = {member for entity in entities for member in entity.members}
@@ -224,16 +405,16 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
             reporting = {member for member in members if plausible(cache, member)}
             state = cache.concept_state(members)
             placeholder = False
-            if state == "not_fitted":
-                # Never a new entity; a record the user kept shows why it has no value.
+            if not reporting and state in ("not_fitted", "not_reported"):
+                # Never a new entity; only a record the user customised stays and says why it has no value.
                 registry = registry or er.async_get(hass)
-                if not any(registry.async_get_entity_id("sensor", DOMAIN, field_unique_id(prefix, member))
-                           for member in members):
+                records = [registry.async_get(entity_id) for entity_id in (
+                    registry.async_get_entity_id("sensor", DOMAIN, field_unique_id(prefix, member))
+                    for member in members) if entity_id is not None]
+                if not any(record is not None and not ours(record) for record in records):
                     continue
             elif not reporting and state != "supported":
-                if state != "not_reported" or not cache.profile_settled:
-                    continue
-                placeholder = True
+                continue
             registry = registry or er.async_get(hass)
             preferred = reporting or {member for member in members if cache.field_state(member) == "supported"}
             entity = BoilerFieldEntity(prefix, client, holder(registry, prefix, members, preferred), translated,
@@ -268,7 +449,14 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
         for entity in entities:
             if entity.hass is not None:
                 entity.async_write_ha_state()
-    entry.async_on_unload(runtime.add_listener(refresh))
+
+    @callback
+    def check_stale(_now=None):
+        # Retained values stay usable while the E32 is alive: three missed
+        # heartbeats (or offline) make them unavailable without a new message.
+        refresh()
+    entry.async_on_unload(add_listener(refresh))
+    entry.async_on_unload(async_track_time_interval(hass, check_stale, STALE_CHECK))
     refresh()
 
 
@@ -332,15 +520,21 @@ class BoilerFieldEntity(SensorEntity):
 
     @property
     def available(self):
+        cache = self.client.boiler_fields
+        if cache.state_mode:
+            # Retained state (E32 beta.19): unavailable only while the E32 itself is
+            # offline or silent; a value it has none of now reads unknown.
+            return cache.alive(self.client.clock())
         value = self.reading
-        return bool(self.client.ready and self.client.boiler_fields_supported
-                    and value and value["usable"])
+        return bool(boiler_values_live(self.client) and value and value["usable"])
 
     @property
     def native_value(self):
         if not self.available:
             return None
         index, value = self.source
+        if not value or not value["usable"]:
+            return None
         raw = value["raw"]
         name, unit, divisor, _ = spec(index)
         if unit == "text":
@@ -352,8 +546,9 @@ class BoilerFieldEntity(SensorEntity):
         index, value = self.source
         name, _, divisor, ttl = spec(index)
         profile = self.client.boiler_fields.concept_state(self.members)
-        reason = ("session_unavailable" if not self.client.ready else
-                  "capability_unavailable" if not self.client.boiler_fields_supported else
+        live = boiler_values_live(self.client)
+        reason = ("session_unavailable" if not live and not self.client.ready else
+                  "capability_unavailable" if not live else
                   "not_fitted" if profile == "not_fitted" and not (value and value["usable"]) else
                   value["availability_reason"] if value else "not_received")
         return {"data_role":"read_only_boiler_field", "control_qualified":False,

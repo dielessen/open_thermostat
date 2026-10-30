@@ -4,8 +4,9 @@ The E32 learns per field whether the boiler reports a valid value (supported),
 always reports its "no sensor" sentinel (not_fitted) or never sent the telegram
 (not_reported), and publishes the retained fw/config/boiler_profile. Home
 Assistant creates entities for supported values, never new ones for not-fitted
-values (and removes their untouched records), and disabled ones for values that
-are not reported once the profile settled.
+values (and removes their untouched records), and none for values that are not
+reported once the profile settled (0.4.0b12: no disabled placeholders; see
+test_boiler_profile_visibility.py).
 """
 import json
 
@@ -102,13 +103,13 @@ async def test_entities_follow_the_profile_per_state(hass):
     flow = names[at("measured_flow_temperature")]
     assert flow.entity_registry_enabled_default
     assert flow.extra_state_attributes["boiler_profile"] == "supported"
-    # ... then one disabled entity per value (the EMS+ pressure twin is part of the not-fitted value).
+    # ... and none once it settled either: no disabled placeholder rows (the EMS+ pressure twin
+    # is part of the not-fitted value).
     await c.receive("fw/config/boiler_profile", profile(supported, OWNER_NOT_FITTED, not_reported), retained=True)
     r._notify()
     names = {entity.index: entity for entity in added}
     for name in ("outdoor_temperature", "boiler_uptime"):
-        entity = names[at(name)]
-        assert entity.placeholder and entity.entity_registry_enabled_default is False, name
+        assert not any(member in names for member in concept(at(name))), name
     assert at("plus_pressure") not in names and at("pressure") not in names
     assert len({member for entity in added for member in entity.members}) == sum(len(entity.members) for entity in added)
     # The boiler reports a pressure after all (a sensor fitted later): created automatically.
@@ -164,7 +165,9 @@ async def test_not_fitted_records_go_unless_the_user_customised_them(hass, caplo
     storage = by_index[at("storage_temperature_1")]
     assert not storage.available
     assert storage.extra_state_attributes["availability_reason"] == "not_fitted"
-    assert by_index[at("exhaust_temperature")].extra_state_attributes["availability_reason"] == "not_fitted"
+    # One that reported before is ours: disabled and hidden instead of an unavailable row.
+    assert at("exhaust_temperature") not in by_index
+    assert reg.async_get(reported).disabled_by is INTEGRATION and reg.async_get(reported).hidden_by is not None
     assert at("pressure") not in by_index
     assert by_index[at("measured_flow_temperature")].unique_id == reg.async_get(flow).unique_id  # same identity
     # Not fitted only when the EMS+ twin is not reported either: a twin that may still turn out keeps it.

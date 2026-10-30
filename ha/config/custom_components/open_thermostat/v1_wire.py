@@ -106,6 +106,53 @@ def parse(raw):
     return value
 
 
+BOILER_STATE_TOPICS = ("fw/state/boiler_fields/", "fw/state/boiler", "fw/config/boiler_profile", "fw/heartbeat")
+
+
+def apply_boiler_state(cache, topic, raw, retained, now):
+    """One retained boiler message (E32 beta.19) into a BoilerFieldCache; no session involved.
+
+    ``fw/state/boiler_fields/<g>`` and ``fw/state/boiler`` (the values),
+    ``fw/config/boiler_profile`` (which fields this boiler has) and a live
+    ``fw/heartbeat`` (keeps the values usable). Returns (changed, diagnostic):
+    whether listeners should look again, and the diagnostics value for a value
+    message (None for the others).
+    """
+    if topic == "fw/heartbeat":
+        if retained:
+            return False, None
+        try:
+            beat = json.loads(raw) if isinstance(raw, str) and len(raw) <= MAX_STATE_BYTES else None
+        except ValueError:
+            beat = None
+        if type(beat) is dict and beat.get("schema") == 1 and type(beat.get("uptime_s")) is int:
+            cache.heartbeat(now, beat["uptime_s"])
+            return True, None
+        return False, None
+    if topic == "fw/config/boiler_profile":  # which fields this boiler has (boiler_fields.py, agent T)
+        return cache.accept_profile(raw), None
+    group = None
+    if topic.startswith("fw/state/boiler_fields/"):
+        tail = topic.rsplit("/", 1)[1]
+        if not tail.isdigit() or len(tail) > 2 or int(tail) >= BOILER_GROUPS_V2:
+            return False, None  # a group of a newer catalog than this HA knows
+        group = int(tail)
+    elif topic != "fw/state/boiler":
+        return False, None
+    if not isinstance(raw, str) or not raw or len(raw) > MAX_STATE_BYTES:
+        return False, None
+    try:
+        p = json.loads(raw)
+        if (type(p) is not dict or p.get("schema") != 1
+                or set(p) != ({"schema", "group", "values"} if group is not None else {"schema", "values"})
+                or (group is not None and p["group"] != group)):
+            raise ValueError("boiler state envelope")
+        cache.accept_state(p["values"], group, now)
+        return True, "read_only_not_control_qualified"
+    except (ValueError, TypeError, KeyError, OverflowError):
+        return True, "invalid_read_only_fields"
+
+
 class ShadowClient:
     @property
     def boiler_fields_supported(self):
@@ -812,42 +859,11 @@ class ShadowClient:
 
     def receive_boiler_state(self, topic, raw, retained=False):
         """``fw/state/boiler_fields/<g>`` and ``fw/state/boiler`` (retained), and the heartbeat."""
-        now = self.clock()
-        if topic == "fw/heartbeat":
-            if not retained:
-                try:
-                    beat = json.loads(raw) if isinstance(raw, str) and len(raw) <= MAX_STATE_BYTES else None
-                except ValueError:
-                    beat = None
-                if type(beat) is dict and beat.get("schema") == 1 and type(beat.get("uptime_s")) is int:
-                    self.boiler_fields.heartbeat(now, beat["uptime_s"])
-                    self.runtime._notify()
-            return
-        if topic == "fw/config/boiler_profile":  # which fields this boiler has (boiler_fields.py, agent T)
-            if self.boiler_fields.accept_profile(raw):
-                self.runtime._notify()
-            return
-        group = None
-        if topic.startswith("fw/state/boiler_fields/"):
-            tail = topic.rsplit("/", 1)[1]
-            if not tail.isdigit() or len(tail) > 2 or int(tail) >= BOILER_GROUPS_V2:
-                return  # a group of a newer catalog than this HA knows
-            group = int(tail)
-        elif topic != "fw/state/boiler":
-            return
-        if not isinstance(raw, str) or not raw or len(raw) > MAX_STATE_BYTES:
-            return
-        try:
-            p = json.loads(raw)
-            if (type(p) is not dict or p.get("schema") != 1
-                    or set(p) != ({"schema", "group", "values"} if group is not None else {"schema", "values"})
-                    or (group is not None and p["group"] != group)):
-                raise ValueError("boiler state envelope")
-            self.boiler_fields.accept_state(p["values"], group, now)
-            self.runtime.diagnostics["boiler_fields"] = "read_only_not_control_qualified"
-        except (ValueError, TypeError, KeyError, OverflowError):
-            self.runtime.diagnostics["boiler_fields"] = "invalid_read_only_fields"
-        self.runtime._notify()
+        changed, diagnostic = apply_boiler_state(self.boiler_fields, topic, raw, retained, self.clock())
+        if diagnostic is not None:
+            self.runtime.diagnostics["boiler_fields"] = diagnostic
+        if changed:
+            self.runtime._notify()
 
     def receive_boiler_fields(self, raw, received_at=None):
         if not self.ready or not self.boiler_fields_supported:

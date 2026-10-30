@@ -467,3 +467,32 @@ async def test_the_repairs_precheck_never_holds_the_form_up(hass, monkeypatch):
     assert await e32_link.async_room_plan_firmware_problem(hass, parent) is None
     assert time.monotonic() - started < 2
     assert e32_link.PRECHECK_SECONDS == 0.05
+
+
+@pytest.mark.asyncio
+async def test_the_link_wait_follows_a_connection_its_own_reloads_replace(hass, monkeypatch):
+    """Each save of a connect (link off, old rooms removed, link on) queues a reload; a slow one may
+    replace the connection while the link waits. That is no failure: the wait follows the new one."""
+    from custom_components.open_thermostat import controller_connection
+    parent = product(hass)
+    first, second = object(), object()
+    current = [first]
+    monkeypatch.setattr(controller_connection, "async_wait_controller_connection",
+                        AsyncMock(side_effect=[first, second]))
+    monkeypatch.setattr(controller_connection, "_connection", lambda h, e, s: current[0])
+    monkeypatch.setattr(controller_connection, "_guard", lambda *args: None)
+    monkeypatch.setattr(controller_connection, "TELEMETRY_POLL", 0.001)
+    hub = HeatingHub("fixture")
+    hass.data.setdefault(DOMAIN, {})[parent.entry_id] = {"heating_hub": hub}
+
+    async def reloads():
+        await asyncio.sleep(0.01)
+        current[0] = None      # a queued reload unloads the entry ...
+        await asyncio.sleep(0.01)
+        current[0] = second    # ... and starts it again with a new connection
+        await asyncio.sleep(0.01)
+        hub.update({"rooms": []})  # the E32's heating report arrives
+    task = asyncio.create_task(reloads())
+    result = await controller_connection.async_wait_room_plan_link(hass, parent, None)
+    await task
+    assert result["heating_report_received"] is True

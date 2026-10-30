@@ -189,8 +189,16 @@ async def async_wait_room_plan_link(hass, entry, expected, *, private_expected=N
         async with asyncio.timeout(CONNECTION_TIMEOUT):
             while True:
                 _guard(hass, entry, None, expected, private_expected)
-                if _connection(hass, entry, None) is not connection:
-                    raise ControllerLinkError("controller_connection_changed")
+                current = _connection(hass, entry, None)
+                if current is not connection:
+                    # A reload this link's own saves queued (the link switched off,
+                    # the old rooms removed, switched on) replaced the connection:
+                    # follow the new one instead of reporting a failure. The saved
+                    # entry itself is still exactly this link's (_guard).
+                    connection = current if current is not None else await async_wait_controller_connection(
+                        hass, entry, None, expected, private_expected=private_expected,
+                        previous_connection=connection)
+                    continue
                 hub = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("heating_hub")
                 if hub is not None and hub.fresh:
                     return {"mqtt_session_verified": True, "room_plan_applied": False,

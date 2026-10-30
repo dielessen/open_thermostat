@@ -10,7 +10,7 @@ test('HA English fallback and Dutch catalogs have exact key and placeholder pari
  const en=JSON.parse(fs.readFileSync(path.join(base,'translations/en.json'))),nl=JSON.parse(fs.readFileSync(path.join(base,'translations/nl.json')));
  assert.deepEqual(en,JSON.parse(fs.readFileSync(path.join(base,'strings.json'))));
  const a=flatten(en),b=flatten(nl);assert.deepEqual(Object.keys(a).sort(),Object.keys(b).sort());
- for(const [k,v]of Object.entries(a)){assert.equal(typeof b[k],'string',k);assert(b[k].trim(),k);if(v!=='OpenThermostat')assert.notEqual(b[k],v,k+' must have an actual Dutch translation');assert.deepEqual((v.match(/\{[^}]+\}/g)||[]).sort(),(b[k].match(/\{[^}]+\}/g)||[]).sort(),k);}
+ for(const [k,v]of Object.entries(a)){assert.equal(typeof b[k],'string',k);assert(b[k].trim(),k);if(v!=='OpenThermostat'&&!/^\d+ \u00b0C$/.test(v))assert.notEqual(b[k],v,k+' must have an actual Dutch translation');assert.deepEqual((v.match(/\{[^}]+\}/g)||[]).sort(),(b[k].match(/\{[^}]+\}/g)||[]).sort(),k);}
 });
 test('all marked static E32 messages and literal calls have a Dutch catalog entry',()=>{
  for(const file of fs.readdirSync(path.join(root,'data/html')).filter(f=>/\.(?:html|js)$/.test(f)&&!f.startsWith('ui-'))){

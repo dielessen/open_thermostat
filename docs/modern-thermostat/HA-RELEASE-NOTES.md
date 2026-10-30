@@ -8,9 +8,13 @@ Needs Home Assistant 2026.10.0 or newer.
 
 - **No starter room needed**: Connect E32 links the E32 and its room plan
   directly. Rooms live in the E32 room plan.
-- **A thermostat per E32 room**: a normal climate entity for the thermostat
-  card and voice assistants, with target, mode and presets, written to the
-  E32 room plan.
+- **A week program and a thermostat per E32 room**: every room runs its E32
+  week program. A normal climate entity serves the thermostat card and voice
+  assistants. An optional setting device per room (radiator valve, tado or
+  any thermostat, or a number entity) is set to the program's temperature at
+  every switch point; turning it yourself is an override until the next
+  switch point. Repairs offers to give existing rooms a program and warns
+  when a device runs its own schedule.
 - **One group per room** on the integration page, holding the room's device
   and the Bluetooth sensors only that room uses, plus an "E32 and boiler"
   group. Entity IDs, names, areas and history stay.
@@ -24,8 +28,14 @@ Needs Home Assistant 2026.10.0 or newer.
 - **Week planner view** on the OpenThermostat dashboard: the same visual
   planner as on the E32 Rooms page. It never overwrites a change made on the
   E32 meanwhile.
-- **Redesigned dashboard** with the rooms, the boiler, energy and advice.
-  <!-- TODO-FINAL(S): one sentence on the final dashboard layout. -->
+- **Redesigned dashboard**: "Now" at a glance, advice when there is any, one
+  section per room with its thermostat and a 24-hour graph, then the boiler,
+  curve and learning, and gas per day. The comparison with your thermostat
+  has its own view.
+- **Clearer menus**: Configure now reads Rooms, Comfort, Heating and boiler,
+  Energy and outdoor temperature, Connect E32, Name and dashboard, and
+  Advanced. After adding the integration you are guided to connecting the
+  E32 and your first room.
 - **Flow settings**: switches for the weather curve and the learned flow, and
   the design flow temperature, with status sensors.
 - **Energy**: "Gas for heating" and "Gas for hot water" for the Energy
@@ -50,7 +60,8 @@ Needs Home Assistant 2026.10.0 or newer.
   three missed E32 heartbeats or an offline message.
 - Devices from the older "intuibase" name are renamed to OpenThermostat once.
 - Removed room entities come back without a reload when the room returns.
-<!-- TODO-FINAL(J): add the session-protocol fix if it ships. -->
+- After a restart of Home Assistant the link to the E32 now comes back by
+  itself; HA 0.4.0b10 could stay without boiler values until a reload.
 
 ## Updating
 

@@ -13,7 +13,12 @@ Install it together with HA 0.4.0b11 (see Updating).
   until a date. Each ends by itself, also after a restart.
 - A visual week planner per room on the Rooms page: comfort, night and away
   levels, templates, copy a day, drag the block edges. The text form stays as
-  an advanced view. <!-- TODO-FINAL(N): describe the per-room setting device in one plain sentence once the room model is final. -->
+  an advanced view.
+- Every room runs its own week program, starting from a "Workdays and
+  weekend" template. Optionally choose a setting device per room (a radiator
+  valve, a thermostat such as tado, or a number entity in Home Assistant):
+  Home Assistant sets it to the program's temperature at every switch point,
+  and turning it yourself counts as an override until the next switch point.
 - 24-hour charts on the Overview, also without Home Assistant: temperature
   and target per room, and flow, return and burner. They are kept in memory
   and start again after a restart.
@@ -47,11 +52,16 @@ Install it together with HA 0.4.0b11 (see Updating).
   with a heartbeat every 60 seconds. The E32 only drops the connection after
   15 seconds without progress; beta18 dropped it several times an hour.
 - More room in flash: the web interface is stored compressed only (flash
-  use 93 % → 76 %). <!-- TODO-FINAL: confirm the percentage from the final e32v2 build. -->
+  use 93 % → 76 %).
 - The firmware no longer fails to build as it grows (a guard runs before
   every link).
 - Seven small fixes on the Boiler, Overview, Sensors, Rooms and About pages.
-<!-- TODO-FINAL(J/S): add a line for the session-protocol and dashboard/layout fixes if they ship. -->
+- Much less traffic to Home Assistant: about 165 bytes per second instead of
+  about 2.4 KB. The session with Home Assistant restarts by itself after a
+  restart of Home Assistant, the broker or the E32, or a Wi-Fi outage.
+- A calmer layout: inactive rooms take one line, technical status is folded
+  away, and the menu now reads Overview, Rooms, Boiler, Sensors, Settings and
+  System.
 
 ## Updating
 

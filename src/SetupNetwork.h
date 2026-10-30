@@ -122,6 +122,21 @@ inline bool finishSetupWifi() {
     if(!setupCloseAt) { setupCloseAt=networkNow()+setupHandoffDelayMs; setupCloseIP=WiFi.localIP(); }
     return true;
 }
+// Setup ended without a new network: rejoin the saved one at once. A setup
+// boot never started the station, and a failed attempt left its candidate in
+// the driver, so the loop's WiFi.reconnect() had nothing (or the wrong network)
+// to join and the E32 stayed offline until the 15 min wifiLost restart.
+inline void rejoinSavedWifi() {
+    const auto network=config::getNetworkConfig();
+    if(network.interfaceMode=="ethernet"||boardEthernetStarted) return;
+    const auto saved=config::getWiFiConfig();
+    if(saved.ssid.empty()) return;
+    if(!network.hostname.empty()) WiFi.setHostname(network.hostname.c_str());
+    WiFi.begin(saved.ssid.c_str(),saved.password.empty()?nullptr:saved.password.c_str());
+    WiFi.setAutoReconnect(true);
+    Serial.printf("Setup ended: joining the saved Wi-Fi again
+");
+}
 inline void pollSetupWifi() {
     static bool restartHeldNoted=false;
     if(setupRebootRequested&&!setupRestartHeld) { delay(250); ESP.restart(); return; }
@@ -154,7 +169,7 @@ inline void pollSetupWifi() {
         setupJoinAt=setupAttemptUntil=0; setupCandidate={};
         setupDns.stop(); setupDnsActive=false; setupCloseAt=0;
         WiFi.softAPdisconnect(false); WiFi.mode(WIFI_STA); wifiAPMode=false;
-        if(setupResult!="connected_saved") setupResult="setup_expired";
+        if(setupResult!="connected_saved") { setupResult="setup_expired"; rejoinSavedWifi(); }
     }
     // Explicit physical USB recovery, no GPIO0 button (Ethernet clock pin).
     static std::string command;

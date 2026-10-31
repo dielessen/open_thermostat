@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "6aba0889a82ef345295142dcf91f8ef8700d1e3f4dc33821974f901e9e338a9a"
+          "sha256": "8b154889cd6f9328bb750780bd4b54d3da9b905db77be38be38acd56740caaa8"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
@@ -886,6 +886,10 @@
         {
           "path": "docs/modern-thermostat/update-acceptance/e32-beta21-20261031.json",
           "sha256": "04d40f523102df71e3214c70d8b5ab54ac81b428fa8c699754d63f8f3931a6fa"
+        },
+        {
+          "path": "docs/modern-thermostat/update-acceptance/e32-beta22-20261031.json",
+          "sha256": "15e4aa4f22c2056b63f61a3225e778eb117621198de58e1ada3f6cfcdbe00223"
         }
       ],
       "remaining_acceptance": "Native GitHub-update alpha31→36 met verse back-up en één installatiecommando geslaagd:36 installatiecontroles,45 afzonderlijke nacontroles, exacte bron/ELF/web/31UI en behoud van86 HA-bestanden/13 projecthashes/zes loggingvelden. Iedere opvolgende reguliere release vereist nieuw update-/nacontrolebewijs volgens E32-UPDATE-PROCES en CI-gate. Oude multipart-watchdog en nativealpha26-afwijking blijven oorzakelijk onbekend; geen blinde fallback/retry. Fysieke powerloss/rollback/herstelkwalificatie en actieve ketel-/kraanpoorten blijven apart open. Automatische12ucontrole/dashboardmelding voorbereid naalpha36, niet geïnstalleerd."

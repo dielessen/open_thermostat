@@ -1,7 +1,7 @@
 /* Dashboard card: the visual week planner for the rooms of the E32 room plan.
    HA authenticates (admin websocket open_thermostat/e32_week/*); the E32 stores and runs the program.
    The planner itself is week-editor.js, the same file the E32 rooms page uses. */
-const EDITOR = '/open_thermostat/week-editor-0.4.0b14.js';
+const EDITOR = '/open_thermostat/week-editor-0.4.0b15.js';
 const TEXT = {
  en: {title: 'Week program', loading: 'Loading…', reading: 'Reading the week programs from the E32…', intro: 'The E32 follows this program on its own, also when Home Assistant is offline.',
   follows: 'This room follows {entity} while Home Assistant gives a target temperature; the week program applies when it gives none.',
@@ -218,6 +218,10 @@ const ensureDefined = (name, cls) => {
  if (document.readyState !== 'complete') window.addEventListener('load', check, {once: true});
  for (const ms of [0, 250, 1000, 3000, 10000]) setTimeout(check, ms);
  window.addEventListener('location-changed', check);
+ // A HACS card may replace window.customElements at any moment (the owner's HA, 31 Oct 2026: an
+ // intermittent "Configuration error" on the week view). A cheap check every 0.5 s puts the element
+ // back in the registry in use; Home Assistant's error card then rebuilds the card by itself.
+ setInterval(check, 500);
  return check;
 };
 ensureDefined('openthermostat-e32-week', OpenThermostatE32Week);

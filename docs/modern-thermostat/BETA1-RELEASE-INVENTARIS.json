@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "df2dd3f15157a5f18d30b75965e3ce95d110f5b117e259de4a8ea75633f00f24"
+          "sha256": "1480e3f53b77fcbe8003672e59ec87164f0cab4d9e6a9c6db2ce8d612b12b353"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -63,7 +63,7 @@
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
-          "sha256": "efeed4bc9049605ad790b1bb88b39eed866ba5ec4596fa67fb43225aae83c382"
+          "sha256": "b0a320a0b81f054e5d8b4f2519df0e54447e037fa89b64ab3231cc11ed059873"
         },
         {
           "path": "docs/modern-thermostat/USER-RELEASE-NOTES.json",
@@ -403,7 +403,7 @@
         },
         {
           "path": "docs/modern-thermostat/EMS-INSTELBARE-WAARDEN.nl.md",
-          "sha256": "91f0aade6c691f3476f29d4e4ed06afdca2ec778ca21b30e7fc5916eaead542f"
+          "sha256": "f2a49afb16581a6f51b0b84733f01675d8659b53a1a8e1beb8476a29f0a7cf1d"
         },
         {
           "path": "docs/modern-thermostat/TRV-KEUZE.nl.md",
@@ -1353,7 +1353,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/week_planner.py",
-          "sha256": "7800dac68656e3e4a28c95caf9c8c9528d8d9168bc4b4586adbb17757353ef91"
+          "sha256": "64b73d102a14012bdaedf72f1e88757eceee6ff1b59d90bcdba8b234ca149659"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_program_apply.py",
@@ -1369,11 +1369,11 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/e32_week.py",
-          "sha256": "d6c948fb0a4fc009a0356247a1f3cfa5773751e84aec5a50a77e04843628f7af"
+          "sha256": "776d1897bba937c30adfc369c83e9530b0cfb0243f91679632a0a539eac11231"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/e32-week-card.js",
-          "sha256": "031cbe83670705ce102654d3a223e6845e3769d982b193015dcd55f8337ecba2"
+          "sha256": "caf5a2baa1a37c91a07e66a553bdf1a62ed3b7c9345302805f88986bbe005e1c"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-editor.js",
@@ -1385,7 +1385,7 @@
         },
         {
           "path": "test/week-editor-browser.cjs",
-          "sha256": "aed78d9d7210e822027fe97d249fc6d92e3010a9c17aef9b1a059efb6b2d691c"
+          "sha256": "68d0a0b406c6388e39bca34032300e022f0453a49311e1f2725379514c8c2b73"
         },
         {
           "path": "test/week-editor.test.cjs",
@@ -1432,7 +1432,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "1042589fa69810a68441943d3156a057d827fe61feba363cc9db55b3c6aff964"
+          "sha256": "18c15ff5063ae4896b6b6332043efcb1260e7583ebcdfce9042c9160e9a3981e"
         },
         {
           "path": "test/ha-planner-touch-browser.cjs",
@@ -2594,7 +2594,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "1042589fa69810a68441943d3156a057d827fe61feba363cc9db55b3c6aff964"
+          "sha256": "18c15ff5063ae4896b6b6332043efcb1260e7583ebcdfce9042c9160e9a3981e"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/__init__.py",
@@ -3018,7 +3018,7 @@
         },
         {
           "path": "ha/tests_native/test_card_modules.py",
-          "sha256": "ab048c46a3c190f59dbc9ed4385d775fc6fdddeb56d80cca2a28fa3f7fe194eb"
+          "sha256": "95c25a7e63569a32a8e6b2d32377a4ff993aaa43d434b8c3acb28e96244a0ef0"
         },
         {
           "path": "ha/tests_native/test_config_storage_backoff.py",

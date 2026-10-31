@@ -161,7 +161,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    page.on('pageerror',e=>errors.push(e.message));
    await page.route('http://ha.test/**',route=>{const p=new URL(route.request().url()).pathname;
     if(p==='/')return route.fulfill({contentType:'text/html',body:'<meta name="viewport" content="width=device-width, initial-scale=1"><body style="margin:0;font:15px system-ui"><main></main></body>'});
-    if(p==='/open_thermostat/week-editor-0.4.0b14.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'week-editor.js'))});
+    if(p==='/open_thermostat/week-editor-0.4.0b15.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'week-editor.js'))});
     if(p==='/card.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'e32-week-card.js'))});
     return route.fulfill({status:404,body:''});});
    await page.goto('http://ha.test/');await page.addScriptTag({url:'/card.js',type:'module'});
@@ -288,7 +288,12 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    await replace();
    assert.equal(await page.evaluate(()=>customElements.get('openthermostat-e32-week')),undefined,'the polyfill hides earlier definitions');
    await page.waitForFunction(names=>names.every(n=>typeof customElements.get(n)==='function'),names,{timeout:5000});
-   // Replaced again much later: the next navigation inside Home Assistant defines them again.
+   // Replaced again much later, without any navigation (31 Oct 2026: the error stayed until the next click):
+   // the elements are back within about half a second.
+   await page.waitForTimeout(11000);await replace();
+   assert.equal(await page.evaluate(()=>customElements.get('openthermostat-e32-week')),undefined);
+   await page.waitForFunction(names=>names.every(n=>typeof customElements.get(n)==='function'),names,{timeout:1500});
+   // And a navigation inside Home Assistant still defines them at once.
    await replace();await page.evaluate(()=>window.dispatchEvent(new Event('location-changed')));
    assert.deepEqual(await page.evaluate(names=>names.filter(n=>typeof customElements.get(n)!=='function'),names),[]);
    assert.deepEqual(errors,[]);await page.close();results.push({part:'ha-registry-replaced'});

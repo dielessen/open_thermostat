@@ -236,7 +236,7 @@
     "cached_newlib_header_sha256": "93a397574a25b9c143cee7fcb86d8fc9a0c9ba418e4710a30d2d19ba1e4120db"
   },
   "ha": {
-    "source_candidate": "sha256:bc0eec1b40acd5e9405d244d064938fadaa7838f0c9de0237f7aad65db548e1f",
+    "source_candidate": "sha256:62d6e7897cc39349a59bbff98bf09c6cb3a80b323b4195706e3c0206743482b1",
     "manifest": "ha/config/custom_components/open_thermostat/manifest.json",
     "source_files": {
       "ha/config/custom_components/open_thermostat/__init__.py": "c88db3edc5a59f4f6781604dc08a4593909b4e882f893c40cf74a19c634650d3",
@@ -350,7 +350,7 @@
       "ha/config/custom_components/open_thermostat/v1_bench_mqtt.py": "b158170cbfc049661d4be03a08f7da7ac1350162487ff9458b81d080e7c4b22f",
       "ha/config/custom_components/open_thermostat/v1_bench_source.py": "3325828c4e123bfcd2ce31c460429b1f3bb7616b314fba05a011d06f36117fa4",
       "ha/config/custom_components/open_thermostat/v1_boiler_fields.py": "54291dfed9c4ba159adda68be6fb281431384b9b55eca45a7e64ba118c2844bc",
-      "ha/config/custom_components/open_thermostat/v1_climate.py": "7f237831b0c518b874579aa29c37e26260b1cb013b9936f05a51bd4f41be1850",
+      "ha/config/custom_components/open_thermostat/v1_climate.py": "1b1b54a55c06226ed11d621dbc6e12810d5d6d10474937bdef0179f8ebc72119",
       "ha/config/custom_components/open_thermostat/v1_config_flow.py": "51626b346a0e161685ae5e87965a902e3add429703925f5c691fa8925daadaa0",
       "ha/config/custom_components/open_thermostat/v1_heating_draft.py": "eba2d9996fd9375c87f5b495f4900d957a93250c72879c7c46e45f4814fce606",
       "ha/config/custom_components/open_thermostat/v1_heating_flow.py": "4c3e3cce141d9c7f77a215dac3752cf3520c1cfeea0389f5ce04570493b0e9e4",
@@ -362,7 +362,7 @@
       "ha/config/custom_components/open_thermostat/v1_profile_c.py": "3313143f4e2bc1c91b4a65d24fa824f6fe3361f6fb778c4e8fb915eed85fe339",
       "ha/config/custom_components/open_thermostat/v1_program.py": "8597a0232105d44a0d90ee4d4fb41ae7ed6bdede64b0a8df09bf37eeb4f24db2",
       "ha/config/custom_components/open_thermostat/v1_runtime.py": "487e3fd39e222e2bcc94b6b328e1fb8118b6eb5c2e9e922342553477ca98f15a",
-      "ha/config/custom_components/open_thermostat/v1_wire.py": "19a53113f017f05301165652052b91f580977d4c7ceae71dbcc7032e5841d570",
+      "ha/config/custom_components/open_thermostat/v1_wire.py": "a19f2be08749489a547fa81c4ad3924af3acc803cfac0a04835ffcf2994bba96",
       "ha/config/custom_components/open_thermostat/week_planner.py": "6d93c5bddd70eb04c829b488049f3753d872475884aa01986d11293167ba8578",
       "ha/config/custom_components/open_thermostat/weekly_summary.py": "d8607391e586de5a515b48dd14d4d330b329388026859b53eeca0afa505f0ba2"
     },
@@ -373,7 +373,7 @@
     ],
     "requirements_state": "No separate custom requirement needed for probatio0.13.0: exact direct HA2026.10.2 requirement. Existing native platform supplies voluptuous transitively. Original installed metadata/RECORD/license bound; production HA version still UNKNOWN.",
     "stdlib_scope": "Python3.14 test scope; unknown external imports remain blocked",
-    "source_git_parent": "31f1e87ef2602d40e0b86494c9841a06a0ddada4",
+    "source_git_parent": "9e416a2bde27d4c0953ecdd499a59180850c2b3d",
     "native_platform_evidence": {
       "path": "docs/third-party/native-ha-validator.json",
       "sha256": "5433ce5d998f80202659e42468122d42d0db210925bd5e7eb17e95a88f82bf0e",

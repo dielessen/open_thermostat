@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "c01edd842470d2e515b2ef6ff1f68b512ae88243df34e4da0bb654ff8c3acf87"
+          "sha256": "d905e382c702321527526e0136bb0c3ab62c345507f436b5b5fd2102af1935a0"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -392,6 +392,14 @@
         {
           "path": "test/run-browser-tests.sh",
           "sha256": "2c47d99196f4f7483e23d8dee90e8782908c9a23a4d7e12f86b7de4716bc246c"
+        },
+        {
+          "path": "docs/modern-thermostat/EMS-INSTELBARE-WAARDEN.nl.md",
+          "sha256": "91f0aade6c691f3476f29d4e4ed06afdca2ec778ca21b30e7fc5916eaead542f"
+        },
+        {
+          "path": "docs/modern-thermostat/TRV-KEUZE.nl.md",
+          "sha256": "a058e04bea820cd2b90719135160c45feee3e6cf1bf5c3f14dd605952c4504b1"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."

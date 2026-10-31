@@ -37,7 +37,7 @@ woonkamer is actief in beta.19. E32 op `http://192.168.1.206`.
 | E5 | Aanvoer dynamisch tot het planmaximum, nooit boven het eigen maximum van de ketel (0x16), zo laag mogelijk. | Plafond `min(planmaximum, 80, 0x16)`; de E32 leest 0x16 zelf bij opstart en elke 6 h (`BoilerLimitRead`); zonder grens geen positieve vraag (`boiler_limit_unknown`). | gebouwd; native `test_boiler_limit_read`, soak `boiler_limit`; busopname *(op het apparaat controleren)* |
 | E6 | Vorstbeveiliging aan onder 8 °C, uit bij 9 °C. | Koudste verse meting van **alle** ruimtes (ook inactieve) → minimumaanvoer, reden `frost_minimum`. | gebouwd |
 | E7 | Geen supervisorherstart zolang de E32 de ketel bezit. | `SupervisorPolicy`: `boilerOwned` → alleen `loop_stall` en `update_stuck`; geen `wifi_lost`, `broker_lost`, `network_dead`, `bluetooth_silent`. | gebouwd; native `test_supervisor`, soak `wifi_gone`, `measurement_gone` |
-| E8 | De actieve vergrendeling (`board::emsActiveHeatAllowed`) gaat pas open op de overstapdag, in een aparte, expliciet goedgekeurde build. | `src/Board.h`, E32V2-tak: nu `false`. | **niet doen vóór de overstapdag** (§4.1) |
+| E8 | De actieve vergrendeling (`board::emsActiveHeatAllowed`) gaat pas open op de overstapdag, in een aparte, expliciet goedgekeurde build. | `src/Board.h`, E32V2-tak: `false` t/m beta.21; `true` in beta.22, de aparte vergrendelingsbuild (besluit eigenaar 31 oktober). Open betekent nog niet actief: plan op actief én bevestiging nodig. | beta.22 voorbereid; **pas publiceren na groene schaduwanalyse en akkoord eigenaar** (§4.1) |
 
 Nog open (geen blokkade, wel vóór fase 5 beslissen):
 - **O1 Brandermelding telt tapwater mee.** `boiler_no_response` kijkt naar
@@ -189,14 +189,15 @@ de harde grens van 55 °C.
    gepubliceerde beta.21 **met vergrendeling dicht** (de schaduwbuild die nu
    draait), plus beta.20 (geaccepteerde basis) als tweede terugval. Lokaal op de laptop, zodat de
    upload via Systeem → Firmware bijwerken ook zonder internet of HA werkt.
-3. **De vergrendelingsbuild (alleen beschrijven; aparte goedkeuring).**
-   Op de overstapdag, en alleen na expliciete goedkeuring door de lead en de
-   eigenaar, wordt een aparte build gemaakt: beta.21 met
-   `constexpr bool emsActiveHeatAllowed = true;` in de `OPENTHERMOSTAT_E32V2`-tak
-   van `src/Board.h`, verder bit-voor-bit dezelfde bron. Die build volgt de
-   releaseafspraken (eigen tag, CI groen, review van de zendroute, eigen
-   publicatie-uitzondering) en wordt via de officiële route (HA-update) of de
-   lokale upload geïnstalleerd. Na installatie toont Ruimtes → Actieve
+3. **De vergrendelingsbuild: beta.22 (besluit eigenaar 31 oktober).**
+   Beta.22 is beta.21 met `constexpr bool emsActiveHeatAllowed = true;` in de
+   `OPENTHERMOSTAT_E32V2`-tak van `src/Board.h`, verder dezelfde bron (plus
+   tests die bewijzen dat open zonder plan op actief en bevestiging niets
+   verstuurt: `test/test_native/test_active_gate_open.cpp`). Die build volgt de
+   releaseafspraken (eigen tag, CI groen; beta.21 is de geaccepteerde basis,
+   dus geen publicatie-uitzondering) en wordt pas gepubliceerd na een groene
+   schaduwanalyse en het expliciete akkoord van de eigenaar, en dan via de
+   officiële route (HA-update) of de lokale upload geïnstalleerd. Na installatie toont Ruimtes → Actieve
    regeling **niet** meer "Actieve regeling is in deze firmware niet
    ingeschakeld.". Omdat de bevestiging aan de firmware gebonden is, start
    deze build altijd zonder bevestiging. *Dit draaiboek opent de vergrendeling

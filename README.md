@@ -76,7 +76,7 @@ internet connection.
 | Component | Version | Channel |
 | --- | --- | --- |
 | E32 V2 firmware | [v0.1.0-e32v2-beta.21](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.21) | Pre-release |
-| Home Assistant integration | [0.4.0b13](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0b13) | Pre-release |
+| Home Assistant integration | [0.4.0b14](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0b14) | Pre-release |
 
 Firmware and the HA integration are separate downloads. Read each release’s
 changes, compatibility notes and installation instructions before updating.

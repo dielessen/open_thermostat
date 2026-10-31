@@ -2,10 +2,10 @@
   "schema": 1,
   "required_for_successor_release": true,
   "accepted": {
-    "tag": "v0.1.0-e32v2-beta.21",
-    "receipt": "docs/modern-thermostat/update-acceptance/e32-beta21-20261031.json",
-    "sha256": "04d40f523102df71e3214c70d8b5ab54ac81b428fa8c699754d63f8f3931a6fa"
+    "tag": "v0.1.0-e32v2-beta.22",
+    "receipt": "docs/modern-thermostat/update-acceptance/e32-beta22-20261031.json",
+    "sha256": "15e4aa4f22c2056b63f61a3225e778eb117621198de58e1ada3f6cfcdbe00223"
   },
-  "pending_tag": "v0.1.0-e32v2-beta.22",
+  "pending_tag": null,
   "candidate_plan": "docs/modern-thermostat/BETA22-KANDIDAAT.json"
 }

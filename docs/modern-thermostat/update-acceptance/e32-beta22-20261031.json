@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "tag": "v0.1.0-e32v2-beta.22",
+  "method": "home_assistant",
+  "acceptance_decision": "ACCEPTED",
+  "checks": {
+    "public_release_exact": true,
+    "fresh_preflight_passed": true,
+    "backup_verified": true,
+    "single_ha_install_action": true,
+    "ha_download_digest_size_marker_verified": true,
+    "local_upload_accepted": true,
+    "new_boot_observed": true,
+    "installed_version_source_elf_web_exact": true,
+    "boot_confirmed": true,
+    "stable_uptime_observed": true,
+    "settings_programs_bindings_preserved": true,
+    "control_state_safe_after_restart": true,
+    "ha_entity_reports_new_version": true,
+    "independent_postcheck_passed": true
+  },
+  "github_release": {
+    "tag_name": "v0.1.0-e32v2-beta.22",
+    "draft": false,
+    "prerelease": true,
+    "published_at": "2026-10-31T14:02:07Z",
+    "asset": {
+      "name": "firmware.bin",
+      "size": 2827712,
+      "digest": "sha256:597dea04b61f91735c01059be080a8c8da94fad1053e2ea91b0f069b72263a25"
+    }
+  },
+  "firmware_sha256": "597dea04b61f91735c01059be080a8c8da94fad1053e2ea91b0f069b72263a25",
+  "firmware_bytes": 2827712,
+  "source_commit": "6edc69afbf2439b4385d5db96f5c1051a5cf4c8b",
+  "web_sha256": "26ddb2f34ef675efdfbea8875501532958a3a43900fe983985a6d5c518ec6d91",
+  "elf_sha256": "c6377e34f3cd9161d30f74156247ad4c94ed3ab7e4734a6e2bb223098c012189",
+  "ha_entity_id": "update.woonkamer_e32_regelaar_ketel_en_diagnose_firmware",
+  "ha_installed_version_before": "v0.1.0-e32v2-beta.21",
+  "ha_latest_version_before": "v0.1.0-e32v2-beta.22",
+  "ha_installed_version_after": "v0.1.0-e32v2-beta.22",
+  "install_actions": 1,
+  "ha_integration_version": "0.4.0b14",
+  "ha_core_version": "2026.10.4",
+  "ha_install_record": {
+    "tag": "v0.1.0-e32v2-beta.22",
+    "from_version": "v0.1.0-e32v2-beta.21",
+    "sha256": "597dea04b61f91735c01059be080a8c8da94fad1053e2ea91b0f069b72263a25",
+    "size": 2827712,
+    "started_at": "2026-10-31T14:04:44Z",
+    "finished_at": "2026-10-31T14:06:05Z",
+    "duration_s": 81.5,
+    "result": "installed",
+    "uploads": 1,
+    "reported": {
+      "version": "v0.1.0-e32v2-beta.22",
+      "source_commit": "6edc69afbf2439b4385d5db96f5c1051a5cf4c8b",
+      "web_sha256": "26ddb2f34ef675efdfbea8875501532958a3a43900fe983985a6d5c518ec6d91",
+      "elf_sha256": "c6377e34f3cd9161d30f74156247ad4c94ed3ab7e4734a6e2bb223098c012189"
+    }
+  },
+  "observations": [
+    {
+      "at_utc": "2026-10-31T14:08:49Z",
+      "version": "v0.1.0-e32v2-beta.22",
+      "boot_pending": false,
+      "uptime_seconds": 172
+    },
+    {
+      "at_utc": "2026-10-31T14:16:26Z",
+      "version": "v0.1.0-e32v2-beta.22",
+      "boot_pending": false,
+      "uptime_seconds": 630
+    }
+  ],
+  "installer_receipt_sha256": "2e4152e43427e1d7fde497c2fead5804c827051591eb63313525cb8fea0486db",
+  "independent_receipt_sha256": "ecef2a167b1efc399cf6aa1da3dc0e97f2d935ea5f15f567922adfa21a622415",
+  "backup_manifest_sha256": "e60e8a6bb8a09e9b1255d5bf2f62f2047acd2757f23f52b17eb9152d80f9fa70",
+  "preflight": {
+    "ci_commit": "6edc69afbf2439b4385d5db96f5c1051a5cf4c8b",
+    "tag_runs": [
+      {
+        "id": 41207707403,
+        "name": "PlatformIO CI",
+        "head_branch": "v0.1.0-e32v2-beta.22",
+        "event": "push",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/dielessen/open_thermostat/actions/runs/41207707403",
+        "created_at": "2026-10-31T13:54:59Z"
+      }
+    ],
+    "local_check_logs": []
+  },
+  "mqtt_counters": {
+    "first": {
+      "mqtt_budget_disconnects": 0,
+      "mqtt_stalled_disconnects": 0,
+      "mqtt_socket_error_disconnects": 0,
+      "mqtt_queue_rejected": 0,
+      "mqtt_queue_peak_bytes": 1806,
+      "mqtt_write_latency_max_ms": 418
+    },
+    "last": {
+      "mqtt_budget_disconnects": 0,
+      "mqtt_stalled_disconnects": 0,
+      "mqtt_socket_error_disconnects": 0,
+      "mqtt_queue_rejected": 0,
+      "mqtt_queue_peak_bytes": 1806,
+      "mqtt_write_latency_max_ms": 418
+    }
+  },
+  "limits": [
+    "The independent post-check is a separately written tool (capture_beta22_independent.py, own HTTP code, own folder and manifest), run by the same assistant session, not by a second person.",
+    "Physical boiler behaviour is not part of this acceptance: shadow mode, board::emsActiveHeatAllowed false.",
+    "The single install action was sent by the assistant through the Home Assistant update.install service (one call, at 14:04:43Z) with the owner's approval (\"je mag hem ook installeren\"); it is the same action as one Install press, and last_install records one upload.",
+    "control_state_safe_after_restart for this gate build: active.enabled is true (the open build gate, expected for beta.22) while active.state is \"shadow\", no takeover confirmation is stored and command.send is false; the E32 sends nothing to the boiler until the owner sets the plan active and confirms the takeover."
+  ]
+}

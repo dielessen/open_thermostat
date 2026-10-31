@@ -192,6 +192,23 @@ def test_a_stable_installation_is_not_offered_a_pre_release():
     assert select_release([release("v1.1.0-e32v2-rc.1")], minimum_channel=3) is None
 
 
+def test_beta_and_rc_installations_are_offered_version_one():
+    # As GitHub lists them: newest first, a stable release is not a GitHub pre-release.
+    catalog = [{**release("v1.0.0-e32v2"), "prerelease": False}, {**release("v1.0.0-e32v2-rc.2"), "prerelease": True},
+               {**release("v1.0.0-e32v2-rc.1"), "prerelease": True}, {**release("v0.1.0-e32v2-beta.20"), "prerelease": True},
+               {**release("v0.1.0-e32v2-beta.19"), "prerelease": True}, release("ha-v1.0.0")]
+    entity = E32FirmwareUpdate.__new__(E32FirmwareUpdate)
+    for installed in ("v0.1.0-e32v2-beta.19", "v0.1.0-e32v2-beta.20", "v1.0.0-e32v2-rc.1", "v1.0.0-e32v2-rc.2"):
+        offered = select_release(catalog, parse_tag(installed)[3])
+        assert offered["tag"] == "v1.0.0-e32v2", installed
+        assert entity.version_is_newer(offered["tag"], installed), installed
+    # Before 1.0 is published, a beta installation is offered the release candidate.
+    assert select_release(catalog[1:], parse_tag("v0.1.0-e32v2-beta.20")[3])["tag"] == "v1.0.0-e32v2-rc.2"
+    # An rc installation never falls back to a beta, and 1.0.0 is not offered to itself.
+    assert select_release(catalog[3:], parse_tag("v1.0.0-e32v2-rc.1")[3]) is None
+    assert not entity.version_is_newer("v1.0.0-e32v2", "v1.0.0-e32v2")
+
+
 def identity(tag):
     return {"version": tag, "source": "a" * 40, "web_sha256": "b" * 64, "sha256": "c" * 64,
             "project": "open_thermostat", "idf": "v4.4.7", "date": "Oct 29 2026"}
@@ -239,6 +256,34 @@ async def test_a_stable_installation_keeps_the_stable_channel(hass, monkeypatch)
     FakeClient.running = "v0.1.0-e32v2-beta.19"
     await entity.async_refresh()
     assert entity.latest_version == "v1.1.0-e32v2-beta.1"
+
+
+@pytest.mark.asyncio
+async def test_a_beta_installation_installs_version_one_through_home_assistant(hass, monkeypatch):
+    one = "v1.0.0-e32v2"
+    image = bytearray(1200000)
+    image[4096:4096 + 64] = f"OT_E32V2_OTA_V1:{one}:".encode().ljust(64, b"0")
+    image = bytes(image)
+    stable = {**release(one, digest=hashlib.sha256(image).hexdigest(), size=len(image)), "prerelease": False}
+
+    class Updating(IdentityClient):
+        async def async_upload_firmware(self, upload):
+            FakeClient.uploads.append(upload)
+            FakeClient.running = one
+    FakeClient.uploads = []; FakeClient.running = "v0.1.0-e32v2-beta.19"
+    entity = _entity(hass, monkeypatch, image, [stable, {**release("v0.1.0-e32v2-beta.19"), "prerelease": True}],
+                     client=Updating)
+    await entity.async_refresh()
+    assert (entity.installed_version, entity.latest_version) == ("v0.1.0-e32v2-beta.19", one)
+    assert entity.version_is_newer(entity.latest_version, entity.installed_version)
+    await entity.async_install(one, False)
+    assert FakeClient.uploads == [image] and entity.installed_version == one
+    record = entity.last_install
+    assert valid_install_record(record) and record["result"] == "installed"
+    assert (record["tag"], record["from_version"], record["reported"]["version"]) == (
+        one, "v0.1.0-e32v2-beta.19", one)
+    await entity.async_refresh()  # now on the stable channel: nothing newer offered
+    assert entity.latest_version == entity.installed_version == one
 
 
 @pytest.mark.asyncio

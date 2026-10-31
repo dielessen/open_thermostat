@@ -94,6 +94,16 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual(report['retained_release_tags'],['v0.1.0-e32v2-beta.1','v0.1.0-e32v2-beta.2','v0.1.0-e32v2-beta.5'])
         self.assertTrue(path.exists())
 
+    def test_stable_releases_count_as_the_newest_by_version_not_by_name(self):
+        self.write('docs/modern-thermostat/E32-UPDATE-GATE.json',json.dumps({
+            'accepted':{'tag':'v0.1.0-e32v2-beta.19'},'pending_tag':'v1.0.0-e32v2'}).encode())
+        tags=['v1.0.0-e32v2','v0.1.0-e32v2-beta.20','v1.0.0-e32v2-rc.1','v0.1.0-e32v2-beta.19',
+              'v0.1.0-e32v2-beta.9','v1.0.1-e32v2-beta.1','ha-v1.0.0','sources-e32v2-20261030.1']
+        rows=[{'tag_name':tag,'draft':False,'assets':[]} for tag in tags]
+        report=cleanup.plan(self.root,rows,keep=3)
+        self.assertEqual(report['retained_release_tags'],
+                         ['v0.1.0-e32v2-beta.19','v1.0.0-e32v2','v1.0.0-e32v2-rc.1','v1.0.1-e32v2-beta.1'])
+
     def test_symlink_escape_is_never_followed_or_removed(self):
         outside=self.root/'outside';outside.mkdir()
         file=outside/'private.txt';file.write_text('preserve')

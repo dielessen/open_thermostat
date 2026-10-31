@@ -238,9 +238,11 @@ async def test_native_boiler_view_uses_owned_enabled_renamed_fields_and_quality_
     config=dashboard._dashboard_config();boiler=next(v for v in config["views"] if v["path"]=="boiler")
     text=str(boiler)
     assert "sensor.renamed_native_flow" in text and returned.entity_id in text
-    assert inferred.entity_id in text and "Inferred activity" in text
-    reported=next(c for c in view_cards(boiler) if c.get("title")=="Reported boiler fields")
-    assert inferred.entity_id not in str(reported)
+    # Grouped: the inferred activity sits last in its group, and the note says it is not a verified operation.
+    heating=next(s["cards"] for s in boiler["sections"] if s["cards"][0]["heading"]=="Heating")
+    rows=[r["row"]["entity"] for r in heating[1]["entities"]]
+    assert rows==["sensor.renamed_native_flow",returned.entity_id,inferred.entity_id]
+    assert "not a verified operation" in heating[2]["content"]
     for missing in [raw.entity_id,disabled.entity_id,foreign.entity_id,legacy.entity_id]:
         assert missing not in text
     graphs=[c for c in view_cards(boiler) if c["type"]=="history-graph"]
@@ -249,7 +251,7 @@ async def test_native_boiler_view_uses_owned_enabled_renamed_fields_and_quality_
     reg.async_update_entity(raw.entity_id,disabled_by=None)
     config=dashboard._dashboard_config()
     diagnostics=next(v for v in config["views"] if v["path"]=="diagnostics")
-    assert raw.entity_id in str(diagnostics) and "Unreliable raw boiler diagnostics" in str(diagnostics)
+    assert raw.entity_id in str(diagnostics) and "Raw boiler data" in str(diagnostics)
     assert raw.entity_id not in str(next(v for v in config["views"] if v["path"]=="boiler"))
 
 

@@ -22,44 +22,9 @@
 		</nav>
 	</article>
 
-	<article class="ot-about-panel" aria-labelledby="about-password" id="about-password-card" hidden>
-		<h2 id="about-password"><span data-i18n="Password">Password</span></h2>
-		<p class="pd-help"><span data-i18n="The password protects this web page. Home Assistant asks for it too when you use Connect E32. The user name stays admin.">The password protects this web page. Home Assistant asks for it too when you use Connect E32. The user name stays admin.</span></p>
-		<p class="alert alert-warning" id="pw-default" role="status" hidden><span data-i18n="This E32 still uses the default password admin. Choose your own below so nobody else on your network can change your heating.">This E32 still uses the default password admin. Choose your own below so nobody else on your network can change your heating.</span></p>
-		<form id="password-form">
-			<input type="text" name="username" value="admin" autocomplete="username" hidden>
-			<label class="d-block mb-2"><span data-i18n="Current password">Current password</span><input class="form-control" id="pw-current" type="password" autocomplete="current-password" maxlength="128" required></label>
-			<label class="d-block mb-2"><span data-i18n="New password">New password</span><input class="form-control" id="pw-new" type="password" autocomplete="new-password" minlength="8" maxlength="128" required data-hint="8 to 64 characters."></label>
-			<label class="d-block mb-2"><span data-i18n="Repeat the new password">Repeat the new password</span><input class="form-control" id="pw-repeat" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label>
-			<p class="ot-actions"><button type="submit" class="btn btn-primary"><span data-i18n="Change password">Change password</span></button><span id="pw-status" role="status" aria-live="polite"></span></p>
-		</form>
-	</article>
-	<script>
-	(() => {
-		const card = document.getElementById('about-password-card'), form = document.getElementById('password-form'), out = document.getElementById('pw-status'), notice = document.getElementById('pw-default');
-		window.OpenThermostatAuth?.ready().then(s => { card.hidden = !!s.legacy; notice.hidden = s.default_password !== true; if (!notice.hidden) document.getElementById('pw-current').placeholder = 'admin'; }, () => {});
-		form.addEventListener('submit', async event => {
-			event.preventDefault();
-			const [current, next, again] = ['pw-current', 'pw-new', 'pw-repeat'].map(id => document.getElementById(id));
-			if (next.value !== again.value) { out.textContent = uiText("The two new passwords are not the same."); again.focus(); return; }
-			// Characters like the firmware counts them (code points), not bytes or UTF-16 units: "Zoë" is 3.
-			const length = [...next.value].length;
-			if (length < 8 || length > 64) { out.textContent = uiText(length < 8 ? "The new password is too short." : "The new password is too long (at most 64 characters)."); next.focus(); return; }
-			out.textContent = uiText("Saving…");
-			const say = text => { out.textContent = uiText(text); };
-			try {
-				const r = await fetch('/auth/password', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({current:current.value, new:next.value})});
-				const error = r.ok ? null : (await r.json().catch(() => ({}))).error || r.status;
-				say(!error ? "Password changed. Use it the next time you sign in, also in Home Assistant." : error === 'password_wrong' ? "The current password is not correct."
-					: error === 'password_too_short' ? "The new password is too short." : error === 'password_too_long' ? "The new password is too long (at most 64 characters)."
-					: error === 'password_change_busy' ? "An update is running. Change the password after the update has finished."
-					: error === 'password_storage_failed' ? "The E32 could not confirm that the new password was saved. Try again; until then the old password may still apply."
-					: error === 404 ? "This firmware cannot change the password yet. Update the firmware first." : "The password was not changed. Try again.");
-				if (!error) { window.otDefaultPassword = false; notice.hidden = true; current.placeholder = ''; form.reset(); } else if (error === 'password_wrong') current.focus();
-			} catch (_) { say("The password was not changed. Try again."); }
-		});
-	})();
-	</script>
+	<p class="ot-about-panel ot-actions" id="about-password-moved" hidden><span data-i18n="Looking for the password? It is under Settings.">Looking for the password? It is under Settings.</span>
+		<a class="btn btn-outline-primary" href="#password" data-page="password"><span data-i18n="Change password">Change password</span></a></p>
+	<script>window.OpenThermostatAuth?.ready().then(s => { document.getElementById('about-password-moved').hidden = !!s.legacy; }, () => {});</script>
 
 	<details class="ot-about-panel">
 		<summary><span data-i18n="Project origins &amp; acknowledgements">Project origins &amp; acknowledgements</span></summary>

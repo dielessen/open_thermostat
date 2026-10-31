@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-30T22:34:31Z",
+  "requests": [
+    "Owner, 30 Oct 2026: \"We kunnen wel verder gaan met de volgende beta denk ik ?\", then \"ok schakel agents bij als datsneller gaat\" and \"ja we kunnen deze firmware even afwachten en een plan maken voor volgende release\". Standing approval for publishing and installing (29 Oct 2026): \"je hebt sowieso akkoork je hoeft niet op mij te wachten\". Switch-over decision (30 Oct 2026): \"beta 21 gaan we dat doen als alles goed loopt\"; opening board::emsActiveHeatAllowed still needs a separate explicit go and is not part of this release."
+  ],
+  "scope": "Beta21 + HA 0.4.0b13: publish both releases and install them on the owner's Home Assistant and E32 (HA first, then the E32 with the HA Firmware update entity). The active-control route is prepared but stays locked: board::emsActiveHeatAllowed stays false, no boiler output, boiler settings writes disabled. Opening it needs the owner's separate explicit go after the shadow exit criteria pass, and an attended switch-over.",
+  "not_included": [
+    "opening active control (board::emsActiveHeatAllowed stays false; the attended switch-over is a separate step)",
+    "a HACS repository for the integration",
+    "editing the bodies of earlier published releases (beyond the automatic organize_releases archive labels)"
+  ],
+  "publication_approval_reply": "Owner, 30 Oct 2026: \"We kunnen wel verder gaan met de volgende beta denk ik ?\", then \"ok schakel agents bij als datsneller gaat\" and \"ja we kunnen deze firmware even afwachten en een plan maken voor volgende release\". Standing approval for publishing and installing (29 Oct 2026): \"je hebt sowieso akkoork je hoeft niet op mij te wachten\". Switch-over decision (30 Oct 2026): \"beta 21 gaan we dat doen als alles goed loopt\"; opening board::emsActiveHeatAllowed still needs a separate explicit go and is not part of this release.",
+  "publication_approval_at_utc": "2026-10-30T22:34:31Z",
+  "installation_approval_reply": "Owner, 30 Oct 2026: \"We kunnen wel verder gaan met de volgende beta denk ik ?\", then \"ok schakel agents bij als datsneller gaat\" and \"ja we kunnen deze firmware even afwachten en een plan maken voor volgende release\". Standing approval for publishing and installing (29 Oct 2026): \"je hebt sowieso akkoork je hoeft niet op mij te wachten\". Switch-over decision (30 Oct 2026): \"beta 21 gaan we dat doen als alles goed loopt\"; opening board::emsActiveHeatAllowed still needs a separate explicit go and is not part of this release."
+}

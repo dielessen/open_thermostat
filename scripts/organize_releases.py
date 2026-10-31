@@ -51,10 +51,24 @@ def ha_version(version):
     return base if version[3] == 4 else base + ('.dev', 'a', 'b', 'rc')[version[3]] + str(version[4])
 
 
-def firmware_heading(version):
+def firmware_short(version):
+    """The firmware version as readers see it: 1.0.0, 1.1.0-beta.1 or (0.1.0 only) beta.19.
+
+    The 0.1.0 test releases keep their published short form; any later
+    pre-release names its version, so 1.1.0-beta.1 never reads as beta.1.
+    """
+    base = f'{version[0]}.{version[1]}.{version[2]}'
     if version[3] == 3:
-        return f'# E32 V2 {version[0]}.{version[1]}.{version[2]}'
-    return f'# E32 V2 {("alpha", "beta", "rc")[version[3]]}{version[4]}'
+        return base
+    stage = f'{("alpha", "beta", "rc")[version[3]]}.{version[4]}'
+    return stage if version[:3] == (0, 1, 0) else base + '-' + stage
+
+
+def firmware_heading(version):
+    """The RELEASE-NOTES.md heading: # E32 V2 1.0.0, # E32 V2 1.1.0-beta.1, or (0.1.0) # E32 V2 beta19."""
+    if version[3] != 3 and version[:3] == (0, 1, 0):
+        return f'# E32 V2 {("alpha", "beta", "rc")[version[3]]}{version[4]}'
+    return '# E32 V2 ' + firmware_short(version)
 
 
 def original_notes(body):
@@ -165,8 +179,7 @@ def user_summary(tag, repository, root=None):
 
 def label(channel, version):
     if channel == 'firmware':
-        return 'E32 firmware', (f'{version[0]}.{version[1]}.{version[2]}' if version[3] == 3
-                                else f'{("alpha", "beta", "rc")[version[3]]}.{version[4]}')
+        return 'E32 firmware', firmware_short(version)
     if channel == 'ha':
         return 'Home Assistant', ha_version(version)
     return 'E32 SDK source package', f'{version[0]}.{version[1]}'

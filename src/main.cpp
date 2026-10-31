@@ -409,12 +409,21 @@ void setup() {
 		// Never print a changed password: only the factory default is shown.
 		Serial.printf("Local setup WiFi password: %s\nWeb sign-in: user admin, password %s\nType setup + Enter over USB to reboot into WiFi-only setup for 15 minutes; password-reset + Enter restores the web password admin.\n",
 			heating::deviceAccess.setupPassword().c_str(),
-			heating::deviceAccess.defaultPassword()?"admin (factory default; change it under System)":
+			heating::deviceAccess.defaultPassword()?"admin (factory default; change it on the Settings page)":
 			heating::deviceAccess.passwordState()==heating::DeviceAccess::PasswordState::stored?"(changed by the owner)":"(stored password unreadable; use password-reset)");
 	}
 #endif
 #ifdef OPENTHERMOSTAT_E32V2
     heating::diagnostics::runtime.begin();
+    // Web log history: 512 records (~120 KB) in PSRAM, allocated once and never
+    // freed. Without PSRAM the 32-record internal ring stays.
+    using LogRecord = heating::diagnostics::Record;
+    constexpr size_t logRecords = heating::diagnostics::SystemLog::RetainedCapacity;
+    if (void* history = heap_caps_malloc(logRecords * sizeof(LogRecord), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)) {
+        auto* records = static_cast<LogRecord*>(history);
+        for (size_t i = 0; i < logRecords; ++i) new (records + i) LogRecord();
+        if (!heating::diagnostics::runtime.log.attach(records, logRecords)) heap_caps_free(history);
+    }
     heating::logger = std::make_shared<heating::diagnostics::BufferedLogger>(
         std::vector<std::shared_ptr<ib::logger::LoggerSinkInterface>>{
             std::make_shared<ib::logger::LoggerSerialSink>(ib::logger::LoggerInterface::LogLevel::TRACE)},
@@ -552,7 +561,8 @@ void loop() {
 	{
 		const uint32_t beat = supervisorBeatS.load(), nowS = monotonicS();
 		heating::update::loop(heating::controller && !heating::controller->boilerTestActive() && !heating::controller->boilerSettingsActive(),
-			beat && nowS - beat <= 15, networkProven);
+			beat && nowS - beat <= 15, networkProven,
+			[] { return !heating::controller || heating::controller->releaseBoilerForRestart(); });
 	}
 	heating::diagnostics::blackBox.loopPhase(heating::diagnostics::LoopPhase::network);
 	// Only while asked: bootPending() reads the OTA state from flash.

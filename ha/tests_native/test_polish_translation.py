@@ -41,7 +41,7 @@ def test_polish_is_translated_not_copied():
     copied = sorted(key for key, text in polish.items() if text == english[key] and text not in SAME_IN_POLISH)
     assert copied == []
     # Boiler field names stay short and distinct, as in English and Dutch (one device carries them all).
-    names = [text for key, text in polish.items() if key.startswith("entity.sensor.field_")]
+    names = [text for key, text in polish.items() if key.startswith("entity.sensor.field_") and key.endswith(".name")]
     assert len(names) == len(set(names)) and max(map(len, names)) <= 45
     # The week-program syntax the parser reads (English or Dutch day names) stays literal.
     assert "mon-fri: 06:30 20.5" in polish["options.step.e32_room.data_description.program"]

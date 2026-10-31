@@ -1,6 +1,6 @@
 # OpenThermostat user guide
 
-For E32 V2 beta.19, optionally with Home Assistant integration 0.4.0b11. If
+For E32 V2 beta.21, optionally with Home Assistant integration 0.4.0b13. If
 you use Home Assistant, install both together. Installing on a new E32, the
 Home Assistant setup, updates and troubleshooting are described step by step
 in the [installation guide](INSTALL.md).
@@ -25,15 +25,18 @@ energy inputs.
 | Rooms: add, rename, remove, active or off | E32: Rooms | Settings → Devices & services → OpenThermostat → Configure → Rooms |
 | Temperature sources per room and their order | E32: Rooms (Bluetooth sensors) | Same room editor (HA entities and the E32's Bluetooth sensors) |
 | Target, temperature without Home Assistant, minimum and maximum | E32: Rooms | Same room editor |
-| Week program per room | E32: Rooms | Same room editor |
-| Lowest and highest flow temperature for the boiler request | E32: Rooms → Boiler flow limits | Configure → Heating and boiler |
+| Week program per room | E32: Rooms (visual planner) | Same room editor, or the Week program view of the OpenThermostat dashboard |
+| Setting device per room (valve, tado, number) | — | Same room editor |
+| Lowest and highest flow temperature for the boiler request | E32: Boiler → Flow temperature limits | Configure → Heating and boiler |
 | Gas meter, gas price, outdoor temperature, boiler power (all optional) | — | Configure → Energy and outdoor temperature |
 | Pairing Bluetooth sensors (address, profile, encryption key) | E32: Sensors | E32: Sensors |
 | Boiler model | E32: Boiler | E32: Boiler |
 | Network, MQTT broker, time and time zone | E32: Settings | E32: Settings |
+| Admin password of the E32 | E32: Settings → Password | E32: Settings → Password |
 | Firmware updates | E32: System → Firmware update | The firmware update entity, or the E32 page |
 | Backup and restore of the settings | E32: Settings → Backup and restore | E32: Settings → Backup and restore |
 | Restart | E32: System → Restart device | E32: System → Restart device |
+| Logs, diagnostics console and syslog | E32: System → System log | E32: System → System log |
 
 The room plan is stored on the E32, and the E32 runs it. With Home Assistant,
 the HA room editor is the main place to edit it; it reads the plan from the
@@ -45,7 +48,7 @@ source.
 ## First start (no Home Assistant needed)
 
 A new E32 first needs the OpenThermostat firmware over USB; see
-[installing the firmware](INSTALL.md#2-install-the-firmware-on-a-new-e32-usb).
+[installing the firmware](INSTALL.md#2-install-the-firmware-on-the-e32-first-time-over-usb).
 
 ### 1. Connect the E32 to your Wi-Fi
 
@@ -60,8 +63,8 @@ A new E32 first needs the OpenThermostat firmware over USB; see
    for example `http://openthermostat-a1b2c3.local/` where your network
    supports `.local` names.
 5. Sign in with user `admin` and password `admin`. Then choose your own
-   password (8–64 characters) under **System → About**; until you do, the
-   Overview reminds you. Home Assistant asks for this password when you
+   password (8–64 characters) under **Settings → Password**; until you do,
+   the Overview reminds you. Home Assistant asks for this password when you
    connect it. A forgotten password can be reset to `admin` with the
    `password-reset` command over USB.
 
@@ -79,16 +82,23 @@ Assistant.
 
 ### 3. Choose your boiler
 
-A newly installed E32 does not listen to the boiler yet. Under **System →
-Network → Advanced settings → Hardware services**, tick **EMS bus enabled**,
+A newly installed E32 does not listen to the boiler yet. Under **Settings →
+Advanced settings → Hardware services**, tick **EMS bus enabled**,
 save and let the E32 restart. This only lets the E32 receive boiler data; it
 does not send heat requests. Connect the E32 to the boiler's EMS bus as
-described in the [installation guide](INSTALL.md#5-connect-the-e32-to-the-boiler)
+described in the [installation guide](INSTALL.md#6-connect-the-e32-to-the-boiler)
 (switch the boiler off first).
 
-Then, under **Boiler**, choose your boiler brand and model and check that
-boiler values arrive (temperatures, status). Only EMS Classic boilers are
-supported in this beta.
+Then open **Boiler** and check that boiler values arrive (temperatures,
+status). Under **Boiler model**, choose your boiler and **Save boiler
+selection**; this only changes the name and picture shown. Only EMS Classic
+boilers are supported in this beta; EMS+ is planned for version 1.1.
+
+Not every boiler reports every value. **Boiler → Boiler profile** shows which
+values your boiler has (**Values available**), which it does not have (**Not
+fitted on this boiler**) and which have not come in yet (**Not reported
+(yet)**). Home Assistant only creates entities for values the boiler has;
+**Show anyway** reveals a value the boiler marks as not fitted.
 
 ### 4. Pair a Bluetooth thermometer
 
@@ -128,12 +138,12 @@ Assistant — you edit rooms here." on the **Rooms** page.
 5. Turn on **Use a week program** and add switch points per day (time and
    temperature, up to six per day). Each temperature holds until the next
    switch point.
-6. Check **Boiler flow limits** (default 30–60 °C; the maximum can be set up
-   to 80 °C). Floor heating fed directly without a mixing valve usually needs
-   at most 45–50 °C. The page
-   shows your boiler's own maximum heating temperature; the E32 never asks for
-   more than that.
-7. Choose **Save rooms**.
+6. Choose **Save rooms**.
+7. Then check the **Flow temperature limits** on the **Boiler** page and
+   choose **Save limits** after a change (default 30–60 °C; the maximum can
+   be set up to 80 °C). Floor heating fed directly without a mixing valve
+   usually needs at most 45–50 °C. The page shows your boiler's own maximum
+   heating temperature; the E32 never asks for more than that.
 
 The E32 stores large week programs in a compact form, so 8 rooms with four
 switch points a day fit. A plan that is still too large is refused with a
@@ -148,7 +158,7 @@ and the calculated boiler request. The status reads "Measured". The
 
 ## Adding Home Assistant
 
-The [installation guide](INSTALL.md#8-home-assistant-optional) describes
+The [installation guide](INSTALL.md#8-mqtt-let-the-e32-talk-to-home-assistant) describes
 each step in detail. In short:
 
 You need Home Assistant 2026.10.0 or newer (tested with 2026.10.2 to
@@ -174,7 +184,7 @@ Installed with an earlier integration version that needed a starter room in
 Home Assistant? That room is no longer used. Remove it with **Settings →
 System → Repairs → "Old Home Assistant room no longer used"** (or Configure →
 Advanced and diagnostics → Remove old Home Assistant rooms); see
-[the installation guide](INSTALL.md#9-updates).
+[the installation guide](INSTALL.md#remove-an-old-home-assistant-room).
 
 ### A room with a Home Assistant thermostat and a Bluetooth fallback
 
@@ -190,19 +200,25 @@ and the paired Bluetooth thermometer as fallback.
    - **Bluetooth sensors on the E32:** the thermometer.
    - **Use the Bluetooth sensors first:** off, so the HA source leads and the
      Bluetooth sensor is the fallback.
-   - **Target temperature from Home Assistant:** optional. Choose your
-     thermostat to make the E32 follow its target. Leave it empty to follow the
-     week program.
+   - **Setting device (optional):** your thermostat, if you want to turn the
+     room up or down on it. Home Assistant then sets it to the week program's
+     temperature at every switch point; see
+     [Week program and setting device](#week-program-and-setting-device).
+     Leave it empty to use the room's own thermostat in Home Assistant.
    - **Temperature without Home Assistant:** for example 19 °C.
-   - **Week program on the E32:** one line per group of days, for example
+   - **Week program on the E32:** the form starts with the "Workdays and
+     weekend" template. Keep it and adjust it in the visual planner (the
+     **Week program** view of the OpenThermostat dashboard), or type one line
+     per group of days, for example
 
      ```text
-     mon-fri: 06:30 20.5, 22:30 18
-     sat-sun: 08:00 20.5, 23:00 18
+     mon-fri: 06:30 20.5; 22:30 18
+     sat-sun: 08:00 20.5; 23:00 18
      ```
 
      A line without days applies to every day. Up to six switch points per day.
-   - **Temperature limits:** the lowest and highest target this room may get.
+   - **Temperature limits** (folded section): the lowest and highest target
+     this room may get.
 3. Save. Home Assistant forwards the selected entities to the E32 on every
    change and every five minutes.
 
@@ -259,8 +275,9 @@ everything else.
   E32 waits for a valid clock before it applies a stored change; until then
   the room follows its plan. A change made while the E32 has no valid clock
   lasts its duration and is not kept across a restart.
-- **Window and door sensors** (Home Assistant: Configure → **Comfort** →
-  Window and door sensors per room): while any sensor of a room is open for
+- **Window and door contacts** (Home Assistant: in the room form under
+  Configure → **Rooms**, or Configure → **Comfort** → Window and door contacts
+  per room): while any contact of a room is open for
   longer than the delay (120 s by default), the room pauses and only heats
   below 8 °C. When all are closed it resumes at once. The room card and the
   thermostat show the pause and its reason.
@@ -286,7 +303,7 @@ and a room with only a fixed target changes that fixed target in the plan.
 Every room runs its own week program on the E32, also without Home Assistant.
 A new room starts with "Workdays and weekend" (about 20 °C, 18 °C during the
 day on workdays, 16 °C at night); change it in the week planner. If rooms have
-no program yet, Settings → Repairs offers to give them one.
+no program yet, Settings → System → Repairs offers to give them one.
 
 Optionally each room has a **setting device** (the room editor's "Setting
 device" field): a thermostat or radiator valve in Home Assistant (for example a
@@ -303,6 +320,12 @@ the room is off or paused for an open window, and at most once a minute.
 Without Home Assistant the E32 keeps running the program; changes on the
 device are not seen until Home Assistant is back, and then the program's
 temperature is shown on the device again.
+
+A setting device is a real device, also in shadow mode: a radiator valve then
+follows the week program, and a thermostat that controls your boiler (such as
+a tado) gets the program's temperature, so the program decides through it
+when the boiler heats. Leave the field empty if you only want to watch
+first.
 
 Bluetooth window sensors (for example Shelly BLU Door/Window) paired on the
 E32 itself are not supported yet; connect them through Home Assistant.
@@ -396,7 +419,8 @@ sensors, the flow options, the boiler model and the page language.
   setup or Ethernet) and sign in, then choose the file and **Check backup**.
   The E32 checks the whole file and shows what will change, what it skips and
   what you need to enter again. Nothing is saved until you choose **Restore
-  these settings**. If saving one part fails, the E32 puts the earlier
+  these settings**. A backup without a passphrase holds no MQTT password, and
+  MQTT stays off until you enter it again under Settings → MQTT. If saving one part fails, the E32 puts the earlier
   settings back. When network or Bluetooth settings change, the E32 restarts
   about 10 seconds later; sign in again afterwards.
 - **What a restore never does.** It does not change the Wi-Fi network or the
@@ -405,9 +429,60 @@ sensors, the flow options, the boiler model and the page language.
   restores the rooms in shadow mode, so it never starts active boiler control. A restore is refused while the E32
   controls the boiler or a boiler test is running.
 
+## Logs and the diagnostics console
+
+System → **System log** shows what the E32 is doing. It keeps the last 512 log
+lines in its external memory (PSRAM); they are gone after a restart. Filter by
+source (ESP or EMS), level or text, pause the view or download it.
+
+The **diagnostics console** on the same page answers a fixed list of
+read-only commands. Type `help` for the list:
+
+| Command | Shows |
+| --- | --- |
+| `status` | All sections below at once |
+| `version` | Firmware version and build |
+| `memory` | Internal memory and PSRAM |
+| `tasks` | Tasks and their lowest free stack |
+| `nvs` | How full the settings storage is |
+| `mqtt` | MQTT connection and its counters |
+| `sessions` | Signed-in web sessions (age and idle time, never their keys) |
+| `restarts` | The last restart reason and the previous run |
+| `bluetooth` | The Bluetooth sensors |
+| `rooms` | Rooms, targets and the heating request |
+| `boiler-profile` | Which boiler values this boiler has |
+| `log 50` | The last 50 log lines (1 to 100) |
+
+The console never changes a setting and cannot run anything else. Two
+actions sit below it, each with a confirmation: **End idle web sessions** signs out
+the browsers and Home Assistant sessions that have not been used for 2
+minutes (yours stays), and **Restart device**. Neither runs during a boiler
+test, a boiler settings write or a firmware update.
+
+The same data is available to scripts with a signed-in session:
+`GET /status/diagnostics` (all sections) or
+`GET /status/diagnostics?section=memory,mqtt` (sections: `memory`, `tasks`,
+`nvs`, `mqtt`, `sessions`, `restarts`, `log`), and `GET /status/logs?tail=50`.
+
+### Keeping logs after a restart: syslog
+
+The E32 can also send its log to a syslog server on your network (RFC 5424
+over UDP). It is off by default. Under **Logging settings** on the System log
+page, tick *Enable syslog*, enter the server's IPv4 address and UDP port
+(usually 514), and choose the level. Messages that might hold a password,
+key or other private content are left out. The E32 sends at most ten
+messages a second and never waits for the server, so a slow or missing server
+cannot hold it up; dropped messages are counted on the page.
+
+To receive the log next to Home Assistant, run a syslog server on any machine
+on your network: for example a syslog server app (add-on) in Home Assistant
+OS, rsyslog or syslog-ng on a Linux machine or NAS, or the log centre of your
+NAS. Give it a fixed IPv4 address and enter that address on the E32. Syslog
+over UDP is not encrypted and not acknowledged; keep it on your home network.
+
 ## The attended switch-over (not in this beta)
 
-Active control is built into beta.19 but locked in the firmware; the Active
+Active control is built into the firmware but locked there; the Active
 control section on the Rooms page says "Active control is not enabled in this
 firmware." It is opened only in a later release, with someone present at the
 boiler. See [the switch-over procedure](SWITCHOVER.md). It will involve:

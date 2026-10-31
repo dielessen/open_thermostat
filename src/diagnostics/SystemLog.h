@@ -86,7 +86,25 @@ inline bool sensitive(std::string_view text) {
 
 class SystemLog {
 public:
-    static constexpr size_t Capacity=32, QueueCapacity=8, PageSize=8;
+    // Capacity: the bounded bootstrap ring in internal RAM. attach() moves the
+    // web history once to a larger buffer (RetainedCapacity records in PSRAM on
+    // the E32); without one the bootstrap ring stays. PageSize bounds a poll,
+    // TailMaximum a "last N records" read.
+    static constexpr size_t Capacity=32, QueueCapacity=8, PageSize=24, RetainedCapacity=512, TailMaximum=100;
+    SystemLog()=default;
+    SystemLog(const SystemLog&)=delete;
+    SystemLog& operator=(const SystemLog&)=delete;
+    // One-time move to caller-owned storage that outlives the log. Keeps the
+    // retained records in order; refuses a smaller or second buffer.
+    bool attach(Record* storage,size_t capacity) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if(!storage||capacity<=capacity_||ring_!=bootstrap_.data())return false;
+        for(size_t i=0;i<count_;++i)storage[i]=ring_[(start_+i)%capacity_];
+        ring_=storage;capacity_=capacity;start_=0;
+        return true;
+    }
+    size_t capacity() const { std::lock_guard<std::mutex> lock(mutex_); return capacity_; }
+    bool attached() const { std::lock_guard<std::mutex> lock(mutex_); return ring_!=bootstrap_.data(); }
     void configure(const Settings& settings) {
         std::lock_guard<std::mutex> lock(mutex_);
         settings_=settings;
@@ -140,8 +158,8 @@ public:
         if(truncated || text.size()>=record.text.size()) ++stats_.truncated;
         copy(record.feature,feature);copy(record.text,text);
         if(web) {
-            if(count_==Capacity) { start_=(start_+1)%Capacity;--count_;++stats_.overwritten; }
-            records_[(start_+count_++)%Capacity]=record;
+            if(count_==capacity_) { start_=(start_+1)%capacity_;--count_;++stats_.overwritten; }
+            ring_[(start_+count_++)%capacity_]=record;
         }
         if(remote) {
             if(!connected_)++stats_.syslogDropped;
@@ -149,10 +167,20 @@ public:
             else queue_[(head_+queued_++)%QueueCapacity]=record;
         }
     }
+    // Sequences rise along the ring, so the first record after a cursor is a
+    // binary search: a 512-record history stays cheap under the log mutex.
     bool next(uint64_t after,Record& out) const {
         std::lock_guard<std::mutex> lock(mutex_);
-        for(size_t i=0;i<count_;++i) {const auto& r=records_[(start_+i)%Capacity];if(r.sequence>after){out=r;return true;}}
-        return false;
+        size_t low=0,high=count_;
+        while(low<high){const size_t mid=low+(high-low)/2;if(ring_[(start_+mid)%capacity_].sequence>after)high=mid;else low=mid+1;}
+        if(low==count_)return false;
+        out=ring_[(start_+low)%capacity_];return true;
+    }
+    // The cursor before the last n retained records (0: from the oldest).
+    uint64_t tailCursor(size_t n) const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if(!n||n>=count_)return count_&&ring_[start_].sequence?ring_[start_].sequence-1:0;
+        return ring_[(start_+count_-n)%capacity_].sequence-1;
     }
     bool pop(Record& out,Settings& settings) {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -166,7 +194,7 @@ public:
     void clear() {std::lock_guard<std::mutex> lock(mutex_);start_=count_=0;}
     Stats stats() const {
         std::lock_guard<std::mutex> lock(mutex_);auto s=stats_;s.retained=count_;s.pending=queued_;
-        s.oldest=count_?records_[start_].sequence:0;s.contention=contention_.load();return s;
+        s.oldest=count_?ring_[start_].sequence:0;s.contention=contention_.load();return s;
     }
 private:
     static constexpr uint32_t syslogEnabledMask=1u<<16;
@@ -175,7 +203,9 @@ private:
     mutable std::mutex mutex_;
     Settings settings_;
     bool connected_=true; // Standalone core tests inject availability; firmware begins offline.
-    std::array<Record,Capacity> records_{};
+    std::array<Record,Capacity> bootstrap_{};
+    Record* ring_=bootstrap_.data();
+    size_t capacity_=Capacity;
     std::array<Record,QueueCapacity> queue_{};
     size_t start_=0,count_=0,head_=0,queued_=0;
     Stats stats_;

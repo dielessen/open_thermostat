@@ -19,6 +19,7 @@
     <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-learned" data-flow-option="apply_learned" data-hint="Off: the E32 only advises. On: when warming up it uses the lowest flow that still warms in time, and it starts early enough for the next program step.">
       <label class="form-check-label" for="heating-flow-learned" data-i18n="Use learned flow and optimum start">Use learned flow and optimum start</label></div>
     <p class="pd-help" role="status" aria-live="polite" data-flow-message></p>
+    <p class="pd-help"><span data-i18n="Lowest and highest flow temperature for all rooms:">Lowest and highest flow temperature for all rooms:</span> <a href="#boiler-limits" data-page="boiler_limits"><span data-i18n="Boiler → Flow temperature limits">Boiler → Flow temperature limits</span></a></p>
     <details class="ot-advanced hp-more"><summary data-i18n="Status and learning">Status and learning</summary>
     <dl class="pd-detail-grid" data-flow-status></dl>
     <p class="pd-help" data-flow-compare hidden></p>
@@ -44,17 +45,9 @@
     </p>
     <p class="pd-help" role="status" aria-live="polite" data-heating-active-message></p>
   </section>
-  <details class="ot-advanced">
-    <summary data-i18n="Boiler flow limits">Boiler flow limits</summary>
-    <div class="hp-grid">
-    <label><span data-i18n="Minimum flow (°C)">Minimum flow (°C)</span><input id="heating-min-flow" class="form-control" type="number" min="20" max="79" step="1" data-hint="The lowest water temperature the E32 asks of the boiler when heat is needed."></label>
-    <label><span data-i18n="Maximum flow (°C)">Maximum flow (°C)</span><input id="heating-max-flow" class="form-control" type="number" min="21" max="80" step="1" data-hint="The highest water temperature the E32 ever asks of the boiler."></label>
-    </div>
-    <p class="pd-help" data-heating-boiler-max hidden></p>
-    <p class="pd-help" data-i18n="Radiators often need 60–75 °C on cold days. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.">Radiators often need 60–75 °C on cold days. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.</p>
-  </details>
-  <p class="alert alert-warning" data-heating-flow-warn role="status" hidden><span data-i18n="A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.">A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.</span></p>
-  <p class="alert alert-warning" data-heating-boiler-warn role="status" hidden></p>
+  <!-- The flow limits for all rooms are on the Boiler page (#boiler-limits); a floor-heating room with a high maximum is flagged here. -->
+  <div class="alert alert-warning ot-actions" data-heating-flow-warn role="status" hidden><span><span data-i18n="A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.">A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.</span> <span data-heating-flow-max></span></span>
+    <a class="btn btn-outline-primary" href="#boiler-limits" data-page="boiler_limits"><span data-i18n="Change the flow limits">Change the flow limits</span></a></div>
   <details class="ot-advanced">
     <summary data-i18n="Where do I set what?">Where do I set what?</summary>
     <ol class="hp-flow">
@@ -85,14 +78,14 @@
   const root = document.getElementById('heating-plan');
   const roomsBox = root.querySelector('[data-heating-rooms]'), requestBox = root.querySelector('[data-heating-request]');
   const shadowBox = root.querySelector('[data-heating-shadow-body]'), errorBox = root.querySelector('[data-heating-error]');
-  const message = root.querySelector('[data-heating-message]'), minFlow = root.querySelector('#heating-min-flow'), maxFlow = root.querySelector('#heating-max-flow');
+  const message = root.querySelector('[data-heating-message]');
   const dirtyChip = root.querySelector('[data-heating-dirty]'), addRow = root.querySelector('[data-heating-add-row]'), modeText = root.querySelector('[data-heating-mode-text]');
-  const flowWarn = root.querySelector('[data-heating-flow-warn]'), boilerMaxText = root.querySelector('[data-heating-boiler-max]'), boilerWarn = root.querySelector('[data-heating-boiler-warn]');
+  const flowWarn = root.querySelector('[data-heating-flow-warn]'), flowMax = root.querySelector('[data-heating-flow-max]');
   // Home Assistant is the main editor once it is linked: read-only until the owner unlocks editing for this session.
   // An E32 that never had Home Assistant input starts unlocked: its owner edits rooms here.
   const lockBox = root.querySelector('[data-heating-lock]'), lockText = root.querySelector('[data-heating-lock-text]'), unlock = root.querySelector('[data-heating-unlock]');
   let locked = true; try { locked = sessionStorage.getItem('ot-rooms-edit') !== '1'; } catch (_) {}
-  let neverHa = false, lockDecided = false, bleSensors = [], bleKey = '', boilerMax = null;
+  let neverHa = false, lockDecided = false, bleSensors = [], bleKey = '';
   const statusText = {ok:"Measured", fallback:"Fallback source", stale:"Last value (source lost)", lost:"No measurement: no heat request", inactive:"Inactive"};
   const reasonText = {heating:"Heating", minimum_on:"Minimum burner time", minimum_off:"Minimum pause", satisfied:"Warm enough", no_demand:"No room can ask for heat", idle:"No heat needed", invalid_parameters:"Invalid limits"};
   const sourceText = {ha:"Target temperature from Home Assistant", schedule:"Target temperature from the week program", fallback:"Target temperature: fixed value without Home Assistant"};
@@ -149,16 +142,12 @@
   function applyLock() {
     root.classList.toggle('hp-locked', locked); lockBox.hidden = !locked && !neverHa; unlock.hidden = !locked;
     for (const box of root.querySelectorAll('.hp-body')) box.disabled = locked;
-    minFlow.disabled = maxFlow.disabled = locked;
   }
-  // Floor heating fed directly should not get very hot water; the boiler's own setting is the real ceiling.
+  // Floor heating fed directly should not get very hot water. The limits themselves are on the Boiler page.
   function checkFlow() {
-    const max = Number(maxFlow.value);
+    const max = plan ? plan.maximum_flow_c : 0;
     flowWarn.hidden = !(max > 50 && [...roomsBox.querySelectorAll('[data-heating-emitter]')].some(s => s.value === 'floor'));
-    boilerMaxText.hidden = boilerMax === null;
-    if (boilerMax !== null) boilerMaxText.textContent = uiText("Your boiler allows at most {max} °C (set on the boiler); the E32 never asks for more. A lower limit here is useful for floor heating.").replace('{max}', boilerMax);
-    boilerWarn.hidden = !(boilerMax !== null && max > boilerMax);
-    if (!boilerWarn.hidden) boilerWarn.textContent = uiText("The maximum here is above your boiler's own maximum of {max} °C. The boiler stays at its own setting.").replace('{max}', boilerMax);
+    flowMax.textContent = uiText("The maximum flow is now {max} °C.").replace('{max}', max);
   }
   // link: {fresh, ms} since Home Assistant last sent input; undefined when unknown.
   // Preferred source: /status/heating "ha"; older firmware: /status "control" (HA snapshot age).
@@ -182,7 +171,7 @@
     applyLock();
   });
   applyLock();
-  root.addEventListener('input', event => { if (event.target.closest('[data-heating-rooms], details')) setDirty(true); checkFlow(); });
+  root.addEventListener('input', event => { if (event.target.closest('[data-heating-rooms]')) setDirty(true); checkFlow(); });
   roomsBox.addEventListener('click', event => { if (event.target.closest('button')) { setDirty(true); setTimeout(checkFlow); } });
   // Paired Bluetooth sensors with their latest reading; a saved ID that is no longer paired stays selectable.
   function fillPick(pick) {
@@ -272,6 +261,15 @@
       pair.append(uiText("No Bluetooth sensors paired yet.") + ' ', el('a', uiText("Pair a sensor first → Sensors"), {href:'#sensors', 'data-page':'bluetooth'}));
       body.append(pair);
     }
+    // How a Bluetooth thermometer gets into the list above; open while none is paired.
+    const bleHelp = el('details', null, {class:'ot-advanced', 'data-heating-ble-help':''}), pairSteps = el('p');
+    bleHelp.open = !bleSensors.length;
+    pairSteps.append(uiText("Pair it on the Sensors page: press Search nearby, click your sensor, check its device profile and save. After the E32 restarts, the sensor is listed here.") + ' ',
+      el('a', uiText("Open Sensors"), {href:'#sensors', 'data-page':'bluetooth'}));
+    bleHelp.append(el('summary', uiText("How do I add a Bluetooth sensor?")), pairSteps,
+      el('p', uiText("Supported: thermometers with the pvvx firmware (ATC_MiThermometer, often named ATC_…, for example Xiaomi LYWSD03MMC), Shelly BLU H&T Display and Xiaomi Monitor 3. Encrypted sensors need their bindkey.")),
+      el('p', uiText("Not listed? Keep the sensor within a few metres of the E32 and check its battery. With the pvvx firmware, set the advertising format to BTHome; the original Xiaomi and atc1441 formats are not read. Or use a Home Assistant entity as the source.")));
+    body.append(bleHelp);
     const more = el('button', uiText("Add source"), {type:'button', class:'btn btn-outline-primary mb-2'});
     more.addEventListener('click', () => sources.querySelectorAll('[data-heating-source]').length < 4 && addSource({type:bleSensors.length || neverHa ? 'ble' : 'ha', id:''}));
     body.append(more, el('h3', uiText("Target temperature and limits")));
@@ -382,7 +380,6 @@
       empty.append(el('strong', uiText("No rooms yet")), uiText("Start with the living room: give it a name and choose its temperature sensor."), el('br'), first);
       roomsBox.append(empty);
     }
-    minFlow.value = plan.minimum_flow_c; maxFlow.value = plan.maximum_flow_c;
     setDirty(false); applyLock(); checkFlow();
   }
   // Mode texts follow the actual plan: shadow until the attended switch-over, then active control.
@@ -484,15 +481,8 @@
       return body;
     } finally { clearTimeout(deadline); }
   }
-  // The boiler's own maximum CH temperature (0x16), from the shared boiler snapshot; read until known once.
-  const boilerRead = new AbortController();
-  if (window.BoilerData) BoilerData.subscribe(data => {
-    const v = data?.fields?.configured_heating_temperature;
-    if (!(v && v.state === 'valid' && Number.isFinite(v.value) && v.value >= 20 && v.value <= 90)) return;
-    boilerMax = Math.round(v.value); checkFlow(); setTimeout(() => boilerRead.abort());
-  }, {signal:boilerRead.signal});
   async function refreshStatus() {
-    if (!root.isConnected) { clearInterval(timer); boilerRead.abort(); return; }
+    if (!root.isConnected) { clearInterval(timer); return; }
     if (locked) readControl();
     try { renderRequest(await json('/status/heating')); } catch (_) { renderRequest(null); }
   }
@@ -544,14 +534,13 @@
         let id = r.id, n = 2; while (ids.has(id)) id = r.id.slice(0, 29) + '_' + n++;
         r.id = id; ids.add(id);
       }
-      const mn = Number(minFlow.value), mx = Number(maxFlow.value);
-      if (!(Number.isInteger(mn) && Number.isInteger(mx) && mn >= 20 && mx <= 80 && mn < mx)) throw Object.assign(Error('flow'), {text: uiText("Keep the minimum flow below the maximum flow, between 20 and 80 °C."), node: minFlow});
     } catch (error) {
       message.textContent = error.text;
       if (error.node) { error.node.closest('details') && (error.node.closest('details').open = true); error.node.focus?.(); }
       return;
     }
-    const next = {schema:1, revision:plan.revision, mode:plan.mode, minimum_flow_c:Number(minFlow.value), maximum_flow_c:Number(maxFlow.value), rooms};
+    // The flow limits are set on the Boiler page; the room save keeps the plan's values.
+    const next = {schema:1, revision:plan.revision, mode:plan.mode, minimum_flow_c:plan.minimum_flow_c, maximum_flow_c:plan.maximum_flow_c, rooms};
     message.textContent = uiText("Saving…");
     try {
       plan = await json('/config/heating', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(next)});

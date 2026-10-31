@@ -92,6 +92,19 @@ public:
     // The stored confirmation at boot: like confirm(), but it takes over only
     // after restoredListenMs of healthy bus reception without a foreign 0x1A.
     void restore(uint64_t now) { confirm(now, true); restored_ = true; }
+    // A planned restart (update, settings, controlled restart) is coming: stop
+    // at once with the zero window and never take over again this boot. The
+    // confirmation stays, so the next boot resumes after its restore listening.
+    // Until the restart it keeps asking for zero (stopping). A guard that does
+    // not claim the boiler (shadow mode, the firmware gate) only remembers it.
+    void withdraw(uint64_t now) {
+        withdrawn_ = true;
+        if (owning()) enter(State::stopping, now);
+    }
+    bool withdrawn() const { return withdrawn_; }
+    // No positive request can still be held by the boiler: a zero was delivered
+    // after the last positive one, or none was ever sent. A planned restart waits for this.
+    bool released() const { return !holdsPositive_; }
 
     Command step(uint64_t now, const Inputs& in) {
         if (in.foreign && in.foreign->address != serviceAddress && in.foreign->address != boilerAddress) foreign_ = in.foreign;
@@ -101,8 +114,8 @@ public:
         const bool wanted = in.mode == RoomPlan::Mode::active && p_.valid();
         if (!wanted) { confirmedAt_.reset(); blocked_ = false; }
         if (confirmedAt_ && foreign_ && foreign_->receivedAtMs > *confirmedAt_) { confirmedAt_.reset(); blocked_ = true; }
-        if (owning() && !confirmedAt_) enter(State::stopping, now);
-        if (state_ == State::stopping && elapsed(now, since_) >= p_.stopWindowMs && !holdsPositive_) enter(State::shadow, now);
+        if (owning() && (!confirmedAt_ || withdrawn_)) enter(State::stopping, now);
+        if (state_ == State::stopping && !withdrawn_ && elapsed(now, since_) >= p_.stopWindowMs && !holdsPositive_) enter(State::shadow, now);
         if (state_ != State::stopping) {
             if (!wanted) state_ = State::shadow;
             else if (blocked_) state_ = State::blockedForeignController;
@@ -110,7 +123,7 @@ public:
             else if (!owning()) {
                 if (state_ != State::arming) enter(State::arming, now);
                 const bool inputsFresh = in.rooms.fresh == in.rooms.active;
-                if (in.uptimeMs >= p_.bootHoldoffMs && in.routeReady && (!restored_ || listenedMs(now) >= p_.restoredListenMs)
+                if (!withdrawn_ && in.uptimeMs >= p_.bootHoldoffMs && in.routeReady && (!restored_ || listenedMs(now) >= p_.restoredListenMs)
                     && (inputsFresh || elapsed(now, since_) >= p_.lostAfterMs)) { enter(State::active, now); restored_ = false; }
             }
             if (owning()) state_ = in.rooms.active && in.rooms.lost == in.rooms.active ? State::stoppedMeasurementLost : State::active;
@@ -245,6 +258,7 @@ private:
     bool phaseSent_ = false, everSent_ = false, pending_ = false, frost_ = false, zeroWindow_ = false, responded_ = false;
     bool blocked_ = false; // a foreign request after the confirmation: confirm again
     bool restored_ = false; // confirmation from NVS: listen restoredListenMs before owning
+    bool withdrawn_ = false; // a planned restart is coming: stopping, no new takeover this boot
     std::optional<uint64_t> heardAt_; uint64_t listenSince_ = 0; // continuous boiler reception
     bool holdsPositive_ = false; // a positive request was sent and no zero delivered since
     std::optional<uint64_t> heatSince_;

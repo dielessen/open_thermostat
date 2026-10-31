@@ -7,13 +7,35 @@ on:
   pull_request:
 
 jobs:
-  browser-regressions:
+  # A tag push reuses the test jobs of the green branch run of the exact same
+  # commit (scripts/ci_reuse.py): only the gates, the source reproduction, the
+  # E32 build, packaging and publication run again. Every other run, and a tag
+  # without such a branch run, runs every job.
+  reuse:
     runs-on: ubuntu-latest
-    # Dependency installation previously consumed most of the 15-minute job.
-    # Keep a separate 15-minute limit for the actual browser scenarios below.
-    timeout-minutes: 45
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      reuse: ${{ steps.lookup.outputs.reuse }}
+      run_id: ${{ steps.lookup.outputs.reuse_run_id }}
+      build_matrix: ${{ steps.lookup.outputs.build_matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - name: Look for the green branch run of this exact commit
+        id: lookup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/ci_reuse.py --repository "$GITHUB_REPOSITORY" --sha "$GITHUB_SHA" --ref "$GITHUB_REF" --event "$GITHUB_EVENT_NAME" --run-id "$GITHUB_RUN_ID"
+
+  # Fast policy and release-metadata checks; they run on every run, also when a
+  # tag reuses the tests, because publication relies on them.
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
       - name: Validate mandatory E32 update acceptance policy
         run: python3 scripts/verify_e32_update_gate.py
       - name: Block successor E32 publication without accepted predecessor
@@ -37,78 +59,82 @@ jobs:
           python3 test/static_assets/run.py
       - name: Test release metadata and installed updater size compatibility
         run: python3 -m unittest discover -s scripts -p test_organize_releases.py -v
-      - uses: actions/setup-node@v4
+      - name: Test CI test reuse and the browser test list
+        run: |
+          python3 -m unittest discover -s scripts -p test_ci_reuse.py -v
+          python3 -m unittest discover -s scripts -p test_browser_suite.py -v
+      - name: Test the switch-over monitor and the shadow exit criteria (no device)
+        run: python3 -I -m unittest discover -s tools/switchover -p "test_*.py" -v
+
+  # Compiles every hand-written native harness and HA interop runner within a
+  # few minutes, so a stale test stub fails here and not after the native build.
+  harnesses:
+    needs: reuse
+    if: ${{ needs.reuse.outputs.reuse != 'true' && !startsWith(github.ref, 'refs/tags/ha-v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+          key: ${{ runner.os }}-pio-native-${{ hashFiles('platformio.ini', 'boards/**') }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Install pinned native dependencies
+        run: |
+          pip install platformio==6.2.0 intelhex==2.3.0
+          pio pkg install -e native
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libmbedtls-dev
+      - name: Build every native harness (compile and link, not run)
+        run: bash test/native_harnesses.sh build
+      - name: Build the HA interop runners
+        run: bash test/interop/prepare_runners.sh
+
+  browser:
+    name: browser (${{ matrix.shard }}/4)
+    needs: reuse
+    if: ${{ needs.reuse.outputs.reuse != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '24'
+          package-manager-cache: false
       - name: Test original Zigbee report producers (isolated APIs)
+        if: matrix.shard == 1
         run: node --test test/zigbee2mqtt/*.test.cjs
+      - name: Test page modules without a browser
+        if: matrix.shard == 1
+        run: node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs test/boiler-data.test.cjs test/boiler-trial-result.test.cjs test/time-zone-picker.test.cjs test/week-editor.test.cjs
       - name: Install pinned browser test dependency
         run: |
           npm install --no-save --package-lock=false playwright-core@1.63.0
           npx playwright-core install --with-deps chromium
       - name: Exercise shipped setup and room pages (simulated HTTP)
-        timeout-minutes: 30 # about 15 min since beta.19 (882 s on 30 Oct 2026)
-        run: |
-          # A failing page test and its last output lines go into a public
-          # annotation, because the job log itself needs a login.
-          log="${RUNNER_TEMP:-/tmp}/browser-test.log"
-          browser(){
-            if node "$1" >"$log" 2>&1; then return; fi
-            cat "$log"
-            echo "::error title=Browser regression failed: $1 on ${ImageOS:-unknown} ${ImageVersion:-}::$(tail -c 3000 "$log" | awk '{gsub(/%/,"%25");gsub(/\r/,"");printf "%s%%0A",$0}')"
-            exit 1
-          }
-          browser test/auth-body-browser.cjs
-          browser test/onboarding/browser.cjs
-          browser test/onboarding/body-browser.cjs
-          browser test/onboarding/network-browser.cjs
-          browser test/rooms/browser.cjs
-          browser test/updates/browser.cjs
-          browser test/dashboard-browser.cjs
-          browser test/dashboard-room-context-browser.cjs
-          browser test/e32-comfort-browser.cjs
-          browser test/history-chart-browser.cjs
-          browser test/boiler-display-browser.cjs
-          browser test/heating-browser.cjs
-          browser test/heating-flow-browser.cjs
-          browser test/ems-devices-browser.cjs
-          browser test/boiler-settings-browser.cjs
-          browser test/bluetooth-browser.cjs
-          browser test/bluetooth-lifecycle-browser.cjs
-          browser test/navigation-browser.cjs
-          browser test/about-password-browser.cjs
-          browser test/page-loading-browser.cjs
-          browser test/system-log-browser.cjs
-          browser test/system-log-lifecycle-browser.cjs
-          browser test/debug-settings-browser.cjs
-          browser test/config-backup-browser.cjs
-          browser test/ui-language-browser.cjs
-          browser test/boiler-test-browser.cjs
-          browser test/boiler-profile-browser.cjs
-          browser test/boiler-test-control-browser.cjs
-          browser test/boiler-trial-guidance-browser.cjs
-          browser test/boiler-configuration-read-browser.cjs
-          browser test/boiler-test-confirm-browser.cjs
-          browser test/ha-device-metadata-browser.cjs
-          browser test/ha-device-power-browser.cjs
-          browser test/ha-tv02-mode-browser.cjs
-          browser test/ha-room-program-browser.cjs
-          browser test/ha-room-contacts-browser.cjs
-          browser test/ha-manual-target-browser.cjs
-          browser test/ha-room-comfort-browser.cjs
-          browser test/ha-room-status-ownership-browser.cjs
-          browser test/ha-room-vacation-browser.cjs
-          browser test/ha-planner-touch-browser.cjs
-          browser test/week-editor-browser.cjs
-          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs test/boiler-data.test.cjs test/boiler-trial-result.test.cjs test/time-zone-picker.test.cjs test/week-editor.test.cjs
+        # The shards of test/browser-tests.txt take about 4 minutes each (15 in one job before beta.21).
+        timeout-minutes: 15
+        run: bash test/run-browser-tests.sh --shard "${{ matrix.shard }}/4"
 
   source-reproduction:
     if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v5
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pip
@@ -116,7 +142,7 @@ jobs:
             ~/.platformio/packages
             ~/.platformio/platforms
           key: ${{ runner.os }}-pio-e32v2-${{ hashFiles('platformio.ini', 'boards/**') }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install the pinned SDK and reproduction tools
@@ -149,7 +175,7 @@ jobs:
           python recompile-startup.py
       - name: Independently check actual original objects and corresponding source
         run: python scripts/e32_verify_reproduction.py --prepared out/e32-reproduction --output out/source-reproduction.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: e32-source-reproduction
           path: out/source-reproduction.json
@@ -159,15 +185,16 @@ jobs:
     # A HA-only tag carries no firmware assets. Its release is gated below by
     # the native HA/packet suite and browser regressions; E32 tags keep all gates.
     if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
-    needs: source-reproduction
+    needs: [reuse, source-reproduction]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        environment: [e32v2, esp32dev, esp32s3, native]
+        # Only e32v2 (the packaged firmware) when a tag reuses the tests.
+        environment: ${{ fromJSON(needs.reuse.outputs.build_matrix) }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v5
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pip
@@ -175,7 +202,7 @@ jobs:
             ~/.platformio/packages
             ~/.platformio/platforms
           key: ${{ runner.os }}-pio-${{ matrix.environment }}-${{ hashFiles('platformio.ini', 'boards/**') }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install PlatformIO Core
@@ -191,54 +218,12 @@ jobs:
           ASAN_OPTIONS: detect_leaks=1
           UBSAN_OPTIONS: halt_on_error=1
         run: |
-          mkdir -p /tmp/open-thermostat-mqtt-source
-          pio pkg install --global --library knolleary/PubSubClient@2.8.0 --storage-dir /tmp/open-thermostat-mqtt-source --skip-dependencies
           pio test -e native --verbose
-          gcc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -I.pio/libdeps/native/cJSON -c .pio/libdeps/native/cJSON/cJSON.c -o /tmp/open-thermostat-actuator-cjson.o
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -Wvla -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/esp32_utilities/src -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_ems_readers.cpp test/test_native/test_ble_device_discovery.cpp src/EMS/EmsTelegram.cpp src/EMS/UBADeviceVersion.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-ems-readers-test
-          /tmp/open-thermostat-ems-readers-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_shadow_contacts.cpp test/test_native/test_shadow_manual_target.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -ldl -lpthread -o /tmp/open-thermostat-shadow-contacts-test
-          /tmp/open-thermostat-shadow-contacts-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -Itest/test_native/include -I.pio/libdeps/native/esp32_utilities/src -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_response_buffer.cpp test/test_native/test_loop_intervals.cpp test/test_native/test_classic_boiler_test_encoder.cpp test/test_native/test_classic_boiler_settings_encoder.cpp test/test_native/test_classic_boiler_setting_transaction.cpp test/test_native/test_classic_setting_bus_exchange.cpp test/test_native/test_classic_boiler_settings_service.cpp test/test_native/test_classic_setting_uart_write.cpp test/test_native/test_classic_settings_pipeline.cpp test/test_native/test_classic_settings_runtime_gate.cpp test/test_native/test_boiler_test_poll.cpp test/test_native/test_boiler_test_session.cpp test/test_native/test_boiler_test_service.cpp test/test_native/test_classic_echo_uart_write.cpp test/test_native/test_ems_poll.cpp test/test_native/test_ems_echo_rx_debt.cpp test/test_native/test_manual_classic_uart_write.cpp test/test_native/test_manual_bus_identity.cpp test/test_native/test_boiler_site_confirmation.cpp test/test_native/test_boiler_fault_closure.cpp test/test_native/test_classic_heat_trial_envelope.cpp test/test_native/test_ecomline_commissioning.cpp test/test_native/test_classic_configuration_read.cpp test/test_native/test_manual_classic_transaction.cpp src/EMS/EmsTelegram.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-boiler-poll-test
-          /tmp/open-thermostat-boiler-poll-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Itest/echo_write/include -Isrc -I.pio/libdeps/native/googletest/googletest/include test/echo_write/adapter.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-echo-adapter-test
-          /tmp/open-thermostat-echo-adapter-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_actuator_intent.cpp test/test_native/test_actuator_dispatch.cpp test/test_native/test_actuator_channel.cpp test/test_native/test_actuator_channels.cpp test/test_native/test_deadline_write.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-actuator-test
-          /tmp/open-thermostat-actuator-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -DOPENTHERMOSTAT_E32V2 -Itest/deadline_write/include -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/deadline_write/adapter.cpp test/test_native/test_mqtt_outbox.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-deadline-socket-test
-          /tmp/open-thermostat-deadline-socket-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer -Itest/deadline_write/include -I/tmp/open-thermostat-mqtt-source/PubSubClient/src -c /tmp/open-thermostat-mqtt-source/PubSubClient/src/PubSubClient.cpp -o /tmp/open-thermostat-pinned-mqtt.o
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -DOPENTHERMOSTAT_E32V2 -Itest/pending_tcp/include -Itest/deadline_write/include -Isrc -I/tmp/open-thermostat-mqtt-source/PubSubClient/src -I.pio/libdeps/native/googletest/googletest/include test/pending_tcp/adapter.cpp /tmp/open-thermostat-pinned-mqtt.o .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-pending-tcp-test
-          /tmp/open-thermostat-pending-tcp-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -DOPENTHERMOSTAT_E32V2 -DLWIP_SOCKET_OFFSET=2 -DLWIP_SELECT_MAXNFDS=FD_SETSIZE -Itest/pending_tcp/include -Itest/deadline_write/include -Isrc -I/tmp/open-thermostat-mqtt-source/PubSubClient/src -I.pio/libdeps/native/googletest/googletest/include test/pending_tcp/adapter.cpp /tmp/open-thermostat-pinned-mqtt.o .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-pending-tcp-offset-test
-          /tmp/open-thermostat-pending-tcp-offset-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -DOPENTHERMOSTAT_E32V2 -Itest/async_broker_dns/include -Isrc -I.pio/libdeps/native/googletest/googletest/include test/async_broker_dns/adapter.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-async-dns-test
-          /tmp/open-thermostat-async-dns-test
-          g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_github_update.cpp test/test_native/test_update_checkpoint.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-update-checkpoint-test
-          /tmp/open-thermostat-update-checkpoint-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_shelly_ht_advertisement.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-shelly-ht-test
-          /tmp/open-thermostat-shelly-ht-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/googletest/googletest/include test/ble_crypto/mbedtls.cpp test/ble_crypto/mibeacon.cpp test/ble_crypto/backup_cipher.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -Wl,--wrap=calloc -Wl,-Bstatic -lmbedcrypto -Wl,-Bdynamic -lpthread -o /tmp/open-thermostat-ble-crypto-test
-          /tmp/open-thermostat-ble-crypto-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_ble_device_settings.cpp test/test_native/test_managed_ble_observer.cpp test/test_native/test_mibeacon_monitor3.cpp test/test_native/test_shelly_trv.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-ble-owner-test
-          /tmp/open-thermostat-ble-owner-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -Itest/bluetooth_storage/include -Itest/onboarding/include test/bluetooth_storage/main.cpp test/bluetooth_storage/allocation.cpp -o /tmp/open-thermostat-ble-storage-test
-          /tmp/open-thermostat-ble-storage-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_web_auth.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-ble-auth-test
-          /tmp/open-thermostat-ble-auth-test
-          python test/manual_ota/run.py
-          python test/web_auth/run.py
-          g++ -std=c++20 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Itest/onboarding/include -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/esp32_utilities/src test/onboarding/firmware.cpp .pio/libdeps/native/cJSON/cJSON.c -o /tmp/open-thermostat-onboarding-test
-          /tmp/open-thermostat-onboarding-test
+          bash test/native_harnesses.sh run
           python3 scripts/generate_boiler_catalog.py --check
           python3 scripts/generate_ems_reference.py --check
           python3 scripts/generate_ems_fields.py --check
           python3 -m unittest discover -s scripts -p test_generate_ems_reference.py -v
-          g++ -std=c++17 -Wall -Wextra -Werror -Isrc -Itest/boiler_display/include test/boiler_display/firmware.cpp -o /tmp/open-thermostat-boiler-display-test
-          /tmp/open-thermostat-boiler-display-test
-          g++ -std=c++17 -Wall -Wextra -include cstdint -I.pio/libdeps/native/esp32_utilities/src -c .pio/libdeps/native/esp32_utilities/src/logger/Logger.cpp -o /tmp/open-thermostat-vendor-logger.o
-          g++ -std=c++17 -Wall -Wextra -Werror -pthread -DOPENTHERMOSTAT_E32V2 -Isrc -Itest/logging_runtime/include -Itest/boiler_display/include -I.pio/libdeps/native/esp32_utilities/src -I.pio/libdeps/native/cJSON test/logging_runtime/main.cpp src/diagnostics/NativeLog.cpp src/EMS/EmsTelegram.cpp /tmp/open-thermostat-vendor-logger.o .pio/libdeps/native/cJSON/cJSON.c -o /tmp/open-thermostat-logging-test
-          /tmp/open-thermostat-logging-test
           python -m unittest discover -s ha/tests -p 'test_*.py' -v
       - name: Build firmware
         if: matrix.environment != 'native'
@@ -277,7 +262,7 @@ jobs:
           python scripts/test_e32v2_verifier.py
       - name: Preserve exact E32 panic symbols and embedded UI revision
         if: matrix.environment == 'e32v2'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: e32v2-debug-symbols
           path: |
@@ -292,7 +277,7 @@ jobs:
 
       - name: Retrieve the independently verified current SDK reproduction receipt
         if: matrix.environment == 'e32v2'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: e32-source-reproduction
           path: out/e32-source-proof
@@ -331,7 +316,7 @@ jobs:
           /tmp/ota-image-check out/e32v2/e32v2-update.json out/e32v2/firmware.bin
       - name: Upload verified E32 V2 bench-test package
         if: matrix.environment == 'e32v2'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: e32v2-bench-test
           path: out/e32v2/
@@ -340,7 +325,7 @@ jobs:
           retention-days: 30
       - name: Upload verified immutable E32 release assets
         if: matrix.environment == 'e32v2'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: e32v2-release-assets
           path: out/release/
@@ -350,12 +335,13 @@ jobs:
   # Compile-only proof of code eliminated by the standard RX-only build.
   # This isolated job never packages/uploads its non-release image.
   manual-route-compile:
-    if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
+    needs: reuse
+    if: ${{ needs.reuse.outputs.reuse != 'true' && !startsWith(github.ref, 'refs/tags/ha-v') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v5
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pip
@@ -363,7 +349,7 @@ jobs:
             ~/.platformio/packages
             ~/.platformio/platforms
           key: ${{ runner.os }}-pio-e32v2-${{ hashFiles('platformio.ini', 'boards/**') }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install pinned compiler tooling
@@ -410,12 +396,13 @@ jobs:
 
   # Independent settings compile branch; installation approval stays false.
   settings-route-compile:
-    if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
+    needs: reuse
+    if: ${{ needs.reuse.outputs.reuse != 'true' && !startsWith(github.ref, 'refs/tags/ha-v') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v5
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pip
@@ -423,7 +410,7 @@ jobs:
             ~/.platformio/packages
             ~/.platformio/platforms
           key: ${{ runner.os }}-pio-e32v2-${{ hashFiles('platformio.ini', 'boards/**') }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install pinned compiler tooling
@@ -471,81 +458,129 @@ jobs:
           rm -f .pio/build/e32v2/firmware.bin .pio/build/e32v2/firmware.elf
           git diff --exit-code -- src/Board.h
 
+  # Native HA suite on the reviewed Core 2026.10.4, then the HA package. A tag
+  # that reuses the tests packages with the branch run's acceptance report: its
+  # recorded source commit and source hash are checked against this checkout.
   home-assistant-native:
+    needs: reuse
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        if: needs.reuse.outputs.reuse != 'true'
         with:
           python-version: '3.11'
       - name: Prepare pinned native firmware dependencies
+        if: needs.reuse.outputs.reuse != 'true'
         run: |
           pip install platformio==6.2.0 intelhex==2.3.0
           pio pkg install -e native
-          mkdir -p out
-          g++ -std=c++20 -O1 -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/shadow_runner.cpp .pio/libdeps/native/cJSON/cJSON.c -o out/shadow-runner
-          gcc -std=c11 -O0 -g -I.pio/libdeps/native/cJSON -c .pio/libdeps/native/cJSON/cJSON.c -o out/graph-cjson.o
-          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_validation_runner.cpp out/graph-cjson.o -ldl -o out/graph-validation-runner
-          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_configuration_runner.cpp out/graph-cjson.o -ldl -o out/graph-configuration-runner
-          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_session_runner.cpp out/graph-cjson.o -ldl -o out/graph-session-runner
-          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -I.pio/libdeps/native/cJSON test/interop/actuator_intent_runner.cpp out/graph-cjson.o -o out/actuator-intent-runner
-          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -I.pio/libdeps/native/cJSON test/interop/actuator_dispatch_runner.cpp out/graph-cjson.o -o out/actuator-dispatch-runner
-          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -I.pio/libdeps/native/cJSON test/interop/actuator_channel_runner.cpp out/graph-cjson.o -o out/actuator-channel-runner
-          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_control_projection_runner.cpp out/graph-cjson.o -ldl -o out/graph-control-projection-runner
-          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/packed_schedule_runner.cpp out/graph-cjson.o -ldl -o out/packed-schedule-runner
-          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/topology_review_runner.cpp out/graph-cjson.o -ldl -o out/topology-review-runner
-          g++ -std=c++17 -O0 -Isrc -Itest/test_native/include -I.pio/libdeps/native/esp32_utilities/src -c src/EMS/EmsTelegram.cpp -o out/room-ems-parser.o
-          g++ -std=c++17 -O0 -Wall -Wextra -Werror -Wno-dangling-else -pthread -Isrc -Itest/test_native/include -I.pio/libdeps/native/esp32_utilities/src test/interop/room_observation_runner.cpp out/room-ems-parser.o -o out/room-observation-peer
-          out/room-observation-peer > out/room-observation-wire.json
-      - uses: actions/setup-python@v5
+          bash test/interop/prepare_runners.sh
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.14'
       - name: Install pinned native HA test runtime
+        if: needs.reuse.outputs.reuse != 'true'
         run: |
           pip install -r ha/requirements-test-native.txt
       - name: Start isolated localhost MQTT test fixture
+        if: needs.reuse.outputs.reuse != 'true'
         run: |
           docker run -d --rm --name opth-mqtt-fixture --user "$(id -u):$(id -g)" -p 127.0.0.1::1883 -v "$GITHUB_WORKSPACE/test/interop/mqtt-fixture:/mosquitto/config:ro" eclipse-mosquitto:2.0.22@sha256:199ea8ef2e35ec2b1b37e59cfd1dbae538ed4dfa4a2251a121a52215a6248a21 mosquitto -c /mosquitto/config/mosquitto.conf
           python -c 'import os,subprocess; port=subprocess.check_output(["docker","port","opth-mqtt-fixture","1883/tcp"],text=True).strip().rsplit(":",1)[1]; open(os.environ["GITHUB_ENV"],"a").write("OPENTHERMOSTAT_TEST_MQTT_PORT="+port+"\n")'
       - name: Test native HA lifecycle and actual firmware packet interop
+        if: needs.reuse.outputs.reuse != 'true'
         run: |
           ROOM_METRICS_EVIDENCE_DIR=out python -m pytest ha/tests ha/tests_native -vv -o faulthandler_timeout=60 --junitxml=out/ha-acceptance.xml
-      - name: Verify retained Core 2026.10.2/2026.10.3 compatibility with actual native runtime
-        run: |
-          pip install --no-deps homeassistant==2026.10.2
-          python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.2.xml
-          pip install --no-deps homeassistant==2026.10.3
-          python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.3.xml
-          # Minimum accepted Core. The two provenance tests deliberately pin the
-          # tested 2026.10.2-.4 sources, so they are left out for this run only.
-          pip install --no-deps homeassistant==2026.10.0
-          python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.0.xml \
-            --ignore=ha/tests_native/test_native_provider.py --ignore=ha/tests_native/test_native_schema_contract.py
-          pip install --no-deps homeassistant==2026.10.4
+      - name: Retrieve the native HA acceptance report of the reused branch run
+        if: needs.reuse.outputs.reuse == 'true'
+        uses: actions/download-artifact@v7
+        with:
+          name: home-assistant-acceptance
+          path: out
+          run-id: ${{ needs.reuse.outputs.run_id }}
+          github-token: ${{ github.token }}
       - name: Verify and package exact HA-only candidate
         run: |
           python -B -m unittest discover -s scripts -p test_package_ha_release.py -v
           python -B -m unittest discover -s scripts -p test_prepare_original_report_pins.py -v
           python scripts/package_ha_release.py --output out/ha-release --native-results out/ha-acceptance.xml
       - name: Preserve verified HA release assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: home-assistant-release-assets
           path: out/ha-release/
           if-no-files-found: error
       - name: Preserve actual native HA acceptance report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: home-assistant-acceptance
           path: |
             out/ha-acceptance.xml
-            out/ha-core-2026.10.0.xml
-            out/ha-core-2026.10.2.xml
-            out/ha-core-2026.10.3.xml
-            out/ha-core-2026.10.4.xml
             out/climate-warmup-trace*.json
+          if-no-files-found: error
+      - name: Remove temporary MQTT fixture
+        if: always() && needs.reuse.outputs.reuse != 'true'
+        run: docker stop opth-mqtt-fixture || true
+
+  # The same suite on the other accepted Cores, in parallel (one job ran all
+  # four Cores one after another, about 20 minutes, before beta.21).
+  home-assistant-compat:
+    name: home-assistant-compat (${{ matrix.core }})
+    needs: reuse
+    if: ${{ needs.reuse.outputs.reuse != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        core: ['2026.10.0', '2026.10.2', '2026.10.3']
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Prepare pinned native firmware dependencies
+        run: |
+          pip install platformio==6.2.0 intelhex==2.3.0
+          pio pkg install -e native
+          bash test/interop/prepare_runners.sh
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - name: Install pinned native HA test runtime and the Core under test
+        env:
+          CORE: ${{ matrix.core }}
+        run: |
+          pip install -r ha/requirements-test-native.txt
+          pip install --no-deps "homeassistant==$CORE"
+      - name: Start isolated localhost MQTT test fixture
+        run: |
+          docker run -d --rm --name opth-mqtt-fixture --user "$(id -u):$(id -g)" -p 127.0.0.1::1883 -v "$GITHUB_WORKSPACE/test/interop/mqtt-fixture:/mosquitto/config:ro" eclipse-mosquitto:2.0.22@sha256:199ea8ef2e35ec2b1b37e59cfd1dbae538ed4dfa4a2251a121a52215a6248a21 mosquitto -c /mosquitto/config/mosquitto.conf
+          python -c 'import os,subprocess; port=subprocess.check_output(["docker","port","opth-mqtt-fixture","1883/tcp"],text=True).strip().rsplit(":",1)[1]; open(os.environ["GITHUB_ENV"],"a").write("OPENTHERMOSTAT_TEST_MQTT_PORT="+port+"\n")'
+      - name: Verify Core compatibility with actual native runtime
+        env:
+          CORE: ${{ matrix.core }}
+        run: |
+          # Minimum accepted Core: the two provenance tests deliberately pin the
+          # tested 2026.10.2-.4 sources, so they are left out for that run only.
+          ignore=()
+          if [ "$CORE" = 2026.10.0 ]; then
+            ignore=(--ignore=ha/tests_native/test_native_provider.py --ignore=ha/tests_native/test_native_schema_contract.py)
+          fi
+          python -c "import homeassistant.const as c,os; assert c.__version__==os.environ['CORE'], c.__version__"
+          python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml="out/ha-core-$CORE.xml" "${ignore[@]}"
+      - name: Preserve the Core compatibility report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: home-assistant-compat-${{ matrix.core }}
+          path: out/ha-core-${{ matrix.core }}.xml
           if-no-files-found: error
       - name: Remove temporary MQTT fixture
         if: always()
@@ -555,12 +590,13 @@ jobs:
   # (EMS frames, Bluetooth adverts, HA/MQTT and web JSON); see test/fuzz/README.md.
   # Host-only: no device, bus, radio, broker or network contact.
   fuzz-smoke:
-    if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
+    needs: reuse
+    if: ${{ needs.reuse.outputs.reuse != 'true' && !startsWith(github.ref, 'refs/tags/ha-v') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v5
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pip
@@ -568,7 +604,7 @@ jobs:
             ~/.platformio/packages
             ~/.platformio/platforms
           key: ${{ runner.os }}-pio-native-${{ hashFiles('platformio.ini', 'boards/**') }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install pinned native dependencies and the fuzzing toolchain
@@ -610,7 +646,7 @@ jobs:
           exit 1
       - name: Preserve fuzz findings and logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: fuzz-smoke-findings
           path: |
@@ -623,12 +659,13 @@ jobs:
   # 32-bit uptime wrap, plus the guard, flow, supervisor, size and reproducer
   # scenarios, under ASan/UBSan; see test/soak/README.md. Host-only, no device.
   soak-smoke:
-    if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
+    needs: reuse
+    if: ${{ needs.reuse.outputs.reuse != 'true' && !startsWith(github.ref, 'refs/tags/ha-v') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v5
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pip
@@ -636,7 +673,7 @@ jobs:
             ~/.platformio/packages
             ~/.platformio/platforms
           key: ${{ runner.os }}-pio-native-${{ hashFiles('platformio.ini', 'boards/**') }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install pinned native dependencies
@@ -650,22 +687,33 @@ jobs:
         run: bash test/soak/run.sh smoke
       - name: Preserve soak logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: soak-smoke-logs
           path: ${{ runner.temp }}/soak-out
           if-no-files-found: ignore
           retention-days: 30
 
+  # Publishes only when every gate passed, and every test job passed in this run
+  # or (reuse) in the green branch run of the same commit.
   publish-test-release:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: [build, source-reproduction, browser-regressions, home-assistant-native, manual-route-compile, settings-route-compile, fuzz-smoke, soak-smoke]
+    if: >-
+      ${{ !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      && needs.reuse.result == 'success' && needs.gates.result == 'success'
+      && needs.source-reproduction.result == 'success' && needs.build.result == 'success'
+      && needs.home-assistant-native.result == 'success'
+      && (needs.reuse.outputs.reuse == 'true'
+          || (needs.harnesses.result == 'success' && needs.browser.result == 'success'
+              && needs.home-assistant-compat.result == 'success'
+              && needs.manual-route-compile.result == 'success' && needs.settings-route-compile.result == 'success'
+              && needs.fuzz-smoke.result == 'success' && needs.soak-smoke.result == 'success')) }}
+    needs: [reuse, gates, harnesses, browser, source-reproduction, build, home-assistant-native, home-assistant-compat, manual-route-compile, settings-route-compile, fuzz-smoke, soak-smoke]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v7
         with:
           name: e32v2-release-assets
           path: release-assets
@@ -713,14 +761,19 @@ jobs:
         run: python3 scripts/sync_readme_releases.py --repository "$GITHUB_REPOSITORY" --apply
 
   publish-home-assistant-test-release:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ha-v')
-    needs: [browser-regressions, home-assistant-native]
+    if: >-
+      ${{ !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ha-v')
+      && needs.reuse.result == 'success' && needs.gates.result == 'success'
+      && needs.home-assistant-native.result == 'success'
+      && (needs.reuse.outputs.reuse == 'true'
+          || (needs.browser.result == 'success' && needs.home-assistant-compat.result == 'success')) }}
+    needs: [reuse, gates, browser, home-assistant-native, home-assistant-compat]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v7
         with:
           name: home-assistant-release-assets
           path: ha-release-assets
@@ -749,6 +802,9 @@ jobs:
           from zigbee_report_companion import SOURCES
           from ha_test_evidence import snapshot
           assert manifest['native_test_evidence']['source_sha256']==snapshot(Path.cwd())['source_sha256']
+          from organize_releases import classify, is_stable
+          # ha-v1.0.0 is packaged and published as a normal release, every other tag as a pre-release.
+          assert manifest['prerelease'] is (not is_stable(*classify(os.environ['EXPECTED_TAG'])))
           assert manifest['optional_companions']==report['optional_companions']
           assert len(manifest['optional_companions'])==1
           companion=manifest['optional_companions'][0]

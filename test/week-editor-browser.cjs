@@ -161,7 +161,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    page.on('pageerror',e=>errors.push(e.message));
    await page.route('http://ha.test/**',route=>{const p=new URL(route.request().url()).pathname;
     if(p==='/')return route.fulfill({contentType:'text/html',body:'<meta name="viewport" content="width=device-width, initial-scale=1"><body style="margin:0;font:15px system-ui"><main></main></body>'});
-    if(p==='/open_thermostat/week-editor-0.4.0b12.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'week-editor.js'))});
+    if(p==='/open_thermostat/week-editor-0.4.0b13.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'week-editor.js'))});
     if(p==='/card.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'e32-week-card.js'))});
     return route.fulfill({status:404,body:''});});
    await page.goto('http://ha.test/');await page.addScriptTag({url:'/card.js',type:'module'});
@@ -234,6 +234,12 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    await card.getByText(lang==='nl'?/Opgeslagen op de E32\./:/Saved on the E32\./).waitFor();
    assert.deepEqual((await page.evaluate(()=>calls.at(-1))).schedule,[...Array(5)].map(()=>[[390,2111],[1320,1600]]).concat([[],[]]));
    await page.screenshot({path:path.join(output,`ha-card-fahrenheit-${lang}.png`),fullPage:true});
+   // Opening the card asks Home Assistant for the plan it holds; only Reload reads the E32 itself.
+   const gets=()=>page.evaluate(()=>calls.filter(c=>c.type==='open_thermostat/e32_week/get'));
+   assert.equal('fresh' in (await gets())[0],false,'opening the card costs the E32 no sign-in');
+   await card.getByRole('button',{name:lang==='nl'?'Opnieuw laden':'Reload',exact:true}).click();
+   await page.waitForFunction(()=>calls.filter(c=>c.type==='open_thermostat/e32_week/get').length===2);
+   assert.equal((await gets()).at(-1).fresh,true,'Reload reads the E32');
    assert.deepEqual(errors,[]);await page.close();results.push({part:'ha-fahrenheit',lang});
   }
   // 5. Not ready yet (HA starting, E32 not connected): "Waiting for the E32…", never a dead card; a page left

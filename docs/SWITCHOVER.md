@@ -56,6 +56,12 @@ examples; use your own.
   MQTT broker or Bluetooth problems no longer restart it (no `wifi_lost`,
   `broker_lost`, `network_dead` or `bluetooth_silent`). Only a real hang (loop
   stall, watchdog) or a stuck update does.
+- **Planned restarts withdraw first.** Before a restart it plans (an update,
+  a firmware upload from Home Assistant, Restart device, new Bluetooth
+  settings, a settings restore, a controlled restart or a rollback of
+  unconfirmed firmware) the E32 stops with its zero window and restarts once a
+  zero was delivered, at most 90 s later; until then it does not take over
+  again. In shadow mode nothing changes.
 - **The active gate.** Released firmware ships with active control locked
   (`board::emsActiveHeatAllowed = false`). It is opened only on the switch-over
   day, in a separate, explicitly approved build that differs only in that
@@ -102,12 +108,19 @@ foreign 0x1A keeps growing. Also check the boiler's own display.
   1. at least 72 hours without a hang or restart;
   2. at least 10 heating periods compared, including a night setback, a
      morning warm-up and a period without demand;
-  3. similar decisions: heat at about the same moments (minutes apart), flow
-     in the same range, not more on/off cycles than the thermostat;
+  3. similar decisions: heat at about the same moments (minutes apart) and not
+     more on/off cycles than the thermostat; the requested flow never above the
+     hard limit (the lowest of the plan maximum, the boiler's own heating limit
+     and 80 °C). The flow level itself is learned, as low as possible, and not
+     judged against a fixed band; its difference from the thermostat's request
+     is reported for information only;
   4. the sources work, and a fallback source (for example a Bluetooth sensor)
      has taken over at least once.
   Without an EMS thermostat to compare with, judge the period on the room
   temperatures and the calculated request.
+  `tools/switchover/shadow_exit.py` checks these criteria read-only from the
+  Home Assistant history (and optionally the E32's MQTT topics) and prints
+  PASS, FAIL or WAIT (not enough data yet) for each; see its README.
 - The release with the gate **closed** installed and stable in shadow mode for
   at least 24 hours; host tests and the soak test green.
 - After an E32 restart in shadow mode, `active.boiler_limit.flow_c` is known

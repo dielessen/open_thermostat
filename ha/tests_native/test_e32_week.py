@@ -52,6 +52,7 @@ async def test_a_planner_week_is_stored_in_the_room_plan_and_reads_back_as_the_s
     assert parse_program(TEXT_EN, 1000, 2400) == WEEK
     flow = E32RoomFlow()
     flow.hass = hass
+    flow.config_entry = parent  # the form also lists the room's window/door contacts
     assert flow._e32_defaults(woonkamer(e32))["program"] == TEXT_EN  # the e32_room form's program field
     # And a program typed in the text view comes back to the planner unchanged.
     assert (await read_week(hass, parent.entry_id))["rooms"][0]["schedule"] == WEEK

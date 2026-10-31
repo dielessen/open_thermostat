@@ -62,6 +62,16 @@ class HARelease(unittest.TestCase):
             self.assertEqual(zip.read('custom_components/open_thermostat/__init__.py'), (self.integration/'__init__.py').read_bytes())
             self.assertFalse(any('.storage' in name or name.endswith('.bin') for name in zip.namelist()))
 
+    def test_a_stable_version_is_packaged_as_a_normal_release(self):
+        self.assertIs(package(self.root,self.root/'out/a',self.results)['prerelease'],True)  # 0.4.0.dev11
+        for version,prerelease in (('1.0.0rc1',True),('1.0.0',False),('1.0.1',False),('1.1.0b1',True)):
+            with self.subTest(version=version):
+                (self.integration/'manifest.json').write_text(json.dumps(dict(domain='open_thermostat',version=version)))
+                self.commit();self.refresh_evidence()
+                metadata=package(self.root,self.root/('out/'+version),self.results)
+                self.assertEqual((metadata['tag'],metadata['prerelease']),('ha-v'+version,prerelease))
+                self.assertEqual(json.loads((self.root/('out/'+version)/'ha-release.json').read_text())['prerelease'],prerelease)
+
     def test_only_canonical_ha_release_versions_can_be_packaged(self):
         for version in ('0.4.0.beta1','0.4.0b01','00.4.0b1','0.4.0bogus','0.4.0b4294967296'):
             with self.subTest(version=version):
@@ -120,6 +130,11 @@ class HARelease(unittest.TestCase):
             report=json.loads((output/'ha-software-verification.json').read_text());report['optional_companions']=[companion]
             (output/'ha-software-verification.json').write_text(json.dumps(report))
             (output/'HA-SHA256SUMS.txt').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name+'\n' for p in sorted(output.iterdir()) if p.name!='HA-SHA256SUMS.txt'))
+        # The release channel in ha-release.json must follow the tag (a dev tag is never a normal release).
+        metadata['prerelease']=False;resign()
+        self.assertNotEqual(run().returncode,0)
+        metadata['prerelease']=True;resign()
+        result=run();self.assertEqual(result.returncode,0,result.stderr)
         # Even a self-consistent newly checksummed bundle cannot change source.
         with zipfile.ZipFile(archive) as source:members={name:source.read(name) for name in source.namelist()}
         members['extensions/original-tv02.cjs']+=b'// unreviewed change\n'

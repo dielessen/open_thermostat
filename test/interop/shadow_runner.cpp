@@ -4,6 +4,7 @@
 #include "ControlTestHash.h"
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
 
 using namespace heating::control;
 struct TestStore:ControlStore {
@@ -49,7 +50,12 @@ int main(int argc,char **argv) {
         cJSON_AddItemToObject(root.get(),"payload",cJSON_Parse(std::string(bytes).c_str()));
         std::cout<<printJson(root.get())<<std::endl;
     };
-    const auto boot=[&](const std::string &id) {core=std::make_unique<ShadowController>("e32_lab",id,adapter,store,controlTestHash,[&]{return "nonce"+std::to_string(++nonce);},publish,provider,seasonal?&seasonalSource:nullptr,safetyProvider,nullptr,boilerProvider);};
+    // OPENTHERMOSTAT_RUNNER_DEVICE_IDS: identifiers as long as on an E32 (a 16-character
+    // controller id, 32-character boot id and nonces), for traffic measurements.
+    const bool deviceIds=std::getenv("OPENTHERMOSTAT_RUNNER_DEVICE_IDS")!=nullptr;
+    const std::string controller=deviceIds?"e32_0123456789ab":"e32_lab";
+    const auto padded=[&](std::string id){if(deviceIds&&id.size()<32)id.append(32-id.size(),'0');return id;};
+    const auto boot=[&](const std::string &id) {core=std::make_unique<ShadowController>(controller,padded(id),adapter,store,controlTestHash,[&]{++nonce;return deviceIds?padded("nonce"+std::to_string(nonce)+"x"):"nonce"+std::to_string(nonce);},publish,provider,seasonal?&seasonalSource:nullptr,safetyProvider,nullptr,boilerProvider);};
     boot("boot1");
     std::string line;
     while(std::getline(std::cin,line)) {

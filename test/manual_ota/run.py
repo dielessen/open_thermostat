@@ -192,4 +192,6 @@ exe = out / 'rest_upload'
 subprocess.run([os.environ.get('CXX', 'g++'), '-std=c++17', '-Wall', '-Wextra', '-Werror',
                 '-g', '-fsanitize=address,undefined', '-fno-omit-frame-pointer',
                 '-I'+str(root/'src'), str(cpp), '-o', str(exe)], check=True)
-subprocess.run([str(exe)], check=True)
+# test/native_harnesses.sh build: compile only, a stale stub fails before anything runs.
+if os.environ.get('OT_HARNESS_BUILD_ONLY')!='1':
+    subprocess.run([str(exe)], check=True)

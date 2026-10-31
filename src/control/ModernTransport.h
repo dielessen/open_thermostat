@@ -366,9 +366,13 @@ public:
         // Observation only, on the existing native connection. Never control input.
         if(client_.connected() && now>=nextDeviceDiagnostics_) {
             nextDeviceDiagnostics_=now+15000;
-            const auto bytes=deviceDiagnosticsJson(ESP.getFreeHeap(), ESP.getMinFreeHeap(),
-                ESP.getMaxAllocHeap(), temperatureRead(), now/1000);
-            client_.publish((base_+"fw/telemetry/device_status").c_str(),bytes.c_str(),false);
+            // The same values ride in fw/heartbeat (beta.21). Only an HA older than
+            // 0.4.0b13 still needs this topic: it stops while HA holds a compact session.
+            if(!controller_||!controller_->compactSession()) {
+                const auto bytes=deviceDiagnosticsJson(ESP.getFreeHeap(), ESP.getMinFreeHeap(),
+                    ESP.getMaxAllocHeap(), temperatureRead(), now/1000);
+                client_.publish((base_+"fw/telemetry/device_status").c_str(),bytes.c_str(),false);
+            }
             if(controllerStatus_)try {
                 std::ostringstream status;controllerStatus_(status);
                 const auto command=controllerRequestTelemetry(status.str());
@@ -385,19 +389,24 @@ public:
     }
 private:
     static uint64_t monotonicMs(){return static_cast<uint64_t>(esp_timer_get_time()/1000);}
-    // fw/heartbeat (every 60 s): liveness for HA (unavailable after 3 missed)
+    // fw/heartbeat (every 60 s): liveness for HA (unavailable after 3 missed),
+    // the device diagnostics (beta.21: folded in from fw/telemetry/device_status)
     // and the link's own traffic since the previous heartbeat.
     std::string heartbeatJson() {
         const uint32_t frames=MqttCounters::frames.load(),bytes=MqttCounters::bytes.load(),latency=MqttCounters::latencySumMs.load();
         size_t peak=0;uint32_t slowest=0;network_.takeWindow(peak,slowest);
         const uint32_t sent=frames-beatFrames_;
-        char out[480];
+        char cpu[8]="null";
+        const auto deci=deviceCpuDeciC(temperatureRead());
+        if(deci!=noCpuDeciC)snprintf(cpu,sizeof(cpu),"%d",deci);
+        char out[540];
         const int n=snprintf(out,sizeof(out),"{\"schema\":1,\"uptime_s\":%lu,\"heap_free\":%lu,\"heap_min_free\":%lu,"
+            "\"heap_max_alloc\":%lu,\"cpu_deci_c\":%s,"
             "\"internal_min_free\":%lu,\"mqtt\":{\"messages\":%lu,\"bytes\":%lu,\"queue_peak_bytes\":%lu,"
             "\"latency_avg_ms\":%lu,\"latency_max_ms\":%lu,\"rejected\":%lu,\"telemetry_dropped\":%lu,"
             "\"disconnects\":{\"stalled\":%lu,\"socket_error\":%lu}}}",
             static_cast<unsigned long>(monotonicMs()/1000),static_cast<unsigned long>(ESP.getFreeHeap()),
-            static_cast<unsigned long>(ESP.getMinFreeHeap()),
+            static_cast<unsigned long>(ESP.getMinFreeHeap()),static_cast<unsigned long>(ESP.getMaxAllocHeap()),cpu,
             static_cast<unsigned long>(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT)),
             static_cast<unsigned long>(sent),static_cast<unsigned long>(bytes-beatBytes_),static_cast<unsigned long>(peak),
             static_cast<unsigned long>(sent?(latency-beatLatency_)/sent:0),static_cast<unsigned long>(slowest),

@@ -11,3 +11,9 @@
   and pending releases. Old public downloads require an exact GitHub digest before
   removal. Identical retained ZIPs share read-only storage; write new archives to
   fresh paths. Keep the local cleanup report with restore URLs and file hashes.
+
+# Before a tag
+
+- Follow `docs/RELEASING.md`: run `scripts/final_check.sh --stress 3` on the exact
+  commit, push the branch only when it passes, tag only after its CI run is green
+  (the tag run then reuses those tests). Never fix a timing race with a retry.

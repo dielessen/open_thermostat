@@ -337,5 +337,5 @@ def test_every_message_and_action_is_translated():
     # Night and away in the week planner's words; comfort, boost and none in Home Assistant's own.
     assert strings["entity"]["climate"]["room_thermostat"]["state_attributes"]["preset_mode"]["state"] == {
         "eco": "Night", "away": "Away"}
-    for step in ("comfort", "comfort_settings", "comfort_contacts"):
+    for step in ("comfort", "comfort_settings", "comfort_contacts", "comfort_contacts_room"):
         assert step in strings["options"]["step"]

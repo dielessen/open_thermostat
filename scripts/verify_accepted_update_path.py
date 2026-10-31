@@ -31,7 +31,9 @@ int main(int argc,char**argv) {
     const auto tag=string(doc.get(),"version");Manifest manifest;
     if(!parseManifest(bytes,tag,manifest))return 3;
     const auto refs="[{\"ref\":\"refs/tags/"+tag+"\",\"object\":{\"type\":\"commit\",\"sha\":\""+manifest.source+"\"}}]";
-    const auto entry="{\"tag_name\":\""+tag+"\",\"draft\":false,\"prerelease\":true,\"published_at\":\"2026-10-26T00:00:00Z\",\"assets\":[{\"name\":\"e32v2-update.json\"},{\"name\":\"firmware.bin\"}]}";
+    // As published: a stable tag (vX.Y.Z-e32v2) is a normal release, every other tag a pre-release.
+    const bool preview=tag.find("-e32v2-")!=std::string::npos;
+    const auto entry="{\"tag_name\":\""+tag+"\",\"draft\":false,\"prerelease\":"+std::string(preview?"true":"false")+",\"published_at\":\"2026-10-26T00:00:00Z\",\"assets\":[{\"name\":\"e32v2-update.json\"},{\"name\":\"firmware.bin\"}]}";
     // Actual accepted fast path: a matching tag, public release and manifest.
     // Failures must retain the old choices rather than publish a partial list.
     for(int mode=0;mode<3;++mode) {
@@ -51,7 +53,7 @@ int main(int argc,char**argv) {
         if(calls!=3)return 4;
         if(mode==0) {
             if(result!=IndexedCatalogResult::Complete||choices.size()!=1||choices[0].tag!=tag
-                ||!choices[0].prerelease||newerFirmwareRelease(argv[2],choices)!=tag)return 5;
+                ||choices[0].prerelease!=preview||newerFirmwareRelease(argv[2],choices)!=tag)return 5;
         } else if(result!=IndexedCatalogResult::Failed||choices.size()!=1||choices[0].tag!="previous")return 6;
     }
     // General discovery still works in every bounded release-list position.

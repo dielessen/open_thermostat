@@ -9,7 +9,7 @@ from homeassistant.components import mqtt
 from homeassistant.components.mqtt.models import ReceiveMessage
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass, RestoreSensor
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, PERCENTAGE, UnitOfInformation, UnitOfTemperature
+from homeassistant.const import EntityCategory, PERCENTAGE, UnitOfInformation, UnitOfTemperature, UnitOfTime
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -35,12 +35,12 @@ METRICS = {
 
 HUB_METRICS = {
     "device_status": {
-        "memory_free": ("mem_free", SensorDeviceClass.DATA_SIZE, UnitOfInformation.BYTES, SensorStateClass.MEASUREMENT, "Free memory"),
-        "memory_min_free": ("mem_min_free", SensorDeviceClass.DATA_SIZE, UnitOfInformation.BYTES, SensorStateClass.MEASUREMENT, "Minimum free memory"),
-        "memory_max_alloc": ("mem_max_alloc", SensorDeviceClass.DATA_SIZE, UnitOfInformation.BYTES, SensorStateClass.MEASUREMENT, "Maximum allocable memory"),
+        "memory_free": ("mem_free", SensorDeviceClass.DATA_SIZE, UnitOfInformation.KILOBYTES, SensorStateClass.MEASUREMENT, "Free memory"),
+        "memory_min_free": ("mem_min_free", SensorDeviceClass.DATA_SIZE, UnitOfInformation.KILOBYTES, SensorStateClass.MEASUREMENT, "Minimum free memory"),
+        "memory_max_alloc": ("mem_max_alloc", SensorDeviceClass.DATA_SIZE, UnitOfInformation.KILOBYTES, SensorStateClass.MEASUREMENT, "Maximum allocable memory"),
         "rtc_temperature": ("temperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "RTC temperature"),
         "cpu_temperature": ("cpu_temperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "ESP32 CPU temperature"),
-        "uptime": ("uptime", SensorDeviceClass.DURATION, "s", SensorStateClass.TOTAL_INCREASING, "Device uptime"),
+        "uptime": ("uptime", SensorDeviceClass.DURATION, UnitOfTime.HOURS, SensorStateClass.TOTAL_INCREASING, "Device uptime"),
     },
     "ems_metrics": {
         "energy": ("totalEnergyUsedKwh", SensorDeviceClass.ENERGY, "kWh", SensorStateClass.TOTAL_INCREASING, "Estimated nominal-modulation energy"),
@@ -68,12 +68,21 @@ HUB_METRICS = {
 
 VERSIONED_METRICS = frozenset(HUB_METRICS["ems_metrics"]) - {"outdoor_temperature"}
 
+# Memory in kB (the E32 sends bytes) and the uptime in hours (it sends seconds): "55 kB" and "1h 16m", which
+# the frontend formats only for the hour, minute and day units. Statistics stay valid: the recorder converts
+# kB and h to the B and s of the statistics compiled before (same unit class, no repair).
 HUB_DIVISORS = {
+    "memory_free": 1000,
+    "memory_min_free": 1000,
+    "memory_max_alloc": 1000,
+    "uptime": 3600,
     "boiler_current_flow_temperature": 10,
     "boiler_pressure": 10,
     "boiler_hot_water_flow": 10,
     "boiler_current_hot_water_temperature": 10,
 }
+# Whole kB; hours to 0.01 h, so the frontend's "1h 16m" has its minutes.
+HUB_PRECISION = {"memory_free": 0, "memory_min_free": 0, "memory_max_alloc": 0, "uptime": 2}
 
 
 async def _cleanup_stale(hass, entry):
@@ -594,6 +603,8 @@ class HubMetric(SensorEntity):
             self._attr_state_class = None
             self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._divisor = HUB_DIVISORS.get(metric, 1)
+        if metric in HUB_PRECISION:
+            self._attr_suggested_display_precision = HUB_PRECISION[metric]
         self._topic, self._metric = topic, metric
         self._entry_id = entry_id
         self._legacy_schema_seen = False

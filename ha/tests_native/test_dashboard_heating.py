@@ -288,9 +288,10 @@ async def test_learning_area_per_room_and_hot_water_today_only_once_reported(has
     # Today's hot-water taps are a boiler tile; the day's details in Diagnostics.
     taps = next(c for c in heating["sections"][3]["cards"] if c.get("entity") == hub["dhw_taps_today"])
     assert (taps["name"], taps["visibility"]) == ("Taps today", [known(hub["dhw_taps_today"])])
-    today = next(c for c in config["views"][2]["cards"] if c.get("title") == "Hot water today")
-    assert today["entities"] == [{"entity": hub[k], "name": {"type": "entity"}}
-                                 for k in ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today")]
+    today = next(x["cards"] for x in config["views"][2]["sections"] if x["cards"][0]["heading"] == "Hot water today")
+    assert [row["row"]["entity"] for row in today[1]["entities"]] == [
+        hub[k] for k in ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today")]
+    assert all(row["conditions"] == [known(row["row"]["entity"])] for row in today[1]["entities"])
     # In Dutch.
     hass.config.language = "nl"
     text = json.dumps(RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config(), ensure_ascii=False)
@@ -340,7 +341,7 @@ async def test_empty_installation_has_no_empty_sections(hass):
     e = entry(hass)
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     assert config["views"][0]["sections"] == [] and config["views"][1]["sections"] == []
-    assert [c["type"] for c in config["views"][2]["cards"]] == ["markdown"]  # only the hot water note
+    assert config["views"][2]["sections"] == []  # no hot water note without a hot water connection
     assert None not in list(walk(config))
 
 

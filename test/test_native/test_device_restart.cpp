@@ -66,3 +66,18 @@ TEST(DeviceRestart, ControlledRestartWaitsForUpdatesBootValidationAndBoilerSessi
     for(bool busy:{false,true})for(bool pending:{false,true})for(bool session:{false,true})
         EXPECT_EQ(update::controlledRestartAllowed(busy,pending,session),!busy&&!pending&&!session);
 }
+TEST(DeviceRestart, BoilerReleaseHoldWaitsForTheZeroAtMostNinetySeconds) {
+    update::BoilerReleaseHold hold;
+    EXPECT_TRUE(hold.ready(5000, true)); // nothing held: restart at once
+    update::BoilerReleaseHold held;
+    EXPECT_FALSE(held.ready(0, false)); // a millis() of 0 still starts the clock
+    EXPECT_FALSE(held.ready(89999, false));
+    EXPECT_TRUE(held.ready(90000, false));
+    update::BoilerReleaseHold delivered;
+    EXPECT_FALSE(delivered.ready(4294960000u, false));
+    EXPECT_TRUE(delivered.ready(4294960000u + 20000u, true)); // the zero arrived (across the millis() wrap)
+    update::BoilerReleaseHold wrap;
+    EXPECT_FALSE(wrap.ready(4294960000u, false));
+    EXPECT_FALSE(wrap.ready(4294960000u + 80000u, false));
+    EXPECT_TRUE(wrap.ready(4294960000u + 90000u, false));
+}

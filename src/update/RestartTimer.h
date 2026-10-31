@@ -47,6 +47,24 @@ struct BootConfirmation {
 inline bool controlledRestartAllowed(bool busy, bool pendingBoot, bool sessionActive) {
     return !busy && !pendingBoot && !sessionActive;
 }
+// Active heat (ActiveHeatGuard): a restart that is about to happen first lets
+// the E32 withdraw its boiler request, so the boiler is not left on a positive
+// request while the E32 boots. It waits until no positive request can still be
+// held (a zero was delivered), at most maxMs: a zero that cannot be delivered
+// never blocks an update or a rollback. Without a claim it never waits.
+class BoilerReleaseHold {
+public:
+    static constexpr uint32_t maxMs = 90000;
+    // released: ActiveHeatGuard::released(). True: the restart may go ahead now.
+    bool ready(uint32_t now, bool released) {
+        if (released) return true;
+        if (!started_) { since_ = now; started_ = true; }
+        return uint32_t(now - since_) >= maxMs;
+    }
+private:
+    uint32_t since_ = 0;
+    bool started_ = false;
+};
 // Shared by the OTA worker and HTTP/main loop. The EARLIEST requested deadline
 // wins: polling, a duplicate completion or a slower request can never
 // postpone a pending restart. Zero denotes an unarmed timer. Deadlines are

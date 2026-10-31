@@ -481,7 +481,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             } else if (page === 'curve') await ensureChart();
         }
         // Hash routes keep refresh, Back and bookmarks on the same page.
-        const pageRoutes = {heating:'rooms', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', bluetooth:'sensors', network:'settings', update:'update', system_log:'log', about:'about'};
+        const pageRoutes = {heating:'rooms', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', boiler_limits:'boiler-limits', bluetooth:'sensors', network:'settings', password:'password', update:'update', system_log:'log', about:'about'};
         const pageTitles = {home:"Overview", heating:"Rooms", boiler_test:"Boiler", bluetooth:"Sensors", network:"Settings", update:"Firmware update", system_log:"System log", about:"About"};
         function markPage(page) {
             try {
@@ -514,7 +514,8 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             // boiler choice, data, EMS devices and the attended test together.
             // The section alias opens the matching part of that page.
             window.otPageSection = page;
-            if (page === 'ems_devices' || page === 'boiler_display' || page === 'boiler_trial') page = 'boiler_test';
+            if (page === 'ems_devices' || page === 'boiler_display' || page === 'boiler_trial' || page === 'boiler_limits') page = 'boiler_test';
+            if (page === 'password') page = 'network'; // #password: the password card on the Settings page
             clearMainContainer();
             markPage(page);
             const navigation = navigationGeneration;
@@ -847,7 +848,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             return Promise.all([loadHistoryChart(), fetch(hostName + '/status/history', {signal: signal, cache: 'no-store'}).then(res => res.ok ? res.json() : null)])
                 .then(([, doc]) => { if (doc) dashboardHistory = OpenThermostatHistory.parse(doc, Date.now()); }).catch(() => {}).then(() => out);
         }
-        var otDefaultPassword = false; // from /auth/session; the About page clears it after a change
+        var otDefaultPassword = false; // from /auth/session; the Settings page clears it after a change
         function dashboardText(value) {
             return String(value == null ? '' : value).replace(/[&<>"']/g, function(c) {
                 return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
@@ -1064,7 +1065,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
         function dashboardPasswordNotice() {
             return otDefaultPassword !== true ? '' : '<div class="alert alert-warning ot-actions" data-dashboard-key="default-password" role="status"><span>'+
                 uiText("This E32 still uses the default password. Choose your own so nobody else on your network can change your heating.")+'</span> '+
-                '<a class="btn btn-outline-primary" href="#about" data-page="about">'+uiText("Change password")+'</a></div>';
+                '<a class="btn btn-outline-primary" href="#password" data-page="password">'+uiText("Change password")+'</a></div>';
         }
         function dashboardUpdateNotice(update) {
             if (!update || update.known !== true || update.available !== true ||
@@ -1090,14 +1091,14 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
         function comfortState(c) {
             if (!c || typeof c !== 'object') return '';
             var until = Number.isFinite(c.until) && c.until > 0 ? comfortTime(c.until) : null, t = dashboardNumber(c.target_c,1,5,35);
-            if (c.mode === 'window_open') return uiText("Window open: paused");
+            if (c.mode === 'window_open') return uiText("Window open: heating paused");
             if (c.mode === 'boost') return until ? uiText("Boost until {time}").replace('{time}',until) : uiText("Boost");
             if ((c.mode === 'timed' || c.mode === 'next') && t !== null) return until ? uiText("{temp} °C until {time}").replace('{time}',until).replace('{temp}',t) :
                 Number.isFinite(c.remaining_s) ? uiText("{temp} °C for {minutes} min").replace('{minutes}',Math.ceil(c.remaining_s/60)).replace('{temp}',t) : '';
             if (c.mode === 'away') return until ? uiText("Away until {time}").replace('{time}',until) : uiText("Away");
             if (c.mode === 'presence_away') return uiText("Everyone away");
             if (c.mode === 'away_return') return uiText("Warming up for your return");
-            if (c.window === 'pending') return uiText("Window open: pauses soon");
+            if (c.window === 'pending') return uiText("Window open: heating pauses soon");
             return c.waiting_for_clock ? uiText("Waiting for the clock") : '';
         }
         function comfortNoticeHtml(room) {

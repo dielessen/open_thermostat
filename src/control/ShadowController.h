@@ -159,6 +159,12 @@ public:
     // source policy that HA checks.
     static constexpr const char* compactCapability="session.compact.v1";
     bool compactSession() const { return session_&&compact_; }
+    // boiler.output.v1 (beta.22): an HA that asks for it in ha/capabilities gets the real
+    // boiler_output_enabled (true while the E32 itself sends the boiler request); older HA
+    // never asks and keeps seeing false, which it requires. actuator_output_enabled stays false.
+    static constexpr const char* boilerOutputCapability="boiler.output.v1";
+    void setBoilerOutput(std::function<bool()> output) { boilerOutput_=std::move(output); }
+    bool boilerOutputFlag() const { return session_&&boilerOutputReported_&&boilerOutput_&&boilerOutput_(); }
     ShadowController(std::string controller,std::string boot,std::string owner,
                      ControlStore &store,Hash hash,Nonce nonce,Publish publish,Metrics metrics={},
                      const SeasonalControllerSource* seasonalSource=nullptr,
@@ -760,7 +766,7 @@ private:
         admission_.invalidateTransport(); session_=mappingReady_=leaseWasAlive_=compact_=false;
         nextHello_=lastNow_; statePublishedAt_=0; stateKey_=0; // a lost session is announced at once
         sessionId_.clear(); lastOpen_.clear(); pendingGrantNonce_.clear(); issuedGrantNonce_.clear();
-        nextMetrics_=0;metricsSequence_=0;nextBoilerFields_=0;boilerSequence_=0;boilerGroup_=0;boilerFieldsV2_=false;catalogFieldsKnown_=catalogFieldsWithoutCount;
+        nextMetrics_=0;metricsSequence_=0;nextBoilerFields_=0;boilerSequence_=0;boilerGroup_=0;boilerFieldsV2_=false;boilerOutputReported_=false;catalogFieldsKnown_=catalogFieldsWithoutCount;
         for(size_t i=0;i<config_->count;++i) {
             auto &z=config_->zones[i]; z.sample.unavailable(); z.comfort.invalidate();z.comfortInputs=ComfortInputs{}; z.overrideUntil=0; z.off=false; z.demand=false;
             // SOURCE-selected regulator keeps its owner/timing fences and minimum
@@ -897,6 +903,7 @@ private:
             if(caps&&metrics_)cJSON_AddItemToArray(caps,cJSON_CreateString(metricsCapability));
             if(caps&&boilerFields_)cJSON_AddItemToArray(caps,cJSON_CreateString(boilerFieldsCapability));
             if(caps&&boilerFields_)cJSON_AddItemToArray(caps,cJSON_CreateString(boilerFieldsV2Capability));
+            if(caps&&boilerOutput_)cJSON_AddItemToArray(caps,cJSON_CreateString(boilerOutputCapability));
         }
         send("fw/hello",o.get());
     }
@@ -922,7 +929,7 @@ private:
             ||!cJSON_AddStringToObject(o.get(),"grant_id",grant_.c_str())
             ||!cJSON_AddNumberToObject(o.get(),"grant_sequence",grantSequence_)
             ||!cJSON_AddNumberToObject(o.get(),"sequence",metricsSequence_+1)
-            ||!cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false)
+            ||!cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",boilerOutputFlag())
             ||!cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false)
             ||!cJSON_AddItemToObject(o.get(),"metrics",metrics.get()))return;
         metrics.release();const auto bytes=printJson(o.get());
@@ -952,7 +959,7 @@ private:
                 ||!cJSON_AddNumberToObject(o.get(),"grant_sequence",grantSequence_)
                 ||!cJSON_AddNumberToObject(o.get(),"sequence",boilerSequence_+1)
                 ||!cJSON_AddNumberToObject(o.get(),"group",group)
-                ||!cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false)
+                ||!cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",boilerOutputFlag())
                 ||!cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false)
                 ||!cJSON_AddItemToObject(o.get(),"values",values.get()))return;
             values.release();const auto bytes=printJson(o.get());
@@ -972,6 +979,10 @@ private:
         for(const cJSON* c=list->child;c;c=c->next)
             if(cJSON_IsString(c)&&c->valuestring&&std::string_view(c->valuestring)==boilerFieldsV2Capability)v2=true;
         boilerFieldsV2_=v2;
+        bool output=false;
+        for(const cJSON* c=list->child;c;c=c->next)
+            if(cJSON_IsString(c)&&c->valuestring&&std::string_view(c->valuestring)==boilerOutputCapability)output=true;
+        boilerOutputReported_=output&&static_cast<bool>(boilerOutput_);
         catalogFieldsKnown_=known?static_cast<size_t>(known->valuedouble):catalogFieldsWithoutCount;
         boilerGroup_=0;
     }
@@ -1012,7 +1023,7 @@ private:
             cJSON_AddNumberToObject(o.get(),"request_sequence",request);
             cJSON_AddStringToObject(o.get(),"profile_digest",nativePlanSource_->profileDigest.c_str());
             cJSON_AddStringToObject(o.get(),"plan_contract",nativePlanSource_->planContract());
-            cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false);cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
+            cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",boilerOutputFlag());cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
         }
         send("fw/config_snapshot",o.get());
     }
@@ -1031,7 +1042,7 @@ private:
     }
     void state(uint64_t now,int64_t utc,bool clockValid,bool force=false) {
         auto o=base(); sourcePolicy(o.get()); cJSON_AddStringToObject(o.get(),"mode","shadow");
-        cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false); cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
+        cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",boilerOutputFlag()); cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
         // Same owner's bounded last admission, not a command receipt/authority
         // or measurement timestamp. No grant, nonce, session or settings hash.
         if(lastUserCommand_.sequence) {
@@ -1227,6 +1238,8 @@ private:
     uint32_t boilerSequence_=0;
     size_t boilerGroup_=0;
     bool boilerFieldsV2_=false; // HA announced boiler.fields.v2 in this session
+    bool boilerOutputReported_=false; // HA asked for boiler.output.v1 in this session
+    std::function<bool()> boilerOutput_; // HeatingController: the E32 sends the boiler request
     size_t catalogFieldsKnown_=catalogFieldsWithoutCount;
     uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0,statePublishedAt_=0;
     uint32_t stateKey_=0;

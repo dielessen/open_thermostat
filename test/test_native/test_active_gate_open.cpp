@@ -209,4 +209,40 @@ TEST(ActiveGateOpen, PlannedRestartWithdrawsWithZeroAndReleasesTheBoiler) {
     l.runFor(hour);
     for (auto f : l.flows(quiet)) EXPECT_EQ(f, 0); // never a new takeover before the restart
 }
+
+// boiler_output_enabled for HA (boiler.output.v1) follows outputActive(): true only
+// while the guard owns the boiler and sends; false in every other state.
+TEST(ActiveGateOpen, OutputFlagIsTrueOnlyWhileTheE32SendsTheRequest) {
+    Loop l(true);
+    l.runFor(10 * minute);
+    EXPECT_FALSE(l.guard.outputActive());                       // shadow plan
+    l.plan = RoomPlan::Mode::active;
+    l.runFor(10 * minute);
+    EXPECT_FALSE(l.guard.outputActive());                       // active plan, no confirmation
+    ASSERT_TRUE(l.handover(true));
+    l.runFor(10 * minute);
+    ASSERT_FALSE(l.flows().empty());
+    EXPECT_TRUE(l.guard.outputActive());                        // confirmed and sending
+    l.in.routeReady = false; l.step();
+    EXPECT_FALSE(l.guard.outputActive());                       // route not ready: nothing goes out
+    l.in.routeReady = true; l.step();
+    EXPECT_TRUE(l.guard.outputActive());
+    l.handover(false); l.step();
+    EXPECT_FALSE(l.guard.outputActive());                       // hand-back (stop-zero)
+    l.runFor(hour);
+    EXPECT_FALSE(l.guard.outputActive());
+
+    Loop f(true); f.plan = RoomPlan::Mode::active; ASSERT_TRUE(f.handover(true)); f.runFor(10 * minute);
+    ASSERT_TRUE(f.guard.outputActive());
+    f.in.foreign = ActiveHeatGuard::Foreign{0x17, f.now}; f.step();
+    EXPECT_FALSE(f.guard.outputActive());                       // a foreign 0x1A
+
+    Loop m(true); m.plan = RoomPlan::Mode::active; ASSERT_TRUE(m.handover(true)); m.runFor(10 * minute);
+    m.in.rooms.lost = 1; m.in.rooms.fresh = 0; m.step();
+    EXPECT_FALSE(m.guard.outputActive());                       // measurement lost: zero requests
+
+    Loop w(true); w.plan = RoomPlan::Mode::active; ASSERT_TRUE(w.handover(true)); w.runFor(10 * minute);
+    w.guard.withdraw(w.now); w.step();
+    EXPECT_FALSE(w.guard.outputActive());                       // planned-restart withdrawal
+}
 }

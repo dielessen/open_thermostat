@@ -55,7 +55,9 @@ int main(int argc,char **argv) {
     const bool deviceIds=std::getenv("OPENTHERMOSTAT_RUNNER_DEVICE_IDS")!=nullptr;
     const std::string controller=deviceIds?"e32_0123456789ab":"e32_lab";
     const auto padded=[&](std::string id){if(deviceIds&&id.size()<32)id.append(32-id.size(),'0');return id;};
-    const auto boot=[&](const std::string &id) {core=std::make_unique<ShadowController>(controller,padded(id),adapter,store,controlTestHash,[&]{++nonce;return deviceIds?padded("nonce"+std::to_string(nonce)+"x"):"nonce"+std::to_string(nonce);},publish,provider,seasonal?&seasonalSource:nullptr,safetyProvider,nullptr,boilerProvider);};
+    // OPENTHERMOSTAT_RUNNER_BOILER_OUTPUT: wire boiler.output.v1 (beta.22); event boiler_output {"on":bool}.
+    const bool outputWired=std::getenv("OPENTHERMOSTAT_RUNNER_BOILER_OUTPUT")!=nullptr;bool boilerOutput=false;
+    const auto boot=[&](const std::string &id) {core=std::make_unique<ShadowController>(controller,padded(id),adapter,store,controlTestHash,[&]{++nonce;return deviceIds?padded("nonce"+std::to_string(nonce)+"x"):"nonce"+std::to_string(nonce);},publish,provider,seasonal?&seasonalSource:nullptr,safetyProvider,nullptr,boilerProvider);if(outputWired)core->setBoilerOutput([&]{return boilerOutput;});};
     boot("boot1");
     std::string line;
     while(std::getline(std::cin,line)) {
@@ -83,6 +85,7 @@ int main(int argc,char **argv) {
             safety.preempted=cJSON_IsTrue(field(event.get(),"preempted"));
         } else if(op=="boiler_payload"&&integerField(event.get(),"group",0,6)) boilerRaw[uintField(event.get(),"group")]=stringField(event.get(),"raw");
         else if(op=="metrics_payload") metricRaw=stringField(event.get(),"raw");
+        else if(op=="boiler_output") boilerOutput=cJSON_IsTrue(field(event.get(),"on"));
         else if(op=="store_fault") {store.fail=cJSON_IsTrue(field(event.get(),"fail"));store.commitOnError=cJSON_IsTrue(field(event.get(),"commit_on_error"));}
         else return 4;
         std::cout<<"{\"event_done\":true}"<<std::endl;

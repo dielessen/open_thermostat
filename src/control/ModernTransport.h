@@ -212,6 +212,8 @@ public:
     using HeatingRoomTelemetry=std::function<std::string(std::size_t,std::string&)>;
     // fw/telemetry/summary: learned header and today's hot water.
     using HeatingSummary=std::function<std::string()>;
+    // boiler.output.v1: whether the E32 itself sends the boiler request (HeatingController).
+    void setBoilerOutput(std::function<bool()> output) { if(controller_)controller_->setBoilerOutput(std::move(output)); }
     void setHeatingRoute(HeatingInput input,HeatingStatus status,HeatingRoomCount roomCount={},HeatingRoomTelemetry room={},
                          HeatingSummary summary={}) {
         heatingInput_=std::move(input);

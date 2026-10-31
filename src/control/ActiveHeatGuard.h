@@ -111,6 +111,7 @@ public:
         if (in.boilerHeardAtMs && (!heardAt_ || *in.boilerHeardAtMs < *heardAt_ || *in.boilerHeardAtMs - *heardAt_ > p_.busGapMs))
             listenSince_ = *in.boilerHeardAtMs; // reception starts (again)
         if (in.boilerHeardAtMs) heardAt_ = in.boilerHeardAtMs;
+        routeReady_ = in.routeReady;
         const bool wanted = in.mode == RoomPlan::Mode::active && p_.valid();
         if (!wanted) { confirmedAt_.reset(); blocked_ = false; }
         if (confirmedAt_ && foreign_ && foreign_->receivedAtMs > *confirmedAt_) { confirmedAt_.reset(); blocked_ = true; }
@@ -158,6 +159,11 @@ public:
     const Command& command() const { return command_; }
     bool warning(Warning w) const { return warnings_ & w; }
     bool confirmed() const { return confirmedAt_.has_value(); }
+    // The E32 itself asks the boiler for heat: it owns the boiler (gate open, plan
+    // active, handover confirmed, past its hold-offs) and sends over a ready route.
+    // False in shadow, while waiting, stopping (stop-zero, a withdrawal) or after
+    // lost measurements: reported to HA as boiler_output_enabled.
+    bool outputActive() const { return state_ == State::active && confirmedAt_ && !withdrawn_ && routeReady_; }
     bool owning() const { return state_ == State::active || state_ == State::stoppedMeasurementLost; }
     // Owns the boiler or still withdraws its request: the boiler trial waits.
     bool claimsBoiler() const { return owning() || state_ == State::stopping; }
@@ -258,6 +264,7 @@ private:
     bool phaseSent_ = false, everSent_ = false, pending_ = false, frost_ = false, zeroWindow_ = false, responded_ = false;
     bool blocked_ = false; // a foreign request after the confirmation: confirm again
     bool restored_ = false; // confirmation from NVS: listen restoredListenMs before owning
+    bool routeReady_ = false; // the last step's in.routeReady
     bool withdrawn_ = false; // a planned restart is coming: stopping, no new takeover this boot
     std::optional<uint64_t> heardAt_; uint64_t listenSince_ = 0; // continuous boiler reception
     bool holdsPositive_ = false; // a positive request was sent and no zero delivered since

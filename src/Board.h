@@ -16,9 +16,10 @@ constexpr int phyMdio = 18;
 constexpr bool emsTransmitAllowed = false;
 // Separate source-reviewed manual route; never grants legacy TX permission.
 constexpr bool emsManualTestTransmitAllowed = true;
-// Active heating (ActiveHeatGuard) over that same manual route. Closed until
-// the lead releases the attended switch-over from the tado.
-constexpr bool emsActiveHeatAllowed = false;
+// Active heating (ActiveHeatGuard) over that same manual route. Open since
+// beta.22 (owner, 31 Oct 2026): the build may send, but nothing is sent until
+// the owner sets the plan to active AND confirms the handover from the tado.
+constexpr bool emsActiveHeatAllowed = true;
 // Read-only request for the boiler's own heating limit (0x16) over that route,
 // at boot and every 6 h (EMS/BoilerLimitRead.h); active heat needs the value.
 constexpr bool emsBoilerLimitReadAllowed = emsManualTestTransmitAllowed;

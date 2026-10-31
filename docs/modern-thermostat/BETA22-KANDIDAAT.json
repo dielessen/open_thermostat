@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "date": "2026-10-31",
+  "planned_tag": "v0.1.0-e32v2-beta.22",
+  "previous_published_tag": "v0.1.0-e32v2-beta.21",
+  "state": "FROZEN_SHADOW_AWAITING_EXACT_TAG_CI",
+  "formal_freeze": true,
+  "published": false,
+  "installed": false,
+  "ha_tag": "ha-v0.4.0b14",
+  "ha_installed": false,
+  "install_together": true,
+  "install_order": [
+    "ha-v0.4.0b14 (integration package, HA restart)",
+    "v0.1.0-e32v2-beta.22 (Home Assistant Firmware update entity, one Install press)"
+  ],
+  "observed_installed_e32": "v0.1.0-e32v2-beta.21",
+  "observed_installed_ha": "0.4.0b13",
+  "publication_condition": "green shadow analysis (tools/switchover/shadow_exit.py) and the owner's explicit go",
+  "owner_instruction": "docs/modern-thermostat/BETA22-OWNER-INSTRUCTION-20261031.json",
+  "publication_exception": null,
+  "last_accepted_native_e32": "v0.1.0-e32v2-beta.4",
+  "predecessor_acceptance": {
+    "tag": "v0.1.0-e32v2-beta.21",
+    "receipt": "docs/modern-thermostat/update-acceptance/e32-beta21-20261031.json",
+    "status": "PASS",
+    "receipt_sha256": "04d40f523102df71e3214c70d8b5ab54ac81b428fa8c699754d63f8f3931a6fa"
+  },
+  "planned_acceptance": {
+    "method": "home_assistant",
+    "checklist": "docs/modern-thermostat/HA-UPDATE-ACCEPTANCE-BETA19.md",
+    "receipt": "docs/modern-thermostat/update-acceptance/e32-beta22-<YYYYMMDD>.json"
+  },
+  "changes": [
+    "board::emsActiveHeatAllowed open in the E32 V2 build only; active control still needs an active plan and the owner's confirmed takeover",
+    "boiler_output_enabled reports the real output to HA 0.4.0b14 (capability boiler.output.v1); older HA keeps false",
+    "Tests: opening the gate alone sends nothing (byte-for-byte the shadow behaviour); guarded active path after confirmation"
+  ],
+  "not_included": [
+    "automatic activation (active control needs the plan set to active and the owner's handover confirmation)",
+    "any change in behaviour besides the gate constant",
+    "a HACS repository for the integration",
+    "editing the bodies of earlier published releases (beyond the automatic organize_releases archive labels)"
+  ],
+  "software_validation": {
+    "physical_test_performed": false
+  },
+  "active_gate_open_in_build": true,
+  "physical_outputs_automatically_enabled": false,
+  "persistent_boiler_setting_writes_enabled": false,
+  "full_ten_minute_physical_success_claimed": false,
+  "native_https_root_cause_fixed": false
+}

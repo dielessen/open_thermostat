@@ -161,7 +161,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    page.on('pageerror',e=>errors.push(e.message));
    await page.route('http://ha.test/**',route=>{const p=new URL(route.request().url()).pathname;
     if(p==='/')return route.fulfill({contentType:'text/html',body:'<meta name="viewport" content="width=device-width, initial-scale=1"><body style="margin:0;font:15px system-ui"><main></main></body>'});
-    if(p==='/open_thermostat/week-editor-0.4.0b13.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'week-editor.js'))});
+    if(p==='/open_thermostat/week-editor-0.4.0b14.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'week-editor.js'))});
     if(p==='/card.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'e32-week-card.js'))});
     return route.fulfill({status:404,body:''});});
    await page.goto('http://ha.test/');await page.addScriptTag({url:'/card.js',type:'module'});

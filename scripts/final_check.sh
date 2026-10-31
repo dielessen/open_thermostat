@@ -71,9 +71,18 @@ s_static(){
   grep -q "e32-week-card-$HA.js" ha/config/custom_components/open_thermostat/e32_week.py \
     && grep -q "week-editor-$HA.js" ha/config/custom_components/open_thermostat/frontend/e32-week-card.js \
     || { echo "FAIL frontend asset URLs do not carry $HA"; return 1; }
-  [ "$(grep -c 'constexpr bool emsActiveHeatAllowed = false;' src/Board.h)" -ge 2 ] \
-    && ! grep -q 'emsActiveHeatAllowed = true' src/Board.h || { echo "FAIL active heat gate is not locked"; return 1; }
-  echo "active heat gate locked (board::emsActiveHeatAllowed = false)"
+  # Since beta.22 only the E32 V2 build may send an active heat request (after the
+  # owner's plan + handover); every other board keeps the gate closed.
+  python3 - <<'PY' || { echo "FAIL active heat gate: only the E32 V2 branch of src/Board.h may be open"; return 1; }
+import re
+s = open('src/Board.h').read()
+e32, other = s.split('#ifdef OPENTHERMOSTAT_E32V2', 1)[1].split('#else', 1)
+other = other.split('#endif', 1)[0]
+gate = r'constexpr bool emsActiveHeatAllowed = (\w+);'
+assert re.findall(gate, e32) == ['true'] and re.findall(gate, other) == ['false']
+assert s.count('emsActiveHeatAllowed =') == 2
+PY
+  echo "active heat gate: open in the E32 V2 build only (nothing is sent before the owner's handover)"
   if grep -rn 'TODO-FINAL' docs/modern-thermostat/RELEASE-NOTES.md docs/modern-thermostat/HA-RELEASE-NOTES.md README.md docs/INSTALL.md docs/USER-GUIDE.md; then
     echo "FAIL TODO-FINAL markers left"; return 1; fi
   if [ "${ALLOW_DIRTY:-0}" != 1 ] && [ -n "$(git status --porcelain --untracked-files=normal -- . ':!out' ':!node_modules' ':!.vscode')" ]; then

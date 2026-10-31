@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 _KEY = DOMAIN + "_week_frontend"
 # Versioned like the card and editor URLs (the manifest version): a changed module is never taken
 # from the browser cache. The older URLs stay served for pages loaded before an update.
-URL = "/open_thermostat/week-planner-0.4.0b13.js"
+URL = "/open_thermostat/week-planner-0.4.0b14.js"
 LEGACY_URLS = ("/open_thermostat/week-planner-0.4.0b4.js", "/open_thermostat/week-planner-0.4.0.dev41.js")
 ROOM_CARD_TYPE = "custom:openthermostat-room-editor-v42"
 

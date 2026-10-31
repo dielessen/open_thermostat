@@ -162,6 +162,7 @@ public:
         // A stored "thermostat disconnected" (same firmware) resumes active heat
         // after 2 min of bus reception without a foreign 0x1A, which clears it.
         if (handover_.restore()) activeGuard_.restore(bleReceiptClock());
+        mqtt_.setBoilerOutput([this] { return boilerOutput_.load(); });
         mqtt_.setHeatingRoute([this](std::string_view payload) { heatingInput(payload); }, [this] {
             // The compact form, split into the small MQTT topics (HeatingStateTopics.h): no past
             // days, static plan fields, learned or hot water (summary and learned/<id> carry those).
@@ -715,6 +716,7 @@ private:
     control::RoomOverrides overrides_; // beta.19: temporary overrides, window pauses, away (targets only)
     control::ShadowComparison shadowComparison_; // E32 decision vs the tado's 0x1A, per day
     control::ActiveHeatGuard activeGuard_;
+    std::atomic<bool> boilerOutput_{false}; // activeGuard_.outputActive() of the last step, for other tasks
     update::BoilerReleaseHold restartHold_;
     // Per room how fast it warms per flow (report only; ~1.15 KB heap per room, PSRAM extmem).
     control::FlowLearner flowLearner_;
@@ -854,6 +856,7 @@ private:
         activeGuard_.setFlowLimits(plan.minimumFlowC, plan.maximumFlowC);
         const auto c = activeGuard_.step(now, in);
         handover_.sync(activeGuard_.confirmed()); // a foreign 0x1A or shadow mode erases the stored one
+        boilerOutput_.store(activeGuard_.outputActive()); // read by the HA session (boiler.output.v1)
         activePosted_ = ems_.activeHeatPost(c.send ? std::optional<uint8_t>(c.flowC) : std::nullopt,
             in.mode == control::RoomPlan::Mode::active && activeGuard_.confirmed(), activeGuard_.claimsBoiler());
         activePostedAt_ = now;

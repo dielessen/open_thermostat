@@ -62,11 +62,14 @@ examples; use your own.
   unconfirmed firmware) the E32 stops with its zero window and restarts once a
   zero was delivered, at most 90 s later; until then it does not take over
   again. In shadow mode nothing changes.
-- **The active gate.** Released firmware ships with active control locked
-  (`board::emsActiveHeatAllowed = false`). It is opened only on the switch-over
-  day, in a separate, explicitly approved build that differs only in that
-  constant. Until then the Rooms page says "Active control is not enabled in
-  this firmware."
+- **The active gate.** Up to beta.21 released firmware ships with active
+  control locked (`board::emsActiveHeatAllowed = false`); the Rooms page then
+  says "Active control is not enabled in this firmware." Beta.22 is the
+  separate gate build (owner decision of 31 Oct 2026): it differs from beta.21
+  only in that constant for the E32 V2 build. Opening the gate starts nothing:
+  the plan must be set to active and the handover confirmed before the E32
+  sends a request (tests: `test/test_native/test_active_gate_open.cpp`).
+  Beta.22 is published only after a green shadow analysis and the owner's go.
 
 States (Rooms → **Active control**, and `GET /status/heating` → `active.state`):
 

@@ -16,8 +16,11 @@ without Home Assistant. This module adds, on top of that plan (E32 beta.19,
   lower temperature for the whole house, optionally until a date). The E32
   ends every override itself, also after a restart, and returns the room to
   its week program; a dated away ends early enough to be warm again on time.
-- the optional window/door contacts per room and a presence entity ("everyone
-  away"), forwarded to the E32 over ``<base>ha/heating_input``::
+- the optional window/door contacts per room and the people of the house
+  (beta.23: several person entities; "everyone away" only after all of them
+  have been away for the away delay, and never while one of them is unknown),
+  forwarded to the E32 over ``<base>ha/heating_input`` as one aggregated value
+  (the same message E32 beta.21 understands)::
 
       {"kind": "contact", "room": "living", "open": true, "delay_s": 120}
       {"kind": "presence", "home": false}
@@ -41,30 +44,34 @@ import json
 from homeassistant.components import mqtt
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
-    PRESET_AWAY, PRESET_BOOST, PRESET_COMFORT, PRESET_ECO, PRESET_NONE, ClimateEntityFeature, HVACAction, HVACMode)
+    PRESET_BOOST, PRESET_COMFORT, PRESET_ECO, PRESET_NONE, ClimateEntityFeature, HVACAction, HVACMode)
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import selector
-from homeassistant.helpers.event import async_track_state_change_event, async_track_time_interval
+from homeassistant.helpers.event import async_call_later, async_track_state_change_event, async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .heating_link import RoomEntity, add_options, heating_hub, number, track_entities
 
 CONF_COMFORT = "comfort_settings"
-DEFAULTS = {"presence_entity": None, "comfort_c": 20.0, "eco_c": 16.0,  # the week planner's defaults
+DEFAULTS = {"presence_entity": None, "presence_entities": [], "away_delay_min": 15,
+            "comfort_c": 20.0, "eco_c": 16.0,  # the week planner's defaults
             "contact_delay_s": 120,
             "override_minutes": 120, "contacts": {}}
 TEMPERATURE_LIMITS = (5.0, 30.0)
 AWAY_LIMITS = (5.0, 25.0)
 DELAY_LIMITS = (0, 1800)       # the E32's own bound (RoomOverrides::maxContactDelayS)
 MINUTES_LIMITS = (1, 1440)     # the E32's own bound (RoomOverrides::maxMinutes)
+AWAY_DELAY_LIMITS = (0, 240)   # minutes everyone must be away before the house counts as away
+MAX_PRESENCE = 16
 MAX_CONTACTS = 8
 MAX_AWAY_DAYS = 366
 REFRESH = timedelta(minutes=5)
 CONTACT_CLASSES = ("window", "door", "opening", "garage_door")
-PRESETS = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_AWAY, PRESET_BOOST]
+# No "away" preset per room (owner, 31 Oct 2026): away is the house mode (e32_house.py), not one room's choice.
+PRESETS = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_BOOST]
 OVERRIDES = ("boost", "timed", "next")
 AWAY_MODES = ("away", "presence_away", "away_return")
 # The E32's refusals that have their own message; the rest name the E32's code.
@@ -85,6 +92,14 @@ def comfort_options(entry):
     presence = raw.get("presence_entity")
     if type(presence) is str and "." in presence:
         out["presence_entity"] = presence
+    # Several people since beta.23; an older single presence entity becomes a list of one.
+    people = raw.get("presence_entities")
+    if type(people) is list:
+        out["presence_entities"] = [e for e in people if type(e) is str and "." in e][:MAX_PRESENCE]
+    elif out["presence_entity"]:
+        out["presence_entities"] = [out["presence_entity"]]
+    if type(raw.get("away_delay_min")) is int and AWAY_DELAY_LIMITS[0] <= raw["away_delay_min"] <= AWAY_DELAY_LIMITS[1]:
+        out["away_delay_min"] = raw["away_delay_min"]
     for key, (low, high) in (("comfort_c", TEMPERATURE_LIMITS), ("eco_c", TEMPERATURE_LIMITS)):
         if number(raw.get(key), low, high) is not None:
             out[key] = float(raw[key])
@@ -104,14 +119,29 @@ class ComfortError(ValueError):
         self.field, self.code = field, code
 
 
-def validate_settings(hass, user_input, current):
-    """The house settings from the options form (presence, preset temperatures, delay, duration)."""
+def validate_presence(hass, user_input, current):
+    """The people of the house and the away delay (Configure → Home → Presence)."""
     out = dict(current)
-    presence = user_input.get("presence_entity") or None
-    if presence is not None:
-        if hass.states.get(presence) is None or presence.split(".")[0] not in PRESENCE_DOMAINS:
-            raise ComfortError("presence_entity", "presence_entity_invalid")
-    out["presence_entity"] = presence
+    people = user_input.get("presence_entities") or []
+    if (type(people) is not list or len(people) > MAX_PRESENCE or len(set(people)) != len(people)
+            or any(type(e) is not str or e.split(".")[0] not in PRESENCE_DOMAINS for e in people)):
+        raise ComfortError("presence_entities", "presence_entity_invalid")
+    for entity_id in people:  # a person already chosen may be unavailable now (a phone off); a new one must exist
+        if entity_id not in current["presence_entities"] and hass.states.get(entity_id) is None:
+            raise ComfortError("presence_entities", "presence_entity_invalid")
+    delay = number(user_input.get("away_delay", out["away_delay_min"]), *AWAY_DELAY_LIMITS)
+    if delay is None or delay != int(delay):
+        raise ComfortError("away_delay", "whole_number_invalid")
+    out["presence_entities"] = list(people)
+    # HA 0.4.0b13 and older read one entity: the first person (a downgrade then follows that person only).
+    out["presence_entity"] = people[0] if people else None
+    out["away_delay_min"] = int(delay)
+    return out
+
+
+def validate_settings(hass, user_input, current):
+    """The comfort settings from the options form (preset temperatures, delay, duration)."""
+    out = dict(current)
     for field, key, limits in (("comfort_temperature", "comfort_c", TEMPERATURE_LIMITS),
                                ("eco_temperature", "eco_c", TEMPERATURE_LIMITS)):
         value = number(user_input.get(field, out[key]), *limits)
@@ -193,15 +223,24 @@ def settings_schema(vol, settings):
     def box(low, high, step, unit):
         return selector.NumberSelector({"min": low, "max": high, "step": step, "mode": "box",
                                         "unit_of_measurement": unit})
-    presence = settings["presence_entity"]
     return vol.Schema({
-        (vol.Optional("presence_entity", description={"suggested_value": presence}) if presence
-         else vol.Optional("presence_entity")): selector.EntitySelector(
-            {"filter": [{"domain": list(PRESENCE_DOMAINS)}]}),
         vol.Required("comfort_temperature", default=settings["comfort_c"]): box(*TEMPERATURE_LIMITS, 0.5, "°C"),
         vol.Required("eco_temperature", default=settings["eco_c"]): box(*TEMPERATURE_LIMITS, 0.5, "°C"),
         vol.Required("contact_delay", default=settings["contact_delay_s"]): box(*DELAY_LIMITS, 1, "s"),
         vol.Required("override_minutes", default=settings["override_minutes"]): box(*MINUTES_LIMITS, 1, "min"),
+    })
+
+
+def presence_schema(vol, settings):
+    """Configure → Home → Presence: the people of the house and how long everyone must be away."""
+    people = settings["presence_entities"]
+    return vol.Schema({
+        (vol.Optional("presence_entities", description={"suggested_value": people}) if people
+         else vol.Optional("presence_entities")): selector.EntitySelector(
+            {"filter": [{"domain": list(PRESENCE_DOMAINS)}], "multiple": True}),
+        vol.Required("away_delay", default=settings["away_delay_min"]): selector.NumberSelector(
+            {"min": AWAY_DELAY_LIMITS[0], "max": AWAY_DELAY_LIMITS[1], "step": 1, "mode": "box",
+             "unit_of_measurement": "min"}),
     })
 
 
@@ -244,6 +283,29 @@ def presence_home(state):
     return state.state == "home"
 
 
+def house_presence(hass, people, delay_min, now=None):
+    """(home, wait_s) for the people of the house.
+
+    home is True while anyone is home, while anyone's place is unknown or
+    unavailable ("bij twijfel blijft het warm") and while the last person left
+    less than the away delay ago; then wait_s is the seconds until the house
+    counts as away. False: everyone has been away for at least the delay. None:
+    no people configured.
+    """
+    if not people:
+        return None, None
+    states = [hass.states.get(e) for e in people]
+    values = [presence_home(state) for state in states]
+    if any(value is not False for value in values):
+        return True, None
+    now = now or dt_util.utcnow()
+    left = max(state.last_changed for state in states)
+    remaining = (left + timedelta(minutes=delay_min) - now).total_seconds()
+    if remaining > 0:
+        return True, remaining
+    return False, None
+
+
 def contacts_open(states):
     """True when any contact is open, False when all are closed, None when unknown."""
     values = [None if s is None else {"on": True, "off": False}.get(s.state) for s in states]
@@ -254,7 +316,7 @@ def contacts_open(states):
     return None
 
 
-def comfort_payloads(hass, settings, room_ids, only=None):
+def comfort_payloads(hass, settings, room_ids, only=None, now=None):
     """The typed heating_input payloads (dicts) for the configured contacts and presence."""
     payloads = []
     for room_id, ids in sorted(settings["contacts"].items()):
@@ -264,9 +326,9 @@ def comfort_payloads(hass, settings, room_ids, only=None):
         if value is not None:
             payloads.append({"kind": "contact", "room": room_id, "open": value,
                              "delay_s": settings["contact_delay_s"]})
-    presence = settings["presence_entity"]
-    if presence and only in (None, presence):
-        home = presence_home(hass.states.get(presence))
+    people = settings["presence_entities"]
+    if people and only in (None, *people):
+        home, _wait = house_presence(hass, people, settings["away_delay_min"], now)
         if home is not None:
             payloads.append({"kind": "presence", "home": home})
     return payloads
@@ -279,6 +341,7 @@ class ComfortForwarder:
         self.hass, self.entry, self.hub, self.send, self.track_state = hass, entry, hub, send, track_state
         self._unsubscribe = None
         self._was_fresh = False
+        self._away_timer = None  # sends "everyone away" once the away delay has passed
 
     @property
     def settings(self):
@@ -287,14 +350,32 @@ class ComfortForwarder:
     def entities(self):
         s = self.settings
         ids = [e for room in sorted(s["contacts"]) for e in s["contacts"][room]]
-        return sorted(set(ids + ([s["presence_entity"]] if s["presence_entity"] else [])))
+        return sorted(set(ids + s["presence_entities"]))
 
     @callback
     def publish(self, only=None):
         if not self.hub.fresh:
             return
-        for payload in comfort_payloads(self.hass, self.settings, set(self.hub.rooms), only):
+        settings = self.settings
+        for payload in comfort_payloads(self.hass, settings, set(self.hub.rooms), only):
             self.send(json.dumps(payload, separators=(",", ":")))
+        self._schedule_away(settings)
+
+    @callback
+    def _schedule_away(self, settings):
+        """Everyone left: send "away" exactly when the away delay has passed (not at the next 5-minute refresh)."""
+        if self._away_timer is not None:
+            self._away_timer()
+            self._away_timer = None
+        _home, wait = house_presence(self.hass, settings["presence_entities"], settings["away_delay_min"])
+        if wait is not None:
+            first = settings["presence_entities"][0]
+
+            @callback
+            def due(_now):
+                self._away_timer = None
+                self.publish(first)
+            self._away_timer = async_call_later(self.hass, wait + 1, due)
 
     @callback
     def _changed(self, event):
@@ -321,6 +402,9 @@ class ComfortForwarder:
         if self._unsubscribe is not None:
             self._unsubscribe()
             self._unsubscribe = None
+        if self._away_timer is not None:
+            self._away_timer()
+            self._away_timer = None
 
 
 # -- commands ------------------------------------------------------------------------
@@ -497,9 +581,7 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
             centi = round(target * 100) if target is not None else None
             return (PRESET_COMFORT if centi == round(levels[0] * 100) else PRESET_ECO if centi == round(levels[1] * 100)
                     else PRESET_NONE)
-        if comfort.get("mode") in AWAY_MODES or self.away.get("on") is True:
-            return PRESET_AWAY
-        return PRESET_NONE
+        return PRESET_NONE  # away is the house mode (its own select), not a preset of one room
 
     @property
     def extra_state_attributes(self):
@@ -591,14 +673,10 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
             await self._ensure_active()
             comfort, night = program_levels(self.plan_room, comfort_options(self.entry))  # eco = the night level
             await self.async_hold(comfort if preset_mode == PRESET_COMFORT else night)
-        elif preset_mode == PRESET_AWAY:
-            await self._command(away_command(True))
         elif preset_mode == PRESET_NONE:
+            # Back to the room's plan; the house mode (away, holiday) is its own select (e32_house.py).
             if self.comfort.get("override") in OVERRIDES:
                 await self._command(override_command(self.room_id, "none"))
-            # An open-ended away set by hand ends too; a dated away or presence stays.
-            if self.away.get("source") == "manual" and self.away.get("until") is None:
-                await self._command(away_command(False))
         else:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="room_state_invalid")
 
@@ -685,7 +763,26 @@ async def async_setup_e32_climates(hass, entry, async_add_entities):
 
 
 class ComfortOptionsSteps:
-    """Mixin for the product options flow: house settings and window/door sensors per room."""
+    """Mixin for the product options flow: the house (presence) and comfort settings, window/door sensors per room."""
+
+    async def async_step_house(self, user_input=None):
+        """Configure → Home: everything that applies to the whole house, as on the E32's Home page."""
+        return self.async_show_menu(step_id="house", menu_options=["house_presence", "heating_boiler", "energy"])
+
+    async def async_step_house_presence(self, user_input=None):
+        """The people of the house and how long everyone must be away (the house mode itself is a select)."""
+        import voluptuous as vol
+        current = comfort_options(self.config_entry)
+        errors = {}
+        if user_input is not None:
+            try:
+                settings = validate_presence(self.hass, user_input, current)
+            except ComfortError as err:
+                errors[err.field] = err.code
+            else:
+                save_comfort(self.hass, self.config_entry, settings)
+                return self.async_abort(reason="presence_saved")
+        return self.async_show_form(step_id="house_presence", data_schema=presence_schema(vol, current), errors=errors)
 
     async def async_step_comfort(self, user_input=None):
         return self.async_show_menu(step_id="comfort", menu_options=["comfort_settings", "comfort_contacts"])

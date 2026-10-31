@@ -1037,18 +1037,37 @@
           "comfort_contacts": "Raam- en deurcontacten per ruimte"
         }
       },
-      "comfort_settings": {
-        "title": "Voorinstellingen, aanwezigheid en tijden",
-        "description": "De thermostaat van elke E32-ruimte heeft de voorinstellingen Comfort, Nacht, Afwezig en Boost. Comfort en Nacht zijn de warmste en de koelste temperatuur van het weekprogramma van de ruimte, zoals in de weekplanner. Afwezig verlaagt elke ruimte naar de afwezigheidstemperatuur van de E32 (in te stellen met de actie \"Afwezig\" of op de E32-pagina).",
+      "house": {
+        "title": "Huis",
+        "description": "Alles wat voor het hele huis geldt, net als op de pagina Huis van de E32. De huismodus zelf (automatisch, thuis, afwezig, vakantie) is de bediening Huismodus op het E32-apparaat en op het dashboard.",
+        "menu_options": {
+          "house_presence": "Aanwezigheid: wie hier woont",
+          "heating_boiler": "Verwarming en ketel",
+          "energy": "Energie en buitentemperatuur"
+        }
+      },
+      "house_presence": {
+        "title": "Aanwezigheid",
+        "description": "In de huismodus Automatisch gaan de ruimtes naar de afwezigheidstemperatuur als iedereen weg is. Iemand thuis, of iemand van wie niet bekend is waar die is, houdt het huis warm.",
         "data": {
-          "presence_entity": "Wie is thuis",
+          "presence_entities": "Wie hier woont",
+          "away_delay": "Afwezig na"
+        },
+        "data_description": {
+          "presence_entities": "Optioneel. De mensen van het huis (persoonentiteiten), of een groep, zone (bijvoorbeeld zone.home), apparaattracker of schakelaar die aan is als er iemand thuis is.",
+          "away_delay": "Minuten dat iedereen weg moet zijn voordat het huis als afwezig telt, zodat een korte boodschap het huis niet laat afkoelen. 0: meteen."
+        }
+      },
+      "comfort_settings": {
+        "title": "Presets en tijden",
+        "description": "De thermostaat van elke E32-ruimte heeft de presets Comfort, Nacht en Boost. Comfort en Nacht zijn de warmste en de koelste temperatuur van het weekprogramma van de ruimte, net als in de weekplanner. Afwezig en vakantie zijn de huismodus (Configureren → Huis en de bediening Huismodus), geen preset van één ruimte.",
+        "data": {
           "comfort_temperature": "Comfort zonder weekprogramma",
           "eco_temperature": "Nacht zonder weekprogramma",
           "contact_delay": "Pauze nadat een raam opengaat",
           "override_minutes": "Duur van een handmatige wijziging"
         },
         "data_description": {
-          "presence_entity": "Optioneel. Een persoon, groep, zone (bijvoorbeeld zone.home) of schakelaar die aan staat zolang er iemand thuis is. Is iedereen weg, dan gebruikt elke ruimte de afwezigheidstemperatuur tot er weer iemand thuis is.",
           "comfort_temperature": "De voorinstelling Comfort van een ruimte zonder weekprogramma. Met een weekprogramma is Comfort de warmste temperatuur daarvan.",
           "eco_temperature": "De voorinstelling Nacht van een ruimte zonder weekprogramma. Met een weekprogramma is Nacht de koelste temperatuur daarvan.",
           "contact_delay": "Seconden dat een raam of deur open moet blijven voordat de ruimte pauzeert, zodat kort luchten of door een deur lopen de verwarming niet stopt. Een gepauzeerde ruimte blijft beschermd tegen vorst.",
@@ -1080,7 +1099,8 @@
         "description": "Eerst je ruimtes, dan verwarming, energie en de E32-verbinding. Nieuw? Begin met E32 verbinden; daarna voeg je je ruimtes toe.",
         "menu_options": {
           "e32_rooms": "Ruimtes",
-          "comfort": "Comfort: raamsensoren, afwezig en aanwezigheid",
+          "house": "Huis",
+          "comfort": "Comfort: presets en raamsensoren",
           "heating_boiler": "Verwarming en ketel",
           "energy": "Energie en buitentemperatuur",
           "controller_connection": "E32 verbinden",
@@ -1740,6 +1760,7 @@
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",
+      "presence_saved": "Aanwezigheid opgeslagen.",
       "comfort_no_rooms": "De E32 heeft nog geen ruimtes gemeld. Voeg ruimtes toe onder Configureren → Ruimtes, wacht even en probeer het opnieuw.",
       "graph_review_unavailable": "Geen bestaande schema-aansluiting met gekozen bron beschikbaar. Geen profiel ingeschakeld.",
       "graph_review_cancelled": "Niets toegepast.",
@@ -1841,6 +1862,9 @@
       },
       "room_fallback_setpoint": {
         "name": "Temperatuur zonder Home Assistant"
+      },
+      "away_temperature": {
+        "name": "Temperatuur als niemand thuis is"
       }
     },
     "sensor": {
@@ -2578,11 +2602,23 @@
           "active": "Aan",
           "inactive": "Uit"
         }
+      },
+      "house_mode": {
+        "name": "Huismodus",
+        "state": {
+          "auto": "Automatisch",
+          "home": "Thuis",
+          "away": "Afwezig",
+          "holiday": "Vakantie"
+        }
       }
     },
     "datetime": {
       "room_inactive_until": {
         "name": "Uit tot"
+      },
+      "holiday_until": {
+        "name": "Vakantie tot"
       }
     },
     "switch": {
@@ -2908,6 +2944,15 @@
     },
     "e32_try_again_later": {
       "message": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw."
+    },
+    "house_mode_invalid": {
+      "message": "Kies Automatisch, Thuis, Afwezig of Vakantie."
+    },
+    "house_holiday_date_needed": {
+      "message": "Stel eerst \"Vakantie tot\" in: de vakantie begint met haar einddatum."
+    },
+    "house_mode_update_required": {
+      "message": "Hiervoor is E32-firmware beta.23 of nieuwer nodig. Werk de E32 bij met zijn Firmware-entiteit."
     }
   }
 }

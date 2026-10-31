@@ -12,7 +12,7 @@ from custom_components.open_thermostat import e32_comfort as module
 from custom_components.open_thermostat.controller_link import HeatingPlanRejected
 from custom_components.open_thermostat.e32_comfort import (
     CONF_COMFORT, ComfortError, ComfortForwarder, E32RoomClimate, away_command, comfort_options, comfort_payloads,
-    contacts_open, presence_home, validate_contacts, validate_settings)
+    contacts_open, house_presence, presence_home, validate_contacts, validate_presence, validate_settings)
 from custom_components.open_thermostat.heating_link import HeatingHub
 from custom_components.open_thermostat.room_plan import RoomPlanLink
 
@@ -117,6 +117,7 @@ def test_options_have_safe_defaults_and_never_take_invalid_values():
                                       "contact_delay_s": 30, "override_minutes": 0,
                                       "contacts": {"living": ["binary_sensor.window", "light.x"], 5: []}}))
     assert settings["presence_entity"] == "zone.home" and settings["comfort_c"] == 21.5
+    assert settings["presence_entities"] == ["zone.home"] and settings["away_delay_min"] == 15  # migrated: a list of one
     assert settings["eco_c"] == 16.0 and settings["override_minutes"] == 120 and settings["contact_delay_s"] == 30
     assert settings["contacts"] == {"living": ["binary_sensor.window"]}
 
@@ -128,12 +129,10 @@ async def test_options_form_values_are_checked(hass):
     hass.states.async_set("binary_sensor.window", "off", {"device_class": "window"})
     hass.states.async_set("binary_sensor.motion", "off", {"device_class": "motion"})
     current = comfort_options(entry())
-    out = validate_settings(hass, {"presence_entity": "zone.home", "comfort_temperature": 21.3, "eco_temperature": 16,
+    out = validate_settings(hass, {"comfort_temperature": 21.3, "eco_temperature": 16,
                                    "contact_delay": 90, "override_minutes": 60}, current)
-    assert (out["presence_entity"], out["comfort_c"], out["eco_c"], out["contact_delay_s"], out["override_minutes"]) == (
-        "zone.home", 21.5, 16.0, 90, 60)
-    for bad, field in (({"presence_entity": "light.lamp"}, "presence_entity"),
-                       ({"comfort_temperature": 31}, "comfort_temperature"),
+    assert (out["comfort_c"], out["eco_c"], out["contact_delay_s"], out["override_minutes"]) == (21.5, 16.0, 90, 60)
+    for bad, field in (({"comfort_temperature": 31}, "comfort_temperature"),
                        ({"contact_delay": 1801}, "contact_delay"), ({"override_minutes": 1.5}, "override_minutes")):
         with pytest.raises(ComfortError) as error:
             validate_settings(hass, bad, current)
@@ -150,7 +149,7 @@ async def test_contacts_and_presence_are_forwarded_per_room_with_the_delay(hass)
     hass.states.async_set("binary_sensor.door", "off", {"device_class": "door"})
     hass.states.async_set("binary_sensor.attic", "on", {"device_class": "window"})
     hass.states.async_set("person.anna", "not_home")
-    settings = comfort_options(entry({"presence_entity": "person.anna", "contact_delay_s": 60,
+    settings = comfort_options(entry({"presence_entity": "person.anna", "contact_delay_s": 60, "away_delay_min": 0,
                                       "contacts": {"living": ["binary_sensor.window", "binary_sensor.door"],
                                                    "attic": ["binary_sensor.attic"]}}))
     assert comfort_payloads(hass, settings, {"living", "study"}) == [
@@ -162,7 +161,7 @@ async def test_contacts_and_presence_are_forwarded_per_room_with_the_delay(hass)
 
     sent, tracked = [], []
     hub = HeatingHub("fixture")
-    forwarder = ComfortForwarder(hass, entry({"presence_entity": "person.anna",
+    forwarder = ComfortForwarder(hass, entry({"presence_entity": "person.anna", "away_delay_min": 0,
                                               "contacts": {"living": ["binary_sensor.window"]}}), hub,
                                  sent.append, lambda hass, ids, action: tracked.append((ids, action)) or (lambda: None))
     forwarder.reconfigure()
@@ -198,7 +197,8 @@ async def test_the_thermostat_shows_the_room_and_its_override(hass):
     # A window pause and away are visible with their reason.
     hub.update(status(room_state("living", setpoint=8, comfort={"mode": "window_open", "window": "open", "target_c": 8}),
                       away={"on": True, "source": "presence", "target_c": 15, "until": None, "presence": "away"}))
-    assert entity.hvac_mode == HVACMode.AUTO and entity.preset_mode == "away"
+    assert entity.hvac_mode == HVACMode.AUTO and entity.preset_mode == "none"  # away is the house mode, not a preset
+    assert "away" not in entity.preset_modes
     assert entity.extra_state_attributes["window"] == "open" and entity.extra_state_attributes["away_source"] == "presence"
     hub.update(status(room_state("living", state="inactive", demand=False)))
     assert entity.hvac_mode == HVACMode.OFF and entity.hvac_action == HVACAction.OFF and entity.preset_mode == "none"
@@ -254,13 +254,12 @@ async def test_modes_and_presets_write_the_plan_or_a_command(hass):
     assert e32.commands[-1] == {"room": "living", "override": "next", "temperature": 20.5}
     await entity.async_set_preset_mode("boost")
     assert e32.commands[-1] == {"room": "living", "override": "boost"}
-    await entity.async_set_preset_mode("away")
-    assert e32.commands[-1] == {"away": True}
+    # No "away" preset per room: one room's thermostat never sets the whole house away or back (beta.23).
     hub.update(status(room_state("living"), away={"on": True, "source": "manual", "target_c": 15, "until": None,
-                                                  "presence": "unknown"}))
+                                                  "presence": "unknown", "mode": "away"}))
     count = len(e32.commands)
-    await entity.async_set_preset_mode("none")  # ends the open-ended manual away (no override to end)
-    assert e32.commands[count:] == [{"away": False}]
+    await entity.async_set_preset_mode("none")
+    assert e32.commands[count:] == []
     with pytest.raises(ServiceValidationError):
         await entity.async_set_preset_mode("sleep")
     link.stop()
@@ -339,3 +338,67 @@ def test_every_message_and_action_is_translated():
         "eco": "Night", "away": "Away"}
     for step in ("comfort", "comfort_settings", "comfort_contacts", "comfort_contacts_room"):
         assert step in strings["options"]["step"]
+
+
+@pytest.mark.asyncio
+async def test_several_people_away_only_after_everyone_left_for_the_delay(hass, monkeypatch):
+    """Home while anyone is home or unknown; away once the last person left the away delay ago (beta.23)."""
+    now = datetime(2026, 11, 2, 12, 0, tzinfo=timezone.utc)
+    hass.states.async_set("person.anna", "home")
+    hass.states.async_set("person.ben", "not_home")
+    people = ["person.anna", "person.ben"]
+    assert house_presence(hass, [], 15) == (None, None)
+    assert house_presence(hass, people, 15, now) == (True, None)          # Anna is home
+    hass.states.async_set("person.anna", "unavailable")
+    assert house_presence(hass, people, 15, now) == (True, None)          # unknown: stay warm
+    hass.states.async_set("person.anna", "Work")
+    left = hass.states.get("person.anna").last_changed
+    home, wait = house_presence(hass, people, 15, left + timedelta(minutes=5))
+    assert home is True and wait == pytest.approx(600)                   # 10 more minutes
+    assert house_presence(hass, people, 15, left + timedelta(minutes=15)) == (False, None)
+    assert house_presence(hass, people, 0, left) == (False, None)         # no delay: away at once
+    settings = comfort_options(entry({"presence_entities": people, "away_delay_min": 15}))
+    assert comfort_payloads(hass, settings, set(), now=left + timedelta(minutes=5)) == [{"kind": "presence", "home": True}]
+    assert comfort_payloads(hass, settings, set(), now=left + timedelta(minutes=16)) == [{"kind": "presence", "home": False}]
+    assert comfort_payloads(hass, settings, set(), only="person.ben", now=left + timedelta(minutes=16)) == [
+        {"kind": "presence", "home": False}]
+
+    # The forwarder sends "home" now and "away" exactly when the delay has passed, not at the next refresh.
+    timers = []
+    monkeypatch.setattr(module, "async_call_later", lambda hass, delay, action: timers.append((delay, action)) or (lambda: None))
+    sent = []
+    hub = HeatingHub("fixture")
+    hub.update(status(room_state("living")))
+    forwarder = ComfortForwarder(hass, entry({"presence_entities": people, "away_delay_min": 15}), hub, sent.append,
+                                 lambda hass, ids, action: lambda: None)
+    forwarder.reconfigure()
+    assert [json.loads(p) for p in sent] == [{"kind": "presence", "home": True}]
+    assert len(timers) == 1 and 0 < timers[0][0] <= 15 * 60 + 1
+    monkeypatch.setattr(module, "house_presence", lambda *a, **k: (False, None))  # the delay has passed
+    timers[0][1](None)
+    assert json.loads(sent[-1]) == {"kind": "presence", "home": False}
+    forwarder.stop()
+
+
+@pytest.mark.asyncio
+async def test_the_presence_form_takes_several_people_and_the_away_delay(hass):
+    hass.states.async_set("person.anna", "home")
+    hass.states.async_set("person.ben", "home")
+    hass.states.async_set("light.lamp", "on")
+    current = comfort_options(entry({"presence_entity": "person.anna"}))
+    out = validate_presence(hass, {"presence_entities": ["person.anna", "person.ben"], "away_delay": 20}, current)
+    assert out["presence_entities"] == ["person.anna", "person.ben"] and out["away_delay_min"] == 20
+    assert out["presence_entity"] == "person.anna"  # HA 0.4.0b13 after a downgrade: the first person
+    assert validate_presence(hass, {"presence_entities": [], "away_delay": 0}, current)["presence_entity"] is None
+    # A person already chosen may be unavailable (a phone switched off); a new one must exist.
+    hass.states.async_remove("person.ben")
+    assert validate_presence(hass, {"presence_entities": ["person.anna", "person.ben"], "away_delay": 15},
+                             out)["presence_entities"] == ["person.anna", "person.ben"]
+    for bad, field in (({"presence_entities": ["light.lamp"]}, "presence_entities"),
+                       ({"presence_entities": ["person.anna", "person.anna"]}, "presence_entities"),
+                       ({"presence_entities": ["person.nobody"]}, "presence_entities"),
+                       ({"presence_entities": [], "away_delay": 241}, "away_delay"),
+                       ({"presence_entities": [], "away_delay": 1.5}, "away_delay")):
+        with pytest.raises(ComfortError) as error:
+            validate_presence(hass, bad, current)
+        assert error.value.field == field

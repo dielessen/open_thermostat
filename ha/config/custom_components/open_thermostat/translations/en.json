@@ -109,18 +109,37 @@
           "comfort_contacts": "Window and door contacts per room"
         }
       },
-      "comfort_settings": {
-        "title": "Presets, presence and timing",
-        "description": "The thermostat of each E32 room offers the presets Comfort, Night, Away and Boost. Comfort and Night are the warmest and the coolest temperature of the room's week program, as in the week planner. Away lowers every room to the E32's away temperature (set it with the action \"Away\" or on the E32 page).",
+      "house": {
+        "title": "Home",
+        "description": "Everything that applies to the whole house, as on the E32's Home page. The house mode itself (automatic, at home, away, holiday) is the House mode control on the E32 device and on the dashboard.",
+        "menu_options": {
+          "house_presence": "Presence: who lives here",
+          "heating_boiler": "Heating and boiler",
+          "energy": "Energy and outdoor temperature"
+        }
+      },
+      "house_presence": {
+        "title": "Presence",
+        "description": "In the house mode Automatic the rooms go to the away temperature when everyone is away. Someone home, or someone whose place is not known, keeps the house warm.",
         "data": {
-          "presence_entity": "Who is home",
+          "presence_entities": "Who lives here",
+          "away_delay": "Away after"
+        },
+        "data_description": {
+          "presence_entities": "Optional. The people of the house (person entities), or a group, zone (for example zone.home), device tracker or switch that is on while someone is home.",
+          "away_delay": "Minutes everyone must be away before the house counts as away, so a short errand does not cool the house. 0: at once."
+        }
+      },
+      "comfort_settings": {
+        "title": "Presets and timing",
+        "description": "The thermostat of each E32 room offers the presets Comfort, Night and Boost. Comfort and Night are the warmest and the coolest temperature of the room's week program, as in the week planner. Away and holiday are the house mode (Configure → Home and the House mode control), not a preset of one room.",
+        "data": {
           "comfort_temperature": "Comfort without a week program",
           "eco_temperature": "Night without a week program",
           "contact_delay": "Pause after a window opens",
           "override_minutes": "Length of a manual change"
         },
         "data_description": {
-          "presence_entity": "Optional. A person, group, zone (for example zone.home) or a switch that is on while someone is home. When everyone is away, every room uses the away temperature until someone is back.",
           "comfort_temperature": "The Comfort preset of a room without a week program. With a week program, Comfort is its warmest temperature.",
           "eco_temperature": "The Night preset of a room without a week program. With a week program, Night is its coolest temperature.",
           "contact_delay": "Seconds a window or door must stay open before the room pauses, so airing briefly or walking through a door does not stop the heating. A paused room still protects against frost.",
@@ -152,7 +171,8 @@
         "description": "Your rooms first, then heating, energy and the E32 connection. New here? Start with Connect E32; after it you add your rooms.",
         "menu_options": {
           "e32_rooms": "Rooms",
-          "comfort": "Comfort: window sensors, away and presence",
+          "house": "Home",
+          "comfort": "Comfort: presets and window sensors",
           "heating_boiler": "Heating and boiler",
           "energy": "Energy and outdoor temperature",
           "controller_connection": "Connect E32",
@@ -812,6 +832,7 @@
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
+      "presence_saved": "Presence saved.",
       "comfort_no_rooms": "The E32 has not reported any rooms yet. Add rooms under Configure → Rooms, wait a moment and try again.",
       "graph_review_unavailable": "No existing source-selected graph connection is available. No profile was enabled.",
       "graph_review_cancelled": "Nothing applied.",
@@ -913,6 +934,9 @@
       },
       "room_fallback_setpoint": {
         "name": "Temperature without Home Assistant"
+      },
+      "away_temperature": {
+        "name": "Temperature when nobody is home"
       }
     },
     "sensor": {
@@ -1650,11 +1674,23 @@
           "active": "On",
           "inactive": "Off"
         }
+      },
+      "house_mode": {
+        "name": "House mode",
+        "state": {
+          "auto": "Automatic",
+          "home": "At home",
+          "away": "Away",
+          "holiday": "Holiday"
+        }
       }
     },
     "datetime": {
       "room_inactive_until": {
         "name": "Off until"
+      },
+      "holiday_until": {
+        "name": "Holiday until"
       }
     },
     "switch": {
@@ -2908,6 +2944,15 @@
     },
     "e32_try_again_later": {
       "message": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again."
+    },
+    "house_mode_invalid": {
+      "message": "Choose Automatic, At home, Away or Holiday."
+    },
+    "house_holiday_date_needed": {
+      "message": "Set \"Holiday until\" first: the holiday starts with its end date."
+    },
+    "house_mode_update_required": {
+      "message": "This needs E32 firmware beta.23 or newer. Update the E32 with its Firmware entity."
     }
   }
 }

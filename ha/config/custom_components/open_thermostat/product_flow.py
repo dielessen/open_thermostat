@@ -568,15 +568,14 @@ class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, Con
 def main_menu(entry):
     """Configure's top level, in the order a user needs it.
 
-    E32 room plan (connected): Rooms, Comfort, Heating and boiler, Energy,
-    E32 connection, Name and dashboard, Advanced. A new installation whose E32
+    E32 room plan (connected): Rooms, Home (presence, heating and boiler,
+    energy; beta.23), Comfort, E32 connection, Name and dashboard, Advanced. A new installation whose E32
     is not connected yet starts with Connect E32 (rooms and heating need it).
     Older installations on the Home Assistant room route keep their menu.
     """
     from .room_plan import has_room_plan, uses_e32_rooms
     if has_room_plan(entry):
-        return ["e32_rooms", "comfort", "heating_boiler", "energy", "controller_connection", "general",
-                "advanced_settings"]
+        return ["e32_rooms", "house", "comfort", "controller_connection", "general", "advanced_settings"]
     if uses_e32_rooms(entry):
         return ["controller_connection", "energy", "general", "advanced_settings"]
     return ["room_settings", "controller_connection", "energy", "installation", "advanced_settings"]

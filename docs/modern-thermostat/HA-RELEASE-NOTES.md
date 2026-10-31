@@ -1,3 +1,31 @@
+# HA 0.4.0b15 — the week planner without "Configuration error"
+<!-- user-release-notes:v2:en -->
+
+A small fix for HA 0.4.0b14. Works with E32 beta22 and beta21. Needs Home
+Assistant 2026.10.0 or newer.
+
+## New
+
+- Nothing new: this release only fixes the week planner view.
+
+## Fixed
+
+- The week planner view no longer shows "Configuration error" now and then.
+  Another dashboard card could replace the browser's list of card types a
+  few seconds after the page opened, which dropped ours until you clicked
+  elsewhere. The week cards now put themselves back within half a second,
+  and Home Assistant redraws the view by itself.
+
+## Updating
+
+Install 0.4.0b15 and restart Home Assistant. Refresh the browser page once.
+The E32 needs no update.
+
+## Limitations
+
+EMS Classic boilers only; EMS+ comes later. No HACS listing yet: install
+from the release ZIP.
+
 # HA 0.4.0b14 — shows when the E32 runs the boiler itself
 <!-- user-release-notes:v2:en -->
 

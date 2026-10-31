@@ -236,7 +236,7 @@
     "cached_newlib_header_sha256": "93a397574a25b9c143cee7fcb86d8fc9a0c9ba418e4710a30d2d19ba1e4120db"
   },
   "ha": {
-    "source_candidate": "sha256:62d6e7897cc39349a59bbff98bf09c6cb3a80b323b4195706e3c0206743482b1",
+    "source_candidate": "sha256:02d3be55005f92c6d8626db05f4579f8b4bf4bbd4ff3b56f6e75501e294af492",
     "manifest": "ha/config/custom_components/open_thermostat/manifest.json",
     "source_files": {
       "ha/config/custom_components/open_thermostat/__init__.py": "c88db3edc5a59f4f6781604dc08a4593909b4e882f893c40cf74a19c634650d3",
@@ -276,11 +276,11 @@
       "ha/config/custom_components/open_thermostat/e32_link.py": "a23c4e018e18395586263167fb611d3b289b62f19ea7395157c72363a00ddd6f",
       "ha/config/custom_components/open_thermostat/e32_room_flow.py": "a1cf58bf253d586e286fc54c97f35e00eab957cbdf0591de82d5276c5a9fef3a",
       "ha/config/custom_components/open_thermostat/e32_setting_device.py": "a57e6568092124a0ffac05c0d7266cbcade5923fd87bf5d9d2e487e7fcb49c4f",
-      "ha/config/custom_components/open_thermostat/e32_week.py": "85bd63235e957229ec02b9f96455ca92f17cbdfbcc6b047f87d8ad3df7b4cd93",
+      "ha/config/custom_components/open_thermostat/e32_week.py": "d6c948fb0a4fc009a0356247a1f3cfa5773751e84aec5a50a77e04843628f7af",
       "ha/config/custom_components/open_thermostat/energy_input.py": "36b4a14fbe0877537311fa9321f149a0d911e0db459091b812c20eb15d3dec79",
       "ha/config/custom_components/open_thermostat/energy_use.py": "9b03cf2f217ff024ee41b777276deafdda5c37615c2297046e64d08e0192399c",
       "ha/config/custom_components/open_thermostat/firmware_update.py": "2d46b402703b15656bd4aa8cd95ec773c1eed5b050df571983bb44e766a68708",
-      "ha/config/custom_components/open_thermostat/frontend/e32-week-card.js": "56feb2a676fbbf93526669ff0de61411a621330441bb86a6efc3f90aec207c7b",
+      "ha/config/custom_components/open_thermostat/frontend/e32-week-card.js": "031cbe83670705ce102654d3a223e6845e3769d982b193015dcd55f8337ecba2",
       "ha/config/custom_components/open_thermostat/frontend/week-editor.js": "a41336f892ac6a3aff241ac884fbd45ef8250733ba69a3ce057685bcd10d5dea",
       "ha/config/custom_components/open_thermostat/frontend/week-planner.js": "1042589fa69810a68441943d3156a057d827fe61feba363cc9db55b3c6aff964",
       "ha/config/custom_components/open_thermostat/graph_control_source.py": "c56e7c5ef071d6ec633fb0934083accbc586924cff8583b07a40b1b6c611b63b",
@@ -300,7 +300,7 @@
       "ha/config/custom_components/open_thermostat/installation_group.py": "44517b1367123d1288abe8c953ae3ea461950cb8ca12c45f92e00a6e327b6e75",
       "ha/config/custom_components/open_thermostat/legacy_room_migration.py": "f3bccac5dc98c96d0feab78bcdb410c61cc2b642ba1e611ae03254e4cdce492b",
       "ha/config/custom_components/open_thermostat/legacy_rooms_flow.py": "84d8e0a91efbb46d3084f4f474d25d3ff64356e0a1afd2bc33f86c11319bb308",
-      "ha/config/custom_components/open_thermostat/manifest.json": "a1024c5e2486a45699e736ee9523d607e0afe3373689278017bd31663dcbef5a",
+      "ha/config/custom_components/open_thermostat/manifest.json": "b8cf5cf8e52835833ee533ba908c9af9b74b22c033ac300e32601dc9659558d4",
       "ha/config/custom_components/open_thermostat/manual_target.py": "48d4f89bbe956b5a7b84d2eeb0a1cd1a117fdf9ef75486926c4df42a8d6e5c9c",
       "ha/config/custom_components/open_thermostat/metric_snapshot.py": "2e8448a9cb0151924dbff586b15d3d635d16c37b9f7c017ae49314655387eb9c",
       "ha/config/custom_components/open_thermostat/metrics_reports.py": "ca04d87a056e6086036f427c2e6a59d63d754b996586fecf31c3fc6fd89a3ddd",
@@ -363,7 +363,7 @@
       "ha/config/custom_components/open_thermostat/v1_program.py": "8597a0232105d44a0d90ee4d4fb41ae7ed6bdede64b0a8df09bf37eeb4f24db2",
       "ha/config/custom_components/open_thermostat/v1_runtime.py": "487e3fd39e222e2bcc94b6b328e1fb8118b6eb5c2e9e922342553477ca98f15a",
       "ha/config/custom_components/open_thermostat/v1_wire.py": "a19f2be08749489a547fa81c4ad3924af3acc803cfac0a04835ffcf2994bba96",
-      "ha/config/custom_components/open_thermostat/week_planner.py": "6d93c5bddd70eb04c829b488049f3753d872475884aa01986d11293167ba8578",
+      "ha/config/custom_components/open_thermostat/week_planner.py": "7800dac68656e3e4a28c95caf9c8c9528d8d9168bc4b4586adbb17757353ef91",
       "ha/config/custom_components/open_thermostat/weekly_summary.py": "d8607391e586de5a515b48dd14d4d330b329388026859b53eeca0afa505f0ba2"
     },
     "platform_imports": [
@@ -373,7 +373,7 @@
     ],
     "requirements_state": "No separate custom requirement needed for probatio0.13.0: exact direct HA2026.10.2 requirement. Existing native platform supplies voluptuous transitively. Original installed metadata/RECORD/license bound; production HA version still UNKNOWN.",
     "stdlib_scope": "Python3.14 test scope; unknown external imports remain blocked",
-    "source_git_parent": "9e416a2bde27d4c0953ecdd499a59180850c2b3d",
+    "source_git_parent": "20eb51da7a658bf6908e8d6c240b1e4252ca051b",
     "native_platform_evidence": {
       "path": "docs/third-party/native-ha-validator.json",
       "sha256": "5433ce5d998f80202659e42468122d42d0db210925bd5e7eb17e95a88f82bf0e",

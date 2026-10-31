@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "dc55ef68d0d8bb89769f7a8c9b33a56c7b0b99608ef1f3c072ad49efb22928c5"
+          "sha256": "df2dd3f15157a5f18d30b75965e3ce95d110f5b117e259de4a8ea75633f00f24"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -59,11 +59,11 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "eefc93c9601f3419b03b6007f8bc3a65863c4c38b713d977c1dbd3c1065af678"
+          "sha256": "a8a9ad6067fe1fd2eb27831322994ce1670652a3423d7b03acc8a2ff34320c5d"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
-          "sha256": "acb832ab7746ee1ec16797210725375e82baa4f045294e291a0438efa832dba9"
+          "sha256": "efeed4bc9049605ad790b1bb88b39eed866ba5ec4596fa67fb43225aae83c382"
         },
         {
           "path": "docs/modern-thermostat/USER-RELEASE-NOTES.json",
@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "85c72da9125696cacdfe7ccae18364acb6c3fa6ba9d699880d660e0db3215cd5"
+          "sha256": "6aba0889a82ef345295142dcf91f8ef8700d1e3f4dc33821974f901e9e338a9a"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
@@ -219,7 +219,7 @@
         },
         {
           "path": "release.json",
-          "sha256": "1dcbe2da1a6c643d4c2cf19acaddcd94d0b172eb8e14876f1c2fa35e5ef5f4a3"
+          "sha256": "1d008038dbd8cdded7917f54b96ccec065fa8866743c4044b4a77eb94d1745db"
         },
         {
           "path": "docs/SWITCHOVER.md",
@@ -392,6 +392,14 @@
         {
           "path": "test/run-browser-tests.sh",
           "sha256": "2c47d99196f4f7483e23d8dee90e8782908c9a23a4d7e12f86b7de4716bc246c"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA22-KANDIDAAT.json",
+          "sha256": "674c6e38ec267125fa4f25392f471165298d9a4d49148aac9ec9a5a77220f093"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA22-OWNER-INSTRUCTION-20261031.json",
+          "sha256": "4e401d33e70d253d5a550435eb4c5578be112c0898ada902fe22041744568bce"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -1333,7 +1341,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/week_planner.py",
-          "sha256": "6d93c5bddd70eb04c829b488049f3753d872475884aa01986d11293167ba8578"
+          "sha256": "7800dac68656e3e4a28c95caf9c8c9528d8d9168bc4b4586adbb17757353ef91"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_program_apply.py",
@@ -1349,11 +1357,11 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/e32_week.py",
-          "sha256": "85bd63235e957229ec02b9f96455ca92f17cbdfbcc6b047f87d8ad3df7b4cd93"
+          "sha256": "d6c948fb0a4fc009a0356247a1f3cfa5773751e84aec5a50a77e04843628f7af"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/e32-week-card.js",
-          "sha256": "56feb2a676fbbf93526669ff0de61411a621330441bb86a6efc3f90aec207c7b"
+          "sha256": "031cbe83670705ce102654d3a223e6845e3769d982b193015dcd55f8337ecba2"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-editor.js",
@@ -1365,7 +1373,7 @@
         },
         {
           "path": "test/week-editor-browser.cjs",
-          "sha256": "458e467a97a23c06e364087148baecb0d6dcb574120e77705f5cc222bdeb07f1"
+          "sha256": "aed78d9d7210e822027fe97d249fc6d92e3010a9c17aef9b1a059efb6b2d691c"
         },
         {
           "path": "test/week-editor.test.cjs",

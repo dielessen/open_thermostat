@@ -1,3 +1,29 @@
+# HA 0.4.0b14 — shows when the E32 runs the boiler itself
+<!-- user-release-notes:v2:en -->
+
+Companion release for E32 beta22. Needs Home Assistant 2026.10.0 or newer.
+
+## New
+
+- Home Assistant now knows when the E32 itself sends the boiler request
+  (after you switched to active control and confirmed the handover). The room
+  thermostat's attribute boiler_output_enabled then reads true. With E32
+  beta21 or older it stays false, as before.
+
+## Fixed
+
+- Nothing else changed.
+
+## Updating
+
+Install 0.4.0b14, restart Home Assistant, then update the E32 to beta22 with
+the Firmware entity. 0.4.0b14 also works with E32 beta21.
+
+## Limitations
+
+EMS Classic boilers only; EMS+ comes later. No HACS listing yet: install from
+the release ZIP.
+
 # HA 0.4.0b13 — window contacts per room and a cleaner dashboard
 <!-- user-release-notes:v2:en -->
 

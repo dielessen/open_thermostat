@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-31T13:31:37Z",
+  "requests": [
+    "Owner, 31 Oct 2026: \"ja akkoord voor beta 22.\" and on installing: \"je mag hem ook installeren. dan hoeven we alleen de shaduw optie uit te zetten?\" (beta.22 = beta.21 + board::emsActiveHeatAllowed open; installed in shadow mode, the takeover needs the owner's separate confirmation during the attended session on Tue 3 Nov). Standing approval for publishing and installing (29 Oct 2026): \"je hebt sowieso akkoork je hoeft niet op mij te wachten\"."
+  ],
+  "scope": "Beta22 + HA 0.4.0b14: the separate gate build. It is beta21 with board::emsActiveHeatAllowed true for the E32 V2 build, plus the real boiler_output_enabled for HA (boiler.output.v1). Opening the gate starts nothing: the plan must be set to active and the owner must confirm the handover from the tado before the E32 sends a request. Publish only after a green shadow analysis (tools/switchover/shadow_exit.py) and the owner's explicit go; install with the HA Firmware update entity; the attended switch-over (OVERSCHAKELING.nl.md) follows separately.",
+  "not_included": [
+    "automatic activation (active control needs the plan set to active and the owner's handover confirmation)",
+    "any change in behaviour besides the gate constant",
+    "a HACS repository for the integration",
+    "editing the bodies of earlier published releases (beyond the automatic organize_releases archive labels)"
+  ],
+  "publication_approval_reply": "Owner, 31 Oct 2026: \"ja akkoord voor beta 22.\" and on installing: \"je mag hem ook installeren. dan hoeven we alleen de shaduw optie uit te zetten?\" (beta.22 = beta.21 + board::emsActiveHeatAllowed open; installed in shadow mode, the takeover needs the owner's separate confirmation during the attended session on Tue 3 Nov). Standing approval for publishing and installing (29 Oct 2026): \"je hebt sowieso akkoork je hoeft niet op mij te wachten\".",
+  "publication_approval_at_utc": "2026-10-31T13:31:37Z",
+  "installation_approval_reply": "Owner, 31 Oct 2026: \"ja akkoord voor beta 22.\" and on installing: \"je mag hem ook installeren. dan hoeven we alleen de shaduw optie uit te zetten?\" (beta.22 = beta.21 + board::emsActiveHeatAllowed open; installed in shadow mode, the takeover needs the owner's separate confirmation during the attended session on Tue 3 Nov). Standing approval for publishing and installing (29 Oct 2026): \"je hebt sowieso akkoork je hoeft niet op mij te wachten\"."
+}

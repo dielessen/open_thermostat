@@ -1,3 +1,43 @@
+# E32 V2 beta22 — active control can be switched on, after your confirmation
+<!-- user-release-notes:v2:en -->
+
+The switch-over build. It is beta21 with one change: the firmware may now
+control the boiler itself. Nothing changes on its own: the E32 keeps running in
+shadow mode until you set the plan to active and confirm that your old
+thermostat is disconnected from the boiler.
+
+## New
+
+- Active control can be enabled in this firmware. Rooms → Active control no
+  longer says "Active control is not enabled in this firmware". The E32 only
+  sends a heat request after you set the plan to active and confirm the
+  handover; until then it behaves exactly like beta21.
+- All guards built for beta21 apply: the flow never goes above your plan
+  maximum or the boiler's own limit, another thermostat on the bus stops the
+  E32, a room without a reading for 30 minutes stops the request, frost
+  protection stays on, and a planned restart first withdraws the request.
+  "Back to the thermostat" hands control back at any time.
+- Home Assistant 0.4.0b14 shows when the E32 itself sends the boiler request;
+  older integrations keep seeing "not sending" and keep working.
+
+## Fixed
+
+- Nothing else changed.
+
+## Updating
+
+Update the integration to HA 0.4.0b14 first (it shows when the E32 runs the
+boiler), restart Home Assistant, then press Install once on the E32's
+Firmware entity. Settings, rooms, week programs and Bluetooth
+sensors are kept. After the update the E32 runs in shadow mode as before. Only
+switch to active control together with the switch-over checklist.
+
+## Limitations
+
+EMS Classic (EMS 1.0) boilers only; EMS+ comes later. One boiler request for
+all rooms; radiator valves are not controlled yet. Charts are lost on a
+restart.
+
 # E32 V2 beta21 — window contacts per room, a diagnostics console and a quieter link
 <!-- user-release-notes:v2:en -->
 

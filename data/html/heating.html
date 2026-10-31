@@ -8,24 +8,7 @@
     <button type="button" class="btn btn-outline-primary" data-heating-unlock><span data-i18n="Edit here anyway">Edit here anyway</span></button></div>
   <div class="hp-rooms" data-heating-rooms></div>
   <p data-heating-add-row><button type="button" class="btn btn-outline-primary" data-heating-add><span data-i18n="Add room">Add room</span></button></p>
-  <!-- beta.19 flow options (GET/POST /config/heating/flow); hidden on firmware without them. Script: the second <script> below. -->
-  <section class="pd-panel" data-heating-flow-options hidden>
-    <h2 data-i18n="Flow temperature">Flow temperature</h2>
-    <p class="pd-help" data-i18n="Each change is saved on the E32 at once.">Each change is saved on the E32 at once.</p>
-    <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-curve" data-flow-option="weather_curve" data-hint="Sets the flow temperature from the outdoor temperature, with the room correction on top. Without a current outdoor temperature the normal control is used.">
-      <label class="form-check-label" for="heating-flow-curve" data-i18n="Weather-compensated heating curve">Weather-compensated heating curve</label></div>
-    <div class="hp-flow-design"><label for="heating-flow-design" data-i18n="Flow at −10 °C">Flow at −10 °C</label>
-      <select id="heating-flow-design" class="form-control" data-flow-design data-hint="The flow the heating curve gives at −10 °C outside; milder weather gives less."></select></div>
-    <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-learned" data-flow-option="apply_learned" data-hint="Off: the E32 only advises. On: when warming up it uses the lowest flow that still warms in time, and it starts early enough for the next program step.">
-      <label class="form-check-label" for="heating-flow-learned" data-i18n="Use learned flow and optimum start">Use learned flow and optimum start</label></div>
-    <p class="pd-help" role="status" aria-live="polite" data-flow-message></p>
-    <p class="pd-help"><span data-i18n="Lowest and highest flow temperature for all rooms:">Lowest and highest flow temperature for all rooms:</span> <a href="#boiler-limits" data-page="boiler_limits"><span data-i18n="Boiler → Flow temperature limits">Boiler → Flow temperature limits</span></a></p>
-    <details class="ot-advanced hp-more"><summary data-i18n="Status and learning">Status and learning</summary>
-    <dl class="pd-detail-grid" data-flow-status></dl>
-    <p class="pd-help" data-flow-compare hidden></p>
-    <p class="pd-help" data-flow-night hidden></p>
-    </details>
-  </section>
+  <p class="pd-help"><span data-i18n="Heating curve, learned flow and flow limits for the whole house:">Heating curve, learned flow and flow limits for the whole house:</span> <a href="#house" data-page="house"><span data-i18n="Home">Home</span></a></p>
   <section class="pd-panel" data-heating-shadow>
     <h2 data-heating-shadow-title></h2>
     <p class="pd-help" data-heating-shadow-help data-i18n="Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what your thermostat asked of the boiler.">Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what your thermostat asked of the boiler.</p>
@@ -45,7 +28,7 @@
     </p>
     <p class="pd-help" role="status" aria-live="polite" data-heating-active-message></p>
   </section>
-  <!-- The flow limits for all rooms are on the Boiler page (#boiler-limits); a floor-heating room with a high maximum is flagged here. -->
+  <!-- The flow limits for all rooms are on the Home page (#boiler-limits); a floor-heating room with a high maximum is flagged here. -->
   <div class="alert alert-warning ot-actions" data-heating-flow-warn role="status" hidden><span><span data-i18n="A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.">A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.</span> <span data-heating-flow-max></span></span>
     <a class="btn btn-outline-primary" href="#boiler-limits" data-page="boiler_limits"><span data-i18n="Change the flow limits">Change the flow limits</span></a></div>
   <details class="ot-advanced">
@@ -576,111 +559,3 @@
 </script>
 <style>#heating-plan .hp-flow-design{margin:0 0 8px 34px;max-width:30rem}#heating-plan .hp-flow-design label{display:block;margin-bottom:4px}#heating-plan [data-flow-message]:empty{display:none}#heating-plan .hp-more{margin:12px 0 0}#heating-plan .hp-unused{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:6px;padding:10px 12px;border-radius:var(--ot-r1);background:var(--ot-surface-2);font-weight:400;font-size:.9rem}
 @media(max-width:560px){#heating-plan .hp-flow-design{margin-left:0}}</style>
-<script>
-// Flow temperature (E32 beta.19): the weather curve, the learned flow and optimum start, gas calibration and last night.
-// Settings: GET/POST /config/heating/flow, one field per change. State: /status/heating "flow", "learned.gas" and
-// "night_gas", from the rooms page's own 10 s refresh ('heating-status'). Firmware without the route keeps it hidden.
-(() => {
-  const root = document.getElementById('heating-plan'), box = root && root.querySelector('[data-heating-flow-options]');
-  if (!box) return;
-  const options = [...box.querySelectorAll('[data-flow-option]')], design = box.querySelector('[data-flow-design]');
-  const message = box.querySelector('[data-flow-message]'), facts = box.querySelector('[data-flow-status]');
-  const compare = box.querySelector('[data-flow-compare]'), night = box.querySelector('[data-flow-night]');
-  const sourceText = {rule:"Room control", curve:"Heating curve", learned:"Learned flow", optimum_start:"Optimum start"};
-  const stateText = {advice:"Advice only", applied:"In use", no_outdoor:"No outdoor temperature", no_room:"No room with a measurement",
-    not_ready:"Still learning", holding:"Holding temperature", none:"No start planned", no_clock:"Clock not set"};
-  const slopeText = {design:"From the design flow", learned:"Learned from this house"};
-  const gasText = {no_meter:"No gas meter: estimate from the boiler power (rough)", collecting:"Gas meter connected, calibrating",
-    calibrated:"Calibrated with the gas meter ({confidence})", meter_stale:"Gas meter not reporting"};
-  const confidenceText = {low:"low", medium:"medium", high:"high"};
-  const errorText = {invalid_value:"Invalid value", save_unconfirmed:"Saving not confirmed, try again"};
-  let settings = null, saving = false, loading = false, absent = false;
-  const el = (tag, text) => { const e = document.createElement(tag); e.textContent = text; return e; };
-  const fixed = (v, digits) => typeof v === 'number' && Number.isFinite(v) ? v.toFixed(digits).replace('.', document.documentElement.lang === 'nl' ? ',' : '.') : '—';
-  const degrees = v => typeof v === 'number' && Number.isFinite(v) ? fixed(v, 0) + ' °C' : null;
-  const label = (map, key) => map[key] ? uiText(map[key]) : typeof key === 'string' ? key : '—'; // an unknown code keeps its name for support
-  const fill = (text, values) => Object.entries(values).reduce((t, [k, v]) => t.split('{' + k + '}').join(v), text);
-  const join = (...parts) => parts.filter(p => p !== null && p !== undefined && p !== '').join(' · ');
-  const clock = utc => new Date(utc * 1000).toLocaleTimeString(OpenThermostatLanguage.locale, {hour:'2-digit', minute:'2-digit'});
-  const valid = s => !!s && typeof s === 'object' && typeof s.weather_curve === 'boolean' && typeof s.apply_learned === 'boolean'
-    && Number.isInteger(s.curve_design_flow_c) && (s.curve_design_flow_c === 0 || (s.curve_design_flow_c >= 25 && s.curve_design_flow_c <= 80));
-  design.append(new Option(uiText("Automatic (floor 40 °C, radiators 55 °C)"), '0'));
-  for (let c = 25; c <= 80; c++) design.append(new Option(c + ' °C', String(c)));
-  // Read-only while Home Assistant manages the rooms and editing here is not unlocked (the page's hp-locked), and while
-  // saving; the owner's choice stays visible until the E32 answers with the stored value.
-  function paint() {
-    const off = !settings || saving || root.classList.contains('hp-locked');
-    for (const o of options) { o.disabled = off; if (settings && !saving) o.checked = settings[o.dataset.flowOption]; }
-    design.disabled = off;
-    if (settings && !saving) design.value = String(settings.curve_design_flow_c);
-  }
-  new MutationObserver(paint).observe(root, {attributes:true, attributeFilter:['class']});
-  async function call(init = {}) {
-    const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), 8000);
-    try {
-      const response = await fetch('/config/heating/flow', {cache:'no-store', ...init, signal:controller.signal});
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw Object.assign(Error('request'), {status: response.status, code: body.error || response.status});
-      if (!valid(body)) throw Object.assign(Error('request'), {code: 'invalid_response'});
-      return body;
-    } finally { clearTimeout(deadline); }
-  }
-  async function load() {
-    loading = true;
-    try { settings = await call(); box.hidden = false; paint(); }
-    catch (error) { absent = error.status === 404 || error.status === 405; } // older firmware: no flow options
-    finally { loading = false; }
-  }
-  async function save(change) {
-    saving = true; paint(); message.textContent = uiText("Saving…");
-    try {
-      settings = await call({method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(change)});
-      message.textContent = uiText("Saved.");
-    } catch (error) {
-      message.textContent = errorText[error.code] ? uiText(errorText[error.code])
-        : error.code ? uiText("The E32 refused the change.") + ' (' + error.code + ')'
-        : uiText("The E32 could not be reached. Check the connection and try again.");
-    } finally { saving = false; paint(); } // a refused change shows the stored value again
-  }
-  for (const o of options) o.addEventListener('change', () => save({[o.dataset.flowOption]: o.checked}));
-  design.addEventListener('change', () => save({curve_design_flow_c: Number(design.value)}));
-  function render(status) {
-    const flow = status.flow && typeof status.flow === 'object' ? status.flow : null, rows = [];
-    if (flow) {
-      const curve = flow.curve || {}, learned = flow.learned || {};
-      const start = typeof flow.optimum_start === 'string' ? {state: flow.optimum_start} : flow.optimum_start || {};
-      rows.push(["Flow now", join(label(sourceText, flow.source), status.request?.heat ? degrees(flow.applied_flow_c) : uiText("off"))]);
-      rows.push(["Heating curve", join(label(stateText, curve.state), degrees(curve.flow_c))]);
-      if (typeof curve.slope === 'number') rows.push(["Curve slope", join(fixed(curve.slope, 2), label(slopeText, curve.slope_source))]);
-      rows.push(["Learned flow", join(label(stateText, learned.state), degrees(learned.flow_c))]);
-      rows.push(["Optimum start", join(label(stateText, start.state),
-        start.state !== 'none' && Number.isFinite(start.start_utc) ? fill(uiText("planned start {time}"), {time: clock(start.start_utc)}) : null)]);
-    }
-    const gas = status.learned?.gas;
-    if (gas && typeof gas === 'object') {
-      rows.push(["Gas calibration", fill(label(gasText, gas.status), {confidence: label(confidenceText, gas.confidence)})]);
-      if (typeof gas.kw_at_full_modulation === 'number' && gas.kw_at_full_modulation > 0)
-        rows.push(["Boiler power", fill(uiText("{kw} kW at full burner"), {kw: fixed(gas.kw_at_full_modulation, 1)})]);
-    }
-    facts.replaceChildren(...rows.flatMap(([k, v]) => [el('dt', uiText(k)), el('dd', v)]));
-    const y = flow?.yesterday;
-    compare.hidden = !(y && typeof y.rule_mean_c === 'number');
-    if (!compare.hidden) compare.textContent = fill(uiText("Yesterday while heating: room control {rule} °C, curve {curve} °C, learned {learned} °C"),
-      {rule: fixed(y.rule_mean_c, 1), curve: fixed(y.curve_mean_c, 1), learned: fixed(y.learned_mean_c, 1)});
-    const last = status.night_gas?.last;
-    night.hidden = !(last && typeof last === 'object');
-    if (!night.hidden) night.textContent = last.status === 'measured'
-      ? fill(uiText("Last night: {heating} m³ gas for heating ({hw} m³ hot water); model predicted {pred} m³"),
-        {heating: fixed(last.heating_m3, 2), hw: fixed(last.hot_water_m3, 2), pred: fixed(last.predicted_program_m3, 2)})
-      : uiText("Last night: no gas meter reading");
-  }
-  root.addEventListener('heating-status', event => {
-    const status = event.detail && typeof event.detail === 'object' ? event.detail : {};
-    // Home Assistant or another tab may have changed the options: the status carries the stored ones.
-    if (!saving && settings && valid(status.flow?.settings)) { settings = status.flow.settings; paint(); }
-    if (!settings && !absent && !loading) load();
-    render(status);
-  });
-  load();
-})();
-</script>

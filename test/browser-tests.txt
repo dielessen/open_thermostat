@@ -35,6 +35,7 @@
 3 test/ha-room-contacts-browser.cjs  # 9 s
 3 test/ha-manual-target-browser.cjs  # 4 s
 3 test/ha-room-vacation-browser.cjs  # 10 s
+3 test/house-browser.cjs  # 20 s (beta.23)
 # shard 4: about 237 s
 4 test/onboarding/browser.cjs  # 19 s
 4 test/onboarding/body-browser.cjs  # 2 s

@@ -297,6 +297,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
 				<ul class="navbar-nav">
 					<li class="nav-item"><a class="nav-link" href="./" data-page="home" data-nav="home"><span data-i18n="Overview">Overview</span></a></li>
 					<li class="nav-item"><a class="nav-link" href="#rooms" data-page="heating" data-nav="heating"><span data-i18n="Rooms">Rooms</span></a></li>
+					<li class="nav-item"><a class="nav-link" href="#house" data-page="house" data-nav="house"><span data-i18n="Home">Home</span></a></li>
 					<li class="nav-item"><a class="nav-link" href="#boiler" data-page="boiler_test" data-nav="boiler_test"><span data-i18n="Boiler">Boiler</span></a></li>
 					<li class="nav-item" data-bluetooth-settings hidden><a class="nav-link" href="#sensors" data-page="bluetooth" data-nav="bluetooth"><span data-i18n="Sensors">Sensors</span></a></li>
 					<li class="nav-item"><a class="nav-link" href="#settings" data-page="network" data-nav="network"><span data-i18n="Settings">Settings</span></a></li>
@@ -481,8 +482,8 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             } else if (page === 'curve') await ensureChart();
         }
         // Hash routes keep refresh, Back and bookmarks on the same page.
-        const pageRoutes = {heating:'rooms', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', boiler_limits:'boiler-limits', bluetooth:'sensors', network:'settings', password:'password', update:'update', system_log:'log', about:'about'};
-        const pageTitles = {home:"Overview", heating:"Rooms", boiler_test:"Boiler", bluetooth:"Sensors", network:"Settings", update:"Firmware update", system_log:"System log", about:"About"};
+        const pageRoutes = {heating:'rooms', house:'house', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', boiler_limits:'boiler-limits', bluetooth:'sensors', network:'settings', password:'password', update:'update', system_log:'log', about:'about'};
+        const pageTitles = {home:"Overview", heating:"Rooms", house:"Home", boiler_test:"Boiler", bluetooth:"Sensors", network:"Settings", update:"Firmware update", system_log:"System log", about:"About"};
         function markPage(page) {
             try {
                 document.title = uiText(pageTitles[page] || "System") + ' · OpenThermostat';
@@ -514,7 +515,8 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             // boiler choice, data, EMS devices and the attended test together.
             // The section alias opens the matching part of that page.
             window.otPageSection = page;
-            if (page === 'ems_devices' || page === 'boiler_display' || page === 'boiler_trial' || page === 'boiler_limits') page = 'boiler_test';
+            if (page === 'ems_devices' || page === 'boiler_display' || page === 'boiler_trial') page = 'boiler_test';
+            if (page === 'boiler_limits') page = 'house'; // the flow limits moved to the Home page (beta.23)
             if (page === 'password') page = 'network'; // #password: the password card on the Settings page
             clearMainContainer();
             markPage(page);
@@ -1120,10 +1122,11 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
         function comfortAway(away) {
             if (!away || typeof away !== 'object') return '';
             var until = Number.isFinite(away.until) && away.until > 0 ? comfortTime(away.until) : null;
-            var state = away.on !== true ? '' : away.source === 'presence' ? uiText("Everyone away") : until ? uiText("Away until {time}").replace('{time}',until) : uiText("Away");
+            var state = away.on !== true ? (away.mode === 'home' ? uiText("At home") : '') : away.source === 'presence' ? uiText("Everyone away") : until ? uiText("Away until {time}").replace('{time}',until) : uiText("Away");
             var temperature = dashboardNumber(away.target_c,1,5,25);
             return '<details class="pd-panel pd-away" data-dashboard-key="away"><summary>'+uiText("Away")+(state ? ' · '+dashboardText(state) : '')+'</summary>'+
                 '<p class="pd-help">'+uiText("A lower temperature for the whole house, optionally until a date. The rooms are warm again when you are back.")+'</p>'+
+                '<p class="pd-help"><a href="#house" data-page="house">'+uiText("All house modes (automatic, at home, away, holiday): Home page")+'</a></p>'+
                 '<div class="ot-actions"><label>'+uiText("Away temperature")+' <input type="number" class="form-control" step="0.5" min="5" max="25" value="'+dashboardText(temperature === null ? 15 : temperature)+'" data-comfort-away-temp data-dashboard-key="away-temp"></label> '+
                 '<label>'+uiText("Back on (optional)")+' <input type="datetime-local" class="form-control" data-comfort-away-until data-dashboard-key="away-until"></label></div>'+
                 '<div class="ot-actions"><button type="button" class="btn btn-primary" data-comfort="away" data-room="">'+uiText("Start away")+'</button>'+

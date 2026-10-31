@@ -103,7 +103,10 @@ const pass=name=>console.log('PASS '+name);
    const planner=room.locator('[data-heating-planner]');await planner.locator('.wpe-seg').first().waitFor();
    await planner.locator('[data-k="lv-comfort+"]').click();
    await page.locator('[data-heating-discard]').waitFor();
+   // A save re-renders the room cards: mark the old card and wait for its replacement (no race with the old one).
+   await room.evaluate(e=>e.dataset.old='1');
    await page.locator('[data-heating-save]').click();await page.getByText(/Ruimtes opgeslagen\. ✓ \d\d:\d\d/).waitFor();
+   await page.locator('[data-heating-room="woonkamer"]:not([data-old])').waitFor({state:'attached'});
    const saved=posts.at(-1).rooms[0];
    if(features){
     assert.deepEqual(saved.levels,{comfort:2150,eco:1850,night:1850});assert.equal(saved.schedule_levels,MARKS);

@@ -92,6 +92,8 @@ struct RoomPlan {
     static constexpr const char* levelsFeature = "plan.levels.v1";
     // The API form; empty when out of memory.
     std::string json() const { return print(false, true); }
+    // The API form without "features": the plan as a document (backup, restore).
+    std::string documentJson() const { return print(false, false); }
     // The NVS form: the API form (without "features") when it fits the store, else with packed week
     // programs and levels (may still exceed storeBytes: the caller refuses plan_too_large).
     std::string storedJson() const {

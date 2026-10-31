@@ -65,6 +65,11 @@ TEST(RoomPlanLevels, StoredPerRoomAndReturnedInTheApiForm) {
     EXPECT_NE(api.find(R"("levels":{"comfort":2100,"eco":1850,"night":1850},"schedule_levels":"1213.13....0.")"), std::string::npos);
     EXPECT_EQ(api.find("schedule_levels", api.find("badkamer")), std::string::npos);
     EXPECT_EQ(parsed(api).json(), api);
+    // A backup holds the plan as a document: the levels, not what this firmware can ("features").
+    const auto doc = plan.documentJson();
+    EXPECT_EQ(doc.find("features"), std::string::npos);
+    EXPECT_NE(doc.find(R"("schedule_levels":"1213.13....0.")"), std::string::npos);
+    EXPECT_EQ(parsed(doc).json(), api);
 }
 TEST(RoomPlanLevels, ControlKeepsUsingTheTemperatures) {
     const auto with = parsed(levelsPlan);

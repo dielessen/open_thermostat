@@ -286,7 +286,9 @@ public:
         // no flash write and no new revision; the caller answers the stored plan.
         if (plan.json() == roomEngine_.plan().json()) return nullptr;
         plan.revision = roomEngine_.plan().revision + 1;
-        // The stored form: week programs packed only when the API form does not fit.
+        // The stored form: week programs packed only when the API form does not fit. The planner's
+        // levels never cost a room or a switch point: a plan that is too large keeps them out.
+        plan.dropLevelsToFit();
         const auto raw = plan.storedJson();
         if (raw.size() + 1 > control::RoomPlan::storeBytes) return "plan_too_large";
         if (raw.empty()) return "save_unconfirmed";

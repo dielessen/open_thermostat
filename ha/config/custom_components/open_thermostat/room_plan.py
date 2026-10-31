@@ -33,6 +33,7 @@ from homeassistant.util import dt as dt_util
 from .const import DOMAIN
 from .controller_link import ControllerClient, ControllerLinkError, ControllerLoginRejected, HeatingPlanRejected
 from .heating_link import ROOM_ID, RoomEntity, add_options, heating_hub, track_entities
+from .room_levels import normalize
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -303,7 +304,8 @@ class RoomPlanLink:
                         plan = decode_plan(await client.async_read_heating_plan())
                         if plan is None:
                             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_invalid")
-                        candidate = change(plan)
+                        # Levels only for an E32 that stores them; marks that fit every program.
+                        candidate = normalize(change(plan))
                         try:
                             stored = await client.async_save_heating_plan(candidate)
                         except HeatingPlanRejected as err:

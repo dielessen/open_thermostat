@@ -1807,8 +1807,8 @@
           "preset_mode": {
             "name": "Voorinstelling",
             "state": {
-              "eco": "Nacht",
-              "away": "Afwezig"
+              "eco": "Eco",
+              "sleep": "Nacht"
             }
           }
         }

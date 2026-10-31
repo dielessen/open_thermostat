@@ -35,6 +35,7 @@ from homeassistant.util import slugify
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
 from .controller_link import ControllerLinkError, HeatingPlanRejected
+from .room_levels import normalize
 
 SOURCE_DOMAINS = ("climate", "sensor")
 SETPOINT_DOMAINS = ("climate", "input_number", "number")
@@ -232,7 +233,7 @@ async def async_write_migration(hass, entry, client, zones, confirmed=None):
         if candidate is None:
             return migration, None
         try:
-            stored = await client.async_save_heating_plan(candidate)
+            stored = await client.async_save_heating_plan(normalize(candidate))
         except HeatingPlanRejected as err:
             if err.error == "plan_changed" and attempt == 1:
                 continue

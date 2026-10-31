@@ -2,6 +2,7 @@
 #include "control/ControlPartitionBudget.h"
 #include "control/RoomDemand.h"
 #include "control/RoomSchedule.h"
+#include <array>
 #include <cJSON.h>
 #include <cmath>
 #include <cstring>
@@ -26,8 +27,9 @@ struct RoomPlan {
     static constexpr size_t storeBytes = ControlPartitionBudget::configBytes;
     // POST /config/heating body bound: the API form of any storable plan stays
     // below it, also as Home Assistant prints it (ensure_ascii: a 40-byte name
-    // grows by at most 80 bytes). Test: TheApiFormOfAnyStorablePlanFitsTheRequestBound.
-    static constexpr size_t requestBytes = 8192;
+    // grows by at most 80 bytes), also with the planner's levels in every room (beta.23: 8192 -> 9216).
+    // Tests: TheApiFormOfAnyStorablePlanFitsTheRequestBound, ...WithLevelsFitsTheRequestBound.
+    static constexpr size_t requestBytes = 9216;
     enum class Mode : uint8_t { shadow, active };
     enum class Emitter : uint8_t { floor, radiator };
     enum class SourceType : uint8_t { ha, ble };
@@ -42,6 +44,15 @@ struct RoomPlan {
         int16_t fallbackCentiC = 2000;  // setpoint without a fresh HA target
         int16_t minimumCentiC = 500, maximumCentiC = 2500;
         RoomSchedule schedule;  // the E32 week program without HA; empty = fallback only
+        // The week planner's named levels (beta.23, "plan.levels.v1"): Comfort, Eco and Night in centi
+        // degC, set independently. Only for editing and the HA presets: control keeps using the
+        // temperatures of the switch points. pointLevels marks each switch point, 2 bits per point
+        // (bit pair i of a day = point i): 0 own temperature, 1 Comfort, 2 Eco, 3 Night; a marked
+        // point always has its level's temperature. Firmware before beta.23 ignores both fields.
+        bool hasLevels = false;
+        std::array<int16_t, 3> levels{};
+        std::array<uint16_t, 7> pointLevels{};
+        uint8_t pointLevel(size_t day, size_t i) const { return uint8_t(pointLevels[day] >> (2 * i) & 3); }
     };
     uint32_t revision = 0;  // +1 on every save; a write must name the revision it was based on
     Mode mode = Mode::shadow;
@@ -75,13 +86,25 @@ struct RoomPlan {
         out = std::move(plan);
         return nullptr;
     }
+    // The capability of this firmware's plan, only in the API form (GET /config/heating): HA and the
+    // pages send levels only to firmware that names it. Not in the hello: HA 0.4.0b13 accepts at most
+    // 8 control capabilities there.
+    static constexpr const char* levelsFeature = "plan.levels.v1";
     // The API form; empty when out of memory.
-    std::string json() const { return print(false); }
-    // The NVS form: the API form when it fits the store, else with packed week
-    // programs (may still exceed storeBytes: the caller refuses plan_too_large).
+    std::string json() const { return print(false, true); }
+    // The NVS form: the API form (without "features") when it fits the store, else with packed week
+    // programs and levels (may still exceed storeBytes: the caller refuses plan_too_large).
     std::string storedJson() const {
-        auto text = json();
-        return text.size() < storeBytes ? text : print(true);
+        auto text = print(false, false);
+        return text.size() < storeBytes ? text : print(true, false);
+    }
+    // A plan with levels that does not fit the store gives them up (the planner infers them again);
+    // the week programs and everything control uses are kept. True when it dropped any.
+    bool dropLevelsToFit() {
+        if (storedJson().size() < storeBytes) return false;
+        bool dropped = false;
+        for (auto& r : rooms) if (r.hasLevels) { r.hasLevels = false; r.levels = {}; r.pointLevels = {}; dropped = true; }
+        return dropped;
     }
     const Room* find(const std::string& id) const {
         for (const auto& r : rooms) if (r.id == id) return &r;
@@ -135,7 +158,7 @@ private:
         out = s;
         return nullptr;
     }
-    std::string print(bool packedWeek) const {
+    std::string print(bool packedWeek, bool features) const {
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_CreateObject(), cJSON_Delete);
         if (!root) return {};
         cJSON_AddNumberToObject(root.get(), "schema", 1);
@@ -143,6 +166,10 @@ private:
         cJSON_AddStringToObject(root.get(), "mode", mode == Mode::active ? "active" : "shadow");
         cJSON_AddNumberToObject(root.get(), "minimum_flow_c", minimumFlowC);
         cJSON_AddNumberToObject(root.get(), "maximum_flow_c", maximumFlowC);
+        if (features) {
+            cJSON* f = cJSON_AddArrayToObject(root.get(), "features");
+            if (!f || !cJSON_AddItemToArray(f, cJSON_CreateString(levelsFeature))) return {};
+        }
         cJSON* list = cJSON_AddArrayToObject(root.get(), "rooms");
         for (const auto& room : rooms) {
             cJSON* r = cJSON_CreateObject();
@@ -168,6 +195,14 @@ private:
             } else if (!room.schedule.empty()) {
                 cJSON* schedule = room.schedule.json();
                 if (!schedule || !cJSON_AddItemToObject(r, "schedule", schedule)) { cJSON_Delete(schedule); return {}; }
+            }
+            if (room.hasLevels && packedWeek) {
+                if (!cJSON_AddStringToObject(r, "lv", packLevels(room).c_str())) return {};
+            } else if (room.hasLevels) {
+                cJSON* lv = cJSON_AddObjectToObject(r, "levels");
+                if (!lv || !cJSON_AddNumberToObject(lv, "comfort", room.levels[0]) || !cJSON_AddNumberToObject(lv, "eco", room.levels[1])
+                    || !cJSON_AddNumberToObject(lv, "night", room.levels[2])) return {};
+                if (!room.schedule.empty() && !cJSON_AddStringToObject(r, "schedule_levels", markText(room, true).c_str())) return {};
             }
         }
         std::unique_ptr<char, decltype(&cJSON_free)> text(cJSON_PrintUnformatted(root.get()), cJSON_free);
@@ -213,10 +248,95 @@ private:
         const auto* schedule = cJSON_GetObjectItemCaseSensitive(r, "schedule");
         const auto* week = cJSON_GetObjectItemCaseSensitive(r, "week");
         if (schedule && week) return "invalid_schedule";
-        if (week) return cJSON_IsString(week) ? parseWeek(week->valuestring, room.minimumCentiC, room.maximumCentiC, room.schedule)
-                                              : "invalid_schedule";
-        if (schedule) return RoomSchedule::parse(schedule, room.minimumCentiC, room.maximumCentiC, room.schedule);
+        const char* error = nullptr;
+        if (week) error = cJSON_IsString(week) ? parseWeek(week->valuestring, room.minimumCentiC, room.maximumCentiC, room.schedule)
+                                               : "invalid_schedule";
+        else if (schedule) error = RoomSchedule::parse(schedule, room.minimumCentiC, room.maximumCentiC, room.schedule);
+        return error ? error : parseLevels(r, room);
+    }
+    // Optional levels (beta.23): "levels" {comfort, eco, night} with "schedule_levels" (one digit 0..3
+    // per switch point, days separated by '.'), or in the packed stored form "lv": Comfort, Eco and Night as 2 characters of the week alphabet each
+    // (12 bits), then the marks of all switch points of the week, 3 per character (2 bits each, first
+    // point in the high bits).
+    static const char* parseLevels(const cJSON* r, Room& room) {
+        const auto* levels = cJSON_GetObjectItemCaseSensitive(r, "levels");
+        const auto* marks = cJSON_GetObjectItemCaseSensitive(r, "schedule_levels");
+        const auto* packed = cJSON_GetObjectItemCaseSensitive(r, "lv");
+        if (!levels && !marks && !packed) return nullptr;
+        if (packed && (levels || marks)) return "invalid_levels";
+        if (marks && !levels) return "invalid_schedule_levels";
+        size_t total = 0;
+        for (const auto& d : room.schedule.days) total += d.count;
+        std::string digits;
+        if (packed) {
+            if (!cJSON_IsString(packed)) return "invalid_levels";
+            const std::string_view text = packed->valuestring;
+            if (text.size() != 6 && text.size() != 6 + (total + 2) / 3) return "invalid_levels";
+            std::array<uint32_t, 32> values{};
+            for (size_t c = 0; c < text.size(); ++c) {
+                const auto v = weekAlphabet.find(text[c]);
+                if (v == std::string_view::npos) return "invalid_levels";
+                values[c] = uint32_t(v);
+            }
+            for (size_t k = 0; k < 3; ++k) room.levels[k] = int16_t(values[2 * k] << 6 | values[2 * k + 1]);
+            if (text.size() > 6)
+                for (size_t i = 0; i < total; ++i) digits += char('0' + (values[6 + i / 3] >> (4 - 2 * (i % 3)) & 3));
+        } else {
+            if (!cJSON_IsObject(levels)) return "invalid_levels";
+            const char* keys[] = {"comfort", "eco", "night"};
+            for (size_t k = 0; k < 3; ++k) {
+                const double v = number(levels, keys[k]);
+                if (!whole(v, 500, 3000)) return "invalid_levels";
+                room.levels[k] = int16_t(v);
+            }
+            if (marks) {
+                if (!cJSON_IsString(marks) || room.schedule.empty()) return "invalid_schedule_levels";
+                const std::string_view text = marks->valuestring;
+                size_t day = 0, n = 0;
+                for (const char ch : text) {
+                    if (ch == '.') {
+                        if (n != room.schedule.days[day].count || ++day > 6) return "invalid_schedule_levels";
+                        n = 0;
+                        continue;
+                    }
+                    ++n;
+                    digits += ch;
+                }
+                if (day != 6 || n != room.schedule.days[6].count) return "invalid_schedule_levels";
+            }
+        }
+        for (const auto v : room.levels) if (v < room.minimumCentiC || v > room.maximumCentiC) return "invalid_levels";
+        size_t at = 0;
+        for (size_t d = 0; d < 7 && !digits.empty(); ++d)
+            for (uint8_t i = 0; i < room.schedule.days[d].count; ++i, ++at) {
+                const char ch = digits[at];
+                if (ch < '0' || ch > '3') return "invalid_schedule_levels";
+                const uint8_t level = uint8_t(ch - '0');
+                // A marked point carries its level's temperature, so control and the planner agree.
+                if (level && room.schedule.days[d].points[i].centiC != room.levels[level - 1]) return "invalid_schedule_levels";
+                room.pointLevels[d] |= uint16_t(level << (2 * i));
+            }
+        room.hasLevels = true;
         return nullptr;
+    }
+    static std::string markText(const Room& room, bool dots) {
+        std::string out;
+        for (size_t d = 0; d < 7; ++d) {
+            if (d && dots) out += '.';
+            for (uint8_t i = 0; i < room.schedule.days[d].count; ++i) out += char('0' + room.pointLevel(d, i));
+        }
+        return out;
+    }
+    static std::string packLevels(const Room& room) {
+        std::string out;
+        for (const auto v : room.levels) { out += weekAlphabet[(v >> 6) & 63]; out += weekAlphabet[v & 63]; }
+        const auto marks = markText(room, false);
+        for (size_t i = 0; i < marks.size(); i += 3) {
+            uint32_t v = 0;
+            for (size_t j = 0; j < 3; ++j) v = v << 2 | uint32_t(i + j < marks.size() ? marks[i + j] - '0' : 0);
+            out += weekAlphabet[v];
+        }
+        return out;
     }
     static const char* string(const cJSON* o, const char* key) {
         const auto* p = cJSON_GetObjectItemCaseSensitive(o, key);

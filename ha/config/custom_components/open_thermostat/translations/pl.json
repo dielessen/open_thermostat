@@ -879,8 +879,8 @@
           "preset_mode": {
             "name": "Ustawienie wstępne",
             "state": {
-              "eco": "Noc",
-              "away": "Nieobecność"
+              "eco": "Eko",
+              "sleep": "Noc"
             }
           }
         }

@@ -188,7 +188,9 @@ async def test_the_thermostat_shows_the_room_and_its_override(hass):
     assert entity.hvac_mode == HVACMode.HEAT and entity.hvac_action == HVACAction.HEATING
     assert entity.preset_mode == "comfort"  # the warmest level of the week program (20.5 °C)
     hub.update(status(room_state("living", comfort={"mode": "next", "target_c": 18, "override": "next"})))
-    assert entity.preset_mode == "eco"      # its coolest level: the planner's "night"
+    assert entity.preset_mode == "sleep"    # its coolest level: the planner's Night
+    hub.update(status(room_state("living", comfort={"mode": "next", "target_c": 19.5, "override": "next"})))
+    assert entity.preset_mode == "eco"      # the inferred middle level: the planner's Eco
     hub.update(status(room_state("living", comfort={"mode": "next", "target_c": 21, "until": 1793655000,
                                                         "override": "next"})))
     assert entity.preset_mode == "none"
@@ -198,7 +200,8 @@ async def test_the_thermostat_shows_the_room_and_its_override(hass):
     # A window pause and away are visible with their reason.
     hub.update(status(room_state("living", setpoint=8, comfort={"mode": "window_open", "window": "open", "target_c": 8}),
                       away={"on": True, "source": "presence", "target_c": 15, "until": None, "presence": "away"}))
-    assert entity.hvac_mode == HVACMode.AUTO and entity.preset_mode == "away"
+    # Away is the house mode, not a room preset (beta.23): the room shows no preset, the reason stays visible.
+    assert entity.hvac_mode == HVACMode.AUTO and entity.preset_mode == "none" and "away" not in entity.preset_modes
     assert entity.extra_state_attributes["window"] == "open" and entity.extra_state_attributes["away_source"] == "presence"
     hub.update(status(room_state("living", state="inactive", demand=False)))
     assert entity.hvac_mode == HVACMode.OFF and entity.hvac_action == HVACAction.OFF and entity.preset_mode == "none"
@@ -248,21 +251,22 @@ async def test_modes_and_presets_write_the_plan_or_a_command(hass):
     await entity.async_set_hvac_mode(HVACMode.AUTO)  # on again, back to the week program
     assert e32.plan["rooms"][0]["state"] == "active"
     assert e32.commands[-1] == {"room": "living", "override": "none"}
-    await entity.async_set_preset_mode("eco")  # the night level of the week program
+    await entity.async_set_preset_mode("sleep")  # the Night level of the week program
     assert e32.commands[-1] == {"room": "living", "override": "next", "temperature": 18.0}
+    await entity.async_set_preset_mode("eco")
+    assert e32.commands[-1] == {"room": "living", "override": "next", "temperature": 19.5}
     await entity.async_set_preset_mode("comfort")
     assert e32.commands[-1] == {"room": "living", "override": "next", "temperature": 20.5}
     await entity.async_set_preset_mode("boost")
     assert e32.commands[-1] == {"room": "living", "override": "boost"}
-    await entity.async_set_preset_mode("away")
-    assert e32.commands[-1] == {"away": True}
+    # Away is the house mode only: no room preset, and "none" on a room leaves a house away alone.
+    with pytest.raises(ServiceValidationError):
+        await entity.async_set_preset_mode("away")
     hub.update(status(room_state("living"), away={"on": True, "source": "manual", "target_c": 15, "until": None,
                                                   "presence": "unknown"}))
     count = len(e32.commands)
-    await entity.async_set_preset_mode("none")  # ends the open-ended manual away (no override to end)
-    assert e32.commands[count:] == [{"away": False}]
-    with pytest.raises(ServiceValidationError):
-        await entity.async_set_preset_mode("sleep")
+    await entity.async_set_preset_mode("none")
+    assert e32.commands[count:] == []
     link.stop()
 
 
@@ -299,15 +303,24 @@ async def test_actions_and_refusals(hass):
     link.stop()
 
 
-def test_comfort_and_night_follow_the_week_planner_levels():
+def test_comfort_eco_and_night_follow_the_week_planner_levels():
     settings = comfort_options(entry())
-    assert module.program_levels(LIVING, settings) == (20.5, 18.0)
+    # Older firmware: inferred exactly like week-editor.js infer() (see test/week-editor.test.cjs).
+    assert module.program_levels(LIVING, settings) == (20.5, 19.5, 18.0)
     one = {**LIVING, "schedule": [[[420, 2100]], [], [], [], [], [], []]}
-    assert module.program_levels(one, settings) == (21.0, 16.0)       # one level: night at 16 °C
+    assert module.program_levels(one, settings) == (21.0, 18.5, 16.0)       # one level: night at 16 °C
     low = {**LIVING, "minimum_centi_c": 1700, "schedule": [[[420, 1700]], [], [], [], [], [], []]}
-    assert module.program_levels(low, settings) == (17.0, 17.0 - 0)  # clamped to the room minimum
-    assert module.program_levels(STUDY, settings) == (20.0, 16.0)     # no program: the settings
-    assert module.program_levels(None, comfort_options(entry({"comfort_c": 21.5, "eco_c": 17}))) == (21.5, 17.0)
+    assert module.program_levels(low, settings) == (17.0, 18.0, 17.0)      # clamped to the room minimum, still distinct
+    work = {**LIVING, "schedule": [[[390, 2050], [510, 1950], [1020, 2050], [1350, 1800]]] * 5 + [[[480, 2050], [1380, 1800]]] * 2}
+    assert module.program_levels(work, settings) == (20.5, 19.5, 18.0)
+    # No program: the former house settings (Comfort, and "eco_c" as Night) start the room's levels.
+    assert module.program_levels(STUDY, settings) == (20.0, 18.0, 16.0)
+    assert module.program_levels(None, comfort_options(entry({"comfort_c": 21.5, "eco_c": 17}))) == (21.5, 19.5, 17.0)
+    # Stored levels (E32 beta.23) win, also equal ones or a Night warmer than Comfort.
+    stored = {**LIVING, "levels": {"comfort": 2100, "eco": 1850, "night": 2200}}
+    assert module.program_levels(stored, settings) == (21.0, 18.5, 22.0)
+    outside = {**LIVING, "levels": {"comfort": 2600, "eco": 1850, "night": 1700}}  # above the room maximum: ignored
+    assert module.program_levels(outside, settings) == (20.5, 19.5, 18.0)
 
 
 def test_away_dates_are_checked_before_anything_is_sent():
@@ -334,8 +347,8 @@ def test_every_message_and_action_is_translated():
     services = set(re.findall(r"^([a-z_]+):", (component / "services.yaml").read_text(encoding="utf-8"), re.M))
     for name in ("set_room_override", "clear_room_override", "set_away", "clear_away"):
         assert name in services and name in strings["services"]
-    # Night and away in the week planner's words; comfort, boost and none in Home Assistant's own.
+    # Eco and Night in the week planner's words; comfort, boost and none in Home Assistant's own.
     assert strings["entity"]["climate"]["room_thermostat"]["state_attributes"]["preset_mode"]["state"] == {
-        "eco": "Night", "away": "Away"}
+        "eco": "Eco", "sleep": "Night"}
     for step in ("comfort", "comfort_settings", "comfort_contacts", "comfort_contacts_room"):
         assert step in strings["options"]["step"]

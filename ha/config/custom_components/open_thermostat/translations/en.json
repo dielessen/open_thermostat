@@ -879,8 +879,8 @@
           "preset_mode": {
             "name": "Preset",
             "state": {
-              "eco": "Night",
-              "away": "Away"
+              "eco": "Eco",
+              "sleep": "Night"
             }
           }
         }

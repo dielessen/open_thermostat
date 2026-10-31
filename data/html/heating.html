@@ -60,6 +60,7 @@
   </details>
   <div class="ot-sticky ot-actions">
     <button type="button" class="btn btn-primary" data-heating-save><span data-i18n="Save rooms">Save rooms</span></button>
+    <button type="button" class="btn btn-outline-secondary" data-heating-discard hidden><span data-i18n="Discard changes">Discard changes</span></button>
     <span class="ot-chip ot-chip--warn" data-heating-dirty hidden><span data-i18n="Unsaved changes">Unsaved changes</span></span>
     <p role="status" aria-live="polite" data-heating-message></p>
   </div>
@@ -138,7 +139,8 @@
   // "Kitchen thermometer (Bluetooth)" for a paired sensor, the entity for Home Assistant.
   const sourceName = id => { const s = bleSensors.find(b => b.id === id); return s ? (s.name || colons(id)) + ' (Bluetooth)' : /^[0-9a-f]{12}$/.test(id) ? colons(id) + ' (Bluetooth)' : id + ' (Home Assistant)'; };
   // Unsaved-changes marker for the sticky save bar; cleared by every (re)load.
-  const setDirty = value => { dirtyChip.hidden = !value; };
+  const discard = root.querySelector('[data-heating-discard]');
+  const setDirty = value => { dirtyChip.hidden = !value; discard.hidden = !value; };
   function applyLock() {
     root.classList.toggle('hp-locked', locked); lockBox.hidden = !locked && !neverHa; unlock.hidden = !locked;
     for (const box of root.querySelectorAll('.hp-body')) box.disabled = locked;
@@ -314,11 +316,14 @@
     draw(given || [[]]); editor.hidden = !useWeek.checked; editor.append(rows); week.append(editor); body.append(week);
     // Visual week planner (week-editor.js, shared with Home Assistant): it writes the same switch points into the
     // list above, which stays the fallback when the planner cannot load. Saving still reads the list.
+    let planner = null;
     if (window.OTWeekEditor) {
       const list = [...editor.children], host = el('div', null, {'data-heating-planner':''}), cc = i => Math.round(i.value * 100);
       const days = () => { const d = raw().map(p => p.filter(([m, c]) => Number.isFinite(m) && Number.isFinite(c)).sort((a, b) => a[0] - b[0])); return same.checked ? Array(7).fill(d[0] || []) : d; };
-      const planner = OTWeekEditor.mount(host, {week: given || [[], [], [], [], [], [], []], min: cc(lo), max: cc(hi), lang: OpenThermostatLanguage.language,
-        onChange: w => { same.checked = w.every(d => JSON.stringify(d) === JSON.stringify(w[0])); draw(same.checked ? [w[0]] : w); }});
+      // The room's own levels (Comfort, Eco, Night) when the firmware stores them (plan.levels.v1).
+      planner = OTWeekEditor.mount(host, {week: given || [[], [], [], [], [], [], []], min: cc(lo), max: cc(hi), lang: OpenThermostatLanguage.language,
+        levels: room.levels, scheduleLevels: room.schedule_levels,
+        onChange: w => { same.checked = w.every(d => JSON.stringify(d) === JSON.stringify(w[0])); draw(same.checked ? [w[0]] : w); setDirty(true); }});
       list.forEach(n => { n.hidden = true; }); editor.prepend(host);
       // A new program starts from "Workdays and weekend" with the room's current target as comfort.
       let target = status?.setpoint; const shown = card.status; card.status = s => { target = s?.setpoint; shown(s); };
@@ -330,8 +335,16 @@
       });
       [lo, hi].forEach(i => i.addEventListener('change', () => planner.limits(cc(lo), cc(hi))));
     }
+    // The planner's levels go with the room: "levels" always, "schedule_levels" (one digit per saved point) with a
+    // program. The points are those of the list (the planner writes them there); marks that no longer fit are redone.
+    const levelFields = points => {
+      if (!planner || !(plan.features || []).includes('plan.levels.v1')) return {};
+      const st = planner.state(), out = {levels: st.levels};
+      if (points) out.schedule_levels = OTWeekEditor.markText(OTWeekEditor.marked(points, st.levels, st.schedule_levels));
+      return out;
+    };
     const schedule = () => {
-      if (!useWeek.checked) return {};
+      if (!useWeek.checked) return levelFields(null);
       const days = raw(), min = Math.round(lo.value * 100), max = Math.round(hi.value * 100);
       days.forEach((points, d) => {
         const fail = text => { card.open = true; throw Object.assign(Error('schedule'), {text: name.value.trim() + ' · ' + label(d) + ': ' + text}); };
@@ -342,7 +355,8 @@
         if (points.some((p, i) => i && p[0] === points[i - 1][0])) fail(uiText("two switch points have the same time."));
       });
       if (!days.some(d => d.length)) throw Object.assign(Error('schedule'), {text: name.value.trim() + ': ' + uiText("add a switch point or turn the week program off.")});
-      return {schedule: same.checked ? Array(7).fill(days[0]) : days};
+      const points = same.checked ? Array(7).fill(days[0]) : days;
+      return {schedule: points, ...levelFields(points)};
     };
     const removeRoom = el('button', uiText("Remove room"), {type:'button', class:'btn btn-outline-danger'}), removeBox = el('div', null, {class:'hp-remove'});
     removeRoom.addEventListener('click', () => { if (confirm(uiText("Remove this room? It is deleted when you press Save rooms."))) card.remove(); });
@@ -498,6 +512,8 @@
     render(status); if (!status) renderRequest(null); readControl();
   }
   root.querySelector('[data-heating-retry]').addEventListener('click', load);
+  // Back to what the E32 has stored.
+  discard.addEventListener('click', async () => { await load(); message.textContent = uiText("Changes discarded."); });
   async function removeUnused(room, button) {
     if (!plan || !confirm(uiText("Remove the room {name}? It is deleted from the E32 and from Home Assistant at once. You can add it again later.").replace('{name}', room.name)
       + (dirtyChip.hidden ? '' : ' ' + uiText("Your unsaved changes on this page are discarded.")))) return;
@@ -544,7 +560,7 @@
     message.textContent = uiText("Saving…");
     try {
       plan = await json('/config/heating', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(next)});
-      message.textContent = uiText("Rooms saved.");
+      message.textContent = uiText("Rooms saved.") + ' ✓ ' + new Date().toLocaleTimeString(OpenThermostatLanguage.locale, {hour:'2-digit', minute:'2-digit'});
       await load();
     } catch (error) {
       if (error.code !== 'plan_changed') { message.textContent = refused(error.code); return; }

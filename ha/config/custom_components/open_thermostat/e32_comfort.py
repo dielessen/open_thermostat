@@ -6,8 +6,9 @@ without Home Assistant. This module adds, on top of that plan (E32 beta.19,
 
 - one ``climate`` entity per E32 room (thermostat card, voice assistants):
   current temperature, target, mode auto / heat / off and the presets comfort,
-  eco (shown as "Night"), away and boost. Comfort and night are the warmest and
-  coolest temperature of the room's week program, the levels of the week planner. "Off" makes the room inactive in the room plan; a new
+  eco, sleep (shown as "Night") and boost: the room's week planner levels
+  (stored per room since E32 beta.23, see room_levels; inferred for older
+  firmware). "Away" is the house mode only, not a room preset. "Off" makes the room inactive in the room plan; a new
   target becomes an override "until the next switch point" of the room's week
   program (or for the configured time when the room has no program); a room
   with only a fixed target changes that target in the plan.
@@ -41,7 +42,7 @@ import json
 from homeassistant.components import mqtt
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
-    PRESET_AWAY, PRESET_BOOST, PRESET_COMFORT, PRESET_ECO, PRESET_NONE, ClimateEntityFeature, HVACAction, HVACMode)
+    PRESET_BOOST, PRESET_COMFORT, PRESET_ECO, PRESET_NONE, PRESET_SLEEP, ClimateEntityFeature, HVACAction, HVACMode)
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
@@ -51,6 +52,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .heating_link import RoomEntity, add_options, heating_hub, number, track_entities
+from .room_levels import room_levels
 
 CONF_COMFORT = "comfort_settings"
 DEFAULTS = {"presence_entity": None, "comfort_c": 20.0, "eco_c": 16.0,  # the week planner's defaults
@@ -64,7 +66,9 @@ MAX_CONTACTS = 8
 MAX_AWAY_DAYS = 366
 REFRESH = timedelta(minutes=5)
 CONTACT_CLASSES = ("window", "door", "opening", "garage_door")
-PRESETS = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_AWAY, PRESET_BOOST]
+PRESETS = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_SLEEP, PRESET_BOOST]
+# Preset -> index in program_levels(): the planner's Comfort, Eco and Night.
+LEVEL_PRESETS = {PRESET_COMFORT: 0, PRESET_ECO: 1, PRESET_SLEEP: 2}
 OVERRIDES = ("boost", "timed", "next")
 AWAY_MODES = ("away", "presence_away", "away_return")
 # The E32's refusals that have their own message; the rest name the E32's code.
@@ -384,27 +388,42 @@ def away_command(on, temperature=None, until=None, now=None):
 
 
 def program_levels(plan_room, settings):
-    """(comfort, night) in °C, as the week planner names them (week-editor.js infer()).
+    """(comfort, eco, night) in °C: the room's week planner levels.
 
-    Comfort is the warmest and night the coolest temperature of the room's week
-    program; without a program, the comfort settings (Configure -> Comfort).
-    The presets "comfort" and "eco" use these, so the thermostat and the week
-    planner speak of the same levels.
+    The levels the room stores (E32 beta.23, room_levels) when it has them;
+    otherwise inferred from its week program exactly like the planner does for
+    older firmware (week-editor.js infer(): warmest = Comfort, coolest = Night,
+    the most used in between = Eco). A room without either starts from the
+    former house settings: "comfort_c" as Comfort and "eco_c" as Night (the
+    one-time migration; the planner stores the room's own levels on save).
     """
     room = plan_room or {}
+    stored = room_levels(room)
+    if stored is not None:
+        return stored["comfort"] / 100, stored["eco"] / 100, stored["night"] / 100
     lo, hi = room.get("minimum_centi_c"), room.get("maximum_centi_c")
     lo, hi = (lo, hi) if type(lo) is int and type(hi) is int and lo <= hi else (500, 3000)
-    schedule = room.get("schedule")
-    values = sorted({point[1] for day in schedule if type(day) is list for point in day
-                     if type(point) is list and len(point) == 2 and type(point[1]) is int}, reverse=True)         if type(schedule) is list else []
-    if not values:
-        return settings["comfort_c"], settings["eco_c"]
     clamp = lambda v: max(lo, min(hi, v))  # noqa: E731
+    half_up = lambda v: int(v + 0.5)  # noqa: E731  (JavaScript Math.round for these positive values)
+    schedule = room.get("schedule")
+    count = {}
+    for day in schedule if type(schedule) is list else []:
+        for point in day if type(day) is list else []:
+            if type(point) is list and len(point) == 2 and type(point[1]) is int:
+                count[point[1]] = count.get(point[1], 0) + 1
+    values = sorted(count, reverse=True)
+    if not values:
+        comfort, night = clamp(round(settings["comfort_c"] * 100)), clamp(round(settings["eco_c"] * 100))
+        return comfort / 100, clamp(half_up((comfort + night) / 100) * 50) / 100, night / 100
     comfort = values[0]
     night = values[-1] if len(values) > 1 else clamp(1600)
+    middle = sorted(values[1:-1], key=lambda v: -count[v])
+    eco = middle[0] if middle else clamp(half_up((comfort + night) / 100) * 50)
     if night == comfort:
         night = clamp(comfort - 300)
-    return comfort / 100, night / 100
+    if len({comfort, eco, night}) < 3:
+        eco = next((v for v in map(clamp, (comfort - 100, night + 100, comfort + 100)) if v not in (comfort, night)), eco)
+    return comfort / 100, eco / 100, night / 100
 
 
 
@@ -495,10 +514,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
             target = number(comfort.get("target_c"), 5, 35)
             levels = program_levels(self.plan_room, comfort_options(self.entry))
             centi = round(target * 100) if target is not None else None
-            return (PRESET_COMFORT if centi == round(levels[0] * 100) else PRESET_ECO if centi == round(levels[1] * 100)
-                    else PRESET_NONE)
-        if comfort.get("mode") in AWAY_MODES or self.away.get("on") is True:
-            return PRESET_AWAY
+            # Equal levels: the first one (Comfort, Eco, Night) names the hold.
+            return next((preset for preset, i in LEVEL_PRESETS.items() if centi == round(levels[i] * 100)), PRESET_NONE)
         return PRESET_NONE
 
     @property
@@ -587,18 +604,14 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
         if preset_mode == PRESET_BOOST:
             await self._ensure_active()
             await self._command(override_command(self.room_id, "boost"))
-        elif preset_mode in (PRESET_COMFORT, PRESET_ECO):
+        elif preset_mode in LEVEL_PRESETS:
             await self._ensure_active()
-            comfort, night = program_levels(self.plan_room, comfort_options(self.entry))  # eco = the night level
-            await self.async_hold(comfort if preset_mode == PRESET_COMFORT else night)
-        elif preset_mode == PRESET_AWAY:
-            await self._command(away_command(True))
+            levels = program_levels(self.plan_room, comfort_options(self.entry))
+            await self.async_hold(levels[LEVEL_PRESETS[preset_mode]])
         elif preset_mode == PRESET_NONE:
+            # Back to the week program; the house mode (away) is not a room preset and stays as it is.
             if self.comfort.get("override") in OVERRIDES:
                 await self._command(override_command(self.room_id, "none"))
-            # An open-ended away set by hand ends too; a dated away or presence stays.
-            if self.away.get("source") == "manual" and self.away.get("until") is None:
-                await self._command(away_command(False))
         else:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="room_state_invalid")
 

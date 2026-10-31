@@ -1,44 +1,66 @@
 /* OpenThermostat week planner: one dependency-free editor shared by the E32 rooms page and Home Assistant
    (identical copy: ha/.../frontend/week-editor.js). A week is 7 days, Monday first, of [minute, centi °C]
    switch points exactly as the E32 room plan stores it: a point holds until the next one, also across
-   midnight and empty days. Named levels are only a way to edit; the program keeps plain temperatures. */
+   midnight and empty days. The levels Comfort, Eco and Night are set independently (equal values and any
+   order are allowed) and each switch point remembers its level, so a level change moves all its blocks.
+   With firmware that has "plan.levels.v1" they are stored per room ("levels" and "schedule_levels", one
+   digit per point: 0 own temperature, 1 Comfort, 2 Eco, 3 Night); older firmware gets plain temperatures
+   and the levels are inferred again from the program, as before. Control only uses the temperatures. */
 (() => {
 'use strict';
 if (window.OTWeekEditor) return;
-const MAX = 6, STEP = 15, LEVELS = ['comfort', 'night', 'away'];
+const MAX = 6, STEP = 15, LEVELS = ['comfort', 'eco', 'night'], MARK = {comfort: 1, eco: 2, night: 3}, NARROW = 560;
 const T = {
  en: {days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], short: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-  text: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], names: {comfort: 'Comfort', night: 'Night', away: 'Away'}, levels: 'Temperature levels',
+  text: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], names: {comfort: 'Comfort', eco: 'Eco', night: 'Night'}, levels: 'Temperature levels',
   warmer: '{level} warmer', cooler: '{level} cooler', custom: 'Own temperature', template: 'Start from a template', choose: 'Choose…',
   templates: {work: 'Workdays and weekend', home: 'Working from home', daily: 'Same every day'}, undo: 'Undo',
-  applied: '{name} applied. Undo brings back the previous program.', hint: 'Tap a block to change it, drag a dividing line to change a time, tap a day to copy it.',
+  applied: '{name} applied. Undo brings back the previous program.', hint: 'Tap a block to change it, drag a dividing line to change a time, use Copy… to copy a day.',
   empty: 'No program yet: choose a template to start.', copyDay: 'Copy {day}', copyTo: 'Copy {day} to', workdays: 'Workdays', weekend: 'Weekend', all: 'All days',
   copy: 'Copy', cancel: 'Cancel', pickDay: 'Choose at least one day.', copied: '{day} copied.', block: '{day} {from}–{to}', inherited: 'continues from the day before',
   level: 'Level', starts: 'Starts at', earlier: '15 minutes earlier', later: '15 minutes later', split: 'Split block', remove: 'Remove switch time',
   prev: 'Previous block', next: 'Next block', close: 'Done', full: 'At most 6 switch times per day.', short15: 'This block is too short to split.',
-  differ: 'Each level needs its own temperature.', limits: 'Keep temperatures between {min} and {max}.', preview: 'Week preview',
+  warmerNight: 'Night is now warmer than Comfort. That is allowed; check that it is what you want.', copyShort: 'Copy…',
+  blocks: 'Blocks on {day}', limits: 'Keep temperatures between {min} and {max}.', preview: 'Week preview',
   advanced: 'Advanced: edit as text', textHelp: 'One line per group of days, for example: mon-fri: 06:30 20.5; 22:30 18', apply: 'Apply text',
   bad: 'Line {line} cannot be read: {text}', outside: 'Line {line}: temperatures must lie between {min} and {max}.', many: 'Line {line}: at most 6 switch times per day.',
   textApplied: 'Text applied.', inF: 'Temperatures in °F.'},
  nl: {days: ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'], short: ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'],
-  text: ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'], names: {comfort: 'Comfort', night: 'Nacht', away: 'Afwezig'}, levels: 'Temperatuurniveaus',
+  text: ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'], names: {comfort: 'Comfort', eco: 'Eco', night: 'Nacht'}, levels: 'Temperatuurniveaus',
   warmer: '{level} warmer', cooler: '{level} kouder', custom: 'Eigen temperatuur', template: 'Begin met een sjabloon', choose: 'Kies…',
   templates: {work: 'Werkdagen en weekend', home: 'Thuiswerken', daily: 'Elke dag hetzelfde'}, undo: 'Ongedaan maken',
-  applied: '{name} toegepast. Ongedaan maken zet het vorige programma terug.', hint: 'Tik op een blok om het te wijzigen, sleep een scheidingslijn om een tijd te verschuiven, tik op een dag om hem te kopiëren.',
+  applied: '{name} toegepast. Ongedaan maken zet het vorige programma terug.', hint: 'Tik op een blok om het te wijzigen, sleep een scheidingslijn om een tijd te verschuiven, gebruik Kopieer… om een dag te kopiëren.',
   empty: 'Nog geen programma: kies een sjabloon om te beginnen.', copyDay: '{day} kopiëren', copyTo: '{day} kopiëren naar', workdays: 'Werkdagen', weekend: 'Weekend', all: 'Alle dagen',
   copy: 'Kopiëren', cancel: 'Annuleren', pickDay: 'Kies minstens één dag.', copied: '{day} gekopieerd.', block: '{day} {from}–{to}', inherited: 'loopt door van de dag ervoor',
   level: 'Niveau', starts: 'Begint om', earlier: '15 minuten eerder', later: '15 minuten later', split: 'Blok splitsen', remove: 'Schakeltijd verwijderen',
   prev: 'Vorig blok', next: 'Volgend blok', close: 'Klaar', full: 'Maximaal 6 schakeltijden per dag.', short15: 'Dit blok is te kort om te splitsen.',
-  differ: 'Elk niveau heeft een eigen temperatuur nodig.', limits: 'Houd temperaturen tussen {min} en {max}.', preview: 'Voorbeeld van de week',
+  warmerNight: 'Nacht is nu warmer dan Comfort. Dat mag; controleer of het is wat je wilt.', copyShort: 'Kopieer…',
+  blocks: 'Blokken op {day}', limits: 'Houd temperaturen tussen {min} en {max}.', preview: 'Voorbeeld van de week',
   advanced: 'Geavanceerd: als tekst bewerken', textHelp: 'Eén regel per groep dagen, bijvoorbeeld: ma-vr: 06:30 20,5; 22:30 18', apply: 'Tekst toepassen',
   bad: 'Regel {line} is niet te lezen: {text}', outside: 'Regel {line}: temperaturen moeten tussen {min} en {max} liggen.', many: 'Regel {line}: maximaal 6 schakeltijden per dag.',
   textApplied: 'Tekst toegepast.', inF: 'Temperaturen in °F.'}};
 // Templates in level names; the owner's level temperatures fill them in.
-const WORK = [[390, 'comfort'], [510, 'away'], [1020, 'comfort'], [1350, 'night']], HOME = [[420, 'comfort'], [1350, 'night']], FREE = [[480, 'comfort'], [1380, 'night']];
+const WORK = [[390, 'comfort'], [510, 'eco'], [1020, 'comfort'], [1350, 'night']], HOME = [[420, 'comfort'], [1350, 'night']], FREE = [[480, 'comfort'], [1380, 'night']];
 const TEMPLATES = {work: [WORK, WORK, WORK, WORK, WORK, FREE, FREE], home: [HOME, HOME, HOME, HOME, HOME, FREE, FREE], daily: Array(7).fill(HOME)};
 const DAY_NAMES = {};
 [T.en.text, T.nl.text, T.en.days.map(d => d.toLowerCase()), T.nl.days.map(d => d.toLowerCase())].forEach(n => n.forEach((d, i) => { DAY_NAMES[d] = i; }));
-const clone = w => w.map(d => d.map(p => [p[0], p[1]]));
+// A point is [minute, centi °C] or, inside the editor, [minute, centi °C, level]; the plan gets plain pairs.
+const clone = w => w.map(d => d.map(p => p[2] ? [p[0], p[1], p[2]] : [p[0], p[1]]));
+const plain = w => w.map(d => d.map(p => [p[0], p[1]]));
+const validLevels = (v, min, max) => !!v && LEVELS.every(k => Number.isInteger(v[k]) && v[k] >= min && v[k] <= max);
+// "schedule_levels" as the plan stores it: one digit per point, days separated by '.'.
+const markText = w => w.map(d => d.map(p => p[2] ? MARK[p[2]] : 0).join('')).join('.');
+// Marks the points with their level: from the stored digits when they fit the program and the levels,
+// otherwise (older firmware, a migration) the first level with the point's temperature.
+function marked(week, levels, text) {
+ const days = typeof text === 'string' ? text.split('.') : null;
+ const ok = !!days && days.length === 7 && days.every((digits, d) => digits.length === week[d].length && /^[0-3]*$/.test(digits)
+  && [...digits].every((ch, i) => ch === '0' || week[d][i][1] === levels[LEVELS[ch - 1]]));
+ return week.map((day, d) => day.map((p, i) => {
+  const k = ok ? LEVELS[days[d][i] - 1] : LEVELS.find(l => levels[l] === p[1]);
+  return k ? [p[0], p[1], k] : [p[0], p[1]];
+ }));
+}
 const fill = (s, v) => s.replace(/\{(\w+)\}/g, (a, k) => k in v ? v[k] : a);
 const clock = m => String(m / 60 | 0).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
 // °F only at the edge (Home Assistant in imperial units): shown with one decimal like the options flow
@@ -47,6 +69,7 @@ const shown = (c, f) => f ? Math.round(c * 9 / 50 + 320) / 10 : c / 100;
 const centi = (v, f) => f ? Math.round((v - 32) * 500 / 9) : Math.round(v * 100);
 const deg = (c, lang, f) => { const s = String(shown(c, f)); return lang === 'nl' ? s.replace('.', ',') : s; };
 const valid = w => Array.isArray(w) && w.length === 7 && w.every(d => Array.isArray(d) && d.length <= MAX && d.every((p, i) => Array.isArray(p)
+ && (p.length === 2 || (p.length === 3 && LEVELS.includes(p[2])))
  && Number.isInteger(p[0]) && Number.isInteger(p[1]) && p[0] >= 0 && p[0] < 1440 && (!i || p[0] > d[i - 1][0])));
 const tr = lang => T[lang === 'nl' ? 'nl' : 'en'];
 
@@ -94,29 +117,32 @@ function parse(text, min, max, f) {
  });
  return week.map(d => d || []);
 }
-// Levels follow the program: warmest = comfort, coolest = night, the most used in between = away.
+// Levels for a program without stored levels (older firmware, the one-time migration): warmest = Comfort,
+// coolest = Night, the most used in between = Eco ("Away" before beta.23). Distinct, so every point gets
+// exactly one level; once stored, the levels are free.
 function infer(week, min, max) {
  const count = new Map();
  week.flat().forEach(([, c]) => count.set(c, (count.get(c) || 0) + 1));
  const values = [...count.keys()].sort((a, b) => b - a), clamp = v => Math.max(min, Math.min(max, v));
  const levels = {comfort: values[0] ?? clamp(2000), night: values.length > 1 ? values[values.length - 1] : clamp(1600)};
  const middle = values.slice(1, -1).sort((a, b) => count.get(b) - count.get(a))[0];
- levels.away = middle ?? clamp(Math.round((levels.comfort + levels.night) / 100) * 50);
+ levels.eco = middle ?? clamp(Math.round((levels.comfort + levels.night) / 100) * 50);
  if (levels.night === levels.comfort) levels.night = clamp(levels.comfort - 300);
- if (new Set(Object.values(levels)).size < 3) levels.away = [levels.comfort - 100, levels.night + 100, levels.comfort + 100].map(clamp).find(v => v !== levels.comfort && v !== levels.night) ?? levels.away;
- return levels;
+ if (new Set(Object.values(levels)).size < 3) levels.eco = [levels.comfort - 100, levels.night + 100, levels.comfort + 100].map(clamp).find(v => v !== levels.comfort && v !== levels.night) ?? levels.eco;
+ return {comfort: levels.comfort, eco: levels.eco, night: levels.night};
 }
-const CSS = `.wpe{--wt:var(--primary-text-color,var(--ot-text,#173b40));--wm:var(--secondary-text-color,var(--ot-muted,#4f666b));--ws:var(--card-background-color,var(--ot-surface,#fff));--w2:var(--secondary-background-color,var(--ot-surface-2,#f1f5f5));--wl:var(--divider-color,var(--ot-border,#c9d6d8));--wf:var(--ot-focus,var(--primary-color,#b06313));--comfort:#eb6834;--night:#6250d6;--away:#1baf7a;--ink-night:#fff;color:var(--wt);display:grid;gap:14px;min-width:0}
-@media(prefers-color-scheme:dark){.wpe:not([data-theme=light]){--wt:var(--primary-text-color,var(--ot-text,#e3eeef));--wm:var(--secondary-text-color,var(--ot-muted,#a3b7bb));--ws:var(--card-background-color,var(--ot-surface,#162124));--w2:var(--secondary-background-color,var(--ot-surface-2,#1d2b2f));--wl:var(--divider-color,var(--ot-border,#2f4247));--comfort:#d95926;--night:#9085e9;--away:#199e70;--ink-night:#1a1a19}}.wpe[data-theme=dark]{--wt:var(--primary-text-color,var(--ot-text,#e3eeef));--wm:var(--secondary-text-color,var(--ot-muted,#a3b7bb));--ws:var(--card-background-color,var(--ot-surface,#162124));--w2:var(--secondary-background-color,var(--ot-surface-2,#1d2b2f));--wl:var(--divider-color,var(--ot-border,#2f4247));--comfort:#d95926;--night:#9085e9;--away:#199e70;--ink-night:#1a1a19}
+const CSS = `.wpe{--wt:var(--primary-text-color,var(--ot-text,#173b40));--wm:var(--secondary-text-color,var(--ot-muted,#4f666b));--ws:var(--card-background-color,var(--ot-surface,#fff));--w2:var(--secondary-background-color,var(--ot-surface-2,#f1f5f5));--wl:var(--divider-color,var(--ot-border,#c9d6d8));--wf:var(--ot-focus,var(--primary-color,#b06313));--comfort:#eb6834;--night:#6250d6;--eco:#1baf7a;--ink-night:#fff;color:var(--wt);display:grid;gap:14px;min-width:0}
+@media(prefers-color-scheme:dark){.wpe:not([data-theme=light]){--wt:var(--primary-text-color,var(--ot-text,#e3eeef));--wm:var(--secondary-text-color,var(--ot-muted,#a3b7bb));--ws:var(--card-background-color,var(--ot-surface,#162124));--w2:var(--secondary-background-color,var(--ot-surface-2,#1d2b2f));--wl:var(--divider-color,var(--ot-border,#2f4247));--comfort:#d95926;--night:#9085e9;--eco:#199e70;--ink-night:#1a1a19}}.wpe[data-theme=dark]{--wt:var(--primary-text-color,var(--ot-text,#e3eeef));--wm:var(--secondary-text-color,var(--ot-muted,#a3b7bb));--ws:var(--card-background-color,var(--ot-surface,#162124));--w2:var(--secondary-background-color,var(--ot-surface-2,#1d2b2f));--wl:var(--divider-color,var(--ot-border,#2f4247));--comfort:#d95926;--night:#9085e9;--eco:#199e70;--ink-night:#1a1a19}
 .wpe *{box-sizing:border-box}.wpe button,.wpe select,.wpe input,.wpe textarea{font:inherit;color:inherit;background:var(--ws);border:1px solid var(--wl);border-radius:10px;min-height:44px;min-width:44px;padding:6px 10px}.wpe button{cursor:pointer;font-weight:600}.wpe button:disabled{opacity:.45;cursor:default}
 .wpe :focus-visible{outline:3px solid var(--wf);outline-offset:2px}.wpe h4{margin:0;font-size:.95rem}.wpe small,.wpe .wpe-note{color:var(--wm);font-size:.82rem;line-height:1.45}.wpe p{margin:0}
 .wpe-levels,.wpe-tools,.wpe-row2{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.wpe-lv{display:flex;align-items:center;gap:6px;border:1px solid var(--wl);border-radius:12px;padding:4px 4px 4px 10px;background:var(--ws)}
 .wpe-lv b{min-width:9ch}.wpe-dot{width:14px;height:14px;border-radius:4px;flex:none}.wpe-tools label{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.wpe-grid{display:grid;gap:6px}.wpe-day{display:grid;grid-template-columns:52px minmax(0,1fr);gap:6px;align-items:center}.wpe-day>button{padding:4px;font-size:.85rem}
+.wpe-grid{display:grid;gap:6px}.wpe-day{display:grid;grid-template-columns:78px minmax(0,1fr);gap:6px;align-items:center}.wpe-day>button{padding:4px;font-size:.85rem;display:grid;line-height:1.2}.wpe-day>button small{font-weight:600;font-size:.72rem}
+.wpe-list{display:grid;gap:6px}.wpe-list>button{display:flex;align-items:center;gap:10px;text-align:left;min-height:48px}.wpe-pill{border-radius:999px;padding:2px 10px;font-size:.8rem}.wpe-list .wpe-on{box-shadow:inset 0 0 0 3px var(--wt)}
 .wpe-axis{position:relative;height:16px;font-size:.72rem;color:var(--wm)}.wpe-axis span{position:absolute;transform:translateX(-50%)}.wpe-axis span:first-child{transform:none}.wpe-axis span:last-child{transform:translateX(-100%)}
 .wpe-bar{position:relative;height:48px;border-radius:8px;background:var(--w2);touch-action:pan-y}.wpe-seg{position:absolute;top:0;bottom:0;border:0!important;border-radius:0!important;border-right:2px solid var(--ws)!important;min-width:0!important;min-height:0!important;padding:0 4px 0 9px!important;font-size:.78rem;text-align:left;white-space:nowrap;overflow:hidden;color:#1a1a19}
 .wpe-seg:first-child{border-radius:8px 0 0 8px!important}.wpe-seg:last-of-type{border-right:0!important;border-radius:0 8px 8px 0!important}.wpe-seg:only-of-type{border-radius:8px!important}
-.wpe .lv-comfort{background:var(--comfort)}.wpe .lv-night{background:var(--night);color:var(--ink-night)}.wpe .lv-away{background:var(--away)}.wpe .lv-custom{background:repeating-linear-gradient(45deg,var(--w2) 0 6px,var(--wl) 6px 9px);color:var(--wt)}.wpe .lv-none{background:var(--w2);color:var(--wm)}
+.wpe .lv-comfort{background:var(--comfort)}.wpe .lv-night{background:var(--night);color:var(--ink-night)}.wpe .lv-eco{background:var(--eco)}.wpe .lv-custom{background:repeating-linear-gradient(45deg,var(--w2) 0 6px,var(--wl) 6px 9px);color:var(--wt)}.wpe .lv-none{background:var(--w2);color:var(--wm)}
 .wpe-seg.wpe-on{box-shadow:inset 0 0 0 3px var(--wt),inset 0 0 0 5px var(--ws);z-index:1}.wpe-h{position:absolute;top:-4px;bottom:-4px;width:44px;margin-left:-22px;cursor:ew-resize;touch-action:none;z-index:2}
 .wpe-h::after{content:"";position:absolute;left:19px;top:22%;height:56%;width:6px;border-radius:3px;background:var(--ws);border:2px solid var(--wt)}.wpe-h span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--wt);color:var(--ws);border-radius:6px;padding:2px 6px;font-size:.75rem;white-space:nowrap}
 .wpe-panel{border:1px solid var(--wl);border-radius:12px;padding:12px;display:grid;gap:10px;background:var(--ws)}.wpe-panel [aria-pressed=true]{box-shadow:inset 0 0 0 2px var(--wt)}.wpe-panel input[type=number]{width:7em}.wpe-panel input[type=time]{width:8em}
@@ -127,8 +153,19 @@ const CSS = `.wpe{--wt:var(--primary-text-color,var(--ot-text,#173b40));--wm:var
 
 function mount(host, options) {
  const o = Object.assign({min: 500, max: 3000, lang: 'en'}, options), t = tr(o.lang);
- let week = valid(o.week) ? clone(o.week) : Array.from({length: 7}, () => []), levels = Object.assign(infer(week, o.min, o.max), o.levels || {});
- let sel = null, copyFrom = null, copyTo = new Set(), undo = null, msg = '', textError = '', textDraft = null, textOpen = false;
+ // Stored levels (o.levels, o.scheduleLevels) when the firmware has them, else inferred from the program.
+ const load = (w, lv, marks) => {
+  const given = valid(w) ? plain(w) : Array.from({length: 7}, () => []);
+  own = validLevels(lv, o.min, o.max);
+  levels = own ? {comfort: lv.comfort, eco: lv.eco, night: lv.night} : infer(given, o.min, o.max);
+  week = marked(given, levels, marks);
+ };
+ // own: the levels are the room's (stored, or changed here); otherwise they follow the program (inferred).
+ let week, levels, own = false;
+ load(o.week, o.levels, o.scheduleLevels);
+ let sel = null, copyFrom = null, copyTo = new Set(), history = [], msg = '', textError = '', textDraft = null, textOpen = false, listDay = null;
+ const stateText = () => JSON.stringify({w: plain(week), l: levels, m: markText(week)});
+ let baseline = stateText();
  const root = document.createElement('div');
  root.className = 'wpe';
  if (o.theme) root.dataset.theme = o.theme;
@@ -141,59 +178,68 @@ function mount(host, options) {
   return e;
  };
  const say = s => { msg = s; };
- const name = c => { const k = LEVELS.find(l => levels[l] === c); return k ? t.names[k] : c == null ? '' : t.custom; };
- const cls = c => c == null ? 'lv-none' : 'lv-' + (LEVELS.find(l => levels[l] === c) || 'custom');
+ const name = g => g.c == null ? '' : g.k ? t.names[g.k] : t.custom;
+ const cls = g => g.c == null ? 'lv-none' : 'lv-' + (g.k || 'custom');
  const F = !!o.fahrenheit, degText = c => deg(c, o.lang, F) + (F ? ' °F' : ' °C');
  // One step of a level: 0.5 °C, or 1 °F.
  const step = (c, by) => F ? centi(shown(c, true) + by, true) : c + 50 * by;
- const changed = () => { textDraft = null; textError = ''; if (o.onChange) o.onChange(clone(week)); };
- const carry = d => { for (let b = 1; b <= 7; b++) { const p = week[(d + 7 - b) % 7]; if (p.length) return p[p.length - 1][1]; } return null; };
+ const state = () => ({schedule: plain(week), levels: {...levels}, schedule_levels: markText(week)});
+ const changed = () => { textDraft = null; textError = ''; if (o.onChange) o.onChange(plain(week), state()); };
+ const carry = d => { for (let b = 1; b <= 7; b++) { const p = week[(d + 7 - b) % 7]; if (p.length) return p[p.length - 1]; } return null; };
  const segs = d => {
-  const out = [];
-  let s = 0, c = carry(d), p = -1;
-  week[d].forEach(([m, v], i) => { if (m > s) out.push({s, e: m, c, p}); s = m; c = v; p = i; });
-  out.push({s, e: 1440, c, p});
+  const out = [], last = carry(d);
+  let s = 0, c = last ? last[1] : null, k = last ? last[2] : undefined, p = -1;
+  week[d].forEach(([m, v, l], i) => { if (m > s) out.push({s, e: m, c, k, p}); s = m; c = v; k = l; p = i; });
+  out.push({s, e: 1440, c, k, p});
   return out;
  };
- const tidy = d => { for (let i = week[d].length - 1; i > 0; i--) if (week[d][i][1] === week[d][i - 1][1]) week[d].splice(i, 1); };
+ // Two following points of the same level and temperature are one block.
+ const tidy = d => { for (let i = week[d].length - 1; i > 0; i--) if (week[d][i][1] === week[d][i - 1][1] && week[d][i][2] === week[d][i - 1][2]) week[d].splice(i, 1); };
  const pick = (d, minute) => { sel = {d, i: Math.max(0, segs(d).findIndex(g => g.s <= minute && minute < g.e))}; };
- const snapshot = () => { undo = {week: clone(week), levels: {...levels}}; };
- function setLevel(d, i, c) {
-  const g = segs(d)[i];
-  if (g.p >= 0) week[d][g.p][1] = c; else week[d].unshift([0, c]);
+ // Every change can be undone, step by step (at most 30 steps).
+ const snapshot = () => { history.push({week: clone(week), levels: {...levels}}); if (history.length > 30) history.shift(); };
+ const point = (c, k) => k ? [0, c, k] : [0, c];
+ // key: a level name, or null with c for an own temperature.
+ function setLevel(d, i, key, c) {
+  const g = segs(d)[i], value = key ? levels[key] : c;
+  snapshot();
+  if (g.p >= 0) week[d][g.p] = [week[d][g.p][0], ...point(value, key).slice(1)]; else week[d].unshift(point(value, key));
   tidy(d); pick(d, g.s); changed();
  }
  function split(d, i) {
-  const list = segs(d), g = list[i], at = Math.round((g.s + g.e) / 2 / STEP) * STEP, after = list[i + 1] ? list[i + 1].c : null;
+  const list = segs(d), g = list[i], at = Math.round((g.s + g.e) / 2 / STEP) * STEP, after = list[i + 1] ? list[i + 1].k : null;
   if (week[d].length >= MAX) return say(t.full);
   if (at <= g.s || at >= g.e) return say(t.short15);
-  // The new second half gets another level than both neighbours: a comfort block is split for "away", others for comfort.
-  const order = g.c === levels.comfort ? ['away', 'night', 'comfort'] : ['comfort', 'away', 'night'];
-  week[d].push([at, levels[order.find(l => levels[l] !== g.c && levels[l] !== after) || order[0]]]);
+  // The new second half gets another level than both neighbours: a Comfort block is split for Eco, others for Comfort.
+  const order = g.k === 'comfort' ? ['eco', 'night', 'comfort'] : ['comfort', 'eco', 'night'], key = order.find(l => l !== g.k && l !== after) || order[0];
+  snapshot();
+  week[d].push([at, levels[key], key]);
   week[d].sort((a, b) => a[0] - b[0]); pick(d, at); changed();
  }
  function removePoint(d, i) {
   const g = segs(d)[i];
   if (g.p < 0) return;
-  week[d].splice(g.p, 1); pick(d, Math.max(0, g.s - 1)); changed();
+  snapshot(); week[d].splice(g.p, 1); pick(d, Math.max(0, g.s - 1)); changed();
  }
  const bounds = (d, p) => [p ? week[d][p - 1][0] + 1 : 0, p < week[d].length - 1 ? week[d][p + 1][0] - 1 : 1439];
  function moveTo(d, p, minute) {
   const [lo, hi] = bounds(d, p);
-  week[d][p][0] = Math.max(lo, Math.min(hi, minute)); pick(d, week[d][p][0]); changed();
+  snapshot(); week[d][p][0] = Math.max(lo, Math.min(hi, minute)); pick(d, week[d][p][0]); changed();
  }
  function setLevelValue(key, c) {
   if (c < o.min || c > o.max) return say(fill(t.limits, {min: degText(o.min), max: degText(o.max)}));
-  if (LEVELS.some(l => l !== key && levels[l] === c)) return say(t.differ);
-  const old = levels[key];
-  levels[key] = c;
-  week.forEach(day => day.forEach(p => { if (p[1] === old) p[1] = c; }));
+  // Levels are independent: equal values and any order are fine; every block of this level follows.
+  snapshot();
+  levels[key] = c; own = true;
+  week.forEach(day => day.forEach(p => { if (p[2] === key) p[1] = c; }));
+  for (let d = 0; d < 7; d++) tidy(d);
+  say(levels.night > levels.comfort ? t.warmerNight : '');
   if (o.onLevels) o.onLevels({...levels});
-  if (week.some(day => day.length)) changed();
+  changed();
  }
  function applyTemplate(key) {
   snapshot();
-  week = TEMPLATES[key].map(day => day.map(([m, l]) => [m, levels[l]]));
+  week = TEMPLATES[key].map(day => day.map(([m, l]) => [m, levels[l], l]));
   sel = copyFrom = null; say(fill(t.applied, {name: t.templates[key]})); changed();
  }
 
@@ -213,19 +259,22 @@ function mount(host, options) {
   const choice = el('select', null, {'data-k': 'template'}, () => { if (choice.value) applyTemplate(choice.value); render(); });
   choice.append(el('option', t.choose, {value: ''}), ...Object.keys(TEMPLATES).map(k => el('option', t.templates[k], {value: k})));
   label.append(choice); box.append(label);
-  if (undo) box.append(el('button', t.undo, {type: 'button', 'data-k': 'undo'}, () => { ({week, levels} = undo); undo = null; sel = copyFrom = null; say(''); changed(); }));
+  if (history.length) box.append(el('button', t.undo, {type: 'button', 'data-k': 'undo'}, () => { ({week, levels} = history.pop()); sel = copyFrom = null; say(''); changed(); }));
   return box;
  }
  function renderDay(d) {
   const row = el('div', null, {class: 'wpe-day'}), bar = el('div', null, {class: 'wpe-bar', role: 'group', 'aria-label': t.days[d]});
-  row.append(el('button', t.short[d], {type: 'button', title: fill(t.copyDay, {day: t.days[d]}), 'aria-label': fill(t.copyDay, {day: t.days[d]}), 'data-k': 'day' + d,
-   'aria-expanded': String(copyFrom === d)}, () => { copyFrom = copyFrom === d ? null : d; copyTo = new Set(); sel = null; say(''); }), bar);
+  // The day button copies the day; it says so ("Copy…") instead of hiding it in a tooltip.
+  const day = el('button', null, {type: 'button', title: fill(t.copyDay, {day: t.days[d]}), 'aria-label': fill(t.copyDay, {day: t.days[d]}), 'data-k': 'day' + d,
+   'aria-expanded': String(copyFrom === d)}, () => { copyFrom = copyFrom === d ? null : d; copyTo = new Set(); sel = null; listDay = d; say(''); });
+  day.append(el('span', t.short[d]), el('small', t.copyShort));
+  row.append(day, bar);
   const list = segs(d), nodes = [];
   list.forEach((g, i) => {
-   const label = fill(t.block, {day: t.days[d], from: clock(g.s), to: g.e === 1440 ? '24:00' : clock(g.e)}) + (g.c == null ? '' : ', ' + name(g.c) + ' ' + degText(g.c)) + (g.p < 0 && g.c != null ? ', ' + t.inherited : '');
-   const b = el('button', g.c == null ? '' : deg(g.c, o.lang, F) + '°', {type: 'button', class: 'wpe-seg ' + cls(g.c) + (sel && sel.d === d && sel.i === i ? ' wpe-on' : ''),
+   const label = blockLabel(d, g);
+   const b = el('button', g.c == null ? '' : deg(g.c, o.lang, F) + '°', {type: 'button', class: 'wpe-seg ' + cls(g) + (sel && sel.d === d && sel.i === i ? ' wpe-on' : ''),
     style: 'left:' + g.s / 14.4 + '%;width:' + (g.e - g.s) / 14.4 + '%', 'aria-label': label, title: label, 'data-k': 'seg' + d + '-' + g.s,
-    'aria-pressed': String(!!(sel && sel.d === d && sel.i === i))}, () => { sel = {d, i}; copyFrom = null; say(''); });
+    'aria-pressed': String(!!(sel && sel.d === d && sel.i === i))}, () => { sel = {d, i}; listDay = d; copyFrom = null; say(''); });
    nodes.push(b); bar.append(b);
   });
   // A dividing line per switch time: drag it (snaps to 15 minutes); the panel has the exact time.
@@ -260,6 +309,23 @@ function mount(host, options) {
   });
   return row;
  }
+ function blockLabel(d, g) {
+  return fill(t.block, {day: t.days[d], from: clock(g.s), to: g.e === 1440 ? '24:00' : clock(g.e)}) + (g.c == null ? '' : ', ' + name(g) + ' ' + degText(g.c)) + (g.p < 0 && g.c != null ? ', ' + t.inherited : '');
+ }
+ // On a phone the bars are narrow: the blocks of one day as a list with large rows (tap = edit).
+ function renderList() {
+  const d = listDay ?? (sel ? sel.d : 0), box = el('div', null, {class: 'wpe-list', role: 'group', 'aria-label': fill(t.blocks, {day: t.days[d]})});
+  const days = el('div', null, {class: 'wpe-row2'});
+  t.days.forEach((n, i) => days.append(el('button', t.short[i], {type: 'button', 'aria-pressed': String(i === d), 'aria-label': n, 'data-k': 'listday' + i}, () => { listDay = i; sel = null; copyFrom = null; })));
+  box.append(el('h4', fill(t.blocks, {day: t.days[d]})), days);
+  segs(d).forEach((g, i) => {
+   const on = !!(sel && sel.d === d && sel.i === i), row = el('button', null, {type: 'button', class: on ? 'wpe-on' : null, 'aria-pressed': String(on), 'aria-label': blockLabel(d, g), 'data-k': 'row' + d + '-' + g.s},
+    () => { sel = {d, i}; listDay = d; copyFrom = null; say(''); });
+   row.append(el('span', clock(g.s) + '–' + (g.e === 1440 ? '24:00' : clock(g.e))), el('span', g.c == null ? '–' : name(g), {class: 'wpe-pill ' + cls(g)}), el('b', g.c == null ? '' : degText(g.c)));
+   box.append(row);
+  });
+  return box;
+ }
  function renderCopy() {
   const d = copyFrom, box = el('div', null, {class: 'wpe-panel', role: 'group', 'aria-label': fill(t.copyTo, {day: t.days[d]})});
   box.append(el('h4', fill(t.copyTo, {day: t.days[d]})));
@@ -276,7 +342,7 @@ function mount(host, options) {
    const targets = [...copyTo].sort();
    if (!targets.length) { say(t.pickDay); return render(); }
    snapshot();
-   for (const x of targets) week[x] = week[d].map(p => [p[0], p[1]]);
+   for (const x of targets) week[x] = clone([week[d]])[0];
    copyFrom = null; say(fill(t.copied, {day: t.days[d]})); changed(); render();
   }), el('button', t.cancel, {type: 'button', 'data-k': 'copy-cancel'}, () => { copyFrom = null; render(); }));
   box.append(quick, days, actions);
@@ -288,11 +354,11 @@ function mount(host, options) {
   const box = el('div', null, {class: 'wpe-panel', role: 'group', 'aria-label': t.days[d]});
   box.append(el('h4', fill(t.block, {day: t.days[d], from: clock(g.s), to: g.e === 1440 ? '24:00' : clock(g.e)}) + (g.p < 0 && g.c != null ? ' · ' + t.inherited : '')));
   const lv = el('div', null, {class: 'wpe-row2', role: 'group', 'aria-label': t.level});
-  for (const key of LEVELS) lv.append(el('button', t.names[key] + ' ' + degText(levels[key]), {type: 'button', class: 'lv-' + key, 'aria-pressed': String(g.c === levels[key]),
-   'data-k': 'set-' + key}, () => setLevel(d, i, levels[key])));
+  for (const key of LEVELS) lv.append(el('button', t.names[key] + ' ' + degText(levels[key]), {type: 'button', class: 'lv-' + key, 'aria-pressed': String(g.k === key),
+   'data-k': 'set-' + key}, () => setLevel(d, i, key)));
   const own = el('input', null, {type: 'number', step: F ? '1' : '0.5', min: shown(o.min, F), max: shown(o.max, F), 'aria-label': t.custom, 'data-k': 'own'}, () => {
    const c = centi(parseFloat(String(own.value).replace(',', '.')), F);
-   if (!(c >= o.min && c <= o.max)) say(fill(t.limits, {min: degText(o.min), max: degText(o.max)})); else setLevel(d, i, c);
+   if (!(c >= o.min && c <= o.max)) say(fill(t.limits, {min: degText(o.min), max: degText(o.max)})); else setLevel(d, i, null, c);
    render();
   });
   if (g.c != null) own.value = shown(g.c, F);
@@ -321,7 +387,7 @@ function mount(host, options) {
   return box;
  }
  function renderChart() {
-  const values = [...week.flat().map(p => p[1]), levels.comfort, levels.night], top = Math.max(...values) + 50, bottom = Math.min(...values) - 50;
+  const values = [...week.flat().map(p => p[1]), levels.comfort, levels.eco, levels.night], top = Math.max(...values) + 50, bottom = Math.min(...values) - 50;
   const y = c => ((top - c) / (top - bottom) * 100).toFixed(1), ns = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(ns, 'svg'), add = (tag, a, title) => {
    const e = document.createElementNS(ns, tag);
@@ -334,10 +400,10 @@ function mount(host, options) {
   let last = null;
   week.forEach((day, d) => segs(d).forEach(g => {
    if (g.c == null) return;
-   const x1 = d * 144 + g.s / 10, x2 = d * 144 + g.e / 10, yy = y(g.c), color = 'var(--' + (LEVELS.find(l => levels[l] === g.c) || 'wt') + ')';
+   const x1 = d * 144 + g.s / 10, x2 = d * 144 + g.e / 10, yy = y(g.c), color = 'var(--' + (g.k || 'wt') + ')';
    if (last != null && last !== yy) add('line', {x1, x2: x1, y1: last, y2: yy, stroke: 'var(--wm)', 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke'});
    add('line', {x1, x2, y1: yy, y2: yy, stroke: color, 'stroke-width': 3, 'vector-effect': 'non-scaling-stroke'});
-   add('rect', {x: x1, width: x2 - x1, y: 0, height: 100, fill: 'transparent'}, fill(t.block, {day: t.days[d], from: clock(g.s), to: g.e === 1440 ? '24:00' : clock(g.e)}) + ' · ' + name(g.c) + ' ' + degText(g.c));
+   add('rect', {x: x1, width: x2 - x1, y: 0, height: 100, fill: 'transparent'}, fill(t.block, {day: t.days[d], from: clock(g.s), to: g.e === 1440 ? '24:00' : clock(g.e)}) + ' · ' + name(g) + ' ' + degText(g.c));
    last = yy;
   }));
   const box = el('div', null, {class: 'wpe-chart'}), axis = el('div', null, {class: 'wpe-y', 'aria-hidden': 'true'}), x = el('div', null, {class: 'wpe-x', 'aria-hidden': 'true'});
@@ -355,7 +421,10 @@ function mount(host, options) {
    el('button', t.apply, {type: 'button', 'data-k': 'text-apply'}, () => {
     try {
      const next = parse(area.value, o.min, o.max, F);
-     snapshot(); week = next; levels = infer(week, o.min, o.max); sel = copyFrom = null; say(t.textApplied); changed();
+     // A program typed as text replaces everything, its levels too: they are inferred from it as before beta.23.
+     snapshot(); levels = infer(next, o.min, o.max); week = marked(next, levels, null); sel = copyFrom = null; say(t.textApplied);
+     if (o.onLevels) o.onLevels({...levels});
+     changed();
     } catch (err) {
      if (!err || !err.key) throw err;
      textDraft = area.value;
@@ -372,17 +441,33 @@ function mount(host, options) {
   axis.append(el('span'), hours); grid.append(axis);
   for (let d = 0; d < 7; d++) grid.append(renderDay(d));
   const empty = !week.some(day => day.length);
-  root.replaceChildren(renderLevels(), renderTools(), el('p', empty ? t.empty : t.hint, {class: 'wpe-note'}), grid,
+  const narrow = (root.clientWidth || host.clientWidth || 0) > 0 && (root.clientWidth || host.clientWidth) < NARROW;
+  root.replaceChildren(renderLevels(), renderTools(), el('p', empty ? t.empty : t.hint, {class: 'wpe-note'}), grid, ...(narrow && !empty ? [renderList()] : []),
    ...(copyFrom != null ? [renderCopy()] : sel ? [renderPanel()] : []), el('p', msg, {class: 'wpe-msg', role: 'status', 'aria-live': 'polite'}),
    ...(empty ? [] : [el('h4', t.preview), renderChart()]), renderText());
   const again = focus && root.querySelector('[data-k="' + focus + '"]');
   if (again && !again.disabled) again.focus();
  }
  root.addEventListener('click', e => { if (e.target.closest('button') && !e.defaultPrevented) queueMicrotask(render); });
+ // The block list appears and disappears with the width (a phone turned, a resized window).
+ if (typeof ResizeObserver === 'function') {
+  let was = null;
+  new ResizeObserver(() => { const now = root.clientWidth > 0 && root.clientWidth < NARROW; if (was !== null && now !== was) render(); was = now; }).observe(root);
+ }
  render();
  return {
-  get: () => clone(week),
-  set(next) { if (!valid(next)) return false; week = clone(next); levels = infer(week, o.min, o.max); sel = copyFrom = null; textDraft = null; textError = ''; render(); return true; },
+  get: () => plain(week),
+  // What the plan stores with "plan.levels.v1": the program, the levels and one level digit per point.
+  state,
+  // Unsaved changes since mount, set() or saved(); 0 when back at the loaded program and levels.
+  changes: () => stateText() === baseline ? 0 : Math.max(1, history.length),
+  saved() { baseline = stateText(); history = []; render(); },
+  set(next, nextLevels, nextMarks) {
+   if (!valid(next)) return false;
+   // A new program keeps the room's own levels; inferred levels follow the new program (as before beta.23).
+   load(next, nextLevels !== undefined ? nextLevels : own ? levels : null, nextMarks);
+   sel = copyFrom = null; textDraft = null; textError = ''; history = []; baseline = stateText(); render(); return true;
+  },
   limits(min, max) { o.min = min; o.max = max; render(); },
   levels: () => ({...levels}),
   // A template with the current levels (the E32 page starts a new program with "Workdays and weekend").
@@ -390,5 +475,5 @@ function mount(host, options) {
   render
  };
 }
-window.OTWeekEditor = Object.freeze({mount, format, parse, infer, valid, TEMPLATES});
+window.OTWeekEditor = Object.freeze({mount, format, parse, infer, valid, marked, markText, LEVELS, TEMPLATES});
 })();

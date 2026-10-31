@@ -48,7 +48,7 @@ const TEXT = {
    setup_error: 'OpenThermostat kon niet starten. Open Instellingen → Apparaten en diensten → OpenThermostat om te zien waarom en laad daarna deze pagina opnieuw.',
    gave_up: 'De E32 antwoordt al enkele minuten niet. Controleer of hij aan staat en verbonden is en kies dan Opnieuw laden.'}}};
 const STYLE = `:host{display:block}ha-card{display:block;padding:16px;max-width:1100px;margin:auto;color:var(--primary-text-color)}h2{margin:0 0 4px;font-size:1.3rem}
-p{margin:0 0 12px;line-height:1.45}.muted{color:var(--secondary-text-color);font-size:.9rem}.tabs,.actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+p{margin:0 0 12px;line-height:1.45}.muted{color:var(--secondary-text-color);font-size:.9rem}.tabs,.actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.actions{position:sticky;bottom:0;z-index:3;align-items:center;padding:8px 0;background:var(--card-background-color,var(--ha-card-background,#fff))}
 button{font:inherit;font-weight:600;color:inherit;background:transparent;border:1px solid var(--divider-color,#ccd);border-radius:10px;min-height:44px;min-width:44px;padding:6px 14px;cursor:pointer}
 button[aria-selected=true]{box-shadow:inset 0 0 0 2px var(--primary-text-color)}button.primary{background:var(--primary-color,#03a9f4);border-color:var(--primary-color,#03a9f4);color:var(--text-primary-color,#fff)}
 button:disabled{opacity:.45;cursor:default}button:focus-visible{outline:3px solid var(--primary-color);outline-offset:2px}
@@ -74,7 +74,8 @@ class OpenThermostatE32Week extends HTMLElement {
  constructor() {
   super();
   this.attachShadow({mode: 'open'});
-  this._rooms = null; this._room = null; this._drafts = {}; this._message = ''; this._error = false; this._busy = false;
+  // _drafts: per room the edited program; _levels: per room the planner's state (levels and marks).
+  this._rooms = null; this._room = null; this._drafts = {}; this._levels = {}; this._base = {}; this._message = ''; this._error = false; this._busy = false;
   this._waiting = false; this._outdated = false; this._retry = null; this._waitSince = null;
  }
  setConfig(config) {
@@ -111,7 +112,8 @@ class OpenThermostatE32Week extends HTMLElement {
    const request = {type: 'open_thermostat/e32_week/get', entry_id: this._config.entry_id, ...(fresh ? {fresh: true} : {})};
    const [result] = await Promise.all([this._hass.callWS(request), editorReady]);
    if (!result || !Array.isArray(result.rooms)) throw {code: 'unknown_command'};
-   this._rooms = result.rooms; this._drafts = {}; this._waiting = false; this._waitSince = null;
+   this._rooms = result.rooms; this._drafts = {}; this._levels = {}; this._base = {}; this._waiting = false; this._waitSince = null;
+   this._levelsSupported = result.levels_supported === true;
    this._outdated = typeof result.card_url === 'string' && !!SELF && result.card_url !== SELF;
    if (!this._rooms.some(r => r.id === this._room)) this._room = this._rooms[0]?.id ?? null;
   } catch (err) {
@@ -127,16 +129,24 @@ class OpenThermostatE32Week extends HTMLElement {
   this._busy = false; this.render();
  }
  get room() { return this._rooms?.find(r => r.id === this._room); }
- get dirty() { const r = this.room; return !!r && this._room in this._drafts && !same(program(this._drafts[this._room]), r.schedule); }
+ // Changed: another program, or (E32 with stored levels) other levels or marks, also without a program change.
+ get dirty() {
+  const r = this.room, st = r && this._levels[r.id];
+  if (!r) return false;
+  if (this._room in this._drafts && !same(program(this._drafts[this._room]), r.schedule)) return true;
+  const base = this._base[r.id];
+  return !!st && !!base && this._levelsSupported && (!same(st.levels, base.levels) || st.schedule_levels !== base.schedule_levels);
+ }
  async save() {
   const r = this.room;
   if (!r || this._busy) return;
   this._busy = true; this._message = ''; this.refresh();
   try {
+   const st = this._levels[r.id], schedule = program(r.id in this._drafts ? this._drafts[r.id] : r.schedule);
    const result = await this._hass.callWS({type: 'open_thermostat/e32_week/save', entry_id: this._config.entry_id, room_id: r.id,
-    schedule: program(this._drafts[r.id]), expected: r.schedule});
-   this._rooms = result.rooms; delete this._drafts[r.id];
-   this._message = this.t.saved; this._error = false;
+    schedule, expected: r.schedule, ...(this._levelsSupported && st ? {levels: st.levels, schedule_levels: st.schedule_levels} : {})});
+   this._rooms = result.rooms; delete this._drafts[r.id]; delete this._levels[r.id]; delete this._base[r.id];
+   this._message = this.t.saved + ' ✓ ' + new Date().toLocaleTimeString(this._hass?.locale?.language || 'en', {hour: '2-digit', minute: '2-digit'}); this._error = false;
    if (!program(this.room?.schedule)) this._message += ' ' + fill(this.t.removedNote, {value: degrees(this._hass, r.fallback_centi_c)});
    this._busy = false; this.render();
   } catch (err) { this._fail(err); this._busy = false; this.refresh(); }
@@ -187,15 +197,20 @@ class OpenThermostatE32Week extends HTMLElement {
   if (r.setpoint_entity) card.append(el('p', fill(t.follows, {entity: r.setpoint_entity}), {class: 'muted'}));
   const host = el('div');
   card.append(host);
-  const week = this._room in this._drafts ? this._drafts[this._room] : r.schedule;
+  const week = this._room in this._drafts ? this._drafts[this._room] : r.schedule, st = this._levels[r.id];
+  // The room's stored levels (or, before its first program, the former house settings); none: inferred.
   this._planner = window.OTWeekEditor.mount(host, {week: week || Array.from({length: 7}, () => []), min: r.minimum_centi_c, max: r.maximum_centi_c,
    lang: language(this._hass), fahrenheit: fahrenheit(this._hass), theme: this._hass?.themes?.darkMode ? 'dark' : 'light',
-   onChange: w => { this._drafts[r.id] = w; this._message = ''; this.refresh(); }});
+   levels: st ? st.levels : r.levels, scheduleLevels: st ? st.schedule_levels : r.schedule_levels,
+   onChange: (w, state) => { this._drafts[r.id] = w; if (state) this._levels[r.id] = state; this._message = ''; this.refresh(); },
+   onLevels: () => { this._levels[r.id] = this._planner.state(); this._message = ''; this.refresh(); }});
+  // What the planner showed at load: levels and marks are compared with this, not with the stored fields.
+  if (!(r.id in this._base)) this._base[r.id] = this._planner.state();
   const actions = el('div', null, {class: 'actions'}), save = el('button', t.save, {type: 'button', class: 'primary', 'data-save': ''});
   const discard = el('button', t.discard, {type: 'button', 'data-discard': ''}), remove = el('button', t.remove, {type: 'button', 'data-remove': ''});
   const reload = el('button', t.reload, {type: 'button'});
   save.onclick = () => this.save();
-  discard.onclick = () => { delete this._drafts[r.id]; this._message = ''; this.render(); };
+  discard.onclick = () => { delete this._drafts[r.id]; delete this._levels[r.id]; delete this._base[r.id]; this._message = ''; this.render(); };
   remove.onclick = () => { this._drafts[r.id] = Array.from({length: 7}, () => []); this._message = ''; this.render(); };
   reload.onclick = () => { this._waitSince = null; this.load(true); };
   actions.append(save, discard, remove, reload, el('span', null, {class: 'dirty', role: 'status'}));

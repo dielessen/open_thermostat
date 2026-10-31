@@ -37,7 +37,9 @@ async def test_a_planner_week_is_stored_in_the_room_plan_and_reads_back_as_the_s
     loaded = await read_week(hass, parent.entry_id)
     assert loaded["revision"] == 4
     assert loaded["rooms"][0] == {"id": "woonkamer", "name": "Woonkamer", "minimum_centi_c": 1000, "maximum_centi_c": 2400,
-                                  "fallback_centi_c": 2000, "setpoint_entity": "climate.woonkamer", "schedule": None}
+                                  "fallback_centi_c": 2000, "setpoint_entity": "climate.woonkamer", "schedule": None,
+                                  # No program yet: the former house settings (Comfort 20, Night 16) start its levels.
+                                  "levels": {"comfort": 2000, "eco": 1800, "night": 1600}, "schedule_levels": None}
     before = deepcopy(e32.plan)
     result = await save_week(hass, parent.entry_id, "woonkamer", deepcopy(WEEK), None)
     # Only the one room's schedule changed; the E32 confirmed the new revision.
@@ -153,7 +155,7 @@ async def test_the_dashboard_has_a_week_program_view_for_the_e32_rooms(hass, cre
 def test_the_planner_is_one_file_shared_by_the_e32_page_and_home_assistant():
     shared = (ROOT / "data/html/week-editor.js").read_bytes()
     assert (FRONTEND / "week-editor.js").read_bytes() == shared, "copy data/html/week-editor.js to the HA frontend"
-    assert b"\r" not in shared and len(shared) < 34000
+    assert b"\r" not in shared and len(shared) < 40000  # beta.23: stored levels, undo steps, phone list (served gzipped)
     card = (FRONTEND / "e32-week-card.js").read_text(encoding="utf-8")
     assert f"const EDITOR = '{e32_week.EDITOR_URL}';" in card
     # Defined through ensureDefined, which defines it again when another card replaces the registry,

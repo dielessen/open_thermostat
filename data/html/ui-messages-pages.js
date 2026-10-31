@@ -184,6 +184,8 @@ window.OT_UI_PAGE_MESSAGES = {
   "Start with the living room: give it a name and choose its temperature sensor.": "Begin met de woonkamer: geef hem een naam en kies de temperatuursensor.",
   "The room plan could not be loaded.": "Het ruimteplan kon niet worden geladen.",
   "Rooms saved.": "Ruimtes opgeslagen.",
+  "Discard changes": "Wijzigingen weggooien",
+  "Changes discarded.": "Wijzigingen weggegooid.",
   "the network stopped answering while Wi-Fi stayed connected": "het netwerk niet meer antwoordde terwijl wifi verbonden bleef",
   "The plan was changed elsewhere (Home Assistant). It has been reloaded; make your change again.": "Het plan is elders gewijzigd (Home Assistant). Het is opnieuw geladen; voer je wijziging nog eens uit.",
   "Week program (used when Home Assistant gives no target temperature)": "Weekprogramma (gebruikt als Home Assistant geen gewenste temperatuur geeft)",

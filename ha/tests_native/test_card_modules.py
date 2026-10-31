@@ -217,6 +217,7 @@ def test_every_card_element_survives_a_replaced_registry():
         source = (COMPONENT / "frontend" / name).read_text(encoding="utf-8")
         assert source.count("customElements.define(") == 1, name  # only inside ensureDefined
         assert "const ensureDefined = (name, cls) =>" in source and "'location-changed', check" in source, name
+        assert "setInterval(check, 500);" in source, name  # a replacement at any moment is repaired within 0.5 s
     planner = (COMPONENT / "frontend/week-planner.js").read_text(encoding="utf-8")
     from custom_components.open_thermostat.week_planner import ROOM_CARD_TYPE
     assert f"ensureDefined('{ROOM_CARD_TYPE.removeprefix('custom:')}'" in planner

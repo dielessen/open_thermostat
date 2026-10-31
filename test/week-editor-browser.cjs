@@ -288,7 +288,12 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    await replace();
    assert.equal(await page.evaluate(()=>customElements.get('openthermostat-e32-week')),undefined,'the polyfill hides earlier definitions');
    await page.waitForFunction(names=>names.every(n=>typeof customElements.get(n)==='function'),names,{timeout:5000});
-   // Replaced again much later: the next navigation inside Home Assistant defines them again.
+   // Replaced again much later, without any navigation (31 Oct 2026: the error stayed until the next click):
+   // the elements are back within about half a second.
+   await page.waitForTimeout(11000);await replace();
+   assert.equal(await page.evaluate(()=>customElements.get('openthermostat-e32-week')),undefined);
+   await page.waitForFunction(names=>names.every(n=>typeof customElements.get(n)==='function'),names,{timeout:1500});
+   // And a navigation inside Home Assistant still defines them at once.
    await replace();await page.evaluate(()=>window.dispatchEvent(new Event('location-changed')));
    assert.deepEqual(await page.evaluate(names=>names.filter(n=>typeof customElements.get(n)!=='function'),names),[]);
    assert.deepEqual(errors,[]);await page.close();results.push({part:'ha-registry-replaced'});

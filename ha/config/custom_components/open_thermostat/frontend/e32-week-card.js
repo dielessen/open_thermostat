@@ -218,6 +218,10 @@ const ensureDefined = (name, cls) => {
  if (document.readyState !== 'complete') window.addEventListener('load', check, {once: true});
  for (const ms of [0, 250, 1000, 3000, 10000]) setTimeout(check, ms);
  window.addEventListener('location-changed', check);
+ // A HACS card may replace window.customElements at any moment (the owner's HA, 31 Oct 2026: an
+ // intermittent "Configuration error" on the week view). A cheap check every 0.5 s puts the element
+ // back in the registry in use; Home Assistant's error card then rebuilds the card by itself.
+ setInterval(check, 500);
  return check;
 };
 ensureDefined('openthermostat-e32-week', OpenThermostatE32Week);

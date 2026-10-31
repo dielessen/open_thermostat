@@ -76,7 +76,7 @@ async def test_a_new_room_keeps_its_contacts_under_its_new_id(hass, manager):
     assert "window/door contacts: 2" in result["description_placeholders"]["rooms"]
     # Shown again when the room is edited.
     form = await room_form(manager, parent, "slaapkamer_zoe")
-    assert shown(form)["window"] == {"contacts": ["binary_sensor.raam_zigbee", "binary_sensor.shelly_opening"]}
+    assert shown(form)["window"] == {"contacts": ["binary_sensor.raam_zigbee", "binary_sensor.shelly_opening"], "contact_delay": 2.0}
 
 
 @pytest.mark.asyncio
@@ -119,7 +119,7 @@ async def test_only_window_door_and_opening_sensors_are_accepted(hass, manager):
                             ([f"binary_sensor.raam_{i}" for i in range(9)], "contacts_invalid")):
         form = await manager.async_configure(form["flow_id"], {**shown(form), "window": {"contacts": contacts}})
         assert form["type"] == "form" and form["errors"] == {"base": error}, form
-        assert shown(form)["window"] == {"contacts": contacts}  # what was entered stays
+        assert shown(form)["window"] == {"contacts": contacts, "contact_delay": 2.0}  # what was entered stays
     assert len(e32.posts) == posts and contacts_of(parent) == {}
 
 
@@ -130,7 +130,7 @@ async def test_a_configured_contact_that_is_unavailable_never_blocks_saving(hass
     hass.config_entries.async_update_entry(parent, options={
         **parent.options, CONF_COMFORT: {"contacts": {"woonkamer": ["binary_sensor.lege_batterij"]}}})
     form = await room_form(manager, parent, "woonkamer")
-    assert shown(form)["window"] == {"contacts": ["binary_sensor.lege_batterij"]}
+    assert shown(form)["window"] == {"contacts": ["binary_sensor.lege_batterij"], "contact_delay": 2.0}
     result = await manager.async_configure(form["flow_id"], {**shown(form), "name": "Huiskamer"})
     assert result["step_id"] == "e32_rooms_saved", result
     assert contacts_of(parent) == {"woonkamer": ["binary_sensor.lege_batterij"]}
@@ -205,3 +205,37 @@ def test_the_control_status_entity_reads_the_window_from_the_room_comfort():
     assert sensor.extra_state_attributes["window"] == "open"
     hub.update({**STATUS})
     assert sensor.native_value == "ok" and sensor.extra_state_attributes["window"] is None
+
+
+@pytest.mark.asyncio
+async def test_each_room_has_its_own_pause_delay(hass, manager):
+    """beta.23: the delay is set per room in its "Windows and doors" block (default 2 min)."""
+    from custom_components.open_thermostat.e32_comfort import comfort_payloads, room_contact_delay
+    sensors(hass)
+    e32 = FakeE32()
+    parent, _ = product(hass, e32)
+    posts = len(e32.posts)
+    form = await room_form(manager, parent, "woonkamer")
+    assert shown(form)["window"] == {"contact_delay": 2.0}
+    result = await manager.async_configure(form["flow_id"], {
+        **shown(form), "window": {"contacts": ["binary_sensor.raam_zigbee"], "contact_delay": 5}})
+    assert result["step_id"] == "e32_rooms_saved", result
+    settings = comfort_options(parent)
+    assert settings["contact_delays"] == {"woonkamer": 300} and room_contact_delay(settings, "woonkamer") == 300
+    assert room_contact_delay(settings, "badkamer") == 120  # another room keeps the default
+    assert comfort_payloads(hass, settings, {"woonkamer"}) == [
+        {"kind": "contact", "room": "woonkamer", "open": False, "delay_s": 300}]
+    posts = len(e32.posts)
+    form = await room_form(manager, parent, "woonkamer")
+    assert form["description_placeholders"]["delay"] == "5 min" and shown(form)["window"]["contact_delay"] == 5.0
+    # Only the delay changed: saved; out of range: refused in the form.
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "window": {**shown(form)["window"], "contact_delay": 1}})
+    assert result["step_id"] == "e32_rooms_saved" and comfort_options(parent)["contact_delays"] == {"woonkamer": 60}
+    form = await room_form(manager, parent, "woonkamer")
+    from homeassistant.data_entry_flow import InvalidData
+    with pytest.raises(InvalidData):  # the number field itself allows 0..30 minutes
+        await manager.async_configure(form["flow_id"], {**shown(form), "window": {**shown(form)["window"], "contact_delay": 31}})
+    # Without contacts the room has no delay of its own.
+    form = await room_form(manager, parent, "woonkamer")
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "window": {"contact_delay": 1}})
+    assert comfort_options(parent)["contact_delays"] == {} and contacts_of(parent) == {}

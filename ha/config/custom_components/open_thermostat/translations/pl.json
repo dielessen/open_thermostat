@@ -565,13 +565,15 @@
         },
         "sections": {
           "window": {
-            "name": "Czujniki okien i drzwi",
+            "name": "Okna i drzwi",
             "description": "Opcjonalnie. Wybierz czujniki okien i drzwi tego pomieszczenia z Home Assistant, dowolnej marki: Zigbee, Z-Wave, Shelly, Bluetooth i inne.",
             "data": {
-              "contacts": "Czujniki okien i drzwi"
+              "contacts": "Czujniki okien i drzwi",
+              "contact_delay": "Pauza po"
             },
             "data_description": {
-              "contacts": "Gdy jeden z nich jest otwarty przez {delay}, pomieszczenie wstrzymuje ogrzewanie: spada do ochrony przed mrozem (8 °C) i nie żąda ciepła. Gdy wszystkie są znów zamknięte, wraca do swojego programu. Krótkie wietrzenie nie wstrzymuje ogrzewania. Opóźnienie zmienisz w Konfiguruj → Komfort → Ustawienia wstępne, obecność i czasy."
+              "contacts": "Gdy jeden z nich jest otwarty przez {delay}, pomieszczenie wstrzymuje ogrzewanie: spada do ochrony przed mrozem (8 °C) i nie żąda ciepła. Gdy wszystkie są znowu zamknięte, wraca do programu. Opóźnienie ustawisz poniżej.",
+              "contact_delay": "Gdy jeden z nich jest otwarty tak długo, pomieszczenie wstrzymuje ogrzewanie: spada do ochrony przed mrozem (8 °C) i nie żąda ciepła. Gdy wszystkie są znowu zamknięte, wraca do programu. Domyślnie 2 minuty, więc krótkie wietrzenie nie wstrzymuje pomieszczenia."
             }
           },
           "limits": {
@@ -808,7 +810,8 @@
       "controller_room_plan_update_required": "E32 ma do tego zbyt stare oprogramowanie. Najpierw zaktualizuj E32 do beta.19 lub nowszego (Home Assistant: Ustawienia → Aktualizacje → OpenThermostat E32 Firmware → Zainstaluj), a potem spróbuj ponownie. Nic nie zostało zmienione.",
       "controller_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
       "controller_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie.",
-      "controller_readback_unconfirmed": "E32 nie odesłał swoich bieżących ustawień pomieszczeń w ciągu 90 sekund, więc ten zapis nie jest potwierdzony. Sprawdź, czy E32 jest online i połączony z brokerem MQTT, a potem spróbuj ponownie."
+      "controller_readback_unconfirmed": "E32 nie odesłał swoich bieżących ustawień pomieszczeń w ciągu 90 sekund, więc ten zapis nie jest potwierdzony. Sprawdź, czy E32 jest online i połączony z brokerem MQTT, a potem spróbuj ponownie.",
+      "contact_delay_invalid": "Opóźnienie pauzy wynosi od 0 do 30 minut."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",

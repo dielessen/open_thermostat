@@ -57,6 +57,8 @@ from .room_levels import room_levels
 CONF_COMFORT = "comfort_settings"
 DEFAULTS = {"presence_entity": None, "comfort_c": 20.0, "eco_c": 16.0,  # the week planner's defaults
             "contact_delay_s": 120,
+            # Per room (beta.23): {room id: seconds}; a room without its own delay uses contact_delay_s.
+            "contact_delays": {},
             "override_minutes": 120, "contacts": {}}
 TEMPERATURE_LIMITS = (5.0, 30.0)
 AWAY_LIMITS = (5.0, 25.0)
@@ -95,6 +97,10 @@ def comfort_options(entry):
     for key, (low, high) in (("contact_delay_s", DELAY_LIMITS), ("override_minutes", MINUTES_LIMITS)):
         if type(raw.get(key)) is int and low <= raw[key] <= high:
             out[key] = raw[key]
+    delays = raw.get("contact_delays")
+    if type(delays) is dict:
+        out["contact_delays"] = {room: s for room, s in delays.items()
+                                 if type(room) is str and type(s) is int and DELAY_LIMITS[0] <= s <= DELAY_LIMITS[1]}
     contacts = raw.get("contacts")
     if type(contacts) is dict:
         out["contacts"] = {room: [e for e in ids if type(e) is str and e.startswith("binary_sensor.")][:MAX_CONTACTS]
@@ -157,17 +163,27 @@ def room_contacts(entry, room_id):
     return list(comfort_options(entry)["contacts"].get(room_id, []))
 
 
-def with_room_contacts(settings, room_id, contacts):
-    """The comfort settings with this room's sensors replaced (none: the room has no sensors)."""
+def room_contact_delay(settings, room_id):
+    """Seconds an open window/door waits before this room pauses: its own delay, else the default."""
+    return settings.get("contact_delays", {}).get(room_id, settings["contact_delay_s"])
+
+
+def with_room_contacts(settings, room_id, contacts, delay_s=None):
+    """The comfort settings with this room's sensors replaced (none: the room has no sensors and no own
+    delay); delay_s: the room's own pause delay (None keeps it)."""
     rooms = {**settings["contacts"], room_id: list(contacts)}
+    delays = dict(settings.get("contact_delays", {}))
+    if delay_s is not None:
+        delays[room_id] = delay_s
     if not contacts:
         rooms.pop(room_id, None)
-    return {**settings, "contacts": rooms}
+        delays.pop(room_id, None)
+    return {**settings, "contacts": rooms, "contact_delays": delays}
 
 
-def contact_delay_text(settings):
-    """The pause delay as the forms show it: "2 min" or "45 s"."""
-    seconds = settings["contact_delay_s"]
+def contact_delay_text(settings, room_id=None):
+    """The pause delay as the forms show it: "2 min" or "45 s" (a room's own delay with room_id)."""
+    seconds = room_contact_delay(settings, room_id) if room_id else settings["contact_delay_s"]
     return f"{seconds // 60} min" if seconds >= 60 and seconds % 60 == 0 else f"{seconds} s"
 
 
@@ -267,7 +283,7 @@ def comfort_payloads(hass, settings, room_ids, only=None):
         value = contacts_open([hass.states.get(e) for e in ids])
         if value is not None:
             payloads.append({"kind": "contact", "room": room_id, "open": value,
-                             "delay_s": settings["contact_delay_s"]})
+                             "delay_s": room_contact_delay(settings, room_id)})
     presence = settings["presence_entity"]
     if presence and only in (None, presence):
         home = presence_home(hass.states.get(presence))

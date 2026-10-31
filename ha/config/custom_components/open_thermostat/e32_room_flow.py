@@ -32,8 +32,8 @@ from homeassistant.helpers import selector
 from homeassistant.util import slugify
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
-from .e32_comfort import (ComfortError, comfort_options, contact_delay_text, contact_selector, room_contacts,
-                          save_comfort, validate_contacts, with_room_contacts)
+from .e32_comfort import (DELAY_LIMITS, ComfortError, comfort_options, contact_delay_text, contact_selector,
+                          room_contact_delay, room_contacts, save_comfort, validate_contacts, with_room_contacts)
 from .heating_link import TEMPERATURE_UNITS, celsius, heating_hub, label, number
 from .native_form import retained_input_schema
 from .room_plan import has_room_plan, plan_room
@@ -541,6 +541,8 @@ class E32RoomFlow:
             "ha_sources": [s["id"] for s in sources if s.get("type") == "ha"],
             "ble_sources": [s["id"] for s in sources if s.get("type") == "ble"],
             "contacts": room_contacts(self.config_entry, room["id"]) if room.get("id") else [],
+            # The room's own pause delay in minutes (beta.23; default 2 min).
+            "contact_delay": room_contact_delay(comfort_options(self.config_entry), room.get("id") or "") / 60,
             "bluetooth_first": bool(sources) and sources[0].get("type") == "ble",
             # The setting device as stored, never pre-selected: Home Assistant writes its
             # target at every switch point, so the user picks it (a climate source is only hinted).
@@ -631,6 +633,17 @@ class E32RoomFlow:
         except ComfortError as err:
             raise FlowError(err.code) from None
 
+    @staticmethod
+    def _e32_room_delay(user_input):
+        """The submitted pause delay in seconds (minutes in the form), or None when the form has none."""
+        minutes = (user_input.get("window") or {}).get("contact_delay")
+        if minutes is None:
+            return None
+        seconds = round(float(minutes) * 60)
+        if not DELAY_LIMITS[0] <= seconds <= DELAY_LIMITS[1]:
+            raise FlowError("contact_delay_invalid", "window")
+        return seconds
+
     def _limit_range(self):
         unit = self._unit()
         low, high = LIMITS_CENTI_C
@@ -644,7 +657,7 @@ class E32RoomFlow:
         ble_options = self._e32_ble_options(room)
         errors = {}
         placeholders = {"source": "", "error": "", "line": "", "text": "", **self._limit_range(),
-                        "delay": contact_delay_text(comfort_options(self.config_entry))}
+                        "delay": contact_delay_text(comfort_options(self.config_entry), room_id)}
         link = self._e32_link()
         if link is None:
             return self.async_abort(reason="e32_rooms_unavailable")
@@ -652,9 +665,12 @@ class E32RoomFlow:
             try:
                 values = self._e32_room_values(user_input, room, ble_options)
                 contacts = self._e32_room_contacts(user_input, room)
+                delay = self._e32_room_delay(user_input)
+                settings = comfort_options(self.config_entry)
+                same_delay = delay is None or not room or delay == room_contact_delay(settings, room_id)
                 if room is not None:
                     edits = {k: v for k, v in values.items() if room.get(k) != v}
-                    if not edits and contacts == room_contacts(self.config_entry, room_id):
+                    if not edits and contacts == room_contacts(self.config_entry, room_id) and same_delay:
                         return self.async_abort(reason="e32_room_unchanged")
                     change, confirm = self._e32_edit(room_id, edits)
                     saved = room_id
@@ -665,9 +681,11 @@ class E32RoomFlow:
                     await link.async_change_plan(change, confirm)
                 if room is None:
                     saved = created[0]
-                if contacts != room_contacts(self.config_entry, saved):  # after the plan: only for a stored room
-                    save_comfort(self.hass, self.config_entry,
-                                 with_room_contacts(comfort_options(self.config_entry), saved, contacts))
+                settings = comfort_options(self.config_entry)
+                if contacts != room_contacts(self.config_entry, saved) or (
+                        contacts and delay is not None and delay != room_contact_delay(settings, saved)):
+                    # After the plan: only for a stored room; the delay only matters with contacts.
+                    save_comfort(self.hass, self.config_entry, with_room_contacts(settings, saved, contacts, delay))
             except FlowError as err:
                 if err.key in ABORTS:
                     return self.async_abort(reason=err.key, description_placeholders={"room": room_id or ""})
@@ -729,6 +747,9 @@ class E32RoomFlow:
             # Open: easy to find in the room itself, not only under Comfort.
             vol.Optional("window"): section(vol.Schema({
                 vol.Optional("contacts", description={"suggested_value": d["contacts"] or None}): contact_selector(),
+                vol.Optional("contact_delay", default=d["contact_delay"]): selector.NumberSelector(
+                    {"min": DELAY_LIMITS[0] / 60, "max": DELAY_LIMITS[1] / 60, "step": 0.5, "mode": "box",
+                     "unit_of_measurement": "min"}),
             }), {"collapsed": False}),
             vol.Optional("limits"): section(vol.Schema({
                 vol.Required("minimum_temperature", default=d["minimum_temperature"]): temperature,

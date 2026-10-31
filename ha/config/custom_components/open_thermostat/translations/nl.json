@@ -1493,13 +1493,15 @@
         },
         "sections": {
           "window": {
-            "name": "Raam- en deurcontacten",
+            "name": "Ramen en deuren",
             "description": "Optioneel. Kies de raam- en deursensoren van deze ruimte uit Home Assistant, van elk merk: Zigbee, Z-Wave, Shelly, Bluetooth en meer.",
             "data": {
-              "contacts": "Raam- en deurcontacten"
+              "contacts": "Raam- en deurcontacten",
+              "contact_delay": "Pauze na"
             },
             "data_description": {
-              "contacts": "Staat er één {delay} open, dan pauzeert de ruimte: ze zakt naar vorstbeveiliging (8 °C) en vraagt geen warmte. Zijn ze allemaal weer dicht, dan volgt ze haar programma. Kort luchten pauzeert de ruimte niet. De wachttijd staat onder Configureren → Comfort → Voorinstellingen, aanwezigheid en tijden."
+              "contacts": "Als een ervan {delay} open is, pauzeert de ruimte: ze zakt naar vorstbeveiliging (8 °C) en vraagt geen warmte. Zijn ze weer allemaal dicht, dan volgt ze haar programma. Stel de vertraging hieronder in.",
+              "contact_delay": "Als een ervan zo lang open is, pauzeert de ruimte: ze zakt naar vorstbeveiliging (8 °C) en vraagt geen warmte. Zijn ze weer allemaal dicht, dan volgt ze haar programma. Standaard 2 minuten, zodat even luchten de ruimte niet pauzeert."
             }
           },
           "limits": {
@@ -1736,7 +1738,8 @@
       "controller_room_plan_update_required": "De E32 heeft hiervoor te oude firmware. Werk de E32 eerst bij naar beta.19 of nieuwer (Home Assistant: Instellingen → Updates → OpenThermostat E32 Firmware → Installeren) en probeer het daarna opnieuw. Er is niets gewijzigd.",
       "controller_session_capacity": "De E32 heeft te veel open aanmeldingen. Meld je af op de webpagina van de E32 (of meld je daar aan met “Eerdere websessies beëindigen en aanmelden”) of herstart de E32, en probeer het daarna opnieuw.",
       "controller_try_again_later": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw.",
-      "controller_readback_unconfirmed": "De E32 heeft zijn huidige ruimte-instellingen niet binnen 90 seconden teruggestuurd, dus deze opslag is niet bevestigd. Controleer of de E32 online is en met de MQTT-broker verbonden is, en probeer het daarna opnieuw."
+      "controller_readback_unconfirmed": "De E32 heeft zijn huidige ruimte-instellingen niet binnen 90 seconden teruggestuurd, dus deze opslag is niet bevestigd. Controleer of de E32 online is en met de MQTT-broker verbonden is, en probeer het daarna opnieuw.",
+      "contact_delay_invalid": "De pauzevertraging ligt tussen 0 en 30 minuten."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",

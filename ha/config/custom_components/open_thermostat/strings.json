@@ -565,13 +565,15 @@
         },
         "sections": {
           "window": {
-            "name": "Window and door contacts",
+            "name": "Windows and doors",
             "description": "Optional. Pick this room's window and door sensors from Home Assistant, of any brand: Zigbee, Z-Wave, Shelly, Bluetooth and more.",
             "data": {
-              "contacts": "Window and door contacts"
+              "contacts": "Window and door contacts",
+              "contact_delay": "Pause after"
             },
             "data_description": {
-              "contacts": "When one of them has been open for {delay}, the room pauses: it drops to frost protection (8 °C) and asks for no heat. When all are closed again, it follows its program. Airing briefly does not pause the room. Change the delay under Configure → Comfort → Presets, presence and timing."
+              "contacts": "When one of them has been open for {delay}, the room pauses: it drops to frost protection (8 °C) and asks for no heat. When all are closed again, it follows its program. Set the delay just below.",
+              "contact_delay": "When one of them has been open this long, the room pauses: it drops to frost protection (8 °C) and asks for no heat. When all are closed again, it follows its program. Default 2 minutes, so airing briefly does not pause the room."
             }
           },
           "limits": {
@@ -808,7 +810,8 @@
       "controller_room_plan_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (Home Assistant: Settings → Updates → OpenThermostat E32 Firmware → Install), then try again. Nothing has been changed.",
       "controller_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
       "controller_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again.",
-      "controller_readback_unconfirmed": "The E32 did not send back its current room settings within 90 seconds, so this save is not confirmed. Check that the E32 is online and connected to the MQTT broker, then try again."
+      "controller_readback_unconfirmed": "The E32 did not send back its current room settings within 90 seconds, so this save is not confirmed. Check that the E32 is online and connected to the MQTT broker, then try again.",
+      "contact_delay_invalid": "The pause delay lies between 0 and 30 minutes."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",

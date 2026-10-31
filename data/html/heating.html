@@ -228,7 +228,7 @@
       ["Target temperature", room.setpoint_entity ? 'Home Assistant: ' + room.setpoint_entity : given?.some(d => d.length) ? uiText("Week program") : degrees(room.fallback_centi_c / 100)],
       ["Heating type", uiText(room.emitter === 'floor' ? "Floor heating" : "Radiators")], ["Room limits", degrees(room.minimum_centi_c / 100) + ' – ' + degrees(room.maximum_centi_c / 100)]])
       brief.append(el('dt', uiText(k)), typeof v === 'string' ? el('dd', v) : v);
-    body.append(leading, brief, el('p', uiText("Change these in Home Assistant, or choose Edit here anyway."), {class:'pd-help hp-brief'}), el('h3', uiText("Basics")));
+    body.append(leading, brief, el('p', uiText("Change these in Home Assistant, or choose Edit here anyway."), {class:'pd-help hp-brief'}), el('h3', uiText("General")));
     const basics = el('div', null, {class:'hp-grid'}); body.append(basics);
     const name = field(basics, uiText("Name"), input('text', room.name, {maxlength:'40'}), "Shown here and in Home Assistant. Up to 40 characters (fewer with accents or emoji).");
     const state = field(basics, uiText("State"), select([['active', "Active"], ['inactive', "Inactive"], ['until', "Inactive until"]],
@@ -238,7 +238,7 @@
     emitter.setAttribute('data-heating-emitter', '');
     const showUntil = () => { until.parentElement.hidden = state.value !== 'until'; };
     state.addEventListener('change', showUntil); showUntil();
-    body.append(el('h3', uiText("Temperature sources")), el('p', uiText("Temperature sources, in order: the first fresh one leads, the rest are fallback."), {class:'pd-help'}));
+    body.append(el('h3', uiText("Temperature")), el('h4', uiText("Temperature sources"), {class:'h6'}), el('p', uiText("Temperature sources, in order: the first fresh one leads, the rest are fallback."), {class:'pd-help'}));
     const sources = el('div'); body.append(sources);
     const addSource = (s) => {
       const row = el('div', null, {'data-heating-source':''});
@@ -274,7 +274,7 @@
     body.append(bleHelp);
     const more = el('button', uiText("Add source"), {type:'button', class:'btn btn-outline-primary mb-2'});
     more.addEventListener('click', () => sources.querySelectorAll('[data-heating-source]').length < 4 && addSource({type:bleSensors.length || neverHa ? 'ble' : 'ha', id:''}));
-    body.append(more, el('h3', uiText("Target temperature and limits")));
+    body.append(more, el('h4', uiText("Target temperature and limits"), {class:'h6'}));
     const limits = el('div', null, {class:'hp-grid'});
     const setpoint = field(body, uiText("Setting device in Home Assistant (optional)"), input('text', room.setpoint_entity, {placeholder:'climate.living_room'}), "A thermostat, radiator valve or number to set this room with. Home Assistant shows the week program's temperature on it; turning it changes the room until the next switch point. Turn off the device's own schedule (manual mode), otherwise it changes the temperature by itself.");
     body.append(limits);
@@ -283,6 +283,7 @@
     const hi = field(limits, uiText("Maximum (°C)"), input('number', room.maximum_centi_c / 100, {min:'5', max:'30', step:'0.5'}), "The highest target temperature allowed for this room.");
     // Week program: 7 days Mon..Sun of [minute, centi_c]; an empty day continues the last earlier switch point.
     const week = el('fieldset', null, {class:'mt-3', 'data-heating-week':''}), editor = el('div'), rows = el('div');
+    body.append(el('h3', uiText("Week program")));
     week.append(el('legend', uiText("Week program (used when Home Assistant gives no target temperature)"), {class:'h6'}));
     const useWeek = check(week, uiText("Use a week program"), !!given?.some(d => d.length));
     week.append(el('p', uiText("The E32 follows this program on its own when Home Assistant sends no target."), {class:'ot-hint'}));
@@ -358,6 +359,20 @@
       const points = same.checked ? Array(7).fill(days[0]) : days;
       return {schedule: points, ...levelFields(points)};
     };
+    // Windows and doors: the contacts are Home Assistant sensors, chosen in the room's settings there; the E32
+    // pauses the room on HA's report. Persons: planned (presence per room).
+    // Also in the short summary while Home Assistant manages the rooms.
+    const windowState = el('p', null, {class:'pd-help', 'data-heating-window':''}), windowBrief = el('dd');
+    brief.append(el('dt', uiText("Windows and doors")), windowBrief);
+    const showWindow = s => {
+      const w = s?.comfort?.window;
+      windowState.textContent = windowBrief.textContent = w === 'open' ? uiText("Now: a window or door is open; the room pauses after its delay.")
+        : w === 'closed' ? uiText("Now: all windows and doors are closed.") : uiText("No window or door contact reports this room.");
+    };
+    showWindow(status);
+    const shownWindow = card.status; card.status = s => { showWindow(s); shownWindow(s); };
+    body.append(el('h3', uiText("Windows and doors")), el('p', uiText("Choose the window and door contacts and the pause delay in Home Assistant: OpenThermostat → Configure → Rooms."), {class:'pd-help'}), windowState,
+      el('h3', uiText("Persons")), el('p', uiText("Later: choose who uses this room, so it can pause when they are away."), {class:'pd-help'}));
     const removeRoom = el('button', uiText("Remove room"), {type:'button', class:'btn btn-outline-danger'}), removeBox = el('div', null, {class:'hp-remove'});
     removeRoom.addEventListener('click', () => { if (confirm(uiText("Remove this room? It is deleted when you press Save rooms."))) card.remove(); });
     removeBox.append(removeRoom); body.append(removeBox);

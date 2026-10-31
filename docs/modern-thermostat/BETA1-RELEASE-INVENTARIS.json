@@ -223,7 +223,7 @@
         },
         {
           "path": "docs/SWITCHOVER.md",
-          "sha256": "7299371e048de272398f4ac0ad51f910f7dd13cde1c4851e9653d7101e7e3c84"
+          "sha256": "f6dc8a41dadce6b1a7211b1a869f2d25114d54fcb0ccf5f940528f41816f1468"
         },
         {
           "path": "docs/USER-GUIDE.md",
@@ -231,7 +231,7 @@
         },
         {
           "path": "docs/modern-thermostat/OVERSCHAKELING.nl.md",
-          "sha256": "87f5d7cb8ae72f111785fa044ba29f0aad33ec4230d7eba2f809e1a535a7f686"
+          "sha256": "36a8577e9d2f054fd2a01d525ce3f01335a893115de2461923c2409a563d593b"
         },
         {
           "path": "test/fuzz/README.md",
@@ -363,7 +363,7 @@
         },
         {
           "path": "scripts/final_check.sh",
-          "sha256": "8c4aec6fc0858039e7af06f63cba321632a15c31965b77df47db5c71153617e8"
+          "sha256": "5dc96776a2e5adbfe13ef82b87927c33638fc8da6c9d215adcd798e3c2551313"
         },
         {
           "path": "scripts/test_browser_suite.py",
@@ -3071,6 +3071,14 @@
         {
           "path": "tools/switchover/test_shadow_exit.py",
           "sha256": "135324fd4be7dad01cc4b68494a3e88feb1df34ccb6c750b96540b6e8311afd7"
+        },
+        {
+          "path": "test/test_native/test_active_gate_open.cpp",
+          "sha256": "a6411d03b68aea6fea67ccfb3395ced7b10d07094a991609f87551a4893c9e70"
+        },
+        {
+          "path": "test/test_native/test_board_gate.cpp",
+          "sha256": "932c97e63d2fd7d2baff5ca277ed025384136fd5f0fcdaf019f4d3753025a5bc"
         }
       ],
       "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open. B06 toekomstige-feitquarantaine en klokfences bronmatig afgerond met twaalf regressies/677 native tests en gedeelde veiligheidscontrole voor zonepolicy/storingsbevestiging; HA-deel opgenomen in geverifieerde HA43-bronbestanden; E32-deel opgenomen in alpha31; de module is nu op alpha31 waargenomen zonder uitvoerder-/methodebewijs. Geen fysieke producent- of regelkwalificatie."
@@ -3945,7 +3953,7 @@
         },
         {
           "path": "src/Board.h",
-          "sha256": "57d7849da73d5f59c766ce8ec2de2deb50d472f3f6ac61790df1b0fefde1abd5"
+          "sha256": "25adef5bd7a490cc1110afd6f70ceedc773a2999f4ccc4e9ad6eb813228f98e9"
         },
         {
           "path": "scripts/verify_e32v2.py",

@@ -497,7 +497,7 @@
         },
         {
           "path": "test/updates/browser.cjs",
-          "sha256": "014034ff9a8348e65948ebc648ced56c62c9992801bb6776392f34abf3a3fe84"
+          "sha256": "b94c7c67f5449e904c9d133beea7642311d06da33029b63b737e8b1005b54bd3"
         },
         {
           "path": "data/html/update.html",
@@ -1045,7 +1045,7 @@
         },
         {
           "path": "test/updates/browser.cjs",
-          "sha256": "014034ff9a8348e65948ebc648ced56c62c9992801bb6776392f34abf3a3fe84"
+          "sha256": "b94c7c67f5449e904c9d133beea7642311d06da33029b63b737e8b1005b54bd3"
         },
         {
           "path": "test/web_auth_client.test.cjs",
@@ -1667,7 +1667,7 @@
         },
         {
           "path": "ha/tests_native/test_device_diagnostics.py",
-          "sha256": "54cfb3af96328fb77a3dae623e299c9c03efd027ecb96314206e34ec72b54a95"
+          "sha256": "3be52a647e5ad66b9e87338de21ff8224c6c0842b9937ffc9e37ffd8ed3582ee"
         },
         {
           "path": "test/test_native/test_device_diagnostics.cpp",

@@ -68,6 +68,42 @@ class Criteria(unittest.TestCase):
         self.assertEqual(r['restarts_seen'], 1)
         self.assertAlmostEqual(r['hours_since_restart'], 10.0, places=0)
 
+    def test_a_planned_update_restart_keeps_all_data(self):
+        # Owner, 31 Oct 2026: count all test data, also from before the update reboot.
+        h, end = history()
+        install = end - 10 * H
+        h['uptime'] = [(t, v) for t, v in h['uptime'] if t < install]
+        h['uptime'] += [(install + 90, 50.0), (end - 1 * H, 9 * 3600 + 50.0)]
+        r = se.stability(h['uptime'], end, planned=[install])
+        self.assertEqual(r['result'], se.PASS, r)
+        self.assertEqual((r['restarts_seen'], r['planned_restarts']), (1, 1))
+        self.assertGreater(r['hours_since_restart'], 72)
+
+    def test_an_unplanned_restart_still_resets_the_clock(self):
+        h, end = history()
+        h['uptime'] = [(t, v) for t, v in h['uptime'] if t < end - 10 * H]
+        h['uptime'] += [(end - 10 * H, 50.0), (end - 1 * H, 9 * 3600 + 50.0)]
+        r = se.stability(h['uptime'], end, planned=[end - 30 * H])  # an install a day earlier does not excuse it
+        self.assertEqual(r['result'], se.WAIT)
+        self.assertEqual(r['planned_restarts'], 0)
+        self.assertAlmostEqual(r['hours_since_restart'], 10.0, places=0)
+
+    def test_after_a_planned_restart_a_later_crash_counts_from_the_crash(self):
+        h, end = history()
+        h['uptime'] = [(t, v) for t, v in h['uptime'] if t < end - 30 * H]
+        h['uptime'] += [(end - 30 * H + 60, 30.0), (end - 20 * H, 10 * 3600.0), (end - 5 * H, 20.0), (end - H, 4 * 3600 + 20.0)]
+        r = se.stability(h['uptime'], end, planned=[end - 30 * H])
+        self.assertEqual((r['restarts_seen'], r['planned_restarts']), (2, 1))
+        self.assertAlmostEqual(r['hours_since_restart'], 5.0, places=0)
+
+    def test_a_restart_behind_an_unavailable_sample_is_seen(self):
+        h, end = history()
+        h['uptime'] = [(t, v) for t, v in h['uptime'] if t < end - 10 * H]
+        h['uptime'] += [(end - 10 * H - 60, None), (end - 10 * H, 50.0), (end - 1 * H, 9 * 3600 + 50.0)]
+        r = se.stability(h['uptime'], end)
+        self.assertEqual(r['restarts_seen'], 1)
+        self.assertAlmostEqual(r['hours_since_restart'], 10.0, places=0)
+
     def test_an_offline_stretch_fails(self):
         h, end = history()
         h['offline'] = [(end - 20 * H, end - 20 * H + 6 * M)]

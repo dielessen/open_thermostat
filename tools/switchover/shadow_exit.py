@@ -88,20 +88,36 @@ def periods(series, end, merge_gap_s=MERGE_GAP_S):
     return [tuple(p) for p in merged]
 
 
-def stability(uptime, end, offline=()):
+PLANNED_WINDOW_S = (-120, 900)  # a restart from 2 min before to 15 min after a firmware install is planned
+
+
+def stability(uptime, end, offline=(), planned=()):
     """uptime: [(t, seconds or None)]. Restarts are drops of the uptime; offline:
-    [(start, stop)] where the E32 was unavailable."""
-    restarts = [t for (t0, a), (t, b) in zip(uptime, uptime[1:]) if a is not None and b is not None and b < a]
+    [(start, stop)] where the E32 was unavailable; planned: times of firmware installs.
+
+    A restart within PLANNED_WINDOW_S of an install is planned (owner, 31 Oct 2026:
+    "je kan alle testdata wel bij elkaar optellen, ook de data voor de reboot") and
+    does not reset the stable time; every other restart does."""
+    known = [(t, v) for t, v in uptime if v is not None]  # an 'unavailable' sample sits between the two sides of a reboot
+    restarts = [t for (t0, a), (t, b) in zip(known, known[1:]) if b < a]
+    lo, hi = PLANNED_WINDOW_S
+    unplanned = [t for t in restarts if not any(p + lo <= t <= p + hi for p in planned)]
     last = max(restarts) if restarts else None
     values = [(t, v) for t, v in uptime if v is not None]
     if not values:
         return {'result': WAIT, 'why': 'no uptime samples'}
+    t_first, up_first = values[0]
     t_last, up_last = values[-1]
-    since = up_last + (end - t_last)  # the uptime keeps counting between samples
+    if unplanned:
+        since = end - max(unplanned)
+    elif restarts:  # only planned restarts: all observed time counts, plus the uptime before the first sample
+        since = up_first + (end - t_first)
+    else:
+        since = up_last + (end - t_last)  # the uptime keeps counting between samples
     long_offline = [(a, b) for a, b in offline if b - a >= OFFLINE_MINUTES * 60 and b > end - STABLE_HOURS * 3600]
     hours = since / 3600
     detail = {'hours_since_restart': round(hours, 1), 'restarts_seen': len(restarts),
-              'offline_stretches': len(long_offline)}
+              'planned_restarts': len(restarts) - len(unplanned), 'offline_stretches': len(long_offline)}
     if last is not None:
         detail['last_restart'] = dt.datetime.fromtimestamp(last, dt.timezone.utc).isoformat(timespec='minutes')
     if long_offline:
@@ -280,7 +296,7 @@ def evaluate(history, end, tz, mqtt_lines=None, plan_max=None):
     tado = periods(history['tado'], end)
     e32 = periods(history['e32'], end)
     out = {
-        'stable': stability(history['uptime'], end, history.get('offline', ())),
+        'stable': stability(history['uptime'], end, history.get('offline', ()), history.get('planned', ())),
         'periods': heating_periods(tado, e32, history['target'], tz, end),
         'timing': timing(tado, e32),
         'flow': flow(history['e32'], end, plan_max, history.get('boiler', ())),
@@ -357,6 +373,19 @@ def load(ha, args, start, end):
     if since is not None:
         offline.append((since, end.timestamp()))
     history['offline'] = offline
+    # Planned restarts: every change of the installed version on the E32's Firmware entity.
+    update = args.update_entity or next((e['entity_id'] for e in states if e['entity_id'].startswith('update.')
+                                         and e['entity_id'].endswith('_firmware') and 'e32' in e['entity_id']), None)
+    planned, seen = [], None
+    if update:
+        ids['update'] = update
+        for r in ha.history([update], start, end, minimal=False).get(update, []):
+            version = (r.get('attributes') or {}).get('installed_version')
+            if version and seen and version != seen:
+                planned.append(parse_time(r.get('last_changed') or r.get('last_updated')))
+            seen = version or seen
+    planned += [parse_since(t).timestamp() for t in args.planned_restart]
+    history['planned'] = planned
     return ids, history
 
 
@@ -369,6 +398,9 @@ def main(argv=None):
     parser.add_argument('--plan-max', type=float, help="the room plan's maximum flow in degC (this house: 60)")
     parser.add_argument('--uptime'); parser.add_argument('--e32-request'); parser.add_argument('--thermostat-request')
     parser.add_argument('--boiler-limit', help="the boiler's reported heating limit sensor (found by its suffix)")
+    parser.add_argument('--update-entity', help="the E32's Firmware update entity (found by its suffix)")
+    parser.add_argument('--planned-restart', action='append', default=[],
+                        help='an extra planned restart (ISO time), e.g. an install the history does not show')
     parser.add_argument('--mqtt-log', help='output of the read-only MQTT listener (optional)')
     parser.add_argument('--json', help='also write the result here')
     parser.add_argument('--insecure', action='store_true', help='self-signed certificate on your own network')

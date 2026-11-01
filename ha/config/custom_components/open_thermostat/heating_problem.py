@@ -193,6 +193,9 @@ class HeatingProblemSensor(BinarySensorEntity):
         now = self.hub.clock()
         self.tracker.observe(self.hub, now)
         self.current = self.tracker.problems(self.hub, now, self._advice_items())
+        if getattr(self, "hass", None) is not None:
+            from .e32_reconfirm import update_reconfirm_issue
+            update_reconfirm_issue(self.hass, self.entry, self.hub)
         if getattr(self, "hass", None) is not None and self.entity_id:
             written = (self.is_on, tuple(key for key, _ in self.current), self.extra_state_attributes["reasons"])
             if written != self._written:

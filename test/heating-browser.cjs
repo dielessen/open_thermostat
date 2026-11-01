@@ -19,8 +19,8 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[];
  try{for(const width of [1280,320]){
-  const page=await browser.newPage({viewport:{width,height:900}}),errors=[],posts=[],handovers=[],dialogs=[];
-  let plan={schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[]},reject=null;
+  const page=await browser.newPage({viewport:{width,height:900}}),errors=[],posts=[],handovers=[],dialogs=[],calls=[];
+  let plan={schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[]},reject=null,handoverReject=null;
   // ActiveHeatGuard::json() plus the firmware gate; this firmware ships with it closed.
   const active=status.active={state:'shadow',command:{send:false,flow_c:0,why:'shadow'},last_sent:null,
    foreign_controller:{address:0x17,age_s:30},confirmation:null,warnings:[],enabled:false};
@@ -34,7 +34,10 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
    if(p==='/status/heating')return json(plan.rooms.length?status:{...status,rooms:[],request:{heat:false,flow_c:0,reason:'no_demand'}});
    if(p==='/config/heating/handover'){
     assert.equal(request.method(),'POST');assert.equal(request.headers()['x-openthermostat-csrf'],'a'.repeat(64));
-    handovers.push(request.postDataJSON());
+    const body=request.postDataJSON();handovers.push(body);calls.push('handover:'+body.thermostat_disconnected);
+    if(handoverReject){const r=handoverReject;handoverReject=null;return json({error:r.error},r.code);}
+    // Off is always accepted: the guard stops at once with the zero window (RAM only).
+    if(body.thermostat_disconnected===false){Object.assign(active,{state:'stopping',command:{send:true,flow_c:0,why:'stop_zero'},confirmation:null});return json(active);}
     if(!active.enabled)return json({error:'active_mode_not_released'},409);
     Object.assign(active,{state:'active',command:{send:true,flow_c:45,why:'heat_request'},last_sent:{flow_c:45,age_s:5},confirmation:{age_s:0}});
     return json(active);
@@ -42,7 +45,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
    if(p==='/config/heating'){
     if(request.method()==='POST'){
      assert.equal(request.headers()['x-openthermostat-csrf'],'a'.repeat(64));
-     const body=request.postDataJSON();posts.push(body);
+     const body=request.postDataJSON();posts.push(body);calls.push('plan:'+body.mode);
      if(reject){const r=reject;reject=null;return json({error:r.error},r.code);}
      if(body.revision!==plan.revision)return json({error:'plan_changed'},409);
      plan={...body,revision:plan.revision+1};
@@ -219,11 +222,27 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(await takeover.isVisible(),false);assert.equal(await handback.isVisible(),true);
   await root.locator('[data-heating-save]').click();await root.getByText('Ruimtes opgeslagen.').waitFor();
   assert.equal(posts.at(-1).mode,'active','saving rooms keeps the plan mode');
-  // Hand back: the plan goes shadow; the firmware sends zero for a minute. Here the tado was seen again too.
-  Object.assign(active,{state:'stopping',command:{send:true,flow_c:0,why:'stop_zero'},confirmation:null,warnings:['foreign_controller']});
+  // Hand back (review S1): first the confirmation off (the E32 stops at once), then the plan as shadow.
+  // The E32 does not confirm the stop: nothing else is sent and the owner keeps the thermostat disconnected.
+  calls.length=0;handoverReject={error:'busy',code:503};
   await handback.click();
+  await control.getByText(/^De E32 heeft het stoppen niet bevestigd\. Laat je thermostaat nog losgekoppeld .*\(handleiding §8\.2\)\. \(busy\)$/).waitFor();
+  assert.deepEqual(calls,['handover:false']);assert.equal(plan.mode,'active');
+  assert.equal(await handback.isVisible(),true);assert.equal(await handback.isDisabled(),false);
+  // The stop worked, the plan save did not: the message says so and the next press completes it.
+  calls.length=0;reject={error:'storage_failed',code:507};
+  await handback.click();
+  await control.getByText(/^De E32 vraagt de ketel geen warmte meer, maar het plan kon niet als schaduw .*\(storage_failed\)$/).waitFor();
+  assert.deepEqual(calls,['handover:false','plan:shadow']);assert.equal(plan.mode,'active');
+  assert.equal(await handback.isVisible(),true);
+  // Home Assistant saved the plan in between: reloaded and saved as shadow once more. A double
+  // press sends the sequence once (the button is disabled while it runs). The tado was seen again too.
+  Object.assign(active,{warnings:['foreign_controller']});
+  plan={...plan,revision:plan.revision+1};calls.length=0;
+  await handback.evaluate(b=>{b.click();b.click();});
   await control.getByText('Teruggegeven. De E32 vraagt de ketel één minuut lang nul. Sluit daarna je thermostaat weer aan op de ketel.').waitFor();
-  assert.equal(posts.at(-1).mode,'shadow');assert.equal(handovers.length,1);
+  assert.deepEqual(calls,['handover:false','plan:shadow','plan:shadow']);
+  assert.equal(posts.at(-1).mode,'shadow');assert.equal(plan.mode,'shadow');assert.deepEqual(handovers.at(-1),{thermostat_disconnected:false});
   await control.getByText(/^Stoppen: de E32 vraagt de ketel één minuut lang nul\. · Ketelvraag: uit/).waitFor();
   assert.deepEqual(await control.locator('[data-heating-active-warnings] li').allInnerTexts(),
    ['Een andere regelaar (je thermostaat?) stuurt nog ketelvragen. Koppel die los van de ketel en bevestig daarna opnieuw.']);

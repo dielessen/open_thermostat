@@ -49,6 +49,9 @@ HEATING_PLAN = "/config/heating"
 HEATING_COMFORT = "/config/heating/comfort"
 # The flow options: weather curve, learned flow and optimum start (E32 beta.19, FlowPolicy.h).
 HEATING_FLOW = "/config/heating/flow"
+# The owner's handover for active mode: confirm that the old thermostat is
+# disconnected, or hand back (beta.23 Repairs: confirm again after an update).
+HEATING_HANDOVER = "/config/heating/handover"
 HEATING_PLAN_BYTES = 8192  # The E32 refuses larger request bodies (413 plan_too_large).
 # Since beta.19 the E32 packs large week programs into its 4 KB store and
 # answers 413 plan_too_large itself when even that form does not fit; older
@@ -458,7 +461,7 @@ class ControllerClient:
                         "/config/device", "/config/rooms", HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW,
                         "/status/heating"))
     _writes = frozenset(("/auth/login", "/auth/logout", "/config/device", "/updates/reboot", HEATING_PLAN,
-                         HEATING_COMFORT, HEATING_FLOW))
+                         HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER))
 
     def __init__(self, address):
         self.address = controller_address(address)
@@ -528,7 +531,7 @@ class ControllerClient:
                     raise ControllerLoginRejected()
                 if response.status in (401, 403):
                     raise ControllerLinkError("controller_auth_failed")
-                if path in (HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW) and response.status in (400, 409, 413, 503, 507):
+                if path in (HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER) and response.status in (400, 409, 413, 503, 507):
                     raise HeatingPlanRejected(response.status, await _error_name(response))
                 if path == HEATING_FLOW and response.status == 404:
                     raise ControllerLinkError("controller_update_required")  # firmware before beta.19
@@ -610,6 +613,19 @@ class ControllerClient:
         if type(command) is not dict:
             raise ControllerLinkError("controller_request_invalid")
         raw, _, _ = await self._request("POST", HEATING_COMFORT, document=command)
+        return _decode(raw)
+
+    async def async_handover(self, disconnected):
+        """POST the owner's handover; returns the E32's active-control status.
+
+        True confirms that the old thermostat is disconnected from the boiler;
+        False hands back (the E32 stops at once with one minute of zero). A
+        refusal raises HeatingPlanRejected (active_mode_not_released,
+        plan_not_active: 409; invalid_request: 400).
+        """
+        if type(disconnected) is not bool:
+            raise ControllerLinkError("controller_request_invalid")
+        raw, _, _ = await self._request("POST", HEATING_HANDOVER, document={"thermostat_disconnected": disconnected})
         return _decode(raw)
 
     async def async_flow_settings(self, change=None):

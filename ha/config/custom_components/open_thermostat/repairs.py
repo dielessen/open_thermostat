@@ -103,6 +103,9 @@ async def async_create_fix_flow(hass, issue_id, data):
     from .e32_setting_device import ROOM_PROGRAMS_ISSUE, RoomProgramsRepairFlow
     if issue_id.startswith(ROOM_PROGRAMS_ISSUE + "_"):  # a week program and setting device per room
         return RoomProgramsRepairFlow(issue_id, data)
+    from .e32_reconfirm import RECONFIRM_ISSUE, ReconfirmTakeoverRepairFlow
+    if issue_id.startswith(RECONFIRM_ISSUE + "_"):  # confirm the takeover again after a firmware update
+        return ReconfirmTakeoverRepairFlow(issue_id, data)
     if not issue_id.startswith(LEGACY_ROOMS_ISSUE + "_"):
         raise ValueError("unknown_issue")
     return LegacyRoomsRepairFlow(data.get("entry_id"))

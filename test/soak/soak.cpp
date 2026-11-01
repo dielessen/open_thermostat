@@ -2057,13 +2057,17 @@ struct ActiveRig {
         guard = ActiveHeatGuard(); monitor = ems::ClassicBoilerMonitor(); foreign = ems::ForeignBoilerRequest();
         driver = ems::ActiveHeatPollDriver(boots, hostActiveGate); limitRead = ems::BoilerLimitRead(true);
         handover.reset(new HandoverConfirmation<SoakNvs>(nvs, firmware));
-        if (handover->restore()) guard.restore(up()); // HeatingController's constructor
+        switch (handover->restoreState()) { // HeatingController's constructor
+            case HandoverConfirmation<SoakNvs>::Restored::confirmed: guard.restore(up()); break;
+            case HandoverConfirmation<SoakNvs>::Restored::reconfirm: guard.restoreReconfirm(); break;
+            default: break;
+        }
         posted = 0; postedAt = 0; last = {};
         nextHa = wall + uint64_t(uniformInt(5, 40)) * 1000;  // MQTT session, then ha/heating_input
         nextBle = wall + uint64_t(uniformInt(1, 60)) * 1000; // the next pvvx advert
         nextTado = wall + uint64_t(uniformInt(0, 40)) * 1000;
     }
-    void confirm(bool on) { guard.confirm(up(), on); handover->sync(guard.confirmed()); } // setHeatingHandover
+    void confirm(bool on) { guard.confirm(up(), on); handover->sync(guard.confirmed(), guard.reconfirmPending()); } // setHeatingHandover
     void run(uint64_t ms, const std::function<void()>& each = {}) {
         for (const uint64_t end = wall + ms; wall < end;) { step(); if (each) each(); }
     }
@@ -2075,6 +2079,11 @@ struct ActiveRig {
     std::optional<uint64_t> firstDelivered(uint64_t from, bool positive) const {
         for (const auto& [at, flow] : delivered) if (at >= from && (flow > 0) == positive) return at;
         return std::nullopt;
+    }
+    size_t zerosDelivered(uint64_t from) const {
+        size_t n = 0;
+        for (const auto& [at, flow] : delivered) n += at >= from && !flow;
+        return n;
     }
     void step() {
         wall += 10000;
@@ -2121,13 +2130,15 @@ struct ActiveRig {
         const bool restoredBefore = guard.restored();
         guard.setFlowLimits(p.minimumFlowC, p.maximumFlowC);
         last = guard.step(now, in);
-        handover->sync(guard.confirmed());
+        handover->sync(guard.confirmed(), guard.reconfirmPending());
         posted = driver.post(now, last.send ? std::optional<uint8_t>(last.flowC) : std::nullopt,
-                             in.mode == RoomPlan::Mode::active && guard.confirmed(), guard.claimsBoiler());
+                             in.mode == RoomPlan::Mode::active && (guard.confirmed() || guard.reconfirmPending()),
+                             guard.claimsBoiler());
         postedAt = now;
         const uint8_t cap = std::min<uint8_t>({p.maximumFlowC, ActiveHeatGuard::hardMaximumFlowC, in.boilerLimitC.value_or(0)});
         if (last.send && last.flowC) {
-            EXPECT(guard.confirmed(), "active_heat_unconfirmed", "positive %u without the confirmation", last.flowC);
+            EXPECT(guard.confirmed() || (guard.reconfirmPending() && std::strcmp(last.why, "frost_unconfirmed") == 0),
+                   "active_heat_unconfirmed", "positive %u without the confirmation", last.flowC);
             EXPECT(in.boilerLimitC.has_value(), "active_heat_without_boiler_limit", "positive %u without a 0x16 limit", last.flowC);
             EXPECT(last.flowC <= cap, "active_flow_above_cap", "flow %u > cap %u", last.flowC, cap);
             EXPECT(now >= ActiveHeatGuard::Params{}.bootHoldoffMs, "active_boot_holdoff", "heat %" PRIu64 " ms after boot", now);
@@ -2243,12 +2254,18 @@ void activeReboot(ActiveRig& r) {
         count(frost ? "active_reboot_frost" : "active_reboot_heat");
     }
     if (frost) EXPECT(std::strcmp(r.last.why, "frost_minimum") == 0 || r.held.flowC == 30, "active_reboot_frost_flow", "why %s, flow %u", r.last.why, r.held.flowC);
-    // New firmware: the stored confirmation is not used.
+    // New firmware: the stored confirmation is not used; the owner confirms again (review S3).
     r.handover.reset(); r.nvs.record = "v0.9.9-old/ffffffffffffffff";
     r.wall += 30000; const uint64_t updated = r.wall; r.boot();
     r.run(5 * 60000);
-    EXPECT(!r.firstDelivered(updated, true) && r.guard.state() == ActiveHeatGuard::State::awaitingConfirmation && r.nvs.record.empty(),
-           "active_reboot_new_firmware", "%s after a firmware change", ActiveHeatGuard::name(r.guard.state()));
+    EXPECT(r.guard.state() == ActiveHeatGuard::State::awaitingConfirmation && r.guard.reconfirmPending() && r.nvs.record == "reconfirm",
+           "active_reboot_new_firmware", "%s, NVS '%s' after a firmware change", ActiveHeatGuard::name(r.guard.state()), r.nvs.record.c_str());
+    // The boot zero first (review S2), then only frost protection after the listening window.
+    const auto zero = r.firstDelivered(updated, false), warm = r.firstDelivered(updated, true);
+    EXPECT(zero && *zero - updated <= 30000 && (!warm || *zero < *warm), "active_reboot_boot_zero", "first zero %" PRIu64 " s after boot",
+           zero ? (*zero - updated) / 1000 : 0);
+    EXPECT(frost ? warm && *warm - updated >= a6ListenMs : !warm, "active_reboot_reconfirm_frost", "%s %" PRIu64 " s after boot",
+           warm ? "frost" : "no frost", warm ? (*warm - updated) / 1000 : 0);
 }
 
 // Review A6: after an emergency hand-back by power the owner plugs the tado in
@@ -2274,7 +2291,10 @@ void activeRebootTadoBack(ActiveRig& r) {
     const uint64_t heardFrom = r.wall;
     r.run(15 * 60000);
     if (tado) {
-        EXPECT(!r.firstDelivered(bootAt, true) && !r.firstDelivered(bootAt, false), "active_reboot_tado_request", "the E32 wrote 0x1A beside the tado");
+        // Never heat beside the tado; at most the boot zero, before the tado was heard (review S2).
+        const auto zero = r.firstDelivered(bootAt, false);
+        EXPECT(!r.firstDelivered(bootAt, true) && r.zerosDelivered(bootAt) <= 1 && (!zero || *zero - bootAt <= 60000),
+               "active_reboot_tado_request", "the E32 wrote 0x1A beside the tado (%zu zeros)", r.zerosDelivered(bootAt));
         EXPECT(r.guard.state() == ActiveHeatGuard::State::blockedForeignController && r.guard.warning(ActiveHeatGuard::foreignController)
                && r.nvs.record.empty(), "active_reboot_tado_block", "%s, NVS '%s'", ActiveHeatGuard::name(r.guard.state()), r.nvs.record.c_str());
         count("active_reboot_tado_back");

@@ -63,8 +63,8 @@ pagina **Ruimtes → Actieve regeling**):
 | `state` | Pagina (NL) | Zendt naar de ketel |
 | --- | --- | --- |
 | `shadow` | Schaduwmodus: je thermostaat regelt de ketel. | niets |
-| `awaiting_confirmation` | Wacht op je bevestiging dat je thermostaat van de ketel is losgekoppeld. | niets — **ook geen vorstbeveiliging** |
-| `arming` | Overnemen: wacht op verse ruimtemetingen en de ketelbus. | niets; `active` zodra ≥ 60 s na boot, zendroute klaar en alle actieve ruimtes vers (of na 30 min zonder verse meting: eigenaar met nulvraag). **Na een herstart met bewaarde bevestiging** bovendien pas na 2 min onafgebroken ontvangst van de ketel (0x08, berichten ≤ 30 s uit elkaar) zonder vreemde 0x1A: ≈ 130 s na boot; tot dan `active.confirmation.restored: true` met `listened_s`. Een vreemde 0x1A in die tijd wist de bevestiging (`blocked_foreign_controller`); ook de vorstbeveiliging wacht hierop. |
+| `awaiting_confirmation` | Wacht op je bevestiging dat je thermostaat van de ketel is losgekoppeld. | niets — ook geen vorstbeveiliging. **Uitzondering (beta.23):** na een firmware-update terwijl de E32 de ketel regelde eerst de opstartnul, daarna alleen vorstbeveiliging (`frost_unconfirmed`, planminimum onder 8 °C, pas ≥ 60 s na boot en na 2 min ketelontvangst zonder vreemde 0x1A) tot je opnieuw bevestigt |
+| `arming` | Overnemen: wacht op verse ruimtemetingen en de ketelbus. | na een herstart alleen de opstartnul, verder niets; `active` zodra ≥ 60 s na boot, zendroute klaar en alle actieve ruimtes vers (of na 30 min zonder verse meting: eigenaar met nulvraag). **Na een herstart met bewaarde bevestiging** bovendien pas na 2 min onafgebroken ontvangst van de ketel (0x08, berichten ≤ 30 s uit elkaar) zonder vreemde 0x1A: ≈ 130 s na boot; tot dan `active.confirmation.restored: true` met `listened_s`. Een vreemde 0x1A in die tijd wist de bevestiging (`blocked_foreign_controller`); ook de vorstbeveiliging wacht hierop. |
 | `active` | De E32 regelt de ketel. | vraag elke 60 s, direct bij aan/uit; na elke stop 60 s lang elke 10 s nul |
 | `stopped_measurement_lost` | Geen ruimtemetingen: de E32 vraagt de ketel geen warmte tot er weer een meting is. | nul (vorstminimum blijft mogelijk); hervat vanzelf |
 | `stopping` | Stoppen: de E32 vraagt de ketel één minuut lang nul. | nul elke 10 s, ≥ 60 s en tot een nul is afgeleverd; vóór een geplande herstart tot die herstart |
@@ -88,7 +88,22 @@ de eerste poll na boot, opnieuw als 6 h geen 0x16-melding is gezien (ook een
 antwoord aan de tado telt), herhaling na 5 min zonder antwoord; zonder bekende
 grens geen positieve vraag (`boiler_limit_unknown`) · bewaarde bevestiging:
 NVS-record `<versie>/<ELF-hash>`; elke andere firmware (ook dezelfde versie
-opnieuw gebouwd) wist hem · zolang de E32 de ketel bezit herstart de
+opnieuw gebouwd) neemt hem niet over maar maakt er het record `reconfirm` van:
+**opnieuw bevestigen na een update** (beta.23, review S3). De E32 wacht dan op
+de eigenaar (`active.reconfirm_required`, `active.reconfirm_stored`); Home
+Assistant toont de reparatiemelding **"Bevestig de overname opnieuw"** met één
+bevestigknop (de pagina Ruimtes → Actieve regeling kan het ook). Tot dan alleen
+vorstbeveiliging (zie `awaiting_confirmation`). Een vreemde 0x1A, teruggeven of
+het plan op schaduw beëindigen het wachten en wissen het record; oudere
+firmware wist het ook (een terugrol vraagt dus een nieuwe bevestiging) ·
+**opstartnul** (beta.23, review S2): na elke herstart met bewaard record
+(bevestiging of `reconfirm`) en plan actief stuurt de E32 eerst één nulvraag
+zodra de zendroute klaar is (≈ 10 s na boot), elke 10 s herhaald tot hij is
+afgeleverd (`why: boot_zero`; `transmit_failed` na 1 min zonder aflevering).
+Een onverwachte herstart kan zijn laatste vraag in de ketel hebben laten
+staan; die trekt hij zo in vóór het luisteren en overnemen. Een vreemde 0x1A
+die eerder is gehoord slaat hem over. Schaduwmodus en een E32 die nooit
+overnam sturen niets · zolang de E32 de ketel bezit herstart de
 supervisor alleen bij een vastloper (`loop_stall`, RTC-watchdog) of een
 vastgelopen update · **geplande herstart** (update, firmware-upload via HA,
 "Apparaat herstarten", Bluetooth-instellingen, herstel van een back-up,
@@ -105,7 +120,7 @@ aanvoer) staan standaard op **advies**; `flow.source` = `rule`.
 | Wat | E32-pagina | REST | MQTT (`<prefix>/v1/fw/telemetry/…`, elke 15 s) | Home Assistant |
 | --- | --- | --- | --- | --- |
 | Toestand, vraag, laatst verzonden, waarschuwingen | Ruimtes → Actieve regeling | `GET /status/heating` → `active` | `heating` → `active` | Verwarmingsprobleem (na 5 min); geen eigen toestandsentiteit *(O3)* |
-| Bevestiging bewaard | — | `active.awaiting_confirmation`, `active.confirmation` `{age_s, restored, listened_s}`, `active.confirmation_stored` | idem | — |
+| Bevestiging bewaard | — | `active.awaiting_confirmation`, `active.confirmation` `{age_s, restored, listened_s}`, `active.confirmation_stored`, `active.reconfirm_required`, `active.reconfirm_stored` | idem | Reparatie "Bevestig de overname opnieuw" (na een update) |
 | Ketelgrens (0x16) | Ruimtes → aanvoergrenzen ("Je ketel staat maximaal {max} °C toe") | `active.boiler_limit` `{flow_c, age_s, reads}` (`reads`: eigen 0x16-leesverzoeken deze boot); `GET /status/ems/telemetry` → `fields.configured_heating_temperature` | `heating` → `active.boiler_limit` | — |
 | Berekende vraag | Ruimtes → "Berekende ketelvraag" | `request` `{heat, flow_c, reason}` | `heating` → `request` | Ketelvraag (E32) |
 | Ruimtes | Ruimtes (status, bron, gewenst) | `rooms[]` | `heating` → `rooms` | per ruimte: Temperatuur, Doeltemperatuur, Regelstatus, Warmtevraag |
@@ -371,6 +386,12 @@ Direct terug naar de tado (§8) bij:
 1. Open op telefoon of laptop `http://192.168.1.206` en log in.
 2. Menu **Ruimtes**, blok **Actieve regeling**.
 3. Druk op **"Teruggeven aan de thermostaat (de E32 vraagt één minuut lang nul)"**.
+   De pagina trekt eerst je bevestiging in (de E32 stopt meteen en vraagt één
+   minuut lang nul) en zet daarna het plan op schaduw. Bevestigt de E32 het
+   stoppen niet, dan staat dat er: laat de tado losgekoppeld, probeer het opnieuw en ga
+   naar 8.2 als het blijft mislukken. Mislukt alleen het opslaan van het plan,
+   dan is de E32 al gestopt: druk nogmaals. Home Assistant heeft geen
+   teruggeefactie; gebruik deze pagina.
 4. Wacht tot er staat **"Schaduwmodus: je thermostaat regelt de ketel."**
    (maximaal ~70 s). Blijft er langer "Stoppen…" staan: ga naar 8.2.
 5. Zet de ketel uit met de hoofdschakelaar.
@@ -400,11 +421,17 @@ Direct terug naar de tado (§8) bij:
    stil (`blocked_foreign_controller`, bevestiging gewist): na een herstart
    met bewaarde bevestiging vraagt hij pas warmte na 2 min onafgebroken
    ketelontvangst zonder vreemde 0x1A, ruim drie tado-intervallen (§11, A6).
+   Alleen de opstartnul (≈ 10 s na boot) kan komen voordat de tado gehoord is;
+   die kan de vraag van de tado kort overschrijven, de tado herhaalt zijn
+   vraag binnen ~40 s en daarna blijft de E32 stil.
    Druk daarna toch op "Teruggeven aan de thermostaat", zodat het plan weer op
    schaduw staat.
 7. Vermoeden van een firmwarefout: de bekende goede firmware (§4.1 punt 2) via
-   Systeem → Firmware bijwerken terugzetten. Een andere firmware wist de
-   bevestiging; de E32 stuurt daarna niets tot er opnieuw bevestigd wordt.
+   Systeem → Firmware bijwerken terugzetten. Een andere firmware neemt de
+   bevestiging niet over: de E32 stuurt de opstartnul, daarna hooguit
+   vorstbeveiliging zolang hij geen andere regelaar hoort, en Home Assistant
+   vraagt **"Bevestig de overname opnieuw"**. Bevestig dat niet terwijl de tado
+   aangesloten is; de eerste 0x1A van de tado beëindigt het wachten vanzelf.
 
 Na teruggeven altijd: oorzaak, tijden en screenshots vastleggen (§10) vóór een
 nieuwe poging.

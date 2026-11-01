@@ -567,7 +567,6 @@
     }
   });
   // Switch-over: the saved plan goes active, then the owner's confirmation (RAM only).
-  // Handing back saves the plan as shadow: the E32 sends zero for one minute.
   const post = (url, body) => json(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
   const switchOver = async (mode, done) => {
     activeMessage.textContent = uiText("Saving…");
@@ -581,9 +580,36 @@
     }
     await refreshStatus();
   };
+  // Handing back (review S1): first the confirmation off, so the E32 stops at once
+  // with one minute of zero, then the plan saved as shadow. A plan changed in
+  // Home Assistant meanwhile is reloaded and saved as shadow once more.
+  const handBack = async () => {
+    handback.disabled = true;
+    activeMessage.textContent = uiText("Saving…");
+    try {
+      try { await post('/config/heating/handover', {thermostat_disconnected:false}); }
+      catch (error) {
+        activeMessage.textContent = uiText("The E32 did not confirm that it stopped. Keep your thermostat disconnected and try again; if that keeps failing, switch the E32 off first (manual §8.2).") + ' (' + (error.code || 'network') + ')';
+        return;
+      }
+      try {
+        for (let attempt = 0; plan.mode !== 'shadow'; ++attempt) {
+          try { plan = await post('/config/heating', {...plan, mode:'shadow'}); }
+          catch (error) { if (error.code !== 'plan_changed' || attempt) throw error; await load(); }
+        }
+        activeMessage.textContent = uiText("Handed back. The E32 asks the boiler for zero for one minute. Then reconnect your thermostat to the boiler.");
+      } catch (error) {
+        activeMessage.textContent = uiText("The E32 stopped asking for heat, but saving the plan as shadow failed. Press the button again.") + ' (' + (error.code || 'network') + ')';
+        if (error.code === 'plan_changed') await load();
+      }
+    } finally {
+      handback.disabled = false;
+      await refreshStatus();
+    }
+  };
   takeover.addEventListener('click', () => plan && confirm(uiText("Confirm that your current thermostat is disconnected from the boiler. The E32 then controls the heating; two controllers must never be connected at the same time."))
     && switchOver('active', "Confirmed. The E32 takes over the boiler within a minute."));
-  handback.addEventListener('click', () => plan && switchOver('shadow', "Handed back. The E32 asks the boiler for zero for one minute. Then reconnect your thermostat to the boiler."));
+  handback.addEventListener('click', () => plan && !handback.disabled && handBack());
   load();
   timer = setInterval(refreshStatus, 10000);
 })();

@@ -161,7 +161,13 @@ public:
         overrides_.restore(RoomOverridesNvs::read()); // waits for a trusted clock before it applies
         // A stored "thermostat disconnected" (same firmware) resumes active heat
         // after 2 min of bus reception without a foreign 0x1A, which clears it.
-        if (handover_.restore()) activeGuard_.restore(bleReceiptClock());
+        // One of other firmware (an update): wait for the owner to confirm again,
+        // with frost protection. Both send one boot zero first (review S2/S3, 1 Nov).
+        switch (handover_.restoreState()) {
+            case control::HandoverConfirmation<HandoverNvs>::Restored::confirmed: activeGuard_.restore(bleReceiptClock()); break;
+            case control::HandoverConfirmation<HandoverNvs>::Restored::reconfirm: activeGuard_.restoreReconfirm(); break;
+            default: break;
+        }
         mqtt_.setBoilerOutput([this] { return boilerOutput_.load(); });
         mqtt_.setHeatingRoute([this](std::string_view payload) { heatingInput(payload); }, [this] {
             // The compact form, split into the small MQTT topics (HeatingStateTopics.h): no past
@@ -306,8 +312,8 @@ public:
     const char* setHeatingHandover(bool tadoDisconnected) {
         if (tadoDisconnected && !board::emsActiveHeatAllowed) return "active_mode_not_released";
         if (tadoDisconnected && roomEngine_.plan().mode != control::RoomPlan::Mode::active) return "plan_not_active";
-        activeGuard_.confirm(bleReceiptClock(), tadoDisconnected);
-        handover_.sync(activeGuard_.confirmed());
+        activeGuard_.confirm(bleReceiptClock(), tadoDisconnected); // either answer ends a reconfirm wait
+        handover_.sync(activeGuard_.confirmed(), activeGuard_.reconfirmPending());
         return nullptr;
     }
     // The beta.19 flow options (GET/POST /config/heating/flow), stored in NVS.
@@ -340,6 +346,7 @@ public:
         if (!active) return nullptr;
         cJSON_AddBoolToObject(active, "enabled", board::emsActiveHeatAllowed); // the firmware gate
         cJSON_AddBoolToObject(active, "confirmation_stored", handover_.stored());
+        cJSON_AddBoolToObject(active, "reconfirm_stored", handover_.pending());
         // Today's boiler maximum: its own 0x16 heating limit, the active ceiling.
         cJSON* limit = cJSON_AddObjectToObject(active, "boiler_limit");
         if (limitC_) cJSON_AddNumberToObject(limit, "flow_c", *limitC_); else cJSON_AddNullToObject(limit, "flow_c");
@@ -857,10 +864,14 @@ private:
         in.boiler = {ems.burnerOn, ems.flowCentiC}; in.boilerHeardAtMs = ems.boilerHeardAtMs;
         activeGuard_.setFlowLimits(plan.minimumFlowC, plan.maximumFlowC);
         const auto c = activeGuard_.step(now, in);
-        handover_.sync(activeGuard_.confirmed()); // a foreign 0x1A or shadow mode erases the stored one
+        // A foreign 0x1A, the hand-back or shadow mode erases the stored one.
+        handover_.sync(activeGuard_.confirmed(), activeGuard_.reconfirmPending());
         boilerOutput_.store(activeGuard_.outputActive()); // read by the HA session (boiler.output.v1)
+        // Positive flows only in active mode with the confirmation, or frost protection while
+        // new firmware waits for it (reconfirm); zeros always pass.
         activePosted_ = ems_.activeHeatPost(c.send ? std::optional<uint8_t>(c.flowC) : std::nullopt,
-            in.mode == control::RoomPlan::Mode::active && activeGuard_.confirmed(), activeGuard_.claimsBoiler());
+            in.mode == control::RoomPlan::Mode::active && (activeGuard_.confirmed() || activeGuard_.reconfirmPending()),
+            activeGuard_.claimsBoiler());
         activePostedAt_ = now;
         limitC_ = ems.limitC; limitAtMs_ = ems.limitAtMs; limitReads_ = ems.limitReads;
     }

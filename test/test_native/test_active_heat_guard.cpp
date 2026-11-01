@@ -459,7 +459,8 @@ TEST(ActiveHeatGuard, WithdrawWithoutAClaimNeverSendsOrTakesOver) {
     arming.guard.withdraw(0);
     arming.in.boilerHeardAtMs = 0;
     for (int i = 0; i < 60; ++i) { arming.in.boilerHeardAtMs = arming.now; arming.runFor(10 * second); }
-    EXPECT_TRUE(arming.sent.empty());
+    ASSERT_EQ(arming.sent.size(), 1u); // the boot zero only (review S2), then no takeover
+    EXPECT_EQ(arming.sent[0].flowC, 0);
     EXPECT_EQ(arming.guard.state(), State::arming);
     EXPECT_TRUE(arming.guard.released());
 }
@@ -548,7 +549,8 @@ TEST(ActiveHeatGuard, PowerLossThenForeignControllerNeverHeats) {
     for (int i = 0; i < 9; ++i) { b.in.boilerHeardAtMs = b.now; b.runFor(10 * second); }
     b.in.foreign = ActiveHeatGuard::Foreign{0x17, b.now};
     for (int i = 0; i < 60; ++i) { b.in.boilerHeardAtMs = b.now; b.runFor(10 * second); }
-    EXPECT_TRUE(b.sent.empty());
+    ASSERT_EQ(b.sent.size(), 1u); // the boot zero at 10 s, before the tado was heard
+    EXPECT_EQ(b.sent[0].flowC, 0);
     EXPECT_EQ(b.guard.state(), State::blockedForeignController);
     EXPECT_FALSE(b.guard.confirmed());
     EXPECT_TRUE(b.guard.warning(ActiveHeatGuard::foreignController));

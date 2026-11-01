@@ -2655,6 +2655,27 @@
         }
       }
     },
+    "reconfirm_takeover": {
+      "title": "Potwierdź ponownie przejęcie",
+      "fix_flow": {
+        "step": {
+          "reconfirm_takeover": {
+            "title": "Potwierdź ponownie przejęcie",
+            "description": "E32 sterował Twoim kotłem przed aktualizacją oprogramowania. Ze względów bezpieczeństwa nowe oprogramowanie nie przejmie kotła ponownie, dopóki jeszcze raz nie potwierdzisz, że stary termostat jest nadal odłączony od kotła. Do tego czasu E32 utrzymuje tylko ochronę przed zamarzaniem, i to tylko wtedy, gdy na magistrali nie słychać innego termostatu.\n\nPotwierdź tylko, jeśli stary termostat jest odłączony: dwa sterowniki nigdy nie mogą być podłączone jednocześnie. Aby zamiast tego oddać sterowanie, otwórz w E32 stronę Pomieszczenia → Sterowanie aktywne → Oddaj termostatowi."
+          }
+        },
+        "error": {
+          "reconfirm_not_released": "To oprogramowanie E32 nie pozwala na sterowanie aktywne. Nic nie zostało zmienione.",
+          "reconfirm_unconfirmed": "E32 nie potwierdził przejęcia. Sprawdź w E32 Pomieszczenia → Sterowanie aktywne.",
+          "e32_unreachable": "E32 jest teraz nieosiągalny. Spróbuj ponownie za chwilę."
+        },
+        "abort": {
+          "reconfirm_done": "E32 nie czeka już na potwierdzenie.",
+          "reconfirm_plan_not_active": "Plan pomieszczeń nie jest już aktywny, więc nie ma czego potwierdzać.",
+          "e32_rooms_unavailable": "Pomieszczeń E32 nie można teraz odczytać. Spróbuj ponownie za chwilę."
+        }
+      }
+    },
     "device_own_schedule": {
       "title": "{device} wydaje się mieć własny harmonogram",
       "description": "Temperatura docelowa {device} (pomieszczenie {room}) zmieniała się sama o tej samej porze przez kilka dni. Wyłącz jego własny harmonogram (tryb ręczny), aby decydował program tygodniowy E32; urządzenie będzie go wtedy stosować, a zmiana na nim obowiązuje do następnego punktu przełączenia."

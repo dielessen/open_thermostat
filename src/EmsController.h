@@ -438,6 +438,7 @@ public:
         std::optional<uint64_t> limitAtMs; // when the boiler reported limitC (0x16)
         uint32_t limitReads = 0;           // the E32's own 0x16 read requests this boot
         std::optional<uint64_t> boilerHeardAtMs; // the latest boiler report (proof the bus is heard)
+        std::optional<control::DhwEpisodes::Kind> hotWaterKind; // the open hot-water episode (charts)
     };
     ActiveHeatView activeHeatView() const {
         std::lock_guard<std::mutex> lock(telemetryMutex_);
@@ -453,7 +454,13 @@ public:
             state ? std::optional<bool>((*state & 0x02) != 0) : std::nullopt,
             modulation && *modulation >= 0 && *modulation <= 100 ? std::optional<uint8_t>(static_cast<uint8_t>(*modulation)) : std::nullopt,
             ret ? std::optional<int16_t>(static_cast<int16_t>(*ret)) : std::nullopt,
-            ActiveHeatEnvelope::reportedAtMs(monitor_), limitRead_.sent(), monitor_.lastReportMs()};
+            ActiveHeatEnvelope::reportedAtMs(monitor_), limitRead_.sent(), monitor_.lastReportMs(),
+            dhwEpisodes_.openKind()};
+    }
+    // What the boiler does now (DhwEpisodes::activity), for fw/state/heating; nullptr while unknown.
+    const char* boilerActivity() const {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        return dhwEpisodes_.activity();
     }
     // Today's and the last 7 days' hot water for /status/heating (nullptr: no memory).
     cJSON* dhwSummaryJson() const {

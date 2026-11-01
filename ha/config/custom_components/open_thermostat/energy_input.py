@@ -1,4 +1,4 @@
-"""Optional energy inputs: gas meter, gas price, calorific value, outdoor temperature and boiler power.
+"""Optional energy inputs: gas meter, gas price, calorific value, outdoor temperature, boiler power and water meter.
 
 Nothing here is required. A house without a gas meter, price sensor or
 outdoor sensor works as before; the E32 then uses its own defaults, its
@@ -20,6 +20,11 @@ price per m³. The price is in Home Assistant's own currency. The room payloads
 ({"entity","temperature","target"}) have no ``kind`` and are unchanged.
 Options are stored in the entry options; saving only these keys does not
 reload the integration (see ``__init__._async_options_updated``).
+
+The water meter stays in Home Assistant (nothing goes to the E32): a flow
+(L/min, L/h, m³/h, gal/min) or a meter reading (L, m³, gal; state class total
+or total increasing). With it, a hot-water round with water flowing is
+tapping and one without is keeping warm (see ``energy_use``).
 """
 import json
 import math
@@ -36,11 +41,13 @@ CONF_GAS_PRICE = "energy_gas_price"
 CONF_GAS_KWH_PER_M3 = "energy_gas_kwh_per_m3"
 CONF_OUTDOOR = "energy_outdoor_entity"
 CONF_BOILER_KW = "energy_boiler_kw"
+CONF_WATER_METER = "energy_water_meter"
 ENERGY_KEYS = (CONF_GAS_METER, CONF_GAS_PRICE_ENTITY, CONF_GAS_PRICE, CONF_GAS_KWH_PER_M3, CONF_OUTDOOR,
-               CONF_BOILER_KW)
+               CONF_BOILER_KW, CONF_WATER_METER)
 # Form field -> option key (short field names read better in the translations).
 FIELDS = {"gas_meter": CONF_GAS_METER, "gas_price_entity": CONF_GAS_PRICE_ENTITY, "gas_price": CONF_GAS_PRICE,
-          "gas_kwh_per_m3": CONF_GAS_KWH_PER_M3, "outdoor_entity": CONF_OUTDOOR, "boiler_kw": CONF_BOILER_KW}
+          "gas_kwh_per_m3": CONF_GAS_KWH_PER_M3, "outdoor_entity": CONF_OUTDOOR, "boiler_kw": CONF_BOILER_KW,
+          "water_meter": CONF_WATER_METER}
 
 # Meter units: m³ as such, energy units converted with the calorific value.
 VOLUME_UNITS = ("m³", "m3")
@@ -52,6 +59,10 @@ GAS_KWH_PER_M3_LIMITS = (5.0, 15.0)
 PRICE_LIMITS = (0.0001, 1000.0)   # per m³ or per kWh, in any currency
 BOILER_KW_LIMITS = (3.0, 60.0)
 OUTDOOR_LIMITS = (-50.0, 60.0)    # °C
+# Water meter units: a flow in L/min, or a meter reading in litres.
+WATER_FLOW_UNITS = {"L/min": 1.0, "l/min": 1.0, "L/h": 1 / 60, "l/h": 1 / 60, "m³/h": 1000 / 60, "m3/h": 1000 / 60,
+                    "gal/min": 3.785}
+WATER_VOLUME_UNITS = {"L": 1.0, "l": 1.0, "m³": 1000.0, "m3": 1000.0, "gal": 3.785}
 # The flag the options flow sets just before saving only these keys.
 ENERGY_ONLY_UPDATE = "energy_only_options"
 
@@ -122,6 +133,29 @@ def _check_gas_meter(state):
         raise EnergyError("gas_meter", "gas_meter_not_total")
 
 
+def _check_water_meter(state):
+    if state is None:
+        raise EnergyError("water_meter", "entity_not_found")
+    unit = _unit(state)
+    if state.domain != "sensor" or (unit not in WATER_FLOW_UNITS and unit not in WATER_VOLUME_UNITS):
+        raise EnergyError("water_meter", "water_meter_unit")
+    if unit in WATER_VOLUME_UNITS and state.attributes.get("state_class") not in GAS_STATE_CLASSES:
+        raise EnergyError("water_meter", "water_meter_not_total")
+
+
+def water_reading(state):
+    """("flow", L/min) or ("total", litres) of a water meter, or None while it has no usable value."""
+    value = _float(state.state) if state is not None else None
+    if value is None or value < 0:
+        return None
+    unit = _unit(state)
+    if unit in WATER_FLOW_UNITS:
+        return "flow", value * WATER_FLOW_UNITS[unit]
+    if unit in WATER_VOLUME_UNITS:
+        return "total", value * WATER_VOLUME_UNITS[unit]
+    return None
+
+
 def _check_price_entity(state):
     if state is None:
         raise EnergyError("gas_price_entity", "entity_not_found")
@@ -170,6 +204,8 @@ def validate_energy(hass, user_input):
     if CONF_OUTDOOR in values:
         _check_outdoor(hass.states.get(values[CONF_OUTDOOR]))
     _number(values, CONF_BOILER_KW, "boiler_kw", BOILER_KW_LIMITS, "boiler_kw_invalid", 1)
+    if CONF_WATER_METER in values:
+        _check_water_meter(hass.states.get(values[CONF_WATER_METER]))
     return values
 
 
@@ -201,6 +237,7 @@ def energy_schema(vol, options, currency_code="EUR", suggested_boiler_kw=None):
         optional("outdoor_entity"): selector.EntitySelector({"filter": [
             {"domain": "sensor", "device_class": "temperature"}, {"domain": "weather"}]}),
         optional("boiler_kw"): number(BOILER_KW_LIMITS[0], BOILER_KW_LIMITS[1], 0.1, "kW"),
+        optional("water_meter"): selector.EntitySelector({"filter": [{"domain": "sensor"}]}),
     })
 
 

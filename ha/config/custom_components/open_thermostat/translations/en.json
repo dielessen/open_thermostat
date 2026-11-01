@@ -654,7 +654,8 @@
           "gas_price": "Fixed gas price",
           "gas_kwh_per_m3": "Calorific value of the gas",
           "outdoor_entity": "Outdoor temperature",
-          "boiler_kw": "Boiler heating power"
+          "boiler_kw": "Boiler heating power",
+          "water_meter": "Water meter"
         },
         "data_description": {
           "gas_meter": "A gas meter reading in m³ or kWh that only goes up (not a usage per hour), for example from a smart meter or a gas pulse counter. A reading in kWh is converted to m³ with the calorific value. It also splits your gas into heating and hot water for the Energy dashboard.",
@@ -662,7 +663,8 @@
           "gas_price": "The price per m³ of gas in your Home Assistant currency when you have no price sensor, for example 1.35.",
           "gas_kwh_per_m3": "Energy per m³ of gas; your gas bill or supplier states it. Empty: 9.77 kWh/m³ (Dutch gas). Elsewhere it differs, for example about 11 kWh/m³ in the UK; natural gas is usually between 8 and 12 kWh/m³.",
           "outdoor_entity": "A temperature sensor outside (°C or °F) or a weather entity. It helps the E32 learn how fast rooms cool down.",
-          "boiler_kw": "The boiler's nominal heating power in kW (type plate or manual), 3–60 kW. Suggested: {boiler_kw_suggested} kW ({boiler_kw_basis}); empty keeps that suggestion."
+          "boiler_kw": "The boiler's nominal heating power in kW (type plate or manual), 3–60 kW. Suggested: {boiler_kw_suggested} kW ({boiler_kw_basis}); empty keeps that suggestion.",
+          "water_meter": "Optional: a water flow (L/min) or a water meter reading (m³ or L) that only goes up. With it, a hot-water round with water flowing is counted as tapping and one without as keeping warm, more reliably than from the boiler's temperatures alone. It stays in Home Assistant."
         }
       },
       "e32_rooms_saved": {
@@ -884,7 +886,9 @@
       "e32_valve_model_missing": "Choose the valve's model.",
       "e32_valve_limit": "The E32 drives at most 16 radiator valves.",
       "e32_valves_rejected": "The E32 refused the radiator valves ({error}).",
-      "entity_ids_confirm": "Tick the box to confirm."
+      "entity_ids_confirm": "Tick the box to confirm.",
+      "water_meter_unit": "Choose a water flow sensor (L/min, L/h, m³/h) or a water meter reading (m³, L).",
+      "water_meter_not_total": "Choose a water meter reading (state class total or total increasing), or a flow sensor in L/min."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -1625,6 +1629,12 @@
       "hot_water_gas": {
         "name": "Gas for hot water"
       },
+      "tapping_gas": {
+        "name": "Gas for tapping hot water"
+      },
+      "keep_warm_gas": {
+        "name": "Gas for keeping hot water warm"
+      },
       "flow_source": {
         "name": "Flow source",
         "state": {
@@ -1771,6 +1781,17 @@
       },
       "daily_missed_comfort": {
         "name": "Missed comfort time"
+      },
+      "boiler_activity": {
+        "name": "Boiler activity",
+        "state": {
+          "idle": "Idle",
+          "heating": "Heating",
+          "tapping": "Tapping",
+          "keep_warm": "Keeping warm",
+          "charging": "Charging the cylinder",
+          "hot_water": "Hot water"
+        }
       }
     },
     "select": {

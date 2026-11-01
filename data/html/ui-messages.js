@@ -238,6 +238,8 @@ window.OT_UI_MESSAGES = {
   "Boiler history": "Ketelverloop",
   "Burner on": "Brander aan",
   "Burner on (share of each 5 minutes)": "Brander aan (deel van elke 5 minuten)",
+  "Keeping warm": "Warmhouden",
+  "hot water: tapping {tap} %, keeping warm {warm} % of the time": "warm water: tappen {tap} %, warmhouden {warm} % van de tijd",
   "E32 request": "Vraag van de E32",
   "Thermostat request": "Vraag van de thermostaat",
   "Flow": "Aanvoer",

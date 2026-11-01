@@ -3,7 +3,10 @@
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
 #include <cJSON.h>
+#include <algorithm>
 #include <fstream>
+#include <cstdio>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -190,5 +193,221 @@ TEST(DhwEpisodes, DaysRollAtTheDeviceTimeZonesMidnight) {
     };
     EXPECT_EQ(todayTaps(ScopedTz::newYork), 1);
     EXPECT_EQ(todayTaps(ScopedTz::amsterdam), 2);
+}
+
+// The owner's boiler, a whole day (31 Oct 2026) and a morning (1 Nov) from the Home Assistant history:
+// the comfort mode reheats the plate exchanger about every 11 minutes. Expected counts come from an
+// independent reference of the rule (the fixture generator); before 1 Nov many of these rounds were taps.
+DhwEpisodes::Day ownerDay(const char* path) {
+    std::ifstream file(path);
+    EXPECT_TRUE(file.good()) << path;
+    DhwEpisodes e; std::string line;
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream in(line); uint64_t ms; char kind; int value;
+        in >> ms >> kind >> value;
+        if (kind == 'T') e.temperature(value, ms); else e.state(static_cast<uint8_t>(value), ms);
+    }
+    return e.today();
+}
+TEST(DhwEpisodes, OwnersDayCountsTheKeepWarmRoundsAsKeepingWarm) {
+    const auto d = ownerDay("test/fixtures/dhw-owner-20261031.txt");
+    EXPECT_EQ(d.count[DhwEpisodes::keepWarm], 40);
+    EXPECT_EQ(d.count[DhwEpisodes::tapping], 17);   // 13:00: 9 K in 1.5 min before a shallow round (no night learned: the 2 K/min default)
+    EXPECT_EQ(d.count[DhwEpisodes::unknown], 0);
+    EXPECT_EQ(d.count[DhwEpisodes::charging], 0);
+    const auto m = ownerDay("test/fixtures/dhw-owner-20261101.txt");
+    EXPECT_EQ(m.count[DhwEpisodes::keepWarm], 5);   // incl. two rounds at night (02:54, 04:29) that dip 9-11 K
+    EXPECT_EQ(m.count[DhwEpisodes::tapping], 1);    // 00:38: 64 -> 18 degC
+}
+// The live activity on the owner's day (Home Assistant's timeline): each episode ends showing what it is
+// counted as, and a tap shows as keeping warm only until its fall is clear.
+TEST(DhwEpisodes, OwnersDayActivityEndsEachEpisodeAsItIsCounted) {
+    std::ifstream file("test/fixtures/dhw-owner-20261031.txt");
+    ASSERT_TRUE(file.good());
+    DhwEpisodes e; std::string line, last;
+    std::map<std::string, int> ended, seen;
+    uint64_t openedMs = 0;
+    std::vector<uint64_t> tapShownAfterMs;
+    bool open = false, tapShown = false;
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream in(line); uint64_t ms; char kind; int value;
+        in >> ms >> kind >> value;
+        if (kind == 'T') e.temperature(value, ms); else e.state(static_cast<uint8_t>(value), ms);
+        const std::string now = e.activity() ? e.activity() : "";
+        if (now != last) ++seen[now];
+        const bool opened = e.openKind().has_value();
+        if (opened && !open) { openedMs = ms; tapShown = false; }
+        if (opened && now == "tapping" && !tapShown) { tapShown = true; tapShownAfterMs.push_back(ms - openedMs); }
+        if (!opened && open) ++ended[last];
+        open = opened; last = now;
+    }
+    EXPECT_EQ(ended["tapping"], 17);
+    EXPECT_EQ(ended["keep_warm"], 40);
+    EXPECT_EQ(ended.size(), 2u);
+    EXPECT_GT(seen["heating"], 0);
+    EXPECT_GT(seen["idle"], 0);
+    // Most taps fall fast; a slow one shows once it has been 7.5 K under for 90 s.
+    ASSERT_EQ(tapShownAfterMs.size(), 17u);
+    std::sort(tapShownAfterMs.begin(), tapShownAfterMs.end());
+    EXPECT_LE(tapShownAfterMs[8], 60000u);
+    EXPECT_LE(tapShownAfterMs.back(), 180000u);
+    std::printf("owner 31 Oct: a tap shows after %llu s (median), %llu s (slowest)\n",
+                static_cast<unsigned long long>(tapShownAfterMs[8] / 1000),
+                static_cast<unsigned long long>(tapShownAfterMs.back() / 1000));
+}
+// The owner's week (25 Oct - 1 Nov 2026) with the clock: the nights teach how fast the sensor falls
+// before a round nobody tapped for (also while the store mixes after a short reheat), and a round after
+// a faster fall is usage. Printed per day for the report.
+TEST(DhwEpisodes, OwnersWeekLearnsTheNightRoundsAndCountsFasterFallsAsUsage) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    std::ifstream file("test/fixtures/dhw-owner-week-20261025.txt");
+    ASSERT_TRUE(file.good());
+    constexpr uint32_t origin = 1792879200;            // 25 Oct 2026 00:00 CEST
+    DhwEpisodes e; std::string line;
+    EXPECT_STREQ(e.method(), "dhw_temperature_fall");
+    EXPECT_FALSE(e.nightLearned());
+    EXPECT_EQ(e.usageRate(), DhwEpisodes::defaultUsageRate);
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream in(line); uint64_t ms; char kind; int value;
+        in >> ms >> kind >> value;
+        const DhwEpisodes::Day before = e.today();
+        e.clock(origin + static_cast<uint32_t>(ms / 1000), ms);
+        if (before.day != DhwEpisodes::unknownDay && e.today().day != before.day)
+            std::printf("owner day %d: %u keep-warm, %u taps (limit %d)\n", before.day, before.count[DhwEpisodes::keepWarm],
+                        before.count[DhwEpisodes::tapping], e.usageRate());
+        if (kind == 'T') e.temperature(value, ms); else e.state(static_cast<uint8_t>(value), ms);
+    }
+    EXPECT_TRUE(e.nightLearned());
+    EXPECT_EQ(e.usageRate(), 137);                     // night rounds while the store mixes: up to 1.1 K/min
+    const auto week = e.lastSevenDays();
+    std::printf("owner week: usage above %d hundredths K/min; last 7 days %u keep-warm, %u taps; today %u keep-warm, %u taps\n",
+                e.usageRate(), week.count[DhwEpisodes::keepWarm], week.count[DhwEpisodes::tapping],
+                e.today().count[DhwEpisodes::keepWarm], e.today().count[DhwEpisodes::tapping]);
+    // With the episode's own fall only, the reference counts 1-5 more keep-warm rounds a day.
+    EXPECT_EQ(week.count[DhwEpisodes::keepWarm], 142);
+    EXPECT_EQ(week.count[DhwEpisodes::tapping], 72);
+    EXPECT_EQ(e.today().count[DhwEpisodes::keepWarm], 14);
+    EXPECT_EQ(e.today().count[DhwEpisodes::tapping], 2);
+    EXPECT_EQ(week.count[DhwEpisodes::unknown], 0);
+    EXPECT_EQ(week.count[DhwEpisodes::charging], 0);
+    cJSON* json = e.summaryJson();
+    ASSERT_NE(json, nullptr);
+    EXPECT_STREQ(cJSON_GetObjectItem(json, "baseline")->valuestring, "night");
+    cJSON_Delete(json);
+}
+// A small tap (washing hands) only cools the sensor before the round; standing loss and mixing are slower.
+TEST(DhwEpisodes, AFastFallBeforeAShallowRoundIsUsageASlowOneKeepingWarm) {
+    const auto run = [](int32_t fallCenti, uint64_t overMs) {
+        DhwEpisodes e; uint64_t t = 0;
+        e.state(0x00, t);
+        e.temperature(6500, t + 1000);                 // the peak after the previous round
+        for (uint64_t at = 10000; at <= overMs; at += 10000) {
+            e.temperature(6500 - static_cast<int32_t>(fallCenti * at / overMs), t + at); e.state(0x00, t + at);
+        }
+        t = overMs + 10000;
+        e.state(0x0A, t); e.temperature(5900, t + 5000); e.state(0x0A, t + 10000); e.temperature(6400, t + 15000);
+        e.state(0x00, t + 20000);
+        return e.today();
+    };
+    EXPECT_EQ(run(700, 600000).count[DhwEpisodes::keepWarm], 1);     // 7 K in 10 min: 0.7 K/min
+    EXPECT_EQ(run(700, 120000).count[DhwEpisodes::tapping], 1);      // 7 K in 2 min: 3.5 K/min
+    EXPECT_EQ(run(700, 7200000).count[DhwEpisodes::keepWarm], 1);    // 7 K in 2 h
+}
+// The night teaches the limit: a round faster than this installation's night rounds is usage.
+TEST(DhwEpisodes, NightRoundsSetTheLimitAndTheBaselineSaysSo) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    constexpr uint32_t night = 1793232000;              // 1 Nov 2026 00:00 UTC = 01:00 CET
+    DhwEpisodes e; uint64_t t = 0;
+    const auto round = [&](int32_t fallCenti, uint64_t overMs) {
+        e.clock(night + static_cast<uint32_t>(t / 1000), t);
+        e.state(0x00, t); e.temperature(6500, t + 1000);
+        for (uint64_t at = 10000; at <= overMs; at += 10000) { e.temperature(6500 - static_cast<int32_t>(fallCenti * at / overMs), t + at); e.state(0x00, t + at); }
+        t += overMs + 10000;
+        e.state(0x0A, t); e.temperature(5900, t + 5000); e.state(0x0A, t + 10000); e.state(0x00, t + 20000);
+        t += 20000;
+    };
+    cJSON* json = e.summaryJson();
+    EXPECT_STREQ(cJSON_GetObjectItem(json, "baseline")->valuestring, "default");
+    cJSON_Delete(json);
+    for (int i = 0; i < 4; ++i) round(600, 1200000);   // 6 K in 20 min at night: 0.3 K/min
+    EXPECT_TRUE(e.nightLearned());
+    EXPECT_EQ(e.usageRate(), 36);                      // 29 (6 K over 20 min 9 s) + a quarter
+    EXPECT_EQ(e.today().count[DhwEpisodes::keepWarm], 4);
+    t += 6 * 3600000;                                  // the morning
+    round(600, 600000);                                // 0.6 K/min: faster than any night round
+    EXPECT_EQ(e.today().count[DhwEpisodes::tapping], 1);
+    json = e.summaryJson();
+    EXPECT_STREQ(cJSON_GetObjectItem(json, "baseline")->valuestring, "night");
+    cJSON_Delete(json);
+    DhwEpisodes flow; flow.flow(0); flow.flow(12);     // a flow meter decides: no baseline
+    json = flow.summaryJson();
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(json, "baseline")));
+    cJSON_Delete(json);
+}
+// A dip that recovers is keeping warm; a smaller fall that lasts is a tap; a deep fall is a tap.
+TEST(DhwEpisodes, ABriefDipIsKeepWarmALastingOrDeepFallIsATap) {
+    const auto run = [](std::vector<int32_t> inside) {
+        DhwEpisodes e; uint64_t t = 0;
+        for (int i = 0; i < 12; ++i) { t += 10000; e.temperature(5900, t - 5000); e.state(0x00, t); }
+        for (int32_t c : inside) { t += 10000; e.temperature(c, t - 5000); e.state(0x0A, t); }
+        t += 10000; e.state(0x00, t);
+        return e.today();
+    };
+    auto d = run({5800, 5200, 4900, 5100, 5500, 5800, 6000});        // 10 K for ~30 s, then reheated
+    EXPECT_EQ(d.count[DhwEpisodes::keepWarm], 1);
+    d = run({5600, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5100, 5200}); // 9 K for 100 s
+    EXPECT_EQ(d.count[DhwEpisodes::tapping], 1);
+    d = run({5000, 4300, 4500, 5600});                                // 16 K deep, brief
+    EXPECT_EQ(d.count[DhwEpisodes::tapping], 1);
+}
+// Universal: a boiler with a cylinder charges it; a combi with a live flow uses the flow.
+TEST(DhwEpisodes, ACylinderBoilerChargesInsteadOfTappingOrKeepingWarm) {
+    DhwEpisodes e;
+    e.dhwType(3);                                                     // buffer (cylinder)
+    e.temperature(6000, 0); e.state(0x0A, 1000); e.temperature(3000, 11000); e.state(0x00, 600000);
+    EXPECT_EQ(e.today().count[DhwEpisodes::charging], 1);
+    EXPECT_EQ(e.today().count[DhwEpisodes::tapping], 0);
+    EXPECT_TRUE(e.storage());
+    EXPECT_STREQ(e.method(), "storage");
+    const auto j = json(e, 600000);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(j.get(), "method")), "storage");
+    EXPECT_EQ(at(cJSON_GetObjectItem(j.get(), "today"), "charging", "count"), 1);
+}
+TEST(DhwEpisodes, AChargingBitThatChangesMarksTheCylinderUnlessTheTypeIsACombi) {
+    DhwEpisodes e;
+    e.chargingBit(false); e.state(0x00, 0);
+    e.chargingBit(true); e.state(0x0A, 10000); e.state(0x00, 20000);     // the bit changed: live, set in the episode
+    e.chargingBit(false); e.state(0x0A, 30000); e.state(0x00, 40000);    // not set: no temperature, unknown
+    EXPECT_EQ(e.today().count[DhwEpisodes::charging], 1);
+    EXPECT_EQ(e.today().count[DhwEpisodes::unknown], 1);
+    DhwEpisodes combi;
+    combi.dhwType(1);
+    combi.chargingBit(false); combi.chargingBit(true);
+    combi.temperature(6000, 0); combi.state(0x0A, 1000); combi.temperature(5800, 11000); combi.state(0x00, 21000);
+    EXPECT_FALSE(combi.storage());
+    EXPECT_EQ(combi.today().count[DhwEpisodes::keepWarm], 1);
+    EXPECT_STREQ(combi.method(), "dhw_temperature_fall");
+}
+// What the boiler does now, for the Home Assistant timeline and the E32 chart.
+TEST(DhwEpisodes, ActivityFollowsTheOpenEpisodeAndTheFlame) {
+    DhwEpisodes e;
+    EXPECT_EQ(e.activity(), nullptr);                                  // nothing heard yet
+    e.state(0x00, 0); EXPECT_STREQ(e.activity(), "idle");
+    e.state(0x08, 10000); EXPECT_STREQ(e.activity(), "heating");        // flame without hot water
+    e.temperature(5800, 15000);
+    e.state(0x0A, 20000); EXPECT_STREQ(e.activity(), "keep_warm");     // hot water, no fall yet
+    e.temperature(5600, 25000); EXPECT_STREQ(e.activity(), "keep_warm");
+    e.temperature(3500, 30000); EXPECT_STREQ(e.activity(), "tapping");  // a deep fall: a tap after all
+    ASSERT_TRUE(e.openKind()); EXPECT_EQ(*e.openKind(), DhwEpisodes::tapping);
+    e.state(0x00, 60000); EXPECT_STREQ(e.activity(), "idle");
+    EXPECT_FALSE(e.openKind());
+    EXPECT_EQ(e.today().count[DhwEpisodes::tapping], 1);
+    DhwEpisodes cylinder; cylinder.dhwType(4);
+    cylinder.state(0x0A, 0); EXPECT_STREQ(cylinder.activity(), "charging");
+    DhwEpisodes blind;
+    blind.state(0x0A, 0); EXPECT_STREQ(blind.activity(), "hot_water");  // no source to sort it
 }
 }

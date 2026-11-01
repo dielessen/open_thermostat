@@ -390,8 +390,11 @@ TEST(HeatingTelemetry, BurnerKeepsItsKeysWhileUnknown) {
     addBurnerJson(unknown.get(), BurnerCycleMonitor::Summary{});
     BurnerCycleMonitor::Summary c; c.known = true; c.starts = 7; c.heatingStarts = 6; c.shortCycling = true;
     addBurnerJson(known.get(), c);
-    EXPECT_EQ(print(unknown.get()), R"({"burner":{"starts_last_hour":null,"heating_starts_last_hour":null,"short_cycling":null}})");
-    EXPECT_EQ(print(known.get()), R"({"burner":{"starts_last_hour":7,"heating_starts_last_hour":6,"short_cycling":true}})");
+    EXPECT_EQ(print(unknown.get()), R"({"burner":{"starts_last_hour":null,"heating_starts_last_hour":null,"short_cycling":null,"activity":null}})");
+    EXPECT_EQ(print(known.get()), R"({"burner":{"starts_last_hour":7,"heating_starts_last_hour":6,"short_cycling":true,"activity":null}})");
+    Json active(cJSON_CreateObject(), cJSON_Delete);
+    addBurnerJson(active.get(), c, "keep_warm");                  // what the boiler does now (DhwEpisodes::activity)
+    EXPECT_EQ(print(active.get()), R"({"burner":{"starts_last_hour":7,"heating_starts_last_hour":6,"short_cycling":true,"activity":"keep_warm"}})");
 }
 
 TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder900Bytes) {

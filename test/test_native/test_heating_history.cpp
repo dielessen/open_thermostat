@@ -47,7 +47,7 @@ TEST(HeatingHistory, EmptyHistoryHasNoPointsAndNullSeries) {
     EXPECT_EQ(number(root.get(), "period_s"), 300);
     EXPECT_EQ(number(root.get(), "capacity"), 288);
     EXPECT_FALSE(item(root.get(), "oldest_start_ago_s"));
-    for (const char* key : {"flow", "return", "burner_pct", "request", "thermostat_request"})
+    for (const char* key : {"flow", "return", "burner_pct", "request", "thermostat_request", "dhw_tap_pct", "dhw_reheat_pct"})
         EXPECT_TRUE(cJSON_IsNull(item(root.get(), key))) << key;
     EXPECT_EQ(cJSON_GetArraySize(item(root.get(), "rooms")), 0);
 }
@@ -79,7 +79,7 @@ TEST(HeatingHistory, MemoryIsBoundedAllocatedOnceAndReleased) {
     }
     EXPECT_EQ(allocations, 1u);
     EXPECT_EQ(releases, 1u);
-    EXPECT_LE(HeatingHistory::bytes(), 13u * 1024u);
+    EXPECT_LE(HeatingHistory::bytes(), 14u * 1024u); // beta.23: +1168 B for the hot-water band (two columns)
     EXPECT_LE(sizeof(HeatingHistory), 64u); // the object itself stays small on the internal heap
 }
 
@@ -204,4 +204,23 @@ TEST(HeatingHistory, FullHouseResponseStaysWellInsideTheResponseBuffer) {
     ASSERT_TRUE(root);
     EXPECT_EQ(cJSON_GetArraySize(item(root.get(), "rooms")), 8);
     EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetArrayItem(item(cJSON_GetArrayItem(item(root.get(), "rooms"), 7), "temperature"), 0)), -235);
+}
+
+// The hot-water band: the share of each 5 minutes tapping and reheating (keeping warm or charging).
+TEST(HeatingHistory, HotWaterBandIsTheShareOfSamplesTappingAndReheating) {
+    auto h = ready();
+    const auto sample = [&](uint64_t t, std::optional<HeatingHistory::Dhw> dhw) {
+        HeatingHistory::Sample s = boiler(5000, dhw.has_value() && *dhw != HeatingHistory::noHotWater); s.hotWater = dhw; h->sample(t, s);
+    };
+    uint64_t t = 0;
+    for (int i = 0; i < 6; ++i, t += 10000) sample(t, HeatingHistory::tapping);    // 1 minute tapping
+    for (int i = 0; i < 12; ++i, t += 10000) sample(t, HeatingHistory::reheating); // 2 minutes keeping warm
+    for (int i = 0; i < 12; ++i, t += 10000) sample(t, HeatingHistory::noHotWater);
+    sample(period, std::nullopt);                                                    // next slot: unknown, not counted
+    auto root = parse(*h, period + 1000);
+    const cJSON* tap = item(root.get(), "dhw_tap_pct"); const cJSON* reheat = item(root.get(), "dhw_reheat_pct");
+    ASSERT_TRUE(cJSON_IsArray(tap) && cJSON_IsArray(reheat));
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetArrayItem(tap, 0)), 20);    // 6 of 30 samples
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetArrayItem(reheat, 0)), 40); // 12 of 30 samples
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetArrayItem(tap, 1)));
 }

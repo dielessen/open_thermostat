@@ -33,7 +33,7 @@ energy inputs.
 | Who uses a room (persons per room) | E32: Rooms (shown, read-only) | Same room editor → Persons |
 | Lowest and highest flow temperature for the boiler request | E32: Home → Flow temperature limits | Configure → Home → Heating and boiler |
 | Heating curve, learned flow and optimum start | E32: Home | Switches on the E32 device |
-| Gas meter, gas price, outdoor temperature, boiler power (all optional) | — | Configure → Home → Energy and outdoor temperature |
+| Gas meter, gas price, outdoor temperature, boiler power, water meter (all optional) | — | Configure → Home → Energy and outdoor temperature |
 | Pairing Bluetooth sensors (address, profile, encryption key) | E32: Sensors | E32: Sensors |
 | Boiler model | E32: Boiler | E32: Boiler |
 | Network, MQTT broker, time and time zone | E32: Settings | E32: Settings |
@@ -363,9 +363,11 @@ E32 itself are not supported yet; connect them through Home Assistant.
 
 Under Configure → **Home** → **Energy and outdoor temperature** you can choose a gas
 meter (m³ or kWh), a gas price sensor or a fixed price, the calorific value of
-your gas, an outdoor temperature sensor or weather entity, and your boiler's
-heating power. All fields are optional; leave a field empty to not use it.
-With a gas meter the E32 calibrates its heat and gas estimates.
+your gas, an outdoor temperature sensor or weather entity, your boiler's
+heating power and a water meter (a flow in L/min, or a meter reading in m³ or
+L). All fields are optional; leave a field empty to not use it. With a gas
+meter the E32 calibrates its heat and gas estimates. The water meter stays in
+Home Assistant: it tells tapping from keeping warm (see below).
 
 The **Heating advice** sensor and its dashboard section list what could be
 tuned: short cycling, a maximum heating temperature far above what the house
@@ -502,6 +504,52 @@ The predictions need a valid clock; the night-setback estimate also needs an
 outdoor temperature (from the boiler or from Home Assistant). The product
 device also shows hot water today (taps, keeping warm, burner time) and a
 burner short-cycling warning.
+
+### Gas for heating, hot water and keeping warm
+
+With a gas meter in the energy options, *Gas for heating* and *Gas for hot
+water* share the meter by what the boiler did (without a meter they are an
+estimate from the burner modulation). Hot water is split once more:
+*Gas for tapping hot water* is what taps used, *Gas for keeping hot water
+warm* is the boiler reheating its store or exchanger without a tap, nothing
+more. Their attributes show per day the rounds, burner minutes and gas. The
+E32 decides per hot-water episode with the most direct signal the boiler
+reports (the attribute `dhw_method`):
+
+- `flow`: a DHW flow meter. Flow during the round is a tap.
+- `storage`: a boiler with a cylinder reports charging. The E32 cannot tell a
+  tap from a reheat there, so its hot water stays in *Gas for hot water* only.
+- `dhw_temperature_fall`: neither, so the DHW temperature. A tap brings cold
+  mains water, so the temperature falls deep or stays down. A small tap
+  (washing hands) may only cool the sensor before the round, so a round also
+  counts as a tap when the sensor fell before it faster than it does before
+  this boiler's own rounds at night (01:00-05:00, when nobody taps). The
+  sensor sits where heat enters the store and falls fast after each reheat
+  while the heat mixes through, so this is only a comparison with the nights,
+  not a heat loss. The attribute `dhw_baseline` says `night` once the E32 has
+  seen four night rounds since its last restart, and `default` before that
+  (then only a fall faster than 2 °C a minute counts).
+- `water_meter`: with a water meter in the energy options, Home Assistant
+  decides instead, for every boiler. A round with water flowing during it, or
+  in the 2 minutes before it, is tapping; one without is keeping warm. A round
+  the meter did not cover (no reading) stays in *Gas for hot water* only. A
+  water meter also sees cold water (a toilet flush), so a round at the same
+  time as one counts as tapping. On the owner's boiler the temperatures alone
+  missed many small taps: on 31 Oct 2026, 23 of 56 rounds were keeping warm by
+  the meter, against 40 by the temperature rule.
+
+Add heating and hot water to the Energy dashboard; tapping and keeping warm
+are parts of hot water, so leave them out there.
+
+*Boiler activity* says what the boiler does now: idle, heating, tapping,
+keeping warm, charging the cylinder, or hot water it cannot sort. A tap shows
+as keeping warm until its fall is clear, usually within half a minute. In the
+Boiler view, the hot-water section shows this as a 24-hour timeline next to
+the boiler's heating state, and, once tapping or keeping warm has counted gas,
+the gas per day for heating, tapping and keeping warm over the last week. On
+the E32's own Overview, the boiler history has a hot-water strip: the share of
+each 5 minutes tapping and keeping warm (a cylinder's charging counts as
+keeping warm there).
 
 ## Backup and restore
 

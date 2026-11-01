@@ -421,6 +421,8 @@ class HeatingHub:
         self.shadow = None
         self.online = None  # fw/availability: None until known
         self.heartbeat = None
+        self.boots = 0  # E32 restarts seen as a falling heartbeat uptime (DhwCarry)
+        self._dhw_carry = None
         self.heartbeat_received = None
         self.started = clock()
         self._listeners = []
@@ -454,6 +456,15 @@ class HeatingHub:
         """Today's hot water: the summary, else inside the status (older firmware)."""
         dhw = dhw_status(self.summary)
         return dhw if dhw is not None else dhw_status(self.status)
+
+    def dhw_today(self):
+        """Today's hot-water counts carried over E32 restarts (DhwCarry), or None without them."""
+        dhw = self.dhw
+        if dhw is None:
+            return None
+        if self._dhw_carry is None:
+            self._dhw_carry = DhwCarry()
+        return self._dhw_carry.apply(dhw["today"], self.boots)
 
     @callback
     def add_listener(self, listener, first=False):
@@ -558,6 +569,9 @@ class HeatingHub:
             beat = decode_heartbeat(payload)
             if beat is None or retained:
                 return
+            previous = self.heartbeat
+            if previous is not None and beat["uptime_s"] < previous.get("uptime_s", 0):
+                self.boots += 1  # the E32 restarted (DhwCarry)
             self.heartbeat, self.heartbeat_received = beat, self.clock()
             self.online = True if self.online is None else self.online
             self.last_seen = self.heartbeat_received
@@ -1147,6 +1161,36 @@ def burner_status(status):
     return burner if type(burner) is dict else None
 
 
+BOILER_ACTIVITIES = ("idle", "heating", "tapping", "keep_warm", "charging", "hot_water")
+
+
+class BoilerActivitySensor(HubEntity, SensorEntity):
+    """What the boiler does now, as the E32 sees it on the bus (``burner.activity``, E32 beta.23).
+
+    An enum, so Home Assistant's history draws a coloured timeline: idle, heating, tapping,
+    keeping warm, charging a cylinder, or hot water the E32 cannot sort. The E32 decides with the
+    most direct signal its boiler reports (DHW flow, a cylinder's charging, else the DHW
+    temperature); a tap shows as keeping warm until its fall is clear, usually within half a minute.
+    """
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(BOILER_ACTIVITIES)
+    _attr_translation_key = "boiler_activity"
+
+    def __init__(self, hub):
+        self._attach(hub, "hub_boiler_activity")
+
+    @property
+    def available(self):
+        return self.hub.fresh
+
+    @property
+    def native_value(self):
+        burner = burner_status(self.hub.status)
+        value = burner.get("activity") if burner else None
+        return value if value in BOILER_ACTIVITIES else None
+
+
 class BurnerEntity(HubEntity):
     """Mixin: one value of the E32's burner-start count, on the product device."""
 
@@ -1390,6 +1434,66 @@ def dhw_status(status):
 
 DHW_SENSORS = ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today")
 DHW_KINDS = {"dhw_taps_today": "tapping", "dhw_keep_warm_today": "keep_warm"}
+DHW_EPISODE_KINDS = ("tapping", "keep_warm", "charging", "unknown")
+
+
+class DhwCarry:
+    """Today's hot-water counts across E32 restarts.
+
+    The E32 counts its episodes per day in memory, so an update or any other
+    restart starts them at 0 again (31 Oct 2026: two updates left the owner's
+    "keeping warm today" at a few rounds). A count that goes down while the E32
+    restarted (its heartbeat uptime fell) keeps what it had reached and adds
+    from there; a count that goes down without a restart is the E32's new day.
+    The two may arrive in either order. Home Assistant keeps this in memory
+    only; after a Home Assistant restart the E32's own counts carry on.
+    """
+
+    def __init__(self, today=None):
+        self._today = today or (lambda: __import__("datetime").date.today())
+        self.day, self.last, self.base, self.dropped = None, {}, {}, {}
+        self.boot, self.restart_seen = None, False
+
+    def apply(self, today, boot=None):
+        """A copy of the E32's ``today`` with every count and duration carried over its restarts.
+
+        boot: a number that changes when the E32 restarts (HeatingHub.boots)."""
+        day = self._today()
+        if day != self.day:
+            self.day, self.last, self.base, self.dropped, self.restart_seen = day, {}, {}, {}, False
+        if boot is not None and self.boot is not None and boot != self.boot:
+            if self.dropped:
+                for key, value in self.dropped.items():
+                    self.base[key] = self.base.get(key, 0) + value
+                self.dropped = {}
+            else:
+                self.restart_seen = True
+        if boot is not None:
+            self.boot = boot
+        result = dict(today)
+        carried = False
+        keys = [(kind, field) for kind in DHW_EPISODE_KINDS for field in ("count", "s")] + [(None, "burner_s")]
+        for kind, field in keys:
+            source = today.get(kind) if kind else today
+            value = _count(source.get(field)) if type(source) is dict else None
+            if value is None:
+                continue
+            key = f"{kind}.{field}" if kind else field
+            if key in self.last and value < self.last[key]:
+                if self.restart_seen:
+                    self.base[key] = self.base.get(key, 0) + self.last[key]
+                    carried = True
+                else:
+                    self.dropped[key] = self.last[key]
+            self.last[key] = value
+            total = value + self.base.get(key, 0)
+            if kind:
+                result[kind] = {**(result[kind] if result.get(kind) is not source else source), field: total}
+            else:
+                result[field] = total
+        if carried:
+            self.restart_seen = False
+        return result
 
 
 def _minutes(seconds):
@@ -1417,7 +1521,9 @@ class DhwTodaySensor(HubEntity, SensorEntity):
 
     @property
     def dhw(self):
-        return self.hub.dhw if self.hub.fresh else None
+        """The hub's hot-water summary with today's counts carried over E32 restarts."""
+        dhw = self.hub.dhw if self.hub.fresh else None
+        return None if dhw is None else {**dhw, "today": self.hub.dhw_today()}
 
     @property
     def available(self):
@@ -1438,7 +1544,7 @@ class DhwTodaySensor(HubEntity, SensorEntity):
         if dhw is None:
             return None
         today, week = dhw["today"], _dict(dhw, "last_7_days")
-        result = {"method": _text(dhw, "method"), "clock_known": _flag(dhw, "clock_known")}
+        result = {"method": _text(dhw, "method"), "baseline": _text(dhw, "baseline"), "clock_known": _flag(dhw, "clock_known")}
         if self.key == "dhw_burner_time_today":
             return {**result, "tapping_minutes": _minutes(_count(_dict(today, "tapping").get("s"))),
                     "keep_warm_minutes": _minutes(_count(_dict(today, "keep_warm").get("s"))),
@@ -1448,7 +1554,8 @@ class DhwTodaySensor(HubEntity, SensorEntity):
                       last_7_days=_count(_dict(week, kind).get("count")))
         if self.key == "dhw_taps_today":
             result.update(peak_flow_l_min=number(today.get("peak_flow_l_min"), 0, 60),
-                          unknown_count=_count(_dict(today, "unknown").get("count")))
+                          unknown_count=_count(_dict(today, "unknown").get("count")),
+                          charging_count=_count(_dict(today, "charging").get("count")))
         return result
 
 
@@ -1459,6 +1566,8 @@ def wanted_sensors(hub):
             yield ("shadow", key), lambda key=key: ShadowSensor(hub, key)
     if burner_status(hub.status) is not None:  # firmware that counts burner starts
         yield ("burner",), lambda: BurnerStartsSensor(hub)
+    if "activity" in (burner_status(hub.status) or {}):  # firmware that says what the boiler does (beta.23)
+        yield ("activity",), lambda: BoilerActivitySensor(hub)
     if hub.dhw is not None:  # firmware that sorts the hot-water episodes
         for key in DHW_SENSORS:
             yield ("dhw", key), lambda key=key: DhwTodaySensor(hub, key)

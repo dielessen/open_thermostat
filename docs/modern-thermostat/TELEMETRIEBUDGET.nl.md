@@ -195,3 +195,12 @@ zette bij elke hello `last_rx` opnieuw, en een sessie zonder lease verliep
 alleen op `last_rx`. Zo bleef HA eindeloos in een dode sessie hangen tot de
 integratie herladen werd (`test_lost_first_heartbeats_never_leave_a_session_open_forever`
 faalt op b10 en slaagt met één regel extra in `poll()`).
+
+## Radiatorkranen (beta.24)
+
+Alleen met geconfigureerde kranen: per ruimte `fw/state/trv/<ruimte>` (kranen met naam, model,
+gezondheid, stand, batterij en setpoint; geen leeftijden, die zouden elke seconde veranderen),
+de ids in `fw/config/plan` als `trv` en `output`/`flow_offset_c`/`flow_reason` in
+`fw/state/heating` als `trv`. Grootste document bij vier kranen van 64 tekens: ongeveer 800 B;
+`fw/state/heating` en `fw/config/plan` blijven in het slechtste geval onder 1 KB
+(`test_heating_state_topics`, `test_trv_telemetry`). Zonder kranen verandert geen byte.

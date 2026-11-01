@@ -129,6 +129,8 @@ def valve_error(err):
     from .controller_link import ControllerLoginRejected, HeatingPlanRejected
     if isinstance(err, ControllerLoginRejected):
         return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_password")
+    if str(err) == "controller_no_free_session":
+        return HomeAssistantError(translation_domain=DOMAIN, translation_key="e32_no_free_session")
     if isinstance(err, HeatingPlanRejected):
         if err.error == "save_unconfirmed":
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unconfirmed")
@@ -149,16 +151,17 @@ class ValveLink:
         self.hass, self.hub, self.plan = hass, hub, plan
         self.config = None
 
-    async def _call(self, document=None):
+    async def _call(self, document=None, wait=False):
         async with self.plan._lock:
             async with self.plan._client() as client:
-                await self.plan._login(client)
+                # A change (and the read right before it) waits for a free E32 web session.
+                await self.plan._login(client, self.plan.claim() if wait or document is not None else None)
                 return await client.async_valves(document)
 
-    async def async_read(self):
+    async def async_read(self, wait=False):
         from .controller_link import ControllerLinkError
         try:
-            value = decode_config(await self._call())
+            value = decode_config(await self._call(wait=wait))
         except ControllerLinkError as err:
             raise valve_error(err) from None
         if value is None:
@@ -170,7 +173,7 @@ class ValveLink:
     async def async_change(self, room_id, control=None, valves=None):
         """POST the record with one room changed; the E32 answers with what it stored."""
         from .controller_link import ControllerLinkError
-        current = await self.async_read()
+        current = await self.async_read(wait=True)
         try:
             answer = decode_config(await self._call(with_room(current, room_id, control, valves)))
         except ControllerLinkError as err:

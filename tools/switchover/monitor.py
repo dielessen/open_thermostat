@@ -13,9 +13,11 @@ writes one JSONL line per sample, raises alarms on stdout and to an optional
 Home Assistant webhook, and writes a summary per day.
 
 Read-only by construction: the client sends only GET requests, plus POST
-/auth/login to open a session. It never changes settings, the room plan, the
-handover or the boiler. Passwords come only from environment variables or an
-interactive prompt and are never written anywhere. Python 3 standard library only.
+/auth/login to open a session and POST /auth/logout to end it after every
+sample (the E32 has only 4 web sessions; Home Assistant needs one for each
+change). It never changes settings, the room plan, the handover or the
+boiler. Passwords come only from environment variables or an interactive
+prompt and are never written anywhere. Python 3 standard library only.
 """
 from __future__ import annotations
 
@@ -80,8 +82,9 @@ class AuthError(Exception):
 
 
 class E32Client:
-    """GET-only client with an in-memory cookie session (never stored on disk)."""
+    """GET-only client with an in-memory cookie session (never stored on disk), one per sample."""
     LOGIN_PATH = '/auth/login'
+    LOGOUT_PATH = '/auth/logout'
 
     def __init__(self, host, user, password, timeout=20, login_min_interval_s=120, clock=time.time):
         parsed = urllib.parse.urlsplit(host)
@@ -95,15 +98,19 @@ class E32Client:
         self.jar = http.cookiejar.CookieJar()
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect(),
                                                   urllib.request.HTTPCookieProcessor(self.jar))
-        self.last_login_at = None
+        self.failed_login_at = None
         self.logins = 0
+        self.signed_in = False
+        self._csrf = None  # only for the logout of this session; never written anywhere
 
-    def _open(self, method, path, data=None, content_type=None):
+    def _open(self, method, path, data=None, content_type=None, csrf=None):
         assert path.startswith('/') and not path.startswith('//')
-        assert method == 'GET' or (method == 'POST' and path == self.LOGIN_PATH), 'read-only client'
+        assert method == 'GET' or (method == 'POST' and path in (self.LOGIN_PATH, self.LOGOUT_PATH)), 'read-only client'
         headers = {'Origin': self.host, 'Cache-Control': 'no-store', 'Accept': 'application/json'}
         if content_type:
             headers['Content-Type'] = content_type
+        if csrf:
+            headers['X-OpenThermostat-CSRF'] = csrf
         request = urllib.request.Request(self.host + path, data=data, headers=headers, method=method)
         try:
             response = self.opener.open(request, timeout=self.timeout)
@@ -116,23 +123,50 @@ class E32Client:
             return response.code, raw
 
     def login(self):
-        """One POST /auth/login, at most once per login_min_interval_s (the E32 rate-limits failures)."""
+        """One POST /auth/login. After a refused one (wrong password; 429: rate limit or all sessions
+        in use) the next waits login_min_interval_s: the E32 rate-limits failed sign-ins."""
         now = self.clock()
-        if self.last_login_at is not None and now - self.last_login_at < self.login_min_interval_s:
+        if self.failed_login_at is not None and now - self.failed_login_at < self.login_min_interval_s:
             raise AuthError('login_backoff')
-        self.last_login_at = now
         self.logins += 1
         body = urllib.parse.urlencode({'username': self._user, 'password': self._password}).encode()
         code, _ = self._open('POST', self.LOGIN_PATH, body, 'application/x-www-form-urlencoded')
         if code != 200:
+            self.failed_login_at = now
             raise AuthError(f'login_http_{code}')
-        code, _ = self._open('GET', '/auth/session')
+        self.signed_in = True
+        code, raw = self._open('GET', '/auth/session')
         if code != 200:
+            self.failed_login_at = now
             raise AuthError(f'session_http_{code}')
+        try:
+            csrf = json.loads(raw).get('csrf')
+        except (ValueError, AttributeError):
+            csrf = None
+        self._csrf = csrf if isinstance(csrf, str) and csrf else None
+        self.failed_login_at = None
+
+    def logout(self):
+        """POST /auth/logout: the session is free for others (Home Assistant) until the next sample.
+
+        Without its CSRF proof the session cannot be ended: it is kept and used
+        again, so the monitor never takes a second one."""
+        if not self.signed_in or self._csrf is None:
+            return
+        try:
+            self._open('POST', self.LOGOUT_PATH, b'', 'application/x-www-form-urlencoded', csrf=self._csrf)
+        except NETWORK_ERRORS:
+            pass  # the E32 ends an unused session itself (a full table evicts it after 2 min idle)
+        finally:
+            self.signed_in, self._csrf = False, None
+            self.jar.clear()
 
     def get_json(self, path):
+        if not self.signed_in:
+            self.login()
         code, raw = self._open('GET', path)
-        if code == 401:
+        if code == 401:  # the session ended (an E32 restart: sessions live in RAM)
+            self.signed_in, self._csrf = False, None
             self.login()
             code, raw = self._open('GET', path)
         if code != 200:
@@ -724,23 +758,9 @@ class Monitor:
         raw, errors = {}, []
         mqtt = self.mqtt.snapshot(now) if self.mqtt else None
         try:
-            raw['heating'] = self.client.get_json(PATHS['heating'])
-        except AuthError as error:
-            errors.append(f'auth: {error}')
-        except (*NETWORK_ERRORS, ValueError) as error:
-            errors.append(f'heating: {type(error).__name__}: {error}')
-        if 'heating' in raw:
-            for name, path in (('status', PATHS['status']), ('telemetry', PATHS['telemetry']),
-                               ('logs', f'/status/logs?after={self.log_cursor}')):
-                try:
-                    raw[name] = self.client.get_json(path)
-                except (AuthError, *NETWORK_ERRORS, ValueError) as error:
-                    errors.append(f'{name}: {type(error).__name__}: {error}')
-            if self.count % 10 == 0 or self.plan is None:
-                try:
-                    self.plan = self.client.get_json('/config/heating')
-                except (AuthError, *NETWORK_ERRORS, ValueError) as error:
-                    errors.append(f'plan: {type(error).__name__}: {error}')
+            self._read(raw, errors)
+        finally:
+            self.client.logout()  # sign in again at the next sample: never hold one of the 4 sessions
         self._advance_cursor(obj(raw.get('logs')))
         self.count += 1
         reachable = 'heating' in raw
@@ -763,6 +783,26 @@ class Monitor:
         if self.count % 10 == 0:
             self.output.summary(self.summary)
         return sample
+
+    def _read(self, raw, errors):
+        try:
+            raw['heating'] = self.client.get_json(PATHS['heating'])
+        except AuthError as error:
+            errors.append(f'auth: {error}')
+        except (*NETWORK_ERRORS, ValueError) as error:
+            errors.append(f'heating: {type(error).__name__}: {error}')
+        if 'heating' in raw:
+            for name, path in (('status', PATHS['status']), ('telemetry', PATHS['telemetry']),
+                               ('logs', f'/status/logs?after={self.log_cursor}')):
+                try:
+                    raw[name] = self.client.get_json(path)
+                except (AuthError, *NETWORK_ERRORS, ValueError) as error:
+                    errors.append(f'{name}: {type(error).__name__}: {error}')
+            if self.count % 10 == 0 or self.plan is None:
+                try:
+                    self.plan = self.client.get_json('/config/heating')
+                except (AuthError, *NETWORK_ERRORS, ValueError) as error:
+                    errors.append(f'plan: {type(error).__name__}: {error}')
 
     def _advance_cursor(self, logs):
         """Follow /status/logs by sequence; start again from 0 after a restart (sequences restart)."""
@@ -843,7 +883,7 @@ def main(argv=None):
     a = parse_args(argv)
     client = E32Client(a.host, a.user, read_password(PASSWORD_ENV, f'E32 password for {a.user}: '))
     try:
-        client.login()
+        client.login()  # the password works; the first sample uses this session and ends it
     except (AuthError, *NETWORK_ERRORS) as error:
         print(f'Login to the E32 failed: {error}', file=sys.stderr)
         return 2

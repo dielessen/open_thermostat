@@ -31,7 +31,8 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
-from .controller_link import ControllerClient, ControllerLinkError, ControllerLoginRejected, HeatingPlanRejected
+from .controller_link import (ControllerClient, ControllerLinkError, ControllerLoginRejected, HeatingPlanRejected,
+                              SESSION_WAITS, async_login_waiting)
 from .heating_link import ROOM_ID, RoomEntity, add_options, heating_hub, track_entities
 from .room_levels import normalize
 
@@ -153,7 +154,14 @@ def plan_error(err):
 
 
 SIGN_IN_ERRORS = {"controller_session_capacity": "e32_session_capacity",
-                  "controller_try_again_later": "e32_try_again_later"}
+                  "controller_try_again_later": "e32_try_again_later",
+                  "controller_no_free_session": "e32_no_free_session"}
+# Repairs: a write found every E32 web session in use for its whole wait (SESSION_WAITS).
+NO_FREE_SESSION_ISSUE = "e32_no_free_session"
+
+
+class WriteSuperseded(Exception):
+    """A newer write for the same key came in while this one waited: this one sends nothing."""
 
 
 class RoomPlanLink:
@@ -170,6 +178,11 @@ class RoomPlanLink:
         self._task = None
         self._seen_revision = None
         self._failed_at = None
+        # Writes wait for a free E32 web session (only 4; all in use: 429 session_capacity).
+        # The newest write per key (one room's override, the house mode) wins; older ones stop.
+        self.session_waits = SESSION_WAITS
+        self._newest = {}
+        self._newer = asyncio.Event()
         self._remove = hub.add_listener(self._status_changed)
 
     @classmethod
@@ -228,17 +241,71 @@ class RoomPlanLink:
     def _client(self):
         return ControllerClient(self._address)
 
-    async def _login(self, client):
+    def claim(self, key=None):
+        """A write about to start: wanted() stays true until a newer write claims the same key."""
+        if key is None:
+            return lambda: True
+        token = self._newest[key] = object()
+        self._newer.set()  # wakes a write of this key that waits for a session
+        self._newer = asyncio.Event()
+        return lambda: self._newest.get(key) is token
+
+    async def _pause(self, seconds, wanted):
+        """The wait before the next sign-in; WriteSuperseded as soon as a newer write took the key."""
+        _LOGGER.debug("Every E32 web session is in use; signing in again in %s s", seconds)
+        loop = asyncio.get_running_loop()
+        end = loop.time() + seconds
+        while wanted():
+            newer = self._newer
+            try:
+                async with asyncio.timeout(end - loop.time()):
+                    await newer.wait()
+            except TimeoutError:
+                return
+        raise WriteSuperseded()
+
+    async def _login(self, client, wanted=None):
+        """Sign in. A write (wanted, from claim) waits for a free E32 web session while still wanted.
+
+        Reads never wait: they would hold the lock the user's writes need, and
+        the telemetry triggers them again (RETRY_SECONDS).
+        """
         from .e32_access import login_rejected, report_password
         if self.login_rejected:
             raise ControllerLoginRejected()
         try:
-            await client.async_login(self._password)
+            if wanted is None:
+                await client.async_login(self._password)
+            else:
+                await async_login_waiting(client, self._password, self.session_waits,
+                                          lambda seconds: self._pause(seconds, wanted))
         except ControllerLoginRejected:
             self.login_rejected = True
             login_rejected(self.hass, self.entry)
             raise
+        except ControllerLinkError as err:
+            if str(err) == "controller_no_free_session":
+                _LOGGER.warning("No free E32 web session for %s s: a change from Home Assistant was not sent",
+                                sum(self.session_waits))
+                self._session_issue(True)
+            raise
+        if wanted is not None:
+            self._session_issue(False)
         report_password(self.hass, self.entry, getattr(client, "default_password", None))
+
+    @callback
+    def _session_issue(self, failed):
+        """Repairs while the last write found no free E32 web session; the next written change removes it."""
+        if self.entry is None:
+            return
+        from homeassistant.helpers import issue_registry as ir
+        issue_id = f"{NO_FREE_SESSION_ISSUE}_{self.entry.entry_id}"
+        if not failed:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            return
+        ir.async_create_issue(self.hass, DOMAIN, issue_id, is_fixable=False, is_persistent=False,
+                              severity=ir.IssueSeverity.WARNING, translation_key=NO_FREE_SESSION_ISSUE,
+                              translation_placeholders={"name": getattr(self.entry, "title", "E32")})
 
     async def _async_fetch(self):
         async with self._lock:
@@ -283,23 +350,28 @@ class RoomPlanLink:
             update_choose_source_issues(self.hass, self.entry, plan)
         self.hub.notify()
 
-    async def async_change_room(self, room_id, change):
+    async def async_change_room(self, room_id, change, key=None):
         """GET, change one room field, POST with the read revision; one re-read on 409."""
         return await self.async_change_plan(
             lambda plan: changed_plan(plan, room_id, change),
-            lambda stored: plan_room(stored, room_id) is not None)
+            lambda stored: plan_room(stored, room_id) is not None, key)
 
-    async def async_change_plan(self, change, confirm=lambda stored: True):
+    async def async_change_plan(self, change, confirm=lambda stored: True, key=None):
         """GET, change(plan) returns the new plan, POST with the read revision; one re-read on 409.
 
         change runs again on the re-read plan, so a concurrent save elsewhere is
         kept and only this edit is applied on top. confirm(stored) checks the
         E32's answer; a stored plan it does not accept is reported unconfirmed.
+        With every E32 web session in use it waits for one; a newer change with
+        the same key (a room's fixed target) supersedes it: None, nothing sent.
         """
+        wanted = self.claim(key)
         async with self._lock:
             try:
+                if not wanted():
+                    raise WriteSuperseded()
                 async with self._client() as client:
-                    await self._login(client)
+                    await self._login(client, wanted)
                     for attempt in (1, 2):
                         plan = decode_plan(await client.async_read_heating_plan())
                         if plan is None:
@@ -315,6 +387,8 @@ class RoomPlanLink:
                                 continue
                             raise
                         break
+            except WriteSuperseded:
+                return None
             except ControllerLinkError as err:
                 if isinstance(err, HeatingPlanRejected) and err.error == "save_unconfirmed":
                     self._seen_revision = None  # Read back what the E32 really stored.
@@ -350,8 +424,8 @@ class PlanRoomEntity(RoomEntity):
     def available(self):
         return self.hub.fresh and self.operation is not None
 
-    async def _change(self, change):
-        await self.plan.async_change_room(self.room_id, change)
+    async def _change(self, change, key=None):
+        await self.plan.async_change_room(self.room_id, change, key)
 
 
 class RoomStateSelect(PlanRoomEntity, SelectEntity):
@@ -462,7 +536,7 @@ class RoomFallbackSetpoint(PlanRoomEntity, NumberEntity):
             raise ServiceValidationError(
                 translation_domain=DOMAIN, translation_key="room_setpoint_outside_limits",
                 translation_placeholders={"minimum": f"{low:g}", "maximum": f"{high:g}"})
-        await self._change(set_fallback(centi_c))
+        await self._change(set_fallback(centi_c), ("fallback", self.room_id))
 
 
 def _wanted(factory):

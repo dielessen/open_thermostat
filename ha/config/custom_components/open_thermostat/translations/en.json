@@ -2926,6 +2926,10 @@
       "title": "E32 still uses the default password",
       "description": "{name}: the E32 still uses the default password admin/admin, so anyone on your network can change your heating. Change it on the E32 web page: Settings → Password (the Overview there has a Change password button too). Home Assistant then asks you once for the new password (Settings → Devices & services), and this message disappears."
     },
+    "e32_no_free_session": {
+      "title": "E32 has no free web session",
+      "description": "{name}: a change from Home Assistant could not be sent, because all 4 web sessions of the E32 stayed in use for more than two minutes. Close E32 pages you do not use (also on other phones and computers) and stop tools that keep polling the E32, then make the change again. This message disappears with the next change that reaches the E32."
+    },
     "legacy_rooms": {
       "title": "Old Home Assistant room no longer used: {rooms}",
       "fix_flow": {
@@ -3207,6 +3211,9 @@
     },
     "e32_try_again_later": {
       "message": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again."
+    },
+    "e32_no_free_session": {
+      "message": "The E32 has no free web session: close E32 pages you do not use, or wait two minutes."
     },
     "house_mode_invalid": {
       "message": "Choose Automatic, At home, Away or Holiday."

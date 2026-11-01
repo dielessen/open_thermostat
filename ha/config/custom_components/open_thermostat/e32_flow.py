@@ -79,6 +79,8 @@ def flow_error(err):
     from .controller_link import ControllerLoginRejected, HeatingPlanRejected
     if isinstance(err, ControllerLoginRejected):
         return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_password")
+    if str(err) == "controller_no_free_session":
+        return HomeAssistantError(translation_domain=DOMAIN, translation_key="e32_no_free_session")
     if isinstance(err, HeatingPlanRejected):
         if err.error == "save_unconfirmed":
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="flow_settings_unconfirmed")
@@ -143,7 +145,8 @@ class FlowSettingsLink:
     async def _call(self, change=None):
         async with self.plan._lock:
             async with self.plan._client() as client:
-                await self.plan._login(client)
+                # A change waits for a free E32 web session; a read does not.
+                await self.plan._login(client, None if change is None else self.plan.claim())
                 return await client.async_flow_settings(change)
 
     async def async_refresh(self):

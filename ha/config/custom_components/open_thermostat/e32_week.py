@@ -36,7 +36,8 @@ FAILURES = {"room_plan_changed": "plan_changed", "room_plan_too_large": "plan_to
             "room_plan_room_missing": "room_missing", "room_plan_password": "password_changed",
             "room_plan_rejected": "rejected", "room_plan_invalid": "unreachable", "room_plan_unreachable": "unreachable",
             # The E32's web sign-ins (room_plan.SIGN_IN_ERRORS): busy for a while, the card retries.
-            "e32_session_capacity": "session_capacity", "e32_try_again_later": "try_again_later"}
+            "e32_session_capacity": "session_capacity", "e32_try_again_later": "try_again_later",
+            "e32_no_free_session": "session_capacity"}
 
 
 class WeekError(Exception):

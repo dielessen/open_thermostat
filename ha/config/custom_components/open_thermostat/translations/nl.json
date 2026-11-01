@@ -2926,6 +2926,10 @@
       "title": "E32 gebruikt nog het standaardwachtwoord",
       "description": "{name}: de E32 gebruikt nog het standaardwachtwoord admin/admin, dus iedereen in je netwerk kan je verwarming wijzigen. Wijzig het op de webpagina van de E32: Instellingen → Wachtwoord (het Overzicht daar heeft ook een knop Wachtwoord wijzigen). Home Assistant vraagt daarna één keer om het nieuwe wachtwoord (Instellingen → Apparaten en diensten) en deze melding verdwijnt."
     },
+    "e32_no_free_session": {
+      "title": "E32 heeft geen vrije websessie",
+      "description": "{name}: een wijziging vanuit Home Assistant kon niet worden verstuurd, omdat alle 4 websessies van de E32 meer dan twee minuten bezet bleven. Sluit E32-pagina's die je niet gebruikt (ook op andere telefoons en computers) en stop hulpprogramma's die de E32 steeds bevragen, en voer de wijziging daarna opnieuw uit. Deze melding verdwijnt bij de volgende wijziging die de E32 bereikt."
+    },
     "legacy_rooms": {
       "title": "Oude Home Assistant-ruimte niet meer in gebruik: {rooms}",
       "fix_flow": {
@@ -3207,6 +3211,9 @@
     },
     "e32_try_again_later": {
       "message": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw."
+    },
+    "e32_no_free_session": {
+      "message": "De E32 heeft geen vrije websessie: sluit E32-pagina's die je niet gebruikt, of wacht twee minuten."
     },
     "house_mode_invalid": {
       "message": "Kies Automatisch, Thuis, Afwezig of Vakantie."

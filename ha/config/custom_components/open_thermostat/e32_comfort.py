@@ -46,8 +46,10 @@ entry's HeatingHub. Commands go over the stored controller connection
 """
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 import json
+import time
 
 from homeassistant.components import mqtt
 from homeassistant.components.climate import ClimateEntity
@@ -82,6 +84,9 @@ MAX_PRESENCE = 16
 MAX_CONTACTS = 8
 MAX_AWAY_DAYS = 366
 REFRESH = timedelta(minutes=5)
+# A new target shows while its write runs (also while it waits for a free E32 web
+# session), then at most this long until the telemetry reports it.
+PENDING_SECONDS = 60
 CONTACT_CLASSES = ("window", "door", "opening", "garage_door")
 # No "away" preset per room (owner, 31 Oct 2026): away is the house mode (e32_house.py), not one room's choice.
 PRESETS = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_SLEEP, PRESET_BOOST]
@@ -519,13 +524,25 @@ def comfort_error(err):
 
 
 async def async_comfort_command(link, command):
-    """POST one command over the room-plan link's stored connection (one login, its lock)."""
+    """POST one command over the room-plan link's stored connection (one login, its lock).
+
+    With every E32 web session in use it waits for one (RoomPlanLink._login). A
+    newer command for the same room (or the house mode) supersedes it: None,
+    nothing sent; the newest value is the one that goes out.
+    """
     from .controller_link import ControllerLinkError
+    from .room_plan import WriteSuperseded
+    room = command.get("room") if type(command) is dict else None
+    wanted = link.claim(("room", room) if room is not None else ("house",))
     async with link._lock:
         try:
+            if not wanted():
+                raise WriteSuperseded()
             async with link._client() as client:
-                await link._login(client)
+                await link._login(client, wanted)
                 answer = await client.async_comfort_command(command)
+        except WriteSuperseded:
+            return None
         except ControllerLinkError as err:
             raise comfort_error(err) from None
     if type(answer) is not dict or answer.get("schema") != 1:
@@ -620,6 +637,7 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
     def __init__(self, hub, room, entry):
         self._attach_room(hub, room, "thermostat")
         self.entry = entry
+        self._pending = None  # (°C, None while its write runs, else monotonic time it was sent)
 
     # -- state ---------------------------------------------------------------------
     @property
@@ -650,7 +668,14 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
 
     @property
     def target_temperature(self):
-        return number((self.room or {}).get("setpoint"), 5, 35)
+        reported = number((self.room or {}).get("setpoint"), 5, 35)
+        if self._pending is not None:
+            value, sent = self._pending
+            if sent is None or ((reported is None or abs(reported - value) >= 0.05)
+                                and time.monotonic() - sent < PENDING_SECONDS):
+                return value
+            self._pending = None
+        return reported
 
     @property
     def min_temp(self):
@@ -707,6 +732,26 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
                 "away_until": _iso(away.get("until"))}
 
     # -- commands ----------------------------------------------------------------
+    def _write_state(self):
+        if self.hass is not None and self.entity_id:
+            self.async_write_ha_state()
+
+    @asynccontextmanager
+    async def _target_pending(self, temperature):
+        """The new target is shown at once and never silently dropped: a failed write
+        shows the E32's own target again (and raises); a newer target replaces it."""
+        mine = self._pending = (temperature, None)
+        self._write_state()
+        try:
+            yield
+        except BaseException:
+            if self._pending is mine:
+                self._pending = None
+                self._write_state()
+            raise
+        if self._pending is mine:
+            self._pending = (temperature, time.monotonic())
+
     async def _command(self, command):
         if self.link is None:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unreachable",
@@ -716,8 +761,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
             self.async_write_ha_state()
         return answer
 
-    async def _change_plan(self, change):
-        await self.link.async_change_room(self.room_id, change)
+    async def _change_plan(self, change, key=None):
+        await self.link.async_change_room(self.room_id, change, key)
 
     async def _ensure_active(self):
         if (self.room or {}).get("state") == "inactive" or (self.plan_room or {}).get("state") == "inactive":
@@ -731,7 +776,7 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
         has_program = (type(schedule) is list and any(day for day in schedule)) or bool(plan.get("week"))
         if not has_program and not plan.get("setpoint_entity"):
             from .room_plan import set_fallback
-            await self._change_plan(set_fallback(int(round(temperature * 2)) * 50))
+            await self._change_plan(set_fallback(int(round(temperature * 2)) * 50), ("fallback", self.room_id))
             if self.comfort.get("override") in OVERRIDES:
                 await self._command(override_command(self.room_id, "none"))
             return
@@ -750,8 +795,9 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
             return
         if kwargs.get("hvac_mode") == HVACMode.OFF:
             return await self.async_set_hvac_mode(HVACMode.OFF)
-        await self._ensure_active()
-        await self.async_hold(float(temperature))
+        async with self._target_pending(float(temperature)):
+            await self._ensure_active()
+            await self.async_hold(float(temperature))
 
     async def async_set_hvac_mode(self, hvac_mode):
         from .room_plan import set_state
@@ -780,9 +826,10 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
             await self._ensure_active()
             await self._command(override_command(self.room_id, "boost"))
         elif preset_mode in LEVEL_PRESETS:
-            await self._ensure_active()
             levels = program_levels(self.plan_room, comfort_options(self.entry))
-            await self.async_hold(levels[LEVEL_PRESETS[preset_mode]])
+            async with self._target_pending(levels[LEVEL_PRESETS[preset_mode]]):
+                await self._ensure_active()
+                await self.async_hold(levels[LEVEL_PRESETS[preset_mode]])
         elif preset_mode == PRESET_NONE:
             # Back to the week program; the house mode (away, holiday) is its own select (e32_house.py).
             if self.comfort.get("override") in OVERRIDES:

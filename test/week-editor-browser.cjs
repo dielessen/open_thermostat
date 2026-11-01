@@ -7,8 +7,8 @@ const frontend=path.join(root,'ha/config/custom_components/open_thermostat/front
 const editor=fs.readFileSync(path.join(assets,'week-editor.js'),'utf8');
 const output=path.resolve(process.env.OPENTHERMOSTAT_WEEK_EVIDENCE||path.join(root,'out/week-editor-browser'));
 const empty=()=>[[],[],[],[],[],[],[]];
-const levelsOf=(c,a,n)=>({comfort:c,away:a,night:n});
-const template=(l,work=true)=>{const W=[[390,l.comfort],[510,l.away],[1020,l.comfort],[1350,l.night]],H=[[420,l.comfort],[1350,l.night]],F=[[480,l.comfort],[1380,l.night]];
+const levelsOf=(c,e,n)=>({comfort:c,eco:e,night:n});
+const template=(l,work=true)=>{const W=[[390,l.comfort],[510,l.eco],[1020,l.comfort],[1350,l.night]],H=[[420,l.comfort],[1350,l.night]],F=[[480,l.comfort],[1380,l.night]];
  return [...Array(5)].map(()=>(work?W:H).map(p=>[...p])).concat([F.map(p=>[...p]),F.map(p=>[...p])]);};
 const T={nl:{work:'Werkdagen en weekend',warmer:'Comfort warmer',empty:/Nog geen programma/,copy:'Kopiëren',weekend:'Weekend',undo:'Ongedaan maken',text:'Geavanceerd: als tekst bewerken',apply:'Tekst toepassen',bad:'Regel 2 is niet te lezen: foo',split:'Blok splitsen',remove:'Schakeltijd verwijderen',later:'15 minuten later'},
  en:{work:'Workdays and weekend',warmer:'Comfort warmer',empty:/No program yet/,copy:'Copy',weekend:'Weekend',undo:'Undo',text:'Advanced: edit as text',apply:'Apply text',bad:'Line 2 cannot be read: foo',split:'Split block',remove:'Remove switch time',later:'15 minutes later'}};
@@ -35,18 +35,18 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    const main=page.locator('main'),week=()=>page.evaluate(()=>ed.get()),last=()=>page.evaluate(()=>changes.at(-1));
    await main.getByText(t.empty).waitFor();
    assert.equal(await main.locator('.wpe-seg').count(),7,'one empty block per day');
-   // Template: the levels fill it in (no program yet: comfort 20, away 18, night 16).
+   // Template: the levels fill it in (no program yet: comfort 20, eco 18, night 16).
    await main.locator('select').selectOption({label:t.work});
    assert.deepEqual(await week(),template(levelsOf(2000,1800,1600)));
    assert.deepEqual(await last(),await week(),'every change reaches the host');
    // A level changes every block of that level.
    await main.getByRole('button',{name:t.warmer}).click();await main.getByRole('button',{name:t.warmer}).click();
    let l=levelsOf(2100,1800,1600);assert.deepEqual(await week(),template(l));
-   // Tap Tuesday's away block and make it comfort: equal neighbours merge.
+   // Tap Tuesday's eco block and make it comfort: equal neighbours merge.
    await main.locator('[data-k="seg1-510"]').click({force:true});
    await main.locator('[data-k="set-comfort"]').click();
    let w=await week();assert.deepEqual(w[1],[[390,2100],[1350,1600]]);
-   // Split it again: the second half becomes away, then remove that switch time.
+   // Split it again: the second half becomes eco, then remove that switch time.
    await main.locator('[data-k="seg1-390"]').click({force:true});await main.getByRole('button',{name:t.split}).click();
    w=await week();assert.deepEqual(w[1],[[390,2100],[870,1800],[1350,1600]]);
    assert.equal(await main.locator('.wpe-seg.wpe-on').getAttribute('data-k'),'seg1-870','the new block is selected');
@@ -133,7 +133,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    const planner=room.locator('[data-heating-planner]');await planner.locator('.wpe-seg').first().waitFor();
    assert.equal(await room.locator('[data-heating-point]').first().isVisible(),false,'the list is the hidden fallback');
    assert.equal(await planner.getByRole('button',{name:'Comfort warmer'}).isVisible(),true,'Dutch planner');
-   // Levels come from the program: 20.5 comfort, 18 night, 19.5 away; the template uses them.
+   // Levels come from the program: 20.5 comfort, 18 night, 19.5 eco; the template uses them.
    await planner.locator('select').selectOption({label:'Werkdagen en weekend'});
    await page.screenshot({path:path.join(output,`e32-rooms-${width}.png`),fullPage:true});
    await saved();
@@ -150,7 +150,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    await saved();
    assert.equal('schedule' in posts.at(-1).rooms[0],false);
    await room.evaluate(e=>e.open=true);await room.getByLabel('Weekprogramma gebruiken').check();
-   await room.locator('[data-heating-planner] .wpe-seg.lv-away').first().waitFor();
+   await room.locator('[data-heating-planner] .wpe-seg.lv-eco').first().waitFor();
    await saved();
    assert.deepEqual(posts.at(-1).rooms[0].schedule,template(levelsOf(2100,1850,1600)));
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal scroll');

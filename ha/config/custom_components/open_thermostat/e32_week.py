@@ -7,6 +7,10 @@ form (7 days Mon..Sun of [minute, centi °C], a point holds until the next
 one); the E32 packs it for storage itself. A save only replaces the room's
 "schedule" when it still equals the program the planner loaded, so a change
 made meanwhile on the E32 page or in the options flow is never overwritten.
+
+With E32 beta.23 ("plan.levels.v1") the planner's levels (Comfort, Eco,
+Night) and the level of each switch point are stored with the room
+(room_levels); for older firmware the card infers them as before.
 """
 from __future__ import annotations
 
@@ -19,6 +23,8 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
 from .heating_link import heating_hub
+from .e32_comfort import comfort_options, program_levels
+from .room_levels import room_levels, supported, valid_levels
 from .room_plan import has_room_plan, plan_room
 
 MAX_POINTS = 6
@@ -87,13 +93,28 @@ def _code(err):
     return FAILURES.get(getattr(err, "translation_key", None), "rejected")
 
 
-def week_rooms(plan):
-    """What the card shows: per room its name, limits, fallback and program."""
-    return {"revision": plan["revision"], "rooms": [{
+def _levels(room, settings):
+    """The room's levels for the planner: stored ones, or (no program yet) the former house settings as a
+    start; None lets the planner infer them from the program as before."""
+    stored = room_levels(room)
+    if stored is not None or _program(room) is not None or settings is None:
+        return stored
+    return dict(zip(("comfort", "eco", "night"), (round(v * 100) for v in program_levels(room, settings))))
+
+
+def week_rooms(plan, settings=None):
+    """What the card shows: per room its name, limits, fallback, program and levels."""
+    return {"revision": plan["revision"], "levels_supported": supported(plan), "rooms": [{
         "id": room["id"], "name": room.get("name") or room["id"],
         "minimum_centi_c": room.get("minimum_centi_c", 500), "maximum_centi_c": room.get("maximum_centi_c", 3000),
         "fallback_centi_c": room.get("fallback_centi_c", 2000), "setpoint_entity": room.get("setpoint_entity") or "",
-        "schedule": _program(room)} for room in plan["rooms"]]}
+        "schedule": _program(room), "levels": _levels(room, settings),
+        "schedule_levels": room.get("schedule_levels") if room_levels(room) else None} for room in plan["rooms"]]}
+
+
+def _settings(hass, entry_id):
+    entry = hass.config_entries.async_get_entry(entry_id)
+    return comfort_options(entry) if entry is not None else None
 
 
 def _current(link):
@@ -110,16 +131,18 @@ async def read_week(hass, entry_id, fresh=False):
 
     A save always reads the E32's plan again and only replaces a program that still equals the one shown."""
     link = _link(hass, entry_id)
+    settings = _settings(hass, entry_id)
     if not fresh and (plan := _current(link)) is not None:
-        return week_rooms(plan)
+        return week_rooms(plan, settings)
     try:
-        return week_rooms(await link.async_read())
+        return week_rooms(await link.async_read(), settings)
     except HomeAssistantError as err:
         raise WeekError(_code(err)) from None
 
 
-async def save_week(hass, entry_id, room_id, schedule, expected):
-    """Replace one room's program; WeekError("week_changed") when it changed since it was loaded."""
+async def save_week(hass, entry_id, room_id, schedule, expected, levels=None, schedule_levels=None):
+    """Replace one room's program (and, for an E32 with "plan.levels.v1", its levels and the level of each
+    point); WeekError("week_changed") when the program changed since it was loaded."""
     link = _link(hass, entry_id)
     wanted = []
 
@@ -135,6 +158,11 @@ async def save_week(hass, entry_id, room_id, schedule, expected):
             room.pop("schedule", None)  # no program: the room keeps its fallback temperature
         else:
             room["schedule"] = week
+        chosen = valid_levels(levels, room.get("minimum_centi_c", 500), room.get("maximum_centi_c", 3000))
+        if supported(plan) and chosen is not None:
+            # room_levels.normalize (on every save) makes the marks fit the program, or derives them.
+            room["levels"] = chosen
+            room["schedule_levels"] = schedule_levels if type(schedule_levels) is str else None
         wanted[:] = [week]
         return candidate
 
@@ -145,7 +173,7 @@ async def save_week(hass, entry_id, room_id, schedule, expected):
         stored = await link.async_change_plan(change, confirm)
     except HomeAssistantError as err:
         raise WeekError(_code(err)) from None
-    return week_rooms(stored)
+    return week_rooms(stored, _settings(hass, entry_id))
 
 
 @websocket_api.websocket_command({vol.Required("type"): "open_thermostat/e32_week/get",
@@ -165,12 +193,15 @@ async def ws_week_get(hass, connection, msg):
 @websocket_api.websocket_command({vol.Required("type"): "open_thermostat/e32_week/save",
                                   vol.Required("entry_id"): str, vol.Required("room_id"): str,
                                   vol.Required("schedule"): vol.Any(None, list),
-                                  vol.Required("expected"): vol.Any(None, list)})
+                                  vol.Required("expected"): vol.Any(None, list),
+                                  vol.Optional("levels"): vol.Any(None, dict),
+                                  vol.Optional("schedule_levels"): vol.Any(None, str)})
 @websocket_api.require_admin
 @websocket_api.async_response
 async def ws_week_save(hass, connection, msg):
     try:
-        result = await save_week(hass, msg["entry_id"], msg["room_id"], msg["schedule"], msg["expected"])
+        result = await save_week(hass, msg["entry_id"], msg["room_id"], msg["schedule"], msg["expected"],
+                                 msg.get("levels"), msg.get("schedule_levels"))
     except WeekError as err:
         connection.send_error(msg["id"], str(err), "The week program was not saved")
     else:

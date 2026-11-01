@@ -43,6 +43,7 @@
   </details>
   <div class="ot-sticky ot-actions">
     <button type="button" class="btn btn-primary" data-heating-save><span data-i18n="Save rooms">Save rooms</span></button>
+    <button type="button" class="btn btn-outline-secondary" data-heating-discard hidden><span data-i18n="Discard changes">Discard changes</span></button>
     <span class="ot-chip ot-chip--warn" data-heating-dirty hidden><span data-i18n="Unsaved changes">Unsaved changes</span></span>
     <p role="status" aria-live="polite" data-heating-message></p>
   </div>
@@ -121,7 +122,8 @@
   // "Kitchen thermometer (Bluetooth)" for a paired sensor, the entity for Home Assistant.
   const sourceName = id => { const s = bleSensors.find(b => b.id === id); return s ? (s.name || colons(id)) + ' (Bluetooth)' : /^[0-9a-f]{12}$/.test(id) ? colons(id) + ' (Bluetooth)' : id + ' (Home Assistant)'; };
   // Unsaved-changes marker for the sticky save bar; cleared by every (re)load.
-  const setDirty = value => { dirtyChip.hidden = !value; };
+  const discard = root.querySelector('[data-heating-discard]');
+  const setDirty = value => { dirtyChip.hidden = !value; discard.hidden = !value; };
   function applyLock() {
     root.classList.toggle('hp-locked', locked); lockBox.hidden = !locked && !neverHa; unlock.hidden = !locked;
     for (const box of root.querySelectorAll('.hp-body')) box.disabled = locked;
@@ -209,7 +211,7 @@
       ["Target temperature", room.setpoint_entity ? 'Home Assistant: ' + room.setpoint_entity : given?.some(d => d.length) ? uiText("Week program") : degrees(room.fallback_centi_c / 100)],
       ["Heating type", uiText(room.emitter === 'floor' ? "Floor heating" : "Radiators")], ["Room limits", degrees(room.minimum_centi_c / 100) + ' – ' + degrees(room.maximum_centi_c / 100)]])
       brief.append(el('dt', uiText(k)), typeof v === 'string' ? el('dd', v) : v);
-    body.append(leading, brief, el('p', uiText("Change these in Home Assistant, or choose Edit here anyway."), {class:'pd-help hp-brief'}), el('h3', uiText("Basics")));
+    body.append(leading, brief, el('p', uiText("Change these in Home Assistant, or choose Edit here anyway."), {class:'pd-help hp-brief'}), el('h3', uiText("General")));
     const basics = el('div', null, {class:'hp-grid'}); body.append(basics);
     const name = field(basics, uiText("Name"), input('text', room.name, {maxlength:'40'}), "Shown here and in Home Assistant. Up to 40 characters (fewer with accents or emoji).");
     const state = field(basics, uiText("State"), select([['active', "Active"], ['inactive', "Inactive"], ['until', "Inactive until"]],
@@ -219,7 +221,7 @@
     emitter.setAttribute('data-heating-emitter', '');
     const showUntil = () => { until.parentElement.hidden = state.value !== 'until'; };
     state.addEventListener('change', showUntil); showUntil();
-    body.append(el('h3', uiText("Temperature sources")), el('p', uiText("Temperature sources, in order: the first fresh one leads, the rest are fallback."), {class:'pd-help'}));
+    body.append(el('h3', uiText("Temperature")), el('h4', uiText("Temperature sources"), {class:'h6'}), el('p', uiText("Temperature sources, in order: the first fresh one leads, the rest are fallback."), {class:'pd-help'}));
     const sources = el('div'); body.append(sources);
     const addSource = (s) => {
       const row = el('div', null, {'data-heating-source':''});
@@ -255,7 +257,7 @@
     body.append(bleHelp);
     const more = el('button', uiText("Add source"), {type:'button', class:'btn btn-outline-primary mb-2'});
     more.addEventListener('click', () => sources.querySelectorAll('[data-heating-source]').length < 4 && addSource({type:bleSensors.length || neverHa ? 'ble' : 'ha', id:''}));
-    body.append(more, el('h3', uiText("Target temperature and limits")));
+    body.append(more, el('h4', uiText("Target temperature and limits"), {class:'h6'}));
     const limits = el('div', null, {class:'hp-grid'});
     const setpoint = field(body, uiText("Setting device in Home Assistant (optional)"), input('text', room.setpoint_entity, {placeholder:'climate.living_room'}), "A thermostat, radiator valve or number to set this room with. Home Assistant shows the week program's temperature on it; turning it changes the room until the next switch point. Turn off the device's own schedule (manual mode), otherwise it changes the temperature by itself.");
     body.append(limits);
@@ -264,6 +266,7 @@
     const hi = field(limits, uiText("Maximum (°C)"), input('number', room.maximum_centi_c / 100, {min:'5', max:'30', step:'0.5'}), "The highest target temperature allowed for this room.");
     // Week program: 7 days Mon..Sun of [minute, centi_c]; an empty day continues the last earlier switch point.
     const week = el('fieldset', null, {class:'mt-3', 'data-heating-week':''}), editor = el('div'), rows = el('div');
+    body.append(el('h3', uiText("Week program")));
     week.append(el('legend', uiText("Week program (used when Home Assistant gives no target temperature)"), {class:'h6'}));
     const useWeek = check(week, uiText("Use a week program"), !!given?.some(d => d.length));
     week.append(el('p', uiText("The E32 follows this program on its own when Home Assistant sends no target."), {class:'ot-hint'}));
@@ -297,11 +300,14 @@
     draw(given || [[]]); editor.hidden = !useWeek.checked; editor.append(rows); week.append(editor); body.append(week);
     // Visual week planner (week-editor.js, shared with Home Assistant): it writes the same switch points into the
     // list above, which stays the fallback when the planner cannot load. Saving still reads the list.
+    let planner = null;
     if (window.OTWeekEditor) {
       const list = [...editor.children], host = el('div', null, {'data-heating-planner':''}), cc = i => Math.round(i.value * 100);
       const days = () => { const d = raw().map(p => p.filter(([m, c]) => Number.isFinite(m) && Number.isFinite(c)).sort((a, b) => a[0] - b[0])); return same.checked ? Array(7).fill(d[0] || []) : d; };
-      const planner = OTWeekEditor.mount(host, {week: given || [[], [], [], [], [], [], []], min: cc(lo), max: cc(hi), lang: OpenThermostatLanguage.language,
-        onChange: w => { same.checked = w.every(d => JSON.stringify(d) === JSON.stringify(w[0])); draw(same.checked ? [w[0]] : w); }});
+      // The room's own levels (Comfort, Eco, Night) when the firmware stores them (plan.levels.v1).
+      planner = OTWeekEditor.mount(host, {week: given || [[], [], [], [], [], [], []], min: cc(lo), max: cc(hi), lang: OpenThermostatLanguage.language,
+        levels: room.levels, scheduleLevels: room.schedule_levels,
+        onChange: w => { same.checked = w.every(d => JSON.stringify(d) === JSON.stringify(w[0])); draw(same.checked ? [w[0]] : w); setDirty(true); }});
       list.forEach(n => { n.hidden = true; }); editor.prepend(host);
       // A new program starts from "Workdays and weekend" with the room's current target as comfort.
       let target = status?.setpoint; const shown = card.status; card.status = s => { target = s?.setpoint; shown(s); };
@@ -313,8 +319,16 @@
       });
       [lo, hi].forEach(i => i.addEventListener('change', () => planner.limits(cc(lo), cc(hi))));
     }
+    // The planner's levels go with the room: "levels" always, "schedule_levels" (one digit per saved point) with a
+    // program. The points are those of the list (the planner writes them there); marks that no longer fit are redone.
+    const levelFields = points => {
+      if (!planner || !(plan.features || []).includes('plan.levels.v1')) return {};
+      const st = planner.state(), out = {levels: st.levels};
+      if (points) out.schedule_levels = OTWeekEditor.markText(OTWeekEditor.marked(points, st.levels, st.schedule_levels));
+      return out;
+    };
     const schedule = () => {
-      if (!useWeek.checked) return {};
+      if (!useWeek.checked) return levelFields(null);
       const days = raw(), min = Math.round(lo.value * 100), max = Math.round(hi.value * 100);
       days.forEach((points, d) => {
         const fail = text => { card.open = true; throw Object.assign(Error('schedule'), {text: name.value.trim() + ' · ' + label(d) + ': ' + text}); };
@@ -325,8 +339,23 @@
         if (points.some((p, i) => i && p[0] === points[i - 1][0])) fail(uiText("two switch points have the same time."));
       });
       if (!days.some(d => d.length)) throw Object.assign(Error('schedule'), {text: name.value.trim() + ': ' + uiText("add a switch point or turn the week program off.")});
-      return {schedule: same.checked ? Array(7).fill(days[0]) : days};
+      const points = same.checked ? Array(7).fill(days[0]) : days;
+      return {schedule: points, ...levelFields(points)};
     };
+    // Windows and doors: the contacts are Home Assistant sensors, chosen in the room's settings there; the E32
+    // pauses the room on HA's report. Persons: planned (presence per room).
+    // Also in the short summary while Home Assistant manages the rooms.
+    const windowState = el('p', null, {class:'pd-help', 'data-heating-window':''}), windowBrief = el('dd');
+    brief.append(el('dt', uiText("Windows and doors")), windowBrief);
+    const showWindow = s => {
+      const w = s?.comfort?.window;
+      windowState.textContent = windowBrief.textContent = w === 'open' ? uiText("Now: a window or door is open; the room pauses after its delay.")
+        : w === 'closed' ? uiText("Now: all windows and doors are closed.") : uiText("No window or door contact reports this room.");
+    };
+    showWindow(status);
+    const shownWindow = card.status; card.status = s => { showWindow(s); shownWindow(s); };
+    body.append(el('h3', uiText("Windows and doors")), el('p', uiText("Choose the window and door contacts and the pause delay in Home Assistant: OpenThermostat → Configure → Rooms."), {class:'pd-help'}), windowState,
+      el('h3', uiText("Persons")), el('p', uiText("Later: choose who uses this room, so it can pause when they are away."), {class:'pd-help'}));
     const removeRoom = el('button', uiText("Remove room"), {type:'button', class:'btn btn-outline-danger'}), removeBox = el('div', null, {class:'hp-remove'});
     removeRoom.addEventListener('click', () => { if (confirm(uiText("Remove this room? It is deleted when you press Save rooms."))) card.remove(); });
     removeBox.append(removeRoom); body.append(removeBox);
@@ -481,6 +510,8 @@
     render(status); if (!status) renderRequest(null); readControl();
   }
   root.querySelector('[data-heating-retry]').addEventListener('click', load);
+  // Back to what the E32 has stored.
+  discard.addEventListener('click', async () => { await load(); message.textContent = uiText("Changes discarded."); });
   async function removeUnused(room, button) {
     if (!plan || !confirm(uiText("Remove the room {name}? It is deleted from the E32 and from Home Assistant at once. You can add it again later.").replace('{name}', room.name)
       + (dirtyChip.hidden ? '' : ' ' + uiText("Your unsaved changes on this page are discarded.")))) return;
@@ -527,7 +558,7 @@
     message.textContent = uiText("Saving…");
     try {
       plan = await json('/config/heating', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(next)});
-      message.textContent = uiText("Rooms saved.");
+      message.textContent = uiText("Rooms saved.") + ' ✓ ' + new Date().toLocaleTimeString(OpenThermostatLanguage.locale, {hour:'2-digit', minute:'2-digit'});
       await load();
     } catch (error) {
       if (error.code !== 'plan_changed') { message.textContent = refused(error.code); return; }

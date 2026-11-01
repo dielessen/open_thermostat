@@ -306,6 +306,7 @@ inline ControlJson exportDocument(const DeviceState& s, const Meta& m, const std
     }
     if (auto plan = parseStored(s.plan)) {
         cJSON_DeleteItemFromObjectCaseSensitive(plan.get(), "revision"); // device-local history
+        cJSON_DeleteItemFromObjectCaseSensitive(plan.get(), "features"); // what this firmware can, not a setting
         if (!cJSON_AddItemToObject(r, "heating", plan.get())) return fail();
         plan.release();
     }
@@ -629,9 +630,9 @@ inline const char* preparePlan(const cJSON* backup, const DeviceState& s, std::s
     auto current = parseStored(s.plan, 10);
     const bool oldValid = current && !RoomPlan::parse(current.get(), old);
     old.revision = 0;
-    const auto candidate = next.json();
+    const auto candidate = next.documentJson();
     if (candidate.empty()) return "out_of_memory";
-    if (oldValid && old.json() == candidate) return nullptr;
+    if (oldValid && old.documentJson() == candidate) return nullptr;
     const auto roomNames = [](const RoomPlan& p) {
         ControlJson list(cJSON_CreateArray(), cJSON_Delete);
         for (std::size_t i = 0; list && i < p.rooms.size(); ++i) cJSON_AddItemToArray(list.get(), cJSON_CreateString(p.rooms[i].name.c_str()));

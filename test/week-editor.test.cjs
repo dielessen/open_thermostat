@@ -43,16 +43,32 @@ test('°F at the edge only: shown like the options flow, read back to centi °C'
  assert.equal((()=>{try{W.parse('mon: 07:00 90',500,3000,true);}catch(e){return e.key;}})(),'outside','limits stay in °C (90 °F = 32.2 °C)');
  assert.equal(W.format(w,'en'),'mon: 07:00 20; 22:30 17','°C stays the default');
 });
-test('levels follow the program and stay distinct; templates use them',()=>{
- assert.deepEqual(plain(W.infer(week,500,3000)),{comfort:2050,night:1800,away:1950});
- assert.deepEqual(plain(W.infer([[[390,2050],[510,1700],[1020,2050],[1350,1600]],[],[],[],[],[],[]],500,3000)),{comfort:2050,night:1600,away:1700});
- assert.deepEqual(plain(W.infer(Array(7).fill([]),500,3000)),{comfort:2000,night:1600,away:1800});
+test('inferred levels (older firmware, the migration) follow the program and stay distinct; templates use them',()=>{
+ // "Away" became Eco in beta.23; the inference is unchanged.
+ assert.deepEqual(plain(W.infer(week,500,3000)),{comfort:2050,eco:1950,night:1800});
+ assert.deepEqual(plain(W.infer([[[390,2050],[510,1700],[1020,2050],[1350,1600]],[],[],[],[],[],[]],500,3000)),{comfort:2050,eco:1700,night:1600});
+ assert.deepEqual(plain(W.infer(Array(7).fill([]),500,3000)),{comfort:2000,eco:1800,night:1600});
+ assert.deepEqual(plain(W.LEVELS),['comfort','eco','night']);
  const tight=plain(W.infer(Array(7).fill([]),1900,2000));assert.equal(new Set(Object.values(tight)).size,3,JSON.stringify(tight));
  for(const [key,days] of Object.entries(W.TEMPLATES)){
   assert.equal(days.length,7,key);
-  const w=days.map(d=>d.map(([m,l])=>[m,{comfort:2050,night:1600,away:1800}[l]]));
+  const w=days.map(d=>d.map(([m,l])=>[m,{comfort:2050,night:1600,eco:1800}[l]]));
   assert(W.valid(w),key);assert(w.every(d=>d.length&&d.length<=6),key);
   assert.equal(w[6][w[6].length-1][1],1600,key+': the week ends at night, so Monday starts at night');
  }
  assert.equal(W.valid([[[480,2000],[480,1900]],[],[],[],[],[],[]]),false);assert.equal(W.valid([[]]),false);
+});
+test('stored levels mark every point; equal levels and any order are fine',()=>{
+ const levels={comfort:2100,eco:1850,night:1850},w=[[[390,2100],[510,1850],[1020,2100],[1350,1850]],[[390,2100],[1350,1850]],[],[],[],[[480,2050]],[]];
+ // The stored digits decide between equal temperatures (Eco and Night are both 18.5 °C here).
+ const m=plain(W.marked(w,levels,'1213.13....0.'));
+ assert.deepEqual(m[0],[[390,2100,'comfort'],[510,1850,'eco'],[1020,2100,'comfort'],[1350,1850,'night']]);
+ assert.deepEqual(m[5],[[480,2050]],'an own temperature has no level');
+ assert.equal(W.markText(m),'1213.13....0.');
+ // Digits that do not fit the program or the levels are ignored: the first level with the temperature wins.
+ for(const bad of ['1213.13....1.','12.13....0.','1213.13....0','1214.13....0.',null,undefined,42])
+  assert.equal(W.markText(W.marked(w,levels,bad)),'1212.12....0.',String(bad));
+ // Night may be warmer than Comfort.
+ assert.equal(W.markText(W.marked([[[420,1900],[1320,2300]],[],[],[],[],[],[]],{comfort:1900,eco:1700,night:2300},'13......')),'13......');
+ assert(W.valid(m),'points with a level are valid');assert.equal(W.valid([[[480,2000,'away']],[],[],[],[],[],[]]),false);
 });

@@ -403,6 +403,58 @@ async def test_several_people_away_only_after_everyone_left_for_the_delay(hass, 
 
 
 @pytest.mark.asyncio
+async def test_the_away_delay_runs_from_when_the_last_person_left_home(hass, monkeypatch):
+    """Another away zone, unavailable -> not_home and a Home Assistant restart do not restart the delay."""
+    from test_daily_summary import FakeStore
+    monkeypatch.setattr(module, "async_call_later", lambda hass, delay, action: lambda: None)
+    t0 = datetime(2026, 11, 1, 8, 0, tzinfo=timezone.utc)
+    people = ["person.anna", "person.ben"]
+    store = FakeStore()
+    hass.data[module.PRESENCE_MEMORY] = module.PresenceMemory(hass, store)
+    hub = HeatingHub("fixture")
+    hub.update(status(room_state("living")))
+    sent = []
+    forwarder = ComfortForwarder(hass, entry({"presence_entities": people, "away_delay_min": 15}), hub, sent.append,
+                                 lambda hass, ids, action: lambda: None)
+
+    def at(minutes, entity_id, value):
+        hass.states.async_set(entity_id, value, timestamp=(t0 + timedelta(minutes=minutes)).timestamp())
+        forwarder.publish(entity_id)  # what the state change event does
+        return t0 + timedelta(minutes=minutes, seconds=30)
+
+    at(0, "person.anna", "home")
+    at(0, "person.ben", "home")
+    at(5, "person.anna", "not_home")
+    now = at(30, "person.ben", "Work")                                   # the last one leaves at 8:30
+    home, wait = house_presence(hass, people, 15, now)
+    assert home is True and wait == pytest.approx(14.5 * 60)
+    assert house_presence(hass, people, 15, t0 + timedelta(hours=3)) == (False, None)
+    now = at(180, "person.ben", "not_home")                               # leaves work: still away
+    assert house_presence(hass, people, 15, now) == (False, None)
+    assert house_presence(hass, people, 15, at(190, "person.anna", "unavailable")) == (True, None)  # unknown: warm
+    assert house_presence(hass, people, 15, at(191, "person.anna", "not_home")) == (False, None)
+    assert json.loads(sent[-1]) == {"kind": "presence", "home": False}
+
+    # Home Assistant restarts: the people are restored with a new last_changed.
+    data, _delay = store.pending
+    restarted = module.PresenceMemory(hass, FakeStore(json.loads(json.dumps(data()))))
+    await restarted.async_load()
+    hass.data[module.PRESENCE_MEMORY] = restarted
+    for entity_id in people:
+        hass.states.async_remove(entity_id)
+        at(240, entity_id, "not_home")
+    assert house_presence(hass, people, 15, t0 + timedelta(minutes=241)) == (False, None)
+    # Someone home and away again: the delay starts at that moment.
+    at(300, "person.anna", "home")
+    home, wait = house_presence(hass, people, 15, at(310, "person.anna", "not_home"))
+    assert home is True and wait == pytest.approx(14.5 * 60)
+    # Never seen home (a new person or a new install): its last change, as before.
+    hass.states.async_set("person.carl", "not_home", timestamp=(t0 + timedelta(minutes=320)).timestamp())
+    assert house_presence(hass, ["person.carl"], 15, t0 + timedelta(minutes=330))[0] is True
+    forwarder.stop()
+
+
+@pytest.mark.asyncio
 async def test_the_presence_form_takes_several_people_and_the_away_delay(hass):
     hass.states.async_set("person.anna", "home")
     hass.states.async_set("person.ben", "home")

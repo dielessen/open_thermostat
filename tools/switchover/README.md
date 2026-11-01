@@ -6,10 +6,11 @@ every 30–60 s, writes everything it sees to JSONL files, raises alarms in the
 terminal and, if you want, on your phone through a Home Assistant webhook, and
 writes a summary per day.
 
-It is **read-only**. It only sends GET requests, plus one `POST /auth/login`
-to open a session. It never changes settings, the room plan, the takeover
-confirmation or the boiler. You can stop it at any time with Ctrl+C, and you
-can run it in shadow mode as a rehearsal.
+It is **read-only**. It only sends GET requests, plus `POST /auth/login` to
+open a session and `POST /auth/logout` to end it after every sample. It never
+changes settings, the room plan, the takeover confirmation or the boiler. You
+can stop it at any time with Ctrl+C, and you can run it in shadow mode as a
+rehearsal.
 
 Requirements: Python 3.9 or newer, standard library only. MQTT is optional:
 with [paho-mqtt](https://pypi.org/project/paho-mqtt/) installed and
@@ -40,8 +41,12 @@ The address `192.168.1.50` is an example. Use your E32's address.
   and the webhook URL are never written to a file or printed.
 - The webhook URL contains a secret id, so prefer `OT_NOTIFY_URL` over `--notify-url`.
 
-The E32 allows four browser sessions at a time, and the monitor uses one. Sessions
-live in RAM, so after an E32 restart the monitor logs in again (at most once per 2 min).
+The E32 allows four web sessions at a time, shared by browsers and Home
+Assistant (which signs in for every change you make there). The monitor signs in
+for each sample and signs out right after it, so between samples it holds no
+session. A sign-in the E32 refuses (wrong password, too many sign-ins, or all
+four sessions in use) makes it wait 2 minutes before the next sign-in; that
+sample and the ones in between are logged as not reachable.
 
 ## Options
 

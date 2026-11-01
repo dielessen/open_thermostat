@@ -230,11 +230,15 @@ def render(problems, lang):
                                  for name, value in values.items()}) for key, values in problems]
 
 
-def issues(problems, lang):
-    """{issue item: (translation key, placeholders)} for the Repairs issues of the current problems."""
+def issues(problems, lang, reconfirm=False):
+    """{issue item: (translation key, placeholders)} for the Repairs issues of the current problems.
+
+    reconfirm: the E32 asks to confirm the takeover again after an update; its own
+    fixable issue (e32_reconfirm) then stands for awaiting_confirmation.
+    """
     result = {}
     for (key, values), reason in zip(problems, render(problems, lang)):
-        if key in NO_ISSUE:
+        if key in NO_ISSUE or reconfirm and key == "awaiting_confirmation":
             continue
         item = key + ("_" + values["room_id"] if "room_id" in values else "")
         result[item] = ("heating_problem", {"reason": reason})
@@ -279,16 +283,18 @@ class HeatingProblemSensor(BinarySensorEntity):
         now = self.hub.clock()
         self.tracker.observe(self.hub, now, self._session_ready())
         self.current = self.tracker.problems(self.hub, now, self._advice_items())
+        from .e32_reconfirm import reconfirm_required, update_reconfirm_issue
         if getattr(self, "hass", None) is not None:
-            from .e32_reconfirm import update_reconfirm_issue
             update_reconfirm_issue(self.hass, self.entry, self.hub)
         if getattr(self, "hass", None) is not None and self.entity_id:
-            written = (self.is_on, tuple(key for key, _ in self.current), self.extra_state_attributes["reasons"])
+            reconfirm = reconfirm_required(self.hub)
+            written = (self.is_on, tuple(key for key, _ in self.current), self.extra_state_attributes["reasons"], reconfirm)
             if written != self._written:
                 self._written = written
                 self.async_write_ha_state()
                 from .heating_advice import language
-                sync_issues(self.hass, self.entry.entry_id, ISSUE_GROUP, issues(self.current, language(self.hass)))
+                sync_issues(self.hass, self.entry.entry_id, ISSUE_GROUP,
+                            issues(self.current, language(self.hass), reconfirm))
 
     @property
     def is_on(self):

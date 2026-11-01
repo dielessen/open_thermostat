@@ -46,8 +46,10 @@ entry's HeatingHub. Commands go over the stored controller connection
 """
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 import json
+import time
 
 from homeassistant.components import mqtt
 from homeassistant.components.climate import ClimateEntity
@@ -82,6 +84,9 @@ MAX_PRESENCE = 16
 MAX_CONTACTS = 8
 MAX_AWAY_DAYS = 366
 REFRESH = timedelta(minutes=5)
+# A new target shows while its write runs (also while it waits for a free E32 web
+# session), then at most this long until the telemetry reports it.
+PENDING_SECONDS = 60
 CONTACT_CLASSES = ("window", "door", "opening", "garage_door")
 # No "away" preset per room (owner, 31 Oct 2026): away is the house mode (e32_house.py), not one room's choice.
 PRESETS = [PRESET_NONE, PRESET_COMFORT, PRESET_ECO, PRESET_SLEEP, PRESET_BOOST]
@@ -212,13 +217,22 @@ def room_contact_delay(settings, room_id):
     return settings.get("contact_delays", {}).get(room_id, settings["contact_delay_s"])
 
 
+def own_contact_delay(settings, delay_s):
+    """What a room stores for a pause delay: None when it is the house default (the room then follows it)."""
+    return None if delay_s == settings["contact_delay_s"] else delay_s
+
+
 def with_room_contacts(settings, room_id, contacts, delay_s=None):
     """The comfort settings with this room's sensors replaced (none: the room has no sensors and no own
-    delay); delay_s: the room's own pause delay (None keeps it)."""
+    delay); delay_s: the room's own pause delay (None keeps it; the house default drops it, so the room
+    follows a later change of the default)."""
     rooms = {**settings["contacts"], room_id: list(contacts)}
     delays = dict(settings.get("contact_delays", {}))
     if delay_s is not None:
-        delays[room_id] = delay_s
+        if own_contact_delay(settings, delay_s) is None:
+            delays.pop(room_id, None)
+        else:
+            delays[room_id] = delay_s
     if not contacts:
         rooms.pop(room_id, None)
         delays.pop(room_id, None)
@@ -357,14 +371,73 @@ def presence_home(state):
     return state.state == "home"
 
 
+PRESENCE_MEMORY = DOMAIN + "_presence_memory"
+PRESENCE_SAVE_DELAY = 10
+
+
+class PresenceMemory:
+    """When each person last left home, kept across Home Assistant restarts.
+
+    A person's last_changed also moves between two away zones (Work ->
+    not_home), from unavailable back to not_home and at every Home Assistant
+    start; none of those is someone leaving. "left" is the moment a person
+    stopped being home (home -> anything else) and stays until they are home
+    again. A person never seen home here falls back to last_changed; one who
+    was home when Home Assistant stopped counts from their first state after.
+    """
+
+    def __init__(self, hass, store=None):
+        self.hass, self.store = hass, store
+        self.people = {}  # entity_id -> {"home": True} or {"home": False, "left": datetime}
+
+    async def async_load(self):
+        stored = await self.store.async_load() if self.store is not None else None
+        people = stored.get("people") if type(stored) is dict else None
+        for entity_id, known in people.items() if type(people) is dict else ():
+            if type(known) is not dict or entity_id in self.people:
+                continue
+            if known.get("home") is True:
+                self.people[entity_id] = {"home": True}
+            elif known.get("home") is False and type(known.get("left")) is str:
+                left = dt_util.parse_datetime(known["left"])
+                if left is not None and left.tzinfo is not None:
+                    self.people[entity_id] = {"home": False, "left": left}
+
+    def _data(self):
+        return {"people": {e: {"home": True} if k["home"] else {"home": False, "left": k["left"].isoformat()}
+                           for e, k in self.people.items()}}
+
+    @callback
+    def observe(self, entity_id, state):
+        value = presence_home(state)
+        known = self.people.get(entity_id)
+        if value is True:
+            new = {"home": True}
+        elif known is not None and not known["home"]:
+            return  # already away: another zone, unavailable, a restart
+        elif value is False or known is not None:
+            # Home (or first seen) until now: unavailable counts from the moment home was last seen.
+            new = {"home": False, "left": state.last_changed if state is not None else dt_util.utcnow()}
+        else:
+            return
+        if new != known:
+            self.people[entity_id] = new
+            if self.store is not None:
+                self.store.async_delay_save(self._data, PRESENCE_SAVE_DELAY)
+
+    def left(self, state):
+        known = self.people.get(state.entity_id)
+        return known["left"] if known is not None and not known["home"] else state.last_changed
+
+
 def house_presence(hass, people, delay_min, now=None):
     """(home, wait_s) for the people of the house.
 
     home is True while anyone is home, while anyone's place is unknown or
     unavailable ("bij twijfel blijft het warm") and while the last person left
-    less than the away delay ago; then wait_s is the seconds until the house
-    counts as away. False: everyone has been away for at least the delay. None:
-    no people configured.
+    less than the away delay ago (PresenceMemory); then wait_s is the seconds
+    until the house counts as away. False: everyone has been away for at least
+    the delay. None: no people configured.
     """
     if not people:
         return None, None
@@ -373,7 +446,8 @@ def house_presence(hass, people, delay_min, now=None):
     if any(value is not False for value in values):
         return True, None
     now = now or dt_util.utcnow()
-    left = max(state.last_changed for state in states)
+    memory = hass.data.get(PRESENCE_MEMORY)
+    left = max(memory.left(state) if memory is not None else state.last_changed for state in states)
     remaining = (left + timedelta(minutes=delay_min) - now).total_seconds()
     if remaining > 0:
         return True, remaining
@@ -427,6 +501,11 @@ def away_waits(hass, settings, room_ids=None):
     return min(waits) if waits else None
 
 
+def people_of(settings):
+    """Every person of the house and of the rooms."""
+    return sorted(set(settings["presence_entities"]).union(*settings.get("room_persons", {}).values()))
+
+
 class ComfortForwarder:
     """Sends contact and presence states to the E32: on each change, every 5 minutes and when it is back."""
 
@@ -448,9 +527,13 @@ class ComfortForwarder:
 
     @callback
     def publish(self, only=None):
+        settings = self.settings
+        memory = self.hass.data.get(PRESENCE_MEMORY)
+        if memory is not None:
+            for entity_id in people_of(settings):
+                memory.observe(entity_id, self.hass.states.get(entity_id))
         if not self.hub.fresh:
             return
-        settings = self.settings
         for payload in comfort_payloads(self.hass, settings, set(self.hub.rooms), only,
                                         room_presence=supports_room_presence(self.hub)):
             self.send(json.dumps(payload, separators=(",", ":")))
@@ -519,13 +602,25 @@ def comfort_error(err):
 
 
 async def async_comfort_command(link, command):
-    """POST one command over the room-plan link's stored connection (one login, its lock)."""
+    """POST one command over the room-plan link's stored connection (one login, its lock).
+
+    With every E32 web session in use it waits for one (RoomPlanLink._login). A
+    newer command for the same room (or the house mode) supersedes it: None,
+    nothing sent; the newest value is the one that goes out.
+    """
     from .controller_link import ControllerLinkError
+    from .room_plan import WriteSuperseded
+    room = command.get("room") if type(command) is dict else None
+    wanted = link.claim(("room", room) if room is not None else ("house",))
     async with link._lock:
         try:
+            if not wanted():
+                raise WriteSuperseded()
             async with link._client() as client:
-                await link._login(client)
+                await link._login(client, wanted)
                 answer = await client.async_comfort_command(command)
+        except WriteSuperseded:
+            return None
         except ControllerLinkError as err:
             raise comfort_error(err) from None
     if type(answer) is not dict or answer.get("schema") != 1:
@@ -620,6 +715,7 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
     def __init__(self, hub, room, entry):
         self._attach_room(hub, room, "thermostat")
         self.entry = entry
+        self._pending = None  # (°C, None while its write runs, else monotonic time it was sent)
 
     # -- state ---------------------------------------------------------------------
     @property
@@ -650,7 +746,14 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
 
     @property
     def target_temperature(self):
-        return number((self.room or {}).get("setpoint"), 5, 35)
+        reported = number((self.room or {}).get("setpoint"), 5, 35)
+        if self._pending is not None:
+            value, sent = self._pending
+            if sent is None or ((reported is None or abs(reported - value) >= 0.05)
+                                and time.monotonic() - sent < PENDING_SECONDS):
+                return value
+            self._pending = None
+        return reported
 
     @property
     def min_temp(self):
@@ -707,6 +810,26 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
                 "away_until": _iso(away.get("until"))}
 
     # -- commands ----------------------------------------------------------------
+    def _write_state(self):
+        if self.hass is not None and self.entity_id:
+            self.async_write_ha_state()
+
+    @asynccontextmanager
+    async def _target_pending(self, temperature):
+        """The new target is shown at once and never silently dropped: a failed write
+        shows the E32's own target again (and raises); a newer target replaces it."""
+        mine = self._pending = (temperature, None)
+        self._write_state()
+        try:
+            yield
+        except BaseException:
+            if self._pending is mine:
+                self._pending = None
+                self._write_state()
+            raise
+        if self._pending is mine:
+            self._pending = (temperature, time.monotonic())
+
     async def _command(self, command):
         if self.link is None:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unreachable",
@@ -716,8 +839,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
             self.async_write_ha_state()
         return answer
 
-    async def _change_plan(self, change):
-        await self.link.async_change_room(self.room_id, change)
+    async def _change_plan(self, change, key=None):
+        await self.link.async_change_room(self.room_id, change, key)
 
     async def _ensure_active(self):
         if (self.room or {}).get("state") == "inactive" or (self.plan_room or {}).get("state") == "inactive":
@@ -731,7 +854,7 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
         has_program = (type(schedule) is list and any(day for day in schedule)) or bool(plan.get("week"))
         if not has_program and not plan.get("setpoint_entity"):
             from .room_plan import set_fallback
-            await self._change_plan(set_fallback(int(round(temperature * 2)) * 50))
+            await self._change_plan(set_fallback(int(round(temperature * 2)) * 50), ("fallback", self.room_id))
             if self.comfort.get("override") in OVERRIDES:
                 await self._command(override_command(self.room_id, "none"))
             return
@@ -750,8 +873,9 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
             return
         if kwargs.get("hvac_mode") == HVACMode.OFF:
             return await self.async_set_hvac_mode(HVACMode.OFF)
-        await self._ensure_active()
-        await self.async_hold(float(temperature))
+        async with self._target_pending(float(temperature)):
+            await self._ensure_active()
+            await self.async_hold(float(temperature))
 
     async def async_set_hvac_mode(self, hvac_mode):
         from .room_plan import set_state
@@ -780,9 +904,10 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
             await self._ensure_active()
             await self._command(override_command(self.room_id, "boost"))
         elif preset_mode in LEVEL_PRESETS:
-            await self._ensure_active()
             levels = program_levels(self.plan_room, comfort_options(self.entry))
-            await self.async_hold(levels[LEVEL_PRESETS[preset_mode]])
+            async with self._target_pending(levels[LEVEL_PRESETS[preset_mode]]):
+                await self._ensure_active()
+                await self.async_hold(levels[LEVEL_PRESETS[preset_mode]])
         elif preset_mode == PRESET_NONE:
             # Back to the week program; the house mode (away, holiday) is its own select (e32_house.py).
             if self.comfort.get("override") in OVERRIDES:
@@ -867,6 +992,10 @@ async def async_setup_e32_climates(hass, entry, async_add_entities):
     def send(payload):
         hass.async_create_task(mqtt.async_publish(hass, topic, payload, 0, False))
 
+    if PRESENCE_MEMORY not in hass.data:
+        from homeassistant.helpers.storage import Store
+        memory = hass.data[PRESENCE_MEMORY] = PresenceMemory(hass, Store(hass, 1, f"{DOMAIN}.presence"))
+        await memory.async_load()
     forwarder = state["comfort_forwarder"] = ComfortForwarder(hass, entry, hub, send)
     entry.async_on_unload(hub.add_listener(forwarder.hub_changed))
     entry.async_on_unload(async_track_time_interval(hass, lambda _now: forwarder.publish(), REFRESH))

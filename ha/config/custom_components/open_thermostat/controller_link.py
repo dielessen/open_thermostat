@@ -461,9 +461,9 @@ class ControllerClient:
 
     _reads = frozenset(("/auth/session", "/status/version", "/status", "/updates/status",
                         "/config/device", "/config/rooms", HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW,
-                        "/status/heating"))
+                        HEATING_TRV, "/status/heating"))
     _writes = frozenset(("/auth/login", "/auth/logout", "/config/device", "/updates/reboot", HEATING_PLAN,
-                         HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER))
+                         HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER, HEATING_TRV))
 
     def __init__(self, address):
         self.address = controller_address(address)
@@ -728,3 +728,29 @@ class ControllerClient:
             self._signed_in = False
             self._session.cookie_jar.clear()
             await self._session.close()
+
+
+# The waits (s) before each new sign-in while every E32 web session is in use
+# (429 session_capacity): a full E32 gives the least recently used session to a
+# new sign-in once it was idle 2 minutes (WebAuthSession::evictIdleMs), so the
+# last attempt (after 155 s) is past that. A full table is no failed sign-in:
+# these attempts never count towards the E32's login limit (try_again_later).
+SESSION_WAITS = (5, 10, 20, 30, 30, 30, 30)
+
+
+async def async_login_waiting(client, password, waits=SESSION_WAITS, pause=asyncio.sleep):
+    """client.async_login(password), signing in again after each wait while the E32 is full.
+
+    pause(seconds) is awaited between attempts (it may raise to stop waiting).
+    Still full after the last wait: ControllerLinkError("controller_no_free_session").
+    Every other refusal is raised at once.
+    """
+    for wait in (*waits, None):
+        try:
+            return await client.async_login(password)
+        except ControllerLinkError as err:
+            if str(err) != "controller_session_capacity":
+                raise
+            if wait is None:
+                raise ControllerLinkError("controller_no_free_session") from None
+        await pause(wait)

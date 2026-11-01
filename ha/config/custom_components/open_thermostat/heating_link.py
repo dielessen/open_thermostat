@@ -464,7 +464,7 @@ class HeatingHub:
         if dhw is None:
             return None
         if self._dhw_carry is None:
-            self._dhw_carry = DhwCarry()
+            self._dhw_carry = DhwCarry(clock=self.clock)
         return self._dhw_carry.apply(dhw["today"], self.boots)
 
     @callback
@@ -1444,31 +1444,41 @@ class DhwCarry:
     The E32 counts its episodes per day in memory, so an update or any other
     restart starts them at 0 again (31 Oct 2026: two updates left the owner's
     "keeping warm today" at a few rounds). A count that goes down while the E32
-    restarted (its heartbeat uptime fell) keeps what it had reached and adds
-    from there; a count that goes down without a restart is the E32's new day.
-    The two may arrive in either order. Home Assistant keeps this in memory
-    only; after a Home Assistant restart the E32's own counts carry on.
+    restarted (its heartbeat uptime fell within RESTART_WINDOW_S of the drop)
+    keeps what it had reached and adds from there; any other drop is the E32's
+    new day. The two may arrive in either order. Home Assistant keeps this in
+    memory only; after a Home Assistant restart the E32's own counts carry on.
     """
 
-    def __init__(self, today=None):
+    RESTART_WINDOW_S = 120
+
+    def __init__(self, today=None, clock=time.monotonic):
         self._today = today or (lambda: __import__("datetime").date.today())
-        self.day, self.last, self.base, self.dropped = None, {}, {}, {}
-        self.boot, self.restart_seen = None, False
+        self.clock = clock
+        self.day, self.last, self.base, self.dropped, self.dropped_at = None, {}, {}, {}, None
+        self.boot, self.restart_seen = None, None  # restart_seen: when a restart came before its drop
+
+    def _recent(self, since, now):
+        return since is not None and now - since <= self.RESTART_WINDOW_S
 
     def apply(self, today, boot=None):
         """A copy of the E32's ``today`` with every count and duration carried over its restarts.
 
         boot: a number that changes when the E32 restarts (HeatingHub.boots)."""
-        day = self._today()
+        day, now = self._today(), self.clock()
         if day != self.day:
-            self.day, self.last, self.base, self.dropped, self.restart_seen = day, {}, {}, {}, False
+            self.day, self.last, self.base, self.dropped, self.restart_seen = day, {}, {}, {}, None
+        if self.dropped and not self._recent(self.dropped_at, now):
+            self.dropped = {}  # no restart followed the drop: it was the E32's new day
+        if not self._recent(self.restart_seen, now):
+            self.restart_seen = None
         if boot is not None and self.boot is not None and boot != self.boot:
             if self.dropped:
                 for key, value in self.dropped.items():
                     self.base[key] = self.base.get(key, 0) + value
                 self.dropped = {}
             else:
-                self.restart_seen = True
+                self.restart_seen = now
         if boot is not None:
             self.boot = boot
         result = dict(today)
@@ -1481,11 +1491,15 @@ class DhwCarry:
                 continue
             key = f"{kind}.{field}" if kind else field
             if key in self.last and value < self.last[key]:
-                if self.restart_seen:
+                if self.restart_seen is not None:
                     self.base[key] = self.base.get(key, 0) + self.last[key]
                     carried = True
                 else:
+                    if not self.dropped:
+                        self.dropped_at = now
                     self.dropped[key] = self.last[key]
+            elif key in self.last and value > self.last[key]:
+                self.dropped.pop(key, None)  # counting again after the drop: that was the E32's new day
             self.last[key] = value
             total = value + self.base.get(key, 0)
             if kind:
@@ -1493,7 +1507,7 @@ class DhwCarry:
             else:
                 result[field] = total
         if carried:
-            self.restart_seen = False
+            self.restart_seen = None
         return result
 
 
@@ -1596,7 +1610,7 @@ def wanted_demand(hub):
 
 
 def removable_device(hass, entry, device):
-    """Whether the user may delete this device: a room or Bluetooth sensor the E32 no longer reports.
+    """Whether the user may delete this device: a room, Bluetooth sensor or EMS device the E32 no longer reports.
 
     Only while the telemetry is fresh, so a short outage never makes a live
     room removable. Every other device of the entry stays.
@@ -1604,6 +1618,11 @@ def removable_device(hass, entry, device):
     hub = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("heating_hub")
     if hub is None or not hub.fresh:
         return False
+    from .ems_devices import device_address, listed
+    address = device_address(hub.prefix, device)
+    if address is not None:
+        present = listed(hass, entry, complete=True)  # never from the partial list of a starting E32
+        return present is not None and address not in present
     for domain, identifier in device.identifiers:
         for kind, reported in (("room", hub.rooms), ("ble", hub.ble)):
             head = f"{hub.prefix}_e32_{kind}_"

@@ -1792,10 +1792,10 @@
         "name": "Podsumowanie dnia"
       },
       "daily_burner_time": {
-        "name": "Czas pracy palnika"
+        "name": "Czas pracy palnika dziś"
       },
       "daily_burner_starts": {
-        "name": "Starty palnika"
+        "name": "Starty palnika dziś"
       },
       "daily_missed_comfort": {
         "name": "Utracony czas komfortu"
@@ -2926,6 +2926,10 @@
       "title": "E32 nadal używa domyślnego hasła",
       "description": "{name}: E32 nadal używa domyślnego hasła admin/admin, więc każdy w Twojej sieci może zmienić Twoje ogrzewanie. Zmień je na stronie internetowej E32: System → Password (na stronie Overview jest też przycisk Change password). Home Assistant raz poprosi Cię o nowe hasło (Ustawienia → Urządzenia i usługi), a ten komunikat zniknie."
     },
+    "e32_no_free_session": {
+      "title": "E32 nie ma wolnej sesji internetowej",
+      "description": "{name}: nie udało się wysłać zmiany z Home Assistant, ponieważ wszystkie 4 sesje internetowe E32 były zajęte dłużej niż dwie minuty. Zamknij nieużywane strony E32 (także na innych telefonach i komputerach) i zatrzymaj narzędzia, które stale odpytują E32, a następnie wprowadź zmianę ponownie. Ten komunikat zniknie przy następnej zmianie, która dotrze do E32."
+    },
     "legacy_rooms": {
       "title": "Stare pomieszczenie Home Assistant nie jest już używane: {rooms}",
       "fix_flow": {
@@ -3207,6 +3211,9 @@
     },
     "e32_try_again_later": {
       "message": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie."
+    },
+    "e32_no_free_session": {
+      "message": "E32 nie ma wolnej sesji internetowej: zamknij nieużywane strony E32 lub poczekaj dwie minuty."
     },
     "house_mode_invalid": {
       "message": "Wybierz Automatyczny, W domu, Nieobecność lub Urlop."

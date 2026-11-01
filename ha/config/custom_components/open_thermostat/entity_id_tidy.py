@@ -84,8 +84,9 @@ def references(hass, entity_id: str, dashboards=(), energy: str = "") -> list[st
     the user's dashboards (by title; ``dashboards`` from ``async_dashboard_texts``) and the Energy
     dashboard (``energy``: its preferences as text). The Energy dashboard does not follow a rename."""
     found = []
+    # Scenes from YAML and the scene editor are the homeassistant platform of scene.
     for module, kind in (("automation", "automations_with_entity"), ("script", "scripts_with_entity"),
-                         ("scene", "scenes_with_entity"), ("group", "groups_with_entity")):
+                         ("homeassistant.scene", "scenes_with_entity"), ("group", "groups_with_entity")):
         try:
             component = __import__(f"homeassistant.components.{module}", fromlist=[kind])
             found += getattr(component, kind)(hass, entity_id)
@@ -179,9 +180,14 @@ async def async_plan(hass, config_entry) -> Plan:
     return Plan(renames, skipped)
 
 
-def preview_text(plan: Plan, only_unused: bool) -> str:
+# "used in" after a listed rename, per language of the form.
+USED_IN = {"en": "used in", "nl": "gebruikt in", "pl": "używane w"}
+
+
+def preview_text(plan: Plan, only_unused: bool, language: str | None = "en") -> str:
     rows = plan.unused if only_unused else plan.renames
-    lines = [f"- {r.old} → {r.new}" + (f"  (gebruikt in: {', '.join(r.used_in)})" if r.used_in else "")
+    used_in = USED_IN.get((language or "en").split("-")[0], USED_IN["en"])
+    lines = [f"- {r.old} → {r.new}" + (f"  ({used_in}: {', '.join(r.used_in)})" if r.used_in else "")
              for r in rows[:PREVIEW_LINES]]
     if len(rows) > PREVIEW_LINES:
         lines.append(f"- … +{len(rows) - PREVIEW_LINES}")

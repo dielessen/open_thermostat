@@ -119,6 +119,8 @@ class HouseState:
 
     async def async_command(self, command):
         answer = await async_comfort_command(self.hub.plan, command)
+        if answer is None:
+            return  # a newer house mode came in while this one waited for an E32 web session
         away = answer.get("away")
         if type(away) is dict and type(away.get("on")) is bool:
             self.answer, self.answer_at = away, time.monotonic()

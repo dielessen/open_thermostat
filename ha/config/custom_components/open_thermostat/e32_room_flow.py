@@ -33,8 +33,8 @@ from homeassistant.util import slugify
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
 from .e32_comfort import (DELAY_LIMITS, ComfortError, comfort_options, contact_delay_text, contact_selector,
-                          persons_selector, room_contact_delay, room_contacts, room_persons, save_comfort,
-                          validate_contacts, validate_room_persons, with_room_contacts, with_room_persons)
+                          own_contact_delay, persons_selector, room_contact_delay, room_contacts, room_persons,
+                          save_comfort, validate_contacts, validate_room_persons, with_room_contacts, with_room_persons)
 from .heating_link import TEMPERATURE_UNITS, celsius, heating_hub, label, number
 from .native_form import retained_input_schema
 from .room_plan import has_room_plan, plan_room
@@ -779,6 +779,11 @@ class E32RoomFlow:
             raise FlowError("contact_delay_invalid", "window")
         return seconds
 
+    @staticmethod
+    def _same_delay(settings, room_id, delay):
+        """The submitted delay is what the room stores already (its own delay, or none for the default)."""
+        return own_contact_delay(settings, delay) == settings.get("contact_delays", {}).get(room_id)
+
     def _limit_range(self):
         unit = self._unit()
         low, high = LIMITS_CENTI_C
@@ -803,7 +808,7 @@ class E32RoomFlow:
                 persons = self._e32_room_persons(user_input, room)
                 delay = self._e32_room_delay(user_input)
                 settings = comfort_options(self.config_entry)
-                same_delay = delay is None or not room or delay == room_contact_delay(settings, room_id)
+                same_delay = delay is None or not room or self._same_delay(settings, room_id, delay)
                 if room is not None:
                     edits = {k: v for k, v in values.items() if room.get(k) != v}
                     if (not edits and contacts == room_contacts(self.config_entry, room_id) and same_delay
@@ -820,7 +825,7 @@ class E32RoomFlow:
                     saved = created[0]
                 settings = comfort_options(self.config_entry)
                 if contacts != room_contacts(self.config_entry, saved) or (
-                        contacts and delay is not None and delay != room_contact_delay(settings, saved)):
+                        contacts and delay is not None and not self._same_delay(settings, saved, delay)):
                     # After the plan: only for a stored room; the delay only matters with contacts.
                     save_comfort(self.hass, self.config_entry, with_room_contacts(settings, saved, contacts, delay))
                 if persons != room_persons(self.config_entry, saved):

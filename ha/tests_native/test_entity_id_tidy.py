@@ -104,6 +104,28 @@ async def test_the_preview_names_every_place_an_entity_is_used(hass, monkeypatch
     text = tidy.preview_text(plan, False)
     assert f"{flow.entity_id} → sensor.woonkamer_openthermostat_e32_flow_temperature" in text and "energy" in text
     assert plan.unused == []  # both used somewhere: "only unused" renames nothing
+    # The words around the list follow the form's language.
+    assert "(used in: automation.cv_melding, energy)" in text
+    assert "(gebruikt in: dashboard: Woning)" in tidy.preview_text(plan, False, "nl")
+    assert "(używane w: dashboard: Woning)" in tidy.preview_text(plan, False, "pl")
+    assert "(used in: " in tidy.preview_text(plan, False, "de") and "gebruikt" not in text
+
+
+@pytest.mark.asyncio
+async def test_a_scene_that_uses_an_entity_is_listed(hass, monkeypatch):
+    """Scenes (YAML and the scene editor) live in Home Assistant's own scene platform."""
+    from types import SimpleNamespace
+    from homeassistant.components.homeassistant.scene import DATA_PLATFORM
+    loader.async_setup(hass)
+    e = entry(hass)
+    _, _, _, demand = await install(hass, e)
+    scene = SimpleNamespace(entity_id="scene.avond", scene_config=SimpleNamespace(states={demand.entity_id: None}))
+    hass.data[DATA_PLATFORM] = SimpleNamespace(entities={"scene.avond": scene})
+    monkeypatch.setattr(tidy, "async_dashboard_texts", _async([]))
+    monkeypatch.setattr(tidy, "async_energy_text", _async(""))
+    plan = await tidy.async_plan(hass, e)
+    assert {r.old: r.used_in for r in plan.renames}[demand.entity_id] == ["scene.avond"]
+    assert demand.entity_id not in {r.old for r in plan.unused}
 
 
 async def barrier(hass):

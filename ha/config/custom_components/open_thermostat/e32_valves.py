@@ -129,6 +129,8 @@ def valve_error(err):
     from .controller_link import ControllerLoginRejected, HeatingPlanRejected
     if isinstance(err, ControllerLoginRejected):
         return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_password")
+    if str(err) == "controller_no_free_session":
+        return HomeAssistantError(translation_domain=DOMAIN, translation_key="e32_no_free_session")
     if isinstance(err, HeatingPlanRejected):
         if err.error == "save_unconfirmed":
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unconfirmed")
@@ -149,36 +151,48 @@ class ValveLink:
         self.hass, self.hub, self.plan = hass, hub, plan
         self.config = None
 
-    async def _call(self, document=None):
-        async with self.plan._lock:
-            async with self.plan._client() as client:
-                await self.plan._login(client)
-                return await client.async_valves(document)
-
     async def async_read(self):
         from .controller_link import ControllerLinkError
         try:
-            value = decode_config(await self._call())
+            async with self.plan._lock:
+                async with self.plan._client() as client:
+                    await self.plan._login(client)
+                    value = decode_config(await client.async_valves())
         except ControllerLinkError as err:
             raise valve_error(err) from None
         if value is None:
-            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unreachable",
-                                     translation_placeholders={"error": "controller_response_invalid"})
+            raise unreadable()
         self.config = value
         return value
 
     async def async_change(self, room_id, control=None, valves=None):
-        """POST the record with one room changed; the E32 answers with what it stored."""
+        """POST the record with one room changed; the E32 answers with what it stored.
+
+        The read, the change and the POST share one lock hold and one sign-in, so
+        two switches changed at once each build on the other's stored record.
+        """
         from .controller_link import ControllerLinkError
-        current = await self.async_read()
         try:
-            answer = decode_config(await self._call(with_room(current, room_id, control, valves)))
+            async with self.plan._lock:
+                async with self.plan._client() as client:
+                    # A change waits for a free E32 web session.
+                    await self.plan._login(client, self.plan.claim())
+                    current = decode_config(await client.async_valves())
+                    if current is None:
+                        raise unreadable()
+                    self.config = current
+                    answer = decode_config(await client.async_valves(with_room(current, room_id, control, valves)))
         except ControllerLinkError as err:
             raise valve_error(err) from None
         if answer is None:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unconfirmed")
         self.config = answer
         return answer
+
+
+def unreadable():
+    return HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unreachable",
+                              translation_placeholders={"error": "controller_response_invalid"})
 
 
 def valve_link(hass, entry):

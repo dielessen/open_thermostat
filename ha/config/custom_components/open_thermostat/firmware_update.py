@@ -33,7 +33,8 @@ from homeassistant.helpers.event import async_call_later, async_track_time_inter
 from homeassistant.util import dt as dt_util
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
-from .controller_link import ControllerClient, ControllerLinkError, ControllerLoginRejected
+from .controller_link import (ControllerClient, ControllerLinkError, ControllerLoginRejected, SESSION_WAITS,
+                              async_login_waiting)
 from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_PASSWORD
 
 _LOGGER = logging.getLogger(__name__)
@@ -311,7 +312,8 @@ class E32FirmwareUpdate(UpdateEntity):
                     raise ValueError("SHA-256, size or version marker does not match the release")
                 outcome["result"] = "upload_failed"
                 async with self._client() as client:
-                    await client.async_login(self._entry.data[CONTROLLER_PASSWORD])
+                    # The owner pressed Install: wait for a free E32 web session (all 4 in use).
+                    await async_login_waiting(client, self._entry.data[CONTROLLER_PASSWORD], SESSION_WAITS)
                     await client.async_upload_firmware(image)
                 outcome["uploads"], outcome["result"] = 1, "not_confirmed"
                 # The E32 restarts itself; confirm the new version is running.

@@ -183,9 +183,14 @@ async def test_outdoor_temperature_and_gas_per_post(hass):
     assert outdoor["min"] == -1.5 and outdoor["max"] == 4.5 and -1.5 < outdoor["mean"] < 4.5
     # Gas comes from the energy use records (never counted twice); any further posts appear as they exist.
     use = SimpleNamespace(unit="m³", data={"days": {DAY0.isoformat(): {
-        "heating_m3": 0.544, "hot_water_m3": 4.083, "heating_kwh": 5.3, "keeping_warm_m3": 2.37}}})
+        "heating_m3": 0.544, "hot_water_m3": 4.083, "heating_kwh": 5.3, "keep_warm_m3": 2.37}}})
     hass.data["open_thermostat"]["e1"]["energy_use"] = use
-    assert summary.summary(DAY0.isoformat())["gas"] == {"heating": 0.544, "hot_water": 4.083, "keeping_warm": 2.37}
+    assert summary.summary(DAY0.isoformat())["gas"] == {"heating": 0.544, "hot_water": 4.083, "keep_warm": 2.37}
+    # The day record exactly as energy_use writes it: every post it has, keeping warm too.
+    from custom_components.open_thermostat import energy_use
+    record = {**energy_use.empty_day(), "heating_m3": 0.5, "hot_water_m3": 4.0, "tapping_m3": 1.5, "keep_warm_m3": 2.5}
+    use.data["days"][DAY0.isoformat()] = record
+    assert summary.summary(DAY0.isoformat())["gas"] == {"heating": 0.5, "hot_water": 4.0, "tapping": 1.5, "keep_warm": 2.5}
 
 
 @pytest.mark.asyncio
@@ -220,3 +225,16 @@ async def test_the_sensors_and_their_statistics(hass):
     assert summary_sensor.native_value == DAY0.isoformat()
     assert summary_sensor.extra_state_attributes["last_day"]["burner_hours"] == pytest.approx(1.0, abs=0.01)
     assert "days" in summary_sensor._unrecorded_attributes
+
+
+def test_the_daily_sensors_have_names_of_their_own_on_the_e32_device():
+    """The boiler's own counters (field_reported_burner_starts, ...) sit on the same device."""
+    component = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
+    for name in ("strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"):
+        sensors = json.loads((component / name).read_text(encoding="utf-8"))["entity"]["sensor"]
+        others = {value["name"] for key, value in sensors.items() if not key.startswith("daily_")}
+        daily = {key: sensors[key]["name"] for key in ("daily_summary", "daily_burner_time", "daily_burner_starts",
+                                                        "daily_missed_comfort")}
+        assert not set(daily.values()) & others, (name, set(daily.values()) & others)
+    assert json.loads((component / "translations/nl.json").read_text(encoding="utf-8"))["entity"]["sensor"][
+        "daily_burner_starts"]["name"] == "Branderstarts vandaag"

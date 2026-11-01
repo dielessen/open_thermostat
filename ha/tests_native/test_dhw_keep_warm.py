@@ -50,6 +50,37 @@ def test_a_restart_keeps_todays_counts_in_either_order_and_a_new_e32_day_starts_
     assert carry.apply(today(keep_warm=0), boot=1)["keep_warm"]["count"] == 0
 
 
+def test_the_e32s_own_midnight_drop_is_never_carried_into_a_later_restart():
+    day, clock = [DAY0], [0.0]
+    carry = DhwCarry(today=lambda: day[0], clock=lambda: clock[0])
+    carry.apply(today(keep_warm=40), boot=0)                     # yesterday evening
+    day[0] = date.fromordinal(DAY0.toordinal() + 1)              # Home Assistant's date rolls over first ...
+    carry.apply(today(keep_warm=40), boot=0)                     # ... a heartbeat redraws the old counts
+    clock[0] += 30
+    assert carry.apply(today(keep_warm=0), boot=0)["keep_warm"]["count"] == 0   # the E32's new day
+    clock[0] += 4 * 3600
+    carry.apply(today(keep_warm=10), boot=0)                     # the morning: 10 rounds
+    clock[0] += 4 * 3600
+    after = carry.apply(today(keep_warm=10), boot=1)["keep_warm"]["count"]      # a firmware update: heartbeat first
+    clock[0] += 20
+    later = carry.apply(today(keep_warm=2), boot=1)["keep_warm"]["count"]       # then its counts start again
+    assert (after, later) == (10, 12)
+
+
+def test_a_drop_and_a_restart_far_apart_are_not_one_restart():
+    clock = [0.0]
+    carry = DhwCarry(today=lambda: DAY0, clock=lambda: clock[0])
+    carry.apply(today(keep_warm=30), boot=0)
+    carry.apply(today(keep_warm=0), boot=0)                      # the E32's new day, nothing counted since
+    clock[0] += DhwCarry.RESTART_WINDOW_S + 1
+    assert carry.apply(today(keep_warm=0), boot=1)["keep_warm"]["count"] == 0   # a restart much later
+    carry.apply(today(keep_warm=5), boot=1)
+    clock[0] += 3600
+    carry.apply(today(keep_warm=5), boot=2)                      # a restart with nothing dropped yet ...
+    clock[0] += DhwCarry.RESTART_WINDOW_S + 1
+    assert carry.apply(today(keep_warm=0), boot=2)["keep_warm"]["count"] == 0   # ... and a drop long after it
+
+
 # -- gas for keeping warm ------------------------------------------------------------------------------
 
 def setup(hass, method="dhw_temperature_fall", options=None):

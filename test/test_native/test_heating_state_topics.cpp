@@ -4,6 +4,7 @@
 #include "control/HeatingStateTopics.h"
 #include "control/RoomEngine.h"
 #include "control/ShadowComparison.h"
+#include "control/TakeoverReadiness.h"
 #include "control/TelemetryPolicy.h"
 #include "control/TrvControl.h"
 #include <cmath>
@@ -129,6 +130,17 @@ Json worstStatus(const RoomPlan& plan) {
             shadow.sample(d * 24 * hour + t, uint32_t(wednesday23 - (8 - d) * 86400 + t / 1000),
                           t % (3 * hour) < hour ? heat : FlowDemand::Request{}, uint8_t(t % (2 * hour) < hour ? 45 : 0));
     cJSON_AddItemToObject(root.get(), "shadow", shadow.json());
+    // Readiness with every counter saturated, every room on a fallback source.
+    TakeoverReadiness::Stored counters;
+    for (auto& d : counters.days) {
+        d.day = 99999; d.requestS = 86400; d.flowMaxC = 255; d.flags = 3;
+        d.thermostatPeriods = d.e32Periods = d.events = d.matched = d.close = d.near = d.over = 65535;
+    }
+    TakeoverReadiness readiness; readiness.restore(&counters, TakeoverReadiness::Restart::unexpected);
+    TakeoverReadiness::Inputs view; view.roomCount = 8; view.boilerLimitC = 255;
+    for (auto& r : view.rooms) r = {RoomDemand::Status::fallback, int16_t(2000), 4};
+    readiness.sample(4294967295000ull, view);
+    cJSON_AddItemToObject(root.get(), "readiness", readiness.json());
     ActiveHeatGuard guard;
     cJSON* active = guard.json(statusNow);
     cJSON_ReplaceItemInObjectCaseSensitive(active, "state", cJSON_CreateString("blocked_foreign_controller"));
@@ -263,7 +275,7 @@ TEST(HeatingStateTopics, EveryStatusMemberLandsInExactlyOneTopic) {
     Json heating(cJSON_Parse(by.at("fw/state/heating").c_str()), cJSON_Delete);
     for (const char* kept : {"schema", "revision", "mode", "request", "burner", "active", "ha", "added_by_another_module"})
         EXPECT_TRUE(cJSON_GetObjectItem(heating.get(), kept)) << kept;
-    for (const char* moved : {"rooms", "ble_sensors", "ha_entities", "shadow"}) EXPECT_FALSE(cJSON_GetObjectItem(heating.get(), moved)) << moved;
+    for (const char* moved : {"rooms", "ble_sensors", "ha_entities", "shadow", "readiness"}) EXPECT_FALSE(cJSON_GetObjectItem(heating.get(), moved)) << moved;
     Json room(cJSON_Parse(by.at("fw/state/room/" + pad("a_", 32, 'a')).c_str()), cJSON_Delete);
     for (const char* kept : {"id", "name", "state", "inactive_until", "status", "source", "temperature", "setpoint", "setpoint_source", "demand"})
         EXPECT_TRUE(cJSON_GetObjectItem(room.get(), kept)) << kept;
@@ -276,6 +288,9 @@ TEST(HeatingStateTopics, EveryStatusMemberLandsInExactlyOneTopic) {
     EXPECT_STREQ(cJSON_GetObjectItem(plan.get(), "mode")->valuestring, "shadow");
     Json shadow(cJSON_Parse(by.at("fw/telemetry/shadow").c_str()), cJSON_Delete);
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(shadow.get(), "today")));
+    Json readiness(cJSON_Parse(by.at("fw/telemetry/readiness").c_str()), cJSON_Delete);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(readiness.get(), "state")), "not_ready");
+    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(readiness.get(), "cycling")));
     // An empty plan still names its (zero) rooms and one empty entity part.
     Json empty(cJSON_Parse(R"({"schema":1,"revision":0,"mode":"shadow","request":{"heat":false,"flow_c":0,"reason":"no_rooms"},"ha_entities":[],"rooms":[]})"), cJSON_Delete);
     const auto none = split(empty.get());
@@ -284,6 +299,7 @@ TEST(HeatingStateTopics, EveryStatusMemberLandsInExactlyOneTopic) {
     EXPECT_EQ(e.at("fw/config/plan"), R"({"rooms":[],"ble":[],"schema":1,"revision":0,"mode":"shadow","entity_parts":1})");
     EXPECT_EQ(e.at("fw/config/entities"), R"({"entities":[],"schema":1,"revision":0,"part":0,"parts":1})");
     EXPECT_FALSE(e.count("fw/telemetry/shadow"));
+    EXPECT_FALSE(e.count("fw/telemetry/readiness"));
 }
 
 TEST(TelemetryPolicy, DeadbandsIgnoreNoiseAndAges) {

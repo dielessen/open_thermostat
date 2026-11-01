@@ -86,8 +86,8 @@ public:
 
 private:
     // The first values match HeatingTopic (splitHeatingStatus casts it).
-    enum class Kind : uint8_t { heating, room, ble, plan, entities, shadow, trv, learned, summary, boiler, group, profile };
-    static_assert(uint8_t(Kind::trv) == uint8_t(HeatingTopic::trv), "Kind follows HeatingTopic");
+    enum class Kind : uint8_t { heating, room, ble, plan, entities, shadow, trv, readiness, learned, summary, boiler, group, profile };
+    static_assert(uint8_t(Kind::readiness) == uint8_t(HeatingTopic::readiness), "Kind follows HeatingTopic");
     struct Slot {
         std::string topic;
         Kind kind;
@@ -102,7 +102,7 @@ private:
     static const TelemetryCadence& cadence(Kind k) {
         switch (k) {
         case Kind::plan: case Kind::entities: case Kind::profile: return configCadence;
-        case Kind::shadow: case Kind::summary: return summaryCadence;
+        case Kind::shadow: case Kind::readiness: case Kind::summary: return summaryCadence;
         case Kind::learned: return learnedCadence;
         case Kind::group: return fieldsCadence;
         default: return stateCadence;
@@ -176,7 +176,7 @@ private:
         if (!sources_.status) return;
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> status(sources_.status(), cJSON_Delete);
         if (!status) return;
-        for (auto& s : slots_) if (s.kind <= Kind::trv) s.seen = false;
+        for (auto& s : slots_) if (s.kind <= Kind::readiness) s.seen = false;
         bool split = splitHeatingStatus(status.get(), [&](HeatingTopic topic, const std::string& suffix, const cJSON* doc) {
             const Kind kind = Kind(uint8_t(topic));
             if (kind == Kind::plan) {  // the plan's rooms keep their learned topics

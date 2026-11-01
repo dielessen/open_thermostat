@@ -1079,6 +1079,15 @@
       "shadow_agreement_today": {
         "name": "Agreement with thermostat today"
       },
+      "takeover_readiness": {
+        "name": "Takeover readiness",
+        "state": {
+          "ready": "Ready",
+          "waiting": "Waiting for more data",
+          "not_ready": "Not ready",
+          "not_applicable": "Not applicable"
+        }
+      },
       "heat_request": {
         "name": "Boiler request (E32)"
       },

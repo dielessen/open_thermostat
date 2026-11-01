@@ -1079,6 +1079,15 @@
       "shadow_agreement_today": {
         "name": "Zgodność z termostatem dziś"
       },
+      "takeover_readiness": {
+        "name": "Gotowość do przejęcia",
+        "state": {
+          "ready": "Gotowe",
+          "waiting": "Czeka na więcej danych",
+          "not_ready": "Niegotowe",
+          "not_applicable": "Nie dotyczy"
+        }
+      },
       "heat_request": {
         "name": "Żądanie do kotła (E32)"
       },

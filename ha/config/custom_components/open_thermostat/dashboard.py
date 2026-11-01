@@ -30,6 +30,7 @@ Assistant's own translations.
 import asyncio
 import json
 import logging
+import re
 
 from homeassistant.components import frontend
 from homeassistant.components.lovelace.const import LOVELACE_DATA
@@ -219,6 +220,28 @@ TEXT = {
             "use it again, or remove the room if you no longer need it.",
         "choose_source": "Choose a source",
         "remove_room": "Remove room",
+        "readiness": "Ready to take over?",
+        "ready_ready": "Ready: follow the switch-over steps.",
+        "ready_waiting": "Not yet: the E32 is still collecting shadow data.",
+        "ready_not_ready": "Not ready: fix the red items first.",
+        "ready_no_comparison": "No thermostat on the boiler bus to compare with, so only the E32 and the boiler "
+            "are checked.",
+        "ready_stable": "Stable: {stable_hours} of {stable_hours_needed} h without a hang or unexpected restart",
+        "ready_periods": "Heating periods compared: {periods_compared} of {periods_needed}, with a night setback, "
+            "a morning warm-up and a period without demand",
+        "ready_timing": "Heat at the same moments: {timing_events} of {timing_events_needed} starts and stops",
+        "ready_flow_limit": "Flow request never above the limit: highest {flow_max_c} °C, limit {flow_limit_c} °C",
+        "ready_cycling": "Not more heating periods than the thermostat: E32 {heating_periods_e32}, "
+            "thermostat {heating_periods_thermostat}",
+        "ready_sources": "Room sources work, and a fallback source has taken over",
+        "ready_boiler": "Boiler heard on the bus",
+        "ready_boiler_limit": "Boiler maximum known: {boiler_limit_c} °C",
+        "fix_timing": "The E32 heats at other moments than your thermostat: check the room targets and week program.",
+        "fix_flow_limit": "A request went above the hard limit: check the flow limits.",
+        "fix_cycling": "The E32 would start the burner more often: check the flow limits.",
+        "fix_sources": "Check the room sensors (battery, range) and give a room a second source.",
+        "fix_boiler": "The E32 hears nothing from the boiler: check the bus cable.",
+        "fix_boiler_limit": "The boiler has not reported its maximum: check the bus connection.",
     },
     "nl": {
         "heating": "Verwarming", "boiler_view": "Ketel", "diagnostics": "Diagnose",
@@ -321,6 +344,29 @@ TEXT = {
             "om de ruimte weer te gebruiken, of verwijder hem als je hem niet meer nodig hebt.",
         "choose_source": "Kies een bron",
         "remove_room": "Ruimte verwijderen",
+        "readiness": "Klaar om over te nemen?",
+        "ready_ready": "Klaar: volg de stappen voor de overschakeling.",
+        "ready_waiting": "Nog niet: de E32 verzamelt nog schaduwgegevens.",
+        "ready_not_ready": "Niet klaar: los eerst de rode punten op.",
+        "ready_no_comparison": "Geen thermostaat op de ketelbus om mee te vergelijken, dus alleen de E32 en de "
+            "ketel worden gecontroleerd.",
+        "ready_stable": "Stabiel: {stable_hours} van {stable_hours_needed} uur zonder vastloper of onverwachte herstart",
+        "ready_periods": "Verwarmingsperiodes vergeleken: {periods_compared} van {periods_needed}, met een "
+            "nachtverlaging, een ochtendopwarming en een periode zonder vraag",
+        "ready_timing": "Warmte op dezelfde momenten: {timing_events} van {timing_events_needed} starts en stops",
+        "ready_flow_limit": "Aanvoervraag nooit boven de grens: hoogste {flow_max_c} °C, grens {flow_limit_c} °C",
+        "ready_cycling": "Niet meer verwarmingsperiodes dan de thermostaat: E32 {heating_periods_e32}, "
+            "thermostaat {heating_periods_thermostat}",
+        "ready_sources": "Ruimtebronnen werken, en een terugvalbron heeft het overgenomen",
+        "ready_boiler": "Ketel gehoord op de bus",
+        "ready_boiler_limit": "Ketelmaximum bekend: {boiler_limit_c} °C",
+        "fix_timing": "De E32 stookt op andere momenten dan je thermostaat: controleer de doeltemperaturen en "
+            "het weekprogramma.",
+        "fix_flow_limit": "Een vraag kwam boven de harde grens: controleer de aanvoergrenzen.",
+        "fix_cycling": "De E32 zou de brander vaker starten: controleer de aanvoergrenzen.",
+        "fix_sources": "Controleer de ruimtesensoren (batterij, bereik) en geef een ruimte een tweede bron.",
+        "fix_boiler": "De E32 hoort niets van de ketel: controleer de buskabel.",
+        "fix_boiler_limit": "De ketel heeft zijn maximum niet gemeld: controleer de busverbinding.",
     },
 }
 
@@ -341,6 +387,28 @@ def view_cards(view):
 
 def _section(*cards):
     return {"type": "grid", "cards": [card for card in cards if card]}
+
+
+# Ready to take over? (takeover_readiness.py): the result attribute of each criterion, in order.
+READINESS_ITEMS = ("stable", "periods", "timing", "flow_limit", "cycling", "sources", "boiler", "boiler_limit")
+
+
+def _readiness_card(t, entity_id):
+    """The verdict and one line per criterion the E32 reports (✅ pass, ⏳ wait, ❌ fail with what to do)."""
+    quoted = json.dumps(entity_id)
+
+    def attribute(match):
+        return "{{ state_attr(" + quoted + ", '" + match.group(1) + "') }}"
+    content = ("{% set s = states(" + quoted + ") %}{% set mark = {'pass': '✅', 'wait': '⏳', 'fail': '❌'} %}"
+               "**{% if s == 'ready' %}" + t["ready_ready"] + "{% elif s == 'not_ready' %}" + t["ready_not_ready"]
+               + "{% else %}" + t["ready_waiting"] + "{% endif %}**\n\n"
+               "{% if state_attr(" + quoted + ", 'comparison') == false %}" + t["ready_no_comparison"] + "\n\n{% endif %}")
+    for item in READINESS_ITEMS:
+        line = re.sub(r"\{(\w+)\}", attribute, t["ready_" + item])
+        fix = t.get("fix_" + item)
+        content += ("{% set r = state_attr(" + quoted + ", '" + item + "') %}{% if r in mark %}- {{ mark[r] }} " + line
+                    + ("{% if r == 'fail' %}. " + fix + "{% endif %}" if fix else "") + "\n{% endif %}")
+    return {"type": "markdown", "content": content, "visibility": _known(entity_id, ("not_applicable",))}
 
 
 def _heading(text, icon=None, badges=None, style="title", visibility=None):
@@ -924,6 +992,7 @@ class RoomDashboard:
         elif e32_room_entities:
             explain = {"type": "markdown", "content": t["how"]}
         agreement = hub.get("shadow_agreement_today")
+        readiness = hub.get("takeover_readiness")  # E32 1.0: ready to take over? (shadow mode only)
         # The request in °C while there is one; "No boiler request" (not "0,0 °C") while there is none.
         no_request = None
         if request:
@@ -949,6 +1018,9 @@ class RoomDashboard:
             explain,
             # A bare percentage meant nothing here: a link to the comparison, which explains it.
             _link(t["compare_link"], "mdi:compare-horizontal", sub_path) if thermostat_on_bus and agreement else None,
+            # Ready to take over? Leads to the Comparison subview, which opens with the check.
+            _tile(readiness, t["readiness"], "mdi:clipboard-check-outline", visibility=_known(readiness, ("not_applicable",)),
+                  tap_action={"action": "navigate", "navigation_path": sub_path}),
         )
         sections = [now] if len(now["cards"]) > 1 else []
         advice = _advice_section(t, hub.get("heating_advice"))
@@ -1025,6 +1097,10 @@ class RoomDashboard:
         # Comparison subview: the E32's decision next to the thermostat's, the learning note and
         # the Bluetooth sensors that feed no single room.
         comparison = []
+        if readiness:
+            hidden = _known(readiness, ("not_applicable",))
+            comparison.append(_section(_heading(t["readiness"], "mdi:clipboard-check-outline", visibility=hidden),
+                                       _readiness_card(t, readiness)))
         if thermostat_on_bus:
             compare_entities = [{"entity": entity_id, "name": name} for entity_id, name in (
                 (request, t["e32_request"]),

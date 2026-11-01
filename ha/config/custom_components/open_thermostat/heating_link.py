@@ -17,7 +17,8 @@ most 1.5 KB, sent on a real change (deadbands), at most every 10 s, else every
   entities the plan reads (``ha_entities``);
 - ``fw/telemetry/learned/<id>`` (every 15 min or on a new result),
   ``fw/telemetry/summary`` (learned header, hot water; 5 min) and
-  ``fw/telemetry/shadow`` (today's comparison; 5 min);
+  ``fw/telemetry/shadow`` (today's comparison; 5 min) and
+  ``fw/telemetry/readiness`` (E32 1.0: ready to take over?, takeover_readiness.py; 5 min);
 - ``fw/availability`` (retained online/offline, the LWT) and ``fw/heartbeat``
   every 60 s.
 
@@ -99,6 +100,7 @@ ENTITIES_TOPIC = "fw/config/entities"
 LEARNED_TOPIC = "fw/telemetry/learned/"
 SUMMARY_TOPIC = "fw/telemetry/summary"
 SHADOW_TOPIC = "fw/telemetry/shadow"
+READINESS_TOPIC = "fw/telemetry/readiness"
 # The flow policy's part of the summary ("flow", "night_gas"), sent apart to keep both within 1 KB.
 FLOW_TOPIC = "fw/telemetry/flow"
 FLOW_KEYS = ("flow", "night_gas")
@@ -420,6 +422,7 @@ class HeatingHub:
         self.entity_parts = {}
         self.entities = None  # the last complete entity list
         self.shadow = None
+        self.readiness = None
         self.online = None  # fw/availability: None until known
         self.heartbeat = None
         self.boots = 0  # E32 restarts seen as a falling heartbeat uptime (DhwCarry)
@@ -543,6 +546,8 @@ class HeatingHub:
             status["trv"] = {**trv, "rooms": [self.trv_states[i] for i in config["trv"] if i in self.trv_states]}
         if self.shadow is not None:
             status["shadow"] = {key: value for key, value in self.shadow.items() if key != "schema"}
+        if self.readiness is not None:
+            status["readiness"] = {key: value for key, value in self.readiness.items() if key != "schema"}
         return valid_status(status)
 
     @callback
@@ -642,6 +647,8 @@ class HeatingHub:
             self.summary_received = self.clock() if summary is not None else None
         elif suffix == SHADOW_TOPIC:
             self.shadow = None if empty else decode_document(payload)
+        elif suffix == READINESS_TOPIC:
+            self.readiness = None if empty else decode_document(payload)
         else:
             return
         if not retained and suffix != AVAILABILITY_TOPIC:
@@ -1565,6 +1572,9 @@ def wanted_sensors(hub):
     if shadow_has_thermostat(hub.status):
         for key in SHADOW_SENSORS:
             yield ("shadow", key), lambda key=key: ShadowSensor(hub, key)
+    from .takeover_readiness import TakeoverReadinessSensor, readiness_status
+    if readiness_status(hub.status) is not None:  # firmware that judges "ready to take over?" (1.0)
+        yield ("readiness",), lambda: TakeoverReadinessSensor(hub)
     if burner_status(hub.status) is not None:  # firmware that counts burner starts
         yield ("burner",), lambda: BurnerStartsSensor(hub)
     if "activity" in (burner_status(hub.status) or {}):  # firmware that says what the boiler does (beta.23)
@@ -1713,7 +1723,8 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     await mqtt.async_wait_for_mqtt_client(hass)
     entry.async_on_unload(hub.add_listener(follow, first=True))
     for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", TRV_TOPIC + "+", PLAN_TOPIC,
-                  ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, SHADOW_TOPIC):
+                  ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, SHADOW_TOPIC,
+                  READINESS_TOPIC):
         entry.async_on_unload(await mqtt.async_subscribe(hass, base + topic, receive))
     entry.async_on_unload(async_track_time_interval(hass, refresh, timedelta(seconds=REFRESH_SECONDS)))
     entry.async_on_unload(async_track_time_interval(hass, hub.check_stale, STALE_CHECK))

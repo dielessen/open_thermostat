@@ -11,8 +11,9 @@ struct ZoneControlProfile {
     int32_t hysteresisCentiC = 20;
     int32_t kpPermillePerC = 0, kiPermillePerCMinute = 0;
     uint32_t cycleMs = 0, minimumOnMs = 0, minimumOffMs = 0;
+    int32_t stopHysteresisCentiC = -1; // hysteresis: demand ends at target + this; -1: hysteresisCentiC
     bool valid() const {
-        if (hysteresisCentiC < 1 || hysteresisCentiC > 200) return false;
+        if (hysteresisCentiC < 1 || hysteresisCentiC > 200 || stopHysteresisCentiC < -1 || stopHysteresisCentiC > 200) return false;
         if (mode == ZoneControl::hysteresis || mode == ZoneControl::localTrv) return true;
         if (mode != ZoneControl::directPi && mode != ZoneControl::slowBinaryPi) return false;
         if (kpPermillePerC < 1 || kpPermillePerC > 1000
@@ -65,6 +66,8 @@ public:
     };
     explicit ZoneRegulator(ZoneControlProfile profile = {},SeasonalProfile seasonal = {})
         : profile_(profile),seasonal_(seasonal) {}
+    // New tuning in place: the demand and its timers stay.
+    void setProfile(const ZoneControlProfile& profile) { profile_ = profile; }
     // Explicit opt-in integration. Ordinary legacy step remains byte-for-byte logic.
     Result stepSeasonal(uint64_t now,const SeasonalInputs& in) {
         uint16_t restrictions=0;
@@ -150,7 +153,7 @@ public:
         const int32_t error = *target - *temperature;
         if (profile_.mode == ZoneControl::hysteresis || profile_.mode == ZoneControl::localTrv) {
             if (error >= profile_.hysteresisCentiC) demand_ = true;
-            else if (error <= -profile_.hysteresisCentiC) demand_ = false;
+            else if (error <= -(profile_.stopHysteresisCentiC < 0 ? profile_.hysteresisCentiC : profile_.stopHysteresisCentiC)) demand_ = false;
             return {demand_, static_cast<uint16_t>(demand_ ? 1000 : 0)};
         }
         const int64_t proportional = static_cast<int64_t>(profile_.kpPermillePerC) * error / 100;

@@ -51,7 +51,8 @@ const std::string configuredPlan = R"({"schema":1,"revision":7,"mode":"shadow","
 b::DeviceState configured(bool withKey = true) {
     b::DeviceState s;
     s.network = configuredNetwork; s.bluetooth = bluetoothDoc(withKey); s.plan = configuredPlan;
-    s.flow = R"({"weather_curve":true,"apply_learned":false,"curve_design_flow_c":45})";
+    FlowSettings flow; flow.weatherCurve = true; flow.designFlowC = 45; flow.tuning.minOnS = 600; // 1.0: with the tuning knobs
+    s.flow = flow.json();
     s.display = "nefit-ecomline-classic"; s.wifiSsid = "home-fixture"; s.modernMode = true;
     return s;
 }
@@ -416,8 +417,18 @@ TEST(ConfigBackup, FlowAndDisplayIgnoreUnknownButRefuseInvalidValues) {
     EXPECT_TRUE(has(v.report.warnings.get(), "unknown_boiler_model:future-boiler"));
     EXPECT_TRUE(v.prepared.display.empty());
     EXPECT_EQ(field(v.prepared.flow, nullptr, "curve_design_flow_c"), "45");
+    EXPECT_EQ(field(v.prepared.flow, "tuning", "min_on_s"), "600");    // the tuning knobs travel with the options
     b::put(flow, "curve_design_flow_c", cJSON_CreateNumber(99));
     EXPECT_STREQ(validate(request("validate", copy.get()), factory()).error, "flow_invalid_value");
+    b::put(flow, "curve_design_flow_c", cJSON_CreateNumber(45));
+    b::put(flow, "tuning", cJSON_Parse(R"({"min_on_s":60})"));         // below its range
+    EXPECT_STREQ(validate(request("validate", copy.get()), factory()).error, "flow_invalid_value");
+    // A backup of older firmware (no "tuning") keeps the device's own knobs.
+    cJSON_DeleteItemFromObjectCaseSensitive(flow, "tuning");
+    auto tuned = factory(); FlowSettings own; own.tuning.minOffS = 900; tuned.flow = own.json();
+    const auto older = validate(request("validate", copy.get()), tuned);
+    ASSERT_EQ(older.error, nullptr);
+    EXPECT_EQ(field(older.prepared.flow, "tuning", "min_off_s"), "900");
 }
 
 TEST(ConfigBackup, FailedApplyRestoresTheOldSettings) {

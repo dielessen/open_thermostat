@@ -31,6 +31,8 @@ public:
 
     FlowDemand() = default;
     explicit FlowDemand(Params params) : p_(params) {}
+    // New tuning (ControlTuning) in place: the burner timers and the integral stay.
+    void setParams(Params params) { p_ = params; }
     // The boiler's reported heating limit (ActiveHeatEnvelope::limitC); nullopt: unknown.
     void setBoilerLimit(std::optional<uint8_t> limitC) { limitC_ = limitC; }
 

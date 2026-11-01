@@ -357,14 +357,14 @@ public:
         trv_.setConfig(std::move(config));
         return nullptr;
     }
-    // The beta.19 flow options (GET/POST /config/heating/flow), stored in NVS.
+    // The beta.19 flow options and the 1.0 tuning (GET/POST /config/heating/flow), stored in NVS.
     std::string flowSettingsJson() const { return flowPolicy_.settings().json(); }
     const char* setFlowSettings(const cJSON* root) {
         auto settings = flowPolicy_.settings();
         if (const char* error = control::FlowSettings::parse(root, settings)) return error;
         if (settings == flowPolicy_.settings()) return nullptr;
         if (!FlowSettingsNvs::write(settings)) return "save_unconfirmed";
-        flowPolicy_.setSettings(settings); flowLearner_.setApplied(settings.applyLearned);
+        applyFlowSettings(settings);
         return nullptr;
     }
     // GET/POST /config/heating/comfort (control/RoomOverrides.h): overrides and away,
@@ -908,9 +908,10 @@ private:
         }
         flowLearner_.sample(now, boiler, rooms.data(), count);
     }
-    void loadFlowSettings() {
-        const auto settings = FlowSettingsNvs::read();
+    void loadFlowSettings() { applyFlowSettings(FlowSettingsNvs::read()); }
+    void applyFlowSettings(const control::FlowSettings& settings) {
         flowPolicy_.setSettings(settings); flowLearner_.setApplied(settings.applyLearned);
+        flowLearner_.setTuning(settings.tuning); roomEngine_.setTuning(settings.tuning);
     }
     // The options between the room engine's rule and the guard (control/FlowPolicy.h).
     control::FlowDemand::Request applyFlowPolicy(uint64_t now, const control::FlowDemand::Request& rule, const ems::EmsController::ActiveHeatView& ems) {

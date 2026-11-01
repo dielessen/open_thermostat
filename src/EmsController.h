@@ -10,6 +10,7 @@
 #include "EMS/EmsDeviceInventory.h"
 #include "EMS/EmsEntityCatalog.h"
 #include "EMS/BoilerProfileReport.h"
+#include "BoilerDisplaySelection.h"
 #if __has_include(<nvs.h>)
 #include "EMS/BoilerProfileStore.h"
 #endif
@@ -273,7 +274,7 @@ public:
         std::lock_guard<std::mutex> lock(telemetryMutex_);
         if(!emsConfig_.emsEnabled)return;
         const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
-        if(group==control::boilerProfileGroup){writeBoilerProfileTopic(out,profile_);return;} // fw/config/boiler_profile
+        if(group==control::boilerProfileGroup){writeBoilerProfileTopic(out,profile_,rememberedBoilerDisplayModel());return;} // fw/config/boiler_profile
         if(group==control::emsDevicesGroup){deviceInventory_.writeIdentityJSON(out);return;} // fw/config/ems_devices
         if(group<control::boilerFieldGroupCount){monitor_.writeFieldGroup(out,now,group);return;}
         // Groups 7..: the entity catalog (boiler.fields.v2), same field shape.

@@ -257,6 +257,7 @@ window.OT_UI_MESSAGES = {
   "This firmware does not report recognized software support for room control yet. Check the firmware version before setting up the connection.": "Deze firmware meldt nog geen herkenbare softwareondersteuning voor de ruimteregeling. Controleer de firmwareversie voordat je de koppeling instelt.",
   "These settings are managed in Home Assistant. Configure your rooms, programs and heating there. Network, access, firmware and recovery remain accessible here.": "Deze instellingen worden beheerd in Home Assistant. Configureer daar je ruimtes, programma’s en verwarming. Netwerk, toegang, firmware en herstel blijven hier bereikbaar.",
   "Display code": "Displaycode",
+  "Boiler fault": "Ketelstoring",
   "Target": "Gewenst",
   "A request does not prove valve position or delivered heat. Change settings and programs in Home Assistant.": "Een warmtevraag bewijst geen klepstand of geleverde warmte. Instellingen en programma’s pas je aan in Home Assistant.",
   "You can also enter a hidden network manually.": "Een verborgen netwerk kun je ook handmatig invullen.",

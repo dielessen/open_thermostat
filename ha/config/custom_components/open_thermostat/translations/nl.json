@@ -2130,7 +2130,36 @@
         "name": "Starts warm water"
       },
       "field_display_code": {
-        "name": "Displaycode"
+        "name": "Displaycode",
+        "state_attributes": {
+          "meaning": {
+            "name": "Betekenis"
+          },
+          "severity": {
+            "name": "Ernst",
+            "state": {
+              "normal": "Normaal bedrijf",
+              "waiting": "Wacht",
+              "service": "Service- of testbedrijf",
+              "blocking": "Blokkerende storing",
+              "locking": "Vergrendelende storing",
+              "fault": "Storing",
+              "unknown": "Onbekende code"
+            }
+          },
+          "severity_text": {
+            "name": "Ernst in woorden"
+          },
+          "advice": {
+            "name": "Wat te doen"
+          },
+          "cause": {
+            "name": "Oorzaaknummer"
+          },
+          "code_table": {
+            "name": "Codetabel"
+          }
+        }
       },
       "field_service_number": {
         "name": "Servicenummer"
@@ -2458,13 +2487,71 @@
         "name": "Maximaal brandervermogen (EMS+)"
       },
       "field_last_locking_error_code": {
-        "name": "Laatste vergrendelende storingscode"
+        "name": "Laatste vergrendelende storingscode",
+        "state_attributes": {
+          "meaning": {
+            "name": "Betekenis"
+          },
+          "severity": {
+            "name": "Ernst",
+            "state": {
+              "normal": "Normaal bedrijf",
+              "waiting": "Wacht",
+              "service": "Service- of testbedrijf",
+              "blocking": "Blokkerende storing",
+              "locking": "Vergrendelende storing",
+              "fault": "Storing",
+              "unknown": "Onbekende code"
+            }
+          },
+          "severity_text": {
+            "name": "Ernst in woorden"
+          },
+          "advice": {
+            "name": "Wat te doen"
+          },
+          "cause": {
+            "name": "Oorzaaknummer"
+          },
+          "code_table": {
+            "name": "Codetabel"
+          }
+        }
       },
       "field_last_locking_error_number": {
         "name": "Laatste vergrendelend storingsnummer"
       },
       "field_last_blocking_error_code": {
-        "name": "Laatste blokkerende storingscode"
+        "name": "Laatste blokkerende storingscode",
+        "state_attributes": {
+          "meaning": {
+            "name": "Betekenis"
+          },
+          "severity": {
+            "name": "Ernst",
+            "state": {
+              "normal": "Normaal bedrijf",
+              "waiting": "Wacht",
+              "service": "Service- of testbedrijf",
+              "blocking": "Blokkerende storing",
+              "locking": "Vergrendelende storing",
+              "fault": "Storing",
+              "unknown": "Onbekende code"
+            }
+          },
+          "severity_text": {
+            "name": "Ernst in woorden"
+          },
+          "advice": {
+            "name": "Wat te doen"
+          },
+          "cause": {
+            "name": "Oorzaaknummer"
+          },
+          "code_table": {
+            "name": "Codetabel"
+          }
+        }
       },
       "field_last_blocking_error_number": {
         "name": "Laatste blokkerend storingsnummer"

@@ -1,6 +1,7 @@
 """Immutable boiler.fields.v1 IDs; source values are read-only, never control evidence."""
 import json
 import math
+import re
 
 CAPABILITY = "boiler.fields.v1"
 MAX_BYTES = 2048
@@ -209,6 +210,7 @@ def concept(index):
 PROFILE_TOPIC = "fw/config/boiler_profile"
 PROFILE_MAX_BYTES = 1024
 PROFILE_LISTS = ("supported", "not_fitted", "not_reported")
+DISPLAY_MODEL = re.compile(r"[a-z0-9-]{1,63}")  # a boiler-model selection (public/boilers/catalog-v1.json)
 
 
 def validate_profile(value):
@@ -344,6 +346,9 @@ class BoilerFieldCache:
         self.profile_boiler = None
         self.profile_settled = False
         self.profile_sequence = 0
+        # The boiler-model selection on the E32 (its "display_model", E32 1.0): which
+        # display-code table applies (display_codes.py); None: older firmware or none.
+        self.display_model = None
         self.reset()
 
     def reset_session(self):
@@ -370,6 +375,7 @@ class BoilerFieldCache:
         if raw in ("", b"", None):
             changed = self.field_profile is not None
             self.field_profile, self.profile_boiler, self.profile_settled = None, None, False
+            self.display_model = None
         else:
             try:
                 if not isinstance(raw, str) or len(raw) > PROFILE_MAX_BYTES:
@@ -381,6 +387,9 @@ class BoilerFieldCache:
             settled = value.get("settled") is True
             changed = (states, value["boiler"], settled) != (self.field_profile, self.profile_boiler, self.profile_settled)
             self.field_profile, self.profile_boiler, self.profile_settled = states, value["boiler"], settled
+            # Presentation only: a new model choice changes no entity, only the words of the codes.
+            model = value.get("display_model")
+            self.display_model = model if type(model) is str and DISPLAY_MODEL.fullmatch(model) else None
         if changed:
             self.profile_sequence += 1
         return True

@@ -204,6 +204,7 @@ public:
 		route("/config/device", [this]() { configDevice(); });
 		route("/config/boiler", [this]() { configBoiler(); });
 		route("/config/boiler-display", [this]() { boilerDisplay(); });
+		(void)readBoilerDisplayModel(); // the saved model choice for fw/config/boiler_profile (BoilerDisplaySelection.h)
 		route("/config/hardware", [this]() { configHardware(); });
 		route("/hardware/i2c/scan", HTTP_GET, [this]() { i2cScan(); });
 		route("/hardware/test/gpio", HTTP_POST, [this]() { gpioTestStart(); });

@@ -2535,6 +2535,18 @@
       },
       "hub_boiler_display_code": {
         "name": "Displaycode ketel"
+      },
+      "daily_summary": {
+        "name": "Dagoverzicht"
+      },
+      "daily_burner_time": {
+        "name": "Brandertijd"
+      },
+      "daily_burner_starts": {
+        "name": "Branderstarts"
+      },
+      "daily_missed_comfort": {
+        "name": "Gemiste comforttijd"
       }
     },
     "select": {
@@ -2799,6 +2811,10 @@
     "room_group_restored": {
       "title": "{room} staat weer op de integratiepagina",
       "description": "Je hebt de groep van de ruimte {room} onder {installation} verwijderd, maar {room} is nog een ruimte in het ruimteplan van de E32 en de E32 blijft die verwarmen. De groep, het apparaat en de entiteiten zijn teruggezet met dezelfde namen, gebieden en geschiedenis. Wil je de ruimte verwijderen, open dan {installation} → Configureren → Ruimtes → Ruimte bewerken of verwijderen, kies {room} en verwijder hem daar. Je kunt deze melding negeren."
+    },
+    "heating_problem": {
+      "title": "Verwarming vraagt aandacht",
+      "description": "{reason}\n\nDeze melding verdwijnt vanzelf zodra de oorzaak weg is."
     }
   },
   "services": {

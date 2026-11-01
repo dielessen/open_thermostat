@@ -1094,3 +1094,6 @@ async def async_setup_heating_advice(hass, entry, async_add_entities, options, h
     # Gas for heating and for hot water (Energy dashboard); its sensors appear once the boiler reports.
     from .energy_use import async_setup_energy_use
     await async_setup_energy_use(hass, entry, async_add_entities, options, hub, connection)
+    # What the heating did each day (burner, rooms, outdoor); its sensors appear once the boiler reports.
+    from .daily_summary import async_setup_daily_summary
+    await async_setup_daily_summary(hass, entry, async_add_entities, options, hub, connection)

@@ -1607,6 +1607,18 @@
       },
       "hub_boiler_display_code": {
         "name": "Kod wyświetlacza kotła"
+      },
+      "daily_summary": {
+        "name": "Podsumowanie dnia"
+      },
+      "daily_burner_time": {
+        "name": "Czas pracy palnika"
+      },
+      "daily_burner_starts": {
+        "name": "Starty palnika"
+      },
+      "daily_missed_comfort": {
+        "name": "Utracony czas komfortu"
       }
     },
     "select": {
@@ -2799,6 +2811,10 @@
     "room_group_restored": {
       "title": "{room} wróciło na stronę integracji",
       "description": "Usunięto grupę pomieszczenia {room} w {installation}, ale {room} nadal jest pomieszczeniem w planie pomieszczeń E32 i E32 nadal je ogrzewa. Grupa, urządzenie i encje zostały przywrócone z tymi samymi nazwami, obszarami i historią. Aby usunąć pomieszczenie, otwórz {installation} → Konfiguruj → Pomieszczenia → Edytuj lub usuń pomieszczenie, wybierz {room} i usuń je tam. Możesz zignorować ten komunikat."
+    },
+    "heating_problem": {
+      "title": "Ogrzewanie wymaga uwagi",
+      "description": "{reason}\n\nTo zgłoszenie zniknie samo, gdy przyczyna ustąpi."
     }
   },
   "services": {

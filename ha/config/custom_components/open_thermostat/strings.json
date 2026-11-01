@@ -1607,6 +1607,18 @@
       },
       "hub_boiler_display_code": {
         "name": "Boiler display code"
+      },
+      "daily_summary": {
+        "name": "Daily summary"
+      },
+      "daily_burner_time": {
+        "name": "Burner time"
+      },
+      "daily_burner_starts": {
+        "name": "Burner starts"
+      },
+      "daily_missed_comfort": {
+        "name": "Missed comfort time"
       }
     },
     "select": {
@@ -2799,6 +2811,10 @@
     "room_group_restored": {
       "title": "{room} is back on the integration page",
       "description": "You deleted the group of the room {room} under {installation}, but {room} is still a room in the E32 room plan, and the E32 keeps heating it. Its group, device and entities have been restored with the same names, areas and history. To remove the room, open {installation} → Configure → Rooms → Edit or remove a room, choose {room} and remove it there. You can dismiss this message."
+    },
+    "heating_problem": {
+      "title": "Heating needs attention",
+      "description": "{reason}\n\nThis message clears itself once the cause is gone."
     }
   },
   "services": {

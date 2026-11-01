@@ -2655,6 +2655,27 @@
         }
       }
     },
+    "reconfirm_takeover": {
+      "title": "Confirm the takeover again",
+      "fix_flow": {
+        "step": {
+          "reconfirm_takeover": {
+            "title": "Confirm the takeover again",
+            "description": "The E32 controlled your boiler before its firmware was updated. For safety the new firmware does not take over again until you confirm once more that your old thermostat is still disconnected from the boiler. Until then the E32 only keeps frost protection, and only while no other thermostat is heard on the bus.\n\nConfirm only if the old thermostat is disconnected: two controllers must never be connected at the same time. To hand back instead, open the E32 Rooms page → Active control → Hand back to the thermostat."
+          }
+        },
+        "error": {
+          "reconfirm_not_released": "This E32 firmware does not allow active control. Nothing was changed.",
+          "reconfirm_unconfirmed": "The E32 did not confirm the takeover. Check the E32 Rooms page → Active control.",
+          "e32_unreachable": "The E32 cannot be reached right now. Try again in a moment."
+        },
+        "abort": {
+          "reconfirm_done": "The E32 no longer waits for a confirmation.",
+          "reconfirm_plan_not_active": "The room plan is no longer active, so there is nothing to confirm.",
+          "e32_rooms_unavailable": "The E32 rooms cannot be read right now. Try again in a moment."
+        }
+      }
+    },
     "device_own_schedule": {
       "title": "{device} seems to run its own schedule",
       "description": "The target of {device} (room {room}) changed by itself at the same time on several days. Turn off its own schedule (set it to manual mode), so the E32 week program decides; the device then follows it, and turning it changes the room until the next switch point."

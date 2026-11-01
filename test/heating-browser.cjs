@@ -138,8 +138,19 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(posts.at(-1).revision,5);
   const room=root.locator('[data-heating-room="woonkamer"]');
   assert.match(await room.locator(':scope>summary').innerText(),/^Living\s+Vraagt warmte\s+20,4 °C\s+Gewenst 21,0 °C\s+Gewenste temperatuur uit het weekprogramma$/);
-  // Prefill of the Home Assistant week: weekdays differ from the weekend, so one row per day.
+  // A saved room's blocks start closed, each with a one-line summary; the choice is remembered in this browser.
   await room.evaluate(e=>e.open=true);
+  const blocks=room.locator('[data-heating-section]'),brief=key=>room.locator(`[data-heating-section="${key}"] [data-heating-section-brief]`).innerText();
+  assert.deepEqual(await blocks.evaluateAll(b=>b.map(x=>[x.dataset.heatingSection,x.open])),[['temperature',false],['week',false],['windows',false],['persons',false]]);
+  assert.equal(await room.getByLabel('Weekprogramma gebruiken').isVisible(),false,'closed blocks hide their fields');
+  assert.match(await brief('temperature'),/^climate\.woonkamer \+ .+ · 20,4 °C$/);
+  assert.match(await brief('week'),/^(Comfort .+ · Eco .+ · Nacht .+|\d+ schakelpunten)$/);
+  assert.equal(await brief('windows'),'Geen contacten');assert.equal(await brief('persons'),'Iedereen');
+  await room.locator('[data-heating-section="week"]>summary').click();
+  assert.equal(await room.getByLabel('Weekprogramma gebruiken').isVisible(),true);
+  await page.waitForFunction(()=>localStorage.getItem('ot.room.woonkamer.week')==='1'); // the toggle event follows the click
+  // Prefill of the Home Assistant week: weekdays differ from the weekend, so one row per day.
+  await room.evaluate(e=>{e.open=true;for(const d of e.querySelectorAll('[data-heating-section]'))d.open=true;});
   const program=room.locator('[data-heating-week]'),points=()=>program.locator('[data-heating-day]').evaluateAll(days=>days.map(d=>[d.querySelector('strong').textContent,
    ...[...d.querySelectorAll('[data-heating-point]')].map(p=>[...p.querySelectorAll('input')].map(i=>i.value).join(' '))]));
   assert.match(await program.locator('legend').innerText(),/^Weekprogramma \(gebruikt als Home Assistant geen gewenste temperatuur geeft\)$/);
@@ -155,10 +166,10 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   status.rooms[0].setpoint_source='ha';
   // Week program editor: saves re-render the cards, so wait for the new card and open it.
   const save=async text=>{await room.evaluate(e=>e.dataset.old='1');await root.locator('[data-heating-save]').click();await root.getByText(text).waitFor();
-   await root.locator('[data-heating-room="woonkamer"]:not([data-old])').waitFor({state:'attached'});await room.evaluate(e=>e.open=true);};
+   await root.locator('[data-heating-room="woonkamer"]:not([data-old])').waitFor({state:'attached'});await room.evaluate(e=>{e.open=true;for(const d of e.querySelectorAll('[data-heating-section]'))d.open=true;});};
   const refused=async text=>{const n=posts.length;await root.locator('[data-heating-save]').click();await root.getByText(text,{exact:true}).waitFor();return posts.length-n;};
   const fillPoint=async(i,time,temp)=>{const p=program.locator('[data-heating-point]').nth(i);await p.locator('input[type=time]').fill(time);await p.locator('input[type=number]').fill(temp);};
-  await room.evaluate(e=>e.open=true);
+  await room.evaluate(e=>{e.open=true;for(const d of e.querySelectorAll('[data-heating-section]'))d.open=true;});
   await program.getByLabel('Weekprogramma gebruiken').uncheck();
   assert.equal(await program.locator('[data-heating-point]').first().isVisible(),false,'editor hidden when off');
   await save('Ruimtes opgeslagen.');

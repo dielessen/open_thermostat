@@ -269,6 +269,25 @@
     ],
     "control_qualified": false
   },
+  "adapter_left_empty": {
+    "observed_on": "2026-11-01",
+    "scope": "Passive monitor samples and a 4-hour 0x18 byte-7 log; E32 active route requesting 42-55 degC",
+    "evidence": [
+      "0x18 byte 0 (selected flow) read 0 while the boiler heated to the E32 request (measured flow rising, display -H, modulation 37-49 %)",
+      "0x18 byte 7 burner bit 0x01 (field 7) and 3-way valve bit 0x40 (field 36) stayed 0 throughout the 4-hour log (16:52-20:51 UTC), also during a 4-minute tap at 20:00 UTC (dhw_active 1, DHW temperature down to 27 degC, modulation up to 100 %)"
+    ],
+    "not_reported": [
+      "reported_selected_flow_temperature",
+      "raw_burner_bit",
+      "raw_dhw_valve_bit"
+    ],
+    "same_rule_not_logged": [
+      "raw_fan_bit",
+      "raw_pump_bit"
+    ],
+    "classification": "Generic firmware rule since release 1.0 (BOILER-PROFILE.en.md, Left empty): a 0 contradicted by the same frame's modulation or state byte in >= 10 frames over >= 10 min makes the field not_reported; nothing in the firmware names this boiler or adapter",
+    "burner_on_source": "state byte 5 (0x08) and modulation, not byte 7"
+  },
   "display_codes": {
     "schema": 1,
     "catalog_ids": [

@@ -54,6 +54,14 @@ function snapshot(){return {reception:{state:'classic_reports_received'},transpo
   data=snapshot();data.fields.safe_text=sample('<img src=x onerror=alert(1)>','text');await page.locator('#ems-search').fill('');await refresh();
   assert.equal(await page.locator('#ems-device-list img').count(),0);assert.match(await boiler.innerText(),/<img/);
   data.inventory.devices[0].product_id=null;await refresh();assert(!/EasyControl/.test(await boiler.locator('summary').first().innerText()));
+  // Release 1.0: a value the boiler leaves at 0 while it works reads "not reported", never 0 or "off".
+  data=snapshot();data.fields.reported_selected_flow_temperature=sample(null,'degC',{state:'not_reported'});
+  data.fields.raw_burner_bit=sample(null,'bool',{state:'not_reported',quality:'unreliable'});await refresh();
+  for(const id of ['reported_selected_flow_temperature','raw_burner_bit']){
+   const row=boiler.locator(`[data-field="${id}"]`);await row.waitFor();
+   assert.equal((await row.locator('.ems-value').innerText()).trim(),lang==='nl'?'Niet gemeld':'Not reported',id);
+   assert(!/\b0 °C|\bOff\b|\bUit\b/.test(await row.innerText()),id);
+  }
   // A room thermostat with table-driven entities gets its own read-only card.
   data=snapshot();data.inventory.devices.push({address:16,frames:3,age_ms:300,product_id:null,version:null,brand_id:null,untracked_types:0,telegram_types:[177]});
   data.ems_entities={schema:1,reference:'emsesp_offsets',verified_on_hardware:false,devices:[{address:16,entities:[

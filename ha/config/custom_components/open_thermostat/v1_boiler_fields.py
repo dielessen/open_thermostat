@@ -169,12 +169,16 @@ def translated_fields():
 
 def plausible(cache, index):
     """A real value: acquired and valid. An unreliable field's zero is no evidence:
-    adapters such as EasyControl fill unsupported counter/bit bytes with 00."""
+    adapters such as EasyControl fill unsupported counter/bit bytes with 00. Nor is
+    the zero of a field the boiler profile lists as not reported: since E32 1.0 that
+    also means the boiler leaves it at 0 while it works (a selected flow of 0 while
+    it heats), and a value it reports at all makes the field supported on the E32."""
     record = cache.records.get(index)
     if record is None:
         return False
     _, raw, observed, field_quality, _ = record[0]
-    return observed is not None and raw is not None and (field_quality != 1 or raw != 0)
+    return (observed is not None and raw is not None and (field_quality != 1 or raw != 0)
+            and not (raw == 0 and cache.field_state(index) == "not_reported"))
 
 
 def concept_name(index):
@@ -749,6 +753,7 @@ class BoilerFieldEntity(SensorEntity):
         reason = ("session_unavailable" if not live and not self.client.ready else
                   "capability_unavailable" if not live else
                   "not_fitted" if profile == "not_fitted" and not (value and value["usable"]) else
+                  "not_reported" if profile == "not_reported" and not (value and value["usable"]) else
                   value["availability_reason"] if value else "not_received")
         return {"data_role":"read_only_boiler_field", "control_qualified":False,
                 "field_name":name, "raw_divisor":divisor, "source_ttl_ms":ttl,

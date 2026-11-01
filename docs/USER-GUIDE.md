@@ -104,6 +104,7 @@ values your boiler has (**Values available**), which it does not have (**Not
 fitted on this boiler**) and which have not come in yet (**Not reported
 (yet)**). Home Assistant only creates entities for values the boiler has;
 **Show anyway** reveals a value the boiler marks as not fitted.
+A value that stays 0 for at least 10 minutes while the boiler is working (the Bosch EasyControl Adapter, for example, leaves the selected flow temperature and the burner and 3-way valve bits at 0) is listed as **not reported** ("stays 0 while the boiler works") and shown as "Not reported" instead of 0 or "off"; Home Assistant hides its entity.
 
 ### 4. Pair a Bluetooth thermometer
 

@@ -1043,6 +1043,8 @@
     const li = document.createElement('li'), name = document.createElement('span');
     name.textContent = label(field.name); li.append(name);
     if (field.state === 'unknown') { const s = document.createElement('small'); s.textContent = ' · ' + uiText("seen, too few messages yet"); li.append(s); }
+    // Not reported although its message arrives: the boiler (or its adapter) leaves it at 0 while it works.
+    if (field.left_empty === true) { const s = document.createElement('small'); s.textContent = ' · ' + uiText("stays 0 while the boiler works"); li.append(s); }
     if (field.state === 'not_fitted') {
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'btn btn-sm btn-outline-secondary';

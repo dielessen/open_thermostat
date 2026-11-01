@@ -25,11 +25,38 @@ Each field has one of four states:
 |---|---|
 | `supported` | At least one valid value was seen. This state is sticky: a sensor that fails later reads unavailable, not "not fitted". |
 | `not_fitted` | The telegram that carries the field arrived at least 10 times over at least 10 minutes, and every time the decoder found no value. |
-| `not_reported` | The telegram that carries the field has never been seen. Some telegrams only arrive when another controller asks for them, or only in some states (for example a fault record). |
+| `not_reported` | The telegram that carries the field has never been seen. Some telegrams only arrive when another controller asks for them, or only in some states (for example a fault record). Since release 1.0 also a field the boiler **leaves empty**: see below. |
 | `unknown` | The telegram was seen, but there are too few observations to decide. |
 
 A field becomes `supported` as soon as one valid value arrives, even if it was
 `not_fitted` before. A sensor fitted later therefore shows up automatically.
+
+### Left empty (release 1.0)
+
+Some adapters pass a telegram on but never fill some of its bytes. On the
+owner's boiler behind a Bosch EasyControl Adapter, UBAMonitorFast (0x18) byte 0
+(selected flow) and the burner and 3-way valve flags of byte 7 stay 0 while the
+same frame reports the burner modulating and heating or hot water. Shown as a value, that is a selected flow of 0 °C and a burner "off".
+
+The decoder therefore checks a 0 of these fields against the activity the same
+frame reports (`FieldEvidence::unfilled`):
+
+| Field | A 0 contradicts |
+|---|---|
+| `reported_selected_flow_temperature` (byte 0) | heating active (state byte 5 has 0x09) |
+| `raw_burner_bit`, `raw_fan_bit` (byte 7: 0x01, 0x04) | burner modulation (byte 4) of 1..100 % |
+| `raw_pump_bit` (byte 7: 0x20) | heating active |
+| `raw_dhw_valve_bit` (byte 7: 0x40) | hot water active (state byte 5 has 0x0A) |
+
+A field whose 0 was contradicted in at least 10 frames over at least 10 minutes,
+and that never held a real value, is **left empty**: its state reads
+`not_reported`, the status adds `"left_empty": true`, and the E32 publishes no
+value for it (`null` in the boiler-field groups, the legacy status and
+`/status/ems/telemetry`, where its state reads `not_reported`). The E32 pages say
+"Not reported"; Home Assistant hides it like any value this boiler lacks. One
+real value (a non-zero byte) makes the field `supported` again for good. An
+idle 0 proves nothing either way, so a boiler that reports these fields loses
+nothing. The raw bytes stay available to the attended boiler test.
 
 ## Sentinel rules per field type
 
@@ -70,17 +97,19 @@ The E32 never sends anything on the bus for this.
 
 ## Persistence
 
-NVS namespace `ot_boiler`, key `profile`: one blob of about 50 bytes. It holds the
-identity, 2 bits of state per field, 1 "show anyway" bit per field, and the
-`settled` flag. A record written by older firmware with fewer catalog fields
-restores those fields, because the catalog only grows at its end. Any other
-invalid record is ignored.
+NVS namespace `ot_boiler`, key `profile`: one blob of about 65 bytes (schema 2). It
+holds the identity, 2 bits of state per field, 1 "show anyway" bit per field, 1
+"left empty" bit per field, and the `settled` flag. A record written by older
+firmware with fewer catalog fields restores those fields, because the catalog
+only grows at its end. A schema-1 record (before release 1.0) restores too, but
+its `supported` selected flow restores as `unknown`: that firmware counted the
+adapter's 0 as a value. Any other invalid record is ignored.
 
 Writes happen only after a classification change. Once nothing has changed for
 30 seconds the record is written, and then at most once every 5 minutes. An
 owner's "show anyway" is written at once. Each field moves at most
-not_reported → unknown → not_fitted → supported, so writes stay few even on a
-new boiler.
+not_reported → unknown → not_fitted → supported, and becomes left empty at most
+once, so writes stay few even on a new boiler.
 
 The profile is `settled` once the boiler has been heard for the not-fitted span
 (10 minutes). The flag is persisted.
@@ -88,7 +117,7 @@ The profile is `settled` once the boiler has been heard for the not-fitted span
 ## Interfaces
 
 - `GET /status/boiler/profile`: the identity, rules, counts, `settled`, write
-  statistics, and per field `{index, name, state, last_valid_age_s, shown_anyway?}`.
+  statistics, and per field `{index, name, state, last_valid_age_s, shown_anyway?, left_empty?}`.
 - `POST /config/boiler-profile` `{"index": n, "show": bool}`: the owner's
   "show anyway" for a `not_fitted` field. HA then treats it as supported.
 - MQTT, retained `fw/config/boiler_profile` (under 1 KB): `{"schema":1,
@@ -114,7 +143,7 @@ An EMS+ field and its Classic twin are one value (F28). Their combined state is
 | supported | Created at once, also before HA saw the value (no gap after a restart). |
 | unknown | Created on the first real value, as without a profile. |
 | not_fitted | Never created. An existing record is removed if the user never touched it (no name, icon, area, label, hidden or user-disabled state) and it never delivered a real value (`REPORTED`). Otherwise it stays, unavailable, with `availability_reason: not_fitted`. |
-| not_reported | Created disabled once the profile is settled, and marked `not_reported_placeholder` so the setup cleanup keeps it. It is enabled and marked `REPORTED` on its first real value, and removed if it becomes not fitted. |
+| not_reported | Never created once the profile is settled. An existing record the user never touched is removed if it never delivered a real value, otherwise disabled and hidden (history kept); it comes back when the value becomes supported. A 0 of a not-reported field is no real value (a field left empty). Older placeholders (`not_reported_placeholder`) are removed. |
 
 Unique IDs never change. Without a profile (older firmware), nothing changes.
 Each entity's `boiler_profile` attribute names its state.

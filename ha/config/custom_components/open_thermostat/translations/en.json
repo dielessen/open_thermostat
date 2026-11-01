@@ -469,7 +469,9 @@
           "hot_water": "View hot water status",
           "graph_prepare": "Review or recover room plan",
           "legacy_rooms": "Remove old Home Assistant rooms",
-          "installation": "Water limits of the old room profile"
+          "installation": "Water limits of the old room profile",
+          "entity_ids": "Tidy entity IDs",
+          "entity_ids_undo": "Undo the entity ID tidy"
         }
       },
       "edit_room": {
@@ -697,6 +699,21 @@
         "title": "E32 connected",
         "description": "The E32 is connected and has no rooms yet. Next: your first room. It needs a name and one temperature source: a sensor or thermostat in Home Assistant, or a Bluetooth sensor paired on the E32. A setting device and a week program are optional; a room saved without a program starts with the \"Workdays and weekend\" template, which you can change later. Home Assistant does not switch heating outputs on.",
         "submit": "Add the first room"
+      },
+      "entity_ids": {
+        "title": "Tidy entity IDs",
+        "description": "Optional. The new IDs are the ones Home Assistant itself would give these entities today. History and statistics move along with them. {count} entities can get a shorter ID; {used} of them are used in your automations, scripts or dashboards.\n\nWarning: an automation, script or dashboard that uses an old ID stops working until you change it. OpenThermostat's own dashboard follows by itself. You can undo this for {days} days. Other places, such as templates in YAML and other integrations, are not searched.\n\n{preview}",
+        "data": {
+          "scope": "Which entities",
+          "confirm": "I have read the list and want to rename these entities"
+        }
+      },
+      "entity_ids_undo": {
+        "title": "Undo the entity ID tidy",
+        "description": "{count} entities get their previous ID back (where it is still free). History moves along with them.",
+        "data": {
+          "confirm": "Put the old IDs back"
+        }
       }
     },
     "error": {
@@ -832,7 +849,8 @@
       "controller_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
       "controller_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again.",
       "controller_readback_unconfirmed": "The E32 did not send back its current room settings within 90 seconds, so this save is not confirmed. Check that the E32 is online and connected to the MQTT broker, then try again.",
-      "contact_delay_invalid": "The pause delay lies between 0 and 30 minutes."
+      "contact_delay_invalid": "The pause delay lies between 0 and 30 minutes.",
+      "entity_ids_confirm": "Tick the box to confirm."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -889,7 +907,10 @@
       "e32_password_changed": "The E32 no longer accepts the saved password. Home Assistant asks for the new one: Settings → Devices & services → OpenThermostat → Re-authenticate.",
       "legacy_rooms_removed": "The old Home Assistant rooms have been removed. The E32 stays connected with {rooms} room(s) in its plan.",
       "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
-      "legacy_rooms_cancelled": "Cancelled. Choose Configure → Connect E32 to check the connection; some settings may already be saved on the E32."
+      "legacy_rooms_cancelled": "Cancelled. Choose Configure → Connect E32 to check the connection; some settings may already be saved on the E32.",
+      "entity_ids_nothing": "All OpenThermostat entity IDs already match what Home Assistant would give them.",
+      "entity_ids_done": "{count} entity IDs renamed. Update these places yourself:\n\n{todo}",
+      "entity_ids_undone": "{count} entity IDs are back to their old names."
     },
     "progress": {
       "controller_connect": "Connecting to the E32…",
@@ -2636,6 +2657,12 @@
       "options": {
         "edit": "Edit room",
         "remove": "Remove room"
+      }
+    },
+    "entity_ids_scope": {
+      "options": {
+        "unused": "Only entities that are not used anywhere",
+        "all": "All, I will update the places where they are used"
       }
     }
   },

@@ -469,7 +469,9 @@
           "hot_water": "Pokaż stan ciepłej wody",
           "graph_prepare": "Przejrzyj lub odzyskaj plan pomieszczeń",
           "legacy_rooms": "Usuń stare pomieszczenia Home Assistant",
-          "installation": "Limity wody starego profilu pomieszczeń"
+          "installation": "Limity wody starego profilu pomieszczeń",
+          "entity_ids": "Uporządkuj identyfikatory encji",
+          "entity_ids_undo": "Cofnij porządkowanie identyfikatorów"
         }
       },
       "edit_room": {
@@ -697,6 +699,21 @@
         "title": "E32 połączony",
         "description": "E32 jest połączony i nie ma jeszcze pomieszczeń. Dalej: pierwsze pomieszczenie. Potrzebuje nazwy i jednego źródła temperatury: czujnika lub termostatu w Home Assistant albo czujnika Bluetooth sparowanego z E32. Urządzenie nastawcze i program tygodniowy są opcjonalne; pomieszczenie zapisane bez programu zaczyna od szablonu \"Dni robocze i weekend\", który możesz później zmienić. Home Assistant nie włącza wyjść grzewczych.",
         "submit": "Dodaj pierwsze pomieszczenie"
+      },
+      "entity_ids": {
+        "title": "Uporządkuj identyfikatory encji",
+        "description": "Opcjonalne. Nowe identyfikatory to te, które Home Assistant nadałby tym encjom dzisiaj. Historia i statystyki są przenoszone. {count} encji może dostać krótszy identyfikator; {used} z nich jest używanych w automatyzacjach, skryptach lub pulpitach.\n\nUwaga: automatyzacja, skrypt lub pulpit ze starym identyfikatorem przestaje działać, dopóki go nie zmienisz. Własny pulpit OpenThermostat dostosuje się sam. Możesz to cofnąć przez {days} dni. Inne miejsca, takie jak szablony w YAML i inne integracje, nie są przeszukiwane.\n\n{preview}",
+        "data": {
+          "scope": "Które encje",
+          "confirm": "Przeczytałem listę i chcę zmienić nazwy tych encji"
+        }
+      },
+      "entity_ids_undo": {
+        "title": "Cofnij porządkowanie identyfikatorów",
+        "description": "{count} encji odzyska poprzedni identyfikator (jeśli jest wolny). Historia zostanie przeniesiona.",
+        "data": {
+          "confirm": "Przywróć stare identyfikatory"
+        }
       }
     },
     "error": {
@@ -832,7 +849,8 @@
       "controller_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
       "controller_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie.",
       "controller_readback_unconfirmed": "E32 nie odesłał swoich bieżących ustawień pomieszczeń w ciągu 90 sekund, więc ten zapis nie jest potwierdzony. Sprawdź, czy E32 jest online i połączony z brokerem MQTT, a potem spróbuj ponownie.",
-      "contact_delay_invalid": "Opóźnienie pauzy wynosi od 0 do 30 minut."
+      "contact_delay_invalid": "Opóźnienie pauzy wynosi od 0 do 30 minut.",
+      "entity_ids_confirm": "Zaznacz pole, aby potwierdzić."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -889,7 +907,10 @@
       "e32_password_changed": "E32 nie akceptuje już zapisanego hasła. Home Assistant prosi o nowe: Ustawienia → Urządzenia i usługi → OpenThermostat → Uwierzytelnij ponownie.",
       "legacy_rooms_removed": "Stare pomieszczenia Home Assistant zostały usunięte. E32 pozostaje połączony; w jego planie są pomieszczenia: {rooms}.",
       "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
-      "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połącz E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32."
+      "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połącz E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32.",
+      "entity_ids_nothing": "Wszystkie identyfikatory encji OpenThermostat są już takie, jakie nadałby Home Assistant.",
+      "entity_ids_done": "Zmieniono {count} identyfikatorów encji. Zaktualizuj samodzielnie te miejsca:\n\n{todo}",
+      "entity_ids_undone": "{count} identyfikatorów encji wróciło do starych nazw."
     },
     "progress": {
       "controller_connect": "Łączenie z E32…",
@@ -2636,6 +2657,12 @@
       "options": {
         "edit": "Edytuj pomieszczenie",
         "remove": "Usuń pomieszczenie"
+      }
+    },
+    "entity_ids_scope": {
+      "options": {
+        "unused": "Tylko encje, które nigdzie nie są używane",
+        "all": "Wszystkie, sam zaktualizuję miejsca użycia"
       }
     }
   },

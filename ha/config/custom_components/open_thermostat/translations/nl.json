@@ -925,6 +925,12 @@
         "edit": "Ruimte bewerken",
         "remove": "Ruimte verwijderen"
       }
+    },
+    "entity_ids_scope": {
+      "options": {
+        "unused": "Alleen entiteiten die nergens gebruikt worden",
+        "all": "Alle, ik pas de plekken waar ze gebruikt worden zelf aan"
+      }
     }
   },
   "config": {
@@ -1397,7 +1403,9 @@
           "hot_water": "Tapwaterstatus bekijken",
           "graph_prepare": "Ruimteplan controleren en herstellen",
           "legacy_rooms": "Oude Home Assistant-ruimtes verwijderen",
-          "installation": "Watergrenzen van het oude ruimteprofiel"
+          "installation": "Watergrenzen van het oude ruimteprofiel",
+          "entity_ids": "Entiteit-ID's opruimen",
+          "entity_ids_undo": "Opruimen van entiteit-ID's terugzetten"
         }
       },
       "edit_room": {
@@ -1625,6 +1633,21 @@
         "title": "E32 verbonden",
         "description": "De E32 is verbonden en heeft nog geen ruimtes. Volgende stap: je eerste ruimte. Die heeft een naam en één temperatuurbron nodig: een sensor of thermostaat in Home Assistant, of een Bluetooth-sensor die aan de E32 gekoppeld is. Een instelapparaat en een weekprogramma zijn optioneel; een ruimte zonder programma begint met het sjabloon \"Werkdagen en weekend\", dat je later kunt aanpassen. Home Assistant schakelt geen verwarmingsuitgangen in.",
         "submit": "Eerste ruimte toevoegen"
+      },
+      "entity_ids": {
+        "title": "Entiteit-ID's opruimen",
+        "description": "Optioneel. De nieuwe ID's zijn de ID's die Home Assistant deze entiteiten vandaag zelf zou geven. Historie en statistieken verhuizen mee. {count} entiteiten kunnen een kortere ID krijgen; {used} daarvan worden gebruikt in je automatiseringen, scripts of dashboards.\n\nLet op: een automatisering, script of dashboard met een oude ID werkt niet meer tot je die aanpast. Het eigen dashboard van OpenThermostat past zich vanzelf aan. Je kunt dit {days} dagen terugzetten. Andere plekken, zoals templates in YAML en andere integraties, worden niet doorzocht.\n\n{preview}",
+        "data": {
+          "scope": "Welke entiteiten",
+          "confirm": "Ik heb de lijst gelezen en wil deze entiteiten hernoemen"
+        }
+      },
+      "entity_ids_undo": {
+        "title": "Opruimen van entiteit-ID's terugzetten",
+        "description": "{count} entiteiten krijgen hun vorige ID terug (waar die nog vrij is). Historie verhuist mee.",
+        "data": {
+          "confirm": "Zet de oude ID's terug"
+        }
       }
     },
     "error": {
@@ -1760,7 +1783,8 @@
       "controller_session_capacity": "De E32 heeft te veel open aanmeldingen. Meld je af op de webpagina van de E32 (of meld je daar aan met “Eerdere websessies beëindigen en aanmelden”) of herstart de E32, en probeer het daarna opnieuw.",
       "controller_try_again_later": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw.",
       "controller_readback_unconfirmed": "De E32 heeft zijn huidige ruimte-instellingen niet binnen 90 seconden teruggestuurd, dus deze opslag is niet bevestigd. Controleer of de E32 online is en met de MQTT-broker verbonden is, en probeer het daarna opnieuw.",
-      "contact_delay_invalid": "De pauzevertraging ligt tussen 0 en 30 minuten."
+      "contact_delay_invalid": "De pauzevertraging ligt tussen 0 en 30 minuten.",
+      "entity_ids_confirm": "Vink het vakje aan om te bevestigen."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",
@@ -1817,7 +1841,10 @@
       "e32_password_changed": "De E32 accepteert het bewaarde wachtwoord niet meer. Home Assistant vraagt om het nieuwe: Instellingen → Apparaten en diensten → OpenThermostat → Opnieuw verifiëren.",
       "legacy_rooms_removed": "De oude Home Assistant-ruimtes zijn verwijderd. De E32 blijft verbonden met {rooms} ruimte(s) in zijn plan.",
       "legacy_rooms_none": "Er zijn geen oude Home Assistant-ruimtes om te verwijderen.",
-      "legacy_rooms_cancelled": "Geannuleerd. Kies Configureren → E32 verbinden om de verbinding te controleren; sommige instellingen kunnen al op de E32 zijn opgeslagen."
+      "legacy_rooms_cancelled": "Geannuleerd. Kies Configureren → E32 verbinden om de verbinding te controleren; sommige instellingen kunnen al op de E32 zijn opgeslagen.",
+      "entity_ids_nothing": "Alle entiteit-ID's van OpenThermostat zijn al zoals Home Assistant ze zou geven.",
+      "entity_ids_done": "{count} entiteit-ID's hernoemd. Pas deze plekken zelf aan:\n\n{todo}",
+      "entity_ids_undone": "{count} entiteit-ID's hebben hun oude naam terug."
     },
     "progress": {
       "controller_connect": "Verbinden met de E32…",

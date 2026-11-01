@@ -562,7 +562,61 @@ class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, Con
             options += ["graph_prepare", "graph_status"]
         if legacy_rooms_pending(entry):
             options.append("legacy_rooms")
+        from .entity_id_tidy import async_undo_available
+        options.append("entity_ids")
+        if await async_undo_available(self.hass, entry):
+            options.append("entity_ids_undo")
         return self.async_show_menu(step_id="advanced_settings", menu_options=options)
+
+    async def async_step_entity_ids(self, user_input=None):
+        """Optional tidy of long entity IDs: a preview of every old -> new pair and where it is used,
+        then rename on explicit confirmation (entity_id_tidy)."""
+        from homeassistant.helpers import selector
+        from . import entity_id_tidy as tidy
+        plan = getattr(self, "_entity_id_plan", None)
+        if plan is None or user_input is None:
+            plan = self._entity_id_plan = await tidy.async_plan(self.hass, self.config_entry)
+        if not plan.renames:
+            return self.async_abort(reason="entity_ids_nothing")
+        errors = {}
+        scope = (user_input or {}).get("scope", "unused")
+        if user_input is not None:
+            if not user_input.get("confirm"):
+                errors["base"] = "entity_ids_confirm"
+            else:
+                chosen = plan.unused if scope == "unused" else plan.renames
+                done = await tidy.async_apply(self.hass, self.config_entry, chosen)
+                todo = [f"- {r.old} → {r.new}: {', '.join(r.used_in)}" for r in chosen if r.used_in and r.new in done]
+                self._entity_id_plan = None
+                return self.async_abort(reason="entity_ids_done", description_placeholders={
+                    "count": str(len(done)), "todo": "\n".join(todo) or "-"})
+        schema = vol.Schema({
+            vol.Required("scope", default=scope): selector.SelectSelector(selector.SelectSelectorConfig(
+                options=["unused", "all"], translation_key="entity_ids_scope",
+                mode=selector.SelectSelectorMode.LIST)),
+            vol.Required("confirm", default=False): selector.BooleanSelector(),
+        })
+        return self.async_show_form(step_id="entity_ids", data_schema=schema, errors=errors,
+            description_placeholders={"count": str(len(plan.renames)),
+                                      "used": str(len(plan.renames) - len(plan.unused)),
+                                      "days": str(tidy.UNDO_DAYS), "preview": tidy.preview_text(plan, False)})
+
+    async def async_step_entity_ids_undo(self, user_input=None):
+        from homeassistant.helpers import selector
+        from . import entity_id_tidy as tidy
+        available = await tidy.async_undo_available(self.hass, self.config_entry)
+        if not available:
+            return self.async_abort(reason="entity_ids_nothing")
+        errors = {}
+        if user_input is not None:
+            if not user_input.get("confirm"):
+                errors["base"] = "entity_ids_confirm"
+            else:
+                undone = await tidy.async_undo(self.hass, self.config_entry)
+                return self.async_abort(reason="entity_ids_undone", description_placeholders={"count": str(len(undone))})
+        return self.async_show_form(step_id="entity_ids_undo", errors=errors,
+            data_schema=vol.Schema({vol.Required("confirm", default=False): selector.BooleanSelector()}),
+            description_placeholders={"count": str(len(available))})
 
 
 def main_menu(entry):

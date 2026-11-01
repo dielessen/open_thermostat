@@ -512,6 +512,7 @@ class E32RoomFlow:
         is guessed from the device's model id (the installer can always correct it).
         """
         from homeassistant.helpers import device_registry as dr
+        from .e32_valves import guess_model
         found = []
         registry = dr.async_get(self.hass)
         devices = [d for mqtt in self.hass.config_entries.async_entries("mqtt")
@@ -523,19 +524,29 @@ class E32RoomFlow:
             if not valid_valve_name(name) or name.startswith("Zigbee2MQTT"):
                 continue
             text = " ".join(str(v or "") for v in (device.manufacturer, device.model, getattr(device, "model_id", None))).lower()
-            model = ("bosch_bth_ra" if "bth-ra" in text or "bosch" in text and "thermostat" in text
-                     else "sonoff_trvzb" if "trvzb" in text else "tuya_tv02" if "tv02" in text else None)
+            model = guess_model(text)
             if model is not None or "thermostat" in text or "trv" in text or "valve" in text:
                 found.append((name, model))
         return sorted(found)
 
-    async def async_step_e32_room_valves(self, user_input=None):
-        """The room's radiator valves (Zigbee2MQTT friendly names and models) and its valve control.
+    def _e32_climate_exclusions(self, room, config, room_id):
+        """Climate entities that are no valve of this room: OpenThermostat's own, the room's
+        thermostat sources and the Home Assistant valves of other rooms."""
+        from .e32_valves import HA_MODEL
+        own = [e.entity_id for e in er.async_get(self.hass).entities.values() if e.platform == DOMAIN and e.domain == "climate"]
+        sources = [s["id"] for s in room.get("sources", []) if s.get("type") == "ha" and str(s.get("id", "")).startswith("climate.")]
+        others = [v["name"] for r in config["rooms"] if r["room"] != room_id for v in r["valves"] if v["model"] == HA_MODEL]
+        return list(dict.fromkeys(own + sources + others))
 
-        The E32 talks to Zigbee2MQTT itself; valve control stays off until switched on
+    async def async_step_e32_room_valves(self, user_input=None):
+        """The room's radiator valves and its valve control.
+
+        Zigbee2MQTT valves (friendly name and model): the E32 talks to Zigbee2MQTT itself.
+        Home Assistant valves (any climate entity, model ha_climate): Home Assistant drives
+        them on the E32's rules (ha_valves.py). Valve control stays off until switched on
         here or with the room's "Valve control" switch.
         """
-        from .e32_valves import MAX_VALVES, MAX_VALVES_PER_ROOM, MODELS, valve_link
+        from .e32_valves import HA_MODEL, MAX_VALVES, MAX_VALVES_PER_ROOM, ZIGBEE_MODELS, valid_entity, valve_link
         room_id = self._e32_room_id
         room = plan_room(self._e32_plan, room_id)
         if room is None:
@@ -556,6 +567,7 @@ class E32RoomFlow:
                 "error": (getattr(err, "translation_placeholders", None) or {}).get("error", "unknown")})
         current = next((r for r in config["rooms"] if r["room"] == room_id), {"control": False, "valves": []})
         known = self._e32_zigbee_valves()
+        excluded = self._e32_climate_exclusions(room, config, room_id)
         errors = {}
         if user_input is not None:
             valves, names = [], set()
@@ -568,12 +580,21 @@ class E32RoomFlow:
                     errors[f"valve_{k}"] = "e32_valve_name_invalid"
                 elif name in names or any(name == v["name"] for r in config["rooms"] if r["room"] != room_id for v in r["valves"]):
                     errors[f"valve_{k}"] = "e32_valve_duplicate"
-                elif model not in MODELS:
+                elif model not in ZIGBEE_MODELS:
                     errors[f"model_{k}"] = "e32_valve_model_missing"
                 names.add(name)
                 valves.append({"name": name, "model": model})
+            for name in user_input.get("ha_valves") or []:
+                if name in names or any(name == v["name"] for r in config["rooms"] if r["room"] != room_id for v in r["valves"]):
+                    errors["ha_valves"] = "e32_valve_duplicate"
+                elif not valid_entity(name) or name in excluded:
+                    errors["ha_valves"] = "e32_valve_entity_invalid"
+                names.add(name)
+                valves.append({"name": name, "model": HA_MODEL})
             others = sum(len(r["valves"]) for r in config["rooms"] if r["room"] != room_id)
-            if not errors and others + len(valves) > MAX_VALVES:
+            if not errors and len(valves) > MAX_VALVES_PER_ROOM:
+                errors["base"] = "e32_valve_room_limit"
+            elif not errors and others + len(valves) > MAX_VALVES:
                 errors["base"] = "e32_valve_limit"
             if not errors:
                 try:
@@ -585,7 +606,7 @@ class E32RoomFlow:
                     return await self.async_step_e32_rooms(done="saved", name=placeholders["name"])
         options = [{"value": name, "label": name if model is None else f"{name} ({model})"} for name, model in known]
         guessed = dict(known)
-        stored = current["valves"]
+        stored = [v for v in current["valves"] if v["model"] != HA_MODEL]
         fields = {vol.Required("control", default=current["control"]): bool}
         for k in range(1, MAX_VALVES_PER_ROOM + 1):
             valve = stored[k - 1] if k <= len(stored) else None
@@ -594,7 +615,13 @@ class E32RoomFlow:
             fields[vol.Optional(f"valve_{k}", description={"suggested_value": value or None})] = selector.SelectSelector(
                 {"options": options, "custom_value": True, "mode": "dropdown"})
             fields[vol.Optional(f"model_{k}", default=model)] = selector.SelectSelector(
-                {"options": list(MODELS), "translation_key": "e32_valve_model"})
+                {"options": list(ZIGBEE_MODELS), "translation_key": "e32_valve_model"})
+        # Any other valve Home Assistant controls (ZHA, Z-Wave, Shelly, cloud): its climate entity.
+        chosen = (user_input or {}).get("ha_valves", [v["name"] for v in current["valves"] if v["model"] == HA_MODEL])
+        climate = {"filter": [{"domain": "climate"}], "multiple": True}
+        if excluded:
+            climate["exclude_entities"] = excluded
+        fields[vol.Optional("ha_valves", description={"suggested_value": chosen or None})] = selector.EntitySelector(climate)
         placeholders["found"] = str(len(known))
         return self.async_show_form(step_id="e32_room_valves", data_schema=vol.Schema(fields),
                                     errors=errors, description_placeholders=placeholders)

@@ -714,7 +714,7 @@
       },
       "e32_room_valves": {
         "title": "Zawory grzejnikowe w {name}",
-        "description": "E32 wysyła cel i temperaturę pomieszczenia do tych zaworów przez Zigbee2MQTT i utrzymuje temperaturę zasilania kotła tak niską, jak pozwalają zawory. Wpisz nazwę każdego zaworu w Zigbee2MQTT (friendly name) lub wybierz jeden z {found} znalezionych oraz jego model. Sterowanie jest wyłączone, dopóki go nie włączysz; do tego czasu zawory nie dostają żadnych poleceń.",
+        "description": "Wybierz zawory grzejnikowe pomieszczenia. Zawory Zigbee2MQTT: wpisz nazwę każdego zaworu w Zigbee2MQTT (friendly name) lub wybierz jeden z {found} znalezionych oraz jego model; E32 sam wysyła im cel i temperaturę pomieszczenia i utrzymuje temperaturę zasilania kotła tak niską, jak pozwalają zawory. Każdy inny zawór sterowany przez Home Assistant (ZHA, Z-Wave, Shelly lub integracja chmurowa): wybierz jego encję climate w polu Zawory przez Home Assistant; Home Assistant wysyła mu wtedy cel pomieszczenia. Zawory Zigbee2MQTT działają dalej, gdy Home Assistant nie działa; zawory przez Home Assistant zachowują ostatnią nastawę, dopóki Home Assistant nie wróci. Sterowanie jest wyłączone, dopóki go nie włączysz; do tego czasu zawory nie dostają żadnych poleceń.",
         "data": {
           "control": "Sterowanie zaworami",
           "valve_1": "Zawór 1",
@@ -724,10 +724,11 @@
           "valve_3": "Zawór 3",
           "model_3": "Model zaworu 3",
           "valve_4": "Zawór 4",
-          "model_4": "Model zaworu 4"
+          "model_4": "Model zaworu 4",
+          "ha_valves": "Zawory przez Home Assistant"
         },
         "data_description": {
-          "control": "Wł.: E32 steruje tymi zaworami (tylko gdy sam steruje kotłem). Wył.: zawory zachowują własne ustawienia.",
+          "control": "Wł.: te zawory podążają za pomieszczeniem (tylko gdy E32 sam steruje kotłem). Wył.: zawory zachowują własne ustawienia.",
           "valve_1": "Nazwa w Zigbee2MQTT, np. \"Zawór salon\". Zostaw puste, jeśli nie ma zaworu.",
           "model_1": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
           "valve_2": "Kolejny zawór w tym pomieszczeniu, tak samo jak zawór 1. Zostaw puste, jeśli nie ma zaworu.",
@@ -735,7 +736,8 @@
           "valve_3": "Kolejny zawór w tym pomieszczeniu, tak samo jak zawór 1. Zostaw puste, jeśli nie ma zaworu.",
           "model_3": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
           "valve_4": "Kolejny zawór w tym pomieszczeniu, tak samo jak zawór 1. Zostaw puste, jeśli nie ma zaworu.",
-          "model_4": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście."
+          "model_4": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
+          "ha_valves": "Zawory grzejnikowe z dowolnej innej integracji jako encje climate (łącznie najwyżej 4 zawory na pomieszczenie). Gdy sterowanie jest włączone, Home Assistant ustawia je na cel pomieszczenia lub na 8 °C, gdy pomieszczenie jest wyłączone."
         }
       },
       "entity_ids": {
@@ -899,6 +901,8 @@
       "e32_valve_duplicate": "Ten zawór jest już używany (tutaj lub w innym pomieszczeniu).",
       "e32_valve_model_missing": "Wybierz model zaworu.",
       "e32_valve_limit": "E32 steruje najwyżej 16 zaworami grzejnikowymi.",
+      "e32_valve_entity_invalid": "Wybierz encję climate zaworu grzejnikowego (nie termostat OpenThermostat ani źródło temperatury tego pomieszczenia), z identyfikatorem encji do 64 znaków.",
+      "e32_valve_room_limit": "Pomieszczenie ma najwyżej 4 zawory grzejnikowe.",
       "e32_valves_rejected": "E32 odrzucił zawory grzejnikowe ({error}).",
       "entity_ids_confirm": "Zaznacz pole, aby potwierdzić.",
       "water_meter_unit": "Wybierz czujnik przepływu wody (L/min, L/h, m³/h) lub stan wodomierza (m³, L).",
@@ -2845,6 +2849,7 @@
       "options": {
         "bosch_bth_ra": "Bosch BTH-RA (położenie, temperatura zewnętrzna)",
         "sonoff_trvzb": "Sonoff TRVZB (temperatura zewnętrzna)",
+        "sonoff_trv_zbt": "Sonoff TRV Gen2 / TRV-ZBT (temperatura zewnętrzna)",
         "tuya_tv02": "Tuya TV02 (tylko nastawa)",
         "generic": "Inny (tylko nastawa)"
       }

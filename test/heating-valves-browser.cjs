@@ -11,9 +11,11 @@ const valve=(name,extra={})=>({name,model:'bosch_bth_ra',health:'ok',position_pc
  try{for(const [width,withValves] of [[1280,true],[320,true],[1280,false]]){
   const page=await browser.newPage({viewport:{width,height:900}}),errors=[],posts=[];
   const plan={schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[room]};
-  let record={schema:1,base_topic:'zigbee2mqtt',rooms:[{room:'woonkamer',control:false,valves:[{name:'Kraan woonkamer',model:'bosch_bth_ra'}]}]};
+  // A Zigbee2MQTT valve and one Home Assistant drives (ha_climate: its climate entity, health HA's to judge).
+  let record={schema:1,base_topic:'zigbee2mqtt',rooms:[{room:'woonkamer',control:false,valves:[{name:'Kraan woonkamer',model:'bosch_bth_ra'},
+    {name:'climate.trv_woonkamer',model:'ha_climate'}]}]};
   let trv={output:false,flow_offset_c:0,rooms:[{room:'woonkamer',control:false,degraded:false,single_source:true,
-    valves:[valve('Kraan woonkamer',{health:'low_battery',battery_pct:18})]}]};
+    valves:[valve('Kraan woonkamer',{health:'low_battery',battery_pct:18}),{name:'climate.trv_woonkamer',model:'ha_climate',health:'unknown'}]}]};
   page.on('pageerror',e=>errors.push(e.message));
   page.on('dialog',d=>d.accept());
   await page.route('http://opth.test/**',async route=>{
@@ -30,7 +32,8 @@ const valve=(name,extra={})=>({name,model:'bosch_bth_ra',health:'ok',position_pc
     if(request.method()==='POST'){
      assert.equal(request.headers()['x-openthermostat-csrf'],'a'.repeat(64));
      const body=request.postDataJSON();posts.push(body);record=body;
-     trv={...trv,rooms:body.rooms.map(r=>({room:r.room,control:r.control,degraded:false,single_source:true,valves:r.valves.map(v=>valve(v.name,{model:v.model}))}))};
+     trv={...trv,rooms:body.rooms.map(r=>({room:r.room,control:r.control,degraded:false,single_source:true,
+       valves:r.valves.map(v=>v.model==='ha_climate'?{name:v.name,model:v.model,health:'unknown'}:valve(v.name,{model:v.model}))}))};
     }
     return json({...record,features:['actuator.output.v1'],models:[],status:trv});
    }
@@ -53,7 +56,7 @@ const valve=(name,extra={})=>({name,model:'bosch_bth_ra',health:'ok',position_pc
    assert.deepEqual(errors,[]);await page.close();continue;
   }
   // Managed in Home Assistant (locked): the short summary names the valves and their live state.
-  await card.locator('.hp-brief').getByText(/Kraan woonkamer · niet aangestuurd · Kraan woonkamer: Batterij bijna leeg, open 40 %/).waitFor();
+  await card.locator('.hp-brief').getByText(/Kraan woonkamer, climate\.trv_woonkamer · niet aangestuurd · Kraan woonkamer: Batterij bijna leeg, open 40 %; climate\.trv_woonkamer: Aangestuurd door Home Assistant/).waitFor();
   await root.locator('[data-heating-unlock]').click();
   const block=card.locator('[data-heating-valves]');
   await card.getByRole('heading',{name:'Radiatorkranen'}).waitFor();
@@ -61,6 +64,11 @@ const valve=(name,extra={})=>({name,model:'bosch_bth_ra',health:'ok',position_pc
   const live=block.locator('[data-heating-valve-state="Kraan woonkamer"]');
   await live.getByText('Batterij bijna leeg').waitFor();
   assert.match(await live.innerText(),/open 40 % · batterij 18 %/);
+  // The Home Assistant valve: driven by HA, shown read-only (no name field, no model, no remove).
+  assert.match(await block.locator('[data-heating-valve-state="climate.trv_woonkamer"]').innerText(),/Aangestuurd door Home Assistant/);
+  const haRow=block.locator('[data-heating-valve-ha]');
+  assert.match(await haRow.innerText(),/climate\.trv_woonkamer[\s\S]*Climate-entiteit in Home Assistant \(in te stellen in Home Assistant\)/);
+  assert.equal(await haRow.locator('input, select, button').count(),0);
   // Valve control is off until switched on; no single-source hint while it is off.
   const control=block.locator('[data-heating-valve-control]');
   assert.equal(await control.isChecked(),false);
@@ -68,19 +76,19 @@ const valve=(name,extra={})=>({name,model:'bosch_bth_ra',health:'ok',position_pc
   // A name Zigbee2MQTT would not have is refused here, before anything is sent.
   await block.locator('[data-heating-valve-add]').click();
   const rows=block.locator('[data-heating-valve]');
-  assert.equal(await rows.count(),2);
-  await rows.nth(1).locator('input').fill('kraan#raam');
+  assert.equal(await rows.count(),3);
+  await rows.nth(2).locator('input').fill('kraan#raam');
   await block.locator('[data-heating-valve-save]').click();
   await block.getByText(/Gebruik de Zigbee2MQTT-naam van de kraan/).waitFor();
   assert.equal(posts.length,0);
-  // Two valves, control switched on: one POST with only this room's record.
-  await rows.nth(1).locator('input').fill('Kraan raam');
-  await rows.nth(1).locator('select').selectOption('sonoff_trvzb');
+  // Two Zigbee2MQTT valves, control switched on: one POST with only this room's record, the HA valve kept.
+  await rows.nth(2).locator('input').fill('Kraan raam');
+  await rows.nth(2).locator('select').selectOption('sonoff_trvzb');
   await control.check();
   await block.locator('[data-heating-valve-save]').click();
   await block.getByText(/Kranen opgeslagen\./).waitFor();
   assert.deepEqual(posts,[{schema:1,base_topic:'zigbee2mqtt',rooms:[{room:'woonkamer',control:true,
-    valves:[{name:'Kraan woonkamer',model:'bosch_bth_ra'},{name:'Kraan raam',model:'sonoff_trvzb'}]}]}]);
+    valves:[{name:'Kraan woonkamer',model:'bosch_bth_ra'},{name:'climate.trv_woonkamer',model:'ha_climate'},{name:'Kraan raam',model:'sonoff_trvzb'}]}]}]);
   // The next status shows both valves and, with control on and one source, the sensor hint.
   await block.locator('[data-heating-valve-state="Kraan raam"]').waitFor({timeout:15000});
   await block.locator('[data-heating-valve-hint]').waitFor();

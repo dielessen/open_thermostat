@@ -286,6 +286,42 @@ async def test_valve_names_are_checked_before_the_e32_is_written(hass, manager):
 
 
 @pytest.mark.asyncio
+async def test_home_assistant_valves_are_chosen_beside_the_zigbee2mqtt_ones(hass, manager):
+    from homeassistant.helpers import entity_registry as er
+    e32 = E32WithValves({"schema": 1, "base_topic": "zigbee2mqtt", "rooms": [
+        {"room": "badkamer", "control": False, "valves": [{"name": "climate.bad_trv", "model": "ha_climate"}]}]})
+    parent, _ = product(hass, e32)
+    own = er.async_get(hass).async_get_or_create("climate", "open_thermostat", "fixture_thermostat", suggested_object_id="ot_woonkamer")
+    form = await valves_form(manager, parent)
+    fields = {str(k): (k, v) for k, v in form["data_schema"].schema.items()}
+    picker = fields["ha_valves"][1].config
+    assert picker["filter"] == [{"domain": ["climate"]}] and picker["multiple"] is True
+    # Never our own thermostat, the room's thermostat source or another room's valve.
+    assert set(picker["exclude_entities"]) == {own.entity_id, "climate.woonkamer", "climate.bad_trv"}
+    assert "ha_climate" not in fields["model_1"][1].config["options"]           # Zigbee2MQTT models only
+    from homeassistant.data_entry_flow import InvalidData
+    with pytest.raises(InvalidData):                                           # the picker itself refuses them
+        await manager.async_configure(form["flow_id"], {"control": True, "ha_valves": ["climate.woonkamer"]})
+    for change, field, error in (({"ha_valves": ["climate." + "x" * 60]}, "ha_valves", "e32_valve_entity_invalid"),
+                                 ({"valve_1": "climate.trv", "ha_valves": ["climate.trv"]}, "ha_valves", "e32_valve_duplicate"),
+                                 ({"valve_1": "A", "valve_2": "B", "valve_3": "C", "ha_valves": ["climate.x", "climate.y"]},
+                                  "base", "e32_valve_room_limit")):
+        result = await manager.async_configure(form["flow_id"], {"control": True, **change})
+        assert result["type"] == "form" and result["errors"] == {field: error}, (change, result)
+        form = result
+    assert [c for c in e32.valves.calls if c is not None] == []
+    result = await manager.async_configure(form["flow_id"], {"control": True, "valve_1": "Kraan woonkamer", "model_1": "bosch_bth_ra",
+                                                             "ha_valves": ["climate.trv_woonkamer"]})
+    assert result["type"] == "menu", result
+    assert e32.valves.config["rooms"][1] == {"room": "woonkamer", "control": True, "valves": [
+        {"name": "Kraan woonkamer", "model": "bosch_bth_ra"}, {"name": "climate.trv_woonkamer", "model": "ha_climate"}]}
+    # Shown again: the Zigbee2MQTT valve in its slot, the Home Assistant valve in the picker.
+    form = await valves_form(manager, parent)
+    suggested = {str(k): (k.description or {}).get("suggested_value") for k in form["data_schema"].schema}
+    assert (suggested["valve_1"], suggested["valve_2"], suggested["ha_valves"]) == ("Kraan woonkamer", None, ["climate.trv_woonkamer"])
+
+
+@pytest.mark.asyncio
 async def test_firmware_without_valves_says_to_update_first(hass, manager):
     e32 = E32WithValves()
     e32.valves.missing = True
@@ -318,3 +354,15 @@ async def test_the_dashboard_shows_the_valve_opening_and_a_problem_badge_only_fo
     badge = next(b for b in living[0]["badges"] if b["entity"] == made["valve_problem"])
     assert badge["visibility"] == [{"condition": "state", "entity": made["valve_problem"], "state": "on"}]
     assert "valve" not in json.dumps(sections["Badkamer"])           # the bathroom has no valves
+
+
+@pytest.mark.parametrize("text, model", [
+    ("Bosch Radiator thermostat II BTH-RA", "bosch_bth_ra"),
+    ("SONOFF Zigbee thermostatic radiator valve TRV-ZBT", "sonoff_trv_zbt"),
+    ("SONOFF Zigbee thermostatic radiator valve TRVZB", "sonoff_trvzb"),
+    ("TuYa Radiator valve TV02-Zigbee", "tuya_tv02"),
+    ("Aqara Radiator thermostat E1 SRTS-A01", None),
+])
+def test_the_valve_model_is_guessed_from_the_zigbee2mqtt_device(text, model):
+    assert module.guess_model(text) == model
+    assert model is None or model in module.MODELS

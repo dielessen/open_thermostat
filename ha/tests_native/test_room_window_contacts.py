@@ -225,3 +225,26 @@ async def test_each_room_has_its_own_pause_delay(hass, manager):
     form = await room_form(manager, parent, "woonkamer")
     result = await manager.async_configure(form["flow_id"], {**shown(form), "window": {"contact_delay": 1}})
     assert comfort_options(parent)["contact_delays"] == {} and contacts_of(parent) == {}
+
+
+@pytest.mark.asyncio
+async def test_a_room_with_the_default_delay_follows_a_later_change_of_the_default(hass, manager):
+    """The form shows the default; saving it as it is never pins it to the room."""
+    from custom_components.open_thermostat.e32_comfort import room_contact_delay, save_comfort
+    sensors(hass)
+    parent, _ = product(hass, FakeE32())
+    form = await room_form(manager, parent, "woonkamer")
+    result = await manager.async_configure(form["flow_id"], {
+        **shown(form), "window": {"contacts": ["binary_sensor.raam_zigbee"], "contact_delay": 2.0}})
+    assert result["step_id"] == "e32_rooms_saved", result
+    settings = comfort_options(parent)
+    assert contacts_of(parent) == {"woonkamer": ["binary_sensor.raam_zigbee"]} and settings["contact_delays"] == {}
+    save_comfort(hass, parent, {**settings, "contact_delay_s": 300})          # House -> the default becomes 5 min
+    assert room_contact_delay(comfort_options(parent), "woonkamer") == 300
+    # An own delay set back to the default is dropped again, also one pinned by an older version.
+    assert with_room_contacts(settings, "woonkamer", ["binary_sensor.raam_zigbee"], 120)["contact_delays"] == {}
+    save_comfort(hass, parent, {**comfort_options(parent), "contact_delays": {"woonkamer": 300}})
+    form = await room_form(manager, parent, "woonkamer")
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "window": {**shown(form)["window"]}})
+    assert result["step_id"] == "e32_rooms_saved", result
+    assert comfort_options(parent)["contact_delays"] == {}

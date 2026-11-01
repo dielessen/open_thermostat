@@ -217,13 +217,22 @@ def room_contact_delay(settings, room_id):
     return settings.get("contact_delays", {}).get(room_id, settings["contact_delay_s"])
 
 
+def own_contact_delay(settings, delay_s):
+    """What a room stores for a pause delay: None when it is the house default (the room then follows it)."""
+    return None if delay_s == settings["contact_delay_s"] else delay_s
+
+
 def with_room_contacts(settings, room_id, contacts, delay_s=None):
     """The comfort settings with this room's sensors replaced (none: the room has no sensors and no own
-    delay); delay_s: the room's own pause delay (None keeps it)."""
+    delay); delay_s: the room's own pause delay (None keeps it; the house default drops it, so the room
+    follows a later change of the default)."""
     rooms = {**settings["contacts"], room_id: list(contacts)}
     delays = dict(settings.get("contact_delays", {}))
     if delay_s is not None:
-        delays[room_id] = delay_s
+        if own_contact_delay(settings, delay_s) is None:
+            delays.pop(room_id, None)
+        else:
+            delays[room_id] = delay_s
     if not contacts:
         rooms.pop(room_id, None)
         delays.pop(room_id, None)

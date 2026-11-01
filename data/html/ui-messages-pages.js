@@ -7,6 +7,7 @@ window.OT_UI_PAGE_MESSAGES = {
   "Radiator valves": "Radiatorkranen",
   "Bosch BTH-RA (position, external temperature)": "Bosch BTH-RA (stand, externe temperatuur)",
   "Sonoff TRVZB (external temperature)": "Sonoff TRVZB (externe temperatuur)",
+  "Sonoff TRV Gen2 / TRV-ZBT (external temperature)": "Sonoff TRV Gen2 / TRV-ZBT (externe temperatuur)",
   "Tuya TV02 (setpoint only)": "Tuya TV02 (alleen setpoint)",
   "Other (setpoint only)": "Anders (alleen setpoint)",
   "Reporting": "Meldt zich",

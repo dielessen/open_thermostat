@@ -151,9 +151,63 @@ TEST(TrvCommands, InactiveRoomGetsFrostSetpointAndNoMeasurementSendsNoExternalTe
     trv.setConfig(parse(R"({"schema":1,"rooms":[{"room":"b","control":true,"valves":[{"name":"V","model":"sonoff_trvzb"}]}]})"));
     Sent sent;
     trv.step(1, {room("b", 2000, std::nullopt, false)}, true, recorder(sent));
-    // No room measurement: no sensor-select to external, no external value (the valve uses its own sensor).
-    ASSERT_EQ(sent.all.size(), 1u);
-    EXPECT_EQ(sent.all[0].second, R"({"occupied_heating_setpoint":8.0})");
+    // No room measurement: no external value and no sensor select (the valve keeps its own sensor).
+    ASSERT_EQ(sent.all.size(), 2u);
+    EXPECT_EQ(sent.all[0].second, R"({"system_mode":"heat"})");
+    EXPECT_EQ(sent.all[1].second, R"({"occupied_heating_setpoint":8.0})");
+}
+
+// Zigbee2MQTT refuses a remote sensor select before an external value, so the select comes last.
+TEST(TrvCommands, SonoffGen2GetsHeatModeSetpointExternalValueThenTheSensorSelect) {
+    TrvControl trv;
+    trv.setConfig(parse(R"({"schema":1,"rooms":[{"room":"b","control":true,"valves":[{"name":"G2","model":"sonoff_trv_zbt"}]}]})"));
+    Sent sent;
+    trv.step(1, {room("b", 3400, 1950)}, true, recorder(sent));
+    ASSERT_EQ(sent.all.size(), 4u);
+    EXPECT_EQ(sent.all[0], std::make_pair(std::string("zigbee2mqtt/G2/set"), std::string(R"({"system_mode":"heat"})")));
+    EXPECT_EQ(sent.all[1].second, R"({"occupied_heating_setpoint":30.0})");  // clamped to the TRV-ZBT's 30 degC
+    EXPECT_EQ(sent.all[2].second, R"({"external_temperature_input":19.50})");
+    EXPECT_EQ(sent.all[3].second, R"({"temperature_sensor_select":"remote_temperature"})");
+}
+
+TEST(TrvCommands, SonoffSelectFollowsTheReportedValuesAndIsAskedAgainWhileTheValveKeepsItsOwnSensor) {
+    TrvControl trv;
+    trv.setConfig(parse(R"({"schema":1,"rooms":[{"room":"b","control":true,"valves":[{"name":"V","model":"sonoff_trvzb"}]}]})"));
+    const std::vector<TrvControl::Room> rooms{room("b", 2100, 1900)};
+    const auto selects = [](const Sent& s) {
+        std::vector<std::string> out;
+        for (const auto& [t, p] : s.all) if (p.find("temperature_sensor_select") != std::string::npos) out.push_back(p);
+        return out;
+    };
+    // Older Zigbee2MQTT reports internal/external: the select uses "external".
+    trv.receive("zigbee2mqtt/V", R"({"temperature_sensor_select":"internal","battery":90})", 500);
+    Sent sent;
+    trv.step(1000, rooms, true, recorder(sent));
+    ASSERT_EQ(selects(sent), std::vector<std::string>{R"({"temperature_sensor_select":"external"})"});
+    // Still its own sensor 10 min later (the write got lost): asked once more, not every step.
+    trv.receive("zigbee2mqtt/V", R"({"temperature_sensor_select":"internal"})", 1000 + M);
+    sent.all.clear();
+    for (uint64_t t = 1000 + M; t < 1000 + 10 * M; t += 10000) trv.step(t, rooms, true, recorder(sent));
+    EXPECT_TRUE(selects(sent).empty());
+    trv.step(1000 + 10 * M, rooms, true, recorder(sent));
+    EXPECT_EQ(selects(sent).size(), 1u);
+    // Selected now: nothing more.
+    trv.receive("zigbee2mqtt/V", R"({"temperature_sensor_select":"external"})", 1000 + 11 * M);
+    sent.all.clear();
+    for (uint64_t t = 1000 + 11 * M; t < 1000 + 120 * M; t += 10000) trv.step(t, rooms, true, recorder(sent));
+    EXPECT_TRUE(selects(sent).empty());
+
+    // Current Zigbee2MQTT: remote_temperature, and remote_source_offline counts as selected.
+    TrvControl now;
+    now.setConfig(parse(R"({"schema":1,"rooms":[{"room":"b","control":true,"valves":[{"name":"V","model":"sonoff_trvzb"}]}]})"));
+    now.receive("zigbee2mqtt/V", R"({"temperature_sensor_select":"local_temperature"})", 500);
+    sent.all.clear();
+    now.step(1000, rooms, true, recorder(sent));
+    ASSERT_EQ(selects(sent), std::vector<std::string>{R"({"temperature_sensor_select":"remote_temperature"})"});
+    now.receive("zigbee2mqtt/V", R"({"temperature_sensor_select":"remote_source_offline"})", 1000 + M);
+    sent.all.clear();
+    for (uint64_t t = 1000 + M; t < 1000 + 60 * M; t += 10000) now.step(t, rooms, true, recorder(sent));
+    EXPECT_TRUE(selects(sent).empty());
 }
 
 TEST(TrvCommands, Tv02GetsSetpointOnlyAndClampsToItsRange) {

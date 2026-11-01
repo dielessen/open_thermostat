@@ -395,12 +395,23 @@ Supported models:
 | Model | What the E32 sends | What it reads back |
 | --- | --- | --- |
 | Bosch BTH-RA (recommended) | setpoint, room temperature (`remote_temperature`), manual mode | valve position (`pi_heating_demand`), battery % |
-| Sonoff TRVZB | setpoint, room temperature (`external_temperature_input`, sensor set to external) | battery % |
+| Sonoff TRVZB | setpoint, heat mode (`system_mode`), room temperature (`external_temperature_input`, then the sensor set to it) | battery % |
+| Sonoff TRV Gen2 (TRV-ZBT) | the same as the TRVZB (5–30 °C); needs Zigbee2MQTT 2.12.1 or later | battery % |
 | Tuya TV02 | setpoint (manual preset) | low-battery flag |
 | Other | setpoint (`occupied_heating_setpoint`) | battery % or low flag |
 
 The Zigbee2MQTT keys come from the Zigbee2MQTT device pages; check them on
 your own valve before you rely on them.
+
+For the Sonoff valves the E32 first sends the room temperature and only then
+selects it as the valve's sensor, because Zigbee2MQTT refuses that choice
+without a value. It reads which sensor the valve reports: older Zigbee2MQTT
+versions call the choice `external`, newer ones `remote_temperature`, and the
+E32 uses whichever your valve reports. If the valve still uses its own sensor
+10 minutes later, the E32 asks again. The heat mode keeps the valve off its own
+week schedule; the E32's program is the only one. The valves' own settings,
+such as the opening limits, window detection and child lock, stay yours to set
+in Zigbee2MQTT.
 
 **Choosing the valves.** In Home Assistant: Configure → **Rooms** → *Edit or
 remove a room* → **Radiator valves**. Pick each valve (Zigbee2MQTT devices that

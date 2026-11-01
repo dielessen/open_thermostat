@@ -2831,6 +2831,7 @@
       "options": {
         "bosch_bth_ra": "Bosch BTH-RA (położenie, temperatura zewnętrzna)",
         "sonoff_trvzb": "Sonoff TRVZB (temperatura zewnętrzna)",
+        "sonoff_trv_zbt": "Sonoff TRV Gen2 / TRV-ZBT (temperatura zewnętrzna)",
         "tuya_tv02": "Tuya TV02 (tylko nastawa)",
         "generic": "Inny (tylko nastawa)"
       }

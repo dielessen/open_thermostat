@@ -512,6 +512,7 @@ class E32RoomFlow:
         is guessed from the device's model id (the installer can always correct it).
         """
         from homeassistant.helpers import device_registry as dr
+        from .e32_valves import guess_model
         found = []
         registry = dr.async_get(self.hass)
         devices = [d for mqtt in self.hass.config_entries.async_entries("mqtt")
@@ -523,8 +524,7 @@ class E32RoomFlow:
             if not valid_valve_name(name) or name.startswith("Zigbee2MQTT"):
                 continue
             text = " ".join(str(v or "") for v in (device.manufacturer, device.model, getattr(device, "model_id", None))).lower()
-            model = ("bosch_bth_ra" if "bth-ra" in text or "bosch" in text and "thermostat" in text
-                     else "sonoff_trvzb" if "trvzb" in text else "tuya_tv02" if "tv02" in text else None)
+            model = guess_model(text)
             if model is not None or "thermostat" in text or "trv" in text or "valve" in text:
                 found.append((name, model))
         return sorted(found)

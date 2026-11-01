@@ -88,6 +88,7 @@
   // Radiator valves (beta.24, /config/heating/trv): null on firmware without them, so the block never shows.
   let trv = null;
   const valveModels = [['bosch_bth_ra', "Bosch BTH-RA (position, external temperature)"], ['sonoff_trvzb', "Sonoff TRVZB (external temperature)"],
+    ['sonoff_trv_zbt', "Sonoff TRV Gen2 / TRV-ZBT (external temperature)"],
     ['tuya_tv02', "Tuya TV02 (setpoint only)"], ['generic', "Other (setpoint only)"]];
   const valveHealth = {ok:"Reporting", low_battery:"Battery low", offline:"Not reporting", unknown:"Waiting for a report"};
   // The Zigbee2MQTT friendly names the E32 takes (TrvConfig::validName).

@@ -62,7 +62,10 @@ public:
         uint64_t reportAt = 0;               // local receipt time of the last state; 0: none yet
         std::optional<int16_t> sentSetpoint; uint64_t sentSetpointAt = 0;
         std::optional<int16_t> sentExternal; uint64_t sentExternalAt = 0;
-        bool enabledSent = false;            // the model's manual-mode/sensor-select sent this control period
+        bool enabledSent = false;            // the model's manual mode sent this control period
+        uint64_t selectSentAt = 0;           // the sensor select sent (0: not this control period)
+        std::optional<bool> remoteSelected;  // the valve reports the external sensor (after selectSentAt)
+        bool legacySelect = false;           // the report uses the older Zigbee2MQTT values
         uint64_t closedSince = 0;            // reported <= closedPct since
     };
     enum class Health : uint8_t { unknown, ok, lowBattery, offline };
@@ -74,6 +77,7 @@ public:
             auto it = valves_.find(v.name);
             kept[v.name] = it != valves_.end() ? it->second : Valve{};
             kept[v.name].enabledSent = false;  // a new config re-sends the mode once
+            kept[v.name].selectSentAt = 0;
         }
         valves_ = std::move(kept); config_ = std::move(config); ++generation_;
         if (config_.empty()) { offsetC_ = 0; offsetAt_ = 0; }
@@ -99,7 +103,7 @@ public:
         const auto* m = found->model;
         // Back after being offline (new batteries, re-paired, Zigbee2MQTT gone for hours): it may have
         // lost its mode and setpoint, so it gets all of them again on the next step.
-        if (v.reportAt && now > v.reportAt && now - v.reportAt >= staleMs) { v.enabledSent = false; v.sentSetpoint.reset(); v.sentExternal.reset(); }
+        if (v.reportAt && now > v.reportAt && now - v.reportAt >= staleMs) { v.enabledSent = false; v.selectSentAt = 0; v.sentSetpoint.reset(); v.sentExternal.reset(); }
         const auto num = [&](const char* key) -> std::optional<double> {
             const auto* it = key ? cJSON_GetObjectItemCaseSensitive(root.get(), key) : nullptr;
             return cJSON_IsNumber(it) && std::isfinite(it->valuedouble) ? std::optional<double>(it->valuedouble) : std::nullopt;
@@ -113,6 +117,12 @@ public:
         if (m->batteryLowKey) if (const auto* low = cJSON_GetObjectItemCaseSensitive(root.get(), m->batteryLowKey); cJSON_IsBool(low)) v.batteryLow = cJSON_IsTrue(low);
         if (const auto t = num("local_temperature"); t && *t > -40 && *t < 85) v.localCentiC = int16_t(std::lround(*t * 100));
         if (const auto s = num(m->setpointKey); s && *s >= 0 && *s < 50) v.setpointCentiC = int16_t(std::lround(*s * 100));
+        if (const auto* sel = m->externalSelectKey ? cJSON_GetObjectItemCaseSensitive(root.get(), m->externalSelectKey) : nullptr; cJSON_IsString(sel)) {
+            const std::string_view s = sel->valuestring;
+            if (m->externalSelectLegacyValue) v.legacySelect = s == "internal" || s.substr(0, 8) == "external";
+            // remote_source_offline: selected, the valve waits for our next external value.
+            v.remoteSelected = s == selectValue(*m, v) || s == "remote_source_offline";
+        }
         v.reportAt = now ? now : 1;
         return true;
     }
@@ -127,7 +137,7 @@ public:
     // The valves' commands for this step. Nothing unless outputEnabled and the room's control is on.
     void step(uint64_t now, const std::vector<Room>& rooms, bool outputEnabled, const Send& send) {
         outputEnabled_ = outputEnabled;
-        if (!outputEnabled || !send) { for (auto& [n, v] : valves_) v.enabledSent = false; return; }
+        if (!outputEnabled || !send) { for (auto& [n, v] : valves_) { v.enabledSent = false; v.selectSentAt = 0; } return; }
         for (const auto& cr : config_.rooms) {
             if (!cr.control) continue;
             const Room* room = findRoom(rooms, cr.id);
@@ -138,17 +148,8 @@ public:
                 const auto* m = cv.model;
                 const auto topic = config_.baseTopic + "/" + cv.name + "/set";
                 const int16_t setpoint = roundHalf(std::clamp(target, m->minimumCentiC, m->maximumCentiC));
-                if (!v.enabledSent && (m->enableKey || m->externalSelectKey)) {
-                    std::string p = "{";
-                    if (m->enableKey) p += "\"" + std::string(m->enableKey) + "\":\"" + m->enableValue + "\"";
-                    if (m->externalSelectKey && room->temperature) {
-                        if (p.size() > 1) p += ",";
-                        p += "\"" + std::string(m->externalSelectKey) + "\":\"" + m->externalSelectValue + "\"";
-                    }
-                    p += "}";
-                    if (p.size() > 2 && send(topic, p)) v.enabledSent = true;
-                    else if (p.size() <= 2) v.enabledSent = true;
-                }
+                if (!v.enabledSent && m->enableKey && send(topic, "{\"" + std::string(m->enableKey) + "\":\"" + m->enableValue + "\"}"))
+                    v.enabledSent = true;
                 const bool changed = !v.sentSetpoint || std::abs(*v.sentSetpoint - setpoint) >= setpointStepCentiC;
                 const bool refresh = v.sentSetpoint && now - v.sentSetpointAt >= setpointRefreshMs;
                 const bool gapOk = !v.sentSetpointAt || now - v.sentSetpointAt >= setpointMinGapMs;
@@ -164,6 +165,15 @@ public:
                         || now - v.sentExternalAt >= externalMaxGapMs;
                     if (due && send(topic, "{\"" + std::string(m->externalKey) + "\":" + decimal(t, 2) + "}")) {
                         v.sentExternal = t; v.sentExternalAt = now ? now : 1;
+                    }
+                }
+                // The sensor select only after an external value (Zigbee2MQTT refuses a remote select
+                // without one), and again when the valve still reports another sensor 10 min later
+                // (a refused write, older Zigbee2MQTT values, a reset valve).
+                if (m->externalSelectKey && v.sentExternal) {
+                    const bool due = !v.selectSentAt || (v.remoteSelected == false && now - v.selectSentAt >= externalMinGapMs);
+                    if (due && send(topic, "{\"" + std::string(m->externalSelectKey) + "\":\"" + selectValue(*m, v) + "\"}")) {
+                        v.selectSentAt = now ? now : 1; v.remoteSelected.reset();
                     }
                 }
             }
@@ -288,6 +298,9 @@ private:
     static const Room* findRoom(const std::vector<Room>& rooms, std::string_view id) {
         for (const auto& r : rooms) if (r.id == id) return &r;
         return nullptr;
+    }
+    static const char* selectValue(const TrvModel& m, const Valve& v) {
+        return v.legacySelect && m.externalSelectLegacyValue ? m.externalSelectLegacyValue : m.externalSelectValue;
     }
     static int16_t roundHalf(int16_t c) { return int16_t(std::lround(c / 50.0) * 50); }
     static std::string decimal(int16_t centi, int digits) {

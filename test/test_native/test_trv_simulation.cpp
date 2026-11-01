@@ -18,7 +18,7 @@ constexpr uint64_t second = 1000, minute = 60 * second, hour = 60 * minute, day 
 struct SimTrv {
     std::string name; const TrvModel* model;
     double setpoint = 21, internal = 19, external = NAN, battery = 100, position = 0;
-    std::string mode = "schedule";
+    std::string mode = "schedule", select = "local_temperature";
     bool online = true, stuckOpen = false;
     uint64_t reportedAt = 0, externalAt = 0; int lastReported = -1;
     size_t received = 0;
@@ -32,7 +32,12 @@ struct SimTrv {
             const std::string key = m->string;
             if (key == model->setpointKey) setpoint = m->valuedouble;
             else if (model->externalKey && key == model->externalKey) { external = m->valuedouble; externalAt = now; }
-            else if ((model->enableKey && key == model->enableKey) || (model->externalSelectKey && key == model->externalSelectKey)) mode = m->valuestring;
+            else if (model->enableKey && key == model->enableKey) mode = m->valuestring;
+            else if (model->externalSelectKey && key == model->externalSelectKey) {
+                // Zigbee2MQTT refuses a remote select before an external value.
+                EXPECT_FALSE(std::isnan(external)) << name;
+                select = m->valuestring;
+            }
             else ADD_FAILURE() << name << ": unexpected key " << key;
         }
     }
@@ -52,6 +57,7 @@ struct SimTrv {
         if (model->positionKey) p += ",\"" + std::string(model->positionKey) + "\":" + std::to_string(pos);
         if (model->batteryKey) p += ",\"" + std::string(model->batteryKey) + "\":" + std::to_string(int(battery));
         if (model->batteryLowKey) p += ",\"" + std::string(model->batteryLowKey) + "\":" + (battery <= 20 ? "true" : "false");
+        if (model->externalSelectKey) p += ",\"" + std::string(model->externalSelectKey) + "\":\"" + select + "\"";
         EXPECT_TRUE(trv.receive("zigbee2mqtt/" + name, p + "}", now));
     }
 };
@@ -123,7 +129,7 @@ struct House {
 TrvConfig config(bool control = true) {
     Json j(cJSON_Parse(control
         ? R"({"schema":1,"rooms":[{"room":"woonkamer","control":true,"valves":[{"name":"Kraan raam","model":"bosch_bth_ra"},{"name":"Kraan hoek","model":"bosch_bth_ra"}]},
-             {"room":"slaapkamer","control":true,"valves":[{"name":"Kraan slaapkamer","model":"sonoff_trvzb"},{"name":"Kraan oud","model":"tuya_tv02"}]}]})"
+             {"room":"slaapkamer","control":true,"valves":[{"name":"Kraan slaapkamer","model":"sonoff_trvzb"},{"name":"Kraan oud","model":"tuya_tv02"},{"name":"Kraan gen2","model":"sonoff_trv_zbt"}]}]})"
         : R"({"schema":1,"rooms":[{"room":"woonkamer","control":false,"valves":[{"name":"Kraan raam","model":"bosch_bth_ra"}]}]})"), cJSON_Delete);
     TrvConfig c;
     EXPECT_EQ(TrvConfig::parse(j.get(), c), nullptr);
@@ -166,7 +172,8 @@ TEST(TrvSimulation, TwoWeeksOfFourValvesStayWithinTheBatteryBudget) {
     for (const auto& [name, v] : h.valves) {
         EXPECT_GT(v.battery, 98) << name;                // two weeks cost well under 2 % per valve
         EXPECT_NEAR(v.setpoint, 16, 0.01) << name;        // the last program step
-        EXPECT_EQ(v.mode, v.model->enableValue ? v.model->enableValue : v.model->externalSelectValue ? v.model->externalSelectValue : "schedule") << name;
+        EXPECT_EQ(v.mode, v.model->enableValue ? v.model->enableValue : "schedule") << name;
+        if (v.model->externalSelectKey) { EXPECT_EQ(v.select, v.model->externalSelectValue) << name; }
         EXPECT_STREQ(health(h.trv, name, h.now), "ok") << name;
     }
 }

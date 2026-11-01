@@ -40,7 +40,7 @@ _LOGGER = logging.getLogger(__name__)
 
 KEY = "e32_valves"
 # Our model ids (TrvConfig.h trvModels); what each can do is the E32's to know.
-MODELS = ("bosch_bth_ra", "sonoff_trvzb", "tuya_tv02", "generic")
+MODELS = ("bosch_bth_ra", "sonoff_trvzb", "sonoff_trv_zbt", "tuya_tv02", "generic")
 MAX_VALVES_PER_ROOM = 4
 MAX_VALVES = 16
 MAX_NAME = 64
@@ -49,6 +49,18 @@ ENTITY_KEYS = ("valve_position", "valve_battery", "valve_problem", "valve_contro
 ISSUES = ("valve_battery_low", "valve_offline", "valve_single_source")
 # A switched control shows its new state until the E32's telemetry agrees (at most this long).
 PENDING_SECONDS = 30
+
+
+def guess_model(text):
+    """Our model id from a Zigbee2MQTT device's manufacturer/model text, or None (the installer chooses)."""
+    text = text.lower()
+    if "bth-ra" in text or "bosch" in text and "thermostat" in text:
+        return "bosch_bth_ra"
+    if "trv-zbt" in text:  # Sonoff TRV Gen2, before the TRVZB match
+        return "sonoff_trv_zbt"
+    if "trvzb" in text:
+        return "sonoff_trvzb"
+    return "tuya_tv02" if "tv02" in text else None
 
 
 def valid_name(name):

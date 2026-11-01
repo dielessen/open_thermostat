@@ -931,6 +931,7 @@
       "options": {
         "bosch_bth_ra": "Bosch BTH-RA (stand, externe temperatuur)",
         "sonoff_trvzb": "Sonoff TRVZB (externe temperatuur)",
+        "sonoff_trv_zbt": "Sonoff TRV Gen2 / TRV-ZBT (externe temperatuur)",
         "tuya_tv02": "Tuya TV02 (alleen setpoint)",
         "generic": "Anders (alleen setpoint)"
       }

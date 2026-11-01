@@ -318,3 +318,15 @@ async def test_the_dashboard_shows_the_valve_opening_and_a_problem_badge_only_fo
     badge = next(b for b in living[0]["badges"] if b["entity"] == made["valve_problem"])
     assert badge["visibility"] == [{"condition": "state", "entity": made["valve_problem"], "state": "on"}]
     assert "valve" not in json.dumps(sections["Badkamer"])           # the bathroom has no valves
+
+
+@pytest.mark.parametrize("text, model", [
+    ("Bosch Radiator thermostat II BTH-RA", "bosch_bth_ra"),
+    ("SONOFF Zigbee thermostatic radiator valve TRV-ZBT", "sonoff_trv_zbt"),
+    ("SONOFF Zigbee thermostatic radiator valve TRVZB", "sonoff_trvzb"),
+    ("TuYa Radiator valve TV02-Zigbee", "tuya_tv02"),
+    ("Aqara Radiator thermostat E1 SRTS-A01", None),
+])
+def test_the_valve_model_is_guessed_from_the_zigbee2mqtt_device(text, model):
+    assert module.guess_model(text) == model
+    assert model is None or model in module.MODELS

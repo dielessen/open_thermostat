@@ -16,7 +16,14 @@ en de UX-release (beta.23). Dit document bouwt niets; het legt de keuze voor.
     procenten.
   - **Budgetalternatief: Sonoff TRVZB**, ongeveer € 25–40. Die heeft een
     externe temperatuur en een open/dicht-begrenzing, maar meldt geen echte
-    klepstand. De terugkoppeling wordt daarmee grover.
+    klepstand. De terugkoppeling wordt daarmee grover. De opvolger, de
+    **Sonoff TRV Gen2 (TRV-ZBT)**, wordt op dezelfde manier aangestuurd (1.0).
+  - Sonoff-kranen: de E32 zet `system_mode` op `heat` (anders volgt de kraan
+    zijn eigen weekschema), stuurt eerst de ruimtetemperatuur en kiest daarna
+    pas de externe sensor. Zigbee2MQTT weigert die keuze zonder waarde. Nieuwe
+    Zigbee2MQTT noemt die keuze `remote_temperature`, oudere `external`; de E32
+    volgt wat de kraan meldt en vraagt na 10 minuten opnieuw als de kraan nog op
+    zijn eigen sensor staat.
 - **3 kranen** voor de 3 radiatoren boven (badkamer en 2 slaapkamers).
   - De TV02 blijft bruikbaar als reserve of in de eenvoudige doeltemperatuur-modus.
     Hij meldt alleen "batterij bijna leeg" en neemt geen externe temperatuur aan.
@@ -40,6 +47,7 @@ en de UX-release (beta.23). Dit document bouwt niets; het legt de keuze voor.
 |---|---|---|---|---|---|---|
 | **Bosch BTH-RA** | **Ja**: `pi_heating_demand` lezen/schrijven, 0–100 % | Ja | `remote_temperature`, minstens elke 30 min | % plus `battery_low` | Valt terug op de eigen sensor | € 60–80 |
 | **Sonoff TRVZB** | Begrenzing: `valve_opening_degree` / `valve_closing_degree` (fw ≥ 1.1.4) | Nee, alleen aan/uit-status | `external_temperature_input` plus `temperature_sensor_select` | %, tot 24 uur vertraagd | Schakelt zelf naar de eigen sensor (`remote_source_offline`) | € 25–40 |
+| **Sonoff TRV Gen2 (TRV-ZBT)** | Begrenzing: `heating_valve_position` / `idle_valve_position` | Nee, alleen `running_state` en `heat_percentage_hour` | `external_temperature_input` plus `temperature_sensor_select` (Zigbee2MQTT ≥ 2.12.1) | % | Schakelt zelf naar de eigen sensor (`remote_source_offline`) | € 30–45 |
 | **Danfoss Ally** | Nee | `pi_heating_demand` (alleen gemeld) | `external_measured_room_sensor`, elke 30 min tot 3 uur | % | Zet de externe waarde na 35 min of 3 uur uit | € 60–70 |
 | **Aqara E1** | Nee | Nee | `external_temperature_input` (sensor = external) | % | Niet beschreven | € 45–60 |
 | **TuYa TV02 (heb je al)** | Nee, alleen `heating_stop` (helemaal dicht) | Nee | Nee, alleen een kalibratie-offset | Alleen `battery_low` | n.v.t. | – |
@@ -164,6 +172,8 @@ en de UX-release (beta.23). Dit document bouwt niets; het legt de keuze voor.
 
 - [Zigbee2MQTT: Bosch BTH-RA](https://www.zigbee2mqtt.io/devices/BTH-RA.html):
   `pi_heating_demand` lezen/schrijven, `remote_temperature` "required at least every 30 minutes".
+- [Zigbee2MQTT: Sonoff TRV-ZBT (TRV Gen2)](https://www.zigbee2mqtt.io/devices/TRV-ZBT.html) en de
+  converter `src/devices/sonoff.ts` in zigbee-herdsman-converters v26.125.0 (gelezen 1 nov 2026).
 - [Zigbee2MQTT: Sonoff TRVZB](https://www.zigbee2mqtt.io/devices/TRVZB.html):
   `valve_opening_degree` / `valve_closing_degree` (fw ≥ 1.1.4), `external_temperature_input`, `remote_source_offline`.
 - [Zigbee2MQTT: Danfoss Ally 014G2461](https://www.zigbee2mqtt.io/devices/014G2461.html):

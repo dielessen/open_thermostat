@@ -292,3 +292,29 @@ async def test_firmware_without_valves_says_to_update_first(hass, manager):
     parent, _ = product(hass, e32)
     result = await valves_form(manager, parent)
     assert result["type"] == "abort" and result["reason"] == "e32_valves_update_required"
+
+
+# -- the dashboard ---------------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_the_dashboard_shows_the_valve_opening_and_a_problem_badge_only_for_rooms_with_valves(hass):
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
+    from custom_components.open_thermostat.dashboard import RoomDashboard
+    from test_dashboard_heating import installation
+    e, rooms, _, _, _ = installation(hass)
+    before = json.dumps(RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config())
+    assert "valve" not in before                                   # no valves: the dashboard as before
+    device = dr.async_get(hass).async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_woonkamer"), e.entry_id)
+    made = {key: er.async_get(hass).async_get_or_create(domain, "open_thermostat", f"fixture_e32_room_woonkamer_{key}",
+                                                        config_entry=e, device_id=device.id,
+                                                        suggested_object_id=f"woonkamer_{key}").entity_id
+            for domain, key in (("sensor", "valve_position"), ("binary_sensor", "valve_problem"), ("switch", "valve_control"))}
+    config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
+    sections = {s["cards"][0]["heading"]: s for s in config["views"][0]["sections"]}
+    living = sections["Woonkamer"]["cards"]
+    tile = next(c for c in living if c.get("entity") == made["valve_position"])
+    assert tile["type"] == "tile" and tile["name"] == "Radiator valves open" and tile["icon"] == "mdi:valve"
+    badge = next(b for b in living[0]["badges"] if b["entity"] == made["valve_problem"])
+    assert badge["visibility"] == [{"condition": "state", "entity": made["valve_problem"], "state": "on"}]
+    assert "valve" not in json.dumps(sections["Badkamer"])           # the bathroom has no valves

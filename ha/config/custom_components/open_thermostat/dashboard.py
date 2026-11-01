@@ -91,7 +91,7 @@ def boiler_group(name):
     return "heating"
 
 # E32 room entities: unique ID f"{prefix}_e32_room_{room id}_{key}" (longest key first).
-ROOM_KEYS = ("fallback_setpoint", "inactive_until", "heating_start", "flow_advice", "temperature", "thermostat",
+ROOM_KEYS = ("valve_position", "valve_battery", "valve_problem", "valve_control", "fallback_setpoint", "inactive_until", "heating_start", "flow_advice", "temperature", "thermostat",
              "learning",
              "setpoint", "status", "demand", "state")
 # Today's hot water from the E32 (unique ID f"{prefix}_hub_{key}").
@@ -130,6 +130,7 @@ TEXT = {
         "max_ch": "Boiler maximum", "status": "Status", "problem": "Heating",
         "starts_hour": "Starts per hour", "short_cycling": "Short cycling",
         "agreement": "Agreement with thermostat", "measured": "Measured by E32", "target": "Target temperature",
+        "valve_position": "Radiator valves open",
         "mode": "Mode", "off_until": "Off until", "without_ha": "Temperature without Home Assistant",
         "compare": "E32 and thermostat", "e32_request": "Boiler request E32",
         "thermostat_request": "Thermostat request", "heating_time_e32": "Heating time E32",
@@ -211,6 +212,7 @@ TEXT = {
         "max_ch": "Ketelmaximum", "status": "Status", "problem": "Verwarming",
         "starts_hour": "Starts per uur", "short_cycling": "Pendelen",
         "agreement": "Overeenstemming met thermostaat", "measured": "Gemeten door E32",
+        "valve_position": "Radiatorkranen open",
         "target": "Gewenste temperatuur", "mode": "Stand", "off_until": "Uit tot",
         "without_ha": "Temperatuur zonder Home Assistant",
         "compare": "E32 en thermostaat vergeleken", "e32_request": "Ketelvraag E32",
@@ -964,6 +966,9 @@ class RoomDashboard:
         if state:
             badges.append({"type": "entity", "entity": state, "show_state": True, "show_icon": True,
                            "icon": "mdi:power-off", "visibility": inactive})
+        if room.get("valve_problem"):  # a radiator valve with a low battery or not reporting
+            badges.append({"type": "entity", "entity": room["valve_problem"], "show_state": False, "show_icon": True,
+                           "color": "red", "visibility": [{"condition": "state", "entity": room["valve_problem"], "state": "on"}]})
         if sensor.get("humidity"):
             badges.append({"type": "entity", "entity": sensor["humidity"], "name": t["humidity"],
                            "icon": "mdi:water-percent", "show_state": True, "show_icon": True})
@@ -984,6 +989,8 @@ class RoomDashboard:
             # The E32's own measurement next to another thermostat; the room's own climate already shows it.
             None if own else _tile(room.get("temperature"), t["measured"], visibility=active),
             None if thermostat else _tile(room.get("setpoint"), t["target"], visibility=active),
+            # Radiator valves the E32 drives (beta.24): how far they are open, only for rooms with valves.
+            _tile(room["valve_position"], t["valve_position"], "mdi:valve", visibility=active) if room.get("valve_position") else None,
             {"type": "history-graph", "hours_to_show": 24, "entities": history, **when_active}
             if history else None,
             _tile(room.get("inactive_until"), t["off_until"], visibility=inactive + _known(room["inactive_until"]))

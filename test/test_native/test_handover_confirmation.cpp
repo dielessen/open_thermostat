@@ -270,6 +270,33 @@ TEST(HandoverConfirmation, BootZeroRepeatsUntilDelivered) {
     EXPECT_EQ(b.attempts, 8);
 }
 
+// Review 1.0 (S2 gap): after new firmware a boot zero still owed when frost protection
+// may run (2 min of listening) is not dropped in a warm house: it keeps repeating
+// every 10 s until delivered, and then the boiler trial is free again.
+TEST(HandoverConfirmation, BootZeroOwedPastTheListeningWindowIsStillSent) {
+    for (const bool routeLate : {true, false}) {
+        FakeStore store; store.record = "fw/1";
+        Boot b(store, "fw/2"); // rooms at 19 degC: frost asks nothing
+        b.in.routeReady = !routeLate; b.delivers = false; // the first 3 min deliver nothing
+        b.runFor(3 * minute);
+        EXPECT_EQ(b.attempts, routeLate ? 0 : 18) << routeLate; // also past 130 s
+        EXPECT_TRUE(b.guard.bootZeroDue());
+        EXPECT_EQ(b.guard.warning(ActiveHeatGuard::transmitFailed), !routeLate);
+        b.in.routeReady = true; b.delivers = true;
+        b.runFor(10 * second);
+        ASSERT_EQ(b.sent.size(), 1u) << routeLate;
+        EXPECT_EQ(b.sent[0], 0);
+        EXPECT_EQ(b.why[0], "boot_zero");
+        EXPECT_FALSE(b.guard.bootZeroDue());
+        EXPECT_TRUE(b.guard.released());
+        EXPECT_FALSE(b.guard.claimsBoiler());
+        b.runFor(30 * minute);
+        EXPECT_EQ(b.sent.size(), 1u) << routeLate; // once, then quiet
+        EXPECT_FALSE(b.guard.warning(ActiveHeatGuard::transmitFailed));
+        EXPECT_EQ(b.guard.state(), State::awaitingConfirmation);
+    }
+}
+
 // Shadow mode stays silent whatever the store holds: command for command and
 // status for status the same as a boot without any record. A boot without a
 // record in active mode sends no boot zero either.

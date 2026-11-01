@@ -152,11 +152,11 @@ public:
             if (owning()) state_ = in.rooms.active && in.rooms.lost == in.rooms.active ? State::stoppedMeasurementLost : State::active;
         }
         if (owning()) bootZero_ = false; // its own commands follow
-        const bool bootZeroStep = !owning() && state_ != State::stopping && !frostEligible(in) && bootZero_;
         command_ = owning() ? request(now, in) : state_ == State::stopping ? stopZero(now, in)
-            : frostEligible(in) ? frostUnconfirmed(now, in)
-            : bootZeroStep ? due(!bootZeroTried_ || elapsed(now, bootZeroAt_) >= p_.zeroIntervalMs, 0, "boot_zero", in)
-            : Command{false, 0, name(state_)};
+            : frostEligible(in) ? frostUnconfirmed(now, in) : Command{false, 0, name(state_)};
+        // The boot zero repeats until delivered, also once frost protection may run but asks nothing.
+        const bool bootZeroStep = !owning() && state_ != State::stopping && !frostSending_ && bootZero_;
+        if (bootZeroStep) command_ = due(!bootZeroTried_ || elapsed(now, bootZeroAt_) >= p_.zeroIntervalMs, 0, "boot_zero", in);
         if (bootZeroStep && command_.send) { if (!bootZeroTried_) bootZeroFirst_ = now; bootZeroTried_ = true; bootZeroAt_ = now; }
         if (!owning()) { lastTarget_ = 0; frost_ = false; if (!frostSending_) heatSince_.reset(); }
         warnings_ = 0;

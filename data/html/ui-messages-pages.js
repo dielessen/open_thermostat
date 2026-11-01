@@ -274,6 +274,8 @@ window.OT_UI_PAGE_MESSAGES = {
   "Confirm that your current thermostat is disconnected from the boiler. The E32 then controls the heating; two controllers must never be connected at the same time.": "Bevestig dat je huidige thermostaat van de ketel is losgekoppeld. De E32 regelt daarna de verwarming; er mogen nooit twee regelaars tegelijk aangesloten zijn.",
   "Confirmed. The E32 takes over the boiler within a minute.": "Bevestigd. De E32 neemt de ketel binnen een minuut over.",
   "Handed back. The E32 asks the boiler for zero for one minute. Then reconnect your thermostat to the boiler.": "Teruggegeven. De E32 vraagt de ketel één minuut lang nul. Sluit daarna je thermostaat weer aan op de ketel.",
+  "The E32 did not confirm that it stopped. Keep your thermostat disconnected and try again; if that keeps failing, switch the E32 off first (manual §8.2).": "De E32 heeft het stoppen niet bevestigd. Laat je thermostaat nog losgekoppeld en probeer het opnieuw; lukt dat niet, zet dan eerst de E32 uit (handleiding §8.2).",
+  "The E32 stopped asking for heat, but saving the plan as shadow failed. Press the button again.": "De E32 vraagt de ketel geen warmte meer, maar het plan kon niet als schaduw worden opgeslagen. Druk nogmaals op de knop.",
   "EMS-ESP reference offsets; not verified on this installation": "EMS-ESP-referentieoffsets; niet geverifieerd op deze installatie",
   "Unidentified EMS traffic": "Niet-geïdentificeerd EMS-verkeer",
   "Device identity has not been requested.": "De apparaatidentiteit is nog niet opgevraagd.",

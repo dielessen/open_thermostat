@@ -147,11 +147,16 @@ foreign 0x1A keeps growing. Also check the boiler's own display.
      is reported for information only;
   4. the sources work, and a fallback source (for example a Bluetooth sensor)
      has taken over at least once.
-  Without an EMS thermostat to compare with, judge the period on the room
-  temperatures and the calculated request.
-  `tools/switchover/shadow_exit.py` checks these criteria read-only from the
-  Home Assistant history (and optionally the E32's MQTT topics) and prints
-  PASS, FAIL or WAIT (not enough data yet) for each; see its README.
+  The E32 checks these itself: the Rooms page shows **Ready to take over?**
+  (in Home Assistant the sensor *Takeover readiness*) with each criterion
+  green, orange (waiting, with its progress) or red (with what to do), and
+  "Ready: follow the switch-over steps" only when all pass. See
+  [USER-GUIDE.md](USER-GUIDE.md#ready-to-take-over) for the exact thresholds.
+  Without an EMS thermostat to compare with, the check says so and judges the
+  stability, the room sources, the boiler's reception and its reported
+  heating limit instead.
+  `tools/switchover/shadow_exit.py` stays available for a read-only check of
+  the Home Assistant history with the same thresholds; see its README.
 - The release with the gate **closed** installed and stable in shadow mode for
   at least 24 hours; host tests and the soak test green.
 - After an E32 restart in shadow mode, `active.boiler_limit.flow_c` is known

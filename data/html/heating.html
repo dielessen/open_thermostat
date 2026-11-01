@@ -9,6 +9,12 @@
   <div class="hp-rooms" data-heating-rooms></div>
   <p data-heating-add-row><button type="button" class="btn btn-outline-primary" data-heating-add><span data-i18n="Add room">Add room</span></button></p>
   <p class="pd-help"><span data-i18n="Heating curve, learned flow and flow limits for the whole house:">Heating curve, learned flow and flow limits for the whole house:</span> <a href="#house" data-page="house"><span data-i18n="Home">Home</span></a></p>
+  <section class="pd-panel" data-heating-readiness hidden>
+    <h2 data-i18n="Ready to take over?">Ready to take over?</h2>
+    <p class="hp-verdict" data-heating-readiness-verdict role="status" aria-live="polite"></p>
+    <p class="pd-help" data-heating-readiness-alone hidden data-i18n="There is no thermostat on the boiler bus to compare with, so only the E32 itself and the boiler are checked.">There is no thermostat on the boiler bus to compare with, so only the E32 itself and the boiler are checked.</p>
+    <ul class="hp-checks" data-heating-readiness-list></ul>
+  </section>
   <section class="pd-panel" data-heating-shadow>
     <h2 data-heating-shadow-title></h2>
     <p class="pd-help" data-heating-shadow-help data-i18n="Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what your thermostat asked of the boiler.">Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what your thermostat asked of the boiler.</p>
@@ -54,6 +60,10 @@
 .hp-grid{display:grid;gap:0 16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}.hp-grid label{display:block;margin-bottom:8px}#heating-plan [data-heating-source]{display:grid;grid-template-columns:minmax(0,15rem) minmax(0,1fr) 44px;gap:8px;margin-bottom:8px}#heating-plan [data-heating-source] .btn,#heating-plan [data-heating-point] .btn{width:44px;min-width:44px;flex:none;padding:0}
 #heating-plan [data-heating-point]{gap:8px}#heating-plan [data-heating-point] input{min-width:0;padding:6px}#heating-plan [data-heating-point] [type=time]{flex:0 0 auto;width:auto}.hp-remove{margin-top:16px;padding-top:12px;border-top:1px solid var(--ot-border)}.ot-sticky [data-heating-message]{flex:1 1 12rem}.ot-empty .btn{margin-top:12px}
 .hp-locked [data-heating-add],.hp-locked [data-heating-add-first],.hp-locked .ot-sticky,.hp-locked .hp-remove{display:none!important}.hp-body{border:0;margin:0;min-width:0}.hp-brief,.hp-locked .hp-body>:not(.hp-brief){display:none!important}[data-heating-active-warnings]:empty,[data-heating-active-message]:empty{display:none}.hp-locked .hp-brief{display:grid!important}.hp-locked p.hp-brief{display:block!important}.hp-body:disabled .form-control{background:var(--ot-surface-2);opacity:1}
+.hp-checks{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:8px}.hp-checks li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:2px 10px;align-items:start;padding:8px 10px;border:1px solid var(--ot-border);border-radius:var(--ot-r1);background:var(--ot-surface)}
+.hp-mark{grid-row:span 2;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-weight:700}.hp-check--pass .hp-mark{background:var(--ot-ok-bg);color:var(--ot-ok)}.hp-check--wait .hp-mark{background:var(--ot-warn-bg);color:var(--ot-warn)}.hp-check--fail .hp-mark{background:var(--ot-err-bg);color:var(--ot-err)}
+.hp-check-head{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline}.hp-check-word{font-size:.8rem;font-weight:600}.hp-check--pass .hp-check-word{color:var(--ot-ok)}.hp-check--wait .hp-check-word{color:var(--ot-warn)}.hp-check--fail .hp-check-word{color:var(--ot-err)}.hp-check-line{color:var(--ot-muted);font-size:.88rem;overflow-wrap:anywhere}
+.hp-verdict{font-weight:600;margin:0 0 4px}.hp-verdict--ready{color:var(--ot-ok)}.hp-verdict--waiting{color:var(--ot-warn)}.hp-verdict--not_ready{color:var(--ot-err)}
 .hp-flow{list-style:none;padding:0;margin:8px 0;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}.hp-flow li{position:relative;border:1px solid var(--ot-border);border-radius:var(--ot-r1);background:var(--ot-surface);padding:10px 12px;font-size:.88rem}.hp-flow strong{display:block;margin-bottom:2px}.hp-flow li+li::before{content:"→";position:absolute;left:-14px;top:38%;color:var(--ot-accent);font-weight:700}
 @media(max-width:560px){.hp-flow li+li::before{content:"↓";left:48%;top:-17px}#heating-plan [data-heating-source]{grid-template-columns:minmax(0,1fr) 44px}#heating-plan [data-heating-source]>select:first-child{grid-column:1/-1}.hp-rooms>details>summary{padding:12px 14px}.hp-body{padding:4px 14px 14px}
 #heating-plan [data-heating-shadow-days] thead{display:none}#heating-plan [data-heating-shadow-days] tr{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--ot-border)}#heating-plan [data-heating-shadow-days] td{border:0}#heating-plan [data-heating-shadow-days] td::before{content:attr(data-label);display:block;color:var(--ot-muted);font-size:.75rem}}</style>
@@ -554,6 +564,69 @@
     }
     shadowBox.replaceChildren(...parts);
   }
+  // "Ready to take over?" (TakeoverReadiness on the E32): one line per criterion, shadow mode only.
+  const readinessBox = root.querySelector('[data-heating-readiness]');
+  const readinessVerdict = {ready:"Ready: follow the switch-over steps.", waiting:"Not yet: the E32 is still collecting shadow data (at least 3 days).",
+    not_ready:"Not ready: fix the items marked in red first."};
+  const resultWord = {pass:"Passed", wait:"Waiting", fail:"Action needed"}, resultMark = {pass:'✓', wait:'…', fail:'!'};
+  const fill = (text, values) => Object.entries(values).reduce((t, [k, v]) => t.replace('{' + k + '}', v), uiText(text));
+  const hours = s => (Math.floor((s || 0) / 360) / 10).toLocaleString(OpenThermostatLanguage.locale);
+  function readinessLines(r) {
+    const lines = [];
+    const add = (c, label, line) => c && resultWord[c.result] && lines.push([c.result, label, line]);
+    const s = r.stable;
+    if (s) {
+      const restart = {unexpected:"The E32 restarted unexpectedly; counting started again.", power:"The E32 lost power; counting started again.",
+        first:"Counting started when this firmware first ran."}[s.restart];
+      add(s, "Stable for 72 hours", fill(s.result === 'pass' ? "{h} h without a hang or unexpected restart." : "{h} of 72 h without a hang or unexpected restart.", {h: hours(s.s)})
+        + (s.result !== 'pass' && restart ? ' ' + uiText(restart) : ''));
+    }
+    const p = r.periods;
+    if (p) {
+      const missing = [[p.night_setbacks, "a night setback"], [p.morning_warmups, "a morning warm-up"], [p.no_demand, "a period without demand"]].filter(([n]) => !n).map(([, t]) => uiText(t));
+      add(p, "Heating periods compared", fill("{n} of 10 periods.", {n: p.thermostat}) + (missing.length ? ' ' + uiText("Still needed:") + ' ' + missing.join(', ') + '.' : ''));
+    }
+    const t = r.timing;
+    if (t) add(t, "Heat at the same moments", t.result === 'wait' ? fill("{n} of 20 starts and stops.", {n: t.events})
+      : fill("{close} of {events} starts and stops within 5 minutes, {matched} within 30 minutes.", {close: t.within_5min, events: t.events, matched: t.matched})
+        + (t.result === 'fail' ? ' ' + uiText("The E32 heats at other moments than your thermostat: check the room targets and the week program.") : ''));
+    const f = r.flow;
+    if (f) add(f, "Flow request below the hard limit", f.result === 'fail'
+      ? fill("{n} times above the limit of {limit} °C. Do not switch over: check the flow limits and report this.", {n: f.over, limit: f.limit_c})
+      : (f.max_c == null ? fill("No heat request yet; limit {limit} °C.", {limit: f.limit_c}) : fill("Highest {max} °C, limit {limit} °C.", {max: f.max_c, limit: f.limit_c}))
+        + (f.result === 'wait' ? ' ' + uiText("Needs an hour of heat requests.") : ''));
+    const c = r.cycling;
+    if (c) add(c, "Not more burner starts than the thermostat", c.result === 'wait' ? fill("{n} of 10 thermostat periods.", {n: c.thermostat})
+      : fill("E32 {e} heating periods, thermostat {t}.", {e: c.e32, t: c.thermostat})
+        + (c.result === 'fail' ? ' ' + uiText("The E32 would start the burner more often: check the minimum flow and the flow limits.") : ''));
+    const so = r.sources;
+    if (so) add(so, "Room sources work", so.result === 'pass' ? uiText("Every active room is measured, and a fallback source has taken over.")
+      : !so.rooms ? uiText("Add a room with a temperature sensor.")
+      : so.working < so.rooms ? fill("{n} of {rooms} rooms have no fresh reading. Check the sensor's battery and range.", {n: so.rooms - so.working, rooms: so.rooms})
+      : !so.backup ? uiText("No room has a second source to fall back on. Add one, for example a Bluetooth sensor.")
+      : uiText("No fallback source has taken over yet. It happens when the main sensor drops out; you can test it by taking its battery out for half an hour."));
+    const b = r.boiler;
+    if (b) add(b, "Boiler heard on the bus", b.result === 'pass' ? fill("Last report {age}.", {age: ago(b.age_s)})
+      : b.result === 'wait' ? uiText("Waiting for the boiler.") : uiText("The E32 hears nothing from the boiler. Check the bus cable and the adapter."));
+    const l = r.boiler_limit;
+    if (l) add(l, "Boiler maximum known", l.result === 'pass' ? l.limit_c + ' °C.'
+      : l.result === 'wait' ? uiText("Waiting for the boiler to report it.") : uiText("The boiler has not reported its heating limit. Check the bus connection."));
+    return lines;
+  }
+  function renderReadiness(r, mode) {
+    // Taken over (active mode) or firmware without the check: nothing to show.
+    readinessBox.hidden = !r || mode === 'active' || r.state === 'not_applicable' || !readinessVerdict[r.state];
+    if (readinessBox.hidden) return;
+    const verdict = readinessBox.querySelector('[data-heating-readiness-verdict]');
+    verdict.textContent = uiText(readinessVerdict[r.state]); verdict.className = 'hp-verdict hp-verdict--' + r.state;
+    readinessBox.querySelector('[data-heating-readiness-alone]').hidden = r.comparison !== false;
+    readinessBox.querySelector('[data-heating-readiness-list]').replaceChildren(...readinessLines(r).map(([result, label, line]) => {
+      const li = el('li', null, {class:'hp-check hp-check--' + result}), head = el('div', null, {class:'hp-check-head'});
+      head.append(el('strong', uiText(label)), el('span', uiText(resultWord[result]), {class:'hp-check-word'}));
+      li.append(el('span', resultMark[result], {class:'hp-mark', 'aria-hidden':'true'}), head, el('div', line, {class:'hp-check-line'}));
+      return li;
+    }));
+  }
   function renderActive(a) {
     const box = activeBox.querySelector('[data-heating-active-state]');
     activeBox.querySelector('[data-heating-active-gate]').hidden = !a || a.enabled;
@@ -602,6 +675,7 @@
       return;
     }
     renderShadow(status.shadow); shadowBox.dataset.ready = '1';
+    renderReadiness(status.readiness, status.mode || plan?.mode);
     root.dispatchEvent(new CustomEvent('heating-status', {detail: status})); // the flow options below
     bleSensors = Array.isArray(status.ble_sensors) ? status.ble_sensors.filter(s => s && /^[0-9a-f]{12}$/.test(s.id)) : [];
     const key = bleSensors.map(s => s.id + s.name).join();

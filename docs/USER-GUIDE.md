@@ -565,16 +565,40 @@ seen such a thermostat; a home without one gets no comparison sensors.
 | E32 starts within 5 min of a thermostat start | How many of the thermostat's starts the E32 matched closely. |
 | Without thermostat data | Time in which the thermostat's request was not seen; excluded from the agreement. |
 
-The table below shows the last seven days. A good shadow period, before a
-switch-over is considered, looks like this:
+The table below shows the last seven days.
 
-- at least 72 hours without a hang or restart;
-- at least 10 compared heating periods, including night setback, morning
-  warm-up and a period without heat demand;
-- heat demand at about the same moments (a few minutes apart), flow
-  temperatures in the same range, and not more burner starts than the
-  thermostat;
-- the sources work, and a fallback source has taken over at least once.
+### Ready to take over?
+
+Right above the comparison, the Rooms page shows the check **Ready to take
+over?**. The E32 judges its own shadow period, so you need no Home Assistant,
+token or script for it. Each line is green (passed), orange (waiting for more
+data, with the progress so far, such as "51 of 72 h") or red (with what to do):
+
+| Line | Passes when |
+| --- | --- |
+| Stable for 72 hours | 72 hours without a hang or unexpected restart. A planned restart (a firmware update, the restart button, restoring settings) does not reset it; a crash, a watchdog or supervisor restart or a power cut does. |
+| Heating periods compared | At least 10 heating periods of the thermostat, among them a night setback, a morning warm-up and an hour without heat demand. |
+| Heat at the same moments | At least 20 starts and stops of the thermostat; 80 % of them with an E32 start or stop within 30 minutes, half within 5 minutes and 90 % within 15 minutes. |
+| Flow request below the hard limit | The E32 never asked for more than the lowest of the plan maximum, the boiler's own heating limit and 80 °C. Judged after an hour of heat requests; a single request above it fails. |
+| Not more burner starts than the thermostat | After 10 thermostat periods, the E32 has no more heating periods than the thermostat. |
+| Room sources work | Every active room has a fresh reading, and a fallback source has taken over at least once. While no room has a second source this line stays red. |
+
+Only when every line passes does it say "Ready: follow the switch-over steps";
+then follow [SWITCHOVER.md](SWITCHOVER.md). The figures cover the last seven
+days and are kept over restarts. In active mode the check is hidden.
+
+Without an EMS thermostat on the bus there is nothing to compare. The check
+says so and lists only the stability, the room sources, the boiler heard on
+the bus (in the last 5 minutes) and the boiler maximum known (the E32 read the
+boiler's heating limit itself).
+
+Home Assistant shows the same check as the sensor *Takeover readiness* on the
+E32 device (Ready, Waiting for more data, Not ready, or Not applicable once the
+E32 controls the boiler), with each line's result and figures as attributes,
+and on the generated dashboard next to the comparison. It adds one thing the
+E32 cannot see of itself: when Home Assistant did not hear the E32 for five
+minutes or more, the 72 hours count from the moment it was heard again. The
+sensor raises no repair issue.
 
 Shadow mode does not show how the boiler and its adapter react to the E32's
 request; that is tested during the switch-over.

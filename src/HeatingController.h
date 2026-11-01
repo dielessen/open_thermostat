@@ -24,6 +24,7 @@
 #include "control/TrvControl.h"
 #include "RoomOverridesStore.h"
 #include "control/ShadowComparison.h"
+#include "ReadinessStore.h"
 #include "control/RoomEngine.h"
 #include "control/ActiveHeatGuard.h"
 #include "control/HandoverConfirmation.h"
@@ -161,6 +162,13 @@ public:
         history_.begin([](size_t size) { return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT); }, heap_caps_free);
         loadFlowSettings();
         overrides_.restore(RoomOverridesNvs::read()); // waits for a trusted clock before it applies
+        // The takeover readiness counters; the stable time only after a planned restart.
+        {
+            control::TakeoverReadiness::Stored stored;
+            const bool found = ReadinessNvs::read(stored);
+            readiness_.restore(found ? &stored : nullptr, control::TakeoverReadiness::classify(
+                int(esp_reset_reason()), diagnostics::blackBox.previousRestart()));
+        }
         // A stored "thermostat disconnected" (same firmware) resumes active heat
         // after 2 min of bus reception without a foreign 0x1A, which clears it.
         // One of other firmware (an update): wait for the owner to confirm again,
@@ -408,6 +416,9 @@ public:
         if (root) control::addBurnerJson(root, ems_.burnerCycles(), ems_.boilerActivity());
         cJSON* shadow = sensors ? shadowComparison_.json() : nullptr;
         if (!shadow || !cJSON_AddItemToObject(root, "shadow", shadow)) { cJSON_Delete(shadow); cJSON_Delete(root); return nullptr; }
+        // "Ready to take over?" (fw/telemetry/readiness on MQTT).
+        cJSON* readiness = readiness_.json();
+        if (!readiness || !cJSON_AddItemToObject(root, "readiness", readiness)) { cJSON_Delete(readiness); cJSON_Delete(root); return nullptr; }
         cJSON* active = activeHeatJson();
         if (!active || !cJSON_AddItemToObject(root, "active", active)) { cJSON_Delete(active); cJSON_Delete(root); return nullptr; }
         // The applied request and its source (rule, curve, learned, optimum start); details not on MQTT.
@@ -462,6 +473,7 @@ public:
     // still be held, or after BoilerReleaseHold::maxMs. Shadow mode: at once.
     bool releaseBoilerForRestart() {
         activeGuard_.withdraw(bleReceiptClock());
+        if (!readinessStored_) { readinessStored_ = true; ReadinessNvs::write(readiness_.stored()); } // once: the counters survive it
         return restartHold_.ready(static_cast<uint32_t>(bleReceiptClock()), activeGuard_.released());
     }
     uint32_t managedBleQueueDrops() const { return managedBle_.queueDrops(); }
@@ -769,6 +781,8 @@ private:
     control::RoomEngine roomEngine_;
     control::RoomOverrides overrides_; // beta.19: temporary overrides, window pauses, away (targets only)
     control::ShadowComparison shadowComparison_; // E32 decision vs the tado's 0x1A, per day
+    control::TakeoverReadiness readiness_;       // the shadow exit criteria over 7 days (NVS)
+    bool readinessStored_ = false;               // stored for the coming planned restart
     control::ActiveHeatGuard activeGuard_;
     std::atomic<bool> boilerOutput_{false}; // activeGuard_.outputActive() of the last step, for other tasks
     control::TrvControl trv_;                 // radiator valves via Zigbee2MQTT (beta.24; harmless while unused)
@@ -846,6 +860,7 @@ private:
         const auto tadoFlowC = ems_.thermostatRequestedFlowC();
         const auto request = applyFlowPolicy(now, rule, ems); // the rule itself while the options are off
         shadowComparison_.sample(now, unixNow, request, tadoFlowC);
+        sampleReadiness(now, unixNow, request, tadoFlowC, ems);
         stepFlowLearner(now, ems, tadoFlowC);
         // Radiator valves: their feedback on the request and their commands, both only while the E32
         // drives the boiler after a confirmed takeover (the last step's output; frost protection
@@ -879,6 +894,24 @@ private:
             rooms.push_back(v);
         }
         return rooms;
+    }
+    // The readiness check sees what the comparison sees, plus the rooms, the boiler and the mode.
+    void sampleReadiness(uint64_t now, std::optional<uint32_t> unixNow, const control::FlowDemand::Request& request,
+                         std::optional<uint8_t> tadoFlowC, const ems::EmsController::ActiveHeatView& ems) {
+        const auto& plan = roomEngine_.plan();
+        control::TakeoverReadiness::Inputs in;
+        in.utc = unixNow; in.e32 = request; in.thermostatFlowC = tadoFlowC;
+        in.planMaximumC = plan.maximumFlowC; in.boilerLimitC = ems.limitC;
+        in.roomCount = std::min(plan.rooms.size(), in.rooms.size());
+        for (size_t i = 0; i < in.roomCount; ++i) {
+            const auto& r = roomEngine_.result(i);
+            in.rooms[i] = {r.status, r.setpoint, uint8_t(plan.rooms[i].sources.size())};
+        }
+        in.active = board::emsActiveHeatAllowed && plan.mode == control::RoomPlan::Mode::active;
+        in.boilerHeardAtMs = ems.boilerHeardAtMs;
+        in.limitRead = ems.limitC && ems.limitReads > 0;
+        readiness_.sample(now, in);
+        if (readiness_.saveDue(now)) { ReadinessNvs::write(readiness_.stored()); readiness_.saved(now); } // a failure retries in 6 h
     }
     // Charts only: fresh readings, effective targets, the boiler and both requests.
     void sampleHistory(uint64_t now, const control::FlowDemand::Request& request, const ems::EmsController::ActiveHeatView& ems, std::optional<uint8_t> tadoFlowC) {

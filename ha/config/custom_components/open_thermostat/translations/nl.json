@@ -2077,6 +2077,15 @@
       "shadow_agreement_today": {
         "name": "Overeenstemming met thermostaat vandaag"
       },
+      "takeover_readiness": {
+        "name": "Klaar voor overname",
+        "state": {
+          "ready": "Klaar",
+          "waiting": "Wacht op meer gegevens",
+          "not_ready": "Niet klaar",
+          "not_applicable": "Niet van toepassing"
+        }
+      },
       "heat_request": {
         "name": "Ketelvraag (E32)"
       },

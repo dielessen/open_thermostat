@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "257358d40f2ce1f9939f3a920dac2a7e8f59781f66a2a49ef33bc7477c621921"
+          "sha256": "eae363b281698a8c0bcff995235bd504aeb43480d3a49112ea4c0d9076441310"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -1137,15 +1137,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
-          "sha256": "db006cf103b44c726e05c0f2dba65c3872d2f7cfbe97a9dc9b6c24360f77d332"
+          "sha256": "812b9892ebb07173115d258eeedf0d4b9da565ade3779cdfa6f19ccf04c80213"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/en.json",
-          "sha256": "db006cf103b44c726e05c0f2dba65c3872d2f7cfbe97a9dc9b6c24360f77d332"
+          "sha256": "812b9892ebb07173115d258eeedf0d4b9da565ade3779cdfa6f19ccf04c80213"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "f0478571888896945d128a15d8bcbba379b7932da177edcb9e69d215089c0f28"
+          "sha256": "39d5bee14522a2f2c5f89d190a0abefa44fa772db49d2f401d798eeedfaeb05d"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -1400,7 +1400,7 @@
         },
         {
           "path": "ha/tests_native/test_e32_room_flow.py",
-          "sha256": "e5886b11c32a5f3853a123107b2c0fd9e6e1a4bd163e767683147f06e6013142"
+          "sha256": "898002993d0c5394ad7c5cce8e5703297324d61298b80457fc41a875015c8d24"
         },
         {
           "path": "ha/tests_native/test_native_entity_cleanup.py",
@@ -2718,7 +2718,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/__init__.py",
-          "sha256": "59e557b95612eca461724c91a8ad6b86b798cca1d3b8f5cc827d5ab7c4d01297"
+          "sha256": "d69326197f763e36065b9d76e9252b653515a91643056be9c008e7fbbc594d7e"
         },
         {
           "path": "ha/tests_native/test_actuator_command_lifetime.py",
@@ -3082,7 +3082,7 @@
         },
         {
           "path": "ha/tests_native/test_ble_device_name.py",
-          "sha256": "c091a151ae22b8e7e6292433d51063bde3e01144ecaa5e4eac0fc2e03df0e6de"
+          "sha256": "b310fcd42141a3df2357fa7c6d1d7965ee0ba3a1b92a11aa95231117b5027bd8"
         },
         {
           "path": "ha/tests_native/test_e32_flow.py",
@@ -3194,7 +3194,7 @@
         },
         {
           "path": "ha/tests_native/test_room_window_contacts.py",
-          "sha256": "86baf959dec886e7e64781ce1737598b5df23aab34a5d2273307d3be564fcc6a"
+          "sha256": "d47ae2786937efa2467e8596ee21270bb2d573ab42a12fa3e49a4e17f3c1ee7c"
         },
         {
           "path": "ha/tests_native/test_session_traffic.py",

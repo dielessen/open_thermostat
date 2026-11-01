@@ -728,7 +728,14 @@
         },
         "data_description": {
           "control": "On: the E32 drives these valves (only while it controls the boiler itself). Off: the valves keep their own settings.",
-          "valve_1": "The friendly name in Zigbee2MQTT, e.g. \"Living room valve\". Leave empty for no valve."
+          "valve_1": "The friendly name in Zigbee2MQTT, e.g. \"Living room valve\". Leave empty for no valve.",
+          "model_1": "The model decides what the E32 sends besides the target, such as the room temperature or a valve position. Pick Other if yours is not listed.",
+          "valve_2": "Another valve in this room, the same way as valve 1. Leave empty for no valve.",
+          "model_2": "The model decides what the E32 sends besides the target, such as the room temperature or a valve position. Pick Other if yours is not listed.",
+          "valve_3": "Another valve in this room, the same way as valve 1. Leave empty for no valve.",
+          "model_3": "The model decides what the E32 sends besides the target, such as the room temperature or a valve position. Pick Other if yours is not listed.",
+          "valve_4": "Another valve in this room, the same way as valve 1. Leave empty for no valve.",
+          "model_4": "The model decides what the E32 sends besides the target, such as the room temperature or a valve position. Pick Other if yours is not listed."
         }
       },
       "entity_ids": {
@@ -737,6 +744,10 @@
         "data": {
           "scope": "Which entities",
           "confirm": "I have read the list and want to rename these entities"
+        },
+        "data_description": {
+          "scope": "The unused ones are the safe choice: nothing refers to them. All also renames the used ones listed above; update those places yourself afterwards.",
+          "confirm": "Nothing is renamed until you tick this."
         }
       },
       "entity_ids_undo": {
@@ -744,6 +755,9 @@
         "description": "{count} entities get their previous ID back (where it is still free). History moves along with them.",
         "data": {
           "confirm": "Put the old IDs back"
+        },
+        "data_description": {
+          "confirm": "The entities from the last tidy get their previous ID back where it is still free."
         }
       }
     },

@@ -1,4 +1,4 @@
-"""Window and door contacts per E32 room: in the room form, under Comfort, and the room's window state.
+"""Window and door contacts per E32 room: in the room form, and the room's window state.
 
 Any Home Assistant binary sensor of the class window, door, opening or garage
 door works (Zigbee, Z-Wave, Shelly, Bluetooth, a template ...). The contacts
@@ -16,9 +16,6 @@ from custom_components.open_thermostat.e32_comfort import (
 from custom_components.open_thermostat.heating_link import ROOM_STATUSES, HeatingHub, RoomStatusSensor, room_status
 from test_e32_room_flow import NEW_ROOM, manager, product, room_form, rooms_menu, shown  # noqa: F401
 from test_room_plan import STATUS, FakeE32
-
-BOTH_ROOMS = {**STATUS, "rooms": [*STATUS["rooms"], {**STATUS["rooms"][0], "id": "badkamer", "name": "Badkamer"}]}
-
 
 def contacts_of(parent):
     return comfort_options(parent)["contacts"]
@@ -151,33 +148,21 @@ async def test_removing_a_room_removes_its_contacts(hass, manager):
 
 
 @pytest.mark.asyncio
-async def test_comfort_asks_the_room_first_and_shows_that_rooms_own_contacts(hass, manager):
-    """Before: one form with a room list and a sensor list prefilled for the first room only."""
+async def test_each_room_form_shows_that_rooms_own_contacts(hass, manager):
+    """beta.23: no Comfort menu any more; the contacts are edited in the room itself (Configure -> Rooms)."""
     sensors(hass)
     e32 = FakeE32()
-    parent, hub = product(hass, e32)
-    hub.update(BOTH_ROOMS)
+    parent, _ = product(hass, e32)
     hass.config_entries.async_update_entry(parent, options={**parent.options, CONF_COMFORT: {"contacts": {
         "badkamer": ["binary_sensor.raam_zigbee"], "woonkamer": ["binary_sensor.deur_zwave"]}}})
     await hass.async_block_till_done()
-    flow = await manager.async_init(parent.entry_id)
-    flow = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})  # beta.23: under Home
-    flow = await manager.async_configure(flow["flow_id"], {"next_step_id": "comfort"})
-    assert flow["menu_options"] == ["comfort_settings", "comfort_contacts"]
-    flow = await manager.async_configure(flow["flow_id"], {"next_step_id": "comfort_contacts"})
-    assert flow["step_id"] == "comfort_contacts"
-    assert [str(k) for k in flow["data_schema"].schema] == ["room"]
-    assert flow["description_placeholders"]["rooms"] == "- Badkamer: Raam\n- Woonkamer: Deur"
-    flow = await manager.async_configure(flow["flow_id"], {"room": "badkamer"})
-    assert flow["step_id"] == "comfort_contacts_room"
-    assert flow["description_placeholders"] == {"room": "Badkamer", "delay": "2 min"}
-    picker = next(k for k in flow["data_schema"].schema if str(k) == "contacts")
-    assert picker.description["suggested_value"] == ["binary_sensor.raam_zigbee"]  # the bathroom's, not the first room's
-    flow = await manager.async_configure(flow["flow_id"], {"contacts": ["binary_sensor.beweging"]})
-    assert flow["errors"] == {"contacts": "not_contact_sensor"}
-    result = await manager.async_configure(flow["flow_id"], {
-        "contacts": ["binary_sensor.raam_zigbee", "binary_sensor.shelly_opening"]})
-    assert result["reason"] == "comfort_saved"
+    form = await room_form(manager, parent, "badkamer")
+    assert shown(form)["window"]["contacts"] == ["binary_sensor.raam_zigbee"]  # the bathroom's, not the first room's
+    form = await manager.async_configure(form["flow_id"], {**shown(form), "window": {"contacts": ["binary_sensor.beweging"]}})
+    assert form["errors"] == {"base": "not_contact_sensor"}
+    result = await manager.async_configure(form["flow_id"], {
+        **shown(form), "window": {"contacts": ["binary_sensor.raam_zigbee", "binary_sensor.shelly_opening"]}})
+    assert result["step_id"] == "e32_rooms_saved", result
     assert contacts_of(parent) == {"badkamer": ["binary_sensor.raam_zigbee", "binary_sensor.shelly_opening"],
                                    "woonkamer": ["binary_sensor.deur_zwave"]}  # the other room is untouched
     assert room_contacts(parent, "woonkamer") == ["binary_sensor.deur_zwave"]

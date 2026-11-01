@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "15fc9a5f908df93c5d21610d751f7469f7bd2cb1a206bd9982f399a98a3d7604"
+          "sha256": "ddcc621b50f7cc0999aa5bf4950e6c44ebe3a121a2a20a6ff49b712533619713"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -227,7 +227,7 @@
         },
         {
           "path": "docs/USER-GUIDE.md",
-          "sha256": "3216b3049cbd81064b8590fcfe133dea549402d770f8d1e51055ea65ddec827a"
+          "sha256": "d6f05d3aecdae1cae72628189cb59dbdfdbfe7bca6543781d328aa99fa5cdbfb"
         },
         {
           "path": "docs/modern-thermostat/OVERSCHAKELING.nl.md",
@@ -1017,15 +1017,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
-          "sha256": "a963e7b9a4703c4a1153c8f3ad483352dd48f8e2dfeae0f6e1d831005a4a4080"
+          "sha256": "232af1ee917418d65b29fb149a6eb1e2b487a7d6d9317156a16b3cf18efd72eb"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/en.json",
-          "sha256": "a963e7b9a4703c4a1153c8f3ad483352dd48f8e2dfeae0f6e1d831005a4a4080"
+          "sha256": "232af1ee917418d65b29fb149a6eb1e2b487a7d6d9317156a16b3cf18efd72eb"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "ab0a69fa281cfe4466a6f7183aba20b8a43f365dfc8693b41bbf0b61430e8b90"
+          "sha256": "fffd9c519f7043ba33c7abe378709f428b575ca94107c28b85bab603aa0e1baf"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -2898,7 +2898,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/energy_input.py",
-          "sha256": "36b4a14fbe0877537311fa9321f149a0d911e0db459091b812c20eb15d3dec79"
+          "sha256": "d2d78e1b42a33b8e2ba44ea0bc75f75a8f29b63a2724cfd6559e31d413023995"
         },
         {
           "path": "src/EMS/ActiveHeatPollDriver.h",
@@ -3114,7 +3114,7 @@
         },
         {
           "path": "ha/tests_native/test_dhw_keep_warm.py",
-          "sha256": "039be5e56d530470e63c902b8251b3155a0f192290ca23abb8387a5f8f9b9157"
+          "sha256": "479a4a71523094e73367f24ecf22f4168da6d7de5e63dcbdeb2b3e1cc1304363"
         },
         {
           "path": "test/fixtures/dhw-owner-20261031.txt",
@@ -3127,6 +3127,10 @@
         {
           "path": "test/fixtures/dhw-owner-week-20261025.txt",
           "sha256": "f8f1591327c4be477382f800de325f3a09bbc47473f127c0018db34b30d9e20f"
+        },
+        {
+          "path": "ha/tests_native/fixtures/water_owner_20261031.json",
+          "sha256": "41156b54eaa7b70a80fee20cf92f861dbcf5c4b44731b88c2551435cd306864b"
         }
       ],
       "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open. B06 toekomstige-feitquarantaine en klokfences bronmatig afgerond met twaalf regressies/677 native tests en gedeelde veiligheidscontrole voor zonepolicy/storingsbevestiging; HA-deel opgenomen in geverifieerde HA43-bronbestanden; E32-deel opgenomen in alpha31; de module is nu op alpha31 waargenomen zonder uitvoerder-/methodebewijs. Geen fysieke producent- of regelkwalificatie."
@@ -3302,7 +3306,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/energy_use.py",
-          "sha256": "cb3ed48736fc01356caa2d9e82dc6533d6b6efbba8a0f6d6d51584c81d94b08f"
+          "sha256": "5a8678bffb64d071a05b20072b47801194ca4ab1fdce7b9aed0344c338b89942"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/weekly_summary.py",
@@ -3592,7 +3596,7 @@
         },
         {
           "path": "ha/tests_native/test_heating_advice.py",
-          "sha256": "986eece22ac57dfe61b58d8fc9c62d019fee451e0fe2c507b4a2a2617a0246ae"
+          "sha256": "cb1d383e2e30db188b8508dcfe67ad30d3c7caf502af4687c450d10a4886fef3"
         },
         {
           "path": "src/control/FlowLearner.h",

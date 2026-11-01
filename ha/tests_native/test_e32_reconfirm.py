@@ -89,6 +89,31 @@ async def test_the_issue_follows_the_e32_and_survives_an_outage(hass):
 
 
 @pytest.mark.asyncio
+async def test_one_repairs_issue_while_the_e32_waits_for_the_takeover_again(hass):
+    """After an update the E32 reports awaiting_confirmation and reconfirm_required: only the fixable issue."""
+    from custom_components.open_thermostat.heating_problem import AWAITING_CONFIRMATION_SECONDS
+    _e32, hub = await rig(hass)
+    now = [1000.0]
+    hub.clock = lambda: now[0]
+    hub.update(status(WAITING))
+    sensor = HeatingProblemSensor(SimpleNamespace(entry_id="e1", data={}), hub)
+    sensor.hass, sensor.entity_id, sensor.async_write_ha_state = hass, "binary_sensor.heating_problem", lambda: None
+    sensor.evaluate()
+    now[0] += AWAITING_CONFIRMATION_SECONDS + 60
+    hub.update(status(WAITING))
+    sensor.evaluate()
+    registry = ir.async_get(hass)
+    assert sensor.extra_state_attributes["problems"] == ["awaiting_confirmation"]   # the sensor still says so
+    assert issue(hass) is not None
+    assert registry.async_get_issue("open_thermostat", "heating_problem_awaiting_confirmation_e1") is None
+    # A first takeover (no reconfirm): the general issue is the one that asks.
+    hub.update(status({**WAITING, "reconfirm_required": False}))
+    sensor.evaluate()
+    assert issue(hass) is None
+    assert registry.async_get_issue("open_thermostat", "heating_problem_awaiting_confirmation_e1") is not None
+
+
+@pytest.mark.asyncio
 async def test_the_fix_confirms_once_and_never_hands_back_or_edits_the_plan(hass):
     e32, hub = await rig(hass)
     module.update_reconfirm_issue(hass, SimpleNamespace(entry_id="e1"), hub)

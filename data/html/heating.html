@@ -50,7 +50,7 @@
 </section>
 <style>#heating-plan [hidden]{display:none!important}#heating-plan table{font-size:.85rem}#heating-plan th,#heating-plan td{padding:4px}.hp-wait>:not(.ot-head):not([data-heating-error]){display:none!important}
 .hp-rooms>details{padding:0;overflow:hidden}.hp-rooms>details>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:14px 20px;list-style:none}.hp-rooms>details>summary::-webkit-details-marker{display:none}.hp-rooms>details>summary::after{content:"▾";grid-area:1/2;justify-self:end;color:var(--ot-muted)}.hp-rooms>details[open]>summary{border-bottom:1px solid var(--ot-border);margin:0}.hp-rooms>details[open]>summary::after{content:"▴"}
-.hp-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.hp-name{font-size:1.15rem}.hp-temps{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-weight:400}.hp-src{grid-column:1/-1;font-weight:400}.hp-body{padding:4px 20px 16px}.hp-body h3{font-size:.95rem;margin:16px 0 8px;color:var(--ot-muted)}
+.hp-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.hp-name{font-size:1.15rem}.hp-temps{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-weight:400}.hp-src{grid-column:1/-1;font-weight:400}.hp-body{padding:4px 20px 16px}.hp-body h3{font-size:.95rem;margin:16px 0 8px;color:var(--ot-muted)}.hp-section{border-top:1px solid var(--ot-line);margin-top:12px}.hp-section>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;padding:10px 0;cursor:pointer;list-style-position:outside}.hp-body .hp-section-title{display:inline;font-size:.95rem;font-weight:600;margin:0;color:var(--ot-muted)}.hp-section-brief{flex:1 1 12rem;min-width:0;overflow-wrap:anywhere}.hp-section[open]>summary .hp-section-brief{display:none}
 .hp-grid{display:grid;gap:0 16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}.hp-grid label{display:block;margin-bottom:8px}#heating-plan [data-heating-source]{display:grid;grid-template-columns:minmax(0,15rem) minmax(0,1fr) 44px;gap:8px;margin-bottom:8px}#heating-plan [data-heating-source] .btn,#heating-plan [data-heating-point] .btn{width:44px;min-width:44px;flex:none;padding:0}
 #heating-plan [data-heating-point]{gap:8px}#heating-plan [data-heating-point] input{min-width:0;padding:6px}#heating-plan [data-heating-point] [type=time]{flex:0 0 auto;width:auto}.hp-remove{margin-top:16px;padding-top:12px;border-top:1px solid var(--ot-border)}.ot-sticky [data-heating-message]{flex:1 1 12rem}.ot-empty .btn{margin-top:12px}
 .hp-locked [data-heating-add],.hp-locked [data-heating-add-first],.hp-locked .ot-sticky,.hp-locked .hp-remove{display:none!important}.hp-body{border:0;margin:0;min-width:0}.hp-brief,.hp-locked .hp-body>:not(.hp-brief){display:none!important}[data-heating-active-warnings]:empty,[data-heating-active-message]:empty{display:none}.hp-locked .hp-brief{display:grid!important}.hp-locked p.hp-brief{display:block!important}.hp-body:disabled .form-control{background:var(--ot-surface-2);opacity:1}
@@ -171,6 +171,18 @@
   function roomCard(room, index, status) {
     const card = el('details', null, {class:'pd-panel', 'data-heating-room':room.id});
     const summary = el('summary'), body = el('fieldset', null, {class:'hp-body'});
+    // Collapsible blocks with a one-line summary while closed. A new room opens fully; a saved room keeps
+    // what this viewer chose last time (this browser only), otherwise it starts closed.
+    const section = (key, title) => {
+      const box = el('details', null, {class:'hp-section', 'data-heating-section':key}), head = el('summary');
+      const line = el('span', null, {class:'pd-help hp-section-brief', 'data-heating-section-brief':''});
+      head.append(el('h3', uiText(title), {class:'hp-section-title'}), line); box.append(head);
+      const stored = (() => { try { return localStorage.getItem('ot.room.' + room.id + '.' + key); } catch (e) { return null; } })();
+      box.open = !room.id || stored === '1';
+      box.addEventListener('toggle', () => { if (room.id) try { localStorage.setItem('ot.room.' + room.id + '.' + key, box.open ? '1' : '0'); } catch (e) {} });
+      body.append(box);
+      return {box, line};
+    };
     card.status = s => {
       const chips = el('span', null, {class:'ot-chips'}), chip = (text, tone) => chips.append(el('span', uiText(text), {class:'ot-chip' + (tone ? ' ot-chip--' + tone : '')}));
       const off = s?.status === 'inactive' || (!s && room.state === 'inactive');
@@ -221,8 +233,9 @@
     emitter.setAttribute('data-heating-emitter', '');
     const showUntil = () => { until.parentElement.hidden = state.value !== 'until'; };
     state.addEventListener('change', showUntil); showUntil();
-    body.append(el('h3', uiText("Temperature")), el('h4', uiText("Temperature sources"), {class:'h6'}), el('p', uiText("Temperature sources, in order: the first fresh one leads, the rest are fallback."), {class:'pd-help'}));
-    const sources = el('div'); body.append(sources);
+    const temp = section('temperature', "Temperature");
+    temp.box.append(el('h4', uiText("Temperature sources"), {class:'h6'}), el('p', uiText("Temperature sources, in order: the first fresh one leads, the rest are fallback."), {class:'pd-help'}));
+    const sources = el('div'); temp.box.append(sources);
     const addSource = (s) => {
       const row = el('div', null, {'data-heating-source':''});
       const type = select([['ble', "Bluetooth sensor"], ['ha', "Home Assistant entity"]], s.type);
@@ -240,11 +253,11 @@
       row.append(type, pick, id, remove); sources.append(row);
     };
     room.sources.forEach(addSource);
-    body.append(el('p', uiText("Choose a Bluetooth sensor paired on this E32, or enter a Home Assistant entity (for example climate.living_room)."), {class:'ot-hint'}));
+    temp.box.append(el('p', uiText("Choose a Bluetooth sensor paired on this E32, or enter a Home Assistant entity (for example climate.living_room)."), {class:'ot-hint'}));
     if (!bleSensors.length) {
       const pair = el('p', null, {class:'ot-hint'});
       pair.append(uiText("No Bluetooth sensors paired yet.") + ' ', el('a', uiText("Pair a sensor first → Sensors"), {href:'#sensors', 'data-page':'bluetooth'}));
-      body.append(pair);
+      temp.box.append(pair);
     }
     // How a Bluetooth thermometer gets into the list above; open while none is paired.
     const bleHelp = el('details', null, {class:'ot-advanced', 'data-heating-ble-help':''}), pairSteps = el('p');
@@ -254,19 +267,19 @@
     bleHelp.append(el('summary', uiText("How do I add a Bluetooth sensor?")), pairSteps,
       el('p', uiText("Supported: thermometers with the pvvx firmware (ATC_MiThermometer, often named ATC_…, for example Xiaomi LYWSD03MMC), Shelly BLU H&T Display and Xiaomi Monitor 3. Encrypted sensors need their bindkey.")),
       el('p', uiText("Not listed? Keep the sensor within a few metres of the E32 and check its battery. With the pvvx firmware, set the advertising format to BTHome; the original Xiaomi and atc1441 formats are not read. Or use a Home Assistant entity as the source.")));
-    body.append(bleHelp);
+    temp.box.append(bleHelp);
     const more = el('button', uiText("Add source"), {type:'button', class:'btn btn-outline-primary mb-2'});
     more.addEventListener('click', () => sources.querySelectorAll('[data-heating-source]').length < 4 && addSource({type:bleSensors.length || neverHa ? 'ble' : 'ha', id:''}));
-    body.append(more, el('h4', uiText("Target temperature and limits"), {class:'h6'}));
+    temp.box.append(more, el('h4', uiText("Target temperature and limits"), {class:'h6'}));
     const limits = el('div', null, {class:'hp-grid'});
-    const setpoint = field(body, uiText("Setting device in Home Assistant (optional)"), input('text', room.setpoint_entity, {placeholder:'climate.living_room'}), "A thermostat, radiator valve or number to set this room with. Home Assistant shows the week program's temperature on it; turning it changes the room until the next switch point. Turn off the device's own schedule (manual mode), otherwise it changes the temperature by itself.");
-    body.append(limits);
+    const setpoint = field(temp.box, uiText("Setting device in Home Assistant (optional)"), input('text', room.setpoint_entity, {placeholder:'climate.living_room'}), "A thermostat, radiator valve or number to set this room with. Home Assistant shows the week program's temperature on it; turning it changes the room until the next switch point. Turn off the device's own schedule (manual mode), otherwise it changes the temperature by itself.");
+    temp.box.append(limits);
     const fallback = field(limits, uiText("Temperature without Home Assistant (°C)"), input('number', room.fallback_centi_c / 100, {min:'5', max:'30', step:'0.5'}), "The temperature the E32 keeps when Home Assistant gives no target and there is no week program.");
     const lo = field(limits, uiText("Minimum (°C)"), input('number', room.minimum_centi_c / 100, {min:'5', max:'30', step:'0.5'}), "The lowest target temperature allowed for this room.");
     const hi = field(limits, uiText("Maximum (°C)"), input('number', room.maximum_centi_c / 100, {min:'5', max:'30', step:'0.5'}), "The highest target temperature allowed for this room.");
     // Week program: 7 days Mon..Sun of [minute, centi_c]; an empty day continues the last earlier switch point.
     const week = el('fieldset', null, {class:'mt-3', 'data-heating-week':''}), editor = el('div'), rows = el('div');
-    body.append(el('h3', uiText("Week program")));
+    const weekBlock = section('week', "Week program");
     week.append(el('legend', uiText("Week program (used when Home Assistant gives no target temperature)"), {class:'h6'}));
     const useWeek = check(week, uiText("Use a week program"), !!given?.some(d => d.length));
     week.append(el('p', uiText("The E32 follows this program on its own when Home Assistant sends no target."), {class:'ot-hint'}));
@@ -297,7 +310,7 @@
       editor.hidden = !useWeek.checked;
       if (useWeek.checked && !rows.querySelector('[data-heating-point]')) draw([[[420, Math.round(fallback.value * 100)]]]);
     });
-    draw(given || [[]]); editor.hidden = !useWeek.checked; editor.append(rows); week.append(editor); body.append(week);
+    draw(given || [[]]); editor.hidden = !useWeek.checked; editor.append(rows); week.append(editor); weekBlock.box.append(week);
     // Visual week planner (week-editor.js, shared with Home Assistant): it writes the same switch points into the
     // list above, which stays the fallback when the planner cannot load. Saving still reads the list.
     let planner = null;
@@ -363,8 +376,26 @@
     };
     showWindow(status); showPersons(status);
     const shownWindow = card.status; card.status = s => { showWindow(s); showPersons(s); shownWindow(s); };
-    body.append(el('h3', uiText("Windows and doors")), el('p', uiText("Choose the window and door contacts and the pause delay in Home Assistant: OpenThermostat → Configure → Rooms."), {class:'pd-help'}), windowState,
-      el('h3', uiText("Persons")), el('p', uiText("Choose who uses this room in Home Assistant: OpenThermostat → Configure → Rooms. While all of them are away, the room uses the away temperature."), {class:'pd-help'}), personsState);
+    const windows = section('windows', "Windows and doors"), persons = section('persons', "Persons");
+    windows.box.append(el('p', uiText("Choose the window and door contacts and the pause delay in Home Assistant: OpenThermostat → Configure → Rooms."), {class:'pd-help'}), windowState);
+    persons.box.append(el('p', uiText("Choose who uses this room in Home Assistant: OpenThermostat → Configure → Rooms. While all of them are away, the room uses the away temperature."), {class:'pd-help'}), personsState);
+    // The one-line summaries of the closed blocks.
+    const shortSource = x => { const b = bleSensors.find(s => s.id === x.id); return x.type === 'ble' ? (b?.name || 'Bluetooth') : x.id; };
+    const levelLine = lv => [['comfort', "Comfort"], ['eco', "Eco"], ['night', "Night"]].map(([k, n]) => uiText(n) + ' ' + degrees(lv[k] / 100)).join(' · ');
+    const briefs = s => {
+      temp.line.textContent = [room.sources.map(shortSource).join(' + ') || uiText("No source"), typeof s?.temperature === 'number' ? degrees(s.temperature) : null].filter(Boolean).join(' · ');
+      weekBlock.line.textContent = !useWeek.checked ? uiText("Not used") : planner ? levelLine(planner.state().levels)
+        : uiText("{n} switch points").replace('{n}', rows.querySelectorAll('[data-heating-point]').length);
+      const w = s?.comfort?.window;
+      windows.line.textContent = uiText(w === 'open' ? "A window or door is open" : w === 'closed' ? "All closed" : "No contacts");
+      const p = s?.comfort?.persons;
+      persons.line.textContent = uiText(p === 'home' ? "Home" : p === 'away' ? "Away" : "Everyone");
+    };
+    let last = status; briefs(last);
+    const shownBriefs = card.status; card.status = s => { last = s; briefs(s); shownBriefs(s); };
+    // Edits (fields, the planner's buttons) update the summaries too.
+    for (const type of ['input', 'change', 'click']) card.addEventListener(type, () => setTimeout(() => briefs(last)));
+
     const removeRoom = el('button', uiText("Remove room"), {type:'button', class:'btn btn-outline-danger'}), removeBox = el('div', null, {class:'hp-remove'});
     removeRoom.addEventListener('click', () => { if (confirm(uiText("Remove this room? It is deleted when you press Save rooms."))) card.remove(); });
     removeBox.append(removeRoom); body.append(removeBox);

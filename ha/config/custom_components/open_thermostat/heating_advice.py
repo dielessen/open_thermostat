@@ -377,10 +377,12 @@ def boiler_kw_known(ctx):
 
 
 def rule_boiler_power(samples, ctx):
-    """The E32 estimates with a default boiler power until one reaches it from the energy options."""
+    """While no boiler power is set: one line saying which power the estimates use and where it comes from."""
     if boiler_kw_known(ctx) or not ctx.get("learning"):
         return []
-    return [advice("boiler_power_missing", "boiler_power_missing", "info", "high")]
+    from .boiler_power import suggestion
+    kw, source = suggestion({}, ctx.get("gas"))
+    return [advice("boiler_power_missing", "boiler_power_missing", "info", "high", {"kw": kw}, (source,))]
 
 
 RULES = (("short_cycling", rule_short_cycling), ("max_ch_high", rule_max_ch), ("return_too_warm", rule_return),
@@ -558,13 +560,16 @@ TEXT = {
                 "where": "Boiler service menu (installer level).",
             },
             "boiler_power_missing": {
-                "title": "Set your boiler's power for accurate estimates",
-                "observed": "The E32 estimates heat and gas from the burner modulation with a default boiler "
-                            "power, because none is set.",
+                "title": "Estimates use {kw} kW boiler power",
+                "observed": "No boiler power is set, so the E32 uses its default of {kw} kW for the heat and gas "
+                            "estimates.",
+                "observed@gas_meter": "No boiler power is set; {kw} kW is what the E32 measured with your gas meter.",
+                "observed@boiler": "No boiler power is set; {kw} kW is what the boiler itself reports.",
+                "observed@product": "No boiler power is set; {kw} kW is known for this boiler type.",
                 "why": "The flow and night estimates scale with the boiler's power; a wrong power gives wrong "
                        "savings.",
-                "action": "Enter the boiler's nominal heating power in kW (on the type plate or in the manual).",
-                "where": "Home Assistant: OpenThermostat → Configure → Energy and outdoor temperature.",
+                "action": "Check the nominal heating power on the boiler's type plate and enter it only if it differs.",
+                "where": "Home Assistant: OpenThermostat → Configure → Home → Energy and outdoor temperature.",
             },
         },
         "missing": {
@@ -735,14 +740,17 @@ TEXT = {
                 "where": "Servicemenu van de ketel (installateursniveau).",
             },
             "boiler_power_missing": {
-                "title": "Stel het ketelvermogen in voor betere schattingen",
-                "observed": "De E32 schat warmte en gas uit de brandermodulatie met een standaard ketelvermogen, "
-                            "omdat er geen is ingesteld.",
+                "title": "Schattingen gebruiken {kw} kW ketelvermogen",
+                "observed": "Er is geen ketelvermogen ingesteld, dus de E32 gebruikt zijn standaardwaarde van {kw} kW "
+                            "voor de warmte- en gasschattingen.",
+                "observed@gas_meter": "Er is geen ketelvermogen ingesteld; {kw} kW heeft de E32 gemeten met je gasmeter.",
+                "observed@boiler": "Er is geen ketelvermogen ingesteld; {kw} kW meldt de ketel zelf.",
+                "observed@product": "Er is geen ketelvermogen ingesteld; {kw} kW is bekend voor dit keteltype.",
                 "why": "De aanvoer- en nachtschattingen schalen met het ketelvermogen; een verkeerd vermogen geeft "
                        "een verkeerde besparing.",
-                "action": "Vul het nominale verwarmingsvermogen van de ketel in kW in (op het typeplaatje of in de "
-                          "handleiding).",
-                "where": "Home Assistant: OpenThermostat → Configureren → Energie en buitentemperatuur.",
+                "action": "Kijk het nominale verwarmingsvermogen na op het typeplaatje van de ketel en vul het alleen "
+                          "in als het afwijkt.",
+                "where": "Home Assistant: OpenThermostat → Configureren → Huis → Energie en buitentemperatuur.",
             },
         },
         "missing": {
@@ -978,6 +986,7 @@ class HeatingAdviceSensor(RestoreEntity, SensorEntity):
         options = energy_options(self.entry)
         names = {}
         from .heating_link import label, learned_inputs
+        from .e32_flow import gas_calibration
         for room_id, room in self.hub.rooms.items():
             names[room_id] = label(room)
         hass = getattr(self, "hass", None)
@@ -990,6 +999,7 @@ class HeatingAdviceSensor(RestoreEntity, SensorEntity):
                 "currency": currency(hass) if hass is not None else "EUR",
                 "boiler_kw": options.get(CONF_BOILER_KW),
                 "boiler_kw_source": source if source in ("default", "ha") else None,
+                "gas": gas_calibration(self.hub),
                 "learning": header is not None or bool(self.hub.learned) or bool(self.hub.warmup)}
 
     @callback

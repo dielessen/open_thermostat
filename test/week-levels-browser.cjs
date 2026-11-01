@@ -94,7 +94,7 @@ const pass=name=>console.log('PASS '+name);
    await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://opth.test'}]);
    await page.goto('http://opth.test/');await page.waitForFunction(()=>typeof loadNativePage==='function');
    await page.evaluate(()=>loadNativePage('heating'));
-   const room=page.locator('[data-heating-room="woonkamer"]');await room.waitFor();await room.evaluate(e=>e.open=true);
+   const room=page.locator('[data-heating-room="woonkamer"]');await room.waitFor();await room.evaluate(e=>{e.open=true;for(const d of e.querySelectorAll('[data-heating-section]'))d.open=true;});
    // The fixed room blocks, in the order of the Home Assistant room settings.
    const headings=await room.locator('h3').allInnerTexts();
    assert.deepEqual(headings.filter(h=>['Algemeen','Temperatuur','Weekprogramma','Ramen en deuren','Personen'].includes(h)),
@@ -120,7 +120,7 @@ const pass=name=>console.log('PASS '+name);
     pass('E32 page: no levels for firmware without plan.levels.v1');
    }
    // Discard goes back to what the E32 stores.
-   await room.evaluate(e=>e.open=true);await page.locator('[data-heating-room="woonkamer"] [data-k="lv-comfort+"]').click();
+   await room.evaluate(e=>{e.open=true;for(const d of e.querySelectorAll('[data-heating-section]'))d.open=true;});await page.locator('[data-heating-room="woonkamer"] [data-k="lv-comfort+"]').click();
    await page.locator('[data-heating-discard]').click();await page.getByText('Wijzigingen weggegooid.').waitFor();
    assert.equal(await page.locator('[data-heating-discard]').isHidden(),true);
    assert.deepEqual(errors,[]);

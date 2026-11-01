@@ -30,6 +30,7 @@
 #include "EMS/ManualClassicTransaction.h"
 #include "EMS/ActiveHeatPollDriver.h"
 #include "EMS/BoilerLimitRead.h"
+#include "EMS/IdentityRead.h"
 #include "EMS/ForeignBoilerRequest.h"
 #include <esp_system.h>
 #endif
@@ -701,6 +702,7 @@ private:
     ActiveHeatPollDriver activeHeat_{boilerTest_.bootId(), board::emsActiveHeatAllowed}; // telemetry mutex
     // The boiler's own limit for active heating: read-only 0x16, same route and gates.
     BoilerLimitRead limitRead_{board::emsBoilerLimitReadAllowed}; // telemetry mutex
+    IdentityRead identityRead_{board::emsBoilerLimitReadAllowed}; // telemetry mutex
     bool activeHeatRouteReady() const {
         return manualTransportReviewed() && monitor_.capabilities().profile()==BoilerProtocol::classic
             && !boilerTest_.active() && !configurationRead_.active() && !boilerSettings_.active();

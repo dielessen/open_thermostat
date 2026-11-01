@@ -338,9 +338,19 @@ class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, Con
             else:
                 save_energy(self.hass, self.config_entry, values)
                 return self.async_abort(reason="energy_saved")
-        schema = energy_schema(vol, self.config_entry.options, currency(self.hass))
+        # A suggested power (gas meter calibration, the boiler, a known type, else the default) while none is set.
+        from .boiler_power import basis, suggestion
+        from .const import DOMAIN
+        from .energy_input import CONF_BOILER_KW
+        from .e32_flow import gas_calibration
+        hub = (self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id) or {}).get("heating_hub")
+        kw, source = suggestion({}, gas_calibration(hub) if hub is not None else None)
+        own = CONF_BOILER_KW in self.config_entry.options
+        schema = energy_schema(vol, self.config_entry.options, currency(self.hass), None if own else kw)
         return self.async_show_form(step_id="energy", data_schema=retained_input_schema(self, schema, user_input),
-                                    errors=errors)
+                                    errors=errors, description_placeholders={
+                                        "boiler_kw_suggested": f"{kw:g}",
+                                        "boiler_kw_basis": basis(source, self.hass.config.language)})
 
     async def async_step_installation(self, user_input=None):
         entry = self.config_entry

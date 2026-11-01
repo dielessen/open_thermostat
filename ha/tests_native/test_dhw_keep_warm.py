@@ -301,3 +301,119 @@ async def test_the_boiler_views_hot_water_section_holds_the_timeline_and_the_gas
     gas = next(card for card in cards if card["type"] == "statistics-graph")
     assert [item["entity"] for item in gas["entities"]] == ["sensor.heating_gas", "sensor.tapping_gas",
                                                            "sensor.keep_warm_gas"]
+
+
+# -- an optional water meter ------------------------------------------------------------------------------
+
+WATER = json.loads((Path(__file__).parent / "fixtures" / "water_owner_20261031.json").read_text())
+
+
+def water(hass, value, unit="L/min", entity="sensor.water", state_class="measurement"):
+    hass.states.async_set(entity, str(value), {"unit_of_measurement": unit, "state_class": state_class})
+
+
+@pytest.mark.asyncio
+async def test_a_water_meter_is_an_optional_flow_or_reading_that_stays_in_home_assistant(hass):
+    from custom_components.open_thermostat.energy_input import (CONF_WATER_METER, EnergyError, energy_payloads,
+                                                                energy_schema, validate_energy, water_reading)
+    import voluptuous as vol
+    water(hass, 6.2)
+    water(hass, 7.629, "m³", "sensor.water_total", "total_increasing")
+    water(hass, 7.629, "m³", "sensor.water_rate_m3", "measurement")
+    water(hass, 20, "°C", "sensor.water_temp")
+    assert validate_energy(hass, {"water_meter": "sensor.water"}) == {CONF_WATER_METER: "sensor.water"}
+    assert validate_energy(hass, {"water_meter": "sensor.water_total"}) == {CONF_WATER_METER: "sensor.water_total"}
+    assert validate_energy(hass, {}) == {}                                  # optional
+    for entity, code in (("sensor.water_rate_m3", "water_meter_not_total"), ("sensor.water_temp", "water_meter_unit"),
+                         ("sensor.none", "entity_not_found")):
+        with pytest.raises(EnergyError) as error:
+            validate_energy(hass, {"water_meter": entity})
+        assert (error.value.field, error.value.code) == ("water_meter", code)
+    assert "water_meter" in [str(key) for key in energy_schema(vol, {}).schema]
+    assert water_reading(hass.states.get("sensor.water")) == ("flow", 6.2)
+    assert water_reading(hass.states.get("sensor.water_total")) == ("total", 7629.0)
+    assert energy_payloads(hass, {CONF_WATER_METER: "sensor.water"}) == []  # nothing goes to the E32
+    component = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
+    for name in ("strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"):
+        options = json.loads((component / name).read_text(encoding="utf-8"))["options"]
+        assert options["step"]["energy"]["data"]["water_meter"] and options["step"]["energy"]["data_description"]["water_meter"]
+        assert options["error"]["water_meter_unit"] and options["error"]["water_meter_not_total"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("meter", ["flow", "total"])
+async def test_with_a_water_meter_a_round_with_water_is_tapping_and_one_without_keeping_warm(hass, meter):
+    from custom_components.open_thermostat.energy_input import CONF_WATER_METER
+    total = [7.0]
+
+    def flowing(on):
+        if meter == "flow":
+            water(hass, 6.5 if on else 0.0)
+        else:
+            total[0] += 0.002 if on else 0.0
+            water(hass, f"{total[0]:.3f}", "m³", state_class="total_increasing")
+    flowing(False)
+    use, values, clock, added = setup(hass, options={CONF_WATER_METER: "sensor.water"})
+    values.update(reported_burner_modulation=0, dhw_active=0)
+    use.tick(); run(use, clock, 300)
+    # A keep-warm round: no water. The E32 calls it a tap; the meter decides.
+    use.hub.summary = summary(tapping=1)
+    values.update(reported_burner_modulation=70, dhw_active=1); run(use, clock, 120)
+    values.update(reported_burner_modulation=0, dhw_active=0); run(use, clock, 300)
+    # A small tap before the round (the round starts once it has ended), then one during a round.
+    flowing(True); run(use, clock, 30); flowing(False); run(use, clock, 30)
+    values.update(reported_burner_modulation=60, dhw_active=1); run(use, clock, 90)
+    values.update(reported_burner_modulation=0, dhw_active=0); run(use, clock, 300)
+    values.update(reported_burner_modulation=80, dhw_active=1); run(use, clock, 20)
+    flowing(True); run(use, clock, 60); flowing(False); run(use, clock, 20)
+    values.update(reported_burner_modulation=0, dhw_active=0); run(use, clock, 300)
+    day = use.data["days"][DAY0.isoformat()]
+    assert day["water"] is True and (day["taps"], day["keep_warm_rounds"]) == (2, 1)
+    assert day["keep_warm_s"] == 120 and day["tapping_s"] == 190
+    assert 0 < use.data["totals"]["keep_warm"] < use.data["totals"]["tapping"]
+    attributes = use.attributes("keep_warm")
+    assert (attributes["dhw_method"], attributes["dhw_baseline"], attributes["rounds_today"]) == ("water_meter", None, 1)
+    assert use.attributes("tapping")["rounds_today"] == 2
+    # The meter stops reporting: a round it did not cover only counts as hot water.
+    hass.states.async_set("sensor.water", "unavailable", {})
+    values.update(reported_burner_modulation=70, dhw_active=1); run(use, clock, 60)
+    values.update(reported_burner_modulation=0, dhw_active=0); run(use, clock, 300)
+    assert (day["taps"], day["keep_warm_rounds"]) == (2, 1)
+
+
+@pytest.mark.asyncio
+async def test_without_the_e32_sorting_a_water_meter_alone_splits_hot_water(hass):
+    from custom_components.open_thermostat.energy_input import CONF_WATER_METER
+    water(hass, 0.0)
+    use, values, clock, added = make(hass, {CONF_WATER_METER: "sensor.water"})  # older firmware: no dhw summary
+    values.update(reported_burner_modulation=0, dhw_active=0)
+    use.tick(); run(use, clock, 300)
+    values.update(reported_burner_modulation=70, dhw_active=1); run(use, clock, 120)
+    values.update(reported_burner_modulation=0, dhw_active=0); run(use, clock, 300)
+    assert sorted(sensor.kind for sensor in added) == ["heating", "hot_water", "keep_warm", "tapping"]
+    assert use.data["days"][DAY0.isoformat()]["keep_warm_rounds"] == 1
+
+
+@pytest.mark.asyncio
+async def test_the_owners_day_with_the_water_meter(hass):
+    """31 Oct 2026 with the owner's water meter (L/min): water from 2 min before to 1 min after a round makes it a tap.
+
+    The DHW temperature rule counted 40 keep-warm rounds that day; the meter shows water around 34 of the 57 rounds."""
+    from custom_components.open_thermostat.energy_input import CONF_WATER_METER
+    water(hass, 0.0)
+    use, values, clock, added = setup(hass, options={CONF_WATER_METER: "sensor.water"})
+    samples = [tuple(map(int, item.split(","))) for item in FIXTURE["samples"].split(";")]
+    flowing = WATER["flowing_s"]
+    use.tick()
+    for index, (modulation, dhw) in enumerate(samples):
+        second = index * 10
+        values.update(reported_burner_modulation=modulation, dhw_active=dhw)
+        water(hass, 6.0 if any(a <= second < b for a, b in flowing) else 0.0)
+        clock[0] += 10
+        use.tick()
+    run(use, clock, 120)
+    day = use.data["days"][DAY0.isoformat()]
+    print("owner 31 Oct with the water meter:", day["taps"], "taps,", day["keep_warm_rounds"], "keep-warm rounds,",
+          round(day["keep_warm_m3"] / day["hot_water_m3"] * 100), "% of the hot-water gas keeping warm")
+    assert day["water"] is True
+    assert (day["taps"], day["keep_warm_rounds"]) == (33, 23)  # the first (00:00, wet) began before the first reading

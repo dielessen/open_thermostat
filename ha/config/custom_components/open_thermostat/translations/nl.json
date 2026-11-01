@@ -1547,7 +1547,8 @@
           "gas_price": "Vaste gasprijs",
           "gas_kwh_per_m3": "Calorische waarde van het gas",
           "outdoor_entity": "Buitentemperatuur",
-          "boiler_kw": "Verwarmingsvermogen ketel"
+          "boiler_kw": "Verwarmingsvermogen ketel",
+          "water_meter": "Watermeter"
         },
         "data_description": {
           "gas_meter": "Een gasmeterstand in m³ of kWh die alleen oploopt (geen verbruik per uur), bijvoorbeeld van een slimme meter of een gaspulsteller. Een stand in kWh wordt met de calorische waarde omgerekend naar m³. Hij verdeelt ook je gas over verwarmen en warm water voor het energiedashboard.",
@@ -1555,7 +1556,8 @@
           "gas_price": "De prijs per m³ gas in de valuta van je Home Assistant als je geen prijssensor hebt, bijvoorbeeld 1,35.",
           "gas_kwh_per_m3": "Energie per m³ gas; die staat op je jaarafrekening of vraag je aan je leverancier. Leeg: 9,77 kWh/m³ (Nederlands gas). Elders is het anders, bijvoorbeeld ongeveer 11 kWh/m³ in het Verenigd Koninkrijk; aardgas zit meestal tussen 8 en 12 kWh/m³.",
           "outdoor_entity": "Een temperatuursensor buiten (°C of °F) of een weerentiteit. Daarmee leert de E32 hoe snel ruimtes afkoelen.",
-          "boiler_kw": "Het nominale verwarmingsvermogen van de ketel in kW (typeplaatje of handleiding), 3–60 kW. Leeg: de E32 gebruikt een standaardwaarde."
+          "boiler_kw": "Het nominale verwarmingsvermogen van de ketel in kW (typeplaatje of handleiding), 3–60 kW. Leeg: de E32 gebruikt een standaardwaarde.",
+          "water_meter": "Optioneel: een waterdebiet (L/min) of een watermeterstand (m³ of L) die alleen oploopt. Daarmee telt een warmwaterronde met stromend water als tappen en een zonder als warmhouden, betrouwbaarder dan alleen uit de temperaturen van de ketel. Hij blijft in Home Assistant."
         }
       },
       "e32_rooms_saved": {
@@ -1736,7 +1738,9 @@
       "controller_room_plan_update_required": "De E32 heeft hiervoor te oude firmware. Werk de E32 eerst bij naar beta.19 of nieuwer (Home Assistant: Instellingen → Updates → OpenThermostat E32 Firmware → Installeren) en probeer het daarna opnieuw. Er is niets gewijzigd.",
       "controller_session_capacity": "De E32 heeft te veel open aanmeldingen. Meld je af op de webpagina van de E32 (of meld je daar aan met “Eerdere websessies beëindigen en aanmelden”) of herstart de E32, en probeer het daarna opnieuw.",
       "controller_try_again_later": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw.",
-      "controller_readback_unconfirmed": "De E32 heeft zijn huidige ruimte-instellingen niet binnen 90 seconden teruggestuurd, dus deze opslag is niet bevestigd. Controleer of de E32 online is en met de MQTT-broker verbonden is, en probeer het daarna opnieuw."
+      "controller_readback_unconfirmed": "De E32 heeft zijn huidige ruimte-instellingen niet binnen 90 seconden teruggestuurd, dus deze opslag is niet bevestigd. Controleer of de E32 online is en met de MQTT-broker verbonden is, en probeer het daarna opnieuw.",
+      "water_meter_unit": "Kies een waterdebietsensor (L/min, L/h, m³/h) of een watermeterstand (m³, L).",
+      "water_meter_not_total": "Kies een watermeterstand (state class total of total increasing), of een debietsensor in L/min."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",

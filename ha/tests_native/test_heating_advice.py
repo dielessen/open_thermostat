@@ -566,7 +566,7 @@ async def test_energy_options_step_validates_saves_without_reload(hass, managers
     f = await option(m, p, "energy")
     assert f["step_id"] == "energy"
     assert {str(key) for key in f["data_schema"].schema} == {"gas_meter", "gas_price_entity", "gas_price",
-                                                             "gas_kwh_per_m3", "outdoor_entity", "boiler_kw"}
+                                                             "gas_kwh_per_m3", "outdoor_entity", "boiler_kw", "water_meter"}
     f = await m.async_configure(f["flow_id"], {"gas_meter": "sensor.gas_rate"})
     assert f["errors"] == {"gas_meter": "gas_meter_unit"}
     f = await m.async_configure(f["flow_id"], {"gas_meter": "sensor.gas", "gas_price": 1.35, "boiler_kw": 22})

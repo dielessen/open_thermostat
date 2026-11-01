@@ -28,7 +28,7 @@ energy inputs.
 | Week program per room | E32: Rooms (visual planner) | Same room editor, or the Week program view of the OpenThermostat dashboard |
 | Setting device per room (valve, tado, number) | — | Same room editor |
 | Lowest and highest flow temperature for the boiler request | E32: Boiler → Flow temperature limits | Configure → Heating and boiler |
-| Gas meter, gas price, outdoor temperature, boiler power (all optional) | — | Configure → Energy and outdoor temperature |
+| Gas meter, gas price, outdoor temperature, boiler power, water meter (all optional) | — | Configure → Energy and outdoor temperature |
 | Pairing Bluetooth sensors (address, profile, encryption key) | E32: Sensors | E32: Sensors |
 | Boiler model | E32: Boiler | E32: Boiler |
 | Network, MQTT broker, time and time zone | E32: Settings | E32: Settings |
@@ -334,9 +334,11 @@ E32 itself are not supported yet; connect them through Home Assistant.
 
 Under Configure → **Energy and outdoor temperature** you can choose a gas
 meter (m³ or kWh), a gas price sensor or a fixed price, the calorific value of
-your gas, an outdoor temperature sensor or weather entity, and your boiler's
-heating power. All fields are optional; leave a field empty to not use it.
-With a gas meter the E32 calibrates its heat and gas estimates.
+your gas, an outdoor temperature sensor or weather entity, your boiler's
+heating power and a water meter (a flow in L/min, or a meter reading in m³ or
+L). All fields are optional; leave a field empty to not use it. With a gas
+meter the E32 calibrates its heat and gas estimates. The water meter stays in
+Home Assistant: it tells tapping from keeping warm (see below).
 
 The **Heating advice** sensor and its dashboard section list what could be
 tuned: short cycling, a maximum heating temperature far above what the house
@@ -425,6 +427,14 @@ reports (the attribute `dhw_method`):
   not a heat loss. The attribute `dhw_baseline` says `night` once the E32 has
   seen four night rounds since its last restart, and `default` before that
   (then only a fall faster than 2 °C a minute counts).
+- `water_meter`: with a water meter in the energy options, Home Assistant
+  decides instead, for every boiler. A round with water flowing during it, or
+  in the 2 minutes before it, is tapping; one without is keeping warm. A round
+  the meter did not cover (no reading) stays in *Gas for hot water* only. A
+  water meter also sees cold water (a toilet flush), so a round at the same
+  time as one counts as tapping. On the owner's boiler the temperatures alone
+  missed many small taps: on 31 Oct 2026, 23 of 56 rounds were keeping warm by
+  the meter, against 40 by the temperature rule.
 
 Add heating and hot water to the Energy dashboard; tapping and keeping warm
 are parts of hot water, so leave them out there.

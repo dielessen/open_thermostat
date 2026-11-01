@@ -619,7 +619,8 @@
           "gas_price": "Fixed gas price",
           "gas_kwh_per_m3": "Calorific value of the gas",
           "outdoor_entity": "Outdoor temperature",
-          "boiler_kw": "Boiler heating power"
+          "boiler_kw": "Boiler heating power",
+          "water_meter": "Water meter"
         },
         "data_description": {
           "gas_meter": "A gas meter reading in m³ or kWh that only goes up (not a usage per hour), for example from a smart meter or a gas pulse counter. A reading in kWh is converted to m³ with the calorific value. It also splits your gas into heating and hot water for the Energy dashboard.",
@@ -627,7 +628,8 @@
           "gas_price": "The price per m³ of gas in your Home Assistant currency when you have no price sensor, for example 1.35.",
           "gas_kwh_per_m3": "Energy per m³ of gas; your gas bill or supplier states it. Empty: 9.77 kWh/m³ (Dutch gas). Elsewhere it differs, for example about 11 kWh/m³ in the UK; natural gas is usually between 8 and 12 kWh/m³.",
           "outdoor_entity": "A temperature sensor outside (°C or °F) or a weather entity. It helps the E32 learn how fast rooms cool down.",
-          "boiler_kw": "The boiler's nominal heating power in kW (type plate or manual), 3–60 kW. Empty: the E32 uses a default."
+          "boiler_kw": "The boiler's nominal heating power in kW (type plate or manual), 3–60 kW. Empty: the E32 uses a default.",
+          "water_meter": "Optional: a water flow (L/min) or a water meter reading (m³ or L) that only goes up. With it, a hot-water round with water flowing is counted as tapping and one without as keeping warm, more reliably than from the boiler's temperatures alone. It stays in Home Assistant."
         }
       },
       "e32_rooms_saved": {
@@ -808,7 +810,9 @@
       "controller_room_plan_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (Home Assistant: Settings → Updates → OpenThermostat E32 Firmware → Install), then try again. Nothing has been changed.",
       "controller_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
       "controller_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again.",
-      "controller_readback_unconfirmed": "The E32 did not send back its current room settings within 90 seconds, so this save is not confirmed. Check that the E32 is online and connected to the MQTT broker, then try again."
+      "controller_readback_unconfirmed": "The E32 did not send back its current room settings within 90 seconds, so this save is not confirmed. Check that the E32 is online and connected to the MQTT broker, then try again.",
+      "water_meter_unit": "Choose a water flow sensor (L/min, L/h, m³/h) or a water meter reading (m³, L).",
+      "water_meter_not_total": "Choose a water meter reading (state class total or total increasing), or a flow sensor in L/min."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",

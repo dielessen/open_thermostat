@@ -619,7 +619,8 @@
           "gas_price": "Stała cena gazu",
           "gas_kwh_per_m3": "Wartość opałowa gazu",
           "outdoor_entity": "Temperatura zewnętrzna",
-          "boiler_kw": "Moc grzewcza kotła"
+          "boiler_kw": "Moc grzewcza kotła",
+          "water_meter": "Wodomierz"
         },
         "data_description": {
           "gas_meter": "Stan licznika gazu w m³ lub kWh, który tylko rośnie (nie zużycie na godzinę), na przykład z licznika inteligentnego lub licznika impulsów gazu. Odczyt w kWh jest przeliczany na m³ za pomocą wartości opałowej. Dzieli też Twój gaz na ogrzewanie i ciepłą wodę w panelu Energia.",
@@ -627,7 +628,8 @@
           "gas_price": "Cena za m³ gazu w walucie Twojego Home Assistant, gdy nie masz czujnika ceny, na przykład 1.35.",
           "gas_kwh_per_m3": "Energia na m³ gazu; podaje ją rachunek za gaz lub dostawca. Puste: 9,77 kWh/m³ (gaz holenderski). Gdzie indziej wartość jest inna, na przykład w Wielkiej Brytanii około 11 kWh/m³; gaz ziemny ma zwykle od 8 do 12 kWh/m³.",
           "outdoor_entity": "Czujnik temperatury na zewnątrz (°C lub °F) lub encja pogody. Pomaga E32 nauczyć się, jak szybko stygną pomieszczenia.",
-          "boiler_kw": "Nominalna moc grzewcza kotła w kW (tabliczka znamionowa lub instrukcja), 3–60 kW. Puste: E32 używa wartości domyślnej."
+          "boiler_kw": "Nominalna moc grzewcza kotła w kW (tabliczka znamionowa lub instrukcja), 3–60 kW. Puste: E32 używa wartości domyślnej.",
+          "water_meter": "Opcjonalnie: przepływ wody (L/min) lub stan wodomierza (m³ lub L), który tylko rośnie. Dzięki niemu cykl ciepłej wody z płynącą wodą liczy się jako pobór, a bez niej jako podtrzymanie ciepła, pewniej niż tylko z temperatur kotła. Pozostaje w Home Assistant."
         }
       },
       "e32_rooms_saved": {
@@ -808,7 +810,9 @@
       "controller_room_plan_update_required": "E32 ma do tego zbyt stare oprogramowanie. Najpierw zaktualizuj E32 do beta.19 lub nowszego (Home Assistant: Ustawienia → Aktualizacje → OpenThermostat E32 Firmware → Zainstaluj), a potem spróbuj ponownie. Nic nie zostało zmienione.",
       "controller_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
       "controller_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie.",
-      "controller_readback_unconfirmed": "E32 nie odesłał swoich bieżących ustawień pomieszczeń w ciągu 90 sekund, więc ten zapis nie jest potwierdzony. Sprawdź, czy E32 jest online i połączony z brokerem MQTT, a potem spróbuj ponownie."
+      "controller_readback_unconfirmed": "E32 nie odesłał swoich bieżących ustawień pomieszczeń w ciągu 90 sekund, więc ten zapis nie jest potwierdzony. Sprawdź, czy E32 jest online i połączony z brokerem MQTT, a potem spróbuj ponownie.",
+      "water_meter_unit": "Wybierz czujnik przepływu wody (L/min, L/h, m³/h) lub stan wodomierza (m³, L).",
+      "water_meter_not_total": "Wybierz stan wodomierza (klasa stanu total lub total increasing) albo czujnik przepływu w L/min."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",

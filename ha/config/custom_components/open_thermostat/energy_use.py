@@ -26,7 +26,12 @@ hot-water episode with the most direct source its boiler reports (a DHW flow
 or a cylinder's charging, else the DHW temperature: ``dhw_method``; with the
 temperature, a round is keeping warm only when the sensor fell before it no
 faster than in this installation's own night rounds: ``dhw_baseline`` "night",
-or "default" until the E32 has seen enough of them). The gas of the burner
+or "default" until the E32 has seen enough of them). With a water meter in the
+energy options Home Assistant decides instead (``dhw_method`` "water_meter"):
+a round with water flowing during it, or in the 2 minutes before it (a small
+tap cools the exchanger before the boiler fires), is tapping, one without is
+keeping warm; also with a cylinder. A round the meter did not cover (no
+reading) stays in hot water only. The gas of the burner
 during an episode the E32 counts as tapping or keeping warm goes to that post,
 in the same proportion as the meter shared out the hot water. Per day: the
 rounds, burner minutes and gas. Keeping warm is the boiler reheating its store
@@ -52,8 +57,8 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN
-from .energy_input import (CONF_BOILER_KW, CONF_GAS_METER, ENERGY_UNITS, VOLUME_UNITS, BOILER_KW_LIMITS,
-                           energy_options, kwh_per_m3)
+from .energy_input import (CONF_BOILER_KW, CONF_GAS_METER, CONF_WATER_METER, ENERGY_UNITS, VOLUME_UNITS, BOILER_KW_LIMITS,
+                           energy_options, kwh_per_m3, water_reading)
 
 SAMPLE_SECONDS = 10
 # Two samples further apart than this are not one observation: nothing is counted in between.
@@ -73,6 +78,8 @@ SUB_KINDS = (TAPPING, KEEP_WARM)
 SENSOR_KINDS = KINDS + SUB_KINDS
 # A closed hot-water episode waits this long for the E32 to count it, then counts as tapping.
 EPISODE_MATCH_SECONDS = 300
+# Water meter: water this long before a hot-water round, or until this long after it (meter delay), makes it a tap.
+WATER_BEFORE_SECONDS, WATER_AFTER_SECONDS = 120, 60
 METHODS = ("gas_meter", "estimate")
 UNIT_M3, UNIT_KWH = UnitOfVolume.CUBIC_METERS, UnitOfEnergy.KILO_WATT_HOUR
 STORE_VERSION = 1
@@ -179,7 +186,7 @@ def empty_day():
             "keep_warm_m3": 0.0, "keep_warm_kwh": 0.0, "tapping_m3": 0.0, "tapping_kwh": 0.0,
             "hot_water_burner_kwh": 0.0, "keep_warm_burner_kwh": 0.0, "tapping_burner_kwh": 0.0,
             "other_m3": 0.0, "heating_s": 0, "hot_water_s": 0, "keep_warm_s": 0, "tapping_s": 0, "observed_s": 0,
-            "meter": False, "estimate": False}
+            "meter": False, "estimate": False, "water": False}  # water: the water meter sorted the rounds
 
 
 def empty_data():
@@ -252,6 +259,9 @@ class EnergyUse:
         self._closed = []  # closed episodes waiting for the E32's count: (closed at, kWh, seconds)
         self._credits = []  # (time, kind): E32 counts that arrived before Home Assistant saw the episode close
         self._seen = None  # the E32's carried counts per kind at the last look
+        self._water = None  # the water meter's last reading: (time, "flow"/"total", value)
+        self._water_since = None  # since when its readings are usable without a break
+        self._wet = []  # (from, to): water flowed (the last hour)
 
     # -- time ------------------------------------------------------------------
 
@@ -332,7 +342,7 @@ class EnergyUse:
             return
         at, modulation, hot_water, kw = previous
         if hot_water and self._episode is None:
-            self._episode = [0.0, 0]
+            self._episode = [0.0, 0, at]
         if self._episode is not None and not (sample is not None and sample[1]):
             self._closed.append((now, *self._episode))  # the hot water ended (or the boiler went quiet)
             self._episode = None
@@ -353,8 +363,8 @@ class EnergyUse:
                 self._episode[0] += kwh
                 self._episode[1] += round(seconds)
             elif self._closed:  # the last step of an episode that just closed
-                when, ekwh, es = self._closed[-1]
-                self._closed[-1] = (when, ekwh + kwh, es + round(seconds))
+                when, ekwh, es, start = self._closed[-1]
+                self._closed[-1] = (when, ekwh + kwh, es + round(seconds), start)
         if self.method == "gas_meter":
             if self.data["pending_since"] is None:
                 self.data["pending_since"] = at
@@ -411,8 +421,45 @@ class EnergyUse:
         self.data["pending"] = {kind: 0.0 for kind in KINDS}
         self.data["pending_since"] = None
 
+    def _follow_water(self, now):
+        """When water flowed: a flow above zero, or a meter reading that went up since the last look."""
+        entity = self.options.get(CONF_WATER_METER)
+        reading = water_reading(self.hass.states.get(entity)) if entity else None
+        last, self._water = self._water, (now, *reading) if reading is not None else None
+        if reading is None:
+            self._water_since = None
+            return
+        if self._water_since is None or last is None or last[1] != reading[0]:
+            self._water_since = now
+        if reading[0] == "flow" and reading[1] > 0:
+            self._wet.append((last[0] if last is not None and last[1] == "flow" else now, now))
+        elif reading[0] == "total" and last is not None and last[1] == "total" and reading[1] > last[2]:
+            self._wet.append((last[0], now))
+        self._wet = [item for item in self._wet if now - item[1] <= 3600]
+
+    def _sort_by_water(self, now):
+        """With a water meter: a closed round with water flowing around it is tapping, one without keeping warm."""
+        day = self.day(now)
+        while self._closed and now >= self._closed[0][0] + WATER_AFTER_SECONDS:
+            closed_at, kwh, seconds, start = self._closed.pop(0)
+            since = self._water_since
+            if since is None or since > start - WATER_BEFORE_SECONDS:
+                continue  # no reading all along: hot water only
+            wet = any(a <= closed_at + WATER_AFTER_SECONDS and b >= start - WATER_BEFORE_SECONDS for a, b in self._wet)
+            kind = TAPPING if wet else KEEP_WARM
+            if not day["water"]:  # from now on today's rounds are the water meter's
+                day["water"], day["taps"], day["keep_warm_rounds"] = True, 0, 0
+            day["taps" if wet else "keep_warm_rounds"] += 1
+            day[f"{kind}_burner_kwh"] += kwh
+            day[f"{kind}_s"] += seconds
+            self._dirty = True
+
     def _sort_episodes(self, now):
         """Match closed hot-water episodes with the E32's new counts; keep-warm ones count as keeping warm."""
+        if self.options.get(CONF_WATER_METER):
+            self._credits, self._seen = [], None
+            self._sort_by_water(now)
+            return
         today = self.hub.dhw_today() if self.hub is not None and self.hub.fresh and self.hub.dhw is not None else None
         if today is None:
             self._closed = [item for item in self._closed if now - item[0] <= EPISODE_MATCH_SECONDS]
@@ -425,7 +472,7 @@ class EnergyUse:
         self._seen = counts
         day = self.day(now)
         while self._closed and self._credits:
-            _, kwh, seconds = self._closed.pop(0)
+            _, kwh, seconds, _ = self._closed.pop(0)
             kind = self._credits.pop(0)[1]
             if kind in SUB_KINDS:  # a cylinder's charging and unsorted episodes stay in hot water only
                 day[f"{kind}_burner_kwh"] += kwh
@@ -435,7 +482,7 @@ class EnergyUse:
         # A count without an episode Home Assistant saw (shorter than one sample) is dropped in time too.
         self._credits = [item for item in self._credits if now - item[0] <= EPISODE_MATCH_SECONDS][-8:]
         rounds = _count_of(today, KEEP_WARM)
-        if rounds is not None and rounds > day.get("keep_warm_rounds", -1):
+        if rounds is not None and not day["water"] and rounds > day.get("keep_warm_rounds", -1):
             day["keep_warm_rounds"] = rounds
             self._dirty = True
 
@@ -464,7 +511,7 @@ class EnergyUse:
     def _note_day(self, now):
         day = self.day(now)
         taps = hot_water_taps(self.hub)
-        if taps is not None and taps > day.get("taps", -1):
+        if taps is not None and not day["water"] and taps > day.get("taps", -1):
             day["taps"] = taps
             self._dirty = True
         nights = night_savings(self.hub)
@@ -481,6 +528,7 @@ class EnergyUse:
         sample = boiler_sample(getattr(self.connection, "client", None))
         self._integrate(now, sample)
         self._follow_meter(now)
+        self._follow_water(now)
         self._sort_episodes(now)
         self._share_parts(now)
         self._note_day(now)
@@ -508,7 +556,7 @@ class EnergyUse:
             return
         have = {sensor.kind for sensor in self.sensors}
         wanted = list(KINDS) + (list(SUB_KINDS) if any(self.data["totals"][k] > 0 for k in SUB_KINDS) or (
-            self.hub is not None and self.hub.fresh and self.hub.dhw is not None) else [])
+            self.hub is not None and self.hub.fresh and self.hub.dhw is not None) or self.options.get(CONF_WATER_METER) else [])
         new = [GasUseSensor(self, kind) for kind in wanted if kind not in have]
         if new:
             self.sensors += new
@@ -541,8 +589,9 @@ class EnergyUse:
                   "burner_hours_last_7_days": _round(sum(day[f"{kind}_s"] for day in days) / 3600, 1)}
         if kind in ("hot_water",) + SUB_KINDS:
             unit = "kwh" if in_kwh else "m3"
-            result["dhw_method"] = dhw_method(self.hub)
-            result["dhw_baseline"] = dhw_method(self.hub, "baseline")
+            water = bool(self.options.get(CONF_WATER_METER))
+            result["dhw_method"] = "water_meter" if water else dhw_method(self.hub)
+            result["dhw_baseline"] = None if water else dhw_method(self.hub, "baseline")
             result["tapping_today"] = _round(current[f"tapping_{unit}"], 3)
             result["keep_warm_today"] = _round(current[f"keep_warm_{unit}"], 3)
         if kind in SUB_KINDS:

@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "a9e66055e28707eaa2c3fc000f9f27ad919511c3a06b5f62bad9199214ce44d9"
+          "sha256": "2512dfbf367a13b528f7ad85c43341beb654802b9cd5afdf35163da8e639389e"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -59,11 +59,11 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "a8a9ad6067fe1fd2eb27831322994ce1670652a3423d7b03acc8a2ff34320c5d"
+          "sha256": "d164268163a462475bc54b5219b81e980bf34fb7b2119ab837cf880e3dd060f9"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
-          "sha256": "b0a320a0b81f054e5d8b4f2519df0e54447e037fa89b64ab3231cc11ed059873"
+          "sha256": "90f054e6f5fa434ba55a888d042eadb80dc48fa27211ad34e3f127e2c21c98dd"
         },
         {
           "path": "docs/modern-thermostat/USER-RELEASE-NOTES.json",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "3b7e5ab59e3ea4b0ef18b82add51685c80b32a41e3d3fd07ded8e4305c5b6a7f"
+          "sha256": "0bd59cff74c5a42e66dfa70c06aa7ef0cea82721bcb1e599679a5314ca4a41a9"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "8b154889cd6f9328bb750780bd4b54d3da9b905db77be38be38acd56740caaa8"
+          "sha256": "19bbe7a7413c53e7780c85b3bcdf2d1dd1e4646d1c1b86b05ca154c0c1494099"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
@@ -219,7 +219,7 @@
         },
         {
           "path": "release.json",
-          "sha256": "1d008038dbd8cdded7917f54b96ccec065fa8866743c4044b4a77eb94d1745db"
+          "sha256": "7b5220ff5e7394d18c413541e7472db1efb58910e3d8ee00deea99177ce4656a"
         },
         {
           "path": "docs/SWITCHOVER.md",
@@ -539,7 +539,7 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-1.0-CANDIDATE-NOTES-DRAFT.en.md",
-          "sha256": "6789145e1145a892982d6c92d0bb2978963fbee9d2c4942e9fee7673eed0990e"
+          "sha256": "b5ef6869f2bcc5951eeb80c21b9b65f6a7a5d3b75a4b3180d2bee4f8bdc911f3"
         },
         {
           "path": "docs/modern-thermostat/boiler-profiles/bosch-cerapur-zsb-5c.json",
@@ -608,6 +608,14 @@
         {
           "path": "test/readiness-browser.cjs",
           "sha256": "08b39f327290e913078720ec92e87004e30b5501942c9eafc05e6bb7642b87a2"
+        },
+        {
+          "path": "docs/modern-thermostat/RC1-KANDIDAAT.json",
+          "sha256": "8fa01daccc09fcd2f0641aa63dd9b924ecaca23b4b1cdb34c52043d362323354"
+        },
+        {
+          "path": "docs/modern-thermostat/RC1-OWNER-INSTRUCTION-20261102.json",
+          "sha256": "8aed9caa62f1edf354bb4ac27fce20ae256b9375a60f2e5d9c0d9a453dced12a"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -1553,7 +1561,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/week_planner.py",
-          "sha256": "64b73d102a14012bdaedf72f1e88757eceee6ff1b59d90bcdba8b234ca149659"
+          "sha256": "6a6fea57403fb7458e710d0660887fe4939ea996b0b2da43f30c7e0a958b58d5"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_program_apply.py",
@@ -1569,11 +1577,11 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/e32_week.py",
-          "sha256": "6aacb46711dd9b10f35f0b712cc2b9e20b33c76d67ce84347ef35581e7683eff"
+          "sha256": "8bdfc326f6d5b01d2fcf74180bcfeae610388803610fa885ae3815be641209ce"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/e32-week-card.js",
-          "sha256": "02b694377bc3d8b9456918af4c693d50599fb932074424c7b693846a621a24c2"
+          "sha256": "b4a6020958457141ee945a794cf0bcaac15a2124e9fa3f7b1d34f7e1cdc26e5c"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-editor.js",
@@ -1585,7 +1593,7 @@
         },
         {
           "path": "test/week-editor-browser.cjs",
-          "sha256": "2f722d18777fc5bee6e65de6eba8d1106f917cef351cc3920b4bf834fa8c09e5"
+          "sha256": "f6fd64016a552f089fb4ebab0718a58cd852f71a50c276f6c26ed3ba7b310404"
         },
         {
           "path": "test/week-editor.test.cjs",

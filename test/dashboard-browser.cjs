@@ -97,7 +97,9 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   holdStatus=true;const beforeSlow=requests.filter(r=>r.path==='/status').length;
   await page.evaluate(()=>{showRooms();showRooms();});
   await page.waitForFunction(()=>statusPoll!==null);
-  await page.waitForTimeout(20);
+  // Wait for the one request to arrive (a loaded machine needs more than a fixed pause), then check no second follows.
+  for(let i=0;i<500&&requests.filter(r=>r.path==='/status').length<beforeSlow+1;i++) await page.waitForTimeout(10);
+  await page.waitForTimeout(100);
   assert.equal(requests.filter(r=>r.path==='/status').length,beforeSlow+1);
   holdStatus=false;pendingStatus();
   await page.waitForFunction(()=>statusPoll===null);

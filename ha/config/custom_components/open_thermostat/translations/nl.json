@@ -2588,6 +2588,18 @@
       },
       "room_valve_battery": {
         "name": "Batterij radiatorkranen"
+      },
+      "daily_summary": {
+        "name": "Dagoverzicht"
+      },
+      "daily_burner_time": {
+        "name": "Brandertijd"
+      },
+      "daily_burner_starts": {
+        "name": "Branderstarts"
+      },
+      "daily_missed_comfort": {
+        "name": "Gemiste comforttijd"
       }
     },
     "select": {
@@ -2888,6 +2900,10 @@
     "valve_single_source": {
       "title": "{room} hangt af van één temperatuurbron",
       "description": "De E32 stuurt de radiatorkranen in {room} aan, maar de ruimte heeft maar één temperatuurbron. Valt die weg, dan stopt de E32 na 30 minuten met warmte vragen voor deze ruimte in plaats van blind te stoken. Voeg in de ruimte-instellingen een tweede bron toe, bijvoorbeeld een losse Bluetooth-sensor."
+    },
+    "heating_problem": {
+      "title": "Verwarming vraagt aandacht",
+      "description": "{reason}\n\nDeze melding verdwijnt vanzelf zodra de oorzaak weg is."
     }
   },
   "services": {

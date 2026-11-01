@@ -186,6 +186,15 @@ TEXT = {
         "gas_measured": "Measured with your gas meter, split by what the boiler did.",
         "gas_estimate": "Estimated from the burner modulation and the boiler's power (no gas meter).",
         "gas_note": "Add these two sensors to the Energy dashboard under Gas consumption.",
+        "yesterday": "Yesterday", "burner_per_day": "Burner hours per day",
+        "missed_per_day": "Missed comfort per day (minutes)",
+        "day_burner": "Burner {h} h, {n} starts ({short} shorter than 10 minutes).",
+        "day_gas": "Gas: heating {heating}, hot water {hot_water}.",
+        "day_room": "{room}: asked for heat {h} h; warm after {ttt} min on average; missed comfort {missed} min.",
+        "day_room_no_step": "{room}: asked for heat {h} h; missed comfort {missed} min.",
+        "day_outdoor": "Outdoor {low} to {high} °C.",
+        "day_partial": "Partial day: the E32 was not heard all day, so the figures are incomplete.",
+        "day_none": "The first full day appears here tomorrow.",
         "outdoor": "Outdoor",
         "flow_settings": "Heating curve and learning",
         "flow_source": "Flow source",
@@ -272,6 +281,15 @@ TEXT = {
         "gas_measured": "Gemeten met je gasmeter, verdeeld naar wat de ketel deed.",
         "gas_estimate": "Geschat uit de brandermodulatie en het vermogen van de ketel (geen gasmeter).",
         "gas_note": "Voeg deze twee sensoren toe aan het energiedashboard onder Gasverbruik.",
+        "yesterday": "Gisteren", "burner_per_day": "Branderuren per dag",
+        "missed_per_day": "Gemiste comfort per dag (minuten)",
+        "day_burner": "Brander {h} uur, {n} starts ({short} korter dan 10 minuten).",
+        "day_gas": "Gas: verwarmen {heating}, warm water {hot_water}.",
+        "day_room": "{room}: vroeg {h} uur warmte; gemiddeld na {ttt} min op temperatuur; gemiste comfort {missed} min.",
+        "day_room_no_step": "{room}: vroeg {h} uur warmte; gemiste comfort {missed} min.",
+        "day_outdoor": "Buiten {low} tot {high} °C.",
+        "day_partial": "Gedeeltelijke dag: de E32 was niet de hele dag te horen, dus de cijfers zijn onvolledig.",
+        "day_none": "Morgen staat hier de eerste volledige dag.",
         "outdoor": "Buiten",
         "flow_settings": "Stooklijn en leren",
         "flow_source": "Aanvoerbron",
@@ -425,6 +443,35 @@ def _energy_section(t, heating, hot_water):
             (heating, t["gas_heating"]), (hot_water, t["gas_hot_water"])) if entity_id],
          "stat_types": ["change"], "period": "day", "days_to_show": 7, "chart_type": "bar"},
         {"type": "markdown", "content": note})
+
+
+def _yesterday_section(t, summary, burner_time, missed, gas_unit):
+    """What the heating did yesterday (the daily summary) and the burner hours and missed comfort per day."""
+    if not summary:
+        return None
+    q = json.dumps(summary)
+
+    def fill(text, **names):
+        for name, expr in names.items():
+            text = text.replace("{" + name + "}", "{{ " + expr + " }}")
+        return text
+    unit = " " + gas_unit if gas_unit else ""
+    content = (
+        "{% set d = state_attr(" + q + ", 'last_day') %}{% if d %}**{{ d.date }}**\n\n"
+        + fill(t["day_burner"], h="d.burner_hours", n="d.burner_starts", short="d.short_runs")
+        + "{% if d.gas and d.gas.heating is not none and d.gas.hot_water is not none %} "
+        + fill(t["day_gas"], heating="d.gas.heating ~ '" + unit + "'", hot_water="d.gas.hot_water ~ '" + unit + "'")
+        + "{% endif %}{% if d.outdoor %} " + fill(t["day_outdoor"], low="d.outdoor.min", high="d.outdoor.max")
+        + "{% endif %}{% for r in d.rooms %}\n- {% if r.time_to_target_minutes is not none %}"
+        + fill(t["day_room"], room="r.name", h="r.heat_hours", ttt="r.time_to_target_minutes",
+               missed="r.missed_minutes")
+        + "{% else %}" + fill(t["day_room_no_step"], room="r.name", h="r.heat_hours", missed="r.missed_minutes")
+        + "{% endif %}{% endfor %}{% if not d.complete %}\n\n_" + t["day_partial"] + "_{% endif %}"
+        + "{% else %}" + t["day_none"] + "{% endif %}")
+    charts = [{"type": "statistics-graph", "title": title, "entities": [{"entity": entity_id}],
+               "stat_types": ["change"], "period": "day", "days_to_show": 7, "chart_type": "bar"}
+              for entity_id, title in ((burner_time, t["burner_per_day"]), (missed, t["missed_per_day"])) if entity_id]
+    return _section(_heading(t["yesterday"], "mdi:calendar-today"), {"type": "markdown", "content": content}, *charts)
 
 
 def _value_tile(entity_id, name, icon, color=None):
@@ -894,6 +941,13 @@ class RoomDashboard:
         energy = _energy_section(t, hub.get("heating_gas"), hub.get("hot_water_gas"))
         if energy:
             sections.append(energy)
+        heating_gas = hub.get("heating_gas")
+        gas_state = self.hass.states.get(heating_gas) if heating_gas and self.hass is not None else None
+        yesterday = _yesterday_section(t, hub.get("daily_summary"), hub.get("daily_burner_time"),
+                                       hub.get("daily_missed_comfort"),
+                                       gas_state.attributes.get("unit_of_measurement") if gas_state else None)
+        if yesterday:
+            sections.append(yesterday)
 
         # Comparison subview: the E32's decision next to the thermostat's, the learning note and
         # the Bluetooth sensors that feed no single room.

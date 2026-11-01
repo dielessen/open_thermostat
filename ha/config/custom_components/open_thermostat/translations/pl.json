@@ -1651,6 +1651,18 @@
       },
       "room_valve_battery": {
         "name": "Bateria zaworów"
+      },
+      "daily_summary": {
+        "name": "Podsumowanie dnia"
+      },
+      "daily_burner_time": {
+        "name": "Czas pracy palnika"
+      },
+      "daily_burner_starts": {
+        "name": "Starty palnika"
+      },
+      "daily_missed_comfort": {
+        "name": "Utracony czas komfortu"
       }
     },
     "select": {
@@ -2888,6 +2900,10 @@
     "valve_single_source": {
       "title": "{room} ma tylko jedno źródło temperatury",
       "description": "E32 steruje zaworami w {room}, ale pomieszczenie ma tylko jedno źródło temperatury. Gdy ono przestanie działać, E32 po 30 minutach przestaje żądać ciepła dla tego pomieszczenia zamiast grzać na ślepo. Dodaj drugie źródło, np. osobny czujnik Bluetooth, w ustawieniach pomieszczenia."
+    },
+    "heating_problem": {
+      "title": "Ogrzewanie wymaga uwagi",
+      "description": "{reason}\n\nTo zgłoszenie zniknie samo, gdy przyczyna ustąpi."
     }
   },
   "services": {

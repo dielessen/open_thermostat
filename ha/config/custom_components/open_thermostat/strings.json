@@ -1651,6 +1651,18 @@
       },
       "room_valve_battery": {
         "name": "Valve battery"
+      },
+      "daily_summary": {
+        "name": "Daily summary"
+      },
+      "daily_burner_time": {
+        "name": "Burner time"
+      },
+      "daily_burner_starts": {
+        "name": "Burner starts"
+      },
+      "daily_missed_comfort": {
+        "name": "Missed comfort time"
       }
     },
     "select": {
@@ -2888,6 +2900,10 @@
     "valve_single_source": {
       "title": "{room} relies on a single temperature source",
       "description": "The E32 drives the radiator valves in {room}, but the room has only one temperature source. If that source stops reporting, the E32 stops asking heat for the room after 30 minutes rather than heat blind. Add a second source, for example a separate Bluetooth sensor, in the room settings."
+    },
+    "heating_problem": {
+      "title": "Heating needs attention",
+      "description": "{reason}\n\nThis message clears itself once the cause is gone."
     }
   },
   "services": {

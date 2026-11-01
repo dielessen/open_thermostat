@@ -249,8 +249,8 @@ TEST(TrvSimulation, AllValvesClosedWhileRoomsAskStopsTheBoilerAfterTheHold) {
     h.run(3 * minute);
     EXPECT_FALSE(h.boilerHeat);
     EXPECT_STREQ(h.trv.reason(), "valves_closed");
-    // A stuck-open valve (fail-open) gives the request back at once.
-    v.stuckOpen = true; h.run(minute);
+    // A stuck-open valve (fail-open) gives the request back, after the burner's minimum off time.
+    v.stuckOpen = true; h.run(FlowDemand::Params{}.minimumOffMs);
     EXPECT_TRUE(h.boilerHeat);
 }
 

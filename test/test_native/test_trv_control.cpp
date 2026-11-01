@@ -278,12 +278,45 @@ TEST(TrvFeedback, AllDemandingRoomsClosedStopsTheRequestButAnUncontrolledRoomKee
     const auto out = trv.adjust(heat(40), rooms, true, 11 * M, 30, 60);
     EXPECT_FALSE(out.heat);
     EXPECT_STREQ(trv.reason(), "valves_closed");
-    // The living room (floor, no valve control) asks for heat too: the boiler keeps going.
+    // The living room (floor, no valve control) asks for heat too: the boiler goes again, after
+    // the burner's minimum off time.
     rooms.push_back(room("woonkamer", 2100, 1900));
-    EXPECT_TRUE(trv.adjust(heat(40), rooms, true, 12 * M, 30, 60).heat);
+    EXPECT_FALSE(trv.adjust(heat(40), rooms, true, 12 * M, 30, 60).heat);
+    EXPECT_TRUE(trv.adjust(heat(40), rooms, true, 16 * M, 30, 60).heat);
     // An offline valve is no proof of a closed circuit: no stop.
     std::vector<TrvControl::Room> only{room("slaapkamer", 2000, 1990)};
     EXPECT_TRUE(trv.adjust(heat(40), only, true, 1 + TrvControl::staleMs, 30, 60).heat);
+}
+
+// Review 1.0: the cut is a burner stop FlowDemand never sees, so it keeps the burner's minimum
+// times itself. A valve hovering around 5 % opens again right after the cut: the burner restarts
+// only after the minimum off time. The floor stops asking just after the burner started: the
+// cut waits for the minimum on time.
+TEST(TrvFeedback, ValveCutKeepsTheBurnerMinimumOffAndOnTimes) {
+    const uint64_t offMs = FlowDemand::Params{}.minimumOffMs, onMs = FlowDemand::Params{}.minimumOnMs, step = 10 * 1000ULL;
+    const std::vector<TrvControl::Room> bedroom{room("slaapkamer", 2000, 1990)};
+    TrvControl trv; trv.setConfig(parse(bedroomBosch));
+    trv.receive("zigbee2mqtt/Slaapkamer kraan", R"({"pi_heating_demand":5})", 1);
+    EXPECT_TRUE(trv.adjust(heat(40), bedroom, true, 5 * M, 30, 60).heat);
+    const uint64_t cut = 11 * M;
+    EXPECT_FALSE(trv.adjust(heat(40), bedroom, true, cut, 30, 60).heat);
+    trv.receive("zigbee2mqtt/Slaapkamer kraan", R"({"pi_heating_demand":6})", cut + step / 2);
+    for (uint64_t t = cut + step; t < cut + offMs; t += step) {
+        ASSERT_FALSE(trv.adjust(heat(40), bedroom, true, t, 30, 60).heat) << (t - cut) / 1000 << " s after the cut";
+        ASSERT_STREQ(trv.reason(), "valves_closed");
+    }
+    EXPECT_TRUE(trv.adjust(heat(40), bedroom, true, cut + offMs, 30, 60).heat);
+    // Minimum on: only closed valves ask (no start), then the floor too, satisfied 10 s later.
+    TrvControl on; on.setConfig(parse(bedroomBosch));
+    on.receive("zigbee2mqtt/Slaapkamer kraan", R"({"pi_heating_demand":0})", 1);
+    EXPECT_FALSE(on.adjust(heat(40), bedroom, true, 20 * M, 30, 60).heat);
+    const std::vector<TrvControl::Room> withFloor{room("slaapkamer", 2000, 1990), room("woonkamer", 2100, 1900)};
+    const uint64_t start = 30 * M;
+    EXPECT_TRUE(on.adjust(heat(40), withFloor, true, start, 30, 60).heat);
+    for (uint64_t t = start + step; t < start + onMs; t += step)
+        ASSERT_TRUE(on.adjust(heat(40), bedroom, true, t, 30, 60).heat) << (t - start) / 1000 << " s after the start";
+    EXPECT_FALSE(on.adjust(heat(40), bedroom, true, start + onMs, 30, 60).heat);
+    EXPECT_STREQ(on.reason(), "valves_closed");
 }
 
 TEST(TrvFeedback, ValvesWithoutReadbackDriftTheOffsetBackToZero) {

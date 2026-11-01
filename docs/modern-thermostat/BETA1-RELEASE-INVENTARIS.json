@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "07cdc6c6bbc768521efa940fb43a86a31d64a569d0941403ed9a31b962363f12"
+          "sha256": "5d6fd0c596b1f6a2739cc3d7776bec9053986622027a5392df0ff02831737026"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -3302,7 +3302,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/services.yaml",
-          "sha256": "a4e5784cdf30c008f56db8b0a90e79b822f51281c790ebe880f070754da84157"
+          "sha256": "d736c90db2ed3f0ab76672e36d31842b4769a5ad0f777fe101a8c21a1c3567fd"
         },
         {
           "path": "docs/modern-thermostat/HISTORIE-EXPORT.nl.md",

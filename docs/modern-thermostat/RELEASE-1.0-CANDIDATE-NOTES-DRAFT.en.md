@@ -1,5 +1,9 @@
 # OpenThermostat 1.0 candidate — release notes draft
 
+**Superseded:** these sections are now the top of `RELEASE-NOTES.md` and
+`HA-RELEASE-NOTES.md` (E32 1.0.0-rc.1 and HA 1.0.0rc1). Edit them there; this
+draft is kept as the record of how they were written.
+
 Draft only. Not frozen, tagged, published or installed. The published E32
 beta22, HA 0.4.0b14 and HA 0.4.0b15 downloads are unchanged.
 

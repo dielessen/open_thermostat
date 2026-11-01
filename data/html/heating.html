@@ -343,7 +343,8 @@
       return {schedule: points, ...levelFields(points)};
     };
     // Windows and doors: the contacts are Home Assistant sensors, chosen in the room's settings there; the E32
-    // pauses the room on HA's report. Persons: planned (presence per room).
+    // pauses the room on HA's report. Persons (beta.23): chosen in the room's settings there too; HA reports
+    // whether they are home, and the E32 shows it here read-only.
     // Also in the short summary while Home Assistant manages the rooms.
     const windowState = el('p', null, {class:'pd-help', 'data-heating-window':''}), windowBrief = el('dd');
     brief.append(el('dt', uiText("Windows and doors")), windowBrief);
@@ -352,10 +353,18 @@
       windowState.textContent = windowBrief.textContent = w === 'open' ? uiText("Now: a window or door is open; the room pauses after its delay.")
         : w === 'closed' ? uiText("Now: all windows and doors are closed.") : uiText("No window or door contact reports this room.");
     };
-    showWindow(status);
-    const shownWindow = card.status; card.status = s => { showWindow(s); shownWindow(s); };
+    const personsState = el('p', null, {class:'pd-help', 'data-heating-persons':''}), personsBrief = el('dd');
+    brief.append(el('dt', uiText("Persons")), personsBrief);
+    const showPersons = s => {
+      const p = s?.comfort?.persons;
+      personsState.textContent = personsBrief.textContent = p === 'home' ? uiText("Now: someone of this room is home.")
+        : p === 'away' ? uiText("Now: everyone of this room is away; the room uses the away temperature.")
+        : uiText("No persons of its own: the room follows the house.");
+    };
+    showWindow(status); showPersons(status);
+    const shownWindow = card.status; card.status = s => { showWindow(s); showPersons(s); shownWindow(s); };
     body.append(el('h3', uiText("Windows and doors")), el('p', uiText("Choose the window and door contacts and the pause delay in Home Assistant: OpenThermostat → Configure → Rooms."), {class:'pd-help'}), windowState,
-      el('h3', uiText("Persons")), el('p', uiText("Later: choose who uses this room, so it can pause when they are away."), {class:'pd-help'}));
+      el('h3', uiText("Persons")), el('p', uiText("Choose who uses this room in Home Assistant: OpenThermostat → Configure → Rooms. While all of them are away, the room uses the away temperature."), {class:'pd-help'}), personsState);
     const removeRoom = el('button', uiText("Remove room"), {type:'button', class:'btn btn-outline-danger'}), removeBox = el('div', null, {class:'hp-remove'});
     removeRoom.addEventListener('click', () => { if (confirm(uiText("Remove this room? It is deleted when you press Save rooms."))) card.remove(); });
     removeBox.append(removeRoom); body.append(removeBox);

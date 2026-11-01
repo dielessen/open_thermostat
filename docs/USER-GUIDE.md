@@ -29,6 +29,7 @@ energy inputs.
 | Setting device per room (valve, tado, number) | — | Same room editor |
 | House mode: automatic, at home, away, holiday | E32: Home | The House mode control (E32 device, dashboard) |
 | Who lives here (presence) and how long before the house counts as away | — | Configure → Home → Presence |
+| Who uses a room (persons per room) | E32: Rooms (shown, read-only) | Same room editor → Persons |
 | Lowest and highest flow temperature for the boiler request | E32: Home → Flow temperature limits | Configure → Home → Heating and boiler |
 | Heating curve, learned flow and optimum start | E32: Home | Switches on the E32 device |
 | Gas meter, gas price, outdoor temperature, boiler power (all optional) | — | Configure → Home → Energy and outdoor temperature |
@@ -291,6 +292,12 @@ everything else.
     zone or switch). When everyone has been away for the away delay (15
     minutes by default), every room is at most the away temperature. Someone
     home, or someone whose place is not known, keeps the house warm.
+    A room can have **persons of its own** (the room editor in Home
+    Assistant → **Persons**, for example a bedroom and its occupants). Such a
+    room goes to the away temperature when all of its persons have been away
+    for the same delay, also while others are home. A room without persons of
+    its own follows the house. The E32's room card shows what Home Assistant
+    reports for the room's persons.
   - **At home**: the week programs always, also when everyone is away (guests,
     a babysitter).
   - **Away**: every room is at most the away temperature until you switch back.

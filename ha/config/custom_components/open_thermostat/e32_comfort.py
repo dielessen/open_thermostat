@@ -807,9 +807,10 @@ class ComfortOptionsSteps:
 
     async def async_step_house(self, user_input=None):
         """Configure → Home: everything that applies to the whole house, as on the E32's Home page."""
-        # One place for everything house-wide (beta.23): the room defaults (levels of rooms without a week
-        # program, timing) and the window contacts per room sit here, no separate Comfort entry.
-        return self.async_show_menu(step_id="house", menu_options=["house_presence", "comfort", "heating_boiler", "energy"])
+        # One place for everything house-wide (beta.23): presence, heating, energy, and the defaults for rooms
+        # (levels without a week program, the default window pause, timing). The window contacts are set per
+        # room in Configure → Rooms; the old Comfort menu is no longer offered (its steps stay for old links).
+        return self.async_show_menu(step_id="house", menu_options=["house_presence", "heating_boiler", "energy", "comfort_settings"])
 
     async def async_step_house_presence(self, user_input=None):
         """The people of the house and how long everyone must be away (the house mode itself is a select)."""

@@ -33,7 +33,7 @@
       },
       "shadow": {
         "title": "Connect an OpenThermostat E32",
-        "description": "The E32 calculates along; your current thermostat keeps controlling the boiler. Nothing is sent to the boiler. Home Assistant does set the target temperature on each room's setting device (radiator valve, tado or number helper) according to that room's week program. Normally you connect the E32 later with Configure → Connect E32, which fills in the connection ID for you.",
+        "description": "The E32 calculates along; your current thermostat keeps controlling the boiler. Nothing is sent to the boiler. Home Assistant does set the target temperature on each room's setting device (radiator valve, tado or number helper) according to that room's week program. Normally you connect the E32 later with Configure → E32 connection, which fills in the connection ID for you.",
         "data": {
           "topic_prefix": "MQTT prefix of the E32",
           "adapter_id": "Connection ID (filled in for you)"
@@ -45,7 +45,7 @@
       },
       "installation": {
         "title": "Set up your heating installation",
-        "description": "Name this installation. Next you connect your E32 (Configure → Connect E32) and add your rooms. Saving does not start heating.",
+        "description": "Name this installation. Next you connect your E32 (Configure → E32 connection) and add your rooms. Saving does not start heating.",
         "data": {
           "name": "Installation name",
           "create_dashboard": "Show the OpenThermostat dashboard"
@@ -83,7 +83,7 @@
       "invalid_status": "The MQTT room status is invalid.",
       "invalid_topic": "The MQTT topic prefix is invalid.",
       "reauth_successful": "The new E32 password is saved. Home Assistant reconnects now.",
-      "reauth_no_e32": "This installation has no E32 connection yet. Use Configure → Connect E32."
+      "reauth_no_e32": "This installation has no E32 connection yet. Use Configure → E32 connection."
     },
     "error": {
       "invalid_topic": "Unsupported prefix for this mode. Shadow requires 1–32 ASCII letters/digits, - or _; existing legacy IDs are not renamed.",
@@ -96,7 +96,7 @@
       "reauth_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again."
     },
     "create_entry": {
-      "e32_next_steps": "Next: choose Configure on this integration and then Connect E32. Before that, switch on MQTT on the E32 web page (Settings → MQTT). After connecting, Home Assistant goes straight on to your first room."
+      "e32_next_steps": "Next: choose Configure on this integration and then E32 connection. Before that, switch on MQTT on the E32 web page (Settings → MQTT). After connecting, Home Assistant goes straight on to your first room."
     }
   },
   "options": {
@@ -114,9 +114,9 @@
         "description": "Everything that applies to the whole house, as on the E32's Home page. The house mode itself (automatic, at home, away, holiday) is the House mode control on the E32 device and on the dashboard.",
         "menu_options": {
           "house_presence": "Presence: who lives here",
-          "comfort": "Rooms: defaults and window contacts",
           "heating_boiler": "Heating and boiler",
-          "energy": "Energy and outdoor temperature"
+          "energy": "Energy and outdoor temperature",
+          "comfort_settings": "Defaults for rooms and timing"
         }
       },
       "house_presence": {
@@ -169,15 +169,15 @@
       },
       "init": {
         "title": "OpenThermostat",
-        "description": "Your rooms first, then heating, energy and the E32 connection. New here? Start with Connect E32; after it you add your rooms.",
+        "description": "Your rooms first, then heating, energy and the E32 connection. New here? Start with E32 connection; after it you add your rooms.",
         "menu_options": {
           "e32_rooms": "Rooms",
           "house": "Home",
           "comfort": "Comfort: presets and window sensors",
           "heating_boiler": "Heating and boiler",
           "energy": "Energy and outdoor temperature",
-          "controller_connection": "Connect E32",
-          "general": "Name and dashboard",
+          "controller_connection": "E32 connection",
+          "general": "Dashboard and name",
           "advanced_settings": "Advanced and diagnostics",
           "room_settings": "Manage rooms",
           "installation": "Installation settings",
@@ -873,10 +873,10 @@
       "configuration_status_closed": "Status closed.",
       "product_upgrade_required": "This old setup must first be transferred to the normal product configuration.",
       "controller_connection_complete": "The E32 connection and room plan have been confirmed.",
-      "controller_connection_cancelled": "Connection cancelled. Some settings may already be saved on the E32: open Configure → Connect E32 again to finish the connection.",
+      "controller_connection_cancelled": "Connection cancelled. Some settings may already be saved on the E32: open Configure → E32 connection again to finish the connection.",
       "installation_applied": "Installation saved and verified against the E32 plan. Physical boiler and valve outputs remain disabled.",
       "installation_apply_pending": "An earlier profile change is not confirmed. Open E32 connection and apply the saved settings before editing the installation again.",
-      "e32_rooms_unavailable": "Connect the E32 first (Connect E32) so Home Assistant can edit its room plan.",
+      "e32_rooms_unavailable": "Connect the E32 first (E32 connection) so Home Assistant can edit its room plan.",
       "e32_unreachable": "The E32 room plan could not be read ({error}).",
       "e32_plan_invalid": "The E32 returned a room plan this version cannot read. Update the E32 firmware and the integration together.",
       "e32_unconfirmed": "The E32 could not confirm that the room plan was saved. Check the room before trying again.",
@@ -889,7 +889,7 @@
       "e32_password_changed": "The E32 no longer accepts the saved password. Home Assistant asks for the new one: Settings → Devices & services → OpenThermostat → Re-authenticate.",
       "legacy_rooms_removed": "The old Home Assistant rooms have been removed. The E32 stays connected with {rooms} room(s) in its plan.",
       "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
-      "legacy_rooms_cancelled": "Cancelled. Choose Configure → Connect E32 to check the connection; some settings may already be saved on the E32."
+      "legacy_rooms_cancelled": "Cancelled. Choose Configure → E32 connection to check the connection; some settings may already be saved on the E32."
     },
     "progress": {
       "controller_connect": "Connecting to the E32…",
@@ -2224,7 +2224,7 @@
         "setup_save_uncertain": "Saving could not be confirmed. Reopen room setup and check the saved room and group before trying again.",
         "setup_platform_unsupported": "This needs Home Assistant 2026.10.0 or newer, and your version is not supported by this integration version. Nothing has been changed. Update Home Assistant, or check for an integration update.",
         "e32_rooms_elsewhere": "The rooms of this installation are on the E32 now: open OpenThermostat → Configure → Rooms. The older Home Assistant room records are kept for reference only.",
-        "e32_connect_first": "Connect your E32 first: OpenThermostat → Configure → Connect E32. The rooms are then added there under Rooms and stored on the E32."
+        "e32_connect_first": "Connect your E32 first: OpenThermostat → Configure → E32 connection. The rooms are then added there under Rooms and stored on the E32."
       }
     },
     "heating": {
@@ -2704,13 +2704,13 @@
           "legacy_rooms_remove": "Removing the old rooms and reconnecting the E32…"
         },
         "error": {
-          "e32_password": "The E32 did not accept the saved password. Enter the current E32 password under Configure → Connect E32, then try again.",
+          "e32_password": "The E32 did not accept the saved password. Enter the current E32 password under Configure → E32 connection, then try again.",
           "e32_unreachable": "The E32 could not be reached. Check that it is on and connected to your network, then try again.",
           "broker_login": "The E32 needs its own MQTT login first. On the E32, open Settings → MQTT, tick Enabled, enter the broker address and port and a broker user name and password, save and let the E32 restart. The E32 does not connect to Home Assistant through a broker without a login.",
           "mqtt_unconfirmed": "The E32 restarted with the Home Assistant settings, but Home Assistant received nothing from it over MQTT within 90 seconds. On the E32, check Settings → MQTT: the same broker as the MQTT integration in Home Assistant, and a user name and password that the broker accepts.",
           "e32_busy": "The E32 is updating or restarting. Wait until it is ready and try again.",
           "ha_version_unsupported": "This integration needs Home Assistant 2026.10.0 or newer (tested with 2026.10.2 to 2026.10.4). Update Home Assistant; if yours is newer, check for an integration update. Nothing has been changed.",
-          "connection_failed": "The E32 connection could not be confirmed. Open Configure → Connect E32 for details, then try again here.",
+          "connection_failed": "The E32 connection could not be confirmed. Open Configure → E32 connection for details, then try again here.",
           "legacy_rooms_plan_changed": "The E32 room plan changed since this list was made (on the E32 page or elsewhere). Nothing has been removed. Check the updated list and submit again.",
           "legacy_rooms_plan_failed": "The E32 did not save the updated room plan, so nothing has been removed. Check that the E32 is ready and try again.",
           "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again.",
@@ -2720,7 +2720,7 @@
         },
         "abort": {
           "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
-          "legacy_rooms_cancelled": "Cancelled. Choose Configure → Connect E32 to check the connection; some settings may already be saved on the E32."
+          "legacy_rooms_cancelled": "Cancelled. Choose Configure → E32 connection to check the connection; some settings may already be saved on the E32."
         }
       }
     },
@@ -2745,13 +2745,13 @@
           "legacy_rooms_remove": "Removing the old rooms and reconnecting the E32…"
         },
         "error": {
-          "e32_password": "The E32 did not accept the saved password. Enter the current E32 password under Configure → Connect E32, then try again.",
+          "e32_password": "The E32 did not accept the saved password. Enter the current E32 password under Configure → E32 connection, then try again.",
           "e32_unreachable": "The E32 could not be reached. Check that it is on and connected to your network, then try again.",
           "broker_login": "The E32 needs its own MQTT login first. On the E32, open Settings → MQTT, tick Enabled, enter the broker address and port and a broker user name and password, save and let the E32 restart. The E32 does not connect to Home Assistant through a broker without a login.",
           "mqtt_unconfirmed": "The E32 restarted with the Home Assistant settings, but Home Assistant received nothing from it over MQTT within 90 seconds. On the E32, check Settings → MQTT: the same broker as the MQTT integration in Home Assistant, and a user name and password that the broker accepts.",
           "e32_busy": "The E32 is updating or restarting. Wait until it is ready and try again.",
           "ha_version_unsupported": "This integration needs Home Assistant 2026.10.0 or newer (tested with 2026.10.2 to 2026.10.4). Update Home Assistant; if yours is newer, check for an integration update. Nothing has been changed.",
-          "connection_failed": "The E32 connection could not be confirmed. Open Configure → Connect E32 for details, then try again here.",
+          "connection_failed": "The E32 connection could not be confirmed. Open Configure → E32 connection for details, then try again here.",
           "legacy_rooms_plan_changed": "The E32 room plan changed since this list was made (on the E32 page or elsewhere). Nothing has been removed. Check the updated list and submit again.",
           "legacy_rooms_plan_failed": "The E32 did not save the updated room plan, so nothing has been removed. Check that the E32 is ready and try again.",
           "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again.",
@@ -2761,7 +2761,7 @@
         },
         "abort": {
           "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
-          "legacy_rooms_cancelled": "Cancelled. Choose Configure → Connect E32 to check the connection; some settings may already be saved on the E32."
+          "legacy_rooms_cancelled": "Cancelled. Choose Configure → E32 connection to check the connection; some settings may already be saved on the E32."
         }
       }
     },
@@ -2790,7 +2790,7 @@
           "save_failed": "The E32 did not save the room plan. Check that the E32 is on and connected, then try again."
         },
         "abort": {
-          "e32_rooms_unavailable": "Connect the E32 first (Configure → Connect E32) so Home Assistant can edit its room plan.",
+          "e32_rooms_unavailable": "Connect the E32 first (Configure → E32 connection) so Home Assistant can edit its room plan.",
           "e32_unreachable": "The E32 could not be reached. Check that it is on and connected to your network, then try again.",
           "room_missing": "This room is no longer in the E32 room plan."
         }

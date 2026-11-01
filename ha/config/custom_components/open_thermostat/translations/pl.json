@@ -33,7 +33,7 @@
       },
       "shadow": {
         "title": "Połącz OpenThermostat E32",
-        "description": "E32 liczy równolegle; Twój obecny termostat nadal steruje kotłem. Nic nie jest wysyłane do kotła. Home Assistant ustawia jednak temperaturę zadaną na urządzeniu nastawczym każdego pomieszczenia (zawór termostatyczny, tado lub pomocnik liczbowy) zgodnie z programem tygodniowym tego pomieszczenia. Zwykle łączysz E32 później przez Konfiguruj → Połącz E32, co samo wypełnia identyfikator połączenia.",
+        "description": "E32 liczy równolegle; Twój obecny termostat nadal steruje kotłem. Nic nie jest wysyłane do kotła. Home Assistant ustawia jednak temperaturę zadaną na urządzeniu nastawczym każdego pomieszczenia (zawór termostatyczny, tado lub pomocnik liczbowy) zgodnie z programem tygodniowym tego pomieszczenia. Zwykle łączysz E32 później przez Konfiguruj → Połączenie z E32, co samo wypełnia identyfikator połączenia.",
         "data": {
           "topic_prefix": "Prefiks MQTT urządzenia E32",
           "adapter_id": "Identyfikator połączenia (wypełniany automatycznie)"
@@ -45,7 +45,7 @@
       },
       "installation": {
         "title": "Skonfiguruj swoją instalację grzewczą",
-        "description": "Nazwij tę instalację. Następnie połączysz E32 (Konfiguruj → Połącz E32) i dodasz pomieszczenia. Zapisanie nie uruchamia ogrzewania.",
+        "description": "Nazwij tę instalację. Następnie połączysz E32 (Konfiguruj → Połączenie z E32) i dodasz pomieszczenia. Zapisanie nie uruchamia ogrzewania.",
         "data": {
           "name": "Nazwa instalacji",
           "create_dashboard": "Pokaż panel OpenThermostat"
@@ -83,7 +83,7 @@
       "invalid_status": "Stan pomieszczeń MQTT jest nieprawidłowy.",
       "invalid_topic": "Prefiks tematu MQTT jest nieprawidłowy.",
       "reauth_successful": "Nowe hasło E32 zostało zapisane. Home Assistant łączy się teraz ponownie.",
-      "reauth_no_e32": "Ta instalacja nie ma jeszcze połączenia z E32. Użyj Konfiguruj → Połącz E32."
+      "reauth_no_e32": "Ta instalacja nie ma jeszcze połączenia z E32. Użyj Konfiguruj → Połączenie z E32."
     },
     "error": {
       "invalid_topic": "Nieobsługiwany prefiks dla tego trybu. Tryb cienia wymaga 1–32 liter/cyfr ASCII, - lub _; istniejące starsze identyfikatory nie są zmieniane.",
@@ -96,7 +96,7 @@
       "reauth_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie."
     },
     "create_entry": {
-      "e32_next_steps": "Dalej: wybierz Konfiguruj przy tej integracji, a potem Połącz E32. Wcześniej włącz MQTT na stronie internetowej E32 (Settings → MQTT). Po połączeniu Home Assistant od razu przejdzie do pierwszego pomieszczenia."
+      "e32_next_steps": "Dalej: wybierz Konfiguruj przy tej integracji, a potem Połączenie z E32. Wcześniej włącz MQTT na stronie internetowej E32 (Settings → MQTT). Po połączeniu Home Assistant od razu przejdzie do pierwszego pomieszczenia."
     }
   },
   "options": {
@@ -114,9 +114,9 @@
         "description": "Wszystko, co dotyczy całego domu, tak jak na stronie Dom w E32. Sam tryb domu (automatyczny, w domu, nieobecność, urlop) to kontrolka Tryb domu na urządzeniu E32 i na pulpicie.",
         "menu_options": {
           "house_presence": "Obecność: kto tu mieszka",
-          "comfort": "Pomieszczenia: ustawienia domyślne i czujniki okien",
           "heating_boiler": "Ogrzewanie i kocioł",
-          "energy": "Energia i temperatura zewnętrzna"
+          "energy": "Energia i temperatura zewnętrzna",
+          "comfort_settings": "Ustawienia domyślne pomieszczeń i czasy"
         }
       },
       "house_presence": {
@@ -176,8 +176,8 @@
           "comfort": "Komfort: ustawienia wstępne i czujniki okien",
           "heating_boiler": "Ogrzewanie i kocioł",
           "energy": "Energia i temperatura zewnętrzna",
-          "controller_connection": "Połącz E32",
-          "general": "Nazwa i panel",
+          "controller_connection": "Połączenie z E32",
+          "general": "Panel i nazwa",
           "advanced_settings": "Zaawansowane i diagnostyka",
           "room_settings": "Zarządzaj pomieszczeniami",
           "installation": "Ustawienia instalacji",
@@ -873,10 +873,10 @@
       "configuration_status_closed": "Stan zamknięty.",
       "product_upgrade_required": "Tę starą konfigurację trzeba najpierw przenieść do zwykłej konfiguracji produktu.",
       "controller_connection_complete": "Połączenie z E32 i plan pomieszczeń zostały potwierdzone.",
-      "controller_connection_cancelled": "Połączenie anulowane. Część ustawień mogła już zostać zapisana na E32: otwórz ponownie Konfiguruj → Połącz E32, aby dokończyć połączenie.",
+      "controller_connection_cancelled": "Połączenie anulowane. Część ustawień mogła już zostać zapisana na E32: otwórz ponownie Konfiguruj → Połączenie z E32, aby dokończyć połączenie.",
       "installation_applied": "Instalacja zapisana i sprawdzona względem planu E32. Fizyczne wyjścia kotła i zaworów pozostają wyłączone.",
       "installation_apply_pending": "Wcześniejsza zmiana profilu nie jest potwierdzona. Otwórz połączenie z E32 i zastosuj zapisane ustawienia przed ponowną edycją instalacji.",
-      "e32_rooms_unavailable": "Najpierw połącz E32 (Połącz E32), aby Home Assistant mógł edytować jego plan pomieszczeń.",
+      "e32_rooms_unavailable": "Najpierw połącz E32 (Połączenie z E32), aby Home Assistant mógł edytować jego plan pomieszczeń.",
       "e32_unreachable": "Nie udało się odczytać planu pomieszczeń E32 ({error}).",
       "e32_plan_invalid": "E32 zwrócił plan pomieszczeń, którego ta wersja nie potrafi odczytać. Zaktualizuj razem oprogramowanie E32 i integrację.",
       "e32_unconfirmed": "E32 nie mógł potwierdzić zapisania planu pomieszczeń. Sprawdź pomieszczenie przed ponowną próbą.",
@@ -889,7 +889,7 @@
       "e32_password_changed": "E32 nie akceptuje już zapisanego hasła. Home Assistant prosi o nowe: Ustawienia → Urządzenia i usługi → OpenThermostat → Uwierzytelnij ponownie.",
       "legacy_rooms_removed": "Stare pomieszczenia Home Assistant zostały usunięte. E32 pozostaje połączony; w jego planie są pomieszczenia: {rooms}.",
       "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
-      "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połącz E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32."
+      "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połączenie z E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32."
     },
     "progress": {
       "controller_connect": "Łączenie z E32…",
@@ -2224,7 +2224,7 @@
         "setup_save_uncertain": "Nie udało się potwierdzić zapisu. Otwórz ponownie konfigurację pomieszczenia i sprawdź zapisane pomieszczenie i grupę przed ponowną próbą.",
         "setup_platform_unsupported": "Wymaga to Home Assistant 2026.10.0 lub nowszego, a Twoja wersja nie jest obsługiwana przez tę wersję integracji. Nic nie zostało zmienione. Zaktualizuj Home Assistant lub sprawdź, czy jest aktualizacja integracji.",
         "e32_rooms_elsewhere": "Pomieszczenia tej instalacji są teraz na E32: otwórz OpenThermostat → Konfiguruj → Pomieszczenia. Starsze zapisy pomieszczeń Home Assistant są zachowane tylko do wglądu.",
-        "e32_connect_first": "Najpierw połącz E32: OpenThermostat → Konfiguruj → Połącz E32. Pomieszczenia dodasz potem tam, w Pomieszczenia; są przechowywane na E32."
+        "e32_connect_first": "Najpierw połącz E32: OpenThermostat → Konfiguruj → Połączenie z E32. Pomieszczenia dodasz potem tam, w Pomieszczenia; są przechowywane na E32."
       }
     },
     "heating": {
@@ -2704,13 +2704,13 @@
           "legacy_rooms_remove": "Usuwanie starych pomieszczeń i ponowne łączenie E32…"
         },
         "error": {
-          "e32_password": "E32 nie zaakceptował zapisanego hasła. Podaj bieżące hasło E32 w Konfiguruj → Połącz E32, a potem spróbuj ponownie.",
+          "e32_password": "E32 nie zaakceptował zapisanego hasła. Podaj bieżące hasło E32 w Konfiguruj → Połączenie z E32, a potem spróbuj ponownie.",
           "e32_unreachable": "Nie udało się połączyć z E32. Sprawdź, czy jest włączony i podłączony do Twojej sieci, a potem spróbuj ponownie.",
           "broker_login": "E32 potrzebuje najpierw własnego logowania MQTT. Na E32 otwórz Settings → MQTT, zaznacz Włączone, podaj adres i port brokera oraz nazwę użytkownika i hasło brokera, zapisz i pozwól E32 się zrestartować. E32 nie łączy się z Home Assistant przez broker bez logowania.",
           "mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź Settings → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker.",
           "e32_busy": "E32 aktualizuje się lub restartuje. Poczekaj, aż będzie gotowy, i spróbuj ponownie.",
           "ha_version_unsupported": "Ta integracja wymaga Home Assistant 2026.10.0 lub nowszego (testowano z 2026.10.2 do 2026.10.4). Zaktualizuj Home Assistant; jeśli Twoja wersja jest nowsza, sprawdź, czy jest aktualizacja integracji. Nic nie zostało zmienione.",
-          "connection_failed": "Nie udało się potwierdzić połączenia z E32. Otwórz Konfiguruj → Połącz E32, aby zobaczyć szczegóły, a potem spróbuj tu ponownie.",
+          "connection_failed": "Nie udało się potwierdzić połączenia z E32. Otwórz Konfiguruj → Połączenie z E32, aby zobaczyć szczegóły, a potem spróbuj tu ponownie.",
           "legacy_rooms_plan_changed": "Plan pomieszczeń E32 zmienił się od czasu utworzenia tej listy (na stronie E32 lub gdzie indziej). Nic nie zostało usunięte. Sprawdź zaktualizowaną listę i zatwierdź ponownie.",
           "legacy_rooms_plan_failed": "E32 nie zapisał zaktualizowanego planu pomieszczeń, więc nic nie zostało usunięte. Sprawdź, czy E32 jest gotowy, i spróbuj ponownie.",
           "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie.",
@@ -2720,7 +2720,7 @@
         },
         "abort": {
           "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
-          "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połącz E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32."
+          "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połączenie z E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32."
         }
       }
     },
@@ -2745,13 +2745,13 @@
           "legacy_rooms_remove": "Usuwanie starych pomieszczeń i ponowne łączenie E32…"
         },
         "error": {
-          "e32_password": "E32 nie zaakceptował zapisanego hasła. Podaj bieżące hasło E32 w Konfiguruj → Połącz E32, a potem spróbuj ponownie.",
+          "e32_password": "E32 nie zaakceptował zapisanego hasła. Podaj bieżące hasło E32 w Konfiguruj → Połączenie z E32, a potem spróbuj ponownie.",
           "e32_unreachable": "Nie udało się połączyć z E32. Sprawdź, czy jest włączony i podłączony do Twojej sieci, a potem spróbuj ponownie.",
           "broker_login": "E32 potrzebuje najpierw własnego logowania MQTT. Na E32 otwórz Settings → MQTT, zaznacz Włączone, podaj adres i port brokera oraz nazwę użytkownika i hasło brokera, zapisz i pozwól E32 się zrestartować. E32 nie łączy się z Home Assistant przez broker bez logowania.",
           "mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź Settings → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker.",
           "e32_busy": "E32 aktualizuje się lub restartuje. Poczekaj, aż będzie gotowy, i spróbuj ponownie.",
           "ha_version_unsupported": "Ta integracja wymaga Home Assistant 2026.10.0 lub nowszego (testowano z 2026.10.2 do 2026.10.4). Zaktualizuj Home Assistant; jeśli Twoja wersja jest nowsza, sprawdź, czy jest aktualizacja integracji. Nic nie zostało zmienione.",
-          "connection_failed": "Nie udało się potwierdzić połączenia z E32. Otwórz Konfiguruj → Połącz E32, aby zobaczyć szczegóły, a potem spróbuj tu ponownie.",
+          "connection_failed": "Nie udało się potwierdzić połączenia z E32. Otwórz Konfiguruj → Połączenie z E32, aby zobaczyć szczegóły, a potem spróbuj tu ponownie.",
           "legacy_rooms_plan_changed": "Plan pomieszczeń E32 zmienił się od czasu utworzenia tej listy (na stronie E32 lub gdzie indziej). Nic nie zostało usunięte. Sprawdź zaktualizowaną listę i zatwierdź ponownie.",
           "legacy_rooms_plan_failed": "E32 nie zapisał zaktualizowanego planu pomieszczeń, więc nic nie zostało usunięte. Sprawdź, czy E32 jest gotowy, i spróbuj ponownie.",
           "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie.",
@@ -2761,7 +2761,7 @@
         },
         "abort": {
           "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
-          "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połącz E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32."
+          "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połączenie z E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32."
         }
       }
     },
@@ -2790,7 +2790,7 @@
           "save_failed": "E32 nie zapisał planu pomieszczeń. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie."
         },
         "abort": {
-          "e32_rooms_unavailable": "Najpierw połącz E32 (Konfiguruj → Połącz E32), aby Home Assistant mógł edytować jego plan pomieszczeń.",
+          "e32_rooms_unavailable": "Najpierw połącz E32 (Konfiguruj → Połączenie z E32), aby Home Assistant mógł edytować jego plan pomieszczeń.",
           "e32_unreachable": "Nie można połączyć się z E32. Sprawdź, czy jest włączony i połączony z siecią, i spróbuj ponownie.",
           "room_missing": "Tego pomieszczenia nie ma już w planie pomieszczeń E32."
         }

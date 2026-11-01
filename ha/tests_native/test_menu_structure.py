@@ -76,7 +76,8 @@ async def test_rooms_hold_the_rooms_and_heating_and_boiler_opens_the_flow_limits
     assert rooms["menu_options"] == ["e32_room_add", "e32_room_pick"]
     flow = await manager.async_init(parent.entry_id)
     house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
-    assert house["type"] == FlowResultType.MENU and house["menu_options"] == ["house_presence", "comfort", "heating_boiler", "energy"]
+    # beta.23: no Comfort submenu; the room defaults are a step of Home, the window contacts are per room.
+    assert house["type"] == FlowResultType.MENU and house["menu_options"] == ["house_presence", "heating_boiler", "energy", "comfort_settings"]
     form = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
     assert form["type"] == FlowResultType.FORM and form["step_id"] == "e32_flow_limits", form
 
@@ -179,3 +180,36 @@ def test_every_menu_entry_and_new_step_has_a_label(filename):
     # The E32 menu path in the help texts is the new one (Settings, not System → Network).
     text = json.dumps(document, ensure_ascii=False)
     assert "System → Network" not in text and "Systeem → Netwerk" not in text and "System → Sieć" not in text
+
+
+@pytest.mark.asyncio
+async def test_home_opens_the_room_defaults_directly_and_contacts_live_in_the_room_form(hass, manager):
+    """Configure has no Comfort menu any more (beta.23): Home → Defaults for rooms and timing is one form, and a
+    room's window contacts and pause are in Configure → Rooms → that room. Saved settings keep their keys."""
+    parent, _ = product(hass, FakeE32())
+    await hass.async_block_till_done()
+    before = dict(parent.options.get("comfort_settings") or {})
+    flow = await manager.async_init(parent.entry_id)
+    assert "comfort" not in flow["menu_options"]
+    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
+    assert "comfort" not in house["menu_options"] and "comfort_contacts" not in house["menu_options"]
+    form = await manager.async_configure(house["flow_id"], {"next_step_id": "comfort_settings"})
+    assert form["type"] == FlowResultType.FORM and form["step_id"] == "comfort_settings"
+    assert {"comfort_temperature", "eco_temperature", "contact_delay", "override_minutes"} <= {str(k) for k in form["data_schema"].schema}
+    assert dict(parent.options.get("comfort_settings") or {}) == before  # opening the form changes nothing
+
+
+def test_configure_labels_follow_the_e32_menu_in_every_language():
+    """Rooms · Home · E32 connection · Dashboard and name · Advanced, in EN/NL/PL."""
+    import json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
+    expected = {"strings.json": ("Rooms", "Home", "E32 connection", "Dashboard and name", "Advanced and diagnostics"),
+                "translations/en.json": ("Rooms", "Home", "E32 connection", "Dashboard and name", "Advanced and diagnostics"),
+                "translations/nl.json": ("Ruimtes", "Huis", "E32-verbinding", "Dashboard en naam", "Geavanceerd en diagnose")}
+    for name, labels in expected.items():
+        menu = json.loads((root / name).read_text(encoding="utf-8"))["options"]["step"]["init"]["menu_options"]
+        assert tuple(menu[k] for k in E32_MENU) == labels, name
+    pl = json.loads((root / "translations/pl.json").read_text(encoding="utf-8"))["options"]["step"]
+    assert all(pl["init"]["menu_options"].get(k) for k in E32_MENU)
+    assert list(pl["house"]["menu_options"]) == ["house_presence", "heating_boiler", "energy", "comfort_settings"]

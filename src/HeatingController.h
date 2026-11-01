@@ -20,6 +20,8 @@
 #include "DeviceBluetoothSettings.h"
 #include "HeatingPlanStore.h"
 #include "FlowSettingsStore.h"
+#include "TrvStore.h"
+#include "control/TrvControl.h"
 #include "RoomOverridesStore.h"
 #include "control/ShadowComparison.h"
 #include "control/RoomEngine.h"
@@ -169,6 +171,11 @@ public:
             default: break;
         }
         mqtt_.setBoilerOutput([this] { return boilerOutput_.load(); });
+        // Radiator valves (beta.24, off until configured): nothing is subscribed or sent without valves.
+        trv_.setConfig(TrvNvs::read());
+        mqtt_.setActuatorOutput([this] { return actuatorOutput_.load(); });
+        mqtt_.setTrvRoute([this] { return trv_.subscriptions(); }, [this] { return trv_.generation(); },
+            [this](std::string_view topic, std::string_view payload) { trv_.receive(topic, payload, bleReceiptClock()); });
         mqtt_.setHeatingRoute([this](std::string_view payload) { heatingInput(payload); }, [this] {
             // The compact form, split into the small MQTT topics (HeatingStateTopics.h): no past
             // days, static plan fields, learned or hot water (summary and learned/<id> carry those).
@@ -316,6 +323,35 @@ public:
         handover_.sync(activeGuard_.confirmed(), activeGuard_.reconfirmPending());
         return nullptr;
     }
+    // Radiator valves (GET/POST /config/heating/trv): the record, its features and the live status.
+    std::string trvJson() const {
+        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(trv_.config().json().c_str()), cJSON_Delete);
+        if (!root) return "{}";
+        auto* features = cJSON_AddArrayToObject(root.get(), "features");
+        if (features) cJSON_AddItemToArray(features, cJSON_CreateString(control::ShadowController::actuatorOutputCapability));
+        auto* models = cJSON_AddArrayToObject(root.get(), "models");
+        for (const auto& m : control::trvModels) {
+            auto* o = cJSON_CreateObject();
+            if (!o || !models) break;
+            cJSON_AddItemToArray(models, o);
+            cJSON_AddStringToObject(o, "id", m.id); cJSON_AddStringToObject(o, "label", m.label);
+            cJSON_AddBoolToObject(o, "position", m.positionKey != nullptr); cJSON_AddBoolToObject(o, "external_temperature", m.externalKey != nullptr);
+        }
+        if (cJSON* status = trv_.statusJson(bleReceiptClock(), trvRooms_)) cJSON_AddItemToObject(root.get(), "status", status);
+        char* text = cJSON_PrintUnformatted(root.get());
+        std::string out = text ? text : "{}";
+        cJSON_free(text);
+        return out;
+    }
+    const char* setTrv(const cJSON* root) {
+        control::TrvConfig config;
+        if (const char* error = control::TrvConfig::parse(root, config)) return error;
+        for (const auto& r : config.rooms) if (!roomEngine_.plan().find(r.id)) return "unknown_room";
+        if (config == trv_.config()) return nullptr;
+        if (!TrvNvs::write(config)) return "save_unconfirmed";
+        trv_.setConfig(std::move(config));
+        return nullptr;
+    }
     // The beta.19 flow options (GET/POST /config/heating/flow), stored in NVS.
     std::string flowSettingsJson() const { return flowPolicy_.settings().json(); }
     const char* setFlowSettings(const cJSON* root) {
@@ -371,6 +407,10 @@ public:
         if (!active || !cJSON_AddItemToObject(root, "active", active)) { cJSON_Delete(active); cJSON_Delete(root); return nullptr; }
         // The applied request and its source (rule, curve, learned, optimum start); details not on MQTT.
         if (!flowPolicy_.addStatus(root, mqtt)) { cJSON_Delete(root); return nullptr; }
+        // Radiator valves: only when any is configured, so the status is unchanged without them.
+        if (cJSON* trv = trv_.statusJson(bleReceiptClock(), trvRooms_)) {
+            if (!cJSON_AddItemToObject(root, "trv", trv)) { cJSON_Delete(trv); cJSON_Delete(root); return nullptr; }
+        }
         const auto& bindings = managedBle_.bindings();
         for (size_t i = 0; i < bindings.count; ++i) {
             const auto& binding = bindings.devices[i];
@@ -726,6 +766,9 @@ private:
     control::ShadowComparison shadowComparison_; // E32 decision vs the tado's 0x1A, per day
     control::ActiveHeatGuard activeGuard_;
     std::atomic<bool> boilerOutput_{false}; // activeGuard_.outputActive() of the last step, for other tasks
+    control::TrvControl trv_;                 // radiator valves via Zigbee2MQTT (beta.24; harmless while unused)
+    std::vector<control::TrvControl::Room> trvRooms_; // the last step's room views, for the status
+    std::atomic<bool> actuatorOutput_{false}; // trv_.actuatorOutput() of the last step (actuator.output.v1)
     update::BoilerReleaseHold restartHold_;
     // Per room how fast it warms per flow (report only; ~1.15 KB heap per room, PSRAM extmem).
     control::FlowLearner flowLearner_;
@@ -799,8 +842,37 @@ private:
         const auto request = applyFlowPolicy(now, rule, ems); // the rule itself while the options are off
         shadowComparison_.sample(now, unixNow, request, tadoFlowC);
         stepFlowLearner(now, ems, tadoFlowC);
-        stepActiveHeat(now, request, ems);
+        // Radiator valves: their feedback on the request and their commands, both only while the E32
+        // drives the boiler (the last step's output) and a room's valve control is on.
+        trvRooms_ = trvRoomViews(now);
+        const bool output = boilerOutput_.load();
+        const auto& plan = roomEngine_.plan();
+        const auto valved = trv_.adjust(request, trvRooms_, output, now, plan.minimumFlowC, plan.maximumFlowC);
+        stepActiveHeat(now, valved, ems);
+        trv_.step(now, trvRooms_, boilerOutput_.load(), [this](const std::string& topic, const std::string& payload) {
+            return mqtt_.publishExternal(topic, payload);
+        });
+        actuatorOutput_.store(trv_.actuatorOutput());
         sampleHistory(now, request, ems, tadoFlowC);
+    }
+    // The rooms as the valve control sees them (control/TrvControl.h); empty without valves.
+    std::vector<control::TrvControl::Room> trvRoomViews(uint64_t now) const {
+        std::vector<control::TrvControl::Room> rooms;
+        if (!trv_.used()) return rooms;
+        const auto& plan = roomEngine_.plan();
+        for (size_t i = 0; i < plan.rooms.size(); ++i) {
+            const auto r = roomEngine_.result(i);
+            control::TrvControl::Room v;
+            v.id = plan.rooms[i].id;
+            v.active = r.status != control::RoomDemand::Status::inactive;
+            v.setpoint = r.setpoint;
+            v.temperature = roomEngine_.freshTemperature(i, now);
+            v.errorCentiC = r.errorCentiC;
+            v.demanding = v.active && r.usable && r.errorCentiC > 0;
+            v.sources = plan.rooms[i].sources.size();
+            rooms.push_back(v);
+        }
+        return rooms;
     }
     // Charts only: fresh readings, effective targets, the boiler and both requests.
     void sampleHistory(uint64_t now, const control::FlowDemand::Request& request, const ems::EmsController::ActiveHeatView& ems, std::optional<uint8_t> tadoFlowC) {

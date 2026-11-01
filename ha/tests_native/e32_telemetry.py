@@ -16,7 +16,7 @@ def split_status(status):
     """[(topic suffix, document)] of one status: heating, rooms, sensors, entities, plan, shadow."""
     if type(status) is not dict:
         return [("fw/state/heating", status)]
-    heating = {k: v for k, v in status.items() if k not in ("rooms", "ble_sensors", "ha_entities", "shadow", "learned", "dhw")}
+    heating = {k: v for k, v in status.items() if k not in ("rooms", "ble_sensors", "ha_entities", "shadow", "learned", "dhw", "trv")}
     messages, room_ids, ble_ids = [], [], []
     # What older firmware carried inside the status: summary and learned/<id> (firmware never does).
     learned, dhw = status.get("learned"), status.get("dhw")
@@ -50,8 +50,18 @@ def split_status(status):
     for k, part in enumerate(parts):
         messages.append(("fw/config/entities" + (f"/{k}" if k else ""),
                          {"entities": part, "schema": 1, "revision": status.get("revision", 0), "part": k, "parts": len(parts)}))
-    messages.append(("fw/config/plan", {"rooms": room_ids, "ble": ble_ids, "schema": 1, "revision": status.get("revision", 0),
-                                        "mode": status.get("mode"), "entity_parts": len(parts)}))
+    plan = {"rooms": room_ids, "ble": ble_ids, "schema": 1, "revision": status.get("revision", 0),
+            "mode": status.get("mode"), "entity_parts": len(parts)}
+    # Radiator valves (beta.24): a document per room, their ids in the plan, a summary in heating.
+    trv = status.get("trv")
+    if type(trv) is dict:
+        plan["trv"] = []
+        heating["trv"] = {k: trv[k] for k in ("output", "flow_offset_c", "flow_reason") if k in trv}
+        for item in trv.get("rooms") or []:
+            if type(item) is dict and type(item.get("room")) is str and ROOM_ID.fullmatch(item["room"]):
+                plan["trv"].append(item["room"])
+                messages.append(("fw/state/trv/" + item["room"], {"schema": 1, **item}))
+    messages.append(("fw/config/plan", plan))
     if type(status.get("shadow")) is dict:
         messages.append(("fw/telemetry/shadow", {**status["shadow"], "schema": 1}))
     messages.append(("fw/state/heating", heating))

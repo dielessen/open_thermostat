@@ -5,6 +5,7 @@
 #include "control/RoomEngine.h"
 #include "control/ShadowComparison.h"
 #include "control/TelemetryPolicy.h"
+#include "control/TrvControl.h"
 #include <cmath>
 #include <cstdio>
 #include <gtest/gtest.h>
@@ -148,6 +149,17 @@ Json worstStatus(const RoomPlan& plan) {
     cJSON* limit = cJSON_AddObjectToObject(active, "boiler_limit");
     cJSON_AddNumberToObject(limit, "flow_c", 90); cJSON_AddNumberToObject(limit, "age_s", 4294967295.0); cJSON_AddNumberToObject(limit, "reads", 4294967295.0);
     cJSON_AddItemToObject(root.get(), "active", active);
+    // Radiator valves in every room (16 of 64 characters, the most TrvConfig takes): only their
+    // ids reach fw/config/plan and a short summary fw/state/heating (fw/state/trv/<room> apart).
+    TrvConfig valves;
+    for (size_t i = 0; i < plan.rooms.size(); ++i)
+        valves.rooms.push_back({plan.rooms[i].id, true, {{std::string(63, 'v') + char('a' + 2 * i), trvModel("bosch_bth_ra")},
+                                                         {std::string(63, 'v') + char('b' + 2 * i), trvModel("bosch_bth_ra")}}});
+    TrvControl trv; trv.setConfig(valves);
+    cJSON* trvStatus = trv.statusJson(statusNow, {});
+    cJSON_ReplaceItemInObjectCaseSensitive(trvStatus, "flow_offset_c", cJSON_CreateNumber(-8));
+    cJSON_AddStringToObject(trvStatus, "flow_reason", "valves_partly_closed");
+    cJSON_AddItemToObject(root.get(), "trv", trvStatus);
     addHaLink(root.get(), uint64_t(0), 4294967295000ull, false);
     compactHeatingTelemetry(root.get());
     return root;
@@ -181,9 +193,10 @@ TEST(HeatingStateTopics, WorstCasePlanMakesOnlySmallMessages) {
             EXPECT_EQ(cJSON_GetObjectItem(j.get(), "schema")->valuedouble, 1) << m.topic;
             rooms += m.kind == HeatingTopic::room; ble += m.kind == HeatingTopic::ble; parts += m.kind == HeatingTopic::entities;
             if (!escaped && (m.kind != HeatingTopic::room || rooms == 1) && (m.kind != HeatingTopic::ble || ble == 1)
-                && (m.kind != HeatingTopic::entities || parts == 1)) report("worst", m.topic, m.payload.size());
+                && (m.kind != HeatingTopic::entities || parts == 1) && m.kind != HeatingTopic::trv) report("worst", m.topic, m.payload.size());
         }
         EXPECT_EQ(rooms, 8u); EXPECT_EQ(ble, 8u);
+        EXPECT_EQ(largest.count(HeatingTopic::trv), 1u);  // test_trv_telemetry: four valves in a room
         EXPECT_EQ(parts, 5u);                                          // 40 entities of 80 characters
         // Every entity once, in order, over the parts.
         std::vector<std::string> entities;

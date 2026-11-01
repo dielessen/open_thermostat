@@ -707,6 +707,25 @@
         "title": "E32 połączony",
         "description": "E32 jest połączony i nie ma jeszcze pomieszczeń. Dalej: pierwsze pomieszczenie. Potrzebuje nazwy i jednego źródła temperatury: czujnika lub termostatu w Home Assistant albo czujnika Bluetooth sparowanego z E32. Urządzenie nastawcze i program tygodniowy są opcjonalne; pomieszczenie zapisane bez programu zaczyna od szablonu \"Dni robocze i weekend\", który możesz później zmienić. Home Assistant nie włącza wyjść grzewczych.",
         "submit": "Dodaj pierwsze pomieszczenie"
+      },
+      "e32_room_valves": {
+        "title": "Zawory grzejnikowe w {name}",
+        "description": "E32 wysyła cel i temperaturę pomieszczenia do tych zaworów przez Zigbee2MQTT i utrzymuje temperaturę zasilania kotła tak niską, jak pozwalają zawory. Wpisz nazwę każdego zaworu w Zigbee2MQTT (friendly name) lub wybierz jeden z {found} znalezionych oraz jego model. Sterowanie jest wyłączone, dopóki go nie włączysz; wtedy nic nie jest wysyłane do zaworów.",
+        "data": {
+          "control": "Sterowanie zaworami",
+          "valve_1": "Zawór 1",
+          "model_1": "Model zaworu 1",
+          "valve_2": "Zawór 2",
+          "model_2": "Model zaworu 2",
+          "valve_3": "Zawór 3",
+          "model_3": "Model zaworu 3",
+          "valve_4": "Zawór 4",
+          "model_4": "Model zaworu 4"
+        },
+        "data_description": {
+          "control": "Wł.: E32 steruje tymi zaworami (tylko gdy sam steruje kotłem). Wył.: zawory zachowują własne ustawienia.",
+          "valve_1": "Nazwa w Zigbee2MQTT, np. \"Zawór salon\". Zostaw puste, jeśli nie ma zaworu."
+        }
       }
     },
     "error": {
@@ -842,7 +861,12 @@
       "controller_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
       "controller_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie.",
       "controller_readback_unconfirmed": "E32 nie odesłał swoich bieżących ustawień pomieszczeń w ciągu 90 sekund, więc ten zapis nie jest potwierdzony. Sprawdź, czy E32 jest online i połączony z brokerem MQTT, a potem spróbuj ponownie.",
-      "contact_delay_invalid": "Opóźnienie pauzy wynosi od 0 do 30 minut."
+      "contact_delay_invalid": "Opóźnienie pauzy wynosi od 0 do 30 minut.",
+      "e32_valve_name_invalid": "Użyj nazwy zaworu z Zigbee2MQTT: do 64 znaków, bez # + \" \\ i bez / lub spacji na początku lub końcu.",
+      "e32_valve_duplicate": "Ten zawór jest już używany (tutaj lub w innym pomieszczeniu).",
+      "e32_valve_model_missing": "Wybierz model zaworu.",
+      "e32_valve_limit": "E32 steruje najwyżej 16 zaworami grzejnikowymi.",
+      "e32_valves_rejected": "E32 odrzucił zawory grzejnikowe ({error})."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -899,7 +923,8 @@
       "e32_password_changed": "E32 nie akceptuje już zapisanego hasła. Home Assistant prosi o nowe: Ustawienia → Urządzenia i usługi → OpenThermostat → Uwierzytelnij ponownie.",
       "legacy_rooms_removed": "Stare pomieszczenia Home Assistant zostały usunięte. E32 pozostaje połączony; w jego planie są pomieszczenia: {rooms}.",
       "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
-      "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połączenie z E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32."
+      "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połączenie z E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32.",
+      "e32_valves_update_required": "To oprogramowanie E32 nie obsługuje jeszcze zaworów grzejnikowych. Najpierw zaktualizuj E32."
     },
     "progress": {
       "controller_connect": "Łączenie z E32…",
@@ -940,6 +965,9 @@
       },
       "hub_connected": {
         "name": "Połączono"
+      },
+      "room_valve_problem": {
+        "name": "Problem z zaworem"
       }
     },
     "number": {
@@ -1617,6 +1645,12 @@
       },
       "hub_boiler_display_code": {
         "name": "Kod wyświetlacza kotła"
+      },
+      "room_valve_position": {
+        "name": "Otwarcie zaworów"
+      },
+      "room_valve_battery": {
+        "name": "Bateria zaworów"
       }
     },
     "select": {
@@ -1713,6 +1747,9 @@
       },
       "flow_apply_learned": {
         "name": "Wyuczone zasilanie i optymalny start"
+      },
+      "room_valve_control": {
+        "name": "Sterowanie zaworami"
       }
     },
     "update": {
@@ -2645,7 +2682,16 @@
     "e32_room_action": {
       "options": {
         "edit": "Edytuj pomieszczenie",
-        "remove": "Usuń pomieszczenie"
+        "remove": "Usuń pomieszczenie",
+        "valves": "Zawory grzejnikowe"
+      }
+    },
+    "e32_valve_model": {
+      "options": {
+        "bosch_bth_ra": "Bosch BTH-RA (położenie, temperatura zewnętrzna)",
+        "sonoff_trvzb": "Sonoff TRVZB (temperatura zewnętrzna)",
+        "tuya_tv02": "Tuya TV02 (tylko nastawa)",
+        "generic": "Inny (tylko nastawa)"
       }
     }
   },
@@ -2830,6 +2876,18 @@
     "room_group_restored": {
       "title": "{room} wróciło na stronę integracji",
       "description": "Usunięto grupę pomieszczenia {room} w {installation}, ale {room} nadal jest pomieszczeniem w planie pomieszczeń E32 i E32 nadal je ogrzewa. Grupa, urządzenie i encje zostały przywrócone z tymi samymi nazwami, obszarami i historią. Aby usunąć pomieszczenie, otwórz {installation} → Konfiguruj → Pomieszczenia → Edytuj lub usuń pomieszczenie, wybierz {room} i usuń je tam. Możesz zignorować ten komunikat."
+    },
+    "valve_battery_low": {
+      "title": "Słaba bateria zaworu w {room}",
+      "description": "Bateria {valves} w {room} jest prawie pusta (około 20 % lub mniej). Wymień ją wkrótce: zawór z pustą baterią przestaje słuchać E32. Komunikat zniknie sam, gdy zawór zgłosi pełną baterię."
+    },
+    "valve_offline": {
+      "title": "Zawór grzejnikowy nie odpowiada w {room}",
+      "description": "{valves} w {room} nie zgłosił się do Zigbee2MQTT od ponad dwóch godzin. Sprawdź baterię i połączenie Zigbee. Pomieszczenie dalej grzeje według innych źródeł temperatury; zawór reguluje sam według ostatniej nastawy."
+    },
+    "valve_single_source": {
+      "title": "{room} ma tylko jedno źródło temperatury",
+      "description": "E32 steruje zaworami w {room}, ale pomieszczenie ma tylko jedno źródło temperatury. Gdy ono przestanie działać, E32 po 30 minutach przestaje żądać ciepła dla tego pomieszczenia zamiast grzać na ślepo. Dodaj drugie źródło, np. osobny czujnik Bluetooth, w ustawieniach pomieszczenia."
     }
   },
   "services": {
@@ -2988,6 +3046,15 @@
     },
     "house_mode_update_required": {
       "message": "Wymaga oprogramowania E32 beta.23 lub nowszego. Zaktualizuj E32 za pomocą jego encji Oprogramowanie."
+    },
+    "valves_unconfirmed": {
+      "message": "E32 nie potwierdził zapisania zaworów grzejnikowych. Spróbuj ponownie za minutę."
+    },
+    "valves_rejected": {
+      "message": "E32 odrzucił zawory grzejnikowe ({error}). Nic nie zostało zmienione."
+    },
+    "valves_unreachable": {
+      "message": "Nie udało się połączyć z E32, aby zmienić zawory grzejnikowe ({error})."
     }
   },
   "device": {

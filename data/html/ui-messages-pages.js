@@ -3,6 +3,33 @@
    the firmware or a Home script (see test/ui-language.test.cjs) can show belong in
    ui-messages.js instead. Never replaces an entry of ui-messages.js. */
 window.OT_UI_PAGE_MESSAGES = {
+  // Radiator valves in the room cards (heating.html, beta.24).
+  "Radiator valves": "Radiatorkranen",
+  "Bosch BTH-RA (position, external temperature)": "Bosch BTH-RA (stand, externe temperatuur)",
+  "Sonoff TRVZB (external temperature)": "Sonoff TRVZB (externe temperatuur)",
+  "Tuya TV02 (setpoint only)": "Tuya TV02 (alleen setpoint)",
+  "Other (setpoint only)": "Anders (alleen setpoint)",
+  "Reporting": "Meldt zich",
+  "Not reporting": "Meldt zich niet",
+  "Waiting for a report": "Wacht op een melding",
+  "Zigbee radiator valves (through Zigbee2MQTT on the same MQTT broker). The E32 sends them the room target and temperature and keeps the boiler flow as low as the valves allow.": "Zigbee-radiatorkranen (via Zigbee2MQTT op dezelfde MQTT-broker). De E32 stuurt ze het doel en de temperatuur van de ruimte en houdt de aanvoer van de ketel zo laag als de kranen toelaten.",
+  "Drive these valves from the E32": "Deze kranen vanuit de E32 aansturen",
+  "Only while the E32 controls the boiler itself. Off: nothing is sent to the valves.": "Alleen zolang de E32 de ketel zelf aanstuurt. Uit: er gaat niets naar de kranen.",
+  "Add valve": "Kraan toevoegen",
+  "Save valves": "Kranen opslaan",
+  "Zigbee2MQTT name": "Naam in Zigbee2MQTT",
+  "Model": "Model",
+  "Remove valve": "Kraan verwijderen",
+  "driven by the E32": "aangestuurd door de E32",
+  "not driven": "niet aangestuurd",
+  "Use the valve's Zigbee2MQTT name: up to 64 characters, no # + \" \\ and no / or space at the start or end.": "Gebruik de Zigbee2MQTT-naam van de kraan: hoogstens 64 tekens, geen # + \" \\ en geen / of spatie aan het begin of eind.",
+  "This valve is already used (here or in another room).": "Deze kraan is al in gebruik (hier of in een andere ruimte).",
+  "The E32 drives at most 16 radiator valves.": "De E32 stuurt hoogstens 16 radiatorkranen aan.",
+  "Valves saved.": "Kranen opgeslagen.",
+  "The E32 refused the radiator valves.": "De E32 weigerde de radiatorkranen.",
+  "open": "open",
+  "battery low": "batterij bijna leeg",
+  "This room has one temperature source. Add a separate sensor (for example Bluetooth), so the room keeps heating when it fails.": "Deze ruimte heeft één temperatuurbron. Voeg een losse sensor toe (bijvoorbeeld Bluetooth), zodat de ruimte blijft verwarmen als die uitvalt.",
   // House page (house.html, beta.23): house mode, presence, heating and energy for the whole house.
   "Everything that applies to the whole house. Room settings are under Rooms, technical settings under System.": "Alles wat voor het hele huis geldt. Instellingen per ruimte staan onder Ruimtes, techniek onder Systeem.",
   "The house settings could not be loaded. Check the connection and try again.": "De instellingen van het huis konden niet worden geladen. Controleer de verbinding en probeer het opnieuw.",

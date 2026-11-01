@@ -217,3 +217,12 @@ verandert er dus niets.
   tegen 158,4 B/s volledig, ongeveer 35 % minder vast verkeer.
 - **Bewijs:** native tests in `test_shadow_controller` en een A/B-test in
   `ha/tests_native/test_session_traffic.py`.
+
+## 12. Radiatorkranen (1.0)
+
+Alleen met geconfigureerde kranen: per ruimte `fw/state/trv/<ruimte>` (kranen met naam, model,
+gezondheid, stand, batterij en setpoint; geen leeftijden, die zouden elke seconde veranderen),
+de ids in `fw/config/plan` als `trv` en `output`/`flow_offset_c`/`flow_reason` in
+`fw/state/heating` als `trv`. Grootste document bij vier kranen van 64 tekens: ongeveer 800 B;
+`fw/state/heating` en `fw/config/plan` blijven in het slechtste geval onder 1 KB
+(`test_heating_state_topics`, `test_trv_telemetry`). Zonder kranen verandert geen byte.

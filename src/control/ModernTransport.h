@@ -28,6 +28,8 @@
 #include <mbedtls/sha256.h>
 #include <ctime>
 #include <atomic>
+#include <algorithm>
+#include <vector>
 
 namespace heating::control {
 static_assert(ShadowController::maximumConfigBytes==ControlPartitionBudget::configBytes);
@@ -173,7 +175,12 @@ public:
         }
         client_.setCallback([this](char *topic,uint8_t *payload,unsigned int length) {
             const std::string_view full(topic);
-            if(length>8192||full.substr(0,base_.size())!=base_) return;
+            if(length>8192) return;
+            if(full.substr(0,base_.size())!=base_) {
+                // Radiator valves (Zigbee2MQTT state topics, TrvControl): only what it subscribed.
+                if(trvInput_)trvInput_(full,std::string_view(reinterpret_cast<char *>(payload),length));
+                return;
+            }
             const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
             const auto utc=std::time(nullptr);
             const auto suffix=full.substr(base_.size());
@@ -214,6 +221,20 @@ public:
     using HeatingSummary=std::function<std::string()>;
     // boiler.output.v1: whether the E32 itself sends the boiler request (HeatingController).
     void setBoilerOutput(std::function<bool()> output) { if(controller_)controller_->setBoilerOutput(std::move(output)); }
+    // actuator.output.v1: whether the E32 itself drives radiator valves (HeatingController/TrvControl).
+    void setActuatorOutput(std::function<bool()> output) { if(controller_)controller_->setActuatorOutput(std::move(output)); }
+    // Radiator valves through Zigbee2MQTT on the same broker (control/TrvControl.h): the state
+    // topics to follow (empty: nothing is subscribed), their generation (a change resubscribes)
+    // and the receiver. Commands go out with publishExternal().
+    void setTrvRoute(std::function<std::vector<std::string>()> topics,std::function<uint32_t()> generation,
+                     std::function<void(std::string_view,std::string_view)> input) {
+        trvTopics_=std::move(topics);trvGeneration_=std::move(generation);trvInput_=std::move(input);
+    }
+    // An absolute topic outside our base (a valve's <base>/<name>/set), not retained.
+    bool publishExternal(const std::string& topic,const std::string& payload) {
+        if(!valid_||!wasConnected_||!client_.connected()||topic.empty()||topic.substr(0,base_.size())==base_)return false;
+        return client_.publish(topic.c_str(),reinterpret_cast<const uint8_t*>(payload.data()),payload.size(),false);
+    }
     void setHeatingRoute(HeatingInput input,HeatingStatus status,HeatingRoomCount roomCount={},HeatingRoomTelemetry room={},
                          HeatingSummary summary={}) {
         heatingInput_=std::move(input);
@@ -307,7 +328,7 @@ public:
             return;
         }
         if(!heating::networkConnected()||!client_.connected()) {
-            if(wasConnected_) { retireActuators(); ui_.clear(); withOwner([](auto& owner){owner.disconnected();}); wasConnected_=false; }
+            if(wasConnected_) { retireActuators(); ui_.clear(); withOwner([](auto& owner){owner.disconnected();}); wasConnected_=false; trvSubscribed_.clear(); }
             // Advance local withdrawal deadlines even if network/reconnect fails.
             // Offline owner ticks never publish or consult remote observers.
             withOwner([&](auto& owner){owner.tick(now,0,false);});
@@ -354,6 +375,7 @@ public:
             if(actuatorChannels_&&!actuatorChannels_->retired())
                 subscriptions=client_.subscribe((base_+"ha/actuator_grant/+").c_str(),0)&&subscriptions;
             if(!subscriptions) { client_.disconnect(); return; }
+            subscribeTrv();
             now=monotonicMs();
             withOwner([&](auto& owner){owner.connected(now);}); wasConnected_=true; nextDeviceDiagnostics_=0;
             // Retained like the will: a restarted HA sees at once whether the E32 is there.
@@ -363,6 +385,7 @@ public:
         const auto utc=std::time(nullptr);
         withOwner([&](auto& owner){owner.tick(now,utc,clockValid());});
         client_.loop();
+        if(trvTopics_&&trvGeneration_&&trvGeneration_()!=trvSubscribedGeneration_)subscribeTrv();
         network_.poll(); // drains the outbox; closes only on a real stall or a socket error
         if(actuatorChannels_)actuatorChannels_->checkCurrent();
         // Observation only, on the existing native connection. Never control input.
@@ -444,6 +467,24 @@ private:
     DeadlineWiFiClient network_; PubSubClient client_; NvsControlStore store_;
     StatusSnapshot controllerStatus_;
     HeatingInput heatingInput_;
+    std::function<std::vector<std::string>()> trvTopics_;
+    std::function<uint32_t()> trvGeneration_;
+    std::function<void(std::string_view,std::string_view)> trvInput_;
+    std::vector<std::string> trvSubscribed_;
+    uint32_t trvSubscribedGeneration_=0;
+    // Follow exactly the configured valves: unsubscribe what went, subscribe what came.
+    // Without valves this subscribes nothing (TrvControl is harmless while unused).
+    void subscribeTrv() {
+        if(!trvTopics_||!client_.connected())return;
+        auto wanted=trvTopics_();
+        for(const auto& t:trvSubscribed_)
+            if(std::find(wanted.begin(),wanted.end(),t)==wanted.end())client_.unsubscribe(t.c_str());
+        std::vector<std::string> done;
+        for(const auto& t:wanted)
+            if(std::find(trvSubscribed_.begin(),trvSubscribed_.end(),t)!=trvSubscribed_.end()||client_.subscribe(t.c_str(),0))done.push_back(t);
+        trvSubscribed_=std::move(done);
+        if(trvGeneration_)trvSubscribedGeneration_=trvGeneration_();
+    }
     ShadowController::BoilerFields boilerFields_;
     std::unique_ptr<TelemetryPublisher> telemetry_;
     AsyncBrokerDns brokerDns_;

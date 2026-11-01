@@ -32,6 +32,7 @@ payload examples; this page is not an installation or boiler-test procedure.
 | GET, POST | `/config/wifi` | Read SSID / save WiFi JSON configuration |
 | GET, POST | `/config/device` | Read/save network and device configuration |
 | GET, POST | `/config/boiler` | Read/save boiler configuration |
+| GET, POST | `/config/heating/trv` | Radiator valves per room through Zigbee2MQTT (beta.24): GET answers `{schema, base_topic, rooms:[{room, control, valves:[{name, model}]}], features, models, status}`; POST takes the whole record and answers like GET (400 with the error name, 503 `save_unconfirmed`); its own NVS record beside the room plan |
 | GET, POST | `/config/hardware` | Read/save pin/expander configuration |
 | GET, POST | `/config/debug` | Read/save logger feature settings |
 | GET, POST | `/config/rooms` | Read/save the room catalog |

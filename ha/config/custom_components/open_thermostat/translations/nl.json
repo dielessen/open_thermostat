@@ -923,7 +923,16 @@
     "e32_room_action": {
       "options": {
         "edit": "Ruimte bewerken",
-        "remove": "Ruimte verwijderen"
+        "remove": "Ruimte verwijderen",
+        "valves": "Radiatorkranen"
+      }
+    },
+    "e32_valve_model": {
+      "options": {
+        "bosch_bth_ra": "Bosch BTH-RA (stand, externe temperatuur)",
+        "sonoff_trvzb": "Sonoff TRVZB (externe temperatuur)",
+        "tuya_tv02": "Tuya TV02 (alleen setpoint)",
+        "generic": "Anders (alleen setpoint)"
       }
     }
   },
@@ -1635,6 +1644,25 @@
         "title": "E32 verbonden",
         "description": "De E32 is verbonden en heeft nog geen ruimtes. Volgende stap: je eerste ruimte. Die heeft een naam en één temperatuurbron nodig: een sensor of thermostaat in Home Assistant, of een Bluetooth-sensor die aan de E32 gekoppeld is. Een instelapparaat en een weekprogramma zijn optioneel; een ruimte zonder programma begint met het sjabloon \"Werkdagen en weekend\", dat je later kunt aanpassen. Home Assistant schakelt geen verwarmingsuitgangen in.",
         "submit": "Eerste ruimte toevoegen"
+      },
+      "e32_room_valves": {
+        "title": "Radiatorkranen in {name}",
+        "description": "De E32 stuurt het doel en de temperatuur van de ruimte via Zigbee2MQTT naar deze kranen, en houdt de aanvoer van de ketel zo laag als de kranen toelaten. Vul per kraan de Zigbee2MQTT-naam (friendly name) in, of kies er een van de {found} gevonden, en het model. Aansturen staat uit tot je het aanzet; zolang het uit staat, gaat er niets naar de kranen.",
+        "data": {
+          "control": "Radiatorkranen aansturen",
+          "valve_1": "Kraan 1",
+          "model_1": "Model van kraan 1",
+          "valve_2": "Kraan 2",
+          "model_2": "Model van kraan 2",
+          "valve_3": "Kraan 3",
+          "model_3": "Model van kraan 3",
+          "valve_4": "Kraan 4",
+          "model_4": "Model van kraan 4"
+        },
+        "data_description": {
+          "control": "Aan: de E32 stuurt deze kranen aan (alleen zolang hij de ketel zelf aanstuurt). Uit: de kranen houden hun eigen instellingen.",
+          "valve_1": "De naam in Zigbee2MQTT, bijv. \"Kraan woonkamer\". Leeg laten voor geen kraan."
+        }
       }
     },
     "error": {
@@ -1770,7 +1798,12 @@
       "controller_session_capacity": "De E32 heeft te veel open aanmeldingen. Meld je af op de webpagina van de E32 (of meld je daar aan met “Eerdere websessies beëindigen en aanmelden”) of herstart de E32, en probeer het daarna opnieuw.",
       "controller_try_again_later": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw.",
       "controller_readback_unconfirmed": "De E32 heeft zijn huidige ruimte-instellingen niet binnen 90 seconden teruggestuurd, dus deze opslag is niet bevestigd. Controleer of de E32 online is en met de MQTT-broker verbonden is, en probeer het daarna opnieuw.",
-      "contact_delay_invalid": "De pauzevertraging ligt tussen 0 en 30 minuten."
+      "contact_delay_invalid": "De pauzevertraging ligt tussen 0 en 30 minuten.",
+      "e32_valve_name_invalid": "Gebruik de Zigbee2MQTT-naam van de kraan: hoogstens 64 tekens, geen # + \" \\ en geen / of spatie aan het begin of eind.",
+      "e32_valve_duplicate": "Deze kraan is al in gebruik (hier of in een andere ruimte).",
+      "e32_valve_model_missing": "Kies het model van de kraan.",
+      "e32_valve_limit": "De E32 stuurt hoogstens 16 radiatorkranen aan.",
+      "e32_valves_rejected": "De E32 weigerde de radiatorkranen ({error})."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",
@@ -1827,7 +1860,8 @@
       "e32_password_changed": "De E32 accepteert het bewaarde wachtwoord niet meer. Home Assistant vraagt om het nieuwe: Instellingen → Apparaten en diensten → OpenThermostat → Opnieuw verifiëren.",
       "legacy_rooms_removed": "De oude Home Assistant-ruimtes zijn verwijderd. De E32 blijft verbonden met {rooms} ruimte(s) in zijn plan.",
       "legacy_rooms_none": "Er zijn geen oude Home Assistant-ruimtes om te verwijderen.",
-      "legacy_rooms_cancelled": "Geannuleerd. Kies Configureren → E32-verbinding om de verbinding te controleren; sommige instellingen kunnen al op de E32 zijn opgeslagen."
+      "legacy_rooms_cancelled": "Geannuleerd. Kies Configureren → E32-verbinding om de verbinding te controleren; sommige instellingen kunnen al op de E32 zijn opgeslagen.",
+      "e32_valves_update_required": "Deze E32-firmware kan nog geen radiatorkranen aansturen. Werk de E32 eerst bij."
     },
     "progress": {
       "controller_connect": "Verbinden met de E32…",
@@ -1868,6 +1902,9 @@
       },
       "hub_connected": {
         "name": "Verbonden"
+      },
+      "room_valve_problem": {
+        "name": "Probleem radiatorkraan"
       }
     },
     "number": {
@@ -2545,6 +2582,12 @@
       },
       "hub_boiler_display_code": {
         "name": "Displaycode ketel"
+      },
+      "room_valve_position": {
+        "name": "Stand radiatorkranen"
+      },
+      "room_valve_battery": {
+        "name": "Batterij radiatorkranen"
       }
     },
     "select": {
@@ -2641,6 +2684,9 @@
       },
       "flow_apply_learned": {
         "name": "Geleerde aanvoer en optimale start gebruiken"
+      },
+      "room_valve_control": {
+        "name": "Radiatorkranen aansturen"
       }
     },
     "update": {
@@ -2830,6 +2876,18 @@
     "room_group_restored": {
       "title": "{room} staat weer op de integratiepagina",
       "description": "Je hebt de groep van de ruimte {room} onder {installation} verwijderd, maar {room} is nog een ruimte in het ruimteplan van de E32 en de E32 blijft die verwarmen. De groep, het apparaat en de entiteiten zijn teruggezet met dezelfde namen, gebieden en geschiedenis. Wil je de ruimte verwijderen, open dan {installation} → Configureren → Ruimtes → Ruimte bewerken of verwijderen, kies {room} en verwijder hem daar. Je kunt deze melding negeren."
+    },
+    "valve_battery_low": {
+      "title": "Batterij radiatorkraan bijna leeg in {room}",
+      "description": "De batterij van {valves} in {room} is bijna leeg (ongeveer 20 % of minder). Vervang hem binnenkort: een kraan met een lege batterij volgt de E32 niet meer. Deze melding verdwijnt vanzelf zodra de kraan weer een volle batterij meldt."
+    },
+    "valve_offline": {
+      "title": "Radiatorkraan meldt zich niet in {room}",
+      "description": "{valves} in {room} heeft zich langer dan twee uur niet bij Zigbee2MQTT gemeld. Controleer de batterij en de Zigbee-verbinding. De ruimte blijft verwarmen op haar andere temperatuurbronnen; de kraan regelt zelf door op zijn laatste setpoint."
+    },
+    "valve_single_source": {
+      "title": "{room} hangt af van één temperatuurbron",
+      "description": "De E32 stuurt de radiatorkranen in {room} aan, maar de ruimte heeft maar één temperatuurbron. Valt die weg, dan stopt de E32 na 30 minuten met warmte vragen voor deze ruimte in plaats van blind te stoken. Voeg in de ruimte-instellingen een tweede bron toe, bijvoorbeeld een losse Bluetooth-sensor."
     }
   },
   "services": {
@@ -2988,6 +3046,15 @@
     },
     "house_mode_update_required": {
       "message": "Hiervoor is E32-firmware beta.23 of nieuwer nodig. Werk de E32 bij met zijn Firmware-entiteit."
+    },
+    "valves_unconfirmed": {
+      "message": "De E32 heeft niet bevestigd dat de radiatorkranen zijn opgeslagen. Probeer het over een minuut opnieuw."
+    },
+    "valves_rejected": {
+      "message": "De E32 weigerde de radiatorkranen ({error}). Er is niets veranderd."
+    },
+    "valves_unreachable": {
+      "message": "De E32 was niet bereikbaar om de radiatorkranen te wijzigen ({error})."
     }
   },
   "device": {

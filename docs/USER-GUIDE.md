@@ -373,6 +373,79 @@ minutes, no report from the E32 for 10 minutes, low or high water pressure,
 or burner short cycling for 2 hours. Its `reasons` attribute says what is
 wrong, so you can use it in your own notification automation.
 
+### Radiator valves (Zigbee, beta.24)
+
+The E32 can drive Zigbee radiator valves (TRVs) per room through
+**Zigbee2MQTT** on the same MQTT broker. Home Assistant is not needed for it:
+the E32 talks to Zigbee2MQTT itself, and Home Assistant only shows and
+configures the valves.
+
+Supported models:
+
+| Model | What the E32 sends | What it reads back |
+| --- | --- | --- |
+| Bosch BTH-RA (recommended) | setpoint, room temperature (`remote_temperature`), manual mode | valve position (`pi_heating_demand`), battery % |
+| Sonoff TRVZB | setpoint, room temperature (`external_temperature_input`, sensor set to external) | battery % |
+| Tuya TV02 | setpoint (manual preset) | low-battery flag |
+| Other | setpoint (`occupied_heating_setpoint`) | battery % or low flag |
+
+The Zigbee2MQTT keys come from the Zigbee2MQTT device pages; check them on
+your own valve before you rely on them.
+
+**Choosing the valves.** In Home Assistant: Configure → **Rooms** → *Edit or
+remove a room* → **Radiator valves**. Pick each valve (Zigbee2MQTT devices that
+look like a thermostat are offered) or type its Zigbee2MQTT friendly name, and
+choose its model. On the E32 itself: the room card on the Rooms page has a
+**Radiator valves** block with its own *Save valves* button. At most 4 valves
+per room and 16 in all.
+
+**Nothing happens until you switch it on.** Each room has a **Valve control**
+switch (entity ID ending in `_valve_control`), off by default. The E32 sends
+to a room's valves only while that switch is on **and** the E32 controls the
+boiler itself (active control after the attended switch-over). In shadow mode,
+or with the switch off, nothing is sent to any valve, and a room without valves
+behaves exactly as before. The session field `actuator_output_enabled` says
+whether the E32 drives valves right now.
+
+**What the E32 does with them.** It sends the room's target as the valve's
+setpoint and, where the valve takes one, the room's own measured temperature;
+the valve's own regulator then sets its opening. Valves that report their
+position feed back into the boiler flow: when every valve that asks for heat is
+only partly open the flow goes down a step, when one is fully open while its
+room is still more than 0.5 °C too cold it goes up a step; at most 1 °C per
+10 minutes and 8 °C in all. The room plan's flow limits and the boiler's own
+maximum still apply.
+
+**All valves closed.** When every room that asks for heat has only valves that
+report themselves closed (5 % or less) for 10 minutes, the E32 stops its boiler
+request (reason `valves_closed`): there is no open circuit to heat. A room
+without valve control (for example the floor heating) keeps the request going,
+and a valve that stopped reporting never counts as closed.
+
+**Battery saving.** A new setpoint only on a change of at least 0.5 °C (at
+most once a minute, refreshed every 6 hours); the room temperature at most
+every 10 minutes and at least every 25 minutes. A simulated two weeks with four
+valves costs well under 2 % battery per valve.
+
+**When something fails.**
+
+- A battery at about 20 % or less: a Repair in Home Assistant and a red badge
+  on the dashboard; the valve is still driven.
+- A valve that has not reported for 2 hours: a Repair; the room is shown as
+  degraded but keeps heating on its other temperature sources. When the valve
+  is back it gets its mode, setpoint and room temperature again.
+- No room measurement (Home Assistant down, a sensor gone): the E32 stops
+  sending the room temperature, so the valve falls back to its own sensor, and
+  after 30 minutes the room stops asking for heat. The E32 never heats blind.
+- A room whose valve control is on but that has only one temperature source:
+  a Repair advising a separate sensor, for example a Bluetooth thermometer.
+- The E32, the broker or Zigbee2MQTT gone: the valves keep regulating on their
+  last setpoint.
+
+**MQTT broker.** The E32's broker user must be allowed to subscribe to
+`zigbee2mqtt/<valve name>` and to publish to `zigbee2mqtt/<valve name>/set`
+(or the base topic you use in Zigbee2MQTT).
+
 ## Reading the shadow comparison
 
 If a thermostat controls your boiler over the EMS bus, the comparison puts the

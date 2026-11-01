@@ -85,7 +85,9 @@ public:
     }
 
 private:
-    enum class Kind : uint8_t { heating, room, ble, plan, entities, shadow, learned, summary, boiler, group, profile };
+    // The first values match HeatingTopic (splitHeatingStatus casts it).
+    enum class Kind : uint8_t { heating, room, ble, plan, entities, shadow, trv, learned, summary, boiler, group, profile };
+    static_assert(uint8_t(Kind::trv) == uint8_t(HeatingTopic::trv), "Kind follows HeatingTopic");
     struct Slot {
         std::string topic;
         Kind kind;
@@ -174,7 +176,7 @@ private:
         if (!sources_.status) return;
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> status(sources_.status(), cJSON_Delete);
         if (!status) return;
-        for (auto& s : slots_) if (s.kind <= Kind::shadow) s.seen = false;
+        for (auto& s : slots_) if (s.kind <= Kind::trv) s.seen = false;
         bool split = splitHeatingStatus(status.get(), [&](HeatingTopic topic, const std::string& suffix, const cJSON* doc) {
             const Kind kind = Kind(uint8_t(topic));
             if (kind == Kind::plan) {  // the plan's rooms keep their learned topics
@@ -186,7 +188,7 @@ private:
             if (Slot* s = slot(suffix, kind)) consider(*s, print(doc), doc, now);
         });
         if (!split) return;
-        sweep([](Kind k) { return k == Kind::room || k == Kind::ble || k == Kind::entities; });
+        sweep([](Kind k) { return k == Kind::room || k == Kind::ble || k == Kind::entities || k == Kind::trv; });
         sweep([](Kind k) { return k == Kind::learned; });
     }
     void boilerState(uint64_t now) {

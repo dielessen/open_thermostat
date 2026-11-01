@@ -70,6 +70,37 @@ RETIRED = {
 }
 
 
+# 0.4.0b13 made the E32 memory kB and its uptime hours. For existing records Home
+# Assistant pinned the old display unit in "sensor.private" (to keep showing B and
+# s), so the change never showed. Released once: only this exact old pin, never a
+# unit the user chose ("sensor" options); Home Assistant then derives the display
+# unit again from the entity (kB, h). Statistics stay valid: same unit class, the
+# recorder converts to the unit they were compiled in.
+PINNED_UNITS = {"hub_memory_free": "B", "hub_memory_min_free": "B", "hub_memory_max_alloc": "B",
+                "hub_uptime": "s"}
+
+
+def release_pinned_units(hass, entry, prefix):
+    """Release this entry's old B/s display-unit pins (PINNED_UNITS); returns the entity IDs."""
+    registry = er.async_get(hass)
+    released = []
+    for record in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if record.domain != "sensor" or record.platform != DOMAIN or not record.unique_id.startswith(f"{prefix}_"):
+            continue
+        old = PINNED_UNITS.get(record.unique_id.removeprefix(f"{prefix}_"))
+        if old is None or (record.options.get("sensor") or {}).get("unit_of_measurement"):
+            continue  # not ours, or the user's own unit
+        if record.options.get("sensor.private") != {"suggested_unit_of_measurement": old}:
+            continue
+        registry.async_update_entity_options(record.entity_id, "sensor.private",
+                                             {"refresh_initial_entity_options": True})
+        released.append(record.entity_id)
+    if released:
+        _LOGGER.info("Memory in kB and uptime in hours for %s (the old B/s display unit was pinned)",
+                     ", ".join(sorted(released)))
+    return released
+
+
 def legacy_unique_ids(prefix):
     from .binary_sensor import BOILER_STATES
     from .sensor import HUB_METRICS

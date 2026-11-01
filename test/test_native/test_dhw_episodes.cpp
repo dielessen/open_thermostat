@@ -191,4 +191,74 @@ TEST(DhwEpisodes, DaysRollAtTheDeviceTimeZonesMidnight) {
     EXPECT_EQ(todayTaps(ScopedTz::newYork), 1);
     EXPECT_EQ(todayTaps(ScopedTz::amsterdam), 2);
 }
+
+// The owner's boiler, a whole day (31 Oct 2026) and a morning (1 Nov) from the Home Assistant history:
+// the comfort mode reheats the plate exchanger about every 11 minutes. Expected counts come from an
+// independent reference of the rule (the fixture generator); before 1 Nov many of these rounds were taps.
+DhwEpisodes::Day ownerDay(const char* path) {
+    std::ifstream file(path);
+    EXPECT_TRUE(file.good()) << path;
+    DhwEpisodes e; std::string line;
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream in(line); uint64_t ms; char kind; int value;
+        in >> ms >> kind >> value;
+        if (kind == 'T') e.temperature(value, ms); else e.state(static_cast<uint8_t>(value), ms);
+    }
+    return e.today();
+}
+TEST(DhwEpisodes, OwnersDayCountsTheKeepWarmRoundsAsKeepingWarm) {
+    const auto d = ownerDay("test/fixtures/dhw-owner-20261031.txt");
+    EXPECT_EQ(d.count[DhwEpisodes::keepWarm], 41);
+    EXPECT_EQ(d.count[DhwEpisodes::tapping], 16);
+    EXPECT_EQ(d.count[DhwEpisodes::unknown], 0);
+    EXPECT_EQ(d.count[DhwEpisodes::charging], 0);
+    const auto m = ownerDay("test/fixtures/dhw-owner-20261101.txt");
+    EXPECT_EQ(m.count[DhwEpisodes::keepWarm], 5);   // incl. two rounds at night (02:54, 04:29) that dip 9-11 K
+    EXPECT_EQ(m.count[DhwEpisodes::tapping], 1);    // 00:38: 64 -> 18 degC
+}
+// A dip that recovers is keeping warm; a smaller fall that lasts is a tap; a deep fall is a tap.
+TEST(DhwEpisodes, ABriefDipIsKeepWarmALastingOrDeepFallIsATap) {
+    const auto run = [](std::vector<int32_t> inside) {
+        DhwEpisodes e; uint64_t t = 0;
+        for (int i = 0; i < 12; ++i) { t += 10000; e.temperature(5900, t - 5000); e.state(0x00, t); }
+        for (int32_t c : inside) { t += 10000; e.temperature(c, t - 5000); e.state(0x0A, t); }
+        t += 10000; e.state(0x00, t);
+        return e.today();
+    };
+    auto d = run({5800, 5200, 4900, 5100, 5500, 5800, 6000});        // 10 K for ~30 s, then reheated
+    EXPECT_EQ(d.count[DhwEpisodes::keepWarm], 1);
+    d = run({5600, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5100, 5200}); // 9 K for 100 s
+    EXPECT_EQ(d.count[DhwEpisodes::tapping], 1);
+    d = run({5000, 4300, 4500, 5600});                                // 16 K deep, brief
+    EXPECT_EQ(d.count[DhwEpisodes::tapping], 1);
+}
+// Universal: a boiler with a cylinder charges it; a combi with a live flow uses the flow.
+TEST(DhwEpisodes, ACylinderBoilerChargesInsteadOfTappingOrKeepingWarm) {
+    DhwEpisodes e;
+    e.dhwType(3);                                                     // buffer (cylinder)
+    e.temperature(6000, 0); e.state(0x0A, 1000); e.temperature(3000, 11000); e.state(0x00, 600000);
+    EXPECT_EQ(e.today().count[DhwEpisodes::charging], 1);
+    EXPECT_EQ(e.today().count[DhwEpisodes::tapping], 0);
+    EXPECT_TRUE(e.storage());
+    EXPECT_STREQ(e.method(), "storage");
+    const auto j = json(e, 600000);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(j.get(), "method")), "storage");
+    EXPECT_EQ(at(cJSON_GetObjectItem(j.get(), "today"), "charging", "count"), 1);
+}
+TEST(DhwEpisodes, AChargingBitThatChangesMarksTheCylinderUnlessTheTypeIsACombi) {
+    DhwEpisodes e;
+    e.chargingBit(false); e.state(0x00, 0);
+    e.chargingBit(true); e.state(0x0A, 10000); e.state(0x00, 20000);     // the bit changed: live, set in the episode
+    e.chargingBit(false); e.state(0x0A, 30000); e.state(0x00, 40000);    // not set: no temperature, unknown
+    EXPECT_EQ(e.today().count[DhwEpisodes::charging], 1);
+    EXPECT_EQ(e.today().count[DhwEpisodes::unknown], 1);
+    DhwEpisodes combi;
+    combi.dhwType(1);
+    combi.chargingBit(false); combi.chargingBit(true);
+    combi.temperature(6000, 0); combi.state(0x0A, 1000); combi.temperature(5800, 11000); combi.state(0x00, 21000);
+    EXPECT_FALSE(combi.storage());
+    EXPECT_EQ(combi.today().count[DhwEpisodes::keepWarm], 1);
+    EXPECT_STREQ(combi.method(), "dhw_temperature_fall");
+}
 }

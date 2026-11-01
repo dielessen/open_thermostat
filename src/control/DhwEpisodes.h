@@ -12,25 +12,35 @@ namespace heating::control {
 // Domestic hot water episodes from passive Classic reports (pure, boot-local,
 // fixed size, observation only, never a control input). An episode is a run
 // of the DHW bit of UBAMonitorFast (0x18 offset 5 bit 1); burner time is its
-// flame bit (bit 3) inside the episode. Tapping or keeping warm/reheating:
-//  - "flow": once the 0x34 DHW flow (offset 9) has been seen to change, flow
-//    > 0 in the episode is tapping, otherwise keeping warm.
-//  - "dhw_temperature_fall" until then: the EasyControl adapter reports a
-//    constant 2.5 L/min and constant 0x34 bits (and 0 counters), so a fall of
-//    the 0x34 DHW temperature of >= 7.5 K, from the highest value in the 2 min
-//    before the episode to the lowest in it, is tapping (cold mains water in
-//    the plate exchanger); a smaller fall is keeping warm. The look-back
-//    starts no earlier than the end of the previous episode (a reheat right
-//    after a tap is no second tap). Owner logs, 27
-//    episodes: taps fell 9-46 K, reheats 0-6 K.
+// flame bit (bit 3) inside the episode. The most direct source the boiler
+// reports decides what the episode was (universal, every boiler type):
+//  - "storage": a boiler with a cylinder (0x34 offset 8 DHW type 3 = buffer,
+//    4 = layered buffer), or a charging bit (0x34 offset 5, 0x08) seen to
+//    change and set in the episode (DHW type unknown): it charged the cylinder.
+//  - "flow": a combi whose 0x34 DHW flow (offset 9) has been seen to change:
+//    flow > 0 in the episode is tapping, otherwise keeping warm.
+//  - "dhw_temperature_fall" for boilers without either (the EasyControl
+//    adapter reports a constant 2.5 L/min and constant 0x34 bits): a tap is
+//    cold mains water in the plate exchanger, so the 0x34 DHW temperature
+//    falls deep or stays down: >= 15 K from the highest value in the 2 min
+//    before the episode to the lowest in it, or >= 90 s at 7.5 K or more below
+//    that value. A shallower or brief dip is keeping warm (the comfort mode
+//    reheating the exchanger: its burner start dips the sensor up to ~11 K for
+//    under a minute). The look-back starts no earlier than the end of the
+//    previous episode (a reheat right after a tap is no second tap). Owner
+//    data 26 Oct-1 Nov 2026: taps fall 14-46 K and stay down for minutes;
+//    35-45 keep-warm rounds a day dip 2-11 K and recover within about a
+//    minute. Until 1 Nov a 7.5 K fall was a tap, so many keep-warm rounds were
+//    counted as taps.
 //  - No DHW temperature either: unknown.
 // An episode counts on the local day it ends. A 0x18 gap > 60 s ends it at
 // the last report: no invented time. Older (reordered) reports are ignored.
 class DhwEpisodes {
 public:
-    enum Kind : uint8_t { tapping, keepWarm, unknown, kinds };
-    static constexpr uint64_t gapMs = 60000, lookbackMs = 120000;
-    static constexpr int32_t tapFallCenti = 750;      // ClassicBoilerMonitor DHW temperature: hundredths degC
+    enum Kind : uint8_t { tapping, keepWarm, unknown, charging, kinds };
+    static constexpr uint64_t gapMs = 60000, lookbackMs = 120000, tapBelowMs = 90000;
+    static constexpr int32_t tapFallCenti = 1500;     // ClassicBoilerMonitor DHW temperature: hundredths degC
+    static constexpr int32_t tapBelowCenti = 750;     // this far below the reference for tapBelowMs: a tap too
     static constexpr size_t history = 6;               // completed days: today + 6 = last 7 days
     static constexpr int32_t unknownDay = ShadowComparison::unknownDay;
     struct Day {
@@ -53,6 +63,8 @@ public:
         };
         if (const auto t = at(F::dhwTemp, 0x34)) temperature(*t, now);
         if (const auto f = at(F::dhwFlow, 0x34)) flow(static_cast<uint8_t>(*f));
+        if (const auto t = at(F::dhwType, 0x34)) dhwType(static_cast<uint8_t>(*t));
+        if (const auto c = at(F::rawDhwCharging, 0x34)) chargingBit(*c != 0);
         if (const auto s = at(F::rawState, 0x18)) state(static_cast<uint8_t>(*s), now);
     }
     void state(uint8_t raw, uint64_t now) {
@@ -62,6 +74,7 @@ public:
         const bool dhw = raw & 0x02;
         if (dhw && !open_) {
             open_ = true; startMs_ = now; burnerMs_ = 0; flowSeen_ = false; peak_ = 0;
+            chargingSeen_ = chargingBit_; belowMs_ = 0; lastTempMs_ = 0; lastTempBelow_ = false;
             reference_ = minimum_ = std::nullopt;
             uint64_t latest = 0;                       // the fall may start before the DHW bit
             for (const auto& s : temps_) {
@@ -77,6 +90,16 @@ public:
         if (!open_) return;
         if (!reference_) reference_ = centi;
         minimum_ = std::min(minimum_.value_or(centi), centi);
+        // Time well below the reference: a tap keeps the exchanger cold, a keep-warm dip recovers.
+        if (lastTempBelow_ && now >= lastTempMs_) belowMs_ += now - lastTempMs_;
+        lastTempBelow_ = centi <= *reference_ - tapBelowCenti; lastTempMs_ = now;
+    }
+    // 0x34 offset 8: 1 = flow (combi), 2 = buffered flow, 3 = buffer, 4 = layered buffer (cylinder).
+    void dhwType(uint8_t type) { dhwType_ = type; }
+    void chargingBit(bool on) {
+        if (haveCharging_ && on != chargingBit_) chargingLive_ = true; // boot-local, sticky
+        haveCharging_ = true; chargingBit_ = on;
+        if (open_ && on) chargingSeen_ = true;
     }
     void flow(uint8_t tenths) {
         if (haveFlow_ && tenths != lastFlow_) flowLive_ = true; // boot-local, sticky
@@ -96,10 +119,13 @@ public:
         return sum;
     }
     bool flowLive() const { return flowLive_; }
+    // A cylinder: by its DHW type, or (type unknown) by a charging bit that changes.
+    bool storage() const { return cylinder() || (chargingLive_ && !combi()); }
+    const char* method() const { return storage() ? "storage" : flowLive_ ? "flow" : "dhw_temperature_fall"; }
 
     // {"method":..,"clock_known":..,"active_s":null|s,"today":{..},"last_7_days":{..}}
     void writeJSON(std::ostream& out, uint64_t now) const {
-        out << "{\"method\":\"" << (flowLive_ ? "flow" : "dhw_temperature_fall") << "\",\"clock_known\":"
+        out << "{\"method\":\"" << method() << "\",\"clock_known\":"
             << (today_.day != unknownDay ? "true" : "false") << ",\"active_s\":";
         if (open_ && now >= startMs_) out << (now - startMs_) / 1000; else out << "null";
         out << ",\"today\":"; day(out, today_);
@@ -111,7 +137,7 @@ public:
     // the closed episodes only (an open one counts once it ends). nullptr: no memory.
     cJSON* summaryJson() const {
         cJSON* root = cJSON_CreateObject();
-        if (!root || !cJSON_AddStringToObject(root, "method", flowLive_ ? "flow" : "dhw_temperature_fall")
+        if (!root || !cJSON_AddStringToObject(root, "method", method())
             || !cJSON_AddBoolToObject(root, "clock_known", today_.day != unknownDay)
             || !dayJson(root, "today", today_) || !dayJson(root, "last_7_days", lastSevenDays())) { cJSON_Delete(root); return nullptr; }
         return root;
@@ -130,8 +156,12 @@ private:
         }
     }
     void close(uint64_t endMs) {
-        const Kind kind = flowLive_ ? (flowSeen_ ? tapping : keepWarm)
-            : reference_ && minimum_ ? (*reference_ - *minimum_ >= tapFallCenti ? tapping : keepWarm) : unknown;
+        if (lastTempBelow_ && endMs >= lastTempMs_) belowMs_ += endMs - lastTempMs_;
+        const bool charged = cylinder() || (chargingLive_ && chargingSeen_ && !combi());
+        const Kind kind = charged ? charging
+            : flowLive_ ? (flowSeen_ ? tapping : keepWarm)
+            : reference_ && minimum_ ? (*reference_ - *minimum_ >= tapFallCenti || belowMs_ >= tapBelowMs ? tapping : keepWarm)
+            : unknown;
         if (today_.count[kind] != UINT16_MAX) ++today_.count[kind];
         today_.seconds[kind] += static_cast<uint32_t>((endMs - startMs_) / 1000);
         today_.burnerS += static_cast<uint32_t>(burnerMs_ / 1000);
@@ -139,7 +169,7 @@ private:
         open_ = false; endMs_ = endMs;
     }
     void day(std::ostream& out, const Day& d) const {
-        static constexpr const char* names[kinds] = {"tapping", "keep_warm", "unknown"};
+        static constexpr const char* names[kinds] = {"tapping", "keep_warm", "unknown", "charging"};
         out << '{';
         for (size_t k = 0; k < kinds; ++k)
             out << '"' << names[k] << "\":{\"count\":" << d.count[k] << ",\"s\":" << d.seconds[k] << "},";
@@ -148,7 +178,7 @@ private:
         out << '}';
     }
     bool dayJson(cJSON* parent, const char* key, const Day& d) const {
-        static constexpr const char* names[kinds] = {"tapping", "keep_warm", "unknown"};
+        static constexpr const char* names[kinds] = {"tapping", "keep_warm", "unknown", "charging"};
         cJSON* o = cJSON_AddObjectToObject(parent, key);
         if (!o) return false;
         for (size_t k = 0; k < kinds; ++k) {
@@ -164,9 +194,13 @@ private:
     Day today_;
     std::array<Day, history> days_{};
     size_t head_ = 0, count_ = 0;
-    uint64_t startMs_ = 0, lastStateMs_ = 0, burnerMs_ = 0, endMs_ = 0;
+    bool cylinder() const { return dhwType_ == 3 || dhwType_ == 4; }
+    bool combi() const { return dhwType_ == 1 || dhwType_ == 2; }
+    uint64_t startMs_ = 0, lastStateMs_ = 0, burnerMs_ = 0, endMs_ = 0, belowMs_ = 0, lastTempMs_ = 0;
+    std::optional<uint8_t> dhwType_;
     std::optional<int32_t> reference_, minimum_;
     uint8_t lastFlow_ = 0, peak_ = 0;
     bool open_ = false, flame_ = false, haveState_ = false, haveFlow_ = false, flowLive_ = false, flowSeen_ = false;
+    bool haveCharging_ = false, chargingBit_ = false, chargingLive_ = false, chargingSeen_ = false, lastTempBelow_ = false;
 };
 }

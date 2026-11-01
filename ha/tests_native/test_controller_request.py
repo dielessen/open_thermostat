@@ -166,3 +166,41 @@ async def test_native_live_packet_proves_liveness_after_ha_only_restart_but_reta
     assert sensor.available and sensor.native_value==50
     callbacks['fixture/v1/fw/availability'](SimpleNamespace(payload='offline'))
     assert not sensor.available;await tracker.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_the_trial_request_starts_disabled_hides_without_a_trial_and_returns_with_one(hass,monkeypatch):
+    """Beta.23: "Boiler test: requested flow temperature" only has a value during an attended trial."""
+    from homeassistant.components import mqtt
+    from homeassistant.helpers import entity_registry as er
+    from custom_components.open_thermostat import native_entity_cleanup as cleanup
+    from custom_components.open_thermostat.product_telemetry import async_setup_sensors
+    from custom_components.open_thermostat.heating import HeatingTracker
+    from custom_components.open_thermostat import device_diagnostics
+    from test_product_flow import product
+    entry=product(hass);tracker=HeatingTracker(hass,entry)
+    hass.data['open_thermostat'][entry.entry_id]={'heating_tracker':tracker}
+    clock=[1000.0];monkeypatch.setattr(cleanup,'_clock',lambda:clock[0])
+    callbacks={};added=[]
+    async def subscribe(_h,topic,callback,*args,**kwargs):callbacks[topic]=callback;return lambda:None
+    monkeypatch.setattr(mqtt,'async_wait_for_mqtt_client',AsyncMock())
+    monkeypatch.setattr(mqtt,'async_subscribe',subscribe)
+    monkeypatch.setattr(device_diagnostics,'async_setup_device_diagnostics',AsyncMock())
+    await async_setup_sensors(hass,entry,lambda entities,**kw:added.extend(entities),native_metrics=True)
+    receive=callbacks['fixture/v1/fw/telemetry/controller_request']
+    receive(SimpleNamespace(payload=json.dumps(packet(None,0,100)),retain=False))
+    sensor=next(e for e in added if isinstance(e,ControllerRequestSensor))
+    assert sensor.entity_registry_enabled_default is False  # a new record: off until a trial
+    # An existing installation: its record was created enabled by an older release.
+    registry=er.async_get(hass)
+    entity_id=registry.async_get_or_create('sensor','open_thermostat',sensor.unique_id,config_entry=entry).entity_id
+    clock[0]+=cleanup.VALUE_GRACE_S
+    receive(SimpleNamespace(payload=json.dumps(packet(None,0,200)),retain=False))
+    record=registry.async_get(entity_id)
+    assert (record.disabled_by,record.hidden_by)==(er.RegistryEntryDisabler.INTEGRATION,er.RegistryEntryHider.INTEGRATION)
+    # A trial sends a request: shown again and marked reported.
+    receive(SimpleNamespace(payload=json.dumps(packet(45,1,300,300)),retain=False))
+    record=registry.async_get(entity_id)
+    assert (record.disabled_by,record.hidden_by)==(None,None)
+    assert record.options['open_thermostat']=={cleanup.REPORTED:True}
+    await tracker.async_stop()

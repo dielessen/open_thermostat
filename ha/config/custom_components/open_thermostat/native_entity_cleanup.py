@@ -101,6 +101,81 @@ def release_pinned_units(hass, entry, prefix):
     return released
 
 
+# Values only some boilers, or only an attended trial, ever have (beta.23): the
+# definition v2 counters (EMS+; a Classic boiler never fills them) and the boiler
+# test's last requested flow. Instead of an "unknown" row for good: a new record
+# starts disabled until its first value; an untouched existing record that never
+# had a value is disabled and hidden once its source has been heard for
+# VALUE_GRACE_S (NEVER_REPORTED); the first real value marks it REPORTED and undoes
+# exactly what this integration did. A user's own disable, hide or name is kept.
+# Universal: what a boiler does not send decides, never a list of models.
+NEVER_REPORTED = "hidden_never_reported"
+VALUE_GRACE_S = RETIRED_GRACE_S
+_HIDDEN = er.RegistryEntryHider.INTEGRATION
+
+
+def value_gated_enabled_default(hass, unique_id, has_value, domain="sensor"):
+    """Enabled by default for a new value-gated entity: with a value now, or when its record exists."""
+    return bool(has_value) or er.async_get(hass).async_get_entity_id(domain, DOMAIN, unique_id) is not None
+
+
+def note_value(hass, unique_id, domain="sensor"):
+    """A real value for this value-gated record: REPORTED, and undo this integration's disable/hide."""
+    registry = er.async_get(hass)
+    entity_id = registry.async_get_entity_id(domain, DOMAIN, unique_id)
+    if entity_id is None:
+        return False
+    record = registry.async_get(entity_id)
+    options = record.options.get(DOMAIN, {})
+    changes = {}
+    if record.disabled_by is _INTEGRATION:
+        changes["disabled_by"] = None  # Home Assistant reloads the entry to add it
+    if record.hidden_by is _HIDDEN and options.get(NEVER_REPORTED):
+        changes["hidden_by"] = None
+    if changes:
+        registry.async_update_entity(entity_id, **changes)
+        _LOGGER.info("%s reports a value: shown again", entity_id)
+    new = {k: v for k, v in options.items() if k != NEVER_REPORTED}
+    new[REPORTED] = True
+    if new != options:
+        registry.async_update_entity_options(entity_id, DOMAIN, new)
+    return True
+
+
+def hide_never_reported(hass, entry, unique_ids, domain="sensor"):
+    """Disable and hide this entry's untouched records of these IDs that never had a value."""
+    registry = er.async_get(hass)
+    hidden = []
+    for unique_id in unique_ids:
+        entity_id = registry.async_get_entity_id(domain, DOMAIN, unique_id)
+        record = registry.async_get(entity_id) if entity_id else None
+        if record is None or record.config_entry_id != entry.entry_id or not untouched(record):
+            continue
+        options = record.options.get(DOMAIN, {})
+        if options.get(REPORTED) or options.get(NEVER_REPORTED):
+            continue
+        registry.async_update_entity(entity_id, disabled_by=_INTEGRATION, hidden_by=_HIDDEN)
+        registry.async_update_entity_options(entity_id, DOMAIN, {**options, NEVER_REPORTED: True})
+        hidden.append(entity_id)
+    if hidden:
+        _LOGGER.info("Disabled and hid %d OpenThermostat entities that never had a value on this "
+                     "installation (they come back by themselves on a first value): %s",
+                     len(hidden), ", ".join(sorted(hidden)))
+    return hidden
+
+
+def value_gate_due(hass, entry, key):
+    """True once per setup, VALUE_GRACE_S after the first call for this key (its source heard)."""
+    state = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if state is None:
+        return False
+    watch = state.setdefault("value_gate_watch", {}).setdefault(key, {"since": _clock(), "done": False})
+    if watch["done"] or _clock() - watch["since"] < VALUE_GRACE_S:
+        return False
+    watch["done"] = True
+    return True
+
+
 def legacy_unique_ids(prefix):
     from .binary_sensor import BOILER_STATES
     from .sensor import HUB_METRICS

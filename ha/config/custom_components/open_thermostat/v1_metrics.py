@@ -19,14 +19,22 @@ async def async_setup_shadow_metrics(hass,entry,async_add_entities):
     from .installation_group import ensure_installation_group
     add_options = ({"config_subentry_id": ensure_installation_group(hass, entry)}
                    if is_product(entry) else {})
-    client=connection.client;entities=[];last_key=None;gated=None;marked=False
+    client=connection.client;entities=[];last_key=None;gated=None;marked=False;noted=set()
+    from .native_entity_cleanup import (hide_never_reported, note_value, value_gate_due,
+                                        value_gated_enabled_default)
     def refresh():
         nonlocal last_key,gated,marked
         if client.metrics_supported and not entities:
+            first=client.metrics_payload or {}
             for metric in HUB_METRICS["ems_metrics"]:
                 if metric==VALUE_GATED:
                     continue
-                entities.append(HubMetric(entry.data[CONF_TOPIC_PREFIX],"ems_metrics",metric,entry.entry_id))
+                entity=HubMetric(entry.data[CONF_TOPIC_PREFIX],"ems_metrics",metric,entry.entry_id)
+                if metric in VERSIONED_METRICS:
+                    # Definition v2 counters: a new record starts disabled until its first value (EMS+ only).
+                    entity._attr_entity_registry_enabled_default=value_gated_enabled_default(
+                        hass,entity.unique_id,finite(first.get(HUB_METRICS["ems_metrics"][metric][0]+"V2")))
+                entities.append(entity)
                 if metric in VERSIONED_METRICS:
                     old_id=er.async_get(hass).async_get_entity_id(
                         "sensor",DOMAIN,f'{entry.data[CONF_TOPIC_PREFIX]}_hub_{metric}')
@@ -44,6 +52,17 @@ async def async_setup_shadow_metrics(hass,entry,async_add_entities):
             # Retired records without a value go once the metrics have been seen for a while.
             from .native_entity_cleanup import note_metrics
             note_metrics(hass,entry,entry.data[CONF_TOPIC_PREFIX],payload)
+            prefix=entry.data[CONF_TOPIC_PREFIX]
+            silent=[]
+            for metric in sorted(VERSIONED_METRICS):
+                uid=f"{prefix}_hub_{metric}_v2"
+                if finite(payload.get(HUB_METRICS["ems_metrics"][metric][0]+"V2")):  # definition v2 field
+                    if uid not in noted and note_value(hass,uid):
+                        noted.add(uid)
+                elif uid not in noted:
+                    silent.append(uid)
+            if value_gate_due(hass,entry,"definition_v2"):
+                hide_never_reported(hass,entry,silent)
         field=HUB_METRICS["ems_metrics"][VALUE_GATED][0]
         if gated is None and entities and payload is not None and finite(payload.get(field)):
             gated=HubMetric(entry.data[CONF_TOPIC_PREFIX],"ems_metrics",VALUE_GATED,entry.entry_id)

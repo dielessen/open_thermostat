@@ -50,7 +50,7 @@ public:
 
     // One room as the control sees it this step (from the room engine).
     struct Room {
-        std::string_view id;
+        std::string id;                       // its own copy: the views outlive a plan change (status)
         bool active = false;                  // the room is on (not inactive)
         std::optional<int16_t> setpoint;      // the room's effective target
         std::optional<int16_t> temperature;   // fresh measured temperature (its own sources, never a valve's)

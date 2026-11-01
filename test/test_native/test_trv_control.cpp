@@ -298,6 +298,25 @@ TEST(TrvFeedback, ValvesWithoutReadbackDriftTheOffsetBackToZero) {
     EXPECT_EQ(trv.offsetC(), 0);
 }
 
+// Review 1.0: HeatingController keeps the last step's room views for the status until the
+// next step; a plan save in between replaces the plan's room ids. The views keep their own.
+TEST(TrvConfigChange, RoomViewsOutliveThePlanTheyWereTakenFrom) {
+    TrvControl trv;
+    trv.setConfig(parse(R"({"schema":1,"rooms":[{"room":"slaapkamer_achter_boven","control":true,"valves":[{"name":"K","model":"bosch_bth_ra"}]}]})"));
+    std::vector<std::string> plan{"slaapkamer_achter_boven"};  // longer than the short-string buffer
+    const std::vector<TrvControl::Room> views{room(plan[0].c_str(), 2000, 1900, true, 1)};  // as trvRoomViews
+    const auto singleSource = [&] {
+        Json status(trv.statusJson(1000, views), cJSON_Delete);
+        const cJSON* r = cJSON_GetArrayItem(cJSON_GetObjectItem(status.get(), "rooms"), 0);
+        return cJSON_IsTrue(cJSON_GetObjectItem(r, "single_source"));
+    };
+    EXPECT_TRUE(singleSource());
+    plan[0].replace(0, 10, "zolderkamr");                     // the plan's text changes in place
+    EXPECT_TRUE(singleSource());
+    plan = {"slaapkamer_achter_boven_2", "woonkamer", "keuken"};  // setPlan(): the old ids are freed
+    EXPECT_TRUE(singleSource());                              // AddressSanitizer: no read of freed memory
+}
+
 TEST(TrvConfigChange, NewConfigKeepsKnownValvesAndResendsModeOnce) {
     TrvControl trv; trv.setConfig(parse(bedroomBosch));
     trv.receive("zigbee2mqtt/Slaapkamer kraan", R"({"battery":70})", 1);

@@ -17,7 +17,7 @@
     "confirm the takeover again right after the update (Repairs: Confirm the takeover again, or Rooms -> Active control); until then the E32 keeps only frost protection"
   ],
   "observed_installed_e32": "v0.1.0-e32v2-beta.22",
-  "observed_installed_ha": "0.4.0b14 at the beta.22 acceptance (HA 0.4.0b15 published 31 Oct; not re-read for this plan)",
+  "observed_installed_ha": "0.4.0b15 (HA-only hotfix, installed 2026-10-31 around 22:00Z)",
   "active_control_since": "2026-11-01T20:05Z (about 21:05 local; the owner's switch-over)",
   "publication_condition": "the owner's explicit go (recorded) and green exact-tag CI",
   "owner_instruction": "docs/modern-thermostat/RC1-OWNER-INSTRUCTION-20261102.json",

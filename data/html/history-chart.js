@@ -13,8 +13,8 @@
     if (typeof document !== 'undefined' && document.head && !document.getElementById('oth-style')) {
         const style = document.createElement('style'); style.id = 'oth-style';
         style.textContent = ':root{--oth-1:#00876f;--oth-2:#b5600c;--oth-3:#5b57d1}@media (prefers-color-scheme:dark){:root{--oth-1:#239c8a;--oth-2:#c97a2c;--oth-3:#7f7be6}}' +
-            '.oth{margin-top:12px}.oth-title{font-size:1.05rem;margin:0 0 4px}.oth-figure{position:relative;margin:6px 0 0;max-width:760px}.oth-chart{display:block;width:100%;height:auto;touch-action:pan-y;overflow:visible}.oth-axis{font-size:11px;fill:var(--ot-muted);font-variant-numeric:tabular-nums}.oth-grid{stroke:var(--ot-border);stroke-width:1}.oth-line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.oth-measured,.oth-flow{stroke:var(--oth-1)}.oth-return{stroke:var(--oth-1);stroke-width:1.5;stroke-dasharray:1 3}.oth-target,.oth-request{stroke:var(--oth-2);stroke-dasharray:5 4}.oth-thermostat{stroke:var(--oth-3);stroke-dasharray:8 3 2 3}.oth-bars{fill:var(--oth-2)}.oth-cross{stroke:var(--ot-text);stroke-width:1;stroke-dasharray:2 2}' +
-            '.oth-tip{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;background:var(--ot-surface);color:var(--ot-text);border:1px solid var(--ot-border);border-radius:var(--ot-r1);padding:4px 8px;font-size:.8rem;white-space:nowrap;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.18)}.oth-tip[hidden]{display:none}.oth-legend{display:flex;flex-wrap:wrap;gap:2px 14px;margin:4px 0}.oth-legend span{white-space:nowrap}.oth-legend span::before{content:"";display:inline-block;width:18px;margin-right:6px;vertical-align:middle;border-top:2px solid var(--oth-1)}.oth-legend [data-oth-line=return]::before{border-top-style:dotted}.oth-legend [data-oth-line=target]::before,.oth-legend [data-oth-line=request]::before{border-top:2px dashed var(--oth-2)}.oth-legend [data-oth-line=thermostat]::before{border-top:2px dashed var(--oth-3)}.oth-legend [data-oth-line=burner]::before{width:10px;border-top:8px solid var(--oth-2)}.oth-summary{margin:4px 0 8px}.oth-scroll{max-height:320px;overflow:auto}.oth-table table{margin:0;width:auto;min-width:100%;font-variant-numeric:tabular-nums}.oth-table th,.oth-table td{white-space:nowrap}';
+            '.oth{margin-top:12px}.oth-title{font-size:1.05rem;margin:0 0 4px}.oth-figure{position:relative;margin:6px 0 0;max-width:760px}.oth-chart{display:block;width:100%;height:auto;touch-action:pan-y;overflow:visible}.oth-axis{font-size:11px;fill:var(--ot-muted);font-variant-numeric:tabular-nums}.oth-grid{stroke:var(--ot-border);stroke-width:1}.oth-line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.oth-measured,.oth-flow{stroke:var(--oth-1)}.oth-return{stroke:var(--oth-1);stroke-width:1.5;stroke-dasharray:1 3}.oth-target,.oth-request{stroke:var(--oth-2);stroke-dasharray:5 4}.oth-thermostat{stroke:var(--oth-3);stroke-dasharray:8 3 2 3}.oth-bars{fill:var(--oth-2)}.oth-tap{fill:var(--oth-3)}.oth-warm{fill:var(--oth-1)}.oth-cross{stroke:var(--ot-text);stroke-width:1;stroke-dasharray:2 2}' +
+            '.oth-tip{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;background:var(--ot-surface);color:var(--ot-text);border:1px solid var(--ot-border);border-radius:var(--ot-r1);padding:4px 8px;font-size:.8rem;white-space:nowrap;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.18)}.oth-tip[hidden]{display:none}.oth-legend{display:flex;flex-wrap:wrap;gap:2px 14px;margin:4px 0}.oth-legend span{white-space:nowrap}.oth-legend span::before{content:"";display:inline-block;width:18px;margin-right:6px;vertical-align:middle;border-top:2px solid var(--oth-1)}.oth-legend [data-oth-line=return]::before{border-top-style:dotted}.oth-legend [data-oth-line=target]::before,.oth-legend [data-oth-line=request]::before{border-top:2px dashed var(--oth-2)}.oth-legend [data-oth-line=thermostat]::before{border-top:2px dashed var(--oth-3)}.oth-legend [data-oth-line=burner]::before{width:10px;border-top:8px solid var(--oth-2)}.oth-legend [data-oth-line=tapping]::before{width:10px;border-top:8px solid var(--oth-3)}.oth-legend [data-oth-line=keep_warm]::before{width:10px;border-top:8px solid var(--oth-1)}.oth-summary{margin:4px 0 8px}.oth-scroll{max-height:320px;overflow:auto}.oth-table table{margin:0;width:auto;min-width:100%;font-variant-numeric:tabular-nums}.oth-table th,.oth-table td{white-space:nowrap}';
         document.head.append(style);
     }
 
@@ -39,8 +39,8 @@
         const temp = list => series(list, n, -600, 1500, 10);
         const model = {n, period, start: receivedAt - ago * 1000, boot: receivedAt - doc.uptime_s * 1000, rooms: Object.create(null),
             flow: temp(doc.flow), ret: temp(doc.return), request: temp(doc.request), thermostat: temp(doc.thermostat_request),
-            burner: series(doc.burner_pct, n, 0, 100, 1)};
-        if ([model.flow, model.ret, model.request, model.thermostat, model.burner].includes(undefined)) return null;
+            burner: series(doc.burner_pct, n, 0, 100, 1), tap: series(doc.dhw_tap_pct, n, 0, 100, 1), warm: series(doc.dhw_reheat_pct, n, 0, 100, 1)};
+        if ([model.flow, model.ret, model.request, model.thermostat, model.burner, model.tap, model.warm].includes(undefined)) return null;
         for (const room of doc.rooms.slice(0, 8)) {
             if (!room || typeof room.id !== 'string' || !room.id || room.id.length > 32) return null;
             const t = temp(room.temperature), s = temp(room.target);
@@ -159,7 +159,8 @@
             table(model, w, [[uiText("Measured"), t], [uiText("Target"), s]]) + '</div>';
     }
 
-    // The boiler panel: flow, return and both requests on one °C axis; the burner on its own strip.
+    // The boiler panel: flow, return and both requests on one °C axis; the burner and hot water on their own strips.
+    // Hot water (E32 beta.23): the share of each 5 minutes tapping and keeping warm (or charging a cylinder), stacked.
     function boiler(model, now) {
         now = now || Date.now();
         if (!model) return '';
@@ -167,6 +168,7 @@
         // Panel width at render time (each poll): about 1:1 on a phone, at most 600 wide.
         const BW = typeof innerWidth === 'number' && innerWidth > 0 ? Math.round(Math.max(260, Math.min(600, innerWidth - 60))) : 600;
         const flow = visible(model, w, model.flow), ret = visible(model, w, model.ret), burner = visible(model, w, model.burner);
+        const tap = visible(model, w, model.tap), warm = visible(model, w, model.warm), dhw = tap && warm && range([tap, warm]);
         const request = visible(model, w, model.request), thermostat = visible(model, w, model.thermostat);
         const positive = list => list && list.map(v => v === 0 ? null : v);
         const all = range([flow, ret, positive(request), positive(thermostat)]);
@@ -175,11 +177,15 @@
         let summary = spanText(model, now, w) + ': ' + (fr ? uiText("flow {range} °C").replace('{range}', between(fr)) : uiText("no flow temperature"));
         const on = mean(burner, 0, model.n);
         if (on !== null) summary += ', ' + uiText("burner on {pct} % of the time").replace('{pct}', Math.round(on));
+        const hot = dhw && uiText("hot water: tapping {tap} %, keeping warm {warm} % of the time")
+            .replace('{tap}', Math.round(mean(tap, 0, model.n))).replace('{warm}', Math.round(mean(warm, 0, model.n)));
+        if (hot) summary += ', ' + hot;
         summary += '.';
+        const hotRows = p => dhw ? [[uiText("Tapping"), tap[p], '%'], [uiText("Keeping warm"), warm[p], '%']] : [];
         const items = [['flow', uiText("Flow"), flow], ['return', uiText("Return"), ret], ['request', uiText("E32 request"), request], ['thermostat', uiText("Thermostat request"), thermostat]]
             .filter(i => range([i[0] === 'request' || i[0] === 'thermostat' ? positive(i[2]) : i[2]]));
         register('boiler', model, w, BW, p => items.map(i => [i[1], i[2][p] === 0 && (i[0] === 'request' || i[0] === 'thermostat') ? uiText("off") : i[2][p], '°C'])
-            .concat(burner ? [[uiText("Burner on"), burner[p], '%']] : []));
+            .concat(burner ? [[uiText("Burner on"), burner[p], '%']] : [], hotRows(p)));
         let html = '<div class="oth" data-oth-chart="boiler"><h3 class="oth-title">' + esc(uiText("Boiler history")) + '</h3>';
         if (all) html += frame('boiler', w, BW, 170, scale(all[0], all[1], 10), summary, (x, py) => items.map(i =>
             '<path class="oth-line oth-' + i[0] + '" d="' + path(model, w, i[2], x, py, i[0] === 'request' || i[0] === 'thermostat') + '"/>').join(''), '°C') +
@@ -194,8 +200,23 @@
             }, '%') + '<p class="pd-help oth-legend"><span data-oth-line="burner">' + esc(uiText("Burner on (share of each 5 minutes)")) + '</span></p>';
             register('burner', model, w, BW, p => [[uiText("Burner on"), burner[p], '%']]);
         }
+        if (dhw) {
+            // Two paths of stacked bars: tapping from the base, keeping warm on top of it.
+            const strip = {lo: 0, hi: 100, ticks: [0, 100], digits: 0};
+            html += frame('dhw', w, BW, 64, strip, hot[0].toUpperCase() + hot.slice(1), (x, py, base) => {
+                const width = Math.max(0.6, (x(w.from + model.period) - x(w.from)) - 0.4), d = ['', ''];
+                tap.forEach((v, p) => {
+                    const left = (x(w.at(p)) - width / 2).toFixed(1), low = v || 0, high = Math.min(100, low + (warm[p] || 0));
+                    if (low) d[0] += 'M' + left + ',' + base + 'V' + py(low).toFixed(1) + 'h' + width.toFixed(1) + 'V' + base + 'z';
+                    if (high > low) d[1] += 'M' + left + ',' + py(low).toFixed(1) + 'V' + py(high).toFixed(1) + 'h' + width.toFixed(1) + 'V' + py(low).toFixed(1) + 'z';
+                });
+                return '<path class="oth-tap" d="' + d[0] + '"/><path class="oth-warm" d="' + d[1] + '"/>';
+            }, '%') + legend([['tapping', uiText("Tapping")], ['keep_warm', uiText("Keeping warm")]]);
+            register('dhw', model, w, BW, hotRows);
+        }
         return html + '<p class="pd-help oth-summary">' + esc(summary) + ' ' + esc(uiText("Kept in the E32's memory since the last restart.")) + '</p>' +
-            table(model, w, items.map(i => [i[1], i[2], i[0] === 'request' || i[0] === 'thermostat' ? 'request' : '']).concat(burner ? [[uiText("Burner on"), burner, 'pct']] : [])) + '</div>';
+            table(model, w, items.map(i => [i[1], i[2], i[0] === 'request' || i[0] === 'thermostat' ? 'request' : '']).concat(burner ? [[uiText("Burner on"), burner, 'pct']] : [],
+                dhw ? [[uiText("Tapping"), tap, 'pct'], [uiText("Keeping warm"), warm, 'pct']] : [])) + '</div>';
     }
 
     // Crosshair and tooltip: one delegated listener for every chart on the page.

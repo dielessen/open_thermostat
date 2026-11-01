@@ -72,9 +72,11 @@ inline bool addHaLink(cJSON* root, std::optional<uint64_t> lastInputMs, uint64_t
     return cJSON_AddBoolToObject(ha, "broker_connected", brokerConnected) != nullptr;
 }
 
-// "burner": {"starts_last_hour","heating_starts_last_hour","short_cycling"};
+// "burner": {"starts_last_hour","heating_starts_last_hour","short_cycling","activity"};
 // while unknown the same keys are null (the MQTT shape stays). Partial: no memory.
-inline void addBurnerJson(cJSON* root, const BurnerCycleMonitor::Summary& c) {
+// activity: what the boiler does now (DhwEpisodes::activity: tapping, keep_warm,
+// charging, hot_water, heating, idle), so Home Assistant can draw a timeline.
+inline void addBurnerJson(cJSON* root, const BurnerCycleMonitor::Summary& c, const char* activity = nullptr) {
     cJSON* burner = cJSON_AddObjectToObject(root, "burner");
     if (!burner) return;
     const auto count = [&](const char* key, size_t n) {
@@ -83,6 +85,7 @@ inline void addBurnerJson(cJSON* root, const BurnerCycleMonitor::Summary& c) {
     count("starts_last_hour", c.starts);
     count("heating_starts_last_hour", c.heatingStarts);
     if (c.known) cJSON_AddBoolToObject(burner, "short_cycling", c.shortCycling); else cJSON_AddNullToObject(burner, "short_cycling");
+    if (activity) cJSON_AddStringToObject(burner, "activity", activity); else cJSON_AddNullToObject(burner, "activity");
 }
 
 namespace telemetry_detail {

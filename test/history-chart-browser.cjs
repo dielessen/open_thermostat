@@ -1,5 +1,6 @@
 // E32 24-hour charts (beta.19 item 20): GET /status/history drawn as inline SVG on the
 // dashboard, in English and Dutch, light and dark, desktop and 360 px. Fixtures only.
+// Hot water (beta.23): the owner's 31 Oct 2026 as 5-minute shares tapping and keeping warm.
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),shots=process.env.OPENTHERMOSTAT_HISTORY_EVIDENCE||'';
@@ -10,6 +11,20 @@ function heating(){
    {id:'living',name:'Living',state:'active',status:'ok',source:'a4c138000001',temperature:20.4,setpoint:21,setpoint_source:'schedule',demand:true},
    {id:'study',name:'Study <b>',state:'active',status:'ok',source:'a4c138000002',temperature:18,setpoint:19,setpoint_source:'fallback',demand:false}]};
 }
+// The owner's day (Home Assistant history, 10 s samples): the share of each 5 minutes (30 samples) with hot water
+// in an episode the E32 counts as a tap, or as keeping warm.
+const owner=JSON.parse(fs.readFileSync(path.resolve(__dirname,'../ha/tests_native/fixtures/dhw_owner_20261031.json'),'utf8'));
+function ownerDhw(){
+ const episodes=owner.episodes.slice(),tap=Array(288).fill(0),warm=Array(288).fill(0);
+ owner.samples.split(';').forEach((item,i)=>{
+  const dhw=Number(item.split(',')[1]);
+  while(episodes.length&&episodes[0][0]<i*10&&!dhw)episodes.shift();
+  if(dhw&&episodes.length)(episodes[0][1]==='tapping'?tap:warm)[Math.floor(i/30)]++;
+ });
+ const pct=list=>list.map(c=>Math.round(c*100/30));
+ return {tap:pct(tap),warm:pct(warm)};
+}
+const DHW=ownerDhw(),average=list=>Math.round(list.reduce((a,b)=>a+b,0)/list.length);
 // A full day: 288 committed points and the running one.
 function history(){
  const n=289,wave=p=>Math.round(200+10*Math.sin(p/30));
@@ -18,7 +33,7 @@ function history(){
    {id:'bath',temperature:null,target:null}],
   flow:Array.from({length:n},(_,p)=>p%24<8?450+p%8*10:300),return:Array.from({length:n},(_,p)=>p%24<8?380:290),
   burner_pct:Array.from({length:n},(_,p)=>p%24<8?100:p%24===8?40:0),request:Array.from({length:n},(_,p)=>p%24<8?480:0),
-  thermostat_request:Array.from({length:n},(_,p)=>p%24<9?500:0)};
+  thermostat_request:Array.from({length:n},(_,p)=>p%24<9?500:0),dhw_tap_pct:[...DHW.tap,null],dhw_reheat_pct:[...DHW.warm,null]};
 }
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
@@ -55,11 +70,20 @@ function history(){
   assert.deepEqual(await living.locator('.oth-legend span').allInnerTexts(),lang==='en'?['Measured','Target']:['Gemeten','Gewenst']);
   // The boiler: one degC axis for flow, return and both requests; the burner on its own strip.
   const boiler=page.locator('.pd-history');
-  assert.deepEqual(await boiler.locator('.oth-legend span').allInnerTexts(),lang==='en'?['Flow','Return','E32 request','Thermostat request','Burner on (share of each 5 minutes)']:
-   ['Aanvoer','Retour','Vraag van de E32','Vraag van de thermostaat','Brander aan (deel van elke 5 minuten)']);
-  assert.equal(await boiler.locator('svg.oth-chart').count(),2);
+  assert.deepEqual(await boiler.locator('.oth-legend span').allInnerTexts(),lang==='en'?['Flow','Return','E32 request','Thermostat request','Burner on (share of each 5 minutes)','Tapping','Keeping warm']:
+   ['Aanvoer','Retour','Vraag van de E32','Vraag van de thermostaat','Brander aan (deel van elke 5 minuten)','Tappen','Warmhouden']);
+  assert.equal(await boiler.locator('svg.oth-chart').count(),3);
   assert.match(await boiler.locator('path.oth-bars').getAttribute('d'),/^M[\d.]+,\d+V[\d.]+h[\d.]+V\d+z/);
-  assert.match(await boiler.locator('.oth-summary').innerText(),lang==='en'?/Last 24 hours: flow 30\.0–52\.0 °C, burner on 35 % of the time\./:/Laatste 24 uur: aanvoer 30,0–52,0 °C, brander 35 % van de tijd aan\./);
+  // Hot water: tapping from the base, keeping warm stacked on it; one bar per 5 minutes with that kind.
+  const dhwStrip=boiler.locator('svg.oth-chart').nth(2),bars=async c=>((await dhwStrip.locator('path.'+c).getAttribute('d')).match(/z/g)||[]).length;
+  assert.equal(await bars('oth-tap'),DHW.tap.filter(Boolean).length);assert.equal(await bars('oth-warm'),DHW.warm.filter(Boolean).length);
+  assert(DHW.warm.filter(Boolean).length>DHW.tap.filter(Boolean).length,'the owner keeps warm more often than taps');
+  const fills=await dhwStrip.evaluate(svg=>['.oth-tap','.oth-warm'].map(c=>getComputedStyle(svg.querySelector(c)).fill));
+  assert.notEqual(fills[0],fills[1]);assert.equal(fills[1],scheme==='dark'?'rgb(35, 156, 138)':'rgb(0, 135, 111)');
+  const tapped=average(DHW.tap),warmed=average(DHW.warm);
+  assert.match(await dhwStrip.getAttribute('aria-label'),lang==='en'?new RegExp(`^Hot water: tapping ${tapped} %, keeping warm ${warmed} % of the time$`):new RegExp(`^Warm water: tappen ${tapped} %, warmhouden ${warmed} % van de tijd$`));
+  assert.match(await boiler.locator('.oth-summary').innerText(),lang==='en'?new RegExp(`Last 24 hours: flow 30\\.0–52\\.0 °C, burner on 35 % of the time, hot water: tapping ${tapped} %, keeping warm ${warmed} % of the time\\.`):
+   new RegExp(`Laatste 24 uur: aanvoer 30,0–52,0 °C, brander 35 % van de tijd aan, warm water: tappen ${tapped} %, warmhouden ${warmed} % van de tijd\\.`));
   // Axis labels are clock times in the viewer's zone (13:00 Amsterdam = 12:00 UTC).
   const axis=await boiler.locator('svg.oth-chart').first().locator('text.oth-axis').allTextContents();
   assert(axis.includes('°C')&&axis.some(t=>/^(?:0[0-9]|1[0-9]|2[0-3]):00$/.test(t)),axis.join('|'));
@@ -69,16 +93,23 @@ function history(){
   // Table fallback: hourly averages, newest first.
   await boiler.locator('.oth-table summary').click();
   const rows=await boiler.locator('.oth-table tbody tr').count();assert(rows>=24&&rows<=26,String(rows));
-  assert.deepEqual(await boiler.locator('.oth-table thead th').allInnerTexts(),lang==='en'?['Time','Flow','Return','E32 request','Thermostat request','Burner on']:
-   ['Tijd','Aanvoer','Retour','Vraag van de E32','Vraag van de thermostaat','Brander aan']);
+  assert.deepEqual(await boiler.locator('.oth-table thead th').allInnerTexts(),lang==='en'?['Time','Flow','Return','E32 request','Thermostat request','Burner on','Tapping','Keeping warm']:
+   ['Tijd','Aanvoer','Retour','Vraag van de E32','Vraag van de thermostaat','Brander aan','Tappen','Warmhouden']);
   assert.match(await boiler.locator('.oth-table tbody tr').first().innerText(),/°C/);
   // Hover: a crosshair and a tooltip with the values at that time.
-  const svg=boiler.locator('svg.oth-chart').first(),box=await svg.boundingBox();
+  const svg=boiler.locator('svg.oth-chart').first();await svg.scrollIntoViewIfNeeded();const box=await svg.boundingBox();
   await page.mouse.move(box.x+box.width*0.6,box.y+box.height/2);
   const tip=boiler.locator('.oth-tip').first();await tip.waitFor({state:'visible'});
   assert.match(await tip.innerText(),lang==='en'?/\d\d:\d\d[\s\S]*Flow: \d+\.\d °C/:/\d\d:\d\d[\s\S]*Aanvoer: \d+,\d °C/);
   assert.equal(await svg.locator('.oth-cross').getAttribute('visibility'),'visible');
   await page.mouse.move(2,2);await tip.waitFor({state:'hidden'});
+  // The hot-water strip's tooltip: both shares at the busiest keep-warm slot.
+  const slot=DHW.warm.indexOf(Math.max(...DHW.warm));await dhwStrip.scrollIntoViewIfNeeded();const strip=await dhwStrip.boundingBox();
+  const at=await dhwStrip.evaluate((svg,slot)=>{const b=svg.getBoundingClientRect(),W=svg.viewBox.baseVal.width;return b.left+(30+(slot*300+30)/86400*(W-38))/W*b.width;},slot);
+  await page.mouse.move(at,strip.y+strip.height/2);
+  const dhwTip=boiler.locator('.oth-tip').nth(2);await dhwTip.waitFor({state:'visible'});
+  assert.match(await dhwTip.innerText(),lang==='en'?new RegExp(`Tapping: ${DHW.tap[slot]} %[\\s\\S]*Keeping warm: ${DHW.warm[slot]} %`):new RegExp(`Tappen: ${DHW.tap[slot]} %[\\s\\S]*Warmhouden: ${DHW.warm[slot]} %`));
+  await page.mouse.move(2,2);await dhwTip.waitFor({state:'hidden'});
   // Phone width: nothing wider than the screen.
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   if(shots)await page.screenshot({path:path.join(shots,`history-${lang}-${width}-${scheme}.png`),fullPage:true});
@@ -87,11 +118,13 @@ function history(){
   await page.clock.runFor(10000);await page.waitForTimeout(50);assert.equal(reads.length,1);
   // Within a day of a restart the chart starts at the restart and says so.
   doc={...history(),uptime_s:3000,points:10,oldest_start_ago_s:3000,rooms:[{id:'living',temperature:Array(10).fill(205),target:Array(10).fill(210)}],
-   flow:Array(10).fill(400),return:null,burner_pct:Array(10).fill(50),request:Array(10).fill(0),thermostat_request:null};
+   flow:Array(10).fill(400),return:null,burner_pct:Array(10).fill(50),request:Array(10).fill(0),thermostat_request:null,
+   dhw_tap_pct:undefined,dhw_reheat_pct:undefined}; // firmware before beta.23: no hot-water keys
   await page.clock.runFor(60000);
   await page.waitForFunction(()=>/50 min/.test(document.querySelector('.pd-room .oth-summary')?.textContent||''),null,{timeout:5000});
   assert.match(await living.locator('.oth-summary').innerText(),lang==='en'?/^Since the restart 50 min ago: measured 20\.5 °C, target 21\.0 °C\./:/^Sinds de herstart 50 min geleden: gemeten 20,5 °C, doel 21,0 °C\./);
   assert.deepEqual(await boiler.locator('.oth-legend span').allInnerTexts(),lang==='en'?['Flow','Burner on (share of each 5 minutes)']:['Aanvoer','Brander aan (deel van elke 5 minuten)']);
+  assert.equal(await boiler.locator('svg.oth-chart').count(),2); // firmware before beta.23: no hot-water strip
   // No memory on the E32, or a malformed document: no chart, the live view stays.
   doc={schema:1,available:false,period_s:300,capacity:288,bytes:12528,uptime_s:4000,reason:'memory_unavailable',points:0};
   await page.clock.runFor(60000);

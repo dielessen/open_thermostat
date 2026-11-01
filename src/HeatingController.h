@@ -355,7 +355,7 @@ public:
         if (root && !overrides_.addStatus(root, roomEngine_.plan(), bleReceiptClock())) { cJSON_Delete(root); return nullptr; }
         cJSON* sensors = root ? cJSON_AddArrayToObject(root, "ble_sensors") : nullptr;
         // Burner starts in the last hour from the flame bit (the adapter's own counters read 0).
-        if (root) control::addBurnerJson(root, ems_.burnerCycles());
+        if (root) control::addBurnerJson(root, ems_.burnerCycles(), ems_.boilerActivity());
         cJSON* shadow = sensors ? shadowComparison_.json() : nullptr;
         if (!shadow || !cJSON_AddItemToObject(root, "shadow", shadow)) { cJSON_Delete(shadow); cJSON_Delete(root); return nullptr; }
         cJSON* active = activeHeatJson();
@@ -803,6 +803,9 @@ private:
         for (size_t i = 0; i < count; ++i) { s.temperatureCentiC[i] = roomEngine_.freshTemperature(i, now); s.targetCentiC[i] = roomEngine_.result(i).setpoint; }
         s.flowCentiC = ems.flowCentiC; s.returnCentiC = ems.returnCentiC; s.burnerOn = ems.burnerOn;
         s.requestFlowC = request.heat ? request.flowC : uint8_t(0); s.thermostatFlowC = tadoFlowC;
+        using H = control::HeatingHistory;
+        if (ems.hotWaterKind) s.hotWater = *ems.hotWaterKind == control::DhwEpisodes::tapping ? H::tapping : H::reheating;
+        else if (ems.hotWater) s.hotWater = H::noHotWater;  // the DHW bit is known and off
         history_.sample(now, s);
     }
     // Report only: the boiler view and per room the fresh leading reading.

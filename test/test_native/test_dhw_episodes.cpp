@@ -3,7 +3,10 @@
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
 #include <cJSON.h>
+#include <algorithm>
 #include <fstream>
+#include <cstdio>
+#include <map>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -217,6 +220,43 @@ TEST(DhwEpisodes, OwnersDayCountsTheKeepWarmRoundsAsKeepingWarm) {
     EXPECT_EQ(m.count[DhwEpisodes::keepWarm], 5);   // incl. two rounds at night (02:54, 04:29) that dip 9-11 K
     EXPECT_EQ(m.count[DhwEpisodes::tapping], 1);    // 00:38: 64 -> 18 degC
 }
+// The live activity on the owner's day (Home Assistant's timeline): each episode ends showing what it is
+// counted as, and a tap shows as keeping warm only until its fall is clear.
+TEST(DhwEpisodes, OwnersDayActivityEndsEachEpisodeAsItIsCounted) {
+    std::ifstream file("test/fixtures/dhw-owner-20261031.txt");
+    ASSERT_TRUE(file.good());
+    DhwEpisodes e; std::string line, last;
+    std::map<std::string, int> ended, seen;
+    uint64_t openedMs = 0;
+    std::vector<uint64_t> tapShownAfterMs;
+    bool open = false, tapShown = false;
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream in(line); uint64_t ms; char kind; int value;
+        in >> ms >> kind >> value;
+        if (kind == 'T') e.temperature(value, ms); else e.state(static_cast<uint8_t>(value), ms);
+        const std::string now = e.activity() ? e.activity() : "";
+        if (now != last) ++seen[now];
+        const bool opened = e.openKind().has_value();
+        if (opened && !open) { openedMs = ms; tapShown = false; }
+        if (opened && now == "tapping" && !tapShown) { tapShown = true; tapShownAfterMs.push_back(ms - openedMs); }
+        if (!opened && open) ++ended[last];
+        open = opened; last = now;
+    }
+    EXPECT_EQ(ended["tapping"], 16);
+    EXPECT_EQ(ended["keep_warm"], 41);
+    EXPECT_EQ(ended.size(), 2u);
+    EXPECT_GT(seen["heating"], 0);
+    EXPECT_GT(seen["idle"], 0);
+    // Most taps fall fast; a slow one shows once it has been 7.5 K under for 90 s.
+    ASSERT_EQ(tapShownAfterMs.size(), 16u);
+    std::sort(tapShownAfterMs.begin(), tapShownAfterMs.end());
+    EXPECT_LE(tapShownAfterMs[8], 60000u);
+    EXPECT_LE(tapShownAfterMs.back(), 180000u);
+    std::printf("owner 31 Oct: a tap shows after %llu s (median), %llu s (slowest)\n",
+                static_cast<unsigned long long>(tapShownAfterMs[8] / 1000),
+                static_cast<unsigned long long>(tapShownAfterMs.back() / 1000));
+}
 // A dip that recovers is keeping warm; a smaller fall that lasts is a tap; a deep fall is a tap.
 TEST(DhwEpisodes, ABriefDipIsKeepWarmALastingOrDeepFallIsATap) {
     const auto run = [](std::vector<int32_t> inside) {
@@ -260,5 +300,24 @@ TEST(DhwEpisodes, AChargingBitThatChangesMarksTheCylinderUnlessTheTypeIsACombi) 
     EXPECT_FALSE(combi.storage());
     EXPECT_EQ(combi.today().count[DhwEpisodes::keepWarm], 1);
     EXPECT_STREQ(combi.method(), "dhw_temperature_fall");
+}
+// What the boiler does now, for the Home Assistant timeline and the E32 chart.
+TEST(DhwEpisodes, ActivityFollowsTheOpenEpisodeAndTheFlame) {
+    DhwEpisodes e;
+    EXPECT_EQ(e.activity(), nullptr);                                  // nothing heard yet
+    e.state(0x00, 0); EXPECT_STREQ(e.activity(), "idle");
+    e.state(0x08, 10000); EXPECT_STREQ(e.activity(), "heating");        // flame without hot water
+    e.temperature(5800, 15000);
+    e.state(0x0A, 20000); EXPECT_STREQ(e.activity(), "keep_warm");     // hot water, no fall yet
+    e.temperature(5600, 25000); EXPECT_STREQ(e.activity(), "keep_warm");
+    e.temperature(3500, 30000); EXPECT_STREQ(e.activity(), "tapping");  // a deep fall: a tap after all
+    ASSERT_TRUE(e.openKind()); EXPECT_EQ(*e.openKind(), DhwEpisodes::tapping);
+    e.state(0x00, 60000); EXPECT_STREQ(e.activity(), "idle");
+    EXPECT_FALSE(e.openKind());
+    EXPECT_EQ(e.today().count[DhwEpisodes::tapping], 1);
+    DhwEpisodes cylinder; cylinder.dhwType(4);
+    cylinder.state(0x0A, 0); EXPECT_STREQ(cylinder.activity(), "charging");
+    DhwEpisodes blind;
+    blind.state(0x0A, 0); EXPECT_STREQ(blind.activity(), "hot_water");  // no source to sort it
 }
 }

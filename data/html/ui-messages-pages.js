@@ -1127,7 +1127,6 @@ window.OT_UI_PAGE_MESSAGES = {
   "The link with Home Assistant through an MQTT broker.": "De koppeling met Home Assistant via een MQTT-broker.",
   "Tools for developers; leave them off in normal use.": "Hulpmiddelen voor ontwikkelaars; laat ze normaal uit.",
   "The home network the E32 connects to.": "Het thuisnetwerk waarmee de E32 verbinding maakt.",
-  "Keeping warm": "Warmhouden",
   "Burner time": "Brandertijd",
   "Peak flow": "Hoogste doorstroming",
   "Last 7 days": "Afgelopen 7 dagen",

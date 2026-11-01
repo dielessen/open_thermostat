@@ -119,6 +119,17 @@ public:
         return sum;
     }
     bool flowLive() const { return flowLive_; }
+    // The open episode so far, by the rule close() uses (a tap shows once its fall is clear,
+    // usually within half a minute); nullopt without an open episode.
+    std::optional<Kind> openKind() const { return open_ ? std::optional<Kind>(classify()) : std::nullopt; }
+    // What the boiler does now: "tapping", "keep_warm", "charging", "hot_water" (no source to
+    // sort it), "heating" (flame without hot water), "idle"; nullptr before the first 0x18.
+    const char* activity() const {
+        static constexpr const char* names[kinds] = {"tapping", "keep_warm", "hot_water", "charging"};
+        if (const auto kind = openKind()) return names[*kind];
+        if (!haveState_) return nullptr;
+        return flame_ ? "heating" : "idle";
+    }
     // A cylinder: by its DHW type, or (type unknown) by a charging bit that changes.
     bool storage() const { return cylinder() || (chargingLive_ && !combi()); }
     const char* method() const { return storage() ? "storage" : flowLive_ ? "flow" : "dhw_temperature_fall"; }
@@ -157,11 +168,7 @@ private:
     }
     void close(uint64_t endMs) {
         if (lastTempBelow_ && endMs >= lastTempMs_) belowMs_ += endMs - lastTempMs_;
-        const bool charged = cylinder() || (chargingLive_ && chargingSeen_ && !combi());
-        const Kind kind = charged ? charging
-            : flowLive_ ? (flowSeen_ ? tapping : keepWarm)
-            : reference_ && minimum_ ? (*reference_ - *minimum_ >= tapFallCenti || belowMs_ >= tapBelowMs ? tapping : keepWarm)
-            : unknown;
+        const Kind kind = classify();
         if (today_.count[kind] != UINT16_MAX) ++today_.count[kind];
         today_.seconds[kind] += static_cast<uint32_t>((endMs - startMs_) / 1000);
         today_.burnerS += static_cast<uint32_t>(burnerMs_ / 1000);
@@ -194,6 +201,13 @@ private:
     Day today_;
     std::array<Day, history> days_{};
     size_t head_ = 0, count_ = 0;
+    Kind classify() const {
+        if (cylinder() || (chargingLive_ && chargingSeen_ && !combi())) return charging;
+        if (flowLive_) return flowSeen_ ? tapping : keepWarm;
+        if (reference_ && minimum_)
+            return *reference_ - *minimum_ >= tapFallCenti || belowMs_ >= tapBelowMs ? tapping : keepWarm;
+        return unknown;
+    }
     bool cylinder() const { return dhwType_ == 3 || dhwType_ == 4; }
     bool combi() const { return dhwType_ == 1 || dhwType_ == 2; }
     uint64_t startMs_ = 0, lastStateMs_ = 0, burnerMs_ = 0, endMs_ = 0, belowMs_ = 0, lastTempMs_ = 0;

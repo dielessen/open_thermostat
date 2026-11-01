@@ -129,6 +129,9 @@ async def async_setup_entry(
                                  native_metrics=True)
             from .v1_metrics import async_setup_shadow_metrics
             await _optional_step("metrics", async_setup_shadow_metrics, hass, entry, async_add_entities)
+            from .legacy_discovery import async_setup_legacy_discovery_retirement
+            # Old pre-v1 MQTT discovery entities of this E32 (retained on the broker), beta.23.
+            await _optional_step("old MQTT discovery entities", async_setup_legacy_discovery_retirement, hass, entry)
             from .ems_devices import async_setup_ems_devices
             # The devices on the EMS bus (fw/config/ems_devices), beta.23.
             await _optional_step("EMS bus devices", async_setup_ems_devices, hass, entry)

@@ -113,6 +113,7 @@ s_verifiers(){
   python3 scripts/generate_ems_fields.py --check
   python3 scripts/generate_ems_reference.py --check
   python3 scripts/generate_boiler_catalog.py --check
+  python3 scripts/generate_display_codes.py --check
 }
 s_harnesses(){ set -e; pio_locked pkg install -e native; flock "$LOCK" bash test/native_harnesses.sh build; flock "$LOCK" bash test/interop/prepare_runners.sh; }
 s_native(){ set -e; ci "Run native tests" > "$L/ci-native.sh"; flock "$LOCK" bash -e "$L/ci-native.sh"; }

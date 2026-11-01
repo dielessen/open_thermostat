@@ -221,6 +221,7 @@ jobs:
           pio test -e native --verbose
           bash test/native_harnesses.sh run
           python3 scripts/generate_boiler_catalog.py --check
+          python3 scripts/generate_display_codes.py --check
           python3 scripts/generate_ems_reference.py --check
           python3 scripts/generate_ems_fields.py --check
           python3 -m unittest discover -s scripts -p test_generate_ems_reference.py -v

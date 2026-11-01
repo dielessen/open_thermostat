@@ -382,7 +382,8 @@ class PresenceMemory:
     not_home), from unavailable back to not_home and at every Home Assistant
     start; none of those is someone leaving. "left" is the moment a person
     stopped being home (home -> anything else) and stays until they are home
-    again. A person never seen home here falls back to last_changed.
+    again. A person never seen home here falls back to last_changed; one who
+    was home when Home Assistant stopped counts from their first state after.
     """
 
     def __init__(self, hass, store=None):
@@ -392,7 +393,7 @@ class PresenceMemory:
     async def async_load(self):
         stored = await self.store.async_load() if self.store is not None else None
         people = stored.get("people") if type(stored) is dict else None
-        for entity_id, known in (people or {}).items() if type(people) is dict else ():
+        for entity_id, known in people.items() if type(people) is dict else ():
             if type(known) is not dict or entity_id in self.people:
                 continue
             if known.get("home") is True:

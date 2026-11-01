@@ -469,7 +469,9 @@
           "hot_water": "View hot water status",
           "graph_prepare": "Review or recover room plan",
           "legacy_rooms": "Remove old Home Assistant rooms",
-          "installation": "Water limits of the old room profile"
+          "installation": "Water limits of the old room profile",
+          "entity_ids": "Tidy entity IDs",
+          "entity_ids_undo": "Undo the entity ID tidy"
         }
       },
       "edit_room": {
@@ -726,6 +728,21 @@
           "control": "On: the E32 drives these valves (only while it controls the boiler itself). Off: the valves keep their own settings.",
           "valve_1": "The friendly name in Zigbee2MQTT, e.g. \"Living room valve\". Leave empty for no valve."
         }
+      },
+      "entity_ids": {
+        "title": "Tidy entity IDs",
+        "description": "Optional. The new IDs are the ones Home Assistant itself would give these entities today. History and statistics move along with them. {count} entities can get a shorter ID; {used} of them are used in your automations, scripts or dashboards.\n\nWarning: an automation, script or dashboard that uses an old ID stops working until you change it. OpenThermostat's own dashboard follows by itself. You can undo this for {days} days. Other places, such as templates in YAML and other integrations, are not searched.\n\n{preview}",
+        "data": {
+          "scope": "Which entities",
+          "confirm": "I have read the list and want to rename these entities"
+        }
+      },
+      "entity_ids_undo": {
+        "title": "Undo the entity ID tidy",
+        "description": "{count} entities get their previous ID back (where it is still free). History moves along with them.",
+        "data": {
+          "confirm": "Put the old IDs back"
+        }
       }
     },
     "error": {
@@ -866,7 +883,8 @@
       "e32_valve_duplicate": "This valve is already used (here or in another room).",
       "e32_valve_model_missing": "Choose the valve's model.",
       "e32_valve_limit": "The E32 drives at most 16 radiator valves.",
-      "e32_valves_rejected": "The E32 refused the radiator valves ({error})."
+      "e32_valves_rejected": "The E32 refused the radiator valves ({error}).",
+      "entity_ids_confirm": "Tick the box to confirm."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -924,7 +942,10 @@
       "legacy_rooms_removed": "The old Home Assistant rooms have been removed. The E32 stays connected with {rooms} room(s) in its plan.",
       "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
       "legacy_rooms_cancelled": "Cancelled. Choose Configure → E32 connection to check the connection; some settings may already be saved on the E32.",
-      "e32_valves_update_required": "This E32 firmware has no radiator valve control yet. Update the E32 first."
+      "e32_valves_update_required": "This E32 firmware has no radiator valve control yet. Update the E32 first.",
+      "entity_ids_nothing": "All OpenThermostat entity IDs already match what Home Assistant would give them.",
+      "entity_ids_done": "{count} entity IDs renamed. Update these places yourself:\n\n{todo}",
+      "entity_ids_undone": "{count} entity IDs are back to their old names."
     },
     "progress": {
       "controller_connect": "Connecting to the E32…",
@@ -2704,6 +2725,12 @@
         "sonoff_trvzb": "Sonoff TRVZB (external temperature)",
         "tuya_tv02": "Tuya TV02 (setpoint only)",
         "generic": "Other (setpoint only)"
+      }
+    },
+    "entity_ids_scope": {
+      "options": {
+        "unused": "Only entities that are not used anywhere",
+        "all": "All, I will update the places where they are used"
       }
     }
   },

@@ -469,7 +469,9 @@
           "hot_water": "Pokaż stan ciepłej wody",
           "graph_prepare": "Przejrzyj lub odzyskaj plan pomieszczeń",
           "legacy_rooms": "Usuń stare pomieszczenia Home Assistant",
-          "installation": "Limity wody starego profilu pomieszczeń"
+          "installation": "Limity wody starego profilu pomieszczeń",
+          "entity_ids": "Uporządkuj identyfikatory encji",
+          "entity_ids_undo": "Cofnij porządkowanie identyfikatorów"
         }
       },
       "edit_room": {
@@ -726,6 +728,21 @@
           "control": "Wł.: E32 steruje tymi zaworami (tylko gdy sam steruje kotłem). Wył.: zawory zachowują własne ustawienia.",
           "valve_1": "Nazwa w Zigbee2MQTT, np. \"Zawór salon\". Zostaw puste, jeśli nie ma zaworu."
         }
+      },
+      "entity_ids": {
+        "title": "Uporządkuj identyfikatory encji",
+        "description": "Opcjonalne. Nowe identyfikatory to te, które Home Assistant nadałby tym encjom dzisiaj. Historia i statystyki są przenoszone. {count} encji może dostać krótszy identyfikator; {used} z nich jest używanych w automatyzacjach, skryptach lub pulpitach.\n\nUwaga: automatyzacja, skrypt lub pulpit ze starym identyfikatorem przestaje działać, dopóki go nie zmienisz. Własny pulpit OpenThermostat dostosuje się sam. Możesz to cofnąć przez {days} dni. Inne miejsca, takie jak szablony w YAML i inne integracje, nie są przeszukiwane.\n\n{preview}",
+        "data": {
+          "scope": "Które encje",
+          "confirm": "Przeczytałem listę i chcę zmienić nazwy tych encji"
+        }
+      },
+      "entity_ids_undo": {
+        "title": "Cofnij porządkowanie identyfikatorów",
+        "description": "{count} encji odzyska poprzedni identyfikator (jeśli jest wolny). Historia zostanie przeniesiona.",
+        "data": {
+          "confirm": "Przywróć stare identyfikatory"
+        }
       }
     },
     "error": {
@@ -866,7 +883,8 @@
       "e32_valve_duplicate": "Ten zawór jest już używany (tutaj lub w innym pomieszczeniu).",
       "e32_valve_model_missing": "Wybierz model zaworu.",
       "e32_valve_limit": "E32 steruje najwyżej 16 zaworami grzejnikowymi.",
-      "e32_valves_rejected": "E32 odrzucił zawory grzejnikowe ({error})."
+      "e32_valves_rejected": "E32 odrzucił zawory grzejnikowe ({error}).",
+      "entity_ids_confirm": "Zaznacz pole, aby potwierdzić."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -924,7 +942,10 @@
       "legacy_rooms_removed": "Stare pomieszczenia Home Assistant zostały usunięte. E32 pozostaje połączony; w jego planie są pomieszczenia: {rooms}.",
       "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
       "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połączenie z E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32.",
-      "e32_valves_update_required": "To oprogramowanie E32 nie obsługuje jeszcze zaworów grzejnikowych. Najpierw zaktualizuj E32."
+      "e32_valves_update_required": "To oprogramowanie E32 nie obsługuje jeszcze zaworów grzejnikowych. Najpierw zaktualizuj E32.",
+      "entity_ids_nothing": "Wszystkie identyfikatory encji OpenThermostat są już takie, jakie nadałby Home Assistant.",
+      "entity_ids_done": "Zmieniono {count} identyfikatorów encji. Zaktualizuj samodzielnie te miejsca:\n\n{todo}",
+      "entity_ids_undone": "{count} identyfikatorów encji wróciło do starych nazw."
     },
     "progress": {
       "controller_connect": "Łączenie z E32…",
@@ -2704,6 +2725,12 @@
         "sonoff_trvzb": "Sonoff TRVZB (temperatura zewnętrzna)",
         "tuya_tv02": "Tuya TV02 (tylko nastawa)",
         "generic": "Inny (tylko nastawa)"
+      }
+    },
+    "entity_ids_scope": {
+      "options": {
+        "unused": "Tylko encje, które nigdzie nie są używane",
+        "all": "Wszystkie, sam zaktualizuję miejsca użycia"
       }
     }
   },

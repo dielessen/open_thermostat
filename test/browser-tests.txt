@@ -20,6 +20,7 @@
 2 test/ha-room-status-ownership-browser.cjs  # 3 s
 2 test/ha-planner-touch-browser.cjs  # 21 s
 2 test/diagnostics-console-browser.cjs  # 10 s (beta.21; measured locally about 10 s)
+2 test/heating-valves-browser.cjs  # 23 s (beta.24 radiator valves)
 # shard 3: about 258 s
 3 test/auth-body-browser.cjs  # 1 s
 3 test/boiler-display-browser.cjs  # 20 s

@@ -85,6 +85,13 @@
     measurement_lost:"Room measurements are missing.", boiler_no_response:"The boiler does not respond to the heat request.",
     transmit_failed:"Sending to the boiler fails.", boiler_limit_unknown:"The boiler has not reported its heating limit yet; the E32 asks for no heat and asks again every 5 minutes."};
   let plan = null, timer = null;
+  // Radiator valves (beta.24, /config/heating/trv): null on firmware without them, so the block never shows.
+  let trv = null;
+  const valveModels = [['bosch_bth_ra', "Bosch BTH-RA (position, external temperature)"], ['sonoff_trvzb', "Sonoff TRVZB (external temperature)"],
+    ['tuya_tv02', "Tuya TV02 (setpoint only)"], ['generic', "Other (setpoint only)"]];
+  const valveHealth = {ok:"Reporting", low_battery:"Battery low", offline:"Not reporting", unknown:"Waiting for a report"};
+  // The Zigbee2MQTT friendly names the E32 takes (TrvConfig::validName).
+  const validValve = n => n.length > 0 && n.length <= 64 && n === n.trim() && !/^\/|\/$|\/\/|[#+"\\]|[^\x20-\x7e]/.test(n) && n !== 'bridge' && !n.startsWith('bridge/');
   const el = (tag, text, attrs={}) => { const e = document.createElement(tag); if (text !== undefined && text !== null) e.textContent = text; for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
   const field = (parent, label, input, hint) => { const id = 'h' + Math.random().toString(36).slice(2); input.id = id; if (hint) input.setAttribute('data-hint', hint); const wrap = el('div'); wrap.append(el('label', label, {for:id}), input); parent.append(wrap); return input; };
   const check = (parent, label, checked) => {
@@ -354,6 +361,7 @@
     };
     showWindow(status);
     const shownWindow = card.status; card.status = s => { showWindow(s); shownWindow(s); };
+    if (trv && room.id) valveBlock(room, card, body, brief);
     body.append(el('h3', uiText("Windows and doors")), el('p', uiText("Choose the window and door contacts and the pause delay in Home Assistant: OpenThermostat → Configure → Rooms."), {class:'pd-help'}), windowState,
       el('h3', uiText("Persons")), el('p', uiText("Later: choose who uses this room, so it can pause when they are away."), {class:'pd-help'}));
     const removeRoom = el('button', uiText("Remove room"), {type:'button', class:'btn btn-outline-danger'}), removeBox = el('div', null, {class:'hp-remove'});
@@ -382,6 +390,73 @@
     OpenThermostatLanguage.apply(card);
     return card;
   }
+  // The room's valves: live state from the status, the record edited and saved on its own (never with Save rooms).
+  // Control stays off until the owner switches it on; with it off the E32 sends nothing to the valves.
+  function valveBlock(room, card, body, brief) {
+    const box = el('div', null, {'data-heating-valves':''}), rows = el('div'), live = el('ul', null, {class:'hp-valves', 'data-heating-valve-live':''});
+    const note = el('p', null, {class:'pd-help', role:'status', 'aria-live':'polite', 'data-heating-valve-message':''}), valvesBrief = el('dd');
+    const mine = () => trv.rooms.find(r => r.room === room.id) || {room:room.id, control:false, valves:[]};
+    box.append(el('p', uiText("Zigbee radiator valves (through Zigbee2MQTT on the same MQTT broker). The E32 sends them the room target and temperature and keeps the boiler flow as low as the valves allow."), {class:'pd-help'}), live);
+    const control = check(box, uiText("Drive these valves from the E32"), mine().control);
+    control.setAttribute('data-heating-valve-control', '');
+    box.append(el('p', uiText("Only while the E32 controls the boiler itself. Off: nothing is sent to the valves."), {class:'pd-help'}), rows);
+    const more = el('button', uiText("Add valve"), {type:'button', class:'btn btn-outline-primary', 'data-heating-valve-add':''});
+    const save = el('button', uiText("Save valves"), {type:'button', class:'btn btn-primary', 'data-heating-valve-save':''});
+    const addRow = v => {
+      const row = el('div', null, {'data-heating-valve':'', class:'hp-valve'});
+      const name = input('text', v.name, {maxlength:'64', 'aria-label':uiText("Zigbee2MQTT name"), placeholder:uiText("Zigbee2MQTT name")});
+      const model = select(valveModels, v.model);
+      model.setAttribute('aria-label', uiText("Model"));
+      const drop = el('button', '×', {type:'button', class:'btn btn-outline-secondary', 'aria-label':uiText("Remove valve")});
+      drop.addEventListener('click', () => { row.remove(); more.hidden = false; });
+      row.read = () => ({name: name.value.trim(), model: model.value}); row.name = name;
+      row.append(name, model, drop); rows.append(row);
+    };
+    mine().valves.forEach(addRow);
+    more.hidden = mine().valves.length >= 4;
+    more.addEventListener('click', () => { addRow({name:'', model:'generic'}); more.hidden = rows.children.length >= 4; rows.lastChild.name.focus(); });
+    const briefText = () => { const m = mine(); return m.valves.length ? m.valves.map(v => v.name).join(', ') + ' · ' + uiText(m.control ? "driven by the E32" : "not driven") : uiText("None"); };
+    save.addEventListener('click', async () => {
+      const valves = [...rows.children].map(r => r.read()).filter(v => v.name), others = trv.rooms.filter(r => r.room !== room.id);
+      const bad = valves.find(v => !validValve(v.name));
+      const taken = valves.find((v, i) => valves.findIndex(w => w.name === v.name) !== i || others.some(r => r.valves.some(w => w.name === v.name)));
+      if (bad || taken) { note.textContent = uiText(bad ? "Use the valve's Zigbee2MQTT name: up to 64 characters, no # + \" \\ and no / or space at the start or end." : "This valve is already used (here or in another room).") + ' (' + (bad || taken).name + ')'; return; }
+      if (others.reduce((n, r) => n + r.valves.length, valves.length) > 16) { note.textContent = uiText("The E32 drives at most 16 radiator valves."); return; }
+      const next = {schema:1, base_topic:trv.base_topic, rooms:[...others, ...(valves.length ? [{room:room.id, control:control.checked, valves}] : [])]};
+      save.disabled = true; note.textContent = uiText("Saving…");
+      try {
+        const stored = await json('/config/heating/trv', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(next)});
+        trv = {...trv, base_topic:stored.base_topic, rooms:stored.rooms};
+        control.checked = mine().control;
+        note.textContent = uiText("Valves saved.") + ' ✓';
+      } catch (error) { note.textContent = uiText("The E32 refused the radiator valves.") + ' (' + error.code + ')'; }
+      save.disabled = false; valvesBrief.textContent = briefText();
+    });
+    const actions = el('p', null, {class:'ot-actions'}); actions.append(more, save); box.append(actions, note);
+    // Its own save: typing or clicking here never marks the room plan as changed.
+    for (const type of ['input', 'click']) box.addEventListener(type, event => event.stopPropagation());
+    valvesBrief.textContent = briefText();
+    brief.append(el('dt', uiText("Radiator valves")), valvesBrief);
+    // Live: position, battery and whether each valve still reports (fw/state/trv/<room>, also in /status/heating).
+    card.valves = state => {
+      live.replaceChildren(...(state?.valves || []).map(v => {
+        const item = el('li', null, {'data-heating-valve-state':v.name}), tone = v.health === 'ok' ? 'ok' : v.health === 'unknown' ? '' : 'err';
+        const facts = [typeof v.position_pct === 'number' ? uiText("open") + ' ' + v.position_pct + ' %' : '',
+          typeof v.battery_pct === 'number' ? uiText("battery") + ' ' + v.battery_pct + ' %' : v.battery_low ? uiText("battery low") : ''].filter(Boolean).join(' · ');
+        item.append(el('strong', v.name), el('span', uiText(valveHealth[v.health] || valveHealth.unknown), {class:'ot-chip' + (tone ? ' ot-chip--' + tone : '')}), el('span', facts, {class:'pd-help'}));
+        return item;
+      }));
+      // Managed in Home Assistant: the short summary carries the live state too.
+      valvesBrief.textContent = briefText() + (state?.valves?.length ? ' · ' + state.valves.map(v => v.name + ': ' + uiText(valveHealth[v.health] || valveHealth.unknown)
+        + (typeof v.position_pct === 'number' ? ', ' + uiText("open") + ' ' + v.position_pct + ' %' : '')).join('; ') : '');
+      if (state?.control && state.single_source) live.append(el('li', uiText("This room has one temperature source. Add a separate sensor (for example Bluetooth), so the room keeps heating when it fails."), {class:'pd-help', 'data-heating-valve-hint':''}));
+    };
+    body.append(el('h3', uiText("Radiator valves")), box);
+  }
+  const showValves = status => {
+    const byRoom = new Map((status?.trv?.rooms || []).map(r => [r.room, r]));
+    for (const card of roomsBox.querySelectorAll('[data-heating-room]')) card.valves?.(byRoom.get(card.dataset.heatingRoom));
+  };
   function render(status) {
     const byId = new Map((status?.rooms || []).map(r => [r.id, r]));
     roomsBox.replaceChildren(...plan.rooms.map((room, i) => roomCard(room, i, byId.get(room.id))));
@@ -392,7 +467,7 @@
       empty.append(el('strong', uiText("No rooms yet")), uiText("Start with the living room: give it a name and choose its temperature sensor."), el('br'), first);
       roomsBox.append(empty);
     }
-    setDirty(false); applyLock(); checkFlow();
+    setDirty(false); applyLock(); checkFlow(); showValves(status);
   }
   // Mode texts follow the actual plan: shadow until the attended switch-over, then active control.
   function renderMode(mode) {
@@ -483,6 +558,7 @@
     if (key !== bleKey) { bleKey = key; roomsBox.querySelectorAll('[data-heating-ble-pick]').forEach(fillPick); }
     const byId = new Map((status.rooms || []).map(r => [r.id, r]));
     for (const card of roomsBox.querySelectorAll('[data-heating-room]')) if (card.dataset.heatingRoom) card.status(byId.get(card.dataset.heatingRoom));
+    showValves(status);
   }
   async function json(url, options={}) {
     const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), 8000);
@@ -505,6 +581,7 @@
       return;
     }
     errorBox.hidden = true; root.classList.remove('hp-wait');
+    try { trv = await json('/config/heating/trv'); } catch (_) { trv = null; } // older firmware: 404, no valve block
     let status = null; try { status = await json('/status/heating'); } catch (_) {}
     if (status) renderRequest(status);
     render(status); if (!status) renderRequest(null); readControl();
@@ -589,4 +666,6 @@
 })();
 </script>
 <style>#heating-plan .hp-flow-design{margin:0 0 8px 34px;max-width:30rem}#heating-plan .hp-flow-design label{display:block;margin-bottom:4px}#heating-plan [data-flow-message]:empty{display:none}#heating-plan .hp-more{margin:12px 0 0}#heating-plan .hp-unused{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:6px;padding:10px 12px;border-radius:var(--ot-r1);background:var(--ot-surface-2);font-weight:400;font-size:.9rem}
-@media(max-width:560px){#heating-plan .hp-flow-design{margin-left:0}}</style>
+#heating-plan .hp-valve{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,14rem) 44px;gap:8px;margin-bottom:8px}#heating-plan .hp-valve .btn{width:44px;padding:0}
+#heating-plan .hp-valves{list-style:none;padding:0;margin:0 0 8px;display:grid;gap:6px}#heating-plan .hp-valves li{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}#heating-plan .hp-valves:empty,#heating-plan [data-heating-valve-message]:empty{display:none}
+@media(max-width:560px){#heating-plan .hp-flow-design{margin-left:0}#heating-plan .hp-valve{grid-template-columns:minmax(0,1fr) 44px}#heating-plan .hp-valve select{grid-column:1/2}}</style>

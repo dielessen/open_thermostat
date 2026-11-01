@@ -330,6 +330,14 @@ public:
     void inhibitNativeSourceMutation() {if(modern_)modern_->inhibitNativeSourceMutation();}
     bool brokerConnected() const { return modernMode_&&modern_&&modern_->brokerConnected(); }
     void setBoilerOutput(std::function<bool()> output) { if(modern_)modern_->setBoilerOutput(std::move(output)); }
+    void setActuatorOutput(std::function<bool()> output) { if(modern_)modern_->setActuatorOutput(std::move(output)); }
+    void setTrvRoute(std::function<std::vector<std::string>()> topics,std::function<uint32_t()> generation,
+                     std::function<void(std::string_view,std::string_view)> input) {
+        if(modern_)modern_->setTrvRoute(std::move(topics),std::move(generation),std::move(input));
+    }
+    bool publishExternal(const std::string& topic,const std::string& payload) {
+        return modernMode_&&modern_&&modern_->publishExternal(topic,payload);
+    }
     void setHeatingRoute(control::ModernTransport::HeatingInput input,control::ModernTransport::HeatingStatus status,
                          control::ModernTransport::HeatingRoomCount roomCount={},control::ModernTransport::HeatingRoomTelemetry room={},
                          control::ModernTransport::HeatingSummary summary={}) {

@@ -125,6 +125,9 @@ async def async_setup_entry(
             from .e32_flow import async_setup_sensors as async_setup_flow_sensors
             # flow source, gas calibration, last night
             await _optional_step("flow sensors", async_setup_flow_sensors, hass, entry, async_add_entities)
+            from .e32_valves import async_setup_sensors as async_setup_valve_sensors
+            # radiator valves per room (only rooms with valves), their Repairs
+            await _optional_step("valve sensors", async_setup_valve_sensors, hass, entry, async_add_entities)
             return
         from .device_diagnostics import async_setup_device_diagnostics
         await async_setup_device_diagnostics(hass,entry,async_add_entities)

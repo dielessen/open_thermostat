@@ -49,6 +49,8 @@ HEATING_PLAN = "/config/heating"
 HEATING_COMFORT = "/config/heating/comfort"
 # The flow options: weather curve, learned flow and optimum start (E32 beta.19, FlowPolicy.h).
 HEATING_FLOW = "/config/heating/flow"
+# The radiator valves per room, reached through Zigbee2MQTT (E32 beta.24, TrvConfig.h).
+HEATING_TRV = "/config/heating/trv"
 HEATING_PLAN_BYTES = 8192  # The E32 refuses larger request bodies (413 plan_too_large).
 # Since beta.19 the E32 packs large week programs into its 4 KB store and
 # answers 413 plan_too_large itself when even that form does not fit; older
@@ -528,10 +530,10 @@ class ControllerClient:
                     raise ControllerLoginRejected()
                 if response.status in (401, 403):
                     raise ControllerLinkError("controller_auth_failed")
-                if path in (HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW) and response.status in (400, 409, 413, 503, 507):
+                if path in (HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW, HEATING_TRV) and response.status in (400, 409, 413, 503, 507):
                     raise HeatingPlanRejected(response.status, await _error_name(response))
-                if path == HEATING_FLOW and response.status == 404:
-                    raise ControllerLinkError("controller_update_required")  # firmware before beta.19
+                if path in (HEATING_FLOW, HEATING_TRV) and response.status == 404:
+                    raise ControllerLinkError("controller_update_required")  # firmware before beta.19 / beta.24
                 if response.status == 429:
                     # /auth/login: all E32 web sessions are in use (session_capacity), or
                     # too many failed sign-ins (try_again_later, Retry-After 30 s).
@@ -624,6 +626,21 @@ class ControllerClient:
         if type(change) is not dict or not change:
             raise ControllerLinkError("controller_request_invalid")
         raw, _, _ = await self._request("POST", HEATING_FLOW, document=change)
+        return _decode(raw)
+
+    async def async_valves(self, document=None):
+        """GET the radiator valves, or POST the whole valve record; returns what the E32 stored.
+
+        A refusal raises HeatingPlanRejected with the E32's error name
+        (invalid_valve_name, duplicate_valve, unknown_room, ...: 400;
+        save_unconfirmed: 503); firmware without valves raises
+        controller_update_required.
+        """
+        if document is None:
+            return await self.async_read(HEATING_TRV)
+        if type(document) is not dict:
+            raise ControllerLinkError("controller_request_invalid")
+        raw, _, _ = await self._request("POST", HEATING_TRV, document=document)
         return _decode(raw)
 
     async def async_save_settings(self, document, etag):

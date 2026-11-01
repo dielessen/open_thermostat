@@ -9,6 +9,9 @@ most 1.5 KB, sent on a real change (deadbands), at most every 10 s, else every
   block (``active``), burner starts and the HA link;
 - ``fw/state/room/<id>`` and ``fw/state/ble/<id>``: one room, one paired
   Bluetooth sensor;
+- ``fw/state/trv/<room>`` (E32 beta.24, only with radiator valves configured):
+  one room's valves (position, battery, health), listed in ``fw/config/plan``
+  ``trv``; the valve output and flow offset are ``fw/state/heating`` ``trv``;
 - ``fw/config/plan``: the plan's room and sensor ids and how many parts the
   entity list has; ``fw/config/entities`` (and ``.../entities/<k>``): the HA
   entities the plan reads (``ha_entities``);
@@ -90,6 +93,7 @@ MAX_BLE = 16
 HEATING_TOPIC = "fw/state/heating"
 ROOM_TOPIC = "fw/state/room/"
 BLE_TOPIC = "fw/state/ble/"
+TRV_TOPIC = "fw/state/trv/"
 PLAN_TOPIC = "fw/config/plan"
 ENTITIES_TOPIC = "fw/config/entities"
 LEARNED_TOPIC = "fw/telemetry/learned/"
@@ -148,6 +152,25 @@ def decode_item(payload, topic_id, pattern):
     value = dict(value)
     del value["schema"]
     return value
+
+
+def decode_trv(payload, topic_id):
+    """One ``fw/state/trv/<room>`` document whose room is the topic's, or None."""
+    value = decode_document(payload)
+    if (value is None or type(topic_id) is not str or not ROOM_ID.fullmatch(topic_id) or value.get("room") != topic_id
+            or type(value.get("control")) is not bool or type(value.get("valves")) is not list or len(value["valves"]) > 4
+            or any(type(v) is not dict or type(v.get("name")) is not str for v in value["valves"])):
+        return None
+    value = dict(value)
+    del value["schema"]
+    return value
+
+
+def status_valves(status):
+    """{room id: its radiator valves} from the status ``trv`` (empty without valves)."""
+    trv = status.get("trv") if status else None
+    return rooms_by_id([{**room, "id": room.get("room")} for room in trv.get("rooms", []) if type(room) is dict]
+                       if type(trv) is dict and type(trv.get("rooms")) is list else None)
 
 
 def decode_heartbeat(payload):
@@ -372,6 +395,7 @@ class HeatingHub:
         self.active = None
         self.rooms = {}
         self.ble = {}
+        self.valves = {}  # {room id: fw/state/trv/<room>}, empty without radiator valves
         self.learned = {}
         self.warmup = {}
         # {room id: (received, learned room, plan or None)} from learned/<room id>
@@ -390,6 +414,7 @@ class HeatingHub:
         self.heating = None
         self.room_states = {}
         self.ble_states = {}
+        self.trv_states = {}
         self.config = None
         self.entity_parts = {}
         self.entities = None  # the last complete entity list
@@ -480,6 +505,7 @@ class HeatingHub:
         self.active = active if type(active) is dict else None
         self.rooms = status_rooms(status)
         self.ble = status_ble(status)
+        self.valves = status_valves(status)
         self.received = self.clock() if status is not None else None
         if status is not None:
             self.last_seen = self.received
@@ -496,10 +522,13 @@ class HeatingHub:
             entities = [e for p in parts for e in p["entities"]]
             if len(entities) <= MAX_ENTITIES:
                 self.entities = entities
-        status = {key: value for key, value in heating.items() if key not in ("rooms", "ble_sensors", "ha_entities", "shadow")}
+        status = {key: value for key, value in heating.items() if key not in ("rooms", "ble_sensors", "ha_entities", "shadow", "trv")}
         status["ha_entities"] = list(self.entities or [])
         status["rooms"] = [self.room_states[i] for i in config["rooms"] if i in self.room_states]
         status["ble_sensors"] = [self.ble_states[i] for i in config["ble"] if i in self.ble_states]
+        trv = heating.get("trv")
+        if type(trv) is dict and _ids(config.get("trv"), ROOM_ID, 8):
+            status["trv"] = {**trv, "rooms": [self.trv_states[i] for i in config["trv"] if i in self.trv_states]}
         if self.shadow is not None:
             status["shadow"] = {key: value for key, value in self.shadow.items() if key != "schema"}
         return valid_status(status)
@@ -540,7 +569,9 @@ class HeatingHub:
                 return  # a malformed plan never drops the rooms
             self.config = plan
             if plan is not None:
-                for key, store in ((tuple(plan["rooms"]), self.room_states), (tuple(plan["ble"]), self.ble_states)):
+                valves = tuple(plan["trv"]) if _ids(plan.get("trv"), ROOM_ID, 8) else ()
+                for key, store in ((tuple(plan["rooms"]), self.room_states), (tuple(plan["ble"]), self.ble_states),
+                                   (valves, self.trv_states)):
                     for item in [i for i in store if i not in key]:
                         del store[item]
                 for room_id in [r for r in self.learned_messages if r not in plan["rooms"]]:
@@ -566,6 +597,13 @@ class HeatingHub:
                 store.pop(key, None)
             else:
                 store[key] = value
+        elif suffix.startswith(TRV_TOPIC):
+            key = suffix[len(TRV_TOPIC):]
+            value = None if empty else decode_trv(payload, key)
+            if value is None:
+                self.trv_states.pop(key, None)
+            else:
+                self.trv_states[key] = value
         elif suffix.startswith(LEARNED_TOPIC):
             room_id = suffix[len(LEARNED_TOPIC):]
             if empty:
@@ -1564,7 +1602,7 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
 
     await mqtt.async_wait_for_mqtt_client(hass)
     entry.async_on_unload(hub.add_listener(follow, first=True))
-    for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", PLAN_TOPIC,
+    for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", TRV_TOPIC + "+", PLAN_TOPIC,
                   ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, SHADOW_TOPIC):
         entry.async_on_unload(await mqtt.async_subscribe(hass, base + topic, receive))
     entry.async_on_unload(async_track_time_interval(hass, refresh, timedelta(seconds=REFRESH_SECONDS)))

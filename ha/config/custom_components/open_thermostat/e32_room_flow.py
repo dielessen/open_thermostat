@@ -37,6 +37,7 @@ from .e32_comfort import (DELAY_LIMITS, ComfortError, comfort_options, contact_d
 from .heating_link import TEMPERATURE_UNITS, celsius, heating_hub, label, number
 from .native_form import retained_input_schema
 from .room_plan import has_room_plan, plan_room
+from .e32_valves import valid_name as valid_valve_name
 
 MAX_ROOMS = 8
 MAX_SOURCES = 4
@@ -355,12 +356,14 @@ class E32RoomFlow:
             self._e32_room_id = user_input["room"]
             if user_input.get("action") == "remove":
                 return await self.async_step_e32_room_remove()
+            if user_input.get("action") == "valves":
+                return await self.async_step_e32_room_valves()
             return await self.async_step_e32_room()
         return self.async_show_form(step_id="e32_room_pick", data_schema=vol.Schema({
             vol.Required("room", default=rooms[0]["id"]): selector.SelectSelector({"options": [
                 {"value": r["id"], "label": r.get("name", r["id"])} for r in rooms]}),
             vol.Required("action", default="edit"): selector.SelectSelector({
-                "options": ["edit", "remove"], "translation_key": "e32_room_action"}),
+                "options": ["edit", "valves", "remove"], "translation_key": "e32_room_action"}),
         }))
 
     def _boiler_maximum(self):
@@ -500,6 +503,100 @@ class E32RoomFlow:
         return self.async_show_form(step_id="e32_room_remove", data_schema=vol.Schema({
             vol.Required("confirm_remove", default=False): bool}),
             errors=errors, description_placeholders=placeholders)
+
+    def _e32_zigbee_valves(self):
+        """[(friendly name, our model or None)] of the Zigbee2MQTT devices Home Assistant knows.
+
+        Zigbee2MQTT names its devices in Home Assistant by their friendly name; the model
+        is guessed from the device's model id (the installer can always correct it).
+        """
+        from homeassistant.helpers import device_registry as dr
+        found = []
+        registry = dr.async_get(self.hass)
+        devices = [d for mqtt in self.hass.config_entries.async_entries("mqtt")
+                   for d in dr.async_entries_for_config_entry(registry, mqtt.entry_id)]
+        for device in devices:
+            if not any(domain == "mqtt" and str(ident).startswith("zigbee2mqtt_") for domain, ident in device.identifiers):
+                continue
+            name = device.name
+            if not valid_valve_name(name) or name.startswith("Zigbee2MQTT"):
+                continue
+            text = " ".join(str(v or "") for v in (device.manufacturer, device.model, getattr(device, "model_id", None))).lower()
+            model = ("bosch_bth_ra" if "bth-ra" in text or "bosch" in text and "thermostat" in text
+                     else "sonoff_trvzb" if "trvzb" in text else "tuya_tv02" if "tv02" in text else None)
+            if model is not None or "thermostat" in text or "trv" in text or "valve" in text:
+                found.append((name, model))
+        return sorted(found)
+
+    async def async_step_e32_room_valves(self, user_input=None):
+        """The room's radiator valves (Zigbee2MQTT friendly names and models) and its valve control.
+
+        The E32 talks to Zigbee2MQTT itself; valve control stays off until switched on
+        here or with the room's "Valve control" switch.
+        """
+        from .e32_valves import MAX_VALVES, MAX_VALVES_PER_ROOM, MODELS, valve_link
+        room_id = self._e32_room_id
+        room = plan_room(self._e32_plan, room_id)
+        if room is None:
+            return self.async_abort(reason="e32_room_missing", description_placeholders={"room": room_id})
+        link = valve_link(self.hass, self.config_entry) if self._e32_link() is not None else None
+        if link is None:
+            return self.async_abort(reason="e32_rooms_unavailable")
+        placeholders = {"name": room.get("name", room_id), "error": ""}
+        try:
+            config = await link.async_read()
+        except HomeAssistantError as err:
+            key = getattr(err, "translation_key", None)
+            if (getattr(err, "translation_placeholders", None) or {}).get("error") == "controller_update_required":
+                return self.async_abort(reason="e32_valves_update_required")
+            if key == "room_plan_password":
+                return self.async_abort(reason="e32_password_changed")
+            return self.async_abort(reason="e32_unreachable", description_placeholders={
+                "error": (getattr(err, "translation_placeholders", None) or {}).get("error", "unknown")})
+        current = next((r for r in config["rooms"] if r["room"] == room_id), {"control": False, "valves": []})
+        known = self._e32_zigbee_valves()
+        errors = {}
+        if user_input is not None:
+            valves, names = [], set()
+            for k in range(1, MAX_VALVES_PER_ROOM + 1):
+                name = str(user_input.get(f"valve_{k}") or "").strip()
+                if not name:
+                    continue
+                model = user_input.get(f"model_{k}")
+                if not valid_valve_name(name):
+                    errors[f"valve_{k}"] = "e32_valve_name_invalid"
+                elif name in names or any(name == v["name"] for r in config["rooms"] if r["room"] != room_id for v in r["valves"]):
+                    errors[f"valve_{k}"] = "e32_valve_duplicate"
+                elif model not in MODELS:
+                    errors[f"model_{k}"] = "e32_valve_model_missing"
+                names.add(name)
+                valves.append({"name": name, "model": model})
+            others = sum(len(r["valves"]) for r in config["rooms"] if r["room"] != room_id)
+            if not errors and others + len(valves) > MAX_VALVES:
+                errors["base"] = "e32_valve_limit"
+            if not errors:
+                try:
+                    await link.async_change(room_id, control=bool(user_input.get("control")) and bool(valves), valves=valves)
+                except HomeAssistantError as err:
+                    errors["base"] = "e32_valves_rejected"
+                    placeholders["error"] = (getattr(err, "translation_placeholders", None) or {}).get("error", "unknown")
+                else:
+                    return await self.async_step_e32_rooms(done="saved", name=placeholders["name"])
+        options = [{"value": name, "label": name if model is None else f"{name} ({model})"} for name, model in known]
+        guessed = dict(known)
+        stored = current["valves"]
+        fields = {vol.Required("control", default=current["control"]): bool}
+        for k in range(1, MAX_VALVES_PER_ROOM + 1):
+            valve = stored[k - 1] if k <= len(stored) else None
+            value = (user_input or {}).get(f"valve_{k}", valve["name"] if valve else "")
+            model = (user_input or {}).get(f"model_{k}", valve["model"] if valve else guessed.get(value) or "generic")
+            fields[vol.Optional(f"valve_{k}", description={"suggested_value": value or None})] = selector.SelectSelector(
+                {"options": options, "custom_value": True, "mode": "dropdown"})
+            fields[vol.Optional(f"model_{k}", default=model)] = selector.SelectSelector(
+                {"options": list(MODELS), "translation_key": "e32_valve_model"})
+        placeholders["found"] = str(len(known))
+        return self.async_show_form(step_id="e32_room_valves", data_schema=vol.Schema(fields),
+                                    errors=errors, description_placeholders=placeholders)
 
     def _e32_forget_room(self, room_id):
         """The room is gone from the E32 plan: remove its device and entities (this entry's only)."""

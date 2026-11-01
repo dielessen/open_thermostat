@@ -212,6 +212,7 @@ public:
 #ifdef OPENTHERMOSTAT_E32V2
         route("/config/heating/handover",HTTP_POST,[this] { heatingHandover(); });
         route("/config/heating/flow",[this] { heatingFlow(); });
+        route("/config/heating/trv",[this] { heatingTrv(); });
         route("/config/heating/comfort",[this] { heatingComfort(); });
         route("/config/heating",[this] { heatingPlan(); });
         route("/status/heating",HTTP_GET,[this] { heatingStatus(); });
@@ -1445,6 +1446,19 @@ private:
 			}
 		} else if (server_.method() != HTTP_GET) { server_.send(405,"application/json","{\"error\":\"method_not_allowed\"}"); return; }
 		server_.send(200,"application/json",controller_.flowSettingsJson().c_str());
+	}
+	// GET: the radiator valves (control/TrvConfig.h), their features, models and live status;
+	// POST the whole record {"schema":1,"base_topic","rooms":[{"room","control","valves":[{"name","model"}]}]}.
+	// Stored in NVS beside the room plan; an empty "rooms" removes the record.
+	void heatingTrv() {
+		if (server_.method() == HTTP_POST) {
+			const auto body = server_.arg("plain");
+			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= control::TrvConfig::maxBytes ? control::parseNestedJson(body,true,5) : control::ControlJson(nullptr,cJSON_Delete));
+			if (const char* error = root ? controller_.setTrv(root.get()) : "invalid_json") {
+				server_.send(std::strcmp(error,"save_unconfirmed") ? 400 : 503,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
+			}
+		} else if (server_.method() != HTTP_GET) { server_.send(405,"application/json","{\"error\":\"method_not_allowed\"}"); return; }
+		server_.send(200,"application/json",controller_.trvJson().c_str());
 	}
 	// GET: overrides and away (control/RoomOverrides.h); POST one command:
 	// {"room","override":"boost"|"timed"|"next"|"none","temperature","minutes"} or

@@ -1,0 +1,1137 @@
+{
+  "schema": 1,
+  "id": "nefit-proline-hrc",
+  "name": "Nefit ProLine HRC",
+  "family": "Nefit ProLine",
+  "purpose": "Display-code meanings for this boiler family only (presentation, never control evidence). Other boiler profile fields are not claimed for this family.",
+  "display_codes": {
+    "schema": 1,
+    "catalog_ids": [
+      "nefit-proline"
+    ],
+    "source": "nefit-proline-6720646227",
+    "cause_numbers": true,
+    "fallback": null,
+    "scope": "Nefit ProLine HRC 24/CW3, HRC 24/CW4, HRC 30/CW5 (display code and three-digit cause number). Other ProLine generations (NxT, Eco) were not reviewed.",
+    "verified": "Every row checked against 6 720 646 227 chapter 10, table 25 (pages 31-34); the type column gives the severity (2 blocking, 3 locking, 2+3 fault).",
+    "codes": [
+      {
+        "code": "-A",
+        "cause": 208,
+        "severity": "service",
+        "advice": "service",
+        "text": {
+          "en": "Chimney sweep or service mode",
+          "nl": "Schoorsteenveger- of servicebedrijf",
+          "pl": "Tryb kominiarski lub serwisowy"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "-H",
+        "cause": 200,
+        "severity": "normal",
+        "text": {
+          "en": "Heating",
+          "nl": "Verwarmen",
+          "pl": "Ogrzewanie"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "=H",
+        "cause": 201,
+        "severity": "normal",
+        "text": {
+          "en": "Hot water",
+          "nl": "Warm water",
+          "pl": "Ciepła woda"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "0A",
+        "cause": 202,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Waiting: anti-cycle time, the burner may not restart yet",
+          "nl": "Wacht: antipendeltijd, de brander mag nog niet herstarten",
+          "pl": "Oczekiwanie: blokada taktowania, palnik nie może jeszcze wystartować"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "0A",
+        "cause": 305,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Waiting after hot water",
+          "nl": "Wacht na warmwaterbedrijf",
+          "pl": "Oczekiwanie po podgrzewaniu ciepłej wody"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "0C",
+        "cause": 283,
+        "severity": "normal",
+        "text": {
+          "en": "Preparing to start the burner",
+          "nl": "Bereidt de branderstart voor",
+          "pl": "Przygotowanie do startu palnika"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "0E",
+        "cause": 265,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Waiting: heat demand is below the minimum output, the burner switches on and off",
+          "nl": "Wacht: warmtevraag lager dan het minimale vermogen, de brander schakelt aan en uit",
+          "pl": "Oczekiwanie: zapotrzebowanie poniżej mocy minimalnej, palnik włącza się i wyłącza"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "0H",
+        "cause": 203,
+        "severity": "normal",
+        "text": {
+          "en": "Standby: no heat demand",
+          "nl": "Stand-by: geen warmtevraag",
+          "pl": "Czuwanie: brak zapotrzebowania na ciepło"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "0L",
+        "cause": 284,
+        "severity": "normal",
+        "text": {
+          "en": "Ignition: gas valve opening",
+          "nl": "Ontsteking: gasblok gaat open",
+          "pl": "Zapłon: otwieranie zaworu gazowego"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "0U",
+        "cause": 270,
+        "severity": "normal",
+        "text": {
+          "en": "Starting up",
+          "nl": "Opstarten",
+          "pl": "Uruchamianie"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "0Y",
+        "cause": 204,
+        "severity": "waiting",
+        "advice": "settings",
+        "text": {
+          "en": "Waiting: the water is warmer than required",
+          "nl": "Wacht: het water is warmer dan nodig",
+          "pl": "Oczekiwanie: woda jest cieplejsza niż wymagana"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "0A",
+        "cause": 353,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Waiting: the boiler was hardly ever off in the last 24 hours",
+          "nl": "Wacht: de ketel is de afgelopen 24 uur bijna niet uit geweest",
+          "pl": "Oczekiwanie: kocioł prawie nie był wyłączony przez ostatnie 24 godziny"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "0Y",
+        "cause": 276,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Flow temperature above 95 °C",
+          "nl": "Aanvoertemperatuur boven 95 °C",
+          "pl": "Temperatura zasilania powyżej 95 °C"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "0Y",
+        "cause": 285,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Return temperature above 95 °C",
+          "nl": "Retourtemperatuur boven 95 °C",
+          "pl": "Temperatura powrotu powyżej 95 °C"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "1A",
+        "cause": 316,
+        "severity": "fault",
+        "advice": "flow",
+        "text": {
+          "en": "Flue gas temperature too high",
+          "nl": "Rookgastemperatuur te hoog",
+          "pl": "Za wysoka temperatura spalin"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "1C",
+        "cause": 210,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flue gas thermostat tripped",
+          "nl": "Rookgasthermostaat aangesproken",
+          "pl": "Zadziałał termostat spalin"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "1P",
+        "cause": 346,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Flue gas temperature rising too fast",
+          "nl": "Rookgastemperatuur stijgt te snel",
+          "pl": "Temperatura spalin rośnie zbyt szybko"
+        },
+        "pages": "31"
+      },
+      {
+        "code": "1U",
+        "cause": 317,
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Flue gas sensor short-circuited",
+          "nl": "Rookgassensor kortgesloten",
+          "pl": "Zwarcie czujnika spalin"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "1Y",
+        "cause": 318,
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Flue gas sensor open circuit",
+          "nl": "Rookgassensor onderbroken",
+          "pl": "Przerwa w obwodzie czujnika spalin"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "2A",
+        "cause": 343,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Heating: flue gas temperature rises but the flow temperature does not",
+          "nl": "Cv: rookgastemperatuur stijgt, aanvoertemperatuur niet",
+          "pl": "Ogrzewanie: temperatura spalin rośnie, a zasilania nie"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "2A",
+        "cause": 344,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Hot water: flue gas temperature rises but the flow temperature does not",
+          "nl": "Warm water: rookgastemperatuur stijgt, aanvoertemperatuur niet",
+          "pl": "Ciepła woda: temperatura spalin rośnie, a zasilania nie"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "2C",
+        "cause": 348,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Flow above 85 °C during hot water",
+          "nl": "Aanvoer boven 85 °C tijdens warm water",
+          "pl": "Zasilanie powyżej 85 °C podczas podgrzewania wody"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "2E",
+        "cause": 207,
+        "severity": "blocking",
+        "advice": "pressure",
+        "text": {
+          "en": "Water pressure too low",
+          "nl": "Waterdruk te laag",
+          "pl": "Za niskie ciśnienie wody"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "2F",
+        "cause": 345,
+        "severity": "fault",
+        "advice": "flow",
+        "text": {
+          "en": "No flow temperature rise after the burner started",
+          "nl": "Geen stijging van de aanvoertemperatuur na de branderstart",
+          "pl": "Brak wzrostu temperatury zasilania po starcie palnika"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "2L",
+        "cause": 266,
+        "severity": "locking",
+        "advice": "flow",
+        "text": {
+          "en": "Pump test failed: no water flow",
+          "nl": "Pomptest mislukt: geen waterstroming",
+          "pl": "Test pompy nieudany: brak przepływu wody"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "2L",
+        "cause": 329,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Not enough water flow",
+          "nl": "Te weinig waterstroming",
+          "pl": "Zbyt mały przepływ wody"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "2P",
+        "cause": 341,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Flow temperature rising too fast",
+          "nl": "Aanvoertemperatuur stijgt te snel",
+          "pl": "Temperatura zasilania rośnie zbyt szybko"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "2P",
+        "cause": 342,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Flow temperature rising too fast",
+          "nl": "Aanvoertemperatuur stijgt te snel",
+          "pl": "Temperatura zasilania rośnie zbyt szybko"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "2U",
+        "cause": 213,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Flow and return temperatures differ too much or rise too fast",
+          "nl": "Aanvoer- en retourtemperatuur verschillen te veel of stijgen te snel",
+          "pl": "Temperatury zasilania i powrotu różnią się zbyt mocno lub rosną zbyt szybko"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "2U",
+        "cause": 349,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Flow and return differ too much at low output",
+          "nl": "Verschil aanvoer en retour te groot op laaglast",
+          "pl": "Zbyt duża różnica zasilania i powrotu przy niskiej mocy"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "3A",
+        "cause": 264,
+        "severity": "blocking",
+        "advice": "installer",
+        "text": {
+          "en": "Fan stopped during operation",
+          "nl": "Ventilator tijdens bedrijf uitgevallen",
+          "pl": "Wentylator zatrzymał się podczas pracy"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "3C",
+        "cause": 217,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Fan not running properly at start-up",
+          "nl": "Ventilator draait niet goed bij het opstarten",
+          "pl": "Wentylator nie pracuje prawidłowo przy starcie"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "3F",
+        "cause": 273,
+        "severity": "blocking",
+        "advice": "self",
+        "text": {
+          "en": "Short safety stop after 24 hours of continuous operation",
+          "nl": "Korte veiligheidsstop na 24 uur continu bedrijf",
+          "pl": "Krótkie zatrzymanie kontrolne po 24 godzinach ciągłej pracy"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "3L",
+        "cause": 214,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Fan not running during start-up",
+          "nl": "Ventilator draait niet tijdens het opstarten",
+          "pl": "Wentylator nie pracuje podczas uruchamiania"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "3P",
+        "cause": 216,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Fan too slow",
+          "nl": "Ventilator draait te langzaam",
+          "pl": "Wentylator obraca się zbyt wolno"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "3Y",
+        "cause": 215,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Fan too fast",
+          "nl": "Ventilator draait te snel",
+          "pl": "Wentylator obraca się zbyt szybko"
+        },
+        "pages": "32"
+      },
+      {
+        "code": "4C",
+        "cause": 224,
+        "severity": "locking",
+        "advice": "reset",
+        "text": {
+          "en": "High-limit or flue gas limit thermostat tripped",
+          "nl": "Maximaal- of rookgasbegrenzer aangesproken",
+          "pl": "Zadziałał ogranicznik temperatury lub spalin"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "4E",
+        "cause": 347,
+        "severity": "blocking",
+        "advice": "installer",
+        "text": {
+          "en": "Return warmer than flow (sensors swapped?)",
+          "nl": "Retour warmer dan aanvoer (sensoren verwisseld?)",
+          "pl": "Powrót cieplejszy niż zasilanie (zamienione czujniki?)"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "4U",
+        "cause": 222,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flow sensor short-circuited",
+          "nl": "Aanvoersensor kortgesloten",
+          "pl": "Zwarcie czujnika zasilania"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "4U",
+        "cause": 350,
+        "severity": "blocking",
+        "advice": "installer",
+        "text": {
+          "en": "Flow sensor short-circuited",
+          "nl": "Aanvoersensor kortgesloten",
+          "pl": "Zwarcie czujnika zasilania"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "4Y",
+        "cause": 223,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flow sensor open circuit",
+          "nl": "Aanvoersensor onderbroken",
+          "pl": "Przerwa w obwodzie czujnika zasilania"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "4Y",
+        "cause": 351,
+        "severity": "blocking",
+        "advice": "installer",
+        "text": {
+          "en": "Flow sensor open circuit",
+          "nl": "Aanvoersensor onderbroken",
+          "pl": "Przerwa w obwodzie czujnika zasilania"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "5C",
+        "cause": 226,
+        "severity": "service",
+        "advice": "service",
+        "text": {
+          "en": "A service tool was connected",
+          "nl": "Er is een servicetool aangesloten geweest",
+          "pl": "Podłączono narzędzie serwisowe"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "5F",
+        "severity": "service",
+        "advice": "reset",
+        "text": {
+          "en": "Service tool: the service test took too long",
+          "nl": "Servicetool: de servicetest duurde te lang",
+          "pl": "Narzędzie serwisowe: test serwisowy trwał zbyt długo"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "5H",
+        "cause": 268,
+        "severity": "service",
+        "advice": "service",
+        "text": {
+          "en": "Component test (service)",
+          "nl": "Componententest (service)",
+          "pl": "Test podzespołów (serwis)"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "5Y",
+        "severity": "service",
+        "advice": "reset",
+        "text": {
+          "en": "Service tool: the test took too long or a boiler setting was changed",
+          "nl": "Servicetool: de test duurde te lang of een ketelinstelling is gewijzigd",
+          "pl": "Narzędzie serwisowe: test trwał zbyt długo lub zmieniono ustawienie kotła"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "6A",
+        "cause": 227,
+        "severity": "fault",
+        "advice": "gas",
+        "text": {
+          "en": "No flame detected after ignition",
+          "nl": "Geen vlam na het ontsteken",
+          "pl": "Nie wykryto płomienia po zapłonie"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "6C",
+        "cause": 228,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flame detected before the burner started",
+          "nl": "Vlam gemeten voordat de brander startte",
+          "pl": "Wykryto płomień przed startem palnika"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "6C",
+        "cause": 306,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flame detected after the burner switched off",
+          "nl": "Vlam gemeten nadat de brander uitging",
+          "pl": "Wykryto płomień po wyłączeniu palnika"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "6L",
+        "cause": 229,
+        "severity": "fault",
+        "advice": "gas",
+        "text": {
+          "en": "Flame lost while burning",
+          "nl": "Vlam valt weg tijdens het branden",
+          "pl": "Utrata płomienia podczas pracy palnika"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "7C",
+        "cause": 231,
+        "severity": "locking",
+        "advice": "reset",
+        "text": {
+          "en": "Power was interrupted during a lockout",
+          "nl": "Netspanning onderbroken tijdens een vergrendeling",
+          "pl": "Przerwa w zasilaniu podczas blokady"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "7H",
+        "cause": 328,
+        "severity": "blocking",
+        "advice": "power",
+        "text": {
+          "en": "Short power interruption",
+          "nl": "Korte onderbreking van de netspanning",
+          "pl": "Krótka przerwa w zasilaniu"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "7L",
+        "cause": 261,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit faulty",
+          "nl": "Besturing defect",
+          "pl": "Sterownik uszkodzony"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "7L",
+        "cause": 280,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit faulty",
+          "nl": "Besturing defect",
+          "pl": "Sterownik uszkodzony"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "8C",
+        "cause": 373,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Burner thermostat tripped too often: permanent lockout, only the manufacturer can unlock it",
+          "nl": "Branderthermostaat te vaak aangesproken: blijvend vergrendeld, alleen de fabrikant kan ontgrendelen",
+          "pl": "Termostat palnika zadziałał zbyt często: trwała blokada, odblokować może tylko producent"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "8C",
+        "cause": 374,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flame lost too often while burning: permanent lockout, only the manufacturer can unlock it",
+          "nl": "Te vaak vlamverlies tijdens het branden: blijvend vergrendeld, alleen de fabrikant kan ontgrendelen",
+          "pl": "Zbyt częsta utrata płomienia podczas pracy: trwała blokada, odblokować może tylko producent"
+        },
+        "pages": "33"
+      },
+      {
+        "code": "8Y",
+        "cause": 232,
+        "severity": "waiting",
+        "advice": "external",
+        "text": {
+          "en": "External switch contact open: the boiler waits",
+          "nl": "Extern schakelcontact open: de ketel wacht",
+          "pl": "Zewnętrzny styk otwarty: kocioł czeka"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "9A",
+        "cause": 235,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Code plug (KIM) is newer than the control unit supports",
+          "nl": "Codeerstekker (KIM) is te nieuw voor de besturing",
+          "pl": "Wtyczka kodująca (KIM) jest nowsza, niż obsługuje sterownik"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "9H",
+        "cause": 237,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "9H",
+        "cause": 272,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "9L",
+        "cause": 234,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Gas valve or its wiring faulty",
+          "nl": "Gasregelblok of de bedrading ervan defect",
+          "pl": "Usterka zaworu gazowego lub jego okablowania"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "9L",
+        "cause": 238,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "9P",
+        "cause": 239,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "9U",
+        "cause": 233,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "9Y",
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "No communication between the control panel and the control unit",
+          "nl": "Geen communicatie tussen bedieningspaneel en besturing",
+          "pl": "Brak komunikacji między panelem sterowania a sterownikiem"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "C0",
+        "cause": 288,
+        "severity": "locking",
+        "advice": "pressure",
+        "text": {
+          "en": "Water pressure too high or pressure sensor open circuit",
+          "nl": "Waterdruk te hoog of druksensor onderbroken",
+          "pl": "Za wysokie ciśnienie wody lub przerwa w czujniku ciśnienia"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "C0",
+        "cause": 289,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Pressure sensor short-circuited",
+          "nl": "Druksensor kortgesloten",
+          "pl": "Zwarcie czujnika ciśnienia"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "CA",
+        "cause": 286,
+        "severity": "locking",
+        "advice": "flow",
+        "text": {
+          "en": "Return temperature above 105 °C",
+          "nl": "Retourtemperatuur boven 105 °C",
+          "pl": "Temperatura powrotu powyżej 105 °C"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "CU",
+        "cause": 240,
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Return sensor short-circuited",
+          "nl": "Retoursensor kortgesloten",
+          "pl": "Zwarcie czujnika powrotu"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "CY",
+        "cause": 241,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Return sensor open circuit",
+          "nl": "Retoursensor onderbroken",
+          "pl": "Przerwa w obwodzie czujnika powrotu"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "E1",
+        "cause": 242,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "E1",
+        "cause": 243,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "E1",
+        "cause": 244,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "E1",
+        "cause": 245,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "E1",
+        "cause": 247,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "E1",
+        "cause": 248,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "E1",
+        "cause": 249,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "E1",
+        "cause": 255,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "E1",
+        "cause": 257,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EA",
+        "cause": 246,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EA",
+        "cause": 252,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EA",
+        "cause": 253,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EC",
+        "cause": 251,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EC",
+        "cause": 256,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EF",
+        "cause": 254,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EH",
+        "cause": 250,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EH",
+        "cause": 258,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EH",
+        "cause": 262,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EL",
+        "cause": 259,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EL",
+        "cause": 279,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EL",
+        "cause": 290,
+        "severity": "blocking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EP",
+        "cause": 287,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "EY",
+        "cause": 263,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "34"
+      },
+      {
+        "code": "rE",
+        "severity": "normal",
+        "text": {
+          "en": "Reset in progress",
+          "nl": "Reset wordt uitgevoerd",
+          "pl": "Trwa reset"
+        },
+        "pages": "34"
+      }
+    ]
+  }
+}

@@ -4,8 +4,10 @@ The tables come from the boiler profiles (docs/modern-thermostat/boiler-profiles
 into display_code_table.py by scripts/generate_display_codes.py) and follow the boiler model
 chosen on the E32 (``display_model`` in fw/config/boiler_profile). A model without its own
 table, or firmware that does not say, uses the generic EMS table (display code + cause
-number). A code the table does not list stays the raw code with "unknown code, see your
-boiler manual": never a guess from another boiler family.
+number). A model table can also list a cause number without a display code (the manual
+shows the number only); it matches that number with any display code. A code the table
+does not list stays the raw code with "unknown code, see your boiler manual": never a
+guess from another boiler family.
 
 Presentation only: the code sensor's state stays the raw code (history and automations keep
 their meaning); the words are its attributes, in the Home Assistant language.
@@ -41,12 +43,12 @@ def describe(code, cause=None, model=None, language="en"):
     raw = normalise(code)
     if raw is None:
         return None
-    number = cause if type(cause) is int and 0 < cause < 1000 else None
+    number = cause if type(cause) is int and 0 < cause < 10000 else None
     i = language_index(language)
     table = MODELS.get(model, GENERIC) if type(model) is str else GENERIC
     while table is not None:
         rows = TABLES[table]
-        hit = (rows.get((raw, number)) if number is not None else None) or rows.get((raw, None))
+        hit = ((rows.get((raw, number)) or rows.get((None, number))) if number is not None else None)             or rows.get((raw, None))
         if hit:
             severity, advice, text = hit
             return {"code": raw, "cause": number, "known": True, "table": table, "severity": severity,

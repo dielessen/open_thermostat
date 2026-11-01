@@ -21,6 +21,20 @@ from test_modern_metrics import system
 ROOT = Path(__file__).resolve().parents[2]
 OWNER = "nefit-ecomline-classic-hrc-22h"
 DISPLAY_CODE, SERVICE_NUMBER = 24, 25
+# Boiler-model selection (E32 Boiler page): its family table (docs/modern-thermostat/boiler-profiles).
+FAMILY_MODELS = {
+    "nefit-ecomline-classic": OWNER, OWNER: OWNER,
+    "nefit-ecomline-excellent": "nefit-ecomline-excellent",
+    "nefit-proline": "nefit-proline-hrc",
+    "nefit-trendline-ii": "nefit-trendline-ii",
+    "nefit-topline": "nefit-topline-aquapower",
+    "nefit-smartline": "nefit-smartline-basic",
+    "buderus-logamax-plus-gb172": "buderus-logamax-plus-gb172",
+    "buderus-gb162": "buderus-logamax-plus-gb162",
+    "bosch-condens-7000i-w": "bosch-condens-7000i-w",
+    "bosch-cerapur-zsb-zwb-5c": "bosch-cerapur-zsb-5c", "junkers-cerapur": "bosch-cerapur-zsb-5c",
+    "worcester-bosch-greenstar-4000": "worcester-bosch-greenstar-4000",
+}
 
 
 def wire(code):
@@ -30,8 +44,10 @@ def wire(code):
 def test_the_generated_table_matches_the_boiler_profiles():
     subprocess.run([sys.executable, "scripts/generate_display_codes.py", "--check"], cwd=ROOT, check=True)
     assert GENERIC == "ems-generic" and FALLBACK[OWNER] is None
-    # Both selections of the owner's family use its own table; no other model claims one.
-    assert MODELS == {"nefit-ecomline-classic": OWNER, OWNER: OWNER}
+    # Each family with a reviewed manual has its own table for exactly its selections.
+    assert MODELS == FAMILY_MODELS
+    assert set(TABLES) == {GENERIC, *FAMILY_MODELS.values()}
+    assert all(FALLBACK[table] is None for table in FAMILY_MODELS.values())  # never borrowed
 
 
 def test_a_known_code_with_its_cause_number_in_three_languages():
@@ -64,8 +80,9 @@ def test_a_missing_or_unlisted_cause_uses_the_code_only_meaning_or_none():
         assert describe("0H", cause)["meaning"] == "Standby: no heat demand", cause
         assert describe("0H", cause)["cause"] is None or cause == 999
     assert describe("6A")["fault"] and describe("6A")["meaning"] == "No flame detected after ignition"
-    # 0C and 2F mean different things on Classic and newer boilers: no code-only guess.
-    for code in ("0C", "2F", "3C", "7H"):
+    # 0C and 2F mean different things on Classic and newer boilers, EA and 0Y on the Bosch
+    # letter-code families: no code-only guess.
+    for code in ("0C", "2F", "3C", "7H", "EA", "0Y"):
         assert not describe(code)["known"], code
     assert describe("0C", 283)["meaning"] == "Preparing to start the burner"
 
@@ -106,9 +123,58 @@ def test_codes_are_normalised_and_no_code_is_no_description():
 
 def test_every_table_row_has_three_languages_and_a_known_severity():
     for name, rows in TABLES.items():
+        model = next((m for m, t in MODELS.items() if t == name), None)
         for (code, cause), (severity, advice, text) in rows.items():
-            assert normalise(code) == code and len(text) == 3 and all(text), (name, code, cause)
-            assert describe(code, cause, next((m for m, t in MODELS.items() if t == name), None))["table"] == name
+            assert len(text) == 3 and all(text), (name, code, cause)
+            if code is None:  # a cause number without a display code: any code with that number
+                assert name != GENERIC and cause is not None
+                found = describe("XX", cause, model)
+                assert found["table"] == name and found["meaning"] == text[0], (name, cause)
+                continue
+            assert normalise(code) == code, (name, code, cause)
+            assert describe(code, cause, model)["table"] == name
+
+
+def test_the_family_tables_follow_their_own_manuals():
+    # ProLine and TrendLine II: code + cause number, the type column for the severity.
+    assert describe("2E", 207, "nefit-proline")["severity"] == "blocking"
+    assert describe("8C", 373, "nefit-proline")["meaning"].startswith("Burner thermostat tripped too often")
+    assert describe("5Y", None, "nefit-proline")["severity"] == "service"
+    assert describe("EE", 554, "nefit-trendline-ii")["meaning"] == "Internal fault in the control unit"
+    assert describe("4A", 332, "nefit-topline")["meaning"] == "Flow temperature above 110 °C"
+    # GB172: 4C 224 is in both the blocking and the locking table, so "fault".
+    assert describe("4C", 224, "buderus-logamax-plus-gb172")["severity"] == "fault"
+    assert describe("2P", 342, "buderus-logamax-plus-gb172")["severity"] == "waiting"
+    assert describe("C0", 288, "nefit-smartline", "nl")["meaning"] == "Druksensor onderbroken of kortgesloten"
+    assert describe("5L", None, "buderus-gb162")["meaning"] == "A blocking or locking fault has occurred"
+    # The EcomLine Excellent shares the Classic codes, except that its wiring-link fault is 8Y.
+    assert describe("8Y", None, "nefit-ecomline-excellent")["meaning"] == describe("8L", None, OWNER)["meaning"]
+    assert not describe("8L", None, "nefit-ecomline-excellent")["known"]
+    assert describe("0C", None, "nefit-ecomline-excellent")["meaning"] == "Waiting for the 3-way valve to switch"
+
+
+def test_bosch_letter_codes_and_number_only_messages():
+    # Condens 7000i W / Cerapur: letter codes with a subcode; operating messages are number only.
+    for model in ("bosch-condens-7000i-w", "bosch-cerapur-zsb-zwb-5c", "junkers-cerapur"):
+        flame = describe("EA", 227, model)
+        assert flame["meaning"] == "No flame detected after ignition" and flame["severity"] == "fault", model
+        assert describe("C6", 215, model)["severity"] == "locking"
+        assert describe("-H", 203, model)["meaning"] == "Standby: no heat demand"  # any code with 203
+        assert describe("0H", 200, model, "pl")["meaning"] == "Ogrzewanie"
+        # The code with its number wins over the number alone: D4 341 blocks, "-" 341 only limits.
+        assert describe("D4", 341, model)["severity"] == "blocking"
+        assert describe("-H", 341, model)["severity"] == "waiting"
+        # A Nefit code is not borrowed from another family.
+        assert not describe("2E", 207, model)["known"]
+    assert describe("EH", 258, "bosch-condens-7000i-w")["known"] and not describe("EH", 258, "junkers-cerapur")["known"]
+    # Greenstar 4000: the display shows a three- or four-digit number only.
+    model = "worcester-bosch-greenstar-4000"
+    lost = describe("EA", 2927, model)
+    assert lost["meaning"] == "Flame lost while burning" and lost["severity"] == "blocking" and lost["cause"] == 2927
+    assert describe("XX", 2980, model)["severity"] == "locking"
+    assert not describe("XX", 1013, model)["known"]  # a maintenance message (class W) is left out
+    # Four-digit numbers stay numbers, also where no table knows them.
+    assert describe("7X", 9999)["cause"] == 9999 and describe("7X", 10000)["cause"] is None
 
 
 def test_the_profile_topic_carries_the_boiler_model_choice():

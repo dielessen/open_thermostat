@@ -100,6 +100,10 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   }
   // A newly catalogued model persists without fetching any remote profile or image.
   await page.evaluate(()=>loadNativePage('boiler_display'));await page.locator('#boiler-model:enabled').waitFor();
+  // The families with their own display-code table (boiler profiles) are each offered once.
+  for(const id of ['nefit-ecomline-excellent','nefit-proline','nefit-trendline-ii','nefit-topline','nefit-smartline','buderus-gb162',
+   'buderus-logamax-plus-gb172','bosch-condens-7000i-w','bosch-cerapur-zsb-zwb-5c','junkers-cerapur','worcester-bosch-greenstar-4000'])
+   assert.equal(await page.locator(`#boiler-model option[value="${id}"]`).count(),1,id);
   await page.locator('#boiler-model').selectOption('bosch-condens-5000i');
   assert.match(await page.locator('figure').innerText(),/nog niet gecontroleerd/);
   await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();

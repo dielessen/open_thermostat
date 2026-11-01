@@ -69,6 +69,26 @@ function status(code,cause){return {controlMode:'shadow',ems:{heatingActive:fals
   // A code that family does not have is unknown, not borrowed from newer boilers.
   current=status('2E',207);await poll();
   assert.match(await code.getAttribute('class'),/pd-code--unknown/);
+  // A Bosch letter-code family (Condens 7000i W): its own letters, and the operating messages
+  // its manual lists by number only ("-"), whatever code the bus carries with that number.
+  model='bosch-condens-7000i-w';current=status('EA',227);
+  await page.evaluate(()=>BoilerDisplay.load());await poll();
+  assert.equal(await code.locator('[data-code-meaning]').innerText(),nl?'Geen vlam na het ontsteken':'No flame detected after ignition');
+  assert.equal(await code.locator('[data-code-raw]').innerText(),'EA 227');
+  assert.match(await code.getAttribute('class'),/pd-code--warn/);
+  current=status('C6',215);await poll();
+  assert.match(await code.getAttribute('class'),/pd-code--err/);
+  current=status('-H',203);await poll();
+  assert.equal(await code.locator('[data-code-meaning]').innerText(),nl?'Stand-by: geen warmtevraag':'Standby: no heat demand');
+  assert.equal(await code.getAttribute('class'),'pd-code');
+  // Greenstar 4000: a four-digit fault number stays a number.
+  model='worcester-bosch-greenstar-4000';current=status('EA',2927);
+  await page.evaluate(()=>BoilerDisplay.load());await poll();
+  assert.equal(await code.locator('[data-code-meaning]').innerText(),nl?'Vlam valt weg tijdens het branden':'Flame lost while burning');
+  assert.equal(await code.locator('[data-code-raw]').innerText(),'EA 2927');
+  current=status('EA',1013);await poll();  // a maintenance message (class W): not in the table
+  assert.match(await code.getAttribute('class'),/pd-code--unknown/);
+  assert.equal(await code.locator('[data-code-meaning]').innerText(),(nl?'Displaycode':'Display code')+' EA 1013');
   // No code at all: no box.
   current=status('--');await poll();
   assert.equal(await page.locator('.pd-boiler .pd-code').count(),0);
@@ -76,5 +96,5 @@ function status(code,cause){return {controlMode:'shadow',ems:{heatingActive:fals
   assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);
   await page.close();
  }}finally{await browser.close();}
- console.log('PASS display code browser: fault, lockout, normal, waiting, unknown and the model table (en, nl)');
+ console.log('PASS display code browser: fault, lockout, normal, waiting, unknown, the model tables and number-only codes (en, nl)');
 })().catch(error=>{console.error(error);process.exit(1);});

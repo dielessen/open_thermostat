@@ -1,0 +1,680 @@
+{
+  "schema": 1,
+  "id": "bosch-condens-7000i-w",
+  "name": "Bosch Condens 7000i W",
+  "family": "Bosch Condens 7000i W",
+  "purpose": "Display-code meanings for this boiler family only (presentation, never control evidence). Other boiler profile fields are not claimed for this family.",
+  "display_codes": {
+    "schema": 1,
+    "catalog_ids": [
+      "bosch-condens-7000i-w"
+    ],
+    "source": "bosch-gc7000iw-6720882461",
+    "cause_numbers": true,
+    "fallback": null,
+    "scope": "Bosch Condens 7000i W, GC7000iW 14-28 (letter fault code and three-digit subcode). Operating messages have no fault code (\"-\") and are cause-number-only rows; the manual says the subcode identifies a message uniquely. Three-character maintenance codes (H11 and others) are not display codes.",
+    "verified": "Every row checked against 6720882461 chapter 16, table 74 (pages 47-50); the fault class gives the severity (O operating, B blocking, V locking, B and V fault).",
+    "codes": [
+      {
+        "cause": 200,
+        "severity": "normal",
+        "text": {
+          "en": "Heating",
+          "nl": "Verwarmen",
+          "pl": "Ogrzewanie"
+        },
+        "pages": "47"
+      },
+      {
+        "cause": 201,
+        "severity": "normal",
+        "text": {
+          "en": "Hot water",
+          "nl": "Warm water",
+          "pl": "Ciepła woda"
+        },
+        "pages": "47"
+      },
+      {
+        "cause": 202,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Waiting: anti-cycle time, the burner may not restart yet",
+          "nl": "Wacht: antipendeltijd, de brander mag nog niet herstarten",
+          "pl": "Oczekiwanie: blokada taktowania, palnik nie może jeszcze wystartować"
+        },
+        "pages": "47"
+      },
+      {
+        "cause": 203,
+        "severity": "normal",
+        "text": {
+          "en": "Standby: no heat demand",
+          "nl": "Stand-by: geen warmtevraag",
+          "pl": "Czuwanie: brak zapotrzebowania na ciepło"
+        },
+        "pages": "47"
+      },
+      {
+        "cause": 204,
+        "severity": "waiting",
+        "advice": "settings",
+        "text": {
+          "en": "Waiting: the water is warmer than required",
+          "nl": "Wacht: het water is warmer dan nodig",
+          "pl": "Oczekiwanie: woda jest cieplejsza niż wymagana"
+        },
+        "pages": "47"
+      },
+      {
+        "cause": 208,
+        "severity": "service",
+        "advice": "service",
+        "text": {
+          "en": "Chimney sweep mode",
+          "nl": "Schoorsteenvegerbedrijf",
+          "pl": "Tryb kominiarski"
+        },
+        "pages": "47"
+      },
+      {
+        "cause": 265,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Waiting: heat demand is below the minimum output, the burner switches on and off",
+          "nl": "Wacht: warmtevraag lager dan het minimale vermogen, de brander schakelt aan en uit",
+          "pl": "Oczekiwanie: zapotrzebowanie poniżej mocy minimalnej, palnik włącza się i wyłącza"
+        },
+        "pages": "47"
+      },
+      {
+        "cause": 268,
+        "severity": "service",
+        "advice": "service",
+        "text": {
+          "en": "Test mode",
+          "nl": "Testmodus",
+          "pl": "Tryb testowy"
+        },
+        "pages": "48"
+      },
+      {
+        "cause": 270,
+        "severity": "normal",
+        "text": {
+          "en": "Starting up",
+          "nl": "Opstarten",
+          "pl": "Uruchamianie"
+        },
+        "pages": "48"
+      },
+      {
+        "cause": 275,
+        "severity": "service",
+        "advice": "service",
+        "text": {
+          "en": "Test mode",
+          "nl": "Testmodus",
+          "pl": "Tryb testowy"
+        },
+        "pages": "48"
+      },
+      {
+        "cause": 282,
+        "severity": "normal",
+        "advice": "installer",
+        "text": {
+          "en": "No speed feedback from the heating pump",
+          "nl": "Geen toerentalterugmelding van de cv-pomp",
+          "pl": "Brak sygnału prędkości z pompy grzewczej"
+        },
+        "pages": "48"
+      },
+      {
+        "cause": 283,
+        "severity": "normal",
+        "text": {
+          "en": "Burner starting",
+          "nl": "Brander wordt gestart",
+          "pl": "Uruchamianie palnika"
+        },
+        "pages": "48"
+      },
+      {
+        "cause": 284,
+        "severity": "normal",
+        "text": {
+          "en": "Ignition: gas valve opening",
+          "nl": "Ontsteking: gasblok gaat open",
+          "pl": "Zapłon: otwieranie zaworu gazowego"
+        },
+        "pages": "48"
+      },
+      {
+        "cause": 305,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Waiting: hot-water keep-warm interval not reached yet",
+          "nl": "Wacht: interval voor warmhouden van het tapwater nog niet bereikt",
+          "pl": "Oczekiwanie: interwał podtrzymania ciepłej wody jeszcze nie minął"
+        },
+        "pages": "48"
+      },
+      {
+        "cause": 341,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Heating: temperature rising too fast, output limited",
+          "nl": "Cv: temperatuur stijgt te snel, vermogen beperkt",
+          "pl": "Ogrzewanie: temperatura rośnie zbyt szybko, moc ograniczona"
+        },
+        "pages": "48"
+      },
+      {
+        "cause": 342,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Hot water: temperature rising too fast, output limited",
+          "nl": "Warm water: temperatuur stijgt te snel, vermogen beperkt",
+          "pl": "Ciepła woda: temperatura rośnie zbyt szybko, moc ograniczona"
+        },
+        "pages": "48"
+      },
+      {
+        "cause": 357,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Venting programme running",
+          "nl": "Ontluchtingsprogramma actief",
+          "pl": "Trwa program odpowietrzania"
+        },
+        "pages": "48"
+      },
+      {
+        "cause": 358,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Anti-seize run of the 3-way valve",
+          "nl": "Deblokkeerbeveiliging van de driewegklep actief",
+          "pl": "Ochrona przed zablokowaniem zaworu trójdrożnego"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "0Y",
+        "cause": 276,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Flow temperature above 95 °C",
+          "nl": "Aanvoertemperatuur boven 95 °C",
+          "pl": "Temperatura zasilania powyżej 95 °C"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "9A",
+        "cause": 235,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Wrong code plug",
+          "nl": "Verkeerde codeerstekker",
+          "pl": "Niewłaściwa wtyczka kodująca"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "9A",
+        "cause": 360,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Wrong code plug",
+          "nl": "Verkeerde codeerstekker",
+          "pl": "Niewłaściwa wtyczka kodująca"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "9A",
+        "cause": 361,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Wrong code plug",
+          "nl": "Verkeerde codeerstekker",
+          "pl": "Niewłaściwa wtyczka kodująca"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "9A",
+        "cause": 362,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Wrong code plug",
+          "nl": "Verkeerde codeerstekker",
+          "pl": "Niewłaściwa wtyczka kodująca"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "9U",
+        "cause": 233,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Code plug not recognised",
+          "nl": "Codeerstekker niet herkend",
+          "pl": "Wtyczka kodująca nierozpoznana"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "A1",
+        "cause": 281,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "The heating pump builds up no pressure",
+          "nl": "De cv-pomp bouwt geen druk op",
+          "pl": "Pompa grzewcza nie wytwarza ciśnienia"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "A8",
+        "cause": 323,
+        "severity": "blocking",
+        "advice": "installer",
+        "text": {
+          "en": "Bus communication interrupted",
+          "nl": "BUS-communicatie onderbroken",
+          "pl": "Przerwana komunikacja magistrali"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "C1",
+        "cause": 264,
+        "severity": "blocking",
+        "advice": "installer",
+        "text": {
+          "en": "Fan stopped during operation",
+          "nl": "Ventilator tijdens bedrijf uitgevallen",
+          "pl": "Wentylator zatrzymał się podczas pracy"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "C4",
+        "cause": 273,
+        "severity": "blocking",
+        "advice": "self",
+        "text": {
+          "en": "Short safety stop after 24 hours of continuous operation",
+          "nl": "Korte veiligheidsstop na 24 uur continu bedrijf",
+          "pl": "Krótkie zatrzymanie kontrolne po 24 godzinach ciągłej pracy"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "C6",
+        "cause": 215,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Fan too fast",
+          "nl": "Ventilator draait te snel",
+          "pl": "Wentylator obraca się zbyt szybko"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "C6",
+        "cause": 216,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Fan too slow",
+          "nl": "Ventilator draait te langzaam",
+          "pl": "Wentylator obraca się zbyt wolno"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "C7",
+        "cause": 214,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Fan switched off during the ignition safety time",
+          "nl": "Ventilator uitgeschakeld tijdens de veiligheidstijd",
+          "pl": "Wentylator wyłączony w czasie bezpieczeństwa zapłonu"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "C7",
+        "cause": 217,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Fan not running",
+          "nl": "Ventilator draait niet",
+          "pl": "Wentylator nie pracuje"
+        },
+        "pages": "48"
+      },
+      {
+        "code": "D3",
+        "cause": 232,
+        "severity": "blocking",
+        "advice": "external",
+        "text": {
+          "en": "External safety contact open",
+          "nl": "Extern beveiligingscontact open",
+          "pl": "Otwarty zewnętrzny styk zabezpieczający"
+        },
+        "pages": "48, 49"
+      },
+      {
+        "code": "D4",
+        "cause": 341,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Heating: temperature rising too fast, output limited",
+          "nl": "Cv: temperatuur stijgt te snel, vermogen beperkt",
+          "pl": "Ogrzewanie: temperatura rośnie zbyt szybko, moc ograniczona"
+        },
+        "pages": "49"
+      },
+      {
+        "code": "D5",
+        "cause": 330,
+        "severity": "blocking",
+        "advice": "installer",
+        "text": {
+          "en": "External flow sensor (low-loss header) faulty",
+          "nl": "Externe aanvoersensor (open verdeler) defect",
+          "pl": "Uszkodzony zewnętrzny czujnik zasilania (sprzęgło hydrauliczne)"
+        },
+        "pages": "49"
+      },
+      {
+        "code": "D5",
+        "cause": 331,
+        "severity": "blocking",
+        "advice": "installer",
+        "text": {
+          "en": "External flow sensor (low-loss header) faulty",
+          "nl": "Externe aanvoersensor (open verdeler) defect",
+          "pl": "Uszkodzony zewnętrzny czujnik zasilania (sprzęgło hydrauliczne)"
+        },
+        "pages": "49"
+      },
+      {
+        "code": "E2",
+        "cause": 350,
+        "severity": "blocking",
+        "advice": "installer",
+        "text": {
+          "en": "Flow sensor short-circuited",
+          "nl": "Aanvoersensor kortgesloten",
+          "pl": "Zwarcie czujnika zasilania"
+        },
+        "pages": "49"
+      },
+      {
+        "code": "E2",
+        "cause": 222,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flow sensor short-circuited",
+          "nl": "Aanvoersensor kortgesloten",
+          "pl": "Zwarcie czujnika zasilania"
+        },
+        "pages": "49"
+      },
+      {
+        "code": "E2",
+        "cause": 351,
+        "severity": "blocking",
+        "advice": "installer",
+        "text": {
+          "en": "Flow sensor open circuit",
+          "nl": "Aanvoersensor onderbroken",
+          "pl": "Przerwa w obwodzie czujnika zasilania"
+        },
+        "pages": "49"
+      },
+      {
+        "code": "E2",
+        "cause": 223,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flow sensor open circuit",
+          "nl": "Aanvoersensor onderbroken",
+          "pl": "Przerwa w obwodzie czujnika zasilania"
+        },
+        "pages": "49"
+      },
+      {
+        "code": "E9",
+        "cause": 224,
+        "severity": "fault",
+        "advice": "reset",
+        "text": {
+          "en": "Heat exchanger limiter, flue gas limiter or pressure switch tripped",
+          "nl": "Temperatuurbegrenzer warmteblok, rookgasbegrenzer of drukschakelaar aangesproken",
+          "pl": "Zadziałał ogranicznik wymiennika, ogranicznik spalin lub presostat"
+        },
+        "pages": "49"
+      },
+      {
+        "code": "EA",
+        "cause": 227,
+        "severity": "fault",
+        "advice": "gas",
+        "text": {
+          "en": "No flame detected after ignition",
+          "nl": "Geen vlam na het ontsteken",
+          "pl": "Nie wykryto płomienia po zapłonie"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "EA",
+        "cause": 229,
+        "severity": "blocking",
+        "advice": "gas",
+        "text": {
+          "en": "Flame lost while burning",
+          "nl": "Vlam valt weg tijdens het branden",
+          "pl": "Utrata płomienia podczas pracy palnika"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "EA",
+        "cause": 261,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit timing fault at ignition",
+          "nl": "Tijdfout van de besturing bij het ontsteken",
+          "pl": "Błąd czasowy sterownika przy zapłonie"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "EH",
+        "cause": 258,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "F0",
+        "cause": 238,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or gas valve fault",
+          "nl": "Besturing of gasregelblok defect",
+          "pl": "Usterka sterownika lub zaworu gazowego"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "F0",
+        "cause": 239,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Internal fault in the control unit",
+          "nl": "Interne fout in de besturing",
+          "pl": "Błąd wewnętrzny sterownika"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "F0",
+        "cause": 259,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Internal fault in the control unit",
+          "nl": "Interne fout in de besturing",
+          "pl": "Błąd wewnętrzny sterownika"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "F0",
+        "cause": 280,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit timing fault on restart",
+          "nl": "Tijdfout van de besturing bij een herstart",
+          "pl": "Błąd czasowy sterownika przy ponownym starcie"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "F0",
+        "cause": 290,
+        "severity": "blocking",
+        "advice": "installer",
+        "text": {
+          "en": "Internal fault in the control unit",
+          "nl": "Interne fout in de besturing",
+          "pl": "Błąd wewnętrzny sterownika"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "F0",
+        "cause": 356,
+        "severity": "blocking",
+        "advice": "power",
+        "text": {
+          "en": "Mains voltage interrupted or too low",
+          "nl": "Netspanning onderbroken of te laag",
+          "pl": "Napięcie sieciowe przerwane lub zbyt niskie"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "F7",
+        "cause": 328,
+        "severity": "blocking",
+        "advice": "power",
+        "text": {
+          "en": "Mains voltage interrupted or too low",
+          "nl": "Netspanning onderbroken of te laag",
+          "pl": "Napięcie sieciowe przerwane lub zbyt niskie"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "Fd",
+        "cause": 231,
+        "severity": "blocking",
+        "advice": "power",
+        "text": {
+          "en": "Mains voltage interrupted or too low",
+          "nl": "Netspanning onderbroken of te laag",
+          "pl": "Napięcie sieciowe przerwane lub zbyt niskie"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "F7",
+        "cause": 228,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flame detected while the burner should be off",
+          "nl": "Vlam gemeten terwijl de brander uit hoort te zijn",
+          "pl": "Wykryto płomień, gdy palnik powinien być wyłączony"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "FA",
+        "cause": 306,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flame detected after the burner switched off",
+          "nl": "Vlam gemeten nadat de brander uitging",
+          "pl": "Wykryto płomień po wyłączeniu palnika"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "FA",
+        "cause": 364,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flame detected after the burner switched off",
+          "nl": "Vlam gemeten nadat de brander uitging",
+          "pl": "Wykryto płomień po wyłączeniu palnika"
+        },
+        "pages": "50"
+      },
+      {
+        "code": "Fb",
+        "cause": 365,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flame detected after the burner switched off",
+          "nl": "Vlam gemeten nadat de brander uitging",
+          "pl": "Wykryto płomień po wyłączeniu palnika"
+        },
+        "pages": "50"
+      }
+    ]
+  }
+}

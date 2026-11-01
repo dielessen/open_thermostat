@@ -1,0 +1,606 @@
+{
+  "schema": 1,
+  "id": "nefit-ecomline-excellent",
+  "name": "Nefit EcomLine Excellent HR(C)",
+  "family": "Nefit EcomLine Excellent",
+  "purpose": "Display-code meanings for this boiler family only (presentation, never control evidence). Other boiler profile fields are not claimed for this family.",
+  "display_codes": {
+    "schema": 1,
+    "catalog_ids": [
+      "nefit-ecomline-excellent"
+    ],
+    "source": "nefit-ecomline-excellent-705427a",
+    "cause_numbers": false,
+    "fallback": null,
+    "scope": "Nefit EcomLine Excellent HR/HRC (UBA with a display code and a letter service code; no cause numbers). On the EMS bus both arrive as one two-character code. Codes this table does not list are shown raw as unknown.",
+    "verified": "705.427A-4200 sections 4.1.2 and 4.2.1 (pages 4-2 to 4-5) list the same codes and meanings as the EcomLine Classic manual 705.428A, except that the wiring-link fault is 8Y instead of 8L; every row was compared line by line.",
+    "codes": [
+      {
+        "code": "P",
+        "severity": "normal",
+        "text": {
+          "en": "Control unit starting up or running its 24-hour self-test",
+          "nl": "Besturing (UBA) start op of voert de 24-uurstest uit",
+          "pl": "Sterownik (UBA) uruchamia się lub wykonuje 24-godzinny autotest"
+        },
+        "pages": "4-2"
+      },
+      {
+        "code": "C",
+        "severity": "normal",
+        "text": {
+          "en": "Control unit restarting or checking the boiler data",
+          "nl": "Besturing (UBA) herstart of controleert de toestelgegevens",
+          "pl": "Sterownik (UBA) uruchamia się ponownie lub sprawdza dane kotła"
+        },
+        "pages": "4-2"
+      },
+      {
+        "code": "d",
+        "severity": "normal",
+        "text": {
+          "en": "Control unit reading the boiler data",
+          "nl": "Besturing (UBA) leest de toestelgegevens",
+          "pl": "Sterownik (UBA) odczytuje dane kotła"
+        },
+        "pages": "4-2"
+      },
+      {
+        "code": "0A",
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Waiting: anti-cycle programme",
+          "nl": "Wacht: antipendelprogramma",
+          "pl": "Oczekiwanie: program przeciw taktowaniu"
+        },
+        "pages": "4-2"
+      },
+      {
+        "code": "0C",
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Waiting for the 3-way valve to switch",
+          "nl": "Wacht op het omschakelen van de driewegklep",
+          "pl": "Oczekiwanie na przełączenie zaworu 3-drogowego"
+        },
+        "pages": "4-2"
+      },
+      {
+        "code": "0H",
+        "severity": "normal",
+        "text": {
+          "en": "Standby: no heat demand",
+          "nl": "Stand-by: geen warmtevraag",
+          "pl": "Czuwanie: brak zapotrzebowania na ciepło"
+        },
+        "pages": "4-2"
+      },
+      {
+        "code": "0L",
+        "severity": "normal",
+        "text": {
+          "en": "Ignition phase",
+          "nl": "Ontsteekfase",
+          "pl": "Faza zapłonu"
+        },
+        "pages": "4-2"
+      },
+      {
+        "code": "0U",
+        "severity": "normal",
+        "text": {
+          "en": "Fan purge before or after burning (15 s)",
+          "nl": "Ventilatiefase voor of na het branden (15 s)",
+          "pl": "Przedmuch wentylatora przed pracą palnika lub po niej (15 s)"
+        },
+        "pages": "4-2"
+      },
+      {
+        "code": "0Y",
+        "severity": "waiting",
+        "advice": "settings",
+        "text": {
+          "en": "Waiting: the water is warmer than set",
+          "nl": "Wacht: het water is warmer dan ingesteld",
+          "pl": "Oczekiwanie: woda jest cieplejsza niż ustawiono"
+        },
+        "pages": "4-2"
+      },
+      {
+        "code": "-H",
+        "severity": "normal",
+        "text": {
+          "en": "Heating",
+          "nl": "Verwarmen",
+          "pl": "Ogrzewanie"
+        },
+        "pages": "4-2"
+      },
+      {
+        "code": "=H",
+        "severity": "normal",
+        "text": {
+          "en": "Hot water",
+          "nl": "Warm water",
+          "pl": "Ciepła woda"
+        },
+        "pages": "4-2"
+      },
+      {
+        "code": "2F",
+        "severity": "waiting",
+        "advice": "installer",
+        "text": {
+          "en": "Adapting to a small water volume; if the boiler stays off, the safety and flow sensor differ too much",
+          "nl": "Past zich aan een kleine waterinhoud aan; blijft de ketel uit, dan verschillen safety- en aanvoersensor te veel",
+          "pl": "Dostosowanie do małej ilości wody; jeśli kocioł nie wznawia pracy, czujniki bezpieczeństwa i zasilania różnią się zbyt mocno"
+        },
+        "pages": "4-2, 4-4"
+      },
+      {
+        "code": "-A",
+        "severity": "service",
+        "advice": "service",
+        "text": {
+          "en": "Heating at fixed power without modulating (the test switch may be on)",
+          "nl": "Cv op vast vermogen zonder te moduleren (testschakelaar staat mogelijk aan)",
+          "pl": "Ogrzewanie ze stałą mocą bez modulacji (być może włączony przełącznik testowy)"
+        },
+        "pages": "4-3, 4-6"
+      },
+      {
+        "code": "-Y",
+        "severity": "service",
+        "advice": "service",
+        "text": {
+          "en": "Heating only, at the power of the hot-water knob (the test switch may be on)",
+          "nl": "Alleen cv, op het vermogen van de warmwaterknop (testschakelaar staat mogelijk aan)",
+          "pl": "Tylko ogrzewanie, z mocą pokrętła ciepłej wody (być może włączony przełącznik testowy)"
+        },
+        "pages": "4-3, 4-6"
+      },
+      {
+        "code": "0P",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Boiler does not start (interrupted circuit)",
+          "nl": "Toestel start niet (onderbreking in de bedrading)",
+          "pl": "Kocioł nie uruchamia się (przerwa w obwodzie)"
+        },
+        "pages": "4-3, 4-8"
+      },
+      {
+        "code": "1C",
+        "severity": "fault",
+        "advice": "external",
+        "text": {
+          "en": "Flue gas thermostat contact open",
+          "nl": "Aansluiting rookgasthermostaat open",
+          "pl": "Otwarty styk termostatu spalin"
+        },
+        "pages": "4-4, 4-8"
+      },
+      {
+        "code": "2C",
+        "severity": "fault",
+        "advice": "flow",
+        "text": {
+          "en": "Heat exchanger safety sensor too hot",
+          "nl": "Safetysensor van de warmtewisselaar te warm",
+          "pl": "Czujnik bezpieczeństwa wymiennika zbyt gorący"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "2P",
+        "severity": "fault",
+        "advice": "flow",
+        "text": {
+          "en": "Safety sensor temperature rising too fast",
+          "nl": "Temperatuur safetysensor stijgt te snel",
+          "pl": "Temperatura czujnika bezpieczeństwa rośnie zbyt szybko"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "2U",
+        "severity": "fault",
+        "advice": "flow",
+        "text": {
+          "en": "Flow and return temperatures differ too much",
+          "nl": "Temperatuurverschil aanvoer en retour te groot",
+          "pl": "Zbyt duża różnica temperatur zasilania i powrotu"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "3C",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Boiler does not start",
+          "nl": "Toestel start niet",
+          "pl": "Kocioł nie uruchamia się"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "4A",
+        "severity": "fault",
+        "advice": "flow",
+        "text": {
+          "en": "Flow temperature too high (above 101 °C)",
+          "nl": "Aanvoertemperatuur te hoog (boven 101 °C)",
+          "pl": "Za wysoka temperatura zasilania (powyżej 101 °C)"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "4C",
+        "severity": "fault",
+        "advice": "reset",
+        "text": {
+          "en": "Burner thermostat tripped or fuse F2 blown",
+          "nl": "Branderthermostaat te warm of zekering F2 defect",
+          "pl": "Zadziałał termostat palnika lub przepalony bezpiecznik F2"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "4F",
+        "severity": "fault",
+        "advice": "flow",
+        "text": {
+          "en": "Safety sensor above 101 °C",
+          "nl": "Safetysensor boven 101 °C",
+          "pl": "Czujnik bezpieczeństwa powyżej 101 °C"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "4L",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Safety sensor short-circuited",
+          "nl": "Safetysensor kortgesloten",
+          "pl": "Zwarcie czujnika bezpieczeństwa"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "4P",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Safety sensor open circuit",
+          "nl": "Safetysensor onderbroken",
+          "pl": "Przerwa w obwodzie czujnika bezpieczeństwa"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "4U",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Flow sensor short-circuited",
+          "nl": "Aanvoersensor kortgesloten",
+          "pl": "Zwarcie czujnika zasilania"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "4Y",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Flow sensor open circuit",
+          "nl": "Aanvoersensor onderbroken",
+          "pl": "Przerwa w obwodzie czujnika zasilania"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "5A",
+        "severity": "locking",
+        "advice": "service",
+        "text": {
+          "en": "Control unit locked (service tool)",
+          "nl": "Besturing (UBA) vergrendeld (servicetool)",
+          "pl": "Sterownik (UBA) zablokowany (narzędzie serwisowe)"
+        },
+        "pages": "4-4, 4-8"
+      },
+      {
+        "code": "5C",
+        "severity": "locking",
+        "advice": "service",
+        "text": {
+          "en": "Control unit locked: a service tool was connected",
+          "nl": "Besturing (UBA) vergrendeld: er was een servicetool aangesloten",
+          "pl": "Sterownik (UBA) zablokowany: podłączono narzędzie serwisowe"
+        },
+        "pages": "4-4, 4-8"
+      },
+      {
+        "code": "5F",
+        "severity": "locking",
+        "advice": "service",
+        "text": {
+          "en": "Control unit locked: service tool unplugged during operation",
+          "nl": "Besturing (UBA) vergrendeld: servicetool tijdens bedrijf losgekoppeld",
+          "pl": "Sterownik (UBA) zablokowany: odłączono narzędzie serwisowe podczas pracy"
+        },
+        "pages": "4-4, 4-8"
+      },
+      {
+        "code": "5Y",
+        "severity": "locking",
+        "advice": "service",
+        "text": {
+          "en": "Control unit locked (service tool)",
+          "nl": "Besturing (UBA) vergrendeld (servicetool)",
+          "pl": "Sterownik (UBA) zablokowany (narzędzie serwisowe)"
+        },
+        "pages": "4-4, 4-8"
+      },
+      {
+        "code": "6A",
+        "severity": "fault",
+        "advice": "gas",
+        "text": {
+          "en": "No flame detected after ignition",
+          "nl": "Geen vlam na het ontsteken",
+          "pl": "Nie wykryto płomienia po zapłonie"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "6C",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Flame signal after the heat demand ended (gas valve not closing)",
+          "nl": "Ionisatie na het einde van de warmtevraag (gasklep sluit niet)",
+          "pl": "Sygnał płomienia po zakończeniu zapotrzebowania (zawór gazu się nie zamyka)"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "6H",
+        "severity": "fault",
+        "advice": "gas",
+        "text": {
+          "en": "Flame lost just after ignition",
+          "nl": "Vlam valt weg vlak na het ontsteken",
+          "pl": "Utrata płomienia tuż po zapłonie"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "6L",
+        "severity": "fault",
+        "advice": "gas",
+        "text": {
+          "en": "Flame lost while burning",
+          "nl": "Vlam valt weg tijdens het branden",
+          "pl": "Utrata płomienia podczas pracy palnika"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "7A",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit (UBA) fault",
+          "nl": "Besturing (UBA) defect",
+          "pl": "Usterka sterownika (UBA)"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "7C",
+        "severity": "locking",
+        "advice": "power",
+        "text": {
+          "en": "Power lost during a lockout, or the reset button was released too soon",
+          "nl": "Netspanning weggevallen tijdens een vergrendeling, of resetknop te kort ingedrukt",
+          "pl": "Zanik zasilania podczas blokady lub zbyt krótko wciśnięty przycisk reset"
+        },
+        "pages": "4-4, 4-7"
+      },
+      {
+        "code": "7F",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Fuse F3 blown or control unit fault",
+          "nl": "Zekering F3 defect of besturing (UBA) defect",
+          "pl": "Przepalony bezpiecznik F3 lub usterka sterownika (UBA)"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "7H",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit (UBA) fault",
+          "nl": "Besturing (UBA) defect",
+          "pl": "Usterka sterownika (UBA)"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "7L",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit (UBA) fault",
+          "nl": "Besturing (UBA) defect",
+          "pl": "Usterka sterownika (UBA)"
+        },
+        "pages": "4-4"
+      },
+      {
+        "code": "8Y",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Gas pressure switch link in the wiring open or loose",
+          "nl": "Doorverbinding gasdrukwachter in de kabelboom open of los",
+          "pl": "Otwarta lub luźna zworka presostatu gazu w wiązce"
+        },
+        "pages": "4-4, 4-7"
+      },
+      {
+        "code": "9A",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit (UBA) fault",
+          "nl": "Besturing (UBA) defect",
+          "pl": "Usterka sterownika (UBA)"
+        },
+        "pages": "4-5"
+      },
+      {
+        "code": "9C",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit cannot find the code plug (KIM)",
+          "nl": "Besturing ziet geen codeerstekker (KIM)",
+          "pl": "Sterownik nie wykrywa wtyczki kodującej (KIM)"
+        },
+        "pages": "4-5"
+      },
+      {
+        "code": "9F",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit reference temperature error",
+          "nl": "Fout in de referentietemperatuur van de besturing",
+          "pl": "Błąd temperatury odniesienia sterownika"
+        },
+        "pages": "4-5"
+      },
+      {
+        "code": "9H",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Internal control unit error",
+          "nl": "Interne fout in de besturing",
+          "pl": "Wewnętrzny błąd sterownika"
+        },
+        "pages": "4-5"
+      },
+      {
+        "code": "9L",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Gas valve wiring fault or control unit fault",
+          "nl": "Aansluiting gasregelblok niet goed of besturing defect",
+          "pl": "Usterka podłączenia zaworu gazowego lub sterownika"
+        },
+        "pages": "4-5"
+      },
+      {
+        "code": "9P",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Internal control unit error or room controller (ModuLine) fault",
+          "nl": "Interne fout in de besturing of ModuLine defect",
+          "pl": "Wewnętrzny błąd sterownika lub usterka regulatora ModuLine"
+        },
+        "pages": "4-5"
+      },
+      {
+        "code": "9U",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit cannot read the code plug (KIM)",
+          "nl": "Besturing kan de codeerstekker (KIM) niet lezen",
+          "pl": "Sterownik nie może odczytać wtyczki kodującej (KIM)"
+        },
+        "pages": "4-5"
+      },
+      {
+        "code": "EA",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit (UBA) fault",
+          "nl": "Besturing (UBA) defect",
+          "pl": "Usterka sterownika (UBA)"
+        },
+        "pages": "4-5"
+      },
+      {
+        "code": "EC",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit (UBA) fault",
+          "nl": "Besturing (UBA) defect",
+          "pl": "Usterka sterownika (UBA)"
+        },
+        "pages": "4-5"
+      },
+      {
+        "code": "EF",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit (UBA) fault",
+          "nl": "Besturing (UBA) defect",
+          "pl": "Usterka sterownika (UBA)"
+        },
+        "pages": "4-5"
+      },
+      {
+        "code": "EH",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit (UBA) fault",
+          "nl": "Besturing (UBA) defect",
+          "pl": "Usterka sterownika (UBA)"
+        },
+        "pages": "4-5"
+      },
+      {
+        "code": "EP",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit and code plug (KIM) do not match",
+          "nl": "Besturing en codeerstekker (KIM) niet compatibel",
+          "pl": "Sterownik i wtyczka kodująca (KIM) są niezgodne"
+        },
+        "pages": "4-5"
+      },
+      {
+        "code": "EL",
+        "severity": "fault",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit (UBA) fault",
+          "nl": "Besturing (UBA) defect",
+          "pl": "Usterka sterownika (UBA)"
+        },
+        "pages": "4-5"
+      }
+    ]
+  }
+}

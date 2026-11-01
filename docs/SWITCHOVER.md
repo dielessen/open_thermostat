@@ -74,6 +74,11 @@ examples; use your own.
   *(beta.19, verify on the device: a bus recording after a restart)*
 - **Frost protection.** Minimum flow when any room, including an inactive one,
   reads below 8 °C, off again at 9 °C.
+- **Radiator valves.** The E32 (Zigbee2MQTT valves) or Home Assistant (valves
+  of other integrations) drives a room's valves only while the E32 controls
+  the boiler **and** that room's **Valve control** switch is on; it is off by
+  default. Switch it on per room after the attended tests, if you want it. See
+  [Radiator valves](USER-GUIDE.md#radiator-valves).
 - **No automatic restarts while active.** While the E32 owns the boiler, Wi-Fi,
   MQTT broker or Bluetooth problems no longer restart it (no `wifi_lost`,
   `broker_lost`, `network_dead` or `bluetooth_silent`). Only a real hang (loop
@@ -116,11 +121,12 @@ Where to look:
 | --- | --- | --- | --- | --- |
 | State, request, last sent, warnings | Rooms → Active control | `/status/heating` → `active` | `heating` | Heating problem (after 5 min) |
 | Confirmation kept | — | `active.awaiting_confirmation`, `active.confirmation {age_s, restored, listened_s}`, `active.confirmation_stored`, `active.reconfirm_required`, `active.reconfirm_stored` | `heating` | Repairs: Confirm the takeover again (after an update) |
-| Boiler maximum | Rooms (flow limits) | `active.boiler_limit {flow_c, age_s, reads}` (`reads`: the E32's own 0x16 requests this boot) | `heating` | — |
+| Boiler maximum | Rooms, and Home → Flow temperature limits | `active.boiler_limit {flow_c, age_s, reads}` (`reads`: the E32's own 0x16 requests this boot) | `heating` | — |
 | Rooms | Rooms | `rooms[]` | `heating` | Temperature, Target temperature, Control status, Heat demand |
 | Boiler | Boiler | `/status/ems/telemetry` → `fields` | `boiler_fields` | Flow temperature, Selected flow temperature, Heating active, Hot water active, Burner modulation, Water pressure |
 | Starts | — | `/status/heating` → `burner` | `heating` | Burner starts last hour, Burner short cycling |
-| Restarts, memory, MQTT | System → System log | `/status/logs` → `previous_boot`, `runtime` | `device_status` | uptime |
+| Restarts, memory, MQTT | System → Diagnostics and system log | `/status/logs` → `previous_boot`, `runtime` | `device_status` | uptime |
+| Day figures | — | — | — | Daily summary (burner time, starts, short runs, time to target, missed comfort, gas) |
 
 "On the bus" in the tests below means what the boiler reports back: its
 **Selected flow temperature** (from its 0x18 monitor) follows the E32's request,
@@ -266,6 +272,9 @@ daily `summary-<day>.json`.
 **Two weeks:** a short daily check (state and warnings, restarts, room
 temperature against target, burner starts and short cycling, flow range,
 pressure, hot water, gas use) and a weekly comparison with the shadow period.
+The **Daily summary** sensor in Home Assistant holds most of these figures
+per day, and **Heating needs attention** under Settings → System → Repairs
+lists the open warnings.
 Change parameters only with a noted reason. Learned flow stays advice for the
 first two weeks. Firmware updates in this period are attended only: a new
 firmware clears the confirmation, so confirm again right after the update.

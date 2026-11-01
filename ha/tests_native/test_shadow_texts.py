@@ -24,6 +24,15 @@ def test_the_shadow_step_says_ha_sets_the_setting_devices(filename, device):
     assert device in shadow and ("boiler" in shadow or "ketel" in shadow or "kotła" in shadow)
 
 
+def test_the_installation_status_does_not_claim_shadow_mode_in_active_mode():
+    """Configure → Installation status is shown in shadow and in active mode: its text must fit both."""
+    text = (COMPONENT / "product_flow.py").read_text(encoding="utf-8")
+    assert not WRONG.search(text)
+    for filename in ("strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"):
+        status = json.loads((COMPONENT / filename).read_text(encoding="utf-8"))["options"]["step"]["configuration_status"]
+        assert not re.search(r"calculated only|alleen berekend|tylko obliczane", status["description"], re.I), filename
+
+
 def test_the_e32_settings_page_says_the_same_in_english_and_dutch():
     for name in ("network.html", "ui-messages-pages.js", "ui-messages.js", *(p.name for p in WEB.glob("*.html"))):
         assert not WRONG.search((WEB / name).read_text(encoding="utf-8")), name

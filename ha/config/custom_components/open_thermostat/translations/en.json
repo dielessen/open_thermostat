@@ -164,7 +164,7 @@
           "contacts": "Window and door contacts"
         },
         "data_description": {
-          "contacts": "Binary sensors of the class window, door, opening or garage door, of any brand (Zigbee, Z-Wave, Shelly, Bluetooth …). Home Assistant sends their state to the E32 on every change."
+          "contacts": "Binary sensors of the class window, door, opening or garage door, of any brand (Zigbee, Z-Wave, Shelly, Bluetooth …). Home Assistant sends their state to the E32 on every change. You can choose several, up to 8: after you choose one, an empty field appears below it for the next."
         }
       },
       "init": {
@@ -393,7 +393,7 @@
       },
       "configuration_status": {
         "title": "Installation status",
-        "description": "Configured rooms: **{rooms}**\n\nController: **{connection}**\n\nControl: **{runtime}**\n\nA saved configuration is not confirmation that the controller has accepted it. You can configure rooms while disconnected.\n\n**Saved valve-target check**\n\n{actuator_checks}\n\nThis compares reported capabilities; it does not confirm valve position or authorize physical control.\n\n**What do these checks mean?**\nConfiguration confirmed: the E32 returned the saved room plan. Calculations enabled: heat demand is calculated only. Valve-target check: compares saved temperatures with reported valve limits and flags mismatches. These checks do not prove that a valve opens or the boiler stops. Those physical tests remain separate; shadow mode keeps valve and boiler commands disabled.",
+        "description": "Configured rooms: **{rooms}**\n\nController: **{connection}**\n\nControl: **{runtime}**\n\nA saved configuration is not confirmation that the controller has accepted it. You can configure rooms while disconnected.\n\n**Saved valve-target check**\n\n{actuator_checks}\n\nThis compares reported capabilities; it does not confirm valve position or authorize physical control.\n\n**What do these checks mean?**\nConfiguration confirmed: the E32 returned the saved room plan. Calculations on: the E32 calculates the heat demand; it controls the boiler only after the attended switch-over. Valve-target check: compares saved temperatures with reported valve limits and flags mismatches. These checks do not prove that a valve opens or the boiler stops. Those physical tests remain separate. In shadow mode valve and boiler commands stay off.",
         "submit": "Close"
       },
       "program": {
@@ -595,7 +595,7 @@
               "contact_delay": "Pause after"
             },
             "data_description": {
-              "contacts": "When one of them has been open for {delay}, the room pauses: it drops to frost protection (8 °C) and asks for no heat. When all are closed again, it follows its program. Set the delay just below.",
+              "contacts": "When one of them has been open for {delay}, the room pauses: it drops to frost protection (8 °C) and asks for no heat. When all are closed again, it follows its program. Set the delay just below. You can choose several, up to 8: after you choose one, an empty field appears below it for the next.",
               "contact_delay": "When one of them has been open this long, the room pauses: it drops to frost protection (8 °C) and asks for no heat. When all are closed again, it follows its program. Default 2 minutes, so airing briefly does not pause the room."
             }
           },
@@ -842,7 +842,7 @@
       "controller_room_configuration_invalid": "The rooms saved in Home Assistant do not fit this E32 connection. If Configure → Advanced and diagnostics offers Remove old Home Assistant rooms, do that first; then connect again.",
       "controller_runtime_off_required": "The previous connection is still stopping. Wait a minute and submit again.",
       "controller_boot_unconfirmed": "The E32 did not come back in time after its restart. Wait until its web page opens again, then submit again.",
-      "controller_connection_failed": "The connection could not be completed. Check that the E32 is on and its web page opens, wait a minute and submit again. If it keeps failing, the E32 web page shows the reason under System → System log.",
+      "controller_connection_failed": "The connection could not be completed. Check that the E32 is on and its web page opens, wait a minute and submit again. If it keeps failing, the E32 web page shows the reason under System → Diagnostics and system log.",
       "controller_connection_unconfirmed": "Home Assistant did not hear back from the E32 in time. On the E32 web page, check under Settings → MQTT that it uses the same broker as Home Assistant and that its user name and password are accepted; then submit again.",
       "controller_connection_changed": "The E32 connection changed while the room plan was being saved, for example by a restart or a second Connect E32. Wait a minute and submit again.",
       "controller_plan_pending": "An earlier room-plan change is still unresolved. Check its actual E32 readback before applying another change.",

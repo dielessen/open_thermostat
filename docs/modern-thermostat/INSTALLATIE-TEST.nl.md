@@ -7,6 +7,9 @@ kent. De tester volgt alleen [INSTALL.md](../INSTALL.md) en de
 [gebruikershandleiding](../USER-GUIDE.md). Help niet mee: elke vraag die de
 tester stelt, is een gat in de handleiding.
 
+Een Engelse lijst met per stap het verwachte resultaat staat in
+[INSTALL-CHECK.md](../INSTALL-CHECK.md).
+
 Noteer per stap: **gelukt**, **gelukt met moeite** of **vastgelopen**, met
 de tijd die het kostte en wat onduidelijk was (woorden, knoppen die niet
 klopten, ontbrekende uitleg).
@@ -27,11 +30,11 @@ klopten, ontbrekende uitleg).
 |---|---|---|
 | 1 | Firmware via USB (2) | ESPConnect of esptool meldt succes en de MD5 klopt met `FACTORY-CHECK.txt` |
 | 2 | Eerste start en wifi (3) | Het setupnetwerk `OpenThermostat-xxxxxx` verschijnt, de E32 meldt **WiFi connected** en is op het thuisnetwerk bereikbaar |
-| 3 | Inloggen en wachtwoord (4) | Ingelogd met `admin`/`admin`, eigen wachtwoord gezet onder **Settings → Password** |
+| 3 | Inloggen en wachtwoord (4) | Ingelogd met `admin`/`admin`, eigen wachtwoord gezet onder **System → Password** |
 | 4 | Tijdzone en ketelontvangst (5) | Tijdzone gekozen, **EMS bus enabled** aangevinkt, opgeslagen en herstart |
 | 5 | Aansluiten op de ketel (6) | De pagina **Boiler** toont binnen enkele minuten aanvoer- en retourtemperatuur |
 | 6 | Bluetooth-thermometer (7, optioneel) | De sensor staat onder **Your sensors** met een temperatuur |
-| 7 | MQTT (8) | Broker en MQTT-integratie in Home Assistant draaien; **System → System log** op de E32 toont een verbinding met de broker |
+| 7 | MQTT (8) | Broker en MQTT-integratie in Home Assistant draaien; **System → Diagnostics and system log** op de E32 toont een verbinding met de broker |
 | 8 | Integratie installeren (9) | `custom_components/open_thermostat/manifest.json` bestaat, Home Assistant is herstart |
 | 9 | Integratie toevoegen en E32 verbinden (10) | **E32 connected** verschijnt; de E32 **Overview** toont **Home Assistant: connected** |
 | 10 | Eerste ruimte (11.1) | De ruimte staat op de E32 en in Home Assistant, met een temperatuur |
@@ -41,7 +44,7 @@ klopten, ontbrekende uitleg).
 | 14 | Controle (11.6) | Het OpenThermostat-dashboard toont de ruimtes; **Heating problem** staat uit |
 | 15 | Update via Home Assistant (13.3) | Bij een nieuwe release installeert de **Firmware**-entiteit hem zonder hulp |
 | 16 | Back-up (14.1) | Een back-up gedownload, eventueel met wachtwoordzin |
-| 17 | Diagnoseconsole (gebruikershandleiding) | `status` en `log 20` geven antwoord op de pagina **System → System log** |
+| 17 | Diagnoseconsole (gebruikershandleiding) | `status` en `log 20` geven antwoord op de pagina **System → Diagnostics and system log** |
 
 ## Na de test
 

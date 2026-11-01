@@ -164,7 +164,7 @@
           "contacts": "Czujniki okien i drzwi"
         },
         "data_description": {
-          "contacts": "Czujniki binarne klasy okno, drzwi, otwarcie lub brama garażowa, dowolnej marki (Zigbee, Z-Wave, Shelly, Bluetooth …). Home Assistant wysyła ich stan do E32 przy każdej zmianie."
+          "contacts": "Czujniki binarne klasy okno, drzwi, otwarcie lub brama garażowa, dowolnej marki (Zigbee, Z-Wave, Shelly, Bluetooth …). Home Assistant wysyła ich stan do E32 przy każdej zmianie. Możesz wybrać kilka, do 8: po wybraniu jednego poniżej pojawia się puste pole na kolejny."
         }
       },
       "init": {
@@ -393,7 +393,7 @@
       },
       "configuration_status": {
         "title": "Stan instalacji",
-        "description": "Skonfigurowane pomieszczenia: **{rooms}**\n\nSterownik: **{connection}**\n\nSterowanie: **{runtime}**\n\nZapisana konfiguracja nie oznacza, że sterownik ją przyjął. Pomieszczenia możesz konfigurować bez połączenia.\n\n**Sprawdzenie zapisanych temperatur zaworów**\n\n{actuator_checks}\n\nPorównuje to zgłoszone możliwości; nie potwierdza położenia zaworu ani nie zezwala na sterowanie fizyczne.\n\n**Co oznaczają te sprawdzenia?**\nKonfiguracja potwierdzona: E32 zwrócił zapisany plan pomieszczeń. Obliczenia włączone: zapotrzebowanie na ciepło jest tylko obliczane. Sprawdzenie temperatur zaworów: porównuje zapisane temperatury ze zgłoszonymi limitami zaworów i oznacza niezgodności. Te sprawdzenia nie dowodzą, że zawór się otwiera ani że kocioł się zatrzymuje. Te testy fizyczne pozostają osobne; tryb cienia utrzymuje polecenia dla zaworów i kotła wyłączone.",
+        "description": "Skonfigurowane pomieszczenia: **{rooms}**\n\nSterownik: **{connection}**\n\nSterowanie: **{runtime}**\n\nZapisana konfiguracja nie oznacza, że sterownik ją przyjął. Pomieszczenia możesz konfigurować bez połączenia.\n\n**Sprawdzenie zapisanych temperatur zaworów**\n\n{actuator_checks}\n\nPorównuje to zgłoszone możliwości; nie potwierdza położenia zaworu ani nie zezwala na sterowanie fizyczne.\n\n**Co oznaczają te sprawdzenia?**\nKonfiguracja potwierdzona: E32 zwrócił zapisany plan pomieszczeń. Obliczenia włączone: E32 oblicza zapotrzebowanie na ciepło; steruje kotłem dopiero po nadzorowanym przejęciu. Sprawdzenie temperatur zaworów: porównuje zapisane temperatury ze zgłoszonymi limitami zaworów i oznacza niezgodności. Te sprawdzenia nie dowodzą, że zawór się otwiera ani że kocioł się zatrzymuje. Te testy fizyczne pozostają osobne. W trybie cienia polecenia dla zaworów i kotła pozostają wyłączone.",
         "submit": "Zamknij"
       },
       "program": {
@@ -595,7 +595,7 @@
               "contact_delay": "Pauza po"
             },
             "data_description": {
-              "contacts": "Gdy jeden z nich jest otwarty przez {delay}, pomieszczenie wstrzymuje ogrzewanie: spada do ochrony przed mrozem (8 °C) i nie żąda ciepła. Gdy wszystkie są znowu zamknięte, wraca do programu. Opóźnienie ustawisz poniżej.",
+              "contacts": "Gdy jeden z nich jest otwarty przez {delay}, pomieszczenie wstrzymuje ogrzewanie: spada do ochrony przed mrozem (8 °C) i nie żąda ciepła. Gdy wszystkie są znowu zamknięte, wraca do programu. Opóźnienie ustawisz poniżej. Możesz wybrać kilka, do 8: po wybraniu jednego poniżej pojawia się puste pole na kolejny.",
               "contact_delay": "Gdy jeden z nich jest otwarty tak długo, pomieszczenie wstrzymuje ogrzewanie: spada do ochrony przed mrozem (8 °C) i nie żąda ciepła. Gdy wszystkie są znowu zamknięte, wraca do programu. Domyślnie 2 minuty, więc krótkie wietrzenie nie wstrzymuje pomieszczenia."
             }
           },
@@ -842,7 +842,7 @@
       "controller_room_configuration_invalid": "Pomieszczenia zapisane w Home Assistant nie pasują do tego połączenia E32. Jeśli Konfiguruj → Zaawansowane i diagnostyka oferuje usunięcie starych pomieszczeń Home Assistant, zrób to najpierw; potem połącz ponownie.",
       "controller_runtime_off_required": "Poprzednie połączenie jeszcze się zatrzymuje. Poczekaj minutę i wyślij ponownie.",
       "controller_boot_unconfirmed": "E32 nie wrócił na czas po restarcie. Poczekaj, aż jego strona internetowa znów się otworzy, potem wyślij ponownie.",
-      "controller_connection_failed": "Nie udało się dokończyć połączenia. Sprawdź, czy E32 jest włączony i czy jego strona internetowa się otwiera, poczekaj minutę i wyślij ponownie. Jeśli nadal się nie udaje, przyczynę pokazuje strona E32 w System → System log.",
+      "controller_connection_failed": "Nie udało się dokończyć połączenia. Sprawdź, czy E32 jest włączony i czy jego strona internetowa się otwiera, poczekaj minutę i wyślij ponownie. Jeśli nadal się nie udaje, przyczynę pokazuje strona E32 w System → Diagnostics and system log.",
       "controller_connection_unconfirmed": "Home Assistant nie otrzymał na czas odpowiedzi od E32. Na stronie E32 sprawdź w Settings → MQTT, czy używa tego samego brokera co Home Assistant i czy jego nazwa użytkownika i hasło są akceptowane; potem wyślij ponownie.",
       "controller_connection_changed": "Połączenie z E32 zmieniło się podczas zapisywania planu pomieszczeń, na przykład przez restart lub drugie Połącz E32. Poczekaj minutę i wyślij ponownie.",
       "controller_plan_pending": "Wcześniejsza zmiana planu pomieszczeń nie jest jeszcze rozstrzygnięta. Sprawdź jej rzeczywisty odczyt zwrotny z E32 przed zastosowaniem kolejnej zmiany.",

@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "9ad737dafb7b636149a4379f1f9a11866b584194023c7b50472217174e5f5d6d"
+          "sha256": "08c87eae01538d95384c5b696f6642d6e7162f6dc216e7d3fe7734c9b0db2eb1"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "613e0d90abd8b93e4e7bc820b35b650e5b59cb899ee6cc4ad05945316765428b"
+          "sha256": "b3ec10adeaeb9c5764d1e7beda6a1c19f64fb381d5d51ea08d2b3210d7e8285b"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -223,11 +223,11 @@
         },
         {
           "path": "docs/SWITCHOVER.md",
-          "sha256": "061d057d5cc98b6a292ceb3840d36192969d4a00c7b80e347893f486af7c3278"
+          "sha256": "35aa6c79eb87c72352e70cba27eb0a361ee4e294aab670adf499c3d1bae03636"
         },
         {
           "path": "docs/USER-GUIDE.md",
-          "sha256": "6e6770f3d1761f74e305a36ce1688372ff9fa58be3b459ea18adbd1529f478b2"
+          "sha256": "d3b8f5841b8b87deb026160b320a026f367c61a20827f54d4961663056e5b7a2"
         },
         {
           "path": "docs/modern-thermostat/OVERSCHAKELING.nl.md",
@@ -315,7 +315,7 @@
         },
         {
           "path": "docs/INSTALL.md",
-          "sha256": "b0bd010ec97c1814e0532d092c77795aa3deb77dc53ee1a42127a94ad2f22b3e"
+          "sha256": "80c1ef04e7aa66e7b934966b4a9bde1ea8b2f25474384072c5a46a5f2d605d67"
         },
         {
           "path": "scripts/e32v2_literal_reach.py",
@@ -467,7 +467,7 @@
         },
         {
           "path": "docs/modern-thermostat/INSTALLATIE-TEST.nl.md",
-          "sha256": "b54a603a8d5f8fee6bf9bd1efbac966012dc176df76e425524bd18a3cd978cc8"
+          "sha256": "68ddbc018e2e9613dc13e80bb4f370656e27ca96a0e31179993556c894fb4e5a"
         },
         {
           "path": "docs/modern-thermostat/LEREN-ANALYSE.nl.md",
@@ -1141,15 +1141,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
-          "sha256": "746eff23d32d3c9aadb6fdd2c06db2fc8e98522d46aa0fa57384a52681098f25"
+          "sha256": "29d4cf1ef9948818f50755003f6967b9e601d2a8fcd9b71676be8b9949c35a82"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/en.json",
-          "sha256": "746eff23d32d3c9aadb6fdd2c06db2fc8e98522d46aa0fa57384a52681098f25"
+          "sha256": "29d4cf1ef9948818f50755003f6967b9e601d2a8fcd9b71676be8b9949c35a82"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "408a0ed877b220d229c9bf91cc6f3be0e32cbb62fe5a34eb5c1400168313be66"
+          "sha256": "0da9a8a0b977ee9cbb7246515f315bb13d528c4b2691bf6fa2a09461d5777ce5"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -2670,7 +2670,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/product_flow.py",
-          "sha256": "05c8b88da678ed7fbf8f94dcb0b4db6c4c3aacf4f5c18634d48b1f068519f7e7"
+          "sha256": "70f4a5ced4bce09978eb864a297de175a861fb6f56b6efd80c3a51f13174db12"
         },
         {
           "path": "ha/tests_native/test_tv02_operating_mode.py",
@@ -3178,7 +3178,7 @@
         },
         {
           "path": "ha/tests_native/test_shadow_texts.py",
-          "sha256": "d06ba5844c15f7a7f2fa005ad91e4065814de97874a5dff07b3238d67fe1277f"
+          "sha256": "30ea423f2798b45f39dd5c41273e7b9c4873280cc90683aa84ff9abc7a70da8c"
         },
         {
           "path": "ha/tests_native/test_update_markers.py",

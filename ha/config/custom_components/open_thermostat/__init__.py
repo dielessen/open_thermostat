@@ -446,6 +446,9 @@ async def async_setup_entry(hass, entry):
         raise ConfigEntryNotReady("mqtt_unavailable")
     from .v1_heating_graph import reconcile_removed_rooms
     reconcile_removed_rooms(hass, entry)
+    # The hub's leftover test-setup name (TEST_SETUP_DEVICE_NAMES) also goes on this route: before 1.0 it
+    # was dropped on the legacy route only, so a shadow-mode installation kept it.
+    _drop_test_setup_name(hass, entry)
     from .v1_runtime import ShadowRuntime
     from .product import is_product
     product = is_product(entry)

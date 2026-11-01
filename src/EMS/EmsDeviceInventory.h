@@ -3,6 +3,7 @@
 #include "DeviceVersion.h"
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <ostream>
 
 namespace heating::ems {
@@ -34,6 +35,14 @@ public:
     bool contains(uint8_t address) const {
         for(size_t i=0;i<used_;++i)if(entries_[i].address==address)return entries_[i].frames>0;
         return false;
+    }
+    // The first heard device whose version telegram has not been seen (not 0x0B, the E32 itself), for the
+    // automatic identity read; skip(address) leaves out devices not to ask now (waiting or given up).
+    template<class Skip>
+    std::optional<uint8_t> withoutVersion(Skip skip) const {
+        for(size_t i=0;i<used_;++i){const auto &e=entries_[i];
+            if(!e.version&&e.frames&&e.address&&e.address!=0x0b&&e.address<0x80&&!skip(e.address))return e.address;}
+        return std::nullopt;
     }
     void writeJSON(std::ostream &out,uint64_t now) const {
         out<<"{\"schema\":1,\"capacity\":"<<capacity<<",\"types_per_device\":"<<typesPerDevice<<",\"untracked_frames\":"<<untracked_<<",\"devices\":[";

@@ -326,7 +326,11 @@ bool EmsController::processBoilerTestPoll() {
     if (activeHeat_.poll(now, monitor_, routeReady, boilerTestEncoder_,
         [this](const EmsRawFrame& frame) { return transmitManualFrame<false>(frame); })) return true;
     // Only a poll without an active-heat command carries the 0x16 read.
-    return limitRead_.poll(now, ActiveHeatEnvelope::reportedAtMs(monitor_), routeReady,
+    if (limitRead_.poll(now, ActiveHeatEnvelope::reportedAtMs(monitor_), routeReady,
+        [this](const EmsRawFrame& frame) { return transmitManualFrame<true>(frame); })) return true;
+    // Then, now and then, one identity read of a heard device without a version (who is on the bus).
+    const auto target = deviceInventory_.withoutVersion([&](uint8_t address) { return !identityRead_.wants(now, address); });
+    return identityRead_.poll(now, target, routeReady,
         [this](const EmsRawFrame& frame) { return transmitManualFrame<true>(frame); });
 }
 #endif

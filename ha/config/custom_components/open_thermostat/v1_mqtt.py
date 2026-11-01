@@ -24,6 +24,20 @@ from .v1_wire import ShadowClient, identifier
 
 
 _LOGGER = logging.getLogger(__name__)
+# Original TV02 binding failure reasons already warned about in this Home Assistant run.
+_TV02_WARNED = set()
+
+
+def log_tv02_binding_failure(reason):
+    """A TV02 that is a room's temperature source but no selected actuator is the normal case
+    (selected_actuator_mismatch): debug only, it used to warn on every start. Any other reason is a
+    real misconfiguration: one warning per reason and Home Assistant run, debug after that."""
+    if reason == "selected_actuator_mismatch" or reason in _TV02_WARNED:
+        _LOGGER.debug("Original TV02 diagnostics disabled: source binding unavailable (%s)", reason)
+        return False
+    _TV02_WARNED.add(reason)
+    _LOGGER.warning("Original TV02 diagnostics disabled: source binding unavailable (%s)", reason)
+    return True
 
 
 async def async_room_schedule(hass,room,start=None):
@@ -98,8 +112,7 @@ class NativeShadowConnection:
             # An optional diagnostic pin can become invalid across a native
             # registry/config reload. Never disable the controller connection
             # or infer a replacement; rebuild an empty diagnostic owner only.
-            _LOGGER.warning("Original TV02 diagnostics disabled: source binding unavailable (%s)",
-                binding_failure_reason(error))
+            log_tv02_binding_failure(binding_failure_reason(error))
             self.tv02_reports = OriginalTv02Reports(runtime)
         from .original_ingress import OriginalIngressDiagnostics
         self.original_ingress = OriginalIngressDiagnostics()

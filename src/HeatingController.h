@@ -868,7 +868,9 @@ private:
         trvRooms_ = trvRoomViews(now);
         const bool output = activeGuard_.confirmedOutput();
         const auto& plan = roomEngine_.plan();
-        const auto valved = trv_.adjust(request, trvRooms_, output, now, plan.minimumFlowC, plan.maximumFlowC);
+        const auto& tuning = roomEngine_.tuning();
+        const auto valved = trv_.adjust(request, trvRooms_, output, now, plan.minimumFlowC, plan.maximumFlowC,
+                                        tuning.minOnS * 1000u, tuning.minOffS * 1000u);
         stepActiveHeat(now, valved, ems);
         trv_.step(now, trvRooms_, activeGuard_.confirmedOutput(), [this](const std::string& topic, const std::string& payload) {
             return mqtt_.publishExternal(topic, payload);

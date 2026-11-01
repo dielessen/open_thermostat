@@ -1,4 +1,5 @@
 #pragma once
+#include "control/ControlTuning.h"
 #include "control/FlowDemand.h"
 #include "control/GasCalibration.h"
 #include "control/RoomPlan.h"
@@ -87,10 +88,14 @@ public:
     // linear to 88.9 % at 55 degC and above (lower flow -> higher efficiency).
     static float efficiency(float returnC) { return 0.975f - std::clamp(returnC - 35.0f, 0.0f, 20.0f) * 0.0043f; }
     // Acceptable warm-up for a shortfall s: base + perDegree x s (minutes).
-    // Defaults: floor 1 degC in 2 h, radiator 1 degC in 1 h. Shortfall 0 = hold.
+    // Defaults: floor 1 degC in 2 h, radiator 1 degC in 1 h, scaled by the tuning's
+    // learned_accept_pct. Shortfall 0 = hold.
     struct Acceptance {
         uint16_t baseMinutes = 60, perDegreeMinutes = 60;
-        static Acceptance of(RoomPlan::Emitter e) { return e == RoomPlan::Emitter::floor ? Acceptance{60, 60} : Acceptance{30, 30}; }
+        static Acceptance of(RoomPlan::Emitter e, uint16_t pct = 100) {
+            const uint16_t m = e == RoomPlan::Emitter::floor ? 60 : 30;
+            return {uint16_t(m * pct / 100), uint16_t(m * pct / 100)};
+        }
         bool valid() const { return baseMinutes <= 720 && perDegreeMinutes >= 10 && perDegreeMinutes <= 720; }
         float requiredRate(int16_t shortfallCentiC) const { // degC/h
             if (shortfallCentiC <= 0) return 0;
@@ -136,12 +141,20 @@ public:
             const auto& pr = plan.rooms[i];
             auto old = std::find_if(rooms_.begin(), rooms_.end(), [&](const Room& r) { return r.id == pr.id && r.emitter == pr.emitter; });
             if (old != rooms_.end()) next[i] = std::move(*old);
-            else { next[i].id = pr.id; next[i].emitter = pr.emitter; next[i].acceptance = Acceptance::of(pr.emitter); }
+            else { next[i].id = pr.id; next[i].emitter = pr.emitter; next[i].acceptance = Acceptance::of(pr.emitter, tuning_.acceptPct); }
             next[i].segment = {};
         }
         rooms_ = std::move(next);
         minFlowC_ = plan.minimumFlowC; maxFlowC_ = plan.maximumFlowC;
     }
+    // ControlTuning: the rule's gain (ruleFlow), the acceptance of every room (a
+    // changed learned_accept_pct replaces a setAcceptance()), the planner's lead
+    // and night threshold (WarmupPlanner reads tuning()). What was learned stays.
+    void setTuning(const ControlTuning& t) {
+        if (t.acceptPct != tuning_.acceptPct) for (auto& r : rooms_) r.acceptance = Acceptance::of(r.emitter, t.acceptPct);
+        tuning_ = t;
+    }
+    const ControlTuning& tuning() const { return tuning_; }
     bool setAcceptance(size_t room, Acceptance a) {
         if (room >= rooms_.size() || !a.valid()) return false;
         rooms_[room].acceptance = a; return true;
@@ -252,6 +265,7 @@ public:
     // FlowDemand's own rule at a fresh start (integral 0): the proportional part.
     uint8_t ruleFlow(int16_t shortfallCentiC) const {
         FlowDemand::Params fp; fp.minimumFlowC = minFlowC_; fp.maximumFlowC = maxFlowC_;
+        fp.flowPerDegreeC = static_cast<uint8_t>(tuning_.flowPerDegreeC);
         return FlowDemand(fp).update(0, true, shortfallCentiC).flowC;
     }
     // Predicted time to close a shortfall at a flow; nullopt while not ready.
@@ -531,6 +545,7 @@ private:
     }
 
     Params p_;
+    ControlTuning tuning_;
     std::vector<Room> rooms_;
     uint8_t minFlowC_ = 30, maxFlowC_ = 60;
     bool haveLast_ = false, heating_ = false, nominalFromHa_ = false, kwhFromHa_ = false, applied_ = false;

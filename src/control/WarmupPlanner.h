@@ -10,11 +10,12 @@ namespace heating::control {
 // while Start::startNow holds. Pure: no IO or clock.
 struct WarmupPlanner {
     static constexpr uint32_t maxLeadS = 8 * 3600, compareS = 6 * 3600;
-    // While not learned: floor 2 h per degC (max 6 h), radiator 45 min (max 3 h).
-    static uint32_t defaultLeadS(RoomPlan::Emitter e, int16_t shortfallCentiC) {
+    // While not learned: floor 2 h per degC (max 6 h), radiator 45 min (max 3 h);
+    // the per-degC leads are tuning knobs, the maxima stay.
+    static uint32_t defaultLeadS(RoomPlan::Emitter e, int16_t shortfallCentiC, const ControlTuning& t = {}) {
         const bool floor = e == RoomPlan::Emitter::floor;
         const uint32_t s = static_cast<uint32_t>(std::max<int16_t>(shortfallCentiC, 0));
-        return std::min<uint32_t>(s * (floor ? 7200 : 2700) / 100, floor ? 21600 : 10800);
+        return std::min<uint32_t>(s * (floor ? t.floorLeadMinutes : t.radiatorLeadMinutes) * 60u / 100, floor ? 21600 : 10800);
     }
     // The next rise of the program within 24 h, and the night before it.
     struct Rise {
@@ -101,7 +102,7 @@ struct WarmupPlanner {
                 need = std::min(a.warmupS.value_or(maxLeadS), maxLeadS);
             } else {
                 out.confidence = "default"; out.flowC = l.ruleFlow(shortfall);
-                need = defaultLeadS(l.emitter(room), shortfall);
+                need = defaultLeadS(l.emitter(room), shortfall, l.tuning());
             }
             if (need <= lead || lead >= maxLeadS) { out.leadS = lead; return; }
             if (start == utc) { out.leadS = need; out.reachable = false; return; } // too late already
@@ -161,8 +162,9 @@ struct WarmupPlanner {
         }
         if (!found) { out.reason = "none_on_time"; return out; }
         out.savingM3 = out.strategies[0].m3 - out.strategies[out.best].m3;
-        // Within the model's noise the program stays: at least 0.05 m3 and 2 %.
-        if (out.strategies[0].onTime && out.savingM3 < std::max(0.05f, 0.02f * out.strategies[0].m3)) { out.best = 0; out.savingM3 = 0; }
+        // Within the model's noise the program stays: at least 0.05 m3 and 2 % (tuning).
+        const float share = l.tuning().nightSavingPct / 100.0f;
+        if (out.strategies[0].onTime && out.savingM3 < std::max(0.05f, share * out.strategies[0].m3)) { out.best = 0; out.savingM3 = 0; }
         // A late program setback costs less than any on-time strategy: no saving, not a negative one.
         out.savingM3 = std::max(0.0f, out.savingM3);
         if (l.price()) out.savingEur = out.savingM3 * *l.price();

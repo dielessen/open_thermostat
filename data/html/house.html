@@ -65,6 +65,25 @@
       <p class="pd-help" data-flow-compare hidden></p>
       <p class="pd-help" data-flow-night hidden></p>
       </details>
+      <!-- E32 1.0 tuning knobs ("tuning" of /config/heating/flow, control/ControlTuning.h); hidden on firmware without them. -->
+      <details class="ot-advanced hp-advanced" data-flow-tuning hidden><summary><span data-i18n="Advanced: tuning">Advanced: tuning</span> <small class="bp-summary" data-i18n="Leave as is unless advised">Leave as is unless advised</small></summary>
+      <p class="pd-help" data-i18n="How the E32 controls the boiler. The defaults are the normal behaviour; change a value only on advice, for example after a week of active control. Safety limits are not here.">How the E32 controls the boiler. The defaults are the normal behaviour; change a value only on advice, for example after a week of active control. Safety limits are not here.</p>
+      <div class="bl-grid hp-tuning">
+        <label><span data-i18n="Minimum burner on time (s)">Minimum burner on time (s)</span><input class="form-control" type="number" min="120" max="1800" step="1" data-tuning="min_on_s" data-hint="Heat runs at least this long once it starts, also for an optimum start. Default 300."></label>
+        <label><span data-i18n="Minimum burner off time (s)">Minimum burner off time (s)</span><input class="form-control" type="number" min="120" max="1800" step="1" data-tuning="min_off_s" data-hint="After heat stops, the E32 waits at least this long before it asks again. Default 300."></label>
+        <label><span data-i18n="Start heating below the target by (°C)">Start heating below the target by (°C)</span><input class="form-control" type="number" min="0.05" max="1" step="0.01" data-tuning="heat_start_c" data-hint="Default 0.2."></label>
+        <label><span data-i18n="Stop heating above the target by (°C)">Stop heating above the target by (°C)</span><input class="form-control" type="number" min="0" max="1" step="0.01" data-tuning="heat_stop_c" data-hint="Default 0.2."></label>
+        <label><span data-i18n="Extra flow per °C too cold (°C)">Extra flow per °C too cold (°C)</span><input class="form-control" type="number" min="2" max="30" step="1" data-tuning="flow_per_degree_c" data-hint="The room control's flow above the minimum flow. Default 10."></label>
+        <label><span data-i18n="Room correction on the heating curve (%)">Room correction on the heating curve (%)</span><input class="form-control" type="number" min="0" max="100" step="1" data-tuning="curve_correction_pct" data-hint="Share of the room control added to the heating curve. Default 50."></label>
+        <label><span data-i18n="Warm-up time per °C, floor heating (min)">Warm-up time per °C, floor heating (min)</span><input class="form-control" type="number" min="30" max="360" step="1" data-tuning="floor_lead_min_per_c" data-hint="For the optimum start until the room is learned. Default 120."></label>
+        <label><span data-i18n="Warm-up time per °C, radiators (min)">Warm-up time per °C, radiators (min)</span><input class="form-control" type="number" min="10" max="180" step="1" data-tuning="radiator_lead_min_per_c" data-hint="For the optimum start until the room is learned. Default 45."></label>
+        <label><span data-i18n="Accepted warm-up time for the learned flow (%)">Accepted warm-up time for the learned flow (%)</span><input class="form-control" type="number" min="50" max="200" step="1" data-tuning="learned_accept_pct" data-hint="Higher: slower warm-ups at a lower flow. Default 100."></label>
+        <label><span data-i18n="Smallest night saving that changes the advice (%)">Smallest night saving that changes the advice (%)</span><input class="form-control" type="number" min="0" max="20" step="1" data-tuning="night_saving_min_pct" data-hint="Below this (and 0.05 m³) the program's own setback stays the advice. Default 2."></label>
+      </div>
+      <p class="ot-actions"><button type="button" class="btn btn-primary" data-tuning-save><span data-i18n="Save tuning">Save tuning</span></button>
+        <button type="button" class="btn btn-outline-secondary" data-tuning-reset><span data-i18n="Restore defaults">Restore defaults</span></button>
+        <span role="status" aria-live="polite" data-tuning-message></span></p>
+      </details>
     </div>
     <p class="pd-help"><span data-i18n="Active control and the comparison with your thermostat:">Active control and the comparison with your thermostat:</span> <a href="#rooms" data-page="heating"><span data-i18n="Rooms">Rooms</span></a></p>
   </section>
@@ -77,9 +96,10 @@
 #house-settings .hs-now{margin:0 0 12px;padding:10px 12px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}
 #house-settings .hs-holiday,#house-settings .hs-field{margin:0 0 12px;max-width:30rem}#house-settings .hs-holiday label,#house-settings .hs-field label{display:block;margin-bottom:4px}
 #house-settings .hs-field input{max-width:8rem}#house-settings .hs-holiday input{max-width:16rem}
-#house-settings [data-house-message]:empty,#house-settings [data-flow-message]:empty,#house-settings [data-limits-message]:empty{display:none}
+#house-settings [data-house-message]:empty,#house-settings [data-flow-message]:empty,#house-settings [data-limits-message]:empty,#house-settings [data-tuning-message]:empty{display:none}
 #house-settings h3{font-size:1.05rem;margin:14px 0 6px}#house-settings .bl-grid{display:grid;gap:0 16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));max-width:480px}#house-settings .bl-grid label{display:block;margin-bottom:8px}
 #house-settings .bp-summary{color:var(--ot-muted);font-weight:400;font-size:.85rem}
+#house-settings .hp-advanced{margin:12px 0 0}#house-settings .hp-tuning{margin-top:8px}#house-settings .hp-tuning input,#house-settings [data-flow-tuning] .btn{min-height:44px}
 #house-settings .hp-flow-design{margin:0 0 8px 34px;max-width:30rem}#house-settings .hp-flow-design label{display:block;margin-bottom:4px}#house-settings .hp-more{margin:12px 0 0}
 @media(max-width:560px){#house-settings .hp-flow-design{margin-left:0}}</style>
 <script>
@@ -303,7 +323,10 @@
     calibrated:"Calibrated with the gas meter ({confidence})", meter_stale:"Gas meter not reporting"};
   const confidenceText = {low:"low", medium:"medium", high:"high"};
   const errorText = {invalid_value:"Invalid value", save_unconfirmed:"Saving not confirmed, try again"};
-  let settings = null, saving = false, loading = false, absent = false;
+  // Advanced: tuning (E32 1.0): the record's "tuning", kept apart from the status (which carries only the options).
+  const tuningBox = box.querySelector('[data-flow-tuning]'), knobs = [...box.querySelectorAll('[data-tuning]')];
+  const tuningMessage = box.querySelector('[data-tuning-message]'), tuningButtons = [...tuningBox.querySelectorAll('button')];
+  let settings = null, tuning = null, saving = false, loading = false, absent = false;
   const el = (tag, text) => { const e = document.createElement(tag); e.textContent = text; return e; };
   const fixed = (v, digits) => typeof v === 'number' && Number.isFinite(v) ? v.toFixed(digits).replace('.', document.documentElement.lang === 'nl' ? ',' : '.') : '—';
   const degrees = v => typeof v === 'number' && Number.isFinite(v) ? fixed(v, 0) + ' °C' : null;
@@ -322,6 +345,14 @@
     for (const o of options) { o.disabled = off; if (settings && !saving) o.checked = settings[o.dataset.flowOption]; }
     design.disabled = off;
     if (settings && !saving) design.value = String(settings.curve_design_flow_c);
+    tuningBox.hidden = !tuning;
+    for (const k of [...knobs, ...tuningButtons]) k.disabled = off || !tuning;
+  }
+  // Only after a read or a save: an edit in progress stays while the status refreshes.
+  function stored(body) {
+    if (!body.tuning || typeof body.tuning !== 'object') return;
+    tuning = body.tuning;
+    for (const k of knobs) k.value = Number.isFinite(tuning[k.dataset.tuning]) ? String(tuning[k.dataset.tuning]) : '';
   }
   new MutationObserver(paint).observe(root, {attributes:true, attributeFilter:['class']});
   async function call(init = {}) {
@@ -336,23 +367,38 @@
   }
   async function load() {
     loading = true;
-    try { settings = await call(); box.hidden = false; paint(); }
+    try { settings = await call(); stored(settings); box.hidden = false; paint(); }
     catch (error) { absent = error.status === 404 || error.status === 405; } // older firmware: no flow options
     finally { loading = false; }
   }
-  async function save(change) {
-    saving = true; paint(); message.textContent = uiText("Saving…");
+  async function save(change, out = message) {
+    saving = true; paint(); out.textContent = uiText("Saving…");
     try {
       settings = await call({method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(change)});
-      message.textContent = uiText("Saved.");
+      stored(settings);
+      out.textContent = uiText("Saved.");
     } catch (error) {
-      message.textContent = errorText[error.code] ? uiText(errorText[error.code])
+      if ('tuning' in change && tuning) stored({tuning}); // a refused change shows the stored values again
+      out.textContent = errorText[error.code] ? uiText(errorText[error.code])
         : error.code ? uiText("The E32 refused the change.") + ' (' + error.code + ')'
         : uiText("The E32 could not be reached. Check the connection and try again.");
     } finally { saving = false; paint(); } // a refused change shows the stored value again
   }
   for (const o of options) o.addEventListener('change', () => save({[o.dataset.flowOption]: o.checked}));
   design.addEventListener('change', () => save({curve_design_flow_c: Number(design.value)}));
+  // One POST with the changed knobs; "Restore defaults" sends null (the built-in values).
+  tuningBox.querySelector('[data-tuning-save]').addEventListener('click', () => {
+    const change = {};
+    for (const k of knobs) {
+      if (k.value === '' || !k.checkValidity()) {
+        tuningMessage.textContent = fill(uiText("Use a value from {min} to {max}."), {min: k.min, max: k.max}); k.focus(); return;
+      }
+      if (Number(k.value) !== tuning[k.dataset.tuning]) change[k.dataset.tuning] = Number(k.value);
+    }
+    if (!Object.keys(change).length) { tuningMessage.textContent = uiText("No changes to save."); return; }
+    save({tuning: change}, tuningMessage);
+  });
+  tuningBox.querySelector('[data-tuning-reset]').addEventListener('click', () => save({tuning: null}, tuningMessage));
   function render(status) {
     const flow = status.flow && typeof status.flow === 'object' ? status.flow : null, rows = [];
     if (flow) {

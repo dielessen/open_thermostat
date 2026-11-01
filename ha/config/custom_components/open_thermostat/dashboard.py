@@ -182,6 +182,12 @@ TEXT = {
         "advice_note": "Advice only: nothing is changed automatically.",
         "confidence_low": "low", "confidence_medium": "medium", "confidence_high": "high",
         "gas_heating": "Heating", "gas_hot_water": "Hot water", "gas_keep_warm": "Of which keeping warm",
+        "gas_tapping": "Tapping", "gas_keeping_warm": "Keeping warm",
+        "activity_timeline": "What the boiler does (24 hours)", "activity": "Boiler",
+        "gas_per_post": "Gas per day: heating, tapping, keeping warm",
+        "dhw_use_note": "Tapping is hot water used at a tap; keeping warm is the boiler reheating its hot water "
+                        "without a tap (comfort mode); a cylinder shows as charging. The E32 tells them apart with the most direct "
+                        "signal your boiler reports.",
         "gas_per_day": "Gas per day",
         "gas_measured": "Measured with your gas meter, split by what the boiler did.",
         "gas_estimate": "Estimated from the burner modulation and the boiler's power (no gas meter).",
@@ -268,6 +274,12 @@ TEXT = {
         "advice_note": "Alleen advies: er wordt niets automatisch veranderd.",
         "confidence_low": "laag", "confidence_medium": "middel", "confidence_high": "hoog",
         "gas_heating": "Verwarmen", "gas_hot_water": "Warm water", "gas_keep_warm": "Waarvan warmhouden",
+        "gas_tapping": "Tappen", "gas_keeping_warm": "Warmhouden",
+        "activity_timeline": "Wat de ketel doet (24 uur)", "activity": "Ketel",
+        "gas_per_post": "Gas per dag: verwarmen, tappen, warmhouden",
+        "dhw_use_note": "Tappen is warm water uit een kraan; warmhouden is de ketel die zijn warme water opwarmt "
+                        "zonder dat er getapt wordt (comfortstand); een boiler toont als laden. De E32 houdt ze uit elkaar met "
+                        "het meest directe signaal dat je ketel geeft.",
         "gas_per_day": "Gas per dag",
         "gas_measured": "Gemeten met je gasmeter, verdeeld naar wat de ketel deed.",
         "gas_estimate": "Geschat uit de brandermodulatie en het vermogen van de ketel (geen gasmeter).",
@@ -425,6 +437,31 @@ def _energy_section(t, heating, hot_water, keep_warm=None):
             (heating, t["gas_heating"]), (hot_water, t["gas_hot_water"]), (keep_warm, t["gas_keep_warm"])) if entity_id],
          "stat_types": ["change"], "period": "day", "days_to_show": 7, "chart_type": "bar"},
         {"type": "markdown", "content": note})
+
+
+def _hot_water_use_cards(t, hub, heating_active=None):
+    """When hot water is tapped and when it is kept warm, for the Boiler view's hot-water section: the last 24 hours
+    of what the boiler does (next to heating active) and the gas per day per post (heating, tapping, keeping warm),
+    that graph once tapping or keeping warm has counted gas. No cards without the sensors."""
+    activity = hub.get("boiler_activity")
+    posts = [(hub.get(key), t[name]) for key, name in (("heating_gas", "gas_heating"), ("tapping_gas", "gas_tapping"),
+                                                       ("keep_warm_gas", "gas_keeping_warm")) if hub.get(key)]
+    cards = []
+    if activity:
+        rows = [(activity, t["activity"]), (heating_active, t["state_heating"])]
+        cards.append({"type": "history-graph", "title": t["activity_timeline"], "hours_to_show": 24,
+                      "entities": [{"entity": entity_id, "name": name} for entity_id, name in rows if entity_id]})
+    if len(posts) == 3:
+        cards.append({"type": "statistics-graph", "title": t["gas_per_post"], "chart_type": "bar", "period": "day",
+                      "days_to_show": 7, "stat_types": ["change"],
+                      "entities": [{"entity": entity_id, "name": name} for entity_id, name in posts],
+                      # Only once tapping or keeping warm has counted gas (else "No statistics found").
+                      "visibility": [{"condition": "or", "conditions": [
+                          {"condition": "numeric_state", "entity": entity_id, "above": 0}
+                          for entity_id, _ in posts[1:]]}]})
+    if cards:
+        cards.append({"type": "markdown", "content": t["dhw_use_note"]})
+    return cards
 
 
 def _value_tile(entity_id, name, icon, color=None):
@@ -1063,6 +1100,12 @@ class RoomDashboard:
                 if card is not None:
                     card["visibility"] = [condition for item in card["entities"] for condition in _known(item["entity"])]
                 return card
+            use = _hot_water_use_cards(t, hub, fields.get("heating_active"))
+            if use:  # in the hot-water section (its own one when the boiler reports no hot-water values)
+                dhw = next((section for section in sections if section["cards"][0]["heading"] == t["group_dhw"]), None)
+                if dhw is None:
+                    sections.append(dhw := _section(_heading(t["group_dhw"], dict(BOILER_GROUPS)["dhw"])))
+                dhw["cards"] += use
             sections.append(_section(
                 _heading(t["history_24h"], "mdi:chart-line"),
                 shown(graph(t["flow_graph"], (

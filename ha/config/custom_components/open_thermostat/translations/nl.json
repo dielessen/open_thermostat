@@ -2379,6 +2379,9 @@
       "hot_water_gas": {
         "name": "Gas voor warm water"
       },
+      "tapping_gas": {
+        "name": "Gas voor tappen van warm water"
+      },
       "keep_warm_gas": {
         "name": "Gas voor warmhouden van warm water"
       },
@@ -2510,6 +2513,17 @@
       },
       "hub_boiler_display_code": {
         "name": "Displaycode ketel"
+      },
+      "boiler_activity": {
+        "name": "Ketelactiviteit",
+        "state": {
+          "idle": "In rust",
+          "heating": "Verwarmen",
+          "tapping": "Tappen",
+          "keep_warm": "Warmhouden",
+          "charging": "Boiler laden",
+          "hot_water": "Warm water"
+        }
       }
     },
     "select": {

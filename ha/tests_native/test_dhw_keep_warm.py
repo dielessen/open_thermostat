@@ -1,4 +1,5 @@
-"""Hot water split into tapping and keeping warm (universal), the keep-warm gas sensor and counts across E32 restarts."""
+"""Hot water split into tapping and keeping warm (universal): the tapping and keep-warm gas sensors, the boiler
+activity timeline, the Boiler view's hot-water cards and counts across E32 restarts."""
 import json
 from datetime import date
 from pathlib import Path
@@ -85,10 +86,13 @@ async def test_an_episode_the_e32_counts_as_keeping_warm_goes_to_keeping_warm_wh
     by_kind = {sensor.kind: sensor for sensor in added}
     assert {k: s.unique_id for k, s in by_kind.items()} == {
         "heating": "fixture_hub_heating_gas", "hot_water": "fixture_hub_hot_water_gas",  # unchanged
-        "keep_warm": "fixture_hub_keep_warm_gas"}
+        "tapping": "fixture_hub_tapping_gas", "keep_warm": "fixture_hub_keep_warm_gas"}
     attributes = use.attributes("keep_warm")
     assert attributes["dhw_method"] == method and attributes["rounds_today"] == 1
     assert attributes["burner_minutes_today"] == 3 and DAY0.isoformat() in attributes["days"]
+    tapping = use.attributes("tapping")
+    assert tapping["rounds_today"] == 1 and tapping["burner_minutes_today"] == 2
+    assert totals["tapping"] + totals["keep_warm"] == pytest.approx(totals["hot_water"], rel=0.01)
     hot = use.attributes("hot_water")
     assert hot["keep_warm_today"] + hot["tapping_today"] == pytest.approx(hot["today"], abs=0.002)
 
@@ -99,7 +103,7 @@ async def test_older_firmware_without_sorted_hot_water_gets_no_keep_warm_sensor(
     values.update(reported_burner_modulation=50, dhw_active=1)
     use.tick(); run(use, clock, 300)
     assert sorted(sensor.kind for sensor in added) == ["heating", "hot_water"]
-    assert use.data["totals"]["keep_warm"] == 0
+    assert use.data["totals"]["keep_warm"] == use.data["totals"]["tapping"] == 0
 
 
 def test_a_store_from_before_keeps_its_totals_and_gains_an_empty_keep_warm():
@@ -107,7 +111,7 @@ def test_a_store_from_before_keeps_its_totals_and_gains_an_empty_keep_warm():
            "days": {"2026-10-30": {"heating_m3": 0.5, "hot_water_m3": 3.5, "taps": 7}}, "meter": None,
            "pending": {"heating": 0.0, "hot_water": 0.0}, "pending_since": None}
     data = valid_data(old)
-    assert data["totals"] == {"heating": 12.5, "hot_water": 30.25, "keep_warm": 0.0}
+    assert data["totals"] == {"heating": 12.5, "hot_water": 30.25, "tapping": 0.0, "keep_warm": 0.0}
     assert data["days"]["2026-10-30"]["taps"] == 7 and data["days"]["2026-10-30"]["keep_warm_m3"] == 0.0
 
 
@@ -120,7 +124,7 @@ async def test_the_owners_day_with_a_gas_meter_splits_hot_water_into_tapping_and
     samples = [tuple(map(int, item.split(","))) for item in FIXTURE["samples"].split(";")]
     episodes = list(FIXTURE["episodes"])
     counts = {"tapping": 0, "keep_warm": 0}
-    meter, burner_since_meter, last_keep = 1000.0, 0.0, 0.0
+    meter, burner_since_meter, last = 1000.0, 0.0, {"tapping": 0.0, "keep_warm": 0.0}
     use.tick()
     for index, (modulation, dhw) in enumerate(samples):
         second = index * 10
@@ -134,14 +138,18 @@ async def test_the_owners_day_with_a_gas_meter_splits_hot_water_into_tapping_and
             gas_meter(hass, f"{meter:.3f}")
         clock[0] += 10
         use.tick()
-        assert use.data["totals"]["keep_warm"] >= last_keep  # total_increasing: never down
-        last_keep = use.data["totals"]["keep_warm"]
+        for kind in last:  # total_increasing: never down
+            assert use.data["totals"][kind] >= last[kind]
+            last[kind] = use.data["totals"][kind]
     day = use.data["days"][DAY0.isoformat()]
-    assert day["keep_warm_rounds"] == 41
+    assert (day["keep_warm_rounds"], day["taps"]) == (41, 16)
     share = day["keep_warm_m3"] / day["hot_water_m3"]
     assert 0.55 <= share <= 0.68, share
+    # Every episode of that day is a tap or keeping warm: together they are the hot water (the meter's last step aside).
+    assert day["tapping_m3"] + day["keep_warm_m3"] == pytest.approx(day["hot_water_m3"], rel=0.03)
     assert day["hot_water_m3"] > day["heating_m3"]          # the day the owner noticed
-    assert use.data["totals"]["keep_warm"] <= use.data["totals"]["hot_water"]
+    totals = use.data["totals"]
+    assert totals["tapping"] + totals["keep_warm"] <= totals["hot_water"] + 1e-9
 
 
 def test_the_weekly_summary_names_the_keep_warm_part():
@@ -165,3 +173,129 @@ def test_the_dashboard_shows_keeping_warm_as_a_third_bar_next_to_hot_water():
         assert graph["entities"][2]["name"] == name
     without = _energy_section(TEXT["en"], "sensor.heating_gas", "sensor.hot_water_gas")
     assert len(next(card for card in without["cards"] if card["type"] == "statistics-graph")["entities"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_a_cylinder_charging_counts_to_hot_water_only(hass):
+    use, values, clock, added = setup(hass, "storage")
+    values.update(reported_burner_modulation=70, dhw_active=1)
+    use.tick(); run(use, clock, 600)
+    values.update(reported_burner_modulation=0, dhw_active=0)
+    use.hub.summary = summary("storage", charging=1)
+    run(use, clock, 60)
+    totals = use.data["totals"]
+    assert totals["hot_water"] > 0 and totals["tapping"] == totals["keep_warm"] == 0
+
+
+# -- what the boiler does now ------------------------------------------------------------------------------
+
+def owner_activity():
+    """The owner's 31 Oct as the E32 reports it at the end of each episode: (second, activity) every 10 s."""
+    samples = [tuple(map(int, item.split(","))) for item in FIXTURE["samples"].split(";")]
+    episodes, states = list(FIXTURE["episodes"]), []
+    for index, (modulation, dhw) in enumerate(samples):
+        second = index * 10
+        while episodes and episodes[0][0] < second and not dhw:
+            episodes.pop(0)
+        states.append((second, episodes[0][1] if dhw and episodes else "heating" if modulation else "idle"))
+    return states
+
+
+@pytest.mark.asyncio
+async def test_the_boiler_activity_follows_the_e32_and_draws_the_owners_day(hass, monkeypatch):
+    from homeassistant.components.sensor import SensorDeviceClass
+    from custom_components.open_thermostat import heating_link as module
+    from test_heating_link import FULL, _setup
+    entry, hub, added, send = await _setup(hass, monkeypatch)
+    send({**FULL, "burner": {"starts_last_hour": 2, "short_cycling": False}})
+    assert not any(e.unique_id == "fixture_hub_boiler_activity" for e in added)  # older firmware: none
+    send({**FULL, "burner": {"starts_last_hour": 2, "short_cycling": False, "activity": None}})
+    activity = next(e for e in added if e.unique_id == "fixture_hub_boiler_activity")
+    assert activity.device_class == SensorDeviceClass.ENUM and activity.translation_key == "boiler_activity"
+    assert activity.options == ["idle", "heating", "tapping", "keep_warm", "charging", "hot_water"]
+    assert activity.native_value is None
+    runs, last = {}, None
+    for _, state in owner_activity():
+        send({**FULL, "burner": {"starts_last_hour": 2, "short_cycling": False, "activity": state}})
+        assert activity.available and activity.native_value == state
+        if state != last:
+            runs[state] = runs.get(state, 0) + 1
+        last = state
+    assert (runs["tapping"], runs["keep_warm"]) == (16, 41) and runs["heating"] > 0 and runs["idle"] > 0
+    send({**FULL, "burner": {"activity": "boiling"}})  # unknown values are unknown, never a new state
+    assert activity.native_value is None
+    now = [hub.received + module.STALE_SECONDS + 1]
+    hub.clock = lambda: now[0]
+    hub.check_stale()
+    assert not activity.available
+
+
+def test_every_boiler_activity_has_a_name_in_english_dutch_and_polish():
+    from custom_components.open_thermostat.heating_link import BOILER_ACTIVITIES
+    component = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
+    names = {}
+    for name in ("strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"):
+        sensor = json.loads((component / name).read_text(encoding="utf-8"))["entity"]["sensor"]
+        assert set(sensor["boiler_activity"]["state"]) == set(BOILER_ACTIVITIES), name
+        assert sensor["tapping_gas"]["name"] and sensor["keep_warm_gas"]["name"]
+        names[name] = sensor["boiler_activity"]["state"]
+    assert names["strings.json"] == names["translations/en.json"]
+    assert (names["translations/nl.json"]["tapping"], names["translations/nl.json"]["keep_warm"]) == ("Tappen", "Warmhouden")
+    assert (names["translations/pl.json"]["tapping"], names["translations/pl.json"]["keep_warm"]) == (
+        "Pobór wody", "Podtrzymanie ciepła")
+
+
+# -- the Boiler view's hot-water section ------------------------------------------------------------------
+
+HUB = {"boiler_activity": "sensor.boiler_activity", "heating_gas": "sensor.heating_gas",
+       "tapping_gas": "sensor.tapping_gas", "keep_warm_gas": "sensor.keep_warm_gas"}
+
+
+@pytest.mark.parametrize("lang", ["en", "nl"])
+def test_the_hot_water_cards_are_a_timeline_and_the_gas_per_post_once_there_are_statistics(lang):
+    from custom_components.open_thermostat.dashboard import TEXT, _hot_water_use_cards
+    t = TEXT[lang]
+    timeline, gas, note = _hot_water_use_cards(t, HUB, "sensor.heating_active")
+    assert (timeline["type"], timeline["hours_to_show"]) == ("history-graph", 24)
+    assert [item["entity"] for item in timeline["entities"]] == ["sensor.boiler_activity", "sensor.heating_active"]
+    assert (gas["type"], gas["chart_type"], gas["period"], gas["days_to_show"], gas["stat_types"]) == (
+        "statistics-graph", "bar", "day", 7, ["change"])
+    assert [(item["entity"], item["name"]) for item in gas["entities"]] == [
+        ("sensor.heating_gas", t["gas_heating"]), ("sensor.tapping_gas", t["gas_tapping"]),
+        ("sensor.keep_warm_gas", t["gas_keeping_warm"])]
+    assert gas["visibility"] == [{"condition": "or", "conditions": [
+        {"condition": "numeric_state", "entity": "sensor.tapping_gas", "above": 0},
+        {"condition": "numeric_state", "entity": "sensor.keep_warm_gas", "above": 0}]}]
+    assert note["type"] == "markdown" and t["gas_tapping"] in note["content"]
+    assert {"Tapping": "en", "Tappen": "nl"}[t["gas_tapping"]] == lang
+    # Firmware without the activity: the gas alone; without the split: nothing.
+    assert [card["type"] for card in _hot_water_use_cards(t, {**HUB, "boiler_activity": None})] == [
+        "statistics-graph", "markdown"]
+    assert _hot_water_use_cards(t, {"heating_gas": "sensor.heating_gas", "hot_water_gas": "sensor.hot_water_gas"}) == []
+
+
+@pytest.mark.asyncio
+async def test_the_boiler_views_hot_water_section_holds_the_timeline_and_the_gas_per_post(hass):
+    from homeassistant.helpers import entity_registry as er
+    from test_dashboard_redesign import headed, setup as dashboard, view
+    from custom_components.open_thermostat.dashboard import RoomDashboard
+    from test_dashboard_heating import walk
+    config, hub, fields = dashboard(hass)
+    assert not any(card["type"] == "statistics-graph" for card in headed(view(config, "boiler"))["Hot water"])
+    entities = er.async_get(hass)
+    entry = next(iter(hass.config_entries.async_entries("open_thermostat")))
+    device = entities.async_get(fields["dhw_active"]).device_id
+    for key in HUB:
+        entities.async_get_or_create("sensor", "open_thermostat", f"fixture_hub_{key}", config_entry=entry,
+                                     device_id=device, suggested_object_id=key)
+    config = RoomDashboard(hass, "fixture", entry.entry_id)._dashboard_config()
+    assert None not in list(walk(config))
+    sections = headed(view(config, "boiler"))
+    assert list(sections) == ["Heating", "Hot water", "Status and faults", "Boiler settings",
+                              "Thermostat on the bus", "Last 24 hours"]  # no extra section
+    cards = sections["Hot water"]
+    timeline = next(card for card in cards if card["type"] == "history-graph")
+    assert [item["entity"] for item in timeline["entities"]] == ["sensor.boiler_activity", fields["heating_active"]]
+    gas = next(card for card in cards if card["type"] == "statistics-graph")
+    assert [item["entity"] for item in gas["entities"]] == ["sensor.heating_gas", "sensor.tapping_gas",
+                                                           "sensor.keep_warm_gas"]

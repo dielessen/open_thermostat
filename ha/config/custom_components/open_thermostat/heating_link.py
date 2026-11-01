@@ -1123,6 +1123,36 @@ def burner_status(status):
     return burner if type(burner) is dict else None
 
 
+BOILER_ACTIVITIES = ("idle", "heating", "tapping", "keep_warm", "charging", "hot_water")
+
+
+class BoilerActivitySensor(HubEntity, SensorEntity):
+    """What the boiler does now, as the E32 sees it on the bus (``burner.activity``, E32 beta.23).
+
+    An enum, so Home Assistant's history draws a coloured timeline: idle, heating, tapping,
+    keeping warm, charging a cylinder, or hot water the E32 cannot sort. The E32 decides with the
+    most direct signal its boiler reports (DHW flow, a cylinder's charging, else the DHW
+    temperature); a tap shows as keeping warm until its fall is clear, usually within half a minute.
+    """
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(BOILER_ACTIVITIES)
+    _attr_translation_key = "boiler_activity"
+
+    def __init__(self, hub):
+        self._attach(hub, "hub_boiler_activity")
+
+    @property
+    def available(self):
+        return self.hub.fresh
+
+    @property
+    def native_value(self):
+        burner = burner_status(self.hub.status)
+        value = burner.get("activity") if burner else None
+        return value if value in BOILER_ACTIVITIES else None
+
+
 class BurnerEntity(HubEntity):
     """Mixin: one value of the E32's burner-start count, on the product device."""
 
@@ -1498,6 +1528,8 @@ def wanted_sensors(hub):
             yield ("shadow", key), lambda key=key: ShadowSensor(hub, key)
     if burner_status(hub.status) is not None:  # firmware that counts burner starts
         yield ("burner",), lambda: BurnerStartsSensor(hub)
+    if "activity" in (burner_status(hub.status) or {}):  # firmware that says what the boiler does (beta.23)
+        yield ("activity",), lambda: BoilerActivitySensor(hub)
     if hub.dhw is not None:  # firmware that sorts the hot-water episodes
         for key in DHW_SENSORS:
             yield ("dhw", key), lambda key=key: DhwTodaySensor(hub, key)

@@ -1451,6 +1451,9 @@
       "hot_water_gas": {
         "name": "Gaz na ciepłą wodę"
       },
+      "tapping_gas": {
+        "name": "Gaz na pobór ciepłej wody"
+      },
       "keep_warm_gas": {
         "name": "Gaz na utrzymanie ciepłej wody"
       },
@@ -1582,6 +1585,17 @@
       },
       "hub_boiler_display_code": {
         "name": "Kod wyświetlacza kotła"
+      },
+      "boiler_activity": {
+        "name": "Aktywność kotła",
+        "state": {
+          "idle": "Spoczynek",
+          "heating": "Ogrzewanie",
+          "tapping": "Pobór wody",
+          "keep_warm": "Podtrzymanie ciepła",
+          "charging": "Ładowanie zasobnika",
+          "hot_water": "Ciepła woda"
+        }
       }
     },
     "select": {

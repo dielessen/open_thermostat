@@ -405,17 +405,30 @@ burner short-cycling warning.
 
 With a gas meter in the energy options, *Gas for heating* and *Gas for hot
 water* share the meter by what the boiler did (without a meter they are an
-estimate from the burner modulation). *Gas for keeping hot water warm* is the
-part of hot water spent without tapping: a combi's comfort mode reheating its
-exchanger, or a cylinder being charged. Its attributes show per day the rounds,
-burner minutes and gas. The E32 decides per hot-water episode with the most
-direct signal the boiler reports: a DHW flow meter, a cylinder's charging, or
-otherwise the DHW temperature (a tap brings cold mains water, so it falls deep
-or stays down; keeping warm dips briefly). The attribute `dhw_method` names it.
-Add heating and hot water to the Energy dashboard; keeping warm is a part of
-hot water, so leave it out there. Many rounds a day while the heating is off
-can be worth a look: the comfort mode itself, or heat leaking away (ask your
-installer).
+estimate from the burner modulation). Hot water is split once more:
+*Gas for tapping hot water* is what taps used, *Gas for keeping hot water
+warm* is what the boiler spent reheating its hot water without a tap (a
+combi's comfort mode keeping its exchanger or small store hot). Their
+attributes show per day the rounds, burner minutes and gas. The E32 decides
+per hot-water episode with the most direct signal the boiler reports: a DHW
+flow meter, or otherwise the DHW temperature (a tap brings cold mains water,
+so it falls deep or stays down; keeping warm dips briefly). The attribute
+`dhw_method` names it. A boiler with a cylinder reports charging instead: the
+E32 cannot tell a tap from a reheat there, so its hot water stays in *Gas for
+hot water* only. Add heating and hot water to the Energy dashboard; tapping
+and keeping warm are parts of hot water, so leave them out there. Many rounds
+a day while the heating is off can be worth a look: the comfort mode itself,
+or heat leaking away (ask your installer).
+
+*Boiler activity* says what the boiler does now: idle, heating, tapping,
+keeping warm, charging the cylinder, or hot water it cannot sort. A tap shows
+as keeping warm until its fall is clear, usually within half a minute. In the
+Boiler view, the hot-water section shows this as a 24-hour timeline next to
+the boiler's heating state, and, once tapping or keeping warm has counted gas,
+the gas per day for heating, tapping and keeping warm over the last week. On
+the E32's own Overview, the boiler history has a hot-water strip: the share of
+each 5 minutes tapping and keeping warm (a cylinder's charging counts as
+keeping warm there).
 
 ## Backup and restore
 

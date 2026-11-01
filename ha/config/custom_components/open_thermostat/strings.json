@@ -1451,6 +1451,9 @@
       "hot_water_gas": {
         "name": "Gas for hot water"
       },
+      "tapping_gas": {
+        "name": "Gas for tapping hot water"
+      },
       "keep_warm_gas": {
         "name": "Gas for keeping hot water warm"
       },
@@ -1582,6 +1585,17 @@
       },
       "hub_boiler_display_code": {
         "name": "Boiler display code"
+      },
+      "boiler_activity": {
+        "name": "Boiler activity",
+        "state": {
+          "idle": "Idle",
+          "heating": "Heating",
+          "tapping": "Tapping",
+          "keep_warm": "Keeping warm",
+          "charging": "Charging the cylinder",
+          "hot_water": "Hot water"
+        }
       }
     },
     "select": {

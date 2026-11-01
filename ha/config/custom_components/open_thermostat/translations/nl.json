@@ -1536,6 +1536,16 @@
               "minimum_temperature": "De laagste gewenste temperatuur die deze ruimte kan krijgen ({range}).",
               "maximum_temperature": "De hoogste gewenste temperatuur die deze ruimte kan krijgen ({range}, niet lager dan het minimum)."
             }
+          },
+          "persons": {
+            "name": "Personen",
+            "description": "Optioneel. Wie deze ruimte gebruikt. Zijn ze allemaal weg, dan gebruikt de ruimte de afwezigheidstemperatuur, ook als anderen thuis zijn. Leeg: de ruimte volgt het huis (Configureren → Huis → Aanwezigheid).",
+            "data": {
+              "persons": "Personen van deze ruimte"
+            },
+            "data_description": {
+              "persons": "Thuis zodra een van hen thuis is; pas afwezig als ze allemaal de afwezigheidsvertraging van het huis weg zijn. Iemand van wie de plek onbekend is, telt als thuis. Huismodus Thuis houdt elke ruimte op haar programma; Afwezig en Vakantie verlagen elke ruimte."
+            }
           }
         }
       },

@@ -608,6 +608,16 @@
               "minimum_temperature": "Najniższa temperatura docelowa, jaką może mieć to pomieszczenie ({range}).",
               "maximum_temperature": "Najwyższa temperatura docelowa, jaką może mieć to pomieszczenie ({range}, nie niższa niż minimum)."
             }
+          },
+          "persons": {
+            "name": "Osoby",
+            "description": "Opcjonalnie. Kto korzysta z tego pomieszczenia. Gdy wszystkie te osoby są poza domem, pomieszczenie używa temperatury nieobecności, także gdy inni są w domu. Puste: pomieszczenie podąża za domem (Konfiguruj → Dom → Obecność).",
+            "data": {
+              "persons": "Osoby tego pomieszczenia"
+            },
+            "data_description": {
+              "persons": "W domu, gdy tylko jedna z nich jest w domu; poza domem dopiero, gdy wszystkie są poza domem przez opóźnienie nieobecności domu. Osoba o nieznanym położeniu liczy się jako w domu. Tryb domu W domu utrzymuje każde pomieszczenie na jego programie; Nieobecność i Urlop obniżają każde pomieszczenie."
+            }
           }
         }
       },

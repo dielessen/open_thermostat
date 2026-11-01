@@ -25,6 +25,13 @@ without Home Assistant. This module adds, on top of that plan (E32 beta.19,
 
       {"kind": "contact", "room": "living", "open": true, "delay_s": 120}
       {"kind": "presence", "home": false}
+      {"kind": "room_presence", "room": "bedroom", "home": false}
+
+  The last one (beta.23, room.presence.v1) only for a room with its own persons
+  (Configure → Rooms → the room → Persons), with the same rule as the house: home
+  while one of them is home or unknown, away once all have been away for the
+  away delay. It is sent only to an E32 that announces it (away.room_presence);
+  an older E32 would not consume it anyway.
 
   on every change and every five minutes. Any open contact of a room counts as
   open; the E32 pauses the room after the delay (its frost limit stays) and
@@ -63,7 +70,9 @@ DEFAULTS = {"presence_entity": None, "presence_entities": [], "away_delay_min": 
             "contact_delay_s": 120,
             # Per room (beta.23): {room id: seconds}; a room without its own delay uses contact_delay_s.
             "contact_delays": {},
-            "override_minutes": 120, "contacts": {}}
+            "override_minutes": 120, "contacts": {},
+            # Persons per room (beta.23): {room id: [person entity ids]}; a room without uses the house.
+            "room_persons": {}}
 TEMPERATURE_LIMITS = (5.0, 30.0)
 AWAY_LIMITS = (5.0, 25.0)
 DELAY_LIMITS = (0, 1800)       # the E32's own bound (RoomOverrides::maxContactDelayS)
@@ -120,6 +129,11 @@ def comfort_options(entry):
     if type(contacts) is dict:
         out["contacts"] = {room: [e for e in ids if type(e) is str and e.startswith("binary_sensor.")][:MAX_CONTACTS]
                            for room, ids in contacts.items() if type(room) is str and type(ids) is list}
+    persons = raw.get("room_persons")
+    if type(persons) is dict:
+        out["room_persons"] = {
+            room: [e for e in ids if type(e) is str and e.split(".")[0] in PRESENCE_DOMAINS][:MAX_PRESENCE]
+            for room, ids in persons.items() if type(room) is str and type(ids) is list}
     return out
 
 
@@ -209,6 +223,46 @@ def with_room_contacts(settings, room_id, contacts, delay_s=None):
         rooms.pop(room_id, None)
         delays.pop(room_id, None)
     return {**settings, "contacts": rooms, "contact_delays": delays}
+
+
+def room_persons(entry, room_id):
+    """The persons of one room (persons per room, beta.23); empty: the room follows the house."""
+    return list(comfort_options(entry)["room_persons"].get(room_id, []))
+
+
+def with_room_persons(settings, room_id, persons):
+    """The settings with this room's persons replaced (an empty list removes the room)."""
+    rooms = dict(settings.get("room_persons", {}))
+    if persons:
+        rooms[room_id] = list(persons)
+    else:
+        rooms.pop(room_id, None)
+    return {**settings, "room_persons": rooms}
+
+
+def validate_room_persons(hass, selections, known=()):
+    """The room's persons from the room form; a person already chosen may be unavailable now."""
+    people = selections or []
+    if (type(people) is not list or len(people) > MAX_PRESENCE or len(set(people)) != len(people)
+            or any(type(e) is not str or e.split(".")[0] not in PRESENCE_DOMAINS for e in people)):
+        raise ComfortError("persons", "presence_entity_invalid")
+    for entity_id in people:
+        if entity_id not in known and hass.states.get(entity_id) is None:
+            raise ComfortError("persons", "presence_entity_invalid")
+    return list(people)
+
+
+def persons_selector():
+    """People for a room: persons, device trackers, groups and on/off helpers (zones count a house, not a room)."""
+    return selector.EntitySelector({"filter": [{"domain": d} for d in PRESENCE_DOMAINS if d != "zone"],
+                                    "multiple": True})
+
+
+def supports_room_presence(hub):
+    """E32 beta.23 and newer announce persons per room as away.room_presence (room.presence.v1)."""
+    status = getattr(hub, "status", None)
+    away = status.get("away") if type(status) is dict else None
+    return type(away) is dict and away.get("room_presence") is True
 
 
 def contact_delay_text(settings, room_id=None):
@@ -336,8 +390,11 @@ def contacts_open(states):
     return None
 
 
-def comfort_payloads(hass, settings, room_ids, only=None, now=None):
-    """The typed heating_input payloads (dicts) for the configured contacts and presence."""
+def comfort_payloads(hass, settings, room_ids, only=None, now=None, room_presence=False):
+    """The typed heating_input payloads (dicts) for the configured contacts and presence.
+
+    room_presence: the E32 understands persons per room (supports_room_presence).
+    """
     payloads = []
     for room_id, ids in sorted(settings["contacts"].items()):
         if room_id not in room_ids or not ids or (only is not None and only not in ids):
@@ -351,7 +408,23 @@ def comfort_payloads(hass, settings, room_ids, only=None, now=None):
         home, _wait = house_presence(hass, people, settings["away_delay_min"], now)
         if home is not None:
             payloads.append({"kind": "presence", "home": home})
+    if room_presence:
+        for room_id, persons in sorted(settings.get("room_persons", {}).items()):
+            if room_id not in room_ids or not persons or (only is not None and only not in persons):
+                continue
+            home, _wait = house_presence(hass, persons, settings["away_delay_min"], now)
+            if home is not None:
+                payloads.append({"kind": "room_presence", "room": room_id, "home": home})
     return payloads
+
+
+def away_waits(hass, settings, room_ids=None):
+    """Seconds until the house or a room with its own persons counts as away (the shortest), or None."""
+    groups = [settings["presence_entities"]] + [persons for room_id, persons in settings.get("room_persons", {}).items()
+                                                if room_ids is None or room_id in room_ids]
+    waits = [wait for people in groups if people
+             for _home, wait in [house_presence(hass, people, settings["away_delay_min"])] if wait is not None]
+    return min(waits) if waits else None
 
 
 class ComfortForwarder:
@@ -370,31 +443,33 @@ class ComfortForwarder:
     def entities(self):
         s = self.settings
         ids = [e for room in sorted(s["contacts"]) for e in s["contacts"][room]]
-        return sorted(set(ids + s["presence_entities"]))
+        persons = [e for room in sorted(s["room_persons"]) for e in s["room_persons"][room]]
+        return sorted(set(ids + s["presence_entities"] + persons))
 
     @callback
     def publish(self, only=None):
         if not self.hub.fresh:
             return
         settings = self.settings
-        for payload in comfort_payloads(self.hass, settings, set(self.hub.rooms), only):
+        for payload in comfort_payloads(self.hass, settings, set(self.hub.rooms), only,
+                                        room_presence=supports_room_presence(self.hub)):
             self.send(json.dumps(payload, separators=(",", ":")))
         self._schedule_away(settings)
 
     @callback
     def _schedule_away(self, settings):
-        """Everyone left: send "away" exactly when the away delay has passed (not at the next 5-minute refresh)."""
+        """Everyone of the house or of a room left: send "away" exactly when the away delay has passed
+        (not at the next 5-minute refresh)."""
         if self._away_timer is not None:
             self._away_timer()
             self._away_timer = None
-        _home, wait = house_presence(self.hass, settings["presence_entities"], settings["away_delay_min"])
+        rooms = set(self.hub.rooms) if supports_room_presence(self.hub) else set()
+        wait = away_waits(self.hass, settings if rooms else {**settings, "room_persons": {}}, rooms)
         if wait is not None:
-            first = settings["presence_entities"][0]
-
             @callback
             def due(_now):
                 self._away_timer = None
-                self.publish(first)
+                self.publish()
             self._away_timer = async_call_later(self.hass, wait + 1, due)
 
     @callback

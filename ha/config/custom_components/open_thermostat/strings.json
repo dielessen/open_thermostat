@@ -471,7 +471,8 @@
           "legacy_rooms": "Remove old Home Assistant rooms",
           "installation": "Water limits of the old room profile",
           "entity_ids": "Tidy entity IDs",
-          "entity_ids_undo": "Undo the entity ID tidy"
+          "entity_ids_undo": "Undo the entity ID tidy",
+          "e32_restore": "Restore settings to this E32"
         }
       },
       "edit_room": {
@@ -761,6 +762,38 @@
         "data_description": {
           "confirm": "The entities from the last tidy get their previous ID back where it is still free."
         }
+      },
+      "e32_restore": {
+        "title": "Restore settings to this E32",
+        "description": "Home Assistant backs up the settings of your E32 every day and keeps {count} backup(s): the newest of each of the last 7 days, and the one made right before the last restore. A backup holds the network and time settings, MQTT and the Home Assistant link, the rooms with their week programs, the Bluetooth sensors, the flow options and the boiler model, with the MQTT password and Bluetooth keys encrypted. The Wi-Fi password and the E32 password are never in it.\n\nChoose the backup to put back. The E32 checks it first and shows what changes; nothing changes before you confirm.\n\nReplacing a broken E32: flash the firmware over USB, connect the new E32 to your network (Wi-Fi setup or Ethernet), then enter its address and password here.",
+        "data": {
+          "backup": "Backup",
+          "address": "E32 web address",
+          "password": "E32 password"
+        },
+        "data_description": {
+          "backup": "When the backup was made. Daily backups are made by Home Assistant; manual ones with the Back up E32 settings now button.",
+          "address": "The address of the E32 to restore, for example http://192.168.1.50. Keep it for this E32; enter the new address for a replacement E32.",
+          "password": "The password you sign in with on that E32's web page (user admin). Leave empty to use the saved one; needed when the address is another one."
+        }
+      },
+      "e32_restore_checking": {
+        "title": "Check the backup",
+        "description": "The E32 checks the backup and compares it with its own settings. This takes a few seconds; nothing is changed yet."
+      },
+      "e32_restore_confirm": {
+        "title": "Restore these settings?",
+        "description": "Backup of {created}, as the E32 checked it:\n\n{summary}\n\nThe E32 comes back in shadow mode: it calculates but does not control the boiler. If it controlled your boiler before, confirm the takeover again on the E32 page afterwards (Rooms → Active control). Before the restore Home Assistant also saves a backup of the E32 as it is now.",
+        "data": {
+          "confirm": "Restore these settings on this E32"
+        },
+        "data_description": {
+          "confirm": "Nothing is restored until you tick this."
+        }
+      },
+      "e32_restore_applying": {
+        "title": "Restore the settings",
+        "description": "Home Assistant backs up the E32 as it is now and restores the chosen backup. When the network or Bluetooth settings change, the E32 restarts and Home Assistant waits until it answers again; this can take up to three minutes."
       }
     },
     "error": {
@@ -906,7 +939,18 @@
       "e32_valves_rejected": "The E32 refused the radiator valves ({error}).",
       "entity_ids_confirm": "Tick the box to confirm.",
       "water_meter_unit": "Choose a water flow sensor (L/min, L/h, m³/h) or a water meter reading (m³, L).",
-      "water_meter_not_total": "Choose a water meter reading (state class total or total increasing), or a flow sensor in L/min."
+      "water_meter_not_total": "Choose a water meter reading (state class total or total increasing), or a flow sensor in L/min.",
+      "e32_restore_boiler_owned": "The E32 refuses a restore while it controls the boiler or a boiler test or boiler settings write is running. Hand back to the thermostat on the E32 page (Rooms → Active control) or wait until the test has finished, then try again.",
+      "e32_restore_busy": "The E32 is busy (a firmware update, or it is short of memory). Wait a minute and try again.",
+      "e32_restore_settings_changed": "The settings on the E32 changed after the check. Choose the backup again so that the E32 checks it once more.",
+      "e32_restore_wrong_passphrase": "The E32 could not open the passwords and keys in this backup. Choose another backup.",
+      "e32_restore_newer_backup": "This backup was made by newer E32 firmware. Update this E32 first (the Firmware update entity, or System → Firmware update on its page), then restore.",
+      "e32_restore_save_failed": "The E32 could not save the restored settings and kept its previous settings. Try again; if it keeps failing, restart the E32.",
+      "e32_restore_save_partial": "Saving failed on the E32 and not every previous setting could be put back. Check the settings pages of the E32, or restore again.",
+      "e32_restore_invalid": "The E32 refused this backup: it does not fit this E32 or its firmware. Choose another backup.",
+      "e32_restore_failed": "The restore could not be completed. Check that the E32 is on and its web page opens, then try again.",
+      "e32_restore_other_e32": "This installation still uses an older Home Assistant room profile, which belongs to the previous E32. Remove the old Home Assistant rooms first (Advanced and diagnostics → Remove old Home Assistant rooms), then restore.",
+      "e32_restore_confirm_required": "Tick the box to restore these settings."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -967,11 +1011,21 @@
       "e32_valves_update_required": "This E32 firmware has no radiator valve control yet. Update the E32 first.",
       "entity_ids_nothing": "All OpenThermostat entity IDs already match what Home Assistant would give them.",
       "entity_ids_done": "{count} entity IDs renamed. Update these places yourself:\n\n{todo}",
-      "entity_ids_undone": "{count} entity IDs are back to their old names."
+      "entity_ids_undone": "{count} entity IDs are back to their old names.",
+      "e32_restore_unavailable": "Restoring needs a connected E32. Connect it under Configure → E32 connection first.",
+      "e32_restore_no_backups": "Home Assistant has no E32 backup yet. Make one with the Back up E32 settings now button on the E32 device.",
+      "e32_restore_nothing": "Nothing to restore: this E32 already has exactly these settings.",
+      "e32_restore_cancelled": "The restore was cancelled; nothing was changed.",
+      "e32_restore_done_online": "Settings restored. The E32 restarted and answers again. The rooms are in shadow mode; confirm the takeover again on the E32 page if it should control the boiler.\n\nEnter these again on the E32 page:\n{reenter}",
+      "e32_restore_done_waiting": "Settings restored. The E32 is restarting and did not answer yet; Home Assistant reconnects by itself as soon as it is back. The rooms are in shadow mode; confirm the takeover again on the E32 page if it should control the boiler.\n\nEnter these again on the E32 page:\n{reenter}",
+      "e32_restore_done_restart": "Settings restored. Restart the E32 (System → Restart device on its page) to use all of them. The rooms are in shadow mode; confirm the takeover again on the E32 page if it should control the boiler.\n\nEnter these again on the E32 page:\n{reenter}",
+      "e32_restore_done": "Settings restored. The rooms are in shadow mode; confirm the takeover again on the E32 page if it should control the boiler.\n\nEnter these again on the E32 page:\n{reenter}"
     },
     "progress": {
       "controller_connect": "Connecting to the E32…",
-      "legacy_rooms_remove": "Removing the old rooms and reconnecting the E32…"
+      "legacy_rooms_remove": "Removing the old rooms and reconnecting the E32…",
+      "e32_restore_check": "The E32 checks the backup…",
+      "e32_restore_apply": "Restoring the settings and waiting for the E32…"
     }
   },
   "entity": {
@@ -1810,6 +1864,17 @@
           "charging": "Charging the cylinder",
           "hot_water": "Hot water"
         }
+      },
+      "e32_last_backup": {
+        "name": "Last E32 backup",
+        "state_attributes": {
+          "count": {
+            "name": "Backups kept"
+          },
+          "size": {
+            "name": "Size of the newest backup"
+          }
+        }
       }
     },
     "select": {
@@ -1914,6 +1979,11 @@
     "update": {
       "e32_firmware": {
         "name": "Firmware"
+      }
+    },
+    "button": {
+      "e32_backup_now": {
+        "name": "Back up E32 settings now"
       }
     }
   },
@@ -3062,6 +3132,10 @@
     "heating_problem": {
       "title": "Heating needs attention",
       "description": "{reason}\n\nThis message clears itself once the cause is gone."
+    },
+    "e32_backup_failing": {
+      "title": "No recent backup of the E32 settings",
+      "description": "{name}: Home Assistant could not back up the E32 settings for more than 3 days (last backup: {last}). Without a recent backup a replacement E32 cannot get your current settings back. Check that the E32 is on and its web page opens, and that its password in Home Assistant is still right; then press Back up E32 settings now on the E32 device. This message disappears after the next successful backup."
     }
   },
   "services": {
@@ -3232,6 +3306,21 @@
     },
     "valves_unreachable": {
       "message": "The E32 could not be reached to change the radiator valves ({error})."
+    },
+    "e32_backup_unreachable": {
+      "message": "The E32 did not answer. Check that it is on and its web page opens, then try again."
+    },
+    "e32_backup_password": {
+      "message": "The E32 refused the saved password. Enter the new one when Home Assistant asks for it (Settings → Devices & services), then try again."
+    },
+    "e32_backup_update_required": {
+      "message": "The firmware on this E32 cannot make backups yet. Update the E32 first."
+    },
+    "e32_backup_busy": {
+      "message": "The E32 is busy with a firmware update. Try again when it has finished."
+    },
+    "e32_backup_failed": {
+      "message": "The backup of the E32 settings failed. Try again in a minute."
     }
   },
   "device": {

@@ -24,7 +24,7 @@ REDACTED = "**REDACTED**"
 # Keys whose value never leaves Home Assistant (matched exactly, at any depth).
 TO_REDACT = frozenset({
     "password", "controller_password", "admin_password", "mqtt_password", "broker_password", "wifi_password",
-    "passphrase", "psk", "token", "access_token", "refresh_token", "api_key", "apikey", "secret", "client_secret",
+    "passphrase", "backup_passphrase", "psk", "token", "access_token", "refresh_token", "api_key", "apikey", "secret", "client_secret",
     "session", "session_id", "session_token", "adapter_session_id", "nonce", "grant", "cookie", "authorization",
     "username", "mqtt_user", "mqtt_username", "credentials",
     "key", "bind_key", "bindkey", "bind_keys", "aes_key", "encryption_key", "ble_key",

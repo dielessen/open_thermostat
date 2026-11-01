@@ -44,7 +44,7 @@ energy inputs.
 | Network, MQTT broker, time and time zone | E32: System → Network and Home Assistant (page "Settings") | E32: System → Network and Home Assistant (page "Settings") |
 | Admin password of the E32 | E32: System → Password | E32: System → Password |
 | Firmware updates | E32: System → Firmware update | The firmware update entity, or the E32 page |
-| Backup and restore of the settings | E32: System → Backup and restore | E32: System → Backup and restore |
+| Backup and restore of the settings | E32: System → Backup and restore | Daily and automatic; restore under Configure → Advanced and diagnostics → Restore settings to this E32 (or on the E32 page) |
 | Restart | E32: System → Restart device | E32: System → Restart device |
 | Logs, diagnostics console and syslog | E32: System → Diagnostics and system log | E32: System → Diagnostics and system log |
 | Shorter entity IDs (optional) | — | Configure → Advanced and diagnostics → Tidy entity IDs |
@@ -669,6 +669,66 @@ sensors, the flow options, the boiler model and the page language.
   Ethernet cable is connected and never from Ethernet to Wi-Fi, and it
   restores the rooms in shadow mode, so it never starts active boiler control. A restore is refused while the E32
   controls the boiler or a boiler test is running.
+
+### Automatic backups in Home Assistant
+
+With the Home Assistant integration you do not need to download files
+yourself. Once the E32 is connected (Configure → E32 connection), Home
+Assistant fetches the same backup file from the E32 every day, and once
+shortly after Home Assistant starts when the last backup is older than 24
+hours.
+
+- **Passwords and keys** are always included, encrypted with a random
+  passphrase that Home Assistant makes once for this installation and keeps
+  with the integration. You never type it. The Wi-Fi password and the E32
+  password are still never in a backup.
+- **Where they are.** Home Assistant keeps them in its own `.storage` folder,
+  so its own backups (Settings → System → Backups) contain them too: the
+  newest backup of each of the last 7 days, plus the one made right before the
+  last restore.
+- **On the E32 device** in Home Assistant: the button **Back up E32 settings
+  now** makes a backup at once, and the diagnostic sensor **Last E32 backup**
+  shows when the last one succeeded (its attributes: how many backups are kept
+  and the size of the newest).
+- **When it fails.** If no backup succeeds for 3 days, Settings → Repairs
+  shows *No recent backup of the E32 settings*. Check that the E32 is on and its
+  web page opens, and that its password in Home Assistant is still right. The
+  message goes away after the next successful backup.
+
+To put a backup back: Configure → **Advanced and diagnostics** → **Restore
+settings to this E32**. Choose the backup by date. The E32 checks it first, and
+Home Assistant shows what changes, what is skipped and what you need to enter
+again. Nothing changes until you tick the confirmation. Right before the
+restore, Home Assistant also backs up the E32 as it is now. The rules are the
+same as on the E32 page. The rooms come back in shadow mode. If the E32
+controlled your boiler before, confirm the takeover again on the E32 page
+(Rooms → Active control). A restore is refused while the E32 controls the
+boiler or a boiler test is running. When the network or Bluetooth settings
+change, the E32 restarts, and Home Assistant waits until it answers again.
+
+### Replacing a broken E32
+
+1. **Flash the firmware** on the new E32 over USB, as for a first
+   installation (see the README).
+2. **Join the network**: connect the new E32 to your Wi-Fi with its setup
+   access point, or plug in Ethernet, and note its address. Sign in on its web
+   page once and change the default password (System → Password).
+3. **Connect it to the integration**: in Home Assistant open Configure →
+   Advanced and diagnostics → **Restore settings to this E32**. Enter the new
+   E32's address and password there. The old E32's saved password is never
+   sent to another address.
+4. **Restore**: choose the newest backup, read the summary, tick the
+   confirmation and submit. The E32 gets the network and time settings, MQTT
+   and the Home Assistant link (with the MQTT password), the rooms and week
+   programs, the Bluetooth sensors with their keys, the flow options and the
+   boiler model. It restarts, and Home Assistant links this installation to
+   the new E32 (its address, password and identity). Your entities, history
+   and dashboards stay as they were.
+
+After the restore, enter what the summary lists (for example a Bluetooth key
+that was not in the backup). If the old E32 controlled the boiler, follow
+[the switch-over procedure](SWITCHOVER.md) again before you confirm the
+takeover.
 
 ## Logs and the diagnostics console
 

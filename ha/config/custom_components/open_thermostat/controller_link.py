@@ -55,10 +55,27 @@ HEATING_HANDOVER = "/config/heating/handover"
 # The radiator valves per room, reached through Zigbee2MQTT (E32 beta.24, TrvConfig.h).
 HEATING_TRV = "/config/heating/trv"
 HEATING_PLAN_BYTES = 8192  # The E32 refuses larger request bodies (413 plan_too_large).
+# Backup and restore of the E32 settings (E32 beta.19, ConfigBackupRoute.h): export,
+# validate and apply, each one POST. A backup file holds at most 24 KB; a request
+# carries one file plus 512 bytes, and an answer is at most a file.
+CONFIG_BACKUP = "/config/backup"
+CONFIG_BACKUP_REQUEST_BYTES = 24576 + 512
+CONFIG_BACKUP_RESPONSE_BYTES = 32768
+# The E32 seals or opens the secrets with PBKDF2 (16384 rounds): seconds, not milliseconds.
+CONFIG_BACKUP_TIMEOUT = 45
 # Since beta.19 the E32 packs large week programs into its 4 KB store and
 # answers 413 plan_too_large itself when even that form does not fit; older
 # firmware refuses bodies above 4096 bytes with the same 413.
 # A plan that fits but finds its flash storage full is refused with 507 storage_full.
+
+
+class BackupRejected(ControllerLinkError):
+    """The E32 refused a /config/backup request with a named reason (boiler_owned, wrong_passphrase, ...)."""
+
+    def __init__(self, status, error):
+        super().__init__(error)
+        self.status = status
+        self.error = error
 
 
 class ControllerProvisioningError(ControllerLinkError):
@@ -170,6 +187,21 @@ async def _error_name(response):
         return fallback
     error = value.get("error") if type(value) is dict else None
     return error if type(error) is str and re.fullmatch(r"[a-z0-9_]{1,48}", error) else fallback
+
+
+async def _backup_error(response):
+    """The E32's {"error":"<name>"} of a refused backup request (its warnings may make it long)."""
+    body = bytearray()
+    try:
+        async for chunk in response.content.iter_chunked(2048):
+            body.extend(chunk)
+            if len(body) > 16384:
+                return "backup_refused"
+        value = json.loads(bytes(body))
+    except (ValueError, UnicodeError, RecursionError, aiohttp.ClientError):
+        return "backup_refused"
+    error = value.get("error") if type(value) is dict else None
+    return error if type(error) is str and re.fullmatch(r"[a-z0-9_]{1,48}", error) else "backup_refused"
 
 
 @dataclass(frozen=True, slots=True)
@@ -463,7 +495,7 @@ class ControllerClient:
                         "/config/device", "/config/rooms", HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW,
                         HEATING_TRV, "/status/heating"))
     _writes = frozenset(("/auth/login", "/auth/logout", "/config/device", "/updates/reboot", HEATING_PLAN,
-                         HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER, HEATING_TRV))
+                         HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER, HEATING_TRV, CONFIG_BACKUP))
 
     def __init__(self, address):
         self.address = controller_address(address)
@@ -524,17 +556,27 @@ class ControllerClient:
             if path == HEATING_PLAN:
                 if len(data.encode()) > HEATING_PLAN_BYTES:
                     raise HeatingPlanRejected(413, "plan_too_large")
+            elif path == CONFIG_BACKUP:
+                if len(data.encode()) > CONFIG_BACKUP_REQUEST_BYTES:
+                    raise BackupRejected(413, "backup_too_large")
             elif len(data.encode()) >= 2048:
                 raise ControllerLinkError("controller_settings_too_large")
+        backup = path == CONFIG_BACKUP
+        limit = CONFIG_BACKUP_RESPONSE_BYTES if backup else 8192
+        extra = {"timeout": aiohttp.ClientTimeout(total=CONFIG_BACKUP_TIMEOUT)} if backup else {}
         try:
             async with self._session.request(method, self.address + path, data=data,
-                    headers=headers, allow_redirects=False) as response:
+                    headers=headers, allow_redirects=False, **extra) as response:
                 if response.status == 401 and method == "POST" and path == "/auth/login":
                     raise ControllerLoginRejected()
                 if response.status in (401, 403):
                     raise ControllerLinkError("controller_auth_failed")
                 if path in (HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER, HEATING_TRV) and response.status in (400, 409, 413, 503, 507):
                     raise HeatingPlanRejected(response.status, await _error_name(response))
+                if backup and response.status in (400, 409, 413, 500, 503):
+                    raise BackupRejected(response.status, await _backup_error(response))
+                if backup and response.status == 404:
+                    raise ControllerLinkError("controller_update_required")  # firmware before beta.19
                 if path in (HEATING_FLOW, HEATING_TRV) and response.status == 404:
                     raise ControllerLinkError("controller_update_required")  # firmware before beta.19 / beta.24
                 if response.status == 429:
@@ -547,14 +589,14 @@ class ControllerClient:
                     raise ControllerLinkError("controller_settings_changed")
                 if response.status == 409:
                     raise ControllerLinkError("controller_busy_or_conflict")
-                accepted = ({200, 201} if method == "POST" and path == "/config/device"
+                accepted = ({200, 201} if method == "POST" and path in ("/config/device", CONFIG_BACKUP)
                             else {202} if method == "POST" and path == "/updates/reboot"
                             else {200})
                 if response.status not in accepted:
                     raise ControllerLinkError("controller_response_invalid")
                 body = bytearray()
                 async for chunk in response.content.iter_chunked(2048):
-                    if len(body) + len(chunk) > 8192:
+                    if len(body) + len(chunk) > limit:
                         raise ControllerLinkError("controller_response_too_large")
                     body.extend(chunk)
                 return bytes(body), response.headers.get("ETag"), response.status
@@ -658,6 +700,19 @@ class ControllerClient:
             raise ControllerLinkError("controller_request_invalid")
         raw, _, _ = await self._request("POST", HEATING_TRV, document=document)
         return _decode(raw)
+
+    async def async_config_backup(self, request):
+        """POST one backup request (export, validate or apply); returns the E32's answer and status.
+
+        The request may hold the backup passphrase: it goes to the E32 only and
+        is never part of an error. A refusal raises BackupRejected with the
+        E32's error name (boiler_owned, busy, settings_changed: 409;
+        wrong_passphrase, not_a_backup, newer_schema, ...: 400; 413; 503; 500).
+        """
+        if type(request) is not dict or request.get("action") not in ("export", "validate", "apply"):
+            raise ControllerLinkError("controller_request_invalid")
+        raw, _, status = await self._request("POST", CONFIG_BACKUP, document=request)
+        return _decode(raw), status
 
     async def async_save_settings(self, document, etag):
         if type(document) is not dict:

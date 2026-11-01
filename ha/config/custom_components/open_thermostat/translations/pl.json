@@ -471,7 +471,8 @@
           "legacy_rooms": "Usuń stare pomieszczenia Home Assistant",
           "installation": "Limity wody starego profilu pomieszczeń",
           "entity_ids": "Uporządkuj identyfikatory encji",
-          "entity_ids_undo": "Cofnij porządkowanie identyfikatorów"
+          "entity_ids_undo": "Cofnij porządkowanie identyfikatorów",
+          "e32_restore": "Przywróć ustawienia na tym E32"
         }
       },
       "edit_room": {
@@ -761,6 +762,38 @@
         "data_description": {
           "confirm": "Encje z ostatniego porządkowania odzyskają poprzedni identyfikator, jeśli jest wolny."
         }
+      },
+      "e32_restore": {
+        "title": "Przywróć ustawienia na tym E32",
+        "description": "Home Assistant codziennie tworzy kopię zapasową ustawień E32 i przechowuje ich {count}: najnowszą z każdego z ostatnich 7 dni oraz kopię utworzoną tuż przed ostatnim przywróceniem. Kopia zawiera ustawienia sieci i czasu, MQTT i połączenie z Home Assistant, pomieszczenia z programami tygodniowymi, czujniki Bluetooth, opcje zasilania i model kotła, a hasło MQTT i klucze Bluetooth są w niej zaszyfrowane. Hasło Wi-Fi i hasło E32 nigdy się w niej nie znajdują.\n\nWybierz kopię do przywrócenia. E32 najpierw ją sprawdzi i pokaże, co się zmieni; nic się nie zmieni, zanim nie potwierdzisz.\n\nWymiana uszkodzonego E32: wgraj oprogramowanie przez USB, połącz nowy E32 z siecią (konfiguracja Wi-Fi lub Ethernet), a potem wpisz tutaj jego adres i hasło.",
+        "data": {
+          "backup": "Kopia zapasowa",
+          "address": "Adres strony E32",
+          "password": "Hasło E32"
+        },
+        "data_description": {
+          "backup": "Kiedy utworzono kopię. Codzienne kopie tworzy Home Assistant; ręczne przyciskiem Utwórz teraz kopię ustawień E32.",
+          "address": "Adres E32, na którym przywracasz ustawienia, na przykład http://192.168.1.50. Zostaw go dla tego E32; dla zastępczego E32 wpisz nowy adres.",
+          "password": "Hasło, którym logujesz się na stronie tego E32 (użytkownik admin). Zostaw puste, aby użyć zapisanego; wymagane, gdy adres jest inny."
+        }
+      },
+      "e32_restore_checking": {
+        "title": "Sprawdź kopię",
+        "description": "E32 sprawdza kopię i porównuje ją ze swoimi ustawieniami. Trwa to kilka sekund; jeszcze nic się nie zmienia."
+      },
+      "e32_restore_confirm": {
+        "title": "Przywrócić te ustawienia?",
+        "description": "Kopia z {created}, sprawdzona przez E32:\n\n{summary}\n\nE32 wróci w trybie cienia: liczy, ale nie steruje kotłem. Jeśli wcześniej sterował kotłem, potwierdź potem ponownie przejęcie na stronie E32 (Pomieszczenia → Aktywne sterowanie). Przed przywróceniem Home Assistant zapisze też kopię E32 w obecnym stanie.",
+        "data": {
+          "confirm": "Przywróć te ustawienia na tym E32"
+        },
+        "data_description": {
+          "confirm": "Nic nie zostanie przywrócone, dopóki tego nie zaznaczysz."
+        }
+      },
+      "e32_restore_applying": {
+        "title": "Przywracanie ustawień",
+        "description": "Home Assistant tworzy kopię E32 w obecnym stanie i przywraca wybraną kopię. Gdy zmieniają się ustawienia sieci lub Bluetooth, E32 uruchamia się ponownie, a Home Assistant czeka, aż znów odpowie; może to potrwać do trzech minut."
       }
     },
     "error": {
@@ -906,7 +939,18 @@
       "e32_valves_rejected": "E32 odrzucił zawory grzejnikowe ({error}).",
       "entity_ids_confirm": "Zaznacz pole, aby potwierdzić.",
       "water_meter_unit": "Wybierz czujnik przepływu wody (L/min, L/h, m³/h) lub stan wodomierza (m³, L).",
-      "water_meter_not_total": "Wybierz stan wodomierza (klasa stanu total lub total increasing) albo czujnik przepływu w L/min."
+      "water_meter_not_total": "Wybierz stan wodomierza (klasa stanu total lub total increasing) albo czujnik przepływu w L/min.",
+      "e32_restore_boiler_owned": "E32 odmawia przywrócenia, gdy steruje kotłem lub trwa test kotła albo zapis ustawień kotła. Oddaj sterowanie termostatowi na stronie E32 (Pomieszczenia → Aktywne sterowanie) lub poczekaj na koniec testu i spróbuj ponownie.",
+      "e32_restore_busy": "E32 jest zajęty (aktualizacja oprogramowania lub za mało pamięci). Poczekaj minutę i spróbuj ponownie.",
+      "e32_restore_settings_changed": "Ustawienia E32 zmieniły się po sprawdzeniu. Wybierz kopię ponownie, aby E32 sprawdził ją jeszcze raz.",
+      "e32_restore_wrong_passphrase": "E32 nie mógł otworzyć haseł i kluczy w tej kopii. Wybierz inną kopię.",
+      "e32_restore_newer_backup": "Tę kopię utworzyło nowsze oprogramowanie E32. Najpierw zaktualizuj ten E32 (encja Oprogramowanie lub System → Aktualizacja oprogramowania na jego stronie), potem przywróć.",
+      "e32_restore_save_failed": "E32 nie mógł zapisać przywróconych ustawień i zachował poprzednie. Spróbuj ponownie; jeśli to się powtarza, uruchom E32 ponownie.",
+      "e32_restore_save_partial": "Zapis na E32 się nie powiódł i nie wszystkie poprzednie ustawienia udało się przywrócić. Sprawdź strony ustawień E32 lub przywróć ponownie.",
+      "e32_restore_invalid": "E32 odrzucił tę kopię: nie pasuje do tego E32 lub jego oprogramowania. Wybierz inną kopię.",
+      "e32_restore_failed": "Nie udało się dokończyć przywracania. Sprawdź, czy E32 jest włączony i jego strona się otwiera, i spróbuj ponownie.",
+      "e32_restore_other_e32": "Ta instalacja nadal używa starszego profilu pomieszczeń Home Assistant, który należy do poprzedniego E32. Najpierw usuń stare pomieszczenia Home Assistant (Zaawansowane i diagnostyka → Usuń stare pomieszczenia Home Assistant), potem przywróć.",
+      "e32_restore_confirm_required": "Zaznacz pole, aby przywrócić te ustawienia."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -967,11 +1011,21 @@
       "e32_valves_update_required": "To oprogramowanie E32 nie obsługuje jeszcze zaworów grzejnikowych. Najpierw zaktualizuj E32.",
       "entity_ids_nothing": "Wszystkie identyfikatory encji OpenThermostat są już takie, jakie nadałby Home Assistant.",
       "entity_ids_done": "Zmieniono {count} identyfikatorów encji. Zaktualizuj samodzielnie te miejsca:\n\n{todo}",
-      "entity_ids_undone": "{count} identyfikatorów encji wróciło do starych nazw."
+      "entity_ids_undone": "{count} identyfikatorów encji wróciło do starych nazw.",
+      "e32_restore_unavailable": "Przywracanie wymaga połączonego E32. Najpierw połącz go w Konfiguruj → Połączenie z E32.",
+      "e32_restore_no_backups": "Home Assistant nie ma jeszcze kopii E32. Utwórz ją przyciskiem Utwórz teraz kopię ustawień E32 na urządzeniu E32.",
+      "e32_restore_nothing": "Nie ma czego przywracać: ten E32 ma już dokładnie te ustawienia.",
+      "e32_restore_cancelled": "Przywracanie przerwano; nic nie zostało zmienione.",
+      "e32_restore_done_online": "Ustawienia przywrócone. E32 uruchomił się ponownie i znów odpowiada. Pomieszczenia są w trybie cienia; potwierdź ponownie przejęcie na stronie E32, jeśli ma sterować kotłem.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
+      "e32_restore_done_waiting": "Ustawienia przywrócone. E32 uruchamia się ponownie i jeszcze nie odpowiada; Home Assistant połączy się sam, gdy wróci. Pomieszczenia są w trybie cienia; potwierdź ponownie przejęcie na stronie E32, jeśli ma sterować kotłem.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
+      "e32_restore_done_restart": "Ustawienia przywrócone. Uruchom E32 ponownie (System → Uruchom urządzenie ponownie na jego stronie), aby użyć ich wszystkich. Pomieszczenia są w trybie cienia; potwierdź ponownie przejęcie na stronie E32, jeśli ma sterować kotłem.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
+      "e32_restore_done": "Ustawienia przywrócone. Pomieszczenia są w trybie cienia; potwierdź ponownie przejęcie na stronie E32, jeśli ma sterować kotłem.\n\nWpisz to ponownie na stronie E32:\n{reenter}"
     },
     "progress": {
       "controller_connect": "Łączenie z E32…",
-      "legacy_rooms_remove": "Usuwanie starych pomieszczeń i ponowne łączenie E32…"
+      "legacy_rooms_remove": "Usuwanie starych pomieszczeń i ponowne łączenie E32…",
+      "e32_restore_check": "E32 sprawdza kopię…",
+      "e32_restore_apply": "Przywracanie ustawień i oczekiwanie na E32…"
     }
   },
   "entity": {
@@ -1810,6 +1864,17 @@
           "charging": "Ładowanie zasobnika",
           "hot_water": "Ciepła woda"
         }
+      },
+      "e32_last_backup": {
+        "name": "Ostatnia kopia E32",
+        "state_attributes": {
+          "count": {
+            "name": "Przechowywane kopie"
+          },
+          "size": {
+            "name": "Rozmiar najnowszej kopii"
+          }
+        }
       }
     },
     "select": {
@@ -1914,6 +1979,11 @@
     "update": {
       "e32_firmware": {
         "name": "Oprogramowanie układowe"
+      }
+    },
+    "button": {
+      "e32_backup_now": {
+        "name": "Utwórz teraz kopię ustawień E32"
       }
     }
   },
@@ -3062,6 +3132,10 @@
     "heating_problem": {
       "title": "Ogrzewanie wymaga uwagi",
       "description": "{reason}\n\nTo zgłoszenie zniknie samo, gdy przyczyna ustąpi."
+    },
+    "e32_backup_failing": {
+      "title": "Brak aktualnej kopii ustawień E32",
+      "description": "{name}: Home Assistant od ponad 3 dni nie może utworzyć kopii ustawień E32 (ostatnia kopia: {last}). Bez aktualnej kopii zastępczy E32 nie odzyska bieżących ustawień. Sprawdź, czy E32 jest włączony i jego strona się otwiera oraz czy jego hasło w Home Assistant jest nadal poprawne; potem naciśnij Utwórz teraz kopię ustawień E32 na urządzeniu E32. Ten komunikat zniknie po następnej udanej kopii."
     }
   },
   "services": {
@@ -3232,6 +3306,21 @@
     },
     "valves_unreachable": {
       "message": "Nie udało się połączyć z E32, aby zmienić zawory grzejnikowe ({error})."
+    },
+    "e32_backup_unreachable": {
+      "message": "E32 nie odpowiedział. Sprawdź, czy jest włączony i jego strona się otwiera, i spróbuj ponownie."
+    },
+    "e32_backup_password": {
+      "message": "E32 odrzucił zapisane hasło. Wpisz nowe, gdy Home Assistant o nie poprosi (Ustawienia → Urządzenia i usługi), i spróbuj ponownie."
+    },
+    "e32_backup_update_required": {
+      "message": "Oprogramowanie tego E32 nie potrafi jeszcze tworzyć kopii. Najpierw zaktualizuj E32."
+    },
+    "e32_backup_busy": {
+      "message": "E32 jest zajęty aktualizacją oprogramowania. Spróbuj ponownie po jej zakończeniu."
+    },
+    "e32_backup_failed": {
+      "message": "Nie udało się utworzyć kopii ustawień E32. Spróbuj ponownie za minutę."
     }
   },
   "device": {

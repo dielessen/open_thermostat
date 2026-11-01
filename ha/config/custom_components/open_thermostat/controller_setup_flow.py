@@ -14,6 +14,7 @@ from .controller_link import (
     controller_address, async_prepare_controller_link, async_provision_controller,
 )
 from .controller_connection import async_synchronise_controller_plan, async_wait_room_plan_link
+from .e32_backup import PASSPHRASE as BACKUP_PASSPHRASE, new_passphrase
 from .e32_link import (async_check_room_plan_firmware, async_prepare_room_plan_link, async_provision_room_plan,
                        legacy_zones, remove_legacy_room_devices, without_legacy_rooms)
 from .native_plan import native_entry_state
@@ -129,7 +130,7 @@ async def async_connect_installation(hass, entry, address, password):
         needs_reload = entry.state is not ConfigEntryState.LOADED
         commit_configuration(hass, entry, plan.before,
             data={**entry.data, CONTROLLER_ADDRESS: address, CONTROLLER_PASSWORD: password,
-                  CONTROLLER_ID: source.policy.controller_id},
+                  CONTROLLER_ID: source.policy.controller_id, BACKUP_PASSPHRASE: new_passphrase(entry)},
             options={**entry.options, SOURCE_OPTION: source_selection(source), CONF_ENABLED: True})
         expected = configuration_snapshot(entry)
         committed_private = native_entry_state(entry)
@@ -282,7 +283,7 @@ async def async_link_room_plan(hass, entry, address, password, *, remove_legacy_
         needs_reload = entry.state is not ConfigEntryState.LOADED
         commit_configuration(hass, entry, plan.before,
             data={**entry.data, CONTROLLER_ADDRESS: address, CONTROLLER_PASSWORD: password,
-                  CONTROLLER_ID: plan.controller_id},
+                  CONTROLLER_ID: plan.controller_id, BACKUP_PASSPHRASE: new_passphrase(entry)},
             options={**{k: v for k, v in entry.options.items() if k != SOURCE_OPTION}, CONF_ENABLED: True})
         expected = configuration_snapshot(entry)
         committed_private = native_entry_state(entry)

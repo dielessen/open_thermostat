@@ -125,6 +125,11 @@ async def _async_options_updated(hass, entry):
     if presentation_only_update(hass, entry):
         # Only the room / installation groups of the integration page changed: no reload.
         return
+    from .e32_backup import passphrase_only_update
+    if passphrase_only_update(state, entry):
+        # Only the backup passphrase was stored (once, e32_backup): nothing to reload.
+        remember_configuration(hass, entry)
+        return
     from .e32_access import apply_password, password_only_update
     if password_only_update(state, entry):
         # Only the E32 password changed (re-authentication): use it, no reload or plan review.
@@ -352,6 +357,7 @@ def _shadow_platforms(product):
     if product:
         platforms += [Platform.BINARY_SENSOR, Platform.UPDATE, Platform.SELECT, Platform.NUMBER, Platform.DATETIME]
         platforms.append(Platform.SWITCH)  # the E32 flow options (e32_flow)
+        platforms.append(Platform.BUTTON)  # back up the E32 settings now (e32_backup)
     return platforms
 
 async def _async_mqtt_ready(hass):
@@ -511,6 +517,15 @@ async def async_setup_entry(hass, entry):
             state["heating_tracker"] = tracker
             cleanup.push_async_callback(tracker.async_stop)
             await tracker.async_start()
+            # Daily backups of the E32 settings (before the platforms: the button and sensor use them).
+            from .e32_backup import async_setup_backups
+            try:
+                backups = await async_setup_backups(hass, entry, state)
+            except Exception:  # optional: never blocks the rooms
+                _LOGGER.exception("OpenThermostat %s: the E32 backups could not be started", entry.title)
+            else:
+                if backups is not None:
+                    cleanup.callback(backups.stop)
         if not stale_link:
             await runtime.async_start()
         if runtime.enabled:
@@ -561,6 +576,9 @@ async def async_remove_entry(hass, entry):
     for domain, other in list(ir.async_get(hass).issues):
         if domain == DOMAIN and entry.entry_id in other:
             ir.async_delete_issue(hass, DOMAIN, other)
+    # Its E32 settings backups too (the passphrase that opens their secrets went with the entry).
+    from .e32_backup import async_remove_backups
+    await async_remove_backups(hass, entry.entry_id)
     # The last installation removed: browsers stop loading the dashboard cards (week_planner).
     if not any(other.entry_id != entry.entry_id for other in hass.config_entries.async_entries(DOMAIN)):
         from .week_planner import async_remove_card_modules

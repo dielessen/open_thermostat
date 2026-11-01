@@ -253,3 +253,83 @@ async def test_an_unreliable_field_stays_disabled_and_no_pass_stays_pending(hass
     assert PROFILE_HIDDEN not in record.options["open_thermostat"]
     assert limiter.pending is False and limiter.last is None  # no enable, no reload, nothing pending
     await r.async_stop()
+
+
+# E32 1.0: a value the boiler leaves at 0 while it works (the owner's EasyControl adapter:
+# selected flow 0 while the boiler heats to 55 degC, burner/fan/pump/3-way valve bits 00 while
+# the burner fires) is listed as not reported. Its 0 is no value: no entity, and the record an
+# older release made from those zeros is hidden, as for any value this boiler lacks.
+LEFT_EMPTY = ("reported_selected_flow_temperature", "raw_burner_bit", "raw_pump_bit", "raw_fan_bit",
+              "raw_dhw_valve_bit")
+
+
+def zero_group():
+    """Group 0 of the retained state as an older firmware sent it: the received 0 of selected flow."""
+    doc = json.loads(group_doc(0))
+    for row in doc["values"]["fields"]:
+        if row[0] == at("reported_selected_flow_temperature"):
+            row[1] = 0
+    return json.dumps(doc)
+
+
+async def left_empty_profile(c):
+    plus = [name for name in INDEX_BY_NAME if name.startswith("plus_")]
+    await c.receive("fw/config/boiler_profile", profile(
+        ["measured_flow_temperature", "measured_return_temperature", "reported_burner_modulation"], [],
+        [*LEFT_EMPTY, *plus]), retained=True)
+
+
+@pytest.mark.asyncio
+async def test_a_value_the_boiler_leaves_empty_gets_no_entity(hass):
+    e, r, c, now = await system(hass)
+    added = []
+    await async_setup_boiler_fields(hass, e, lambda entities, **kw: added.extend(entities))
+    await c.receive("fw/heartbeat", json.dumps({"schema": 1, "uptime_s": 900}))
+    await left_empty_profile(c)
+    await c.receive("fw/state/boiler_fields/0", zero_group(), retained=True)
+    selected = at("reported_selected_flow_temperature")
+    assert c.boiler_fields.reading(selected, now[0])["raw"] == 0
+    r._notify()
+    made = {entity.index for entity in added}
+    assert at("measured_flow_temperature") in made
+    assert not made & {member for name in LEFT_EMPTY for member in concept(at(name))}, made
+    reg = er.async_get(hass)
+    assert all(reg.async_get_entity_id("sensor", "open_thermostat", uid(name)) is None for name in LEFT_EMPTY)
+    # The boiler reports a selected flow after all: the E32 says supported, the entity comes.
+    await c.receive("fw/config/boiler_profile", profile(
+        ["measured_flow_temperature", "reported_selected_flow_temperature"], [], list(LEFT_EMPTY[1:])),
+        retained=True)
+    r._notify()
+    assert selected in {entity.index for entity in added}
+    await r.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_the_record_an_older_release_made_from_those_zeros_is_hidden(hass):
+    e, r, c, now = await system(hass)
+    reg = er.async_get(hass)
+    # Made by 0.4.0b13 from the 0 of selected flow, marked reported; untouched by the user.
+    old = reg.async_get_or_create("sensor", "open_thermostat", uid("reported_selected_flow_temperature"),
+                                  config_entry=e).entity_id
+    reg.async_update_entity_options(old, "open_thermostat", {REPORTED: True})
+    renamed = reg.async_get_or_create("sensor", "open_thermostat", uid("raw_burner_bit"), config_entry=e).entity_id
+    reg.async_update_entity(renamed, name="My burner")  # the user's own: never touched
+    flow = reg.async_get_or_create("sensor", "open_thermostat", uid("measured_flow_temperature"),
+                                   config_entry=e).entity_id
+    added = []
+    await async_setup_boiler_fields(hass, e, lambda entities, **kw: added.extend(entities))
+    await c.receive("fw/heartbeat", json.dumps({"schema": 1, "uptime_s": 900}))
+    await left_empty_profile(c)
+    await c.receive("fw/state/boiler_fields/0", zero_group(), retained=True)
+    r._notify()
+    record = reg.async_get(old)
+    assert record.entity_id == old  # same entity_id and history, just out of sight
+    assert record.disabled_by is INTEGRATION and record.hidden_by is HIDDEN
+    assert record.options["open_thermostat"][PROFILE_HIDDEN] is True
+    assert reg.async_get(renamed).name == "My burner" and reg.async_get(renamed).disabled_by is None
+    assert reg.async_get(flow).disabled_by is None and reg.async_get(flow).hidden_by is None
+    made = {entity.index: entity for entity in added}
+    assert at("reported_selected_flow_temperature") not in made
+    kept = made[at("raw_burner_bit")]  # the user's record says why it has no value
+    assert kept.extra_state_attributes["boiler_profile"] == "not_reported"
+    await r.async_stop()

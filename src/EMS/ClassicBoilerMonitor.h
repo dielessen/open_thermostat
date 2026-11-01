@@ -122,9 +122,12 @@ public:
     // The boiler profile this monitor reports its field verdicts to (same owner and lock).
     void attachProfile(BoilerProfile* profile) { profile_ = profile; }
     const BoilerSample &sample(BoilerField f) const { return samples_[index(f)]; }
+    // A field the boiler profile calls left empty (BoilerProfile::leftEmpty): its
+    // 0 is no value. sample() keeps the raw bytes for the attended test.
+    bool notReported(size_t field) const { return profile_ && profile_->leftEmpty(field); }
     std::optional<int32_t> value(BoilerField f, uint64_t now, bool allowUnreliable = false) const {
         const auto &s = sample(f);
-        if (!s.fresh(now, boilerFieldSpecs[index(f)].ttlMs) ||
+        if (!s.fresh(now, boilerFieldSpecs[index(f)].ttlMs) || notReported(index(f)) ||
             (!allowUnreliable && s.quality == BoilerQuality::unreliable)) return {};
         return s.raw;
     }
@@ -143,12 +146,18 @@ public:
         capabilities_.observe(t.getTypeId());
         if (profile_) profile_->observeFamily(family, now);
         if (family != BoilerProtocol::classic) return false; // Plus processors remain intact.
+        // What a 0 of a field tells the boiler profile: a value; nothing (an
+        // unreliable field, or a default an idle boiler reports as well); or that
+        // the byte is left empty, because this same frame shows the activity the
+        // field reports (Zero::unfilled, chosen per frame by activity() below).
+        enum class Zero : uint8_t { value, nothing, unfilled };
         const auto put = [&](BoilerField field, std::optional<int32_t> v,
-                             BoilerQuality quality = BoilerQuality::reported) {
-            // Boiler profile: the decoder's own verdict, every frame (an
-            // unreliable field's 0 proves nothing either way).
+                             BoilerQuality quality = BoilerQuality::reported, Zero zero = Zero::value) {
+            // Boiler profile: the decoder's own verdict, every frame.
+            if (quality == BoilerQuality::unreliable && zero == Zero::value) zero = Zero::nothing;
             if (profile_) profile_->observe(index(field), !v ? FieldEvidence::absent
-                : quality == BoilerQuality::unreliable && *v == 0 ? FieldEvidence::inconclusive : FieldEvidence::value, now);
+                : *v != 0 || zero == Zero::value ? FieldEvidence::value
+                : zero == Zero::nothing ? FieldEvidence::inconclusive : FieldEvidence::unfilled, now);
             auto& current=samples_[index(field)];
             if(current.observed&&now<=current.observedMs) {
                 // Packet order is not acquisition order. Keep the newest fact
@@ -161,8 +170,9 @@ public:
             }
             current = {v, now, t.getTypeId(), quality, true};
         };
-        const auto byte = [&](BoilerField f, uint8_t offset, int scale = 1, int maximum = 254) {
-            if (auto b = t.byteAt(offset)) put(f, *b <= maximum ? std::optional<int32_t>(*b * scale) : std::nullopt);
+        const auto byte = [&](BoilerField f, uint8_t offset, int scale = 1, int maximum = 254, Zero zero = Zero::value) {
+            if (auto b = t.byteAt(offset)) put(f, *b <= maximum ? std::optional<int32_t>(*b * scale) : std::nullopt,
+                BoilerQuality::reported, zero);
         };
         const auto temp = [&](BoilerField f, uint8_t offset, bool signedValue = false, int maximum = 1300) {
             if (auto w = t.wordAt(offset)) {
@@ -184,12 +194,21 @@ public:
             if (auto b = t.byteAt(offset)) put(f, *b == 0x7F ? std::nullopt
                 : std::optional<int32_t>(*b < 128 ? int(*b) : int(*b) - 256));
         };
-        const auto rawBit = [&](BoilerField f, uint8_t offset, uint8_t mask) {
-            if (auto b = t.byteAt(offset)) put(f, (*b & mask) != 0, BoilerQuality::unreliable);
+        const auto rawBit = [&](BoilerField f, uint8_t offset, uint8_t mask, Zero zero = Zero::nothing) {
+            if (auto b = t.byteAt(offset)) put(f, (*b & mask) != 0, BoilerQuality::unreliable, zero);
         };
+        const auto activity = [](bool active) { return active ? Zero::unfilled : Zero::nothing; };
         switch (t.getTypeId()) {
-            case 0x18:
-                byte(BoilerField::selectedFlow, 0, 100, 100);
+            case 0x18: {
+                // The activity this frame itself reports (modulation byte 4, state
+                // byte 5): a field that reports the same activity cannot read 0
+                // then. A partial frame without those bytes shows no activity.
+                const auto power = t.byteAt(4), stateByte = t.byteAt(5);
+                const bool firing = power && *power >= 1 && *power <= 100;
+                const bool heating = stateByte && (*stateByte & 0x09) == 0x09;
+                const bool hotWater = stateByte && (*stateByte & 0x0A) == 0x0A;
+                // Selected flow 0 proves nothing while idle, but not while heating.
+                byte(BoilerField::selectedFlow, 0, 100, 100, activity(heating));
                 temp(BoilerField::flow, 1);
                 byte(BoilerField::requestedPowerLimit, 3, 1, 100);
                 byte(BoilerField::modulation, 4, 1, 100);
@@ -199,16 +218,15 @@ public:
                     put(BoilerField::heatingActive, (*state & 0x09) == 0x09, BoilerQuality::inferred);
                     put(BoilerField::dhwActive, (*state & 0x0A) == 0x0A, BoilerQuality::inferred);
                 }
-                if (auto flags = t.byteAt(7)) {
-                    // Conservative Classic profile: historically unreliable on Mark's adapter.
-                    put(BoilerField::rawBurner, (*flags & 1) != 0, BoilerQuality::unreliable);
-                    put(BoilerField::rawPump, (*flags & 0x20) != 0, BoilerQuality::unreliable);
-                    put(BoilerField::rawFan, (*flags & 4) != 0, BoilerQuality::unreliable);
-                }
+                // Byte 7 flags. Conservative Classic profile: historically unreliable
+                // on Mark's adapter (the EasyControl sends 00 while the burner fires).
+                rawBit(BoilerField::rawBurner, 7, 0x01, activity(firing));
+                rawBit(BoilerField::rawPump, 7, 0x20, activity(heating));
+                rawBit(BoilerField::rawFan, 7, 0x04, activity(firing));
                 rawBit(BoilerField::rawSecondBurner, 7, 0x02);
                 rawBit(BoilerField::rawIgnition, 7, 0x08);
                 rawBit(BoilerField::rawOilPreheat, 7, 0x10);
-                rawBit(BoilerField::rawDhwValve, 7, 0x40);
+                rawBit(BoilerField::rawDhwValve, 7, 0x40, activity(hotWater));
                 rawBit(BoilerField::rawDhwCirculation, 7, 0x80);
                 temp(BoilerField::storageTemp1, 9);
                 temp(BoilerField::storageTemp2, 11);
@@ -226,6 +244,7 @@ public:
                 if (auto code = t.wordAt(20)) put(BoilerField::serviceNumber, *code != 0xFFFF
                     ? std::optional<int32_t>(*code) : std::nullopt);
                 break;
+            }
             case 0x19:
                 temp(BoilerField::outdoor, 0, true);
                 temp(BoilerField::boilerTemp, 2);
@@ -338,7 +357,7 @@ public:
         for(size_t i=begin;i<end;++i) {
             if(i!=begin)ss<<',';
             const auto& s=samples_[i];ss<<'['<<i<<',';
-            if(s.observed&&s.raw)ss<<*s.raw;else ss<<"null";
+            if(s.observed&&s.raw&&!notReported(i))ss<<*s.raw;else ss<<"null";
             ss<<',';if(s.observed)ss<<s.observedMs;else ss<<"null";
             ss<<','<<(s.quality==BoilerQuality::reported?0:s.quality==BoilerQuality::unreliable?1:2)
               <<','<<s.sourceType<<']';
@@ -354,11 +373,12 @@ public:
         for (size_t i = 0; i < samples_.size(); ++i) {
             if (i) ss << ',';
             const auto &s = samples_[i]; const auto &spec = boilerFieldSpecs[i];
-            const bool fresh = s.fresh(now, spec.ttlMs);
-            const char *state = !s.observed ? "unknown" : !s.raw ? "invalid" : !fresh ? "stale" : "valid";
+            const bool fresh = s.fresh(now, spec.ttlMs), empty = notReported(i);
+            // not_reported: the boiler leaves this field empty (BoilerProfile::leftEmpty), its 0 is no value.
+            const char *state = !s.observed ? "unknown" : empty ? "not_reported" : !s.raw ? "invalid" : !fresh ? "stale" : "valid";
             ss << '"' << spec.name << "\":{\"value\":";
             // Unreliable bits remain inspectable, but are never trustworthy measurements.
-            if (fresh && s.raw) {
+            if (fresh && s.raw && !empty) {
                 if (i == index(BoilerField::displayCode)) {
                     ss << '"';
                     for (char c : {static_cast<char>(*s.raw >> 8), static_cast<char>(*s.raw & 255)}) {
@@ -399,7 +419,7 @@ public:
         for (size_t i = 0; i < samples_.size(); ++i) {
             const auto &sample = samples_[i];
             if (profile != BoilerProtocol::classic || !sample.raw || !sample.fresh(now, boilerFieldSpecs[i].ttlMs)
-                || sample.quality == BoilerQuality::unreliable) continue;
+                || sample.quality == BoilerQuality::unreliable || notReported(i)) continue;
             if (!first) ss << ',';
             first = false;
             ss << '"' << boilerFieldSpecs[i].name << '"';
@@ -409,6 +429,8 @@ public:
 
 private:
     static_assert(static_cast<size_t>(BoilerField::count) == classicBoilerFieldCount, "boiler profile covers every Classic field");
+    static_assert(BoilerProfile::schema1ZeroValueSlots[0] == static_cast<size_t>(BoilerField::selectedFlow),
+                  "the profile restores a schema-1 selected flow as unknown");
     BoilerProfile* profile_ = nullptr;
     uint64_t reportCount_ = 0;
     uint64_t lastReportMs_ = 0;

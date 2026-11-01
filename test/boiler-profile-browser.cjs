@@ -16,12 +16,14 @@ function profile(shown) {
     {index:6,name:'pressure',state:'not_fitted',last_valid_age_s:null,...(shown?{shown_anyway:true}:{})},
     {index:30,name:'storage_temperature_1',state:'not_fitted',last_valid_age_s:null},
     {index:3,name:'outdoor_temperature',state:'not_reported',last_valid_age_s:null},
+    // Release 1.0: its telegram arrives, but the boiler leaves it at 0 while it heats.
+    {index:0,name:'reported_selected_flow_temperature',state:'not_reported',last_valid_age_s:null,left_empty:true},
     {index:7,name:'raw_burner_bit',state:'unknown',last_valid_age_s:null},
     {index:78,name:'plus_flow_temperature',state:'not_reported',last_valid_age_s:null},
     {index:104,name:'boiler_uptime',state:'not_reported',last_valid_age_s:null},
     {index:200,name:'<img src=x onerror=alert(1)>',state:'supported',last_valid_age_s:null}];
   return {schema:1,identity:{address:8,family:'classic',product_id:null,version:null},rules:{not_fitted_frames:10,not_fitted_span_s:600},
-    counts:{supported:3,not_fitted:2,not_reported:3,unknown:1},settled:true,resets:0,restored:true,writes:1,write_failures:0,fields};
+    counts:{supported:3,not_fitted:2,not_reported:4,unknown:1},settled:true,resets:0,restored:true,writes:1,write_failures:0,fields};
 }
 (async () => {
   fs.mkdirSync(out, {recursive:true});
@@ -66,6 +68,9 @@ function profile(shown) {
     assert.equal(await box.locator('img').count(), 0);
     assert.match(notFitted, /Waterdruk/); assert.match(notFitted, /Opslagtemperatuur 1/);
     assert.match(pending, /Buitentemperatuur/); assert.match(pending, /gezien, nog te weinig berichten/);
+    assert.match(pending, /Gekozen aanvoertemperatuur · blijft 0 terwijl de ketel werkt/);
+    assert.doesNotMatch(pending, /Buitentemperatuur · blijft 0/, 'only a value left empty says so');
+    assert.doesNotMatch(supported, /Gekozen aanvoertemperatuur/);
     assert.doesNotMatch(pending, /EMS\+/, 'a Classic boiler lists no EMS+ fields');
     assert.equal(await box.locator('[data-profile-family]').isVisible(), true);
     // Show anyway: one POST, then the button reads "hide again".

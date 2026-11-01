@@ -41,7 +41,8 @@ window.EMSDevicesPage=(()=>{
   const text=s=>uiText(s), hex=n=>'0x'+n.toString(16).toUpperCase().padStart(2,'0');
   const number=n=>Number.isSafeInteger(n)&&n>=0;
   const nullable=n=>n===null||number(n);
-  const states={valid:'Received',stale:'Expired',invalid:'Invalid',unknown:'Not received'};
+  // not_reported: the boiler profile found this value left at 0 while the boiler works (BoilerProfile.h).
+  const states={valid:'Received',stale:'Expired',invalid:'Invalid',unknown:'Not received',not_reported:'Not reported'};
   const quality={reported:'Reported',unreliable:'Unreliable',inferred:'Inferred'};
   const units={degC:'°C',uA:'µA',bool:'',bits:'',text:'',code:'',count:''};
   const roles={8:'Boiler',16:'Thermostat',23:'Thermostat'};
@@ -318,12 +319,12 @@ window.EMSDevicesPage=(()=>{
             const name=el('td',description(id));name.append(el('code',reference.aliases[id]||id));
             row.append(name,el('td',undefined,'ems-value'),el('td'),el('td'));r.rowCache.set(id,row);
           }
-          let value='—';
+          let value=v.state==='not_reported'?text('Not reported'):'—';
           if(v.value!==null){value=v.unit==='bool'?text(v.value?'On':'Off'):typeof v.value==='number'?format.format(v.value):v.value;const unit=Object.hasOwn(units,v.unit)?units[v.unit]:v.unit;if(unit)value+=' '+unit;}
           const cells=row.children;
           update(cells[1],measurementFresh?value:'—');
           // A fresh reported value needs no status text; only exceptions are shown.
-          update(cells[3],!measurementFresh?text('Snapshot unavailable'):[v.state==='valid'?'':text(states[v.state]),
+          update(cells[3],!measurementFresh?text('Snapshot unavailable'):[['valid','not_reported'].includes(v.state)?'':text(states[v.state]),
             v.quality==='reported'?'':text(quality[v.quality])].filter(Boolean).join(' · '));
           cells[3].title=text(states[v.state])+' · '+age(v.age_ms)+' · '+(v.source_type?hex(v.source_type)+' · ':'')+id+(v.reference?' · '+text('EMS-ESP reference offsets; not verified on this installation'):'');
           const local=fieldAccess(id,d),editable=Object.hasOwn(nativeFields,id)&&readyToPrepare();

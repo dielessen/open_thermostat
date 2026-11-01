@@ -41,6 +41,8 @@ inline void writeBoilerProfileJSON(std::ostream& out, const BoilerProfile& p, ui
             << "\",\"state\":\"" << fieldPresenceName(p.state(i)) << "\",\"last_valid_age_s\":";
         if (const auto age = p.lastValidAgeS(i, now)) out << *age; else out << "null";
         if (p.overridden(i)) out << ",\"shown_anyway\":true";
+        // not_reported although its telegram arrives: the boiler leaves this value empty.
+        if (p.leftEmpty(i)) out << ",\"left_empty\":true";
         out << '}';
     }
     out << "]}";

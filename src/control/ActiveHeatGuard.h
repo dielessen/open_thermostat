@@ -137,7 +137,8 @@ public:
         if (owning() && (!confirmedAt_ || withdrawn_)) enter(State::stopping, now);
         // Frost heating while waiting for a new confirmation lost its conditions
         // (handed back, shadow, a foreign 0x1A, withdrawn): stop with the zero window.
-        if (frostSending_ && !frostEligible(in)) { frostSending_ = false; lastTarget2_ = 0; enter(State::stopping, now); }
+        // Confirmed instead: the takeover below decides.
+        if (frostSending_ && !frostEligible(in) && !confirmedAt_) { frostSending_ = false; lastTarget2_ = 0; enter(State::stopping, now); }
         if (state_ == State::stopping && !withdrawn_ && elapsed(now, since_) >= p_.stopWindowMs && !holdsPositive_) enter(State::shadow, now);
         if (state_ != State::stopping) {
             if (!wanted) state_ = State::shadow;
@@ -151,6 +152,9 @@ public:
             }
             if (owning()) state_ = in.rooms.active && in.rooms.lost == in.rooms.active ? State::stoppedMeasurementLost : State::active;
         }
+        // Confirmed while frost protection ran: a takeover now sends its own request next,
+        // without stop zeros in between; one that still waits stops frost with the zero window.
+        if (frostSending_ && confirmedAt_) { frostSending_ = false; lastTarget2_ = 0; if (!owning()) enter(State::stopping, now); }
         if (owning()) bootZero_ = false; // its own commands follow
         command_ = owning() ? request(now, in) : state_ == State::stopping ? stopZero(now, in)
             : frostEligible(in) ? frostUnconfirmed(now, in) : Command{false, 0, name(state_)};

@@ -387,6 +387,42 @@ TEST(HandoverConfirmation, FrostProtectionWhileWaitingForANewConfirmation) {
     EXPECT_FALSE(u.anyPositive());
 }
 
+// Review 1.0: the owner confirms while frost protection runs. The takeover sends the
+// rooms' request at the next step, without a minute of stop zeros first; a takeover
+// that still has to wait (a late reading) ends frost with the zero window as before.
+TEST(HandoverConfirmation, ConfirmingDuringFrostTakesOverWithoutStopZeros) {
+    FakeStore store; store.record = "fw/1";
+    Boot b(store, "fw/2");
+    b.in.rooms.coldestCentiC = 600; // the rooms ask 40 degC
+    b.runFor(5 * minute);
+    ASSERT_EQ(b.sent.back(), 30);
+    const size_t at = b.sent.size();
+    const uint64_t confirmedAt = b.now;
+    b.confirm(true);
+    b.runFor(3 * minute);
+    ASSERT_GT(b.sent.size(), at);
+    EXPECT_EQ(b.sentAt[at], confirmedAt + 10 * second);
+    EXPECT_EQ(b.why[at], "heat_request");
+    for (size_t i = at; i < b.sent.size(); ++i) EXPECT_EQ(b.sent[i], 40) << i;
+    EXPECT_EQ(b.guard.state(), State::active);
+    EXPECT_FALSE(b.guard.released());
+    EXPECT_EQ(store.record, "fw/2");
+    FakeStore late; late.record = "fw/1";
+    Boot w(late, "fw/2");
+    w.in.rooms.coldestCentiC = 600;
+    w.runFor(5 * minute);
+    ASSERT_EQ(w.sent.back(), 30);
+    w.in.rooms.fresh = 0; // the takeover waits for a fresh reading
+    const size_t from = w.sent.size();
+    w.confirm(true);
+    w.runFor(2 * minute);
+    ASSERT_GT(w.sent.size(), from);
+    EXPECT_EQ(w.why[from], "stop_zero");
+    for (size_t i = from; i < w.sent.size(); ++i) EXPECT_EQ(w.sent[i], 0) << i;
+    EXPECT_TRUE(w.guard.released());
+    EXPECT_EQ(w.guard.state(), State::arming);
+}
+
 // S3a: only without a foreign master this boot.
 TEST(HandoverConfirmation, ForeignControllerEndsTheWaitAndItsFrost) {
     {

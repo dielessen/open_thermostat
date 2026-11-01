@@ -90,6 +90,11 @@ async def _cleanup_stale(hass, entry):
     cleanup_stale_entities(hass, entry, entry.data[CONF_TOPIC_PREFIX])
 
 
+async def _release_units(hass, entry):
+    from .native_entity_cleanup import release_pinned_units
+    release_pinned_units(hass, entry, entry.data[CONF_TOPIC_PREFIX])
+
+
 async def _optional_step(name, step, *args, **kwargs):
     """One optional part of the sensor setup: a failure is logged, the rest still loads."""
     try:
@@ -107,6 +112,8 @@ async def async_setup_entry(
     if "v1_runtime" in hass.data.get(DOMAIN,{}).get(entry.entry_id,{}):
         from .product import is_product
         product = is_product(entry)
+        # Before the memory and uptime entities are added (Home Assistant reads the unit then).
+        await _optional_step("memory and uptime units", _release_units, hass, entry)
         if product:
             # Before any entity is added: stale records must not be re-adopted.
             await _optional_step("entity cleanup", _cleanup_stale, hass, entry)
@@ -122,6 +129,12 @@ async def async_setup_entry(
                                  native_metrics=True)
             from .v1_metrics import async_setup_shadow_metrics
             await _optional_step("metrics", async_setup_shadow_metrics, hass, entry, async_add_entities)
+            from .legacy_discovery import async_setup_legacy_discovery_retirement
+            # Old pre-v1 MQTT discovery entities of this E32 (retained on the broker), beta.23.
+            await _optional_step("old MQTT discovery entities", async_setup_legacy_discovery_retirement, hass, entry)
+            from .ems_devices import async_setup_ems_devices
+            # The devices on the EMS bus (fw/config/ems_devices), beta.23.
+            await _optional_step("EMS bus devices", async_setup_ems_devices, hass, entry)
             from .e32_flow import async_setup_sensors as async_setup_flow_sensors
             # flow source, gas calibration, last night
             await _optional_step("flow sensors", async_setup_flow_sensors, hass, entry, async_add_entities)

@@ -2979,5 +2979,16 @@
     "house_mode_update_required": {
       "message": "Wymaga oprogramowania E32 beta.23 lub nowszego. Zaktualizuj E32 za pomocą jego encji Oprogramowanie."
     }
+  },
+  "device": {
+    "ems_boiler": {
+      "name": "Kocioł EMS {address} (produkt {product})"
+    },
+    "ems_thermostat": {
+      "name": "Termostat EMS {address} (produkt {product})"
+    },
+    "ems_device": {
+      "name": "Urządzenie EMS {address} (produkt {product})"
+    }
   }
 }

@@ -35,6 +35,24 @@ public:
         for(size_t i=0;i<used_;++i)if(entries_[i].address==address)return entries_[i].frames>0;
         return false;
     }
+    // fw/config/ems_devices (retained, sent on change): who is on the bus and, once read,
+    // which product, version and brand. No ages or counters: the payload only changes
+    // with an identity. At most identityDevices, so it stays far below 1 KB.
+    static constexpr size_t identityDevices=12;
+    void writeIdentityJSON(std::ostream &out) const {
+        out<<"{\"schema\":1,\"devices\":[";
+        size_t written=0;
+        for(size_t i=0;i<used_&&written<identityDevices;++i){
+            const auto &e=entries_[i];
+            if(e.frames==0)continue;
+            out<<(written++?",":"")<<"{\"address\":"<<unsigned(e.address)<<",\"product_id\":";
+            if(e.version)out<<unsigned(e.product);else out<<"null";
+            out<<",\"version\":";if(e.version)out<<'"'<<unsigned(e.major)<<'.'<<unsigned(e.minor)<<'"';else out<<"null";
+            out<<",\"brand_id\":";if(e.brand>=0)out<<e.brand;else out<<"null";
+            out<<'}';
+        }
+        out<<"]}";
+    }
     void writeJSON(std::ostream &out,uint64_t now) const {
         out<<"{\"schema\":1,\"capacity\":"<<capacity<<",\"types_per_device\":"<<typesPerDevice<<",\"untracked_frames\":"<<untracked_<<",\"devices\":[";
         for(size_t i=0;i<used_;++i){

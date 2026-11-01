@@ -2979,5 +2979,16 @@
     "house_mode_update_required": {
       "message": "Hiervoor is E32-firmware beta.23 of nieuwer nodig. Werk de E32 bij met zijn Firmware-entiteit."
     }
+  },
+  "device": {
+    "ems_boiler": {
+      "name": "EMS-ketel {address} (product {product})"
+    },
+    "ems_thermostat": {
+      "name": "EMS-thermostaat {address} (product {product})"
+    },
+    "ems_device": {
+      "name": "EMS-apparaat {address} (product {product})"
+    }
   }
 }

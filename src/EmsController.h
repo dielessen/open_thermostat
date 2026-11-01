@@ -273,6 +273,7 @@ public:
         if(!emsConfig_.emsEnabled)return;
         const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
         if(group==control::boilerProfileGroup){writeBoilerProfileTopic(out,profile_);return;} // fw/config/boiler_profile
+        if(group==control::emsDevicesGroup){deviceInventory_.writeIdentityJSON(out);return;} // fw/config/ems_devices
         if(group<control::boilerFieldGroupCount){monitor_.writeFieldGroup(out,now,group);return;}
         // Groups 7..: the entity catalog (boiler.fields.v2), same field shape.
         if(group>=control::boilerFieldGroupCountV2)return;

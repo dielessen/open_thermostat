@@ -49,6 +49,7 @@ class ControllerRequestSensor(SensorEntity):
         self.clock=clock;self.row=None;self.received=None;self.online=False
         self._fence=None;self._last_receipt=None;self._retired_boots=deque(maxlen=8)
         self.reason='not_received';self._last_published=None;self._expiry=None
+        self.noted_value=False  # REPORTED marked in the registry (native_entity_cleanup.note_value)
 
     @property
     def available(self):

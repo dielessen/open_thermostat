@@ -172,7 +172,18 @@ class E32FirmwareUpdate(UpdateEntity):
         self._channel = key[3]
         if self._attr_latest_version is None:
             self._attr_latest_version = version
+        self._sync_device_version()
         return True
+
+    def _sync_device_version(self):
+        """The E32 device shows its firmware version as its software version (beta.23)."""
+        if getattr(self, "hass", None) is None or self.registry_entry is None or not self._attr_installed_version:
+            return
+        from homeassistant.helpers import device_registry as dr
+        registry = dr.async_get(self.hass)
+        device = registry.async_get(self.registry_entry.device_id) if self.registry_entry.device_id else None
+        if device is not None and device.sw_version != self._attr_installed_version:
+            registry.async_update_device(device.id, sw_version=self._attr_installed_version)
 
     def version_is_newer(self, latest_version, installed_version):
         latest, installed = parse_tag(latest_version), parse_tag(installed_version)
@@ -206,6 +217,7 @@ class E32FirmwareUpdate(UpdateEntity):
             if parse_tag(latest) is not None and self._attr_installed_version is not None:
                 self._attr_latest_version = latest
         self.async_on_remove(self._cancel_retry)
+        self._sync_device_version()
 
     def _cancel_retry(self):
         if self._retry is not None:
@@ -312,6 +324,7 @@ class E32FirmwareUpdate(UpdateEntity):
                         outcome["reported"] = reported_identity(running) or outcome["reported"]
                         if isinstance(running, dict) and running.get("version") == release["tag"]:
                             self._attr_installed_version = release["tag"]
+                            self._sync_device_version()
                             outcome["result"] = "installed"
                             return
                     except ControllerLinkError:

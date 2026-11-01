@@ -62,11 +62,21 @@ async def async_setup_sensors(hass, entry, async_add_entities, *, native_metrics
                     # A live packet also proves liveness after an HA-only restart.
                     online = True
                 from .controller_request import ControllerRequestSensor, supported
+                from .native_entity_cleanup import (hide_never_reported, note_value, value_gate_due,
+                                                    value_gated_enabled_default)
                 if command_entity is None and supported(payload):
                     command_entity=ControllerRequestSensor(prefix)
+                    # Only an attended boiler trial gives it a value: a new record starts disabled.
+                    command_entity._attr_entity_registry_enabled_default=value_gated_enabled_default(
+                        hass,command_entity.unique_id,(payload.get('controller_request') or {}).get('known') is True)
                     async_add_entities([command_entity],config_subentry_id=group_id)
                 if command_entity is not None:
                     command_entity.update_payload(payload,online,retained=getattr(message,'retain',False))
+                    if command_entity.row is not None and command_entity.row.get('known'):
+                        if not command_entity.noted_value:
+                            command_entity.noted_value=note_value(hass,command_entity.unique_id)
+                    elif not command_entity.noted_value and value_gate_due(hass,entry,"controller_request"):
+                        hide_never_reported(hass,entry,[command_entity.unique_id])
                 if native_metrics:
                     return  # Native command topic cannot populate legacy boiler measurements.
             added = []

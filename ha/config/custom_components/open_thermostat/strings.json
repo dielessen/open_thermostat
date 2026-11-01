@@ -2979,5 +2979,16 @@
     "house_mode_update_required": {
       "message": "This needs E32 firmware beta.23 or newer. Update the E32 with its Firmware entity."
     }
+  },
+  "device": {
+    "ems_boiler": {
+      "name": "EMS boiler {address} (product {product})"
+    },
+    "ems_thermostat": {
+      "name": "EMS thermostat {address} (product {product})"
+    },
+    "ems_device": {
+      "name": "EMS device {address} (product {product})"
+    }
   }
 }

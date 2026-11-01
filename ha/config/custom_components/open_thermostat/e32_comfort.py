@@ -362,14 +362,72 @@ def presence_home(state):
     return state.state == "home"
 
 
+PRESENCE_MEMORY = DOMAIN + "_presence_memory"
+PRESENCE_SAVE_DELAY = 10
+
+
+class PresenceMemory:
+    """When each person last left home, kept across Home Assistant restarts.
+
+    A person's last_changed also moves between two away zones (Work ->
+    not_home), from unavailable back to not_home and at every Home Assistant
+    start; none of those is someone leaving. "left" is the moment a person
+    stopped being home (home -> anything else) and stays until they are home
+    again. A person never seen home here falls back to last_changed.
+    """
+
+    def __init__(self, hass, store=None):
+        self.hass, self.store = hass, store
+        self.people = {}  # entity_id -> {"home": True} or {"home": False, "left": datetime}
+
+    async def async_load(self):
+        stored = await self.store.async_load() if self.store is not None else None
+        people = stored.get("people") if type(stored) is dict else None
+        for entity_id, known in (people or {}).items() if type(people) is dict else ():
+            if type(known) is not dict or entity_id in self.people:
+                continue
+            if known.get("home") is True:
+                self.people[entity_id] = {"home": True}
+            elif known.get("home") is False and type(known.get("left")) is str:
+                left = dt_util.parse_datetime(known["left"])
+                if left is not None and left.tzinfo is not None:
+                    self.people[entity_id] = {"home": False, "left": left}
+
+    def _data(self):
+        return {"people": {e: {"home": True} if k["home"] else {"home": False, "left": k["left"].isoformat()}
+                           for e, k in self.people.items()}}
+
+    @callback
+    def observe(self, entity_id, state):
+        value = presence_home(state)
+        known = self.people.get(entity_id)
+        if value is True:
+            new = {"home": True}
+        elif known is not None and not known["home"]:
+            return  # already away: another zone, unavailable, a restart
+        elif value is False or known is not None:
+            # Home (or first seen) until now: unavailable counts from the moment home was last seen.
+            new = {"home": False, "left": state.last_changed if state is not None else dt_util.utcnow()}
+        else:
+            return
+        if new != known:
+            self.people[entity_id] = new
+            if self.store is not None:
+                self.store.async_delay_save(self._data, PRESENCE_SAVE_DELAY)
+
+    def left(self, state):
+        known = self.people.get(state.entity_id)
+        return known["left"] if known is not None and not known["home"] else state.last_changed
+
+
 def house_presence(hass, people, delay_min, now=None):
     """(home, wait_s) for the people of the house.
 
     home is True while anyone is home, while anyone's place is unknown or
     unavailable ("bij twijfel blijft het warm") and while the last person left
-    less than the away delay ago; then wait_s is the seconds until the house
-    counts as away. False: everyone has been away for at least the delay. None:
-    no people configured.
+    less than the away delay ago (PresenceMemory); then wait_s is the seconds
+    until the house counts as away. False: everyone has been away for at least
+    the delay. None: no people configured.
     """
     if not people:
         return None, None
@@ -378,7 +436,8 @@ def house_presence(hass, people, delay_min, now=None):
     if any(value is not False for value in values):
         return True, None
     now = now or dt_util.utcnow()
-    left = max(state.last_changed for state in states)
+    memory = hass.data.get(PRESENCE_MEMORY)
+    left = max(memory.left(state) if memory is not None else state.last_changed for state in states)
     remaining = (left + timedelta(minutes=delay_min) - now).total_seconds()
     if remaining > 0:
         return True, remaining
@@ -432,6 +491,11 @@ def away_waits(hass, settings, room_ids=None):
     return min(waits) if waits else None
 
 
+def people_of(settings):
+    """Every person of the house and of the rooms."""
+    return sorted(set(settings["presence_entities"]).union(*settings.get("room_persons", {}).values()))
+
+
 class ComfortForwarder:
     """Sends contact and presence states to the E32: on each change, every 5 minutes and when it is back."""
 
@@ -453,9 +517,13 @@ class ComfortForwarder:
 
     @callback
     def publish(self, only=None):
+        settings = self.settings
+        memory = self.hass.data.get(PRESENCE_MEMORY)
+        if memory is not None:
+            for entity_id in people_of(settings):
+                memory.observe(entity_id, self.hass.states.get(entity_id))
         if not self.hub.fresh:
             return
-        settings = self.settings
         for payload in comfort_payloads(self.hass, settings, set(self.hub.rooms), only,
                                         room_presence=supports_room_presence(self.hub)):
             self.send(json.dumps(payload, separators=(",", ":")))
@@ -914,6 +982,10 @@ async def async_setup_e32_climates(hass, entry, async_add_entities):
     def send(payload):
         hass.async_create_task(mqtt.async_publish(hass, topic, payload, 0, False))
 
+    if PRESENCE_MEMORY not in hass.data:
+        from homeassistant.helpers.storage import Store
+        memory = hass.data[PRESENCE_MEMORY] = PresenceMemory(hass, Store(hass, 1, f"{DOMAIN}.presence"))
+        await memory.async_load()
     forwarder = state["comfort_forwarder"] = ComfortForwarder(hass, entry, hub, send)
     entry.async_on_unload(hub.add_listener(forwarder.hub_changed))
     entry.async_on_unload(async_track_time_interval(hass, lambda _now: forwarder.publish(), REFRESH))

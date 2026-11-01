@@ -86,6 +86,28 @@ async def test_a_room_is_home_while_one_of_its_persons_is_home_and_away_after_th
 
 
 @pytest.mark.asyncio
+async def test_a_room_stays_away_when_its_person_moves_to_another_away_zone(hass):
+    t0 = datetime(2026, 11, 1, 8, 0, tzinfo=timezone.utc)
+    memory = hass.data[module.PRESENCE_MEMORY] = module.PresenceMemory(hass)
+    settings = comfort_options(entry({"presence_entities": ["person.anna"], "away_delay_min": 15,
+                                      "room_persons": {"bedroom": ["person.ben"]}}))
+
+    def at(minutes, value):
+        hass.states.async_set("person.ben", value, timestamp=(t0 + timedelta(minutes=minutes)).timestamp())
+        memory.observe("person.ben", hass.states.get("person.ben"))
+        return t0 + timedelta(minutes=minutes, seconds=30)
+
+    hass.states.async_set("person.anna", "home")
+    at(0, "home")
+    at(10, "Work")
+    bedroom = {"kind": "room_presence", "room": "bedroom", "home": False}
+    assert bedroom in comfort_payloads(hass, settings, {"bedroom"}, now=t0 + timedelta(hours=2), room_presence=True)
+    for minutes, value in ((180, "not_home"), (181, "unavailable"), (182, "not_home")):
+        now = at(minutes, value)
+    assert bedroom in comfort_payloads(hass, settings, {"bedroom"}, now=now, room_presence=True)
+
+
+@pytest.mark.asyncio
 async def test_the_shortest_away_delay_over_the_house_and_the_rooms(hass):
     hass.states.async_set("person.anna", "home")
     hass.states.async_set("person.ben", "not_home")

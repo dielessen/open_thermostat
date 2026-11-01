@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "07cdc6c6bbc768521efa940fb43a86a31d64a569d0941403ed9a31b962363f12"
+          "sha256": "e00934c9aa72413d281579db88bde2533bef368ce537ae5d5a64bce1bbc02012"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -227,7 +227,7 @@
         },
         {
           "path": "docs/USER-GUIDE.md",
-          "sha256": "53cc365c8f49873489853214d7705b61eebd0962c8314fa5f83db8d3199cce15"
+          "sha256": "5417cda663bf86683716ccfef0967f129d77af2a9903c17da80fb3c551095dfc"
         },
         {
           "path": "docs/modern-thermostat/OVERSCHAKELING.nl.md",
@@ -375,7 +375,7 @@
         },
         {
           "path": "test/browser-tests.txt",
-          "sha256": "f56e5e925b8bf3e7658cd1773e38ddac9c4ec8885bff135b27afc98b20638ffd"
+          "sha256": "7d65cdbb8a8b1703ee97e6c5de690d234e46b5239f909800b60885a79b53189e"
         },
         {
           "path": "test/diagnostics-console-browser.cjs",
@@ -428,6 +428,18 @@
         {
           "path": "test/week-levels-browser.cjs",
           "sha256": "b04534bd0d10c889267236965c8e935bddf99fc32dc607c08092d817407a0d53"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/e32_valves.py",
+          "sha256": "63d610bbd1dd438030974b988869199929a1ec6f21ce1464f4f53dbcbf933d7a"
+        },
+        {
+          "path": "src/TrvStore.h",
+          "sha256": "2004d1db582a3d36dcd62104c50ede6216f9d43d8b34a807dab0c9c386974e62"
+        },
+        {
+          "path": "test/heating-valves-browser.cjs",
+          "sha256": "c6ce0845ef34b82b1987be57558255064134904c20a0757feeef8a23e7046f7a"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -1037,15 +1049,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
-          "sha256": "935d3f7214f1a5174c6de71ad67bfdadb109e2606a5579b7acfb4e542d003cb5"
+          "sha256": "508f47a1b9c0c93c96e26b8cff4434c27a8ce08c318ccc9cdf9d5dc1dba4f94c"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/en.json",
-          "sha256": "935d3f7214f1a5174c6de71ad67bfdadb109e2606a5579b7acfb4e542d003cb5"
+          "sha256": "508f47a1b9c0c93c96e26b8cff4434c27a8ce08c318ccc9cdf9d5dc1dba4f94c"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "87ddc06a3af13da143e37b553d2f8d00d7254945727206d3d9eda7a926fdcac3"
+          "sha256": "f2773c9c7da98c402348d63c3e96485128a54404e298337e6a6e3d3d15f404e8"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -1245,7 +1257,7 @@
         },
         {
           "path": "data/html/ui-messages-pages.js",
-          "sha256": "37a6b026d278c8a59f04debe0279c0f394b2a5dcca3dcb79361fccc0eba952f3"
+          "sha256": "876ddc0223ad81564d9939eb784917cfeb388bf2166dafc7005d60c80dfb48e6"
         },
         {
           "path": "ha/tests_native/test_polish_translation.py",
@@ -1296,7 +1308,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/e32_room_flow.py",
-          "sha256": "f01984771b7cd590cf6be82d5d23936a3827a82d736ae8b8a6891c87e1c882fc"
+          "sha256": "9c6e826c296af555996b7e32d7d3f0cfac8aa68b70f353ce1b79f93e8f25e5ab"
         },
         {
           "path": "ha/tests_native/test_e32_room_flow.py",
@@ -1436,7 +1448,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/controller_link.py",
-          "sha256": "1034707e2c712e74b4877cc4671ddae63ccf110fd0bb0341a98698515265fb48"
+          "sha256": "c04b652cea468ff0d643073193d86cb9a4fd7d7608b151da5a0d02103cd0f37a"
         }
       ],
       "remaining_acceptance": "Alleen normale expliciete save; geen live apparaatwissel tijdens installatie bewezen."
@@ -1493,7 +1505,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "413a1bf426d3f3c50a25f2aa421ed60529d59f73fb81d4a499bddcba392b1973"
+          "sha256": "288ed023fa6a7e18a3f8cfe151ddb5a72891bc2df4fc3043ed082782169676f4"
         },
         {
           "path": "src/Room.cpp",
@@ -1611,7 +1623,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "413a1bf426d3f3c50a25f2aa421ed60529d59f73fb81d4a499bddcba392b1973"
+          "sha256": "288ed023fa6a7e18a3f8cfe151ddb5a72891bc2df4fc3043ed082782169676f4"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
@@ -1703,7 +1715,7 @@
         },
         {
           "path": "src/control/ModernTransport.h",
-          "sha256": "0161e38f2bfa5e9e7c7e3da04ce26bbc480c245007714cd7287353c60d926a75"
+          "sha256": "5559f31e5dca71fa2698e64545fb99f2549e4e5ad25ae578bf3661d82390d5ef"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_diagnostics.py",
@@ -2167,7 +2179,7 @@
         },
         {
           "path": "docs/modern-thermostat/TELEMETRIEBUDGET.nl.md",
-          "sha256": "c2a4b9dd7834cf113d9ee6afcead201977b50a1a4172d9dc9a611aad6c9d682f"
+          "sha256": "f9358a95f6e94b8fadbcff1985b1f27ed7cbc45bb6dfb706f355d2053f388ca1"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/support_diagnostics.py",
@@ -2175,11 +2187,11 @@
         },
         {
           "path": "ha/tests_native/e32_telemetry.py",
-          "sha256": "3ca4ec3e6606222f41212e5d2b48a6bfaac51233c1c79444e89b524982ea3ddb"
+          "sha256": "0020c28b599833b01a67a4916760da7b9aeb2e8349fd496de460e66482e2b0f5"
         },
         {
           "path": "ha/tests_native/test_e32_telemetry_topics.py",
-          "sha256": "e82a50107723f55792546e165e338baf875d1e55d05cad7c2d07ed8006d43c0e"
+          "sha256": "3d19294a9c855657e8656eb8f9e5051f21b3585d78b8c92ad9ece303897b1357"
         },
         {
           "path": "ha/tests_native/test_session_recovery.py",
@@ -2195,7 +2207,7 @@
         },
         {
           "path": "src/control/HeatingStateTopics.h",
-          "sha256": "7e64b4730cf0c2e0b12a3eab28138a49c3608c351fa20e263b6d43854741d226"
+          "sha256": "67f2f7ce29c48d48ebf9387bb33de0c3a95cc4747715f6d7f016001df97b350b"
         },
         {
           "path": "src/control/MqttOutbox.h",
@@ -2207,7 +2219,7 @@
         },
         {
           "path": "src/control/TelemetryPublisher.h",
-          "sha256": "300a12418b7defa6651da9e47e622b1b89611646c4a5b554231c5bcad3192ad5"
+          "sha256": "03f89689338f5aca9319d2d8e5f51d9bc90335f74cf2ef327d2ae1355a0a7095"
         },
         {
           "path": "test/soak/slow_wifi.h",
@@ -2215,7 +2227,7 @@
         },
         {
           "path": "test/test_native/test_heating_state_topics.cpp",
-          "sha256": "9055bbd9f337a076b9f357408a308c89d0a1c8bff17128d5fe8d8d19f3c095e7"
+          "sha256": "5b67c14002a7beccf9d78eb55b9c4fb9a939c9f5b760589a706605e7fc40d16b"
         },
         {
           "path": "test/test_native/test_mqtt_outbox.cpp",
@@ -2420,7 +2432,7 @@
         },
         {
           "path": "src/control/ShadowController.h",
-          "sha256": "66f3e6b2b50624726a5a28883c73ed634f89b2849891b73b918d975dce4464d8"
+          "sha256": "63ad3d6129f24c257ae56f8c6f727ad9fef923a9c178883a0b2870939234141f"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/native_plan.py",
@@ -2698,7 +2710,7 @@
         },
         {
           "path": "src/control/ShadowController.h",
-          "sha256": "66f3e6b2b50624726a5a28883c73ed634f89b2849891b73b918d975dce4464d8"
+          "sha256": "63ad3d6129f24c257ae56f8c6f727ad9fef923a9c178883a0b2870939234141f"
         },
         {
           "path": "test/test_native/test_session_admission.cpp",
@@ -2810,7 +2822,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_wire.py",
-          "sha256": "a19f2be08749489a547fa81c4ad3924af3acc803cfac0a04835ffcf2994bba96"
+          "sha256": "db9b774e390b3d1f1c8ca2f1a667c9d6dca6644c22003c7280286175581bdfce"
         },
         {
           "path": "ha/tests_native/test_supervisor_status.py",
@@ -2862,7 +2874,7 @@
         },
         {
           "path": "data/html/heating.html",
-          "sha256": "57ad525ec72e295d27782d6ea02a68a3068d2cac365d6fc79de74a6be88c4b97"
+          "sha256": "b26f565339fed17b0af661dc37c713b75c71aa1c2b69580cc39e449042362dd8"
         },
         {
           "path": "test/heating-browser.cjs",
@@ -2870,7 +2882,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/heating_link.py",
-          "sha256": "c93ea607cb2a32aecaea8c74b3370cea3c5b428875ae4565890b393cc33abe2b"
+          "sha256": "aecaf57c56c41ffd584071d77eb93930b9c83909f41afeaf37a86a1d46d7e445"
         },
         {
           "path": "ha/tests_native/test_heating_link.py",
@@ -3147,6 +3159,38 @@
         {
           "path": "test/test_native/test_room_plan_levels.cpp",
           "sha256": "5b7768c798316cd61fe87355ca4ec1bd0a8091f8118988268f751ee8b5f20928"
+        },
+        {
+          "path": "ha/tests_native/test_actuator_output_interop.py",
+          "sha256": "d5d931b0e8bf5680b6a306cd891bfaea42cafc271e36da736db87a2e5b87d073"
+        },
+        {
+          "path": "ha/tests_native/test_e32_valves.py",
+          "sha256": "11c90b07e2b5ab0cd63e8e09ceca9bf8c931d2e6abc965c3ab55a5672d47fd21"
+        },
+        {
+          "path": "src/control/TrvConfig.h",
+          "sha256": "736f968c305d927cc88a519c8272fc71b473061a44fc0cf6dd469fdfc73ed73c"
+        },
+        {
+          "path": "src/control/TrvControl.h",
+          "sha256": "e6f6f4bf06cff84dfa4cbc2e65711eb29c1386364ecdcee7362e6af991e258f5"
+        },
+        {
+          "path": "test/test_native/test_actuator_output_flag.cpp",
+          "sha256": "7b95dffe619cb836aa5f1aa50e6fbe70f9e27bf5ee1b7ee97923989d8fb984d3"
+        },
+        {
+          "path": "test/test_native/test_trv_control.cpp",
+          "sha256": "031526b1d59f97a40235f8b7b2a800f24da20f69829827ca5a98b2c1eb7c35c9"
+        },
+        {
+          "path": "test/test_native/test_trv_simulation.cpp",
+          "sha256": "640fb1276abe88154acfbead9c5dcd3389667d123a3e5c3433180cc3a2b4d847"
+        },
+        {
+          "path": "test/test_native/test_trv_telemetry.cpp",
+          "sha256": "c48dbfcabc5f923102235d4dcec3959ddb22d9ee9bd2f6c41205c16904e0a9f4"
         }
       ],
       "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open. B06 toekomstige-feitquarantaine en klokfences bronmatig afgerond met twaalf regressies/677 native tests en gedeelde veiligheidscontrole voor zonepolicy/storingsbevestiging; HA-deel opgenomen in geverifieerde HA43-bronbestanden; E32-deel opgenomen in alpha31; de module is nu op alpha31 waargenomen zonder uitvoerder-/methodebewijs. Geen fysieke producent- of regelkwalificatie."
@@ -3234,7 +3278,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/dashboard.py",
-          "sha256": "c31b06e12658f18483cc68c4da2c8b4c3dc5aa1baa6dfe8ed1cc7de64e933840"
+          "sha256": "0fe3b4e368fc3f32df4ec8871a75911ef0daa5ccddc4d7e9d746e0c259612867"
         },
         {
           "path": "src/control/MetricsTelemetry.h",
@@ -3266,7 +3310,7 @@
         },
         {
           "path": "test/interop/shadow_runner.cpp",
-          "sha256": "7e46ccbdeb66cd1bf98dd6829dd6f80bacd4d6d16ec1108b75241d23cfb5e95f"
+          "sha256": "911a10388b1795e3431efbde6fabf567ea781c6384bb0932c53abea394d4372b"
         },
         {
           "path": "test/test_native/include/ShadowControllerFixture.h",
@@ -3274,15 +3318,15 @@
         },
         {
           "path": "src/MQTT.h",
-          "sha256": "caaae7c89071defd79c914a26c9566ea4fce2117b3662c733574d090c6a95486"
+          "sha256": "174048c5123edf0c98202e2d45ac6afccd107e6b88b80df660b39e9099d57e70"
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "9376eeb154d5cbe15e00e9ad2cb3eb33969d9d55600242765757f03d2de2139e"
+          "sha256": "278cd5dc703c6ecbd35c7f0bfc49416d3754b8eaf57de8bc8af32b364ce7bfcb"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/sensor.py",
-          "sha256": "71f8c2b0c0ce2886ef824f20ee11dcaa653798eb93cef6f77aab5ff828d7b9fb"
+          "sha256": "7ac50a33d3a3bb588ad78e09bcc18a85e54fca48e12f9eefdb5eb5343166d40f"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/product_telemetry.py",
@@ -3374,7 +3418,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_climate.py",
-          "sha256": "1b1b54a55c06226ed11d621dbc6e12810d5d6d10474937bdef0179f8ebc72119"
+          "sha256": "a26f54f32518c0a4820b688c5638498f07db0debb2799964ad3fdbb3365cf65a"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_contacts.py",
@@ -3534,7 +3578,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/switch.py",
-          "sha256": "966d2c9c60e291fda631272d11355471e4b8ef9844007575dfc3ed8474ca298f"
+          "sha256": "fb85e786649cfdd132aba345d0e4b9244526e86b62f2085c711847b89602c5fe"
         },
         {
           "path": "ha/tests_native/test_e32_comfort.py",
@@ -3821,7 +3865,7 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "9376eeb154d5cbe15e00e9ad2cb3eb33969d9d55600242765757f03d2de2139e"
+          "sha256": "278cd5dc703c6ecbd35c7f0bfc49416d3754b8eaf57de8bc8af32b364ce7bfcb"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",

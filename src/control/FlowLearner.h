@@ -74,6 +74,14 @@ public:
         float nominalKw = 22;
         float kwhPerM3 = 9.77f;  // NL gas, Groningen-equivalent upper value, until HA reports its own (gas_kwh_per_m3)
         float returnDropK = 6;   // flow - return when the return is not reported
+        // Opt-in (default off, behaviour unchanged): a hot-water run during a heating
+        // segment pauses the segment instead of ending it, for at most maxBridgeMs. A boiler
+        // that keeps a small store warm every ~11 min (the owner's EcomLine HRC 22) otherwise
+        // never has 45 min of heating without hot water, so nothing is learned (replay:
+        // docs/modern-thermostat/LEREN-ANALYSE.nl.md). Paused samples are not used.
+        bool bridgeHotWater = false;
+        uint32_t maxBridgeMs = 1800000;
+        uint32_t bridgeHoldoffMs = 300000;             // with the bridge: hold-off after hot water
     };
     // Condensing efficiency against the return temperature: 97.5 % at <= 35 degC,
     // linear to 88.9 % at 55 degC and above (lower flow -> higher efficiency).
@@ -147,12 +155,21 @@ public:
         const bool hotWater = b.hotWater.value_or(false);
         const bool requested = b.requestedFlowC && *b.requestedFlowC >= ShadowComparison::tadoHeatFromC;
         const bool heat = known && !hotWater && (b.burnerOn.value_or(false) || requested);
-        if (hotWater) holdUntil_ = now + p_.hotWaterHoldoffMs;
-        if (heat && (!heating_ || gap)) { ++period_; holdUntil_ = std::max(holdUntil_, now + p_.settleMs); }
+        if (hotWater) holdUntil_ = now + (p_.bridgeHotWater ? p_.bridgeHoldoffMs : p_.hotWaterHoldoffMs);
+        // With the bridge, heat right after a hot-water run continues the period: the
+        // hot-water hold-off covers the refill, no new settle.
+        const bool resumes = p_.bridgeHotWater && afterHotWater_ && !gap;
+        if (heat && (!heating_ || gap) && !resumes) { ++period_; holdUntil_ = std::max(holdUntil_, now + p_.settleMs); }
+        // Only while heat is still asked for: a hot-water run inside a heating period.
+        const bool wanted = known && (b.burnerOn.value_or(false) || requested) && !gap;
+        afterHotWater_ = (hotWater && requested) || (afterHotWater_ && !heat && wanted);
         if (!heat && (heating_ || gap || !known || hotWater)) offSince_ = now; // unknown: the emitter may be warm
         heating_ = heat;
         status_ = !known ? "boiler_unknown" : hotWater ? "hot_water" : !heat ? "not_heating" : now < holdUntil_ ? "settling" : "learning";
         const bool usable = heat && now >= holdUntil_;
+        // Heat wanted but this sample is hot water or its hold-off: a pause, not an end (opt-in).
+        const bool paused = p_.bridgeHotWater && known && !usable
+            && (b.burnerOn.value_or(false) || requested) && (hotWater || now < holdUntil_);
         const uint8_t ref = requested ? *b.requestedFlowC
             : static_cast<uint8_t>(std::clamp<int>((b.flowCentiC.value_or(0) + 50) / 100, 0, 100));
         // Heat delivered (kW, before gas calibration) for the capacity fit.
@@ -164,7 +181,7 @@ public:
             auto& r = rooms_[i];
             const bool coasted = known && !heat && !hotWater && now >= holdUntil_
                 && now - offSince_ >= (r.emitter == RoomPlan::Emitter::floor ? p_.floorCoastMs : p_.radiatorCoastMs);
-            step(r, now, gap, usable ? Kind::heat : coasted ? Kind::cool : Kind::none, ref, b, heatKw, rooms[i]);
+            step(r, now, gap, usable ? Kind::heat : coasted ? Kind::cool : paused ? Kind::pause : Kind::none, ref, b, heatKw, rooms[i]);
         }
     }
     // The gas meter total (m3, e.g. HA sensor.gas_consumed): GasCalibration
@@ -333,7 +350,7 @@ public:
     }
 
 private:
-    enum class Kind : uint8_t { none, heat, cool };
+    enum class Kind : uint8_t { none, heat, cool, pause };
     struct Bin {
         uint8_t segments = 0, periods = 0, outdoorSegments = 0;
         uint16_t lastPeriod = 0;
@@ -381,6 +398,11 @@ private:
         auto& s = r.segment;
         r.shortfall = in.temperatureCentiC && in.setpointCentiC ? std::optional<int16_t>(*in.setpointCentiC - *in.temperatureCentiC) : std::nullopt;
         if (!in.temperatureCentiC) kind = Kind::none;
+        if (kind == Kind::pause) {
+            // Bridged: the heating segment stays open over a short hot-water run; this sample is not used.
+            if (s.active && s.kind == Kind::heat && !gap && in.source == s.source && now - s.lastMs <= p_.maxBridgeMs) return;
+            kind = Kind::none;
+        }
         if (s.active) {
             const bool jump = kind != Kind::none && std::abs(*in.temperatureCentiC - s.last) > p_.maxStepCentiC;
             const bool moved = kind == Kind::heat && std::max(s.refMax, ref) - std::min(s.refMin, ref) > p_.flowBandC;
@@ -514,6 +536,7 @@ private:
     bool haveLast_ = false, heating_ = false, nominalFromHa_ = false, kwhFromHa_ = false, applied_ = false;
     uint16_t period_ = 0;
     uint64_t lastMs_ = 0, holdUntil_ = 0, offSince_ = 0;
+    bool afterHotWater_ = false;  // the last known state was a hot-water run (bridge only)
     GasCalibration gas_;
     std::optional<int16_t> outdoor_;
     std::optional<float> price_;

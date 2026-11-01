@@ -238,7 +238,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(await root.locator('[data-heating-add]').isVisible(),true);
   assert.equal(await root.locator('[data-heating-lock]').getAttribute('class'),'alert ot-actions alert-info');
   delete status.ha;
-  // The flow limits for all rooms are on the Boiler page; the floor-heating warning here links there.
+  // The flow limits for all rooms are on the Home page (beta.23; the Boiler page before); the floor-heating warning here links there.
   await page.evaluate(()=>sessionStorage.removeItem('ot-rooms-edit'));
   await page.evaluate(()=>loadNativePage('heating'));
   const warn=root.locator('[data-heating-flow-warn]');await warn.waitFor();
@@ -248,15 +248,16 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   const limits=page.locator('#boiler-limits'),minFlow=limits.locator('#boiler-min-flow'),maxFlow=limits.locator('#boiler-max-flow');
   await page.waitForFunction(()=>document.getElementById('boiler-max-flow')?.value==='60');
   assert.equal(await page.evaluate(()=>location.hash),'#boiler-limits');
-  assert.equal(await limits.evaluate(d=>d.open),true);
+  assert.equal(await page.locator('#house-settings').count(),1,'the Home page');
   assert.equal(await limits.locator('[data-limits-summary]').innerText(),'30–60 °C');
   // Same ranges as the firmware (RoomPlan): minimum 20–79, maximum 21–80 °C.
   assert.deepEqual(await limits.locator('#boiler-min-flow,#boiler-max-flow').evaluateAll(f=>f.map(i=>[i.min,i.max])),[['20','79'],['21','80']]);
   assert.equal(await limits.locator('[data-limits-floor-warn]').isVisible(),true);
   // Home Assistant is the main editor: read-only until unlocked for this tab, as on the Rooms page.
   assert.equal(await maxFlow.isDisabled(),true);
-  assert.match(await limits.locator('[data-limits-lock]').innerText(),/Configureren → Verwarming en ketel/);
-  await limits.locator('[data-limits-unlock]').click();assert.match(dialogs.at(-1),/tot je dit tabblad sluit/);
+  const house=page.locator('#house-settings');
+  assert.match(await house.locator('[data-house-lock]').innerText(),/Configureren → Huis/);
+  await house.locator('[data-house-unlock]').click();assert.match(dialogs.at(-1),/tot je dit tabblad sluit/);
   await maxFlow.fill('45');assert.equal(await limits.locator('[data-limits-floor-warn]').isVisible(),false);
   const saved=plan,count=posts.length;
   await limits.locator('[data-limits-save]').click();
@@ -272,7 +273,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await minFlow.fill('35');await limits.locator('[data-limits-save]').click();
   await limits.getByText(/Het plan is elders gewijzigd/).waitFor();
   assert.equal(await minFlow.inputValue(),'25');assert.equal(plan.minimum_flow_c,25);
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll on the Boiler page');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll on the Home page');
   assert.deepEqual(errors,[]);
   results.push({width,result:'PASS'});await page.close();
  }}finally{await browser.close();}

@@ -24,8 +24,8 @@ from test_room_plan import PLAN, FakeE32
 from test_v1_native import entry, room
 
 COMPONENT = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
-E32_MENU = ["e32_rooms", "comfort", "heating_boiler", "energy", "controller_connection", "general",
-            "advanced_settings"]
+# beta.23: Home holds presence, heating and boiler, and energy (the same order as the E32's Home page).
+E32_MENU = ["e32_rooms", "house", "comfort", "controller_connection", "general", "advanced_settings"]
 
 
 def new_installation(hass):
@@ -75,8 +75,30 @@ async def test_rooms_hold_the_rooms_and_heating_and_boiler_opens_the_flow_limits
     rooms = await manager.async_configure(flow["flow_id"], {"next_step_id": "e32_rooms"})
     assert rooms["menu_options"] == ["e32_room_add", "e32_room_pick"]
     flow = await manager.async_init(parent.entry_id)
-    form = await manager.async_configure(flow["flow_id"], {"next_step_id": "heating_boiler"})
+    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
+    assert house["type"] == FlowResultType.MENU and house["menu_options"] == ["house_presence", "heating_boiler", "energy"]
+    form = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
     assert form["type"] == FlowResultType.FORM and form["step_id"] == "e32_flow_limits", form
+
+
+@pytest.mark.asyncio
+async def test_home_presence_takes_several_people_and_the_away_delay(hass, manager):
+    parent, _ = product(hass, FakeE32())
+    await hass.async_block_till_done()
+    hass.states.async_set("person.anna", "home")
+    hass.states.async_set("person.ben", "not_home")
+    flow = await manager.async_init(parent.entry_id)
+    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
+    form = await manager.async_configure(house["flow_id"], {"next_step_id": "house_presence"})
+    assert form["type"] == FlowResultType.FORM and form["step_id"] == "house_presence"
+    assert {str(k) for k in form["data_schema"].schema} == {"presence_entities", "away_delay"}
+    error = await manager.async_configure(form["flow_id"], {"presence_entities": ["person.nobody"], "away_delay": 15})
+    assert error["errors"] == {"presence_entities": "presence_entity_invalid"}
+    result = await manager.async_configure(form["flow_id"], {"presence_entities": ["person.anna", "person.ben"],
+                                                             "away_delay": 10})
+    assert result["type"] == FlowResultType.ABORT and result["reason"] == "presence_saved"
+    comfort = parent.options["comfort_settings"]
+    assert comfort["presence_entities"] == ["person.anna", "person.ben"] and comfort["away_delay_min"] == 10
 
 
 @pytest.mark.asyncio

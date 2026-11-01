@@ -109,18 +109,37 @@
           "comfort_contacts": "Czujniki okien i drzwi w pomieszczeniach"
         }
       },
-      "comfort_settings": {
-        "title": "Ustawienia wstępne, obecność i czasy",
-        "description": "Termostat każdego pomieszczenia E32 oferuje ustawienia wstępne Komfort, Noc, Nieobecność i Boost. Komfort i Noc to najcieplejsza i najchłodniejsza temperatura programu tygodniowego pomieszczenia, tak jak w planerze tygodniowym. Nieobecność obniża każde pomieszczenie do temperatury nieobecności E32 (ustaw ją akcją \"Nieobecność\" lub na stronie E32).",
+      "house": {
+        "title": "Dom",
+        "description": "Wszystko, co dotyczy całego domu, tak jak na stronie Dom w E32. Sam tryb domu (automatyczny, w domu, nieobecność, urlop) to kontrolka Tryb domu na urządzeniu E32 i na pulpicie.",
+        "menu_options": {
+          "house_presence": "Obecność: kto tu mieszka",
+          "heating_boiler": "Ogrzewanie i kocioł",
+          "energy": "Energia i temperatura zewnętrzna"
+        }
+      },
+      "house_presence": {
+        "title": "Obecność",
+        "description": "W trybie domu Automatyczny pomieszczenia przechodzą na temperaturę nieobecności, gdy wszyscy wyszli. Ktoś w domu albo ktoś, kogo położenie jest nieznane, utrzymuje ciepło w domu.",
         "data": {
-          "presence_entity": "Kto jest w domu",
+          "presence_entities": "Kto tu mieszka",
+          "away_delay": "Nieobecność po"
+        },
+        "data_description": {
+          "presence_entities": "Opcjonalnie. Domownicy (encje osób) albo grupa, strefa (na przykład zone.home), lokalizator urządzenia lub przełącznik, który jest włączony, gdy ktoś jest w domu.",
+          "away_delay": "Minuty, przez które wszyscy muszą być poza domem, zanim dom zostanie uznany za pusty, aby krótkie wyjście nie wychładzało domu. 0: od razu."
+        }
+      },
+      "comfort_settings": {
+        "title": "Ustawienia wstępne i czasy",
+        "description": "Termostat każdego pomieszczenia E32 oferuje ustawienia Komfort, Noc i Boost. Komfort i Noc to najwyższa i najniższa temperatura programu tygodniowego pomieszczenia, tak jak w planerze tygodniowym. Nieobecność i urlop to tryb domu (Konfiguruj → Dom i kontrolka Tryb domu), a nie ustawienie jednego pomieszczenia.",
+        "data": {
           "comfort_temperature": "Komfort bez programu tygodniowego",
           "eco_temperature": "Noc bez programu tygodniowego",
           "contact_delay": "Przerwa po otwarciu okna",
           "override_minutes": "Czas trwania ręcznej zmiany"
         },
         "data_description": {
-          "presence_entity": "Opcjonalnie. Osoba, grupa, strefa (na przykład zone.home) lub przełącznik włączony, gdy ktoś jest w domu. Gdy wszyscy wyjdą, każde pomieszczenie używa temperatury nieobecności, aż ktoś wróci.",
           "comfort_temperature": "Ustawienie Komfort pomieszczenia bez programu tygodniowego. Z programem tygodniowym Komfort to jego najcieplejsza temperatura.",
           "eco_temperature": "Ustawienie Noc pomieszczenia bez programu tygodniowego. Z programem tygodniowym Noc to jego najchłodniejsza temperatura.",
           "contact_delay": "Liczba sekund, przez które okno lub drzwi muszą pozostać otwarte, zanim pomieszczenie wstrzyma ogrzewanie, aby krótkie wietrzenie lub przejście przez drzwi nie zatrzymywało ogrzewania. Wstrzymane pomieszczenie nadal jest chronione przed mrozem.",
@@ -152,7 +171,8 @@
         "description": "Najpierw pomieszczenia, potem ogrzewanie, energia i połączenie z E32. Pierwszy raz? Zacznij od Połącz E32; potem dodasz pomieszczenia.",
         "menu_options": {
           "e32_rooms": "Pomieszczenia",
-          "comfort": "Komfort: czujniki okien, nieobecność i obecność",
+          "house": "Dom",
+          "comfort": "Komfort: ustawienia wstępne i czujniki okien",
           "heating_boiler": "Ogrzewanie i kocioł",
           "energy": "Energia i temperatura zewnętrzna",
           "controller_connection": "Połącz E32",
@@ -812,6 +832,7 @@
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
+      "presence_saved": "Zapisano obecność.",
       "comfort_no_rooms": "E32 nie zgłosił jeszcze żadnych pomieszczeń. Dodaj pomieszczenia w Konfiguruj → Pomieszczenia, odczekaj chwilę i spróbuj ponownie.",
       "graph_review_unavailable": "Brak istniejącego połączenia grafu wybranego przez źródło. Nie włączono żadnego profilu.",
       "graph_review_cancelled": "Nic nie zastosowano.",
@@ -913,6 +934,9 @@
       },
       "room_fallback_setpoint": {
         "name": "Temperatura bez Home Assistant"
+      },
+      "away_temperature": {
+        "name": "Temperatura, gdy nikogo nie ma w domu"
       }
     },
     "sensor": {
@@ -1650,11 +1674,23 @@
           "active": "Włączone",
           "inactive": "Wyłączone"
         }
+      },
+      "house_mode": {
+        "name": "Tryb domu",
+        "state": {
+          "auto": "Automatyczny",
+          "home": "W domu",
+          "away": "Nieobecność",
+          "holiday": "Urlop"
+        }
       }
     },
     "datetime": {
       "room_inactive_until": {
         "name": "Wyłączone do"
+      },
+      "holiday_until": {
+        "name": "Urlop do"
       }
     },
     "switch": {
@@ -2908,6 +2944,15 @@
     },
     "e32_try_again_later": {
       "message": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie."
+    },
+    "house_mode_invalid": {
+      "message": "Wybierz Automatyczny, W domu, Nieobecność lub Urlop."
+    },
+    "house_holiday_date_needed": {
+      "message": "Najpierw ustaw \"Urlop do\": urlop zaczyna się od daty końcowej."
+    },
+    "house_mode_update_required": {
+      "message": "Wymaga oprogramowania E32 beta.23 lub nowszego. Zaktualizuj E32 za pomocą jego encji Oprogramowanie."
     }
   }
 }

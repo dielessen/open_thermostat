@@ -785,6 +785,8 @@ class RoomDashboard:
         the Comparison subview; a tile under "Now" leads there.
         """
         request = hub.get("heat_request")
+        # The house mode (beta.23, e32_house.py): automatic, at home, away, holiday, switched right here.
+        house_mode = registry.async_get_entity_id("select", DOMAIN, f"{self.prefix}_house_mode")
         e32_room_entities = self._e32_rooms(entries)
         flow = self._flow_entities(entries)
         problem = hub.get("heating_problem")
@@ -810,6 +812,7 @@ class RoomDashboard:
             no_request["hide_state"] = True
         now = _section(
             _heading(t["now"], "mdi:home-thermometer"),
+            _tile(house_mode, None, "mdi:home-account", features=[{"type": "select-options"}], color="teal"),
             _tile(problem, t["problem"]),
             _tile(request, t["boiler_request"], "mdi:fire", color="deep-orange",
                   visibility=[{"condition": "numeric_state", "entity": request, "above": 0}]) if request else None,

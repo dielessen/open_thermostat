@@ -27,8 +27,11 @@ energy inputs.
 | Target, temperature without Home Assistant, minimum and maximum | E32: Rooms | Same room editor |
 | Week program per room | E32: Rooms (visual planner) | Same room editor, or the Week program view of the OpenThermostat dashboard |
 | Setting device per room (valve, tado, number) | — | Same room editor |
-| Lowest and highest flow temperature for the boiler request | E32: Boiler → Flow temperature limits | Configure → Heating and boiler |
-| Gas meter, gas price, outdoor temperature, boiler power (all optional) | — | Configure → Energy and outdoor temperature |
+| House mode: automatic, at home, away, holiday | E32: Home | The House mode control (E32 device, dashboard) |
+| Who lives here (presence) and how long before the house counts as away | — | Configure → Home → Presence |
+| Lowest and highest flow temperature for the boiler request | E32: Home → Flow temperature limits | Configure → Home → Heating and boiler |
+| Heating curve, learned flow and optimum start | E32: Home | Switches on the E32 device |
+| Gas meter, gas price, outdoor temperature, boiler power (all optional) | — | Configure → Home → Energy and outdoor temperature |
 | Pairing Bluetooth sensors (address, profile, encryption key) | E32: Sensors | E32: Sensors |
 | Boiler model | E32: Boiler | E32: Boiler |
 | Network, MQTT broker, time and time zone | E32: Settings | E32: Settings |
@@ -139,7 +142,7 @@ Assistant — you edit rooms here." on the **Rooms** page.
    temperature, up to six per day). Each temperature holds until the next
    switch point.
 6. Choose **Save rooms**.
-7. Then check the **Flow temperature limits** on the **Boiler** page and
+7. Then check the **Flow temperature limits** on the **Home** page and
    choose **Save limits** after a change (default 30–60 °C; the maximum can
    be set up to 80 °C). Floor heating fed directly without a mixing valve
    usually needs at most 45–50 °C. The page shows your boiler's own maximum
@@ -281,18 +284,29 @@ everything else.
   longer than the delay (120 s by default), the room pauses and only heats
   below 8 °C. When all are closed it resumes at once. The room card and the
   thermostat show the pause and its reason.
-- **Away** (E32 overview page, or the action *Away* / the thermostat's *Away*
-  preset in Home Assistant): every room is at most the away temperature,
-  optionally until a date and time. With a date, the E32 starts warming up
-  early enough to be at the week program's temperature when you are back
-  (from what it learned, else 45 minutes per °C for radiators and 2 hours per
-  °C for floor heating). Optionally, *Who is home* (a person, group, zone or
-  switch) makes the house away while everyone is out.
+- **House mode** (E32: **Home**; Home Assistant: the **House mode** control
+  on the E32 device and on the dashboard):
+  - **Automatic**: the people of the house decide. Choose them under
+    Configure → **Home** → **Presence** (several person entities, or a group,
+    zone or switch). When everyone has been away for the away delay (15
+    minutes by default), every room is at most the away temperature. Someone
+    home, or someone whose place is not known, keeps the house warm.
+  - **At home**: the week programs always, also when everyone is away (guests,
+    a babysitter).
+  - **Away**: every room is at most the away temperature until you switch back.
+  - **Holiday**: away until a date and time (**Holiday until**). The E32 starts
+    warming up early enough to be at the week program's temperature when you
+    are back (from what it learned, else 45 minutes per °C for radiators and 2
+    hours per °C for floor heating).
+
+  The away temperature is **Temperature when nobody is home** (15 °C by
+  default). Frost protection always stays on.
 
 In Home Assistant each E32 room has a thermostat: current temperature,
 target, mode *Auto* (week program), *Heat* (a temporary change) or *Off* (the
 room is inactive in the plan), and the presets Comfort, Night (Home
-Assistant's "Eco"), Away and Boost. Comfort and Night are the warmest and the
+Assistant's "Eco") and Boost. Away is the house mode, not a preset of one
+room. Comfort and Night are the warmest and the
 coolest temperature of the room's week program, the same levels as in the week
 planner. A new target on the thermostat lasts until the next switch point; a room
 without a week program keeps it for the time set under Configure → Comfort,

@@ -29,6 +29,8 @@ async def async_setup_entry(
     if "v1_runtime" in hass.data.get(DOMAIN, {}).get(entry.entry_id, {}):
         from .room_plan import async_setup_numbers
         await async_setup_numbers(hass, entry, async_add_entities)  # E32 room fallback setpoints
+        from .e32_house import async_setup_numbers as async_setup_house_numbers
+        await async_setup_house_numbers(hass, entry, async_add_entities)  # the house's away temperature
         return
     prefix = entry.data[CONF_TOPIC_PREFIX]
     durations = hass.data[DOMAIN][entry.entry_id]["duration_minutes"]

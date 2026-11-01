@@ -1,4 +1,5 @@
-// Rooms page with simulated HTTP: the flow temperature section (E32 beta.19) and the switch-over status of active control.
+// Home page (beta.23; the Rooms page before) with simulated HTTP: the flow temperature section (E32 beta.19); the Rooms page:
+// the switch-over status of active control.
 // Flow: weather curve, learned flow and optimum start, design flow, status lines, gas calibration and last night.
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
@@ -11,7 +12,7 @@ const day=(rule,curve,learned)=>({heat_s:7200,rule_mean_c:rule,applied_mean_c:ru
 // FlowPolicy::addStatus (full form), learnedJson's "gas" and NightLedger::json (full form), as /status/heating carries them.
 const fixture=()=>({schema:1,revision:4,mode:'shadow',request:{heat:true,flow_c:36,reason:'heating'},
   rooms:[{id:'woonkamer',name:'Woonkamer',state:'active',inactive_until:0,status:'ok',source:'climate.woonkamer',setpoint_source:'ha',temperature:20.4,setpoint:21,demand:true}],
-  ble_sensors:[],shadow:{today:{s:0},days:[]},
+  ble_sensors:[],shadow:{today:{s:0},days:[]},away:{on:false,source:'none',target_c:15,until:null,presence:'home',mode:'auto'},
   active:{state:'shadow',command:{send:false,flow_c:0,why:'shadow'},last_sent:null,foreign_controller:null,confirmation:null,warnings:[],enabled:false},
   flow:{source:'rule',rule_flow_c:36,settings:{weather_curve:false,apply_learned:false,curve_design_flow_c:0},applied_flow_c:36,cap_c:60,
    curve:{state:'advice',flow_c:41,base_c:38.2,slope:0.67,slope_source:'design',design_flow_c:40,windows:3,last:'too_short'},
@@ -56,8 +57,8 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   });
   await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://opth.test'}]);
   await page.goto('http://opth.test/');await page.waitForFunction(()=>typeof loadNativePage==='function');
-  await page.evaluate(()=>{sessionStorage.removeItem('ot-rooms-edit');loadNativePage('heating');});
-  const root=page.locator('#heating-plan'),box=root.locator('[data-heating-flow-options]');
+  await page.evaluate(()=>{sessionStorage.removeItem('ot-rooms-edit');loadNativePage('house');});
+  const root=page.locator('#house-settings'),box=root.locator('[data-heating-flow-options]');
   await box.getByRole('heading',{name:'Aanvoertemperatuur'}).waitFor();
   const curve=box.getByLabel('Weersafhankelijke stooklijn'),learned=box.getByLabel('Geleerde aanvoer en optimale start gebruiken');
   const design=box.getByLabel('Aanvoer bij −10 °C'),message=box.locator('[data-flow-message]');
@@ -81,14 +82,14 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(await design.inputValue(),'0');assert.equal(await curve.isChecked(),false);assert.equal(await learned.isChecked(),false);
   // Managed in Home Assistant (unreachable here) and not unlocked: read-only, like the flow limits.
   assert.equal(await curve.isDisabled(),true);assert.equal(await design.isDisabled(),true);assert.equal(await learned.isDisabled(),true);
-  await root.locator('[data-heating-unlock]').click();
+  await root.locator('[data-house-unlock]').click();
   await page.waitForFunction(()=>!document.querySelector('#heating-flow-curve').disabled);
   assert.equal(await design.isDisabled(),false);
   // 44 px targets for the switches and the choice; no horizontal scroll at phone width.
   for(const target of [curve.locator('xpath=..'),learned.locator('xpath=..'),design]){const b=await target.boundingBox();assert(b.height>=44,'44 px target');}
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
   // Light and dark: the panel follows the theme tokens.
-  const bg=await box.evaluate(e=>getComputedStyle(e).backgroundColor);
+  const bg=await root.locator('[data-house-heating]').evaluate(e=>getComputedStyle(e).backgroundColor);
   assert.equal(bg,scheme==='dark'?'rgb(22, 33, 36)':'rgb(255, 255, 255)');
   // Each change is one partial POST with the CSRF proof; the answer is shown at once.
   await curve.check();
@@ -130,7 +131,10 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
   // Active control after a restart with a stored confirmation: the boiler's own maximum, the listening
   // period before taking over again, and the warning while the boiler limit is unknown.
-  const control=root.locator('[data-heating-active]'),activeFacts=control.locator('[data-heating-active-facts]');
+  // Active control stays on the Rooms page (part of the room plan's mode).
+  await page.evaluate(()=>loadNativePage('heating'));
+  const rooms=page.locator('#heating-plan');await rooms.locator('[data-heating-active]').waitFor();
+  const control=rooms.locator('[data-heating-active]'),activeFacts=control.locator('[data-heating-active-facts]');
   const activeNotes=control.locator('[data-heating-active-notes]');
   assert.equal(await activeFacts.isVisible(),false,'firmware without boiler_limit: no line');
   status.active={state:'arming',awaiting_confirmation:false,command:{send:false,flow_c:0,why:'arming'},last_sent:null,foreign_controller:null,
@@ -153,10 +157,11 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
   // Firmware without the flow options: no section at all.
   route='none';status=fixture();delete status.flow;delete status.night_gas;
-  await page.evaluate(()=>loadNativePage('heating'));
-  await root.locator('[data-heating-request]').getByText(/Berekende ketelvraag: 36 °C/).waitFor();
+  await page.evaluate(()=>loadNativePage('house'));
+  await root.locator('[data-house-now]').getByText(/Automatisch/).waitFor();
   await page.waitForTimeout(300);
   assert.equal(await root.locator('[data-heating-flow-options]').isVisible(),false);
+  assert.equal(await page.locator('#heating-plan [data-heating-flow-options]').count(),0,'no flow options on the Rooms page');
   assert.deepEqual(errors,[]);
   results.push({width,scheme,result:'PASS'});await page.close();
  }}finally{await browser.close();}

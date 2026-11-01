@@ -30,6 +30,13 @@ namespace heating::control {
 // duration in uptime and is not kept across a restart. Contact and presence
 // reports expire after 15 min without a refresh (HA resends every 5 min); an
 // unknown contact never pauses and unknown presence is "home".
+//
+// House mode (beta.23, "house.mode.v1"): auto (presence decides), home (presence
+// ignored: the week programs always), away (until switched back) and holiday
+// (away until a date, warm again in time). Away and holiday are the existing
+// away state; "home" is one extra optional field in the same v1 record, which
+// beta.21 ignores on a rollback (it then simply runs auto). Frost protection
+// (ActiveHeatGuard, any room below 8 degC) is never affected.
 // Pure and single-threaded: the caller owns timing, storage and transmission.
 class RoomOverrides {
 public:
@@ -59,6 +66,8 @@ public:
     // --- commands (POST /config/heating/comfort) ---------------------------------
     // {"room":id,"override":"boost"|"timed"|"next"|"none","temperature":21.0,"minutes":120}
     // {"away":true,"temperature":15.0,"until":unix|0} / {"away":false}
+    // {"house_mode":"auto"|"home"|"away"|"holiday","temperature":15.0,"until":unix}
+    //   (until only and always for holiday; temperature: the away temperature)
     // nullptr on success, else a short error name. `persist` tells whether the
     // stored record changed (the caller writes stored() and keeps this state only
     // when that succeeds).
@@ -67,6 +76,28 @@ public:
         if (!cJSON_IsObject(o)) return "invalid_request";
         const cJSON* away = cJSON_GetObjectItemCaseSensitive(o, "away");
         const cJSON* temperature = cJSON_GetObjectItemCaseSensitive(o, "temperature");
+        if (const cJSON* mode = cJSON_GetObjectItemCaseSensitive(o, "house_mode")) {
+            if (!cJSON_IsString(mode) || away || cJSON_GetObjectItemCaseSensitive(o, "room")) return "invalid_request";
+            const std::string_view m = mode->valuestring;
+            if (m != "auto" && m != "home" && m != "away" && m != "holiday") return "invalid_house_mode";
+            int16_t c = awayCentiC_;
+            if (temperature && !centi(temperature, minimumAwayCentiC, maximumAwayCentiC, c)) return "invalid_temperature";
+            const cJSON* u = cJSON_GetObjectItemCaseSensitive(o, "until");
+            uint32_t until = 0;
+            if (m == "holiday") {
+                if (!cJSON_IsNumber(u) || !whole(u->valuedouble, 1, latestUtc)) return "invalid_until";
+                until = uint32_t(u->valuedouble);
+                if (!utc) return "no_clock";
+                if (until <= *utc || until - *utc > maxAwayS) return "invalid_until";
+            } else if (u) return "invalid_until";
+            const Away next = m == "away" || m == "holiday" ? Away{true, until} : Away{false, 0};
+            const bool home = m == "home";
+            persist = next.on != away_.on || next.until != away_.until || home != home_ || c != awayCentiC_;
+            if (next.on && (!away_.on || next.until != away_.until)) leadMinute_ = 0; // the warm-up lead at the next step
+            away_ = next; home_ = home; awayCentiC_ = c;
+            refresh(plan, now, utc);
+            return nullptr;
+        }
         if (away) {
             if (!cJSON_IsBool(away) || cJSON_GetObjectItemCaseSensitive(o, "room")) return "invalid_request";
             if (!cJSON_IsTrue(away)) {
@@ -85,8 +116,8 @@ public:
                 if (!utc) return "no_clock";  // a date needs the E32's own clock
                 if (until <= *utc || until - *utc > maxAwayS) return "invalid_until";
             }
-            persist = !away_.on || away_.until != until || awayCentiC_ != c;
-            away_ = Away{true, until}; awayCentiC_ = c;
+            persist = !away_.on || away_.until != until || awayCentiC_ != c || home_;
+            away_ = Away{true, until}; awayCentiC_ = c; home_ = false;
             leadMinute_ = 0; // the warm-up lead at the next step
             refresh(plan, now, utc);
             return nullptr;
@@ -194,7 +225,8 @@ public:
     const RoomEngine::Adjust* refresh(const RoomPlan& plan, uint64_t now, std::optional<uint32_t> utc) {
         for (auto& s : slots_) if (s.id[0] && !plan.find(s.id)) s = Slot{}; // the room left the plan
         if (away_.on && away_.until && utc && *utc >= away_.until) away_ = Away{false, 0};
-        const bool presenceAway = presenceKnown_ && !presenceHome_ && presenceAt_ <= now && now - presenceAt_ < inputMaxAgeMs;
+        // House mode "home": presence never lowers a room.
+        const bool presenceAway = !home_ && presenceKnown_ && !presenceHome_ && presenceAt_ <= now && now - presenceAt_ < inputMaxAgeMs;
         for (size_t i = 0; i < RoomPlan::maxRooms; ++i) { adjust_[i] = {}; views_[i] = {}; }
         for (size_t i = 0; i < plan.rooms.size() && i < RoomPlan::maxRooms; ++i) {
             const auto& room = plan.rooms[i];
@@ -319,12 +351,15 @@ public:
 
     // --- storage ------------------------------------------------------------------
     // The NVS record: {"v":1,"away_c":1500,"away_until":0 (present while away),
-    // "o":[{"id","k","c","u"}]} with only clocked overrides. Empty: no memory.
+    // "home":true (present in house mode home), "o":[{"id","k","c","u"}]} with only
+    // clocked overrides. Empty: no memory. "home" is optional so beta.21 still
+    // reads the record after a rollback (it ignores the field and runs auto).
     std::string stored() const {
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_CreateObject(), cJSON_Delete);
         cJSON* list = root && cJSON_AddNumberToObject(root.get(), "v", 1) && cJSON_AddNumberToObject(root.get(), "away_c", awayCentiC_)
             ? cJSON_AddArrayToObject(root.get(), "o") : nullptr;
-        if (!list || (away_.on && !cJSON_AddNumberToObject(root.get(), "away_until", away_.until))) return {};
+        if (!list || (away_.on && !cJSON_AddNumberToObject(root.get(), "away_until", away_.until))
+            || (home_ && !cJSON_AddBoolToObject(root.get(), "home", true))) return {};
         for (const auto& s : slots_) {
             if (!s.id[0] || s.kind == Kind::none || !s.untilUtc) continue;
             cJSON* o = cJSON_CreateObject();
@@ -353,6 +388,10 @@ public:
             if (!cJSON_IsNumber(u) || !whole(u->valuedouble, 0, latestUtc)) return false;
             next.away_ = Away{true, uint32_t(u->valuedouble)};
         }
+        if (const cJSON* h = cJSON_GetObjectItemCaseSensitive(root.get(), "home")) {
+            if (!cJSON_IsBool(h) || (cJSON_IsTrue(h) && next.away_.on)) return false;
+            next.home_ = cJSON_IsTrue(h);
+        }
         size_t n = 0;
         for (const cJSON* o = list->child; o; o = o->next) {
             const cJSON* id = cJSON_GetObjectItemCaseSensitive(o, "id");
@@ -372,6 +411,9 @@ public:
     }
     int16_t awayCentiC() const { return awayCentiC_; }
     bool awayOn() const { return away_.on; }
+    bool homeMode() const { return home_; }
+    // auto, home, away or holiday (house.mode.v1).
+    const char* houseMode() const { return home_ ? "home" : !away_.on ? "auto" : away_.until ? "holiday" : "away"; }
     uint32_t awayUntil() const { return away_.until; }
     static const char* kindName(Kind k) {
         return k == Kind::boost ? "boost" : k == Kind::next ? "next" : k == Kind::timed ? "timed" : "none";
@@ -435,12 +477,13 @@ private:
         if (!a) return false;
         const bool presenceFresh = presenceKnown_ && presenceAt_ <= now && now - presenceAt_ < inputMaxAgeMs;
         const char* presence = !presenceFresh ? "unknown" : presenceHome_ ? "home" : "away";
-        const bool on = away_.on || (presenceFresh && !presenceHome_);
+        const bool on = away_.on || (!home_ && presenceFresh && !presenceHome_);
         return cJSON_AddBoolToObject(a, "on", on)
             && cJSON_AddStringToObject(a, "source", away_.on ? "manual" : on ? "presence" : "none")
             && cJSON_AddNumberToObject(a, "target_c", awayCentiC_ / 100.0)
             && (away_.on && away_.until ? cJSON_AddNumberToObject(a, "until", away_.until) : cJSON_AddNullToObject(a, "until"))
-            && cJSON_AddStringToObject(a, "presence", presence);
+            && cJSON_AddStringToObject(a, "presence", presence)
+            && cJSON_AddStringToObject(a, "mode", houseMode());
     }
 
     std::array<Slot, RoomPlan::maxRooms> slots_{};
@@ -450,6 +493,7 @@ private:
     uint32_t leadMinute_ = 0;
     Away away_{};
     int16_t awayCentiC_ = defaultAwayCentiC;
+    bool home_ = false;  // house mode home: presence ignored (never together with away)
     bool presenceKnown_ = false, presenceHome_ = true;
     uint64_t presenceAt_ = 0;
 };

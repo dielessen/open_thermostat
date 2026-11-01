@@ -14,22 +14,7 @@
       <p class="ot-hint" data-dhw-method hidden><span data-i18n="Classified by DHW temperature fall">Classified by DHW temperature fall</span>. <span data-i18n="This adapter reports no real flow, so a tap is recognised by the hot-water temperature dropping.">This adapter reports no real flow, so a tap is recognised by the hot-water temperature dropping.</span></p>
     </div>
   </section>
-  <!-- Flow limits of the room plan (GET/POST /config/heating), for all rooms together; loaded when opened. Script: the last <script> below. -->
-  <details class="ot-advanced" data-boiler-limits id="boiler-limits"><summary><span data-i18n="Flow temperature limits">Flow temperature limits</span> <small class="bp-summary" data-limits-summary></small></summary>
-    <p class="pd-help" data-i18n="The lowest and highest water temperature the E32 may ask of the boiler, for all rooms together. The boiler's own maximum always applies as well.">The lowest and highest water temperature the E32 may ask of the boiler, for all rooms together. The boiler's own maximum always applies as well.</p>
-    <div class="alert alert-info ot-actions" data-limits-lock hidden><span data-i18n="Managed in Home Assistant: OpenThermostat → Configure → Heating and boiler.">Managed in Home Assistant: OpenThermostat → Configure → Heating and boiler.</span>
-      <button type="button" class="btn btn-outline-primary" data-limits-unlock><span data-i18n="Edit here anyway">Edit here anyway</span></button></div>
-    <div class="bl-grid">
-      <label><span data-i18n="Minimum flow (°C)">Minimum flow (°C)</span><input id="boiler-min-flow" class="form-control" type="number" min="20" max="79" step="1" disabled data-hint="The lowest water temperature the E32 asks of the boiler when heat is needed."></label>
-      <label><span data-i18n="Maximum flow (°C)">Maximum flow (°C)</span><input id="boiler-max-flow" class="form-control" type="number" min="21" max="80" step="1" disabled data-hint="The highest water temperature the E32 ever asks of the boiler."></label>
-    </div>
-    <p class="pd-help" data-limits-boiler-max hidden></p>
-    <p class="alert alert-warning" data-limits-boiler-warn role="status" hidden></p>
-    <p class="alert alert-warning" data-limits-floor-warn role="status" hidden><span data-i18n="A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.">A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.</span></p>
-    <p class="pd-help" data-i18n="Radiators often need 60–75 °C on cold days. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.">Radiators often need 60–75 °C on cold days. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.</p>
-    <p class="ot-actions"><button type="button" class="btn btn-primary" data-limits-save disabled><span data-i18n="Save limits">Save limits</span></button>
-      <span role="status" aria-live="polite" data-limits-message></span></p>
-  </details>
+  <p class="pd-help"><span data-i18n="The flow temperature limits for all rooms are on the Home page:">The flow temperature limits for all rooms are on the Home page:</span> <a href="#boiler-limits" data-page="boiler_limits"><span data-i18n="Home → Flow temperature limits">Home → Flow temperature limits</span></a></p>
   <details class="ot-advanced" data-boiler-model><summary data-i18n="Boiler model">Boiler model</summary><div data-boiler-display-host></div></details>
   <details class="ot-advanced" data-boiler-profile id="boiler-profile"><summary><span data-i18n="Boiler profile">Boiler profile</span> <small class="bp-summary" data-profile-summary></small></summary>
     <p class="pd-help" data-i18n="The E32 learns from the boiler's own messages which values this boiler actually has. Home Assistant only shows those.">The E32 learns from the boiler's own messages which values this boiler actually has. Home Assistant only shows those.</p>
@@ -1111,101 +1096,4 @@
   refresh();
 })();
 </script>
-<script>
-// Flow temperature limits: minimum_flow_c and maximum_flow_c of the room plan, for all rooms together.
-// Read when the section opens; saved as the whole plan (POST /config/heating), like the Rooms page, so a
-// newer plan from Home Assistant is refused by its revision and reloaded. Home Assistant is the main editor
-// once linked: read-only until the owner unlocks editing for this tab (the same switch as on the Rooms page).
-(() => {
-  'use strict';
-  const box = document.querySelector('#boiler-test [data-boiler-limits]');
-  if (!box) return;
-  const minFlow = box.querySelector('#boiler-min-flow'), maxFlow = box.querySelector('#boiler-max-flow'), save = box.querySelector('[data-limits-save]');
-  const message = box.querySelector('[data-limits-message]'), summary = box.querySelector('[data-limits-summary]'), lockBox = box.querySelector('[data-limits-lock]');
-  const maxText = box.querySelector('[data-limits-boiler-max]'), maxWarn = box.querySelector('[data-limits-boiler-warn]'), floorWarn = box.querySelector('[data-limits-floor-warn]');
-  const lifecycle = new AbortController(), say = text => { message.textContent = text; };
-  let plan = null, boilerMax = null, busy = false, locked = true;
-  try { locked = sessionStorage.getItem('ot-rooms-edit') !== '1'; } catch (_) {}
-  async function json(url, options = {}) {
-    const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), 8000), stop = () => controller.abort();
-    lifecycle.signal.addEventListener('abort', stop, {once: true});
-    try {
-      const response = await fetch(url, {cache: 'no-store', ...options, signal: controller.signal});
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw Object.assign(Error('request'), {code: body.error || response.status});
-      return body;
-    } finally { clearTimeout(deadline); lifecycle.signal.removeEventListener('abort', stop); }
-  }
-  // Floor heating fed directly should not get very hot water; the boiler's own setting is the real ceiling.
-  function paint() {
-    const max = Number(maxFlow.value);
-    minFlow.disabled = maxFlow.disabled = save.disabled = !plan || locked || busy;
-    lockBox.hidden = !plan || !locked;
-    summary.textContent = plan ? plan.minimum_flow_c + '–' + plan.maximum_flow_c + ' °C' : '';
-    floorWarn.hidden = !(plan && max > 50 && plan.rooms.some(room => room.emitter === 'floor'));
-    maxText.hidden = boilerMax === null;
-    if (boilerMax !== null) maxText.textContent = uiText("Your boiler allows at most {max} °C (set on the boiler); the E32 never asks for more. A lower limit here is useful for floor heating.").replace('{max}', boilerMax);
-    maxWarn.hidden = !(boilerMax !== null && max > boilerMax);
-    if (!maxWarn.hidden) maxWarn.textContent = uiText("The maximum here is above your boiler's own maximum of {max} °C. The boiler stays at its own setting.").replace('{max}', boilerMax);
-  }
-  const valid = p => p && Number.isInteger(p.minimum_flow_c) && Number.isInteger(p.maximum_flow_c) && Array.isArray(p.rooms);
-  function show(next) { plan = next; minFlow.value = plan.minimum_flow_c; maxFlow.value = plan.maximum_flow_c; paint(); }
-  async function load() {
-    say(uiText("Loading…"));
-    try {
-      const [next, status] = await Promise.all([json('/config/heating'), locked ? json('/status/heating').catch(() => null) : null]);
-      if (!valid(next)) throw Error('plan');
-      // An E32 that never had Home Assistant input: its owner sets the limits here (as on the Rooms page).
-      const ha = status?.ha;
-      if (ha && ha.input_age_s == null && ha.broker_connected !== true) locked = false;
-      show(next); say('');
-    } catch (_) {
-      if (!lifecycle.signal.aborted) say(uiText("The limits could not be loaded. Close and open this section to try again."));
-    }
-  }
-  box.addEventListener('toggle', () => { if (box.open && !busy) load(); }, {signal: lifecycle.signal});
-  box.addEventListener('input', () => { say(''); paint(); }, {signal: lifecycle.signal});
-  box.querySelector('[data-limits-unlock]').addEventListener('click', () => {
-    if (!confirm(uiText("Changes you save here are stored on the E32 and also appear in Home Assistant. If Home Assistant changed the plan in the meantime, the E32 refuses your save, so nothing is overwritten. Editing stays unlocked until you close this tab. Edit here?"))) return;
-    locked = false; try { sessionStorage.setItem('ot-rooms-edit', '1'); } catch (_) {}
-    paint(); minFlow.focus();
-  }, {signal: lifecycle.signal});
-  save.addEventListener('click', async () => {
-    const mn = Number(minFlow.value), mx = Number(maxFlow.value);
-    if (!plan || busy) return;
-    if (!(Number.isInteger(mn) && Number.isInteger(mx) && mn >= 20 && mx <= 80 && mn < mx)) {
-      say(uiText("Keep the minimum flow below the maximum flow, between 20 and 80 °C.")); minFlow.focus(); return;
-    }
-    busy = true; paint(); say(uiText("Saving…"));
-    try {
-      const saved = await json('/config/heating', {method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({...plan, minimum_flow_c: mn, maximum_flow_c: mx})});
-      busy = false;
-      if (valid(saved)) show(saved); else await load();
-      say(uiText("Flow limits saved."));
-    } catch (error) {
-      busy = false;
-      if (lifecycle.signal.aborted) return;
-      if (error.code === 'plan_changed') {
-        await load(); say(uiText("The plan was changed elsewhere (Home Assistant). It has been reloaded; make your change again."));
-      } else say(error.code === 'invalid_flow_limits'
-        ? uiText("The E32 refused the flow limits. Use a minimum of 20–79 °C and a maximum of 21–80 °C, with the minimum below the maximum.")
-        : uiText("The limits were not saved. Try again."));
-    }
-    paint();
-  }, {signal: lifecycle.signal});
-  // The boiler's own maximum CH temperature (0x16), from the shared boiler snapshot.
-  BoilerData.subscribe(data => {
-    const v = data?.fields?.configured_heating_temperature;
-    if (!(v && v.state === 'valid' && Number.isFinite(v.value) && v.value >= 20 && v.value <= 90)) return;
-    if (boilerMax !== Math.round(v.value)) { boilerMax = Math.round(v.value); paint(); }
-  }, {signal: lifecycle.signal});
-  const removal = new MutationObserver(() => { if (!box.isConnected) { lifecycle.abort(); removal.disconnect(); } });
-  removal.observe(document.body, {childList: true, subtree: true});
-  // #boiler-limits (the Rooms page links here) opens this section.
-  if (window.otPageSection === 'boiler_limits') { box.open = true; requestAnimationFrame(() => box.scrollIntoView({block: 'start'})); }
-  paint();
-})();
-</script>
-<style>#boiler-test .bl-grid{display:grid;gap:0 16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));max-width:480px}#boiler-test .bl-grid label{display:block;margin-bottom:8px}#boiler-test [data-limits-message]:empty{display:none}</style>
 <style>#boiler-test .bp-list{columns:2 260px;padding-left:20px;margin:6px 0 14px}#boiler-test .bp-list li{break-inside:avoid;margin:3px 0}#boiler-test .bp-list small{color:var(--ot-muted);font-size:.85rem}#boiler-test .bp-summary{color:var(--ot-muted);font-weight:400;font-size:.85rem}#boiler-test [data-boiler-profile] h3{font-size:1rem;margin-top:12px}</style>

@@ -26,10 +26,10 @@ def product(hass, binding=None):
     return p
 
 # Configure's top level (product_flow.main_menu). With a stored E32 connection the rooms
-# are the E32 room plan: Rooms, Comfort, Heating and boiler, Energy, Connect E32, Name and
-# dashboard, Advanced. A new installation (config flow from beta.19) starts with Connect E32.
+# are the E32 room plan: Rooms, Home (presence, heating and boiler, energy; beta.23), Comfort,
+# Connect E32, Name and dashboard, Advanced. A new installation (config flow from beta.19) starts with Connect E32.
 # Older entries without an E32 connection keep the Home Assistant room route.
-E32_MENU=['e32_rooms','comfort','heating_boiler','energy','controller_connection','general','advanced_settings']
+E32_MENU=['e32_rooms','house','comfort','controller_connection','general','advanced_settings']
 NEW_MENU=['controller_connection','energy','general','advanced_settings']
 LEGACY_MENU=['room_settings','controller_connection','energy','installation','advanced_settings']
 
@@ -41,9 +41,10 @@ async def option(manager,parent,step):
     f=await manager.async_init(parent.entry_id)
     menu=expected_menu(parent)
     assert f['menu_options']==menu
-    # Status, plan recovery and the rest live under Advanced.
+    # Presence, heating and energy live under Home (beta.23); status, plan recovery and the rest under Advanced.
     if step not in menu:
-        f=await manager.async_configure(f['flow_id'],{'next_step_id':'advanced_settings'})
+        f=await manager.async_configure(f['flow_id'],{'next_step_id':'house' if 'house' in menu and step in
+                                                      ('house_presence','heating_boiler','energy') else 'advanced_settings'})
     return await manager.async_configure(f['flow_id'],{'next_step_id':step})
 
 async def new_room(manager,parent,binding):

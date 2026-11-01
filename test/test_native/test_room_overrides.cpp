@@ -1,4 +1,5 @@
 #include "control/RoomOverrides.h"
+#include "RoomOverridesBeta21.h"
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
 #include <cstring>
@@ -365,7 +366,7 @@ TEST(RoomOverrides, StatusShowsTheReasonPerRoomAndTheHouseAway) {
     cJSON_free(study);
     EXPECT_FALSE(comfort(2)); // following its plan: nothing added
     char* away = cJSON_PrintUnformatted(cJSON_GetObjectItem(status.get(), "away"));
-    EXPECT_STREQ(away, R"({"on":false,"source":"none","target_c":15,"until":null,"presence":"unknown"})");
+    EXPECT_STREQ(away, R"({"on":false,"source":"none","target_c":15,"until":null,"presence":"unknown","mode":"auto"})");
     cJSON_free(away);
     Json api(o.json(p, 0), cJSON_Delete);
     ASSERT_TRUE(api);
@@ -408,7 +409,8 @@ TEST(RoomOverrides, StatusAdditionsStayWithinTheTelemetryBudget) {
     const cJSON* living = cJSON_GetObjectItem(cJSON_GetArrayItem(cJSON_GetObjectItem(status.get(), "rooms"), 0), "comfort");
     ASSERT_TRUE(living);
     EXPECT_LE(size(living) + std::strlen(R"(,"comfort":)"), 160u);
-    EXPECT_LE(size(cJSON_GetObjectItem(status.get(), "away")) + std::strlen(R"(,"away":)"), 100u);
+    // 100 B until beta.21; beta.23 adds "mode" (at most ,"mode":"holiday", 17 B). fw/state/heating stays well below 1 KB.
+    EXPECT_LE(size(cJSON_GetObjectItem(status.get(), "away")) + std::strlen(R"(,"away":)"), 117u);
     EXPECT_LE(o.stored().size(), RoomOverrides::storeBytes);
 }
 
@@ -422,4 +424,109 @@ TEST(RoomOverrides, EightStoredOverridesFitTheRecord) {
     ASSERT_LE(text.size(), RoomOverrides::storeBytes);
     ASSERT_TRUE(o.restore(text));
     EXPECT_EQ(o.stored().size(), text.size());
+}
+
+TEST(RoomOverrides, HouseModeAutoHomeAwayAndHoliday) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    const auto p = plan();
+    RoomOverrides o;
+    EXPECT_STREQ(o.houseMode(), "auto");
+    // Home: "everyone away" from Home Assistant no longer lowers any room.
+    bool persisted = false;
+    ASSERT_EQ(command(o, p, R"({"house_mode":"home"})", 0, monNoon, &persisted), nullptr);
+    EXPECT_TRUE(persisted);
+    EXPECT_STREQ(o.houseMode(), "home");
+    EXPECT_TRUE(o.input(R"({"kind":"presence","home":false})", p, 0));
+    o.step(p, 0, monNoon, noLead);
+    EXPECT_EQ(o.view(0).mode, nullptr);
+    EXPECT_FALSE(o.adjust()[0].ceiling);
+    Json status(cJSON_CreateObject(), cJSON_Delete);
+    cJSON_AddArrayToObject(status.get(), "rooms");
+    ASSERT_TRUE(o.addStatus(status.get(), p, 0));
+    char* home = cJSON_PrintUnformatted(cJSON_GetObjectItem(status.get(), "away"));
+    EXPECT_STREQ(home, R"({"on":false,"source":"none","target_c":15,"until":null,"presence":"away","mode":"home"})");
+    cJSON_free(home);
+    // Auto: presence decides again.
+    ASSERT_EQ(command(o, p, R"({"house_mode":"auto","temperature":16})", 0, monNoon, &persisted), nullptr);
+    EXPECT_TRUE(persisted);
+    o.step(p, 0, monNoon, noLead);
+    EXPECT_STREQ(o.view(0).mode, "presence_away");
+    EXPECT_EQ(o.adjust()[0].ceiling, 1600);
+    // Away until switched back, then holiday with a date and a warm return.
+    ASSERT_EQ(command(o, p, R"({"house_mode":"away"})", 0, monNoon), nullptr);
+    EXPECT_STREQ(o.houseMode(), "away");
+    o.step(p, 0, monNoon, noLead);
+    EXPECT_STREQ(o.view(1).mode, "away");
+    EXPECT_EQ(o.view(1).until, 0u);
+    const uint32_t back = monNoon + 86400;
+    ASSERT_EQ(command(o, p, (R"({"house_mode":"holiday","until":)" + std::to_string(back) + "}").c_str(), 0, monNoon), nullptr);
+    EXPECT_STREQ(o.houseMode(), "holiday");
+    o.step(p, minute, back - 3600, [](size_t, uint32_t, int16_t, int16_t) { return uint32_t(7200); });
+    EXPECT_STREQ(o.view(1).mode, "away_return");  // warm again in time
+    o.step(p, 2 * minute, back, noLead);
+    EXPECT_STREQ(o.houseMode(), "auto");           // the holiday ended by itself
+    // Checked like the other commands.
+    EXPECT_STREQ(command(o, p, R"({"house_mode":"party"})", 0, monNoon), "invalid_house_mode");
+    EXPECT_STREQ(command(o, p, R"({"house_mode":"holiday"})", 0, monNoon), "invalid_until");
+    EXPECT_STREQ(command(o, p, R"({"house_mode":"away","until":1793700000})", 0, monNoon), "invalid_until");
+    EXPECT_STREQ(command(o, p, (R"({"house_mode":"holiday","until":)" + std::to_string(back) + "}").c_str(), 0, std::nullopt), "no_clock");
+    EXPECT_STREQ(command(o, p, R"({"house_mode":"away","temperature":3})", 0, monNoon), "invalid_temperature");
+    EXPECT_STREQ(command(o, p, R"({"house_mode":"auto","away":true})", 0, monNoon), "invalid_request");
+    EXPECT_STREQ(command(o, p, R"({"house_mode":"auto","room":"living"})", 0, monNoon), "invalid_request");
+    // The older away command still works and leaves home mode.
+    ASSERT_EQ(command(o, p, R"({"house_mode":"home"})", 0, monNoon), nullptr);
+    ASSERT_EQ(command(o, p, R"({"away":true})", 0, monNoon), nullptr);
+    EXPECT_STREQ(o.houseMode(), "away");
+    ASSERT_EQ(command(o, p, R"({"away":false})", 0, monNoon), nullptr);
+    EXPECT_STREQ(o.houseMode(), "auto");
+    // An unchanged mode writes nothing.
+    ASSERT_EQ(command(o, p, R"({"house_mode":"auto"})", 0, monNoon, &persisted), nullptr);
+    EXPECT_FALSE(persisted);
+}
+
+TEST(RoomOverrides, HouseModeSurvivesARestart) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    const auto p = plan();
+    RoomOverrides o;
+    ASSERT_EQ(command(o, p, R"({"house_mode":"home","temperature":16.5})", 0, monNoon), nullptr);
+    const auto record = o.stored();
+    EXPECT_EQ(record, R"({"v":1,"away_c":1650,"o":[],"home":true})");
+    RoomOverrides after;
+    ASSERT_TRUE(after.restore(record));
+    EXPECT_STREQ(after.houseMode(), "home");
+    EXPECT_EQ(after.awayCentiC(), 1650);
+    // A record claiming both home and away is not one this firmware wrote.
+    EXPECT_FALSE(after.restore(R"({"v":1,"away_c":1500,"o":[],"away_until":0,"home":true})"));
+    EXPECT_FALSE(after.restore(R"({"v":1,"away_c":1500,"o":[],"home":"yes"})"));
+    EXPECT_TRUE(after.restore(R"({"v":1,"away_c":1500,"o":[],"home":false})"));
+    EXPECT_STREQ(after.houseMode(), "auto");
+}
+
+// A rollback to E32 beta.21 must keep working with the record beta.23 wrote:
+// beta.21 reads it (ignoring "home", so it runs auto), keeps away and holiday,
+// and the room overrides; and beta.23 reads what beta.21 wrote.
+TEST(RoomOverrides, Beta21ReadsTheHouseModeRecordAfterARollback) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    using heating::control::RoomOverridesBeta21;
+    const auto p = plan();
+    const uint32_t back = monNoon + 86400;
+    for (const std::string& body : {std::string(R"({"house_mode":"home","temperature":16})"), std::string(R"({"house_mode":"away"})"),
+                                   R"({"house_mode":"holiday","until":)" + std::to_string(back) + "}",
+                                   std::string(R"({"house_mode":"auto","temperature":17})")}) {
+        RoomOverrides o;
+        ASSERT_EQ(command(o, p, R"({"room":"living","override":"timed","temperature":21,"minutes":60})", 0, monNoon), nullptr);
+        ASSERT_EQ(command(o, p, body.c_str(), 0, monNoon), nullptr) << body;
+        const auto record = o.stored();
+        RoomOverridesBeta21 old;
+        ASSERT_TRUE(old.restore(record)) << record;
+        EXPECT_EQ(old.awayCentiC(), o.awayCentiC()) << record;
+        EXPECT_EQ(old.awayOn(), o.awayOn()) << record;      // home and auto: not away
+        EXPECT_EQ(old.awayUntil(), o.awayUntil()) << record;
+        old.step(p, 0, monNoon, noLead);
+        EXPECT_STREQ(old.view(0).mode, "timed") << record;  // the override survives too
+        // Back again: the newer firmware reads beta.21's own record.
+        RoomOverrides again;
+        ASSERT_TRUE(again.restore(old.stored())) << old.stored();
+        EXPECT_STREQ(again.houseMode(), o.homeMode() ? "auto" : o.houseMode()) << record;
+    }
 }

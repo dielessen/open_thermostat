@@ -31,7 +31,7 @@ CREDENTIALS = {CONTROLLER_ADDRESS: "http://192.168.1.206", CONTROLLER_PASSWORD: 
 BLE = [{"id": "a4c138a3e8db", "name": "Slaapkamer", "profile": "atc", "temperature": 19.4},
        {"id": "112233445566", "name": "Zolder", "profile": "atc", "temperature": 17.0}]
 # Configure's top level for an E32 install (product_flow.main_menu); flow limits are under Heating and boiler.
-MENU = ["e32_rooms", "comfort", "heating_boiler", "energy", "controller_connection", "general", "advanced_settings"]
+MENU = ["e32_rooms", "house", "comfort", "controller_connection", "general", "advanced_settings"]  # beta.23: Home holds heating
 
 
 @pytest.fixture
@@ -203,7 +203,8 @@ async def flow_limits_form(manager, parent):
     await manager.hass.async_block_till_done()
     flow = await manager.async_init(parent.entry_id)
     assert flow["menu_options"] == MENU
-    form = await manager.async_configure(flow["flow_id"], {"next_step_id": "heating_boiler"})
+    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
+    form = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
     assert form["type"] == "form" and form["step_id"] == "e32_flow_limits", form
     return form
 

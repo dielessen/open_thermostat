@@ -1,4 +1,5 @@
 """Radiator valves per E32 room (E32 beta.24) in Home Assistant: telemetry, entities, Repairs, the control switch."""
+import asyncio
 from copy import deepcopy
 import json
 from types import SimpleNamespace
@@ -214,6 +215,90 @@ async def test_the_switch_reads_then_writes_only_its_rooms_control(hass):
     with pytest.raises(HomeAssistantError) as err:
         await switch.async_turn_off()
     assert err.value.translation_placeholders == {"error": "controller_update_required"}
+
+
+class SlowE32(FakeE32):
+    """The real E32 answers over the network: every call yields to the event loop."""
+
+    def client(self, address):
+        inner = super().client(address)
+        original = inner.async_valves
+
+        async def async_valves(document=None):
+            await asyncio.sleep(0)
+            return await original(document)
+        inner.async_valves = async_valves
+        return inner
+
+
+@pytest.mark.asyncio
+async def test_two_switches_changed_at_once_both_keep_their_change(hass):
+    """One service call for two "Valve control" switches: each change reads the record the other stored."""
+    config = deepcopy(CONFIG)
+    config["rooms"][1]["control"] = False
+    e32 = SlowE32(config)
+    hub, link = valve_link(hass, e32)
+    hub.update(with_trv())
+    a = module.ValveControlSwitch(hub, hub.rooms["woonkamer"], link)
+    b = module.ValveControlSwitch(hub, hub.rooms["keuken"], link)
+    a.async_write_ha_state = b.async_write_ha_state = lambda: None
+    await asyncio.gather(a.async_turn_on(), b.async_turn_on())
+    assert {r["room"]: r["control"] for r in e32.config["rooms"]} == {"woonkamer": True, "keuken": True}
+    assert [c is None for c in e32.calls] == [True, False, True, False]   # read, write, then the next change
+
+
+@pytest.mark.asyncio
+async def test_the_controller_client_speaks_the_valve_record_contract():
+    """The real ControllerClient against an HTTP E32: GET and POST /config/heating/trv pass the allowlist."""
+    from aiohttp import web
+    from aiohttp.test_utils import TestServer
+    from custom_components.open_thermostat import controller_link
+    seen, state = [], {"config": deepcopy(CONFIG), "missing": False}
+
+    async def login(request):
+        return web.json_response({"ok": True})
+
+    async def session(request):
+        return web.json_response({"authenticated": True, "csrf": "c" * 64})
+
+    async def logout(request):
+        return web.json_response({})
+
+    async def trv(request):
+        if state["missing"]:
+            return web.Response(status=404, text="Not found")
+        if request.method == "POST":
+            body = await request.json()
+            seen.append((request.headers.get("X-OpenThermostat-CSRF"), request.headers.get("Content-Type"), body))
+            if body["rooms"] and body["rooms"][0]["room"] == "zolder":
+                return web.json_response({"error": "unknown_room"}, status=400)
+            state["config"] = body
+        return web.json_response({**state["config"], "features": [], "models": [], "status": None})
+
+    app = web.Application()
+    app.router.add_post("/auth/login", login)
+    app.router.add_get("/auth/session", session)
+    app.router.add_post("/auth/logout", logout)
+    app.router.add_route("*", "/config/heating/trv", trv)
+    server = TestServer(app, host="127.0.0.1")
+    await server.start_server()
+    try:
+        client = controller_link.ControllerClient("http://192.168.1.206")  # loopback is refused by design
+        async with client:
+            client.address = f"http://127.0.0.1:{server.port}"
+            await client.async_login("secret")
+            assert module.decode_config(await client.async_valves()) == CONFIG
+            changed = module.with_room(CONFIG, "woonkamer", control=True)
+            assert module.decode_config(await client.async_valves(changed)) == changed
+            with pytest.raises(HeatingPlanRejected) as error:
+                await client.async_valves({**CONFIG, "rooms": [{**CONFIG["rooms"][0], "room": "zolder"}]})
+            assert (error.value.status, error.value.error) == (400, "unknown_room")
+            state["missing"] = True  # firmware before beta.24
+            with pytest.raises(ControllerLinkError, match="^controller_update_required$"):
+                await client.async_valves()
+    finally:
+        await server.close()
+    assert seen[0] == ("c" * 64, "application/json", changed) and state["config"] == changed
 
 
 def test_the_record_rules_match_the_e32():

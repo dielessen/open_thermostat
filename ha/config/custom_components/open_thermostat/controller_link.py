@@ -461,9 +461,9 @@ class ControllerClient:
 
     _reads = frozenset(("/auth/session", "/status/version", "/status", "/updates/status",
                         "/config/device", "/config/rooms", HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW,
-                        "/status/heating"))
+                        HEATING_TRV, "/status/heating"))
     _writes = frozenset(("/auth/login", "/auth/logout", "/config/device", "/updates/reboot", HEATING_PLAN,
-                         HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER))
+                         HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER, HEATING_TRV))
 
     def __init__(self, address):
         self.address = controller_address(address)

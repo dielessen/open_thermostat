@@ -251,9 +251,10 @@ class ProductRoomFlow(RadiatorRoomSetupFlow):
 
 
 from .e32_comfort import ComfortOptionsSteps  # noqa: E402
+from .e32_backup_flow import E32RestoreSteps  # noqa: E402
 
 
-class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, ControllerSetupFlow, ShadowOptionsFlow,
+class ProductOptionsFlow(E32RestoreSteps, ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, ControllerSetupFlow, ShadowOptionsFlow,
                          ProductRoomFlow):
     """One central options entrypoint, using the same room editor and native Store.
 
@@ -572,6 +573,10 @@ class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, Con
             options += ["graph_prepare", "graph_status"]
         if legacy_rooms_pending(entry):
             options.append("legacy_rooms")
+        from .e32_backup import backups
+        if backups(self.hass, entry) is not None:
+            # Restore one of the E32 settings backups Home Assistant keeps (e32_backup_flow).
+            options.append("e32_restore")
         from .entity_id_tidy import async_undo_available
         options.append("entity_ids")
         if await async_undo_available(self.hass, entry):

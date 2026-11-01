@@ -139,6 +139,9 @@
       },
       "night_heating_gas": {
         "default": "mdi:weather-night"
+      },
+      "e32_last_backup": {
+        "default": "mdi:backup-restore"
       }
     },
     "switch": {
@@ -147,6 +150,11 @@
       },
       "flow_apply_learned": {
         "default": "mdi:school"
+      }
+    },
+    "button": {
+      "e32_backup_now": {
+        "default": "mdi:content-save-cog"
       }
     }
   },

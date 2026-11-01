@@ -1415,7 +1415,8 @@
           "legacy_rooms": "Oude Home Assistant-ruimtes verwijderen",
           "installation": "Watergrenzen van het oude ruimteprofiel",
           "entity_ids": "Entiteit-ID's opruimen",
-          "entity_ids_undo": "Opruimen van entiteit-ID's terugzetten"
+          "entity_ids_undo": "Opruimen van entiteit-ID's terugzetten",
+          "e32_restore": "Instellingen terugzetten op deze E32"
         }
       },
       "edit_room": {
@@ -1705,6 +1706,38 @@
         "data_description": {
           "confirm": "De entiteiten van de laatste opruimronde krijgen hun vorige ID terug, waar die nog vrij is."
         }
+      },
+      "e32_restore": {
+        "title": "Instellingen terugzetten op deze E32",
+        "description": "Home Assistant maakt elke dag een back-up van de instellingen van je E32 en bewaart er {count}: de nieuwste van elk van de laatste 7 dagen, en de back-up van vlak voor de laatste keer terugzetten. Een back-up bevat de netwerk- en tijdinstellingen, MQTT en de koppeling met Home Assistant, de ruimtes met hun weekprogramma's, de Bluetooth-sensoren, de aanvoeropties en het ketelmodel, met het MQTT-wachtwoord en de Bluetooth-sleutels versleuteld. Het wifi-wachtwoord en het E32-wachtwoord zitten er nooit in.\n\nKies de back-up die je wilt terugzetten. De E32 controleert hem eerst en laat zien wat er verandert; er verandert niets voordat je bevestigt.\n\nEen kapotte E32 vervangen: zet de firmware er via USB op, verbind de nieuwe E32 met je netwerk (wifi-installatie of ethernet) en vul hier zijn adres en wachtwoord in.",
+        "data": {
+          "backup": "Back-up",
+          "address": "Webadres van de E32",
+          "password": "Wachtwoord van de E32"
+        },
+        "data_description": {
+          "backup": "Wanneer de back-up is gemaakt. Dagelijkse back-ups maakt Home Assistant zelf; handmatige met de knop Nu een back-up van de E32 maken.",
+          "address": "Het adres van de E32 die je terugzet, bijvoorbeeld http://192.168.1.50. Laat het staan voor deze E32; vul voor een vervangende E32 het nieuwe adres in.",
+          "password": "Het wachtwoord waarmee je inlogt op de webpagina van die E32 (gebruiker admin). Laat leeg om het opgeslagen wachtwoord te gebruiken; nodig als het adres een ander is."
+        }
+      },
+      "e32_restore_checking": {
+        "title": "Back-up controleren",
+        "description": "De E32 controleert de back-up en vergelijkt hem met zijn eigen instellingen. Dit duurt een paar seconden; er verandert nog niets."
+      },
+      "e32_restore_confirm": {
+        "title": "Deze instellingen terugzetten?",
+        "description": "Back-up van {created}, zoals de E32 hem heeft gecontroleerd:\n\n{summary}\n\nDe E32 komt terug in schaduwmodus: hij rekent mee maar regelt de ketel niet. Regelde hij je ketel eerst wel, bevestig de overname daarna dan opnieuw op de E32-pagina (Ruimtes → Actieve regeling). Vóór het terugzetten bewaart Home Assistant ook een back-up van de E32 zoals hij nu is.",
+        "data": {
+          "confirm": "Deze instellingen op deze E32 terugzetten"
+        },
+        "data_description": {
+          "confirm": "Er wordt niets teruggezet tot je dit aanvinkt."
+        }
+      },
+      "e32_restore_applying": {
+        "title": "Instellingen terugzetten",
+        "description": "Home Assistant maakt een back-up van de E32 zoals hij nu is en zet de gekozen back-up terug. Veranderen de netwerk- of Bluetooth-instellingen, dan start de E32 opnieuw op en wacht Home Assistant tot hij weer antwoordt; dat kan tot drie minuten duren."
       }
     },
     "error": {
@@ -1850,7 +1883,18 @@
       "e32_valves_rejected": "De E32 weigerde de radiatorkranen ({error}).",
       "entity_ids_confirm": "Vink het vakje aan om te bevestigen.",
       "water_meter_unit": "Kies een waterdebietsensor (L/min, L/h, m³/h) of een watermeterstand (m³, L).",
-      "water_meter_not_total": "Kies een watermeterstand (state class total of total increasing), of een debietsensor in L/min."
+      "water_meter_not_total": "Kies een watermeterstand (state class total of total increasing), of een debietsensor in L/min.",
+      "e32_restore_boiler_owned": "De E32 weigert terug te zetten zolang hij de ketel regelt of er een keteltest of ketelinstelling loopt. Geef de regeling terug aan de thermostaat op de E32-pagina (Ruimtes → Actieve regeling) of wacht tot de test klaar is, en probeer het opnieuw.",
+      "e32_restore_busy": "De E32 is bezig (een firmware-update, of hij heeft te weinig geheugen). Wacht een minuut en probeer het opnieuw.",
+      "e32_restore_settings_changed": "De instellingen op de E32 zijn na de controle veranderd. Kies de back-up opnieuw, zodat de E32 hem nog een keer controleert.",
+      "e32_restore_wrong_passphrase": "De E32 kon de wachtwoorden en sleutels in deze back-up niet openen. Kies een andere back-up.",
+      "e32_restore_newer_backup": "Deze back-up is gemaakt met nieuwere E32-firmware. Werk deze E32 eerst bij (de entiteit Firmware, of Systeem → Firmware-update op zijn pagina) en zet daarna terug.",
+      "e32_restore_save_failed": "De E32 kon de teruggezette instellingen niet opslaan en heeft zijn vorige instellingen gehouden. Probeer het opnieuw; lukt het steeds niet, start de E32 dan opnieuw op.",
+      "e32_restore_save_partial": "Opslaan is mislukt op de E32 en niet alle vorige instellingen konden worden teruggezet. Controleer de instellingenpagina's van de E32, of zet opnieuw terug.",
+      "e32_restore_invalid": "De E32 weigert deze back-up: hij past niet bij deze E32 of zijn firmware. Kies een andere back-up.",
+      "e32_restore_failed": "Het terugzetten kon niet worden afgerond. Controleer of de E32 aan staat en zijn webpagina opent, en probeer het opnieuw.",
+      "e32_restore_other_e32": "Deze installatie gebruikt nog een ouder ruimteprofiel van Home Assistant, dat bij de vorige E32 hoort. Verwijder eerst de oude Home Assistant-ruimtes (Geavanceerd en diagnose → Oude Home Assistant-ruimtes verwijderen) en zet daarna terug.",
+      "e32_restore_confirm_required": "Vink het vakje aan om deze instellingen terug te zetten."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",
@@ -1911,11 +1955,21 @@
       "e32_valves_update_required": "Deze E32-firmware kan nog geen radiatorkranen aansturen. Werk de E32 eerst bij.",
       "entity_ids_nothing": "Alle entiteit-ID's van OpenThermostat zijn al zoals Home Assistant ze zou geven.",
       "entity_ids_done": "{count} entiteit-ID's hernoemd. Pas deze plekken zelf aan:\n\n{todo}",
-      "entity_ids_undone": "{count} entiteit-ID's hebben hun oude naam terug."
+      "entity_ids_undone": "{count} entiteit-ID's hebben hun oude naam terug.",
+      "e32_restore_unavailable": "Terugzetten kan alleen met een verbonden E32. Verbind hem eerst onder Configureren → E32-verbinding.",
+      "e32_restore_no_backups": "Home Assistant heeft nog geen back-up van de E32. Maak er een met de knop Nu een back-up van de E32 maken op het E32-apparaat.",
+      "e32_restore_nothing": "Niets terug te zetten: deze E32 heeft precies deze instellingen al.",
+      "e32_restore_cancelled": "Het terugzetten is afgebroken; er is niets veranderd.",
+      "e32_restore_done_online": "Instellingen teruggezet. De E32 is opnieuw opgestart en antwoordt weer. De ruimtes staan in schaduwmodus; bevestig de overname opnieuw op de E32-pagina als hij de ketel moet regelen.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
+      "e32_restore_done_waiting": "Instellingen teruggezet. De E32 start opnieuw op en antwoordt nog niet; Home Assistant maakt vanzelf weer verbinding zodra hij terug is. De ruimtes staan in schaduwmodus; bevestig de overname opnieuw op de E32-pagina als hij de ketel moet regelen.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
+      "e32_restore_done_restart": "Instellingen teruggezet. Start de E32 opnieuw op (Systeem → Apparaat herstarten op zijn pagina) om ze allemaal te gebruiken. De ruimtes staan in schaduwmodus; bevestig de overname opnieuw op de E32-pagina als hij de ketel moet regelen.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
+      "e32_restore_done": "Instellingen teruggezet. De ruimtes staan in schaduwmodus; bevestig de overname opnieuw op de E32-pagina als hij de ketel moet regelen.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}"
     },
     "progress": {
       "controller_connect": "Verbinden met de E32…",
-      "legacy_rooms_remove": "Oude ruimtes verwijderen en de E32 opnieuw koppelen…"
+      "legacy_rooms_remove": "Oude ruimtes verwijderen en de E32 opnieuw koppelen…",
+      "e32_restore_check": "De E32 controleert de back-up…",
+      "e32_restore_apply": "Instellingen terugzetten en wachten op de E32…"
     }
   },
   "entity": {
@@ -2754,6 +2808,17 @@
           "charging": "Boiler laden",
           "hot_water": "Warm water"
         }
+      },
+      "e32_last_backup": {
+        "name": "Laatste back-up van de E32",
+        "state_attributes": {
+          "count": {
+            "name": "Bewaarde back-ups"
+          },
+          "size": {
+            "name": "Grootte van de nieuwste back-up"
+          }
+        }
       }
     },
     "select": {
@@ -2858,6 +2923,11 @@
     "update": {
       "e32_firmware": {
         "name": "Firmware"
+      }
+    },
+    "button": {
+      "e32_backup_now": {
+        "name": "Nu een back-up van de E32 maken"
       }
     }
   },
@@ -3058,6 +3128,10 @@
     "heating_problem": {
       "title": "Verwarming vraagt aandacht",
       "description": "{reason}\n\nDeze melding verdwijnt vanzelf zodra de oorzaak weg is."
+    },
+    "e32_backup_failing": {
+      "title": "Geen recente back-up van de E32-instellingen",
+      "description": "{name}: Home Assistant kon al meer dan 3 dagen geen back-up van de E32-instellingen maken (laatste back-up: {last}). Zonder recente back-up krijgt een vervangende E32 je huidige instellingen niet terug. Controleer of de E32 aan staat en zijn webpagina opent, en of zijn wachtwoord in Home Assistant nog klopt; druk daarna op Nu een back-up van de E32 maken op het E32-apparaat. Deze melding verdwijnt na de volgende geslaagde back-up."
     }
   },
   "services": {
@@ -3225,6 +3299,21 @@
     },
     "valves_unreachable": {
       "message": "De E32 was niet bereikbaar om de radiatorkranen te wijzigen ({error})."
+    },
+    "e32_backup_unreachable": {
+      "message": "De E32 antwoordde niet. Controleer of hij aan staat en zijn webpagina opent, en probeer het opnieuw."
+    },
+    "e32_backup_password": {
+      "message": "De E32 weigerde het opgeslagen wachtwoord. Vul het nieuwe in als Home Assistant erom vraagt (Instellingen → Apparaten en diensten) en probeer het opnieuw."
+    },
+    "e32_backup_update_required": {
+      "message": "De firmware op deze E32 kan nog geen back-ups maken. Werk de E32 eerst bij."
+    },
+    "e32_backup_busy": {
+      "message": "De E32 is bezig met een firmware-update. Probeer het opnieuw als die klaar is."
+    },
+    "e32_backup_failed": {
+      "message": "De back-up van de E32-instellingen is mislukt. Probeer het over een minuut opnieuw."
     }
   },
   "device": {

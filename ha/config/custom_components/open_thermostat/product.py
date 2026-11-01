@@ -105,6 +105,7 @@ def configuration_snapshot(entry):
     # ordinary room writes always preserve the current entry's credentials.
     data = dict(entry.data)
     data.pop("controller_password", None)
+    data.pop("backup_passphrase", None)  # the same for the E32 backup passphrase (e32_backup)
     return deepcopy((entry.title, data, dict(entry.options),
                      {key: sub.as_dict() for key, sub in configuration_subentries(entry).items()}))
 

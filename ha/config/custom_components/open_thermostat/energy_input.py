@@ -214,15 +214,14 @@ def currency(hass):
     return value if type(value) is str and value else "EUR"
 
 
-def energy_schema(vol, options, currency_code="EUR", suggested_boiler_kw=None):
+def energy_schema(vol, options, currency_code="EUR"):
     """The form: every field optional, prefilled (as a suggestion, so it can be cleared).
 
-    suggested_boiler_kw prefills the boiler power while none is set (boiler_power.suggestion).
+    Only stored values are prefilled. The suggested boiler power (boiler_power.suggestion) is shown in the
+    field's description: prefilled, any save of the form would store it as the user's own value.
     """
     def optional(field):
         current = options.get(FIELDS[field])
-        if current is None and field == "boiler_kw":
-            current = suggested_boiler_kw
         return vol.Optional(field, description={"suggested_value": current}) if current is not None else vol.Optional(field)
 
     def number(low, high, step, unit):

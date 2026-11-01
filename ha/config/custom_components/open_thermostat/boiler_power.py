@@ -8,7 +8,8 @@ The power the user entered (House → Energy) always wins and is not a suggestio
 * ``product``: a known boiler type (a small table, only types whose power is certain);
 * ``default``: the E32's default of 22 kW, a guess (``FlowLearner::Params::nominalKw``).
 
-Nothing here writes a setting: the form shows the suggestion prefilled and saving it makes it the user's value.
+Nothing here writes a setting: the form names the suggestion and its basis in the field's description; only a
+power the user types in is stored.
 """
 from __future__ import annotations
 
@@ -72,7 +73,25 @@ def suggestion(options, gas=None, nominal_kw=None, model=None):
     return DEFAULT_KW, "default"
 
 
-def basis(source, language):
-    """The short phrase that says where a suggestion comes from, in the form's language."""
+def basis(source, language, model=None):
+    """The short phrase that says where a suggestion comes from, in the form's language.
+
+    model: the detected boiler type, named after "known for this boiler type".
+    """
     words = BASIS.get((language or "en").split("-")[0], BASIS["en"])
-    return words.get(source, words["default"])
+    phrase = words.get(source, words["default"])
+    return f"{phrase}: {model}" if source == "product" and model else phrase
+
+
+def detected_model(hass, entry):
+    """The boiler type as the E32's EMS bus list names it (its device at 0x08), or None."""
+    from homeassistant.helpers import device_registry as dr
+    from .const import CONF_TOPIC_PREFIX, DOMAIN
+    prefix = entry.data.get(CONF_TOPIC_PREFIX)
+    device = (dr.async_get(hass).async_get_device_by_identifier((DOMAIN, f"{prefix}_ems_08"), entry.entry_id)
+              if prefix else None)
+    if device is None:
+        return None
+    if device.name:
+        return re.sub(r"\s*\(0x08\)$", "", device.name)
+    return device.model

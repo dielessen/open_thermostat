@@ -652,12 +652,14 @@ def test_every_flow_key_has_a_translation(filename):
     options = document["options"]
     source = (COMPONENT / "e32_room_flow.py").read_text(encoding="utf-8")
     keys = set(re.findall(r'"(e32_[a-z_]+)"', source)) - {"e32_room_flow"}
-    steps = {"e32_rooms", "e32_room", "e32_room_add", "e32_room_pick", "e32_room_remove", "e32_flow_limits"}
-    selectors = {"e32_room_state", "e32_room_emitter", "e32_room_action"}
+    steps = {"e32_rooms", "e32_room", "e32_room_add", "e32_room_pick", "e32_room_remove", "e32_flow_limits",
+             "e32_room_valves"}
+    selectors = {"e32_room_state", "e32_room_emitter", "e32_room_action", "e32_valve_model"}
     for key in keys - steps - selectors:
         assert key in options["error"] or key in options["abort"], key
     for key in selectors:
         assert document["selector"][key]["options"], key
+    assert options["step"]["e32_room_valves"]["data"]["control"]
     assert set(options["step"]["e32_rooms"]["menu_options"]) == {"e32_room_add", "e32_room_pick"}
     assert options["step"]["init"]["menu_options"]["heating_boiler"]
     assert set(options["step"]["e32_flow_limits"]["data"]) == {"minimum_flow_temperature", "maximum_flow_temperature"}

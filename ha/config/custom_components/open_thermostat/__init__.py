@@ -63,7 +63,7 @@ def _drop_test_setup_name(hass, entry):
     read "OpenThermostat E32 …" again instead of "E32-regelaar — ketel en diagnose …". Only that exact name;
     a name the user chose stays. The entity IDs never change with a device name."""
     registry = dr.async_get(hass)
-    device = registry.async_get_device(identifiers={(DOMAIN, entry.data[CONF_TOPIC_PREFIX])})
+    device = registry.async_get_device_by_identifier((DOMAIN, entry.data[CONF_TOPIC_PREFIX]), entry.entry_id)
     if device is not None and device.name_by_user in TEST_SETUP_DEVICE_NAMES:
         registry.async_update_device(device.id, name_by_user=None)
 

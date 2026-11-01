@@ -140,7 +140,9 @@ async def test_the_product_device_is_named_openthermostat_e32_and_a_user_name_st
     import custom_components.open_thermostat as integration
     from homeassistant.components import mqtt
     assert E32_DEVICE_NAME == "OpenThermostat E32"
-    for user_name in (None, "E32-regelaar — ketel en diagnose"):
+    # The leftover test-setup name goes on every route (1.0); any other user name stays.
+    for user_name, kept in ((None, None), ("Ketel bijkeuken", "Ketel bijkeuken"),
+                            ("E32-regelaar — ketel en diagnose", None)):
         parent = make_entry(hass)
         devices = dr.async_get(hass)
         hub = devices.async_get_or_create(config_entry_id=parent.entry_id, identifiers={("open_thermostat", "fixture")},
@@ -153,7 +155,7 @@ async def test_the_product_device_is_named_openthermostat_e32_and_a_user_name_st
         try:
             assert await integration.async_setup_entry(hass, parent)
             current = devices.async_get(hub.id)
-            assert current.name == "OpenThermostat E32" and current.name_by_user == user_name
+            assert current.name == "OpenThermostat E32" and current.name_by_user == kept
             assert dr.async_entries_for_config_entry(devices, parent.entry_id) == [current]
         finally:
             await integration.async_unload_entry(hass, parent)

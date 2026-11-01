@@ -714,7 +714,7 @@
       },
       "e32_room_valves": {
         "title": "Zawory grzejnikowe w {name}",
-        "description": "E32 wysyła cel i temperaturę pomieszczenia do tych zaworów przez Zigbee2MQTT i utrzymuje temperaturę zasilania kotła tak niską, jak pozwalają zawory. Wpisz nazwę każdego zaworu w Zigbee2MQTT (friendly name) lub wybierz jeden z {found} znalezionych oraz jego model. Sterowanie jest wyłączone, dopóki go nie włączysz; wtedy nic nie jest wysyłane do zaworów.",
+        "description": "E32 wysyła cel i temperaturę pomieszczenia do tych zaworów przez Zigbee2MQTT i utrzymuje temperaturę zasilania kotła tak niską, jak pozwalają zawory. Wpisz nazwę każdego zaworu w Zigbee2MQTT (friendly name) lub wybierz jeden z {found} znalezionych oraz jego model. Sterowanie jest wyłączone, dopóki go nie włączysz; do tego czasu zawory nie dostają żadnych poleceń.",
         "data": {
           "control": "Sterowanie zaworami",
           "valve_1": "Zawór 1",
@@ -728,7 +728,14 @@
         },
         "data_description": {
           "control": "Wł.: E32 steruje tymi zaworami (tylko gdy sam steruje kotłem). Wył.: zawory zachowują własne ustawienia.",
-          "valve_1": "Nazwa w Zigbee2MQTT, np. \"Zawór salon\". Zostaw puste, jeśli nie ma zaworu."
+          "valve_1": "Nazwa w Zigbee2MQTT, np. \"Zawór salon\". Zostaw puste, jeśli nie ma zaworu.",
+          "model_1": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
+          "valve_2": "Kolejny zawór w tym pomieszczeniu, tak samo jak zawór 1. Zostaw puste, jeśli nie ma zaworu.",
+          "model_2": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
+          "valve_3": "Kolejny zawór w tym pomieszczeniu, tak samo jak zawór 1. Zostaw puste, jeśli nie ma zaworu.",
+          "model_3": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
+          "valve_4": "Kolejny zawór w tym pomieszczeniu, tak samo jak zawór 1. Zostaw puste, jeśli nie ma zaworu.",
+          "model_4": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście."
         }
       },
       "entity_ids": {
@@ -737,6 +744,10 @@
         "data": {
           "scope": "Które encje",
           "confirm": "Przeczytałem listę i chcę zmienić nazwy tych encji"
+        },
+        "data_description": {
+          "scope": "Nieużywane encje to bezpieczny wybór: nic się do nich nie odwołuje. Wszystkie zmienia też nazwy używanych encji z listy powyżej; potem sam popraw te miejsca.",
+          "confirm": "Nic nie zostanie zmienione, dopóki tego nie zaznaczysz."
         }
       },
       "entity_ids_undo": {
@@ -744,6 +755,9 @@
         "description": "{count} encji odzyska poprzedni identyfikator (jeśli jest wolny). Historia zostanie przeniesiona.",
         "data": {
           "confirm": "Przywróć stare identyfikatory"
+        },
+        "data_description": {
+          "confirm": "Encje z ostatniego porządkowania odzyskają poprzedni identyfikator, jeśli jest wolny."
         }
       }
     },

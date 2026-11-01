@@ -1671,7 +1671,14 @@
         },
         "data_description": {
           "control": "Aan: de E32 stuurt deze kranen aan (alleen zolang hij de ketel zelf aanstuurt). Uit: de kranen houden hun eigen instellingen.",
-          "valve_1": "De naam in Zigbee2MQTT, bijv. \"Kraan woonkamer\". Leeg laten voor geen kraan."
+          "valve_1": "De naam in Zigbee2MQTT, bijv. \"Kraan woonkamer\". Leeg laten voor geen kraan.",
+          "model_1": "Het model bepaalt wat de E32 naast het doel stuurt, zoals de ruimtetemperatuur of een klepstand. Kies Anders als het jouwe er niet bij staat.",
+          "valve_2": "Nog een kraan in deze ruimte, op dezelfde manier als kraan 1. Leeg laten voor geen kraan.",
+          "model_2": "Het model bepaalt wat de E32 naast het doel stuurt, zoals de ruimtetemperatuur of een klepstand. Kies Anders als het jouwe er niet bij staat.",
+          "valve_3": "Nog een kraan in deze ruimte, op dezelfde manier als kraan 1. Leeg laten voor geen kraan.",
+          "model_3": "Het model bepaalt wat de E32 naast het doel stuurt, zoals de ruimtetemperatuur of een klepstand. Kies Anders als het jouwe er niet bij staat.",
+          "valve_4": "Nog een kraan in deze ruimte, op dezelfde manier als kraan 1. Leeg laten voor geen kraan.",
+          "model_4": "Het model bepaalt wat de E32 naast het doel stuurt, zoals de ruimtetemperatuur of een klepstand. Kies Anders als het jouwe er niet bij staat."
         }
       },
       "entity_ids": {
@@ -1680,6 +1687,10 @@
         "data": {
           "scope": "Welke entiteiten",
           "confirm": "Ik heb de lijst gelezen en wil deze entiteiten hernoemen"
+        },
+        "data_description": {
+          "scope": "De ongebruikte zijn de veilige keuze: niets verwijst ernaar. Alle hernoemt ook de gebruikte uit de lijst hierboven; pas die plekken daarna zelf aan.",
+          "confirm": "Er wordt niets hernoemd tot je dit aanvinkt."
         }
       },
       "entity_ids_undo": {
@@ -1687,6 +1698,9 @@
         "description": "{count} entiteiten krijgen hun vorige ID terug (waar die nog vrij is). Historie verhuist mee.",
         "data": {
           "confirm": "Zet de oude ID's terug"
+        },
+        "data_description": {
+          "confirm": "De entiteiten van de laatste opruimronde krijgen hun vorige ID terug, waar die nog vrij is."
         }
       }
     },

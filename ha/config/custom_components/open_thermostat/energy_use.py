@@ -19,6 +19,16 @@ How the gas is counted (attribute ``method``):
   (energy options; else the E32's default of 22 kW) x time. Rough, and the
   attributes say so.
 
+Hot water is split once more, into tapping and keeping warm (a third sensor,
+"Gas for keeping hot water warm"; hot water stays the sum). The E32 sorts each
+hot-water episode with the most direct source its boiler reports (a DHW flow
+or a cylinder's charging, else the DHW temperature: ``dhw_method``). The gas of
+the burner during an episode the E32 counts as keeping warm goes to keeping
+warm, in the same proportion as the meter shared out the hot water. Per day:
+the keep-warm rounds, burner minutes and gas. A comfort mode that keeps a
+combi's exchanger hot shows up here: the owner's boiler ran 35-45 rounds,
+about 2 m³, on days with little heating (Oct 2026).
+
 The unit follows the meter: kWh for a meter in Wh/kWh/MWh, m³ otherwise (and
 without a meter). Per day the counts are kept for 15 days (heating, hot water,
 other gas, burner time, hot-water taps and the night-setback saving the E32
@@ -54,6 +64,10 @@ DAYS_KEPT = 15
 SAVE_DELAY_SECONDS = 300
 WRITE_SECONDS = 60
 KINDS = ("heating", "hot_water")
+KEEP_WARM = "keep_warm"  # a part of hot water: its own total, never in the pending shares
+SENSOR_KINDS = KINDS + (KEEP_WARM,)
+# A closed hot-water episode waits this long for the E32 to count it, then counts as tapping.
+EPISODE_MATCH_SECONDS = 300
 METHODS = ("gas_meter", "estimate")
 UNIT_M3, UNIT_KWH = UnitOfVolume.CUBIC_METERS, UnitOfEnergy.KILO_WATT_HOUR
 STORE_VERSION = 1
@@ -132,20 +146,34 @@ def night_savings(hub):
     return result
 
 
-def hot_water_taps(hub):
-    """Today's hot-water taps as the E32 counts them, or None."""
+def _count_of(today, kind):
     from .heating_link import _count, _dict
+    return _count(_dict(today, kind).get("count")) if type(today) is dict else None
+
+
+def hot_water_taps(hub):
+    """Today's hot-water taps as the E32 counts them (carried over its restarts), or None."""
+    if hub is None or not hub.fresh or hub.dhw is None:
+        return None
+    return _count_of(hub.dhw_today(), "tapping")
+
+
+def dhw_method(hub):
+    """How the E32 sorts hot water: storage, flow or dhw_temperature_fall (None without it)."""
+    from .heating_link import _text
     dhw = hub.dhw if hub is not None and hub.fresh else None
-    return _count(_dict(dhw["today"], "tapping").get("count")) if dhw is not None else None
+    return _text(dhw, "method") if dhw is not None else None
 
 
 def empty_day():
     return {"heating_m3": 0.0, "heating_kwh": 0.0, "hot_water_m3": 0.0, "hot_water_kwh": 0.0,
-            "other_m3": 0.0, "heating_s": 0, "hot_water_s": 0, "observed_s": 0, "meter": False, "estimate": False}
+            "keep_warm_m3": 0.0, "keep_warm_kwh": 0.0, "hot_water_burner_kwh": 0.0, "keep_warm_burner_kwh": 0.0,
+            "other_m3": 0.0, "heating_s": 0, "hot_water_s": 0, "keep_warm_s": 0, "observed_s": 0,
+            "meter": False, "estimate": False}
 
 
 def empty_data():
-    return {"schema": 1, "created": False, "unit": UNIT_M3, "totals": {kind: 0.0 for kind in KINDS},
+    return {"schema": 1, "created": False, "unit": UNIT_M3, "totals": {kind: 0.0 for kind in SENSOR_KINDS},
             "days": {}, "meter": None, "pending": {kind: 0.0 for kind in KINDS}, "pending_since": None}
 
 
@@ -156,7 +184,7 @@ def valid_data(value):
     totals, days, pending = value.get("totals"), value.get("days"), value.get("pending")
     if type(totals) is not dict or type(days) is not dict or type(pending) is not dict:
         return None
-    totals = {kind: _float(totals.get(kind)) for kind in KINDS}
+    totals = {kind: _float(totals.get(kind)) for kind in KINDS} | {KEEP_WARM: _float(totals.get(KEEP_WARM, 0.0))}
     pending = {kind: _float(pending.get(kind)) for kind in KINDS}
     if any(item is None or item < 0 for item in (*totals.values(), *pending.values())):
         return None
@@ -182,9 +210,9 @@ def valid_data(value):
                 clean[field] = item is True
             elif (number := _float(item)) is not None and number >= 0:
                 clean[field] = type(default)(number)
-        taps = day.get("taps")
-        if type(taps) is int and taps >= 0:
-            clean["taps"] = taps
+        for count in ("taps", "keep_warm_rounds"):
+            if type(day.get(count)) is int and day[count] >= 0:
+                clean[count] = day[count]
         nights = day.get("nights")
         if type(nights) is dict:
             clean["nights"] = {room: [_float(v[0]), _float(v[1])] for room, v in nights.items()
@@ -210,6 +238,10 @@ class EnergyUse:
         self._previous = None  # (time, modulation %, hot water, kW) of the last usable sample
         self._written = None
         self._dirty = False
+        self._episode = None  # the open hot-water episode: [burner kWh, burner seconds]
+        self._closed = []  # closed episodes waiting for the E32's count: (closed at, kWh, seconds)
+        self._credits = []  # (time, kind): E32 counts that arrived before Home Assistant saw the episode close
+        self._seen = None  # the E32's carried counts per kind at the last look
 
     # -- time ------------------------------------------------------------------
 
@@ -289,6 +321,11 @@ class EnergyUse:
         if previous is None:
             return
         at, modulation, hot_water, kw = previous
+        if hot_water and self._episode is None:
+            self._episode = [0.0, 0]
+        if self._episode is not None and not (sample is not None and sample[1]):
+            self._closed.append((now, *self._episode))  # the hot water ended (or the boiler went quiet)
+            self._episode = None
         seconds = now - at
         if not 0 < seconds <= MAX_STEP_SECONDS:
             return
@@ -300,6 +337,14 @@ class EnergyUse:
             return
         day[f"{kind}_s"] += round(seconds)
         kwh = modulation / 100 * kw * seconds / 3600
+        if hot_water:
+            day["hot_water_burner_kwh"] += kwh
+            if self._episode is not None:
+                self._episode[0] += kwh
+                self._episode[1] += round(seconds)
+            elif self._closed:  # the last step of an episode that just closed
+                when, ekwh, es = self._closed[-1]
+                self._closed[-1] = (when, ekwh + kwh, es + round(seconds))
         if self.method == "gas_meter":
             if self.data["pending_since"] is None:
                 self.data["pending_since"] = at
@@ -356,6 +401,51 @@ class EnergyUse:
         self.data["pending"] = {kind: 0.0 for kind in KINDS}
         self.data["pending_since"] = None
 
+    def _sort_episodes(self, now):
+        """Match closed hot-water episodes with the E32's new counts; keep-warm ones count as keeping warm."""
+        today = self.hub.dhw_today() if self.hub is not None and self.hub.fresh and self.hub.dhw is not None else None
+        if today is None:
+            self._closed = [item for item in self._closed if now - item[0] <= EPISODE_MATCH_SECONDS]
+            return
+        counts = {kind: (today.get(kind) or {}).get("count") for kind in ("tapping", "keep_warm", "charging", "unknown")}
+        counts = {kind: value for kind, value in counts.items() if type(value) is int and value >= 0}
+        if self._seen is not None:
+            for kind, value in counts.items():
+                self._credits += [(now, kind)] * max(0, value - self._seen.get(kind, value))
+        self._seen = counts
+        day = self.day(now)
+        while self._closed and self._credits:
+            _, kwh, seconds = self._closed.pop(0)
+            if self._credits.pop(0)[1] == KEEP_WARM:
+                day["keep_warm_burner_kwh"] += kwh
+                day["keep_warm_s"] += seconds
+                self._dirty = True
+        self._closed = [item for item in self._closed if now - item[0] <= EPISODE_MATCH_SECONDS]
+        # A count without an episode Home Assistant saw (shorter than one sample) is dropped in time too.
+        self._credits = [item for item in self._credits if now - item[0] <= EPISODE_MATCH_SECONDS][-8:]
+        rounds = _count_of(today, KEEP_WARM)
+        if rounds is not None and rounds > day.get("keep_warm_rounds", -1):
+            day["keep_warm_rounds"] = rounds
+            self._dirty = True
+
+    def _share_keep_warm(self, now):
+        """Keeping warm's part of today's hot-water gas, from the burner's energy in keep-warm episodes; only grows."""
+        day = self.day(now)
+        burner = day["hot_water_burner_kwh"]
+        if burner <= 0 or day["keep_warm_burner_kwh"] <= 0:
+            return
+        share = min(1.0, day["keep_warm_burner_kwh"] / burner)
+        add_m3 = day["hot_water_m3"] * share - day["keep_warm_m3"]
+        add_kwh = day["hot_water_kwh"] * share - day["keep_warm_kwh"]
+        if add_m3 <= 0 and add_kwh <= 0:
+            return
+        add_m3, add_kwh = max(0.0, add_m3), max(0.0, add_kwh)
+        day["keep_warm_m3"] += add_m3
+        day["keep_warm_kwh"] += add_kwh
+        self.data["totals"][KEEP_WARM] = min(self.data["totals"][KEEP_WARM] + (add_kwh if self.unit == UNIT_KWH else add_m3),
+                                             self.data["totals"]["hot_water"])
+        self._dirty = True
+
     def _note_day(self, now):
         day = self.day(now)
         taps = hot_water_taps(self.hub)
@@ -376,11 +466,15 @@ class EnergyUse:
         sample = boiler_sample(getattr(self.connection, "client", None))
         self._integrate(now, sample)
         self._follow_meter(now)
+        self._sort_episodes(now)
+        self._share_keep_warm(now)
         self._note_day(now)
         if sample is not None and not self.data["created"]:
             self.data["created"] = True
             self._dirty = True
             self._create_sensors()
+        elif self.data["created"]:
+            self._create_sensors()  # the keep-warm sensor once the E32 sorts its hot water
         if self._dirty:
             self._dirty = False
             self.store.async_delay_save(lambda: self.data, SAVE_DELAY_SECONDS)
@@ -395,10 +489,15 @@ class EnergyUse:
 
     @callback
     def _create_sensors(self):
-        if self._add is None or self.sensors:
+        if self._add is None:
             return
-        self.sensors = [GasUseSensor(self, kind) for kind in KINDS]
-        self._add(self.sensors)
+        have = {sensor.kind for sensor in self.sensors}
+        wanted = list(KINDS) + ([KEEP_WARM] if self.data["totals"][KEEP_WARM] > 0 or (
+            self.hub is not None and self.hub.fresh and self.hub.dhw is not None) else [])
+        new = [GasUseSensor(self, kind) for kind in wanted if kind not in have]
+        if new:
+            self.sensors += new
+            self._add(new)
 
     # -- reading back ---------------------------------------------------------------
 
@@ -410,20 +509,36 @@ class EnergyUse:
     def attributes(self, kind):
         today = self.today()
         days = self.window(today, 7)
-        current = self.data["days"].get(today.isoformat(), empty_day())
+        current = {**empty_day(), **self.data["days"].get(today.isoformat(), {})}
+        days = [{**empty_day(), **day} for day in days]
         boiler = sum(day["heating_m3"] + day["hot_water_m3"] for day in days)
         mine = sum(day[f"{kind}_m3"] for day in days)
         in_kwh = self.unit == UNIT_KWH
         key = f"{kind}_kwh" if in_kwh else f"{kind}_m3"
         _, known = self.power()
         method = self.method
-        return {"method": method, "estimate": method == "estimate",
-                "rough": method == "estimate" and not known,
-                "today": _round(current[key], 3), "last_7_days": _round(sum(day[key] for day in days), 3),
-                "today_kwh": _round(current[f"{kind}_kwh"], 2),
-                "last_7_days_kwh": _round(sum(day[f"{kind}_kwh"] for day in days), 2),
-                "share_last_7_days": _round(100 * mine / boiler, 0) if boiler > 0 else None,
-                "burner_hours_last_7_days": _round(sum(day[f"{kind}_s"] for day in days) / 3600, 1)}
+        result = {"method": method, "estimate": method == "estimate",
+                  "rough": method == "estimate" and not known,
+                  "today": _round(current[key], 3), "last_7_days": _round(sum(day[key] for day in days), 3),
+                  "today_kwh": _round(current[f"{kind}_kwh"], 2),
+                  "last_7_days_kwh": _round(sum(day[f"{kind}_kwh"] for day in days), 2),
+                  "share_last_7_days": _round(100 * mine / boiler, 0) if boiler > 0 else None,
+                  "burner_hours_last_7_days": _round(sum(day[f"{kind}_s"] for day in days) / 3600, 1)}
+        if kind in ("hot_water", KEEP_WARM):
+            unit = "kwh" if in_kwh else "m3"
+            result["dhw_method"] = dhw_method(self.hub)
+            result["tapping_today"] = _round(max(0.0, current[f"hot_water_{unit}"] - current[f"keep_warm_{unit}"]), 3)
+            result["keep_warm_today"] = _round(current[f"keep_warm_{unit}"], 3)
+        if kind == KEEP_WARM:
+            hot = sum(day["hot_water_m3"] for day in days)
+            result["share_of_hot_water_last_7_days"] = _round(100 * mine / hot, 0) if hot > 0 else None
+            result["rounds_today"] = current.get("keep_warm_rounds")
+            result["burner_minutes_today"] = _round(current["keep_warm_s"] / 60, 0)
+            # One line per day: rounds, burner minutes and gas (the last 15 days).
+            result["days"] = {key: {"rounds": day.get("keep_warm_rounds"), "burner_minutes": _round(day.get("keep_warm_s", 0) / 60, 0),
+                                    "gas": _round(day.get(f"keep_warm_{unit}", 0.0), 3)}
+                              for key, day in sorted(self.data["days"].items())}
+        return result
 
     def diagnostics(self):
         days = {key: {field: (_round(value, 3) if type(value) is float else value)
@@ -463,13 +578,15 @@ class GasUseSensor(RestoreEntity, SensorEntity):
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     # The day and week figures change with every count; the history keeps the total.
     _unrecorded_attributes = frozenset({"today", "last_7_days", "today_kwh", "last_7_days_kwh",
-                                        "share_last_7_days", "burner_hours_last_7_days"})
+                                        "share_last_7_days", "burner_hours_last_7_days", "tapping_today",
+                                        "keep_warm_today", "share_of_hot_water_last_7_days", "rounds_today",
+                                        "burner_minutes_today", "days"})
 
     def __init__(self, use, kind):
         self.use, self.kind = use, kind
         self.added = False  # in Home Assistant now (added, not removed or disabled)
         prefix = use.hub.prefix
-        self._attr_unique_id = f"{prefix}_hub_{kind}_gas"
+        self._attr_unique_id = f"{prefix}_hub_{kind}_gas"  # hub_heating_gas / hub_hot_water_gas: unchanged
         self._attr_translation_key = f"{kind}_gas"
         self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, prefix)})
 
@@ -509,7 +626,8 @@ class GasUseSensor(RestoreEntity, SensorEntity):
 
 
 async def async_setup_energy_use(hass, entry, async_add_entities, options, hub, connection):
-    """Product entries: count the gas; the two sensors appear once the boiler reports its modulation."""
+    """Product entries: count the gas; the sensors appear once the boiler reports its modulation (keeping warm
+    once the E32 sorts its hot water)."""
     use = EnergyUse(hass, entry, hub, connection)
     hass.data[DOMAIN][entry.entry_id]["energy_use"] = use
     await use.async_start(lambda entities: async_add_entities(entities, **options))

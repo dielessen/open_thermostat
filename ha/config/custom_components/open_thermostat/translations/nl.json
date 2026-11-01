@@ -2379,6 +2379,9 @@
       "hot_water_gas": {
         "name": "Gas voor warm water"
       },
+      "keep_warm_gas": {
+        "name": "Gas voor warmhouden van warm water"
+      },
       "flow_source": {
         "name": "Bron aanvoertemperatuur",
         "state": {

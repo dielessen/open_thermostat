@@ -772,7 +772,8 @@ async def test_todays_hot_water_becomes_product_sensors_once_reported(hass, monk
     assert taps.native_unit_of_measurement is None and taps.translation_key == "dhw_taps_today"
     assert all(e.device_info["identifiers"] == {("open_thermostat", "fixture")} for e in by_key.values())
     assert taps.extra_state_attributes == {"method": "flow", "clock_known": True, "minutes": 9.0, "last_7_days": 40,
-                                           "peak_flow_l_min": 7.5, "unknown_count": 1}
+                                           "peak_flow_l_min": 7.5, "unknown_count": 1,
+                                           "charging_count": None}
     assert warm.extra_state_attributes == {"method": "flow", "clock_known": True, "minutes": 5.0, "last_7_days": 15}
     assert burner.extra_state_attributes == {"method": "flow", "clock_known": True, "tapping_minutes": 9.0,
                                              "keep_warm_minutes": 5.0, "last_7_days_minutes": 85.0}
@@ -981,7 +982,8 @@ async def test_the_heating_summary_feeds_the_learned_header_and_hot_water(hass, 
     taps, warm, burner = (by_key[k] for k in module.DHW_SENSORS)
     assert (taps.native_value, warm.native_value, burner.native_value) == (6, 2, 12.5)
     assert taps.extra_state_attributes == {"method": "flow", "clock_known": True, "minutes": 9.0, "last_7_days": None,
-                                           "peak_flow_l_min": 7.5, "unknown_count": 1}
+                                           "peak_flow_l_min": 7.5, "unknown_count": 1,
+                                           "charging_count": None}
     # An invalid or oversized summary drops the previous one: header and hot water unknown.
     for bad in ({**SUMMARY, "schema": 2}, json.dumps({**SUMMARY, "pad": "x" * module.MAX_SUMMARY_BYTES}), "nope"):
         summary(SUMMARY)

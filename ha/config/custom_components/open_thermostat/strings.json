@@ -1451,6 +1451,9 @@
       "hot_water_gas": {
         "name": "Gas for hot water"
       },
+      "keep_warm_gas": {
+        "name": "Gas for keeping hot water warm"
+      },
       "flow_source": {
         "name": "Flow source",
         "state": {

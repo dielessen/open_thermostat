@@ -181,10 +181,11 @@ TEXT = {
         "advice": "Advice", "advice_where": "Where", "advice_confidence": "Confidence",
         "advice_note": "Advice only: nothing is changed automatically.",
         "confidence_low": "low", "confidence_medium": "medium", "confidence_high": "high",
-        "gas_heating": "Heating", "gas_hot_water": "Hot water", "gas_per_day": "Gas per day",
+        "gas_heating": "Heating", "gas_hot_water": "Hot water", "gas_keep_warm": "Of which keeping warm",
+        "gas_per_day": "Gas per day",
         "gas_measured": "Measured with your gas meter, split by what the boiler did.",
         "gas_estimate": "Estimated from the burner modulation and the boiler's power (no gas meter).",
-        "gas_note": "Add these two sensors to the Energy dashboard under Gas consumption.",
+        "gas_note": "Add heating and hot water to the Energy dashboard under Gas consumption; keeping warm is a part of hot water, so leave it out there.",
         "outdoor": "Outdoor",
         "flow_settings": "Heating curve and learning",
         "flow_source": "Flow source",
@@ -266,10 +267,11 @@ TEXT = {
         "advice": "Advies", "advice_where": "Waar", "advice_confidence": "Zekerheid",
         "advice_note": "Alleen advies: er wordt niets automatisch veranderd.",
         "confidence_low": "laag", "confidence_medium": "middel", "confidence_high": "hoog",
-        "gas_heating": "Verwarmen", "gas_hot_water": "Warm water", "gas_per_day": "Gas per dag",
+        "gas_heating": "Verwarmen", "gas_hot_water": "Warm water", "gas_keep_warm": "Waarvan warmhouden",
+        "gas_per_day": "Gas per dag",
         "gas_measured": "Gemeten met je gasmeter, verdeeld naar wat de ketel deed.",
         "gas_estimate": "Geschat uit de brandermodulatie en het vermogen van de ketel (geen gasmeter).",
-        "gas_note": "Voeg deze twee sensoren toe aan het energiedashboard onder Gasverbruik.",
+        "gas_note": "Voeg verwarmen en warm water toe aan het energiedashboard onder Gasverbruik; warmhouden is een deel van warm water, laat dat daar weg.",
         "outdoor": "Buiten",
         "flow_settings": "Stooklijn en leren",
         "flow_source": "Aanvoerbron",
@@ -409,8 +411,8 @@ def _advice_section(t, advice):
     return section
 
 
-def _energy_section(t, heating, hot_water):
-    """Gas for heating and for hot water per day (the last 7 days) and how it is counted; only with the sensors."""
+def _energy_section(t, heating, hot_water, keep_warm=None):
+    """Gas for heating, hot water and (of that) keeping it warm per day (7 days); only with the sensors."""
     entities = [entity for entity in (heating, hot_water) if entity]
     if not entities:
         return None
@@ -420,7 +422,7 @@ def _energy_section(t, heating, hot_water):
     return _section(
         _heading(t["gas_per_day"], "mdi:fire"),
         {"type": "statistics-graph", "entities": [{"entity": entity_id, "name": name} for entity_id, name in (
-            (heating, t["gas_heating"]), (hot_water, t["gas_hot_water"])) if entity_id],
+            (heating, t["gas_heating"]), (hot_water, t["gas_hot_water"]), (keep_warm, t["gas_keep_warm"])) if entity_id],
          "stat_types": ["change"], "period": "day", "days_to_show": 7, "chart_type": "bar"},
         {"type": "markdown", "content": note})
 
@@ -886,7 +888,7 @@ class RoomDashboard:
         )
         if len(settings["cards"]) > 1:
             sections.append(settings)
-        energy = _energy_section(t, hub.get("heating_gas"), hub.get("hot_water_gas"))
+        energy = _energy_section(t, hub.get("heating_gas"), hub.get("hot_water_gas"), hub.get("keep_warm_gas"))
         if energy:
             sections.append(energy)
 

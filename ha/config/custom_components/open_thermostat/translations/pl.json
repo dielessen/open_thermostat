@@ -1451,6 +1451,9 @@
       "hot_water_gas": {
         "name": "Gaz na ciepłą wodę"
       },
+      "keep_warm_gas": {
+        "name": "Gaz na utrzymanie ciepłej wody"
+      },
       "flow_source": {
         "name": "Źródło temperatury zasilania",
         "state": {

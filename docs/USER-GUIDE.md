@@ -401,6 +401,22 @@ outdoor temperature (from the boiler or from Home Assistant). The product
 device also shows hot water today (taps, keeping warm, burner time) and a
 burner short-cycling warning.
 
+### Gas for heating, hot water and keeping warm
+
+With a gas meter in the energy options, *Gas for heating* and *Gas for hot
+water* share the meter by what the boiler did (without a meter they are an
+estimate from the burner modulation). *Gas for keeping hot water warm* is the
+part of hot water spent without tapping: a combi's comfort mode reheating its
+exchanger, or a cylinder being charged. Its attributes show per day the rounds,
+burner minutes and gas. The E32 decides per hot-water episode with the most
+direct signal the boiler reports: a DHW flow meter, a cylinder's charging, or
+otherwise the DHW temperature (a tap brings cold mains water, so it falls deep
+or stays down; keeping warm dips briefly). The attribute `dhw_method` names it.
+Add heating and hot water to the Energy dashboard; keeping warm is a part of
+hot water, so leave it out there. Many rounds a day while the heating is off
+can be worth a look: the comfort mode itself, or heat leaking away (ask your
+installer).
+
 ## Backup and restore
 
 Settings → **Backup and restore** saves the settings of the E32 in

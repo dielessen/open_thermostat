@@ -25,6 +25,7 @@ TEXT = {
         "hot_water_m3": "Hot water: {m3} m³ of gas ({kwh} kWh), burner {hours} h.",
         "hot_water_kwh": "Hot water: {kwh} kWh of gas, burner {hours} h.",
         "taps": " {taps} taps.",
+        "keep_warm": " Of that, keeping the hot water warm: {m3} m³ ({rounds} rounds).",
         "share": "Heating was {share} % of the boiler's gas.",
         "less": "That is {change} % less than the week before.",
         "more": "That is {change} % more than the week before.",
@@ -54,6 +55,7 @@ TEXT = {
         "hot_water_m3": "Warm water: {m3} m³ gas ({kwh} kWh), brander {hours} uur.",
         "hot_water_kwh": "Warm water: {kwh} kWh gas, brander {hours} uur.",
         "taps": " {taps} keer getapt.",
+        "keep_warm": " Daarvan voor warmhouden van het warme water: {m3} m³ ({rounds} keer).",
         "share": "Verwarmen was {share} % van het gas van de ketel.",
         "less": "Dat is {change} % minder dan de week ervoor.",
         "more": "Dat is {change} % meer dan de week ervoor.",
@@ -112,6 +114,9 @@ def figures(records, today, *, unit="m³", rough=False, price=None, currency="EU
     result["change_pct"] = _round(100 * (boiler - previous) / previous, 0) if full and previous > 0 else None
     taps = [day["taps"] for day in week if type(day.get("taps")) is int]
     result["hot_water_taps"] = sum(taps) if taps else None
+    rounds = [day["keep_warm_rounds"] for day in week if type(day.get("keep_warm_rounds")) is int]
+    result["keep_warm_m3"] = _round(_sum(week, "keep_warm_m3"), 2) if rounds or _sum(week, "keep_warm_m3") else None
+    result["keep_warm_rounds"] = sum(rounds) if rounds else None
     nights = [value for day in week for value in (day.get("nights") or {}).values()]
     result["night_saving_m3"] = _round(sum(m3 for m3, _ in nights), 2) if nights else None
     money = [money for m3, money in nights if m3 and money is not None]
@@ -141,6 +146,8 @@ def message(result, advice_titles, lang):
                 m3=n(result[f"{kind}_m3"]), kwh=n(result[f"{kind}_kwh"]), hours=n(result[f"{kind}_hours"]))
             if kind == "hot_water" and result["hot_water_taps"] is not None:
                 line += t["taps"].format(taps=n(result["hot_water_taps"]))
+            if kind == "hot_water" and result.get("keep_warm_m3") and not kwh:
+                line += t["keep_warm"].format(m3=n(result["keep_warm_m3"]), rounds=n(result["keep_warm_rounds"] or 0))
             lines.append(line)
         if result["heating_share_pct"] is not None:
             share = t["share"].format(share=n(result["heating_share_pct"]))

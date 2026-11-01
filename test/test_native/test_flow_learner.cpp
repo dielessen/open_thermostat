@@ -155,6 +155,62 @@ TEST(FlowLearner, HotWaterIsNotLearned) {
     EXPECT_STREQ(unknown.learner.readiness(0), "collecting");
 }
 
+// A boiler that keeps a small hot-water store warm (3 min every 11 min, the owner's
+// EcomLine HRC 22) never gives 45 min of heating without hot water: by default nothing is
+// learned. The opt-in bridge pauses the segment over each hot-water run instead.
+void storeDays(House& h, int cycles) {
+    for (int c = 0; c < cycles; ++c)
+        for (const double f : tadoFlows) {
+            h.rooms[0].T = 20;
+            for (int k = 0; k < 19; ++k) { h.run(8 * minute, f); h.run(3 * minute, f, true); }
+            h.run(8 * hour, std::nullopt);
+        }
+}
+
+TEST(FlowLearner, KeepWarmStoreBlocksLearningUnlessBridged) {
+    auto plain = House::floor();
+    storeDays(plain, 3);
+    EXPECT_STREQ(plain.learner.readiness(0), "collecting");
+    EXPECT_EQ(plain.learner.segments(0), 0);
+
+    auto bridged = House::floor();
+    FlowLearner::Params p; p.bridgeHotWater = true;
+    bridged.learner = FlowLearner(p);
+    bridged.plan(RoomPlan::Emitter::floor);
+    storeDays(bridged, 3);
+    EXPECT_GT(bridged.learner.segments(0), 0);  // learning, where the plain learner has nothing
+    // One heating period per tado run, not one per hot-water interruption.
+    EXPECT_EQ(bridged.learner.heatingPeriods(), 3u * 6u);
+    int cycles = 3;
+    while (std::string(bridged.learner.readiness(0)) != "ready" && cycles < 12) { storeDays(bridged, 1); ++cycles; }
+    RecordProperty("bridged_cycles_to_ready", cycles);
+    ASSERT_STREQ(bridged.learner.readiness(0), "ready");
+    EXPECT_LE(cycles, 6);  // at most twice the clean house's three passes
+    auto clean = House::floor();
+    clean.days(tadoFlows, 3);
+    // Paused samples are not used: the advice matches a house without the store.
+    EXPECT_NEAR(*bridged.learner.advise(0, 100, std::nullopt).flowC, *clean.learner.advise(0, 100, std::nullopt).flowC, 3);
+    // Hot-water flows (65 degC) never become a learned bin.
+    Json root(bridged.learner.json(), cJSON_Delete);
+    for (const cJSON* q = cJSON_GetObjectItem(cJSON_GetArrayItem(cJSON_GetObjectItem(root.get(), "rooms"), 0), "curve")->child; q; q = q->next)
+        EXPECT_LT(cJSON_GetObjectItem(q, "flow_c")->valuedouble, 54);
+}
+
+TEST(FlowLearner, BridgeEndsAfterItsLimit) {
+    // A hot-water run longer than maxBridgeMs still ends the segment.
+    auto h = House::floor();
+    FlowLearner::Params p; p.bridgeHotWater = true; p.maxBridgeMs = 10 * minute;
+    h.learner = FlowLearner(p);
+    h.plan(RoomPlan::Emitter::floor);
+    for (int c = 0; c < 3; ++c)
+        for (const double f : tadoFlows) {
+            h.rooms[0].T = 20;
+            for (int k = 0; k < 6; ++k) { h.run(20 * minute, f); h.run(15 * minute, f, true); }
+            h.run(8 * hour, std::nullopt);
+        }
+    EXPECT_EQ(h.learner.segments(0), 0);  // 20 min pieces are too short on their own
+}
+
 TEST(FlowLearner, StaleDataGapsAndSourceSwitchesEndSegments) {
     // 70 min periods: after settling 60 min, split by 15 min stale room data -> nothing.
     auto stale = House::floor();

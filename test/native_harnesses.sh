@@ -60,6 +60,7 @@ build_ble_owner(){ g++ "${STRICT[@]}" -Isrc -I$D/cJSON -I$GT/include test/test_n
 build_ble_storage(){ g++ "${STRICT[@]}" -Isrc -Itest/bluetooth_storage/include -Itest/onboarding/include test/bluetooth_storage/main.cpp test/bluetooth_storage/allocation.cpp -o "$OUT/ble_storage"; }
 build_web_auth_unit(){ g++ "${STRICT[@]}" -Isrc -I$GT/include test/test_native/test_web_auth.cpp $MAIN "$GTEST" -lpthread -o "$OUT/web_auth_unit"; }
 build_onboarding(){ g++ -std=c++20 -g "${SAN[@]}" -Itest/onboarding/include -Isrc -I$D/cJSON -I$D/esp32_utilities/src test/onboarding/firmware.cpp $D/cJSON/cJSON.c -o "$OUT/onboarding"; }
+build_learning_replay(){ g++ "${STRICT[@]}" -Isrc -I$D/cJSON test/learning_replay/replay.cpp "$OUT/cjson.o" -o "$OUT/learning_replay"; }
 build_boiler_display(){ g++ -std=c++17 -Wall -Wextra -Werror -Isrc -Itest/boiler_display/include test/boiler_display/firmware.cpp -o "$OUT/boiler_display"; }
 build_logging(){ g++ -std=c++17 -Wall -Wextra -Werror -pthread -DOPENTHERMOSTAT_E32V2 -Isrc -Itest/logging_runtime/include -Itest/boiler_display/include -I$D/esp32_utilities/src -I$D/cJSON test/logging_runtime/main.cpp src/diagnostics/NativeLog.cpp src/EMS/EmsTelegram.cpp "$OUT/vendor-logger.o" $D/cJSON/cJSON.c -o "$OUT/logging"; }
 # The two Python harnesses compile their own handlers; OT_HARNESS_BUILD_ONLY=1 stops before running.
@@ -69,7 +70,7 @@ build_web_auth(){ OT_HARNESS_BUILD_ONLY=1 python3 test/web_auth/run.py; }
 # The CI order of the original native step.
 HARNESSES=(ems_readers shadow_contacts boiler_poll echo_adapter actuator deadline_socket pending_tcp
            pending_tcp_offset async_dns update_checkpoint shelly_ht ble_crypto ble_owner ble_storage
-           web_auth_unit manual_ota web_auth onboarding boiler_display logging)
+           web_auth_unit manual_ota web_auth onboarding boiler_display logging learning_replay)
 if [ $# -gt 0 ]; then
   for name in "$@"; do [[ " ${HARNESSES[*]} " == *" $name "* ]] || { echo "unknown harness $name" >&2; exit 2; }; done
   HARNESSES=("$@")
@@ -82,6 +83,9 @@ if [ "$mode" = run ]; then
     case "$name" in
       manual_ota) python3 test/manual_ota/run.py ;;
       web_auth) python3 test/web_auth/run.py ;;
+      learning_replay) build_learning_replay
+        python3 -I -c "import sys; sys.path.insert(0, 'tools/switchover'); import replay_export as rx, test_replay_tools as t; rx.write_csv(t.house(hours=60, store=True), sys.argv[1])" "$OUT/replay.csv"
+        "$OUT/learning_replay" "$OUT/replay.csv" > "$OUT/replay.json" ;;
       *) "build_$name"; "$OUT/$name" ;;
     esac
   done

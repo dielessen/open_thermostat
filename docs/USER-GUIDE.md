@@ -35,11 +35,11 @@ energy inputs.
 | Pairing Bluetooth sensors (address, profile, encryption key) | E32: Sensors | E32: Sensors |
 | Boiler model | E32: Boiler | E32: Boiler |
 | Network, MQTT broker, time and time zone | E32: Settings | E32: Settings |
-| Admin password of the E32 | E32: Settings → Password | E32: Settings → Password |
+| Admin password of the E32 | E32: System → Password | E32: System → Password |
 | Firmware updates | E32: System → Firmware update | The firmware update entity, or the E32 page |
-| Backup and restore of the settings | E32: Settings → Backup and restore | E32: Settings → Backup and restore |
+| Backup and restore of the settings | E32: System → Backup and restore | E32: System → Backup and restore |
 | Restart | E32: System → Restart device | E32: System → Restart device |
-| Logs, diagnostics console and syslog | E32: System → System log | E32: System → System log |
+| Logs, diagnostics console and syslog | E32: System → Diagnostics and system log | E32: System → Diagnostics and system log |
 
 The room plan is stored on the E32, and the E32 runs it. With Home Assistant,
 the HA room editor is the main place to edit it; it reads the plan from the
@@ -66,7 +66,7 @@ A new E32 first needs the OpenThermostat firmware over USB; see
    for example `http://openthermostat-a1b2c3.local/` where your network
    supports `.local` names.
 5. Sign in with user `admin` and password `admin`. Then choose your own
-   password (8–64 characters) under **Settings → Password**; until you do,
+   password (8–64 characters) under **System → Password**; until you do,
    the Overview reminds you. Home Assistant asks for this password when you
    connect it. A forgotten password can be reset to `admin` with the
    `password-reset` command over USB.
@@ -74,7 +74,7 @@ A new E32 first needs the OpenThermostat firmware over USB; see
 ### 2. Set the time zone
 
 Week programs, "today" and the daily comparison use the E32's own clock. Go
-to **Settings**, section **Time**, check the time server and choose
+to **System → Network and Home Assistant**, section **Time**, check the time server and choose
 your time zone from the list. When the page suggests the time zone of your
 browser, **Use this time zone** fills it in. For a time zone that is not in
 the list, choose "Other" and enter its POSIX text under Advanced, for example
@@ -85,7 +85,7 @@ Assistant.
 
 ### 3. Choose your boiler
 
-A newly installed E32 does not listen to the boiler yet. Under **Settings →
+A newly installed E32 does not listen to the boiler yet. Under **System → Network and Home Assistant →
 Advanced settings → Hardware services**, tick **EMS bus enabled**,
 save and let the E32 restart. This only lets the E32 receive boiler data; it
 does not send heat requests. Connect the E32 to the boiler's EMS bus as
@@ -113,7 +113,7 @@ Monitor 3 work as well.
    32-character bindkey. The older PVVX Custom format also works.
 2. Place the sensor in the room, away from radiators, windows and direct sun,
    within Bluetooth range of the E32.
-3. On the E32, open **Sensors** and choose **Search nearby**. The list shows up
+3. On the E32, open **System → Bluetooth sensors** and choose **Search nearby**. The list shows up
    to 32 of the strongest nearby devices.
 4. Click your sensor and give it a clear name such as "Living room
    thermometer". Choose the profile **Thermometer with pvvx firmware
@@ -168,13 +168,13 @@ You need Home Assistant 2026.10.0 or newer (tested with 2026.10.2 to
 2026.10.4).
 
 1. Set up Home Assistant's MQTT integration with a local MQTT broker, and
-   enter the same broker under E32 **Settings → MQTT**: tick
+   enter the same broker under E32 **System → Network and Home Assistant → MQTT**: tick
    **Enabled** and enter a broker user name and password. The E32 does not
    connect to Home Assistant through a broker without a login.
 2. Install the OpenThermostat integration package, restart Home Assistant and
    add OpenThermostat under Settings → Devices & services. You do not need to
    add a room in Home Assistant first.
-3. Choose **Configure → Connect E32** and enter the E32 address and password.
+3. Choose **Configure → E32 connection** and enter the E32 address and password.
    The address may be an IP address or a local name such as
    `http://openthermostat-a1b2c3.local`, `http://e32.fritz.box` or
    `http://e32.home.arpa`. Home Assistant switches the E32's MQTT connection
@@ -309,7 +309,7 @@ Assistant's "Eco") and Boost. Away is the house mode, not a preset of one
 room. Comfort and Night are the warmest and the
 coolest temperature of the room's week program, the same levels as in the week
 planner. A new target on the thermostat lasts until the next switch point; a room
-without a week program keeps it for the time set under Configure → Comfort,
+without a week program keeps it for the time set under Configure → Home → Defaults for rooms and timing,
 and a room with only a fixed target changes that fixed target in the plan.
 
 ### Week program and setting device
@@ -417,7 +417,7 @@ burner short-cycling warning.
 
 ## Backup and restore
 
-Settings → **Backup and restore** saves the settings of the E32 in
+System → **Backup and restore** saves the settings of the E32 in
 one file: network and time (host name, time zone, time server), MQTT and the
 Home Assistant link, the room plan with its week programs, the Bluetooth
 sensors, the flow options, the boiler model and the page language.
@@ -434,7 +434,7 @@ sensors, the flow options, the boiler model and the page language.
   The E32 checks the whole file and shows what will change, what it skips and
   what you need to enter again. Nothing is saved until you choose **Restore
   these settings**. A backup without a passphrase holds no MQTT password, and
-  MQTT stays off until you enter it again under Settings → MQTT. If saving one part fails, the E32 puts the earlier
+  MQTT stays off until you enter it again under System → Network and Home Assistant → MQTT. If saving one part fails, the E32 puts the earlier
   settings back. When network or Bluetooth settings change, the E32 restarts
   about 10 seconds later; sign in again afterwards.
 - **What a restore never does.** It does not change the Wi-Fi network or the
@@ -445,7 +445,7 @@ sensors, the flow options, the boiler model and the page language.
 
 ## Logs and the diagnostics console
 
-System → **System log** shows what the E32 is doing. It keeps the last 512 log
+System → **Diagnostics and system log** shows what the E32 is doing. It keeps the last 512 log
 lines in its external memory (PSRAM); they are gone after a restart. Filter by
 source (ESP or EMS), level or text, pause the view or download it.
 

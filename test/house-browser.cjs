@@ -37,9 +37,9 @@ const fixture=()=>({schema:1,revision:4,mode:'shadow',request:{heat:false,flow_c
   });
   await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://opth.test'}]);
   await page.goto('http://opth.test/');await page.waitForFunction(()=>typeof loadNativePage==='function');
-  // The menu: Overzicht · Ruimtes · Huis · Ketel ..., and #house opens the page.
+  // The menu (beta.23): Overzicht · Ruimtes · Huis · Ketel · Systeem, and #house opens the page.
   const menu=await page.locator('#navbarNavDropdown > ul > li:not([hidden]) > a.nav-link').allInnerTexts();
-  assert.deepEqual(menu.slice(0,4).map(t=>t.trim()),['Overzicht','Ruimtes','Huis','Ketel']);
+  assert.deepEqual(menu.map(t=>t.trim()),['Overzicht','Ruimtes','Huis','Ketel','Systeem']);
   await page.evaluate(()=>openPage('house'));
   const root=page.locator('#house-settings'),now=root.locator('[data-house-now]'),message=root.locator('[data-house-message]');
   await now.getByText('Automatisch: er is iemand thuis, dus de ruimtes volgen hun weekprogramma.').waitFor();

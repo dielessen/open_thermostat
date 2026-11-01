@@ -512,7 +512,7 @@
         "setup_save_uncertain": "Opslaan kon niet worden bevestigd. Open de ruimte-instelling opnieuw en controleer de opgeslagen ruimte en groep voordat je opnieuw probeert.",
         "setup_platform_unsupported": "Hiervoor is Home Assistant 2026.10.0 of nieuwer nodig, en jouw versie wordt door deze integratieversie niet ondersteund. Er is niets aangepast. Werk Home Assistant bij, of kijk of er een integratie-update is.",
         "e32_rooms_elsewhere": "De ruimtes van deze installatie staan nu op de E32: open OpenThermostat → Configureren → Ruimtes. De oudere ruimterecords in Home Assistant blijven alleen ter naslag bewaard.",
-        "e32_connect_first": "Koppel eerst je E32: OpenThermostat → Configureren → E32 verbinden. Daarna voeg je de ruimtes daar toe onder Ruimtes; ze worden op de E32 bewaard."
+        "e32_connect_first": "Koppel eerst je E32: OpenThermostat → Configureren → E32-verbinding. Daarna voeg je de ruimtes daar toe onder Ruimtes; ze worden op de E32 bewaard."
       }
     },
     "heating": {
@@ -961,7 +961,7 @@
       },
       "shadow": {
         "title": "Een OpenThermostat E32 koppelen",
-        "description": "De E32 rekent mee; je huidige thermostaat blijft de ketel regelen. Er gaat niets naar de ketel. Home Assistant zet wel de gewenste temperatuur op het instelapparaat van elke ruimte (radiatorkraan, tado of getalhelper), volgens het weekprogramma van die ruimte. Normaal koppel je de E32 later via Configureren → E32 verbinden; dat vult het verbindings-ID voor je in.",
+        "description": "De E32 rekent mee; je huidige thermostaat blijft de ketel regelen. Er gaat niets naar de ketel. Home Assistant zet wel de gewenste temperatuur op het instelapparaat van elke ruimte (radiatorkraan, tado of getalhelper), volgens het weekprogramma van die ruimte. Normaal koppel je de E32 later via Configureren → E32-verbinding; dat vult het verbindings-ID voor je in.",
         "data": {
           "topic_prefix": "MQTT-prefix van de E32",
           "adapter_id": "Verbindings-ID (al ingevuld)"
@@ -973,7 +973,7 @@
       },
       "installation": {
         "title": "Verwarmingsinstallatie instellen",
-        "description": "Geef deze installatie een naam. Daarna koppel je je E32 (Configureren → E32 verbinden) en voeg je je ruimtes toe. Opslaan start geen verwarming.",
+        "description": "Geef deze installatie een naam. Daarna koppel je je E32 (Configureren → E32-verbinding) en voeg je je ruimtes toe. Opslaan start geen verwarming.",
         "data": {
           "name": "Naam installatie",
           "create_dashboard": "OpenThermostat-dashboard tonen"
@@ -1011,7 +1011,7 @@
       "invalid_status": "De MQTT-ruimtestatus is ongeldig.",
       "invalid_topic": "De MQTT-topicprefix is ongeldig.",
       "reauth_successful": "Het nieuwe E32-wachtwoord is opgeslagen. Home Assistant maakt nu opnieuw verbinding.",
-      "reauth_no_e32": "Deze installatie heeft nog geen E32-verbinding. Gebruik Configureren → E32 verbinden."
+      "reauth_no_e32": "Deze installatie heeft nog geen E32-verbinding. Gebruik Configureren → E32-verbinding."
     },
     "error": {
       "invalid_topic": "Niet-ondersteunde prefix voor deze modus. Shadow vereist 1–32 ASCII-letters/cijfers, - of _; bestaande oude ID’s worden niet hernoemd.",
@@ -1024,7 +1024,7 @@
       "reauth_try_again_later": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw."
     },
     "create_entry": {
-      "e32_next_steps": "Volgende stap: kies bij deze integratie Configureren en daarna E32 verbinden. Zet vooraf MQTT aan op de webpagina van de E32 (Instellingen → MQTT). Na het koppelen gaat Home Assistant meteen verder met je eerste ruimte."
+      "e32_next_steps": "Volgende stap: kies bij deze integratie Configureren en daarna E32-verbinding. Zet vooraf MQTT aan op de webpagina van de E32 (Instellingen → MQTT). Na het koppelen gaat Home Assistant meteen verder met je eerste ruimte."
     }
   },
   "options": {
@@ -1042,9 +1042,9 @@
         "description": "Alles wat voor het hele huis geldt, net als op de pagina Huis van de E32. De huismodus zelf (automatisch, thuis, afwezig, vakantie) is de bediening Huismodus op het E32-apparaat en op het dashboard.",
         "menu_options": {
           "house_presence": "Aanwezigheid: wie hier woont",
-          "comfort": "Ruimtes: standaarden en raamcontacten",
           "heating_boiler": "Verwarming en ketel",
-          "energy": "Energie en buitentemperatuur"
+          "energy": "Energie en buitentemperatuur",
+          "comfort_settings": "Standaarden voor ruimtes en tijden"
         }
       },
       "house_presence": {
@@ -1097,15 +1097,15 @@
       },
       "init": {
         "title": "OpenThermostat",
-        "description": "Eerst je ruimtes, dan verwarming, energie en de E32-verbinding. Nieuw? Begin met E32 verbinden; daarna voeg je je ruimtes toe.",
+        "description": "Eerst je ruimtes, dan verwarming, energie en de E32-verbinding. Nieuw? Begin met E32-verbinding; daarna voeg je je ruimtes toe.",
         "menu_options": {
           "e32_rooms": "Ruimtes",
           "house": "Huis",
           "comfort": "Comfort: presets en raamsensoren",
           "heating_boiler": "Verwarming en ketel",
           "energy": "Energie en buitentemperatuur",
-          "controller_connection": "E32 verbinden",
-          "general": "Naam en dashboard",
+          "controller_connection": "E32-verbinding",
+          "general": "Dashboard en naam",
           "advanced_settings": "Geavanceerd en diagnose",
           "room_settings": "Ruimtes beheren",
           "installation": "Installatie instellen",
@@ -1811,10 +1811,10 @@
       "configuration_status_closed": "Status gesloten.",
       "product_upgrade_required": "Deze oude inrichting moet eerst worden overgenomen naar de normale productconfiguratie.",
       "controller_connection_complete": "De E32-verbinding en het ruimteprogramma zijn bevestigd.",
-      "controller_connection_cancelled": "Verbinden geannuleerd. Een deel van de instellingen kan al op de E32 staan: open Configureren → E32 verbinden opnieuw om de verbinding af te maken.",
+      "controller_connection_cancelled": "Verbinden geannuleerd. Een deel van de instellingen kan al op de E32 staan: open Configureren → E32-verbinding opnieuw om de verbinding af te maken.",
       "installation_applied": "Installatie opgeslagen en gecontroleerd tegen het E32-plan. Fysieke ketel- en kraanuitvoer blijven uitgeschakeld.",
       "installation_apply_pending": "Een eerdere profielwijziging is nog niet bevestigd. Open E32-verbinding en pas de opgeslagen instellingen toe voordat je de installatie opnieuw wijzigt.",
-      "e32_rooms_unavailable": "Verbind eerst de E32 (E32 verbinden) zodat Home Assistant het ruimteplan kan bewerken.",
+      "e32_rooms_unavailable": "Verbind eerst de E32 (E32-verbinding) zodat Home Assistant het ruimteplan kan bewerken.",
       "e32_unreachable": "Het ruimteplan van de E32 kon niet gelezen worden ({error}).",
       "e32_plan_invalid": "De E32 gaf een ruimteplan dat deze versie niet kan lezen. Werk de E32-firmware en de integratie samen bij.",
       "e32_unconfirmed": "De E32 kon niet bevestigen dat het ruimteplan is opgeslagen. Controleer de ruimte voordat je het opnieuw probeert.",
@@ -1827,7 +1827,7 @@
       "e32_password_changed": "De E32 accepteert het bewaarde wachtwoord niet meer. Home Assistant vraagt om het nieuwe: Instellingen → Apparaten en diensten → OpenThermostat → Opnieuw verifiëren.",
       "legacy_rooms_removed": "De oude Home Assistant-ruimtes zijn verwijderd. De E32 blijft verbonden met {rooms} ruimte(s) in zijn plan.",
       "legacy_rooms_none": "Er zijn geen oude Home Assistant-ruimtes om te verwijderen.",
-      "legacy_rooms_cancelled": "Geannuleerd. Kies Configureren → E32 verbinden om de verbinding te controleren; sommige instellingen kunnen al op de E32 zijn opgeslagen."
+      "legacy_rooms_cancelled": "Geannuleerd. Kies Configureren → E32-verbinding om de verbinding te controleren; sommige instellingen kunnen al op de E32 zijn opgeslagen."
     },
     "progress": {
       "controller_connect": "Verbinden met de E32…",
@@ -2735,13 +2735,13 @@
           "legacy_rooms_remove": "Oude ruimtes verwijderen en de E32 opnieuw koppelen…"
         },
         "error": {
-          "e32_password": "De E32 accepteerde het bewaarde wachtwoord niet. Vul het huidige E32-wachtwoord in onder Configureren → E32 verbinden en probeer het opnieuw.",
+          "e32_password": "De E32 accepteerde het bewaarde wachtwoord niet. Vul het huidige E32-wachtwoord in onder Configureren → E32-verbinding en probeer het opnieuw.",
           "e32_unreachable": "De E32 is niet bereikbaar. Controleer of hij aan staat en met je netwerk verbonden is, en probeer het opnieuw.",
           "broker_login": "De E32 heeft eerst een eigen MQTT-login nodig. Open op de E32 Instellingen → MQTT, vink Ingeschakeld aan, vul het adres en de poort van de broker en een gebruikersnaam en wachtwoord voor de broker in, sla op en laat de E32 herstarten. Zonder login maakt de E32 via een broker geen verbinding met Home Assistant.",
           "mqtt_unconfirmed": "De E32 is herstart met de Home Assistant-instellingen, maar Home Assistant heeft binnen 90 seconden niets van de E32 via MQTT ontvangen. Controleer op de E32 Instellingen → MQTT: dezelfde broker als de MQTT-integratie in Home Assistant, en een gebruikersnaam en wachtwoord die de broker accepteert.",
           "e32_busy": "De E32 is bezig met bijwerken of herstarten. Wacht tot hij klaar is en probeer het opnieuw.",
           "ha_version_unsupported": "Deze integratie heeft Home Assistant 2026.10.0 of nieuwer nodig (getest met 2026.10.2 tot en met 2026.10.4). Werk Home Assistant bij; is jouw versie nieuwer, kijk dan of er een integratie-update is. Er is niets aangepast.",
-          "connection_failed": "De E32-verbinding kon niet worden bevestigd. Open Configureren → E32 verbinden voor details en probeer het hier daarna opnieuw.",
+          "connection_failed": "De E32-verbinding kon niet worden bevestigd. Open Configureren → E32-verbinding voor details en probeer het hier daarna opnieuw.",
           "legacy_rooms_plan_changed": "Het ruimteplan van de E32 is veranderd sinds dit overzicht gemaakt is (op de E32-pagina of elders). Er is niets verwijderd. Bekijk het bijgewerkte overzicht en verstuur opnieuw.",
           "legacy_rooms_plan_failed": "De E32 heeft het bijgewerkte ruimteplan niet opgeslagen, dus er is niets verwijderd. Controleer of de E32 klaar is en probeer het opnieuw.",
           "legacy_rooms_plan_unreadable": "Het ruimteplan van de E32 kon niet gelezen worden, dus er is niets verwijderd. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw.",
@@ -2751,7 +2751,7 @@
         },
         "abort": {
           "legacy_rooms_none": "Er zijn geen oude Home Assistant-ruimtes om te verwijderen.",
-          "legacy_rooms_cancelled": "Geannuleerd. Kies Configureren → E32 verbinden om de verbinding te controleren; sommige instellingen kunnen al op de E32 zijn opgeslagen."
+          "legacy_rooms_cancelled": "Geannuleerd. Kies Configureren → E32-verbinding om de verbinding te controleren; sommige instellingen kunnen al op de E32 zijn opgeslagen."
         }
       }
     },
@@ -2776,13 +2776,13 @@
           "legacy_rooms_remove": "Oude ruimtes verwijderen en de E32 opnieuw koppelen…"
         },
         "error": {
-          "e32_password": "De E32 accepteerde het bewaarde wachtwoord niet. Vul het huidige E32-wachtwoord in onder Configureren → E32 verbinden en probeer het opnieuw.",
+          "e32_password": "De E32 accepteerde het bewaarde wachtwoord niet. Vul het huidige E32-wachtwoord in onder Configureren → E32-verbinding en probeer het opnieuw.",
           "e32_unreachable": "De E32 is niet bereikbaar. Controleer of hij aan staat en met je netwerk verbonden is, en probeer het opnieuw.",
           "broker_login": "De E32 heeft eerst een eigen MQTT-login nodig. Open op de E32 Instellingen → MQTT, vink Ingeschakeld aan, vul het adres en de poort van de broker en een gebruikersnaam en wachtwoord voor de broker in, sla op en laat de E32 herstarten. Zonder login maakt de E32 via een broker geen verbinding met Home Assistant.",
           "mqtt_unconfirmed": "De E32 is herstart met de Home Assistant-instellingen, maar Home Assistant heeft binnen 90 seconden niets van de E32 via MQTT ontvangen. Controleer op de E32 Instellingen → MQTT: dezelfde broker als de MQTT-integratie in Home Assistant, en een gebruikersnaam en wachtwoord die de broker accepteert.",
           "e32_busy": "De E32 is bezig met bijwerken of herstarten. Wacht tot hij klaar is en probeer het opnieuw.",
           "ha_version_unsupported": "Deze integratie heeft Home Assistant 2026.10.0 of nieuwer nodig (getest met 2026.10.2 tot en met 2026.10.4). Werk Home Assistant bij; is jouw versie nieuwer, kijk dan of er een integratie-update is. Er is niets aangepast.",
-          "connection_failed": "De E32-verbinding kon niet worden bevestigd. Open Configureren → E32 verbinden voor details en probeer het hier daarna opnieuw.",
+          "connection_failed": "De E32-verbinding kon niet worden bevestigd. Open Configureren → E32-verbinding voor details en probeer het hier daarna opnieuw.",
           "legacy_rooms_plan_changed": "Het ruimteplan van de E32 is veranderd sinds dit overzicht gemaakt is (op de E32-pagina of elders). Er is niets verwijderd. Bekijk het bijgewerkte overzicht en verstuur opnieuw.",
           "legacy_rooms_plan_failed": "De E32 heeft het bijgewerkte ruimteplan niet opgeslagen, dus er is niets verwijderd. Controleer of de E32 klaar is en probeer het opnieuw.",
           "legacy_rooms_plan_unreadable": "Het ruimteplan van de E32 kon niet gelezen worden, dus er is niets verwijderd. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw.",
@@ -2792,7 +2792,7 @@
         },
         "abort": {
           "legacy_rooms_none": "Er zijn geen oude Home Assistant-ruimtes om te verwijderen.",
-          "legacy_rooms_cancelled": "Geannuleerd. Kies Configureren → E32 verbinden om de verbinding te controleren; sommige instellingen kunnen al op de E32 zijn opgeslagen."
+          "legacy_rooms_cancelled": "Geannuleerd. Kies Configureren → E32-verbinding om de verbinding te controleren; sommige instellingen kunnen al op de E32 zijn opgeslagen."
         }
       }
     },
@@ -2821,7 +2821,7 @@
           "save_failed": "De E32 heeft het ruimteplan niet opgeslagen. Controleer of de E32 aan staat en verbonden is en probeer het opnieuw."
         },
         "abort": {
-          "e32_rooms_unavailable": "Verbind eerst de E32 (Configureren → E32 verbinden) zodat Home Assistant het ruimteplan kan bewerken.",
+          "e32_rooms_unavailable": "Verbind eerst de E32 (Configureren → E32-verbinding) zodat Home Assistant het ruimteplan kan bewerken.",
           "e32_unreachable": "De E32 is niet bereikbaar. Controleer of hij aan staat en met je netwerk verbonden is en probeer het opnieuw.",
           "room_missing": "Deze ruimte staat niet meer in het ruimteplan van de E32."
         }

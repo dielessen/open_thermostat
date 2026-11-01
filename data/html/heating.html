@@ -256,14 +256,14 @@
     temp.box.append(el('p', uiText("Choose a Bluetooth sensor paired on this E32, or enter a Home Assistant entity (for example climate.living_room)."), {class:'ot-hint'}));
     if (!bleSensors.length) {
       const pair = el('p', null, {class:'ot-hint'});
-      pair.append(uiText("No Bluetooth sensors paired yet.") + ' ', el('a', uiText("Pair a sensor first → Sensors"), {href:'#sensors', 'data-page':'bluetooth'}));
+      pair.append(uiText("No Bluetooth sensors paired yet.") + ' ', el('a', uiText("Pair a sensor first → System → Bluetooth sensors"), {href:'#sensors', 'data-page':'bluetooth'}));
       temp.box.append(pair);
     }
     // How a Bluetooth thermometer gets into the list above; open while none is paired.
     const bleHelp = el('details', null, {class:'ot-advanced', 'data-heating-ble-help':''}), pairSteps = el('p');
     bleHelp.open = !bleSensors.length;
-    pairSteps.append(uiText("Pair it on the Sensors page: press Search nearby, click your sensor, check its device profile and save. After the E32 restarts, the sensor is listed here.") + ' ',
-      el('a', uiText("Open Sensors"), {href:'#sensors', 'data-page':'bluetooth'}));
+    pairSteps.append(uiText("Pair it under System → Bluetooth sensors: press Search nearby, click your sensor, check its device profile and save. After the E32 restarts, the sensor is listed here.") + ' ',
+      el('a', uiText("Open Bluetooth sensors"), {href:'#sensors', 'data-page':'bluetooth'}));
     bleHelp.append(el('summary', uiText("How do I add a Bluetooth sensor?")), pairSteps,
       el('p', uiText("Supported: thermometers with the pvvx firmware (ATC_MiThermometer, often named ATC_…, for example Xiaomi LYWSD03MMC), Shelly BLU H&T Display and Xiaomi Monitor 3. Encrypted sensors need their bindkey.")),
       el('p', uiText("Not listed? Keep the sensor within a few metres of the E32 and check its battery. With the pvvx firmware, set the advertising format to BTHome; the original Xiaomi and atc1441 formats are not read. Or use a Home Assistant entity as the source.")));

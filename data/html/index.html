@@ -299,8 +299,6 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
 					<li class="nav-item"><a class="nav-link" href="#rooms" data-page="heating" data-nav="heating"><span data-i18n="Rooms">Rooms</span></a></li>
 					<li class="nav-item"><a class="nav-link" href="#house" data-page="house" data-nav="house"><span data-i18n="Home">Home</span></a></li>
 					<li class="nav-item"><a class="nav-link" href="#boiler" data-page="boiler_test" data-nav="boiler_test"><span data-i18n="Boiler">Boiler</span></a></li>
-					<li class="nav-item" data-bluetooth-settings hidden><a class="nav-link" href="#sensors" data-page="bluetooth" data-nav="bluetooth"><span data-i18n="Sensors">Sensors</span></a></li>
-					<li class="nav-item"><a class="nav-link" href="#settings" data-page="network" data-nav="network"><span data-i18n="Settings">Settings</span></a></li>
 					<li class="nav-item dropdown">
 						<a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
 							data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -311,8 +309,13 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#room_management" data-page="room_management"><span data-i18n="Rooms and programs">Rooms and programs</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#curve" data-page="curve"><span data-i18n="Boiler and heating curve">Boiler and heating curve</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#hardware" data-page="hardware"><span data-i18n="Hardware configuration">Hardware configuration</span></a></li>
+							<li><a class="dropdown-item" href="#settings" data-page="network" data-nav="network"><span data-i18n="Network and Home Assistant">Network and Home Assistant</span></a></li>
+							<li><a class="dropdown-item" href="#password" data-page="password" data-nav="password"><span data-i18n="Password">Password</span></a></li>
+							<li><a class="dropdown-item" href="#backup" data-page="backup" data-nav="backup"><span data-i18n="Backup and restore">Backup and restore</span></a></li>
+							<li data-bluetooth-settings hidden><a class="dropdown-item" href="#sensors" data-page="bluetooth" data-nav="bluetooth"><span data-i18n="Bluetooth sensors">Bluetooth sensors</span></a></li>
+							<li role="separator" class="dropdown-divider"></li>
 							<li><a class="dropdown-item" href="#update" data-page="update" data-nav="update"><span data-i18n="Firmware update">Firmware update</span></a></li>
-							<li><a class="dropdown-item" href="#log" data-page="system_log" data-nav="system_log"><span data-i18n="System log">System log</span></a></li>
+							<li><a class="dropdown-item" href="#log" data-page="system_log" data-nav="system_log"><span data-i18n="Diagnostics and system log">Diagnostics and system log</span></a></li>
 							<li><a class="dropdown-item" href="#about" data-page="about" data-nav="about"><span data-i18n="About">About</span></a></li>
 							<li role="separator" class="dropdown-divider"></li>
 							<li><button type="button" class="dropdown-item" id="device-restart" hidden><span data-i18n="Restart device">Restart device</span></button></li>
@@ -482,8 +485,8 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             } else if (page === 'curve') await ensureChart();
         }
         // Hash routes keep refresh, Back and bookmarks on the same page.
-        const pageRoutes = {heating:'rooms', house:'house', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', boiler_limits:'boiler-limits', bluetooth:'sensors', network:'settings', password:'password', update:'update', system_log:'log', about:'about'};
-        const pageTitles = {home:"Overview", heating:"Rooms", house:"Home", boiler_test:"Boiler", bluetooth:"Sensors", network:"Settings", update:"Firmware update", system_log:"System log", about:"About"};
+        const pageRoutes = {heating:'rooms', house:'house', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', boiler_limits:'boiler-limits', bluetooth:'sensors', network:'settings', password:'password', backup:'backup', update:'update', system_log:'log', about:'about'};
+        const pageTitles = {home:"Overview", heating:"Rooms", house:"Home", boiler_test:"Boiler", bluetooth:"Bluetooth sensors", network:"Settings", update:"Firmware update", system_log:"System log", about:"About"};
         function markPage(page) {
             try {
                 document.title = uiText(pageTitles[page] || "System") + ' · OpenThermostat';
@@ -492,7 +495,9 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                     link.classList.toggle('active', current);
                     if (current) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
                 });
-                document.getElementById('navbarDropdownMenuLink').classList.toggle('active', !pageTitles[page] || ['update','system_log','about'].includes(page));
+                // System groups the technical pages (beta.23): network and Home Assistant, password, backup,
+                // Bluetooth sensors, update, diagnostics and About.
+                document.getElementById('navbarDropdownMenuLink').classList.toggle('active', !pageTitles[page] || ['network','password','backup','bluetooth','update','system_log','about'].includes(page));
                 $('#navbarNavDropdown.show').collapse('hide');
             } catch (_) {}
         }
@@ -518,6 +523,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             if (page === 'ems_devices' || page === 'boiler_display' || page === 'boiler_trial') page = 'boiler_test';
             if (page === 'boiler_limits') page = 'house'; // the flow limits moved to the Home page (beta.23)
             if (page === 'password') page = 'network'; // #password: the password card on the Settings page
+            if (page === 'backup') page = 'network'; // #backup: Backup and restore on the Settings page (System menu, beta.23)
             clearMainContainer();
             markPage(page);
             const navigation = navigationGeneration;

@@ -198,7 +198,7 @@ The setup network stays open for about 15 minutes. If it closes before you
 are done, unplug the E32 and plug it in again: it opens again as long as no
 Wi-Fi network has been saved.
 
-**Ethernet instead of Wi-Fi (optional):** after signing in, open **Settings**,
+**Ethernet instead of Wi-Fi (optional):** after signing in, open **System → Network and Home Assistant**,
 section **Connection**, set **E32 network (active after restart)** to
 **Ethernet only**, choose **Save settings**, let the E32 restart and plug in
 the network cable. Your router then gives the E32 a new address; look it up in
@@ -208,7 +208,7 @@ the router.
 
 1. Open the E32's address. Sign in with user **`admin`** and password
    **`admin`**.
-2. Choose your own password straight away: open **Settings → Password**
+2. Choose your own password straight away: open **System → Password**
    (the Overview also shows a reminder with a **Change password** button while
    the default password is in use). Enter the **Current password** (`admin`),
    your **New password** (8 to 64 characters) twice, and choose **Change
@@ -220,12 +220,13 @@ change it. Write the new password down: Home Assistant asks for it in
 section 10. If you ever forget it, you can reset it over USB
 ([section 15](#15-forgotten-password-and-wi-fi-recovery-over-usb)).
 
-The E32 menu reads **Overview, Rooms, Boiler, Sensors, Settings** and
-**System** (Firmware update, System log, About, Restart device).
+The E32 menu reads **Overview, Rooms, Home, Boiler** and **System**. System
+holds Network and Home Assistant, Password, Backup and restore, Bluetooth
+sensors, Firmware update, Diagnostics and system log, About and Restart device.
 
 ## 5. Basic settings: time zone and boiler reception
 
-Both are on the **Settings** page. When you are done, choose **Save settings**
+Both are on the **System → Network and Home Assistant** page. When you are done, choose **Save settings**
 at the bottom. The E32 then asks whether to restart so the changes take
 effect; choose **OK**.
 
@@ -281,7 +282,7 @@ a bindkey, or the older PVVX Custom format).
 
 1. Place the sensor in the room, away from radiators, windows and direct sun,
    and within Bluetooth range of the E32.
-2. On the E32, open **Sensors** and choose **Search nearby**. The list shows
+2. On the E32, open **System → Bluetooth sensors** and choose **Search nearby**. The list shows
    up to 32 of the strongest nearby devices.
 3. Click your sensor. Give it a clear name (for example "Living room
    thermometer") and check its profile. Enter the encryption key only if the
@@ -328,7 +329,7 @@ user does not need to be an administrator.
 
 ### 8.3 MQTT settings on the E32
 
-On the E32, open **Settings**, section **MQTT**:
+On the E32, open **System → Network and Home Assistant**, section **MQTT**:
 
 1. Tick **Enabled**.
 2. Leave **Publish Home Assistant MQTT Discovery** ticked; it lets Home
@@ -345,7 +346,7 @@ On the E32, open **Settings**, section **MQTT**:
    fills in **HA adapter ID** and the shadow-mode tick itself in section 10.
 8. Choose **Save settings** and let the E32 restart.
 
-After the restart, the **System → System log** page shows whether the E32
+After the restart, the **System → Diagnostics and system log** page shows whether the E32
 reached the broker.
 
 ## 9. Install the Home Assistant integration
@@ -388,7 +389,7 @@ release is not needed.
      example `ib-therm` on an older E32). The two must match.
 3. Choose **Add installation**.
 
-Home Assistant then tells you the next step: **Configure → Connect E32**.
+Home Assistant then tells you the next step: **Configure → E32 connection**.
 You do not need to add a room yet; that comes right after connecting.
 
 ### 10.2 Connect the E32
@@ -398,7 +399,7 @@ password (section 8.3). Without it, this step stops with a message.
 
 1. Go to **Settings → Devices & services → OpenThermostat** and choose
    **Configure** (the gear icon).
-2. Choose **Connect E32**.
+2. Choose **E32 connection**.
 3. **E32 web address**: the address you use in your browser, including
    `http://`, for example `http://192.168.1.50` or
    `http://openthermostat-a1b2c3.local`. An IP address or a home-network name
@@ -532,7 +533,7 @@ set on the boiler itself.
 
 - **Window and door contacts**: sensors that pause a room while a window or
   door is open (it drops to frost protection and asks for no heat). Choose
-  them per room in the room form, or under **Configure → Comfort**.
+  them per room in the room form (**Configure → Rooms**).
 - **Configure → Home → Presence**: the people of the house. In the house mode
   Automatic the rooms go to the away temperature once everyone has been away
   for 15 minutes. The **House mode** control (automatic, at home, away,
@@ -658,7 +659,7 @@ week programs, Bluetooth sensors, flow settings, boiler model and language.
 
 ### 14.1 Make a backup
 
-1. On the E32, open **Settings** and unfold **Backup and restore**.
+1. On the E32, open **System → Backup and restore**.
 2. Optionally tick **Include passwords and Bluetooth keys, encrypted with a
    passphrase** and enter a **Passphrase** (8 to 64 characters) twice. Without
    it the file holds no secrets, and the page lists what you would need to
@@ -674,7 +675,7 @@ The Wi-Fi password and the E32 web password are never in a backup.
 Use this on a new or reset E32, or to undo a change.
 
 1. First connect the E32 to your network (section 3) and sign in.
-2. Open **Settings → Backup and restore**, section **Restore a backup**.
+2. Open **System → Backup and restore**, section **Restore a backup**.
    Choose the **Backup file**, enter the **Passphrase of this backup** if it
    has one, and choose **Check backup**.
 3. The E32 shows what will change, what it skips and what you need to enter
@@ -682,7 +683,7 @@ Use this on a new or reset E32, or to undo a change.
 4. Choose **Restore these settings**. If network or Bluetooth settings change,
    the E32 restarts about 10 seconds later; sign in again afterwards.
 5. If the backup had no passphrase, enter the MQTT password again under
-   **Settings → MQTT**. *Why:* MQTT stays off until you do, so Home Assistant
+   **System → Network and Home Assistant → MQTT**. *Why:* MQTT stays off until you do, so Home Assistant
    receives nothing.
 
 A restore never changes the Wi-Fi network or the web page port, and it always
@@ -706,7 +707,7 @@ so nobody can use them over the network.
    package).
 3. Type one of these commands and press Enter:
    - **`password-reset`** sets the web password back to `admin`. Sign in with
-     `admin` / `admin` and choose a new password under **Settings →
+     `admin` / `admin` and choose a new password under **System →
      Password**. Home Assistant then asks for the new password.
    - **`setup`** restarts the E32 into the setup network
      `OpenThermostat-xxxxxx` for 15 minutes, also when a Wi-Fi network is
@@ -714,7 +715,7 @@ so nobody can use them over the network.
      change. The old network settings stay until a new connection works.
 
 While the E32 still works on your network, you can also change Wi-Fi from
-**Settings → Set up WiFi → Start WiFi setup (restart)**.
+**System → Network and Home Assistant → Set up WiFi → Start WiFi setup (restart)**.
 
 ## 16. Troubleshooting
 
@@ -754,8 +755,8 @@ The form says what is wrong. The most common messages:
   and let the E32 restart.
 - *Home Assistant received nothing from it over MQTT within 90 seconds*: the
   E32 and Home Assistant do not use the same broker, or the broker refused
-  the E32's login. Compare **Settings → MQTT** on the E32 with Home
-  Assistant's MQTT integration, check the E32's **System → System log**, and
+  the E32's login. Compare **System → Network and Home Assistant → MQTT** on the E32 with Home
+  Assistant's MQTT integration, check the E32's **System → Diagnostics and system log**, and
   try again.
 - *This integration needs Home Assistant 2026.10.0 or newer*: update Home
   Assistant.
@@ -771,13 +772,13 @@ The form says what is wrong. The most common messages:
 All live values come over MQTT.
 
 1. In Home Assistant, check that the MQTT integration is set up and connected.
-2. On the E32, check **Settings → MQTT**: **Enabled** ticked, the right
+2. On the E32, check **System → Network and Home Assistant → MQTT**: **Enabled** ticked, the right
    broker address and port, and a user name and password the broker accepts.
-   Save and restart after a change. **System → System log** shows connection
+   Save and restart after a change. **System → Diagnostics and system log** shows connection
    errors.
-3. The **Base** on the E32 (Settings → MQTT → Advanced) and the controller
+3. The **Base** on the E32 (System → Network and Home Assistant → MQTT → Advanced) and the controller
    MQTT prefix of the integration must match. Connect E32 sets this up; if you
-   changed either by hand, run **Configure → Connect E32** again.
+   changed either by hand, run **Configure → E32 connection** again.
 4. Check that the firmware and integration versions are a pair from the same
    release notes. An older integration does not understand newer firmware, and
    the other way round.
@@ -802,7 +803,7 @@ If it stays disconnected for more than a few minutes:
    paused: the clock of Home Assistant jumped" appears. Check the time of the
    Home Assistant host, then reload the integration (**Settings → Devices &
    services → OpenThermostat → ⋮ → Reload**).
-4. Otherwise reload the integration, or run **Configure → Connect E32** again
+4. Otherwise reload the integration, or run **Configure → E32 connection** again
    with the same address and password. Your rooms on the E32 stay as they
    are.
 

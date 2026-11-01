@@ -195,3 +195,25 @@ zette bij elke hello `last_rx` opnieuw, en een sessie zonder lease verliep
 alleen op `last_rx`. Zo bleef HA eindeloos in een dode sessie hangen tot de
 integratie herladen werd (`test_lost_first_heartbeats_never_leave_a_session_open_forever`
 faalt op b10 en slaagt met één regel extra in `poll()`).
+
+## 11. Compacte sessie (beta.21 + HA 0.4.0b13)
+
+Sinds beta.21 kan de sessie compacter. HA vraagt erom met `"compact":1` in
+`ha/open_session`; de E32 meldt de mogelijkheid als capability
+`session.compact.v1`. Oudere HA-versies vragen er nooit om, en dan blijft de
+vorm van beta.19 gelden. Werkt maar één kant met de nieuwe versie, dan
+verandert er dus niets.
+
+- **Wat compact wordt:** in een compacte sessie gaan de vaste velden maar één
+  keer mee: in de hello en in het eerste `fw/session`. Daarna dragen de
+  grant-rotaties en de resultaten van heartbeat, observatie en opdracht alleen
+  het sessie-ID en wat verandert.
+- **Wat volledig blijft:** de hello, elke 15 s in een sessie. Een herstarte HA
+  vindt de sessie via de hello. Ook de zonestatus blijft volledig, omdat die
+  het bronbeleid draagt dat HA controleert.
+- **Diagnose van het apparaat** (geheugen, temperatuur, uptime) gaat mee in
+  `fw/heartbeat`, zonder apart bericht.
+- **Gemeten** met de echte C++-controller tegen de HA-client: 102,7 B/s compact
+  tegen 158,4 B/s volledig, ongeveer 35 % minder vast verkeer.
+- **Bewijs:** native tests in `test_shadow_controller` en een A/B-test in
+  `ha/tests_native/test_session_traffic.py`.

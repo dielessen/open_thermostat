@@ -2909,5 +2909,16 @@
     "e32_try_again_later": {
       "message": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie."
     }
+  },
+  "device": {
+    "ems_boiler": {
+      "name": "Kocioł EMS {address} (produkt {product})"
+    },
+    "ems_thermostat": {
+      "name": "Termostat EMS {address} (produkt {product})"
+    },
+    "ems_device": {
+      "name": "Urządzenie EMS {address} (produkt {product})"
+    }
   }
 }

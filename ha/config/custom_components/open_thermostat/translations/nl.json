@@ -2909,5 +2909,16 @@
     "e32_try_again_later": {
       "message": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw."
     }
+  },
+  "device": {
+    "ems_boiler": {
+      "name": "EMS-ketel {address} (product {product})"
+    },
+    "ems_thermostat": {
+      "name": "EMS-thermostaat {address} (product {product})"
+    },
+    "ems_device": {
+      "name": "EMS-apparaat {address} (product {product})"
+    }
   }
 }

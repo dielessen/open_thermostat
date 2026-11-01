@@ -129,6 +129,9 @@ async def async_setup_entry(
                                  native_metrics=True)
             from .v1_metrics import async_setup_shadow_metrics
             await _optional_step("metrics", async_setup_shadow_metrics, hass, entry, async_add_entities)
+            from .ems_devices import async_setup_ems_devices
+            # The devices on the EMS bus (fw/config/ems_devices), beta.23.
+            await _optional_step("EMS bus devices", async_setup_ems_devices, hass, entry)
             from .e32_flow import async_setup_sensors as async_setup_flow_sensors
             # flow source, gas calibration, last night
             await _optional_step("flow sensors", async_setup_flow_sensors, hass, entry, async_add_entities)

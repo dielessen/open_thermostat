@@ -2909,5 +2909,16 @@
     "e32_try_again_later": {
       "message": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again."
     }
+  },
+  "device": {
+    "ems_boiler": {
+      "name": "EMS boiler {address} (product {product})"
+    },
+    "ems_thermostat": {
+      "name": "EMS thermostat {address} (product {product})"
+    },
+    "ems_device": {
+      "name": "EMS device {address} (product {product})"
+    }
   }
 }

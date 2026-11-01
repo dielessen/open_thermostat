@@ -609,7 +609,8 @@ class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, Con
         return self.async_show_form(step_id="entity_ids", data_schema=schema, errors=errors,
             description_placeholders={"count": str(len(plan.renames)),
                                       "used": str(len(plan.renames) - len(plan.unused)),
-                                      "days": str(tidy.UNDO_DAYS), "preview": tidy.preview_text(plan, False)})
+                                      "days": str(tidy.UNDO_DAYS),
+                                      "preview": tidy.preview_text(plan, False, self.hass.config.language)})
 
     async def async_step_entity_ids_undo(self, user_input=None):
         from homeassistant.helpers import selector

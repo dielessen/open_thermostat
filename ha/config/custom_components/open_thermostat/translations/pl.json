@@ -105,7 +105,7 @@
         "title": "Komfort",
         "description": "Czujniki okien i drzwi wstrzymują ogrzewanie pomieszczenia, dopóki są otwarte; ustawienia wstępne, nieobecność i obecność określają temperatury dla termostatów pomieszczeń E32. Wszystko tutaj jest opcjonalne.",
         "menu_options": {
-          "comfort_settings": "Ustawienia wstępne, obecność i czasy",
+          "comfort_settings": "Poziomy bez programu tygodniowego oraz czasy",
           "comfort_contacts": "Czujniki okien i drzwi w pomieszczeniach"
         }
       },
@@ -114,6 +114,7 @@
         "description": "Wszystko, co dotyczy całego domu, tak jak na stronie Dom w E32. Sam tryb domu (automatyczny, w domu, nieobecność, urlop) to kontrolka Tryb domu na urządzeniu E32 i na pulpicie.",
         "menu_options": {
           "house_presence": "Obecność: kto tu mieszka",
+          "comfort": "Pomieszczenia: ustawienia domyślne i czujniki okien",
           "heating_boiler": "Ogrzewanie i kocioł",
           "energy": "Energia i temperatura zewnętrzna"
         }
@@ -131,8 +132,8 @@
         }
       },
       "comfort_settings": {
-        "title": "Ustawienia wstępne i czasy",
-        "description": "Termostat każdego pomieszczenia E32 oferuje ustawienia Komfort, Noc i Boost. Komfort i Noc to najwyższa i najniższa temperatura programu tygodniowego pomieszczenia, tak jak w planerze tygodniowym. Nieobecność i urlop to tryb domu (Konfiguruj → Dom i kontrolka Tryb domu), a nie ustawienie jednego pomieszczenia.",
+        "title": "Ustawienia domyślne pomieszczeń i czasy",
+        "description": "Termostat każdego pomieszczenia E32 oferuje ustawienia Komfort, Eco, Noc i Boost: poziomy programu tygodniowego pomieszczenia, tak jak w planerze tygodniowym. Pomieszczenie bez programu tygodniowego zaczyna od dwóch temperatur poniżej. Nieobecność i urlop to tryb domu (Konfiguruj → Dom i kontrolka Tryb domu), a nie ustawienie jednego pomieszczenia.",
         "data": {
           "comfort_temperature": "Komfort bez programu tygodniowego",
           "eco_temperature": "Noc bez programu tygodniowego",
@@ -2825,7 +2826,7 @@
     },
     "set_away": {
       "name": "Nieobecność",
-      "description": "Niższa temperatura dla całego domu, opcjonalnie do określonej daty i godziny. E32 zaczyna nagrzewać na tyle wcześnie, by po Twoim powrocie była temperatura z programu.",
+      "description": "Ustawia tryb domu na Nieobecność albo na Urlop, jeśli podasz datę i godzinę końca (tak samo jak wybór Tryb domu). E32 zaczyna ogrzewać na tyle wcześnie, by po powrocie była temperatura z programu.",
       "fields": {
         "temperature": {
           "name": "Temperatura nieobecności",
@@ -2839,7 +2840,7 @@
     },
     "clear_away": {
       "name": "Zakończ nieobecność",
-      "description": "Każde pomieszczenie znowu stosuje swój program tygodniowy."
+      "description": "Przywraca tryb domu na Automatyczny: każde pomieszczenie znów działa według swojego programu tygodniowego."
     },
     "export_metrics_csv": {
       "name": "Eksportuj historię do CSV",

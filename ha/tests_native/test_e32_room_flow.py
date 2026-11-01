@@ -31,7 +31,7 @@ CREDENTIALS = {CONTROLLER_ADDRESS: "http://192.168.1.206", CONTROLLER_PASSWORD: 
 BLE = [{"id": "a4c138a3e8db", "name": "Slaapkamer", "profile": "atc", "temperature": 19.4},
        {"id": "112233445566", "name": "Zolder", "profile": "atc", "temperature": 17.0}]
 # Configure's top level for an E32 install (product_flow.main_menu); flow limits are under Heating and boiler.
-MENU = ["e32_rooms", "house", "comfort", "controller_connection", "general", "advanced_settings"]  # beta.23: Home holds heating
+MENU = ["e32_rooms", "house", "controller_connection", "general", "advanced_settings"]  # beta.23: Home holds heating
 
 
 @pytest.fixture

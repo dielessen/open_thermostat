@@ -736,11 +736,16 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
     async def async_clear_room_override(self):
         await self._command(override_command(self.room_id, "none"))
 
+    # set_away / clear_away stay for existing automations (beta.23). They set the HOUSE mode, exactly as
+    # the House mode select does: Away (or Holiday with an end date), and Auto again; never one room.
     async def async_set_away(self, temperature=None, until=None):
-        await self._command(away_command(True, temperature, until))
+        from .e32_house import holiday_until, house_away, mode_command
+        end = holiday_until(until) if until is not None else None
+        await self._command(mode_command(house_away(self.hub), "holiday" if end else "away", temperature, end))
 
     async def async_clear_away(self):
-        await self._command(away_command(False))
+        from .e32_house import house_away, mode_command
+        await self._command(mode_command(house_away(self.hub), "auto"))
 
 
 def register_services(platform):
@@ -802,7 +807,9 @@ class ComfortOptionsSteps:
 
     async def async_step_house(self, user_input=None):
         """Configure → Home: everything that applies to the whole house, as on the E32's Home page."""
-        return self.async_show_menu(step_id="house", menu_options=["house_presence", "heating_boiler", "energy"])
+        # One place for everything house-wide (beta.23): the room defaults (levels of rooms without a week
+        # program, timing) and the window contacts per room sit here, no separate Comfort entry.
+        return self.async_show_menu(step_id="house", menu_options=["house_presence", "comfort", "heating_boiler", "energy"])
 
     async def async_step_house_presence(self, user_input=None):
         """The people of the house and how long everyone must be away (the house mode itself is a select)."""

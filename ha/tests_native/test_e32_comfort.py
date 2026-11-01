@@ -289,6 +289,15 @@ async def test_actions_and_refusals(hass):
     assert e32.commands[-1] == {"away": True, "temperature": 16.0, "until": int(back.timestamp())}
     await entity.async_clear_away()
     assert e32.commands[-1] == {"away": False}
+    # E32 beta.23 (house.mode.v1): the same actions set the house mode, like the House mode select.
+    hub.update(status(room_state("living"), away={"on": False, "source": "none", "target_c": 15, "until": None,
+                                                  "presence": "unknown", "mode": "auto"}))
+    await entity.async_set_away(16, back)
+    assert e32.commands[-1] == {"house_mode": "holiday", "temperature": 16.0, "until": int(back.timestamp())}
+    await entity.async_set_away()
+    assert e32.commands[-1] == {"house_mode": "away"}
+    await entity.async_clear_away()
+    assert e32.commands[-1] == {"house_mode": "auto"}
     for code, key in (("no_clock", "comfort_no_clock"), ("room_inactive", "comfort_room_off"),
                       ("no_schedule", "comfort_no_schedule"), ("invalid_minutes", "comfort_rejected")):
         e32.refuse["timed"] = HeatingPlanRejected(400, code)

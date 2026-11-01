@@ -29,7 +29,7 @@ def product(hass, binding=None):
 # are the E32 room plan: Rooms, Home (presence, heating and boiler, energy; beta.23), Comfort,
 # Connect E32, Name and dashboard, Advanced. A new installation (config flow from beta.19) starts with Connect E32.
 # Older entries without an E32 connection keep the Home Assistant room route.
-E32_MENU=['e32_rooms','house','comfort','controller_connection','general','advanced_settings']
+E32_MENU=['e32_rooms','house','controller_connection','general','advanced_settings']
 NEW_MENU=['controller_connection','energy','general','advanced_settings']
 LEGACY_MENU=['room_settings','controller_connection','energy','installation','advanced_settings']
 

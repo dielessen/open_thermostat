@@ -161,6 +161,7 @@ async def test_comfort_asks_the_room_first_and_shows_that_rooms_own_contacts(has
         "badkamer": ["binary_sensor.raam_zigbee"], "woonkamer": ["binary_sensor.deur_zwave"]}}})
     await hass.async_block_till_done()
     flow = await manager.async_init(parent.entry_id)
+    flow = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})  # beta.23: under Home
     flow = await manager.async_configure(flow["flow_id"], {"next_step_id": "comfort"})
     assert flow["menu_options"] == ["comfort_settings", "comfort_contacts"]
     flow = await manager.async_configure(flow["flow_id"], {"next_step_id": "comfort_contacts"})

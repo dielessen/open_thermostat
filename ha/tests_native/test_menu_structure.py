@@ -25,7 +25,7 @@ from test_v1_native import entry, room
 
 COMPONENT = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
 # beta.23: Home holds presence, heating and boiler, and energy (the same order as the E32's Home page).
-E32_MENU = ["e32_rooms", "house", "comfort", "controller_connection", "general", "advanced_settings"]
+E32_MENU = ["e32_rooms", "house", "controller_connection", "general", "advanced_settings"]
 
 
 def new_installation(hass):
@@ -76,7 +76,7 @@ async def test_rooms_hold_the_rooms_and_heating_and_boiler_opens_the_flow_limits
     assert rooms["menu_options"] == ["e32_room_add", "e32_room_pick"]
     flow = await manager.async_init(parent.entry_id)
     house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
-    assert house["type"] == FlowResultType.MENU and house["menu_options"] == ["house_presence", "heating_boiler", "energy"]
+    assert house["type"] == FlowResultType.MENU and house["menu_options"] == ["house_presence", "comfort", "heating_boiler", "energy"]
     form = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
     assert form["type"] == FlowResultType.FORM and form["step_id"] == "e32_flow_limits", form
 

@@ -1033,7 +1033,7 @@
         "title": "Comfortinstellingen",
         "description": "Raam- en deursensoren pauzeren een ruimte zolang ze open staan; voorinstellingen, afwezig en aanwezigheid bepalen temperaturen voor de thermostaten van je E32-ruimtes. Alles hier is optioneel.",
         "menu_options": {
-          "comfort_settings": "Voorinstellingen, aanwezigheid en tijden",
+          "comfort_settings": "Niveaus zonder weekprogramma, en tijden",
           "comfort_contacts": "Raam- en deurcontacten per ruimte"
         }
       },
@@ -1042,6 +1042,7 @@
         "description": "Alles wat voor het hele huis geldt, net als op de pagina Huis van de E32. De huismodus zelf (automatisch, thuis, afwezig, vakantie) is de bediening Huismodus op het E32-apparaat en op het dashboard.",
         "menu_options": {
           "house_presence": "Aanwezigheid: wie hier woont",
+          "comfort": "Ruimtes: standaarden en raamcontacten",
           "heating_boiler": "Verwarming en ketel",
           "energy": "Energie en buitentemperatuur"
         }
@@ -1059,8 +1060,8 @@
         }
       },
       "comfort_settings": {
-        "title": "Presets en tijden",
-        "description": "De thermostaat van elke E32-ruimte heeft de presets Comfort, Nacht en Boost. Comfort en Nacht zijn de warmste en de koelste temperatuur van het weekprogramma van de ruimte, net als in de weekplanner. Afwezig en vakantie zijn de huismodus (Configureren → Huis en de bediening Huismodus), geen preset van één ruimte.",
+        "title": "Standaarden voor ruimtes en tijden",
+        "description": "De thermostaat van elke E32-ruimte heeft de presets Comfort, Eco, Nacht en Boost: de niveaus van het weekprogramma van de ruimte, net als in de weekplanner. Een ruimte zonder weekprogramma begint met de twee temperaturen hieronder. Afwezig en vakantie zijn de huismodus (Configureren → Huis en de bediening Huismodus), geen preset van één ruimte.",
         "data": {
           "comfort_temperature": "Comfort zonder weekprogramma",
           "eco_temperature": "Nacht zonder weekprogramma",
@@ -2825,7 +2826,7 @@
     },
     "set_away": {
       "name": "Afwezig",
-      "description": "Een lagere temperatuur voor het hele huis, eventueel tot een datum en tijd. De E32 begint op tijd met opwarmen, zodat het bij je terugkomst op de temperatuur van het programma is.",
+      "description": "Zet de huismodus op Afwezig, of op Vakantie als je een einddatum en -tijd opgeeft (hetzelfde als de keuzelijst Huismodus). De E32 begint op tijd met opwarmen, zodat het bij je terugkomst op de temperatuur van het programma is.",
       "fields": {
         "temperature": {
           "name": "Afwezigheidstemperatuur",
@@ -2839,7 +2840,7 @@
     },
     "clear_away": {
       "name": "Afwezig beëindigen",
-      "description": "Elke ruimte volgt weer haar weekprogramma."
+      "description": "Zet de huismodus terug op Automatisch: elke ruimte volgt weer haar weekprogramma."
     },
     "export_metrics_csv": {
       "name": "Historie exporteren als CSV",

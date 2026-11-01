@@ -105,7 +105,7 @@
         "title": "Comfort",
         "description": "Window and door sensors pause a room while they are open; presets, away and presence set temperatures for the thermostats of your E32 rooms. Everything here is optional.",
         "menu_options": {
-          "comfort_settings": "Presets, presence and timing",
+          "comfort_settings": "Levels without a week program, and timing",
           "comfort_contacts": "Window and door contacts per room"
         }
       },
@@ -114,6 +114,7 @@
         "description": "Everything that applies to the whole house, as on the E32's Home page. The house mode itself (automatic, at home, away, holiday) is the House mode control on the E32 device and on the dashboard.",
         "menu_options": {
           "house_presence": "Presence: who lives here",
+          "comfort": "Rooms: defaults and window contacts",
           "heating_boiler": "Heating and boiler",
           "energy": "Energy and outdoor temperature"
         }
@@ -131,8 +132,8 @@
         }
       },
       "comfort_settings": {
-        "title": "Presets and timing",
-        "description": "The thermostat of each E32 room offers the presets Comfort, Night and Boost. Comfort and Night are the warmest and the coolest temperature of the room's week program, as in the week planner. Away and holiday are the house mode (Configure → Home and the House mode control), not a preset of one room.",
+        "title": "Room defaults and timing",
+        "description": "The thermostat of each E32 room offers the presets Comfort, Eco, Night and Boost: the levels of the room's week program, as in the week planner. A room without a week program starts from the two temperatures below. Away and holiday are the house mode (Configure → Home and the House mode control), not a preset of one room.",
         "data": {
           "comfort_temperature": "Comfort without a week program",
           "eco_temperature": "Night without a week program",
@@ -2825,7 +2826,7 @@
     },
     "set_away": {
       "name": "Away",
-      "description": "A lower temperature for the whole house, optionally until a date and time. The E32 starts warming up early enough to be at the program's temperature when you are back.",
+      "description": "Sets the house mode to Away, or to Holiday when you give an end date and time (the same as the House mode select). The E32 starts warming up early enough to be at the program's temperature when you are back.",
       "fields": {
         "temperature": {
           "name": "Away temperature",
@@ -2839,7 +2840,7 @@
     },
     "clear_away": {
       "name": "End away",
-      "description": "Every room follows its week program again."
+      "description": "Sets the house mode back to Automatic: every room follows its week program again."
     },
     "export_metrics_csv": {
       "name": "Export history as CSV",

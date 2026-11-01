@@ -52,7 +52,7 @@ MAX_STEPS_PER_DAY = 24
 STORE_VERSION = 1
 ROOM_MEASURED = ("ok", "fallback")
 # Gas posts read from the energy_use day records, in this order when present.
-GAS_POSTS = ("heating", "hot_water", "tapping", "keeping_warm")
+GAS_POSTS = ("heating", "hot_water", "tapping", "keep_warm")
 TOTALS = ("burner_s", "starts", "missed_s")
 
 

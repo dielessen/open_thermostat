@@ -1,6 +1,8 @@
 #include "EMS/BoilerProfileReport.h"
 #include "EMS/EmsEntityCatalog.h"
 #include "control/TelemetryPublisher.h"
+#include "BoilerDisplaySelection.h"
+#include <algorithm>
 #include <gtest/gtest.h>
 #include <cJSON.h>
 #include <memory>
@@ -316,4 +318,35 @@ TEST(BoilerProfile, SettledAfterTheBoilerWasHeardForTheSpanAndThatIsStored) {
     EXPECT_TRUE(b.settled());
     b.observeVersion({0x41, 1, 1, {}}, 20);  // another boiler: discovery starts again
     EXPECT_FALSE(b.settled());
+}
+
+// Release 1.0: the boiler-model selection goes out with the profile, so Home Assistant shows the
+// display codes of that model in words (display_codes.py); none chosen: no key at all.
+TEST(BoilerProfile, TheTopicCarriesTheBoilerModelChoiceForTheDisplayCodes) {
+    Rig r;
+    for (int i = 0; i <= 10; ++i) r.receive(ownerFast(), 1000 + uint64_t(i) * 60000);
+    EXPECT_EQ(topic(r.profile).find("display_model"), std::string::npos);
+    std::ostringstream out;
+    writeBoilerProfileTopic(out, r.profile, "nefit-ecomline-classic-hrc-22h");
+    auto t = parse(out.str());
+    ASSERT_TRUE(t);
+    EXPECT_STREQ(cJSON_GetObjectItemCaseSensitive(t.get(), "display_model")->valuestring, "nefit-ecomline-classic-hrc-22h");
+    EXPECT_TRUE(has(list(t.get(), "supported"), 1));
+    // Still under 1 KB with every field listed and the longest model id.
+    BoilerProfile all;
+    all.observeVersion({255, 255, 255, {}}, 0);
+    for (size_t i = 0; i < BoilerProfile::fieldCount; ++i) all.observe(i, FieldEvidence::value, 0);
+    size_t longest = 0;
+    for (const auto id : heating::boilerDisplayModelIds) longest = std::max(longest, id.size());
+    std::ostringstream worst;
+    writeBoilerProfileTopic(worst, all, std::string(longest, 'x'));
+    EXPECT_LT(worst.str().size(), 1024u);
+    // The remembered choice: an index into the generated model list, never a shared string.
+    heating::rememberBoilerDisplayModel("nefit-ecomline-classic");
+    EXPECT_EQ(heating::rememberedBoilerDisplayModel(), "nefit-ecomline-classic");
+    heating::rememberBoilerDisplayModel("none");
+    EXPECT_TRUE(heating::rememberedBoilerDisplayModel().empty());
+    heating::rememberBoilerDisplayModel("not-a-model");
+    EXPECT_TRUE(heating::rememberedBoilerDisplayModel().empty());
+    EXPECT_EQ(heating::boilerDisplayModelIndex().load(), -1);
 }

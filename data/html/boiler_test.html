@@ -135,6 +135,17 @@
     if (list.dataset.rendered !== signature) { list.dataset.rendered = signature; list.replaceChildren(); for (const [k, v] of rows) { cell(list, 'dt', k); cell(list, 'dd', v); } }
     root.querySelector('[data-dhw-method]').hidden = d.method !== 'dhw_temperature_fall';
   }
+  // The display code in words for the chosen boiler model (display-codes.js); the raw code stays next to it.
+  let codeInWords = null;
+  function codeText(code, service) {
+    if (!code) return codeInWords = null;
+    const raw = String(code.value).slice(0, 16), cause = service && Number.isInteger(service.value) ? service.value : null;
+    const d = typeof OpenThermostatDisplayCodes === 'undefined' ? null
+      : OpenThermostatDisplayCodes.describe(raw, cause, typeof BoilerDisplay !== 'undefined' && BoilerDisplay.model ? BoilerDisplay.model() : null);
+    codeInWords = d;
+    const shown = raw + (cause !== null && cause > 0 ? ' (' + cause + ')' : '');
+    return !d ? shown : d.known ? d.text + ' · ' + shown : shown + ' · ' + d.text;
+  }
   function paintEssentials() {
     const field = name => { const v = currentFields[name]; return v && v.state === 'valid' && v.value !== null && v.value !== undefined ? v : null; };
     const format = (value, digits) => new Intl.NumberFormat(OpenThermostatLanguage.locale, {minimumFractionDigits:digits, maximumFractionDigits:digits}).format(value);
@@ -145,7 +156,7 @@
       [uiText("Water pressure"), show('pressure', 1, ' bar')], [uiText("Hot water temperature"), show('measured_dhw_temperature', 1, ' °C')],
       [uiText("Burner modulation"), show('reported_burner_modulation', 0, ' %')],
       [uiText("Maximum heating temperature (boiler setting)"), show('configured_heating_temperature', 0, ' °C')],
-      [uiText("Display code"), code ? String(code.value).slice(0, 16) + (service && Number.isFinite(service.value) ? ' (' + service.value + ')' : '') : null],
+      [uiText("Display code"), codeText(code, service)],
       [uiText("Burner starts"), show('reported_burner_starts', 0, '')],
       [uiText("Burner starts (last hour)"), burnerCycles?.known === true && Number.isInteger(burnerCycles.starts_last_hour) ? String(burnerCycles.starts_last_hour) : null],
       [uiText("Typical heating run"), burnerCycles?.known === true && Number.isFinite(burnerCycles.median_heating_run_s) ? duration(burnerCycles.median_heating_run_s) : null],
@@ -155,11 +166,17 @@
     root.querySelector('[data-cycles-help]').hidden = !rows.some(row => row[0] === uiText("Burner starts (last hour)"));
     root.querySelector('[data-maxch-help]').hidden = !rows.some(row => row[0] === uiText("Maximum heating temperature (boiler setting)"));
     paintDhw();
-    const signature = JSON.stringify(rows) + shortCycling;
+    const signature = JSON.stringify(rows) + shortCycling + (codeInWords?.fault ? codeInWords.severity : '');
     if (essentials.dataset.rendered === signature) return;
     essentials.dataset.rendered = signature; essentials.replaceChildren();
     for (const [label, value] of rows) {
       cell(essentials, 'dt', label); cell(essentials, 'dd', value);
+      if (codeInWords?.fault && label === uiText("Display code")) {
+        const chip = document.createElement('span'); chip.className = 'ot-chip ml-2 ot-chip--' + (codeInWords.lockout ? 'err' : 'warn');
+        chip.dataset.codeSeverity = codeInWords.severity; chip.textContent = codeInWords.severityText;
+        essentials.lastElementChild.append(chip);
+        if (codeInWords.advice) { const advice = document.createElement('small'); advice.className = 'd-block'; advice.textContent = codeInWords.advice; essentials.lastElementChild.append(advice); }
+      }
       if (shortCycling && label === uiText("Burner starts (last hour)")) {
         const chip = document.createElement('span'); chip.className = 'ot-chip ot-chip--warn ml-2'; chip.dataset.shortCycling = '';
         chip.textContent = uiText("The burner switches on and off very often"); essentials.lastElementChild.append(chip);

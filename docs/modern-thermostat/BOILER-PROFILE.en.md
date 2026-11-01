@@ -97,7 +97,11 @@ The profile is `settled` once the boiler has been heard for the not-fitted span
   A field in none of the lists is `unknown`. The topic is published by
   `TelemetryPublisher` through the boiler-fields source at
   `boilerProfileGroup` (255). The publisher checks it every 10 s and sends it only
-  when it changed.
+  when it changed. Since release 1.0 it also carries `"display_model"`, the
+  boiler model chosen on the Boiler page (a `public/boilers/catalog-v1.json` id,
+  left out while none is chosen). Home Assistant uses it only to show the
+  display code in words with that model's table (see
+  `boiler-profiles/DISPLAY-CODE-SOURCES.md`); it creates or hides no entity.
 
 ## Home Assistant
 

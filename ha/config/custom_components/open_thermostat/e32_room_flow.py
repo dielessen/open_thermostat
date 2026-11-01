@@ -33,7 +33,8 @@ from homeassistant.util import slugify
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
 from .e32_comfort import (DELAY_LIMITS, ComfortError, comfort_options, contact_delay_text, contact_selector,
-                          room_contact_delay, room_contacts, save_comfort, validate_contacts, with_room_contacts)
+                          persons_selector, room_contact_delay, room_contacts, room_persons, save_comfort,
+                          validate_contacts, validate_room_persons, with_room_contacts, with_room_persons)
 from .heating_link import TEMPERATURE_UNITS, celsius, heating_hub, label, number
 from .native_form import retained_input_schema
 from .room_plan import has_room_plan, plan_room
@@ -505,8 +506,9 @@ class E32RoomFlow:
         """The room is gone from the E32 plan: remove its device and entities (this entry's only)."""
         from .native_entity_cleanup import remove_room_devices
         remove_room_devices(self.hass, self.config_entry, heating_hub(self.hass, self.config_entry).prefix, [room_id])
-        if room_contacts(self.config_entry, room_id):  # its window/door contacts go with it
-            settings = comfort_options(self.config_entry)
+        if room_contacts(self.config_entry, room_id) or room_persons(self.config_entry, room_id):
+            # Its window/door contacts and its persons go with it.
+            settings = with_room_persons(comfort_options(self.config_entry), room_id, [])
             save_comfort(self.hass, self.config_entry, with_room_contacts(settings, room_id, []))
 
     def _e32_own_entities(self):
@@ -541,6 +543,7 @@ class E32RoomFlow:
             "ha_sources": [s["id"] for s in sources if s.get("type") == "ha"],
             "ble_sources": [s["id"] for s in sources if s.get("type") == "ble"],
             "contacts": room_contacts(self.config_entry, room["id"]) if room.get("id") else [],
+            "persons": room_persons(self.config_entry, room["id"]) if room.get("id") else [],
             # The room's own pause delay in minutes (beta.23; default 2 min).
             "contact_delay": room_contact_delay(comfort_options(self.config_entry), room.get("id") or "") / 60,
             "bluetooth_first": bool(sources) and sources[0].get("type") == "ble",
@@ -633,6 +636,14 @@ class E32RoomFlow:
         except ComfortError as err:
             raise FlowError(err.code) from None
 
+    def _e32_room_persons(self, user_input, room):
+        """The submitted persons of the room (the form's "persons" section); raises FlowError."""
+        known = room_persons(self.config_entry, room["id"]) if room else []
+        try:
+            return validate_room_persons(self.hass, list((user_input.get("persons") or {}).get("persons") or []), known)
+        except ComfortError as err:
+            raise FlowError(err.code, "persons") from None
+
     @staticmethod
     def _e32_room_delay(user_input):
         """The submitted pause delay in seconds (minutes in the form), or None when the form has none."""
@@ -665,12 +676,14 @@ class E32RoomFlow:
             try:
                 values = self._e32_room_values(user_input, room, ble_options)
                 contacts = self._e32_room_contacts(user_input, room)
+                persons = self._e32_room_persons(user_input, room)
                 delay = self._e32_room_delay(user_input)
                 settings = comfort_options(self.config_entry)
                 same_delay = delay is None or not room or delay == room_contact_delay(settings, room_id)
                 if room is not None:
                     edits = {k: v for k, v in values.items() if room.get(k) != v}
-                    if not edits and contacts == room_contacts(self.config_entry, room_id) and same_delay:
+                    if (not edits and contacts == room_contacts(self.config_entry, room_id) and same_delay
+                            and persons == room_persons(self.config_entry, room_id)):
                         return self.async_abort(reason="e32_room_unchanged")
                     change, confirm = self._e32_edit(room_id, edits)
                     saved = room_id
@@ -686,6 +699,9 @@ class E32RoomFlow:
                         contacts and delay is not None and delay != room_contact_delay(settings, saved)):
                     # After the plan: only for a stored room; the delay only matters with contacts.
                     save_comfort(self.hass, self.config_entry, with_room_contacts(settings, saved, contacts, delay))
+                if persons != room_persons(self.config_entry, saved):
+                    save_comfort(self.hass, self.config_entry,
+                                 with_room_persons(comfort_options(self.config_entry), saved, persons))
             except FlowError as err:
                 if err.key in ABORTS:
                     return self.async_abort(reason=err.key, description_placeholders={"room": room_id or ""})
@@ -751,6 +767,10 @@ class E32RoomFlow:
                     {"min": DELAY_LIMITS[0] / 60, "max": DELAY_LIMITS[1] / 60, "step": 0.5, "mode": "box",
                      "unit_of_measurement": "min"}),
             }), {"collapsed": False}),
+            # Persons per room (beta.23): empty = the room follows the house's presence.
+            vol.Optional("persons"): section(vol.Schema({
+                vol.Optional("persons", description={"suggested_value": d["persons"] or None}): persons_selector(),
+            }), {"collapsed": not d["persons"]}),
             vol.Optional("limits"): section(vol.Schema({
                 vol.Required("minimum_temperature", default=d["minimum_temperature"]): temperature,
                 vol.Required("maximum_temperature", default=d["maximum_temperature"]): temperature,

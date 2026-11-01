@@ -83,7 +83,7 @@ const pass=name=>console.log('PASS '+name);
     if(p==='/auth/session')return json({authenticated:true,csrf:'a'.repeat(64)});
     if(p==='/status')return json({controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}});
     if(p==='/status/heating')return json({schema:1,revision:plan.revision,mode:'shadow',request:{heat:false,flow_c:0,reason:'idle'},rooms:[{id:'woonkamer',name:'Woonkamer',
-     state:'active',inactive_until:0,status:'ok',source:'climate.woonkamer',setpoint:21,temperature:20.4,demand:false,comfort:{window:'open'}}],
+     state:'active',inactive_until:0,status:'ok',source:'climate.woonkamer',setpoint:21,temperature:20.4,demand:false,comfort:{window:'open',persons:'away'}}],
      ha:{input_age_s:null,broker_connected:false}});  // an E32 that never had HA input: the rooms are edited here
     if(p==='/config/heating'){if(request.method()==='POST'){const body=request.postDataJSON();posts.push(body);plan={...body,...(features?{features}:{}),revision:plan.revision+1};}return json(plan);}
     const file=path.join(assets,p==='/'?'index.html':p);
@@ -100,6 +100,8 @@ const pass=name=>console.log('PASS '+name);
    assert.deepEqual(headings.filter(h=>['Algemeen','Temperatuur','Weekprogramma','Ramen en deuren','Personen'].includes(h)),
     ['Algemeen','Temperatuur','Weekprogramma','Ramen en deuren','Personen']);
    await room.locator('[data-heating-window]').getByText('Nu: een raam of deur staat open; de ruimte pauzeert na haar vertraging.').waitFor();
+   // Persons per room (beta.23): the E32 shows read-only what Home Assistant reports for the room's own persons.
+   await room.locator('[data-heating-persons]').getByText('Nu: iedereen van deze ruimte is weg; de ruimte gebruikt de afwezigheidstemperatuur.').waitFor();
    const planner=room.locator('[data-heating-planner]');await planner.locator('.wpe-seg').first().waitFor();
    await planner.locator('[data-k="lv-comfort+"]').click();
    await page.locator('[data-heating-discard]').waitFor();
@@ -111,7 +113,7 @@ const pass=name=>console.log('PASS '+name);
    if(features){
     assert.deepEqual(saved.levels,{comfort:2150,eco:1850,night:1850});assert.equal(saved.schedule_levels,MARKS);
     assert.deepEqual(saved.schedule[0],[[390,2150],[510,1850],[1020,2150],[1350,1850]]);
-    pass('E32 page: levels and marks saved with plan.levels.v1; fixed room blocks; window state');
+    pass('E32 page: levels and marks saved with plan.levels.v1; fixed room blocks; window and persons state');
    }else{
     assert(!('levels' in saved)&&!('schedule_levels' in saved),'older firmware gets plain programs');
     assert.deepEqual(saved.schedule[0],[[390,2150],[510,1850],[1020,2150],[1350,1850]]);

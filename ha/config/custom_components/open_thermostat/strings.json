@@ -608,6 +608,16 @@
               "minimum_temperature": "The lowest target temperature this room can get ({range}).",
               "maximum_temperature": "The highest target temperature this room can get ({range}, not below the minimum)."
             }
+          },
+          "persons": {
+            "name": "Persons",
+            "description": "Optional. Who uses this room. While all of them are away, the room uses the away temperature, also when others are home. Empty: the room follows the house (Configure → Home → Presence).",
+            "data": {
+              "persons": "Persons of this room"
+            },
+            "data_description": {
+              "persons": "Home as soon as one of them is home; away only after all of them have been away for the house's away delay. A person whose place is unknown counts as home. House mode Home keeps every room on its program; Away and Holiday lower every room."
+            }
           }
         }
       },

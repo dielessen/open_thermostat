@@ -366,7 +366,7 @@ TEST(RoomOverrides, StatusShowsTheReasonPerRoomAndTheHouseAway) {
     cJSON_free(study);
     EXPECT_FALSE(comfort(2)); // following its plan: nothing added
     char* away = cJSON_PrintUnformatted(cJSON_GetObjectItem(status.get(), "away"));
-    EXPECT_STREQ(away, R"({"on":false,"source":"none","target_c":15,"until":null,"presence":"unknown","mode":"auto"})");
+    EXPECT_STREQ(away, R"({"on":false,"source":"none","target_c":15,"until":null,"presence":"unknown","mode":"auto","room_presence":true})");
     cJSON_free(away);
     Json api(o.json(p, 0), cJSON_Delete);
     ASSERT_TRUE(api);
@@ -409,8 +409,9 @@ TEST(RoomOverrides, StatusAdditionsStayWithinTheTelemetryBudget) {
     const cJSON* living = cJSON_GetObjectItem(cJSON_GetArrayItem(cJSON_GetObjectItem(status.get(), "rooms"), 0), "comfort");
     ASSERT_TRUE(living);
     EXPECT_LE(size(living) + std::strlen(R"(,"comfort":)"), 160u);
-    // 100 B until beta.21; beta.23 adds "mode" (at most ,"mode":"holiday", 17 B). fw/state/heating stays well below 1 KB.
-    EXPECT_LE(size(cJSON_GetObjectItem(status.get(), "away")) + std::strlen(R"(,"away":)"), 117u);
+    // 100 B until beta.21; beta.23 adds "mode" (at most ,"mode":"holiday", 17 B) and the room.presence.v1
+    // flag (,"room_presence":true, 21 B). fw/state/heating stays well below 1 KB.
+    EXPECT_LE(size(cJSON_GetObjectItem(status.get(), "away")) + std::strlen(R"(,"away":)"), 138u);
     EXPECT_LE(o.stored().size(), RoomOverrides::storeBytes);
 }
 
@@ -444,7 +445,7 @@ TEST(RoomOverrides, HouseModeAutoHomeAwayAndHoliday) {
     cJSON_AddArrayToObject(status.get(), "rooms");
     ASSERT_TRUE(o.addStatus(status.get(), p, 0));
     char* home = cJSON_PrintUnformatted(cJSON_GetObjectItem(status.get(), "away"));
-    EXPECT_STREQ(home, R"({"on":false,"source":"none","target_c":15,"until":null,"presence":"away","mode":"home"})");
+    EXPECT_STREQ(home, R"({"on":false,"source":"none","target_c":15,"until":null,"presence":"away","mode":"home","room_presence":true})");
     cJSON_free(home);
     // Auto: presence decides again.
     ASSERT_EQ(command(o, p, R"({"house_mode":"auto","temperature":16})", 0, monNoon, &persisted), nullptr);
@@ -529,4 +530,120 @@ TEST(RoomOverrides, Beta21ReadsTheHouseModeRecordAfterARollback) {
         ASSERT_TRUE(again.restore(old.stored())) << old.stored();
         EXPECT_STREQ(again.houseMode(), o.homeMode() ? "auto" : o.houseMode()) << record;
     }
+}
+
+// Persons per room (beta.23, room.presence.v1): in auto a room with its own persons follows
+// them, also while others are home; a room without a fresh report follows the house.
+TEST(RoomOverrides, ARoomWithItsOwnPersonsGoesAwayWhileOthersAreHome) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    const auto p = plan();
+    RoomOverrides o;
+    EXPECT_TRUE(o.input(R"({"kind":"presence","home":true})", p, 0));
+    EXPECT_TRUE(o.input(R"({"kind":"room_presence","room":"living","home":false})", p, 0));
+    o.step(p, 0, monNoon, noLead);
+    EXPECT_STREQ(o.view(0).mode, "presence_away");
+    EXPECT_STREQ(o.view(0).persons, "away");
+    EXPECT_EQ(o.adjust()[0].ceiling, 1500);
+    EXPECT_TRUE(o.holdsProgram(0));
+    EXPECT_EQ(o.view(1).mode, nullptr);                // no own persons: the house (someone home)
+    EXPECT_EQ(o.view(1).persons, nullptr);
+    EXPECT_FALSE(o.adjust()[1].ceiling);
+    // One of the room's persons comes home: the room follows its program again.
+    EXPECT_TRUE(o.input(R"({"kind":"room_presence","room":"living","home":true})", p, minute));
+    o.step(p, minute, monNoon + 60, noLead);
+    EXPECT_EQ(o.view(0).mode, nullptr);
+    EXPECT_STREQ(o.view(0).persons, "home");
+}
+
+TEST(RoomOverrides, EveryoneAwayLowersRoomsWithoutPersonsAndRoomPersonsDecideTheirOwnRoom) {
+    const auto p = plan();
+    RoomOverrides o;
+    EXPECT_TRUE(o.input(R"({"kind":"presence","home":false})", p, 0));
+    o.step(p, 0, std::nullopt, noLead);
+    EXPECT_STREQ(o.view(0).mode, "presence_away");     // everyone away: every room
+    EXPECT_STREQ(o.view(1).mode, "presence_away");
+    // A fresh report for the room's own persons decides that room alone (in doubt: warm).
+    EXPECT_TRUE(o.input(R"({"kind":"room_presence","room":"living","home":true})", p, minute));
+    o.step(p, minute, std::nullopt, noLead);
+    EXPECT_EQ(o.view(0).mode, nullptr);
+    EXPECT_STREQ(o.view(1).mode, "presence_away");
+    // Its report expires after 15 min without a refresh: the room follows the house again.
+    EXPECT_TRUE(o.input(R"({"kind":"presence","home":false})", p, 16 * minute));
+    o.step(p, 16 * minute + 1, std::nullopt, noLead);
+    EXPECT_EQ(o.view(0).persons, nullptr);
+    EXPECT_STREQ(o.view(0).mode, "presence_away");
+}
+
+TEST(RoomOverrides, HouseModesWinOverRoomPersons) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    const auto p = plan();
+    RoomOverrides o;
+    EXPECT_TRUE(o.input(R"({"kind":"room_presence","room":"living","home":false})", p, 0));
+    // Home: the week programs always, also for a room whose persons are away.
+    ASSERT_EQ(command(o, p, R"({"house_mode":"home"})", 0, monNoon), nullptr);
+    o.step(p, 0, monNoon, noLead);
+    EXPECT_EQ(o.view(0).mode, nullptr);
+    EXPECT_FALSE(o.adjust()[0].ceiling);
+    // Away: every room, also one whose persons are home.
+    EXPECT_TRUE(o.input(R"({"kind":"room_presence","room":"living","home":true})", p, 0));
+    ASSERT_EQ(command(o, p, R"({"house_mode":"away"})", 0, monNoon), nullptr);
+    o.step(p, 0, monNoon, noLead);
+    EXPECT_STREQ(o.view(0).mode, "away");
+    EXPECT_STREQ(o.view(1).mode, "away");
+    // An open window still pauses the room at the frost floor first.
+    ASSERT_EQ(command(o, p, R"({"house_mode":"auto"})", 0, monNoon), nullptr);
+    EXPECT_TRUE(o.input(R"({"kind":"room_presence","room":"living","home":false})", p, 0));
+    EXPECT_TRUE(o.input(R"({"kind":"contact","room":"living","open":true,"delay_s":0})", p, 0));
+    o.step(p, 0, monNoon, noLead);
+    EXPECT_STREQ(o.view(0).mode, "window_open");
+}
+
+TEST(RoomOverrides, RoomPresenceReportsAreCheckedAndNeverStored) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    const auto p = plan();
+    RoomOverrides o;
+    const auto before = o.stored();
+    // Consumed but ignored: an unknown room, a missing or non-boolean "home".
+    EXPECT_TRUE(o.input(R"({"kind":"room_presence","room":"attic","home":false})", p, 0));
+    EXPECT_TRUE(o.input(R"({"kind":"room_presence","room":"living"})", p, 0));
+    EXPECT_TRUE(o.input(R"({"kind":"room_presence","room":"living","home":"no"})", p, 0));
+    o.step(p, 0, monNoon, noLead);
+    for (size_t i = 0; i < 3; ++i) EXPECT_EQ(o.view(i).persons, nullptr);
+    EXPECT_TRUE(o.input(R"({"kind":"room_presence","room":"living","home":false})", p, 0));
+    o.step(p, 0, monNoon, noLead);
+    EXPECT_STREQ(o.view(0).persons, "away");
+    EXPECT_EQ(o.stored(), before);                     // volatile, like presence: HA resends every 5 min
+    // Status: a room whose persons are home and that follows its plan still says so.
+    EXPECT_TRUE(o.input(R"({"kind":"room_presence","room":"study","home":true})", p, 0));
+    o.step(p, 0, monNoon, noLead);
+    Json status(cJSON_CreateObject(), cJSON_Delete);
+    cJSON* rooms = cJSON_AddArrayToObject(status.get(), "rooms");
+    for (const char* id : {"living", "study", "bath"}) {
+        cJSON* r = cJSON_CreateObject(); cJSON_AddStringToObject(r, "id", id); cJSON_AddItemToArray(rooms, r);
+    }
+    ASSERT_TRUE(o.addStatus(status.get(), p, 0));
+    char* living = cJSON_PrintUnformatted(cJSON_GetObjectItem(cJSON_GetArrayItem(rooms, 0), "comfort"));
+    EXPECT_STREQ(living, R"({"mode":"presence_away","persons":"away","target_c":15})");
+    cJSON_free(living);
+    char* study = cJSON_PrintUnformatted(cJSON_GetObjectItem(cJSON_GetArrayItem(rooms, 1), "comfort"));
+    EXPECT_STREQ(study, R"({"mode":"program","persons":"home"})");
+    cJSON_free(study);
+    EXPECT_FALSE(cJSON_GetObjectItem(cJSON_GetArrayItem(rooms, 2), "comfort"));
+}
+
+// A firmware without persons per room (beta.21/22, the frozen copy) does not consume
+// "room_presence" at all: neither the house presence nor any room changes.
+TEST(RoomOverrides, OlderFirmwareIgnoresRoomPresence) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    using heating::control::RoomOverridesBeta21;
+    const auto p = plan();
+    RoomOverridesBeta21 old;
+    EXPECT_FALSE(old.input(R"({"kind":"room_presence","room":"living","home":false})", p, 0));
+    old.step(p, 0, monNoon, noLead);
+    for (size_t i = 0; i < 3; ++i) EXPECT_EQ(old.view(i).mode, nullptr) << i;
+    // Its house presence still works as before beside it.
+    EXPECT_TRUE(old.input(R"({"kind":"presence","home":true})", p, 0));
+    EXPECT_FALSE(old.input(R"({"kind":"room_presence","room":"study","home":false})", p, 0));
+    old.step(p, 0, monNoon, noLead);
+    EXPECT_EQ(old.view(1).mode, nullptr);
 }

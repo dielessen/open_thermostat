@@ -96,7 +96,12 @@ async def test_heating_view_is_sections_of_built_in_cards_per_room_with_the_esse
     assert (link["type"], link["heading"]) == ("heading", "E32 compared with your thermostat")
     assert link["tap_action"] == {"action": "navigate", "navigation_path": "/" + dashboard.path + "/comparison"}
     assert hub["shadow_agreement_today"] not in [c.get("entity") for c in now]
-    explain = next(c for c in now if c["type"] == "markdown")
+    # The boiler in words (its display code) right under the heating status.
+    words = [c for c in now if c["type"] == "markdown" and "'meaning'" in c["content"]]
+    assert len(words) == 1 and words[0]["visibility"] == [
+        {"condition": "state", "entity": fields["display_code"], "state_not": ["unavailable", "unknown"]}]
+    assert now.index(words[0]) == 1  # first thing under the heading (no house mode or problem tile here)
+    explain = next(c for c in now if c["type"] == "markdown" and c not in words)
     # One short line instead of a "How it works" block.
     assert "How it works" not in explain["content"] and "You set the rooms" not in explain["content"]
     assert "also without Home Assistant" in explain["content"] and "Shadow mode" in explain["content"]
@@ -155,7 +160,9 @@ async def test_heating_view_is_sections_of_built_in_cards_per_room_with_the_esse
     boiler = heating["sections"][3]["cards"]
     assert [c["entity"] for c in boiler if c["type"] == "tile"] == [
         fields["measured_return_temperature"], fields["reported_burner_modulation"], fields["pressure"],
-        fields["display_code"], hub["burner_starts_last_hour"], hub["burner_short_cycling"]]
+        hub["burner_starts_last_hour"], hub["burner_short_cycling"]]
+    # The display code is in words under "Now", not a second time as a bare code here.
+    assert fields["display_code"] not in [c.get("entity") for c in view_cards(heating) if c["type"] == "tile"]
     shown = [c["entity"] for c in view_cards(heating) if c["type"] == "tile" and not c.get("hide_state")]
     assert len(shown) == len(set(shown)), "no tile twice on the Heating view"
     graph = next(c for c in boiler if c["type"] == "history-graph")
@@ -180,7 +187,7 @@ async def test_no_comparison_without_a_thermostat_on_the_bus(hass):
     assert "Thermostat request" not in text and "Agreement" not in text and "shadow_agreement" not in text
     # The subview keeps only the loose Bluetooth sensor.
     assert [s["cards"][0]["heading"] for s in config["views"][3]["sections"]] == ["Bluetooth sensors"]
-    explain = next(c for c in heating["sections"][0]["cards"] if c["type"] == "markdown")
+    explain = next(c for c in heating["sections"][0]["cards"] if c["type"] == "markdown" and "'meaning'" not in c["content"])
     assert "your thermostat controls" not in explain["content"]
     assert "current thermostat or the boiler's own control" in explain["content"]
 

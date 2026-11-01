@@ -1128,7 +1128,36 @@
         "name": "Hot water starts"
       },
       "field_display_code": {
-        "name": "Display code"
+        "name": "Display code",
+        "state_attributes": {
+          "meaning": {
+            "name": "Meaning"
+          },
+          "severity": {
+            "name": "Severity",
+            "state": {
+              "normal": "Normal operation",
+              "waiting": "Waiting",
+              "service": "Service or test mode",
+              "blocking": "Blocking fault",
+              "locking": "Lockout",
+              "fault": "Fault",
+              "unknown": "Unknown code"
+            }
+          },
+          "severity_text": {
+            "name": "Severity in words"
+          },
+          "advice": {
+            "name": "What to do"
+          },
+          "cause": {
+            "name": "Cause number"
+          },
+          "code_table": {
+            "name": "Code table"
+          }
+        }
       },
       "field_service_number": {
         "name": "Service number"
@@ -1456,13 +1485,71 @@
         "name": "Maximum burner power (EMS+)"
       },
       "field_last_locking_error_code": {
-        "name": "Last locking fault code"
+        "name": "Last locking fault code",
+        "state_attributes": {
+          "meaning": {
+            "name": "Meaning"
+          },
+          "severity": {
+            "name": "Severity",
+            "state": {
+              "normal": "Normal operation",
+              "waiting": "Waiting",
+              "service": "Service or test mode",
+              "blocking": "Blocking fault",
+              "locking": "Lockout",
+              "fault": "Fault",
+              "unknown": "Unknown code"
+            }
+          },
+          "severity_text": {
+            "name": "Severity in words"
+          },
+          "advice": {
+            "name": "What to do"
+          },
+          "cause": {
+            "name": "Cause number"
+          },
+          "code_table": {
+            "name": "Code table"
+          }
+        }
       },
       "field_last_locking_error_number": {
         "name": "Last locking fault number"
       },
       "field_last_blocking_error_code": {
-        "name": "Last blocking fault code"
+        "name": "Last blocking fault code",
+        "state_attributes": {
+          "meaning": {
+            "name": "Meaning"
+          },
+          "severity": {
+            "name": "Severity",
+            "state": {
+              "normal": "Normal operation",
+              "waiting": "Waiting",
+              "service": "Service or test mode",
+              "blocking": "Blocking fault",
+              "locking": "Lockout",
+              "fault": "Fault",
+              "unknown": "Unknown code"
+            }
+          },
+          "severity_text": {
+            "name": "Severity in words"
+          },
+          "advice": {
+            "name": "What to do"
+          },
+          "cause": {
+            "name": "Cause number"
+          },
+          "code_table": {
+            "name": "Code table"
+          }
+        }
       },
       "field_last_blocking_error_number": {
         "name": "Last blocking fault number"

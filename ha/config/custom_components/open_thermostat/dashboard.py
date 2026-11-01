@@ -4,7 +4,8 @@ Three views, built from the entity registry (renamed entity IDs are followed,
 disabled and absent entities are left out) with built-in cards only:
 
 * Heating, ordered for a quick look on a phone: the status ("Heating: OK" or
-  "Problem" with the reasons), the heating advice (only while there is any),
+  "Problem" with the reasons), what the boiler is doing in words (its display
+  code: "Hot water", "Waiting: anti-cycle", a fault as a warning), the heating advice (only while there is any),
   one section per E32 room (temperature and target; with a small "Learning"
   area once the E32 reports it), what the E32 asks the boiler now, the boiler
   essentials (with today's hot-water taps and the boiler's own maximum), the
@@ -425,6 +426,37 @@ def _energy_section(t, heating, hot_water):
         {"type": "markdown", "content": note})
 
 
+# The boiler's display code in words (display_codes.py: its attributes), for a look at a glance:
+# the meaning large with the raw code small next to it; a fault or lockout as a warning with
+# what to do. Severity names: display_code_table.SEVERITIES.
+FAULT_SEVERITIES = ("blocking", "locking", "fault")
+
+
+def _boiler_status_card(t, entity_id):
+    """The boiler's state in words under "Now"; only while the display code has a value."""
+    if entity_id is None:
+        return None
+    quoted = json.dumps(entity_id)
+    content = (
+        "{% set e = " + quoted + " %}{% set code = states(e) %}{% set meaning = state_attr(e, 'meaning') %}"
+        "{% set severity = state_attr(e, 'severity') %}{% set advice = state_attr(e, 'advice') %}"
+        "{% set cause = state_attr(e, 'cause') %}{% set raw = code ~ (' ' ~ cause if cause else '') %}"
+        "{% if severity in " + json.dumps(list(FAULT_SEVERITIES)) + " %}"
+        "<ha-alert alert-type=\"{{ 'error' if severity == 'locking' else 'warning' }}\" "
+        "title=\"{{ meaning }}\">{{ state_attr(e, 'severity_text') }}.{% if advice %} {{ advice }}{% endif %} "
+        "<small>" + t["code"] + " {{ raw }}</small></ha-alert>"
+        "{% elif severity == 'unknown' %}<ha-icon icon=\"mdi:help-circle-outline\"></ha-icon> "
+        "**" + t["code"] + " {{ raw }}** · {{ meaning }}"
+        "{% elif meaning %}<ha-icon icon=\"{{ " + json.dumps(STATUS_ICONS) + ".get(severity, 'mdi:water-boiler') }}\">"
+        "</ha-icon> **{{ meaning }}** <small>{{ raw }}</small>"
+        "{% if advice and severity != 'normal' %}\n\n<small>{{ advice }}</small>{% endif %}"
+        "{% else %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> " + t["code"] + " **{{ code }}**{% endif %}")
+    return {"type": "markdown", "content": content, "visibility": _known(entity_id)}
+
+
+STATUS_ICONS = {"normal": "mdi:water-boiler", "waiting": "mdi:timer-sand", "service": "mdi:wrench-outline"}
+
+
 def _value_tile(entity_id, name, icon, color=None):
     """A boiler value, shown only while it has one. Without the E32 the "Heating" tile says why,
     instead of a row of "Unavailable" tiles."""
@@ -814,6 +846,8 @@ class RoomDashboard:
             _heading(t["now"], "mdi:home-thermometer"),
             _tile(house_mode, None, "mdi:home-account", features=[{"type": "select-options"}], color="teal"),
             _tile(problem, t["problem"]),
+            # The boiler in words ("Hot water", "Waiting: anti-cycle", "No flame after ignition").
+            _boiler_status_card(t, essential("code")),
             _tile(request, t["boiler_request"], "mdi:fire", color="deep-orange",
                   visibility=[{"condition": "numeric_state", "entity": request, "above": 0}]) if request else None,
             no_request,
@@ -867,7 +901,7 @@ class RoomDashboard:
         boiler = _section(
             _heading(t["boiler"], "mdi:water-boiler"),
             *(_value_tile(essential(key), t.get(key + "_short", t[key]), ICONS[key])
-              for key in ("return", "modulation", "pressure", "max_ch", "code")),
+              for key in ("return", "modulation", "pressure", "max_ch")),
             _tile(taps, t["dhw_taps"], "mdi:faucet", visibility=_known(taps)) if taps else None,
             _tile(hub.get("burner_starts_last_hour"), t["starts_hour"], "mdi:counter"),
             _tile(hub.get("burner_short_cycling"), t["short_cycling"], "mdi:sync-alert"),

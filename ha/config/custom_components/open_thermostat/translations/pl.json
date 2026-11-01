@@ -1128,7 +1128,36 @@
         "name": "Starty ciepłej wody"
       },
       "field_display_code": {
-        "name": "Kod wyświetlacza"
+        "name": "Kod wyświetlacza",
+        "state_attributes": {
+          "meaning": {
+            "name": "Znaczenie"
+          },
+          "severity": {
+            "name": "Waga",
+            "state": {
+              "normal": "Normalna praca",
+              "waiting": "Oczekiwanie",
+              "service": "Tryb serwisowy lub testowy",
+              "blocking": "Usterka blokująca",
+              "locking": "Blokada",
+              "fault": "Usterka",
+              "unknown": "Nieznany kod"
+            }
+          },
+          "severity_text": {
+            "name": "Waga opisowo"
+          },
+          "advice": {
+            "name": "Co zrobić"
+          },
+          "cause": {
+            "name": "Numer przyczyny"
+          },
+          "code_table": {
+            "name": "Tabela kodów"
+          }
+        }
       },
       "field_service_number": {
         "name": "Numer serwisowy"
@@ -1456,13 +1485,71 @@
         "name": "Maksymalna moc palnika (EMS+)"
       },
       "field_last_locking_error_code": {
-        "name": "Kod ostatniej usterki blokującej trwale"
+        "name": "Kod ostatniej usterki blokującej trwale",
+        "state_attributes": {
+          "meaning": {
+            "name": "Znaczenie"
+          },
+          "severity": {
+            "name": "Waga",
+            "state": {
+              "normal": "Normalna praca",
+              "waiting": "Oczekiwanie",
+              "service": "Tryb serwisowy lub testowy",
+              "blocking": "Usterka blokująca",
+              "locking": "Blokada",
+              "fault": "Usterka",
+              "unknown": "Nieznany kod"
+            }
+          },
+          "severity_text": {
+            "name": "Waga opisowo"
+          },
+          "advice": {
+            "name": "Co zrobić"
+          },
+          "cause": {
+            "name": "Numer przyczyny"
+          },
+          "code_table": {
+            "name": "Tabela kodów"
+          }
+        }
       },
       "field_last_locking_error_number": {
         "name": "Numer ostatniej usterki blokującej trwale"
       },
       "field_last_blocking_error_code": {
-        "name": "Kod ostatniej usterki blokującej"
+        "name": "Kod ostatniej usterki blokującej",
+        "state_attributes": {
+          "meaning": {
+            "name": "Znaczenie"
+          },
+          "severity": {
+            "name": "Waga",
+            "state": {
+              "normal": "Normalna praca",
+              "waiting": "Oczekiwanie",
+              "service": "Tryb serwisowy lub testowy",
+              "blocking": "Usterka blokująca",
+              "locking": "Blokada",
+              "fault": "Usterka",
+              "unknown": "Nieznany kod"
+            }
+          },
+          "severity_text": {
+            "name": "Waga opisowo"
+          },
+          "advice": {
+            "name": "Co zrobić"
+          },
+          "cause": {
+            "name": "Numer przyczyny"
+          },
+          "code_table": {
+            "name": "Tabela kodów"
+          }
+        }
       },
       "field_last_blocking_error_number": {
         "name": "Numer ostatniej usterki blokującej"

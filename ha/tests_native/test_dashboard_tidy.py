@@ -58,12 +58,14 @@ async def test_boiler_values_are_hidden_while_they_have_none_instead_of_showing_
     config, rooms, sensors, hub, fields, flow = live(hass)
     heating = config["views"][0]
     values = [fields[k] for k in ("measured_flow_temperature", "measured_dhw_temperature",
-                                  "measured_return_temperature", "reported_burner_modulation", "pressure",
-                                  "display_code")]
+                                  "measured_return_temperature", "reported_burner_modulation", "pressure")]
     tiles = {c["entity"]: c for c in view_cards(heating) if c["type"] == "tile" and c["entity"] in values}
     assert set(tiles) == set(values)
     for entity_id, tile in tiles.items():
         assert tile["visibility"] == [known(entity_id)], entity_id
+    # The display code in words: hidden as long as the boiler reports no code.
+    words = [c for c in view_cards(heating) if c["type"] == "markdown" and "'meaning'" in c["content"]]
+    assert [c["visibility"] for c in words] == [[known(fields["display_code"])]]
     # The "Heating" status stays always visible: it says when the E32 has not reported.
     status = next(c for c in section(heating, "Now") if c.get("entity") == hub["heating_problem"])
     assert status["name"] == "Heating" and "visibility" not in status

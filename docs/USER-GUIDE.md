@@ -1,7 +1,8 @@
 # OpenThermostat user guide
 
-For E32 V2 beta.21, optionally with Home Assistant integration 0.4.0b13. If
-you use Home Assistant, install both together. Installing on a new E32, the
+For E32 V2 beta.23 or newer, optionally with the Home Assistant integration
+that its release notes pair with it. If you use Home Assistant, install both
+together. Installing on a new E32, the
 Home Assistant setup, updates and troubleshooting are described step by step
 in the [installation guide](INSTALL.md).
 
@@ -138,9 +139,10 @@ Assistant — you edit rooms here." on the **Rooms** page.
    sources in order: the first fresh one leads, the others are fallback.
 4. Set the **temperature without Home Assistant** (for example 19 °C) and the
    room's minimum and maximum.
-5. Turn on **Use a week program** and add switch points per day (time and
-   temperature, up to six per day). Each temperature holds until the next
-   switch point.
+5. Turn on **Use a week program**. Choose a template under **Start from a
+   template**, set the **Comfort**, **Eco** and **Night** temperatures, and
+   adjust the blocks per day (up to six switch points per day). Each
+   temperature holds until the next switch point.
 6. Choose **Save rooms**.
 7. Then check the **Flow temperature limits** on the **Home** page and
    choose **Save limits** after a change (default 30–60 °C; the maximum can
@@ -279,10 +281,11 @@ everything else.
   the room follows its plan. A change made while the E32 has no valid clock
   lasts its duration and is not kept across a restart.
 - **Window and door contacts** (Home Assistant: in the room form under
-  Configure → **Rooms**, or Configure → **Comfort** → Window and door contacts
-  per room): while any contact of a room is open for
-  longer than the delay (120 s by default), the room pauses and only heats
-  below 8 °C. When all are closed it resumes at once. The room card and the
+  Configure → **Rooms**, section **Windows and doors**, or Configure → **Home**
+  → **Rooms: defaults and window contacts** → **Window and door contacts per
+  room**): while any contact of a room is open for longer than its **Pause
+  after** delay (2 minutes by default, set per room), the room pauses and only
+  heats below 8 °C. When all are closed it resumes at once. The room card and the
   thermostat show the pause and its reason.
 - **House mode** (E32: **Home**; Home Assistant: the **House mode** control
   on the E32 device and on the dashboard):
@@ -304,19 +307,24 @@ everything else.
 
 In Home Assistant each E32 room has a thermostat: current temperature,
 target, mode *Auto* (week program), *Heat* (a temporary change) or *Off* (the
-room is inactive in the plan), and the presets Comfort, Night (Home
-Assistant's "Eco") and Boost. Away is the house mode, not a preset of one
-room. Comfort and Night are the warmest and the
-coolest temperature of the room's week program, the same levels as in the week
-planner. A new target on the thermostat lasts until the next switch point; a room
-without a week program keeps it for the time set under Configure → Comfort,
-and a room with only a fixed target changes that fixed target in the plan.
+room is inactive in the plan), and the presets Comfort, Eco, Night and Boost.
+Away is the house mode, not a preset of one room. Comfort, Eco and Night are
+the room's three week-program levels, the same as in the week planner, where
+each is set on its own. A new target on the thermostat lasts until the next
+switch point; a room without a week program keeps it for the **Length of a
+manual change** under Configure → **Home** → **Rooms: defaults and window
+contacts** → **Levels without a week program, and timing**, and a room with
+only a fixed target changes that fixed target in the plan.
 
 ### Week program and setting device
 
 Every room runs its own week program on the E32, also without Home Assistant.
 A new room starts with "Workdays and weekend" (about 20 °C, 18 °C during the
-day on workdays, 16 °C at night); change it in the week planner. If rooms have
+day on workdays, 16 °C at night); change it in the week planner. The planner
+works with three levels, **Comfort**, **Eco** and **Night**; set each
+temperature on its own (equal values and any order are allowed) and paint the
+days with them. **Copy…** copies a day, **Undo** takes back a step, and
+**Advanced: edit as text** shows the program as text. If rooms have
 no program yet, Settings → System → Repairs offers to give them one.
 
 Optionally each room has a **setting device** (the room editor's "Setting
@@ -346,7 +354,7 @@ E32 itself are not supported yet; connect them through Home Assistant.
 
 ### Energy inputs and heating advice
 
-Under Configure → **Energy and outdoor temperature** you can choose a gas
+Under Configure → **Home** → **Energy and outdoor temperature** you can choose a gas
 meter (m³ or kWh), a gas price sensor or a fixed price, the calorific value of
 your gas, an outdoor temperature sensor or weather entity, and your boiler's
 heating power. All fields are optional; leave a field empty to not use it.
@@ -494,12 +502,13 @@ OS, rsyslog or syslog-ng on a Linux machine or NAS, or the log centre of your
 NAS. Give it a fixed IPv4 address and enter that address on the E32. Syslog
 over UDP is not encrypted and not acknowledged; keep it on your home network.
 
-## The attended switch-over (not in this beta)
+## The attended switch-over
 
-Active control is built into the firmware but locked there; the Active
-control section on the Rooms page says "Active control is not enabled in this
-firmware." It is opened only in a later release, with someone present at the
-boiler. See [the switch-over procedure](SWITCHOVER.md). It will involve:
+From beta.22 on, the firmware can control the boiler, but it stays in shadow
+mode until you switch over yourself. (Older firmware says "Active control is
+not enabled in this firmware." in the Active control section of the Rooms
+page.) Switch over only with someone present at the boiler, following [the
+switch-over procedure](SWITCHOVER.md). It involves:
 
 1. Physically disconnecting the existing thermostat from the boiler bus. Two
    controllers must never send boiler requests at the same time.

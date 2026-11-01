@@ -7,10 +7,11 @@ week program. You do not need to be a developer. You do need to be
 comfortable copying files to Home Assistant and, once, connecting the E32 to
 your boiler.
 
-It matches E32 firmware **beta.21 or newer** and the Home Assistant
-integration **0.4.0b13 or newer**. Always install the firmware and the
-integration versions that the release notes pair together: a firmware and an
-integration from different releases may not understand each other.
+It matches E32 firmware **beta.23 or newer** and the Home Assistant
+integration that the same release notes pair with it. Always install the
+firmware and the integration versions that the release notes pair together: a
+firmware and an integration from different releases may not understand each
+other.
 
 > **Beta software in shadow mode.** OpenThermostat is still in beta. In the
 > current releases the E32 runs in **shadow mode**: it measures your rooms,
@@ -92,7 +93,7 @@ settings (see [Updates](#13-updates)).
 
 1. Open the [releases page](https://github.com/dielessen/open_thermostat/releases)
    and choose the newest **E32 V2** release. Its tag starts with `v` and
-   contains `e32v2`, for example `v0.1.0-e32v2-beta.19`.
+   contains `e32v2`, for example `v0.1.0-e32v2-beta.23`.
 2. Under **Assets**, download `open-thermostat-e32v2-<version>.zip`. Do not
    use the "Source code" downloads that GitHub adds automatically.
 3. Extract the ZIP into a new folder. You need two files from it:
@@ -220,8 +221,10 @@ change it. Write the new password down: Home Assistant asks for it in
 section 10. If you ever forget it, you can reset it over USB
 ([section 15](#15-forgotten-password-and-wi-fi-recovery-over-usb)).
 
-The E32 menu reads **Overview, Rooms, Boiler, Sensors, Settings** and
-**System** (Firmware update, System log, About, Restart device).
+The E32 menu reads **Overview, Rooms, Home, Boiler, Sensors, Settings** and
+**System** (Firmware update, System log, About, Restart device). In Dutch:
+Overzicht, Ruimtes, Huis, Ketel, Sensoren, Instellingen and Systeem. The
+language follows your browser; change it at the bottom of any page.
 
 ## 5. Basic settings: time zone and boiler reception
 
@@ -354,7 +357,7 @@ The integration is installed by hand; it is not available through HACS yet.
 
 1. On the [releases page](https://github.com/dielessen/open_thermostat/releases),
    choose the **Home Assistant** release that the release notes pair with your
-   E32 firmware. Its tag starts with `ha-v`, for example `ha-v0.4.0b11`.
+   E32 firmware. Its tag starts with `ha-v`, for example `ha-v0.4.0b15`.
    Download `OpenThermostat-HA-<version>.zip`.
 2. Extract the ZIP on your computer. It contains a folder
    `custom_components/open_thermostat`.
@@ -462,7 +465,9 @@ Right after connecting, choose **Add the first room**. Later, go to
    applies to every day; up to six switch points per day.
 9. **Temperature limits** (folded section): the lowest and highest target this
    room may get. The program and any manual change stay within them.
-10. Choose **Submit**. The room is saved on the E32 right away. Choose **Add a
+10. **Windows and doors** (folded section, optional): the room's window and
+    door contacts and **Pause after** (2 minutes by default). See 11.5.
+11. Choose **Submit**. The room is saved on the E32 right away. Choose **Add a
     room** for the next one, or close the window.
 
 The "Workdays and weekend" template is: on workdays 20 °C from 06:30, 18 °C
@@ -475,9 +480,13 @@ room**.
 ### 11.2 Edit the week program in the visual planner
 
 The easiest way to change a program is the **Week program** view of the
-**OpenThermostat** dashboard in the Home Assistant sidebar. Pick a level
-(comfort, night, away), drag the edges of the blocks, copy a day to other days
-or start from a template. The same planner is on the E32's **Rooms** page.
+**OpenThermostat** dashboard in the Home Assistant sidebar. Every room has
+three levels, **Comfort**, **Eco** and **Night**, each with its own
+temperature; changing a level changes every block that uses it. Paint a block
+with a level, drag the edges of the blocks, use **Copy…** to copy a day to
+other days, **Undo** a step, or **Start from a template**. On a phone the
+planner also lists each day's blocks. The same planner is on the E32's
+**Rooms** page.
 Both edit the same program on the E32, and neither overwrites a change the
 other made in the meantime.
 
@@ -532,11 +541,14 @@ set on the boiler itself.
 
 - **Window and door contacts**: sensors that pause a room while a window or
   door is open (it drops to frost protection and asks for no heat). Choose
-  them per room in the room form, or under **Configure → Comfort**.
+  them per room in the room form, section **Windows and doors**. All rooms'
+  contacts are also listed under **Configure → Home → Rooms: defaults and
+  window contacts → Window and door contacts per room**.
 - **Configure → Home → Presence**: the people of the house. In the house mode
   Automatic the rooms go to the away temperature once everyone has been away
-  for 15 minutes. The **House mode** control (automatic, at home, away,
-  holiday) is on the E32 device and the dashboard.
+  for 15 minutes. The **House mode** control (**Automatic**, **At home**,
+  **Away**, **Holiday**) is on the E32 device, on the dashboard and on the
+  E32's **Home** page.
 - **Configure → Home → Energy and outdoor temperature**: a gas meter, gas price,
   outdoor temperature and your boiler's power. All optional; they make the gas
   and cost estimates and the heating advice more accurate.
@@ -562,7 +574,7 @@ instead; see [Add your first room on the E32](USER-GUIDE.md#5-add-your-first-roo
 **The E32 does:**
 
 - measure every room and follow each room's week program, temporary changes,
-  away mode and open-window pauses;
+  the house mode (away, holiday) and open-window pauses;
 - calculate whether the house needs heat and at what flow temperature, and
   show that as the **calculated boiler request**;
 - learn how fast each room warms up (shown as advice only);
@@ -572,7 +584,7 @@ instead; see [Add your first room on the E32](USER-GUIDE.md#5-add-your-first-roo
 - set your setting devices (valves, tado) to the program's temperature
   through Home Assistant.
 
-**The E32 does not (yet):**
+**The E32 does not, until you switch to active control:**
 
 - send any heat request to the boiler. Your existing thermostat keeps
   controlling the boiler. The Overview says **Shadow mode** and **Your
@@ -594,10 +606,12 @@ That is usually what you want, but it means your heating can change on the
 day you set it up. If you only want to watch in shadow mode first, leave the
 setting device empty and add it later.
 
-Active control is built into the firmware but locked. It will be opened in a
-later release, together with an attended switch-over procedure in which
-someone is present at the boiler; see the [switch-over procedure](SWITCHOVER.md)
-(draft). Until then, keep your existing thermostat connected.
+From beta.22 on, the firmware can control the boiler, but it never starts on
+its own. The E32 takes over only after you disconnect your old thermostat from
+the boiler and choose **My thermostat is disconnected from the boiler — let the
+E32 take over** in the **Active control** section of the **Rooms** page. Do
+that only by following the [switch-over procedure](SWITCHOVER.md), with
+someone at the boiler. Until then, keep your existing thermostat connected.
 
 <a id="9-updates"></a>
 
@@ -759,12 +773,16 @@ The form says what is wrong. The most common messages:
   try again.
 - *This integration needs Home Assistant 2026.10.0 or newer*: update Home
   Assistant.
-- *The E32 is updating, restarting or has a conflicting configuration*: wait
-  a minute until the E32 is finished and try again.
-- *This E32 or installation is already assigned to a different
-  configuration*: the E32 is still linked to another OpenThermostat entry in
-  Home Assistant (for example an old one). Remove the old entry, or connect
-  from the entry it is linked to.
+- *The E32 is updating or restarting, or it waits for a restart*: wait a
+  minute until its web page opens normally and try again.
+- *This E32 is already linked to another OpenThermostat installation*: the E32
+  is still linked to another OpenThermostat entry in Home Assistant (for
+  example an old one). Remove the old entry, or connect from the entry it is
+  linked to.
+- *The E32 has too many open sign-ins*: sign out on the E32 web page, or sign
+  in there with **End previous web sessions and sign in**, then try again.
+- *The firmware on this E32 is too old for this version of the integration*:
+  update the E32 first (**System → Firmware update**), then connect.
 
 ### No values in Home Assistant
 

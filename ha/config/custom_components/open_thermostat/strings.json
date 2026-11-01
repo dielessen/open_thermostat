@@ -650,7 +650,7 @@
           "gas_price": "The price per m³ of gas in your Home Assistant currency when you have no price sensor, for example 1.35.",
           "gas_kwh_per_m3": "Energy per m³ of gas; your gas bill or supplier states it. Empty: 9.77 kWh/m³ (Dutch gas). Elsewhere it differs, for example about 11 kWh/m³ in the UK; natural gas is usually between 8 and 12 kWh/m³.",
           "outdoor_entity": "A temperature sensor outside (°C or °F) or a weather entity. It helps the E32 learn how fast rooms cool down.",
-          "boiler_kw": "The boiler's nominal heating power in kW (type plate or manual), 3–60 kW. Empty: the E32 uses a default."
+          "boiler_kw": "The boiler's nominal heating power in kW (type plate or manual), 3–60 kW. Suggested: {boiler_kw_suggested} kW ({boiler_kw_basis}); empty keeps that suggestion."
         }
       },
       "e32_rooms_saved": {

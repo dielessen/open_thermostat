@@ -1578,7 +1578,7 @@
           "gas_price": "De prijs per m³ gas in de valuta van je Home Assistant als je geen prijssensor hebt, bijvoorbeeld 1,35.",
           "gas_kwh_per_m3": "Energie per m³ gas; die staat op je jaarafrekening of vraag je aan je leverancier. Leeg: 9,77 kWh/m³ (Nederlands gas). Elders is het anders, bijvoorbeeld ongeveer 11 kWh/m³ in het Verenigd Koninkrijk; aardgas zit meestal tussen 8 en 12 kWh/m³.",
           "outdoor_entity": "Een temperatuursensor buiten (°C of °F) of een weerentiteit. Daarmee leert de E32 hoe snel ruimtes afkoelen.",
-          "boiler_kw": "Het nominale verwarmingsvermogen van de ketel in kW (typeplaatje of handleiding), 3–60 kW. Leeg: de E32 gebruikt een standaardwaarde."
+          "boiler_kw": "Het nominale verwarmingsvermogen van de ketel in kW (typeplaatje of handleiding), 3–60 kW. Voorgesteld: {boiler_kw_suggested} kW ({boiler_kw_basis}); leeg houdt dat voorstel."
         }
       },
       "e32_rooms_saved": {

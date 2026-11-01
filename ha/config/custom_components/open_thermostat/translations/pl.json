@@ -650,7 +650,7 @@
           "gas_price": "Cena za m³ gazu w walucie Twojego Home Assistant, gdy nie masz czujnika ceny, na przykład 1.35.",
           "gas_kwh_per_m3": "Energia na m³ gazu; podaje ją rachunek za gaz lub dostawca. Puste: 9,77 kWh/m³ (gaz holenderski). Gdzie indziej wartość jest inna, na przykład w Wielkiej Brytanii około 11 kWh/m³; gaz ziemny ma zwykle od 8 do 12 kWh/m³.",
           "outdoor_entity": "Czujnik temperatury na zewnątrz (°C lub °F) lub encja pogody. Pomaga E32 nauczyć się, jak szybko stygną pomieszczenia.",
-          "boiler_kw": "Nominalna moc grzewcza kotła w kW (tabliczka znamionowa lub instrukcja), 3–60 kW. Puste: E32 używa wartości domyślnej."
+          "boiler_kw": "Nominalna moc grzewcza kotła w kW (tabliczka znamionowa lub instrukcja), 3–60 kW. Proponowana: {boiler_kw_suggested} kW ({boiler_kw_basis}); puste zachowuje tę propozycję."
         }
       },
       "e32_rooms_saved": {

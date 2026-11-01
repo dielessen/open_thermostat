@@ -223,11 +223,11 @@
         },
         {
           "path": "docs/SWITCHOVER.md",
-          "sha256": "f6dc8a41dadce6b1a7211b1a869f2d25114d54fcb0ccf5f940528f41816f1468"
+          "sha256": "3a589fbe3927a77be17c7cc8c411970288054be11169da8452f9700651d52e89"
         },
         {
           "path": "docs/USER-GUIDE.md",
-          "sha256": "53cc365c8f49873489853214d7705b61eebd0962c8314fa5f83db8d3199cce15"
+          "sha256": "42d460736be7722abe18e8b578dec7cdf286a3c07be56af79457f0e74af93f71"
         },
         {
           "path": "docs/modern-thermostat/OVERSCHAKELING.nl.md",
@@ -315,7 +315,7 @@
         },
         {
           "path": "docs/INSTALL.md",
-          "sha256": "19f3580466c9eedf0100847c3ab197b84c1b9844614f1d976deec22adf7e7149"
+          "sha256": "e23317b29a28bb2d0f3b19341f09dcd6623e5c227f3996660af6deb6f5d4b244"
         },
         {
           "path": "scripts/e32v2_literal_reach.py",
@@ -428,6 +428,10 @@
         {
           "path": "test/week-levels-browser.cjs",
           "sha256": "b04534bd0d10c889267236965c8e935bddf99fc32dc607c08092d817407a0d53"
+        },
+        {
+          "path": "docs/modern-thermostat/INSTALLATIE-TEST.nl.md",
+          "sha256": "b54a603a8d5f8fee6bf9bd1efbac966012dc176df76e425524bd18a3cd978cc8"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."

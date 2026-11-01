@@ -1,6 +1,6 @@
 # Releaseplan tot en na 1.0 (eigenaar, 30 oktober – 1 november 2026)
 
-Dit is het actuele plan (stand 1 november, avond). De oudere secties hieronder zijn geschiedenis.
+Dit is het actuele plan (stand 2 november: al het 1.0-werk op `release-1.0` 7916d31). De oudere secties hieronder zijn geschiedenis.
 
 ## Klaar
 
@@ -72,20 +72,25 @@ Dit is het actuele plan (stand 1 november, avond). De oudere secties hieronder z
 
 Beta.23, beta.24 en 1.0 zijn **één release, de "1.0-kandidaat"**: één releasebranch (`release-1.0`), één volledige controle, één installatie. Hij komt uit als `v1.0.0-e32v2-rc.N` met `ha-v1.0.0rcN`; na 14 dagen met alle criteria op PASS wordt dezelfde code `v1.0.0-e32v2` / `ha-v1.0.0`. Verandert er nog iets, dan volgt een nieuwe kandidaat en begint de klok opnieuw.
 
-**Installeren:** ongeveer een week na de overstap van 1 november (dus rond 8–10 november), zodat het bijstellen van het leren op echte data van de actieve regeling erin zit; elke latere codewijziging zet de 14 dagen terug op nul. Installeren als er iemand thuis is, en direct daarna de overname opnieuw bevestigen. Releasenotities (concept): [RELEASE-1.0-CANDIDATE-NOTES-DRAFT.en.md](RELEASE-1.0-CANDIDATE-NOTES-DRAFT.en.md).
+**Installeren:** ongeveer een week na de overstap van 1 november (dus rond 8–10 november), zodat het bijstellen van het leren op echte data van de actieve regeling erin zit. Dat bijstellen kan nu als instelling (Huis → "Advanced: tuning") en zet de 14 dagen niet terug; elke latere codewijziging wel. Installeren als er iemand thuis is, en direct daarna de overname opnieuw bevestigen. Releasenotities (concept): [RELEASE-1.0-CANDIDATE-NOTES-DRAFT.en.md](RELEASE-1.0-CANDIDATE-NOTES-DRAFT.en.md).
 
-Inhoud (stand `release-1.0` a81d991, 16 branches samengevoegd):
+Inhoud (stand `release-1.0` 7916d31: al het 1.0-werk samengevoegd):
 - ✅ alles van beta.23 hierboven, met de veiligheidsfixes S1–S3;
 - ✅ radiatorkranen per ruimte (hieronder), per ruimte standaard uit: de Zigbee2MQTT-route, de Sonoff TRV Gen2 (TRV-ZBT) met de fix voor de sensorkeuze van Sonoff, en kranen die HA aanstuurt (elke `climate`-entiteit: ZHA, Z-Wave, Shelly, cloud);
-- ✅ een dagoverzicht in HA (brandertijd, starts, korte runs, op tijd warm, gemist comfort, buitentemperatuur, gas per dag) en waarschuwingen (ruimte blijft koud, sessie weg; elk verwarmingsprobleem ook als Reparatie);
-- ✅ lange entiteit-ID's vrijwillig opruimen (Geavanceerd), met voorbeeld, gebruiksplaatsen, historie mee en 30 dagen terugzetten;
-- ✅ de code op het ketelscherm in gewone taal per ketelprofiel (uit de handleidingen van de fabrikant, generieke EMS-tabel als terugval), op het E32-overzicht en het HA-dashboard;
+- ✅ een dagoverzicht in HA (brandertijd, starts en "Burner starts today", korte runs, op tijd warm, gemist comfort, buitentemperatuur, gas per dag inclusief warmhouden) en waarschuwingen (ruimte blijft koud, sessie weg; elk verwarmingsprobleem ook als Reparatie);
+- ✅ lange entiteit-ID's vrijwillig opruimen (Geavanceerd), met voorbeeld (vertaald, ook scènes als gebruiksplaats), historie mee en 30 dagen terugzetten;
+- ✅ de code op het ketelscherm in gewone taal, uit de handleidingen van de fabrikant: de EcomLine Classic plus tien families (Nefit EcomLine Excellent, ProLine HRC, TrendLine II, TopLine/AquaPower, SmartLine Basic; Buderus GB172 en GB162; Bosch Condens 7000i W en Cerapur 5C; Worcester Bosch Greenstar 4000), generieke EMS-tabel als terugval; op het E32-overzicht en het HA-dashboard;
+- ✅ een eerlijk ketelprofiel: een waarde die een adapter op 0 laat terwijl de ketel werkt (aanvoer-setpoint, brander- en driewegklepbits achter de EasyControl Adapter) heet "Not reported" in plaats van een misleidende 0; HA maakt er geen entiteit voor;
+- ✅ "Ready to take over?": de schaduwanalyse van `shadow_exit.py` ingebouwd in de E32 (checklist op de Ruimtes-pagina) en in HA (sensor "Takeover readiness");
+- ✅ het leren bijstellen zonder nieuwe firmware: tien begrensde regelknoppen als instelling (E32 Huis → "Advanced: tuning"; o.a. minimale brander-aan/uit-tijd, start-/stopdrempels, aanvoer per graad, opwarmvoorsprong), standaard precies het gedrag van a81d991; veiligheidsgrenzen zijn geen knop. Daarbij het gereedschap (replay, dagelijkse review, opt-in warmwaterbrug, zie [LEREN-ANALYSE.nl.md](LEREN-ANALYSE.nl.md)). Na ongeveer een week actieve data worden de waarden bijgesteld als instelling, zonder de 14-dagenklok te resetten;
+- ✅ automatische dagelijkse E32-back-ups in HA (7 dagen, in de eigen HA-back-ups, knop "Back up E32 settings now", Reparatie na 3 dagen zonder), en terugzetten op een nieuwe of gewiste E32 met eerst een overzicht van de wijzigingen; de E32 komt terug in schaduw;
+- ✅ HA-schrijfacties wachten op een vrije E32-websessie (tot ~155 s), alleen de nieuwste wijziging per ruimte gaat uit;
+- ✅ dertien HA-fixes: allowlist voor het kraan-endpoint, geen verloren kraanwijziging, de weg-vertraging telt vanaf het moment dat de laatste persoon vertrok, warmwatertellingen na een herstart, één Reparatie voor opnieuw bevestigen, warmhoudgas in het dagoverzicht, verdwenen EMS-apparaten na 24 uur weg, opruimen van entiteit-ID's met scènes en vertaald voorbeeld, "Burner starts today", de pauzevertraging per ruimte alleen opgeslagen als die afwijkt, het productbestand niet meer in de event loop gelezen, het voorgestelde ketelvermogen niet meer als eigen waarde opgeslagen;
+- ✅ zes firmwarefixes: de nulvraag na een update wordt ook later nog verstuurd, de kraanstop houdt de (afstelbare) minimale brandertijden aan, kraanruimtes houden hun eigen id na een planwijziging, een verwijderde ruimte blokkeert het opslaan van kranen niet meer, bevestigen tijdens vorstbeveiliging neemt direct over, en kranen pas na een bevestigde overname;
+- ✅ de fix voor de interne heap: REST-antwoorden gaan zonder extra kopie in intern RAM de deur uit;
 - ✅ readiness: `tools/switchover/release_ready.py` meet de 1.0-criteria; de gate laat `v1.0.0-e32v2` alleen door met een definitief PASS-rapport;
-- ✅ gebruikershandleiding en installatiegids bijgewerkt voor de nieuwe menu's, met de testchecklist [INSTALLATIE-TEST.nl.md](INSTALLATIE-TEST.nl.md);
-- ◐ het leren bijstellen met data van de echte aansturing (aanvoer, op tijd opwarmen, minimale aan/uit-tijd): het gereedschap is er (replay, dagelijkse review, opt-in warmwaterbrug; standaarden ongewijzigd, zie [LEREN-ANALYSE.nl.md](LEREN-ANALYSE.nl.md)); de afstelling zelf volgt na ongeveer een week actieve data;
-- ☐ automatische E32-back-ups in HA, met terugzetten op een nieuwe E32 (nog niet op `release-1.0`);
-- ☐ de fix voor de interne heap (nog niet op `release-1.0`);
-- ☐ de installatiegids nagelopen (review, nog niet op `release-1.0`), en daarna gevolgd door iemand anders dan de schrijver (criterium `install_guide`).
+- ✅ gebruikershandleiding en installatiegids nagelopen zoals een nieuwe gebruiker 1.0 aantreft, met de checklist voor een tweede persoon [INSTALL-CHECK.md](../INSTALL-CHECK.md) (en [INSTALLATIE-TEST.nl.md](INSTALLATIE-TEST.nl.md)); HA-teksten noemen de echte E32-menupaden (bijv. System → Network and Home Assistant); tot 8 raam- en deurcontacten per ruimte uitgelegd;
+- ☐ de installatiegids gevolgd door iemand anders dan de schrijver (criterium `install_guide`).
 
 ### Radiatorkranen per ruimte
 
@@ -130,6 +135,7 @@ Verwachting: eind november tot begin december, afhankelijk van de kranen (de 14 
 ## Na 1.0
 
 - **1.1:** EMS+-ketels lezen en aansturen.
+- **Overzicht per ruimte (1.1, prototype op branch `v11-room-overview`):** elke ruimte zegt in één regel waarom hij wel of niet verwarmt (uit, raam open, geen meting, wachten op warm water of ketelpauze, vakantie, weg, boost, tijdelijk doel, verwarmen, warm genoeg), met iconen voor wie thuis is en open ramen of deuren, en de kraanopening. In HA een sensor "Reason" en een ruimtestatuskaart op het dashboard; op het E32-overzicht dezelfde regel per ruimtekaart. Geen nieuw firmwareveld.
 - **Schrijfbare EMS-instellingen (access/write):** pas na 1.0 (eigenaar 30 en 31 okt). Plan: [EMS-INSTELBARE-WAARDEN.nl.md](EMS-INSTELBARE-WAARDEN.nl.md).
   - W1: tabel met schrijfgegevens;
   - W2: bewijsniveaus (L0 verzonden, L1 teruggelezen, L2 blijvend, L3 effect gemeten) met automatisch terugzetten;

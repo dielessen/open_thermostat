@@ -201,6 +201,9 @@ public:
     bool outputActive() const {
         return ((state_ == State::active && confirmedAt_) || (frostSending_ && lastTarget2_)) && !withdrawn_ && routeReady_;
     }
+    // outputActive() after a confirmed takeover only, never for frost while waiting: the
+    // radiator valves get room setpoints (TrvControl, HA's actuator_output_enabled) only then.
+    bool confirmedOutput() const { return outputActive() && confirmedAt_.has_value(); }
     bool owning() const { return state_ == State::active || state_ == State::stoppedMeasurementLost; }
     // Owns the boiler, withdraws its request, keeps frost or owes the boot zero: the boiler trial waits.
     bool claimsBoiler() const { return owning() || state_ == State::stopping || frostSending_ || bootZero_; }

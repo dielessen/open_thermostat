@@ -843,17 +843,18 @@ private:
         shadowComparison_.sample(now, unixNow, request, tadoFlowC);
         stepFlowLearner(now, ems, tadoFlowC);
         // Radiator valves: their feedback on the request and their commands, both only while the E32
-        // drives the boiler (the last step's output) and a room's valve control is on.
+        // drives the boiler after a confirmed takeover (the last step's output; frost protection
+        // while waiting for a new confirmation is no takeover) and a room's valve control is on.
         trvRooms_ = trvRoomViews(now);
-        const bool output = boilerOutput_.load();
+        const bool output = activeGuard_.confirmedOutput();
         const auto& plan = roomEngine_.plan();
         const auto valved = trv_.adjust(request, trvRooms_, output, now, plan.minimumFlowC, plan.maximumFlowC);
         stepActiveHeat(now, valved, ems);
-        trv_.step(now, trvRooms_, boilerOutput_.load(), [this](const std::string& topic, const std::string& payload) {
+        trv_.step(now, trvRooms_, activeGuard_.confirmedOutput(), [this](const std::string& topic, const std::string& payload) {
             return mqtt_.publishExternal(topic, payload);
         });
         actuatorOutput_.store(trv_.actuatorOutput());
-        sampleHistory(now, request, ems, tadoFlowC);
+        sampleHistory(now, valved, ems, tadoFlowC); // the request after the valves' feedback
     }
     // The rooms as the valve control sees them (control/TrvControl.h); empty without valves.
     std::vector<control::TrvControl::Room> trvRoomViews(uint64_t now) const {

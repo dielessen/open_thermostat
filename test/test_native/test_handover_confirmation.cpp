@@ -361,6 +361,7 @@ TEST(HandoverConfirmation, FrostProtectionWhileWaitingForANewConfirmation) {
     EXPECT_EQ(b.guard.state(), State::awaitingConfirmation);
     EXPECT_FALSE(b.guard.confirmed());
     EXPECT_TRUE(b.guard.outputActive());
+    EXPECT_FALSE(b.guard.confirmedOutput()); // frost only: no room setpoints to the valves
     EXPECT_TRUE(b.guard.claimsBoiler());
     b.runFor(10 * minute);
     for (size_t i = 1; i < b.sent.size(); ++i) EXPECT_EQ(b.sent[i], 30) << i;
@@ -405,6 +406,7 @@ TEST(HandoverConfirmation, ConfirmingDuringFrostTakesOverWithoutStopZeros) {
     EXPECT_EQ(b.why[at], "heat_request");
     for (size_t i = at; i < b.sent.size(); ++i) EXPECT_EQ(b.sent[i], 40) << i;
     EXPECT_EQ(b.guard.state(), State::active);
+    EXPECT_TRUE(b.guard.confirmedOutput());
     EXPECT_FALSE(b.guard.released());
     EXPECT_EQ(store.record, "fw/2");
     FakeStore late; late.record = "fw/1";
@@ -421,6 +423,7 @@ TEST(HandoverConfirmation, ConfirmingDuringFrostTakesOverWithoutStopZeros) {
     for (size_t i = from; i < w.sent.size(); ++i) EXPECT_EQ(w.sent[i], 0) << i;
     EXPECT_TRUE(w.guard.released());
     EXPECT_EQ(w.guard.state(), State::arming);
+    EXPECT_FALSE(w.guard.confirmedOutput());
 }
 
 // S3a: only without a foreign master this boot.

@@ -96,7 +96,7 @@
       "reauth_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie."
     },
     "create_entry": {
-      "e32_next_steps": "Dalej: wybierz Konfiguruj przy tej integracji, a potem Połączenie z E32. Wcześniej włącz MQTT na stronie internetowej E32 (Settings → MQTT). Po połączeniu Home Assistant od razu przejdzie do pierwszego pomieszczenia."
+      "e32_next_steps": "Dalej: wybierz Konfiguruj przy tej integracji, a potem Połączenie z E32. Wcześniej włącz MQTT na stronie internetowej E32 (System → Network and Home Assistant → MQTT). Po połączeniu Home Assistant od razu przejdzie do pierwszego pomieszczenia."
     }
   },
   "options": {
@@ -497,14 +497,14 @@
       },
       "controller_connection": {
         "title": "Połącz E32",
-        "description": "Połącz tę instalację ze swoim E32. Najpierw potrzebujesz dwóch rzeczy:\n\n1. Loginu brokera dla E32. Z dodatkiem Mosquitto broker działa każdy użytkownik Home Assistant: utwórz go w Ustawienia → Osoby → Użytkownicy → Dodaj użytkownika (zakładka Użytkownicy jest widoczna, gdy w profilu użytkownika włączony jest tryb zaawansowany), na przykład openthermostat z własnym hasłem.\n2. MQTT na E32: na stronie internetowej E32 otwórz Settings → MQTT, zaznacz Enabled, wpisz adres brokera (zwykle adres Home Assistant), port 1883 oraz tę nazwę użytkownika i hasło, zapisz i pozwól E32 się zrestartować.\n\nW Home Assistant nie jest potrzebne żadne pomieszczenie: po połączeniu dodajesz pomieszczenia w Konfiguruj → Pomieszczenia, pierwsze od razu tutaj. Pierwsze połączenie może raz zrestartować E32.\n\nHasło E32 jest przechowywane w tej integracji Home Assistant. Jeśli później zmienisz je na E32, Home Assistant poprosi o nowe. Połączenie nie włącza sterowania ogrzewaniem.",
+        "description": "Połącz tę instalację ze swoim E32. Najpierw potrzebujesz dwóch rzeczy:\n\n1. Loginu brokera dla E32. Z dodatkiem Mosquitto broker działa każdy użytkownik Home Assistant: utwórz go w Ustawienia → Osoby → Użytkownicy → Dodaj użytkownika (zakładka Użytkownicy jest widoczna, gdy w profilu użytkownika włączony jest tryb zaawansowany), na przykład openthermostat z własnym hasłem.\n2. MQTT na E32: na stronie internetowej E32 otwórz System → Network and Home Assistant → MQTT, zaznacz Enabled, wpisz adres brokera (zwykle adres Home Assistant), port 1883 oraz tę nazwę użytkownika i hasło, zapisz i pozwól E32 się zrestartować.\n\nW Home Assistant nie jest potrzebne żadne pomieszczenie: po połączeniu dodajesz pomieszczenia w Konfiguruj → Pomieszczenia, pierwsze od razu tutaj. Pierwsze połączenie może raz zrestartować E32.\n\nHasło E32 jest przechowywane w tej integracji Home Assistant. Jeśli później zmienisz je na E32, Home Assistant poprosi o nowe. Połączenie nie włącza sterowania ogrzewaniem.",
         "data": {
           "address": "Adres internetowy E32",
           "password": "Hasło E32"
         },
         "data_description": {
           "address": "Adres E32 w Twojej sieci, na przykład http://192.168.1.50.",
-          "password": "Hasło, którym logujesz się na stronie internetowej E32 (użytkownik admin). Nowy E32 startuje z hasłem admin; zmień je tam w Settings → Password. Zostaw puste, aby zachować zapisane."
+          "password": "Hasło, którym logujesz się na stronie internetowej E32 (użytkownik admin). Nowy E32 startuje z hasłem admin; zmień je tam w System → Password. Zostaw puste, aby zachować zapisane."
         }
       },
       "controller_connecting": {
@@ -830,8 +830,8 @@
       "controller_update_required": "Oprogramowanie tego E32 jest za stare dla tej wersji integracji. Najpierw zaktualizuj E32: na jego stronie internetowej otwórz System → Firmware update i zainstaluj najnowsze wydanie, potem połącz ponownie.",
       "controller_busy_or_conflict": "E32 aktualizuje się lub restartuje albo czeka na restart. Poczekaj, aż jego strona internetowa znów normalnie się otworzy (jeśli o to prosi, zrestartuj go tam przez System → Restart device), potem spróbuj ponownie.",
       "controller_legacy_rooms_present": "E32 ma jeszcze własne pomieszczenia ze starszej samodzielnej konfiguracji (na jego stronie internetowej: System → Rooms and programs). Home Assistant ich nie przejmuje. Usuń tam te pomieszczenia i zapisz, potem połącz ponownie; następnie dodasz swoje pomieszczenia w Konfiguruj → Pomieszczenia.",
-      "controller_broker_setup_required": "E32 potrzebuje najpierw własnego logowania MQTT. Na E32 otwórz Settings → MQTT, zaznacz Włączone, podaj adres i port brokera oraz nazwę użytkownika i hasło brokera, zapisz i pozwól E32 się zrestartować. E32 nie łączy się z Home Assistant przez broker bez logowania.",
-      "controller_source_conflict": "Ten E32 jest już połączony z inną instalacją OpenThermostat albo ta instalacja była wcześniej połączona z innym E32. Najpierw sprawdź, czy adres należy do właściwego E32. Aby przenieść ten E32 do tej instalacji: na jego stronie internetowej otwórz Settings → Home Assistant → Advanced, odznacz shadow mode, wyczyść profil instalacji, jeśli jest widoczny, zapisz i pozwól E32 się zrestartować; potem połącz ponownie.",
+      "controller_broker_setup_required": "E32 potrzebuje najpierw własnego logowania MQTT. Na E32 otwórz System → Network and Home Assistant → MQTT, zaznacz Enabled, podaj adres i port brokera oraz nazwę użytkownika i hasło brokera, zapisz i pozwól E32 się zrestartować. E32 nie łączy się z Home Assistant przez broker bez logowania.",
+      "controller_source_conflict": "Ten E32 jest już połączony z inną instalacją OpenThermostat albo ta instalacja była wcześniej połączona z innym E32. Najpierw sprawdź, czy adres należy do właściwego E32. Aby przenieść ten E32 do tej instalacji: na jego stronie internetowej otwórz System → Network and Home Assistant, sekcja Home Assistant: odznacz „Home Assistant link in shadow mode (no boiler control)”, wyczyść profil instalacji w „Installation identity and limits (advanced)”, jeśli jest widoczny, wybierz Save settings i pozwól E32 się zrestartować; potem połącz ponownie.",
       "controller_settings_too_large": "Konfiguracja przekracza limit pamięci E32. Nie jest wykonywana automatyczna ponowna próba.",
       "controller_response_invalid": "E32 zwrócił nieoczekiwaną odpowiedź. Sprawdź jego oprogramowanie i połączenie.",
       "controller_response_too_large": "Odpowiedź E32 przekracza obsługiwany limit. Sprawdź jego oprogramowanie.",
@@ -843,7 +843,7 @@
       "controller_runtime_off_required": "Poprzednie połączenie jeszcze się zatrzymuje. Poczekaj minutę i wyślij ponownie.",
       "controller_boot_unconfirmed": "E32 nie wrócił na czas po restarcie. Poczekaj, aż jego strona internetowa znów się otworzy, potem wyślij ponownie.",
       "controller_connection_failed": "Nie udało się dokończyć połączenia. Sprawdź, czy E32 jest włączony i czy jego strona internetowa się otwiera, poczekaj minutę i wyślij ponownie. Jeśli nadal się nie udaje, przyczynę pokazuje strona E32 w System → Diagnostics and system log.",
-      "controller_connection_unconfirmed": "Home Assistant nie otrzymał na czas odpowiedzi od E32. Na stronie E32 sprawdź w Settings → MQTT, czy używa tego samego brokera co Home Assistant i czy jego nazwa użytkownika i hasło są akceptowane; potem wyślij ponownie.",
+      "controller_connection_unconfirmed": "Home Assistant nie otrzymał na czas odpowiedzi od E32. Na stronie E32 sprawdź w System → Network and Home Assistant → MQTT, czy używa tego samego brokera co Home Assistant i czy jego nazwa użytkownika i hasło są akceptowane; potem wyślij ponownie.",
       "controller_connection_changed": "Połączenie z E32 zmieniło się podczas zapisywania planu pomieszczeń, na przykład przez restart lub drugie Połącz E32. Poczekaj minutę i wyślij ponownie.",
       "controller_plan_pending": "Wcześniejsza zmiana planu pomieszczeń nie jest jeszcze rozstrzygnięta. Sprawdź jej rzeczywisty odczyt zwrotny z E32 przed zastosowaniem kolejnej zmiany.",
       "controller_plan_unconfirmed": "E32 nie potwierdził na czas planu pomieszczeń. Poczekaj, aż E32 wróci po restarcie (jego strona internetowa znów się otwiera), potem wyślij ponownie.",
@@ -888,7 +888,7 @@
       "e32_flow_limits_floor_warning": "W jednym pomieszczeniu jest ogrzewanie podłogowe. Powyżej {floor_maximum} ogrzewanie podłogowe bez zaworu mieszającego może się zbytnio nagrzać. Zapisz ponownie, aby zachować to maksimum.",
       "e32_flow_limits_above_boiler": "To maksimum jest wyższe niż maksimum samego kotła; kocioł i tak nie pójdzie wyżej. Zapisz ponownie, aby je zachować, albo je obniż.",
       "controller_ha_version_unsupported": "Ta integracja wymaga Home Assistant 2026.10.0 lub nowszego (testowano z 2026.10.2 do 2026.10.4). Zaktualizuj Home Assistant; jeśli Twoja wersja jest nowsza, sprawdź, czy jest aktualizacja integracji. Nic nie zostało zmienione.",
-      "controller_mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź Settings → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker.",
+      "controller_mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź System → Network and Home Assistant → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker.",
       "legacy_rooms_plan_changed": "Plan pomieszczeń E32 zmienił się od czasu utworzenia tej listy (na stronie E32 lub gdzie indziej). Nic nie zostało usunięte. Sprawdź zaktualizowaną listę i zatwierdź ponownie.",
       "legacy_rooms_plan_failed": "E32 nie zapisał zaktualizowanego planu pomieszczeń, więc nic nie zostało usunięte. Sprawdź, czy E32 jest gotowy, i spróbuj ponownie.",
       "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie.",
@@ -2924,7 +2924,7 @@
     },
     "e32_default_password": {
       "title": "E32 nadal używa domyślnego hasła",
-      "description": "{name}: E32 nadal używa domyślnego hasła admin/admin, więc każdy w Twojej sieci może zmienić Twoje ogrzewanie. Zmień je na stronie internetowej E32: Settings → Password (na stronie Overview jest też przycisk Change password). Home Assistant raz poprosi Cię o nowe hasło (Ustawienia → Urządzenia i usługi), a ten komunikat zniknie."
+      "description": "{name}: E32 nadal używa domyślnego hasła admin/admin, więc każdy w Twojej sieci może zmienić Twoje ogrzewanie. Zmień je na stronie internetowej E32: System → Password (na stronie Overview jest też przycisk Change password). Home Assistant raz poprosi Cię o nowe hasło (Ustawienia → Urządzenia i usługi), a ten komunikat zniknie."
     },
     "legacy_rooms": {
       "title": "Stare pomieszczenie Home Assistant nie jest już używane: {rooms}",
@@ -2949,8 +2949,8 @@
         "error": {
           "e32_password": "E32 nie zaakceptował zapisanego hasła. Podaj bieżące hasło E32 w Konfiguruj → Połączenie z E32, a potem spróbuj ponownie.",
           "e32_unreachable": "Nie udało się połączyć z E32. Sprawdź, czy jest włączony i podłączony do Twojej sieci, a potem spróbuj ponownie.",
-          "broker_login": "E32 potrzebuje najpierw własnego logowania MQTT. Na E32 otwórz Settings → MQTT, zaznacz Włączone, podaj adres i port brokera oraz nazwę użytkownika i hasło brokera, zapisz i pozwól E32 się zrestartować. E32 nie łączy się z Home Assistant przez broker bez logowania.",
-          "mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź Settings → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker.",
+          "broker_login": "E32 potrzebuje najpierw własnego logowania MQTT. Na E32 otwórz System → Network and Home Assistant → MQTT, zaznacz Enabled, podaj adres i port brokera oraz nazwę użytkownika i hasło brokera, zapisz i pozwól E32 się zrestartować. E32 nie łączy się z Home Assistant przez broker bez logowania.",
+          "mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź System → Network and Home Assistant → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker.",
           "e32_busy": "E32 aktualizuje się lub restartuje. Poczekaj, aż będzie gotowy, i spróbuj ponownie.",
           "ha_version_unsupported": "Ta integracja wymaga Home Assistant 2026.10.0 lub nowszego (testowano z 2026.10.2 do 2026.10.4). Zaktualizuj Home Assistant; jeśli Twoja wersja jest nowsza, sprawdź, czy jest aktualizacja integracji. Nic nie zostało zmienione.",
           "connection_failed": "Nie udało się potwierdzić połączenia z E32. Otwórz Konfiguruj → Połączenie z E32, aby zobaczyć szczegóły, a potem spróbuj tu ponownie.",
@@ -2990,8 +2990,8 @@
         "error": {
           "e32_password": "E32 nie zaakceptował zapisanego hasła. Podaj bieżące hasło E32 w Konfiguruj → Połączenie z E32, a potem spróbuj ponownie.",
           "e32_unreachable": "Nie udało się połączyć z E32. Sprawdź, czy jest włączony i podłączony do Twojej sieci, a potem spróbuj ponownie.",
-          "broker_login": "E32 potrzebuje najpierw własnego logowania MQTT. Na E32 otwórz Settings → MQTT, zaznacz Włączone, podaj adres i port brokera oraz nazwę użytkownika i hasło brokera, zapisz i pozwól E32 się zrestartować. E32 nie łączy się z Home Assistant przez broker bez logowania.",
-          "mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź Settings → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker.",
+          "broker_login": "E32 potrzebuje najpierw własnego logowania MQTT. Na E32 otwórz System → Network and Home Assistant → MQTT, zaznacz Enabled, podaj adres i port brokera oraz nazwę użytkownika i hasło brokera, zapisz i pozwól E32 się zrestartować. E32 nie łączy się z Home Assistant przez broker bez logowania.",
+          "mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź System → Network and Home Assistant → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker.",
           "e32_busy": "E32 aktualizuje się lub restartuje. Poczekaj, aż będzie gotowy, i spróbuj ponownie.",
           "ha_version_unsupported": "Ta integracja wymaga Home Assistant 2026.10.0 lub nowszego (testowano z 2026.10.2 do 2026.10.4). Zaktualizuj Home Assistant; jeśli Twoja wersja jest nowsza, sprawdź, czy jest aktualizacja integracji. Nic nie zostało zmienione.",
           "connection_failed": "Nie udało się potwierdzić połączenia z E32. Otwórz Konfiguruj → Połączenie z E32, aby zobaczyć szczegóły, a potem spróbuj tu ponownie.",

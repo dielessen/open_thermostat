@@ -177,9 +177,19 @@ def test_every_menu_entry_and_new_step_has_a_label(filename):
     labels = " ".join(steps["init"]["menu_options"].values()).lower()
     for word in ("graph", "native", "shadow", "session", "profile"):
         assert word not in labels, word
-    # The E32 menu path in the help texts is the new one (Settings, not System → Network).
+    # The E32 menu path in the help texts is the one a user clicks (System → Network and Home Assistant → MQTT),
+    # never the page title "Settings". The E32 pages exist in English and Dutch; Polish texts quote the English ones.
     text = json.dumps(document, ensure_ascii=False)
-    assert "System → Network" not in text and "Systeem → Netwerk" not in text and "System → Sieć" not in text
+    dutch = filename.endswith("nl.json")
+    assert ("Systeem → Netwerk en Home Assistant → MQTT" if dutch else "System → Network and Home Assistant → MQTT") in text
+    assert ("Systeem → Wachtwoord" if dutch else "System → Password") in text
+    for old in ("Settings → MQTT", "Settings → Password", "Settings → Home Assistant", "Instellingen → MQTT",
+                "Instellingen → Wachtwoord", "Instellingen → Home Assistant", "System → Sieć"):
+        assert old not in text, old
+    # Moving an E32 to this installation: the shadow checkbox is in the Home Assistant section, by its own label.
+    conflict = document["options"]["error"]["controller_source_conflict"]
+    assert ("Koppeling met Home Assistant in schaduwmodus (geen ketelregeling)" if dutch
+            else "Home Assistant link in shadow mode (no boiler control)") in conflict
 
 
 @pytest.mark.asyncio

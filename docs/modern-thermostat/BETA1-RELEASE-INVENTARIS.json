@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "08c87eae01538d95384c5b696f6642d6e7162f6dc216e7d3fe7734c9b0db2eb1"
+          "sha256": "e5a7f44fb8256655967ccc231a09ad28e75b880d1b033fde851d8e6b45b3ba6e"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -315,7 +315,7 @@
         },
         {
           "path": "docs/INSTALL.md",
-          "sha256": "80c1ef04e7aa66e7b934966b4a9bde1ea8b2f25474384072c5a46a5f2d605d67"
+          "sha256": "162a3cc4f665a879e3ef57809553ee3e5178ee21ddfde02ff86842b187df5cd6"
         },
         {
           "path": "scripts/e32v2_literal_reach.py",
@@ -1141,15 +1141,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
-          "sha256": "29d4cf1ef9948818f50755003f6967b9e601d2a8fcd9b71676be8b9949c35a82"
+          "sha256": "facd932be99a526212166a835cb929fc54c779b777367fe85581576e0ec0dd6c"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/en.json",
-          "sha256": "29d4cf1ef9948818f50755003f6967b9e601d2a8fcd9b71676be8b9949c35a82"
+          "sha256": "facd932be99a526212166a835cb929fc54c779b777367fe85581576e0ec0dd6c"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "0da9a8a0b977ee9cbb7246515f315bb13d528c4b2691bf6fa2a09461d5777ce5"
+          "sha256": "491393de699920a20097cab171efc96089963dce1a0346f3ab13d97e03901dd0"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -1345,7 +1345,7 @@
         },
         {
           "path": "ha/tests_native/test_ux_review_ha.py",
-          "sha256": "dcff52f2acb4f8d4624f652dcd096ca75d67fb8c99c1abc067a227e221d86853"
+          "sha256": "d65b7e356171b6e444f687ef1d987d6c5ec12b4bad3fd98d14143928e4e4573c"
         },
         {
           "path": "data/html/ui-messages-pages.js",
@@ -3094,7 +3094,7 @@
         },
         {
           "path": "ha/tests_native/test_menu_structure.py",
-          "sha256": "a2bdcdcd5d6d9cb1c4cfc2accb351e4d8d2b9ad126bc64d610cb1e8490f91745"
+          "sha256": "a34e5e2554e277bc6f8190dffe54c186118d8c0e24823f62b88b6f67401d9eda"
         },
         {
           "path": "src/FlowSettingsStore.h",

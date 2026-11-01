@@ -244,8 +244,8 @@ your browser; change it at the bottom of any page.
 
 **System → Network and Home Assistant** opens a page titled **Settings**,
 with the sections Password, WiFi settings, Connection, Home Assistant, MQTT,
-Time and Advanced settings. Messages in Home Assistant call it by that title,
-for example *Settings → MQTT*.
+Time and Advanced settings. Home Assistant's messages name the menu path,
+for example *System → Network and Home Assistant → MQTT*.
 
 ## 5. Basic settings: time zone and boiler reception
 

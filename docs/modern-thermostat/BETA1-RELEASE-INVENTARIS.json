@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "07cdc6c6bbc768521efa940fb43a86a31d64a569d0941403ed9a31b962363f12"
+          "sha256": "97b0d116272ecf6f86fb88d46e0514567308c8b848d439a755967683437b7ddd"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -428,6 +428,14 @@
         {
           "path": "test/week-levels-browser.cjs",
           "sha256": "b04534bd0d10c889267236965c8e935bddf99fc32dc607c08092d817407a0d53"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/daily_summary.py",
+          "sha256": "b57c0c077345b315874d378ab282a81c86274bd8df967b1a259d46edecbce38b"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/issue_sync.py",
+          "sha256": "766dc692fa5592c06271527394c64336ef0f7f74d178b305daed32c45f586e46"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -1037,15 +1045,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
-          "sha256": "935d3f7214f1a5174c6de71ad67bfdadb109e2606a5579b7acfb4e542d003cb5"
+          "sha256": "98091b9cca58a585483cb3b3beebb8aab591d12acb779325999272a342d91d78"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/en.json",
-          "sha256": "935d3f7214f1a5174c6de71ad67bfdadb109e2606a5579b7acfb4e542d003cb5"
+          "sha256": "98091b9cca58a585483cb3b3beebb8aab591d12acb779325999272a342d91d78"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "87ddc06a3af13da143e37b553d2f8d00d7254945727206d3d9eda7a926fdcac3"
+          "sha256": "3cdf7b00cd2821b7c9a6717d4dae8a6f21b51bb1dc573ce12a6e67a105fee573"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -2139,11 +2147,11 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/heating_problem.py",
-          "sha256": "dcff704d0aaa5aaae0c5683713defab0140a021667f7d44b5ce80a5178090b41"
+          "sha256": "a7ae3c8f09623f6b3432bb8c7281a493f381654907aca55abf1552937d51604e"
         },
         {
           "path": "ha/tests_native/test_heating_problem.py",
-          "sha256": "3e5eb9d47ac07949a8d72926a4417c28d473536a8c2fdf7fb548e769344d7c92"
+          "sha256": "32ae36767d75f76638ec141f4417af0e7c02d77599dc2bca4524586a62610473"
         },
         {
           "path": "src/diagnostics/AtomicPlacement.h",
@@ -3147,6 +3155,18 @@
         {
           "path": "test/test_native/test_room_plan_levels.cpp",
           "sha256": "5b7768c798316cd61fe87355ca4ec1bd0a8091f8118988268f751ee8b5f20928"
+        },
+        {
+          "path": "ha/tests_native/fixtures/burner_modulation_20261031.json",
+          "sha256": "4329a947c62708b031b0ad79c71debe66cad3bb599e05739f070369c8bb6494a"
+        },
+        {
+          "path": "ha/tests_native/test_daily_summary.py",
+          "sha256": "7a543b5743c9284a78ca014c70331dc59d65b6b378453a88312bf21e8bde21d0"
+        },
+        {
+          "path": "ha/tests_native/test_dashboard_daily_summary.py",
+          "sha256": "fd5fd58e398f2e89163f15a9e18aa81a5489e2f18f19a68fd4aedeeaf22a66c0"
         }
       ],
       "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open. B06 toekomstige-feitquarantaine en klokfences bronmatig afgerond met twaalf regressies/677 native tests en gedeelde veiligheidscontrole voor zonepolicy/storingsbevestiging; HA-deel opgenomen in geverifieerde HA43-bronbestanden; E32-deel opgenomen in alpha31; de module is nu op alpha31 waargenomen zonder uitvoerder-/methodebewijs. Geen fysieke producent- of regelkwalificatie."
@@ -3234,7 +3254,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/dashboard.py",
-          "sha256": "c31b06e12658f18483cc68c4da2c8b4c3dc5aa1baa6dfe8ed1cc7de64e933840"
+          "sha256": "f34643daf58b8db0fde0a8f2d9ad994726d3e74f70ff8d572f10d60a1231d832"
         },
         {
           "path": "src/control/MetricsTelemetry.h",
@@ -3608,7 +3628,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/heating_advice.py",
-          "sha256": "897ea59c3bed744b04ee30d71e86993a999c49878358090f108b24d236f3e1dc"
+          "sha256": "7911929dd06a909cbae66a5357998a71e8d29d72b526caa932a935cbe0f19b36"
         },
         {
           "path": "ha/tests_native/test_heating_advice.py",

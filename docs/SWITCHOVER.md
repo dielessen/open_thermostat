@@ -1,7 +1,7 @@
 # Attended switch-over: the E32 takes over the boiler
 
-Status: procedure for beta.19 (the 1.0 candidate), updated 29 October 2026,
-not yet carried out. Applies to EMS Classic boilers only. The owner's
+Status: procedure for beta.22 and newer (the first builds with the gate open),
+updated 1 November 2026, not yet carried out. Applies to EMS Classic boilers only. The owner's
 engineering checklist for the reference installation is in Dutch:
 [OVERSCHAKELING.nl.md](modern-thermostat/OVERSCHAKELING.nl.md). The live
 monitor for the first 48 hours is in [tools/switchover](../tools/switchover/README.md).

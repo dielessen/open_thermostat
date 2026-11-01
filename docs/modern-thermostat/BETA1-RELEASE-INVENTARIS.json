@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "d905e382c702321527526e0136bb0c3ab62c345507f436b5b5fd2102af1935a0"
+          "sha256": "30c0443f8feee0e42ad301b445c7c1c8f7b080d1990d68c1ffdee6ab643a8ec9"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -231,7 +231,7 @@
         },
         {
           "path": "docs/modern-thermostat/OVERSCHAKELING.nl.md",
-          "sha256": "36a8577e9d2f054fd2a01d525ce3f01335a893115de2461923c2409a563d593b"
+          "sha256": "6336fa35bf0e6ed54da45e5af27318a182ca4245389cb3bb23bd81c825dec883"
         },
         {
           "path": "test/fuzz/README.md",
@@ -553,11 +553,11 @@
         },
         {
           "path": "scripts/verify_e32_update_gate.py",
-          "sha256": "e4844cf0409da7bc220a5e775d996b05650d434603bdb9503a180665124baf20"
+          "sha256": "68a96fcf23f6be24cbaa23d15ca1359a668c5c84615477d552bd599e9340c131"
         },
         {
           "path": "scripts/test_verify_e32_update_gate.py",
-          "sha256": "895424258f33a389c34674d10b9556450f4f8efe13920da87c6bccc533ea5bcd"
+          "sha256": "453571b72680079844b8fef658732be93678f56002479a4976606caf79bbcf07"
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md",
@@ -2998,7 +2998,7 @@
         },
         {
           "path": "tools/switchover/README.md",
-          "sha256": "2bf31750c04548b7c760e7faf687d6e3c82ab19e2ad1e6b77ef52ab95e4f57c2"
+          "sha256": "7b1995ed882ca9584b91fef8d9e6b431de9cedb2cc084c7c7640a9ffabd616be"
         },
         {
           "path": "tools/switchover/monitor.py",
@@ -3086,7 +3086,7 @@
         },
         {
           "path": "tools/switchover/shadow_exit.py",
-          "sha256": "be5cb5d1c528be95627c510171fccb6e407626aaee3bade8e9ba83c01e265c32"
+          "sha256": "301f1d2f1db5cdf9123fa005c024fe2e6ec1952cab9f55be217f13b7b7c5c571"
         },
         {
           "path": "tools/switchover/test_shadow_exit.py",
@@ -3107,6 +3107,18 @@
         {
           "path": "test/test_native/test_boiler_output_flag.cpp",
           "sha256": "5db8767fd75d16bc04aac0402a503217b8bf655037d8c7be854f05bd948e3cca"
+        },
+        {
+          "path": "tools/switchover/record_test.py",
+          "sha256": "31d8b857825823648f24d9199a123373ad4c8df128cc82e668cc269f0ac00eb4"
+        },
+        {
+          "path": "tools/switchover/release_ready.py",
+          "sha256": "fd13eaa3b3192b8ca6190f95f6a5667478beb493199e9be6b90227c3a4ebd4ff"
+        },
+        {
+          "path": "tools/switchover/test_release_ready.py",
+          "sha256": "5d5cbef56a9a47f1fb5b29027509858bb5ebaf7492f4790a2a47a19ea35c50d2"
         }
       ],
       "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open. B06 toekomstige-feitquarantaine en klokfences bronmatig afgerond met twaalf regressies/677 native tests en gedeelde veiligheidscontrole voor zonepolicy/storingsbevestiging; HA-deel opgenomen in geverifieerde HA43-bronbestanden; E32-deel opgenomen in alpha31; de module is nu op alpha31 waargenomen zonder uitvoerder-/methodebewijs. Geen fysieke producent- of regelkwalificatie."

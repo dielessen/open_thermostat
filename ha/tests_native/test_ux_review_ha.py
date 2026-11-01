@@ -277,9 +277,9 @@ def test_password_texts_are_plain_and_in_both_languages():
         # The connect form no longer refers to a password "you set on the E32 web page".
         assert "you set" not in document["options"]["step"]["controller_connection"]["data_description"]["password"]
     nl = documents()["translations/nl.json"]
-    # The password card lives on the E32's Settings page (beta.21), no longer under System → About.
-    assert "Instellingen → Wachtwoord" in nl["issues"][DEFAULT_PASSWORD_ISSUE]["description"]
-    assert "Settings → Password" in documents()["strings.json"]["issues"][DEFAULT_PASSWORD_ISSUE]["description"]
+    # The password has its own entry in the E32's System menu (1.0), no longer under System → About.
+    assert "Systeem → Wachtwoord" in nl["issues"][DEFAULT_PASSWORD_ISSUE]["description"]
+    assert "System → Password" in documents()["strings.json"]["issues"][DEFAULT_PASSWORD_ISSUE]["description"]
 
 
 # -- F11: the room editor in a °F Home Assistant ---------------------------------------------------

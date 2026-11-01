@@ -518,8 +518,11 @@ class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, Con
         connection_text = ("Toepassing bevestigd" if verified else "Toepassing nog niet bevestigd") if dutch else (
             "Application confirmed" if verified else "Application not yet confirmed")
         enabled = actual_runtime_active(self.hass, entry)
-        runtime_text = (("Alleen uitlezen en berekenen (schaduwmodus)" if enabled else "Berekeningen uit; geen aansturing")
-                        if dutch else ("Read and calculate only (shadow mode)" if enabled else "Calculations off; no device control"))
+        # Neutral on purpose: in shadow mode the thermostat controls the boiler, after the switch-over the E32 does.
+        runtime_text = (("Berekeningen aan; het E32-overzicht toont wie de ketel regelt" if enabled
+                         else "Berekeningen uit; geen aansturing")
+                        if dutch else ("Calculations on; the E32 Overview shows who controls the boiler" if enabled
+                                       else "Calculations off; no device control"))
         # Inspect saved targets without altering settings or granting physical readiness.
         from .room_editor import read_room
         from .v1_profile_c import MODE_MESSAGES

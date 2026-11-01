@@ -4,7 +4,7 @@
 # put a new test in the shard with the lowest total. Run: test/run-browser-tests.sh.
 # shard 1: about 249 s
 1 test/boiler-test-control-browser.cjs  # 249 s
-# shard 2: about 248 s
+# shard 2: about 263 s
 2 test/onboarding/network-browser.cjs  # 1 s
 2 test/rooms/browser.cjs  # 35 s
 2 test/dashboard-browser.cjs  # 4 s
@@ -20,6 +20,7 @@
 2 test/ha-room-status-ownership-browser.cjs  # 3 s
 2 test/ha-planner-touch-browser.cjs  # 21 s
 2 test/diagnostics-console-browser.cjs  # 10 s (beta.21; measured locally about 10 s)
+2 test/menu-browser.cjs  # 15 s (beta.23 menus)
 # shard 3: about 258 s
 3 test/auth-body-browser.cjs  # 1 s
 3 test/boiler-display-browser.cjs  # 20 s

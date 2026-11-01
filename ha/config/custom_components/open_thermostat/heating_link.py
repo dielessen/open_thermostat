@@ -1610,7 +1610,7 @@ def wanted_demand(hub):
 
 
 def removable_device(hass, entry, device):
-    """Whether the user may delete this device: a room or Bluetooth sensor the E32 no longer reports.
+    """Whether the user may delete this device: a room, Bluetooth sensor or EMS device the E32 no longer reports.
 
     Only while the telemetry is fresh, so a short outage never makes a live
     room removable. Every other device of the entry stays.
@@ -1618,6 +1618,11 @@ def removable_device(hass, entry, device):
     hub = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("heating_hub")
     if hub is None or not hub.fresh:
         return False
+    from .ems_devices import device_address, listed
+    address = device_address(hub.prefix, device)
+    if address is not None:
+        present = listed(hass, entry, complete=True)  # never from the partial list of a starting E32
+        return present is not None and address not in present
     for domain, identifier in device.identifiers:
         for kind, reported in (("room", hub.rooms), ("ble", hub.ble)):
             head = f"{hub.prefix}_e32_{kind}_"

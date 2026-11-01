@@ -181,3 +181,31 @@ TEST(TelemetryPublisher, BackpressureDropsACycleAndRetriesLater) {
     EXPECT_GE(b.count("fw/state/room/badkamer"), 1u);
     EXPECT_GE(b.count("fw/config/plan"), 1u);
 }
+
+// fw/config/ems_devices (beta.23): the identities on the bus for Home Assistant's
+// devices; retained, sent once and again only when an identity changes.
+TEST(TelemetryPublisher, TheBusIdentitiesGoOutRetainedAndOnlyAgainOnAChange) {
+    std::string identities = R"({"schema":1,"devices":[{"address":8,"product_id":null,"version":null,"brand_id":null}]})";
+    std::vector<Sent> sent;
+    uint64_t now = 1000;
+    TelemetryPublisher publisher{
+        TelemetryPublisher::Sources{[] { return static_cast<cJSON*>(nullptr); }, {}, {}, {},
+            [&](std::string& out, size_t group) { if (group == emsDevicesGroup) out = identities; else out.clear(); },
+            {}},
+        [&](const std::string& topic, std::string_view payload, bool retained) {
+            sent.push_back({topic, std::string(payload), retained, now}); return true; },
+        [] { return true; }};
+    auto devices = [&] {
+        std::vector<Sent> out;
+        for (const auto& s : sent) if (s.topic == "fw/config/ems_devices") out.push_back(s);
+        return out;
+    };
+    for (uint64_t end = now + 60000; now < end; now += 100) publisher.tick(now);
+    ASSERT_EQ(devices().size(), 1u);
+    EXPECT_TRUE(devices()[0].retained);
+    EXPECT_EQ(devices()[0].payload, identities);
+    identities = R"({"schema":1,"devices":[{"address":8,"product_id":211,"version":"1.3","brand_id":1}]})";
+    for (uint64_t end = now + 30000; now < end; now += 100) publisher.tick(now);
+    ASSERT_EQ(devices().size(), 2u);
+    EXPECT_EQ(devices()[1].payload, identities);
+}

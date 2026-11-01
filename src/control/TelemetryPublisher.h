@@ -79,6 +79,7 @@ public:
         if (phase_++ % 2 == 0) heating(now); else boilerState(now);
         boilerGroup(now);
         boilerProfile(now);
+        emsDevices(now);
         learned(now);
         if (sources_.summary) summary(now);
     }
@@ -201,6 +202,14 @@ private:
         std::string raw;
         sources_.boilerGroup(raw, boilerProfileGroup);
         if (Slot* s = raw.empty() ? nullptr : slot("fw/config/boiler_profile", Kind::profile)) consider(*s, raw, nullptr, now);
+    }
+    // fw/config/ems_devices (beta.23): the identities on the bus, for the devices in
+    // Home Assistant; looked at every 10 s (offset from the profile), sent on change.
+    void emsDevices(uint64_t now) {
+        if (!sources_.boilerGroup || !budget_ || phase_ % 10 != 6) return;
+        std::string raw;
+        sources_.boilerGroup(raw, emsDevicesGroup);
+        if (Slot* s = raw.empty() ? nullptr : slot("fw/config/ems_devices", Kind::profile)) consider(*s, raw, nullptr, now);
     }
     void boilerGroup(uint64_t now) {
         if (!sources_.boilerGroup || !budget_) return;

@@ -15,7 +15,16 @@ each held long enough that a short hiccup never raises it:
 * active control is chosen but the E32 waits for the owner to confirm that
   the old thermostat is disconnected (for example after a firmware update
   cleared the confirmation), for 10 minutes or more: it gives no heat until
-  then (``active.awaiting_confirmation`` of the heating status).
+  then (``active.awaiting_confirmation`` of the heating status);
+* a room that asks for heat stays more than WARN_ROOM_SLOW_MARGIN_C below its
+  target for WARN_ROOM_SLOW_HOURS (with a working measurement; a gap in the
+  E32's data starts the wait again, so nothing fires on a day with gaps);
+* the E32 is online but Home Assistant has had no working session with it for
+  WARN_SESSION_LOST_MINUTES (the shadow link is switched on but not ready).
+
+Each problem is also a Repairs issue (issue_sync.py), created when the
+problem starts and removed when it clears; the water pressure keeps its own
+issue (heating_advice.py).
 
 Attributes: ``problems`` (stable ids, for automations) and ``reasons`` (the
 same in plain English or Dutch, following the Home Assistant language), so a
@@ -30,13 +39,21 @@ from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_time_interval
 
-from .const import DOMAIN
+from .const import DOMAIN, WARN_ROOM_SLOW_HOURS, WARN_ROOM_SLOW_MARGIN_C, WARN_SESSION_LOST_MINUTES
+from .issue_sync import clear_issues, sync_issues
 
 ROOM_LOST_SECONDS = 30 * 60
 TELEMETRY_STALE_SECONDS = 10 * 60
 SHORT_CYCLING_SECONDS = 2 * 3600
 ACTIVE_WARNING_SECONDS = 5 * 60
 AWAITING_CONFIRMATION_SECONDS = 10 * 60
+ROOM_SLOW_SECONDS = WARN_ROOM_SLOW_HOURS * 3600
+SESSION_LOST_SECONDS = WARN_SESSION_LOST_MINUTES * 60
+# Rooms whose temperature counts for "does not get warm" (no window open, not switched off).
+ROOM_MEASURED = ("ok", "fallback")
+# The Repairs group of these issues (issue_sync.py); the pressure has its own issue already.
+ISSUE_GROUP = "heating_problem"
+NO_ISSUE = ("pressure_low", "pressure_high")
 CHECK_INTERVAL = timedelta(seconds=60)
 ROOM_WITHOUT_MEASUREMENT = ("stale", "lost")
 # Active-control warnings that mean the heating does not work as it should.
@@ -57,6 +74,12 @@ TEXT = {
         "active_measurement_lost": "The E32 lost the room measurements and stopped asking for heat.",
         "active_boiler_no_response": "The boiler does not respond to the E32's heat request.",
         "active_transmit_failed": "The E32 cannot send its heat request to the boiler.",
+        "room_slow": "{room} asks for heat but has stayed more than {margin} °C below its target for "
+                     "{hours} hours. Check that the radiators or floor heating get warm and that the boiler's "
+                     "maximum flow temperature is high enough.",
+        "session_lost": "The E32 is online, but Home Assistant has had no working connection with it for more "
+                        "than {minutes} minutes, so rooms get no new targets from Home Assistant. Open the "
+                        "integration and choose Connect E32 again if it does not recover.",
     },
     "nl": {
         "room_without_measurement": "{room}: al meer dan 30 minuten geen temperatuurmeting, dus deze ruimte "
@@ -71,6 +94,12 @@ TEXT = {
         "active_measurement_lost": "De E32 heeft geen ruimtemetingen meer en vraagt geen warmte meer.",
         "active_boiler_no_response": "De ketel reageert niet op de warmtevraag van de E32.",
         "active_transmit_failed": "De E32 kan zijn warmtevraag niet naar de ketel sturen.",
+        "room_slow": "{room} vraagt warmte, maar blijft al {hours} uur meer dan {margin} °C onder de gewenste "
+                     "temperatuur. Kijk of de radiatoren of de vloerverwarming warm worden en of de maximale "
+                     "aanvoertemperatuur van de ketel hoog genoeg is.",
+        "session_lost": "De E32 is online, maar Home Assistant heeft al meer dan {minutes} minuten geen werkende "
+                        "verbinding met hem, dus de ruimtes krijgen geen nieuwe doelen uit Home Assistant. Open de "
+                        "integratie en kies opnieuw Connect E32 als het niet vanzelf herstelt.",
     },
 }
 
@@ -103,11 +132,36 @@ class ProblemTracker:
         self.short_cycling = None
         self.active = {}         # warning -> since
         self.awaiting = None     # since active control waits for the owner's confirmation
+        self.slow = {}           # room id -> since it asks for heat but stays well below its target
+        self.session_lost = None  # since the E32 is online but the shadow link has no working session
 
-    def observe(self, hub, now):
-        """Follow the hub's latest status (call on every hub change and periodically)."""
+    def observe(self, hub, now, session_ready=None):
+        """Follow the hub's latest status (call on every hub change and periodically).
+
+        ``session_ready``: True / False while the shadow link is switched on (its session works or
+        not), None when it is off or unknown.
+        """
         if not hub.fresh:
-            return  # an outage is its own reason; keep the room timers as they were
+            # An outage is its own reason; keep the measurement timers as they were. The slow-room and
+            # session waits start again after the gap: without data nothing is known about them.
+            self.slow = {}
+            self.session_lost = None
+            return
+        if session_ready is False:
+            self.session_lost = self.session_lost if self.session_lost is not None else now
+        else:
+            self.session_lost = None
+        slow = {}
+        for room_id, room in hub.rooms.items():
+            if room.get("status") not in ROOM_MEASURED or room.get("demand") is not True:
+                continue
+            comfort = room.get("comfort")
+            if type(comfort) is dict and comfort.get("window") in ("open", "pending"):
+                continue
+            temperature, target = _number(room.get("temperature")), _number(room.get("setpoint"))
+            if temperature is not None and target is not None and temperature < target - WARN_ROOM_SLOW_MARGIN_C:
+                slow[room_id] = self.slow.get(room_id, now)
+        self.slow = slow
         status = hub.status
         rooms = {}
         for room_id, room in hub.rooms.items():
@@ -143,11 +197,18 @@ class ProblemTracker:
             for warning, since in self.active.items():
                 if now - since > ACTIVE_WARNING_SECONDS:
                     result.append(("active_" + warning, {}))
+            from .heating_link import label
             for room_id, since in self.rooms.items():
                 if now - since > ROOM_LOST_SECONDS:
                     room = hub.rooms.get(room_id) or {"id": room_id}
-                    from .heating_link import label
                     result.append(("room_without_measurement", {"room": label(room), "room_id": room_id}))
+            for room_id, since in self.slow.items():
+                if now - since >= ROOM_SLOW_SECONDS:
+                    room = hub.rooms.get(room_id) or {"id": room_id}
+                    result.append(("room_slow", {"room": label(room), "room_id": room_id,
+                                                 "hours": WARN_ROOM_SLOW_HOURS, "margin": WARN_ROOM_SLOW_MARGIN_C}))
+            if self.session_lost is not None and now - self.session_lost >= SESSION_LOST_SECONDS:
+                result.append(("session_lost", {"minutes": WARN_SESSION_LOST_MINUTES}))
         for item in advice_items or ():
             if item.get("id") in ("pressure_low", "pressure_high"):
                 result.append((item["id"], {"pressure": item.get("values", {}).get("pressure")}))
@@ -156,12 +217,28 @@ class ProblemTracker:
         return result
 
 
+def _number(value):
+    from .heating_link import number
+    return number(value, -40, 85)
+
+
 def render(problems, lang):
     """The plain-language reasons in a language (English for anything but Dutch)."""
     from .heating_advice import fmt
     texts = TEXT["nl" if lang == "nl" else "en"]
-    return [texts[key].format(**{name: fmt(value, lang) if name == "pressure" else value
+    return [texts[key].format(**{name: fmt(value, lang) if name in ("pressure", "margin") else value
                                  for name, value in values.items()}) for key, values in problems]
+
+
+def issues(problems, lang):
+    """{issue item: (translation key, placeholders)} for the Repairs issues of the current problems."""
+    result = {}
+    for (key, values), reason in zip(problems, render(problems, lang)):
+        if key in NO_ISSUE:
+            continue
+        item = key + ("_" + values["room_id"] if "room_id" in values else "")
+        result[item] = ("heating_problem", {"reason": reason})
+    return result
 
 
 class HeatingProblemSensor(BinarySensorEntity):
@@ -183,6 +260,15 @@ class HeatingProblemSensor(BinarySensorEntity):
         self.current = []
         self._written = None
 
+    def _session_ready(self):
+        """True / False while the shadow link is switched on; None when it is off or unknown."""
+        hass = getattr(self, "hass", None)
+        runtime = hass.data.get(DOMAIN, {}).get(self.entry.entry_id, {}).get("v1_runtime") if hass else None
+        if runtime is None or getattr(runtime, "enabled", False) is not True:
+            return None
+        ready = getattr(runtime, "transport_ready", None)
+        return ready if type(ready) is bool else None
+
     def _advice_items(self):
         hass = getattr(self, "hass", None)
         advice = hass.data.get(DOMAIN, {}).get(self.entry.entry_id, {}).get("heating_advice") if hass else None
@@ -191,13 +277,15 @@ class HeatingProblemSensor(BinarySensorEntity):
     @callback
     def evaluate(self, _now=None):
         now = self.hub.clock()
-        self.tracker.observe(self.hub, now)
+        self.tracker.observe(self.hub, now, self._session_ready())
         self.current = self.tracker.problems(self.hub, now, self._advice_items())
         if getattr(self, "hass", None) is not None and self.entity_id:
             written = (self.is_on, tuple(key for key, _ in self.current), self.extra_state_attributes["reasons"])
             if written != self._written:
                 self._written = written
                 self.async_write_ha_state()
+                from .heating_advice import language
+                sync_issues(self.hass, self.entry.entry_id, ISSUE_GROUP, issues(self.current, language(self.hass)))
 
     @property
     def is_on(self):
@@ -214,4 +302,5 @@ class HeatingProblemSensor(BinarySensorEntity):
         await super().async_added_to_hass()
         self.async_on_remove(self.hub.add_listener(self.evaluate))
         self.async_on_remove(async_track_time_interval(self.hass, self.evaluate, CHECK_INTERVAL))
+        self.async_on_remove(lambda: clear_issues(self.hass, self.entry.entry_id, ISSUE_GROUP))
         self.evaluate()

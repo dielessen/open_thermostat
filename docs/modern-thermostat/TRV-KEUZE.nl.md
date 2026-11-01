@@ -34,6 +34,10 @@ en de UX-release (beta.23). Dit document bouwt niets; het legt de keuze voor.
   Het koppel- en versleutelproces is voor derden niet openbaar beschreven, en
   in de praktijk loopt alles via de Shelly BLU Gateway Gen3. Uitlezen kan de
   E32 al wel.
+- **Elke andere kraan via Home Assistant (1.0):** een kraan in ZHA, Z-Wave,
+  Shelly of een cloudintegratie is in HA een `climate`-entiteit. Die kies je
+  per ruimte naast de Zigbee2MQTT-kranen; HA stuurt hem dan namens de E32 aan,
+  met dezelfde regels (zie §2a).
 - **Zonder Home Assistant:** de E32 kan Zigbee2MQTT ook rechtstreeks via de
   MQTT-broker aansturen, zonder HA Core. Een herstart van HA raakt de kranen
   dan niet. Valt de hele HA-machine uit (de broker en Zigbee2MQTT draaien
@@ -62,6 +66,37 @@ en de UX-release (beta.23). Dit document bouwt niets; het legt de keuze voor.
 - Alle kranen behalve de TV02 accepteren een externe ruimtetemperatuur. De
   kraan regelt dan op de echte ruimtetemperatuur in plaats van op de warme
   lucht vlak bij de radiator. Dat is belangrijk voor een goede regeling.
+
+## 2a. Kranen via Home Assistant (1.0)
+
+Eis eigenaar voor 1.0: "alles moet gewoon werken". Elke kraan die Home Assistant
+kan bedienen, werkt dus ook: model `ha_climate`, de naam is de entiteits-ID
+(`climate.<object_id>`, alleen a-z, 0-9 en `_`).
+
+- **De E32** neemt zo'n kraan op in het kranenrecord en in de `trv`-status, met
+  gezondheid "unknown": HA beoordeelt die. Hij abonneert zich niet en stuurt
+  niets voor deze kranen, en ze tellen niet mee in de terugkoppeling naar de
+  aanvoer (geen klepstand). Een ruimte met zo'n kraan geldt daarom nooit als
+  "alle kranen dicht". Zigbee2MQTT-kranen werken precies als voorheen.
+- **Home Assistant** (`ha/.../ha_valves.py`) stuurt alleen zolang de E32
+  `trv.output` meldt en de aansturing van de ruimte aan staat:
+  - het doel van de ruimte uit de telemetrie van de E32, 8 °C als de ruimte
+    uit staat; begrensd op `min_temp`/`max_temp` van de entiteit, afgerond op
+    `target_temp_step` (anders 0,5);
+  - `climate.set_temperature` alleen bij minstens 0,5 °C verschil, hoogstens
+    eens per minuut, en na 6 uur opnieuw; `climate.set_hvac_mode` op `heat`
+    eens per aansturingsperiode als de kraan die stand heeft. Nooit `turn_off`;
+  - valt de aansturing weg, dan stuurt HA niets meer en houdt de kraan zijn
+    laatste instelling, net als een Zigbee2MQTT-kraan zonder E32.
+- **Gezondheid:** 2 uur onbereikbaar is "offline"; de batterij komt van een
+  batterijsensor van hetzelfde apparaat (anders de lage-batterijsensor), laag
+  bij 20 % of "aan". De klepstand komt uit een attribuut `valve_position` of
+  `position`, of uit een sensor position/pi_heating_demand van het apparaat.
+  De kraan telt mee in de kraanentiteiten van de ruimte en in de Reparaties.
+- **Uitval:** valt HA weg, dan blijven Zigbee2MQTT-kranen door de E32
+  aangestuurd; kranen via HA houden hun laatste instelling tot HA terug is.
+  Een mislukte opdracht geeft één waarschuwing per waarde en wordt op zijn
+  vroegst na een minuut opnieuw geprobeerd.
 
 ## 3. Route B: Bluetooth-kranen direct vanaf de E32 (Shelly BLU TRV)
 

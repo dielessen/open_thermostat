@@ -1658,7 +1658,7 @@
       },
       "e32_room_valves": {
         "title": "Radiatorkranen in {name}",
-        "description": "De E32 stuurt het doel en de temperatuur van de ruimte via Zigbee2MQTT naar deze kranen, en houdt de aanvoer van de ketel zo laag als de kranen toelaten. Vul per kraan de Zigbee2MQTT-naam (friendly name) in, of kies er een van de {found} gevonden, en het model. Aansturen staat uit tot je het aanzet; zolang het uit staat, gaat er niets naar de kranen.",
+        "description": "Kies de radiatorkranen van de ruimte. Zigbee2MQTT-kranen: vul per kraan de Zigbee2MQTT-naam (friendly name) in, of kies er een van de {found} gevonden, en het model; de E32 stuurt ze zelf het doel en de temperatuur van de ruimte, en houdt de aanvoer van de ketel zo laag als de kranen toelaten. Elke andere kraan die Home Assistant aanstuurt (ZHA, Z-Wave, Shelly of een cloudintegratie): kies de climate-entiteit bij Kranen via Home Assistant; Home Assistant stuurt die dan het doel van de ruimte. Zigbee2MQTT-kranen blijven werken als Home Assistant uitvalt; kranen via Home Assistant houden hun laatste instelling tot Home Assistant terug is. Aansturen staat uit tot je het aanzet; zolang het uit staat, gaat er niets naar de kranen.",
         "data": {
           "control": "Radiatorkranen aansturen",
           "valve_1": "Kraan 1",
@@ -1668,11 +1668,13 @@
           "valve_3": "Kraan 3",
           "model_3": "Model van kraan 3",
           "valve_4": "Kraan 4",
-          "model_4": "Model van kraan 4"
+          "model_4": "Model van kraan 4",
+          "ha_valves": "Kranen via Home Assistant"
         },
         "data_description": {
-          "control": "Aan: de E32 stuurt deze kranen aan (alleen zolang hij de ketel zelf aanstuurt). Uit: de kranen houden hun eigen instellingen.",
-          "valve_1": "De naam in Zigbee2MQTT, bijv. \"Kraan woonkamer\". Leeg laten voor geen kraan."
+          "control": "Aan: deze kranen volgen de ruimte (alleen zolang de E32 de ketel zelf aanstuurt). Uit: de kranen houden hun eigen instellingen.",
+          "valve_1": "De naam in Zigbee2MQTT, bijv. \"Kraan woonkamer\". Leeg laten voor geen kraan.",
+          "ha_valves": "Radiatorkranen van elke andere integratie, als climate-entiteit (samen hoogstens 4 kranen per ruimte). Zolang aansturen aan staat, zet Home Assistant ze op het doel van de ruimte, of op 8 °C zolang de ruimte uit staat."
         }
       },
       "entity_ids": {
@@ -1829,6 +1831,8 @@
       "e32_valve_duplicate": "Deze kraan is al in gebruik (hier of in een andere ruimte).",
       "e32_valve_model_missing": "Kies het model van de kraan.",
       "e32_valve_limit": "De E32 stuurt hoogstens 16 radiatorkranen aan.",
+      "e32_valve_entity_invalid": "Kies de climate-entiteit van een radiatorkraan (geen OpenThermostat-thermostaat of temperatuurbron van deze ruimte), met een entiteits-ID van hoogstens 64 tekens.",
+      "e32_valve_room_limit": "Een ruimte heeft hoogstens 4 radiatorkranen.",
       "e32_valves_rejected": "De E32 weigerde de radiatorkranen ({error}).",
       "entity_ids_confirm": "Vink het vakje aan om te bevestigen.",
       "water_meter_unit": "Kies een waterdebietsensor (L/min, L/h, m³/h) of een watermeterstand (m³, L).",

@@ -383,22 +383,26 @@ minutes, no report from the E32 for 10 minutes, low or high water pressure,
 or burner short cycling for 2 hours. Its `reasons` attribute says what is
 wrong, so you can use it in your own notification automation.
 
-### Radiator valves (Zigbee, beta.24)
+### Radiator valves (beta.24)
 
-The E32 can drive Zigbee radiator valves (TRVs) per room through
-**Zigbee2MQTT** on the same MQTT broker. Home Assistant is not needed for it:
-the E32 talks to Zigbee2MQTT itself, and Home Assistant only shows and
-configures the valves.
+Radiator valves (TRVs) follow their room in one of two ways:
+
+- **Zigbee2MQTT valves** on the same MQTT broker: the E32 drives them itself.
+  Home Assistant is not needed for it; it only shows and configures the valves.
+- **Any other valve Home Assistant controls** (ZHA, Z-Wave, Shelly, a cloud
+  integration, and so on): it is a `climate` entity in Home Assistant, and
+  Home Assistant drives it on the E32's behalf, with the same rules.
 
 Supported models:
 
-| Model | What the E32 sends | What it reads back |
+| Model | What is sent | What is read back |
 | --- | --- | --- |
 | Bosch BTH-RA (recommended) | setpoint, room temperature (`remote_temperature`), manual mode | valve position (`pi_heating_demand`), battery % |
 | Sonoff TRVZB | setpoint, heat mode (`system_mode`), room temperature (`external_temperature_input`, then the sensor set to it) | battery % |
 | Sonoff TRV Gen2 (TRV-ZBT) | the same as the TRVZB (5–30 °C); needs Zigbee2MQTT 2.12.1 or later | battery % |
 | Tuya TV02 | setpoint (manual preset) | low-battery flag |
 | Other | setpoint (`occupied_heating_setpoint`) | battery % or low flag |
+| Home Assistant climate entity | by Home Assistant: setpoint (`climate.set_temperature`), heat mode (`climate.set_hvac_mode`) | from the valve's device in Home Assistant: battery % or low flag, opening when it reports one |
 
 The Zigbee2MQTT keys come from the Zigbee2MQTT device pages; check them on
 your own valve before you rely on them.
@@ -414,11 +418,14 @@ such as the opening limits, window detection and child lock, stay yours to set
 in Zigbee2MQTT.
 
 **Choosing the valves.** In Home Assistant: Configure → **Rooms** → *Edit or
-remove a room* → **Radiator valves**. Pick each valve (Zigbee2MQTT devices that
-look like a thermostat are offered) or type its Zigbee2MQTT friendly name, and
-choose its model. On the E32 itself: the room card on the Rooms page has a
-**Radiator valves** block with its own *Save valves* button. At most 4 valves
-per room and 16 in all.
+remove a room* → **Radiator valves**. Pick each Zigbee2MQTT valve (Zigbee2MQTT
+devices that look like a thermostat are offered) or type its Zigbee2MQTT
+friendly name, and choose its model. Pick any other valve under **Home
+Assistant valves** (its climate entity; OpenThermostat's own thermostats and
+the room's thermostat source are not offered). On the E32 itself: the room card
+on the Rooms page has a **Radiator valves** block with its own *Save valves*
+button; Home Assistant valves show there read-only, as *Home Assistant climate
+entity (set in Home Assistant)*. At most 4 valves per room and 16 in all.
 
 **Nothing happens until you switch it on.** Each room has a **Valve control**
 switch (entity ID ending in `_valve_control`), off by default. The E32 sends
@@ -448,6 +455,21 @@ most once a minute, refreshed every 6 hours); the room temperature at most
 every 10 minutes and at least every 25 minutes. A simulated two weeks with four
 valves costs well under 2 % battery per valve.
 
+**Home Assistant valves.** Home Assistant sends such a valve the room's target
+(8 °C while the room is off), rounded to the valve's step and within its own
+limits, on the same rules: only while the room's valve control is on and the
+E32 controls the boiler itself, a new setpoint only on a change of at least
+0.5 °C, at most once a minute and again after 6 hours. Once per control period
+it sets the valve to `heat` when the valve has that mode; it never turns a
+valve off. It does not send the room temperature, and these valves do not feed
+back into the boiler flow (a room with one never counts as all closed).
+Health: a valve that is unavailable for 2 hours is offline; the battery comes
+from a battery sensor on the valve's device in Home Assistant (or its
+low-battery sensor). The valve counts in the room's *Valve position*, *Valve
+battery* and *Valve problem* entities and in Repairs, like a Zigbee2MQTT valve;
+on the E32 page its state reads *Driven by Home Assistant*. A failing service
+call is logged once and tried again a minute later at the earliest.
+
 **When something fails.**
 
 - A battery at about 20 % or less: a Repair in Home Assistant and a red badge
@@ -462,6 +484,9 @@ valves costs well under 2 % battery per valve.
   a Repair advising a separate sensor, for example a Bluetooth thermometer.
 - The E32, the broker or Zigbee2MQTT gone: the valves keep regulating on their
   last setpoint.
+- Home Assistant gone: Zigbee2MQTT valves stay driven by the E32 (as long as
+  the broker runs); Home Assistant valves keep their last setpoint until Home
+  Assistant is back.
 
 **MQTT broker.** The E32's broker user must be allowed to subscribe to
 `zigbee2mqtt/<valve name>` and to publish to `zigbee2mqtt/<valve name>/set`

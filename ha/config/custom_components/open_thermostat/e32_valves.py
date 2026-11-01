@@ -1,4 +1,4 @@
-"""Radiator valves (TRVs) per E32 room, driven by the E32 through Zigbee2MQTT (E32 beta.24).
+"""Radiator valves (TRVs) per E32 room: through Zigbee2MQTT by the E32, others by Home Assistant (E32 beta.24).
 
 The E32 owns the valve record (``GET/POST /config/heating/trv``, ``src/control/TrvConfig.h``):
 per room the Zigbee2MQTT friendly names and models of its valves, and whether the
@@ -16,6 +16,11 @@ Zigbee2MQTT on the same broker; Home Assistant only shows and configures:
 - the valves of a room are chosen in Configure → Rooms → Edit or remove a room →
   Radiator valves (e32_room_flow.py).
 
+A valve Home Assistant controls (ZHA, Z-Wave, Shelly, a cloud integration) is model
+``ha_climate`` with its climate entity id as name: the E32 only lists it, Home
+Assistant drives it on the E32's rules and reports its health, battery and opening
+in the same entities (ha_valves.py).
+
 Everything comes from ``fw/state/trv/<room>`` (HeatingHub.valves): without valves
 there is no entity and no issue, and an entity of a room whose valves were removed
 is removed again.
@@ -23,6 +28,7 @@ is removed again.
 from __future__ import annotations
 
 import logging
+import re
 import time
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
@@ -40,7 +46,10 @@ _LOGGER = logging.getLogger(__name__)
 
 KEY = "e32_valves"
 # Our model ids (TrvConfig.h trvModels); what each can do is the E32's to know.
-MODELS = ("bosch_bth_ra", "sonoff_trvzb", "sonoff_trv_zbt", "tuya_tv02", "generic")
+ZIGBEE_MODELS = ("bosch_bth_ra", "sonoff_trvzb", "sonoff_trv_zbt", "tuya_tv02", "generic")
+HA_MODEL = "ha_climate"  # a climate entity Home Assistant drives (ha_valves.py)
+MODELS = (*ZIGBEE_MODELS, HA_MODEL)
+CLIMATE_ID = re.compile(r"climate\.[a-z0-9_]+")
 MAX_VALVES_PER_ROOM = 4
 MAX_VALVES = 16
 MAX_NAME = 64
@@ -70,6 +79,15 @@ def valid_name(name):
             and all(0x20 <= ord(c) <= 0x7E and c not in '#+"\\' for c in name))
 
 
+def valid_entity(name):
+    """A climate entity id the E32 takes as an ha_climate valve (TrvConfig::validClimate)."""
+    return type(name) is str and len(name) <= MAX_NAME and CLIMATE_ID.fullmatch(name) is not None
+
+
+def valid_valve(name, model):
+    return valid_entity(name) if model == HA_MODEL else valid_name(name)
+
+
 def decode_config(value):
     """The stored record of a GET/POST answer ({"schema","base_topic","rooms"}), or None."""
     if type(value) is not dict or value.get("schema") != 1 or type(value.get("base_topic")) is not str:
@@ -82,7 +100,8 @@ def decode_config(value):
         valves = room.get("valves") if type(room) is dict else None
         if (type(room) is not dict or type(room.get("room")) is not str or type(room.get("control")) is not bool
                 or type(valves) is not list or len(valves) > MAX_VALVES_PER_ROOM
-                or any(type(v) is not dict or not valid_name(v.get("name")) or v.get("model") not in MODELS for v in valves)):
+                or any(type(v) is not dict or v.get("model") not in MODELS or not valid_valve(v.get("name"), v.get("model"))
+                       for v in valves)):
             return None
         result.append({"room": room["room"], "control": room["control"],
                        "valves": [{"name": v["name"], "model": v["model"]} for v in valves]})
@@ -174,6 +193,13 @@ def valve_link(hass, entry):
     return link
 
 
+def room_valves(hub, room_id):
+    """A room's ``fw/state/trv/<room>`` with Home Assistant's view of its ha_climate valves, or None."""
+    room = hub.valves.get(room_id)
+    driver = getattr(hub, "ha_valves", None)
+    return driver.overlay(room) if room is not None and driver is not None else room
+
+
 def positions(room):
     return [v["position_pct"] for v in room.get("valves", []) if type(v.get("position_pct")) in (int, float)]
 
@@ -205,7 +231,7 @@ class ValveEntity(RoomEntity):
 
     @property
     def valves(self):
-        return self.hub.valves.get(self.room_id)
+        return room_valves(self.hub, self.room_id)
 
     @property
     def available(self):
@@ -336,7 +362,8 @@ def sync_issues(hass, entry, hub, raised):
     if not hub.fresh:
         return  # an offline E32 says nothing about its valves; "E32 offline" is its own problem
     wanted = {}
-    for room_id, valves in hub.valves.items():
+    for room_id in hub.valves:
+        valves = room_valves(hub, room_id)
         room = hub.rooms.get(room_id) or {"id": room_id}
         name = label(room) or room_id
         found = problems(valves)
@@ -392,6 +419,9 @@ def watch(hass, entry):
     state[KEY + "_watch"] = True
     hub = heating_hub(hass, entry)
     raised = set()
+    from .ha_valves import HaValveDriver
+    driver = hub.ha_valves = HaValveDriver(hass, hub)
+    stop_driver = driver.start()
 
     @callback
     def changed():
@@ -402,6 +432,9 @@ def watch(hass, entry):
 
     @callback
     def unload():
+        stop_driver()
+        if hub.ha_valves is driver:
+            hub.ha_valves = None
         for issue in list(raised):
             ir.async_delete_issue(hass, DOMAIN, issue)
         raised.clear()

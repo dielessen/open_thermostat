@@ -13,6 +13,8 @@ window.OT_UI_PAGE_MESSAGES = {
   "Reporting": "Meldt zich",
   "Not reporting": "Meldt zich niet",
   "Waiting for a report": "Wacht op een melding",
+  "Driven by Home Assistant": "Aangestuurd door Home Assistant",
+  "Home Assistant climate entity (set in Home Assistant)": "Climate-entiteit in Home Assistant (in te stellen in Home Assistant)",
   "Zigbee radiator valves (through Zigbee2MQTT on the same MQTT broker). The E32 sends them the room target and temperature and keeps the boiler flow as low as the valves allow.": "Zigbee-radiatorkranen (via Zigbee2MQTT op dezelfde MQTT-broker). De E32 stuurt ze het doel en de temperatuur van de ruimte en houdt de aanvoer van de ketel zo laag als de kranen toelaten.",
   "Drive these valves from the E32": "Deze kranen vanuit de E32 aansturen",
   "Only while the E32 controls the boiler itself. Off: nothing is sent to the valves.": "Alleen zolang de E32 de ketel zelf aanstuurt. Uit: er gaat niets naar de kranen.",

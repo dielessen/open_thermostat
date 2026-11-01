@@ -30,6 +30,9 @@ namespace heating::control {
 // controls the boiler: active plan, takeover confirmed). Battery saving: a setpoint only on a
 // change of at least 0.5 degC (and a 6 h refresh), the external temperature at most every
 // 10 min (sooner never; a change below 0.2 degC waits up to 25 min, inside the Bosch's 30 min).
+//
+// A Home Assistant valve (ha_climate) is only listed in the status ("unknown": HA owns its
+// health); HA drives it on the same rules while "output" and the room's control are on.
 class TrvControl {
 public:
     static constexpr uint64_t staleMs = 2 * 3600 * 1000ULL;      // no report this long: offline
@@ -75,7 +78,7 @@ public:
         std::map<std::string, Valve> kept;
         for (const auto& r : config.rooms) for (const auto& v : r.valves) {
             auto it = valves_.find(v.name);
-            kept[v.name] = it != valves_.end() ? it->second : Valve{};
+            kept[v.name] = it != valves_.end() && !trvViaHa(*v.model) ? it->second : Valve{};
             kept[v.name].enabledSent = false;  // a new config re-sends the mode once
             kept[v.name].selectSentAt = 0;
         }
@@ -89,7 +92,7 @@ public:
     // The valves' state topics (<base>/<name>); empty without valves, so nothing is subscribed.
     std::vector<std::string> subscriptions() const {
         std::vector<std::string> out;
-        for (const auto& r : config_.rooms) for (const auto& v : r.valves) out.push_back(config_.baseTopic + "/" + v.name);
+        for (const auto& r : config_.rooms) for (const auto& v : r.valves) if (!trvViaHa(*v.model)) out.push_back(config_.baseTopic + "/" + v.name);
         return out;
     }
     // A Zigbee2MQTT state message. True when the topic is one of ours (consumed), whatever its content.
@@ -144,6 +147,7 @@ public:
             if (!room) continue;
             int16_t target = room->active && room->setpoint ? *room->setpoint : frostCentiC;
             for (const auto& cv : cr.valves) {
+                if (trvViaHa(*cv.model)) continue;
                 auto& v = valves_[cv.name];
                 const auto* m = cv.model;
                 const auto topic = config_.baseTopic + "/" + cv.name + "/set";
@@ -257,7 +261,7 @@ public:
                 const auto h = health(cv.name, now);
                 cJSON_AddStringToObject(vo, "health", h == Health::ok ? "ok" : h == Health::lowBattery ? "low_battery"
                                                       : h == Health::offline ? "offline" : "unknown");
-                if (h == Health::offline || h == Health::unknown) degraded = true;
+                if (!trvViaHa(*cv.model) && (h == Health::offline || h == Health::unknown)) degraded = true;
                 const auto it = valves_.find(cv.name);
                 if (it != valves_.end()) {
                     const auto& v = it->second;
@@ -292,7 +296,7 @@ private:
         if (topic.size() <= config_.baseTopic.size() + 1 || topic.substr(0, config_.baseTopic.size()) != config_.baseTopic
             || topic[config_.baseTopic.size()] != '/') return nullptr;
         const auto name = topic.substr(config_.baseTopic.size() + 1);
-        for (const auto& r : config_.rooms) for (const auto& v : r.valves) if (v.name == name) return &v;
+        for (const auto& r : config_.rooms) for (const auto& v : r.valves) if (v.name == name && !trvViaHa(*v.model)) return &v;
         return nullptr;
     }
     static const Room* findRoom(const std::vector<Room>& rooms, std::string_view id) {

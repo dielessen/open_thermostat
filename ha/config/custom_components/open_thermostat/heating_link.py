@@ -396,6 +396,7 @@ class HeatingHub:
         self.rooms = {}
         self.ble = {}
         self.valves = {}  # {room id: fw/state/trv/<room>}, empty without radiator valves
+        self.ha_valves = None  # ha_valves.HaValveDriver: Home Assistant's own valves (e32_valves.watch)
         self.learned = {}
         self.warmup = {}
         # {room id: (received, learned room, plan or None)} from learned/<room id>

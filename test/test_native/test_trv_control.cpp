@@ -314,4 +314,123 @@ TEST(TrvConfigChange, NewConfigKeepsKnownValvesAndResendsModeOnce) {
     EXPECT_EQ(trv.statusJson(4, {}), nullptr);
     EXPECT_TRUE(trv.subscriptions().empty());
 }
+
+// ---- Home Assistant valves (ha_climate) ----------------------------------------------------
+
+TEST(TrvHaClimate, TheNameIsAClimateEntityId) {
+    const auto c = parse(R"({"schema":1,"rooms":[{"room":"a","control":true,"valves":[{"name":"climate.bedroom_trv_2","model":"ha_climate"},)"
+                         R"({"name":"climate.zigbee_name","model":"generic"}]}]})");
+    ASSERT_EQ(c.rooms[0].valves.size(), 2u);
+    EXPECT_STREQ(c.rooms[0].valves[0].model->label, "Home Assistant climate entity");
+    EXPECT_EQ(parse(c.json().c_str()), c);
+    const char* error = nullptr;
+    for (const char* name : {"Bedroom valve", "climate.", "climate.Bedroom", "climate.a-b", "climate.a.b", "sensor.bedroom",
+                             " climate.a", "climate.a b"}) {
+        const std::string text = std::string(R"({"schema":1,"rooms":[{"room":"a","valves":[{"name":")") + name + R"(","model":"ha_climate"}]}]})";
+        parse(text.c_str(), &error);
+        EXPECT_STREQ(error, "invalid_valve_name") << name;
+    }
+    const std::string tooLong = R"({"schema":1,"rooms":[{"room":"a","valves":[{"name":"climate.)" + std::string(57, 'x')
+                                + R"(","model":"ha_climate"}]}]})";
+    parse(tooLong.c_str(), &error);
+    EXPECT_STREQ(error, "invalid_valve_name");
+}
+
+// One run over 6 h: reports, a target change, a room going inactive, output on after 30 min.
+struct Run { Sent sent; std::vector<std::pair<bool, uint8_t>> requests; std::vector<std::string> reasons; std::string status; };
+Run scenario(const char* config) {
+    TrvControl trv; trv.setConfig(parse(config));
+    Run run;
+    std::vector<TrvControl::Room> rooms{room("slaapkamer", 2000, 1950), room("keuken", 2100, 1800), room("zolder", 2000, 1800)};
+    uint64_t t = 1;
+    for (int i = 0; i < 6 * 60; ++i, t += M) {
+        if (i % 10 == 0) {
+            EXPECT_TRUE(trv.receive("zigbee2mqtt/Slaapkamer kraan", i < 120 ? R"({"pi_heating_demand":30,"battery":70})" : R"({"pi_heating_demand":100})", t));
+            EXPECT_TRUE(trv.receive("zigbee2mqtt/Keuken", R"({"battery":60,"temperature_sensor_select":"local_temperature"})", t));
+            // A Home Assistant valve's name on the Zigbee2MQTT base is never ours.
+            EXPECT_FALSE(trv.receive("zigbee2mqtt/climate.slaapkamer_trv", R"({"pi_heating_demand":0,"battery":5})", t));
+        }
+        if (i == 90) rooms[0].setpoint = 2150;
+        if (i == 200) rooms[1].active = false;
+        if (i == 240) rooms[0].temperature = 1900;
+        trv.step(t, rooms, i >= 30, recorder(run.sent));
+        const auto out = trv.adjust(heat(45), rooms, i >= 30, t, 30, 60);
+        run.requests.emplace_back(out.heat, out.flowC);
+        run.reasons.emplace_back(trv.reason() ? trv.reason() : "-");
+    }
+    // The status of the rooms with Zigbee2MQTT valves, those valves only.
+    Json status(trv.statusJson(t, rooms), cJSON_Delete);
+    for (cJSON* r = cJSON_GetObjectItem(status.get(), "rooms")->child; r; r = r->next) {
+        cJSON* valves = cJSON_GetObjectItem(r, "valves");
+        for (int k = cJSON_GetArraySize(valves) - 1; k >= 0; --k)
+            if (std::string(cJSON_GetObjectItem(cJSON_GetArrayItem(valves, k), "model")->valuestring) == "ha_climate") cJSON_DeleteItemFromArray(valves, k);
+        if (!cJSON_GetArraySize(valves)) continue;
+        char* text = cJSON_PrintUnformatted(r);
+        run.status += text;
+        cJSON_free(text);
+    }
+    return run;
+}
+
+// The same Zigbee2MQTT valves with and without Home Assistant valves beside them: the same
+// subscriptions, commands, boiler feedback and status per Zigbee2MQTT valve; nothing for HA's.
+TEST(TrvHaClimate, NothingIsSubscribedOrSentAndZigbeeValvesBehaveExactlyAsBefore) {
+    const char* zigbee =
+        R"({"schema":1,"rooms":[{"room":"slaapkamer","control":true,"valves":[{"name":"Slaapkamer kraan","model":"bosch_bth_ra"}]},)"
+        R"({"room":"keuken","control":true,"valves":[{"name":"Keuken","model":"sonoff_trvzb"}]}]})";
+    const char* mixed =
+        R"({"schema":1,"rooms":[{"room":"slaapkamer","control":true,"valves":[{"name":"Slaapkamer kraan","model":"bosch_bth_ra"},)"
+        R"({"name":"climate.slaapkamer_trv","model":"ha_climate"}]},)"
+        R"({"room":"keuken","control":true,"valves":[{"name":"climate.keuken_trv","model":"ha_climate"},{"name":"Keuken","model":"sonoff_trvzb"}]},)"
+        R"({"room":"zolder","control":true,"valves":[{"name":"climate.zolder","model":"ha_climate"}]}]})";
+    TrvControl a, b; a.setConfig(parse(zigbee)); b.setConfig(parse(mixed));
+    EXPECT_EQ(a.subscriptions(), b.subscriptions());
+    EXPECT_EQ(b.subscriptions(), (std::vector<std::string>{"zigbee2mqtt/Slaapkamer kraan", "zigbee2mqtt/Keuken"}));
+    const auto before = scenario(zigbee), after = scenario(mixed);
+    ASSERT_GT(before.sent.all.size(), 5u);
+    EXPECT_EQ(before.sent.all, after.sent.all);
+    for (const auto& sent : after.sent.all) EXPECT_EQ(sent.first.find("climate."), std::string::npos) << sent.first;
+    EXPECT_EQ(before.requests, after.requests);
+    EXPECT_EQ(before.reasons, after.reasons);
+    EXPECT_FALSE(before.status.empty());
+    EXPECT_EQ(before.status, after.status);
+}
+
+TEST(TrvHaClimate, OnlyHaValvesSendNothingButAreListedWithUnknownHealthAndSetTheOutputFlag) {
+    TrvControl trv;
+    trv.setConfig(parse(R"({"schema":1,"rooms":[{"room":"zolder","control":true,"valves":[{"name":"climate.zolder","model":"ha_climate"}]}]})"));
+    EXPECT_TRUE(trv.used());
+    EXPECT_TRUE(trv.subscriptions().empty());
+    const std::vector<TrvControl::Room> rooms{room("zolder", 2000, 1800, true, 1)};
+    Sent sent;
+    for (uint64_t t = 1; t < 8 * 3600 * 1000ULL; t += 10 * 1000ULL) {
+        trv.step(t, rooms, true, recorder(sent));
+        const auto out = trv.adjust(heat(45), rooms, true, t, 30, 60);
+        ASSERT_TRUE(out.heat); ASSERT_EQ(out.flowC, 45);    // no readback: no feedback
+    }
+    EXPECT_TRUE(sent.all.empty());
+    EXPECT_EQ(trv.offsetC(), 0);
+    EXPECT_EQ(trv.reason(), nullptr);
+    // "output": the valve route is live, so Home Assistant drives the room's valves now.
+    EXPECT_TRUE(trv.actuatorOutput());
+    trv.step(1, rooms, false, recorder(sent));
+    EXPECT_FALSE(trv.actuatorOutput());
+    Json status(trv.statusJson(1, rooms), cJSON_Delete);
+    ASSERT_TRUE(status);
+    const auto* r = cJSON_GetArrayItem(cJSON_GetObjectItem(status.get(), "rooms"), 0);
+    EXPECT_FALSE(cJSON_IsTrue(cJSON_GetObjectItem(r, "degraded")));      // HA judges these valves
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(r, "single_source")));
+    const auto* v = cJSON_GetArrayItem(cJSON_GetObjectItem(r, "valves"), 0);
+    EXPECT_STREQ(cJSON_GetObjectItem(v, "name")->valuestring, "climate.zolder");
+    EXPECT_STREQ(cJSON_GetObjectItem(v, "model")->valuestring, "ha_climate");
+    EXPECT_STREQ(cJSON_GetObjectItem(v, "health")->valuestring, "unknown");
+    EXPECT_EQ(cJSON_GetObjectItem(v, "battery_pct"), nullptr);
+    // A Zigbee2MQTT valve of that name re-added as a Home Assistant one keeps nothing of its reports.
+    trv.setConfig(parse(R"({"schema":1,"rooms":[{"room":"zolder","control":true,"valves":[{"name":"climate.zolder","model":"generic"}]}]})"));
+    trv.receive("zigbee2mqtt/climate.zolder", R"({"battery":10})", 2);
+    EXPECT_EQ(trv.health("climate.zolder", 3), TrvControl::Health::lowBattery);
+    trv.setConfig(parse(R"({"schema":1,"rooms":[{"room":"zolder","control":true,"valves":[{"name":"climate.zolder","model":"ha_climate"}]}]})"));
+    EXPECT_EQ(trv.health("climate.zolder", 3), TrvControl::Health::unknown);
+    EXPECT_FALSE(trv.receive("zigbee2mqtt/climate.zolder", R"({"battery":10})", 4));
+}
 }  // namespace

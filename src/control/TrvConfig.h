@@ -15,11 +15,13 @@ namespace heating::control {
 // or changes (TrvControl). Every room's valve control is off until switched on.
 //
 // The Zigbee2MQTT keys per model come from its device pages (exposes) and are to be
-// confirmed on real hardware before a release enables them by default.
+// confirmed on real hardware before a release enables them by default. Model ha_climate is
+// a valve Home Assistant controls (ZHA, Z-Wave, Shelly, cloud): its name is the climate
+// entity id and HA drives it (ha_valves.py); the E32 only lists it.
 struct TrvModel {
     const char* id;            // our model id, also what the API takes
     const char* label;
-    const char* setpointKey;   // the setpoint the valve regulates to (0.5 degC steps)
+    const char* setpointKey;   // the setpoint the valve regulates to (0.5 degC steps), nullptr: via HA
     const char* externalKey;   // external room temperature input, nullptr: none
     const char* positionKey;   // valve position readback 0..100 %, nullptr: none
     const char* batteryKey;    // battery in %, nullptr: only a low flag
@@ -50,7 +52,12 @@ inline constexpr TrvModel trvModels[] = {
     // Any other Zigbee2MQTT thermostat with the standard setpoint key.
     {"generic", "Other (setpoint only)", "occupied_heating_setpoint", nullptr, nullptr,
      "battery", "battery_low", nullptr, nullptr, nullptr, nullptr, nullptr, 500, 3000},
+    // A Home Assistant climate entity: nothing to send or read here.
+    {"ha_climate", "Home Assistant climate entity", nullptr, nullptr, nullptr,
+     nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 500, 3000},
 };
+// Driven by Home Assistant (ha_climate): the E32 never subscribes or sends for it.
+inline bool trvViaHa(const TrvModel& m) { return !m.setpointKey; }
 inline const TrvModel* trvModel(std::string_view id) {
     for (const auto& m : trvModels) if (id == m.id) return &m;
     return nullptr;
@@ -79,6 +86,12 @@ struct TrvConfig {
         if (s.find("//") != std::string_view::npos || s == "bridge" || s.substr(0, 7) == "bridge/") return false;
         for (const unsigned char c : s)
             if (c < 0x20 || c > 0x7e || c == '#' || c == '+' || c == '"' || c == '\\' || (!spaces && c == ' ')) return false;
+        return true;
+    }
+    // A Home Assistant climate entity id: "climate." and an object id of a-z, 0-9 and '_'.
+    static bool validClimate(std::string_view s) {
+        if (s.size() <= 8 || s.size() > maxNameBytes || s.substr(0, 8) != "climate.") return false;
+        for (const char c : s.substr(8)) if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_')) return false;
         return true;
     }
     // {"schema":1,"base_topic":"zigbee2mqtt","rooms":[{"room":"woonkamer","control":false,
@@ -110,6 +123,7 @@ struct TrvConfig {
                 if (!cJSON_IsObject(v) || !cJSON_IsString(name) || !validName(name->valuestring, maxNameBytes, true)) return "invalid_valve_name";
                 const TrvModel* m = cJSON_IsString(model) ? trvModel(model->valuestring) : nullptr;
                 if (!m) return "invalid_valve_model";
+                if (trvViaHa(*m) && !validClimate(name->valuestring)) return "invalid_valve_name";
                 for (const auto& other : c.rooms) for (const auto& o : other.valves) if (o.name == name->valuestring) return "duplicate_valve";
                 for (const auto& o : room.valves) if (o.name == name->valuestring) return "duplicate_valve";
                 room.valves.push_back({name->valuestring, m});

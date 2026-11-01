@@ -91,6 +91,8 @@
     ['sonoff_trv_zbt', "Sonoff TRV Gen2 / TRV-ZBT (external temperature)"],
     ['tuya_tv02', "Tuya TV02 (setpoint only)"], ['generic', "Other (setpoint only)"]];
   const valveHealth = {ok:"Reporting", low_battery:"Battery low", offline:"Not reporting", unknown:"Waiting for a report"};
+  // A valve Home Assistant drives (model ha_climate, its climate entity): chosen and judged in Home Assistant.
+  const healthText = v => v.model === 'ha_climate' ? uiText("Driven by Home Assistant") : uiText(valveHealth[v.health] || valveHealth.unknown);
   // The Zigbee2MQTT friendly names the E32 takes (TrvConfig::validName).
   const validValve = n => n.length > 0 && n.length <= 64 && n === n.trim() && !/^\/|\/$|\/\/|[#+"\\]|[^\x20-\x7e]/.test(n) && n !== 'bridge' && !n.startsWith('bridge/');
   const el = (tag, text, attrs={}) => { const e = document.createElement(tag); if (text !== undefined && text !== null) e.textContent = text; for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
@@ -445,6 +447,12 @@
     const save = el('button', uiText("Save valves"), {type:'button', class:'btn btn-primary', 'data-heating-valve-save':''});
     const addRow = v => {
       const row = el('div', null, {'data-heating-valve':'', class:'hp-valve'});
+      if (v.model === 'ha_climate') {  // read-only here, kept on save
+        row.setAttribute('data-heating-valve-ha', '');
+        row.read = () => ({name: v.name, model: v.model});
+        row.append(el('strong', v.name), el('span', uiText("Home Assistant climate entity (set in Home Assistant)"), {class:'pd-help'}));
+        rows.append(row); return;
+      }
       const name = input('text', v.name, {maxlength:'64', 'aria-label':uiText("Zigbee2MQTT name"), placeholder:uiText("Zigbee2MQTT name")});
       const model = select(valveModels, v.model);
       model.setAttribute('aria-label', uiText("Model"));
@@ -484,11 +492,11 @@
         const item = el('li', null, {'data-heating-valve-state':v.name}), tone = v.health === 'ok' ? 'ok' : v.health === 'unknown' ? '' : 'err';
         const facts = [typeof v.position_pct === 'number' ? uiText("open") + ' ' + v.position_pct + ' %' : '',
           typeof v.battery_pct === 'number' ? uiText("battery") + ' ' + v.battery_pct + ' %' : v.battery_low ? uiText("battery low") : ''].filter(Boolean).join(' · ');
-        item.append(el('strong', v.name), el('span', uiText(valveHealth[v.health] || valveHealth.unknown), {class:'ot-chip' + (tone ? ' ot-chip--' + tone : '')}), el('span', facts, {class:'pd-help'}));
+        item.append(el('strong', v.name), el('span', healthText(v), {class:'ot-chip' + (tone && v.model !== 'ha_climate' ? ' ot-chip--' + tone : '')}), el('span', facts, {class:'pd-help'}));
         return item;
       }));
       // Managed in Home Assistant: the short summary carries the live state too.
-      valvesBrief.textContent = briefText() + (state?.valves?.length ? ' · ' + state.valves.map(v => v.name + ': ' + uiText(valveHealth[v.health] || valveHealth.unknown)
+      valvesBrief.textContent = briefText() + (state?.valves?.length ? ' · ' + state.valves.map(v => v.name + ': ' + healthText(v)
         + (typeof v.position_pct === 'number' ? ', ' + uiText("open") + ' ' + v.position_pct + ' %' : '')).join('; ') : '');
       if (state?.control && state.single_source) live.append(el('li', uiText("This room has one temperature source. Add a separate sensor (for example Bluetooth), so the room keeps heating when it fails."), {class:'pd-help', 'data-heating-valve-hint':''}));
     };
@@ -733,6 +741,6 @@
 })();
 </script>
 <style>#heating-plan .hp-flow-design{margin:0 0 8px 34px;max-width:30rem}#heating-plan .hp-flow-design label{display:block;margin-bottom:4px}#heating-plan [data-flow-message]:empty{display:none}#heating-plan .hp-more{margin:12px 0 0}#heating-plan .hp-unused{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:6px;padding:10px 12px;border-radius:var(--ot-r1);background:var(--ot-surface-2);font-weight:400;font-size:.9rem}
-#heating-plan .hp-valve{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,14rem) 44px;gap:8px;margin-bottom:8px}#heating-plan .hp-valve .btn{width:44px;padding:0}
+#heating-plan .hp-valve{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,14rem) 44px;gap:8px;margin-bottom:8px}#heating-plan .hp-valve .btn{width:44px;padding:0}#heating-plan .hp-valve[data-heating-valve-ha]{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;overflow-wrap:anywhere}
 #heating-plan .hp-valves{list-style:none;padding:0;margin:0 0 8px;display:grid;gap:6px}#heating-plan .hp-valves li{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}#heating-plan .hp-valves:empty,#heating-plan [data-heating-valve-message]:empty{display:none}
 @media(max-width:560px){#heating-plan .hp-flow-design{margin-left:0}#heating-plan .hp-valve{grid-template-columns:minmax(0,1fr) 44px}#heating-plan .hp-valve select{grid-column:1/2}}</style>

@@ -23,12 +23,15 @@ Hot water is split once more, into tapping and keeping warm (two more sensors,
 "Gas for tapping hot water" and "Gas for keeping hot water warm"; hot water
 stays the total, a cylinder's charging and unsorted episodes only count there). The E32 sorts each
 hot-water episode with the most direct source its boiler reports (a DHW flow
-or a cylinder's charging, else the DHW temperature: ``dhw_method``). The gas of
-the burner during an episode the E32 counts as tapping or keeping warm goes to
-that post, in the same proportion as the meter shared out the hot water. Per day:
-the keep-warm rounds, burner minutes and gas. A comfort mode that keeps a
-combi's exchanger hot shows up here: the owner's boiler ran 35-45 rounds,
-about 2 m³, on days with little heating (Oct 2026).
+or a cylinder's charging, else the DHW temperature: ``dhw_method``; with the
+temperature, a round is keeping warm only when the sensor fell before it no
+faster than in this installation's own night rounds: ``dhw_baseline`` "night",
+or "default" until the E32 has seen enough of them). The gas of the burner
+during an episode the E32 counts as tapping or keeping warm goes to that post,
+in the same proportion as the meter shared out the hot water. Per day: the
+rounds, burner minutes and gas. Keeping warm is the boiler reheating its store
+or exchanger without a tap, nothing more: the owner's comfort mode ran 15-35
+rounds a day (Oct 2026).
 
 The unit follows the meter: kWh for a meter in Wh/kWh/MWh, m³ otherwise (and
 without a meter). Per day the counts are kept for 15 days (heating, hot water,
@@ -160,11 +163,15 @@ def hot_water_taps(hub):
     return _count_of(hub.dhw_today(), "tapping")
 
 
-def dhw_method(hub):
-    """How the E32 sorts hot water: storage, flow or dhw_temperature_fall (None without it)."""
+def dhw_method(hub, key="method"):
+    """How the E32 sorts hot water: storage, flow or dhw_temperature_fall (None without it).
+
+    key="baseline": what the DHW temperature rule compares the fall before a round with: "night" (this
+    installation's own night rounds) or "default" (before it has seen enough); None for the other methods.
+    """
     from .heating_link import _text
     dhw = hub.dhw if hub is not None and hub.fresh else None
-    return _text(dhw, "method") if dhw is not None else None
+    return _text(dhw, key) if dhw is not None else None
 
 
 def empty_day():
@@ -535,7 +542,8 @@ class EnergyUse:
         if kind in ("hot_water",) + SUB_KINDS:
             unit = "kwh" if in_kwh else "m3"
             result["dhw_method"] = dhw_method(self.hub)
-            result["tapping_today"] = _round(max(0.0, current[f"hot_water_{unit}"] - current[f"keep_warm_{unit}"]), 3)
+            result["dhw_baseline"] = dhw_method(self.hub, "baseline")
+            result["tapping_today"] = _round(current[f"tapping_{unit}"], 3)
             result["keep_warm_today"] = _round(current[f"keep_warm_{unit}"], 3)
         if kind in SUB_KINDS:
             hot = sum(day["hot_water_m3"] for day in days)

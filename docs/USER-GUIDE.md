@@ -407,18 +407,27 @@ With a gas meter in the energy options, *Gas for heating* and *Gas for hot
 water* share the meter by what the boiler did (without a meter they are an
 estimate from the burner modulation). Hot water is split once more:
 *Gas for tapping hot water* is what taps used, *Gas for keeping hot water
-warm* is what the boiler spent reheating its hot water without a tap (a
-combi's comfort mode keeping its exchanger or small store hot). Their
-attributes show per day the rounds, burner minutes and gas. The E32 decides
-per hot-water episode with the most direct signal the boiler reports: a DHW
-flow meter, or otherwise the DHW temperature (a tap brings cold mains water,
-so it falls deep or stays down; keeping warm dips briefly). The attribute
-`dhw_method` names it. A boiler with a cylinder reports charging instead: the
-E32 cannot tell a tap from a reheat there, so its hot water stays in *Gas for
-hot water* only. Add heating and hot water to the Energy dashboard; tapping
-and keeping warm are parts of hot water, so leave them out there. Many rounds
-a day while the heating is off can be worth a look: the comfort mode itself,
-or heat leaking away (ask your installer).
+warm* is the boiler reheating its store or exchanger without a tap, nothing
+more. Their attributes show per day the rounds, burner minutes and gas. The
+E32 decides per hot-water episode with the most direct signal the boiler
+reports (the attribute `dhw_method`):
+
+- `flow`: a DHW flow meter. Flow during the round is a tap.
+- `storage`: a boiler with a cylinder reports charging. The E32 cannot tell a
+  tap from a reheat there, so its hot water stays in *Gas for hot water* only.
+- `dhw_temperature_fall`: neither, so the DHW temperature. A tap brings cold
+  mains water, so the temperature falls deep or stays down. A small tap
+  (washing hands) may only cool the sensor before the round, so a round also
+  counts as a tap when the sensor fell before it faster than it does before
+  this boiler's own rounds at night (01:00-05:00, when nobody taps). The
+  sensor sits where heat enters the store and falls fast after each reheat
+  while the heat mixes through, so this is only a comparison with the nights,
+  not a heat loss. The attribute `dhw_baseline` says `night` once the E32 has
+  seen four night rounds since its last restart, and `default` before that
+  (then only a fall faster than 2 °C a minute counts).
+
+Add heating and hot water to the Energy dashboard; tapping and keeping warm
+are parts of hot water, so leave them out there.
 
 *Boiler activity* says what the boiler does now: idle, heating, tapping,
 keeping warm, charging the cylinder, or hot water it cannot sort. A tap shows

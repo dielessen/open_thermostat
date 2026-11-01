@@ -771,19 +771,20 @@ async def test_todays_hot_water_becomes_product_sensors_once_reported(hass, monk
     assert burner.device_class == "duration" and burner.native_unit_of_measurement == "min"
     assert taps.native_unit_of_measurement is None and taps.translation_key == "dhw_taps_today"
     assert all(e.device_info["identifiers"] == {("open_thermostat", "fixture")} for e in by_key.values())
-    assert taps.extra_state_attributes == {"method": "flow", "clock_known": True, "minutes": 9.0, "last_7_days": 40,
+    assert taps.extra_state_attributes == {"method": "flow", "baseline": None, "clock_known": True, "minutes": 9.0, "last_7_days": 40,
                                            "peak_flow_l_min": 7.5, "unknown_count": 1,
                                            "charging_count": None}
-    assert warm.extra_state_attributes == {"method": "flow", "clock_known": True, "minutes": 5.0, "last_7_days": 15}
-    assert burner.extra_state_attributes == {"method": "flow", "clock_known": True, "tapping_minutes": 9.0,
+    assert warm.extra_state_attributes == {"method": "flow", "baseline": None, "clock_known": True, "minutes": 5.0, "last_7_days": 15}
+    assert burner.extra_state_attributes == {"method": "flow", "baseline": None, "clock_known": True, "tapping_minutes": 9.0,
                                              "keep_warm_minutes": 5.0, "last_7_days_minutes": 85.0}
     # A new day starts at zero; no flow meter: no peak flow; nonsense is unknown.
-    fallen = {"method": "dhw_temperature_fall", "clock_known": True,
+    fallen = {"method": "dhw_temperature_fall", "baseline": "night", "clock_known": True,
               "today": {"tapping": {"count": 0, "s": 0}, "keep_warm": {"count": -1, "s": 0},
                         "unknown": {"count": 0, "s": 0}, "burner_s": 0, "peak_flow_l_min": None}}
     send({**FULL, "dhw": fallen})
     assert (taps.native_value, warm.native_value, burner.native_value) == (0, None, 0)
     assert taps.extra_state_attributes["peak_flow_l_min"] is None and taps.extra_state_attributes["last_7_days"] is None
+    assert taps.extra_state_attributes["baseline"] == "night"  # the DHW temperature rule's night rounds
     # Without the summary, or stale: unavailable.
     send({**FULL, "dhw": {"method": "flow"}})
     assert not any(e.available for e in by_key.values())
@@ -981,7 +982,7 @@ async def test_the_heating_summary_feeds_the_learned_header_and_hot_water(hass, 
     assert sorted(by_key) == sorted(module.DHW_SENSORS)
     taps, warm, burner = (by_key[k] for k in module.DHW_SENSORS)
     assert (taps.native_value, warm.native_value, burner.native_value) == (6, 2, 12.5)
-    assert taps.extra_state_attributes == {"method": "flow", "clock_known": True, "minutes": 9.0, "last_7_days": None,
+    assert taps.extra_state_attributes == {"method": "flow", "baseline": None, "clock_known": True, "minutes": 9.0, "last_7_days": None,
                                            "peak_flow_l_min": 7.5, "unknown_count": 1,
                                            "charging_count": None}
     # An invalid or oversized summary drops the previous one: header and hot water unknown.

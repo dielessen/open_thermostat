@@ -185,9 +185,9 @@ TEXT = {
         "gas_tapping": "Tapping", "gas_keeping_warm": "Keeping warm",
         "activity_timeline": "What the boiler does (24 hours)", "activity": "Boiler",
         "gas_per_post": "Gas per day: heating, tapping, keeping warm",
-        "dhw_use_note": "Tapping is hot water used at a tap; keeping warm is the boiler reheating its hot water "
-                        "without a tap (comfort mode); a cylinder shows as charging. The E32 tells them apart with the most direct "
-                        "signal your boiler reports.",
+        "dhw_use_note": "Tapping is hot water used at a tap; keeping warm is the boiler reheating its store or "
+                        "exchanger without a tap, nothing more; a cylinder shows as charging. The E32 tells them apart "
+                        "with the most direct signal your boiler reports.",
         "gas_per_day": "Gas per day",
         "gas_measured": "Measured with your gas meter, split by what the boiler did.",
         "gas_estimate": "Estimated from the burner modulation and the boiler's power (no gas meter).",
@@ -277,9 +277,9 @@ TEXT = {
         "gas_tapping": "Tappen", "gas_keeping_warm": "Warmhouden",
         "activity_timeline": "Wat de ketel doet (24 uur)", "activity": "Ketel",
         "gas_per_post": "Gas per dag: verwarmen, tappen, warmhouden",
-        "dhw_use_note": "Tappen is warm water uit een kraan; warmhouden is de ketel die zijn warme water opwarmt "
-                        "zonder dat er getapt wordt (comfortstand); een boiler toont als laden. De E32 houdt ze uit elkaar met "
-                        "het meest directe signaal dat je ketel geeft.",
+        "dhw_use_note": "Tappen is warm water uit een kraan; warmhouden is de ketel die zijn voorraad of "
+                        "warmtewisselaar opwarmt zonder dat er getapt wordt, meer niet; een boiler toont als laden. De E32 "
+                        "houdt ze uit elkaar met het meest directe signaal dat je ketel geeft.",
         "gas_per_day": "Gas per dag",
         "gas_measured": "Gemeten met je gasmeter, verdeeld naar wat de ketel deed.",
         "gas_estimate": "Geschat uit de brandermodulatie en het vermogen van de ketel (geen gasmeter).",

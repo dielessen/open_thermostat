@@ -1506,7 +1506,7 @@ class DhwTodaySensor(HubEntity, SensorEntity):
         if dhw is None:
             return None
         today, week = dhw["today"], _dict(dhw, "last_7_days")
-        result = {"method": _text(dhw, "method"), "clock_known": _flag(dhw, "clock_known")}
+        result = {"method": _text(dhw, "method"), "baseline": _text(dhw, "baseline"), "clock_known": _flag(dhw, "clock_known")}
         if self.key == "dhw_burner_time_today":
             return {**result, "tapping_minutes": _minutes(_count(_dict(today, "tapping").get("s"))),
                     "keep_warm_minutes": _minutes(_count(_dict(today, "keep_warm").get("s"))),

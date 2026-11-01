@@ -21,7 +21,8 @@ def today(tapping=0, keep_warm=0, charging=0, unknown=0, burner_s=0):
 
 
 def summary(method="dhw_temperature_fall", **counts):
-    return {"schema": 1, "dhw": {"method": method, "clock_known": True, "today": today(**counts)}}
+    baseline = "default" if method == "dhw_temperature_fall" else None
+    return {"schema": 1, "dhw": {"method": method, "baseline": baseline, "clock_known": True, "today": today(**counts)}}
 
 
 # -- counts across E32 restarts ---------------------------------------------------------------------
@@ -89,6 +90,7 @@ async def test_an_episode_the_e32_counts_as_keeping_warm_goes_to_keeping_warm_wh
         "tapping": "fixture_hub_tapping_gas", "keep_warm": "fixture_hub_keep_warm_gas"}
     attributes = use.attributes("keep_warm")
     assert attributes["dhw_method"] == method and attributes["rounds_today"] == 1
+    assert attributes["dhw_baseline"] == ("default" if method == "dhw_temperature_fall" else None)
     assert attributes["burner_minutes_today"] == 3 and DAY0.isoformat() in attributes["days"]
     tapping = use.attributes("tapping")
     assert tapping["rounds_today"] == 1 and tapping["burner_minutes_today"] == 2
@@ -117,7 +119,7 @@ def test_a_store_from_before_keeps_its_totals_and_gains_an_empty_keep_warm():
 
 @pytest.mark.asyncio
 async def test_the_owners_day_with_a_gas_meter_splits_hot_water_into_tapping_and_keeping_warm(hass):
-    """31 Oct 2026, the owner's comfort mode: about 41 keep-warm rounds, roughly 60 % of the hot-water burner energy."""
+    """31 Oct 2026, the owner's comfort mode: 40 keep-warm rounds and 17 taps, roughly 60 % of the hot-water burner energy."""
     from test_energy_use import gas_meter
     gas_meter(hass, "1000.000")
     use, values, clock, added = setup(hass, options={module.CONF_GAS_METER: "sensor.gas"})
@@ -142,7 +144,7 @@ async def test_the_owners_day_with_a_gas_meter_splits_hot_water_into_tapping_and
             assert use.data["totals"][kind] >= last[kind]
             last[kind] = use.data["totals"][kind]
     day = use.data["days"][DAY0.isoformat()]
-    assert (day["keep_warm_rounds"], day["taps"]) == (41, 16)
+    assert (day["keep_warm_rounds"], day["taps"]) == (40, 17)
     share = day["keep_warm_m3"] / day["hot_water_m3"]
     assert 0.55 <= share <= 0.68, share
     # Every episode of that day is a tap or keeping warm: together they are the hot water (the meter's last step aside).
@@ -221,7 +223,7 @@ async def test_the_boiler_activity_follows_the_e32_and_draws_the_owners_day(hass
         if state != last:
             runs[state] = runs.get(state, 0) + 1
         last = state
-    assert (runs["tapping"], runs["keep_warm"]) == (16, 41) and runs["heating"] > 0 and runs["idle"] > 0
+    assert (runs["tapping"], runs["keep_warm"]) == (17, 40) and runs["heating"] > 0 and runs["idle"] > 0
     send({**FULL, "burner": {"activity": "boiling"}})  # unknown values are unknown, never a new state
     assert activity.native_value is None
     now = [hub.received + module.STALE_SECONDS + 1]

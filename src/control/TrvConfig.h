@@ -1,5 +1,6 @@
 #pragma once
 #include <cJSON.h>
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -78,6 +79,13 @@ struct TrvConfig {
     const Room* room(std::string_view id) const {
         for (const auto& r : rooms) if (r.id == id) return &r;
         return nullptr;
+    }
+    // A plan save: the rooms the plan no longer has leave the record. True when any did.
+    template <class InPlan>
+    bool dropRooms(InPlan&& inPlan) {
+        const size_t before = rooms.size();
+        rooms.erase(std::remove_if(rooms.begin(), rooms.end(), [&](const Room& r) { return !inPlan(r.id); }), rooms.end());
+        return rooms.size() != before;
     }
     // A Zigbee2MQTT friendly name: printable ASCII without the MQTT wildcards, quotes or
     // backslashes, no leading/trailing '/' or space, no "//". Also the base topic (no spaces).

@@ -311,6 +311,11 @@ public:
         if (saved != HeatingPlanSave::saved) return "save_unconfirmed";
         roomEngine_.setPlan(plan);
         flowLearner_.setPlan(plan);
+        // Valves of rooms the plan no longer has leave their record (stored), so a later valve
+        // save is not refused as unknown_room and their fw/state/trv/<room> topic is cleared.
+        auto valves = trv_.config();
+        if (valves.dropRooms([&](const std::string& id) { return plan.find(id) != nullptr; }) && TrvNvs::write(valves))
+            trv_.setConfig(std::move(valves));
         return nullptr;
     }
     // The owner's handover on the page: true = "the tado is disconnected from

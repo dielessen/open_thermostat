@@ -466,7 +466,8 @@
     more.addEventListener('click', () => { addRow({name:'', model:'generic'}); more.hidden = rows.children.length >= 4; rows.lastChild.name.focus(); });
     const briefText = () => { const m = mine(); return m.valves.length ? m.valves.map(v => v.name).join(', ') + ' · ' + uiText(m.control ? "driven by the E32" : "not driven") : uiText("None"); };
     save.addEventListener('click', async () => {
-      const valves = [...rows.children].map(r => r.read()).filter(v => v.name), others = trv.rooms.filter(r => r.room !== room.id);
+      // The other rooms of the stored plan only: a deleted room's valves would be refused (unknown_room).
+      const valves = [...rows.children].map(r => r.read()).filter(v => v.name), others = trv.rooms.filter(r => r.room !== room.id && plan.rooms.some(p => p.id === r.room));
       const bad = valves.find(v => !validValve(v.name));
       const taken = valves.find((v, i) => valves.findIndex(w => w.name === v.name) !== i || others.some(r => r.valves.some(w => w.name === v.name)));
       if (bad || taken) { note.textContent = uiText(bad ? "Use the valve's Zigbee2MQTT name: up to 64 characters, no # + \" \\ and no / or space at the start or end." : "This valve is already used (here or in another room).") + ' (' + (bad || taken).name + ')'; return; }

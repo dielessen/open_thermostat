@@ -1,4 +1,5 @@
 #include "control/TelemetryPublisher.h"
+#include "control/TrvControl.h"
 #include <gtest/gtest.h>
 #include <map>
 #include <string>
@@ -18,6 +19,7 @@ struct Bench {
     int flow = 40;
     int boilerFlow = 4500;
     std::string learnedResult = "learning";
+    TrvControl* trv = nullptr; // radiator valves, added to the status as HeatingController does
     TelemetryPublisher publisher{
         TelemetryPublisher::Sources{
             [this] {
@@ -31,7 +33,9 @@ struct Bench {
                     + R"(,"reason":"heating"},"ha_entities":[)" + entities + R"(],"rooms":[)" + rows
                     + R"(],"ble_sensors":[{"id":"a4c138a3e8db","temperature":19.5,"humidity":50,"battery":90,"age_s":)" + std::to_string(now / 1000)
                     + R"(}],"shadow":{"today":{"s":)" + std::to_string(now / 1000) + R"(}},"ha":{"input_age_s":)" + std::to_string(now / 1000 % 300) + R"(,"broker_connected":true}})";
-                return cJSON_Parse(s.c_str());
+                cJSON* status = cJSON_Parse(s.c_str());
+                if (cJSON* valves = trv && status ? trv->statusJson(now, {}) : nullptr) cJSON_AddItemToObject(status, "trv", valves);
+                return status;
             },
             [this] { return rooms.size(); },
             [this](size_t i, std::string& id) {
@@ -160,6 +164,33 @@ TEST(TelemetryPublisher, ARoomThatLeftThePlanHasItsRetainedTopicsCleared) {
     EXPECT_TRUE(clearedLearned);
     EXPECT_GE(b.count("fw/config/plan", at), 1u);         // the plan changed: at once
     EXPECT_GE(b.count("fw/config/entities", at), 1u);
+}
+
+// Review 1.0: a plan save drops a deleted room's valves (TrvConfig::dropRooms); its retained
+// fw/state/trv/<room> is then cleared like the room's own topics.
+TEST(TelemetryPublisher, ADroppedValveRoomHasItsRetainedTopicCleared) {
+    std::unique_ptr<cJSON, decltype(&cJSON_Delete)> record(cJSON_Parse(R"({"schema":1,"rooms":[)"
+        R"({"room":"woonkamer","control":true,"valves":[{"name":"K1","model":"bosch_bth_ra"}]},)"
+        R"({"room":"zolder","control":true,"valves":[{"name":"K2","model":"bosch_bth_ra"}]}]})"), cJSON_Delete);
+    TrvConfig config;
+    ASSERT_EQ(TrvConfig::parse(record.get(), config), nullptr);
+    TrvControl trv; trv.setConfig(config);
+    Bench b; b.trv = &trv;
+    b.publisher.connected(b.now);
+    b.run(30000);
+    ASSERT_GE(b.count("fw/state/trv/zolder"), 1u);
+    const uint64_t at = b.now;
+    ASSERT_TRUE(config.dropRooms([](const std::string& id) { return id != "zolder"; }));
+    trv.setConfig(config);
+    b.run(5000);
+    bool cleared = false, kept = false;
+    for (const auto& s : b.sent) {
+        if (s.at < at) continue;
+        cleared = cleared || (s.topic == "fw/state/trv/zolder" && s.payload.empty() && s.retained);
+        kept = kept || (s.topic == "fw/state/trv/woonkamer" && s.payload.empty());
+    }
+    EXPECT_TRUE(cleared);
+    EXPECT_FALSE(kept);
 }
 
 TEST(TelemetryPublisher, BackpressureDropsACycleAndRetriesLater) {

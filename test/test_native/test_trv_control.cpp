@@ -1,4 +1,5 @@
 #include "control/TrvControl.h"
+#include <algorithm>
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
@@ -112,6 +113,24 @@ TEST(TrvConfigTest, ParsesValidatesAndRoundTrips) {
     EXPECT_FALSE(noValves.rooms[0].control);
     EXPECT_TRUE(noValves.empty());
     EXPECT_LT(c.json().size(), TrvConfig::maxBytes);
+}
+
+// Review 1.0: a room deleted from the plan kept its valve record, so every later valve save
+// was refused (unknown_room). A plan save drops the rooms the plan no longer has.
+TEST(TrvConfigTest, PlanSaveDropsTheRoomsThePlanNoLongerHas) {
+    auto c = parse(R"({"schema":1,"rooms":[{"room":"slaapkamer","control":true,"valves":[{"name":"K1","model":"bosch_bth_ra"}]},)"
+                   R"({"room":"zolder","control":true,"valves":[{"name":"K2","model":"bosch_bth_ra"}]}]})");
+    const std::vector<std::string> plan{"slaapkamer", "woonkamer"};
+    const auto inPlan = [&](const std::string& id) { return std::find(plan.begin(), plan.end(), id) != plan.end(); };
+    EXPECT_TRUE(c.dropRooms(inPlan));
+    EXPECT_EQ(c.json(), R"({"schema":1,"base_topic":"zigbee2mqtt","rooms":[{"room":"slaapkamer","control":true,"valves":[{"name":"K1","model":"bosch_bth_ra"}]}]})");
+    EXPECT_FALSE(c.dropRooms(inPlan));  // nothing left to drop: no new flash write
+    // Every room of the record is in the plan again (setTrv's check), and the dropped valve is gone.
+    for (const auto& r : c.rooms) EXPECT_TRUE(inPlan(r.id)) << r.id;
+    TrvControl trv; trv.setConfig(c);
+    EXPECT_EQ(trv.subscriptions(), std::vector<std::string>{"zigbee2mqtt/K1"});
+    Json status(trv.statusJson(1, {}), cJSON_Delete);
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(status.get(), "rooms")), 1);
 }
 
 // ---- Commands and battery saving ---------------------------------------------------------

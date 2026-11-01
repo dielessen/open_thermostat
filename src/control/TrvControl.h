@@ -50,7 +50,7 @@ public:
 
     // One room as the control sees it this step (from the room engine).
     struct Room {
-        std::string_view id;
+        std::string id;                       // its own copy: the views outlive a plan change (status)
         bool active = false;                  // the room is on (not inactive)
         std::optional<int16_t> setpoint;      // the room's effective target
         std::optional<int16_t> temperature;   // fresh measured temperature (its own sources, never a valve's)
@@ -185,10 +185,13 @@ public:
     }
     // Valve feedback on the boiler request. Unchanged without output, without a controlled room,
     // or without a position readback; never turns heat on; the caller's guard keeps the hard limit.
+    // minimumOnMs/OffMs: the burner's minimum times (FlowDemand), also kept by the valve cut.
     FlowDemand::Request adjust(const FlowDemand::Request& request, const std::vector<Room>& rooms, bool outputEnabled,
-                               uint64_t now, uint8_t minimumFlowC, uint8_t maximumFlowC) {
+                               uint64_t now, uint8_t minimumFlowC, uint8_t maximumFlowC,
+                               uint32_t minimumOnMs = FlowDemand::Params{}.minimumOnMs,
+                               uint32_t minimumOffMs = FlowDemand::Params{}.minimumOffMs) {
         reason_ = nullptr;
-        if (!outputEnabled || !controlled()) { offsetC_ = 0; offsetAt_ = 0; return request; }
+        if (!outputEnabled || !controlled()) { offsetC_ = 0; offsetAt_ = 0; onSince_ = 0; return request; }
         // Positions of fresh valves in controlled rooms that ask for heat.
         int maxPos = -1; bool coldAtFullOpen = false; bool anyReadback = false;
         bool allDemandersClosed = true; bool anyDemander = false;
@@ -213,8 +216,12 @@ public:
         auto out = request;
         // All rooms that ask for heat have only closed valves (with readback): no circuit is open,
         // so the boiler request stops. A room without valve control (the floor) keeps it going.
-        if (out.heat && anyDemander && allDemandersClosed && anyReadback) {
-            out.heat = false; out.flowC = 0; reason_ = "valves_closed";
+        // FlowDemand never sees this stop, so it keeps the burner's minimum times itself: it waits
+        // until the burner ran minimumOnMs and lasts minimumOffMs, also when a valve opens sooner.
+        const bool closed = anyDemander && allDemandersClosed && anyReadback;
+        if (out.heat && (closed ? !(onSince_ && now - onSince_ < minimumOnMs) : cutAt_ && now - cutAt_ < minimumOffMs)) {
+            if (!cutAt_) cutAt_ = now ? now : 1;
+            onSince_ = 0; out.heat = false; out.flowC = 0; reason_ = "valves_closed";
             return out;
         }
         if (anyReadback && (!offsetAt_ || now - offsetAt_ >= feedbackStepMs)) {
@@ -227,6 +234,7 @@ public:
             const int flow = std::clamp<int>(int(out.flowC) + offsetC_, minimumFlowC, maximumFlowC);
             out.flowC = uint8_t(flow); reason_ = offsetC_ > 0 ? "valves_open" : "valves_partly_closed";
         }
+        if (out.heat) { if (!onSince_) onSince_ = now ? now : 1; cutAt_ = 0; } else onSince_ = 0;
         return out;
     }
     // actuator.output.v1: the E32 itself drives valves (output enabled and a room's control on).
@@ -285,6 +293,7 @@ private:
     std::map<std::string, Valve> valves_;
     uint32_t generation_ = 0;
     int8_t offsetC_ = 0; uint64_t offsetAt_ = 0;
+    uint64_t onSince_ = 0, cutAt_ = 0;  // the request on since / off since the valve cut (0: not)
     bool outputEnabled_ = false;
     const char* reason_ = nullptr;
 

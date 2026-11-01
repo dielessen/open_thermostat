@@ -1,4 +1,5 @@
 #include "control/TrvControl.h"
+#include <algorithm>
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
@@ -112,6 +113,24 @@ TEST(TrvConfigTest, ParsesValidatesAndRoundTrips) {
     EXPECT_FALSE(noValves.rooms[0].control);
     EXPECT_TRUE(noValves.empty());
     EXPECT_LT(c.json().size(), TrvConfig::maxBytes);
+}
+
+// Review 1.0: a room deleted from the plan kept its valve record, so every later valve save
+// was refused (unknown_room). A plan save drops the rooms the plan no longer has.
+TEST(TrvConfigTest, PlanSaveDropsTheRoomsThePlanNoLongerHas) {
+    auto c = parse(R"({"schema":1,"rooms":[{"room":"slaapkamer","control":true,"valves":[{"name":"K1","model":"bosch_bth_ra"}]},)"
+                   R"({"room":"zolder","control":true,"valves":[{"name":"K2","model":"bosch_bth_ra"}]}]})");
+    const std::vector<std::string> plan{"slaapkamer", "woonkamer"};
+    const auto inPlan = [&](const std::string& id) { return std::find(plan.begin(), plan.end(), id) != plan.end(); };
+    EXPECT_TRUE(c.dropRooms(inPlan));
+    EXPECT_EQ(c.json(), R"({"schema":1,"base_topic":"zigbee2mqtt","rooms":[{"room":"slaapkamer","control":true,"valves":[{"name":"K1","model":"bosch_bth_ra"}]}]})");
+    EXPECT_FALSE(c.dropRooms(inPlan));  // nothing left to drop: no new flash write
+    // Every room of the record is in the plan again (setTrv's check), and the dropped valve is gone.
+    for (const auto& r : c.rooms) EXPECT_TRUE(inPlan(r.id)) << r.id;
+    TrvControl trv; trv.setConfig(c);
+    EXPECT_EQ(trv.subscriptions(), std::vector<std::string>{"zigbee2mqtt/K1"});
+    Json status(trv.statusJson(1, {}), cJSON_Delete);
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(status.get(), "rooms")), 1);
 }
 
 // ---- Commands and battery saving ---------------------------------------------------------
@@ -278,12 +297,45 @@ TEST(TrvFeedback, AllDemandingRoomsClosedStopsTheRequestButAnUncontrolledRoomKee
     const auto out = trv.adjust(heat(40), rooms, true, 11 * M, 30, 60);
     EXPECT_FALSE(out.heat);
     EXPECT_STREQ(trv.reason(), "valves_closed");
-    // The living room (floor, no valve control) asks for heat too: the boiler keeps going.
+    // The living room (floor, no valve control) asks for heat too: the boiler goes again, after
+    // the burner's minimum off time.
     rooms.push_back(room("woonkamer", 2100, 1900));
-    EXPECT_TRUE(trv.adjust(heat(40), rooms, true, 12 * M, 30, 60).heat);
+    EXPECT_FALSE(trv.adjust(heat(40), rooms, true, 12 * M, 30, 60).heat);
+    EXPECT_TRUE(trv.adjust(heat(40), rooms, true, 16 * M, 30, 60).heat);
     // An offline valve is no proof of a closed circuit: no stop.
     std::vector<TrvControl::Room> only{room("slaapkamer", 2000, 1990)};
     EXPECT_TRUE(trv.adjust(heat(40), only, true, 1 + TrvControl::staleMs, 30, 60).heat);
+}
+
+// Review 1.0: the cut is a burner stop FlowDemand never sees, so it keeps the burner's minimum
+// times itself. A valve hovering around 5 % opens again right after the cut: the burner restarts
+// only after the minimum off time. The floor stops asking just after the burner started: the
+// cut waits for the minimum on time.
+TEST(TrvFeedback, ValveCutKeepsTheBurnerMinimumOffAndOnTimes) {
+    const uint64_t offMs = FlowDemand::Params{}.minimumOffMs, onMs = FlowDemand::Params{}.minimumOnMs, step = 10 * 1000ULL;
+    const std::vector<TrvControl::Room> bedroom{room("slaapkamer", 2000, 1990)};
+    TrvControl trv; trv.setConfig(parse(bedroomBosch));
+    trv.receive("zigbee2mqtt/Slaapkamer kraan", R"({"pi_heating_demand":5})", 1);
+    EXPECT_TRUE(trv.adjust(heat(40), bedroom, true, 5 * M, 30, 60).heat);
+    const uint64_t cut = 11 * M;
+    EXPECT_FALSE(trv.adjust(heat(40), bedroom, true, cut, 30, 60).heat);
+    trv.receive("zigbee2mqtt/Slaapkamer kraan", R"({"pi_heating_demand":6})", cut + step / 2);
+    for (uint64_t t = cut + step; t < cut + offMs; t += step) {
+        ASSERT_FALSE(trv.adjust(heat(40), bedroom, true, t, 30, 60).heat) << (t - cut) / 1000 << " s after the cut";
+        ASSERT_STREQ(trv.reason(), "valves_closed");
+    }
+    EXPECT_TRUE(trv.adjust(heat(40), bedroom, true, cut + offMs, 30, 60).heat);
+    // Minimum on: only closed valves ask (no start), then the floor too, satisfied 10 s later.
+    TrvControl on; on.setConfig(parse(bedroomBosch));
+    on.receive("zigbee2mqtt/Slaapkamer kraan", R"({"pi_heating_demand":0})", 1);
+    EXPECT_FALSE(on.adjust(heat(40), bedroom, true, 20 * M, 30, 60).heat);
+    const std::vector<TrvControl::Room> withFloor{room("slaapkamer", 2000, 1990), room("woonkamer", 2100, 1900)};
+    const uint64_t start = 30 * M;
+    EXPECT_TRUE(on.adjust(heat(40), withFloor, true, start, 30, 60).heat);
+    for (uint64_t t = start + step; t < start + onMs; t += step)
+        ASSERT_TRUE(on.adjust(heat(40), bedroom, true, t, 30, 60).heat) << (t - start) / 1000 << " s after the start";
+    EXPECT_FALSE(on.adjust(heat(40), bedroom, true, start + onMs, 30, 60).heat);
+    EXPECT_STREQ(on.reason(), "valves_closed");
 }
 
 TEST(TrvFeedback, ValvesWithoutReadbackDriftTheOffsetBackToZero) {
@@ -296,6 +348,25 @@ TEST(TrvFeedback, ValvesWithoutReadbackDriftTheOffsetBackToZero) {
     t += TrvControl::staleMs;
     for (int i = 0; i < 6; ++i) { trv.adjust(heat(45), rooms, true, t, 30, 60); t += 10 * M; }
     EXPECT_EQ(trv.offsetC(), 0);
+}
+
+// Review 1.0: HeatingController keeps the last step's room views for the status until the
+// next step; a plan save in between replaces the plan's room ids. The views keep their own.
+TEST(TrvConfigChange, RoomViewsOutliveThePlanTheyWereTakenFrom) {
+    TrvControl trv;
+    trv.setConfig(parse(R"({"schema":1,"rooms":[{"room":"slaapkamer_achter_boven","control":true,"valves":[{"name":"K","model":"bosch_bth_ra"}]}]})"));
+    std::vector<std::string> plan{"slaapkamer_achter_boven"};  // longer than the short-string buffer
+    const std::vector<TrvControl::Room> views{room(plan[0].c_str(), 2000, 1900, true, 1)};  // as trvRoomViews
+    const auto singleSource = [&] {
+        Json status(trv.statusJson(1000, views), cJSON_Delete);
+        const cJSON* r = cJSON_GetArrayItem(cJSON_GetObjectItem(status.get(), "rooms"), 0);
+        return cJSON_IsTrue(cJSON_GetObjectItem(r, "single_source"));
+    };
+    EXPECT_TRUE(singleSource());
+    plan[0].replace(0, 10, "zolderkamr");                     // the plan's text changes in place
+    EXPECT_TRUE(singleSource());
+    plan = {"slaapkamer_achter_boven_2", "woonkamer", "keuken"};  // setPlan(): the old ids are freed
+    EXPECT_TRUE(singleSource());                              // AddressSanitizer: no read of freed memory
 }
 
 TEST(TrvConfigChange, NewConfigKeepsKnownValvesAndResendsModeOnce) {

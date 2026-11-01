@@ -10,10 +10,12 @@ const valve=(name,extra={})=>({name,model:'bosch_bth_ra',health:'ok',position_pc
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});
  try{for(const [width,withValves] of [[1280,true],[320,true],[1280,false]]){
   const page=await browser.newPage({viewport:{width,height:900}}),errors=[],posts=[];
-  const plan={schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[room]};
+  const plan={schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[room,{...room,id:'keuken',name:'Keuken',sources:[{type:'ha',id:'climate.keuken'}]}]};
   // A Zigbee2MQTT valve and one Home Assistant drives (ha_climate: its climate entity, health HA's to judge).
-  let record={schema:1,base_topic:'zigbee2mqtt',rooms:[{room:'woonkamer',control:false,valves:[{name:'Kraan woonkamer',model:'bosch_bth_ra'},
-    {name:'climate.trv_woonkamer',model:'ha_climate'}]}]};
+  // The kitchen's valve stays; the attic left the plan (firmware before 1.0 kept its valves in the record).
+  let record={schema:1,base_topic:'zigbee2mqtt',rooms:[{room:'zolder',control:true,valves:[{name:'Kraan zolder',model:'bosch_bth_ra'}]},
+    {room:'keuken',control:false,valves:[{name:'Kraan keuken',model:'generic'}]},
+    {room:'woonkamer',control:false,valves:[{name:'Kraan woonkamer',model:'bosch_bth_ra'},{name:'climate.trv_woonkamer',model:'ha_climate'}]}]};
   let trv={output:false,flow_offset_c:0,rooms:[{room:'woonkamer',control:false,degraded:false,single_source:true,
     valves:[valve('Kraan woonkamer',{health:'low_battery',battery_pct:18}),{name:'climate.trv_woonkamer',model:'ha_climate',health:'unknown'}]}]};
   page.on('pageerror',e=>errors.push(e.message));
@@ -81,13 +83,14 @@ const valve=(name,extra={})=>({name,model:'bosch_bth_ra',health:'ok',position_pc
   await block.locator('[data-heating-valve-save]').click();
   await block.getByText(/Gebruik de Zigbee2MQTT-naam van de kraan/).waitFor();
   assert.equal(posts.length,0);
-  // Two Zigbee2MQTT valves, control switched on: one POST with only this room's record, the HA valve kept.
+  // Two Zigbee2MQTT valves, control switched on: one POST with this room's record and the kitchen's, the
+  // HA valve kept, without the attic that left the plan (the E32 would refuse it as unknown_room).
   await rows.nth(2).locator('input').fill('Kraan raam');
   await rows.nth(2).locator('select').selectOption('sonoff_trvzb');
   await control.check();
   await block.locator('[data-heating-valve-save]').click();
   await block.getByText(/Kranen opgeslagen\./).waitFor();
-  assert.deepEqual(posts,[{schema:1,base_topic:'zigbee2mqtt',rooms:[{room:'woonkamer',control:true,
+  assert.deepEqual(posts,[{schema:1,base_topic:'zigbee2mqtt',rooms:[{room:'keuken',control:false,valves:[{name:'Kraan keuken',model:'generic'}]},{room:'woonkamer',control:true,
     valves:[{name:'Kraan woonkamer',model:'bosch_bth_ra'},{name:'climate.trv_woonkamer',model:'ha_climate'},{name:'Kraan raam',model:'sonoff_trvzb'}]}]}]);
   // The next status shows both valves and, with control on and one source, the sensor hint.
   await block.locator('[data-heating-valve-state="Kraan raam"]').waitFor({timeout:15000});

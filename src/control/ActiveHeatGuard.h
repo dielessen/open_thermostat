@@ -137,7 +137,8 @@ public:
         if (owning() && (!confirmedAt_ || withdrawn_)) enter(State::stopping, now);
         // Frost heating while waiting for a new confirmation lost its conditions
         // (handed back, shadow, a foreign 0x1A, withdrawn): stop with the zero window.
-        if (frostSending_ && !frostEligible(in)) { frostSending_ = false; lastTarget2_ = 0; enter(State::stopping, now); }
+        // Confirmed instead: the takeover below decides.
+        if (frostSending_ && !frostEligible(in) && !confirmedAt_) { frostSending_ = false; lastTarget2_ = 0; enter(State::stopping, now); }
         if (state_ == State::stopping && !withdrawn_ && elapsed(now, since_) >= p_.stopWindowMs && !holdsPositive_) enter(State::shadow, now);
         if (state_ != State::stopping) {
             if (!wanted) state_ = State::shadow;
@@ -151,12 +152,15 @@ public:
             }
             if (owning()) state_ = in.rooms.active && in.rooms.lost == in.rooms.active ? State::stoppedMeasurementLost : State::active;
         }
+        // Confirmed while frost protection ran: a takeover now sends its own request next,
+        // without stop zeros in between; one that still waits stops frost with the zero window.
+        if (frostSending_ && confirmedAt_) { frostSending_ = false; lastTarget2_ = 0; if (!owning()) enter(State::stopping, now); }
         if (owning()) bootZero_ = false; // its own commands follow
-        const bool bootZeroStep = !owning() && state_ != State::stopping && !frostEligible(in) && bootZero_;
         command_ = owning() ? request(now, in) : state_ == State::stopping ? stopZero(now, in)
-            : frostEligible(in) ? frostUnconfirmed(now, in)
-            : bootZeroStep ? due(!bootZeroTried_ || elapsed(now, bootZeroAt_) >= p_.zeroIntervalMs, 0, "boot_zero", in)
-            : Command{false, 0, name(state_)};
+            : frostEligible(in) ? frostUnconfirmed(now, in) : Command{false, 0, name(state_)};
+        // The boot zero repeats until delivered, also once frost protection may run but asks nothing.
+        const bool bootZeroStep = !owning() && state_ != State::stopping && !frostSending_ && bootZero_;
+        if (bootZeroStep) command_ = due(!bootZeroTried_ || elapsed(now, bootZeroAt_) >= p_.zeroIntervalMs, 0, "boot_zero", in);
         if (bootZeroStep && command_.send) { if (!bootZeroTried_) bootZeroFirst_ = now; bootZeroTried_ = true; bootZeroAt_ = now; }
         if (!owning()) { lastTarget_ = 0; frost_ = false; if (!frostSending_) heatSince_.reset(); }
         warnings_ = 0;
@@ -197,6 +201,9 @@ public:
     bool outputActive() const {
         return ((state_ == State::active && confirmedAt_) || (frostSending_ && lastTarget2_)) && !withdrawn_ && routeReady_;
     }
+    // outputActive() after a confirmed takeover only, never for frost while waiting: the
+    // radiator valves get room setpoints (TrvControl, HA's actuator_output_enabled) only then.
+    bool confirmedOutput() const { return outputActive() && confirmedAt_.has_value(); }
     bool owning() const { return state_ == State::active || state_ == State::stoppedMeasurementLost; }
     // Owns the boiler, withdraws its request, keeps frost or owes the boot zero: the boiler trial waits.
     bool claimsBoiler() const { return owning() || state_ == State::stopping || frostSending_ || bootZero_; }

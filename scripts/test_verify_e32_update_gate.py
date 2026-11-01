@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from verify_e32_update_gate import HA_REQUIRED, REQUIRED, stable, verify, version
+from verify_e32_update_gate import HA_REQUIRED, READINESS_CRITERIA, REQUIRED, stable, verify, version
 
 class GateFixture(unittest.TestCase):
     def setUp(self):
@@ -290,10 +290,36 @@ class StableVersionTests(GateFixture):
         self.assertTrue(stable('v1.0.0-e32v2'));self.assertFalse(stable('v1.0.0-e32v2-rc.1'))
         for bad in ['v1.0.0','v1.0.0-e32v2-','v1.0.0-e32v2-stable','v01.0.0-e32v2','v1.0.0-e32v2-rc.01','ha-v1.0.0','1.0.0-e32v2']:
             self.assertIsNone(version(bad),bad)
+    def readiness(self,measured,**changes):
+        doc=dict(schema=1,kind='release_readiness',release=measured,stage='final',overall='PASS',
+                 **{'from':'2026-11-10T12:00:00Z','to':'2026-11-24T12:00:00Z'},
+                 criteria={c:{'result':'PASS'} for c in READINESS_CRITERIA})
+        doc.update(changes);raw=json.dumps(doc).encode();(self.root/'readiness.json').write_bytes(raw)
+        self.policy['readiness_report']=dict(report='readiness.json',sha256=hashlib.sha256(raw).hexdigest())
     def test_version_one_needs_the_beta_accepted_on_the_home_assistant_route(self):
         self.record=ha_record();self.accept();self.policy['pending_tag']='v1.0.0-e32v2'
-        self.plan('v1.0.0-e32v2',self.record['tag'])
+        self.plan('v1.0.0-e32v2',self.record['tag']);self.readiness(self.record['tag'])
         self.assertEqual(verify(self.root,self.policy,'v1.0.0-e32v2')['publication_basis'],'accepted_previous_release')
+    def test_version_one_needs_a_final_pass_readiness_report_over_14_days(self):
+        self.record=ha_record();self.accept();self.policy['pending_tag']='v1.0.0-e32v2'
+        self.plan('v1.0.0-e32v2',self.record['tag'])
+        with self.assertRaisesRegex(ValueError,'needs a PASS readiness report'):verify(self.root,self.policy,'v1.0.0-e32v2')
+        bad={'stage':('candidate','not final'),'overall':('WAIT','not PASS'),'release':('v0.1.0-e32v2-beta.21','another release'),
+             'to':('2026-11-20T12:00:00Z','shorter than 14 days'),'kind':('shadow_exit','Invalid readiness report')}
+        for key,(value,message) in bad.items():
+            with self.subTest(key=key):
+                self.readiness(self.record['tag'],**{key:value})
+                with self.assertRaisesRegex(ValueError,message):verify(self.root,self.policy,'v1.0.0-e32v2')
+        for criterion in READINESS_CRITERIA:
+            with self.subTest(criterion=criterion):
+                self.readiness(self.record['tag'],criteria={c:{'result':'WAIT' if c==criterion else 'PASS'} for c in READINESS_CRITERIA})
+                with self.assertRaisesRegex(ValueError,'not PASS on every criterion'):verify(self.root,self.policy,'v1.0.0-e32v2')
+        self.readiness(self.record['tag']);self.policy['readiness_report']['sha256']='0'*64
+        with self.assertRaisesRegex(ValueError,'changed'):verify(self.root,self.policy,'v1.0.0-e32v2')
+    def test_a_release_candidate_needs_no_readiness_report(self):
+        self.record=ha_record();self.accept();self.policy['pending_tag']='v1.0.0-e32v2-rc.1'
+        self.plan('v1.0.0-e32v2-rc.1',self.record['tag'])
+        self.assertEqual(verify(self.root,self.policy,'v1.0.0-e32v2-rc.1')['publication_basis'],'accepted_previous_release')
     def test_version_one_is_not_published_on_a_native_acceptance(self):
         self.record['tag']='v0.1.0-e32v2-beta.19';self.accept();self.policy['pending_tag']='v1.0.0-e32v2'
         self.plan('v1.0.0-e32v2',self.record['tag'])

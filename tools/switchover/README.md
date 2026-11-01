@@ -161,6 +161,23 @@ python3 -I tools/switchover/shadow_exit.py --ha-url https://homeassistant.local:
 network. The E32 entities are found by their suffix; pass `--uptime`,
 `--e32-request` or `--thermostat-request` when you have more than one E32.
 
+## 1.0 readiness and the attended results
+
+`record_test.py` records each attended switch-over test (OVERSCHAKELING.nl.md section 6) the moment it is done, in `docs/modern-thermostat/OVERSCHAKELING-RESULTATEN-<date>.json`; `record_test.py install` records the install-guide test (`INSTALLATIETEST-<date>.json`). Each call appends an entry; the latest one of a test counts.
+
+```sh
+python3 tools/switchover/record_test.py init --firmware v0.1.0-e32v2-beta.22 --ha 0.4.0b14
+python3 tools/switchover/record_test.py T1 pass "request 40 degC in 10 s, flow +5 degC in 9 min"
+python3 tools/switchover/record_test.py status
+```
+
+`release_ready.py` (read-only) reports the six 1.0 criteria: stability over 14 days (planned updates excused, as in `shadow_exit.py`), active control and valve control for 14 days without interruption, the attended tests, an accepted update on the Home Assistant route and the install-guide test. `--stage final --json <file>` writes the report the release gate requires before `v1.0.0-e32v2` (`scripts/verify_e32_update_gate.py`, `readiness_report`).
+
+```sh
+export OT_HA_TOKEN='<long-lived token>'
+python3 -I tools/switchover/release_ready.py --ha-url https://homeassistant.local:8123 --release v1.0.0-e32v2-rc.1 --insecure
+```
+
 ## Tests
 
 ```sh

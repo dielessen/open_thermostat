@@ -91,13 +91,14 @@ def periods(series, end, merge_gap_s=MERGE_GAP_S):
 PLANNED_WINDOW_S = (-120, 900)  # a restart from 2 min before to 15 min after a firmware install is planned
 
 
-def stability(uptime, end, offline=(), planned=()):
+def stability(uptime, end, offline=(), planned=(), hours_needed=STABLE_HOURS):
     """uptime: [(t, seconds or None)]. Restarts are drops of the uptime; offline:
     [(start, stop)] where the E32 was unavailable; planned: times of firmware installs.
 
     A restart within PLANNED_WINDOW_S of an install is planned (owner, 31 Oct 2026:
     "je kan alle testdata wel bij elkaar optellen, ook de data voor de reboot") and
-    does not reset the stable time; every other restart does."""
+    does not reset the stable time; every other restart does. hours_needed is the window
+    (72 h here; release_ready.py asks 14 days for 1.0)."""
     known = [(t, v) for t, v in uptime if v is not None]  # an 'unavailable' sample sits between the two sides of a reboot
     restarts = [t for (t0, a), (t, b) in zip(known, known[1:]) if b < a]
     lo, hi = PLANNED_WINDOW_S
@@ -114,16 +115,16 @@ def stability(uptime, end, offline=(), planned=()):
         since = up_first + (end - t_first)
     else:
         since = up_last + (end - t_last)  # the uptime keeps counting between samples
-    long_offline = [(a, b) for a, b in offline if b - a >= OFFLINE_MINUTES * 60 and b > end - STABLE_HOURS * 3600]
+    long_offline = [(a, b) for a, b in offline if b - a >= OFFLINE_MINUTES * 60 and b > end - hours_needed * 3600]
     hours = since / 3600
     detail = {'hours_since_restart': round(hours, 1), 'restarts_seen': len(restarts),
               'planned_restarts': len(restarts) - len(unplanned), 'offline_stretches': len(long_offline)}
     if last is not None:
         detail['last_restart'] = dt.datetime.fromtimestamp(last, dt.timezone.utc).isoformat(timespec='minutes')
     if long_offline:
-        return {'result': FAIL, 'why': f'E32 offline for {OFFLINE_MINUTES} min or more in the last {STABLE_HOURS} h', **detail}
-    if hours < STABLE_HOURS:
-        return {'result': WAIT, 'why': f'{hours:.1f} h of the {STABLE_HOURS} h without a restart so far', **detail}
+        return {'result': FAIL, 'why': f'E32 offline for {OFFLINE_MINUTES} min or more in the last {hours_needed} h', **detail}
+    if hours < hours_needed:
+        return {'result': WAIT, 'why': f'{hours:.1f} h of the {hours_needed} h without a restart so far', **detail}
     return {'result': PASS, 'why': f'{hours:.1f} h without a restart', **detail}
 
 

@@ -497,6 +497,7 @@ dan de woonkamer pas na 1–2 weken live.
 ## 10. Vastleggen
 
 - **Per stap/test:** lokale tijd en UTC, toestand en waarschuwingen (screenshot Actieve regeling), keteldisplay (foto), geslaagd/niet geslaagd.
+  Direct na elke test vastleggen met `python3 tools/switchover/record_test.py T<n> pass|fail "wat je zag"` (eerst eenmalig `init --firmware … --ha …`; T12 mag `alternative … --evidence …`); dat schrijft `OVERSCHAKELING-RESULTATEN-<datum>.json`, het bewijs voor het 1.0-criterium `failure_tests` (`release_ready.py`).
 - **Doorlopend:** het bewakingsscript (§9.1) in `out/switchover-<datum>/`; stopwatch-tijden voor T3, T6, T7, T10.
 - **Na elke herstart:** `/status/logs` → `previous_boot` (zit ook in de samples).
 - **HA:** geschiedenis-export van de entiteiten uit §9.2 over de hele middag; HA-back-up van vóór en na.

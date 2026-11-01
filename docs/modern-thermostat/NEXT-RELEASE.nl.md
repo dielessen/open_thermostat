@@ -60,7 +60,25 @@ Volgens het UX-voorstel (`VOORSTEL-UX-BETA22.md`) met de keuzes van de eigenaar 
   - waarschuwingen (ruimte wordt niet warm, ketel reageert niet, pendelen).
 - Compatibel: entiteit-ID's en historie blijven; HA werkt met oudere firmware via onderhandelde capabilities; terugrollen naar beta.21 negeert nieuwe velden.
 
-## Beta.24 — radiatorkranen per ruimte (vereist voor 1.0; eigenaar 31 okt)
+**Erbij gekomen voor beta.23 (eigenaar 1 november):**
+- personen per ruimte (eerst gepland voor na 1.0);
+- de menu's afmaken: een Systeem-groep op de E32 (netwerk, updates, back-up, Bluetooth-sensoren, diagnose), Ketel alleen kijken en testen, het losse Comfort-menu in HA opgegaan in Ruimtes en Huis;
+- inklapbare blokken op de ruimtepagina, met een samenvatting;
+- apparaatidentiteit automatisch uitlezen en een voorgesteld ketelvermogen;
+- warm water universeel gesplitst in tappen en warmhouden (directe ketelsignalen eerst, anders afgeleid), met een tijdlijn in HA en een warmwaterband in de E32-grafiek.
+
+## 1.0-kandidaat — radiatorkranen en alles tot 1.0 (eigenaar 1 november: één release)
+
+Beta.24 en 1.0 zijn één release. Die komt eerst uit als 1.0-kandidaat (`v1.0.0-e32v2-rc.N` en de HA-tegenhanger); na 14 dagen met alle criteria op PASS wordt dezelfde code `v1.0.0-e32v2` / `ha-v1.0.0`. Verandert er nog iets, dan volgt een nieuwe kandidaat.
+
+Inhoud:
+- radiatorkranen per ruimte (hieronder), per ruimte standaard uit;
+- het leren bijstellen met data van de echte aansturing (aanvoer, op tijd opwarmen, minimale aan/uit-tijd);
+- een dagoverzicht in HA (brandertijd, gas per post, schakelingen, op tijd warm) en waarschuwingen (ruimte niet warm, ketel reageert niet, pendelen, E32 offline, meting verouderd);
+- lange entiteit-ID's vrijwillig opruimen, met voorbeeld en terugzetten;
+- de installatiehandleiding gevolgd door iemand anders dan de schrijver.
+
+### Radiatorkranen per ruimte
 
 - **Route:** Zigbee-kranen via Zigbee2MQTT. De E32 kan Zigbee2MQTT ook direct via de MQTT-broker aansturen, zodat een herstart van HA Core de kranen niet raakt. Keuzedocument: [TRV-KEUZE.nl.md](TRV-KEUZE.nl.md).
 - **Kraanadvies:** Bosch BTH-RA (klepstand zetten en teruglezen, externe temperatuur, batterij in %); goedkoper alternatief Sonoff TRVZB. De TV02 kan reserve zijn (geen klepstand of externe temperatuur). De Shelly BLU TRV rechtstreeks via Bluetooth valt af voor 1.0 (schrijven vraagt in de praktijk de Shelly-gateway).
@@ -82,11 +100,21 @@ Volgens het UX-voorstel (`VOORSTEL-UX-BETA22.md`) met de keuzes van de eigenaar 
 
 ## 1.0
 
-- 14 dagen echte aansturing **met ketel én kranen**, zonder vastloper of onverwachte herstart.
-- Alle faaltests van de overstap geslaagd.
-- Updates via de officiële HA-route (bewezen met beta.20 en beta.21).
-- Een installatiehandleiding die iemand anders kan volgen.
-- Tags `v1.0.0-e32v2` en `ha-v1.0.0`. Verwachting: rond begin december, afhankelijk van de kranen.
+Volgorde: beta.22 (overstap, dinsdag 3 november) → beta.23 → 1.0-kandidaat → `v1.0.0` na 14 dagen.
+
+De criteria, gemeten met `tools/switchover/release_ready.py` (alleen lezen):
+
+| Criterium | Wat telt | Vastgelegd in |
+| --- | --- | --- |
+| `stability` | 14 dagen zonder onverwachte herstart of langdurig offline; een geplande update telt niet | HA-geschiedenis (uptime, Firmware-entiteit) |
+| `active_control` | de E32 stuurt de ketel zelf, 14 dagen zonder teruggeven | HA 0.4.0b14+: `boiler_output_enabled` |
+| `trv_control` | elke ruimte met kranen heeft de kraansturing 14 dagen aan | de kraanschakelaars van de 1.0-kandidaat |
+| `failure_tests` | alle bijgewoonde tests T1–T12 geslaagd (T12 mag het alternatief uit de checklist) | `OVERSCHAKELING-RESULTATEN-<datum>.json`, via `tools/switchover/record_test.py` |
+| `updates` | minstens één update geaccepteerd via de HA-route | `update-acceptance/e32-beta20/21/22-*.json` (PASS) |
+| `install_guide` | iemand anders volgde de installatiehandleiding tot het eind; elk gevonden probleem opgelost | `INSTALLATIETEST-<datum>.json`, via `record_test.py install` |
+
+Een kandidaat mag uit vóór de 14 dagen. De gate (`scripts/verify_e32_update_gate.py`) laat `v1.0.0-e32v2` pas toe met een definitief readinessrapport (`release_ready.py --stage final --json …`) van de kandidaat ervoor: elk criterium PASS, minstens 14 dagen, vastgelegd met zijn hash onder `readiness_report` in `E32-UPDATE-GATE.json`.
+Verwachting: rond begin december, afhankelijk van de kranen.
 
 ## Na 1.0
 
@@ -100,7 +128,8 @@ Volgens het UX-voorstel (`VOORSTEL-UX-BETA22.md`) met de keuzes van de eigenaar 
 
   De ketel van de eigenaar (iRT via de EasyControl Adapter) krijgt alleen een vergelijking van servicecodes; het doel zijn andere ketels.
 - **Testerprogramma:** opt-in in HA; "Deel resultaat" opent een vooraf ingevuld GitHub-issue met alleen het ketelprofiel; een GitHub Action controleert het; een profiel komt pas na beoordeling mee.
-- **Personen per ruimte**, en de overige ruimtes (Badkamer, slaapkamers) zodra de eigenaar dat wil.
+- **HACS-vermelding** van de integratie.
+- De overige ruimtes (Badkamer, slaapkamers) zodra de eigenaar dat wil.
 
 ## Werkafspraken
 

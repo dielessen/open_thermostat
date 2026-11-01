@@ -11,6 +11,11 @@ entity downloads firmware.bin, verifies GitHub's digest, size and version
 marker, and uploads it to the E32 over the local network). A stable release
 (``vX.Y.Z-e32v2``) is only published on an accepted ``home_assistant`` update.
 See docs/modern-thermostat/HA-UPDATE-ACCEPTANCE.en.md.
+
+A stable release also needs the 1.0 readiness report of the release it follows
+(tools/switchover/release_ready.py --stage final): every criterion PASS over at
+least 14 days, bound by digest under ``readiness_report`` in the policy. A
+release candidate (``-rc.N``) may be published before that.
 """
 from pathlib import Path
 import argparse
@@ -38,6 +43,8 @@ HA_REQUIRED = ('public_release_exact', 'fresh_preflight_passed', 'backup_verifie
 HA_MIN_IMAGE, HA_MAX_IMAGE = 1000000, 0x3C0000  # firmware_update.py's limits
 STABLE_UPTIME_SECONDS = 600  # beyond the E32's 10-minute boot-confirmation window
 UTC = r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z'
+READINESS_CRITERIA = ('stability', 'active_control', 'trv_control', 'failure_tests', 'updates', 'install_guide')
+READINESS_DAYS = 14
 
 
 def require(ok, message):
@@ -188,6 +195,24 @@ def document(root, name, label, expected_sha=None):
     return value
 
 
+def readiness_report(root, reference, measured):
+    """The 1.0 readiness report a stable release needs: final, every criterion PASS, at
+    least READINESS_DAYS long, about the release the stable one follows."""
+    require(isinstance(reference, dict), 'A stable release needs a PASS readiness report')
+    report = document(root, reference.get('report'), 'readiness report', reference.get('sha256'))
+    require(report.get('schema') == 1 and report.get('kind') == 'release_readiness', 'Invalid readiness report')
+    require(report.get('stage') == 'final', 'Readiness report is not final')
+    require(report.get('release') == measured, 'Readiness report measured another release')
+    criteria = report.get('criteria')
+    require(isinstance(criteria, dict) and report.get('overall') == 'PASS'
+            and all(isinstance(criteria.get(name), dict) and criteria[name].get('result') == 'PASS'
+                    for name in READINESS_CRITERIA), 'Readiness report is not PASS on every criterion')
+    start = utc_time(report.get('from'), 'readiness start')
+    end = utc_time(report.get('to'), 'readiness end')
+    require((end - start).total_seconds() >= READINESS_DAYS * 86400, 'Readiness window is shorter than 14 days')
+    return report
+
+
 def publication_exception(root, reference):
     if reference is None:
         return None
@@ -283,6 +308,9 @@ def verify(root, policy, candidate=None):
                     and exception['accepted_basis_receipt_sha256'] == accepted['sha256'],
                     'Exception belongs to another accepted basis')
             basis = 'operator_approved_one_time_exception'
+        if stable(candidate):
+            # ...and the 1.0 criteria were met with the release it follows (14 days).
+            readiness_report(root, policy.get('readiness_report'), previous)
     ready = accepted is not None and pending is None
     if plan is not None:
         ready = ready and accepted['tag'] in {plan.get('previous_published_tag'), plan.get('planned_tag')}

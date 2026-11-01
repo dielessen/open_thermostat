@@ -1795,7 +1795,7 @@
         "name": "Burner time"
       },
       "daily_burner_starts": {
-        "name": "Burner starts"
+        "name": "Burner starts today"
       },
       "daily_missed_comfort": {
         "name": "Missed comfort time"

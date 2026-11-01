@@ -225,3 +225,16 @@ async def test_the_sensors_and_their_statistics(hass):
     assert summary_sensor.native_value == DAY0.isoformat()
     assert summary_sensor.extra_state_attributes["last_day"]["burner_hours"] == pytest.approx(1.0, abs=0.01)
     assert "days" in summary_sensor._unrecorded_attributes
+
+
+def test_the_daily_sensors_have_names_of_their_own_on_the_e32_device():
+    """The boiler's own counters (field_reported_burner_starts, ...) sit on the same device."""
+    component = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
+    for name in ("strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"):
+        sensors = json.loads((component / name).read_text(encoding="utf-8"))["entity"]["sensor"]
+        others = {value["name"] for key, value in sensors.items() if not key.startswith("daily_")}
+        daily = {key: sensors[key]["name"] for key in ("daily_summary", "daily_burner_time", "daily_burner_starts",
+                                                        "daily_missed_comfort")}
+        assert not set(daily.values()) & others, (name, set(daily.values()) & others)
+    assert json.loads((component / "translations/nl.json").read_text(encoding="utf-8"))["entity"]["sensor"][
+        "daily_burner_starts"]["name"] == "Branderstarts vandaag"

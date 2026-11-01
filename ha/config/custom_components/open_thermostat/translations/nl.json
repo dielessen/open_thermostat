@@ -2739,7 +2739,7 @@
         "name": "Brandertijd"
       },
       "daily_burner_starts": {
-        "name": "Branderstarts"
+        "name": "Branderstarts vandaag"
       },
       "daily_missed_comfort": {
         "name": "Gemiste comforttijd"

@@ -1792,10 +1792,10 @@
         "name": "Podsumowanie dnia"
       },
       "daily_burner_time": {
-        "name": "Czas pracy palnika"
+        "name": "Czas pracy palnika dziś"
       },
       "daily_burner_starts": {
-        "name": "Starty palnika"
+        "name": "Starty palnika dziś"
       },
       "daily_missed_comfort": {
         "name": "Utracony czas komfortu"

@@ -135,5 +135,9 @@ inline constexpr std::string_view boilerDisplayModelIds[] = {
     "bosch-condens-2500",
     "junkers-cerapur-zsb-14-3-a",
     "bosch-gc700iw",
+    "buderus-logamax-plus-gb172",
+    "bosch-condens-7000i-w",
+    "bosch-cerapur-zsb-zwb-5c",
+    "worcester-bosch-greenstar-4000",
 };
 }

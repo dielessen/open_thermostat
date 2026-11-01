@@ -5,6 +5,10 @@ Source of truth: docs/modern-thermostat/boiler-profiles/
                            severity/advice texts and the registry of the manufacturer documents;
   <model>.json             a boiler profile with a "display_codes" block: that family's own table,
                            the boiler-model selections (public/boilers/catalog-v1.json) it covers.
+                           A model row without "code" is a cause-number-only row: the manual lists
+                           that number without a display code (an operating message shown as "-",
+                           or a family that shows the number only); it matches any display code.
+Lookup: (code, cause), then (any code, cause) in a model table, then (code, no cause).
 Generated (never edit by hand; --check fails on drift):
   ha/config/custom_components/open_thermostat/display_code_table.py   English, Dutch and Polish
   data/html/display-codes.js (between the GENERATED markers)          English and Dutch (the E32 UI)
@@ -27,6 +31,7 @@ WEB_LANGUAGES = ('en', 'nl')  # the E32 pages are English and Dutch
 SEVERITIES = ('normal', 'waiting', 'service', 'blocking', 'locking', 'fault', 'unknown')
 CODE = re.compile(r'[-=0-9A-Za-z]{1,2}')
 TEXT_MAX = 140
+CAUSE_MIN, CAUSE_MAX = 100, 9999  # three-digit cause numbers; four-digit fault codes (EMS+)
 ADVICE_MAX = 200
 
 
@@ -50,10 +55,13 @@ def rows(codes, where, advice, sources, generic):
     for i, row in enumerate(codes):
         at = f'{where}[{i}]'
         allowed = {'code', 'cause', 'severity', 'advice', 'text', 'sources' if generic else 'pages'}
-        require(type(row) is dict and set(row) <= allowed and {'code', 'severity', 'text'} <= set(row), f'{at}: keys')
-        code, cause = row['code'], row.get('cause')
-        require(type(code) is str and CODE.fullmatch(code), f'{at}: display code {code!r}')
-        require(cause is None or (type(cause) is int and 100 <= cause <= 999), f'{at}: cause number {cause!r}')
+        require(type(row) is dict and set(row) <= allowed and {'severity', 'text'} <= set(row), f'{at}: keys')
+        # A model table may list a cause number without a display code (any code with that number).
+        require('code' in row or (not generic and 'cause' in row), f'{at}: keys')
+        code, cause = row.get('code'), row.get('cause')
+        require(code is None or (type(code) is str and CODE.fullmatch(code)), f'{at}: display code {code!r}')
+        require(cause is None or (type(cause) is int and CAUSE_MIN <= cause <= CAUSE_MAX), f'{at}: cause number {cause!r}')
+        require(code is not None or cause is not None, f'{at}: a row without a display code needs a cause number')
         require(row['severity'] in SEVERITIES[:-1], f'{at}: severity {row["severity"]!r}')
         require(row.get('advice') is None or row['advice'] in advice, f'{at}: advice {row.get("advice")!r}')
         key = (code, cause)
@@ -93,7 +101,9 @@ def load():
     tables = {'ems-generic': rows(generic['codes'], 'ems-generic', advice, sources, True)}
     fallback = {'ems-generic': None}
     models = {}
-    catalog = {m['id'] for m in json.loads(CATALOG.read_text())['models']}
+    catalog_models = json.loads(CATALOG.read_text())['models']
+    catalog = {m['id'] for m in catalog_models}
+    family_source = {}
     for path in sorted(PROFILES.glob('*.json')):
         if path == GENERIC:
             continue
@@ -117,7 +127,13 @@ def load():
             require(model in catalog, f'{name}: {model} is not a boiler-model selection')
             require(model not in models, f'{model}: in two display-code profiles')
             models[model] = name
-    used = {row[1] for table in tables.values() for row in table.values()} - {None}
+            family_source[model] = block['source']
+    # A selection added to the catalogue for a family manual is covered by that manual's table.
+    for model in catalog_models:
+        if model.get('source') == 'manufacturer-document':
+            require(family_source.get(model['id']) == model.get('source_document'),
+                    f'{model["id"]}: catalogued for {model.get("source_document")!r} but not covered by its table')
+    used ={row[1] for table in tables.values() for row in table.values()} - {None}
     require(used == set(advice), f'unused advice texts: {sorted(set(advice) - used)}')
     return dict(severities=severities, advice=advice, unknown=unknown, tables=tables, fallback=fallback,
                 models=models, sources=sources)
@@ -142,7 +158,7 @@ def python_module(data):
     out += ['}', '# advice id: (texts per language)', 'ADVICE = {']
     out += [f'    {key!r}: {value!r},' for key, value in data['advice'].items()]
     out += ['}', f'UNKNOWN = {data["unknown"]!r}', 'GENERIC = "ems-generic"',
-            '# table: {(display code, cause number or None for any): (severity, advice id or None, texts)}',
+            '# table: {(display code or None for any, cause number or None for any): (severity, advice id or None, texts)}',
             'TABLES = {']
     for name, rows_ in data['tables'].items():
         out += [f'    {name!r}: {{', table(rows_), '    },']
@@ -157,16 +173,25 @@ def javascript(data):
     pick = [LANGUAGES.index(language) for language in WEB_LANGUAGES]
     def words(value):
         return [value[i] for i in pick]
+    # One pool of meanings ("x"): the families share most texts, so each row holds an index.
+    pool, index = [], {}
+    def text_id(text):
+        key = tuple(words(text))
+        if key not in index:
+            index[key] = len(pool)
+            pool.append(list(key))
+        return index[key]
     compact = {
         's': {key: words(value) for key, value in data['severities'].items()},
         'a': {key: words(value) for key, value in data['advice'].items()},
         'u': words(data['unknown']),
         't': {name: {'f': data['fallback'][name],
-                     'c': {code + ('' if cause is None else ' ' + str(cause)): [severity, advice, *words(text)]
+                     'c': {(code or '*') + ('' if cause is None else ' ' + str(cause)): [severity, advice, text_id(text)]
                            for (code, cause), (severity, advice, text) in rows_.items()}}
               for name, rows_ in data['tables'].items()},
         'm': data['models'],
     }
+    compact['x'] = pool
     return '    const data = ' + json.dumps(compact, ensure_ascii=False, separators=(',', ':')) + ';\n'
 
 

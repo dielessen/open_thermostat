@@ -3,6 +3,10 @@
 `catalog-v1.json` is the source of truth for presentation selections. It records
 pinned upstream references. EMS-ESP listings are not OpenThermostat driver or
 control qualification. Product families and marketing groups may overlap.
+Entries with `"source": "manufacturer-document"` are exact families added for a
+display-code table; `source_document` names the manual in
+`docs/modern-thermostat/boiler-profiles/ems-display-codes.json`. New entries are
+appended, so the firmware's stored selection indices stay valid.
 
 Run `python3 scripts/generate_boiler_catalog.py` after reviewing changes, and
 `python3 scripts/generate_boiler_catalog.py --check` before release. Only compact

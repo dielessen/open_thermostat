@@ -12,6 +12,20 @@ import generate_display_codes as gen  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 OWNER = 'nefit-ecomline-classic-hrc-22h'
+# Each family table (boiler profile), its manual in the registry and the boiler-model selections it covers.
+FAMILIES = {
+    OWNER: ('nefit-ecomline-classic-705428a', ['nefit-ecomline-classic', OWNER]),
+    'nefit-ecomline-excellent': ('nefit-ecomline-excellent-705427a', ['nefit-ecomline-excellent']),
+    'nefit-proline-hrc': ('nefit-proline-6720646227', ['nefit-proline']),
+    'nefit-trendline-ii': ('nefit-trendline-ii-6720882261', ['nefit-trendline-ii']),
+    'nefit-topline-aquapower': ('nefit-topline-6720615811', ['nefit-topline']),
+    'nefit-smartline-basic': ('nefit-smartline-basic-71652200', ['nefit-smartline']),
+    'buderus-logamax-plus-gb172': ('buderus-gb172-6720619596', ['buderus-logamax-plus-gb172']),
+    'buderus-logamax-plus-gb162': ('buderus-gb162-6720614965', ['buderus-gb162']),
+    'bosch-condens-7000i-w': ('bosch-gc7000iw-6720882461', ['bosch-condens-7000i-w']),
+    'bosch-cerapur-zsb-5c': ('bosch-cerapur-6720889855', ['bosch-cerapur-zsb-zwb-5c', 'junkers-cerapur']),
+    'worcester-bosch-greenstar-4000': ('worcester-greenstar-4000-6720891161', ['worcester-bosch-greenstar-4000']),
+}
 
 
 class Profiles(unittest.TestCase):
@@ -42,7 +56,17 @@ class Profiles(unittest.TestCase):
 
     def test_the_shipped_profiles_load(self):
         data = gen.load()
-        self.assertEqual(data['models'], {'nefit-ecomline-classic': OWNER, OWNER: OWNER})
+        self.assertEqual(data['models'], {model: name for name, (_, models) in FAMILIES.items() for model in models})
+        self.assertEqual(set(data['tables']), {'ems-generic', *FAMILIES})
+        catalog = {m['id']: m for m in json.loads(gen.CATALOG.read_text())['models']}
+        for name, (source, models) in FAMILIES.items():
+            profile = json.loads((gen.PROFILES / f'{name}.json').read_text(encoding='utf-8'))
+            self.assertEqual(profile['display_codes']['source'], source, name)
+            self.assertIsNone(data['fallback'][name], name)  # authoritative: never the generic table
+            self.assertGreaterEqual(len(data['tables'][name]), 40, name)
+            self.assertTrue(all(catalog[m]['selectable'] for m in models), name)
+            # Every row of a family table names its page in that family's manual.
+            self.assertTrue(all(row['pages'] for row in profile['display_codes']['codes']), name)
         self.assertEqual(data['tables']['ems-generic'][('0H', 203)][0], 'normal')
         self.assertEqual(data['tables'][OWNER][('0C', None)][2][0], 'Waiting for the 3-way valve to switch')
         # Every reviewed document is named with its number, edition and the hash of the PDF read.
@@ -57,7 +81,8 @@ class Profiles(unittest.TestCase):
                                 (lambda r: r['text'].update(en=''), 'one plain line'),
                                 (lambda r: r['text'].update(nl='two\nlines'), 'one plain line'),
                                 (lambda r: r.update(code='0HH'), 'display code'),
-                                (lambda r: r.update(cause=1234), 'cause number'),
+                                (lambda r: r.update(cause=12345), 'cause number'),
+                                (lambda r: r.update(cause=99), 'cause number'),
                                 (lambda r: r.update(extra=1), 'keys')):
             generic = copy.deepcopy(self.generic)
             change(generic['codes'][0])
@@ -96,6 +121,56 @@ class Profiles(unittest.TestCase):
         owner = copy.deepcopy(self.owner)
         owner['display_codes']['source'] = 'forum-post'
         self.rejects('source', owner=owner)
+
+    def family(self, name):
+        return gen.PROFILES / f'{name}.json', json.loads((gen.PROFILES / f'{name}.json').read_text(encoding='utf-8'))
+
+    def test_a_cause_number_without_a_display_code_only_in_a_family_table(self):
+        # The generic table always needs the display code.
+        generic = copy.deepcopy(self.generic)
+        del next(row for row in generic['codes'] if 'cause' in row)['code']
+        self.rejects('keys', generic=generic)
+        # A family table may list a manual's number without a code (Bosch "-" operating messages,
+        # the number-only Greenstar 4000), never a row with neither.
+        self.write()
+        data = gen.load()
+        self.assertEqual(data['tables']['bosch-condens-7000i-w'][(None, 203)][2][0], 'Standby: no heat demand')
+        self.assertEqual(data['tables']['bosch-condens-7000i-w'][('EA', 227)][0], 'fault')
+        self.assertEqual(data['tables']['worcester-bosch-greenstar-4000'][(None, 2927)][0], 'blocking')
+        path, profile = self.family('bosch-condens-7000i-w')
+        del next(row for row in profile['display_codes']['codes'] if 'code' not in row)['cause']
+        path.write_text(json.dumps(profile), encoding='utf-8')
+        self.rejects('keys')
+
+    def test_a_classic_type_family_has_no_cause_numbers(self):
+        path, profile = self.family('nefit-ecomline-excellent')
+        profile['display_codes']['codes'].append(
+            {'cause': 203, 'severity': 'normal', 'text': {'en': 'x', 'nl': 'x', 'pl': 'x'}, 'pages': '4-2'})
+        path.write_text(json.dumps(profile), encoding='utf-8')
+        self.rejects('no cause numbers')
+
+    def test_a_selection_belongs_to_one_family_table(self):
+        path, profile = self.family('nefit-ecomline-excellent')
+        profile['display_codes']['catalog_ids'].append('nefit-proline')
+        path.write_text(json.dumps(profile), encoding='utf-8')
+        self.rejects('in two display-code profiles')
+
+    def test_a_selection_catalogued_for_a_manual_uses_that_manuals_table(self):
+        catalog = json.loads(gen.CATALOG.read_text())
+        entry = next(m for m in catalog['models'] if m['id'] == 'bosch-condens-7000i-w')
+        self.assertEqual(entry['source'], 'manufacturer-document')
+        entry['source_document'] = 'bosch-cerapur-6720889855'
+        saved = gen.CATALOG
+        gen.CATALOG = self.tmp / 'catalog-v1.json'
+        self.addCleanup(setattr, gen, 'CATALOG', saved)
+        gen.CATALOG.write_text(json.dumps(catalog))
+        self.rejects('not covered by its table')
+
+    def test_no_generic_code_only_row_contradicts_a_family(self):
+        # On the Bosch letter-code families EA is a flame fault and 0Y an overheat: no code-only meaning.
+        generic = gen.load()['tables']['ems-generic']
+        self.assertNotIn(('EA', None), generic)
+        self.assertNotIn(('0Y', None), generic)
 
     def test_every_advice_text_is_used(self):
         generic = copy.deepcopy(self.generic)

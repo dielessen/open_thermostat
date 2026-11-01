@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "catalog_version": "2026-10-25.3",
+  "catalog_version": "2026-11-01.1",
   "purpose": "presentation_catalog_only",
   "control_profiles": false,
   "sources": {
@@ -1667,6 +1667,46 @@
       "source_entries": [
         "emsesp-doc-gc7000f-gc700iw-gc9800iw"
       ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logamax-plus-gb172",
+      "name": "Buderus Logamax plus GB172",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "manufacturer-document",
+      "source_document": "buderus-gb172-6720619596",
+      "selectable": true
+    },
+    {
+      "id": "bosch-condens-7000i-w",
+      "name": "Bosch Condens 7000i W",
+      "brand": "Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "manufacturer-document",
+      "source_document": "bosch-gc7000iw-6720882461",
+      "selectable": true
+    },
+    {
+      "id": "bosch-cerapur-zsb-zwb-5c",
+      "name": "Bosch Cerapur ZSB/ZWB 5C",
+      "brand": "Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "manufacturer-document",
+      "source_document": "bosch-cerapur-6720889855",
+      "selectable": true
+    },
+    {
+      "id": "worcester-bosch-greenstar-4000",
+      "name": "Worcester Bosch Greenstar 4000",
+      "brand": "Worcester Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "manufacturer-document",
+      "source_document": "worcester-greenstar-4000-6720891161",
       "selectable": true
     }
   ],

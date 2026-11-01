@@ -1,0 +1,806 @@
+{
+  "schema": 1,
+  "id": "worcester-bosch-greenstar-4000",
+  "name": "Worcester Bosch Greenstar 4000",
+  "family": "Worcester Bosch Greenstar 4000",
+  "purpose": "Display-code meanings for this boiler family only (presentation, never control evidence). Other boiler profile fields are not claimed for this family.",
+  "display_codes": {
+    "schema": 1,
+    "catalog_ids": [
+      "worcester-bosch-greenstar-4000"
+    ],
+    "source": "worcester-greenstar-4000-6720891161",
+    "cause_numbers": true,
+    "fallback": null,
+    "scope": "Worcester Bosch Greenstar 4000 (GR4700iW C combi): the display shows a three- or four-digit fault code only, so every row is a cause-number-only row. Maintenance codes (class W), rows without a class and the controller codes (3071 and up) are left out.",
+    "verified": "Every row checked against 6 720 891 161 section 10.1.2, operating/fault code table (pages 72-79); the fault category gives the severity (O operating, B blocking, V locking, B and V fault).",
+    "codes": [
+      {
+        "cause": 200,
+        "severity": "normal",
+        "text": {
+          "en": "Heating",
+          "nl": "Verwarmen",
+          "pl": "Ogrzewanie"
+        },
+        "pages": "72"
+      },
+      {
+        "cause": 201,
+        "severity": "normal",
+        "text": {
+          "en": "Hot water",
+          "nl": "Warm water",
+          "pl": "Ciepła woda"
+        },
+        "pages": "72"
+      },
+      {
+        "cause": 202,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Waiting: anti-cycle time, the burner may not restart yet",
+          "nl": "Wacht: antipendeltijd, de brander mag nog niet herstarten",
+          "pl": "Oczekiwanie: blokada taktowania, palnik nie może jeszcze wystartować"
+        },
+        "pages": "72"
+      },
+      {
+        "cause": 203,
+        "severity": "normal",
+        "text": {
+          "en": "Standby: no heat demand",
+          "nl": "Stand-by: geen warmtevraag",
+          "pl": "Czuwanie: brak zapotrzebowania na ciepło"
+        },
+        "pages": "72"
+      },
+      {
+        "cause": 204,
+        "severity": "waiting",
+        "advice": "settings",
+        "text": {
+          "en": "Waiting: the water is warmer than required",
+          "nl": "Wacht: het water is warmer dan nodig",
+          "pl": "Oczekiwanie: woda jest cieplejsza niż wymagana"
+        },
+        "pages": "72"
+      },
+      {
+        "cause": 208,
+        "severity": "service",
+        "advice": "service",
+        "text": {
+          "en": "Chimney sweep mode",
+          "nl": "Schoorsteenvegerbedrijf",
+          "pl": "Tryb kominiarski"
+        },
+        "pages": "72"
+      },
+      {
+        "cause": 214,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Fan switched off during the ignition safety time",
+          "nl": "Ventilator uitgeschakeld tijdens de veiligheidstijd",
+          "pl": "Wentylator wyłączony w czasie bezpieczeństwa zapłonu"
+        },
+        "pages": "72"
+      },
+      {
+        "cause": 224,
+        "severity": "fault",
+        "advice": "reset",
+        "text": {
+          "en": "High-limit or flue gas limit thermostat tripped",
+          "nl": "Maximaal- of rookgasbegrenzer aangesproken",
+          "pl": "Zadziałał ogranicznik temperatury lub spalin"
+        },
+        "pages": "72"
+      },
+      {
+        "cause": 227,
+        "severity": "locking",
+        "advice": "gas",
+        "text": {
+          "en": "No flame detected after ignition",
+          "nl": "Geen vlam na het ontsteken",
+          "pl": "Nie wykryto płomienia po zapłonie"
+        },
+        "pages": "72"
+      },
+      {
+        "cause": 228,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flame signal although there is no flame",
+          "nl": "Vlamsignaal terwijl er geen vlam is",
+          "pl": "Sygnał płomienia mimo braku płomienia"
+        },
+        "pages": "72"
+      },
+      {
+        "cause": 232,
+        "severity": "blocking",
+        "advice": "external",
+        "text": {
+          "en": "External safety contact open",
+          "nl": "Extern beveiligingscontact open",
+          "pl": "Otwarty zewnętrzny styk zabezpieczający"
+        },
+        "pages": "72"
+      },
+      {
+        "cause": 233,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Wrong code plug",
+          "nl": "Verkeerde codeerstekker",
+          "pl": "Niewłaściwa wtyczka kodująca"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 234,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Gas valve electrical fault",
+          "nl": "Elektrische fout van het gasregelblok",
+          "pl": "Usterka elektryczna zaworu gazowego"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 235,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Code plug does not match the control unit",
+          "nl": "Codeerstekker past niet bij de besturing",
+          "pl": "Wtyczka kodująca nie pasuje do sterownika"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 237,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit or code plug fault",
+          "nl": "Besturing of codeerstekker defect",
+          "pl": "Usterka sterownika lub wtyczki kodującej"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 238,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit faulty",
+          "nl": "Besturing defect",
+          "pl": "Sterownik uszkodzony"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 242,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 245,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 249,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 250,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 251,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 252,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 253,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 254,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 258,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 259,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "73"
+      },
+      {
+        "cause": 262,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "74"
+      },
+      {
+        "cause": 263,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "74"
+      },
+      {
+        "cause": 265,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Waiting: heat demand is below the minimum output, the burner switches on and off",
+          "nl": "Wacht: warmtevraag lager dan het minimale vermogen, de brander schakelt aan en uit",
+          "pl": "Oczekiwanie: zapotrzebowanie poniżej mocy minimalnej, palnik włącza się i wyłącza"
+        },
+        "pages": "74"
+      },
+      {
+        "cause": 268,
+        "severity": "service",
+        "advice": "service",
+        "text": {
+          "en": "Relay test active",
+          "nl": "Relaistest actief",
+          "pl": "Test przekaźników aktywny"
+        },
+        "pages": "74"
+      },
+      {
+        "cause": 269,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flame monitoring fault",
+          "nl": "Storing in de vlambewaking",
+          "pl": "Usterka nadzoru płomienia"
+        },
+        "pages": "74"
+      },
+      {
+        "cause": 273,
+        "severity": "blocking",
+        "advice": "self",
+        "text": {
+          "en": "Short safety stop after 24 hours of continuous operation",
+          "nl": "Korte veiligheidsstop na 24 uur continu bedrijf",
+          "pl": "Krótkie zatrzymanie kontrolne po 24 godzinach ciągłej pracy"
+        },
+        "pages": "74"
+      },
+      {
+        "cause": 281,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Pump blocked or running dry",
+          "nl": "Pomp zit vast of draait in lucht",
+          "pl": "Pompa zablokowana lub pracuje na sucho"
+        },
+        "pages": "74"
+      },
+      {
+        "cause": 283,
+        "severity": "normal",
+        "text": {
+          "en": "Burner starting",
+          "nl": "Brander wordt gestart",
+          "pl": "Uruchamianie palnika"
+        },
+        "pages": "74"
+      },
+      {
+        "cause": 284,
+        "severity": "normal",
+        "text": {
+          "en": "Ignition: gas valve opening",
+          "nl": "Ontsteking: gasblok gaat open",
+          "pl": "Zapłon: otwieranie zaworu gazowego"
+        },
+        "pages": "74"
+      },
+      {
+        "cause": 305,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Waiting after hot water",
+          "nl": "Wacht na warmwaterbedrijf",
+          "pl": "Oczekiwanie po podgrzewaniu ciepłej wody"
+        },
+        "pages": "74"
+      },
+      {
+        "cause": 306,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flame detected after the burner switched off",
+          "nl": "Vlam gemeten nadat de brander uitging",
+          "pl": "Wykryto płomień po wyłączeniu palnika"
+        },
+        "pages": "74"
+      },
+      {
+        "cause": 353,
+        "severity": "service",
+        "advice": "service",
+        "text": {
+          "en": "Lockout test",
+          "nl": "Test van de vergrendeling",
+          "pl": "Test blokady"
+        },
+        "pages": "74"
+      },
+      {
+        "cause": 358,
+        "severity": "waiting",
+        "advice": "self",
+        "text": {
+          "en": "Anti-seize run active",
+          "nl": "Blokkeerbeveiliging actief",
+          "pl": "Ochrona przed zablokowaniem aktywna"
+        },
+        "pages": "74"
+      },
+      {
+        "cause": 360,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Wrong code plug",
+          "nl": "Verkeerde codeerstekker",
+          "pl": "Niewłaściwa wtyczka kodująca"
+        },
+        "pages": "75"
+      },
+      {
+        "cause": 363,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "75"
+      },
+      {
+        "cause": 2085,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Internal fault in the control unit",
+          "nl": "Interne fout in de besturing",
+          "pl": "Błąd wewnętrzny sterownika"
+        },
+        "pages": "76"
+      },
+      {
+        "cause": 2908,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "76"
+      },
+      {
+        "cause": 2910,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Fault in the flue system",
+          "nl": "Storing in de rookgasafvoer",
+          "pl": "Usterka układu odprowadzania spalin"
+        },
+        "pages": "76"
+      },
+      {
+        "cause": 2915,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "76"
+      },
+      {
+        "cause": 2916,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Gas valve found open during the post-purge",
+          "nl": "Gasregelblok open tijdens het naspoelen",
+          "pl": "Zawór gazowy otwarty podczas przewietrzania końcowego"
+        },
+        "pages": "76"
+      },
+      {
+        "cause": 2920,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Flame monitoring fault",
+          "nl": "Storing in de vlambewaking",
+          "pl": "Usterka nadzoru płomienia"
+        },
+        "pages": "76"
+      },
+      {
+        "cause": 2923,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "76"
+      },
+      {
+        "cause": 2927,
+        "severity": "blocking",
+        "advice": "gas",
+        "text": {
+          "en": "Flame lost while burning",
+          "nl": "Vlam valt weg tijdens het branden",
+          "pl": "Utrata płomienia podczas pracy palnika"
+        },
+        "pages": "77"
+      },
+      {
+        "cause": 2928,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Internal fault in the control unit",
+          "nl": "Interne fout in de besturing",
+          "pl": "Błąd wewnętrzny sterownika"
+        },
+        "pages": "77"
+      },
+      {
+        "cause": 2931,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "77"
+      },
+      {
+        "cause": 2940,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "77"
+      },
+      {
+        "cause": 2946,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Wrong code plug",
+          "nl": "Verkeerde codeerstekker",
+          "pl": "Niewłaściwa wtyczka kodująca"
+        },
+        "pages": "77"
+      },
+      {
+        "cause": 2948,
+        "severity": "blocking",
+        "advice": "gas",
+        "text": {
+          "en": "No flame signal at low output",
+          "nl": "Geen vlamsignaal bij laag vermogen",
+          "pl": "Brak sygnału płomienia przy niskiej mocy"
+        },
+        "pages": "77"
+      },
+      {
+        "cause": 2949,
+        "severity": "blocking",
+        "advice": "gas",
+        "text": {
+          "en": "No flame signal at high output",
+          "nl": "Geen vlamsignaal bij hoog vermogen",
+          "pl": "Brak sygnału płomienia przy wysokiej mocy"
+        },
+        "pages": "77"
+      },
+      {
+        "cause": 2950,
+        "severity": "blocking",
+        "advice": "gas",
+        "text": {
+          "en": "No flame detected after ignition",
+          "nl": "Geen vlam na het ontsteken",
+          "pl": "Nie wykryto płomienia po zapłonie"
+        },
+        "pages": "77"
+      },
+      {
+        "cause": 2951,
+        "severity": "locking",
+        "advice": "gas",
+        "text": {
+          "en": "Flame lost too many times",
+          "nl": "Te vaak vlamverlies",
+          "pl": "Zbyt wiele utrat płomienia"
+        },
+        "pages": "77"
+      },
+      {
+        "cause": 2952,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Internal fault in the control unit",
+          "nl": "Interne fout in de besturing",
+          "pl": "Błąd wewnętrzny sterownika"
+        },
+        "pages": "77"
+      },
+      {
+        "cause": 2957,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "Control unit fault",
+          "nl": "Storing in de besturing",
+          "pl": "Usterka sterownika"
+        },
+        "pages": "77"
+      },
+      {
+        "cause": 2961,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "No signal from the fan",
+          "nl": "Geen signaal van de ventilator",
+          "pl": "Brak sygnału z wentylatora"
+        },
+        "pages": "78"
+      },
+      {
+        "cause": 2962,
+        "severity": "locking",
+        "advice": "installer",
+        "text": {
+          "en": "No signal from the fan",
+          "nl": "Geen signaal van de ventilator",
+          "pl": "Brak sygnału z wentylatora"
+        },
+        "pages": "78"
+      },
+      {
+        "cause": 2963,
+        "severity": "blocking",
+        "advice": "installer",
+        "text": {
+          "en": "Heat exchanger or flow sensor faulty",
+          "nl": "Warmtewisselaar- of aanvoersensor defect",
+          "pl": "Uszkodzony czujnik wymiennika lub zasilania"
+        },
+        "pages": "78"
+      },
+      {
+        "cause": 2964,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Water flow through the heat exchanger too low",
+          "nl": "Waterstroming door de warmtewisselaar te laag",
+          "pl": "Zbyt mały przepływ wody przez wymiennik"
+        },
+        "pages": "78"
+      },
+      {
+        "cause": 2965,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Flow temperature too high",
+          "nl": "Aanvoertemperatuur te hoog",
+          "pl": "Zbyt wysoka temperatura zasilania"
+        },
+        "pages": "78"
+      },
+      {
+        "cause": 2966,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Temperature in the heat exchanger rising too fast",
+          "nl": "Temperatuur in de warmtewisselaar stijgt te snel",
+          "pl": "Temperatura w wymienniku rośnie zbyt szybko"
+        },
+        "pages": "78"
+      },
+      {
+        "cause": 2967,
+        "severity": "blocking",
+        "advice": "flow",
+        "text": {
+          "en": "Flow and heat exchanger sensors differ too much",
+          "nl": "Aanvoer- en warmtewisselaarsensor wijken te veel af",
+          "pl": "Czujniki zasilania i wymiennika różnią się zbyt mocno"
+        },
+        "pages": "78"
+      },
+      {
+        "cause": 2968,
+        "severity": "normal",
+        "text": {
+          "en": "Topping up the system pressure automatically",
+          "nl": "Systeemdruk wordt automatisch bijgevuld",
+          "pl": "Automatyczne uzupełnianie ciśnienia w instalacji"
+        },
+        "pages": "78"
+      },
+      {
+        "cause": 2970,
+        "severity": "blocking",
+        "advice": "pressure",
+        "text": {
+          "en": "Heating system pressure dropping too fast",
+          "nl": "Druk in de cv-installatie daalt te snel",
+          "pl": "Ciśnienie w instalacji spada zbyt szybko"
+        },
+        "pages": "78"
+      },
+      {
+        "cause": 2971,
+        "severity": "blocking",
+        "advice": "pressure",
+        "text": {
+          "en": "Water pressure too low",
+          "nl": "Waterdruk te laag",
+          "pl": "Za niskie ciśnienie wody"
+        },
+        "pages": "79"
+      },
+      {
+        "cause": 2972,
+        "severity": "locking",
+        "advice": "power",
+        "text": {
+          "en": "Mains voltage too low",
+          "nl": "Netspanning te laag",
+          "pl": "Zbyt niskie napięcie sieciowe"
+        },
+        "pages": "79"
+      },
+      {
+        "cause": 2980,
+        "severity": "locking",
+        "advice": "reset",
+        "text": {
+          "en": "Lockout after repeated faults; unlock on the boiler (hold the up and down keys together)",
+          "nl": "Vergrendeld na herhaalde storingen; ontgrendel op de ketel (pijltoetsen omhoog en omlaag samen indrukken)",
+          "pl": "Blokada po powtarzających się usterkach; odblokuj na kotle (przytrzymaj razem strzałki w górę i w dół)"
+        },
+        "pages": "79"
+      },
+      {
+        "cause": 2981,
+        "severity": "locking",
+        "advice": "reset",
+        "text": {
+          "en": "Lockout after repeated faults; unlock on the boiler (hold the up and down keys together)",
+          "nl": "Vergrendeld na herhaalde storingen; ontgrendel op de ketel (pijltoetsen omhoog en omlaag samen indrukken)",
+          "pl": "Blokada po powtarzających się usterkach; odblokuj na kotle (przytrzymaj razem strzałki w górę i w dół)"
+        },
+        "pages": "79"
+      }
+    ]
+  }
+}

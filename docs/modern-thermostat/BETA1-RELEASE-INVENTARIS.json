@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "eae363b281698a8c0bcff995235bd504aeb43480d3a49112ea4c0d9076441310"
+          "sha256": "9ad737dafb7b636149a4379f1f9a11866b584194023c7b50472217174e5f5d6d"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -227,7 +227,7 @@
         },
         {
           "path": "docs/USER-GUIDE.md",
-          "sha256": "c0c424488231c39f1586d551460e288d8aae6412f160d4df38a1dbb773660356"
+          "sha256": "6e6770f3d1761f74e305a36ce1688372ff9fa58be3b459ea18adbd1529f478b2"
         },
         {
           "path": "docs/modern-thermostat/OVERSCHAKELING.nl.md",
@@ -407,7 +407,7 @@
         },
         {
           "path": "docs/modern-thermostat/TRV-KEUZE.nl.md",
-          "sha256": "a058e04bea820cd2b90719135160c45feee3e6cf1bf5c3f14dd605952c4504b1"
+          "sha256": "dcf00378c3f3b34fe48cbd1cd011b9ae4f245173051a9a90883e98151253ebb8"
         },
         {
           "path": "data/html/house.html",
@@ -487,7 +487,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/e32_valves.py",
-          "sha256": "63d610bbd1dd438030974b988869199929a1ec6f21ce1464f4f53dbcbf933d7a"
+          "sha256": "aa351cd8554e3940b11d84caeb016926d6fe1d74d615ff470cc0b23b311bc8fb"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/ems_devices.py",
@@ -519,7 +519,7 @@
         },
         {
           "path": "test/heating-valves-browser.cjs",
-          "sha256": "c6ce0845ef34b82b1987be57558255064134904c20a0757feeef8a23e7046f7a"
+          "sha256": "467a6b3130654262af1bea26024f1173d6ff05ea6bbbd21bf35b41c3e23311cd"
         },
         {
           "path": "test/learning_replay/replay.cpp",
@@ -528,6 +528,10 @@
         {
           "path": "test/menu-browser.cjs",
           "sha256": "8146fc5f40302a3fd3480b0d5a49d0d5cadad6b261d96a7ac5d54a4e3c9f961e"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/ha_valves.py",
+          "sha256": "ef128261621b4b71454859d1a97dd58dfa38728087f0cd6794e96d0bb1292e73"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -1137,15 +1141,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
-          "sha256": "812b9892ebb07173115d258eeedf0d4b9da565ade3779cdfa6f19ccf04c80213"
+          "sha256": "746eff23d32d3c9aadb6fdd2c06db2fc8e98522d46aa0fa57384a52681098f25"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/en.json",
-          "sha256": "812b9892ebb07173115d258eeedf0d4b9da565ade3779cdfa6f19ccf04c80213"
+          "sha256": "746eff23d32d3c9aadb6fdd2c06db2fc8e98522d46aa0fa57384a52681098f25"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "39d5bee14522a2f2c5f89d190a0abefa44fa772db49d2f401d798eeedfaeb05d"
+          "sha256": "408a0ed877b220d229c9bf91cc6f3be0e32cbb62fe5a34eb5c1400168313be66"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -1345,7 +1349,7 @@
         },
         {
           "path": "data/html/ui-messages-pages.js",
-          "sha256": "c9473235c039baef45fe5d6b0a906f761efad10f372c2e3dc5552c6fc762b157"
+          "sha256": "0cdb871b000262aa62554f357c0dc6a1b1957976e538c5e8cb61a79c6d97ed6f"
         },
         {
           "path": "ha/tests_native/test_polish_translation.py",
@@ -1396,7 +1400,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/e32_room_flow.py",
-          "sha256": "72555c080793e2c11ef8a86d63761316044c6972372dacdda49a471a4be9716a"
+          "sha256": "663d4fbf9753c3876894b83c5f816276f2f613cadb31a1f92d63b76e6b054726"
         },
         {
           "path": "ha/tests_native/test_e32_room_flow.py",
@@ -2962,7 +2966,7 @@
         },
         {
           "path": "data/html/heating.html",
-          "sha256": "0e1309957ac9e5b2e9e6549f14a21d0a692961bcffb7cb2a01751479666d316c"
+          "sha256": "247314f8d4d8482a2abafd9359f05d9670f2339b089f4b9e906c71e68685146e"
         },
         {
           "path": "test/heating-browser.cjs",
@@ -2970,7 +2974,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/heating_link.py",
-          "sha256": "fee38aa796ddfd66afb5b2fae3b7b52434647f059b06a098de9e4f5fd5428570"
+          "sha256": "5ca5d964f03f016dc1725b155a3f3ed5159090bd39037935a956647731511df7"
         },
         {
           "path": "ha/tests_native/test_heating_link.py",
@@ -3294,7 +3298,7 @@
         },
         {
           "path": "ha/tests_native/test_e32_valves.py",
-          "sha256": "11c90b07e2b5ab0cd63e8e09ceca9bf8c931d2e6abc965c3ab55a5672d47fd21"
+          "sha256": "df8cd0051fb6583c53bd88727139f15b578d1ec7ceb2b29d9cf454c6d1fb93bf"
         },
         {
           "path": "ha/tests_native/test_ems_devices.py",
@@ -3326,11 +3330,11 @@
         },
         {
           "path": "src/control/TrvConfig.h",
-          "sha256": "736f968c305d927cc88a519c8272fc71b473061a44fc0cf6dd469fdfc73ed73c"
+          "sha256": "915d9164bf8866bd150d4b1e5acc6a6776142d50407aebc12398d8592953c9f3"
         },
         {
           "path": "src/control/TrvControl.h",
-          "sha256": "e6f6f4bf06cff84dfa4cbc2e65711eb29c1386364ecdcee7362e6af991e258f5"
+          "sha256": "23f949492e418209c64e6805c589a1b8c45104d64248d5117531f8ad5dc22428"
         },
         {
           "path": "test/fixtures/dhw-owner-20261031.txt",
@@ -3354,11 +3358,11 @@
         },
         {
           "path": "test/test_native/test_trv_control.cpp",
-          "sha256": "031526b1d59f97a40235f8b7b2a800f24da20f69829827ca5a98b2c1eb7c35c9"
+          "sha256": "2ea41c1e9db4e9ff2a32556297affb577e308c66a71a2deef1a234f0f7ccf9cc"
         },
         {
           "path": "test/test_native/test_trv_simulation.cpp",
-          "sha256": "640fb1276abe88154acfbead9c5dcd3389667d123a3e5c3433180cc3a2b4d847"
+          "sha256": "24eecb87949399e727cc39a0765404abff25ad1d9a335a05255fe4b4f41f17dc"
         },
         {
           "path": "test/test_native/test_trv_telemetry.cpp",
@@ -3387,6 +3391,10 @@
         {
           "path": "tools/switchover/test_replay_tools.py",
           "sha256": "5874a5ecc35ae60bc8d77fc2ae6286a23d7bab00a84a9c45dd170a59ecc5497e"
+        },
+        {
+          "path": "ha/tests_native/test_ha_valves.py",
+          "sha256": "34dfd549dae274aca9dd8f44d3f505e5dfbbe83d70dbedb1f1f11dd63aa00001"
         }
       ],
       "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open. B06 toekomstige-feitquarantaine en klokfences bronmatig afgerond met twaalf regressies/677 native tests en gedeelde veiligheidscontrole voor zonepolicy/storingsbevestiging; HA-deel opgenomen in geverifieerde HA43-bronbestanden; E32-deel opgenomen in alpha31; de module is nu op alpha31 waargenomen zonder uitvoerder-/methodebewijs. Geen fysieke producent- of regelkwalificatie."

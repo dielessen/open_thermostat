@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "f56b5d1ab47be2d1d9bda05140016e087770043a8c62417066a5307eeaeee07b"
+          "sha256": "132e1d995e75ced2a5743fc37f9bc5c6ea1e4f055add29b6214576363cdbceb9"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -420,6 +420,10 @@
         {
           "path": "scripts/generate_ems_products.py",
           "sha256": "38e8c3902618d95c065f5b03838a2d8d90b0b9e859b3fec3c156093c85f420f0"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/legacy_discovery.py",
+          "sha256": "45c09525426e770d0afca0e666a549286a6134b57782e5ebd5cdd721f44f851d"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -3131,6 +3135,10 @@
         {
           "path": "ha/tests_native/test_value_gate.py",
           "sha256": "e21425d4eb8aedb2980f594a66cbe584ce480dc6c13cf24c83cb9671f5a14c99"
+        },
+        {
+          "path": "ha/tests_native/test_legacy_discovery.py",
+          "sha256": "7e9bdf95528f9b53ed73c518924f539bebc978d53614eabb7fc6a00b81fcbeba"
         }
       ],
       "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open. B06 toekomstige-feitquarantaine en klokfences bronmatig afgerond met twaalf regressies/677 native tests en gedeelde veiligheidscontrole voor zonepolicy/storingsbevestiging; HA-deel opgenomen in geverifieerde HA43-bronbestanden; E32-deel opgenomen in alpha31; de module is nu op alpha31 waargenomen zonder uitvoerder-/methodebewijs. Geen fysieke producent- of regelkwalificatie."
@@ -3266,7 +3274,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/sensor.py",
-          "sha256": "db1b32dc8774e26e77caf177642deed5b9d692baf1b51f7a7ca6d6cacf1c8f51"
+          "sha256": "096725562ba1f36c87af86cd64939a1abf12bfa07ba24223a3d9b75b4ad5a566"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/product_telemetry.py",

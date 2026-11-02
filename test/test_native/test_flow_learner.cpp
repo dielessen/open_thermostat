@@ -267,6 +267,98 @@ TEST(FlowLearner, ActiveModeLearnsFromTheE32sOwnRequest) {
     EXPECT_FALSE(FlowLearner::heatingReference(false, 40, std::nullopt));
 }
 
+// The first active evening (include/Hrc22ReplayFixture.h): the E32 asked 33..35 degC for 47
+// min and the boiler only fired for its store. The learner raises the minimum to the
+// lowest boiler water it saw (38 degC) + 2: "only starts heating from about 40 degC".
+TEST(BoilerMinimumFlow, TheActiveEveningRaisesItToTheKeepWarmFloor) {
+    FlowLearner l;
+    RoomPlan plan; plan.rooms.resize(1); plan.rooms[0].id = "woonkamer"; plan.rooms[0].emitter = RoomPlan::Emitter::floor;
+    plan.minimumFlowC = 30; plan.maximumFlowC = 60;
+    l.setPlan(plan);
+    uint64_t now = hour;
+    const FlowLearner::RoomInput in{int16_t(2050), int16_t(2100), 0};  // 0.5 degC short all evening
+    for (const bool own : {false, true}) {
+        for (const auto& r : fixtureRows(hrc22::activeEvening)) {
+            FlowLearner::Boiler b;
+            b.flowCentiC = int16_t(*r[0] * 100); b.modulationPct = uint8_t(*r[1]); b.burnerOn = *r[1] > 0; b.hotWater = *r[2] > 0;
+            b.requestedFlowC = uint8_t(*r[3]); b.ownRequest = own; b.productId = 0x7b;
+            now += 10 * second; l.sample(now, b, &in, 1);
+        }
+        // The same evening in shadow mode (another thermostat's request) teaches nothing.
+        if (!own) { EXPECT_EQ(l.boilerMinimum().learnedC(), 0); EXPECT_EQ(l.effectiveMinimumC(70), 30); }
+        now += hour;
+    }
+    EXPECT_EQ(l.boilerMinimum().learnedC(), 40);
+    EXPECT_EQ(l.boilerMinimum().raises(), 1);
+    EXPECT_EQ(l.effectiveMinimumC(70), 40);
+    EXPECT_EQ(l.effectiveMinimumC(38), 38);   // never above the boiler's own limit
+    Json root(l.json(), cJSON_Delete);
+    EXPECT_EQ(cJSON_GetObjectItem(root.get(), "boiler_minimum_flow_c")->valuedouble, 40);
+}
+
+// Synthetic boiler: heat asked at the effective minimum, with or without a heating burn.
+struct MinimumRig {
+    heating::control::BoilerMinimumFlow m;
+    uint64_t now = 0;
+    uint8_t planMin = 30, planMax = 60;
+    std::optional<uint8_t> limit = 70;
+    void run(uint64_t ms, bool fires, int16_t waterCentiC = 3800, bool below = true, bool hotWater = false, uint8_t product = 0x7b) {
+        for (uint64_t t = 0; t < ms; t += 10 * second) {
+            now += 10 * second;
+            heating::control::BoilerMinimumFlow::Input in;
+            in.asked = true; in.flowC = m.effective(planMin, planMax, limit); in.boilerFlowCentiC = waterCentiC;
+            in.burnerOn = fires || hotWater; in.hotWater = hotWater; in.roomBelow = below; in.productId = product;
+            m.sample(now, 10000, in);
+        }
+    }
+};
+
+TEST(BoilerMinimumFlow, RaisesStepwiseOnlyWithoutABurnAndStaysBounded) {
+    MinimumRig r;
+    r.run(14 * minute, false);
+    EXPECT_EQ(r.m.learnedC(), 0);                   // 15 min of countable time first
+    r.run(2 * minute, false);
+    EXPECT_EQ(r.m.learnedC(), 40);                  // max(asked 30, water 38) + 2
+    r.run(16 * minute, false, 3000);                // still nothing at 40: one step more
+    EXPECT_EQ(r.m.learnedC(), 42);
+    // Hot water, the minutes right after it and a room at its target do not count.
+    MinimumRig hw;
+    for (int k = 0; k < 10; ++k) { hw.run(3 * minute, false, 3800, true, true); hw.run(4 * minute, false); }
+    EXPECT_EQ(hw.m.learnedC(), 0);                  // 10 x 1 min countable
+    MinimumRig warm;
+    warm.run(hour, false, 3800, false);
+    EXPECT_EQ(warm.m.learnedC(), 0);
+    // A boiler that never fires (heating switched off at the boiler, a fault): bounded.
+    r.run(48 * hour, false, 2500);
+    EXPECT_EQ(r.m.learnedC(), r.m.params().maxC);
+    EXPECT_EQ(r.m.effective(30, 60, 70), 50);
+    EXPECT_EQ(r.m.effective(30, 45, 70), 44);       // below the plan maximum (the guard needs min < max)
+    EXPECT_EQ(r.m.effective(30, 60, 42), 42);       // the boiler's own limit
+    EXPECT_EQ(r.m.effective(30, 60, std::nullopt), 50);
+    EXPECT_EQ(r.m.effective(55, 60, 70), 55);       // never below the plan minimum
+}
+
+TEST(BoilerMinimumFlow, DecaysWithBurnsAndStartsOverForAnotherBoiler) {
+    MinimumRig r;
+    r.run(16 * minute, false);
+    ASSERT_EQ(r.m.learnedC(), 40);
+    r.run(90 * second, true);                       // a short flame (e.g. before the hot-water bit) is no answer
+    r.run(11 * hour, true);
+    EXPECT_EQ(r.m.learnedC(), 40);
+    r.run(hour + 5 * minute, true);                 // 12 h of heating burns (after the first 2 min): 1 degC lower
+    EXPECT_EQ(r.m.learnedC(), 39);
+    r.run(12 * hour, true);
+    EXPECT_EQ(r.m.learnedC(), 38);
+    // Too low again: found out in one wait.
+    r.run(16 * minute, false);
+    EXPECT_EQ(r.m.learnedC(), 40);
+    // Another boiler (EMS product id): nothing learned any more.
+    r.run(10 * second, true, 3800, true, false, 0x5a);
+    EXPECT_EQ(r.m.learnedC(), 0);
+    EXPECT_EQ(r.m.raises(), 0);
+    EXPECT_EQ(r.m.effective(30, 60, 70), 30);
+}
+
 TEST(FlowLearner, BridgeEndsAfterItsLimit) {
     // A hot-water run longer than maxBridgeMs still ends the segment.
     auto h = House::floor();

@@ -36,6 +36,11 @@ public:
         for(size_t i=0;i<used_;++i)if(entries_[i].address==address)return entries_[i].frames>0;
         return false;
     }
+    // The product id a device reported in its version telegram; nullopt: not read.
+    std::optional<uint8_t> product(uint8_t address) const {
+        for(size_t i=0;i<used_;++i)if(entries_[i].address==address&&entries_[i].version)return entries_[i].product;
+        return std::nullopt;
+    }
     // fw/config/ems_devices (retained, sent on change): who is on the bus and, once read,
     // which product, version and brand. No ages or counters: the payload only changes
     // with an identity. At most identityDevices, so it stays far below 1 KB.

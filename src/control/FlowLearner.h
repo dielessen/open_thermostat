@@ -1,4 +1,5 @@
 #pragma once
+#include "control/BoilerMinimumFlow.h"
 #include "control/ControlTuning.h"
 #include "control/FlowDemand.h"
 #include "control/GasCalibration.h"
@@ -119,6 +120,8 @@ public:
         std::optional<int16_t> outdoorCentiC;
         std::optional<uint8_t> modulationPct;  // burner modulation (share of the gas input)
         std::optional<int16_t> returnCentiC;
+        bool ownRequest = false;               // requestedFlowC is the E32's own (it drives the boiler)
+        std::optional<uint8_t> productId;      // the boiler's EMS product id (another boiler: the minimum starts over)
     };
     // The heating reference for requestedFlowC: while the E32 drives the boiler (active
     // mode) its own request (0: no heat), since the old thermostat is silent then and
@@ -177,11 +180,16 @@ public:
 
     void sample(uint64_t now, const Boiler& b, const RoomInput* rooms, size_t count) {
         const bool gap = !haveLast_ || now <= lastMs_ || now - lastMs_ > p_.maxGapMs;
-        gas_.burner(gap ? 0 : static_cast<uint32_t>(now - lastMs_), b.modulationPct, b.hotWater, p_.nominalKw);
+        const uint32_t dt = gap ? 0 : static_cast<uint32_t>(now - lastMs_);
+        gas_.burner(dt, b.modulationPct, b.hotWater, p_.nominalKw);
         lastMs_ = now; haveLast_ = true; outdoor_ = b.outdoorCentiC;
         const bool known = b.flowCentiC && b.hotWater && (b.burnerOn || b.requestedFlowC);
         const bool hotWater = b.hotWater.value_or(false);
         const bool requested = b.requestedFlowC && *b.requestedFlowC >= ShadowComparison::tadoHeatFromC;
+        bool below = false;
+        for (size_t i = 0; i < count; ++i)
+            below = below || (rooms[i].temperatureCentiC && rooms[i].setpointCentiC && *rooms[i].setpointCentiC - *rooms[i].temperatureCentiC >= 10);
+        minimum_.sample(now, dt, {b.ownRequest && requested, b.requestedFlowC.value_or(0), b.flowCentiC, b.burnerOn, b.hotWater, below, b.productId});
         const bool heat = known && !hotWater && (b.burnerOn.value_or(false) || requested);
         if (hotWater) holdUntil_ = now + (p_.bridgeHotWater ? p_.bridgeHoldoffMs : p_.hotWaterHoldoffMs);
         // With the bridge, heat right after a hot-water run continues the period: the
@@ -237,6 +245,10 @@ public:
     }
     bool kwhPerM3FromHa() const { return kwhFromHa_; }
     const char* status() const { return status_; }
+    // The lowest flow this boiler fires at for heating (BoilerMinimumFlow), within the plan
+    // and below the boiler's limit: the E32 asks at least this much while it drives the boiler.
+    const BoilerMinimumFlow& boilerMinimum() const { return minimum_; }
+    uint8_t effectiveMinimumC(std::optional<uint8_t> boilerLimitC) const { return minimum_.effective(minFlowC_, maxFlowC_, boilerLimitC); }
     uint16_t heatingPeriods() const { return period_; }
     // Real / estimated gas; 1 until three intervals were compared.
     float calibration() const { return gas_.factor(); }
@@ -317,7 +329,7 @@ public:
         return m;
     }
 
-    // {"schema":1,"applied":bool,"status":..,"rooms":[{..,"curve":[..],"advice":[..],"now":..}]}
+    // {"schema":1,"applied":bool,"status":..,["boiler_minimum_flow_c":..,]"rooms":[{..,"curve":[..],"advice":[..],"now":..}]}
     cJSON* json() const {
         cJSON* root = cJSON_CreateObject();
         cJSON* list = root ? cJSON_AddArrayToObject(root, "rooms") : nullptr;
@@ -326,6 +338,9 @@ public:
         cJSON_AddBoolToObject(root, "applied", applied_); // the "use learned flow" option (FlowPolicy)
         cJSON_AddStringToObject(root, "status", status_);
         cJSON_AddNumberToObject(root, "heating_periods", period_);
+        // Only once learned above the plan's minimum: "Your boiler only starts heating from about .. degC".
+        if (const uint8_t lowest = effectiveMinimumC(std::nullopt); lowest > minFlowC_)
+            cJSON_AddNumberToObject(root, "boiler_minimum_flow_c", lowest);
         number(root, "outdoor_c", outdoor_ ? std::optional<float>(*outdoor_ / 100.0f) : std::nullopt, 10);
         number(root, "gas_calibration", calibration(), 1000);
         cJSON_AddNumberToObject(root, "gas_intervals", gas_.intervals());
@@ -576,6 +591,7 @@ private:
     uint64_t lastMs_ = 0, holdUntil_ = 0, offSince_ = 0;
     bool afterHotWater_ = false;  // the last known state was a hot-water run (bridge only)
     GasCalibration gas_;
+    BoilerMinimumFlow minimum_;
     std::optional<int16_t> outdoor_;
     std::optional<float> price_;
     const char* status_ = "boiler_unknown";

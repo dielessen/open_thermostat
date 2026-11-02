@@ -975,7 +975,7 @@ private:
         const bool own = activeGuard_.outputActive();
         control::FlowLearner::Boiler boiler{ems.flowCentiC, ems.burnerOn, ems.hotWater,
             control::FlowLearner::heatingReference(own, activeGuard_.command().flowC, tadoFlowC),
-            learnerOutdoor(now).centiC, ems.modulationPct, ems.returnCentiC};
+            learnerOutdoor(now).centiC, ems.modulationPct, ems.returnCentiC, own, ems.boilerProductId};
         std::array<control::FlowLearner::RoomInput, control::RoomPlan::maxRooms> rooms{};
         const size_t count = std::min(plan.rooms.size(), rooms.size());
         for (size_t i = 0; i < count; ++i) {
@@ -1053,7 +1053,8 @@ private:
         if (ems.foreign) in.foreign = control::ActiveHeatGuard::Foreign{ems.foreign->address, ems.foreign->receivedAtMs};
         in.uptimeMs = now; in.routeReady = ems.routeReady; in.boilerLimitC = ems.limitC;
         in.boiler = {ems.burnerOn, ems.flowCentiC}; in.boilerHeardAtMs = ems.boilerHeardAtMs;
-        activeGuard_.setFlowLimits(plan.minimumFlowC, plan.maximumFlowC);
+        // The learned lowest flow the boiler fires at (FlowLearner::effectiveMinimumC, below the plan's maximum).
+        activeGuard_.setFlowLimits(flowLearner_.effectiveMinimumC(ems.limitC), plan.maximumFlowC);
         const auto c = activeGuard_.step(now, in);
         // A foreign 0x1A, the hand-back or shadow mode erases the stored one.
         handover_.sync(activeGuard_.confirmed(), activeGuard_.reconfirmPending());

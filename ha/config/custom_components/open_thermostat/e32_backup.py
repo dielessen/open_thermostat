@@ -40,7 +40,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
-from .controller_link import ControllerClient, ControllerLinkError, ControllerLoginRejected
+from .controller_link import BackupRejected, ControllerClient, ControllerLinkError, ControllerLoginRejected
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -64,6 +64,8 @@ ISSUE_AFTER = timedelta(days=3)
 RESTART_WAIT = 180
 RESTART_POLL = 5
 _HEX64 = re.compile(r"[0-9a-f]{64}")
+# An apply that failed with one of these never changed the E32: the request was not sent, or refused at the door.
+_NOT_APPLIED = frozenset({"controller_request_invalid", "controller_auth_failed", "controller_update_required"})
 _UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?\+00:00")
 
 
@@ -142,11 +144,14 @@ def _created(record):
     return dt_util.parse_datetime(record["created"])
 
 
-def retained(records):
-    """The newest backup of each of the last KEEP_DAYS days, and the newest pre-restore backup."""
+def retained(records, keep=()):
+    """The newest backup of each of the last KEEP_DAYS days, the newest pre-restore backup, and keep (ids)."""
     ordered = sorted(records, key=lambda r: r["created"], reverse=True)
     kept, days = [], set()
     for record in ordered:
+        if record["id"] in keep:
+            kept.append(record)
+            continue
         if record["kind"] == "pre_restore":
             continue
         day = dt_util.as_local(_created(record)).date()
@@ -155,7 +160,7 @@ def retained(records):
         days.add(day)
         kept.append(record)
     before = next((r for r in ordered if r["kind"] == "pre_restore"), None)
-    if before is not None:
+    if before is not None and before not in kept:
         kept.append(before)
     return sorted(kept, key=lambda r: r["created"], reverse=True)
 
@@ -303,12 +308,12 @@ class E32Backups:
             raise ControllerLinkError("controller_response_invalid")
         return document
 
-    async def _keep(self, kind, document):
+    async def _keep(self, kind, document, keep=()):
         now = _now()
         record = {"id": secrets.token_hex(8), "kind": kind, "created": now.isoformat(),
                   "size": _size(document), "firmware": str(document.get("firmware") or "")[:64],
                   "secrets": document.get("secrets") is not None, "document": document}
-        self._data["backups"] = retained([record, *self._data["backups"]])
+        self._data["backups"] = retained([record, *self._data["backups"]], keep)
         self._data.update(last_success=record["created"], last_attempt=record["created"], last_error=None)
         await self._store.async_save(self._data)
         ir.async_delete_issue(self.hass, DOMAIN, issue_id(self.entry))
@@ -416,11 +421,23 @@ class E32Backups:
             async with self._client(check.address) as client:
                 await self._sign_in(client, check.password, stored=stored == (check.address, check.password))
                 before = await self._export(client)
-                await self._keep("pre_restore", before)
-                value, status = await client.async_config_backup(
-                    self._request("apply", record, fingerprint=check.fingerprint))
+                # The E32 as it is now becomes the undo point once the apply may have changed it, and
+                # the backup being restored stays too: restoring the last undo point never loses it.
+                try:
+                    value, status = await client.async_config_backup(
+                        self._request("apply", record, fingerprint=check.fingerprint))
+                except BackupRejected as err:
+                    if err.error == "save_partial":
+                        await self._keep("pre_restore", before, keep=(record["id"],))
+                    raise  # refused: the E32 is as it was, and so are the backups
+                except ControllerLinkError as err:
+                    if str(err) not in _NOT_APPLIED:  # sent, but no answer: it may have been applied
+                        await self._keep("pre_restore", before, keep=(record["id"],))
+                    raise
             if status != 201 or type(value) is not dict or value.get("applied") is not True:
+                await self._keep("pre_restore", before, keep=(record["id"],))
                 raise ControllerLinkError("controller_response_invalid")
+            await self._keep("pre_restore", before)
             restart = value.get("restart") is True
             scheduled = value.get("restart_scheduled") is True
             reenter = [text for text in value.get("reenter") or [] if type(text) is str]

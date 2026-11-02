@@ -46,6 +46,7 @@ class FakeBackupE32:
         self.unreachable = False
         self.controls_boiler = False
         self.restarts = 0
+        self.lose_answer = False  # applies, but the answer never arrives (a reset connection)
 
     def client(self, address):
         e32 = self
@@ -106,6 +107,8 @@ class FakeBackupE32:
                     raise BackupRejected(409, "settings_changed")
                 e32.hostname = wanted
                 e32.restarts += 1
+                if e32.lose_answer:
+                    raise ControllerLinkError("controller_unreachable")
                 return {"applied": True, "restart": True, "restart_scheduled": True, "restart_in_s": 0,
                         "language": None, "reenter": ["bluetooth_key:Zolder"]}, 201
         return Client()
@@ -478,6 +481,40 @@ async def test_settings_changed_after_the_check_need_a_new_check(hass, manager):
     again = await finish(hass, manager, await manager.async_configure(confirm["flow_id"], {"confirm": True}))
     assert again["step_id"] == "e32_restore" and again["errors"] == {"base": "e32_restore_settings_changed"}
     assert e32.hostname == "zolder2"
+
+
+@pytest.mark.asyncio
+async def test_undoing_a_restore_never_loses_the_undo_point_when_the_apply_fails(hass, monkeypatch):
+    parent, _ = product(hass, FakeE32())
+    monkeypatch.setattr(module, "RESTART_POLL", 0)
+    e32 = FakeBackupE32(hostname="kelder")
+    backup = await backups(hass, parent, e32)
+    await backup.async_backup("daily")
+    e32.hostname = "zolder"  # changed during the day: in no daily backup
+    await backup.async_restore(await backup.async_check(ADDRESS, PASSWORD, backup.records()[0]["id"]))
+    undo = next(r for r in backup.records() if r["kind"] == "pre_restore")
+    assert undo["document"]["network"]["hostname"] == "zolder" and e32.hostname == "kelder"
+    # Undo that restore; the E32 refuses the apply (busy): it is unchanged, and so are the backups.
+    check = await backup.async_check(ADDRESS, PASSWORD, undo["id"])
+    e32.refuse["apply"] = (503, "out_of_memory")
+    with pytest.raises(BackupRejected):
+        await backup.async_restore(check)
+    assert backup.record(undo["id"]) == undo and e32.hostname == "kelder"
+    assert [r["kind"] for r in backup.records()].count("pre_restore") == 1
+    stored = await module.Store(hass, 1, module.store_key(parent.entry_id), private=True).async_load()
+    assert any(r["id"] == undo["id"] for r in stored["backups"])
+    # The retry works: "zolder" is back, and "kelder" is the new undo point.
+    e32.refuse = {}
+    await backup.async_restore(await backup.async_check(ADDRESS, PASSWORD, undo["id"]))
+    assert e32.hostname == "zolder"
+    after = [r for r in backup.records() if r["kind"] == "pre_restore"]
+    assert [r["document"]["network"]["hostname"] for r in after] == ["kelder"]
+
+
+def test_the_backup_being_restored_is_kept_next_to_the_new_undo_point():
+    older, newer = record(at(days=-1), "pre_restore"), record(at(), "pre_restore")
+    assert retained([older, newer]) == [newer]
+    assert retained([older, newer], keep=(older["id"],)) == [newer, older]
 
 
 @pytest.mark.asyncio

@@ -439,6 +439,7 @@ public:
         uint32_t limitReads = 0;           // the E32's own 0x16 read requests this boot
         std::optional<uint64_t> boilerHeardAtMs; // the latest boiler report (proof the bus is heard)
         std::optional<control::DhwEpisodes::Kind> hotWaterKind; // the open hot-water episode (charts)
+        std::optional<uint8_t> boilerProductId; // the boiler's (0x08) product id, once read
     };
     ActiveHeatView activeHeatView() const {
         std::lock_guard<std::mutex> lock(telemetryMutex_);
@@ -455,7 +456,7 @@ public:
             modulation && *modulation >= 0 && *modulation <= 100 ? std::optional<uint8_t>(static_cast<uint8_t>(*modulation)) : std::nullopt,
             ret ? std::optional<int16_t>(static_cast<int16_t>(*ret)) : std::nullopt,
             ActiveHeatEnvelope::reportedAtMs(monitor_), limitRead_.sent(), monitor_.lastReportMs(),
-            dhwEpisodes_.openKind()};
+            dhwEpisodes_.openKind(), deviceInventory_.product(0x08)}; // the boiler
     }
     // What the boiler does now (DhwEpisodes::activity), for fw/state/heating; nullptr while unknown.
     const char* boilerActivity() const {

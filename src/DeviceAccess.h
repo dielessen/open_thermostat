@@ -21,7 +21,8 @@ public:
         if(attempted_) return ready_;
         attempted_=true;
         // The setup Wi-Fi password stays the documented default. Legacy
-        // generated access secrets ("ot_access"/"secret") are ignored, not erased.
+        // generated access secrets ("ot_access"/"secret") are ignored here; rc.2
+        // erases that unused key once at boot (NvsOptionalRecords.h eraseStaleNvsKeys).
         ap_="openthermostat";
         loadPassword();
         // Called first in setup(), BEFORE RF/ADC/I2S initialization. Seed once

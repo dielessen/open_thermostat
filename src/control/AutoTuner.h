@@ -23,37 +23,48 @@ namespace heating::control {
 //    rested, fell more than max(0.3, start + 0.1) degC below its target (median
 //    over the rests) shortens it, comfort first (and is not tried again this
 //    boot); else more than 3 heating starts
-//    per heating hour, or 2 h of short cycling with more than 2, lengthen it;
+//    per heating hour, or 2 h of short cycling with more than 2, lengthen it,
+//    but only when the E32's own request started that often too (requests, not
+//    burner starts): a boiler that switches on and off by itself inside a
+//    request is not helped by a longer pause, which only delays heat; then a
+//    raised rest goes back towards 300 (boiler_cycling);
 //  - burner run (min_on_s, 300..600, 60 s): at least 3 heating burns shorter than
-//    it that ended with no room asking, and half of all burns;
+//    it that ended with the E32's request and no room asking, and half of all
+//    burns; short burns inside a request (the boiler's own) bring a raised run
+//    back towards 300 (boiler_cycling);
 //  - stop margin (heat_stop_c, 0.10..0.50, 0.05): the worst room's median
 //    overshoot per cycle (at least 5 cycles since the margin or the gain last
 //    moved, so a slow floor counts over days) above 0.3 degC lowers it, at 0.10
 //    the gain instead;
 //    an overshoot below stop + 0.05 brings a lowered margin back towards 0.20;
 //  - start margin (heat_start_c, 0.10..0.50, 0.05): many starts while the rooms
-//    stay within 0.15 degC of their target (mean) widen it (so about 0.35 at most);
-//    at most 1.5 starts per heating hour bring a widened one back towards 0.20;
+//    stay within 0.15 degC of their target (mean, at their highest target of today
+//    and yesterday: no night setback) widen it (so about 0.35 at most);
+//    at most 1.5 requests per heating hour bring a widened one back towards 0.20;
 //  - room correction gain (flow_per_degree_c, 5..20, 1): towards the learned
-//    minutes per degC / 9 (90 min: 10), raised only without overshoot;
+//    minutes per degC / 9 (90 min: 10), raised only on at least 5 cycles with
+//    an overshoot of at most 0.20 degC (an overshoot lowers the margin first);
 //  - unlearned warm-up leads (floor 30..360 / 30, radiators 10..180 / 15 min):
 //    towards the learned minutes per degC of those rooms.
 // The other knobs stay the owner's. Evidence: at least 6 heating hours and 5
 // starts; nothing in the first 24 h after a boot, a plan or a tuning change.
 // Only a day the E32 drove the boiler (90 % of it) is applied; otherwise the
-// proposals are only shown ("would"). Rooms count only 2 h after their target
+// proposals are only shown ("would"), from the E32's calculated request alone
+// (its request starts; the burner then follows another controller). Rooms count only 2 h after their target
 // changed (a program step is no cold rest), for the overshoot 2 h after it was
 // lowered (the warm-up after a night setback counts: there floors overshoot). Safety limits are no
 // knobs. Pure and single-threaded: the caller stores stored() and applies values().
 class AutoTuner {
 public:
-    static constexpr uint64_t graceMs = 24 * 3600000ull, settleMs = 2 * 3600000ull, gapMs = 60000;
+    static constexpr uint64_t graceMs = 24 * 3600000ull, settleMs = 2 * 3600000ull, gapMs = 60000, dhwLookMs = 60000;
     static constexpr uint8_t minHours = 6, minStarts = 5;
     static constexpr size_t logSize = 10, ringSize = 24, roomIdBytes = 33;
-    enum class Reason : uint8_t { manyStarts, coldDuringRest, shortBurns, overshoot, overshootGain, settled, hovering, fewStarts, roomResponse, learnedWarmup };
+    enum class Reason : uint8_t { manyStarts, coldDuringRest, shortBurns, overshoot, overshootGain, settled, hovering, fewStarts, roomResponse, learnedWarmup,
+                                  boilerCycling };
+    static constexpr size_t reasonCount = 11;
     static const char* name(Reason r) {
-        static constexpr const char* names[] = {"many_starts", "cold_during_rest", "short_burns", "overshoot", "overshoot_gain",
-                                                "settled", "hovering", "few_starts", "room_response", "learned_warmup"};
+        static constexpr const char* names[reasonCount] = {"many_starts", "cold_during_rest", "short_burns", "overshoot", "overshoot_gain",
+                                                "settled", "hovering", "few_starts", "room_response", "learned_warmup", "boiler_cycling"};
         return names[uint8_t(r)];
     }
     // degC figures (centi stored): overshoot, cold rest, settled.
@@ -99,7 +110,10 @@ public:
         const int32_t day = RoomSchedule::localDay(*s.utc);
         bool closed = false;
         if (today_.day < 0) today_.day = day;
-        else if (day > today_.day) { yesterday_ = today_; today_ = {}; today_.day = day; closed = true; }
+        else if (day > today_.day) {
+            yesterday_ = today_; today_ = {}; today_.day = day; closed = true;
+            for (auto& rt : rooms_) { rt.yesterdayMax = rt.todayMax; rt.todayMax = INT16_MIN; }
+        }
         const bool gap = !last_ || s.now <= last_ || s.now - last_ > gapMs;
         const uint32_t dt = gap ? 0 : uint32_t((s.now - last_) / 1000);
         last_ = s.now;
@@ -119,25 +133,39 @@ public:
             }
             rt.settled = r.temperature && r.setpoint && s.now - rt.changedAt >= settleMs;
             rt.measurable = r.temperature && r.setpoint && (!rt.droppedAt || s.now - *rt.droppedAt >= settleMs);
-            if (rt.settled && dt) { d.deviationSum += uint32_t(std::abs(*r.temperature - *r.setpoint)) * dt; d.deviationS += dt; }
+            if (r.setpoint) rt.todayMax = std::max(rt.todayMax, *r.setpoint);
+            // The hovering deviation: settled (2 h after a target change) and at the room's
+            // highest target of today and yesterday; a night setback or eco level is no hovering.
+            const bool comfort = r.setpoint && *r.setpoint >= std::max(rt.todayMax, rt.yesterdayMax);
+            if (rt.settled && comfort && dt) { d.deviationSum += uint32_t(std::abs(*r.temperature - *r.setpoint)) * dt; d.deviationS += dt; }
         }
         // Burner: heating starts and burns (hot water excluded), continuous reports only;
-        // a start counts once the burner was seen off before it.
-        if (gap || !s.burnerOn) burn_ = {};
-        else if (*s.burnerOn && !burn_.on) {
-            burn_ = {true, burn_.offSeen, !s.hotWater.value_or(false), true, s.now};
-            if (burn_.measured && burn_.heating && d.starts < UINT16_MAX) ++d.starts;
-        } else if (*s.burnerOn) burn_.heating = burn_.heating && !s.hotWater.value_or(false);
+        // a start counts once the burner was seen off before it. Classified per burn, as
+        // BurnerCycleMonitor does, once it ended: the hot-water bit at any moment of it, or
+        // within dhwLookMs before its start or after its end, makes it a hot-water burn (on
+        // this boiler the bit of a keep-warm round often comes after the burner start).
+        const bool dhw = s.hotWater.value_or(false);
+        if (gap || !s.burnerOn) { burn_ = {}; ended_ = {}; dhwAt_.reset(); }
         else {
-            if (burn_.on && burn_.measured && burn_.heating) {
-                const uint64_t ms = s.now - burn_.at;
-                ++d.burns; d.burnS += uint32_t(ms / 1000);
-                if (ms < s.tuning->minOnS * 1000ull && !demand) ++d.shortBurns;
+            if (dhw) dhwAt_ = s.now;
+            if (ended_.on && dhw) ended_.heating = false;
+            if (ended_.on && (s.now - ended_.at >= dhwLookMs || (*s.burnerOn && !burn_.on))) settle(d);
+            if (*s.burnerOn && !burn_.on) burn_ = {true, burn_.offSeen, !(dhwAt_ && s.now - *dhwAt_ <= dhwLookMs), true, s.now};
+            else if (*s.burnerOn) burn_.heating = burn_.heating && !dhw;
+            else {
+                if (burn_.on && burn_.measured) {
+                    const uint64_t ms = s.now - burn_.at;
+                    const bool brief = ms < s.tuning->minOnS * 1000ull;
+                    ended_ = {true, burn_.heating, brief && !demand && !s.request.heat, brief && s.request.heat, s.now, uint32_t(ms / 1000)};
+                }
+                burn_ = {false, false, false, true, s.now};
             }
-            burn_ = {false, false, false, true, s.now};
         }
         // Cycles from request start to request start: per room the highest overshoot.
-        if (s.request.heat && !heating_) { closeCycle(); open_.used = true; }
+        if (s.request.heat && !heating_) {
+            closeCycle(); open_.used = true;
+            if (!gap && d.requests < UINT16_MAX) ++d.requests; // the E32's own request starts
+        }
         heating_ = s.request.heat;
         for (size_t i = 0; open_.used && i < count; ++i) {
             const auto& r = s.rooms[i];
@@ -164,14 +192,20 @@ public:
     // Yesterday (after sample() returned true): the proposals, and with an active day
     // the changes to values() for the automatic knobs. learned: per plan room.
     void evaluate(uint64_t now, uint32_t utc, uint16_t manual, const RoomPlan& plan, const Learned* learned, size_t count) {
-        wouldCount_ = 0; changed_ = 0;
+        wouldCount_ = 0; changed_ = 0; proposed_ = 0;
         if (now < graceUntil_ || yesterday_.day < 0) { state_ = "waiting"; return; }
         const Day& d = yesterday_;
         const int hours = __builtin_popcount(d.hours);
-        const bool enough = hours >= minHours && d.starts >= minStarts;
         apply_ = d.observedS && uint64_t(d.activeS) * 10 >= uint64_t(d.observedS) * 9;
+        // A shadow day: the burner follows another controller; its starts, burns and
+        // short-cycling flag are no evidence of the E32's. Only its calculated request counts.
+        const bool enough = hours >= minHours && (apply_ ? d.starts : d.requests) >= minStarts;
         manual_ = manual; utc_ = utc; plan_ = &plan;
-        const bool many = enough && (d.starts > 3 * hours || (d.shortS >= 7200 && d.starts > 2 * hours));
+        // Many starts: the burner's and the E32's own request's. Only the burner's: the boiler
+        // switches on and off by itself inside a request; a longer pause would only delay heat.
+        const auto often = [&](uint16_t n) { return n > 3 * hours || (apply_ && d.shortS >= 7200 && n > 2 * hours); };
+        const bool many = enough && often(d.requests) && (!apply_ || often(d.starts));
+        const bool byItself = apply_ && enough && often(d.starts) && !often(d.requests);
         const auto cold = median(d.rests, &d.restRoom, d.restCount, 2);
         std::optional<std::pair<int16_t, uint8_t>> over; // over the cycles since the margin or gain last moved
         for (size_t i = 0; hours >= minHours && i < plan.rooms.size() && i < RoomPlan::maxRooms; ++i) {
@@ -181,20 +215,25 @@ public:
         state_ = !enough && !over ? "collecting" : apply_ ? "active" : "shadow";
         const auto& v = values_;
         if (enough && cold && cold->first > std::max(30, v.startCentiC + 10)) {
-            restCeiling_ = restCeiling_ ? std::min(restCeiling_, v.minOffS) : v.minOffS; // a rest that proved too cold is not tried again
+            // A rest that proved too cold is not tried again: only an automatic rest the E32 applied.
+            if (apply_ && !(manual_ >> 1 & 1)) restCeiling_ = restCeiling_ ? std::min(restCeiling_, v.minOffS) : v.minOffS;
             propose(1, v.minOffS - 150, 300, 1200, Reason::coldDuringRest, cold->first, cold->second);
-        } else if (many) propose(1, v.minOffS + 150, 300, restCeiling_ ? restCeiling_ - 150 : 1200, Reason::manyStarts, int16_t(d.starts));
-        if (enough && d.shortBurns >= 3 && d.shortBurns * 2 >= d.burns)
+        } else if (many && (!restCeiling_ || restCeiling_ >= v.minOffS + 300)) // room below the ceiling: lengthen
+            propose(1, v.minOffS + 150, 300, restCeiling_ ? restCeiling_ - 150 : 1200, Reason::manyStarts, int16_t(d.requests));
+        else if (byItself) propose(1, v.minOffS - 150, 300, 1200, Reason::boilerCycling, int16_t(d.starts));
+        if (apply_ && enough && d.shortBurns >= 3 && d.shortBurns * 2 >= d.burns)
             propose(0, v.minOnS + 60, 300, 600, Reason::shortBurns, int16_t(d.shortBurns));
+        else if (apply_ && enough && d.insideShort >= 3 && d.insideShort * 2 >= d.burns)
+            propose(0, v.minOnS - 60, 300, 600, Reason::boilerCycling, int16_t(d.insideShort));
         if (over && over->first > 30) {
             if (v.stopCentiC > 10) propose(3, v.stopCentiC - 5, 10, 50, Reason::overshoot, over->first, over->second);
             else propose(4, v.flowPerDegreeC - 1, 5, 20, Reason::overshootGain, over->first, over->second);
         } else if (over && over->first < v.stopCentiC + 5 && v.stopCentiC < 20)
             propose(3, v.stopCentiC + 5, 10, 50, Reason::settled, over->first, over->second);
         if (many && d.deviationS && d.deviationSum / d.deviationS <= 15)
-            propose(2, v.startCentiC + 5, 10, 50, Reason::hovering, int16_t(d.starts));
-        else if (enough && d.starts * 2 <= 3 * hours && v.startCentiC > 20)
-            propose(2, v.startCentiC - 5, 10, 50, Reason::fewStarts, int16_t(d.starts));
+            propose(2, v.startCentiC + 5, 10, 50, Reason::hovering, int16_t(d.requests));
+        else if (enough && d.requests * 2 <= 3 * hours && v.startCentiC > 20)
+            propose(2, v.startCentiC - 5, 10, 50, Reason::fewStarts, int16_t(d.requests));
         // The learned rooms: their mean minutes per degC (one room: named).
         const auto mean = [&](int emitter, int& room) -> std::optional<int> {
             int sum = 0, n = 0;
@@ -204,9 +243,10 @@ public:
             return n ? std::optional<int>((sum + n / 2) / n) : std::nullopt;
         };
         int room = -1;
-        if (const auto m = enough && !(changed_ & 16) ? mean(-1, room) : std::nullopt) {
+        if (const auto m = enough && !(proposed_ & 16) ? mean(-1, room) : std::nullopt) {
             const int target = std::clamp((*m + 4) / 9, 5, 20);
-            if (target > v.flowPerDegreeC && (!over || over->first <= 20)) propose(4, v.flowPerDegreeC + 1, 5, 20, Reason::roomResponse, int16_t(*m), room);
+            // Raised only on evidence: at least 5 cycles, all but a small overshoot (none: no raise).
+            if (target > v.flowPerDegreeC && over && over->first <= 20) propose(4, v.flowPerDegreeC + 1, 5, 20, Reason::roomResponse, int16_t(*m), room);
             else if (target < v.flowPerDegreeC) propose(4, v.flowPerDegreeC - 1, 5, 20, Reason::roomResponse, int16_t(*m), room);
         }
         for (const int e : {int(RoomPlan::Emitter::floor), int(RoomPlan::Emitter::radiator)}) {
@@ -219,7 +259,7 @@ public:
                     Reason::learnedWarmup, int16_t(*m), room);
         }
     }
-    // The last evaluate() changed values() (store them).
+    // The last evaluate() changed values() (store them); a shadow day never does.
     bool changed() const { return changed_ != 0; }
     const char* state(uint64_t now) const { return now < graceUntil_ ? "waiting" : state_; }
     size_t logCount() const { return logCount_; }
@@ -256,13 +296,14 @@ public:
         for (size_t i = 0; log && i < l; ++i) cJSON_AddItemToArray(log, changeJson(log_[i], true));
         return would && log && cJSON_GetArraySize(would) == int(w) && cJSON_GetArraySize(log) == int(l);
     }
-    // NVS: {"values":{ControlTuning},"log":[[utc,knob,from,to,reason,figure,room]]}.
-    std::string stored() const {
+    // NVS: {"values":{ControlTuning},"log":[[utc,knob,from,to,reason,figure,room]]}; the newest maxLog
+    // entries (NVS short of room: fewer, the values first).
+    std::string stored(size_t maxLog = logSize) const {
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_CreateObject(), cJSON_Delete);
         cJSON* values = root ? cJSON_Parse(values_.json().c_str()) : nullptr;
         if (!values || !cJSON_AddItemToObject(root.get(), "values", values)) { cJSON_Delete(values); return {}; }
         cJSON* log = cJSON_AddArrayToObject(root.get(), "log");
-        for (size_t i = 0; log && i < logCount_; ++i) cJSON_AddItemToArray(log, changeJson(log_[i], true));
+        for (size_t i = 0; log && i < logCount_ && i < maxLog; ++i) cJSON_AddItemToArray(log, changeJson(log_[i], true));
         char* text = log ? cJSON_PrintUnformatted(root.get()) : nullptr;
         std::string out = text ? text : "";
         cJSON_free(text);
@@ -286,13 +327,18 @@ private:
     struct Day {
         int32_t day = -1;
         uint32_t hours = 0, observedS = 0, activeS = 0, shortS = 0, burnS = 0, deviationSum = 0, deviationS = 0;
-        uint16_t starts = 0, burns = 0, shortBurns = 0;
+        uint16_t starts = 0, burns = 0, shortBurns = 0, insideShort = 0, requests = 0;
         std::array<int16_t, ringSize> rests{};
         std::array<uint8_t, ringSize> restRoom{};
         uint8_t restCount = 0;
     };
-    struct RoomState { std::optional<int16_t> setpoint; uint64_t changedAt = 0; std::optional<uint64_t> droppedAt; bool settled = false, measurable = false; };
+    struct RoomState {
+        std::optional<int16_t> setpoint; uint64_t changedAt = 0; std::optional<uint64_t> droppedAt; bool settled = false, measurable = false;
+        int16_t todayMax = INT16_MIN, yesterdayMax = INT16_MIN; // the highest target of the local day
+    };
     struct Burn { bool on = false, measured = false, heating = false, offSeen = false; uint64_t at = 0; };
+    // A burn awaiting its class; short: ended with the E32's request, inside: ended inside a request (the boiler's own).
+    struct Ended { bool on = false, heating = false, shortBurn = false, inside = false; uint64_t at = 0; uint32_t s = 0; };
     struct Cycle { bool used = false; uint8_t invalid = 0, demanded = 0; std::array<int16_t, RoomPlan::maxRooms> over{}; };
     struct Rest { bool on = false, valid = false; int16_t deficit = 0; uint8_t room = 0; };
     // Up to ringSize values a day (the newest replace the oldest).
@@ -314,6 +360,16 @@ private:
         const uint8_t m = order[n / 2];
         return std::make_pair(values[m], rooms ? (*rooms)[m] : uint8_t(0));
     }
+    void settle(Day& d) {
+        if (ended_.heating) {
+            if (d.starts < UINT16_MAX) ++d.starts;
+            if (d.burns < UINT16_MAX) ++d.burns;
+            d.burnS += ended_.s;
+            if (ended_.shortBurn && d.shortBurns < UINT16_MAX) ++d.shortBurns;
+            if (ended_.inside && d.insideShort < UINT16_MAX) ++d.insideShort;
+        }
+        ended_ = {};
+    }
     void closeCycle() {
         if (open_.used)
             for (size_t i = 0; i < RoomPlan::maxRooms; ++i)
@@ -324,16 +380,22 @@ private:
     void propose(uint8_t knob, int to, int low, int high, Reason reason, int16_t figure, int room = -1) {
         size_t n; const auto* k = ControlTuning::knobs(n);
         const uint16_t from = values_.*k[knob].field;
-        to = std::clamp(to, std::max<int>(low, k[knob].low), std::min<int>(high, k[knob].high));
-        if (to == from || (changed_ >> knob & 1) || (manual_ >> knob & 1)) return;
+        const int lo = std::max<int>(low, k[knob].low), hi = std::min<int>(high, k[knob].high);
+        if (lo > hi) return; // no room (never std::clamp with hi < lo)
+        const int wanted = to;
+        to = std::clamp(to, lo, hi);
+        if ((wanted > from && to < from) || (wanted < from && to > from)) return; // a bound never turns a step around
+        if (to == from || (proposed_ >> knob & 1) || (manual_ >> knob & 1)) return;
         Change c;
         c.utc = utc_; c.knob = knob; c.from = from; c.to = uint16_t(to); c.reason = reason; c.figure = figure;
         if (room >= 0 && plan_ && size_t(room) < plan_->rooms.size()) std::snprintf(c.room, sizeof c.room, "%s", plan_->rooms[room].id.c_str());
-        changed_ |= uint16_t(1u << knob);
-        if (wouldCount_ < would_.size()) would_[wouldCount_++] = c;
-        if (!apply_) return;
+        proposed_ |= uint16_t(1u << knob); // one step a day per knob
+        if (!apply_) { if (wouldCount_ < would_.size()) would_[wouldCount_++] = c; return; } // shown only
         values_.*k[knob].field = uint16_t(to);
-        if (knob == 3 || knob == 4) overCount_ = {}; // the overshoot starts anew
+        changed_ |= uint16_t(1u << knob);
+        // The overshoot starts anew after a margin step or a gentler gain; a raise keeps the
+        // evidence (it was raised on it), so a cycle-poor floor cannot be raised day after day.
+        if (knob == 3 || (knob == 4 && to < from)) overCount_ = {};
         std::move_backward(log_.begin(), log_.end() - 1, log_.end());
         log_[0] = c; logCount_ = std::min(logCount_ + 1, logSize);
     }
@@ -355,10 +417,10 @@ private:
         if (cJSON_GetArraySize(e) != 7 || !cJSON_IsNumber(at(0)) || !cJSON_IsString(at(1)) || !cJSON_IsString(at(4)) || !cJSON_IsString(at(6))
             || std::strlen(at(6)->valuestring) >= roomIdBytes) return false;
         size_t n; const auto* k = ControlTuning::knobs(n);
-        size_t knob = n, reason = 10;
+        size_t knob = n, reason = reasonCount;
         for (size_t i = 0; i < n; ++i) if (!std::strcmp(k[i].key, at(1)->valuestring)) knob = i;
-        for (size_t i = 0; i < 10; ++i) if (!std::strcmp(name(Reason(i)), at(4)->valuestring)) reason = i;
-        if (knob == n || reason == 10 || !cJSON_IsNumber(at(2)) || !cJSON_IsNumber(at(3)) || !cJSON_IsNumber(at(5))) return false;
+        for (size_t i = 0; i < reasonCount; ++i) if (!std::strcmp(name(Reason(i)), at(4)->valuestring)) reason = i;
+        if (knob == n || reason == reasonCount || !cJSON_IsNumber(at(2)) || !cJSON_IsNumber(at(3)) || !cJSON_IsNumber(at(5))) return false;
         const double scale = k[knob].centi ? 100 : 1;
         c.utc = uint32_t(at(0)->valuedouble); c.knob = uint8_t(knob); c.reason = Reason(reason);
         c.from = uint16_t(at(2)->valuedouble * scale + 0.5); c.to = uint16_t(at(3)->valuedouble * scale + 0.5);
@@ -374,6 +436,8 @@ private:
     Day today_, yesterday_;
     std::array<RoomState, RoomPlan::maxRooms> rooms_{};
     Burn burn_;
+    Ended ended_;
+    std::optional<uint64_t> dhwAt_; // the last hot-water bit (continuous reports)
     Cycle open_;
     Rest rest_;
     std::array<std::array<int16_t, ringSize>, RoomPlan::maxRooms> over_{}; // per room the overshoot of the recent cycles
@@ -383,7 +447,7 @@ private:
     const RoomPlan* plan_ = nullptr;
     const char* state_ = "waiting";
     uint32_t utc_ = 0;
-    uint16_t manual_ = 0, changed_ = 0;
+    uint16_t manual_ = 0, changed_ = 0, proposed_ = 0; // changed_: applied; proposed_: shown or applied
     bool heating_ = false, apply_ = false;
 };
 }

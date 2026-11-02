@@ -28,8 +28,26 @@ inline TaskStackMarks taskStackMarks() {
 inline uint32_t largestInternalBlock() {
     return static_cast<uint32_t>(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
 }
+// The used entries of each NVS namespace (a blob's index, chunk headers and data included; the
+// namespace entries themselves are the rest of used_entries): {"phy":66,"ot_heating":51,...}.
+// For the NVS budget (control/ControlPartitionBudget.h): which records fill the 630 entries.
+inline void addNvsNamespaceEntries(cJSON* nvs) {
+    cJSON* spaces = cJSON_AddObjectToObject(nvs, "namespace_entries");
+    if (!spaces) return;
+    for (nvs_iterator_t it = nvs_entry_find("nvs", nullptr, NVS_TYPE_ANY); it; it = nvs_entry_next(it)) {
+        nvs_entry_info_t info;
+        nvs_entry_info(it, &info);
+        if (cJSON_GetObjectItemCaseSensitive(spaces, info.namespace_name)) continue;
+        nvs_handle_t handle;
+        size_t used = 0;
+        if (nvs_open(info.namespace_name, NVS_READONLY, &handle) != ESP_OK) continue;
+        if (nvs_get_used_entry_count(handle, &used) == ESP_OK) cJSON_AddNumberToObject(spaces, info.namespace_name, used);
+        nvs_close(handle);
+    }
+}
 // {"free_internal_bytes":..,"minimum_free_internal_bytes":..,"largest_internal_block_bytes":..,
-//  "stack_minimum_bytes":{...},"nvs":{"used_entries":..,"free_entries":..,"total_entries":..}|null}
+//  "stack_minimum_bytes":{...},"nvs":{"used_entries":..,"free_entries":..,"total_entries":..,
+//  "namespaces":..,"namespace_entries":{...}}|null}
 inline cJSON* runtimeHealthJson() {
     cJSON* root = cJSON_CreateObject();
     if (!root) return nullptr;
@@ -52,6 +70,7 @@ inline cJSON* runtimeHealthJson() {
             cJSON_AddNumberToObject(nvs, "free_entries", stats.free_entries);
             cJSON_AddNumberToObject(nvs, "total_entries", stats.total_entries);
             cJSON_AddNumberToObject(nvs, "namespaces", stats.namespace_count);
+            addNvsNamespaceEntries(nvs);
         }
     } else cJSON_AddNullToObject(root, "nvs");
     return root;

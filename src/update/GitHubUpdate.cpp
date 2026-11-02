@@ -13,6 +13,7 @@
 #include "DeviceAccess.h"
 #include "Filesystem.h"
 #include "Network.h"
+#include "NvsOptionalRecords.h"
 #include "diagnostics/BlackBox.h"
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
@@ -282,7 +283,15 @@ bool scheduleControlledRestart(uint32_t delayMs,uint8_t reason){
 bool controlledRestartPending(){return controlledRestart.pending();}
 bool bootPending(){return pendingBoot();}
 bool requestRollback(){
-    if(busy()||pendingBoot())return false;const auto p=previous();if(!p||esp_ota_set_boot_partition(p)!=ESP_OK)return false;
+    if(busy()||pendingBoot())return false;const auto p=previous();if(!p)return false;
+    // The previous firmware (beta.22, rc.1) reads no learned or tuning record and keeps a
+    // full 4 KB control replacement free for its plan and Bluetooth saves: the optional
+    // records stop and make that room first (NvsOptionalRecords.h).
+    const auto evicted=heating::optionalRecordEvictions().load();
+    const bool room=heating::prepareNvsForPreviousFirmware();
+    if(esp_ota_set_boot_partition(p)!=ESP_OK){heating::optionalRecordsFrozen().store(false);return false;}
+    Serial.printf("Rollback: %u optional NVS record(s) erased for the previous firmware%s\n",
+        unsigned(heating::optionalRecordEvictions().load()-evicted),room?"":"; still short of its plan-save margin");
     {std::lock_guard<std::mutex> lock(stateMutex);state.operation="rollback";state.downloadError={};}
     phase("rolling_back");rebootTimer.schedule(millis(),1000);return true;
 }

@@ -102,7 +102,7 @@ def test_every_language_has_every_text_with_the_same_placeholders():
             fields = {f for _, f, _, _ in string.Formatter().parse(text) if f}
             assert fields == {f for _, f, _, _ in string.Formatter().parse(lo.TEXT["en"][key]) if f}, (lang, key)
     assert {"why." + r for r in ("many_starts", "cold_during_rest", "short_burns", "overshoot", "overshoot_gain", "settled",
-                                 "hovering", "few_starts", "learned_warmup")} <= keys
+                                 "hovering", "few_starts", "learned_warmup", "boiler_cycling")} <= keys
 
 
 def test_changes_in_words():

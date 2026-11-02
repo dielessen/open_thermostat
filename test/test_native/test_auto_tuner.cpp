@@ -163,14 +163,64 @@ TEST(AutoTuner, AColdRestShortensTheRestComfortFirst) {
     EXPECT_EQ(e.tuning().minOffS, 1050);
 }
 
+// Review of rc.2 (finding 1): a cold rest at the automatic floor (300 s) set the
+// ceiling to 300; "many starts" then proposed with the upper bound 150 below the
+// lower bound 300 (std::clamp UB; 150 on the E32). Also reached when the cold
+// day was a shadow day or the rest the owner's.
+TEST(AutoTuner, ManyStartsNeverShortenTheRestBelowItsFloor) {
+    const auto rests = [](int16_t deepest) {
+        return [=](uint32_t t) {
+            const uint32_t phase = t % 900;
+            S x; x.heat = x.burner = phase < 300; x.demand = x.heat || phase >= 600;
+            x.reason = x.heat ? Reason::heating : phase >= 600 ? Reason::holdOff : Reason::satisfied;
+            x.temp = phase >= 600 ? int16_t(2000 - 20 - (deepest - 20) * int(phase - 600) / 290) : 2010;
+            return x;
+        };
+    };
+    Driver d;
+    d.manual = e_start;
+    d.day(rests(45)); // too cold, already at 300: nothing to shorten
+    EXPECT_EQ(d.tuning().minOffS, 300);
+    for (int i = 0; i < 3; ++i) {
+        d.day(cycles(5, 5)); // many starts: the ceiling (300) leaves no room to lengthen
+        EXPECT_EQ(d.tuning().minOffS, 300) << "day " << i;
+    }
+    for (size_t i = 0; i < d.tuner.logCount(); ++i) EXPECT_GE(d.tuner.change(i).to, 300);
+    // A ceiling below the value in effect: many starts must not shorten it.
+    Driver c;
+    c.manual = e_start;
+    ASSERT_TRUE(c.tuner.restore(R"({"values":{"min_off_s":600},"log":[]})"));
+    c.day(rests(45)); // 600 too cold: 450, ceiling 600
+    EXPECT_EQ(c.tuning().minOffS, 450);
+    c.day(rests(45)); // 450 too cold: 300, ceiling 450
+    EXPECT_EQ(c.tuning().minOffS, 300);
+    ASSERT_TRUE(c.tuner.restore(R"({"values":{"min_off_s":750},"log":[]})")); // e.g. a backup restored
+    c.day(cycles(5, 5));
+    EXPECT_EQ(c.tuning().minOffS, 750) << "many starts lengthen or leave it, never shorten";
+    // The cold rest was the owner's (manual); back to automatic, many starts lengthen as usual.
+    Driver m;
+    m.manual = e_start | 2; m.owner.minOffS = 300;
+    m.day(rests(45));
+    m.manual = e_start;
+    m.day(cycles(5, 5));
+    EXPECT_EQ(m.tuning().minOffS, 450) << "an owner's rest is no automatic ceiling";
+    // The cold rest was only shown (shadow): no ceiling either.
+    Driver s;
+    s.manual = e_start; s.active = false;
+    s.day(rests(45));
+    s.active = true;
+    s.day(cycles(5, 5));
+    EXPECT_EQ(s.tuning().minOffS, 450) << "a shadow day sets no ceiling";
+}
+
 TEST(AutoTuner, ShortBurnsLengthenTheBurnerRun) {
     Driver d;
     d.manual = 0b110; // rest and start margin stay: only the run time here
-    // The request holds 5 min, the burner stops itself after 2 min with the room satisfied.
+    // The E32's request (and with it the burner) lasts 2 min; the room is satisfied after 1.
     d.day([](uint32_t t) {
         const uint32_t phase = t % 1500;
-        S x; x.heat = phase < 300; x.reason = x.heat ? Reason::heating : Reason::satisfied;
-        x.burner = phase < 120; x.demand = phase < 60; x.temp = 2005;
+        S x; x.heat = x.burner = phase < 120; x.reason = x.heat ? Reason::heating : Reason::satisfied;
+        x.demand = phase < 60; x.temp = 2005;
         return x;
     });
     ASSERT_EQ(d.tuner.logCount(), 1u);
@@ -178,10 +228,43 @@ TEST(AutoTuner, ShortBurnsLengthenTheBurnerRun) {
     EXPECT_EQ(d.tuner.change(0).reason, AutoTuner::Reason::shortBurns);
     for (int i = 0; i < 8; ++i) d.day([](uint32_t t) {
         const uint32_t phase = t % 1500;
-        S x; x.heat = phase < 300; x.burner = phase < 120; x.temp = 2005; x.reason = x.heat ? Reason::heating : Reason::satisfied;
+        S x; x.heat = x.burner = phase < 120; x.temp = 2005; x.reason = x.heat ? Reason::heating : Reason::satisfied;
         return x;
     });
     EXPECT_EQ(d.tuning().minOnS, 600) << "the automatic upper bound";
+}
+
+// Replay of the owner's data: the boiler cycles by itself inside one request (2-5 min
+// burns). The E32's burner rest and run only shape its own request: raising them
+// would only delay heat. Evidence is the request's own starts, not the burner's;
+// a raised value goes back towards 300 with the reason in the log.
+TEST(AutoTuner, TheBoilersOwnCyclingLeavesTheRestAndRunAt300) {
+    // 06:00..22:00 one request; inside it the burner runs 3 min and pauses 3 min.
+    const auto inside = [](uint32_t burnS) {
+        return [=](uint32_t t) {
+            S x; x.heat = x.demand = t >= 6 * 3600 && t < 22 * 3600; x.reason = x.heat ? Reason::heating : Reason::idle;
+            x.burner = x.heat && t % (burnS + 180) < burnS; x.temp = 1990;
+            return x;
+        };
+    };
+    Driver d;
+    d.manual = e_start;
+    d.day(inside(180)); // 160 burner starts in 16 heating hours, one request
+    EXPECT_EQ(d.tuning().minOffS, 300); EXPECT_EQ(d.tuning().minOnS, 300);
+    EXPECT_EQ(d.tuner.logCount(), 0u);
+    // Raised before (by the old rule): one step a day back towards 300, explained.
+    ASSERT_TRUE(d.tuner.restore(R"({"values":{"min_off_s":1200,"min_on_s":420},"log":[]})"));
+    d.day(inside(180));
+    EXPECT_EQ(d.tuning().minOffS, 1050); EXPECT_EQ(d.tuning().minOnS, 360);
+    ASSERT_EQ(d.tuner.logCount(), 2u);
+    for (size_t i = 0; i < 2; ++i) EXPECT_EQ(d.tuner.change(i).reason, AutoTuner::Reason::boilerCycling);
+    EXPECT_STREQ(AutoTuner::name(AutoTuner::Reason::boilerCycling), "boiler_cycling");
+    for (int i = 0; i < 8; ++i) d.day(inside(180));
+    EXPECT_EQ(d.tuning().minOffS, 300); EXPECT_EQ(d.tuning().minOnS, 300) << "not below the floor";
+    // The log entry survives the stored record.
+    AutoTuner back;
+    ASSERT_TRUE(back.restore(d.tuner.stored().c_str()));
+    EXPECT_EQ(back.change(0).reason, AutoTuner::Reason::boilerCycling);
 }
 
 TEST(AutoTuner, OvershootLowersTheStopMarginThenTheGain) {
@@ -214,6 +297,45 @@ TEST(AutoTuner, OvershootLowersTheStopMarginThenTheGain) {
     Driver e;
     e.day([&](uint32_t t) { auto x = overshoot(10)(t); x.sp = t < 12 * 3600 ? 2000 : 1850; if (t >= 12 * 3600) x.temp -= 150; if (t >= 12 * 3600 && t < 14 * 3600) x.temp = 2000; return x; });
     EXPECT_EQ(e.tuning().stopCentiC, 20);
+}
+
+// Review of rc.2 (finding 2): a slow floor that overshoots 0.5 degC every cycle
+// but closes only 3 cycles a day never had 5 cycles of evidence, because every
+// gain raise wiped it; so the gain rose daily (11..15) with the stop margin unchanged.
+TEST(AutoTuner, NoGainRaiseWhileTheRoomOvershoots) {
+    Driver d;
+    d.rooms = plan({RoomPlan::Emitter::floor});
+    d.learned[0] = {RoomPlan::Emitter::floor, 180}; // target gain 20
+    // 3 requests a day of 3 h (the burner 10 min on, 10 off inside), each up to 0.50 above.
+    const auto probe = [](uint32_t t) {
+        const uint32_t phase = t % 28800;
+        S x; x.heat = x.demand = phase < 10800; x.burner = x.heat && (phase / 600) % 2 == 0;
+        x.reason = x.heat ? Reason::heating : Reason::satisfied;
+        x.temp = int16_t(phase < 10800 ? 1980 + 70 * int(phase) / 10800 : 2050 - 70 * int(phase - 10800) / 18000);
+        return x;
+    };
+    for (int i = 0; i < 5; ++i) {
+        d.day(probe);
+        EXPECT_LE(d.tuning().flowPerDegreeC, 10) << "day " << i + 1 << ": no raise while overshooting";
+    }
+    EXPECT_LT(d.tuning().stopCentiC, 20) << "the stop margin comes down first";
+    for (size_t i = 0; i < d.tuner.logCount(); ++i) EXPECT_NE(d.tuner.change(i).reason, AutoTuner::Reason::roomResponse);
+}
+
+// Replay of the owner's data: the "hovering" deviation counted the night setback
+// (about 2 degC below the room), so many small-dip starts never widened the start margin.
+TEST(AutoTuner, HoveringIgnoresTheNightSetback) {
+    Driver d;
+    const auto program = [](uint32_t t) {
+        if (t >= 6 * 3600 && t < 22 * 3600) return cycles(5, 5)(t); // 20 degC, hovering within 0.15
+        S x; x.sp = 1800; x.temp = 1990; return x;                     // the night: 18 degC, the room still warm
+    };
+    d.day(program); // the first day has no comfort level of yesterday yet
+    d.day(program);
+    EXPECT_EQ(d.tuning().startCentiC, 25) << "small dips by day, the night does not count";
+    bool hovering = false;
+    for (size_t i = 0; i < d.tuner.logCount(); ++i) hovering = hovering || d.tuner.change(i).reason == AutoTuner::Reason::hovering;
+    EXPECT_TRUE(hovering);
 }
 
 TEST(AutoTuner, FewStartsNarrowAWidenedStartMargin) {
@@ -269,6 +391,33 @@ TEST(AutoTuner, NeedsEnoughEvidence) {
     EXPECT_EQ(h.tuning().minOffS, 300);
 }
 
+// Replay of the owner's data (31 Oct): the hot-water bit of a keep-warm round often
+// comes after the burner start, so those rounds counted as heating starts (31 where 3
+// were real). A burn is classified as a whole, with a minute before and after it.
+TEST(AutoTuner, KeepWarmRoundsWithALateHotWaterBitAreNoHeatingStarts) {
+    Driver d;
+    d.manual = e_start;
+    d.day([](uint32_t t) {
+        S x;
+        const uint32_t hour = t / 3600;
+        if (hour == 6 || hour == 12 || hour == 18) { x.heat = x.burner = x.demand = true; x.reason = Reason::heating; return x; } // 3 real starts
+        const uint32_t round = t / 1800, phase = t % 1800; // a keep-warm round every 30 min: 3 min burner
+        x.burner = phase < 180;
+        switch (round % 3) {
+            case 0: x.hotWater = phase >= 30 && phase < 180; break;  // the bit 30 s after the start
+            case 1: x.hotWater = (phase >= 200 && phase < 220) || phase >= 1780; break; // 20 s after its end; 20 s before the next start
+            default: break;                                          // the next round: the bit only before its start
+        }
+        return x;
+    });
+    Json root(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(d.tuner.addStatus(root.get(), d.now, d.tuning(), 0));
+    const cJSON* y = cJSON_GetObjectItem(cJSON_GetObjectItem(root.get(), "tuning"), "yesterday");
+    EXPECT_EQ(cJSON_GetObjectItem(y, "starts")->valueint, 3) << "only the heating burns";
+    EXPECT_EQ(cJSON_GetObjectItem(y, "burns")->valueint, 3);
+    EXPECT_EQ(d.tuning().minOffS, 300);
+}
+
 TEST(AutoTuner, WaitsADayAfterABootOrAChange) {
     Driver d;
     d.now = 0; d.utc = monday + 12 * 3600; // a boot at noon: the half day is no evidence
@@ -304,6 +453,68 @@ TEST(AutoTuner, ShadowModeOnlyShowsWhatItWouldDo) {
     m.day(cycles(5, 5));
     EXPECT_EQ(m.tuning().minOffS, 600); EXPECT_EQ(m.tuner.values().minOffS, 300);
     EXPECT_EQ(m.tuning().startCentiC, 25);
+}
+
+// Review of rc.2 (finding 5): changed() (store and apply the values) only when a value
+// changed: never on a shadow day, however many proposals it shows.
+TEST(AutoTuner, ChangedOnlyWhenAValueChanged) {
+    Driver s;
+    s.active = false;
+    bool changed = false;
+    const auto f = cycles(5, 5);
+    for (uint32_t t = 10; t <= 86400; t += 10) { s.step(f(t % 86400)); changed = changed || s.tuner.changed(); }
+    EXPECT_STREQ(s.tuner.state(s.now), "shadow");
+    Json root(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(s.tuner.addStatus(root.get(), s.now, s.tuning(), 0));
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(cJSON_GetObjectItem(root.get(), "tuning"), "would")), 2);
+    EXPECT_FALSE(changed) << "nothing applied, nothing to store";
+    Driver a;
+    for (uint32_t t = 10; t <= 86400; t += 10) a.step(f(t % 86400));
+    EXPECT_TRUE(a.tuner.changed());
+    // Still one step a day per knob.
+    for (uint32_t t = 10; t <= 86400; t += 10) a.step(f(t % 86400));
+    EXPECT_EQ(a.tuning().minOffS, 600);
+}
+
+// Review of rc.2 (finding 4): an applied change is in the log only, not also under "would".
+TEST(AutoTuner, AppliedChangesAreNotAlsoProposals) {
+    Driver d;
+    d.day(cycles(5, 5));
+    ASSERT_EQ(d.tuner.logCount(), 2u);
+    Json root(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(d.tuner.addStatus(root.get(), d.now, d.tuning(), 0));
+    const cJSON* tuning = cJSON_GetObjectItem(root.get(), "tuning");
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(tuning, "would")), 0);
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(tuning, "log")), 2);
+}
+
+// Replay of the owner's data: in shadow mode the burner follows the old thermostat;
+// its starts and short-cycling flag are no evidence of what the E32 would cause.
+// The proposals come from the E32's calculated request alone.
+TEST(AutoTuner, ShadowProposalsUseTheE32sRequestNotTheForeignBurner) {
+    const auto wouldKnobs = [](Driver& d) {
+        Json root(cJSON_CreateObject(), cJSON_Delete);
+        EXPECT_TRUE(d.tuner.addStatus(root.get(), d.now, d.tuning(), 0));
+        std::string keys;
+        const cJSON* would = cJSON_GetObjectItem(cJSON_GetObjectItem(root.get(), "tuning"), "would");
+        for (const cJSON* w = would ? would->child : nullptr; w; w = w->next) keys += std::string(cJSON_GetArrayItem(w, 0)->valuestring) + ",";
+        return keys;
+    };
+    // The E32 would start 6 times an hour; the foreign controller kept the burner off.
+    Driver a;
+    a.active = false; a.manual = e_start;
+    a.day([](uint32_t t) { auto x = cycles(5, 5)(t); x.burner = false; return x; });
+    EXPECT_STREQ(a.tuner.state(a.now), "shadow");
+    EXPECT_EQ(wouldKnobs(a), "min_off_s,") << "the E32's own many starts";
+    // The E32 would start 2.5 times an hour; the foreign burner short-cycles fast all day.
+    Driver b;
+    b.active = false; b.manual = e_start;
+    b.day([](uint32_t t) {
+        auto x = cycles(12, 12)(t);
+        x.burner = x.heat && t % 120 < 60; x.shortCycling = true;
+        return x;
+    });
+    EXPECT_EQ(wouldKnobs(b), "") << "the foreign burner is no evidence";
 }
 
 TEST(AutoTuner, ResetAndTheStoredRecord) {

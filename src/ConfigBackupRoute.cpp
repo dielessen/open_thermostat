@@ -116,7 +116,8 @@ void configBackupRequest(const char* body, std::size_t size, ConfigBackupHost& h
             b::cipher::wipe(plain);
             if (!sealed) { fail(out, 503, "seal_failed"); return; }
         }
-        reply(out, 200, document.get()); // the browser saves it indented
+        b::fitLearned(document.get(), state.learned); // the sealed box may have pushed it over maxBytes
+        reply(out, 200, document.get()); // unformatted, at most maxBytes: the browser saves it as it is
         return;
     }
 

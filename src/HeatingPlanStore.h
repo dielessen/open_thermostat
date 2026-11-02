@@ -5,6 +5,8 @@
 #include "control/ControlPartitionBudget.h"
 #include "control/ControlModelStorageReservation.h"
 #include "control/RoomPlan.h"
+#include "NvsOptionalRecords.h"
+#include <algorithm>
 #include <string>
 namespace heating {
 // The room plan (control/RoomPlan.h) as one private NVS blob, like the
@@ -32,16 +34,16 @@ inline std::string readHeatingPlan(bool* stored = nullptr) {
     return raw;
 }
 // storage_full: the partition budget refuses the write (HTTP 507, as for the
-// Bluetooth settings); failed: the write or its readback did not succeed.
+// Bluetooth settings), even after the optional records (learned, readiness,
+// autotune; NvsOptionalRecords.h) made room for it; failed: the write or its
+// readback did not succeed.
 enum class HeatingPlanSave { saved, storage_full, failed };
 inline HeatingPlanSave saveHeatingPlan(const std::string& raw) {
-    nvs_stats_t stats{};
-    const auto partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_NVS, "nvs");
-    if (raw.empty() || raw.find('\0') != std::string::npos || !partition || nvs_get_stats("nvs", &stats) != ESP_OK)
-        return HeatingPlanSave::failed;
-    if (!control::ControlPartitionBudget::permitsHeatingPlanWrite(
-               {partition->size, stats.total_entries, stats.used_entries, stats.free_entries, true},
-               raw.size() + 1, control::controlModelStorageReservation.current()))
+    if (raw.empty() || raw.find('\0') != std::string::npos || !nvsPartitionStats().valid) return HeatingPlanSave::failed;
+    const auto models = control::controlModelStorageReservation.current();
+    const size_t control = controlReplacementEntries(); // the stored control record's replacement
+    if (!makeNvsRoom([&](control::ControlPartitionStats s) {
+            return control::ControlPartitionBudget::permitsHeatingPlanWrite(s, raw.size() + 1, models, control); }))
         return HeatingPlanSave::storage_full;
     nvs_handle_t handle;
     if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return HeatingPlanSave::failed;

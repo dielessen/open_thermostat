@@ -575,6 +575,7 @@
     many_starts: "The burner now rests at least {to} before it starts again, because it started {figure} times yesterday. Fewer starts are gentler on the boiler.",
     cold_during_rest: "The burner rest is now {to}, because {room} cooled {figure} °C below its target while the burner rested. Comfort comes first.",
     short_burns: "Each burner run now lasts at least {to}, because {figure} runs yesterday were very short. Longer runs are gentler on the boiler.",
+    boiler_cycling: "The boiler switches on and off by itself ({figure} times yesterday); longer pauses would only delay heat, so this is now {to} again.",
     overshoot: "{room} got {figure} °C warmer than its target; the thermostat now stops heating a little earlier.",
     overshoot_gain: "{room} still got {figure} °C warmer than its target; the thermostat now heats a little more gently.",
     settled: "{room} hardly gets too warm any more ({figure} °C); the thermostat stops heating a little later again, so the burner starts less often.",
@@ -651,6 +652,8 @@
     if (y && ok(y.starts)) house.push(item(y.burns > 0 ? fill(uiText("Yesterday the burner started {n} times for heating; a burn lasted {d} on average."), {n: y.starts, d: duration(y.burn_s / 60)})
       : fill(uiText("Yesterday the burner started {n} times for heating."), {n: y.starts}),
       uiText(y.heating_h > 0 && y.starts > 3 * y.heating_h ? "That is often. Fewer, longer burns are gentler on the boiler; the thermostat works on that." : "Fewer, longer burns are gentler on the boiler and use gas more efficiently.")));
+    if (ok(learned?.boiler_minimum_flow_c)) house.push(item(fill(uiText("Your boiler only starts heating from about {flow} °C water; the thermostat asks at least that much."), {flow: learned.boiler_minimum_flow_c}),
+      uiText("It learned this when the boiler did not start for cooler water.")));
     if (!house.length) house.push(item(uiText("Nothing yet: this appears after the first heating days."), null));
     houseList.replaceChildren(...house);
     stateLine.textContent = t && states[t.state] ? uiText(states[t.state]) : '';

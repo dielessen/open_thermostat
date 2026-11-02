@@ -4,6 +4,8 @@
 #include "control/AutoTuner.h"
 #include "control/BoundedJson.h"
 #include "control/FlowPolicy.h"
+#include "control/OptionalRecordPriority.h"
+#include "NvsOptionalRecords.h"
 #include <cstring>
 #include <memory>
 #include <new>
@@ -39,7 +41,11 @@ struct FlowSettingsNvs {
 };
 // The automatic knobs and their change log (control/AutoTuner.h) beside it
 // ("ot_heating"/"autotune"): written when a day changed them (at most daily) or
-// on "back to start values". Absent or unreadable: the built-in values.
+// on "back to start values". Absent or unreadable: the built-in values. Only while
+// control's records keep their room: the values with as many of the newest log
+// entries as fit (ControlPartitionBudget::permitsOptionalWrite; the log after what
+// was learned, control/OptionalRecordPriority.h: `learnedPending`, the entries the
+// learned record still needs); none: false.
 struct AutoTunerNvs {
     static constexpr const char* key = "autotune";
     static void read(control::AutoTuner& tuner) {
@@ -51,9 +57,14 @@ struct AutoTunerNvs {
         nvs_close(handle);
         if (ok) tuner.restore(text.get());
     }
-    static bool write(const control::AutoTuner& tuner) {
-        const auto record = tuner.stored();
-        if (record.empty() || record.size() > control::AutoTuner::storedMaxBytes) return false;
+    static bool write(const control::AutoTuner& tuner, size_t learnedPending = 0) {
+        std::string record;
+        for (size_t log = control::AutoTuner::logSize + 1; log-- > 0 && record.empty();) {
+            record = tuner.stored(log);
+            if (record.size() > control::AutoTuner::storedMaxBytes
+                || !optionalHeatingRecordFits(key, record.size() + 1, log ? control::OptionalRecordPriority::tuningLog(learnedPending) : 0)) record.clear();
+        }
+        if (record.empty()) return false;
         nvs_handle_t handle;
         if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
         const bool committed = nvs_set_str(handle, key, record.c_str()) == ESP_OK && nvs_commit(handle) == ESP_OK;

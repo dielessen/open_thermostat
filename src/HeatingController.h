@@ -174,6 +174,7 @@ public:
         }
         // What was learned (control/LearnedState.h), after the plan and the tuning, before the first step.
         {
+            if (eraseStaleNvsKeys()) DBGLOGFI(log_, logFeature_, "NVS: erased the unused access secret of untagged October builds (ot_access/secret)\n");
             LearnedNvs nvs;
             const auto rooms = learnedStore_.restore(nvs, flowLearner_, flowPolicy_, bleReceiptClock());
             DBGLOGFI(log_, logFeature_, "Learned state restored for %u room(s)\n", unsigned(rooms));
@@ -332,6 +333,7 @@ public:
         if (raw.size() + 1 > control::RoomPlan::storeBytes) return "plan_too_large";
         if (raw.empty()) return "save_unconfirmed";
         const auto saved = saveHeatingPlan(raw);
+        rewriteEvicted(); // the plan first: optional records may have made room for it
         if (saved == HeatingPlanSave::storage_full) return "storage_full";
         if (saved != HeatingPlanSave::saved) return "save_unconfirmed";
         planStored_ = true;
@@ -429,7 +431,7 @@ public:
         if (settings == flowSettings_ && !reset) return nullptr;
         if (!(settings == flowSettings_) && !FlowSettingsNvs::write(settings)) return "save_unconfirmed";
         const auto now = bleReceiptClock();
-        if (reset) { autoTuner_.reset(now); AutoTunerNvs::write(autoTuner_); }
+        if (reset) { autoTuner_.reset(now); AutoTunerNvs::write(autoTuner_, learnedStore_.pendingEntries()); }
         else if (!(settings.tuning == flowSettings_.tuning) || settings.manual != flowSettings_.manual) autoTuner_.restart(now);
         applyFlowSettings(settings);
         return nullptr;
@@ -867,11 +869,24 @@ private:
     control::FlowPolicy flowPolicy_; // beta.19 options: weather curve, learned flow, optimum start (default: advice)
     control::FlowSettings flowSettings_; // as stored: the options, the owner's knobs and which are manual
     control::AutoTuner autoTuner_;       // rc.2: the automatic knobs from the measured days (NVS "autotune")
-    control::LearnedStore learnedStore_; // rc.2: the learner's, curve's and night ledger's state over restarts (NVS "learned*")
+    control::LearnedStore learnedStore_; // rc.2: the learner's, curve's and night ledger's state over restarts (NVS "learned_a", "learned_b")
+    // A plan or Bluetooth save erased optional NVS records to make room (NvsOptionalRecords.h):
+    // what was learned and the knobs are written again where they fit (readiness: its next save).
+    uint32_t evictions_ = 0;
+    void rewriteEvicted() {
+        const uint32_t e = optionalRecordEvictions().load();
+        if (e == evictions_) return;
+        evictions_ = e;
+        DBGLOGFI(log_, logFeature_, "NVS short of room: learned, readiness and tuning records made room for the plan or Bluetooth settings\n");
+        learnedStore_.forgetStored();
+        if (!AutoTunerNvs::write(autoTuner_, learnedStore_.pendingEntries())) DBGLOGFI(log_, logFeature_, "Tuning not saved (NVS short of room); kept in RAM\n");
+    }
     void saveLearned(uint64_t now) {
+        rewriteEvicted();
         LearnedNvs nvs;
         if (!learnedStore_.save(nvs, flowLearner_, flowPolicy_, now))
-            DBGLOGFI(log_, logFeature_, "Learned state not saved (NVS full or write failed); kept in RAM, retried in 6 h\n");
+            DBGLOGFI(log_, logFeature_, "Learned state of %u of %u room(s) saved (NVS short of room or a write failed); the rest kept in RAM, retried in 6 h\n",
+                     unsigned(learnedStore_.storedRooms()), unsigned(learnedStore_.rooms()));
     }
     control::HeatingHistory history_; // 24 h of 5-minute averages, ~12.5 KB PSRAM, RAM only
     control::HeatingInputRoute haInput_;  // ha/heating_input: rooms, gas, price, outdoor, boiler power
@@ -996,7 +1011,10 @@ private:
         in.boilerHeardAtMs = ems.boilerHeardAtMs;
         in.limitRead = ems.limitC && ems.limitReads > 0;
         readiness_.sample(now, in);
-        if (readiness_.saveDue(now)) { ReadinessNvs::write(readiness_.stored()); readiness_.saved(now); } // a failure retries in 6 h
+        if (readiness_.saveDue(now)) { // a failure retries in 6 h
+            if (!ReadinessNvs::write(readiness_.stored())) DBGLOGFI(log_, logFeature_, "Readiness not saved (NVS short of room or write failed)\n");
+            readiness_.saved(now);
+        }
     }
     // Charts only: fresh readings, effective targets, the boiler and both requests.
     void sampleHistory(uint64_t now, const control::FlowDemand::Request& request, const ems::EmsController::ActiveHeatView& ems, std::optional<uint8_t> tadoFlowC) {
@@ -1013,11 +1031,15 @@ private:
         else if (ems.hotWater) s.hotWater = H::noHotWater;  // the DHW bit is known and off
         history_.sample(now, s);
     }
-    // Report only: the boiler view and per room the fresh leading reading.
+    // Report only: the boiler view and per room the fresh leading reading. The heating
+    // reference: the E32's own request (the guard's last command) while it drives the
+    // boiler, else the controlling thermostat's 0x1A.
     void stepFlowLearner(uint64_t now, const ems::EmsController::ActiveHeatView& ems, std::optional<uint8_t> tadoFlowC) {
         const auto& plan = roomEngine_.plan();
-        control::FlowLearner::Boiler boiler{ems.flowCentiC, ems.burnerOn, ems.hotWater, tadoFlowC,
-            learnerOutdoor(now).centiC, ems.modulationPct, ems.returnCentiC};
+        const bool own = activeGuard_.outputActive();
+        control::FlowLearner::Boiler boiler{ems.flowCentiC, ems.burnerOn, ems.hotWater,
+            control::FlowLearner::heatingReference(own, activeGuard_.command().flowC, tadoFlowC),
+            learnerOutdoor(now).centiC, ems.modulationPct, ems.returnCentiC, own, ems.boilerProductId};
         std::array<control::FlowLearner::RoomInput, control::RoomPlan::maxRooms> rooms{};
         const size_t count = std::min(plan.rooms.size(), rooms.size());
         for (size_t i = 0; i < count; ++i) {
@@ -1061,7 +1083,8 @@ private:
         }
         autoTuner_.evaluate(now, *unixNow, flowSettings_.manual, plan, learned.data(), count);
         if (!autoTuner_.changed()) return;
-        AutoTunerNvs::write(autoTuner_); // a failure keeps the values this boot
+        if (!AutoTunerNvs::write(autoTuner_, learnedStore_.pendingEntries())) // a failure keeps the values this boot
+            DBGLOGFI(log_, logFeature_, "Tuning not saved (NVS short of room or write failed); kept in RAM\n");
         applyFlowSettings(flowSettings_);
     }
     // The options between the room engine's rule and the guard (control/FlowPolicy.h).
@@ -1095,7 +1118,8 @@ private:
         if (ems.foreign) in.foreign = control::ActiveHeatGuard::Foreign{ems.foreign->address, ems.foreign->receivedAtMs};
         in.uptimeMs = now; in.routeReady = ems.routeReady; in.boilerLimitC = ems.limitC;
         in.boiler = {ems.burnerOn, ems.flowCentiC}; in.boilerHeardAtMs = ems.boilerHeardAtMs;
-        activeGuard_.setFlowLimits(plan.minimumFlowC, plan.maximumFlowC);
+        // The learned lowest flow the boiler fires at (FlowLearner::effectiveMinimumC, below the plan's maximum).
+        activeGuard_.setFlowLimits(flowLearner_.effectiveMinimumC(ems.limitC), plan.maximumFlowC);
         const auto c = activeGuard_.step(now, in);
         // A foreign 0x1A, the hand-back or shadow mode erases the stored one.
         handover_.sync(activeGuard_.confirmed(), activeGuard_.reconfirmPending());

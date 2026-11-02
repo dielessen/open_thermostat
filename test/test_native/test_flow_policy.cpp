@@ -1,3 +1,4 @@
+#include "control/BoundedJson.h"
 #include "control/FlowPolicy.h"
 #include "control/HeatingTelemetry.h"
 #include "ScopedTz.h"
@@ -91,6 +92,31 @@ struct Step {
 };
 const FlowDemand::Request heat40{true, 40, FlowDemand::Reason::heating};
 const FlowDemand::Request idle{false, 0, FlowDemand::Reason::idle};
+
+// Review of rc.2 (finding 6): GET /config/heating/flow answers ~0.5 KB, but the POST took
+// at most 256 bytes, so posting the record back (a backup, a script) was refused.
+TEST(FlowSettings, TheWholeRecordPostsBack) {
+    FlowSettings s;
+    s.weatherCurve = s.applyLearned = true; s.designFlowC = 80;
+    size_t n; const auto* k = heating::control::ControlTuning::knobs(n);
+    for (size_t i = 0; i < n; ++i) s.tuning.*k[i].field = k[i].high;
+    s.manual = heating::control::ControlTuning::autoKnobs;
+    const auto compact = s.json(&s.tuning);
+    EXPECT_LE(compact.size(), FlowSettings::maxBytes);
+    EXPECT_GT(compact.size(), 256u) << "the old POST limit";
+    const auto root = parse(compact.c_str());
+    char* text = cJSON_Print(root.get()); // as a person or a script may post it
+    const std::string pretty = text; cJSON_free(text);
+    for (const auto& body : {compact, pretty}) {
+        EXPECT_LE(body.size(), FlowSettings::postMaxBytes);
+        const auto posted = heating::control::parseNestedJson(body, true, 2); // the route's depth limit
+        ASSERT_TRUE(posted) << body;
+        FlowSettings back;
+        ASSERT_EQ(FlowSettings::parse(posted.get(), back), nullptr);
+        EXPECT_TRUE(back == s);
+    }
+    EXPECT_FALSE(heating::control::parseNestedJson(std::string(R"({"tuning":{"a":{"b":1}}})"), true, 2)) << "still 2 levels at most";
+}
 
 TEST(FlowSettings, ParsesPartialUpdatesStrictly) {
     FlowSettings s;
@@ -316,6 +342,31 @@ TEST(FlowPolicy, LearnedOptimumStartHeatsAheadOfTheProgram) {
     s.rooms[0] = room(1850, 1850);
     const auto both = s.apply(FlowDemand::Request{true, 31, FlowDemand::Reason::heating}, &h.learner);
     EXPECT_TRUE(both.heat); EXPECT_GE(both.flowC, 31);
+}
+
+// A learned warm-up curve without a usable cooling model (here: no outdoor reading, so the
+// heat-loss rate cannot be used) plans from the current temperature: advice, never applied.
+TEST(FlowPolicy, OptimumStartNeedsTheCoolingModelToo) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    House h(plan(RoomPlan::Emitter::floor, true)); h.learn();
+    ASSERT_TRUE(h.learner.heatModel(0).lossPerHour);
+    Step s; s.p = plan(RoomPlan::Emitter::floor, true);
+    FlowSettings on; on.applyLearned = true; s.policy.setSettings(on);
+    const auto planned = WarmupPlanner::optimumStart(h.learner, 0, s.p.rooms[0].schedule, wednesday23, int16_t(1850), std::nullopt);
+    ASSERT_STREQ(planned.confidence, "learned");
+    EXPECT_FALSE(planned.coolingLearned);
+    EXPECT_FALSE(planned.applicable());
+    s.rooms[0] = room(1850, 1850); s.in.utc = planned.startUtc + 60;
+    EXPECT_FALSE(s.apply(idle, &h.learner).heat);
+    Json status(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(s.policy.addStatus(status.get(), false));
+    EXPECT_STREQ(at(at(at(status.get(), "flow"), "optimum_start"), "state")->valuestring, "advice");
+    // With the outdoor known, both models count and the start is applied.
+    s.in.outdoorCentiC = 500;
+    const auto both = WarmupPlanner::optimumStart(h.learner, 0, s.p.rooms[0].schedule, wednesday23, int16_t(1850), int16_t(500));
+    EXPECT_TRUE(both.applicable());
+    s.in.utc = both.startUtc + 120;
+    EXPECT_TRUE(s.apply(idle, &h.learner).heat);
 }
 
 TEST(FlowPolicy, DefaultLeadsAreOnlyAdvice) {

@@ -513,3 +513,15 @@ def test_the_summary_is_plain_and_in_the_users_language():
     assert "Stooklijn" not in dutch and "Buitentemperatuur volgen (stooklijn): Uit → Aan" in dutch
     assert "proefperiode" in dutch and "MQTT-wachtwoord" in dutch
     assert "Hasło MQTT" in summary_text(summary, "pl")
+
+
+def test_the_summary_names_the_tuning_and_what_the_thermostat_learned():
+    summary = {"changes": [{"section": "flow", "field": "tuning", "from": None, "to": None, "hidden": True},
+                           {"section": "learned", "field": "learned", "from": None, "to": None, "hidden": True}],
+               "warnings": ["learned_skipped"], "reenter": [], "restart": False}
+    for language, words in (("en", ("Comfort and boiler care", "What the thermostat has learned", "keeps learning")),
+                            ("nl", ("Comfort en zorg voor de ketel", "Wat de thermostaat heeft geleerd", "leert verder")),
+                            ("pl", ("Komfort i dbałość o kocioł", "Czego nauczył się termostat", "uczy się dalej"))):
+        text = summary_text(summary, language)
+        assert all(word in text for word in words), (language, text)
+        assert "- learned:" not in text and "tuning:" not in text and "learned_skipped" not in text

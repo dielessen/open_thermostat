@@ -1,4 +1,5 @@
 #include "control/WarmupPlanner.h"
+#include "Hrc22ReplayFixture.h"
 #include "ScopedTz.h"
 #include <functional>
 #include <gtest/gtest.h>
@@ -194,6 +195,74 @@ TEST(FlowLearner, KeepWarmStoreBlocksLearningUnlessBridged) {
     Json root(bridged.learner.json(), cJSON_Delete);
     for (const cJSON* q = cJSON_GetObjectItem(cJSON_GetArrayItem(cJSON_GetObjectItem(root.get(), "rooms"), 0), "curve")->child; q; q = q->next)
         EXPECT_LT(cJSON_GetObjectItem(q, "flow_c")->valuedouble, 54);
+}
+
+// The owner's recorded house (include/Hrc22ReplayFixture.h): each 30 s row is fed as three
+// 10 s samples, with the reference HeatingController passes (heatingReference).
+std::vector<std::vector<std::optional<int>>> fixtureRows(const char* text) {
+    std::vector<std::vector<std::optional<int>>> rows;
+    const std::string all(text);
+    for (size_t at = 0; at < all.size();) {
+        const size_t end = all.find(';', at);
+        std::string row = all.substr(at, end - at);
+        at = end + 1;
+        int repeat = 1;
+        if (const size_t star = row.find('*'); star != std::string::npos) { repeat = std::stoi(row.substr(0, star)); row = row.substr(star + 1); }
+        std::vector<std::optional<int>> fields;
+        for (size_t f = 0;;) {
+            const size_t comma = row.find(',', f);
+            const std::string v = row.substr(f, comma == std::string::npos ? std::string::npos : comma - f);
+            fields.push_back(v.empty() ? std::nullopt : std::optional<int>(std::stoi(v)));
+            if (comma == std::string::npos) break;
+            f = comma + 1;
+        }
+        for (int k = 0; k < repeat; ++k) rows.push_back(fields);
+    }
+    return rows;
+}
+// shadow: the tado drives the boiler; active: the E32 does and the tado is off the bus;
+// activeTado: active mode with the tado's (absent) 0x1A as the reference, as before rc.2.
+enum class Drive { shadow, active, activeTado };
+FlowLearner hrc22Learner(FlowLearner::Params p, Drive drive) {
+    FlowLearner l(p);
+    RoomPlan plan; plan.rooms.resize(1); plan.rooms[0].id = "woonkamer"; plan.rooms[0].emitter = RoomPlan::Emitter::floor;
+    l.setPlan(plan);
+    uint64_t now = 0;
+    for (const char* window : {hrc22::window1, hrc22::window2, hrc22::window3}) {
+        now += 6 * hour;  // the windows lie apart: a gap
+        for (const auto& r : fixtureRows(window)) {
+            FlowLearner::Boiler b;
+            if (r[2]) b.flowCentiC = int16_t(*r[2] * 100);
+            if (r[3]) { b.modulationPct = uint8_t(*r[3]); b.burnerOn = *r[3] > 0; }
+            if (r[4]) b.hotWater = *r[4] > 0;
+            const auto tado = drive != Drive::shadow || !r[5] ? std::nullopt : std::optional<uint8_t>(uint8_t(*r[5]));
+            b.requestedFlowC = FlowLearner::heatingReference(drive == Drive::active, uint8_t(r[6].value_or(0)), tado);
+            if (r[7]) b.outdoorCentiC = int16_t(*r[7] * 100);
+            FlowLearner::RoomInput in;
+            if (r[0]) { in.temperatureCentiC = int16_t(*r[0] * 10); in.source = 0; }
+            if (r[1]) in.setpointCentiC = int16_t(*r[1] * 10);
+            for (int k = 0; k < 3; ++k) { now += 10 * second; l.sample(now, b, &in, 1); }
+        }
+    }
+    const FlowLearner::RoomInput none;
+    l.sample(now + 6 * hour, FlowLearner::Boiler{}, &none, 1);  // the gap closes an open segment
+    return l;
+}
+
+TEST(FlowLearner, ActiveModeLearnsFromTheE32sOwnRequest) {
+    FlowLearner::Params p; p.bridgeHotWater = true;
+    // The absent tado as the reference: every burner pause ends the period, nothing is learned.
+    EXPECT_EQ(hrc22Learner(p, Drive::activeTado).segments(0), 0);
+    // The E32's own request: the same afternoon and evening give segments.
+    const auto own = hrc22Learner(p, Drive::active);
+    RecordProperty("active_segments", own.segments(0));
+    EXPECT_GE(own.segments(0), 3);
+    EXPECT_STREQ(own.readiness(0), "learning");
+    // Shadow mode keeps the controlling thermostat's request.
+    EXPECT_GE(hrc22Learner(p, Drive::shadow).segments(0), 1);
+    EXPECT_EQ(FlowLearner::heatingReference(true, 0, uint8_t(45)), uint8_t(0));  // the E32 asks no heat
+    EXPECT_EQ(FlowLearner::heatingReference(false, 40, uint8_t(45)), uint8_t(45));
+    EXPECT_FALSE(FlowLearner::heatingReference(false, 40, std::nullopt));
 }
 
 TEST(FlowLearner, BridgeEndsAfterItsLimit) {

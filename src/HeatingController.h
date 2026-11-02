@@ -967,10 +967,14 @@ private:
         else if (ems.hotWater) s.hotWater = H::noHotWater;  // the DHW bit is known and off
         history_.sample(now, s);
     }
-    // Report only: the boiler view and per room the fresh leading reading.
+    // Report only: the boiler view and per room the fresh leading reading. The heating
+    // reference: the E32's own request (the guard's last command) while it drives the
+    // boiler, else the controlling thermostat's 0x1A.
     void stepFlowLearner(uint64_t now, const ems::EmsController::ActiveHeatView& ems, std::optional<uint8_t> tadoFlowC) {
         const auto& plan = roomEngine_.plan();
-        control::FlowLearner::Boiler boiler{ems.flowCentiC, ems.burnerOn, ems.hotWater, tadoFlowC,
+        const bool own = activeGuard_.outputActive();
+        control::FlowLearner::Boiler boiler{ems.flowCentiC, ems.burnerOn, ems.hotWater,
+            control::FlowLearner::heatingReference(own, activeGuard_.command().flowC, tadoFlowC),
             learnerOutdoor(now).centiC, ems.modulationPct, ems.returnCentiC};
         std::array<control::FlowLearner::RoomInput, control::RoomPlan::maxRooms> rooms{};
         const size_t count = std::min(plan.rooms.size(), rooms.size());

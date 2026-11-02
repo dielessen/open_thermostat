@@ -113,6 +113,13 @@ public:
         std::optional<uint8_t> modulationPct;  // burner modulation (share of the gas input)
         std::optional<int16_t> returnCentiC;
     };
+    // The heating reference for requestedFlowC: while the E32 drives the boiler (active
+    // mode) its own request (0: no heat), since the old thermostat is silent then and
+    // nothing would be learned (rc.2 replay: 0 segments after the switch-over); in shadow
+    // mode the controlling thermostat's 0x1A.
+    static std::optional<uint8_t> heatingReference(bool e32Drives, uint8_t e32FlowC, std::optional<uint8_t> thermostatFlowC) {
+        return e32Drives ? std::optional<uint8_t>(e32FlowC) : thermostatFlowC;
+    }
     struct RoomInput {
         std::optional<int16_t> temperatureCentiC, setpointCentiC; // fresh reading only
         int8_t source = -1;                                       // leading source, -1 unknown

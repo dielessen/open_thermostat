@@ -117,14 +117,15 @@ inline void compactLearnedRoom(cJSON* r) {
     }
 }
 // Plan room in its MQTT form (no "id" either): {"optimum_start":{"reason","predicted_start_utc",
-// "lead_minutes","flow_c","confidence","reachable","start_now"},"night":{"reason",
+// "lead_minutes","flow_c","confidence","reachable","start_now","next_switch":{"utc","target_c"}},"night":{"reason",
 // "recommended","recommended_night_c","saving_m3","saving_eur"}} (fields of an
 // unplanned reason are absent, as in the full form).
 inline void compactPlanRoom(cJSON* p) {
     using telemetry_detail::keepOnly;
     keepOnly(p, {"optimum_start", "night"});
-    keepOnly(cJSON_GetObjectItemCaseSensitive(p, "optimum_start"),
-             {"reason", "predicted_start_utc", "lead_minutes", "flow_c", "confidence", "reachable", "start_now"});
+    cJSON* start = cJSON_GetObjectItemCaseSensitive(p, "optimum_start");
+    keepOnly(start, {"reason", "predicted_start_utc", "lead_minutes", "flow_c", "confidence", "reachable", "start_now", "next_switch"});
+    keepOnly(cJSON_GetObjectItemCaseSensitive(start, "next_switch"), {"utc", "target_c"}); // rc.2: "to be 21 degC at 09:00"
     keepOnly(cJSON_GetObjectItemCaseSensitive(p, "night"), {"reason", "recommended", "recommended_night_c", "saving_m3", "saving_eur"});
 }
 

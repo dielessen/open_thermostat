@@ -2988,7 +2988,7 @@
           "reconfirm_not_released": "This E32 firmware does not allow the E32 to control the boiler. Nothing was changed.",
           "reconfirm_unconfirmed": "The E32 did not confirm. Check the E32 Rooms page → Active control.",
           "e32_unreachable": "The E32 cannot be reached right now. Try again in a moment.",
-          "e32_password_change_required": "The E32 still uses its default password and accepts no changes. Choose a new E32 password first (Settings → Repairs), then confirm here."
+          "e32_password_change_required": "The E32 still uses its default password and accepts no changes. Choose a new E32 password first (Settings → Repairs → “E32 still uses the default password”), then confirm here."
         },
         "abort": {
           "reconfirm_done": "The E32 no longer waits for a confirmation.",
@@ -3092,7 +3092,7 @@
           "e32_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (Home Assistant: Settings → Updates → OpenThermostat E32 Firmware → Install), then try again. Nothing has been changed.",
           "e32_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
           "e32_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again.",
-          "e32_password_change_required": "The E32 still uses its default password and accepts no changes until you choose a new one. Open Settings → Repairs → “Choose a new E32 password”. Nothing was saved."
+          "e32_password_change_required": "The E32 still uses its default password and accepts no changes until you choose a new one. Open Settings → Repairs → “E32 still uses the default password” to choose it. Nothing was saved."
         },
         "abort": {
           "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
@@ -3134,7 +3134,7 @@
           "e32_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (Home Assistant: Settings → Updates → OpenThermostat E32 Firmware → Install), then try again. Nothing has been changed.",
           "e32_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
           "e32_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again.",
-          "e32_password_change_required": "The E32 still uses its default password and accepts no changes until you choose a new one. Open Settings → Repairs → “Choose a new E32 password”. Nothing was saved."
+          "e32_password_change_required": "The E32 still uses its default password and accepts no changes until you choose a new one. Open Settings → Repairs → “E32 still uses the default password” to choose it. Nothing was saved."
         },
         "abort": {
           "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
@@ -3383,7 +3383,7 @@
       "message": "The backup of the E32 settings failed. Try again in a minute."
     },
     "e32_password_change_required": {
-      "message": "The E32 still uses its default password and accepts no changes until you choose a new one. Open Settings → Repairs → “Choose a new E32 password”. Nothing was saved."
+      "message": "The E32 still uses its default password and accepts no changes until you choose a new one. Open Settings → Repairs → “E32 still uses the default password” to choose it. Nothing was saved."
     }
   },
   "device": {

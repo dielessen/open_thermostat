@@ -295,7 +295,7 @@ Nothing is overwritten silently.
 ### Temporary changes, open windows and away
 
 These work on top of the room plan and never change it. They only change a
-room's **target**: the flow limits, the boiler's own limit and frost
+room's **target**: the water temperature limits, the boiler's own limit and frost
 protection stay as they are. During the trial run they are computed and shown, like
 everything else.
 
@@ -499,7 +499,7 @@ the valve's own regulator then sets its opening. Valves that report their
 position feed back into the boiler flow: when every valve that asks for heat is
 only partly open the flow goes down a step, when one is fully open while its
 room is still more than 0.5 °C too cold it goes up a step; at most 1 °C per
-10 minutes and 8 °C in all. The room plan's flow limits and the boiler's own
+10 minutes and 8 °C in all. The water temperature limits and the boiler's own
 maximum still apply.
 
 **All valves closed.** When every room that asks for heat has only valves that

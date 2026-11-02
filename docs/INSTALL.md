@@ -4,8 +4,8 @@ This guide takes you from a new BBQKees E32 V2 gateway to a working
 OpenThermostat with Home Assistant: firmware installed, connected to your
 network and boiler, linked to Home Assistant, and your rooms set up with a
 week program. You do not need to be a developer. You do need to be
-comfortable copying files to Home Assistant and, once, connecting the E32 to
-your boiler.
+comfortable adding a custom integration to Home Assistant (with HACS, or by
+copying files) and, once, connecting the E32 to your boiler.
 
 It matches E32 firmware **beta.23 or newer** and the Home Assistant
 integration that the same release notes pair with it. Always install the
@@ -27,6 +27,10 @@ other.
 Want someone to check the guide as they go? Give them the
 [installation checklist](INSTALL-CHECK.md): each step, its expected result
 and where to look.
+
+Installing as a field tester? Start with the
+[field tester pack](FIELD-TESTER.md): what to prepare, the install order, how
+to hand back to your thermostat, and what to report.
 
 **Time needed:** about one hour for the E32, plus about half an hour for Home
 Assistant.
@@ -82,6 +86,9 @@ Assistant.
   Home Assistant over MQTT. Section 8 explains how to set it up.
 - Internet access for Home Assistant, so it can fetch firmware updates from
   GitHub.
+- **HACS** (the Home Assistant Community Store) is the easiest way to install
+  and update the integration (section 9). Without HACS you copy the release
+  ZIP into Home Assistant by hand.
 
 **Optional**
 
@@ -91,7 +98,7 @@ Assistant.
   integrations (ZHA, Z-Wave, Shelly and so on) work through Home Assistant
   without it. See [Radiator valves](USER-GUIDE.md#radiator-valves).
 
-**Not needed:** a cloud account, HACS or the ESPHome integration. Without
+**Not needed:** a cloud account or the ESPHome integration. Without
 Home Assistant, sections 8 to 11 do not apply: you then set up the rooms on
 the E32 itself (see the [user guide](USER-GUIDE.md#5-add-your-first-room-on-the-e32)).
 
@@ -297,8 +304,8 @@ Leave the other settings as they are for now. MQTT follows in section 8.
 3. Switch the boiler on again.
 4. On the E32, open **Boiler**. Within a few minutes it shows live values such
    as flow and return temperature, the burner status and the boiler's
-   **Display code** in words. "EMS reception is
-   off." means the **Boiler bus (EMS) on** setting from section 5 is still off.
+   **Display code** in words. "Listening to the boiler bus (EMS) is off."
+   means the **Boiler bus (EMS) on** setting from section 5 is still off.
 5. Open **Boiler model**, choose your boiler and choose **Save boiler
    selection**. This only changes the name and picture shown; it does not
    change how the E32 talks to the boiler.
@@ -389,7 +396,43 @@ page shows the connection and its counters.
 
 ## 9. Install the Home Assistant integration
 
-The integration is installed by hand; it is not available through HACS yet.
+Install the integration with HACS (9.1), or copy the release ZIP by hand
+(9.2). Both put the same files in the same place:
+`<config>/custom_components/open_thermostat`, where `<config>` is your Home
+Assistant configuration folder (the folder that contains
+`configuration.yaml`). Use one route, not both. Already installed by hand?
+See 9.3 to move to HACS.
+
+Always install the integration version that the release notes pair with your
+E32 firmware.
+
+### 9.1 With HACS (recommended)
+
+OpenThermostat is a *custom repository* in HACS: you add it once.
+
+1. In Home Assistant, open **HACS**, the three dots at the top right, and
+   choose **Custom repositories**.
+2. Enter the repository `https://github.com/dielessen/openthermostat-ha`,
+   choose the type **Integration** and select **Add**. Close the dialog.
+3. Search HACS for **OpenThermostat** and open it. Select **Download** at the
+   bottom right; the dialog selects the newest stable version. Select
+   **Download** again.
+4. Restart Home Assistant (**Settings → System → Restart**). *Why:* Home
+   Assistant only loads new integrations at start-up.
+
+**Pre-releases** (versions such as `1.0.0rc2` or `0.4.0b15`): HACS offers only
+stable versions unless you ask for more. Two ways:
+
+- **One specific version:** in the HACS list, open the three dots of the
+  **OpenThermostat** entry, choose **Download** (or **Redownload** when it is
+  already installed), open **Need a different version?** and pick the version
+  the release notes name. Then restart Home Assistant.
+- **Be offered pre-releases as updates:** open **Settings → Devices & services
+  → HACS** and the **OpenThermostat** device there. Its **Pre-release** switch
+  is disabled by default: enable the entity first, then switch it on. Turn it
+  off again to stay on stable versions.
+
+### 9.2 Without HACS: the release ZIP
 
 1. On the [releases page](https://github.com/dielessen/open_thermostat/releases),
    choose the **Home Assistant** release that the release notes pair with your
@@ -398,9 +441,8 @@ The integration is installed by hand; it is not available through HACS yet.
 2. Extract the ZIP on your computer. It contains a folder
    `custom_components/open_thermostat`.
 3. Copy that `open_thermostat` folder into the `custom_components` folder of
-   your Home Assistant configuration folder (the folder that contains
-   `configuration.yaml`). Create `custom_components` if it does not exist yet.
-   When you are done, this file must exist:
+   your Home Assistant configuration folder. Create `custom_components` if it
+   does not exist yet. When you are done, this file must exist:
    `<config>/custom_components/open_thermostat/manifest.json`.
    Any way of copying files to Home Assistant works, for example the
    **Samba share** or **File editor** add-on.
@@ -410,6 +452,29 @@ The integration is installed by hand; it is not available through HACS yet.
 The other files in the ZIP (licence, checksums, release notes, `SOURCE.json`)
 do not need to be copied. The optional Zigbee2MQTT companion in the same
 release is not needed.
+
+### 9.3 Move a manual install to HACS
+
+HACS writes to the same `custom_components/open_thermostat` folder as the
+manual install, so your OpenThermostat entry, rooms, programs and entities
+stay as they are. Nothing needs to be removed first.
+
+1. Make a Home Assistant backup: **Settings → System → Backups → Back up
+   now**.
+2. Keep the OpenThermostat entry under **Settings → Devices & services**. Do
+   not delete it and do not add the integration a second time.
+3. Follow 9.1: add the custom repository and download the version that
+   matches your E32 firmware (the version you have, or the newer one the
+   release notes pair with it). HACS replaces the files in
+   `custom_components/open_thermostat`.
+4. Restart Home Assistant.
+5. Check: **Settings → Devices & services** shows **one** OpenThermostat entry
+   with your rooms, and HACS lists OpenThermostat as downloaded.
+
+Keep no second copy of the integration inside `custom_components` (for
+example a renamed `open_thermostat_old` folder): Home Assistant would see two
+integrations with the same name. Store a copy outside the configuration
+folder if you want one.
 
 ## 10. Add the integration and connect the E32
 
@@ -579,12 +644,13 @@ changes on the device are not seen until Home Assistant is back.
 
 ### 11.4 Water temperature limits
 
-The flow temperature is how warm the boiler water is that the E32 would ask
-for. Check the limits under **Configure → Home → Heating and boiler** in Home
-Assistant (without Home Assistant: the E32 **Home** page, section **Flow
-temperature limits**, then **Save limits**). The default is 30–60 °C. Floor heating fed without a
-mixing valve usually needs at most 45–50 °C; radiators often need 60–75 °C on
-cold days. The E32 never asks for more than the maximum heating temperature
+These limits are the lowest and highest water temperature to the heating
+(flow temperature) that the E32 may ask of the boiler, for all rooms
+together. Check them under **Configure → Home → Heating and boiler** in Home
+Assistant (without Home Assistant: the E32 **Home** page, section **Water
+temperature limits**, then **Save limits**). The default is 30–60 °C. Floor
+heating fed without a mixing valve usually needs at most 45–50 °C; radiators
+often need 60–75 °C on cold days. The E32 never asks for more than the maximum heating temperature
 set on the boiler itself.
 
 ### 11.5 More options (optional)
@@ -745,6 +811,13 @@ which integration goes with which firmware. Usually: **update the integration
 first, then the firmware.**
 
 ### 13.2 Update the integration
+
+**With HACS:** **Settings → Updates** shows the new OpenThermostat version.
+Select it, **Install**, then restart Home Assistant. A pre-release only shows
+up there when the **Pre-release** switch is on; otherwise download that
+version as in [section 9.1](#91-with-hacs-recommended).
+
+**Without HACS:**
 
 1. Download the new `OpenThermostat-HA-<version>.zip` from the releases page.
 2. Delete the old `custom_components/open_thermostat` folder in your Home
@@ -1035,14 +1108,17 @@ but it can look as if something is missing.
 - In Home Assistant, values the boiler never reported are created disabled.
   You can enable them on the device page.
 - No boiler values at all? Check that **Boiler bus (EMS) on** is ticked
-  (section 5) and that the Boiler page does not say "EMS reception is off.".
+  (section 5) and that the Boiler page does not say "Listening to the boiler bus (EMS) is off.".
 
 ### A room shows no measurement
 
-- **"Last value (source lost)"**: none of the room's sources delivered a fresh
-  reading. The room keeps its last value for 30 minutes.
-- **"No measurement: no heat request"**: still no reading after 30 minutes;
-  the room stops asking for heat.
+- **"Backup sensor in use"**: the room's first source stopped reporting and
+  its second source (backup sensor) measures the room. Nothing is wrong with
+  the heating; check the first sensor.
+- **"Sensor silent: last reading used"**: none of the room's sources delivered
+  a fresh reading. The room keeps its last value for 30 minutes.
+- **"No reading: this room does not ask for heat"**: still no reading after
+  30 minutes; the room stops asking for heat.
 
 A Bluetooth reading is valid for 15 minutes, so the sensor must be heard at
 least that often. A Home Assistant source needs Home Assistant and MQTT

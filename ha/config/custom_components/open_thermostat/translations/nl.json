@@ -2988,7 +2988,7 @@
           "reconfirm_not_released": "Deze E32-firmware laat de E32 de ketel niet regelen. Er is niets gewijzigd.",
           "reconfirm_unconfirmed": "De E32 heeft het niet bevestigd. Kijk op de E32 bij Ruimtes → Actieve regeling.",
           "e32_unreachable": "De E32 is nu niet bereikbaar. Probeer het zo opnieuw.",
-          "e32_password_change_required": "De E32 gebruikt nog het standaardwachtwoord en accepteert geen wijzigingen. Kies eerst een nieuw E32-wachtwoord (Instellingen → Reparaties) en bevestig dan hier."
+          "e32_password_change_required": "De E32 gebruikt nog het standaardwachtwoord en accepteert geen wijzigingen. Kies eerst een nieuw E32-wachtwoord (Instellingen → Reparaties → “E32 gebruikt nog het standaardwachtwoord”) en bevestig dan hier."
         },
         "abort": {
           "reconfirm_done": "De E32 wacht niet meer op een bevestiging.",
@@ -3092,7 +3092,7 @@
           "e32_update_required": "De E32 heeft hiervoor te oude firmware. Werk de E32 eerst bij naar beta.19 of nieuwer (Home Assistant: Instellingen → Updates → OpenThermostat E32 Firmware → Installeren) en probeer het daarna opnieuw. Er is niets gewijzigd.",
           "e32_session_capacity": "De E32 heeft te veel open aanmeldingen. Meld je af op de webpagina van de E32 (of meld je daar aan met “Eerdere websessies beëindigen en aanmelden”) of herstart de E32, en probeer het daarna opnieuw.",
           "e32_try_again_later": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw.",
-          "e32_password_change_required": "De E32 gebruikt nog het standaardwachtwoord en accepteert geen wijzigingen tot je een nieuw wachtwoord kiest. Open Instellingen → Reparaties → “Kies een nieuw E32-wachtwoord”. Er is niets opgeslagen."
+          "e32_password_change_required": "De E32 gebruikt nog het standaardwachtwoord en accepteert geen wijzigingen tot je een nieuw wachtwoord kiest. Open Instellingen → Reparaties → “E32 gebruikt nog het standaardwachtwoord” om het te kiezen. Er is niets opgeslagen."
         },
         "abort": {
           "legacy_rooms_none": "Er zijn geen oude Home Assistant-ruimtes om te verwijderen.",
@@ -3134,7 +3134,7 @@
           "e32_update_required": "De E32 heeft hiervoor te oude firmware. Werk de E32 eerst bij naar beta.19 of nieuwer (Home Assistant: Instellingen → Updates → OpenThermostat E32 Firmware → Installeren) en probeer het daarna opnieuw. Er is niets gewijzigd.",
           "e32_session_capacity": "De E32 heeft te veel open aanmeldingen. Meld je af op de webpagina van de E32 (of meld je daar aan met “Eerdere websessies beëindigen en aanmelden”) of herstart de E32, en probeer het daarna opnieuw.",
           "e32_try_again_later": "Te veel aanmeldpogingen op de E32. Wacht 30 seconden en probeer het daarna opnieuw.",
-          "e32_password_change_required": "De E32 gebruikt nog het standaardwachtwoord en accepteert geen wijzigingen tot je een nieuw wachtwoord kiest. Open Instellingen → Reparaties → “Kies een nieuw E32-wachtwoord”. Er is niets opgeslagen."
+          "e32_password_change_required": "De E32 gebruikt nog het standaardwachtwoord en accepteert geen wijzigingen tot je een nieuw wachtwoord kiest. Open Instellingen → Reparaties → “E32 gebruikt nog het standaardwachtwoord” om het te kiezen. Er is niets opgeslagen."
         },
         "abort": {
           "legacy_rooms_none": "Er zijn geen oude Home Assistant-ruimtes om te verwijderen.",
@@ -3383,7 +3383,7 @@
       "message": "De back-up van de E32-instellingen is mislukt. Probeer het over een minuut opnieuw."
     },
     "e32_password_change_required": {
-      "message": "De E32 gebruikt nog het standaardwachtwoord en accepteert geen wijzigingen tot je een nieuw wachtwoord kiest. Open Instellingen → Reparaties → “Kies een nieuw E32-wachtwoord”. Er is niets opgeslagen."
+      "message": "De E32 gebruikt nog het standaardwachtwoord en accepteert geen wijzigingen tot je een nieuw wachtwoord kiest. Open Instellingen → Reparaties → “E32 gebruikt nog het standaardwachtwoord” om het te kiezen. Er is niets opgeslagen."
     }
   },
   "device": {

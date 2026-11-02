@@ -42,7 +42,7 @@ payload examples; this page is not an installation or boiler-test procedure.
 
 Room catalog entries have stable eight-character hexadecimal IDs; program entries
 refer to existing rooms using `room_id`. Catalog changes conflicting with saved
-programs are rejected. See the [room/program format](../README.md#room-and-program-configuration).
+programs are rejected. See the [room/program format](README-LEGACY.md#room-and-program-configuration).
 Some settings require a restart to take effect; successful persistence alone is
 not proof that hardware was initialized or a setting is supported on the board.
 

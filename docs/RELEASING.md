@@ -59,6 +59,11 @@ every job as before.
    every browser test 3 rounds of 4 parallel copies pinned to one CPU core. A
    timing race in a test shows up there, not on a loaded CI runner. Fix a race at
    its cause, never with a retry, a longer timeout or a skip.
+
+   A change to learning or self-tuning (FlowLearner, AutoTuner, WarmupPlanner,
+   FlowPolicy) is also replayed on the owner's full recording, before and after
+   the change (`tools/replay/README.md`). The `replay` step checks the
+   anonymised fixture only.
 3. **Push the branch only now**, and wait until its CI run is completely green.
    Do not push half-checked work to a release branch: every push starts CI.
 4. **Tag the same commit**: `v…-e32v2-…` and/or `ha-v…`. Push the tags. The tag

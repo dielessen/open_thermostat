@@ -1,0 +1,7 @@
+{"schema":1,"revision":1,"mode":"shadow","minimum_flow_c":30,"maximum_flow_c":60,"rooms":[
+ {"id":"room1","name":"room1","state":"active","inactive_until":0,"emitter":"floor",
+  "sources":[{"type":"ha","id":"sensor.room1"}],"setpoint_entity":"sensor.room1",
+  "fallback_centi_c":2000,"minimum_centi_c":500,"maximum_centi_c":2500,
+  "schedule":[[[0,1850],[540,2100],[1350,1850]],[[0,1850],[540,2100],[1350,1850]],[[0,1850],[540,2100],[1350,1850]],
+              [[0,1850],[540,2100],[1350,1850]],[[0,1850],[540,2100],[1350,1850]],[[0,1850],[540,2100],[1350,1850]],
+              [[0,1850],[540,2100],[1350,1850]]]}]}

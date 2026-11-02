@@ -28,7 +28,7 @@ L=${LOGDIR:-/tmp/final-check}
 LOCK=${PIO_LOCK:-/tmp/openthermostat-pio.lock}
 MQTT_PORT=${MQTT_PORT:-18839}
 WF=$R/.github/workflows/build.yml
-STEPS="static verifiers harnesses native ha ha_min browser browser_stress soak fuzz builds literal_reach link_review unittests"
+STEPS="static verifiers harnesses native ha ha_min browser browser_stress soak replay fuzz builds literal_reach link_review unittests"
 
 DRY=0; ONLY=""; SKIP=""; STRESS=0
 while [ $# -gt 0 ]; do
@@ -159,6 +159,9 @@ s_browser(){
 }
 s_browser_stress(){ BROWSER_TEST_LOGS=$L/browser-stress bash test/run-browser-tests.sh --stress "$STRESS"; }
 s_soak(){ SOAK_BUILD=$L/soak-build SOAK_OUT=$L/soak-out bash test/soak/run.sh smoke; }
+# The learning and self-tuning on the anonymised real-data fixture (tools/replay/README.md), about 25 s with the build.
+REPLAY_FIXTURE=test/fixtures/replay/house-shadow.csv
+s_replay(){ REPLAY_BUILD=$L/replay-build REPLAY_OUT=$L/replay-out REPLAY_VERBOSE=1 python3 tools/replay/test_replay.py -v; }
 s_fuzz(){ OUT=$L/fz-build WORK=$L/fz-work bash test/fuzz/run.sh smoke 60; }
 s_builds(){
   set -e
@@ -210,7 +213,7 @@ if [ $DRY = 1 ]; then
     if ci "$name" > "$f" && bash -n "$f"; then echo "CI step ok: $name ($(wc -l < "$f") lines)"; else echo "CI step BROKEN: $name"; ok=1; fi
   done
   echo "browser tests: $(bash test/run-browser-tests.sh --list | wc -l)"
-  for f in "$0" test/native_harnesses.sh test/run-browser-tests.sh test/interop/prepare_runners.sh; do bash -n "$f" && echo "bash -n $f ok" || ok=1; done
+  for f in "$0" test/native_harnesses.sh test/run-browser-tests.sh test/interop/prepare_runners.sh tools/replay/run.sh; do bash -n "$f" && echo "bash -n $f ok" || ok=1; done
   echo "steps: $STEPS (fuzz only with FUZZ=1, browser_stress only with --stress N)"
   ONLY=",static,verifiers,"; SKIP=""
   ALLOW_DIRTY=1 step static s_static
@@ -229,6 +232,7 @@ step ha_min s_ha_min
 step browser s_browser
 step browser_stress s_browser_stress
 step soak s_soak
+if [ -f "$REPLAY_FIXTURE" ]; then step replay s_replay; else RESULTS+=("SKIP  replay (no $REPLAY_FIXTURE)"); fi
 step fuzz s_fuzz
 step builds s_builds
 step literal_reach s_literal_reach

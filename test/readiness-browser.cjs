@@ -45,8 +45,8 @@ const items=list=>list.evaluate(ul=>[...ul.children].map(li=>[li.className.repla
   const box=page.locator('#heating-plan [data-heating-readiness]'),list=box.locator('[data-heating-readiness-list]');
   const verdict=box.locator('[data-heating-readiness-verdict]');
   await box.waitFor();
-  // Right before "Comparison with your thermostat", in shadow mode.
-  assert.equal(await box.evaluate(b=>b.nextElementSibling.matches('[data-heating-shadow]')),true);
+  // In shadow mode: right before "Active control" (its takeover button follows this checklist), then the comparison.
+  assert.equal(await box.evaluate(b=>b.nextElementSibling.matches('[data-heating-active]')&&b.nextElementSibling.nextElementSibling.matches('[data-heating-shadow]')),true);
   if(language==='en'){
    assert.equal(await box.locator('h2').innerText(),'Ready for the E32 to control the boiler?');
    assert.equal(await verdict.innerText(),'Not yet: the trial run needs at least 3 days of data.');

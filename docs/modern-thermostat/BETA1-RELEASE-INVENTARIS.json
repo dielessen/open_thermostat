@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "c55382b4839fbafa4e8b57fab46e75247177cb2d420ad00c687314e4fe9ef9dc"
+          "sha256": "ae12f3c1695ca4fa39fe2ac64f6dac101cad5433400535d7ab5fca0acb7f69a6"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "2b55b7b957c1cb9b7b20d51f02dec6509dd10e92d5acaa73244f96e5aef819f1"
+          "sha256": "81d9cf9e100d72d7cec15f18e67862c9c6ef3948b07b4fb43a4aad5ae1b9f9c1"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "e233b0f77db429a0955e610c58e714bfd5be15a9762c388b439f04f3d87a85ef"
+          "sha256": "26d2fa13a63f9f806645e1963881efae4e359aab44276033418b37f912cfd459"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
@@ -635,11 +635,11 @@
         },
         {
           "path": "docs/modern-thermostat/RC2-KANDIDAAT.json",
-          "sha256": "5f26cb117e077d68640b2e6c8ade253a07fa5e45386c53950c0cdeda7fda015e"
+          "sha256": "8cdf7249459c221850d3cd638e795e345b4e1613386f69294a57d19aa1143d86"
         },
         {
           "path": "docs/modern-thermostat/RC2-OWNER-INSTRUCTION-20261102.json",
-          "sha256": "ca39e66d374e34ad2c8df8cf06644536e394840624a5345654751aa02ed3f975"
+          "sha256": "1a46eaf5c8582418b9d4973f80767a17e7f88c607ced45b420006e93920827db"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-1.0-RC2-NOTES-DRAFT.en.md",
@@ -647,7 +647,7 @@
         },
         {
           "path": "scripts/publish_hacs_repo.py",
-          "sha256": "791a223f8f3ee8ee25c7487f1f3fb7fcaac758a7880c70d257dd0c7d78e283fc"
+          "sha256": "e908c4f9b0c6ca810ba46bfc7a67ad01a8d89bccdf1960472b279cb97b4d5eed"
         },
         {
           "path": "src/LearnedStore.h",
@@ -688,6 +688,14 @@
         {
           "path": "tools/replay/test_replay.py",
           "sha256": "b965eb41c3ec83c19b36723c5e5a9a9dddd9870666d127b220954a1e1eed88c4"
+        },
+        {
+          "path": "docs/modern-thermostat/RC1-UPDATE-GAP-20261102.json",
+          "sha256": "9eb70b963ab97f63215b8fc1d0fa76cb45296e39bbd3f4ee9651de03e850eeff"
+        },
+        {
+          "path": "docs/modern-thermostat/RC2-PUBLICATION-EXCEPTION-20261102.json",
+          "sha256": "360f16bc09f66e5edec785c3eb269024364caab3ed95af8e4d3024280c794a2e"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -833,11 +841,11 @@
         },
         {
           "path": "scripts/verify_e32_update_gate.py",
-          "sha256": "68a96fcf23f6be24cbaa23d15ca1359a668c5c84615477d552bd599e9340c131"
+          "sha256": "b4c3d8c206cb4ac5d7df38d60b3185e310c4cd8c64e2631f39c72030ba0eb16d"
         },
         {
           "path": "scripts/test_verify_e32_update_gate.py",
-          "sha256": "453571b72680079844b8fef658732be93678f56002479a4976606caf79bbcf07"
+          "sha256": "0e4cdbbb272645082a14f08983ce462484851d4cdc50a117b3dd93120af75eeb"
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md",
@@ -1510,6 +1518,30 @@
         {
           "path": "ha/tests_native/test_polish_translation.py",
           "sha256": "5b5ee4c648648d85f2ed1f9c793eb84b1d306015bb7c1b75041d1f0d8659edf1"
+        },
+        {
+          "path": "docs/img/screenshots/e32-boiler-rc2.png",
+          "sha256": "fd7b26c4b7f32cd2b266af2186bfb9e0bd06ccc9b6f997969c59d9fb8a68f981"
+        },
+        {
+          "path": "docs/img/screenshots/e32-home-learned-rc2.png",
+          "sha256": "a97a735c279781aa8b7c89f17480802dd5e6fd8502a4dd3292b2ccde16f3b70f"
+        },
+        {
+          "path": "docs/img/screenshots/e32-overview-phone-dark-rc2.png",
+          "sha256": "286a76ba4f5c47091428299d71d8992ee0f8c55886a6857ea9fc4d09df6c4885"
+        },
+        {
+          "path": "docs/img/screenshots/e32-overview-rc2.png",
+          "sha256": "77f044242efd62b3df335e9ee25fbd645e791ac40bd378aba8bd8db683311881"
+        },
+        {
+          "path": "docs/img/screenshots/e32-rooms-rc2.png",
+          "sha256": "5da0ac64ad97af1a7180e263d8572b05df16e4655d2483a3d755e985e535d305"
+        },
+        {
+          "path": "docs/img/screenshots/ha-week-card-rc2.png",
+          "sha256": "3ad4a7e9982f6922e4f32f8bd0009017befc58fe4ee8dae684590801458e3299"
         }
       ],
       "remaining_acceptance": "HRC22H/modelkeuze, EN/NL, About/navigatie en incrementeel dashboard geleverd in alpha23/HA29. Normale HTTPS-update, exacte running-ELF/web/source en modelreadback geverifieerd. Shipped-browserproeven bewijzen behoud van openstatus/focus/scroll; op de module zijn exacte geserveerde webbytes bewezen, geen live browserpixels. Modelkeuze verandert geen decoder/adressen/ontvangst/aansturing en verleent geen technische ketelvrijgave. Lange beheer-/herstel- en fysieke kwalificatie blijven afzonderlijk open. Voor volgende release:60 presentatiekeuzes uit31 EMS-ESP-productgroepen plus officiële keteldocumentatie; bronverwijzingen behouden, afbeelding buiten ESP. Nieuwe modellen niet als ondersteunde driver gekwalificeerd; modelafbeeldingen en functionele profielimport/opslag nog open. Vier oorspronkelijke modelafbeeldingen voor vijf keuzes met bronvermelding; modellen met onzekere afbeelding en Ecomline Classic HRC22H blijven zonder foto. Geen generieke vervanging of firmware-installatie. Beta6-ontwikkeling: build-time gzip/ETag, beperkte luie paginamodules en verborgen-tab-pollpauze gebouwd; HTTP-/browserfixtures en echte E32-build getoetst. Snellere werking op de echte E32 moet na afzonderlijke installatie nog opnieuw worden gemeten; niets geïnstalleerd."
@@ -1645,7 +1677,7 @@
         },
         {
           "path": "data/html/week-editor.js",
-          "sha256": "dc9ddd294cb64675883c3730ac8d04d35647a7055510cea7c6469cf8bafcdd43"
+          "sha256": "59e23c4f05115c0cd809b726671bfa80d9c8a294a8adaab62f721726eddcab31"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/e32_week.py",
@@ -1657,7 +1689,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-editor.js",
-          "sha256": "dc9ddd294cb64675883c3730ac8d04d35647a7055510cea7c6469cf8bafcdd43"
+          "sha256": "59e23c4f05115c0cd809b726671bfa80d9c8a294a8adaab62f721726eddcab31"
         },
         {
           "path": "ha/tests_native/test_e32_week.py",

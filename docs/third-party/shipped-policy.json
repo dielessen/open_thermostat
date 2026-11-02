@@ -236,7 +236,7 @@
     "cached_newlib_header_sha256": "93a397574a25b9c143cee7fcb86d8fc9a0c9ba418e4710a30d2d19ba1e4120db"
   },
   "ha": {
-    "source_candidate": "sha256:1324f8561903756e20b8a7fead400d0b2dcb875f0f8d869c83f89fa383ff8584",
+    "source_candidate": "sha256:df31f6070506e305ffa77c5b6b04bd1258297df2164bc38445c36218823827b3",
     "manifest": "ha/config/custom_components/open_thermostat/manifest.json",
     "source_files": {
       "ha/config/custom_components/open_thermostat/__init__.py": "bbe71b9dce0e3232dd9df1de3b8a57ba7ad2f1dcc073960baff29fb040b5a5da",
@@ -295,7 +295,7 @@
       "ha/config/custom_components/open_thermostat/entity_id_tidy.py": "954c39ad37c5b169f91c63a22c56ca80899049c0011b9f46d2a565e0fd24f7f0",
       "ha/config/custom_components/open_thermostat/firmware_update.py": "e7a616bb27645c9045d3b664acb5c09bc5e1b693e3d2583452878dd2a774227a",
       "ha/config/custom_components/open_thermostat/frontend/e32-week-card.js": "fc8792a57212104cddcc710727ccf4622fb5fd6f52ef41cc798f63cadba00dd7",
-      "ha/config/custom_components/open_thermostat/frontend/week-editor.js": "dc9ddd294cb64675883c3730ac8d04d35647a7055510cea7c6469cf8bafcdd43",
+      "ha/config/custom_components/open_thermostat/frontend/week-editor.js": "59e23c4f05115c0cd809b726671bfa80d9c8a294a8adaab62f721726eddcab31",
       "ha/config/custom_components/open_thermostat/frontend/week-planner.js": "18c15ff5063ae4896b6b6332043efcb1260e7583ebcdfce9042c9160e9a3981e",
       "ha/config/custom_components/open_thermostat/graph_control_source.py": "c56e7c5ef071d6ec633fb0934083accbc586924cff8583b07a40b1b6c611b63b",
       "ha/config/custom_components/open_thermostat/graph_draft_compile.py": "51a27db9813d0dd43132cea72b3730ddeb5ed8f9694c3ffc45d7e08b0cab344b",
@@ -393,7 +393,7 @@
     ],
     "requirements_state": "No separate custom requirement needed for probatio0.13.0: exact direct HA2026.10.2 requirement. Existing native platform supplies voluptuous transitively. Original installed metadata/RECORD/license bound; production HA version still UNKNOWN.",
     "stdlib_scope": "Python3.14 test scope; unknown external imports remain blocked",
-    "source_git_parent": "88fd81dbf2f6cee0d176172e2b2ceb3c80220011",
+    "source_git_parent": "67771de8c76d9f5a3d0e69ff07e5d55d634818b4",
     "native_platform_evidence": {
       "path": "docs/third-party/native-ha-validator.json",
       "sha256": "5433ce5d998f80202659e42468122d42d0db210925bd5e7eb17e95a88f82bf0e",

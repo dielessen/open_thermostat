@@ -48,7 +48,8 @@ namespace heating::control {
 // The other knobs stay the owner's. Evidence: at least 6 heating hours and 5
 // starts; nothing in the first 24 h after a boot, a plan or a tuning change.
 // Only a day the E32 drove the boiler (90 % of it) is applied; otherwise the
-// proposals are only shown ("would"). Rooms count only 2 h after their target
+// proposals are only shown ("would"), from the E32's calculated request alone
+// (its request starts; the burner then follows another controller). Rooms count only 2 h after their target
 // changed (a program step is no cold rest), for the overshoot 2 h after it was
 // lowered (the warm-up after a night setback counts: there floors overshoot). Safety limits are no
 // knobs. Pure and single-threaded: the caller stores stored() and applies values().
@@ -194,13 +195,16 @@ public:
         if (now < graceUntil_ || yesterday_.day < 0) { state_ = "waiting"; return; }
         const Day& d = yesterday_;
         const int hours = __builtin_popcount(d.hours);
-        const bool enough = hours >= minHours && d.starts >= minStarts;
         apply_ = d.observedS && uint64_t(d.activeS) * 10 >= uint64_t(d.observedS) * 9;
+        // A shadow day: the burner follows another controller; its starts, burns and
+        // short-cycling flag are no evidence of the E32's. Only its calculated request counts.
+        const bool enough = hours >= minHours && (apply_ ? d.starts : d.requests) >= minStarts;
         manual_ = manual; utc_ = utc; plan_ = &plan;
         // Many starts: the burner's and the E32's own request's. Only the burner's: the boiler
         // switches on and off by itself inside a request; a longer pause would only delay heat.
-        const auto often = [&](uint16_t n) { return n > 3 * hours || (d.shortS >= 7200 && n > 2 * hours); };
-        const bool many = enough && often(d.starts) && often(d.requests), byItself = enough && often(d.starts) && !often(d.requests);
+        const auto often = [&](uint16_t n) { return n > 3 * hours || (apply_ && d.shortS >= 7200 && n > 2 * hours); };
+        const bool many = enough && often(d.requests) && (!apply_ || often(d.starts));
+        const bool byItself = apply_ && enough && often(d.starts) && !often(d.requests);
         const auto cold = median(d.rests, &d.restRoom, d.restCount, 2);
         std::optional<std::pair<int16_t, uint8_t>> over; // over the cycles since the margin or gain last moved
         for (size_t i = 0; hours >= minHours && i < plan.rooms.size() && i < RoomPlan::maxRooms; ++i) {
@@ -216,9 +220,9 @@ public:
         } else if (many && (!restCeiling_ || restCeiling_ >= v.minOffS + 300)) // room below the ceiling: lengthen
             propose(1, v.minOffS + 150, 300, restCeiling_ ? restCeiling_ - 150 : 1200, Reason::manyStarts, int16_t(d.requests));
         else if (byItself) propose(1, v.minOffS - 150, 300, 1200, Reason::boilerCycling, int16_t(d.starts));
-        if (enough && d.shortBurns >= 3 && d.shortBurns * 2 >= d.burns)
+        if (apply_ && enough && d.shortBurns >= 3 && d.shortBurns * 2 >= d.burns)
             propose(0, v.minOnS + 60, 300, 600, Reason::shortBurns, int16_t(d.shortBurns));
-        else if (enough && d.insideShort >= 3 && d.insideShort * 2 >= d.burns)
+        else if (apply_ && enough && d.insideShort >= 3 && d.insideShort * 2 >= d.burns)
             propose(0, v.minOnS - 60, 300, 600, Reason::boilerCycling, int16_t(d.insideShort));
         if (over && over->first > 30) {
             if (v.stopCentiC > 10) propose(3, v.stopCentiC - 5, 10, 50, Reason::overshoot, over->first, over->second);

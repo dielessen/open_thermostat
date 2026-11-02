@@ -488,6 +488,35 @@ TEST(AutoTuner, AppliedChangesAreNotAlsoProposals) {
     EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(tuning, "log")), 2);
 }
 
+// Replay of the owner's data: in shadow mode the burner follows the old thermostat;
+// its starts and short-cycling flag are no evidence of what the E32 would cause.
+// The proposals come from the E32's calculated request alone.
+TEST(AutoTuner, ShadowProposalsUseTheE32sRequestNotTheForeignBurner) {
+    const auto wouldKnobs = [](Driver& d) {
+        Json root(cJSON_CreateObject(), cJSON_Delete);
+        EXPECT_TRUE(d.tuner.addStatus(root.get(), d.now, d.tuning(), 0));
+        std::string keys;
+        const cJSON* would = cJSON_GetObjectItem(cJSON_GetObjectItem(root.get(), "tuning"), "would");
+        for (const cJSON* w = would ? would->child : nullptr; w; w = w->next) keys += std::string(cJSON_GetArrayItem(w, 0)->valuestring) + ",";
+        return keys;
+    };
+    // The E32 would start 6 times an hour; the foreign controller kept the burner off.
+    Driver a;
+    a.active = false; a.manual = e_start;
+    a.day([](uint32_t t) { auto x = cycles(5, 5)(t); x.burner = false; return x; });
+    EXPECT_STREQ(a.tuner.state(a.now), "shadow");
+    EXPECT_EQ(wouldKnobs(a), "min_off_s,") << "the E32's own many starts";
+    // The E32 would start 2.5 times an hour; the foreign burner short-cycles fast all day.
+    Driver b;
+    b.active = false; b.manual = e_start;
+    b.day([](uint32_t t) {
+        auto x = cycles(12, 12)(t);
+        x.burner = x.heat && t % 120 < 60; x.shortCycling = true;
+        return x;
+    });
+    EXPECT_EQ(wouldKnobs(b), "") << "the foreign burner is no evidence";
+}
+
 TEST(AutoTuner, ResetAndTheStoredRecord) {
     Driver d;
     for (int i = 0; i < 3; ++i) d.day(cycles(5, 5));

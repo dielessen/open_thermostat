@@ -193,3 +193,51 @@ TEST_F(ObserverTest, ReanchorRunNeedsSmallStepsSoOldFramesCannotCompleteIt) {
     send(12+step+2,243);EXPECT_EQ(status().counter,5000u);
     send(12+2*step+2,244);EXPECT_EQ(status().counter,12+2*step+2);EXPECT_EQ(status().counterResets,1u);EXPECT_EQ(status().temperature,2440);
 }
+// Re-anchored from the old sequence (high-water 5000) to the real sensor's 10, 11, 12.
+struct RetiredSequenceTest:ObserverTest {
+    static constexpr uint64_t quiet=ManagedBleObserver<ObserverCrypto>::reanchorQuietMs;
+    static constexpr uint32_t step=ManagedBleObserver<ObserverCrypto>::reanchorMaxStep;
+    uint64_t t=0;
+    void send(uint32_t counter,uint8_t lo){observerNow=t;receive(packet({0x45,lo,0},counter),t);}
+    void reanchorTo12(){
+        bindings=config(true);ASSERT_TRUE(observer.initialize(bindings));
+        receive(packet({0x45,235,0},5000));ASSERT_EQ(status().counter,5000u);
+        t=1000+quiet;send(10,240);t+=5000;send(11,240);t+=5000;send(12,240);
+        ASSERT_EQ(status().counter,12u);ASSERT_EQ(status().counterResets,1u);ASSERT_EQ(status().temperatureAgeMs,0u);
+    }
+};
+TEST_F(RetiredSequenceTest, ReplaysFromTheOldSequenceAreDroppedWithoutLockout) {
+    reanchorTo12();const uint64_t anchoredAt=t;
+    const auto calls=crypto.calls;
+    t+=1000;send(5000,235);t+=1000;send(4999,230);
+    auto s=status();EXPECT_EQ(s.counter,12u);EXPECT_EQ(s.temperature,2400);EXPECT_EQ(s.temperatureAgeMs,2000u);
+    EXPECT_EQ(crypto.calls,calls); // within the quiet period: rejected before AES
+    t+=1000;send(13,241);EXPECT_EQ(status().counter,13u);EXPECT_EQ(status().temperature,2410);
+    t+=1000;send(14,242);EXPECT_EQ(status().counter,14u);EXPECT_EQ(status().temperatureAgeMs,0u);
+    // Even after a quiet period one replay is decrypted but never accepted, and
+    // the real sensor's next frame is accepted at once.
+    t=anchoredAt+5000+quiet;send(5000,235);s=status();
+    EXPECT_EQ(crypto.calls,calls+3);EXPECT_EQ(s.counter,14u);EXPECT_EQ(s.counterResets,1u);EXPECT_FALSE(s.temperature==2350);
+    t+=1000;send(15,243);EXPECT_EQ(status().counter,15u);EXPECT_EQ(status().temperature,2430);EXPECT_EQ(status().temperatureAgeMs,0u);
+}
+TEST_F(RetiredSequenceTest, NewSequenceClimbingPastTheRetiredMarkRestoresNormalChecks) {
+    reanchorTo12();
+    // A jump beyond the step is not news while the old sequence could be replayed...
+    t+=1000;send(12+step+1,250);EXPECT_EQ(status().counter,12u);
+    // ...but small steps are, all the way past the old high-water mark.
+    uint32_t c=12;
+    while(c<=5000){c+=step;t+=1000;send(c,241);ASSERT_EQ(status().counter,c);}
+    EXPECT_EQ(status().temperatureAgeMs,0u);EXPECT_EQ(status().counterResets,1u);
+    // Past it, a large forward jump (a sensor that was out of range) is accepted again as before.
+    t+=1000;send(c+100000,244);EXPECT_EQ(status().counter,c+100000);EXPECT_EQ(status().temperature,2440);
+}
+TEST_F(RetiredSequenceTest, RealJumpWhileRetiredReanchorsAfterQuietPeriodAndKeepsOldSequenceRetired) {
+    reanchorTo12();
+    // The real sensor was out of range for hours and comes back far ahead (still below 5000).
+    t+=quiet;send(2000,245);EXPECT_EQ(status().counter,12u);
+    t+=5000;send(2001,246);EXPECT_EQ(status().counter,12u);
+    t+=5000;send(2002,247);EXPECT_EQ(status().counter,2002u);EXPECT_EQ(status().temperature,2470);EXPECT_EQ(status().counterResets,2u);
+    // The old sequence above it is still retired.
+    t+=1000;send(5000,235);EXPECT_EQ(status().counter,2002u);EXPECT_EQ(status().temperature,2470);
+    t+=1000;send(2003,248);EXPECT_EQ(status().counter,2003u);
+}

@@ -62,6 +62,13 @@ public:
     // A bigger jump (e.g. a replayed frame from the old, much higher sequence)
     // starts a new run instead of completing one built from genuine frames.
     static constexpr uint32_t reanchorMaxStep = 64;
+    // After a re-anchor to a lower counter, the frames of the earlier sequence
+    // (up to its high-water mark, now "retired") are still authentic and can be
+    // replayed. Until the new sequence has climbed past the retired mark, a
+    // counter is news only when it is at most reanchorMaxStep above the current
+    // one; a bigger jump is treated like an old counter (quiet period, spacing
+    // and a run of reanchorFrames small steps), so one replayed frame from the
+    // old sequence never becomes a fresh reading or locks the sensor out.
     ManagedBleObserver(Decryptor& decryptor, Clock clock) : decryptor_(decryptor), clock_(clock) {}
     ~ManagedBleObserver() { disable(BleObserverStop::configuration_changed); }
     ManagedBleObserver(const ManagedBleObserver&) = delete;
@@ -167,7 +174,7 @@ public:
                 if(value.oldCounterDrops!=UINT32_MAX)++value.oldCounterDrops;
                 return;
             }
-            if(sequence&&*sequence<value.highestCounter) {
+            if(sequence&&suspectCounter(value,*sequence)) {
                 if(!admitOldCounter(value,frame.at)) {
                     if(value.oldCounterDrops!=UINT32_MAX)++value.oldCounterDrops;
                     return;
@@ -207,16 +214,17 @@ public:
         }
         if (decoded.encryptionCounter) {
             if (!decoded.authenticated) return;
-            if (value.haveCounter && *decoded.encryptionCounter <= value.highestCounter) {
+            if (value.haveCounter && suspectCounter(value, *decoded.encryptionCounter)) {
                 // Same rule as the prefilter, for frames it could not read.
                 if (*decoded.encryptionCounter == value.highestCounter) {
                     if (value.oldCounterDrops != UINT32_MAX) ++value.oldCounterDrops;
                     return;
                 }
                 if (!reanchoring && !admitOldCounter(value, frame.at)) return;
-                // Authenticated but older than the high-water mark: count a run
-                // of counters that rise by small steps; any break (a fall, a
-                // repeat or a jump beyond reanchorMaxStep) starts the run again.
+                // Authenticated but older than the high-water mark (or a jump
+                // while a retired sequence exists): count a run of counters
+                // that rise by small steps; any break (a fall, a repeat or a
+                // jump beyond reanchorMaxStep) starts the run again.
                 const uint32_t counter = *decoded.encryptionCounter;
                 if (value.reanchorRun && counter > value.reanchorCounter
                         && counter - value.reanchorCounter <= reanchorMaxStep) ++value.reanchorRun;
@@ -225,9 +233,14 @@ public:
                 if (value.oldCounterDrops != UINT32_MAX) ++value.oldCounterDrops;
                 if (value.reanchorRun < reanchorFrames) return;
                 if (value.counterResets != UINT16_MAX) ++value.counterResets;
+                // A restart below the mark retires the old sequence (the highest
+                // of every sequence retired so far).
+                if (counter < value.highestCounter) value.retiredCounter = std::max(value.retiredCounter, value.highestCounter);
             }
             value.reanchorRun = 0;
             value.highestCounter = *decoded.encryptionCounter; value.haveCounter = true;
+            // Past every counter the old sequence used: normal checks again.
+            if (value.retiredCounter && value.highestCounter > value.retiredCounter) value.retiredCounter = 0;
         }
         assign(value.frame.temperature, value.at[0], decoded.temperature, frame.at);
         assign(value.frame.humidity, value.at[1], decoded.humidity, frame.at);
@@ -312,6 +325,10 @@ private:
     };
     struct Value {
         ShellyHtDisplayFrame frame;
+        // High-water mark of a retired counter sequence; 0 = none (a retired
+        // mark is always above the new anchor, so never 0). Sits in the
+        // padding before at[]: the observer stays within its 4 KiB budget.
+        uint32_t retiredCounter = 0;
         std::array<uint64_t, 12> at{};
         uint64_t identityAt = 0, acceptedAt = 0;
         uint32_t highestCounter = 0, oldCounterDrops = 0, framesReceived = 0, framesIgnored = 0;
@@ -324,6 +341,13 @@ private:
         uint8_t reanchorRun = 0, lastRejection = 0; // lastRejection: status + 1, 0 = none
         bool haveCounter = false, haveAccepted = false, authenticated = false, reanchorTried = false;
     };
+    // Counters that cannot be news by themselves: at or below the high-water
+    // mark, or, while a retired sequence exists, a jump of more than
+    // reanchorMaxStep above it. They need admitOldCounter and a re-anchor run.
+    static bool suspectCounter(const Value& value, uint32_t counter) noexcept {
+        return counter <= value.highestCounter
+            || (value.retiredCounter && counter - value.highestCounter > reanchorMaxStep);
+    }
     // A restarted counter: only after a quiet period, and spaced out.
     static bool admitOldCounter(Value& value, uint64_t at) noexcept {
         const bool quiet = !value.haveAccepted || at - value.acceptedAt >= reanchorQuietMs;

@@ -2178,7 +2178,12 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 		bool select() {error=esp_ota_set_boot_partition(partition);return error==ESP_OK;}
 		void abort() {esp_ota_abort(handle);handle=0;}
 	} appBackend_;
+#ifdef OPENTHERMOSTAT_E32V2
+	// Only an OpenThermostat image for this board (its build marker, as the GitHub path).
+	update::ManualAppUpload appUpload_{true};
+#else
 	update::ManualAppUpload appUpload_;
+#endif
 
 	struct OTAUpload {
 		bool started = false;

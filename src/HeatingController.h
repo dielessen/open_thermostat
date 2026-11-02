@@ -419,10 +419,12 @@ public:
     std::string flowSettingsJson() const { const auto t = effectiveTuning(); return flowSettings_.json(&t); }
     // The settings backup: what was learned (control/LearnedState.h bundle), and a restore of it.
     std::string learnedState() const { return control::LearnedState::bundle(flowLearner_, flowPolicy_, control::LearnedState::backupBytes); }
+    // Applied once it is in RAM; storing it is best effort like the runtime save (a plan saved
+    // just before may have taken the room), so a restore never fails on what was learned.
     bool setLearnedState(std::string_view bundle) {
         if (control::LearnedState::restoreBundle(bundle, flowLearner_, flowPolicy_) < 0) return false;
-        LearnedNvs nvs;
-        return learnedStore_.save(nvs, flowLearner_, flowPolicy_, bleReceiptClock());
+        saveLearned(bleReceiptClock());
+        return true;
     }
     const char* setFlowSettings(const cJSON* root) {
         auto settings = flowSettings_;

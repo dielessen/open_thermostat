@@ -307,11 +307,11 @@ struct MinimumRig {
     uint64_t now = 0;
     uint8_t planMin = 30, planMax = 60;
     std::optional<uint8_t> limit = 70;
-    void run(uint64_t ms, bool fires, int16_t waterCentiC = 3800, bool below = true, bool hotWater = false, uint8_t product = 0x7b) {
+    void run(uint64_t ms, bool fires, int16_t waterCentiC = 3800, bool below = true, bool hotWater = false, uint8_t product = 0x7b, bool asked = true) {
         for (uint64_t t = 0; t < ms; t += 10 * second) {
             now += 10 * second;
             heating::control::BoilerMinimumFlow::Input in;
-            in.asked = true; in.flowC = m.effective(planMin, planMax, limit); in.boilerFlowCentiC = waterCentiC;
+            in.asked = asked; in.flowC = m.effective(planMin, planMax, limit); in.boilerFlowCentiC = waterCentiC;
             in.burnerOn = fires || hotWater; in.hotWater = hotWater; in.roomBelow = below; in.productId = product;
             m.sample(now, 10000, in);
         }
@@ -354,7 +354,8 @@ TEST(BoilerMinimumFlow, DecaysWithBurnsAndStartsOverForAnotherBoiler) {
     EXPECT_EQ(r.m.learnedC(), 39);
     r.run(12 * hour, true);
     EXPECT_EQ(r.m.learnedC(), 38);
-    // Too low again: found out in one wait.
+    // Too low again in a new request: found out in one wait.
+    r.run(minute, false, 3800, true, false, 0x7b, false);
     r.run(16 * minute, false);
     EXPECT_EQ(r.m.learnedC(), 40);
     // Another boiler (EMS product id): nothing learned any more.
@@ -362,6 +363,19 @@ TEST(BoilerMinimumFlow, DecaysWithBurnsAndStartsOverForAnotherBoiler) {
     EXPECT_EQ(r.m.learnedC(), 0);
     EXPECT_EQ(r.m.raises(), 0);
     EXPECT_EQ(r.m.effective(30, 60, 70), 30);
+}
+
+// A boiler that cycles by itself (rc.2 review): it fires, overshoots and waits 20 min on its own
+// anti-cycle timer, all within one request. It answered that request, so nothing is raised.
+TEST(BoilerMinimumFlow, ItsOwnCyclingIsNoMinimum) {
+    MinimumRig r;
+    for (int k = 0; k < 36; ++k) { r.run(5 * minute, true); r.run(20 * minute, false, 3300); }
+    EXPECT_EQ(r.m.learnedC(), 0);
+    EXPECT_EQ(r.m.raises(), 0);
+    // A new request that gets no heating burn at all still raises it.
+    r.run(minute, false, 3800, true, false, 0x7b, false);
+    r.run(16 * minute, false);
+    EXPECT_EQ(r.m.learnedC(), 40);
 }
 
 TEST(FlowLearner, BridgeEndsAfterItsLimit) {

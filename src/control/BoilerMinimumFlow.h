@@ -11,7 +11,10 @@ namespace heating::control {
 // active evening. Learned only while the E32 drives the boiler: heat asked at X
 // degC, a room below its target and no heating burn for noFireMs of countable
 // time (no hot water, not just after it, no gap) raises the minimum to
-// max(X, the lowest boiler water seen meanwhile) + stepC, at most maxC. Every
+// max(X, the lowest boiler water seen meanwhile) + stepC, at most maxC. A boiler
+// that fired for heating at X or lower during the same request answers X: a
+// pause after that is its own cycling (anti-cycle timer, overshoot), not a
+// minimum, and counts nothing. Every
 // decayBurnMs of heating burns lowers it by 1 degC, so a boiler that changed
 // (a setting, the season) is found out again. Another boiler (EMS product id)
 // starts over. effective() bounds it by the plan and the boiler's limit; the
@@ -51,13 +54,16 @@ public:
         else if (!burnSince_) burnSince_ = now;
         const bool burning = flame && now - *burnSince_ >= p_.burnMs;
         const bool step = dtMs > 0 && dtMs <= p_.maxStepMs;
+        if (!in.asked) firedAtC_ = 0; // the request ended
         if (burning) {
+            if (in.asked) firedAtC_ = firedAtC_ ? std::min(firedAtC_, in.flowC) : in.flowC;
             // It fires: the request works. Slowly forget, so a lower minimum is tried again.
             waitMs_ = 0; lowest_.reset();
             if (learnedC_ && step && (burnS_ += dtMs / 1000) >= p_.decayBurnS) { burnS_ = 0; --learnedC_; }
             return;
         }
         if (!known || !in.asked || !in.roomBelow) { waitMs_ = 0; lowest_.reset(); return; }
+        if (firedAtC_ && in.flowC >= firedAtC_) { waitMs_ = 0; lowest_.reset(); return; } // it fired at this level
         if (flame || *in.hotWater || now < hotWaterUntil_ || !step) return; // not countable, not an answer either
         waitMs_ += dtMs;
         if (in.boilerFlowCentiC) lowest_ = lowest_ ? std::min(*lowest_, *in.boilerFlowCentiC) : *in.boilerFlowCentiC;
@@ -77,12 +83,12 @@ public:
     uint8_t learnedC() const { return learnedC_; } // 0: none (the plan's minimum)
     uint16_t raises() const { return raises_; }
     const Params& params() const { return p_; }
-    void forget() { learnedC_ = 0; raises_ = 0; burnS_ = 0; waitMs_ = 0; lowest_.reset(); }
+    void forget() { learnedC_ = 0; raises_ = 0; burnS_ = 0; waitMs_ = 0; firedAtC_ = 0; lowest_.reset(); }
 
 private:
     friend class LearnedState;
     Params p_;
-    uint8_t learnedC_ = 0, productId_ = 0;
+    uint8_t learnedC_ = 0, productId_ = 0, firedAtC_ = 0; // firedAtC_: the lowest request that fired in this request, 0: none
     uint16_t raises_ = 0;
     uint32_t burnS_ = 0, waitMs_ = 0;
     uint64_t hotWaterUntil_ = 0;

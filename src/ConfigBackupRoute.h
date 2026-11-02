@@ -22,7 +22,7 @@ public:
     virtual std::string flow() = 0;
     virtual const char* setFlow(const cJSON* root) = 0;
     virtual std::string learned() = 0;                     // LearnedState::bundle()
-    virtual bool setLearned(std::string_view bundle) = 0;  // into RAM and NVS
+    virtual bool setLearned(std::string_view bundle) = 0;  // into RAM; NVS best effort (retried in 6 h)
     virtual void stopBluetooth() = 0;
     virtual bool modernMode() = 0;
     virtual bool boilerClaimed() = 0; // active heat (ActiveHeatGuard::claimsBoiler), a boiler test or settings write

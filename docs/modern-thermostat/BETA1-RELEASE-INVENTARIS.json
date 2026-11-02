@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "81d9cf9e100d72d7cec15f18e67862c9c6ef3948b07b4fb43a4aad5ae1b9f9c1"
+          "sha256": "a57ad8efa7743185ba548f6cc7402f098402db59b8147ecc297702e6b81b86d5"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -647,7 +647,7 @@
         },
         {
           "path": "scripts/publish_hacs_repo.py",
-          "sha256": "e908c4f9b0c6ca810ba46bfc7a67ad01a8d89bccdf1960472b279cb97b4d5eed"
+          "sha256": "8c8e1c2a07dcd006aeac9e983d4e99720299f4e9d6c651357b3dc3173ae77cd3"
         },
         {
           "path": "src/LearnedStore.h",
@@ -2808,7 +2808,7 @@
         },
         {
           "path": "src/ConfigBackupRoute.h",
-          "sha256": "22b6b82ad9dbbfb9c78634a8755373de3a8103222754d503ea8d47ba76494bfa"
+          "sha256": "3701db414d8b2973c4f953c5d78b0d5a7168b9f0ac048c57ef0621ea52fe2bc8"
         },
         {
           "path": "src/control/BackupCipher.h",
@@ -3650,7 +3650,7 @@
         },
         {
           "path": "src/control/BoilerMinimumFlow.h",
-          "sha256": "48923349191a5207f1c912590bc3ff3f244dafeca41d4acd4101285810036993"
+          "sha256": "f07726babf60e94de1d3976d2babbf449f7a1ac6ce66d5607dc9585ade20769c"
         },
         {
           "path": "src/control/HttpRequestBounds.h",
@@ -3822,7 +3822,7 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "e9a0f358467e6cfefc641865e6fcc8d38ca9f40f36ad030b9357fbf528bfb182"
+          "sha256": "b865c44ebbafd0a224e0568c373fd25b1d69fb6a0b667b13967f8f928c5681cb"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/sensor.py",
@@ -4168,7 +4168,7 @@
         },
         {
           "path": "test/test_native/test_flow_learner.cpp",
-          "sha256": "32b91a5aaff5572d388ad4ebcd44cfc1a515c7e07eb634771545a5010fef3e1f"
+          "sha256": "90678ca39afed052f6e58bb95d41e36465df79293063d51a59208bf77cca4a55"
         },
         {
           "path": "src/control/GasCalibration.h",
@@ -4365,7 +4365,7 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "e9a0f358467e6cfefc641865e6fcc8d38ca9f40f36ad030b9357fbf528bfb182"
+          "sha256": "b865c44ebbafd0a224e0568c373fd25b1d69fb6a0b667b13967f8f928c5681cb"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",

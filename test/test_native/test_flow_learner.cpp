@@ -363,10 +363,50 @@ TEST(WarmupPlanner, DefaultLeadWhileNotLearned) {
     EXPECT_EQ(s.rise.atUtc, wednesday23 + 7 * 3600 + 30 * 60); // Thursday 06:30 local
     EXPECT_EQ(s.rise.toCentiC, 2100); EXPECT_EQ(s.rise.fromCentiC, 1850);
     EXPECT_STREQ(s.confidence, "default");
-    EXPECT_EQ(s.leadS, 5 * 3600u);                         // 2.5 degC x 2 h
-    EXPECT_EQ(s.startUtc, s.rise.atUtc - 5 * 3600);
+    EXPECT_FALSE(s.coolingLearned);
+    EXPECT_EQ(s.startTemperatureCentiC, 1900);             // no cooling model: the room as it is now
+    EXPECT_EQ(s.leadS, 4 * 3600u);                         // 2.0 degC x 2 h
+    EXPECT_EQ(s.startUtc, s.rise.atUtc - 4 * 3600);
     EXPECT_FALSE(s.startNow);
+    // Without a reading the setback is assumed: 2.5 degC x 2 h, the default lead's own bound.
+    const auto blind = WarmupPlanner::optimumStart(h.learner, 0, program(), wednesday23, std::nullopt, std::nullopt);
+    EXPECT_EQ(blind.leadS, 5 * 3600u);
+    EXPECT_EQ(blind.startTemperatureCentiC, 1850);
+    // Colder than the setback: that reading.
+    EXPECT_EQ(WarmupPlanner::optimumStart(h.learner, 0, program(), wednesday23, int16_t(1800), std::nullopt).leadS, 6 * 3600u);
     EXPECT_STREQ(WarmupPlanner::optimumStart(h.learner, 0, RoomSchedule{}, wednesday23, int16_t(1900), std::nullopt).reason, "no_schedule");
+}
+
+// The owner's floor in the night of 30/31 Oct (replay of the recorded data): the 1.0 week
+// program drops to 18.5 at 22:30 and rises to 21.0 at 09:00, but the slab kept the room at
+// 20.3..20.8 degC. Without a cooling model the planner assumed 18.5 and planned a 300 min
+// lead (start 04:00); the room really needed 76..97 min. It now plans from each reading.
+TEST(WarmupPlanner, WithoutACoolingModelTheNightIsPlannedFromTheRoomAsItIs) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    auto h = House::floor();
+    RoomSchedule week;
+    for (auto& d : week.days) { d.points[0] = {0, 1850}; d.points[1] = {540, 2100}; d.points[2] = {1350, 1850}; d.count = 3; }
+    const int64_t saturday0 = int64_t(ShadowComparison::daysFromCivil(2026, 10, 31)) * 86400 - 3600; // 00:00 CET
+    const std::pair<int, int16_t> readings[] = {{3, 2080}, {4, 2070}, {5, 2050}, {6, 2040}, {7, 2040}, {8, 2030}};
+    for (const auto& [hourLocal, room] : readings) {
+        const int64_t utc = saturday0 + hourLocal * 3600;
+        const auto s = WarmupPlanner::optimumStart(h.learner, 0, week, utc, room, int16_t(800));
+        ASSERT_STREQ(s.reason, "planned");
+        EXPECT_EQ(s.rise.atUtc, saturday0 + 9 * 3600);
+        EXPECT_EQ(s.startTemperatureCentiC, room);
+        const uint32_t need = WarmupPlanner::defaultLeadS(RoomPlan::Emitter::floor, int16_t(2100 - room));
+        EXPECT_GE(s.leadS, need); EXPECT_LT(s.leadS, need + 300);  // 5 min steps (or the need itself when late)
+        EXPECT_LE(s.leadS, 90 * 60u) << hourLocal;          // never the 300 min from the assumed setback
+        EXPECT_FALSE(s.applicable());                       // and advice only: nothing is learned yet
+    }
+    // At 08:00 (20.3 degC) the need is 84 min, within the 76..97 min the room really took
+    // (too late by then: at 07:00 the plan, from 20.4 degC, started it at 07:45; it follows the room).
+    const auto last = WarmupPlanner::optimumStart(h.learner, 0, week, saturday0 + 8 * 3600, int16_t(2030), int16_t(800));
+    EXPECT_EQ(last.leadS, 84 * 60u);
+    EXPECT_TRUE(last.startNow);
+    EXPECT_FALSE(last.reachable);
+    EXPECT_EQ(WarmupPlanner::optimumStart(h.learner, 0, week, saturday0 + 7 * 3600, int16_t(2040), int16_t(800)).startUtc,
+              saturday0 + 9 * 3600 - 75 * 60);
 }
 
 TEST(WarmupPlanner, LearnedFloorStartsEarlyEnoughAtTheLowestFlow) {

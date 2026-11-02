@@ -67,12 +67,20 @@ struct WarmupPlanner {
         uint32_t leadS = 0;
         int16_t startTemperatureCentiC = 0;
         uint8_t flowC = 0;
-        const char* confidence = "default";  // learned / default
+        const char* confidence = "default";  // learned / default: the warm-up curve
         bool reachable = true, startNow = false;
+        bool coolingLearned = false;          // the heat-loss model and the outdoor are known
+        // FlowPolicy may apply a start only when both the warm-up and the cooling are learned.
+        bool applicable() const { return confidence[0] == 'l' && coolingLearned; }
     };
     // When heating must start, at the lowest acceptable flow, to reach the next
     // higher setpoint AT its switch time. Cooling until then follows the learned
-    // loss rate (with outdoor), else the room is assumed at the night setpoint.
+    // loss rate (with outdoor). Without that model the room stays at its CURRENT
+    // temperature (no further cooling): rc.2 replay, a floor that stayed at 20..21
+    // degC all night got a 300 min lead from the assumed 18.5 degC setback where
+    // 76..97 min were needed. The plan follows the room as it cools (every minute),
+    // and is advice only until both models are learned. Without a reading either,
+    // the setback is assumed and the lead never exceeds the default lead.
     static Start optimumStart(const FlowLearner& l, size_t room, const RoomSchedule& s, int64_t utc,
                               std::optional<int16_t> temperature, std::optional<int16_t> outdoor) {
         Start out;
@@ -80,16 +88,20 @@ struct WarmupPlanner {
         const auto rise = nextRise(s, utc);
         if (!rise) { out.reason = "no_rise_within_24h"; return out; }
         out.rise = *rise; out.reason = "planned";
-        lead(l, room, *rise, rise->fromCentiC, temperature, utc, outdoor, l.heatModel(room).lossPerHour, out);
+        const auto loss = l.heatModel(room).lossPerHour;
+        out.coolingLearned = loss && outdoor;
+        const int16_t lowest = out.coolingLearned || !temperature ? rise->fromCentiC : std::max(rise->fromCentiC, *temperature);
+        lead(l, room, *rise, lowest, temperature, utc, outdoor, loss, out, !out.coolingLearned && !temperature);
         out.startUtc = rise->atUtc - out.leadS;
         out.startNow = utc >= out.startUtc && utc < rise->atUtc;
         return out;
     }
     // The shortest lead (5 min steps) that covers the warm-up from the room
     // temperature at that start: an earlier start is warmer, so the need falls
-    // while the lead grows. Learned lowest acceptable flow, else the default lead.
+    // while the lead grows. Learned lowest acceptable flow, else the default lead;
+    // assumed: the start temperature is a guess, never more than the default lead.
     static void lead(const FlowLearner& l, size_t room, const Rise& rise, int16_t nightCentiC, std::optional<int16_t> temperature,
-                     int64_t utc, std::optional<int16_t> outdoor, std::optional<float> loss, Start& out) {
+                     int64_t utc, std::optional<int16_t> outdoor, std::optional<float> loss, Start& out, bool assumed = false) {
         for (uint32_t lead = 0;; lead += 300) {
             const int64_t start = std::max(utc, rise.atUtc - int64_t(lead));
             out.startTemperatureCentiC = cooled(nightCentiC, temperature, rise.eveningCentiC, rise.nightUtc, utc, start, loss, outdoor);
@@ -100,6 +112,7 @@ struct WarmupPlanner {
                 out.confidence = "learned"; out.flowC = *a.flowC;
                 out.reachable = a.reason[0] == 'l'; // learned / lowest_learned
                 need = std::min(a.warmupS.value_or(maxLeadS), maxLeadS);
+                if (assumed) need = std::min(need, defaultLeadS(l.emitter(room), shortfall, l.tuning()));
             } else {
                 out.confidence = "default"; out.flowC = l.ruleFlow(shortfall);
                 need = defaultLeadS(l.emitter(room), shortfall, l.tuning());
@@ -236,8 +249,8 @@ struct WarmupPlanner {
 
 private:
     // Room temperature at `at`: free cooling from the evening/now value with the
-    // learned loss rate, floored at the night setpoint; without a loss model the
-    // conservative night setpoint (or a colder current reading).
+    // learned loss rate, floored at `night`; without a loss model `night` (or a
+    // colder current reading); optimumStart() passes the current reading as `night` then.
     static int16_t cooled(int16_t night, std::optional<int16_t> now, std::optional<int16_t> evening, int64_t nightUtc,
                           int64_t utc, int64_t at, std::optional<float> loss, std::optional<int16_t> outdoor) {
         const bool ahead = nightUtc > utc && evening;

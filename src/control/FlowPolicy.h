@@ -247,8 +247,8 @@ private:
 //    flow = base(setpoint, outdoor) + (rule flow - plan minimum) / 2, the room
 //    PI at half authority on top of the curve (tuning: curve_correction_pct);
 //  - use learned flow: during a warm-up (shortfall >= 0.3 degC) the learner's
-//    lowest flow that closes it within the room's acceptance; and a learned
-//    optimum start heats a room ahead of its next program rise (never while the
+//    lowest flow that closes it within the room's acceptance; and an optimum start
+//    whose warm-up AND cooling are learned heats a room ahead of its next program rise (never while the
 //    rule is in its minimum off time or has no usable room), at least 5 min
 //    (tuning: min_on_s).
 // Every flow stays within [plan minimum, min(plan maximum, 80, boiler limit)];
@@ -415,7 +415,7 @@ private:
                 if (r.status == RoomDemand::Status::inactive || !r.temperature) continue;
                 const auto s = WarmupPlanner::optimumStart(learner, i, plan.rooms[i].schedule, *in.utc, r.temperature, in.outdoorCentiC);
                 if (s.reason[0] != 'p' || !s.startNow) continue;
-                const bool learned = s.confidence[0] == 'l';
+                const bool learned = s.applicable(); // warm-up and cooling learned: else advice only
                 if (start_.room < 0 || (learned && !start_.learned) || (learned == start_.learned && s.flowC > start_.flowC))
                     start_ = {int8_t(i), s.flowC, learned, s.rise.toCentiC, s.startUtc, s.rise.atUtc};
             }

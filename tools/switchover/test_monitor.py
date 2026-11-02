@@ -102,6 +102,7 @@ class FakeE32:
         self.requests = []      # (method, path, body)
         self.webhook = []
         self.logged_in = False
+        self.refuse = None      # a login refusal: (status, error), e.g. (429, 'session_capacity')
         self.down = False
         self.data = {'/status': {'uptime': 3600}, '/status/heating': heating(), '/status/ems/telemetry': telemetry(),
                      '/status/logs': logs(), '/config/heating': plan()}
@@ -145,7 +146,16 @@ class FakeE32:
                     if self.path.startswith('/api/webhook/'):
                         fake.webhook.append(json.loads(body))
                         return self.reply(200, {})
+                    if self.path == '/auth/logout':
+                        authed = fake.logged_in and COOKIE in (self.headers.get('Cookie') or '')
+                        if not authed or self.headers.get('X-OpenThermostat-CSRF') != 'c' * 64:
+                            return self.reply(403, {'error': 'csrf_required'})
+                        fake.logged_in = False
+                        return self.reply(200, {'authenticated': False},
+                                          [('Set-Cookie', COOKIE.split('=')[0] + '=; Path=/; Max-Age=0')])
                     if self.path == '/auth/login':
+                        if fake.refuse:
+                            return self.reply(fake.refuse[0], {'error': fake.refuse[1]})
                         form = urllib.parse.parse_qs(body)
                         if form.get('username') == ['admin'] and form.get('password') == [PASSWORD]:
                             fake.logged_in = True
@@ -216,19 +226,62 @@ class Base(unittest.TestCase):
 
 
 class SessionAndReadOnly(Base):
-    def test_logs_in_once_and_only_reads(self):
+    def test_signs_in_and_out_per_sample_and_only_reads(self):
         self.step(3)
         posts = [r for r in self.e32.requests if r[0] == 'POST']
-        self.assertEqual([p[1] for p in posts], ['/auth/login'])
+        self.assertEqual([p[1] for p in posts], ['/auth/login', '/auth/logout'] * 3)
         self.assertTrue(all(r[0] == 'GET' for r in self.e32.requests if r not in posts))
         paths = {urllib.parse.urlsplit(r[1]).path for r in self.e32.requests}
         self.assertEqual(paths, {'/status/heating', '/auth/login', '/auth/session', '/status', '/status/ems/telemetry',
-                                 '/status/logs', '/config/heating'})
+                                 '/status/logs', '/config/heating', '/auth/logout'})
+        # No 401 round trip per sample: it signs in before its first read.
+        self.assertEqual([r[1] for r in self.e32.requests[:2]], ['/auth/login', '/auth/session'])
+
+    def test_holds_no_session_between_samples(self):
+        """The E32 has 4 web sessions; Home Assistant signs in for each change (owner report 1 Nov)."""
+        for _ in range(3):
+            self.assertIsNotNone(self.step())
+            self.assertFalse(self.e32.logged_in)      # the logout (with its CSRF proof) was accepted
+            self.assertFalse(self.client.signed_in)
+            self.assertEqual(len(self.client.jar), 0)  # the session cookie is gone too
+        self.assertEqual(self.client.logins, 3)
+
+    def test_the_first_sample_uses_the_start_up_login(self):
+        self.client.login()                         # main(): the password works
+        self.assertIsNotNone(self.step())
+        self.assertEqual(self.client.logins, 1)
+        self.assertFalse(self.e32.logged_in)
+
+    def test_a_refused_login_waits_two_minutes(self):
+        self.step()
+        self.e32.refuse = (429, 'session_capacity')   # all four sessions in use
+        self.assertIsNone(self.step())                # refused: not reachable
+        self.assertEqual(self.client.logins, 2)
+        self.assertIsNone(self.step())                # 60 s later: no new attempt
+        self.assertEqual(self.client.logins, 2)
+        self.e32.refuse = None
+        self.assertIsNotNone(self.step())             # 120 s after the refusal: signed in again
+        self.assertEqual(self.client.logins, 3)
+        self.assertIsNotNone(self.step())             # a successful sign-in never waits
+        self.assertEqual(self.client.logins, 4)
+
+    def test_a_lost_session_signs_in_again_within_the_sample(self):
+        self.client.login()
+        self.e32.logged_in = False                    # E32 restart: sessions are RAM only
+        self.assertIsNotNone(self.step())
+        self.assertEqual(self.client.logins, 2)
+
+    def test_without_a_csrf_proof_the_session_is_kept_not_doubled(self):
+        self.client.login()
+        self.client._csrf = None                      # an E32 that did not name the proof
+        self.step(2)
+        self.assertEqual(self.client.logins, 1)       # the same session for both samples
+        self.assertNotIn('/auth/logout', [r[1] for r in self.e32.requests])
 
     def test_password_never_written(self):
         self.step(2)
         encoded = urllib.parse.quote_plus(PASSWORD)
-        self.assertIn(encoded, self.e32.requests[1][2])   # it did go to the E32 ...
+        self.assertIn(encoded, self.e32.requests[0][2])   # it did go to the E32 ...
         for form in (PASSWORD, encoded):                  # ... and nowhere else
             self.assertNotIn(form, self.files_text())
         self.assertNotIn(COOKIE.split('=')[1], self.files_text())
@@ -237,22 +290,19 @@ class SessionAndReadOnly(Base):
         with self.assertRaises(AssertionError):
             self.client._open('POST', '/config/heating/handover', b'{}', 'application/json')
         with self.assertRaises(AssertionError):
+            self.client._open('POST', '/auth/password', b'{}', 'application/json')
+        with self.assertRaises(AssertionError):
             self.client._open('POST', '/config/heating', b'{}', 'application/json')
 
-    def test_relogin_after_session_loss_is_rate_limited(self):
-        self.step()
-        self.e32.logged_in = False           # E32 restart: sessions are RAM only
-        self.clock.advance(200)
-        self.assertIsNotNone(self.step())    # one new login
-        self.assertEqual(self.client.logins, 2)
-        self.e32.logged_in = False
-        self.assertIsNone(self.step())       # within 120 s: no new login attempt
-        self.assertEqual(self.client.logins, 2)
-
-    def test_wrong_password_is_reported(self):
+    def test_wrong_password_is_reported_and_not_retried_within_two_minutes(self):
         client = m.E32Client(self.e32.url, 'admin', 'wrong', timeout=5, clock=self.clock)
         with self.assertRaises(m.AuthError):
             client.login()
+        self.clock.advance(119)
+        with self.assertRaises(m.AuthError) as caught:
+            client.login()
+        self.assertEqual(str(caught.exception), 'login_backoff')
+        self.assertEqual(client.logins, 1)
 
     def test_password_not_accepted_on_command_line(self):
         with self.assertRaises(SystemExit), mock.patch('sys.stderr', io.StringIO()):

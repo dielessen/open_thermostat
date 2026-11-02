@@ -576,6 +576,8 @@
                 body.textContent=uiText("The page could not be loaded. Check the connection and try again.");};
             document.head.appendChild(script);
         });
+        // System → Backup and restore (#backup) opens this panel and brings it into view.
+        if(window.otPageSection==='backup'){root.open=true;requestAnimationFrame(()=>root.scrollIntoView({block:'start'}));}
     }
 
 	async function loadWiFiSettings() {
@@ -671,6 +673,7 @@
     var nativeSourceApplyPending = false;
     async function updateWeatherEditorVisibility() {
         const card = document.getElementById('LegacyWeatherSettings');
+        if (!card) return; // the reader left the Settings page before this ran
         const controls = card.querySelectorAll('input, select, button');
         controls.forEach(input => { input.disabled = true; });
         let mode = 'unknown';
@@ -678,7 +681,8 @@
         controls.forEach(input => { input.disabled = mode !== 'legacy'; });
         card.hidden = mode !== 'legacy';
         card.style.display = mode === 'legacy' ? '' : 'none';
-        document.getElementById('LegacyWeatherNotice').hidden = mode === 'legacy';
+        const notice = document.getElementById('LegacyWeatherNotice');
+        if (notice) notice.hidden = mode === 'legacy';
     }
 
 	function loadDeviceSettings() {

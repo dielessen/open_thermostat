@@ -1,17 +1,20 @@
 # OpenThermostat user guide
 
-For E32 V2 beta.21, optionally with Home Assistant integration 0.4.0b13. If
-you use Home Assistant, install both together. Installing on a new E32, the
+For E32 V2 beta.23 or newer, optionally with the Home Assistant integration
+that its release notes pair with it. If you use Home Assistant, install both
+together. Installing on a new E32, the
 Home Assistant setup, updates and troubleshooting are described step by step
 in the [installation guide](INSTALL.md).
 
-In this beta the E32 runs in **shadow mode**: it calculates what it would ask
-of the boiler and, if a thermostat is connected to the boiler, compares that
-with it. Your existing thermostat keeps controlling the boiler. Nothing in
-this guide makes the E32 control the boiler.
+A new installation runs in **shadow mode**: the E32 calculates what it would
+ask of the boiler and, if a thermostat is connected to the boiler, compares
+that with it. Your existing thermostat keeps controlling the boiler. Only the
+[attended switch-over](#the-attended-switch-over) lets the E32 control the
+boiler; nothing else in this guide does.
 
 **Supported boilers:** EMS Classic (EMS 1.0), directly on the bus or through an
-adapter such as the Bosch EasyControl Adapter. EMS+ (EMS 2.0) is planned.
+adapter such as the Bosch EasyControl Adapter. EMS+ (EMS 2.0) is planned for
+version 1.1.
 
 **Home Assistant is optional.** The room plan, week programs and Bluetooth
 sensors live on the E32 and work without it. Home Assistant adds its own
@@ -27,16 +30,24 @@ energy inputs.
 | Target, temperature without Home Assistant, minimum and maximum | E32: Rooms | Same room editor |
 | Week program per room | E32: Rooms (visual planner) | Same room editor, or the Week program view of the OpenThermostat dashboard |
 | Setting device per room (valve, tado, number) | — | Same room editor |
-| Lowest and highest flow temperature for the boiler request | E32: Boiler → Flow temperature limits | Configure → Heating and boiler |
-| Gas meter, gas price, outdoor temperature, boiler power (all optional) | — | Configure → Energy and outdoor temperature |
-| Pairing Bluetooth sensors (address, profile, encryption key) | E32: Sensors | E32: Sensors |
-| Boiler model | E32: Boiler | E32: Boiler |
-| Network, MQTT broker, time and time zone | E32: Settings | E32: Settings |
-| Admin password of the E32 | E32: Settings → Password | E32: Settings → Password |
+| House mode: automatic, at home, away, holiday | E32: Home | The House mode control (E32 device, dashboard) |
+| Who lives here (presence) and how long before the house counts as away | — | Configure → Home → Presence: who lives here |
+| Who uses a room (persons per room) | E32: Rooms (shown, read-only) | Same room editor → Persons |
+| Window and door contacts per room | — | Same room editor → Windows and doors |
+| Levels of a room without a week program, default window pause, length of a manual change | — | Configure → Home → Defaults for rooms and timing |
+| Radiator valves per room | E32: Rooms → the room → Radiator valves | Configure → Rooms → Edit or remove a room → Radiator valves |
+| Lowest and highest flow temperature for the boiler request | E32: Home → Flow temperature limits | Configure → Home → Heating and boiler |
+| Heating curve, learned flow and optimum start | E32: Home | Switches on the E32 device |
+| Gas meter, gas price, outdoor temperature, boiler power, water meter (all optional) | — | Configure → Home → Energy and outdoor temperature |
+| Pairing Bluetooth sensors (address, profile, encryption key) | E32: System → Bluetooth sensors | E32: System → Bluetooth sensors |
+| Boiler model (name, picture and the display code table) | E32: Boiler → Boiler model | E32: Boiler → Boiler model |
+| Network, MQTT broker, time and time zone | E32: System → Network and Home Assistant (page "Settings") | E32: System → Network and Home Assistant (page "Settings") |
+| Admin password of the E32 | E32: System → Password | E32: System → Password |
 | Firmware updates | E32: System → Firmware update | The firmware update entity, or the E32 page |
-| Backup and restore of the settings | E32: Settings → Backup and restore | E32: Settings → Backup and restore |
+| Backup and restore of the settings | E32: System → Backup and restore | Daily and automatic; restore under Configure → Advanced and diagnostics → Restore settings to this E32 (or on the E32 page) |
 | Restart | E32: System → Restart device | E32: System → Restart device |
-| Logs, diagnostics console and syslog | E32: System → System log | E32: System → System log |
+| Logs, diagnostics console and syslog | E32: System → Diagnostics and system log | E32: System → Diagnostics and system log |
+| Shorter entity IDs (optional) | — | Configure → Advanced and diagnostics → Tidy entity IDs |
 
 The room plan is stored on the E32, and the E32 runs it. With Home Assistant,
 the HA room editor is the main place to edit it; it reads the plan from the
@@ -63,7 +74,7 @@ A new E32 first needs the OpenThermostat firmware over USB; see
    for example `http://openthermostat-a1b2c3.local/` where your network
    supports `.local` names.
 5. Sign in with user `admin` and password `admin`. Then choose your own
-   password (8–64 characters) under **Settings → Password**; until you do,
+   password (8–64 characters) under **System → Password**; until you do,
    the Overview reminds you. Home Assistant asks for this password when you
    connect it. A forgotten password can be reset to `admin` with the
    `password-reset` command over USB.
@@ -71,7 +82,7 @@ A new E32 first needs the OpenThermostat firmware over USB; see
 ### 2. Set the time zone
 
 Week programs, "today" and the daily comparison use the E32's own clock. Go
-to **Settings**, section **Time**, check the time server and choose
+to **System → Network and Home Assistant**, section **Time**, check the time server and choose
 your time zone from the list. When the page suggests the time zone of your
 browser, **Use this time zone** fills it in. For a time zone that is not in
 the list, choose "Other" and enter its POSIX text under Advanced, for example
@@ -82,7 +93,7 @@ Assistant.
 
 ### 3. Choose your boiler
 
-A newly installed E32 does not listen to the boiler yet. Under **Settings →
+A newly installed E32 does not listen to the boiler yet. Under **System → Network and Home Assistant →
 Advanced settings → Hardware services**, tick **EMS bus enabled**,
 save and let the E32 restart. This only lets the E32 receive boiler data; it
 does not send heat requests. Connect the E32 to the boiler's EMS bus as
@@ -91,14 +102,25 @@ described in the [installation guide](INSTALL.md#6-connect-the-e32-to-the-boiler
 
 Then open **Boiler** and check that boiler values arrive (temperatures,
 status). Under **Boiler model**, choose your boiler and **Save boiler
-selection**; this only changes the name and picture shown. Only EMS Classic
-boilers are supported in this beta; EMS+ is planned for version 1.1.
+selection**; this changes the name and picture shown and which table explains
+the display code. Only EMS Classic boilers are supported; EMS+ is planned for
+version 1.1.
+
+The **Display code** on the Boiler page and the Overview is shown in words,
+with the raw code next to it, for example a blocking fault with what to do.
+The words come from the manufacturer's manual for the chosen boiler model, or
+from a general EMS table; a code that is not in the table stays the raw code.
+A fault or lockout is marked as a warning or an error. In Home Assistant the
+**Display code** sensor keeps the raw code as its state, with the meaning,
+severity and advice as attributes, and the Heating dashboard shows the
+meaning under "Now".
 
 Not every boiler reports every value. **Boiler → Boiler profile** shows which
 values your boiler has (**Values available**), which it does not have (**Not
 fitted on this boiler**) and which have not come in yet (**Not reported
 (yet)**). Home Assistant only creates entities for values the boiler has;
 **Show anyway** reveals a value the boiler marks as not fitted.
+A value that stays 0 for at least 10 minutes while the boiler is working (the Bosch EasyControl Adapter, for example, leaves the selected flow temperature and the burner and 3-way valve bits at 0) is listed as **not reported** ("stays 0 while the boiler works") and shown as "Not reported" instead of 0 or "off"; Home Assistant hides its entity.
 
 ### 4. Pair a Bluetooth thermometer
 
@@ -110,7 +132,7 @@ Monitor 3 work as well.
    32-character bindkey. The older PVVX Custom format also works.
 2. Place the sensor in the room, away from radiators, windows and direct sun,
    within Bluetooth range of the E32.
-3. On the E32, open **Sensors** and choose **Search nearby**. The list shows up
+3. On the E32, open **System → Bluetooth sensors** and choose **Search nearby**. The list shows up
    to 32 of the strongest nearby devices.
 4. Click your sensor and give it a clear name such as "Living room
    thermometer". Choose the profile **Thermometer with pvvx firmware
@@ -129,17 +151,23 @@ minutes, so a sensor that sends every few minutes is fine.
 An E32 that was never linked to Home Assistant says "Not linked to Home
 Assistant — you edit rooms here." on the **Rooms** page.
 
-1. Choose **Add room** and give it a name, for example Living room.
-2. Set the state to active and the heating type (radiators or floor heating).
+1. Choose **Add room** and give it a name, for example Living room. A new
+   room opens fully. A saved room is a card that opens with a click, and its
+   blocks **Temperature**, **Week program**, **Windows and doors** and
+   **Persons** fold open separately; a closed block shows a one-line summary.
+   The page remembers in this browser which blocks you opened.
+2. Set the **State** to **Active** and the **Heating type** (radiators or
+   floor heating). **Inactive until** switches a room off until a date.
 3. Under **Temperature sources**, choose the Bluetooth sensor. Up to four
    sources in order: the first fresh one leads, the others are fallback.
-4. Set the **temperature without Home Assistant** (for example 19 °C) and the
-   room's minimum and maximum.
-5. Turn on **Use a week program** and add switch points per day (time and
-   temperature, up to six per day). Each temperature holds until the next
-   switch point.
+4. Set the **Temperature without Home Assistant** (for example 19 °C) and the
+   room's **Minimum** and **Maximum**.
+5. Turn on **Use a week program**. Choose a template under **Start from a
+   template**, set the **Comfort**, **Eco** and **Night** temperatures, and
+   adjust the blocks per day (up to six switch points per day). Each
+   temperature holds until the next switch point.
 6. Choose **Save rooms**.
-7. Then check the **Flow temperature limits** on the **Boiler** page and
+7. Then check the **Flow temperature limits** on the **Home** page and
    choose **Save limits** after a change (default 30–60 °C; the maximum can
    be set up to 80 °C). Floor heating fed directly without a mixing valve
    usually needs at most 45–50 °C. The page shows your boiler's own maximum
@@ -165,13 +193,13 @@ You need Home Assistant 2026.10.0 or newer (tested with 2026.10.2 to
 2026.10.4).
 
 1. Set up Home Assistant's MQTT integration with a local MQTT broker, and
-   enter the same broker under E32 **Settings → MQTT**: tick
+   enter the same broker under E32 **System → Network and Home Assistant → MQTT**: tick
    **Enabled** and enter a broker user name and password. The E32 does not
    connect to Home Assistant through a broker without a login.
 2. Install the OpenThermostat integration package, restart Home Assistant and
    add OpenThermostat under Settings → Devices & services. You do not need to
    add a room in Home Assistant first.
-3. Choose **Configure → Connect E32** and enter the E32 address and password.
+3. Choose **Configure → E32 connection** and enter the E32 address and password.
    The address may be an IP address or a local name such as
    `http://openthermostat-a1b2c3.local`, `http://e32.fritz.box` or
    `http://e32.home.arpa`. Home Assistant switches the E32's MQTT connection
@@ -219,8 +247,10 @@ and the paired Bluetooth thermometer as fallback.
      A line without days applies to every day. Up to six switch points per day.
    - **Temperature limits** (folded section): the lowest and highest target
      this room may get.
-3. Save. Home Assistant forwards the selected entities to the E32 on every
-   change and every five minutes.
+   - **Windows and doors** and **Persons** (folded sections, optional): see
+     [Temporary changes, open windows and away](#temporary-changes-open-windows-and-away).
+3. Choose **Submit**. Home Assistant forwards the selected entities to the
+   E32 on every change and every five minutes.
 
 The E32 in turn reports to Home Assistant calmly, in small messages: a room's
 temperature (from 0.1 °C), the requested flow (from 1 °C) and the boiler
@@ -276,33 +306,59 @@ everything else.
   the room follows its plan. A change made while the E32 has no valid clock
   lasts its duration and is not kept across a restart.
 - **Window and door contacts** (Home Assistant: in the room form under
-  Configure → **Rooms**, or Configure → **Comfort** → Window and door contacts
-  per room): while any contact of a room is open for
-  longer than the delay (120 s by default), the room pauses and only heats
+  Configure → **Rooms**, section **Windows and doors**; choose up to 8 per
+  room: after you choose one, an empty field appears below it for the next):
+  while any contact of a room is open for longer than its **Pause after**
+  delay (2 minutes by default, set per room), the room pauses and only heats
   below 8 °C. When all are closed it resumes at once. The room card and the
-  thermostat show the pause and its reason.
-- **Away** (E32 overview page, or the action *Away* / the thermostat's *Away*
-  preset in Home Assistant): every room is at most the away temperature,
-  optionally until a date and time. With a date, the E32 starts warming up
-  early enough to be at the week program's temperature when you are back
-  (from what it learned, else 45 minutes per °C for radiators and 2 hours per
-  °C for floor heating). Optionally, *Who is home* (a person, group, zone or
-  switch) makes the house away while everyone is out.
+  thermostat show the pause and its reason. On the E32 Rooms page the room's
+  **Windows and doors** block shows whether a window or door is open; the
+  contacts themselves are chosen in Home Assistant.
+- **House mode** (E32: **Home**; Home Assistant: the **House mode** control
+  on the E32 device and on the dashboard):
+  - **Automatic**: the people of the house decide. Choose them under
+    Configure → **Home** → **Presence: who lives here** (several person
+    entities, or a group, zone or switch). When everyone has been away for the away delay (15
+    minutes by default), every room is at most the away temperature. Someone
+    home, or someone whose place is not known, keeps the house warm.
+    A room can have **persons of its own** (the room editor in Home
+    Assistant, section **Persons** → **Persons of this room**, for example a
+    bedroom and its occupants). Such a room goes to the away temperature when all of its persons have been away
+    for the same delay, also while others are home. A room without persons of
+    its own follows the house. The E32's room card shows what Home Assistant
+    reports for the room's persons.
+  - **At home**: the week programs always, also when everyone is away (guests,
+    a babysitter).
+  - **Away**: every room is at most the away temperature until you switch back.
+  - **Holiday**: away until a date and time (Home Assistant: **Holiday
+    until**; E32 Home page: **Away until**, then **Start holiday**). The E32 starts
+    warming up early enough to be at the week program's temperature when you
+    are back (from what it learned, else 45 minutes per °C for radiators and 2
+    hours per °C for floor heating).
+
+  The away temperature is **Temperature when nobody is home** (15 °C by
+  default). Frost protection always stays on.
 
 In Home Assistant each E32 room has a thermostat: current temperature,
 target, mode *Auto* (week program), *Heat* (a temporary change) or *Off* (the
-room is inactive in the plan), and the presets Comfort, Night (Home
-Assistant's "Eco"), Away and Boost. Comfort and Night are the warmest and the
-coolest temperature of the room's week program, the same levels as in the week
-planner. A new target on the thermostat lasts until the next switch point; a room
-without a week program keeps it for the time set under Configure → Comfort,
-and a room with only a fixed target changes that fixed target in the plan.
+room is inactive in the plan), and the presets Comfort, Eco, Night and Boost.
+Away is the house mode, not a preset of one room. Comfort, Eco and Night are
+the room's three week-program levels, the same as in the week planner, where
+each is set on its own. A new target on the thermostat lasts until the next
+switch point; a room without a week program keeps it for the **Length of a
+manual change** under Configure → **Home** → **Defaults for rooms and
+timing**, and a room with only a fixed target changes that fixed target in
+the plan.
 
 ### Week program and setting device
 
 Every room runs its own week program on the E32, also without Home Assistant.
 A new room starts with "Workdays and weekend" (about 20 °C, 18 °C during the
-day on workdays, 16 °C at night); change it in the week planner. If rooms have
+day on workdays, 16 °C at night); change it in the week planner. The planner
+works with three levels, **Comfort**, **Eco** and **Night**; set each
+temperature on its own (equal values and any order are allowed) and paint the
+days with them. **Copy…** copies a day, **Undo** takes back a step, and
+**Advanced: edit as text** shows the program as text. If rooms have
 no program yet, Settings → System → Repairs offers to give them one.
 
 Optionally each room has a **setting device** (the room editor's "Setting
@@ -332,11 +388,13 @@ E32 itself are not supported yet; connect them through Home Assistant.
 
 ### Energy inputs and heating advice
 
-Under Configure → **Energy and outdoor temperature** you can choose a gas
+Under Configure → **Home** → **Energy and outdoor temperature** you can choose a gas
 meter (m³ or kWh), a gas price sensor or a fixed price, the calorific value of
-your gas, an outdoor temperature sensor or weather entity, and your boiler's
-heating power. All fields are optional; leave a field empty to not use it.
-With a gas meter the E32 calibrates its heat and gas estimates.
+your gas, an outdoor temperature sensor or weather entity, your boiler's
+heating power and a water meter (a flow in L/min, or a meter reading in m³ or
+L). All fields are optional; leave a field empty to not use it. With a gas
+meter the E32 calibrates its heat and gas estimates. The water meter stays in
+Home Assistant: it tells tapping from keeping warm (see below).
 
 The **Heating advice** sensor and its dashboard section list what could be
 tuned: short cycling, a maximum heating temperature far above what the house
@@ -346,11 +404,147 @@ was seen, why it matters, what to change and where, with its confidence. It
 is advice only and never changes a setting; a rule without enough data says
 what is missing.
 
+### Daily summary and warnings
+
 The **Heating problem** sensor answers "is my heating OK?". It turns on only
-for real problems that last: a room without a usable measurement for 30
-minutes, no report from the E32 for 10 minutes, low or high water pressure,
-or burner short cycling for 2 hours. Its `reasons` attribute says what is
-wrong, so you can use it in your own notification automation.
+for real problems that last:
+
+- a room without a usable measurement for 30 minutes;
+- no report from the E32 for 10 minutes;
+- low or high water pressure;
+- burner short cycling for 2 hours;
+- a room that asks for heat but stays more than 0.5 °C below its target for
+  3 hours (a gap in the E32's data starts the wait again);
+- the E32 online but without a working link to Home Assistant for 15 minutes;
+- after the switch-over: a warning of the E32's active control for 5 minutes,
+  or the E32 waiting 10 minutes for you to confirm the takeover again.
+
+Each problem except the water pressure (which has its own message) also
+appears under **Settings → System → Repairs** as **Heating needs attention**,
+and clears itself once the cause is gone. The sensor's `problems` and
+`reasons` attributes say what is wrong, so you can use it in your own
+notification automation.
+
+The **Daily summary** sensor on the OpenThermostat device shows the last
+finished day; its attributes hold the last two weeks (three weeks are kept).
+Per day: burner time, burner starts and short runs (under 10 minutes), gas
+for heating and hot water (and tapping and keeping warm), the outdoor
+temperature when one is set, and per room how long it asked for heat, how
+long it took to reach a raised target (late after 2 hours) and the missed
+comfort minutes. Only time with E32 data counts; a day with less than 20
+hours of data is marked partial. **Burner time**, **Burner starts** and
+**Missed comfort time** are running totals with long-term statistics, so
+their change per day is the daily figure. The Heating view of the dashboard
+shows yesterday in words and the last days as bars.
+
+### Radiator valves
+
+Radiator valves (TRVs) follow their room in one of two ways:
+
+- **Zigbee2MQTT valves** on the same MQTT broker: the E32 drives them itself.
+  Home Assistant is not needed for it; it only shows and configures the valves.
+- **Any other valve Home Assistant controls** (ZHA, Z-Wave, Shelly, a cloud
+  integration, and so on): it is a `climate` entity in Home Assistant, and
+  Home Assistant drives it on the E32's behalf, with the same rules.
+
+Supported models:
+
+| Model | What is sent | What is read back |
+| --- | --- | --- |
+| Bosch BTH-RA (recommended) | setpoint, room temperature (`remote_temperature`), manual mode | valve position (`pi_heating_demand`), battery % |
+| Sonoff TRVZB | setpoint, heat mode (`system_mode`), room temperature (`external_temperature_input`, then the sensor set to it) | battery % |
+| Sonoff TRV Gen2 (TRV-ZBT) | the same as the TRVZB (5–30 °C); needs Zigbee2MQTT 2.12.1 or later | battery % |
+| Tuya TV02 | setpoint (manual preset) | low-battery flag |
+| Other | setpoint (`occupied_heating_setpoint`) | battery % or low flag |
+| Home Assistant climate entity | by Home Assistant: setpoint (`climate.set_temperature`), heat mode (`climate.set_hvac_mode`) | from the valve's device in Home Assistant: battery % or low flag, opening when it reports one |
+
+The Zigbee2MQTT keys come from the Zigbee2MQTT device pages; check them on
+your own valve before you rely on them.
+
+For the Sonoff valves the E32 first sends the room temperature and only then
+selects it as the valve's sensor, because Zigbee2MQTT refuses that choice
+without a value. It reads which sensor the valve reports: older Zigbee2MQTT
+versions call the choice `external`, newer ones `remote_temperature`, and the
+E32 uses whichever your valve reports. If the valve still uses its own sensor
+10 minutes later, the E32 asks again. The heat mode keeps the valve off its own
+week schedule; the E32's program is the only one. The valves' own settings,
+such as the opening limits, window detection and child lock, stay yours to set
+in Zigbee2MQTT.
+
+**Choosing the valves.** In Home Assistant: Configure → **Rooms** → *Edit or
+remove a room* → **Radiator valves**. Pick each Zigbee2MQTT valve (Zigbee2MQTT
+devices that look like a thermostat are offered) or type its Zigbee2MQTT
+friendly name, and choose its model. Pick any other valve under **Home
+Assistant valves** (its climate entity; OpenThermostat's own thermostats and
+the room's thermostat source are not offered). On the E32 itself: the room card
+on the Rooms page has a **Radiator valves** block with its own *Save valves*
+button; Home Assistant valves show there read-only, as *Home Assistant climate
+entity (set in Home Assistant)*. At most 4 valves per room and 16 in all.
+
+**Nothing happens until you switch it on.** Each room has a **Valve control**
+switch (entity ID ending in `_valve_control`), off by default. The E32 sends
+to a room's valves only while that switch is on **and** the E32 controls the
+boiler itself (active control after the attended switch-over). In shadow mode,
+or with the switch off, nothing is sent to any valve, and a room without valves
+behaves exactly as before. The session field `actuator_output_enabled` says
+whether the E32 drives valves right now.
+
+**What the E32 does with them.** It sends the room's target as the valve's
+setpoint and, where the valve takes one, the room's own measured temperature;
+the valve's own regulator then sets its opening. Valves that report their
+position feed back into the boiler flow: when every valve that asks for heat is
+only partly open the flow goes down a step, when one is fully open while its
+room is still more than 0.5 °C too cold it goes up a step; at most 1 °C per
+10 minutes and 8 °C in all. The room plan's flow limits and the boiler's own
+maximum still apply.
+
+**All valves closed.** When every room that asks for heat has only valves that
+report themselves closed (5 % or less) for 10 minutes, the E32 stops its boiler
+request (reason `valves_closed`): there is no open circuit to heat. A room
+without valve control (for example the floor heating) keeps the request going,
+and a valve that stopped reporting never counts as closed.
+
+**Battery saving.** A new setpoint only on a change of at least 0.5 °C (at
+most once a minute, refreshed every 6 hours); the room temperature at most
+every 10 minutes and at least every 25 minutes. A simulated two weeks with four
+valves costs well under 2 % battery per valve.
+
+**Home Assistant valves.** Home Assistant sends such a valve the room's target
+(8 °C while the room is off), rounded to the valve's step and within its own
+limits, on the same rules: only while the room's valve control is on and the
+E32 controls the boiler itself, a new setpoint only on a change of at least
+0.5 °C, at most once a minute and again after 6 hours. Once per control period
+it sets the valve to `heat` when the valve has that mode; it never turns a
+valve off. It does not send the room temperature, and these valves do not feed
+back into the boiler flow (a room with one never counts as all closed).
+Health: a valve that is unavailable for 2 hours is offline; the battery comes
+from a battery sensor on the valve's device in Home Assistant (or its
+low-battery sensor). The valve counts in the room's *Valve position*, *Valve
+battery* and *Valve problem* entities and in Repairs, like a Zigbee2MQTT valve;
+on the E32 page its state reads *Driven by Home Assistant*. A failing service
+call is logged once and tried again a minute later at the earliest.
+
+**When something fails.**
+
+- A battery at about 20 % or less: a Repair in Home Assistant and a red badge
+  on the dashboard; the valve is still driven.
+- A valve that has not reported for 2 hours: a Repair; the room is shown as
+  degraded but keeps heating on its other temperature sources. When the valve
+  is back it gets its mode, setpoint and room temperature again.
+- No room measurement (Home Assistant down, a sensor gone): the E32 stops
+  sending the room temperature, so the valve falls back to its own sensor, and
+  after 30 minutes the room stops asking for heat. The E32 never heats blind.
+- A room whose valve control is on but that has only one temperature source:
+  a Repair advising a separate sensor, for example a Bluetooth thermometer.
+- The E32, the broker or Zigbee2MQTT gone: the valves keep regulating on their
+  last setpoint.
+- Home Assistant gone: Zigbee2MQTT valves stay driven by the E32 (as long as
+  the broker runs); Home Assistant valves keep their last setpoint until Home
+  Assistant is back.
+
+**MQTT broker.** The E32's broker user must be allowed to subscribe to
+`zigbee2mqtt/<valve name>` and to publish to `zigbee2mqtt/<valve name>/set`
+(or the base topic you use in Zigbee2MQTT).
 
 ## Reading the shadow comparison
 
@@ -371,16 +565,40 @@ seen such a thermostat; a home without one gets no comparison sensors.
 | E32 starts within 5 min of a thermostat start | How many of the thermostat's starts the E32 matched closely. |
 | Without thermostat data | Time in which the thermostat's request was not seen; excluded from the agreement. |
 
-The table below shows the last seven days. A good shadow period, before a
-switch-over is considered, looks like this:
+The table below shows the last seven days.
 
-- at least 72 hours without a hang or restart;
-- at least 10 compared heating periods, including night setback, morning
-  warm-up and a period without heat demand;
-- heat demand at about the same moments (a few minutes apart), flow
-  temperatures in the same range, and not more burner starts than the
-  thermostat;
-- the sources work, and a fallback source has taken over at least once.
+### Ready to take over?
+
+Right above the comparison, the Rooms page shows the check **Ready to take
+over?**. The E32 judges its own shadow period, so you need no Home Assistant,
+token or script for it. Each line is green (passed), orange (waiting for more
+data, with the progress so far, such as "51 of 72 h") or red (with what to do):
+
+| Line | Passes when |
+| --- | --- |
+| Stable for 72 hours | 72 hours without a hang or unexpected restart. A planned restart (a firmware update, the restart button, restoring settings) does not reset it; a crash, a watchdog or supervisor restart or a power cut does. |
+| Heating periods compared | At least 10 heating periods of the thermostat, among them a night setback, a morning warm-up and an hour without heat demand. |
+| Heat at the same moments | At least 20 starts and stops of the thermostat; 80 % of them with an E32 start or stop within 30 minutes, half within 5 minutes and 90 % within 15 minutes. |
+| Flow request below the hard limit | The E32 never asked for more than the lowest of the plan maximum, the boiler's own heating limit and 80 °C. Judged after an hour of heat requests; a single request above it fails. |
+| Not more burner starts than the thermostat | After 10 thermostat periods, the E32 has no more heating periods than the thermostat. |
+| Room sources work | Every active room has a fresh reading, and a fallback source has taken over at least once. While no room has a second source this line stays red. |
+
+Only when every line passes does it say "Ready: follow the switch-over steps";
+then follow [SWITCHOVER.md](SWITCHOVER.md). The figures cover the last seven
+days and are kept over restarts. In active mode the check is hidden.
+
+Without an EMS thermostat on the bus there is nothing to compare. The check
+says so and lists only the stability, the room sources, the boiler heard on
+the bus (in the last 5 minutes) and the boiler maximum known (the E32 read the
+boiler's heating limit itself).
+
+Home Assistant shows the same check as the sensor *Takeover readiness* on the
+E32 device (Ready, Waiting for more data, Not ready, or Not applicable once the
+E32 controls the boiler), with each line's result and figures as attributes,
+and on the generated dashboard next to the comparison. It adds one thing the
+E32 cannot see of itself: when Home Assistant did not hear the E32 for five
+minutes or more, the 72 hours count from the moment it was heard again. The
+sensor raises no repair issue.
 
 Shadow mode does not show how the boiler and its adapter react to the E32's
 request; that is tested during the switch-over.
@@ -388,7 +606,9 @@ request; that is tested during the switch-over.
 ### Learning results
 
 Each room device in Home Assistant also has three learning sensors. They are
-advice only in this beta and are not applied to the boiler request.
+advice only, unless you switch on **Use learned flow and optimum start**
+(E32 **Home** page, or the switch on the E32 device in Home Assistant); in
+shadow mode even then nothing is sent to the boiler.
 
 | Sensor | Meaning |
 | --- | --- |
@@ -401,9 +621,55 @@ outdoor temperature (from the boiler or from Home Assistant). The product
 device also shows hot water today (taps, keeping warm, burner time) and a
 burner short-cycling warning.
 
+### Gas for heating, hot water and keeping warm
+
+With a gas meter in the energy options, *Gas for heating* and *Gas for hot
+water* share the meter by what the boiler did (without a meter they are an
+estimate from the burner modulation). Hot water is split once more:
+*Gas for tapping hot water* is what taps used, *Gas for keeping hot water
+warm* is the boiler reheating its store or exchanger without a tap, nothing
+more. Their attributes show per day the rounds, burner minutes and gas. The
+E32 decides per hot-water episode with the most direct signal the boiler
+reports (the attribute `dhw_method`):
+
+- `flow`: a DHW flow meter. Flow during the round is a tap.
+- `storage`: a boiler with a cylinder reports charging. The E32 cannot tell a
+  tap from a reheat there, so its hot water stays in *Gas for hot water* only.
+- `dhw_temperature_fall`: neither, so the DHW temperature. A tap brings cold
+  mains water, so the temperature falls deep or stays down. A small tap
+  (washing hands) may only cool the sensor before the round, so a round also
+  counts as a tap when the sensor fell before it faster than it does before
+  this boiler's own rounds at night (01:00-05:00, when nobody taps). The
+  sensor sits where heat enters the store and falls fast after each reheat
+  while the heat mixes through, so this is only a comparison with the nights,
+  not a heat loss. The attribute `dhw_baseline` says `night` once the E32 has
+  seen four night rounds since its last restart, and `default` before that
+  (then only a fall faster than 2 °C a minute counts).
+- `water_meter`: with a water meter in the energy options, Home Assistant
+  decides instead, for every boiler. A round with water flowing during it, or
+  in the 2 minutes before it, is tapping; one without is keeping warm. A round
+  the meter did not cover (no reading) stays in *Gas for hot water* only. A
+  water meter also sees cold water (a toilet flush), so a round at the same
+  time as one counts as tapping. On the owner's boiler the temperatures alone
+  missed many small taps: on 31 Oct 2026, 23 of 56 rounds were keeping warm by
+  the meter, against 40 by the temperature rule.
+
+Add heating and hot water to the Energy dashboard; tapping and keeping warm
+are parts of hot water, so leave them out there.
+
+*Boiler activity* says what the boiler does now: idle, heating, tapping,
+keeping warm, charging the cylinder, or hot water it cannot sort. A tap shows
+as keeping warm until its fall is clear, usually within half a minute. In the
+Boiler view, the hot-water section shows this as a 24-hour timeline next to
+the boiler's heating state, and, once tapping or keeping warm has counted gas,
+the gas per day for heating, tapping and keeping warm over the last week. On
+the E32's own Overview, the boiler history has a hot-water strip: the share of
+each 5 minutes tapping and keeping warm (a cylinder's charging counts as
+keeping warm there).
+
 ## Backup and restore
 
-Settings → **Backup and restore** saves the settings of the E32 in
+System → **Backup and restore** saves the settings of the E32 in
 one file: network and time (host name, time zone, time server), MQTT and the
 Home Assistant link, the room plan with its week programs, the Bluetooth
 sensors, the flow options, the boiler model and the page language.
@@ -420,7 +686,7 @@ sensors, the flow options, the boiler model and the page language.
   The E32 checks the whole file and shows what will change, what it skips and
   what you need to enter again. Nothing is saved until you choose **Restore
   these settings**. A backup without a passphrase holds no MQTT password, and
-  MQTT stays off until you enter it again under Settings → MQTT. If saving one part fails, the E32 puts the earlier
+  MQTT stays off until you enter it again under System → Network and Home Assistant → MQTT. If saving one part fails, the E32 puts the earlier
   settings back. When network or Bluetooth settings change, the E32 restarts
   about 10 seconds later; sign in again afterwards.
 - **What a restore never does.** It does not change the Wi-Fi network or the
@@ -429,9 +695,69 @@ sensors, the flow options, the boiler model and the page language.
   restores the rooms in shadow mode, so it never starts active boiler control. A restore is refused while the E32
   controls the boiler or a boiler test is running.
 
+### Automatic backups in Home Assistant
+
+With the Home Assistant integration you do not need to download files
+yourself. Once the E32 is connected (Configure → E32 connection), Home
+Assistant fetches the same backup file from the E32 every day, and once
+shortly after Home Assistant starts when the last backup is older than 24
+hours.
+
+- **Passwords and keys** are always included, encrypted with a random
+  passphrase that Home Assistant makes once for this installation and keeps
+  with the integration. You never type it. The Wi-Fi password and the E32
+  password are still never in a backup.
+- **Where they are.** Home Assistant keeps them in its own `.storage` folder,
+  so its own backups (Settings → System → Backups) contain them too: the
+  newest backup of each of the last 7 days, plus the one made right before the
+  last restore.
+- **On the E32 device** in Home Assistant: the button **Back up E32 settings
+  now** makes a backup at once, and the diagnostic sensor **Last E32 backup**
+  shows when the last one succeeded (its attributes: how many backups are kept
+  and the size of the newest).
+- **When it fails.** If no backup succeeds for 3 days, Settings → Repairs
+  shows *No recent backup of the E32 settings*. Check that the E32 is on and its
+  web page opens, and that its password in Home Assistant is still right. The
+  message goes away after the next successful backup.
+
+To put a backup back: Configure → **Advanced and diagnostics** → **Restore
+settings to this E32**. Choose the backup by date. The E32 checks it first, and
+Home Assistant shows what changes, what is skipped and what you need to enter
+again. Nothing changes until you tick the confirmation. Right before the
+restore, Home Assistant also backs up the E32 as it is now. The rules are the
+same as on the E32 page. The rooms come back in shadow mode. If the E32
+controlled your boiler before, confirm the takeover again on the E32 page
+(Rooms → Active control). A restore is refused while the E32 controls the
+boiler or a boiler test is running. When the network or Bluetooth settings
+change, the E32 restarts, and Home Assistant waits until it answers again.
+
+### Replacing a broken E32
+
+1. **Flash the firmware** on the new E32 over USB, as for a first
+   installation (see the README).
+2. **Join the network**: connect the new E32 to your Wi-Fi with its setup
+   access point, or plug in Ethernet, and note its address. Sign in on its web
+   page once and change the default password (System → Password).
+3. **Connect it to the integration**: in Home Assistant open Configure →
+   Advanced and diagnostics → **Restore settings to this E32**. Enter the new
+   E32's address and password there. The old E32's saved password is never
+   sent to another address.
+4. **Restore**: choose the newest backup, read the summary, tick the
+   confirmation and submit. The E32 gets the network and time settings, MQTT
+   and the Home Assistant link (with the MQTT password), the rooms and week
+   programs, the Bluetooth sensors with their keys, the flow options and the
+   boiler model. It restarts, and Home Assistant links this installation to
+   the new E32 (its address, password and identity). Your entities, history
+   and dashboards stay as they were.
+
+After the restore, enter what the summary lists (for example a Bluetooth key
+that was not in the backup). If the old E32 controlled the boiler, follow
+[the switch-over procedure](SWITCHOVER.md) again before you confirm the
+takeover.
+
 ## Logs and the diagnostics console
 
-System → **System log** shows what the E32 is doing. It keeps the last 512 log
+System → **Diagnostics and system log** shows what the E32 is doing. It keeps the last 512 log
 lines in its external memory (PSRAM); they are gone after a restart. Filter by
 source (ESP or EMS), level or text, pause the view or download it.
 
@@ -467,8 +793,9 @@ The same data is available to scripts with a signed-in session:
 ### Keeping logs after a restart: syslog
 
 The E32 can also send its log to a syslog server on your network (RFC 5424
-over UDP). It is off by default. Under **Logging settings** on the System log
-page, tick *Enable syslog*, enter the server's IPv4 address and UDP port
+over UDP). It is off by default. Under **Logging settings** on the
+**Diagnostics and system log** page, tick *Enable syslog*, enter the
+server's **Syslog server IPv4 address** and **UDP port**
 (usually 514), and choose the level. Messages that might hold a password,
 key or other private content are left out. The E32 sends at most ten
 messages a second and never waits for the server, so a slow or missing server
@@ -480,12 +807,13 @@ OS, rsyslog or syslog-ng on a Linux machine or NAS, or the log centre of your
 NAS. Give it a fixed IPv4 address and enter that address on the E32. Syslog
 over UDP is not encrypted and not acknowledged; keep it on your home network.
 
-## The attended switch-over (not in this beta)
+## The attended switch-over
 
-Active control is built into the firmware but locked there; the Active
-control section on the Rooms page says "Active control is not enabled in this
-firmware." It is opened only in a later release, with someone present at the
-boiler. See [the switch-over procedure](SWITCHOVER.md). It will involve:
+From beta.22 on, the firmware can control the boiler, but it stays in shadow
+mode until you switch over yourself. (Older firmware says "Active control is
+not enabled in this firmware." in the Active control section of the Rooms
+page.) Switch over only with someone present at the boiler, following [the
+switch-over procedure](SWITCHOVER.md). It involves:
 
 1. Physically disconnecting the existing thermostat from the boiler bus. Two
    controllers must never send boiler requests at the same time.
@@ -506,4 +834,20 @@ maximum heating temperature setting. While the E32 controls the boiler, the
 attended boiler test is refused.
 
 After the switch-over follow one to two weeks of active mode with daily
-checks before a first non-beta release.
+checks; the **Daily summary** in Home Assistant gives the figures for each
+day.
+
+## Tidy entity IDs (optional)
+
+Home Assistant gives every entity an ID, and some of OpenThermostat's are
+long. **Configure → Advanced and diagnostics → Tidy entity IDs** proposes the
+IDs Home Assistant itself would give these entities today, lists how many
+are used in your automations, scripts or dashboards, and renames them only
+after you tick **I have read the list and want to rename these entities**.
+Under **Which entities**, *Only entities that are not used anywhere* is the
+safe choice. History and statistics move along, and the OpenThermostat
+dashboard follows by itself, but an automation, script or dashboard of your
+own that uses an old ID stops working until you change it; templates in YAML
+and other integrations are not searched. Entities you renamed yourself are
+skipped. **Undo the entity ID tidy** puts the old IDs back (where still free)
+for 30 days.

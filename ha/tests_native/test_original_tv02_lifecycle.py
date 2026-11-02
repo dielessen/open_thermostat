@@ -5,6 +5,7 @@ import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
+import logging
 import pytest
 from homeassistant.components import mqtt
 from homeassistant.helpers import device_registry as dr, entity_registry as er
@@ -292,6 +293,7 @@ async def test_actual_node_producer_crosses_native_mqtt_worker_into_runtime_with
 @pytest.mark.asyncio
 @pytest.mark.parametrize('fault', ['room', 'manufacturer', 'endpoint', 'model', 'duplicate', 'non_tuple'])
 async def test_invalid_optional_diagnostic_pin_keeps_native_connection_running(hass, devices, monkeypatch, fault, caplog):
+    caplog.set_level(logging.DEBUG, logger='custom_components.open_thermostat.v1_mqtt')
     runtime, room, source, _ = await system(hass, devices)
     subscriptions, removed, _ = mqtt_boundary(monkeypatch)
     if fault == 'room': source = replace(source, room_id='deadbeef')
@@ -740,3 +742,17 @@ async def test_multiple_new_diagnostic_topics_share_one_subscription_budget(hass
     finally:
         await connection.async_close()
         await runtime.async_stop()
+
+
+def test_a_tv02_that_is_only_a_temperature_source_logs_at_debug_and_other_reasons_warn_once(caplog):
+    """31 Oct 2026: "source binding unavailable (selected_actuator_mismatch)" was a warning on every start."""
+    from custom_components.open_thermostat import v1_mqtt
+    caplog.set_level(logging.DEBUG, logger="custom_components.open_thermostat.v1_mqtt")
+    v1_mqtt._TV02_WARNED.discard("fixture_reason")
+    assert v1_mqtt.log_tv02_binding_failure("selected_actuator_mismatch") is False
+    assert v1_mqtt.log_tv02_binding_failure("selected_actuator_mismatch") is False
+    assert v1_mqtt.log_tv02_binding_failure("fixture_reason") is True
+    assert v1_mqtt.log_tv02_binding_failure("fixture_reason") is False
+    levels = [(r.levelno, r.getMessage().split("(")[-1]) for r in caplog.records if "TV02" in r.getMessage()]
+    assert levels == [(logging.DEBUG, "selected_actuator_mismatch)"), (logging.DEBUG, "selected_actuator_mismatch)"),
+                      (logging.WARNING, "fixture_reason)"), (logging.DEBUG, "fixture_reason)")]

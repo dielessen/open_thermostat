@@ -12,25 +12,47 @@ namespace heating::control {
 // Domestic hot water episodes from passive Classic reports (pure, boot-local,
 // fixed size, observation only, never a control input). An episode is a run
 // of the DHW bit of UBAMonitorFast (0x18 offset 5 bit 1); burner time is its
-// flame bit (bit 3) inside the episode. Tapping or keeping warm/reheating:
-//  - "flow": once the 0x34 DHW flow (offset 9) has been seen to change, flow
-//    > 0 in the episode is tapping, otherwise keeping warm.
-//  - "dhw_temperature_fall" until then: the EasyControl adapter reports a
-//    constant 2.5 L/min and constant 0x34 bits (and 0 counters), so a fall of
-//    the 0x34 DHW temperature of >= 7.5 K, from the highest value in the 2 min
-//    before the episode to the lowest in it, is tapping (cold mains water in
-//    the plate exchanger); a smaller fall is keeping warm. The look-back
-//    starts no earlier than the end of the previous episode (a reheat right
-//    after a tap is no second tap). Owner logs, 27
-//    episodes: taps fell 9-46 K, reheats 0-6 K.
+// flame bit (bit 3) inside the episode. The most direct source the boiler
+// reports decides what the episode was (universal, every boiler type):
+//  - "storage": a boiler with a cylinder (0x34 offset 8 DHW type 3 = buffer,
+//    4 = layered buffer), or a charging bit (0x34 offset 5, 0x08) seen to
+//    change and set in the episode (DHW type unknown): it charged the cylinder.
+//  - "flow": a combi whose 0x34 DHW flow (offset 9) has been seen to change:
+//    flow > 0 in the episode is tapping, otherwise keeping warm.
+//  - "dhw_temperature_fall" for boilers without either (the EasyControl
+//    adapter reports a constant 2.5 L/min and constant 0x34 bits): a tap is
+//    cold mains water in the plate exchanger, so the 0x34 DHW temperature
+//    falls deep or stays down: >= 15 K from the highest value in the 2 min
+//    before the episode to the lowest in it, or >= 90 s at 7.5 K or more below
+//    that value. The look-back starts no earlier than the end of the previous
+//    episode (a reheat right after a tap is no second tap). A small tap
+//    (washing hands) may only cool the sensor before the round: so a round is
+//    keeping warm only when the sensor fell before it no faster than it does
+//    in this installation's own rounds at night (01:00-05:00 local, nobody
+//    taps): from the highest value since the previous episode to the start.
+//    The sensor sits where heat enters the store: after a reheat it overshoots
+//    and falls fast while the heat mixes through, so the fall is compared
+//    with the night rounds, never read as a heat loss. Usage: faster than the
+//    second-fastest of the last 16 night rounds by a quarter (at least
+//    0.3 K/min); until 4 night rounds are seen, faster than 2 K/min (no
+//    tap-free round on the owner's boiler fell faster than 1.5 K/min). Owner
+//    data 26 Oct-1 Nov 2026: taps fall 14-46 K and stay down for minutes;
+//    keep-warm rounds dip 2-11 K and recover within about a minute; at night
+//    a short reheat is often followed by more rounds 8-14 min apart while the
+//    store mixes (0.6-1.5 K/min before them), as fast as most daytime rounds.
 //  - No DHW temperature either: unknown.
 // An episode counts on the local day it ends. A 0x18 gap > 60 s ends it at
 // the last report: no invented time. Older (reordered) reports are ignored.
 class DhwEpisodes {
 public:
-    enum Kind : uint8_t { tapping, keepWarm, unknown, kinds };
-    static constexpr uint64_t gapMs = 60000, lookbackMs = 120000;
-    static constexpr int32_t tapFallCenti = 750;      // ClassicBoilerMonitor DHW temperature: hundredths degC
+    enum Kind : uint8_t { tapping, keepWarm, unknown, charging, kinds };
+    static constexpr uint64_t gapMs = 60000, lookbackMs = 120000, tapBelowMs = 90000;
+    static constexpr int32_t tapFallCenti = 1500;     // ClassicBoilerMonitor DHW temperature: hundredths degC
+    static constexpr int32_t tapBelowCenti = 750;     // this far below the reference for tapBelowMs: a tap too
+    // The fall before a round, in hundredths degC per minute: usage above this until the nights are learned,
+    // and never a learned limit below the floor.
+    static constexpr int32_t defaultUsageRate = 200, usageRateFloor = 30;
+    static constexpr size_t nightRounds = 16, nightRoundsNeeded = 4;
     static constexpr size_t history = 6;               // completed days: today + 6 = last 7 days
     static constexpr int32_t unknownDay = ShadowComparison::unknownDay;
     struct Day {
@@ -45,7 +67,7 @@ public:
     // only to the 0x18/0x34 report that arrived at `now`.
     void observe(const ems::ClassicBoilerMonitor& monitor, uint64_t now, std::optional<uint32_t> unixNow) {
         using F = ems::BoilerField;
-        clock(unixNow);
+        clock(unixNow, now);
         const auto at = [&](F f, uint16_t type) -> std::optional<int32_t> {
             const auto& s = monitor.sample(f);
             if (s.observed && s.observedMs == now && s.sourceType == type) return s.raw;
@@ -53,6 +75,8 @@ public:
         };
         if (const auto t = at(F::dhwTemp, 0x34)) temperature(*t, now);
         if (const auto f = at(F::dhwFlow, 0x34)) flow(static_cast<uint8_t>(*f));
+        if (const auto t = at(F::dhwType, 0x34)) dhwType(static_cast<uint8_t>(*t));
+        if (const auto c = at(F::rawDhwCharging, 0x34)) chargingBit(*c != 0);
         if (const auto s = at(F::rawState, 0x18)) state(static_cast<uint8_t>(*s), now);
     }
     void state(uint8_t raw, uint64_t now) {
@@ -62,21 +86,41 @@ public:
         const bool dhw = raw & 0x02;
         if (dhw && !open_) {
             open_ = true; startMs_ = now; burnerMs_ = 0; flowSeen_ = false; peak_ = 0;
-            reference_ = minimum_ = std::nullopt;
+            chargingSeen_ = chargingBit_; belowMs_ = 0; lastTempMs_ = 0; lastTempBelow_ = false;
+            reference_ = minimum_ = preRate_ = std::nullopt;
             uint64_t latest = 0;                       // the fall may start before the DHW bit
             for (const auto& s : temps_) {
                 if (!s.valid || s.ms > now || now - s.ms > lookbackMs || s.ms < endMs_) continue;
                 reference_ = std::max(reference_.value_or(s.centi), s.centi);
                 if (!minimum_ || s.ms >= latest) { minimum_ = s.centi; latest = s.ms; }
             }
+            // How fast the sensor fell before this round: from the highest value since the previous episode.
+            if (idlePeak_ && lastTemp_ && now >= idlePeakMs_ + 60000)
+                preRate_ = static_cast<int32_t>(std::max<int64_t>(0, *idlePeak_ - *lastTemp_) * 60000 / int64_t(now - idlePeakMs_));
+            const auto hour = localHour(now);
+            night_ = hour && *hour >= 1 && *hour < 5;
         } else if (!dhw && open_) close(now);
         flame_ = raw & 0x08; haveState_ = true; lastStateMs_ = now;
     }
     void temperature(int32_t centi, uint64_t now) {
         temps_[next_] = {now, centi, true}; next_ = (next_ + 1) % temps_.size();
-        if (!open_) return;
+        lastTemp_ = centi;
+        if (!open_) {
+            if (!idlePeak_ || centi > *idlePeak_) { idlePeak_ = centi; idlePeakMs_ = now; }
+            return;
+        }
         if (!reference_) reference_ = centi;
         minimum_ = std::min(minimum_.value_or(centi), centi);
+        // Time well below the reference: a tap keeps the exchanger cold, a keep-warm dip recovers.
+        if (lastTempBelow_ && now >= lastTempMs_) belowMs_ += now - lastTempMs_;
+        lastTempBelow_ = centi <= *reference_ - tapBelowCenti; lastTempMs_ = now;
+    }
+    // 0x34 offset 8: 1 = flow (combi), 2 = buffered flow, 3 = buffer, 4 = layered buffer (cylinder).
+    void dhwType(uint8_t type) { dhwType_ = type; }
+    void chargingBit(bool on) {
+        if (haveCharging_ && on != chargingBit_) chargingLive_ = true; // boot-local, sticky
+        haveCharging_ = true; chargingBit_ = on;
+        if (open_ && on) chargingSeen_ = true;
     }
     void flow(uint8_t tenths) {
         if (haveFlow_ && tenths != lastFlow_) flowLive_ = true; // boot-local, sticky
@@ -96,31 +140,35 @@ public:
         return sum;
     }
     bool flowLive() const { return flowLive_; }
-
-    // {"method":..,"clock_known":..,"active_s":null|s,"today":{..},"last_7_days":{..}}
-    void writeJSON(std::ostream& out, uint64_t now) const {
-        out << "{\"method\":\"" << (flowLive_ ? "flow" : "dhw_temperature_fall") << "\",\"clock_known\":"
-            << (today_.day != unknownDay ? "true" : "false") << ",\"active_s\":";
-        if (open_ && now >= startMs_) out << (now - startMs_) / 1000; else out << "null";
-        out << ",\"today\":"; day(out, today_);
-        out << ",\"last_7_days\":"; day(out, lastSevenDays());
-        out << '}';
+    // The open episode so far, by the rule close() uses (a tap shows once its fall is clear,
+    // usually within half a minute); nullopt without an open episode.
+    std::optional<Kind> openKind() const { return open_ ? std::optional<Kind>(classify()) : std::nullopt; }
+    // What the boiler does now: "tapping", "keep_warm", "charging", "hot_water" (no source to
+    // sort it), "heating" (flame without hot water), "idle"; nullptr before the first 0x18.
+    const char* activity() const {
+        static constexpr const char* names[kinds] = {"tapping", "keep_warm", "hot_water", "charging"};
+        if (const auto kind = openKind()) return names[*kind];
+        if (!haveState_) return nullptr;
+        return flame_ ? "heating" : "idle";
     }
-
-    // /status/heating and MQTT "dhw": {"method","clock_known","today":{..},"last_7_days":{..}},
-    // the closed episodes only (an open one counts once it ends). nullptr: no memory.
-    cJSON* summaryJson() const {
-        cJSON* root = cJSON_CreateObject();
-        if (!root || !cJSON_AddStringToObject(root, "method", flowLive_ ? "flow" : "dhw_temperature_fall")
-            || !cJSON_AddBoolToObject(root, "clock_known", today_.day != unknownDay)
-            || !dayJson(root, "today", today_) || !dayJson(root, "last_7_days", lastSevenDays())) { cJSON_Delete(root); return nullptr; }
-        return root;
+    // A cylinder: by its DHW type, or (type unknown) by a charging bit that changes.
+    bool storage() const { return cylinder() || (chargingLive_ && !combi()); }
+    const char* method() const { return storage() ? "storage" : flowLive_ ? "flow" : "dhw_temperature_fall"; }
+    // The DHW temperature rule's limit for the fall before a round: learned from the nights, or the default.
+    bool nightLearned() const { return nightCount_ >= nightRoundsNeeded; }
+    int32_t usageRate() const {
+        if (!nightLearned()) return defaultUsageRate;
+        int32_t first = 0, second = 0;                 // the second-fastest: one night tap does not set the limit
+        for (size_t i = 0; i < nightCount_; ++i) {
+            const int32_t r = nightRates_[i];
+            if (r > first) { second = first; first = r; } else if (r > second) second = r;
+        }
+        return std::max(usageRateFloor, second + second / 4);
     }
-
-private:
-    struct Temp { uint64_t ms = 0; int32_t centi = 0; bool valid = false; };
-    void clock(std::optional<uint32_t> unixNow) {
+    // Wall clock (unix seconds) at the monotonic `now`: for the day of an episode and the night hours.
+    void clock(std::optional<uint32_t> unixNow, uint64_t now) {
         if (!unixNow) return;
+        unixNow_ = *unixNow; unixAtMs_ = now;
         const int32_t d = ShadowComparison::localDay(*unixNow);
         if (today_.day == unknownDay) today_.day = d;   // boot time joins the first known day
         else if (d > today_.day) {                      // a clock step back stays today
@@ -129,17 +177,62 @@ private:
             today_ = {}; today_.day = d;
         }
     }
+
+    // {"method":..,"baseline":..,"clock_known":..,"active_s":null|s,"today":{..},"last_7_days":{..}}
+    // baseline: what the DHW temperature rule compares the fall before a round with ("night": this
+    // installation's night rounds, "default"); null for the other methods.
+    void writeJSON(std::ostream& out, uint64_t now) const {
+        out << "{\"method\":\"" << method() << "\",\"baseline\":";
+        if (const char* b = baseline()) out << '"' << b << '"'; else out << "null";
+        out << ",\"clock_known\":"
+            << (today_.day != unknownDay ? "true" : "false") << ",\"active_s\":";
+        if (open_ && now >= startMs_) out << (now - startMs_) / 1000; else out << "null";
+        out << ",\"today\":"; day(out, today_);
+        out << ",\"last_7_days\":"; day(out, lastSevenDays());
+        out << '}';
+    }
+
+    // /status/heating and MQTT "dhw": {"method","baseline","clock_known","today":{..},"last_7_days":{..}},
+    // the closed episodes only (an open one counts once it ends). nullptr: no memory.
+    cJSON* summaryJson() const {
+        cJSON* root = cJSON_CreateObject();
+        const char* b = baseline();
+        if (!root || !cJSON_AddStringToObject(root, "method", method())
+            || !(b ? cJSON_AddStringToObject(root, "baseline", b) : cJSON_AddNullToObject(root, "baseline"))
+            || !cJSON_AddBoolToObject(root, "clock_known", today_.day != unknownDay)
+            || !dayJson(root, "today", today_) || !dayJson(root, "last_7_days", lastSevenDays())) { cJSON_Delete(root); return nullptr; }
+        return root;
+    }
+
+private:
+    struct Temp { uint64_t ms = 0; int32_t centi = 0; bool valid = false; };
+    const char* baseline() const {
+        return storage() || flowLive_ ? nullptr : nightLearned() ? "night" : "default";
+    }
+    std::optional<int> localHour(uint64_t now) const {
+        if (!unixNow_ || now < unixAtMs_) return std::nullopt;
+        const int64_t local = RoomSchedule::localSeconds(int64_t(*unixNow_) + int64_t((now - unixAtMs_) / 1000));
+        return int(((local % 86400) + 86400) % 86400 / 3600);
+    }
+    // A tap by the episode's own fall: deep, or lasting.
+    bool fellLikeATap() const { return *reference_ - *minimum_ >= tapFallCenti || belowMs_ >= tapBelowMs; }
     void close(uint64_t endMs) {
-        const Kind kind = flowLive_ ? (flowSeen_ ? tapping : keepWarm)
-            : reference_ && minimum_ ? (*reference_ - *minimum_ >= tapFallCenti ? tapping : keepWarm) : unknown;
+        if (lastTempBelow_ && endMs >= lastTempMs_) belowMs_ += endMs - lastTempMs_;
+        const Kind kind = classify();
+        // A night round without a tap's own fall: how fast this installation's sensor falls when nobody taps.
+        if (night_ && preRate_ && !storage() && !flowLive_ && reference_ && minimum_ && !fellLikeATap()) {
+            nightRates_[nightNext_] = static_cast<int16_t>(std::min<int32_t>(*preRate_, INT16_MAX));
+            nightNext_ = (nightNext_ + 1) % nightRounds;
+            if (nightCount_ < nightRounds) ++nightCount_;
+        }
         if (today_.count[kind] != UINT16_MAX) ++today_.count[kind];
         today_.seconds[kind] += static_cast<uint32_t>((endMs - startMs_) / 1000);
         today_.burnerS += static_cast<uint32_t>(burnerMs_ / 1000);
         if (flowLive_) today_.peakFlow = std::max(today_.peakFlow, peak_);
-        open_ = false; endMs_ = endMs;
+        open_ = false; endMs_ = endMs; idlePeak_ = std::nullopt;
     }
     void day(std::ostream& out, const Day& d) const {
-        static constexpr const char* names[kinds] = {"tapping", "keep_warm", "unknown"};
+        static constexpr const char* names[kinds] = {"tapping", "keep_warm", "unknown", "charging"};
         out << '{';
         for (size_t k = 0; k < kinds; ++k)
             out << '"' << names[k] << "\":{\"count\":" << d.count[k] << ",\"s\":" << d.seconds[k] << "},";
@@ -148,7 +241,7 @@ private:
         out << '}';
     }
     bool dayJson(cJSON* parent, const char* key, const Day& d) const {
-        static constexpr const char* names[kinds] = {"tapping", "keep_warm", "unknown"};
+        static constexpr const char* names[kinds] = {"tapping", "keep_warm", "unknown", "charging"};
         cJSON* o = cJSON_AddObjectToObject(parent, key);
         if (!o) return false;
         for (size_t k = 0; k < kinds; ++k) {
@@ -164,9 +257,25 @@ private:
     Day today_;
     std::array<Day, history> days_{};
     size_t head_ = 0, count_ = 0;
-    uint64_t startMs_ = 0, lastStateMs_ = 0, burnerMs_ = 0, endMs_ = 0;
-    std::optional<int32_t> reference_, minimum_;
+    Kind classify() const {
+        if (cylinder() || (chargingLive_ && chargingSeen_ && !combi())) return charging;
+        if (flowLive_) return flowSeen_ ? tapping : keepWarm;
+        // Deep or lasting in the episode, or a faster fall before it than this installation's night rounds.
+        if (reference_ && minimum_) return fellLikeATap() || (preRate_ && *preRate_ > usageRate()) ? tapping : keepWarm;
+        return unknown;
+    }
+    bool cylinder() const { return dhwType_ == 3 || dhwType_ == 4; }
+    bool combi() const { return dhwType_ == 1 || dhwType_ == 2; }
+    uint64_t startMs_ = 0, lastStateMs_ = 0, burnerMs_ = 0, endMs_ = 0, belowMs_ = 0, lastTempMs_ = 0;
+    std::optional<uint8_t> dhwType_;
+    std::optional<int32_t> reference_, minimum_, preRate_, idlePeak_, lastTemp_;
+    std::optional<uint32_t> unixNow_;
+    uint64_t unixAtMs_ = 0, idlePeakMs_ = 0;
+    std::array<int16_t, nightRounds> nightRates_{};    // the fall before night rounds, hundredths degC per minute
+    size_t nightCount_ = 0, nightNext_ = 0;
+    bool night_ = false;
     uint8_t lastFlow_ = 0, peak_ = 0;
     bool open_ = false, flame_ = false, haveState_ = false, haveFlow_ = false, flowLive_ = false, flowSeen_ = false;
+    bool haveCharging_ = false, chargingBit_ = false, chargingLive_ = false, chargingSeen_ = false, lastTempBelow_ = false;
 };
 }

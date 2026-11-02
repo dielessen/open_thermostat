@@ -31,7 +31,7 @@ CREDENTIALS = {CONTROLLER_ADDRESS: "http://192.168.1.206", CONTROLLER_PASSWORD: 
 BLE = [{"id": "a4c138a3e8db", "name": "Slaapkamer", "profile": "atc", "temperature": 19.4},
        {"id": "112233445566", "name": "Zolder", "profile": "atc", "temperature": 17.0}]
 # Configure's top level for an E32 install (product_flow.main_menu); flow limits are under Heating and boiler.
-MENU = ["e32_rooms", "comfort", "heating_boiler", "energy", "controller_connection", "general", "advanced_settings"]
+MENU = ["e32_rooms", "house", "controller_connection", "general", "advanced_settings"]  # beta.23: Home holds heating
 
 
 @pytest.fixture
@@ -113,7 +113,7 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
     assert form["step_id"] == "e32_room"
     keys = [str(k) for k in form["data_schema"].schema]
     assert keys == ["name", "state", "emitter", "ha_sources", "ble_sources", "bluetooth_first",
-                    "setpoint_entity", "fallback_temperature", "program", "window", "limits"]
+                    "setpoint_entity", "fallback_temperature", "program", "window", "persons", "limits"]
     ble = next(v for k, v in form["data_schema"].schema.items() if str(k) == "ble_sources")
     assert [o["value"] for o in ble.config["options"]] == ["a4c138a3e8db", "112233445566"]
     assert ble.config["options"][0]["label"] == "Slaapkamer (a4c138a3e8db) 19.4 °C"
@@ -203,7 +203,8 @@ async def flow_limits_form(manager, parent):
     await manager.hass.async_block_till_done()
     flow = await manager.async_init(parent.entry_id)
     assert flow["menu_options"] == MENU
-    form = await manager.async_configure(flow["flow_id"], {"next_step_id": "heating_boiler"})
+    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
+    form = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
     assert form["type"] == "form" and form["step_id"] == "e32_flow_limits", form
     return form
 
@@ -322,7 +323,9 @@ async def test_editing_changes_only_the_edited_fields_and_sources_can_be_reorder
                       "ha_sources": ["climate.woonkamer"], "ble_sources": ["a4c138a3e8db"], "bluetooth_first": False,
                       "setpoint_entity": "climate.woonkamer", "fallback_temperature": 20.0,
                       "program": format_program(default_program(1000, 2400), "en", "°C"),
-                      "window": {},  # no window/door contacts yet (test_room_window_contacts.py)
+                      # no window/door contacts yet (test_room_window_contacts.py); the room's own delay, default 2 min
+                      "window": {"contact_delay": 2.0},
+                      "persons": {},  # no persons of its own: the room follows the house (test_room_persons.py)
                       "limits": {"minimum_temperature": 10.0, "maximum_temperature": 24.0}}
     # A room without a week program is shown with "Workdays and weekend" and saving gives it that program.
     result = await manager.async_configure(form["flow_id"], values)
@@ -649,12 +652,14 @@ def test_every_flow_key_has_a_translation(filename):
     options = document["options"]
     source = (COMPONENT / "e32_room_flow.py").read_text(encoding="utf-8")
     keys = set(re.findall(r'"(e32_[a-z_]+)"', source)) - {"e32_room_flow"}
-    steps = {"e32_rooms", "e32_room", "e32_room_add", "e32_room_pick", "e32_room_remove", "e32_flow_limits"}
-    selectors = {"e32_room_state", "e32_room_emitter", "e32_room_action"}
+    steps = {"e32_rooms", "e32_room", "e32_room_add", "e32_room_pick", "e32_room_remove", "e32_flow_limits",
+             "e32_room_valves"}
+    selectors = {"e32_room_state", "e32_room_emitter", "e32_room_action", "e32_valve_model"}
     for key in keys - steps - selectors:
         assert key in options["error"] or key in options["abort"], key
     for key in selectors:
         assert document["selector"][key]["options"], key
+    assert options["step"]["e32_room_valves"]["data"]["control"]
     assert set(options["step"]["e32_rooms"]["menu_options"]) == {"e32_room_add", "e32_room_pick"}
     assert options["step"]["init"]["menu_options"]["heating_boiler"]
     assert set(options["step"]["e32_flow_limits"]["data"]) == {"minimum_flow_temperature", "maximum_flow_temperature"}
@@ -664,7 +669,7 @@ def test_every_flow_key_has_a_translation(filename):
     assert set(room_step["data"]) == {"name", "state", "emitter", "ha_sources", "ble_sources", "bluetooth_first",
                                       "setpoint_entity", "fallback_temperature", "program"}
     assert set(room_step["sections"]["limits"]["data"]) == {"minimum_temperature", "maximum_temperature"}
-    assert set(room_step["sections"]["window"]["data"]) == {"contacts"}
+    assert set(room_step["sections"]["window"]["data"]) == {"contacts", "contact_delay"}  # the delay per room (beta.23)
     assert "{delay}" in room_step["sections"]["window"]["data_description"]["contacts"]
     assert document["exceptions"]["room_plan_too_large"]["message"]
     assert document["exceptions"]["room_plan_storage_full"]["message"]

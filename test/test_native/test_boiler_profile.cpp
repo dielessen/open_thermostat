@@ -1,6 +1,8 @@
 #include "EMS/BoilerProfileReport.h"
 #include "EMS/EmsEntityCatalog.h"
 #include "control/TelemetryPublisher.h"
+#include "BoilerDisplaySelection.h"
+#include <algorithm>
 #include <gtest/gtest.h>
 #include <cJSON.h>
 #include <memory>
@@ -119,7 +121,7 @@ TEST(BoilerProfile, TheRecordRestoresStatesOverridesAndIdentity) {
     ASSERT_TRUE(r.profile.setShown(slot(BoilerField::pressure), true, 700000));
     EXPECT_FALSE(r.profile.setShown(slot(BoilerField::flow), true, 700000));  // only a not-fitted field
     const auto rec = r.profile.record();
-    EXPECT_LE(rec.size(), 64u);
+    EXPECT_LE(rec.size(), 72u);
     BoilerProfile b;
     ASSERT_TRUE(b.restore(rec.data(), rec.size(), 0));
     EXPECT_TRUE(b.restored());
@@ -142,6 +144,7 @@ TEST(BoilerProfile, AnOlderRecordWithFewerCatalogFieldsRestoresAndInvalidOnesAre
     const size_t fields = BoilerProfile::classicFields + 30;
     std::vector<uint8_t> old(BoilerProfile::headerBytes + (fields + 3) / 4 + (fields + 7) / 8, 0);
     std::copy(full.begin(), full.begin() + BoilerProfile::headerBytes + (fields + 3) / 4, old.begin());
+    old[1] = 1;  // schema 1: no "left empty" bits
     old[3] = 30;
     // clear state bits beyond the old field count
     BoilerProfile b;
@@ -316,4 +319,184 @@ TEST(BoilerProfile, SettledAfterTheBoilerWasHeardForTheSpanAndThatIsStored) {
     EXPECT_TRUE(b.settled());
     b.observeVersion({0x41, 1, 1, {}}, 20);  // another boiler: discovery starts again
     EXPECT_FALSE(b.settled());
+}
+
+// Release 1.0: the boiler-model selection goes out with the profile, so Home Assistant shows the
+// display codes of that model in words (display_codes.py); none chosen: no key at all.
+TEST(BoilerProfile, TheTopicCarriesTheBoilerModelChoiceForTheDisplayCodes) {
+    Rig r;
+    for (int i = 0; i <= 10; ++i) r.receive(ownerFast(), 1000 + uint64_t(i) * 60000);
+    EXPECT_EQ(topic(r.profile).find("display_model"), std::string::npos);
+    std::ostringstream out;
+    writeBoilerProfileTopic(out, r.profile, "nefit-ecomline-classic-hrc-22h");
+    auto t = parse(out.str());
+    ASSERT_TRUE(t);
+    EXPECT_STREQ(cJSON_GetObjectItemCaseSensitive(t.get(), "display_model")->valuestring, "nefit-ecomline-classic-hrc-22h");
+    EXPECT_TRUE(has(list(t.get(), "supported"), 1));
+    // Still under 1 KB with every field listed and the longest model id.
+    BoilerProfile all;
+    all.observeVersion({255, 255, 255, {}}, 0);
+    for (size_t i = 0; i < BoilerProfile::fieldCount; ++i) all.observe(i, FieldEvidence::value, 0);
+    size_t longest = 0;
+    for (const auto id : heating::boilerDisplayModelIds) longest = std::max(longest, id.size());
+    std::ostringstream worst;
+    writeBoilerProfileTopic(worst, all, std::string(longest, 'x'));
+    EXPECT_LT(worst.str().size(), 1024u);
+    // The remembered choice: an index into the generated model list, never a shared string.
+    heating::rememberBoilerDisplayModel("nefit-ecomline-classic");
+    EXPECT_EQ(heating::rememberedBoilerDisplayModel(), "nefit-ecomline-classic");
+    heating::rememberBoilerDisplayModel("none");
+    EXPECT_TRUE(heating::rememberedBoilerDisplayModel().empty());
+    heating::rememberBoilerDisplayModel("not-a-model");
+    EXPECT_TRUE(heating::rememberedBoilerDisplayModel().empty());
+    EXPECT_EQ(heating::boilerDisplayModelIndex().load(), -1);
+}
+
+namespace {
+// The owner's UBAMonitorFast while the boiler works (1 Nov 2026, EasyControl adapter):
+// modulation byte 4 and state byte 5 report the burner and heating or hot water,
+// yet selected flow (byte 0) and every byte-7 flag stay 00.
+EmsTelegram ownerWorking(uint8_t modulation, uint8_t state, uint8_t selectedFlow = 0, uint8_t flags = 0) {
+    auto t = ownerFast();
+    std::vector<uint8_t> p(t.dataSize());
+    for (size_t i = 0; i < p.size(); ++i) p[i] = *t.byteAt(uint8_t(i));
+    p[0] = selectedFlow; p[4] = modulation; p[5] = state; p[7] = flags;
+    return data(0x18, p);
+}
+constexpr uint8_t heatingState = 0x09, hotWaterState = 0x0A;
+std::string fieldsJSON(const ClassicBoilerMonitor& m, uint64_t now) { std::ostringstream out; m.writeJSON(out, now); return out.str(); }
+}
+
+// Release 1.0: a field that keeps its default 0 while the same report shows the
+// activity it would report is "not reported by this boiler", never a 0 or "off".
+TEST(BoilerProfile, AFieldLeftEmptyWhileTheBoilerWorksIsNotReported) {
+    Rig r;
+    for (int i = 0; i < 10; ++i) r.receive(ownerWorking(37, heatingState), 1000 + uint64_t(i) * 60000);  // 9 min
+    EXPECT_EQ(r.profile.state(slot(BoilerField::selectedFlow)), FieldPresence::unknown);  // too soon
+    EXPECT_FALSE(r.profile.leftEmpty(slot(BoilerField::selectedFlow)));
+    r.receive(ownerWorking(37, heatingState), 1000 + 600000);
+    for (auto f : {BoilerField::selectedFlow, BoilerField::rawBurner, BoilerField::rawFan, BoilerField::rawPump}) {
+        EXPECT_EQ(r.profile.state(slot(f)), FieldPresence::not_reported) << slot(f);
+        EXPECT_TRUE(r.profile.leftEmpty(slot(f))) << slot(f);
+    }
+    // No hot water yet: nothing contradicts the 3-way valve bit. Bits without a rule stay unknown.
+    EXPECT_EQ(r.profile.state(slot(BoilerField::rawDhwValve)), FieldPresence::unknown);
+    EXPECT_EQ(r.profile.state(slot(BoilerField::rawIgnition)), FieldPresence::unknown);
+    // The values that do arrive are untouched.
+    EXPECT_EQ(r.profile.state(slot(BoilerField::modulation)), FieldPresence::supported);
+    EXPECT_EQ(r.profile.state(slot(BoilerField::flow)), FieldPresence::supported);
+    EXPECT_EQ(r.profile.state(slot(BoilerField::pressure)), FieldPresence::not_fitted);
+    // A tap: hot water with the burner firing and the valve bit still 0.
+    for (int i = 0; i <= 10; ++i) r.receive(ownerWorking(100, hotWaterState), 700000 + uint64_t(i) * 60000);
+    EXPECT_EQ(r.profile.state(slot(BoilerField::rawDhwValve)), FieldPresence::not_reported);
+
+    // Published: the retained topic lists them as not reported (wire index = Classic index).
+    auto t = parse(topic(r.profile));
+    ASSERT_TRUE(t);
+    const auto notReported = list(t.get(), "not_reported"), supported = list(t.get(), "supported");
+    for (size_t i : {0, 7, 8, 9, 36}) { EXPECT_TRUE(has(notReported, i)) << i; EXPECT_FALSE(has(supported, i)) << i; }
+    EXPECT_TRUE(has(supported, 4));
+    // The status says why: left empty, not a telegram that never came.
+    std::ostringstream status;
+    writeBoilerProfileJSON(status, r.profile, 1400000);
+    auto doc = parse(status.str());
+    ASSERT_TRUE(doc);
+    const cJSON* fields = cJSON_GetObjectItemCaseSensitive(doc.get(), "fields");
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(cJSON_GetArrayItem(fields, 0), "left_empty")));
+    EXPECT_STREQ(cJSON_GetObjectItemCaseSensitive(cJSON_GetArrayItem(fields, 0), "state")->valuestring, "not_reported");
+    EXPECT_FALSE(cJSON_GetObjectItemCaseSensitive(cJSON_GetArrayItem(fields, 3), "left_empty"));  // outdoor: never seen
+
+    // The monitor has no value for them: no 0 on the pages, in the legacy status or for HA.
+    const uint64_t now = 700000 + 10 * 60000 + 100;
+    EXPECT_FALSE(r.monitor.value(BoilerField::selectedFlow, now));
+    EXPECT_FALSE(r.monitor.value(BoilerField::rawBurner, now, true));
+    EXPECT_EQ(r.monitor.sample(BoilerField::selectedFlow).raw, 0);  // the raw byte stays for the attended test
+    EXPECT_EQ(r.monitor.value(BoilerField::modulation, now), 100);
+    auto snapshot = parse(fieldsJSON(r.monitor, now));
+    ASSERT_TRUE(snapshot);
+    const cJSON* selected = cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive(snapshot.get(), "fields"),
+                                                             "reported_selected_flow_temperature");
+    EXPECT_STREQ(cJSON_GetObjectItemCaseSensitive(selected, "state")->valuestring, "not_reported");
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItemCaseSensitive(selected, "value")));
+    std::ostringstream group;
+    r.monitor.writeFieldGroup(group, now, 0);
+    EXPECT_NE(group.str().find("[0,null,"), std::string::npos) << group.str();
+    EXPECT_NE(group.str().find("[4,100,"), std::string::npos) << group.str();
+    std::ostringstream legacy;
+    r.monitor.writeLegacyStatus(legacy, now);
+    EXPECT_NE(legacy.str().find("\"selectedFlowTemperature\":null"), std::string::npos) << legacy.str();
+    std::ostringstream reception;
+    r.monitor.writeReceptionJSON(reception, now);
+    EXPECT_EQ(reception.str().find("reported_selected_flow_temperature"), std::string::npos);
+}
+
+TEST(BoilerProfile, AnIdleZeroProvesNothingAndOneRealValueIsFilledForGood) {
+    Rig idle;  // a boiler that never works in the window: zeros prove nothing either way
+    for (int i = 0; i <= 20; ++i) idle.receive(ownerWorking(0, 0), uint64_t(i) * 60000);
+    for (auto f : {BoilerField::selectedFlow, BoilerField::rawBurner, BoilerField::rawDhwValve})
+        EXPECT_EQ(idle.profile.state(slot(f)), FieldPresence::unknown) << slot(f);
+    EXPECT_EQ(idle.monitor.value(BoilerField::selectedFlow, 20 * 60000 + 1), 0);  // still the received 0
+
+    Rig real;  // a boiler that reports its selected flow and flags while heating
+    real.receive(ownerWorking(37, heatingState, 45, 0x25), 0);
+    for (int i = 1; i <= 20; ++i) real.receive(ownerWorking(37, heatingState), uint64_t(i) * 60000);
+    for (auto f : {BoilerField::selectedFlow, BoilerField::rawBurner, BoilerField::rawFan, BoilerField::rawPump})
+        EXPECT_EQ(real.profile.state(slot(f)), FieldPresence::supported) << slot(f);
+    EXPECT_EQ(real.monitor.value(BoilerField::selectedFlow, 20 * 60000 + 1), 0);  // its 0 is a value now
+
+    Rig later;  // left empty first, then a real value after all: supported again at once
+    for (int i = 0; i <= 10; ++i) later.receive(ownerWorking(37, heatingState), uint64_t(i) * 60000);
+    ASSERT_TRUE(later.profile.leftEmpty(slot(BoilerField::selectedFlow)));
+    later.receive(ownerWorking(37, heatingState, 50), 700000);
+    EXPECT_EQ(later.profile.state(slot(BoilerField::selectedFlow)), FieldPresence::supported);
+    EXPECT_FALSE(later.profile.leftEmpty(slot(BoilerField::selectedFlow)));
+    EXPECT_EQ(later.monitor.value(BoilerField::selectedFlow, 700001), 5000);
+    EXPECT_TRUE(later.profile.leftEmpty(slot(BoilerField::rawBurner)));  // the others stay left empty
+}
+
+TEST(BoilerProfile, LeftEmptyIsStoredAndASchemaOneSelectedFlowIsLearnedAgain) {
+    Rig r;
+    for (int i = 0; i <= 10; ++i) r.receive(ownerWorking(37, heatingState), uint64_t(i) * 60000);
+    const auto rec = r.profile.record();
+    EXPECT_EQ(rec[1], 2);
+    BoilerProfile b;
+    ASSERT_TRUE(b.restore(rec.data(), rec.size(), 0));
+    for (size_t i = 0; i < BoilerProfile::fieldCount; ++i) {
+        EXPECT_EQ(b.state(i), r.profile.state(i)) << i;
+        EXPECT_EQ(b.leftEmpty(i), r.profile.leftEmpty(i)) << i;
+    }
+    EXPECT_FALSE(b.dirty());
+    // Learning it costs at most one extra write: a field becomes left empty once.
+    BoilerProfile q;
+    size_t writes = 0;
+    for (uint64_t t = 0; t < 24ull * 3600000; t += 10000) {
+        q.observe(0, FieldEvidence::unfilled, t);
+        if (q.takeWrite(t)) { ++writes; q.written(true); }
+    }
+    EXPECT_LE(writes, 2u);
+    EXPECT_TRUE(q.leftEmpty(0));
+
+    // The record of the firmware before (schema 1) made the owner's selected flow
+    // "supported" from its zeros: it restores as unknown, everything else as it was.
+    BoilerProfile old;
+    old.observeFamily(BoilerProtocol::classic, 0);
+    old.observe(0, FieldEvidence::value, 0);
+    old.observe(1, FieldEvidence::value, 0);
+    for (int i = 0; i <= 10; ++i) old.observe(6, FieldEvidence::absent, uint64_t(i) * 60000);
+    const auto full = old.record();
+    const size_t bits = (BoilerProfile::fieldCount + 7) / 8;
+    std::vector<uint8_t> v1(full.begin(), full.end() - bits);
+    v1[1] = 1;
+    BoilerProfile c;
+    ASSERT_TRUE(c.restore(v1.data(), v1.size(), 0));
+    EXPECT_EQ(c.state(0), FieldPresence::unknown);
+    EXPECT_EQ(c.state(1), FieldPresence::supported);
+    EXPECT_EQ(c.state(6), FieldPresence::not_fitted);
+    EXPECT_TRUE(c.dirty());  // written again as schema 2
+    // A record of the wrong length for its schema, or of an unknown schema, is ignored.
+    EXPECT_FALSE(BoilerProfile().restore(full.data(), full.size() - 1, 0));
+    auto v3 = full; v3[1] = 3;
+    EXPECT_FALSE(BoilerProfile().restore(v3.data(), v3.size(), 0));
+    v1.push_back(0);
+    EXPECT_FALSE(BoilerProfile().restore(v1.data(), v1.size(), 0));
 }

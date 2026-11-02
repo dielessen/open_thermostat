@@ -1,0 +1,1025 @@
+{
+ "source": "data/html/ems-metadata.js",
+ "devices": {
+  "0": [
+   {
+    "type": "generic",
+    "name": "unknown"
+   }
+  ],
+  "3": [
+   {
+    "type": "thermostat",
+    "name": "RT800, RC220"
+   }
+  ],
+  "4": [
+   {
+    "type": "thermostat",
+    "name": "UI800, BC400"
+   }
+  ],
+  "8": [
+   {
+    "type": "boiler",
+    "name": "CS5800i, CS6800i, WLW176i, WLW186i"
+   },
+   {
+    "type": "mixer",
+    "name": "XCUMixer"
+   }
+  ],
+  "10": [
+   {
+    "type": "thermostat",
+    "name": "CR11"
+   }
+  ],
+  "11": [
+   {
+    "type": "boiler",
+    "name": "Greenstar 2000"
+   }
+  ],
+  "12": [
+   {
+    "type": "boiler",
+    "name": "C1200W"
+   }
+  ],
+  "16": [
+   {
+    "type": "boiler",
+    "name": "CS5800iG"
+   },
+   {
+    "type": "heatpump",
+    "name": "CSH5800iG"
+   }
+  ],
+  "17": [
+   {
+    "type": "gateway",
+    "name": "MX400"
+   },
+   {
+    "type": "connect",
+    "name": "MX400"
+   }
+  ],
+  "64": [
+   {
+    "type": "boiler",
+    "name": "BK13/BK15, Smartline, GB1*2"
+   }
+  ],
+  "65": [
+   {
+    "type": "thermostat",
+    "name": "RC10"
+   }
+  ],
+  "66": [
+   {
+    "type": "thermostat",
+    "name": "ES72, RC20"
+   }
+  ],
+  "67": [
+   {
+    "type": "thermostat",
+    "name": "RC30"
+   }
+  ],
+  "68": [
+   {
+    "type": "controller",
+    "name": "BC10, RFM20"
+   }
+  ],
+  "69": [
+   {
+    "type": "mixer",
+    "name": "MM10"
+   }
+  ],
+  "71": [
+   {
+    "type": "switch",
+    "name": "WM10"
+   }
+  ],
+  "72": [
+   {
+    "type": "boiler",
+    "name": "Logano GB1*5, Logamatic MC10"
+   }
+  ],
+  "73": [
+   {
+    "type": "solar",
+    "name": "SM10"
+   }
+  ],
+  "74": [
+   {
+    "type": "alert",
+    "name": "EM10"
+   }
+  ],
+  "76": [
+   {
+    "type": "thermostat",
+    "name": "ES73"
+   }
+  ],
+  "77": [
+   {
+    "type": "thermostat",
+    "name": "RC20, Moduline 300"
+   }
+  ],
+  "78": [
+   {
+    "type": "thermostat",
+    "name": "Moduline 400"
+   }
+  ],
+  "79": [
+   {
+    "type": "thermostat",
+    "name": "RC10, Moduline 100"
+   }
+  ],
+  "80": [
+   {
+    "type": "thermostat",
+    "name": "Moduline 200"
+   }
+  ],
+  "81": [
+   {
+    "type": "boiler",
+    "name": "Cascade CM10"
+   },
+   {
+    "type": "controller",
+    "name": "CM10"
+   }
+  ],
+  "84": [
+   {
+    "type": "boiler",
+    "name": "Logamax Plus GB022"
+   },
+   {
+    "type": "controller",
+    "name": "GB022"
+   }
+  ],
+  "86": [
+   {
+    "type": "thermostat",
+    "name": "RC35"
+   }
+  ],
+  "89": [
+   {
+    "type": "controller",
+    "name": "BC10, GB142"
+   }
+  ],
+  "90": [
+   {
+    "type": "thermostat",
+    "name": "RC10, Moduline 100"
+   }
+  ],
+  "93": [
+   {
+    "type": "thermostat",
+    "name": "RC20RF"
+   }
+  ],
+  "94": [
+   {
+    "type": "thermostat",
+    "name": "RFM20 Remote"
+   }
+  ],
+  "95": [
+   {
+    "type": "boiler",
+    "name": "Condens, Logamax/Logomatic, Cerapur Top, Greenstar, Generic HT3"
+   },
+   {
+    "type": "controller",
+    "name": "HT3"
+   }
+  ],
+  "100": [
+   {
+    "type": "mixer",
+    "name": "IPM"
+   },
+   {
+    "type": "water",
+    "name": "IPM"
+   }
+  ],
+  "101": [
+   {
+    "type": "solar",
+    "name": "ISM1"
+   }
+  ],
+  "102": [
+   {
+    "type": "mixer",
+    "name": "IPM2"
+   },
+   {
+    "type": "water",
+    "name": "IPM2"
+   }
+  ],
+  "103": [
+   {
+    "type": "solar",
+    "name": "ISM2"
+   }
+  ],
+  "105": [
+   {
+    "type": "thermostat",
+    "name": "FW100"
+   }
+  ],
+  "106": [
+   {
+    "type": "thermostat",
+    "name": "FW200"
+   }
+  ],
+  "107": [
+   {
+    "type": "thermostat",
+    "name": "FR100"
+   }
+  ],
+  "108": [
+   {
+    "type": "thermostat",
+    "name": "FR110"
+   }
+  ],
+  "109": [
+   {
+    "type": "thermostat",
+    "name": "FB10"
+   }
+  ],
+  "110": [
+   {
+    "type": "thermostat",
+    "name": "FB100"
+   }
+  ],
+  "111": [
+   {
+    "type": "thermostat",
+    "name": "FR10"
+   }
+  ],
+  "113": [
+   {
+    "type": "thermostat",
+    "name": "ES72, RC20"
+   }
+  ],
+  "114": [
+   {
+    "type": "controller",
+    "name": "BC10"
+   }
+  ],
+  "115": [
+   {
+    "type": "boiler",
+    "name": "Topline, GB162"
+   }
+  ],
+  "116": [
+   {
+    "type": "thermostat",
+    "name": "FW500"
+   }
+  ],
+  "121": [
+   {
+    "type": "boiler",
+    "name": "Cascade MCM10"
+   },
+   {
+    "type": "controller",
+    "name": "MCM10"
+   }
+  ],
+  "122": [
+   {
+    "type": "boiler",
+    "name": "Proline"
+   }
+  ],
+  "123": [
+   {
+    "type": "boiler",
+    "name": "GB*72, Trendline, Cerapur, Greenstar Si"
+   }
+  ],
+  "125": [
+   {
+    "type": "controller",
+    "name": "BC25"
+   }
+  ],
+  "131": [
+   {
+    "type": "boiler",
+    "name": "GB212"
+   }
+  ],
+  "132": [
+   {
+    "type": "boiler",
+    "name": "GC7000F"
+   }
+  ],
+  "133": [
+   {
+    "type": "boiler",
+    "name": "Logano GB125/KB195i, Logamatic MC110"
+   }
+  ],
+  "147": [
+   {
+    "type": "thermostat",
+    "name": "FR50"
+   }
+  ],
+  "151": [
+   {
+    "type": "thermostat",
+    "name": "RC25"
+   }
+  ],
+  "152": [
+   {
+    "type": "controller",
+    "name": "Controller"
+   }
+  ],
+  "154": [
+   {
+    "type": "boiler",
+    "name": "Greenstar 30Ri Compact"
+   }
+  ],
+  "155": [
+   {
+    "type": "boiler",
+    "name": "Suprapur-o"
+   }
+  ],
+  "156": [
+   {
+    "type": "thermostat",
+    "name": "ES79"
+   }
+  ],
+  "157": [
+   {
+    "type": "thermostat",
+    "name": "RC200, CW100, CR120, CR50"
+   },
+   {
+    "type": "thermostat",
+    "name": "RC120"
+   }
+  ],
+  "158": [
+   {
+    "type": "thermostat",
+    "name": "RC3*0, Moduline 3000/1010H, CW400, Sense II, HPC410"
+   }
+  ],
+  "159": [
+   {
+    "type": "mixer",
+    "name": "MM50"
+   }
+  ],
+  "160": [
+   {
+    "type": "mixer",
+    "name": "MM100"
+   },
+   {
+    "type": "water",
+    "name": "MM100"
+   }
+  ],
+  "161": [
+   {
+    "type": "mixer",
+    "name": "MM200"
+   },
+   {
+    "type": "water",
+    "name": "MM200"
+   }
+  ],
+  "162": [
+   {
+    "type": "solar",
+    "name": "SM50"
+   }
+  ],
+  "163": [
+   {
+    "type": "solar",
+    "name": "SM100, MS100"
+   },
+   {
+    "type": "water",
+    "name": "SM100, MS100"
+   }
+  ],
+  "164": [
+   {
+    "type": "solar",
+    "name": "SM200, MS200"
+   },
+   {
+    "type": "water",
+    "name": "SM200, MS200"
+   }
+  ],
+  "165": [
+   {
+    "type": "thermostat",
+    "name": "RC100, CR10, Moduline 1000/1010"
+   }
+  ],
+  "166": [
+   {
+    "type": "controller",
+    "name": "Suprapur-o"
+   }
+  ],
+  "167": [
+   {
+    "type": "boiler",
+    "name": "Cerapur Aero"
+   }
+  ],
+  "168": [
+   {
+    "type": "boiler",
+    "name": "Hybrid Heatpump"
+   },
+   {
+    "type": "controller",
+    "name": "Hybrid Heatpump"
+   }
+  ],
+  "169": [
+   {
+    "type": "controller",
+    "name": "BC40"
+   }
+  ],
+  "170": [
+   {
+    "type": "boiler",
+    "name": "Logano GB212"
+   }
+  ],
+  "171": [
+   {
+    "type": "connect",
+    "name": "OpenTherm Converter"
+   }
+  ],
+  "172": [
+   {
+    "type": "boiler",
+    "name": "Enviline, Compress 6000AW, Hybrid 3000-7000iAW, SupraEco/Geo 5xx, WLW196i/WSW196i"
+   },
+   {
+    "type": "thermostat",
+    "name": "Rego 2000/3000"
+   }
+  ],
+  "173": [
+   {
+    "type": "boiler",
+    "name": "Geo 5xx"
+   }
+  ],
+  "189": [
+   {
+    "type": "gateway",
+    "name": "KM200, MB LAN 2"
+   }
+  ],
+  "190": [
+   {
+    "type": "controller",
+    "name": "BC10"
+   }
+  ],
+  "191": [
+   {
+    "type": "thermostat",
+    "name": "FR120"
+   }
+  ],
+  "192": [
+   {
+    "type": "thermostat",
+    "name": "FW120"
+   }
+  ],
+  "193": [
+   {
+    "type": "mixer",
+    "name": "MZ100"
+   }
+  ],
+  "194": [
+   {
+    "type": "controller",
+    "name": "BC10"
+   }
+  ],
+  "195": [
+   {
+    "type": "boiler",
+    "name": "Condens 5000i, Greenstar 8000/GC9800IW, GB192i*2"
+   }
+  ],
+  "200": [
+   {
+    "type": "thermostat",
+    "name": "RC100H, CR10H"
+   }
+  ],
+  "202": [
+   {
+    "type": "thermostat",
+    "name": "Logamatic TC100, Moduline Easy"
+   }
+  ],
+  "203": [
+   {
+    "type": "boiler",
+    "name": "Logamax U122, Cerapur"
+   },
+   {
+    "type": "thermostat",
+    "name": "EasyControl, CT200"
+   }
+  ],
+  "204": [
+   {
+    "type": "pool",
+    "name": "MP100"
+   }
+  ],
+  "205": [
+   {
+    "type": "connect",
+    "name": "Moduline Easy Connect"
+   }
+  ],
+  "206": [
+   {
+    "type": "boiler",
+    "name": "Ecomline Excellent"
+   },
+   {
+    "type": "controller",
+    "name": "Ecomline"
+   },
+   {
+    "type": "connect",
+    "name": "Easy Connect"
+   }
+  ],
+  "207": [
+   {
+    "type": "controller",
+    "name": "Sense II/CS200"
+   }
+  ],
+  "208": [
+   {
+    "type": "boiler",
+    "name": "Logamax Plus, GB192, Condens GC9000, Greenstar ErP"
+   }
+  ],
+  "209": [
+   {
+    "type": "controller",
+    "name": "ErP"
+   }
+  ],
+  "210": [
+   {
+    "type": "boiler",
+    "name": "Cascade MC400"
+   }
+  ],
+  "211": [
+   {
+    "type": "boiler",
+    "name": "EasyControl Adapter"
+   }
+  ],
+  "215": [
+   {
+    "type": "thermostat",
+    "name": "Comfort RF"
+   }
+  ],
+  "216": [
+   {
+    "type": "thermostat",
+    "name": "CRF200S"
+   }
+  ],
+  "218": [
+   {
+    "type": "connect",
+    "name": "M200, RFM200"
+   }
+  ],
+  "219": [
+   {
+    "type": "boiler",
+    "name": "Greenstar HIU, Logamax kompakt WS170"
+   }
+  ],
+  "220": [
+   {
+    "type": "extension",
+    "name": "T1RF"
+   }
+  ],
+  "222": [
+   {
+    "type": "gateway",
+    "name": "KM300"
+   }
+  ],
+  "224": [
+   {
+    "type": "controller",
+    "name": "9000i"
+   }
+  ],
+  "228": [
+   {
+    "type": "heatsource",
+    "name": "AM200"
+   }
+  ],
+  "229": [
+   {
+    "type": "controller",
+    "name": "8700i"
+   }
+  ],
+  "230": [
+   {
+    "type": "controller",
+    "name": "BC Base"
+   }
+  ],
+  "231": [
+   {
+    "type": "ventilation",
+    "name": "HRV176, HRV156, 5000c, MV200"
+   }
+  ],
+  "234": [
+   {
+    "type": "boiler",
+    "name": "Logamax Plus GB122, Condense 2300, Junkers Cerapur GC2200W"
+   }
+  ],
+  "236": [
+   {
+    "type": "connect",
+    "name": "Wireless sensor base"
+   }
+  ],
+  "238": [
+   {
+    "type": "connect",
+    "name": "Wireless sensor base"
+   }
+  ],
+  "240": [
+   {
+    "type": "controller",
+    "name": "Rego 3000"
+   }
+  ],
+  "241": [
+   {
+    "type": "controller",
+    "name": "Condens 5000i"
+   }
+  ],
+  "243": [
+   {
+    "type": "extension",
+    "name": "EM10, EM100"
+   }
+  ],
+  "246": [
+   {
+    "type": "thermostat",
+    "name": "Comfort+2RF"
+   }
+  ],
+  "248": [
+   {
+    "type": "heatpump",
+    "name": "Hybrid Manager HM200"
+   },
+   {
+    "type": "mixer",
+    "name": "HM210"
+   }
+  ],
+  "249": [
+   {
+    "type": "thermostat",
+    "name": "RC120RF, TR120RF, CR20RF"
+   }
+  ],
+  "252": [
+   {
+    "type": "heatpump",
+    "name": "HP Module"
+   },
+   {
+    "type": "gateway",
+    "name": "K30RF, MX300"
+   }
+  ],
+  "253": [
+   {
+    "type": "thermostat",
+    "name": "Rego 3000, UI800, Logamatic BC400"
+   }
+  ]
+ },
+ "boiler_names": {
+  "8": {
+   "Bosch": [
+    "Bosch Compress CS5800i",
+    "Bosch Compress CS6800i"
+   ],
+   "Buderus": [
+    "Buderus Logatherm WLW176i",
+    "Buderus Logatherm WLW186i"
+   ]
+  },
+  "11": {
+   "Worcester Bosch": [
+    "Worcester Bosch Greenstar 2000"
+   ]
+  },
+  "12": {
+   "Bosch": [
+    "Bosch C1200W"
+   ]
+  },
+  "16": {
+   "Bosch": [
+    "Bosch Compress CS5800iG"
+   ]
+  },
+  "64": {
+   "Sieger": [
+    "Sieger BK13",
+    "Sieger BK15"
+   ],
+   "Nefit": [
+    "Nefit SmartLine"
+   ],
+   "Buderus": [
+    "Buderus GB1*2"
+   ]
+  },
+  "72": {
+   "Buderus": [
+    "Buderus Logano GB1*5",
+    "Buderus Logamatic MC10"
+   ]
+  },
+  "81": {
+   "Buderus": [
+    "Buderus Cascade CM10"
+   ]
+  },
+  "84": {
+   "Buderus": [
+    "Buderus Logamax Plus GB022"
+   ]
+  },
+  "95": {
+   "Bosch": [
+    "Bosch Condens"
+   ],
+   "Buderus": [
+    "Buderus Logamax",
+    "Buderus Logamatic"
+   ],
+   "Junkers": [
+    "Junkers Cerapur Top"
+   ],
+   "Worcester Bosch": [
+    "Worcester Bosch Greenstar"
+   ]
+  },
+  "115": {
+   "Buderus": [
+    "Buderus Logamax plus GB162"
+   ],
+   "Nefit": [
+    "Nefit TopLine"
+   ]
+  },
+  "121": {
+   "Bosch": [
+    "Bosch Cascade MCM10"
+   ]
+  },
+  "122": {
+   "Nefit": [
+    "Nefit ProLine"
+   ]
+  },
+  "123": {
+   "Buderus": [
+    "Buderus GB*72"
+   ],
+   "Nefit": [
+    "Nefit TrendLine"
+   ],
+   "Junkers": [
+    "Junkers Cerapur"
+   ],
+   "Worcester Bosch": [
+    "Worcester Bosch Greenstar Si"
+   ]
+  },
+  "131": {
+   "Buderus": [
+    "Buderus Logano GB212"
+   ]
+  },
+  "132": {
+   "Bosch": [
+    "Bosch GC7000F"
+   ]
+  },
+  "133": {
+   "Buderus": [
+    "Buderus Logano GB125",
+    "Buderus Logano KB195i",
+    "Buderus Logamatic MC110"
+   ]
+  },
+  "154": {
+   "Worcester Bosch": [
+    "Worcester Bosch Greenstar 30Ri Compact"
+   ]
+  },
+  "155": {
+   "Junkers": [
+    "Junkers Suprapur-o"
+   ]
+  },
+  "167": {
+   "Junkers": [
+    "Junkers Cerapur Aero"
+   ]
+  },
+  "168": {
+   "Bosch": [
+    "Bosch Hybrid Heatpump"
+   ]
+  },
+  "170": {
+   "Buderus": [
+    "Buderus Logano GB212"
+   ]
+  },
+  "172": {
+   "Nefit": [
+    "Nefit EnviLine"
+   ],
+   "Bosch": [
+    "Bosch Compress 6000AW",
+    "Bosch Hybrid 3000-7000iAW"
+   ],
+   "Junkers": [
+    "Junkers SupraEco"
+   ],
+   "IVT": [
+    "IVT Geo 5xx"
+   ],
+   "Buderus": [
+    "Buderus Logatherm WLW196i",
+    "Buderus Logatherm WSW196i"
+   ]
+  },
+  "173": {
+   "IVT": [
+    "IVT Geo 5xx"
+   ]
+  },
+  "195": {
+   "Bosch": [
+    "Bosch Condens 5000i",
+    "Bosch GC9800iW"
+   ],
+   "Worcester Bosch": [
+    "Worcester Bosch Greenstar 8000"
+   ],
+   "Buderus": [
+    "Buderus GB192i*2"
+   ]
+  },
+  "203": {
+   "Junkers": [
+    "Junkers Cerapur"
+   ],
+   "Buderus": [
+    "Buderus Logamax U122"
+   ]
+  },
+  "206": {
+   "Nefit": [
+    "Nefit Ecomline Excellent"
+   ]
+  },
+  "208": {
+   "Buderus": [
+    "Buderus Logamax Plus",
+    "Buderus GB192"
+   ],
+   "Bosch": [
+    "Bosch Condens GC9000"
+   ],
+   "Worcester Bosch": [
+    "Worcester Bosch Greenstar ErP"
+   ]
+  },
+  "210": {
+   "Buderus": [
+    "Buderus Cascade MC400"
+   ]
+  },
+  "211": {
+   "Bosch": [
+    "Bosch EasyControl Adapter"
+   ]
+  },
+  "219": {
+   "Worcester Bosch": [
+    "Worcester Bosch Greenstar HIU"
+   ],
+   "Buderus": [
+    "Buderus Logamax kompakt WS170"
+   ]
+  },
+  "234": {
+   "Buderus": [
+    "Buderus Logamax Plus GB122"
+   ],
+   "Bosch": [
+    "Bosch Condens 2300"
+   ],
+   "Junkers": [
+    "Junkers Cerapur GC2200W"
+   ]
+  }
+ }
+}

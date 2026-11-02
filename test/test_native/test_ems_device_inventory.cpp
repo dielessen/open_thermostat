@@ -65,3 +65,26 @@ TEST(EmsDevices, FullInventoryRemainsBoundedForTheHttpSnapshot) {
   EXPECT_EQ(number(device,"untracked_types"),0);
  }
 }
+// fw/config/ems_devices (beta.23): identities only, stable while nothing about them changes.
+TEST(EmsDevices, IdentityJsonHasNoAgesAndOnlyChangesWithAnIdentity){
+ EmsDeviceInventory i;
+ auto identity=[&]{std::ostringstream out;i.writeIdentityJSON(out);return out.str();};
+ EXPECT_EQ(identity(),"{\"schema\":1,\"devices\":[]}");
+ i.observe(report(8),100);i.observe(report(0x17,0x1A,{0,0,0}),100);
+ const auto before=identity();
+ EXPECT_EQ(before,"{\"schema\":1,\"devices\":[{\"address\":8,\"product_id\":null,\"version\":null,\"brand_id\":null},"
+                  "{\"address\":23,\"product_id\":null,\"version\":null,\"brand_id\":null}]}");
+ i.observe(report(8),5000);EXPECT_EQ(identity(),before);  // newer frames, same identities
+ i.observe(report(8,0x02,{211,1,3,0,0,0,0,0,0,1}),6000);
+ EXPECT_EQ(identity(),"{\"schema\":1,\"devices\":[{\"address\":8,\"product_id\":211,\"version\":\"1.3\",\"brand_id\":1},"
+                      "{\"address\":23,\"product_id\":null,\"version\":null,\"brand_id\":null}]}");
+ JSON parsed(cJSON_Parse(identity().c_str()),cJSON_Delete);ASSERT_TRUE(parsed);
+}
+TEST(EmsDevices, IdentityJsonIsBoundedForOneMqttMessage){
+ EmsDeviceInventory i;
+ for(uint8_t a=1;a<=EmsDeviceInventory::capacity;++a)i.observe(report(a,0x02,{200,99,99,0,0,0,0,0,0,123}),100);
+ std::ostringstream out;i.writeIdentityJSON(out);
+ JSON j(cJSON_Parse(out.str().c_str()),cJSON_Delete);ASSERT_TRUE(j);
+ EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(j.get(),"devices")),int(EmsDeviceInventory::identityDevices));
+ EXPECT_LT(out.str().size(),1024u);
+}

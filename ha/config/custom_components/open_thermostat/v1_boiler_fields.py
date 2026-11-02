@@ -169,12 +169,16 @@ def translated_fields():
 
 def plausible(cache, index):
     """A real value: acquired and valid. An unreliable field's zero is no evidence:
-    adapters such as EasyControl fill unsupported counter/bit bytes with 00."""
+    adapters such as EasyControl fill unsupported counter/bit bytes with 00. Nor is
+    the zero of a field the boiler profile lists as not reported: since E32 1.0 that
+    also means the boiler leaves it at 0 while it works (a selected flow of 0 while
+    it heats), and a value it reports at all makes the field supported on the E32."""
     record = cache.records.get(index)
     if record is None:
         return False
     _, raw, observed, field_quality, _ = record[0]
-    return observed is not None and raw is not None and (field_quality != 1 or raw != 0)
+    return (observed is not None and raw is not None and (field_quality != 1 or raw != 0)
+            and not (raw == 0 and cache.field_state(index) == "not_reported"))
 
 
 def concept_name(index):
@@ -619,6 +623,11 @@ class BoilerFieldEntity(SensorEntity):
             self._attr_native_unit_of_measurement = None
         # On/off and known codes as words (see presentation); never for a field with statistics.
         self._presentation = presentation(index) if name not in CATALOG_COUNTERS else None
+        # A display or error code: the state stays the raw code; its meaning, severity and
+        # advice for this boiler are attributes (display_codes.py).
+        from .display_codes import CODE_FIELDS
+        self._cause_index = INDEX_BY_NAME.get(CODE_FIELDS[name]) if name in CODE_FIELDS else None
+        self._code_field = name in CODE_FIELDS
         # Other whole numbers on the wire (counts, minutes, %, state bits): "9" and "37 %", not "9.0" and
         # "37.0 %"; only when every wire family of the value sends whole numbers.
         if (self._presentation is None and unit != "text"
@@ -655,7 +664,25 @@ class BoilerFieldEntity(SensorEntity):
         available = self.available
         value = self.native_value if available else None
         _, reading = self.source
-        return available, value, reading["availability_reason"] if reading else None
+        code = self.code_description()
+        return (available, value, reading["availability_reason"] if reading else None,
+                tuple(sorted(code.items())) if code else None)
+
+    def code_description(self):
+        """What the display or error code means on this boiler (display_codes.describe); None otherwise."""
+        if not self._code_field or not self.available:
+            return None
+        value = self.native_value
+        if value is None:
+            return None
+        cache = self.client.boiler_fields
+        cause = None
+        if self._cause_index is not None:
+            reading = cache.reading(self._cause_index, self.client.clock())
+            cause = reading["raw"] if reading and reading["usable"] else None
+        from .display_codes import describe
+        language = self.hass.config.language if self.hass is not None else "en"
+        return describe(value, cause, cache.display_model, language)
 
     @property
     def source(self):
@@ -707,6 +734,12 @@ class BoilerFieldEntity(SensorEntity):
             return shown_value(self._presentation, raw)
         return raw / divisor
 
+    def _code_attributes(self):
+        if not self._code_field:
+            return {}
+        from .display_codes import attributes
+        return attributes(self.code_description())
+
     @property
     def extra_state_attributes(self):
         index, value = self.source
@@ -720,6 +753,7 @@ class BoilerFieldEntity(SensorEntity):
         reason = ("session_unavailable" if not live and not self.client.ready else
                   "capability_unavailable" if not live else
                   "not_fitted" if profile == "not_fitted" and not (value and value["usable"]) else
+                  "not_reported" if profile == "not_reported" and not (value and value["usable"]) else
                   value["availability_reason"] if value else "not_received")
         return {"data_role":"read_only_boiler_field", "control_qualified":False,
                 "field_name":name, "raw_divisor":divisor, "source_ttl_ms":ttl,
@@ -732,6 +766,7 @@ class BoilerFieldEntity(SensorEntity):
                 "protocol_profile":self.client.boiler_fields.profile,
                 **({"boiler_profile":profile} if profile is not None else {}),
                 **raw,
+                **self._code_attributes(),
                 **({"source_protocol":"ems_classic" if index < CATALOG_BASE else "ems_plus",
                     "source_fields":[spec(member)[0] for member in self.members]}
                    if len(self.members) > 1 else {})}

@@ -217,3 +217,135 @@ def test_the_notification_blueprint_is_a_valid_automation_blueprint():
     text = path.read_text(encoding="utf-8")
     assert "state_attr(problem, 'reasons')" in text  # the plain-language reasons of the sensor
     assert "old thermostat is disconnected" in text  # awaiting_confirmation is in its description
+
+
+# -- 1.0: a room that does not get warm, a lost session and the Repairs issues -----------------------------
+
+def warm_room(temperature, setpoint=21.0, demand=True, status="ok", **extra):
+    return [{"id": "woonkamer", "name": "Woonkamer", "state": "active", "status": status, "demand": demand,
+             "temperature": temperature, "setpoint": setpoint, **extra}]
+
+
+def test_a_room_that_asks_for_heat_but_stays_cold_for_3_hours():
+    from custom_components.open_thermostat.heating_problem import ROOM_SLOW_SECONDS
+    clock, hub, tracker = setup()
+    hub.update(status(warm_room(19.0)))
+    assert problems(tracker, hub, clock) == []
+    clock.now += ROOM_SLOW_SECONDS - MIN
+    hub.update(status(warm_room(19.5)))
+    assert problems(tracker, hub, clock) == []          # not yet 3 hours
+    clock.now += 2 * MIN
+    hub.update(status(warm_room(19.6)))
+    assert problems(tracker, hub, clock) == ["room_slow"]
+    reason = render(tracker.problems(hub, clock()), "en")[0]
+    assert reason.startswith("Woonkamer asks for heat but has stayed more than 0.5 °C below its target for 3 hours")
+    assert render(tracker.problems(hub, clock()), "nl")[0].startswith("Woonkamer vraagt warmte, maar blijft al 3 uur")
+    # Warm enough (within 0.5 °C): gone at once.
+    hub.update(status(warm_room(20.6)))
+    assert problems(tracker, hub, clock) == []
+
+
+def test_a_cold_room_never_warns_across_a_gap_an_open_window_or_without_demand():
+    from custom_components.open_thermostat.heating_problem import ROOM_SLOW_SECONDS
+    clock, hub, tracker = setup()
+    hub.update(status(warm_room(18.0)))
+    problems(tracker, hub, clock)
+    clock.now += ROOM_SLOW_SECONDS / 2
+    hub.check_stale()                                   # the E32 goes quiet: the wait starts again
+    assert not hub.fresh and 'room_slow' not in problems(tracker, hub, clock)  # only e32_offline
+    hub.update(status(warm_room(18.0)))
+    problems(tracker, hub, clock)
+    clock.now += ROOM_SLOW_SECONDS / 2 + MIN
+    hub.update(status(warm_room(18.0)))
+    assert problems(tracker, hub, clock) == []          # 1.5 h + 1.5 h, never 3 h in one stretch
+    for rooms in (warm_room(18.0, comfort={"window": "open"}), warm_room(18.0, demand=False),
+                  warm_room(18.0, status="inactive")):
+        clock, hub, tracker = setup()
+        hub.update(status(rooms))
+        problems(tracker, hub, clock)
+        clock.now += ROOM_SLOW_SECONDS + MIN
+        hub.update(status(rooms))
+        assert problems(tracker, hub, clock) == []
+
+
+def test_a_lost_session_while_the_e32_is_online():
+    from custom_components.open_thermostat.heating_problem import SESSION_LOST_SECONDS
+    clock, hub, tracker = setup()
+    hub.update(status())
+    tracker.observe(hub, clock(), session_ready=False)
+    assert [k for k, _ in tracker.problems(hub, clock())] == []
+    clock.now += SESSION_LOST_SECONDS
+    hub.update(status())
+    tracker.observe(hub, clock(), session_ready=False)
+    assert [k for k, _ in tracker.problems(hub, clock())] == ["session_lost"]
+    assert "more than 15 minutes" in render(tracker.problems(hub, clock()), "en")[0]
+    tracker.observe(hub, clock(), session_ready=True)
+    assert tracker.problems(hub, clock()) == []
+    # Shadow link switched off (None): never a problem.
+    clock.now += 2 * SESSION_LOST_SECONDS
+    hub.update(status())
+    tracker.observe(hub, clock(), session_ready=None)
+    assert tracker.problems(hub, clock()) == []
+
+
+def test_every_problem_but_the_pressure_becomes_one_repairs_issue_per_room():
+    from custom_components.open_thermostat.heating_problem import issues
+    found = [("pressure_low", {"pressure": 0.8}), ("room_slow", {"room": "Woonkamer", "room_id": "woonkamer",
+                                                                  "hours": 3, "margin": 0.5}),
+             ("e32_offline", {})]
+    result = issues(found, "nl")
+    assert set(result) == {"room_slow_woonkamer", "e32_offline"}  # the pressure has its own issue already
+    key, placeholders = result["room_slow_woonkamer"]
+    assert key == "heating_problem" and placeholders["reason"].startswith("Woonkamer vraagt warmte")
+
+
+@pytest.mark.asyncio
+async def test_repairs_issues_appear_and_clear_with_the_problems(hass):
+    from homeassistant.helpers import issue_registry as ir
+    from custom_components.open_thermostat.issue_sync import clear_issues, sync_issues
+    registry = ir.async_get(hass)
+    sync_issues(hass, "e1", "heating_problem", {"room_slow_woonkamer": ("heating_problem", {"reason": "cold"}),
+                                                 "e32_offline": ("heating_problem", {"reason": "quiet"})})
+    assert registry.async_get_issue("open_thermostat", "heating_problem_room_slow_woonkamer_e1") is not None
+    sync_issues(hass, "e1", "heating_problem", {"e32_offline": ("heating_problem", {"reason": "quiet"})})
+    assert registry.async_get_issue("open_thermostat", "heating_problem_room_slow_woonkamer_e1") is None
+    issue = registry.async_get_issue("open_thermostat", "heating_problem_e32_offline_e1")
+    assert issue.translation_key == "heating_problem" and issue.translation_placeholders == {"reason": "quiet"}
+    # Another group (for example radiator valves) is left alone; clearing one group clears only it.
+    sync_issues(hass, "e1", "trv", {"battery_bad": ("heating_problem", {"reason": "battery"})})
+    clear_issues(hass, "e1", "heating_problem")
+    assert registry.async_get_issue("open_thermostat", "heating_problem_e32_offline_e1") is None
+    assert registry.async_get_issue("open_thermostat", "trv_battery_bad_e1") is not None
+
+
+@pytest.mark.asyncio
+async def test_the_sensor_raises_and_clears_a_repairs_issue(hass):
+    from homeassistant.helpers import issue_registry as ir
+    from custom_components.open_thermostat.heating_problem import ROOM_SLOW_SECONDS
+    from test_v1_native import entry
+    e = entry(hass)
+    clock = Clock()
+    hub = HeatingHub("fixture", clock=clock)
+    hass.data.setdefault("open_thermostat", {})[e.entry_id] = {"heating_hub": hub}
+    sensor = HeatingProblemSensor(e, hub)
+    sensor.hass, sensor.entity_id = hass, "binary_sensor.heating_problem"
+    sensor.async_write_ha_state = lambda: None
+    hub.update(status(warm_room(18.0)))
+    sensor.evaluate()
+    clock.now += ROOM_SLOW_SECONDS + MIN
+    hub.update(status(warm_room(18.0)))
+    sensor.evaluate()
+    issue_id = f"heating_problem_room_slow_woonkamer_{e.entry_id}"
+    assert ir.async_get(hass).async_get_issue("open_thermostat", issue_id) is not None
+    hub.update(status(warm_room(21.0)))
+    sensor.evaluate()
+    assert ir.async_get(hass).async_get_issue("open_thermostat", issue_id) is None
+
+
+def test_the_repairs_texts_exist_in_every_language():
+    import json
+    from pathlib import Path
+    base = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
+    for name in ("strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"):
+        issue = json.loads((base / name).read_text(encoding="utf-8"))["issues"]["heating_problem"]
+        assert set(issue) == {"title", "description"} and "{reason}" in issue["description"], name

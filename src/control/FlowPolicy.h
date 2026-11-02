@@ -1,4 +1,5 @@
 #pragma once
+#include "control/ControlTuning.h"
 #include "control/FlowDemand.h"
 #include "control/FlowLearner.h"
 #include "control/RoomDemand.h"
@@ -16,13 +17,17 @@
 namespace heating::control {
 // The beta.19 flow options, stored on the E32 (NVS, beside the plan) and edited
 // with GET/POST /config/heating/flow. Both default off: the E32 only advises.
+// 1.0: with the tuning knobs (ControlTuning, "tuning"); an older record has none
+// and keeps the built-in values.
 struct FlowSettings {
     bool weatherCurve = false; // item 19: the weather curve sets the flow
     bool applyLearned = false; // item 6: the learned lowest flow and optimum start set the request
     uint8_t designFlowC = 0;   // curve flow at -10 degC outdoor; 0: by emitter (floor 40, radiator 55)
-    static constexpr size_t maxBytes = 95; // stored as one NVS string
+    ControlTuning tuning;
+    static constexpr size_t maxBytes = 95 + 11 + ControlTuning::maxBytes; // stored as one NVS string
     // Any of "weather_curve", "apply_learned" (bool), "curve_design_flow_c" (0 or
-    // 25..80) on top of `out`; nullptr on success, else the API error name.
+    // 25..80), "tuning" (ControlTuning::parse) on top of `out`; nullptr on
+    // success, else the API error name.
     static const char* parse(const cJSON* root, FlowSettings& out) {
         if (!cJSON_IsObject(root) || !root->child) return "invalid_request";
         FlowSettings s = out;
@@ -35,18 +40,22 @@ struct FlowSettings {
                 const double v = cJSON_IsNumber(c) ? c->valuedouble : -1;
                 if (!(v == 0 || (v >= WeatherCurve::minDesignFlowC && v <= WeatherCurve::maxDesignFlowC)) || v != double(int(v))) return "invalid_value";
                 s.designFlowC = static_cast<uint8_t>(v);
+            } else if (!std::strcmp(c->string, "tuning")) {
+                if (const char* e = ControlTuning::parse(c, s.tuning)) return e;
             } else return "invalid_key";
         }
         out = s;
         return nullptr;
     }
     std::string json() const {
-        char text[maxBytes + 1];
-        std::snprintf(text, sizeof text, "{\"weather_curve\":%s,\"apply_learned\":%s,\"curve_design_flow_c\":%u}",
+        char text[96];
+        std::snprintf(text, sizeof text, "{\"weather_curve\":%s,\"apply_learned\":%s,\"curve_design_flow_c\":%u,\"tuning\":",
                       weatherCurve ? "true" : "false", applyLearned ? "true" : "false", unsigned(designFlowC));
-        return text;
+        return text + tuning.json() + '}';
     }
-    bool operator==(const FlowSettings& o) const { return weatherCurve == o.weatherCurve && applyLearned == o.applyLearned && designFlowC == o.designFlowC; }
+    bool operator==(const FlowSettings& o) const {
+        return weatherCurve == o.weatherCurve && applyLearned == o.applyLearned && designFlowC == o.designFlowC && tuning == o.tuning;
+    }
 };
 
 // Per local day, the effect of the options next to the rule: while the E32
@@ -200,11 +209,12 @@ private:
 // the options on, this sets HOW WARM (and an optimum start may begin earlier):
 //  - weather curve (needs a fresh outdoor; else the rule's flow stays):
 //    flow = base(setpoint, outdoor) + (rule flow - plan minimum) / 2, the room
-//    PI at half authority on top of the curve;
+//    PI at half authority on top of the curve (tuning: curve_correction_pct);
 //  - use learned flow: during a warm-up (shortfall >= 0.3 degC) the learner's
 //    lowest flow that closes it within the room's acceptance; and a learned
 //    optimum start heats a room ahead of its next program rise (never while the
-//    rule is in its minimum off time or has no usable room), at least 5 min.
+//    rule is in its minimum off time or has no usable room), at least 5 min
+//    (tuning: min_on_s).
 // Every flow stays within [plan minimum, min(plan maximum, 80, boiler limit)];
 // the boiler limit wins over the plan minimum. Off (the default), everything is
 // computed and reported as advice and the request is the rule's, unchanged.
@@ -214,7 +224,6 @@ class FlowPolicy {
 public:
     enum class Source : uint8_t { rule, curve, learned, optimumStart };
     static constexpr int16_t warmupFromCentiC = 30;
-    static constexpr uint32_t startMinimumOnMs = 300000;
     struct Inputs {
         uint64_t now = 0;
         std::optional<int64_t> utc;                 // trusted clock only
@@ -264,7 +273,7 @@ public:
                     curveBase_ = curveBase_ ? std::max(*curveBase_, b) : b;
                 }
             if (curveBase_) {
-                const int correction = in.rule.heat ? std::max(0, int(in.rule.flowC) - int(plan.minimumFlowC)) / 2 : 0;
+                const int correction = in.rule.heat ? std::max(0, int(in.rule.flowC) - int(plan.minimumFlowC)) * settings_.tuning.curveCorrectionPct / 100 : 0;
                 curveWant = (*curveBase_ + 99) / 100 + correction;
                 curveFlow_ = bound(curveWant);
             }
@@ -384,7 +393,7 @@ private:
         const bool allowed = in.rule.reason == FlowDemand::Reason::idle || in.rule.reason == FlowDemand::Reason::satisfied || in.rule.heat;
         startState_ = start_.room < 0 ? "none" : settings_.applyLearned && start_.learned ? "applied" : "advice";
         const bool apply = settings_.applyLearned && allowed && ((wanted && start_.learned)
-            || (startHeating_ && in.now - startedAt_ < startMinimumOnMs && in.rule.reason != FlowDemand::Reason::noDemand));
+            || (startHeating_ && in.now - startedAt_ < settings_.tuning.minOnS * 1000ull && in.rule.reason != FlowDemand::Reason::noDemand));
         if (!apply) { startHeating_ = false; return; }
         if (!startHeating_) { startHeating_ = true; startedAt_ = in.now; startFlowC_ = bound(start_.flowC); }
         if (start_.room >= 0 && start_.learned) startFlowC_ = bound(start_.flowC);

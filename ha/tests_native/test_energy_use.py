@@ -65,10 +65,10 @@ async def test_without_modulation_nothing_is_counted_and_no_entity_appears(hass)
     use, values, clock, added = make(hass)
     use.tick()
     run(use, clock, 600)
-    assert added == [] and use.data["created"] is False and use.data["totals"] == {"heating": 0, "hot_water": 0}
+    assert added == [] and use.data["created"] is False and use.data["totals"] == {"heating": 0, "hot_water": 0, "tapping": 0, "keep_warm": 0}
     values["reported_burner_modulation"] = 40  # no hot-water state yet: nothing to split
     run(use, clock, 600)
-    assert added == [] and use.data["totals"] == {"heating": 0, "hot_water": 0}
+    assert added == [] and use.data["totals"] == {"heating": 0, "hot_water": 0, "tapping": 0, "keep_warm": 0}
 
 
 @pytest.mark.asyncio
@@ -118,7 +118,7 @@ async def test_a_gas_meter_gives_the_real_values_shared_by_what_the_boiler_did(h
     values["dhw_active"] = 1
     run(use, clock, 600)
     pending = dict(use.data["pending"])
-    assert use.data["totals"] == {"heating": 0, "hot_water": 0} and pending["heating"] > pending["hot_water"] > 0
+    assert use.data["totals"] == {"heating": 0, "hot_water": 0, "tapping": 0, "keep_warm": 0} and pending["heating"] > pending["hot_water"] > 0
     pending["hot_water"] += 0.6 * 24 * 10 / 3600  # the next tick counts first, then reads the meter
     gas_meter(hass, "100.900")
     run(use, clock, 10)

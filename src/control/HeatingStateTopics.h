@@ -15,8 +15,12 @@ namespace heating::control {
 //   fw/config/plan            {"schema":1,"revision","mode","rooms":[ids],"ble":[ids],"entity_parts":n}
 //   fw/config/entities[/<k>]  {"schema":1,"revision","part":k,"parts":n,"entities":[..]}
 //   fw/telemetry/shadow       {"schema":1,..shadow members} (today's comparison)
+//   fw/telemetry/readiness    {"schema":1,..readiness members} (TakeoverReadiness::json())
+//   fw/state/trv/<room>       one room's radiator valves (TrvControl), only with valves configured;
+//                             fw/config/plan then lists them ("trv":[ids]), fw/state/heating
+//                             carries "trv":{"output","flow_offset_c"[,"flow_reason"]}
 // Members other modules add to the status flow through unchanged.
-enum class HeatingTopic : uint8_t { heating, room, ble, plan, entities, shadow };
+enum class HeatingTopic : uint8_t { heating, room, ble, plan, entities, shadow, trv, readiness };
 inline constexpr size_t entityPartBytes = 800;
 
 // emit(kind, suffix, document): the document lives until emit returns.
@@ -25,7 +29,8 @@ bool splitHeatingStatus(cJSON* status, Emit&& emit) {
     using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
     if (!cJSON_IsObject(status)) return false;
     const auto take = [&](const char* key) { return Json(cJSON_DetachItemFromObjectCaseSensitive(status, key), cJSON_Delete); };
-    Json rooms = take("rooms"), ble = take("ble_sensors"), entities = take("ha_entities"), shadow = take("shadow");
+    Json rooms = take("rooms"), ble = take("ble_sensors"), entities = take("ha_entities"), shadow = take("shadow"), trv = take("trv");
+    Json readiness = take("readiness");
     const cJSON* revision = cJSON_GetObjectItemCaseSensitive(status, "revision");
     const cJSON* mode = cJSON_GetObjectItemCaseSensitive(status, "mode");
     Json plan(cJSON_CreateObject(), cJSON_Delete);
@@ -68,10 +73,34 @@ bool splitHeatingStatus(cJSON* status, Emit&& emit) {
         for (const cJSON* e = parts[k].first; e && e != parts[k].second; e = e->next) cJSON_AddItemToArray(list, cJSON_Duplicate(e, false));
         emit(HeatingTopic::entities, k ? "fw/config/entities/" + std::to_string(k) : std::string("fw/config/entities"), doc.get());
     }
+    // Radiator valves, only when configured: a document per room, their ids in fw/config/plan
+    // ("trv") and output/flow offset in fw/state/heating (which stays within its budget).
+    if (cJSON_IsObject(trv.get())) {
+        Json summary(cJSON_CreateObject(), cJSON_Delete);
+        cJSON* ids = summary ? cJSON_AddArrayToObject(plan.get(), "trv") : nullptr;
+        if (!ids) return false;
+        for (const char* key : {"output", "flow_offset_c", "flow_reason"})
+            if (const cJSON* m = cJSON_GetObjectItemCaseSensitive(trv.get(), key)) cJSON_AddItemToObject(summary.get(), key, cJSON_Duplicate(m, false));
+        const cJSON* list = cJSON_GetObjectItemCaseSensitive(trv.get(), "rooms");
+        for (const cJSON* item = cJSON_IsArray(list) ? list->child : nullptr; item; item = item->next) {
+            const cJSON* id = cJSON_GetObjectItemCaseSensitive(item, "room");
+            if (!cJSON_IsString(id) || !topicSafeRoomId(id->valuestring)) continue;
+            cJSON_AddItemToArray(ids, cJSON_CreateString(id->valuestring));
+            Json doc(cJSON_CreateObject(), cJSON_Delete);
+            if (!doc || !cJSON_AddNumberToObject(doc.get(), "schema", 1)) return false;
+            for (const cJSON* m = item->child; m; m = m->next) cJSON_AddItemToObject(doc.get(), m->string, cJSON_Duplicate(m, true));
+            emit(HeatingTopic::trv, std::string("fw/state/trv/") + id->valuestring, doc.get());
+        }
+        cJSON_AddItemToObject(status, "trv", summary.release());
+    }
     emit(HeatingTopic::plan, std::string("fw/config/plan"), plan.get());
     if (cJSON_IsObject(shadow.get())) {
         if (!cJSON_AddNumberToObject(shadow.get(), "schema", 1)) return false;
         emit(HeatingTopic::shadow, std::string("fw/telemetry/shadow"), shadow.get());
+    }
+    if (cJSON_IsObject(readiness.get())) {
+        if (!cJSON_AddNumberToObject(readiness.get(), "schema", 1)) return false;
+        emit(HeatingTopic::readiness, std::string("fw/telemetry/readiness"), readiness.get());
     }
     emit(HeatingTopic::heating, std::string("fw/state/heating"), status);
     return true;

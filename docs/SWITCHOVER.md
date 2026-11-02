@@ -1,7 +1,7 @@
 # Attended switch-over: the E32 takes over the boiler
 
-Status: procedure for beta.19 (the 1.0 candidate), updated 29 October 2026,
-not yet carried out. Applies to EMS Classic boilers only. The owner's
+Status: procedure for beta.22 and newer (the first builds with the gate open),
+updated 1 November 2026, not yet carried out. Applies to EMS Classic boilers only. The owner's
 engineering checklist for the reference installation is in Dutch:
 [OVERSCHAKELING.nl.md](modern-thermostat/OVERSCHAKELING.nl.md). The live
 monitor for the first 48 hours is in [tools/switchover](../tools/switchover/README.md).
@@ -31,15 +31,37 @@ examples; use your own.
   **My thermostat is disconnected from the boiler — let the E32 take over** on
   its Rooms page. The confirmation is kept across restarts, stored with the
   firmware it was given under (version and build hash). It is cleared by a
-  foreign 0x1A, by handing back, and by any firmware change, even a rebuild of
-  the same version.
+  foreign 0x1A and by handing back. A firmware change, even a rebuild of the
+  same version, does not carry it over: the E32 asks you to confirm again
+  (see *After a firmware update*).
+- **Boot zero (beta.23).** After a restart while the E32 controlled the boiler
+  (a stored confirmation, plan active) it first sends **one zero request** as
+  soon as its transmit route is ready, about 10 s after boot, repeated every
+  10 s until delivered (`why: boot_zero`; `transmit_failed` after a minute
+  without delivery). An unexpected restart may have left its last request in
+  the boiler; this withdraws it before any listening or takeover. A foreign
+  0x1A heard before cancels it. Shadow mode and an E32 that never took over
+  send nothing. Trade-off: if the old thermostat was reconnected while the
+  E32 was off, that one zero can briefly override the thermostat's request;
+  the thermostat sends again within about 40 s and the E32 then stays silent.
 - **After a restart.** With a stored confirmation the E32 asks heat (or frost
   protection) again only after **2 minutes of continuous reception from the
   boiler without a foreign 0x1A** (boiler frames at most 30 s apart; about
   130 s after boot), and within about a minute of the first valid room
   reading. A foreign 0x1A in that window clears the confirmation before the
-  E32 sends anything, so a thermostat reconnected while the E32 was off always
-  wins.
+  E32 sends anything but the boot zero, so a thermostat reconnected while the
+  E32 was off always wins.
+- **After a firmware update (beta.23).** If the E32 controlled the boiler
+  before the update, the stored confirmation becomes a request to confirm
+  again (`active.reconfirm_required`, `active.reconfirm_stored`). The E32
+  sends the boot zero and then waits for you: Home Assistant shows the Repairs
+  issue **Confirm the takeover again** with one confirm action (the Rooms page
+  works too). Until then it keeps **only frost protection**: the plan minimum
+  flow while a room reads below 8 °C (`why: frost_unconfirmed`), and only from
+  60 s after boot and 2 minutes of boiler reception without a foreign 0x1A.
+  A foreign 0x1A, handing back or the plan back to shadow end the wait and
+  erase the record; an older firmware erases it too, so a rollback asks for a
+  fresh confirmation.
 - **Measurement loss.** Without a usable room temperature for 30 minutes the
   E32 asks no heat. It resumes by itself when a reading returns.
 - **Flow.** As low as the rooms allow, up to the plan maximum, and never above
@@ -52,6 +74,11 @@ examples; use your own.
   *(beta.19, verify on the device: a bus recording after a restart)*
 - **Frost protection.** Minimum flow when any room, including an inactive one,
   reads below 8 °C, off again at 9 °C.
+- **Radiator valves.** The E32 (Zigbee2MQTT valves) or Home Assistant (valves
+  of other integrations) drives a room's valves only while the E32 controls
+  the boiler **and** that room's **Valve control** switch is on; it is off by
+  default. Switch it on per room after the attended tests, if you want it. See
+  [Radiator valves](USER-GUIDE.md#radiator-valves).
 - **No automatic restarts while active.** While the E32 owns the boiler, Wi-Fi,
   MQTT broker or Bluetooth problems no longer restart it (no `wifi_lost`,
   `broker_lost`, `network_dead` or `bluetooth_silent`). Only a real hang (loop
@@ -76,8 +103,8 @@ States (Rooms → **Active control**, and `GET /status/heating` → `active.stat
 | State | Page text | Sends to the boiler |
 | --- | --- | --- |
 | `shadow` | Shadow mode: your thermostat controls the boiler. | nothing |
-| `awaiting_confirmation` | Waiting for your confirmation that your thermostat is disconnected from the boiler. | nothing, **not even frost protection** |
-| `arming` | Taking over: waiting for fresh room readings and the boiler bus. | nothing: at least 60 s after a boot; with a confirmation restored after a restart, until 2 min of boiler reception without a foreign 0x1A (about 130 s after boot; `active.confirmation.restored`, `listened_s`) |
+| `awaiting_confirmation` | Waiting for your confirmation that your thermostat is disconnected from the boiler. | nothing, not even frost protection; after a firmware update while the E32 controlled the boiler: the boot zero, then frost protection only (`frost_unconfirmed`) |
+| `arming` | Taking over: waiting for fresh room readings and the boiler bus. | the boot zero after a restart, nothing else: at least 60 s after a boot; with a confirmation restored after a restart, until 2 min of boiler reception without a foreign 0x1A (about 130 s after boot; `active.confirmation.restored`, `listened_s`) |
 | `active` | The E32 controls the boiler. | its request every 60 s, at once on start and stop |
 | `stopped_measurement_lost` | No room measurements: the E32 asks the boiler for no heat until a reading returns. | zero; resumes by itself |
 | `stopping` | Stopping: the E32 asks the boiler for zero for one minute. | zero every 10 s until delivered |
@@ -93,12 +120,13 @@ Where to look:
 | What | E32 page | REST | MQTT (`<prefix>/v1/fw/telemetry/…`) | Home Assistant |
 | --- | --- | --- | --- | --- |
 | State, request, last sent, warnings | Rooms → Active control | `/status/heating` → `active` | `heating` | Heating problem (after 5 min) |
-| Confirmation kept | — | `active.awaiting_confirmation`, `active.confirmation {age_s, restored, listened_s}`, `active.confirmation_stored` | `heating` | — |
-| Boiler maximum | Rooms (flow limits) | `active.boiler_limit {flow_c, age_s, reads}` (`reads`: the E32's own 0x16 requests this boot) | `heating` | — |
+| Confirmation kept | — | `active.awaiting_confirmation`, `active.confirmation {age_s, restored, listened_s}`, `active.confirmation_stored`, `active.reconfirm_required`, `active.reconfirm_stored` | `heating` | Repairs: Confirm the takeover again (after an update) |
+| Boiler maximum | Rooms, and Home → Flow temperature limits | `active.boiler_limit {flow_c, age_s, reads}` (`reads`: the E32's own 0x16 requests this boot) | `heating` | — |
 | Rooms | Rooms | `rooms[]` | `heating` | Temperature, Target temperature, Control status, Heat demand |
 | Boiler | Boiler | `/status/ems/telemetry` → `fields` | `boiler_fields` | Flow temperature, Selected flow temperature, Heating active, Hot water active, Burner modulation, Water pressure |
 | Starts | — | `/status/heating` → `burner` | `heating` | Burner starts last hour, Burner short cycling |
-| Restarts, memory, MQTT | System → System log | `/status/logs` → `previous_boot`, `runtime` | `device_status` | uptime |
+| Restarts, memory, MQTT | System → Diagnostics and system log | `/status/logs` → `previous_boot`, `runtime` | `device_status` | uptime |
+| Day figures | — | — | — | Daily summary (burner time, starts, short runs, time to target, missed comfort, gas) |
 
 "On the bus" in the tests below means what the boiler reports back: its
 **Selected flow temperature** (from its 0x18 monitor) follows the E32's request,
@@ -119,11 +147,16 @@ foreign 0x1A keeps growing. Also check the boiler's own display.
      is reported for information only;
   4. the sources work, and a fallback source (for example a Bluetooth sensor)
      has taken over at least once.
-  Without an EMS thermostat to compare with, judge the period on the room
-  temperatures and the calculated request.
-  `tools/switchover/shadow_exit.py` checks these criteria read-only from the
-  Home Assistant history (and optionally the E32's MQTT topics) and prints
-  PASS, FAIL or WAIT (not enough data yet) for each; see its README.
+  The E32 checks these itself: the Rooms page shows **Ready to take over?**
+  (in Home Assistant the sensor *Takeover readiness*) with each criterion
+  green, orange (waiting, with its progress) or red (with what to do), and
+  "Ready: follow the switch-over steps" only when all pass. See
+  [USER-GUIDE.md](USER-GUIDE.md#ready-to-take-over) for the exact thresholds.
+  Without an EMS thermostat to compare with, the check says so and judges the
+  stability, the room sources, the boiler's reception and its reported
+  heating limit instead.
+  `tools/switchover/shadow_exit.py` stays available for a read-only check of
+  the Home Assistant history with the same thresholds; see its README.
 - The release with the gate **closed** installed and stable in shadow mode for
   at least 24 hours; host tests and the soak test green.
 - After an E32 restart in shadow mode, `active.boiler_limit.flow_c` is known
@@ -196,6 +229,12 @@ minutes, a room well above target while the E32 still asks heat, or any doubt.
 **Normal (the E32 page works):**
 1. Open the E32 page, menu **Rooms**, section **Active control**.
 2. Press **Hand back to the thermostat (the E32 asks for zero for one minute)**.
+   The page first withdraws your confirmation, so the E32 stops at once and
+   asks zero for one minute, and then saves the plan as shadow. If the E32
+   does not confirm the stop, the page says so: keep the thermostat
+   disconnected, try again, and use the emergency steps if it keeps failing.
+   If only saving the plan fails, the E32 has already stopped: press the
+   button again. Home Assistant has no hand-back action; use this page.
 3. Wait for **Shadow mode: your thermostat controls the boiler.** (about 70 s).
    If it keeps saying "Stopping", use the emergency steps.
 4. Switch the boiler off, reconnect the thermostat's two labelled wires as in
@@ -213,10 +252,15 @@ minutes, a room well above target while the E32 still asks heat, or any doubt.
    thermostat connected, it sees the thermostat's requests and stays silent.
    With its stored confirmation it waits for 2 minutes of boiler reception
    without a foreign 0x1A before it asks anything; the thermostat's first
-   request in that window clears the confirmation. Press **Hand back** anyway
-   so the plan returns to shadow mode.
-5. Suspect firmware? Reinstall the known-good build. A firmware change clears
-   the confirmation, so the E32 then sends nothing.
+   request in that window clears the confirmation. Only its boot zero (about
+   10 s after boot) can come before the thermostat was heard; the thermostat
+   repeats its request within about 40 s. Press **Hand back** anyway so the
+   plan returns to shadow mode.
+5. Suspect firmware? Reinstall the known-good build. A firmware change does
+   not carry the confirmation over: the E32 sends the boot zero, then at most
+   frost protection while it hears no other thermostat, and Home Assistant
+   asks **Confirm the takeover again**. Do not confirm that while the old
+   thermostat is connected; its first request ends the wait anyway.
 
 ## The first 48 hours and the first two weeks
 
@@ -233,6 +277,9 @@ daily `summary-<day>.json`.
 **Two weeks:** a short daily check (state and warnings, restarts, room
 temperature against target, burner starts and short cycling, flow range,
 pressure, hot water, gas use) and a weekly comparison with the shadow period.
+The **Daily summary** sensor in Home Assistant holds most of these figures
+per day, and **Heating needs attention** under Settings → System → Repairs
+lists the open warnings.
 Change parameters only with a noted reason. Learned flow stays advice for the
 first two weeks. Firmware updates in this period are attended only: a new
 firmware clears the confirmation, so confirm again right after the update.

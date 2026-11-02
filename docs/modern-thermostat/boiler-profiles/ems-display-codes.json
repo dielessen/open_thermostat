@@ -1,0 +1,2880 @@
+{
+  "schema": 1,
+  "id": "ems-generic",
+  "name": "EMS boilers with numeric cause codes (generic fallback)",
+  "purpose": "Display-code meanings used when no boiler model with its own table is selected. Read-only presentation; never control evidence.",
+  "applies_to": "Bosch Thermotechnik EMS boilers that report a display code with a three-digit cause number and have no model table of their own (for example Nefit and Buderus UBA boilers). A code-only row is used only when every reviewed document gives that code the same meaning; EA and 0Y have none because the Bosch letter-code families use them for other faults.",
+  "reviewed_on": "2026-11-01",
+  "wording": "Meanings and advice are short summaries in our own words, not quotations.",
+  "sources": {
+    "nefit-ecomline-classic-705428a": {
+      "publisher": "Nefit B.V.",
+      "title": "Installatie-instructie Nefit EcomLine HR (EcomLine Classic HR-toestellen)",
+      "document": "705.428A-4200",
+      "edition": "03/2005",
+      "language": "nl",
+      "models": [
+        "Nefit EcomLine HR 22, HR 30, HR 43, HR 65",
+        "Nefit EcomLine HRC 22 H/V, HRC 30 H/V"
+      ],
+      "sections": "4.1 Display- en servicecodes (p. 4-1, 4-2), 4.2 Storingen en oorzaken (p. 4-3 to 4-8)",
+      "url": "https://www.smarthomesupply.nl/handleiding/nefit/instalecomlineclassic.pdf",
+      "host": "Manual archive copy of the Nefit PDF (PDF title 705.428A-4200, Nefit B.V. imprint on the last page)",
+      "sha256": "b937bb6bcf50d2181454a2c93baf16520f5237cee9ca96e2005b9ae6ea9f7072",
+      "pdf_pages": "31-38"
+    },
+    "nefit-proline-6720646227": {
+      "publisher": "Bosch Thermotechniek B.V. (Nefit)",
+      "title": "Installatie-instructie Nefit ProLine HRC 24/CW3, HRC 24/CW4, HRC 30/CW5",
+      "document": "6 720 646 227",
+      "edition": "2013/04",
+      "language": "nl",
+      "models": [
+        "Nefit ProLine HRC 24/CW3, HRC 24/CW4, HRC 30/CW5"
+      ],
+      "sections": "10 Displaycodes, table 25 (p. 31-34)",
+      "url": "https://www.nefit-bosch.nl/media/country_pool/professioneel/installateurs/installatie-instructie_proline.pdf",
+      "host": "Manufacturer site (nefit-bosch.nl)",
+      "sha256": "c1ddc9a7a93c4823f72d9f720f9a1e115b0df9140c89efd0b02c2484302cd81a",
+      "pdf_pages": "31-34"
+    },
+    "nefit-trendline-ii-6720882261": {
+      "publisher": "Bosch Thermotechniek B.V. (Nefit)",
+      "title": "Installatie-instructie Nefit TrendLine II HRC25 CW4, HRC30 CW5",
+      "document": "6720882261",
+      "edition": "2021/03",
+      "language": "nl",
+      "models": [
+        "Nefit TrendLine II HRC25 CW4, HRC30 CW5"
+      ],
+      "sections": "11 Bedrijfs- en storingsmeldingen, table 20 (p. 32-37)",
+      "url": "https://portal.insmart.nl/downloads/nefit_trendline_ii_Installatie%2BTrendLine.pdf",
+      "host": "Installer portal copy of the Nefit PDF (PDF title 'IM TrendLine CW4 5 II 2021/03 nl')",
+      "sha256": "7e74d4dec59b4b85eada74f6af0e2f4d427d0a080ede8607489e6318564b4d64",
+      "pdf_pages": "32-37"
+    },
+    "nefit-topline-6720615811": {
+      "publisher": "Nefit B.V.",
+      "title": "Service-instructie Nefit TopLine HR, TopLine AquaPower HRC, TopLine AquaPower Plus HRC",
+      "document": "6 720 615 811",
+      "edition": "07/2008",
+      "language": "nl",
+      "models": [
+        "Nefit TopLine HR, TopLine AquaPower HRC, TopLine AquaPower Plus HRC"
+      ],
+      "sections": "5 Symptomen, frame 29 (p. 19-23), and the diagnosis frames (p. 31-49)",
+      "url": "https://portal.insmart.nl/downloads/nefit_topline_aquapower_Service-instructie%2BTopline%2BAquapower.pdf",
+      "host": "Installer portal copy of the Nefit PDF",
+      "sha256": "f10d7b2685415408895575cb81ba377656f6b991ac15ec9f4bed7bc50ba9ece3",
+      "pdf_pages": "19-23, 31-49"
+    },
+    "buderus-gb172-6720619596": {
+      "publisher": "Buderus (Bosch Thermotechnik GmbH)",
+      "title": "Montage- und Wartungsanleitung Gas-Brennwertgerät Logamax plus GB172-14/20/24/24K",
+      "document": "6 720 619 596",
+      "edition": "02/2011",
+      "language": "de",
+      "models": [
+        "Buderus Logamax plus GB172-14, GB172-20, GB172-24, GB172-24K"
+      ],
+      "sections": "15.3 Betriebs- und Störungsanzeigen, tables 24-26 (p. 68-72)",
+      "url": "https://www.kesselheld.de/content/uploads/2019/07/wartungsanleitung-buderus-logamax-plus.pdf",
+      "host": "Retailer copy of the Buderus PDF",
+      "sha256": "449b62cfb501318cd4add8a0125c73fa83cf93d896cc7f6edb44d3787a9764e5",
+      "pdf_pages": "68-72"
+    },
+    "nefit-ecomline-excellent-705427a": {
+      "publisher": "Nefit B.V.",
+      "title": "Installatie-instructie Nefit EcomLine HR (EcomLine Excellent HR-toestellen)",
+      "document": "705.427A-4200",
+      "edition": "03/2005",
+      "language": "nl",
+      "models": [
+        "Nefit EcomLine Excellent HR and HRC"
+      ],
+      "sections": "4.1 Display- en servicecodes (p. 4-1, 4-2), 4.2 Storingen en oorzaken (p. 4-3 to 4-8)",
+      "url": "https://nefit-nl-nl-b.boschhc-documents.com/download/pdf/file/70542700",
+      "host": "Manufacturer document portal (Bosch Thermotechniek, Nefit NL; document 70542700)",
+      "sha256": "6a9d9fbb565678607027c842acdffe69c40067ae346bd399ff5e60ecc9639367",
+      "pdf_pages": "31-38"
+    },
+    "nefit-smartline-basic-71652200": {
+      "publisher": "Nefit B.V.",
+      "title": "Installatie-instructie Nefit SmartLine Basic HR 24, HRC 24/CW3 en HRC 24/CW4",
+      "document": "7165 2200",
+      "edition": "06/2009",
+      "language": "nl",
+      "models": [
+        "Nefit SmartLine Basic HR 24, HRC 24/CW3, HRC 24/CW4"
+      ],
+      "sections": "13.3 Displaycodes (p. 52-57)",
+      "url": "https://nefit-nl-nl-b.boschhc-documents.com/download/pdf/file/71652200",
+      "host": "Manufacturer document portal (Bosch Thermotechniek, Nefit NL; document 71652200)",
+      "sha256": "88c483c86f867bf7fc173d6db75cf36ce5a55686e8781146d28ad952871a3f10",
+      "pdf_pages": "52-57"
+    },
+    "buderus-gb162-6720614965": {
+      "publisher": "Bosch Thermotechnology Corp. (Buderus)",
+      "title": "Service Instructions Logamax plus GB162-80 kW/100 kW condensing gas boiler",
+      "document": "6 720 614 965",
+      "edition": "11/2012",
+      "language": "en",
+      "models": [
+        "Buderus Logamax plus GB162-80 kW and GB162-100 kW (US/CA edition, UBA 3 with BC10)"
+      ],
+      "sections": "5 Symptoms, display codes and other symptoms (p. 21-28)",
+      "url": "https://www.bosch-homecomfort.com/us/media/country_pool/documents/download-buderus-products/buderus-manuals/6720614965_05_gb162_service_instructions_en_11.2012_us-2.pdf",
+      "host": "Manufacturer site (bosch-homecomfort.com, discontinued Buderus products)",
+      "sha256": "913c70f3b56e9411ce460a6481cca377785f72206b39cbbd1e404f2f8eb1f104",
+      "pdf_pages": "21-28"
+    },
+    "bosch-gc7000iw-6720882461": {
+      "publisher": "Bosch Thermotechniek (Bosch Home Comfort Belgium)",
+      "title": "Installatie- en onderhoudsinstructie Gascondensatieketel Condens 7000iW GC7000iW 14-28",
+      "document": "6720882461",
+      "edition": "2021/10",
+      "language": "nl",
+      "models": [
+        "Bosch Condens 7000i W, GC7000iW 14, 24, 28 C (and B/BC variants)"
+      ],
+      "sections": "16 Bedrijfs- en storingsmeldingen, table 74 (p. 47-51)",
+      "url": "https://www.bosch-homecomfort.com/web-etk/documents/doc?id=365401",
+      "host": "Manufacturer site (bosch-homecomfort.com, Belgian document library)",
+      "sha256": "a5dc3ad6f02424ae03f99743e1a15f97e3defc82aa0ba21f650f84fd43b9d8e0",
+      "pdf_pages": "47-51"
+    },
+    "bosch-cerapur-6720889855": {
+      "publisher": "Bosch Thermotechnik GmbH",
+      "title": "Installations- und Wartungsanleitung Gas-Brennwertgerät Cerapur ZSB 14-5.2C 21/23",
+      "document": "6720889855",
+      "edition": "2023/07",
+      "language": "de",
+      "models": [
+        "Bosch (Junkers) Cerapur ZSB 14-5.2C"
+      ],
+      "sections": "16 Betriebs- und Störungsanzeigen, table 81 (p. 59-63)",
+      "url": "https://bosch-de-de.boschhc-documents.com/download/pdf/file/6720889855",
+      "host": "Manufacturer document portal (Bosch Thermotechnik DE; document 6720889855)",
+      "sha256": "03f68e65e0d61a0bc237a28d51da5f0ffefc54dcc7257b1bfb471a90e4cc3c84",
+      "pdf_pages": "59-63"
+    },
+    "worcester-greenstar-4000-6720891161": {
+      "publisher": "Worcester, Bosch Group",
+      "title": "Installation and Maintenance Instructions Gas-fired condensing combi appliance Greenstar 4000 GR4700iW C",
+      "document": "6 720 891 161",
+      "edition": "2021/10",
+      "language": "en",
+      "models": [
+        "Worcester Bosch Greenstar 4000 combi (GR4700iW C)"
+      ],
+      "sections": "10.1 Operating and fault displays, 10.1.2 Operating/Fault code table (p. 71-79)",
+      "url": "https://www.worcester-bosch.co.uk/support/literature/download/6720891161",
+      "host": "Manufacturer site (worcester-bosch.co.uk literature)",
+      "sha256": "65c268c3b05934415c793fdd55f89d0cf5df586e3e8644fbb6aa1786284d3c38",
+      "pdf_pages": "71-79"
+    }
+  },
+  "severities": {
+    "normal": {
+      "en": "Normal operation",
+      "nl": "Normaal bedrijf",
+      "pl": "Normalna praca"
+    },
+    "waiting": {
+      "en": "Waiting",
+      "nl": "Wacht",
+      "pl": "Oczekiwanie"
+    },
+    "service": {
+      "en": "Service or test mode",
+      "nl": "Service- of testbedrijf",
+      "pl": "Tryb serwisowy lub testowy"
+    },
+    "blocking": {
+      "en": "Blocking fault: restarts by itself once the cause is gone",
+      "nl": "Blokkerende storing: herstart vanzelf als de oorzaak weg is",
+      "pl": "Usterka blokująca: kocioł wznowi pracę sam po usunięciu przyczyny"
+    },
+    "locking": {
+      "en": "Lockout: the boiler needs a reset",
+      "nl": "Vergrendelende storing: de ketel moet gereset worden",
+      "pl": "Blokada: kocioł wymaga resetu"
+    },
+    "fault": {
+      "en": "Fault",
+      "nl": "Storing",
+      "pl": "Usterka"
+    },
+    "unknown": {
+      "en": "Unknown code",
+      "nl": "Onbekende code",
+      "pl": "Nieznany kod"
+    }
+  },
+  "advice": {
+    "self": {
+      "en": "No action needed; the boiler continues by itself.",
+      "nl": "Geen actie nodig; de ketel gaat vanzelf verder.",
+      "pl": "Nie trzeba nic robić; kocioł wznowi pracę samoczynnie."
+    },
+    "settings": {
+      "en": "If the rooms stay too cold, check the boiler's flow temperature setting or heating curve.",
+      "nl": "Blijven de kamers te koud, controleer dan de ingestelde aanvoertemperatuur of stooklijn.",
+      "pl": "Jeśli w pomieszczeniach jest za zimno, sprawdź ustawioną temperaturę zasilania lub krzywą grzewczą."
+    },
+    "pressure": {
+      "en": "Check the water pressure and top up the system if it is too low. Call your installer if it keeps dropping.",
+      "nl": "Controleer de waterdruk en vul de installatie bij als die te laag is. Bel je installateur als de druk blijft zakken.",
+      "pl": "Sprawdź ciśnienie wody i uzupełnij instalację, jeśli jest za niskie. Jeśli ciśnienie stale spada, wezwij instalatora."
+    },
+    "flow": {
+      "en": "Check the water pressure and that enough radiator valves are open. Call your installer if it keeps happening.",
+      "nl": "Controleer de waterdruk en of er genoeg radiatorkranen open staan. Bel je installateur als het vaker gebeurt.",
+      "pl": "Sprawdź ciśnienie wody i czy otwartych jest wystarczająco dużo zaworów grzejnikowych. Jeśli to się powtarza, wezwij instalatora."
+    },
+    "gas": {
+      "en": "Check that the gas tap is open, then reset the boiler. Call your installer if the code comes back.",
+      "nl": "Controleer of de gaskraan open staat en reset dan de ketel. Bel je installateur als de code terugkomt.",
+      "pl": "Sprawdź, czy zawór gazu jest otwarty, a następnie zresetuj kocioł. Jeśli kod powróci, wezwij instalatora."
+    },
+    "reset": {
+      "en": "Note the code and reset the boiler. Call your installer if the code comes back.",
+      "nl": "Noteer de code en reset de ketel. Bel je installateur als de code terugkomt.",
+      "pl": "Zapisz kod i zresetuj kocioł. Jeśli kod powróci, wezwij instalatora."
+    },
+    "installer": {
+      "en": "Note the code and call your installer or service company.",
+      "nl": "Noteer de code en bel je installateur of onderhoudsbedrijf.",
+      "pl": "Zapisz kod i skontaktuj się z instalatorem lub serwisem."
+    },
+    "power": {
+      "en": "Check the power supply of the boiler. Reset it if it stays locked.",
+      "nl": "Controleer de netspanning van de ketel. Reset hem als hij vergrendeld blijft.",
+      "pl": "Sprawdź zasilanie kotła. Jeśli pozostaje zablokowany, zresetuj go."
+    },
+    "external": {
+      "en": "An external safety contact (for example a floor-heating thermostat or a condensate pump) is open. Check it or call your installer.",
+      "nl": "Een extern beveiligingscontact (bijvoorbeeld een vloerverwarmingsthermostaat of condenspomp) staat open. Controleer het of bel je installateur.",
+      "pl": "Zewnętrzny styk zabezpieczający (np. termostat ogrzewania podłogowego lub pompa kondensatu) jest otwarty. Sprawdź go lub wezwij instalatora."
+    },
+    "service": {
+      "en": "Service or test mode. Ask your installer if you did not expect it; a reset ends it.",
+      "nl": "Service- of testbedrijf. Vraag je installateur als je dit niet verwachtte; een reset beëindigt het.",
+      "pl": "Tryb serwisowy lub testowy. Jeśli się go nie spodziewasz, zapytaj instalatora; reset go kończy."
+    }
+  },
+  "unknown": {
+    "en": "Unknown code, see your boiler manual.",
+    "nl": "Onbekende code, zie de handleiding van je ketel.",
+    "pl": "Nieznany kod, sprawdź instrukcję kotła."
+  },
+  "codes": [
+    {
+      "code": "-A",
+      "cause": 208,
+      "severity": "service",
+      "advice": "service",
+      "text": {
+        "en": "Chimney sweep or service mode",
+        "nl": "Schoorsteenveger- of servicebedrijf",
+        "pl": "Tryb kominiarski lub serwisowy"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "-H",
+      "cause": 200,
+      "severity": "normal",
+      "text": {
+        "en": "Heating",
+        "nl": "Verwarmen",
+        "pl": "Ogrzewanie"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            19
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "=H",
+      "cause": 201,
+      "severity": "normal",
+      "text": {
+        "en": "Hot water",
+        "nl": "Warm water",
+        "pl": "Ciepła woda"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            19
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "0A",
+      "cause": 202,
+      "severity": "waiting",
+      "advice": "self",
+      "text": {
+        "en": "Waiting: anti-cycle time, the burner may not restart yet",
+        "nl": "Wacht: antipendeltijd, de brander mag nog niet herstarten",
+        "pl": "Oczekiwanie: blokada taktowania, palnik nie może jeszcze wystartować"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            19,
+            31
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "0A",
+      "cause": 305,
+      "severity": "waiting",
+      "advice": "self",
+      "text": {
+        "en": "Waiting after hot water",
+        "nl": "Wacht na warmwaterbedrijf",
+        "pl": "Oczekiwanie po podgrzewaniu ciepłej wody"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            19
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "0A",
+      "cause": 353,
+      "severity": "waiting",
+      "advice": "self",
+      "text": {
+        "en": "Waiting: the boiler was hardly ever off in the last 24 hours",
+        "nl": "Wacht: de ketel is de afgelopen 24 uur bijna niet uit geweest",
+        "pl": "Oczekiwanie: kocioł prawie nie był wyłączony przez ostatnie 24 godziny"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "0C",
+      "cause": 283,
+      "severity": "normal",
+      "text": {
+        "en": "Preparing to start the burner",
+        "nl": "Bereidt de branderstart voor",
+        "pl": "Przygotowanie do startu palnika"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            19
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "0E",
+      "cause": 265,
+      "severity": "waiting",
+      "advice": "self",
+      "text": {
+        "en": "Waiting: heat demand is below the minimum output, the burner switches on and off",
+        "nl": "Wacht: warmtevraag lager dan het minimale vermogen, de brander schakelt aan en uit",
+        "pl": "Oczekiwanie: zapotrzebowanie poniżej mocy minimalnej, palnik włącza się i wyłącza"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            20
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "0H",
+      "cause": 203,
+      "severity": "normal",
+      "text": {
+        "en": "Standby: no heat demand",
+        "nl": "Stand-by: geen warmtevraag",
+        "pl": "Czuwanie: brak zapotrzebowania na ciepło"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            20
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "0L",
+      "cause": 284,
+      "severity": "normal",
+      "text": {
+        "en": "Ignition: gas valve opening",
+        "nl": "Ontsteking: gasblok gaat open",
+        "pl": "Zapłon: otwieranie zaworu gazowego"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            20
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "0U",
+      "cause": 270,
+      "severity": "normal",
+      "text": {
+        "en": "Starting up",
+        "nl": "Opstarten",
+        "pl": "Uruchamianie"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            20
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "0Y",
+      "cause": 204,
+      "severity": "waiting",
+      "advice": "settings",
+      "text": {
+        "en": "Waiting: the water is warmer than required",
+        "nl": "Wacht: het water is warmer dan nodig",
+        "pl": "Oczekiwanie: woda jest cieplejsza niż wymagana"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            20,
+            32
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "0Y",
+      "cause": 276,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Flow temperature above 95 °C",
+        "nl": "Aanvoertemperatuur boven 95 °C",
+        "pl": "Temperatura zasilania powyżej 95 °C"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            69
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            20,
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "0Y",
+      "cause": 277,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Safety sensor above 95 °C",
+        "nl": "Safetysensor boven 95 °C",
+        "pl": "Czujnik bezpieczeństwa powyżej 95 °C"
+      },
+      "sources": [
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            20,
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "0Y",
+      "cause": 285,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Return temperature above 95 °C",
+        "nl": "Retourtemperatuur boven 95 °C",
+        "pl": "Temperatura powrotu powyżej 95 °C"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            20,
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "0Y",
+      "cause": 359,
+      "severity": "blocking",
+      "advice": "installer",
+      "text": {
+        "en": "Hot-water sensor temperature too high",
+        "nl": "Warmwatersensor meet een te hoge temperatuur",
+        "pl": "Za wysoka temperatura czujnika ciepłej wody"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            69
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "1A",
+      "cause": 316,
+      "severity": "fault",
+      "advice": "flow",
+      "text": {
+        "en": "Flue gas temperature too high",
+        "nl": "Rookgastemperatuur te hoog",
+        "pl": "Za wysoka temperatura spalin"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "1C",
+      "cause": 210,
+      "severity": "fault",
+      "advice": "installer",
+      "text": {
+        "en": "Flue gas thermostat tripped",
+        "nl": "Rookgasthermostaat aangesproken",
+        "pl": "Zadziałał termostat spalin"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            34
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "1P",
+      "cause": 346,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Flue gas temperature rising too fast",
+        "nl": "Rookgastemperatuur stijgt te snel",
+        "pl": "Temperatura spalin rośnie zbyt szybko"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            31
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "1U",
+      "cause": 317,
+      "severity": "fault",
+      "advice": "installer",
+      "text": {
+        "en": "Flue gas sensor short-circuited",
+        "nl": "Rookgassensor kortgesloten",
+        "pl": "Zwarcie czujnika spalin"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "1Y",
+      "cause": 318,
+      "severity": "fault",
+      "advice": "installer",
+      "text": {
+        "en": "Flue gas sensor open circuit",
+        "nl": "Rookgassensor onderbroken",
+        "pl": "Przerwa w obwodzie czujnika spalin"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2A",
+      "cause": 343,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Heating: flue gas temperature rises but the flow temperature does not",
+        "nl": "Cv: rookgastemperatuur stijgt, aanvoertemperatuur niet",
+        "pl": "Ogrzewanie: temperatura spalin rośnie, a zasilania nie"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2A",
+      "cause": 344,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Hot water: flue gas temperature rises but the flow temperature does not",
+        "nl": "Warm water: rookgastemperatuur stijgt, aanvoertemperatuur niet",
+        "pl": "Ciepła woda: temperatura spalin rośnie, a zasilania nie"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2C",
+      "cause": 348,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Flow above 85 °C during hot water",
+        "nl": "Aanvoer boven 85 °C tijdens warm water",
+        "pl": "Zasilanie powyżej 85 °C podczas podgrzewania wody"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2E",
+      "cause": 207,
+      "severity": "blocking",
+      "advice": "pressure",
+      "text": {
+        "en": "Water pressure too low",
+        "nl": "Waterdruk te laag",
+        "pl": "Za niskie ciśnienie wody"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            20,
+            35
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2E",
+      "cause": 357,
+      "severity": "waiting",
+      "advice": "self",
+      "text": {
+        "en": "Venting programme running",
+        "nl": "Ontluchtingsprogramma actief",
+        "pl": "Trwa program odpowietrzania"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2F",
+      "cause": 260,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "No flow temperature rise after the burner started",
+        "nl": "Geen stijging van de aanvoertemperatuur na de branderstart",
+        "pl": "Brak wzrostu temperatury zasilania po starcie palnika"
+      },
+      "sources": [
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            20,
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2F",
+      "cause": 271,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Flow and safety sensor differ too much",
+        "nl": "Verschil tussen aanvoer- en safetysensor te groot",
+        "pl": "Zbyt duża różnica między czujnikiem zasilania a bezpieczeństwa"
+      },
+      "sources": [
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            20,
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2F",
+      "cause": 338,
+      "severity": "fault",
+      "advice": "installer",
+      "text": {
+        "en": "Burner start aborted too often",
+        "nl": "Branderstart te vaak afgebroken",
+        "pl": "Zbyt często przerywany start palnika"
+      },
+      "sources": [
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2F",
+      "cause": 345,
+      "severity": "fault",
+      "advice": "flow",
+      "text": {
+        "en": "No flow temperature rise after the burner started",
+        "nl": "Geen stijging van de aanvoertemperatuur na de branderstart",
+        "pl": "Brak wzrostu temperatury zasilania po starcie palnika"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2H",
+      "cause": 358,
+      "severity": "waiting",
+      "advice": "self",
+      "text": {
+        "en": "Anti-seize run of the pump and 3-way valve",
+        "nl": "Pomp en driewegklep worden gedeblokkeerd",
+        "pl": "Ochrona przed zablokowaniem pompy i zaworu 3-drogowego"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2L",
+      "cause": 266,
+      "severity": "locking",
+      "advice": "flow",
+      "text": {
+        "en": "Pump test failed: no water flow",
+        "nl": "Pomptest mislukt: geen waterstroming",
+        "pl": "Test pompy nieudany: brak przepływu wody"
+      },
+      "sources": [
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2L",
+      "cause": 329,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Not enough water flow",
+        "nl": "Te weinig waterstroming",
+        "pl": "Zbyt mały przepływ wody"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            35
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2P",
+      "cause": 212,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Flow or safety sensor temperature rising too fast",
+        "nl": "Temperatuur aanvoer- of safetysensor stijgt te snel",
+        "pl": "Temperatura czujnika zasilania lub bezpieczeństwa rośnie zbyt szybko"
+      },
+      "sources": [
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            21,
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2P",
+      "cause": 341,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Flow temperature rising too fast",
+        "nl": "Aanvoertemperatuur stijgt te snel",
+        "pl": "Temperatura zasilania rośnie zbyt szybko"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            69
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2P",
+      "cause": 342,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Flow temperature rising too fast",
+        "nl": "Aanvoertemperatuur stijgt te snel",
+        "pl": "Temperatura zasilania rośnie zbyt szybko"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2U",
+      "cause": 213,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Flow and return temperatures differ too much or rise too fast",
+        "nl": "Aanvoer- en retourtemperatuur verschillen te veel of stijgen te snel",
+        "pl": "Temperatury zasilania i powrotu różnią się zbyt mocno lub rosną zbyt szybko"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            21,
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2U",
+      "cause": 349,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Flow and return differ too much at low output",
+        "nl": "Verschil aanvoer en retour te groot op laaglast",
+        "pl": "Zbyt duża różnica zasilania i powrotu przy niskiej mocy"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2Y",
+      "cause": 281,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Pump blocked or running dry",
+        "nl": "Pomp zit vast of draait in lucht",
+        "pl": "Pompa zablokowana lub pracuje na sucho"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            69
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            21,
+            36
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "2Y",
+      "cause": 282,
+      "severity": "fault",
+      "advice": "installer",
+      "text": {
+        "en": "No signal from the pump",
+        "nl": "Geen signaal van de pomp",
+        "pl": "Brak sygnału z pompy"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            21,
+            37
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "3A",
+      "cause": 264,
+      "severity": "blocking",
+      "advice": "installer",
+      "text": {
+        "en": "Fan stopped during operation",
+        "nl": "Ventilator tijdens bedrijf uitgevallen",
+        "pl": "Wentylator zatrzymał się podczas pracy"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            69
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            21,
+            37
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "3C",
+      "cause": 217,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Fan not running properly at start-up",
+        "nl": "Ventilator draait niet goed bij het opstarten",
+        "pl": "Wentylator nie pracuje prawidłowo przy starcie"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            71
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            38
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "3F",
+      "cause": 273,
+      "severity": "blocking",
+      "advice": "self",
+      "text": {
+        "en": "Short safety stop after 24 hours of continuous operation",
+        "nl": "Korte veiligheidsstop na 24 uur continu bedrijf",
+        "pl": "Krótkie zatrzymanie kontrolne po 24 godzinach ciągłej pracy"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            69
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            21
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "3L",
+      "cause": 214,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Fan not running during start-up",
+        "nl": "Ventilator draait niet tijdens het opstarten",
+        "pl": "Wentylator nie pracuje podczas uruchamiania"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            71
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            37
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "3P",
+      "cause": 216,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Fan too slow",
+        "nl": "Ventilator draait te langzaam",
+        "pl": "Wentylator obraca się zbyt wolno"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            71
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            38
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "3Y",
+      "cause": 215,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Fan too fast",
+        "nl": "Ventilator draait te snel",
+        "pl": "Wentylator obraca się zbyt szybko"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            71
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            32
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            38
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4A",
+      "cause": 218,
+      "severity": "locking",
+      "advice": "reset",
+      "text": {
+        "en": "Flow temperature above 105 °C",
+        "nl": "Aanvoertemperatuur boven 105 °C",
+        "pl": "Temperatura zasilania powyżej 105 °C"
+      },
+      "sources": [
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4A",
+      "cause": 332,
+      "severity": "locking",
+      "advice": "reset",
+      "text": {
+        "en": "Flow temperature above 105 °C",
+        "nl": "Aanvoertemperatuur boven 105 °C",
+        "pl": "Temperatura zasilania powyżej 105 °C"
+      },
+      "sources": [
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4C",
+      "cause": 224,
+      "severity": "fault",
+      "advice": "reset",
+      "text": {
+        "en": "High-limit or flue gas limit thermostat tripped",
+        "nl": "Maximaal- of rookgasbegrenzer aangesproken",
+        "pl": "Zadziałał ogranicznik temperatury lub spalin"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            69,
+            71
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            39
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4E",
+      "cause": 278,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Sensor test failed",
+        "nl": "Sensortest mislukt",
+        "pl": "Test czujników nieudany"
+      },
+      "sources": [
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            39
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4E",
+      "cause": 347,
+      "severity": "blocking",
+      "advice": "installer",
+      "text": {
+        "en": "Return warmer than flow (sensors swapped?)",
+        "nl": "Retour warmer dan aanvoer (sensoren verwisseld?)",
+        "pl": "Powrót cieplejszy niż zasilanie (zamienione czujniki?)"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4F",
+      "cause": 219,
+      "severity": "blocking",
+      "advice": "flow",
+      "text": {
+        "en": "Safety sensor above 105 °C",
+        "nl": "Safetysensor boven 105 °C",
+        "pl": "Czujnik bezpieczeństwa powyżej 105 °C"
+      },
+      "sources": [
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4L",
+      "cause": 220,
+      "severity": "blocking",
+      "advice": "installer",
+      "text": {
+        "en": "Safety sensor short-circuited or above 130 °C",
+        "nl": "Safetysensor kortgesloten of boven 130 °C",
+        "pl": "Zwarcie czujnika bezpieczeństwa lub temperatura powyżej 130 °C"
+      },
+      "sources": [
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            40
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4P",
+      "cause": 221,
+      "severity": "blocking",
+      "advice": "installer",
+      "text": {
+        "en": "Safety sensor open circuit",
+        "nl": "Safetysensor onderbroken",
+        "pl": "Przerwa w obwodzie czujnika bezpieczeństwa"
+      },
+      "sources": [
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            40
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            35
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4U",
+      "cause": 222,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Flow sensor short-circuited",
+        "nl": "Aanvoersensor kortgesloten",
+        "pl": "Zwarcie czujnika zasilania"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            71
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            40
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            35
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4U",
+      "cause": 350,
+      "severity": "blocking",
+      "advice": "installer",
+      "text": {
+        "en": "Flow sensor short-circuited",
+        "nl": "Aanvoersensor kortgesloten",
+        "pl": "Zwarcie czujnika zasilania"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            69
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            35
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4U",
+      "cause": 522,
+      "severity": "waiting",
+      "advice": "self",
+      "text": {
+        "en": "Sensor test running",
+        "nl": "Sensortest loopt",
+        "pl": "Trwa test czujników"
+      },
+      "sources": [
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            35
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4Y",
+      "cause": 223,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Flow sensor open circuit",
+        "nl": "Aanvoersensor onderbroken",
+        "pl": "Przerwa w obwodzie czujnika zasilania"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            71
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            40
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            35
+          ]
+        }
+      ]
+    },
+    {
+      "code": "4Y",
+      "cause": 351,
+      "severity": "blocking",
+      "advice": "installer",
+      "text": {
+        "en": "Flow sensor open circuit",
+        "nl": "Aanvoersensor onderbroken",
+        "pl": "Przerwa w obwodzie czujnika zasilania"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            69
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            35
+          ]
+        }
+      ]
+    },
+    {
+      "code": "5C",
+      "cause": 226,
+      "severity": "service",
+      "advice": "service",
+      "text": {
+        "en": "A service tool was connected",
+        "nl": "Er is een servicetool aangesloten geweest",
+        "pl": "Podłączono narzędzie serwisowe"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            22
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            35
+          ]
+        }
+      ]
+    },
+    {
+      "code": "5H",
+      "cause": 268,
+      "severity": "service",
+      "advice": "service",
+      "text": {
+        "en": "Component test (service)",
+        "nl": "Componententest (service)",
+        "pl": "Test podzespołów (serwis)"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            68
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            22
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            35
+          ]
+        }
+      ]
+    },
+    {
+      "code": "6A",
+      "cause": 227,
+      "severity": "fault",
+      "advice": "gas",
+      "text": {
+        "en": "No flame detected after ignition",
+        "nl": "Geen vlam na het ontsteken",
+        "pl": "Nie wykryto płomienia po zapłonie"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            70,
+            72
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            22,
+            41
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            35
+          ]
+        }
+      ]
+    },
+    {
+      "code": "6C",
+      "cause": 228,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Flame detected before the burner started",
+        "nl": "Vlam gemeten voordat de brander startte",
+        "pl": "Wykryto płomień przed startem palnika"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            72
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            44
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            35
+          ]
+        }
+      ]
+    },
+    {
+      "code": "6C",
+      "cause": 306,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Flame detected after the burner switched off",
+        "nl": "Vlam gemeten nadat de brander uitging",
+        "pl": "Wykryto płomień po wyłączeniu palnika"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            72
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            44
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            35
+          ]
+        }
+      ]
+    },
+    {
+      "code": "6L",
+      "cause": 229,
+      "severity": "fault",
+      "advice": "gas",
+      "text": {
+        "en": "Flame lost while burning",
+        "nl": "Vlam valt weg tijdens het branden",
+        "pl": "Utrata płomienia podczas pracy palnika"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            70
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            22,
+            44
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            35
+          ]
+        }
+      ]
+    },
+    {
+      "code": "7C",
+      "cause": 231,
+      "severity": "locking",
+      "advice": "reset",
+      "text": {
+        "en": "Power was interrupted during a lockout",
+        "nl": "Netspanning onderbroken tijdens een vergrendeling",
+        "pl": "Przerwa w zasilaniu podczas blokady"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            47
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            36
+          ]
+        }
+      ]
+    },
+    {
+      "code": "7H",
+      "cause": 328,
+      "severity": "blocking",
+      "advice": "power",
+      "text": {
+        "en": "Short power interruption",
+        "nl": "Korte onderbreking van de netspanning",
+        "pl": "Krótka przerwa w zasilaniu"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            22,
+            47
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            36
+          ]
+        }
+      ]
+    },
+    {
+      "code": "7L",
+      "cause": 261,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Control unit timing fault at ignition",
+        "nl": "Tijdfout van de besturing bij het ontsteken",
+        "pl": "Błąd czasowy sterownika przy zapłonie"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            72
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            36
+          ]
+        }
+      ]
+    },
+    {
+      "code": "7L",
+      "cause": 280,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Control unit timing fault on restart",
+        "nl": "Tijdfout van de besturing bij een herstart",
+        "pl": "Błąd czasowy sterownika przy ponownym starcie"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            72
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            36
+          ]
+        }
+      ]
+    },
+    {
+      "code": "8Y",
+      "cause": 232,
+      "severity": "blocking",
+      "advice": "external",
+      "text": {
+        "en": "External safety contact open",
+        "nl": "Extern beveiligingscontact open",
+        "pl": "Otwarty zewnętrzny styk zabezpieczający"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            70
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            34
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            22,
+            47
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            36
+          ]
+        }
+      ]
+    },
+    {
+      "code": "9L",
+      "cause": 234,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Gas valve or its wiring faulty",
+        "nl": "Gasregelblok of de bedrading ervan defect",
+        "pl": "Usterka zaworu gazowego lub jego okablowania"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            72
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            34
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            48
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            36
+          ]
+        }
+      ]
+    },
+    {
+      "code": "9L",
+      "cause": 238,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Control unit or gas valve fault",
+        "nl": "Besturing of gasregelblok defect",
+        "pl": "Usterka sterownika lub zaworu gazowego"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            72
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            34
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            36
+          ]
+        }
+      ]
+    },
+    {
+      "code": "9P",
+      "cause": 239,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Control unit or code plug fault",
+        "nl": "Besturing of codeerstekker defect",
+        "pl": "Usterka sterownika lub wtyczki kodującej"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            72
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            34
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            36
+          ]
+        }
+      ]
+    },
+    {
+      "code": "C0",
+      "cause": 288,
+      "severity": "locking",
+      "advice": "pressure",
+      "text": {
+        "en": "Water pressure too high or pressure sensor open circuit",
+        "nl": "Waterdruk te hoog of druksensor onderbroken",
+        "pl": "Za wysokie ciśnienie wody lub przerwa w czujniku ciśnienia"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            34
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            49
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            37
+          ]
+        }
+      ]
+    },
+    {
+      "code": "C0",
+      "cause": 289,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Pressure sensor short-circuited",
+        "nl": "Druksensor kortgesloten",
+        "pl": "Zwarcie czujnika ciśnienia"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            34
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            49
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            37
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CA",
+      "cause": 286,
+      "severity": "locking",
+      "advice": "flow",
+      "text": {
+        "en": "Return temperature above 105 °C",
+        "nl": "Retourtemperatuur boven 105 °C",
+        "pl": "Temperatura powrotu powyżej 105 °C"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            34
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            33
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            37
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CU",
+      "cause": 240,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Return sensor short-circuited",
+        "nl": "Retoursensor kortgesloten",
+        "pl": "Zwarcie czujnika powrotu"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            34
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            40
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            37
+          ]
+        }
+      ]
+    },
+    {
+      "code": "CY",
+      "cause": 241,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Return sensor open circuit",
+        "nl": "Retoursensor onderbroken",
+        "pl": "Przerwa w obwodzie czujnika powrotu"
+      },
+      "sources": [
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            34
+          ]
+        },
+        {
+          "source": "nefit-topline-6720615811",
+          "pages": [
+            40
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            37
+          ]
+        }
+      ]
+    },
+    {
+      "code": "EL",
+      "cause": 259,
+      "severity": "locking",
+      "advice": "installer",
+      "text": {
+        "en": "Control unit or code plug fault",
+        "nl": "Besturing of codeerstekker defect",
+        "pl": "Usterka sterownika lub wtyczki kodującej"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            72
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            34
+          ]
+        },
+        {
+          "source": "nefit-trendline-ii-6720882261",
+          "pages": [
+            37
+          ]
+        }
+      ]
+    },
+    {
+      "code": "EL",
+      "cause": 290,
+      "severity": "fault",
+      "advice": "installer",
+      "text": {
+        "en": "Control unit fault",
+        "nl": "Storing in de besturing",
+        "pl": "Usterka sterownika"
+      },
+      "sources": [
+        {
+          "source": "buderus-gb172-6720619596",
+          "pages": [
+            70
+          ]
+        },
+        {
+          "source": "nefit-proline-6720646227",
+          "pages": [
+            34
+          ]
+        }
+      ]
+    },
+    {
+      "code": "-H",
+      "severity": "normal",
+      "text": {
+        "en": "Heating",
+        "nl": "Verwarmen",
+        "pl": "Ogrzewanie"
+      },
+      "sources": "all_reviewed"
+    },
+    {
+      "code": "=H",
+      "severity": "normal",
+      "text": {
+        "en": "Hot water",
+        "nl": "Warm water",
+        "pl": "Ciepła woda"
+      },
+      "sources": "all_reviewed"
+    },
+    {
+      "code": "0H",
+      "severity": "normal",
+      "text": {
+        "en": "Standby: no heat demand",
+        "nl": "Stand-by: geen warmtevraag",
+        "pl": "Czuwanie: brak zapotrzebowania na ciepło"
+      },
+      "sources": "all_reviewed"
+    },
+    {
+      "code": "0A",
+      "severity": "waiting",
+      "advice": "self",
+      "text": {
+        "en": "Waiting before the burner may start again",
+        "nl": "Wacht voordat de brander weer mag starten",
+        "pl": "Oczekiwanie, zanim palnik będzie mógł ponownie wystartować"
+      },
+      "sources": "all_reviewed"
+    },
+    {
+      "code": "0L",
+      "severity": "normal",
+      "text": {
+        "en": "Ignition",
+        "nl": "Ontsteking",
+        "pl": "Zapłon"
+      },
+      "sources": "all_reviewed"
+    },
+    {
+      "code": "4U",
+      "severity": "fault",
+      "advice": "installer",
+      "text": {
+        "en": "Flow sensor short-circuited",
+        "nl": "Aanvoersensor kortgesloten",
+        "pl": "Zwarcie czujnika zasilania"
+      },
+      "sources": "all_reviewed"
+    },
+    {
+      "code": "4Y",
+      "severity": "fault",
+      "advice": "installer",
+      "text": {
+        "en": "Flow sensor open circuit",
+        "nl": "Aanvoersensor onderbroken",
+        "pl": "Przerwa w obwodzie czujnika zasilania"
+      },
+      "sources": "all_reviewed"
+    },
+    {
+      "code": "6A",
+      "severity": "fault",
+      "advice": "gas",
+      "text": {
+        "en": "No flame detected after ignition",
+        "nl": "Geen vlam na het ontsteken",
+        "pl": "Nie wykryto płomienia po zapłonie"
+      },
+      "sources": "all_reviewed"
+    },
+    {
+      "code": "6C",
+      "severity": "fault",
+      "advice": "installer",
+      "text": {
+        "en": "Flame detected while the burner should be off",
+        "nl": "Vlam gemeten terwijl de brander uit hoort te zijn",
+        "pl": "Wykryto płomień, gdy palnik powinien być wyłączony"
+      },
+      "sources": "all_reviewed"
+    },
+    {
+      "code": "6L",
+      "severity": "fault",
+      "advice": "gas",
+      "text": {
+        "en": "Flame lost while burning",
+        "nl": "Vlam valt weg tijdens het branden",
+        "pl": "Utrata płomienia podczas pracy palnika"
+      },
+      "sources": "all_reviewed"
+    },
+    {
+      "code": "EC",
+      "severity": "fault",
+      "advice": "installer",
+      "text": {
+        "en": "Control unit fault",
+        "nl": "Storing in de besturing",
+        "pl": "Usterka sterownika"
+      },
+      "sources": "all_reviewed"
+    },
+    {
+      "code": "EF",
+      "severity": "fault",
+      "advice": "installer",
+      "text": {
+        "en": "Control unit fault",
+        "nl": "Storing in de besturing",
+        "pl": "Usterka sterownika"
+      },
+      "sources": "all_reviewed"
+    },
+    {
+      "code": "EH",
+      "severity": "fault",
+      "advice": "installer",
+      "text": {
+        "en": "Control unit fault",
+        "nl": "Storing in de besturing",
+        "pl": "Usterka sterownika"
+      },
+      "sources": "all_reviewed"
+    },
+    {
+      "code": "EL",
+      "severity": "fault",
+      "advice": "installer",
+      "text": {
+        "en": "Control unit fault",
+        "nl": "Storing in de besturing",
+        "pl": "Usterka sterownika"
+      },
+      "sources": "all_reviewed"
+    }
+  ]
+}

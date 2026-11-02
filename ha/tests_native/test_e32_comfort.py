@@ -12,7 +12,7 @@ from custom_components.open_thermostat import e32_comfort as module
 from custom_components.open_thermostat.controller_link import HeatingPlanRejected
 from custom_components.open_thermostat.e32_comfort import (
     CONF_COMFORT, ComfortError, ComfortForwarder, E32RoomClimate, away_command, comfort_options, comfort_payloads,
-    contacts_open, presence_home, validate_contacts, validate_settings)
+    contacts_open, house_presence, presence_home, validate_contacts, validate_presence, validate_settings)
 from custom_components.open_thermostat.heating_link import HeatingHub
 from custom_components.open_thermostat.room_plan import RoomPlanLink
 
@@ -117,6 +117,7 @@ def test_options_have_safe_defaults_and_never_take_invalid_values():
                                       "contact_delay_s": 30, "override_minutes": 0,
                                       "contacts": {"living": ["binary_sensor.window", "light.x"], 5: []}}))
     assert settings["presence_entity"] == "zone.home" and settings["comfort_c"] == 21.5
+    assert settings["presence_entities"] == ["zone.home"] and settings["away_delay_min"] == 15  # migrated: a list of one
     assert settings["eco_c"] == 16.0 and settings["override_minutes"] == 120 and settings["contact_delay_s"] == 30
     assert settings["contacts"] == {"living": ["binary_sensor.window"]}
 
@@ -128,12 +129,10 @@ async def test_options_form_values_are_checked(hass):
     hass.states.async_set("binary_sensor.window", "off", {"device_class": "window"})
     hass.states.async_set("binary_sensor.motion", "off", {"device_class": "motion"})
     current = comfort_options(entry())
-    out = validate_settings(hass, {"presence_entity": "zone.home", "comfort_temperature": 21.3, "eco_temperature": 16,
+    out = validate_settings(hass, {"comfort_temperature": 21.3, "eco_temperature": 16,
                                    "contact_delay": 90, "override_minutes": 60}, current)
-    assert (out["presence_entity"], out["comfort_c"], out["eco_c"], out["contact_delay_s"], out["override_minutes"]) == (
-        "zone.home", 21.5, 16.0, 90, 60)
-    for bad, field in (({"presence_entity": "light.lamp"}, "presence_entity"),
-                       ({"comfort_temperature": 31}, "comfort_temperature"),
+    assert (out["comfort_c"], out["eco_c"], out["contact_delay_s"], out["override_minutes"]) == (21.5, 16.0, 90, 60)
+    for bad, field in (({"comfort_temperature": 31}, "comfort_temperature"),
                        ({"contact_delay": 1801}, "contact_delay"), ({"override_minutes": 1.5}, "override_minutes")):
         with pytest.raises(ComfortError) as error:
             validate_settings(hass, bad, current)
@@ -150,7 +149,7 @@ async def test_contacts_and_presence_are_forwarded_per_room_with_the_delay(hass)
     hass.states.async_set("binary_sensor.door", "off", {"device_class": "door"})
     hass.states.async_set("binary_sensor.attic", "on", {"device_class": "window"})
     hass.states.async_set("person.anna", "not_home")
-    settings = comfort_options(entry({"presence_entity": "person.anna", "contact_delay_s": 60,
+    settings = comfort_options(entry({"presence_entity": "person.anna", "contact_delay_s": 60, "away_delay_min": 0,
                                       "contacts": {"living": ["binary_sensor.window", "binary_sensor.door"],
                                                    "attic": ["binary_sensor.attic"]}}))
     assert comfort_payloads(hass, settings, {"living", "study"}) == [
@@ -162,7 +161,7 @@ async def test_contacts_and_presence_are_forwarded_per_room_with_the_delay(hass)
 
     sent, tracked = [], []
     hub = HeatingHub("fixture")
-    forwarder = ComfortForwarder(hass, entry({"presence_entity": "person.anna",
+    forwarder = ComfortForwarder(hass, entry({"presence_entity": "person.anna", "away_delay_min": 0,
                                               "contacts": {"living": ["binary_sensor.window"]}}), hub,
                                  sent.append, lambda hass, ids, action: tracked.append((ids, action)) or (lambda: None))
     forwarder.reconfigure()
@@ -188,7 +187,9 @@ async def test_the_thermostat_shows_the_room_and_its_override(hass):
     assert entity.hvac_mode == HVACMode.HEAT and entity.hvac_action == HVACAction.HEATING
     assert entity.preset_mode == "comfort"  # the warmest level of the week program (20.5 °C)
     hub.update(status(room_state("living", comfort={"mode": "next", "target_c": 18, "override": "next"})))
-    assert entity.preset_mode == "eco"      # its coolest level: the planner's "night"
+    assert entity.preset_mode == "sleep"    # its coolest level: the planner's Night
+    hub.update(status(room_state("living", comfort={"mode": "next", "target_c": 19.5, "override": "next"})))
+    assert entity.preset_mode == "eco"      # the inferred middle level: the planner's Eco
     hub.update(status(room_state("living", comfort={"mode": "next", "target_c": 21, "until": 1793655000,
                                                         "override": "next"})))
     assert entity.preset_mode == "none"
@@ -198,7 +199,8 @@ async def test_the_thermostat_shows_the_room_and_its_override(hass):
     # A window pause and away are visible with their reason.
     hub.update(status(room_state("living", setpoint=8, comfort={"mode": "window_open", "window": "open", "target_c": 8}),
                       away={"on": True, "source": "presence", "target_c": 15, "until": None, "presence": "away"}))
-    assert entity.hvac_mode == HVACMode.AUTO and entity.preset_mode == "away"
+    # Away is the house mode, not a room preset (beta.23): the room shows no preset, the reason stays visible.
+    assert entity.hvac_mode == HVACMode.AUTO and entity.preset_mode == "none" and "away" not in entity.preset_modes
     assert entity.extra_state_attributes["window"] == "open" and entity.extra_state_attributes["away_source"] == "presence"
     hub.update(status(room_state("living", state="inactive", demand=False)))
     assert entity.hvac_mode == HVACMode.OFF and entity.hvac_action == HVACAction.OFF and entity.preset_mode == "none"
@@ -248,21 +250,22 @@ async def test_modes_and_presets_write_the_plan_or_a_command(hass):
     await entity.async_set_hvac_mode(HVACMode.AUTO)  # on again, back to the week program
     assert e32.plan["rooms"][0]["state"] == "active"
     assert e32.commands[-1] == {"room": "living", "override": "none"}
-    await entity.async_set_preset_mode("eco")  # the night level of the week program
+    await entity.async_set_preset_mode("sleep")  # the Night level of the week program
     assert e32.commands[-1] == {"room": "living", "override": "next", "temperature": 18.0}
+    await entity.async_set_preset_mode("eco")
+    assert e32.commands[-1] == {"room": "living", "override": "next", "temperature": 19.5}
     await entity.async_set_preset_mode("comfort")
     assert e32.commands[-1] == {"room": "living", "override": "next", "temperature": 20.5}
     await entity.async_set_preset_mode("boost")
     assert e32.commands[-1] == {"room": "living", "override": "boost"}
-    await entity.async_set_preset_mode("away")
-    assert e32.commands[-1] == {"away": True}
-    hub.update(status(room_state("living"), away={"on": True, "source": "manual", "target_c": 15, "until": None,
-                                                  "presence": "unknown"}))
-    count = len(e32.commands)
-    await entity.async_set_preset_mode("none")  # ends the open-ended manual away (no override to end)
-    assert e32.commands[count:] == [{"away": False}]
+    # Away is the house mode only: no room preset, and "none" on a room leaves a house away alone.
     with pytest.raises(ServiceValidationError):
-        await entity.async_set_preset_mode("sleep")
+        await entity.async_set_preset_mode("away")
+    hub.update(status(room_state("living"), away={"on": True, "source": "manual", "target_c": 15, "until": None,
+                                                  "presence": "unknown", "mode": "away"}))
+    count = len(e32.commands)
+    await entity.async_set_preset_mode("none")
+    assert e32.commands[count:] == []
     link.stop()
 
 
@@ -286,6 +289,15 @@ async def test_actions_and_refusals(hass):
     assert e32.commands[-1] == {"away": True, "temperature": 16.0, "until": int(back.timestamp())}
     await entity.async_clear_away()
     assert e32.commands[-1] == {"away": False}
+    # E32 beta.23 (house.mode.v1): the same actions set the house mode, like the House mode select.
+    hub.update(status(room_state("living"), away={"on": False, "source": "none", "target_c": 15, "until": None,
+                                                  "presence": "unknown", "mode": "auto"}))
+    await entity.async_set_away(16, back)
+    assert e32.commands[-1] == {"house_mode": "holiday", "temperature": 16.0, "until": int(back.timestamp())}
+    await entity.async_set_away()
+    assert e32.commands[-1] == {"house_mode": "away"}
+    await entity.async_clear_away()
+    assert e32.commands[-1] == {"house_mode": "auto"}
     for code, key in (("no_clock", "comfort_no_clock"), ("room_inactive", "comfort_room_off"),
                       ("no_schedule", "comfort_no_schedule"), ("invalid_minutes", "comfort_rejected")):
         e32.refuse["timed"] = HeatingPlanRejected(400, code)
@@ -299,15 +311,24 @@ async def test_actions_and_refusals(hass):
     link.stop()
 
 
-def test_comfort_and_night_follow_the_week_planner_levels():
+def test_comfort_eco_and_night_follow_the_week_planner_levels():
     settings = comfort_options(entry())
-    assert module.program_levels(LIVING, settings) == (20.5, 18.0)
+    # Older firmware: inferred exactly like week-editor.js infer() (see test/week-editor.test.cjs).
+    assert module.program_levels(LIVING, settings) == (20.5, 19.5, 18.0)
     one = {**LIVING, "schedule": [[[420, 2100]], [], [], [], [], [], []]}
-    assert module.program_levels(one, settings) == (21.0, 16.0)       # one level: night at 16 °C
+    assert module.program_levels(one, settings) == (21.0, 18.5, 16.0)       # one level: night at 16 °C
     low = {**LIVING, "minimum_centi_c": 1700, "schedule": [[[420, 1700]], [], [], [], [], [], []]}
-    assert module.program_levels(low, settings) == (17.0, 17.0 - 0)  # clamped to the room minimum
-    assert module.program_levels(STUDY, settings) == (20.0, 16.0)     # no program: the settings
-    assert module.program_levels(None, comfort_options(entry({"comfort_c": 21.5, "eco_c": 17}))) == (21.5, 17.0)
+    assert module.program_levels(low, settings) == (17.0, 18.0, 17.0)      # clamped to the room minimum, still distinct
+    work = {**LIVING, "schedule": [[[390, 2050], [510, 1950], [1020, 2050], [1350, 1800]]] * 5 + [[[480, 2050], [1380, 1800]]] * 2}
+    assert module.program_levels(work, settings) == (20.5, 19.5, 18.0)
+    # No program: the former house settings (Comfort, and "eco_c" as Night) start the room's levels.
+    assert module.program_levels(STUDY, settings) == (20.0, 18.0, 16.0)
+    assert module.program_levels(None, comfort_options(entry({"comfort_c": 21.5, "eco_c": 17}))) == (21.5, 19.5, 17.0)
+    # Stored levels (E32 beta.23) win, also equal ones or a Night warmer than Comfort.
+    stored = {**LIVING, "levels": {"comfort": 2100, "eco": 1850, "night": 2200}}
+    assert module.program_levels(stored, settings) == (21.0, 18.5, 22.0)
+    outside = {**LIVING, "levels": {"comfort": 2600, "eco": 1850, "night": 1700}}  # above the room maximum: ignored
+    assert module.program_levels(outside, settings) == (20.5, 19.5, 18.0)
 
 
 def test_away_dates_are_checked_before_anything_is_sent():
@@ -334,8 +355,124 @@ def test_every_message_and_action_is_translated():
     services = set(re.findall(r"^([a-z_]+):", (component / "services.yaml").read_text(encoding="utf-8"), re.M))
     for name in ("set_room_override", "clear_room_override", "set_away", "clear_away"):
         assert name in services and name in strings["services"]
-    # Night and away in the week planner's words; comfort, boost and none in Home Assistant's own.
+    # Eco and Night in the week planner's words; comfort, boost and none in Home Assistant's own.
     assert strings["entity"]["climate"]["room_thermostat"]["state_attributes"]["preset_mode"]["state"] == {
-        "eco": "Night", "away": "Away"}
+        "eco": "Eco", "sleep": "Night"}
     for step in ("comfort", "comfort_settings", "comfort_contacts", "comfort_contacts_room"):
         assert step in strings["options"]["step"]
+
+
+@pytest.mark.asyncio
+async def test_several_people_away_only_after_everyone_left_for_the_delay(hass, monkeypatch):
+    """Home while anyone is home or unknown; away once the last person left the away delay ago (beta.23)."""
+    now = datetime(2026, 11, 2, 12, 0, tzinfo=timezone.utc)
+    hass.states.async_set("person.anna", "home")
+    hass.states.async_set("person.ben", "not_home")
+    people = ["person.anna", "person.ben"]
+    assert house_presence(hass, [], 15) == (None, None)
+    assert house_presence(hass, people, 15, now) == (True, None)          # Anna is home
+    hass.states.async_set("person.anna", "unavailable")
+    assert house_presence(hass, people, 15, now) == (True, None)          # unknown: stay warm
+    hass.states.async_set("person.anna", "Work")
+    left = hass.states.get("person.anna").last_changed
+    home, wait = house_presence(hass, people, 15, left + timedelta(minutes=5))
+    assert home is True and wait == pytest.approx(600)                   # 10 more minutes
+    assert house_presence(hass, people, 15, left + timedelta(minutes=15)) == (False, None)
+    assert house_presence(hass, people, 0, left) == (False, None)         # no delay: away at once
+    settings = comfort_options(entry({"presence_entities": people, "away_delay_min": 15}))
+    assert comfort_payloads(hass, settings, set(), now=left + timedelta(minutes=5)) == [{"kind": "presence", "home": True}]
+    assert comfort_payloads(hass, settings, set(), now=left + timedelta(minutes=16)) == [{"kind": "presence", "home": False}]
+    assert comfort_payloads(hass, settings, set(), only="person.ben", now=left + timedelta(minutes=16)) == [
+        {"kind": "presence", "home": False}]
+
+    # The forwarder sends "home" now and "away" exactly when the delay has passed, not at the next refresh.
+    timers = []
+    monkeypatch.setattr(module, "async_call_later", lambda hass, delay, action: timers.append((delay, action)) or (lambda: None))
+    sent = []
+    hub = HeatingHub("fixture")
+    hub.update(status(room_state("living")))
+    forwarder = ComfortForwarder(hass, entry({"presence_entities": people, "away_delay_min": 15}), hub, sent.append,
+                                 lambda hass, ids, action: lambda: None)
+    forwarder.reconfigure()
+    assert [json.loads(p) for p in sent] == [{"kind": "presence", "home": True}]
+    assert len(timers) == 1 and 0 < timers[0][0] <= 15 * 60 + 1
+    monkeypatch.setattr(module, "house_presence", lambda *a, **k: (False, None))  # the delay has passed
+    timers[0][1](None)
+    assert json.loads(sent[-1]) == {"kind": "presence", "home": False}
+    forwarder.stop()
+
+
+@pytest.mark.asyncio
+async def test_the_away_delay_runs_from_when_the_last_person_left_home(hass, monkeypatch):
+    """Another away zone, unavailable -> not_home and a Home Assistant restart do not restart the delay."""
+    from test_daily_summary import FakeStore
+    monkeypatch.setattr(module, "async_call_later", lambda hass, delay, action: lambda: None)
+    t0 = datetime(2026, 11, 1, 8, 0, tzinfo=timezone.utc)
+    people = ["person.anna", "person.ben"]
+    store = FakeStore()
+    hass.data[module.PRESENCE_MEMORY] = module.PresenceMemory(hass, store)
+    hub = HeatingHub("fixture")
+    hub.update(status(room_state("living")))
+    sent = []
+    forwarder = ComfortForwarder(hass, entry({"presence_entities": people, "away_delay_min": 15}), hub, sent.append,
+                                 lambda hass, ids, action: lambda: None)
+
+    def at(minutes, entity_id, value):
+        hass.states.async_set(entity_id, value, timestamp=(t0 + timedelta(minutes=minutes)).timestamp())
+        forwarder.publish(entity_id)  # what the state change event does
+        return t0 + timedelta(minutes=minutes, seconds=30)
+
+    at(0, "person.anna", "home")
+    at(0, "person.ben", "home")
+    at(5, "person.anna", "not_home")
+    now = at(30, "person.ben", "Work")                                   # the last one leaves at 8:30
+    home, wait = house_presence(hass, people, 15, now)
+    assert home is True and wait == pytest.approx(14.5 * 60)
+    assert house_presence(hass, people, 15, t0 + timedelta(hours=3)) == (False, None)
+    now = at(180, "person.ben", "not_home")                               # leaves work: still away
+    assert house_presence(hass, people, 15, now) == (False, None)
+    assert house_presence(hass, people, 15, at(190, "person.anna", "unavailable")) == (True, None)  # unknown: warm
+    assert house_presence(hass, people, 15, at(191, "person.anna", "not_home")) == (False, None)
+    assert json.loads(sent[-1]) == {"kind": "presence", "home": False}
+
+    # Home Assistant restarts: the people are restored with a new last_changed.
+    data, _delay = store.pending
+    restarted = module.PresenceMemory(hass, FakeStore(json.loads(json.dumps(data()))))
+    await restarted.async_load()
+    hass.data[module.PRESENCE_MEMORY] = restarted
+    for entity_id in people:
+        hass.states.async_remove(entity_id)
+        at(240, entity_id, "not_home")
+    assert house_presence(hass, people, 15, t0 + timedelta(minutes=241)) == (False, None)
+    # Someone home and away again: the delay starts at that moment.
+    at(300, "person.anna", "home")
+    home, wait = house_presence(hass, people, 15, at(310, "person.anna", "not_home"))
+    assert home is True and wait == pytest.approx(14.5 * 60)
+    # Never seen home (a new person or a new install): its last change, as before.
+    hass.states.async_set("person.carl", "not_home", timestamp=(t0 + timedelta(minutes=320)).timestamp())
+    assert house_presence(hass, ["person.carl"], 15, t0 + timedelta(minutes=330))[0] is True
+    forwarder.stop()
+
+
+@pytest.mark.asyncio
+async def test_the_presence_form_takes_several_people_and_the_away_delay(hass):
+    hass.states.async_set("person.anna", "home")
+    hass.states.async_set("person.ben", "home")
+    hass.states.async_set("light.lamp", "on")
+    current = comfort_options(entry({"presence_entity": "person.anna"}))
+    out = validate_presence(hass, {"presence_entities": ["person.anna", "person.ben"], "away_delay": 20}, current)
+    assert out["presence_entities"] == ["person.anna", "person.ben"] and out["away_delay_min"] == 20
+    assert out["presence_entity"] == "person.anna"  # HA 0.4.0b13 after a downgrade: the first person
+    assert validate_presence(hass, {"presence_entities": [], "away_delay": 0}, current)["presence_entity"] is None
+    # A person already chosen may be unavailable (a phone switched off); a new one must exist.
+    hass.states.async_remove("person.ben")
+    assert validate_presence(hass, {"presence_entities": ["person.anna", "person.ben"], "away_delay": 15},
+                             out)["presence_entities"] == ["person.anna", "person.ben"]
+    for bad, field in (({"presence_entities": ["light.lamp"]}, "presence_entities"),
+                       ({"presence_entities": ["person.anna", "person.anna"]}, "presence_entities"),
+                       ({"presence_entities": ["person.nobody"]}, "presence_entities"),
+                       ({"presence_entities": [], "away_delay": 241}, "away_delay"),
+                       ({"presence_entities": [], "away_delay": 1.5}, "away_delay")):
+        with pytest.raises(ComfortError) as error:
+            validate_presence(hass, bad, current)
+        assert error.value.field == field

@@ -1,4 +1,5 @@
 #pragma once
+#include "control/ControlTuning.h"
 #include "control/FlowDemand.h"
 #include "control/RoomDemand.h"
 #include "control/RoomPlan.h"
@@ -10,7 +11,8 @@
 namespace heating::control {
 // Runs the room plan: per room the leading source (RoomDemand), its heat
 // demand (ZoneRegulator, 0.2 degC hysteresis) and one boiler flow request
-// (FlowDemand). Inputs arrive from Home Assistant states and Bluetooth sensors.
+// (FlowDemand); the thresholds, gain and burner times follow ControlTuning.
+// Inputs arrive from Home Assistant states and Bluetooth sensors.
 // Pure and single-threaded: the caller owns timing, storage and transmission.
 class RoomEngine {
 public:
@@ -41,15 +43,21 @@ public:
             if (old->setpointEntity != room.setpointEntity) next[i].target.reset();
         }
         if (!configured_ || plan.minimumFlowC != plan_.minimumFlowC || plan.maximumFlowC != plan_.maximumFlowC) {
-            FlowDemand::Params params;
-            params.minimumFlowC = plan.minimumFlowC; params.maximumFlowC = plan.maximumFlowC;
-            flow_ = FlowDemand(params);
+            flow_ = FlowDemand(flowParams(plan));
             request_ = {};
         }
         configured_ = true;
         plan_ = plan;
         rooms_ = std::move(next);
+        for (auto& rt : rooms_) rt.regulator.setProfile(zoneProfile());
     }
+    // New tuning in place: demands, burner timers and the integral stay.
+    void setTuning(const ControlTuning& t) {
+        tuning_ = t;
+        flow_.setParams(flowParams(plan_));
+        for (auto& rt : rooms_) rt.regulator.setProfile(zoneProfile());
+    }
+    const ControlTuning& tuning() const { return tuning_; }
     const RoomPlan& plan() const { return plan_; }
     // Per plan room after step(): its demand result, and its leading fresh
     // reading whatever its state (frost protection also covers inactive rooms).
@@ -201,12 +209,25 @@ private:
         if (source == SetpointSource::schedule) return room.schedule.at(RoomSchedule::localAt(*unixNow));
         return room.fallbackCentiC;
     }
+    FlowDemand::Params flowParams(const RoomPlan& plan) const {
+        FlowDemand::Params p;
+        p.minimumFlowC = plan.minimumFlowC; p.maximumFlowC = plan.maximumFlowC;
+        p.flowPerDegreeC = static_cast<uint8_t>(tuning_.flowPerDegreeC);
+        p.minimumOnMs = tuning_.minOnS * 1000u; p.minimumOffMs = tuning_.minOffS * 1000u;
+        return p;
+    }
+    ZoneControlProfile zoneProfile() const {
+        ZoneControlProfile z;
+        z.hysteresisCentiC = tuning_.startCentiC; z.stopHysteresisCentiC = tuning_.stopCentiC;
+        return z;
+    }
     static void centi(cJSON* o, const char* key, std::optional<int16_t> v) {
         if (v) cJSON_AddNumberToObject(o, key, *v / 100.0); else cJSON_AddNullToObject(o, key);
     }
     RoomPlan plan_;
     std::vector<Runtime> rooms_;
     FlowDemand flow_;
+    ControlTuning tuning_;
     std::optional<uint8_t> boilerLimitC_;
     FlowDemand::Request request_{};
     bool configured_ = false;

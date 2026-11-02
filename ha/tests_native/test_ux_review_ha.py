@@ -277,9 +277,9 @@ def test_password_texts_are_plain_and_in_both_languages():
         # The connect form no longer refers to a password "you set on the E32 web page".
         assert "you set" not in document["options"]["step"]["controller_connection"]["data_description"]["password"]
     nl = documents()["translations/nl.json"]
-    # The password card lives on the E32's Settings page (beta.21), no longer under System → About.
-    assert "Instellingen → Wachtwoord" in nl["issues"][DEFAULT_PASSWORD_ISSUE]["description"]
-    assert "Settings → Password" in documents()["strings.json"]["issues"][DEFAULT_PASSWORD_ISSUE]["description"]
+    # The password has its own entry in the E32's System menu (1.0), no longer under System → About.
+    assert "Systeem → Wachtwoord" in nl["issues"][DEFAULT_PASSWORD_ISSUE]["description"]
+    assert "System → Password" in documents()["strings.json"]["issues"][DEFAULT_PASSWORD_ISSUE]["description"]
 
 
 # -- F11: the room editor in a °F Home Assistant ---------------------------------------------------
@@ -360,10 +360,11 @@ async def test_a_program_error_names_the_line_that_could_not_be_read(hass, manag
 
 
 async def flow_form(manager, parent):
-    # Configure -> Heating and boiler opens the flow limits form directly.
+    # Configure -> Home -> Heating and boiler opens the flow limits form directly.
     await manager.hass.async_block_till_done()
     flow = await manager.async_init(parent.entry_id)
-    return await manager.async_configure(flow["flow_id"], {"next_step_id": "heating_boiler"})
+    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
+    return await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
 
 
 @pytest.mark.asyncio
@@ -486,8 +487,8 @@ async def test_e32_refusals_are_plain_messages(hass, manager, error, key):
 async def test_the_main_menu_starts_with_the_rooms_and_keeps_status_under_advanced(hass, manager):
     parent, _ = product(hass, FakeE32())
     flow = await manager.async_init(parent.entry_id)
-    assert flow["menu_options"] == ["e32_rooms", "comfort", "heating_boiler", "energy", "controller_connection",
-                                    "general", "advanced_settings"]
+    assert flow["menu_options"] == ["e32_rooms", "house", "controller_connection", "general",
+                                    "advanced_settings"]
     advanced = await manager.async_configure(flow["flow_id"], {"next_step_id": "advanced_settings"})
     # Installation status counts the older HA rooms only: not shown without them.
     assert advanced["menu_options"][0] == "hot_water" and "configuration_status" not in advanced["menu_options"]

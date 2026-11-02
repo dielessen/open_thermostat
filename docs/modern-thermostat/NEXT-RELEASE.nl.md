@@ -1,96 +1,141 @@
-# Releaseplan tot en na 1.0 (eigenaar, 30–31 oktober 2026)
+# Releaseplan tot en na 1.0 (eigenaar, 30 oktober – 1 november 2026)
 
-Dit is het actuele plan. De oudere secties hieronder zijn geschiedenis.
+Dit is het actuele plan (stand 2 november: al het 1.0-werk op `release-1.0` 7916d31). De oudere secties hieronder zijn geschiedenis.
 
 ## Klaar
 
 | Release | Inhoud | Status |
 | --- | --- | --- |
 | Beta.20 + HA 0.4.0b12 | Alleen fixes: geen storage fault meer na "Connect E32", geen dode integratie na een mislukte stap, ketelwaarden uit retained topics, weekplanner zonder "Configuration error", sessieruimte, opgeruimde entiteiten en dashboard | Geïnstalleerd 30 okt, **eerste volledige acceptatie (PASS)** op de HA-route |
-| Beta.21 + HA 0.4.0b13 | Raam- en deurcontacten per ruimte (HA-contacten, geen Bluetooth), aanvoergrenzen op de Ketel-pagina, diagnoseconsole op de E32 (geen SSH; alleen-lezen commando's, 512 logregels, syslog-uitleg), compacte sessie (~een derde minder MQTT-verkeer), vernieuwd HA-dashboard (gegroepeerd, Aan/Uit en codes leesbaar), overstapveiligheden gebouwd achter de dichte blokkade, snellere CI met hergebruik van de branch-run | Geïnstalleerd 31 okt, **PASS**; geaccepteerde basis |
+| Beta.21 + HA 0.4.0b13 | Raam- en deurcontacten per ruimte (HA-contacten, geen Bluetooth), aanvoergrenzen op de Ketel-pagina, diagnoseconsole op de E32 (geen SSH; alleen-lezen commando's, 512 logregels, syslog-uitleg), compacte sessie (~een derde minder MQTT-verkeer), vernieuwd HA-dashboard (gegroepeerd, Aan/Uit en codes leesbaar), overstapveiligheden gebouwd achter de dichte blokkade, snellere CI met hergebruik van de branch-run | Geïnstalleerd 31 okt, **PASS** |
+| Beta.22 + HA 0.4.0b14 | Alleen `board::emsActiveHeatAllowed = true`; HA toont wanneer de E32 de ketel zelf aanstuurt | Gepubliceerd en via de HA-route geïnstalleerd 31 okt, **PASS** ([bewijs](update-acceptance/e32-beta22-20261031.json)); geaccepteerde basis van de updategate |
+| HA 0.4.0b15 | Alleen HA: weekplanner zonder "Configuration error" (de weekkaarten zetten zich terug); de E32 blijft op beta.22 | Gepubliceerd 31 okt |
+| **Overstap naar actieve regeling** | Tado los van de adapter, plan actief, overname bevestigd | **Gedaan zondag 1 november rond 21:05** (lokale tijd), eerder dan het geplande dinsdag 3 november; de eigenaar deed het zelf |
 
-## Beta.22 — de overstap (gepland dinsdag 3 november, 's middags)
+## Beta.22 — de overstap ✅ klaar
 
-- **Alleen** `board::emsActiveHeatAllowed = true`, verder niets. Ook dan stuurt de E32 pas na de bevestiging van de eigenaar; de bestaande veiligheden blijven.
-- Publiceren en installeren alleen als de schaduwanalyse groen is **en** de eigenaar akkoord geeft, met de eigenaar erbij.
-- **Schaduwanalyse** (`tools/switchover/shadow_exit.py`), criteria:
-  1. 72 uur stabiel. Alle data tellen samen; een geplande update-herstart reset de klok niet, een onverwachte wel (eigenaar 31 okt). Bereikt op z'n vroegst maandag 2 november rond 18:10.
+- ✅ **Alleen** `board::emsActiveHeatAllowed = true`, verder niets. Ook dan stuurt de E32 pas na de bevestiging van de eigenaar; de bestaande veiligheden blijven.
+- ✅ Gepubliceerd en geïnstalleerd op 31 oktober (eigenaar: "ja akkoord voor beta 22", "je mag hem ook installeren"), eerst in schaduw.
+- **Schaduwanalyse** (`tools/switchover/shadow_exit.py`), de afgesproken criteria:
+  1. 72 uur stabiel. Alle data tellen samen; een geplande update-herstart reset de klok niet, een onverwachte wel (eigenaar 31 okt).
   2. Minstens 10 verwarmingsperiodes van de tado, met nachtverlaging, ochtendopwarming en een periode zonder vraag.
   3. Aan/uit ongeveer op dezelfde momenten (enkele minuten).
   4. Niet vaker aan/uit dan de tado.
   5. Aanvoer **nooit boven de harde grens**: de laagste van planmaximum 60 °C (vloerverwarming), ketelgrens (nu 55 °C) en 80 °C. De vaste band 31–43 °C vervalt (eigenaar 30 okt: "ik zou daar de harde grens aanhouden en gewoon leren").
-  6. De vergelijking met de tado is alleen informatie (nu gemiddeld 3 °C lager dan de tado).
+  6. De vergelijking met de tado is alleen informatie.
 - Minimale aanvoer 30 °C. Daaronder vraagt de E32 niets; daarboven leert hij zelf, zo laag mogelijk.
-- Op de middag zelf: de checklist [OVERSCHAKELING.nl.md](OVERSCHAKELING.nl.md). Tado loskoppelen van de adapter, de E32 bevestigen, starten, stoppen en moduleren, tappen tijdens verwarmen, de E32 uit, wifi/HA/meting weg, het gedrag van de adapter vastleggen, terug naar de tado oefenen.
+- ✅ **Overstap gedaan op 1 november rond 21:05** (lokale tijd, 20:05 UTC): eerder dan de geplande dinsdag en vóór de volle 72 uur van de schaduwanalyse. De checklist blijft [OVERSCHAKELING.nl.md](OVERSCHAKELING.nl.md). De bijgewoonde tests T1–T12 (starten, stoppen en moduleren, tappen tijdens verwarmen, de E32 uit, wifi/HA/meting weg, het gedrag van de adapter, terug naar de tado) tellen voor 1.0 pas als ze zijn vastgelegd met `tools/switchover/record_test.py`.
 - De tado blijft in HA als meting en instelpunt van de woonkamer. Alleen de woonkamer regelt; de Badkamer blijft uit tot de eigenaar hem aanzet.
-- Tot de overstap komt er geen andere installatie op de E32.
+- **Tot de 1.0-kandidaat geen andere installatie op de E32**, en nooit een firmware-installatie als er niemand thuis is: beta.22 wist bij een firmwarewissel de bevestiging, zonder vorstbeveiliging tot opnieuw bevestigd (S3). De fixes S1–S3 komen alleen met de kandidaat.
 
-## Beta.23 — UX naar een hoger niveau en aanwezigheid (na de overstap)
+## Beta.23 — UX en aanwezigheid ✅ gebouwd, gaat op in de 1.0-kandidaat
 
-Volgens het UX-voorstel (`VOORSTEL-UX-BETA22.md`) met de keuzes van de eigenaar van 31 okt.
+**Eigenaar 1 november 18:30: beta.23 komt niet los uit.** Alles hieronder zit op `release-1.0` en verschijnt in de 1.0-kandidaat. Volgens het UX-voorstel (`VOORSTEL-UX-BETA22.md`) met de keuzes van de eigenaar van 31 okt.
 
-- **Eén indeling op E32 en in HA:** Overzicht · Ruimtes · Huis · Ketel · Systeem; dezelfde namen in EN/NL/PL.
-- **Huis:**
+- ✅ **Eén indeling op E32 en in HA:** Overzicht · Ruimtes · Huis · Ketel · Systeem; dezelfde namen in EN/NL/PL.
+- ✅ **Huis:**
   - huismodus Automatisch / Thuis / Weg / Vakantie tot datum (op tijd weer warm);
   - aanwezigheid met meerdere personen: thuis zodra iemand thuis is, weg pas na 15 minuten iedereen weg, bij twijfel warm;
-  - verwarming: aanvoergrenzen (verhuizen van Ketel naar Huis), stooklijn, leren, vorst;
+  - verwarming: aanvoergrenzen (verhuisd van Ketel naar Huis), stooklijn, leren, vorst;
   - energie: ketelvermogen in kW, gasmeter en prijs, buitentemperatuur.
-- **"Weg" bestaat alleen als huismodus**; de Weg-preset op de thermostaat van één ruimte verdwijnt.
-- **Ruimte:** alles op één pagina:
+- ✅ **"Weg" bestaat alleen als huismodus**; de Weg-preset op de thermostaat van één ruimte is verdwenen.
+- ✅ **Ruimte:** alles op één pagina:
   - Algemeen;
   - Temperatuur (bronnen, instelapparaat);
   - Weekprogramma;
   - Ramen en deuren (raamvertraging per ruimte, standaard 2 min);
-  - Personen (later).
-- **Bluetooth-sensoren** onder Systeem, met een snelkoppeling vanuit de ruimte.
-- **Weekplanner:**
+  - Personen.
+- ✅ **Bluetooth-sensoren** onder Systeem, met een snelkoppeling vanuit de ruimte.
+- ✅ **Weekplanner:**
   - niveaus Comfort / Eco / Nacht, per ruimte opgeslagen en elk los instelbaar (gelijk mag, hooguit een zachte hint);
   - een niveau aanpassen past alle blokken met dat niveau aan;
-  - randen slepen, "Kopiëren naar…", een opslagbalk die altijd zichtbaar is, en een lijstweergave op de telefoon;
-  - het oude "Away" in de planner wordt Eco.
-- **Apparaat-ID's in HA:** model, productnummer en versie van ketel/adapter (0x08, product 211) en thermostaat (0x17) in de apparaatinformatie en de diagnose. Lezen kan al op de E32-pagina EMS-apparaten ("Apparaatidentiteit ophalen").
-- **Opruimen:**
-  - geheugen in kB en uptime als duur, ook voor bestaande entiteiten (vastgelegde eenheid in het register);
-  - entiteiten die bij deze ketel nooit gevuld worden (EMS+-tellers, "Boiler test: requested flow") standaard uit;
+  - "Kopiëren…", stap voor stap ongedaan maken en een lijstweergave op de telefoon;
+  - het oude "Away" in de planner is Eco.
+- ✅ **Apparaat-ID's in HA:** de apparaten op de EMS-bus als HA-apparaten (model, productnummer en versie); de E32 leest hun identiteit na het opstarten zelf.
+- ✅ **Opruimen:**
+  - geheugen in kB en uptime in uren, ook voor bestaande entiteiten;
+  - entiteiten die een ketel nooit vult (EMS+-tellers, "Boiler test: requested flow") uit en verborgen tot de eerste waarde;
+  - de oude MQTT-discovery-entiteiten van vóór de v1-koppeling eenmalig opgeruimd;
   - de terugkerende TV02-melding stil;
-  - lange entiteit-ID's optioneel opruimen, met waarschuwing.
-- **Na de overstap bijstellen:**
-  - leren van aanvoer, op tijd opwarmen en minimale aan/uit-tijd;
-  - een dagoverzicht (brandertijd, gas, schakelingen, op tijd warm);
-  - waarschuwingen (ruimte wordt niet warm, ketel reageert niet, pendelen).
-- Compatibel: entiteit-ID's en historie blijven; HA werkt met oudere firmware via onderhandelde capabilities; terugrollen naar beta.21 negeert nieuwe velden.
+  - lange entiteit-ID's optioneel opruimen (zie de 1.0-kandidaat).
+- ✅ Compatibel: entiteit-ID's en historie blijven; HA werkt met oudere firmware via onderhandelde capabilities; terugrollen naar beta.21/22 leest de nieuwe velden niet of negeert ze.
 
-## Beta.24 — radiatorkranen per ruimte (vereist voor 1.0; eigenaar 31 okt)
+**Erbij gekomen voor beta.23 (eigenaar 1 november), ook ✅ gebouwd:**
+- ✅ personen per ruimte (eerst gepland voor na 1.0);
+- ✅ de menu's afmaken: een Systeem-groep op de E32 (netwerk, updates, back-up, Bluetooth-sensoren, diagnose), Ketel alleen kijken en testen, het losse Comfort-menu in HA opgegaan in Ruimtes en Huis;
+- ✅ inklapbare blokken op de ruimtepagina, met een samenvatting;
+- ✅ apparaatidentiteit automatisch uitlezen en een voorgesteld ketelvermogen;
+- ✅ warm water universeel gesplitst in tappen en warmhouden (directe ketelsignalen eerst, anders afgeleid met een geleerde nachtbasis; optioneel een watermeter in HA), met een tijdlijn in HA en een warmwaterband in de E32-grafiek;
+- ✅ de veiligheidsfixes uit de review vóór de overstap: "terug naar de thermostaat" stopt eerst de E32 (S1), een nulvraag na een onverwachte herstart (S2), en na een firmwarewissel opnieuw bevestigen met intussen alleen vorstbeveiliging, plus de HA-Reparatie "Confirm the takeover again" (S3).
 
-- **Route:** Zigbee-kranen via Zigbee2MQTT. De E32 kan Zigbee2MQTT ook direct via de MQTT-broker aansturen, zodat een herstart van HA Core de kranen niet raakt. Keuzedocument: [TRV-KEUZE.nl.md](TRV-KEUZE.nl.md).
-- **Kraanadvies:** Bosch BTH-RA (klepstand zetten en teruglezen, externe temperatuur, batterij in %); goedkoper alternatief Sonoff TRVZB. De TV02 kan reserve zijn (geen klepstand of externe temperatuur). De Shelly BLU TRV rechtstreeks via Bluetooth valt af voor 1.0 (schrijven vraagt in de praktijk de Shelly-gateway).
-- **Regeling:**
+## 1.0-kandidaat — één release voor beta.23, beta.24 en 1.0 (eigenaar 1 november)
+
+Beta.23, beta.24 en 1.0 zijn **één release, de "1.0-kandidaat"**: één releasebranch (`release-1.0`), één volledige controle, één installatie. Hij komt uit als `v1.0.0-e32v2-rc.N` met `ha-v1.0.0rcN`; na 14 dagen met alle criteria op PASS wordt dezelfde code `v1.0.0-e32v2` / `ha-v1.0.0`. Verandert er nog iets, dan volgt een nieuwe kandidaat en begint de klok opnieuw.
+
+**Installeren:** ongeveer een week na de overstap van 1 november (dus rond 8–10 november), zodat het bijstellen van het leren op echte data van de actieve regeling erin zit. Dat bijstellen kan nu als instelling (Huis → "Advanced: tuning") en zet de 14 dagen niet terug; elke latere codewijziging wel. Installeren als er iemand thuis is, en direct daarna de overname opnieuw bevestigen. Releasenotities: bovenaan [RELEASE-NOTES.md](RELEASE-NOTES.md) en [HA-RELEASE-NOTES.md](HA-RELEASE-NOTES.md) (concept: [RELEASE-1.0-CANDIDATE-NOTES-DRAFT.en.md](RELEASE-1.0-CANDIDATE-NOTES-DRAFT.en.md)). **Publiceren:** akkoord van de eigenaar op 2 november ~00:10 ("publoceren mag ook") als `v1.0.0-e32v2-rc.1` + `ha-v1.0.0rc1`; installeren blijft een aparte, bijgewoonde stap.
+
+Inhoud (stand `release-1.0` 7916d31: al het 1.0-werk samengevoegd):
+- ✅ alles van beta.23 hierboven, met de veiligheidsfixes S1–S3;
+- ✅ radiatorkranen per ruimte (hieronder), per ruimte standaard uit: de Zigbee2MQTT-route, de Sonoff TRV Gen2 (TRV-ZBT) met de fix voor de sensorkeuze van Sonoff, en kranen die HA aanstuurt (elke `climate`-entiteit: ZHA, Z-Wave, Shelly, cloud);
+- ✅ een dagoverzicht in HA (brandertijd, starts en "Burner starts today", korte runs, op tijd warm, gemist comfort, buitentemperatuur, gas per dag inclusief warmhouden) en waarschuwingen (ruimte blijft koud, sessie weg; elk verwarmingsprobleem ook als Reparatie);
+- ✅ lange entiteit-ID's vrijwillig opruimen (Geavanceerd), met voorbeeld (vertaald, ook scènes als gebruiksplaats), historie mee en 30 dagen terugzetten;
+- ✅ de code op het ketelscherm in gewone taal, uit de handleidingen van de fabrikant: de EcomLine Classic plus tien families (Nefit EcomLine Excellent, ProLine HRC, TrendLine II, TopLine/AquaPower, SmartLine Basic; Buderus GB172 en GB162; Bosch Condens 7000i W en Cerapur 5C; Worcester Bosch Greenstar 4000), generieke EMS-tabel als terugval; op het E32-overzicht en het HA-dashboard;
+- ✅ een eerlijk ketelprofiel: een waarde die een adapter op 0 laat terwijl de ketel werkt (aanvoer-setpoint, brander- en driewegklepbits achter de EasyControl Adapter) heet "Not reported" in plaats van een misleidende 0; HA maakt er geen entiteit voor;
+- ✅ "Ready to take over?": de schaduwanalyse van `shadow_exit.py` ingebouwd in de E32 (checklist op de Ruimtes-pagina) en in HA (sensor "Takeover readiness");
+- ✅ het leren bijstellen zonder nieuwe firmware: tien begrensde regelknoppen als instelling (E32 Huis → "Advanced: tuning"; o.a. minimale brander-aan/uit-tijd, start-/stopdrempels, aanvoer per graad, opwarmvoorsprong), standaard precies het gedrag van a81d991; veiligheidsgrenzen zijn geen knop. Daarbij het gereedschap (replay, dagelijkse review, opt-in warmwaterbrug, zie [LEREN-ANALYSE.nl.md](LEREN-ANALYSE.nl.md)). Na ongeveer een week actieve data worden de waarden bijgesteld als instelling, zonder de 14-dagenklok te resetten;
+- ✅ automatische dagelijkse E32-back-ups in HA (7 dagen, in de eigen HA-back-ups, knop "Back up E32 settings now", Reparatie na 3 dagen zonder), en terugzetten op een nieuwe of gewiste E32 met eerst een overzicht van de wijzigingen; de E32 komt terug in schaduw;
+- ✅ HA-schrijfacties wachten op een vrije E32-websessie (tot ~155 s), alleen de nieuwste wijziging per ruimte gaat uit;
+- ✅ dertien HA-fixes: allowlist voor het kraan-endpoint, geen verloren kraanwijziging, de weg-vertraging telt vanaf het moment dat de laatste persoon vertrok, warmwatertellingen na een herstart, één Reparatie voor opnieuw bevestigen, warmhoudgas in het dagoverzicht, verdwenen EMS-apparaten na 24 uur weg, opruimen van entiteit-ID's met scènes en vertaald voorbeeld, "Burner starts today", de pauzevertraging per ruimte alleen opgeslagen als die afwijkt, het productbestand niet meer in de event loop gelezen, het voorgestelde ketelvermogen niet meer als eigen waarde opgeslagen;
+- ✅ zes firmwarefixes: de nulvraag na een update wordt ook later nog verstuurd, de kraanstop houdt de (afstelbare) minimale brandertijden aan, kraanruimtes houden hun eigen id na een planwijziging, een verwijderde ruimte blokkeert het opslaan van kranen niet meer, bevestigen tijdens vorstbeveiliging neemt direct over, en kranen pas na een bevestigde overname;
+- ✅ de fix voor de interne heap: REST-antwoorden gaan zonder extra kopie in intern RAM de deur uit;
+- ✅ readiness: `tools/switchover/release_ready.py` meet de 1.0-criteria; de gate laat `v1.0.0-e32v2` alleen door met een definitief PASS-rapport;
+- ✅ gebruikershandleiding en installatiegids nagelopen zoals een nieuwe gebruiker 1.0 aantreft, met de checklist voor een tweede persoon [INSTALL-CHECK.md](../INSTALL-CHECK.md) (en [INSTALLATIE-TEST.nl.md](INSTALLATIE-TEST.nl.md)); HA-teksten noemen de echte E32-menupaden (bijv. System → Network and Home Assistant); tot 8 raam- en deurcontacten per ruimte uitgelegd;
+- ☐ de installatiegids gevolgd door iemand anders dan de schrijver (criterium `install_guide`).
+
+### Radiatorkranen per ruimte
+
+- ✅ **Route:** Zigbee-kranen via Zigbee2MQTT; de E32 stuurt Zigbee2MQTT direct via de MQTT-broker aan, zodat een herstart van HA Core de kranen niet raakt. Daarnaast de HA-route (`ha_climate`) voor elke kraan die HA bedient. Keuzedocument: [TRV-KEUZE.nl.md](TRV-KEUZE.nl.md).
+- **Kraanadvies:** Bosch BTH-RA (klepstand zetten en teruglezen, externe temperatuur, batterij in %); goedkoper alternatief Sonoff TRVZB of TRV Gen2. De TV02 kan reserve zijn (geen klepstand of externe temperatuur). De Shelly BLU TRV rechtstreeks via Bluetooth valt af voor 1.0 (schrijven vraagt in de praktijk de Shelly-gateway).
+- ✅ **Regeling:**
   - de aanvoer wordt berekend uit de vraag van alle ruimtes;
   - de kranen verdelen per ruimte;
-  - de kraanstanden sturen de aanvoer zo laag mogelijk (allemaal half dicht = omlaag, één helemaal open en nog koud = omhoog).
-- **Uitval:**
+  - de kraanstanden sturen de aanvoer zo laag mogelijk (allemaal half dicht = omlaag, één helemaal open en nog koud = omhoog); alle kranen dicht = geen ketelvraag.
+- ✅ **Uitval:**
   - vroeg waarschuwen bij een bijna lege batterij (~20 %) of geen contact (Reparaties en dashboard);
   - een kraan die wegvalt laat de ruimte "beperkt" meetellen zolang er een andere meting is ("liever iets te warm dan koud"; de meeste kranen vallen open);
   - zonder meting nooit blind stoken: na 30 minuten stopt de eigen vraag van die ruimte, met een melding;
   - per kraanruimte een losse Bluetooth-sensor adviseren, en een hint als een ruimte op één apparaat leunt.
+- ☐ **Nog niet op echte kranen geverifieerd:** getest met gesimuleerde Zigbee2MQTT-kranen (met de faalgevallen en een duurtest van twee weken). De verificatie op echte hardware volgt na de installatie van de kandidaat.
 - **De eigenaar kijkt na:**
   - merk en type van de afsluiters en de schroefdraad (M30×1,5);
   - ruimte rond de kraan;
   - een Zigbee-router boven;
   - de radiator in de badkamer.
 - **Bekende grens:** de vloerverwarming heeft geen zoneklep, dus vraagt alleen boven warmte, dan krijgt de vloer die ook (de mengkraan begrenst).
+- **Bekende grens (driewegklep):** achter de EasyControl Adapter blijft byte 7 van telegram 0x18 leeg (ook tijdens een tap van 4 minuten op 1 november), dus de stand van de driewegklep is niet te zien; "warm water actief" is het enige klepsignaal. Dat geldt voor elke ketel achter een EMS-adapter die die byte leeg laat.
 
 ## 1.0
 
-- 14 dagen echte aansturing **met ketel én kranen**, zonder vastloper of onverwachte herstart.
-- Alle faaltests van de overstap geslaagd.
-- Updates via de officiële HA-route (bewezen met beta.20 en beta.21).
-- Een installatiehandleiding die iemand anders kan volgen.
-- Tags `v1.0.0-e32v2` en `ha-v1.0.0`. Verwachting: rond begin december, afhankelijk van de kranen.
+Volgorde: beta.22 (✅ overstap gedaan op 1 november) → 1.0-kandidaat (beta.23 + beta.24 + 1.0, installeren rond 8–10 november) → `v1.0.0` na 14 stabiele dagen **met ketel én radiatorkranen**.
+
+De criteria, gemeten met `tools/switchover/release_ready.py` (alleen lezen):
+
+| Criterium | Wat telt | Vastgelegd in |
+| --- | --- | --- |
+| `stability` | 14 dagen zonder onverwachte herstart of langdurig offline; een geplande update telt niet | HA-geschiedenis (uptime, Firmware-entiteit) |
+| `active_control` | de E32 stuurt de ketel zelf, 14 dagen zonder teruggeven | HA 0.4.0b14+: `boiler_output_enabled` |
+| `trv_control` | elke ruimte met kranen heeft de kraansturing 14 dagen aan | de kraanschakelaars van de 1.0-kandidaat |
+| `failure_tests` | alle bijgewoonde tests T1–T12 geslaagd (T12 mag het alternatief uit de checklist) | `OVERSCHAKELING-RESULTATEN-<datum>.json`, via `tools/switchover/record_test.py` |
+| `updates` | minstens één update geaccepteerd via de HA-route | `update-acceptance/e32-beta20/21/22-*.json` (PASS) |
+| `install_guide` | iemand anders volgde de installatiehandleiding tot het eind; elk gevonden probleem opgelost | `INSTALLATIETEST-<datum>.json`, via `record_test.py install` |
+
+De kandidaat mag uit vóór de 14 dagen. De gate (`scripts/verify_e32_update_gate.py`) laat `v1.0.0-e32v2` pas toe met een definitief readinessrapport (`release_ready.py --stage final --json …`) van de kandidaat ervoor: elk criterium PASS, minstens 14 dagen, vastgelegd met zijn hash onder `readiness_report` in `E32-UPDATE-GATE.json`.
+Verwachting: eind november tot begin december, afhankelijk van de kranen (de 14 dagen van `trv_control` lopen pas als de kraansturing aan staat).
 
 ## Na 1.0
 
 - **1.1:** EMS+-ketels lezen en aansturen.
+- **Overzicht per ruimte (1.1, prototype op branch `v11-room-overview`):** elke ruimte zegt in één regel waarom hij wel of niet verwarmt (uit, raam open, geen meting, wachten op warm water of ketelpauze, vakantie, weg, boost, tijdelijk doel, verwarmen, warm genoeg), met iconen voor wie thuis is en open ramen of deuren, en de kraanopening. In HA een sensor "Reason" en een ruimtestatuskaart op het dashboard; op het E32-overzicht dezelfde regel per ruimtekaart. Geen nieuw firmwareveld.
 - **Schrijfbare EMS-instellingen (access/write):** pas na 1.0 (eigenaar 30 en 31 okt). Plan: [EMS-INSTELBARE-WAARDEN.nl.md](EMS-INSTELBARE-WAARDEN.nl.md).
   - W1: tabel met schrijfgegevens;
   - W2: bewijsniveaus (L0 verzonden, L1 teruggelezen, L2 blijvend, L3 effect gemeten) met automatisch terugzetten;
@@ -99,14 +144,17 @@ Volgens het UX-voorstel (`VOORSTEL-UX-BETA22.md`) met de keuzes van de eigenaar 
   - W5: EMS+.
 
   De ketel van de eigenaar (iRT via de EasyControl Adapter) krijgt alleen een vergelijking van servicecodes; het doel zijn andere ketels.
+- **Meer thermostaatfamilies:** naast de RC10-achtige thermostaat (0x17) ook andere EMS-thermostaten herkennen en lezen, tabelgestuurd en alleen geverifieerd op echte busdata.
 - **Testerprogramma:** opt-in in HA; "Deel resultaat" opent een vooraf ingevuld GitHub-issue met alleen het ketelprofiel; een GitHub Action controleert het; een profiel komt pas na beoordeling mee.
-- **Personen per ruimte**, en de overige ruimtes (Badkamer, slaapkamers) zodra de eigenaar dat wil.
+- **HACS-vermelding** van de integratie.
+- De overige ruimtes (Badkamer, slaapkamers) zodra de eigenaar dat wil.
 
 ## Werkafspraken
 
 - Pushen naar een releasebranch alleen na de volledige lokale controle (`scripts/final_check.sh`), met de stresstest van de browsertests vóór een tag. Een race nooit verbergen met retries of langere wachttijden.
 - Teststubs in dezelfde commit als de productwijziging; bestanden met LF-regeleinden.
 - Elke installatie met een volledig installatiebewijs (vastlegging vooraf, back-up, twee metingen, onafhankelijke controle); daarna de opruiming volgens AGENTS.md.
+- Een firmware-installatie alleen als er iemand thuis is om de overname direct opnieuw te bevestigen.
 - Teksten in de interface in het Engels met volledige Nederlandse (en Poolse) vertaling; GitHub en commits in het Engels.
 
 # Beta.19 + HA0.4.0b11 — plan: klaar voor de overstap (eigenaar, 29 oktober)

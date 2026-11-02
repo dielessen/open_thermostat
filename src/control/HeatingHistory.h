@@ -14,7 +14,9 @@ namespace heating::control {
 // only (no flash wear): the history starts again after every restart.
 //
 // Storage is int16 fixed point: temperatures in 0.1 degC, the burner as the
-// percentage of samples with the burner on. INT16_MIN marks "no value". Room
+// percentage of samples with the burner on, hot water as the percentage of
+// samples tapping and reheating (keeping warm or charging a cylinder, as
+// DhwEpisodes sorts the open episode). INT16_MIN marks "no value". Room
 // columns follow the room id, so renaming, adding or reordering rooms keeps
 // the history of the rooms that stay and clears only a column that changes
 // hands. Owned by the loop task, like the HTTP server that reads it.
@@ -25,7 +27,8 @@ public:
     static constexpr size_t rooms = 8;                  // RoomPlan::maxRooms
     static constexpr size_t idBytes = 33;               // room ids are at most 32 characters
     static constexpr int16_t none = INT16_MIN;
-    enum Column : uint8_t { flow, returnTemp, burner, request, thermostat, roomBase };
+    enum Column : uint8_t { flow, returnTemp, burner, request, thermostat, dhwTap, dhwReheat, roomBase };
+    enum Dhw : uint8_t { noHotWater, tapping, reheating };
     static constexpr size_t columns = roomBase + 2 * rooms; // per room: temperature, target
     using Allocate = void* (*)(size_t);
     using Release = void (*)(void*);
@@ -36,6 +39,7 @@ public:
         std::optional<bool> burnerOn;
         std::optional<uint8_t> requestFlowC;     // the E32's request; 0 = no heat
         std::optional<uint8_t> thermostatFlowC;  // the existing thermostat's request; 0 = no heat
+        std::optional<Dhw> hotWater;             // what the boiler's hot water does; unknown: not counted
     };
 
     HeatingHistory() = default;
@@ -99,6 +103,10 @@ public:
         temperature(flow, s.flowCentiC);
         temperature(returnTemp, s.returnCentiC);
         if (s.burnerOn) { a[burner].sum += *s.burnerOn ? 1 : 0; ++a[burner].n; }
+        if (s.hotWater) {
+            a[dhwTap].sum += *s.hotWater == tapping; ++a[dhwTap].n;
+            a[dhwReheat].sum += *s.hotWater == reheating; ++a[dhwReheat].n;
+        }
         requested(request, s.requestFlowC);
         requested(thermostat, s.thermostatFlowC);
         for (size_t i = 0; i < roomCount_; ++i) {
@@ -145,6 +153,8 @@ public:
         out << ",\"burner_pct\":"; series(out, burner, n);
         out << ",\"request\":"; series(out, request, n);
         out << ",\"thermostat_request\":"; series(out, thermostat, n);
+        out << ",\"dhw_tap_pct\":"; series(out, dhwTap, n);
+        out << ",\"dhw_reheat_pct\":"; series(out, dhwReheat, n);
         out << '}';
     }
 
@@ -171,7 +181,7 @@ private:
         return static_cast<int16_t>(std::clamp<int32_t>(q, -32767, 32767));
     }
     static int16_t encode(size_t c, const Accumulator& a) {
-        if (c == burner) return a.n ? roundDiv(a.sum * 100, a.n) : none;
+        if (c == burner || c == dhwTap || c == dhwReheat) return a.n ? roundDiv(a.sum * 100, a.n) : none;
         if (c == request || c == thermostat) return a.n ? roundDiv(a.sum, int32_t(a.n) * 10) : a.zeros ? 0 : none;
         return a.n ? roundDiv(a.sum, int32_t(a.n) * 10) : none;
     }

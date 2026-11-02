@@ -67,9 +67,9 @@ def test_it_subscribes_to_exactly_the_new_topics_and_no_old_one():
 async def test_every_topic_is_subscribed(hass, monkeypatch):
     _, _, _, _, callbacks, _ = await _setup(hass, monkeypatch)
     assert sorted(t.removeprefix("fixture/v1/") for t in callbacks) == sorted([
-        "fw/availability", "fw/heartbeat", "fw/state/heating", "fw/state/room/+", "fw/state/ble/+", "fw/config/plan",
+        "fw/availability", "fw/heartbeat", "fw/state/heating", "fw/state/room/+", "fw/state/ble/+", "fw/state/trv/+", "fw/config/plan",
         "fw/config/entities", "fw/config/entities/+", "fw/telemetry/learned/+", "fw/telemetry/summary",
-        "fw/telemetry/flow", "fw/telemetry/shadow"])
+        "fw/telemetry/flow", "fw/telemetry/shadow", "fw/telemetry/readiness"])
 
 
 def test_topic_documents_are_strict():

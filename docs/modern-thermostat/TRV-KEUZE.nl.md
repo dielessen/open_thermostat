@@ -16,7 +16,14 @@ en de UX-release (beta.23). Dit document bouwt niets; het legt de keuze voor.
     procenten.
   - **Budgetalternatief: Sonoff TRVZB**, ongeveer € 25–40. Die heeft een
     externe temperatuur en een open/dicht-begrenzing, maar meldt geen echte
-    klepstand. De terugkoppeling wordt daarmee grover.
+    klepstand. De terugkoppeling wordt daarmee grover. De opvolger, de
+    **Sonoff TRV Gen2 (TRV-ZBT)**, wordt op dezelfde manier aangestuurd (1.0).
+  - Sonoff-kranen: de E32 zet `system_mode` op `heat` (anders volgt de kraan
+    zijn eigen weekschema), stuurt eerst de ruimtetemperatuur en kiest daarna
+    pas de externe sensor. Zigbee2MQTT weigert die keuze zonder waarde. Nieuwe
+    Zigbee2MQTT noemt die keuze `remote_temperature`, oudere `external`; de E32
+    volgt wat de kraan meldt en vraagt na 10 minuten opnieuw als de kraan nog op
+    zijn eigen sensor staat.
 - **3 kranen** voor de 3 radiatoren boven (badkamer en 2 slaapkamers).
   - De TV02 blijft bruikbaar als reserve of in de eenvoudige doeltemperatuur-modus.
     Hij meldt alleen "batterij bijna leeg" en neemt geen externe temperatuur aan.
@@ -27,6 +34,10 @@ en de UX-release (beta.23). Dit document bouwt niets; het legt de keuze voor.
   Het koppel- en versleutelproces is voor derden niet openbaar beschreven, en
   in de praktijk loopt alles via de Shelly BLU Gateway Gen3. Uitlezen kan de
   E32 al wel.
+- **Elke andere kraan via Home Assistant (1.0):** een kraan in ZHA, Z-Wave,
+  Shelly of een cloudintegratie is in HA een `climate`-entiteit. Die kies je
+  per ruimte naast de Zigbee2MQTT-kranen; HA stuurt hem dan namens de E32 aan,
+  met dezelfde regels (zie §2a).
 - **Zonder Home Assistant:** de E32 kan Zigbee2MQTT ook rechtstreeks via de
   MQTT-broker aansturen, zonder HA Core. Een herstart van HA raakt de kranen
   dan niet. Valt de hele HA-machine uit (de broker en Zigbee2MQTT draaien
@@ -40,6 +51,7 @@ en de UX-release (beta.23). Dit document bouwt niets; het legt de keuze voor.
 |---|---|---|---|---|---|---|
 | **Bosch BTH-RA** | **Ja**: `pi_heating_demand` lezen/schrijven, 0–100 % | Ja | `remote_temperature`, minstens elke 30 min | % plus `battery_low` | Valt terug op de eigen sensor | € 60–80 |
 | **Sonoff TRVZB** | Begrenzing: `valve_opening_degree` / `valve_closing_degree` (fw ≥ 1.1.4) | Nee, alleen aan/uit-status | `external_temperature_input` plus `temperature_sensor_select` | %, tot 24 uur vertraagd | Schakelt zelf naar de eigen sensor (`remote_source_offline`) | € 25–40 |
+| **Sonoff TRV Gen2 (TRV-ZBT)** | Begrenzing: `heating_valve_position` / `idle_valve_position` | Nee, alleen `running_state` en `heat_percentage_hour` | `external_temperature_input` plus `temperature_sensor_select` (Zigbee2MQTT ≥ 2.12.1) | % | Schakelt zelf naar de eigen sensor (`remote_source_offline`) | € 30–45 |
 | **Danfoss Ally** | Nee | `pi_heating_demand` (alleen gemeld) | `external_measured_room_sensor`, elke 30 min tot 3 uur | % | Zet de externe waarde na 35 min of 3 uur uit | € 60–70 |
 | **Aqara E1** | Nee | Nee | `external_temperature_input` (sensor = external) | % | Niet beschreven | € 45–60 |
 | **TuYa TV02 (heb je al)** | Nee, alleen `heating_stop` (helemaal dicht) | Nee | Nee, alleen een kalibratie-offset | Alleen `battery_low` | n.v.t. | – |
@@ -54,6 +66,37 @@ en de UX-release (beta.23). Dit document bouwt niets; het legt de keuze voor.
 - Alle kranen behalve de TV02 accepteren een externe ruimtetemperatuur. De
   kraan regelt dan op de echte ruimtetemperatuur in plaats van op de warme
   lucht vlak bij de radiator. Dat is belangrijk voor een goede regeling.
+
+## 2a. Kranen via Home Assistant (1.0)
+
+Eis eigenaar voor 1.0: "alles moet gewoon werken". Elke kraan die Home Assistant
+kan bedienen, werkt dus ook: model `ha_climate`, de naam is de entiteits-ID
+(`climate.<object_id>`, alleen a-z, 0-9 en `_`).
+
+- **De E32** neemt zo'n kraan op in het kranenrecord en in de `trv`-status, met
+  gezondheid "unknown": HA beoordeelt die. Hij abonneert zich niet en stuurt
+  niets voor deze kranen, en ze tellen niet mee in de terugkoppeling naar de
+  aanvoer (geen klepstand). Een ruimte met zo'n kraan geldt daarom nooit als
+  "alle kranen dicht". Zigbee2MQTT-kranen werken precies als voorheen.
+- **Home Assistant** (`ha/.../ha_valves.py`) stuurt alleen zolang de E32
+  `trv.output` meldt en de aansturing van de ruimte aan staat:
+  - het doel van de ruimte uit de telemetrie van de E32, 8 °C als de ruimte
+    uit staat; begrensd op `min_temp`/`max_temp` van de entiteit, afgerond op
+    `target_temp_step` (anders 0,5);
+  - `climate.set_temperature` alleen bij minstens 0,5 °C verschil, hoogstens
+    eens per minuut, en na 6 uur opnieuw; `climate.set_hvac_mode` op `heat`
+    eens per aansturingsperiode als de kraan die stand heeft. Nooit `turn_off`;
+  - valt de aansturing weg, dan stuurt HA niets meer en houdt de kraan zijn
+    laatste instelling, net als een Zigbee2MQTT-kraan zonder E32.
+- **Gezondheid:** 2 uur onbereikbaar is "offline"; de batterij komt van een
+  batterijsensor van hetzelfde apparaat (anders de lage-batterijsensor), laag
+  bij 20 % of "aan". De klepstand komt uit een attribuut `valve_position` of
+  `position`, of uit een sensor position/pi_heating_demand van het apparaat.
+  De kraan telt mee in de kraanentiteiten van de ruimte en in de Reparaties.
+- **Uitval:** valt HA weg, dan blijven Zigbee2MQTT-kranen door de E32
+  aangestuurd; kranen via HA houden hun laatste instelling tot HA terug is.
+  Een mislukte opdracht geeft één waarschuwing per waarde en wordt op zijn
+  vroegst na een minuut opnieuw geprobeerd.
 
 ## 3. Route B: Bluetooth-kranen direct vanaf de E32 (Shelly BLU TRV)
 
@@ -164,6 +207,8 @@ en de UX-release (beta.23). Dit document bouwt niets; het legt de keuze voor.
 
 - [Zigbee2MQTT: Bosch BTH-RA](https://www.zigbee2mqtt.io/devices/BTH-RA.html):
   `pi_heating_demand` lezen/schrijven, `remote_temperature` "required at least every 30 minutes".
+- [Zigbee2MQTT: Sonoff TRV-ZBT (TRV Gen2)](https://www.zigbee2mqtt.io/devices/TRV-ZBT.html) en de
+  converter `src/devices/sonoff.ts` in zigbee-herdsman-converters v26.125.0 (gelezen 1 nov 2026).
 - [Zigbee2MQTT: Sonoff TRVZB](https://www.zigbee2mqtt.io/devices/TRVZB.html):
   `valve_opening_degree` / `valve_closing_degree` (fw ≥ 1.1.4), `external_temperature_input`, `remote_source_offline`.
 - [Zigbee2MQTT: Danfoss Ally 014G2461](https://www.zigbee2mqtt.io/devices/014G2461.html):

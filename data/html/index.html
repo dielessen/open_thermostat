@@ -7,6 +7,7 @@
 	<script src="/auth-client.js"></script>
 	<script src="/boiler-data.js"></script>
 	<script src="/boiler-display.js"></script>
+	<script src="/display-codes.js"></script>
 	<script src="/device-restart.js" defer></script>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -135,6 +136,7 @@ summary{cursor:pointer;min-height:var(--ot-tap);padding:10px 0;font-weight:600}d
 .pd-headline{font-size:1.3rem;font-weight:700;margin:0 0 10px!important}.pd-help,.pd-missing,.ot-hint{color:var(--ot-muted);font-size:.87rem}small.ot-hint,.ot-hint{display:block;font-size:.85rem!important;font-weight:400;margin:2px 0 4px;line-height:1.35}.product-dashboard small{font-size:.55em;font-weight:400;color:var(--ot-muted)}
 .pd-rooms{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));align-items:start;margin-bottom:8px}.pd-room-off{color:var(--ot-muted);margin:10px 0 4px!important}.pd-room details.ot-advanced{border:0;background:none;padding:0;margin:0}details.pd-away{padding-top:0;padding-bottom:0}details.pd-away[open]{padding-bottom:12px}.pd-rooms .pd-room{margin:0}
 .pd-room-temperatures{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:1.9rem;font-weight:600;font-variant-numeric:tabular-nums;margin:12px 0 4px}.pd-flow-label{display:block;font-size:.8rem;font-weight:500;color:var(--ot-muted)}
+.pd-code{margin:12px 0 4px;padding:10px 14px;border-radius:var(--ot-r1);background:var(--ot-surface-2);border-left:4px solid var(--ot-accent)}.pd-code p{margin:0}.pd-code-title strong{font-size:1.25rem;font-weight:600}.pd-code-raw{margin-left:6px;font-size:.85rem;font-variant-numeric:tabular-nums}.pd-code-more{margin-top:4px!important;font-size:.9rem}.pd-code--warn{border-left-color:var(--ot-warn);background:var(--ot-warn-bg)}.pd-code--err{border-left-color:var(--ot-err);background:var(--ot-err-bg)}.pd-code--unknown{border-left-color:var(--ot-field)}
 .pd-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,132px),1fr));gap:10px;margin:12px 0}.pd-fact{margin:0;padding:10px 14px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}.pd-fact h3{font-size:.85rem;font-weight:500;color:var(--ot-muted);margin:0;overflow-wrap:normal;hyphens:auto}.pd-value{font-size:1.5rem;font-weight:600;font-variant-numeric:tabular-nums}
 .pd-trend{display:block;width:100%;height:56px;margin-top:10px}.pd-trend-legend{display:flex;flex-wrap:wrap;gap:2px 14px}.pd-trend-legend span{white-space:nowrap}.pd-trend-legend span[data-line]::before{content:"";display:inline-block;width:18px;margin-right:6px;vertical-align:middle;border-top:2.5px solid var(--ot-accent)}.pd-trend-legend span[data-line=target]::before{border-top:2px dashed var(--ot-focus)}.pd-actual-line{fill:none;stroke:var(--ot-accent);stroke-width:2.5;stroke-linejoin:round}.pd-target-line{fill:none;stroke:var(--ot-focus);stroke-width:2;stroke-dasharray:5 4}
 details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1);background:var(--ot-surface-2);padding:0 16px;margin-bottom:10px}details.ot-advanced[open]{padding-bottom:8px}
@@ -297,9 +299,8 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
 				<ul class="navbar-nav">
 					<li class="nav-item"><a class="nav-link" href="./" data-page="home" data-nav="home"><span data-i18n="Overview">Overview</span></a></li>
 					<li class="nav-item"><a class="nav-link" href="#rooms" data-page="heating" data-nav="heating"><span data-i18n="Rooms">Rooms</span></a></li>
+					<li class="nav-item"><a class="nav-link" href="#house" data-page="house" data-nav="house"><span data-i18n="Home">Home</span></a></li>
 					<li class="nav-item"><a class="nav-link" href="#boiler" data-page="boiler_test" data-nav="boiler_test"><span data-i18n="Boiler">Boiler</span></a></li>
-					<li class="nav-item" data-bluetooth-settings hidden><a class="nav-link" href="#sensors" data-page="bluetooth" data-nav="bluetooth"><span data-i18n="Sensors">Sensors</span></a></li>
-					<li class="nav-item"><a class="nav-link" href="#settings" data-page="network" data-nav="network"><span data-i18n="Settings">Settings</span></a></li>
 					<li class="nav-item dropdown">
 						<a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
 							data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -310,8 +311,13 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#room_management" data-page="room_management"><span data-i18n="Rooms and programs">Rooms and programs</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#curve" data-page="curve"><span data-i18n="Boiler and heating curve">Boiler and heating curve</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#hardware" data-page="hardware"><span data-i18n="Hardware configuration">Hardware configuration</span></a></li>
+							<li><a class="dropdown-item" href="#settings" data-page="network" data-nav="network"><span data-i18n="Network and Home Assistant">Network and Home Assistant</span></a></li>
+							<li><a class="dropdown-item" href="#password" data-page="password" data-nav="password"><span data-i18n="Password">Password</span></a></li>
+							<li><a class="dropdown-item" href="#backup" data-page="backup" data-nav="backup"><span data-i18n="Backup and restore">Backup and restore</span></a></li>
+							<li data-bluetooth-settings hidden><a class="dropdown-item" href="#sensors" data-page="bluetooth" data-nav="bluetooth"><span data-i18n="Bluetooth sensors">Bluetooth sensors</span></a></li>
+							<li role="separator" class="dropdown-divider"></li>
 							<li><a class="dropdown-item" href="#update" data-page="update" data-nav="update"><span data-i18n="Firmware update">Firmware update</span></a></li>
-							<li><a class="dropdown-item" href="#log" data-page="system_log" data-nav="system_log"><span data-i18n="System log">System log</span></a></li>
+							<li><a class="dropdown-item" href="#log" data-page="system_log" data-nav="system_log"><span data-i18n="Diagnostics and system log">Diagnostics and system log</span></a></li>
 							<li><a class="dropdown-item" href="#about" data-page="about" data-nav="about"><span data-i18n="About">About</span></a></li>
 							<li role="separator" class="dropdown-divider"></li>
 							<li><button type="button" class="dropdown-item" id="device-restart" hidden><span data-i18n="Restart device">Restart device</span></button></li>
@@ -481,8 +487,8 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             } else if (page === 'curve') await ensureChart();
         }
         // Hash routes keep refresh, Back and bookmarks on the same page.
-        const pageRoutes = {heating:'rooms', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', boiler_limits:'boiler-limits', bluetooth:'sensors', network:'settings', password:'password', update:'update', system_log:'log', about:'about'};
-        const pageTitles = {home:"Overview", heating:"Rooms", boiler_test:"Boiler", bluetooth:"Sensors", network:"Settings", update:"Firmware update", system_log:"System log", about:"About"};
+        const pageRoutes = {heating:'rooms', house:'house', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', boiler_limits:'boiler-limits', bluetooth:'sensors', network:'settings', password:'password', backup:'backup', update:'update', system_log:'log', about:'about'};
+        const pageTitles = {home:"Overview", heating:"Rooms", house:"Home", boiler_test:"Boiler", bluetooth:"Bluetooth sensors", network:"Settings", update:"Firmware update", system_log:"System log", about:"About"};
         function markPage(page) {
             try {
                 document.title = uiText(pageTitles[page] || "System") + ' · OpenThermostat';
@@ -491,7 +497,9 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                     link.classList.toggle('active', current);
                     if (current) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
                 });
-                document.getElementById('navbarDropdownMenuLink').classList.toggle('active', !pageTitles[page] || ['update','system_log','about'].includes(page));
+                // System groups the technical pages (beta.23): network and Home Assistant, password, backup,
+                // Bluetooth sensors, update, diagnostics and About.
+                document.getElementById('navbarDropdownMenuLink').classList.toggle('active', !pageTitles[page] || ['network','password','backup','bluetooth','update','system_log','about'].includes(page));
                 $('#navbarNavDropdown.show').collapse('hide');
             } catch (_) {}
         }
@@ -514,8 +522,10 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             // boiler choice, data, EMS devices and the attended test together.
             // The section alias opens the matching part of that page.
             window.otPageSection = page;
-            if (page === 'ems_devices' || page === 'boiler_display' || page === 'boiler_trial' || page === 'boiler_limits') page = 'boiler_test';
+            if (page === 'ems_devices' || page === 'boiler_display' || page === 'boiler_trial') page = 'boiler_test';
+            if (page === 'boiler_limits') page = 'house'; // the flow limits moved to the Home page (beta.23)
             if (page === 'password') page = 'network'; // #password: the password card on the Settings page
+            if (page === 'backup') page = 'network'; // #backup: Backup and restore on the Settings page (System menu, beta.23)
             clearMainContainer();
             markPage(page);
             const navigation = navigationGeneration;
@@ -871,6 +881,25 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
         function dashboardBool(value, yes, no) {
             return value === true ? yes : value === false ? no : uiText("Unavailable");
         }
+        // The boiler's display code in words (display-codes.js, from the boiler profile of the chosen
+        // model): the meaning large, the raw code small; a fault or lockout as a warning with what to do.
+        function dashboardBoilerCode(ems) {
+            if (typeof OpenThermostatDisplayCodes === 'undefined') return null;
+            var model = typeof BoilerDisplay !== 'undefined' && BoilerDisplay.model ? BoilerDisplay.model() : null;
+            var d = OpenThermostatDisplayCodes.describe(ems.displayCode, ems.serviceCode, model);
+            if (!d) return null;
+            d.raw = d.code + (d.cause !== null ? ' ' + d.cause : '');
+            return d;
+        }
+        function dashboardBoilerCodeHtml(d) {
+            if (!d) return '';
+            var tone = d.lockout ? ' pd-code--err' : d.fault ? ' pd-code--warn' : d.known ? '' : ' pd-code--unknown';
+            var title = d.known ? d.text : uiText("Display code") + ' ' + d.raw;
+            var more = d.known ? (d.fault ? d.severityText + '. ' : '') + d.advice : d.text;
+            return '<div class="pd-code' + tone + '" data-dashboard-key="boiler-code" role="status"><p class="pd-code-title"><strong data-code-meaning>' +
+                dashboardText(title) + '</strong>' + (d.known ? ' <small class="pd-code-raw" data-code-raw>' + dashboardText(d.raw) + '</small>' : '') + '</p>' +
+                (more && (d.severity !== 'normal' || !d.known) ? '<p class="pd-code-more">' + dashboardText(more) + '</p>' : '') + '</div>';
+        }
         function dashboardBuildSupport(build) {
             var html = uiHtml("<details class=\"ot-advanced pd-build\"><summary>Home Assistant connection</summary>");
             if (!build || build.schema !== 1 || build.scope !== 'compiled_support_only' ||
@@ -1120,10 +1149,11 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
         function comfortAway(away) {
             if (!away || typeof away !== 'object') return '';
             var until = Number.isFinite(away.until) && away.until > 0 ? comfortTime(away.until) : null;
-            var state = away.on !== true ? '' : away.source === 'presence' ? uiText("Everyone away") : until ? uiText("Away until {time}").replace('{time}',until) : uiText("Away");
+            var state = away.on !== true ? (away.mode === 'home' ? uiText("At home") : '') : away.source === 'presence' ? uiText("Everyone away") : until ? uiText("Away until {time}").replace('{time}',until) : uiText("Away");
             var temperature = dashboardNumber(away.target_c,1,5,25);
             return '<details class="pd-panel pd-away" data-dashboard-key="away"><summary>'+uiText("Away")+(state ? ' · '+dashboardText(state) : '')+'</summary>'+
                 '<p class="pd-help">'+uiText("A lower temperature for the whole house, optionally until a date. The rooms are warm again when you are back.")+'</p>'+
+                '<p class="pd-help"><a href="#house" data-page="house">'+uiText("All house modes (automatic, at home, away, holiday): Home page")+'</a></p>'+
                 '<div class="ot-actions"><label>'+uiText("Away temperature")+' <input type="number" class="form-control" step="0.5" min="5" max="25" value="'+dashboardText(temperature === null ? 15 : temperature)+'" data-comfort-away-temp data-dashboard-key="away-temp"></label> '+
                 '<label>'+uiText("Back on (optional)")+' <input type="datetime-local" class="form-control" data-comfort-away-until data-dashboard-key="away-until"></label></div>'+
                 '<div class="ot-actions"><button type="button" class="btn btn-primary" data-comfort="away" data-room="">'+uiText("Start away")+'</button>'+
@@ -1195,6 +1225,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 return '<div class="pd-fact"><h3>'+label+'</h3><div class="pd-value">'+dashboardValue(value,unit)+'</div></div>';
             }
             function chip(text,tone) { return '<span class="ot-chip'+(tone?' ot-chip--'+tone:'')+'">'+dashboardText(text)+'</span>'; }
+            var boilerCode = dashboardBoilerCode(ems);
             var cards = [];
             if (engine) {
                 var byName = Object.create(null), sensors = Array.isArray(engine.ble_sensors) ? engine.ble_sensors : [], series = [];
@@ -1243,6 +1274,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 dashboardUpdateNotice(status.firmware_update)+dashboardPasswordNotice()+
                 '<section class="pd-status" data-dashboard-key="headline"><div class="pd-flow"><p class="pd-headline">'+dashboardText(headline)+'</p><p class="ot-chips">'+
                 chip(mode,ems.warmWaterActive===true||ems.heatingActive===true?'ok':'')+
+                (boilerCode && boilerCode.fault ? chip(uiText("Boiler fault")+' '+boilerCode.code,boilerCode.lockout?'err':'warn') : '')+
                 (known?chip(dashboardBool(demand,uiText("Heat demand"),uiText("No heat demand")),demand===true?'ok':''):'')+controlChip+haChip+'</p></div>'+
                 (statusHelp?'<p class="pd-help">'+dashboardText(statusHelp)+'</p>':'')+
                 (freshText?'<p class="pd-help"><span>'+dashboardText(freshText)+'</span></p>':'')+'</section>'+
@@ -1264,7 +1296,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             });
             html += '</div>'+(trendPending && cards.length ? uiHtml("<p class=\"pd-help\" data-dashboard-key=\"trend-hint\">The trend appears after two reports.</p>") : '')+
                 (engine && dashboardHistory ? (function(chart) { return chart ? '<section class="pd-panel pd-history" data-dashboard-key="boiler-history">'+chart+'</section>' : ''; })(OpenThermostatHistory.boiler(dashboardHistory)) : '')+
-                '<section class="pd-panel pd-boiler"><div class="pd-facts">'+
+                '<section class="pd-panel pd-boiler">'+dashboardBoilerCodeHtml(boilerCode)+'<div class="pd-facts">'+
                 fact(uiText("Flow"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C')+
                 fact(uiText("Return"),dashboardNumber(ems.currentReturnTemperature,10,-20,150),'°C')+
                 fact(uiText("Modulation"),dashboardNumber(ems.currentBurnerPower,1,0,100),'%')+

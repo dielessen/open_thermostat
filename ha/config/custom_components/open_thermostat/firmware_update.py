@@ -33,7 +33,8 @@ from homeassistant.helpers.event import async_call_later, async_track_time_inter
 from homeassistant.util import dt as dt_util
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
-from .controller_link import ControllerClient, ControllerLinkError, ControllerLoginRejected
+from .controller_link import (ControllerClient, ControllerLinkError, ControllerLoginRejected, SESSION_WAITS,
+                              async_login_waiting)
 from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_PASSWORD
 
 _LOGGER = logging.getLogger(__name__)
@@ -172,7 +173,18 @@ class E32FirmwareUpdate(UpdateEntity):
         self._channel = key[3]
         if self._attr_latest_version is None:
             self._attr_latest_version = version
+        self._sync_device_version()
         return True
+
+    def _sync_device_version(self):
+        """The E32 device shows its firmware version as its software version (beta.23)."""
+        if getattr(self, "hass", None) is None or self.registry_entry is None or not self._attr_installed_version:
+            return
+        from homeassistant.helpers import device_registry as dr
+        registry = dr.async_get(self.hass)
+        device = registry.async_get(self.registry_entry.device_id) if self.registry_entry.device_id else None
+        if device is not None and device.sw_version != self._attr_installed_version:
+            registry.async_update_device(device.id, sw_version=self._attr_installed_version)
 
     def version_is_newer(self, latest_version, installed_version):
         latest, installed = parse_tag(latest_version), parse_tag(installed_version)
@@ -206,6 +218,7 @@ class E32FirmwareUpdate(UpdateEntity):
             if parse_tag(latest) is not None and self._attr_installed_version is not None:
                 self._attr_latest_version = latest
         self.async_on_remove(self._cancel_retry)
+        self._sync_device_version()
 
     def _cancel_retry(self):
         if self._retry is not None:
@@ -299,7 +312,8 @@ class E32FirmwareUpdate(UpdateEntity):
                     raise ValueError("SHA-256, size or version marker does not match the release")
                 outcome["result"] = "upload_failed"
                 async with self._client() as client:
-                    await client.async_login(self._entry.data[CONTROLLER_PASSWORD])
+                    # The owner pressed Install: wait for a free E32 web session (all 4 in use).
+                    await async_login_waiting(client, self._entry.data[CONTROLLER_PASSWORD], SESSION_WAITS)
                     await client.async_upload_firmware(image)
                 outcome["uploads"], outcome["result"] = 1, "not_confirmed"
                 # The E32 restarts itself; confirm the new version is running.
@@ -312,6 +326,7 @@ class E32FirmwareUpdate(UpdateEntity):
                         outcome["reported"] = reported_identity(running) or outcome["reported"]
                         if isinstance(running, dict) and running.get("version") == release["tag"]:
                             self._attr_installed_version = release["tag"]
+                            self._sync_device_version()
                             outcome["result"] = "installed"
                             return
                     except ControllerLinkError:

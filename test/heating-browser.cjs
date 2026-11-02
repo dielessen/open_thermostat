@@ -19,8 +19,8 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[];
  try{for(const width of [1280,320]){
-  const page=await browser.newPage({viewport:{width,height:900}}),errors=[],posts=[],handovers=[],dialogs=[];
-  let plan={schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[]},reject=null;
+  const page=await browser.newPage({viewport:{width,height:900}}),errors=[],posts=[],handovers=[],dialogs=[],calls=[];
+  let plan={schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[]},reject=null,handoverReject=null;
   // ActiveHeatGuard::json() plus the firmware gate; this firmware ships with it closed.
   const active=status.active={state:'shadow',command:{send:false,flow_c:0,why:'shadow'},last_sent:null,
    foreign_controller:{address:0x17,age_s:30},confirmation:null,warnings:[],enabled:false};
@@ -34,7 +34,10 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
    if(p==='/status/heating')return json(plan.rooms.length?status:{...status,rooms:[],request:{heat:false,flow_c:0,reason:'no_demand'}});
    if(p==='/config/heating/handover'){
     assert.equal(request.method(),'POST');assert.equal(request.headers()['x-openthermostat-csrf'],'a'.repeat(64));
-    handovers.push(request.postDataJSON());
+    const body=request.postDataJSON();handovers.push(body);calls.push('handover:'+body.thermostat_disconnected);
+    if(handoverReject){const r=handoverReject;handoverReject=null;return json({error:r.error},r.code);}
+    // Off is always accepted: the guard stops at once with the zero window (RAM only).
+    if(body.thermostat_disconnected===false){Object.assign(active,{state:'stopping',command:{send:true,flow_c:0,why:'stop_zero'},confirmation:null});return json(active);}
     if(!active.enabled)return json({error:'active_mode_not_released'},409);
     Object.assign(active,{state:'active',command:{send:true,flow_c:45,why:'heat_request'},last_sent:{flow_c:45,age_s:5},confirmation:{age_s:0}});
     return json(active);
@@ -42,7 +45,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
    if(p==='/config/heating'){
     if(request.method()==='POST'){
      assert.equal(request.headers()['x-openthermostat-csrf'],'a'.repeat(64));
-     const body=request.postDataJSON();posts.push(body);
+     const body=request.postDataJSON();posts.push(body);calls.push('plan:'+body.mode);
      if(reject){const r=reject;reject=null;return json({error:r.error},r.code);}
      if(body.revision!==plan.revision)return json({error:'plan_changed'},409);
      plan={...body,revision:plan.revision+1};
@@ -138,8 +141,19 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(posts.at(-1).revision,5);
   const room=root.locator('[data-heating-room="woonkamer"]');
   assert.match(await room.locator(':scope>summary').innerText(),/^Living\s+Vraagt warmte\s+20,4 °C\s+Gewenst 21,0 °C\s+Gewenste temperatuur uit het weekprogramma$/);
-  // Prefill of the Home Assistant week: weekdays differ from the weekend, so one row per day.
+  // A saved room's blocks start closed, each with a one-line summary; the choice is remembered in this browser.
   await room.evaluate(e=>e.open=true);
+  const blocks=room.locator('[data-heating-section]'),brief=key=>room.locator(`[data-heating-section="${key}"] [data-heating-section-brief]`).innerText();
+  assert.deepEqual(await blocks.evaluateAll(b=>b.map(x=>[x.dataset.heatingSection,x.open])),[['temperature',false],['week',false],['windows',false],['persons',false]]);
+  assert.equal(await room.getByLabel('Weekprogramma gebruiken').isVisible(),false,'closed blocks hide their fields');
+  assert.match(await brief('temperature'),/^climate\.woonkamer \+ .+ · 20,4 °C$/);
+  assert.match(await brief('week'),/^(Comfort .+ · Eco .+ · Nacht .+|\d+ schakelpunten)$/);
+  assert.equal(await brief('windows'),'Geen contacten');assert.equal(await brief('persons'),'Iedereen');
+  await room.locator('[data-heating-section="week"]>summary').click();
+  assert.equal(await room.getByLabel('Weekprogramma gebruiken').isVisible(),true);
+  await page.waitForFunction(()=>localStorage.getItem('ot.room.woonkamer.week')==='1'); // the toggle event follows the click
+  // Prefill of the Home Assistant week: weekdays differ from the weekend, so one row per day.
+  await room.evaluate(e=>{e.open=true;for(const d of e.querySelectorAll('[data-heating-section]'))d.open=true;});
   const program=room.locator('[data-heating-week]'),points=()=>program.locator('[data-heating-day]').evaluateAll(days=>days.map(d=>[d.querySelector('strong').textContent,
    ...[...d.querySelectorAll('[data-heating-point]')].map(p=>[...p.querySelectorAll('input')].map(i=>i.value).join(' '))]));
   assert.match(await program.locator('legend').innerText(),/^Weekprogramma \(gebruikt als Home Assistant geen gewenste temperatuur geeft\)$/);
@@ -155,10 +169,10 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   status.rooms[0].setpoint_source='ha';
   // Week program editor: saves re-render the cards, so wait for the new card and open it.
   const save=async text=>{await room.evaluate(e=>e.dataset.old='1');await root.locator('[data-heating-save]').click();await root.getByText(text).waitFor();
-   await root.locator('[data-heating-room="woonkamer"]:not([data-old])').waitFor({state:'attached'});await room.evaluate(e=>e.open=true);};
+   await root.locator('[data-heating-room="woonkamer"]:not([data-old])').waitFor({state:'attached'});await room.evaluate(e=>{e.open=true;for(const d of e.querySelectorAll('[data-heating-section]'))d.open=true;});};
   const refused=async text=>{const n=posts.length;await root.locator('[data-heating-save]').click();await root.getByText(text,{exact:true}).waitFor();return posts.length-n;};
   const fillPoint=async(i,time,temp)=>{const p=program.locator('[data-heating-point]').nth(i);await p.locator('input[type=time]').fill(time);await p.locator('input[type=number]').fill(temp);};
-  await room.evaluate(e=>e.open=true);
+  await room.evaluate(e=>{e.open=true;for(const d of e.querySelectorAll('[data-heating-section]'))d.open=true;});
   await program.getByLabel('Weekprogramma gebruiken').uncheck();
   assert.equal(await program.locator('[data-heating-point]').first().isVisible(),false,'editor hidden when off');
   await save('Ruimtes opgeslagen.');
@@ -219,11 +233,27 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(await takeover.isVisible(),false);assert.equal(await handback.isVisible(),true);
   await root.locator('[data-heating-save]').click();await root.getByText('Ruimtes opgeslagen.').waitFor();
   assert.equal(posts.at(-1).mode,'active','saving rooms keeps the plan mode');
-  // Hand back: the plan goes shadow; the firmware sends zero for a minute. Here the tado was seen again too.
-  Object.assign(active,{state:'stopping',command:{send:true,flow_c:0,why:'stop_zero'},confirmation:null,warnings:['foreign_controller']});
+  // Hand back (review S1): first the confirmation off (the E32 stops at once), then the plan as shadow.
+  // The E32 does not confirm the stop: nothing else is sent and the owner keeps the thermostat disconnected.
+  calls.length=0;handoverReject={error:'busy',code:503};
   await handback.click();
+  await control.getByText(/^De E32 heeft het stoppen niet bevestigd\. Laat je thermostaat nog losgekoppeld .*\(handleiding §8\.2\)\. \(busy\)$/).waitFor();
+  assert.deepEqual(calls,['handover:false']);assert.equal(plan.mode,'active');
+  assert.equal(await handback.isVisible(),true);assert.equal(await handback.isDisabled(),false);
+  // The stop worked, the plan save did not: the message says so and the next press completes it.
+  calls.length=0;reject={error:'storage_failed',code:507};
+  await handback.click();
+  await control.getByText(/^De E32 vraagt de ketel geen warmte meer, maar het plan kon niet als schaduw .*\(storage_failed\)$/).waitFor();
+  assert.deepEqual(calls,['handover:false','plan:shadow']);assert.equal(plan.mode,'active');
+  assert.equal(await handback.isVisible(),true);
+  // Home Assistant saved the plan in between: reloaded and saved as shadow once more. A double
+  // press sends the sequence once (the button is disabled while it runs). The tado was seen again too.
+  Object.assign(active,{warnings:['foreign_controller']});
+  plan={...plan,revision:plan.revision+1};calls.length=0;
+  await handback.evaluate(b=>{b.click();b.click();});
   await control.getByText('Teruggegeven. De E32 vraagt de ketel één minuut lang nul. Sluit daarna je thermostaat weer aan op de ketel.').waitFor();
-  assert.equal(posts.at(-1).mode,'shadow');assert.equal(handovers.length,1);
+  assert.deepEqual(calls,['handover:false','plan:shadow','plan:shadow']);
+  assert.equal(posts.at(-1).mode,'shadow');assert.equal(plan.mode,'shadow');assert.deepEqual(handovers.at(-1),{thermostat_disconnected:false});
   await control.getByText(/^Stoppen: de E32 vraagt de ketel één minuut lang nul\. · Ketelvraag: uit/).waitFor();
   assert.deepEqual(await control.locator('[data-heating-active-warnings] li').allInnerTexts(),
    ['Een andere regelaar (je thermostaat?) stuurt nog ketelvragen. Koppel die los van de ketel en bevestig daarna opnieuw.']);
@@ -238,7 +268,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(await root.locator('[data-heating-add]').isVisible(),true);
   assert.equal(await root.locator('[data-heating-lock]').getAttribute('class'),'alert ot-actions alert-info');
   delete status.ha;
-  // The flow limits for all rooms are on the Boiler page; the floor-heating warning here links there.
+  // The flow limits for all rooms are on the Home page (beta.23; the Boiler page before); the floor-heating warning here links there.
   await page.evaluate(()=>sessionStorage.removeItem('ot-rooms-edit'));
   await page.evaluate(()=>loadNativePage('heating'));
   const warn=root.locator('[data-heating-flow-warn]');await warn.waitFor();
@@ -248,15 +278,16 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   const limits=page.locator('#boiler-limits'),minFlow=limits.locator('#boiler-min-flow'),maxFlow=limits.locator('#boiler-max-flow');
   await page.waitForFunction(()=>document.getElementById('boiler-max-flow')?.value==='60');
   assert.equal(await page.evaluate(()=>location.hash),'#boiler-limits');
-  assert.equal(await limits.evaluate(d=>d.open),true);
+  assert.equal(await page.locator('#house-settings').count(),1,'the Home page');
   assert.equal(await limits.locator('[data-limits-summary]').innerText(),'30–60 °C');
   // Same ranges as the firmware (RoomPlan): minimum 20–79, maximum 21–80 °C.
   assert.deepEqual(await limits.locator('#boiler-min-flow,#boiler-max-flow').evaluateAll(f=>f.map(i=>[i.min,i.max])),[['20','79'],['21','80']]);
   assert.equal(await limits.locator('[data-limits-floor-warn]').isVisible(),true);
   // Home Assistant is the main editor: read-only until unlocked for this tab, as on the Rooms page.
   assert.equal(await maxFlow.isDisabled(),true);
-  assert.match(await limits.locator('[data-limits-lock]').innerText(),/Configureren → Verwarming en ketel/);
-  await limits.locator('[data-limits-unlock]').click();assert.match(dialogs.at(-1),/tot je dit tabblad sluit/);
+  const house=page.locator('#house-settings');
+  assert.match(await house.locator('[data-house-lock]').innerText(),/Configureren → Huis/);
+  await house.locator('[data-house-unlock]').click();assert.match(dialogs.at(-1),/tot je dit tabblad sluit/);
   await maxFlow.fill('45');assert.equal(await limits.locator('[data-limits-floor-warn]').isVisible(),false);
   const saved=plan,count=posts.length;
   await limits.locator('[data-limits-save]').click();
@@ -272,7 +303,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await minFlow.fill('35');await limits.locator('[data-limits-save]').click();
   await limits.getByText(/Het plan is elders gewijzigd/).waitFor();
   assert.equal(await minFlow.inputValue(),'25');assert.equal(plan.minimum_flow_c,25);
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll on the Boiler page');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll on the Home page');
   assert.deepEqual(errors,[]);
   results.push({width,result:'PASS'});await page.close();
  }}finally{await browser.close();}

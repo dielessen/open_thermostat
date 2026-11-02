@@ -164,7 +164,7 @@ clear_room_override:
       integration: open_thermostat
 set_away:
   name: Away
-  description: A lower temperature for the whole house, optionally until a date and time. The E32 starts warming up early enough to be at the program's temperature when you are back.
+  description: "Sets the house mode to Away, or to Holiday when you give an end date and time (the same as the House mode select). The E32 starts warming up early enough to be at the program's temperature when you are back."
   target:
     entity:
       domain: climate
@@ -182,7 +182,7 @@ set_away:
         datetime:
 clear_away:
   name: End away
-  description: Every room follows its week program again.
+  description: "Sets the house mode back to Automatic: every room follows its week program again."
   target:
     entity:
       domain: climate

@@ -120,7 +120,7 @@
         'openweather.appid': "OpenWeather API key", 'bt.scanTime': "Bluetooth listening time", 'bt.scanInterval': "Bluetooth pause",
         devices: "Sensors", rooms: "Rooms", room_settings: "Room settings", minimum_flow_c: "Lowest flow temperature",
         maximum_flow_c: "Highest flow temperature", weather_curve: "Weather curve", apply_learned: "Use learned values",
-        curve_design_flow_c: "Design flow temperature", model: "Boiler model"
+        curve_design_flow_c: "Design flow temperature", tuning: "Advanced: tuning", model: "Boiler model"
     };
     const reenter = {wifi_password: "Wi-Fi password", web_password: "Web page password", mqtt_password: "MQTT password",
         openweather_key: "OpenWeather API key", bluetooth_keys: "Bluetooth sensor keys", bluetooth_key: "Bluetooth key for {v}"};

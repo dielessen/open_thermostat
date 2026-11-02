@@ -1,13 +1,13 @@
 // Actual root/Settings/About HTML and scripts with simulated HTTP; no device requests.
-// The default password admin is shown as a clear prompt (Overview and Settings → Password),
+// The default password admin is shown as a clear prompt (Overview and System → Password),
 // disappears after a change, and the password never appears in the page text.
 // About only points to Settings; old #about links still find the password.
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),out=path.resolve(__dirname,'../out/about-password-browser');
 const words={
- en:{notice:/This E32 still uses the default password admin\. Choose your own below/,overview:/still uses the default password/,changed:/Password changed\./,moved:/under Settings/,chip:'Default password in use'},
- nl:{notice:/Deze E32 gebruikt nog het standaardwachtwoord admin\. Kies hieronder een eigen wachtwoord/,overview:/gebruikt nog het standaardwachtwoord/,changed:/Wachtwoord gewijzigd\./,moved:/onder Instellingen/,chip:'Standaardwachtwoord in gebruik'}};
+ en:{notice:/This E32 still uses the default password admin\. Choose your own below/,overview:/still uses the default password/,changed:/Password changed\./,moved:/under System → Password/,chip:'Default password in use'},
+ nl:{notice:/Deze E32 gebruikt nog het standaardwachtwoord admin\. Kies hieronder een eigen wachtwoord/,overview:/gebruikt nog het standaardwachtwoord/,changed:/Wachtwoord gewijzigd\./,moved:/onder Systeem → Wachtwoord/,chip:'Standaardwachtwoord in gebruik'}};
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
  try{for(const [lang,width,defaultPassword] of [['en',1280,true],['nl',390,true],['en',1280,false]]){

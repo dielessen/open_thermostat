@@ -251,9 +251,10 @@ class ProductRoomFlow(RadiatorRoomSetupFlow):
 
 
 from .e32_comfort import ComfortOptionsSteps  # noqa: E402
+from .e32_backup_flow import E32RestoreSteps  # noqa: E402
 
 
-class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, ControllerSetupFlow, ShadowOptionsFlow,
+class ProductOptionsFlow(E32RestoreSteps, ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, ControllerSetupFlow, ShadowOptionsFlow,
                          ProductRoomFlow):
     """One central options entrypoint, using the same room editor and native Store.
 
@@ -338,9 +339,18 @@ class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, Con
             else:
                 save_energy(self.hass, self.config_entry, values)
                 return self.async_abort(reason="energy_saved")
+        # A suggested power (gas meter calibration, a known boiler type, else the default), in the description only.
+        from .boiler_power import basis, detected_model, suggestion
+        from .const import DOMAIN
+        from .e32_flow import gas_calibration
+        hub = (self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id) or {}).get("heating_hub")
+        model = detected_model(self.hass, self.config_entry)
+        kw, source = suggestion({}, gas_calibration(hub) if hub is not None else None, None, model)
         schema = energy_schema(vol, self.config_entry.options, currency(self.hass))
         return self.async_show_form(step_id="energy", data_schema=retained_input_schema(self, schema, user_input),
-                                    errors=errors)
+                                    errors=errors, description_placeholders={
+                                        "boiler_kw_suggested": f"{kw:g}",
+                                        "boiler_kw_basis": basis(source, self.hass.config.language, model)})
 
     async def async_step_installation(self, user_input=None):
         entry = self.config_entry
@@ -508,8 +518,11 @@ class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, Con
         connection_text = ("Toepassing bevestigd" if verified else "Toepassing nog niet bevestigd") if dutch else (
             "Application confirmed" if verified else "Application not yet confirmed")
         enabled = actual_runtime_active(self.hass, entry)
-        runtime_text = (("Alleen uitlezen en berekenen (schaduwmodus)" if enabled else "Berekeningen uit; geen aansturing")
-                        if dutch else ("Read and calculate only (shadow mode)" if enabled else "Calculations off; no device control"))
+        # Neutral on purpose: in shadow mode the thermostat controls the boiler, after the switch-over the E32 does.
+        runtime_text = (("Berekeningen aan; het E32-overzicht toont wie de ketel regelt" if enabled
+                         else "Berekeningen uit; geen aansturing")
+                        if dutch else ("Calculations on; the E32 Overview shows who controls the boiler" if enabled
+                                       else "Calculations off; no device control"))
         # Inspect saved targets without altering settings or granting physical readiness.
         from .room_editor import read_room
         from .v1_profile_c import MODE_MESSAGES
@@ -562,21 +575,79 @@ class ProductOptionsFlow(ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, Con
             options += ["graph_prepare", "graph_status"]
         if legacy_rooms_pending(entry):
             options.append("legacy_rooms")
+        from .e32_backup import backups
+        if backups(self.hass, entry) is not None:
+            # Restore one of the E32 settings backups Home Assistant keeps (e32_backup_flow).
+            options.append("e32_restore")
+        from .entity_id_tidy import async_undo_available
+        options.append("entity_ids")
+        if await async_undo_available(self.hass, entry):
+            options.append("entity_ids_undo")
         return self.async_show_menu(step_id="advanced_settings", menu_options=options)
+
+    async def async_step_entity_ids(self, user_input=None):
+        """Optional tidy of long entity IDs: a preview of every old -> new pair and where it is used,
+        then rename on explicit confirmation (entity_id_tidy)."""
+        from homeassistant.helpers import selector
+        from . import entity_id_tidy as tidy
+        plan = getattr(self, "_entity_id_plan", None)
+        if plan is None or user_input is None:
+            plan = self._entity_id_plan = await tidy.async_plan(self.hass, self.config_entry)
+        if not plan.renames:
+            return self.async_abort(reason="entity_ids_nothing")
+        errors = {}
+        scope = (user_input or {}).get("scope", "unused")
+        if user_input is not None:
+            if not user_input.get("confirm"):
+                errors["base"] = "entity_ids_confirm"
+            else:
+                chosen = plan.unused if scope == "unused" else plan.renames
+                done = await tidy.async_apply(self.hass, self.config_entry, chosen)
+                todo = [f"- {r.old} → {r.new}: {', '.join(r.used_in)}" for r in chosen if r.used_in and r.new in done]
+                self._entity_id_plan = None
+                return self.async_abort(reason="entity_ids_done", description_placeholders={
+                    "count": str(len(done)), "todo": "\n".join(todo) or "-"})
+        schema = vol.Schema({
+            vol.Required("scope", default=scope): selector.SelectSelector(selector.SelectSelectorConfig(
+                options=["unused", "all"], translation_key="entity_ids_scope",
+                mode=selector.SelectSelectorMode.LIST)),
+            vol.Required("confirm", default=False): selector.BooleanSelector(),
+        })
+        return self.async_show_form(step_id="entity_ids", data_schema=schema, errors=errors,
+            description_placeholders={"count": str(len(plan.renames)),
+                                      "used": str(len(plan.renames) - len(plan.unused)),
+                                      "days": str(tidy.UNDO_DAYS),
+                                      "preview": tidy.preview_text(plan, False, self.hass.config.language)})
+
+    async def async_step_entity_ids_undo(self, user_input=None):
+        from homeassistant.helpers import selector
+        from . import entity_id_tidy as tidy
+        available = await tidy.async_undo_available(self.hass, self.config_entry)
+        if not available:
+            return self.async_abort(reason="entity_ids_nothing")
+        errors = {}
+        if user_input is not None:
+            if not user_input.get("confirm"):
+                errors["base"] = "entity_ids_confirm"
+            else:
+                undone = await tidy.async_undo(self.hass, self.config_entry)
+                return self.async_abort(reason="entity_ids_undone", description_placeholders={"count": str(len(undone))})
+        return self.async_show_form(step_id="entity_ids_undo", errors=errors,
+            data_schema=vol.Schema({vol.Required("confirm", default=False): selector.BooleanSelector()}),
+            description_placeholders={"count": str(len(available))})
 
 
 def main_menu(entry):
     """Configure's top level, in the order a user needs it.
 
-    E32 room plan (connected): Rooms, Comfort, Heating and boiler, Energy,
-    E32 connection, Name and dashboard, Advanced. A new installation whose E32
+    E32 room plan (connected): Rooms, Home (presence, room defaults and window contacts, heating and
+    boiler, energy; beta.23), E32 connection, Name and dashboard, Advanced. A new installation whose E32
     is not connected yet starts with Connect E32 (rooms and heating need it).
     Older installations on the Home Assistant room route keep their menu.
     """
     from .room_plan import has_room_plan, uses_e32_rooms
     if has_room_plan(entry):
-        return ["e32_rooms", "comfort", "heating_boiler", "energy", "controller_connection", "general",
-                "advanced_settings"]
+        return ["e32_rooms", "house", "controller_connection", "general", "advanced_settings"]
     if uses_e32_rooms(entry):
         return ["controller_connection", "energy", "general", "advanced_settings"]
     return ["room_settings", "controller_connection", "energy", "installation", "advanced_settings"]

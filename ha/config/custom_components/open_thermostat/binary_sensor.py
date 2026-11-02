@@ -48,6 +48,11 @@ async def async_setup_entry(
         if "v1_runtime" in hass.data.get(DOMAIN, {}).get(entry.entry_id, {}):
             from .heating_link import async_setup_demand
             await async_setup_demand(hass, entry, async_add_entities)  # E32 room heat demand
+            from .e32_valves import async_setup_binary_sensors as async_setup_valve_problems
+            try:
+                await async_setup_valve_problems(hass, entry, async_add_entities)  # radiator valve problems
+            except Exception:  # noqa: BLE001 - optional; the room demand stays
+                _LOGGER.exception("OpenThermostat: setting up the radiator valve problems failed")
         from .product_telemetry import async_setup_binary_sensors
         await async_setup_binary_sensors(hass, entry, async_add_entities)
         return

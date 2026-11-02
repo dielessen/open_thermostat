@@ -4,7 +4,9 @@
 #include "control/HeatingStateTopics.h"
 #include "control/RoomEngine.h"
 #include "control/ShadowComparison.h"
+#include "control/TakeoverReadiness.h"
 #include "control/TelemetryPolicy.h"
+#include "control/TrvControl.h"
 #include <cmath>
 #include <cstdio>
 #include <gtest/gtest.h>
@@ -128,6 +130,17 @@ Json worstStatus(const RoomPlan& plan) {
             shadow.sample(d * 24 * hour + t, uint32_t(wednesday23 - (8 - d) * 86400 + t / 1000),
                           t % (3 * hour) < hour ? heat : FlowDemand::Request{}, uint8_t(t % (2 * hour) < hour ? 45 : 0));
     cJSON_AddItemToObject(root.get(), "shadow", shadow.json());
+    // Readiness with every counter saturated, every room on a fallback source.
+    TakeoverReadiness::Stored counters;
+    for (auto& d : counters.days) {
+        d.day = 99999; d.requestS = 86400; d.flowMaxC = 255; d.flags = 3;
+        d.thermostatPeriods = d.e32Periods = d.events = d.matched = d.close = d.near = d.over = 65535;
+    }
+    TakeoverReadiness readiness; readiness.restore(&counters, TakeoverReadiness::Restart::unexpected);
+    TakeoverReadiness::Inputs view; view.roomCount = 8; view.boilerLimitC = 255;
+    for (auto& r : view.rooms) r = {RoomDemand::Status::fallback, int16_t(2000), 4};
+    readiness.sample(4294967295000ull, view);
+    cJSON_AddItemToObject(root.get(), "readiness", readiness.json());
     ActiveHeatGuard guard;
     cJSON* active = guard.json(statusNow);
     cJSON_ReplaceItemInObjectCaseSensitive(active, "state", cJSON_CreateString("blocked_foreign_controller"));
@@ -148,6 +161,17 @@ Json worstStatus(const RoomPlan& plan) {
     cJSON* limit = cJSON_AddObjectToObject(active, "boiler_limit");
     cJSON_AddNumberToObject(limit, "flow_c", 90); cJSON_AddNumberToObject(limit, "age_s", 4294967295.0); cJSON_AddNumberToObject(limit, "reads", 4294967295.0);
     cJSON_AddItemToObject(root.get(), "active", active);
+    // Radiator valves in every room (16 of 64 characters, the most TrvConfig takes): only their
+    // ids reach fw/config/plan and a short summary fw/state/heating (fw/state/trv/<room> apart).
+    TrvConfig valves;
+    for (size_t i = 0; i < plan.rooms.size(); ++i)
+        valves.rooms.push_back({plan.rooms[i].id, true, {{std::string(63, 'v') + char('a' + 2 * i), trvModel("bosch_bth_ra")},
+                                                         {std::string(63, 'v') + char('b' + 2 * i), trvModel("bosch_bth_ra")}}});
+    TrvControl trv; trv.setConfig(valves);
+    cJSON* trvStatus = trv.statusJson(statusNow, {});
+    cJSON_ReplaceItemInObjectCaseSensitive(trvStatus, "flow_offset_c", cJSON_CreateNumber(-8));
+    cJSON_AddStringToObject(trvStatus, "flow_reason", "valves_partly_closed");
+    cJSON_AddItemToObject(root.get(), "trv", trvStatus);
     addHaLink(root.get(), uint64_t(0), 4294967295000ull, false);
     compactHeatingTelemetry(root.get());
     return root;
@@ -181,9 +205,10 @@ TEST(HeatingStateTopics, WorstCasePlanMakesOnlySmallMessages) {
             EXPECT_EQ(cJSON_GetObjectItem(j.get(), "schema")->valuedouble, 1) << m.topic;
             rooms += m.kind == HeatingTopic::room; ble += m.kind == HeatingTopic::ble; parts += m.kind == HeatingTopic::entities;
             if (!escaped && (m.kind != HeatingTopic::room || rooms == 1) && (m.kind != HeatingTopic::ble || ble == 1)
-                && (m.kind != HeatingTopic::entities || parts == 1)) report("worst", m.topic, m.payload.size());
+                && (m.kind != HeatingTopic::entities || parts == 1) && m.kind != HeatingTopic::trv) report("worst", m.topic, m.payload.size());
         }
         EXPECT_EQ(rooms, 8u); EXPECT_EQ(ble, 8u);
+        EXPECT_EQ(largest.count(HeatingTopic::trv), 1u);  // test_trv_telemetry: four valves in a room
         EXPECT_EQ(parts, 5u);                                          // 40 entities of 80 characters
         // Every entity once, in order, over the parts.
         std::vector<std::string> entities;
@@ -250,7 +275,7 @@ TEST(HeatingStateTopics, EveryStatusMemberLandsInExactlyOneTopic) {
     Json heating(cJSON_Parse(by.at("fw/state/heating").c_str()), cJSON_Delete);
     for (const char* kept : {"schema", "revision", "mode", "request", "burner", "active", "ha", "added_by_another_module"})
         EXPECT_TRUE(cJSON_GetObjectItem(heating.get(), kept)) << kept;
-    for (const char* moved : {"rooms", "ble_sensors", "ha_entities", "shadow"}) EXPECT_FALSE(cJSON_GetObjectItem(heating.get(), moved)) << moved;
+    for (const char* moved : {"rooms", "ble_sensors", "ha_entities", "shadow", "readiness"}) EXPECT_FALSE(cJSON_GetObjectItem(heating.get(), moved)) << moved;
     Json room(cJSON_Parse(by.at("fw/state/room/" + pad("a_", 32, 'a')).c_str()), cJSON_Delete);
     for (const char* kept : {"id", "name", "state", "inactive_until", "status", "source", "temperature", "setpoint", "setpoint_source", "demand"})
         EXPECT_TRUE(cJSON_GetObjectItem(room.get(), kept)) << kept;
@@ -263,6 +288,9 @@ TEST(HeatingStateTopics, EveryStatusMemberLandsInExactlyOneTopic) {
     EXPECT_STREQ(cJSON_GetObjectItem(plan.get(), "mode")->valuestring, "shadow");
     Json shadow(cJSON_Parse(by.at("fw/telemetry/shadow").c_str()), cJSON_Delete);
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(shadow.get(), "today")));
+    Json readiness(cJSON_Parse(by.at("fw/telemetry/readiness").c_str()), cJSON_Delete);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(readiness.get(), "state")), "not_ready");
+    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(readiness.get(), "cycling")));
     // An empty plan still names its (zero) rooms and one empty entity part.
     Json empty(cJSON_Parse(R"({"schema":1,"revision":0,"mode":"shadow","request":{"heat":false,"flow_c":0,"reason":"no_rooms"},"ha_entities":[],"rooms":[]})"), cJSON_Delete);
     const auto none = split(empty.get());
@@ -271,6 +299,7 @@ TEST(HeatingStateTopics, EveryStatusMemberLandsInExactlyOneTopic) {
     EXPECT_EQ(e.at("fw/config/plan"), R"({"rooms":[],"ble":[],"schema":1,"revision":0,"mode":"shadow","entity_parts":1})");
     EXPECT_EQ(e.at("fw/config/entities"), R"({"entities":[],"schema":1,"revision":0,"part":0,"parts":1})");
     EXPECT_FALSE(e.count("fw/telemetry/shadow"));
+    EXPECT_FALSE(e.count("fw/telemetry/readiness"));
 }
 
 TEST(TelemetryPolicy, DeadbandsIgnoreNoiseAndAges) {

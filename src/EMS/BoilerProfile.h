@@ -19,7 +19,11 @@ namespace heating::ems {
 //                 a sensor that fails later reads unavailable, not "not fitted")
 //   not_fitted    its telegram arrived >= 10 times over >= 10 min and the field
 //                 always held its "no sensor" sentinel / out-of-range value
-//   not_reported  the telegram that carries it has never been seen
+//   not_reported  the telegram that carries it has never been seen, or the
+//                 boiler leaves it empty: it held its default 0 in >= 10 frames
+//                 over >= 10 min whose own other bytes showed the activity it
+//                 reports (burner firing, heating, hot water), and never a value
+//                 (adapters such as the EasyControl fill bytes they do not support with 00)
 //   unknown       seen, but too few observations to tell
 // Fields are the 69 Classic fields (wire index 0..68) and the entity catalog
 // fields (wire index 70..). EMS+ (1.1) plugs in through the same catalog rows.
@@ -31,7 +35,10 @@ inline constexpr size_t classicBoilerFieldCount = 69;
 //   inconclusive  a value that proves nothing either way (the 0 of an
 //                 unreliable OEM counter or raw bit: adapters fill unsupported
 //                 bytes with 00), so it never makes a field not_fitted
-enum class FieldEvidence : uint8_t { value, absent, inconclusive };
+//   unfilled      the field's default 0 while the same frame shows the activity
+//                 the field reports (a burner bit of 0 while the burner modulates):
+//                 counts towards "not reported", never towards not_fitted
+enum class FieldEvidence : uint8_t { value, absent, inconclusive, unfilled };
 enum class FieldPresence : uint8_t { not_reported = 0, unknown = 1, not_fitted = 2, supported = 3 };
 
 constexpr const char* fieldPresenceName(FieldPresence p) {
@@ -59,8 +66,15 @@ public:
     // most every 5 min (an owner override goes out on the next loop).
     static constexpr uint64_t quietMs = 30000, writeIntervalMs = 300000;
     static constexpr size_t headerBytes = 10, stateBytes = (fieldCount + 3) / 4, overrideBytes = (fieldCount + 7) / 8;
-    static constexpr size_t recordBytes = headerBytes + stateBytes + overrideBytes;
-    static constexpr uint8_t recordMagic = 0x42, recordSchema = 1;
+    // Schema 2 adds one "left empty" bit per field after the override bits.
+    static constexpr size_t unfilledBytes = overrideBytes;
+    static constexpr size_t recordBytes = headerBytes + stateBytes + overrideBytes + unfilledBytes;
+    static constexpr uint8_t recordMagic = 0x42, recordSchema = 2;
+    // Schema 1 counted a 0 of these slots as a value; since schema 2 an idle 0
+    // proves nothing (Classic field 0, reported_selected_flow_temperature: an
+    // adapter that leaves it empty reads 0 while the boiler heats). Their stored
+    // "supported" restores as unknown, so the profile learns them again.
+    static constexpr std::array<uint8_t, 1> schema1ZeroValueSlots{0};
     using Record = std::array<uint8_t, recordBytes>;
     static constexpr uint8_t classicFamily = 1, plusFamily = 2;
     struct Identity {
@@ -88,13 +102,26 @@ public:
         const uint32_t s = static_cast<uint32_t>(std::min<uint64_t>(now / 1000, UINT32_MAX - 1));
         if (evidence == FieldEvidence::value) {
             f.lastValidS = std::max(f.lastValidS, s + 1);
-            if (f.state != FieldPresence::supported) {
+            if (f.state != FieldPresence::supported || f.unfilled) {
                 setOverride(f, false);
+                f.unfilled = false;
                 set(f, FieldPresence::supported, now);
             }
             return;
         }
         if (f.state == FieldPresence::not_reported) set(f, FieldPresence::unknown, now);
+        if (evidence == FieldEvidence::unfilled) {
+            // Sticky like supported: a field that ever held a real value is filled.
+            if (f.state == FieldPresence::supported || f.unfilled) return;
+            if (!f.unfilledFrames || s < f.firstUnfilledS) f.firstUnfilledS = s;
+            f.lastUnfilledS = std::max(f.lastUnfilledS, s);
+            if (f.unfilledFrames < UINT16_MAX) ++f.unfilledFrames;
+            if (f.unfilledFrames >= notFittedFrames && f.lastUnfilledS - f.firstUnfilledS >= notFittedSpanS) {
+                f.unfilled = true;
+                changed(now);
+            }
+            return;
+        }
         if (evidence != FieldEvidence::absent || f.state != FieldPresence::unknown) return;
         if (!f.absentFrames || s < f.firstAbsentS) f.firstAbsentS = s;
         f.lastAbsentS = std::max(f.lastAbsentS, s);
@@ -140,7 +167,16 @@ public:
         changed(now);
     }
 
-    FieldPresence state(size_t slot) const { return slot < fieldCount ? fields_[slot].state : FieldPresence::not_reported; }
+    FieldPresence state(size_t slot) const {
+        if (slot >= fieldCount) return FieldPresence::not_reported;
+        return leftEmpty(slot) ? FieldPresence::not_reported : fields_[slot].state;
+    }
+    // Not reported although its telegram arrives: the boiler leaves this field
+    // at its default 0 while it is working (FieldEvidence::unfilled). That 0 is
+    // no value: the E32 pages and Home Assistant say "not reported" instead.
+    bool leftEmpty(size_t slot) const {
+        return slot < fieldCount && fields_[slot].unfilled && fields_[slot].state != FieldPresence::supported;
+    }
     bool overridden(size_t slot) const { return slot < fieldCount && fields_[slot].shown; }
     // What Home Assistant and the dashboards should offer: supported, or an
     // owner's "show anyway" on a not_fitted field.
@@ -153,7 +189,9 @@ public:
         return s >= at ? s - at : 0;
     }
     size_t count(FieldPresence p) const {
-        return static_cast<size_t>(std::count_if(fields_.begin(), fields_.end(), [p](const Field& f) { return f.state == p; }));
+        size_t n = 0;
+        for (size_t i = 0; i < fieldCount; ++i) n += state(i) == p;
+        return n;
     }
     const Identity& identity() const { return identity_; }
     bool settled() const { return settled_; }
@@ -164,7 +202,7 @@ public:
 
     // Owner "show anyway" for a not_fitted field; false: no such field, or not not_fitted.
     bool setShown(size_t slot, bool show, uint64_t now) {
-        if (slot >= fieldCount || (show && fields_[slot].state != FieldPresence::not_fitted)) return false;
+        if (slot >= fieldCount || (show && state(slot) != FieldPresence::not_fitted)) return false;
         if (fields_[slot].shown == show) return true;
         setOverride(fields_[slot], show);
         changed(now);
@@ -180,18 +218,21 @@ public:
         for (size_t i = 0; i < fieldCount; ++i) {
             r[headerBytes + i / 4] |= static_cast<uint8_t>(static_cast<uint8_t>(fields_[i].state) << (2 * (i % 4)));
             if (fields_[i].shown) r[headerBytes + stateBytes + i / 8] |= static_cast<uint8_t>(1u << (i % 8));
+            if (leftEmpty(i)) r[headerBytes + stateBytes + overrideBytes + i / 8] |= static_cast<uint8_t>(1u << (i % 8));
         }
         return r;
     }
     // The stored record of an earlier boot. A record of an older firmware with
-    // fewer catalog fields (the catalog only grows at its end) restores those;
-    // anything else invalid is ignored. Merges with what this boot saw already;
-    // a record of another boiler than the one already seen is dropped.
+    // fewer catalog fields (the catalog only grows at its end), or of schema 1
+    // (no "left empty" bits), restores those; anything else invalid is ignored.
+    // Merges with what this boot saw already; a record of another boiler than
+    // the one already seen is dropped.
     bool restore(const uint8_t* data, size_t size, uint64_t now) {
-        if (!data || size < headerBytes || data[0] != recordMagic || data[1] != recordSchema
+        if (!data || size < headerBytes || data[0] != recordMagic || (data[1] != 1 && data[1] != recordSchema)
             || data[2] != classicFields || data[3] > catalogFields || data[6] > 3) return false;
-        const size_t fields = classicFields + data[3];
-        if (size != headerBytes + (fields + 3) / 4 + (fields + 7) / 8) return false;
+        const bool schema1 = data[1] == 1;
+        const size_t fields = classicFields + data[3], bits = (fields + 7) / 8;
+        if (size != headerBytes + (fields + 3) / 4 + bits * (schema1 ? 1 : 2)) return false;
         Identity stored;
         stored.address = data[4]; stored.families = data[5] & (classicFamily | plusFamily); stored.versioned = data[6] & 1;
         stored.product = data[7]; stored.major = data[8]; stored.minor = data[9];
@@ -212,9 +253,14 @@ public:
         }
         for (size_t i = 0; i < fields; ++i) {
             auto& f = fields_[i];
-            const auto s = static_cast<FieldPresence>((data[headerBytes + i / 4] >> (2 * (i % 4))) & 3);
+            auto s = static_cast<FieldPresence>((data[headerBytes + i / 4] >> (2 * (i % 4))) & 3);
+            if (schema1 && s == FieldPresence::supported
+                && std::find(schema1ZeroValueSlots.begin(), schema1ZeroValueSlots.end(), i) != schema1ZeroValueSlots.end())
+                s = FieldPresence::unknown;
             if (static_cast<uint8_t>(s) > static_cast<uint8_t>(f.state)) f.state = s;
             if (f.state == FieldPresence::not_fitted && ((data[headerBytes + (fields + 3) / 4 + i / 8] >> (i % 8)) & 1)) f.shown = true;
+            if (!schema1 && f.state != FieldPresence::supported
+                && ((data[headerBytes + (fields + 3) / 4 + bits + i / 8] >> (i % 8)) & 1)) f.unfilled = true;
         }
         if (data[6] & 2) settled_ = true;
         restored_ = true;
@@ -245,9 +291,10 @@ public:
 private:
     struct Field {
         uint32_t firstAbsentS = 0, lastAbsentS = 0, lastValidS = 0; // lastValidS: boot seconds + 1, 0 = never
-        uint16_t absentFrames = 0;
+        uint32_t firstUnfilledS = 0, lastUnfilledS = 0;
+        uint16_t absentFrames = 0, unfilledFrames = 0;
         FieldPresence state = FieldPresence::not_reported;
-        bool shown = false;
+        bool shown = false, unfilled = false; // unfilled: left empty while the boiler works (persisted)
     };
     void set(Field& f, FieldPresence state, uint64_t now) { f.state = state; changed(now); }
     static void setOverride(Field& f, bool show) { f.shown = show; }

@@ -17,6 +17,8 @@ async def async_get_config_entry_diagnostics(hass, entry):
     state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     if is_product(entry):
         result["e32"] = await async_product_diagnostics(hass, entry)
+        from .ems_devices import diagnostics as ems_devices
+        result["e32"]["ems_devices"] = ems_devices(hass, entry)  # who is on the bus; identities once read
     return scrub(result, ble_aliases(state.get("heating_hub")))
 
 

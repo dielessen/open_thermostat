@@ -9,12 +9,16 @@ most 1.5 KB, sent on a real change (deadbands), at most every 10 s, else every
   block (``active``), burner starts and the HA link;
 - ``fw/state/room/<id>`` and ``fw/state/ble/<id>``: one room, one paired
   Bluetooth sensor;
+- ``fw/state/trv/<room>`` (E32 beta.24, only with radiator valves configured):
+  one room's valves (position, battery, health), listed in ``fw/config/plan``
+  ``trv``; the valve output and flow offset are ``fw/state/heating`` ``trv``;
 - ``fw/config/plan``: the plan's room and sensor ids and how many parts the
   entity list has; ``fw/config/entities`` (and ``.../entities/<k>``): the HA
   entities the plan reads (``ha_entities``);
 - ``fw/telemetry/learned/<id>`` (every 15 min or on a new result),
   ``fw/telemetry/summary`` (learned header, hot water; 5 min) and
-  ``fw/telemetry/shadow`` (today's comparison; 5 min);
+  ``fw/telemetry/shadow`` (today's comparison; 5 min) and
+  ``fw/telemetry/readiness`` (E32 1.0: ready to take over?, takeover_readiness.py; 5 min);
 - ``fw/availability`` (retained online/offline, the LWT) and ``fw/heartbeat``
   every 60 s.
 
@@ -90,11 +94,13 @@ MAX_BLE = 16
 HEATING_TOPIC = "fw/state/heating"
 ROOM_TOPIC = "fw/state/room/"
 BLE_TOPIC = "fw/state/ble/"
+TRV_TOPIC = "fw/state/trv/"
 PLAN_TOPIC = "fw/config/plan"
 ENTITIES_TOPIC = "fw/config/entities"
 LEARNED_TOPIC = "fw/telemetry/learned/"
 SUMMARY_TOPIC = "fw/telemetry/summary"
 SHADOW_TOPIC = "fw/telemetry/shadow"
+READINESS_TOPIC = "fw/telemetry/readiness"
 # The flow policy's part of the summary ("flow", "night_gas"), sent apart to keep both within 1 KB.
 FLOW_TOPIC = "fw/telemetry/flow"
 FLOW_KEYS = ("flow", "night_gas")
@@ -148,6 +154,25 @@ def decode_item(payload, topic_id, pattern):
     value = dict(value)
     del value["schema"]
     return value
+
+
+def decode_trv(payload, topic_id):
+    """One ``fw/state/trv/<room>`` document whose room is the topic's, or None."""
+    value = decode_document(payload)
+    if (value is None or type(topic_id) is not str or not ROOM_ID.fullmatch(topic_id) or value.get("room") != topic_id
+            or type(value.get("control")) is not bool or type(value.get("valves")) is not list or len(value["valves"]) > 4
+            or any(type(v) is not dict or type(v.get("name")) is not str for v in value["valves"])):
+        return None
+    value = dict(value)
+    del value["schema"]
+    return value
+
+
+def status_valves(status):
+    """{room id: its radiator valves} from the status ``trv`` (empty without valves)."""
+    trv = status.get("trv") if status else None
+    return rooms_by_id([{**room, "id": room.get("room")} for room in trv.get("rooms", []) if type(room) is dict]
+                       if type(trv) is dict and type(trv.get("rooms")) is list else None)
 
 
 def decode_heartbeat(payload):
@@ -372,6 +397,8 @@ class HeatingHub:
         self.active = None
         self.rooms = {}
         self.ble = {}
+        self.valves = {}  # {room id: fw/state/trv/<room>}, empty without radiator valves
+        self.ha_valves = None  # ha_valves.HaValveDriver: Home Assistant's own valves (e32_valves.watch)
         self.learned = {}
         self.warmup = {}
         # {room id: (received, learned room, plan or None)} from learned/<room id>
@@ -390,12 +417,16 @@ class HeatingHub:
         self.heating = None
         self.room_states = {}
         self.ble_states = {}
+        self.trv_states = {}
         self.config = None
         self.entity_parts = {}
         self.entities = None  # the last complete entity list
         self.shadow = None
+        self.readiness = None
         self.online = None  # fw/availability: None until known
         self.heartbeat = None
+        self.boots = 0  # E32 restarts seen as a falling heartbeat uptime (DhwCarry)
+        self._dhw_carry = None
         self.heartbeat_received = None
         self.started = clock()
         self._listeners = []
@@ -429,6 +460,15 @@ class HeatingHub:
         """Today's hot water: the summary, else inside the status (older firmware)."""
         dhw = dhw_status(self.summary)
         return dhw if dhw is not None else dhw_status(self.status)
+
+    def dhw_today(self):
+        """Today's hot-water counts carried over E32 restarts (DhwCarry), or None without them."""
+        dhw = self.dhw
+        if dhw is None:
+            return None
+        if self._dhw_carry is None:
+            self._dhw_carry = DhwCarry(clock=self.clock)
+        return self._dhw_carry.apply(dhw["today"], self.boots)
 
     @callback
     def add_listener(self, listener, first=False):
@@ -480,6 +520,7 @@ class HeatingHub:
         self.active = active if type(active) is dict else None
         self.rooms = status_rooms(status)
         self.ble = status_ble(status)
+        self.valves = status_valves(status)
         self.received = self.clock() if status is not None else None
         if status is not None:
             self.last_seen = self.received
@@ -496,12 +537,17 @@ class HeatingHub:
             entities = [e for p in parts for e in p["entities"]]
             if len(entities) <= MAX_ENTITIES:
                 self.entities = entities
-        status = {key: value for key, value in heating.items() if key not in ("rooms", "ble_sensors", "ha_entities", "shadow")}
+        status = {key: value for key, value in heating.items() if key not in ("rooms", "ble_sensors", "ha_entities", "shadow", "trv")}
         status["ha_entities"] = list(self.entities or [])
         status["rooms"] = [self.room_states[i] for i in config["rooms"] if i in self.room_states]
         status["ble_sensors"] = [self.ble_states[i] for i in config["ble"] if i in self.ble_states]
+        trv = heating.get("trv")
+        if type(trv) is dict and _ids(config.get("trv"), ROOM_ID, 8):
+            status["trv"] = {**trv, "rooms": [self.trv_states[i] for i in config["trv"] if i in self.trv_states]}
         if self.shadow is not None:
             status["shadow"] = {key: value for key, value in self.shadow.items() if key != "schema"}
+        if self.readiness is not None:
+            status["readiness"] = {key: value for key, value in self.readiness.items() if key != "schema"}
         return valid_status(status)
 
     @callback
@@ -529,6 +575,9 @@ class HeatingHub:
             beat = decode_heartbeat(payload)
             if beat is None or retained:
                 return
+            previous = self.heartbeat
+            if previous is not None and beat["uptime_s"] < previous.get("uptime_s", 0):
+                self.boots += 1  # the E32 restarted (DhwCarry)
             self.heartbeat, self.heartbeat_received = beat, self.clock()
             self.online = True if self.online is None else self.online
             self.last_seen = self.heartbeat_received
@@ -540,7 +589,9 @@ class HeatingHub:
                 return  # a malformed plan never drops the rooms
             self.config = plan
             if plan is not None:
-                for key, store in ((tuple(plan["rooms"]), self.room_states), (tuple(plan["ble"]), self.ble_states)):
+                valves = tuple(plan["trv"]) if _ids(plan.get("trv"), ROOM_ID, 8) else ()
+                for key, store in ((tuple(plan["rooms"]), self.room_states), (tuple(plan["ble"]), self.ble_states),
+                                   (valves, self.trv_states)):
                     for item in [i for i in store if i not in key]:
                         del store[item]
                 for room_id in [r for r in self.learned_messages if r not in plan["rooms"]]:
@@ -566,6 +617,13 @@ class HeatingHub:
                 store.pop(key, None)
             else:
                 store[key] = value
+        elif suffix.startswith(TRV_TOPIC):
+            key = suffix[len(TRV_TOPIC):]
+            value = None if empty else decode_trv(payload, key)
+            if value is None:
+                self.trv_states.pop(key, None)
+            else:
+                self.trv_states[key] = value
         elif suffix.startswith(LEARNED_TOPIC):
             room_id = suffix[len(LEARNED_TOPIC):]
             if empty:
@@ -589,6 +647,8 @@ class HeatingHub:
             self.summary_received = self.clock() if summary is not None else None
         elif suffix == SHADOW_TOPIC:
             self.shadow = None if empty else decode_document(payload)
+        elif suffix == READINESS_TOPIC:
+            self.readiness = None if empty else decode_document(payload)
         else:
             return
         if not retained and suffix != AVAILABILITY_TOPIC:
@@ -1109,6 +1169,36 @@ def burner_status(status):
     return burner if type(burner) is dict else None
 
 
+BOILER_ACTIVITIES = ("idle", "heating", "tapping", "keep_warm", "charging", "hot_water")
+
+
+class BoilerActivitySensor(HubEntity, SensorEntity):
+    """What the boiler does now, as the E32 sees it on the bus (``burner.activity``, E32 beta.23).
+
+    An enum, so Home Assistant's history draws a coloured timeline: idle, heating, tapping,
+    keeping warm, charging a cylinder, or hot water the E32 cannot sort. The E32 decides with the
+    most direct signal its boiler reports (DHW flow, a cylinder's charging, else the DHW
+    temperature); a tap shows as keeping warm until its fall is clear, usually within half a minute.
+    """
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(BOILER_ACTIVITIES)
+    _attr_translation_key = "boiler_activity"
+
+    def __init__(self, hub):
+        self._attach(hub, "hub_boiler_activity")
+
+    @property
+    def available(self):
+        return self.hub.fresh
+
+    @property
+    def native_value(self):
+        burner = burner_status(self.hub.status)
+        value = burner.get("activity") if burner else None
+        return value if value in BOILER_ACTIVITIES else None
+
+
 class BurnerEntity(HubEntity):
     """Mixin: one value of the E32's burner-start count, on the product device."""
 
@@ -1352,6 +1442,80 @@ def dhw_status(status):
 
 DHW_SENSORS = ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today")
 DHW_KINDS = {"dhw_taps_today": "tapping", "dhw_keep_warm_today": "keep_warm"}
+DHW_EPISODE_KINDS = ("tapping", "keep_warm", "charging", "unknown")
+
+
+class DhwCarry:
+    """Today's hot-water counts across E32 restarts.
+
+    The E32 counts its episodes per day in memory, so an update or any other
+    restart starts them at 0 again (31 Oct 2026: two updates left the owner's
+    "keeping warm today" at a few rounds). A count that goes down while the E32
+    restarted (its heartbeat uptime fell within RESTART_WINDOW_S of the drop)
+    keeps what it had reached and adds from there; any other drop is the E32's
+    new day. The two may arrive in either order. Home Assistant keeps this in
+    memory only; after a Home Assistant restart the E32's own counts carry on.
+    """
+
+    RESTART_WINDOW_S = 120
+
+    def __init__(self, today=None, clock=time.monotonic):
+        self._today = today or (lambda: __import__("datetime").date.today())
+        self.clock = clock
+        self.day, self.last, self.base, self.dropped, self.dropped_at = None, {}, {}, {}, None
+        self.boot, self.restart_seen = None, None  # restart_seen: when a restart came before its drop
+
+    def _recent(self, since, now):
+        return since is not None and now - since <= self.RESTART_WINDOW_S
+
+    def apply(self, today, boot=None):
+        """A copy of the E32's ``today`` with every count and duration carried over its restarts.
+
+        boot: a number that changes when the E32 restarts (HeatingHub.boots)."""
+        day, now = self._today(), self.clock()
+        if day != self.day:
+            self.day, self.last, self.base, self.dropped, self.restart_seen = day, {}, {}, {}, None
+        if self.dropped and not self._recent(self.dropped_at, now):
+            self.dropped = {}  # no restart followed the drop: it was the E32's new day
+        if not self._recent(self.restart_seen, now):
+            self.restart_seen = None
+        if boot is not None and self.boot is not None and boot != self.boot:
+            if self.dropped:
+                for key, value in self.dropped.items():
+                    self.base[key] = self.base.get(key, 0) + value
+                self.dropped = {}
+            else:
+                self.restart_seen = now
+        if boot is not None:
+            self.boot = boot
+        result = dict(today)
+        carried = False
+        keys = [(kind, field) for kind in DHW_EPISODE_KINDS for field in ("count", "s")] + [(None, "burner_s")]
+        for kind, field in keys:
+            source = today.get(kind) if kind else today
+            value = _count(source.get(field)) if type(source) is dict else None
+            if value is None:
+                continue
+            key = f"{kind}.{field}" if kind else field
+            if key in self.last and value < self.last[key]:
+                if self.restart_seen is not None:
+                    self.base[key] = self.base.get(key, 0) + self.last[key]
+                    carried = True
+                else:
+                    if not self.dropped:
+                        self.dropped_at = now
+                    self.dropped[key] = self.last[key]
+            elif key in self.last and value > self.last[key]:
+                self.dropped.pop(key, None)  # counting again after the drop: that was the E32's new day
+            self.last[key] = value
+            total = value + self.base.get(key, 0)
+            if kind:
+                result[kind] = {**(result[kind] if result.get(kind) is not source else source), field: total}
+            else:
+                result[field] = total
+        if carried:
+            self.restart_seen = None
+        return result
 
 
 def _minutes(seconds):
@@ -1379,7 +1543,9 @@ class DhwTodaySensor(HubEntity, SensorEntity):
 
     @property
     def dhw(self):
-        return self.hub.dhw if self.hub.fresh else None
+        """The hub's hot-water summary with today's counts carried over E32 restarts."""
+        dhw = self.hub.dhw if self.hub.fresh else None
+        return None if dhw is None else {**dhw, "today": self.hub.dhw_today()}
 
     @property
     def available(self):
@@ -1400,7 +1566,7 @@ class DhwTodaySensor(HubEntity, SensorEntity):
         if dhw is None:
             return None
         today, week = dhw["today"], _dict(dhw, "last_7_days")
-        result = {"method": _text(dhw, "method"), "clock_known": _flag(dhw, "clock_known")}
+        result = {"method": _text(dhw, "method"), "baseline": _text(dhw, "baseline"), "clock_known": _flag(dhw, "clock_known")}
         if self.key == "dhw_burner_time_today":
             return {**result, "tapping_minutes": _minutes(_count(_dict(today, "tapping").get("s"))),
                     "keep_warm_minutes": _minutes(_count(_dict(today, "keep_warm").get("s"))),
@@ -1410,7 +1576,8 @@ class DhwTodaySensor(HubEntity, SensorEntity):
                       last_7_days=_count(_dict(week, kind).get("count")))
         if self.key == "dhw_taps_today":
             result.update(peak_flow_l_min=number(today.get("peak_flow_l_min"), 0, 60),
-                          unknown_count=_count(_dict(today, "unknown").get("count")))
+                          unknown_count=_count(_dict(today, "unknown").get("count")),
+                          charging_count=_count(_dict(today, "charging").get("count")))
         return result
 
 
@@ -1419,8 +1586,13 @@ def wanted_sensors(hub):
     if shadow_has_thermostat(hub.status):
         for key in SHADOW_SENSORS:
             yield ("shadow", key), lambda key=key: ShadowSensor(hub, key)
+    from .takeover_readiness import TakeoverReadinessSensor, readiness_status
+    if readiness_status(hub.status) is not None:  # firmware that judges "ready to take over?" (1.0)
+        yield ("readiness",), lambda: TakeoverReadinessSensor(hub)
     if burner_status(hub.status) is not None:  # firmware that counts burner starts
         yield ("burner",), lambda: BurnerStartsSensor(hub)
+    if "activity" in (burner_status(hub.status) or {}):  # firmware that says what the boiler does (beta.23)
+        yield ("activity",), lambda: BoilerActivitySensor(hub)
     if hub.dhw is not None:  # firmware that sorts the hot-water episodes
         for key in DHW_SENSORS:
             yield ("dhw", key), lambda key=key: DhwTodaySensor(hub, key)
@@ -1448,7 +1620,7 @@ def wanted_demand(hub):
 
 
 def removable_device(hass, entry, device):
-    """Whether the user may delete this device: a room or Bluetooth sensor the E32 no longer reports.
+    """Whether the user may delete this device: a room, Bluetooth sensor or EMS device the E32 no longer reports.
 
     Only while the telemetry is fresh, so a short outage never makes a live
     room removable. Every other device of the entry stays.
@@ -1456,6 +1628,11 @@ def removable_device(hass, entry, device):
     hub = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("heating_hub")
     if hub is None or not hub.fresh:
         return False
+    from .ems_devices import device_address, listed
+    address = device_address(hub.prefix, device)
+    if address is not None:
+        present = listed(hass, entry, complete=True)  # never from the partial list of a starting E32
+        return present is not None and address not in present
     for domain, identifier in device.identifiers:
         for kind, reported in (("room", hub.rooms), ("ble", hub.ble)):
             head = f"{hub.prefix}_e32_{kind}_"
@@ -1564,8 +1741,9 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
 
     await mqtt.async_wait_for_mqtt_client(hass)
     entry.async_on_unload(hub.add_listener(follow, first=True))
-    for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", PLAN_TOPIC,
-                  ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, SHADOW_TOPIC):
+    for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", TRV_TOPIC + "+", PLAN_TOPIC,
+                  ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, SHADOW_TOPIC,
+                  READINESS_TOPIC):
         entry.async_on_unload(await mqtt.async_subscribe(hass, base + topic, receive))
     entry.async_on_unload(async_track_time_interval(hass, refresh, timedelta(seconds=REFRESH_SECONDS)))
     entry.async_on_unload(async_track_time_interval(hass, hub.check_stale, STALE_CHECK))

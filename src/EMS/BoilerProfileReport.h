@@ -2,6 +2,7 @@
 #include "BoilerProfile.h"
 #include "ClassicBoilerMonitor.h"
 #include <ostream>
+#include <string_view>
 
 namespace heating::ems {
 // The field id of a profile slot: the boiler-fields name (Home Assistant, E32 page).
@@ -40,6 +41,8 @@ inline void writeBoilerProfileJSON(std::ostream& out, const BoilerProfile& p, ui
             << "\",\"state\":\"" << fieldPresenceName(p.state(i)) << "\",\"last_valid_age_s\":";
         if (const auto age = p.lastValidAgeS(i, now)) out << *age; else out << "null";
         if (p.overridden(i)) out << ",\"shown_anyway\":true";
+        // not_reported although its telegram arrives: the boiler leaves this value empty.
+        if (p.leftEmpty(i)) out << ",\"left_empty\":true";
         out << '}';
     }
     out << "]}";
@@ -47,10 +50,13 @@ inline void writeBoilerProfileJSON(std::ostream& out, const BoilerProfile& p, ui
 
 // Retained fw/config/boiler_profile (< 1 KB): wire indexes only. "supported"
 // includes a not_fitted field the owner chose to show anyway; a field in no
-// list is still unknown.
-inline void writeBoilerProfileTopic(std::ostream& out, const BoilerProfile& p) {
+// list is still unknown. display_model: the boiler-model selection (an entry of
+// boilerDisplayModelIds, presentation only), so Home Assistant shows the display
+// codes of that model in words; left out while no model is chosen.
+inline void writeBoilerProfileTopic(std::ostream& out, const BoilerProfile& p, std::string_view displayModel = {}) {
     out << "{\"schema\":1,\"boiler\":";
     writeBoilerProfileIdentity(out, p);
+    if (!displayModel.empty()) out << ",\"display_model\":\"" << displayModel << '"';
     const auto list = [&](const char* key, auto&& match) {
         out << ",\"" << key << "\":[";
         bool first = true;

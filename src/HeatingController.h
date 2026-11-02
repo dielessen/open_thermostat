@@ -20,8 +20,11 @@
 #include "DeviceBluetoothSettings.h"
 #include "HeatingPlanStore.h"
 #include "FlowSettingsStore.h"
+#include "TrvStore.h"
+#include "control/TrvControl.h"
 #include "RoomOverridesStore.h"
 #include "control/ShadowComparison.h"
+#include "ReadinessStore.h"
 #include "control/RoomEngine.h"
 #include "control/ActiveHeatGuard.h"
 #include "control/HandoverConfirmation.h"
@@ -159,10 +162,28 @@ public:
         history_.begin([](size_t size) { return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT); }, heap_caps_free);
         loadFlowSettings();
         overrides_.restore(RoomOverridesNvs::read()); // waits for a trusted clock before it applies
+        // The takeover readiness counters; the stable time only after a planned restart.
+        {
+            control::TakeoverReadiness::Stored stored;
+            const bool found = ReadinessNvs::read(stored);
+            readiness_.restore(found ? &stored : nullptr, control::TakeoverReadiness::classify(
+                int(esp_reset_reason()), diagnostics::blackBox.previousRestart()));
+        }
         // A stored "thermostat disconnected" (same firmware) resumes active heat
         // after 2 min of bus reception without a foreign 0x1A, which clears it.
-        if (handover_.restore()) activeGuard_.restore(bleReceiptClock());
+        // One of other firmware (an update): wait for the owner to confirm again,
+        // with frost protection. Both send one boot zero first (review S2/S3, 1 Nov).
+        switch (handover_.restoreState()) {
+            case control::HandoverConfirmation<HandoverNvs>::Restored::confirmed: activeGuard_.restore(bleReceiptClock()); break;
+            case control::HandoverConfirmation<HandoverNvs>::Restored::reconfirm: activeGuard_.restoreReconfirm(); break;
+            default: break;
+        }
         mqtt_.setBoilerOutput([this] { return boilerOutput_.load(); });
+        // Radiator valves (beta.24, off until configured): nothing is subscribed or sent without valves.
+        trv_.setConfig(TrvNvs::read());
+        mqtt_.setActuatorOutput([this] { return actuatorOutput_.load(); });
+        mqtt_.setTrvRoute([this] { return trv_.subscriptions(); }, [this] { return trv_.generation(); },
+            [this](std::string_view topic, std::string_view payload) { trv_.receive(topic, payload, bleReceiptClock()); });
         mqtt_.setHeatingRoute([this](std::string_view payload) { heatingInput(payload); }, [this] {
             // The compact form, split into the small MQTT topics (HeatingStateTopics.h): no past
             // days, static plan fields, learned or hot water (summary and learned/<id> carry those).
@@ -287,7 +308,9 @@ public:
         // no flash write and no new revision; the caller answers the stored plan.
         if (plan.json() == roomEngine_.plan().json()) return nullptr;
         plan.revision = roomEngine_.plan().revision + 1;
-        // The stored form: week programs packed only when the API form does not fit.
+        // The stored form: week programs packed only when the API form does not fit. The planner's
+        // levels never cost a room or a switch point: a plan that is too large keeps them out.
+        plan.dropLevelsToFit();
         const auto raw = plan.storedJson();
         if (raw.size() + 1 > control::RoomPlan::storeBytes) return "plan_too_large";
         if (raw.empty()) return "save_unconfirmed";
@@ -296,6 +319,11 @@ public:
         if (saved != HeatingPlanSave::saved) return "save_unconfirmed";
         roomEngine_.setPlan(plan);
         flowLearner_.setPlan(plan);
+        // Valves of rooms the plan no longer has leave their record (stored), so a later valve
+        // save is not refused as unknown_room and their fw/state/trv/<room> topic is cleared.
+        auto valves = trv_.config();
+        if (valves.dropRooms([&](const std::string& id) { return plan.find(id) != nullptr; }) && TrvNvs::write(valves))
+            trv_.setConfig(std::move(valves));
         return nullptr;
     }
     // The owner's handover on the page: true = "the tado is disconnected from
@@ -304,18 +332,47 @@ public:
     const char* setHeatingHandover(bool tadoDisconnected) {
         if (tadoDisconnected && !board::emsActiveHeatAllowed) return "active_mode_not_released";
         if (tadoDisconnected && roomEngine_.plan().mode != control::RoomPlan::Mode::active) return "plan_not_active";
-        activeGuard_.confirm(bleReceiptClock(), tadoDisconnected);
-        handover_.sync(activeGuard_.confirmed());
+        activeGuard_.confirm(bleReceiptClock(), tadoDisconnected); // either answer ends a reconfirm wait
+        handover_.sync(activeGuard_.confirmed(), activeGuard_.reconfirmPending());
         return nullptr;
     }
-    // The beta.19 flow options (GET/POST /config/heating/flow), stored in NVS.
+    // Radiator valves (GET/POST /config/heating/trv): the record, its features and the live status.
+    std::string trvJson() const {
+        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(trv_.config().json().c_str()), cJSON_Delete);
+        if (!root) return "{}";
+        auto* features = cJSON_AddArrayToObject(root.get(), "features");
+        if (features) cJSON_AddItemToArray(features, cJSON_CreateString(control::ShadowController::actuatorOutputCapability));
+        auto* models = cJSON_AddArrayToObject(root.get(), "models");
+        for (const auto& m : control::trvModels) {
+            auto* o = cJSON_CreateObject();
+            if (!o || !models) break;
+            cJSON_AddItemToArray(models, o);
+            cJSON_AddStringToObject(o, "id", m.id); cJSON_AddStringToObject(o, "label", m.label);
+            cJSON_AddBoolToObject(o, "position", m.positionKey != nullptr); cJSON_AddBoolToObject(o, "external_temperature", m.externalKey != nullptr);
+        }
+        if (cJSON* status = trv_.statusJson(bleReceiptClock(), trvRooms_)) cJSON_AddItemToObject(root.get(), "status", status);
+        char* text = cJSON_PrintUnformatted(root.get());
+        std::string out = text ? text : "{}";
+        cJSON_free(text);
+        return out;
+    }
+    const char* setTrv(const cJSON* root) {
+        control::TrvConfig config;
+        if (const char* error = control::TrvConfig::parse(root, config)) return error;
+        for (const auto& r : config.rooms) if (!roomEngine_.plan().find(r.id)) return "unknown_room";
+        if (config == trv_.config()) return nullptr;
+        if (!TrvNvs::write(config)) return "save_unconfirmed";
+        trv_.setConfig(std::move(config));
+        return nullptr;
+    }
+    // The beta.19 flow options and the 1.0 tuning (GET/POST /config/heating/flow), stored in NVS.
     std::string flowSettingsJson() const { return flowPolicy_.settings().json(); }
     const char* setFlowSettings(const cJSON* root) {
         auto settings = flowPolicy_.settings();
         if (const char* error = control::FlowSettings::parse(root, settings)) return error;
         if (settings == flowPolicy_.settings()) return nullptr;
         if (!FlowSettingsNvs::write(settings)) return "save_unconfirmed";
-        flowPolicy_.setSettings(settings); flowLearner_.setApplied(settings.applyLearned);
+        applyFlowSettings(settings);
         return nullptr;
     }
     // GET/POST /config/heating/comfort (control/RoomOverrides.h): overrides and away,
@@ -338,6 +395,7 @@ public:
         if (!active) return nullptr;
         cJSON_AddBoolToObject(active, "enabled", board::emsActiveHeatAllowed); // the firmware gate
         cJSON_AddBoolToObject(active, "confirmation_stored", handover_.stored());
+        cJSON_AddBoolToObject(active, "reconfirm_stored", handover_.pending());
         // Today's boiler maximum: its own 0x16 heating limit, the active ceiling.
         cJSON* limit = cJSON_AddObjectToObject(active, "boiler_limit");
         if (limitC_) cJSON_AddNumberToObject(limit, "flow_c", *limitC_); else cJSON_AddNullToObject(limit, "flow_c");
@@ -355,13 +413,20 @@ public:
         if (root && !overrides_.addStatus(root, roomEngine_.plan(), bleReceiptClock())) { cJSON_Delete(root); return nullptr; }
         cJSON* sensors = root ? cJSON_AddArrayToObject(root, "ble_sensors") : nullptr;
         // Burner starts in the last hour from the flame bit (the adapter's own counters read 0).
-        if (root) control::addBurnerJson(root, ems_.burnerCycles());
+        if (root) control::addBurnerJson(root, ems_.burnerCycles(), ems_.boilerActivity());
         cJSON* shadow = sensors ? shadowComparison_.json() : nullptr;
         if (!shadow || !cJSON_AddItemToObject(root, "shadow", shadow)) { cJSON_Delete(shadow); cJSON_Delete(root); return nullptr; }
+        // "Ready to take over?" (fw/telemetry/readiness on MQTT).
+        cJSON* readiness = readiness_.json();
+        if (!readiness || !cJSON_AddItemToObject(root, "readiness", readiness)) { cJSON_Delete(readiness); cJSON_Delete(root); return nullptr; }
         cJSON* active = activeHeatJson();
         if (!active || !cJSON_AddItemToObject(root, "active", active)) { cJSON_Delete(active); cJSON_Delete(root); return nullptr; }
         // The applied request and its source (rule, curve, learned, optimum start); details not on MQTT.
         if (!flowPolicy_.addStatus(root, mqtt)) { cJSON_Delete(root); return nullptr; }
+        // Radiator valves: only when any is configured, so the status is unchanged without them.
+        if (cJSON* trv = trv_.statusJson(bleReceiptClock(), trvRooms_)) {
+            if (!cJSON_AddItemToObject(root, "trv", trv)) { cJSON_Delete(trv); cJSON_Delete(root); return nullptr; }
+        }
         const auto& bindings = managedBle_.bindings();
         for (size_t i = 0; i < bindings.count; ++i) {
             const auto& binding = bindings.devices[i];
@@ -408,6 +473,7 @@ public:
     // still be held, or after BoilerReleaseHold::maxMs. Shadow mode: at once.
     bool releaseBoilerForRestart() {
         activeGuard_.withdraw(bleReceiptClock());
+        if (!readinessStored_) { readinessStored_ = true; ReadinessNvs::write(readiness_.stored()); } // once: the counters survive it
         return restartHold_.ready(static_cast<uint32_t>(bleReceiptClock()), activeGuard_.released());
     }
     uint32_t managedBleQueueDrops() const { return managedBle_.queueDrops(); }
@@ -715,8 +781,13 @@ private:
     control::RoomEngine roomEngine_;
     control::RoomOverrides overrides_; // beta.19: temporary overrides, window pauses, away (targets only)
     control::ShadowComparison shadowComparison_; // E32 decision vs the tado's 0x1A, per day
+    control::TakeoverReadiness readiness_;       // the shadow exit criteria over 7 days (NVS)
+    bool readinessStored_ = false;               // stored for the coming planned restart
     control::ActiveHeatGuard activeGuard_;
     std::atomic<bool> boilerOutput_{false}; // activeGuard_.outputActive() of the last step, for other tasks
+    control::TrvControl trv_;                 // radiator valves via Zigbee2MQTT (beta.24; harmless while unused)
+    std::vector<control::TrvControl::Room> trvRooms_; // the last step's room views, for the status
+    std::atomic<bool> actuatorOutput_{false}; // trv_.actuatorOutput() of the last step (actuator.output.v1)
     update::BoilerReleaseHold restartHold_;
     // Per room how fast it warms per flow (report only; ~1.15 KB heap per room, PSRAM extmem).
     control::FlowLearner flowLearner_;
@@ -789,9 +860,60 @@ private:
         const auto tadoFlowC = ems_.thermostatRequestedFlowC();
         const auto request = applyFlowPolicy(now, rule, ems); // the rule itself while the options are off
         shadowComparison_.sample(now, unixNow, request, tadoFlowC);
+        sampleReadiness(now, unixNow, request, tadoFlowC, ems);
         stepFlowLearner(now, ems, tadoFlowC);
-        stepActiveHeat(now, request, ems);
-        sampleHistory(now, request, ems, tadoFlowC);
+        // Radiator valves: their feedback on the request and their commands, both only while the E32
+        // drives the boiler after a confirmed takeover (the last step's output; frost protection
+        // while waiting for a new confirmation is no takeover) and a room's valve control is on.
+        trvRooms_ = trvRoomViews(now);
+        const bool output = activeGuard_.confirmedOutput();
+        const auto& plan = roomEngine_.plan();
+        const auto& tuning = roomEngine_.tuning();
+        const auto valved = trv_.adjust(request, trvRooms_, output, now, plan.minimumFlowC, plan.maximumFlowC,
+                                        tuning.minOnS * 1000u, tuning.minOffS * 1000u);
+        stepActiveHeat(now, valved, ems);
+        trv_.step(now, trvRooms_, activeGuard_.confirmedOutput(), [this](const std::string& topic, const std::string& payload) {
+            return mqtt_.publishExternal(topic, payload);
+        });
+        actuatorOutput_.store(trv_.actuatorOutput());
+        sampleHistory(now, valved, ems, tadoFlowC); // the request after the valves' feedback
+    }
+    // The rooms as the valve control sees them (control/TrvControl.h); empty without valves.
+    std::vector<control::TrvControl::Room> trvRoomViews(uint64_t now) const {
+        std::vector<control::TrvControl::Room> rooms;
+        if (!trv_.used()) return rooms;
+        const auto& plan = roomEngine_.plan();
+        for (size_t i = 0; i < plan.rooms.size(); ++i) {
+            const auto r = roomEngine_.result(i);
+            control::TrvControl::Room v;
+            v.id = plan.rooms[i].id;
+            v.active = r.status != control::RoomDemand::Status::inactive;
+            v.setpoint = r.setpoint;
+            v.temperature = roomEngine_.freshTemperature(i, now);
+            v.errorCentiC = r.errorCentiC;
+            v.demanding = v.active && r.usable && r.errorCentiC > 0;
+            v.sources = plan.rooms[i].sources.size();
+            rooms.push_back(v);
+        }
+        return rooms;
+    }
+    // The readiness check sees what the comparison sees, plus the rooms, the boiler and the mode.
+    void sampleReadiness(uint64_t now, std::optional<uint32_t> unixNow, const control::FlowDemand::Request& request,
+                         std::optional<uint8_t> tadoFlowC, const ems::EmsController::ActiveHeatView& ems) {
+        const auto& plan = roomEngine_.plan();
+        control::TakeoverReadiness::Inputs in;
+        in.utc = unixNow; in.e32 = request; in.thermostatFlowC = tadoFlowC;
+        in.planMaximumC = plan.maximumFlowC; in.boilerLimitC = ems.limitC;
+        in.roomCount = std::min(plan.rooms.size(), in.rooms.size());
+        for (size_t i = 0; i < in.roomCount; ++i) {
+            const auto& r = roomEngine_.result(i);
+            in.rooms[i] = {r.status, r.setpoint, uint8_t(plan.rooms[i].sources.size())};
+        }
+        in.active = board::emsActiveHeatAllowed && plan.mode == control::RoomPlan::Mode::active;
+        in.boilerHeardAtMs = ems.boilerHeardAtMs;
+        in.limitRead = ems.limitC && ems.limitReads > 0;
+        readiness_.sample(now, in);
+        if (readiness_.saveDue(now)) { ReadinessNvs::write(readiness_.stored()); readiness_.saved(now); } // a failure retries in 6 h
     }
     // Charts only: fresh readings, effective targets, the boiler and both requests.
     void sampleHistory(uint64_t now, const control::FlowDemand::Request& request, const ems::EmsController::ActiveHeatView& ems, std::optional<uint8_t> tadoFlowC) {
@@ -803,6 +925,9 @@ private:
         for (size_t i = 0; i < count; ++i) { s.temperatureCentiC[i] = roomEngine_.freshTemperature(i, now); s.targetCentiC[i] = roomEngine_.result(i).setpoint; }
         s.flowCentiC = ems.flowCentiC; s.returnCentiC = ems.returnCentiC; s.burnerOn = ems.burnerOn;
         s.requestFlowC = request.heat ? request.flowC : uint8_t(0); s.thermostatFlowC = tadoFlowC;
+        using H = control::HeatingHistory;
+        if (ems.hotWaterKind) s.hotWater = *ems.hotWaterKind == control::DhwEpisodes::tapping ? H::tapping : H::reheating;
+        else if (ems.hotWater) s.hotWater = H::noHotWater;  // the DHW bit is known and off
         history_.sample(now, s);
     }
     // Report only: the boiler view and per room the fresh leading reading.
@@ -818,9 +943,10 @@ private:
         }
         flowLearner_.sample(now, boiler, rooms.data(), count);
     }
-    void loadFlowSettings() {
-        const auto settings = FlowSettingsNvs::read();
+    void loadFlowSettings() { applyFlowSettings(FlowSettingsNvs::read()); }
+    void applyFlowSettings(const control::FlowSettings& settings) {
         flowPolicy_.setSettings(settings); flowLearner_.setApplied(settings.applyLearned);
+        flowLearner_.setTuning(settings.tuning); roomEngine_.setTuning(settings.tuning);
     }
     // The options between the room engine's rule and the guard (control/FlowPolicy.h).
     control::FlowDemand::Request applyFlowPolicy(uint64_t now, const control::FlowDemand::Request& rule, const ems::EmsController::ActiveHeatView& ems) {
@@ -855,10 +981,14 @@ private:
         in.boiler = {ems.burnerOn, ems.flowCentiC}; in.boilerHeardAtMs = ems.boilerHeardAtMs;
         activeGuard_.setFlowLimits(plan.minimumFlowC, plan.maximumFlowC);
         const auto c = activeGuard_.step(now, in);
-        handover_.sync(activeGuard_.confirmed()); // a foreign 0x1A or shadow mode erases the stored one
+        // A foreign 0x1A, the hand-back or shadow mode erases the stored one.
+        handover_.sync(activeGuard_.confirmed(), activeGuard_.reconfirmPending());
         boilerOutput_.store(activeGuard_.outputActive()); // read by the HA session (boiler.output.v1)
+        // Positive flows only in active mode with the confirmation, or frost protection while
+        // new firmware waits for it (reconfirm); zeros always pass.
         activePosted_ = ems_.activeHeatPost(c.send ? std::optional<uint8_t>(c.flowC) : std::nullopt,
-            in.mode == control::RoomPlan::Mode::active && activeGuard_.confirmed(), activeGuard_.claimsBoiler());
+            in.mode == control::RoomPlan::Mode::active && (activeGuard_.confirmed() || activeGuard_.reconfirmPending()),
+            activeGuard_.claimsBoiler());
         activePostedAt_ = now;
         limitC_ = ems.limitC; limitAtMs_ = ems.limitAtMs; limitReads_ = ems.limitReads;
     }

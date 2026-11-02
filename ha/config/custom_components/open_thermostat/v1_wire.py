@@ -24,6 +24,10 @@ from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, CAPABILITY_V2 as BOI
 # boiler_output_enabled (True while the E32 itself sends the boiler request). Without the request
 # the E32 keeps reporting False, which 0.4.0b13 and older require.
 BOILER_OUTPUT_CAPABILITY = "boiler.output.v1"
+# actuator.output.v1 (E32 beta.24): the same for radiator valves the E32 drives through
+# Zigbee2MQTT. Not in the hello (its lists are full), so HA asks for it beside boiler.output.v1;
+# firmware without it ignores the name and keeps reporting False.
+ACTUATOR_OUTPUT_CAPABILITY = "actuator.output.v1"
 # Retained E32 telemetry topics (beta.19 telemetry budget): each at most 1.5 KB.
 _LOGGER = logging.getLogger(__name__)
 # After the E32 answered a configuration with storage_fault (its flash save failed):
@@ -676,7 +680,7 @@ class ShadowClient:
             or p["adapter_session_id"]!=self.session["adapter_session_id"]
             or p["grant_id"]!=proof[2] or p["grant_sequence"]!=proof[3]
             or p["plan_contract"]!=self.native_plan_source.profile_version or p["profile_digest"]!=self.controller_policy.profile_digest
-            or not self.boiler_output_valid(p.get("boiler_output_enabled")) or p["actuator_output_enabled"] is not False):
+            or not self.boiler_output_valid(p.get("boiler_output_enabled")) or not self.actuator_output_valid(p["actuator_output_enabled"])):
             return # No grant/lease/sample/last_rx renewal from stale/unrequested readback.
         self._native_snapshot_request=None
         refresh_requested=self._native_refresh_pending
@@ -941,7 +945,7 @@ class ShadowClient:
                       "adapter_id","adapter_session_id","grant_id","grant_sequence","sequence","group",
                       "boiler_output_enabled","actuator_output_enabled","values"}
             if (set(p)!=expected or p["mode"]!="shadow" or not self.boiler_output_valid(p["boiler_output_enabled"])
-                    or p["actuator_output_enabled"] is not False or not integer(p["sequence"],1)
+                    or not self.actuator_output_valid(p["actuator_output_enabled"]) or not integer(p["sequence"],1)
                     or type(p["grant_sequence"]) is not int):
                 raise ValueError("boiler envelope")
             now=self.clock()
@@ -975,7 +979,7 @@ class ShadowClient:
                       "adapter_id","adapter_session_id","grant_id","grant_sequence","sequence",
                       "boiler_output_enabled","actuator_output_enabled","metrics"}
             if (set(p)!=expected or p["mode"]!="shadow" or not self.boiler_output_valid(p["boiler_output_enabled"])
-                    or p["actuator_output_enabled"] is not False or not integer(p["sequence"],1)
+                    or not self.actuator_output_valid(p["actuator_output_enabled"]) or not integer(p["sequence"],1)
                     or type(p["grant_sequence"]) is not int or not valid_snapshot(p["metrics"])):
                 raise ValueError("metric shape")
             if p["sequence"]<=self._metrics_highwater:
@@ -996,6 +1000,13 @@ class ShadowClient:
 
     def boiler_output_valid(self, value):
         """False always; True only in the session in which this HA asked for boiler.output.v1."""
+        session=self.session if isinstance(self.session, dict) else {}
+        return value is False or (value is True and self.boiler_output_supported
+                                  and self._capabilities_sent is not None
+                                  and self._capabilities_sent==session.get("adapter_session_id"))
+
+    def actuator_output_valid(self, value):
+        """False always; True only in the session in which this HA asked for actuator.output.v1."""
         session=self.session if isinstance(self.session, dict) else {}
         return value is False or (value is True and self.boiler_output_supported
                                   and self._capabilities_sent is not None
@@ -1253,11 +1264,13 @@ class ShadowClient:
             return
         if topic == "fw/state/zones":
             if (p.get("mode") != "shadow" or not self.boiler_output_valid(p.get("boiler_output_enabled"))
-                or p.get("actuator_output_enabled") is not False
+                or not self.actuator_output_valid(p.get("actuator_output_enabled"))
                 or type(p.get("adapter_alive")) is not bool or not isinstance(p.get("zones"), list)):
                 raise ValueError("not shadow state")
             # Shown as an attribute only: True means the E32 runs the boiler itself (active control).
             self.runtime.diagnostics["boiler_output_enabled"]=p["boiler_output_enabled"]
+            # True: the E32 drives radiator valves itself (a room's valve control on, output enabled).
+            self.runtime.diagnostics["actuator_output_enabled"]=p["actuator_output_enabled"]
             if not self.ready or not p["adapter_alive"]:
                 self._native_state_receipt=None
                 self._supervisor=None
@@ -1395,7 +1408,7 @@ class ShadowClient:
             self._capabilities_sent=self.session["adapter_session_id"]
             wanted=[BOILER_CAPABILITY_V2] if self.boiler_fields_v2 else []
             if self.boiler_output_supported:
-                wanted.append(BOILER_OUTPUT_CAPABILITY)
+                wanted+=[BOILER_OUTPUT_CAPABILITY,ACTUATOR_OUTPUT_CAPABILITY]
             await self.send("ha/capabilities", canonical({"read_only":wanted,"catalog_fields":len(CATALOG_FIELDS)}
                                                          if self.boiler_fields_v2 else {"read_only":wanted}))
         if topic=="ha/heartbeat" and self.room_names_supported and self.ready:

@@ -93,6 +93,15 @@
       "shadow_agreement_today": {
         "default": "mdi:compare-horizontal"
       },
+      "takeover_readiness": {
+        "default": "mdi:clipboard-check-outline",
+        "state": {
+          "ready": "mdi:check-circle-outline",
+          "waiting": "mdi:timer-sand",
+          "not_ready": "mdi:alert-circle-outline",
+          "not_applicable": "mdi:minus-circle-outline"
+        }
+      },
       "burner_starts_last_hour": {
         "default": "mdi:counter"
       },
@@ -139,6 +148,9 @@
       },
       "night_heating_gas": {
         "default": "mdi:weather-night"
+      },
+      "e32_last_backup": {
+        "default": "mdi:backup-restore"
       }
     },
     "switch": {
@@ -147,6 +159,11 @@
       },
       "flow_apply_learned": {
         "default": "mdi:school"
+      }
+    },
+    "button": {
+      "e32_backup_now": {
+        "default": "mdi:content-save-cog"
       }
     }
   },

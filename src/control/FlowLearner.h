@@ -1,4 +1,5 @@
 #pragma once
+#include "control/ControlTuning.h"
 #include "control/FlowDemand.h"
 #include "control/GasCalibration.h"
 #include "control/RoomPlan.h"
@@ -74,15 +75,27 @@ public:
         float nominalKw = 22;
         float kwhPerM3 = 9.77f;  // NL gas, Groningen-equivalent upper value, until HA reports its own (gas_kwh_per_m3)
         float returnDropK = 6;   // flow - return when the return is not reported
+        // Opt-in (default off, behaviour unchanged): a hot-water run during a heating
+        // segment pauses the segment instead of ending it, for at most maxBridgeMs. A boiler
+        // that keeps a small store warm every ~11 min (the owner's EcomLine HRC 22) otherwise
+        // never has 45 min of heating without hot water, so nothing is learned (replay:
+        // docs/modern-thermostat/LEREN-ANALYSE.nl.md). Paused samples are not used.
+        bool bridgeHotWater = false;
+        uint32_t maxBridgeMs = 1800000;
+        uint32_t bridgeHoldoffMs = 300000;             // with the bridge: hold-off after hot water
     };
     // Condensing efficiency against the return temperature: 97.5 % at <= 35 degC,
     // linear to 88.9 % at 55 degC and above (lower flow -> higher efficiency).
     static float efficiency(float returnC) { return 0.975f - std::clamp(returnC - 35.0f, 0.0f, 20.0f) * 0.0043f; }
     // Acceptable warm-up for a shortfall s: base + perDegree x s (minutes).
-    // Defaults: floor 1 degC in 2 h, radiator 1 degC in 1 h. Shortfall 0 = hold.
+    // Defaults: floor 1 degC in 2 h, radiator 1 degC in 1 h, scaled by the tuning's
+    // learned_accept_pct. Shortfall 0 = hold.
     struct Acceptance {
         uint16_t baseMinutes = 60, perDegreeMinutes = 60;
-        static Acceptance of(RoomPlan::Emitter e) { return e == RoomPlan::Emitter::floor ? Acceptance{60, 60} : Acceptance{30, 30}; }
+        static Acceptance of(RoomPlan::Emitter e, uint16_t pct = 100) {
+            const uint16_t m = e == RoomPlan::Emitter::floor ? 60 : 30;
+            return {uint16_t(m * pct / 100), uint16_t(m * pct / 100)};
+        }
         bool valid() const { return baseMinutes <= 720 && perDegreeMinutes >= 10 && perDegreeMinutes <= 720; }
         float requiredRate(int16_t shortfallCentiC) const { // degC/h
             if (shortfallCentiC <= 0) return 0;
@@ -128,12 +141,20 @@ public:
             const auto& pr = plan.rooms[i];
             auto old = std::find_if(rooms_.begin(), rooms_.end(), [&](const Room& r) { return r.id == pr.id && r.emitter == pr.emitter; });
             if (old != rooms_.end()) next[i] = std::move(*old);
-            else { next[i].id = pr.id; next[i].emitter = pr.emitter; next[i].acceptance = Acceptance::of(pr.emitter); }
+            else { next[i].id = pr.id; next[i].emitter = pr.emitter; next[i].acceptance = Acceptance::of(pr.emitter, tuning_.acceptPct); }
             next[i].segment = {};
         }
         rooms_ = std::move(next);
         minFlowC_ = plan.minimumFlowC; maxFlowC_ = plan.maximumFlowC;
     }
+    // ControlTuning: the rule's gain (ruleFlow), the acceptance of every room (a
+    // changed learned_accept_pct replaces a setAcceptance()), the planner's lead
+    // and night threshold (WarmupPlanner reads tuning()). What was learned stays.
+    void setTuning(const ControlTuning& t) {
+        if (t.acceptPct != tuning_.acceptPct) for (auto& r : rooms_) r.acceptance = Acceptance::of(r.emitter, t.acceptPct);
+        tuning_ = t;
+    }
+    const ControlTuning& tuning() const { return tuning_; }
     bool setAcceptance(size_t room, Acceptance a) {
         if (room >= rooms_.size() || !a.valid()) return false;
         rooms_[room].acceptance = a; return true;
@@ -147,12 +168,21 @@ public:
         const bool hotWater = b.hotWater.value_or(false);
         const bool requested = b.requestedFlowC && *b.requestedFlowC >= ShadowComparison::tadoHeatFromC;
         const bool heat = known && !hotWater && (b.burnerOn.value_or(false) || requested);
-        if (hotWater) holdUntil_ = now + p_.hotWaterHoldoffMs;
-        if (heat && (!heating_ || gap)) { ++period_; holdUntil_ = std::max(holdUntil_, now + p_.settleMs); }
+        if (hotWater) holdUntil_ = now + (p_.bridgeHotWater ? p_.bridgeHoldoffMs : p_.hotWaterHoldoffMs);
+        // With the bridge, heat right after a hot-water run continues the period: the
+        // hot-water hold-off covers the refill, no new settle.
+        const bool resumes = p_.bridgeHotWater && afterHotWater_ && !gap;
+        if (heat && (!heating_ || gap) && !resumes) { ++period_; holdUntil_ = std::max(holdUntil_, now + p_.settleMs); }
+        // Only while heat is still asked for: a hot-water run inside a heating period.
+        const bool wanted = known && (b.burnerOn.value_or(false) || requested) && !gap;
+        afterHotWater_ = (hotWater && requested) || (afterHotWater_ && !heat && wanted);
         if (!heat && (heating_ || gap || !known || hotWater)) offSince_ = now; // unknown: the emitter may be warm
         heating_ = heat;
         status_ = !known ? "boiler_unknown" : hotWater ? "hot_water" : !heat ? "not_heating" : now < holdUntil_ ? "settling" : "learning";
         const bool usable = heat && now >= holdUntil_;
+        // Heat wanted but this sample is hot water or its hold-off: a pause, not an end (opt-in).
+        const bool paused = p_.bridgeHotWater && known && !usable
+            && (b.burnerOn.value_or(false) || requested) && (hotWater || now < holdUntil_);
         const uint8_t ref = requested ? *b.requestedFlowC
             : static_cast<uint8_t>(std::clamp<int>((b.flowCentiC.value_or(0) + 50) / 100, 0, 100));
         // Heat delivered (kW, before gas calibration) for the capacity fit.
@@ -164,7 +194,7 @@ public:
             auto& r = rooms_[i];
             const bool coasted = known && !heat && !hotWater && now >= holdUntil_
                 && now - offSince_ >= (r.emitter == RoomPlan::Emitter::floor ? p_.floorCoastMs : p_.radiatorCoastMs);
-            step(r, now, gap, usable ? Kind::heat : coasted ? Kind::cool : Kind::none, ref, b, heatKw, rooms[i]);
+            step(r, now, gap, usable ? Kind::heat : coasted ? Kind::cool : paused ? Kind::pause : Kind::none, ref, b, heatKw, rooms[i]);
         }
     }
     // The gas meter total (m3, e.g. HA sensor.gas_consumed): GasCalibration
@@ -235,6 +265,7 @@ public:
     // FlowDemand's own rule at a fresh start (integral 0): the proportional part.
     uint8_t ruleFlow(int16_t shortfallCentiC) const {
         FlowDemand::Params fp; fp.minimumFlowC = minFlowC_; fp.maximumFlowC = maxFlowC_;
+        fp.flowPerDegreeC = static_cast<uint8_t>(tuning_.flowPerDegreeC);
         return FlowDemand(fp).update(0, true, shortfallCentiC).flowC;
     }
     // Predicted time to close a shortfall at a flow; nullopt while not ready.
@@ -333,7 +364,7 @@ public:
     }
 
 private:
-    enum class Kind : uint8_t { none, heat, cool };
+    enum class Kind : uint8_t { none, heat, cool, pause };
     struct Bin {
         uint8_t segments = 0, periods = 0, outdoorSegments = 0;
         uint16_t lastPeriod = 0;
@@ -381,6 +412,11 @@ private:
         auto& s = r.segment;
         r.shortfall = in.temperatureCentiC && in.setpointCentiC ? std::optional<int16_t>(*in.setpointCentiC - *in.temperatureCentiC) : std::nullopt;
         if (!in.temperatureCentiC) kind = Kind::none;
+        if (kind == Kind::pause) {
+            // Bridged: the heating segment stays open over a short hot-water run; this sample is not used.
+            if (s.active && s.kind == Kind::heat && !gap && in.source == s.source && now - s.lastMs <= p_.maxBridgeMs) return;
+            kind = Kind::none;
+        }
         if (s.active) {
             const bool jump = kind != Kind::none && std::abs(*in.temperatureCentiC - s.last) > p_.maxStepCentiC;
             const bool moved = kind == Kind::heat && std::max(s.refMax, ref) - std::min(s.refMin, ref) > p_.flowBandC;
@@ -509,11 +545,13 @@ private:
     }
 
     Params p_;
+    ControlTuning tuning_;
     std::vector<Room> rooms_;
     uint8_t minFlowC_ = 30, maxFlowC_ = 60;
     bool haveLast_ = false, heating_ = false, nominalFromHa_ = false, kwhFromHa_ = false, applied_ = false;
     uint16_t period_ = 0;
     uint64_t lastMs_ = 0, holdUntil_ = 0, offSince_ = 0;
+    bool afterHotWater_ = false;  // the last known state was a hot-water run (bridge only)
     GasCalibration gas_;
     std::optional<int16_t> outdoor_;
     std::optional<float> price_;

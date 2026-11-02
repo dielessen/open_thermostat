@@ -51,6 +51,7 @@
 #include <cJSON.h>
 
 #include "viewable_stringbuf.h"
+#include "diagnostics/PrintedJson.h"
 #include "HeatingController.h"
 #include "Filesystem.h"
 
@@ -204,6 +205,7 @@ public:
 		route("/config/device", [this]() { configDevice(); });
 		route("/config/boiler", [this]() { configBoiler(); });
 		route("/config/boiler-display", [this]() { boilerDisplay(); });
+		(void)readBoilerDisplayModel(); // the saved model choice for fw/config/boiler_profile (BoilerDisplaySelection.h)
 		route("/config/hardware", [this]() { configHardware(); });
 		route("/hardware/i2c/scan", HTTP_GET, [this]() { i2cScan(); });
 		route("/hardware/test/gpio", HTTP_POST, [this]() { gpioTestStart(); });
@@ -212,6 +214,7 @@ public:
 #ifdef OPENTHERMOSTAT_E32V2
         route("/config/heating/handover",HTTP_POST,[this] { heatingHandover(); });
         route("/config/heating/flow",[this] { heatingFlow(); });
+        route("/config/heating/trv",[this] { heatingTrv(); });
         route("/config/heating/comfort",[this] { heatingComfort(); });
         route("/config/heating",[this] { heatingPlan(); });
         route("/status/heating",HTTP_GET,[this] { heatingStatus(); });
@@ -262,7 +265,7 @@ public:
 		route("/recovery", HTTP_GET, [this]() { recovery(); });
 
 #ifdef OPENTHERMOSTAT_E32V2
-		route("/updates/status",HTTP_GET,[this] { server_.send(200,"application/json",update::status().c_str()); });
+		route("/updates/status",HTTP_GET,[this] { server_.sendView(200,"application/json"sv,update::status()); });
 		route("/updates/check",HTTP_POST,[this] { server_.send(update::checkReleases()?202:409,"text/plain","A release check needs the home network, valid time and an idle update system"); });
 		route("/updates/install",HTTP_POST,[this] {
 			auto body=server_.arg("plain");auto root=control::parseControlJson(std::string_view(body.c_str(),body.length()),true);
@@ -298,7 +301,7 @@ public:
 			cJSON_AddNumberToObject(root.get(),"close_after_ms",setupCloseAt>networkNow()?setupCloseAt-networkNow():0);
 			cJSON_AddBoolToObject(root.get(),"closing",setupCloseAt!=0);
 			cJSON_AddNumberToObject(root.get(),"remaining_seconds",wifiAPMode&&setupUntil>networkNow()?(setupUntil-networkNow())/1000:0);
-			server_.send(200,"application/json",control::printJson(root.get()).c_str());
+			diagnostics::sendJson(server_,200,root.get());
 		});
 		route("/setup/reenter",HTTP_POST,[this] { server_.send(requestSetupBoot()?202:503,"text/plain","Setup requested; controlled reboot to WiFi-only recovery"); });
 		route("/setup/network",HTTP_POST,[this] { setupNetwork(); });
@@ -906,7 +909,7 @@ private:
                 cJSON_AddBoolToObject(mq,"native_source_live_apply",
                     localSource&&!cJSON_IsNull(localSource)&&controller_.nativeSourceHotReady(control::printJson(localSource),std::string_view(saved.c_str(),saved.length())));
             }
-			server_.send(200,"application/json",control::printJson(previous.get()).c_str()); return;
+			diagnostics::sendJson(server_,200,previous.get()); return;
 		}
         // Existing local forms remain compatible. The HA link client sends the
         // exact GET ETag, fencing all persisted settings (including secrets)
@@ -1212,7 +1215,7 @@ private:
             if(!diagnostics::runtime.save(*settings)){server_.send(503,"text/plain","Logging settings save could not be confirmed");return;}
         }
         if(!diagnostics::runtime.storageReady){server_.send(503,"text/plain","Logging settings unavailable");return;}
-        server_.send(200,"application/json",diagnostics::settingsJson(diagnostics::runtime.log.settings()).c_str());
+        server_.sendView(200,"application/json"sv,diagnostics::settingsJson(diagnostics::runtime.log.settings()));
     }
     // Read-only sections for the diagnostics console and tooling, by name
     // (diagnostics/DiagnosticsQuery.h). No tokens, secrets or settings.
@@ -1279,9 +1282,7 @@ private:
             cJSON_AddBoolToObject(log,"syslog_enabled",systemLog.syslogEnabled());
             number(log,"syslog_sent",stats.sent);number(log,"syslog_dropped",stats.syslogDropped);
         }
-        auto text=std::unique_ptr<char,decltype(&cJSON_free)>(cJSON_PrintUnformatted(root.get()),cJSON_free);
-        if(!text){server_.send(503);return;}
-        server_.send(200,"application/json",text.get());
+        diagnostics::sendJson(server_,200,root.get());
     }
     // Confirmed on the page. authorize() already required the session's CSRF
     // proof and refused it during a boiler test, settings write or update.
@@ -1343,9 +1344,7 @@ private:
         }
         // A full page with newer records left: the page reads the next one at once.
         cJSON_AddBoolToObject(root.get(),"more",added==limit&&log.next(after,record));
-        auto text=std::unique_ptr<char,decltype(&cJSON_free)>(cJSON_PrintUnformatted(root.get()),cJSON_free);
-        if(!text){server_.send(503);return;}
-        server_.send(200,"application/json",text.get());
+        diagnostics::sendJson(server_,200,root.get());
     }
 #endif
 
@@ -1418,7 +1417,7 @@ private:
 		}
 		const auto plan = controller_.heatingPlanJson();
 		if (plan.empty()) { server_.send(503,"application/json","{\"error\":\"plan_unavailable\"}"); return; }
-		server_.send(200,"application/json",plan.c_str());
+		server_.sendView(200,"application/json"sv,plan);
 	}
 	// POST {"thermostat_disconnected":true|false} (or the older "tado_disconnected"):
 	// the owner's handover for active mode (kept in NVS); answers the active-control status.
@@ -1430,9 +1429,7 @@ private:
 			server_.send(std::strcmp(error,"invalid_request") ? 409 : 400,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
 		}
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> active(controller_.activeHeatJson(),cJSON_Delete);
-		const auto text = active ? control::printJson(active.get()) : std::string();
-		if (text.empty()) { server_.send(503,"application/json","{\"error\":\"status_unavailable\"}"); return; }
-		server_.send(200,"application/json",text.c_str());
+		diagnostics::sendJson(server_,200,active.get());
 	}
 	// GET: the beta.19 flow options; POST any of {"weather_curve","apply_learned",
 	// "curve_design_flow_c"} (control/FlowPolicy.h FlowSettings, stored in NVS).
@@ -1444,7 +1441,20 @@ private:
 				server_.send(std::strcmp(error,"save_unconfirmed") ? 400 : 503,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
 			}
 		} else if (server_.method() != HTTP_GET) { server_.send(405,"application/json","{\"error\":\"method_not_allowed\"}"); return; }
-		server_.send(200,"application/json",controller_.flowSettingsJson().c_str());
+		server_.sendView(200,"application/json"sv,controller_.flowSettingsJson());
+	}
+	// GET: the radiator valves (control/TrvConfig.h), their features, models and live status;
+	// POST the whole record {"schema":1,"base_topic","rooms":[{"room","control","valves":[{"name","model"}]}]}.
+	// Stored in NVS beside the room plan; an empty "rooms" removes the record.
+	void heatingTrv() {
+		if (server_.method() == HTTP_POST) {
+			const auto body = server_.arg("plain");
+			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= control::TrvConfig::maxBytes ? control::parseNestedJson(body,true,5) : control::ControlJson(nullptr,cJSON_Delete));
+			if (const char* error = root ? controller_.setTrv(root.get()) : "invalid_json") {
+				server_.send(std::strcmp(error,"save_unconfirmed") ? 400 : 503,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
+			}
+		} else if (server_.method() != HTTP_GET) { server_.send(405,"application/json","{\"error\":\"method_not_allowed\"}"); return; }
+		server_.sendView(200,"application/json"sv,controller_.trvJson());
 	}
 	// GET: overrides and away (control/RoomOverrides.h); POST one command:
 	// {"room","override":"boost"|"timed"|"next"|"none","temperature","minutes"} or
@@ -1458,15 +1468,11 @@ private:
 			}
 		} else if (server_.method() != HTTP_GET) { server_.send(405,"application/json","{\"error\":\"method_not_allowed\"}"); return; }
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> state(controller_.heatingComfortJson(),cJSON_Delete);
-		const auto text = state ? control::printJson(state.get()) : std::string();
-		if (text.empty()) { server_.send(503,"application/json","{\"error\":\"status_unavailable\"}"); return; }
-		server_.send(200,"application/json",text.c_str());
+		diagnostics::sendJson(server_,200,state.get());
 	}
 	void heatingStatus() {
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> status(controller_.heatingStatusJson(),cJSON_Delete);
-		const auto text = status ? control::printJson(status.get()) : std::string();
-		if (text.empty()) { server_.send(503,"application/json","{\"error\":\"status_unavailable\"}"); return; }
-		server_.send(200,"application/json",text.c_str());
+		diagnostics::sendJson(server_,200,status.get());
 	}
 #endif
 	void boilerDisplay() {

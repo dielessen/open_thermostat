@@ -18,7 +18,12 @@ namespace heating::control {
 // limit). It takes over only after the owner confirmed that the
 // tado is disconnected from the boiler; a 0x1A from another master after that
 // stops it and clears the confirmation. Never sends in shadow mode or before
-// this boot has listened to the bus. Pure and single-threaded: the caller owns
+// this boot has listened to the bus, with two exceptions for a boot after the
+// E32 owned the boiler (a stored confirmation, restore() / restoreReconfirm()):
+// one boot zero as soon as the route is ready (an unexpected restart may have
+// left a positive request in the boiler; skipped once another master's 0x1A is
+// heard), and, while new firmware waits for the owner to confirm again, frost
+// protection after the same listening window as a restored confirmation. Pure and single-threaded: the caller owns
 // the reviewed transmit route and reports each write back. flowC 0 = zero.
 class ActiveHeatGuard {
 public:
@@ -87,11 +92,18 @@ public:
     // active mode or a foreign request after `now` clears it.
     void confirm(uint64_t now, bool disconnected) {
         if (disconnected) { confirmedAt_ = now; blocked_ = false; } else confirmedAt_.reset();
-        restored_ = false;
+        restored_ = false; reconfirm_ = false; // confirmed again, or handed back
     }
     // The stored confirmation at boot: like confirm(), but it takes over only
     // after restoredListenMs of healthy bus reception without a foreign 0x1A.
-    void restore(uint64_t now) { confirm(now, true); restored_ = true; }
+    // The E32 owned the boiler before this boot: a boot zero first (ownedBoot).
+    void restore(uint64_t now) { confirm(now, true); restored_ = true; ownedBoot(); }
+    // The E32 owned the boiler under other firmware (an update cleared the
+    // confirmation): it waits for the owner to confirm again, keeps frost
+    // protection after the restore listening window and sends the boot zero.
+    void restoreReconfirm() { confirmedAt_.reset(); restored_ = false; reconfirm_ = true; ownedBoot(); }
+    // Waiting for a new confirmation after a firmware change: HA asks the owner.
+    bool reconfirmPending() const { return reconfirm_; }
     // A planned restart (update, settings, controlled restart) is coming: stop
     // at once with the zero window and never take over again this boot. The
     // confirmation stays, so the next boot resumes after its restore listening.
@@ -105,17 +117,28 @@ public:
     // No positive request can still be held by the boiler: a zero was delivered
     // after the last positive one, or none was ever sent. A planned restart waits for this.
     bool released() const { return !holdsPositive_; }
+    // A boot zero is still due (sent once the route is ready; another master's 0x1A cancels it).
+    bool bootZeroDue() const { return bootZero_; }
 
     Command step(uint64_t now, const Inputs& in) {
         if (in.foreign && in.foreign->address != serviceAddress && in.foreign->address != boilerAddress) foreign_ = in.foreign;
         if (in.boilerHeardAtMs && (!heardAt_ || *in.boilerHeardAtMs < *heardAt_ || *in.boilerHeardAtMs - *heardAt_ > p_.busGapMs))
             listenSince_ = *in.boilerHeardAtMs; // reception starts (again)
         if (in.boilerHeardAtMs) heardAt_ = in.boilerHeardAtMs;
-        routeReady_ = in.routeReady;
+        routeReady_ = in.routeReady; lastNow_ = now;
         const bool wanted = in.mode == RoomPlan::Mode::active && p_.valid();
-        if (!wanted) { confirmedAt_.reset(); blocked_ = false; }
+        if (!wanted) { confirmedAt_.reset(); blocked_ = false; reconfirm_ = false; }
         if (confirmedAt_ && foreign_ && foreign_->receivedAtMs > *confirmedAt_) { confirmedAt_.reset(); blocked_ = true; }
+        // Another master on the bus this boot speaks for the boiler: no boot zero over
+        // its request, and no frost heating while waiting for a new confirmation.
+        // Shadow mode stays silent: a leftover record sends no boot zero either.
+        if ((foreign_ || !wanted) && bootZero_) { bootZero_ = false; if (!frostSending_) holdsPositive_ = false; }
+        if (foreign_ && reconfirm_) { reconfirm_ = false; blocked_ = true; }
         if (owning() && (!confirmedAt_ || withdrawn_)) enter(State::stopping, now);
+        // Frost heating while waiting for a new confirmation lost its conditions
+        // (handed back, shadow, a foreign 0x1A, withdrawn): stop with the zero window.
+        // Confirmed instead: the takeover below decides.
+        if (frostSending_ && !frostEligible(in) && !confirmedAt_) { frostSending_ = false; lastTarget2_ = 0; enter(State::stopping, now); }
         if (state_ == State::stopping && !withdrawn_ && elapsed(now, since_) >= p_.stopWindowMs && !holdsPositive_) enter(State::shadow, now);
         if (state_ != State::stopping) {
             if (!wanted) state_ = State::shadow;
@@ -129,8 +152,17 @@ public:
             }
             if (owning()) state_ = in.rooms.active && in.rooms.lost == in.rooms.active ? State::stoppedMeasurementLost : State::active;
         }
-        command_ = owning() ? request(now, in) : state_ == State::stopping ? stopZero(now, in) : Command{false, 0, name(state_)};
-        if (!owning()) { lastTarget_ = 0; frost_ = false; heatSince_.reset(); }
+        // Confirmed while frost protection ran: a takeover now sends its own request next,
+        // without stop zeros in between; one that still waits stops frost with the zero window.
+        if (frostSending_ && confirmedAt_) { frostSending_ = false; lastTarget2_ = 0; if (!owning()) enter(State::stopping, now); }
+        if (owning()) bootZero_ = false; // its own commands follow
+        command_ = owning() ? request(now, in) : state_ == State::stopping ? stopZero(now, in)
+            : frostEligible(in) ? frostUnconfirmed(now, in) : Command{false, 0, name(state_)};
+        // The boot zero repeats until delivered, also once frost protection may run but asks nothing.
+        const bool bootZeroStep = !owning() && state_ != State::stopping && !frostSending_ && bootZero_;
+        if (bootZeroStep) command_ = due(!bootZeroTried_ || elapsed(now, bootZeroAt_) >= p_.zeroIntervalMs, 0, "boot_zero", in);
+        if (bootZeroStep && command_.send) { if (!bootZeroTried_) bootZeroFirst_ = now; bootZeroTried_ = true; bootZeroAt_ = now; }
+        if (!owning()) { lastTarget_ = 0; frost_ = false; if (!frostSending_) heatSince_.reset(); }
         warnings_ = 0;
         if (blocked_) warnings_ |= foreignController;
         if (wanted && (in.rooms.lost || state_ == State::stoppedMeasurementLost)) warnings_ |= measurementLost;
@@ -139,6 +171,7 @@ public:
         if (owning() && elapsed(now, phaseSent_ ? std::max(since_, lastSentAt_) : since_) >= 3 * p_.requestIntervalMs)
             warnings_ |= transmitFailed;
         if (state_ == State::stopping && holdsPositive_ && elapsed(now, since_) >= p_.stopWindowMs) warnings_ |= transmitFailed;
+        if (bootZero_ && bootZeroTried_ && elapsed(now, bootZeroFirst_) >= p_.stopWindowMs) warnings_ |= transmitFailed;
         pending_ = command_.send;
         if (command_.send && command_.flowC) holdsPositive_ = true; // also when the write fails: it may have arrived
         return command_;
@@ -152,6 +185,7 @@ public:
         warnings_ &= uint8_t(~transmitFailed);
         lastSentAt_ = now; lastSentFlow_ = command_.flowC; phaseSent_ = everSent_ = true;
         holdsPositive_ = command_.flowC > 0;
+        bootZero_ = false; // any delivered command replaces a stale request (frost, a takeover, the zero)
         if (command_.flowC && !heatSince_) { heatSince_ = now; flowBaseline_.reset(); responded_ = false; }
     }
 
@@ -163,10 +197,16 @@ public:
     // active, handover confirmed, past its hold-offs) and sends over a ready route.
     // False in shadow, while waiting, stopping (stop-zero, a withdrawal) or after
     // lost measurements: reported to HA as boiler_output_enabled.
-    bool outputActive() const { return state_ == State::active && confirmedAt_ && !withdrawn_ && routeReady_; }
+    // Also while it keeps frost protection waiting for a new confirmation.
+    bool outputActive() const {
+        return ((state_ == State::active && confirmedAt_) || (frostSending_ && lastTarget2_)) && !withdrawn_ && routeReady_;
+    }
+    // outputActive() after a confirmed takeover only, never for frost while waiting: the
+    // radiator valves get room setpoints (TrvControl, HA's actuator_output_enabled) only then.
+    bool confirmedOutput() const { return outputActive() && confirmedAt_.has_value(); }
     bool owning() const { return state_ == State::active || state_ == State::stoppedMeasurementLost; }
-    // Owns the boiler or still withdraws its request: the boiler trial waits.
-    bool claimsBoiler() const { return owning() || state_ == State::stopping; }
+    // Owns the boiler, withdraws its request, keeps frost or owes the boot zero: the boiler trial waits.
+    bool claimsBoiler() const { return owning() || state_ == State::stopping || frostSending_ || bootZero_; }
     static const char* name(State s) {
         switch (s) {
             case State::awaitingConfirmation: return "awaiting_confirmation";
@@ -185,6 +225,8 @@ public:
         if (!root) return nullptr;
         cJSON_AddStringToObject(root, "state", name(state_));
         cJSON_AddBoolToObject(root, "awaiting_confirmation", state_ == State::awaitingConfirmation);
+        // New firmware after the E32 owned the boiler: confirm again (HA raises a Repairs issue).
+        cJSON_AddBoolToObject(root, "reconfirm_required", reconfirm_);
         cJSON* command = cJSON_AddObjectToObject(root, "command");
         cJSON_AddBoolToObject(command, "send", command_.send);
         cJSON_AddNumberToObject(command, "flow_c", command_.flowC);
@@ -219,6 +261,32 @@ public:
 private:
     static uint64_t elapsed(uint64_t now, uint64_t since) { return now >= since ? now - since : 0; }
     void enter(State s, uint64_t now) { state_ = s; since_ = now; phaseSent_ = false; }
+    // The boiler may still hold a positive request of the previous boot.
+    void ownedBoot() { bootZero_ = true; bootZeroTried_ = false; holdsPositive_ = true; }
+    // Frost protection while waiting for a new confirmation (the E32 owned the
+    // boiler under other firmware): plan active, no foreign master this boot, past
+    // the boot holdoff and the restore listening window, over a ready route.
+    bool frostEligible(const Inputs& in) const {
+        return reconfirm_ && state_ == State::awaitingConfirmation && !blocked_ && !foreign_ && !withdrawn_
+            && in.uptimeMs >= p_.bootHoldoffMs && in.routeReady && listenedMs(lastNow_) >= p_.restoredListenMs;
+    }
+    Command frostUnconfirmed(uint64_t now, const Inputs& in) {
+        const auto& coldest = in.rooms.coldestCentiC;
+        if (coldest && *coldest < p_.frostOnCentiC) frostOn_ = true;
+        else if (!coldest || *coldest >= p_.frostOffCentiC) frostOn_ = false;
+        const uint8_t cap = std::min({p_.maximumFlowC, hardMaximumFlowC, in.boilerLimitC.value_or(uint8_t(0))});
+        const uint8_t target = frostOn_ ? std::min(p_.minimumFlowC, cap) : 0;
+        if (lastTarget2_ && !target) frostEndedAt_ = now;
+        lastTarget2_ = target;
+        const uint64_t age = elapsed(now, lastSentAt_);
+        if (target) {
+            frostSending_ = true;
+            return due(lastSentFlow_ != target || !everSent_ || age >= p_.requestIntervalMs, target, "frost_unconfirmed", in);
+        }
+        if (!frostSending_) return {false, 0, name(state_)};
+        if (!holdsPositive_ && elapsed(now, frostEndedAt_) >= p_.stopWindowMs) { frostSending_ = false; return {false, 0, name(state_)}; }
+        return due(lastSentFlow_ > 0 || age >= p_.zeroIntervalMs, 0, "stop_zero", in);
+    }
     Command due(bool send, uint8_t flowC, const char* why, const Inputs& in) const {
         if (send && !in.routeReady) return {false, flowC, "route_not_ready"};
         return {send, flowC, why};
@@ -266,6 +334,10 @@ private:
     bool restored_ = false; // confirmation from NVS: listen restoredListenMs before owning
     bool routeReady_ = false; // the last step's in.routeReady
     bool withdrawn_ = false; // a planned restart is coming: stopping, no new takeover this boot
+    bool reconfirm_ = false; // owned the boiler before new firmware: waits for a confirmation, keeps frost
+    bool bootZero_ = false, bootZeroTried_ = false; // owned the boiler before this boot: one zero first
+    uint64_t bootZeroAt_ = 0, bootZeroFirst_ = 0, frostEndedAt_ = 0, lastNow_ = 0;
+    bool frostSending_ = false, frostOn_ = false; uint8_t lastTarget2_ = 0; // frost while waiting
     std::optional<uint64_t> heardAt_; uint64_t listenSince_ = 0; // continuous boiler reception
     bool holdsPositive_ = false; // a positive request was sent and no zero delivered since
     std::optional<uint64_t> heatSince_;

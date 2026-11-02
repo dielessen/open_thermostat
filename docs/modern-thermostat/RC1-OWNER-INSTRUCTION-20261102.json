@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-11-01T23:10:00Z",
+  "requests": [
+    "Owner, 2 Nov 2026 about 00:10 local: \"publoceren mag ook\" (go to publish the 1.0 candidate: E32 v1.0.0-e32v2-rc.1 as a GitHub pre-release and HA ha-v1.0.0rc1). Earlier, 1 Nov 2026: beta.23, beta.24 and 1.0 are one release, the 1.0 candidate; v1.0.0 follows after 14 stable days with boiler and radiator valves."
+  ],
+  "scope": "1.0 candidate: E32 v1.0.0-e32v2-rc.1 + HA ha-v1.0.0rc1, release-1.0 at 7916d31 (all beta.23, beta.24 and 1.0 work). Publish after green exact-tag CI. Installing is a separate, attended step: with the owner at home, HA first, then the E32 through the HA Firmware update entity, and the takeover confirmed again right after the update (a firmware change clears the confirmation; until then the E32 keeps only frost protection). Radiator valve control stays off per room until the owner switches it on.",
+  "not_included": [
+    "installation (a separate, attended step)",
+    "v1.0.0 itself (after 14 days with all release_ready.py criteria PASS)",
+    "automatic activation (active control still needs the plan set to active and the owner's confirmed takeover)",
+    "EMS+ boilers (1.1) and writable EMS boiler settings (after 1.0)",
+    "a HACS repository for the integration",
+    "editing the bodies of earlier published releases (beyond the automatic organize_releases archive labels)"
+  ],
+  "publication_approval_reply": "Owner, 2 Nov 2026 about 00:10 local: \"publoceren mag ook\".",
+  "publication_approval_at_utc": "2026-11-01T23:10:00Z",
+  "installation_approval_reply": null
+}

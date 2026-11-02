@@ -79,12 +79,15 @@ public:
         if (phase_++ % 2 == 0) heating(now); else boilerState(now);
         boilerGroup(now);
         boilerProfile(now);
+        emsDevices(now);
         learned(now);
         if (sources_.summary) summary(now);
     }
 
 private:
-    enum class Kind : uint8_t { heating, room, ble, plan, entities, shadow, learned, summary, boiler, group, profile };
+    // The first values match HeatingTopic (splitHeatingStatus casts it).
+    enum class Kind : uint8_t { heating, room, ble, plan, entities, shadow, trv, readiness, learned, summary, boiler, group, profile };
+    static_assert(uint8_t(Kind::readiness) == uint8_t(HeatingTopic::readiness), "Kind follows HeatingTopic");
     struct Slot {
         std::string topic;
         Kind kind;
@@ -99,7 +102,7 @@ private:
     static const TelemetryCadence& cadence(Kind k) {
         switch (k) {
         case Kind::plan: case Kind::entities: case Kind::profile: return configCadence;
-        case Kind::shadow: case Kind::summary: return summaryCadence;
+        case Kind::shadow: case Kind::readiness: case Kind::summary: return summaryCadence;
         case Kind::learned: return learnedCadence;
         case Kind::group: return fieldsCadence;
         default: return stateCadence;
@@ -173,7 +176,7 @@ private:
         if (!sources_.status) return;
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> status(sources_.status(), cJSON_Delete);
         if (!status) return;
-        for (auto& s : slots_) if (s.kind <= Kind::shadow) s.seen = false;
+        for (auto& s : slots_) if (s.kind <= Kind::readiness) s.seen = false;
         bool split = splitHeatingStatus(status.get(), [&](HeatingTopic topic, const std::string& suffix, const cJSON* doc) {
             const Kind kind = Kind(uint8_t(topic));
             if (kind == Kind::plan) {  // the plan's rooms keep their learned topics
@@ -185,7 +188,7 @@ private:
             if (Slot* s = slot(suffix, kind)) consider(*s, print(doc), doc, now);
         });
         if (!split) return;
-        sweep([](Kind k) { return k == Kind::room || k == Kind::ble || k == Kind::entities; });
+        sweep([](Kind k) { return k == Kind::room || k == Kind::ble || k == Kind::entities || k == Kind::trv; });
         sweep([](Kind k) { return k == Kind::learned; });
     }
     void boilerState(uint64_t now) {
@@ -201,6 +204,14 @@ private:
         std::string raw;
         sources_.boilerGroup(raw, boilerProfileGroup);
         if (Slot* s = raw.empty() ? nullptr : slot("fw/config/boiler_profile", Kind::profile)) consider(*s, raw, nullptr, now);
+    }
+    // fw/config/ems_devices (beta.23): the identities on the bus, for the devices in
+    // Home Assistant; looked at every 10 s (offset from the profile), sent on change.
+    void emsDevices(uint64_t now) {
+        if (!sources_.boilerGroup || !budget_ || phase_ % 10 != 6) return;
+        std::string raw;
+        sources_.boilerGroup(raw, emsDevicesGroup);
+        if (Slot* s = raw.empty() ? nullptr : slot("fw/config/ems_devices", Kind::profile)) consider(*s, raw, nullptr, now);
     }
     void boilerGroup(uint64_t now) {
         if (!sources_.boilerGroup || !budget_) return;

@@ -891,7 +891,9 @@ void Chain::dhwGenerator() {
     if (now_ < busDownUntil_ + 120000) return; // episodes only with the bus up (exact oracle)
     if (!dhwNextTap_) dhwNextTap_ = now_ + uint64_t(expo(3.0 * 3600) * 1000);
     if (now_ >= dhwNextTap_ && dhwTemp_ >= 28) {
-        dhw_ = Dhw::tap; dhwStartedAt_ = now_; dhwUntil_ = now_ + uint64_t(uniformInt(6, 48)) * 10000;
+        // Without a live flow a tap is told from a keep-warm round only by the DHW temperature: on the owner's
+        // boiler keep-warm rounds also dip 12+ K for a minute, so a tap under ~2 min is not identifiable there.
+        dhw_ = Dhw::tap; dhwStartedAt_ = now_; dhwUntil_ = now_ + uint64_t(uniformInt(o_.liveDhwFlow ? 6 : 12, 48)) * 10000;
         dhwTapMin_ = std::min(dhwTemp_ - 11, uniform(12, 35)); // owner logs: taps fell 9-46 K
         dhwFlowTenths_ = o_.liveDhwFlow ? uint8_t(uniformInt(30, 95)) : 25;
         dhwNextTap_ = now_ + uint64_t(expo(2.5 * 3600) * 1000) + 600000;

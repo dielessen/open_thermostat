@@ -55,6 +55,13 @@ public:
     // decrypts more than one such old-counter frame per reanchorSpacingMs.
     static constexpr uint64_t reanchorQuietMs = 600000, reanchorSpacingMs = 5000;
     static constexpr uint8_t reanchorFrames = 3;
+    // A re-anchor run continues only while each admitted counter is at most
+    // this far above the previous one. A restarted sensor counts up by one per
+    // new reading (pvvx/BTHome and MiBeacon both); admitted run frames are at
+    // least reanchorSpacingMs apart, so 64 tolerates minutes of missed adverts.
+    // A bigger jump (e.g. a replayed frame from the old, much higher sequence)
+    // starts a new run instead of completing one built from genuine frames.
+    static constexpr uint32_t reanchorMaxStep = 64;
     ManagedBleObserver(Decryptor& decryptor, Clock clock) : decryptor_(decryptor), clock_(clock) {}
     ~ManagedBleObserver() { disable(BleObserverStop::configuration_changed); }
     ManagedBleObserver(const ManagedBleObserver&) = delete;
@@ -153,7 +160,14 @@ public:
                 const auto raw=inspectMiBeaconMonitor3(binding.address,frame.bytes.data(),frame.size);
                 if(raw.status==BleSensorFrameStatus::decoded)sequence=raw.counter; // Rejection only, no authentication claim.
             }
-            if(sequence&&*sequence<=value.highestCounter) {
+            // The high-water counter itself is the accepted frame again (a
+            // duplicate or a replay): never new and never part of a re-anchor
+            // run, and it does not use up the re-anchor spacing either.
+            if(sequence&&*sequence==value.highestCounter) {
+                if(value.oldCounterDrops!=UINT32_MAX)++value.oldCounterDrops;
+                return;
+            }
+            if(sequence&&*sequence<value.highestCounter) {
                 if(!admitOldCounter(value,frame.at)) {
                     if(value.oldCounterDrops!=UINT32_MAX)++value.oldCounterDrops;
                     return;
@@ -194,10 +208,18 @@ public:
         if (decoded.encryptionCounter) {
             if (!decoded.authenticated) return;
             if (value.haveCounter && *decoded.encryptionCounter <= value.highestCounter) {
+                // Same rule as the prefilter, for frames it could not read.
+                if (*decoded.encryptionCounter == value.highestCounter) {
+                    if (value.oldCounterDrops != UINT32_MAX) ++value.oldCounterDrops;
+                    return;
+                }
                 if (!reanchoring && !admitOldCounter(value, frame.at)) return;
                 // Authenticated but older than the high-water mark: count a run
-                // of rising counters; any break starts the run again.
-                if (value.reanchorRun && *decoded.encryptionCounter > value.reanchorCounter) ++value.reanchorRun;
+                // of counters that rise by small steps; any break (a fall, a
+                // repeat or a jump beyond reanchorMaxStep) starts the run again.
+                const uint32_t counter = *decoded.encryptionCounter;
+                if (value.reanchorRun && counter > value.reanchorCounter
+                        && counter - value.reanchorCounter <= reanchorMaxStep) ++value.reanchorRun;
                 else value.reanchorRun = 1;
                 value.reanchorCounter = *decoded.encryptionCounter;
                 if (value.oldCounterDrops != UINT32_MAX) ++value.oldCounterDrops;

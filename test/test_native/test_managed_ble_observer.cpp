@@ -161,3 +161,35 @@ TEST_F(ObserverTest, ReplayedOldFramesOutOfOrderNeverReanchor) {
     for(uint32_t counter:{10u,9u,11u,8u,12u,7u,13u,6u}){observerNow=t;receive(packet({0x45,200,0},counter),t);t+=6000;}
     EXPECT_EQ(status().counter,5000u);EXPECT_EQ(status().counterResets,0u);
 }
+TEST_F(ObserverTest, ReplayOfTheHighWaterFrameNeverCompletesAReanchor) {
+    bindings=config(true);ASSERT_TRUE(observer.initialize(bindings));
+    const auto last=packet({0x45,235,0},5000);receive(last);ASSERT_EQ(status().counter,5000u);
+    // The sensor restarted its counter; after the quiet period it starts a run.
+    uint64_t t=1000+ManagedBleObserver<ObserverCrypto>::reanchorQuietMs;
+    const auto send=[&](const std::vector<uint8_t>& b){observerNow=t;receive(b,t);};
+    send(packet({0x45,240,0},10));t+=5000;send(packet({0x45,240,0},11));
+    // A replay of the last accepted frame is never the third frame of the run,
+    // never decrypted and never a fresh reading.
+    t+=5000;const auto calls=crypto.calls,drops=status().oldCounterDrops;send(last);
+    auto s=status();EXPECT_EQ(s.counter,5000u);EXPECT_EQ(s.counterResets,0u);EXPECT_EQ(crypto.calls,calls);
+    EXPECT_EQ(s.oldCounterDrops,drops+1);EXPECT_EQ(s.temperature,2350);EXPECT_EQ(s.temperatureAgeMs,t-1000);
+    // It neither breaks the run nor uses up the spacing: the real sensor's next frame re-anchors at once.
+    send(packet({0x45,241,0},12));s=status();
+    EXPECT_EQ(s.counter,12u);EXPECT_EQ(s.counterResets,1u);EXPECT_EQ(s.temperature,2410);EXPECT_EQ(s.temperatureAgeMs,0u);
+    t+=5000;send(packet({0x45,242,0},13));EXPECT_EQ(status().counter,13u);EXPECT_EQ(status().temperature,2420);
+}
+TEST_F(ObserverTest, ReanchorRunNeedsSmallStepsSoOldFramesCannotCompleteIt) {
+    bindings=config(true);ASSERT_TRUE(observer.initialize(bindings));
+    receive(packet({0x45,235,0},5000));
+    constexpr uint32_t step=ManagedBleObserver<ObserverCrypto>::reanchorMaxStep;
+    uint64_t t=1000+ManagedBleObserver<ObserverCrypto>::reanchorQuietMs;
+    const auto send=[&](uint32_t counter,uint8_t lo){observerNow=t;receive(packet({0x45,lo,0},counter),t);t+=5000;};
+    // Two genuine frames, then an authenticated frame from the old sequence (below the high-water mark).
+    send(10,240);send(11,240);send(4990,200);
+    EXPECT_EQ(status().counter,5000u);EXPECT_EQ(status().counterResets,0u);EXPECT_EQ(status().temperature,2350);
+    // The real sensor starts a new run and re-anchors on its third frame; missed adverts up to the step are fine.
+    send(12,241);EXPECT_EQ(status().counter,5000u);
+    send(12+step+1,242);EXPECT_EQ(status().counter,5000u); // too big a jump: the run starts again here
+    send(12+step+2,243);EXPECT_EQ(status().counter,5000u);
+    send(12+2*step+2,244);EXPECT_EQ(status().counter,12+2*step+2);EXPECT_EQ(status().counterResets,1u);EXPECT_EQ(status().temperature,2440);
+}

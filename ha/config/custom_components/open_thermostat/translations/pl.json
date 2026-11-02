@@ -7,7 +7,7 @@
           "legacy": "Starsze oprogramowanie OpenThermostat (ib-therm)",
           "shadow": "OpenThermostat E32 (zalecane)"
         },
-        "description": "Wybierz swój OpenThermostat. Z E32 urządzenie E32 liczy równolegle; Twój obecny termostat steruje kotłem, dopóki nie przełączysz sterowania."
+        "description": "Wybierz swój OpenThermostat. Z E32 strona E32 poprowadzi Cię dalej: dopóki stary termostat wysyła żądania do kotła, E32 najpierw działa obok niego w okresie próbnym; bez termostatu przechodzi od razu do testu kotła i przejęcia. Nic nie wysyła do kotła, dopóki nie potwierdzisz, że stary termostat jest odłączony."
       },
       "confirm": {
         "title": "Wykryto OpenThermostat",
@@ -33,7 +33,7 @@
       },
       "shadow": {
         "title": "Połącz OpenThermostat E32",
-        "description": "W okresie próbnym E32 tylko liczy; Twój obecny termostat nadal steruje kotłem i nic nie jest wysyłane do kotła. Home Assistant ustawia jednak temperaturę zadaną na urządzeniu nastawczym każdego pomieszczenia (zawór termostatyczny, tado lub pomocnik liczbowy) zgodnie z programem tygodniowym tego pomieszczenia. Zwykle łączysz E32 później przez Konfiguruj → Połączenie z E32, co samo wypełnia identyfikator połączenia.",
+        "description": "E32 nic nie wysyła do kotła, dopóki nie potwierdzisz przejęcia na jego stronie „Rooms”, najlepiej przez test kotła („Boiler test and takeover”). Dopóki stary termostat jest na magistrali kotła, E32 najpierw działa obok niego w okresie próbnym (tylko liczy i porównuje); zawsze możesz tam wybrać drugą drogę. Home Assistant ustawia jednak temperaturę zadaną na urządzeniu nastawczym każdego pomieszczenia (zawór termostatyczny, tado lub pomocnik liczbowy) zgodnie z programem tygodniowym tego pomieszczenia. Zwykle łączysz E32 później przez Konfiguruj → Połączenie z E32, co samo wypełnia identyfikator połączenia.",
         "data": {
           "topic_prefix": "Prefiks MQTT urządzenia E32",
           "adapter_id": "Identyfikator połączenia (wypełniany automatycznie)"
@@ -783,7 +783,7 @@
       },
       "e32_restore_confirm": {
         "title": "Przywrócić te ustawienia?",
-        "description": "Kopia z {created}, sprawdzona przez E32:\n\n{summary}\n\nE32 wróci w okresie próbnym: liczy, ale nie steruje kotłem. Jeśli wcześniej sterował kotłem, przełącz go potem ponownie na stronie E32 (Pomieszczenia → Aktywne sterowanie). Przed przywróceniem Home Assistant zapisze też kopię E32 w obecnym stanie.",
+        "description": "Kopia z {created}, sprawdzona przez E32:\n\n{summary}\n\nPomieszczenia zachowają tryb z kopii. Przejęcie kotła nie jest częścią kopii: nowy lub zresetowany E32 nic nie wysyła do kotła, dopóki nie potwierdzisz przejęcia na jego stronie („Rooms” → „Boiler test and takeover”). Przed przywróceniem Home Assistant zapisze też kopię E32 w obecnym stanie.",
         "data": {
           "confirm": "Przywróć te ustawienia na tym E32"
         },
@@ -1031,10 +1031,10 @@
       "e32_restore_no_backups": "Home Assistant nie ma jeszcze kopii E32. Utwórz ją przyciskiem Utwórz teraz kopię ustawień E32 na urządzeniu E32.",
       "e32_restore_nothing": "Nie ma czego przywracać: ten E32 ma już dokładnie te ustawienia.",
       "e32_restore_cancelled": "Przywracanie przerwano; nic nie zostało zmienione.",
-      "e32_restore_done_online": "Ustawienia przywrócone. E32 uruchomił się ponownie i znów odpowiada. Pomieszczenia są w trybie cienia; potwierdź ponownie przejęcie na stronie E32, jeśli ma sterować kotłem.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
-      "e32_restore_done_waiting": "Ustawienia przywrócone. E32 uruchamia się ponownie i jeszcze nie odpowiada; Home Assistant połączy się sam, gdy wróci. Pomieszczenia są w trybie cienia; potwierdź ponownie przejęcie na stronie E32, jeśli ma sterować kotłem.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
-      "e32_restore_done_restart": "Ustawienia przywrócone. Uruchom E32 ponownie (System → Uruchom urządzenie ponownie na jego stronie), aby użyć ich wszystkich. Pomieszczenia są w trybie cienia; potwierdź ponownie przejęcie na stronie E32, jeśli ma sterować kotłem.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
-      "e32_restore_done": "Ustawienia przywrócone. Pomieszczenia są w trybie cienia; potwierdź ponownie przejęcie na stronie E32, jeśli ma sterować kotłem.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
+      "e32_restore_done_online": "Ustawienia przywrócone. E32 uruchomił się ponownie i znów odpowiada. Pomieszczenia zachowają tryb z kopii; nowy lub zresetowany E32 steruje kotłem dopiero po potwierdzeniu przejęcia na jego stronie „Rooms”.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
+      "e32_restore_done_waiting": "Ustawienia przywrócone. E32 uruchamia się ponownie i jeszcze nie odpowiada; Home Assistant połączy się sam, gdy wróci. Pomieszczenia zachowają tryb z kopii; nowy lub zresetowany E32 steruje kotłem dopiero po potwierdzeniu przejęcia na jego stronie „Rooms”.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
+      "e32_restore_done_restart": "Ustawienia przywrócone. Uruchom E32 ponownie (System → Uruchom urządzenie ponownie na jego stronie), aby użyć ich wszystkich. Pomieszczenia zachowają tryb z kopii; nowy lub zresetowany E32 steruje kotłem dopiero po potwierdzeniu przejęcia na jego stronie „Rooms”.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
+      "e32_restore_done": "Ustawienia przywrócone. Pomieszczenia zachowają tryb z kopii; nowy lub zresetowany E32 steruje kotłem dopiero po potwierdzeniu przejęcia na jego stronie „Rooms”.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
       "e32_restore_adopted": "Gotowe: Home Assistant od teraz używa tego E32. Nic nie przywrócono; miał już te ustawienia."
     },
     "progress": {

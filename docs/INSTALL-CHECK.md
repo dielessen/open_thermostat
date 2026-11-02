@@ -19,7 +19,8 @@ button, a missing explanation).
 - [ ] Access to the Home Assistant configuration folder (for example the
   Samba share or File editor add-on).
 - [ ] The existing thermostat stays connected to the boiler: this checklist
-  switches nothing over.
+  switches nothing over (the boiler test and takeover are a separate step with
+  someone at the boiler).
 
 ## Checklist
 
@@ -48,7 +49,8 @@ button, a missing explanation).
 | [ ] | Persons per room (11.5, optional) | The room's persons are chosen; the E32 room card shows them | HA room form, section **Persons**; E32 **Rooms → Persons** |
 | [ ] | Window contact (11.5, optional) | Open longer than **Pause after**: the room pauses; closed: it resumes | HA room form, section **Windows and doors**; E32 room card |
 | [ ] | Check (11.6) | Dashboard shows the rooms; **Heating problem** is off; no **Heating needs attention** under Repairs | HA sidebar **OpenThermostat**; **Settings → System → Repairs** |
-| [ ] | Shadow mode (12) | The Overview shows **Shadow mode** and **Your thermostat controls the boiler** | E32 **Overview** |
+| [ ] | Route to the takeover (12) | With the old thermostat on the bus: **Trial run** and the line "Your boiler still gets requests from another thermostat, so the E32 first runs alongside it (trial run)"; without one: **Boiler test and takeover**, "Not run yet", and the E32 sends nothing to the boiler | E32 **Rooms**, section **Boiler test and takeover** |
+| [ ] | Boiler test (12, optional, someone at the boiler) | Every step **Passed**, then "Passed. The E32 now controls your boiler."; or stopped with the steps to give control back | E32 **Rooms**; HA sensor *Ready for E32 control*, attribute `boiler_test` |
 | [ ] | Update through Home Assistant (13.3) | When a new release exists, **Install** runs and the E32 reports the new version | HA **Settings → Updates**, the **Firmware** entity |
 | [ ] | Backup (14.1) | A backup file is downloaded, optionally with a passphrase | E32 **System → Backup and restore** |
 | [ ] | Diagnostics console (user guide) | `status` and `log 20` answer | E32 **System → Diagnostics and system log** |

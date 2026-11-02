@@ -9,15 +9,42 @@
   <div class="hp-rooms" data-heating-rooms></div>
   <p data-heating-add-row><button type="button" class="btn btn-outline-primary" data-heating-add><span data-i18n="Add room">Add room</span></button></p>
   <p class="pd-help"><span data-i18n="Heating curve, water temperature limits and learning for the whole house:">Heating curve, water temperature limits and learning for the whole house:</span> <a href="#house" data-page="house"><span data-i18n="Home">Home</span></a></p>
+  <section class="pd-panel" data-heating-test hidden>
+    <h2 data-i18n="Boiler test and takeover">Boiler test and takeover</h2>
+    <p class="pd-help" data-i18n="The recommended way to let the E32 control your boiler. The E32 checks every step itself from what the boiler reports. Stay near the boiler; it takes about 30 minutes.">The recommended way to let the E32 control your boiler. The E32 checks every step itself from what the boiler reports. Stay near the boiler; it takes about 30 minutes.</p>
+    <p class="hp-verdict" data-heating-test-verdict role="status" aria-live="polite"></p>
+    <p class="pd-help" data-heating-test-why hidden></p>
+    <ol class="hp-checks" data-heating-test-list></ol>
+    <div class="alert alert-danger" data-heating-test-abort-steps role="alert" hidden><strong data-i18n="Stop and give control back to your thermostat:">Stop and give control back to your thermostat:</strong>
+      <ol class="mb-0"><li data-i18n="Press “Give control back to my thermostat” below, or switch the boiler off.">Press “Give control back to my thermostat” below, or switch the boiler off.</li>
+        <li data-i18n="Switch the boiler off, reconnect your old thermostat to the boiler and switch the boiler back on.">Switch the boiler off, reconnect your old thermostat to the boiler and switch the boiler back on.</li>
+        <li data-i18n="Check hot water and the water pressure. Start the test again once the cause is fixed.">Check hot water and the water pressure. Start the test again once the cause is fixed.</li></ol></div>
+    <p class="d-flex flex-wrap gap-2">
+      <button type="button" class="btn btn-primary" data-heating-test-start hidden><span data-i18n="Start the boiler test">Start the boiler test</span></button>
+      <button type="button" class="btn btn-primary" data-heating-test-confirm hidden><span data-i18n="Confirm the takeover">Confirm the takeover</span></button>
+      <button type="button" class="btn btn-outline-secondary" data-heating-test-skip-step hidden><span data-i18n="My boiler makes no hot water: skip this step">My boiler makes no hot water: skip this step</span></button>
+      <button type="button" class="btn btn-outline-secondary" data-heating-test-stop hidden><span data-i18n="Stop the test">Stop the test</span></button>
+    </p>
+    <div class="hp-test-other" data-heating-test-choices hidden>
+      <p class="pd-help mb-1" data-i18n="Or choose another way:">Or choose another way:</p>
+      <p class="d-flex flex-wrap gap-2 mb-0">
+        <button type="button" class="btn btn-outline-secondary" data-heating-test-skip><span data-i18n="Skip the test and confirm the takeover now">Skip the test and confirm the takeover now</span></button>
+        <button type="button" class="btn btn-outline-secondary" data-heating-trial><span data-i18n="Trial run first (compare with your thermostat)">Trial run first (compare with your thermostat)</span></button>
+      </p>
+      <p class="pd-help mt-1" data-i18n="A trial run is for a home that still has its old thermostat on the boiler: for a few days the E32 only calculates and compares with it. You can start the boiler test at any time.">A trial run is for a home that still has its old thermostat on the boiler: for a few days the E32 only calculates and compares with it. You can start the boiler test at any time.</p>
+    </div>
+    <p class="pd-help" role="status" aria-live="polite" data-heating-test-message></p>
+  </section>
   <section class="pd-panel" data-heating-readiness hidden>
     <h2 data-i18n="Ready for the E32 to control the boiler?">Ready for the E32 to control the boiler?</h2>
     <p class="hp-verdict" data-heating-readiness-verdict role="status" aria-live="polite"></p>
     <p class="pd-help" data-heating-readiness-alone hidden data-i18n="There is no thermostat on the boiler bus to compare with, so only the E32 itself and the boiler are checked.">There is no thermostat on the boiler bus to compare with, so only the E32 itself and the boiler are checked.</p>
     <ul class="hp-checks" data-heating-readiness-list></ul>
+    <p class="pd-help mt-2 mb-0" data-i18n="Last step: when everything has passed, start the boiler test and takeover above.">Last step: when everything has passed, start the boiler test and takeover above.</p>
   </section>
   <section class="pd-panel" data-heating-shadow>
     <h2 data-heating-shadow-title></h2>
-    <p class="pd-help" data-heating-shadow-help data-i18n="Trial run: the E32 works out what it would ask of the boiler, but sends nothing. Here you see that next to what your thermostat really asked.">Trial run: the E32 works out what it would ask of the boiler, but sends nothing. Here you see that next to what your thermostat really asked.</p>
+    <p class="pd-help" data-heating-shadow-help data-i18n="Trial run (optional): the E32 works out what it would ask of the boiler, but sends nothing. Here you see that next to what your thermostat really asked.">Trial run (optional): the E32 works out what it would ask of the boiler, but sends nothing. Here you see that next to what your thermostat really asked.</p>
     <div data-heating-shadow-body><span data-i18n="Loading…">Loading…</span></div>
   </section>
   <section class="pd-panel" data-heating-active>
@@ -43,7 +70,7 @@
       <li><strong data-i18n="Without Home Assistant">Without Home Assistant</strong><span data-i18n="Set everything on this page: rooms, Bluetooth sensors and week programs work on the E32 alone.">Set everything on this page: rooms, Bluetooth sensors and week programs work on the E32 alone.</span></li>
       <li><strong data-i18n="Home Assistant (optional)">Home Assistant (optional)</strong><span data-i18n="When you use it, it is the main place: rooms, temperature sources, target temperatures and week programs.">When you use it, it is the main place: rooms, temperature sources, target temperatures and week programs.</span></li>
       <li><strong data-i18n="Room plan on the E32">Room plan on the E32</strong><span data-i18n="Stored on the E32 and kept in step with Home Assistant. It keeps running without Home Assistant.">Stored on the E32 and kept in step with Home Assistant. It keeps running without Home Assistant.</span></li>
-      <li><strong data-i18n="Boiler">Boiler</strong><span data-i18n="During the trial run the E32 only calculates. It controls the boiler only after you switch over.">During the trial run the E32 only calculates. It controls the boiler only after you switch over.</span></li>
+      <li><strong data-i18n="Boiler">Boiler</strong><span data-i18n="The E32 controls the boiler only after you confirm the takeover, best through the boiler test. A trial run first is optional.">The E32 controls the boiler only after you confirm the takeover, best through the boiler test. A trial run first is optional.</span></li>
     </ol>
     <p class="pd-help" data-i18n="When Home Assistant is offline, the E32 continues with its own Bluetooth sensors and week programs; otherwise it keeps the temperature without Home Assistant.">When Home Assistant is offline, the E32 continues with its own Bluetooth sensors and week programs; otherwise it keeps the temperature without Home Assistant.</p>
   </details>
@@ -63,7 +90,8 @@
 .hp-checks{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:8px}.hp-checks li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:2px 10px;align-items:start;padding:8px 10px;border:1px solid var(--ot-border);border-radius:var(--ot-r1);background:var(--ot-surface)}
 .hp-mark{grid-row:span 2;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-weight:700}.hp-check--pass .hp-mark{background:var(--ot-ok-bg);color:var(--ot-ok)}.hp-check--wait .hp-mark{background:var(--ot-warn-bg);color:var(--ot-warn)}.hp-check--fail .hp-mark{background:var(--ot-err-bg);color:var(--ot-err)}
 .hp-check-head{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline}.hp-check-word{font-size:.8rem;font-weight:600}.hp-check--pass .hp-check-word{color:var(--ot-ok)}.hp-check--wait .hp-check-word{color:var(--ot-warn)}.hp-check--fail .hp-check-word{color:var(--ot-err)}.hp-check-line{color:var(--ot-muted);font-size:.88rem;overflow-wrap:anywhere}
-.hp-verdict{font-weight:600;margin:0 0 4px}.hp-verdict--ready{color:var(--ot-ok)}.hp-verdict--waiting{color:var(--ot-warn)}.hp-verdict--not_ready{color:var(--ot-err)}
+.hp-verdict{font-weight:600;margin:0 0 4px}.hp-verdict--ready,.hp-verdict--passed{color:var(--ot-ok)}.hp-verdict--waiting,.hp-verdict--running{color:var(--ot-warn)}.hp-verdict--not_ready,.hp-verdict--failed,.hp-verdict--stopped{color:var(--ot-err)}
+.hp-check--now{border-color:var(--ot-warn)}.hp-check--idle .hp-mark{background:var(--ot-surface-2);color:var(--ot-muted)}.hp-test-other{border-top:1px solid var(--ot-border);margin-top:12px;padding-top:10px}#heating-plan [data-heating-test-message]:empty{display:none}
 .hp-flow{list-style:none;padding:0;margin:8px 0;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}.hp-flow li{position:relative;border:1px solid var(--ot-border);border-radius:var(--ot-r1);background:var(--ot-surface);padding:10px 12px;font-size:.88rem}.hp-flow strong{display:block;margin-bottom:2px}.hp-flow li+li::before{content:"→";position:absolute;left:-14px;top:38%;color:var(--ot-accent);font-weight:700}
 @media(max-width:560px){.hp-flow li+li::before{content:"↓";left:48%;top:-17px}#heating-plan [data-heating-source]{grid-template-columns:minmax(0,1fr) 44px}#heating-plan [data-heating-source]>select:first-child{grid-column:1/-1}.hp-rooms>details>summary{padding:12px 14px}.hp-body{padding:4px 14px 14px}
 #heating-plan [data-heating-shadow-days] thead{display:none}#heating-plan [data-heating-shadow-days] tr{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--ot-border)}#heating-plan [data-heating-shadow-days] td{border:0}#heating-plan [data-heating-shadow-days] td::before{content:attr(data-label);display:block;color:var(--ot-muted);font-size:.75rem}}</style>
@@ -86,7 +114,7 @@
   const activeBox = root.querySelector('[data-heating-active]'), activeMessage = activeBox.querySelector('[data-heating-active-message]');
   const takeover = activeBox.querySelector('[data-heating-takeover]'), handback = activeBox.querySelector('[data-heating-handback]');
   const activeText = {shadow:"Trial run: your thermostat controls the boiler.",
-    awaiting_confirmation:"Waiting for your confirmation that your thermostat is disconnected from the boiler.",
+    awaiting_confirmation:"Not controlling the boiler yet: the E32 sends nothing until you confirm that your old thermostat is disconnected (boiler test above).",
     arming:"Switching over: waiting for fresh room readings and a reply from the boiler.", active:"The E32 controls the boiler.",
     stopped_measurement_lost:"No room measurements: the E32 asks the boiler for no heat until a reading returns.",
     stopping:"Stopping: the E32 asks the boiler for no heat for one minute.",
@@ -123,7 +151,8 @@
     invalid_flow_limits:"The E32 refused the water temperature limits. Use a lowest of 20–79 °C and a highest of 21–80 °C, with the lowest below the highest.",
     storage_full:"The E32 storage is full. Remove switch points or a room, then save again.",
     save_unconfirmed:"The E32 could not confirm the save. Reload the page and check the rooms.",
-    active_mode_not_released:"Active control is not enabled in this firmware.", plan_not_active:"Save the rooms first, then confirm the switch-over again."};
+    active_mode_not_released:"Active control is not enabled in this firmware.", plan_not_active:"Save the rooms first, then confirm the switch-over again.",
+    not_skippable:"Only the hot-water step can be skipped."};
   const refused = code => saveError[code] ? uiText(saveError[code]) : uiText("The E32 refused the room plan. Reload the page and try again.") + ' (' + code + ')';
   const input = (type, value, attrs={}) => { const i = el('input', null, {type, class:'form-control', ...attrs}); i.value = value; return i; };
   const select = (options, value) => { const s = el('select', null, {class:'form-control'}); for (const [v, t] of options) { const o = el('option', uiText(t), {value:v}); s.append(o); } s.value = value; return s; };
@@ -530,10 +559,11 @@
     setDirty(false); applyLock(); checkFlow(); showValves(status);
   }
   // Mode texts follow the actual plan: shadow until the attended switch-over, then active control.
-  function renderMode(mode) {
+  function renderMode(mode, state) {
     const active = mode === 'active';
-    modeText.textContent = uiText(active ? "Active control: the E32 controls your boiler. Your old thermostat must stay disconnected."
-      : "Trial run: the E32 works out what these rooms need, but sends nothing to the boiler. Your thermostat keeps controlling the boiler until you switch over.");
+    modeText.textContent = uiText(!active ? "Trial run (optional): the E32 works out what these rooms need, but sends nothing to the boiler. Your thermostat keeps controlling the boiler until you start the boiler test."
+      : state === 'awaiting_confirmation' ? "Next step: the boiler test and takeover below. Until you confirm the takeover, the E32 sends nothing to the boiler."
+      : "Active control: the E32 controls your boiler. Your old thermostat must stay disconnected.");
     root.querySelector('[data-heating-shadow-title]').textContent = uiText(active ? "Comparison from the trial run" : "Comparison with your thermostat (today)");
     root.querySelector('[data-heating-shadow-help]').hidden = active;
   }
@@ -566,7 +596,7 @@
   }
   // "Ready for the E32 to control the boiler?" (TakeoverReadiness on the E32): one line per criterion, shadow mode only.
   const readinessBox = root.querySelector('[data-heating-readiness]');
-  const readinessVerdict = {ready:"Ready: follow the steps to switch over.", waiting:"Not yet: the trial run needs at least 3 days of data.",
+  const readinessVerdict = {ready:"Ready: start the boiler test and takeover above.", waiting:"Not yet: the trial run needs at least 3 days of data.",
     not_ready:"Not ready: fix the items marked in red first."};
   const resultWord = {pass:"Passed", wait:"Waiting", fail:"Action needed"}, resultMark = {pass:'✓', wait:'…', fail:'!'};
   const fill = (text, values) => Object.entries(values).reduce((t, [k, v]) => t.replace('{' + k + '}', v), uiText(text));
@@ -627,6 +657,125 @@
       return li;
     }));
   }
+  // "Boiler test and takeover" (control/TakeoverTest.h): six lines, each passed, waiting or failed in plain words.
+  const testBox = root.querySelector('[data-heating-test]'), testMessage = testBox.querySelector('[data-heating-test-message]');
+  const testButton = name => testBox.querySelector('[data-heating-test-' + name + ']');
+  const testSteps = [['disconnect', "Disconnect your old thermostat", "Switch the boiler off, disconnect your old thermostat from the boiler, then switch the boiler back on."],
+    ['confirm', "Confirm the takeover", "Confirm that your old thermostat is disconnected; the E32 then controls the boiler."],
+    ['start', "Start heating", "The E32 sets a room 1 °C above its temperature for a while. The burner should start and the water to heating get warmer."],
+    ['hot_water', "Hot water while heating", "Open a hot tap for 3 minutes. Hot water goes first, then heating resumes."],
+    ['stop', "Stop heating", "The E32 sets the room 0.5 °C below its temperature. The burner should switch off and stay off."]];
+  const testPhase = {listening:"Listening: no other thermostat heard for {s} of 120 s.",
+    thermostat_heard:"Your old thermostat is still heard on the boiler bus. Disconnect it from the boiler.",
+    boiler_silent:"No messages from the boiler. Switch the boiler back on and check the cable to the E32.",
+    waiting_confirmation:"Press “Confirm the takeover” below.",
+    taking_over:"Confirmed. The E32 takes over: it waits for fresh room readings and a reply from the boiler.",
+    waiting_burner:"{room} is set to {t} for this test. Waiting for the burner (up to 10 minutes).",
+    waiting_flow_rise:"Burner on. The water to heating rose {rise} of 3 °C.",
+    waiting_tap:"Open a hot tap now and leave it open for 3 minutes.", tap_open:"Hot water goes first now. Close the tap after 3 minutes.",
+    waiting_heating:"Tap closed. Waiting for heating to resume (up to 5 minutes).",
+    waiting_zero:"{room} is set to {t}. The E32 asks the boiler for no heat once the burner finished its shortest run.",
+    waiting_burner_off:"No heat asked. Waiting for the burner to switch off.", watching_restart:"Burner off. Checking that it stays off for 5 minutes."};
+  const testPassed = {disconnect:"No other thermostat heard for 2 minutes, and the boiler reports.", confirm:"The E32 took over the boiler.",
+    start:"The burner started and the water to heating rose at least 3 °C.", hot_water:"Hot water went first, then heating resumed.",
+    stop:"The burner switched off and stayed off."};
+  const testReason = {thermostat_heard:"Your old thermostat was still heard after 30 minutes. Disconnect it from the boiler and start the test again.",
+    boiler_silent:"The E32 heard nothing from the boiler. Check that the boiler is on and the cable to the E32.",
+    not_confirmed:"The takeover was not confirmed within 30 minutes. Start the test again when you are ready.",
+    no_takeover:"The E32 did not take over within 30 minutes. Check that every room has a fresh reading.",
+    foreign_controller:"Another thermostat asked the boiler for heat. Disconnect it from the boiler.",
+    no_burner:"The burner did not start within 10 minutes. Check that the boiler's heating switch is on and that it shows no fault.",
+    no_flow_rise:"The water to heating did not get 3 °C warmer within 15 minutes.",
+    no_room_reading:"The test room has no fresh temperature reading. Check its sensor.",
+    room_limit:"The room's lowest or highest temperature leaves no room for the test. Widen them in the room settings.",
+    no_hot_water:"No hot water within 15 minutes. If your boiler makes no hot water, skip that step next time.",
+    heating_not_resumed:"Heating did not resume within 5 minutes after the hot water.",
+    no_stop_request:"The E32 did not ask the boiler for no heat within 30 minutes.",
+    burner_still_on:"The burner kept running after the E32 asked for no heat.", restarted:"The burner started again within 5 minutes without a heat request.",
+    handed_back:"Control was given back to your thermostat.", flow_above_limit:"The water to heating went above the highest water temperature.",
+    trial_run:"The rooms went back to the trial run.", room_inactive:"The test room was switched off or removed.",
+    override_refused:"The E32 could not set the test temperature.", owner:"You stopped the test."};
+  const testVerdict = {idle:"Not run yet.", running:"Test running: step {n} of 5.", passed:"Passed. The E32 now controls your boiler.",
+    failed:"Not passed: see the red step. Start the test again, or give control back to your thermostat.",
+    stopped:"Stopped by a safety rule: give control back to your thermostat.", aborted:"You stopped the test."};
+  const testWord = {pass:"Passed", wait:"Waiting", fail:"Failed", skipped:"Skipped", aborted:"Stopped", not_run:"Not run yet"};
+  const testMark = {pass:'✓', wait:'…', fail:'!', skipped:'–', aborted:'–', not_run:''};
+  // Why a new plan took its route (NewPlanDefault on the E32): only while it is not taken over.
+  const testWhy = {'shadow:thermostat_heard':"Your boiler still gets requests from another thermostat, so the E32 first runs alongside it (trial run).",
+    'active:no_thermostat':"No other thermostat was found on the boiler bus, so you can go straight to the boiler test.",
+    'shadow:no_thermostat':"No other thermostat is heard on the boiler bus: you can go straight to the boiler test.",
+    'active:thermostat_heard':"Another thermostat was heard on the boiler bus this time: disconnect it from the boiler in the first step.",
+    'shadow:checking':"Checking the boiler bus…", 'active:checking':"Checking the boiler bus…"};
+  let testState = null, newPlan = null;
+  function renderTest(t, status) {
+    const a = status?.active, mode = status?.mode || plan?.mode;
+    testState = t || null;
+    testBox.hidden = !t || !a?.enabled;
+    if (testBox.hidden) return;
+    const running = t.state === 'running', owning = a.state === 'active' || a.state === 'stopped_measurement_lost';
+    const at = Number.isFinite(t.at) ? new Date(t.at * 1000).toLocaleString(OpenThermostatLanguage.locale, {dateStyle:'medium', timeStyle:'short'}) : '';
+    const index = running ? testSteps.findIndex(([key]) => key === t.step) + 1 : 0;
+    const verdict = testBox.querySelector('[data-heating-test-verdict]');
+    verdict.textContent = fill(testVerdict[t.state] || testVerdict.idle, {n: index}) + (at && !running && t.state !== 'idle' ? ' (' + at + ')' : '');
+    verdict.className = 'hp-verdict hp-verdict--' + t.state;
+    const values = {s: Math.min(t.quiet_s || 0, 120), room: plan?.rooms?.find(r => r.id === t.room)?.name || t.room || '', t: degrees(t.target_c), rise: num(Math.max(0, t.rise_c || 0), '')};
+    const lines = testSteps.map(([key, label, how]) => {
+      const result = t.steps?.[key] || 'not_run';
+      const line = result === 'wait' ? fill(testPhase[t.phase] || how, values) : result === 'pass' ? uiText(testPassed[key])
+        : result === 'fail' ? uiText(testReason[t.reason] || warningText[t.reason] || "Failed.") + (warningText[t.reason] || testReason[t.reason] ? '' : ' (' + t.reason + ')')
+        : result === 'skipped' ? uiText("Skipped: no hot water from this boiler.") : uiText(how);
+      return [result, label, line];
+    });
+    lines.push([t.state === 'passed' ? 'pass' : 'not_run', "Done", uiText(t.state === 'passed' ? "The E32 now controls your boiler. The test temperature has ended; the week program continues." : "The E32 controls your boiler and the week program continues.")]);
+    testBox.querySelector('[data-heating-test-list]').replaceChildren(...lines.map(([result, label, line]) => {
+      const kind = {pass:'pass', wait:'wait', fail:'fail'}[result] || 'idle';
+      const li = el('li', null, {class:'hp-check hp-check--' + kind + (result === 'wait' ? ' hp-check--now' : '')}), head = el('div', null, {class:'hp-check-head'});
+      head.append(el('strong', uiText(label)), el('span', uiText(testWord[result]), {class:'hp-check-word'}));
+      li.append(el('span', testMark[result], {class:'hp-mark', 'aria-hidden':'true'}), head, el('div', line, {class:'hp-check-line'}));
+      return li;
+    }));
+    testBox.querySelector('[data-heating-test-abort-steps]').hidden = t.state !== 'stopped' || mode !== 'active';
+    const why = testBox.querySelector('[data-heating-test-why]'), route = newPlan && (mode + ':' + newPlan.reason);
+    why.textContent = !running && !owning && testWhy[route] ? uiText(testWhy[route]) : ''; why.hidden = !why.textContent;
+    testButton('start').hidden = running;
+    testButton('start').querySelector('span').textContent = uiText(mode !== 'active' && status?.readiness?.state !== 'ready' ? "Go straight to the boiler test"
+      : t.state === 'idle' ? "Start the boiler test" : "Start the boiler test again");
+    testButton('confirm').hidden = !running || t.step !== 'confirm' || !!a.confirmation;
+    testButton('skip-step').hidden = !running || t.step !== 'hot_water';
+    testButton('stop').hidden = !running;
+    // Not taken over yet: the test is the recommended path; skipping it or a trial run first are explicit choices.
+    testBox.querySelector('[data-heating-test-choices]').hidden = running || owning || mode !== 'active';
+  }
+  async function startTest() {
+    testMessage.textContent = uiText("Starting…");
+    try {
+      if (plan.mode !== 'active') plan = await post('/config/heating', {...plan, mode:'active'});
+      renderTest(await post('/config/heating/takeover-test', {action:'start'}), {active:{enabled:true}, mode:'active'});
+      testMessage.textContent = '';
+    } catch (error) {
+      testMessage.textContent = {no_room_reading:uiText("Add a room with a working temperature sensor first."), test_running:uiText("The test is already running."),
+        plan_changed:uiText("The plan was changed elsewhere (Home Assistant). It has been reloaded; make your change again.")}[error.code] || refused(error.code);
+      if (error.code === 'plan_changed') await load();
+    }
+    await refreshStatus();
+  }
+  const testAction = async action => {
+    try { await post('/config/heating/takeover-test', {action}); testMessage.textContent = ''; }
+    catch (error) { testMessage.textContent = refused(error.code); }
+    await refreshStatus();
+  };
+  // The trial run first: the plan goes to shadow mode; nothing else changes.
+  async function trialFirst() {
+    testMessage.textContent = uiText("Saving…");
+    try {
+      plan = await post('/config/heating', {...plan, mode:'shadow'});
+      testMessage.textContent = uiText("Trial run started. It is optional: start the boiler test whenever you are ready.");
+    } catch (error) {
+      testMessage.textContent = error.code === 'plan_changed' ? uiText("The plan was changed elsewhere (Home Assistant). It has been reloaded; make your change again.") : refused(error.code);
+      if (error.code === 'plan_changed') await load();
+    }
+    await refreshStatus();
+  }
   function renderActive(a) {
     const box = activeBox.querySelector('[data-heating-active-state]');
     activeBox.querySelector('[data-heating-active-gate]').hidden = !a || a.enabled;
@@ -649,6 +798,7 @@
     if (a.confirmation?.restored) lines.push(uiText("Restarted: listening 2 minutes for another thermostat before taking over again.")
       + (Number.isFinite(a.confirmation.listened_s) ? ' ' + uiText("({listened} of {total} s)").replace('{listened}', Math.min(a.confirmation.listened_s, 120)).replace('{total}', 120) : ''));
     if (a.confirmation_stored === true && a.confirmation) lines.push(uiText("Your confirmation is kept after a restart."));
+    if (a.reconfirm_required) lines.push(uiText("New firmware: the E32 controlled your boiler before. Check that your old thermostat is still disconnected, then confirm the takeover again."));
     notes.replaceChildren(...lines.map(t => el('p', t, {class:'mb-1'}))); notes.hidden = !lines.length;
     activeBox.querySelector('[data-heating-active-warnings]').replaceChildren(...a.warnings.map(w => el('li', uiText(warningText[w] || w))));
     activeBox.dataset.ready = '1';
@@ -669,13 +819,15 @@
       paintLock(fromHa(status.ha));
     }
     renderActive(status?.active);
-    renderMode(status?.mode || plan?.mode);
+    renderMode(status?.mode || plan?.mode, status?.active?.state);
     if (!status) { // keep the last good values; only a never-loaded section says so
       if (!shadowBox.dataset.ready) shadowBox.textContent = uiText("Status unavailable");
       return;
     }
     renderShadow(status.shadow); shadowBox.dataset.ready = '1';
     renderReadiness(status.readiness, status.mode || plan?.mode);
+    newPlan = status.new_plan && typeof status.new_plan === 'object' ? status.new_plan : null;
+    renderTest(status.readiness?.takeover_test, status);
     root.dispatchEvent(new CustomEvent('heating-status', {detail: status})); // the flow options below
     bleSensors = Array.isArray(status.ble_sensors) ? status.ble_sensors.filter(s => s && /^[0-9a-f]{12}$/.test(s.id)) : [];
     const key = bleSensors.map(s => s.id + s.name).join();
@@ -754,8 +906,15 @@
       if (error.node) { error.node.closest('details') && (error.node.closest('details').open = true); error.node.focus?.(); }
       return;
     }
+    // A first plan takes the route of the boiler bus (new_plan), once the E32 has listened long enough.
+    for (let wait = 0; newPlan && newPlan.stored === false && newPlan.reason === 'checking' && wait < 30; ++wait) {
+      message.textContent = uiText("Checking the boiler bus…");
+      await new Promise(done => setTimeout(done, 5000));
+      try { const s = await json('/status/heating'); newPlan = s.new_plan || null; } catch (_) {}
+    }
+    const mode = newPlan && newPlan.stored === false ? newPlan.mode : plan.mode;
     // The flow limits are set on the Boiler page; the room save keeps the plan's values.
-    const next = {schema:1, revision:plan.revision, mode:plan.mode, minimum_flow_c:plan.minimum_flow_c, maximum_flow_c:plan.maximum_flow_c, rooms};
+    const next = {schema:1, revision:plan.revision, mode, minimum_flow_c:plan.minimum_flow_c, maximum_flow_c:plan.maximum_flow_c, rooms};
     message.textContent = uiText("Saving…");
     try {
       plan = await json('/config/heating', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(next)});
@@ -808,8 +967,15 @@
       await refreshStatus();
     }
   };
-  takeover.addEventListener('click', () => plan && confirm(uiText("Confirm that your current thermostat is disconnected from the boiler. The E32 then controls the heating; never connect two thermostats to the boiler at the same time."))
-    && switchOver('active', "Confirmed. The E32 takes over the boiler within a minute."));
+  const confirmTakeover = () => plan && confirm(uiText("Confirm that your current thermostat is disconnected from the boiler. The E32 then controls the heating; never connect two thermostats to the boiler at the same time."))
+    && switchOver('active', "Confirmed. The E32 takes over the boiler within a minute.");
+  takeover.addEventListener('click', confirmTakeover);
+  testButton('confirm').addEventListener('click', confirmTakeover);
+  testButton('skip').addEventListener('click', confirmTakeover);
+  testButton('start').addEventListener('click', () => plan && startTest());
+  testButton('stop').addEventListener('click', () => testAction('stop'));
+  testButton('skip-step').addEventListener('click', () => testAction('skip'));
+  root.querySelector('[data-heating-trial]').addEventListener('click', () => plan && trialFirst());
   handback.addEventListener('click', () => plan && !handback.disabled && handBack());
   load();
   timer = setInterval(refreshStatus, 10000);

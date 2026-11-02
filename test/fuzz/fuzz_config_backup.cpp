@@ -83,7 +83,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
     }
     if (!prepared.plan.empty()) {
         RoomPlan p;
-        if (RoomPlan::parse(parsed(prepared.plan).get(), p) || p.mode != RoomPlan::Mode::shadow) otfuzz::invariant("plan candidate invalid");
+        if (RoomPlan::parse(parsed(prepared.plan).get(), p)) otfuzz::invariant("plan candidate invalid");
     }
     if (!prepared.flow.empty()) { FlowSettings f; if (FlowSettings::parse(parsed(prepared.flow).get(), f)) otfuzz::invariant("flow candidate invalid"); }
     if (!prepared.learned.empty() && !LearnedState::validBundle(prepared.learned)) otfuzz::invariant("learned candidate invalid");

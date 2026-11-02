@@ -4,21 +4,24 @@
 #include <esp_partition.h>
 #include "control/ControlPartitionBudget.h"
 #include "control/ControlModelStorageReservation.h"
+#include "control/RoomPlan.h"
 #include <string>
 namespace heating {
 // The room plan (control/RoomPlan.h) as one private NVS blob, like the
 // Bluetooth settings: read back after every commit, never partially written.
-inline constexpr const char* emptyHeatingPlan =
-    R"({"schema":1,"mode":"shadow","minimum_flow_c":30,"maximum_flow_c":60,"rooms":[]})";
+// Without a stored plan: an empty new plan, whose mode then follows the boiler bus
+// (control/NewPlanDefault.h); `stored` tells which.
+inline std::string emptyHeatingPlan() { return control::RoomPlan{}.documentJson(); }
 
-inline std::string readHeatingPlan() {
+inline std::string readHeatingPlan(bool* stored = nullptr) {
+    if (stored) *stored = true;
     nvs_handle_t handle;
     auto error = nvs_open("ot_heating", NVS_READONLY, &handle);
-    if (error == ESP_ERR_NVS_NOT_FOUND) return emptyHeatingPlan; // reading creates nothing
+    if (error == ESP_ERR_NVS_NOT_FOUND) { if (stored) *stored = false; return emptyHeatingPlan(); } // reading creates nothing
     if (error != ESP_OK) return {};
     size_t size = 0;
     error = nvs_get_blob(handle, "plan", nullptr, &size);
-    if (error == ESP_ERR_NVS_NOT_FOUND) { nvs_close(handle); return emptyHeatingPlan; }
+    if (error == ESP_ERR_NVS_NOT_FOUND) { nvs_close(handle); if (stored) *stored = false; return emptyHeatingPlan(); }
     if (error != ESP_OK || size < 3 || size > control::ControlPartitionBudget::configBytes) { nvs_close(handle); return {}; }
     std::string raw;
     try { raw.assign(size, '\0'); } catch (...) { nvs_close(handle); return {}; }
@@ -46,6 +49,28 @@ inline HeatingPlanSave saveHeatingPlan(const std::string& raw) {
     nvs_close(handle);
     return committed && readHeatingPlan() == raw ? HeatingPlanSave::saved : HeatingPlanSave::failed;
 }
+// A short text beside the plan, written only when it changes: "takeover_test" (the guided
+// boiler test's result, control/TakeoverTest.h) and "owned" (the E32 took over the boiler once).
+struct HeatingNoteNvs {
+    const char* key;
+    std::string read() const {
+        nvs_handle_t handle;
+        if (nvs_open("ot_heating", NVS_READONLY, &handle) != ESP_OK) return {};
+        char text[64] = {};
+        size_t size = sizeof(text);
+        const bool ok = nvs_get_str(handle, key, text, &size) == ESP_OK;
+        nvs_close(handle);
+        return ok ? std::string(text) : std::string();
+    }
+    bool write(const std::string& text) const {
+        if (text.empty() || text.size() >= 64) return false;
+        nvs_handle_t handle;
+        if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
+        const bool committed = nvs_set_str(handle, key, text.c_str()) == ESP_OK && nvs_commit(handle) == ESP_OK;
+        nvs_close(handle);
+        return committed && read() == text;
+    }
+};
 // The owner's handover confirmation (control/HandoverConfirmation.h): one short
 // string beside the plan, written only when the confirmation changes.
 struct HandoverNvs {

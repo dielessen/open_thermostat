@@ -17,8 +17,10 @@ when no backup succeeded for 3 days and goes with the next success.
 
 A restore (Configure -> Advanced -> Restore settings to this E32,
 e32_backup_flow.py) first lets the E32 check the file and show what changes,
-then applies exactly what was checked. The E32 restores the rooms in shadow
-mode and refuses while it controls the boiler or a boiler test runs.
+then applies exactly what was checked. The E32 restores the rooms in the mode
+of the backup (E32 rc.2; older firmware always in shadow mode), never with the
+takeover confirmation, and refuses while it controls the boiler or a boiler
+test runs.
 
 The passphrase, the E32 password and the secrets never reach a log, an error
 message, the diagnostics download or an entity attribute.
@@ -683,8 +685,16 @@ _WARNINGS = {
     "weather_managed_kept": ("Weather settings are managed by Home Assistant and stay as they are.",
                              "De weerinstellingen worden door Home Assistant beheerd en blijven zoals ze zijn.",
                              "Ustawieniami pogody zarządza Home Assistant; pozostają bez zmian."),
+    # E32 before rc.2: the rooms always came back in the trial run.
     "plan_mode_shadow": ("The rooms are restored in the trial run.", "De ruimtes worden teruggezet in de proefperiode.",
                          "Pomieszczenia zostaną przywrócone w okresie próbnym."),
+    # rc.2: an active plan stays active; the takeover is confirmed on the E32 itself.
+    "plan_takeover_confirm": ("The rooms keep E32 control from the backup. A new or reset E32 sends nothing to the boiler "
+                              "until you confirm the takeover on its Rooms page.",
+                              "De ruimtes houden de regeling door de E32 uit de back-up. Een nieuwe of gewiste E32 stuurt "
+                              "niets naar de ketel tot je de overname bevestigt op zijn pagina Ruimtes.",
+                              "Pomieszczenia zachowają sterowanie przez E32 z kopii. Nowy lub zresetowany E32 nic nie "
+                              "wysyła do kotła, dopóki nie potwierdzisz przejęcia na jego stronie „Rooms”."),
     "wifi_not_restored": ("Wi-Fi is not changed by a restore.", "Terugzetten verandert de wifi niet.",
                           "Przywracanie nie zmienia Wi-Fi."),
     "secrets_skipped": ("Passwords and keys in the backup are skipped.",

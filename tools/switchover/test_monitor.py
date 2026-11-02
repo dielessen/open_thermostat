@@ -480,6 +480,17 @@ class Alarms(Base):
         self.step()
         self.assertIn('awaiting_confirmation', self.keys())
 
+    def test_a_new_installation_before_its_first_takeover_is_no_alarm(self):
+        h = heating(state='awaiting_confirmation', confirmation=False)
+        h['active']['taken_over_before'] = False
+        self.e32.set('/status/heating', h)
+        self.step(5)
+        self.assertNotIn('awaiting_confirmation', self.keys())
+        h['active']['taken_over_before'] = True
+        self.e32.set('/status/heating', h)
+        self.step(3)
+        self.assertIn('awaiting_confirmation', self.keys())
+
     def test_frost_not_protected(self):
         h = heating(heat=False, temp=21.5, setpoint=21.0)
         h['rooms'][1]['temperature'] = 7.4

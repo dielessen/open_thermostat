@@ -161,3 +161,29 @@ async def test_the_dashboard_shows_the_check_next_to_the_comparison(hass):
     dutch = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"][3]["sections"][0]["cards"]
     assert dutch[0]["heading"] == "Klaar om over te nemen?"
     assert "Klaar: volg de stappen voor de overschakeling." in dutch[1]["content"]
+
+
+def test_the_guided_boiler_test_is_shown_in_every_state():
+    """E32 rc.2: the boiler test's result comes with the readiness, also in active mode (not_applicable)."""
+    steps = {"disconnect": "pass", "confirm": "pass", "start": "pass", "hot_water": "skipped", "stop": "pass"}
+    passed = {"state": "passed", "at": 1762077600, "steps": steps, "reason": None}
+    state, attributes = evaluate({"state": "not_applicable", "takeover_test": passed}, now=NOW)
+    assert state == "not_applicable"
+    assert attributes == {"boiler_test": "passed", "boiler_test_at": "2025-11-02T10:00+00:00", "boiler_test_steps": steps,
+                          "boiler_test_step": None, "boiler_test_reason": None}
+    running = {"state": "running", "at": None, "reason": None, "step": "start", "phase": "waiting_burner",
+               "steps": {"disconnect": "pass", "confirm": "pass", "start": "wait", "hot_water": "not_run", "stop": "x"}}
+    _, attributes = evaluate({"state": "not_applicable", "takeover_test": running}, now=NOW)
+    assert attributes["boiler_test"] == "running" and attributes["boiler_test_step"] == "start"
+    assert attributes["boiler_test_at"] is None
+    assert attributes["boiler_test_steps"]["stop"] == "not_run"  # an unknown result is not passed on
+    # The trial run (shadow) lists it beside the criteria; a failure keeps its reason.
+    failed = {"state": "stopped", "at": 0, "steps": {**steps, "hot_water": "fail"}, "reason": "foreign_controller"}
+    state, attributes = evaluate({**OWNER, "takeover_test": failed}, now=NOW)
+    assert state == "waiting"
+    assert attributes["boiler_test"] == "stopped" and attributes["boiler_test_reason"] == "foreign_controller"
+    assert attributes["periods"] == "wait"
+    # Firmware without the test: nothing new, active mode keeps no attributes.
+    assert evaluate({"state": "not_applicable"}, now=NOW) == ("not_applicable", None)
+    assert "boiler_test" not in evaluate(OWNER, now=NOW)[1]
+    assert evaluate({"state": "not_applicable", "takeover_test": {"state": "bogus"}}, now=NOW) == ("not_applicable", None)

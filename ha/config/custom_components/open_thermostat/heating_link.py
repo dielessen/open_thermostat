@@ -945,8 +945,10 @@ class HeatRequestSensor(HubEntity, SensorEntity):
         if not self.hub.fresh:
             return None
         status = self.hub.status
+        active = status.get("active") if type(status.get("active")) is dict else {}
+        # control: the active-control state (E32 1.0), e.g. awaiting_confirmation before the takeover.
         return {"mode": status["mode"], "reason": status["request"]["reason"], "rooms": status["rooms"],
-                "revision": self.hub.revision}
+                "revision": self.hub.revision, "control": active.get("state") if type(active.get("state")) is str else None}
 
 
 class RoomTemperatureSensor(RoomEntity, SensorEntity):

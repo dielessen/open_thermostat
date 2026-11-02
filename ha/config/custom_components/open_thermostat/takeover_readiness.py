@@ -12,7 +12,14 @@ lost network) restarts the 72 hours from the moment it was heard again, as
 shadow_exit.py counts an offline stretch. The sensor then says "waiting".
 
 One sensor, no repair issue: ready / waiting / not_ready / not_applicable
-(the E32 already controls the boiler), with the criteria as attributes.
+(active mode: the E32 controls the boiler or waits for the takeover), with the
+criteria as attributes. Since E32 rc.2 the trial run is optional: a new plan
+starts active and the guided "Boiler test and takeover" on the E32 Rooms page
+leads to the takeover. Its result comes with the readiness (``takeover_test``)
+and is shown in every state: ``boiler_test`` (idle / running / passed / failed
+/ stopped / aborted), ``boiler_test_at``, ``boiler_test_steps`` (per step pass,
+wait, fail, skipped, aborted or not_run), ``boiler_test_step`` and
+``boiler_test_reason``.
 """
 import time
 from datetime import datetime, timezone
@@ -47,6 +54,26 @@ NEEDED = {"stable": ("stable_hours_needed", STABLE_HOURS), "periods": ("periods_
           "timing": ("timing_events_needed", EVENTS_NEEDED)}
 # The attribute of each criterion's result (the flow criterion is the hard limit).
 RESULT_ATTRIBUTE = {"flow": "flow_limit"}
+# The guided boiler test (E32 rc.2, src/control/TakeoverTest.h).
+TEST_STATES = ("idle", "running", "passed", "failed", "stopped", "aborted")
+TEST_STEPS = ("disconnect", "confirm", "start", "hot_water", "stop")
+TEST_RESULTS = ("pass", "wait", "fail", "skipped", "aborted", "not_run")
+
+
+def takeover_test(readiness):
+    """The guided boiler test's result as attributes; {} on firmware without it."""
+    test = readiness.get("takeover_test") if readiness else None
+    if type(test) is not dict or test.get("state") not in TEST_STATES:
+        return {}
+    steps = test.get("steps") if type(test.get("steps")) is dict else {}
+    at = test.get("at")
+    running = test["state"] == "running"
+    return {"boiler_test": test["state"],
+            "boiler_test_at": (datetime.fromtimestamp(at, timezone.utc).isoformat(timespec="minutes")
+                               if type(at) in (int, float) and at > 0 else None),
+            "boiler_test_steps": {key: steps.get(key) if steps.get(key) in TEST_RESULTS else "not_run" for key in TEST_STEPS},
+            "boiler_test_step": test.get("step") if running and test.get("step") in TEST_STEPS else None,
+            "boiler_test_reason": test.get("reason") if type(test.get("reason")) is str else None}
 
 
 def readiness_status(status):
@@ -70,10 +97,11 @@ def evaluate(readiness, outage_end=None, now=None):
     """
     if readiness is None:
         return None, None
+    test = takeover_test(readiness)
     if readiness["state"] == "not_applicable":
-        return "not_applicable", None
+        return "not_applicable", test or None
     now = time.time() if now is None else now
-    attributes = {"comparison": readiness.get("comparison") is True}
+    attributes = {"comparison": readiness.get("comparison") is True, **test}
     results = []
     for key, figures in FIGURES.items():
         item = readiness.get(key)

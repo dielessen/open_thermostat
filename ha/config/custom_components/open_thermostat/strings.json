@@ -7,7 +7,7 @@
           "legacy": "Older OpenThermostat firmware (ib-therm)",
           "shadow": "OpenThermostat E32 (recommended)"
         },
-        "description": "Choose your OpenThermostat. With the E32 the E32 calculates along; your current thermostat keeps controlling the boiler until you switch over."
+        "description": "Choose your OpenThermostat. With the E32, the E32 page then guides you: while your old thermostat still sends requests to the boiler, the E32 first runs a trial run beside it; without one it goes straight to a boiler test and the takeover. It sends nothing to the boiler until you confirm that your old thermostat is disconnected."
       },
       "confirm": {
         "title": "OpenThermostat detected",
@@ -33,7 +33,7 @@
       },
       "shadow": {
         "title": "Connect an OpenThermostat E32",
-        "description": "During the trial run the E32 only calculates; your current thermostat keeps controlling the boiler and nothing is sent to the boiler. Home Assistant does set the target temperature on each room's setting device (radiator valve, tado or number helper) according to that room's week program. Normally you connect the E32 later with Configure → E32 connection, which fills in the connection ID for you.",
+        "description": "The E32 sends nothing to the boiler until you confirm the takeover on its Rooms page, best through the boiler test there. While your old thermostat is still on the boiler bus, the E32 first runs a trial run beside it (it only calculates and compares); you can always choose the other route there. Home Assistant does set the target temperature on each room's setting device (radiator valve, tado or number helper) according to that room's week program. Normally you connect the E32 later with Configure → E32 connection, which fills in the connection ID for you.",
         "data": {
           "topic_prefix": "MQTT prefix of the E32",
           "adapter_id": "Connection ID (filled in for you)"
@@ -783,7 +783,7 @@
       },
       "e32_restore_confirm": {
         "title": "Restore these settings?",
-        "description": "Backup of {created}, as the E32 checked it:\n\n{summary}\n\nThe E32 comes back in the trial run: it calculates but does not control the boiler. If it controlled your boiler before, switch over again on the E32 page afterwards (Rooms → Active control). Before the restore Home Assistant also saves a backup of the E32 as it is now.",
+        "description": "Backup of {created}, as the E32 checked it:\n\n{summary}\n\nThe rooms keep the mode of the backup. The takeover of the boiler is not part of a backup: a new or reset E32 sends nothing to the boiler until you confirm the takeover on its page (Rooms → Boiler test and takeover). Before the restore Home Assistant also saves a backup of the E32 as it is now.",
         "data": {
           "confirm": "Restore these settings on this E32"
         },
@@ -1031,10 +1031,10 @@
       "e32_restore_no_backups": "Home Assistant has no E32 backup yet. Make one with the Back up E32 settings now button on the E32 device.",
       "e32_restore_nothing": "Nothing to restore: this E32 already has exactly these settings.",
       "e32_restore_cancelled": "The restore was cancelled; nothing was changed.",
-      "e32_restore_done_online": "Settings restored. The E32 restarted and answers again. The rooms are in shadow mode; confirm the takeover again on the E32 page if it should control the boiler.\n\nEnter these again on the E32 page:\n{reenter}",
-      "e32_restore_done_waiting": "Settings restored. The E32 is restarting and did not answer yet; Home Assistant reconnects by itself as soon as it is back. The rooms are in shadow mode; confirm the takeover again on the E32 page if it should control the boiler.\n\nEnter these again on the E32 page:\n{reenter}",
-      "e32_restore_done_restart": "Settings restored. Restart the E32 (System → Restart device on its page) to use all of them. The rooms are in shadow mode; confirm the takeover again on the E32 page if it should control the boiler.\n\nEnter these again on the E32 page:\n{reenter}",
-      "e32_restore_done": "Settings restored. The rooms are in shadow mode; confirm the takeover again on the E32 page if it should control the boiler.\n\nEnter these again on the E32 page:\n{reenter}",
+      "e32_restore_done_online": "Settings restored. The E32 restarted and answers again. The rooms keep the mode of the backup; a new or reset E32 controls the boiler only after you confirm the takeover on its Rooms page.\n\nEnter these again on the E32 page:\n{reenter}",
+      "e32_restore_done_waiting": "Settings restored. The E32 is restarting and did not answer yet; Home Assistant reconnects by itself as soon as it is back. The rooms keep the mode of the backup; a new or reset E32 controls the boiler only after you confirm the takeover on its Rooms page.\n\nEnter these again on the E32 page:\n{reenter}",
+      "e32_restore_done_restart": "Settings restored. Restart the E32 (System → Restart device on its page) to use all of them. The rooms keep the mode of the backup; a new or reset E32 controls the boiler only after you confirm the takeover on its Rooms page.\n\nEnter these again on the E32 page:\n{reenter}",
+      "e32_restore_done": "Settings restored. The rooms keep the mode of the backup; a new or reset E32 controls the boiler only after you confirm the takeover on its Rooms page.\n\nEnter these again on the E32 page:\n{reenter}",
       "e32_restore_adopted": "Done: Home Assistant uses this E32 from now on. Nothing was restored; it already had these settings."
     },
     "progress": {

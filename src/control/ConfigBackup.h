@@ -645,18 +645,17 @@ inline const char* prepareBluetooth(const cJSON* backup, const DeviceState& s, c
     return nullptr;
 }
 
-// The room plan through RoomPlan::parse; always restored in shadow mode, so a
-// restore never starts active boiler control.
+// The room plan through RoomPlan::parse, in the mode of the backup (rc.2: an
+// active plan stays active). The takeover confirmation is no part of a backup:
+// a new or reset E32 sends nothing to the boiler until its owner confirms the
+// takeover there (plan_takeover_confirm says so).
 inline const char* preparePlan(const cJSON* backup, const DeviceState& s, std::string& out, Report& report) {
     const auto heating = item(backup, "heating");
     if (!heating) return nullptr;
     ControlJson copy(cJSON_Duplicate(heating, true), cJSON_Delete);
     if (!copy) return "out_of_memory";
     cJSON_DeleteItemFromObjectCaseSensitive(copy.get(), "revision");
-    if (text(item(copy.get(), "mode")) == "active") {
-        if (!put(copy.get(), "mode", cJSON_CreateString("shadow"))) return "out_of_memory";
-        report.warn("plan_mode_shadow");
-    }
+    if (text(item(copy.get(), "mode")) == "active") report.warn("plan_takeover_confirm");
     RoomPlan next, old;
     if (const char* e = RoomPlan::parse(copy.get(), next)) { report.warn("heating", e); return "heating_invalid"; }
     if (next.storedJson().size() + 1 > RoomPlan::storeBytes) { report.warn("heating", "plan_too_large"); return "heating_invalid"; }

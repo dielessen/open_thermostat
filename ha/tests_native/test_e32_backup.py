@@ -105,7 +105,7 @@ class FakeBackupE32:
                         {"section": "network", "field": "mqtt.password", "hidden": True}]
                     return {"valid": True, "fingerprint": fingerprint, "restart": bool(changes),
                             "secrets_sealed": True, "secrets_restored": True, "language": None,
-                            "changes": changes, "warnings": ["plan_mode_shadow", "unknown_key:network.future"],
+                            "changes": changes, "warnings": ["plan_takeover_confirm", "unknown_key:network.future"],
                             "reenter": ["bluetooth_key:Zolder"]}, 200
                 if request.get("fingerprint") != fingerprint:
                     raise BackupRejected(409, "settings_changed")
@@ -442,7 +442,7 @@ async def test_restore_checks_shows_the_summary_and_restores_only_after_the_tick
     assert confirm["step_id"] == "e32_restore_confirm", confirm
     summary = confirm["description_placeholders"]["summary"]
     assert "Network · Device name: zolder → kelder" in summary and "MQTT password: will change" in summary
-    assert "trial run" in summary and "future" in summary and "Bluetooth key for Zolder" in summary
+    assert "confirm the takeover on its Rooms page" in summary and "future" in summary and "Bluetooth key for Zolder" in summary
     assert [c["action"] for c in e32.calls] == ["export", "validate"] and e32.hostname == "zolder"
     refused = await manager.async_configure(confirm["flow_id"], {"confirm": False})
     assert refused["errors"] == {"base": "e32_restore_confirm_required"} and e32.hostname == "zolder"
@@ -786,3 +786,28 @@ def test_the_summary_names_the_tuning_and_what_the_thermostat_learned():
         text = summary_text(summary, language)
         assert all(word in text for word in words), (language, text)
         assert "- learned:" not in text and "tuning:" not in text and "learned_skipped" not in text
+
+
+def test_a_restore_keeps_the_mode_and_says_how_the_takeover_is_confirmed():
+    """E32 rc.2: an active plan stays active; the takeover is never part of a backup (EN/NL/PL)."""
+    summary = {"changes": [], "warnings": ["plan_takeover_confirm"], "reenter": [], "restart": False}
+    assert ("The rooms keep E32 control from the backup. A new or reset E32 sends nothing to the boiler until you "
+            "confirm the takeover on its Rooms page.") in summary_text(summary, "en")
+    assert "Een nieuwe of gewiste E32 stuurt niets naar de ketel tot je de overname bevestigt" in summary_text(summary, "nl")
+    assert "nic nie wysyła do kotła, dopóki nie potwierdzisz przejęcia" in summary_text(summary, "pl")
+    assert "plan_takeover_confirm" not in summary_text(summary, "en")
+    # An older E32 still reports the trial-run restore in its own words.
+    assert "The rooms are restored in the trial run." in summary_text({**summary, "warnings": ["plan_mode_shadow"]}, "en")
+    # The confirm and done texts no longer promise the trial run.
+    from pathlib import Path
+    base = Path(module.__file__).parent
+    for name, kept in (("strings.json", "keep the mode of the backup"), ("translations/nl.json", "houden de modus uit de back-up"),
+                       ("translations/pl.json", "zachowają tryb z kopii")):
+        options = json.loads((base / name).read_text(encoding="utf-8"))["options"]
+        texts = [options["step"]["e32_restore_confirm"]["description"]] + [
+            v for k, v in options["abort"].items() if k.startswith("e32_restore_done")]
+        assert len(texts) == 5, name
+        for text in texts:
+            assert kept in text, (name, text)
+            assert not any(word in text for word in ("shadow mode", "trial run", "schaduwmodus", "proefperiode",
+                                                     "trybie cienia", "okresie próbnym")), (name, text)

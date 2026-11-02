@@ -55,6 +55,7 @@ struct RoomPlan {
         uint8_t pointLevel(size_t day, size_t i) const { return uint8_t(pointLevels[day] >> (2 * i) & 3); }
     };
     uint32_t revision = 0;  // +1 on every save; a write must name the revision it was based on
+    // A new plan's mode follows the boiler bus (NewPlanDefault.h): shadow until decided.
     Mode mode = Mode::shadow;
     // Flow limits for this home: minimum 20..79, maximum 21..80 degC (default 60).
     // The boiler's own heating limit still caps every request (ActiveHeatGuard).

@@ -34,7 +34,8 @@ namespace heating::control {
 //    stay within 0.15 degC of their target (mean) widen it (so about 0.35 at most);
 //    at most 1.5 starts per heating hour bring a widened one back towards 0.20;
 //  - room correction gain (flow_per_degree_c, 5..20, 1): towards the learned
-//    minutes per degC / 9 (90 min: 10), raised only without overshoot;
+//    minutes per degC / 9 (90 min: 10), raised only on at least 5 cycles with
+//    an overshoot of at most 0.20 degC (an overshoot lowers the margin first);
 //  - unlearned warm-up leads (floor 30..360 / 30, radiators 10..180 / 15 min):
 //    towards the learned minutes per degC of those rooms.
 // The other knobs stay the owner's. Evidence: at least 6 heating hours and 5
@@ -207,7 +208,8 @@ public:
         int room = -1;
         if (const auto m = enough && !(changed_ & 16) ? mean(-1, room) : std::nullopt) {
             const int target = std::clamp((*m + 4) / 9, 5, 20);
-            if (target > v.flowPerDegreeC && (!over || over->first <= 20)) propose(4, v.flowPerDegreeC + 1, 5, 20, Reason::roomResponse, int16_t(*m), room);
+            // Raised only on evidence: at least 5 cycles, all but a small overshoot (none: no raise).
+            if (target > v.flowPerDegreeC && over && over->first <= 20) propose(4, v.flowPerDegreeC + 1, 5, 20, Reason::roomResponse, int16_t(*m), room);
             else if (target < v.flowPerDegreeC) propose(4, v.flowPerDegreeC - 1, 5, 20, Reason::roomResponse, int16_t(*m), room);
         }
         for (const int e : {int(RoomPlan::Emitter::floor), int(RoomPlan::Emitter::radiator)}) {
@@ -338,7 +340,9 @@ private:
         if (wouldCount_ < would_.size()) would_[wouldCount_++] = c;
         if (!apply_) return;
         values_.*k[knob].field = uint16_t(to);
-        if (knob == 3 || knob == 4) overCount_ = {}; // the overshoot starts anew
+        // The overshoot starts anew after a margin step or a gentler gain; a raise keeps the
+        // evidence (it was raised on it), so a cycle-poor floor cannot be raised day after day.
+        if (knob == 3 || (knob == 4 && to < from)) overCount_ = {};
         std::move_backward(log_.begin(), log_.end() - 1, log_.end());
         log_[0] = c; logCount_ = std::min(logCount_ + 1, logSize);
     }

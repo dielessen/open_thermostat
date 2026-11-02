@@ -266,6 +266,29 @@ TEST(AutoTuner, OvershootLowersTheStopMarginThenTheGain) {
     EXPECT_EQ(e.tuning().stopCentiC, 20);
 }
 
+// Review of rc.2 (finding 2): a slow floor that overshoots 0.5 degC every cycle
+// but closes only 3 cycles a day never had 5 cycles of evidence, because every
+// gain raise wiped it; so the gain rose daily (11..15) with the stop margin unchanged.
+TEST(AutoTuner, NoGainRaiseWhileTheRoomOvershoots) {
+    Driver d;
+    d.rooms = plan({RoomPlan::Emitter::floor});
+    d.learned[0] = {RoomPlan::Emitter::floor, 180}; // target gain 20
+    // 3 requests a day of 3 h (the burner 10 min on, 10 off inside), each up to 0.50 above.
+    const auto probe = [](uint32_t t) {
+        const uint32_t phase = t % 28800;
+        S x; x.heat = x.demand = phase < 10800; x.burner = x.heat && (phase / 600) % 2 == 0;
+        x.reason = x.heat ? Reason::heating : Reason::satisfied;
+        x.temp = int16_t(phase < 10800 ? 1980 + 70 * int(phase) / 10800 : 2050 - 70 * int(phase - 10800) / 18000);
+        return x;
+    };
+    for (int i = 0; i < 5; ++i) {
+        d.day(probe);
+        EXPECT_LE(d.tuning().flowPerDegreeC, 10) << "day " << i + 1 << ": no raise while overshooting";
+    }
+    EXPECT_LT(d.tuning().stopCentiC, 20) << "the stop margin comes down first";
+    for (size_t i = 0; i < d.tuner.logCount(); ++i) EXPECT_NE(d.tuner.change(i).reason, AutoTuner::Reason::roomResponse);
+}
+
 TEST(AutoTuner, FewStartsNarrowAWidenedStartMargin) {
     Driver d;
     ASSERT_TRUE(d.tuner.restore(R"({"values":{"heat_start_c":0.35},"log":[]})"));

@@ -35,6 +35,26 @@ class ControllerLoginRejected(ControllerLinkError):
         super().__init__("controller_auth_failed")
 
 
+class ControllerPasswordChangeRequired(ControllerLinkError):
+    """The E32 still uses its factory password and refuses every change until a new one is chosen.
+
+    403 {"error":"password_change_required"} (rc.2). Reads keep working; the
+    Repairs issue "Choose a new E32 password" changes it (e32_access).
+    """
+
+    def __init__(self):
+        super().__init__("controller_password_change_required")
+
+
+class PasswordChangeRejected(ControllerLinkError):
+    """The E32 refused POST /auth/password with a named reason (password_too_short, password_wrong, ...)."""
+
+    def __init__(self, status, error):
+        super().__init__(error)
+        self.status = status
+        self.error = error
+
+
 class HeatingPlanRejected(ControllerLinkError):
     """The E32 refused a /config/heating write with a named reason (409 = plan_changed)."""
 
@@ -494,8 +514,8 @@ class ControllerClient:
     _reads = frozenset(("/auth/session", "/status/version", "/status", "/updates/status",
                         "/config/device", "/config/rooms", HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW,
                         HEATING_TRV, "/status/heating"))
-    _writes = frozenset(("/auth/login", "/auth/logout", "/config/device", "/updates/reboot", HEATING_PLAN,
-                         HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER, HEATING_TRV, CONFIG_BACKUP))
+    _writes = frozenset(("/auth/login", "/auth/logout", "/auth/password", "/config/device", "/updates/reboot",
+                         HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER, HEATING_TRV, CONFIG_BACKUP))
 
     def __init__(self, address):
         self.address = controller_address(address)
@@ -569,6 +589,10 @@ class ControllerClient:
                     headers=headers, allow_redirects=False, **extra) as response:
                 if response.status == 401 and method == "POST" and path == "/auth/login":
                     raise ControllerLoginRejected()
+                if path == "/auth/password" and response.status in (400, 403, 409, 503):
+                    raise PasswordChangeRejected(response.status, await _error_name(response))
+                if response.status == 403 and await _error_name(response) == "password_change_required":
+                    raise ControllerPasswordChangeRequired()
                 if response.status in (401, 403):
                     raise ControllerLinkError("controller_auth_failed")
                 if path in (HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER, HEATING_TRV) and response.status in (400, 409, 413, 503, 507):
@@ -591,6 +615,7 @@ class ControllerClient:
                     raise ControllerLinkError("controller_busy_or_conflict")
                 accepted = ({200, 201} if method == "POST" and path in ("/config/device", CONFIG_BACKUP)
                             else {202} if method == "POST" and path == "/updates/reboot"
+                            else {204} if method == "POST" and path == "/auth/password"
                             else {200})
                 if response.status not in accepted:
                     raise ControllerLinkError("controller_response_invalid")
@@ -622,6 +647,17 @@ class ControllerClient:
         self._csrf = session["csrf"]
         flag = session.get("default_password")
         self.default_password = flag if type(flag) is bool else None
+
+    async def async_change_password(self, current, new):
+        """POST /auth/password of a signed-in client: the E32 keeps this session, signs out all others.
+
+        Refusals raise PasswordChangeRejected (password_too_short, password_too_long,
+        password_wrong, password_change_busy, password_storage_failed). Neither
+        password is kept in this object or in an error.
+        """
+        if type(current) is not str or type(new) is not str or not current or not new:
+            raise ControllerLinkError("controller_request_invalid")
+        await self._request("POST", "/auth/password", document={"current": current, "new": new})
 
     async def _read_session(self):
         """GET /auth/session of a signed-in client: its CSRF proof (and default_password)."""
@@ -749,6 +785,8 @@ class ControllerClient:
         try:
             async with self._session.post(self.address + "/ota", data=body(), headers=headers,
                     allow_redirects=False, timeout=aiohttp.ClientTimeout(total=600)) as response:
+                if response.status == 403 and await _error_name(response) == "password_change_required":
+                    raise ControllerPasswordChangeRequired()
                 if response.status in (401, 403):
                     raise ControllerLinkError("controller_auth_failed")
                 if response.status == 409:

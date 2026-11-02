@@ -339,6 +339,9 @@ TEST(AutoTuner, ResetAndTheStoredRecord) {
     for (const char* bad : {"", "[]", R"({"values":{"min_on_s":1},"log":[]})", R"({"values":{},"log":[[1,"x",1,2,"many_starts",1,""]]})",
                             R"({"values":{},"log":[[1,"min_on_s",1,2,"why",1,""]]})", R"({"values":{}})"})
         EXPECT_FALSE(back.restore(bad)) << bad;
+    // A damaged record nested deeper than cJSON may recurse on the loop stack, or none at all.
+    EXPECT_FALSE(back.restore((R"({"values":{},"log":)" + std::string(300, '[')).c_str()));
+    EXPECT_FALSE(back.restore(nullptr));
     EXPECT_TRUE(back.values() == d.tuner.values());
     // Back to start values: built-in, no log, a day's wait.
     d.tuner.reset(d.now);

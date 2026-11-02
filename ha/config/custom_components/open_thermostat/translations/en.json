@@ -2971,7 +2971,8 @@
         "error": {
           "reconfirm_not_released": "This E32 firmware does not allow the E32 to control the boiler. Nothing was changed.",
           "reconfirm_unconfirmed": "The E32 did not confirm. Check the E32 Rooms page → Active control.",
-          "e32_unreachable": "The E32 cannot be reached right now. Try again in a moment."
+          "e32_unreachable": "The E32 cannot be reached right now. Try again in a moment.",
+          "e32_password_change_required": "The E32 still uses its default password and accepts no changes. Choose a new E32 password first (Settings → Repairs), then confirm here."
         },
         "abort": {
           "reconfirm_done": "The E32 no longer waits for a confirmation.",
@@ -3006,7 +3007,36 @@
     },
     "e32_default_password": {
       "title": "E32 still uses the default password",
-      "description": "{name}: the E32 still uses the default password admin/admin, so anyone on your network can change your heating. Change it on the E32 web page: System → Password (the Overview there has a Change password button too). Home Assistant then asks you once for the new password (Settings → Devices & services), and this message disappears."
+      "fix_flow": {
+        "step": {
+          "choose_password": {
+            "title": "Choose a new E32 password",
+            "description": "{name}: the E32 still uses the default password admin, so anyone on your network could change your heating. Until you choose a new password, the E32 accepts no changes: Home Assistant can still read it and the heating keeps running on its current plan, but changes to rooms, targets and settings and firmware updates wait. Giving control back to your old thermostat on the E32 Rooms page always works.\n\nChoose a new password of 8 to 64 characters. Home Assistant changes it on the E32 and stores it for this connection. Sign in to the E32 web page with it from now on (user name admin).",
+            "data": {
+              "new_password": "New E32 password",
+              "repeat_password": "Repeat the new password"
+            },
+            "data_description": {
+              "new_password": "8 to 64 characters. Keep it somewhere safe: you need it for the E32 web page."
+            }
+          }
+        },
+        "error": {
+          "password_mismatch": "The two passwords are not the same.",
+          "password_too_short": "Use at least 8 characters.",
+          "password_too_long": "Use at most 64 characters.",
+          "e32_password_stored_wrong": "The E32 did not accept the password Home Assistant has stored, so it was probably changed on the E32 already. Home Assistant asks for the current password under Settings → Devices & services.",
+          "e32_busy": "The E32 is busy with an update. Try again when it has finished.",
+          "e32_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again.",
+          "e32_session_capacity": "The E32 has no free web session. Close E32 pages you do not use, or wait two minutes, then try again.",
+          "e32_unreachable": "The E32 cannot be reached right now. Try again in a moment.",
+          "e32_password_not_saved": "The E32 could not confirm that the new password was saved. Try again; until then the old password may still apply."
+        },
+        "abort": {
+          "e32_password_no_connection": "Home Assistant has no stored E32 connection for this entry. Connect the E32 first (Configure → E32 connection).",
+          "e32_password_already_changed": "The E32 no longer uses the default password. Nothing was changed."
+        }
+      }
     },
     "e32_no_free_session": {
       "title": "E32 has no free web session",
@@ -3045,7 +3075,8 @@
           "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again.",
           "e32_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (Home Assistant: Settings → Updates → OpenThermostat E32 Firmware → Install), then try again. Nothing has been changed.",
           "e32_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
-          "e32_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again."
+          "e32_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again.",
+          "e32_password_change_required": "The E32 still uses its default password and accepts no changes until you choose a new one. Open Settings → Repairs → “Choose a new E32 password”. Nothing was saved."
         },
         "abort": {
           "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
@@ -3086,7 +3117,8 @@
           "legacy_rooms_plan_unreadable": "The E32 room plan could not be read, so nothing has been removed. Check that the E32 is on and connected, then try again.",
           "e32_update_required": "The E32 runs firmware that is too old for this. Update the E32 to beta.19 or newer first (Home Assistant: Settings → Updates → OpenThermostat E32 Firmware → Install), then try again. Nothing has been changed.",
           "e32_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
-          "e32_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again."
+          "e32_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again.",
+          "e32_password_change_required": "The E32 still uses its default password and accepts no changes until you choose a new one. Open Settings → Repairs → “Choose a new E32 password”. Nothing was saved."
         },
         "abort": {
           "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
@@ -3333,6 +3365,9 @@
     },
     "e32_backup_failed": {
       "message": "The backup of the E32 settings failed. Try again in a minute."
+    },
+    "e32_password_change_required": {
+      "message": "The E32 still uses its default password and accepts no changes until you choose a new one. Open Settings → Repairs → “Choose a new E32 password”. Nothing was saved."
     }
   },
   "device": {

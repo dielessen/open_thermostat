@@ -41,7 +41,7 @@ using esp_err_t=int;
 using esp_ota_handle_t=unsigned;
 constexpr int ESP_OK=0;
 constexpr size_t OTA_WITH_SEQUENTIAL_WRITES=0xfffffffe; // esp_ota_ops.h v4.4.7
-struct esp_partition_t {size_t size=8;};
+struct esp_partition_t {size_t size=256;};
 struct Native {
     esp_partition_t partition;
     bool partitionAvailable=true,beginOk=true,writeOk=true,endOk=true,selectOk=true;
@@ -68,10 +68,19 @@ std::atomic<bool> httpUploadActive{false};
 using namespace heating;
 struct String:std::string {using std::string::string;};
 enum HTTPUploadStatus {UPLOAD_FILE_START,UPLOAD_FILE_WRITE,UPLOAD_FILE_END,UPLOAD_FILE_ABORTED};
-struct HTTPUpload {HTTPUploadStatus status=UPLOAD_FILE_START;size_t currentSize=0;char buf[8]={};};
+// One 256-byte OpenThermostat E32 V2 image: an ESP32 app header and the build marker (the E32
+// build refuses any other image, update/ManualAppUpload.h).
+struct HTTPUpload {
+    HTTPUploadStatus status=UPLOAD_FILE_START;size_t currentSize=0;char buf[256]={};
+    HTTPUpload(){buf[0]=char(0xe9);buf[3]=char(0x40);board(true);}
+    void board(bool ours){
+        const std::string marker=std::string(ours?"OT_E32V2_OTA_V1:":"OT_OTHER_IMAGE_:")+"v1.0.0-rc.2:"+std::string(40,'a')+":"+std::string(64,'b')+":END";
+        for(size_t i=0;i<marker.size();++i)buf[32+i]=marker[i];
+    }
+};
 struct Server {
     HTTPUpload current;
-    String declared="8",path="/ota";
+    String declared="256",path="/ota";
     std::function<void()> callback;
     std::vector<int> statuses;
     std::vector<std::string> bodies;
@@ -100,7 +109,7 @@ int cases=0;
 void pass(const char *name){++cases;std::cout<<"PASS "<<name<<'\n';}
 void event(REST &r,HTTPUploadStatus type,size_t size=0){r.server_.current.status=type;r.server_.current.currentSize=size;r.handleOTAUpdate();}
 void finalHandler(REST &r){if(r.authorize())r.handleOTAResponse();}
-void data(REST &r){event(r,UPLOAD_FILE_START);event(r,UPLOAD_FILE_WRITE,8);event(r,UPLOAD_FILE_END);}
+void data(REST &r){event(r,UPLOAD_FILE_START);event(r,UPLOAD_FILE_WRITE,256);event(r,UPLOAD_FILE_END);}
 int main(){
     {
         native={};REST r;r.server_.callback=[&]{data(r);assert(native.selects==0);finalHandler(r);};r.handle();
@@ -113,16 +122,22 @@ int main(){
         assert(r.controller_.settingsPermission==std::vector<bool>({true,false,false,false}));
         pass("next empty request cannot select a stale successful upload");
     }
-    for(const char *size:{"","0","-1","8x","9","99999999999999999999999999"}) {
+    for(const char *size:{"","0","-1","8x","257","99999999999999999999999999"}) {
         native={};REST r;r.server_.declared=size;r.server_.callback=[&]{data(r);finalHandler(r);};r.handle();
         assert(native.begins==0&&native.selects==0&&native.reboots==0&&r.server_.statuses.back()==500);
     }
     pass("malformed or oversized declared length rejected before native erase");
-    for(int received:{7,9}) {
+    for(int received:{255,257}) {
         native={};REST r;r.server_.callback=[&]{event(r,UPLOAD_FILE_START);event(r,UPLOAD_FILE_WRITE,received);event(r,UPLOAD_FILE_END);finalHandler(r);};r.handle();
         assert(native.ends==0&&native.selects==0&&native.reboots==0&&native.aborts==1&&!native.open&&r.server_.statuses.back()==500);
     }
     pass("truncated or excess body cancels without boot selection");
+    {
+        native={};REST r;r.server_.current.board(false);r.server_.callback=[&]{data(r);finalHandler(r);};r.handle();
+        assert(native.begins==1&&native.writes==1&&native.ends==0&&native.aborts==1&&native.selects==0&&native.reboots==0&&!native.open);
+        assert(r.server_.statuses.back()==500&&r.server_.bodies.back().find("not_openthermostat_image")!=std::string::npos);
+        pass("an image without the OpenThermostat E32 V2 marker is aborted before esp_ota_end and never selected");
+    }
     for(int fault=0;fault<4;++fault) {
         native={};native.beginOk=fault!=0;native.writeOk=fault!=1;native.endOk=fault!=2;native.selectOk=fault!=3;
         REST r;r.server_.callback=[&]{data(r);finalHandler(r);};r.handle();
@@ -134,7 +149,7 @@ int main(){
         native={};REST r;r.server_.callback=[&]{
             event(r,UPLOAD_FILE_START);
             if(loss==0)r.authorized=false;
-            event(r,UPLOAD_FILE_WRITE,8);
+            event(r,UPLOAD_FILE_WRITE,256);
             if(loss==1)r.authorized=false;
             event(r,UPLOAD_FILE_END);
             if(loss==2)r.authorized=false;
@@ -145,7 +160,7 @@ int main(){
     pass("authorization lost during writing, validation or final gate cannot commit");
     for(bool complete:{false,true}) {
         native={};REST r;r.server_.callback=[&]{
-            event(r,UPLOAD_FILE_START);if(complete){event(r,UPLOAD_FILE_WRITE,8);event(r,UPLOAD_FILE_END);}
+            event(r,UPLOAD_FILE_START);if(complete){event(r,UPLOAD_FILE_WRITE,256);event(r,UPLOAD_FILE_END);}
         };r.handle();assert(!native.open&&native.selects==0&&native.reboots==0);
         assert(native.aborts==(complete?0:1));
     }
@@ -174,10 +189,10 @@ int main(){
     {
         native={};update::httpUploadActive=false;REST r;r.server_.callback=[&]{
             event(r,UPLOAD_FILE_START);assert(update::httpUploadActive);
-            event(r,UPLOAD_FILE_WRITE,8);assert(update::httpUploadActive);
+            event(r,UPLOAD_FILE_WRITE,256);assert(update::httpUploadActive);
             event(r,UPLOAD_FILE_END);assert(!update::httpUploadActive);
             event(r,UPLOAD_FILE_START);assert(update::httpUploadActive);
-            r.authorized=false;event(r,UPLOAD_FILE_WRITE,8);assert(!update::httpUploadActive);
+            r.authorized=false;event(r,UPLOAD_FILE_WRITE,256);assert(!update::httpUploadActive);
             r.authorized=true;event(r,UPLOAD_FILE_START);assert(update::httpUploadActive);
             finalHandler(r);assert(!update::httpUploadActive);
         };r.handle();assert(!native.open);

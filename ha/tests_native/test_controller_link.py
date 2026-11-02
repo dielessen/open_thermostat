@@ -25,6 +25,10 @@ class Content:
         for chunk in self.chunks:
             yield chunk
 
+    async def read(self, size=-1):
+        body = b"".join(self.chunks)
+        return body if size < 0 else body[:size]
+
 
 class Response:
     def __init__(self, value=None, *, raw=None, chunks=None, status=200, tag=None):

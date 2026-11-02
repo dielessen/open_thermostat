@@ -19,9 +19,12 @@ pre=r'''
 #include <utility>
 #include <iostream>
 using namespace heating;
-struct String:std::string {using std::string::string;String(const std::string& s):std::string(s){};};
+struct String:std::string {using std::string::string;String(const std::string& s):std::string(s){};explicit String(unsigned v):std::string(std::to_string(v)){}};
+// The client's address (failed sign-ins count per source address).
+struct Peer {uint32_t ip;uint32_t remoteIP() const {return ip;}};
 struct Server {
- std::vector<std::pair<String,String>> fields;std::string plain;int status=0;std::string body,retryAfter;
+ std::vector<std::pair<String,String>> fields;std::string plain;int status=0;std::string body,retryAfter;uint32_t ip=0x0a01a8c0;
+ Peer client(){return {ip};}
  int args(){return fields.size();}String argName(int i){return fields[i].first;}
  String arg(const char* key){if(std::string_view(key)=="plain")return String(plain);for(auto& f:fields)if(f.first==key)return f.second;return {};}
  String header(const char*){return "application/x-www-form-urlencoded";}
@@ -93,6 +96,10 @@ int main(){
   for(int i=0;i<4;++i){change(f,pair("nope","correct horse"));}change(f,pair("secret","correct horse"));
   assert(f.server_.status==429&&f.server_.body=="{\"error\":\"try_again_later\"}"&&f.server_.retryAfter=="30");unchanged(f);
   request(f,false);assert(f.server_.status==429);unchanged(f);resetDevice();}
+ // Per source address: another device's failures never lock out the owner or Home Assistant.
+ {Fixture f;fill(f);f.server_.ip=0x6401a8c0;for(int i=0;i<5;++i)request(f,false,"wrong");request(f,false);assert(f.server_.status==429&&f.server_.retryAfter=="30");
+  f.server_.ip=0x0a01a8c0;f.nowMs=100+120000;request(f,false);assert(f.server_.status==200);
+  f.server_.ip=0x6401a8c0;request(f,false);assert(f.server_.status==429);resetDevice();}
  // Failed sign-ins also block a password change.
  {Fixture f;fill(f);for(int i=0;i<5;++i){request(f,false,"wrong");}change(f,pair("secret","correct horse"));assert(f.server_.status==429);unchanged(f);resetDevice();}
  // Malformed bodies never reach the password check.
@@ -106,7 +113,7 @@ int main(){
  // An update in progress or a storage failure keeps the old password and every session.
  {Fixture f;fill(f);update::blocked=true;change(f,pair("secret","correct horse"));assert(f.server_.status==409&&f.server_.body=="{\"error\":\"password_change_busy\"}");update::blocked=false;unchanged(f);assert(deviceAccess.stores==0);resetDevice();}
  {Fixture f;fill(f);deviceAccess.failStore=true;change(f,pair("secret","correct horse"));assert(f.server_.status==503&&f.server_.body=="{\"error\":\"password_storage_failed\"}");deviceAccess.failStore=false;unchanged(f);resetDevice();}
- std::cout<<"PASS 25 actual login/session/password/logout handler scenarios: full capacity, idle eviction (not during a test or settings write), credentials, cooldown, active trial/update, entropy failure, malformed recovery, explicit success, session JSON, password change limits/shape/rate limit/invalidation/busy/storage\n";
+ std::cout<<"PASS 26 actual login/session/password/logout handler scenarios: full capacity, per-address lockout, idle eviction (not during a test or settings write), credentials, cooldown, active trial/update, entropy failure, malformed recovery, explicit success, session JSON, password change limits/shape/rate limit/invalidation/busy/storage\n";
 }
 '''
 p=root/'out/session-recovery';p.mkdir(exist_ok=True);cpp=p/'login-handler.cpp';cpp.write_text(pre+method+logout+post)

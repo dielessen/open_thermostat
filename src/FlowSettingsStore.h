@@ -2,7 +2,9 @@
 #ifdef OPENTHERMOSTAT_E32V2
 #include <nvs.h>
 #include "control/AutoTuner.h"
+#include "control/BoundedJson.h"
 #include "control/FlowPolicy.h"
+#include <cstring>
 #include <memory>
 #include <new>
 #include <string>
@@ -21,7 +23,7 @@ struct FlowSettingsNvs {
         const bool ok = nvs_get_str(handle, key, text, &size) == ESP_OK;
         nvs_close(handle);
         if (!ok) return settings;
-        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(text), cJSON_Delete);
+        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(control::parseNestedJson(text, std::strlen(text)));
         control::FlowSettings parsed;
         return root && !control::FlowSettings::parse(root.get(), parsed) ? parsed : settings;
     }

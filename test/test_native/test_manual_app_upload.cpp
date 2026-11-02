@@ -103,3 +103,37 @@ TEST(ManualAppUpload, EarlierProtocolFailureCannotEraseBeforeExplicitNewRequestR
     EXPECT_FALSE(s.begin(b,"8",8));EXPECT_EQ(b.begins,0);
     s.reset(b);ASSERT_TRUE(s.begin(b,"8",8));s.cancel(b);EXPECT_EQ(b.aborts,1);
 }
+namespace {
+// An ESP32 app header for the 16 MB flash (as VerifiedOta checks) and room for a marker.
+std::string boardImage(const std::string &marker,size_t size=512,size_t at=200) {
+    std::string image(size,'\0');image[0]=char(0xe9);image[3]=char(0x40);
+    image.replace(at,marker.size(),marker);return image;
+}
+const std::string marker="OT_E32V2_OTA_V1:v1.0.0-rc.2:"+std::string(40,'a')+":"+std::string(64,'b')+":END";
+bool upload(Backend &b,ManualAppUpload &s,const std::string &image,size_t chunk) {
+    if(!s.begin(b,std::to_string(image.size()),4096)) return false;
+    for(size_t at=0;at<image.size();at+=chunk) if(!s.append(b,image.data()+at,std::min(chunk,image.size()-at))) return false;
+    return s.finish(b);
+}
+}
+TEST(ManualAppUpload, BoardBuildRefusesAnImageWithoutTheOpenThermostatMarkerBeforeOtaEnd) {
+    // A valid ESP32 app of another project, the marker of another board, a broken marker, and
+    // the right marker on a different chip or flash size: all aborted, never ended or selected.
+    for(const auto &image:{boardImage(""),boardImage("OT_ESP32_OTA_V1:v1.0.0:"+std::string(40,'a')+":"+std::string(64,'b')+":END"),
+                           boardImage(marker.substr(0,marker.size()-1)),boardImage("OT_E32V2_OTA_V1:1.0.0:"+std::string(40,'a')+":"+std::string(64,'b')+":END"),
+                           [] { auto i=boardImage(marker);i[12]=char(9);return i; }(),[] { auto i=boardImage(marker);i[3]=char(0x20);return i; }()}) {
+        Backend b;ManualAppUpload s(true);
+        EXPECT_FALSE(upload(b,s,image,64));
+        EXPECT_EQ(s.error(),ManualAppUpload::Error::not_openthermostat);EXPECT_STREQ(s.reason(),"not_openthermostat_image");
+        EXPECT_EQ(b.ends,0);EXPECT_EQ(b.aborts,1);EXPECT_FALSE(s.select(b));EXPECT_EQ(b.selects,0);
+    }
+}
+TEST(ManualAppUpload, BoardBuildFindsTheMarkerAcrossChunkBordersAndKeepsTheRestUnchanged) {
+    for(size_t chunk:{1,7,64,173,512}) for(size_t at:{size_t(16),size_t(100),512-marker.size()}) {
+        Backend b;ManualAppUpload s(true);ASSERT_TRUE(upload(b,s,boardImage(marker,512,at),chunk))<<chunk<<' '<<at;
+        ASSERT_TRUE(s.select(b));EXPECT_EQ(b.ends,1);EXPECT_EQ(b.aborts,0);
+    }
+    // reset() keeps the board rule; a build without it (other boards) accepts any image as before.
+    Backend b;ManualAppUpload s(true);s.reset(b);EXPECT_FALSE(upload(b,s,boardImage(""),64));
+    Backend other;ManualAppUpload any;EXPECT_TRUE(upload(other,any,std::string(512,'\0'),64));
+}

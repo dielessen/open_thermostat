@@ -61,3 +61,17 @@ TEST(BackupCipher, EmptyInputsAreNotSealed) {
     EXPECT_FALSE(cipher::seal(passphrase, "", salt(), nonce(), 4096, box));
     EXPECT_TRUE(box.empty());
 }
+
+TEST(BackupCipher, ANewBackupIsBoundToItsNetworkSectionAndAnOldOneStillOpens) {
+    // rc.2: the associated data names the network section's hash. An attacker who edits the
+    // broker address in the file (to receive the MQTT password) makes the box fail to open.
+    const auto ours = cipher::boundAssociated(std::string(64, 'a')), edited = cipher::boundAssociated(std::string(64, 'b'));
+    std::string box, out;
+    ASSERT_TRUE(cipher::seal(passphrase, plain, salt(), nonce(), 4096, box, ours));
+    EXPECT_NE(hex(box), vector);
+    ASSERT_TRUE(cipher::open(passphrase, box, 4096, out, ours)); EXPECT_EQ(out, plain);
+    EXPECT_FALSE(cipher::open(passphrase, box, 4096, out, edited)); EXPECT_TRUE(out.empty());
+    EXPECT_FALSE(cipher::open(passphrase, box, 4096, out));  // not with the old constant either
+    // A backup made before rc.2 (the independent vector, constant associated data) still opens.
+    ASSERT_TRUE(cipher::open(passphrase, unhex(vector), 4096, out, cipher::legacyAssociated)); EXPECT_EQ(out, plain);
+}

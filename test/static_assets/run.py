@@ -53,7 +53,7 @@ constexpr unsigned MALLOC_CAP_SPIRAM=1,MALLOC_CAP_8BIT=2;
 bool refuseBuffer=false;unsigned bufferAllocations=0;
 void *heap_caps_malloc(size_t size,unsigned caps){assert(size==65536);assert(caps==3);++bufferAllocations;return refuseBuffer?nullptr:std::malloc(size);}
 void heap_caps_free(void *bytes){std::free(bytes);}
-struct {bool available=true;bool ready(){return available;}} deviceAccess;
+struct {bool available=true,factory=false;bool ready(){return available;}bool defaultPassword(){return factory;}} deviceAccess;
 namespace heating::update {bool mutationBlocked(const char*){return false;}std::atomic<bool> httpUploadActive{false};}
 namespace heating::embedded {
 // Gzip only (scripts/e32v2_web_assets.py): one representation per asset.
@@ -72,7 +72,7 @@ struct Server {
  std::vector<std::pair<String,String>> outgoing;
  int method(){return verb;}String uri(){return path;}
  String header(const char *name){return incoming[name];}
- String hostHeader(){return "e32.test";}
+ String host="192.168.4.1";String hostHeader(){return host;}
  struct Socket {IP localIP(){return {};}};Socket client(){return {};}
  void sendHeader(String name,String value){outgoing.push_back({name,value});}
  void setContentLength(size_t size){contentLength=size;}
@@ -92,6 +92,8 @@ struct Fixture {
  String cookie=std::string(64,'1');uint64_t now=1000;
  Fixture(){assert(sessions_.issue(cookie,std::string(64,'2'),now));}
  uint64_t networkNow(){return now;}String requestToken(){return cookie;}
+ std::string_view deviceHostname(){return "openthermostat-ab12";}
+ bool handBack=false;bool handBackRequest(){return handBack;}
  void get(const char *path="/index.html"){server_.path=path;if(authorize())serveFile(path);}
 '''
 post = r'''
@@ -126,7 +128,18 @@ int main(){
  {Fixture f;f.server_.path="/status";f.controller_.oversized=true;assert(f.authorize());f.status();assert(f.server_.status==503);assert(f.controller_.statusSnapshots==1);assert(f.server_.body=="{\"error\":\"status_response_too_large\"}");assert(f.jsonResponse_.view().empty());}
  {Fixture f;f.server_.path="/status";f.controller_.failStream=true;assert(f.authorize());f.status();assert(f.server_.status==503);assert(f.server_.body=="{\"error\":\"status_response_too_large\"}");}
  {Fixture f;const auto before=bufferAllocations;for(int i=0;i<3;++i){f.server_.path="/status";f.server_.outgoing.clear();assert(f.authorize());f.status();assert(f.server_.status==200);assert(f.server_.body=="{\"rooms\":[],\"controlMode\":\"shadow\",\"ems\":{\"selectedFlowTemperature\":50,\"currentFlowTemperature\":432}}");assert(f.server_.response("Cache-Control")=="no-store");assert(!f.server_.cors);f.server_.path="/status/ems/telemetry";f.server_.outgoing.clear();assert(f.authorize());f.telemetry();assert(f.server_.status==200);assert(f.server_.body=="{\"fields\":{}}");}assert(bufferAllocations==before+1);assert(f.controller_.snapshots==3);assert(f.controller_.statusSnapshots==3);}
- std::cout<<"PASS 28 actual E32 response/authorization scenarios (gzip-only UI)\n";
+ // DNS rebinding: a Host that is not this E32 is refused before the sign-in routes (421).
+ {Fixture f;f.cookie="";f.server_.host="attacker.test";f.get();assert(f.server_.status==421);assert(f.server_.body=="{\"error\":\"unknown_host\"}");}
+ {Fixture f;f.server_.host="openthermostat-ab12.local";f.get();assert(f.server_.status==200);}
+ // The factory password: reading works, every change is refused until it is changed.
+ {Fixture f;deviceAccess.factory=true;f.get();assert(f.server_.status==200);
+  f.server_.path="/config/device";f.server_.verb=HTTP_POST;f.server_.incoming["X-OpenThermostat-CSRF"]=std::string(64,'2');
+  assert(!f.authorize());assert(f.server_.status==403);assert(f.server_.body=="{\"error\":\"password_change_required\"}");
+  f.server_.path="/auth/password";f.server_.status=0;assert(f.authorize());
+  // Giving control back is never blocked (control/HandoverRequest.h decides what is one).
+  f.server_.path="/config/heating/handover";f.handBack=true;assert(f.authorize());f.handBack=false;assert(!f.authorize());deviceAccess.factory=false;
+  f.server_.path="/config/device";assert(f.authorize());}
+ std::cout<<"PASS 31 actual E32 response/authorization scenarios (gzip-only UI, Host check, factory password)\n";
 }
 '''
 out = Path(os.environ.get("OPENTHERMOSTAT_HTTP_RESPONSE_EVIDENCE",ROOT / "out/static-assets"))

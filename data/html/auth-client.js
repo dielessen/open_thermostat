@@ -7,6 +7,11 @@
     function signIn() {
         if (!redirecting) { redirecting = true; window.location.replace('/login'); }
     }
+    // The factory password: the E32 accepts no change until the owner chose their own
+    // (403 password_change_required), so the sign-in page asks for it first.
+    function choosePassword() {
+        if (!redirecting && window.location.pathname !== '/login') { redirecting = true; window.location.replace('/login#password'); }
+    }
     async function session() {
         if (state) return state;
         if (!pending) pending = (async () => {
@@ -26,7 +31,9 @@
                 if (controller.signal.aborted) throw controller.signal.reason;
                 if (!data || typeof data !== 'object' || Array.isArray(data) || data.authenticated !== true ||
                     typeof data.csrf !== 'string' || !/^[a-f0-9]{64}$/.test(data.csrf)) throw new Error(uiText("Invalid session response"));
-                return (state = {legacy: false, csrf: data.csrf, default_password: data.default_password === true});
+                state = {legacy: false, csrf: data.csrf, default_password: data.default_password === true};
+                if (state.default_password) choosePassword();
+                return state;
             } catch (error) {
                 if (controller.signal.aborted) throw new Error(uiText("Session check unavailable"));
                 throw error;

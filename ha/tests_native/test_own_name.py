@@ -260,4 +260,5 @@ async def test_the_default_password_issue_links_to_the_e32_page_and_never_carrie
 def test_the_default_password_issue_is_worded_in_english_and_dutch(language, title):
     strings = json.loads((INTEGRATION / f"translations/{language}.json").read_text(encoding="utf-8"))
     issue = strings["issues"][DEFAULT_PASSWORD_ISSUE]
-    assert issue["title"] == title and "{name}" in issue["description"]
+    # Fixable since rc.2: "Choose a new E32 password" changes it from Home Assistant.
+    assert issue["title"] == title and "{name}" in issue["fix_flow"]["step"]["choose_password"]["description"]

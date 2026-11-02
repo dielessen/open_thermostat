@@ -101,32 +101,37 @@ void configBackupRequest(const char* body, std::size_t size, ConfigBackupHost& h
     if (networkTimeTrusted) device.created = b::utcText(static_cast<int64_t>(std::time(nullptr)));
 
     if (request.action == "export") {
-        std::string sealedHex;
-        if (!request.passphrase.empty()) {
-            auto plain = b::secretsDocument(state);
-            if (!plain.empty()) {
-                std::array<uint8_t, b::saltBytes> salt{}; std::array<uint8_t, b::nonceBytes> nonce{};
-                std::string box;
-                const bool sealed = deviceAccess.randomBytes(salt.data(), salt.size()) && deviceAccess.randomBytes(nonce.data(), nonce.size())
-                    && b::cipher::seal(request.passphrase, plain, salt, nonce, b::kdfIterations, box);
-                b::cipher::wipe(plain);
-                if (!sealed) { fail(out, 503, "seal_failed"); return; }
-                sealedHex = b::toHex(box);
-            }
+        auto plain = request.passphrase.empty() ? std::string() : b::secretsDocument(state);
+        // The document first: its network section is what the sealed box is bound to.
+        auto document = b::exportDocument(state, device, plain.empty() ? std::string() : std::string("pending"));
+        if (!document) { if (!plain.empty()) b::cipher::wipe(plain); fail(out, 503, "settings_unavailable"); return; }
+        if (!plain.empty()) {
+            std::array<uint8_t, b::saltBytes> salt{}; std::array<uint8_t, b::nonceBytes> nonce{};
+            std::string box;
+            const auto network = sha256Hex(b::boundSection(document.get()));
+            const bool sealed = !network.empty() && deviceAccess.randomBytes(salt.data(), salt.size())
+                && deviceAccess.randomBytes(nonce.data(), nonce.size())
+                && b::cipher::seal(request.passphrase, plain, salt, nonce, b::kdfIterations, box, b::cipher::boundAssociated(network))
+                && b::setSealedBox(document.get(), b::toHex(box));
+            b::cipher::wipe(plain);
+            if (!sealed) { fail(out, 503, "seal_failed"); return; }
         }
-        auto document = b::exportDocument(state, device, sealedHex);
-        if (!document) { fail(out, 503, "settings_unavailable"); return; }
         reply(out, 200, document.get()); // the browser saves it indented
         return;
     }
 
     b::Report report;
     std::string sealedBox;
-    if (const char* e = b::checkEnvelope(request.backup, device, report, sealedBox)) { fail(out, errorCode(e), e, &report); return; }
+    bool bound = false;
+    if (const char* e = b::checkEnvelope(request.backup, device, report, sealedBox, &bound)) { fail(out, errorCode(e), e, &report); return; }
     b::Secrets secrets;
     if (!sealedBox.empty() && !request.passphrase.empty()) {
         std::string plain;
-        if (!b::cipher::open(request.passphrase, sealedBox, b::kdfIterations, plain)) { fail(out, 400, "wrong_passphrase", &report); return; }
+        // rc.2 backups: an edited network section fails like a wrong passphrase. Older ones: the constant.
+        const auto network = bound ? sha256Hex(b::boundSection(request.backup)) : std::string();
+        if (bound && network.empty()) { fail(out, 503, "out_of_memory"); return; }
+        const auto aad = bound ? b::cipher::boundAssociated(network) : std::string(b::cipher::legacyAssociated);
+        if (!b::cipher::open(request.passphrase, sealedBox, b::kdfIterations, plain, aad)) { fail(out, 400, "wrong_passphrase", &report); return; }
         const char* e = b::readSecrets(plain, secrets);
         b::cipher::wipe(plain);
         if (e) { fail(out, 400, e, &report); return; }

@@ -277,3 +277,57 @@ TEST(WebAuth, FullTableEvictsOnlyTheLeastRecentlyUsedIdleSessionWhenAllowed) {
     ASSERT_NE(s.issue(token('c'),token('d'),later+3,{},true),nullptr);
     EXPECT_EQ(s.find(token('0'),later+3),nullptr); EXPECT_NE(s.find(token('c'),later+3),nullptr);
 }
+TEST(WebAuth, FactoryPasswordAllowsReadingAndThePasswordChangeButNoOtherChange) {
+    // Every state-changing route the E32 registers is refused until the owner chose a password.
+    for(auto path:{"/config/heating","/config/heating/comfort","/config/heating/handover","/config/heating/flow",
+                   "/config/heating/trv","/config/device","/config/backup","/config/reboot","/ota","/otafs",
+                   "/updates/install","/updates/reboot","/boiler/test/start","/boiler/settings/write",
+                   "/config/programs/x","/config/temporary","/logs/clear","/setup/reenter"})
+        for(auto method:{"POST","DELETE"}) {
+            EXPECT_TRUE(passwordChangeRequired(path,method,true))<<method<<' '<<path;
+            EXPECT_FALSE(passwordChangeRequired(path,method,false))<<method<<' '<<path;
+        }
+    // Signing in and out, the session read and the password change itself stay open.
+    for(auto path:{"/auth/login","/auth/logout","/auth/session","/auth/password"}) EXPECT_FALSE(passwordChangeRequired(path,"POST",true))<<path;
+    // Reading never needs the change: Home Assistant and the pages keep their data.
+    for(auto path:{"/status","/config/heating","/status/heating","/config/device","/auth/session"}) EXPECT_FALSE(passwordChangeRequired(path,"GET",true))<<path;
+}
+TEST(WebAuth, FailedSignInsOfOneAddressNeverLockOutAnother) {
+    WebAuthSession s; const uint32_t attacker=0x6401a8c0, owner=0x0a01a8c0, ha=0x0b01a8c0;
+    for(int i=0;i<5;++i) { EXPECT_TRUE(s.loginAllowed(100+i,attacker)); s.loginFailed(100+i,attacker); }
+    EXPECT_FALSE(s.loginAllowed(105,attacker)); EXPECT_EQ(s.loginRetryAfterS(105,attacker),30u);
+    EXPECT_TRUE(s.loginAllowed(105,owner)); EXPECT_TRUE(s.loginAllowed(105,ha)); EXPECT_EQ(s.loginRetryAfterS(105,owner),0u);
+    // The owner's own mistakes count for the owner only, and a success forgets them.
+    for(int i=0;i<4;++i) s.loginFailed(200+i,owner);
+    s.loginSucceeded(owner); for(int i=0;i<4;++i) s.loginFailed(300+i,owner);
+    EXPECT_TRUE(s.loginAllowed(400,owner)); EXPECT_FALSE(s.loginAllowed(400,attacker));
+}
+TEST(WebAuth, RepeatedLockoutsOfOneAddressDoubleUpToFifteenMinutes) {
+    WebAuthSession s; const uint32_t a=0x6401a8c0; uint64_t now=1000;
+    uint64_t expected=30000;
+    for(int round=0;round<8;++round) {
+        const uint64_t start=now;
+        for(int i=0;i<5;++i) s.loginFailed(now+i,a);
+        EXPECT_FALSE(s.loginAllowed(start+expected-1,a))<<round;
+        EXPECT_TRUE(s.loginAllowed(start+expected,a))<<round;
+        now=start+expected;
+        expected=std::min<uint64_t>(expected*2,WebAuthSession::maxBlockMs);
+    }
+    EXPECT_EQ(expected,WebAuthSession::maxBlockMs);
+    // 15 minutes without a failure: back to 30 s.
+    now+=WebAuthSession::forgetMs;
+    for(int i=0;i<5;++i) s.loginFailed(now+i,a);
+    EXPECT_TRUE(s.loginAllowed(now+30000,a));
+}
+TEST(WebAuth, TheSourceTableKeepsBlockedAddressesAndReplacesTheLeastRecentlySeen) {
+    WebAuthSession s;
+    for(int i=0;i<5;++i) s.loginFailed(100+i,1);                    // address 1: blocked
+    for(uint32_t a=2;a<=8;++a) s.loginFailed(200+a,a);              // seven more, one failure each
+    s.loginFailed(300,9);                                           // a ninth replaces address 2 (oldest, not blocked)
+    EXPECT_FALSE(s.loginAllowed(400,1));
+    for(int i=0;i<4;++i) s.loginFailed(500+i,9);
+    EXPECT_FALSE(s.loginAllowed(600,9));                            // its failures were kept: 5 in total
+    for(uint32_t a=10;a<=20;++a) s.loginFailed(700+a,a);            // many new addresses
+    EXPECT_FALSE(s.loginAllowed(800,1)); EXPECT_FALSE(s.loginAllowed(800,9));
+    static_assert(sizeof(WebAuthSession)<=2048);
+}

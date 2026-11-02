@@ -39,7 +39,10 @@ inline constexpr std::size_t maxBytes = 24576;        // one backup file
 inline constexpr std::size_t maxRequestBytes = maxBytes + 512;
 inline constexpr std::size_t maxDepth = 10;           // request 1 + backup 1 + room plan 5, margin
 inline constexpr std::size_t maxSecretsBytes = 1024;  // the sealed secrets document
-inline constexpr std::size_t passphraseMin = 8, passphraseMax = 64;
+inline constexpr std::size_t passphraseMin = 8, passphraseMax = 64;  // opening a backup (older ones: 8)
+inline constexpr std::size_t exportPassphraseMin = 12;                 // a new backup (rc.2; HA uses 43)
+// The sealed box of a new backup is bound to its cleartext network section (BackupCipher.h).
+inline constexpr const char* secretsBinding = "network-sha256";
 inline constexpr uint32_t kdfIterations = 16384;      // a file can be attacked offline: 4x the web password (WebPassword.h)
 inline constexpr std::size_t saltBytes = 16, nonceBytes = 13, tagBytes = 16;
 
@@ -276,6 +279,7 @@ inline ControlJson exportDocument(const DeviceState& s, const Meta& m, const std
         cJSON_AddStringToObject(box, "cipher", "aes-128-ccm");
         cJSON_AddStringToObject(box, "kdf", "pbkdf2-sha256");
         cJSON_AddNumberToObject(box, "iterations", kdfIterations);
+        cJSON_AddStringToObject(box, "binding", secretsBinding);
         cJSON_AddStringToObject(box, "box", sealedHex.c_str());
     }
     notIncluded(s, !sealedHex.empty(), cJSON_AddArrayToObject(r, "not_included"));
@@ -321,6 +325,20 @@ inline ControlJson exportDocument(const DeviceState& s, const Meta& m, const std
     return root;
 }
 
+// The cleartext the sealed box is bound to: the network section as cJSON prints it
+// ("null" without one). A browser that saves the file indented changes nothing here.
+inline std::string boundSection(const cJSON* backup) {
+    const auto network = item(backup, "network");
+    if (!network) return "null";
+    std::unique_ptr<char, decltype(&cJSON_free)> text(cJSON_PrintUnformatted(network), cJSON_free);
+    return text ? std::string(text.get()) : std::string();
+}
+// Export: the box is sealed after the document exists (its network section is the AAD).
+inline bool setSealedBox(cJSON* document, const std::string& hex) {
+    auto secrets = cJSON_GetObjectItemCaseSensitive(document, "secrets");
+    return cJSON_IsObject(secrets) && !hex.empty() && put(secrets, "box", cJSON_CreateString(hex.c_str()));
+}
+
 // ---------------------------------------------------------------- import
 
 // POST /config/backup: {"action":"export"|"validate"|"apply", ...}.
@@ -351,6 +369,8 @@ inline const char* readRequest(const char* body, std::size_t size, Request& out)
     if (out.action != "apply" && !out.fingerprint.empty()) return "invalid_request";
     if (!out.passphrase.empty() && (out.passphrase.size() < passphraseMin || out.passphrase.size() > passphraseMax))
         return "invalid_passphrase";
+    if (out.action == "export" && !out.passphrase.empty() && out.passphrase.size() < exportPassphraseMin)
+        return "invalid_passphrase";
     return nullptr;
 }
 
@@ -377,8 +397,12 @@ inline std::string toHex(std::string_view bytes) {
 }
 
 // The envelope: format, schema, board; sealedBox receives the raw sealed bytes.
-inline const char* checkEnvelope(const cJSON* b, const Meta& device, Report& report, std::string& sealedBox) {
+// bound: the box is bound to the network section (rc.2); false for older backups,
+// which still open with the constant associated data and are reported as such.
+inline const char* checkEnvelope(const cJSON* b, const Meta& device, Report& report, std::string& sealedBox,
+                                 bool* bound = nullptr) {
     sealedBox.clear();
+    if (bound) *bound = false;
     if (!cJSON_IsObject(b) || text(item(b, "format")) != formatName) return "not_a_backup";
     const auto schema = item(b, "schema");
     if (!cJSON_IsNumber(schema) || schema->valuedouble != std::floor(schema->valuedouble) || schema->valuedouble < 1) return "invalid_schema";
@@ -409,6 +433,10 @@ inline const char* checkEnvelope(const cJSON* b, const Meta& device, Report& rep
                 || box.size() < 2 * (saltBytes + nonceBytes + tagBytes + 2)
                 || box.size() > 2 * (saltBytes + nonceBytes + tagBytes + maxSecretsBytes)
                 || !fromHex(box, sealedBox)) { sealedBox.clear(); return "invalid_secrets"; }
+        const auto binding = item(secrets, "binding");
+        if (binding && text(binding) != secretsBinding) { sealedBox.clear(); return "invalid_secrets"; }
+        if (bound) *bound = binding != nullptr;
+        if (!binding) report.warn("secrets_unbound");
     }
     return nullptr;
 }
@@ -735,12 +763,30 @@ inline const char* prepare(const cJSON* backup, const DeviceState& s, const Secr
 
 // What the owner confirmed: the current documents and the candidates. Apply
 // recomputes it and refuses when anything changed in between.
+// The fingerprint goes back to the client: it never covers a secret (the MQTT
+// password, the OpenWeather key, Bluetooth keys), so it cannot be used to guess one
+// offline. Secrets are only named in the summary anyway; apply prepares them again.
+inline std::string withoutSecrets(const std::string& stored) {
+    auto root = parseStored(stored);
+    if (!root) return stored;
+    for (const char* sec : {"mqtt", "openweather"}) {
+        const auto inner = cJSON_GetObjectItemCaseSensitive(root.get(), sec);
+        for (const char* key : {"password", "appid"})
+            if (auto v = item(inner, key)) put(inner, key, cJSON_CreateString(text(v).empty() ? "" : "<set>"));
+    }
+    const auto items = item(item(item(root.get(), "bt"), "devices"), "items");
+    for (auto row = cJSON_IsArray(items) ? items->child : nullptr; row; row = row->next)
+        if (cJSON_IsString(cJSON_GetArrayItem(row, 3))) cJSON_ReplaceItemInArray(row, 3, cJSON_CreateString("<set>"));
+    return print(root.get());
+}
 inline std::string fingerprintInput(const DeviceState& s, const Prepared& p) {
     std::string out;
     // Not s.learned: it changes while the owner reads the summary.
     for (const auto* part : {&s.network, &s.bluetooth, &s.plan, &s.flow, &s.display,
                              &p.network, &p.bluetooth, &p.plan, &p.flow, &p.display, &p.learned}) {
-        out += std::to_string(part->size()); out += ':'; out += *part; out += '\n';
+        const bool secretBearing = part == &s.network || part == &s.bluetooth || part == &p.network || part == &p.bluetooth;
+        const auto clean = secretBearing ? withoutSecrets(*part) : *part;
+        out += std::to_string(clean.size()); out += ':'; out += clean; out += '\n';
     }
     return out;
 }

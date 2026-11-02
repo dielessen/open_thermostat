@@ -17,7 +17,15 @@
 
 namespace heating::control::backup::cipher {
 inline constexpr std::size_t saltBytes = 16, nonceBytes = 13, tagBytes = 16, keyBytes = 16;
+// Backups before rc.2: one constant as associated data (still opened, reported as unbound).
 inline constexpr char associated[] = "openthermostat-e32-backup/1";
+inline constexpr std::string_view legacyAssociated(associated, sizeof associated - 1);
+// rc.2: bound to the backup's cleartext network section (its SHA-256, hex), so a file
+// whose broker address was edited does not open and the MQTT password never reaches
+// another broker.
+inline std::string boundAssociated(std::string_view networkSha256Hex) {
+    return "openthermostat-e32-backup/2:network-sha256:" + std::string(networkSha256Hex);
+}
 
 template<class Bytes> inline void wipe(Bytes& b) {
     volatile uint8_t* p = reinterpret_cast<volatile uint8_t*>(&b[0]);
@@ -39,7 +47,8 @@ inline bool deriveKey(std::string_view pass, const uint8_t* salt, uint32_t itera
 }
 // salt and nonce: fresh random bytes from the caller (DeviceAccess::randomBytes).
 inline bool seal(std::string_view pass, std::string_view plain, const std::array<uint8_t, saltBytes>& salt,
-                 const std::array<uint8_t, nonceBytes>& nonce, uint32_t iterations, std::string& box) {
+                 const std::array<uint8_t, nonceBytes>& nonce, uint32_t iterations, std::string& box,
+                 std::string_view aad = legacyAssociated) {
     box.clear();
     if (pass.empty() || plain.empty()) return false;
     std::array<uint8_t, keyBytes> key{};
@@ -51,7 +60,7 @@ inline bool seal(std::string_view pass, std::string_view plain, const std::array
     mbedtls_ccm_context ccm; mbedtls_ccm_init(&ccm);
     const bool ok = mbedtls_ccm_setkey(&ccm, MBEDTLS_CIPHER_ID_AES, key.data(), keyBytes * 8) == 0
         && mbedtls_ccm_encrypt_and_tag(&ccm, plain.size(), nonce.data(), nonceBytes,
-               reinterpret_cast<const unsigned char*>(associated), sizeof associated - 1,
+               reinterpret_cast<const unsigned char*>(aad.data()), aad.size(),
                reinterpret_cast<const unsigned char*>(plain.data()), out + saltBytes + nonceBytes,
                out + saltBytes + nonceBytes + plain.size(), tagBytes) == 0;
     mbedtls_ccm_free(&ccm);
@@ -59,7 +68,8 @@ inline bool seal(std::string_view pass, std::string_view plain, const std::array
     if (!ok) box.clear();
     return ok;
 }
-inline bool open(std::string_view pass, std::string_view box, uint32_t iterations, std::string& plain) {
+inline bool open(std::string_view pass, std::string_view box, uint32_t iterations, std::string& plain,
+                 std::string_view aad = legacyAssociated) {
     plain.clear();
     if (pass.empty() || box.size() <= saltBytes + nonceBytes + tagBytes) return false;
     const auto* in = reinterpret_cast<const unsigned char*>(box.data());
@@ -70,7 +80,7 @@ inline bool open(std::string_view pass, std::string_view box, uint32_t iteration
     mbedtls_ccm_context ccm; mbedtls_ccm_init(&ccm);
     const bool ok = mbedtls_ccm_setkey(&ccm, MBEDTLS_CIPHER_ID_AES, key.data(), keyBytes * 8) == 0
         && mbedtls_ccm_auth_decrypt(&ccm, size, in + saltBytes, nonceBytes,
-               reinterpret_cast<const unsigned char*>(associated), sizeof associated - 1,
+               reinterpret_cast<const unsigned char*>(aad.data()), aad.size(),
                in + saltBytes + nonceBytes, reinterpret_cast<unsigned char*>(&plain[0]),
                in + saltBytes + nonceBytes + size, tagBytes) == 0;
     mbedtls_ccm_free(&ccm);

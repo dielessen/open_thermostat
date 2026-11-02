@@ -2971,7 +2971,8 @@
         "error": {
           "reconfirm_not_released": "To oprogramowanie E32 nie pozwala E32 sterować kotłem. Nic nie zostało zmienione.",
           "reconfirm_unconfirmed": "E32 tego nie potwierdził. Sprawdź na E32 stronę Rooms → Active control.",
-          "e32_unreachable": "E32 jest teraz nieosiągalny. Spróbuj ponownie za chwilę."
+          "e32_unreachable": "E32 jest teraz nieosiągalny. Spróbuj ponownie za chwilę.",
+          "e32_password_change_required": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian. Najpierw wybierz nowe hasło E32 (Ustawienia → Naprawy), a potem potwierdź tutaj."
         },
         "abort": {
           "reconfirm_done": "E32 nie czeka już na potwierdzenie.",
@@ -3006,7 +3007,36 @@
     },
     "e32_default_password": {
       "title": "E32 nadal używa domyślnego hasła",
-      "description": "{name}: E32 nadal używa domyślnego hasła admin/admin, więc każdy w Twojej sieci może zmienić Twoje ogrzewanie. Zmień je na stronie internetowej E32: System → Password (na stronie Overview jest też przycisk Change password). Home Assistant raz poprosi Cię o nowe hasło (Ustawienia → Urządzenia i usługi), a ten komunikat zniknie."
+      "fix_flow": {
+        "step": {
+          "choose_password": {
+            "title": "Wybierz nowe hasło E32",
+            "description": "{name}: E32 nadal używa domyślnego hasła admin, więc każdy w Twojej sieci mógłby zmienić ogrzewanie. Dopóki nie wybierzesz nowego hasła, E32 nie przyjmuje żadnych zmian: Home Assistant nadal może go odczytywać, a ogrzewanie działa według obecnego planu, ale zmiany pomieszczeń, temperatur docelowych i ustawień oraz aktualizacje oprogramowania czekają. Oddanie sterowania staremu termostatowi na stronie Pomieszczenia E32 działa zawsze.\n\nWybierz nowe hasło o długości od 8 do 64 znaków. Home Assistant zmieni je w E32 i zapisze dla tego połączenia. Od teraz loguj się nim na stronie E32 (nazwa użytkownika admin).",
+            "data": {
+              "new_password": "Nowe hasło E32",
+              "repeat_password": "Powtórz nowe hasło"
+            },
+            "data_description": {
+              "new_password": "Od 8 do 64 znaków. Przechowuj je bezpiecznie: jest potrzebne do strony E32."
+            }
+          }
+        },
+        "error": {
+          "password_mismatch": "Oba hasła nie są takie same.",
+          "password_too_short": "Użyj co najmniej 8 znaków.",
+          "password_too_long": "Użyj co najwyżej 64 znaków.",
+          "e32_password_stored_wrong": "E32 nie przyjął hasła zapisanego w Home Assistant, więc prawdopodobnie zostało już zmienione w E32. Home Assistant poprosi o aktualne hasło w Ustawienia → Urządzenia i usługi.",
+          "e32_busy": "E32 jest zajęty aktualizacją. Spróbuj ponownie, gdy się zakończy.",
+          "e32_try_again_later": "Zbyt wiele prób logowania w E32. Odczekaj 30 sekund i spróbuj ponownie.",
+          "e32_session_capacity": "E32 nie ma wolnej sesji WWW. Zamknij nieużywane strony E32 lub odczekaj dwie minuty, a potem spróbuj ponownie.",
+          "e32_unreachable": "E32 jest teraz nieosiągalny. Spróbuj ponownie za chwilę.",
+          "e32_password_not_saved": "E32 nie potwierdził zapisania nowego hasła. Spróbuj ponownie; do tego czasu może nadal obowiązywać stare hasło."
+        },
+        "abort": {
+          "e32_password_no_connection": "Home Assistant nie ma zapisanego połączenia z E32 dla tego wpisu. Najpierw połącz E32 (Konfiguruj → Połączenie E32).",
+          "e32_password_already_changed": "E32 nie używa już domyślnego hasła. Nic nie zostało zmienione."
+        }
+      }
     },
     "e32_no_free_session": {
       "title": "E32 nie ma wolnej sesji internetowej",
@@ -3045,7 +3075,8 @@
           "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie.",
           "e32_update_required": "E32 ma do tego zbyt stare oprogramowanie. Najpierw zaktualizuj E32 do beta.19 lub nowszego (Home Assistant: Ustawienia → Aktualizacje → OpenThermostat E32 Firmware → Zainstaluj), a potem spróbuj ponownie. Nic nie zostało zmienione.",
           "e32_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
-          "e32_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie."
+          "e32_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie.",
+          "e32_password_change_required": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian, dopóki nie wybierzesz nowego. Otwórz Ustawienia → Naprawy → „Wybierz nowe hasło E32”. Nic nie zostało zapisane."
         },
         "abort": {
           "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
@@ -3086,7 +3117,8 @@
           "legacy_rooms_plan_unreadable": "Nie udało się odczytać planu pomieszczeń E32, więc nic nie zostało usunięte. Sprawdź, czy E32 jest włączony i połączony, i spróbuj ponownie.",
           "e32_update_required": "E32 ma do tego zbyt stare oprogramowanie. Najpierw zaktualizuj E32 do beta.19 lub nowszego (Home Assistant: Ustawienia → Aktualizacje → OpenThermostat E32 Firmware → Zainstaluj), a potem spróbuj ponownie. Nic nie zostało zmienione.",
           "e32_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
-          "e32_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie."
+          "e32_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie.",
+          "e32_password_change_required": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian, dopóki nie wybierzesz nowego. Otwórz Ustawienia → Naprawy → „Wybierz nowe hasło E32”. Nic nie zostało zapisane."
         },
         "abort": {
           "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
@@ -3333,6 +3365,9 @@
     },
     "e32_backup_failed": {
       "message": "Nie udało się utworzyć kopii ustawień E32. Spróbuj ponownie za minutę."
+    },
+    "e32_password_change_required": {
+      "message": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian, dopóki nie wybierzesz nowego. Otwórz Ustawienia → Naprawy → „Wybierz nowe hasło E32”. Nic nie zostało zapisane."
     }
   },
   "device": {

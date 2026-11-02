@@ -70,3 +70,21 @@ TEST(HttpAccess, BluetoothDiscoveryRequiresAnExplicitProtectedPost) {
     EXPECT_TRUE(boilerTestMutationBlocked("/config/bluetooth/scan",true));
     EXPECT_EQ(portalAccess(true,true,"10.10.10.1","10.10.10.1","/config/bluetooth","POST"),PortalAccess::Authenticated);
 }
+TEST(HttpAccess, HostHeaderMustNameThisDeviceAgainstDnsRebinding) {
+    // The device IP, the setup AP IP and the hostname (with .local or a home-router suffix), optional port.
+    for(auto host:{"192.168.1.40","192.168.1.40:80","192.168.4.1","openthermostat-ab12","OpenThermostat-AB12.local",
+                   "openthermostat-ab12.local.","openthermostat-ab12.fritz.box","openthermostat-ab12.home.arpa:80",
+                   "openthermostat-ab12.lan"})
+        EXPECT_TRUE(knownHostHeader(host,"192.168.1.40","192.168.4.1","openthermostat-ab12",80))<<host;
+    EXPECT_TRUE(knownHostHeader("192.168.1.40:8080","192.168.1.40","0.0.0.0","heating",8080));
+    // A rebinding page names its own site; ports, IPs and look-alike names that are not this device fail.
+    for(auto host:{"","evil.example","evil.example:80","192.168.1.40:8080","192.168.1.41","192.168.1.40:","192.168.1.40:abc",
+                   "openthermostat-ab12.evil.example","openthermostat-ab12.local.evil.example","xopenthermostat-ab12",
+                   "openthermostat-ab12x.local","[::1]","[fe80::1]:80",".","0.0.0.0","localhost","127.0.0.1",
+                   "192.168.1.40:000080000"})
+        EXPECT_FALSE(knownHostHeader(host,"192.168.1.40","192.168.4.1","openthermostat-ab12",80))<<host;
+    // Without a running access point (0.0.0.0) or a hostname only the device IP counts.
+    EXPECT_FALSE(knownHostHeader("0.0.0.0","192.168.1.40","0.0.0.0","",80));
+    EXPECT_FALSE(knownHostHeader(".local","192.168.1.40","0.0.0.0","",80));
+    EXPECT_TRUE(knownHostHeader("192.168.1.40","192.168.1.40","0.0.0.0","",80));
+}

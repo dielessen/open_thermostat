@@ -285,9 +285,9 @@ TEST(ConfigBackup, RequestIsBounded) {
     }
     const std::string deep = "{\"action\":\"validate\",\"backup\":" + std::string(40, '[') + std::string(40, ']') + "}";
     b::Request q; EXPECT_NE(b::readRequest(deep.c_str(), deep.size(), q), nullptr);
-    const char* ok = "{\"action\":\"export\",\"passphrase\":\"long enough\",\"language\":\"nl\"}";
+    const char* ok = "{\"action\":\"export\",\"passphrase\":\"long enough!\",\"language\":\"nl\"}";
     b::Request e; ASSERT_EQ(b::readRequest(ok, std::strlen(ok), e), nullptr);
-    EXPECT_EQ(e.passphrase, "long enough"); EXPECT_EQ(e.language, "nl");
+    EXPECT_EQ(e.passphrase, "long enough!"); EXPECT_EQ(e.language, "nl");
 }
 
 TEST(ConfigBackup, NetworkFieldsAreTypeAndRangeChecked) {
@@ -575,4 +575,57 @@ TEST(ConfigBackup, CreatedTimeIsUtcText) {
     EXPECT_EQ(b::utcText(1709251199), "2024-02-29T23:59:59Z"); // leap day
     EXPECT_EQ(b::utcText(0), "");          // no NTP yet
     EXPECT_EQ(b::utcText(1704067199), "");
+}
+
+TEST(ConfigBackupHardening, NewExportsNeedTwelveCharactersOlderBackupsStillOpenWithEight) {
+    for (const char* bad : {R"({"action":"export","passphrase":"elevenchars"})", R"({"action":"export","passphrase":"12345678"})"}) {
+        b::Request q; EXPECT_STREQ(b::readRequest(bad, std::strlen(bad), q), "invalid_passphrase") << bad;
+    }
+    const char* twelve = R"({"action":"export","passphrase":"twelve chars"})";
+    b::Request e; EXPECT_EQ(b::readRequest(twelve, std::strlen(twelve), e), nullptr);
+    // Opening keeps the old minimum: backups sealed with 8 to 11 characters stay usable.
+    auto doc = b::exportDocument(configured(), meta(), "");
+    const auto body = request("validate", doc.get(), R"(,"passphrase":"12345678")");
+    b::Request v; EXPECT_EQ(b::readRequest(body.c_str(), body.size(), v), nullptr);
+}
+TEST(ConfigBackupHardening, TheSealedBoxNamesItsBindingAndOldBackupsAreMarkedUnbound) {
+    auto doc = b::exportDocument(configured(), meta(), "pending");
+    ASSERT_TRUE(doc);
+    EXPECT_EQ(b::text(b::item(b::item(doc.get(), "secrets"), "binding")), "network-sha256");
+    const std::string box(2 * (b::saltBytes + b::nonceBytes + b::tagBytes + 8), 'a');
+    ASSERT_TRUE(b::setSealedBox(doc.get(), box));
+    EXPECT_EQ(b::text(b::item(b::item(doc.get(), "secrets"), "box")), box);
+    // The bound cleartext survives a browser that saves the file indented.
+    std::unique_ptr<char, decltype(&cJSON_free)> pretty(cJSON_Print(doc.get()), cJSON_free);
+    auto reread = parse(pretty.get());
+    EXPECT_EQ(b::boundSection(reread.get()), b::boundSection(doc.get()));
+    EXPECT_NE(b::boundSection(doc.get()).find("brokerPort"), std::string::npos);
+    // ...but an edited broker address is a different binding.
+    b::put(cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive(reread.get(), "network"), "mqtt"), "brokerAddress", cJSON_CreateString("attacker.example"));
+    EXPECT_NE(b::boundSection(reread.get()), b::boundSection(doc.get()));
+    b::Report report; std::string sealed; bool bound = false;
+    EXPECT_EQ(b::checkEnvelope(doc.get(), meta(), report, sealed, &bound), nullptr);
+    EXPECT_TRUE(bound); EXPECT_FALSE(has(report.warnings.get(), "secrets_unbound"));
+    // A backup from before rc.2 (no binding) is still accepted, marked as unbound.
+    cJSON_DeleteItemFromObjectCaseSensitive(cJSON_GetObjectItemCaseSensitive(doc.get(), "secrets"), "binding");
+    b::Report old; EXPECT_EQ(b::checkEnvelope(doc.get(), meta(), old, sealed, &bound), nullptr);
+    EXPECT_FALSE(bound); EXPECT_FALSE(sealed.empty()); EXPECT_TRUE(has(old.warnings.get(), "secrets_unbound"));
+    b::put(cJSON_GetObjectItemCaseSensitive(doc.get(), "secrets"), "binding", cJSON_CreateString("other"));
+    b::Report other; EXPECT_STREQ(b::checkEnvelope(doc.get(), meta(), other, sealed, &bound), "invalid_secrets");
+}
+TEST(ConfigBackupHardening, TheFingerprintCoversNoSecretButStillEveryOtherSetting) {
+    auto doc = b::exportDocument(configured(), meta(), "");
+    const auto onto = configured();
+    const auto v = validate(request("validate", doc.get()), onto);
+    ASSERT_EQ(v.error, nullptr);
+    const auto input = b::fingerprintInput(onto, v.prepared);
+    for (const char* secret : {"broker-fixture", "weather-fixture", fixtureKey}) EXPECT_EQ(input.find(secret), std::string::npos) << secret;
+    // Another MQTT password alone does not change it (it cannot be guessed from it) ...
+    auto otherPassword = onto;
+    otherPassword.network.replace(otherPassword.network.find("broker-fixture"), 14, "broker-secret2");
+    EXPECT_EQ(b::fingerprintInput(otherPassword, v.prepared), input);
+    // ... while any other setting still does.
+    auto otherPort = onto;
+    otherPort.network.replace(otherPort.network.find("\"brokerPort\":1883"), 17, "\"brokerPort\":1884");
+    EXPECT_NE(b::fingerprintInput(otherPort, v.prepared), input);
 }

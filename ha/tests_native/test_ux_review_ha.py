@@ -204,7 +204,7 @@ async def test_the_default_password_is_a_repairs_issue_until_it_is_changed(hass,
     await link.async_read()
     issue = ir.async_get(hass).async_get_issue("open_thermostat", issue_id)
     assert issue is not None and issue.translation_key == DEFAULT_PASSWORD_ISSUE
-    assert issue.severity == ir.IssueSeverity.WARNING and not issue.is_fixable
+    assert issue.severity == ir.IssueSeverity.WARNING and issue.is_fixable  # rc.2: Repairs changes it
     # Firmware that does not report the field leaves the issue alone; false removes it.
     e32.default = None
     await link.async_read()
@@ -271,15 +271,16 @@ def test_password_texts_are_plain_and_in_both_languages():
             assert config["error"][key], (name, key)
         assert config["abort"]["reauth_successful"] and config["abort"]["reauth_no_e32"]
         issue = document["issues"][DEFAULT_PASSWORD_ISSUE]
-        assert "admin/admin" in issue["description"] and "{name}" in issue["description"]
+        step = issue["fix_flow"]["step"]["choose_password"]  # rc.2: Repairs changes the password
+        assert "admin" in step["description"] and "{name}" in step["description"]
         assert document["exceptions"]["room_plan_password"]["message"]
         assert document["options"]["abort"]["e32_password_changed"]
         # The connect form no longer refers to a password "you set on the E32 web page".
         assert "you set" not in document["options"]["step"]["controller_connection"]["data_description"]["password"]
     nl = documents()["translations/nl.json"]
-    # The password has its own entry in the E32's System menu (1.0), no longer under System → About.
-    assert "Systeem → Wachtwoord" in nl["issues"][DEFAULT_PASSWORD_ISSUE]["description"]
-    assert "System → Password" in documents()["strings.json"]["issues"][DEFAULT_PASSWORD_ISSUE]["description"]
+    # rc.2: Repairs changes the password itself; the text says to use it on the E32 web page from then on.
+    step = lambda doc: doc["issues"][DEFAULT_PASSWORD_ISSUE]["fix_flow"]["step"]["choose_password"]["description"]
+    assert "E32-webpagina" in step(nl) and "E32 web page" in step(documents()["strings.json"])
 
 
 # -- F11: the room editor in a °F Home Assistant ---------------------------------------------------

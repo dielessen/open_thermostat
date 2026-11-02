@@ -84,7 +84,13 @@ public:
 #endif
 
 #ifdef OPENTHERMOSTAT_E32V2
-using ProductWebServer = control::ResponsiveHttpServer<WebServer>;
+// The SDK client for ResponsiveHttpServer's deadline view: WiFiClient hides
+// Stream::setTimeout (milliseconds) behind its own setTimeout (seconds).
+struct WebClientIo {
+	using Client = WiFiClient;
+	static void noWait(WiFiClient &client) { static_cast<Stream &>(client).setTimeout(0); }
+};
+using ProductWebServer = control::ResponsiveHttpServer<WebServer, WebClientIo>;
 #else
 using ProductWebServer = WebServer;
 #endif
@@ -124,6 +130,8 @@ public:
 		const char *headers[]{"Origin","Sec-Fetch-Site","Cookie","X-OpenThermostat-CSRF","Content-Type","If-Match","If-None-Match","Accept-Encoding"};
 		server_.collectHeaders(headers,8);
 #ifdef OPENTHERMOSTAT_E32V2
+		// Bodies above 4 KB and uploads are read only for a signed-in client (control/HttpRequestBounds.h).
+		server_.setAdmission([this](const control::HttpRequestHead &head) { return admitLargeRequest(head); });
 		route("/login",HTTP_GET,[this] { serveFile("/login.html"); });
 		route("/auth/login",HTTP_POST,[this] { login(); });
 		route("/auth/session",HTTP_GET,[this] { sessionStatus(); });
@@ -388,6 +396,14 @@ private:
 		if(portal==control::PortalAccess::Redirect) {
 			server_.sendHeader("Location","http://"+canonical+"/setup"); return reject(302,"text/plain","OpenThermostat WiFi setup");
 		}
+		// DNS rebinding: outside the setup access point the Host must name this E32
+		// (its IP, the setup AP IP or its hostname), before any sign-in route runs.
+		if(!(wifiAPMode&&server_.client().localIP()==WiFi.softAPIP())) {
+			const auto hostHeader=server_.hostHeader();
+			const auto localIp=server_.client().localIP().toString(),apIp=WiFi.softAPIP().toString();
+			if(!control::knownHostHeader(std::string_view(hostHeader.c_str(),hostHeader.length()),localIp.c_str(),apIp.c_str(),
+					deviceHostname(),listenPort_)) return reject(421,"application/json","{\"error\":\"unknown_host\"}");
+		}
 		if(!control::allowedHttpMethod(server_.uri().c_str(),method)) return reject(405,"text/plain","Method not allowed");
 		if(!control::sameOrigin(server_.header("Origin").c_str(),server_.hostHeader().c_str(),server_.header("Sec-Fetch-Site").c_str())) {
 			return reject(403,"text/plain","Origin rejected");
@@ -405,6 +421,8 @@ private:
 		}
 		if(decision==control::WebAuthDecision::authentication_required)return reject(401,"application/json","{\"error\":\"authentication_required\"}");
 		if(decision==control::WebAuthDecision::csrf_required)return reject(403,"application/json","{\"error\":\"csrf_required\"}");
+		if(portal!=control::PortalAccess::Setup&&control::passwordChangeRequired(server_.uri().c_str(),method,deviceAccess.defaultPassword())
+				&&!handBackRequest()) return reject(403,"application/json","{\"error\":\"password_change_required\"}");
 		if(server_.method()!=HTTP_GET&&update::mutationBlocked(server_.uri().c_str())) {
 			server_.send(409,"text/plain","Wait until the update has finished and the device has restarted");return false;
 		}
@@ -423,12 +441,36 @@ private:
 	}
 #ifdef OPENTHERMOSTAT_E32V2
 	control::WebAuthSession sessions_;
+	// The configured hostname for the Host check, read once (a new hostname takes a restart).
+	std::string hostname_;bool hostnameLoaded_=false;
+	std::string_view deviceHostname() {
+		if(!hostnameLoaded_){hostname_=config::getNetworkConfig().hostname;hostnameLoaded_=true;}
+		return hostname_;
+	}
 	diagnostics::ActionGate endIdleGate_{10000};
     // WebServer completes each response synchronously on one HTTP owner. Reuse
     // the same PSRAM storage for dashboard and telemetry; never cache its values.
     diagnostics::ResponseBuffer jsonResponse_{65536,[](size_t size)->void* {
         return heap_caps_malloc(size,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
     },heap_caps_free};
+	// Before a large body or an upload is read (the parser holds the loop while it
+	// reads): a live session with its CSRF proof, and no factory password (except the
+	// plan, whose hand-back to the trial run authorize() checks).
+	int admitLargeRequest(const control::HttpRequestHead &head) {
+		const auto token=control::WebAuthSession::cookieToken(head.header("Cookie"));
+		if(!sessions_.csrf(token,head.header("X-OpenThermostat-CSRF"),networkNow())) return 401;
+		return deviceAccess.defaultPassword()&&head.path!="/config/heating"?403:0;
+	}
+	// The factory password never blocks giving control back (control/HandoverRequest.h).
+	bool handBackRequest() {
+		const std::string_view path(server_.uri().c_str());
+		if(server_.method()!=HTTP_POST||(path!="/config/heating"&&path!="/config/heating/handover")) return false;
+		const auto body=server_.arg("plain");
+		if(body.length()>control::RoomPlan::requestBytes) return false;
+		const auto request=control::parseNestedJson(body,true,10);
+		const auto current=path=="/config/heating"?control::parseNestedJson(controller_.heatingPlanJson(),true,10):control::ControlJson(nullptr,cJSON_Delete);
+		return control::handBackRequest(path,request.get(),current.get());
+	}
 	String requestToken() {
 		const auto cookie=server_.header("Cookie");
 		const auto token=control::WebAuthSession::cookieToken(std::string_view(cookie.c_str(),cookie.length()));
@@ -442,8 +484,8 @@ private:
 		return true;
 	}
 	void login() {
-		const auto now=networkNow();
-		if(!sessions_.loginAllowed(now)){server_.sendHeader("Retry-After","30");server_.send(429,"application/json","{\"error\":\"try_again_later\"}");return;}
+		const auto now=networkNow();const auto source=requestSource();
+		if(!sessions_.loginAllowed(now,source)){tryAgainLater(now,source);return;}
 		// Form decoding uses the existing native WebServer parser. No raw password in URLs/logs.
 		bool usernameSeen=false,passwordSeen=false,recoverySeen=false,shape=server_.args()==2||server_.args()==3;
 		for(int i=0;i<server_.args();++i){
@@ -461,7 +503,7 @@ private:
 		// Verify the password even for a wrong username: no faster refusal path.
 		const bool verified=deviceAccess.verifyPassword(std::string_view(password.c_str(),password.length()));
 		if(username!="admin"||!verified){
-			sessions_.loginFailed(now);server_.send(401,"application/json","{\"error\":\"invalid_credentials\"}");return;
+			sessions_.loginFailed(now,source);server_.send(401,"application/json","{\"error\":\"invalid_credentials\"}");return;
 		}
 		// Recovery must not remove an operator's stop/keepalive access or interrupt OTA.
 		if(recoverySeen&&(controller_.boilerTestActive()||update::mutationBlocked("/ota"))){
@@ -476,9 +518,10 @@ private:
 		const auto *session=sessions_.issue(token.data(),proof.data(),now,old.c_str(),recoverySeen,evictIdle);
 		if(!session){server_.send(429,"application/json","{\"error\":\"session_capacity\"}");return;}
 		controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
-		sessions_.loginSucceeded();
+		sessions_.loginSucceeded(source);
 		server_.sendHeader("Set-Cookie",String("OTSESSION=")+session->token.data()+"; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800");
-		server_.send(200,"application/json","{\"authenticated\":true}");
+		// The factory password: the page asks for a new one at once (nothing else can be changed).
+		server_.send(200,"application/json",deviceAccess.defaultPassword()?"{\"authenticated\":true,\"default_password\":true}":"{\"authenticated\":true}");
 	}
 	void sessionStatus() {
 		const auto token=requestToken();const auto now=networkNow();
@@ -488,19 +531,25 @@ private:
 			+",\"default_password\":"+(deviceAccess.defaultPassword()?"true":"false")+"}";
 		server_.send(200,"application/json",response.c_str());
 	}
+	// Failed sign-ins count per client address (WebAuthSession: nobody locks out another address).
+	uint32_t requestSource() { return uint32_t(server_.client().remoteIP()); }
+	void tryAgainLater(uint64_t now,uint32_t source) {
+		server_.sendHeader("Retry-After",String(unsigned(std::max<uint64_t>(1,sessions_.loginRetryAfterS(now,source)))));
+		server_.send(429,"application/json","{\"error\":\"try_again_later\"}");
+	}
 	// POST /auth/password {"current":"…","new":"…"}: route gate already checked
 	// the session, origin and CSRF. Shares the sign-in failure limit.
 	void changePassword() {
-		const auto now=networkNow();
-		if(!sessions_.loginAllowed(now)){server_.sendHeader("Retry-After","30");server_.send(429,"application/json","{\"error\":\"try_again_later\"}");return;}
+		const auto now=networkNow();const auto source=requestSource();
+		if(!sessions_.loginAllowed(now,source)){tryAgainLater(now,source);return;}
 		const auto body=server_.arg("plain");
 		const auto change=control::WebPassword::parseChange(body.c_str(),body.length());
 		if(change.error!=control::WebPassword::RequestError::none){server_.send(400,"application/json",control::WebPassword::errorBody(change.error));return;}
-		if(!deviceAccess.verifyPassword(change.current)){sessions_.loginFailed(now);server_.send(403,"application/json","{\"error\":\"password_wrong\"}");return;}
+		if(!deviceAccess.verifyPassword(change.current)){sessions_.loginFailed(now,source);server_.send(403,"application/json","{\"error\":\"password_wrong\"}");return;}
 		// Signing other sessions out must not cut off an update upload.
 		if(update::mutationBlocked("/ota")){server_.send(409,"application/json","{\"error\":\"password_change_busy\"}");return;}
 		if(!deviceAccess.storePassword(change.next)){server_.send(503,"application/json","{\"error\":\"password_storage_failed\"}");return;}
-		sessions_.loginSucceeded();
+		sessions_.loginSucceeded(source);
 		const auto token=requestToken();sessions_.revokeOthers(token.c_str());
 		controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
 		server_.send(204);
@@ -2161,7 +2210,12 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 		bool select() {error=esp_ota_set_boot_partition(partition);return error==ESP_OK;}
 		void abort() {esp_ota_abort(handle);handle=0;}
 	} appBackend_;
+#ifdef OPENTHERMOSTAT_E32V2
+	// Only an OpenThermostat image for this board (its build marker, as the GitHub path).
+	update::ManualAppUpload appUpload_{true};
+#else
 	update::ManualAppUpload appUpload_;
+#endif
 
 	struct OTAUpload {
 		bool started = false;

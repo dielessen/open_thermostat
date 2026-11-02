@@ -43,7 +43,7 @@ const out=path.resolve(process.env.OPENTHERMOSTAT_LANGUAGE_EVIDENCE||'out/ui-lan
   assert.match(await page.locator('.ot-about-badge').innerText(),new RegExp(choose('In development & testing','In ontwikkeling en test')));
   await page.screenshot({path:path.join(out,language+'-'+width+'.png'),fullPage:true});
   await page.goto('http://opth.test/login.html');
-  assert.equal(await page.locator('h2').innerText(),choose('Sign in','Aanmelden'));
+  assert.equal(await page.locator('#sign-in h2').innerText(),choose('Sign in','Aanmelden'));
   assert.equal(await page.locator('#username').inputValue(),'admin');
   await page.goto('http://opth.test/recovery');
   assert.equal(await page.locator('h1').innerText(),choose('OpenThermostat recovery','OpenThermostat herstellen'));

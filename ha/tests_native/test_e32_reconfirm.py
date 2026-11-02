@@ -205,7 +205,8 @@ def test_the_issue_texts_exist_in_every_language():
         texts = json.loads((base / name).read_text(encoding="utf-8"))["issues"]["reconfirm_takeover"]
         flow = texts["fix_flow"]
         assert set(flow["step"]) == {"reconfirm_takeover"}
-        assert set(flow["error"]) == {"reconfirm_not_released", "reconfirm_unconfirmed", "e32_unreachable"}
+        assert set(flow["error"]) == {"reconfirm_not_released", "reconfirm_unconfirmed", "e32_unreachable",
+                                      "e32_password_change_required"}
         assert set(flow["abort"]) == {"reconfirm_done", "reconfirm_plan_not_active", "e32_rooms_unavailable"}
         titles[name] = texts["title"]
     assert titles["translations/nl.json"] == "Bevestig opnieuw dat de E32 de ketel mag regelen"

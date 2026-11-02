@@ -388,6 +388,14 @@ private:
 		if(portal==control::PortalAccess::Redirect) {
 			server_.sendHeader("Location","http://"+canonical+"/setup"); return reject(302,"text/plain","OpenThermostat WiFi setup");
 		}
+		// DNS rebinding: outside the setup access point the Host must name this E32
+		// (its IP, the setup AP IP or its hostname), before any sign-in route runs.
+		if(!(wifiAPMode&&server_.client().localIP()==WiFi.softAPIP())) {
+			const auto hostHeader=server_.hostHeader();
+			const auto localIp=server_.client().localIP().toString(),apIp=WiFi.softAPIP().toString();
+			if(!control::knownHostHeader(std::string_view(hostHeader.c_str(),hostHeader.length()),localIp.c_str(),apIp.c_str(),
+					deviceHostname(),listenPort_)) return reject(421,"application/json","{\"error\":\"unknown_host\"}");
+		}
 		if(!control::allowedHttpMethod(server_.uri().c_str(),method)) return reject(405,"text/plain","Method not allowed");
 		if(!control::sameOrigin(server_.header("Origin").c_str(),server_.hostHeader().c_str(),server_.header("Sec-Fetch-Site").c_str())) {
 			return reject(403,"text/plain","Origin rejected");
@@ -423,6 +431,12 @@ private:
 	}
 #ifdef OPENTHERMOSTAT_E32V2
 	control::WebAuthSession sessions_;
+	// The configured hostname for the Host check, read once (a new hostname takes a restart).
+	std::string hostname_;bool hostnameLoaded_=false;
+	std::string_view deviceHostname() {
+		if(!hostnameLoaded_){hostname_=config::getNetworkConfig().hostname;hostnameLoaded_=true;}
+		return hostname_;
+	}
 	diagnostics::ActionGate endIdleGate_{10000};
     // WebServer completes each response synchronously on one HTTP owner. Reuse
     // the same PSRAM storage for dashboard and telemetry; never cache its values.

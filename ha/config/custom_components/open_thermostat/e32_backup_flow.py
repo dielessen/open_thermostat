@@ -3,9 +3,9 @@
 Choose a backup by date (and, for a replacement E32, its address and
 password), let the E32 check it and read what changes, what is skipped and
 what must be entered again, then tick the confirmation: only then Home
-Assistant backs up the E32 as it is and restores the chosen file. The E32
-comes back in shadow mode; the takeover of the boiler is confirmed again on
-the E32 page. A restore that changes the network or Bluetooth restarts the E32;
+Assistant backs up the E32 as it is and restores the chosen file. The rooms
+keep the mode of the backup; a new or reset E32 controls the boiler only after
+its owner confirms the takeover on the E32 page. A restore that changes the network or Bluetooth restarts the E32;
 Home Assistant waits until it answers again.
 """
 from __future__ import annotations

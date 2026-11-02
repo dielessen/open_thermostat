@@ -349,3 +349,36 @@ def test_the_repairs_texts_exist_in_every_language():
     for name in ("strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"):
         issue = json.loads((base / name).read_text(encoding="utf-8"))["issues"]["heating_problem"]
         assert set(issue) == {"title", "description"} and "{reason}" in issue["description"], name
+
+
+def test_a_new_installation_waiting_for_its_first_takeover_is_no_problem():
+    """E32 rc.2: a new plan starts active; before the first takeover the confirmation is the next step, not an alarm."""
+    clock, hub, tracker = setup(expect_telemetry=True)
+    new = {"state": "awaiting_confirmation", "awaiting_confirmation": True, "reconfirm_required": False, "enabled": True,
+           "confirmation": None, "warnings": [], "taken_over_before": False}
+    hub.update(status(mode="active", active=new))
+    for _ in range(6):
+        clock.now += AWAITING_CONFIRMATION_SECONDS
+        hub.update(status(mode="active", active=new))
+        assert problems(tracker, hub, clock) == []
+    # An installation the E32 controlled before stays a real problem after 10 minutes of waiting.
+    was = {**new, "taken_over_before": True}
+    hub.update(status(mode="active", active=was))
+    assert problems(tracker, hub, clock) == []
+    clock.now += AWAITING_CONFIRMATION_SECONDS
+    hub.update(status(mode="active", active=was))
+    assert problems(tracker, hub, clock) == ["awaiting_confirmation"]
+    # After a firmware update (reconfirm) it is never a first takeover, whatever the flag says.
+    clock2, hub2, tracker2 = setup()
+    update = {**new, "reconfirm_required": True}
+    hub2.update(status(mode="active", active=update))
+    tracker2.observe(hub2, clock2())
+    clock2.now += AWAITING_CONFIRMATION_SECONDS
+    assert problems(tracker2, hub2, clock2) == ["awaiting_confirmation"]
+    # Firmware before rc.2 (no flag): as before.
+    clock3, hub3, tracker3 = setup()
+    older = {k: v for k, v in new.items() if k != "taken_over_before"}
+    hub3.update(status(mode="active", active=older))
+    tracker3.observe(hub3, clock3())
+    clock3.now += AWAITING_CONFIRMATION_SECONDS
+    assert problems(tracker3, hub3, clock3) == ["awaiting_confirmation"]

@@ -15,7 +15,10 @@ each held long enough that a short hiccup never raises it:
 * active control is chosen but the E32 waits for the owner to confirm that
   the old thermostat is disconnected (for example after a firmware update
   cleared the confirmation), for 10 minutes or more: it gives no heat until
-  then (``active.awaiting_confirmation`` of the heating status);
+  then (``active.awaiting_confirmation`` of the heating status). Not on a new
+  installation that never let the E32 control its boiler (E32 rc.2:
+  ``active.taken_over_before`` false): a new plan starts active, and the
+  confirmation is its next step (the boiler test on the Rooms page), not a problem;
 * a room that asks for heat stays more than WARN_ROOM_SLOW_MARGIN_C below its
   target for WARN_ROOM_SLOW_HOURS (with a working measurement; a gap in the
   E32's data starts the wait again, so nothing fires on a day with gaps);
@@ -122,6 +125,18 @@ def awaiting_confirmation(hub):
                              or active.get("state") == "awaiting_confirmation")
 
 
+def first_takeover(hub):
+    """A new installation waiting for its first takeover: the E32 never controlled this boiler.
+
+    E32 rc.2 reports ``active.taken_over_before``; older firmware does not, and then
+    waiting counts as before. A firmware update after a takeover (``reconfirm_required``)
+    is never a first one.
+    """
+    active = getattr(hub, "active", None)
+    active = active if type(active) is dict else _active(hub.status)
+    return bool(active) and active.get("taken_over_before") is False and active.get("reconfirm_required") is not True
+
+
 class ProblemTracker:
     """Since when each condition holds (monotonic seconds); pure, so it is easy to test."""
 
@@ -178,7 +193,7 @@ class ProblemTracker:
         warnings = active.get("warnings") if active and status.get("mode") == "active" else None
         current = [w for w in warnings if w in ACTIVE_WARNINGS] if type(warnings) is list else []
         self.active = {w: self.active.get(w, now) for w in current}
-        if not awaiting_confirmation(hub):
+        if not awaiting_confirmation(hub) or first_takeover(hub):
             self.awaiting = None
         elif self.awaiting is None:
             self.awaiting = now

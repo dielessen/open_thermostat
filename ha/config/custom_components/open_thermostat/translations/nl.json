@@ -951,7 +951,7 @@
           "legacy": "Oudere OpenThermostat-firmware (ib-therm)",
           "shadow": "OpenThermostat E32 (aanbevolen)"
         },
-        "description": "Kies je OpenThermostat. Met de E32 rekent de E32 mee; je huidige thermostaat blijft de ketel regelen tot je overstapt."
+        "description": "Kies je OpenThermostat. Met de E32 leidt de E32-pagina je daarna verder: zolang je oude thermostaat nog vragen naar de ketel stuurt, draait de E32 eerst een proefperiode mee; zonder thermostaat gaat hij meteen naar een keteltest en de overname. Hij stuurt niets naar de ketel tot je bevestigt dat je oude thermostaat is losgekoppeld."
       },
       "confirm": {
         "title": "OpenThermostat gevonden",
@@ -977,7 +977,7 @@
       },
       "shadow": {
         "title": "Een OpenThermostat E32 koppelen",
-        "description": "Tijdens de proefperiode rekent de E32 alleen; je huidige thermostaat blijft de ketel regelen en er gaat niets naar de ketel. Home Assistant zet wel de gewenste temperatuur op het instelapparaat van elke ruimte (radiatorkraan, tado of getalhelper), volgens het weekprogramma van die ruimte. Normaal koppel je de E32 later via Configureren → E32-verbinding; dat vult het verbindings-ID voor je in.",
+        "description": "De E32 stuurt niets naar de ketel tot je de overname bevestigt op zijn pagina Ruimtes, het liefst via de keteltest daar. Zolang je oude thermostaat nog op de ketelbus zit, draait de E32 eerst een proefperiode mee (hij rekent alleen mee en vergelijkt); daar kun je altijd de andere route kiezen. Home Assistant zet wel de gewenste temperatuur op het instelapparaat van elke ruimte (radiatorkraan, tado of getalhelper), volgens het weekprogramma van die ruimte. Normaal koppel je de E32 later via Configureren → E32-verbinding; dat vult het verbindings-ID voor je in.",
         "data": {
           "topic_prefix": "MQTT-prefix van de E32",
           "adapter_id": "Verbindings-ID (al ingevuld)"
@@ -1727,7 +1727,7 @@
       },
       "e32_restore_confirm": {
         "title": "Deze instellingen terugzetten?",
-        "description": "Back-up van {created}, zoals de E32 hem heeft gecontroleerd:\n\n{summary}\n\nDe E32 komt terug in de proefperiode: hij rekent mee maar regelt de ketel niet. Regelde hij je ketel eerst wel, stap daarna dan opnieuw over op de E32-pagina (Ruimtes → Actieve regeling). Vóór het terugzetten bewaart Home Assistant ook een back-up van de E32 zoals hij nu is.",
+        "description": "Back-up van {created}, zoals de E32 hem heeft gecontroleerd:\n\n{summary}\n\nDe ruimtes houden de modus uit de back-up. De overname van de ketel zit niet in een back-up: een nieuwe of gewiste E32 stuurt niets naar de ketel tot je de overname bevestigt op zijn pagina (Ruimtes → Keteltest en overname). Vóór het terugzetten bewaart Home Assistant ook een back-up van de E32 zoals hij nu is.",
         "data": {
           "confirm": "Deze instellingen op deze E32 terugzetten"
         },
@@ -1960,10 +1960,10 @@
       "e32_restore_no_backups": "Home Assistant heeft nog geen back-up van de E32. Maak er een met de knop Nu een back-up van de E32 maken op het E32-apparaat.",
       "e32_restore_nothing": "Niets terug te zetten: deze E32 heeft precies deze instellingen al.",
       "e32_restore_cancelled": "Het terugzetten is afgebroken; er is niets veranderd.",
-      "e32_restore_done_online": "Instellingen teruggezet. De E32 is opnieuw opgestart en antwoordt weer. De ruimtes staan in schaduwmodus; bevestig de overname opnieuw op de E32-pagina als hij de ketel moet regelen.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
-      "e32_restore_done_waiting": "Instellingen teruggezet. De E32 start opnieuw op en antwoordt nog niet; Home Assistant maakt vanzelf weer verbinding zodra hij terug is. De ruimtes staan in schaduwmodus; bevestig de overname opnieuw op de E32-pagina als hij de ketel moet regelen.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
-      "e32_restore_done_restart": "Instellingen teruggezet. Start de E32 opnieuw op (Systeem → Apparaat herstarten op zijn pagina) om ze allemaal te gebruiken. De ruimtes staan in schaduwmodus; bevestig de overname opnieuw op de E32-pagina als hij de ketel moet regelen.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
-      "e32_restore_done": "Instellingen teruggezet. De ruimtes staan in schaduwmodus; bevestig de overname opnieuw op de E32-pagina als hij de ketel moet regelen.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}"
+      "e32_restore_done_online": "Instellingen teruggezet. De E32 is opnieuw opgestart en antwoordt weer. De ruimtes houden de modus uit de back-up; een nieuwe of gewiste E32 regelt de ketel pas nadat je de overname bevestigt op zijn pagina Ruimtes.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
+      "e32_restore_done_waiting": "Instellingen teruggezet. De E32 start opnieuw op en antwoordt nog niet; Home Assistant maakt vanzelf weer verbinding zodra hij terug is. De ruimtes houden de modus uit de back-up; een nieuwe of gewiste E32 regelt de ketel pas nadat je de overname bevestigt op zijn pagina Ruimtes.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
+      "e32_restore_done_restart": "Instellingen teruggezet. Start de E32 opnieuw op (Systeem → Apparaat herstarten op zijn pagina) om ze allemaal te gebruiken. De ruimtes houden de modus uit de back-up; een nieuwe of gewiste E32 regelt de ketel pas nadat je de overname bevestigt op zijn pagina Ruimtes.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
+      "e32_restore_done": "Instellingen teruggezet. De ruimtes houden de modus uit de back-up; een nieuwe of gewiste E32 regelt de ketel pas nadat je de overname bevestigt op zijn pagina Ruimtes.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}"
     },
     "progress": {
       "controller_connect": "Verbinden met de E32…",

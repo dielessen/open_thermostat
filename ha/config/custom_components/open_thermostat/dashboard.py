@@ -143,6 +143,8 @@ TEXT = {
         "shadow": "Trial run: the E32 calculates along but does not control the boiler yet; your current "
                   "thermostat or the boiler's own control stays in charge.",
         "active": "The E32 controls the boiler.",
+        "next": "Next step: run the boiler test and confirm the takeover on the E32 Rooms page. Until then the E32 "
+                "sends nothing to the boiler.",
         "how": "The E32 keeps your rooms running, also without Home Assistant.",
         "group_heating": "Heating", "group_dhw": "Hot water", "group_status": "Status and faults",
         "group_counters": "Counters", "group_settings": "Boiler settings",
@@ -267,6 +269,8 @@ TEXT = {
         "shadow": "Proefperiode: de E32 rekent mee maar stuurt de ketel nog niet; je huidige thermostaat of de "
                   "eigen regeling van de ketel blijft de baas.",
         "active": "De E32 regelt de ketel.",
+        "next": "Volgende stap: doe de keteltest en bevestig de overname op de E32-pagina Ruimtes. Tot dan stuurt "
+                "de E32 niets naar de ketel.",
         "how": "De E32 houdt je ruimtes op temperatuur, ook zonder Home Assistant.",
         "group_heating": "Verwarming", "group_dhw": "Warm water", "group_status": "Status en storingen",
         "group_counters": "Tellers", "group_settings": "Ketelinstellingen",
@@ -1015,7 +1019,9 @@ class RoomDashboard:
             quoted = json.dumps(request)
             explain = {"type": "markdown", "content": (
                 "{% set mode = state_attr(" + quoted + ", 'mode') %}"
-                "{% if mode == 'active' %}" + t["active"] + " "
+                "{% if mode == 'active' and state_attr(" + quoted + ", 'control') == 'awaiting_confirmation' %}"
+                + t["next"] + " "
+                + "{% elif mode == 'active' %}" + t["active"] + " "
                 + "{% elif mode == 'shadow' %}" + t["shadow"] + " {% endif %}" + t["how"])}
         elif e32_room_entities:
             explain = {"type": "markdown", "content": t["how"]}

@@ -297,6 +297,8 @@ def extract(now, raw, plan=None, mqtt=None, errors=()):
         'flow_source': obj(heating.get('flow')).get('source'),
         'guard': {'state': active.get('state'), 'enabled': active.get('enabled'),
                   'awaiting_confirmation': active.get('awaiting_confirmation'),
+                  # E32 rc.2: False on a new installation before its first takeover (None: older firmware).
+                  'taken_over_before': active.get('taken_over_before'),
                   'confirmed': active.get('confirmation') is not None if 'confirmation' in active else None,
                   'confirmation_stored': active.get('confirmation_stored'),
                   'command': {k: obj(active.get('command')).get(k) for k in ('send', 'flow_c', 'why')},
@@ -503,10 +505,12 @@ class Evaluator:
         events += A.update('guard_stopped', stopped, now, ARMING_ALARM_S if state == 'arming' else 0,
                            f"Active control stopped: now {state} ({guard['command'].get('why')}); "
                            f"warnings {', '.join(guard['warnings']) or 'none'}.", state=state)
-        events += A.update('awaiting_confirmation', mode == 'active' and state == 'awaiting_confirmation', now,
-                           2 * self.interval_s,
-                           'The E32 waits for the takeover confirmation (after a firmware change, a foreign 0x1A or a '
-                           'hand-back): no heat and no frost protection until confirmed on the Rooms page.')
+        # A new installation before its first takeover (rc.2: a new plan may start active) only has
+        # a next step, the boiler test and takeover on the Rooms page: no alarm for that.
+        waiting = mode == 'active' and state == 'awaiting_confirmation' and guard.get('taken_over_before') is not False
+        events += A.update('awaiting_confirmation', waiting, now, 2 * self.interval_s,
+                           'The E32 controlled the boiler before and now waits for the takeover confirmation (after a '
+                           'firmware change or a foreign 0x1A): no heat until confirmed on the Rooms page.')
         current = set(guard['warnings']) if mode == 'active' else set()
         known = {k[len('warning_'):] for k in list(A.since) + list(A.raised) if k.startswith('warning_')}
         for name in sorted(current | known):

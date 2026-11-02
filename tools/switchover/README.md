@@ -105,7 +105,7 @@ when it ends. Severities: `alarm` (act now), `warning` (look today), `info`.
 | `room_cold_<id>`, `room_warm_<id>` | alarm | an active room too cold or too warm (see the thresholds) |
 | `frost_not_protected` | alarm | in active mode a room reads below 8 °C and the E32 asks no heat |
 | `guard_stopped` | alarm | active control left `active` (stopping, measurement lost, blocked by a foreign controller, or arming for more than 4 min: after a restart the E32 first listens 2 min for another thermostat) |
-| `awaiting_confirmation` | alarm | the plan is active but the E32 waits for the takeover confirmation (no heat, no frost protection) |
+| `awaiting_confirmation` | alarm | the plan is active and the E32 controlled the boiler before, but now waits for the takeover confirmation (no heat); not on a new installation before its first takeover (`active.taken_over_before` false) |
 | `warning_<name>` | alarm | a warning of active control: `foreign_controller`, `measurement_lost`, `boiler_no_response`, `transmit_failed`, `boiler_limit_unknown` |
 | `e32_unreachable` / `e32_back` | alarm / info | no HTTP answer for `--unreachable-min`; reachable again |
 | `e32_restarted` | alarm | new boot id or smaller uptime, with the reset reason and the previous boot's supervisor reason |

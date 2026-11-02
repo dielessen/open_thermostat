@@ -28,6 +28,10 @@ Want someone to check the guide as they go? Give them the
 [installation checklist](INSTALL-CHECK.md): each step, its expected result
 and where to look.
 
+Installing as a field tester? Start with the
+[field tester pack](FIELD-TESTER.md): what to prepare, the install order, how
+to hand back to your thermostat, and what to report.
+
 **Time needed:** about one hour for the E32, plus about half an hour for Home
 Assistant.
 

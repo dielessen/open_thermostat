@@ -322,7 +322,8 @@ Demonstration with sample data, not a live capture.
 
 **New installation?** Follow the step-by-step
 [installation guide](docs/INSTALL.md), and give a helper the
-[installation checklist](docs/INSTALL-CHECK.md). The guide is written for anyone with Home
+[installation checklist](docs/INSTALL-CHECK.md). Testing a release candidate
+in your own home? Start with the [field tester pack](docs/FIELD-TESTER.md). The guide is written for anyone with Home
 Assistant and an EMS Classic boiler and covers flashing a new E32 over USB,
 the setup Wi-Fi, the admin password, the boiler connection, MQTT, installing
 and connecting the Home Assistant integration, rooms with a week program and
@@ -378,6 +379,7 @@ within a checkout. Other source targets use `pio run -e esp32dev` or
 
 - [Installation guide: from a new E32 to a working setup](docs/INSTALL.md)
 - [Installation checklist for a second person](docs/INSTALL-CHECK.md)
+- [Field tester pack: prepare, install, hand back, report](docs/FIELD-TESTER.md)
 - [USB backup and recovery](docs/FLASHING.md)
 - [User guide: first start, where to set what, rooms, shadow comparison](docs/USER-GUIDE.md)
 - [Attended switch-over procedure (draft)](docs/SWITCHOVER.md)

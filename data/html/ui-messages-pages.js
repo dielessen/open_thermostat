@@ -927,7 +927,7 @@ window.OT_UI_PAGE_MESSAGES = {
   "{room} warms about 1 °C in {figure}; the thermostat now reacts a little more strongly to a cold room.": "{room} warmt ongeveer 1 °C op in {figure}; de thermostaat reageert nu iets sterker op een koude ruimte.",
   "{room} warms about 1 °C in {figure}; the thermostat now reacts a little more gently to a cold room.": "{room} warmt ongeveer 1 °C op in {figure}; de thermostaat reageert nu iets rustiger op een koude ruimte.",
   "{room} warms about 1 °C in {figure}; mornings are planned with that.": "{room} warmt ongeveer 1 °C op in {figure}; de ochtenden worden daarmee gepland.",
-  "Your rooms": "Je ruimtes",
+  "A typical room": "Een gemiddelde ruimte",
   "Would change:": "Zou aanpassen:",
   "Nothing changed yet: the start values still fit, or there is not enough to go on.": "Nog niets aangepast: de beginwaarden passen nog, of er is nog te weinig om op af te gaan.",
   "After a restart or a change the thermostat first watches a whole day before it adjusts anything.": "Na een herstart of een wijziging kijkt de thermostaat eerst een hele dag voordat hij iets aanpast.",

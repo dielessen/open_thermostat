@@ -104,6 +104,8 @@ READINESS_TOPIC = "fw/telemetry/readiness"
 # The flow policy's part of the summary ("flow", "night_gas"), sent apart to keep both within 1 KB.
 FLOW_TOPIC = "fw/telemetry/flow"
 FLOW_KEYS = ("flow", "night_gas")
+# The self-tuning's state, knobs and newest changes (rc.2, AutoTuner), merged into the summary as "tuning".
+TUNING_TOPIC = "fw/telemetry/tuning"
 HEARTBEAT_TOPIC = "fw/heartbeat"
 AVAILABILITY_TOPIC = "fw/availability"
 
@@ -409,6 +411,7 @@ class HeatingHub:
         # fw/telemetry/summary and fw/telemetry/flow as received; summary is the two merged.
         self.summary_doc = None
         self.flow_doc = None
+        self.tuning_doc = None
         self.received = None
         # The last live sign of the E32 (monotonic), kept while it is silent.
         self.last_seen = None
@@ -633,16 +636,21 @@ class HeatingHub:
                 if value is None:
                     return
                 self.learned_messages[room_id] = (self.clock(), *value)
-        elif suffix in (SUMMARY_TOPIC, FLOW_TOPIC):
+        elif suffix in (SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC):
             if suffix == SUMMARY_TOPIC:
                 self.summary_doc = None if empty else decode_summary(payload)
-            else:
+            elif suffix == FLOW_TOPIC:
                 flow = None if empty else decode_document(payload)
                 self.flow_doc = ({k: flow[k] for k in FLOW_KEYS if type(flow.get(k)) is dict}
                                  if flow is not None else None)
+            else:
+                tuning = None if empty else decode_document(payload)
+                self.tuning_doc = tuning["tuning"] if tuning is not None and type(tuning.get("tuning")) is dict else None
             summary = self.summary_doc
             if summary is not None and self.flow_doc:
                 summary = {**summary, **self.flow_doc}
+            if summary is not None and self.tuning_doc is not None:
+                summary = {**summary, "tuning": self.tuning_doc}
             self.summary = summary
             self.summary_received = self.clock() if summary is not None else None
         elif suffix == SHADOW_TOPIC:
@@ -1742,7 +1750,7 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     await mqtt.async_wait_for_mqtt_client(hass)
     entry.async_on_unload(hub.add_listener(follow, first=True))
     for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", TRV_TOPIC + "+", PLAN_TOPIC,
-                  ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, SHADOW_TOPIC,
+                  ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SHADOW_TOPIC,
                   READINESS_TOPIC):
         entry.async_on_unload(await mqtt.async_subscribe(hass, base + topic, receive))
     entry.async_on_unload(async_track_time_interval(hass, refresh, timedelta(seconds=REFRESH_SECONDS)))

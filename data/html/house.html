@@ -585,7 +585,7 @@
     if (!k || !reasons[key] || !ok(from) || !ok(to) || !ok(figure)) return null;
     const minutes = reason === 'room_response' || reason === 'learned_warmup';
     return fill(uiText(reasons[key]), {to: k.show(to), figure: minutes ? duration(figure) : Number.isInteger(figure) ? String(figure) : num(figure, 2),
-      room: room ? names[room] || room : uiText("Your rooms")});
+      room: room ? names[room] || room : uiText("A typical room")});
   }
   function roomCard(r, l, plan, names, outdoor) {
     const card = document.createElement('article'); card.className = 'hl-room'; card.dataset.room = r.id;

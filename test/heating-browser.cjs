@@ -74,7 +74,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(await root.locator('[data-heating-ble]').count(),0);
   // Shadow comparison of today and the completed days.
   const shadow=root.locator('[data-heating-shadow]');
-  assert.match(await shadow.innerText(),/Vergelijking met je thermostaat \(vandaag\)[\s\S]*Proefperiode: de E32 rekent uit wat hij de ketel zou vragen, maar stuurt niets/);
+  assert.match(await shadow.innerText(),/Vergelijking met je thermostaat \(vandaag\)[\s\S]*Proefperiode \(optioneel\): de E32 rekent uit wat hij de ketel zou vragen, maar stuurt niets/);
   assert.deepEqual(await pairs(shadow.locator('[data-heating-shadow-today]')),[['Vergeleken tijd','10 u 0 min'],
    ['Stooktijd E32 / thermostaat','2 u 0 min / 2 u 10 min'],['Branderstarts E32 / thermostaat','4 / 5'],['Overeenstemming (beide aan of beide uit)','95 %'],
    ['Watertemperatuur E32 (bereik)','31–42 °C (gemiddeld 36,4 °C)'],['Watertemperatuur thermostaat (bereik)','35–45 °C (gemiddeld 39,2 °C)'],

@@ -66,7 +66,7 @@ const items=list=>list.evaluate(ul=>[...ul.children].map(li=>[li.className.repla
    await show({...status,readiness:{...pass,state:'ready',stable:{result:'pass',s:300000,restart:'planned'},
     periods:{...pass.periods,thermostat:14,morning_warmups:2},timing:{result:'pass',events:28,matched:27,within_5min:22,within_15min:26},
     cycling:{result:'pass',e32:12,thermostat:14}}});
-   assert.equal(await verdict.innerText(),'Ready: follow the steps to switch over.');
+   assert.equal(await verdict.innerText(),'Ready: start the boiler test and takeover above.');
    assert.equal(await verdict.evaluate(v=>v.className),'hp-verdict hp-verdict--ready');
    assert.deepEqual((await items(list)).map(i=>i[0]),['pass','pass','pass','pass','pass','pass']);
    assert.equal((await items(list))[2][3],'22 of 28 starts and stops within 5 minutes, 27 within 30 minutes.');

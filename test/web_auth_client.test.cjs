@@ -105,13 +105,35 @@ test('expired jQuery fragment load redirects only for own-origin 401, not transi
   c.events.ajaxError({}, {status:401}, {url:'https://external.test/rooms.html'});assert.equal(c.redirects.length,0);
   c.events.ajaxError({}, {status:401}, {url:'room_management.html'});assert.deepEqual(c.redirects,['/login']);
 });
-function login(handler) {
-  let submit;const redirects=[],calls=[];const button={disabled:false},message={textContent:''},recovery={hidden:true};
-  const form={reportValidity:()=>true,elements:{username:{value:'admin'},password:{value:'test & symbol'},recover_sessions:{checked:false}},addEventListener:(n,f)=>submit=f};
-  const context={URLSearchParams,AbortController,setTimeout,clearTimeout,fetch:async(u,i)=>{calls.push([u,i]);return handler(u,i);},document:{getElementById:id=>({login:form,submit:button,message,'session-recovery':recovery}[id])},window:{location:{replace:u=>redirects.push(u)}}};
+function login(handler,hash='') {
+  let submit,choose;const redirects=[],calls=[];const button={disabled:false},message={textContent:''},recovery={hidden:true};
+  const form={reportValidity:()=>true,elements:{username:{value:'admin'},password:{value:'test & symbol',focus(){}},recover_sessions:{checked:false}},addEventListener:(n,f)=>submit=f};
+  const step={hidden:true,addEventListener:(n,f)=>choose=f,reset(){}},signIn={hidden:false},saved={disabled:false},said={textContent:''};
+  const next={value:'',focus(){}},again={value:'',focus(){}};
+  const elements={login:form,submit:button,message,'session-recovery':recovery,'choose-password':step,'sign-in':signIn,'save-password':saved,'password-message':said,'new-password':next,'repeat-password':again};
+  const context={URLSearchParams,AbortController,setTimeout,clearTimeout,JSON,fetch:async(u,i)=>{calls.push([u,i]);return handler(u,i);},document:{getElementById:id=>elements[id]},window:{location:{hash,replace:u=>redirects.push(u)}}};
   Object.assign(context,require('./helpers/ui-language.cjs')('en'));vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(root,'login.js'),'utf8'),context);
-  return {submit:()=>submit({preventDefault(){}}),redirects,calls,form,button,message,recovery};
+  return {submit:()=>submit({preventDefault(){}}),choose:()=>choose({preventDefault(){}}),redirects,calls,form,button,message,recovery,step,signIn,said,next,again};
 }
+test('the factory password leads from sign-in straight to choosing a new one, with the session proof',async()=>{
+  const c=login((u,i)=>u==='/auth/login'?json({authenticated:true,default_password:true}):u==='/auth/session'?json({authenticated:true,csrf,default_password:true})
+    :u==='/auth/password'?new Response(null,{status:204}):json({},404));
+  c.form.elements.password.value='admin';await c.submit();
+  assert.deepEqual(c.calls.map(x=>x[0]),['/auth/login','/auth/session']);assert.deepEqual(c.redirects,[]);
+  assert.equal(c.step.hidden,false);assert.equal(c.signIn.hidden,true);assert.equal(c.form.elements.password.value,'');
+  c.next.value='correct horse 42';c.again.value='correct horse 4';await c.choose();
+  assert.equal(c.said.textContent,'The two passwords are not the same.');assert.equal(c.calls.length,2);
+  c.next.value=c.again.value='short';await c.choose();assert.equal(c.said.textContent,'Use at least 8 characters.');assert.equal(c.calls.length,2);
+  c.next.value=c.again.value='correct horse 42';await c.choose();
+  const [url,init]=c.calls[2];assert.equal(url,'/auth/password');assert.equal(init.method,'POST');
+  assert.equal(init.headers['X-OpenThermostat-CSRF'],csrf);assert.deepEqual(JSON.parse(init.body),{current:'admin',new:'correct horse 42'});
+  assert.deepEqual(c.redirects,['/']);
+  // Your own password: no session read, straight to the Overview (as before).
+  const own=login(()=>json({authenticated:true}));await own.submit();assert.deepEqual(own.calls.map(x=>x[0]),['/auth/login']);assert.deepEqual(own.redirects,['/']);
+  // Sent here from another page (#password): the step opens from the session.
+  const sent=login(u=>u==='/auth/session'?json({authenticated:true,csrf,default_password:true}):json({},404),'#password');
+  await new Promise(setImmediate);assert.equal(sent.step.hidden,false);assert.deepEqual(sent.calls.map(x=>x[0]),['/auth/session']);
+});
 test('login sends URL-encoded credentials in POST body only and clears field',async()=>{
   const c=login(()=>json({authenticated:true}));await c.submit();assert.equal(c.calls[0][0],'/auth/login');assert.equal(c.calls[0][1].method,'POST');
   assert.equal(new URLSearchParams(c.calls[0][1].body).get('password'),'test & symbol');assert.equal(c.form.elements.password.value,'');assert.deepEqual(c.redirects,['/']);

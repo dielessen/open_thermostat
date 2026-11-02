@@ -147,6 +147,8 @@ def plan_error(err):
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unconfirmed")
         return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_rejected",
                                   translation_placeholders={"error": err.error})
+    if str(err) == "controller_password_change_required":  # factory password: Repairs changes it
+        return HomeAssistantError(translation_domain=DOMAIN, translation_key="e32_password_change_required")
     if str(err) in SIGN_IN_ERRORS:  # all E32 web sessions in use, or too many sign-in attempts
         return HomeAssistantError(translation_domain=DOMAIN, translation_key=SIGN_IN_ERRORS[str(err)])
     return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unreachable",

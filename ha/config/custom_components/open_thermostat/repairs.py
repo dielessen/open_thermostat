@@ -15,6 +15,7 @@ ERRORS = {"controller_auth_failed": "e32_password", "controller_unreachable": "e
           "controller_room_plan_update_required": "e32_update_required",
           "controller_session_capacity": "e32_session_capacity",
           "controller_try_again_later": "e32_try_again_later",
+          "controller_password_change_required": "e32_password_change_required",
           "legacy_rooms_plan_changed": "legacy_rooms_plan_changed",
           "legacy_rooms_plan_failed": "legacy_rooms_plan_failed",
           "legacy_rooms_plan_unreadable": "legacy_rooms_plan_unreadable"}
@@ -100,6 +101,9 @@ async def async_create_fix_flow(hass, issue_id, data):
         raise ValueError("unknown_issue")
     if issue_id.startswith(CHOOSE_SOURCE_ISSUE + "_"):
         return ChooseSourceRepairFlow(issue_id, data)
+    from .e32_access import DEFAULT_PASSWORD_ISSUE, ChooseE32PasswordRepairFlow
+    if issue_id.startswith(DEFAULT_PASSWORD_ISSUE + "_"):  # the factory password: choose a new one here
+        return ChooseE32PasswordRepairFlow(issue_id, data)
     from .e32_setting_device import ROOM_PROGRAMS_ISSUE, RoomProgramsRepairFlow
     if issue_id.startswith(ROOM_PROGRAMS_ISSUE + "_"):  # a week program and setting device per room
         return RoomProgramsRepairFlow(issue_id, data)

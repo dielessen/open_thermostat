@@ -277,3 +277,18 @@ TEST(WebAuth, FullTableEvictsOnlyTheLeastRecentlyUsedIdleSessionWhenAllowed) {
     ASSERT_NE(s.issue(token('c'),token('d'),later+3,{},true),nullptr);
     EXPECT_EQ(s.find(token('0'),later+3),nullptr); EXPECT_NE(s.find(token('c'),later+3),nullptr);
 }
+TEST(WebAuth, FactoryPasswordAllowsReadingAndThePasswordChangeButNoOtherChange) {
+    // Every state-changing route the E32 registers is refused until the owner chose a password.
+    for(auto path:{"/config/heating","/config/heating/comfort","/config/heating/handover","/config/heating/flow",
+                   "/config/heating/trv","/config/device","/config/backup","/config/reboot","/ota","/otafs",
+                   "/updates/install","/updates/reboot","/boiler/test/start","/boiler/settings/write",
+                   "/config/programs/x","/config/temporary","/logs/clear","/setup/reenter"})
+        for(auto method:{"POST","DELETE"}) {
+            EXPECT_TRUE(passwordChangeRequired(path,method,true))<<method<<' '<<path;
+            EXPECT_FALSE(passwordChangeRequired(path,method,false))<<method<<' '<<path;
+        }
+    // Signing in and out, the session read and the password change itself stay open.
+    for(auto path:{"/auth/login","/auth/logout","/auth/session","/auth/password"}) EXPECT_FALSE(passwordChangeRequired(path,"POST",true))<<path;
+    // Reading never needs the change: Home Assistant and the pages keep their data.
+    for(auto path:{"/status","/config/heating","/status/heating","/config/device","/auth/session"}) EXPECT_FALSE(passwordChangeRequired(path,"GET",true))<<path;
+}

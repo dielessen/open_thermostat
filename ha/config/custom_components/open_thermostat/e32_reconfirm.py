@@ -86,8 +86,10 @@ class ReconfirmTakeoverRepairFlow(RepairsFlow):
                 return self.async_abort(reason="reconfirm_plan_not_active")
             return self.async_show_form(step_id="reconfirm_takeover",
                                         errors={"base": REFUSALS.get(err.error, "e32_unreachable")})
-        except ControllerLinkError:
-            return self.async_show_form(step_id="reconfirm_takeover", errors={"base": "e32_unreachable"})
+        except ControllerLinkError as err:
+            refused = str(err) == "controller_password_change_required"  # Repairs: choose a new E32 password first
+            return self.async_show_form(step_id="reconfirm_takeover",
+                                        errors={"base": "e32_password_change_required" if refused else "e32_unreachable"})
         if type(answer) is not dict or type(answer.get("confirmation")) is not dict or answer.get("reconfirm_required"):
             return self.async_show_form(step_id="reconfirm_takeover", errors={"base": "reconfirm_unconfirmed"})
         ir.async_delete_issue(self.hass, DOMAIN, self._issue)

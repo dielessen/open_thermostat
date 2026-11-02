@@ -413,6 +413,8 @@ private:
 		}
 		if(decision==control::WebAuthDecision::authentication_required)return reject(401,"application/json","{\"error\":\"authentication_required\"}");
 		if(decision==control::WebAuthDecision::csrf_required)return reject(403,"application/json","{\"error\":\"csrf_required\"}");
+		if(portal!=control::PortalAccess::Setup&&control::passwordChangeRequired(server_.uri().c_str(),method,deviceAccess.defaultPassword()))
+			return reject(403,"application/json","{\"error\":\"password_change_required\"}");
 		if(server_.method()!=HTTP_GET&&update::mutationBlocked(server_.uri().c_str())) {
 			server_.send(409,"text/plain","Wait until the update has finished and the device has restarted");return false;
 		}
@@ -492,7 +494,8 @@ private:
 		controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
 		sessions_.loginSucceeded();
 		server_.sendHeader("Set-Cookie",String("OTSESSION=")+session->token.data()+"; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800");
-		server_.send(200,"application/json","{\"authenticated\":true}");
+		// The factory password: the page asks for a new one at once (nothing else can be changed).
+		server_.send(200,"application/json",deviceAccess.defaultPassword()?"{\"authenticated\":true,\"default_password\":true}":"{\"authenticated\":true}");
 	}
 	void sessionStatus() {
 		const auto token=requestToken();const auto now=networkNow();

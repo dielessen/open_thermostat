@@ -201,6 +201,15 @@ inline bool publicAuthResource(std::string_view path) {
 inline bool loginDocument(std::string_view path) {
     return path == "/" || path == "/index.html" || path == "/recovery" || path == "/setup" || path == "/setup.html";
 }
+// While the factory password is in use, a signed-in client may read everything
+// but change nothing except its session and the password itself: every other
+// state-changing request gets 403 {"error":"password_change_required"}. The
+// heating keeps running on the stored plan and MQTT inputs; no web write is
+// needed for that. The setup access point (its own exception) is not affected.
+inline bool passwordChangeRequired(std::string_view path,std::string_view method,bool defaultPassword) {
+    if (!defaultPassword || method == "GET") return false;
+    return path != "/auth/login" && path != "/auth/logout" && path != "/auth/session" && path != "/auth/password";
+}
 enum class WebAuthDecision { allow, redirect_login, authentication_required, csrf_required };
 // Called only AFTER socket-local AP, method, origin and initialization checks.
 inline WebAuthDecision webAuthDecision(const WebAuthSession &sessions,std::string_view path,

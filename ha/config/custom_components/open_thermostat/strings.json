@@ -794,6 +794,16 @@
       "e32_restore_applying": {
         "title": "Restore the settings",
         "description": "Home Assistant backs up the E32 as it is now and restores the chosen backup. When the network or Bluetooth settings change, the E32 restarts and Home Assistant waits until it answers again; this can take up to three minutes."
+      },
+      "e32_restore_adopt": {
+        "title": "Use this E32 from now on?",
+        "description": "The E32 at {address} already has the settings of the backup of {created}: there is nothing to restore. Home Assistant still uses the previous E32 for this installation.\n\nTick the box to use this E32 from now on. Home Assistant then saves its address and connects to it.",
+        "data": {
+          "confirm": "Use this E32 from now on"
+        },
+        "data_description": {
+          "confirm": "Nothing changes until you tick this."
+        }
       }
     },
     "error": {
@@ -950,7 +960,12 @@
       "e32_restore_invalid": "The E32 refused this backup: it does not fit this E32 or its firmware. Choose another backup.",
       "e32_restore_failed": "The restore could not be completed. Check that the E32 is on and its web page opens, then try again.",
       "e32_restore_other_e32": "This installation still uses an older Home Assistant room profile, which belongs to the previous E32. Remove the old Home Assistant rooms first (Advanced and diagnostics → Remove old Home Assistant rooms), then restore.",
-      "e32_restore_confirm_required": "Tick the box to restore these settings."
+      "e32_restore_other_installation": "This E32 belongs to another OpenThermostat installation in Home Assistant, so nothing was restored. Enter the address of this installation's E32, or remove the other installation first.",
+      "e32_restore_confirm_required": "Tick the box to restore these settings.",
+      "e32_restore_adopt_confirm_required": "Tick the box to use this E32 from now on.",
+      "e32_restore_adopt_failed": "Home Assistant could not switch to this E32. Try again, or connect it under Configure → E32 connection.",
+      "e32_restore_unconfirmed": "The E32 did not answer after the restore, so it is not known whether the settings arrived. Check that the E32 is on and its web page opens, then choose the backup again: the E32 checks what is still different.",
+      "e32_restore_not_applied": "The E32 did not confirm the restore, and its check shows that not all settings arrived. Choose the backup again to restore it once more."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -1019,7 +1034,8 @@
       "e32_restore_done_online": "Settings restored. The E32 restarted and answers again. The rooms are in shadow mode; confirm the takeover again on the E32 page if it should control the boiler.\n\nEnter these again on the E32 page:\n{reenter}",
       "e32_restore_done_waiting": "Settings restored. The E32 is restarting and did not answer yet; Home Assistant reconnects by itself as soon as it is back. The rooms are in shadow mode; confirm the takeover again on the E32 page if it should control the boiler.\n\nEnter these again on the E32 page:\n{reenter}",
       "e32_restore_done_restart": "Settings restored. Restart the E32 (System → Restart device on its page) to use all of them. The rooms are in shadow mode; confirm the takeover again on the E32 page if it should control the boiler.\n\nEnter these again on the E32 page:\n{reenter}",
-      "e32_restore_done": "Settings restored. The rooms are in shadow mode; confirm the takeover again on the E32 page if it should control the boiler.\n\nEnter these again on the E32 page:\n{reenter}"
+      "e32_restore_done": "Settings restored. The rooms are in shadow mode; confirm the takeover again on the E32 page if it should control the boiler.\n\nEnter these again on the E32 page:\n{reenter}",
+      "e32_restore_adopted": "Done: Home Assistant uses this E32 from now on. Nothing was restored; it already had these settings."
     },
     "progress": {
       "controller_connect": "Connecting to the E32…",

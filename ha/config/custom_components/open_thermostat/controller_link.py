@@ -570,14 +570,18 @@ class ControllerClient:
             if type(document) is not dict:
                 raise ControllerLinkError("controller_request_invalid")
             try:
-                data = json.dumps(document, ensure_ascii=True, allow_nan=False, separators=(",", ":"))
+                # A backup goes as UTF-8, as the E32 exported it and as e32_backup measured it:
+                # \uXXXX escapes would make a valid backup with non-ASCII names too large to send.
+                data = json.dumps(document, ensure_ascii=path != CONFIG_BACKUP, allow_nan=False,
+                                  separators=(",", ":"))
             except (TypeError, ValueError, RecursionError):
                 raise ControllerLinkError("controller_request_invalid") from None
             if path == HEATING_PLAN:
                 if len(data.encode()) > HEATING_PLAN_BYTES:
                     raise HeatingPlanRejected(413, "plan_too_large")
             elif path == CONFIG_BACKUP:
-                if len(data.encode()) > CONFIG_BACKUP_REQUEST_BYTES:
+                data = data.encode()
+                if len(data) > CONFIG_BACKUP_REQUEST_BYTES:
                     raise BackupRejected(413, "backup_too_large")
             elif len(data.encode()) >= 2048:
                 raise ControllerLinkError("controller_settings_too_large")

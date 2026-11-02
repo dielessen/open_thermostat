@@ -88,6 +88,8 @@ class ControllerRequestSensor(SensorEntity):
         await super().async_will_remove_from_hass()
 
     def refresh(self):
+        # Not in Home Assistant (yet, or its add was aborted: a disabled record keeps its entity_id): no state.
+        if getattr(self,'hass',None) is None:return
         row=self.row
         identity=None if row is None else tuple(row[k] for k in
             ('boot_id','known','sequence','emitted_at_ms','observed_at_ms'))

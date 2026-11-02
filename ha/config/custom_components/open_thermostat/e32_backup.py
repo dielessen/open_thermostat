@@ -40,7 +40,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
-from .controller_link import ControllerClient, ControllerLinkError, ControllerLoginRejected
+from .controller_link import BackupRejected, ControllerClient, ControllerLinkError, ControllerLoginRejected
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,7 +63,11 @@ ISSUE_AFTER = timedelta(days=3)
 # After a restore that restarts the E32: how long Home Assistant waits for it to answer again.
 RESTART_WAIT = 180
 RESTART_POLL = 5
+# When the E32 does not say: how long after an apply it restarts (ConfigBackupRoute.cpp restartDelayMs).
+RESTART_DELAY = 10
 _HEX64 = re.compile(r"[0-9a-f]{64}")
+# An apply that failed with one of these never changed the E32: the request was not sent, or refused at the door.
+_NOT_APPLIED = frozenset({"controller_request_invalid", "controller_auth_failed", "controller_update_required"})
 _UTC = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?\+00:00")
 
 
@@ -142,11 +146,14 @@ def _created(record):
     return dt_util.parse_datetime(record["created"])
 
 
-def retained(records):
-    """The newest backup of each of the last KEEP_DAYS days, and the newest pre-restore backup."""
+def retained(records, keep=()):
+    """The newest backup of each of the last KEEP_DAYS days, the newest pre-restore backup, and keep (ids)."""
     ordered = sorted(records, key=lambda r: r["created"], reverse=True)
     kept, days = [], set()
     for record in ordered:
+        if record["id"] in keep:
+            kept.append(record)
+            continue
         if record["kind"] == "pre_restore":
             continue
         day = dt_util.as_local(_created(record)).date()
@@ -155,7 +162,7 @@ def retained(records):
         days.add(day)
         kept.append(record)
     before = next((r for r in ordered if r["kind"] == "pre_restore"), None)
-    if before is not None:
+    if before is not None and before not in kept:
         kept.append(before)
     return sorted(kept, key=lambda r: r["created"], reverse=True)
 
@@ -303,12 +310,12 @@ class E32Backups:
             raise ControllerLinkError("controller_response_invalid")
         return document
 
-    async def _keep(self, kind, document):
+    async def _keep(self, kind, document, keep=()):
         now = _now()
         record = {"id": secrets.token_hex(8), "kind": kind, "created": now.isoformat(),
                   "size": _size(document), "firmware": str(document.get("firmware") or "")[:64],
                   "secrets": document.get("secrets") is not None, "document": document}
-        self._data["backups"] = retained([record, *self._data["backups"]])
+        self._data["backups"] = retained([record, *self._data["backups"]], keep)
         self._data.update(last_success=record["created"], last_attempt=record["created"], last_error=None)
         await self._store.async_save(self._data)
         ir.async_delete_issue(self.hass, DOMAIN, issue_id(self.entry))
@@ -413,14 +420,37 @@ class E32Backups:
             raise ControllerLinkError("setup_changed")
         stored = credentials(self.entry)
         async with self._lock:
+            value = None
             async with self._client(check.address) as client:
                 await self._sign_in(client, check.password, stored=stored == (check.address, check.password))
                 before = await self._export(client)
+                # The E32 as it is now becomes the undo point once the apply may have changed it, and
+                # the backup being restored stays too: restoring the last undo point never loses it.
+                try:
+                    value, status = await client.async_config_backup(
+                        self._request("apply", record, fingerprint=check.fingerprint))
+                except BackupRejected as err:
+                    if err.error == "save_partial":
+                        await self._keep("pre_restore", before, keep=(record["id"],))
+                    raise  # refused: the E32 is as it was, and so are the backups
+                except ControllerLinkError as err:
+                    if str(err) in _NOT_APPLIED:
+                        raise
+                    value = None  # sent, but no answer (a timeout, a reset connection)
+                else:
+                    if status != 201 or type(value) is not dict or value.get("applied") is not True:
+                        value = None
+            if value is None:
+                # It may have been applied: both undo points stay, and the E32 checks the backup
+                # again. No change left means the restore arrived (and this E32 is the one restored).
+                await self._keep("pre_restore", before, keep=(record["id"],))
+                arrived = await self._arrived(check, record)
+                if arrived is not True:
+                    raise ControllerLinkError("e32_restore_unconfirmed" if arrived is None else "e32_restore_not_applied")
+                value = {"restart": check.summary["restart"], "restart_scheduled": check.summary["restart"],
+                         "reenter": check.summary["reenter"]}
+            else:
                 await self._keep("pre_restore", before)
-                value, status = await client.async_config_backup(
-                    self._request("apply", record, fingerprint=check.fingerprint))
-            if status != 201 or type(value) is not dict or value.get("applied") is not True:
-                raise ControllerLinkError("controller_response_invalid")
             restart = value.get("restart") is True
             scheduled = value.get("restart_scheduled") is True
             reenter = [text for text in value.get("reenter") or [] if type(text) is str]
@@ -428,7 +458,7 @@ class E32Backups:
             online = None
             if scheduled:
                 delay = value.get("restart_in_s")
-                delay = delay if type(delay) is int and 0 <= delay <= 60 else 10
+                delay = delay if type(delay) is int and 0 <= delay <= 60 else RESTART_DELAY
                 online = False
                 try:
                     async with timeout(RESTART_WAIT):
@@ -445,28 +475,101 @@ class E32Backups:
                     pass
         return {"restart": restart, "restart_scheduled": scheduled, "online": online, "reenter": reenter}
 
+    async def _arrived(self, check, record):
+        """After an apply without a valid answer: does the E32 now hold the backup's settings?
+
+        True: the E32's check finds nothing left to change. False: it finds
+        changes (the apply did not arrive). None: no answer within RESTART_WAIT,
+        or the password is refused (never tried twice).
+        """
+        from asyncio import timeout
+        try:
+            async with timeout(RESTART_WAIT):
+                while True:
+                    try:
+                        async with self._client(check.address) as client:
+                            await client.async_login(check.password)
+                            value, status = await client.async_config_backup(self._request("validate", record))
+                            if status == 200:
+                                return not _summary(value)["changes"]
+                    except ControllerLoginRejected:
+                        return None
+                    except ControllerLinkError:
+                        pass  # restarting, or busy: ask again
+                    await asyncio.sleep(RESTART_POLL)
+        except TimeoutError:
+            return None
+
+    @callback
+    def adopt(self, check):
+        """The user confirmed: this installation uses the checked E32 from now on (it holds the settings)."""
+        return self._adopt(check)
+
     def _adopt(self, check):
-        """After a restore: this installation's E32 is the one restored (a replacement may differ)."""
+        """After a restore: this installation's E32 is the one restored (a replacement may differ).
+
+        True when the entry uses check's E32 (now or already). Never an E32 of
+        another installation in this Home Assistant (other_installation).
+        """
         from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_ID, CONTROLLER_PASSWORD
         from .product import commit_configuration, configuration_snapshot
         entry = self.entry
         if self.hass.config_entries.async_get_entry(entry.entry_id) is not entry:
-            return
+            return False
         wanted = {CONTROLLER_ADDRESS: check.address, CONTROLLER_PASSWORD: check.password}
         if check.identity is not None:
             wanted[CONTROLLER_ID] = check.identity
         if all(entry.data.get(k) == v for k, v in wanted.items()):
-            return
+            return True
+        if other_installation(self.hass, entry, check):
+            _LOGGER.warning("E32 settings restored; that E32 belongs to another installation and is not linked")
+            return False
         self._rejected_password = None
         if all(entry.data.get(k) == v for k, v in wanted.items() if k != CONTROLLER_PASSWORD):
             from .e32_access import save_password
             save_password(self.hass, entry, check.password)
-            return
+            return True
         try:
             # Another address or another E32: the entry reloads and links it.
             commit_configuration(self.hass, entry, configuration_snapshot(entry), data={**entry.data, **wanted})
         except ValueError:
             _LOGGER.warning("E32 settings restored; the new E32 address could not be saved in Home Assistant")
+            return False
+        return True
+
+
+def other_e32(entry, check):
+    """True when check's E32 is not the entry's own one (another address, or another E32 identity)."""
+    from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_ID
+    return (check.address != entry.data.get(CONTROLLER_ADDRESS)
+            or entry.data.get(CONTROLLER_ID) not in (None, check.identity))
+
+
+def other_installation(hass, entry, check):
+    """True when check's E32 belongs to another OpenThermostat installation in this Home Assistant.
+
+    The same E32 identity or address as another entry, or a restore that
+    would move the E32's Home Assistant link away from another entry's adapter.
+    """
+    from .controller_link import controller_address
+    from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_ID
+    adapters = set()
+    for other in hass.config_entries.async_entries(DOMAIN):
+        if other.entry_id == entry.entry_id:
+            continue
+        if check.identity is not None and other.data.get(CONTROLLER_ID) == check.identity:
+            return True
+        try:
+            if controller_address(other.data.get(CONTROLLER_ADDRESS)) == check.address:
+                return True
+        except ControllerLinkError:
+            pass  # no (valid) stored address
+        adapter = other.options.get("adapter_id", other.data.get("adapter_id"))
+        if type(adapter) is str and adapter:
+            adapters.add(adapter)
+    adapters.discard(entry.options.get("adapter_id", entry.data.get("adapter_id")))  # its own link
+    return any(change["field"] == "mqtt.adapter_id" and change.get("from") in adapters
+               for change in check.summary["changes"])
 
 
 def backups(hass, entry):
@@ -638,6 +741,32 @@ def _shown(value, language):
     return str(value)
 
 
+def _tuning_lines(change, label, language):
+    """Comfort and boiler care: one line per changed setting, by its plain name and with its value
+    in words as the E32's Home page shows it (tuning), or who set it (tuning_manual)."""
+    from .learned_overview import KNOB, TEXT, knob_value
+    lang = ("en", "nl", "pl")[_language(language)]
+    words = TEXT[lang]
+    care = _text(_FIELDS, "tuning", language)
+    was, now = change.get("from"), change.get("to")
+    if change["field"] == "tuning":
+        was, now = (value if isinstance(value, dict) else {} for value in (was, now))
+
+        def shown(key, value):
+            return knob_value(key, value, lang) if type(value) in (int, float) else "—"
+        changed = [key for key in KNOB if was.get(key) != now.get(key)]
+        lines = [f"- {care} · {words['knob.' + key]}: {shown(key, was.get(key))} → {shown(key, now.get(key))}"
+                 for key in changed]
+    else:
+        was, now = (set(value) if isinstance(value, list) else set() for value in (was, now))
+
+        def who(key, mine):
+            return words["yours" if mine else "automatic" if KNOB[key][0] else "standard"].strip("()")
+        lines = [f"- {care} · {words['knob.' + key]}: {who(key, key in was)} → {who(key, key in now)}"
+                 for key in KNOB if (key in was) != (key in now)]
+    return lines or [f"- {label}: {_text(_WORDS, 'hidden', language)}"]
+
+
 def summary_text(summary, language):
     """The E32's check as a short list in the user's language (no secret: those are only named)."""
     lines = []
@@ -647,6 +776,9 @@ def summary_text(summary, language):
             section = _text(_SECTIONS, change["section"], language)
             name = _text(_FIELDS, change["field"], language)
             label = name if name == section else f"{section} · {name}"
+            if change["field"] in ("tuning", "tuning_manual") and not change.get("hidden"):
+                lines += _tuning_lines(change, label, language)
+                continue
             value = (_text(_WORDS, "hidden", language) if change.get("hidden")
                      else f"{_shown(change.get('from'), language)} → {_shown(change.get('to'), language)}")
             lines.append(f"- {label}: {value}")

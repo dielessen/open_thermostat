@@ -794,6 +794,16 @@
       "e32_restore_applying": {
         "title": "Przywracanie ustawień",
         "description": "Home Assistant tworzy kopię E32 w obecnym stanie i przywraca wybraną kopię. Gdy zmieniają się ustawienia sieci lub Bluetooth, E32 uruchamia się ponownie, a Home Assistant czeka, aż znów odpowie; może to potrwać do trzech minut."
+      },
+      "e32_restore_adopt": {
+        "title": "Używać od teraz tego E32?",
+        "description": "E32 pod adresem {address} ma już ustawienia z kopii z {created}: nie ma czego przywracać. Home Assistant nadal używa poprzedniego E32 dla tej instalacji.\n\nZaznacz pole, aby od teraz używać tego E32. Home Assistant zapisze wtedy jego adres i połączy się z nim.",
+        "data": {
+          "confirm": "Używaj od teraz tego E32"
+        },
+        "data_description": {
+          "confirm": "Nic się nie zmieni, dopóki tego nie zaznaczysz."
+        }
       }
     },
     "error": {
@@ -950,7 +960,12 @@
       "e32_restore_invalid": "E32 odrzucił tę kopię: nie pasuje do tego E32 lub jego oprogramowania. Wybierz inną kopię.",
       "e32_restore_failed": "Nie udało się dokończyć przywracania. Sprawdź, czy E32 jest włączony i jego strona się otwiera, i spróbuj ponownie.",
       "e32_restore_other_e32": "Ta instalacja nadal używa starszego profilu pomieszczeń Home Assistant, który należy do poprzedniego E32. Najpierw usuń stare pomieszczenia Home Assistant (Zaawansowane i diagnostyka → Usuń stare pomieszczenia Home Assistant), potem przywróć.",
-      "e32_restore_confirm_required": "Zaznacz pole, aby przywrócić te ustawienia."
+      "e32_restore_other_installation": "Ten E32 należy do innej instalacji OpenThermostat w Home Assistant, więc nic nie przywrócono. Wpisz adres E32 tej instalacji albo najpierw usuń tamtą instalację.",
+      "e32_restore_confirm_required": "Zaznacz pole, aby przywrócić te ustawienia.",
+      "e32_restore_adopt_confirm_required": "Zaznacz pole, aby od teraz używać tego E32.",
+      "e32_restore_adopt_failed": "Home Assistant nie mógł przejść na ten E32. Spróbuj ponownie albo połącz go w Konfiguruj → Połączenie z E32.",
+      "e32_restore_unconfirmed": "E32 nie odpowiedział po przywróceniu, więc nie wiadomo, czy ustawienia dotarły. Sprawdź, czy E32 jest włączony i jego strona się otwiera, a potem wybierz kopię ponownie: E32 sprawdzi, co nadal się różni.",
+      "e32_restore_not_applied": "E32 nie potwierdził przywrócenia, a jego sprawdzenie pokazuje, że nie wszystkie ustawienia dotarły. Wybierz kopię ponownie, aby przywrócić ją jeszcze raz."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -1019,7 +1034,8 @@
       "e32_restore_done_online": "Ustawienia przywrócone. E32 uruchomił się ponownie i znów odpowiada. Pomieszczenia są w trybie cienia; potwierdź ponownie przejęcie na stronie E32, jeśli ma sterować kotłem.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
       "e32_restore_done_waiting": "Ustawienia przywrócone. E32 uruchamia się ponownie i jeszcze nie odpowiada; Home Assistant połączy się sam, gdy wróci. Pomieszczenia są w trybie cienia; potwierdź ponownie przejęcie na stronie E32, jeśli ma sterować kotłem.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
       "e32_restore_done_restart": "Ustawienia przywrócone. Uruchom E32 ponownie (System → Uruchom urządzenie ponownie na jego stronie), aby użyć ich wszystkich. Pomieszczenia są w trybie cienia; potwierdź ponownie przejęcie na stronie E32, jeśli ma sterować kotłem.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
-      "e32_restore_done": "Ustawienia przywrócone. Pomieszczenia są w trybie cienia; potwierdź ponownie przejęcie na stronie E32, jeśli ma sterować kotłem.\n\nWpisz to ponownie na stronie E32:\n{reenter}"
+      "e32_restore_done": "Ustawienia przywrócone. Pomieszczenia są w trybie cienia; potwierdź ponownie przejęcie na stronie E32, jeśli ma sterować kotłem.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
+      "e32_restore_adopted": "Gotowe: Home Assistant od teraz używa tego E32. Nic nie przywrócono; miał już te ustawienia."
     },
     "progress": {
       "controller_connect": "Łączenie z E32…",

@@ -6,7 +6,13 @@ what must be entered again, then tick the confirmation: only then Home
 Assistant backs up the E32 as it is and restores the chosen file. The E32
 comes back in shadow mode; the takeover of the boiler is confirmed again on
 the E32 page. A restore that changes the network or Bluetooth restarts the E32;
-Home Assistant waits until it answers again.
+Home Assistant waits until it answers again. When the E32's answer to the
+restore is lost, the E32 checks the backup again: nothing left to change means
+it arrived.
+
+A replacement E32 that already holds the backup's settings (restored on its own
+page, or an earlier restore whose answer was lost) has nothing to restore: the
+form then offers to use that E32 from now on, after a tick of its own.
 """
 from __future__ import annotations
 
@@ -17,7 +23,8 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .controller_link import BackupRejected, ControllerLinkError, controller_address
-from .e32_backup import RestoreCheck, backups, created_text, credentials, reenter_text, record_label, summary_text
+from .e32_backup import (RestoreCheck, backups, created_text, credentials, other_e32, other_installation,
+                         reenter_text, record_label, summary_text)
 
 # The E32's refusals (ConfigBackupRoute.cpp) as this form's errors.
 REFUSALS = {
@@ -36,6 +43,8 @@ CONNECTION_ERRORS = frozenset({
     "controller_address_invalid", "controller_password_required", "controller_auth_failed",
     "controller_unreachable", "controller_update_required", "controller_session_capacity",
     "controller_try_again_later", "controller_response_invalid",
+    # e32_backup.async_restore: no valid answer to the apply, and the E32's check again
+    "e32_restore_unconfirmed", "e32_restore_not_applied",
 })
 
 
@@ -141,7 +150,14 @@ class E32RestoreSteps:
             # Another E32 cannot take over the older Home Assistant room profile of this installation.
             self._restore_error = "e32_restore_other_e32"
             return await self.async_step_e32_restore()
+        if other_installation(self.hass, entry, check):
+            # Never restore onto (or take over) the E32 of another installation in this Home Assistant.
+            self._restore_error = "e32_restore_other_installation"
+            return await self.async_step_e32_restore()
         if not check.summary["changes"]:
+            if other_e32(entry, check):
+                # It holds the backup's settings already, but this installation still uses another E32.
+                return await self.async_step_e32_restore_adopt()
             return self.async_abort(reason="e32_restore_nothing")
         errors = {}
         if user_input is not None:
@@ -156,6 +172,26 @@ class E32RestoreSteps:
             vol.Required("confirm", default=False): selector.BooleanSelector()}),
             description_placeholders={"created": created_text(record),
                                       "summary": summary_text(check.summary, self._restore_language())})
+
+    async def async_step_e32_restore_adopt(self, user_input=None):
+        entry = self.config_entry
+        manager = backups(self.hass, entry)
+        check = getattr(self, "_restore_result", None)
+        record = (manager.record(check.record_id) if manager is not None and isinstance(check, RestoreCheck)
+                  else None)
+        if record is None:
+            return self.async_abort(reason="e32_restore_unavailable")
+        errors = {}
+        if user_input is not None:
+            if user_input.get("confirm") is not True:
+                errors["base"] = "e32_restore_adopt_confirm_required"
+            elif manager.adopt(check):
+                return self.async_abort(reason="e32_restore_adopted")
+            else:
+                errors["base"] = "e32_restore_adopt_failed"
+        return self.async_show_form(step_id="e32_restore_adopt", errors=errors, data_schema=vol.Schema({
+            vol.Required("confirm", default=False): selector.BooleanSelector()}),
+            description_placeholders={"address": check.address, "created": created_text(record)})
 
     async def async_step_e32_restore_applying(self, user_input=None):
         return await self._restore_progress("e32_restore_applying", "e32_restore_apply", "e32_restore_done")

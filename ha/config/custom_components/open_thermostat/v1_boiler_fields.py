@@ -286,13 +286,23 @@ def ours(record):
 
 
 def renamed_id(record):
-    """The user changed this record's entity_id: it no longer ends in the object ID Home
-    Assistant generated from the entity's name (object_id_base). A device or area prefix
-    may differ (a renamed device); a numbered or otherwise different ending counts as the
-    user's own ID. Without a stored base nothing can be told: not renamed."""
+    """The user changed this record's entity_id: it ends neither in the object ID Home
+    Assistant generates from the entity's name (object_id_base) nor in the field's own key.
+
+    Home Assistant overwrites object_id_base with the current name, so a record made by
+    an older release (named after the field key, "Boiler <key>") or renamed in 1.0
+    (Selected flow -> Water temperature target) still ends in the key of its unique ID or
+    of a field of the same value. A device or area prefix may differ (a renamed device); a
+    numbered or otherwise different ending counts as the user's own ID. Without any base
+    nothing can be told: not renamed."""
     from homeassistant.util import slugify
-    base = slugify(record.object_id_base or record.original_name or "")
-    return bool(base) and not record.entity_id.split(".", 1)[1].endswith(base)
+    names = {record.object_id_base, record.original_name}
+    index = INDEX_BY_NAME.get(record.unique_id.partition("_boiler_fields_v1_")[2])
+    if index is not None:
+        names.update(spec(member)[0] for member in concept(index))
+    bases = {slugify(name) for name in names if name} - {""}
+    object_id = record.entity_id.split(".", 1)[1]
+    return bool(bases) and not any(object_id.endswith(base) for base in bases)
 
 
 def profile_hides(cache, members):

@@ -127,6 +127,15 @@
         curve_design_flow_c: "Water temperature at −10 °C outside", tuning: "Comfort and boiler care", tuning_manual: "Comfort and boiler care: set by you",
         model: "Boiler model", learned: "What the thermostat has learned"
     };
+    // Comfort and boiler care (house.html's settings): name, how its value reads, and whether the thermostat sets it.
+    const knobs = {min_off_s: ["Burner rest between starts", 'rest', true], min_on_s: ["Burner run time", 'run', true],
+        heat_start_c: ["Start heating when the room is this much below its target", 'c', true],
+        heat_stop_c: ["Stop heating when the room is this much above its target", 'c', true],
+        flow_per_degree_c: ["How strongly the water temperature reacts to a cold room", 'gain', true],
+        floor_lead_min_per_c: ["Warm-up time for floor heating", 'lead', true], radiator_lead_min_per_c: ["Warm-up time for radiators", 'lead', true],
+        curve_correction_pct: ["Room correction on the heating curve", 'pct', false],
+        learned_accept_pct: ["Accepted warm-up time with the learned water temperature", 'pct', false],
+        night_saving_min_pct: ["Smallest night saving worth advising", 'pct', false]};
     const reenter = {wifi_password: "Wi-Fi password", web_password: "Web page password", mqtt_password: "MQTT password",
         openweather_key: "OpenWeather API key", bluetooth_keys: "Bluetooth sensor keys", bluetooth_key: "Bluetooth key for {v}"};
     const warnings = {
@@ -166,7 +175,9 @@
         "The E32 restarts after the restore; sign in again afterwards.", "Restoring…", "Settings restored.",
         "The E32 restarts in about {v} seconds. Sign in again afterwards.", "Restart the E32 to use all restored settings.",
         "The file could not be read.", "The backup contains invalid settings.", "The request was not confirmed. Try again.",
-        "On", "Off", "will change", "Choose a backup file first.", "Use a passphrase of 12 to 64 characters."]);
+        "On", "Off", "will change", "Choose a backup file first.", "Use a passphrase of 12 to 64 characters."],
+        Object.values(knobs).map(k => k[0]), ["{m} min", "{h} h", "{h} h {m} min", "at least {d}", "{d} per °C",
+        "{v} °C warmer water per °C too cold", "set by you", "automatic", "standard value"]);
 
     function element(tag, attributes = {}, ...children) {
         const node = document.createElement(tag);
@@ -190,6 +201,41 @@
     function label(change) {
         const section = t(sections[change.section] || change.section), field = t(fields[change.field] || change.field);
         return section === field ? field : section + ' · ' + field;
+    }
+    const num = (v, digits) => Number(v).toFixed(digits).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '')
+        .replace('.', document.documentElement.lang === 'nl' ? ',' : '.');
+    const words = (text, values) => Object.entries(values).reduce((s, [k, v]) => s.split('{' + k + '}').join(v), t(text));
+    // Minutes in words, as on the Home page: "7.5 min", "1 h 30 min", "2 h".
+    function duration(m) {
+        if (m < 57.5) return words("{m} min", {m: num(Math.max(0.5, Math.round(m * 2) / 2), 1)});
+        m = Math.round(m / 5) * 5; const h = Math.floor(m / 60), r = m % 60;
+        return r ? words("{h} h {m} min", {h, m: r}) : words("{h} h", {h});
+    }
+    function knobValue(key, v) {
+        if (typeof v !== 'number' || !Number.isFinite(v)) return '—';
+        const kind = knobs[key][1];
+        if (kind === 'rest') return duration(v / 60);
+        if (kind === 'run') return words("at least {d}", {d: duration(v / 60)});
+        if (kind === 'c') return num(v, 2) + ' °C';
+        if (kind === 'gain') return words("{v} °C warmer water per °C too cold", {v: num(v, 0)});
+        if (kind === 'lead') return words("{d} per °C", {d: duration(v)});
+        return num(v, 0) + ' %';
+    }
+    // The summary rows of one change: the comfort settings one row per changed setting, in words.
+    function rows(change) {
+        const care = k => t(fields.tuning) + ' · ' + t(knobs[k][0]);
+        let out = null;
+        if (!change.hidden && change.field === 'tuning') {
+            const plain = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {}), was = plain(change.from), now = plain(change.to);
+            out = Object.keys(knobs).filter(k => was[k] !== now[k]).map(k => [care(k), knobValue(k, was[k]) + ' → ' + knobValue(k, now[k])]);
+        } else if (!change.hidden && change.field === 'tuning_manual') {
+            const list = v => (Array.isArray(v) ? v : []), was = list(change.from), now = list(change.to);
+            const who = (k, mine) => t(mine ? "set by you" : knobs[k][2] ? "automatic" : "standard value");
+            out = Object.keys(knobs).filter(k => was.includes(k) !== now.includes(k))
+                .map(k => [care(k), who(k, was.includes(k)) + ' → ' + who(k, now.includes(k))]);
+        }
+        if (out && out.length) return out;
+        return [[label(change), change.hidden || out ? t("will change") : shown(change.from) + ' → ' + shown(change.to)]];
     }
     async function post(body, ms = 30000) {
         const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), ms);
@@ -298,9 +344,9 @@
                 const v = result.value, changes = Array.isArray(v.changes) ? v.changes : [];
                 restoreStatus.textContent = '';
                 summary.append(element('p', {className: 'mb-1', text: changes.length ? t("The backup is valid. These settings will change:") : t("Nothing changes: this E32 already has these settings.")}));
-                if (changes.length) summary.append(element('ul', {}, ...changes.map(c => element('li', {},
-                    element('strong', {text: label(c) + ': '}),
-                    element('span', {text: c.hidden ? t("will change") : shown(c.from) + ' → ' + shown(c.to)})))));
+                if (changes.length) summary.append(element('ul', {}, ...changes.flatMap(rows).map(([name, value]) => element('li', {},
+                    element('strong', {text: name + ': '}),
+                    element('span', {text: value})))));
                 const notes = Array.isArray(v.warnings) ? v.warnings : [];
                 if (notes.length) summary.append(element('p', {className: 'mb-1', text: t("Notes:")}), element('ul', {}, ...notes.map(n => element('li', {text: coded(warnings, n)}))));
                 const again = Array.isArray(v.reenter) ? v.reenter : [];

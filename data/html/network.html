@@ -57,7 +57,7 @@
 	</div>
 </div>
 
-<style>#loadingprogress.invisible{display:none!important}.col-md-auto:has(>#NetworkSettings){padding-left:0;padding-right:0}.col-md-auto:has(>#NetworkSettings)>.row{margin-left:0;margin-right:0}</style>
+<style>#loadingprogress.invisible{display:none!important}#settings-page .ot-unloaded .pd-panel,#settings-page .ot-unloaded>details,#settings-page .ot-unloaded>.card-body>:not([data-settings-box]){opacity:.55}#settings-page [data-settings-box]:empty{display:none}#settings-page [data-settings-box]>span{flex:1 1 16rem}#settings-page .ot-sticky [data-settings-box]{margin:8px 0 0}.col-md-auto:has(>#NetworkSettings){padding-left:0;padding-right:0}.col-md-auto:has(>#NetworkSettings)>.row{margin-left:0;margin-right:0}</style>
 <form id="networkeditform" class="invisible" novalidate>
 
 	<div class="modal fade" id="selectWiFiSSID" tabindex="-1" role="dialog" aria-labelledby="selectWiFiSSIDLabel"
@@ -75,6 +75,7 @@
 						<div class="spinner-border text-danger" id="scanningWiFi" role="status"><span
 								class="sr-only"><span data-i18n="Scanning for WiFi networks">Scanning for WiFi networks</span></span></div>
 					</div>
+					<p class="alert alert-danger" id="selectWiFiSSIDError" role="alert" hidden></p>
 					<form>
 						<select class="form-control" id="selectWiFiSSIDSelect">
 						</select>
@@ -95,7 +96,7 @@
 					<span class="align-middle"><span data-i18n="WiFi settings">WiFi settings</span></span><button type="button"
 						class="btn btn-outline-secondary" style="min-width:44px" onclick="loadWiFiSettings();" aria-label="Reload WiFi settings" data-i18n-aria-label="Reload WiFi settings" title="Reload WiFi settings" data-i18n-title="Reload WiFi settings">&#x2b6f;</button>
 				</div>
-				<div class="card-body"><p class="pd-help" data-i18n="The home network the E32 connects to.">The home network the E32 connects to.</p>
+				<div class="card-body"><div data-settings-box id="WiFiSettingsError"></div><p class="pd-help" data-i18n="The home network the E32 connects to.">The home network the E32 connects to.</p>
 					<div class="form-group">
 						<div class="form-row">
 							<div class="col-md mb-2">
@@ -128,13 +129,15 @@
 				<div class="card-footer text-muted">
 					<button type="button" class="btn btn-primary mb-2" onclick="saveWiFiSettings();"
 						id="SaveWiFiSettings"><span data-i18n="Save WiFi settings">Save WiFi settings</span></button>
+					<div data-settings-box id="SaveWiFiStatus"></div>
 				</div>
 			</div>
 		</div>
 
 		<div id="NetworkSettings" class="w-100">
 		<div class="ot-actions mb-2"><h2 class="mb-0" data-i18n="Device settings">Device settings</h2><button type="button"
-						class="btn btn-outline-secondary" style="min-width:44px" onclick="loadDeviceSettings();" aria-label="Reload network settings" data-i18n-aria-label="Reload network settings" title="Reload network settings" data-i18n-title="Reload network settings">&#x2b6f;</button></div>
+						class="btn btn-outline-secondary" style="min-width:44px" onclick="loadDeviceSettings();" data-settings-reload aria-label="Reload network settings" data-i18n-aria-label="Reload network settings" title="Reload network settings" data-i18n-title="Reload network settings">&#x2b6f;</button></div>
+		<div data-settings-box id="DeviceSettingsLoad"></div>
 		<section class="pd-panel"><h2 data-i18n="Connection">Connection</h2><p class="pd-help" data-i18n="How you reach this page on your network.">How you reach this page on your network.</p>
 
 								<div class="form-row">
@@ -158,6 +161,7 @@
 <textarea class="form-control" id="NativeShadowSource" rows="4" maxlength="2048" aria-describedby="NativeShadowSourceHelp"></textarea>
 <small id="NativeShadowSourceHelp"><span data-i18n="This technical profile links this E32 to the rooms, devices and limits checked in Home Assistant. Copy the exact profile from HA; do not edit individual values. An empty profile selects no installation. Initial setup and network changes require a restart. Saving a profile does not enable heating control.">This technical profile links this E32 to the rooms, devices and limits checked in Home Assistant. Copy the exact profile from HA; do not edit individual values. An empty profile selects no installation. Initial setup and network changes require a restart. Saving a profile does not enable heating control.</span></small>
 <button type="button" class="btn btn-outline-primary mt-2" id="ApplyNativeSourceNow" onclick="applyNativeSourceNow();" disabled><span data-i18n="Save installation profile without restarting">Save installation profile without restarting</span></button>
+<div data-settings-box id="NativeSourceStatus" class="mt-2"></div>
 <small class="form-text text-muted"><span data-i18n="This button saves only the installation profile. Other unsaved changes stay in this form. Afterwards, apply the room plan in Home Assistant and check its confirmation. If saving or confirmation fails, control stays blocked; the last saved configuration remains available.">This button saves only the installation profile. Other unsaved changes stay in this form. Afterwards, apply the room plan in Home Assistant and check its confirmation. If saving or confirmation fails, control stays blocked; the last saved configuration remains available.</span></small>
 </details>
 		</section>
@@ -301,7 +305,8 @@
 						</div>
 		</details>
 		<div class="ot-sticky ot-actions"><button type="button" class="btn btn-primary" onclick="saveDeviceSettings();"
-						id="SaveDeviceSettings"><span data-i18n="Save settings">Save settings</span></button></div>
+						id="SaveDeviceSettings"><span data-i18n="Save settings">Save settings</span></button>
+			<div data-settings-box id="SaveDeviceStatus" class="w-100"></div></div>
 		</div>
 	</div>
 
@@ -378,6 +383,7 @@
 
 			$("#scanningWiFi").show();
 			$('#selectWiFiSSIDSelect').hide();
+			$('#selectWiFiSSIDError').prop('hidden', true);
 
 			fetch(hostName + '/status/wifi')
 				.then(res => res.json())
@@ -398,7 +404,8 @@
 					$("#scanningWiFi").hide();
 					$('#selectWiFiSSIDSelect').show();
 				}).catch(function (error) {
-					alert(uiText("Cannot fetch wifi networks.\n") + error);
+					$("#scanningWiFi").hide();
+					$('#selectWiFiSSIDError').text(uiText("Could not scan for WiFi networks: {reason}.").replace('{reason}', settingsReason(error))).prop('hidden', false);
 				}
 				);
 
@@ -587,10 +594,13 @@
 		// changes. Do not keep a second save/scan form that treats HTTP202 as
 		// failure and cannot show connection/readback results.
 		const card=document.getElementById('WiFiSettings');
+		// Until the E32 answers nothing here looks usable: no empty fields that seem real.
+		card.classList.add('ot-unloaded');
+		card.querySelectorAll('input,button').forEach(control=>{control.disabled=true;});
 		try {
 			const response=await fetch(hostName+'/setup/status',{cache:'no-store'});
-			if(response.status===404) { loadLegacyWiFiSettings(); return; }
-			if(!response.ok) throw Error(uiText("WiFi status unreachable"));
+			if(response.status===404) { card.classList.remove('ot-unloaded'); loadLegacyWiFiSettings(); return; }
+			if(!response.ok) throw {status:response.status};
 			const state=await response.json();
 			card.replaceChildren();
 			const body=document.createElement('div'); body.className='card-body';
@@ -611,30 +621,66 @@
 			};
 			body.append(button); card.append(body);
 		} catch(e) {
+			// One inline panel with the reason and a retry (the same GET), instead of a bare button.
 			card.replaceChildren();
-			const retry=document.createElement('button'); retry.type='button'; retry.className='btn btn-primary';
-			retry.textContent=uiText("Reload WiFi status"); retry.onclick=loadWiFiSettings; card.append(retry);
+			const body=document.createElement('div'); body.className='card-body';
+			const title=document.createElement('h5'); title.textContent=uiText("Set up WiFi");
+			const box=document.createElement('div'); body.append(title,box); card.append(body);
+			settingsPanel(box,'danger',uiText("Could not load the WiFi status: {reason}.").replace('{reason}',settingsReason(e)),[[uiText("Try again"),loadWiFiSettings]]);
 		}
+		card.classList.remove('ot-unloaded');
+	}
+
+	// Settings page messages (rc.2): inline panels instead of browser alert/confirm dialogs, in the
+	// same look as the other pages: a coloured panel with the reason and its buttons next to the text.
+	function settingsReason(error) {
+		const status=error&&typeof error.status==='number'?error.status:null;
+		if(status===404)return uiText("this firmware does not offer them");
+		if(status!==null)return uiText("the E32 answered with error {code}").replace('{code}',status);
+		return error instanceof SyntaxError?uiText("the answer of the E32 could not be read"):uiText("the E32 could not be reached");
+	}
+	// kind: danger, warning, success or info; actions: [label, handler, primary?]. Empty text clears the panel.
+	// A pressed button disables the panel's buttons (one request per press); its handler shows what comes next.
+	function settingsPanel(box,kind,text,actions=[]) {
+		if(!box||typeof box.replaceChildren!=='function')return [];
+		if(!text){box.replaceChildren();return [];}
+		const panel=document.createElement('div');panel.className='alert alert-'+kind+' ot-actions mb-2';
+		panel.setAttribute('role',kind==='danger'?'alert':'status');
+		const words=document.createElement('span');words.textContent=text;panel.append(words);
+		const buttons=actions.map(([label,handler,primary])=>{
+			const button=document.createElement('button');button.type='button';button.className=primary?'btn btn-primary':'btn btn-outline-secondary';
+			button.textContent=label;button.addEventListener('click',()=>{buttons.forEach(b=>{b.disabled=true;});handler();});return button;
+		});
+		panel.append(...buttons);box.replaceChildren(panel);
+		return buttons;
+	}
+	// The inline confirmation of a destructive action: the question, the action itself and Cancel.
+	function settingsConfirm(box,text,label,action,cancelled=()=>{}) {
+		const [yes]=settingsPanel(box,'warning',text,[[label,()=>{settingsPanel(box);action();},true],[uiText("Cancel"),()=>{settingsPanel(box);cancelled();}]]);
+		if(yes)yes.focus();else cancelled();
 	}
 
 	function loadLegacyWiFiSettings() {
-		$("#WiFiSettings *").attr('disabled', true)
+		const problem = document.getElementById('WiFiSettingsError');
+		$("#WiFiSettings *").attr('disabled', true);
+		settingsPanel(problem, 'info', uiText("Loading the WiFi settings…"));
 		fetch(hostName + '/config/wifi')
 			.then(validateResponse)
 			.then(res => res.json())
 			.then((settings) => {
 				$('#WiFiSSID').val(settings.ssid);
+				settingsPanel(problem);
+				$("#WiFiSettings *").attr('disabled', false);
 			}).catch(function (error) {
+				const text = uiText("Could not load the WiFi settings: {reason}.").replace('{reason}', settingsReason(error));
+				// Without a stored network (404) a new one can still be entered; otherwise the form waits for a retry.
 				if (error instanceof HttpResponseException && error.status === 404) {
-					alert(uiText("Cannot load WiFi settings\n") + error);
-					$("#WiFiSettings *").attr('disabled', false)
+					settingsPanel(problem, 'warning', text);
+					$("#WiFiSettings *").attr('disabled', false);
 					return;
 				}
-				if (confirm(uiText("Cannot load WiFi settings\n") + error + uiText("\nTry again?"))) {
-					loadWiFiSettings();
-				}
+				settingsPanel(problem, 'danger', text, [[uiText("Try again"), loadWiFiSettings]]);
 			});
-		$("#WiFiSettings *").attr('disabled', false)
 	}
 
 	function saveWiFiSettings() {
@@ -653,22 +699,23 @@
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(settings, undefined, '\t')
 		})
-			.then(res => {
-				if (res.status === 200 || res.status === 201 || res.type === "opaque") {
-					if (confirm(uiText("WiFi settings saved. Do you want to reboot device to changes take place?"))) {
-						reboot();
-						return;
-					}
-				} else {
-					alert(uiText("Not sure if config saved Status: ") + res.status + uiText("\nBody:\n") + res.statusText);
-				}
-			})
+			.then(res => settingsSaved(document.getElementById('SaveWiFiStatus'), res, uiText("WiFi settings saved. They take effect after a restart.")))
 			.catch(function (error) {
-				alert(error);
+				settingsUnconfirmed(document.getElementById('SaveWiFiStatus'), error);
 			})
 			.finally(function () {
 				$("#SaveWiFiSettings").prop('disabled', false);
 			});
+	}
+	// After a save: the restart offer inline (was a confirm dialog), or why the save is not confirmed.
+	function settingsSaved(box, res, text) {
+		if (res.status === 200 || res.status === 201 || res.type === "opaque")
+			settingsPanel(box, 'success', text, [[uiText("Restart now"), reboot, true], [uiText("Later"), () => settingsPanel(box)]]);
+		else settingsUnconfirmed(box, res);
+	}
+	function settingsUnconfirmed(box, error) {
+		const text = uiText("The save was not confirmed: {reason}. Reload the settings to see what the E32 stored.").replace('{reason}', settingsReason(error));
+		if (box && typeof box.replaceChildren === 'function') settingsPanel(box, 'danger', text); else if (box) box.textContent = text;
 	}
 
     var loadedNetworkSettings = null;
@@ -687,15 +734,27 @@
         if (notice) notice.hidden = mode === 'legacy';
     }
 
+	// The device form stays disabled (and dimmed) until a fresh read succeeds; only its reload button works.
+	function deviceControls(enabled) {
+		$('#NetworkSettings').find('input, select, textarea, button').not('[data-settings-reload]').prop('disabled', !enabled);
+		$('#NetworkSettings').toggleClass('ot-unloaded', !enabled);
+	}
+	var deviceSettingsRead = 0;
 	function loadDeviceSettings() {
         loadedNetworkSettings = null;
         nativeSourceApplyPending = false; // explicit fresh readback, not an automatic retry.
-		$("#NetworkSettings *").attr('disabled', true)
+		const read = ++deviceSettingsRead, problem = document.getElementById('DeviceSettingsLoad');
+		deviceControls(false);
+		settingsPanel(document.getElementById('SaveDeviceStatus'));
+		settingsPanel(problem, 'info', uiText("Loading the settings…"));
 
 		fetch(hostName + '/config/device')
 			.then(validateResponse)
 			.then(res => res.json())
 			.then((settings) => {
+				if (read !== deviceSettingsRead) return; // a newer reload owns the form
+				settingsPanel(problem);
+				deviceControls(true);
                 loadedNetworkSettings = JSON.parse(JSON.stringify(settings));
                 $('#NativeShadowSource').val('');
                 $('#NativeShadowSourceSection').prop('hidden', true);
@@ -750,68 +809,76 @@
 				}
 
 			}).catch(function (error) {
-				if (error instanceof HttpResponseException && error.status === 404) {
-					alert(uiText("Cannot load device settings\n") + error);
-					$("#NetworkSettings *").attr('disabled', false)
-                    $('#ApplyNativeSourceNow').prop('disabled', true);
-					return;
-				}
-				if (confirm(uiText("Cannot load device settings\n") + error + uiText("\nTry again?"))) {
-					loadDeviceSettings();
-				}
+				if (read !== deviceSettingsRead) return;
+				// No stored values to show: the form stays disabled, so nothing can be saved over them by accident.
+				settingsPanel(problem, 'danger', uiText("Could not load the settings: {reason}.").replace('{reason}', settingsReason(error)),
+					[[uiText("Try again"), loadDeviceSettings]]);
 			});
-		$("#NetworkSettings *").attr('disabled', false)
-        $('#ApplyNativeSourceNow').prop('disabled', true); // only fresh successful readback may enable.
 	}
 
     async function applyNativeSourceNow() {
         if (nativeSourceApplyPending) return;
+        const box = document.getElementById('NativeSourceStatus');
+        const say = (kind, text) => settingsPanel(box, kind, uiText(text));
         const mqtt = loadedNetworkSettings && loadedNetworkSettings.mqtt;
         if (!mqtt || mqtt.native_source_live_apply !== true) {
-            alert(uiText("Live SOURCE replacement is unavailable. Initial selection, NONE and network changes require the normal reviewed settings/restart route.")); return;
+            say('warning', "Live SOURCE replacement is unavailable. Initial selection, NONE and network changes require the normal reviewed settings/restart route."); return;
         }
         let descriptor;
         try { descriptor = JSON.parse($('#NativeShadowSource').val().trim()); }
-        catch (_) { alert(uiText("Enter a valid explicitly reviewed SOURCE descriptor.")); return; }
-        if (!Array.isArray(descriptor)) { alert(uiText("Live SOURCE replacement needs a nonempty reviewed descriptor array; it cannot select NONE.")); return; }
-        if (!confirm(uiText("Apply ONLY the independently reviewed local SOURCE now, without restarting the device? Old control is invalidated. The old plan remains readback-only until a fresh HA session and explicit new plan apply/readback. Other unsaved network edits are not sent."))) return;
-        $('#ApplyNativeSourceNow').prop('disabled', true);
-        nativeSourceApplyPending = true;
-        try {
-            const settings = JSON.parse(JSON.stringify(loadedNetworkSettings));
-            settings.mqtt.native_shadow_source = descriptor;
-            settings.native_source_apply = true; // transient request, never persisted as permission.
-            const res = await fetch(hostName + '/config/device', {
-                method:'POST',cache:'no-cache',credentials:'same-origin',
-                headers:{"Content-Type":"application/json"},body:JSON.stringify(settings)
-            });
-            if (res.status === 200 || res.status === 201) {
-                alert(uiText("Local SOURCE selection verified. No device restart was requested. Review the current HA plan and require fresh exact device readback; physical outputs remain disabled."));
-                loadDeviceSettings();
-            } else {
-                alert(uiText("SOURCE selection is not confirmed (HTTP ")+res.status+uiText("). Control may be blocked after uncertain storage. Read back and review before recovery; do not blindly retry."));
+        catch (_) { say('warning', "Enter a valid explicitly reviewed SOURCE descriptor."); return; }
+        if (!Array.isArray(descriptor)) { say('warning', "Live SOURCE replacement needs a nonempty reviewed descriptor array; it cannot select NONE."); return; }
+        settingsConfirm(box, uiText("Apply ONLY the independently reviewed local SOURCE now, without restarting the device? Old control is invalidated. The old plan remains readback-only until a fresh HA session and explicit new plan apply/readback. Other unsaved network edits are not sent."),
+            uiText("Apply now"), async () => {
+            if (nativeSourceApplyPending) return;
+            $('#ApplyNativeSourceNow').prop('disabled', true);
+            nativeSourceApplyPending = true;
+            try {
+                const settings = JSON.parse(JSON.stringify(loadedNetworkSettings));
+                settings.mqtt.native_shadow_source = descriptor;
+                settings.native_source_apply = true; // transient request, never persisted as permission.
+                const res = await fetch(hostName + '/config/device', {
+                    method:'POST',cache:'no-cache',credentials:'same-origin',
+                    headers:{"Content-Type":"application/json"},body:JSON.stringify(settings)
+                });
+                if (res.status === 200 || res.status === 201) {
+                    loadDeviceSettings();
+                    say('success', "Local SOURCE selection verified. No device restart was requested. Review the current HA plan and require fresh exact device readback; physical outputs remain disabled.");
+                } else {
+                    settingsPanel(box, 'danger', uiText("SOURCE selection is not confirmed (HTTP ")+res.status+uiText("). Control may be blocked after uncertain storage. Read back and review before recovery; do not blindly retry."));
+                }
+            } catch (_) {
+                say('danger', "SOURCE update outcome unknown. Read back current settings and HA status before recovery; no automatic retry or restart.");
             }
-        } catch (_) {
-            alert(uiText("SOURCE update outcome unknown. Read back current settings and HA status before recovery; no automatic retry or restart."));
-        }
-        // Do NOT re-enable on unknown/error: only fresh settings readback may do so.
+            // Do NOT re-enable on unknown/error: only fresh settings readback may do so.
+        });
     }
 
 	function saveDeviceSettings() {
-        if (!loadedNetworkSettings) { alert(uiText("Load device settings before saving.")); return; }
+        const status = document.getElementById('SaveDeviceStatus');
+        if (!loadedNetworkSettings) { settingsUnloaded(status); return; }
 		if (!validateForm('#networkeditform')) return;
-		$("#SaveDeviceSettings").prop('disabled', true);
+        settingsPanel(status);
         const sourceSupported = !!(loadedNetworkSettings.mqtt && loadedNetworkSettings.mqtt.native_source_device_id);
         let nativeSource = null;
         const nativeSourceText = sourceSupported ? $('#NativeShadowSource').val().trim() : '';
         try { if (nativeSourceText) nativeSource = JSON.parse(nativeSourceText); }
-        catch (_) { alert(uiText("Enter a valid reviewed SOURCE descriptor JSON array, or leave it empty for NONE.")); $("#SaveDeviceSettings").prop('disabled', false); return; }
-
-
-        if (sourceSupported && loadedNetworkSettings.mqtt.native_shadow_source != null && nativeSource === null &&
-            !confirm(uiText("Remove the local logical SOURCE selection for the next restart? Configuration data will not be erased. The previous source may be needed to read it."))) {
-            $("#SaveDeviceSettings").prop('disabled', false); return;
+        catch (_) { settingsPanel(status, 'warning', uiText("Enter a valid reviewed SOURCE descriptor JSON array, or leave it empty for NONE.")); return; }
+        // Removing the stored SOURCE asks first, inline next to the Save button.
+        if (sourceSupported && loadedNetworkSettings.mqtt.native_shadow_source != null && nativeSource === null) {
+            $("#SaveDeviceSettings").prop('disabled', true);
+            settingsConfirm(status, uiText("Remove the local logical SOURCE selection for the next restart? Configuration data will not be erased. The previous source may be needed to read it."),
+                uiText("Remove and save"), () => postDeviceSettings(sourceSupported, nativeSource), () => $("#SaveDeviceSettings").prop('disabled', false));
+            return;
         }
+        postDeviceSettings(sourceSupported, nativeSource);
+    }
+    function settingsUnloaded(box) {
+        const text = uiText("Load device settings before saving.");
+        if (box && typeof box.replaceChildren === 'function') settingsPanel(box, 'warning', text, [[uiText("Try again"), loadDeviceSettings]]); else if (box) box.textContent = text;
+    }
+    function postDeviceSettings(sourceSupported, nativeSource) {
+		$("#SaveDeviceSettings").prop('disabled', true);
 		let settings = {
 			"hostname": $('#DeviceHostname').val(),
 			"interface_mode": $('#InterfaceMode').val(),
@@ -870,18 +937,9 @@
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(settings, undefined, '\t')
 		})
-			.then(res => {
-				if (res.status === 200 || res.status === 201 || res.type === "opaque") {
-					if (confirm(uiText("Device settings saved. Do you want to reboot device to changes take place?"))) {
-						reboot();
-						return;
-					}
-				} else {
-					alert(uiText("Not sure if config saved Status: ") + res.status + uiText("\nBody:\n") + res.statusText);
-				}
-			})
+			.then(res => settingsSaved(document.getElementById('SaveDeviceStatus'), res, uiText("Settings saved. Most changes take effect after a restart.")))
 			.catch(function (error) {
-				alert(error);
+				settingsUnconfirmed(document.getElementById('SaveDeviceStatus'), error);
 			})
 			.finally(function () {
 				$("#SaveDeviceSettings").prop('disabled', false);
@@ -892,7 +950,9 @@
 		fetch(hostName + '/config/reboot', {method: 'POST'})
 			.then((programs) => {
 			}).catch(function (error) {
-				alert(error);
+				// Shown under the menu, so it stays readable on the Overview this opens.
+				const status = document.getElementById('device-restart-status');
+				if (status) status.textContent = uiText("The restart was not confirmed. Check the connection and try again.");
 			}
 			);
 		mainScreen();

@@ -27,7 +27,7 @@ const source=html.slice(html.indexOf('async function loadWiFiSettings()'),html.i
   assert.equal(reentries,1);pass('active AP settings route opens the same onboarding without another reboot');
   await page.addScriptTag({content:'const hostName="http://opth.test"; window.legacyLoads=0; function loadLegacyWiFiSettings(){window.legacyLoads++;}\n'+source});
   status=404;await page.evaluate(()=>loadWiFiSettings());assert.equal(await page.evaluate(()=>window.legacyLoads),1);pass('generic boards retain legacy WiFi configuration path');
-  status=503;await page.evaluate(()=>loadWiFiSettings());assert.match(await page.locator('#WiFiSettings button').textContent(),/opnieuw laden/);
+  status=503;await page.evaluate(()=>loadWiFiSettings());assert.match(await page.locator('#WiFiSettings button').textContent(),/Probeer opnieuw/);assert.match(await page.locator('#WiFiSettings').textContent(),/niet worden geladen: de E32 antwoordde met fout 503/);
   status=200;await page.click('#WiFiSettings button');await page.waitForFunction(()=>document.querySelector('#WiFiSettings button').textContent==='Open wifi-installatie');
   assert.deepEqual(errors,[]);pass('failed E32 status read offers working retry instead of broken legacy controls');
   console.log(passed+' settings-entry browser scenarios passed (simulated HTTP)');

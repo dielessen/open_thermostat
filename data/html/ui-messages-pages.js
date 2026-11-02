@@ -915,6 +915,10 @@ window.OT_UI_PAGE_MESSAGES = {
   "(set by you)": "(door jou ingesteld)",
   "(automatic)": "(automatisch)",
   "(standard value)": "(standaardwaarde)",
+  // Who set a comfort setting, in the restore summary (backup.js).
+  "set by you": "door jou ingesteld",
+  "automatic": "automatisch",
+  "standard value": "standaardwaarde",
   "This value is not possible. Choose one within the range shown.": "Deze waarde kan niet. Kies er een binnen het aangegeven bereik.",
   "All these settings go back to their start values and the thermostat starts learning them again. Continue?": "Al deze instellingen gaan terug naar hun beginwaarden en de thermostaat begint ze opnieuw te leren. Doorgaan?",
   "The burner now rests at least {to} before it starts again, because it started {figure} times yesterday. Fewer starts are gentler on the boiler.": "De brander rust nu minstens {to} voordat hij weer start, omdat hij gisteren {figure} keer startte. Minder starts zijn beter voor de ketel.",

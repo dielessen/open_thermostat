@@ -747,6 +747,35 @@ def test_the_summary_is_plain_and_in_the_users_language():
     assert "Hasło MQTT" in summary_text(summary, "pl")
 
 
+def test_the_summary_names_each_changed_comfort_setting_and_who_set_it_in_plain_words():
+    """The E32 reports "tuning" with its from/to settings and "tuning_manual" with lists of setting keys."""
+    was = {"min_on_s": 300, "min_off_s": 300, "heat_start_c": 0.2, "heat_stop_c": 0.1, "flow_per_degree_c": 8,
+           "curve_correction_pct": 50, "floor_lead_min_per_c": 120, "radiator_lead_min_per_c": 40,
+           "learned_accept_pct": 100, "night_saving_min_pct": 2}
+    summary = {"changes": [{"section": "flow", "field": "tuning", "from": was,
+                            "to": {**was, "min_on_s": 600, "heat_stop_c": 0.15}},
+                           {"section": "flow", "field": "tuning_manual", "from": ["curve_correction_pct"],
+                            "to": ["min_on_s"]}],
+               "warnings": [], "reenter": [], "restart": False}
+    english = summary_text(summary, "en")
+    assert "- Comfort and boiler care · Burner run time: at least 5 min → at least 10 min" in english, english
+    assert "- Comfort and boiler care · Stop heating when the room is this much above its target: 0.1 °C → 0.15 °C" in english
+    assert "- Comfort and boiler care · Burner run time: automatic → set by you" in english
+    assert "- Comfort and boiler care · Room correction on the heating curve: set by you → standard value" in english
+    assert english.count("Burner rest between starts") == 0  # unchanged settings are not listed
+    dutch = summary_text(summary, "nl")
+    assert "- Comfort en zorg voor de ketel · Brandtijd: minstens 5 min → minstens 10 min" in dutch, dutch
+    assert "0,1 °C → 0,15 °C" in dutch and "automatisch → door jou ingesteld" in dutch
+    polish = summary_text(summary, "pl")
+    assert "Czas pracy palnika" in polish and "automatycznie" in polish
+    for text in (english, dutch, polish):
+        assert "{'" not in text and "min_on_s" not in text and "curve_correction_pct" not in text, text
+    # Nothing it can name (a newer firmware's setting only): said plainly.
+    other = {"changes": [{"section": "flow", "field": "tuning", "from": {"future": 1}, "to": {"future": 2}}],
+             "warnings": [], "reenter": [], "restart": False}
+    assert "Water temperature · Comfort and boiler care: will change" in summary_text(other, "en")
+
+
 def test_the_summary_names_the_tuning_and_what_the_thermostat_learned():
     summary = {"changes": [{"section": "flow", "field": "tuning", "from": None, "to": None, "hidden": True},
                            {"section": "learned", "field": "learned", "from": None, "to": None, "hidden": True}],

@@ -737,6 +737,32 @@ def _shown(value, language):
     return str(value)
 
 
+def _tuning_lines(change, label, language):
+    """Comfort and boiler care: one line per changed setting, by its plain name and with its value
+    in words as the E32's Home page shows it (tuning), or who set it (tuning_manual)."""
+    from .learned_overview import KNOB, TEXT, knob_value
+    lang = ("en", "nl", "pl")[_language(language)]
+    words = TEXT[lang]
+    care = _text(_FIELDS, "tuning", language)
+    was, now = change.get("from"), change.get("to")
+    if change["field"] == "tuning":
+        was, now = (value if isinstance(value, dict) else {} for value in (was, now))
+
+        def shown(key, value):
+            return knob_value(key, value, lang) if type(value) in (int, float) else "—"
+        changed = [key for key in KNOB if was.get(key) != now.get(key)]
+        lines = [f"- {care} · {words['knob.' + key]}: {shown(key, was.get(key))} → {shown(key, now.get(key))}"
+                 for key in changed]
+    else:
+        was, now = (set(value) if isinstance(value, list) else set() for value in (was, now))
+
+        def who(key, mine):
+            return words["yours" if mine else "automatic" if KNOB[key][0] else "standard"].strip("()")
+        lines = [f"- {care} · {words['knob.' + key]}: {who(key, key in was)} → {who(key, key in now)}"
+                 for key in KNOB if (key in was) != (key in now)]
+    return lines or [f"- {label}: {_text(_WORDS, 'hidden', language)}"]
+
+
 def summary_text(summary, language):
     """The E32's check as a short list in the user's language (no secret: those are only named)."""
     lines = []
@@ -746,6 +772,9 @@ def summary_text(summary, language):
             section = _text(_SECTIONS, change["section"], language)
             name = _text(_FIELDS, change["field"], language)
             label = name if name == section else f"{section} · {name}"
+            if change["field"] in ("tuning", "tuning_manual") and not change.get("hidden"):
+                lines += _tuning_lines(change, label, language)
+                continue
             value = (_text(_WORDS, "hidden", language) if change.get("hidden")
                      else f"{_shown(change.get('from'), language)} → {_shown(change.get('to'), language)}")
             lines.append(f"- {label}: {value}")

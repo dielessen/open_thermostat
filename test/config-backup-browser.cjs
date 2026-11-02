@@ -15,7 +15,10 @@ const backup=(sealed)=>({format:'openthermostat-e32-backup',schema:1,firmware:'0
  boiler_display:{model:'none'},ui:{language:'nl'}});
 const summary={valid:true,fingerprint:'f'.repeat(64),restart:true,secrets_sealed:true,secrets_restored:true,language:'nl',
  changes:[{section:'network',field:'hostname',from:'',to:'heating-home'},{section:'network',field:'mqtt.password',hidden:true},
-  {section:'heating',field:'rooms',from:[],to:['<img src=x onerror=alert(1)>','Bath']},{section:'flow',field:'weather_curve',from:false,to:true}],
+  {section:'heating',field:'rooms',from:[],to:['<img src=x onerror=alert(1)>','Bath']},{section:'flow',field:'weather_curve',from:false,to:true},
+  // ConfigBackup.h prepareFlow: the comfort settings as objects, and which of them the owner set as a list of keys.
+  {section:'flow',field:'tuning',from:{min_on_s:300,min_off_s:300,heat_stop_c:0.1},to:{min_on_s:600,min_off_s:300,heat_stop_c:0.15}},
+  {section:'flow',field:'tuning_manual',from:[],to:['min_on_s']}],
  warnings:['wifi_not_restored','unknown_key:network.future','other_firmware:0.1.0-e32v2-beta.18'],reenter:['bluetooth_key:Living']};
 (async()=>{
  const context={window:{}};vm.createContext(context);
@@ -102,6 +105,11 @@ const summary={valid:true,fingerprint:'f'.repeat(64),restart:true,secrets_sealed
   assert.match(shown,lang==='nl'?/onbekend voor deze firmware: network\.future/:/not known by this firmware: network\.future/);
   assert.match(shown,lang==='nl'?/Bluetooth-sleutel van Living/:/Bluetooth key for Living/);
   assert.match(shown,/<img src=x onerror=alert\(1\)>/);assert.equal(await panel.locator('img').count(),0);
+  // Comfort and boiler care: each changed setting by its name, with its value in words; never raw keys or objects.
+  assert.match(shown,lang==='nl'?/Comfort en zorg voor de ketel · Brandtijd: minstens 5 min → minstens 10 min/:/Comfort and boiler care · Burner run time: at least 5 min → at least 10 min/);
+  assert.match(shown,lang==='nl'?/zoveel boven de gewenste temperatuur is: 0,1 °C → 0,15 °C/:/this much above its target: 0\.1 °C → 0\.15 °C/);
+  assert.match(shown,lang==='nl'?/Brandtijd: automatisch → door jou ingesteld/:/Burner run time: automatic → set by you/);
+  assert.doesNotMatch(shown,/\[object Object\]|min_on_s|Burner rest between starts|Rust van de brander/);
   if(lang==='nl')assert.doesNotMatch(shown,/will change|Device name|Wi-Fi is not changed/);
   await apply.click();await page.waitForFunction(l=>new RegExp(l==='nl'?'Instellingen teruggezet':'Settings restored').test(document.getElementById('RestoreStatus').textContent),lang);
   if(process.env.OT_BACKUP_SHOT)await panel.screenshot({path:path.join(process.env.OT_BACKUP_SHOT,`backup-${lang}-${width}.png`)});

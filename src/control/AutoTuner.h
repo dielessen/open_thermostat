@@ -1,4 +1,5 @@
 #pragma once
+#include "control/BoundedJson.h"
 #include "control/ControlTuning.h"
 #include "control/FlowDemand.h"
 #include "control/RoomPlan.h"
@@ -270,7 +271,7 @@ public:
     static constexpr size_t storedMaxBytes = ControlTuning::maxBytes + 30 + logSize * 115;
     // A stored record; anything unreadable keeps the built-in values (and no log).
     bool restore(const char* text) {
-        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(text ? text : ""), cJSON_Delete);
+        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(parseNestedJson(text, text ? std::strlen(text) : 0));
         ControlTuning v;
         const cJSON* log = cJSON_GetObjectItemCaseSensitive(root.get(), "log");
         if (!root || ControlTuning::parse(cJSON_GetObjectItemCaseSensitive(root.get(), "values"), v) || !cJSON_IsArray(log)) return false;

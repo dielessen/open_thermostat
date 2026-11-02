@@ -1,7 +1,9 @@
 #pragma once
 #ifdef OPENTHERMOSTAT_E32V2
 #include <nvs.h>
+#include "control/BoundedJson.h"
 #include "control/TrvConfig.h"
+#include <cstring>
 #include <memory>
 #include <string>
 namespace heating {
@@ -19,7 +21,7 @@ struct TrvNvs {
         const bool ok = text && nvs_get_str(handle, key, text.get(), &size) == ESP_OK;
         nvs_close(handle);
         if (!ok) return config;
-        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(text.get()), cJSON_Delete);
+        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(control::parseNestedJson(text.get(), std::strlen(text.get())));
         control::TrvConfig parsed;
         return root && !control::TrvConfig::parse(root.get(), parsed) ? parsed : config;
     }

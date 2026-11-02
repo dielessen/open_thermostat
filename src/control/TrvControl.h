@@ -1,4 +1,5 @@
 #pragma once
+#include "control/BoundedJson.h"
 #include "control/FlowDemand.h"
 #include "control/TrvConfig.h"
 #include <algorithm>
@@ -47,6 +48,7 @@ public:
     static constexpr uint8_t openPct = 90, partlyClosedPct = 40, closedPct = 5;
     static constexpr uint64_t closedHoldMs = 10 * 60 * 1000ULL;    // all closed this long: stop the boiler request
     static constexpr size_t maxPayloadBytes = 1024;
+    static constexpr size_t maxPayloadDepth = 4;
 
     // One room as the control sees it this step (from the room engine).
     struct Room {
@@ -100,6 +102,9 @@ public:
         const auto* found = valveFor(topic);
         if (!found) return false;
         if (payload.size() > maxPayloadBytes) return true;
+        // Runs on the 8 KB loop task: a deep (retained) message would overflow its stack in
+        // cJSON's recursion on every boot. A Zigbee2MQTT state object is at most a few levels.
+        if (!jsonNestingWithin(payload.data(), payload.size(), maxPayloadDepth)) return true;
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_ParseWithLength(payload.data(), payload.size()), cJSON_Delete);
         if (!root || !cJSON_IsObject(root.get())) return true;
         auto& v = valves_[found->name];

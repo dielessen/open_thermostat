@@ -1,5 +1,6 @@
 #include "control/TrvControl.h"
 #include <algorithm>
+#include <cstdlib>
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
@@ -262,6 +263,35 @@ TEST(TrvHealth, BatteryLowOfflineAndDegradedStatus) {
     EXPECT_TRUE(trv.receive("zigbee2mqtt/Slaapkamer kraan", "not json", 5000));
     EXPECT_TRUE(trv.receive("zigbee2mqtt/Slaapkamer kraan", std::string(2000, ' '), 5000));
     EXPECT_FALSE(trv.receive("zigbee2mqtt/Slaapkamer kraan/set", "{}", 5000));
+}
+
+size_t cjsonAllocations = 0;
+void* countingMalloc(size_t size) { ++cjsonAllocations; return std::malloc(size); }
+
+TEST(TrvHealth, DeeplyNestedRetainedMessageIsConsumedWithoutParsing) {
+    // A retained 1000-byte [[[...]]] on a valve topic used to reach cJSON, whose recursion
+    // overflows the 8 KB loop task: a crash on every boot. It is consumed and never parsed.
+    TrvControl trv; trv.setConfig(parse(bedroomBosch));
+    const std::string deep = std::string(500, '[') + std::string(500, ']');
+    ASSERT_EQ(deep.size(), 1000u);
+    std::string deepObject;  // {"a":{"a":{"a":{"a":{"a":1}}}}}: five levels
+    for (int i = 0; i < 5; ++i) deepObject += "{\"a\":";
+    deepObject += "1" + std::string(5, '}');
+    cJSON_Hooks hooks{countingMalloc, std::free};
+    cJSON_InitHooks(&hooks);
+    cjsonAllocations = 0;
+    const bool consumed = trv.receive("zigbee2mqtt/Slaapkamer kraan", deep, 1000);
+    const bool consumedObject = trv.receive("zigbee2mqtt/Slaapkamer kraan", deepObject, 1000);
+    const size_t allocations = cjsonAllocations;
+    cJSON_InitHooks(nullptr);
+    EXPECT_TRUE(consumed);
+    EXPECT_TRUE(consumedObject);
+    EXPECT_EQ(allocations, 0u) << "cJSON parsed a message deeper than a Zigbee2MQTT state";
+    EXPECT_EQ(trv.health("Slaapkamer kraan", 2000), TrvControl::Health::unknown);  // no report taken
+    // A real Zigbee2MQTT state (nested "update" object) is still read.
+    EXPECT_TRUE(trv.receive("zigbee2mqtt/Slaapkamer kraan",
+                            R"({"battery":64,"update":{"state":"idle","installed_version":1}})", 3000));
+    EXPECT_EQ(trv.health("Slaapkamer kraan", 4000), TrvControl::Health::ok);
 }
 
 // ---- Flow feedback and the all-closed rule ------------------------------------------------

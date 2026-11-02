@@ -1904,6 +1904,7 @@
       "e32_restore_invalid": "De E32 weigert deze back-up: hij past niet bij deze E32 of zijn firmware. Kies een andere back-up.",
       "e32_restore_failed": "Het terugzetten kon niet worden afgerond. Controleer of de E32 aan staat en zijn webpagina opent, en probeer het opnieuw.",
       "e32_restore_other_e32": "Deze installatie gebruikt nog een ouder ruimteprofiel van Home Assistant, dat bij de vorige E32 hoort. Verwijder eerst de oude Home Assistant-ruimtes (Geavanceerd en diagnose → Oude Home Assistant-ruimtes verwijderen) en zet daarna terug.",
+      "e32_restore_other_installation": "Deze E32 hoort bij een andere OpenThermostat-installatie in Home Assistant, dus er is niets teruggezet. Vul het adres in van de E32 van deze installatie, of verwijder eerst de andere installatie.",
       "e32_restore_confirm_required": "Vink het vakje aan om deze instellingen terug te zetten.",
       "e32_restore_adopt_confirm_required": "Vink het vakje aan om deze E32 voortaan te gebruiken.",
       "e32_restore_adopt_failed": "Home Assistant kon deze E32 niet in gebruik nemen. Probeer het opnieuw, of verbind hem onder Configureren → E32-verbinding.",

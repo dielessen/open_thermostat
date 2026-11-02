@@ -960,6 +960,7 @@
       "e32_restore_invalid": "The E32 refused this backup: it does not fit this E32 or its firmware. Choose another backup.",
       "e32_restore_failed": "The restore could not be completed. Check that the E32 is on and its web page opens, then try again.",
       "e32_restore_other_e32": "This installation still uses an older Home Assistant room profile, which belongs to the previous E32. Remove the old Home Assistant rooms first (Advanced and diagnostics → Remove old Home Assistant rooms), then restore.",
+      "e32_restore_other_installation": "This E32 belongs to another OpenThermostat installation in Home Assistant, so nothing was restored. Enter the address of this installation's E32, or remove the other installation first.",
       "e32_restore_confirm_required": "Tick the box to restore these settings.",
       "e32_restore_adopt_confirm_required": "Tick the box to use this E32 from now on.",
       "e32_restore_adopt_failed": "Home Assistant could not switch to this E32. Try again, or connect it under Configure → E32 connection.",

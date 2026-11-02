@@ -9,8 +9,10 @@ from copy import deepcopy
 from datetime import timedelta
 import json
 import logging
+from types import MappingProxyType
 
 import pytest
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
@@ -668,6 +670,68 @@ async def test_a_lost_answer_to_an_undo_keeps_both_undo_points(hass, monkeypatch
     assert result["online"] is True and e32.hostname == "zolder"
     kept = sorted(r["document"]["network"]["hostname"] for r in backup.records() if r["kind"] == "pre_restore")
     assert kept == ["kelder", "zolder"]
+
+
+def other_installation_entry(hass, **data):
+    """A second OpenThermostat installation in the same Home Assistant, with its own E32."""
+    item = ConfigEntry(domain="open_thermostat", title="other", version=2, minor_version=1,
+                       data={"topic_prefix": "other", "adapter_id": "ha_other", **data}, options={},
+                       source="user", unique_id="other", discovery_keys=MappingProxyType({}), subentries_data=[])
+    hass.config_entries._entries[item.entry_id] = item
+    return item
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("other_data,adapter_change", [
+    ({CONTROLLER_ID: "e32_ba9876543210"}, False),            # the same E32 identity
+    ({CONTROLLER_ADDRESS: "http://192.168.1.77/"}, False),   # the same address (normalised)
+    ({}, True),                                              # the E32 is linked to the other installation
+])
+async def test_a_restore_never_takes_the_e32_of_another_installation(hass, manager, monkeypatch,
+                                                                    other_data, adapter_change):
+    parent, _ = product(hass, FakeE32())
+    monkeypatch.setattr(module, "RESTART_POLL", 0)
+    old = FakeBackupE32(hostname="kelder")
+    backup = await backups(hass, parent, old)
+    await backup.async_backup("daily")
+    hass.config_entries.async_update_entry(parent, data={**parent.data, CONTROLLER_ID: IDENTITY})
+    other = other_installation_entry(hass, **other_data)
+    new = FakeBackupE32(hostname="openthermostat", identity="e32_ba9876543210",
+                        address="http://192.168.1.77", password="admin")
+    if adapter_change:
+        validate = new.client
+
+        def client(address):
+            inner = validate(address)
+            answer = inner.async_config_backup
+
+            async def async_config_backup(request):
+                value, status = await answer(request)
+                if request["action"] == "validate":  # this restore moves the E32's link to this installation
+                    value["changes"].append({"section": "network", "field": "mqtt.adapter_id",
+                                             "from": "ha_other", "to": "ha1"})
+                return value, status
+            inner.async_config_backup = async_config_backup
+            return inner
+        backup._client = client
+    else:
+        backup._client = new.client
+    choice = {"backup": backup.records()[0]["id"], "address": "http://192.168.1.77", "password": "admin"}
+    form = await open_restore(manager, parent)
+    refused = await finish(hass, manager, await manager.async_configure(form["flow_id"], choice))
+    assert refused["step_id"] == "e32_restore" and refused["errors"] == {"base": "e32_restore_other_installation"}
+    assert "apply" not in [c["action"] for c in new.calls] and new.hostname == "openthermostat"
+    assert parent.data[CONTROLLER_ADDRESS] == ADDRESS and parent.data[CONTROLLER_ID] == IDENTITY
+    # Holding the settings already (nothing to restore) is no way around it either.
+    new.hostname = "kelder"
+    refused = await finish(hass, manager, await manager.async_configure(refused["flow_id"], choice))
+    assert refused["errors"] == {"base": "e32_restore_other_installation"}
+    check = await backup.async_check("http://192.168.1.77", "admin", choice["backup"])
+    assert backup.adopt(check) is False and parent.data[CONTROLLER_ID] == IDENTITY
+    assert dict(other.data).get(CONTROLLER_ID) == other_data.get(CONTROLLER_ID)
+    # Without the other installation the same E32 is this installation's replacement.
+    hass.config_entries._entries.pop(other.entry_id)
+    assert backup.adopt(check) is True and parent.data[CONTROLLER_ID] == "e32_ba9876543210"
 
 
 def test_the_summary_is_plain_and_in_the_users_language():

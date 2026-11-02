@@ -23,8 +23,8 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .controller_link import BackupRejected, ControllerLinkError, controller_address
-from .e32_backup import (RestoreCheck, backups, created_text, credentials, other_e32, reenter_text, record_label,
-                         summary_text)
+from .e32_backup import (RestoreCheck, backups, created_text, credentials, other_e32, other_installation,
+                         reenter_text, record_label, summary_text)
 
 # The E32's refusals (ConfigBackupRoute.cpp) as this form's errors.
 REFUSALS = {
@@ -149,6 +149,10 @@ class E32RestoreSteps:
                 and SOURCE_OPTION in entry.options):
             # Another E32 cannot take over the older Home Assistant room profile of this installation.
             self._restore_error = "e32_restore_other_e32"
+            return await self.async_step_e32_restore()
+        if other_installation(self.hass, entry, check):
+            # Never restore onto (or take over) the E32 of another installation in this Home Assistant.
+            self._restore_error = "e32_restore_other_installation"
             return await self.async_step_e32_restore()
         if not check.summary["changes"]:
             if other_e32(entry, check):

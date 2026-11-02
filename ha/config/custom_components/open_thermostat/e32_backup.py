@@ -508,7 +508,8 @@ class E32Backups:
     def _adopt(self, check):
         """After a restore: this installation's E32 is the one restored (a replacement may differ).
 
-        True when the entry uses check's E32 (now or already).
+        True when the entry uses check's E32 (now or already). Never an E32 of
+        another installation in this Home Assistant (other_installation).
         """
         from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_ID, CONTROLLER_PASSWORD
         from .product import commit_configuration, configuration_snapshot
@@ -520,6 +521,9 @@ class E32Backups:
             wanted[CONTROLLER_ID] = check.identity
         if all(entry.data.get(k) == v for k, v in wanted.items()):
             return True
+        if other_installation(self.hass, entry, check):
+            _LOGGER.warning("E32 settings restored; that E32 belongs to another installation and is not linked")
+            return False
         self._rejected_password = None
         if all(entry.data.get(k) == v for k, v in wanted.items() if k != CONTROLLER_PASSWORD):
             from .e32_access import save_password
@@ -539,6 +543,33 @@ def other_e32(entry, check):
     from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_ID
     return (check.address != entry.data.get(CONTROLLER_ADDRESS)
             or entry.data.get(CONTROLLER_ID) not in (None, check.identity))
+
+
+def other_installation(hass, entry, check):
+    """True when check's E32 belongs to another OpenThermostat installation in this Home Assistant.
+
+    The same E32 identity or address as another entry, or a restore that
+    would move the E32's Home Assistant link away from another entry's adapter.
+    """
+    from .controller_link import controller_address
+    from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_ID
+    adapters = set()
+    for other in hass.config_entries.async_entries(DOMAIN):
+        if other.entry_id == entry.entry_id:
+            continue
+        if check.identity is not None and other.data.get(CONTROLLER_ID) == check.identity:
+            return True
+        try:
+            if controller_address(other.data.get(CONTROLLER_ADDRESS)) == check.address:
+                return True
+        except ControllerLinkError:
+            pass  # no (valid) stored address
+        adapter = other.options.get("adapter_id", other.data.get("adapter_id"))
+        if type(adapter) is str and adapter:
+            adapters.add(adapter)
+    adapters.discard(entry.options.get("adapter_id", entry.data.get("adapter_id")))  # its own link
+    return any(change["field"] == "mqtt.adapter_id" and change.get("from") in adapters
+               for change in check.summary["changes"])
 
 
 def backups(hass, entry):

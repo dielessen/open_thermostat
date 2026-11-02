@@ -960,6 +960,7 @@
       "e32_restore_invalid": "E32 odrzucił tę kopię: nie pasuje do tego E32 lub jego oprogramowania. Wybierz inną kopię.",
       "e32_restore_failed": "Nie udało się dokończyć przywracania. Sprawdź, czy E32 jest włączony i jego strona się otwiera, i spróbuj ponownie.",
       "e32_restore_other_e32": "Ta instalacja nadal używa starszego profilu pomieszczeń Home Assistant, który należy do poprzedniego E32. Najpierw usuń stare pomieszczenia Home Assistant (Zaawansowane i diagnostyka → Usuń stare pomieszczenia Home Assistant), potem przywróć.",
+      "e32_restore_other_installation": "Ten E32 należy do innej instalacji OpenThermostat w Home Assistant, więc nic nie przywrócono. Wpisz adres E32 tej instalacji albo najpierw usuń tamtą instalację.",
       "e32_restore_confirm_required": "Zaznacz pole, aby przywrócić te ustawienia.",
       "e32_restore_adopt_confirm_required": "Zaznacz pole, aby od teraz używać tego E32.",
       "e32_restore_adopt_failed": "Home Assistant nie mógł przejść na ten E32. Spróbuj ponownie albo połącz go w Konfiguruj → Połączenie z E32.",

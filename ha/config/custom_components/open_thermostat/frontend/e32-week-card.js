@@ -9,7 +9,7 @@ const TEXT = {
   waiting: 'Waiting for the E32…', retrying: 'Trying again…',
   outdated: 'OpenThermostat was updated. Reload the page (Ctrl+F5) to use the new version of this card.',
   saved: 'Saved on the E32.', removedNote: 'Without a week program the room keeps its fixed temperature of {value}.', rooms: 'Rooms',
-  none: 'No rooms yet. Add one under Settings → Devices & services → OpenThermostat → Configure → E32 rooms.',
+  none: 'No rooms yet. Add one under Settings → Devices & services → OpenThermostat → Configure → Rooms.',
   errors: {plan_changed: 'The room plan was changed elsewhere. Reload to see the current program; your changes were not saved.',
    week_changed: 'This week program was changed elsewhere. Reload to see the current program; your changes were not saved.',
    plan_too_large: 'The plan is too large for the E32: use fewer switch times or rooms.', storage_full: 'The E32 storage is full. Remove switch times or a room, then save again.',
@@ -31,7 +31,7 @@ const TEXT = {
   waiting: 'Wachten op de E32…', retrying: 'Opnieuw proberen…',
   outdated: 'OpenThermostat is bijgewerkt. Laad de pagina opnieuw (Ctrl+F5) om de nieuwe versie van deze kaart te gebruiken.',
   saved: 'Opgeslagen op de E32.', removedNote: 'Zonder weekprogramma houdt de ruimte de vaste temperatuur van {value} aan.', rooms: 'Ruimtes',
-  none: 'Nog geen ruimtes. Voeg er een toe via Instellingen → Apparaten en diensten → OpenThermostat → Configureren → E32-ruimtes.',
+  none: 'Nog geen ruimtes. Voeg er een toe via Instellingen → Apparaten en diensten → OpenThermostat → Configureren → Ruimtes.',
   errors: {plan_changed: 'Het ruimteplan is elders gewijzigd. Laad opnieuw om het huidige programma te zien; je wijzigingen zijn niet opgeslagen.',
    week_changed: 'Dit weekprogramma is elders gewijzigd. Laad opnieuw om het huidige programma te zien; je wijzigingen zijn niet opgeslagen.',
    plan_too_large: 'Het plan is te groot voor de E32: gebruik minder schakeltijden of ruimtes.', storage_full: 'De opslag van de E32 is vol. Verwijder schakeltijden of een ruimte en sla opnieuw op.',
@@ -48,9 +48,9 @@ const TEXT = {
    setup_error: 'OpenThermostat kon niet starten. Open Instellingen → Apparaten en diensten → OpenThermostat om te zien waarom en laad daarna deze pagina opnieuw.',
    gave_up: 'De E32 antwoordt al enkele minuten niet. Controleer of hij aan staat en verbonden is en kies dan Opnieuw laden.'}}};
 const STYLE = `:host{display:block}ha-card{display:block;padding:16px;max-width:1100px;margin:auto;color:var(--primary-text-color)}h2{margin:0 0 4px;font-size:1.3rem}
-p{margin:0 0 12px;line-height:1.45}.muted{color:var(--secondary-text-color);font-size:.9rem}.tabs,.actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.actions{position:sticky;bottom:0;z-index:3;align-items:center;padding:8px 0;background:var(--card-background-color,var(--ha-card-background,#fff))}
+p{margin:0 0 12px;line-height:1.45}.muted{color:var(--secondary-text-color);font-size:.9rem}.tabs,.actions,.more{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.actions{position:sticky;bottom:0;z-index:3;align-items:center;padding:8px 0;background:var(--card-background-color,var(--ha-card-background,#fff))}
 button{font:inherit;font-weight:600;color:inherit;background:transparent;border:1px solid var(--divider-color,#ccd);border-radius:10px;min-height:44px;min-width:44px;padding:6px 14px;cursor:pointer}
-button[aria-selected=true]{box-shadow:inset 0 0 0 2px var(--primary-text-color)}button.primary{background:var(--primary-color,#03a9f4);border-color:var(--primary-color,#03a9f4);color:var(--text-primary-color,#fff)}
+button[aria-selected=true]{border:2px solid var(--primary-color,#03a9f4);background:color-mix(in srgb,var(--primary-color,#03a9f4) 16%,transparent)}button.primary{background:var(--primary-color,#03a9f4);border-color:var(--primary-color,#03a9f4);color:var(--text-primary-color,#fff)}
 button:disabled{opacity:.45;cursor:default}button:focus-visible{outline:3px solid var(--primary-color);outline-offset:2px}
 .msg:empty{display:none}.msg{border-left:4px solid var(--primary-color);padding:8px 12px;background:var(--secondary-background-color);border-radius:6px}.msg.error{border-color:var(--error-color,#db4437)}
 .dirty{color:var(--warning-color,#b26b00);font-weight:600}.waiting{font-weight:600;margin:4px 0 8px}.notice{border-left:4px solid var(--warning-color,#b26b00);padding:8px 12px;background:var(--secondary-background-color);border-radius:6px;margin:0 0 12px}@media(max-width:480px){ha-card{padding:12px}}`;
@@ -194,7 +194,8 @@ class OpenThermostatE32Week extends HTMLElement {
    card.append(tabs);
   }
   const r = this.room;
-  if (r.setpoint_entity) card.append(el('p', fill(t.follows, {entity: r.setpoint_entity}), {class: 'muted'}));
+  // The setting device by the name the user knows it by (its entity ID while Home Assistant has no state for it).
+  if (r.setpoint_entity) card.append(el('p', fill(t.follows, {entity: this._hass?.states?.[r.setpoint_entity]?.attributes?.friendly_name || r.setpoint_entity}), {class: 'muted'}));
   const host = el('div');
   card.append(host);
   const week = this._room in this._drafts ? this._drafts[this._room] : r.schedule, st = this._levels[r.id];
@@ -213,8 +214,12 @@ class OpenThermostatE32Week extends HTMLElement {
   discard.onclick = () => { delete this._drafts[r.id]; delete this._levels[r.id]; delete this._base[r.id]; this._message = ''; this.render(); };
   remove.onclick = () => { this._drafts[r.id] = Array.from({length: 7}, () => []); this._message = ''; this.render(); };
   reload.onclick = () => { this._waitSince = null; this.load(true); };
-  actions.append(save, discard, remove, reload, el('span', null, {class: 'dirty', role: 'status'}));
-  card.append(actions, msg);
+  // Only saving and discarding stay in view at the bottom (four wrapped buttons covered a quarter of a phone
+  // screen); removing the program and reading the E32 again are below it, away from Save.
+  actions.append(save, discard, el('span', null, {class: 'dirty', role: 'status'}));
+  const more = el('div', null, {class: 'more'});
+  more.append(remove, reload);
+  card.append(actions, msg, more);
   this.refresh();
  }
 }

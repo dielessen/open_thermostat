@@ -473,8 +473,8 @@ private:
 		return true;
 	}
 	void login() {
-		const auto now=networkNow();
-		if(!sessions_.loginAllowed(now)){server_.sendHeader("Retry-After","30");server_.send(429,"application/json","{\"error\":\"try_again_later\"}");return;}
+		const auto now=networkNow();const auto source=requestSource();
+		if(!sessions_.loginAllowed(now,source)){tryAgainLater(now,source);return;}
 		// Form decoding uses the existing native WebServer parser. No raw password in URLs/logs.
 		bool usernameSeen=false,passwordSeen=false,recoverySeen=false,shape=server_.args()==2||server_.args()==3;
 		for(int i=0;i<server_.args();++i){
@@ -492,7 +492,7 @@ private:
 		// Verify the password even for a wrong username: no faster refusal path.
 		const bool verified=deviceAccess.verifyPassword(std::string_view(password.c_str(),password.length()));
 		if(username!="admin"||!verified){
-			sessions_.loginFailed(now);server_.send(401,"application/json","{\"error\":\"invalid_credentials\"}");return;
+			sessions_.loginFailed(now,source);server_.send(401,"application/json","{\"error\":\"invalid_credentials\"}");return;
 		}
 		// Recovery must not remove an operator's stop/keepalive access or interrupt OTA.
 		if(recoverySeen&&(controller_.boilerTestActive()||update::mutationBlocked("/ota"))){
@@ -507,7 +507,7 @@ private:
 		const auto *session=sessions_.issue(token.data(),proof.data(),now,old.c_str(),recoverySeen,evictIdle);
 		if(!session){server_.send(429,"application/json","{\"error\":\"session_capacity\"}");return;}
 		controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
-		sessions_.loginSucceeded();
+		sessions_.loginSucceeded(source);
 		server_.sendHeader("Set-Cookie",String("OTSESSION=")+session->token.data()+"; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800");
 		// The factory password: the page asks for a new one at once (nothing else can be changed).
 		server_.send(200,"application/json",deviceAccess.defaultPassword()?"{\"authenticated\":true,\"default_password\":true}":"{\"authenticated\":true}");
@@ -520,19 +520,25 @@ private:
 			+",\"default_password\":"+(deviceAccess.defaultPassword()?"true":"false")+"}";
 		server_.send(200,"application/json",response.c_str());
 	}
+	// Failed sign-ins count per client address (WebAuthSession: nobody locks out another address).
+	uint32_t requestSource() { return uint32_t(server_.client().remoteIP()); }
+	void tryAgainLater(uint64_t now,uint32_t source) {
+		server_.sendHeader("Retry-After",String(unsigned(std::max<uint64_t>(1,sessions_.loginRetryAfterS(now,source)))));
+		server_.send(429,"application/json","{\"error\":\"try_again_later\"}");
+	}
 	// POST /auth/password {"current":"…","new":"…"}: route gate already checked
 	// the session, origin and CSRF. Shares the sign-in failure limit.
 	void changePassword() {
-		const auto now=networkNow();
-		if(!sessions_.loginAllowed(now)){server_.sendHeader("Retry-After","30");server_.send(429,"application/json","{\"error\":\"try_again_later\"}");return;}
+		const auto now=networkNow();const auto source=requestSource();
+		if(!sessions_.loginAllowed(now,source)){tryAgainLater(now,source);return;}
 		const auto body=server_.arg("plain");
 		const auto change=control::WebPassword::parseChange(body.c_str(),body.length());
 		if(change.error!=control::WebPassword::RequestError::none){server_.send(400,"application/json",control::WebPassword::errorBody(change.error));return;}
-		if(!deviceAccess.verifyPassword(change.current)){sessions_.loginFailed(now);server_.send(403,"application/json","{\"error\":\"password_wrong\"}");return;}
+		if(!deviceAccess.verifyPassword(change.current)){sessions_.loginFailed(now,source);server_.send(403,"application/json","{\"error\":\"password_wrong\"}");return;}
 		// Signing other sessions out must not cut off an update upload.
 		if(update::mutationBlocked("/ota")){server_.send(409,"application/json","{\"error\":\"password_change_busy\"}");return;}
 		if(!deviceAccess.storePassword(change.next)){server_.send(503,"application/json","{\"error\":\"password_storage_failed\"}");return;}
-		sessions_.loginSucceeded();
+		sessions_.loginSucceeded(source);
 		const auto token=requestToken();sessions_.revokeOthers(token.c_str());
 		controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
 		server_.send(204);

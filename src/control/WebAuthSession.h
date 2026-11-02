@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <string_view>
@@ -170,14 +171,42 @@ public:
     void revokeOthers(std::string_view keep) {
         for (auto &session : sessions_) if (!hexToken(keep) || !equal(keep,view(session.token))) session = Session{};
     }
-    bool loginAllowed(uint64_t now) const {
-        return failed_ < 5 || (now >= failedFrom_ && now-failedFrom_ >= 30000);
+    // Failed sign-ins (and wrong current passwords) count per source address
+    // (IPv4; 0 = unknown), so nobody on the network can lock out the owner or
+    // Home Assistant from another address. 5 failures within 30 s block that
+    // source until 30 s after the first of them; every further block of the same
+    // source doubles (at most 15 min). A success, or 15 min without a failure,
+    // forgets the source. 8 sources: a new one replaces the least recently seen
+    // source that is not blocked (the least recently seen one when all are).
+    static constexpr std::size_t failureSources = 8;
+    static constexpr unsigned failuresAllowed = 5;
+    static constexpr uint64_t failureWindowMs = 30000, blockMs = 30000;
+    static constexpr uint64_t maxBlockMs = 15ULL * 60 * 1000, forgetMs = 15ULL * 60 * 1000;
+    bool loginAllowed(uint64_t now, uint32_t source = 0) const {
+        const auto *f = failureOf(source);
+        return !f || now >= f->blockedUntil;
     }
-    void loginFailed(uint64_t now) {
-        if (!failed_ || now < failedFrom_ || now-failedFrom_ >= 30000) { failed_ = 0; failedFrom_ = now; }
-        if (failed_ < 5) ++failed_;
+    // Whole seconds until loginAllowed (Retry-After), 0 when allowed.
+    uint64_t loginRetryAfterS(uint64_t now, uint32_t source = 0) const {
+        const auto *f = failureOf(source);
+        return f && now < f->blockedUntil ? (f->blockedUntil - now + 999) / 1000 : 0;
     }
-    void loginSucceeded() { failed_ = 0; }
+    void loginFailed(uint64_t now, uint32_t source = 0) {
+        Failure &f = failureSlot(source, now);
+        if (now < f.blockedUntil) { f.lastSeen = now; return; }
+        if (f.level && now >= f.lastSeen && now - f.lastSeen >= forgetMs) f.level = 0;
+        if (!f.count || now < f.windowStart || now - f.windowStart >= failureWindowMs) { f.count = 0; f.windowStart = now; }
+        f.lastSeen = now;
+        if (++f.count >= failuresAllowed) {
+            const uint64_t block = f.level >= 5 ? maxBlockMs : std::min<uint64_t>(blockMs << f.level, maxBlockMs);
+            f.blockedUntil = f.windowStart + block;
+            if (f.level < 5) ++f.level;
+            f.count = 0;
+        }
+    }
+    void loginSucceeded(uint32_t source = 0) {
+        for (auto &f : failures_) if (f.used && f.source == source) f = Failure{};
+    }
     static std::string_view view(const std::array<char,65> &s) { return {s.data(),64}; }
 private:
     static bool validScope(SettingsScope scope) {return scope==SettingsScope::network||scope==SettingsScope::bluetooth;}
@@ -189,9 +218,29 @@ private:
         return session.occupied && now >= session.issued && now < session.until
             && now >= session.lastSeen && now-session.lastSeen < idleTimeoutMs;
     }
+    struct Failure {
+        uint64_t windowStart = 0, blockedUntil = 0, lastSeen = 0;
+        uint32_t source = 0;
+        uint8_t count = 0, level = 0;
+        bool used = false;
+    };
+    const Failure *failureOf(uint32_t source) const {
+        for (const auto &f : failures_) if (f.used && f.source == source) return &f;
+        return nullptr;
+    }
+    Failure &failureSlot(uint32_t source, uint64_t now) {
+        for (auto &f : failures_) if (f.used && f.source == source) return f;
+        Failure *slot = nullptr;
+        for (auto &f : failures_) if (!f.used) { slot = &f; break; }
+        const auto older = [](const Failure *a, const Failure &b) { return !a || b.lastSeen < a->lastSeen; };
+        if (!slot) for (auto &f : failures_) if (now >= f.blockedUntil && older(slot, f)) slot = &f;
+        if (!slot) for (auto &f : failures_) if (older(slot, f)) slot = &f;
+        *slot = Failure{};
+        slot->used = true; slot->source = source;
+        return *slot;
+    }
     std::array<Session,maximumSessions> sessions_{};
-    uint64_t failedFrom_ = 0;
-    unsigned failed_ = 0;
+    std::array<Failure,failureSources> failures_{};
 };
 
 static_assert(sizeof(WebAuthSession)<=2048,"Web session memory budget changed");

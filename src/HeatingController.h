@@ -822,7 +822,7 @@ private:
     control::FlowPolicy flowPolicy_; // beta.19 options: weather curve, learned flow, optimum start (default: advice)
     control::FlowSettings flowSettings_; // as stored: the options, the owner's knobs and which are manual
     control::AutoTuner autoTuner_;       // rc.2: the automatic knobs from the measured days (NVS "autotune")
-    control::LearnedStore learnedStore_; // rc.2: the learner's, curve's and night ledger's state over restarts (NVS "learned*")
+    control::LearnedStore learnedStore_; // rc.2: the learner's, curve's and night ledger's state over restarts (NVS "learned_a", "learned_b")
     // A plan or Bluetooth save erased optional NVS records to make room (NvsOptionalRecords.h):
     // what was learned and the knobs are written again where they fit (readiness: its next save).
     uint32_t evictions_ = 0;
@@ -838,7 +838,8 @@ private:
         rewriteEvicted();
         LearnedNvs nvs;
         if (!learnedStore_.save(nvs, flowLearner_, flowPolicy_, now))
-            DBGLOGFI(log_, logFeature_, "Learned state not saved (NVS full or write failed); kept in RAM, retried in 6 h\n");
+            DBGLOGFI(log_, logFeature_, "Learned state of %u of %u room(s) saved (NVS short of room or a write failed); the rest kept in RAM, retried in 6 h\n",
+                     unsigned(learnedStore_.storedRooms()), unsigned(learnedStore_.rooms()));
     }
     control::HeatingHistory history_; // 24 h of 5-minute averages, ~12.5 KB PSRAM, RAM only
     control::HeatingInputRoute haInput_;  // ha/heating_input: rooms, gas, price, outdoor, boiler power

@@ -1,9 +1,18 @@
 #include "control/LearnedState.h"
+#include "control/AutoTuner.h"
+#include "control/OptionalRecordPriority.h"
 #include "control/WarmupPlanner.h"
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
+#include <initializer_list>
 #include <map>
+#include <tuple>
 #include <memory>
+#include <random>
+#include <vector>
 
 namespace {
 using heating::control::FlowDemand;
@@ -136,6 +145,122 @@ std::string derived(const FlowLearner& l, const FlowPolicy& p) {
     return out;
 }
 
+template <class T> void put(std::string& f, T v) { f.append(reinterpret_cast<const char*>(&v), sizeof v); }
+// The used bins of a version 1 room frame (its documented layout): counts and the nine sums.
+struct BinView { uint8_t segments = 0, periods = 0, outdoorSegments = 0; std::array<float, 9> v{}; };
+std::vector<BinView> bins(const std::string& f) {
+    std::vector<BinView> out;
+    size_t at = 4;
+    at += 1 + uint8_t(f[at]) + 1 + 12 + 72;
+    uint32_t used; std::memcpy(&used, &f[at], 4); at += 4;
+    for (size_t i = 0; i < FlowLearner::binCount; ++i) {
+        if (!(used >> i & 1)) continue;
+        BinView b;
+        b.segments = uint8_t(f[at]); b.periods = uint8_t(f[at + 1]); b.outdoorSegments = uint8_t(f[at + 2]); at += 5;
+        const size_t n = b.outdoorSegments ? 9 : 4;
+        std::memcpy(b.v.data(), &f[at], 4 * n); at += 4 * n;
+        out.push_back(b);
+    }
+    return out;
+}
+// After a version 2 round trip: the same text, each number within the fixed point's effect
+// (the JSON's 0.01 rounding, 0.5 % of a warm-up time or a sum).
+void expectSameLearned(const std::string& a, const std::string& b) {
+    const auto split = [](const std::string& s) {
+        std::vector<std::string> text;
+        std::vector<double> numbers;
+        std::string t;
+        for (size_t i = 0; i < s.size();) {
+            const bool digit = std::isdigit(static_cast<unsigned char>(s[i]))
+                || (s[i] == '-' && i + 1 < s.size() && std::isdigit(static_cast<unsigned char>(s[i + 1])));
+            if (digit && (i == 0 || s[i - 1] != '_')) {
+                char* end = nullptr;
+                numbers.push_back(std::strtod(s.c_str() + i, &end));
+                text.push_back(t); t.clear();
+                i = size_t(end - s.c_str());
+            } else t += s[i++];
+        }
+        text.push_back(t);
+        return std::make_pair(text, numbers);
+    };
+    const auto [ta, na] = split(a);
+    const auto [tb, nb] = split(b);
+    ASSERT_EQ(ta, tb);
+    ASSERT_EQ(na.size(), nb.size());
+    for (size_t i = 0; i < na.size(); ++i)
+        EXPECT_NEAR(na[i], nb[i], 0.011 + 0.005 * std::max(std::fabs(na[i]), std::fabs(nb[i]))) << "number " << i << " after: " << ta[i].substr(ta[i].size() > 60 ? ta[i].size() - 60 : 0);
+}
+
+// Version 2 room frames (the default): about half the bytes, the same learned values.
+TEST(LearnedState, CompactRoomFramesKeepTheLearnedValues) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    Learned a;
+    const auto g = LearnedState::globalFrame(a.h.learner, a.policy);
+    const auto r0 = LearnedState::roomFrame(a.h.learner, 0), r1 = LearnedState::roomFrame(a.h.learner, 1);
+    const auto v0 = LearnedState::roomFrame(a.h.learner, 0, LearnedState::version), v1 = LearnedState::roomFrame(a.h.learner, 1, LearnedState::version);
+    ASSERT_EQ(uint8_t(r0[0]), LearnedState::roomVersion);
+    ASSERT_EQ(uint8_t(r1[0]), LearnedState::roomVersion);
+    std::printf("[ learned ] version 2: floor %zu B (version 1: %zu), radiator %zu B (%zu)\n", r0.size(), v0.size(), r1.size(), v1.size());
+    EXPECT_LE(r0.size() * 100, v0.size() * 60);
+    EXPECT_LE(r1.size() * 100, v1.size() * 60);
+    // 8 rooms like these with the globals: one NVS blob well under 2 KB.
+    EXPECT_LE(g.size() + 4 * (r0.size() + r1.size()), 2048u);
+    FlowLearner l; l.setPlan(plan());
+    FlowPolicy p;
+    uint32_t done = 0;
+    ASSERT_TRUE(LearnedState::restoreGlobal(g, l, p));
+    ASSERT_TRUE(LearnedState::restoreRoom(r1, l, done));
+    ASSERT_TRUE(LearnedState::restoreRoom(r0, l, done));
+    EXPECT_STREQ(l.readiness(0), "ready");
+    EXPECT_STREQ(l.readiness(1), "ready");
+    EXPECT_EQ(l.segments(0), a.h.learner.segments(0));
+    expectSameLearned(derived(l, p), derived(a.h.learner, a.policy));
+    // The restored state stores the same bytes again (the fixed point is stable).
+    EXPECT_EQ(LearnedState::roomFrame(l, 0), r0);
+    EXPECT_EQ(LearnedState::roomFrame(l, 1), r1);
+    // Each bin's means within the fixed point's half step (read from the lossless version 1 form).
+    for (size_t i = 0; i < 2; ++i) {
+        const auto x = bins(LearnedState::roomFrame(a.h.learner, i, LearnedState::version));
+        const auto y = bins(LearnedState::roomFrame(l, i, LearnedState::version));
+        ASSERT_EQ(x.size(), y.size());
+        ASSERT_GE(x.size(), 4u);
+        for (size_t k = 0; k < x.size(); ++k) {
+            const auto& b = x[k];
+            const auto& c = y[k];
+            ASSERT_EQ(b.segments, c.segments);
+            ASSERT_EQ(b.outdoorSegments, c.outdoorSegments);
+            EXPECT_NEAR(c.v[0], b.v[0], 0.5 / 600 + 1e-6);                         // weight, h
+            EXPECT_NEAR(c.v[1] / c.v[0], b.v[1] / b.v[0], 0.005 + 1e-4);            // mean flow
+            EXPECT_NEAR(c.v[2] / c.v[0], b.v[2] / b.v[0], 0.0005 + 1e-5);           // mean rate
+            if (b.outdoorSegments) {
+                EXPECT_EQ(c.v[4], c.v[0]) << "every segment had the outdoor: its own weight";
+                EXPECT_NEAR(c.v[5] / c.v[4], b.v[5] / b.v[4], 0.005 + 1e-4);        // mean outdoor
+                EXPECT_NEAR(c.v[8] / c.v[4], b.v[8] / b.v[4], 0.0005 + 1e-5);       // mean rate there
+            }
+        }
+    }
+}
+
+// A plausible value outside the fixed point (an outdoor x rate covariance of 50 degC^2/h; the
+// int16 of 0.001 ends at 32.767): that room is written as version 1, the lossless form.
+TEST(LearnedState, ARoomOutsideTheFixedPointKeepsVersionOne) {
+    std::string f{char(LearnedState::version), LearnedState::roomKind, 0, 0};
+    f += char(9); f += "woonkamer"; f += char(0);
+    for (const uint16_t v : {3, 2, 2, 0, 0, 0}) put(f, v);
+    for (int i = 0; i < 9; ++i) put(f, 0.0);
+    put(f, uint32_t(1u << 10));
+    f += char(3); f += char(2); f += char(3); put(f, uint16_t(2));
+    for (const float x : {1.0f, 40.0f, 0.0f, 100.0f, 1.0f, 0.0f, 100.0f, 50.0f, 0.0f}) put(f, x);
+    const auto n = uint16_t(f.size() - 4); f[2] = char(n & 0xFF); f[3] = char(n >> 8);
+    put(f, LearnedState::crc(f.data(), f.size()));
+    FlowLearner l; l.setPlan(plan());
+    uint32_t done = 0;
+    ASSERT_TRUE(LearnedState::restoreRoom(f, l, done));
+    EXPECT_EQ(LearnedState::roomFrame(l, 0), f);
+    EXPECT_EQ(uint8_t(LearnedState::roomFrame(l, 0)[0]), LearnedState::version);
+}
+
+// Version 1 room frames (lossless, still read; written when a value does not fit version 2).
 TEST(LearnedState, RoundTripGivesIdenticalLearnedValues) {
     ScopedTz tz(ScopedTz::amsterdam);
     Learned a;
@@ -145,8 +270,8 @@ TEST(LearnedState, RoundTripGivesIdenticalLearnedValues) {
     ASSERT_GE(a.h.learner.gasIntervals(), 3);
     ASSERT_TRUE(a.policy.nights().last());
     const auto g = LearnedState::globalFrame(a.h.learner, a.policy);
-    const auto r0 = LearnedState::roomFrame(a.h.learner, 0), r1 = LearnedState::roomFrame(a.h.learner, 1);
-    std::printf("[ learned ] global %zu B, floor %zu B, radiator %zu B\n", g.size(), r0.size(), r1.size());
+    const auto r0 = LearnedState::roomFrame(a.h.learner, 0, LearnedState::version), r1 = LearnedState::roomFrame(a.h.learner, 1, LearnedState::version);
+    std::printf("[ learned ] version 1: global %zu B, floor %zu B, radiator %zu B\n", g.size(), r0.size(), r1.size());
     EXPECT_LE(g.size(), 300u);
     EXPECT_LE(r0.size(), LearnedState::maxFrame); EXPECT_LE(r1.size(), LearnedState::maxFrame);
     // A "reboot": a fresh learner with the same plan, then the frames.
@@ -175,8 +300,8 @@ TEST(LearnedState, RoundTripGivesIdenticalLearnedValues) {
     EXPECT_EQ(day(x.get()), day(y.get()));
     // Byte for byte: what the restored state would store again.
     EXPECT_EQ(LearnedState::globalFrame(l, p), g);
-    EXPECT_EQ(LearnedState::roomFrame(l, 0), r0);
-    EXPECT_EQ(LearnedState::roomFrame(l, 1), r1);
+    EXPECT_EQ(LearnedState::roomFrame(l, 0, LearnedState::version), r0);
+    EXPECT_EQ(LearnedState::roomFrame(l, 1, LearnedState::version), r1);
     // A room that learned nothing needs no frame.
     FlowLearner empty; empty.setPlan(plan());
     EXPECT_TRUE(LearnedState::roomFrame(empty, 0).empty());
@@ -186,7 +311,10 @@ TEST(LearnedState, RoundTripGivesIdenticalLearnedValues) {
 TEST(LearnedState, CorruptOldOrImplausibleFramesAreIgnoredWhole) {
     ScopedTz tz(ScopedTz::amsterdam);
     Learned a;
-    const auto g = LearnedState::globalFrame(a.h.learner, a.policy), r = LearnedState::roomFrame(a.h.learner, 0);
+    const auto g = LearnedState::globalFrame(a.h.learner, a.policy);
+    for (const uint8_t v : {LearnedState::version, LearnedState::roomVersion}) {
+    const auto r = LearnedState::roomFrame(a.h.learner, 0, v);
+    ASSERT_EQ(uint8_t(r[0]), v);
     FlowLearner l; l.setPlan(plan());
     FlowPolicy p;
     const auto fresh = derived(l, p);
@@ -207,16 +335,23 @@ TEST(LearnedState, CorruptOldOrImplausibleFramesAreIgnoredWhole) {
         std::memcpy(&f[f.size() - 4], &c, 4);
         return f;
     };
-    auto old = r; old[0] = char(LearnedState::version + 1);
+    auto old = r; old[0] = char(LearnedState::roomVersion + 1);
+    EXPECT_FALSE(LearnedState::restoreRoom(resealed(old), l, done));
+    old[0] = char(0);
+    EXPECT_FALSE(LearnedState::restoreRoom(resealed(old), l, done));
+    // The other version's header on this payload: refused (the lengths do not match).
+    old[0] = char(v == LearnedState::version ? LearnedState::roomVersion : LearnedState::version);
     EXPECT_FALSE(LearnedState::restoreRoom(resealed(old), l, done));
     // Not finite, with a valid CRC: the first heat sum (after id, emitter and six counts).
-    auto nan = r; const double q = std::nan("");
-    std::memcpy(&nan[4 + 1 + 9 + 1 + 12], &q, sizeof q);
+    auto nan = r;
+    if (v == LearnedState::version) { const double q = std::nan(""); std::memcpy(&nan[4 + 1 + 9 + 1 + 12], &q, sizeof q); }
+    else { const float q = std::nanf(""); std::memcpy(&nan[4 + 1 + 9 + 1 + 12], &q, sizeof q); }
     EXPECT_FALSE(LearnedState::restoreRoom(resealed(nan), l, done));
     EXPECT_TRUE(LearnedState::restoreRoom(resealed(r), l, done)); // the helper itself keeps a valid frame valid
     l.setPlan(RoomPlan{}); l.setPlan(plan());                      // forget it again (removed, then a new room)
     EXPECT_EQ(done, 1u);
     EXPECT_EQ(derived(l, p), fresh);
+    }
 }
 
 TEST(LearnedState, OnlyRoomsOfThePlanWithTheSameEmitterComeBack) {
@@ -257,7 +392,7 @@ TEST(LearnedState, BundleForTheSettingsBackup) {
     FlowLearner l; l.setPlan(plan());
     FlowPolicy p;
     EXPECT_EQ(LearnedState::restoreBundle(all, l, p), 2);
-    EXPECT_EQ(derived(l, p), derived(a.h.learner, a.policy));
+    expectSameLearned(derived(l, p), derived(a.h.learner, a.policy));
     // A budget: the rooms that do not fit stay out, the global frame always comes.
     const auto r0 = LearnedState::roomFrame(a.h.learner, 0);
     EXPECT_EQ(LearnedState::bundle(a.h.learner, a.policy, all.size() - 1), g + r0);
@@ -292,9 +427,10 @@ TEST(LearnedState, AnOldRestoredDayIsNotYesterday) {
     EXPECT_EQ(c.today().heatS, 10u);
 }
 
-// NVS on the E32: slots with a byte budget (the partition's free entries), failures on request.
+// NVS on the E32: the packed record's parts with a byte budget (the partition's free
+// entries), failures on request, and the per-frame keys of earlier rc.2 builds.
 struct Backend final : LearnedStore::Backend {
-    std::map<size_t, std::string> slots;
+    std::map<size_t, std::string> slots, legacy;
     size_t writes = 0, erases = 0, capacity = 1 << 20;
     bool fail = false;
     bool read(size_t slot, std::string& out) override {
@@ -305,11 +441,23 @@ struct Backend final : LearnedStore::Backend {
     bool write(size_t slot, std::string_view bytes) override {
         size_t used = bytes.size();
         for (const auto& [s, v] : slots) if (s != slot) used += v.size();
-        if (fail || used > capacity) return false;   // NVS full: the old value stays
+        for (const auto& [s, v] : legacy) used += v.size();
+        if (fail || used > capacity) return false;   // NVS short of room: the old value stays
         ++writes; slots[slot] = std::string(bytes); return true;
     }
     bool erase(size_t slot) override { if (fail) return false; ++erases; slots.erase(slot); return true; }
+    bool readLegacy(size_t slot, std::string& out) override {
+        const auto at = legacy.find(slot);
+        if (at == legacy.end()) return false;
+        out = at->second; return true;
+    }
+    bool eraseLegacy(size_t slot) override { if (fail) return false; legacy.erase(slot); return true; }
 };
+std::string packed(const FlowLearner& l, const FlowPolicy& p) {
+    std::string out = LearnedState::globalFrame(l, p);
+    for (size_t i = 0; i < l.rooms(); ++i) out += LearnedState::roomFrame(l, i);
+    return out;
+}
 
 TEST(LearnedStore, WritesAtMostEverySixHoursADayChangeAndBeforeARestart) {
     ScopedTz tz(ScopedTz::amsterdam);
@@ -330,8 +478,10 @@ TEST(LearnedStore, WritesAtMostEverySixHoursADayChangeAndBeforeARestart) {
     ASSERT_GT(h.learner.segments(0), 0);
     EXPECT_EQ(nvs.writes, 0u);
     steps(20 * minute, 40);
-    EXPECT_EQ(nvs.writes, 3u);                    // 6 h: global and both rooms, once
-    EXPECT_EQ(nvs.slots[1], LearnedState::roomFrame(h.learner, 0));
+    EXPECT_EQ(nvs.writes, 1u);                    // 6 h: one packed part with the global frame and both rooms
+    EXPECT_EQ(nvs.slots[0], packed(h.learner, p));
+    EXPECT_EQ(store.rooms(), 2u);
+    EXPECT_EQ(store.storedRooms(), 2u);
     // Nothing learned since: the next 6 h writes nothing (the global frame did not change either).
     const auto before = nvs.writes;
     for (int k = 0; k < 6 * 360; ++k) { utc += 10; h.now += 10 * second; if (store.due(h.now, utc)) store.save(nvs, h.learner, p, h.now); }
@@ -345,7 +495,7 @@ TEST(LearnedStore, WritesAtMostEverySixHoursADayChangeAndBeforeARestart) {
     EXPECT_EQ(nvs.writes, atDay);
     steps(2 * minute, 44);
     EXPECT_GT(nvs.writes, atDay);
-    // Before a planned restart (releaseBoilerForRestart): the changed slots, whatever the clock.
+    // Before a planned restart (releaseBoilerForRestart): the changed part, whatever the clock.
     steps(30 * minute, std::nullopt);                          // the heating segment ends: learned
     const auto atRestart = nvs.writes;
     EXPECT_TRUE(store.save(nvs, h.learner, p, h.now));
@@ -356,7 +506,7 @@ TEST(LearnedStore, WritesAtMostEverySixHoursADayChangeAndBeforeARestart) {
     FlowPolicy q;
     LearnedStore next;
     EXPECT_EQ(next.restore(nvs, l, q, 0), 2u);
-    EXPECT_EQ(derived(l, q), derived(h.learner, p));
+    expectSameLearned(derived(l, q), derived(h.learner, p));
     const auto restored = nvs.writes;
     EXPECT_TRUE(next.save(nvs, l, q, 0));
     EXPECT_EQ(nvs.writes, restored);                            // restored = stored: nothing to write
@@ -368,7 +518,7 @@ TEST(LearnedStore, FullNvsCorruptEntriesAndPlanChangesAreHandled) {
     FlowPolicy p;
     Backend nvs;
     nvs.slots[0] = "garbage";                                   // e.g. an interrupted older format
-    nvs.slots[5] = std::string(40, '\xff');
+    nvs.slots[1] = std::string(40, '\xff');
     LearnedStore store;
     EXPECT_EQ(store.restore(nvs, h.learner, p, h.now), 0u);    // ignored, nothing half loaded
     EXPECT_STREQ(h.learner.readiness(0), "ready");             // RAM untouched
@@ -376,19 +526,21 @@ TEST(LearnedStore, FullNvsCorruptEntriesAndPlanChangesAreHandled) {
     nvs.capacity = 100;
     EXPECT_FALSE(store.save(nvs, h.learner, p, h.now));
     EXPECT_STREQ(h.learner.readiness(0), "ready");
+    EXPECT_EQ(store.storedRooms(), 0u);
+    EXPECT_GT(store.pendingEntries(), 0u);
     nvs.fail = true;
     EXPECT_FALSE(store.save(nvs, h.learner, p, h.now));
     nvs.fail = false; nvs.capacity = 1 << 20;
     EXPECT_TRUE(store.save(nvs, h.learner, p, h.now));
-    EXPECT_FALSE(nvs.slots.count(5));                           // a slot without a plan room is erased
-    EXPECT_EQ(nvs.slots[0], LearnedState::globalFrame(h.learner, p));
-    ASSERT_EQ(nvs.slots.size(), 3u);
-    // A room removed from the plan: its slot goes at the next save; the other keeps its model.
+    EXPECT_EQ(store.pendingEntries(), 0u);
+    EXPECT_FALSE(nvs.slots.count(1));                           // a part no longer needed is erased
+    EXPECT_EQ(nvs.slots[0], packed(h.learner, p));
+    ASSERT_EQ(nvs.slots.size(), 1u);
+    // A room removed from the plan: its frame goes at the next save; the other keeps its model.
     RoomPlan one = plan(); one.rooms.erase(one.rooms.begin());
     h.learner.setPlan(one);
     EXPECT_TRUE(store.save(nvs, h.learner, p, h.now));
-    EXPECT_EQ(nvs.slots.size(), 2u);
-    EXPECT_EQ(nvs.slots[1], LearnedState::roomFrame(h.learner, 0));
+    EXPECT_EQ(nvs.slots[0], LearnedState::globalFrame(h.learner, p) + LearnedState::roomFrame(h.learner, 0));
     FlowLearner l; l.setPlan(plan());
     FlowPolicy q;
     LearnedStore next;
@@ -416,7 +568,7 @@ TEST(LearnedState, TheBoilerMinimumIsKeptAndAnOldGlobalFrameStillReads) {
     ASSERT_EQ(l.effectiveMinimumC(70), 40);
     const auto g = LearnedState::globalFrame(l, FlowPolicy{});
     EXPECT_EQ(uint8_t(g[0]), LearnedState::globalVersion);
-    EXPECT_EQ(uint8_t(LearnedState::roomFrame(Learned().h.learner, 0)[0]), LearnedState::version); // rooms stay version 1
+    EXPECT_EQ(uint8_t(LearnedState::roomFrame(Learned().h.learner, 0)[0]), LearnedState::roomVersion); // rooms: version 2 (no released firmware reads them)
     FlowLearner back; back.setPlan(plan());
     FlowPolicy p;
     ASSERT_TRUE(LearnedState::restoreGlobal(g, back, p));
@@ -466,7 +618,6 @@ std::string reseal(std::string b) {
     }
     return b;
 }
-template <class T> void put(std::string& f, T v) { f.append(reinterpret_cast<const char*>(&v), sizeof v); }
 // Everything derived from a restored learner stays finite and within the plan.
 void expectFinite(const FlowLearner& l) {
     const auto text = [](cJSON* o) { char* t = cJSON_PrintUnformatted(o); std::string s = t ? t : ""; cJSON_free(t); cJSON_Delete(o); return s; };
@@ -538,12 +689,54 @@ TEST(LearnedState, ImplausibleBinsAndSumsFromAnEditedBackupAreRefused) {
     EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(o.get(), "x")));
     EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(o.get(), "y")));
 }
+
+// Version 2 frames from an edited backup or a damaged NVS part: random bytes with every
+// frame's CRC made valid again (its version byte kept), so they reach the fixed-point reader.
+// Nothing out of bounds (ASan/UBSan), nothing non-finite or outside the plan is loaded.
+TEST(LearnedState, MutatedCompactFramesNeverLoadNonFiniteState) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    Learned a;
+    const auto bundle = LearnedState::bundle(a.h.learner, a.policy, LearnedState::backupBytes);
+    ASSERT_EQ(uint8_t(bundle[LearnedState::globalFrame(a.h.learner, a.policy).size()]), LearnedState::roomVersion);
+    const auto resealKept = [](std::string b) {
+        for (size_t at = 0; b.size() - at >= 8;) {
+            const size_t n = (uint8_t(b[at + 2]) | size_t(uint8_t(b[at + 3])) << 8) + 8;
+            if (n > b.size() - at) break;
+            const uint32_t c = LearnedState::crc(&b[at], n - 4);
+            std::memcpy(&b[at + n - 4], &c, 4);
+            at += n;
+        }
+        return b;
+    };
+    std::mt19937 rng(20261102);
+    size_t accepted = 0;
+    for (int k = 0; k < 1500; ++k) {
+        auto b = bundle;
+        for (int j = 1 + int(rng() % 4); j > 0; --j) {
+            const size_t at = rng() % b.size();
+            b[at] = char(rng() % 3 ? rng() : b[at] ^ (1u << (rng() % 8)));
+        }
+        b = resealKept(b);
+        FlowLearner m; m.setPlan(plan());
+        FlowPolicy q;
+        const int rooms = LearnedState::restoreBundle(b, m, q);
+        EXPECT_EQ(rooms >= 0, LearnedState::validBundle(b));
+        accepted += rooms > 0;
+        uint32_t done = 0;
+        bool global = false;
+        FlowLearner n; n.setPlan(plan());
+        LearnedState::restoreFrames(b, n, q, done, global); // the NVS path: frame by frame
+        if (k % 10 == 0) { expectFinite(m); expectFinite(n); }
+    }
+    std::printf("[ learned ] %zu of 1500 mutated bundles accepted (plausible), none non-finite\n", accepted);
+    EXPECT_GT(accepted, 0u);
+}
 }
 
-// Review of rc.2 (finding 3): a plan or Bluetooth save may erase the learned slots to make
+// Review of rc.2 (finding 3): a plan or Bluetooth save may erase the learned parts to make
 // room (NvsOptionalRecords.h). The store then forgets what the backend holds: its next save
-// writes every frame again where it fits, instead of skipping the unchanged ones.
-TEST(LearnedStore, AfterTheSlotsMadeRoomTheNextSaveWritesThemAgain) {
+// writes every part again where it fits, instead of skipping the unchanged ones.
+TEST(LearnedStore, AfterThePartsMadeRoomTheNextSaveWritesThemAgain) {
     ScopedTz tz(ScopedTz::amsterdam);
     House h; h.learn();
     FlowPolicy p;
@@ -551,14 +744,16 @@ TEST(LearnedStore, AfterTheSlotsMadeRoomTheNextSaveWritesThemAgain) {
     LearnedStore store;
     ASSERT_TRUE(store.save(nvs, h.learner, p, h.now));
     const auto stored = nvs.slots;
-    ASSERT_EQ(stored.size(), 3u);
+    ASSERT_EQ(stored.size(), 1u);
     nvs.slots.clear();                                       // erased behind the store's back
     EXPECT_TRUE(store.save(nvs, h.learner, p, h.now));
-    EXPECT_TRUE(nvs.slots.empty()) << "unchanged frames are skipped";
+    EXPECT_TRUE(nvs.slots.empty()) << "unchanged parts are skipped";
     store.forgetStored();
-    nvs.capacity = stored.at(0).size() + stored.at(1).size(); // room for two of the three
-    EXPECT_FALSE(store.save(nvs, h.learner, p, h.now));      // the third: retried at the next save
-    EXPECT_EQ(nvs.slots.size(), 2u);
+    const auto g = LearnedState::globalFrame(h.learner, p), r0 = LearnedState::roomFrame(h.learner, 0);
+    nvs.capacity = g.size() + r0.size();                     // room for the globals and the first room
+    EXPECT_FALSE(store.save(nvs, h.learner, p, h.now));      // the second room: retried at the next save
+    EXPECT_EQ(nvs.slots.at(0), g + r0) << "the later rooms yield first";
+    EXPECT_EQ(store.storedRooms(), 1u);
     nvs.capacity = 1 << 20;
     EXPECT_TRUE(store.save(nvs, h.learner, p, h.now));
     EXPECT_EQ(nvs.slots, stored);
@@ -566,3 +761,49 @@ TEST(LearnedStore, AfterTheSlotsMadeRoomTheNextSaveWritesThemAgain) {
     EXPECT_TRUE(store.save(nvs, h.learner, p, h.now));
     EXPECT_EQ(nvs.writes, writes) << "known again: no rewrite";
 }
+
+// A part's identity must change with any frame in it: the CRC of the whole part would not
+// (after a frame that ends in its own CRC the CRC register always holds the same residue).
+TEST(LearnedStore, AChangeInAnEarlierFrameIsWrittenToo) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    House h; h.learn();
+    FlowPolicy p;
+    Backend nvs;
+    LearnedStore store;
+    ASSERT_TRUE(store.save(nvs, h.learner, p, h.now));
+    const auto before = nvs.slots.at(0);
+    // Only the global frame (the first) changes: one more gas interval.
+    h.learner.gasMeter(1e6, h.now + hour);
+    ASSERT_NE(LearnedState::globalFrame(h.learner, p), before.substr(0, LearnedState::globalFrame(h.learner, p).size()));
+    ASSERT_TRUE(store.save(nvs, h.learner, p, h.now));
+    EXPECT_EQ(nvs.slots.at(0), packed(h.learner, p));
+}
+
+// Earlier rc.2 builds kept one key per frame: read once, then the packed record replaces them.
+TEST(LearnedStore, ThePerFrameKeysOfEarlierBuildsAreReadAndThenErased) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    House h; h.learn();
+    FlowPolicy p;
+    Backend nvs;
+    nvs.legacy[0] = LearnedState::globalFrame(h.learner, p);
+    nvs.legacy[1] = LearnedState::roomFrame(h.learner, 0, LearnedState::version);
+    nvs.legacy[2] = LearnedState::roomFrame(h.learner, 1, LearnedState::version);
+    FlowLearner l; l.setPlan(plan());
+    FlowPolicy q;
+    LearnedStore store;
+    EXPECT_EQ(store.restore(nvs, l, q, 0), 2u);
+    EXPECT_EQ(derived(l, q), derived(h.learner, p)) << "version 1 is lossless";
+    // Their room is what the packed record needs: with too little for both, the old keys go first.
+    nvs.capacity = packed(l, q).size() + 10;
+    EXPECT_TRUE(store.save(nvs, l, q, 0));
+    EXPECT_TRUE(nvs.legacy.empty());
+    EXPECT_EQ(nvs.slots.at(0), packed(l, q));
+    // Once a part exists, old keys are not restored (an interrupted migration): the next save erases them.
+    nvs.legacy[1] = LearnedState::roomFrame(h.learner, 0, LearnedState::version);
+    FlowLearner m; m.setPlan(plan());
+    LearnedStore again;
+    EXPECT_EQ(again.restore(nvs, m, q, 0), 2u);
+    EXPECT_TRUE(again.save(nvs, m, q, 0));
+    EXPECT_TRUE(nvs.legacy.empty());
+}
+

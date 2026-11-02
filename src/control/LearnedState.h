@@ -1,14 +1,17 @@
 #pragma once
+#include "control/ControlPartitionBudget.h"
 #include "control/FlowPolicy.h"
 #include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <new>
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <vector>
 namespace heating::control {
 // What the thermostat learned, kept over restarts, power cuts and updates
 // (rc.2; owner: "een echt zelflerende thermostaat"). Compact binary frames:
@@ -24,14 +27,23 @@ namespace heating::control {
 // loaded. A room comes back only into a plan room with its id and emitter.
 // rc.2: the global frame is version 2, with the boiler's learned minimum flow
 // (BoilerMinimumFlow, 8 B) at its end; a version 1 global frame is still read
-// (the minimum then starts unlearned). Room frames stay version 1, so older
-// firmware after a rollback keeps every room and only drops the global frame.
+// (the minimum then starts unlearned). Room frames are version 2: the heat sums
+// as float and each used bin as means and spreads in fixed point (19 B a bin
+// with the outdoor known for all its segments, else 23 or 13 B; version 1: 41
+// B), ~0.06 KB + 19 B a bin. A room with a value outside the fixed-point ranges
+// keeps version 1 (lossless), which is still read. No released firmware reads
+// room frames (rc.2 is the first that learns over restarts).
 // Pure; LearnedStore below decides when the frames are written.
 class LearnedState {
 public:
-    static constexpr uint8_t version = 1, globalVersion = 2; // room frames; the global frame (also reads 1)
+    static constexpr uint8_t version = 1, roomVersion = 2, globalVersion = 2; // room frames v1 (lossless) and v2; the global frame (also reads 1)
     static constexpr char globalKind = 'G', roomKind = 'R';
     static constexpr size_t maxFrame = 1024;
+    // A version 2 room frame's size: an id of `idBytes`, bins whose segments all had the
+    // outdoor (19 B), bins where some had (23 B) and bins without it (13 B).
+    static constexpr size_t compactRoomBytes(size_t idBytes, size_t outdoorBins, size_t partialBins = 0, size_t indoorBins = 0) {
+        return 4 + 1 + idBytes + 1 + 6 * 2 + 9 * 4 + 2 * 4 + outdoorBins * 19 + partialBins * 23 + indoorBins * 13 + 4;
+    }
     static constexpr size_t backupBytes = 4096; // in the settings backup: 8 KB of hex at most
     static uint32_t crc(const char* p, size_t n) {
         uint32_t c = ~0u;
@@ -43,11 +55,18 @@ public:
         auto& q = const_cast<FlowPolicy&>(p);
         return frame(globalKind, globalVersion, [&](Out& o) { globals(o, m.period_, m.gas_, q.curveLearner_, q.compare_, q.nights_, m.minimum_); });
     }
-    // Empty for a room that learned nothing yet (no NVS entry needed).
-    static std::string roomFrame(const FlowLearner& l, size_t i) {
+    // Empty for a room that learned nothing yet (no NVS entry needed). Version 2
+    // when every value fits its fixed point and the frame reads back plausible,
+    // else version 1 (`v` = version: always version 1, the lossless form).
+    static std::string roomFrame(const FlowLearner& l, size_t i, uint8_t v = roomVersion) {
         if (i >= l.rooms_.size()) return {};
         auto& r = const_cast<FlowLearner::Room&>(l.rooms_[i]);
         if (!r.segments && !r.heat.coolSegments && !r.heat.powerSegments) return {};
+        if (v == roomVersion) {
+            auto f = frame(roomKind, roomVersion, [&](Out& o) { compactRoom(o, r); });
+            std::unique_ptr<FlowLearner::Room> back(new (std::nothrow) FlowLearner::Room);
+            if (!f.empty() && back && readRoom(f, *back)) return f;
+        }
         return frame(roomKind, version, [&](Out& o) { room(o, r); });
     }
     static bool restoreGlobal(std::string_view f, FlowLearner& l, FlowPolicy& p) {
@@ -94,6 +113,18 @@ public:
             if (!(f[1] == globalKind ? readGlobal(f, *g) : readRoom(f, *r))) return false;
         return frames && b.empty();
     }
+    // A packed record part (LearnedStore): each valid frame applied (the global
+    // frame only while `global` is false), a damaged frame skipped, a bad length
+    // ends the walk. The rooms restored.
+    static size_t restoreFrames(std::string_view b, FlowLearner& l, FlowPolicy& p, uint32_t& done, bool& global) {
+        std::string_view f;
+        size_t rooms = 0;
+        while (next(b, f)) {
+            if (f[1] == globalKind) { if (!global && restoreGlobal(f, l, p)) global = true; }
+            else rooms += restoreRoom(f, l, done);
+        }
+        return rooms;
+    }
     // The rooms restored from a valid bundle; -1: invalid, nothing applied.
     static int restoreBundle(std::string_view b, FlowLearner& l, FlowPolicy& p) {
         if (!validBundle(b)) return -1;
@@ -136,7 +167,7 @@ private:
         o.s.assign(4, '\0'); o.s[0] = char(v); o.s[1] = kind;
         body(o);
         const size_t n = o.s.size() - 4;
-        if (n + 8 > maxFrame) return {};
+        if (!o.ok || n + 8 > maxFrame) return {};
         o.s[2] = char(n & 0xFF); o.s[3] = char(n >> 8);
         const uint32_t c = crc(o.s.data(), o.s.size());
         o.s.append(reinterpret_cast<const char*>(&c), sizeof c);
@@ -145,7 +176,7 @@ private:
     static bool open(std::string_view f, char kind, In& in) {
         if (f.size() < 8 || f[1] != kind) return false;
         const uint8_t v = uint8_t(f[0]);
-        if (!(kind == globalKind ? v == 1 || v == globalVersion : v == version)) return false;
+        if (!(kind == globalKind ? v == 1 || v == globalVersion : v == version || v == roomVersion)) return false;
         const size_t n = uint8_t(f[2]) | size_t(uint8_t(f[3])) << 8;
         uint32_t c;
         if (f.size() != n + 8) return false;
@@ -169,7 +200,7 @@ private:
     }
     static bool readRoom(std::string_view f, FlowLearner::Room& r) {
         In in;
-        return open(f, roomKind, in) && (room(in, r), in.done());
+        return open(f, roomKind, in) && (in.version == roomVersion ? compactRoom(in, r) : room(in, r), in.done());
     }
     template <class IO, class T> static void optional(IO& io, std::optional<T>& v) {
         uint8_t has = v.has_value();
@@ -222,7 +253,8 @@ private:
         const float o = b.wo / b.ow;
         return std::fabs(o) <= 80 && b.woo >= 0 && b.woo / b.ow <= 6400 && std::fabs(b.wor / b.ow) <= 800 && std::fabs(b.wro / b.ow) <= 10;
     }
-    template <class IO> static void room(IO& io, FlowLearner::Room& r) {
+    // Both versions: the id, the emitter and the room's counts.
+    template <class IO> static void roomHead(IO& io, FlowLearner::Room& r) {
         uint8_t size = uint8_t(std::min<size_t>(r.id.size(), 32)), emitter = uint8_t(r.emitter);
         io(size);
         if constexpr (IO::reading) {
@@ -232,11 +264,17 @@ private:
         io(emitter);
         if constexpr (IO::reading) r.emitter = RoomPlan::Emitter(emitter);
         if (emitter > uint8_t(RoomPlan::Emitter::radiator)) io.ok = false;
+        io(r.segments, r.periods, r.lastPeriod, r.rejected, r.heat.coolSegments, r.heat.powerSegments);
+    }
+    static bool heatPlausible(const FlowLearner::Heat& h) { // weights and sums of squares are never negative
+        return h.cw >= 0 && h.cdd >= 0 && h.pw >= 0 && h.srr >= 0 && h.sdd >= 0;
+    }
+    // Version 1: every sum as it is in RAM (lossless).
+    template <class IO> static void room(IO& io, FlowLearner::Room& r) {
+        roomHead(io, r);
         auto& h = r.heat;
-        io(r.segments, r.periods, r.lastPeriod, r.rejected, h.coolSegments, h.powerSegments);
         io(h.cw, h.crd, h.cdd, h.pw, h.spr, h.spd, h.srr, h.srd, h.sdd);
-        if constexpr (IO::reading) // weights and sums of squares are never negative
-            if (!(h.cw >= 0 && h.cdd >= 0 && h.pw >= 0 && h.srr >= 0 && h.sdd >= 0)) io.ok = false;
+        if constexpr (IO::reading) if (!heatPlausible(h)) io.ok = false;
         uint32_t used = 0;
         for (size_t i = 0; i < FlowLearner::binCount; ++i) if (r.bins[i].segments) used |= 1u << i;
         io(used);
@@ -249,38 +287,155 @@ private:
             if (!b.segments || !plausible(b)) io.ok = false;             // a used bin has weight, and what finish() can produce
         }
     }
+    // Version 2: the heat sums as float (relative 6e-8), then two masks: the used bins and,
+    // among those with outdoor segments, the ones whose outdoor weight is not their own
+    // (an outdoor reading was missing in some segment). A bin: its counts (5 B), then its
+    // weight (u16, 1/600 h), mean flow (i16, 0.01 degC), mean rate and the rate's spread
+    // (i16 and u16, 0.001 degC/h); with outdoor segments the mean outdoor (i16, 0.01 degC),
+    // its spread (u16, 0.01 K) and the outdoor x rate covariance (i16, 0.001 degC^2/h), and
+    // for a partial bin first its outdoor weight and mean rate. The sums come back as
+    // weight x mean (+ spread^2): the flow 0.005 degC, the rates 0.0005 degC/h from RAM.
+    static constexpr double hourScale = 600, centiScale = 100, milliScale = 1000;
+    template <class T> static bool fixed(double v, double scale, T& out) {
+        const double r = std::round(v * scale);
+        if (!(r >= double(std::numeric_limits<T>::min()) && r <= double(std::numeric_limits<T>::max()))) return false; // NaN too
+        out = T(r);
+        return true;
+    }
+    static double spread(double meanSquare, double mean) { return std::sqrt(std::max(0.0, meanSquare - mean * mean)); }
+    static void compactRoom(Out& o, FlowLearner::Room& r) {
+        roomHead(o, r);
+        auto& h = r.heat;
+        for (const double d : {h.cw, h.crd, h.cdd, h.pw, h.spr, h.spd, h.srr, h.srd, h.sdd}) {
+            const float v = float(d);
+            if (!std::isfinite(v)) { o.ok = false; return; }
+            o(v);
+        }
+        uint32_t used = 0, partial = 0;
+        for (size_t i = 0; i < FlowLearner::binCount; ++i) {
+            const auto& b = r.bins[i];
+            if (!b.segments) continue;
+            used |= 1u << i;
+            if (b.outdoorSegments && !(b.ow == b.w && b.wro == b.wr)) partial |= 1u << i;
+        }
+        o(used, partial);
+        for (size_t i = 0; i < FlowLearner::binCount && o.ok; ++i) {
+            if (!(used >> i & 1)) continue;
+            auto& b = r.bins[i];
+            o(b.segments, b.periods, b.outdoorSegments, b.lastPeriod);
+            const double w = b.w, q = b.wr / w;
+            uint16_t qw = 0, qs = 0; int16_t qf = 0, qq = 0;
+            o.ok = w > 0 && fixed(w, hourScale, qw) && fixed(b.wf / w, centiScale, qf) && fixed(q, milliScale, qq)
+                && fixed(spread(b.wrr / w, q), milliScale, qs);
+            o(qw, qf, qq, qs);
+            if (!b.outdoorSegments || !o.ok) continue;
+            const double ow = b.ow, qo = b.wro / ow, t = b.wo / ow;
+            if (partial >> i & 1) {
+                uint16_t qow = 0; int16_t qqo = 0;
+                o.ok = ow > 0 && fixed(ow, hourScale, qow) && fixed(qo, milliScale, qqo);
+                qow = std::min(qow, qw); // a part of the weight, also after rounding
+                o(qow, qqo);
+            }
+            uint16_t qso = 0; int16_t qt = 0, qc = 0;
+            o.ok = o.ok && ow > 0 && fixed(t, centiScale, qt) && fixed(spread(b.woo / ow, t), centiScale, qso)
+                && fixed(b.wor / ow - t * qo, milliScale, qc);
+            o(qt, qso, qc);
+        }
+    }
+    static void compactRoom(In& in, FlowLearner::Room& r) {
+        roomHead(in, r);
+        auto& h = r.heat;
+        for (double* d : {&h.cw, &h.crd, &h.cdd, &h.pw, &h.spr, &h.spd, &h.srr, &h.srd, &h.sdd}) {
+            float v = 0;
+            in(v);           // not finite: refused by In::take
+            *d = v;
+        }
+        if (!heatPlausible(h)) in.ok = false;
+        uint32_t used = 0, partial = 0;
+        in(used, partial);
+        if (used >> FlowLearner::binCount || partial & ~used) in.ok = false;
+        for (size_t i = 0; i < FlowLearner::binCount && in.ok; ++i) {
+            if (!(used >> i & 1)) continue;
+            auto& b = r.bins[i];
+            uint16_t qw = 0, qs = 0; int16_t qf = 0, qq = 0;
+            in(b.segments, b.periods, b.outdoorSegments, b.lastPeriod, qw, qf, qq, qs);
+            const double w = qw / hourScale, q = qq / milliScale, sd = qs / milliScale;
+            b.w = float(w); b.wf = float(w * (qf / centiScale)); b.wr = float(w * q); b.wrr = float(w * (sd * sd + q * q));
+            if (partial >> i & 1 && !b.outdoorSegments) in.ok = false;
+            if (b.outdoorSegments) {
+                double ow = w, qo = q;
+                if (partial >> i & 1) {
+                    uint16_t qow = 0; int16_t qqo = 0;
+                    in(qow, qqo);
+                    ow = qow / hourScale; qo = qqo / milliScale;
+                    b.ow = float(ow); b.wro = float(ow * qo);
+                } else { b.ow = b.w; b.wro = b.wr; } // exactly as finish() sums them
+                uint16_t qso = 0; int16_t qt = 0, qc = 0;
+                in(qt, qso, qc);
+                const double t = qt / centiScale, so = qso / centiScale, c = qc / milliScale;
+                b.wo = float(ow * t); b.woo = float(ow * (so * so + t * t)); b.wor = float(ow * (c + t * qo));
+            }
+            if (!b.segments || !plausible(b)) in.ok = false;
+        }
+    }
 };
 
-// The largest room frame: a 32-character id and all 20 bins with the outdoor known.
+// The largest room frame: a 32-character id and all 20 bins with the outdoor known
+// (version 1; version 2 is smaller: 4 + 33 + 1 + 12 + 36 + 8 + 20 x 23 + 4 = 558 B).
 static_assert(4 + 1 + 32 + 1 + 6 * 2 + 9 * 8 + 4 + FlowLearner::binCount * (3 + 2 + 9 * 4) + 4 <= LearnedState::maxFrame);
+static_assert(LearnedState::compactRoomBytes(32, 0, FlowLearner::binCount) == 558);
 
-// Keeps the frames in a backend, one entry per slot: 0 global, 1 + i the plan
-// room i (NVS "ot_heating"/"learned", "learned0".."learned7" on the E32).
+// Keeps the frames in a backend as one packed record of at most two parts
+// (NVS "ot_heating"/"learned_a", "learned_b" on the E32): the global frame,
+// then each plan room that learned something, in plan order, a part holding
+// whole frames up to partBytes. One record instead of a key per room: NVS
+// charges every blob its index, a chunk header and the rounding of its last
+// 32-byte entry (control/ControlPartitionBudget.h blobEntries: 6 entries a
+// blob), and the frames are version 2 (LearnedState above).
 // Written at most every 6 h, at a day change and before a planned restart,
-// and then only the slots whose bytes changed; a slot whose room left the plan
-// or learned nothing is erased. A failed write keeps RAM as it is and is
-// retried at the next save (NVS full: logged by the caller, never fatal).
+// and then only the parts whose frames changed. A write the backend refuses
+// (NVS short of room: control first) is retried without its last frames, so
+// the globals and the first rooms are kept; what does not fit stays in RAM
+// (pendingEntries) and is tried again at the next save. A part no longer
+// needed is erased once everything before it was written.
+// rc.2 builds before the packed record kept a key per frame ("learned",
+// "learned0".."learned7"): read when no part exists, erased once the packed
+// record holds everything (or when it needs their room).
 class LearnedStore {
 public:
     struct Backend {
-        virtual bool read(size_t slot, std::string& out) = 0;      // false: absent
-        virtual bool write(size_t slot, std::string_view bytes) = 0; // true: committed and read back
-        virtual bool erase(size_t slot) = 0;
+        virtual bool read(size_t part, std::string& out) = 0;      // false: absent
+        virtual bool write(size_t part, std::string_view bytes) = 0; // true: committed and read back
+        virtual bool erase(size_t part) = 0;
+        // The per-frame keys of earlier rc.2 builds: 0 global, 1 + i room i.
+        virtual bool readLegacy(size_t slot, std::string& out) { (void)slot; (void)out; return false; }
+        virtual bool eraseLegacy(size_t slot) { (void)slot; return true; }
     protected:
         ~Backend() = default;
     };
     static constexpr uint64_t saveEveryMs = 6 * 3600000ull;
-    static constexpr size_t slots = 1 + RoomPlan::maxRooms;
+    static constexpr size_t parts = 2, partBytes = 4000, legacySlots = 1 + RoomPlan::maxRooms;
     static constexpr int32_t unknownDay = INT32_MIN;
     // At boot, after the plan and the tuning, before the first step: the rooms restored.
     size_t restore(Backend& b, FlowLearner& l, FlowPolicy& p, uint64_t now) {
         savedAt_ = now;
         size_t rooms = 0;
         uint32_t done = 0;
-        for (size_t s = 0; s < slots; ++s) {
+        bool global = false;
+        for (size_t i = 0; i < parts; ++i) {
             std::string f;
-            if (!b.read(s, f)) continue;
-            present_ |= 1u << s; crc_[s] = content(f);
+            if (!b.read(i, f)) continue;
+            present_ |= 1u << i; id_[i] = identity(f);
+            rooms += LearnedState::restoreFrames(f, l, p, done, global);
+        }
+        // The per-frame keys: restored only without a part (an interrupted migration
+        // leaves both); erased by the next save that stores everything.
+        const bool packed = present_ != 0;
+        for (size_t s = 0; s < legacySlots; ++s) {
+            std::string f;
+            if (!b.readLegacy(s, f)) continue;
+            legacy_ |= 1u << s;
+            if (packed) continue;
             if (s) rooms += LearnedState::restoreRoom(f, l, done);
             else LearnedState::restoreGlobal(f, l, p);
         }
@@ -295,34 +450,93 @@ public:
         }
         return now - savedAt_ >= saveEveryMs;
     }
-    // The changed slots; false when a write or erase failed.
+    // The changed parts; true when every frame is stored.
     bool save(Backend& b, const FlowLearner& l, const FlowPolicy& p, uint64_t now) {
         savedAt_ = now;
-        bool ok = true;
-        for (size_t s = 0; s < slots; ++s) {
-            const auto f = s ? LearnedState::roomFrame(l, s - 1) : LearnedState::globalFrame(l, p);
-            const bool had = present_ >> s & 1;
-            if (f.empty()) {
-                if (had && b.erase(s)) { present_ &= ~(1u << s); unsure_ &= ~(1u << s); }
-                else if (had) ok = false;
+        std::vector<std::string> frames;
+        if (auto g = LearnedState::globalFrame(l, p); !g.empty()) frames.push_back(std::move(g));
+        for (size_t i = 0; i < l.rooms(); ++i)
+            if (auto f = LearnedState::roomFrame(l, i); !f.empty()) frames.push_back(std::move(f));
+        bool complete = savePacked(b, frames);
+        if (legacy_ && !complete) {
+            // The old per-frame keys hold room the packed record needs: theirs is in RAM (restored).
+            eraseLegacy(b);
+            complete = savePacked(b, frames);
+        }
+        if (legacy_ && complete) eraseLegacy(b);
+        rooms_ = frames.empty() ? 0 : frames.size() - (frames[0][1] == LearnedState::globalKind);
+        return complete;
+    }
+    // Parts erased behind the store's back (a plan save made room): the next save writes
+    // every part again where it fits, and erases what is no longer needed.
+    void forgetStored() { present_ = (1u << parts) - 1; unsure_ = present_; }
+    // After a save: the rooms that learned something and how many of them are stored.
+    size_t rooms() const { return rooms_; }
+    size_t storedRooms() const { return storedRooms_; }
+    // The NVS entries the frames left in RAM at the last save would need (each part
+    // charged whole, ControlPartitionBudget::blobEntries): the knobs' log leaves them room.
+    size_t pendingEntries() const { return pendingEntries_; }
+private:
+    // A part's identity: the CRC over its frames' CRCs (the CRC of a whole part would not
+    // do: after a frame that ends in its own CRC the register always holds the same residue).
+    static uint32_t identity(std::string_view part) {
+        std::string crcs;
+        for (std::string_view f; part.size() >= 8;) {
+            const size_t n = (uint8_t(part[2]) | size_t(uint8_t(part[3])) << 8) + 8;
+            if (n > part.size()) break;
+            f = part.substr(0, n); part.remove_prefix(n);
+            crcs.append(f.data() + n - 4, 4);
+        }
+        crcs.append(part.data(), part.size()); // a damaged tail still counts
+        return LearnedState::crc(crcs.data(), crcs.size());
+    }
+    bool savePacked(Backend& b, const std::vector<std::string>& frames) {
+        size_t next = 0, stored = 0, pending = 0;
+        bool complete = true;
+        for (size_t i = 0; i < parts; ++i) {
+            const uint32_t bit = 1u << i;
+            size_t planned = next, plannedBytes = 0;
+            while (planned < frames.size() && plannedBytes + frames[planned].size() <= partBytes) plannedBytes += frames[planned++].size();
+            if (planned == next) {
+                // Nothing for this part: erased once everything before it was written.
+                if ((present_ & bit) && complete) {
+                    if (b.erase(i)) { present_ &= ~bit; unsure_ &= ~bit; }
+                    else complete = false;
+                }
                 continue;
             }
-            const uint32_t c = content(f);
-            if (had && crc_[s] == c && !(unsure_ >> s & 1)) continue;
-            if (b.write(s, f)) { present_ |= 1u << s; crc_[s] = c; unsure_ &= ~(1u << s); }
-            else ok = false;
+            size_t end = planned, bytes = plannedBytes;
+            bool written = false;
+            for (; end > next; bytes -= frames[--end].size()) { // refused: again without the last frame
+                std::string part;
+                part.reserve(bytes);
+                for (size_t k = next; k < end; ++k) part += frames[k];
+                const uint32_t id = identity(part);
+                if ((present_ & bit) && id_[i] == id && !(unsure_ & bit)) { written = true; break; }
+                if (b.write(i, part)) { present_ |= bit; unsure_ &= ~bit; id_[i] = id; written = true; break; }
+            }
+            if (written) stored += end - next;
+            if (end < planned) {
+                // Refused (at least its last frames): an older part stays as it was.
+                complete = false;
+                pending += 1 + ControlPartitionBudget::blobEntries(plannedBytes) - (written ? 1 + ControlPartitionBudget::blobEntries(bytes) : 0);
+            }
+            next = planned;
         }
-        return ok;
+        if (next < frames.size()) complete = false; // beyond the last part: RAM only (not with 8 rooms of version 2)
+        storedRooms_ = stored - (stored && frames[0][1] == LearnedState::globalKind);
+        pendingEntries_ = pending;
+        return complete;
     }
-    // Slots erased behind the store's back (a plan save made room): the next save writes
-    // every frame again where it fits, and erases what is no longer needed.
-    void forgetStored() { present_ = (1u << slots) - 1; unsure_ = present_; }
-private:
-    // A frame's identity: the CRC of all but its own CRC (with it, every valid frame has the same residue).
-    static uint32_t content(std::string_view f) { return LearnedState::crc(f.data(), f.size() - std::min<size_t>(f.size(), 4)); }
-    std::array<uint32_t, slots> crc_{};
-    uint32_t present_ = 0;   // slots the backend holds
-    uint32_t unsure_ = 0;    // slots it may have lost (forgetStored)
+    void eraseLegacy(Backend& b) {
+        for (size_t s = 0; s < legacySlots; ++s)
+            if ((legacy_ >> s & 1) && b.eraseLegacy(s)) legacy_ &= ~(1u << s);
+    }
+    std::array<uint32_t, parts> id_{};
+    uint32_t present_ = 0;   // parts the backend holds
+    uint32_t unsure_ = 0;    // parts it may have lost (forgetStored)
+    uint32_t legacy_ = 0;    // per-frame keys of earlier rc.2 builds still stored
+    size_t rooms_ = 0, storedRooms_ = 0, pendingEntries_ = 0;
     uint64_t savedAt_ = 0;
     int32_t day_ = unknownDay;
 };

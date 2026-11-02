@@ -87,12 +87,14 @@ public:
             ||!staticLedgerPermits(future)) return false;
         return s.freeEntries>=1+blobEntries(bytes)+priority+controlReserveEntries(planBytes,bleBytes,future);
     }
-    // The optional keys, erased in this order to make room: the learned rooms
-    // (last first), the learned globals, the readiness counters, the automatic
-    // knobs (written again by the owner where they fit).
-    static constexpr size_t optionalKeyCount=11;
+    // The optional keys, erased in this order to make room: the per-room keys
+    // of rc.2 builds before the packed record, the learned record's second and
+    // first part (the later rooms first; the first part also holds the
+    // globals), the readiness counters, the automatic knobs (written again by
+    // their owner where they fit).
+    static constexpr size_t optionalKeyCount=13;
     static constexpr const char* optionalKeys[optionalKeyCount]={"learned7","learned6","learned5","learned4","learned3",
-        "learned2","learned1","learned0","learned","readiness","autotune"};
+        "learned2","learned1","learned0","learned","learned_b","learned_a","readiness","autotune"};
     // permits(stats): the write that needs room; stats(): fresh statistics;
     // bytes(key): a stored optional record's size (0: absent); erase(key):
     // removes it. Nothing is erased with unknown statistics, or when erasing

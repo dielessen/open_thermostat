@@ -45,8 +45,9 @@ Assistant.
 12. [What the trial run does and does not do](#12-what-the-trial-run-does-and-does-not-do)
 13. [Updates](#13-updates)
 14. [Backup and restore](#14-backup-and-restore)
-15. [Forgotten password and Wi-Fi recovery over USB](#15-forgotten-password-and-wi-fi-recovery-over-usb)
-16. [Troubleshooting](#16-troubleshooting)
+15. [Secure your setup](#15-secure-your-setup)
+16. [Forgotten password and Wi-Fi recovery over USB](#16-forgotten-password-and-wi-fi-recovery-over-usb)
+17. [Troubleshooting](#17-troubleshooting)
 
 ## 1. What you need
 
@@ -224,17 +225,24 @@ the router.
 
 1. Open the E32's address. Sign in with user **`admin`** and password
    **`admin`**.
-2. Choose your own password straight away: open **System → Password**
-   (the Overview also shows a reminder with a **Change password** button while
-   the default password is in use). Enter the **Current password** (`admin`),
-   your **New password** (8 to 64 characters) and **Repeat the new
-   password**, then choose **Change password**. The user name stays `admin`.
+2. The page asks you straight away to **Choose your own password**. Enter
+   **Your new password** (8 to 64 characters) and **Repeat your new
+   password**, then choose **Save password**. The user name stays `admin`.
+   Until you do, the E32 shows its pages but accepts no change, from the
+   browser or from Home Assistant.
 
-*Why it matters:* with the default password, anyone on your network can
-change your heating. Home Assistant also shows a repair message until you
-change it. Write the new password down: Home Assistant asks for it in
+*Why it matters:* with the default password, anyone on your network could
+change your heating. Write the new password down: Home Assistant asks for it in
 section 10. If you ever forget it, you can reset it over USB
-([section 15](#15-forgotten-password-and-wi-fi-recovery-over-usb)).
+([section 16](#16-forgotten-password-and-wi-fi-recovery-over-usb)).
+
+*An E32 that was set up before 1.0 rc.2 and still uses `admin`:* after the
+update it keeps heating as before and Home Assistant keeps reading it, but
+changes wait. Home Assistant shows the repair **E32 still uses the default
+password**; choose **Fix**, enter a new password twice and submit. Home
+Assistant changes it on the E32 and stores it, in one step. You can also sign
+in on the E32 page, which asks for the new password at once; Home Assistant
+then asks you for it once (Settings → Devices & services).
 
 The E32 menu reads **Overview, Rooms, Home, Boiler** and **System**. System
 holds Network and Home Assistant, Password, Backup and restore, Bluetooth
@@ -718,14 +726,18 @@ week programs, Bluetooth sensors, flow settings, boiler model and language.
 
 1. On the E32, open **System → Backup and restore**.
 2. Optionally tick **Include passwords and Bluetooth keys, encrypted with a
-   passphrase** and enter a **Passphrase** (8 to 64 characters) twice. Without
+   passphrase** and enter a **Passphrase** (12 to 64 characters) twice. Without
    it the file holds no secrets, and the page lists what you would need to
    enter again after a restore (the MQTT password and the Bluetooth sensor
    keys).
 3. Choose **Download backup** and keep the file somewhere safe. Keep the
    passphrase too: nobody can recover it.
 
-The Wi-Fi password and the E32 web password are never in a backup.
+The Wi-Fi password and the E32 web password are never in a backup. The
+encrypted passwords are tied to the network settings in the same file: a
+backup whose broker address was edited does not open them. (Backups made
+before 1.0 rc.2 still restore; the E32 says they are older. Make a new one
+afterwards.)
 
 ### 14.2 Restore a backup
 
@@ -750,9 +762,74 @@ Home Assistant's own backup (Settings → System → Backups) covers the
 integration's settings in Home Assistant, including the copied
 `custom_components` folder.
 
-<a id="10-forgotten-password-and-wi-fi-recovery-over-usb"></a>
+## 15. Secure your setup
 
-## 15. Forgotten password and Wi-Fi recovery over USB
+The E32 sits on your home network, so its protection is your network's. A few
+steps make a big difference.
+
+1. **Your own E32 password.** Choose it at the first sign-in (section 4); the
+   E32 accepts no change until you do. Use one you do not use elsewhere.
+2. **One MQTT user per client, and a broker ACL.** Give Home Assistant, the
+   E32 and Zigbee2MQTT each their own broker login (section 8.2), and let each
+   write only its own topics: the E32 publishes under `<base>/fw/`, Home
+   Assistant under `<base>/ha/`, and only Zigbee2MQTT publishes the states
+   under `zigbee2mqtt/` (the others only send commands to
+   `zigbee2mqtt/<device>/set`). `<base>` is the **Base** of section 8.3
+   (`openthermostat` on a new E32). With the Mosquitto add-on, turn on
+   **customize** in its configuration (`active: true`, `folder: mosquitto`),
+   and put two files in Home Assistant's `/share/mosquitto/`. First
+   `accesscontrollist`, the rules:
+
+   ```text
+   # Home Assistant: reads everything; writes its own E32 topics, discovery
+   # and Zigbee2MQTT commands.
+   user homeassistant
+   topic read #
+   topic write openthermostat/ha/#
+   topic readwrite homeassistant/#
+   topic write zigbee2mqtt/+/set
+
+   # The E32: reads Home Assistant's messages, writes its own topics,
+   # its discovery and the radiator valve commands.
+   user e32
+   topic read openthermostat/#
+   topic write openthermostat/fw/#
+   topic readwrite homeassistant/#
+   topic read zigbee2mqtt/#
+   topic write zigbee2mqtt/+/set
+
+   # Zigbee2MQTT: its own tree and its discovery.
+   user zigbee2mqtt
+   topic readwrite zigbee2mqtt/#
+   topic readwrite homeassistant/#
+   ```
+
+   Then `acl.conf`, which turns them on:
+
+   ```text
+   acl_file /share/mosquitto/accesscontrollist
+   ```
+
+   Use the user names you created, restart the add-on and check that Home
+   Assistant, the E32 (System → Diagnostics, console command `mqtt`) and
+   Zigbee2MQTT still connect. Replace `openthermostat` if your Base differs.
+3. **Broker TLS (optional).** Home Assistant and Zigbee2MQTT can reach the
+   broker over TLS (usually port 8883). The E32 itself connects without TLS on
+   port 1883 for now; keep that port reachable only from your home network,
+   never from the internet.
+4. **The setup network.** The setup Wi-Fi `OpenThermostat-xxxxxx` uses the
+   password `openthermostat` for every E32. It only opens on a new E32 without
+   Wi-Fi settings, or after the `setup` command over USB, and closes itself
+   after about 15 minutes. Finish the setup in one go, and do not leave a
+   new E32 powered and unconfigured where others can reach it.
+
+Not yet available, planned for a later release: a setup Wi-Fi password of
+its own per E32, encrypted settings storage on the E32 and secure boot.
+
+<a id="10-forgotten-password-and-wi-fi-recovery-over-usb"></a>
+<a id="15-forgotten-password-and-wi-fi-recovery-over-usb"></a>
+
+## 16. Forgotten password and Wi-Fi recovery over USB
 
 Two commands work over the USB cable. They need physical access to the E32,
 so nobody can use them over the network.
@@ -764,8 +841,8 @@ so nobody can use them over the network.
    package).
 3. Type one of these commands and press Enter:
    - **`password-reset`** sets the web password back to `admin`. Sign in with
-     `admin` / `admin` and choose a new password under **System →
-     Password**. Home Assistant then asks for the new password.
+     `admin` / `admin`; the page asks for a new password at once. Home
+     Assistant then asks for the new password.
    - **`setup`** restarts the E32 into the setup network
      `OpenThermostat-xxxxxx` for 15 minutes, also when a Wi-Fi network is
      saved or the E32 uses Ethernet. Use it after a router or Wi-Fi password
@@ -774,7 +851,9 @@ so nobody can use them over the network.
 While the E32 still works on your network, you can also change Wi-Fi from
 **System → Network and Home Assistant → Set up WiFi → Start WiFi setup (restart)**.
 
-## 16. Troubleshooting
+<a id="16-troubleshooting"></a>
+
+## 17. Troubleshooting
 
 ### The E32 is not reachable
 
@@ -782,7 +861,7 @@ While the E32 still works on your network, you can also change Wi-Fi from
 - Look up the E32's address in your router (its name starts with
   `openthermostat-`), or try `http://openthermostat-xxxxxx.local/`.
 - Wi-Fi must be 2.4 GHz. If the Wi-Fi name or password changed, use the USB
-  `setup` command ([section 15](#15-forgotten-password-and-wi-fi-recovery-over-usb)).
+  `setup` command ([section 16](#16-forgotten-password-and-wi-fi-recovery-over-usb)).
 - In Ethernet mode, check the cable and the router; the setup network does not
   open by itself.
 - Never set up yet? Look for the `OpenThermostat-xxxxxx` network and open

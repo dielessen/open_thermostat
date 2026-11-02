@@ -95,7 +95,7 @@
     <p class="pd-help" data-i18n="Boiler power, gas meter, gas price and the outdoor temperature are set in Home Assistant: OpenThermostat → Configure → Home → Energy. The E32 uses them for the gas estimate and the heating curve.">Boiler power, gas meter, gas price and the outdoor temperature are set in Home Assistant: OpenThermostat → Configure → Home → Energy. The E32 uses them for the gas estimate and the heating curve.</p>
   </section>
 </section>
-<style>#house-settings .hs-modes{flex-wrap:wrap;margin:4px 0 10px}#house-settings .hs-modes .btn{min-height:44px}#house-settings .hs-field .btn,#house-settings .hs-holiday .btn,#house-settings .hs-field input,#house-settings .hs-holiday input{min-height:44px}#house-settings .hs-modes .btn[aria-pressed=true]{background:var(--ot-primary,#0d6e64);border-color:var(--ot-primary,#0d6e64);color:#fff}
+<style>#house-settings .hs-modes{flex-wrap:wrap;margin:4px 0 10px}#house-settings .hs-modes .btn{min-height:44px}#house-settings .hs-field .btn,#house-settings .hs-holiday .btn,#house-settings .hs-field input,#house-settings .hs-holiday input{min-height:44px}#house-settings .hs-modes .btn[aria-pressed=true]{background:var(--ot-accent);border-color:var(--ot-accent);color:var(--ot-accent-ink)}
 #house-settings .hs-now{margin:0 0 12px;padding:10px 12px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}
 #house-settings .hs-holiday,#house-settings .hs-field{margin:0 0 12px;max-width:30rem}#house-settings .hs-holiday label,#house-settings .hs-field label{display:block;margin-bottom:4px}
 #house-settings .hs-field input{max-width:8rem}#house-settings .hs-holiday input{max-width:16rem}
@@ -107,7 +107,7 @@
 #house-settings .hl-state{margin:0 0 12px;padding:10px 12px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}#house-settings .hl-state:empty,#house-settings [data-care-message]:empty{display:none}
 #house-settings .hl-rooms{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
 #house-settings .hl-room{border:1px solid var(--ot-border,rgba(127,127,127,.3));border-radius:var(--ot-r1);padding:12px 14px;min-width:0}#house-settings .hl-room h4{font-size:1rem;margin:0 0 4px;overflow-wrap:anywhere}
-#house-settings .hl-progress{display:inline-block;font-size:.85rem;padding:1px 8px;border-radius:999px;background:var(--ot-surface-2);margin-bottom:6px}
+#house-settings .hl-progress{margin-bottom:8px}
 #house-settings .hl-list{list-style:none;padding:0;margin:0}#house-settings .hl-list li,#house-settings .hl-room li{margin:0 0 10px;overflow-wrap:anywhere}#house-settings .hl-room ul{list-style:none;padding:0;margin:0}
 #house-settings .hl-mean,#house-settings .hc-why{display:block;color:var(--ot-muted);font-size:.875rem;margin:2px 0 0}#house-settings .hl-when{color:var(--ot-muted);font-size:.85rem;margin-right:6px}
 #house-settings .hc-list{list-style:none;padding:0;margin:0}#house-settings .hc-item{padding:10px 0;border-bottom:1px solid var(--ot-border,rgba(127,127,127,.25));overflow-wrap:anywhere}
@@ -591,10 +591,11 @@
   function roomCard(r, l, plan, names, outdoor) {
     const card = document.createElement('article'); card.className = 'hl-room'; card.dataset.room = r.id;
     const h = document.createElement('h4'); h.textContent = names[r.id];
-    const badge = document.createElement('span'); badge.className = 'hl-progress';
+    const badge = document.createElement('span');
     const ul = document.createElement('ul');
     card.append(h, badge, ul);
     const ready = l?.readiness === 'ready', seen = Math.min(6, ok(l?.segments) ? l.segments : 0);
+    badge.className = 'hl-progress ot-chip' + (ready ? ' ot-chip--ok' : ''); // learned: the "ok" colour of every page
     badge.textContent = ready ? uiText("Learned") : fill(uiText("Learning: {n} of {m} warm-ups seen"), {n: seen, m: 6});
     if (!ready) ul.append(item(uiText(seen >= 6 ? "It needs a few more warm-ups, on other days or at other water temperatures." : "It learns from every warm-up while the heating runs."),
       uiText("Until then it uses safe standard times.")));

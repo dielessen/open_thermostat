@@ -72,3 +72,25 @@ test('stored levels mark every point; equal levels and any order are fine',()=>{
  assert.equal(W.markText(W.marked([[[420,1900],[1320,2300]],[],[],[],[],[],[]],{comfort:1900,eco:1700,night:2300},'13......')),'13......');
  assert(W.valid(m),'points with a level are valid');assert.equal(W.valid([[[480,2000,'away']],[],[],[],[],[],[]]),false);
 });
+// Polish (Home Assistant only): the planner's and the HA card's tables have exactly the English keys and placeholders.
+const table=(file,start,end)=>{const text=fs.readFileSync(path.join(root,file),'utf8'),a=text.indexOf(start),b=text.indexOf(end,a);
+ assert(a>=0&&b>a,file);return vm.runInNewContext('('+text.slice(a+start.length-1,b+end.length-2)+')');};
+const leaves=(o,p='')=>Object.entries(o).flatMap(([k,v])=>v&&typeof v==='object'?leaves(v,p+k+'.'):[[p+k,v]]);
+const marks=s=>(String(s).match(/\{\w+\}/g)||[]).sort();
+const CARD='ha/config/custom_components/open_thermostat/frontend/e32-week-card.js';
+// [what, English table, Polish table]: the planner's Polish lives in the HA card (the E32 pages are English and Dutch).
+const cardText=()=>table(CARD,'const TEXT = {','}}};\n');
+for(const [what,english,polish] of [['planner',()=>table('data/html/week-editor.js','const T = {','}};\n').en,()=>table(CARD,'const PLANNER_PL = {','};\n')],
+ ['card',()=>cardText().en,()=>cardText().pl]])
+ test('Polish texts of the '+what+' match the English ones',()=>{
+  const en=new Map(leaves(english())),pl=new Map(leaves(polish()));
+  assert.deepEqual([...pl.keys()].sort(),[...en.keys()].sort());
+  for(const [k,v] of en){assert(String(pl.get(k)).trim(),k);assert.deepEqual(marks(pl.get(k)),marks(v),k);}
+  const copied=[...en].filter(([k,v])=>pl.get(k)===v&&/[a-z]{3}/i.test(String(v).replace(/\{\w+\}/g,''))).map(([k])=>k);
+  // The program text keeps English day names (the options flow reads them); "Weekend" is Polish too.
+  assert.deepEqual(copied,what==='planner'?['text.0','text.1','text.2','text.3','text.4','text.5','text.6','weekend']:[]);
+ });
+test('Polish: the program text keeps the options flow format (English days, a decimal point)',()=>{
+ assert.equal(W.format(week,'pl'),'mon-fri: 06:30 20.5; 22:30 18\nsat-sun: 08:00 20.5; 23:00 18');
+ assert.deepEqual(plain(W.parse(W.format(week,'pl'),500,3000)),week);
+});

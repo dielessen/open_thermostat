@@ -25,7 +25,7 @@ Rows, tiles and graphs without a value stay hidden until they have one, so a
 boiler that never reports a value shows no "Unknown" for it.
 
 A stored Lovelace config has no per-viewer language, so the few fixed
-headings follow the Home Assistant language (English or Dutch) and the
+headings follow the Home Assistant language (English, Dutch or Polish) and the
 dashboard is rebuilt when that changes. Entity names come from Home
 Assistant's own translations.
 """
@@ -381,13 +381,146 @@ TEXT = {
         "fix_boiler": "De E32 hoort niets van de ketel: controleer de buskabel.",
         "fix_boiler_limit": "De ketel heeft zijn maximum niet gemeld: controleer de busverbinding.",
     },
+    # Polish: the terms of translations/pl.json and docs/UX-GLOSSARY.md; E32 page names stay English.
+    "pl": {
+        "heating": "Ogrzewanie", "boiler_view": "Kocioł", "diagnostics": "Diagnostyka",
+        "room_settings": "Ustawienia pomieszczeń", "now": "Teraz", "rooms": "Pomieszczenia",
+        "set_up_rooms": "Skonfiguruj pomieszczenia", "week_program": "Program tygodniowy",
+        "settings": "Ustawienia: {room}",
+        "boiler_request": "Żądanie do kotła", "flow": "Woda do ogrzewania (zasilanie)", "return": "Woda powrotna (powrót)",
+        "modulation": "Moc palnika", "pressure": "Ciśnienie", "dhw": "Ciepła woda", "code": "Kod wyświetlacza",
+        "max_ch": "Maksimum kotła", "status": "Stan", "problem": "Ogrzewanie",
+        "starts_hour": "Starty na godzinę", "short_cycling": "Palnik zbyt często się włącza",
+        "agreement": "Zgodność z termostatem", "measured": "Zmierzona przez E32", "target": "Temperatura docelowa",
+        "valve_position": "Otwarcie zaworów",
+        "mode": "Tryb", "off_until": "Wyłączone do", "without_ha": "Temperatura bez Home Assistant",
+        "compare": "E32 i termostat", "e32_request": "Żądanie do kotła E32",
+        "thermostat_request": "Żądanie termostatu", "heating_time_e32": "Czas grzania E32",
+        "heating_time_thermostat": "Czas grzania termostatu", "starts_e32": "Starty E32",
+        "starts_thermostat": "Starty termostatu", "heating_per_day": "Czas grzania na dzień",
+        "boiler": "Kocioł", "bluetooth": "Czujniki Bluetooth", "temperature": "Temperatura",
+        "humidity": "Wilgotność", "battery": "Bateria",
+        "shadow": "Okres próbny: E32 liczy równolegle, ale jeszcze nie steruje kotłem; decyduje nadal Twój "
+                  "obecny termostat lub własna regulacja kotła.",
+        "active": "E32 steruje kotłem.",
+        "how": "E32 utrzymuje temperaturę w pomieszczeniach, także bez Home Assistant.",
+        "group_heating": "Ogrzewanie", "group_dhw": "Ciepła woda", "group_status": "Stan i usterki",
+        "group_counters": "Liczniki", "group_settings": "Ustawienia kotła",
+        "group_thermostat": "Termostat na magistrali", "history_24h": "Ostatnie 24 godziny",
+        "boiler_note": "Wartości tak, jak zgłasza je kocioł; wartości, której kocioł nie wysyła, tu nie ma. "
+                       "Moc palnika to procent maksimum kotła, a nie kW; \"aktywny\" to to, co zgłasza kocioł, "
+                       "a nie osobne sprawdzenie.",
+        "raw": "Surowe dane kotła",
+        "raw_note": "Do szukania usterek: wartości dokładnie tak, jak wysyła je kocioł, niesprawdzane przez E32.",
+        "e32_device": "E32",
+        "estimates": "Liczniki energii i ciepłej wody",
+        "estimates_empty": "Ten kocioł nie zgłasza jeszcze liczników energii ani ciepłej wody; kotły, które to "
+                           "robią (EMS+), pokazują je tutaj. Strona Ogrzewanie szacuje gaz na dzień z mocy "
+                           "palnika i mocy kotła.",
+        "older_rooms": "Pomieszczenia (starsza konfiguracja)",
+        "legacy_boiler_note": "To, co kocioł zgłasza przez swoją magistralę (EMS), a nie dowód polecenia E32. "
+                              "Nieznane lub stare wartości to nie zero.",
+        "flow_graph": "Temperatury wody: docelowa, do ogrzewania i powrotna", "flow_selection": "Docelowa (kocioł)",
+        "measured_flow": "Do ogrzewania (zasilanie)", "measured_return": "Powrotna (powrót)",
+        "current_flow": "Do ogrzewania, według kotła",
+        "modulation_graph": "Moc palnika (%) — nie kW", "modulation_series": "Moc palnika (%)",
+        "dhw_graph": "Temperatury ciepłej wody", "dhw_selected": "Zgłoszona wybrana ciepła woda",
+        "dhw_measured": "Zmierzona ciepła woda", "dhw_target": "Zgłoszona docelowa ciepła woda",
+        "states_graph": "Zgłoszone ogrzewanie / ciepła woda / płomień / pompa", "state_heating": "Zgłoszone ogrzewanie",
+        "state_dhw": "Zgłoszona ciepła woda", "state_flame": "Zgłoszony bit płomienia", "state_pump": "Zgłoszony bit pompy",
+        "dhw_card": "Możliwości i jakość ciepłej wody",
+        "dhw_note": "Ciepła woda, tylko podgląd: ostatnie wartości zgłoszone przez kocioł (ich wiek nie jest "
+                    "sprawdzany); nic nie jest wysyłane do kotła.",
+        "dhw_profile": "Profil", "dhw_status": "stan", "unknown": "Nieznane",
+        "estimates_note": "Energia i objętość to szacunki ze zgłoszonych wartości, a nie liczniki gazu lub ciepła.",
+        "energy_chart": "Szacowana energia na dzień (nie licznik)", "volume_chart": "Objętość ciepłej wody na dzień",
+        "flame_chart": "Obserwowany czas płomienia na dzień",
+        "models_note": "Modele cieplne pomieszczeń to szacunki, a nie zmierzone ciepło; nieznane lub nieaktualne "
+                       "dane zostawiają luki.",
+        "room_history": "{room}: docelowa i zmierzona", "room_measured": "Zmierzona", "room_target": "Docelowa",
+        "learning": "Nauka", "flow_advice": "Zalecana temperatura wody", "heating_start": "Start grzania",
+        "learning_note": "E32 uczy się też, jak szybko nagrzewa się każde pomieszczenie, i wylicza najchłodniejszą "
+                         "wodę, która wciąż nagrzeje je o 1 °C na czas (zalecana temperatura wody).",
+        "advice_only": "Na razie to tylko porada; E32 nadal używa regulacji pokojowej.",
+        "dhw_taps": "Pobory dziś", "dhw_today": "Ciepła woda dziś",
+        "advice": "Porady", "advice_where": "Gdzie", "advice_confidence": "Pewność",
+        "advice_note": "Tylko porada: nic nie jest zmieniane automatycznie.",
+        "learned": "Czego nauczył się termostat", "learned_house": "Dom i kocioł",
+        "learned_changes": "Co zmienił sam",
+        "learned_note": "Termostat sam dostosowuje te ustawienia; zmienić je można na stronie E32 Home, w sekcji "
+                        "Comfort and boiler care.",
+        "confidence_low": "niska", "confidence_medium": "średnia", "confidence_high": "wysoka",
+        "gas_heating": "Ogrzewanie", "gas_hot_water": "Ciepła woda", "gas_keep_warm": "W tym podtrzymanie ciepłej wody",
+        "gas_tapping": "Pobór", "gas_keeping_warm": "Podtrzymanie",
+        "activity_timeline": "Co robi kocioł (24 godziny)", "activity": "Kocioł",
+        "gas_per_post": "Gaz na dzień: ogrzewanie, pobór, podtrzymanie",
+        "dhw_use_note": "Pobór to ciepła woda z kranu; podtrzymanie to kocioł, który dogrzewa swój zasobnik lub "
+                        "wymiennik bez otwartego kranu, nic więcej; zasobnik c.w.u. jest pokazywany jako ładowanie. "
+                        "E32 rozróżnia je po najbardziej bezpośrednim sygnale, jaki zgłasza Twój kocioł.",
+        "gas_per_day": "Gaz na dzień",
+        "gas_measured": "Zmierzony licznikiem gazu, podzielony według tego, co robił kocioł.",
+        "gas_estimate": "Oszacowany z mocy palnika i mocy grzewczej kotła (bez licznika gazu).",
+        "gas_note": "Dodaj ogrzewanie i ciepłą wodę do panelu Energia w sekcji Zużycie gazu; podtrzymanie jest "
+                    "częścią ciepłej wody, więc tam je pomiń.",
+        "yesterday": "Wczoraj", "burner_per_day": "Godziny pracy palnika na dzień",
+        "missed_per_day": "Utracony komfort na dzień (minuty)",
+        "day_burner": "Palnik: {h} godz., starty: {n} (krótsze niż 10 minut: {short}).",
+        "day_gas": "Gaz: ogrzewanie {heating}, ciepła woda {hot_water}.",
+        "day_room": "{room}: żądanie ciepła przez {h} godz.; ciepło średnio po {ttt} min; utracony komfort {missed} min.",
+        "day_room_no_step": "{room}: żądanie ciepła przez {h} godz.; utracony komfort {missed} min.",
+        "day_outdoor": "Na zewnątrz od {low} do {high} °C.",
+        "day_partial": "Niepełny dzień: E32 nie był słyszalny przez cały dzień, więc dane są niekompletne.",
+        "day_none": "Pierwszy pełny dzień pojawi się tu jutro.",
+        "outdoor": "Na zewnątrz",
+        "flow_settings": "Krzywa grzewcza i nauka",
+        "flow_source": "Temperatura wody ustalana przez",
+        "weather_curve": "Krzywa grzewcza wg temperatury zewnętrznej",
+        "design_flow": "Temperatura wody przy −10 °C na zewnątrz",
+        "apply_learned": "Ciepło na czas przy najchłodniejszej wodzie",
+        "house_mode": "Tryb domu", "boiler_now": "Kocioł",
+        "learned_link": "Wszystko, czego się nauczył", "learned_latest": "Ostatnia zmiana", "learning_how": "Jak się uczy",
+        "compare_link": "E32 w porównaniu z Twoim termostatem",
+        "no_request": "Brak żądania do kotła",
+        "flow_short": "Woda do ogrzewania", "return_short": "Woda powrotna",
+        "e32": "E32", "thermostat": "Termostat",
+        "comparison_view": "Porównanie",
+        "room_off": "To pomieszczenie jest wyłączone i nigdy nie żąda ciepła.",
+        "room_no_source": "Pomieszczenie {room} jest wyłączone i nie ma działającego źródła temperatury. Wybierz "
+            "źródło, aby znów z niego korzystać, albo usuń pomieszczenie, jeśli nie jest już potrzebne.",
+        "choose_source": "Wybierz źródło",
+        "remove_room": "Usuń pomieszczenie",
+        "readiness": "Gotowość do przejęcia?",
+        "ready_ready": "Gotowe: wykonaj kroki przełączenia.",
+        "ready_waiting": "Jeszcze nie: E32 nadal zbiera dane w okresie próbnym.",
+        "ready_not_ready": "Niegotowe: najpierw usuń problemy oznaczone na czerwono.",
+        "ready_no_comparison": "Na magistrali kotła nie ma termostatu do porównania, więc sprawdzane są tylko E32 "
+            "i kocioł.",
+        "ready_stable": "Stabilność: {stable_hours} z {stable_hours_needed} godz. bez zawieszenia i nieoczekiwanego "
+            "restartu",
+        "ready_periods": "Porównane okresy grzania: {periods_compared} z {periods_needed}, w tym nocne obniżenie, "
+            "poranne nagrzewanie i okres bez zapotrzebowania",
+        "ready_timing": "Ciepło w tych samych momentach: {timing_events} z {timing_events_needed} startów i zatrzymań",
+        "ready_flow_limit": "Żądana temperatura wody nigdy powyżej limitu: najwyżej {flow_max_c} °C, limit {flow_limit_c} °C",
+        "ready_cycling": "Nie więcej okresów grzania niż termostat: E32 {heating_periods_e32}, "
+            "termostat {heating_periods_thermostat}",
+        "ready_sources": "Źródła temperatury w pomieszczeniach działają, a czujnik zapasowy przejął pomiar",
+        "ready_boiler": "Kocioł słyszalny na magistrali",
+        "ready_boiler_limit": "Maksimum kotła znane: {boiler_limit_c} °C",
+        "fix_timing": "E32 grzeje w innych momentach niż Twój termostat: sprawdź temperatury docelowe pomieszczeń "
+            "i program tygodniowy.",
+        "fix_flow_limit": "Żądanie przekroczyło twardy limit: sprawdź limity temperatury wody.",
+        "fix_cycling": "E32 uruchamiałby palnik częściej: sprawdź limity temperatury wody.",
+        "fix_sources": "Sprawdź czujniki w pomieszczeniach (bateria, zasięg) i dodaj pomieszczeniu drugie źródło.",
+        "fix_boiler": "E32 nic nie słyszy z kotła: sprawdź kabel magistrali.",
+        "fix_boiler_limit": "Kocioł nie zgłosił swojego maksimum: sprawdź połączenie z magistralą.",
+    },
 }
 
 
 def dashboard_language(hass):
-    """Dutch for a Dutch Home Assistant, English otherwise."""
-    language = (hass.config.language or "en").lower().replace("_", "-")
-    return "nl" if language.split("-")[0] == "nl" else "en"
+    """English, Dutch or Polish by the Home Assistant language (English otherwise)."""
+    language = (hass.config.language or "en").lower().replace("_", "-").split("-")[0]
+    return language if language in TEXT else "en"
 
 
 def view_cards(view):

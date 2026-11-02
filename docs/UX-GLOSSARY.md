@@ -45,3 +45,13 @@ English and Dutch only.
 | What your boiler reports (boiler profile) | Wat je ketel meldt | Co zgłasza Twój kocioł | The Boiler page list of values this boiler sends. |
 | Setting device | Instelapparaat | Urządzenie nastawcze | A thermostat, radiator valve or number helper in Home Assistant you set a room with. |
 | Home Assistant entity | Home Assistant-entiteit | Encja Home Assistant | Kept: Home Assistant's own word for one of its items, for example `climate.living_room`. |
+| Room | Ruimte | Pomieszczenie | One heated space of the E32 room plan. In Polish texts a room name stands after "Pomieszczenie" or before a colon, so the sentence fits any name. |
+| Week program | Weekprogramma | Program tygodniowy | The switch points of a room for the seven days of the week. |
+| Switch point (switch time) | Schakeltijd | Punkt przełączenia | One time in the week program from which a temperature applies until the next one. |
+| Comfort / Eco / Night | Comfort / Eco / Nacht | Komfort / Eko / Noc | The three temperature levels of the week planner. |
+| Tapping (hot water) | Tappen | Pobór (ciepłej wody) | Hot water used at a tap, as opposed to keeping hot water warm. |
+| Missed comfort | Gemiste comfort | Utracony komfort | Minutes a room asked for heat but stayed clearly below its target. |
+| Night setback | Nachtverlaging | Nocne obniżenie | A lower target temperature at night. |
+| Maximum heating temperature (boiler) | Maximale cv-temperatuur | Maksymalna temperatura c.o. | The boiler's own upper limit for the water to the heating. |
+| Pump run-on | Pompnaloop | Wybieg pompy | A boiler setting: how long the pump keeps running after the burner stops. |
+| Expansion vessel | Expansievat | Naczynie wzbiorcze | The vessel that takes up the water's expansion; it keeps the pressure steady. |

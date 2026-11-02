@@ -435,7 +435,7 @@ async def test_the_dashboard_shows_the_valve_opening_and_a_problem_badge_only_fo
     sections = {s["cards"][0]["heading"]: s for s in config["views"][0]["sections"]}
     living = sections["Woonkamer"]["cards"]
     tile = next(c for c in living if c.get("entity") == made["valve_position"])
-    assert tile["type"] == "tile" and tile["name"] == "Radiator valves open" and tile["icon"] == "mdi:valve"
+    assert tile["type"] == "tile" and tile["name"] == "Valves open" and tile["icon"] == "mdi:valve"
     badge = next(b for b in living[0]["badges"] if b["entity"] == made["valve_problem"])
     assert badge["visibility"] == [{"condition": "state", "entity": made["valve_problem"], "state": "on"}]
     assert "valve" not in json.dumps(sections["Badkamer"])           # the bathroom has no valves

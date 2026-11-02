@@ -570,7 +570,9 @@ class ProductOptionsFlow(E32RestoreSteps, ComfortOptionsSteps, E32RoomFlow, Lega
         if e32 and legacy_zones(entry):
             # The water limits of the older room profile, while its rooms are left.
             options.append("installation")
-        options.append("hot_water")
+        if not e32:
+            # Older installations only: the E32 shows hot water on the dashboard (Boiler and Diagnostics).
+            options.append("hot_water")
         if self._native_plan_review_available():
             options += ["graph_prepare", "graph_status"]
         if legacy_rooms_pending(entry):

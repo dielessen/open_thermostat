@@ -491,8 +491,9 @@ async def test_the_main_menu_starts_with_the_rooms_and_keeps_status_under_advanc
     assert flow["menu_options"] == ["e32_rooms", "house", "controller_connection", "general",
                                     "advanced_settings"]
     advanced = await manager.async_configure(flow["flow_id"], {"next_step_id": "advanced_settings"})
-    # Installation status counts the older HA rooms only: not shown without them.
-    assert advanced["menu_options"][0] == "hot_water" and "configuration_status" not in advanced["menu_options"]
+    # Installation status counts the older HA rooms only: not shown without them. The raw hot water status
+    # is for older installations too: the E32 shows hot water on the dashboard.
+    assert "hot_water" not in advanced["menu_options"] and "configuration_status" not in advanced["menu_options"]
 
 
 # -- Language: EN and NL say the same things --------------------------------------------------

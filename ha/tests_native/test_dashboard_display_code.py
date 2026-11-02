@@ -31,11 +31,11 @@ async def test_normal_operation_reads_as_words_with_the_code_small_next_to_it(ha
     code = fields["display_code"]
     content = card(hass, e)["content"]
     assert render(hass, content, code, "0H", 203) == (
-        '<ha-icon icon="mdi:water-boiler"></ha-icon> **Standby: no heat demand** <small>0H 203</small>')
-    assert render(hass, content, code, "=H") == '<ha-icon icon="mdi:water-boiler"></ha-icon> **Hot water** <small>=H</small>'
+        '<ha-icon icon="mdi:water-boiler"></ha-icon> Boiler: **Standby: no heat demand** <small>0H 203</small>')
+    assert render(hass, content, code, "=H") == '<ha-icon icon="mdi:water-boiler"></ha-icon> Boiler: **Hot water** <small>=H</small>'
     # Waiting: its own icon and the advice on a second line.
     waiting = render(hass, content, code, "0A", 202)
-    assert waiting.startswith('<ha-icon icon="mdi:timer-sand"></ha-icon> **Waiting: anti-cycle time')
+    assert waiting.startswith('<ha-icon icon="mdi:timer-sand"></ha-icon> Boiler: **Waiting: anti-cycle time')
     assert waiting.endswith("<small>No action needed; the boiler continues by itself.</small>")
     # The owner's EcomLine Classic, by its own manual.
     assert "**Waiting for the 3-way valve to switch** <small>0C</small>" in render(hass, content, code, "0C", None, OWNER)

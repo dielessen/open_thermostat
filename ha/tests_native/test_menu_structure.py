@@ -64,7 +64,7 @@ async def test_a_typical_e32_install_has_rooms_first_and_advanced_last(hass, man
     # The legacy "Manage rooms" and the old installation form are not in the main menu.
     assert "room_settings" not in flow["menu_options"] and "installation" not in flow["menu_options"]
     advanced = await manager.async_configure(flow["flow_id"], {"next_step_id": "advanced_settings"})
-    assert advanced["menu_options"] == ["hot_water", "entity_ids"]  # no older HA rooms: nothing about them
+    assert advanced["menu_options"] == ["entity_ids"]  # no older HA rooms: nothing about them (nor hot water status)
 
 
 @pytest.mark.asyncio

@@ -996,7 +996,7 @@
         },
         "data_description": {
           "name": "Een herkenbare naam in Home Assistant. Hernoemen verandert geen apparaatidentiteiten.",
-          "create_dashboard": "Voegt een eigen dashboard toe. Je bestaande dashboards blijven behouden."
+          "create_dashboard": "Het OpenThermostat-dashboard: je ruimtes in één oogopslag, de weekplanner en de ketel. Je bestaande dashboards blijven behouden."
         },
         "sections": {
           "advanced": {
@@ -1087,7 +1087,7 @@
         "data_description": {
           "comfort_temperature": "De voorinstelling Comfort van een ruimte zonder weekprogramma. Met een weekprogramma is Comfort de warmste temperatuur daarvan.",
           "eco_temperature": "De voorinstelling Nacht van een ruimte zonder weekprogramma. Met een weekprogramma is Nacht de koelste temperatuur daarvan.",
-          "contact_delay": "Seconden dat een raam of deur open moet blijven voordat de ruimte pauzeert, zodat kort luchten of door een deur lopen de verwarming niet stopt. Een gepauzeerde ruimte blijft beschermd tegen vorst.",
+          "contact_delay": "Minuten dat een raam of deur open moet blijven voordat een ruimte pauzeert, zodat kort luchten of door een deur lopen de verwarming niet stopt. De eigen \"Pauze na\" van een ruimte (Configureren → Ruimtes) gaat voor. Een gepauzeerde ruimte blijft beschermd tegen vorst.",
           "override_minutes": "Een nieuwe temperatuur op de thermostaat geldt tot het volgende schakelpunt van het weekprogramma van de ruimte. Een ruimte zonder weekprogramma houdt hem zoveel minuten vast en volgt daarna weer haar plan."
         }
       },
@@ -1405,7 +1405,7 @@
       },
       "advanced_settings": {
         "title": "Geavanceerd en diagnose",
-        "description": "Status, herstel van het ruimteplan en technische controles. Gewone instellingen staan in het hoofdmenu.",
+        "description": "Een back-up van de E32-instellingen terugzetten, entiteit-ID's opruimen en technische controles. Gewone instellingen staan in het hoofdmenu.",
         "menu_options": {
           "configuration_status": "Status installatie",
           "installation_source": "Verbinding met regelaar controleren",
@@ -1502,12 +1502,12 @@
         },
         "data_description": {
           "room": "Een ruimte in het ruimteplan van de E32.",
-          "action": "Bewerk de instellingen of verwijder de ruimte uit het ruimteplan van de E32."
+          "action": "Bewerk de instellingen, kies de radiatorkranen of verwijder de ruimte uit het ruimteplan van de E32."
         },
         "description": "Kies de ruimte die je wilt wijzigen."
       },
       "e32_room": {
-        "title": "E32-ruimte",
+        "title": "Ruimte: {room_name}",
         "description": "Eén ruimte: waar de temperatuur vandaan komt, wat die moet zijn en wanneer. De E32 bewaart dit en regelt het, ook zonder Home Assistant.{setting_hint}",
         "data": {
           "name": "Naam van de ruimte",
@@ -1641,7 +1641,7 @@
         "description": "De oude ruimtes worden verwijderd en de E32 wordt opnieuw gekoppeld. Dit kan tot twee minuten duren."
       },
       "general": {
-        "title": "Naam en dashboard",
+        "title": "Dashboard en naam",
         "description": "De naam van deze installatie in Home Assistant en of het OpenThermostat-dashboard getoond wordt. De ruimtes, de verwarming en de ketel staan elders in dit menu.",
         "data": {
           "name": "Naam installatie",
@@ -1649,7 +1649,7 @@
         },
         "data_description": {
           "name": "Een herkenbare naam in Home Assistant. Hernoemen verandert geen apparaatidentiteiten.",
-          "create_dashboard": "Voegt een eigen dashboard toe. Je bestaande dashboards blijven behouden."
+          "create_dashboard": "Het OpenThermostat-dashboard: je ruimtes in één oogopslag, de weekplanner en de ketel. Je bestaande dashboards blijven behouden."
         }
       },
       "controller_connected_first_room": {

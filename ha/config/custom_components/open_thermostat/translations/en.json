@@ -52,7 +52,7 @@
         },
         "data_description": {
           "name": "A recognisable name in Home Assistant. Renaming does not change device identities.",
-          "create_dashboard": "Adds an optional dashboard. Your own dashboards are preserved."
+          "create_dashboard": "The OpenThermostat dashboard: your rooms at a glance, the week planner and the boiler. Your own dashboards are preserved."
         },
         "sections": {
           "advanced": {
@@ -132,7 +132,7 @@
         }
       },
       "comfort_settings": {
-        "title": "Room defaults and timing",
+        "title": "Defaults for rooms and timing",
         "description": "The thermostat of each E32 room offers the presets Comfort, Eco, Night and Boost: the levels of the room's week program, as in the week planner. A room without a week program starts from the two temperatures below. Away and holiday are the house mode (Configure → Home and the House mode control), not a preset of one room.",
         "data": {
           "comfort_temperature": "Comfort without a week program",
@@ -143,7 +143,7 @@
         "data_description": {
           "comfort_temperature": "The Comfort preset of a room without a week program. With a week program, Comfort is its warmest temperature.",
           "eco_temperature": "The Night preset of a room without a week program. With a week program, Night is its coolest temperature.",
-          "contact_delay": "Seconds a window or door must stay open before the room pauses, so airing briefly or walking through a door does not stop the heating. A paused room still protects against frost.",
+          "contact_delay": "Minutes a window or door must stay open before a room pauses, so airing briefly or walking through a door does not stop the heating. A room's own \"Pause after\" (Configure → Rooms) takes precedence. A paused room still protects against frost.",
           "override_minutes": "A new temperature on the thermostat lasts until the next switch point of the room's week program. A room without a week program keeps it this many minutes, then follows its plan again."
         }
       },
@@ -461,7 +461,7 @@
       },
       "advanced_settings": {
         "title": "Advanced and diagnostics",
-        "description": "Status, room plan recovery and technical checks. Everyday settings are in the main menu.",
+        "description": "Restore an E32 settings backup, tidy entity IDs and technical checks. Everyday settings are in the main menu.",
         "menu_options": {
           "configuration_status": "Installation status",
           "installation_source": "Review controller connection",
@@ -558,12 +558,12 @@
         },
         "data_description": {
           "room": "A room in the E32 room plan.",
-          "action": "Edit its settings or remove it from the E32 room plan."
+          "action": "Edit its settings, choose its radiator valves, or remove it from the E32 room plan."
         },
         "description": "Pick the room you want to change."
       },
       "e32_room": {
-        "title": "E32 room",
+        "title": "Room: {room_name}",
         "description": "One room: where its temperature comes from, what it should be and when. The E32 stores this and runs it, also without Home Assistant.{setting_hint}",
         "data": {
           "name": "Room name",
@@ -697,7 +697,7 @@
         "description": "Removing the old rooms and reconnecting the E32. This can take up to two minutes."
       },
       "general": {
-        "title": "Name and dashboard",
+        "title": "Dashboard and name",
         "description": "The name of this installation in Home Assistant and whether it shows the OpenThermostat dashboard. The rooms, the heating and the boiler are elsewhere in this menu.",
         "data": {
           "name": "Installation name",
@@ -705,7 +705,7 @@
         },
         "data_description": {
           "name": "A recognisable name in Home Assistant. Renaming does not change device identities.",
-          "create_dashboard": "Adds an optional dashboard. Your own dashboards are preserved."
+          "create_dashboard": "The OpenThermostat dashboard: your rooms at a glance, the week planner and the boiler. Your own dashboards are preserved."
         }
       },
       "controller_connected_first_room": {

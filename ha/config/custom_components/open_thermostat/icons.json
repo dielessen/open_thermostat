@@ -24,11 +24,20 @@
         "state": {
           "on": "mdi:radiator-disabled"
         }
+      },
+      "room_valve_problem": {
+        "default": "mdi:valve",
+        "state": {
+          "on": "mdi:valve-closed"
+        }
       }
     },
     "datetime": {
       "room_inactive_until": {
         "default": "mdi:calendar-clock"
+      },
+      "holiday_until": {
+        "default": "mdi:airplane-clock"
       }
     },
     "number": {
@@ -37,6 +46,9 @@
       },
       "radiator_rated_power": {
         "default": "mdi:radiator"
+      },
+      "away_temperature": {
+        "default": "mdi:home-thermometer-outline"
       }
     },
     "select": {
@@ -47,6 +59,15 @@
         "default": "mdi:power",
         "state": {
           "inactive": "mdi:power-off"
+        }
+      },
+      "house_mode": {
+        "default": "mdi:home-account",
+        "state": {
+          "auto": "mdi:home-automation",
+          "home": "mdi:home",
+          "away": "mdi:home-export-outline",
+          "holiday": "mdi:airplane"
         }
       }
     },
@@ -151,6 +172,140 @@
       },
       "e32_last_backup": {
         "default": "mdi:backup-restore"
+      },
+      "boiler_activity": {
+        "default": "mdi:water-boiler",
+        "state": {
+          "idle": "mdi:water-boiler-off",
+          "heating": "mdi:radiator",
+          "tapping": "mdi:faucet",
+          "keep_warm": "mdi:water-boiler",
+          "charging": "mdi:water-boiler-alert",
+          "hot_water": "mdi:water-thermometer"
+        }
+      },
+      "tapping_gas": {
+        "default": "mdi:faucet"
+      },
+      "keep_warm_gas": {
+        "default": "mdi:water-boiler"
+      },
+      "daily_summary": {
+        "default": "mdi:calendar-text-outline"
+      },
+      "daily_burner_time": {
+        "default": "mdi:fire-circle"
+      },
+      "daily_burner_starts": {
+        "default": "mdi:counter"
+      },
+      "daily_missed_comfort": {
+        "default": "mdi:thermometer-alert"
+      },
+      "boiler_full_power": {
+        "default": "mdi:fire"
+      },
+      "flow_curve": {
+        "default": "mdi:sun-thermometer"
+      },
+      "flow_learned": {
+        "default": "mdi:school-outline"
+      },
+      "flow_rule": {
+        "default": "mdi:home-thermometer-outline"
+      },
+      "field_reported_burner_modulation": {
+        "default": "mdi:fire"
+      },
+      "field_plus_burner_modulation": {
+        "default": "mdi:fire"
+      },
+      "field_pressure": {
+        "default": "mdi:gauge"
+      },
+      "field_plus_pressure": {
+        "default": "mdi:gauge"
+      },
+      "field_display_code": {
+        "default": "mdi:information-outline"
+      },
+      "field_service_number": {
+        "default": "mdi:wrench-outline"
+      },
+      "field_maintenance_message": {
+        "default": "mdi:wrench-clock",
+        "state": {
+          "none": "mdi:wrench-check-outline"
+        }
+      },
+      "field_heating_active": {
+        "default": "mdi:radiator",
+        "state": {
+          "off": "mdi:radiator-off"
+        }
+      },
+      "field_dhw_active": {
+        "default": "mdi:water-boiler",
+        "state": {
+          "off": "mdi:water-boiler-off"
+        }
+      },
+      "field_heating_enabled": {
+        "default": "mdi:radiator",
+        "state": {
+          "off": "mdi:radiator-off"
+        }
+      },
+      "field_dhw_enabled": {
+        "default": "mdi:water-boiler",
+        "state": {
+          "off": "mdi:water-boiler-off"
+        }
+      },
+      "field_ionisation_current": {
+        "default": "mdi:fire-alert"
+      },
+      "field_plus_flame_current": {
+        "default": "mdi:fire-alert"
+      },
+      "field_reported_heating_pump_modulation": {
+        "default": "mdi:pump"
+      },
+      "field_plus_heating_pump_modulation": {
+        "default": "mdi:pump"
+      },
+      "field_reported_requested_power_limit": {
+        "default": "mdi:fire"
+      },
+      "field_configured_dhw_comfort_mode": {
+        "default": "mdi:water-thermometer"
+      },
+      "field_reported_dhw_type": {
+        "default": "mdi:water-boiler"
+      },
+      "field_dhw_flow": {
+        "default": "mdi:water-pump"
+      },
+      "field_reported_burner_starts": {
+        "default": "mdi:counter"
+      },
+      "field_reported_heating_starts": {
+        "default": "mdi:counter"
+      },
+      "field_reported_dhw_starts": {
+        "default": "mdi:counter"
+      },
+      "field_last_locking_error_code": {
+        "default": "mdi:alert-octagon-outline"
+      },
+      "field_last_blocking_error_code": {
+        "default": "mdi:alert-outline"
+      },
+      "field_thermostat_requested_burner_power": {
+        "default": "mdi:fire"
+      },
+      "field_thermostat_requested_pump_modulation": {
+        "default": "mdi:pump"
       }
     },
     "switch": {
@@ -159,6 +314,12 @@
       },
       "flow_apply_learned": {
         "default": "mdi:school"
+      },
+      "room_valve_control": {
+        "default": "mdi:valve-closed",
+        "state": {
+          "on": "mdi:valve"
+        }
       }
     },
     "button": {

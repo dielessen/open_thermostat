@@ -314,7 +314,9 @@ def settings_schema(vol, settings):
     return vol.Schema({
         vol.Required("comfort_temperature", default=settings["comfort_c"]): box(*TEMPERATURE_LIMITS, 0.5, "°C"),
         vol.Required("eco_temperature", default=settings["eco_c"]): box(*TEMPERATURE_LIMITS, 0.5, "°C"),
-        vol.Required("contact_delay", default=settings["contact_delay_s"]): box(*DELAY_LIMITS, 1, "s"),
+        # In minutes, as in each room's own "Pause after" (stored in seconds, the E32's unit).
+        vol.Required("contact_delay", default=settings["contact_delay_s"] / 60): box(
+            DELAY_LIMITS[0] / 60, DELAY_LIMITS[1] / 60, 0.5, "min"),
         vol.Required("override_minutes", default=settings["override_minutes"]): box(*MINUTES_LIMITS, 1, "min"),
     })
 
@@ -1046,6 +1048,9 @@ class ComfortOptionsSteps:
         errors = {}
         if user_input is not None:
             try:
+                minutes = user_input.get("contact_delay")
+                if type(minutes) in (int, float):  # the form shows minutes; the settings keep seconds
+                    user_input = {**user_input, "contact_delay": round(minutes * 60, 6)}
                 settings = validate_settings(self.hass, user_input, current)
             except ComfortError as err:
                 errors[err.field] = err.code

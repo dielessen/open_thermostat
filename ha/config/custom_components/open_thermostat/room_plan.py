@@ -25,7 +25,7 @@ import time
 from homeassistant.components.datetime import DateTimeEntity
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.components.select import SelectEntity
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import EntityCategory, UnitOfTemperature
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.util import dt as dt_util
@@ -493,6 +493,8 @@ def setpoint_range(room):
 class RoomFallbackSetpoint(PlanRoomEntity, NumberEntity):
     """The room setpoint the E32 uses without (or when it loses) its setpoint entity."""
 
+    # A setting, rarely changed: under Configuration on the room's device page, not next to its thermostat.
+    _attr_entity_category = EntityCategory.CONFIG
     _attr_device_class = NumberDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_native_step = SETPOINT_STEP

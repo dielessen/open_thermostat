@@ -164,7 +164,7 @@ public:
     // Yesterday (after sample() returned true): the proposals, and with an active day
     // the changes to values() for the automatic knobs. learned: per plan room.
     void evaluate(uint64_t now, uint32_t utc, uint16_t manual, const RoomPlan& plan, const Learned* learned, size_t count) {
-        wouldCount_ = 0; changed_ = 0;
+        wouldCount_ = 0; changed_ = 0; proposed_ = 0;
         if (now < graceUntil_ || yesterday_.day < 0) { state_ = "waiting"; return; }
         const Day& d = yesterday_;
         const int hours = __builtin_popcount(d.hours);
@@ -206,7 +206,7 @@ public:
             return n ? std::optional<int>((sum + n / 2) / n) : std::nullopt;
         };
         int room = -1;
-        if (const auto m = enough && !(changed_ & 16) ? mean(-1, room) : std::nullopt) {
+        if (const auto m = enough && !(proposed_ & 16) ? mean(-1, room) : std::nullopt) {
             const int target = std::clamp((*m + 4) / 9, 5, 20);
             // Raised only on evidence: at least 5 cycles, all but a small overshoot (none: no raise).
             if (target > v.flowPerDegreeC && over && over->first <= 20) propose(4, v.flowPerDegreeC + 1, 5, 20, Reason::roomResponse, int16_t(*m), room);
@@ -222,7 +222,7 @@ public:
                     Reason::learnedWarmup, int16_t(*m), room);
         }
     }
-    // The last evaluate() changed values() (store them).
+    // The last evaluate() changed values() (store them); a shadow day never does.
     bool changed() const { return changed_ != 0; }
     const char* state(uint64_t now) const { return now < graceUntil_ ? "waiting" : state_; }
     size_t logCount() const { return logCount_; }
@@ -332,13 +332,14 @@ private:
         const int wanted = to;
         to = std::clamp(to, lo, hi);
         if ((wanted > from && to < from) || (wanted < from && to > from)) return; // a bound never turns a step around
-        if (to == from || (changed_ >> knob & 1) || (manual_ >> knob & 1)) return;
+        if (to == from || (proposed_ >> knob & 1) || (manual_ >> knob & 1)) return;
         Change c;
         c.utc = utc_; c.knob = knob; c.from = from; c.to = uint16_t(to); c.reason = reason; c.figure = figure;
         if (room >= 0 && plan_ && size_t(room) < plan_->rooms.size()) std::snprintf(c.room, sizeof c.room, "%s", plan_->rooms[room].id.c_str());
-        changed_ |= uint16_t(1u << knob);
+        proposed_ |= uint16_t(1u << knob); // one step a day per knob
         if (!apply_) { if (wouldCount_ < would_.size()) would_[wouldCount_++] = c; return; } // shown only
         values_.*k[knob].field = uint16_t(to);
+        changed_ |= uint16_t(1u << knob);
         // The overshoot starts anew after a margin step or a gentler gain; a raise keeps the
         // evidence (it was raised on it), so a cycle-poor floor cannot be raised day after day.
         if (knob == 3 || (knob == 4 && to < from)) overCount_ = {};
@@ -391,7 +392,7 @@ private:
     const RoomPlan* plan_ = nullptr;
     const char* state_ = "waiting";
     uint32_t utc_ = 0;
-    uint16_t manual_ = 0, changed_ = 0;
+    uint16_t manual_ = 0, changed_ = 0, proposed_ = 0; // changed_: applied; proposed_: shown or applied
     bool heating_ = false, apply_ = false;
 };
 }

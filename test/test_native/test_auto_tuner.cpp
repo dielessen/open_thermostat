@@ -379,6 +379,27 @@ TEST(AutoTuner, ShadowModeOnlyShowsWhatItWouldDo) {
     EXPECT_EQ(m.tuning().startCentiC, 25);
 }
 
+// Review of rc.2 (finding 5): changed() (store and apply the values) only when a value
+// changed: never on a shadow day, however many proposals it shows.
+TEST(AutoTuner, ChangedOnlyWhenAValueChanged) {
+    Driver s;
+    s.active = false;
+    bool changed = false;
+    const auto f = cycles(5, 5);
+    for (uint32_t t = 10; t <= 86400; t += 10) { s.step(f(t % 86400)); changed = changed || s.tuner.changed(); }
+    EXPECT_STREQ(s.tuner.state(s.now), "shadow");
+    Json root(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(s.tuner.addStatus(root.get(), s.now, s.tuning(), 0));
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(cJSON_GetObjectItem(root.get(), "tuning"), "would")), 2);
+    EXPECT_FALSE(changed) << "nothing applied, nothing to store";
+    Driver a;
+    for (uint32_t t = 10; t <= 86400; t += 10) a.step(f(t % 86400));
+    EXPECT_TRUE(a.tuner.changed());
+    // Still one step a day per knob.
+    for (uint32_t t = 10; t <= 86400; t += 10) a.step(f(t % 86400));
+    EXPECT_EQ(a.tuning().minOffS, 600);
+}
+
 // Review of rc.2 (finding 4): an applied change is in the log only, not also under "would".
 TEST(AutoTuner, AppliedChangesAreNotAlsoProposals) {
     Driver d;

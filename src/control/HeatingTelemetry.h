@@ -5,6 +5,7 @@
 #include "control/WarmupPlanner.h"
 #include <cJSON.h>
 #include <cstring>
+#include <functional>
 #include <initializer_list>
 #include <algorithm>
 #include <memory>
@@ -154,8 +155,10 @@ inline void compactHeatingTelemetry(cJSON* status) {
 // "status":..,"heating_periods":..,"inputs":{..},"gas":{..}},"dhw":{"method","clock_known",
 // "today":{..}},"flow":{..},"night_gas":{..}}. dhw: DhwEpisodes::summaryJson() (taken
 // over); flow and night_gas: FlowPolicy::addSummary() (with a policy). Empty: no memory.
+// more: further parts (HeatingController: the self-tuning's "tuning", sent apart as
+// fw/telemetry/tuning); false: no memory.
 inline std::string heatingSummaryTelemetry(const FlowLearner& learner, const LearnedContext& c, cJSON* dhw,
-                                           const FlowPolicy* policy = nullptr) {
+                                           const FlowPolicy* policy = nullptr, const std::function<bool(cJSON*)>& more = nullptr) {
     std::unique_ptr<cJSON, decltype(&cJSON_Delete)> owned(dhw, cJSON_Delete);
     std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_CreateObject(), cJSON_Delete);
     cJSON* learned = root && dhw && cJSON_AddNumberToObject(root.get(), "schema", 1) ? cJSON_AddObjectToObject(root.get(), "learned") : nullptr;
@@ -166,6 +169,7 @@ inline std::string heatingSummaryTelemetry(const FlowLearner& learner, const Lea
     telemetry_detail::keepOnly(dhw, {"method", "clock_known", "today"});
     if (!cJSON_AddItemToObject(root.get(), "dhw", owned.release())) { cJSON_Delete(dhw); return {}; }
     if (policy && !policy->addSummary(root.get())) return {};
+    if (more && !more(root.get())) return {};
     char* text = cJSON_PrintUnformatted(root.get());
     std::string out = text ? text : "";
     cJSON_free(text);

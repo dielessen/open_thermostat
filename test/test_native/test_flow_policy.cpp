@@ -94,7 +94,7 @@ const FlowDemand::Request idle{false, 0, FlowDemand::Reason::idle};
 
 TEST(FlowSettings, ParsesPartialUpdatesStrictly) {
     FlowSettings s;
-    EXPECT_EQ(s.json(), R"({"weather_curve":false,"apply_learned":false,"curve_design_flow_c":0,"tuning":)" + s.tuning.json() + "}");
+    EXPECT_EQ(s.json(), R"({"weather_curve":false,"apply_learned":false,"curve_design_flow_c":0,"tuning":)" + s.tuning.json() + R"(,"tuning_manual":[]})");
     EXPECT_LE(s.json().size(), FlowSettings::maxBytes);
     EXPECT_EQ(FlowSettings::parse(parse(R"({"weather_curve":true})").get(), s), nullptr);
     EXPECT_TRUE(s.weatherCurve); EXPECT_FALSE(s.applyLearned);

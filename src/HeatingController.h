@@ -199,7 +199,9 @@ public:
             return control::learnedRoomTelemetry(flowLearner_, plan, room, context);
         }, [this] {
             std::array<std::optional<int16_t>, control::RoomPlan::maxRooms> temperatures{};
-            return control::heatingSummaryTelemetry(flowLearner_, learnedContext(bleReceiptClock(), temperatures), ems_.dhwSummaryJson(), &flowPolicy_);
+            const auto now = bleReceiptClock();
+            return control::heatingSummaryTelemetry(flowLearner_, learnedContext(now, temperatures), ems_.dhwSummaryJson(), &flowPolicy_,
+                [&](cJSON* root) { return autoTuner_.addStatus(root, now, effectiveTuning(), flowSettings_.manual, control::AutoTuner::mqttEntries); });
         });
 #endif
 	}
@@ -319,6 +321,7 @@ public:
         if (saved != HeatingPlanSave::saved) return "save_unconfirmed";
         roomEngine_.setPlan(plan);
         flowLearner_.setPlan(plan);
+        autoTuner_.restart(bleReceiptClock()); // a new plan: a day of its own before the tuner moves
         // Valves of rooms the plan no longer has leave their record (stored), so a later valve
         // save is not refused as unknown_room and their fw/state/trv/<room> topic is cleared.
         auto valves = trv_.config();
@@ -365,13 +368,19 @@ public:
         trv_.setConfig(std::move(config));
         return nullptr;
     }
-    // The beta.19 flow options and the 1.0 tuning (GET/POST /config/heating/flow), stored in NVS.
-    std::string flowSettingsJson() const { return flowPolicy_.settings().json(); }
+    // The beta.19 flow options and the 1.0 tuning (GET/POST /config/heating/flow), stored in NVS;
+    // "tuning" answers the knobs in effect (the automatic ones from AutoTuner). "tuning": null is
+    // "back to start values": the built-in values, all automatic, and the tuner learns anew.
+    std::string flowSettingsJson() const { const auto t = effectiveTuning(); return flowSettings_.json(&t); }
     const char* setFlowSettings(const cJSON* root) {
-        auto settings = flowPolicy_.settings();
+        auto settings = flowSettings_;
         if (const char* error = control::FlowSettings::parse(root, settings)) return error;
-        if (settings == flowPolicy_.settings()) return nullptr;
-        if (!FlowSettingsNvs::write(settings)) return "save_unconfirmed";
+        const bool reset = cJSON_IsNull(cJSON_GetObjectItemCaseSensitive(root, "tuning"));
+        if (settings == flowSettings_ && !reset) return nullptr;
+        if (!(settings == flowSettings_) && !FlowSettingsNvs::write(settings)) return "save_unconfirmed";
+        const auto now = bleReceiptClock();
+        if (reset) { autoTuner_.reset(now); AutoTunerNvs::write(autoTuner_); }
+        else if (!(settings.tuning == flowSettings_.tuning) || settings.manual != flowSettings_.manual) autoTuner_.restart(now);
         applyFlowSettings(settings);
         return nullptr;
     }
@@ -448,6 +457,8 @@ public:
         // The HA route's freshness for the rooms page banner.
         if (!control::addHaLink(root, haInput_.lastAcceptedMs(), now, brokerConnected())) { cJSON_Delete(root); return nullptr; }
         if (mqtt) return root;
+        // The self-tuning (AutoTuner): its state, the knobs in effect, yesterday and the change log.
+        if (!autoTuner_.addStatus(root, now, effectiveTuning(), flowSettings_.manual)) { cJSON_Delete(root); return nullptr; }
         // What the learner found (report only) and, with a trusted clock, its plans.
         std::array<std::optional<int16_t>, control::RoomPlan::maxRooms> temperatures{};
         cJSON* learned = control::learnedJson(flowLearner_, roomEngine_.plan(), learnedContext(now, temperatures));
@@ -792,6 +803,8 @@ private:
     // Per room how fast it warms per flow (report only; ~1.15 KB heap per room, PSRAM extmem).
     control::FlowLearner flowLearner_;
     control::FlowPolicy flowPolicy_; // beta.19 options: weather curve, learned flow, optimum start (default: advice)
+    control::FlowSettings flowSettings_; // as stored: the options, the owner's knobs and which are manual
+    control::AutoTuner autoTuner_;       // rc.2: the automatic knobs from the measured days (NVS "autotune")
     control::HeatingHistory history_; // 24 h of 5-minute averages, ~12.5 KB PSRAM, RAM only
     control::HeatingInputRoute haInput_;  // ha/heating_input: rooms, gas, price, outdoor, boiler power
     uint32_t activePosted_ = 0; uint64_t activePostedAt_ = 0; // the last command handed to the EMS route
@@ -872,6 +885,7 @@ private:
         const auto valved = trv_.adjust(request, trvRooms_, output, now, plan.minimumFlowC, plan.maximumFlowC,
                                         tuning.minOnS * 1000u, tuning.minOffS * 1000u);
         stepActiveHeat(now, valved, ems);
+        stepAutoTuner(now, unixNow, valved, ems);
         trv_.step(now, trvRooms_, activeGuard_.confirmedOutput(), [this](const std::string& topic, const std::string& payload) {
             return mqtt_.publishExternal(topic, payload);
         });
@@ -943,10 +957,43 @@ private:
         }
         flowLearner_.sample(now, boiler, rooms.data(), count);
     }
-    void loadFlowSettings() { applyFlowSettings(FlowSettingsNvs::read()); }
+    void loadFlowSettings() { AutoTunerNvs::read(autoTuner_); applyFlowSettings(FlowSettingsNvs::read()); }
+    control::ControlTuning effectiveTuning() const { return autoTuner_.effective(flowSettings_.tuning, flowSettings_.manual); }
+    // The stored settings with the knobs in effect for every part.
     void applyFlowSettings(const control::FlowSettings& settings) {
-        flowPolicy_.setSettings(settings); flowLearner_.setApplied(settings.applyLearned);
-        flowLearner_.setTuning(settings.tuning); roomEngine_.setTuning(settings.tuning);
+        flowSettings_ = settings;
+        auto applied = settings; applied.tuning = effectiveTuning();
+        flowPolicy_.setSettings(applied); flowLearner_.setApplied(settings.applyLearned);
+        flowLearner_.setTuning(applied.tuning); roomEngine_.setTuning(applied.tuning);
+    }
+    // The self-tuning sees what the boiler was asked (and, in shadow mode, what would be);
+    // a day that changed knobs is stored and applied at once.
+    void stepAutoTuner(uint64_t now, std::optional<uint32_t> unixNow, const control::FlowDemand::Request& request,
+                       const ems::EmsController::ActiveHeatView& ems) {
+        const auto& plan = roomEngine_.plan();
+        const auto tuning = roomEngine_.tuning();
+        std::array<control::AutoTuner::Room, control::RoomPlan::maxRooms> rooms{};
+        const size_t count = std::min(plan.rooms.size(), rooms.size());
+        for (size_t i = 0; i < count; ++i) {
+            const auto& r = roomEngine_.result(i);
+            if (r.usable && r.status != control::RoomDemand::Status::inactive) rooms[i] = {r.temperature, r.setpoint, roomEngine_.demand(i)};
+        }
+        control::AutoTuner::Step s;
+        s.now = now; s.utc = unixNow; s.request = request; s.burnerOn = ems.burnerOn; s.hotWater = ems.hotWater;
+        s.shortCycling = ems_.burnerCycles().shortCycling; s.active = activeGuard_.confirmedOutput();
+        s.tuning = &tuning; s.rooms = rooms.data(); s.count = count;
+        if (!autoTuner_.sample(s)) return;
+        std::array<control::AutoTuner::Learned, control::RoomPlan::maxRooms> learned{};
+        const auto outdoor = learnerOutdoor(now).centiC;
+        for (size_t i = 0; i < count && i < flowLearner_.rooms(); ++i) {
+            learned[i].emitter = flowLearner_.emitter(i);
+            if (const auto w = flowLearner_.warmupSeconds(i, 100, flowLearner_.ruleFlow(100), outdoor))
+                learned[i].minutesPerC = static_cast<uint16_t>(std::min<uint32_t>((*w + 30) / 60, 1000));
+        }
+        autoTuner_.evaluate(now, *unixNow, flowSettings_.manual, plan, learned.data(), count);
+        if (!autoTuner_.changed()) return;
+        AutoTunerNvs::write(autoTuner_); // a failure keeps the values this boot
+        applyFlowSettings(flowSettings_);
     }
     // The options between the room engine's rule and the guard (control/FlowPolicy.h).
     control::FlowDemand::Request applyFlowPolicy(uint64_t now, const control::FlowDemand::Request& rule, const ems::EmsController::ActiveHeatView& ems) {

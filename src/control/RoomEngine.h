@@ -62,6 +62,7 @@ public:
     // Per plan room after step(): its demand result, and its leading fresh
     // reading whatever its state (frost protection also covers inactive rooms).
     const RoomDemand::Result& result(size_t room) const { return rooms_[room].result; }
+    bool demand(size_t room) const { return rooms_[room].demand; } // its regulator asks for heat
     std::optional<int16_t> freshTemperature(size_t room, uint64_t now) const { return fresh(room, now).temperature; }
     // The leading fresh reading and its source index (-1: none), never a held value.
     RoomDemand::Result fresh(size_t room, uint64_t now) const {

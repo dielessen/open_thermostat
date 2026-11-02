@@ -51,7 +51,7 @@ const std::string configuredPlan = R"({"schema":1,"revision":7,"mode":"shadow","
 b::DeviceState configured(bool withKey = true) {
     b::DeviceState s;
     s.network = configuredNetwork; s.bluetooth = bluetoothDoc(withKey); s.plan = configuredPlan;
-    FlowSettings flow; flow.weatherCurve = true; flow.designFlowC = 45; flow.tuning.minOnS = 600; // 1.0: with the tuning knobs
+    FlowSettings flow; flow.weatherCurve = true; flow.designFlowC = 45; flow.tuning.minOnS = 600; flow.manual = 1; // 1.0: with the tuning knobs (rc.2: set by the owner)
     s.flow = flow.json();
     s.display = "nefit-ecomline-classic"; s.wifiSsid = "home-fixture"; s.modernMode = true;
     return s;
@@ -425,7 +425,8 @@ TEST(ConfigBackup, FlowAndDisplayIgnoreUnknownButRefuseInvalidValues) {
     EXPECT_STREQ(validate(request("validate", copy.get()), factory()).error, "flow_invalid_value");
     // A backup of older firmware (no "tuning") keeps the device's own knobs.
     cJSON_DeleteItemFromObjectCaseSensitive(flow, "tuning");
-    auto tuned = factory(); FlowSettings own; own.tuning.minOffS = 900; tuned.flow = own.json();
+    cJSON_DeleteItemFromObjectCaseSensitive(flow, "tuning_manual"); // rc.2
+    auto tuned = factory(); FlowSettings own; own.tuning.minOffS = 900; own.manual = 2; tuned.flow = own.json();
     const auto older = validate(request("validate", copy.get()), tuned);
     ASSERT_EQ(older.error, nullptr);
     EXPECT_EQ(field(older.prepared.flow, "tuning", "min_off_s"), "900");

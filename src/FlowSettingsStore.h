@@ -1,8 +1,10 @@
 #pragma once
 #ifdef OPENTHERMOSTAT_E32V2
 #include <nvs.h>
+#include "control/AutoTuner.h"
 #include "control/FlowPolicy.h"
 #include <memory>
+#include <new>
 #include <string>
 namespace heating {
 // The beta.19 flow options (control/FlowPolicy.h FlowSettings) as one short NVS
@@ -31,6 +33,30 @@ struct FlowSettingsNvs {
         const bool committed = nvs_set_str(handle, key, record.c_str()) == ESP_OK && nvs_commit(handle) == ESP_OK;
         nvs_close(handle);
         return committed && read() == settings;
+    }
+};
+// The automatic knobs and their change log (control/AutoTuner.h) beside it
+// ("ot_heating"/"autotune"): written when a day changed them (at most daily) or
+// on "back to start values". Absent or unreadable: the built-in values.
+struct AutoTunerNvs {
+    static constexpr const char* key = "autotune";
+    static void read(control::AutoTuner& tuner) {
+        nvs_handle_t handle;
+        if (nvs_open("ot_heating", NVS_READONLY, &handle) != ESP_OK) return;
+        std::unique_ptr<char[]> text(new (std::nothrow) char[control::AutoTuner::storedMaxBytes + 1]());
+        size_t size = control::AutoTuner::storedMaxBytes + 1;
+        const bool ok = text && nvs_get_str(handle, key, text.get(), &size) == ESP_OK;
+        nvs_close(handle);
+        if (ok) tuner.restore(text.get());
+    }
+    static bool write(const control::AutoTuner& tuner) {
+        const auto record = tuner.stored();
+        if (record.empty() || record.size() > control::AutoTuner::storedMaxBytes) return false;
+        nvs_handle_t handle;
+        if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
+        const bool committed = nvs_set_str(handle, key, record.c_str()) == ESP_OK && nvs_commit(handle) == ESP_OK;
+        nvs_close(handle);
+        return committed;
     }
 };
 }

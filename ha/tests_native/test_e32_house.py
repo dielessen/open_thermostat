@@ -3,6 +3,7 @@
 Also with E32 beta.21, which has no house modes: then "at home" is not offered and the older away
 commands are used.
 """
+import asyncio
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
@@ -12,6 +13,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util import dt as dt_util
 
 from custom_components.open_thermostat import e32_house as module
+from custom_components.open_thermostat.controller_link import ControllerLinkError
 from custom_components.open_thermostat.e32_house import (
     AwayTemperature, HolidayUntil, HouseModeSelect, HouseState, house_mode, mode_command, supports_house_mode)
 from custom_components.open_thermostat.heating_link import HeatingHub
@@ -174,6 +176,61 @@ async def test_without_the_e32s_away_status_the_controls_are_unavailable(hass):
     assert not HouseModeSelect(state).available and HouseModeSelect(state).current_option is None
     hub.update(None)
     assert not AwayTemperature(state).available
+    link.stop()
+
+
+def full_at_first(link, e32, busy):
+    """The first `busy` sign-ins find every E32 web session in use (429 session_capacity)."""
+    logins = []
+
+    def client():
+        inner = e32.client()
+        login = inner.async_login
+
+        async def async_login(password):
+            logins.append(password)
+            if len(logins) <= busy:
+                raise ControllerLinkError("controller_session_capacity")
+            await login(password)
+        inner.async_login = async_login
+        return inner
+    link._client = client
+    link.session_waits = (0.05,) * 7
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("temperature_first", [True, False])
+async def test_a_newer_house_change_keeps_an_older_one_that_waited_for_a_session(hass, temperature_first):
+    """The away temperature and the house mode: both reach the E32, in either order, as one command."""
+    state, hub, e32, link = await house(hass, AUTO)
+    full_at_first(link, e32, 2)
+    changes = [lambda: AwayTemperature(state).async_set_native_value(14),
+               lambda: HouseModeSelect(state).async_select_option("away")]
+    if not temperature_first:
+        changes.reverse()
+    first = asyncio.ensure_future(changes[0]())
+    await asyncio.sleep(0.01)  # the first waits for a free E32 web session ...
+    await asyncio.gather(first, changes[1]())  # ... when the second comes in
+    assert e32.commands == [{"house_mode": "away", "temperature": 14.0}]
+    assert e32.away["mode"] == "away" and e32.away["target_c"] == 14.0
+    assert not module._WAITING.get(link)  # nothing left waiting for a next command
+    # A holiday end and then the away temperature: the holiday stays (the temperature never reverts it).
+    full_at_first(link, e32, 2)
+    end = (dt_util.utcnow() + timedelta(days=7)).replace(microsecond=0)
+    first = asyncio.ensure_future(HolidayUntil(state).async_set_value(end))
+    await asyncio.sleep(0.01)
+    await asyncio.gather(first, AwayTemperature(state).async_set_native_value(15.5))
+    assert e32.commands[1:] == [{"house_mode": "holiday", "temperature": 15.5, "until": int(end.timestamp())}]
+    link.stop()
+
+
+@pytest.mark.asyncio
+async def test_a_refused_house_change_leaves_nothing_waiting(hass):
+    state, hub, e32, link = await house(hass, AUTO)
+    with pytest.raises(ServiceValidationError):
+        await AwayTemperature(state).async_set_native_value(40)
+    await HouseModeSelect(state).async_select_option("home")
+    assert e32.commands == [{"house_mode": "home"}] and not module._WAITING.get(link)
     link.stop()
 
 

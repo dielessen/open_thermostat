@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 import time
+import weakref
 
 from homeassistant.components.datetime import DateTimeEntity
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
@@ -103,6 +104,48 @@ def mode_command(away, mode, temperature=None, until=None):
     return command
 
 
+# The house changes on their way to the E32, per room-plan link: field -> (value, the command carrying it).
+_WAITING = weakref.WeakKeyDictionary()
+
+
+async def async_house_change(link, away, mode=None, until=None, temperature=None):
+    """Send one house change (a mode with its holiday end, or the away temperature); the E32's answer.
+
+    The E32 takes the house as one command: house_mode always, the away
+    temperature and holiday end with it. A newer house command supersedes one
+    that still waits for an E32 web session (async_comfort_command, None: not
+    sent), so every command carries the newest value of each field still on
+    its way: a newer mode keeps an away temperature set just before it, and a
+    newer away temperature keeps a mode chosen just before it (never the mode
+    it read from the E32).
+    """
+    waiting = _WAITING.setdefault(link, {})
+    change = {}
+    if mode is not None:
+        change["mode"] = (mode, until)
+    if temperature is not None:
+        change["temperature"] = temperature
+    fields = {**{name: value for name, (value, _) in waiting.items()}, **change}
+    if "mode" in fields:
+        mode, until = fields["mode"]
+    else:
+        mode = house_mode(away)
+        until = away.get("until") if mode == "holiday" and type(away) is dict else None
+    temperature = fields.get("temperature")
+    if mode == "auto" and "temperature" not in change and not supports_house_mode(away):
+        temperature = None  # beta.21 takes the away temperature only together with away
+    command = mode_command(away, mode, temperature=temperature, until=until)  # refused: nothing recorded
+    mine = object()
+    waiting.update({name: (value, mine) for name, value in fields.items()})
+    try:
+        return await async_comfort_command(link, command)
+    finally:
+        # Sent or failed: done. Superseded: the newer command took these fields over.
+        for name, (_, owner) in list(waiting.items()):
+            if owner is mine:
+                del waiting[name]
+
+
 class HouseState:
     """The house's away status for the three controls: the E32's read-back of a command, else its status."""
 
@@ -117,8 +160,8 @@ class HouseState:
             return self.answer
         return house_away(self.hub)
 
-    async def async_command(self, command):
-        answer = await async_comfort_command(self.hub.plan, command)
+    async def async_command(self, mode=None, until=None, temperature=None):
+        answer = await async_house_change(self.hub.plan, self.away, mode, until, temperature)
         if answer is None:
             return  # a newer house mode came in while this one waited for an E32 web session
         away = answer.get("away")
@@ -188,7 +231,7 @@ class HouseModeSelect(HouseEntity, SelectEntity):
         if option == "holiday":
             current = away.get("until") if house_mode(away) == "holiday" else None
             until = self.house.pending_until or current
-        await self.house.async_command(mode_command(away, option, until=until))
+        await self.house.async_command(option, until)
 
 
 class HolidayUntil(HouseEntity, DateTimeEntity):
@@ -206,7 +249,7 @@ class HolidayUntil(HouseEntity, DateTimeEntity):
     async def async_set_value(self, value):
         until = holiday_until(value)
         self.house.pending_until = until
-        await self.house.async_command(mode_command(self.house.away, "holiday", until=until))
+        await self.house.async_command("holiday", until)
 
 
 class AwayTemperature(HouseEntity, NumberEntity):
@@ -228,10 +271,7 @@ class AwayTemperature(HouseEntity, NumberEntity):
         return number(away.get("target_c"), *AWAY_LIMITS) if away is not None else None
 
     async def async_set_native_value(self, value):
-        away = self.house.away
-        mode = house_mode(away)
-        until = away.get("until") if mode == "holiday" else None
-        await self.house.async_command(mode_command(away, mode, temperature=value, until=until))
+        await self.house.async_command(temperature=value)  # in the mode it has (or is about to get)
 
 
 def _wanted(factory, house):

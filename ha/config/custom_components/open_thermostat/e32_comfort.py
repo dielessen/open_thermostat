@@ -606,7 +606,10 @@ async def async_comfort_command(link, command):
 
     With every E32 web session in use it waits for one (RoomPlanLink._login). A
     newer command for the same room (or the house mode) supersedes it: None,
-    nothing sent; the newest value is the one that goes out.
+    nothing sent; the newest value is the one that goes out. House commands go
+    through e32_house.async_house_change, which carries the superseded one's
+    fields along (the E32 takes the house mode, away temperature and holiday end
+    as one command).
     """
     from .controller_link import ControllerLinkError
     from .room_plan import WriteSuperseded
@@ -830,11 +833,15 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
         if self._pending is mine:
             self._pending = (temperature, time.monotonic())
 
-    async def _command(self, command):
+    async def _command(self, command, house=None):
         if self.link is None:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unreachable",
                                      translation_placeholders={"error": "no_controller_connection"})
-        answer = await async_comfort_command(self.link, command)
+        if house is not None:  # the house mode, with the house changes still on their way (e32_house)
+            from .e32_house import async_house_change, house_away
+            answer = await async_house_change(self.link, house_away(self.hub), **house)
+        else:
+            answer = await async_comfort_command(self.link, command)
         if self.hass is not None and self.entity_id:
             self.async_write_ha_state()
         return answer
@@ -939,13 +946,12 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
     # set_away / clear_away stay for existing automations (beta.23). They set the HOUSE mode, exactly as
     # the House mode select does: Away (or Holiday with an end date), and Auto again; never one room.
     async def async_set_away(self, temperature=None, until=None):
-        from .e32_house import holiday_until, house_away, mode_command
+        from .e32_house import holiday_until
         end = holiday_until(until) if until is not None else None
-        await self._command(mode_command(house_away(self.hub), "holiday" if end else "away", temperature, end))
+        await self._command(None, {"mode": "holiday" if end else "away", "until": end, "temperature": temperature})
 
     async def async_clear_away(self):
-        from .e32_house import house_away, mode_command
-        await self._command(mode_command(house_away(self.hub), "auto"))
+        await self._command(None, {"mode": "auto"})
 
 
 def register_services(platform):

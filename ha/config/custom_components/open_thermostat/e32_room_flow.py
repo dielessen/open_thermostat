@@ -41,6 +41,8 @@ from .room_plan import has_room_plan, plan_room
 from .e32_valves import valid_name as valid_valve_name
 
 MAX_ROOMS = 8
+# The room form's title while adding a room (its name once it has one), EN/NL/PL.
+NEW_ROOM_TITLE = {"en": "new room", "nl": "nieuwe ruimte", "pl": "nowe pomieszczenie"}
 MAX_SOURCES = 4
 MAX_POINTS = 6
 NAME_BYTES = 40
@@ -331,7 +333,10 @@ class E32RoomFlow:
             sensor = heating_hub(self.hass, self.config_entry).ble.get(source.get("id"))
             name = label(sensor) if sensor else source.get("id")
             return f"Bluetooth {name}" if name == source.get("id") else f"Bluetooth {name} ({source.get('id')})"
-        return str(source.get("id"))
+        # A Home Assistant source by the name the user knows it by; its entity ID without one.
+        state = self.hass.states.get(str(source.get("id")))
+        name = state.attributes.get("friendly_name") if state is not None else None
+        return name if type(name) is str and name.strip() else str(source.get("id"))
 
     def _e32_room_list(self, plan):
         dutch = self.hass.config.language == "nl"
@@ -845,6 +850,9 @@ class E32RoomFlow:
             else:
                 return await self.async_step_e32_rooms(done="saved", name=values["name"])
         placeholders["setting_hint"] = self._e32_setting_hint(room, user_input)
+        # The title says which room (or that it is a new one).
+        language = ((getattr(self, "context", None) or {}).get("language") or self.hass.config.language or "en")[:2]
+        placeholders["room_name"] = room.get("name", room_id) if room else NEW_ROOM_TITLE.get(language, NEW_ROOM_TITLE["en"])
         return self.async_show_form(step_id="e32_room", data_schema=retained_input_schema(
             self, self._e32_room_schema(room, ble_options), user_input),
             errors=errors, description_placeholders=placeholders)

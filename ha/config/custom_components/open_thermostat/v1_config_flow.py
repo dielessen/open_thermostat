@@ -128,7 +128,8 @@ class V1FlowMixin:
                              CONF_CREATE_DASHBOARD: user_input.get(CONF_CREATE_DASHBOARD, False)})
         schema = vol.Schema({
             vol.Required("name", default="OpenThermostat"): str,
-            vol.Optional(CONF_CREATE_DASHBOARD, default=False): bool,
+            # On for a new installation: the dashboard holds the visual week planner and the rooms at a glance.
+            vol.Optional(CONF_CREATE_DASHBOARD, default=True): bool,
             vol.Optional("advanced"): section(vol.Schema({
                 vol.Required(CONF_TOPIC_PREFIX, default=prefix): str,
             }), {"collapsed": True}),

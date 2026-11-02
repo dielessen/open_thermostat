@@ -52,7 +52,7 @@
         },
         "data_description": {
           "name": "Rozpoznawalna nazwa w Home Assistant. Zmiana nazwy nie zmienia tożsamości urządzeń.",
-          "create_dashboard": "Dodaje opcjonalny panel. Twoje własne panele pozostają bez zmian."
+          "create_dashboard": "Panel OpenThermostat: Twoje pomieszczenia w skrócie, planer tygodniowy i kocioł. Twoje własne panele pozostają bez zmian."
         },
         "sections": {
           "advanced": {
@@ -143,7 +143,7 @@
         "data_description": {
           "comfort_temperature": "Ustawienie Komfort pomieszczenia bez programu tygodniowego. Z programem tygodniowym Komfort to jego najcieplejsza temperatura.",
           "eco_temperature": "Ustawienie Noc pomieszczenia bez programu tygodniowego. Z programem tygodniowym Noc to jego najchłodniejsza temperatura.",
-          "contact_delay": "Liczba sekund, przez które okno lub drzwi muszą pozostać otwarte, zanim pomieszczenie wstrzyma ogrzewanie, aby krótkie wietrzenie lub przejście przez drzwi nie zatrzymywało ogrzewania. Wstrzymane pomieszczenie nadal jest chronione przed mrozem.",
+          "contact_delay": "Liczba minut, przez które okno lub drzwi muszą pozostać otwarte, zanim pomieszczenie wstrzyma ogrzewanie, aby krótkie wietrzenie lub przejście przez drzwi nie zatrzymywało ogrzewania. Własne ustawienie „Pauza po” pomieszczenia (Konfiguruj → Pomieszczenia) ma pierwszeństwo. Wstrzymane pomieszczenie nadal jest chronione przed mrozem.",
           "override_minutes": "Nowa temperatura na termostacie obowiązuje do następnego punktu przełączenia programu tygodniowego pomieszczenia. Pomieszczenie bez programu tygodniowego utrzymuje ją przez tyle minut, a potem znowu stosuje swój plan."
         }
       },
@@ -461,7 +461,7 @@
       },
       "advanced_settings": {
         "title": "Zaawansowane i diagnostyka",
-        "description": "Stan, odzyskiwanie planu pomieszczeń i kontrole techniczne. Codzienne ustawienia są w menu głównym.",
+        "description": "Przywracanie kopii zapasowej ustawień E32, porządkowanie identyfikatorów encji i kontrole techniczne. Codzienne ustawienia są w menu głównym.",
         "menu_options": {
           "configuration_status": "Stan instalacji",
           "installation_source": "Sprawdź połączenie ze sterownikiem",
@@ -558,12 +558,12 @@
         },
         "data_description": {
           "room": "Pomieszczenie z planu pomieszczeń E32.",
-          "action": "Edytuj jego ustawienia lub usuń je z planu pomieszczeń E32."
+          "action": "Edytuj jego ustawienia, wybierz zawory grzejnikowe lub usuń je z planu pomieszczeń E32."
         },
         "description": "Wybierz pomieszczenie, które chcesz zmienić."
       },
       "e32_room": {
-        "title": "Pomieszczenie E32",
+        "title": "Pomieszczenie: {room_name}",
         "description": "Jedno pomieszczenie: skąd pochodzi jego temperatura, jaka ma być i kiedy. E32 to przechowuje i wykonuje, także bez Home Assistant.{setting_hint}",
         "data": {
           "name": "Nazwa pomieszczenia",
@@ -697,7 +697,7 @@
         "description": "Usuwanie starych pomieszczeń i ponowne łączenie E32. Może to potrwać do dwóch minut."
       },
       "general": {
-        "title": "Nazwa i panel",
+        "title": "Panel i nazwa",
         "description": "Nazwa tej instalacji w Home Assistant i to, czy pokazywany jest panel OpenThermostat. Pomieszczenia, ogrzewanie i kocioł znajdziesz w innych miejscach tego menu.",
         "data": {
           "name": "Nazwa instalacji",
@@ -705,7 +705,7 @@
         },
         "data_description": {
           "name": "Rozpoznawalna nazwa w Home Assistant. Zmiana nazwy nie zmienia tożsamości urządzeń.",
-          "create_dashboard": "Dodaje opcjonalny panel. Twoje własne panele pozostają bez zmian."
+          "create_dashboard": "Panel OpenThermostat: Twoje pomieszczenia w skrócie, planer tygodniowy i kocioł. Twoje własne panele pozostają bez zmian."
         }
       },
       "controller_connected_first_room": {

@@ -7,8 +7,7 @@ replays test/fixtures/replay/house-shadow.csv in shadow and active mode and chec
   - AutoTuner proposes nothing on the shadow fixture (it does evaluate a day change);
   - WarmupPlanner never plans more than its default lead without a cooling model;
   - FlowLearner learns at least ACTIVE_MIN_SEGMENTS segments in active mode, with the
-    E32's own request as its heating reference. Expected to fail until rc2-learning-active
-    (FlowLearner::heatingReference) is merged: see EXPECTED_FAIL and the README.
+    E32's own request as its heating reference (FlowLearner::heatingReference).
 
 Plus the converters on small inline inputs. Skipped without g++ or without the fixture.
 
@@ -31,15 +30,12 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 FIXTURE = ROOT / 'test/fixtures/replay/house-shadow.csv'
 PLAN = ROOT / 'test/fixtures/replay/plan.json'
-ACTIVE_MIN_SEGMENTS = 1  # the replay of rc2-learning-active (d9758d8) on the fixture: 1 (0 before)
+ACTIVE_MIN_SEGMENTS = 2  # the fixture in active mode at rc.2: 2 (0 without FlowLearner::heatingReference)
 
 # Checks of behaviour that is still being built, with the branch that brings it. A listed check
 # that fails is an expected failure; one that passes is an "unexpected success" and fails the
 # run, so the entry is removed when (or right after) the branch is merged.
-EXPECTED_FAIL = {
-    'test_active_learner_learns_from_e32_request':
-        'rc2-learning-active: FlowLearner::heatingReference (HeatingController passes the E32\'s own request in active mode)',
-}
+EXPECTED_FAIL = {}
 
 sys.path.insert(0, str(HERE))
 import from_ha  # noqa: E402
@@ -109,9 +105,7 @@ class FixtureReplay(unittest.TestCase):
     @expected_fail
     def test_active_learner_learns_from_e32_request(self):
         run = self.runs['active']
-        self.assertEqual(run['learner_reference'], 'e32_request',
-                         'the firmware has no FlowLearner::heatingReference: ' + EXPECTED_FAIL.get(
-                             'test_active_learner_learns_from_e32_request', ''))
+        self.assertEqual(run['learner_reference'], 'e32_request', 'the firmware has no FlowLearner::heatingReference')
         self.assertGreaterEqual(run['learner']['rooms'][0]['segments'], ACTIVE_MIN_SEGMENTS)
 
 

@@ -14,7 +14,7 @@
 //     --no-grace                      AutoTuner without its 24 h after the boot (the first row)
 //     --recorded-request              use the CSV's E32 request where known, not the computed one
 //     --weather-curve --apply-learned the FlowPolicy options (default off: advice only)
-//     --bridge-hot-water              FlowLearner::Params::bridgeHotWater (default off, as the firmware)
+//     --bridge-hot-water, --no-bridge-hot-water  FlowLearner::Params::bridgeHotWater (default on, as the firmware)
 //     --hold-s N                      a row holds this long before it is a gap (default 60)
 //     --tz TZ                         POSIX time zone (default CET-1CEST,M3.5.0,M10.5.0/3)
 //     --json FILE --text FILE         outputs (default: JSON on stdout, nothing else)
@@ -189,7 +189,7 @@ struct Options {
     std::vector<std::string> files, modes{"shadow", "active"};
     std::string json, text, plan, schedule, tz = "CET-1CEST,M3.5.0,M10.5.0/3", emitter = "floor";
     int minFlow = 30, maxFlow = 60, holdS = 60;
-    bool grace = true, recordedRequest = false, weatherCurve = false, applyLearned = false, bridge = false;
+    bool grace = true, recordedRequest = false, weatherCurve = false, applyLearned = false, bridge = FlowLearner::Params{}.bridgeHotWater;
 };
 Options parseArgs(int argc, char** argv) {
     Options o;
@@ -217,6 +217,7 @@ Options parseArgs(int argc, char** argv) {
         else if (a == "--weather-curve") o.weatherCurve = true;
         else if (a == "--apply-learned") o.applyLearned = true;
         else if (a == "--bridge-hot-water") o.bridge = true;
+        else if (a == "--no-bridge-hot-water") o.bridge = false;
         else if (a == "-h" || a == "--help") { std::puts("usage: replay [options] <data.csv> [more.csv ...] (tools/replay/README.md)"); std::exit(0); }
         else if (!a.empty() && a[0] == '-') fail("unknown option " + a);
         else o.files.push_back(a);

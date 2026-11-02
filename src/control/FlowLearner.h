@@ -249,6 +249,8 @@ public:
     // and below the boiler's limit: the E32 asks at least this much while it drives the boiler.
     const BoilerMinimumFlow& boilerMinimum() const { return minimum_; }
     uint8_t effectiveMinimumC(std::optional<uint8_t> boilerLimitC) const { return minimum_.effective(minFlowC_, maxFlowC_, boilerLimitC); }
+    // Only once learned above the plan's minimum, else 0: "Your boiler only starts heating from about .. degC".
+    uint8_t learnedMinimumC() const { const uint8_t lowest = effectiveMinimumC(std::nullopt); return lowest > minFlowC_ ? lowest : 0; }
     uint16_t heatingPeriods() const { return period_; }
     // Real / estimated gas; 1 until three intervals were compared.
     float calibration() const { return gas_.factor(); }
@@ -338,9 +340,7 @@ public:
         cJSON_AddBoolToObject(root, "applied", applied_); // the "use learned flow" option (FlowPolicy)
         cJSON_AddStringToObject(root, "status", status_);
         cJSON_AddNumberToObject(root, "heating_periods", period_);
-        // Only once learned above the plan's minimum: "Your boiler only starts heating from about .. degC".
-        if (const uint8_t lowest = effectiveMinimumC(std::nullopt); lowest > minFlowC_)
-            cJSON_AddNumberToObject(root, "boiler_minimum_flow_c", lowest);
+        if (const uint8_t lowest = learnedMinimumC()) cJSON_AddNumberToObject(root, "boiler_minimum_flow_c", lowest);
         number(root, "outdoor_c", outdoor_ ? std::optional<float>(*outdoor_ / 100.0f) : std::nullopt, 10);
         number(root, "gas_calibration", calibration(), 1000);
         cJSON_AddNumberToObject(root, "gas_intervals", gas_.intervals());

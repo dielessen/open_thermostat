@@ -67,7 +67,7 @@ them: only the anonymised fixture below belongs in the repository.
 | `--no-grace` | AutoTuner without its 24 h after a boot. By default the E32 boots at the first row |
 | `--recorded-request` | Use the CSV's E32 request where known instead of the computed one |
 | `--weather-curve`, `--apply-learned` | The FlowPolicy options (default off: advice only, as shipped) |
-| `--bridge-hot-water` | `FlowLearner::Params::bridgeHotWater` (default off, as in the firmware) |
+| `--bridge-hot-water`, `--no-bridge-hot-water` | `FlowLearner::Params::bridgeHotWater` (default on, as in the firmware) |
 | `--hold-s N` | A row holds this long; after that the step is a gap and nothing is fed (default 60) |
 | `--tz TZ` | POSIX time zone for local days and programs (default `CET-1CEST,M3.5.0,M10.5.0/3`) |
 | `--json FILE`, `--text FILE` | Outputs (without either: JSON on stdout) |
@@ -218,19 +218,16 @@ with `--no-grace`, so the one day change is evaluated. It checks:
    Without the learned loss rate, the start temperature is the night setpoint, so the
    lead stays within `defaultLeadS` of that shortfall, rounded up to the planner's
    5 min steps. This holds in every plan of both runs.
-3. **FlowLearner learns at least `ACTIVE_MIN_SEGMENTS` (1) segment in active mode, with
+3. **FlowLearner learns at least `ACTIVE_MIN_SEGMENTS` (2) segments in active mode, with
    the E32's own request as its reference.** At `e33cbbf` the reference is the absent
    0x1A and nothing is learned (0 segments). With `FlowLearner::heatingReference`
-   (`rc2-learning-active`, `d9758d8`) the fixture gives 1.
+   (rc.2) the fixture gives 2, with or without hot-water bridging.
 
-Check 3 is in `EXPECTED_FAIL` in `test_replay.py` until `rc2-learning-active` is
-merged. While it is listed, a failure counts as an expected failure. A pass is an
-"unexpected success" and fails the run (strict). So whoever merges
-`rc2-learning-active` removes the entry from `EXPECTED_FAIL` in the same merge. The
-check then guards the behaviour. To try the branch before that,
-`REPLAY_REV=rc2-learning-active python3 tools/replay/test_replay.py` must report
-exactly that unexpected success. The converters have their own small inline tests in
-the same file.
+A check for behaviour that is still being built can be listed in `EXPECTED_FAIL` in
+`test_replay.py`, with the branch that brings it. While it is listed, a failure counts
+as an expected failure. A pass is an "unexpected success" and fails the run (strict),
+so the entry is removed in the merge that brings the behaviour. The list is empty at
+rc.2. The converters have their own small inline tests in the same file.
 
 `scripts/final_check.sh` runs this as its `replay` step (a few seconds after the
 build). Without the fixture the step is skipped.
@@ -252,6 +249,8 @@ from the first row:
 - FlowLearner learns no heating segment in shadow mode: 97 heating periods, each cut
   by a keep-warm round. In active mode, without `heatingReference`, it also learns 0.
   With it (`d9758d8`) it learns 1, and 5 with `--bridge-hot-water`.
+  At rc.2, hot-water bridging is on by default: without a plan, the recording gives
+  4 segments in shadow and 4 in active mode (0 and 0 with `--no-bridge-hot-water`).
 - AutoTuner proposes `min_off_s` 300 -> 450 for 31 Oct (`many_starts`, 31 heating
   starts), evaluated at midnight. In shadow mode this is shown; in active mode it is
   applied.

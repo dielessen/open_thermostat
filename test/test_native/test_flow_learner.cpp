@@ -1,3 +1,4 @@
+#include "control/HeatingTelemetry.h"
 #include "control/WarmupPlanner.h"
 #include "Hrc22ReplayFixture.h"
 #include "ScopedTz.h"
@@ -294,6 +295,10 @@ TEST(BoilerMinimumFlow, TheActiveEveningRaisesItToTheKeepWarmFloor) {
     EXPECT_EQ(l.effectiveMinimumC(38), 38);   // never above the boiler's own limit
     Json root(l.json(), cJSON_Delete);
     EXPECT_EQ(cJSON_GetObjectItem(root.get(), "boiler_minimum_flow_c")->valuedouble, 40);
+    // The MQTT summary carries it too, for HA's "What the thermostat has learned".
+    heating::control::LearnedContext c; c.now = now;
+    Json summary(cJSON_Parse(heating::control::heatingSummaryTelemetry(l, c, cJSON_CreateObject()).c_str()), cJSON_Delete);
+    EXPECT_EQ(cJSON_GetObjectItem(cJSON_GetObjectItem(summary.get(), "learned"), "boiler_minimum_flow_c")->valuedouble, 40);
 }
 
 // Synthetic boiler: heat asked at the effective minimum, with or without a heating burn.

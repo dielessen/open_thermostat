@@ -153,7 +153,7 @@ inline void compactHeatingTelemetry(cJSON* status) {
 }
 
 // fw/telemetry/heating_summary: {"schema":1,"learned":{"schema":1,"applied":bool,
-// "status":..,"heating_periods":..,"inputs":{..},"gas":{..}},"dhw":{"method","clock_known",
+// "status":..,"heating_periods":..,["boiler_minimum_flow_c":..,]"inputs":{..},"gas":{..}},"dhw":{"method","clock_known",
 // "today":{..}},"flow":{..},"night_gas":{..}}. dhw: DhwEpisodes::summaryJson() (taken
 // over); flow and night_gas: FlowPolicy::addSummary() (with a policy). Empty: no memory.
 // more: further parts (HeatingController: the self-tuning's "tuning", sent apart as
@@ -165,8 +165,9 @@ inline std::string heatingSummaryTelemetry(const FlowLearner& learner, const Lea
     cJSON* learned = root && dhw && cJSON_AddNumberToObject(root.get(), "schema", 1) ? cJSON_AddObjectToObject(root.get(), "learned") : nullptr;
     if (!learned || !cJSON_AddNumberToObject(learned, "schema", 1)
         || !cJSON_AddBoolToObject(learned, "applied", learner.applied()) || !cJSON_AddStringToObject(learned, "status", learner.status())
-        || !cJSON_AddNumberToObject(learned, "heating_periods", learner.heatingPeriods()) || !addLearnedInputs(learned, learner, c)
-        || !addGasCalibration(learned, learner, c, true)) return {};
+        || !cJSON_AddNumberToObject(learned, "heating_periods", learner.heatingPeriods())
+        || (learner.learnedMinimumC() && !cJSON_AddNumberToObject(learned, "boiler_minimum_flow_c", learner.learnedMinimumC()))
+        || !addLearnedInputs(learned, learner, c) || !addGasCalibration(learned, learner, c, true)) return {};
     telemetry_detail::keepOnly(dhw, {"method", "clock_known", "today"});
     if (!cJSON_AddItemToObject(root.get(), "dhw", owned.release())) { cJSON_Delete(dhw); return {}; }
     if (policy && !policy->addSummary(root.get())) return {};

@@ -181,8 +181,8 @@ async def test_the_websocket_answer_names_the_card_module_the_backend_serves(has
     assert sent[-1]["card_url"] == CARD_URL and sent[-1]["rooms"][0]["id"] == "woonkamer"
 
 
-def test_the_card_explains_every_state_in_english_and_dutch_instead_of_failing():
-    for language in ("en", "nl"):
+def test_the_card_explains_every_state_in_english_dutch_and_polish_instead_of_failing():
+    for language in ("en", "nl", "pl"):
         block = re.search(language + r": \{title:(.*?)errors: \{(.*?)\}\}", CARD, re.S)
         texts, errors = set(re.findall(r"(\w+): '", block[1])), set(re.findall(r"(\w+): '", block[2]))
         assert {"waiting", "retrying", "outdated"} <= texts, language

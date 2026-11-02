@@ -14,13 +14,13 @@ from .product import is_product
 GROUP_TYPE = "installation"
 GROUP_UNIQUE_ID = "controller_overview"
 GROUP_TITLE = "E32 and boiler"
-GROUP_TITLES = {"en": GROUP_TITLE, "nl": "E32 en ketel"}
+GROUP_TITLES = {"en": GROUP_TITLE, "nl": "E32 en ketel", "pl": "E32 i kocioł"}
 # Titles this integration gave the group (older releases too); a title the user chose stays.
 DEFAULT_TITLES = frozenset({*GROUP_TITLES.values(), "Installatie en ketel"})
 
 
 def group_title(hass):
-    """The group's name in Home Assistant's language: "E32 and boiler", "E32 en ketel"."""
+    """The group's name in Home Assistant's language: "E32 and boiler", "E32 en ketel", "E32 i kocioł"."""
     language = (getattr(hass.config, "language", None) or "en").split("-")[0].lower()
     return GROUP_TITLES.get(language, GROUP_TITLE)
 

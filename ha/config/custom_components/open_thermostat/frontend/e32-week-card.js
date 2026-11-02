@@ -46,7 +46,45 @@ const TEXT = {
    session_capacity: 'De E32 heeft te veel open aanmeldingen (bijvoorbeeld zijn eigen webpagina in andere browsers). Deze kaart probeert het zo opnieuw.',
    try_again_later: 'Te veel aanmeldpogingen op de E32. Deze kaart probeert het zo opnieuw.',
    setup_error: 'OpenThermostat kon niet starten. Open Instellingen → Apparaten en diensten → OpenThermostat om te zien waarom en laad daarna deze pagina opnieuw.',
-   gave_up: 'De E32 antwoordt al enkele minuten niet. Controleer of hij aan staat en verbonden is en kies dan Opnieuw laden.'}}};
+   gave_up: 'De E32 antwoordt al enkele minuten niet. Controleer of hij aan staat en verbonden is en kies dan Opnieuw laden.'}},
+ pl: {title: 'Program tygodniowy', loading: 'Ładowanie…', reading: 'Odczyt programów tygodniowych z E32…', intro: 'E32 sam realizuje ten program, także gdy Home Assistant jest offline.',
+  follows: 'To pomieszczenie stosuje {entity}, gdy Home Assistant podaje temperaturę docelową; gdy jej nie podaje, obowiązuje program tygodniowy.',
+  save: 'Zapisz w E32', saving: 'Zapisywanie…', discard: 'Odrzuć zmiany', remove: 'Usuń program tygodniowy', reload: 'Wczytaj ponownie', unsaved: 'Niezapisane zmiany',
+  waiting: 'Czekanie na E32…', retrying: 'Ponowna próba…',
+  outdated: 'OpenThermostat został zaktualizowany. Wczytaj stronę ponownie (Ctrl+F5), aby użyć nowej wersji tej karty.',
+  saved: 'Zapisano w E32.', removedNote: 'Bez programu tygodniowego pomieszczenie utrzymuje stałą temperaturę {value}.', rooms: 'Pomieszczenia',
+  none: 'Brak pomieszczeń. Dodaj je w Ustawienia → Urządzenia i usługi → OpenThermostat → Konfiguruj → Pomieszczenia.',
+  errors: {plan_changed: 'Plan pomieszczeń został zmieniony gdzie indziej. Wczytaj ponownie, aby zobaczyć aktualny program; Twoje zmiany nie zostały zapisane.',
+   week_changed: 'Ten program tygodniowy został zmieniony gdzie indziej. Wczytaj ponownie, aby zobaczyć aktualny program; Twoje zmiany nie zostały zapisane.',
+   plan_too_large: 'Plan jest za duży dla E32: użyj mniej punktów przełączenia lub pomieszczeń.', storage_full: 'Pamięć E32 jest pełna. Usuń punkty przełączenia lub pomieszczenie i zapisz ponownie.',
+   save_unconfirmed: 'E32 nie potwierdził zapisu. Wczytaj ponownie i sprawdź program.', room_missing: 'To pomieszczenie już nie istnieje w E32. Wczytaj ponownie.',
+   password_changed: 'Hasło E32 zostało zmienione. Połącz E32 ponownie w ustawieniach integracji.', unreachable: 'E32 jest nieosiągalny. Sprawdź połączenie i spróbuj ponownie.',
+   invalid_schedule: 'Najwyżej 6 punktów przełączenia na dzień, każdy o innej godzinie.', invalid_schedule_limits: 'Każda temperatura musi mieścić się między minimum a maksimum pomieszczenia.',
+   unavailable: 'Plan pomieszczeń E32 nie jest dostępny dla tej instalacji.', unauthorized: 'Tylko administratorzy Home Assistant mogą zmieniać programy tygodniowe.',
+   rejected: 'E32 odrzucił program. Wczytaj ponownie i spróbuj jeszcze raz.', editor: 'Nie udało się wczytać planera tygodniowego. Po aktualizacji OpenThermostat wczytaj stronę ponownie (Ctrl+F5).',
+   not_ready: 'OpenThermostat jeszcze się uruchamia albo E32 nie jest jeszcze połączony. Ta karta sama spróbuje ponownie.',
+   disabled: 'Ta instalacja OpenThermostat jest wyłączona. Włącz ją w Ustawienia → Urządzenia i usługi → OpenThermostat.',
+   unknown_command: 'Ta strona nie pasuje do zainstalowanego OpenThermostat. Po aktualizacji OpenThermostat wczytaj stronę ponownie (Ctrl+F5); jeśli to nie pomoże, uruchom ponownie Home Assistant.',
+   session_capacity: 'E32 ma zbyt wiele otwartych logowań (na przykład własną stronę w innych przeglądarkach). Ta karta wkrótce spróbuje ponownie.',
+   try_again_later: 'Zbyt wiele prób logowania do E32. Ta karta wkrótce spróbuje ponownie.',
+   setup_error: 'Nie udało się uruchomić OpenThermostat. Otwórz Ustawienia → Urządzenia i usługi → OpenThermostat, aby zobaczyć dlaczego, a potem wczytaj tę stronę ponownie.',
+   gave_up: 'E32 nie odpowiada od kilku minut. Sprawdź, czy jest włączony i połączony, a potem wybierz Wczytaj ponownie.'}}};
+// The planner in Polish (week-editor.js has English and Dutch, as the E32 pages; it takes this table as `text`).
+// The program text keeps the English day names and decimal point, as the options flow reads and writes it.
+const PLANNER_PL = {days: ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'], short: ['pon', 'wt', 'śr', 'czw', 'pt', 'sob', 'nd'],
+  text: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], names: {comfort: 'Komfort', eco: 'Eko', night: 'Noc'}, levels: 'Poziomy temperatury',
+  warmer: '{level} cieplej', cooler: '{level} chłodniej', custom: 'Własna temperatura', template: 'Zacznij od szablonu', choose: 'Wybierz…',
+  templates: {work: 'Dni robocze i weekend', home: 'Praca z domu', daily: 'Codziennie tak samo'}, undo: 'Cofnij',
+  applied: 'Zastosowano: {name}. Cofnij przywraca poprzedni program.', hint: 'Dotknij bloku, aby go zmienić, przeciągnij linię podziału, aby przesunąć godzinę, użyj Kopiuj…, aby skopiować dzień.',
+  empty: 'Brak programu: wybierz szablon, aby zacząć.', copyDay: '{day}: kopiuj', copyTo: '{day}: kopiuj do', workdays: 'Dni robocze', weekend: 'Weekend', all: 'Wszystkie dni',
+  copy: 'Kopiuj', cancel: 'Anuluj', pickDay: 'Wybierz co najmniej jeden dzień.', copied: 'Skopiowano: {day}.', block: '{day} {from}–{to}', inherited: 'trwa od poprzedniego dnia',
+  level: 'Poziom', starts: 'Od godziny', earlier: '15 minut wcześniej', later: '15 minut później', split: 'Podziel blok', remove: 'Usuń punkt przełączenia',
+  prev: 'Poprzedni blok', next: 'Następny blok', close: 'Gotowe', full: 'Najwyżej 6 punktów przełączenia na dzień.', short15: 'Ten blok jest za krótki, by go podzielić.',
+  warmerNight: 'Noc jest teraz cieplejsza niż Komfort. To dozwolone; sprawdź, czy tego chcesz.', copyShort: 'Kopiuj…',
+  blocks: 'Bloki: {day}', limits: 'Utrzymuj temperatury między {min} a {max}.', preview: 'Podgląd tygodnia',
+  advanced: 'Zaawansowane: edytuj jako tekst', textHelp: 'Jedna linia na grupę dni, na przykład: mon-fri: 06:30 20.5; 22:30 18', apply: 'Zastosuj tekst',
+  bad: 'Nie można odczytać linii {line}: {text}', outside: 'Linia {line}: temperatury muszą mieścić się między {min} a {max}.', many: 'Linia {line}: najwyżej 6 punktów przełączenia na dzień.',
+  textApplied: 'Zastosowano tekst.', inF: 'Temperatury w °F.'};
 const STYLE = `:host{display:block}ha-card{display:block;padding:16px;max-width:1100px;margin:auto;color:var(--primary-text-color)}h2{margin:0 0 4px;font-size:1.3rem}
 p{margin:0 0 12px;line-height:1.45}.muted{color:var(--secondary-text-color);font-size:.9rem}.tabs,.actions,.more{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.actions{position:sticky;bottom:0;z-index:3;align-items:center;padding:8px 0;background:var(--card-background-color,var(--ha-card-background,#fff))}
 button{font:inherit;font-weight:600;color:inherit;background:transparent;border:1px solid var(--divider-color,#ccd);border-radius:10px;min-height:44px;min-width:44px;padding:6px 14px;cursor:pointer}
@@ -54,7 +92,8 @@ button[aria-selected=true]{border:2px solid var(--primary-color,#03a9f4);backgro
 button:disabled{opacity:.45;cursor:default}button:focus-visible{outline:3px solid var(--primary-color);outline-offset:2px}
 .msg:empty{display:none}.msg{border-left:4px solid var(--primary-color);padding:8px 12px;background:var(--secondary-background-color);border-radius:6px}.msg.error{border-color:var(--error-color,#db4437)}
 .dirty{color:var(--warning-color,#b26b00);font-weight:600}.waiting{font-weight:600;margin:4px 0 8px}.notice{border-left:4px solid var(--warning-color,#b26b00);padding:8px 12px;background:var(--secondary-background-color);border-radius:6px;margin:0 0 12px}@media(max-width:480px){ha-card{padding:12px}}`;
-const language = hass => /^nl\b/i.test(hass?.locale?.language || hass?.language || '') ? 'nl' : 'en';
+// English, Dutch or Polish by the Home Assistant language (English otherwise).
+const language = hass => (/^(nl|pl)\b/i.exec(hass?.locale?.language || hass?.language || '')?.[1] || 'en').toLowerCase();
 const fill = (s, v) => s.replace(/\{(\w+)\}/g, (a, k) => k in v ? v[k] : a);
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 const program = week => week && week.some(d => d.length) ? week : null;
@@ -201,7 +240,7 @@ class OpenThermostatE32Week extends HTMLElement {
   const week = this._room in this._drafts ? this._drafts[this._room] : r.schedule, st = this._levels[r.id];
   // The room's stored levels (or, before its first program, the former house settings); none: inferred.
   this._planner = window.OTWeekEditor.mount(host, {week: week || Array.from({length: 7}, () => []), min: r.minimum_centi_c, max: r.maximum_centi_c,
-   lang: language(this._hass), fahrenheit: fahrenheit(this._hass), theme: this._hass?.themes?.darkMode ? 'dark' : 'light',
+   lang: language(this._hass), text: language(this._hass) === 'pl' ? PLANNER_PL : undefined, fahrenheit: fahrenheit(this._hass), theme: this._hass?.themes?.darkMode ? 'dark' : 'light',
    levels: st ? st.levels : r.levels, scheduleLevels: st ? st.schedule_levels : r.schedule_levels,
    onChange: (w, state) => { this._drafts[r.id] = w; if (state) this._levels[r.id] = state; this._message = ''; this.refresh(); },
    onLevels: () => { this._levels[r.id] = this._planner.state(); this._message = ''; this.refresh(); }});

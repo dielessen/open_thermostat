@@ -67,7 +67,8 @@ const clock = m => String(m / 60 | 0).padStart(2, '0') + ':' + String(m % 60).pa
 // (e32_room_flow.shown), read back to 0.01 °C so a whole °F shows again as typed; the program stays in centi °C.
 const shown = (c, f) => f ? Math.round(c * 9 / 50 + 320) / 10 : c / 100;
 const centi = (v, f) => f ? Math.round((v - 32) * 500 / 9) : Math.round(v * 100);
-const deg = (c, lang, f) => { const s = String(shown(c, f)); return lang === 'nl' ? s.replace('.', ',') : s; };
+// A decimal comma in Dutch and Polish.
+const deg = (c, lang, f) => { const s = String(shown(c, f)); return lang === 'nl' || lang === 'pl' ? s.replace('.', ',') : s; };
 const valid = w => Array.isArray(w) && w.length === 7 && w.every(d => Array.isArray(d) && d.length <= MAX && d.every((p, i) => Array.isArray(p)
  && (p.length === 2 || (p.length === 3 && LEVELS.includes(p[2])))
  && Number.isInteger(p[0]) && Number.isInteger(p[1]) && p[0] >= 0 && p[0] < 1440 && (!i || p[0] > d[i - 1][0])));
@@ -75,8 +76,8 @@ const tr = lang => T[lang === 'nl' ? 'nl' : 'en'];
 
 // The existing program text ("mon-fri: 06:30 20.5; 22:30 18"), as the Home Assistant options flow reads and writes it.
 function format(week, lang, f) {
- const t = tr(lang), groups = new Map();
- week.forEach((points, d) => { if (points.length) { const key = points.map(([m, c]) => clock(m) + ' ' + deg(c, lang, f)).join('; '); groups.set(key, [...(groups.get(key) || []), d]); } });
+ const t = tr(lang), groups = new Map(), point = lang === 'nl' ? 'nl' : 'en';  // Polish: a decimal point, as the options flow
+ week.forEach((points, d) => { if (points.length) { const key = points.map(([m, c]) => clock(m) + ' ' + deg(c, point, f)).join('; '); groups.set(key, [...(groups.get(key) || []), d]); } });
  return [...groups].map(([key, days]) => {
   if (days.length === 7) return key;
   const runs = [];
@@ -152,7 +153,8 @@ const CSS = `.wpe{--wt:var(--primary-text-color,var(--ot-text,#173b40));--wm:var
 .wpe details{border:1px solid var(--wl);border-radius:12px;padding:4px 12px}.wpe summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}.wpe textarea{width:100%;min-height:7em;font-family:ui-monospace,monospace;margin:8px 0}`;
 
 function mount(host, options) {
- const o = Object.assign({min: 500, max: 3000, lang: 'en'}, options), t = tr(o.lang);
+ // o.text: a host's own table in another language (the Home Assistant card's Polish), over English.
+ const o = Object.assign({min: 500, max: 3000, lang: 'en'}, options), t = o.text ? {...T.en, ...o.text} : tr(o.lang);
  // Stored levels (o.levels, o.scheduleLevels) when the firmware has them, else inferred from the program.
  const load = (w, lv, marks) => {
   const given = valid(w) ? plain(w) : Array.from({length: 7}, () => []);

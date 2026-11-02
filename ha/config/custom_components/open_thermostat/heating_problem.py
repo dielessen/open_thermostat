@@ -30,7 +30,7 @@ problem starts and removed when it clears; the water pressure keeps its own
 issue (heating_advice.py).
 
 Attributes: ``problems`` (stable ids, for automations) and ``reasons`` (the
-same in plain English or Dutch, following the Home Assistant language), so a
+same in plain English, Dutch or Polish, following the Home Assistant language), so a
 user's own notification automation can say what is wrong.
 """
 from __future__ import annotations
@@ -103,6 +103,26 @@ TEXT = {
         "session_lost": "De E32 is online, maar Home Assistant heeft al meer dan {minutes} minuten geen werkende "
                         "verbinding met hem, dus de ruimtes krijgen geen nieuwe doelen uit Home Assistant. Open de "
                         "integratie en kies opnieuw Connect E32 als het niet vanzelf herstelt.",
+    },
+    "pl": {
+        "room_without_measurement": "{room}: brak pomiaru temperatury od ponad 30 minut, więc to pomieszczenie "
+                                    "nie żąda ciepła. Sprawdź baterię i odległość czujnika.",
+        "e32_offline": "E32 nie odzywa się od ponad 10 minut. Sprawdź jego zasilanie i Wi-Fi.",
+        "awaiting_confirmation": "E32 czeka, aż potwierdzisz, że stary termostat jest odłączony; do tego czasu "
+                                 "nie grzeje. Otwórz na E32 stronę Rooms → Active control.",
+        "pressure_low": "Ciśnienie wody jest niskie ({pressure} bar). Uzupełnij wodę w instalacji grzewczej.",
+        "pressure_high": "Ciśnienie wody jest wysokie ({pressure} bar). Zleć sprawdzenie naczynia wzbiorczego.",
+        "short_cycling": "Kocioł od ponad 2 godzin zbyt często się włącza i wyłącza.",
+        "active_foreign_controller": "Inny termostat nadal wysyła do kotła żądania ciepła.",
+        "active_measurement_lost": "E32 stracił pomiary z pomieszczeń i przestał żądać ciepła.",
+        "active_boiler_no_response": "Kocioł nie reaguje na żądanie ciepła z E32.",
+        "active_transmit_failed": "E32 nie może wysłać żądania ciepła do kotła.",
+        "room_slow": "{room}: pomieszczenie żąda ciepła, ale od {hours} godz. pozostaje ponad {margin} °C poniżej "
+                     "temperatury docelowej. Sprawdź, czy grzejniki lub ogrzewanie podłogowe się nagrzewają i czy "
+                     "najwyższa temperatura wody (na kotle i na stronie E32 Home) jest wystarczająco wysoka.",
+        "session_lost": "E32 jest online, ale Home Assistant od ponad {minutes} minut nie ma z nim działającego "
+                        "połączenia, więc pomieszczenia nie dostają nowych temperatur docelowych z Home Assistant. "
+                        "Otwórz integrację i ponownie wybierz Połącz E32, jeśli połączenie samo nie wróci.",
     },
 }
 
@@ -238,9 +258,9 @@ def _number(value):
 
 
 def render(problems, lang):
-    """The plain-language reasons in a language (English for anything but Dutch)."""
+    """The plain-language reasons in a language (English, Dutch or Polish; English otherwise)."""
     from .heating_advice import fmt
-    texts = TEXT["nl" if lang == "nl" else "en"]
+    texts = TEXT.get(lang, TEXT["en"])
     return [texts[key].format(**{name: fmt(value, lang) if name in ("pressure", "margin") else value
                                  for name, value in values.items()}) for key, values in problems]
 

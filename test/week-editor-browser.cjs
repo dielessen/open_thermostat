@@ -177,11 +177,12 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    return {page,errors,rooms};
   };
   // 3. The Home Assistant card: rooms as tabs, save with the loaded program as the guard, errors in plain words.
-  for(const [width,lang,dark] of [[390,'nl',true],[1280,'en',false]]){
+  for(const [width,lang,dark] of [[390,'nl',true],[1280,'en',false],[360,'pl',false]]){
    const {page,errors,rooms}=await haCard(width,lang,dark);
    const card=page.locator('openthermostat-e32-week');await card.locator('.wpe-seg').first().waitFor();
-   const T2=lang==='nl'?{save:'Opslaan op E32',saved:'Opgeslagen op de E32.',changed:/elders gewijzigd/,remove:'Weekprogramma verwijderen',tpl:'Thuiswerken',follows:/volgt climate.woonkamer/}
-    :{save:'Save to E32',saved:'Saved on the E32.',changed:/changed elsewhere/,remove:'Remove week program',tpl:'Working from home',follows:/follows climate.woonkamer/};
+   const T2={nl:{save:'Opslaan op E32',saved:'Opgeslagen op de E32.',changed:/elders gewijzigd/,remove:'Weekprogramma verwijderen',tpl:'Thuiswerken',follows:/volgt climate.woonkamer/},
+    en:{save:'Save to E32',saved:'Saved on the E32.',changed:/changed elsewhere/,remove:'Remove week program',tpl:'Working from home',follows:/follows climate.woonkamer/},
+    pl:{save:'Zapisz w E32',saved:'Zapisano w E32.',changed:/zmieniony gdzie indziej/,remove:'Usuń program tygodniowy',tpl:'Praca z domu',follows:/stosuje climate.woonkamer/}}[lang];
    assert.equal(await card.locator('.wpe').getAttribute('data-theme'),dark?'dark':'light');
    await card.getByText(T2.follows).waitFor();
    assert.equal(await card.getByRole('button',{name:T2.save}).isDisabled(),true,'nothing to save yet');
@@ -211,33 +212,40 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    assert.deepEqual(errors,[]);await page.close();results.push({part:'ha',width,lang,dark});
   }
   // 4. Home Assistant in imperial units: °F on screen and in the text view, the saved program stays in °C.
-  for(const lang of ['en','nl']){
-   const {page,errors}=await haCard(390,lang,false,true),card=page.locator('openthermostat-e32-week');
+  // Polish: decimal commas on screen, the program text as the options flow writes it (English days, a point).
+  const F4={en:{comfort:'Comfort',night:/^Night 62.6 °F$/,text:'Advanced: edit as text',shown:'mon: 07:00 68; 22:30 62.6',inF:/Temperatures in °F\./,
+    save:'Save to E32',saved:/Saved on the E32\./,typed:'mon-fri: 06:30 70; 22:00 60.8',apply:'Apply text',reload:'Reload'},
+   nl:{comfort:'Comfort',night:/^Nacht 62,6 °F$/,text:'Geavanceerd: als tekst bewerken',shown:'ma: 07:00 68; 22:30 62,6',inF:/Temperaturen in °F\./,
+    save:'Opslaan op E32',saved:/Opgeslagen op de E32\./,typed:'ma-vr: 06:30 70; 22:00 60,8',apply:'Tekst toepassen',reload:'Opnieuw laden'},
+   pl:{comfort:'Komfort',night:/^Noc 62,6 °F$/,text:'Zaawansowane: edytuj jako tekst',shown:'mon: 07:00 68; 22:30 62.6',inF:/Temperatury w °F\./,
+    save:'Zapisz w E32',saved:/Zapisano w E32\./,typed:'mon-fri: 06:30 70; 22:00 60,8',apply:'Zastosuj tekst',reload:'Wczytaj ponownie'}};
+  for(const lang of ['en','nl','pl']){
+   const L=F4[lang],{page,errors}=await haCard(390,lang,false,true),card=page.locator('openthermostat-e32-week');
    await card.locator('.wpe-seg').first().waitFor();await card.getByRole('tab',{name:'Zolder'}).click();
-   await card.getByText(/^Comfort 68 °F$/).waitFor();await card.getByText(lang==='nl'?/^Nacht 62,6 °F$/:/^Night 62.6 °F$/).waitFor();
-   await card.getByText(lang==='nl'?'Geavanceerd: als tekst bewerken':'Advanced: edit as text').click();
-   assert.equal(await card.locator('textarea').inputValue(),lang==='nl'?'ma: 07:00 68; 22:30 62,6':'mon: 07:00 68; 22:30 62.6');
-   await card.getByText(lang==='nl'?/Temperaturen in °F\./:/Temperatures in °F\./).waitFor();
+   await card.getByText(new RegExp(`^${L.comfort} 68 °F$`)).waitFor();await card.getByText(L.night).waitFor();
+   await card.getByText(L.text).click();
+   assert.equal(await card.locator('textarea').inputValue(),L.shown);
+   await card.getByText(L.inF).waitFor();
    // One step warmer is 1 °F: 69 °F = 20.56 °C.
-   await card.getByRole('button',{name:'Comfort warmer'}).click();await card.getByText(/^Comfort 69 °F$/).waitFor();
+   await card.getByRole('button',{name:lang==='pl'?'Komfort cieplej':'Comfort warmer'}).click();await card.getByText(new RegExp(`^${L.comfort} 69 °F$`)).waitFor();
    // An own temperature typed in °F.
    await card.locator('[data-k="seg0-1350"]').click({force:true});
    await card.locator('[data-k="own"]').fill('61');await card.locator('[data-k="own"]').press('Enter');
-   await card.getByRole('button',{name:lang==='nl'?'Opslaan op E32':'Save to E32'}).click();
-   await card.getByText(lang==='nl'?/Opgeslagen op de E32\./:/Saved on the E32\./).waitFor();
+   await card.getByRole('button',{name:L.save}).click();
+   await card.getByText(L.saved).waitFor();
    assert.deepEqual((await page.evaluate(()=>calls.at(-1))).schedule,[[[420,2056],[1350,1611]],[],[],[],[],[],[]],'stored in centi °C');
-   // A program typed in °F is stored in °C.
-   await card.getByText(lang==='nl'?'Geavanceerd: als tekst bewerken':'Advanced: edit as text').click();
-   const area=card.locator('textarea');await area.fill(lang==='nl'?'ma-vr: 06:30 70; 22:00 60,8':'mon-fri: 06:30 70; 22:00 60.8');
-   await card.getByRole('button',{name:lang==='nl'?'Tekst toepassen':'Apply text'}).click();
-   await card.getByRole('button',{name:lang==='nl'?'Opslaan op E32':'Save to E32'}).click();
-   await card.getByText(lang==='nl'?/Opgeslagen op de E32\./:/Saved on the E32\./).waitFor();
+   // A program typed in °F is stored in °C (Polish accepts a decimal comma too).
+   await card.getByText(L.text).click();
+   const area=card.locator('textarea');await area.fill(L.typed);
+   await card.getByRole('button',{name:L.apply}).click();
+   await card.getByRole('button',{name:L.save}).click();
+   await card.getByText(L.saved).waitFor();
    assert.deepEqual((await page.evaluate(()=>calls.at(-1))).schedule,[...Array(5)].map(()=>[[390,2111],[1320,1600]]).concat([[],[]]));
    await page.screenshot({path:path.join(output,`ha-card-fahrenheit-${lang}.png`),fullPage:true});
    // Opening the card asks Home Assistant for the plan it holds; only Reload reads the E32 itself.
    const gets=()=>page.evaluate(()=>calls.filter(c=>c.type==='open_thermostat/e32_week/get'));
    assert.equal('fresh' in (await gets())[0],false,'opening the card costs the E32 no sign-in');
-   await card.getByRole('button',{name:lang==='nl'?'Opnieuw laden':'Reload',exact:true}).click();
+   await card.getByRole('button',{name:L.reload,exact:true}).click();
    await page.waitForFunction(()=>calls.filter(c=>c.type==='open_thermostat/e32_week/get').length===2);
    assert.equal((await gets()).at(-1).fresh,true,'Reload reads the E32');
    assert.deepEqual(errors,[]);await page.close();results.push({part:'ha-fahrenheit',lang});

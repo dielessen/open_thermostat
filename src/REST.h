@@ -84,7 +84,13 @@ public:
 #endif
 
 #ifdef OPENTHERMOSTAT_E32V2
-using ProductWebServer = control::ResponsiveHttpServer<WebServer>;
+// The SDK client for ResponsiveHttpServer's deadline view: WiFiClient hides
+// Stream::setTimeout (milliseconds) behind its own setTimeout (seconds).
+struct WebClientIo {
+	using Client = WiFiClient;
+	static void noWait(WiFiClient &client) { static_cast<Stream &>(client).setTimeout(0); }
+};
+using ProductWebServer = control::ResponsiveHttpServer<WebServer, WebClientIo>;
 #else
 using ProductWebServer = WebServer;
 #endif
@@ -124,6 +130,8 @@ public:
 		const char *headers[]{"Origin","Sec-Fetch-Site","Cookie","X-OpenThermostat-CSRF","Content-Type","If-Match","If-None-Match","Accept-Encoding"};
 		server_.collectHeaders(headers,8);
 #ifdef OPENTHERMOSTAT_E32V2
+		// Bodies above 4 KB and uploads are read only for a signed-in client (control/HttpRequestBounds.h).
+		server_.setAdmission([this](const control::HttpRequestHead &head) { return admitLargeRequest(head); });
 		route("/login",HTTP_GET,[this] { serveFile("/login.html"); });
 		route("/auth/login",HTTP_POST,[this] { login(); });
 		route("/auth/session",HTTP_GET,[this] { sessionStatus(); });
@@ -445,6 +453,13 @@ private:
     diagnostics::ResponseBuffer jsonResponse_{65536,[](size_t size)->void* {
         return heap_caps_malloc(size,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
     },heap_caps_free};
+	// Before a large body or an upload is read (the parser holds the loop while it
+	// reads): a live session with its CSRF proof, and no factory password.
+	int admitLargeRequest(const control::HttpRequestHead &head) {
+		const auto token=control::WebAuthSession::cookieToken(head.header("Cookie"));
+		if(!sessions_.csrf(token,head.header("X-OpenThermostat-CSRF"),networkNow())) return 401;
+		return deviceAccess.defaultPassword()?403:0;
+	}
 	String requestToken() {
 		const auto cookie=server_.header("Cookie");
 		const auto token=control::WebAuthSession::cookieToken(std::string_view(cookie.c_str(),cookie.length()));

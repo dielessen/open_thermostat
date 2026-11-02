@@ -141,10 +141,16 @@ class PublicationExceptionTests(GateFixture):
     def test_later_release_cannot_replay_the_beta4_approval(self):
         self.activate();target='v0.1.0-e32v2-beta.5';self.policy['pending_tag']=target;self.plan(target,self.target)
         with self.assertRaisesRegex(ValueError,'another candidate/predecessor'):verify(self.root,self.policy,target)
-    def test_stable_or_rc_publication_cannot_use_a_beta_exception(self):
-        for tag in ['v0.1.0-e32v2','v0.1.0-e32v2-rc.1']:
+    def test_stable_publication_cannot_use_an_exception(self):
+        for tag in ['v0.1.0-e32v2','v1.0.0-e32v2']:
             self.activate({**self.exception,'candidate_tag':tag})
-            with self.subTest(tag=tag),self.assertRaisesRegex(ValueError,'limited to a beta'):verify(self.root,self.policy)
+            with self.subTest(tag=tag),self.assertRaisesRegex(ValueError,'limited to a beta or rc'):verify(self.root,self.policy)
+    def test_release_candidate_may_skip_one_unaccepted_candidate(self):
+        # rc.2 over a published, never installed rc.1, on the accepted beta basis.
+        target,previous='v1.0.0-e32v2-rc.2','v1.0.0-e32v2-rc.1'
+        self.policy['pending_tag']=target;self.plan(target,previous)
+        self.activate({**self.exception,'candidate_tag':target,'unaccepted_predecessor':previous})
+        self.assertEqual(verify(self.root,self.policy,target)['publication_basis'],'operator_approved_one_time_exception')
     def test_all_thirteen_checks_of_the_actual_accepted_basis_still_apply(self):
         self.activate()
         for key in REQUIRED:

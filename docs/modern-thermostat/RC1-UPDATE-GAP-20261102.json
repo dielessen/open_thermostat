@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "status": "INCOMPLETE",
+  "scope": "rc.1 update evidence gap; do not replace the accepted beta.22 basis",
+  "candidate_tag": "v1.0.0-e32v2-rc.1",
+  "published": true,
+  "installed_tag": null,
+  "install_route": null,
+  "native_install_commands": 0,
+  "manual_upload_commands": 0,
+  "manual_result": "Published on 2 Nov 2026 (tags on 1dc0b06) and deliberately not installed: rc.2 replaces it as the 1.0 candidate. The E32 stays on v0.1.0-e32v2-beta.22 in active control until rc.2 is installed.",
+  "acceptance_receipt": null,
+  "acceptance_receipt_status": "NOT_INSTALLED",
+  "last_accepted": "v0.1.0-e32v2-beta.22"
+}

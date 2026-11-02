@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "status": "APPROVED",
+  "scope": "one_prerelease_publication",
+  "candidate_tag": "v1.0.0-e32v2-rc.2",
+  "unaccepted_predecessor": "v1.0.0-e32v2-rc.1",
+  "accepted_basis_tag": "v0.1.0-e32v2-beta.22",
+  "accepted_basis_receipt_sha256": "15e4aa4f22c2056b63f61a3225e778eb117621198de58e1ada3f6cfcdbe00223",
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "gap_report": "docs/modern-thermostat/RC1-UPDATE-GAP-20261102.json",
+  "gap_report_sha256": "9eb70b963ab97f63215b8fc1d0fa76cb45296e39bbd3f4ee9651de03e850eeff",
+  "reason": "rc.1 was published and never installed; rc.2 replaces it as the 1.0 candidate. Publish this one rc.2 pre-release after green exact-tag CI, with beta.22 as the last accepted basis. The owner goes from beta.22 straight to rc.2, attended, with the takeover confirmed again; v1.0.0 still needs an accepted rc.2 update on the Home Assistant route and a 14-day PASS readiness report.",
+  "device_installation_authorized": false,
+  "boiler_trial_authorized": false,
+  "approval": {
+    "actor": "repository_owner",
+    "method": "explicit_user_instruction",
+    "decision": "approve_one_prerelease_publication",
+    "statement": "Owner, answer to \"rc.2 kan pas op GitHub als jij akkoord geeft ... Hoe wil je verder?\": \"Eenmalige uitzondering (Aanbevolen)\" (record that rc.1 was skipped, a one-time owner approval, extend the exception from betas to release candidates, then publish rc.2 as a pre-release after a green check; 1.0.0 keeps the full gate).",
+    "at_utc": "2026-11-02T16:01:24Z"
+  },
+  "separate_installation_instruction": "docs/modern-thermostat/RC2-OWNER-INSTRUCTION-20261102.json"
+}

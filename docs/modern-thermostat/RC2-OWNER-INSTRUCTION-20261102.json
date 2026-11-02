@@ -10,7 +10,8 @@
     "v1.0.0 itself (after 14 days with all release_ready.py criteria PASS)",
     "a read-only API key for assistants"
   ],
-  "publication_approval_reply": null,
-  "publication_approval_at_utc": null,
-  "installation_approval_reply": null
+  "publication_approval_reply": "Eenmalige uitzondering (Aanbevolen): publish rc.2 as a pre-release after a green check, with a one-time exception over the unaccepted rc.1.",
+  "publication_approval_at_utc": "2026-11-02T16:01:24Z",
+  "installation_approval_reply": null,
+  "publication_exception": "docs/modern-thermostat/RC2-PUBLICATION-EXCEPTION-20261102.json"
 }

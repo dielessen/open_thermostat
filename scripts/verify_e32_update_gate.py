@@ -2,7 +2,8 @@
 
 This validates evidence correspondence; it never performs an update or claims
 that synthetic/CI tests prove a physical installation. A hash-bound owner
-exception can permit one beta publication while preserving the evidence gap.
+exception can permit one beta or release-candidate publication while preserving
+the evidence gap; a stable release never uses an exception.
 
 Two physical update routes can be accepted, each with its own evidence:
 ``native_github`` (the E32 downloads from GitHub itself) and
@@ -227,7 +228,7 @@ def publication_exception(root, reference):
     tags = [record.get(key) for key in ('accepted_basis_tag', 'unaccepted_predecessor', 'candidate_tag')]
     require(all(valid_tag(tag) for tag in tags), 'Invalid exception release identity')
     require(version(tags[0]) < version(tags[1]) < version(tags[2]), 'Invalid exception release order')
-    require(version(tags[2])[3] == 1, 'Exception is limited to a beta prerelease')
+    require(version(tags[2])[3] in (1, 2), 'Exception is limited to a beta or rc prerelease')
     require(record.get('predecessor_acceptance_status') == 'INCOMPLETE',
             'Exception must retain incomplete predecessor acceptance')
     require(record.get('device_installation_authorized') is False

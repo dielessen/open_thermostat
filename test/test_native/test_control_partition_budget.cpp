@@ -104,20 +104,22 @@ TEST(ControlPartitionBudget, TheKnobsWithoutTheirLogFitTheirPriorityReserve) {
     EXPECT_LE(t.stored(0).size() + 1, OptionalRecordPriority::knobsBytes);
     EXPECT_GT(t.stored().size(), t.stored(0).size());
 }
-// The worst case: the readiness counters, the knobs with a full log, the learned globals
-// and 8 rooms with all 20 bins (every frame at most LearnedState::maxFrame).
+// The optional records (rc.2 learned-room review): the readiness counters, the knobs with a
+// full log and what was learned as one packed record (LearnedStore: the global frame and the
+// rooms' version 2 frames, at most 4000 bytes a part).
 struct Record { const char* key; size_t bytes; };
-// The reviewer's case: 4 rooms with 5 bins (0.1 KB + 41 B a bin), the globals ~0.25 KB, a log of 10 typical entries.
+constexpr size_t globalBytes = 300;                                   // measured 240 (test_learned_state)
+constexpr size_t typicalRoom = LearnedState::compactRoomBytes(10, 6);  // 6 bins with the outdoor: 190 B
+constexpr size_t worstRoom = LearnedState::compactRoomBytes(32, 0, FlowLearner::binCount); // 558 B
 std::vector<Record> typical() {
-    return {{"readiness", sizeof(TakeoverReadiness::Stored)}, {"autotune", 950}, {"learned", 250},
-            {"learned0", 335}, {"learned1", 335}, {"learned2", 335}, {"learned3", 335}};
+    return {{"readiness", sizeof(TakeoverReadiness::Stored)}, {"autotune", AutoTuner::storedMaxBytes + 1},
+            {"learned_a", globalBytes + 8 * typicalRoom}};
 }
 std::vector<Record> worstCase() {
-    std::vector<Record> r{{"readiness", sizeof(TakeoverReadiness::Stored)}, {"autotune", AutoTuner::storedMaxBytes + 1},
-                          {"learned", LearnedState::maxFrame}};
-    static const char* rooms[] = {"learned0", "learned1", "learned2", "learned3", "learned4", "learned5", "learned6", "learned7"};
-    for (const char* k : rooms) r.push_back({k, LearnedState::maxFrame});
-    return r;
+    // Whole frames per part: the globals and 6 rooms, then 2 rooms.
+    static_assert(globalBytes + 6 * worstRoom <= LearnedStore::partBytes && globalBytes + 7 * worstRoom > LearnedStore::partBytes);
+    return {{"readiness", sizeof(TakeoverReadiness::Stored)}, {"autotune", AutoTuner::storedMaxBytes + 1},
+            {"learned_a", globalBytes + 6 * worstRoom}, {"learned_b", 2 * worstRoom}};
 }
 }
 TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAndBluetooth) {
@@ -126,50 +128,77 @@ TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAnd
     for (const auto& r : worstCase()) ungated += B::blobEntries(r.bytes);
     std::printf("[ nvs ] baseline %zu used + flow growth %zu + optional worst case %zu = %zu of 630 (GC page 126)\n",
                 baselineUsed, flowGrowth, ungated - baselineUsed - flowGrowth, ungated);
-    // Before: written without a budget, no plan save fits (and the partition is over full).
-    EXPECT_GT(ungated, 630u - B::entriesPerPage);
-    EXPECT_FALSE(B::permitsHeatingPlanWrite(used(std::min<size_t>(ungated, 630)), 600));
-    // Stored plan and Bluetooth sizes (the baseline holds them); the worst case written through the gate.
-    const std::pair<size_t, size_t> sizes[] = {{600, 300}, {1200, 600}, {2000, 2047}, {3000, 900}, {4096, 2048}};
+    // Stored plan and control record sizes; the Bluetooth save is always charged at 2 KB.
+    // Control record: 0 none, ~0.2 KB the Home Assistant session without rooms (E32 room-plan
+    // mode), larger with Home Assistant rooms; `graph`: a graph/native profile (full 4 KB).
+    struct Case { size_t plan, control; bool graph; };
+    const Case cases[] = {{600, 200, false}, {930, 200, false}, {930, 0, false}, {2000, 1200, false}, {3000, 4000, false},
+                          {4096, 200, false}, {930, 1200, true}};
     for (const auto& records : {worstCase(), typical()})
-    for (const auto& [plan, ble] : sizes) {
+    for (const auto& c : cases) {
+        const size_t control = B::controlReplacementEntries(c.control, c.graph);
+        const size_t reserve = B::controlReserveEntries(c.plan, control);
         size_t n = baselineUsed + flowGrowth;
         std::string kept;
         for (const auto& r : records) {
-            // As LearnedNvs and AutoTunerNvs: the learned frames after the knobs and the readiness,
-            // the knobs' log after one learned frame (else the values only).
+            // As LearnedNvs and AutoTunerNvs: what was learned after the knobs and the readiness,
+            // the knobs' log after what was learned (else the values only).
             const bool knobs = !std::strcmp(r.key, "autotune");
-            size_t bytes = r.bytes, priority = r.key[0] == 'l' ? OptionalRecordPriority::learned : knobs ? OptionalRecordPriority::tuningLog : 0;
-            if (knobs && !B::permitsOptionalWrite(used(n), bytes, plan, ble, {}, priority)) { bytes = OptionalRecordPriority::knobsBytes; priority = 0; }
-            if (!B::permitsOptionalWrite(used(n), bytes, plan, ble, {}, priority)) continue;
+            size_t bytes = r.bytes, priority = r.key[0] == 'l' ? OptionalRecordPriority::learned(kept.find("autotune") != std::string::npos, kept.find("readiness") != std::string::npos) : 0;
+            if (knobs && !B::permitsOptionalWrite(used(n), bytes, 0, reserve, priority)) { bytes = OptionalRecordPriority::knobsBytes; priority = 0; }
+            if (!std::strcmp(r.key, "learned_b") && kept.find("learned_a") == std::string::npos) continue; // whole frames in order
+            if (!B::permitsOptionalWrite(used(n), bytes, 0, reserve, priority)) continue;
             n += B::blobEntries(bytes); kept += std::string(r.key) + (bytes < r.bytes ? "(values) " : " ");
         }
-        std::printf("[ nvs ] %s plan %4zu B, Bluetooth %4zu B: reserve %zu; written: %s-> %zu used, %zu free\n",
-                    records.size() > 7 ? "worst case:" : "typical:   ", plan, ble,
-                    B::controlReserveEntries(plan, ble), kept.c_str(), n, 630 - n);
-        // The invariant: a plan save and a Bluetooth save of the stored size plus an edit (the
-        // hand-back, a small edit), the handover confirmation and the largest flow record fit.
-        EXPECT_TRUE(B::permitsHeatingPlanWrite(used(n), std::min(plan + B::editBytes, B::configBytes))) << plan;
-        EXPECT_TRUE(B::permitsBluetoothWrite(used(n), std::min(ble + B::editBytes, B::bluetoothBytes))) << ble;
-        EXPECT_GE(630 - n, B::handoverEntries + B::blobEntries(B::flowRecordBytes) + B::entriesPerPage) << plan;
+        std::printf("[ nvs ] %s plan %4zu B, control %4zu B%s: reserve %zu; written: %s-> %zu used, %zu free\n",
+                    records.size() > 3 ? "worst case:" : "typical:   ", c.plan, c.control, c.graph ? " (graph)" : "", reserve, kept.c_str(), n, 630 - n);
+        // The invariant: a plan save of the stored size plus an edit, a 2 KB Bluetooth save, the
+        // handover confirmation, the largest flow record and the control record's replacement fit.
+        EXPECT_TRUE(B::permitsHeatingPlanWrite(used(n), std::min(c.plan + B::editBytes, B::configBytes), {}, control)) << c.plan;
+        EXPECT_TRUE(B::permitsBluetoothWrite(used(n), B::bluetoothBytes, {}, control)) << c.plan;
+        EXPECT_GE(630 - n, B::handoverEntries + B::blobEntries(B::flowRecordBytes) + B::entriesPerPage) << c.plan;
+        if (c.graph) { EXPECT_TRUE(B::permitsGraphWrite(used(n), B::configBytes)); }
+        else { EXPECT_GE(630 - n, 2 + B::blobEntries(std::min(c.control + B::editBytes, B::configBytes)) + B::entriesPerPage); }
         EXPECT_LE(n, 630u - B::entriesPerPage) << "never physically full";
+        // The owner's unit (plan ~0.93 KB, a session without rooms): everything is kept.
+        if (c.plan == 930 && c.control <= 200 && !c.graph && records.size() == 3) { EXPECT_EQ(kept, "readiness autotune learned_a "); }
     }
-    // The gate itself: the edge, invalid stats, sizes and reservations.
-    const size_t edge = 1 + B::blobEntries(1000) + B::controlReserveEntries(0, 0);
-    EXPECT_EQ(B::controlReserveEntries(0, 0), 3u + 26u + (3u + 8u + 136u + 126u)); // handover, flow, a 64-byte plan save
-    EXPECT_EQ(B::controlReserveEntries(0, 2048), 3u + 26u + (3u + 70u + 136u + 126u));
-    EXPECT_EQ(B::controlReserveEntries(4096, 0), 3u + 26u + (3u + 136u + 136u + 126u));
-    EXPECT_FALSE(B::permitsOptionalWrite(used(630 - edge + 1), 1000, 0, 0));
-    EXPECT_TRUE(B::permitsOptionalWrite(used(630 - edge), 1000, 0, 0));
-    EXPECT_FALSE(B::permitsOptionalWrite(used(630 - edge), 1000, 0, 0, {}, 1)) << "the priority reserve";
+    // The gate itself: the edge, the record it replaces, invalid stats, sizes and reservations.
+    EXPECT_EQ(B::controlReplacementEntries(0, false), 8u);
+    EXPECT_EQ(B::controlReplacementEntries(200, false), 15u);
+    EXPECT_EQ(B::controlReplacementEntries(200, true), 136u);
+    EXPECT_EQ(B::controlReplacementEntries(4090, false), 136u);
+    EXPECT_EQ(B::controlReserveEntries(0, 8), 3u + 26u + (3u + 70u + 8u + 126u));    // handover, flow, a 2 KB Bluetooth save
+    EXPECT_EQ(B::controlReserveEntries(4096, 136), 3u + 26u + (3u + 136u + 136u + 126u));
+    EXPECT_EQ(B::previousFirmwareReserveEntries(0, 0), 3u + 26u + (3u + 8u + 136u + 126u)); // rc2-fw-review2's ledger
+    EXPECT_EQ(B::previousFirmwareReserveEntries(0, 2048), 3u + 26u + (3u + 70u + 136u + 126u));
+    EXPECT_EQ(B::previousFirmwareReserveEntries(4096, 0), 3u + 26u + (3u + 136u + 136u + 126u));
+    const size_t reserve = B::controlReserveEntries(930, 13);
+    const size_t edge = 1 + B::blobEntries(1000) + reserve;
+    EXPECT_FALSE(B::permitsOptionalWrite(used(630 - edge + 1), 1000, 0, reserve));
+    EXPECT_TRUE(B::permitsOptionalWrite(used(630 - edge), 1000, 0, reserve));
+    EXPECT_FALSE(B::permitsOptionalWrite(used(630 - edge), 1000, 0, reserve, 1)) << "the priority reserve";
+    // Replacing a record: its old entries come back (counted at their smallest, 1 + 1 per 32 bytes).
+    EXPECT_TRUE(B::permitsOptionalWrite(used(630 - edge + 33), 1000, 1000, reserve));
+    EXPECT_FALSE(B::permitsOptionalWrite(used(630 - edge + 34), 1000, 1000, reserve));
+    // ...but the new record must still be written beside it, with the GC page.
+    EXPECT_FALSE(B::permitsOptionalWrite(used(630 - (1 + B::blobEntries(4000) + B::entriesPerPage) + 1), 4000, 4000, 0));
+    EXPECT_TRUE(B::permitsOptionalWrite(used(630 - (1 + B::blobEntries(4000) + B::entriesPerPage)), 4000, 4000, 0));
     auto bad = used(100); bad.valid = false;
-    EXPECT_FALSE(B::permitsOptionalWrite(bad, 100, 0, 0));
-    EXPECT_FALSE(B::permitsOptionalWrite(used(100), 0, 0, 0));
-    EXPECT_FALSE(B::permitsOptionalWrite(used(100), 5000, 0, 0));
-    EXPECT_FALSE(B::permitsOptionalWrite(used(100), 100, 5000, 0));
-    EXPECT_FALSE(B::permitsOptionalWrite(used(100), 100, 0, 3000));
-    EXPECT_FALSE(B::permitsOptionalWrite(used(100), 100, 0, 0, {SIZE_MAX, 0, 0}));
-    EXPECT_FALSE(B::permitsOptionalWrite(used(100), 100, 0, 0, {}, SIZE_MAX));
+    EXPECT_FALSE(B::permitsOptionalWrite(bad, 100, 0, reserve));
+    EXPECT_FALSE(B::permitsOptionalWrite(used(100), 0, 0, reserve));
+    EXPECT_FALSE(B::permitsOptionalWrite(used(100), 5000, 0, reserve));
+    EXPECT_FALSE(B::permitsOptionalWrite(used(100), 100, 5000, reserve));
+    EXPECT_FALSE(B::permitsOptionalWrite(used(100), 100, 0, B::controlReserveEntries(930, 13, {SIZE_MAX, 0, 0})));
+    EXPECT_FALSE(B::permitsOptionalWrite(used(100), 100, 0, B::controlReserveEntries(930, 137)));
+    EXPECT_FALSE(B::permitsOptionalWrite(used(100), 100, 0, reserve, SIZE_MAX));
+    // This firmware's plan and Bluetooth gates with the stored control record's replacement;
+    // the default (a full 4 KB one) is the gate of every firmware before rc.2.
+    EXPECT_EQ(B::planSaveEntries(2048, {}, 13), 3u + 70u + 13u + 126u);
+    EXPECT_TRUE(B::permitsBluetoothWrite(used(630 - 212), 2048, {}, 13));
+    EXPECT_FALSE(B::permitsBluetoothWrite(used(630 - 211), 2048, {}, 13));
+    EXPECT_FALSE(B::permitsBluetoothWrite(used(630 - 212), 2048));
+    EXPECT_FALSE(B::permitsBluetoothWrite(used(100), 2048, {}, 137));
 }
 TEST(ControlPartitionBudget, ALargerPlanOrBluetoothSaveErasesTheOptionalRecordsLeastUsefulFirst) {
     // An NVS filled by rc.2 before this fix (every optional record, no budget): a larger plan
@@ -186,7 +215,7 @@ TEST(ControlPartitionBudget, ALargerPlanOrBluetoothSaveErasesTheOptionalRecordsL
     ASSERT_TRUE(B::makeRoom(plan(2000), stats, bytes, erase));
     EXPECT_TRUE(plan(2000)(stats()));
     ASSERT_FALSE(erased.empty());
-    EXPECT_EQ(erased.front(), "learned7");
+    EXPECT_EQ(erased.front(), "learned_b");
     EXPECT_TRUE(nvs.count("autotune")) << "the knobs stay while the rooms make room";
     ASSERT_TRUE(B::makeRoom([](ControlPartitionStats s) { return B::permitsBluetoothWrite(s, 2048); }, stats, bytes, erase));
     ASSERT_TRUE(B::makeRoom(plan(4096), stats, bytes, erase));

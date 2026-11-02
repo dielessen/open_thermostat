@@ -42,7 +42,8 @@ struct FlowSettingsNvs {
 // on "back to start values". Absent or unreadable: the built-in values. Only while
 // control's records keep their room: the values with as many of the newest log
 // entries as fit (ControlPartitionBudget::permitsOptionalWrite; the log after what
-// was learned, control/OptionalRecordPriority.h); none: false.
+// was learned, control/OptionalRecordPriority.h: `learnedPending`, the entries the
+// learned record still needs); none: false.
 struct AutoTunerNvs {
     static constexpr const char* key = "autotune";
     static void read(control::AutoTuner& tuner) {
@@ -54,12 +55,12 @@ struct AutoTunerNvs {
         nvs_close(handle);
         if (ok) tuner.restore(text.get());
     }
-    static bool write(const control::AutoTuner& tuner) {
+    static bool write(const control::AutoTuner& tuner, size_t learnedPending = 0) {
         std::string record;
         for (size_t log = control::AutoTuner::logSize + 1; log-- > 0 && record.empty();) {
             record = tuner.stored(log);
             if (record.size() > control::AutoTuner::storedMaxBytes
-                || !optionalHeatingRecordFits(record.size() + 1, log ? control::OptionalRecordPriority::tuningLog : 0)) record.clear();
+                || !optionalHeatingRecordFits(key, record.size() + 1, log ? control::OptionalRecordPriority::tuningLog(learnedPending) : 0)) record.clear();
         }
         if (record.empty()) return false;
         nvs_handle_t handle;

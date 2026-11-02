@@ -57,7 +57,7 @@ build_update_checkpoint(){ g++ -std=c++17 -O1 -g "${SAN[@]}" -Isrc -I$D/cJSON -I
 build_shelly_ht(){ g++ "${STRICT[@]}" -Isrc -I$GT/include test/test_native/test_shelly_ht_advertisement.cpp $MAIN "$GTEST" -lpthread -o "$OUT/shelly_ht"; }
 build_ble_crypto(){ g++ "${STRICT[@]}" -Isrc -I$GT/include test/ble_crypto/mbedtls.cpp test/ble_crypto/mibeacon.cpp test/ble_crypto/backup_cipher.cpp $MAIN "$GTEST" -Wl,--wrap=calloc -Wl,-Bstatic -lmbedcrypto -Wl,-Bdynamic -lpthread -o "$OUT/ble_crypto"; }
 build_ble_owner(){ g++ "${STRICT[@]}" -Isrc -I$D/cJSON -I$GT/include test/test_native/test_ble_device_settings.cpp test/test_native/test_managed_ble_observer.cpp test/test_native/test_mibeacon_monitor3.cpp test/test_native/test_shelly_trv.cpp $MAIN "$OUT/cjson.o" "$GTEST" -lpthread -o "$OUT/ble_owner"; }
-build_ble_storage(){ g++ "${STRICT[@]}" -Isrc -Itest/bluetooth_storage/include -Itest/onboarding/include test/bluetooth_storage/main.cpp test/bluetooth_storage/allocation.cpp -o "$OUT/ble_storage"; }
+build_ble_storage(){ g++ "${STRICT[@]}" -Isrc -Itest/bluetooth_storage/include -Itest/onboarding/include -I$D/cJSON test/bluetooth_storage/main.cpp test/bluetooth_storage/allocation.cpp -o "$OUT/ble_storage"; }
 build_web_auth_unit(){ g++ "${STRICT[@]}" -Isrc -I$GT/include test/test_native/test_web_auth.cpp $MAIN "$GTEST" -lpthread -o "$OUT/web_auth_unit"; }
 build_onboarding(){ g++ -std=c++20 -g "${SAN[@]}" -Itest/onboarding/include -Isrc -I$D/cJSON -I$D/esp32_utilities/src test/onboarding/firmware.cpp $D/cJSON/cJSON.c -o "$OUT/onboarding"; }
 build_learning_replay(){ g++ "${STRICT[@]}" -Isrc -I$D/cJSON test/learning_replay/replay.cpp "$OUT/cjson.o" -o "$OUT/learning_replay"; }

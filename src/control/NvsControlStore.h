@@ -4,11 +4,16 @@
 #include <nvs.h>
 #include <esp_partition.h>
 #include <utility>
+#ifdef OPENTHERMOSTAT_E32V2
+#include "NvsOptionalRecords.h"
+#endif
 
 namespace heating::control {
 class NvsControlStore final:public ControlStore {
 public:
-    explicit NvsControlStore(ControlStorageProfile profile=ControlStorageProfile::legacy_api1):profile_(profile) {}
+    explicit NvsControlStore(ControlStorageProfile profile=ControlStorageProfile::legacy_api1):profile_(profile) {
+        if(profile==ControlStorageProfile::graph_shadow_v2) graphControlStorage.store(true);
+    }
     bool load(std::string &bytes) override {
         nvs_handle_t handle;
         auto err=nvs_open("ot_control",NVS_READONLY,&handle);
@@ -31,6 +36,19 @@ public:
     bool save(std::string_view bytes) override {
         refused_=true; // until the first NVS write call below
         if(bytes.empty()||bytes.size()>ControlPartitionBudget::configBytes) return false;
+#ifdef OPENTHERMOSTAT_E32V2
+        // Control first: the rc.2 optional records (learned, readiness, tuning) keep
+        // the stored record's replacement free, not a full 4 KB one outside a graph
+        // profile. A larger record (or a graph save short of permitsGraphWrite's
+        // margin) erases them, the least useful first, until it fits; without that
+        // room the write below is refused (graph) or tried as before (plain).
+        if(profile_==ControlStorageProfile::graph_shadow_v2||profile_==ControlStorageProfile::legacy_api1) {
+            const auto models=controlModelStorageReservation.current();
+            makeNvsRoom([&](ControlPartitionStats s){
+                return profile_==ControlStorageProfile::graph_shadow_v2?ControlPartitionBudget::permitsGraphWrite(s,bytes.size(),models)
+                    :s.valid&&s.freeEntries>=2+ControlPartitionBudget::blobEntries(bytes.size())+ControlPartitionBudget::entriesPerPage;});
+        }
+#endif
         if(profile_==ControlStorageProfile::graph_shadow_v2) {
             nvs_stats_t stats{};
             const auto partition=esp_partition_find_first(ESP_PARTITION_TYPE_DATA,ESP_PARTITION_SUBTYPE_DATA_NVS,"nvs");

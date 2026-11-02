@@ -1,6 +1,7 @@
 #pragma once
 #ifdef OPENTHERMOSTAT_E32V2
 #include <nvs.h>
+#include <esp_ota_ops.h>
 #include <esp_partition.h>
 #include "control/ControlPartitionBudget.h"
 #include "control/ControlModelStorageReservation.h"
@@ -27,13 +28,48 @@ inline size_t storedNvsBlobBytes(const char* space, const char* key, size_t cap)
     nvs_close(handle);
     return std::min(size, cap);
 }
-// An optional record of `bytes` may be written: the handover confirmation, the flow
-// record and a plan or Bluetooth save of their stored size keep their room.
-inline bool optionalHeatingRecordFits(size_t bytes, size_t priority = 0) {
+// A stored blob's or string's size (0: none), at most `cap`.
+inline size_t storedNvsRecordBytes(const char* space, const char* key, size_t cap) {
+    if (const size_t blob = storedNvsBlobBytes(space, key, cap)) return blob;
+    nvs_handle_t handle;
+    if (nvs_open(space, NVS_READONLY, &handle) != ESP_OK) return 0;
+    size_t size = 0;
+    if (nvs_get_str(handle, key, nullptr, &size) != ESP_OK) size = 0;
+    nvs_close(handle);
+    return std::min(size, cap);
+}
+// The control record's replacement kept free (ControlPartitionBudget::controlReplacementEntries):
+// its stored size plus an edit, a full one while a graph/native control profile is configured.
+inline size_t controlReplacementEntries() {
+    return control::ControlPartitionBudget::controlReplacementEntries(
+        storedNvsBlobBytes("ot_control", "config", control::ControlPartitionBudget::configBytes),
+        control::graphControlStorage.load());
+}
+// Set before a requested rollback (prepareNvsForPreviousFirmware): no optional record is written
+// any more this boot; the previous firmware finds the room its own gates expect.
+inline std::atomic<bool>& optionalRecordsFrozen() { static std::atomic<bool> frozen{false}; return frozen; }
+// This boot is not confirmed yet: the bootloader may still return to the previous firmware.
+inline bool nvsBootUnconfirmed() {
+    esp_ota_img_states_t state;
+    const auto running = esp_ota_get_running_partition();
+    return running && esp_ota_get_state_partition(running, &state) == ESP_OK && state == ESP_OTA_IMG_PENDING_VERIFY;
+}
+// What control needs kept free after an optional record: this firmware's ledger, or while the boot
+// is unconfirmed the previous firmware's (ControlPartitionBudget::previousFirmwareReserveEntries).
+inline size_t optionalRecordReserve() {
     using B = control::ControlPartitionBudget;
-    return B::permitsOptionalWrite(nvsPartitionStats(), bytes, storedNvsBlobBytes("ot_heating", "plan", B::configBytes),
-                                   storedNvsBlobBytes("ot_bluetooth", "settings", B::bluetoothBytes),
-                                   control::controlModelStorageReservation.current(), priority);
+    const size_t plan = storedNvsBlobBytes("ot_heating", "plan", B::configBytes);
+    if (nvsBootUnconfirmed())
+        return B::previousFirmwareReserveEntries(plan, storedNvsBlobBytes("ot_bluetooth", "settings", B::bluetoothBytes));
+    return B::controlReserveEntries(plan, controlReplacementEntries(), control::controlModelStorageReservation.current());
+}
+// An optional record of `bytes` may replace "ot_heating"/`key`: the handover confirmation, the flow
+// record, a plan save, a 2 KB Bluetooth save and the control record's replacement keep their room.
+inline bool optionalHeatingRecordFits(const char* key, size_t bytes, size_t priority = 0) {
+    using B = control::ControlPartitionBudget;
+    if (optionalRecordsFrozen().load()) return false;
+    return B::permitsOptionalWrite(nvsPartitionStats(), bytes, storedNvsRecordBytes("ot_heating", key, B::configBytes),
+                                   optionalRecordReserve(), priority);
 }
 // Counts the optional records erased to make room; their owner writes again what fits.
 inline std::atomic<uint32_t>& optionalRecordEvictions() { static std::atomic<uint32_t> count{0}; return count; }
@@ -58,6 +94,18 @@ template <class Permits> bool makeNvsRoom(Permits&& permits) {
     if (writable) nvs_close(write);
     nvs_close(read);
     return room;
+}
+// Before a requested rollback (update::requestRollback): the previous firmware (beta.22, rc.1)
+// reads none of the learned or tuning records and gates its plan and Bluetooth saves with a full
+// control replacement. Freeze the optional records and erase them, the least useful first, until
+// that firmware's ledger holds. False: still short (a plan save there may answer storage_full).
+inline bool prepareNvsForPreviousFirmware() {
+    using B = control::ControlPartitionBudget;
+    optionalRecordsFrozen().store(true);
+    const size_t plan = storedNvsBlobBytes("ot_heating", "plan", B::configBytes);
+    const size_t ble = storedNvsBlobBytes("ot_bluetooth", "settings", B::bluetoothBytes);
+    return makeNvsRoom([&](control::ControlPartitionStats s) {
+        return s.valid && s.freeEntries >= B::previousFirmwareReserveEntries(plan, ble); });
 }
 }
 #endif

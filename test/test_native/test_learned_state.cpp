@@ -807,3 +807,223 @@ TEST(LearnedStore, ThePerFrameKeysOfEarlierBuildsAreReadAndThenErased) {
     EXPECT_TRUE(nvs.legacy.empty());
 }
 
+// ---------------------------------------------------------------------------------------
+// The owner's E32 (rc.2 learned-room review): all 8 rooms' learned state kept over a restart
+// on a unit at the measured baseline, while a plan save, a 2 KB Bluetooth save, the handover
+// confirmation, the flow record and the control record's replacement always fit. The real
+// frames (LearnedStore, LearnedState), the real gate (ControlPartitionBudget) and its
+// priorities (OptionalRecordPriority), NVS charged as the budget charges it (blobEntries, an
+// upper bound of what NVS uses). Baselines: 198 of 630 used (beta.19 post-install capture,
+// e32-beta19-20261030-postinstall-capture.json) and 178 (beta.22, /status/logs 1 Nov).
+namespace {
+using heating::control::ControlPartitionBudget;
+using heating::control::ControlPartitionStats;
+using heating::control::OptionalRecordPriority;
+using heating::control::AutoTuner;
+using heating::control::TakeoverReadiness;
+using B = ControlPartitionBudget;
+
+// The NVS partition as the gate sees it: a fixed baseline plus the optional records.
+struct BudgetNvs final : LearnedStore::Backend {
+    size_t baseline = 198, reserve = 0;
+    std::map<std::string, size_t> records;      // optional key -> bytes
+    std::map<size_t, std::string> parts;
+    size_t used() const { size_t n = baseline; for (const auto& [k, b] : records) n += B::blobEntries(b); return n; }
+    ControlPartitionStats stats() const { return {20480, 630, std::min<size_t>(used(), 630), 630 - std::min<size_t>(used(), 630), true}; }
+    bool put(const std::string& key, size_t bytes, size_t priority) {
+        const size_t old = records.count(key) ? records.at(key) : 0;
+        if (!B::permitsOptionalWrite(stats(), bytes, old, reserve, priority)) return false;
+        records[key] = bytes;
+        return true;
+    }
+    // As LearnedNvs::write: after the knobs and the readiness counters (when not stored yet).
+    bool read(size_t part, std::string& out) override {
+        if (!parts.count(part)) return false;
+        out = parts.at(part); return true;
+    }
+    bool write(size_t part, std::string_view bytes) override {
+        if (!put(part ? "learned_b" : "learned_a", bytes.size(), OptionalRecordPriority::learned(records.count("autotune"), records.count("readiness")))) return false;
+        parts[part] = std::string(bytes); return true;
+    }
+    bool erase(size_t part) override { records.erase(part ? "learned_b" : "learned_a"); parts.erase(part); return true; }
+    // As AutoTunerNvs::write: the values with the full log, else the values alone.
+    bool knobs(size_t learnedPending) {
+        return put("autotune", AutoTuner::storedMaxBytes + 1, OptionalRecordPriority::tuningLog(learnedPending))
+            || put("autotune", OptionalRecordPriority::knobsBytes, 0);
+    }
+    bool readiness() { return put("readiness", sizeof(TakeoverReadiness::Stored), 0); }
+};
+
+// A version 1 room frame with another id (the frame's layout: header, id length, id, the rest, CRC).
+std::string renamed(const std::string& f, const std::string& id) {
+    std::string out = f.substr(0, 4);
+    out += char(id.size()); out += id;
+    const size_t old = uint8_t(f[4]);
+    out += f.substr(5 + old, f.size() - 4 - 5 - old);
+    const auto n = uint16_t(out.size() - 4); out[2] = char(n & 0xFF); out[3] = char(n >> 8);
+    const uint32_t c = LearnedState::crc(out.data(), out.size());
+    out.append(reinterpret_cast<const char*>(&c), 4);
+    return out;
+}
+// The worst case: a 32-character id and all 20 bins learned, each with segments without the
+// outdoor (the 23-byte form), plausible values (version 1, read back through the real reader).
+std::string worstRoom(const std::string& id, RoomPlan::Emitter emitter) {
+    std::string f{char(LearnedState::version), LearnedState::roomKind, 0, 0};
+    f += char(id.size()); f += id; f += char(emitter);
+    for (const uint16_t v : {200, 50, 40, 3, 10, 10}) put(f, v);
+    for (const double v : {50.0, 30.0, 9000.0, 40.0, 200.0, 3000.0, 20.0, 100.0, 8000.0}) put(f, v);
+    put(f, uint32_t((1u << FlowLearner::binCount) - 1));
+    for (size_t k = 0; k < FlowLearner::binCount; ++k) {
+        f += char(20); f += char(8); f += char(15); put(f, uint16_t(40));
+        const float w = 30 + 0.37f * k, flow = 21 + 2.0f * k, q = 0.5f + 0.03f * k, ow = 0.8f * w, o = 5 + 0.1f * k;
+        for (const float x : {w, w * flow, w * q, w * (q * q + 0.04f), ow, ow * o, ow * (o * o + 9), ow * (o * (q + 0.01f) + 0.3f), ow * (q + 0.01f)})
+            put(f, x);
+    }
+    const auto n = uint16_t(f.size() - 4); f[2] = char(n & 0xFF); f[3] = char(n >> 8);
+    put(f, LearnedState::crc(f.data(), f.size()));
+    return f;
+}
+RoomPlan eightRooms(size_t idBytes) {
+    RoomPlan p; p.rooms.resize(RoomPlan::maxRooms);
+    for (size_t i = 0; i < p.rooms.size(); ++i) {
+        p.rooms[i].id = std::string(idBytes - 1, "abcdefgh"[i]) + char('0' + i);
+        p.rooms[i].emitter = i % 2 ? RoomPlan::Emitter::radiator : RoomPlan::Emitter::floor;
+        p.rooms[i].state = RoomDemand::State::active; p.rooms[i].schedule = program();
+    }
+    return p;
+}
+// 8 rooms that learned what the house's floor and radiator room learned (6 bins each), or the worst case.
+struct EightRooms {
+    Learned source;
+    FlowLearner l;
+    FlowPolicy p;
+    EightRooms(bool worst) {
+        const auto rp = eightRooms(worst ? 32 : 10);
+        l.setPlan(rp);
+        EXPECT_TRUE(LearnedState::restoreGlobal(LearnedState::globalFrame(source.h.learner, source.policy), l, p));
+        uint32_t done = 0;
+        for (size_t i = 0; i < rp.rooms.size(); ++i) {
+            const auto f = worst ? worstRoom(rp.rooms[i].id, rp.rooms[i].emitter)
+                                 : renamed(LearnedState::roomFrame(source.h.learner, i % 2, LearnedState::version), rp.rooms[i].id);
+            EXPECT_TRUE(LearnedState::restoreRoom(f, l, done)) << i;
+        }
+    }
+};
+struct Scenario { size_t baseline, plan, control; bool graph, worst; };
+struct Outcome { size_t rooms, stored, used, parts, learnedBytes; bool log, readiness; };
+// Two days of the E32's saves (readiness and knobs at the day change, then what was learned),
+// then the invariant: control's writes fit without erasing anything.
+Outcome run(const Scenario& s, EightRooms& house) {
+    BudgetNvs nvs;
+    nvs.baseline = s.baseline;
+    const size_t control = B::controlReplacementEntries(s.control, s.graph);
+    nvs.reserve = B::controlReserveEntries(s.plan, control);
+    LearnedStore store;
+    for (int day = 0; day < 2; ++day) {
+        nvs.readiness();
+        nvs.knobs(store.pendingEntries());
+        store.save(nvs, house.l, house.p, uint64_t(day) * 24 * hour);
+    }
+    const auto st = nvs.stats();
+    // The invariant.
+    EXPECT_TRUE(B::permitsHeatingPlanWrite(st, std::min(s.plan + B::editBytes, B::configBytes), {}, control)) << "same-size plan save";
+    EXPECT_TRUE(B::permitsBluetoothWrite(st, B::bluetoothBytes, {}, control)) << "a 2 KB Bluetooth save";
+    EXPECT_GE(st.freeEntries, B::handoverEntries + B::blobEntries(B::flowRecordBytes) + B::entriesPerPage) << "handover and flow record";
+    if (s.graph) { EXPECT_TRUE(B::permitsGraphWrite(st, B::configBytes)) << "graph profile: a full control record"; }
+    else { EXPECT_GE(st.freeEntries, 2 + B::blobEntries(std::min(s.control + B::editBytes, B::configBytes)) + B::entriesPerPage) << "control replacement"; }
+    EXPECT_LE(st.usedEntries, 630u - B::entriesPerPage) << "never physically full";
+    size_t bytes = 0;
+    for (const auto& [k, v] : nvs.parts) bytes += v.size();
+    return {store.rooms(), store.storedRooms(), st.usedEntries, nvs.parts.size(), bytes,
+            nvs.records.count("autotune") && nvs.records.at("autotune") > OptionalRecordPriority::knobsBytes, nvs.records.count("readiness") > 0};
+}
+}
+
+TEST(LearnedNvsBudget, TheOwnersUnitKeepsEveryRoomAndControlKeepsItsRoom) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    EightRooms typical(false), worst(true);
+    // The frames are what LearnedState::compactRoomBytes says.
+    EXPECT_EQ(LearnedState::roomFrame(typical.l, 0).size(), LearnedState::compactRoomBytes(10, 6));
+    EXPECT_EQ(LearnedState::roomFrame(worst.l, 0).size(), LearnedState::compactRoomBytes(32, 0, 20));
+    std::printf("[ nvs ] baseline  plan  control         learned       stored  parts  bytes  log  readiness  used  free\n");
+    for (const size_t baseline : {size_t(198), size_t(178)})
+    for (const bool w : {false, true})
+    for (const auto& [plan, control, graph] : std::initializer_list<std::tuple<size_t, size_t, bool>>{
+             {930, 200, false}, {930, 0, false}, {600, 200, false}, {2000, 200, false}, {930, 1200, false}, {930, 4000, false},
+             {930, 1200, true}, {4096, 200, false}}) {
+        auto& house = w ? worst : typical;
+        const auto o = run({baseline, plan, control, graph, w}, house);
+        std::printf("[ nvs ] %8zu  %4zu  %4zu B%-8s  %-12s  %2zu/%zu  %5zu  %5zu  %-3s  %-9s  %4zu  %4zu\n", baseline, plan, control,
+                    graph ? " (graph)" : "", w ? "8x20 bins" : "8x6 bins", o.stored, o.rooms, o.parts, o.learnedBytes, o.log ? "yes" : "no",
+                    o.readiness ? "yes" : "no", o.used, 630 - o.used);
+        EXPECT_EQ(o.rooms, 8u);
+        EXPECT_TRUE(o.readiness);
+        // The goal on the owner's unit (plan ~0.93 KB, Home Assistant session without rooms):
+        // every room, the knobs with their log and the readiness, also in the worst case
+        // (there the knobs' log yields first).
+        if (plan == 930 && control <= 200 && !graph) {
+            EXPECT_EQ(o.stored, 8u) << baseline << (w ? " worst" : " typical");
+            if (!w) { EXPECT_TRUE(o.log); }
+        }
+    }
+}
+
+// Before: the per-room keys, version 1 frames and a full 4 KB control replacement kept the
+// owner's unit to the knobs, the readiness and at most one small room (the rc2-fw-review2 ledger).
+TEST(LearnedNvsBudget, BeforeOnlyOneSmallRoomFitTheOwnersUnit) {
+    const size_t before = B::handoverEntries + B::blobEntries(B::flowRecordBytes) + B::planSaveEntries(B::privateSaveBytes(930, 2048));
+    const size_t free = 630 - 198;
+    const size_t optional = free - before;
+    const size_t knobs = 1 + B::blobEntries(AutoTuner::storedMaxBytes + 1), readiness = 1 + B::blobEntries(sizeof(TakeoverReadiness::Stored));
+    std::printf("[ nvs ] before: reserve %zu of %zu free, %zu for the optional records (knobs %zu, readiness %zu)\n", before, free, optional, knobs, readiness);
+    EXPECT_LT(optional, knobs + readiness + 1 + B::blobEntries(240) + 1 + B::blobEntries(353)) << "not even the globals and one room";
+    const size_t after = B::controlReserveEntries(930, B::controlReplacementEntries(200, false));
+    std::printf("[ nvs ] after:  reserve %zu of %zu free, %zu for the optional records\n", after, free, free - after);
+    EXPECT_EQ(before - after, 136u - B::controlReplacementEntries(200, false));
+}
+
+// A requested rollback (update::requestRollback, NvsOptionalRecords.h prepareNvsForPreviousFirmware):
+// the previous firmware (beta.22, rc.1) keeps a full control replacement free for its plan and
+// Bluetooth saves and reads no learned or tuning record. The optional records make that room,
+// the least useful first. While this boot is unconfirmed the optional records follow that ledger.
+TEST(LearnedNvsBudget, ARollbackFindsThePreviousFirmwaresRoom) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    EightRooms worst(true);
+    for (const size_t baseline : {size_t(198), size_t(178)})
+    for (const auto& [plan, ble] : std::initializer_list<std::pair<size_t, size_t>>{{930, 600}, {930, 2047}, {2000, 300}}) {
+        BudgetNvs nvs;
+        nvs.baseline = baseline;
+        nvs.reserve = B::controlReserveEntries(plan, B::controlReplacementEntries(200, false));
+        LearnedStore store;
+        nvs.readiness(); nvs.knobs(0);
+        store.save(nvs, worst.l, worst.p, 0);
+        nvs.knobs(store.pendingEntries());
+        const auto oldGates = [&](ControlPartitionStats s) {
+            return B::permitsHeatingPlanWrite(s, std::min(plan + B::editBytes, B::configBytes))      // beta.22's own gates
+                && B::permitsBluetoothWrite(s, std::min(ble + B::editBytes, B::bluetoothBytes))
+                && s.freeEntries >= B::previousFirmwareReserveEntries(plan, ble);
+        };
+        const bool before = oldGates(nvs.stats());
+        const bool hadSecondPart = nvs.records.count("learned_b") > 0;
+        std::vector<std::string> erased;
+        ASSERT_TRUE(B::makeRoom([&](ControlPartitionStats s) { return s.freeEntries >= B::previousFirmwareReserveEntries(plan, ble); },
+                                [&] { return nvs.stats(); },
+                                [&](const char* key) -> size_t { return nvs.records.count(key) ? nvs.records.at(key) : 0; },
+                                [&](const char* key) { if (nvs.records.erase(key)) erased.push_back(key); }));
+        EXPECT_TRUE(oldGates(nvs.stats()));
+        std::string list;
+        for (const auto& k : erased) list += k + " ";
+        std::printf("[ nvs ] rollback, baseline %zu, plan %zu B, Bluetooth %zu B: previous firmware's room %s before; erased %s-> %zu free\n",
+                    baseline, plan, ble, before ? "kept" : "short", list.c_str(), nvs.stats().freeEntries);
+        if (!erased.empty()) { EXPECT_EQ(erased.front(), hadSecondPart ? "learned_b" : "learned_a") << "the later rooms first"; }
+        EXPECT_FALSE(std::count(erased.begin(), erased.end(), "autotune") && nvs.records.count("readiness")) << "least useful first";
+        // Unconfirmed boot: the optional records under the previous firmware's ledger keep its room too.
+        BudgetNvs pending;
+        pending.baseline = baseline;
+        pending.reserve = B::previousFirmwareReserveEntries(plan, ble);
+        LearnedStore fresh;
+        pending.readiness(); pending.knobs(0);
+        fresh.save(pending, worst.l, worst.p, 0);
+        EXPECT_TRUE(oldGates(pending.stats())) << "a bootloader rollback finds its room";
+    }
+}

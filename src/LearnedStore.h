@@ -51,7 +51,10 @@ struct LearnedNvs final : control::LearnedStore::Backend {
     bool write(size_t part, std::string_view bytes) override {
         if (part >= control::LearnedStore::parts) return false;
         const char* key = partKeys[part];
-        if (!optionalHeatingRecordFits(bytes.size(), control::OptionalRecordPriority::learned)) return false; // logged by the caller
+        const size_t priority = control::OptionalRecordPriority::learned(
+            storedNvsRecordBytes("ot_heating", "autotune", control::ControlPartitionBudget::configBytes) != 0,
+            storedNvsBlobBytes("ot_heating", "readiness", control::ControlPartitionBudget::configBytes) != 0);
+        if (!optionalHeatingRecordFits(key, bytes.size(), priority)) return false; // logged by the caller
         nvs_handle_t handle;
         if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
         const bool committed = nvs_set_blob(handle, key, bytes.data(), bytes.size()) == ESP_OK && nvs_commit(handle) == ESP_OK;

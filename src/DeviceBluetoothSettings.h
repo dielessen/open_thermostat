@@ -38,8 +38,9 @@ inline std::string cachedDeviceBluetoothSettings() {
 // Control first: the optional records (learned, readiness, autotune) make room when needed.
 inline bool bluetoothStorageHasRoom(size_t bytes) {
     const auto models=control::controlModelStorageReservation.current();
+    const size_t control=controlReplacementEntries(); // the stored control record's replacement
     return makeNvsRoom([&](control::ControlPartitionStats s){
-        return control::ControlPartitionBudget::permitsBluetoothWrite(s,bytes,models);});
+        return control::ControlPartitionBudget::permitsBluetoothWrite(s,bytes,models,control);});
 }
 inline bool saveDeviceBluetoothSettings(const std::string& raw) {
     if(raw.empty()||raw.size()>=2048||raw.find('\0')!=std::string::npos

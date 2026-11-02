@@ -4,6 +4,7 @@
 #include <esp_partition.h>
 #include "control/ControlPartitionBudget.h"
 #include "control/ControlModelStorageReservation.h"
+#include "NvsOptionalRecords.h"
 #include <algorithm>
 #include <string>
 namespace heating {
@@ -37,8 +38,9 @@ enum class HeatingPlanSave { saved, storage_full, failed };
 inline HeatingPlanSave saveHeatingPlan(const std::string& raw) {
     if (raw.empty() || raw.find('\0') != std::string::npos || !nvsPartitionStats().valid) return HeatingPlanSave::failed;
     const auto models = control::controlModelStorageReservation.current();
+    const size_t control = controlReplacementEntries(); // the stored control record's replacement
     if (!makeNvsRoom([&](control::ControlPartitionStats s) {
-            return control::ControlPartitionBudget::permitsHeatingPlanWrite(s, raw.size() + 1, models); }))
+            return control::ControlPartitionBudget::permitsHeatingPlanWrite(s, raw.size() + 1, models, control); }))
         return HeatingPlanSave::storage_full;
     nvs_handle_t handle;
     if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return HeatingPlanSave::failed;

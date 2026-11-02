@@ -1,5 +1,6 @@
 #pragma once
 #include "ControlPartitionBudget.h"
+#include <atomic>
 namespace heating::control {
 // Loop-owned resource reservation only. No source/sample/actuation authority,
 // allocation, namespace creation, IO or refund while a failed owner still lives.
@@ -25,4 +26,9 @@ private:
     ControlModelReservation models_{};
 };
 inline ControlModelStorageReservation controlModelStorageReservation;
+// A graph or native control profile is configured (an NvsControlStore of
+// graph_shadow_v2 exists this boot): its control record saves are gated by
+// permitsGraphWrite, so the optional NVS records keep a full control
+// replacement free (ControlPartitionBudget::controlReplacementEntries).
+inline std::atomic<bool> graphControlStorage{false};
 }

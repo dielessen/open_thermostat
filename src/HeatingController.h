@@ -394,7 +394,7 @@ public:
         if (settings == flowSettings_ && !reset) return nullptr;
         if (!(settings == flowSettings_) && !FlowSettingsNvs::write(settings)) return "save_unconfirmed";
         const auto now = bleReceiptClock();
-        if (reset) { autoTuner_.reset(now); AutoTunerNvs::write(autoTuner_); }
+        if (reset) { autoTuner_.reset(now); AutoTunerNvs::write(autoTuner_, learnedStore_.pendingEntries()); }
         else if (!(settings.tuning == flowSettings_.tuning) || settings.manual != flowSettings_.manual) autoTuner_.restart(now);
         applyFlowSettings(settings);
         return nullptr;
@@ -832,7 +832,7 @@ private:
         evictions_ = e;
         DBGLOGFI(log_, logFeature_, "NVS short of room: learned, readiness and tuning records made room for the plan or Bluetooth settings\n");
         learnedStore_.forgetStored();
-        if (!AutoTunerNvs::write(autoTuner_)) DBGLOGFI(log_, logFeature_, "Tuning not saved (NVS short of room); kept in RAM\n");
+        if (!AutoTunerNvs::write(autoTuner_, learnedStore_.pendingEntries())) DBGLOGFI(log_, logFeature_, "Tuning not saved (NVS short of room); kept in RAM\n");
     }
     void saveLearned(uint64_t now) {
         rewriteEvicted();
@@ -1036,7 +1036,7 @@ private:
         }
         autoTuner_.evaluate(now, *unixNow, flowSettings_.manual, plan, learned.data(), count);
         if (!autoTuner_.changed()) return;
-        if (!AutoTunerNvs::write(autoTuner_)) // a failure keeps the values this boot
+        if (!AutoTunerNvs::write(autoTuner_, learnedStore_.pendingEntries())) // a failure keeps the values this boot
             DBGLOGFI(log_, logFeature_, "Tuning not saved (NVS short of room or write failed); kept in RAM\n");
         applyFlowSettings(flowSettings_);
     }

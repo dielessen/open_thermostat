@@ -24,7 +24,7 @@ struct ReadinessNvs {
         return ok;
     }
     static bool write(const control::TakeoverReadiness::Stored& s) {
-        if (!optionalHeatingRecordFits(sizeof(s))) return false;
+        if (!optionalHeatingRecordFits(key, sizeof(s))) return false;
         nvs_handle_t handle;
         if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
         const bool committed = nvs_set_blob(handle, key, &s, sizeof(s)) == ESP_OK && nvs_commit(handle) == ESP_OK;

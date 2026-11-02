@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-11-02T15:00:00Z",
+  "requests": [
+    "Owner, 2 Nov 2026: \"Maak nu rc2 eerst maar af\" (finish rc.2 first; a read-only API key for assistants comes in a later release). Earlier on 2 Nov: self-learning with automatic best settings and plain-language UX, an overview of what was learned, learning kept over updates, not shadow by default (trial run when a thermostat is on the bus, else the guided boiler test), HACS install, Polish where it is little work."
+  ],
+  "scope": "1.0 candidate rc.2: E32 v1.0.0-e32v2-rc.2 + HA ha-v1.0.0rc2 from release-1.0. Publish after green exact-tag CI and the owner's go. Installing is a separate, attended step: with the owner at home, HA first (HACS migration), then the E32 through the HA Firmware update entity, the password step if needed, and the takeover confirmed again right after the update.",
+  "not_included": [
+    "installation (a separate, attended step)",
+    "v1.0.0 itself (after 14 days with all release_ready.py criteria PASS)",
+    "a read-only API key for assistants"
+  ],
+  "publication_approval_reply": null,
+  "publication_approval_at_utc": null,
+  "installation_approval_reply": null
+}

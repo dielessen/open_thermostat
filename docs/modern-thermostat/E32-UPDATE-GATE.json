@@ -6,6 +6,6 @@
     "receipt": "docs/modern-thermostat/update-acceptance/e32-beta22-20261031.json",
     "sha256": "15e4aa4f22c2056b63f61a3225e778eb117621198de58e1ada3f6cfcdbe00223"
   },
-  "pending_tag": "v1.0.0-e32v2-rc.1",
-  "candidate_plan": "docs/modern-thermostat/RC1-KANDIDAAT.json"
+  "pending_tag": "v1.0.0-e32v2-rc.2",
+  "candidate_plan": "docs/modern-thermostat/RC2-KANDIDAAT.json"
 }

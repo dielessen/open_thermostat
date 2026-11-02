@@ -1,5 +1,9 @@
 # OpenThermostat 1.0 rc.2 — release notes draft
 
+**Superseded:** these sections are now the top of `RELEASE-NOTES.md` and
+`HA-RELEASE-NOTES.md` (E32 1.0.0-rc.2 and HA 1.0.0rc2). Edit them there; this
+draft is kept as the record of how they were written.
+
 Draft only. Not frozen, tagged, published or installed. The published E32
 1.0.0-rc.1 and HA 1.0.0rc1 (tags on 1dc0b06) are unchanged; their notes stay
 the top of `RELEASE-NOTES.md` and `HA-RELEASE-NOTES.md` until the release step.
@@ -57,9 +61,9 @@ the boiler, the same code becomes 1.0.0. Install it with HA 1.0.0rc2.
 - **Learning that fits your boiler:** self-tuning counts only the E32's own
   heating starts, so a boiler that cycles by itself gets no longer pauses;
   the E32 learns from which water temperature your boiler really heats and
-  asks at least that; every room's learning has room in storage, never at
-  the cost of rooms, the hand-back or Bluetooth sensors; a settings backup
-  always fits what a restore accepts. <!-- pending merge: rc2-learned-room -->
+  asks at least that; all rooms' learning is stored compactly, never at the
+  cost of rooms, the hand-back or Bluetooth sensors; a settings backup
+  always fits what a restore accepts.
 - **Boiler test and takeover** (Rooms): a guided test before the E32 takes
   over: no other thermostat on the bus, your confirmation, a short heating
   start, hot water while heating (can be skipped) and a stop, each passed,
@@ -91,7 +95,7 @@ the boiler, the same code becomes 1.0.0. Install it with HA 1.0.0rc2.
   requests and now learns from its own; short hot-water rounds no longer cut
   a heating period short; until a room's cooling is learned, its warm-up is
   planned from its current temperature, not the night one (it could start
-  hours early). <!-- pending merge: rc2-learned-room -->
+  hours early).
 - A replayed Bluetooth sensor message could lock the real sensor out for
   about 10 minutes after its counter restarted.
 - In dark mode the selected house mode button matches the other buttons.
@@ -103,8 +107,8 @@ From beta22 or 1.0.0-rc.1, while someone is home. First install HA 1.0.0rc2
 E32's Firmware entity. Then, in this order:
 
 1. **Factory password admin?** Choose your own on the E32 page after signing
-   in, or with the Home Assistant repair "Choose a new E32 password" (E32
-   and Home Assistant at once).
+   in, or with the Home Assistant repair "E32 still uses the default
+   password" (E32 and Home Assistant at once).
 2. **Confirm the takeover again:** a firmware change clears it, and until
    then the E32 keeps only frost protection. Repair "Confirm again that the
    E32 may control the boiler", or Rooms on the E32.
@@ -141,7 +145,7 @@ newer.
   heating curve, the burner and the last ten self-tuning changes. The
   Heating view keeps a short summary after the rooms.
 - The self-tuning changes explain when the boiler switches on and off by
-  itself and longer pauses would only delay heat. <!-- pending merge: rc2-learned-room -->
+  itself and longer pauses would only delay heat.
 - **Plain-language names and texts** in English, Dutch and Polish, the same
   words as the E32 pages; the dashboard, advice and weekly summary are now
   in Polish too. Existing entity IDs stay; only a new installation gets IDs
@@ -150,7 +154,7 @@ newer.
   be fixed: "Choose a new E32 password" sets it on the E32 and in Home
   Assistant in one step. Until then the E32 accepts no changes, and a
   refused change says so.
-- **Boiler test and takeover:** the readiness sensor follows the E32's guided
+- **Boiler test and takeover:** the sensor Ready for E32 control follows the E32's guided
   boiler test step by step, and the dashboard shows the next step while the
   E32 waits for the takeover. A new installation no longer reports a heating
   problem before its first takeover.
@@ -196,7 +200,7 @@ newer.
 4. Then fix the repair "Confirm again that the E32 may control the boiler".
 
 **From a manual install to HACS**, without a duplicate: keep the integration
-as it is (do not delete it under Devices and services) and make a Home
+as it is (do not delete it under Devices & services) and make a Home
 Assistant backup. In HACS add the custom repository above, open
 OpenThermostat, choose Download, open "Need a different version?" and pick
 1.0.0rc2. HACS writes to the same `custom_components/open_thermostat` folder

@@ -1,6 +1,6 @@
 # Releaseplan tot en na 1.0 (eigenaar, 30 oktober – 2 november 2026)
 
-Dit is het actuele plan (stand 2 november: rc.1 gepubliceerd vanaf 1dc0b06; het rc.2-werk op `release-1.0` a146e73, alleen `rc2-learned-room` nog niet samengevoegd). De oudere secties hieronder zijn geschiedenis.
+Dit is het actuele plan (stand 2 november: rc.1 gepubliceerd vanaf 1dc0b06; rc.2 compleet op `release-1.0`, versies gezet, in de laatste controle vóór publicatie). De oudere secties hieronder zijn geschiedenis.
 
 ## Klaar
 
@@ -69,11 +69,11 @@ Dit is het actuele plan (stand 2 november: rc.1 gepubliceerd vanaf 1dc0b06; het 
 - ✅ warm water universeel gesplitst in tappen en warmhouden (directe ketelsignalen eerst, anders afgeleid met een geleerde nachtbasis; optioneel een watermeter in HA), met een tijdlijn in HA en een warmwaterband in de E32-grafiek;
 - ✅ de veiligheidsfixes uit de review vóór de overstap: "terug naar de thermostaat" stopt eerst de E32 (S1), een nulvraag na een onverwachte herstart (S2), en na een firmwarewissel opnieuw bevestigen met intussen alleen vorstbeveiliging, plus de HA-Reparatie "Confirm the takeover again" (S3).
 
-## rc.2 — zelf bijstellen, onthouden wat geleerd is en de ketelproef (in afronding)
+## rc.2 — zelf bijstellen, onthouden wat geleerd is en de ketelproef (versies gezet, wacht op controle en akkoord publiceren)
 
 De tweede 1.0-kandidaat: `v1.0.0-e32v2-rc.2` + `ha-v1.0.0rc2`. Rc.1 wordt niet geïnstalleerd; rc.2 is de kandidaat die de eigenaar installeert en die de 14 dagen moet lopen. Concept-releasenotities (Engels): [RELEASE-1.0-RC2-NOTES-DRAFT.en.md](RELEASE-1.0-RC2-NOTES-DRAFT.en.md).
 
-**Status (2 november):** al het rc.2-werk staat op `release-1.0` a146e73, behalve `rc2-learned-room` (voegt `rc2-fw-review2` en `rc2-learning-active` samen en krijgt nog ruimte voor het geleerde van alle ruimtes). Daarna: volledige lokale controle, bevriezen, taggen en publiceren met akkoord van de eigenaar. Niets daarvan is gedaan.
+**Status (2 november):** al het rc.2-werk staat op `release-1.0`, ook `rc2-learned-room` en `rc2-doc-labels` (handleidingen en labels gelijk aan de schermen, HACS-route). Versies `v1.0.0-e32v2-rc.2` + `1.0.0rc2` gezet; de releasenotities staan bovenaan [RELEASE-NOTES.md](RELEASE-NOTES.md) en [HA-RELEASE-NOTES.md](HA-RELEASE-NOTES.md). Daarna: volledige lokale controle, CI, en publiceren na akkoord van de eigenaar.
 
 Samengevoegd op `release-1.0`:
 - ✅ **zelf bijstellen** (rc2-autotune): de E32 stelt zijn brander- en ruimteknoppen zelf bij uit de gemeten dagen, hooguit één kleine stap per knop per dag, met genoeg bewijs, niet in de eerste 24 uur, alleen op dagen dat de E32 de ketel stuurde; in schaduw alleen "zou wijzigen". Op Huis heet het "Comfort and boiler care", met "Set it myself", "Back to automatic" en "Back to start values";
@@ -87,15 +87,15 @@ Samengevoegd op `release-1.0`:
 - ✅ **HACS**: HA ook als custom repository `dielessen/openthermostat-ha`, elke HA-release ook daar (`scripts/publish_hacs_repo.py`);
 - ✅ **replay-gereedschap** (rc2-replay-tool): leren en zelf bijstellen nagerekend op echte data van het huis, als stap in `scripts/final_check.sh`.
 
-Nog samen te voegen (`rc2-learned-room`):
-- ☐ fixes in het zelf bijstellen: alleen de eigen verwarmingsstarts van de E32 tellen (een ketel die zelf aan en uit gaat of warmhoudt krijgt geen langere pauzes), schaduwvoorstellen alleen uit de eigen vraag, nachtverlaging telt niet mee;
-- ☐ NVS-budget: het geleerde en de knoppen nemen nooit de ruimte die het plan, het teruggeven en Bluetooth nodig hebben; bij krapte gaat het minst nuttige eerst;
-- ☐ leren van de eigen vraag van de E32 in actieve regeling (de tado is van de bus);
-- ☐ warmwater overbruggen: korte warmhoudrondes breken een verwarmingsperiode niet meer af; vloerruimtes leren vanaf 30 minuten;
-- ☐ opwarmplanning vanaf de huidige kamertemperatuur zolang het afkoelen niet geleerd is (eerder tot 4,4 uur te vroeg);
-- ☐ de effectieve minimale aanvoer van de ketel leren (de HRC 22 stookt pas vanaf ~40 °C);
-- ☐ geleerde toestand gehard (onmogelijke waarden uit een bewerkte back-up geweigerd, geen NaN-advies), de back-up past altijd binnen wat terugzetten accepteert;
-- ☐ ruimte voor het geleerde van alle ruimtes.
+Samengevoegd met `rc2-learned-room` (2 november):
+- ✅ fixes in het zelf bijstellen: alleen de eigen verwarmingsstarts van de E32 tellen (een ketel die zelf aan en uit gaat of warmhoudt krijgt geen langere pauzes), schaduwvoorstellen alleen uit de eigen vraag, nachtverlaging telt niet mee;
+- ✅ NVS-budget: het geleerde en de knoppen nemen nooit de ruimte die het plan, het teruggeven en Bluetooth nodig hebben; bij krapte gaat het minst nuttige eerst;
+- ✅ leren van de eigen vraag van de E32 in actieve regeling (de tado is van de bus);
+- ✅ warmwater overbruggen: korte warmhoudrondes breken een verwarmingsperiode niet meer af; vloerruimtes leren vanaf 30 minuten;
+- ✅ opwarmplanning vanaf de huidige kamertemperatuur zolang het afkoelen niet geleerd is (eerder tot 4,4 uur te vroeg);
+- ✅ de effectieve minimale aanvoer van de ketel leren (de HRC 22 stookt pas vanaf ~40 °C);
+- ✅ geleerde toestand gehard (onmogelijke waarden uit een bewerkte back-up geweigerd, geen NaN-advies), de back-up past altijd binnen wat terugzetten accepteert;
+- ✅ ruimte voor het geleerde van alle ruimtes.
 
 **Installeren** (rond 8 november, bijgewoond, iemand thuis): eerst HA 1.0.0rc2 (de eigenaar stapt dan over van de handmatige installatie naar HACS, zonder de integratie te verwijderen), dan de E32 via de Firmware-entiteit; staat het fabriekswachtwoord er nog, dan eerst een eigen wachtwoord; daarna direct de overname opnieuw bevestigen. Het leren begint één keer opnieuw, want rc.1 en ouder bewaarden het niet; het zelf bijstellen wacht minstens 24 uur.
 

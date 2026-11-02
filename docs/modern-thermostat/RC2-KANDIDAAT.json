@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "date": "2026-11-02",
+  "planned_tag": "v1.0.0-e32v2-rc.2",
+  "previous_published_tag": "v1.0.0-e32v2-rc.1",
+  "state": "FROZEN_AWAITING_EXACT_TAG_CI",
+  "formal_freeze": true,
+  "published": false,
+  "installed": false,
+  "github_prerelease": true,
+  "ha_tag": "ha-v1.0.0rc2",
+  "ha_installed": false,
+  "install_together": true,
+  "install_order": [
+    "ha-v1.0.0rc2 (HACS: custom repository dielessen/openthermostat-ha, or the integration package; HA restart)",
+    "v1.0.0-e32v2-rc.2 (Home Assistant Firmware update entity, one Install press), attended, with the owner at home",
+    "with the factory password: the Repairs issue \"E32 still uses the default password\" first",
+    "confirm the takeover again right after the update (Repairs: Confirm again that the E32 may control the boiler, or Rooms on the E32); until then the E32 keeps only frost protection"
+  ],
+  "observed_installed_e32": "v0.1.0-e32v2-beta.22",
+  "observed_installed_ha": "0.4.0b15 (HA-only hotfix, installed 2026-10-31 around 22:00Z)",
+  "active_control_since": "2026-11-01T20:05Z (about 21:05 local; the owner's switch-over)",
+  "publication_condition": "the owner's explicit go (recorded) and green exact-tag CI",
+  "owner_instruction": "docs/modern-thermostat/RC2-OWNER-INSTRUCTION-20261102.json",
+  "publication_exception": null,
+  "last_accepted_native_e32": "v0.1.0-e32v2-beta.4",
+  "predecessor_acceptance": {
+    "tag": "v0.1.0-e32v2-beta.22",
+    "receipt": "docs/modern-thermostat/update-acceptance/e32-beta22-20261031.json",
+    "status": "PASS",
+    "receipt_sha256": "15e4aa4f22c2056b63f61a3225e778eb117621198de58e1ada3f6cfcdbe00223"
+  },
+  "planned_acceptance": {
+    "method": "home_assistant",
+    "checklist": "docs/modern-thermostat/HA-UPDATE-ACCEPTANCE-BETA19.md",
+    "receipt": "docs/modern-thermostat/update-acceptance/e32-rc2-<YYYYMMDD>.json"
+  },
+  "release_notes": {
+    "e32": "docs/modern-thermostat/RELEASE-NOTES.md (# E32 V2 1.0.0-rc.2)",
+    "ha": "docs/modern-thermostat/HA-RELEASE-NOTES.md (# HA 1.0.0rc2)"
+  },
+  "changes": [
+    "rc.1 was published, not installed; rc.2 replaces it as the 1.0 candidate (release-1.0)",
+    "Self-tuning (AutoTuner) of burner rest and run times, start and stop margins, room correction and unlearned leads; only on days the E32 controlled the boiler, counted from its own heating starts",
+    "Home: Comfort and boiler care in plain words (automatic or set by you) and What the thermostat has learned, also in HA (sensor and dashboard page)",
+    "Learning kept over restarts and updates in one packed NVS record within ControlPartitionBudget, and part of the settings backup",
+    "FlowLearner learns from the E32's own request in active mode and bridges short hot-water rounds; BoilerMinimumFlow learns the effective minimum flow; WarmupPlanner plans from the current room temperature without a cooling model",
+    "Guided boiler test before the takeover; a new installation picks trial run or boiler test from the bus",
+    "Factory password blocks changes (except the hand-back); host allow-list, manual-upload board check, request size and time limits, per-device sign-in lockout, backup passwords bound to network settings with a 12+ character passphrase, TRV MQTT nesting check",
+    "Plain words in EN/NL/PL on the E32 and in HA; GUI review of the E32 pages and the HA cards and device pages",
+    "HACS repository dielessen/openthermostat-ha, published from each HA release",
+    "A Bluetooth counter restart no longer locks out a real sensor"
+  ],
+  "not_included": [
+    "v1.0.0 itself (after 14 days with all release_ready.py criteria PASS)",
+    "radiator valve control verified on real valves (field tester with a Nefit TopLine)",
+    "the three-way valve position behind an EMS adapter that leaves byte 7 of telegram 0x18 empty",
+    "EMS+ boilers (1.1)",
+    "writable EMS boiler settings (after 1.0)",
+    "the per-room overview (v11-room-overview, 1.1)",
+    "a read-only API key for assistants (later release)",
+    "automatic activation (active control still needs the owner's confirmed takeover)",
+    "OpenThermostat in the default HACS list",
+    "editing the bodies of earlier published releases (beyond the automatic organize_releases archive labels)"
+  ],
+  "software_validation": {
+    "physical_test_performed": false
+  },
+  "active_gate_open_in_build": true,
+  "physical_outputs_automatically_enabled": false,
+  "radiator_valve_control_default_on": false,
+  "persistent_boiler_setting_writes_enabled": false,
+  "full_ten_minute_physical_success_claimed": false,
+  "native_https_root_cause_fixed": false
+}

@@ -1,3 +1,96 @@
+# HA 1.0.0rc2 — the second 1.0 candidate: HACS, what the thermostat learned and plainer words
+<!-- user-release-notes:v2:en -->
+
+Companion release for the E32 1.0.0-rc.2. Needs Home Assistant 2026.10.0 or
+newer.
+
+## New
+
+- **HACS:** install and update through HACS as a custom repository,
+  `https://github.com/dielessen/openthermostat-ha` (type Integration).
+  Release candidates are pre-releases; see Updating.
+- **What the thermostat learned:** a new sensor and a Learned page on the
+  dashboard: per room the learning progress, warm-up and cool-down, the
+  lowest water temperature that still warms it in time, the planned start
+  ("starts heating at 07:10 to be 21 °C at 09:00") and the night advice; the
+  heating curve, the burner and the last ten self-tuning changes. The
+  Heating view keeps a short summary after the rooms.
+- The self-tuning changes explain when the boiler switches on and off by
+  itself and longer pauses would only delay heat.
+- **Plain-language names and texts** in English, Dutch and Polish, the same
+  words as the E32 pages; the dashboard, advice and weekly summary are now
+  in Polish too. Existing entity IDs stay; only a new installation gets IDs
+  from the new names.
+- **E32 password:** the repair "E32 still uses the default password" can now
+  be fixed: "Choose a new E32 password" sets it on the E32 and in Home
+  Assistant in one step. Until then the E32 accepts no changes, and a
+  refused change says so.
+- **Boiler test and takeover:** the sensor Ready for E32 control follows the E32's guided
+  boiler test step by step, and the dashboard shows the next step while the
+  E32 waits for the takeover. A new installation no longer reports a heating
+  problem before its first takeover.
+- **Tidier device pages:** the boiler's settings, counters, fault history and
+  service details are under Diagnostic, a room's "Temperature without Home
+  Assistant" under Configuration, and entities have their own icons instead
+  of the generic eye. Entities and history are kept.
+- **Configure:** a new installation shows the dashboard by default; the room
+  form names its room; sources show by name; the default window pause is in
+  minutes, like each room's.
+- **Week program card on a phone:** only Save and Discard stay at the
+  bottom, the selected room stands out, and the setting device shows by name.
+- **Backups** include what the thermostat learned and its tuning, and the
+  restore summary names each changed setting in plain words. A restore keeps
+  the rooms' mode; a new or reset E32 still waits for your takeover
+  confirmation.
+
+## Fixed
+
+- A backup with accented letters in room or sensor names could be refused as
+  too large before it reached the E32.
+- An undo of a restore that the E32 refused no longer loses the "before a
+  restore" backup.
+- A restore could overwrite and take over the E32 of another OpenThermostat
+  installation in the same Home Assistant; it is now refused.
+- A replacement E32 that already held the backup's settings could not be
+  taken into use; the restore now offers "Use this E32 from now on".
+- Setting the house mode and the away temperature right after each other no
+  longer drops one or reverts the other.
+- After a restart, a hidden boiler request sensor raised errors and could
+  stop other heating updates.
+- Boiler values renamed in 1.0 stayed as empty rows on boilers that do not
+  report them.
+- "Ready to take over?" no longer shows "None °C" for a value the E32 does
+  not know yet.
+
+## Updating
+
+1. Install HA 1.0.0rc2 (HACS or the release ZIP) and restart Home Assistant.
+2. Update the E32 with its Firmware entity, while someone is home.
+3. If the E32 still has the factory password, fix the repair "E32 still uses
+   the default password" first; until then changes wait.
+4. Then fix the repair "Confirm again that the E32 may control the boiler".
+
+**From a manual install to HACS**, without a duplicate: keep the integration
+as it is (do not delete it under Devices & services) and make a Home
+Assistant backup. In HACS add the custom repository above, open
+OpenThermostat, choose Download, open "Need a different version?" and pick
+1.0.0rc2. HACS writes to the same `custom_components/open_thermostat` folder
+and replaces the manual files. Restart Home Assistant: still one
+OpenThermostat entry, same entities. Keep no copy of the old folder inside
+`custom_components`. To be offered later release candidates, turn on the
+"Pre-release" switch of OpenThermostat's device under the HACS integration
+(enable that entity first if it is disabled).
+
+Entity IDs and history are kept. Most new features need E32 1.0.0-rc.2.
+
+## Limitations
+
+Radiator valve control is not yet verified on real valves. The three-way
+valve position cannot be seen behind an EMS adapter that leaves byte 7 of
+telegram 0x18 empty. EMS Classic boilers only; EMS+ comes in 1.1. Writing
+boiler settings comes after 1.0. HACS lists OpenThermostat as a custom
+repository, not yet in the default HACS list.
+
 # HA 1.0.0rc1 — the 1.0 candidate: radiator valves, house mode, daily backups and a daily summary
 <!-- user-release-notes:v2:en -->
 

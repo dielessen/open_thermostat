@@ -1,3 +1,98 @@
+# E32 V2 1.0.0-rc.2 — the second 1.0 candidate: self-tuning, learning that is kept and a guided boiler test
+<!-- user-release-notes:v2:en -->
+
+The second 1.0 candidate: the E32 tunes itself, keeps what it learned, asks
+for your own password, and a new installation can go straight to a guided
+boiler test. If it runs 14 days without problems with the E32 controlling
+the boiler, the same code becomes 1.0.0. Install it with HA 1.0.0rc2.
+
+## New
+
+- **Self-tuning:** the E32 tunes its burner and room control settings from
+  the measured days: burner rest and run times, start and stop margins, how
+  firmly a room is corrected and how early an unlearned room starts. At most
+  one small step per setting per day, with enough evidence, not in the first
+  24 hours after a restart or change, and only on days the E32 controlled the
+  boiler. In a trial run it shows what it would change.
+- **Comfort and boiler care** (Home, was "Advanced: tuning"): each setting in
+  plain words, automatic or set by you, with "Set it myself", "Back to
+  automatic" and "Back to start values".
+- **What the thermostat has learned** (Home): per room how far learning is,
+  warm-up and cool-down, the lowest water temperature that still warms it in
+  time, when it starts heating for the next program step and the night
+  advice; the heating curve, the burner and the self-tuning's latest changes,
+  each explained.
+- **Learning is kept** over restarts, power cuts and updates, and is part of
+  the settings backup, so an E32 restored from a backup carries on learning.
+- **Learning that fits your boiler:** self-tuning counts only the E32's own
+  heating starts, so a boiler that cycles by itself gets no longer pauses;
+  the E32 learns from which water temperature your boiler really heats and
+  asks at least that; all rooms' learning is stored compactly, never at the
+  cost of rooms, the hand-back or Bluetooth sensors; a settings backup
+  always fits what a restore accepts.
+- **Boiler test and takeover** (Rooms): a guided test before the E32 takes
+  over: no other thermostat on the bus, your confirmation, a short heating
+  start, hot water while heating (can be skipped) and a stop, each passed,
+  waiting or failed. A safety stop says why and how to give control back.
+- **A new installation picks its route from the boiler bus:** a trial run
+  beside a thermostat that still controls the boiler, else straight to the
+  boiler test. Nothing is sent to the boiler before you confirm the takeover.
+  Existing installations keep their mode.
+- **Your own password first:** with the factory password admin the E32
+  accepts no change; signing in leads to "Choose your own password". Reading
+  and heating go on, and giving control back to your old thermostat always
+  works.
+- **Plain words** (English and Dutch): trial run instead of shadow mode,
+  water to heating and back instead of flow and return, burner power.
+- **Clearer pages:** a boiler fault and what to do at the top of the
+  Overview; on Rooms, active control first, saying when and why it stopped;
+  amber for missing boiler messages and a low valve battery, red only for a
+  silent valve; calmer room cards; errors (with Try again) and confirmations
+  on the page; sign-in and System pages match the rest.
+- **Better protected:** requests that do not name the E32 are refused (DNS
+  rebinding); a manual upload must be an OpenThermostat E32 V2 image; slow or
+  huge requests can no longer stall the heating; failed sign-ins lock out
+  only that device; a backup binds its passwords to its network settings and
+  needs a 12+ character passphrase; malformed valve messages cannot crash it.
+
+## Fixed
+
+- Learning after the switch-over: the E32 waited for the old thermostat's
+  requests and now learns from its own; short hot-water rounds no longer cut
+  a heating period short; until a room's cooling is learned, its warm-up is
+  planned from its current temperature, not the night one (it could start
+  hours early).
+- A replayed Bluetooth sensor message could lock the real sensor out for
+  about 10 minutes after its counter restarted.
+- In dark mode the selected house mode button matches the other buttons.
+
+## Updating
+
+From beta22 or 1.0.0-rc.1, while someone is home. First install HA 1.0.0rc2
+(now also through HACS) and restart Home Assistant, then press Install on the
+E32's Firmware entity. Then, in this order:
+
+1. **Factory password admin?** Choose your own on the E32 page after signing
+   in, or with the Home Assistant repair "E32 still uses the default
+   password" (E32 and Home Assistant at once).
+2. **Confirm the takeover again:** a firmware change clears it, and until
+   then the E32 keeps only frost protection. Repair "Confirm again that the
+   E32 may control the boiler", or Rooms on the E32.
+
+- **Learning starts fresh once:** earlier firmware did not keep it.
+  Self-tuning waits at least 24 hours, then takes small steps.
+- Settings, rooms, programs, sensors and valves are kept; tuning you set in
+  rc.1 stays yours. A backup made by rc.2 opens its passwords only on rc.2 or
+  newer.
+
+## Limitations
+
+Radiator valve control is not yet verified on real valves. Behind an EMS
+adapter that leaves byte 7 of telegram 0x18 empty (such as the Bosch
+EasyControl Adapter) the three-way valve position cannot be seen. EMS Classic
+boilers only; EMS+ comes in 1.1. Writing boiler settings comes after 1.0.
+Charts are lost on a restart.
+
 # E32 V2 1.0.0-rc.1 — the 1.0 candidate: radiator valves, house mode and a clearer boiler
 <!-- user-release-notes:v2:en -->
 

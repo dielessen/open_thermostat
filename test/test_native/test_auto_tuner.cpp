@@ -216,11 +216,11 @@ TEST(AutoTuner, ManyStartsNeverShortenTheRestBelowItsFloor) {
 TEST(AutoTuner, ShortBurnsLengthenTheBurnerRun) {
     Driver d;
     d.manual = 0b110; // rest and start margin stay: only the run time here
-    // The request holds 5 min, the burner stops itself after 2 min with the room satisfied.
+    // The E32's request (and with it the burner) lasts 2 min; the room is satisfied after 1.
     d.day([](uint32_t t) {
         const uint32_t phase = t % 1500;
-        S x; x.heat = phase < 300; x.reason = x.heat ? Reason::heating : Reason::satisfied;
-        x.burner = phase < 120; x.demand = phase < 60; x.temp = 2005;
+        S x; x.heat = x.burner = phase < 120; x.reason = x.heat ? Reason::heating : Reason::satisfied;
+        x.demand = phase < 60; x.temp = 2005;
         return x;
     });
     ASSERT_EQ(d.tuner.logCount(), 1u);
@@ -228,10 +228,43 @@ TEST(AutoTuner, ShortBurnsLengthenTheBurnerRun) {
     EXPECT_EQ(d.tuner.change(0).reason, AutoTuner::Reason::shortBurns);
     for (int i = 0; i < 8; ++i) d.day([](uint32_t t) {
         const uint32_t phase = t % 1500;
-        S x; x.heat = phase < 300; x.burner = phase < 120; x.temp = 2005; x.reason = x.heat ? Reason::heating : Reason::satisfied;
+        S x; x.heat = x.burner = phase < 120; x.temp = 2005; x.reason = x.heat ? Reason::heating : Reason::satisfied;
         return x;
     });
     EXPECT_EQ(d.tuning().minOnS, 600) << "the automatic upper bound";
+}
+
+// Replay of the owner's data: the boiler cycles by itself inside one request (2-5 min
+// burns). The E32's burner rest and run only shape its own request: raising them
+// would only delay heat. Evidence is the request's own starts, not the burner's;
+// a raised value goes back towards 300 with the reason in the log.
+TEST(AutoTuner, TheBoilersOwnCyclingLeavesTheRestAndRunAt300) {
+    // 06:00..22:00 one request; inside it the burner runs 3 min and pauses 3 min.
+    const auto inside = [](uint32_t burnS) {
+        return [=](uint32_t t) {
+            S x; x.heat = x.demand = t >= 6 * 3600 && t < 22 * 3600; x.reason = x.heat ? Reason::heating : Reason::idle;
+            x.burner = x.heat && t % (burnS + 180) < burnS; x.temp = 1990;
+            return x;
+        };
+    };
+    Driver d;
+    d.manual = e_start;
+    d.day(inside(180)); // 160 burner starts in 16 heating hours, one request
+    EXPECT_EQ(d.tuning().minOffS, 300); EXPECT_EQ(d.tuning().minOnS, 300);
+    EXPECT_EQ(d.tuner.logCount(), 0u);
+    // Raised before (by the old rule): one step a day back towards 300, explained.
+    ASSERT_TRUE(d.tuner.restore(R"({"values":{"min_off_s":1200,"min_on_s":420},"log":[]})"));
+    d.day(inside(180));
+    EXPECT_EQ(d.tuning().minOffS, 1050); EXPECT_EQ(d.tuning().minOnS, 360);
+    ASSERT_EQ(d.tuner.logCount(), 2u);
+    for (size_t i = 0; i < 2; ++i) EXPECT_EQ(d.tuner.change(i).reason, AutoTuner::Reason::boilerCycling);
+    EXPECT_STREQ(AutoTuner::name(AutoTuner::Reason::boilerCycling), "boiler_cycling");
+    for (int i = 0; i < 8; ++i) d.day(inside(180));
+    EXPECT_EQ(d.tuning().minOffS, 300); EXPECT_EQ(d.tuning().minOnS, 300) << "not below the floor";
+    // The log entry survives the stored record.
+    AutoTuner back;
+    ASSERT_TRUE(back.restore(d.tuner.stored().c_str()));
+    EXPECT_EQ(back.change(0).reason, AutoTuner::Reason::boilerCycling);
 }
 
 TEST(AutoTuner, OvershootLowersTheStopMarginThenTheGain) {

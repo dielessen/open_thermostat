@@ -47,7 +47,7 @@ namespace heating::control {
 // knobs. Pure and single-threaded: the caller stores stored() and applies values().
 class AutoTuner {
 public:
-    static constexpr uint64_t graceMs = 24 * 3600000ull, settleMs = 2 * 3600000ull, gapMs = 60000;
+    static constexpr uint64_t graceMs = 24 * 3600000ull, settleMs = 2 * 3600000ull, gapMs = 60000, dhwLookMs = 60000;
     static constexpr uint8_t minHours = 6, minStarts = 5;
     static constexpr size_t logSize = 10, ringSize = 24, roomIdBytes = 33;
     enum class Reason : uint8_t { manyStarts, coldDuringRest, shortBurns, overshoot, overshootGain, settled, hovering, fewStarts, roomResponse, learnedWarmup };
@@ -122,19 +122,25 @@ public:
             if (rt.settled && dt) { d.deviationSum += uint32_t(std::abs(*r.temperature - *r.setpoint)) * dt; d.deviationS += dt; }
         }
         // Burner: heating starts and burns (hot water excluded), continuous reports only;
-        // a start counts once the burner was seen off before it.
-        if (gap || !s.burnerOn) burn_ = {};
-        else if (*s.burnerOn && !burn_.on) {
-            burn_ = {true, burn_.offSeen, !s.hotWater.value_or(false), true, s.now};
-            if (burn_.measured && burn_.heating && d.starts < UINT16_MAX) ++d.starts;
-        } else if (*s.burnerOn) burn_.heating = burn_.heating && !s.hotWater.value_or(false);
+        // a start counts once the burner was seen off before it. Classified per burn, as
+        // BurnerCycleMonitor does, once it ended: the hot-water bit at any moment of it, or
+        // within dhwLookMs before its start or after its end, makes it a hot-water burn (on
+        // this boiler the bit of a keep-warm round often comes after the burner start).
+        const bool dhw = s.hotWater.value_or(false);
+        if (gap || !s.burnerOn) { burn_ = {}; ended_ = {}; dhwAt_.reset(); }
         else {
-            if (burn_.on && burn_.measured && burn_.heating) {
-                const uint64_t ms = s.now - burn_.at;
-                ++d.burns; d.burnS += uint32_t(ms / 1000);
-                if (ms < s.tuning->minOnS * 1000ull && !demand) ++d.shortBurns;
+            if (dhw) dhwAt_ = s.now;
+            if (ended_.on && dhw) ended_.heating = false;
+            if (ended_.on && (s.now - ended_.at >= dhwLookMs || (*s.burnerOn && !burn_.on))) settle(d);
+            if (*s.burnerOn && !burn_.on) burn_ = {true, burn_.offSeen, !(dhwAt_ && s.now - *dhwAt_ <= dhwLookMs), true, s.now};
+            else if (*s.burnerOn) burn_.heating = burn_.heating && !dhw;
+            else {
+                if (burn_.on && burn_.measured) {
+                    const uint64_t ms = s.now - burn_.at;
+                    ended_ = {true, burn_.heating, ms < s.tuning->minOnS * 1000ull && !demand, s.now, uint32_t(ms / 1000)};
+                }
+                burn_ = {false, false, false, true, s.now};
             }
-            burn_ = {false, false, false, true, s.now};
         }
         // Cycles from request start to request start: per room the highest overshoot.
         if (s.request.heat && !heating_) { closeCycle(); open_.used = true; }
@@ -296,6 +302,7 @@ private:
     };
     struct RoomState { std::optional<int16_t> setpoint; uint64_t changedAt = 0; std::optional<uint64_t> droppedAt; bool settled = false, measurable = false; };
     struct Burn { bool on = false, measured = false, heating = false, offSeen = false; uint64_t at = 0; };
+    struct Ended { bool on = false, heating = false, shortBurn = false; uint64_t at = 0; uint32_t s = 0; }; // a burn awaiting its class
     struct Cycle { bool used = false; uint8_t invalid = 0, demanded = 0; std::array<int16_t, RoomPlan::maxRooms> over{}; };
     struct Rest { bool on = false, valid = false; int16_t deficit = 0; uint8_t room = 0; };
     // Up to ringSize values a day (the newest replace the oldest).
@@ -316,6 +323,15 @@ private:
         std::sort(order.begin(), order.begin() + n, [&](uint8_t a, uint8_t b) { return values[a] < values[b]; });
         const uint8_t m = order[n / 2];
         return std::make_pair(values[m], rooms ? (*rooms)[m] : uint8_t(0));
+    }
+    void settle(Day& d) {
+        if (ended_.heating) {
+            if (d.starts < UINT16_MAX) ++d.starts;
+            if (d.burns < UINT16_MAX) ++d.burns;
+            d.burnS += ended_.s;
+            if (ended_.shortBurn && d.shortBurns < UINT16_MAX) ++d.shortBurns;
+        }
+        ended_ = {};
     }
     void closeCycle() {
         if (open_.used)
@@ -383,6 +399,8 @@ private:
     Day today_, yesterday_;
     std::array<RoomState, RoomPlan::maxRooms> rooms_{};
     Burn burn_;
+    Ended ended_;
+    std::optional<uint64_t> dhwAt_; // the last hot-water bit (continuous reports)
     Cycle open_;
     Rest rest_;
     std::array<std::array<int16_t, ringSize>, RoomPlan::maxRooms> over_{}; // per room the overshoot of the recent cycles

@@ -342,6 +342,33 @@ TEST(AutoTuner, NeedsEnoughEvidence) {
     EXPECT_EQ(h.tuning().minOffS, 300);
 }
 
+// Replay of the owner's data (31 Oct): the hot-water bit of a keep-warm round often
+// comes after the burner start, so those rounds counted as heating starts (31 where 3
+// were real). A burn is classified as a whole, with a minute before and after it.
+TEST(AutoTuner, KeepWarmRoundsWithALateHotWaterBitAreNoHeatingStarts) {
+    Driver d;
+    d.manual = e_start;
+    d.day([](uint32_t t) {
+        S x;
+        const uint32_t hour = t / 3600;
+        if (hour == 6 || hour == 12 || hour == 18) { x.heat = x.burner = x.demand = true; x.reason = Reason::heating; return x; } // 3 real starts
+        const uint32_t round = t / 1800, phase = t % 1800; // a keep-warm round every 30 min: 3 min burner
+        x.burner = phase < 180;
+        switch (round % 3) {
+            case 0: x.hotWater = phase >= 30 && phase < 180; break;  // the bit 30 s after the start
+            case 1: x.hotWater = (phase >= 200 && phase < 220) || phase >= 1780; break; // 20 s after its end; 20 s before the next start
+            default: break;                                          // the next round: the bit only before its start
+        }
+        return x;
+    });
+    Json root(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(d.tuner.addStatus(root.get(), d.now, d.tuning(), 0));
+    const cJSON* y = cJSON_GetObjectItem(cJSON_GetObjectItem(root.get(), "tuning"), "yesterday");
+    EXPECT_EQ(cJSON_GetObjectItem(y, "starts")->valueint, 3) << "only the heating burns";
+    EXPECT_EQ(cJSON_GetObjectItem(y, "burns")->valueint, 3);
+    EXPECT_EQ(d.tuning().minOffS, 300);
+}
+
 TEST(AutoTuner, WaitsADayAfterABootOrAChange) {
     Driver d;
     d.now = 0; d.utc = monday + 12 * 3600; // a boot at noon: the half day is no evidence

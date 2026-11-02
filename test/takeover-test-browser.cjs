@@ -128,6 +128,37 @@ const lines=list=>list.evaluate(ol=>[...ol.children].map(li=>[li.className.repla
    :'De E32 regelt nu je ketel. De testtemperatuur is afgelopen; het weekprogramma gaat verder.');
   assert.equal(await button('start').innerText(),en?'Start the boiler test again':'Keteltest opnieuw starten');
   assert.equal(await box.locator('[data-heating-test-choices]').isVisible(),false); // already taken over
+  // Taken over: active control first (state, warnings, hand-back), then the rooms; the passed test is history below,
+  // its steps folded away. The comparison of the trial run is one closed line, only when it has data.
+  const order=()=>page.evaluate(()=>[...document.querySelectorAll('#heating-plan [data-heating-active],#heating-plan [data-heating-rooms],#heating-plan [data-heating-test]')]
+   .map(e=>e.matches('[data-heating-active]')?'active':e.matches('[data-heating-rooms]')?'rooms':'test').join());
+  assert.equal(await order(),'active,rooms,test');
+  assert.equal(await box.locator('[data-heating-test-steps]').evaluate(d=>d.open),false);
+  assert.equal(await box.locator('[data-heating-test-intro]').isVisible(),false);
+  assert.equal(await box.locator('[data-heating-test-steps] > summary').innerText(),en?'Show the steps':'Toon de stappen');
+  const modeText=page.locator('#heating-plan [data-heating-mode-text]'),history=page.locator('#heating-plan [data-heating-shadow-history]');
+  assert.equal(await modeText.getAttribute('class'),'pd-help');
+  assert.equal(await history.isVisible(),false,'no trial-run data: no history line');
+  assert.equal(await page.locator('#heating-plan [data-heating-shadow]').isVisible(),false);
+  // Blocked by another thermostat: the mode line says it in red, with what to do; confirming again is the main action.
+  const taken={state:'passed',at:1762077600,steps:steps({disconnect:'pass',confirm:'pass',start:'pass',hot_water:'pass',stop:'pass'}),reason:null};
+  const sides={heat_s:600,starts:1,flow_min_c:null},trialData={today:{day:'2026-11-02',s:3600,tado_unknown_s:0,e32:sides,tado:sides,agree_s:3000,starts_within_5min:1},days:[]};
+  await show(withTest(taken,{shadow:trialData,active:{...waiting,state:'blocked_foreign_controller',awaiting_confirmation:false,warnings:['foreign_controller'],taken_over_before:true}}));
+  assert.equal(await modeText.getAttribute('class'),'alert alert-danger hp-mode');
+  assert.equal(await modeText.innerText(),en?'Stopped: another thermostat asked the boiler for heat. Disconnect it from the boiler, then confirm the takeover again below, or give control back to your thermostat.'
+   :'Gestopt: een andere thermostaat vroeg de ketel om warmte. Koppel die los van de ketel en bevestig daarna hieronder opnieuw de overname, of geef de regeling terug aan je thermostaat.');
+  const takeover=page.locator('#heating-plan [data-heating-takeover]'),takeoverWarn=page.locator('#heating-plan [data-heating-takeover-warn]');
+  assert.equal(await takeover.getAttribute('class'),'btn btn-primary');
+  assert.equal(await page.locator('#heating-plan [data-heating-handback]').isVisible(),true);
+  assert.equal(await box.locator('[data-heating-test-choices]').isVisible(),false,'no first-takeover choices after a takeover');
+  assert.equal(await order(),'active,rooms,test');
+  assert.equal(await history.locator('summary').innerText(),en?'History of the trial run':'Geschiedenis van de proefperiode');
+  assert.equal(await history.evaluate(d=>d.open),false);
+  // No room measurements: stopped, red, and where to look.
+  await show(withTest(taken,{active:{...waiting,state:'stopped_measurement_lost',awaiting_confirmation:false,confirmation:{age_s:900,restored:false},warnings:['measurement_lost']}}));
+  assert.equal(await modeText.getAttribute('class'),'alert alert-danger hp-mode');
+  assert.match(await modeText.innerText(),en?/^Stopped: no room has a temperature reading/:/^Gestopt: geen enkele ruimte heeft een temperatuurmeting/);
+  assert.equal(await takeover.isVisible(),false);
   // A failed step says what to do; an abort rule says stop and give control back, with the steps.
   await show(withTest({state:'failed',at:1762077600,steps:steps({disconnect:'pass',confirm:'pass',start:'fail'}),reason:'no_burner'}));
   now=await lines(list);
@@ -183,6 +214,26 @@ const lines=list=>list.evaluate(ol=>[...ol.children].map(li=>[li.className.repla
   current={...current,new_plan:{stored:false,mode:'active',reason:'no_thermostat'}};
   await page.waitForResponse(r=>r.url().endsWith('/config/heating')&&r.request().method()==='POST',{timeout:15000});
   assert.equal(posts[0][0],'/config/heating');assert.equal(posts[0][1].mode,'active');
+  // In a trial run the takeover button follows the checklist: not ready, a quieter "Take over anyway" with a warning.
+  const trial=(r,reason='thermostat_heard')=>({...status,mode:'shadow',active:{...waiting,state:'shadow',awaiting_confirmation:false,command:{send:false,flow_c:0,why:'shadow'}},
+   readiness:{stable:{result:'wait',s:3600,restart:'first'},...r,takeover_test:idle},new_plan:{stored:true,mode:'shadow',reason}});
+  await show(trial({state:'waiting',comparison:true}),{...plan,mode:'shadow'});
+  assert.equal(await takeover.innerText(),en?'Take over anyway':'Toch overnemen');
+  assert.equal(await takeover.getAttribute('class'),'btn btn-outline-secondary');
+  assert.match(await takeoverWarn.innerText(),en?/^Not everything in “Ready for the E32 to control the boiler\?” has passed yet\./:/^Nog niet alles bij “Klaar om de E32 de ketel te laten regelen\?” is geslaagd\./);
+  assert.equal(await button('start').getAttribute('class'),'btn btn-outline-primary');
+  assert.equal(await order(),'rooms,test,active');
+  // Ready: the boiler test is the main path; the direct takeover stays a quieter choice, without a warning.
+  await show(trial({state:'ready',comparison:true,stable:{result:'pass',s:300000,restart:'planned'}}),{...plan,mode:'shadow'});
+  assert.equal(await button('start').getAttribute('class'),'btn btn-primary');
+  assert.equal(await takeover.innerText(),en?'Skip the test and confirm the takeover now':'Test overslaan en de overname nu bevestigen');
+  assert.equal(await takeover.getAttribute('class'),'btn btn-outline-secondary');
+  assert.equal(await takeoverWarn.isVisible(),false);
+  // No thermostat on the boiler bus: the boiler test is the main path at once.
+  await show(trial({state:'waiting',comparison:false},'no_thermostat'),{...plan,mode:'shadow'});
+  assert.equal(await button('start').getAttribute('class'),'btn btn-primary');
+  assert.equal(await takeover.innerText(),en?'Take over anyway':'Toch overnemen');
+  assert.equal(await takeoverWarn.isVisible(),true);
   // Firmware without the test, or without the active gate: no card.
   await show({...status,readiness:{state:'not_applicable'}});
   assert.equal(await box.isVisible(),false);

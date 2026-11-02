@@ -3,7 +3,9 @@
     <span class="ot-chip" data-heating-request role="status" aria-live="polite"><span data-i18n="Loading…">Loading…</span></span></header>
   <div class="alert alert-danger ot-actions" data-heating-error role="alert" hidden><span data-i18n="The room plan could not be loaded. Check the connection and try again.">The room plan could not be loaded. Check the connection and try again.</span>
     <button type="button" class="btn btn-outline-secondary" data-heating-retry><span data-i18n="Retry">Retry</span></button></div>
-  <p class="pd-help" data-heating-mode-text></p>
+  <p class="pd-help" data-heating-mode-text role="status"></p>
+  <!-- Active control: who controls the boiler, its state and warnings come first (moved here by the script). -->
+  <div data-heating-top></div>
   <div class="alert ot-actions" data-heating-lock role="status"><span data-heating-lock-text><span data-i18n="Managed in Home Assistant">Managed in Home Assistant</span></span>
     <button type="button" class="btn btn-outline-primary" data-heating-unlock><span data-i18n="Edit here anyway">Edit here anyway</span></button></div>
   <div class="hp-rooms" data-heating-rooms></div>
@@ -11,12 +13,12 @@
   <p class="pd-help"><span data-i18n="Heating curve, water temperature limits and learning for the whole house:">Heating curve, water temperature limits and learning for the whole house:</span> <a href="#house" data-page="house"><span data-i18n="Home">Home</span></a></p>
   <section class="pd-panel" data-heating-test hidden>
     <h2 data-i18n="Boiler test and takeover">Boiler test and takeover</h2>
-    <p class="pd-help" data-i18n="The recommended way to let the E32 control your boiler. The E32 checks every step itself from what the boiler reports. Stay near the boiler; it takes about 30 minutes.">The recommended way to let the E32 control your boiler. The E32 checks every step itself from what the boiler reports. Stay near the boiler; it takes about 30 minutes.</p>
+    <p class="pd-help" data-heating-test-intro data-i18n="The recommended way to let the E32 control your boiler. The E32 checks every step itself from what the boiler reports. Stay near the boiler; it takes about 30 minutes.">The recommended way to let the E32 control your boiler. The E32 checks every step itself from what the boiler reports. Stay near the boiler; it takes about 30 minutes.</p>
     <p class="hp-verdict" data-heating-test-verdict role="status" aria-live="polite"></p>
     <p class="pd-help" data-heating-test-why hidden></p>
-    <ol class="hp-checks" data-heating-test-list></ol>
+    <details class="hp-test-steps" data-heating-test-steps open><summary data-i18n="Show the steps">Show the steps</summary><ol class="hp-checks" data-heating-test-list></ol></details>
     <div class="alert alert-danger" data-heating-test-abort-steps role="alert" hidden><strong data-i18n="Stop and give control back to your thermostat:">Stop and give control back to your thermostat:</strong>
-      <ol class="mb-0"><li data-i18n="Press “Give control back to my thermostat” below, or switch the boiler off.">Press “Give control back to my thermostat” below, or switch the boiler off.</li>
+      <ol class="mb-0"><li data-i18n="Press “Give control back to my thermostat”, or switch the boiler off.">Press “Give control back to my thermostat”, or switch the boiler off.</li>
         <li data-i18n="Switch the boiler off, reconnect your old thermostat to the boiler and switch the boiler back on.">Switch the boiler off, reconnect your old thermostat to the boiler and switch the boiler back on.</li>
         <li data-i18n="Check hot water and the water pressure. Start the test again once the cause is fixed.">Check hot water and the water pressure. Start the test again once the cause is fixed.</li></ol></div>
     <p class="d-flex flex-wrap gap-2">
@@ -42,28 +44,30 @@
     <ul class="hp-checks" data-heating-readiness-list></ul>
     <p class="pd-help mt-2 mb-0" data-i18n="Last step: when everything has passed, start the boiler test and takeover above.">Last step: when everything has passed, start the boiler test and takeover above.</p>
   </section>
-  <section class="pd-panel" data-heating-shadow>
-    <h2 data-heating-shadow-title></h2>
-    <p class="pd-help" data-heating-shadow-help data-i18n="Trial run (optional): the E32 works out what it would ask of the boiler, but sends nothing. Here you see that next to what your thermostat really asked.">Trial run (optional): the E32 works out what it would ask of the boiler, but sends nothing. Here you see that next to what your thermostat really asked.</p>
-    <div data-heating-shadow-body><span data-i18n="Loading…">Loading…</span></div>
-  </section>
   <section class="pd-panel" data-heating-active>
     <h2 data-i18n="Active control">Active control</h2>
-    <p class="pd-help" data-i18n="Lets the E32 control the boiler instead of your thermostat. You switch over once, while you are at home and can check the boiler.">Lets the E32 control the boiler instead of your thermostat. You switch over once, while you are at home and can check the boiler.</p>
+    <p class="pd-help" data-heating-active-intro data-i18n="Lets the E32 control the boiler instead of your thermostat. You switch over once, while you are at home and can check the boiler.">Lets the E32 control the boiler instead of your thermostat. You switch over once, while you are at home and can check the boiler.</p>
     <p class="pd-help" data-heating-active-gate hidden data-i18n="Active control is not enabled in this firmware.">Active control is not enabled in this firmware.</p>
     <div data-heating-active-state role="status" aria-live="polite"><span data-i18n="Loading…">Loading…</span></div>
-    <dl class="pd-detail-grid" data-heating-active-facts hidden></dl>
     <div class="pd-help" data-heating-active-notes hidden></div>
     <ul data-heating-active-warnings></ul>
+    <p class="alert alert-warning" data-heating-takeover-warn hidden data-i18n="Not everything in “Ready for the E32 to control the boiler?” has passed yet. Take over only while you are at home and can check the boiler; the boiler test checks each step for you.">Not everything in “Ready for the E32 to control the boiler?” has passed yet. Take over only while you are at home and can check the boiler; the boiler test checks each step for you.</p>
     <p class="d-flex flex-wrap gap-2" data-heating-active-actions hidden>
       <button type="button" class="btn btn-primary" data-heating-takeover hidden><span data-i18n="My thermostat is disconnected from the boiler — let the E32 take over">My thermostat is disconnected from the boiler — let the E32 take over</span></button>
       <button type="button" class="btn btn-outline-secondary" data-heating-handback hidden><span data-i18n="Give control back to my thermostat (the E32 first asks the boiler for no heat for a minute)">Give control back to my thermostat (the E32 first asks the boiler for no heat for a minute)</span></button>
     </p>
     <p class="pd-help" role="status" aria-live="polite" data-heating-active-message></p>
+    <dl class="pd-detail-grid" data-heating-active-facts hidden></dl>
+    <!-- The flow limits for all rooms are on the Home page (#boiler-limits); a floor-heating room with a high maximum is flagged here, beside the boiler maximum (after the state, warnings and actions). -->
+    <div class="alert alert-warning ot-actions" data-heating-flow-warn role="status" hidden><span><span data-i18n="A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.">A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.</span> <span data-heating-flow-max></span></span>
+      <a class="btn btn-outline-primary" href="#boiler-limits" data-page="boiler_limits"><span data-i18n="Change the water temperature limits">Change the water temperature limits</span></a></div>
   </section>
-  <!-- The flow limits for all rooms are on the Home page (#boiler-limits); a floor-heating room with a high maximum is flagged here. -->
-  <div class="alert alert-warning ot-actions" data-heating-flow-warn role="status" hidden><span><span data-i18n="A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.">A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.</span> <span data-heating-flow-max></span></span>
-    <a class="btn btn-outline-primary" href="#boiler-limits" data-page="boiler_limits"><span data-i18n="Change the water temperature limits">Change the water temperature limits</span></a></div>
+  <section class="pd-panel" data-heating-shadow>
+    <h2 data-i18n="Comparison with your thermostat (today)">Comparison with your thermostat (today)</h2>
+    <p class="pd-help" data-heating-shadow-help data-i18n="Trial run (optional): the E32 works out what it would ask of the boiler, but sends nothing. Here you see that next to what your thermostat really asked.">Trial run (optional): the E32 works out what it would ask of the boiler, but sends nothing. Here you see that next to what your thermostat really asked.</p>
+    <div data-heating-shadow-body><span data-i18n="Loading…">Loading…</span></div>
+  </section>
+  <details class="ot-advanced" data-heating-shadow-history hidden><summary data-i18n="History of the trial run">History of the trial run</summary></details>
   <details class="ot-advanced">
     <summary data-i18n="Where do I set what?">Where do I set what?</summary>
     <ol class="hp-flow">
@@ -83,7 +87,7 @@
 </section>
 <style>#heating-plan [hidden]{display:none!important}#heating-plan table{font-size:.85rem}#heating-plan th,#heating-plan td{padding:4px}.hp-wait>:not(.ot-head):not([data-heating-error]){display:none!important}
 .hp-rooms>details{padding:0;overflow:hidden}.hp-rooms>details>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:14px 20px;list-style:none}.hp-rooms>details>summary::-webkit-details-marker{display:none}.hp-rooms>details>summary::after{content:"▾";grid-area:1/2;justify-self:end;color:var(--ot-muted)}.hp-rooms>details[open]>summary{border-bottom:1px solid var(--ot-border);margin:0}.hp-rooms>details[open]>summary::after{content:"▴"}
-.hp-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.hp-name{font-size:1.15rem}.hp-temps{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-weight:400}.hp-src{grid-column:1/-1;font-weight:400}.hp-body{padding:4px 20px 16px}.hp-body h3{font-size:.95rem;margin:16px 0 8px;color:var(--ot-muted)}.hp-section{border-top:1px solid var(--ot-line);margin-top:12px}.hp-section>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;padding:10px 0;cursor:pointer;list-style-position:outside}.hp-body .hp-section-title{display:inline;font-size:.95rem;font-weight:600;margin:0;color:var(--ot-muted)}.hp-section-brief{flex:1 1 12rem;min-width:0;overflow-wrap:anywhere}.hp-section[open]>summary .hp-section-brief{display:none}
+.hp-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.hp-name{font-size:1.15rem}.hp-temps{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-weight:400}.hp-src{grid-column:1/-1;font-weight:400}.hp-body{padding:4px 20px 16px}.hp-body h3{font-size:.95rem;margin:16px 0 8px;color:var(--ot-muted)}.hp-section{border-top:1px solid var(--ot-border);margin-top:12px}.hp-section>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;padding:10px 0;cursor:pointer;list-style-position:outside}.hp-body .hp-section-title{display:inline;font-size:.95rem;font-weight:600;margin:0;color:var(--ot-muted)}.hp-section-brief{flex:1 1 12rem;min-width:0;overflow-wrap:anywhere}.hp-section[open]>summary .hp-section-brief{display:none}
 .hp-grid{display:grid;gap:0 16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}.hp-grid label{display:block;margin-bottom:8px}#heating-plan [data-heating-source]{display:grid;grid-template-columns:minmax(0,15rem) minmax(0,1fr) 44px;gap:8px;margin-bottom:8px}#heating-plan [data-heating-source] .btn,#heating-plan [data-heating-point] .btn{width:44px;min-width:44px;flex:none;padding:0}
 #heating-plan [data-heating-point]{gap:8px}#heating-plan [data-heating-point] input{min-width:0;padding:6px}#heating-plan [data-heating-point] [type=time]{flex:0 0 auto;width:auto}.hp-remove{margin-top:16px;padding-top:12px;border-top:1px solid var(--ot-border)}.ot-sticky [data-heating-message]{flex:1 1 12rem}.ot-empty .btn{margin-top:12px}
 .hp-locked [data-heating-add],.hp-locked [data-heating-add-first],.hp-locked .ot-sticky,.hp-locked .hp-remove{display:none!important}.hp-body{border:0;margin:0;min-width:0}.hp-brief,.hp-locked .hp-body>:not(.hp-brief){display:none!important}[data-heating-active-warnings]:empty,[data-heating-active-message]:empty{display:none}.hp-locked .hp-brief{display:grid!important}.hp-locked p.hp-brief{display:block!important}.hp-body:disabled .form-control{background:var(--ot-surface-2);opacity:1}
@@ -91,6 +95,8 @@
 .hp-mark{grid-row:span 2;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-weight:700}.hp-check--pass .hp-mark{background:var(--ot-ok-bg);color:var(--ot-ok)}.hp-check--wait .hp-mark{background:var(--ot-warn-bg);color:var(--ot-warn)}.hp-check--fail .hp-mark{background:var(--ot-err-bg);color:var(--ot-err)}
 .hp-check-head{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline}.hp-check-word{font-size:.8rem;font-weight:600}.hp-check--pass .hp-check-word{color:var(--ot-ok)}.hp-check--wait .hp-check-word{color:var(--ot-warn)}.hp-check--fail .hp-check-word{color:var(--ot-err)}.hp-check-line{color:var(--ot-muted);font-size:.88rem;overflow-wrap:anywhere}
 .hp-verdict{font-weight:600;margin:0 0 4px}.hp-verdict--ready,.hp-verdict--passed{color:var(--ot-ok)}.hp-verdict--waiting,.hp-verdict--running{color:var(--ot-warn)}.hp-verdict--not_ready,.hp-verdict--failed,.hp-verdict--stopped{color:var(--ot-err)}
+.hp-mode{margin:0 0 16px;font-weight:500}.hp-state strong{font-weight:600}.hp-state--ok strong{color:var(--ot-ok)}.hp-state--warn strong{color:var(--ot-warn)}.hp-state--err strong{color:var(--ot-err)}
+.hp-test-steps>summary{color:var(--ot-accent);font-size:.92rem}.hp-test-steps[open]>summary{display:none}[data-heating-takeover-warn]{margin:12px 0 0;font-size:.9rem}[data-heating-flow-warn]{margin:12px 0 0}
 .hp-check--now{border-color:var(--ot-warn)}.hp-check--idle .hp-mark{background:var(--ot-surface-2);color:var(--ot-muted)}.hp-test-other{border-top:1px solid var(--ot-border);margin-top:12px;padding-top:10px}#heating-plan [data-heating-test-message]:empty{display:none}
 .hp-flow{list-style:none;padding:0;margin:8px 0;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}.hp-flow li{position:relative;border:1px solid var(--ot-border);border-radius:var(--ot-r1);background:var(--ot-surface);padding:10px 12px;font-size:.88rem}.hp-flow strong{display:block;margin-bottom:2px}.hp-flow li+li::before{content:"→";position:absolute;left:-14px;top:38%;color:var(--ot-accent);font-weight:700}
 @media(max-width:560px){.hp-flow li+li::before{content:"↓";left:48%;top:-17px}#heating-plan [data-heating-source]{grid-template-columns:minmax(0,1fr) 44px}#heating-plan [data-heating-source]>select:first-child{grid-column:1/-1}.hp-rooms>details>summary{padding:12px 14px}.hp-body{padding:4px 14px 14px}
@@ -113,8 +119,9 @@
   const sourceText = {ha:"Target temperature from Home Assistant", schedule:"Target temperature from the week program", fallback:"Target temperature: fixed value without Home Assistant"};
   const activeBox = root.querySelector('[data-heating-active]'), activeMessage = activeBox.querySelector('[data-heating-active-message]');
   const takeover = activeBox.querySelector('[data-heating-takeover]'), handback = activeBox.querySelector('[data-heating-handback]');
+  const takeoverWarn = activeBox.querySelector('[data-heating-takeover-warn]'), topBox = root.querySelector('[data-heating-top]');
   const activeText = {shadow:"Trial run: your thermostat controls the boiler.",
-    awaiting_confirmation:"Not controlling the boiler yet: the E32 sends nothing until you confirm that your old thermostat is disconnected (boiler test above).",
+    awaiting_confirmation:"Not controlling the boiler yet: the E32 sends nothing until you confirm that your old thermostat is disconnected (boiler test below).",
     arming:"Switching over: waiting for fresh room readings and a reply from the boiler.", active:"The E32 controls the boiler.",
     stopped_measurement_lost:"No room measurements: the E32 asks the boiler for no heat until a reading returns.",
     stopping:"Stopping: the E32 asks the boiler for no heat for one minute.",
@@ -529,7 +536,7 @@
     // Live: position, battery and whether each valve still reports (fw/state/trv/<room>, also in /status/heating).
     card.valves = state => {
       live.replaceChildren(...(state?.valves || []).map(v => {
-        const item = el('li', null, {'data-heating-valve-state':v.name}), tone = v.health === 'ok' ? 'ok' : v.health === 'unknown' ? '' : 'err';
+        const item = el('li', null, {'data-heating-valve-state':v.name}), tone = v.health === 'ok' ? 'ok' : v.health === 'unknown' ? '' : v.health === 'low_battery' ? 'warn' : 'err';
         const facts = [typeof v.position_pct === 'number' ? uiText("open") + ' ' + v.position_pct + ' %' : '',
           typeof v.battery_pct === 'number' ? uiText("battery") + ' ' + v.battery_pct + ' %' : v.battery_low ? uiText("battery low") : ''].filter(Boolean).join(' · ');
         item.append(el('strong', v.name), el('span', healthText(v), {class:'ot-chip' + (tone && v.model !== 'ha_climate' ? ' ot-chip--' + tone : '')}), el('span', facts, {class:'pd-help'}));
@@ -558,14 +565,24 @@
     }
     setDirty(false); applyLock(); checkFlow(); showValves(status);
   }
-  // Mode texts follow the actual plan: shadow until the attended switch-over, then active control.
-  function renderMode(mode, state) {
-    const active = mode === 'active';
-    modeText.textContent = uiText(!active ? "Trial run (optional): the E32 works out what these rooms need, but sends nothing to the boiler. Your thermostat keeps controlling the boiler until you start the boiler test."
-      : state === 'awaiting_confirmation' ? "Next step: the boiler test and takeover below. Until you confirm the takeover, the E32 sends nothing to the boiler."
-      : "Active control: the E32 controls your boiler. Your old thermostat must stay disconnected.");
-    root.querySelector('[data-heating-shadow-title]').textContent = uiText(active ? "Comparison from the trial run" : "Comparison with your thermostat (today)");
-    root.querySelector('[data-heating-shadow-help]').hidden = active;
+  // The mode line says plainly who controls the boiler, what is happening and what to do; a stop is red.
+  const modeLine = {awaiting_confirmation:["Next step: the boiler test and takeover below. Until you confirm the takeover, the E32 sends nothing to the boiler.", 'info'],
+    arming:["Switching over: the E32 waits for fresh room readings and a reply from the boiler. Stay near the boiler.", 'info'],
+    stopping:["Stopping: the E32 asks the boiler for no heat for one minute. If you gave control back, reconnect your old thermostat after that.", 'warning'],
+    stopped_measurement_lost:["Stopped: no room has a temperature reading, so the E32 asks the boiler for no heat. Check the room sensors below; heating resumes by itself when a reading returns.", 'danger'],
+    blocked_foreign_controller:["Stopped: another thermostat asked the boiler for heat. Disconnect it from the boiler, then confirm the takeover again below, or give control back to your thermostat.", 'danger']};
+  function renderMode(mode, a) {
+    const [text, tone] = mode !== 'active' ? ["Trial run (optional): the E32 works out what these rooms need, but sends nothing to the boiler. Your thermostat keeps controlling the boiler until you start the boiler test.", '']
+      : modeLine[a?.state] || (a?.warnings?.length ? ["Active control: the E32 controls your boiler, but something needs attention: see the warnings below.", 'warning']
+      : ["Active control: the E32 controls your boiler. Your old thermostat must stay disconnected.", '']);
+    modeText.textContent = uiText(text); modeText.className = tone ? 'alert alert-' + tone + ' hp-mode' : 'pd-help';
+  }
+  // Active control: the trial run's comparison is history, folded away under one line (only when it has data).
+  const shadowPanel = root.querySelector('[data-heating-shadow]'), shadowHistory = root.querySelector('[data-heating-shadow-history]');
+  function placeShadow(mode, shadow) {
+    const active = mode === 'active', home = active ? shadowHistory : shadowPanel;
+    if (shadowBox.parentElement !== home) home.append(shadowBox);
+    shadowPanel.hidden = active; shadowHistory.hidden = !active || !(shadow?.today?.s > 0 || shadow?.days?.length);
   }
   function renderShadow(shadow) {
     const d = shadow?.today, days = shadow?.days || [], parts = [];
@@ -706,13 +723,18 @@
     'shadow:no_thermostat':"No other thermostat is heard on the boiler bus: you can go straight to the boiler test.",
     'active:thermostat_heard':"Another thermostat was heard on the boiler bus this time: disconnect it from the boiler in the first step.",
     'shadow:checking':"Checking the boiler bus…", 'active:checking':"Checking the boiler bus…"};
-  let testState = null, newPlan = null;
+  let testState = null, newPlan = null, lastReadiness = null;
   function renderTest(t, status) {
     const a = status?.active, mode = status?.mode || plan?.mode;
     testState = t || null;
     testBox.hidden = !t || !a?.enabled;
     if (testBox.hidden) return;
     const running = t.state === 'running', owning = a.state === 'active' || a.state === 'stopped_measurement_lost';
+    const r = status?.readiness, alone = r?.comparison === false || newPlan?.reason === 'no_thermostat';
+    // Taken over: the test is history. A pass folds its steps away (reopened per new result); the intro goes.
+    const taken = mode === 'active' && !running && a.state !== 'awaiting_confirmation', key = t.state + ':' + t.at;
+    if (testBox.dataset.result !== key) { testBox.dataset.result = key; testBox.querySelector('[data-heating-test-steps]').open = !(taken && t.state === 'passed'); }
+    testBox.querySelector('[data-heating-test-intro]').hidden = taken;
     const at = Number.isFinite(t.at) ? new Date(t.at * 1000).toLocaleString(OpenThermostatLanguage.locale, {dateStyle:'medium', timeStyle:'short'}) : '';
     const index = running ? testSteps.findIndex(([key]) => key === t.step) + 1 : 0;
     const verdict = testBox.querySelector('[data-heating-test-verdict]');
@@ -738,13 +760,17 @@
     const why = testBox.querySelector('[data-heating-test-why]'), route = newPlan && (mode + ':' + newPlan.reason);
     why.textContent = !running && !owning && testWhy[route] ? uiText(testWhy[route]) : ''; why.hidden = !why.textContent;
     testButton('start').hidden = running;
-    testButton('start').querySelector('span').textContent = uiText(mode !== 'active' && status?.readiness?.state !== 'ready' ? "Go straight to the boiler test"
+    testButton('start').querySelector('span').textContent = uiText(mode !== 'active' && r?.state !== 'ready' ? "Go straight to the boiler test"
       : t.state === 'idle' ? "Start the boiler test" : "Start the boiler test again");
+    // The primary path: in a trial run once the checklist is ready, or at once without a thermostat on the bus;
+    // before the first takeover. Otherwise a quieter button: the trial run, or the E32 already in control.
+    const lead = mode !== 'active' ? r?.state === 'ready' || alone : a.state === 'awaiting_confirmation';
+    testButton('start').className = 'btn ' + (lead ? 'btn-primary' : 'btn-outline-primary');
     testButton('confirm').hidden = !running || t.step !== 'confirm' || !!a.confirmation;
     testButton('skip-step').hidden = !running || t.step !== 'hot_water';
     testButton('stop').hidden = !running;
     // Not taken over yet: the test is the recommended path; skipping it or a trial run first are explicit choices.
-    testBox.querySelector('[data-heating-test-choices]').hidden = running || owning || mode !== 'active';
+    testBox.querySelector('[data-heating-test-choices]').hidden = running || mode !== 'active' || a.state !== 'awaiting_confirmation';
   }
   async function startTest() {
     testMessage.textContent = uiText("Starting…");
@@ -776,18 +802,33 @@
     }
     await refreshStatus();
   }
-  function renderActive(a) {
-    const box = activeBox.querySelector('[data-heating-active-state]');
+  // Who controls the boiler: green while the E32 does, red when it stopped, orange in between.
+  const activeTone = {active:'ok', stopped_measurement_lost:'err', blocked_foreign_controller:'err', stopping:'warn', arming:'warn'};
+  function renderActive(a, status) {
+    const box = activeBox.querySelector('[data-heating-active-state]'), mode = status?.mode || plan?.mode;
     activeBox.querySelector('[data-heating-active-gate]').hidden = !a || a.enabled;
-    takeover.hidden = !a?.enabled || !!a.confirmation; handback.hidden = plan?.mode !== 'active';
+    activeBox.querySelector('[data-heating-active-intro]').hidden = mode === 'active' && a?.state !== 'awaiting_confirmation';
+    // The takeover button follows the checklist (trial run): the main action only when it is ready, otherwise
+    // "Take over anyway" with a warning. With the boiler test on offer, the test is the main path. Before the
+    // first takeover the test card offers the takeover itself.
+    const r = status ? status.readiness : lastReadiness, test = !!r?.takeover_test && a?.enabled;
+    const checked = mode !== 'active' && !!readinessVerdict[r?.state], ready = !checked || r.state === 'ready';
+    takeover.hidden = !a?.enabled || !!a.confirmation || (mode === 'active' && a.state === 'awaiting_confirmation' && test);
+    handback.hidden = plan?.mode !== 'active';
+    const quiet = !ready || (mode !== 'active' && test);
+    takeover.className = 'btn ' + (quiet ? 'btn-outline-secondary' : 'btn-primary');
+    takeover.querySelector('span').textContent = uiText(!ready ? "Take over anyway" : quiet ? "Skip the test and confirm the takeover now"
+      : "My thermostat is disconnected from the boiler — let the E32 take over");
+    takeoverWarn.hidden = takeover.hidden || ready;
     activeBox.querySelector('[data-heating-active-actions]').hidden = takeover.hidden && handback.hidden;
     if (!a) { if (!activeBox.dataset.ready) box.textContent = uiText("Status unavailable"); return; }
-    const parts = [uiText(activeText[a.state] || a.state)];
+    box.className = 'hp-state' + (mode === 'active' && activeTone[a.state] ? ' hp-state--' + activeTone[a.state] : '');
+    const parts = [];
     if (a.state !== 'shadow') parts.push(uiText("Boiler request") + ': ' + (a.command.flow_c ? a.command.flow_c + ' °C' : uiText("off")));
     if (a.last_sent) parts.push(uiText("last sent") + ' ' + ago(a.last_sent.age_s));
     // The bus address belongs in the system log; here it is simply your thermostat (or, after a takeover, another controller).
     if (a.foreign_controller) parts.push(uiText(a.state === 'shadow' ? "last request from your thermostat" : "last request from another thermostat") + ' ' + ago(a.foreign_controller.age_s));
-    box.textContent = parts.join(' · ');
+    box.replaceChildren(el('strong', uiText(activeText[a.state] || a.state)), ...parts.map(p => ' · ' + p));
     // The boiler's own heating limit (0x16), the ceiling of every request; and the stored switch-over confirmation.
     const facts = activeBox.querySelector('[data-heating-active-facts]'), notes = activeBox.querySelector('[data-heating-active-notes]');
     const limit = a.boiler_limit && typeof a.boiler_limit === 'object' ? a.boiler_limit : null;
@@ -802,6 +843,22 @@
     notes.replaceChildren(...lines.map(t => el('p', t, {class:'mb-1'}))); notes.hidden = !lines.length;
     activeBox.querySelector('[data-heating-active-warnings]').replaceChildren(...a.warnings.map(w => el('li', uiText(warningText[w] || w))));
     activeBox.dataset.ready = '1';
+  }
+  // Active control first: who controls the boiler, its state, the warnings and the hand-back, then the rooms.
+  // The boiler test joins it while it runs, after a stop by a safety rule and before the first takeover;
+  // otherwise it follows the rooms as history. In a trial run the panel follows the checklist it depends on.
+  // Only a node that is out of place moves, so a refresh never takes the focus away.
+  const before = (node, ref) => { if (ref.previousElementSibling !== node) ref.before(node); };
+  function arrange(status) {
+    const t = status.readiness?.takeover_test, state = status.active?.state;
+    if ((status.mode || plan?.mode) !== 'active') {
+      before(testBox, readinessBox);
+      if (readinessBox.nextElementSibling !== activeBox) readinessBox.after(activeBox);
+      return;
+    }
+    if (topBox.firstElementChild !== activeBox) topBox.prepend(activeBox);
+    if (!(t && (t.state === 'running' || t.state === 'stopped' || (state === 'awaiting_confirmation' && plan?.rooms?.length)))) before(testBox, readinessBox);
+    else if (activeBox.nextElementSibling !== testBox) activeBox.after(testBox);
   }
   function renderRequest(status) {
     const r = status?.request;
@@ -818,16 +875,19 @@
       }
       paintLock(fromHa(status.ha));
     }
-    renderActive(status?.active);
-    renderMode(status?.mode || plan?.mode, status?.active?.state);
+    if (status) newPlan = status.new_plan && typeof status.new_plan === 'object' ? status.new_plan : null;
+    renderActive(status?.active, status);
+    renderMode(status?.mode || plan?.mode, status?.active);
     if (!status) { // keep the last good values; only a never-loaded section says so
       if (!shadowBox.dataset.ready) shadowBox.textContent = uiText("Status unavailable");
       return;
     }
+    lastReadiness = status.readiness;
     renderShadow(status.shadow); shadowBox.dataset.ready = '1';
+    placeShadow(status.mode || plan?.mode, status.shadow);
     renderReadiness(status.readiness, status.mode || plan?.mode);
-    newPlan = status.new_plan && typeof status.new_plan === 'object' ? status.new_plan : null;
     renderTest(status.readiness?.takeover_test, status);
+    arrange(status);
     root.dispatchEvent(new CustomEvent('heating-status', {detail: status})); // the flow options below
     bleSensors = Array.isArray(status.ble_sensors) ? status.ble_sensors.filter(s => s && /^[0-9a-f]{12}$/.test(s.id)) : [];
     const key = bleSensors.map(s => s.id + s.name).join();

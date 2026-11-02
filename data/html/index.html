@@ -131,12 +131,12 @@ summary{cursor:pointer;min-height:var(--ot-tap);padding:10px 0;font-weight:600}d
 .product-dashboard,.ot-page{overflow-wrap:anywhere;max-width:1180px;margin:20px auto;padding:8px}.product-dashboard p{margin:8px 0}
 .pd-heading,.ot-head,.pd-section-title,.pd-room-title{display:flex;flex-direction:column;align-items:flex-start;gap:6px}.pd-room-title h3{max-width:100%;overflow-wrap:anywhere}.pd-heading,.ot-head{margin-bottom:20px}.pd-heading p,.ot-head p{margin:4px 0 0;color:var(--ot-muted)}.pd-section-title{margin:24px 0 12px}.pd-section-title h2,.pd-heading h1,.ot-head h1{margin:0}
 .pd-panel,.pd-room,.pd-status{background:var(--ot-surface);border:1px solid var(--ot-border);border-radius:var(--ot-r2);padding:16px 20px;margin-bottom:16px}.pd-status{border-left:4px solid var(--ot-accent)}
-.ot-chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:.8rem;font-weight:600;line-height:1.4;background:var(--ot-off-bg);color:var(--ot-off)}.ot-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.ot-chip{display:inline-flex;align-items:center;gap:6px;border-radius:12px;padding:4px 10px;font-size:.8rem;font-weight:600;line-height:1.4;background:var(--ot-off-bg);color:var(--ot-off)}.ot-chip::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:currentColor}
 .ot-chip--ok{background:var(--ot-ok-bg);color:var(--ot-ok)}.ot-chip--warn{background:var(--ot-warn-bg);color:var(--ot-warn)}.ot-chip--err{background:var(--ot-err-bg);color:var(--ot-err)}.ot-chips{display:flex;flex-wrap:wrap;gap:6px}
 .pd-headline{font-size:1.3rem;font-weight:700;margin:0 0 10px!important}.pd-help,.pd-missing,.ot-hint{color:var(--ot-muted);font-size:.87rem}small.ot-hint,.ot-hint{display:block;font-size:.85rem!important;font-weight:400;margin:2px 0 4px;line-height:1.35}.product-dashboard small{font-size:.55em;font-weight:400;color:var(--ot-muted)}
-.pd-rooms{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));align-items:start;margin-bottom:8px}.pd-room-off{color:var(--ot-muted);margin:10px 0 4px!important}.pd-room details.ot-advanced{border:0;background:none;padding:0;margin:0}details.pd-away{padding-top:0;padding-bottom:0}details.pd-away[open]{padding-bottom:12px}.pd-rooms .pd-room{margin:0}
+.pd-rooms{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));align-items:stretch;margin-bottom:8px}.pd-room-off{color:var(--ot-muted);margin:10px 0 4px!important}.pd-room details.ot-advanced{border:0;background:none;padding:0;margin:0}details.pd-away{padding-top:0;padding-bottom:0}details.pd-away[open]{padding-bottom:12px}.pd-rooms .pd-room{margin:0}
 .pd-room-temperatures{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:1.9rem;font-weight:600;font-variant-numeric:tabular-nums;margin:12px 0 4px}.pd-flow-label{display:block;font-size:.8rem;font-weight:500;color:var(--ot-muted)}
-.pd-code{margin:12px 0 4px;padding:10px 14px;border-radius:var(--ot-r1);background:var(--ot-surface-2);border-left:4px solid var(--ot-accent)}.pd-code p{margin:0}.pd-code-title strong{font-size:1.25rem;font-weight:600}.pd-code-raw{margin-left:6px;font-size:.85rem;font-variant-numeric:tabular-nums}.pd-code-more{margin-top:4px!important;font-size:.9rem}.pd-code--warn{border-left-color:var(--ot-warn);background:var(--ot-warn-bg)}.pd-code--err{border-left-color:var(--ot-err);background:var(--ot-err-bg)}.pd-code--unknown{border-left-color:var(--ot-field)}
+.pd-code{margin:12px 0 4px;padding:10px 14px;border-radius:var(--ot-r1);background:var(--ot-surface-2);border-left:4px solid var(--ot-accent)}.pd-code p{margin:0}.pd-code-title strong{font-size:1.25rem;font-weight:600}.pd-code .pd-code-raw{margin-left:6px;font-size:.85rem;font-weight:500;font-variant-numeric:tabular-nums}.pd-code-more{margin-top:4px!important;font-size:.9rem}.pd-code--warn{border-left-color:var(--ot-warn);background:var(--ot-warn-bg)}.pd-code--err{border-left-color:var(--ot-err);background:var(--ot-err-bg)}.pd-code--unknown{border-left-color:var(--ot-field)}
 .pd-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,132px),1fr));gap:10px;margin:12px 0}.pd-fact{margin:0;padding:10px 14px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}.pd-fact h3{font-size:.85rem;font-weight:500;color:var(--ot-muted);margin:0;overflow-wrap:normal;hyphens:auto}.pd-value{font-size:1.5rem;font-weight:600;font-variant-numeric:tabular-nums}
 .pd-trend{display:block;width:100%;height:56px;margin-top:10px}.pd-trend-legend{display:flex;flex-wrap:wrap;gap:2px 14px}.pd-trend-legend span{white-space:nowrap}.pd-trend-legend span[data-line]::before{content:"";display:inline-block;width:18px;margin-right:6px;vertical-align:middle;border-top:2.5px solid var(--ot-accent)}.pd-trend-legend span[data-line=target]::before{border-top:2px dashed var(--ot-focus)}.pd-actual-line{fill:none;stroke:var(--ot-accent);stroke-width:2.5;stroke-linejoin:round}.pd-target-line{fill:none;stroke:var(--ot-focus);stroke-width:2;stroke-dasharray:5 4}
 details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1);background:var(--ot-surface-2);padding:0 16px;margin-bottom:10px}details.ot-advanced[open]{padding-bottom:8px}
@@ -145,6 +145,12 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
 .ot-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.ot-big{font-size:1.9rem;font-weight:600;font-variant-numeric:tabular-nums}.ot-big small{font-size:.5em;color:var(--ot-muted)}
 .ot-sticky{position:sticky;bottom:0;z-index:5;background:var(--ot-surface);border:1px solid var(--ot-border);border-radius:var(--ot-r2) var(--ot-r2) 0 0;padding:10px 16px;box-shadow:0 -4px 14px rgba(0,0,0,.08)}.ot-sticky p{margin:0}
 @media(max-width:560px){.product-dashboard,.ot-page{margin:16px 0 8px;padding:0}.pd-panel,.pd-room,.pd-status{padding:14px}h1{font-size:1.45rem}.pd-room-temperatures{font-size:1.6rem}}
+/* GUI review rc.2: one rhythm for every page */
+a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-title a{display:inline-flex;align-items:center;min-height:var(--ot-tap)}
+.pd-room{display:flex;flex-direction:column}.pd-room-title h3,.hp-name,.hl-room h4{hyphens:auto}.pd-room>details:first-of-type{margin-top:auto}.pd-room>details{border-top:1px solid var(--ot-border)}.pd-room>details:first-of-type{padding-top:4px}.pd-room details>summary{font-size:.92rem;color:var(--ot-accent);padding:10px 0}
+.pd-room .oth-summary{font-size:.85rem;color:var(--ot-muted)}.pd-status .pd-code{margin:12px 0 0}.pd-facts:empty{display:none}.pd-boiler-wait{margin:12px 0!important;padding:16px}
+.pd-detail-grid,.ot-kv{max-width:46rem}@media(max-width:560px){#heating-plan dl.hp-brief{grid-template-columns:minmax(0,1fr);gap:2px}#heating-plan dl.hp-brief dt{color:var(--ot-muted);font-size:.8rem}#heating-plan dl.hp-brief dd{text-align:left;margin-bottom:8px}}
+#heating-plan [data-heating-active-warnings]:not(:empty){list-style:none;margin:12px 0;padding:10px 14px;border-left:4px solid var(--ot-err);border-radius:var(--ot-r1);background:var(--ot-err-bg)}#heating-plan [data-heating-active-warnings] li+li{margin-top:6px}
 [data-legacy-editor][hidden]{display:none!important}
 @keyframes blink{0%{opacity:0}50%{opacity:.5}100%{opacity:1}}@keyframes alternateA{0%,45%{opacity:1}50%,95%{opacity:0}100%{opacity:1}}@keyframes alternateB{0%,45%{opacity:0}50%,95%{opacity:1}100%{opacity:0}}
 </style>
@@ -891,12 +897,12 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             d.raw = d.code + (d.cause !== null ? ' ' + d.cause : '');
             return d;
         }
-        function dashboardBoilerCodeHtml(d) {
+        function dashboardBoilerCodeHtml(d, key) {
             if (!d) return '';
             var tone = d.lockout ? ' pd-code--err' : d.fault ? ' pd-code--warn' : d.known ? '' : ' pd-code--unknown';
             var title = d.known ? d.text : uiText("Display code") + ' ' + d.raw;
             var more = d.known ? (d.fault ? d.severityText + '. ' : '') + d.advice : d.text;
-            return '<div class="pd-code' + tone + '" data-dashboard-key="boiler-code" role="status"><p class="pd-code-title"><strong data-code-meaning>' +
+            return '<div class="pd-code' + tone + '" data-dashboard-key="' + (key || 'boiler-code') + '"' + (key ? '' : ' role="status"') + '><p class="pd-code-title"><strong data-code-meaning>' +
                 dashboardText(title) + '</strong>' + (d.known ? ' <small class="pd-code-raw" data-code-raw>' + dashboardText(d.raw) + '</small>' : '') + '</p>' +
                 (more && (d.severity !== 'normal' || !d.known) ? '<p class="pd-code-more">' + dashboardText(more) + '</p>' : '') + '</div>';
         }
@@ -1276,10 +1282,12 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 chip(mode,ems.warmWaterActive===true||ems.heatingActive===true?'ok':'')+
                 (boilerCode && boilerCode.fault ? chip(uiText("Boiler fault")+' '+boilerCode.code,boilerCode.lockout?'err':'warn') : '')+
                 (known?chip(dashboardBool(demand,uiText("Heat demand"),uiText("No heat demand")),demand===true?'ok':''):'')+controlChip+haChip+'</p></div>'+
+                // A fault or lockout is the first thing to read: its meaning and what to do, not only a chip.
+                (boilerCode && boilerCode.fault ? dashboardBoilerCodeHtml(boilerCode,'boiler-alert') : '')+
                 (statusHelp?'<p class="pd-help">'+dashboardText(statusHelp)+'</p>':'')+
                 (freshText?'<p class="pd-help"><span>'+dashboardText(freshText)+'</span></p>':'')+'</section>'+
                 uiHtml("<div class=\"pd-section-title\"><h2>Rooms</h2>")+(engine && !haFresh ? '<a href="#rooms" data-page="heating">'+uiText("Change rooms and week programs")+'</a>' :
-                uiHtml("<span class=\"pd-help\">Controls and programs in Home Assistant</span>"))+'</div>'+(engine ? comfortAway(engine.away) : '')+'<div class="pd-rooms">';
+                uiHtml("<span class=\"pd-help\">Controls and programs in Home Assistant</span>"))+'</div>'+(engine && cards.length ? comfortAway(engine.away) : '')+'<div class="pd-rooms">';
             if (!cards.length) html += '<div class="pd-empty ot-empty"><strong>'+(known?uiText("No rooms yet"):uiText("No current control status"))+'</strong>'+
                 (state && !engine?uiText("There are no rooms in the configuration read back yet."):uiText("Set up rooms on the Rooms page, or connect Home Assistant."))+
                 (engine?'<br><a class="btn btn-primary mt-2" href="#rooms" data-page="heating">'+uiText("Add room")+'</a>':'')+'</div>';
@@ -1295,13 +1303,14 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                     uiHtml("<details class=\"pd-room-detail\"><summary>Technical details</summary>")+c.details+'</details></article>';
             });
             html += '</div>'+(trendPending && cards.length ? uiHtml("<p class=\"pd-help\" data-dashboard-key=\"trend-hint\">The trend appears after two reports.</p>") : '')+
-                (engine && dashboardHistory ? (function(chart) { return chart ? '<section class="pd-panel pd-history" data-dashboard-key="boiler-history">'+chart+'</section>' : ''; })(OpenThermostatHistory.boiler(dashboardHistory)) : '')+
                 '<section class="pd-panel pd-boiler">'+dashboardBoilerCodeHtml(boilerCode)+'<div class="pd-facts">'+
                 fact(uiText("Water to heating"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C')+
                 fact(uiText("Water back"),dashboardNumber(ems.currentReturnTemperature,10,-20,150),'°C')+
                 fact(uiText("Burner power"),dashboardNumber(ems.currentBurnerPower,1,0,100),'%')+
-                fact(uiText("Pressure"),dashboardNumber(ems.pressure,10,0,10),'bar')+
-                uiHtml("</div><div class=\"pd-lower\"><details class=\"ot-advanced\"><summary>More boiler data</summary><dl class=\"pd-detail-grid\">");
+                fact(uiText("Pressure"),dashboardNumber(ems.pressure,10,0,10),'bar')+'</div>'+
+                ([ems.currentFlowTemperature,ems.currentReturnTemperature,ems.currentBurnerPower,ems.pressure].some(function(v){return typeof v === 'number' && Number.isFinite(v);}) || boilerCode ? '' :
+                    '<p class="ot-empty pd-boiler-wait" data-dashboard-key="boiler-wait">'+uiText("Waiting for boiler data")+'</p>')+
+                uiHtml("<div class=\"pd-lower\"><details class=\"ot-advanced\"><summary>More boiler data</summary><dl class=\"pd-detail-grid\">");
             // Reliable reported fields only, and only when a value was received.
             // Flame/pump/fan bits, flow rate and the read-back setpoint are not
             // reliable on Classic boilers; the boiler page lists them with quality.
@@ -1312,6 +1321,8 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             [['currentWarmWaterTemperature',uiText("Hot water temperature"),10,-20,150],['selectedWarmWaterTemperature',uiText("Hot water target (as the boiler reports it)"),1,0,150],['outdoorTemperature',uiText("Outdoor temperature (boiler sensor)"),100,-60,60]].forEach(function(item){var value=dashboardNumber(ems[item[0]],item[2],item[3],item[4]);detail(item[1],value===null||value===undefined||value===''?null:dashboardValue(value,'°C'));});
             if (!shown) html += '<dt>'+uiText("Boiler data")+'</dt><dd>'+uiText("No reliable values received yet")+'</dd>';
             html += uiHtml("</dl><p class=\"pd-help\">Only values the boiler reported recently are shown; all values are on the Boiler page. They are what the boiler says, not separate measurements.</p></details></div></section>")+
+                // The boiler as it is now first, then its last 24 hours.
+                (engine && dashboardHistory ? (function(chart) { return chart ? '<section class="pd-panel pd-history" data-dashboard-key="boiler-history">'+chart+'</section>' : ''; })(OpenThermostatHistory.boiler(dashboardHistory)) : '')+
                 uiHtml("<section class=\"pd-panel\"><h2>How this works</h2><details class=\"ot-advanced\" data-dashboard-key=\"shadow-mode-help\"><summary>Who controls the boiler?</summary><p>")+
                 (controlling ? uiText("Active control: the E32 controls your boiler. Your old thermostat must stay disconnected.") :
                 uiText("Trial run: your own thermostat still controls the boiler. The E32 only reads the boiler data and works out what it would do, so you can compare. It sends nothing to the boiler."))+'</p>'+

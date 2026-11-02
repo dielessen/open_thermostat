@@ -1,12 +1,12 @@
 <section id="githubUpdate" class="ot-page" aria-labelledby="updateHeading">
  <header class="ot-head"><div><h1 id="updateHeading"><span data-i18n="Firmware update">Firmware update</span></h1>
-  <p><span data-i18n="Releases from">Releases from</span> <a href="https://github.com/dielessen/open_thermostat/releases" target="_blank" rel="noopener" style="display:inline-block;min-height:44px;line-height:44px">dielessen/open_thermostat</a><span data-i18n=". Installation starts only when you press the button. Your WiFi, rooms and programs are retained; the web interface is updated with the firmware.">. Installation starts only when you press the button. Your WiFi, rooms and programs are retained; the web interface is updated with the firmware.</span></p></div></header>
+  <p><span data-i18n="Releases from">Releases from</span> <a href="https://github.com/dielessen/open_thermostat/releases" target="_blank" rel="noopener" style="display:inline-block;padding:12px 0;margin:-12px 0">dielessen/open_thermostat</a><span data-i18n=". Installation starts only when you press the button. Your WiFi, rooms and programs are retained; the web interface is updated with the firmware.">. Installation starts only when you press the button. Your WiFi, rooms and programs are retained; the web interface is updated with the firmware.</span></p></div></header>
  <div class="pd-panel">
   <p><span data-i18n="Installed:">Installed:</span> <strong id="installedVersion"><span data-i18n="Loading…">Loading…</span></strong></p>
   <p id="releaseStatus" role="status" aria-live="polite"></p>
   <div class="ot-actions mb-3"><button type="button" id="checkReleases" class="btn btn-secondary" disabled><span data-i18n="Check for updates">Check for updates</span></button></div>
   <label for="releaseChoice" class="d-block"><span data-i18n="Available compatible releases">Available compatible releases</span></label>
-  <select id="releaseChoice" class="form-control" disabled data-hint="Only releases that fit this device are listed."><option value="" data-i18n="Check for updates first">Check for updates first</option></select>
+  <select id="releaseChoice" class="form-control mb-2" disabled data-hint="Only releases that fit this device are listed."><option value="" data-i18n="Check for updates first">Check for updates first</option></select>
   <div class="ot-actions"><button type="button" id="installRelease" class="btn btn-primary" disabled><span data-i18n="Download and install">Download and install</span></button>
   <button type="button" id="restartRelease" class="btn btn-success" hidden><span data-i18n="Restart and apply update">Restart and apply update</span></button></div>
   <progress id="releaseProgress" class="w-100 mt-3" hidden></progress>
@@ -20,7 +20,6 @@
    <pre id="updateCheckpoint" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
    <pre id="updateDownloadError" style="white-space:pre-wrap;overflow-wrap:anywhere" hidden></pre>
   </details>
-</section>
 <details class="ot-advanced" id="manualUpdate">
 <summary data-i18n="Manual upload / recovery">Manual upload / recovery</summary>
 <p><span data-i18n="Use compatible app firmware only, never the combined factory file. A SPIFFS upload can replace rooms and programs; it is not needed for normal GitHub updates.">Use compatible app firmware only, never the combined factory file. A SPIFFS upload can replace rooms and programs; it is not needed for normal GitHub updates.</span></p>
@@ -41,6 +40,7 @@
 	<div class="progress mb-2" style="height: 1.5rem;"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progressbar" style="height: 100%"></div></div>
 </form>
 </details>
+</section>
 
 <script type='text/javascript'>
 // Browser-side release check. Only an explicit button press contacts GitHub;

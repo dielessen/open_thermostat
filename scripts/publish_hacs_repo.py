@@ -38,9 +38,12 @@ and the issue tracker live in the main repository: <{source}>.
 1. In Home Assistant open **HACS**, the three dots at the top right, **Custom repositories**.
 2. Repository: `https://github.com/dielessen/openthermostat-ha`, type **Integration**, **Add**.
 3. Find **OpenThermostat** in HACS, **Download**, and restart Home Assistant.
-   Release candidates (for example 1.0.0rc1) are pre-releases: switch on
-   **Show beta versions** for this repository to see them.
-4. **Settings → Devices and services → Add integration → OpenThermostat**, and follow
+   Release candidates (for example 1.0.0rc1) are pre-releases: open the three dots of
+   **OpenThermostat**, **Download** (or **Redownload**), and pick the version under
+   **Need a different version?**. To be offered pre-releases as updates, switch on the
+   **Pre-release** switch of the OpenThermostat device under **Settings → Devices &
+   services → HACS** (enable the entity first).
+4. **Settings → Devices & services → Add integration → OpenThermostat**, and follow
    the steps. The installation guide explains everything: <{source}/blob/main/docs/INSTALL.md>.
 
 Requirements: Home Assistant {ha} or newer, an MQTT broker (the MQTT integration), and an

@@ -59,7 +59,7 @@ examples; use your own.
   before the update, the stored confirmation becomes a request to confirm
   again (`active.reconfirm_required`, `active.reconfirm_stored`). The E32
   sends the boot zero and then waits for you: Home Assistant shows the Repairs
-  issue **Confirm the takeover again** with one confirm action (the Rooms page
+  issue **Confirm again that the E32 may control the boiler** with one confirm action (the Rooms page
   works too). Until then it keeps **only frost protection**: the plan minimum
   flow while a room reads below 8 °C (`why: frost_unconfirmed`), and only from
   60 s after boot and 2 minutes of boiler reception without a foreign 0x1A.
@@ -124,11 +124,11 @@ Where to look:
 | What | E32 page | REST | MQTT (`<prefix>/v1/fw/telemetry/…`) | Home Assistant |
 | --- | --- | --- | --- | --- |
 | State, request, last sent, warnings | Rooms → Active control | `/status/heating` → `active` | `heating` | Heating problem (after 5 min) |
-| Confirmation kept | — | `active.awaiting_confirmation`, `active.confirmation {age_s, restored, listened_s}`, `active.confirmation_stored`, `active.reconfirm_required`, `active.reconfirm_stored` | `heating` | Repairs: Confirm the takeover again (after an update) |
+| Confirmation kept | — | `active.awaiting_confirmation`, `active.confirmation {age_s, restored, listened_s}`, `active.confirmation_stored`, `active.reconfirm_required`, `active.reconfirm_stored` | `heating` | Repairs: Confirm again that the E32 may control the boiler (after an update) |
 | Boiler maximum | Rooms, and Home → Water temperature limits | `active.boiler_limit {flow_c, age_s, reads}` (`reads`: the E32's own 0x16 requests this boot) | `heating` | — |
 | Rooms | Rooms | `rooms[]` | `heating` | Temperature, Target temperature, Control status, Heat demand |
-| Boiler | Boiler | `/status/ems/telemetry` → `fields` | `boiler_fields` | Flow temperature, Selected flow temperature, Heating active, Hot water active, Burner modulation, Water pressure |
-| Starts | — | `/status/heating` → `burner` | `heating` | Burner starts last hour, Burner short cycling |
+| Boiler | Boiler | `/status/ems/telemetry` → `fields` | `boiler_fields` | Water temperature to heating (flow), Water temperature target (boiler), Heating active, Hot water active, Burner power, Water pressure |
+| Starts | — | `/status/heating` → `burner` | `heating` | Burner starts last hour, Burner switching on and off too often |
 | Restarts, memory, MQTT | System → Diagnostics and system log | `/status/logs` → `previous_boot`, `runtime` | `device_status` | uptime |
 | Day figures | — | — | — | Daily summary (burner time, starts, short runs, time to target, missed comfort, gas) |
 
@@ -153,7 +153,7 @@ foreign 0x1A keeps growing. Also check the boiler's own display.
   4. the sources work, and a fallback source (for example a Bluetooth sensor)
      has taken over at least once.
   The E32 checks these itself: the Rooms page shows **Ready for the E32 to control the boiler?**
-  (in Home Assistant the sensor *Takeover readiness*) with each criterion
+  (in Home Assistant the sensor *Ready for E32 control*) with each criterion
   green, orange (waiting, with its progress) or red (with what to do), and
   "Ready: start the boiler test and takeover above" only when all pass. See
   [USER-GUIDE.md](USER-GUIDE.md#ready-for-the-e32-to-control-the-boiler) for the exact thresholds.
@@ -170,7 +170,7 @@ foreign 0x1A keeps growing. Also check the boiler's own display.
   minimum free internal heap stays at or above 20000 bytes.
 - The room plan: the rooms to heat are active with a fresh source, a week
   program and a "temperature without Home Assistant", unused rooms are
-  inactive, and the flow limits suit the emitters (floor heating without a
+  inactive, and the water temperature limits suit the emitters (floor heating without a
   mixing valve usually at most 45–50 °C).
 - Someone at the boiler, an independent stop (the boiler's heating switch or
   main switch), normal water pressure, no active fault, and a day with heat
@@ -226,15 +226,15 @@ other tests stay attended by hand.
 
 | Test | Do | Pass when | Check |
 | --- | --- | --- | --- |
-| Start | Target ~1 °C above the room | Heating active within 2 min (up to ~10 min boiler anti-cycling); flow rises ≥ 3 °C within 15 min | Page: request and last sent; HA: Heating active, Flow temperature; bus: Selected flow = request |
-| Modulation | Target +1, +2, +3 °C | Flow follows the request within ±3 °C; never above the ceiling; heating stays on across the 60 s refresh | HA: Boiler request (E32) vs Flow and Selected flow; monitor: no `request_above_limit` |
+| Start | Target ~1 °C above the room | Heating active within 2 min (up to ~10 min boiler anti-cycling); flow rises ≥ 3 °C within 15 min | Page: request and last sent; HA: Heating active, Water temperature to heating (flow); bus: Selected flow = request |
+| Modulation | Target +1, +2, +3 °C | Flow follows the request within ±3 °C; never above the ceiling; heating stays on across the 60 s refresh | HA: Boiler request (E32) vs Water temperature to heating (flow) and Water temperature target (boiler); monitor: no `request_above_limit` |
 | Stop | Target ≥ 0.5 °C below the room | Minimum burner time respected; heating off within ~30 s of the first zero; no restart within 5 min | Page: reason; HA: Heating active, Burner starts last hour |
 | Hot water while heating | Open a hot tap 3 min | Hot water has priority; heating resumes within 5 min; no stop, no warning | HA: Hot water active, Heating active; page stays `active` |
-| Hand-back button | Press **Give control back to my thermostat** | Zero for at least a minute, then shadow mode; nothing sent afterwards | Page text; `transmitted_frames` stops; monitor `handed_back` |
+| Hand-back button | Press **Give control back to my thermostat** | Zero for at least a minute, then the trial run ("Trial run: your thermostat controls the boiler."); nothing sent afterwards | Page text; `transmitted_frames` stops; monitor `handed_back` |
 | E32 restart | System → Restart device while heating | `arming` with `confirmation.restored`, then back to `active` about 130 s after boot (2 min of boiler reception without a foreign 0x1A), within ~4 min, **without** a new confirmation; record what the boiler does in the gap | Monitor `e32_restarted` with reset reason; page |
 | E32 power cut | Remove the E32's power, up to 30 min | What the boiler or adapter does without requests is measured and timed (holds the request or times out) | Boiler display and flow pipe; after power-on as above |
 | Wi-Fi off (20 min) | Switch the access point off | Control continues on the fallback sensor and week program; **no restart** afterwards | Uptime keeps counting; monitor shows no restart |
-| Home Assistant off | Stop HA Core (and separately the broker) | Fallback source and week program within 15 min; no stop, no restart; HA source back within 5 min after restart | Page: room status "Fallback source" |
+| Home Assistant off | Stop HA Core (and separately the broker) | Fallback source and week program within 15 min; no stop, no restart; HA source back within 5 min after restart | Page: room status "Backup sensor in use" |
 | Measurement lost | Remove the fallback sensor's battery while HA is off | "Sensor silent: last reading used" at 15 min; zero and `stopped_measurement_lost` at 30 min; resumes by itself when the reading returns | Page, monitor `guard_stopped` then resolved |
 | Foreign controller | Reconnect the old thermostat while active | The E32 stops and warns by itself within about a minute; after a restart it waits for confirmation | Page: `blocked_foreign_controller`, `foreign_controller` warning |
 | Frost (simulated) | Cool a sensor of an inactive room below 8 °C | Minimum flow with reason `frost_minimum`; off again at 9 °C | Page: request; monitor: no `frost_not_protected` |
@@ -281,7 +281,7 @@ minutes, a room well above target while the E32 still asks heat, or any doubt.
 5. Suspect firmware? Reinstall the known-good build. A firmware change does
    not carry the confirmation over: the E32 sends the boot zero, then at most
    frost protection while it hears no other thermostat, and Home Assistant
-   asks **Confirm the takeover again**. Do not confirm that while the old
+   asks **Confirm again that the E32 may control the boiler**. Do not confirm that while the old
    thermostat is connected; its first request ends the wait anyway.
 
 ## The first 48 hours and the first two weeks

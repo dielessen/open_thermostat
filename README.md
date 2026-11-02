@@ -111,8 +111,8 @@ Firmware entity in Home Assistant.
   System menu holds network, password, backup, Bluetooth sensors, updates and
   diagnostics; the Boiler page shows values and the attended test only.
 - **Home:** house mode Automatic, At home, Away or Holiday until a date (warm
-  again in time), presence with several people, the flow limits, heating
-  curve and learned flow, and the energy inputs.
+  again in time), presence with several people, the water temperature
+  limits, heating curve and learned water temperature, and the energy inputs.
 - **Rooms:** persons per room, window and door contacts per room, a week
   planner with Comfort, Eco and Night levels, and on the E32 a room card with
   collapsible blocks and a one-line summary each.
@@ -150,9 +150,9 @@ qualification is required.
 | Where rooms are edited | **Available:** without Home Assistant on the E32 Rooms page. With Home Assistant its room editor is the one place to edit; the E32 Rooms page is then read-only with "Edit here anyway" as a fallback. Both work on the same plan with a revision number, so neither side silently overwrites a newer change. |
 | Target temperature and week program | **Shadow:** every room runs its own week program on the E32 (up to six switch points a day), starting from a "Workdays and weekend" template. An optional setting device per room (a radiator valve, a thermostat such as tado, or a number in Home Assistant) is set to the program's temperature at every switch point; turning it is an override until the next switch point. Without a valid clock a room keeps its temperature without Home Assistant. Night setback and morning warm-up continue when HA is away. |
 | Time zone | **Available:** week programs and daily figures run in the E32's own time zone (any POSIX time zone with its summer-time rule). |
-| Boiler request | **Shadow:** the flow temperature follows the largest room shortfall between the flow limits (default 30–60 °C; the maximum can be set up to 80 °C), with five-minute minimum burner on and off times. The limits are set in Home Assistant or on the E32; the boiler's own maximum heating temperature always stays the ceiling. |
+| Boiler request | **Shadow:** the flow temperature follows the largest room shortfall between the water temperature limits (default 30–60 °C; the maximum can be set up to 80 °C), with five-minute minimum burner on and off times. The limits are set in Home Assistant or on the E32; the boiler's own maximum heating temperature always stays the ceiling. |
 | Comparison with your thermostat | **Available** where a thermostat controls the boiler over EMS: heating time, burner starts, flow range and start timing of the E32 decision next to the thermostat's actual request: today and the last seven days on the E32 Rooms page, today's figures as HA sensors. A home without such a thermostat gets no comparison entities. |
-| Learning per room | **Shadow, advice only:** warm-up rate per flow temperature and the lowest flow that still warms the room 1 °C in an acceptable time, as HA sensors "Learning status" and "Recommended flow". Needs several stable heating periods before a result is shown. Not applied to the boiler request. |
+| Learning per room | **Shadow, advice only:** warm-up rate per flow temperature and the lowest flow that still warms the room 1 °C in an acceptable time, as HA sensors "Learning status" and "Recommended water temperature". Needs several stable heating periods before a result is shown. Not applied to the boiler request. |
 | Optimum start | **Shadow, advice only:** HA sensor "Predicted heating start" for the next week-program rise. Not applied. |
 | Night-setback estimate | **Shadow, estimate only:** holding the night temperature versus letting it drop, in kWh, m³ and €, as attributes of "Predicted heating start". Needs a valid clock and an outdoor temperature (from the boiler or Home Assistant). With a gas meter in Home Assistant the estimates are calibrated against measured gas use. |
 | Heating advice | **Available in Home Assistant, advice only:** short cycling, a maximum heating temperature above what the house needs, a return too warm for condensing, the flow the rooms need, night setback, hot-water temperature and water pressure, each with what to change, where, and a confidence. Never changes a setting. |
@@ -199,7 +199,7 @@ pressure reading is substituted.
 
 | Feature | Current status |
 | --- | --- |
-| Native HA integration | **Optional, available:** room editor with flow limits, a "Heating" dashboard, per-room devices, Bluetooth sensors, the boiler request, heating advice and shadow-comparison sensors, in °C or °F. Uses a local MQTT broker; the E32 address may be an IP address or a local name ending in `.local`, `.lan`, `.home`, `.internal`, `.localdomain`, `.fritz.box` or `.home.arpa`. |
+| Native HA integration | **Optional, available:** room editor with water temperature limits, a "Heating" dashboard, per-room devices, Bluetooth sensors, the boiler request, heating advice and shadow-comparison sensors, in °C or °F. Uses a local MQTT broker; the E32 address may be an IP address or a local name ending in `.local`, `.lan`, `.home`, `.internal`, `.localdomain`, `.fritz.box` or `.home.arpa`. |
 | Energy inputs | **Optional, available:** gas meter (m³ or kWh), gas price sensor or fixed price, calorific value, outdoor temperature sensor or weather entity and boiler power, chosen in Home Assistant. Without them everything works, with rougher estimates. |
 | Entity cleanup | **Available:** removes this integration's own duplicate or never-reported entities. Renamed or changed entities and other integrations' entities are never removed. An optional **Tidy entity IDs** (Configure → Advanced and diagnostics) gives long IDs the shorter ones Home Assistant would choose today, with a preview and undo for 30 days. |
 | Daily summary and warnings | **Available in Home Assistant:** a Daily summary sensor (burner time, starts, short runs, gas, time to target and missed comfort per room, two weeks as attributes) and the Heating problem sensor, whose problems also appear under Repairs as "Heating needs attention". |
@@ -278,7 +278,8 @@ Demonstration with sample data, not a live capture.
 
 Demonstration with sample data, not a live capture. Rooms are shown
 read-only because they are managed in Home Assistant; "Edit here anyway" unlocks
-editing on the E32. The flow limits show the maximum set on the boiler.
+editing on the E32. The water temperature limits show the maximum set on the
+boiler.
 
 </details>
 

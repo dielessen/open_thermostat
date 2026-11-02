@@ -2988,7 +2988,7 @@
           "reconfirm_not_released": "To oprogramowanie E32 nie pozwala E32 sterować kotłem. Nic nie zostało zmienione.",
           "reconfirm_unconfirmed": "E32 tego nie potwierdził. Sprawdź na E32 stronę Rooms → Active control.",
           "e32_unreachable": "E32 jest teraz nieosiągalny. Spróbuj ponownie za chwilę.",
-          "e32_password_change_required": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian. Najpierw wybierz nowe hasło E32 (Ustawienia → Naprawy), a potem potwierdź tutaj."
+          "e32_password_change_required": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian. Najpierw wybierz nowe hasło E32 (Ustawienia → Naprawy → „E32 nadal używa domyślnego hasła”), a potem potwierdź tutaj."
         },
         "abort": {
           "reconfirm_done": "E32 nie czeka już na potwierdzenie.",
@@ -3092,7 +3092,7 @@
           "e32_update_required": "E32 ma do tego zbyt stare oprogramowanie. Najpierw zaktualizuj E32 do beta.19 lub nowszego (Home Assistant: Ustawienia → Aktualizacje → OpenThermostat E32 Firmware → Zainstaluj), a potem spróbuj ponownie. Nic nie zostało zmienione.",
           "e32_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
           "e32_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie.",
-          "e32_password_change_required": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian, dopóki nie wybierzesz nowego. Otwórz Ustawienia → Naprawy → „Wybierz nowe hasło E32”. Nic nie zostało zapisane."
+          "e32_password_change_required": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian, dopóki nie wybierzesz nowego. Otwórz Ustawienia → Naprawy → „E32 nadal używa domyślnego hasła”, aby je wybrać. Nic nie zostało zapisane."
         },
         "abort": {
           "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
@@ -3134,7 +3134,7 @@
           "e32_update_required": "E32 ma do tego zbyt stare oprogramowanie. Najpierw zaktualizuj E32 do beta.19 lub nowszego (Home Assistant: Ustawienia → Aktualizacje → OpenThermostat E32 Firmware → Zainstaluj), a potem spróbuj ponownie. Nic nie zostało zmienione.",
           "e32_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
           "e32_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie.",
-          "e32_password_change_required": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian, dopóki nie wybierzesz nowego. Otwórz Ustawienia → Naprawy → „Wybierz nowe hasło E32”. Nic nie zostało zapisane."
+          "e32_password_change_required": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian, dopóki nie wybierzesz nowego. Otwórz Ustawienia → Naprawy → „E32 nadal używa domyślnego hasła”, aby je wybrać. Nic nie zostało zapisane."
         },
         "abort": {
           "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
@@ -3383,7 +3383,7 @@
       "message": "Nie udało się utworzyć kopii ustawień E32. Spróbuj ponownie za minutę."
     },
     "e32_password_change_required": {
-      "message": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian, dopóki nie wybierzesz nowego. Otwórz Ustawienia → Naprawy → „Wybierz nowe hasło E32”. Nic nie zostało zapisane."
+      "message": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian, dopóki nie wybierzesz nowego. Otwórz Ustawienia → Naprawy → „E32 nadal używa domyślnego hasła”, aby je wybrać. Nic nie zostało zapisane."
     }
   },
   "device": {

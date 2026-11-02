@@ -27,7 +27,8 @@ Versions: E32 firmware **1.0.0-rc.2** with Home Assistant integration
 - **Home Assistant 2026.10.0 or newer**.
 - An **MQTT broker**, for example the Mosquitto broker add-on, and Home
   Assistant's MQTT integration.
-- **HACS**, to install the integration (or the release ZIP; see step 2 below).
+- **HACS**, to install the integration (or the release ZIP; see step 4 of the
+  [install order](#2-install-order)).
 - **Zigbee2MQTT** on the same broker, only if your radiator valves are on
   Zigbee2MQTT. Valves on ZHA or another integration work through Home
   Assistant without it.
@@ -73,16 +74,23 @@ it is done.
    [section 6](INSTALL.md#6-connect-the-e32-to-the-boiler). Leave your
    thermostat connected. Under **Boiler → Boiler model**, choose
    **Nefit TopLine** and **Save boiler selection**.
-4. **Home Assistant integration through HACS.** Section 9 of the guide still
-   describes the manual ZIP install, which also works. With HACS:
+4. **Home Assistant integration through HACS:**
+   [section 9.1](INSTALL.md#91-with-hacs-recommended). In short:
    1. In Home Assistant open **HACS**, the three dots at the top right,
       **Custom repositories**.
    2. Repository `https://github.com/dielessen/openthermostat-ha`, type
       **Integration**, **Add**.
-   3. Open **OpenThermostat** in HACS and switch on **Show beta versions** for
-      it: release candidates are pre-releases.
-   4. **Download** version 1.0.0rc2 and restart Home Assistant
-      (**Settings → System → Restart**).
+   3. Release candidates are pre-releases, which HACS does not offer by
+      default. In the HACS list, open the three dots of **OpenThermostat**,
+      choose **Download**, open **Need a different version?** and pick
+      **1.0.0rc2**.
+   4. Restart Home Assistant (**Settings → System → Restart**).
+
+   To be offered the next release candidate as an update, switch on the
+   **Pre-release** switch of the OpenThermostat device under
+   **Settings → Devices & services → HACS** (enable the entity first). The
+   manual ZIP install
+   ([section 9.2](INSTALL.md#92-without-hacs-the-release-zip)) also works.
 5. **Add the integration and connect the E32:**
    [section 10](INSTALL.md#10-add-the-integration-and-connect-the-e32).
    **Settings → Devices & services → Add integration → OpenThermostat**, then

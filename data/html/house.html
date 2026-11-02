@@ -65,27 +65,29 @@
       <p class="pd-help" data-flow-compare hidden></p>
       <p class="pd-help" data-flow-night hidden></p>
       </details>
-      <!-- E32 1.0 tuning knobs ("tuning" of /config/heating/flow, control/ControlTuning.h); hidden on firmware without them. -->
-      <details class="ot-advanced hp-advanced" data-flow-tuning hidden><summary><span data-i18n="Advanced: tuning">Advanced: tuning</span> <small class="bp-summary" data-i18n="Leave as is unless advised">Leave as is unless advised</small></summary>
-      <p class="pd-help" data-i18n="How the E32 controls the boiler. The defaults are the normal behaviour; change a value only on advice, for example after a week of active control. Safety limits are not here.">How the E32 controls the boiler. The defaults are the normal behaviour; change a value only on advice, for example after a week of active control. Safety limits are not here.</p>
-      <div class="bl-grid hp-tuning">
-        <label><span data-i18n="Minimum burner on time (s)">Minimum burner on time (s)</span><input class="form-control" type="number" min="120" max="1800" step="1" data-tuning="min_on_s" data-hint="Heat runs at least this long once it starts, also for an optimum start. Default 300."></label>
-        <label><span data-i18n="Minimum burner off time (s)">Minimum burner off time (s)</span><input class="form-control" type="number" min="120" max="1800" step="1" data-tuning="min_off_s" data-hint="After heat stops, the E32 waits at least this long before it asks again. Default 300."></label>
-        <label><span data-i18n="Start heating below the target by (°C)">Start heating below the target by (°C)</span><input class="form-control" type="number" min="0.05" max="1" step="0.01" data-tuning="heat_start_c" data-hint="Default 0.2."></label>
-        <label><span data-i18n="Stop heating above the target by (°C)">Stop heating above the target by (°C)</span><input class="form-control" type="number" min="0" max="1" step="0.01" data-tuning="heat_stop_c" data-hint="Default 0.2."></label>
-        <label><span data-i18n="Extra flow per °C too cold (°C)">Extra flow per °C too cold (°C)</span><input class="form-control" type="number" min="2" max="30" step="1" data-tuning="flow_per_degree_c" data-hint="The room control's flow above the minimum flow. Default 10."></label>
-        <label><span data-i18n="Room correction on the heating curve (%)">Room correction on the heating curve (%)</span><input class="form-control" type="number" min="0" max="100" step="1" data-tuning="curve_correction_pct" data-hint="Share of the room control added to the heating curve. Default 50."></label>
-        <label><span data-i18n="Warm-up time per °C, floor heating (min)">Warm-up time per °C, floor heating (min)</span><input class="form-control" type="number" min="30" max="360" step="1" data-tuning="floor_lead_min_per_c" data-hint="For the optimum start until the room is learned. Default 120."></label>
-        <label><span data-i18n="Warm-up time per °C, radiators (min)">Warm-up time per °C, radiators (min)</span><input class="form-control" type="number" min="10" max="180" step="1" data-tuning="radiator_lead_min_per_c" data-hint="For the optimum start until the room is learned. Default 45."></label>
-        <label><span data-i18n="Accepted warm-up time for the learned flow (%)">Accepted warm-up time for the learned flow (%)</span><input class="form-control" type="number" min="50" max="200" step="1" data-tuning="learned_accept_pct" data-hint="Higher: slower warm-ups at a lower flow. Default 100."></label>
-        <label><span data-i18n="Smallest night saving that changes the advice (%)">Smallest night saving that changes the advice (%)</span><input class="form-control" type="number" min="0" max="20" step="1" data-tuning="night_saving_min_pct" data-hint="Below this (and 0.05 m³) the program's own setback stays the advice. Default 2."></label>
-      </div>
-      <p class="ot-actions"><button type="button" class="btn btn-primary" data-tuning-save><span data-i18n="Save tuning">Save tuning</span></button>
-        <button type="button" class="btn btn-outline-secondary" data-tuning-reset><span data-i18n="Restore defaults">Restore defaults</span></button>
-        <span role="status" aria-live="polite" data-tuning-message></span></p>
-      </details>
     </div>
     <p class="pd-help"><span data-i18n="Active control and the comparison with your thermostat:">Active control and the comparison with your thermostat:</span> <a href="#rooms" data-page="heating"><span data-i18n="Rooms">Rooms</span></a></p>
+  </section>
+  <!-- rc.2: everything the E32 learned, in plain language (/status/heating "learned", "flow", "tuning", "rooms"). -->
+  <section class="pd-panel" data-house-learned hidden>
+    <h2 data-i18n="What the thermostat has learned">What the thermostat has learned</h2>
+    <p class="pd-help" data-i18n="The thermostat watches how your rooms warm up and cool down and how the boiler runs, and adjusts itself to that.">The thermostat watches how your rooms warm up and cool down and how the boiler runs, and adjusts itself to that.</p>
+    <p class="hl-state" role="status" aria-live="polite" data-learned-state></p>
+    <div class="hl-rooms" data-learned-rooms></div>
+    <h3 data-i18n="House and boiler">House and boiler</h3>
+    <ul class="hl-list" data-learned-house></ul>
+    <h3 data-i18n="What it changed by itself">What it changed by itself</h3>
+    <ul class="hl-list" data-learned-log></ul>
+  </section>
+  <!-- rc.2: the control knobs ("tuning" and "tuning_manual" of GET/POST /config/heating/flow); hidden on firmware without them. -->
+  <section class="pd-panel" data-house-care hidden>
+    <h2 data-i18n="Comfort and boiler care">Comfort and boiler care</h2>
+    <p class="pd-help" data-i18n="The thermostat sets these itself and keeps adjusting them as it learns your house. Change one only if you want it differently.">The thermostat sets these itself and keeps adjusting them as it learns your house. Change one only if you want it differently.</p>
+    <ul class="hc-list" data-care-list></ul>
+    <details class="ot-advanced hc-more"><summary data-i18n="More settings">More settings</summary><ul class="hc-list" data-care-fixed></ul></details>
+    <p class="ot-actions"><button type="button" class="btn btn-outline-primary" data-care-all-auto><span data-i18n="Back to automatic for all">Back to automatic for all</span></button>
+      <button type="button" class="btn btn-outline-secondary" data-care-reset><span data-i18n="Back to start values">Back to start values</span></button></p>
+    <p class="pd-help" role="status" aria-live="polite" data-care-message></p>
   </section>
   <section class="pd-panel" data-house-energy>
     <h2 data-i18n="Energy">Energy</h2>
@@ -96,12 +98,21 @@
 #house-settings .hs-now{margin:0 0 12px;padding:10px 12px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}
 #house-settings .hs-holiday,#house-settings .hs-field{margin:0 0 12px;max-width:30rem}#house-settings .hs-holiday label,#house-settings .hs-field label{display:block;margin-bottom:4px}
 #house-settings .hs-field input{max-width:8rem}#house-settings .hs-holiday input{max-width:16rem}
-#house-settings [data-house-message]:empty,#house-settings [data-flow-message]:empty,#house-settings [data-limits-message]:empty,#house-settings [data-tuning-message]:empty{display:none}
+#house-settings [data-house-message]:empty,#house-settings [data-flow-message]:empty,#house-settings [data-limits-message]:empty{display:none}
 #house-settings h3{font-size:1.05rem;margin:14px 0 6px}#house-settings .bl-grid{display:grid;gap:0 16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));max-width:480px}#house-settings .bl-grid label{display:block;margin-bottom:8px}
 #house-settings .bp-summary{color:var(--ot-muted);font-weight:400;font-size:.85rem}
-#house-settings .hp-advanced{margin:12px 0 0}#house-settings .hp-tuning{margin-top:8px}#house-settings .hp-tuning input,#house-settings [data-flow-tuning] .btn{min-height:44px}
 #house-settings .hp-flow-design{margin:0 0 8px 34px;max-width:30rem}#house-settings .hp-flow-design label{display:block;margin-bottom:4px}#house-settings .hp-more{margin:12px 0 0}
-@media(max-width:560px){#house-settings .hp-flow-design{margin-left:0}}</style>
+@media(max-width:560px){#house-settings .hp-flow-design{margin-left:0}}
+#house-settings .hl-state{margin:0 0 12px;padding:10px 12px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}#house-settings .hl-state:empty,#house-settings [data-care-message]:empty{display:none}
+#house-settings .hl-rooms{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
+#house-settings .hl-room{border:1px solid var(--ot-border,rgba(127,127,127,.3));border-radius:var(--ot-r1);padding:12px 14px;min-width:0}#house-settings .hl-room h4{font-size:1rem;margin:0 0 4px;overflow-wrap:anywhere}
+#house-settings .hl-progress{display:inline-block;font-size:.85rem;padding:1px 8px;border-radius:999px;background:var(--ot-surface-2);margin-bottom:6px}
+#house-settings .hl-list{list-style:none;padding:0;margin:0}#house-settings .hl-list li,#house-settings .hl-room li{margin:0 0 10px;overflow-wrap:anywhere}#house-settings .hl-room ul{list-style:none;padding:0;margin:0}
+#house-settings .hl-mean,#house-settings .hc-why{display:block;color:var(--ot-muted);font-size:.875rem;margin:2px 0 0}#house-settings .hl-when{color:var(--ot-muted);font-size:.85rem;margin-right:6px}
+#house-settings .hc-list{list-style:none;padding:0;margin:0}#house-settings .hc-item{padding:10px 0;border-bottom:1px solid var(--ot-border,rgba(127,127,127,.25));overflow-wrap:anywhere}
+#house-settings .hc-value{white-space:nowrap}#house-settings .hc-mode{color:var(--ot-muted);font-size:.875rem;white-space:nowrap}
+#house-settings .hc-actions,#house-settings .hc-edit{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}#house-settings .hc-item .btn{min-height:44px}
+#house-settings .hc-edit input{max-width:8rem;min-height:44px}#house-settings .hc-more{margin:12px 0 0}#house-settings [data-house-care] .ot-actions .btn{min-height:44px}</style>
 <script>
 // House page (E32 beta.23): the house mode and away temperature (POST /config/heating/comfort), presence from Home
 // Assistant (read-only) and the house-wide heating settings. One 10 s refresh of /status/heating feeds every part
@@ -323,10 +334,8 @@
     calibrated:"Calibrated with the gas meter ({confidence})", meter_stale:"Gas meter not reporting"};
   const confidenceText = {low:"low", medium:"medium", high:"high"};
   const errorText = {invalid_value:"Invalid value", save_unconfirmed:"Saving not confirmed, try again"};
-  // Advanced: tuning (E32 1.0): the record's "tuning", kept apart from the status (which carries only the options).
-  const tuningBox = box.querySelector('[data-flow-tuning]'), knobs = [...box.querySelectorAll('[data-tuning]')];
-  const tuningMessage = box.querySelector('[data-tuning-message]'), tuningButtons = [...tuningBox.querySelectorAll('button')];
-  let settings = null, tuning = null, saving = false, loading = false, absent = false;
+  // The tuning knobs of the same record: "Comfort and boiler care" below (its own script).
+  let settings = null, saving = false, loading = false, absent = false;
   const el = (tag, text) => { const e = document.createElement(tag); e.textContent = text; return e; };
   const fixed = (v, digits) => typeof v === 'number' && Number.isFinite(v) ? v.toFixed(digits).replace('.', document.documentElement.lang === 'nl' ? ',' : '.') : '—';
   const degrees = v => typeof v === 'number' && Number.isFinite(v) ? fixed(v, 0) + ' °C' : null;
@@ -345,14 +354,6 @@
     for (const o of options) { o.disabled = off; if (settings && !saving) o.checked = settings[o.dataset.flowOption]; }
     design.disabled = off;
     if (settings && !saving) design.value = String(settings.curve_design_flow_c);
-    tuningBox.hidden = !tuning;
-    for (const k of [...knobs, ...tuningButtons]) k.disabled = off || !tuning;
-  }
-  // Only after a read or a save: an edit in progress stays while the status refreshes.
-  function stored(body) {
-    if (!body.tuning || typeof body.tuning !== 'object') return;
-    tuning = body.tuning;
-    for (const k of knobs) k.value = Number.isFinite(tuning[k.dataset.tuning]) ? String(tuning[k.dataset.tuning]) : '';
   }
   new MutationObserver(paint).observe(root, {attributes:true, attributeFilter:['class']});
   async function call(init = {}) {
@@ -367,7 +368,7 @@
   }
   async function load() {
     loading = true;
-    try { settings = await call(); stored(settings); box.hidden = false; paint(); }
+    try { settings = await call(); box.hidden = false; paint(); }
     catch (error) { absent = error.status === 404 || error.status === 405; } // older firmware: no flow options
     finally { loading = false; }
   }
@@ -375,10 +376,8 @@
     saving = true; paint(); out.textContent = uiText("Saving…");
     try {
       settings = await call({method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(change)});
-      stored(settings);
       out.textContent = uiText("Saved.");
     } catch (error) {
-      if ('tuning' in change && tuning) stored({tuning}); // a refused change shows the stored values again
       out.textContent = errorText[error.code] ? uiText(errorText[error.code])
         : error.code ? uiText("The E32 refused the change.") + ' (' + error.code + ')'
         : uiText("The E32 could not be reached. Check the connection and try again.");
@@ -386,19 +385,6 @@
   }
   for (const o of options) o.addEventListener('change', () => save({[o.dataset.flowOption]: o.checked}));
   design.addEventListener('change', () => save({curve_design_flow_c: Number(design.value)}));
-  // One POST with the changed knobs; "Restore defaults" sends null (the built-in values).
-  tuningBox.querySelector('[data-tuning-save]').addEventListener('click', () => {
-    const change = {};
-    for (const k of knobs) {
-      if (k.value === '' || !k.checkValidity()) {
-        tuningMessage.textContent = fill(uiText("Use a value from {min} to {max}."), {min: k.min, max: k.max}); k.focus(); return;
-      }
-      if (Number(k.value) !== tuning[k.dataset.tuning]) change[k.dataset.tuning] = Number(k.value);
-    }
-    if (!Object.keys(change).length) { tuningMessage.textContent = uiText("No changes to save."); return; }
-    save({tuning: change}, tuningMessage);
-  });
-  tuningBox.querySelector('[data-tuning-reset]').addEventListener('click', () => save({tuning: null}, tuningMessage));
   function render(status) {
     const flow = status.flow && typeof status.flow === 'object' ? status.flow : null, rows = [];
     if (flow) {
@@ -437,5 +423,243 @@
     render(status);
   });
   load();
+})();
+</script>
+<script>
+// "What the thermostat has learned" and "Comfort and boiler care" (E32 rc.2). The overview reads the house page's 10 s
+// refresh ('heating-status': "learned", "flow", "tuning", "rooms"); the knobs GET/POST /config/heating/flow: "tuning"
+// (in effect), "tuning_manual" (the knobs set by the owner). Every figure gets a line on what it means.
+(() => {
+  'use strict';
+  const root = document.getElementById('house-settings'), panel = root && root.querySelector('[data-house-learned]');
+  if (!panel) return;
+  const care = root.querySelector('[data-house-care]'), list = care.querySelector('[data-care-list]'), fixedList = care.querySelector('[data-care-fixed]');
+  const careMessage = care.querySelector('[data-care-message]'), stateLine = panel.querySelector('[data-learned-state]');
+  const roomsBox = panel.querySelector('[data-learned-rooms]'), houseList = panel.querySelector('[data-learned-house]'), logList = panel.querySelector('[data-learned-log]');
+  const fill = (text, values) => Object.entries(values).reduce((t, [k, v]) => t.split('{' + k + '}').join(v), text);
+  const num = (v, digits = 1) => Number(v).toFixed(digits).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('.', document.documentElement.lang === 'nl' ? ',' : '.');
+  const ok = v => typeof v === 'number' && Number.isFinite(v);
+  // Minutes in words: "7.5 min" (half minutes below an hour), "1 h 30 min", "2 h" (5 minutes from an hour).
+  const duration = m => {
+    if (m < 57.5) return fill(uiText("{m} min"), {m: num(Math.max(0.5, Math.round(m * 2) / 2), 1)});
+    m = Math.round(m / 5) * 5; const h = Math.floor(m / 60), r = m % 60;
+    return r ? fill(uiText("{h} h {m} min"), {h, m: r}) : fill(uiText("{h} h"), {h}); };
+  const clock = utc => new Date(utc * 1000).toLocaleTimeString(OpenThermostatLanguage.locale, {hour: '2-digit', minute: '2-digit'});
+  const item = (text, meaning, when) => {
+    const li = document.createElement('li');
+    if (when) { const w = document.createElement('span'); w.className = 'hl-when'; w.textContent = when; li.append(w, ' '); }
+    li.append(text);
+    if (meaning) { const m = document.createElement('span'); m.className = 'hl-mean'; m.textContent = meaning; li.append(' ', m); }
+    return li;
+  };
+  // The knobs: label, value in words, what it does; auto: the thermostat sets it. Seconds are shown and edited in minutes.
+  const knobs = [
+    {key: 'min_off_s', auto: true, d: 300, scale: 60, step: 0.5, min: 2, max: 30, unit: "min", name: "Burner rest between starts",
+     show: v => duration(v / 60), why: "The burner stays off at least this long before it starts again, so the boiler switches on and off less often."},
+    {key: 'min_on_s', auto: true, d: 300, scale: 60, step: 0.5, min: 2, max: 30, unit: "min", name: "Burner run time",
+     show: v => fill(uiText("at least {d}"), {d: duration(v / 60)}), why: "Once the burner starts it runs at least this long, so every start is worth it."},
+    {key: 'heat_start_c', auto: true, d: 0.2, scale: 1, step: 0.05, min: 0.05, max: 1, unit: "°C", name: "Start heating when the room is this much below its target",
+     show: v => num(v, 2) + ' °C', why: "A little more means fewer burner starts; a little less keeps the room closer to its target."},
+    {key: 'heat_stop_c', auto: true, d: 0.2, scale: 1, step: 0.05, min: 0, max: 1, unit: "°C", name: "Stop heating when the room is this much above its target",
+     show: v => num(v, 2) + ' °C', why: "Less means heating stops earlier, so the room gets less too warm."},
+    {key: 'flow_per_degree_c', auto: true, d: 10, scale: 1, step: 1, min: 2, max: 30, unit: "°C", name: "How strongly the water temperature reacts to a cold room",
+     show: v => fill(uiText("{v} °C warmer water per °C too cold"), {v}), why: "Stronger warms up faster; gentler gets less too warm and uses less gas."},
+    {key: 'floor_lead_min_per_c', auto: true, d: 120, scale: 1, step: 5, min: 30, max: 360, unit: "min", name: "Warm-up time for floor heating",
+     show: v => fill(uiText("{d} per °C"), {d: duration(v)}), why: "How early heating starts for the next program step, until a floor-heated room has been learned."},
+    {key: 'radiator_lead_min_per_c', auto: true, d: 45, scale: 1, step: 5, min: 10, max: 180, unit: "min", name: "Warm-up time for radiators",
+     show: v => fill(uiText("{d} per °C"), {d: duration(v)}), why: "How early heating starts for the next program step, until a room with radiators has been learned."},
+    {key: 'curve_correction_pct', d: 50, scale: 1, step: 1, min: 0, max: 100, unit: "%", name: "Room correction on the heating curve",
+     show: v => v + ' %', why: "How much a room that is too cold adds to the water temperature of the heating curve."},
+    {key: 'learned_accept_pct', d: 100, scale: 1, step: 1, min: 50, max: 200, unit: "%", name: "Accepted warm-up time with the learned water temperature",
+     show: v => v + ' %', why: "More allows a slower warm-up at a lower, more economical water temperature."},
+    {key: 'night_saving_min_pct', d: 2, scale: 1, step: 1, min: 0, max: 20, unit: "%", name: "Smallest night saving worth advising",
+     show: v => v + ' %', why: "Below this saving the advice keeps your program's own night setback."}];
+  const knob = key => knobs.find(k => k.key === key);
+  let tuning = null, manual = [], busy = false, absent = false, loaded = false;
+  const rows = {};
+  async function call(change) {
+    const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), 8000);
+    try {
+      const init = change ? {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(change)} : {};
+      const response = await fetch('/config/heating/flow', {cache: 'no-store', ...init, signal: controller.signal});
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw Object.assign(Error('request'), {status: response.status, code: body.error || response.status});
+      return body;
+    } finally { clearTimeout(deadline); }
+  }
+  // Firmware before rc.2 has no "tuning_manual": the knobs are shown, not changed here.
+  function stored(body) {
+    if (!body || typeof body.tuning !== 'object' || !body.tuning) { care.hidden = true; return; }
+    tuning = body.tuning; manual = Array.isArray(body.tuning_manual) ? body.tuning_manual : null;
+    care.hidden = false; paint();
+  }
+  async function load() {
+    loaded = true;
+    try { stored(await call()); } catch (error) { absent = error.status === 404 || error.status === 405; loaded = absent; }
+  }
+  async function save(change, done) {
+    busy = true; paint(); careMessage.textContent = uiText("Saving…");
+    try { stored(await call(change)); careMessage.textContent = uiText("Saved."); if (done) done(); }
+    catch (error) {
+      careMessage.textContent = error.code === 'invalid_value' ? uiText("This value is not possible. Choose one within the range shown.")
+        : error.code ? uiText("The E32 refused the change.") + ' (' + error.code + ')' : uiText("The E32 could not be reached. Check the connection and try again.");
+    } finally { busy = false; paint(); }
+  }
+  const button = (text, cls, onClick) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.textContent = uiText(text);
+    b.addEventListener('click', onClick); return b;
+  };
+  function row(k) {
+    const li = document.createElement('li'); li.className = 'hc-item'; li.dataset.knob = k.key;
+    const head = document.createElement('div'), name = document.createElement('span'), value = document.createElement('strong'), mode = document.createElement('span');
+    name.textContent = uiText(k.name) + ': '; value.className = 'hc-value'; mode.className = 'hc-mode';
+    head.append(name, value, ' ', mode);
+    const why = document.createElement('span'); why.className = 'hc-why'; why.textContent = uiText(k.why);
+    const actions = document.createElement('div'); actions.className = 'hc-actions';
+    const edit = document.createElement('div'); edit.className = 'hc-edit'; edit.hidden = true;
+    const label = document.createElement('label'), input = document.createElement('input');
+    input.type = 'number'; input.className = 'form-control'; input.min = k.min; input.max = k.max; input.step = k.step; input.inputMode = 'decimal';
+    label.append(uiText("New value") + ' (' + uiText(k.unit) + ') ', input);
+    const own = button("Set it myself", 'btn-outline-primary', () => {
+      edit.hidden = false; actions.hidden = true; input.value = String(+(tuning[k.key] / k.scale).toFixed(2)); input.focus();
+    });
+    const back = button(k.auto ? "Back to automatic" : "Back to the standard value", 'btn-outline-secondary', () =>
+      save(k.auto ? {tuning_manual: manual.filter(m => m !== k.key)} : {tuning: {[k.key]: k.d}}));
+    actions.append(own, back);
+    const close = () => { edit.hidden = true; actions.hidden = false; };
+    edit.append(label, button("Save", 'btn-primary', () => {
+      const v = Number(input.value);
+      if (input.value === '' || !input.checkValidity() || !Number.isFinite(v)) {
+        careMessage.textContent = fill(uiText("Use a value from {min} to {max}."), {min: num(k.min, 2), max: num(k.max, 2)}); input.focus(); return;
+      }
+      const raw = k.scale === 60 ? Math.round(v * 60) : v;
+      save(k.auto ? {tuning: {[k.key]: raw}, tuning_manual: [...new Set([...manual, k.key])]} : {tuning: {[k.key]: raw}}, close);
+    }), button("Cancel", 'btn-outline-secondary', close));
+    li.append(head, why, actions, edit);
+    rows[k.key] = {li, value, mode, back};
+    return li;
+  }
+  function paint() {
+    if (!tuning) return;
+    if (!list.children.length) for (const k of knobs) (k.auto ? list : fixedList).append(row(k));
+    const off = busy || root.classList.contains('hs-locked') || !manual;
+    for (const k of knobs) {
+      const r = rows[k.key], v = tuning[k.key];
+      r.li.hidden = !ok(v);
+      if (r.li.hidden) continue;
+      const mine = k.auto ? !!manual?.includes(k.key) : v !== k.d;
+      r.value.textContent = k.show(v);
+      r.mode.textContent = uiText(mine ? "(set by you)" : k.auto ? "(automatic)" : "(standard value)");
+      r.back.hidden = !mine;
+      for (const b of r.li.querySelectorAll('button')) b.disabled = off;
+    }
+    for (const b of care.querySelectorAll('.ot-actions button')) b.disabled = off;
+    care.querySelector('[data-care-all-auto]').hidden = !manual?.length;
+  }
+  care.querySelector('[data-care-all-auto]').addEventListener('click', () => save({tuning_manual: []}));
+  care.querySelector('[data-care-reset]').addEventListener('click', () => {
+    if (confirm(uiText("All these settings go back to their start values and the thermostat starts learning them again. Continue?"))) save({tuning: null});
+  });
+  new MutationObserver(paint).observe(root, {attributes: true, attributeFilter: ['class']});
+
+  // The overview. A change of the self-tuning in words: [knob, from, to, reason, figure, room] (the log has the time first).
+  const reasons = {
+    many_starts: "The burner now rests at least {to} before it starts again, because it started {figure} times yesterday. Fewer starts are gentler on the boiler.",
+    cold_during_rest: "The burner rest is now {to}, because {room} cooled {figure} °C below its target while the burner rested. Comfort comes first.",
+    short_burns: "Each burner run now lasts at least {to}, because {figure} runs yesterday were very short. Longer runs are gentler on the boiler.",
+    overshoot: "{room} got {figure} °C warmer than its target; the thermostat now stops heating a little earlier.",
+    overshoot_gain: "{room} still got {figure} °C warmer than its target; the thermostat now heats a little more gently.",
+    settled: "{room} hardly gets too warm any more ({figure} °C); the thermostat stops heating a little later again, so the burner starts less often.",
+    hovering: "Heating now starts when a room is {to} below its target, because it started {figure} times yesterday for small dips. Fewer starts are gentler on the boiler.",
+    few_starts: "Heating now starts sooner again, at {to} below the target: with only {figure} starts yesterday there is room for more comfort.",
+    room_response_up: "{room} warms about 1 °C in {figure}; the thermostat now reacts a little more strongly to a cold room.",
+    room_response_down: "{room} warms about 1 °C in {figure}; the thermostat now reacts a little more gently to a cold room.",
+    learned_warmup: "{room} warms about 1 °C in {figure}; mornings are planned with that."};
+  const states = {waiting: "After a restart or a change the thermostat first watches a whole day before it adjusts anything.",
+    collecting: "Yesterday there was too little heating to learn from; the settings stay as they are.",
+    shadow: "Your own thermostat still controls the boiler, so the E32 only shows what it would change.",
+    active: "The thermostat adjusts its settings itself, at most one small step a day."};
+  function sentence(c, names) {
+    const [knobKey, from, to, reason, figure, room] = c, k = knob(knobKey);
+    const key = reason === 'room_response' ? (to > from ? 'room_response_up' : 'room_response_down') : reason;
+    if (!k || !reasons[key] || !ok(from) || !ok(to) || !ok(figure)) return null;
+    const minutes = reason === 'room_response' || reason === 'learned_warmup';
+    return fill(uiText(reasons[key]), {to: k.show(to), figure: minutes ? duration(figure) : Number.isInteger(figure) ? String(figure) : num(figure, 2),
+      room: room ? names[room] || room : uiText("Your rooms")});
+  }
+  function roomCard(r, l, plan, names, outdoor) {
+    const card = document.createElement('article'); card.className = 'hl-room'; card.dataset.room = r.id;
+    const h = document.createElement('h4'); h.textContent = names[r.id];
+    const badge = document.createElement('span'); badge.className = 'hl-progress';
+    const ul = document.createElement('ul');
+    card.append(h, badge, ul);
+    const ready = l?.readiness === 'ready', seen = Math.min(6, ok(l?.segments) ? l.segments : 0);
+    badge.textContent = ready ? uiText("Learned") : fill(uiText("Learning: {n} of {m} warm-ups seen"), {n: seen, m: 6});
+    if (!ready) ul.append(item(uiText(seen >= 6 ? "It needs a few more warm-ups, on other days or at other water temperatures." : "It learns from every warm-up while the heating runs."),
+      uiText("Until then it uses safe standard times.")));
+    const advice = Array.isArray(l?.advice) ? l.advice.find(a => a && a.shortfall_c === 1) : null;
+    if (ready && advice && ok(advice.rule_warmup_h) && ok(advice.rule_flow_c))
+      ul.append(item(fill(uiText("Warms about 1 °C in {d} with water of {flow} °C."), {d: duration(advice.rule_warmup_h * 60), flow: advice.rule_flow_c}),
+        uiText("The thermostat plans the start of every warm-up with this.")));
+    if (ready && advice && ok(advice.flow_c) && /^(learned|lowest_learned)$/.test(advice.reason))
+      ul.append(item(fill(uiText("The lowest water temperature that still warms it in time: {flow} °C."), {flow: advice.flow_c}),
+        uiText("Cooler water lets the boiler condense better, so it uses less gas.")));
+    if (ok(l?.loss_per_h)) {
+      const out = ok(outdoor) ? outdoor : 5, inside = ok(r.temperature) ? r.temperature : 20;
+      ul.append(item(fill(uiText("Loses about {rate} °C per hour at {out} °C outside."), {rate: num(Math.max(0, l.loss_per_h * (inside - out)), 2), out: num(out, 0)}),
+        uiText("This is how fast it cools when the heating is off, for example at night.")));
+    }
+    const start = plan?.optimum_start;
+    if (start?.reason === 'planned' && ok(start.predicted_start_utc) && ok(start.next_switch?.utc) && ok(start.next_switch?.target_c)) {
+      const values = {start: clock(start.predicted_start_utc), target: num(start.next_switch.target_c, 1), time: clock(start.next_switch.utc)};
+      ul.append(item(fill(uiText(start.start_now ? "Heating up now to be {target} °C at {time}." : "Starts heating at {start} to be {target} °C at {time}."), values),
+        uiText(start.confidence === 'learned' ? "So the room is warm on time, without heating longer than needed." : "This is a standard estimate until the room has been learned.")));
+    }
+    const night = plan?.night;
+    if (night?.reason === 'estimated' && typeof night.recommended === 'string') {
+      const hold = night.recommended !== 'program' && night.recommended !== 'thermostat_like';
+      const saving = ok(night.saving_eur) && night.saving_eur > 0 ? fill(uiText("about {m3} m³ gas (€ {eur}) a night"), {m3: num(night.saving_m3, 2), eur: num(night.saving_eur, 2)})
+        : fill(uiText("about {m3} m³ gas a night"), {m3: num(ok(night.saving_m3) ? night.saving_m3 : 0, 2)});
+      ul.append(item(hold && ok(night.recommended_night_c) ? fill(uiText("Keeping it at {night} °C at night is cheaper than letting it cool down: {saving}."), {night: num(night.recommended_night_c, 1), saving})
+        : uiText("Letting it cool down at night, as your program does, is the cheapest."), uiText("This is advice: your week program stays as it is.")));
+    }
+    return card;
+  }
+  function render(status) {
+    const learned = status.learned && typeof status.learned === 'object' ? status.learned : null, t = status.tuning && typeof status.tuning === 'object' ? status.tuning : null;
+    panel.hidden = !learned && !t;
+    if (panel.hidden) return;
+    const names = {}, rooms = (Array.isArray(status.rooms) ? status.rooms : []).filter(r => r && typeof r.id === 'string');
+    for (const r of rooms) names[r.id] = typeof r.name === 'string' && r.name ? r.name : r.id;
+    const byId = items => Object.fromEntries((Array.isArray(items) ? items : []).filter(x => x && typeof x.id === 'string').map(x => [x.id, x]));
+    const lr = byId(learned?.rooms), plans = byId(learned?.plans?.rooms);
+    roomsBox.replaceChildren(...rooms.filter(r => r.state !== 'inactive').map(r => roomCard(r, lr[r.id], plans[r.id], names, learned?.outdoor_c)));
+    const house = [], curve = status.flow?.curve;
+    if (curve && ok(curve.slope)) house.push(item(fill(uiText(curve.slope_source === 'learned' ? "Heating curve, learned from your house: the water gets about {s} °C warmer for every degree colder outside."
+      : "Heating curve: the water gets about {s} °C warmer for every degree colder outside."), {s: num(curve.slope, 2)}),
+      uiText(status.flow?.settings?.weather_curve ? "The heating curve sets the water temperature, so the boiler runs as cool as the weather allows." : "The heating curve is not switched on; this is shown as advice.")));
+    const y = t?.yesterday;
+    if (y && ok(y.starts)) house.push(item(y.burns > 0 ? fill(uiText("Yesterday the burner started {n} times for heating; a burn lasted {d} on average."), {n: y.starts, d: duration(y.burn_s / 60)})
+      : fill(uiText("Yesterday the burner started {n} times for heating."), {n: y.starts}),
+      uiText(y.heating_h > 0 && y.starts > 3 * y.heating_h ? "That is often. Fewer, longer burns are gentler on the boiler; the thermostat works on that." : "Fewer, longer burns are gentler on the boiler and use gas more efficiently.")));
+    if (!house.length) house.push(item(uiText("Nothing yet: this appears after the first heating days."), null));
+    houseList.replaceChildren(...house);
+    stateLine.textContent = t && states[t.state] ? uiText(states[t.state]) : '';
+    const changes = [];
+    for (const w of Array.isArray(t?.would) ? t.would : []) { const s = Array.isArray(w) && sentence(w, names); if (s) changes.push(item(s, null, uiText("Would change:"))); }
+    for (const c of Array.isArray(t?.log) ? t.log : []) {
+      const s = Array.isArray(c) && ok(c[0]) && sentence(c.slice(1), names);
+      if (s) changes.push(item(s, null, new Date(c[0] * 1000).toLocaleDateString(OpenThermostatLanguage.locale, {day: 'numeric', month: 'short'})));
+    }
+    if (!changes.length) changes.push(item(uiText("Nothing changed yet: the start values still fit, or there is not enough to go on."), null));
+    logList.replaceChildren(...changes);
+    // Another tab or Home Assistant may have changed the knobs: the status carries those in effect.
+    if (t && tuning && !busy && t.values && typeof t.values === 'object' && Array.isArray(t.manual)) { tuning = t.values; manual = t.manual; paint(); }
+  }
+  root.addEventListener('heating-status', event => {
+    const status = event.detail && typeof event.detail === 'object' ? event.detail : {};
+    if (!loaded && !absent) load();
+    render(status);
+  });
 })();
 </script>

@@ -527,7 +527,7 @@
         },
         {
           "path": "test/menu-browser.cjs",
-          "sha256": "8146fc5f40302a3fd3480b0d5a49d0d5cadad6b261d96a7ac5d54a4e3c9f961e"
+          "sha256": "2925161db8aa4f6e7245d9920f19031075b1f257dc165146456f524f1477ed5d"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/ha_valves.py",
@@ -3722,7 +3722,7 @@
         },
         {
           "path": "ha/tests_native/test_energy_use.py",
-          "sha256": "a927c081929af7b5af6ef4f3480f65f28d0d03c89c790ecbbc1d80aaebb6493f"
+          "sha256": "b77d7b7272b1aa958079a4939dc5ac8ede7a0db0bd32a88a627880f788a3e1a4"
         },
         {
           "path": "ha/tests_native/test_weekly_summary.py",

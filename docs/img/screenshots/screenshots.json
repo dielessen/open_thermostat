@@ -90,6 +90,66 @@
       "height": 1253,
       "sha256": "65342112b97647be161dde3db6c3810a8b408022ea1a3ada4c9921de5e57e594",
       "scope": "Shipped E32 web interface rendered locally with fictitious demonstration data (mocked HTTP responses); not a live device"
+    },
+    {
+      "file": "ha-week-card-rc2.png",
+      "version": "HA 1.0 rc.2 (release-1.0 92a9d03)",
+      "date": "2026-11-02",
+      "width": 1000,
+      "height": 1118,
+      "bytes": 36031,
+      "sha256": "3ad4a7e9982f6922e4f32f8bd0009017befc58fe4ee8dae684590801458e3299",
+      "scope": "Home Assistant week planner card (e32-week-card.js and week-editor.js of release-1.0 92a9d03) rendered locally in headless Chromium with a synthetic hass object and fictitious demonstration data; ha-card stand-in with Home Assistant's default light card style; no Home Assistant instance, not a live capture"
+    },
+    {
+      "file": "e32-home-learned-rc2.png",
+      "version": "E32 1.0 rc.2 (release-1.0 92a9d03)",
+      "date": "2026-11-02",
+      "width": 1280,
+      "height": 1049,
+      "bytes": 79318,
+      "sha256": "a97a735c279781aa8b7c89f17480802dd5e6fd8502a4dd3292b2ccde16f3b70f",
+      "scope": "E32 web interface of release-1.0 (92a9d03, 1.0 rc.2 in preparation) rendered locally in headless Chromium with fictitious demonstration data (mocked HTTP responses); not a live device; cropped to the What the thermostat has learned panel"
+    },
+    {
+      "file": "e32-overview-rc2.png",
+      "version": "E32 1.0 rc.2 (release-1.0 92a9d03)",
+      "date": "2026-11-02",
+      "width": 1280,
+      "height": 2208,
+      "bytes": 90413,
+      "sha256": "77f044242efd62b3df335e9ee25fbd645e791ac40bd378aba8bd8db683311881",
+      "scope": "E32 web interface of release-1.0 (92a9d03, 1.0 rc.2 in preparation) rendered locally in headless Chromium with fictitious demonstration data (mocked HTTP responses); not a live device; cropped above How this works"
+    },
+    {
+      "file": "e32-overview-phone-dark-rc2.png",
+      "version": "E32 1.0 rc.2 (release-1.0 92a9d03)",
+      "date": "2026-11-02",
+      "width": 780,
+      "height": 2386,
+      "bytes": 70403,
+      "sha256": "286a76ba4f5c47091428299d71d8992ee0f8c55886a6857ea9fc4d09df6c4885",
+      "scope": "E32 web interface of release-1.0 (92a9d03, 1.0 rc.2 in preparation) rendered locally in headless Chromium with fictitious demonstration data (mocked HTTP responses); not a live device; 390 px phone width at 2x, dark theme, cropped after the first room"
+    },
+    {
+      "file": "e32-rooms-rc2.png",
+      "version": "E32 1.0 rc.2 (release-1.0 92a9d03)",
+      "date": "2026-11-02",
+      "width": 1280,
+      "height": 1850,
+      "bytes": 73461,
+      "sha256": "c947a1e8981de039490d6528b5d7a9ba3bafff04e430594519fd90520c360ff3",
+      "scope": "E32 web interface of release-1.0 (92a9d03, 1.0 rc.2 in preparation) rendered locally in headless Chromium with fictitious demonstration data (mocked HTTP responses); not a live device; editing unlocked, cropped after the first room card"
+    },
+    {
+      "file": "e32-boiler-rc2.png",
+      "version": "E32 1.0 rc.2 (release-1.0 92a9d03)",
+      "date": "2026-11-02",
+      "width": 1280,
+      "height": 945,
+      "bytes": 45062,
+      "sha256": "fd7b26c4b7f32cd2b266af2186bfb9e0bd06ccc9b6f997969c59d9fb8a68f981",
+      "scope": "E32 web interface of release-1.0 (92a9d03, 1.0 rc.2 in preparation) rendered locally in headless Chromium with fictitious demonstration data (mocked HTTP responses); not a live device; cropped to the Now panel"
     }
   ],
   "privacy_review": "Product panels only; no tokens, server addresses, user profile/sidebar or unrelated dashboards. Screenshots visually inspected before publication.",

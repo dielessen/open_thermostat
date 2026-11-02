@@ -424,7 +424,10 @@ TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder900Bytes) {
             EXPECT_STREQ(cJSON_GetObjectItem(start, "reason")->valuestring, "planned");
             EXPECT_TRUE(cJSON_IsNumber(cJSON_GetObjectItem(start, "predicted_start_utc")));
             EXPECT_TRUE(cJSON_IsBool(cJSON_GetObjectItem(start, "start_now")));
-            EXPECT_FALSE(cJSON_GetObjectItem(start, "next_switch"));
+            // rc.2: the next switch's time and target ("starts at 07:10 to be 21 degC at 09:00"), nothing more.
+            const cJSON* next = cJSON_GetObjectItem(start, "next_switch");
+            EXPECT_TRUE(cJSON_IsNumber(cJSON_GetObjectItem(next, "utc"))); EXPECT_TRUE(cJSON_IsNumber(cJSON_GetObjectItem(next, "target_c")));
+            EXPECT_EQ(cJSON_GetArraySize(next), 2);
             const cJSON* night = cJSON_GetObjectItem(plan, "night");
             EXPECT_STREQ(cJSON_GetObjectItem(night, "reason")->valuestring, "estimated");
             EXPECT_TRUE(cJSON_IsString(cJSON_GetObjectItem(night, "recommended")));

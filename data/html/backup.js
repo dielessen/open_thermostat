@@ -120,7 +120,8 @@
         'openweather.appid': "OpenWeather API key", 'bt.scanTime': "Bluetooth listening time", 'bt.scanInterval': "Bluetooth pause",
         devices: "Sensors", rooms: "Rooms", room_settings: "Room settings", minimum_flow_c: "Lowest water temperature",
         maximum_flow_c: "Highest water temperature", weather_curve: "Follow outdoor temperature (heating curve)", apply_learned: "Warm on time with the coolest water",
-        curve_design_flow_c: "Water temperature at −10 °C outside", tuning: "Advanced: tuning", model: "Boiler model"
+        curve_design_flow_c: "Water temperature at −10 °C outside", tuning: "Comfort and boiler care", tuning_manual: "Comfort and boiler care: set by you",
+        model: "Boiler model"
     };
     const reenter = {wifi_password: "Wi-Fi password", web_password: "Web page password", mqtt_password: "MQTT password",
         openweather_key: "OpenWeather API key", bluetooth_keys: "Bluetooth sensor keys", bluetooth_key: "Bluetooth key for {v}"};

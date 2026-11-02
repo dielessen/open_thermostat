@@ -1,7 +1,7 @@
 // Home page (beta.23; the Rooms page before) with simulated HTTP: the flow temperature section (E32 beta.19); the Rooms page:
 // the switch-over status of active control.
 // Flow: weather curve, learned flow and optimum start, design flow, status lines, gas calibration and last night;
-// the collapsed "Advanced: tuning" knobs (E32 1.0, "tuning" of the same record).
+// the knobs of the same record ("tuning") are "Comfort and boiler care": test/house-learned-browser.cjs.
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html');
@@ -136,54 +136,6 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await page.waitForFunction(()=>!document.querySelector('#heating-flow-curve').checked,null,{timeout:15000});
   assert.equal(await design.inputValue(),'0');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
-  // Advanced: tuning, collapsed under its warning; the values of GET /config/heating/flow "tuning".
-  const tuningBox=box.locator('[data-flow-tuning]'),tuningMessage=tuningBox.locator('[data-tuning-message]');
-  assert.equal(await tuningBox.evaluate(d=>d.open),false,'the tuning starts collapsed');
-  assert.equal(await tuningBox.locator('summary').innerText(),'Geavanceerd: afstelling Laat staan tenzij geadviseerd');
-  await tuningBox.locator('summary').click();
-  const minOn=tuningBox.getByLabel('Minimale brandtijd (s)'),stopAbove=tuningBox.getByLabel('Stop verwarmen boven de gewenste temperatuur bij (°C)');
-  const gain=tuningBox.getByLabel('Extra aanvoer per °C te koud (°C)');
-  const values=()=>tuningBox.locator('[data-tuning]').evaluateAll(l=>Object.fromEntries(l.map(i=>[i.dataset.tuning,Number(i.value)])));
-  assert.deepEqual(await values(),tuningDefaults);
-  assert.match(await tuningBox.innerText(),/Standaard 300\./);
-  for(const target of [minOn,tuningBox.getByRole('button',{name:'Afstelling opslaan'})]){const b=await target.boundingBox();assert(b.height>=44,'44 px target');}
-  const before=posts.length;
-  await tuningBox.getByRole('button',{name:'Afstelling opslaan'}).click();
-  await tuningMessage.getByText('Geen wijzigingen om op te slaan.').waitFor();
-  // Only the changed knobs, in one POST; the answer is the stored record.
-  await minOn.fill('600');await stopAbove.fill('0.1');
-  await tuningBox.getByRole('button',{name:'Afstelling opslaan'}).click();
-  await tuningMessage.getByText('Opgeslagen.').waitFor();
-  assert.deepEqual(posts.at(-1),{tuning:{min_on_s:600,heat_stop_c:0.1}});assert.equal(posts.length,before+1);
-  assert.deepEqual(await values(),{...tuningDefaults,min_on_s:600,heat_stop_c:0.1});
-  // Out of range: refused on the page, nothing sent.
-  await minOn.fill('60');
-  await tuningBox.getByRole('button',{name:'Afstelling opslaan'}).click();
-  await tuningMessage.getByText('Gebruik een waarde van 120 tot 1800.').waitFor();
-  assert.equal(posts.length,before+1);
-  await minOn.fill('600');
-  // Refused by the E32: the stored values come back.
-  reject={code:400,error:'invalid_value'};
-  await gain.fill('25');
-  await tuningBox.getByRole('button',{name:'Afstelling opslaan'}).click();
-  await tuningMessage.getByText('Ongeldige waarde').waitFor();
-  assert.deepEqual(posts.at(-1),{tuning:{flow_per_degree_c:25}});assert.equal(await gain.inputValue(),'10');
-  // The status refresh keeps an edit in progress; "Restore defaults" sends null.
-  await gain.fill('12');
-  await root.evaluate((r,detail)=>r.dispatchEvent(new CustomEvent('heating-status',{detail})),status);
-  assert.equal(await gain.inputValue(),'12');
-  await tuningBox.getByRole('button',{name:'Standaardwaarden herstellen'}).click();
-  await page.waitForFunction(()=>document.querySelector('[data-tuning-message]').textContent==='Opgeslagen.'&&!document.querySelector('[data-tuning-save]').disabled,null);
-  assert.deepEqual(posts.at(-1),{tuning:null});
-  assert.deepEqual(await values(),tuningDefaults);
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
-  // Firmware before the knobs: the options without "tuning", and no tuning section.
-  delete settings.tuning;
-  await page.evaluate(()=>loadNativePage('house'));
-  await box.getByRole('heading',{name:'Watertemperatuur'}).waitFor();
-  await page.waitForTimeout(300);
-  assert.equal(await box.locator('[data-flow-tuning]').isVisible(),false);
-  settings.tuning={...tuningDefaults};
   // Active control after a restart with a stored confirmation: the boiler's own maximum, the listening
   // period before taking over again, and the warning while the boiler limit is unknown.
   // Active control stays on the Rooms page (part of the room plan's mode).

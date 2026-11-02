@@ -183,6 +183,9 @@ TEXT = {
         "dhw_taps": "Taps today", "dhw_today": "Hot water today",
         "advice": "Advice", "advice_where": "Where", "advice_confidence": "Confidence",
         "advice_note": "Advice only: nothing is changed automatically.",
+        "learned": "What the thermostat has learned", "learned_house": "House and boiler",
+        "learned_changes": "What it changed by itself",
+        "learned_note": "The thermostat adjusts these settings itself; change them on the E32 page under Home, Comfort and boiler care.",
         "confidence_low": "low", "confidence_medium": "medium", "confidence_high": "high",
         "gas_heating": "Heating", "gas_hot_water": "Hot water", "gas_keep_warm": "Of which keeping hot water warm",
         "gas_tapping": "Tapping", "gas_keeping_warm": "Keeping warm",
@@ -307,6 +310,9 @@ TEXT = {
         "dhw_taps": "Tappen vandaag", "dhw_today": "Warm water vandaag",
         "advice": "Advies", "advice_where": "Waar", "advice_confidence": "Zekerheid",
         "advice_note": "Alleen advies: er wordt niets automatisch veranderd.",
+        "learned": "Wat de thermostaat heeft geleerd", "learned_house": "Huis en ketel",
+        "learned_changes": "Wat hij zelf heeft aangepast",
+        "learned_note": "De thermostaat past deze instellingen zelf aan; wijzigen kan op de E32-pagina onder Thuis, Comfort en zorg voor de ketel.",
         "confidence_low": "laag", "confidence_medium": "middel", "confidence_high": "hoog",
         "gas_heating": "Verwarmen", "gas_hot_water": "Warm water", "gas_keep_warm": "Waarvan warm water warmhouden",
         "gas_tapping": "Tappen", "gas_keeping_warm": "Warmhouden",
@@ -508,6 +514,28 @@ def _advice_section(t, advice):
     shown = [{"condition": "numeric_state", "entity": advice, "above": 0}]
     section = _section(_heading(t["advice"], "mdi:lightbulb-on-outline", style="title", visibility=shown),
                        {"type": "markdown", "content": content, "visibility": shown})
+    section["visibility"] = shown
+    return section
+
+
+def _learned_section(t, learned):
+    """What the thermostat learned (learned_overview.py): per room, house and boiler, its own changes."""
+    if not learned:
+        return None
+    quoted = json.dumps(learned)
+    lines = ("{% for line in items %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n"
+             "{% endfor %}")
+    rooms = ("{% for room in state_attr(" + quoted + ", 'rooms') or [] %}**{{ room.name }}** · {{ room.progress }}\n\n"
+             "{% set items = room.lines %}" + lines + "\n{% endfor %}")
+    house = ("{{ state_attr(" + quoted + ", 'explanation') }}\n\n**" + t["learned_house"] + "**\n\n"
+             "{% set items = state_attr(" + quoted + ", 'house') or [] %}" + lines + "\n**" + t["learned_changes"] + "**\n\n"
+             "{% for change in state_attr(" + quoted + ", 'changes') or [] %}- {% if change.time %}"
+             "{{ as_timestamp(change.time) | timestamp_custom('%d-%m') }}: {% endif %}{{ change.text }}\n{% endfor %}\n"
+             "*" + t["learned_note"] + "*")
+    shown = [{"condition": "state", "entity": learned, "state_not": "unavailable"}]
+    section = _section(_heading(t["learned"], "mdi:school-outline", style="title", visibility=shown),
+                       {"type": "markdown", "content": rooms, "visibility": shown},
+                       {"type": "markdown", "content": house, "visibility": shown})
     section["visibility"] = shown
     return section
 
@@ -1026,6 +1054,9 @@ class RoomDashboard:
         advice = _advice_section(t, hub.get("heating_advice"))
         if advice:
             sections.append(advice)
+        learned = _learned_section(t, hub.get("learned_overview"))
+        if learned:
+            sections.append(learned)
 
         from .heating_link import label
         heating_hub = self._heating_hub()

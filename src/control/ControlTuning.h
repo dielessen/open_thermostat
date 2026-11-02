@@ -40,6 +40,9 @@ struct ControlTuning {
         return table;
     }
     static constexpr size_t maxBytes = 240; // json() with every knob at its widest
+    // The knobs AutoTuner sets unless the owner set them (bit i: knobs()[i]): burner
+    // times, start/stop margins, the rule gain and the two unlearned leads.
+    static constexpr uint16_t autoKnobs = 0x00DF;
     // Any of the keys on top of `out` (whole numbers; degC with at most 2 decimals);
     // null: the built-in values. nullptr on success, else the API error name.
     static const char* parse(const cJSON* o, ControlTuning& out) {

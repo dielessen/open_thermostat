@@ -2648,6 +2648,9 @@
       "heating_advice": {
         "name": "CV-advies"
       },
+      "learned_overview": {
+        "name": "Wat de thermostaat geleerd heeft"
+      },
       "heating_gas": {
         "name": "Gas voor verwarmen"
       },

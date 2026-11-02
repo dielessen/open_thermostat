@@ -1107,3 +1107,6 @@ async def async_setup_heating_advice(hass, entry, async_add_entities, options, h
     # What the heating did each day (burner, rooms, outdoor); its sensors appear once the boiler reports.
     from .daily_summary import async_setup_daily_summary
     await async_setup_daily_summary(hass, entry, async_add_entities, options, hub, connection)
+    # Everything the E32 learned and tuned, in plain language (E32 rc.2).
+    from .learned_overview import async_setup_learned_overview
+    await async_setup_learned_overview(hass, entry, async_add_entities, options, hub)

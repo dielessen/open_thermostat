@@ -233,6 +233,7 @@ TEST(ControlTuning, TravelsInTheFlowRecord) {
     FlowSettings widest; widest.designFlowC = 80; widest.weatherCurve = widest.applyLearned = true;
     size_t n; const auto* k = ControlTuning::knobs(n);
     for (size_t i = 0; i < n; ++i) widest.tuning.*k[i].field = k[i].high;
+    widest.manual = ControlTuning::autoKnobs; // rc.2: knobs away from the built-in value are the owner's
     EXPECT_LE(widest.json().size(), FlowSettings::maxBytes);
     FlowSettings back;
     ASSERT_EQ(FlowSettings::parse(parse(widest.json().c_str()).get(), back), nullptr);

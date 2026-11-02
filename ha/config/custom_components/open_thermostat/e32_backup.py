@@ -63,6 +63,8 @@ ISSUE_AFTER = timedelta(days=3)
 # After a restore that restarts the E32: how long Home Assistant waits for it to answer again.
 RESTART_WAIT = 180
 RESTART_POLL = 5
+# When the E32 does not say: how long after an apply it restarts (ConfigBackupRoute.cpp restartDelayMs).
+RESTART_DELAY = 10
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 # An apply that failed with one of these never changed the E32: the request was not sent, or refused at the door.
 _NOT_APPLIED = frozenset({"controller_request_invalid", "controller_auth_failed", "controller_update_required"})
@@ -418,6 +420,7 @@ class E32Backups:
             raise ControllerLinkError("setup_changed")
         stored = credentials(self.entry)
         async with self._lock:
+            value = None
             async with self._client(check.address) as client:
                 await self._sign_in(client, check.password, stored=stored == (check.address, check.password))
                 before = await self._export(client)
@@ -431,13 +434,23 @@ class E32Backups:
                         await self._keep("pre_restore", before, keep=(record["id"],))
                     raise  # refused: the E32 is as it was, and so are the backups
                 except ControllerLinkError as err:
-                    if str(err) not in _NOT_APPLIED:  # sent, but no answer: it may have been applied
-                        await self._keep("pre_restore", before, keep=(record["id"],))
-                    raise
-            if status != 201 or type(value) is not dict or value.get("applied") is not True:
+                    if str(err) in _NOT_APPLIED:
+                        raise
+                    value = None  # sent, but no answer (a timeout, a reset connection)
+                else:
+                    if status != 201 or type(value) is not dict or value.get("applied") is not True:
+                        value = None
+            if value is None:
+                # It may have been applied: both undo points stay, and the E32 checks the backup
+                # again. No change left means the restore arrived (and this E32 is the one restored).
                 await self._keep("pre_restore", before, keep=(record["id"],))
-                raise ControllerLinkError("controller_response_invalid")
-            await self._keep("pre_restore", before)
+                arrived = await self._arrived(check, record)
+                if arrived is not True:
+                    raise ControllerLinkError("e32_restore_unconfirmed" if arrived is None else "e32_restore_not_applied")
+                value = {"restart": check.summary["restart"], "restart_scheduled": check.summary["restart"],
+                         "reenter": check.summary["reenter"]}
+            else:
+                await self._keep("pre_restore", before)
             restart = value.get("restart") is True
             scheduled = value.get("restart_scheduled") is True
             reenter = [text for text in value.get("reenter") or [] if type(text) is str]
@@ -445,7 +458,7 @@ class E32Backups:
             online = None
             if scheduled:
                 delay = value.get("restart_in_s")
-                delay = delay if type(delay) is int and 0 <= delay <= 60 else 10
+                delay = delay if type(delay) is int and 0 <= delay <= 60 else RESTART_DELAY
                 online = False
                 try:
                     async with timeout(RESTART_WAIT):
@@ -462,28 +475,70 @@ class E32Backups:
                     pass
         return {"restart": restart, "restart_scheduled": scheduled, "online": online, "reenter": reenter}
 
+    async def _arrived(self, check, record):
+        """After an apply without a valid answer: does the E32 now hold the backup's settings?
+
+        True: the E32's check finds nothing left to change. False: it finds
+        changes (the apply did not arrive). None: no answer within RESTART_WAIT,
+        or the password is refused (never tried twice).
+        """
+        from asyncio import timeout
+        try:
+            async with timeout(RESTART_WAIT):
+                while True:
+                    try:
+                        async with self._client(check.address) as client:
+                            await client.async_login(check.password)
+                            value, status = await client.async_config_backup(self._request("validate", record))
+                            if status == 200:
+                                return not _summary(value)["changes"]
+                    except ControllerLoginRejected:
+                        return None
+                    except ControllerLinkError:
+                        pass  # restarting, or busy: ask again
+                    await asyncio.sleep(RESTART_POLL)
+        except TimeoutError:
+            return None
+
+    @callback
+    def adopt(self, check):
+        """The user confirmed: this installation uses the checked E32 from now on (it holds the settings)."""
+        return self._adopt(check)
+
     def _adopt(self, check):
-        """After a restore: this installation's E32 is the one restored (a replacement may differ)."""
+        """After a restore: this installation's E32 is the one restored (a replacement may differ).
+
+        True when the entry uses check's E32 (now or already).
+        """
         from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_ID, CONTROLLER_PASSWORD
         from .product import commit_configuration, configuration_snapshot
         entry = self.entry
         if self.hass.config_entries.async_get_entry(entry.entry_id) is not entry:
-            return
+            return False
         wanted = {CONTROLLER_ADDRESS: check.address, CONTROLLER_PASSWORD: check.password}
         if check.identity is not None:
             wanted[CONTROLLER_ID] = check.identity
         if all(entry.data.get(k) == v for k, v in wanted.items()):
-            return
+            return True
         self._rejected_password = None
         if all(entry.data.get(k) == v for k, v in wanted.items() if k != CONTROLLER_PASSWORD):
             from .e32_access import save_password
             save_password(self.hass, entry, check.password)
-            return
+            return True
         try:
             # Another address or another E32: the entry reloads and links it.
             commit_configuration(self.hass, entry, configuration_snapshot(entry), data={**entry.data, **wanted})
         except ValueError:
             _LOGGER.warning("E32 settings restored; the new E32 address could not be saved in Home Assistant")
+            return False
+        return True
+
+
+def other_e32(entry, check):
+    """True when check's E32 is not the entry's own one (another address, or another E32 identity)."""
+    from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_ID
+    return (check.address != entry.data.get(CONTROLLER_ADDRESS)
+            or entry.data.get(CONTROLLER_ID) not in (None, check.identity))
 
 
 def backups(hass, entry):

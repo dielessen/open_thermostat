@@ -1738,6 +1738,16 @@
       "e32_restore_applying": {
         "title": "Instellingen terugzetten",
         "description": "Home Assistant maakt een back-up van de E32 zoals hij nu is en zet de gekozen back-up terug. Veranderen de netwerk- of Bluetooth-instellingen, dan start de E32 opnieuw op en wacht Home Assistant tot hij weer antwoordt; dat kan tot drie minuten duren."
+      },
+      "e32_restore_adopt": {
+        "title": "Deze E32 voortaan gebruiken?",
+        "description": "De E32 op {address} heeft de instellingen van de back-up van {created} al: er is niets terug te zetten. Home Assistant gebruikt voor deze installatie nog de vorige E32.\n\nVink het vakje aan om voortaan deze E32 te gebruiken. Home Assistant bewaart dan zijn adres en maakt verbinding met hem.",
+        "data": {
+          "confirm": "Deze E32 voortaan gebruiken"
+        },
+        "data_description": {
+          "confirm": "Er verandert niets tot je dit aanvinkt."
+        }
       }
     },
     "error": {
@@ -1894,7 +1904,11 @@
       "e32_restore_invalid": "De E32 weigert deze back-up: hij past niet bij deze E32 of zijn firmware. Kies een andere back-up.",
       "e32_restore_failed": "Het terugzetten kon niet worden afgerond. Controleer of de E32 aan staat en zijn webpagina opent, en probeer het opnieuw.",
       "e32_restore_other_e32": "Deze installatie gebruikt nog een ouder ruimteprofiel van Home Assistant, dat bij de vorige E32 hoort. Verwijder eerst de oude Home Assistant-ruimtes (Geavanceerd en diagnose → Oude Home Assistant-ruimtes verwijderen) en zet daarna terug.",
-      "e32_restore_confirm_required": "Vink het vakje aan om deze instellingen terug te zetten."
+      "e32_restore_confirm_required": "Vink het vakje aan om deze instellingen terug te zetten.",
+      "e32_restore_adopt_confirm_required": "Vink het vakje aan om deze E32 voortaan te gebruiken.",
+      "e32_restore_adopt_failed": "Home Assistant kon deze E32 niet in gebruik nemen. Probeer het opnieuw, of verbind hem onder Configureren → E32-verbinding.",
+      "e32_restore_unconfirmed": "De E32 antwoordde niet na het terugzetten, dus het is niet bekend of de instellingen zijn aangekomen. Controleer of de E32 aan staat en zijn webpagina opent, en kies de back-up daarna opnieuw: de E32 controleert wat nog anders is.",
+      "e32_restore_not_applied": "De E32 bevestigde het terugzetten niet, en zijn controle laat zien dat niet alle instellingen zijn aangekomen. Kies de back-up opnieuw om hem nog een keer terug te zetten."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",
@@ -1963,7 +1977,8 @@
       "e32_restore_done_online": "Instellingen teruggezet. De E32 is opnieuw opgestart en antwoordt weer. De ruimtes staan in schaduwmodus; bevestig de overname opnieuw op de E32-pagina als hij de ketel moet regelen.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
       "e32_restore_done_waiting": "Instellingen teruggezet. De E32 start opnieuw op en antwoordt nog niet; Home Assistant maakt vanzelf weer verbinding zodra hij terug is. De ruimtes staan in schaduwmodus; bevestig de overname opnieuw op de E32-pagina als hij de ketel moet regelen.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
       "e32_restore_done_restart": "Instellingen teruggezet. Start de E32 opnieuw op (Systeem → Apparaat herstarten op zijn pagina) om ze allemaal te gebruiken. De ruimtes staan in schaduwmodus; bevestig de overname opnieuw op de E32-pagina als hij de ketel moet regelen.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
-      "e32_restore_done": "Instellingen teruggezet. De ruimtes staan in schaduwmodus; bevestig de overname opnieuw op de E32-pagina als hij de ketel moet regelen.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}"
+      "e32_restore_done": "Instellingen teruggezet. De ruimtes staan in schaduwmodus; bevestig de overname opnieuw op de E32-pagina als hij de ketel moet regelen.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
+      "e32_restore_adopted": "Klaar: Home Assistant gebruikt voortaan deze E32. Er is niets teruggezet; hij had deze instellingen al."
     },
     "progress": {
       "controller_connect": "Verbinden met de E32…",

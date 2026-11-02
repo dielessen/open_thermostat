@@ -46,7 +46,9 @@ class FakeBackupE32:
         self.unreachable = False
         self.controls_boiler = False
         self.restarts = 0
-        self.lose_answer = False  # applies, but the answer never arrives (a reset connection)
+        # The apply's answer never arrives: "after" it applied (a reset connection), "offline" and then
+        # no answer at all for a while, "before" it applied anything (the request was lost on the way).
+        self.lose_answer = None
 
     def client(self, address):
         e32 = self
@@ -105,9 +107,12 @@ class FakeBackupE32:
                             "reenter": ["bluetooth_key:Zolder"]}, 200
                 if request.get("fingerprint") != fingerprint:
                     raise BackupRejected(409, "settings_changed")
+                if e32.lose_answer == "before":
+                    raise ControllerLinkError("controller_unreachable")
                 e32.hostname = wanted
                 e32.restarts += 1
                 if e32.lose_answer:
+                    e32.unreachable = e32.lose_answer == "offline"
                     raise ControllerLinkError("controller_unreachable")
                 return {"applied": True, "restart": True, "restart_scheduled": True, "restart_in_s": 0,
                         "language": None, "reenter": ["bluetooth_key:Zolder"]}, 201
@@ -556,6 +561,113 @@ async def test_a_replacement_e32_at_another_address_gets_the_settings_and_become
     assert done["reason"] == "e32_restore_done_online" and new.hostname == "kelder"
     assert parent.data[CONTROLLER_ADDRESS] == "http://192.168.1.77" and parent.data[CONTROLLER_ID] == "e32_ba9876543210"
     assert parent.data["controller_password"] == "admin"
+
+
+@pytest.mark.asyncio
+async def test_a_replacement_that_already_holds_the_settings_is_used_after_a_tick(hass, manager):
+    """Restored on its own page (or an earlier lost answer): nothing to restore, but use this E32 from now on."""
+    parent, _ = product(hass, FakeE32())
+    old = FakeBackupE32(hostname="kelder")
+    backup = await backups(hass, parent, old)
+    await backup.async_backup("daily")
+    hass.config_entries.async_update_entry(parent, data={**parent.data, CONTROLLER_ID: IDENTITY})
+    new = FakeBackupE32(hostname="kelder", identity="e32_ba9876543210",
+                        address="http://192.168.1.77", password="admin")
+    backup._client = new.client
+    form = await open_restore(manager, parent)
+    adopt = await finish(hass, manager, await manager.async_configure(form["flow_id"], {
+        "backup": backup.records()[0]["id"], "address": "http://192.168.1.77", "password": "admin"}))
+    assert adopt["step_id"] == "e32_restore_adopt", adopt
+    assert adopt["description_placeholders"]["address"] == "http://192.168.1.77"
+    # Never without the tick: showing the step or an unticked box changes nothing.
+    assert parent.data[CONTROLLER_ADDRESS] == ADDRESS and parent.data[CONTROLLER_ID] == IDENTITY
+    refused = await manager.async_configure(adopt["flow_id"], {"confirm": False})
+    assert refused["errors"] == {"base": "e32_restore_adopt_confirm_required"}
+    assert parent.data[CONTROLLER_ADDRESS] == ADDRESS and parent.data[CONTROLLER_ID] == IDENTITY
+    done = await manager.async_configure(adopt["flow_id"], {"confirm": True})
+    assert done["type"] == FlowResultType.ABORT and done["reason"] == "e32_restore_adopted"
+    assert parent.data[CONTROLLER_ADDRESS] == "http://192.168.1.77" and parent.data[CONTROLLER_ID] == "e32_ba9876543210"
+    assert parent.data["controller_password"] == "admin"
+    assert "apply" not in [c["action"] for c in new.calls] and new.hostname == "kelder"
+
+
+@pytest.mark.asyncio
+async def test_a_lost_restore_answer_is_checked_again_and_the_replacement_used(hass, manager, monkeypatch):
+    """The E32 applied, but its answer never arrived: its check again finds nothing left, so it arrived."""
+    parent, _ = product(hass, FakeE32())
+    monkeypatch.setattr(module, "RESTART_POLL", 0)
+    monkeypatch.setattr(module, "RESTART_DELAY", 0)
+    old = FakeBackupE32(hostname="kelder")
+    backup = await backups(hass, parent, old)
+    await backup.async_backup("daily")
+    hass.config_entries.async_update_entry(parent, data={**parent.data, CONTROLLER_ID: IDENTITY})
+    new = FakeBackupE32(hostname="openthermostat", identity="e32_ba9876543210",
+                        address="http://192.168.1.77", password="admin")
+    new.lose_answer = "after"
+    backup._client = new.client
+    form = await open_restore(manager, parent)
+    confirm = await finish(hass, manager, await manager.async_configure(form["flow_id"], {
+        "backup": backup.records()[0]["id"], "address": "http://192.168.1.77", "password": "admin"}))
+    done = await finish(hass, manager, await manager.async_configure(confirm["flow_id"], {"confirm": True}))
+    assert done["reason"] == "e32_restore_done_online", done
+    assert "Bluetooth key for Zolder" in done["description_placeholders"]["reenter"]
+    assert [c["action"] for c in new.calls] == ["validate", "export", "apply", "validate"]
+    assert new.hostname == "kelder" and parent.data[CONTROLLER_ADDRESS] == "http://192.168.1.77"
+    assert parent.data[CONTROLLER_ID] == "e32_ba9876543210"
+    assert sorted(r["kind"] for r in backup.records()) == ["daily", "pre_restore"]
+
+
+@pytest.mark.asyncio
+async def test_a_lost_restore_answer_never_counts_as_restored_unless_the_e32_check_says_so(
+        hass, manager, monkeypatch):
+    parent, _ = product(hass, FakeE32())
+    monkeypatch.setattr(module, "RESTART_POLL", 0.01)
+    monkeypatch.setattr(module, "RESTART_WAIT", 0.2)
+    old = FakeBackupE32(hostname="kelder")
+    backup = await backups(hass, parent, old)
+    await backup.async_backup("daily")
+    hass.config_entries.async_update_entry(parent, data={**parent.data, CONTROLLER_ID: IDENTITY})
+    new = FakeBackupE32(hostname="openthermostat", identity="e32_ba9876543210",
+                        address="http://192.168.1.77", password="admin")
+    backup._client = new.client
+    choice = {"backup": backup.records()[0]["id"], "address": "http://192.168.1.77", "password": "admin"}
+    # The request was lost on its way: the check again still finds the changes.
+    new.lose_answer = "before"
+    form = await open_restore(manager, parent)
+    confirm = await finish(hass, manager, await manager.async_configure(form["flow_id"], choice))
+    again = await finish(hass, manager, await manager.async_configure(confirm["flow_id"], {"confirm": True}))
+    assert again["step_id"] == "e32_restore" and again["errors"] == {"base": "e32_restore_not_applied"}
+    assert new.hostname == "openthermostat" and parent.data[CONTROLLER_ADDRESS] == ADDRESS
+    # Applied, and then no answer at all: not known; nothing is adopted.
+    new.lose_answer = "offline"
+    confirm = await finish(hass, manager, await manager.async_configure(again["flow_id"], choice))
+    again = await finish(hass, manager, await manager.async_configure(confirm["flow_id"], {"confirm": True}))
+    assert again["errors"] == {"base": "e32_restore_unconfirmed"} and new.hostname == "kelder"
+    assert parent.data[CONTROLLER_ADDRESS] == ADDRESS and parent.data[CONTROLLER_ID] == IDENTITY
+    # It answers again: choosing the backup once more offers to use it (it holds the settings now).
+    new.unreachable, new.lose_answer = False, None
+    adopt = await finish(hass, manager, await manager.async_configure(again["flow_id"], choice))
+    assert adopt["step_id"] == "e32_restore_adopt"
+    done = await manager.async_configure(adopt["flow_id"], {"confirm": True})
+    assert done["reason"] == "e32_restore_adopted" and parent.data[CONTROLLER_ID] == "e32_ba9876543210"
+
+
+@pytest.mark.asyncio
+async def test_a_lost_answer_to_an_undo_keeps_both_undo_points(hass, monkeypatch):
+    parent, _ = product(hass, FakeE32())
+    monkeypatch.setattr(module, "RESTART_POLL", 0)
+    monkeypatch.setattr(module, "RESTART_DELAY", 0)
+    e32 = FakeBackupE32(hostname="kelder")
+    backup = await backups(hass, parent, e32)
+    await backup.async_backup("daily")
+    e32.hostname = "zolder"
+    await backup.async_restore(await backup.async_check(ADDRESS, PASSWORD, backup.records()[0]["id"]))
+    undo = next(r for r in backup.records() if r["kind"] == "pre_restore")
+    e32.lose_answer = "after"
+    result = await backup.async_restore(await backup.async_check(ADDRESS, PASSWORD, undo["id"]))
+    assert result["online"] is True and e32.hostname == "zolder"
+    kept = sorted(r["document"]["network"]["hostname"] for r in backup.records() if r["kind"] == "pre_restore")
+    assert kept == ["kelder", "zolder"]
 
 
 def test_the_summary_is_plain_and_in_the_users_language():

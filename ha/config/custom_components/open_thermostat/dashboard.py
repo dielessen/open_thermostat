@@ -407,6 +407,8 @@ TEXT = {
         "shadow": "Okres próbny: E32 liczy równolegle, ale jeszcze nie steruje kotłem; decyduje nadal Twój "
                   "obecny termostat lub własna regulacja kotła.",
         "active": "E32 steruje kotłem.",
+        "next": "Następny krok: wykonaj test kotła i potwierdź przejęcie na stronie Rooms E32. Do tego czasu E32 "
+                "niczego nie wysyła do kotła.",
         "how": "E32 utrzymuje temperaturę w pomieszczeniach, także bez Home Assistant.",
         "group_heating": "Ogrzewanie", "group_dhw": "Ciepła woda", "group_status": "Stan i usterki",
         "group_counters": "Liczniki", "group_settings": "Ustawienia kotła",

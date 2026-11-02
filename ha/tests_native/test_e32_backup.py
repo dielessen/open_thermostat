@@ -166,6 +166,25 @@ async def test_a_request_larger_than_a_backup_never_leaves_home_assistant(monkey
     assert not any(call[1].endswith("/config/backup") for call in session.calls)
 
 
+@pytest.mark.asyncio
+async def test_a_valid_backup_with_non_ascii_names_is_sent_as_utf8_and_never_too_large(monkeypatch):
+    """valid_document measures UTF-8, so the request goes as UTF-8 too (no \\uXXXX escapes)."""
+    doc = {"format": "openthermostat-e32-backup", "schema": 1, "board": "e32v2", "secrets": None,
+           "heating": {"rooms": [{"name": "Łazienka ąęść żółw"} for _ in range(60)]}}
+    doc["pad"] = "x" * (24576 - module._size(doc) - 20)
+    assert module.valid_document(doc)
+    assert len(json.dumps(doc, ensure_ascii=True, separators=(",", ":"))) > link.CONFIG_BACKUP_REQUEST_BYTES
+    answer = {"valid": True, "fingerprint": "a" * 64, "restart": False}
+    session, _ = setup(monkeypatch, *login_responses(), Response(answer), Response({"authenticated": False}))
+    async with link.ControllerClient(BASE) as client:
+        await client.async_login("password")
+        value, status = await client.async_config_backup({"action": "validate", "backup": doc, "passphrase": "p" * 43})
+    assert status == 200 and value == answer
+    sent = session.calls[2][2]["data"]
+    assert type(sent) is bytes and "Łazienka".encode() in sent and b"\\u" not in sent
+    assert json.loads(sent)["backup"] == doc and len(sent) <= link.CONFIG_BACKUP_REQUEST_BYTES
+
+
 # -- the passphrase ---------------------------------------------------------------
 
 

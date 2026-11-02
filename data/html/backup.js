@@ -56,6 +56,7 @@
         "Unknown language skipped.": "Onbekende taal overgeslagen.",
         "Rooms: {v}": "Ruimtes: {v}",
         "Bluetooth sensors: {v}": "Bluetooth-sensoren: {v}",
+        "What the thermostat learned could not be read from this backup; it keeps learning from what it has.": "Wat de thermostaat geleerd heeft, kon niet uit deze back-up gelezen worden; hij leert verder met wat hij al weet.",
         "This file is not an OpenThermostat E32 backup.": "Dit bestand is geen back-up van een OpenThermostat E32.",
         "This backup was made by newer firmware. Update this E32 first.": "Deze back-up is gemaakt met nieuwere firmware. Werk deze E32 eerst bij.",
         "This backup belongs to another type of device.": "Deze back-up hoort bij een ander soort apparaat.",
@@ -106,7 +107,8 @@
     const t = value => (typeof window.uiText === 'function' ? window.uiText(value) : value);
     const fill = (value, v) => t(value).replace('{v}', v);
     const maxBytes = 24576;
-    const sections = {network: "Network", bluetooth: "Bluetooth sensors", heating: "Rooms", flow: "Water temperature", boiler_display: "Boiler model"};
+    const sections = {network: "Network", bluetooth: "Bluetooth sensors", heating: "Rooms", flow: "Water temperature", boiler_display: "Boiler model",
+        learned: "What the thermostat has learned"};
     const fields = {
         hostname: "Device name", interface_mode: "Connection", listenPort: "Web page port", emsEnabled: "Boiler bus (EMS)",
         emsForwarderEnabled: "EMS forwarder", rtcEnabled: "Clock chip", ntpEnabled: "Time from the internet", ntpHost: "Time server",
@@ -121,7 +123,7 @@
         devices: "Sensors", rooms: "Rooms", room_settings: "Room settings", minimum_flow_c: "Lowest water temperature",
         maximum_flow_c: "Highest water temperature", weather_curve: "Follow outdoor temperature (heating curve)", apply_learned: "Warm on time with the coolest water",
         curve_design_flow_c: "Water temperature at −10 °C outside", tuning: "Comfort and boiler care", tuning_manual: "Comfort and boiler care: set by you",
-        model: "Boiler model"
+        model: "Boiler model", learned: "What the thermostat has learned"
     };
     const reenter = {wifi_password: "Wi-Fi password", web_password: "Web page password", mqtt_password: "MQTT password",
         openweather_key: "OpenWeather API key", bluetooth_keys: "Bluetooth sensor keys", bluetooth_key: "Bluetooth key for {v}"};
@@ -136,7 +138,8 @@
         wifi_not_restored: "Wi-Fi is not changed by a restore. Use the Wi-Fi setup for another network.",
         secrets_skipped: "Passwords and keys in the backup are skipped because no passphrase was entered.",
         unknown_boiler_model: "Unknown boiler model skipped: {v}", unknown_language: "Unknown language skipped.",
-        heating: "Rooms: {v}", bluetooth: "Bluetooth sensors: {v}"
+        heating: "Rooms: {v}", bluetooth: "Bluetooth sensors: {v}",
+        learned_skipped: "What the thermostat learned could not be read from this backup; it keeps learning from what it has."
     };
     const errors = {
         not_a_backup: "This file is not an OpenThermostat E32 backup.", newer_schema: "This backup was made by newer firmware. Update this E32 first.",

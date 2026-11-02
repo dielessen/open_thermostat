@@ -35,6 +35,7 @@ b::DeviceState deviceState(ConfigBackupHost& host) {
     s.bluetooth = readDeviceBluetoothSettings();
     s.plan = host.plan();
     s.flow = host.flow();
+    s.learned = host.learned();
     if (const auto model = readBoilerDisplayModel()) s.display = *model;
     s.wifiSsid = host.wifiSsid();
     s.modernMode = host.modernMode();
@@ -64,6 +65,7 @@ struct Target {
                 host.stopBluetooth(); // observation stays closed until the restart
                 return saveDeviceBluetoothSettings(text);
             case b::Part::network: return saveDeviceNetworkSettings(String(text.c_str()));
+            case b::Part::learned: return host.setLearned(text);
         }
         return false;
     }

@@ -17,6 +17,8 @@ void configBackupRoute(Server& server, Controller& controller) {
         const char* setPlan(const cJSON* root) override { return c.setHeatingPlan(root); }
         std::string flow() override { return c.flowSettingsJson(); }
         const char* setFlow(const cJSON* root) override { return c.setFlowSettings(root); }
+        std::string learned() override { return c.learnedState(); }
+        bool setLearned(std::string_view bundle) override { return c.setLearnedState(bundle); }
         void stopBluetooth() override { c.stopManagedBle(); }
         bool modernMode() override { return c.modernMode(); }
         bool boilerClaimed() override { return c.claimsBoiler() || c.boilerTestActive() || c.boilerSettingsActive(); }

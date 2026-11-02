@@ -876,6 +876,7 @@ window.OT_UI_PAGE_MESSAGES = {
   // "What the thermostat has learned" and "Comfort and boiler care" on the Home page (house.html, E32 rc.2).
   "What the thermostat has learned": "Wat de thermostaat heeft geleerd",
   "The thermostat watches how your rooms warm up and cool down and how the boiler runs, and adjusts itself to that.": "De thermostaat kijkt hoe je ruimtes opwarmen en afkoelen en hoe de ketel draait, en past zich daaraan aan.",
+  "What it learned is kept when the thermostat restarts, loses power or gets an update.": "Wat hij geleerd heeft, blijft bewaard als de thermostaat herstart, de stroom uitvalt of een update krijgt.",
   "House and boiler": "Huis en ketel",
   "What it changed by itself": "Wat hij zelf heeft aangepast",
   "Comfort and boiler care": "Comfort en zorg voor de ketel",

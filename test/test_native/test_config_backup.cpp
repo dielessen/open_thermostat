@@ -2,6 +2,8 @@
 // validation, the staged summary, ordered apply with rollback and a round trip
 // onto a factory-reset E32. Host only; every value below is a test fixture.
 #include "control/ConfigBackup.h"
+#include "control/LearnedState.h"
+#include <algorithm>
 #include <gtest/gtest.h>
 #include <map>
 #include <random>
@@ -54,6 +56,10 @@ b::DeviceState configured(bool withKey = true) {
     FlowSettings flow; flow.weatherCurve = true; flow.designFlowC = 45; flow.tuning.minOnS = 600; flow.manual = 1; // 1.0: with the tuning knobs (rc.2: set by the owner)
     s.flow = flow.json();
     s.display = "nefit-ecomline-classic"; s.wifiSsid = "home-fixture"; s.modernMode = true;
+    FlowLearner learner; FlowPolicy policy; // rc.2: a learned state (one heating period)
+    FlowLearner::Boiler boiler; boiler.flowCentiC = 4000; boiler.burnerOn = true; boiler.hotWater = false;
+    learner.sample(1000, boiler, nullptr, 0);
+    s.learned = LearnedState::bundle(learner, policy, LearnedState::backupBytes);
     return s;
 }
 b::DeviceState factory() {
@@ -85,6 +91,7 @@ struct FakeTarget {
             }
             case b::Part::bluetooth: s.bluetooth = text; break;
             case b::Part::network: s.network = text; break;
+            case b::Part::learned: if (!LearnedState::validBundle(text)) return false; s.learned = text; break;
         }
         return true;
     }
@@ -178,7 +185,7 @@ TEST(ConfigBackup, RoundTripOntoFactoryResetDevice) {
     // Every section equals the source again, apart from the secrets and the
     // device-bound SOURCE profile.
     auto again = b::exportDocument(target, meta(), "");
-    for (const char* sec : {"bluetooth", "heating", "flow", "boiler_display"})
+    for (const char* sec : {"bluetooth", "heating", "flow", "boiler_display", "learned"})
         EXPECT_EQ(print(b::item(again.get(), sec)), print(b::item(doc.get(), sec))) << sec;
     auto a = parse(print(b::item(doc.get(), "network"))), c = parse(print(b::item(again.get(), "network")));
     cJSON_ReplaceItemInObjectCaseSensitive(cJSON_GetObjectItemCaseSensitive(a.get(), "mqtt"), "enabled", cJSON_CreateFalse());
@@ -461,6 +468,51 @@ TEST(ConfigBackup, FailedApplyRestoresTheOldSettings) {
     std::string failed;
     EXPECT_EQ(b::apply(before, v.prepared, fake, failed), b::Applied::partial);
     EXPECT_EQ(failed, "network,heating");
+}
+
+// rc.2: a replacement E32 keeps what the old one learned; a damaged state is only skipped.
+TEST(ConfigBackup, LearnedStateTravelsWithTheBackup) {
+    const auto source = configured();
+    ASSERT_FALSE(source.learned.empty());
+    auto doc = b::exportDocument(source, meta(), "");
+    EXPECT_EQ(b::text(b::item(b::item(doc.get(), "learned"), "state")), b::toHex(source.learned));
+    EXPECT_FALSE(b::item(b::exportDocument(factory(), meta(), "").get(), "learned"));
+    auto target = factory();
+    auto v = validate(request("validate", doc.get()), target);
+    ASSERT_EQ(v.error, nullptr);
+    EXPECT_EQ(v.prepared.learned, source.learned);
+    EXPECT_NE(print(v.report.changes.get()).find("{\"section\":\"learned\",\"field\":\"learned\",\"hidden\":true}"), std::string::npos);
+    FakeTarget fake{target};
+    std::string failed;
+    ASSERT_EQ(b::apply(target, v.prepared, fake, failed), b::Applied::applied);
+    EXPECT_EQ(target.learned, source.learned);
+    std::vector<b::Part> order;
+    for (const auto& step : fake.log) order.push_back(step.first);
+    const auto at = [&](b::Part p) { return std::find(order.begin(), order.end(), p) - order.begin(); };
+    EXPECT_LT(at(b::Part::plan), at(b::Part::learned));      // into the restored rooms
+    EXPECT_LT(at(b::Part::learned), at(b::Part::network));
+    // Damaged, too large or not text: a note, the rest is restored.
+    for (const std::string& bad : {b::toHex(source.learned.substr(0, source.learned.size() - 1) + char(source.learned.back() ^ 1)), std::string("zz"), std::string(2 * LearnedState::backupBytes + 2, 'a')}) {
+        auto damaged = parse(print(doc.get()));
+        cJSON_ReplaceItemInObjectCaseSensitive(cJSON_GetObjectItemCaseSensitive(damaged.get(), "learned"), "state", cJSON_CreateString(bad.c_str()));
+        v = validate(request("validate", damaged.get()), factory());
+        ASSERT_EQ(v.error, nullptr);
+        EXPECT_TRUE(v.prepared.learned.empty());
+        EXPECT_TRUE(has(v.report.warnings.get(), "learned_skipped"));
+        EXPECT_FALSE(v.prepared.plan.empty());
+    }
+    // A failed learned write puts the device's own state back.
+    auto onto = configured(); onto.learned = LearnedState::globalFrame(FlowLearner{}, FlowPolicy{});
+    const auto before = onto;
+    v = validate(request("validate", doc.get()), onto);
+    ASSERT_FALSE(v.prepared.learned.empty());
+    FakeTarget failing{onto};
+    failing.failAt[b::Part::learned] = 1;
+    EXPECT_EQ(b::apply(before, v.prepared, failing, failed), b::Applied::restored);
+    EXPECT_EQ(onto.learned, before.learned);
+    // What it learns while the owner reads the summary does not block the restore.
+    auto later = before; later.learned = source.learned;
+    EXPECT_EQ(b::fingerprintInput(later, v.prepared), b::fingerprintInput(before, v.prepared));
 }
 
 TEST(ConfigBackup, FingerprintCoversDeviceAndCandidates) {

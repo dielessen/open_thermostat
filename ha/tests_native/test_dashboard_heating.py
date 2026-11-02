@@ -405,9 +405,11 @@ async def test_status_comes_first_with_the_reasons_only_while_there_is_a_problem
     assert [s["cards"][0]["heading"] for s in heating["sections"]] == [
         "Now", "Advice", "Woonkamer", "Badkamer", "Boiler"]
     status = heating["sections"][0]["cards"]
-    # The problem sensor's own icon: a check when all is well, a warning when not.
-    assert status[1] == {"type": "tile", "entity": hub["heating_problem"], "name": "Heating"}
+    # The problem sensor's own icon: a check when all is well, a warning when not; the whole width.
+    assert status[1] == {"type": "tile", "entity": hub["heating_problem"], "name": "Heating",
+                         "grid_options": {"columns": 12}}
     reasons = next(c for c in status if c["type"] == "markdown" and "'reasons'" in c["content"])
+    assert status.index(reasons) == 2  # why, right under it
     assert reasons["type"] == "markdown" and hub["heating_problem"] in reasons["content"]
     assert "'reasons'" in reasons["content"]
     assert reasons["visibility"] == [{"condition": "state", "entity": hub["heating_problem"], "state": "on"}]

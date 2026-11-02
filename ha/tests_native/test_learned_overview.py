@@ -169,13 +169,26 @@ def test_the_tuning_topic_joins_the_summary():
         assert "tuning" not in h.summary
 
 
-def test_the_dashboard_shows_it_after_the_advice():
+def test_the_dashboard_sums_it_up_on_heating_and_shows_it_all_on_its_own_page():
+    """A page of text pushed the rooms down on a phone: the Heating view shows how far each room is and the
+    latest change, with a link; the whole overview is its own subview (rooms, house and boiler, its changes)."""
     from custom_components.open_thermostat import dashboard
-    section = dashboard._learned_section(dashboard.TEXT["en"], "sensor.what_the_thermostat_learned")
-    heading, rooms, house = section["cards"]
-    assert heading["heading"] == "What the thermostat has learned"
-    assert "state_attr(\"sensor.what_the_thermostat_learned\", 'rooms')" in rooms["content"]
-    assert "**House and boiler**" in house["content"] and "**What it changed by itself**" in house["content"]
-    assert section["visibility"] == [{"condition": "state", "entity": "sensor.what_the_thermostat_learned", "state_not": "unavailable"}]
-    assert dashboard._learned_section(dashboard.TEXT["nl"], None) is None
-    assert dashboard._learned_section(dashboard.TEXT["nl"], "sensor.x")["cards"][0]["heading"] == "Wat de thermostaat heeft geleerd"
+    entity = "sensor.what_the_thermostat_learned"
+    shown = [{"condition": "state", "entity": entity, "state_not": "unavailable"}]
+    summary = dashboard._learned_summary(dashboard.TEXT["en"], entity, "/dash/learned")
+    heading, text, link = summary["cards"]
+    assert heading["heading"] == "What the thermostat has learned" and summary["visibility"] == shown
+    assert "room.progress" in text["content"] and "'changes') or [])[:1]" in text["content"]
+    assert "room.lines" not in text["content"]  # the details are on the subview
+    assert (link["heading"], link["tap_action"]) == ("Everything it learned",
+                                                    {"action": "navigate", "navigation_path": "/dash/learned"})
+    rooms, house, changes = dashboard._learned_sections(dashboard.TEXT["en"], entity)
+    assert [s["cards"][0]["heading"] for s in (rooms, house, changes)] == [
+        "What the thermostat has learned", "House and boiler", "What it changed by itself"]
+    assert f"state_attr(\"{entity}\", 'rooms')" in rooms["cards"][1]["content"]
+    assert "'explanation'" in rooms["cards"][1]["content"] and "'house'" in house["cards"][1]["content"]
+    assert "'changes'" in changes["cards"][1]["content"] and "Home, Comfort and boiler care" in changes["cards"][1]["content"]
+    assert all(s["visibility"] == shown for s in (rooms, house, changes))
+    assert dashboard._learned_summary(dashboard.TEXT["nl"], None, "/x") is None
+    assert dashboard._learned_sections(dashboard.TEXT["nl"], None) == []
+    assert dashboard._learned_sections(dashboard.TEXT["nl"], "sensor.x")[0]["cards"][0]["heading"] == "Wat de thermostaat heeft geleerd"

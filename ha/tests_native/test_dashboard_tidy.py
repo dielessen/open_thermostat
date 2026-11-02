@@ -76,7 +76,7 @@ async def test_the_boiler_request_says_no_request_instead_of_zero_degrees(hass):
     config, rooms, sensors, hub, fields, flow = live(hass)
     now = section(config["views"][0], "Now")
     request, idle = [c for c in now if c.get("entity") == hub["heat_request"]]
-    assert request["name"] == "Boiler request (E32)" and "hide_state" not in request
+    assert request["name"] == "Boiler request" and "hide_state" not in request
     assert request["visibility"] == [{"condition": "numeric_state", "entity": hub["heat_request"], "above": 0}]
     assert (idle["name"], idle["icon"], idle["hide_state"]) == ("No boiler request", "mdi:fire-off", True)
     assert idle["visibility"] == [{"condition": "numeric_state", "entity": hub["heat_request"], "below": 0.1}]
@@ -136,9 +136,14 @@ async def test_long_choices_get_the_whole_width_and_no_gap_is_left_under_now(has
     heating = config["views"][0]
     assert heating["dense_section_placement"] is True
     settings = section(heating, "Heating curve and learning")
-    design = next(c for c in settings if c.get("entity") == flow["curve_design_flow_c"])
-    assert design["grid_options"] == {"columns": 12}
-    assert all("grid_options" not in c for c in settings if c.get("entity") != flow["curve_design_flow_c"])
+    # The settings carry their entities' own long names (as on the device page) and a long choice:
+    # every tile takes the whole width, none is cut short.
+    tiles = [c for c in settings if c["type"] == "tile"]
+    assert [c["entity"] for c in tiles] == [flow[k] for k in ("source", "weather_curve", "curve_design_flow_c",
+                                                              "apply_learned")]
+    assert all(c["grid_options"] == {"columns": 12} for c in tiles)
+    assert [c["name"] for c in tiles] == ["Water temperature set by", "Follow outdoor temperature (heating curve)",
+                                          "Water temperature at −10 °C outside", "Warm on time with the coolest water"]
 
 
 @pytest.mark.asyncio

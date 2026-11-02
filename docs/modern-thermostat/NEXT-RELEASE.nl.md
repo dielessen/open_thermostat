@@ -1,6 +1,6 @@
-# Releaseplan tot en na 1.0 (eigenaar, 30 oktober – 1 november 2026)
+# Releaseplan tot en na 1.0 (eigenaar, 30 oktober – 2 november 2026)
 
-Dit is het actuele plan (stand 2 november: al het 1.0-werk op `release-1.0` 7916d31). De oudere secties hieronder zijn geschiedenis.
+Dit is het actuele plan (stand 2 november: rc.1 gepubliceerd vanaf 1dc0b06; het rc.2-werk op `release-1.0` a146e73, alleen `rc2-learned-room` nog niet samengevoegd). De oudere secties hieronder zijn geschiedenis.
 
 ## Klaar
 
@@ -11,6 +11,7 @@ Dit is het actuele plan (stand 2 november: al het 1.0-werk op `release-1.0` 7916
 | Beta.22 + HA 0.4.0b14 | Alleen `board::emsActiveHeatAllowed = true`; HA toont wanneer de E32 de ketel zelf aanstuurt | Gepubliceerd en via de HA-route geïnstalleerd 31 okt, **PASS** ([bewijs](update-acceptance/e32-beta22-20261031.json)); geaccepteerde basis van de updategate |
 | HA 0.4.0b15 | Alleen HA: weekplanner zonder "Configuration error" (de weekkaarten zetten zich terug); de E32 blijft op beta.22 | Gepubliceerd 31 okt |
 | **Overstap naar actieve regeling** | Tado los van de adapter, plan actief, overname bevestigd | **Gedaan zondag 1 november rond 21:05** (lokale tijd), eerder dan het geplande dinsdag 3 november; de eigenaar deed het zelf |
+| **E32 1.0.0-rc.1 + HA 1.0.0rc1** | De eerste 1.0-kandidaat: beta.23, beta.24 en 1.0 in één release (zie hieronder) | **Gepubliceerd 2 november** (tags `v1.0.0-e32v2-rc.1` en `ha-v1.0.0rc1` op 1dc0b06, GitHub-pre-releases; akkoord eigenaar "publoceren mag ook"). HA 1.0.0rc1 staat ook als pre-release in de HACS-repository `dielessen/openthermostat-ha`. **Niet geïnstalleerd:** de E32 draait beta.22 in actieve regeling; installeren gebeurt met rc.2 |
 
 ## Beta.22 — de overstap ✅ klaar
 
@@ -68,11 +69,48 @@ Dit is het actuele plan (stand 2 november: al het 1.0-werk op `release-1.0` 7916
 - ✅ warm water universeel gesplitst in tappen en warmhouden (directe ketelsignalen eerst, anders afgeleid met een geleerde nachtbasis; optioneel een watermeter in HA), met een tijdlijn in HA en een warmwaterband in de E32-grafiek;
 - ✅ de veiligheidsfixes uit de review vóór de overstap: "terug naar de thermostaat" stopt eerst de E32 (S1), een nulvraag na een onverwachte herstart (S2), en na een firmwarewissel opnieuw bevestigen met intussen alleen vorstbeveiliging, plus de HA-Reparatie "Confirm the takeover again" (S3).
 
-## 1.0-kandidaat — één release voor beta.23, beta.24 en 1.0 (eigenaar 1 november)
+## rc.2 — zelf bijstellen, onthouden wat geleerd is en de ketelproef (in afronding)
+
+De tweede 1.0-kandidaat: `v1.0.0-e32v2-rc.2` + `ha-v1.0.0rc2`. Rc.1 wordt niet geïnstalleerd; rc.2 is de kandidaat die de eigenaar installeert en die de 14 dagen moet lopen. Concept-releasenotities (Engels): [RELEASE-1.0-RC2-NOTES-DRAFT.en.md](RELEASE-1.0-RC2-NOTES-DRAFT.en.md).
+
+**Status (2 november):** al het rc.2-werk staat op `release-1.0` a146e73, behalve `rc2-learned-room` (voegt `rc2-fw-review2` en `rc2-learning-active` samen en krijgt nog ruimte voor het geleerde van alle ruimtes). Daarna: volledige lokale controle, bevriezen, taggen en publiceren met akkoord van de eigenaar. Niets daarvan is gedaan.
+
+Samengevoegd op `release-1.0`:
+- ✅ **zelf bijstellen** (rc2-autotune): de E32 stelt zijn brander- en ruimteknoppen zelf bij uit de gemeten dagen, hooguit één kleine stap per knop per dag, met genoeg bewijs, niet in de eerste 24 uur, alleen op dagen dat de E32 de ketel stuurde; in schaduw alleen "zou wijzigen". Op Huis heet het "Comfort and boiler care", met "Set it myself", "Back to automatic" en "Back to start values";
+- ✅ **wat de thermostaat geleerd heeft** op E32 Huis en als HA-sensor met een eigen Learned-pagina op het dashboard;
+- ✅ **leren blijft bewaard** (rc2-persist) over herstarts, stroomuitval en updates, en zit in de instellingenback-up;
+- ✅ **ketelproef en overname** (rc2-active-default, rc2-rooms-active): een nieuwe installatie kiest haar route van de ketelbus (proefdraaien naast een thermostaat die nog stuurt, anders meteen de begeleide ketelproef); niets naar de ketel vóór de bevestiging; op Ruimtes eerst de actieve regeling;
+- ✅ **beveiliging** (rc2-security): geen enkele wijziging zolang het fabriekswachtwoord admin actief is (E32-pagina na het aanmelden of HA-Reparatie "Choose a new E32 password"); teruggeven aan de oude thermostaat blijft altijd werken (69e581f); Host-controle tegen DNS-rebinding; handmatige upload alleen met een OpenThermostat-E32-V2-image; begrensde HTTP-verzoeken; aanmeldblokkade per apparaat; back-upgeheimen gebonden aan de netwerkinstellingen en een wachtzin van minstens 12 tekens; begrensde JSON-diepte van kraanberichten;
+- ✅ **Bluetooth** (rc2-ble-fix): een herhaald oud bericht kan een echte sensor niet meer buitensluiten;
+- ✅ **HA-review** (rc2-ha-review2, acht fixes): back-ups met accenten, ongedaan maken van een terugzetting, geen terugzetting op de E32 van een andere installatie, een vervangende E32 in gebruik nemen, huismodus en wegtemperatuur, foutmeldingen na een herstart, lege rijen van hernoemde ketelwaarden, een samenvatting in gewone woorden;
+- ✅ **GUI** (rc2-gui-e32b met rc2-gui-e32, rc2-gui-ha, rc2-ha-polish): gewone taal (EN/NL/PL, het dashboard nu ook volledig Pools), problemen bovenaan het overzicht, rustiger ruimtekaarten, fouten met "Try again" op de pagina, ketelwaarden onder Diagnostic, het dashboard standaard aan voor een nieuwe installatie, de weekkaart op de telefoon;
+- ✅ **HACS**: HA ook als custom repository `dielessen/openthermostat-ha`, elke HA-release ook daar (`scripts/publish_hacs_repo.py`);
+- ✅ **replay-gereedschap** (rc2-replay-tool): leren en zelf bijstellen nagerekend op echte data van het huis, als stap in `scripts/final_check.sh`.
+
+Nog samen te voegen (`rc2-learned-room`):
+- ☐ fixes in het zelf bijstellen: alleen de eigen verwarmingsstarts van de E32 tellen (een ketel die zelf aan en uit gaat of warmhoudt krijgt geen langere pauzes), schaduwvoorstellen alleen uit de eigen vraag, nachtverlaging telt niet mee;
+- ☐ NVS-budget: het geleerde en de knoppen nemen nooit de ruimte die het plan, het teruggeven en Bluetooth nodig hebben; bij krapte gaat het minst nuttige eerst;
+- ☐ leren van de eigen vraag van de E32 in actieve regeling (de tado is van de bus);
+- ☐ warmwater overbruggen: korte warmhoudrondes breken een verwarmingsperiode niet meer af; vloerruimtes leren vanaf 30 minuten;
+- ☐ opwarmplanning vanaf de huidige kamertemperatuur zolang het afkoelen niet geleerd is (eerder tot 4,4 uur te vroeg);
+- ☐ de effectieve minimale aanvoer van de ketel leren (de HRC 22 stookt pas vanaf ~40 °C);
+- ☐ geleerde toestand gehard (onmogelijke waarden uit een bewerkte back-up geweigerd, geen NaN-advies), de back-up past altijd binnen wat terugzetten accepteert;
+- ☐ ruimte voor het geleerde van alle ruimtes.
+
+**Installeren** (rond 8 november, bijgewoond, iemand thuis): eerst HA 1.0.0rc2 (de eigenaar stapt dan over van de handmatige installatie naar HACS, zonder de integratie te verwijderen), dan de E32 via de Firmware-entiteit; staat het fabriekswachtwoord er nog, dan eerst een eigen wachtwoord; daarna direct de overname opnieuw bevestigen. Het leren begint één keer opnieuw, want rc.1 en ouder bewaarden het niet; het zelf bijstellen wacht minstens 24 uur.
+
+## Veldtester
+
+Een vriend van de eigenaar gaat een Nefit TopLine draaien met een E32, deze firmware en HA, met radiatorkranen en sensoren in elke ruimte.
+- Hij dekt het criterium `install_guide` (iemand anders volgt de installatiehandleiding) en de kranen op echte hardware.
+- Hij krijgt rc.2 met een kort testerspakket: de installatiehandleiding, de checklist [INSTALL-CHECK.md](../INSTALL-CHECK.md), de kaart "terug naar de thermostaat" en hoe hij diagnose deelt.
+- Nog te vragen: welke kranen en via welke integratie (Zigbee2MQTT of ZHA), zijn huidige thermostaat, zijn sensoren en zijn startdatum.
+
+## 1.0-kandidaat rc.1 — één release voor beta.23, beta.24 en 1.0 (eigenaar 1 november)
 
 Beta.23, beta.24 en 1.0 zijn **één release, de "1.0-kandidaat"**: één releasebranch (`release-1.0`), één volledige controle, één installatie. Hij komt uit als `v1.0.0-e32v2-rc.N` met `ha-v1.0.0rcN`; na 14 dagen met alle criteria op PASS wordt dezelfde code `v1.0.0-e32v2` / `ha-v1.0.0`. Verandert er nog iets, dan volgt een nieuwe kandidaat en begint de klok opnieuw.
 
-**Installeren:** ongeveer een week na de overstap van 1 november (dus rond 8–10 november), zodat het bijstellen van het leren op echte data van de actieve regeling erin zit. Dat bijstellen kan nu als instelling (Huis → "Advanced: tuning") en zet de 14 dagen niet terug; elke latere codewijziging wel. Installeren als er iemand thuis is, en direct daarna de overname opnieuw bevestigen. Releasenotities: bovenaan [RELEASE-NOTES.md](RELEASE-NOTES.md) en [HA-RELEASE-NOTES.md](HA-RELEASE-NOTES.md) (concept: [RELEASE-1.0-CANDIDATE-NOTES-DRAFT.en.md](RELEASE-1.0-CANDIDATE-NOTES-DRAFT.en.md)). **Publiceren:** akkoord van de eigenaar op 2 november ~00:10 ("publoceren mag ook") als `v1.0.0-e32v2-rc.1` + `ha-v1.0.0rc1`; installeren blijft een aparte, bijgewoonde stap.
+**Gepubliceerd op 2 november** als `v1.0.0-e32v2-rc.1` + `ha-v1.0.0rc1` (tags op 1dc0b06; akkoord van de eigenaar op 2 november ~00:10, "publoceren mag ook"). **Niet geïnstalleerd:** het bijstellen van het leren op echte data van de actieve regeling werd zelf bijstellen in rc.2, en rc.2 is de kandidaat die geïnstalleerd wordt (zie hierboven). Releasenotities: bovenaan [RELEASE-NOTES.md](RELEASE-NOTES.md) en [HA-RELEASE-NOTES.md](HA-RELEASE-NOTES.md) (concept: [RELEASE-1.0-CANDIDATE-NOTES-DRAFT.en.md](RELEASE-1.0-CANDIDATE-NOTES-DRAFT.en.md)).
 
 Inhoud (stand `release-1.0` 7916d31: al het 1.0-werk samengevoegd):
 - ✅ alles van beta.23 hierboven, met de veiligheidsfixes S1–S3;
@@ -116,7 +154,15 @@ Inhoud (stand `release-1.0` 7916d31: al het 1.0-werk samengevoegd):
 
 ## 1.0
 
-Volgorde: beta.22 (✅ overstap gedaan op 1 november) → 1.0-kandidaat (beta.23 + beta.24 + 1.0, installeren rond 8–10 november) → `v1.0.0` na 14 stabiele dagen **met ketel én radiatorkranen**.
+Volgorde: beta.22 (✅ overstap gedaan op 1 november) → rc.1 (✅ gepubliceerd 2 november, niet geïnstalleerd) → rc.2 (installeren rond 8 november) → `v1.0.0`.
+
+**De weg naar `v1.0.0` (eigenaar 2 november):**
+- rc.2 draait **14 dagen ongewijzigd**; elke codewijziging geeft een nieuwe kandidaat en zet de klok terug;
+- de resterende **bijgewoonde tests** T1–T12 gedaan en vastgelegd met `tools/switchover/record_test.py`;
+- het **leren gezien werken** in actieve regeling: geleerde opwarming per ruimte, de minimale aanvoer van de ketel en stappen van het zelf bijstellen op dagen dat de E32 stuurde;
+- de **radiatorkranen via de veldtester** (hierboven); lukt dat niet op tijd, dan komt `v1.0.0` zonder claim over kranen op echte hardware.
+
+Daarna wordt dezelfde code `v1.0.0-e32v2` / `ha-v1.0.0`.
 
 De criteria, gemeten met `tools/switchover/release_ready.py` (alleen lezen):
 
@@ -130,10 +176,11 @@ De criteria, gemeten met `tools/switchover/release_ready.py` (alleen lezen):
 | `install_guide` | iemand anders volgde de installatiehandleiding tot het eind; elk gevonden probleem opgelost | `INSTALLATIETEST-<datum>.json`, via `record_test.py install` |
 
 De kandidaat mag uit vóór de 14 dagen. De gate (`scripts/verify_e32_update_gate.py`) laat `v1.0.0-e32v2` pas toe met een definitief readinessrapport (`release_ready.py --stage final --json …`) van de kandidaat ervoor: elk criterium PASS, minstens 14 dagen, vastgelegd met zijn hash onder `readiness_report` in `E32-UPDATE-GATE.json`.
-Verwachting: eind november tot begin december, afhankelijk van de kranen (de 14 dagen van `trv_control` lopen pas als de kraansturing aan staat).
+Verwachting: met rc.2 rond 8 november op zijn vroegst eind november, anders begin december; de kranen hangen af van de veldtester (de 14 dagen van `trv_control` lopen pas als de kraansturing aan staat).
 
 ## Na 1.0
 
+- **Alleen-lezen API-sleutel voor assistenten** (eigenaar 2 november): een sleutel op de E32 voor gereedschap en assistenten, standaard uit en in te trekken; alleen GET-routes, zonder websessie, met een verzoeklimiet. Zo kan bijvoorbeeld de Claude van een vriend zijn E32 lezen zonder het admin-wachtwoord.
 - **1.1:** EMS+-ketels lezen en aansturen.
 - **Overzicht per ruimte (1.1, prototype op branch `v11-room-overview`):** elke ruimte zegt in één regel waarom hij wel of niet verwarmt (uit, raam open, geen meting, wachten op warm water of ketelpauze, vakantie, weg, boost, tijdelijk doel, verwarmen, warm genoeg), met iconen voor wie thuis is en open ramen of deuren, en de kraanopening. In HA een sensor "Reason" en een ruimtestatuskaart op het dashboard; op het E32-overzicht dezelfde regel per ruimtekaart. Geen nieuw firmwareveld.
 - **Schrijfbare EMS-instellingen (access/write):** pas na 1.0 (eigenaar 30 en 31 okt). Plan: [EMS-INSTELBARE-WAARDEN.nl.md](EMS-INSTELBARE-WAARDEN.nl.md).
@@ -146,7 +193,7 @@ Verwachting: eind november tot begin december, afhankelijk van de kranen (de 14 
   De ketel van de eigenaar (iRT via de EasyControl Adapter) krijgt alleen een vergelijking van servicecodes; het doel zijn andere ketels.
 - **Meer thermostaatfamilies:** naast de RC10-achtige thermostaat (0x17) ook andere EMS-thermostaten herkennen en lezen, tabelgestuurd en alleen geverifieerd op echte busdata.
 - **Testerprogramma:** opt-in in HA; "Deel resultaat" opent een vooraf ingevuld GitHub-issue met alleen het ketelprofiel; een GitHub Action controleert het; een profiel komt pas na beoordeling mee.
-- **HACS-vermelding** van de integratie.
+- **HACS-vermelding** van de integratie in de standaardlijst van HACS; sinds 2 november staat ze al als custom repository `dielessen/openthermostat-ha`.
 - De overige ruimtes (Badkamer, slaapkamers) zodra de eigenaar dat wil.
 
 ## Werkafspraken

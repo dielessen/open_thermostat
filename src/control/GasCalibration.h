@@ -111,6 +111,7 @@ public:
     }
 
 private:
+    friend class LearnedState;
     static double round(double v, int scale) { return std::floor(v * scale + 0.5) / scale; }
     void invalidate(const char* why) { if (valid_ && open_) last_ = why; valid_ = false; }
     void restart(double totalM3, uint64_t atMs) {

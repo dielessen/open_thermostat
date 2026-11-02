@@ -48,8 +48,9 @@ inline double round(double x) { return x < 0 ? -std::floor(-x + 0.5) : std::floo
 // slope. Heat-off segments (after the emitter coasted) give the heat-loss rate b
 // (1/h) against room - outdoor; heating segments with burner modulation give the
 // heat capacity C (kWh/K) of the house as seen from this room: P = C (rate + b dT).
-// A gas meter calibrates modulation x nominal power (GasCalibration). RAM only: pure,
-// single-threaded, call sample() every 10 s (WarmupPlanner.h uses the models).
+// A gas meter calibrates modulation x nominal power (GasCalibration). Pure and
+// single-threaded, call sample() every 10 s (WarmupPlanner.h uses the models);
+// LearnedState.h keeps what was learned over restarts and updates (NVS).
 class FlowLearner {
 public:
     static constexpr uint8_t binLowC = 20, binWidthC = 2;
@@ -364,6 +365,7 @@ public:
     }
 
 private:
+    friend class LearnedState;
     enum class Kind : uint8_t { none, heat, cool, pause };
     struct Bin {
         uint8_t segments = 0, periods = 0, outdoorSegments = 0;

@@ -37,7 +37,8 @@ struct WeatherCurve {
 // (emitter output ~ flow - room). Each window's point (setpoint - outdoor,
 // Feq - setpoint) joins a least-squares fit through the foot point (no heat at
 // outdoor = setpoint); from 6 windows the learned slope replaces the design
-// one. Older windows fade past 30. RAM only; pure, single-threaded, every 10 s.
+// one. Older windows fade past 30. Pure, single-threaded, every 10 s; the
+// sums are kept over restarts (LearnedState.h).
 class CurveLearner {
 public:
     struct Params {
@@ -80,6 +81,7 @@ public:
     const char* last() const { return last_; }
 
 private:
+    friend class LearnedState;
     struct Window {
         bool open = false;
         int8_t room = -1;

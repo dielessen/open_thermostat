@@ -11,12 +11,13 @@ receives itself, or Home Assistant entities such as a thermostat), follows the
 room's target or week program in its own time zone, and calculates a boiler
 request. Without Home Assistant everything is set up on the E32 itself.
 
-**A new installation runs in shadow mode.** The E32 calculates its boiler
-request, learns how each room warms up and, where a thermostat controls the
-boiler over EMS, compares its decisions with it. It does not send that
-request. Active boiler control is built in (since beta.22) but starts only
-after an [attended switch-over](docs/SWITCHOVER.md): you disconnect your old
-thermostat from the boiler and confirm on the E32 Rooms page.
+**Nothing is sent to the boiler until you confirm the takeover.** The default
+path is: connect the E32, run the guided **boiler test** on its Rooms page,
+take over. While the E32 still hears an EMS thermostat asking the boiler for
+heat, it first runs a trial run (shadow mode) beside it: it calculates its
+boiler request, learns how each room warms up and compares its decisions with
+that thermostat, without sending anything. The trial run is optional; see the
+[attended switch-over](docs/SWITCHOVER.md).
 
 ## Requirements
 
@@ -325,7 +326,7 @@ Demonstration with sample data, not a live capture.
 Assistant and an EMS Classic boiler and covers flashing a new E32 over USB,
 the setup Wi-Fi, the admin password, the boiler connection, MQTT, installing
 and connecting the Home Assistant integration, rooms with a week program and
-an optional setting device, what shadow mode does, updates, backup and
+an optional setting device, the boiler test and the optional trial run, updates, backup and
 restore, and troubleshooting.
 
 Download the E32 firmware and, if you use Home Assistant, the HA integration

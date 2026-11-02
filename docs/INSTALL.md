@@ -13,14 +13,16 @@ firmware and the integration versions that the release notes pair together: a
 firmware and an integration from different releases may not understand each
 other.
 
-> **A new installation starts with a trial run (shadow mode).** The E32 measures your rooms,
-> follows your week programs and calculates what it *would* ask of the boiler,
-> but it does not send that request. Your existing thermostat keeps
-> controlling the boiler. Nothing in this guide makes the E32 control your
-> boiler: that is a separate, attended step, the
-> [switch-over](SWITCHOVER.md). The one thing that does act on your home is an
-> optional *setting device* (a valve or thermostat that Home Assistant sets to
-> your week program); see [What the trial run does](#12-what-the-trial-run-does-and-does-not-do).
+> **The E32 sends nothing to the boiler until you confirm the takeover.** The
+> default path is: connect the E32, run the **boiler test**, take over. When the
+> E32 hears that your old thermostat still asks the boiler for heat, it first
+> runs a **trial run** (shadow mode) beside it: it measures your rooms, follows
+> your week programs and calculates what it *would* ask of the boiler, and your
+> thermostat keeps controlling the boiler. The trial run is optional: you can
+> always go straight to the boiler test. The one thing that acts on your home
+> before the takeover is an optional *setting device* (a valve or thermostat
+> that Home Assistant sets to your week program); see
+> [The route to the takeover](#12-what-the-trial-run-does-and-does-not-do).
 
 Want someone to check the guide as they go? Give them the
 [installation checklist](INSTALL-CHECK.md): each step, its expected result
@@ -42,7 +44,7 @@ Assistant.
 9. [Install the Home Assistant integration](#9-install-the-home-assistant-integration)
 10. [Add the integration and connect the E32](#10-add-the-integration-and-connect-the-e32)
 11. [Add your rooms](#11-add-your-rooms)
-12. [What the trial run does and does not do](#12-what-the-trial-run-does-and-does-not-do)
+12. [The route to the takeover: boiler test, or a trial run first](#12-what-the-trial-run-does-and-does-not-do)
 13. [Updates](#13-updates)
 14. [Backup and restore](#14-backup-and-restore)
 15. [Forgotten password and Wi-Fi recovery over USB](#15-forgotten-password-and-wi-fi-recovery-over-usb)
@@ -278,9 +280,10 @@ Leave the other settings as they are for now. MQTT follows in section 8.
 
 1. Connect the E32 to the boiler's EMS bus and power it the way BBQKees
    describes for your setup.
-2. **Leave your existing thermostat connected and in control.** During the trial run
-   the E32 only listens and calculates; your thermostat keeps heating the
-   house.
+2. **Leave your existing thermostat connected and in control for now.** The
+   E32 only listens; it hears whether a thermostat still asks the boiler for
+   heat and picks its route from that (section 12). The boiler test tells you
+   when to disconnect it.
 3. Switch the boiler on again.
 4. On the E32, open **Boiler**. Within a few minutes it shows live values such
    as flow and return temperature, the burner status and the boiler's
@@ -611,9 +614,68 @@ set on the boiler itself.
 **Without Home Assistant**, rooms are set up on the E32 **Rooms** page
 instead; see [Add your first room on the E32](USER-GUIDE.md#5-add-your-first-room-on-the-e32).
 
-## 12. What the trial run does and does not do
+<a id="12-what-the-trial-run-does-and-does-not-do"></a>
 
-**The E32 does:**
+## 12. The route to the takeover: boiler test, or a trial run first
+
+The route to the takeover follows what the E32 hears on the boiler bus
+during its first two minutes, as long as it has no room plan stored yet:
+
+- **Another thermostat still asks the boiler for heat** (an EMS thermostat
+  such as a tado on the bus): the E32 starts with a **trial run** beside it.
+  It calculates and compares, sends nothing, and the Rooms page shows
+  **Ready for the E32 to control the boiler?**; its last step is the boiler
+  test below.
+- **No other thermostat is heard** (none, already removed, or one that is not
+  an EMS thermostat): the plan starts in **active control**, and the Rooms page
+  leads you through the **Boiler test and takeover**. Active control still
+  sends nothing to the boiler until you confirm the takeover.
+- **Still listening:** the page says "Checking the boiler bus…" and the E32
+  stays in the trial run until it knows.
+
+The Rooms page says which route it chose and why, and you can always choose
+the other one: **Trial run first (compare with your thermostat)** or **Go
+straight to the boiler test**. An installation that already has a room plan
+keeps its mode.
+
+**Boiler test and takeover** (E32 **Rooms** page). With someone at the boiler,
+about 30 minutes. The E32 checks each step itself from what the boiler
+reports and shows it as passed, waiting or failed, with what to do:
+
+1. **Disconnect your old thermostat:** switch the boiler off, disconnect the
+   old thermostat from the boiler, switch the boiler on again. Passes when no
+   other thermostat is heard for 2 minutes while boiler messages arrive.
+2. **Confirm the takeover:** **Confirm the takeover** opens the usual
+   confirmation ("Confirm that your current thermostat is disconnected…").
+   Passes once the E32 controls the boiler.
+3. **Start heating:** the E32 sets the first active room with a working sensor
+   about 1 °C above its temperature, as a temporary change with an end time
+   (the week program is not changed). Passes when the burner starts for
+   heating within 10 minutes and the water to heating gets at least 3 °C
+   warmer within 15 minutes.
+4. **Hot water while heating:** open a hot tap for 3 minutes. Passes when hot
+   water goes first and heating resumes within 5 minutes after it, without a
+   warning. A boiler without hot water can skip this step.
+5. **Stop heating:** the room is set 0.5 °C below its temperature. Passes when
+   the burner switches off within about 45 seconds of the E32's request for no
+   heat (after its shortest run) and stays off for 5 minutes.
+6. **Done:** "The E32 now controls your boiler." The temporary change ends and
+   the week program continues.
+
+Each step has a time limit. The E32 stops the test with "Stop and give control
+back to your thermostat" and the steps to do so when another thermostat asks
+the boiler for heat, control is given back, room measurements are lost, a
+warning of active control appears, the water to heating goes above the highest
+water temperature, or the boiler is silent for 3 minutes. **Stop the test**
+ends it at any step. The result (time and every step) is kept over restarts,
+shown on the Rooms page, and in Home Assistant as attributes of the sensor
+*Ready for E32 control* (`boiler_test`, `boiler_test_at`, `boiler_test_steps`,
+`boiler_test_step`, `boiler_test_reason`). **Skip the test and confirm the
+takeover now** is possible too, but the test is the recommended path.
+
+### What the trial run does and does not do
+
+The trial run is optional. **The E32 does:**
 
 - measure every room and follow each room's week program, temporary changes,
   the house mode (away, holiday) and open-window pauses;
@@ -626,7 +688,7 @@ instead; see [Add your first room on the E32](USER-GUIDE.md#5-add-your-first-roo
 - set your setting devices (valves, tado) to the program's temperature
   through Home Assistant.
 
-**The E32 does not, until you switch to active control:**
+**The E32 does not, until you confirm the takeover:**
 
 - send any heat request to the boiler. Your existing thermostat keeps
   controlling the boiler. The Overview says **Trial run** and **Your
@@ -650,12 +712,13 @@ That is usually what you want, but it means your heating can change on the
 day you set it up. If you only want to watch during the trial run first, leave the
 setting device empty and add it later.
 
-From beta.22 on, the firmware can control the boiler, but it never starts on
-its own. The E32 takes over only after you disconnect your old thermostat from
-the boiler and choose **My thermostat is disconnected from the boiler — let the
-E32 take over** in the **Active control** section of the **Rooms** page. Do
-that only by following the [switch-over procedure](SWITCHOVER.md), with
-someone at the boiler. Until then, keep your existing thermostat connected.
+The firmware can control the boiler, but it never starts on its own. The E32
+takes over only after you disconnect your old thermostat from the boiler and
+confirm it: in the boiler test (step 2), or with **My thermostat is
+disconnected from the boiler — let the E32 take over** in the **Active
+control** section of the **Rooms** page. Do that with someone at the boiler;
+the [switch-over procedure](SWITCHOVER.md) has the details and the hand-back.
+Until then, keep your existing thermostat connected.
 
 <a id="9-updates"></a>
 
@@ -743,8 +806,11 @@ Use this on a new or reset E32, or to undo a change.
    **System → Network and Home Assistant → MQTT**. *Why:* MQTT stays off until you do, so Home Assistant
    receives nothing.
 
-A restore never changes the Wi-Fi network or the web page port, and it always
-puts the rooms back in the trial run. It is refused while a boiler test runs.
+A restore never changes the Wi-Fi network or the web page port. The rooms keep
+the mode of the backup (active control stays active), but the takeover is not
+part of a backup: a new or reset E32 sends nothing to the boiler until you
+confirm the takeover on its Rooms page again. It is refused while a boiler test
+runs.
 
 Home Assistant's own backup (Settings → System → Backups) covers the
 integration's settings in Home Assistant, including the copied

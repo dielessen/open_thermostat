@@ -6,10 +6,14 @@ engineering checklist for the reference installation is in Dutch:
 [OVERSCHAKELING.nl.md](modern-thermostat/OVERSCHAKELING.nl.md). The live
 monitor for the first 48 hours is in [tools/switchover](../tools/switchover/README.md).
 
-Until the switch-over the E32 runs a **trial run** (shadow mode): it calculates the
-boiler request but your existing thermostat keeps controlling the boiler. The
-switch-over is done once, in one afternoon, with someone at the boiler. After
-it, the E32 is the only controller of the boiler.
+Since rc.2 the default path is the guided **Boiler test and takeover** on the
+E32 Rooms page ([INSTALL.md section 12](INSTALL.md#12-what-the-trial-run-does-and-does-not-do)):
+it runs the start, hot-water and stop tests below and checks them itself from
+the boiler's telemetry. A new E32 that still hears another thermostat asking the
+boiler for heat first runs a **trial run** (shadow mode) beside it; that is
+optional, and the owner can go straight to the boiler test. Before the takeover
+the E32 sends nothing to the boiler. The switch-over is done once, with
+someone at the boiler. After it, the E32 is the only controller of the boiler.
 
 Items marked *(beta.19, verify on the device)* are built and covered by the
 host and soak tests, but only a live bus recording or the switch-over day
@@ -135,7 +139,8 @@ foreign 0x1A keeps growing. Also check the boiler's own display.
 
 ## Prerequisites
 
-- **Shadow period passed** (at least 3 days, preferably 5):
+- **Trial run passed, when you chose one** (at least 3 days, preferably 5;
+  optional since rc.2: without a trial run the boiler test below is the check):
   1. at least 72 hours without a hang or restart;
   2. at least 10 heating periods compared, including a night setback, a
      morning warm-up and a period without demand;
@@ -150,7 +155,7 @@ foreign 0x1A keeps growing. Also check the boiler's own display.
   The E32 checks these itself: the Rooms page shows **Ready for the E32 to control the boiler?**
   (in Home Assistant the sensor *Takeover readiness*) with each criterion
   green, orange (waiting, with its progress) or red (with what to do), and
-  "Ready: follow the switch-over steps" only when all pass. See
+  "Ready: start the boiler test and takeover above" only when all pass. See
   [USER-GUIDE.md](USER-GUIDE.md#ready-for-the-e32-to-control-the-boiler) for the exact thresholds.
   Without an EMS thermostat to compare with, the check says so and judges the
   stability, the room sources, the boiler's reception and its reported
@@ -186,13 +191,22 @@ foreign 0x1A keeps growing. Also check the boiler's own display.
 
 ## Switch-over
 
+**Guided (recommended):** Rooms → **Boiler test and takeover** → **Start the
+boiler test** (in a trial run: **Go straight to the boiler test**) and follow
+its six steps; they replace steps 3–5 below and the attended tests Start, Hot
+water while heating and Stop. Keep the monitor (step 2) running if you use it.
+When the test stops by a safety rule, give control back as described under
+[Hand back](#hand-back-to-the-old-thermostat).
+
+**By hand:**
+
 1. Install the approved build with the gate open. The Rooms page now shows the
    takeover button. The confirmation always starts empty after a firmware change.
 2. Start the monitor for 48 hours.
 3. Wait until the old thermostat requests no heat. Switch the boiler off,
    disconnect only the thermostat's wires, insulate and label them, and switch
    the boiler on again.
-4. Observe 10–15 minutes in shadow mode: boiler telemetry still arrives, the
+4. Observe 10–15 minutes before confirming: boiler telemetry still arrives, the
    boiler stays idle, hot water still works, the boiler maximum stays known.
    If telemetry stops or the boiler heats by itself, stop and reconnect.
 5. Rooms → Active control → **My thermostat is disconnected from the boiler —
@@ -201,6 +215,14 @@ foreign 0x1A keeps growing. Also check the boiler's own display.
    warnings.
 
 ## Attended tests
+
+The guided boiler test runs **Start**, **Hot water while heating** and **Stop**
+with the pass criteria of this table (start: burner within 10 minutes; stop:
+burner off within about 45 s of the delivered zero) and stops on the abort rules
+below that the E32 can see itself: another thermostat, a hand-back, lost
+measurements, an active-control warning, the flow above the ceiling while
+heating, or the boiler silent for 3 minutes. Its result is kept per step. The
+other tests stay attended by hand.
 
 | Test | Do | Pass when | Check |
 | --- | --- | --- | --- |

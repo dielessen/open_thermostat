@@ -324,6 +324,7 @@ public:
         if (raw.size() + 1 > control::RoomPlan::storeBytes) return "plan_too_large";
         if (raw.empty()) return "save_unconfirmed";
         const auto saved = saveHeatingPlan(raw);
+        rewriteEvicted(); // the plan first: optional records may have made room for it
         if (saved == HeatingPlanSave::storage_full) return "storage_full";
         if (saved != HeatingPlanSave::saved) return "save_unconfirmed";
         roomEngine_.setPlan(plan);
@@ -822,7 +823,19 @@ private:
     control::FlowSettings flowSettings_; // as stored: the options, the owner's knobs and which are manual
     control::AutoTuner autoTuner_;       // rc.2: the automatic knobs from the measured days (NVS "autotune")
     control::LearnedStore learnedStore_; // rc.2: the learner's, curve's and night ledger's state over restarts (NVS "learned*")
+    // A plan or Bluetooth save erased optional NVS records to make room (NvsOptionalRecords.h):
+    // what was learned and the knobs are written again where they fit (readiness: its next save).
+    uint32_t evictions_ = 0;
+    void rewriteEvicted() {
+        const uint32_t e = optionalRecordEvictions().load();
+        if (e == evictions_) return;
+        evictions_ = e;
+        DBGLOGFI(log_, logFeature_, "NVS short of room: learned, readiness and tuning records made room for the plan or Bluetooth settings\n");
+        learnedStore_.forgetStored();
+        if (!AutoTunerNvs::write(autoTuner_)) DBGLOGFI(log_, logFeature_, "Tuning not saved (NVS short of room); kept in RAM\n");
+    }
     void saveLearned(uint64_t now) {
+        rewriteEvicted();
         LearnedNvs nvs;
         if (!learnedStore_.save(nvs, flowLearner_, flowPolicy_, now))
             DBGLOGFI(log_, logFeature_, "Learned state not saved (NVS full or write failed); kept in RAM, retried in 6 h\n");
@@ -950,7 +963,10 @@ private:
         in.boilerHeardAtMs = ems.boilerHeardAtMs;
         in.limitRead = ems.limitC && ems.limitReads > 0;
         readiness_.sample(now, in);
-        if (readiness_.saveDue(now)) { ReadinessNvs::write(readiness_.stored()); readiness_.saved(now); } // a failure retries in 6 h
+        if (readiness_.saveDue(now)) { // a failure retries in 6 h
+            if (!ReadinessNvs::write(readiness_.stored())) DBGLOGFI(log_, logFeature_, "Readiness not saved (NVS short of room or write failed)\n");
+            readiness_.saved(now);
+        }
     }
     // Charts only: fresh readings, effective targets, the boiler and both requests.
     void sampleHistory(uint64_t now, const control::FlowDemand::Request& request, const ems::EmsController::ActiveHeatView& ems, std::optional<uint8_t> tadoFlowC) {
@@ -1015,7 +1031,8 @@ private:
         }
         autoTuner_.evaluate(now, *unixNow, flowSettings_.manual, plan, learned.data(), count);
         if (!autoTuner_.changed()) return;
-        AutoTunerNvs::write(autoTuner_); // a failure keeps the values this boot
+        if (!AutoTunerNvs::write(autoTuner_)) // a failure keeps the values this boot
+            DBGLOGFI(log_, logFeature_, "Tuning not saved (NVS short of room or write failed); kept in RAM\n");
         applyFlowSettings(flowSettings_);
     }
     // The options between the room engine's rule and the guard (control/FlowPolicy.h).

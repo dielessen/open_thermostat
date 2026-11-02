@@ -403,3 +403,30 @@ TEST(LearnedStore, FullNvsCorruptEntriesAndPlanChangesAreHandled) {
     EXPECT_STREQ(m.readiness(1), "collecting");
 }
 }
+
+// Review of rc.2 (finding 3): a plan or Bluetooth save may erase the learned slots to make
+// room (NvsOptionalRecords.h). The store then forgets what the backend holds: its next save
+// writes every frame again where it fits, instead of skipping the unchanged ones.
+TEST(LearnedStore, AfterTheSlotsMadeRoomTheNextSaveWritesThemAgain) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    House h; h.learn();
+    FlowPolicy p;
+    Backend nvs;
+    LearnedStore store;
+    ASSERT_TRUE(store.save(nvs, h.learner, p, h.now));
+    const auto stored = nvs.slots;
+    ASSERT_EQ(stored.size(), 3u);
+    nvs.slots.clear();                                       // erased behind the store's back
+    EXPECT_TRUE(store.save(nvs, h.learner, p, h.now));
+    EXPECT_TRUE(nvs.slots.empty()) << "unchanged frames are skipped";
+    store.forgetStored();
+    nvs.capacity = stored.at(0).size() + stored.at(1).size(); // room for two of the three
+    EXPECT_FALSE(store.save(nvs, h.learner, p, h.now));      // the third: retried at the next save
+    EXPECT_EQ(nvs.slots.size(), 2u);
+    nvs.capacity = 1 << 20;
+    EXPECT_TRUE(store.save(nvs, h.learner, p, h.now));
+    EXPECT_EQ(nvs.slots, stored);
+    const auto writes = nvs.writes;
+    EXPECT_TRUE(store.save(nvs, h.learner, p, h.now));
+    EXPECT_EQ(nvs.writes, writes) << "known again: no rewrite";
+}

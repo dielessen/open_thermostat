@@ -11,10 +11,10 @@ using Values=std::map<std::string,std::vector<unsigned char>>;
 inline std::map<std::string,Values> committed;
 struct Handle {std::string name;Values staged;std::vector<std::string> erased;};
 inline std::map<int,Handle> handles;
-inline std::string failCommit,corruptRead,failOpen; inline int next=1; inline unsigned openCalls=0;
+inline std::string failCommit,corruptRead,failOpen; inline int next=1; inline unsigned openCalls=0,writeOpens=0;
 }
 inline int nvs_open(const char* name,int mode,nvs_handle_t* h){
- ++testNvs::openCalls;
+ ++testNvs::openCalls;if(mode==NVS_READWRITE)++testNvs::writeOpens;
  if(name==testNvs::failOpen)return 2;
  if(mode==NVS_READONLY&&!testNvs::committed.count(name))return ESP_ERR_NVS_NOT_FOUND;
  *h=testNvs::next++;testNvs::handles[*h]={name,{},{}};return ESP_OK;
@@ -33,5 +33,6 @@ inline int nvs_get_blob(int h,const char* key,void* data,size_t* size){
  return ESP_OK;
 }
 inline int nvs_erase_key(int h,const char* key){auto &x=testNvs::handles.at(h);x.staged.erase(key);auto space=testNvs::committed.find(x.name);if(space==testNvs::committed.end()||!space->second.count(key))return ESP_ERR_NVS_NOT_FOUND;x.erased.push_back(key);return ESP_OK;}
+inline int nvs_get_str(int h,const char* key,char* out,size_t* size){return nvs_get_blob(h,key,out,size);}
 inline int nvs_set_u8(int h,const char* key,uint8_t value){return nvs_set_blob(h,key,&value,1);}
 inline int nvs_get_u8(int h,const char* key,uint8_t* value){size_t n=1;return nvs_get_blob(h,key,value,&n);}

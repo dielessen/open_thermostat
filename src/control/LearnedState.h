@@ -269,22 +269,26 @@ public:
             const auto f = s ? LearnedState::roomFrame(l, s - 1) : LearnedState::globalFrame(l, p);
             const bool had = present_ >> s & 1;
             if (f.empty()) {
-                if (had && b.erase(s)) present_ &= ~(1u << s);
+                if (had && b.erase(s)) { present_ &= ~(1u << s); unsure_ &= ~(1u << s); }
                 else if (had) ok = false;
                 continue;
             }
             const uint32_t c = content(f);
-            if (had && crc_[s] == c) continue;
-            if (b.write(s, f)) { present_ |= 1u << s; crc_[s] = c; }
+            if (had && crc_[s] == c && !(unsure_ >> s & 1)) continue;
+            if (b.write(s, f)) { present_ |= 1u << s; crc_[s] = c; unsure_ &= ~(1u << s); }
             else ok = false;
         }
         return ok;
     }
+    // Slots erased behind the store's back (a plan save made room): the next save writes
+    // every frame again where it fits, and erases what is no longer needed.
+    void forgetStored() { present_ = (1u << slots) - 1; unsure_ = present_; }
 private:
     // A frame's identity: the CRC of all but its own CRC (with it, every valid frame has the same residue).
     static uint32_t content(std::string_view f) { return LearnedState::crc(f.data(), f.size() - std::min<size_t>(f.size(), 4)); }
     std::array<uint32_t, slots> crc_{};
     uint32_t present_ = 0;   // slots the backend holds
+    uint32_t unsure_ = 0;    // slots it may have lost (forgetStored)
     uint64_t savedAt_ = 0;
     int32_t day_ = unknownDay;
 };

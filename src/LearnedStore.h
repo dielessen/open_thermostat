@@ -1,7 +1,9 @@
 #pragma once
 #ifdef OPENTHERMOSTAT_E32V2
 #include <nvs.h>
+#include "NvsOptionalRecords.h"
 #include "control/LearnedState.h"
+#include "control/OptionalRecordPriority.h"
 #include <cstring>
 #include <string>
 #include <string_view>
@@ -10,8 +12,11 @@ namespace heating {
 // "ot_heating"/"learned" (global, ~0.25 KB) and "learned0".."learned7" (one per
 // plan room, 0.1..0.95 KB), each blob read back after the commit. When to
 // write: control::LearnedStore. NVS full or a failed write: false, the old
-// blob stays.
+// blob stays. Written only while control's records keep their room
+// (ControlPartitionBudget::permitsOptionalWrite) and, before these bulky frames,
+// the automatic knobs (without their log) and the readiness counters theirs.
 struct LearnedNvs final : control::LearnedStore::Backend {
+    static constexpr size_t priority = control::OptionalRecordPriority::learned;
     static void key(size_t slot, char (&k)[10]) {
         std::memcpy(k, "learned", 8);
         if (slot) { k[7] = char('0' + slot - 1); k[8] = 0; }
@@ -30,6 +35,7 @@ struct LearnedNvs final : control::LearnedStore::Backend {
     }
     bool write(size_t slot, std::string_view bytes) override {
         char k[10]; key(slot, k);
+        if (!optionalHeatingRecordFits(bytes.size(), priority)) return false; // logged by the caller
         nvs_handle_t handle;
         if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
         const bool committed = nvs_set_blob(handle, k, bytes.data(), bytes.size()) == ESP_OK && nvs_commit(handle) == ESP_OK;

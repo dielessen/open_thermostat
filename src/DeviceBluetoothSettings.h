@@ -5,6 +5,7 @@
 #include <esp_partition.h>
 #include "control/ControlPartitionBudget.h"
 #include "control/ControlModelStorageReservation.h"
+#include "NvsOptionalRecords.h"
 #include <string>
 namespace heating {
 // Private bounded store, deliberately separate from ot_network/settings.
@@ -34,12 +35,11 @@ inline std::string cachedDeviceBluetoothSettings() {
     if (cache.empty()) cache = readDeviceBluetoothSettings(); // an error stays empty: read again next time
     return cache;
 }
+// Control first: the optional records (learned, readiness, autotune) make room when needed.
 inline bool bluetoothStorageHasRoom(size_t bytes) {
-    nvs_stats_t stats{};
-    const auto partition=esp_partition_find_first(ESP_PARTITION_TYPE_DATA,ESP_PARTITION_SUBTYPE_DATA_NVS,"nvs");
-    return partition&&nvs_get_stats("nvs",&stats)==ESP_OK
-        &&control::ControlPartitionBudget::permitsBluetoothWrite(
-            {partition->size,stats.total_entries,stats.used_entries,stats.free_entries,true},bytes,control::controlModelStorageReservation.current());
+    const auto models=control::controlModelStorageReservation.current();
+    return makeNvsRoom([&](control::ControlPartitionStats s){
+        return control::ControlPartitionBudget::permitsBluetoothWrite(s,bytes,models);});
 }
 inline bool saveDeviceBluetoothSettings(const std::string& raw) {
     if(raw.empty()||raw.size()>=2048||raw.find('\0')!=std::string::npos

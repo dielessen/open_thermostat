@@ -295,13 +295,14 @@ public:
         for (size_t i = 0; log && i < l; ++i) cJSON_AddItemToArray(log, changeJson(log_[i], true));
         return would && log && cJSON_GetArraySize(would) == int(w) && cJSON_GetArraySize(log) == int(l);
     }
-    // NVS: {"values":{ControlTuning},"log":[[utc,knob,from,to,reason,figure,room]]}.
-    std::string stored() const {
+    // NVS: {"values":{ControlTuning},"log":[[utc,knob,from,to,reason,figure,room]]}; the newest maxLog
+    // entries (NVS short of room: fewer, the values first).
+    std::string stored(size_t maxLog = logSize) const {
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_CreateObject(), cJSON_Delete);
         cJSON* values = root ? cJSON_Parse(values_.json().c_str()) : nullptr;
         if (!values || !cJSON_AddItemToObject(root.get(), "values", values)) { cJSON_Delete(values); return {}; }
         cJSON* log = cJSON_AddArrayToObject(root.get(), "log");
-        for (size_t i = 0; log && i < logCount_; ++i) cJSON_AddItemToArray(log, changeJson(log_[i], true));
+        for (size_t i = 0; log && i < logCount_ && i < maxLog; ++i) cJSON_AddItemToArray(log, changeJson(log_[i], true));
         char* text = log ? cJSON_PrintUnformatted(root.get()) : nullptr;
         std::string out = text ? text : "";
         cJSON_free(text);

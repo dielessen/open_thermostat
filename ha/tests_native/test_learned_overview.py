@@ -192,3 +192,49 @@ def test_the_dashboard_sums_it_up_on_heating_and_shows_it_all_on_its_own_page():
     assert dashboard._learned_summary(dashboard.TEXT["nl"], None, "/x") is None
     assert dashboard._learned_sections(dashboard.TEXT["nl"], None) == []
     assert dashboard._learned_sections(dashboard.TEXT["nl"], "sensor.x")[0]["cards"][0]["heading"] == "Wat de thermostaat heeft geleerd"
+
+
+BOILER_MINIMUM = {
+    "en": ("Your boiler only starts heating from about 40 °C water; the thermostat asks at least that much.",
+           "It learned this when the boiler did not start for cooler water."),
+    "nl": ("Je ketel begint pas te verwarmen vanaf water van ongeveer 40 °C; de thermostaat vraagt minstens zoveel.",
+           "Dat leerde hij toen de ketel voor koeler water niet aansloeg."),
+    "pl": ("Twój kocioł zaczyna grzać dopiero od wody o temperaturze około 40 °C; termostat zadaje co najmniej tyle.",
+           "Nauczył się tego, gdy kocioł nie uruchamiał się przy chłodniejszej wodzie."),
+}
+
+
+@pytest.mark.parametrize("language", ["en", "nl", "pl"])
+def test_the_boiler_minimum_flow_is_a_house_line_and_an_attribute_once_learned(language):
+    """E32 rc.2 learns the lowest water temperature the boiler fires at (learned.boiler_minimum_flow_c of the
+    summary, only once learned): a house line in the E32 page's words and an attribute; absent, nothing."""
+    s = sensor(language)
+    before = s.extra_state_attributes
+    assert "boiler_minimum_flow_c" not in before
+    assert all("40" not in line["text"] for line in before["house"]) and len(before["house"]) == 2
+    s.hub.update_summary({**SUMMARY, "learned": {**SUMMARY["learned"], "boiler_minimum_flow_c": 40}})
+    s._hub_changed()
+    a = s.extra_state_attributes
+    assert a["boiler_minimum_flow_c"] == 40
+    assert a["house"][:2] == before["house"]  # after the curve and the burner, as on the E32 page
+    assert a["house"][2] == {"text": BOILER_MINIMUM[language][0], "meaning": BOILER_MINIMUM[language][1]}
+    # Alone it still shows (no "nothing yet").
+    alone = lo.house_overview({"schema": 1, "learned": {"boiler_minimum_flow_c": 40}}, language)
+    assert alone == [a["house"][2]]
+    # Not understood or implausible: left out, never half a sentence.
+    for bad in (None, "40", True, float("nan"), 5, 120):
+        summary = {**SUMMARY, "learned": {**SUMMARY["learned"], "boiler_minimum_flow_c": bad}}
+        assert lo.boiler_minimum_flow(summary) is None
+        assert len(lo.house_overview(summary, language)) == 2
+    assert lo.boiler_minimum_flow(None) is None and lo.boiler_minimum_flow({"learned": None}) is None
+
+
+def test_the_dashboard_house_section_shows_the_boiler_minimum_line():
+    """The Learned subview's house section lists the sensor's 'house' lines, so the new line needs no card of its own."""
+    from custom_components.open_thermostat import dashboard
+    s = sensor()
+    s.hub.update_summary({**SUMMARY, "learned": {**SUMMARY["learned"], "boiler_minimum_flow_c": 41}})
+    s._hub_changed()
+    house = dashboard._learned_sections(dashboard.TEXT["en"], "sensor.x")[1]["cards"][1]["content"]
+    assert "'house'" in house and "line.text" in house and "line.meaning" in house
+    assert s.extra_state_attributes["house"][-1]["text"].startswith("Your boiler only starts heating from about 41 °C water")

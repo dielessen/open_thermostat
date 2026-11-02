@@ -7,7 +7,9 @@ language (English, Dutch or Polish), each figure with a line on what it means:
 - ``rooms``: per room its learning progress and what was learned (how fast it warms and cools,
   the lowest water temperature that still warms it in time, the planned start, the night advice),
   from ``fw/telemetry/learned/<room>``;
-- ``house``: the heating curve and the burner (starts and burn time yesterday), from the summary;
+- ``house``: the heating curve, the burner (starts and burn time yesterday) and, once learned, the
+  lowest water temperature the boiler starts heating at, from the summary; that last figure is
+  also the attribute ``boiler_minimum_flow_c`` (absent until learned);
 - ``changes``: the self-tuning's changes, newest first. The E32 sends its newest four
   (``fw/telemetry/tuning``); this sensor keeps the last ten over restarts;
 - ``settings``: the knobs in effect by their plain names, "(automatic)" or "(set by you)".
@@ -86,6 +88,8 @@ TEXT = {
         "burner_starts": "Yesterday the burner started {n} times for heating.",
         "burner_often": "That is often. Fewer, longer burns are gentler on the boiler; the thermostat works on that.",
         "burner_mean": "Fewer, longer burns are gentler on the boiler and use gas more efficiently.",
+        "boiler_minimum": "Your boiler only starts heating from about {flow} °C water; the thermostat asks at least that much.",
+        "boiler_minimum_mean": "It learned this when the boiler did not start for cooler water.",
         "house_none": "Nothing yet: this appears after the first heating days.",
         "unavailable": "The E32 has not reported what it learned yet.",
     },
@@ -145,6 +149,8 @@ TEXT = {
         "burner_starts": "Gisteren startte de brander {n} keer voor verwarmen.",
         "burner_often": "Dat is vaak. Minder en langer branden is beter voor de ketel; de thermostaat werkt daaraan.",
         "burner_mean": "Minder en langer branden is beter voor de ketel en gebruikt gas zuiniger.",
+        "boiler_minimum": "Je ketel begint pas te verwarmen vanaf water van ongeveer {flow} °C; de thermostaat vraagt minstens zoveel.",
+        "boiler_minimum_mean": "Dat leerde hij toen de ketel voor koeler water niet aansloeg.",
         "house_none": "Nog niets: dit verschijnt na de eerste dagen met verwarming.",
         "unavailable": "De E32 heeft nog niet gemeld wat hij geleerd heeft.",
     },
@@ -204,6 +210,8 @@ TEXT = {
         "burner_starts": "Wczoraj palnik uruchomił się {n} razy do ogrzewania.",
         "burner_often": "To często. Rzadsza, dłuższa praca oszczędza kocioł; termostat nad tym pracuje.",
         "burner_mean": "Rzadsza, dłuższa praca oszczędza kocioł i zużywa gaz wydajniej.",
+        "boiler_minimum": "Twój kocioł zaczyna grzać dopiero od wody o temperaturze około {flow} °C; termostat zadaje co najmniej tyle.",
+        "boiler_minimum_mean": "Nauczył się tego, gdy kocioł nie uruchamiał się przy chłodniejszej wodzie.",
         "house_none": "Jeszcze nic: pojawi się po pierwszych dniach ogrzewania.",
         "unavailable": "E32 jeszcze nie przekazał, czego się nauczył.",
     },
@@ -346,8 +354,19 @@ def room_overview(name, learned, plan, lang, clock):
     return {"name": name, "progress": progress, "lines": lines}
 
 
+def boiler_minimum_flow(summary):
+    """The lowest water temperature the boiler fires at for heating (°C), as the E32 learned it, or None.
+
+    ``learned.boiler_minimum_flow_c`` of the summary (FlowLearner, E32 rc.2): only there once learned
+    above the plan's minimum; older firmware never sends it. A value outside 20..90 °C is not shown.
+    """
+    learned = summary.get("learned") if type(summary) is dict and type(summary.get("learned")) is dict else {}
+    value = learned.get("boiler_minimum_flow_c")
+    return value if _ok(value) and 20 <= value <= 90 else None
+
+
 def house_overview(summary, lang):
-    """[{text, meaning}] for the heating curve and the burner, from the summary (flow, tuning)."""
+    """[{text, meaning}] for the heating curve, the burner and the boiler's learned minimum flow, from the summary."""
     t, lines = TEXT[lang], []
     summary = summary if type(summary) is dict else {}
     curve = (summary.get("flow") or {}).get("curve") if type(summary.get("flow")) is dict else None
@@ -361,6 +380,9 @@ def house_overview(summary, lang):
         text = (t["burner"].format(n=starts, d=duration(yesterday["burn_s"] / 60, lang))
                 if _ok(yesterday.get("burns")) and yesterday["burns"] > 0 and _ok(yesterday.get("burn_s")) else t["burner_starts"].format(n=starts))
         lines.append(_line(text, t["burner_often" if hours > 0 and starts > 3 * hours else "burner_mean"]))
+    lowest = boiler_minimum_flow(summary)
+    if lowest is not None:
+        lines.append(_line(t["boiler_minimum"].format(flow=number(lowest, lang, 0)), t["boiler_minimum_mean"]))
     return lines or [_line(t["house_none"], None)]
 
 
@@ -447,10 +469,14 @@ class LearnedOverviewSensor(RestoreEntity, SensorEntity):
         rooms = [room_overview(name, self.hub.learned.get(room_id), self.hub.warmup.get(room_id), lang, clock)
                  for room_id, name in names.items() if self.hub.rooms[room_id].get("state") != "inactive"]
         manual = tuning.get("manual") if type(tuning.get("manual")) is list else []
-        return {"explanation": t.get("state." + str(tuning.get("state")), "") if tuning else t["unavailable"],
-                "rooms": rooms, "house": house_overview(self.hub.summary, lang),
-                "changes": changes or [{"time": None, "text": t["state.none"]}],
-                "settings": settings(tuning.get("values"), manual, lang)}
+        attributes = {"explanation": t.get("state." + str(tuning.get("state")), "") if tuning else t["unavailable"],
+                      "rooms": rooms, "house": house_overview(self.hub.summary, lang),
+                      "changes": changes or [{"time": None, "text": t["state.none"]}],
+                      "settings": settings(tuning.get("values"), manual, lang)}
+        lowest = boiler_minimum_flow(self.hub.summary)
+        if lowest is not None:  # only once learned
+            attributes["boiler_minimum_flow_c"] = lowest
+        return attributes
 
     @property
     def extra_restore_state_data(self):

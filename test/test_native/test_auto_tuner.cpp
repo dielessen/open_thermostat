@@ -163,6 +163,56 @@ TEST(AutoTuner, AColdRestShortensTheRestComfortFirst) {
     EXPECT_EQ(e.tuning().minOffS, 1050);
 }
 
+// Review of rc.2 (finding 1): a cold rest at the automatic floor (300 s) set the
+// ceiling to 300; "many starts" then proposed with the upper bound 150 below the
+// lower bound 300 (std::clamp UB; 150 on the E32). Also reached when the cold
+// day was a shadow day or the rest the owner's.
+TEST(AutoTuner, ManyStartsNeverShortenTheRestBelowItsFloor) {
+    const auto rests = [](int16_t deepest) {
+        return [=](uint32_t t) {
+            const uint32_t phase = t % 900;
+            S x; x.heat = x.burner = phase < 300; x.demand = x.heat || phase >= 600;
+            x.reason = x.heat ? Reason::heating : phase >= 600 ? Reason::holdOff : Reason::satisfied;
+            x.temp = phase >= 600 ? int16_t(2000 - 20 - (deepest - 20) * int(phase - 600) / 290) : 2010;
+            return x;
+        };
+    };
+    Driver d;
+    d.manual = e_start;
+    d.day(rests(45)); // too cold, already at 300: nothing to shorten
+    EXPECT_EQ(d.tuning().minOffS, 300);
+    for (int i = 0; i < 3; ++i) {
+        d.day(cycles(5, 5)); // many starts: the ceiling (300) leaves no room to lengthen
+        EXPECT_EQ(d.tuning().minOffS, 300) << "day " << i;
+    }
+    for (size_t i = 0; i < d.tuner.logCount(); ++i) EXPECT_GE(d.tuner.change(i).to, 300);
+    // A ceiling below the value in effect: many starts must not shorten it.
+    Driver c;
+    c.manual = e_start;
+    ASSERT_TRUE(c.tuner.restore(R"({"values":{"min_off_s":600},"log":[]})"));
+    c.day(rests(45)); // 600 too cold: 450, ceiling 600
+    EXPECT_EQ(c.tuning().minOffS, 450);
+    c.day(rests(45)); // 450 too cold: 300, ceiling 450
+    EXPECT_EQ(c.tuning().minOffS, 300);
+    ASSERT_TRUE(c.tuner.restore(R"({"values":{"min_off_s":750},"log":[]})")); // e.g. a backup restored
+    c.day(cycles(5, 5));
+    EXPECT_EQ(c.tuning().minOffS, 750) << "many starts lengthen or leave it, never shorten";
+    // The cold rest was the owner's (manual); back to automatic, many starts lengthen as usual.
+    Driver m;
+    m.manual = e_start | 2; m.owner.minOffS = 300;
+    m.day(rests(45));
+    m.manual = e_start;
+    m.day(cycles(5, 5));
+    EXPECT_EQ(m.tuning().minOffS, 450) << "an owner's rest is no automatic ceiling";
+    // The cold rest was only shown (shadow): no ceiling either.
+    Driver s;
+    s.manual = e_start; s.active = false;
+    s.day(rests(45));
+    s.active = true;
+    s.day(cycles(5, 5));
+    EXPECT_EQ(s.tuning().minOffS, 450) << "a shadow day sets no ceiling";
+}
+
 TEST(AutoTuner, ShortBurnsLengthenTheBurnerRun) {
     Driver d;
     d.manual = 0b110; // rest and start margin stay: only the run time here

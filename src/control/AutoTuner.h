@@ -180,9 +180,11 @@ public:
         state_ = !enough && !over ? "collecting" : apply_ ? "active" : "shadow";
         const auto& v = values_;
         if (enough && cold && cold->first > std::max(30, v.startCentiC + 10)) {
-            restCeiling_ = restCeiling_ ? std::min(restCeiling_, v.minOffS) : v.minOffS; // a rest that proved too cold is not tried again
+            // A rest that proved too cold is not tried again: only an automatic rest the E32 applied.
+            if (apply_ && !(manual_ >> 1 & 1)) restCeiling_ = restCeiling_ ? std::min(restCeiling_, v.minOffS) : v.minOffS;
             propose(1, v.minOffS - 150, 300, 1200, Reason::coldDuringRest, cold->first, cold->second);
-        } else if (many) propose(1, v.minOffS + 150, 300, restCeiling_ ? restCeiling_ - 150 : 1200, Reason::manyStarts, int16_t(d.starts));
+        } else if (many && (!restCeiling_ || restCeiling_ >= v.minOffS + 300)) // room below the ceiling: lengthen
+            propose(1, v.minOffS + 150, 300, restCeiling_ ? restCeiling_ - 150 : 1200, Reason::manyStarts, int16_t(d.starts));
         if (enough && d.shortBurns >= 3 && d.shortBurns * 2 >= d.burns)
             propose(0, v.minOnS + 60, 300, 600, Reason::shortBurns, int16_t(d.shortBurns));
         if (over && over->first > 30) {
@@ -323,7 +325,11 @@ private:
     void propose(uint8_t knob, int to, int low, int high, Reason reason, int16_t figure, int room = -1) {
         size_t n; const auto* k = ControlTuning::knobs(n);
         const uint16_t from = values_.*k[knob].field;
-        to = std::clamp(to, std::max<int>(low, k[knob].low), std::min<int>(high, k[knob].high));
+        const int lo = std::max<int>(low, k[knob].low), hi = std::min<int>(high, k[knob].high);
+        if (lo > hi) return; // no room (never std::clamp with hi < lo)
+        const int wanted = to;
+        to = std::clamp(to, lo, hi);
+        if ((wanted > from && to < from) || (wanted < from && to > from)) return; // a bound never turns a step around
         if (to == from || (changed_ >> knob & 1) || (manual_ >> knob & 1)) return;
         Change c;
         c.utc = utc_; c.knob = knob; c.from = from; c.to = uint16_t(to); c.reason = reason; c.figure = figure;

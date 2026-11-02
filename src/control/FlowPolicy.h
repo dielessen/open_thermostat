@@ -27,6 +27,9 @@ struct FlowSettings {
     ControlTuning tuning;
     uint16_t manual = 0;       // bit i: knobs()[i] is the owner's; else AutoTuner sets it
     static constexpr size_t maxBytes = 95 + 11 + ControlTuning::maxBytes + 20 + 7 * 26; // stored as one NVS string
+    // POST /config/heating/flow: the whole record as GET answers it (~0.55 KB at the widest)
+    // posts back, also pretty-printed; still bounded (and at most 2 levels deep).
+    static constexpr size_t postMaxBytes = 1024;
     // Any of "weather_curve", "apply_learned" (bool), "curve_design_flow_c" (0 or
     // 25..80), "tuning" (ControlTuning::parse; an automatic knob given away from
     // its built-in value becomes manual, null: built-in and all automatic) and

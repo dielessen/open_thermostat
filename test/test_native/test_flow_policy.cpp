@@ -1,3 +1,4 @@
+#include "control/BoundedJson.h"
 #include "control/FlowPolicy.h"
 #include "control/HeatingTelemetry.h"
 #include "ScopedTz.h"
@@ -91,6 +92,31 @@ struct Step {
 };
 const FlowDemand::Request heat40{true, 40, FlowDemand::Reason::heating};
 const FlowDemand::Request idle{false, 0, FlowDemand::Reason::idle};
+
+// Review of rc.2 (finding 6): GET /config/heating/flow answers ~0.5 KB, but the POST took
+// at most 256 bytes, so posting the record back (a backup, a script) was refused.
+TEST(FlowSettings, TheWholeRecordPostsBack) {
+    FlowSettings s;
+    s.weatherCurve = s.applyLearned = true; s.designFlowC = 80;
+    size_t n; const auto* k = heating::control::ControlTuning::knobs(n);
+    for (size_t i = 0; i < n; ++i) s.tuning.*k[i].field = k[i].high;
+    s.manual = heating::control::ControlTuning::autoKnobs;
+    const auto compact = s.json(&s.tuning);
+    EXPECT_LE(compact.size(), FlowSettings::maxBytes);
+    EXPECT_GT(compact.size(), 256u) << "the old POST limit";
+    const auto root = parse(compact.c_str());
+    char* text = cJSON_Print(root.get()); // as a person or a script may post it
+    const std::string pretty = text; cJSON_free(text);
+    for (const auto& body : {compact, pretty}) {
+        EXPECT_LE(body.size(), FlowSettings::postMaxBytes);
+        const auto posted = heating::control::parseNestedJson(body, true, 2); // the route's depth limit
+        ASSERT_TRUE(posted) << body;
+        FlowSettings back;
+        ASSERT_EQ(FlowSettings::parse(posted.get(), back), nullptr);
+        EXPECT_TRUE(back == s);
+    }
+    EXPECT_FALSE(heating::control::parseNestedJson(std::string(R"({"tuning":{"a":{"b":1}}})"), true, 2)) << "still 2 levels at most";
+}
 
 TEST(FlowSettings, ParsesPartialUpdatesStrictly) {
     FlowSettings s;

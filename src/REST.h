@@ -1436,7 +1436,7 @@ private:
 	void heatingFlow() {
 		if (server_.method() == HTTP_POST) {
 			const auto body = server_.arg("plain");
-			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= 256 ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));
+			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= control::FlowSettings::postMaxBytes ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));
 			if (const char* error = root ? controller_.setFlowSettings(root.get()) : "invalid_json") {
 				server_.send(std::strcmp(error,"save_unconfirmed") ? 400 : 503,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
 			}

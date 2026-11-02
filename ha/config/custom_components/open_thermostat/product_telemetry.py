@@ -70,7 +70,14 @@ async def async_setup_sensors(hass, entry, async_add_entities, *, native_metrics
                     command_entity._attr_entity_registry_enabled_default=value_gated_enabled_default(
                         hass,command_entity.unique_id,(payload.get('controller_request') or {}).get('known') is True)
                     async_add_entities([command_entity],config_subentry_id=group_id)
-                if command_entity is not None:
+                if command_entity is not None and command_entity.entity_id is not None and command_entity.hass is None:
+                    # Its add was aborted (a disabled record): nothing to show, but a real request
+                    # still brings the record back (note_value enables it; the entry then reloads).
+                    request=payload.get('controller_request')
+                    if (not command_entity.noted_value and not getattr(message,'retain',False)
+                            and isinstance(request,dict) and request.get('known') is True):
+                        command_entity.noted_value=note_value(hass,command_entity.unique_id)
+                elif command_entity is not None:
                     command_entity.update_payload(payload,online,retained=getattr(message,'retain',False))
                     if command_entity.row is not None and command_entity.row.get('known'):
                         if not command_entity.noted_value:

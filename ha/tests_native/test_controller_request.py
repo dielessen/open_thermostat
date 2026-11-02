@@ -113,6 +113,69 @@ async def test_real_entity_platform_publishes_same_value_command_sequence_and_or
 
 
 @pytest.mark.asyncio
+async def test_a_disabled_request_record_takes_messages_without_errors_and_still_comes_back(hass,monkeypatch):
+    """Hidden and disabled (no trial) and then a restart: Home Assistant aborts the add, the entity keeps its
+    entity_id without hass. Every message and every tracker update must pass without an error, the other
+    listeners keep running, and a real request still brings the record back."""
+    from homeassistant.components import mqtt
+    from homeassistant.helpers import entity_registry as er
+    from custom_components.open_thermostat import native_entity_cleanup as cleanup
+    from custom_components.open_thermostat.product_telemetry import async_setup_sensors
+    from custom_components.open_thermostat.heating import HeatingTracker
+    from custom_components.open_thermostat import device_diagnostics
+    from test_product_flow import product
+    from test_room_sensor_restore import platform
+    entry=product(hass);tracker=HeatingTracker(hass,entry);actual=await platform(hass,entry)
+    hass.data['open_thermostat'][entry.entry_id]={'heating_tracker':tracker}
+    registry=er.async_get(hass)
+    unique_id=ControllerRequestSensor('fixture').unique_id
+    entity_id=registry.async_get_or_create('sensor','open_thermostat',unique_id,config_entry=entry,
+        disabled_by=er.RegistryEntryDisabler.INTEGRATION,hidden_by=er.RegistryEntryHider.INTEGRATION).entity_id
+    registry.async_update_entity_options(entity_id,'open_thermostat',{cleanup.NEVER_REPORTED:True})
+    callbacks={};added=[]
+    async def subscribe(_h,topic,callback,*args,**kwargs):callbacks[topic]=callback;return lambda:None
+    monkeypatch.setattr(mqtt,'async_wait_for_mqtt_client',AsyncMock())
+    monkeypatch.setattr(mqtt,'async_subscribe',subscribe)
+    monkeypatch.setattr(device_diagnostics,'async_setup_device_diagnostics',AsyncMock())
+    def add(entities,**kw):
+        added.extend(entities);hass.async_create_task(actual.async_add_entities(entities))
+    await async_setup_sensors(hass,entry,add,native_metrics=True)
+    others=[];tracker.async_add_listener(lambda:others.append(True))
+    try:
+        receive=callbacks['fixture/v1/fw/telemetry/controller_request']
+        receive(SimpleNamespace(payload=json.dumps(packet(None,0,100)),retain=False))
+        await hass.async_block_till_done()
+        sensor=next(e for e in added if isinstance(e,ControllerRequestSensor))
+        assert sensor.entity_id==entity_id and sensor.hass is None  # the add was aborted: disabled
+        receive(SimpleNamespace(payload=json.dumps(packet(None,0,200)),retain=False))
+        sensor.refresh();sensor.set_online(True);sensor.update_payload(packet(50,1,300,300),True)
+        others.clear();tracker._notify()
+        assert others  # the other listeners still run
+        assert registry.async_get(entity_id).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+        # A trial sends a request: the record is enabled and shown again (Home Assistant then reloads).
+        receive(SimpleNamespace(payload=json.dumps(packet(45,2,400,400)),retain=False))
+        record=registry.async_get(entity_id)
+        assert (record.disabled_by,record.hidden_by)==(None,None)
+        assert record.options['open_thermostat']=={cleanup.REPORTED:True}
+    finally:
+        await actual.async_reset();await tracker.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_one_failing_heating_listener_never_stops_the_others(hass):
+    from custom_components.open_thermostat.heating import HeatingTracker
+    from test_product_flow import product
+    tracker=HeatingTracker(hass,product(hass));calls=[]
+    def broken():
+        if calls:raise RuntimeError('Attribute hass is None')
+    tracker.async_add_listener(broken);tracker.async_add_listener(lambda:calls.append('other'))
+    calls.clear();calls.append('start')
+    tracker._notify()
+    assert calls==['start','other']
+    await tracker.async_stop()
+
+
+@pytest.mark.asyncio
 async def test_native_product_uses_actual_native_request_and_availability_topics_without_legacy_boiler_entities(hass,monkeypatch):
     from homeassistant.components import mqtt
     from custom_components.open_thermostat.product_telemetry import async_setup_sensors

@@ -139,7 +139,10 @@ class HeatingTracker:
     @callback
     def _notify(self) -> None:
         for listener in tuple(self._listeners):
-            listener()
+            try:
+                listener()
+            except Exception:  # noqa: BLE001 - one failing listener never stops the others or the timer
+                _LOGGER.exception("OpenThermostat heating listener failed")
         if self._timer_cancel:
             self._timer_cancel()
             self._timer_cancel = None

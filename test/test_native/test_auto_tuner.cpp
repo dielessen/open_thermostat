@@ -322,6 +322,22 @@ TEST(AutoTuner, NoGainRaiseWhileTheRoomOvershoots) {
     for (size_t i = 0; i < d.tuner.logCount(); ++i) EXPECT_NE(d.tuner.change(i).reason, AutoTuner::Reason::roomResponse);
 }
 
+// Replay of the owner's data: the "hovering" deviation counted the night setback
+// (about 2 degC below the room), so many small-dip starts never widened the start margin.
+TEST(AutoTuner, HoveringIgnoresTheNightSetback) {
+    Driver d;
+    const auto program = [](uint32_t t) {
+        if (t >= 6 * 3600 && t < 22 * 3600) return cycles(5, 5)(t); // 20 degC, hovering within 0.15
+        S x; x.sp = 1800; x.temp = 1990; return x;                     // the night: 18 degC, the room still warm
+    };
+    d.day(program); // the first day has no comfort level of yesterday yet
+    d.day(program);
+    EXPECT_EQ(d.tuning().startCentiC, 25) << "small dips by day, the night does not count";
+    bool hovering = false;
+    for (size_t i = 0; i < d.tuner.logCount(); ++i) hovering = hovering || d.tuner.change(i).reason == AutoTuner::Reason::hovering;
+    EXPECT_TRUE(hovering);
+}
+
 TEST(AutoTuner, FewStartsNarrowAWidenedStartMargin) {
     Driver d;
     ASSERT_TRUE(d.tuner.restore(R"({"values":{"heat_start_c":0.35},"log":[]})"));

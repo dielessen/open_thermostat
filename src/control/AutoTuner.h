@@ -37,7 +37,8 @@ namespace heating::control {
 //    the gain instead;
 //    an overshoot below stop + 0.05 brings a lowered margin back towards 0.20;
 //  - start margin (heat_start_c, 0.10..0.50, 0.05): many starts while the rooms
-//    stay within 0.15 degC of their target (mean) widen it (so about 0.35 at most);
+//    stay within 0.15 degC of their target (mean, at their highest target of today
+//    and yesterday: no night setback) widen it (so about 0.35 at most);
 //    at most 1.5 requests per heating hour bring a widened one back towards 0.20;
 //  - room correction gain (flow_per_degree_c, 5..20, 1): towards the learned
 //    minutes per degC / 9 (90 min: 10), raised only on at least 5 cycles with
@@ -107,7 +108,10 @@ public:
         const int32_t day = RoomSchedule::localDay(*s.utc);
         bool closed = false;
         if (today_.day < 0) today_.day = day;
-        else if (day > today_.day) { yesterday_ = today_; today_ = {}; today_.day = day; closed = true; }
+        else if (day > today_.day) {
+            yesterday_ = today_; today_ = {}; today_.day = day; closed = true;
+            for (auto& rt : rooms_) { rt.yesterdayMax = rt.todayMax; rt.todayMax = INT16_MIN; }
+        }
         const bool gap = !last_ || s.now <= last_ || s.now - last_ > gapMs;
         const uint32_t dt = gap ? 0 : uint32_t((s.now - last_) / 1000);
         last_ = s.now;
@@ -127,7 +131,11 @@ public:
             }
             rt.settled = r.temperature && r.setpoint && s.now - rt.changedAt >= settleMs;
             rt.measurable = r.temperature && r.setpoint && (!rt.droppedAt || s.now - *rt.droppedAt >= settleMs);
-            if (rt.settled && dt) { d.deviationSum += uint32_t(std::abs(*r.temperature - *r.setpoint)) * dt; d.deviationS += dt; }
+            if (r.setpoint) rt.todayMax = std::max(rt.todayMax, *r.setpoint);
+            // The hovering deviation: settled (2 h after a target change) and at the room's
+            // highest target of today and yesterday; a night setback or eco level is no hovering.
+            const bool comfort = r.setpoint && *r.setpoint >= std::max(rt.todayMax, rt.yesterdayMax);
+            if (rt.settled && comfort && dt) { d.deviationSum += uint32_t(std::abs(*r.temperature - *r.setpoint)) * dt; d.deviationS += dt; }
         }
         // Burner: heating starts and burns (hot water excluded), continuous reports only;
         // a start counts once the burner was seen off before it. Classified per burn, as
@@ -318,7 +326,10 @@ private:
         std::array<uint8_t, ringSize> restRoom{};
         uint8_t restCount = 0;
     };
-    struct RoomState { std::optional<int16_t> setpoint; uint64_t changedAt = 0; std::optional<uint64_t> droppedAt; bool settled = false, measurable = false; };
+    struct RoomState {
+        std::optional<int16_t> setpoint; uint64_t changedAt = 0; std::optional<uint64_t> droppedAt; bool settled = false, measurable = false;
+        int16_t todayMax = INT16_MIN, yesterdayMax = INT16_MIN; // the highest target of the local day
+    };
     struct Burn { bool on = false, measured = false, heating = false, offSeen = false; uint64_t at = 0; };
     // A burn awaiting its class; short: ended with the E32's request, inside: ended inside a request (the boiler's own).
     struct Ended { bool on = false, heating = false, shortBurn = false, inside = false; uint64_t at = 0; uint32_t s = 0; };

@@ -157,8 +157,9 @@ TEST(FlowLearner, HotWaterIsNotLearned) {
 }
 
 // A boiler that keeps a small hot-water store warm (3 min every 11 min, the owner's
-// EcomLine HRC 22) never gives 45 min of heating without hot water: by default nothing is
-// learned. The opt-in bridge pauses the segment over each hot-water run instead.
+// EcomLine HRC 22) never gives 45 min of heating without hot water: without the bridge
+// nothing is learned. The bridge (on by default since rc.2) pauses the segment over each
+// hot-water run instead.
 void storeDays(House& h, int cycles) {
     for (int c = 0; c < cycles; ++c)
         for (const double f : tadoFlows) {
@@ -170,14 +171,15 @@ void storeDays(House& h, int cycles) {
 
 TEST(FlowLearner, KeepWarmStoreBlocksLearningUnlessBridged) {
     auto plain = House::floor();
+    FlowLearner::Params off; off.bridgeHotWater = false;
+    plain.learner = FlowLearner(off);
+    plain.plan(RoomPlan::Emitter::floor);
     storeDays(plain, 3);
     EXPECT_STREQ(plain.learner.readiness(0), "collecting");
     EXPECT_EQ(plain.learner.segments(0), 0);
 
-    auto bridged = House::floor();
-    FlowLearner::Params p; p.bridgeHotWater = true;
-    bridged.learner = FlowLearner(p);
-    bridged.plan(RoomPlan::Emitter::floor);
+    auto bridged = House::floor();  // the default
+    ASSERT_TRUE(FlowLearner::Params{}.bridgeHotWater);
     storeDays(bridged, 3);
     EXPECT_GT(bridged.learner.segments(0), 0);  // learning, where the plain learner has nothing
     // One heating period per tado run, not one per hot-water interruption.
@@ -250,7 +252,7 @@ FlowLearner hrc22Learner(FlowLearner::Params p, Drive drive) {
 }
 
 TEST(FlowLearner, ActiveModeLearnsFromTheE32sOwnRequest) {
-    FlowLearner::Params p; p.bridgeHotWater = true;
+    const FlowLearner::Params p;
     // The absent tado as the reference: every burner pause ends the period, nothing is learned.
     EXPECT_EQ(hrc22Learner(p, Drive::activeTado).segments(0), 0);
     // The E32's own request: the same afternoon and evening give segments.

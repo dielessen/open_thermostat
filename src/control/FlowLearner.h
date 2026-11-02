@@ -41,8 +41,9 @@ inline double round(double x) { return x < 0 ? -std::floor(-x + 0.5) : std::floo
 // (owner, 28/29 Oct: "zo laag mogelijk moduleren ... dat ga je vanzelf leren").
 // Beta.18: report only; beta.19: FlowPolicy applies it with the option "use
 // learned flow" (default off: advice). Evidence: while some
-// controller (now the tado) heats, every room gets stable segments (45 min..3 h,
-// flow within 3 degC, no hot water, fresh data); a segment's least-squares room
+// controller (the tado, or the E32 itself in active mode) heats, every room gets
+// stable segments (30 min for a floor, else 45, up to 3 h; short hot-water runs bridged,
+// flow within 3 degC, fresh data); a segment's least-squares room
 // slope goes into a 2 degC flow bin. Bins are made non-decreasing (more flow is
 // never slower) and, with enough outdoor spread, shifted by one learned outdoor
 // slope. Heat-off segments (after the emitter coasted) give the heat-loss rate b
@@ -60,7 +61,10 @@ public:
         uint32_t maxGapMs = 60000;                     // a longer silence ends a segment
         uint32_t settleMs = 600000;                    // after a heating start the flow still rises
         uint32_t hotWaterHoldoffMs = 900000;           // after hot water the circuit refills
-        uint32_t minSegmentMs = 2700000, maxSegmentMs = 10800000;
+        // A floor room's segment counts from 30 min (radiators 45): its slow emitter keeps the
+        // rate steady, the reference band ends longer segments in a warm-up, and bins weigh
+        // segments by their hours (rc.2 replay: 2 -> 5 segments in 41 h).
+        uint32_t minSegmentMs = 2700000, floorMinSegmentMs = 1800000, maxSegmentMs = 10800000;
         uint8_t flowBandC = 3;                         // requested (else measured) flow stays in this band
         int16_t maxStepCentiC = 30;                    // a bigger jump is a source/offset change
         uint16_t maxRateCentiCPerHour = 300;           // faster: window, sun, cooking, not the emitter
@@ -76,13 +80,16 @@ public:
         float nominalKw = 22;
         float kwhPerM3 = 9.77f;  // NL gas, Groningen-equivalent upper value, until HA reports its own (gas_kwh_per_m3)
         float returnDropK = 6;   // flow - return when the return is not reported
-        // Opt-in (default off, behaviour unchanged): a hot-water run during a heating
-        // segment pauses the segment instead of ending it, for at most maxBridgeMs. A boiler
-        // that keeps a small store warm every ~11 min (the owner's EcomLine HRC 22) otherwise
-        // never has 45 min of heating without hot water, so nothing is learned (replay:
-        // docs/modern-thermostat/LEREN-ANALYSE.nl.md). Paused samples are not used.
-        bool bridgeHotWater = false;
-        uint32_t maxBridgeMs = 1800000;
+        // A hot-water run during a heating segment pauses the segment instead of ending it,
+        // while heat is still asked, for at most maxBridgeMs from the last used sample: a
+        // run of up to 10 min plus its hold-off (a shower is longer and still ends it). On
+        // by default since rc.2: a boiler that keeps a small store warm every ~11 min (the
+        // owner's EcomLine HRC 22) otherwise never has a long heating stretch without hot
+        // water (replay of 41 h: 97 split periods, 0 segments; LEREN-ANALYSE.nl.md). A
+        // boiler without a store rarely pauses, so the bridge costs it nothing. Paused
+        // samples are not used.
+        bool bridgeHotWater = true;
+        uint32_t maxBridgeMs = 900000;
         uint32_t bridgeHoldoffMs = 300000;             // with the bridge: hold-off after hot water
     };
     // Condensing efficiency against the return temperature: 97.5 % at <= 35 degC,
@@ -448,7 +455,8 @@ private:
         auto& s = r.segment;
         s.active = false;
         const double den = s.n * s.stt - s.st * s.st;
-        const uint32_t shortest = s.kind == Kind::heat ? p_.minSegmentMs : p_.minCoolMs;
+        const uint32_t shortest = s.kind == Kind::cool ? p_.minCoolMs
+            : r.emitter == RoomPlan::Emitter::floor ? p_.floorMinSegmentMs : p_.minSegmentMs;
         if (s.lastMs - s.startMs < shortest || s.n < 3 || den <= 0) { r.last = "segment_too_short"; return; }
         const double rate = (s.n * s.sty - s.st * s.sy) / den, hours = double(s.lastMs - s.startMs) / 3600000.0;
         if (std::fabs(rate) * 100 > p_.maxRateCentiCPerHour) { r.rejected = sat(r.rejected); r.last = "rate_out_of_range"; return; }

@@ -307,7 +307,7 @@
         },
         {
           "path": "test/soak/soak.cpp",
-          "sha256": "b4d83e10487cc959ae87f8529a242d2142e2ae2f4f13c91dd2682f879db2b8e4"
+          "sha256": "03e9aaacc418e4f2e22ff138c99a5d683d67584fde411407b0bd5a6da16fd7d5"
         },
         {
           "path": "test/time-zone-picker.test.cjs",

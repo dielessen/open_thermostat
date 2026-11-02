@@ -11,14 +11,14 @@
       <h3 class="mt-3" data-i18n="Hot water today">Hot water today</h3>
       <dl class="ot-kv" data-dhw-list></dl>
       <p class="ot-hint" data-i18n="Keeping warm: the boiler reheats its hot water without anyone using a tap.">Keeping warm: the boiler reheats its hot water without anyone using a tap.</p>
-      <p class="ot-hint" data-dhw-method hidden><span data-i18n="Classified by DHW temperature fall">Classified by DHW temperature fall</span>. <span data-i18n="This adapter reports no real flow, so a tap is recognised by the hot-water temperature dropping.">This adapter reports no real flow, so a tap is recognised by the hot-water temperature dropping.</span></p>
+      <p class="ot-hint" data-dhw-method hidden><span data-i18n="Recognised by the hot water temperature dropping">Recognised by the hot water temperature dropping</span>. <span data-i18n="This adapter does not report how much hot water flows, so a tap is recognised by the hot water temperature dropping.">This adapter does not report how much hot water flows, so a tap is recognised by the hot water temperature dropping.</span></p>
     </div>
   </section>
-  <p class="pd-help"><span data-i18n="The flow temperature limits for all rooms are on the Home page:">The flow temperature limits for all rooms are on the Home page:</span> <a href="#boiler-limits" data-page="boiler_limits"><span data-i18n="Home → Flow temperature limits">Home → Flow temperature limits</span></a></p>
+  <p class="pd-help"><span data-i18n="The water temperature limits for all rooms are on the Home page:">The water temperature limits for all rooms are on the Home page:</span> <a href="#boiler-limits" data-page="boiler_limits"><span data-i18n="Home → Water temperature limits">Home → Water temperature limits</span></a></p>
   <details class="ot-advanced" data-boiler-model><summary data-i18n="Boiler model">Boiler model</summary><div data-boiler-display-host></div></details>
-  <details class="ot-advanced" data-boiler-profile id="boiler-profile"><summary><span data-i18n="Boiler profile">Boiler profile</span> <small class="bp-summary" data-profile-summary></small></summary>
+  <details class="ot-advanced" data-boiler-profile id="boiler-profile"><summary><span data-i18n="What your boiler reports">What your boiler reports</span> <small class="bp-summary" data-profile-summary></small></summary>
     <p class="pd-help" data-i18n="The E32 learns from the boiler's own messages which values this boiler actually has. Home Assistant only shows those.">The E32 learns from the boiler's own messages which values this boiler actually has. Home Assistant only shows those.</p>
-    <p role="status" aria-live="polite" data-profile-status><span data-i18n="Loading boiler profile…">Loading boiler profile…</span></p>
+    <p role="status" aria-live="polite" data-profile-status><span data-i18n="Loading what your boiler reports…">Loading what your boiler reports…</span></p>
     <div data-profile-groups hidden>
       <h3 data-i18n="Values available">Values available</h3>
       <ul class="bp-list" data-profile-group="supported"></ul>
@@ -47,9 +47,9 @@
     </ol>
     <p data-trial-remaining hidden></p>
     <p data-test-state role="status" aria-live="polite"><span data-i18n="Checking test status…">Checking test status…</span></p>
-    <p data-controller-request hidden><strong data-i18n="Last E32 flow request">Last E32 flow request</strong>: <span data-controller-request-value></span><br><small data-i18n="Sent by E32; separate from the boiler-reported target.">Sent by E32; separate from the boiler-reported target.</small></p>
+    <p data-controller-request hidden><strong data-i18n="Last water temperature the E32 asked">Last water temperature the E32 asked</strong>: <span data-controller-request-value></span><br><small data-i18n="Sent by E32; separate from the boiler-reported target.">Sent by E32; separate from the boiler-reported target.</small></p>
     <form data-test-form>
-      <label class="d-block"><span data-i18n="Desired flow temperature (°C)">Desired flow temperature (°C)</span><input class="form-control" data-test-flow type="number" step="1" required disabled data-hint="The water temperature the boiler should deliver during the test."></label>
+      <label class="d-block"><span data-i18n="Desired water temperature (°C)">Desired water temperature (°C)</span><input class="form-control" data-test-flow type="number" step="1" required disabled data-hint="The water temperature the boiler should deliver during the test."></label>
       <label class="d-block"><span data-i18n="Maximum heat demand (seconds)">Maximum heat demand (seconds)</span><input class="form-control" data-test-duration type="number" step="1" required disabled data-hint="After this many seconds the E32 stops asking for heat."></label>
       <p class="pd-help" data-trial-selection></p>
       <p class="pd-help" data-trial-cadence hidden></p>
@@ -71,7 +71,7 @@
     </form>
     <div class="bt-act"><button class="btn btn-primary" type="button" data-test-restart hidden><span data-i18n="Restart device">Restart device</span></button><p class="pd-help bt-why" id="bt-why-restart" data-why hidden></p></div>
     <div class="bt-act"><button class="btn btn-outline-secondary" type="button" data-test-close-fault hidden disabled><span data-i18n="Close faulted test after reported stop">Close faulted test after reported stop</span></button><p class="pd-help bt-why" id="bt-why-close" data-why hidden></p></div>
-    <p data-test-close-help hidden><span data-i18n="This action requires a transmitted zero demand and fresh boiler reports confirming zero requested flow temperature and stopped heating.">This action requires a transmitted zero demand and fresh boiler reports confirming zero requested flow temperature and stopped heating.</span> <span data-i18n="Closing does not erase the fault. A restart is required before another test; no heat demand resumes automatically.">Closing does not erase the fault. A restart is required before another test; no heat demand resumes automatically.</span></p>
+    <p data-test-close-help hidden><span data-i18n="This works only after the E32 has asked the boiler for no heat and the boiler has confirmed that heating stopped.">This works only after the E32 has asked the boiler for no heat and the boiler has confirmed that heating stopped.</span> <span data-i18n="Closing does not erase the fault. A restart is required before another test; no heat demand resumes automatically.">Closing does not erase the fault. A restart is required before another test; no heat demand resumes automatically.</span></p>
     <p class="pd-help"><span data-i18n="Keep this page visible during the test. Switching away ends supervision. Returning, refreshing or reopening does not automatically resume it.">Keep this page visible during the test. Switching away ends supervision. Returning, refreshing or reopening does not automatically resume it.</span></p>
     <p data-test-action role="status" aria-live="polite"></p>
     <section class="bt-result" data-trial-result hidden aria-live="polite" aria-atomic="true">
@@ -128,7 +128,7 @@
     const flow = d.today.peak_flow_l_min, week = d.last_7_days;
     const rows = [[uiText("Tapping"), part(d.today, 'tapping')], [uiText("Keeping warm"), part(d.today, 'keep_warm')],
       [uiText("Burner time"), Number.isFinite(d.today.burner_s) ? duration(d.today.burner_s) : null],
-      [uiText("Peak flow"), Number.isFinite(flow) ? new Intl.NumberFormat(OpenThermostatLanguage.locale, {maximumFractionDigits:1}).format(flow) + ' l/min' : null],
+      [uiText("Highest hot water flow"), Number.isFinite(flow) ? new Intl.NumberFormat(OpenThermostatLanguage.locale, {maximumFractionDigits:1}).format(flow) + ' l/min' : null],
       [uiText("Last 7 days"), part(week, 'tapping') && part(week, 'keep_warm') ? uiText("Tapping") + ' ' + part(week, 'tapping') + ' · ' + uiText("Keeping warm") + ' ' + part(week, 'keep_warm') : null]]
       .filter(row => row[1] !== null);
     const signature = JSON.stringify(rows);
@@ -152,9 +152,9 @@
     const show = (name, digits, unit) => { const v = field(name); return v && Number.isFinite(v.value) ? format(v.value, digits) + unit : null; };
     const heat = field('heating_active'), dhw = field('dhw_active'), code = field('display_code'), service = field('service_number'), hours = field('reported_burner_runtime');
     const rows = [[uiText("Status"), dhw?.value === 1 ? uiText("Hot water") : heat?.value === 1 ? uiText("CH active") : heat || dhw ? uiText("No CH or hot water") : null],
-      [uiText("Flow temperature"), show('measured_flow_temperature', 1, ' °C')], [uiText("Return temperature"), show('measured_return_temperature', 1, ' °C')],
+      [uiText("Water temperature to heating (flow)"), show('measured_flow_temperature', 1, ' °C')], [uiText("Water temperature back (return)"), show('measured_return_temperature', 1, ' °C')],
       [uiText("Water pressure"), show('pressure', 1, ' bar')], [uiText("Hot water temperature"), show('measured_dhw_temperature', 1, ' °C')],
-      [uiText("Burner modulation"), show('reported_burner_modulation', 0, ' %')],
+      [uiText("Burner power"), show('reported_burner_modulation', 0, ' %')],
       [uiText("Maximum heating temperature (boiler setting)"), show('configured_heating_temperature', 0, ' °C')],
       [uiText("Display code"), codeText(code, service)],
       [uiText("Burner starts"), show('reported_burner_starts', 0, '')],
@@ -260,12 +260,12 @@
       heatStatus.textContent += ' '+uiText("The water is already at or above the requested temperature. Heat demand can continue while the boiler waits or cycles its burner.");
     if(value.reason==='flow_outside_trial_limits' && measured?.state==='valid' && measured.quality==='reported'
         && measured.unit==='degC' && Number.isFinite(measured.value))
-      heatStatus.textContent += ' '+uiText("Measured flow temperature: ")
+      heatStatus.textContent += ' '+uiText("Measured water temperature to heating: ")
         +new Intl.NumberFormat(document.documentElement.lang||'en').format(measured.value)+' °C. '
         +uiText("Required for this trial: ")+limits.minimum_measured_flow_centi/100+'–<'+limits.maximum_measured_flow_centi/100+' °C.';
     const format = number => new Intl.NumberFormat(document.documentElement.lang || 'en').format(number);
     for (const [label,text] of [
-      [uiText("Requested flow temperature"),format(limits.minimum_flow_c)+'–'+format(limits.maximum_flow_c)+' °C'],
+      [uiText("Requested water temperature"),format(limits.minimum_flow_c)+'–'+format(limits.maximum_flow_c)+' °C'],
       [uiText("Maximum heat demand"),format(limits.maximum_duration_s)+' s'],
       [uiText("Water temperature monitoring range"),format(limits.minimum_measured_flow_centi/100)+'–<'+format(limits.maximum_measured_flow_centi/100)+' °C'],
       [separatePressure ? uiText("Separate pressure check window") : uiText("Boiler pressure window"),format(limits.minimum_pressure_decibar/10)+'–'+format(limits.maximum_pressure_decibar/10)+' bar'],
@@ -384,7 +384,7 @@
   let configurationRead = null, lastConfigurationRead = null, readUncertain=false;
   const readLabels = {
     idle:uiText("Heating settings have not been requested in this session."),
-    queued:uiText("Waiting for the bus to allow the read request."),
+    queued:uiText("Waiting for a quiet moment on the boiler bus."),
     waiting:uiText("Read request sent. Waiting for the boiler response."),
     completed:uiText("Heating settings received. Heat testing still requires separate preparation."),
     failed:uiText("Heating settings could not be read. No automatic retry. Check the measurement report.")
@@ -727,7 +727,7 @@
     const flow=liveField('measured_flow_temperature'),burner=liveField('reported_burner_modulation');
     const items=[[['idle','completed'].includes(test.phase)?uiText('Selected'):uiText('Requested'),
         Number.isInteger(requested)&&requested>0?decimal(requested)+' °C':'—'],
-      [uiText('Boiler flow now'),flow&&flow.unit==='degC'?decimal(flow.value)+' °C'+ago(flow):'—'],
+      [uiText('Water to heating now'),flow&&flow.unit==='degC'?decimal(flow.value)+' °C'+ago(flow):'—'],
       [uiText('Burner'),burner?(burner.value>0?uiText('On')+' · '+decimal(burner.value)+' %':uiText('Off'))
         +(hotWater()?' · '+uiText('Hot water'):'')+ago(burner):'—']];
     const signature=JSON.stringify(items)+(test.phase==='heating'&&hotWater());
@@ -904,7 +904,7 @@
     if (document.visibilityState !== 'visible' || prepareButton.disabled || !test) return;
     const flow = Number(flowInput.value), duration = Number(durationInput.value);
     if (!flowInput.checkValidity() || !durationInput.checkValidity() || !Number.isInteger(flow) || !Number.isInteger(duration)) {
-      setTestMessage(uiText("Enter a whole flow temperature and duration within the displayed limits.")); return;
+      setTestMessage(uiText("Enter a whole water temperature and duration within the limits shown.")); return;
     }
     const body = {boot_id:test.boot_id, revision:test.revision+1, flow_c:flow, duration_s:duration, ...siteDeclarations(true)};
     clearSiteDeclarations();
@@ -975,14 +975,14 @@
       burnerCycles = data.burner_cycles && typeof data.burner_cycles === 'object' ? data.burner_cycles : null;
       dhwEpisodes = data.dhw_episodes && typeof data.dhw_episodes === 'object' ? data.dhw_episodes : null;
       paintEssentials();
-      message.textContent = data.transport.enabled === false ? uiText("EMS reception is off.") : labels[data.reception.state];
+      message.textContent = data.transport.enabled === false ? uiText("Listening to the boiler bus (EMS) is off.") : labels[data.reception.state];
       transport.replaceChildren();
       fact(uiText("Boiler messages"), number(data.reception.report_count));
       fact(uiText("Last boiler message"), age(data.reception.last_report_age_ms));
       fact(uiText("Transmission in firmware"), data.transport.transmit_compiled === true ? uiText("Present; no evidence of enablement") : data.transport.transmit_compiled === false ? uiText("Blocked") : uiText("Unknown"));
       fact(uiText("Data frames transmitted"), number(data.transport.transmitted_frames));
       fact(uiText("Messages missed because the queue is full"), number(data.transport.receive_queue_dropped));
-      fact(uiText("Rejected telegrams"), number(data.transport.invalid_telegrams));
+      fact(uiText("Rejected boiler messages"), number(data.transport.invalid_telegrams));
       fact(uiText("UART errors"), number(data.transport.uart_errors));
       fact(uiText("UART resets"), number(data.transport.uart_resets));
       telegrams.replaceChildren();
@@ -1032,7 +1032,7 @@
   'use strict';
   const box = document.querySelector('#boiler-test [data-boiler-profile]');
   if (!box) return;
-  const NAMES = {"reported_selected_flow_temperature":"Selected flow temperature","measured_flow_temperature":"Flow temperature","measured_return_temperature":"Return temperature","outdoor_temperature":"Outdoor temperature","reported_burner_modulation":"Burner modulation","reported_requested_power_limit":"Requested power limit","pressure":"Water pressure","raw_burner_bit":"Burner bit (raw)","raw_pump_bit":"Pump bit (raw)","raw_fan_bit":"Fan bit (raw)","raw_boiler_state":"Boiler state bits (raw)","heating_active":"Heating active","dhw_active":"Hot water active","selected_dhw_temperature":"Selected hot water temperature","measured_dhw_temperature":"Hot water temperature","dhw_flow":"Hot water flow","heating_enabled":"Heating enabled","dhw_enabled":"Hot water enabled","reported_burner_starts":"Burner starts","reported_burner_runtime":"Burner runtime","reported_heating_runtime":"Heating runtime","reported_heating_starts":"Heating starts","reported_dhw_runtime":"Hot water runtime","reported_dhw_starts":"Hot water starts","display_code":"Display code","service_number":"Service number","maximum_burner_power":"Maximum burner power","pump_run_on":"Pump run-on","configured_heating_temperature":"Heating temperature setting","reported_dhw_target":"Hot water target temperature","storage_temperature_1":"Storage temperature 1","storage_temperature_2":"Storage temperature 2","ionisation_current":"Ionisation current","raw_second_burner_bit":"Second burner bit (raw)","raw_ignition_bit":"Ignition bit (raw)","raw_oil_preheat_bit":"Oil preheat bit (raw)","raw_dhw_valve_bit":"Hot water valve bit (raw)","raw_dhw_circulation_bit":"Circulation bit (raw)","boiler_temperature":"Boiler temperature","exhaust_temperature":"Exhaust temperature","hydraulic_switch_temperature":"Hydraulic switch temperature","reported_heating_pump_modulation":"Heating pump modulation","reported_second_burner_runtime":"Second burner runtime","heating_hysteresis_off":"Heating hysteresis off","heating_hysteresis_on":"Heating hysteresis on","minimum_burner_period":"Minimum burner period","pump_modulation_maximum":"Maximum pump modulation","pump_modulation_minimum":"Minimum pump modulation","configured_pump_mode":"Pump mode setting","secondary_heating_hysteresis_off":"Second heating hysteresis off","secondary_heating_hysteresis_on":"Second heating hysteresis on","pump_start_temperature":"Pump start temperature","dhw_hysteresis_on":"Hot water hysteresis on","dhw_charge_optimisation_enabled":"Hot water charge optimisation","dhw_flow_temperature_offset":"Hot water flow offset","dhw_circulation_enabled":"Circulation enabled","configured_dhw_circulation_mode":"Circulation mode setting","dhw_disinfection_temperature":"Disinfection temperature","configured_dhw_charge_type":"Hot water charge type","configured_dhw_comfort_mode":"Hot water comfort mode","secondary_dhw_temperature":"Second hot water temperature","solar_dhw_temperature":"Solar hot water temperature","reported_dhw_type":"Hot water type","raw_dhw_one_time_bit":"One-time charge bit (raw)","raw_dhw_disinfection_bit":"Disinfection bit (raw)","raw_dhw_charging_bit":"Charging bit (raw)","raw_dhw_recharging_bit":"Recharging bit (raw)","raw_dhw_temperature_ok_bit":"Hot water temperature OK bit (raw)","raw_dhw_active_bit":"Hot water active bit (raw)","thermostat_requested_flow_temperature":"Requested flow temperature (thermostat)","thermostat_requested_burner_power":"Requested burner power (thermostat)","thermostat_requested_pump_modulation":"Requested pump modulation (thermostat)","thermostat_requested_dhw_temperature":"Requested hot water temperature (thermostat)","maintenance_message":"Maintenance message","thermostat_setpoint":"Target temperature (thermostat)","thermostat_room_temperature":"Room temperature (thermostat)","thermostat_target_flow_temperature":"Target flow temperature (thermostat)","plus_selected_flow_temperature":"Selected flow temperature (EMS+)","plus_flow_temperature":"Flow temperature (EMS+)","plus_requested_burner_power":"Requested burner power (EMS+)","plus_burner_modulation":"Burner modulation (EMS+)","plus_burner_on":"Burner on (EMS+)","plus_dhw_valve":"Hot water valve (EMS+)","plus_return_temperature":"Return temperature (EMS+)","plus_flame_current":"Flame current (EMS+)","plus_pressure":"Water pressure (EMS+)","plus_exhaust_temperature":"Exhaust temperature (EMS+)","plus_heating_pump":"Heating pump (EMS+)","plus_burner_starts":"Burner starts (EMS+)","plus_burner_runtime":"Burner runtime (EMS+)","plus_heating_runtime":"Heating runtime (EMS+)","plus_heating_pump_modulation":"Heating pump modulation (EMS+)","plus_dhw_target":"Hot water target temperature (EMS+)","plus_dhw_temperature":"Hot water temperature (EMS+)","plus_dhw_flow":"Hot water flow (EMS+)","plus_dhw_runtime":"Hot water runtime (EMS+)","plus_dhw_starts":"Hot water starts (EMS+)","plus_dhw_selected_temperature":"Selected hot water temperature (EMS+)","plus_heating_temperature":"Heating temperature setting (EMS+)","plus_maximum_burner_power":"Maximum burner power (EMS+)","last_locking_error_code":"Last locking fault code","last_locking_error_number":"Last locking fault number","last_blocking_error_code":"Last blocking fault code","last_blocking_error_number":"Last blocking fault number","boiler_uptime":"Boiler uptime"};
+  const NAMES = {"reported_selected_flow_temperature":"Water temperature target (boiler)","measured_flow_temperature":"Water temperature to heating (flow)","measured_return_temperature":"Water temperature back (return)","outdoor_temperature":"Outdoor temperature","reported_burner_modulation":"Burner power","reported_requested_power_limit":"Requested power limit","pressure":"Water pressure","raw_burner_bit":"Burner bit (raw)","raw_pump_bit":"Pump bit (raw)","raw_fan_bit":"Fan bit (raw)","raw_boiler_state":"Boiler state bits (raw)","heating_active":"Heating active","dhw_active":"Hot water active","selected_dhw_temperature":"Selected hot water temperature","measured_dhw_temperature":"Hot water temperature","dhw_flow":"Hot water flow","heating_enabled":"Heating enabled","dhw_enabled":"Hot water enabled","reported_burner_starts":"Burner starts","reported_burner_runtime":"Burner runtime","reported_heating_runtime":"Heating runtime","reported_heating_starts":"Heating starts","reported_dhw_runtime":"Hot water runtime","reported_dhw_starts":"Hot water starts","display_code":"Display code","service_number":"Service number","maximum_burner_power":"Maximum burner power","pump_run_on":"Pump keeps running after heating","configured_heating_temperature":"Heating temperature setting","reported_dhw_target":"Hot water target temperature","storage_temperature_1":"Storage temperature 1","storage_temperature_2":"Storage temperature 2","ionisation_current":"Flame signal (ionisation current)","raw_second_burner_bit":"Second burner bit (raw)","raw_ignition_bit":"Ignition bit (raw)","raw_oil_preheat_bit":"Oil preheat bit (raw)","raw_dhw_valve_bit":"Hot water valve bit (raw)","raw_dhw_circulation_bit":"Circulation bit (raw)","boiler_temperature":"Boiler temperature","exhaust_temperature":"Exhaust temperature","hydraulic_switch_temperature":"Hydraulic switch temperature","reported_heating_pump_modulation":"Heating pump speed","reported_second_burner_runtime":"Second burner runtime","heating_hysteresis_off":"Heating switch-off margin (hysteresis)","heating_hysteresis_on":"Heating switch-on margin (hysteresis)","minimum_burner_period":"Burner rest between starts (boiler)","pump_modulation_maximum":"Highest pump speed","pump_modulation_minimum":"Lowest pump speed","configured_pump_mode":"Pump mode setting","secondary_heating_hysteresis_off":"Second switch-off margin (hysteresis)","secondary_heating_hysteresis_on":"Second switch-on margin (hysteresis)","pump_start_temperature":"Pump start temperature","dhw_hysteresis_on":"Hot water switch-on margin (hysteresis)","dhw_charge_optimisation_enabled":"Hot water charge optimisation","dhw_flow_temperature_offset":"Extra water temperature for hot water","dhw_circulation_enabled":"Circulation enabled","configured_dhw_circulation_mode":"Circulation mode setting","dhw_disinfection_temperature":"Disinfection temperature","configured_dhw_charge_type":"Hot water charge type","configured_dhw_comfort_mode":"Hot water comfort mode","secondary_dhw_temperature":"Second hot water temperature","solar_dhw_temperature":"Solar hot water temperature","reported_dhw_type":"Hot water type","raw_dhw_one_time_bit":"One-time charge bit (raw)","raw_dhw_disinfection_bit":"Disinfection bit (raw)","raw_dhw_charging_bit":"Charging bit (raw)","raw_dhw_recharging_bit":"Recharging bit (raw)","raw_dhw_temperature_ok_bit":"Hot water temperature OK bit (raw)","raw_dhw_active_bit":"Hot water active bit (raw)","thermostat_requested_flow_temperature":"Water temperature asked (thermostat)","thermostat_requested_burner_power":"Requested burner power (thermostat)","thermostat_requested_pump_modulation":"Pump speed asked (thermostat)","thermostat_requested_dhw_temperature":"Requested hot water temperature (thermostat)","maintenance_message":"Maintenance message","thermostat_setpoint":"Target temperature (thermostat)","thermostat_room_temperature":"Room temperature (thermostat)","thermostat_target_flow_temperature":"Water temperature target (thermostat)","plus_selected_flow_temperature":"Water temperature target (EMS+)","plus_flow_temperature":"Water temperature to heating (EMS+)","plus_requested_burner_power":"Requested burner power (EMS+)","plus_burner_modulation":"Burner power (EMS+)","plus_burner_on":"Burner on (EMS+)","plus_dhw_valve":"Hot water valve (EMS+)","plus_return_temperature":"Water temperature back (EMS+)","plus_flame_current":"Flame signal (EMS+)","plus_pressure":"Water pressure (EMS+)","plus_exhaust_temperature":"Exhaust temperature (EMS+)","plus_heating_pump":"Heating pump (EMS+)","plus_burner_starts":"Burner starts (EMS+)","plus_burner_runtime":"Burner runtime (EMS+)","plus_heating_runtime":"Heating runtime (EMS+)","plus_heating_pump_modulation":"Heating pump speed (EMS+)","plus_dhw_target":"Hot water target temperature (EMS+)","plus_dhw_temperature":"Hot water temperature (EMS+)","plus_dhw_flow":"Hot water flow (EMS+)","plus_dhw_runtime":"Hot water runtime (EMS+)","plus_dhw_starts":"Hot water starts (EMS+)","plus_dhw_selected_temperature":"Selected hot water temperature (EMS+)","plus_heating_temperature":"Heating temperature setting (EMS+)","plus_maximum_burner_power":"Maximum burner power (EMS+)","last_locking_error_code":"Last locking fault code","last_locking_error_number":"Last locking fault number","last_blocking_error_code":"Last blocking fault code","last_blocking_error_number":"Last blocking fault number","boiler_uptime":"Boiler uptime"};
   const status = box.querySelector('[data-profile-status]'), groups = box.querySelector('[data-profile-groups]');
   const summary = box.querySelector('[data-profile-summary]'), lifecycle = new AbortController();
   const label = name => uiText(NAMES[name] || name.replaceAll('_', ' ').replace(/^./, c => c.toUpperCase()));
@@ -1076,7 +1076,7 @@
     groups.querySelector('[data-profile-family]').hidden = family !== 'classic' && family !== 'plus';
     summary.textContent = '· ' + sets.supported.length + ' ' + uiText("available") + ', ' + sets.not_fitted.length + ' ' + uiText("not fitted");
     groups.hidden = false;
-    status.textContent = p.settled ? '' : uiText("Still learning: the profile is complete after about 10 minutes of boiler messages.");
+    status.textContent = p.settled ? '' : uiText("Still listening: the list is complete after about 10 minutes of boiler messages.");
     status.hidden = !status.textContent;
   }
   async function refresh() {
@@ -1091,7 +1091,7 @@
       if (box.isConnected) { box.hidden = false; paint(p); }
     } catch (_) {
       if (lifecycle.signal.aborted || !box.isConnected) return;
-      status.hidden = false; status.textContent = uiText("The boiler profile is not available on this firmware or right now.");
+      status.hidden = false; status.textContent = uiText("This list is not available on this firmware or right now.");
     }
     if (box.open && document.visibilityState === 'visible' && !lifecycle.signal.aborted) timer = setTimeout(refresh, 60000);
   }

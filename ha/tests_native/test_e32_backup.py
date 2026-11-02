@@ -413,7 +413,7 @@ async def test_restore_checks_shows_the_summary_and_restores_only_after_the_tick
     assert confirm["step_id"] == "e32_restore_confirm", confirm
     summary = confirm["description_placeholders"]["summary"]
     assert "Network · Device name: zolder → kelder" in summary and "MQTT password: will change" in summary
-    assert "shadow mode" in summary and "future" in summary and "Bluetooth key for Zolder" in summary
+    assert "trial run" in summary and "future" in summary and "Bluetooth key for Zolder" in summary
     assert [c["action"] for c in e32.calls] == ["export", "validate"] and e32.hostname == "zolder"
     refused = await manager.async_configure(confirm["flow_id"], {"confirm": False})
     assert refused["errors"] == {"base": "e32_restore_confirm_required"} and e32.hostname == "zolder"
@@ -507,9 +507,9 @@ def test_the_summary_is_plain_and_in_the_users_language():
                            {"section": "flow", "field": "weather_curve", "from": False, "to": True}],
                "warnings": ["plan_mode_shadow"], "reenter": ["mqtt_password"], "restart": False}
     english = summary_text(summary, "en")
-    assert "Rooms: Hal → Hal, Zolder" in english and "Flow temperature · Weather curve: Off → On" in english
-    assert "The rooms are restored in shadow mode." in english and "- MQTT password" in english
+    assert "Rooms: Hal → Hal, Zolder" in english and "Water temperature · Follow outdoor temperature (heating curve): Off → On" in english
+    assert "The rooms are restored in the trial run." in english and "- MQTT password" in english
     dutch = summary_text(summary, "nl")
-    assert "Stooklijn" not in dutch and "Weersafhankelijke stooklijn: Uit → Aan" in dutch
-    assert "schaduwmodus" in dutch and "MQTT-wachtwoord" in dutch
+    assert "Stooklijn" not in dutch and "Buitentemperatuur volgen (stooklijn): Uit → Aan" in dutch
+    assert "proefperiode" in dutch and "MQTT-wachtwoord" in dutch
     assert "Hasło MQTT" in summary_text(summary, "pl")

@@ -188,8 +188,8 @@ def test_every_menu_entry_and_new_step_has_a_label(filename):
         assert old not in text, old
     # Moving an E32 to this installation: the shadow checkbox is in the Home Assistant section, by its own label.
     conflict = document["options"]["error"]["controller_source_conflict"]
-    assert ("Koppeling met Home Assistant in schaduwmodus (geen ketelregeling)" if dutch
-            else "Home Assistant link in shadow mode (no boiler control)") in conflict
+    assert ("Koppeling met Home Assistant in proefperiode (geen ketelregeling)" if dutch
+            else "Home Assistant link in trial run (no boiler control)") in conflict
 
 
 @pytest.mark.asyncio

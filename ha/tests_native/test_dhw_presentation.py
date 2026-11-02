@@ -171,9 +171,9 @@ async def test_diagnostics_and_dashboard_render_only_owned_renamed_capability_en
     config=RoomDashboard(hass,"fixture",e.entry_id)._dashboard_config()
     from custom_components.open_thermostat.dashboard import view_cards
     diagnostics_view=next(v for v in config["views"] if v["path"]=="diagnostics")
-    card=next(c for c in view_cards(diagnostics_view) if c["type"]=="markdown" and "Domestic hot water" in c["content"])
+    card=next(c for c in view_cards(diagnostics_view) if c["type"]=="markdown" and "Hot water, view only" in c["content"])
     rendered=Template(card["content"],hass).async_render()
-    assert "58.3" in rendered and "unreliable_classic" in rendered and "source age" in rendered
+    assert "58.3" in rendered and "unreliable_classic" in rendered and "age is not checked" in rendered
     assert "NEVER_EXPORT" not in rendered and "call-service" not in str(config)
     er.async_get(hass).async_update_entity("sensor.renamed_dhw_status",disabled_by=er.RegistryEntryDisabler.USER)
     assert "sensor.renamed_dhw_status" not in str(RoomDashboard(hass,"fixture",e.entry_id)._dashboard_config())

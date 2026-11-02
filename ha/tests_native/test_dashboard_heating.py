@@ -104,7 +104,7 @@ async def test_heating_view_is_sections_of_built_in_cards_per_room_with_the_esse
     explain = next(c for c in now if c["type"] == "markdown" and c not in words)
     # One short line instead of a "How it works" block.
     assert "How it works" not in explain["content"] and "You set the rooms" not in explain["content"]
-    assert "also without Home Assistant" in explain["content"] and "Shadow mode" in explain["content"]
+    assert "also without Home Assistant" in explain["content"] and "Trial run" in explain["content"]
     assert hub["heat_request"] in explain["content"]  # the mode line follows the E32's own status
 
     living = heating["sections"][1]["cards"]
@@ -146,7 +146,7 @@ async def test_heating_view_is_sections_of_built_in_cards_per_room_with_the_esse
     history = next(c for c in compare if c["type"] == "history-graph")
     assert [x["entity"] for x in history["entities"]] == [
         hub["heat_request"], fields["thermostat_requested_flow_temperature"], fields["measured_flow_temperature"]]
-    assert [x["name"] for x in history["entities"]] == ["Boiler request E32", "Thermostat request", "Flow temperature"]
+    assert [x["name"] for x in history["entities"]] == ["Boiler request E32", "Thermostat request", "Water to heating (flow)"]
     per_day = comparison["sections"][1]["cards"]
     assert per_day[0]["heading"] == "Heating time per day"
     assert per_day[1]["type"] == "statistics-graph" and "title" not in per_day[1]
@@ -278,7 +278,7 @@ async def test_learning_area_per_room_and_hot_water_today_only_once_reported(has
     on = {"condition": "state", "entity": room["state"], "state_not": "inactive"}
     # Hidden while the E32 reports none, and while the room is off.
     assert heading["visibility"] == [on, known(room["learning"])]
-    assert (advice["entity"], advice["name"]) == (room["flow_advice"], "Flow advice")
+    assert (advice["entity"], advice["name"]) == (room["flow_advice"], "Recommended water temperature")
     assert advice["visibility"] == [on, {"condition": "state", "entity": room["learning"], "state": "ready"},
                                     known(room["flow_advice"])]
     assert (start["entity"], start["name"], start["visibility"]) == (
@@ -302,7 +302,7 @@ async def test_learning_area_per_room_and_hot_water_today_only_once_reported(has
     # In Dutch.
     hass.config.language = "nl"
     text = json.dumps(RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config(), ensure_ascii=False)
-    for words in ('"Leren"', "Aanvoeradvies", "Start verwarmen", "Tappen vandaag",
+    for words in ('"Leren"', "Geadviseerde watertemperatuur", "Start verwarmen", "Tappen vandaag",
                   "Warm water vandaag", "leert ook hoe snel elke ruimte opwarmt", "alleen advies"):
         assert words in text, words
 
@@ -331,7 +331,7 @@ async def test_dutch_headings_and_only_existing_enabled_entities(hass):
     for gone in (hub["heat_request"], rooms["woonkamer"]["fallback_setpoint"], sensors["humidity"],
                  fields["thermostat_requested_flow_temperature"], hub["burner_short_cycling"]):
         assert gone not in text
-    assert "Gemeten door E32" in text and "Schaduwmodus" not in text  # no request entity: no mode line
+    assert "Gemeten door E32" in text and "Proefperiode" not in text  # no request entity: no mode line
     assert "Zo werkt het" not in text and "ook zonder Home Assistant" in text
     assert "thermostat" not in [c["type"] for c in view_cards(heating)]  # no hub status: no thermostat link
     assert None not in list(walk(config))

@@ -53,7 +53,7 @@ def test_estimate_night_setback_taps_and_no_data():
     assert result["night_saving_m3"] == 0.84 and result["night_saving_money"] == 1.26
     text = module.message(result, [], "en")
     assert "35 taps." in text and "about 0.84 m³ of gas this week. That is about 1.26 GBP." in text
-    assert "Estimated from the burner modulation" in text and "the estimate is rough" in text
+    assert "Estimated from the burner power" in text and "the estimate is rough" in text
     assert "No advice right now" in text
     # The E32's own money figure wins over the price.
     days = records(7, nights={"woonkamer": [0.1, 0.2]})

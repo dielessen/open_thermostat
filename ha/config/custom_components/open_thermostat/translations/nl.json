@@ -704,24 +704,24 @@
           "data": {
             "output": "Entiteit voor apparaatuitgang",
             "deenergized_position": "Fysieke spanningsloze stand (NC/NO)",
-            "control": "Binaire regelstrategie",
-            "travel_time_s": "Volledige actuatorlooptijd (seconden)",
-            "minimum_on_s": "Minimale aan-tijd (seconden)",
-            "minimum_off_s": "Minimale uit-tijd (seconden)",
-            "cycle_s": "TPI-cyclusduur (optioneel; seconden)",
+            "control": "Hoe hij geschakeld wordt",
+            "travel_time_s": "Tijd om helemaal open te gaan (seconden)",
+            "minimum_on_s": "Kortste aan-tijd (seconden)",
+            "minimum_off_s": "Rusttijd voor opnieuw aanzetten (seconden)",
+            "cycle_s": "Lengte schakelcyclus (TPI; optioneel, seconden)",
             "minimum_percent": "Minimale gevraagde stand (%)",
             "maximum_percent": "Maximale gevraagde stand (%)"
           },
           "data_description": {
             "output": "Kies de entiteit die bij dit verklaringstype hoort. Een bestaande radiatorkraan van precies deze ruimte kan als DEZELFDE gewenste uitgangseigenaar worden overgenomen; er ontstaat geen tweede schrijver. Eigendom over meerdere ruimtes/regelaars wordt geweigerd.",
             "deenergized_position": "NC/NO beschrijft de fysieke stand zonder voeding, geen software-inversie. Controleer de echte actuator en spanning apart.",
-            "control": "Alleen een gewenste verklaring. TPI is een trage tijdproportionele cyclus, geen proportionele klepstand of snelle PWM.",
-            "travel_time_s": "Verklaring van volledige looptijd, geen bewijs van terugmelding. Tijdens configuratie beweegt geen actuator.",
-            "cycle_s": "Verplicht voor TPI; laat leeg voor hysterese. Minimale aan-tijd moet de looptijd dekken en minimale aan- en uit-tijd moeten in de cyclus passen.",
+            "control": "Alleen opgeslagen als plan. TPI schakelt aan en uit in een traag, vast ritme; het zet geen kraan half open en is geen snel pulseren.",
+            "travel_time_s": "Hoe lang de actuator nodig heeft van dicht tot helemaal open, volgens de fabrikant. Tijdens het instellen beweegt er niets.",
+            "cycle_s": "Alleen voor TPI (aan en uit in een traag, vast ritme); laat leeg voor gewoon aan/uit rond het doel (hysterese). De kortste aan-tijd moet de openingstijd dekken, en de kortste aan-tijd plus de rusttijd moeten in de cyclus passen.",
             "minimum_percent": "Gevraagde stand, geen gemeten doorstroming of ketelvermogen. Interfacerichting, terugmelding, veilige terugval en apparaatondersteuning zijn nog onbewezen.",
             "maximum_percent": "Moet boven het minimum liggen. Een procentuele uitgang is niet automatisch een mengklep of een 0–10 V-interface.",
-            "minimum_on_s": "De kortste tijd dat de actuator aan blijft.",
-            "minimum_off_s": "De kortste tijd dat de actuator uit blijft."
+            "minimum_on_s": "Eenmaal aangezet blijft de actuator minstens zo lang aan, zodat hij niet te vaak aan en uit gaat.",
+            "minimum_off_s": "Eenmaal uitgezet blijft de actuator minstens zo lang uit voordat hij weer aangaat, zodat hij minder vaak schakelt en langer meegaat."
           }
         },
         "edit_actuator": {
@@ -977,7 +977,7 @@
       },
       "shadow": {
         "title": "Een OpenThermostat E32 koppelen",
-        "description": "De E32 rekent mee; je huidige thermostaat blijft de ketel regelen. Er gaat niets naar de ketel. Home Assistant zet wel de gewenste temperatuur op het instelapparaat van elke ruimte (radiatorkraan, tado of getalhelper), volgens het weekprogramma van die ruimte. Normaal koppel je de E32 later via Configureren → E32-verbinding; dat vult het verbindings-ID voor je in.",
+        "description": "Tijdens de proefperiode rekent de E32 alleen; je huidige thermostaat blijft de ketel regelen en er gaat niets naar de ketel. Home Assistant zet wel de gewenste temperatuur op het instelapparaat van elke ruimte (radiatorkraan, tado of getalhelper), volgens het weekprogramma van die ruimte. Normaal koppel je de E32 later via Configureren → E32-verbinding; dat vult het verbindings-ID voor je in.",
         "data": {
           "topic_prefix": "MQTT-prefix van de E32",
           "adapter_id": "Verbindings-ID (al ingevuld)"
@@ -1150,7 +1150,7 @@
         }
       },
       "hot_water": {
-        "title": "Mogelijkheden warm tapwater (alleen-lezen)",
+        "title": "Warm water (alleen bekijken)",
         "description": "{status} Geen wijzigingen opgeslagen.",
         "data": {}
       },
@@ -1337,7 +1337,7 @@
       },
       "configuration_status": {
         "title": "Status installatie",
-        "description": "Ingestelde ruimtes: **{rooms}**\n\nRegelaar: **{connection}**\n\nRegeling: **{runtime}**\n\nOpgeslagen betekent nog niet dat de regelaar de configuratie heeft toegepast. Je kunt ruimtes ook zonder verbinding instellen.\n\n**Controle opgeslagen kraandoelen**\n\n{actuator_checks}\n\nDit vergelijkt gemelde eigenschappen; het bevestigt geen klepstand of fysieke vrijgave.\n\n**Wat betekenen deze controles?**\nConfiguratie bevestigd: de E32 heeft het opgeslagen ruimteplan teruggeleverd. Berekeningen aan: de E32 berekent de warmtevraag; hij regelt de ketel pas na de begeleide overschakeling. Controle kraandoelen: vergelijkt ingestelde temperaturen met de gemelde kraangrenzen en meldt afwijkingen. Geen van deze controles bewijst dat een kraan opent of de ketel stopt. Die fysieke proeven staan apart. In schaduwmodus blijven kraan- en ketelopdrachten uit.",
+        "description": "Ingestelde ruimtes: **{rooms}**\n\nE32: **{connection}**\n\nRegeling: **{runtime}**\n\nOpgeslagen betekent nog niet dat de E32 de instellingen heeft overgenomen. Je kunt ruimtes ook instellen als hij niet verbonden is.\n\n**Controle opgeslagen kraandoelen**\n\n{actuator_checks}\n\nDit vergelijkt wat de kranen melden dat ze kunnen; het bewijst geen kraanstand.\n\n**Wat betekenen deze controles?**\nConfiguratie bevestigd: de E32 heeft het opgeslagen ruimteplan teruggestuurd. Berekeningen aan: de E32 rekent de warmtevraag uit; hij regelt de ketel pas nadat je bent overgestapt. Controle kraandoelen: vergelijkt de opgeslagen temperaturen met de grenzen die de kranen melden, en meldt verschillen. Geen van deze controles bewijst dat een kraan opent of de ketel stopt; kijk daarvoor bij de kraan of de ketel zelf.",
         "submit": "Sluiten"
       },
       "program": {
@@ -1523,8 +1523,8 @@
         "data_description": {
           "name": "De naam die je in Home Assistant en op de E32 ziet. Maximaal 40 tekens (minder met accenten of emoji); hernoemen behoudt de ruimte en haar geschiedenis.",
           "state": "Aan: de ruimte kan warmte vragen. Uit: de ruimte vraagt geen warmte. Een tijdelijk \"Uit tot\" staat op de apparaatpagina van de ruimte.",
-          "emitter": "Radiatoren of vloerverwarming; elk type krijgt een eigen aanvoertemperatuur.",
-          "ha_sources": "Thermostaten of temperatuursensoren (°C of °F) in Home Assistant die deze ruimte meten. De eerste met een actuele waarde wordt gebruikt; sleep om de volgorde te wijzigen.",
+          "emitter": "Radiatoren of vloerverwarming. Vloerverwarming warmt langzaam op en wil koeler water, dus elk type krijgt een eigen watertemperatuur.",
+          "ha_sources": "Thermostaten of temperatuursensoren (°C of °F) in Home Assistant die deze ruimte meten. De eerste met een actuele waarde wordt gebruikt; de andere zijn reserve. Sleep om de volgorde te wijzigen.",
           "ble_sources": "Sensoren die aan de E32 zelf gekoppeld zijn; ze blijven werken zonder Home Assistant.",
           "bluetooth_first": "Aan: de E32 gebruikt zijn Bluetooth-sensoren vóór de bronnen uit Home Assistant.",
           "setpoint_entity": "Optioneel: een thermostaat of radiatorkraan (bijvoorbeeld een tado of TV02), of een getal met een doel, om de ruimte mee in te stellen. Home Assistant zet bij elk schakelpunt de temperatuur van het weekprogramma erop; eraan draaien verandert de ruimte tot het volgende schakelpunt. Zet het eigen programma van het apparaat uit (handmatige stand), anders verandert het de temperatuur zelf. Leeg: geen instelapparaat; stel de ruimte in met haar thermostaat in Home Assistant of op de E32-pagina.{setting_hint}",
@@ -1569,15 +1569,15 @@
         }
       },
       "e32_flow_limits": {
-        "title": "Grenzen aanvoertemperatuur",
-        "description": "De laagste en hoogste watertemperatuur die de E32 aan de ketel mag vragen, voor alle ruimtes samen. De stooklijn en de geleerde aanvoer zijn schakelaars op de apparaatpagina van de E32 in Home Assistant. {boiler} {error}",
+        "title": "Grenzen watertemperatuur",
+        "description": "De laagste en hoogste temperatuur van het water dat de ketel naar de radiatoren en vloer stuurt (aanvoertemperatuur), voor alle ruimtes samen. \"Buitentemperatuur volgen (stooklijn)\" en \"Op tijd warm met het koelste water\" zijn schakelaars op de apparaatpagina van de E32 in Home Assistant. {boiler} {error}",
         "data": {
-          "minimum_flow_temperature": "Minimale aanvoertemperatuur",
-          "maximum_flow_temperature": "Maximale aanvoertemperatuur"
+          "minimum_flow_temperature": "Laagste watertemperatuur",
+          "maximum_flow_temperature": "Hoogste watertemperatuur"
         },
         "data_description": {
-          "minimum_flow_temperature": "De laagste aanvoertemperatuur die de E32 vraagt terwijl hij verwarmt ({minimum_range}).",
-          "maximum_flow_temperature": "De hoogste aanvoertemperatuur die de E32 ooit vraagt ({maximum_range}, boven het minimum). Vloerverwarming zonder mengklep: meestal hoogstens 45–50 °C. Radiatoren: op koude dagen vaak 60–75 °C. De maximale cv-temperatuur op je ketel blijft de bovengrens; de E32 vraagt nooit meer."
+          "minimum_flow_temperature": "De laagste watertemperatuur die de E32 vraagt zolang hij verwarmt ({minimum_range}).",
+          "maximum_flow_temperature": "De hoogste watertemperatuur die de E32 ooit vraagt ({maximum_range}, boven de laagste). Vloerverwarming zonder mengklep: meestal hoogstens 45–50 °C. Radiatoren: op koude dagen vaak 60–75 °C. De maximale cv-temperatuur die op je ketel staat, blijft altijd de bovengrens; de E32 vraagt nooit meer."
         }
       },
       "e32_room_remove": {
@@ -1592,7 +1592,7 @@
       },
       "energy": {
         "title": "Energie en buitentemperatuur",
-        "description": "Optioneel. Met je gasmeter, gasprijs, een buitentemperatuur en het vermogen van je ketel kalibreert de E32 zijn warmte- en gasschattingen, en toont het cv-advies besparingen in m³ en in je eigen valuta. Zonder werkt alles gewoon: schattingen gebruiken dan de modulatie van de ketel en een standaardvermogen, en het advies zegt wat er ontbreekt. Laat een veld leeg om het niet te gebruiken.",
+        "description": "Optioneel. Met je gasmeter, gasprijs, een buitentemperatuur en het vermogen van je ketel kalibreert de E32 zijn warmte- en gasschattingen, en toont het cv-advies besparingen in m³ en in je eigen valuta. Zonder werkt alles gewoon: schattingen gebruiken dan het brandervermogen dat de ketel meldt en een standaard ketelvermogen, en het advies zegt wat er ontbreekt. Laat een veld leeg om het niet te gebruiken.",
         "data": {
           "gas_meter": "Gasmeter",
           "gas_price_entity": "Gasprijssensor",
@@ -1659,7 +1659,7 @@
       },
       "e32_room_valves": {
         "title": "Radiatorkranen in {name}",
-        "description": "Kies de radiatorkranen van de ruimte. Zigbee2MQTT-kranen: vul per kraan de Zigbee2MQTT-naam (friendly name) in, of kies er een van de {found} gevonden, en het model; de E32 stuurt ze zelf het doel en de temperatuur van de ruimte, en houdt de aanvoer van de ketel zo laag als de kranen toelaten. Elke andere kraan die Home Assistant aanstuurt (ZHA, Z-Wave, Shelly of een cloudintegratie): kies de climate-entiteit bij Kranen via Home Assistant; Home Assistant stuurt die dan het doel van de ruimte. Zigbee2MQTT-kranen blijven werken als Home Assistant uitvalt; kranen via Home Assistant houden hun laatste instelling tot Home Assistant terug is. Aansturen staat uit tot je het aanzet; zolang het uit staat, gaat er niets naar de kranen.",
+        "description": "Kies de radiatorkranen van de ruimte. Zigbee2MQTT-kranen: vul per kraan de Zigbee2MQTT-naam (friendly name) in, of kies er een van de {found} gevonden, en het model; de E32 stuurt ze zelf het doel en de temperatuur van de ruimte, en houdt het cv-water zo koel als de kranen toelaten. Elke andere kraan die Home Assistant aanstuurt (ZHA, Z-Wave, Shelly of een cloudintegratie): kies de climate-entiteit bij Kranen via Home Assistant; Home Assistant stuurt die dan het doel van de ruimte. Zigbee2MQTT-kranen blijven werken als Home Assistant uitvalt; kranen via Home Assistant houden hun laatste gewenste temperatuur tot Home Assistant terug is. Aansturen staat uit tot je het aanzet; zolang het uit staat, gaat er niets naar de kranen.",
         "data": {
           "control": "Radiatorkranen aansturen",
           "valve_1": "Kraan 1",
@@ -1709,7 +1709,7 @@
       },
       "e32_restore": {
         "title": "Instellingen terugzetten op deze E32",
-        "description": "Home Assistant maakt elke dag een back-up van de instellingen van je E32 en bewaart er {count}: de nieuwste van elk van de laatste 7 dagen, en de back-up van vlak voor de laatste keer terugzetten. Een back-up bevat de netwerk- en tijdinstellingen, MQTT en de koppeling met Home Assistant, de ruimtes met hun weekprogramma's, de Bluetooth-sensoren, de aanvoeropties en het ketelmodel, met het MQTT-wachtwoord en de Bluetooth-sleutels versleuteld. Het wifi-wachtwoord en het E32-wachtwoord zitten er nooit in.\n\nKies de back-up die je wilt terugzetten. De E32 controleert hem eerst en laat zien wat er verandert; er verandert niets voordat je bevestigt.\n\nEen kapotte E32 vervangen: zet de firmware er via USB op, verbind de nieuwe E32 met je netwerk (wifi-installatie of ethernet) en vul hier zijn adres en wachtwoord in.",
+        "description": "Home Assistant maakt elke dag een back-up van de instellingen van je E32 en bewaart er {count}: de nieuwste van elk van de laatste 7 dagen, en de back-up van vlak voor de laatste keer terugzetten. Een back-up bevat de netwerk- en tijdinstellingen, MQTT en de koppeling met Home Assistant, de ruimtes met hun weekprogramma's, de Bluetooth-sensoren, de instellingen van de watertemperatuur en het ketelmodel, met het MQTT-wachtwoord en de Bluetooth-sleutels versleuteld. Het wifi-wachtwoord en het E32-wachtwoord zitten er nooit in.\n\nKies de back-up die je wilt terugzetten. De E32 controleert hem eerst en laat zien wat er verandert; er verandert niets voordat je bevestigt.\n\nEen kapotte E32 vervangen: zet de firmware er via USB op, verbind de nieuwe E32 met je netwerk (wifi-installatie of ethernet) en vul hier zijn adres en wachtwoord in.",
         "data": {
           "backup": "Back-up",
           "address": "Webadres van de E32",
@@ -1727,7 +1727,7 @@
       },
       "e32_restore_confirm": {
         "title": "Deze instellingen terugzetten?",
-        "description": "Back-up van {created}, zoals de E32 hem heeft gecontroleerd:\n\n{summary}\n\nDe E32 komt terug in schaduwmodus: hij rekent mee maar regelt de ketel niet. Regelde hij je ketel eerst wel, bevestig de overname daarna dan opnieuw op de E32-pagina (Ruimtes → Actieve regeling). Vóór het terugzetten bewaart Home Assistant ook een back-up van de E32 zoals hij nu is.",
+        "description": "Back-up van {created}, zoals de E32 hem heeft gecontroleerd:\n\n{summary}\n\nDe E32 komt terug in de proefperiode: hij rekent mee maar regelt de ketel niet. Regelde hij je ketel eerst wel, stap daarna dan opnieuw over op de E32-pagina (Ruimtes → Actieve regeling). Vóór het terugzetten bewaart Home Assistant ook een back-up van de E32 zoals hij nu is.",
         "data": {
           "confirm": "Deze instellingen op deze E32 terugzetten"
         },
@@ -1786,7 +1786,7 @@
       "invalid_heating_draft": "De gewenste configuratie is ongeldig. Geen wijzigingen opgeslagen.",
       "wrong_entity_domain": "Kies een entiteit uit het vereiste domein.",
       "floor_requires_mixing_or_shared_safe_limit": "Een ongemengde vloer vereist dat de gedeelde centrale bovengrens binnen de vloergroeplimiet blijft.",
-      "invalid_tpi_travel_or_minimum_times": "De TPI-aan-tijd moet de looptijd dekken en minimale aan- en uit-tijd moeten in de cyclus passen.",
+      "invalid_tpi_travel_or_minimum_times": "Bij TPI moet de kortste aan-tijd de openingstijd dekken, en moeten de kortste aan-tijd plus de rusttijd in de cyclus passen",
       "pump_times_without_pump": "Wis beide pomptijden als er geen groepspomp is geselecteerd.",
       "invalid_position_range": "De minimale stand moet onder de maximale stand liggen.",
       "group_count": "Maximaal 8 gewenste groepen. Dit bewijst geen firmwarecapaciteit.",
@@ -1808,7 +1808,7 @@
       "controller_busy_or_conflict": "De E32 wordt bijgewerkt of herstart, of wacht op een herstart. Wacht tot zijn webpagina weer normaal opent (herstart hem daar via Systeem → Apparaat herstarten als hij daarom vraagt) en probeer het opnieuw.",
       "controller_legacy_rooms_present": "De E32 heeft nog eigen ruimtes uit zijn oudere zelfstandige opzet (op zijn webpagina: Systeem → Ruimtes en programma’s). Home Assistant neemt die niet over. Verwijder die ruimtes daar en sla op, en verbind dan opnieuw; daarna voeg je je ruimtes toe onder Configureren → Ruimtes.",
       "controller_broker_setup_required": "De E32 heeft eerst een eigen MQTT-login nodig. Open op de E32 Systeem → Netwerk en Home Assistant → MQTT, vink Ingeschakeld aan, vul het adres en de poort van de broker en een gebruikersnaam en wachtwoord voor de broker in, sla op en laat de E32 herstarten. Zonder login maakt de E32 via een broker geen verbinding met Home Assistant.",
-      "controller_source_conflict": "Deze E32 is al gekoppeld aan een andere OpenThermostat-installatie, of deze installatie was eerder aan een andere E32 gekoppeld. Controleer eerst of het adres bij de juiste E32 hoort. Om deze E32 naar deze installatie te verhuizen: open op zijn webpagina Systeem → Netwerk en Home Assistant, onderdeel Home Assistant: haal het vinkje weg bij “Koppeling met Home Assistant in schaduwmodus (geen ketelregeling)”, maak het installatieprofiel onder “Installatiekoppeling en regelgrenzen (geavanceerd)” leeg als dat er staat, kies Instellingen opslaan en laat de E32 herstarten; verbind daarna opnieuw.",
+      "controller_source_conflict": "Deze E32 is al gekoppeld aan een andere OpenThermostat-installatie, of deze installatie was eerder aan een andere E32 gekoppeld. Controleer eerst of het adres bij de juiste E32 hoort. Om deze E32 naar deze installatie te verhuizen: open op zijn webpagina Systeem → Netwerk en Home Assistant, onderdeel Home Assistant: haal het vinkje weg bij “Koppeling met Home Assistant in proefperiode (geen ketelregeling)”, maak het installatieprofiel onder “Installatiekoppeling en regelgrenzen (geavanceerd)” leeg als dat er staat, kies Instellingen opslaan en laat de E32 herstarten; verbind daarna opnieuw.",
       "controller_settings_too_large": "De configuratie overschrijdt de opslagruimte van de E32. Er wordt niet automatisch opnieuw geprobeerd.",
       "controller_response_invalid": "De E32 geeft een onverwacht antwoord. Controleer de firmware en verbinding.",
       "controller_response_too_large": "Het antwoord van de E32 is te groot. Controleer de firmware.",
@@ -1999,7 +1999,7 @@
         }
       },
       "burner_short_cycling": {
-        "name": "Brander pendelt"
+        "name": "Brander slaat te vaak aan en uit"
       },
       "heating_problem": {
         "name": "Verwarmingsprobleem"
@@ -2033,7 +2033,7 @@
         "name": "Geschat radiatorvermogen"
       },
       "controller_requested_flow_temperature": {
-        "name": "Keteltest: gevraagde aanvoertemperatuur"
+        "name": "Keteltest: gevraagde watertemperatuur"
       },
       "room_temperature": {
         "name": "Temperatuur"
@@ -2045,7 +2045,7 @@
         "name": "Regelstatus",
         "state": {
           "ok": "In orde",
-          "fallback": "Terugvalstand",
+          "fallback": "Reservesensor in gebruik",
           "stale": "Meting verouderd",
           "lost": "Sensor kwijt",
           "inactive": "Uit",
@@ -2078,7 +2078,7 @@
         "name": "Overeenstemming met thermostaat vandaag"
       },
       "takeover_readiness": {
-        "name": "Klaar voor overname",
+        "name": "Klaar voor regeling door de E32",
         "state": {
           "ready": "Klaar",
           "waiting": "Wacht op meer gegevens",
@@ -2101,7 +2101,7 @@
         }
       },
       "room_flow_advice": {
-        "name": "Geadviseerde aanvoer"
+        "name": "Geadviseerde watertemperatuur"
       },
       "room_heating_start": {
         "name": "Verwachte start verwarmen"
@@ -2110,25 +2110,25 @@
         "name": "Warmwatertappen vandaag"
       },
       "dhw_keep_warm_today": {
-        "name": "Warmhouden vandaag"
+        "name": "Warm water warmhouden vandaag"
       },
       "dhw_burner_time_today": {
         "name": "Brandertijd warm water vandaag"
       },
       "field_reported_selected_flow_temperature": {
-        "name": "Gekozen aanvoertemperatuur"
+        "name": "Doel watertemperatuur (ketel)"
       },
       "field_measured_flow_temperature": {
-        "name": "Aanvoertemperatuur"
+        "name": "Watertemperatuur naar verwarming (aanvoer)"
       },
       "field_measured_return_temperature": {
-        "name": "Retourtemperatuur"
+        "name": "Watertemperatuur terug (retour)"
       },
       "field_outdoor_temperature": {
         "name": "Buitentemperatuur"
       },
       "field_reported_burner_modulation": {
-        "name": "Brandermodulatie"
+        "name": "Brandervermogen"
       },
       "field_reported_requested_power_limit": {
         "name": "Gevraagde vermogensgrens"
@@ -2254,7 +2254,7 @@
         "name": "Maximaal brandervermogen"
       },
       "field_pump_run_on": {
-        "name": "Pompnaloop"
+        "name": "Pomp loopt na na verwarmen"
       },
       "field_configured_heating_temperature": {
         "name": "Ingestelde verwarmingstemperatuur"
@@ -2269,7 +2269,7 @@
         "name": "Voorraadtemperatuur 2"
       },
       "field_ionisation_current": {
-        "name": "Ionisatiestroom"
+        "name": "Vlamsignaal (ionisatiestroom)"
       },
       "field_raw_second_burner_bit": {
         "name": "Tweede branderbit (ruw)",
@@ -2316,25 +2316,25 @@
         "name": "Temperatuur open verdeler"
       },
       "field_reported_heating_pump_modulation": {
-        "name": "Pompmodulatie verwarming"
+        "name": "Pompsnelheid verwarming"
       },
       "field_reported_second_burner_runtime": {
         "name": "Looptijd tweede brander"
       },
       "field_heating_hysteresis_off": {
-        "name": "Hysterese verwarming uit"
+        "name": "Uitschakelmarge verwarming (hysterese)"
       },
       "field_heating_hysteresis_on": {
-        "name": "Hysterese verwarming aan"
+        "name": "Inschakelmarge verwarming (hysterese)"
       },
       "field_minimum_burner_period": {
-        "name": "Minimale branderperiode"
+        "name": "Rusttijd brander tussen starts (ketel)"
       },
       "field_pump_modulation_maximum": {
-        "name": "Maximale pompmodulatie"
+        "name": "Hoogste pompsnelheid"
       },
       "field_pump_modulation_minimum": {
-        "name": "Minimale pompmodulatie"
+        "name": "Laagste pompsnelheid"
       },
       "field_configured_pump_mode": {
         "name": "Ingestelde pompmodus",
@@ -2347,16 +2347,16 @@
         }
       },
       "field_secondary_heating_hysteresis_off": {
-        "name": "Tweede hysterese verwarming uit"
+        "name": "Tweede uitschakelmarge (hysterese)"
       },
       "field_secondary_heating_hysteresis_on": {
-        "name": "Tweede hysterese verwarming aan"
+        "name": "Tweede inschakelmarge (hysterese)"
       },
       "field_pump_start_temperature": {
         "name": "Starttemperatuur pomp"
       },
       "field_dhw_hysteresis_on": {
-        "name": "Hysterese warm water aan"
+        "name": "Inschakelmarge warm water (hysterese)"
       },
       "field_dhw_charge_optimisation_enabled": {
         "name": "Laadoptimalisatie warm water",
@@ -2366,7 +2366,7 @@
         }
       },
       "field_dhw_flow_temperature_offset": {
-        "name": "Aanvoerverhoging warm water"
+        "name": "Extra watertemperatuur voor warm water"
       },
       "field_dhw_circulation_enabled": {
         "name": "Circulatie ingeschakeld",
@@ -2465,13 +2465,13 @@
         }
       },
       "field_thermostat_requested_flow_temperature": {
-        "name": "Gevraagde aanvoertemperatuur (thermostaat)"
+        "name": "Gevraagde watertemperatuur (thermostaat)"
       },
       "field_thermostat_requested_burner_power": {
         "name": "Gevraagd brandervermogen (thermostaat)"
       },
       "field_thermostat_requested_pump_modulation": {
-        "name": "Gevraagde pompmodulatie (thermostaat)"
+        "name": "Gevraagde pompsnelheid (thermostaat)"
       },
       "field_thermostat_requested_dhw_temperature": {
         "name": "Gevraagde warmwatertemperatuur (thermostaat)"
@@ -2489,19 +2489,19 @@
         "name": "Ruimtetemperatuur (thermostaat)"
       },
       "field_thermostat_target_flow_temperature": {
-        "name": "Gewenste aanvoertemperatuur (thermostaat)"
+        "name": "Doel watertemperatuur (thermostaat)"
       },
       "field_plus_selected_flow_temperature": {
-        "name": "Gekozen aanvoertemperatuur (EMS+)"
+        "name": "Doel watertemperatuur (EMS+)"
       },
       "field_plus_flow_temperature": {
-        "name": "Aanvoertemperatuur (EMS+)"
+        "name": "Watertemperatuur naar verwarming (EMS+)"
       },
       "field_plus_requested_burner_power": {
         "name": "Gevraagd brandervermogen (EMS+)"
       },
       "field_plus_burner_modulation": {
-        "name": "Brandermodulatie (EMS+)"
+        "name": "Brandervermogen (EMS+)"
       },
       "field_plus_burner_on": {
         "name": "Brander aan (EMS+)",
@@ -2518,10 +2518,10 @@
         }
       },
       "field_plus_return_temperature": {
-        "name": "Retourtemperatuur (EMS+)"
+        "name": "Watertemperatuur terug (EMS+)"
       },
       "field_plus_flame_current": {
-        "name": "Vlamstroom (EMS+)"
+        "name": "Vlamsignaal (EMS+)"
       },
       "field_plus_pressure": {
         "name": "Waterdruk (EMS+)"
@@ -2546,7 +2546,7 @@
         "name": "Looptijd verwarming (EMS+)"
       },
       "field_plus_heating_pump_modulation": {
-        "name": "Pompmodulatie verwarming (EMS+)"
+        "name": "Pompsnelheid verwarming (EMS+)"
       },
       "field_plus_dhw_target": {
         "name": "Gewenste warmwatertemperatuur (EMS+)"
@@ -2661,25 +2661,25 @@
         "name": "Gas voor warmhouden van warm water"
       },
       "flow_source": {
-        "name": "Bron aanvoertemperatuur",
+        "name": "Watertemperatuur bepaald door",
         "state": {
           "rule": "Ruimteregeling",
           "curve": "Stooklijn",
-          "learned": "Geleerde aanvoer",
-          "optimum_start": "Optimale start"
+          "learned": "Geleerde watertemperatuur",
+          "optimum_start": "Op tijd warm (vroege start)"
         }
       },
       "flow_curve": {
-        "name": "Aanvoer volgens stooklijn"
+        "name": "Watertemperatuur volgens stooklijn"
       },
       "flow_learned": {
-        "name": "Geleerde aanvoer"
+        "name": "Geleerde watertemperatuur"
       },
       "flow_rule": {
-        "name": "Aanvoer volgens ruimteregeling"
+        "name": "Watertemperatuur volgens ruimteregeling"
       },
       "flow_curve_slope": {
-        "name": "Helling stooklijn"
+        "name": "Steilheid stooklijn"
       },
       "gas_calibration": {
         "name": "Gasijking",
@@ -2814,7 +2814,7 @@
           "heating": "Verwarmen",
           "tapping": "Tappen",
           "keep_warm": "Warmhouden",
-          "charging": "Boiler laden",
+          "charging": "Warmwatervoorraad opwarmen",
           "hot_water": "Warm water"
         }
       },
@@ -2832,7 +2832,7 @@
     },
     "select": {
       "flow_curve_design_flow_c": {
-        "name": "Aanvoer bij −10 °C",
+        "name": "Watertemperatuur bij −10 °C buiten",
         "state": {
           "automatic": "Automatisch (vloer 40 °C, radiatoren 55 °C)",
           "25": "25 °C",
@@ -2920,10 +2920,10 @@
     },
     "switch": {
       "flow_weather_curve": {
-        "name": "Weersafhankelijke stooklijn"
+        "name": "Buitentemperatuur volgen (stooklijn)"
       },
       "flow_apply_learned": {
-        "name": "Geleerde aanvoer en optimale start gebruiken"
+        "name": "Op tijd warm met het koelste water"
       },
       "room_valve_control": {
         "name": "Radiatorkranen aansturen"
@@ -2957,17 +2957,17 @@
       }
     },
     "reconfirm_takeover": {
-      "title": "Bevestig de overname opnieuw",
+      "title": "Bevestig opnieuw dat de E32 de ketel mag regelen",
       "fix_flow": {
         "step": {
           "reconfirm_takeover": {
-            "title": "Bevestig de overname opnieuw",
-            "description": "De E32 regelde je ketel voordat zijn firmware werd bijgewerkt. Voor de veiligheid neemt de nieuwe firmware de ketel pas weer over als je nog een keer bevestigt dat je oude thermostaat nog steeds van de ketel is losgekoppeld. Tot dan houdt de E32 alleen de vorstbeveiliging aan, en alleen zolang er geen andere thermostaat op de bus te horen is.\n\nBevestig alleen als de oude thermostaat is losgekoppeld: er mogen nooit twee regelaars tegelijk aangesloten zijn. Wil je in plaats daarvan teruggeven, open dan op de E32 de pagina Ruimtes → Actieve regeling → Teruggeven aan de thermostaat."
+            "title": "Bevestig opnieuw dat de E32 de ketel mag regelen",
+            "description": "De E32 regelde je ketel voordat zijn firmware werd bijgewerkt. Voor de veiligheid neemt de nieuwe firmware de regeling pas weer over als je nog een keer bevestigt dat je oude thermostaat nog steeds van de ketel is losgekoppeld. Tot dan houdt de E32 alleen de vorstbeveiliging aan, en alleen zolang er geen andere thermostaat op de ketelbus te horen is.\n\nBevestig alleen als de oude thermostaat is losgekoppeld: sluit nooit twee thermostaten tegelijk op de ketel aan. Wil je de regeling in plaats daarvan teruggeven, open dan op de E32 de pagina Ruimtes → Actieve regeling → Regeling teruggeven aan mijn thermostaat."
           }
         },
         "error": {
-          "reconfirm_not_released": "Deze E32-firmware staat actieve regeling niet toe. Er is niets gewijzigd.",
-          "reconfirm_unconfirmed": "De E32 heeft de overname niet bevestigd. Kijk op de E32 bij Ruimtes → Actieve regeling.",
+          "reconfirm_not_released": "Deze E32-firmware laat de E32 de ketel niet regelen. Er is niets gewijzigd.",
+          "reconfirm_unconfirmed": "De E32 heeft het niet bevestigd. Kijk op de E32 bij Ruimtes → Actieve regeling.",
           "e32_unreachable": "De E32 is nu niet bereikbaar. Probeer het zo opnieuw."
         },
         "abort": {

@@ -272,13 +272,13 @@ NAMES = {
                "heat_request": ("Boiler request (E32)", "Ketelvraag (E32)"),
                "burner_starts_last_hour": ("Burner starts last hour", "Branderstarts afgelopen uur"),
                "room_learning": ("Learning status", "Leerstatus"),
-               "room_flow_advice": ("Recommended flow", "Geadviseerde aanvoer"),
+               "room_flow_advice": ("Recommended water temperature", "Geadviseerde watertemperatuur"),
                "room_heating_start": ("Predicted heating start", "Verwachte start verwarmen"),
                "dhw_taps_today": ("Hot water taps today", "Warmwatertappen vandaag"),
-               "dhw_keep_warm_today": ("Keeping warm today", "Warmhouden vandaag"),
+               "dhw_keep_warm_today": ("Keeping hot water warm today", "Warm water warmhouden vandaag"),
                "dhw_burner_time_today": ("Hot water burner time today", "Brandertijd warm water vandaag")},
     "binary_sensor": {"room_demand": ("Heat demand", "Warmtevraag"),
-                      "burner_short_cycling": ("Burner short cycling", "Brander pendelt"),
+                      "burner_short_cycling": ("Burner switching on and off too often", "Brander slaat te vaak aan en uit"),
                       "heating_problem": ("Heating problem", "Verwarmingsprobleem")},
     "select": {"room_state": ("Heating", "Verwarmen")},
     "datetime": {"room_inactive_until": ("Off until", "Uit tot")},
@@ -297,7 +297,7 @@ def test_entity_names_are_plain_glossary_names_in_both_languages():
                                                                  "window_open", "window_pending"}
         assert set(entity["select"]["room_state"]["state"]) == {"active", "inactive"}
     nl = json.loads((COMPONENT / "translations/nl.json").read_text(encoding="utf-8"))["entity"]
-    assert nl["sensor"]["room_status"]["state"] == {"ok": "In orde", "fallback": "Terugvalstand",
+    assert nl["sensor"]["room_status"]["state"] == {"ok": "In orde", "fallback": "Reservesensor in gebruik",
                                                     "stale": "Meting verouderd", "lost": "Sensor kwijt",
                                                     "inactive": "Uit",
                                                     "window_open": "Raam open, verwarming gepauzeerd",
@@ -491,11 +491,11 @@ async def test_existing_room_entities_keep_their_entity_ids_and_move_to_a_room_d
         assert new.entity_id == "sensor.woonkamer_control_status"
         # The learned values read like the room's other entities, on the same room device.
         assert [e.entity_id for e in learned] == ["sensor.woonkamer_learning_status",
-                                                  "sensor.woonkamer_recommended_flow",
+                                                  "sensor.woonkamer_recommended_water_temperature",
                                                   "sensor.woonkamer_predicted_heating_start"]
         assert hass.states.get("sensor.woonkamer_learning_status").state == "ready"
         assert hass.states.get("sensor.woonkamer_predicted_heating_start").state == "2026-10-30T03:35:00+00:00"
-        assert hass.states.get("sensor.woonkamer_recommended_flow").state == "34"
+        assert hass.states.get("sensor.woonkamer_recommended_water_temperature").state == "34"
         assert {entities.async_get(e.entity_id).device_id for e in learned} == {
             devices.async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_woonkamer"),
                                                    config_entry.entry_id).id}

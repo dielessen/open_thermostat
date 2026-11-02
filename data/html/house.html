@@ -36,11 +36,11 @@
       <button type="button" class="btn btn-outline-primary" data-house-unlock><span data-i18n="Edit here anyway">Edit here anyway</span></button></div>
     <!-- Flow limits of the room plan (GET/POST /config/heating), for all rooms together (until beta.22 on the Boiler page). -->
     <div data-boiler-limits id="boiler-limits">
-      <h3><span data-i18n="Flow temperature limits">Flow temperature limits</span> <small class="bp-summary" data-limits-summary></small></h3>
-      <p class="pd-help" data-i18n="The lowest and highest water temperature the E32 may ask of the boiler, for all rooms together. The boiler's own maximum always applies as well.">The lowest and highest water temperature the E32 may ask of the boiler, for all rooms together. The boiler's own maximum always applies as well.</p>
+      <h3><span data-i18n="Water temperature limits">Water temperature limits</span> <small class="bp-summary" data-limits-summary></small></h3>
+      <p class="pd-help" data-i18n="The lowest and highest temperature of the water the boiler sends to the radiators and floor (flow temperature), for all rooms together. The boiler's own maximum always applies as well.">The lowest and highest temperature of the water the boiler sends to the radiators and floor (flow temperature), for all rooms together. The boiler's own maximum always applies as well.</p>
       <div class="bl-grid">
-        <label><span data-i18n="Minimum flow (°C)">Minimum flow (°C)</span><input id="boiler-min-flow" class="form-control" type="number" min="20" max="79" step="1" disabled data-hint="The lowest water temperature the E32 asks of the boiler when heat is needed."></label>
-        <label><span data-i18n="Maximum flow (°C)">Maximum flow (°C)</span><input id="boiler-max-flow" class="form-control" type="number" min="21" max="80" step="1" disabled data-hint="The highest water temperature the E32 ever asks of the boiler."></label>
+        <label><span data-i18n="Lowest water temperature (°C)">Lowest water temperature (°C)</span><input id="boiler-min-flow" class="form-control" type="number" min="20" max="79" step="1" disabled data-hint="The lowest water temperature the E32 asks of the boiler when heat is needed."></label>
+        <label><span data-i18n="Highest water temperature (°C)">Highest water temperature (°C)</span><input id="boiler-max-flow" class="form-control" type="number" min="21" max="80" step="1" disabled data-hint="The highest water temperature the E32 ever asks of the boiler."></label>
       </div>
       <p class="pd-help" data-limits-boiler-max hidden></p>
       <p class="alert alert-warning" data-limits-boiler-warn role="status" hidden></p>
@@ -51,14 +51,14 @@
     </div>
     <!-- beta.19 flow options (GET/POST /config/heating/flow); hidden on firmware without them (until beta.22 on the Rooms page). -->
     <div data-heating-flow-options hidden>
-      <h3 data-i18n="Flow temperature">Flow temperature</h3>
+      <h3 data-i18n="Water temperature">Water temperature</h3>
       <p class="pd-help" data-i18n="Each change is saved on the E32 at once.">Each change is saved on the E32 at once.</p>
-      <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-curve" data-flow-option="weather_curve" data-hint="Sets the flow temperature from the outdoor temperature, with the room correction on top. Without a current outdoor temperature the normal control is used.">
-        <label class="form-check-label" for="heating-flow-curve" data-i18n="Weather-compensated heating curve">Weather-compensated heating curve</label></div>
-      <div class="hp-flow-design"><label for="heating-flow-design" data-i18n="Flow at −10 °C">Flow at −10 °C</label>
-        <select id="heating-flow-design" class="form-control" data-flow-design data-hint="The flow the heating curve gives at −10 °C outside; milder weather gives less."></select></div>
-      <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-learned" data-flow-option="apply_learned" data-hint="Off: the E32 only advises. On: when warming up it uses the lowest flow that still warms in time, and it starts early enough for the next program step.">
-        <label class="form-check-label" for="heating-flow-learned" data-i18n="Use learned flow and optimum start">Use learned flow and optimum start</label></div>
+      <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-curve" data-flow-option="weather_curve" data-hint="Colder outside means warmer water to the radiators and floor, before the rooms cool down. The room temperature still corrects it. Without an outdoor temperature the normal room control is used.">
+        <label class="form-check-label" for="heating-flow-curve" data-i18n="Follow outdoor temperature (heating curve)">Follow outdoor temperature (heating curve)</label></div>
+      <div class="hp-flow-design"><label for="heating-flow-design" data-i18n="Water temperature at −10 °C outside">Water temperature at −10 °C outside</label>
+        <select id="heating-flow-design" class="form-control" data-flow-design data-hint="How warm the water gets on a very cold day (−10 °C outside); milder weather gives cooler water."></select></div>
+      <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-learned" data-flow-option="apply_learned" data-hint="Off: the E32 only advises. On: each room warms up with the coolest water that still gets it warm in time, and heating starts early enough to be warm at the next program time.">
+        <label class="form-check-label" for="heating-flow-learned" data-i18n="Warm on time with the coolest water">Warm on time with the coolest water</label></div>
       <p class="pd-help" role="status" aria-live="polite" data-flow-message></p>
       <details class="ot-advanced hp-more"><summary data-i18n="Status and learning">Status and learning</summary>
       <dl class="pd-detail-grid" data-flow-status></dl>
@@ -272,7 +272,7 @@
     const mn = Number(minFlow.value), mx = Number(maxFlow.value);
     if (!plan || busy) return;
     if (!(Number.isInteger(mn) && Number.isInteger(mx) && mn >= 20 && mx <= 80 && mn < mx)) {
-      say(uiText("Keep the minimum flow below the maximum flow, between 20 and 80 °C.")); minFlow.focus(); return;
+      say(uiText("Keep the lowest water temperature below the highest, between 20 and 80 °C.")); minFlow.focus(); return;
     }
     busy = true; paint(); say(uiText("Saving…"));
     try {
@@ -280,14 +280,14 @@
         body: JSON.stringify({...plan, minimum_flow_c: mn, maximum_flow_c: mx})});
       busy = false;
       if (valid(saved)) show(saved); else await load();
-      say(uiText("Flow limits saved."));
+      say(uiText("Water temperature limits saved."));
     } catch (error) {
       busy = false;
       if (lifecycle.signal.aborted) return;
       if (error.code === 'plan_changed') {
         await load(); say(uiText("The plan was changed elsewhere (Home Assistant). It has been reloaded; make your change again."));
       } else say(error.code === 'invalid_flow_limits'
-        ? uiText("The E32 refused the flow limits. Use a minimum of 20–79 °C and a maximum of 21–80 °C, with the minimum below the maximum.")
+        ? uiText("The E32 refused the water temperature limits. Use a lowest of 20–79 °C and a highest of 21–80 °C, with the lowest below the highest.")
         : uiText("The limits were not saved. Try again."));
     }
     paint();
@@ -315,10 +315,10 @@
   const options = [...box.querySelectorAll('[data-flow-option]')], design = box.querySelector('[data-flow-design]');
   const message = box.querySelector('[data-flow-message]'), facts = box.querySelector('[data-flow-status]');
   const compare = box.querySelector('[data-flow-compare]'), night = box.querySelector('[data-flow-night]');
-  const sourceText = {rule:"Room control", curve:"Heating curve", learned:"Learned flow", optimum_start:"Optimum start"};
+  const sourceText = {rule:"Room control", curve:"Heating curve", learned:"Learned water temperature", optimum_start:"Warm on time (early start)"};
   const stateText = {advice:"Advice only", applied:"In use", no_outdoor:"No outdoor temperature", no_room:"No room with a measurement",
     not_ready:"Still learning", holding:"Holding temperature", none:"No start planned", no_clock:"Clock not set"};
-  const slopeText = {design:"From the design flow", learned:"Learned from this house"};
+  const slopeText = {design:"From the setting at −10 °C", learned:"Learned from this house"};
   const gasText = {no_meter:"No gas meter: estimate from the boiler power (rough)", collecting:"Gas meter connected, calibrating",
     calibrated:"Calibrated with the gas meter ({confidence})", meter_stale:"Gas meter not reporting"};
   const confidenceText = {low:"low", medium:"medium", high:"high"};
@@ -404,11 +404,11 @@
     if (flow) {
       const curve = flow.curve || {}, learned = flow.learned || {};
       const start = typeof flow.optimum_start === 'string' ? {state: flow.optimum_start} : flow.optimum_start || {};
-      rows.push(["Flow now", join(label(sourceText, flow.source), status.request?.heat ? degrees(flow.applied_flow_c) : uiText("off"))]);
+      rows.push(["Water temperature now", join(label(sourceText, flow.source), status.request?.heat ? degrees(flow.applied_flow_c) : uiText("off"))]);
       rows.push(["Heating curve", join(label(stateText, curve.state), degrees(curve.flow_c))]);
-      if (typeof curve.slope === 'number') rows.push(["Curve slope", join(fixed(curve.slope, 2), label(slopeText, curve.slope_source))]);
-      rows.push(["Learned flow", join(label(stateText, learned.state), degrees(learned.flow_c))]);
-      rows.push(["Optimum start", join(label(stateText, start.state),
+      if (typeof curve.slope === 'number') rows.push(["Heating curve steepness", join(fixed(curve.slope, 2), label(slopeText, curve.slope_source))]);
+      rows.push(["Learned water temperature", join(label(stateText, learned.state), degrees(learned.flow_c))]);
+      rows.push(["Warm on time (early start)", join(label(stateText, start.state),
         start.state !== 'none' && Number.isFinite(start.start_utc) ? fill(uiText("planned start {time}"), {time: clock(start.start_utc)}) : null)]);
     }
     const gas = status.learned?.gas;
@@ -420,12 +420,12 @@
     facts.replaceChildren(...rows.flatMap(([k, v]) => [el('dt', uiText(k)), el('dd', v)]));
     const y = flow?.yesterday;
     compare.hidden = !(y && typeof y.rule_mean_c === 'number');
-    if (!compare.hidden) compare.textContent = fill(uiText("Yesterday while heating: room control {rule} °C, curve {curve} °C, learned {learned} °C"),
+    if (!compare.hidden) compare.textContent = fill(uiText("Yesterday while heating, water temperature: room control {rule} °C, heating curve {curve} °C, learned {learned} °C"),
       {rule: fixed(y.rule_mean_c, 1), curve: fixed(y.curve_mean_c, 1), learned: fixed(y.learned_mean_c, 1)});
     const last = status.night_gas?.last;
     night.hidden = !(last && typeof last === 'object');
     if (!night.hidden) night.textContent = last.status === 'measured'
-      ? fill(uiText("Last night: {heating} m³ gas for heating ({hw} m³ hot water); model predicted {pred} m³"),
+      ? fill(uiText("Last night: {heating} m³ gas for heating ({hw} m³ hot water); the E32 expected {pred} m³"),
         {heating: fixed(last.heating_m3, 2), hw: fixed(last.hot_water_m3, 2), pred: fixed(last.predicted_program_m3, 2)})
       : uiText("Last night: no gas meter reading");
   }

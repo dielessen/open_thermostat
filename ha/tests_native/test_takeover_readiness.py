@@ -123,8 +123,8 @@ def test_the_sensor_is_translated():
         sensor = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["entity"]["sensor"]["takeover_readiness"]
         names[name], states[name] = sensor["name"], sensor["state"]
     assert (COMPONENT / "strings.json").read_bytes() == (COMPONENT / "translations/en.json").read_bytes()
-    assert names == {"strings.json": "Takeover readiness", "translations/en.json": "Takeover readiness",
-                     "translations/nl.json": "Klaar voor overname", "translations/pl.json": "Gotowość do przejęcia"}
+    assert names == {"strings.json": "Ready for E32 control", "translations/en.json": "Ready for E32 control",
+                     "translations/nl.json": "Klaar voor regeling door de E32", "translations/pl.json": "Gotowość do sterowania przez E32"}
     assert states["strings.json"] == {"ready": "Ready", "waiting": "Waiting for more data", "not_ready": "Not ready",
                                       "not_applicable": "Not applicable"}
     assert states["translations/nl.json"]["waiting"] == "Wacht op meer gegevens"

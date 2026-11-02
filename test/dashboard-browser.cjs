@@ -47,7 +47,7 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   // value the boiler did not report, and no unreliable flame/pump/fan rows.
   const facts=await page.locator('.pd-facts').innerText();
   assert.doesNotMatch(facts,/Keteldoel/);assert.match(facts,/43,2|43\.2/);assert.match(facts,/Waterdruk/);
-  assert.doesNotMatch(facts,/Retour/);
+  assert.doesNotMatch(facts,/Water terug/);
   const details=await page.locator('.pd-lower > details:not(.pd-build)').textContent();
   assert.doesNotMatch(details,/Vlamstatus|Pomp|Ventilator|Protocolprofiel/);assert.match(details,/0A/);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
@@ -76,7 +76,7 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   status.control.captured_at_ms+=10000;
   await page.clock.runFor(10000);
   await page.waitForFunction(()=>/48[.,]7/.test(document.querySelector('.pd-facts').textContent));
-  assert.match(await page.locator('.pd-facts').innerText(),/Retour/);
+  assert.match(await page.locator('.pd-facts').innerText(),/Water terug/);
   assert.doesNotMatch(await page.locator('.pd-facts').innerText(),/Waterdruk/);
   assert.equal(await page.evaluate(()=>keptDashboard===document.querySelector('.product-dashboard') &&
    keptRoom===document.querySelector('.pd-room') && keptDetails.open && keptBuild.open && keptBoilerDetails.open && keptFallback.open &&

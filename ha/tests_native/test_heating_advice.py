@@ -58,7 +58,7 @@ def test_short_cycling_needs_six_starts_an_hour_for_two_hours():
     assert item["severity"] == "warning" and item["confidence"] == "high"
     assert item["values"]["mbp_target"] == 15 and {"mbp", "hyst", "maxch"} <= set(item["parts"])
     text = advice.render(item, "en")
-    assert "Minimum burner period: 10 min" in text["observed"] and "15 min" in text["action"]
+    assert "Burner rest between starts (boiler setting): 10 min" in text["observed"] and "15 min" in text["action"]
     assert "hysteresis" in text["action"] and "service menu" in text["where"]
     assert isinstance(advice.rule_short_cycling(series(30), CTX), advice.Missing)
 

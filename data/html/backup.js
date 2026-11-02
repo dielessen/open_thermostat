@@ -8,7 +8,7 @@
     const dutch = {
         "Device name": "Apparaatnaam",
         "Web page port": "Poort van de webpagina",
-        "EMS bus": "EMS-bus",
+        "Boiler bus (EMS)": "EMS-bus",
         "EMS forwarder": "EMS-doorsturing",
         "Clock chip": "Klokchip",
         "Time from the internet": "Tijd van internet",
@@ -32,11 +32,11 @@
         "Bluetooth listening time": "Luistertijd Bluetooth",
         "Bluetooth pause": "Pauze Bluetooth",
         "Room settings": "Instellingen van de ruimtes",
-        "Lowest flow temperature": "Laagste aanvoertemperatuur",
-        "Highest flow temperature": "Hoogste aanvoertemperatuur",
-        "Weather curve": "Weersafhankelijke stooklijn",
-        "Use learned values": "Geleerde waarden gebruiken",
-        "Design flow temperature": "Ontwerp-aanvoertemperatuur",
+        "Lowest water temperature": "Laagste watertemperatuur",
+        "Highest water temperature": "Hoogste watertemperatuur",
+        "Follow outdoor temperature (heating curve)": "Buitentemperatuur volgen (stooklijn)",
+        "Warm on time with the coolest water": "Op tijd warm met het koelste water",
+        "Water temperature at −10 °C outside": "Watertemperatuur bij −10 °C buiten",
         "Wi-Fi password": "Wifi-wachtwoord",
         "Web page password": "Wachtwoord van de webpagina",
         "Bluetooth sensor keys": "Sleutels van Bluetooth-sensoren",
@@ -49,7 +49,7 @@
         "MQTT stays off until you enter the MQTT password.": "MQTT blijft uit tot je het MQTT-wachtwoord invoert.",
         "The room plan source of this E32 is cleared because the Home Assistant link changes. Connect the E32 in Home Assistant again.": "De bron van het ruimteplan van deze E32 wordt gewist omdat de koppeling met Home Assistant verandert. Koppel de E32 opnieuw in Home Assistant.",
         "Weather settings are managed by Home Assistant and stay as they are.": "De weerinstellingen worden door Home Assistant beheerd en blijven zoals ze zijn.",
-        "The rooms are restored in shadow mode. Switch to active control yourself when you are ready.": "De ruimtes worden in schaduwmodus teruggezet. Schakel zelf over naar actieve regeling als je er klaar voor bent.",
+        "The rooms are restored in the trial run. Switch over to E32 control yourself when you are ready.": "De ruimtes worden teruggezet in de proefperiode. Stap zelf over op regeling door de E32 als je er klaar voor bent.",
         "Wi-Fi is not changed by a restore. Use the Wi-Fi setup for another network.": "Terugzetten verandert de wifi niet. Gebruik de wifi-installatie voor een ander netwerk.",
         "Passwords and keys in the backup are skipped because no passphrase was entered.": "Wachtwoorden en sleutels in de back-up worden overgeslagen, want er is geen wachtzin ingevoerd.",
         "Unknown boiler model skipped: {v}": "Onbekend ketelmodel overgeslagen: {v}",
@@ -106,9 +106,9 @@
     const t = value => (typeof window.uiText === 'function' ? window.uiText(value) : value);
     const fill = (value, v) => t(value).replace('{v}', v);
     const maxBytes = 24576;
-    const sections = {network: "Network", bluetooth: "Bluetooth sensors", heating: "Rooms", flow: "Flow temperature", boiler_display: "Boiler model"};
+    const sections = {network: "Network", bluetooth: "Bluetooth sensors", heating: "Rooms", flow: "Water temperature", boiler_display: "Boiler model"};
     const fields = {
-        hostname: "Device name", interface_mode: "Connection", listenPort: "Web page port", emsEnabled: "EMS bus",
+        hostname: "Device name", interface_mode: "Connection", listenPort: "Web page port", emsEnabled: "Boiler bus (EMS)",
         emsForwarderEnabled: "EMS forwarder", rtcEnabled: "Clock chip", ntpEnabled: "Time from the internet", ntpHost: "Time server",
         ntpUtcOffset: "UTC offset", ntpDaylightUtcOffset: "Daylight saving offset", timeZone: "Time zone",
         loggerEnabled: "Debugging over socket", loggerHost: "Debugging over socket", loggerPort: "Debugging over socket", loggerTimeoutMs: "Debugging over socket",
@@ -118,9 +118,9 @@
         'mqtt.keepAlive': "MQTT keep-alive", 'mqtt.interval': "MQTT interval", 'openweather.enabled': "OpenWeather",
         'openweather.latitude': "OpenWeather", 'openweather.longitude': "OpenWeather", 'openweather.interval': "OpenWeather",
         'openweather.appid': "OpenWeather API key", 'bt.scanTime': "Bluetooth listening time", 'bt.scanInterval': "Bluetooth pause",
-        devices: "Sensors", rooms: "Rooms", room_settings: "Room settings", minimum_flow_c: "Lowest flow temperature",
-        maximum_flow_c: "Highest flow temperature", weather_curve: "Weather curve", apply_learned: "Use learned values",
-        curve_design_flow_c: "Design flow temperature", tuning: "Advanced: tuning", model: "Boiler model"
+        devices: "Sensors", rooms: "Rooms", room_settings: "Room settings", minimum_flow_c: "Lowest water temperature",
+        maximum_flow_c: "Highest water temperature", weather_curve: "Follow outdoor temperature (heating curve)", apply_learned: "Warm on time with the coolest water",
+        curve_design_flow_c: "Water temperature at −10 °C outside", tuning: "Advanced: tuning", model: "Boiler model"
     };
     const reenter = {wifi_password: "Wi-Fi password", web_password: "Web page password", mqtt_password: "MQTT password",
         openweather_key: "OpenWeather API key", bluetooth_keys: "Bluetooth sensor keys", bluetooth_key: "Bluetooth key for {v}"};
@@ -131,7 +131,7 @@
         mqtt_off_until_password: "MQTT stays off until you enter the MQTT password.",
         native_source_cleared: "The room plan source of this E32 is cleared because the Home Assistant link changes. Connect the E32 in Home Assistant again.",
         weather_managed_kept: "Weather settings are managed by Home Assistant and stay as they are.",
-        plan_mode_shadow: "The rooms are restored in shadow mode. Switch to active control yourself when you are ready.",
+        plan_mode_shadow: "The rooms are restored in the trial run. Switch over to E32 control yourself when you are ready.",
         wifi_not_restored: "Wi-Fi is not changed by a restore. Use the Wi-Fi setup for another network.",
         secrets_skipped: "Passwords and keys in the backup are skipped because no passphrase was entered.",
         unknown_boiler_model: "Unknown boiler model skipped: {v}", unknown_language: "Unknown language skipped.",

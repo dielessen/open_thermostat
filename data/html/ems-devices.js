@@ -8,8 +8,8 @@ window.EMSDevicesPage=(()=>{
   const settingFields={
     heatingactivated:['heating_enabled','Heating enabled','bool',0,1,0],
     heatingtemp:['configured_heating_temperature','Maximum heating temperature','degC',0,90,1],
-    burnminperiod:['minimum_burner_period','Minimum burner period','min',0,120,6],
-    pumpdelay:['pump_run_on','Pump run-on','min',0,60,8]
+    burnminperiod:['minimum_burner_period','Burner rest between starts (boiler)','min',0,120,6],
+    pumpdelay:['pump_run_on','Pump keeps running after heating','min',0,60,8]
   };
   // One plain-language line per changeable boiler setting.
   const settingHelp={heatingactivated:'Switches central heating on the boiler on or off. Hot water has its own setting.',

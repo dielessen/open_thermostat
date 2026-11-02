@@ -33,7 +33,7 @@
       },
       "shadow": {
         "title": "Connect an OpenThermostat E32",
-        "description": "The E32 calculates along; your current thermostat keeps controlling the boiler. Nothing is sent to the boiler. Home Assistant does set the target temperature on each room's setting device (radiator valve, tado or number helper) according to that room's week program. Normally you connect the E32 later with Configure → E32 connection, which fills in the connection ID for you.",
+        "description": "During the trial run the E32 only calculates; your current thermostat keeps controlling the boiler and nothing is sent to the boiler. Home Assistant does set the target temperature on each room's setting device (radiator valve, tado or number helper) according to that room's week program. Normally you connect the E32 later with Configure → E32 connection, which fills in the connection ID for you.",
         "data": {
           "topic_prefix": "MQTT prefix of the E32",
           "adapter_id": "Connection ID (filled in for you)"
@@ -206,7 +206,7 @@
         }
       },
       "hot_water": {
-        "title": "Domestic hot water capabilities (read-only)",
+        "title": "Hot water (view only)",
         "description": "{status} No changes are saved.",
         "data": {}
       },
@@ -393,7 +393,7 @@
       },
       "configuration_status": {
         "title": "Installation status",
-        "description": "Configured rooms: **{rooms}**\n\nController: **{connection}**\n\nControl: **{runtime}**\n\nA saved configuration is not confirmation that the controller has accepted it. You can configure rooms while disconnected.\n\n**Saved valve-target check**\n\n{actuator_checks}\n\nThis compares reported capabilities; it does not confirm valve position or authorize physical control.\n\n**What do these checks mean?**\nConfiguration confirmed: the E32 returned the saved room plan. Calculations on: the E32 calculates the heat demand; it controls the boiler only after the attended switch-over. Valve-target check: compares saved temperatures with reported valve limits and flags mismatches. These checks do not prove that a valve opens or the boiler stops. Those physical tests remain separate. In shadow mode valve and boiler commands stay off.",
+        "description": "Configured rooms: **{rooms}**\n\nE32: **{connection}**\n\nControl: **{runtime}**\n\nSaved does not yet mean the E32 has taken the settings over. You can set up rooms while it is not connected.\n\n**Check of the saved valve targets**\n\n{actuator_checks}\n\nThis compares what the valves report they can do; it does not prove a valve's position.\n\n**What do these checks mean?**\nConfiguration confirmed: the E32 sent the saved room plan back. Calculations on: the E32 works out the heat demand; it controls the boiler only after you switch over. Valve-target check: compares the saved temperatures with the limits the valves report, and flags differences. None of these checks proves that a valve opens or the boiler stops; check that at the valve or boiler itself.",
         "submit": "Close"
       },
       "program": {
@@ -579,8 +579,8 @@
         "data_description": {
           "name": "The name you see in Home Assistant and on the E32. Up to 40 letters (fewer with accents or emoji); renaming keeps the room and its history.",
           "state": "On: the room can ask for heat. Off: the room asks for no heat. A temporary \"Off until\" is on the room's device page.",
-          "emitter": "Radiators or floor heating; each type gets its own flow temperature.",
-          "ha_sources": "Thermostats or temperature sensors (°C or °F) in Home Assistant that measure this room. The first one with a fresh value is used; drag to change the order.",
+          "emitter": "Radiators or floor heating. Floor heating warms up slowly and needs cooler water, so each type gets its own water temperature.",
+          "ha_sources": "Thermostats or temperature sensors (°C or °F) in Home Assistant that measure this room. The first one with a fresh value is used; the others are backups. Drag to change the order.",
           "ble_sources": "Sensors paired on the E32 itself; they keep working without Home Assistant.",
           "bluetooth_first": "On: the E32 uses its Bluetooth sensors before the Home Assistant sources.",
           "setpoint_entity": "Optional: a thermostat or radiator valve (for example a tado or TV02), or a number with a target, to set the room with. Home Assistant writes the week program's temperature to it at every switch point; turning it changes the room until the next switch point. Turn off the device's own schedule (manual mode), otherwise it changes the temperature by itself. Empty: no setting device; set the room with its thermostat in Home Assistant or on the E32 page.{setting_hint}",
@@ -625,15 +625,15 @@
         }
       },
       "e32_flow_limits": {
-        "title": "Flow temperature limits",
-        "description": "The lowest and highest water temperature the E32 may ask the boiler for, for all rooms together. The heating curve and the learned flow are switches on the E32 device page in Home Assistant. {boiler} {error}",
+        "title": "Water temperature limits",
+        "description": "The lowest and highest temperature of the water the boiler sends to the radiators and floor (flow temperature), for all rooms together. \"Follow outdoor temperature (heating curve)\" and \"Warm on time with the coolest water\" are switches on the E32 device page in Home Assistant. {boiler} {error}",
         "data": {
-          "minimum_flow_temperature": "Minimum flow temperature",
-          "maximum_flow_temperature": "Maximum flow temperature"
+          "minimum_flow_temperature": "Lowest water temperature",
+          "maximum_flow_temperature": "Highest water temperature"
         },
         "data_description": {
-          "minimum_flow_temperature": "The lowest flow temperature the E32 asks for while it heats ({minimum_range}).",
-          "maximum_flow_temperature": "The highest flow temperature the E32 ever asks for ({maximum_range}, above the minimum). Floor heating fed without a mixing valve: usually at most 45–50 °C. Radiators: often 60–75 °C on cold days. The maximum heating temperature on your boiler stays the ceiling; the E32 never asks for more."
+          "minimum_flow_temperature": "The lowest water temperature the E32 asks for while it heats ({minimum_range}).",
+          "maximum_flow_temperature": "The highest water temperature the E32 ever asks for ({maximum_range}, above the lowest). Floor heating fed without a mixing valve: usually at most 45–50 °C. Radiators: often 60–75 °C on cold days. The maximum heating temperature set on your boiler always stays the ceiling; the E32 never asks for more."
         }
       },
       "e32_room_remove": {
@@ -648,7 +648,7 @@
       },
       "energy": {
         "title": "Energy and outdoor temperature",
-        "description": "Optional. With your gas meter, gas price, an outdoor temperature and your boiler's power the E32 calibrates its heat and gas estimates, and the heating advice shows savings in m³ and in your currency. Without them everything keeps working: estimates then use the boiler's modulation and a default power, and the advice says what is missing. Leave a field empty to not use it.",
+        "description": "Optional. With your gas meter, gas price, an outdoor temperature and your boiler's power the E32 calibrates its heat and gas estimates, and the heating advice shows savings in m³ and in your currency. Without them everything keeps working: estimates then use the burner power the boiler reports and a default boiler power, and the advice says what is missing. Leave a field empty to not use it.",
         "data": {
           "gas_meter": "Gas meter",
           "gas_price_entity": "Gas price sensor",
@@ -715,7 +715,7 @@
       },
       "e32_room_valves": {
         "title": "Radiator valves in {name}",
-        "description": "Choose the room's radiator valves. Zigbee2MQTT valves: enter each valve's Zigbee2MQTT friendly name (or pick one of the {found} found) and its model; the E32 sends them the room's target and temperature itself, and keeps the boiler's flow as low as the valves allow. Any other valve Home Assistant controls (ZHA, Z-Wave, Shelly or a cloud integration): choose its climate entity under Home Assistant valves; Home Assistant then sends it the room's target. Zigbee2MQTT valves keep working when Home Assistant is down; Home Assistant valves keep their last setpoint until Home Assistant is back. Valve control stays off until you switch it on; with control off nothing is sent to the valves.",
+        "description": "Choose the room's radiator valves. Zigbee2MQTT valves: enter each valve's Zigbee2MQTT friendly name (or pick one of the {found} found) and its model; the E32 sends them the room's target and temperature itself, and keeps the heating water as cool as the valves allow. Any other valve Home Assistant controls (ZHA, Z-Wave, Shelly or a cloud integration): choose its climate entity under Home Assistant valves; Home Assistant then sends it the room's target. Zigbee2MQTT valves keep working when Home Assistant is down; Home Assistant valves keep their last target temperature until Home Assistant is back. Valve control stays off until you switch it on; with control off nothing is sent to the valves.",
         "data": {
           "control": "Valve control",
           "valve_1": "Valve 1",
@@ -765,7 +765,7 @@
       },
       "e32_restore": {
         "title": "Restore settings to this E32",
-        "description": "Home Assistant backs up the settings of your E32 every day and keeps {count} backup(s): the newest of each of the last 7 days, and the one made right before the last restore. A backup holds the network and time settings, MQTT and the Home Assistant link, the rooms with their week programs, the Bluetooth sensors, the flow options and the boiler model, with the MQTT password and Bluetooth keys encrypted. The Wi-Fi password and the E32 password are never in it.\n\nChoose the backup to put back. The E32 checks it first and shows what changes; nothing changes before you confirm.\n\nReplacing a broken E32: flash the firmware over USB, connect the new E32 to your network (Wi-Fi setup or Ethernet), then enter its address and password here.",
+        "description": "Home Assistant backs up the settings of your E32 every day and keeps {count} backup(s): the newest of each of the last 7 days, and the one made right before the last restore. A backup holds the network and time settings, MQTT and the Home Assistant link, the rooms with their week programs, the Bluetooth sensors, the water temperature settings and the boiler model, with the MQTT password and Bluetooth keys encrypted. The Wi-Fi password and the E32 password are never in it.\n\nChoose the backup to put back. The E32 checks it first and shows what changes; nothing changes before you confirm.\n\nReplacing a broken E32: flash the firmware over USB, connect the new E32 to your network (Wi-Fi setup or Ethernet), then enter its address and password here.",
         "data": {
           "backup": "Backup",
           "address": "E32 web address",
@@ -783,7 +783,7 @@
       },
       "e32_restore_confirm": {
         "title": "Restore these settings?",
-        "description": "Backup of {created}, as the E32 checked it:\n\n{summary}\n\nThe E32 comes back in shadow mode: it calculates but does not control the boiler. If it controlled your boiler before, confirm the takeover again on the E32 page afterwards (Rooms → Active control). Before the restore Home Assistant also saves a backup of the E32 as it is now.",
+        "description": "Backup of {created}, as the E32 checked it:\n\n{summary}\n\nThe E32 comes back in the trial run: it calculates but does not control the boiler. If it controlled your boiler before, switch over again on the E32 page afterwards (Rooms → Active control). Before the restore Home Assistant also saves a backup of the E32 as it is now.",
         "data": {
           "confirm": "Restore these settings on this E32"
         },
@@ -842,7 +842,7 @@
       "invalid_heating_draft": "The desired configuration is invalid. No changes were saved.",
       "wrong_entity_domain": "Select an entity from the required domain.",
       "floor_requires_mixing_or_shared_safe_limit": "An unmixed floor requires the shared central upper bound to remain within the floor group limit.",
-      "invalid_tpi_travel_or_minimum_times": "TPI on-time must cover travel and minimum on+off times must fit the cycle.",
+      "invalid_tpi_travel_or_minimum_times": "With TPI the shortest on time must cover the time to open fully, and the shortest on time plus the rest must fit in the cycle",
       "pump_times_without_pump": "Clear both pump times when no group pump is selected.",
       "invalid_position_range": "Minimum position must be below maximum position.",
       "group_count": "At most 8 desired groups. This is not proof of firmware capacity.",
@@ -864,7 +864,7 @@
       "controller_busy_or_conflict": "The E32 is updating or restarting, or it waits for a restart. Wait until its web page opens normally (restart it there under System → Restart device if it asks for that), then try again.",
       "controller_legacy_rooms_present": "The E32 still has rooms of its own from its older stand-alone setup (on its web page: System → Rooms and programs). Home Assistant does not take these over. Remove those rooms there and save, then connect again; afterwards you add your rooms under Configure → Rooms.",
       "controller_broker_setup_required": "The E32 needs its own MQTT login first. On the E32, open System → Network and Home Assistant → MQTT, tick Enabled, enter the broker address and port and a broker user name and password, save and let the E32 restart. The E32 does not connect to Home Assistant through a broker without a login.",
-      "controller_source_conflict": "This E32 is already linked to another OpenThermostat installation, or this installation was linked to a different E32 before. First check that the address belongs to the right E32. To move this E32 to this installation: on its web page open System → Network and Home Assistant, section Home Assistant: untick “Home Assistant link in shadow mode (no boiler control)”, empty the installation profile under “Installation identity and limits (advanced)” if one is shown, choose Save settings and let the E32 restart; then connect again.",
+      "controller_source_conflict": "This E32 is already linked to another OpenThermostat installation, or this installation was linked to a different E32 before. First check that the address belongs to the right E32. To move this E32 to this installation: on its web page open System → Network and Home Assistant, section Home Assistant: untick “Home Assistant link in trial run (no boiler control)”, empty the installation profile under “Installation identity and limits (advanced)” if one is shown, choose Save settings and let the E32 restart; then connect again.",
       "controller_settings_too_large": "The configuration exceeds the E32 storage limit. No automatic retry is performed.",
       "controller_response_invalid": "The E32 returned an unexpected response. Check its firmware and connection.",
       "controller_response_too_large": "The E32 response exceeds the supported limit. Check its firmware.",
@@ -1055,7 +1055,7 @@
         }
       },
       "burner_short_cycling": {
-        "name": "Burner short cycling"
+        "name": "Burner switching on and off too often"
       },
       "heating_problem": {
         "name": "Heating problem"
@@ -1089,7 +1089,7 @@
         "name": "Estimated radiator power"
       },
       "controller_requested_flow_temperature": {
-        "name": "Boiler test: requested flow temperature"
+        "name": "Boiler test: requested water temperature"
       },
       "room_temperature": {
         "name": "Temperature"
@@ -1101,7 +1101,7 @@
         "name": "Control status",
         "state": {
           "ok": "OK",
-          "fallback": "Using fallback",
+          "fallback": "Backup sensor in use",
           "stale": "Measurement stale",
           "lost": "Sensor lost",
           "inactive": "Off",
@@ -1134,7 +1134,7 @@
         "name": "Agreement with thermostat today"
       },
       "takeover_readiness": {
-        "name": "Takeover readiness",
+        "name": "Ready for E32 control",
         "state": {
           "ready": "Ready",
           "waiting": "Waiting for more data",
@@ -1157,7 +1157,7 @@
         }
       },
       "room_flow_advice": {
-        "name": "Recommended flow"
+        "name": "Recommended water temperature"
       },
       "room_heating_start": {
         "name": "Predicted heating start"
@@ -1166,25 +1166,25 @@
         "name": "Hot water taps today"
       },
       "dhw_keep_warm_today": {
-        "name": "Keeping warm today"
+        "name": "Keeping hot water warm today"
       },
       "dhw_burner_time_today": {
         "name": "Hot water burner time today"
       },
       "field_reported_selected_flow_temperature": {
-        "name": "Selected flow temperature"
+        "name": "Water temperature target (boiler)"
       },
       "field_measured_flow_temperature": {
-        "name": "Flow temperature"
+        "name": "Water temperature to heating (flow)"
       },
       "field_measured_return_temperature": {
-        "name": "Return temperature"
+        "name": "Water temperature back (return)"
       },
       "field_outdoor_temperature": {
         "name": "Outdoor temperature"
       },
       "field_reported_burner_modulation": {
-        "name": "Burner modulation"
+        "name": "Burner power"
       },
       "field_reported_requested_power_limit": {
         "name": "Requested power limit"
@@ -1310,7 +1310,7 @@
         "name": "Maximum burner power"
       },
       "field_pump_run_on": {
-        "name": "Pump run-on"
+        "name": "Pump keeps running after heating"
       },
       "field_configured_heating_temperature": {
         "name": "Heating temperature setting"
@@ -1325,7 +1325,7 @@
         "name": "Storage temperature 2"
       },
       "field_ionisation_current": {
-        "name": "Ionisation current"
+        "name": "Flame signal (ionisation current)"
       },
       "field_raw_second_burner_bit": {
         "name": "Second burner bit (raw)",
@@ -1372,25 +1372,25 @@
         "name": "Hydraulic switch temperature"
       },
       "field_reported_heating_pump_modulation": {
-        "name": "Heating pump modulation"
+        "name": "Heating pump speed"
       },
       "field_reported_second_burner_runtime": {
         "name": "Second burner runtime"
       },
       "field_heating_hysteresis_off": {
-        "name": "Heating hysteresis off"
+        "name": "Heating switch-off margin (hysteresis)"
       },
       "field_heating_hysteresis_on": {
-        "name": "Heating hysteresis on"
+        "name": "Heating switch-on margin (hysteresis)"
       },
       "field_minimum_burner_period": {
-        "name": "Minimum burner period"
+        "name": "Burner rest between starts (boiler)"
       },
       "field_pump_modulation_maximum": {
-        "name": "Maximum pump modulation"
+        "name": "Highest pump speed"
       },
       "field_pump_modulation_minimum": {
-        "name": "Minimum pump modulation"
+        "name": "Lowest pump speed"
       },
       "field_configured_pump_mode": {
         "name": "Pump mode setting",
@@ -1403,16 +1403,16 @@
         }
       },
       "field_secondary_heating_hysteresis_off": {
-        "name": "Second heating hysteresis off"
+        "name": "Second switch-off margin (hysteresis)"
       },
       "field_secondary_heating_hysteresis_on": {
-        "name": "Second heating hysteresis on"
+        "name": "Second switch-on margin (hysteresis)"
       },
       "field_pump_start_temperature": {
         "name": "Pump start temperature"
       },
       "field_dhw_hysteresis_on": {
-        "name": "Hot water hysteresis on"
+        "name": "Hot water switch-on margin (hysteresis)"
       },
       "field_dhw_charge_optimisation_enabled": {
         "name": "Hot water charge optimisation",
@@ -1422,7 +1422,7 @@
         }
       },
       "field_dhw_flow_temperature_offset": {
-        "name": "Hot water flow offset"
+        "name": "Extra water temperature for hot water"
       },
       "field_dhw_circulation_enabled": {
         "name": "Circulation enabled",
@@ -1521,13 +1521,13 @@
         }
       },
       "field_thermostat_requested_flow_temperature": {
-        "name": "Requested flow temperature (thermostat)"
+        "name": "Water temperature asked (thermostat)"
       },
       "field_thermostat_requested_burner_power": {
         "name": "Requested burner power (thermostat)"
       },
       "field_thermostat_requested_pump_modulation": {
-        "name": "Requested pump modulation (thermostat)"
+        "name": "Pump speed asked (thermostat)"
       },
       "field_thermostat_requested_dhw_temperature": {
         "name": "Requested hot water temperature (thermostat)"
@@ -1545,19 +1545,19 @@
         "name": "Room temperature (thermostat)"
       },
       "field_thermostat_target_flow_temperature": {
-        "name": "Target flow temperature (thermostat)"
+        "name": "Water temperature target (thermostat)"
       },
       "field_plus_selected_flow_temperature": {
-        "name": "Selected flow temperature (EMS+)"
+        "name": "Water temperature target (EMS+)"
       },
       "field_plus_flow_temperature": {
-        "name": "Flow temperature (EMS+)"
+        "name": "Water temperature to heating (EMS+)"
       },
       "field_plus_requested_burner_power": {
         "name": "Requested burner power (EMS+)"
       },
       "field_plus_burner_modulation": {
-        "name": "Burner modulation (EMS+)"
+        "name": "Burner power (EMS+)"
       },
       "field_plus_burner_on": {
         "name": "Burner on (EMS+)",
@@ -1574,10 +1574,10 @@
         }
       },
       "field_plus_return_temperature": {
-        "name": "Return temperature (EMS+)"
+        "name": "Water temperature back (EMS+)"
       },
       "field_plus_flame_current": {
-        "name": "Flame current (EMS+)"
+        "name": "Flame signal (EMS+)"
       },
       "field_plus_pressure": {
         "name": "Water pressure (EMS+)"
@@ -1602,7 +1602,7 @@
         "name": "Heating runtime (EMS+)"
       },
       "field_plus_heating_pump_modulation": {
-        "name": "Heating pump modulation (EMS+)"
+        "name": "Heating pump speed (EMS+)"
       },
       "field_plus_dhw_target": {
         "name": "Hot water target temperature (EMS+)"
@@ -1717,25 +1717,25 @@
         "name": "Gas for keeping hot water warm"
       },
       "flow_source": {
-        "name": "Flow source",
+        "name": "Water temperature set by",
         "state": {
           "rule": "Room control",
           "curve": "Heating curve",
-          "learned": "Learned flow",
-          "optimum_start": "Optimum start"
+          "learned": "Learned water temperature",
+          "optimum_start": "Warm on time (early start)"
         }
       },
       "flow_curve": {
-        "name": "Heating curve flow"
+        "name": "Water temperature by heating curve"
       },
       "flow_learned": {
-        "name": "Learned flow"
+        "name": "Learned water temperature"
       },
       "flow_rule": {
-        "name": "Room control flow"
+        "name": "Water temperature by room control"
       },
       "flow_curve_slope": {
-        "name": "Heating curve slope"
+        "name": "Heating curve steepness"
       },
       "gas_calibration": {
         "name": "Gas calibration",
@@ -1870,7 +1870,7 @@
           "heating": "Heating",
           "tapping": "Tapping",
           "keep_warm": "Keeping warm",
-          "charging": "Charging the cylinder",
+          "charging": "Heating the hot water tank",
           "hot_water": "Hot water"
         }
       },
@@ -1888,7 +1888,7 @@
     },
     "select": {
       "flow_curve_design_flow_c": {
-        "name": "Flow at −10 °C",
+        "name": "Water temperature at −10 °C outside",
         "state": {
           "automatic": "Automatic (floor 40 °C, radiators 55 °C)",
           "25": "25 °C",
@@ -1976,10 +1976,10 @@
     },
     "switch": {
       "flow_weather_curve": {
-        "name": "Weather-compensated heating curve"
+        "name": "Follow outdoor temperature (heating curve)"
       },
       "flow_apply_learned": {
-        "name": "Use learned flow and optimum start"
+        "name": "Warm on time with the coolest water"
       },
       "room_valve_control": {
         "name": "Valve control"
@@ -2701,24 +2701,24 @@
           "data": {
             "output": "Device output entity",
             "deenergized_position": "Physical de-energized position (NC/NO)",
-            "control": "Binary control strategy",
-            "travel_time_s": "Full actuator travel time (seconds)",
-            "minimum_on_s": "Minimum on-time (seconds)",
-            "minimum_off_s": "Minimum off-time (seconds)",
-            "cycle_s": "TPI cycle length (optional; seconds)",
+            "control": "How it is switched",
+            "travel_time_s": "Time to open fully (seconds)",
+            "minimum_on_s": "Shortest on time (seconds)",
+            "minimum_off_s": "Rest before switching on again (seconds)",
+            "cycle_s": "Switching cycle length (TPI; optional, seconds)",
             "minimum_percent": "Minimum requested position (%)",
             "maximum_percent": "Maximum requested position (%)"
           },
           "data_description": {
             "output": "Select the entity matching this declaration type. An existing TRV bound to this exact room may be adopted as the SAME desired output owner; no second writer is created. Cross-room/controller ownership is rejected.",
             "deenergized_position": "NC/NO means the physical state with power removed, not a software inversion. Verify the real actuator/voltage separately.",
-            "control": "Desired declaration only. TPI is a slow time-proportional cycle, not a proportional valve position and not rapid PWM.",
-            "travel_time_s": "Full-travel declaration, not feedback proof. No actuator moves during configuration.",
-            "cycle_s": "Required for TPI; leave empty for hysteresis. Minimum on-time must cover travel, and minimum on+off times must fit the cycle.",
+            "control": "Saved as a plan only. TPI switches on and off in a slow, fixed rhythm; it does not set a valve halfway and is not fast pulsing.",
+            "travel_time_s": "How long the actuator takes from closed to fully open, as stated by its maker. Nothing moves while you configure this.",
+            "cycle_s": "Only for TPI (on and off in a slow, fixed rhythm); leave empty for plain on/off around the target (hysteresis). The shortest on time must cover the time to open fully, and the shortest on time plus the rest must fit in the cycle.",
             "minimum_percent": "Position request, not measured flow or boiler power. Interface direction, feedback, safe fallback and device support remain unproven.",
             "maximum_percent": "Must exceed the minimum. A percent output is not automatically a mixing valve or a 0–10 V interface.",
-            "minimum_on_s": "The shortest time the actuator stays on.",
-            "minimum_off_s": "The shortest time the actuator stays off."
+            "minimum_on_s": "Once switched on, the actuator stays on at least this long, so it does not switch on and off too often.",
+            "minimum_off_s": "Once switched off, the actuator stays off at least this long before it switches on again, so it switches less often and lasts longer."
           }
         },
         "edit_actuator": {
@@ -2957,17 +2957,17 @@
       }
     },
     "reconfirm_takeover": {
-      "title": "Confirm the takeover again",
+      "title": "Confirm again that the E32 may control the boiler",
       "fix_flow": {
         "step": {
           "reconfirm_takeover": {
-            "title": "Confirm the takeover again",
-            "description": "The E32 controlled your boiler before its firmware was updated. For safety the new firmware does not take over again until you confirm once more that your old thermostat is still disconnected from the boiler. Until then the E32 only keeps frost protection, and only while no other thermostat is heard on the bus.\n\nConfirm only if the old thermostat is disconnected: two controllers must never be connected at the same time. To hand back instead, open the E32 Rooms page → Active control → Hand back to the thermostat."
+            "title": "Confirm again that the E32 may control the boiler",
+            "description": "The E32 controlled your boiler before its firmware was updated. For safety the new firmware does not take control again until you confirm once more that your old thermostat is still disconnected from the boiler. Until then the E32 only keeps frost protection, and only while no other thermostat is heard on the boiler bus.\n\nConfirm only if the old thermostat is disconnected: never connect two thermostats to the boiler at the same time. To give control back instead, open the E32 Rooms page → Active control → Give control back to my thermostat."
           }
         },
         "error": {
-          "reconfirm_not_released": "This E32 firmware does not allow active control. Nothing was changed.",
-          "reconfirm_unconfirmed": "The E32 did not confirm the takeover. Check the E32 Rooms page → Active control.",
+          "reconfirm_not_released": "This E32 firmware does not allow the E32 to control the boiler. Nothing was changed.",
+          "reconfirm_unconfirmed": "The E32 did not confirm. Check the E32 Rooms page → Active control.",
           "e32_unreachable": "The E32 cannot be reached right now. Try again in a moment."
         },
         "abort": {

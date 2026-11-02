@@ -54,11 +54,11 @@ const until=async(check,what)=>{for(const end=Date.now()+10000;!check();await ne
   const live=()=>page.locator('[data-trial-live]').innerText();
   // Blocked controls explain the firmware status; the page never grants permission.
   await reason('prepare',nl?/manometer in: 1,1–2,5 bar/:/gauge pressure reading first: 1\.1–2\.5 bar/);
-  assert.match(await live(),nl?/Gekozen\s+50 °C[\s\S]*Aanvoer nu\s+—[\s\S]*Brander\s+—/:/Selected\s+50 °C[\s\S]*Boiler flow now\s+—[\s\S]*Burner\s+—/);
+  assert.match(await live(),nl?/Gekozen\s+50 °C[\s\S]*Water naar verwarming nu\s+—[\s\S]*Brander\s+—/:/Selected\s+50 °C[\s\S]*Water to heating now\s+—[\s\S]*Burner\s+—/);
   const field=(value,quality='reported',age_ms=4000)=>({value,unit:'degC',state:'valid',quality,age_ms});
   feedback={measured_flow_temperature:field(43.5),reported_burner_modulation:{...field(35),unit:'%'},
    heating_active:{...field(1,'inferred'),unit:'bool'},dhw_active:{...field(0,'inferred'),unit:'bool'}};await refresh();
-  assert.match(await live(),nl?/Aanvoer nu\s+43,5 °C \(4 s geleden\)[\s\S]*Brander\s+Aan · 35 %/:/Boiler flow now\s+43\.5 °C \(4 s ago\)[\s\S]*Burner\s+On · 35 %/);
+  assert.match(await live(),nl?/Water naar verwarming nu\s+43,5 °C \(4 s geleden\)[\s\S]*Brander\s+Aan · 35 %/:/Water to heating now\s+43\.5 °C \(4 s ago\)[\s\S]*Burner\s+On · 35 %/);
   update({available:false,blocked_reason:'proving_conditions_missing',can_prepare:false});
   extra={manual_bus_identity:{source_address:11,source_conflict:true,matches_reviewed_address:false}};await refresh();
   await reason('prepare',nl?/Een ander apparaat op de EMS-bus/:/Another device on the EMS bus/);
@@ -68,7 +68,7 @@ const until=async(check,what)=>{for(const end=Date.now()+10000;!check();await ne
   feedback.dhw_active.value=0;feedback.measured_flow_temperature={state:'stale',quality:'reported',value:null,unit:'degC',age_ms:31000};
   feedback.heating_active={state:'stale',quality:'inferred',value:null,unit:'bool',age_ms:31000};await refresh();
   await reason('prepare',nl?/verse ketelmeldingen over cv/:/fresh boiler reports on heating, burner and hot water/);
-  assert.match(await live(),nl?/Aanvoer nu\s+—/:/Boiler flow now\s+—/);
+  assert.match(await live(),nl?/Water naar verwarming nu\s+—/:/Water to heating now\s+—/);
   update({blocked_reason:'future_gate'});await refresh();await reason('prepare',nl?/Redencode: future_gate/:/Reason code: future_gate/);
   update({blocked_reason:'transmit_blocked'});await refresh();await reason('prepare',nl?/firmware geblokkeerd|geblokkeerd/:/blocked in this firmware/);
   await noScroll();await page.screenshot({path:path.join(out,`BLOCKED-${language}-${width}.png`),fullPage:true});
@@ -99,7 +99,7 @@ const until=async(check,what)=>{for(const end=Date.now()+10000;!check();await ne
   state.progress.requested_temperature_reported=true;state.progress.heating_operation_reported=true;update({heat_remaining_ms:540000});
   feedback.dhw_active.value=1;feedback.reported_burner_modulation.value=60;await refresh();
   await page.locator('[data-trial-live] p').filter({hasText:nl?/levert tapwater; de cv pauzeert/:/supplying hot water; central heating pauses/}).waitFor();
-  assert.match(await live(),nl?/Gevraagd\s+50 °C[\s\S]*Aanvoer nu\s+43,5 °C[\s\S]*Aan · 60 % · Tapwater/:/Requested\s+50 °C[\s\S]*Boiler flow now\s+43\.5 °C[\s\S]*On · 60 % · Hot water/);
+  assert.match(await live(),nl?/Gevraagd\s+50 °C[\s\S]*Water naar verwarming nu\s+43,5 °C[\s\S]*Aan · 60 % · Tapwater/:/Requested\s+50 °C[\s\S]*Water to heating now\s+43\.5 °C[\s\S]*On · 60 % · Hot water/);
   await noScroll();
   feedback.dhw_active.value=0;await refresh();assert.equal(await page.locator('[data-trial-live] p').count(),0);
   await page.screenshot({path:path.join(out,`HEATING-${language}-${width}.png`),fullPage:true});

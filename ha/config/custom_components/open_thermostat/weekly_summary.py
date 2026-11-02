@@ -30,7 +30,7 @@ TEXT = {
         "less": "That is {change} % less than the week before.",
         "more": "That is {change} % more than the week before.",
         "same": "That is about the same as the week before.",
-        "no_gas": "No gas use counted yet: the E32 has not reported the boiler's burner modulation.",
+        "no_gas": "No gas use counted yet: the E32 has not reported the boiler's burner power yet.",
         "night_saving": "Night setback: a different night temperature could have saved about {m3} m³ of gas "
                         "this week.",
         "night_money": " That is about {money} {currency}.",
@@ -40,7 +40,7 @@ TEXT = {
         "no_advice": "No advice right now: the heating looks fine.",
         "gas_meter": "Measured with your gas meter; the split between heating and hot water follows what the "
                      "boiler did.",
-        "estimate": "Estimated from the burner modulation and the boiler's power. Add your gas meter in the "
+        "estimate": "Estimated from the burner power and the boiler's heating power. Add your gas meter in the "
                     "integration options for real values.",
         "rough": " The boiler's power is not set, so the estimate is rough.",
         "mixed": "Partly measured with your gas meter, partly estimated.",
@@ -60,7 +60,7 @@ TEXT = {
         "less": "Dat is {change} % minder dan de week ervoor.",
         "more": "Dat is {change} % meer dan de week ervoor.",
         "same": "Dat is ongeveer evenveel als de week ervoor.",
-        "no_gas": "Nog geen gasverbruik geteld: de E32 heeft de brandermodulatie van de ketel nog niet gemeld.",
+        "no_gas": "Nog geen gasverbruik geteld: de E32 heeft het brandervermogen van de ketel nog niet gemeld.",
         "night_saving": "Nachtverlaging: een andere nachttemperatuur had deze week ongeveer {m3} m³ gas "
                         "kunnen besparen.",
         "night_money": " Dat is ongeveer {money} {currency}.",
@@ -69,7 +69,7 @@ TEXT = {
         "no_advice": "Op dit moment geen advies: de verwarming ziet er goed uit.",
         "gas_meter": "Gemeten met je gasmeter; de verdeling tussen verwarmen en warm water volgt wat de ketel "
                      "deed.",
-        "estimate": "Geschat uit de brandermodulatie en het vermogen van de ketel. Voeg je gasmeter toe in de "
+        "estimate": "Geschat uit het brandervermogen en het vermogen van de ketel. Voeg je gasmeter toe in de "
                     "opties van de integratie voor echte waarden.",
         "rough": " Het vermogen van de ketel is niet ingesteld, dus de schatting is grof.",
         "mixed": "Deels gemeten met je gasmeter, deels geschat.",

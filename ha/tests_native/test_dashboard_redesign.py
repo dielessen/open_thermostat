@@ -111,7 +111,7 @@ async def test_the_boiler_view_groups_the_values_and_shows_only_rows_with_a_valu
     assert rows("Thermostat on the bus")[0] == fields["thermostat_requested_flow_temperature"]
     # One note, in the first section; the raw state bits are not on this view.
     assert [c["type"] for c in sections["Heating"]] == ["heading", "entities", "markdown"]
-    assert "not a verified operation" in sections["Heating"][2]["content"]
+    assert "not a separate check" in sections["Heating"][2]["content"]
     assert fields["raw_boiler_state"] not in json.dumps(boiler)
     # The graphs: no heading repeated as a graph title, shown while every series has a value.
     graphs = [c for c in sections["Last 24 hours"] if c["type"] == "history-graph"]

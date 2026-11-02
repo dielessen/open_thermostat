@@ -246,14 +246,15 @@ async def test_the_product_setup_adds_the_advice_and_registers_the_gas_counting(
                                      {"config_subentry_id": "group"}, hub, SimpleNamespace(client=None))
     assert stores == ["open_thermostat.energy_use.e9"]
     assert [type(entity).__name__ for entity in added[0][0]] == ["HeatingAdviceSensor"]
+    assert [type(entity).__name__ for entity in added[1][0]] == ["LearnedOverviewSensor"]
     use = hass.data["open_thermostat"]["e9"]["energy_use"]
     use.tick()
-    assert len(added) == 1  # no boiler fields: no gas entities
+    assert len(added) == 2  # no boiler fields: no gas entities
     use.connection = SimpleNamespace(client=SimpleNamespace(
         boiler_fields=FakeCache(), ready=True, boiler_fields_supported=True, clock=lambda: 0))
     use.connection.client.boiler_fields.values.update(plus_burner_modulation=20, plus_dhw_valve=0)
     use.tick()
-    entities, options = added[1]
+    entities, options = added[2]
     assert [type(entity) for entity in entities] == [GasUseSensor, GasUseSensor]
     assert options == {"config_subentry_id": "group"}
     for remove in unloads:

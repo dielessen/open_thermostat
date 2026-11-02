@@ -35,9 +35,17 @@ const words={
   const items=await page.locator('ul[aria-labelledby="navbarDropdownMenuLink"] > li:not([hidden]) > a.dropdown-item').allInnerTexts();
   assert.deepEqual(items.map(t=>t.trim()),words[lang].system);
   // 3. The menu fits a phone: opened, nothing scrolls sideways.
-  if(await page.locator('.navbar-toggler').isVisible())await page.locator('.navbar-toggler').click();
-  await page.locator('#navbarDropdownMenuLink').click();
-  await page.locator('ul[aria-labelledby="navbarDropdownMenuLink"] a[data-page="backup"]').waitFor({state:'visible'});
+  // On a phone the menu slides open: under load a click during that animation is lost, so wait and retry.
+  if(await page.locator('.navbar-toggler').isVisible()){
+   await page.locator('.navbar-toggler').click();
+   await page.waitForFunction(()=>{const c=document.getElementById('navbarNavDropdown');return c.classList.contains('show')&&!c.classList.contains('collapsing');});
+  }
+  const backupItem=page.locator('ul[aria-labelledby="navbarDropdownMenuLink"] a[data-page="backup"]');
+  for(let i=0;i<3&&!(await backupItem.isVisible());i++){
+   await page.locator('#navbarDropdownMenuLink').click();
+   await backupItem.waitFor({state:'visible',timeout:5000}).catch(()=>{});
+  }
+  await backupItem.waitFor({state:'visible'});
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal scroll with the menu open');
   // 4. System → Backup and restore opens that panel on the settings page, and System is the active menu.
   await page.locator('ul[aria-labelledby="navbarDropdownMenuLink"] a[data-page="backup"]').click();

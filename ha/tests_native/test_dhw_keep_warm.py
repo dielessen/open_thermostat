@@ -198,7 +198,7 @@ def test_the_weekly_summary_names_the_keep_warm_part():
 
 def test_the_dashboard_shows_keeping_warm_as_a_third_bar_next_to_hot_water():
     from custom_components.open_thermostat.dashboard import TEXT, _energy_section
-    for lang, name in (("en", "Of which keeping warm"), ("nl", "Waarvan warmhouden")):
+    for lang, name in (("en", "Of which keeping hot water warm"), ("nl", "Waarvan warm water warmhouden")):
         section = _energy_section(TEXT[lang], "sensor.heating_gas", "sensor.hot_water_gas", "sensor.keep_warm_gas")
         graph = next(card for card in section["cards"] if card["type"] == "statistics-graph")
         assert [item["entity"] for item in graph["entities"]] == ["sensor.heating_gas", "sensor.hot_water_gas",

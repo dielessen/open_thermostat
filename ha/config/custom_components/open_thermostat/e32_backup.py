@@ -498,7 +498,7 @@ _SECTIONS = {
     "network": ("Network", "Netwerk", "Sieć"),
     "bluetooth": ("Bluetooth sensors", "Bluetooth-sensoren", "Czujniki Bluetooth"),
     "heating": ("Rooms", "Ruimtes", "Pomieszczenia"),
-    "flow": ("Flow temperature", "Aanvoertemperatuur", "Temperatura zasilania"),
+    "flow": ("Water temperature", "Watertemperatuur", "Temperatura wody"),
     "boiler_display": ("Boiler model", "Ketelmodel", "Model kotła"),
 }
 _FIELDS = {
@@ -539,11 +539,11 @@ _FIELDS = {
     "devices": ("Sensors", "Sensoren", "Czujniki"),
     "rooms": ("Rooms", "Ruimtes", "Pomieszczenia"),
     "room_settings": ("Room settings", "Instellingen van de ruimtes", "Ustawienia pomieszczeń"),
-    "minimum_flow_c": ("Lowest flow temperature", "Laagste aanvoertemperatuur", "Najniższa temperatura zasilania"),
-    "maximum_flow_c": ("Highest flow temperature", "Hoogste aanvoertemperatuur", "Najwyższa temperatura zasilania"),
-    "weather_curve": ("Weather curve", "Weersafhankelijke stooklijn", "Krzywa pogodowa"),
-    "apply_learned": ("Use learned values", "Geleerde waarden gebruiken", "Użyj wyuczonych wartości"),
-    "curve_design_flow_c": ("Design flow temperature", "Ontwerp-aanvoertemperatuur", "Projektowa temperatura zasilania"),
+    "minimum_flow_c": ("Lowest water temperature", "Laagste watertemperatuur", "Najniższa temperatura wody"),
+    "maximum_flow_c": ("Highest water temperature", "Hoogste watertemperatuur", "Najwyższa temperatura wody"),
+    "weather_curve": ("Follow outdoor temperature (heating curve)", "Buitentemperatuur volgen (stooklijn)", "Krzywa grzewcza wg temperatury zewnętrznej"),
+    "apply_learned": ("Warm on time with the coolest water", "Op tijd warm met het koelste water", "Ciepło na czas przy najchłodniejszej wodzie"),
+    "curve_design_flow_c": ("Water temperature at −10 °C outside", "Watertemperatuur bij −10 °C buiten", "Temperatura wody przy −10 °C na zewnątrz"),
     "model": ("Boiler model", "Ketelmodel", "Model kotła"),
 }
 _REENTER = {
@@ -572,8 +572,8 @@ _WARNINGS = {
     "weather_managed_kept": ("Weather settings are managed by Home Assistant and stay as they are.",
                              "De weerinstellingen worden door Home Assistant beheerd en blijven zoals ze zijn.",
                              "Ustawieniami pogody zarządza Home Assistant; pozostają bez zmian."),
-    "plan_mode_shadow": ("The rooms are restored in shadow mode.", "De ruimtes worden in schaduwmodus teruggezet.",
-                         "Pomieszczenia zostaną przywrócone w trybie cienia."),
+    "plan_mode_shadow": ("The rooms are restored in the trial run.", "De ruimtes worden teruggezet in de proefperiode.",
+                         "Pomieszczenia zostaną przywrócone w okresie próbnym."),
     "wifi_not_restored": ("Wi-Fi is not changed by a restore.", "Terugzetten verandert de wifi niet.",
                           "Przywracanie nie zmienia Wi-Fi."),
     "secrets_skipped": ("Passwords and keys in the backup are skipped.",

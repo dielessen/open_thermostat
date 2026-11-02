@@ -45,9 +45,9 @@ def test_every_field_has_a_short_english_and_dutch_name():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("language,name,user_name", [("en", "Flow temperature", None),
-                                                     ("nl", "Aanvoertemperatuur", None),
-                                                     ("pl", "Temperatura zasilania", None),
+@pytest.mark.parametrize("language,name,user_name", [("en", "Water temperature to heating (flow)", None),
+                                                     ("nl", "Watertemperatuur naar verwarming (aanvoer)", None),
+                                                     ("pl", "Temperatura wody do ogrzewania (zasilanie)", None),
                                                      ("nl", "Aanvoer vloer", "Aanvoer vloer")])
 async def test_existing_field_entity_keeps_its_entity_id_and_gets_the_translated_name(hass, monkeypatch, language, name,
                                                                                       user_name):

@@ -75,8 +75,8 @@ TEXT = {
         "active_boiler_no_response": "The boiler does not respond to the E32's heat request.",
         "active_transmit_failed": "The E32 cannot send its heat request to the boiler.",
         "room_slow": "{room} asks for heat but has stayed more than {margin} °C below its target for "
-                     "{hours} hours. Check that the radiators or floor heating get warm and that the boiler's "
-                     "maximum flow temperature is high enough.",
+                     "{hours} hours. Check that the radiators or floor heating get warm and that the highest water "
+                     "temperature (on the boiler and on the E32 Home page) is high enough.",
         "session_lost": "The E32 is online, but Home Assistant has had no working connection with it for more "
                         "than {minutes} minutes, so rooms get no new targets from Home Assistant. Open the "
                         "integration and choose Connect E32 again if it does not recover.",
@@ -95,8 +95,8 @@ TEXT = {
         "active_boiler_no_response": "De ketel reageert niet op de warmtevraag van de E32.",
         "active_transmit_failed": "De E32 kan zijn warmtevraag niet naar de ketel sturen.",
         "room_slow": "{room} vraagt warmte, maar blijft al {hours} uur meer dan {margin} °C onder de gewenste "
-                     "temperatuur. Kijk of de radiatoren of de vloerverwarming warm worden en of de maximale "
-                     "aanvoertemperatuur van de ketel hoog genoeg is.",
+                     "temperatuur. Kijk of de radiatoren of de vloerverwarming warm worden en of de hoogste "
+                     "watertemperatuur (op de ketel en op de E32-pagina Huis) hoog genoeg is.",
         "session_lost": "De E32 is online, maar Home Assistant heeft al meer dan {minutes} minuten geen werkende "
                         "verbinding met hem, dus de ruimtes krijgen geen nieuwe doelen uit Home Assistant. Open de "
                         "integratie en kies opnieuw Connect E32 als het niet vanzelf herstelt.",

@@ -37,11 +37,11 @@ async def test_native_dashboard_three_views_reported_vs_estimated_no_legacy_coun
     assert [v["path"] for v in config["views"]]==["heating","boiler","diagnostics"]
     boiler=view_cards(config["views"][1])
     assert [c["type"] for c in boiler]==["heading","markdown","history-graph","history-graph","history-graph"]
-    assert [x["name"] for x in boiler[2]["entities"]]==["Reported selected flow","Reported current flow"]
-    assert boiler[3]["title"]=="Burner modulation (%) — not kW"
+    assert [x["name"] for x in boiler[2]["entities"]]==["Target (boiler)","To heating, as the boiler reports it"]
+    assert boiler[3]["title"]=="Burner power (%) — not kW"
     assert len(boiler[4]["entities"])==4
     raw=str(config)
-    assert "statistics-graph" not in raw and "not a proven E32 command" in raw
+    assert "statistics-graph" not in raw and "not proof of an E32 command" in raw
 
 @pytest.mark.asyncio
 async def test_dashboard_tracks_renamed_registry_and_excludes_disabled_hub(hass):
@@ -238,11 +238,11 @@ async def test_native_boiler_view_uses_owned_enabled_renamed_fields_and_quality_
     config=dashboard._dashboard_config();boiler=next(v for v in config["views"] if v["path"]=="boiler")
     text=str(boiler)
     assert "sensor.renamed_native_flow" in text and returned.entity_id in text
-    # Grouped: the inferred activity sits last in its group, and the note says it is not a verified operation.
+    # Grouped: the inferred activity sits last in its group, and the note says it is what the boiler reports, not a separate check.
     heating=next(s["cards"] for s in boiler["sections"] if s["cards"][0]["heading"]=="Heating")
     rows=[r["row"]["entity"] for r in heating[1]["entities"]]
     assert rows==["sensor.renamed_native_flow",returned.entity_id,inferred.entity_id]
-    assert "not a verified operation" in heating[2]["content"]
+    assert "not a separate check" in heating[2]["content"]
     for missing in [raw.entity_id,disabled.entity_id,foreign.entity_id,legacy.entity_id]:
         assert missing not in text
     graphs=[c for c in view_cards(boiler) if c["type"]=="history-graph"]

@@ -190,6 +190,17 @@ private:
         name(io, r.recommended, std::array<const char*, 4>{"program", "hold_0_5", "hold_1_0", "thermostat_like"});
         if constexpr (IO::reading) if (!r.status) io.ok = false;
     }
+    // A bin as FlowLearner::finish() builds it: 30 min (floor)..3 h segments up to binMemoryHours of
+    // weight, a mean flow of 0..100 degC and a rate within maxRateCentiCPerHour (3 degC/h).
+    static bool plausible(const FlowLearner::Bin& b) {
+        if (!(b.w >= 0.1f && b.w <= 2 * FlowLearner::Params{}.binMemoryHours)) return false;
+        const float f = b.wf / b.w, q = b.wr / b.w, qq = b.wrr / b.w;
+        if (!(f >= 0 && f <= 100 && std::fabs(q) <= 10 && qq >= 0 && qq <= 100)) return false;
+        if (!b.outdoorSegments) return true;
+        if (!(b.ow > 0 && b.ow <= b.w * 1.001f)) return false;
+        const float o = b.wo / b.ow;
+        return std::fabs(o) <= 80 && b.woo >= 0 && b.woo / b.ow <= 6400 && std::fabs(b.wor / b.ow) <= 800 && std::fabs(b.wro / b.ow) <= 10;
+    }
     template <class IO> static void room(IO& io, FlowLearner::Room& r) {
         uint8_t size = uint8_t(std::min<size_t>(r.id.size(), 32)), emitter = uint8_t(r.emitter);
         io(size);
@@ -203,6 +214,8 @@ private:
         auto& h = r.heat;
         io(r.segments, r.periods, r.lastPeriod, r.rejected, h.coolSegments, h.powerSegments);
         io(h.cw, h.crd, h.cdd, h.pw, h.spr, h.spd, h.srr, h.srd, h.sdd);
+        if constexpr (IO::reading) // weights and sums of squares are never negative
+            if (!(h.cw >= 0 && h.cdd >= 0 && h.pw >= 0 && h.srr >= 0 && h.sdd >= 0)) io.ok = false;
         uint32_t used = 0;
         for (size_t i = 0; i < FlowLearner::binCount; ++i) if (r.bins[i].segments) used |= 1u << i;
         io(used);
@@ -212,7 +225,7 @@ private:
             auto& b = r.bins[i];
             io(b.segments, b.periods, b.outdoorSegments, b.lastPeriod, b.w, b.wf, b.wr, b.wrr);
             if (b.outdoorSegments) io(b.ow, b.wo, b.woo, b.wor, b.wro); // without, they are all 0
-            if (!b.segments || !(b.w > 0)) io.ok = false;                // a used bin has weight
+            if (!b.segments || !plausible(b)) io.ok = false;             // a used bin has weight, and what finish() can produce
         }
     }
 };

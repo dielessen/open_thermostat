@@ -257,6 +257,7 @@ public:
         a.ruleFlowC = ruleFlow(shortfallCentiC);
         if (!ready(r)) return a;
         Curve c; const size_t n = curve(r, outdoorCentiC, c);
+        if (!n) return a;
         size_t k = 0;
         while (k < n && c[k].rate < a.requiredRate) ++k;
         float flow;
@@ -269,6 +270,7 @@ public:
             flow = c[k - 1].flowC + (a.requiredRate - c[k - 1].rate) / (c[k].rate - c[k - 1].rate) * (c[k].flowC - c[k - 1].flowC);
             a.reason = "learned";
         }
+        if (!std::isfinite(flow)) { a.reason = "not_ready"; return a; }
         a.flowC = static_cast<uint8_t>(std::clamp<double>(std::ceil(double(flow) - 0.01), minFlowC_, maxFlowC_));
         a.warmupS = warmup(c, n, *a.flowC, shortfallCentiC);
         a.ruleWarmupS = warmup(c, n, a.ruleFlowC, shortfallCentiC);
@@ -308,7 +310,9 @@ public:
         m.lossPerHour = static_cast<float>(b);
         const double pz = h.spr + b * h.spd, zz = h.srr + 2 * b * h.srd + b * b * h.sdd;
         if (h.powerSegments < p_.modelSegments || zz <= 0 || pz <= 0) return m;
-        m.capacityKwhPerK = static_cast<float>(pz / zz * calibration());
+        const double capacity = pz / zz * calibration();
+        if (!(capacity > 0 && capacity <= 1000)) return m; // a restored state may not make it infinite
+        m.capacityKwhPerK = static_cast<float>(capacity);
         m.uaKwPerK = static_cast<float>(b) * *m.capacityKwhPerK;
         return m;
     }
@@ -375,7 +379,7 @@ public:
         return o;
     }
     static void number(cJSON* o, const char* key, std::optional<float> v, int scale) {
-        if (v) cJSON_AddNumberToObject(o, key, learnmath::round(double(*v) * scale) / scale); else cJSON_AddNullToObject(o, key);
+        if (v && std::isfinite(*v)) cJSON_AddNumberToObject(o, key, learnmath::round(double(*v) * scale) / scale); else cJSON_AddNullToObject(o, key);
     }
 
 private:
@@ -514,7 +518,9 @@ private:
             if (!ready(b)) continue;
             float rate = b.wr / b.w;
             if (slope && b.ow > 0) rate += *slope * (*outdoor / 100.0f - b.wo / b.ow);
-            c[n++] = {b.wf / b.w, rate, b.w};
+            const float flow = b.wf / b.w;
+            if (!std::isfinite(flow) || !std::isfinite(rate)) continue; // never NaN advice
+            c[n++] = {flow, rate, b.w};
         }
         Curve block; std::array<size_t, binCount> len{}; size_t m = 0;
         for (size_t i = 0; i < n; ++i) {
@@ -543,7 +549,7 @@ private:
         const auto rate = rateAt(c, n, flowC);
         if (!rate) return std::nullopt;
         if (shortfallCentiC <= 0) return 0;
-        if (*rate < 0.02f) return std::nullopt; // does not warm up
+        if (!(*rate >= 0.02f)) return std::nullopt; // does not warm up (or not a number)
         return static_cast<uint32_t>(shortfallCentiC / 100.0f / *rate * 3600.0f + 0.5f);
     }
     template <typename T> static T sat(T v) { return v == T(~T(0)) ? v : T(v + 1); }

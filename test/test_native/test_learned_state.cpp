@@ -402,4 +402,97 @@ TEST(LearnedStore, FullNvsCorruptEntriesAndPlanChangesAreHandled) {
     EXPECT_EQ(third.restore(nvs, m, q, 0), 0u);
     EXPECT_STREQ(m.readiness(1), "collecting");
 }
+
+// Fuzz findings (soak run on 043e228): an edited settings backup with CRC-valid room frames
+// whose bins or heat sums FlowLearner::finish() can never produce. Before: accepted, then
+// NaN advice (a NaN cast to uint8_t), NaN/inf in the JSON and an infinite capacity.
+std::string fromHex(const std::string& hex) {
+    std::string out;
+    for (size_t i = 0; i + 1 < hex.size(); i += 2) out += char(std::stoi(hex.substr(i, 2), nullptr, 16));
+    return out;
+}
+// The fuzzer's reseal: every frame gets the current version and a valid CRC.
+std::string reseal(std::string b) {
+    for (size_t at = 0; b.size() - at >= 8;) {
+        const size_t n = (uint8_t(b[at + 2]) | size_t(uint8_t(b[at + 3])) << 8) + 8;
+        if (n > b.size() - at) break;
+        b[at] = char(LearnedState::version);
+        const uint32_t c = LearnedState::crc(&b[at], n - 4);
+        std::memcpy(&b[at + n - 4], &c, 4);
+        at += n;
+    }
+    return b;
+}
+template <class T> void put(std::string& f, T v) { f.append(reinterpret_cast<const char*>(&v), sizeof v); }
+// Everything derived from a restored learner stays finite and within the plan.
+void expectFinite(const FlowLearner& l) {
+    const auto text = [](cJSON* o) { char* t = cJSON_PrintUnformatted(o); std::string s = t ? t : ""; cJSON_free(t); cJSON_Delete(o); return s; };
+    const auto rp = plan();
+    std::array<std::optional<int16_t>, RoomPlan::maxRooms> temperatures{int16_t(1900), int16_t(1950)};
+    for (const auto& s : {text(l.json()), text(WarmupPlanner::json(l, rp, wednesday23, temperatures.data(), int16_t(300)))}) {
+        EXPECT_EQ(s.find("nan"), std::string::npos) << s;
+        EXPECT_EQ(s.find("inf"), std::string::npos) << s;
+        Json back(cJSON_Parse(s.c_str()), cJSON_Delete);
+        EXPECT_TRUE(back);
+    }
+    for (size_t i = 0; i < l.rooms(); ++i) {
+        const auto m = l.heatModel(i);
+        if (m.capacityKwhPerK) { EXPECT_GT(*m.capacityKwhPerK, 0); EXPECT_LE(*m.capacityKwhPerK, 1000); }
+        for (const int16_t o : {-2000, -500, 500, 1200})
+            for (const int16_t s : {0, 50, 100, 300, 2000}) {
+                const auto a = l.advise(i, s, o);
+                if (a.flowC) { EXPECT_GE(*a.flowC, rp.minimumFlowC); EXPECT_LE(*a.flowC, rp.maximumFlowC); }
+            }
+    }
+}
+
+TEST(LearnedState, ImplausibleBinsAndSumsFromAnEditedBackupAreRefused) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    // repro_learned_nan: a normal bin and one with a subnormal weight (its flow and rate overflow).
+    std::string f{char(LearnedState::version), LearnedState::roomKind, 0, 0};
+    f += char(9); f += "woonkamer"; f += char(0);
+    for (const uint16_t v : {6, 3, 3, 0, 0, 0}) put(f, v);
+    for (int i = 0; i < 9; ++i) put(f, 0.0);
+    put(f, uint32_t(1u << 6 | 1u << 7));
+    const auto bin = [&](float w, float wf, float wr) {
+        f += char(3); f += char(2); f += char(0); put(f, uint16_t(3));
+        for (const float x : {w, wf, wr, 0.1f}) put(f, x);
+    };
+    bin(1.0f, 32.0f, 0.3f);
+    bin(1e-40f, 34.0f, 0.5f);
+    const auto n = uint16_t(f.size() - 4); f[2] = char(n & 0xFF); f[3] = char(n >> 8);
+    put(f, LearnedState::crc(f.data(), f.size()));
+    EXPECT_FALSE(LearnedState::validBundle(f));
+    FlowLearner l; l.setPlan(plan());
+    FlowPolicy p;
+    EXPECT_EQ(LearnedState::restoreBundle(f, l, p), -1);
+    expectFinite(l);
+    // The fuzzer's minimised inputs (selector byte 0, then the bundle): a NaN minimum and an infinite capacity.
+    for (const char* hex : {
+             "000152590109776f6f6e6b616d65720048002400240000002300486910000066665c4e4082450bb9866d71409001d49ec2c1ce4009111111111d5640"
+             "07f572a58a47824016bfce71eda2d440d3af95a0e9b560408d3d0b92a7249a40283d6e1d7d20dc40405501000c060c1f00bcbbb741bcbb3744046afa"
+             "40c4965b40bcbbb741abaae542ab8a8f44b54b6e42046afa400c060c2000bcbbb74135b34e440e366841f3ce2041bcbbb741abaae542ab8a8f44663a"
+             "bb420e3668410cff4b0732c6710000abaa65447625aa41ecbca541bcbb666666665c4e4082450bb9866d71409001d49ec2c1ce4009111111111d5640"
+             "07f572a58a47824016bfce71cf89d24017faa0d02e952143f775e0410c060c2300bcbbb741cecc894475570b42a81d5942bcbbb741abaae542ab8a8f"
+             "44087f434375570b420c060c2400bcbbb74188489544007826429d479a42bcbbb741abaae5428b8f448aab6e654300782642ba3270be",
+             "0001525a010a736c6161706b616d657201480224002400000047004800489ff4499f02524017d143c945be8c40d27e42b43200d24009111111111d56"
+             "40cd2d2bd1546d656173aa2ac5eda2d440d3af95a0e9b560408d3d0b92a7249a40283d6e1d7d20dc40405501000c060c1f00bcbbb741bcbb3744046a"
+             "fa40c4965b40bcbbb741abaae542ab8a8f44b54b6e42046afa400c060c2000bcbbb74135b34e440e366841f3ce2041bcbbb741abaae542ab8a8f4466"
+             "3abb420e3668410c060c2100bcbbb741abaa65447625aa41ecbca541bcbbb741abaae542ab8a8f44bb21ff427625aa410c060c2200bcbbb74122a27c"
+             "44f775e041e7ee0d42bcbbb741abaae542ab8a8f44d1952143000077b5d4ff18c500bcbbb741cecc894075570b42a8e39d42bcbbb741abaae542ab8a"
+             "8f44087f434375570b420c060c2400bcbbb74188489544007826429d479a42bcbbb741abaae542ab8a8f448b6e654300782642ba3270be"}) {
+        const auto b = reseal(fromHex(hex).substr(1));
+        FlowLearner m; m.setPlan(plan());
+        FlowPolicy q;
+        const int rooms = LearnedState::restoreBundle(b, m, q);
+        EXPECT_EQ(rooms >= 0, LearnedState::validBundle(b));
+        expectFinite(m);
+    }
+    // The JSON helper never writes a non-finite number.
+    Json o(cJSON_CreateObject(), cJSON_Delete);
+    FlowLearner::number(o.get(), "x", std::nanf(""), 10);
+    FlowLearner::number(o.get(), "y", HUGE_VALF, 10);
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(o.get(), "x")));
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(o.get(), "y")));
+}
 }

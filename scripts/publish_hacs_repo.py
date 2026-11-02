@@ -44,169 +44,117 @@ README = """<p align="center">
 
 # OpenThermostat for Home Assistant
 
-OpenThermostat is a self-learning room thermostat for EMS boilers (Nefit, Buderus, Bosch,
-Junkers, Worcester). It runs on a **BBQKees Gateway E32 V2** connected to your boiler: every
-room gets its own week program, the thermostat learns how each room warms up so it is warm on
-time, and it tunes itself to your house. Everything runs locally on your own network, with no
-cloud account. This integration brings it into Home Assistant: a thermostat per room, a visual
-week planner, boiler values, energy, backups and firmware updates.
+OpenThermostat is a thermostat for your central heating. It runs on a small box
+next to your boiler, the BBQKees Gateway E32 V2. Every room gets its own week
+program, and the thermostat learns how fast each room warms up, so it is warm
+when you want it. Everything stays in your own home, without a cloud account.
 
-> **What you need**
->
-> This integration does nothing on its own. It works only together with a **BBQKees Gateway
-> E32 V2 that runs the OpenThermostat firmware**.
->
-> - A **[BBQKees Gateway E32 V2](https://bbqkees-electronics.nl/product/gateway-e32-v2-ethernet-wifi-edition-v2/)**
->   ([BBQKees wiki](https://bbqkees-electronics.nl/wiki/)), connected to your boiler's EMS bus.
-> - The **OpenThermostat firmware** on that gateway, installed once over USB:
->   [install the firmware]({source}/blob/main/docs/INSTALL.md#2-install-the-firmware-on-the-e32-first-time-over-usb).
->   HACS does not install it. The gateway usually comes with EMS-ESP, which this firmware
->   replaces: [make a backup first]({source}/blob/main/docs/FLASHING.md#make-a-full-backup-first).
-> - A boiler that speaks **EMS Classic (EMS 1.0)**, directly or through an adapter such as the
->   Bosch EasyControl Adapter. EMS+ (EMS 2.0) boilers are not supported yet (planned for 1.1).
-> - An **MQTT broker** (for example the Mosquitto broker add-on) and Home Assistant's
->   **MQTT integration**.
-> - **Home Assistant {ha} or newer**.
+This integration brings OpenThermostat into Home Assistant: a thermostat per
+room, a week planner card, your boiler's values, energy figures, daily backups
+and firmware updates with one click.
 
-## Features
+## What you need
 
-- **A week program per room.** Up to 8 rooms, each with its own program at Comfort, Eco and
-  Night levels, edited in a visual planner in Home Assistant or on the E32. The E32 runs the
-  programs itself, also when Home Assistant is offline.
-- **Warm on time.** The thermostat learns how fast each room warms up and cools down, starts
-  heating early enough for the next program time, and can use the coolest water that still
-  gets the room warm in time.
-- **Self-tuning.** It adjusts its own settings (burner rest and run times, when to start and
-  stop heating) by at most one small step a day. "What the thermostat learned" explains every
-  figure and change in plain language.
-- **Presence and away.** House mode Automatic (by presence), At home, Away, or Holiday until
-  a date, warm again in time; persons per room.
-- **Windows and doors.** Contacts in Home Assistant pause a room while they are open; frost
-  protection stays.
-- **A thermostat per room** in Home Assistant, with the presets Comfort, Eco, Night and Boost
-  and temporary changes that end by themselves.
-- **Radiator valves** through Home Assistant climate entities, set to the program's temperature.
-- **Bluetooth thermometers** that the E32 receives itself, as a room's sensor or as a fallback.
-- **Hot water.** Hot water today, split into tapping and keeping warm, also as gas.
-- **Boiler diagnostics.** Water temperatures, pressure, burner starts with a short-cycling
-  warning, and the boiler's display code in words. Problems appear under Repairs.
-- **Energy and gas.** Optional gas meter, gas price and outdoor temperature: gas for heating
-  and for hot water per day, a daily summary, and heating advice that never changes a setting.
-- **Backup and restore.** Home Assistant keeps a daily backup of the E32 settings (the last
-  7 days) and restores one onto the same or a replacement E32.
-- **Firmware updates from Home Assistant.** The E32 firmware appears under Settings → Updates
-  and installs with one click; a firmware that does not start properly rolls back by itself.
-- **Ready-made dashboard** (optional) and a week planner card; no YAML needed.
-- **English, Dutch and Polish** in Home Assistant; the E32's own pages in English and Dutch.
+This integration does not work on its own. You need:
+
+- A **[BBQKees Gateway E32 V2](https://bbqkees-electronics.nl/product/gateway-e32-v2-ethernet-wifi-edition-v2/)**,
+  connected to your boiler.
+- The **OpenThermostat firmware** on that gateway. You install it once over USB;
+  HACS does not do that for you. See
+  [installing the firmware]({source}/blob/main/docs/INSTALL.md#2-install-the-firmware-on-the-e32-first-time-over-usb).
+  The gateway usually comes with EMS-ESP, which the firmware replaces, so
+  [make a backup first]({source}/blob/main/docs/FLASHING.md#make-a-full-backup-first).
+- A boiler that speaks **EMS Classic (EMS 1.0)**: most Nefit, Buderus, Bosch,
+  Junkers and Worcester boilers. Newer EMS+ boilers are planned for version 1.1.
+- An **MQTT broker** (for example the Mosquitto add-on) and the MQTT integration.
+- **Home Assistant {ha} or newer.**
+
+## What you get
+
+- A thermostat per room, with Comfort, Eco, Night and Boost.
+- A week planner card: drag a time to change it, copy a day to another.
+- Away and holiday modes, and automatically lower when everyone has left. Warm again when you come back.
+- Window and door contacts that pause a room while a window is open.
+- Radiator valves set per room.
+- "What the thermostat has learned": per room how fast it warms up and cools
+  down, and what it changed by itself, in plain words.
+- Your boiler's water temperatures, pressure, burner starts, hot water use and
+  display code in words. Problems show up under Repairs.
+- Gas use for heating and hot water, if you have a gas meter in Home Assistant.
+- A daily backup of all E32 settings, which you can put back on a new E32.
+- Firmware updates for the E32 under Settings → Updates.
+- A ready-made dashboard, if you want one.
+- English, Dutch and Polish.
+
+The E32 is the thermostat itself. It keeps heating your rooms on its own
+program when Home Assistant is offline.
 
 ## Screenshots
 
-Rendered with fictitious demonstration data, not captures of a real home.
+These use made-up example data, not a real home.
 
-**Week planner card in Home Assistant**: drag the switch times, tap a block to change it, copy
-a day.
+![The week planner card in Home Assistant]({source_raw}/docs/img/screenshots/ha-week-card-rc2.png)
 
-![The week planner card with a week program per room]({source_raw}/docs/img/screenshots/ha-week-card-rc2.png)
-
-**What the thermostat has learned** (E32 Home page): per room how fast it warms and cools, the
-lowest water temperature that still warms it in time, and when it starts heating.
-
-![What the thermostat has learned, per room and for the house]({source_raw}/docs/img/screenshots/e32-home-learned-rc2.png)
-
-**E32 Overview**: the rooms with their last 24 hours, the boiler and its history.
-
-![E32 Overview with rooms, the boiler and the boiler history]({source_raw}/docs/img/screenshots/e32-overview-rc2.png)
+![What the thermostat has learned, per room]({source_raw}/docs/img/screenshots/e32-home-learned-rc2.png)
 
 <details>
-<summary>More screenshots: Rooms, Boiler and the Overview on a phone</summary>
+<summary>More screenshots</summary>
 
-![E32 Rooms page with a room's week program]({source_raw}/docs/img/screenshots/e32-rooms-rc2.png)
+![The E32 Overview with rooms and the boiler]({source_raw}/docs/img/screenshots/e32-overview-rc2.png)
 
-![E32 Boiler page with current values and hot water today]({source_raw}/docs/img/screenshots/e32-boiler-rc2.png)
+![A room with its week program on the E32]({source_raw}/docs/img/screenshots/e32-rooms-rc2.png)
 
-<img src="{source_raw}/docs/img/screenshots/e32-overview-phone-dark-rc2.png" alt="E32 Overview on a phone, dark theme" width="320">
+![The E32 Boiler page]({source_raw}/docs/img/screenshots/e32-boiler-rc2.png)
+
+<img src="{source_raw}/docs/img/screenshots/e32-overview-phone-dark-rc2.png" alt="The E32 Overview on a phone in the dark theme" width="320">
 
 </details>
 
-## How it fits together
-
-```text
- Boiler  <-- EMS bus -->  BBQKees Gateway E32 V2  <--  Bluetooth thermometers (optional)
-                          with OpenThermostat firmware
-                              |                  |
-                         MQTT | live values      | local HTTP: rooms, week programs,
-                              |                  | backups, firmware updates
-                         MQTT broker             |
-                              |                  |
-                              v                  v
-                     Home Assistant with this integration
-```
-
-The **E32 is the thermostat**. Rooms, week programs, Bluetooth thermometers, learning, frost
-protection and the boiler control run on the gateway, also without Home Assistant, and it has
-its own web pages (Overview, Rooms, Home, Boiler, System). **Home Assistant adds** temperature
-sensors and thermostats you already have as room sources, presence, window contacts, energy
-inputs, advice, dashboards, daily backups and one-click firmware updates. Live values travel
-over MQTT; settings, backups and updates go directly to the E32 over your local network.
-
-A new E32 that still hears your old thermostat on the boiler bus starts with a **trial run**:
-it calculates and compares, but sends nothing to the boiler. It takes over only after a guided
-boiler test and your confirmation; see
-[the attended switch-over]({source}/blob/main/docs/SWITCHOVER.md).
-
 ## Install
 
-**Step 1. The firmware on the E32 (not through HACS).** HACS installs only this Home Assistant
-integration. Put the OpenThermostat firmware on the E32 once over USB, connect it to your
-Wi-Fi and your MQTT broker:
-[installation guide, sections 2 to 8]({source}/blob/main/docs/INSTALL.md#2-install-the-firmware-on-the-e32-first-time-over-usb).
-After that, firmware updates come through Home Assistant (Settings → Updates).
+1. Put the OpenThermostat firmware on the E32 and connect it to your Wi-Fi and
+   your MQTT broker. The
+   [installation guide]({source}/blob/main/docs/INSTALL.md#2-install-the-firmware-on-the-e32-first-time-over-usb)
+   explains how.
+2. In Home Assistant, open **HACS**, the three dots at the top right, then
+   **Custom repositories**. Add `https://github.com/dielessen/openthermostat-ha`
+   with type **Integration**.
+3. Search for **OpenThermostat** in HACS, choose **Download** and restart Home
+   Assistant.
+4. Go to **Settings → Devices & services → Add integration → OpenThermostat**
+   and follow the steps.
 
-**Step 2. The integration with HACS.**
+The E32 then guides you further. If your old thermostat is still connected, it
+first runs beside it for a while without touching the boiler. Otherwise it
+starts with a short boiler test. It only controls your boiler after you confirm.
 
-1. In Home Assistant open **HACS**, the three dots at the top right, **Custom repositories**.
-2. Repository `https://github.com/dielessen/openthermostat-ha`, type **Integration**, **Add**.
-3. Search HACS for **OpenThermostat**, open it and choose **Download**. Restart Home Assistant.
+**Test versions** (such as `1.0.0rc2`) are not shown by default. To install one,
+open OpenThermostat in HACS, choose **Download** and pick the version under
+**Need a different version?**.
 
-Pre-releases (such as `1.0.0rc2`) are not offered by default. To install one, open the three
-dots of **OpenThermostat** in HACS, choose **Download** (or **Redownload**), and pick the
-version under **Need a different version?**. To be offered pre-releases as updates, open
-**Settings → Devices & services → HACS**, the **OpenThermostat** device, enable its
-**Pre-release** switch entity and switch it on.
+## Help and more information
 
-**Step 3. Add the integration.** **Settings → Devices & services → Add integration →
-OpenThermostat**, then **Configure → E32 connection** with the E32's address and password, and
-add your rooms. The E32 then leads you through the next step: a trial run beside your old
-thermostat when it hears one on the boiler bus, otherwise the guided boiler test.
-[Installation guide, sections 9 to 12]({source}/blob/main/docs/INSTALL.md#9-install-the-home-assistant-integration).
+- [Installation guide]({source}/blob/main/docs/INSTALL.md)
+- [User guide]({source}/blob/main/docs/USER-GUIDE.md)
+- [Switching over from your old thermostat]({source}/blob/main/docs/SWITCHOVER.md)
+- [Release notes]({source}/blob/main/docs/modern-thermostat/HA-RELEASE-NOTES.md)
+- [The main project]({source}): the firmware, all documentation and the source code
 
-## Documentation
+Questions or problems? [Open an issue]({source}/issues) in the main project. It
+helps to add the integration's diagnostics (Settings → Devices & services →
+OpenThermostat → ⋮ → Download diagnostics) and the E32's firmware version.
 
-- [Installation guide]({source}/blob/main/docs/INSTALL.md): from a new E32 to a working setup
-- [User guide]({source}/blob/main/docs/USER-GUIDE.md): where to set what, rooms, away, learning, backups
-- [Attended switch-over]({source}/blob/main/docs/SWITCHOVER.md): letting the E32 control the boiler
-- [USB backup and recovery]({source}/blob/main/docs/FLASHING.md), including going back to EMS-ESP
-- [Home Assistant release notes]({source}/blob/main/docs/modern-thermostat/HA-RELEASE-NOTES.md)
-- [The main repository]({source}): the firmware, all documentation and the source
-
-## Support
-
-Questions and problems: [open an issue]({source}/issues) in the main repository. This
-repository only carries the integration for HACS. Please add the integration's diagnostics
-(**Settings → Devices & services → OpenThermostat → ⋮ → Download diagnostics**) and the E32
-firmware version.
-
-OpenThermostat is an independent project; it is not made or supported by BBQKees Electronics.
+OpenThermostat is an independent project. It is not made or supported by
+BBQKees Electronics.
 
 ## Versions and licence
 
-Each version here is exactly the released package `ha-v<version>` of the main repository
-(the same files, checked against its SHA-256 list). Release notes: see each release, or
-<{source}/blob/main/docs/modern-thermostat/HA-RELEASE-NOTES.md>.
+Each version here is exactly the released package `ha-v<version>` of the main
+project, checked against its SHA-256 list.
 
-MIT licence (see [LICENSE](LICENSE)). OpenThermostat derives from
-[OpenThermostat by Pawel Filipczak / intuibase](https://github.com/intuibase/open_thermostat);
-further development and releases by Mark Dielessen.
+MIT licence (see [LICENSE](LICENSE)). OpenThermostat started as
+[OpenThermostat by Pawel Filipczak / intuibase](https://github.com/intuibase/open_thermostat).
+Further development and releases are by Mark Dielessen.
 """
 
 WORKFLOW = """name: Release

@@ -1,7 +1,9 @@
 {
   "domain": "open_thermostat",
   "name": "OpenThermostat",
-  "codeowners": [],
+  "codeowners": [
+    "@dielessen"
+  ],
   "config_flow": true,
   "dependencies": [
     "frontend",
@@ -12,6 +14,7 @@
   "documentation": "https://github.com/dielessen/open_thermostat",
   "integration_type": "hub",
   "iot_class": "local_push",
+  "issue_tracker": "https://github.com/dielessen/open_thermostat/issues",
   "mqtt": [
     "+/room_data"
   ],

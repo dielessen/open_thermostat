@@ -6,7 +6,7 @@ engineering checklist for the reference installation is in Dutch:
 [OVERSCHAKELING.nl.md](modern-thermostat/OVERSCHAKELING.nl.md). The live
 monitor for the first 48 hours is in [tools/switchover](../tools/switchover/README.md).
 
-Until the switch-over the E32 runs in **shadow mode**: it calculates the
+Until the switch-over the E32 runs a **trial run** (shadow mode): it calculates the
 boiler request but your existing thermostat keeps controlling the boiler. The
 switch-over is done once, in one afternoon, with someone at the boiler. After
 it, the E32 is the only controller of the boiler.
@@ -102,13 +102,13 @@ States (Rooms → **Active control**, and `GET /status/heating` → `active.stat
 
 | State | Page text | Sends to the boiler |
 | --- | --- | --- |
-| `shadow` | Shadow mode: your thermostat controls the boiler. | nothing |
+| `shadow` | Trial run: your thermostat controls the boiler. | nothing |
 | `awaiting_confirmation` | Waiting for your confirmation that your thermostat is disconnected from the boiler. | nothing, not even frost protection; after a firmware update while the E32 controlled the boiler: the boot zero, then frost protection only (`frost_unconfirmed`) |
-| `arming` | Taking over: waiting for fresh room readings and the boiler bus. | the boot zero after a restart, nothing else: at least 60 s after a boot; with a confirmation restored after a restart, until 2 min of boiler reception without a foreign 0x1A (about 130 s after boot; `active.confirmation.restored`, `listened_s`) |
+| `arming` | Switching over: waiting for fresh room readings and a reply from the boiler. | the boot zero after a restart, nothing else: at least 60 s after a boot; with a confirmation restored after a restart, until 2 min of boiler reception without a foreign 0x1A (about 130 s after boot; `active.confirmation.restored`, `listened_s`) |
 | `active` | The E32 controls the boiler. | its request every 60 s, at once on start and stop |
 | `stopped_measurement_lost` | No room measurements: the E32 asks the boiler for no heat until a reading returns. | zero; resumes by itself |
-| `stopping` | Stopping: the E32 asks the boiler for zero for one minute. | zero every 10 s until delivered |
-| `blocked_foreign_controller` | Stopped: another controller sent a boiler request after the takeover. | nothing; confirm again after fixing it |
+| `stopping` | Stopping: the E32 asks the boiler for no heat for one minute. | zero every 10 s until delivered |
+| `blocked_foreign_controller` | Stopped: another thermostat still asked the boiler for heat after the switch-over. | nothing; confirm again after fixing it |
 
 Warnings (`active.warnings`): `foreign_controller`, `measurement_lost`,
 `boiler_no_response` (15 min of requested heat without burner or a 3 °C flow
@@ -121,7 +121,7 @@ Where to look:
 | --- | --- | --- | --- | --- |
 | State, request, last sent, warnings | Rooms → Active control | `/status/heating` → `active` | `heating` | Heating problem (after 5 min) |
 | Confirmation kept | — | `active.awaiting_confirmation`, `active.confirmation {age_s, restored, listened_s}`, `active.confirmation_stored`, `active.reconfirm_required`, `active.reconfirm_stored` | `heating` | Repairs: Confirm the takeover again (after an update) |
-| Boiler maximum | Rooms, and Home → Flow temperature limits | `active.boiler_limit {flow_c, age_s, reads}` (`reads`: the E32's own 0x16 requests this boot) | `heating` | — |
+| Boiler maximum | Rooms, and Home → Water temperature limits | `active.boiler_limit {flow_c, age_s, reads}` (`reads`: the E32's own 0x16 requests this boot) | `heating` | — |
 | Rooms | Rooms | `rooms[]` | `heating` | Temperature, Target temperature, Control status, Heat demand |
 | Boiler | Boiler | `/status/ems/telemetry` → `fields` | `boiler_fields` | Flow temperature, Selected flow temperature, Heating active, Hot water active, Burner modulation, Water pressure |
 | Starts | — | `/status/heating` → `burner` | `heating` | Burner starts last hour, Burner short cycling |
@@ -147,11 +147,11 @@ foreign 0x1A keeps growing. Also check the boiler's own display.
      is reported for information only;
   4. the sources work, and a fallback source (for example a Bluetooth sensor)
      has taken over at least once.
-  The E32 checks these itself: the Rooms page shows **Ready to take over?**
+  The E32 checks these itself: the Rooms page shows **Ready for the E32 to control the boiler?**
   (in Home Assistant the sensor *Takeover readiness*) with each criterion
   green, orange (waiting, with its progress) or red (with what to do), and
   "Ready: follow the switch-over steps" only when all pass. See
-  [USER-GUIDE.md](USER-GUIDE.md#ready-to-take-over) for the exact thresholds.
+  [USER-GUIDE.md](USER-GUIDE.md#ready-for-the-e32-to-control-the-boiler) for the exact thresholds.
   Without an EMS thermostat to compare with, the check says so and judges the
   stability, the room sources, the boiler's reception and its reported
   heating limit instead.
@@ -208,12 +208,12 @@ foreign 0x1A keeps growing. Also check the boiler's own display.
 | Modulation | Target +1, +2, +3 °C | Flow follows the request within ±3 °C; never above the ceiling; heating stays on across the 60 s refresh | HA: Boiler request (E32) vs Flow and Selected flow; monitor: no `request_above_limit` |
 | Stop | Target ≥ 0.5 °C below the room | Minimum burner time respected; heating off within ~30 s of the first zero; no restart within 5 min | Page: reason; HA: Heating active, Burner starts last hour |
 | Hot water while heating | Open a hot tap 3 min | Hot water has priority; heating resumes within 5 min; no stop, no warning | HA: Hot water active, Heating active; page stays `active` |
-| Hand-back button | Press **Hand back to the thermostat** | Zero for at least a minute, then shadow mode; nothing sent afterwards | Page text; `transmitted_frames` stops; monitor `handed_back` |
+| Hand-back button | Press **Give control back to my thermostat** | Zero for at least a minute, then shadow mode; nothing sent afterwards | Page text; `transmitted_frames` stops; monitor `handed_back` |
 | E32 restart | System → Restart device while heating | `arming` with `confirmation.restored`, then back to `active` about 130 s after boot (2 min of boiler reception without a foreign 0x1A), within ~4 min, **without** a new confirmation; record what the boiler does in the gap | Monitor `e32_restarted` with reset reason; page |
 | E32 power cut | Remove the E32's power, up to 30 min | What the boiler or adapter does without requests is measured and timed (holds the request or times out) | Boiler display and flow pipe; after power-on as above |
 | Wi-Fi off (20 min) | Switch the access point off | Control continues on the fallback sensor and week program; **no restart** afterwards | Uptime keeps counting; monitor shows no restart |
 | Home Assistant off | Stop HA Core (and separately the broker) | Fallback source and week program within 15 min; no stop, no restart; HA source back within 5 min after restart | Page: room status "Fallback source" |
-| Measurement lost | Remove the fallback sensor's battery while HA is off | "Last value (source lost)" at 15 min; zero and `stopped_measurement_lost` at 30 min; resumes by itself when the reading returns | Page, monitor `guard_stopped` then resolved |
+| Measurement lost | Remove the fallback sensor's battery while HA is off | "Sensor silent: last reading used" at 15 min; zero and `stopped_measurement_lost` at 30 min; resumes by itself when the reading returns | Page, monitor `guard_stopped` then resolved |
 | Foreign controller | Reconnect the old thermostat while active | The E32 stops and warns by itself within about a minute; after a restart it waits for confirmation | Page: `blocked_foreign_controller`, `foreign_controller` warning |
 | Frost (simulated) | Cool a sensor of an inactive room below 8 °C | Minimum flow with reason `frost_minimum`; off again at 9 °C | Page: request; monitor: no `frost_not_protected` |
 
@@ -228,14 +228,14 @@ minutes, a room well above target while the E32 still asks heat, or any doubt.
 
 **Normal (the E32 page works):**
 1. Open the E32 page, menu **Rooms**, section **Active control**.
-2. Press **Hand back to the thermostat (the E32 asks for zero for one minute)**.
+2. Press **Give control back to my thermostat (the E32 first asks the boiler for no heat for a minute)**.
    The page first withdraws your confirmation, so the E32 stops at once and
    asks zero for one minute, and then saves the plan as shadow. If the E32
    does not confirm the stop, the page says so: keep the thermostat
    disconnected, try again, and use the emergency steps if it keeps failing.
    If only saving the plan fails, the E32 has already stopped: press the
    button again. Home Assistant has no hand-back action; use this page.
-3. Wait for **Shadow mode: your thermostat controls the boiler.** (about 70 s).
+3. Wait for **Trial run: your thermostat controls the boiler.** (about 70 s).
    If it keeps saying "Stopping", use the emergency steps.
 4. Switch the boiler off, reconnect the thermostat's two labelled wires as in
    the photo, and switch the boiler on.

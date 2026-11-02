@@ -6,7 +6,7 @@ together. Installing on a new E32, the
 Home Assistant setup, updates and troubleshooting are described step by step
 in the [installation guide](INSTALL.md).
 
-A new installation runs in **shadow mode**: the E32 calculates what it would
+A new installation starts with a **trial run** (shadow mode): the E32 calculates what it would
 ask of the boiler and, if a thermostat is connected to the boiler, compares
 that with it. Your existing thermostat keeps controlling the boiler. Only the
 [attended switch-over](#the-attended-switch-over) lets the E32 control the
@@ -36,8 +36,8 @@ energy inputs.
 | Window and door contacts per room | — | Same room editor → Windows and doors |
 | Levels of a room without a week program, default window pause, length of a manual change | — | Configure → Home → Defaults for rooms and timing |
 | Radiator valves per room | E32: Rooms → the room → Radiator valves | Configure → Rooms → Edit or remove a room → Radiator valves |
-| Lowest and highest flow temperature for the boiler request | E32: Home → Flow temperature limits | Configure → Home → Heating and boiler |
-| Heating curve, learned flow and optimum start | E32: Home | Switches on the E32 device |
+| Lowest and highest water temperature for the boiler request | E32: Home → Water temperature limits | Configure → Home → Heating and boiler |
+| Follow outdoor temperature (heating curve) and Warm on time with the coolest water | E32: Home | Switches on the E32 device |
 | Gas meter, gas price, outdoor temperature, boiler power, water meter (all optional) | — | Configure → Home → Energy and outdoor temperature |
 | Pairing Bluetooth sensors (address, profile, encryption key) | E32: System → Bluetooth sensors | E32: System → Bluetooth sensors |
 | Boiler model (name, picture and the display code table) | E32: Boiler → Boiler model | E32: Boiler → Boiler model |
@@ -94,7 +94,7 @@ Assistant.
 ### 3. Choose your boiler
 
 A newly installed E32 does not listen to the boiler yet. Under **System → Network and Home Assistant →
-Advanced settings → Hardware services**, tick **EMS bus enabled**,
+Advanced settings → Hardware services**, tick **Boiler bus (EMS) on**,
 save and let the E32 restart. This only lets the E32 receive boiler data; it
 does not send heat requests. Connect the E32 to the boiler's EMS bus as
 described in the [installation guide](INSTALL.md#6-connect-the-e32-to-the-boiler)
@@ -115,7 +115,7 @@ A fault or lockout is marked as a warning or an error. In Home Assistant the
 severity and advice as attributes, and the Heating dashboard shows the
 meaning under "Now".
 
-Not every boiler reports every value. **Boiler → Boiler profile** shows which
+Not every boiler reports every value. **Boiler → What your boiler reports** shows which
 values your boiler has (**Values available**), which it does not have (**Not
 fitted on this boiler**) and which have not come in yet (**Not reported
 (yet)**). Home Assistant only creates entities for values the boiler has;
@@ -167,7 +167,7 @@ Assistant — you edit rooms here." on the **Rooms** page.
    adjust the blocks per day (up to six switch points per day). Each
    temperature holds until the next switch point.
 6. Choose **Save rooms**.
-7. Then check the **Flow temperature limits** on the **Home** page and
+7. Then check the **Water temperature limits** on the **Home** page and
    choose **Save limits** after a change (default 30–60 °C; the maximum can
    be set up to 80 °C). Floor heating fed directly without a mixing valve
    usually needs at most 45–50 °C. The page shows your boiler's own maximum
@@ -294,7 +294,7 @@ Nothing is overwritten silently.
 
 These work on top of the room plan and never change it. They only change a
 room's **target**: the flow limits, the boiler's own limit and frost
-protection stay as they are. In shadow mode they are computed and shown, like
+protection stay as they are. During the trial run they are computed and shown, like
 everything else.
 
 - **Change temporarily** (E32 overview page, on each active room card, or the
@@ -377,7 +377,7 @@ Without Home Assistant the E32 keeps running the program; changes on the
 device are not seen until Home Assistant is back, and then the program's
 temperature is shown on the device again.
 
-A setting device is a real device, also in shadow mode: a radiator valve then
+A setting device is a real device, also during the trial run: a radiator valve then
 follows the week program, and a thermostat that controls your boiler (such as
 a tado) gets the program's temperature, so the program decides through it
 when the boiler heats. Leave the field empty if you only want to watch
@@ -412,12 +412,12 @@ for real problems that last:
 - a room without a usable measurement for 30 minutes;
 - no report from the E32 for 10 minutes;
 - low or high water pressure;
-- burner short cycling for 2 hours;
+- the burner switching on and off too often for 2 hours;
 - a room that asks for heat but stays more than 0.5 °C below its target for
   3 hours (a gap in the E32's data starts the wait again);
 - the E32 online but without a working link to Home Assistant for 15 minutes;
 - after the switch-over: a warning of the E32's active control for 5 minutes,
-  or the E32 waiting 10 minutes for you to confirm the takeover again.
+  or the E32 waiting 10 minutes for you to confirm the switch-over again.
 
 Each problem except the water pressure (which has its own message) also
 appears under **Settings → System → Repairs** as **Heating needs attention**,
@@ -484,7 +484,7 @@ entity (set in Home Assistant)*. At most 4 valves per room and 16 in all.
 **Nothing happens until you switch it on.** Each room has a **Valve control**
 switch (entity ID ending in `_valve_control`), off by default. The E32 sends
 to a room's valves only while that switch is on **and** the E32 controls the
-boiler itself (active control after the attended switch-over). In shadow mode,
+boiler itself (active control after the attended switch-over). During the trial run,
 or with the switch off, nothing is sent to any valve, and a room without valves
 behaves exactly as before. The session field `actuator_output_enabled` says
 whether the E32 drives valves right now.
@@ -546,7 +546,7 @@ call is logged once and tried again a minute later at the earliest.
 `zigbee2mqtt/<valve name>` and to publish to `zigbee2mqtt/<valve name>/set`
 (or the base topic you use in Zigbee2MQTT).
 
-## Reading the shadow comparison
+## Reading the trial run comparison
 
 If a thermostat controls your boiler over the EMS bus, the comparison puts the
 E32's decision next to what that thermostat actually asked of the boiler. You
@@ -561,16 +561,16 @@ seen such a thermostat; a home without one gets no comparison sensors.
 | Heating time E32 / thermostat | How long each side asked for heat. |
 | Burner starts E32 / thermostat | How often each side would start or started the burner. Fewer starts is gentler on the boiler. |
 | Agreement (both on or both off) | Share of the compared time in which both sides made the same choice. |
-| E32 flow range / Thermostat flow range | Lowest, highest and mean requested flow temperature. |
+| E32 water temperature range / Thermostat water temperature range | Lowest, highest and mean requested water temperature (flow temperature). |
 | E32 starts within 5 min of a thermostat start | How many of the thermostat's starts the E32 matched closely. |
 | Without thermostat data | Time in which the thermostat's request was not seen; excluded from the agreement. |
 
 The table below shows the last seven days.
 
-### Ready to take over?
+### Ready for the E32 to control the boiler?
 
-Right above the comparison, the Rooms page shows the check **Ready to take
-over?**. The E32 judges its own shadow period, so you need no Home Assistant,
+Right above the comparison, the Rooms page shows the check **Ready for the E32
+to control the boiler?**. The E32 judges its own trial run, so you need no Home Assistant,
 token or script for it. Each line is green (passed), orange (waiting for more
 data, with the progress so far, such as "51 of 72 h") or red (with what to do):
 
@@ -579,11 +579,11 @@ data, with the progress so far, such as "51 of 72 h") or red (with what to do):
 | Stable for 72 hours | 72 hours without a hang or unexpected restart. A planned restart (a firmware update, the restart button, restoring settings) does not reset it; a crash, a watchdog or supervisor restart or a power cut does. |
 | Heating periods compared | At least 10 heating periods of the thermostat, among them a night setback, a morning warm-up and an hour without heat demand. |
 | Heat at the same moments | At least 20 starts and stops of the thermostat; 80 % of them with an E32 start or stop within 30 minutes, half within 5 minutes and 90 % within 15 minutes. |
-| Flow request below the hard limit | The E32 never asked for more than the lowest of the plan maximum, the boiler's own heating limit and 80 °C. Judged after an hour of heat requests; a single request above it fails. |
+| Water temperature stays below the safe maximum | The E32 never asked for more than the lowest of the plan maximum, the boiler's own heating limit and 80 °C. Judged after an hour of heat requests; a single request above it fails. |
 | Not more burner starts than the thermostat | After 10 thermostat periods, the E32 has no more heating periods than the thermostat. |
-| Room sources work | Every active room has a fresh reading, and a fallback source has taken over at least once. While no room has a second source this line stays red. |
+| Room sensors work | Every active room has a fresh reading, and a backup sensor has stepped in at least once. While no room has a backup sensor this line stays red. |
 
-Only when every line passes does it say "Ready: follow the switch-over steps";
+Only when every line passes does it say "Ready: follow the steps to switch over";
 then follow [SWITCHOVER.md](SWITCHOVER.md). The figures cover the last seven
 days and are kept over restarts. In active mode the check is hidden.
 
@@ -592,7 +592,7 @@ says so and lists only the stability, the room sources, the boiler heard on
 the bus (in the last 5 minutes) and the boiler maximum known (the E32 read the
 boiler's heating limit itself).
 
-Home Assistant shows the same check as the sensor *Takeover readiness* on the
+Home Assistant shows the same check as the sensor *Ready for E32 control* on the
 E32 device (Ready, Waiting for more data, Not ready, or Not applicable once the
 E32 controls the boiler), with each line's result and figures as attributes,
 and on the generated dashboard next to the comparison. It adds one thing the
@@ -600,20 +600,20 @@ E32 cannot see of itself: when Home Assistant did not hear the E32 for five
 minutes or more, the 72 hours count from the moment it was heard again. The
 sensor raises no repair issue.
 
-Shadow mode does not show how the boiler and its adapter react to the E32's
+The trial run does not show how the boiler and its adapter react to the E32's
 request; that is tested during the switch-over.
 
 ### Learning results
 
 Each room device in Home Assistant also has three learning sensors. They are
-advice only, unless you switch on **Use learned flow and optimum start**
-(E32 **Home** page, or the switch on the E32 device in Home Assistant); in
-shadow mode even then nothing is sent to the boiler.
+advice only, unless you switch on **Warm on time with the coolest water**
+(E32 **Home** page, or the switch on the E32 device in Home Assistant); during
+the trial run even then nothing is sent to the boiler.
 
 | Sensor | Meaning |
 | --- | --- |
 | Learning status | Collecting data, Learning or Ready. Learning uses stable heating periods without hot water and with fresh readings, so it takes several heating periods. |
-| Recommended flow (1 °C) | The lowest flow temperature that warms the room by 1 °C in an acceptable time. Unknown until learned. Its attributes show the current rule's flow for comparison. |
+| Recommended water temperature (1 °C) | The coolest water (flow temperature) that warms the room by 1 °C in an acceptable time. Unknown until learned. Its attributes show what the room control asks now, for comparison. |
 | Predicted heating start | When the E32 would start heating to reach the next higher week-program temperature on time. Its attributes compare night strategies (holding a night temperature versus letting it drop) in kWh, m³ and €. |
 
 The predictions need a valid clock; the night-setback estimate also needs an
@@ -625,7 +625,7 @@ burner short-cycling warning.
 
 With a gas meter in the energy options, *Gas for heating* and *Gas for hot
 water* share the meter by what the boiler did (without a meter they are an
-estimate from the burner modulation). Hot water is split once more:
+estimate from the burner power the boiler reports). Hot water is split once more:
 *Gas for tapping hot water* is what taps used, *Gas for keeping hot water
 warm* is the boiler reheating its store or exchanger without a tap, nothing
 more. Their attributes show per day the rounds, burner minutes and gas. The
@@ -692,7 +692,7 @@ sensors, the flow options, the boiler model and the page language.
 - **What a restore never does.** It does not change the Wi-Fi network or the
   port of the web page, it switches from Wi-Fi to Ethernet only while an
   Ethernet cable is connected and never from Ethernet to Wi-Fi, and it
-  restores the rooms in shadow mode, so it never starts active boiler control. A restore is refused while the E32
+  restores the rooms in the trial run, so it never starts active boiler control. A restore is refused while the E32
   controls the boiler or a boiler test is running.
 
 ### Automatic backups in Home Assistant
@@ -725,8 +725,8 @@ settings to this E32**. Choose the backup by date. The E32 checks it first, and
 Home Assistant shows what changes, what is skipped and what you need to enter
 again. Nothing changes until you tick the confirmation. Right before the
 restore, Home Assistant also backs up the E32 as it is now. The rules are the
-same as on the E32 page. The rooms come back in shadow mode. If the E32
-controlled your boiler before, confirm the takeover again on the E32 page
+same as on the E32 page. The rooms come back in the trial run. If the E32
+controlled your boiler before, confirm the switch-over again on the E32 page
 (Rooms → Active control). A restore is refused while the E32 controls the
 boiler or a boiler test is running. When the network or Bluetooth settings
 change, the E32 restarts, and Home Assistant waits until it answers again.
@@ -809,8 +809,8 @@ over UDP is not encrypted and not acknowledged; keep it on your home network.
 
 ## The attended switch-over
 
-From beta.22 on, the firmware can control the boiler, but it stays in shadow
-mode until you switch over yourself. (Older firmware says "Active control is
+From beta.22 on, the firmware can control the boiler, but it stays in the trial
+run until you switch over yourself. (Older firmware says "Active control is
 not enabled in this firmware." in the Active control section of the Rooms
 page.) Switch over only with someone present at the boiler, following [the
 switch-over procedure](SWITCHOVER.md). It involves:
@@ -823,7 +823,7 @@ switch-over procedure](SWITCHOVER.md). It involves:
 3. Tests with someone at the boiler: start, stop and modulation; hot water
    while heating; an E32 restart; loss of Wi-Fi, Home Assistant and room
    measurements; and the boiler adapter's behaviour when the E32 stops sending.
-4. Handing back with **Hand back to the thermostat**: the E32 asks the boiler
+4. Handing back with **Give control back to my thermostat**: the E32 asks the boiler
    for zero for one minute, then you reconnect the thermostat.
 
 Safeguards in active mode: the E32 stops and warns when another controller

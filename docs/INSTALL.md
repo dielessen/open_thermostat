@@ -13,14 +13,14 @@ firmware and the integration versions that the release notes pair together: a
 firmware and an integration from different releases may not understand each
 other.
 
-> **A new installation starts in shadow mode.** The E32 measures your rooms,
+> **A new installation starts with a trial run (shadow mode).** The E32 measures your rooms,
 > follows your week programs and calculates what it *would* ask of the boiler,
 > but it does not send that request. Your existing thermostat keeps
 > controlling the boiler. Nothing in this guide makes the E32 control your
 > boiler: that is a separate, attended step, the
 > [switch-over](SWITCHOVER.md). The one thing that does act on your home is an
 > optional *setting device* (a valve or thermostat that Home Assistant sets to
-> your week program); see [What shadow mode does](#12-what-shadow-mode-does-and-does-not-do).
+> your week program); see [What the trial run does](#12-what-the-trial-run-does-and-does-not-do).
 
 Want someone to check the guide as they go? Give them the
 [installation checklist](INSTALL-CHECK.md): each step, its expected result
@@ -42,7 +42,7 @@ Assistant.
 9. [Install the Home Assistant integration](#9-install-the-home-assistant-integration)
 10. [Add the integration and connect the E32](#10-add-the-integration-and-connect-the-e32)
 11. [Add your rooms](#11-add-your-rooms)
-12. [What shadow mode does and does not do](#12-what-shadow-mode-does-and-does-not-do)
+12. [What the trial run does and does not do](#12-what-the-trial-run-does-and-does-not-do)
 13. [Updates](#13-updates)
 14. [Backup and restore](#14-backup-and-restore)
 15. [Forgotten password and Wi-Fi recovery over USB](#15-forgotten-password-and-wi-fi-recovery-over-usb)
@@ -261,7 +261,7 @@ effect; choose **OK**.
    Advanced)" and enter it under **Advanced**, for example
    `EST5EDT,M3.2.0,M11.1.0` for US Eastern.
 2. **Boiler reception** (section **Advanced settings → Hardware services**):
-   tick **EMS bus enabled**. A newly installed E32 starts with this off, so it
+   tick **Boiler bus (EMS) on**. A newly installed E32 starts with this off, so it
    receives no boiler data until you turn it on. Turning it on only lets the
    E32 *listen* to the boiler; it does not let it send heat requests.
 
@@ -278,14 +278,14 @@ Leave the other settings as they are for now. MQTT follows in section 8.
 
 1. Connect the E32 to the boiler's EMS bus and power it the way BBQKees
    describes for your setup.
-2. **Leave your existing thermostat connected and in control.** In shadow mode
+2. **Leave your existing thermostat connected and in control.** During the trial run
    the E32 only listens and calculates; your thermostat keeps heating the
    house.
 3. Switch the boiler on again.
 4. On the E32, open **Boiler**. Within a few minutes it shows live values such
    as flow and return temperature, the burner status and the boiler's
    **Display code** in words. "EMS reception is
-   off." means the **EMS bus enabled** setting from section 5 is still off.
+   off." means the **Boiler bus (EMS) on** setting from section 5 is still off.
 5. Open **Boiler model**, choose your boiler and choose **Save boiler
    selection**. This only changes the name and picture shown; it does not
    change how the E32 talks to the boiler.
@@ -367,7 +367,7 @@ On the E32, open **System → Network and Home Assistant**, section **MQTT**:
    `openthermostat` on a new E32 (an E32 set up before beta.19 keeps
    `ib-therm`); Home Assistant fills in what it needs when it connects.
 7. Leave the **Home Assistant** section above it alone as well. Home Assistant
-   fills in **HA adapter ID** and the shadow-mode tick itself in section 10.
+   fills in **HA adapter ID** and the trial-run tick (“Home Assistant link in trial run”) itself in section 10.
 8. Choose **Save settings** and let the E32 restart.
 
 After the restart, the log on **System → Diagnostics and system log** shows
@@ -564,7 +564,7 @@ The setting device is a convenience, not a requirement. It needs Home
 Assistant: without Home Assistant the E32 keeps running the program, but
 changes on the device are not seen until Home Assistant is back.
 
-### 11.4 Flow temperature limits
+### 11.4 Water temperature limits
 
 The flow temperature is how warm the boiler water is that the E32 would ask
 for. Check the limits under **Configure → Home → Heating and boiler** in Home
@@ -611,7 +611,7 @@ set on the boiler itself.
 **Without Home Assistant**, rooms are set up on the E32 **Rooms** page
 instead; see [Add your first room on the E32](USER-GUIDE.md#5-add-your-first-room-on-the-e32).
 
-## 12. What shadow mode does and does not do
+## 12. What the trial run does and does not do
 
 **The E32 does:**
 
@@ -629,7 +629,7 @@ instead; see [Add your first room on the E32](USER-GUIDE.md#5-add-your-first-roo
 **The E32 does not, until you switch to active control:**
 
 - send any heat request to the boiler. Your existing thermostat keeps
-  controlling the boiler. The Overview says **Shadow mode** and **Your
+  controlling the boiler. The Overview says **Trial run** and **Your
   thermostat controls the boiler**;
 - change any boiler setting;
 - drive radiator valves. A room's **Valve control** switch is off by default,
@@ -637,7 +637,7 @@ instead; see [Add your first room on the E32](USER-GUIDE.md#5-add-your-first-roo
   boiler itself.
 
 **Watch out: setting devices are real devices.** Home Assistant really sets
-them, also in shadow mode:
+them, also during the trial run:
 
 - A **radiator valve** chosen as setting device opens and closes by its own
   logic towards the program's temperature, so that radiator follows the week
@@ -647,7 +647,7 @@ them, also in shadow mode:
   decides, through that thermostat, when the boiler heats.
 
 That is usually what you want, but it means your heating can change on the
-day you set it up. If you only want to watch in shadow mode first, leave the
+day you set it up. If you only want to watch during the trial run first, leave the
 setting device empty and add it later.
 
 From beta.22 on, the firmware can control the boiler, but it never starts on
@@ -744,7 +744,7 @@ Use this on a new or reset E32, or to undo a change.
    receives nothing.
 
 A restore never changes the Wi-Fi network or the web page port, and it always
-puts the rooms back in shadow mode. It is refused while a boiler test runs.
+puts the rooms back in the trial run. It is refused while a boiler test runs.
 
 Home Assistant's own backup (Settings → System → Backups) covers the
 integration's settings in Home Assistant, including the copied
@@ -876,7 +876,7 @@ The E32 learns which values your boiler really reports and Home Assistant only
 creates entities for those. This keeps Home Assistant free of empty sensors,
 but it can look as if something is missing.
 
-- On the E32, open **Boiler → Boiler profile**. It lists:
+- On the E32, open **Boiler → What your boiler reports**. It lists:
   - **Values available**: what your boiler reports;
   - **Not fitted on this boiler**: the boiler always answers "no sensor" for
     these, for example a water pressure sensor it does not have;
@@ -887,7 +887,7 @@ but it can look as if something is missing.
   **Show anyway** next to it.
 - In Home Assistant, values the boiler never reported are created disabled.
   You can enable them on the device page.
-- No boiler values at all? Check that **EMS bus enabled** is ticked
+- No boiler values at all? Check that **Boiler bus (EMS) on** is ticked
   (section 5) and that the Boiler page does not say "EMS reception is off.".
 
 ### A room shows no measurement
@@ -916,7 +916,7 @@ keeps the room measured when one drops out.
 **Settings → System → Repairs** shows **Heating needs attention** and the
 **Heating problem** sensor is on. The message says what is wrong, for example
 a room without a usable measurement for 30 minutes, no report from the E32
-for 10 minutes, burner short cycling for 2 hours, a room that asks for heat
+for 10 minutes, the burner switching on and off too often for 2 hours, a room that asks for heat
 but stays more than 0.5 °C below its target for 3 hours, or no working link
 with the E32 for 15 minutes while the E32 is online. The message clears
 itself once the cause is gone.

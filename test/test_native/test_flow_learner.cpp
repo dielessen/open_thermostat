@@ -1,4 +1,5 @@
 #include "control/WarmupPlanner.h"
+#include "Hrc22ReplayFixture.h"
 #include "ScopedTz.h"
 #include <functional>
 #include <gtest/gtest.h>
@@ -156,8 +157,9 @@ TEST(FlowLearner, HotWaterIsNotLearned) {
 }
 
 // A boiler that keeps a small hot-water store warm (3 min every 11 min, the owner's
-// EcomLine HRC 22) never gives 45 min of heating without hot water: by default nothing is
-// learned. The opt-in bridge pauses the segment over each hot-water run instead.
+// EcomLine HRC 22) never gives 45 min of heating without hot water: without the bridge
+// nothing is learned. The bridge (on by default since rc.2) pauses the segment over each
+// hot-water run instead.
 void storeDays(House& h, int cycles) {
     for (int c = 0; c < cycles; ++c)
         for (const double f : tadoFlows) {
@@ -169,14 +171,15 @@ void storeDays(House& h, int cycles) {
 
 TEST(FlowLearner, KeepWarmStoreBlocksLearningUnlessBridged) {
     auto plain = House::floor();
+    FlowLearner::Params off; off.bridgeHotWater = false;
+    plain.learner = FlowLearner(off);
+    plain.plan(RoomPlan::Emitter::floor);
     storeDays(plain, 3);
     EXPECT_STREQ(plain.learner.readiness(0), "collecting");
     EXPECT_EQ(plain.learner.segments(0), 0);
 
-    auto bridged = House::floor();
-    FlowLearner::Params p; p.bridgeHotWater = true;
-    bridged.learner = FlowLearner(p);
-    bridged.plan(RoomPlan::Emitter::floor);
+    auto bridged = House::floor();  // the default
+    ASSERT_TRUE(FlowLearner::Params{}.bridgeHotWater);
     storeDays(bridged, 3);
     EXPECT_GT(bridged.learner.segments(0), 0);  // learning, where the plain learner has nothing
     // One heating period per tado run, not one per hot-water interruption.
@@ -194,6 +197,166 @@ TEST(FlowLearner, KeepWarmStoreBlocksLearningUnlessBridged) {
     Json root(bridged.learner.json(), cJSON_Delete);
     for (const cJSON* q = cJSON_GetObjectItem(cJSON_GetArrayItem(cJSON_GetObjectItem(root.get(), "rooms"), 0), "curve")->child; q; q = q->next)
         EXPECT_LT(cJSON_GetObjectItem(q, "flow_c")->valuedouble, 54);
+}
+
+// The owner's recorded house (include/Hrc22ReplayFixture.h): each 30 s row is fed as three
+// 10 s samples, with the reference HeatingController passes (heatingReference).
+std::vector<std::vector<std::optional<int>>> fixtureRows(const char* text) {
+    std::vector<std::vector<std::optional<int>>> rows;
+    const std::string all(text);
+    for (size_t at = 0; at < all.size();) {
+        const size_t end = all.find(';', at);
+        std::string row = all.substr(at, end - at);
+        at = end + 1;
+        int repeat = 1;
+        if (const size_t star = row.find('*'); star != std::string::npos) { repeat = std::stoi(row.substr(0, star)); row = row.substr(star + 1); }
+        std::vector<std::optional<int>> fields;
+        for (size_t f = 0;;) {
+            const size_t comma = row.find(',', f);
+            const std::string v = row.substr(f, comma == std::string::npos ? std::string::npos : comma - f);
+            fields.push_back(v.empty() ? std::nullopt : std::optional<int>(std::stoi(v)));
+            if (comma == std::string::npos) break;
+            f = comma + 1;
+        }
+        for (int k = 0; k < repeat; ++k) rows.push_back(fields);
+    }
+    return rows;
+}
+// shadow: the tado drives the boiler; active: the E32 does and the tado is off the bus;
+// activeTado: active mode with the tado's (absent) 0x1A as the reference, as before rc.2.
+enum class Drive { shadow, active, activeTado };
+FlowLearner hrc22Learner(FlowLearner::Params p, Drive drive) {
+    FlowLearner l(p);
+    RoomPlan plan; plan.rooms.resize(1); plan.rooms[0].id = "woonkamer"; plan.rooms[0].emitter = RoomPlan::Emitter::floor;
+    l.setPlan(plan);
+    uint64_t now = 0;
+    for (const char* window : {hrc22::window1, hrc22::window2, hrc22::window3}) {
+        now += 6 * hour;  // the windows lie apart: a gap
+        for (const auto& r : fixtureRows(window)) {
+            FlowLearner::Boiler b;
+            if (r[2]) b.flowCentiC = int16_t(*r[2] * 100);
+            if (r[3]) { b.modulationPct = uint8_t(*r[3]); b.burnerOn = *r[3] > 0; }
+            if (r[4]) b.hotWater = *r[4] > 0;
+            const auto tado = drive != Drive::shadow || !r[5] ? std::nullopt : std::optional<uint8_t>(uint8_t(*r[5]));
+            b.requestedFlowC = FlowLearner::heatingReference(drive == Drive::active, uint8_t(r[6].value_or(0)), tado);
+            if (r[7]) b.outdoorCentiC = int16_t(*r[7] * 100);
+            FlowLearner::RoomInput in;
+            if (r[0]) { in.temperatureCentiC = int16_t(*r[0] * 10); in.source = 0; }
+            if (r[1]) in.setpointCentiC = int16_t(*r[1] * 10);
+            for (int k = 0; k < 3; ++k) { now += 10 * second; l.sample(now, b, &in, 1); }
+        }
+    }
+    const FlowLearner::RoomInput none;
+    l.sample(now + 6 * hour, FlowLearner::Boiler{}, &none, 1);  // the gap closes an open segment
+    return l;
+}
+
+TEST(FlowLearner, ActiveModeLearnsFromTheE32sOwnRequest) {
+    const FlowLearner::Params p;
+    // The absent tado as the reference: every burner pause ends the period, nothing is learned.
+    EXPECT_EQ(hrc22Learner(p, Drive::activeTado).segments(0), 0);
+    // The E32's own request: the same afternoon and evening give segments.
+    const auto own = hrc22Learner(p, Drive::active);
+    RecordProperty("active_segments", own.segments(0));
+    EXPECT_GE(own.segments(0), 3);
+    EXPECT_STREQ(own.readiness(0), "learning");
+    // Shadow mode keeps the controlling thermostat's request.
+    EXPECT_GE(hrc22Learner(p, Drive::shadow).segments(0), 1);
+    EXPECT_EQ(FlowLearner::heatingReference(true, 0, uint8_t(45)), uint8_t(0));  // the E32 asks no heat
+    EXPECT_EQ(FlowLearner::heatingReference(false, 40, uint8_t(45)), uint8_t(45));
+    EXPECT_FALSE(FlowLearner::heatingReference(false, 40, std::nullopt));
+}
+
+// The first active evening (include/Hrc22ReplayFixture.h): the E32 asked 33..35 degC for 47
+// min and the boiler only fired for its store. The learner raises the minimum to the
+// lowest boiler water it saw (38 degC) + 2: "only starts heating from about 40 degC".
+TEST(BoilerMinimumFlow, TheActiveEveningRaisesItToTheKeepWarmFloor) {
+    FlowLearner l;
+    RoomPlan plan; plan.rooms.resize(1); plan.rooms[0].id = "woonkamer"; plan.rooms[0].emitter = RoomPlan::Emitter::floor;
+    plan.minimumFlowC = 30; plan.maximumFlowC = 60;
+    l.setPlan(plan);
+    uint64_t now = hour;
+    const FlowLearner::RoomInput in{int16_t(2050), int16_t(2100), 0};  // 0.5 degC short all evening
+    for (const bool own : {false, true}) {
+        for (const auto& r : fixtureRows(hrc22::activeEvening)) {
+            FlowLearner::Boiler b;
+            b.flowCentiC = int16_t(*r[0] * 100); b.modulationPct = uint8_t(*r[1]); b.burnerOn = *r[1] > 0; b.hotWater = *r[2] > 0;
+            b.requestedFlowC = uint8_t(*r[3]); b.ownRequest = own; b.productId = 0x7b;
+            now += 10 * second; l.sample(now, b, &in, 1);
+        }
+        // The same evening in shadow mode (another thermostat's request) teaches nothing.
+        if (!own) { EXPECT_EQ(l.boilerMinimum().learnedC(), 0); EXPECT_EQ(l.effectiveMinimumC(70), 30); }
+        now += hour;
+    }
+    EXPECT_EQ(l.boilerMinimum().learnedC(), 40);
+    EXPECT_EQ(l.boilerMinimum().raises(), 1);
+    EXPECT_EQ(l.effectiveMinimumC(70), 40);
+    EXPECT_EQ(l.effectiveMinimumC(38), 38);   // never above the boiler's own limit
+    Json root(l.json(), cJSON_Delete);
+    EXPECT_EQ(cJSON_GetObjectItem(root.get(), "boiler_minimum_flow_c")->valuedouble, 40);
+}
+
+// Synthetic boiler: heat asked at the effective minimum, with or without a heating burn.
+struct MinimumRig {
+    heating::control::BoilerMinimumFlow m;
+    uint64_t now = 0;
+    uint8_t planMin = 30, planMax = 60;
+    std::optional<uint8_t> limit = 70;
+    void run(uint64_t ms, bool fires, int16_t waterCentiC = 3800, bool below = true, bool hotWater = false, uint8_t product = 0x7b) {
+        for (uint64_t t = 0; t < ms; t += 10 * second) {
+            now += 10 * second;
+            heating::control::BoilerMinimumFlow::Input in;
+            in.asked = true; in.flowC = m.effective(planMin, planMax, limit); in.boilerFlowCentiC = waterCentiC;
+            in.burnerOn = fires || hotWater; in.hotWater = hotWater; in.roomBelow = below; in.productId = product;
+            m.sample(now, 10000, in);
+        }
+    }
+};
+
+TEST(BoilerMinimumFlow, RaisesStepwiseOnlyWithoutABurnAndStaysBounded) {
+    MinimumRig r;
+    r.run(14 * minute, false);
+    EXPECT_EQ(r.m.learnedC(), 0);                   // 15 min of countable time first
+    r.run(2 * minute, false);
+    EXPECT_EQ(r.m.learnedC(), 40);                  // max(asked 30, water 38) + 2
+    r.run(16 * minute, false, 3000);                // still nothing at 40: one step more
+    EXPECT_EQ(r.m.learnedC(), 42);
+    // Hot water, the minutes right after it and a room at its target do not count.
+    MinimumRig hw;
+    for (int k = 0; k < 10; ++k) { hw.run(3 * minute, false, 3800, true, true); hw.run(4 * minute, false); }
+    EXPECT_EQ(hw.m.learnedC(), 0);                  // 10 x 1 min countable
+    MinimumRig warm;
+    warm.run(hour, false, 3800, false);
+    EXPECT_EQ(warm.m.learnedC(), 0);
+    // A boiler that never fires (heating switched off at the boiler, a fault): bounded.
+    r.run(48 * hour, false, 2500);
+    EXPECT_EQ(r.m.learnedC(), r.m.params().maxC);
+    EXPECT_EQ(r.m.effective(30, 60, 70), 50);
+    EXPECT_EQ(r.m.effective(30, 45, 70), 44);       // below the plan maximum (the guard needs min < max)
+    EXPECT_EQ(r.m.effective(30, 60, 42), 42);       // the boiler's own limit
+    EXPECT_EQ(r.m.effective(30, 60, std::nullopt), 50);
+    EXPECT_EQ(r.m.effective(55, 60, 70), 55);       // never below the plan minimum
+}
+
+TEST(BoilerMinimumFlow, DecaysWithBurnsAndStartsOverForAnotherBoiler) {
+    MinimumRig r;
+    r.run(16 * minute, false);
+    ASSERT_EQ(r.m.learnedC(), 40);
+    r.run(90 * second, true);                       // a short flame (e.g. before the hot-water bit) is no answer
+    r.run(11 * hour, true);
+    EXPECT_EQ(r.m.learnedC(), 40);
+    r.run(hour + 5 * minute, true);                 // 12 h of heating burns (after the first 2 min): 1 degC lower
+    EXPECT_EQ(r.m.learnedC(), 39);
+    r.run(12 * hour, true);
+    EXPECT_EQ(r.m.learnedC(), 38);
+    // Too low again: found out in one wait.
+    r.run(16 * minute, false);
+    EXPECT_EQ(r.m.learnedC(), 40);
+    // Another boiler (EMS product id): nothing learned any more.
+    r.run(10 * second, true, 3800, true, false, 0x5a);
+    EXPECT_EQ(r.m.learnedC(), 0);
+    EXPECT_EQ(r.m.raises(), 0);
+    EXPECT_EQ(r.m.effective(30, 60, 70), 30);
 }
 
 TEST(FlowLearner, BridgeEndsAfterItsLimit) {
@@ -292,10 +455,50 @@ TEST(WarmupPlanner, DefaultLeadWhileNotLearned) {
     EXPECT_EQ(s.rise.atUtc, wednesday23 + 7 * 3600 + 30 * 60); // Thursday 06:30 local
     EXPECT_EQ(s.rise.toCentiC, 2100); EXPECT_EQ(s.rise.fromCentiC, 1850);
     EXPECT_STREQ(s.confidence, "default");
-    EXPECT_EQ(s.leadS, 5 * 3600u);                         // 2.5 degC x 2 h
-    EXPECT_EQ(s.startUtc, s.rise.atUtc - 5 * 3600);
+    EXPECT_FALSE(s.coolingLearned);
+    EXPECT_EQ(s.startTemperatureCentiC, 1900);             // no cooling model: the room as it is now
+    EXPECT_EQ(s.leadS, 4 * 3600u);                         // 2.0 degC x 2 h
+    EXPECT_EQ(s.startUtc, s.rise.atUtc - 4 * 3600);
     EXPECT_FALSE(s.startNow);
+    // Without a reading the setback is assumed: 2.5 degC x 2 h, the default lead's own bound.
+    const auto blind = WarmupPlanner::optimumStart(h.learner, 0, program(), wednesday23, std::nullopt, std::nullopt);
+    EXPECT_EQ(blind.leadS, 5 * 3600u);
+    EXPECT_EQ(blind.startTemperatureCentiC, 1850);
+    // Colder than the setback: that reading.
+    EXPECT_EQ(WarmupPlanner::optimumStart(h.learner, 0, program(), wednesday23, int16_t(1800), std::nullopt).leadS, 6 * 3600u);
     EXPECT_STREQ(WarmupPlanner::optimumStart(h.learner, 0, RoomSchedule{}, wednesday23, int16_t(1900), std::nullopt).reason, "no_schedule");
+}
+
+// The owner's floor in the night of 30/31 Oct (replay of the recorded data): the 1.0 week
+// program drops to 18.5 at 22:30 and rises to 21.0 at 09:00, but the slab kept the room at
+// 20.3..20.8 degC. Without a cooling model the planner assumed 18.5 and planned a 300 min
+// lead (start 04:00); the room really needed 76..97 min. It now plans from each reading.
+TEST(WarmupPlanner, WithoutACoolingModelTheNightIsPlannedFromTheRoomAsItIs) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    auto h = House::floor();
+    RoomSchedule week;
+    for (auto& d : week.days) { d.points[0] = {0, 1850}; d.points[1] = {540, 2100}; d.points[2] = {1350, 1850}; d.count = 3; }
+    const int64_t saturday0 = int64_t(ShadowComparison::daysFromCivil(2026, 10, 31)) * 86400 - 3600; // 00:00 CET
+    const std::pair<int, int16_t> readings[] = {{3, 2080}, {4, 2070}, {5, 2050}, {6, 2040}, {7, 2040}, {8, 2030}};
+    for (const auto& [hourLocal, room] : readings) {
+        const int64_t utc = saturday0 + hourLocal * 3600;
+        const auto s = WarmupPlanner::optimumStart(h.learner, 0, week, utc, room, int16_t(800));
+        ASSERT_STREQ(s.reason, "planned");
+        EXPECT_EQ(s.rise.atUtc, saturday0 + 9 * 3600);
+        EXPECT_EQ(s.startTemperatureCentiC, room);
+        const uint32_t need = WarmupPlanner::defaultLeadS(RoomPlan::Emitter::floor, int16_t(2100 - room));
+        EXPECT_GE(s.leadS, need); EXPECT_LT(s.leadS, need + 300);  // 5 min steps (or the need itself when late)
+        EXPECT_LE(s.leadS, 90 * 60u) << hourLocal;          // never the 300 min from the assumed setback
+        EXPECT_FALSE(s.applicable());                       // and advice only: nothing is learned yet
+    }
+    // At 08:00 (20.3 degC) the need is 84 min, within the 76..97 min the room really took
+    // (too late by then: at 07:00 the plan, from 20.4 degC, started it at 07:45; it follows the room).
+    const auto last = WarmupPlanner::optimumStart(h.learner, 0, week, saturday0 + 8 * 3600, int16_t(2030), int16_t(800));
+    EXPECT_EQ(last.leadS, 84 * 60u);
+    EXPECT_TRUE(last.startNow);
+    EXPECT_FALSE(last.reachable);
+    EXPECT_EQ(WarmupPlanner::optimumStart(h.learner, 0, week, saturday0 + 7 * 3600, int16_t(2040), int16_t(800)).startUtc,
+              saturday0 + 9 * 3600 - 75 * 60);
 }
 
 TEST(WarmupPlanner, LearnedFloorStartsEarlyEnoughAtTheLowestFlow) {

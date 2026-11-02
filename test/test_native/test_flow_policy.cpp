@@ -344,6 +344,31 @@ TEST(FlowPolicy, LearnedOptimumStartHeatsAheadOfTheProgram) {
     EXPECT_TRUE(both.heat); EXPECT_GE(both.flowC, 31);
 }
 
+// A learned warm-up curve without a usable cooling model (here: no outdoor reading, so the
+// heat-loss rate cannot be used) plans from the current temperature: advice, never applied.
+TEST(FlowPolicy, OptimumStartNeedsTheCoolingModelToo) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    House h(plan(RoomPlan::Emitter::floor, true)); h.learn();
+    ASSERT_TRUE(h.learner.heatModel(0).lossPerHour);
+    Step s; s.p = plan(RoomPlan::Emitter::floor, true);
+    FlowSettings on; on.applyLearned = true; s.policy.setSettings(on);
+    const auto planned = WarmupPlanner::optimumStart(h.learner, 0, s.p.rooms[0].schedule, wednesday23, int16_t(1850), std::nullopt);
+    ASSERT_STREQ(planned.confidence, "learned");
+    EXPECT_FALSE(planned.coolingLearned);
+    EXPECT_FALSE(planned.applicable());
+    s.rooms[0] = room(1850, 1850); s.in.utc = planned.startUtc + 60;
+    EXPECT_FALSE(s.apply(idle, &h.learner).heat);
+    Json status(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(s.policy.addStatus(status.get(), false));
+    EXPECT_STREQ(at(at(at(status.get(), "flow"), "optimum_start"), "state")->valuestring, "advice");
+    // With the outdoor known, both models count and the start is applied.
+    s.in.outdoorCentiC = 500;
+    const auto both = WarmupPlanner::optimumStart(h.learner, 0, s.p.rooms[0].schedule, wednesday23, int16_t(1850), int16_t(500));
+    EXPECT_TRUE(both.applicable());
+    s.in.utc = both.startUtc + 120;
+    EXPECT_TRUE(s.apply(idle, &h.learner).heat);
+}
+
 TEST(FlowPolicy, DefaultLeadsAreOnlyAdvice) {
     ScopedTz tz(ScopedTz::amsterdam);
     Step s; s.p = plan(RoomPlan::Emitter::floor, true); s.learner.setPlan(s.p);

@@ -964,6 +964,8 @@ window.OT_UI_PAGE_MESSAGES = {
   "Yesterday the burner started {n} times for heating.": "Gisteren startte de brander {n} keer voor verwarmen.",
   "That is often. Fewer, longer burns are gentler on the boiler; the thermostat works on that.": "Dat is vaak. Minder en langer branden is beter voor de ketel; de thermostaat werkt daaraan.",
   "Fewer, longer burns are gentler on the boiler and use gas more efficiently.": "Minder en langer branden is beter voor de ketel en gebruikt gas zuiniger.",
+  "Your boiler only starts heating from about {flow} °C water; the thermostat asks at least that much.": "Je ketel begint pas te verwarmen vanaf water van ongeveer {flow} °C; de thermostaat vraagt minstens zoveel.",
+  "It learned this when the boiler did not start for cooler water.": "Dat leerde hij toen de ketel voor koeler water niet aansloeg.",
   "Nothing yet: this appears after the first heating days.": "Nog niets: dit verschijnt na de eerste dagen met verwarming.",
   "Comfort and boiler care: set by you": "Comfort en zorg voor de ketel: door jou ingesteld",
   "Use a value from {min} to {max}.": "Gebruik een waarde van {min} tot {max}.",

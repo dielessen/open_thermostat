@@ -983,11 +983,15 @@ private:
         else if (ems.hotWater) s.hotWater = H::noHotWater;  // the DHW bit is known and off
         history_.sample(now, s);
     }
-    // Report only: the boiler view and per room the fresh leading reading.
+    // Report only: the boiler view and per room the fresh leading reading. The heating
+    // reference: the E32's own request (the guard's last command) while it drives the
+    // boiler, else the controlling thermostat's 0x1A.
     void stepFlowLearner(uint64_t now, const ems::EmsController::ActiveHeatView& ems, std::optional<uint8_t> tadoFlowC) {
         const auto& plan = roomEngine_.plan();
-        control::FlowLearner::Boiler boiler{ems.flowCentiC, ems.burnerOn, ems.hotWater, tadoFlowC,
-            learnerOutdoor(now).centiC, ems.modulationPct, ems.returnCentiC};
+        const bool own = activeGuard_.outputActive();
+        control::FlowLearner::Boiler boiler{ems.flowCentiC, ems.burnerOn, ems.hotWater,
+            control::FlowLearner::heatingReference(own, activeGuard_.command().flowC, tadoFlowC),
+            learnerOutdoor(now).centiC, ems.modulationPct, ems.returnCentiC, own, ems.boilerProductId};
         std::array<control::FlowLearner::RoomInput, control::RoomPlan::maxRooms> rooms{};
         const size_t count = std::min(plan.rooms.size(), rooms.size());
         for (size_t i = 0; i < count; ++i) {
@@ -1066,7 +1070,8 @@ private:
         if (ems.foreign) in.foreign = control::ActiveHeatGuard::Foreign{ems.foreign->address, ems.foreign->receivedAtMs};
         in.uptimeMs = now; in.routeReady = ems.routeReady; in.boilerLimitC = ems.limitC;
         in.boiler = {ems.burnerOn, ems.flowCentiC}; in.boilerHeardAtMs = ems.boilerHeardAtMs;
-        activeGuard_.setFlowLimits(plan.minimumFlowC, plan.maximumFlowC);
+        // The learned lowest flow the boiler fires at (FlowLearner::effectiveMinimumC, below the plan's maximum).
+        activeGuard_.setFlowLimits(flowLearner_.effectiveMinimumC(ems.limitC), plan.maximumFlowC);
         const auto c = activeGuard_.step(now, in);
         // A foreign 0x1A, the hand-back or shadow mode erases the stored one.
         handover_.sync(activeGuard_.confirmed(), activeGuard_.reconfirmPending());

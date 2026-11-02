@@ -136,8 +136,10 @@ struct Replay {
 // replay-end
 
 // The replay above built against the code before the knobs (a81d991, 1 Nov 2026), g++ on x86-64:
-// 12 burner starts, 5219 heating steps of 10 s.
-constexpr uint64_t goldenHash = 0x092730cbef929f94ull;
+// 12 burner starts, 5219 heating steps of 10 s. rc.2 (learning in active mode): a floor room's
+// segment counts from 30 min instead of 45, so the learner's JSON in the hash holds more
+// segments; every request, start and heating step is unchanged (was 0x092730cbef929f94).
+constexpr uint64_t goldenHash = 0x0e57c515176989e2ull;
 
 Replay replay(const std::function<void(Replay&)>& tune = nullptr) {
     ScopedTz tz(ScopedTz::amsterdam);

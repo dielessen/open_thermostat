@@ -621,5 +621,8 @@ window.OT_UI_MESSAGES = {
   "This room is off.": "Deze ruimte staat uit.",
   "Saved. The room follows within 10 seconds.": "Opgeslagen. De ruimte volgt binnen 10 seconden.",
   "The change was not saved:": "De wijziging is niet opgeslagen:",
-  "the E32 could not be reached": "de E32 was niet bereikbaar"
+  "the E32 could not be reached": "de E32 was niet bereikbaar",
+  "Try again": "Probeer opnieuw",
+  "The E32 cannot be reached": "De E32 is niet bereikbaar",
+  "Check that it has power and is connected to your network. This page keeps trying by itself.": "Controleer of de E32 stroom heeft en met je netwerk verbonden is. Deze pagina blijft het zelf proberen."
 };

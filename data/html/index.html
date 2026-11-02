@@ -566,8 +566,13 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                 }
             } catch (error) {
                 if (navigation === navigationGeneration) {
-                    document.getElementById('maincontainer').textContent =
-                        uiText("The page could not be loaded. Check the connection and try again.");
+                    // Keep the page's own header above the error, with a retry of the same page.
+                    const main = document.getElementById('maincontainer');
+                    main.innerHTML = '<section class="ot-page"><header class="ot-head"><div><h1>' + dashboardText(uiText(pageTitles[page] || "System")) +
+                        '</h1></div></header><div class="alert alert-danger ot-actions" role="alert"><span>' +
+                        dashboardText(uiText("The page could not be loaded. Check the connection and try again.")) +
+                        '</span><button type="button" class="btn btn-outline-secondary" data-page-retry>' + dashboardText(uiText("Try again")) + '</button></div></section>';
+                    main.querySelector?.('[data-page-retry]')?.addEventListener('click', () => loadNativePage(window.otPageSection || page));
                 }
                 return false;
             }
@@ -697,14 +702,24 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                     var main = document.getElementById('maincontainer');
                     var notice = document.getElementById('dashboard-poll-error');
                     if (!notice) {
+                        // Before the first answer the page is empty: show its header with a clear offline state, so
+                        // it still says where you are. Later failures keep the open page and add one line on top.
+                        const first = !main.children.length;
                         notice = document.createElement('div'); notice.id = 'dashboard-poll-error';
-                        notice.className = 'alert alert-warning ot-actions mt-3'; notice.setAttribute('role','status');
+                        notice.className = 'alert alert-warning ot-actions' + (first ? '' : ' mt-3'); notice.setAttribute('role','status');
                         const text = document.createElement('span'), retry = document.createElement('button');
-                        text.textContent = uiText("Can't reach the E32 right now. Retrying automatically…");
-                        retry.type = 'button'; retry.className = 'btn btn-outline-secondary'; retry.textContent = uiText("Retry");
+                        if (first) {
+                            const title = document.createElement('strong'); title.className = 'd-block'; title.textContent = uiText("The E32 cannot be reached");
+                            text.append(title, uiText("Check that it has power and is connected to your network. This page keeps trying by itself."));
+                        } else text.textContent = uiText("Can't reach the E32 right now. Retrying automatically…");
+                        retry.type = 'button'; retry.className = 'btn btn-outline-secondary'; retry.textContent = uiText(first ? "Try again" : "Retry");
                         retry.addEventListener('click', () => showRooms());
                         notice.append(text, retry);
-                        main.prepend(notice);
+                        if (first) {
+                            const page = document.createElement('section'); page.className = 'ot-page'; page.id = 'dashboard-offline';
+                            page.innerHTML = uiHtml("<header class=\"pd-heading\"><div><h1>Your heating system</h1><p>Rooms and boiler at a glance.</p></div></header>");
+                            page.append(notice); main.replaceChildren(page);
+                        } else main.prepend(notice);
                     }
                 }).finally(function() {
                     clearTimeout(timeout);

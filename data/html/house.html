@@ -84,6 +84,9 @@
   <section class="pd-panel" data-house-care hidden>
     <h2 data-i18n="Comfort and boiler care">Comfort and boiler care</h2>
     <p class="pd-help" data-i18n="The thermostat sets these itself and keeps adjusting them as it learns your house. Change one only if you want it differently.">The thermostat sets these itself and keeps adjusting them as it learns your house. Change one only if you want it differently.</p>
+    <!-- Locked (Home Assistant is the main editor): one notice instead of a disabled button on every row. -->
+    <div class="alert alert-info" data-care-lock><span data-i18n="Managed in Home Assistant: OpenThermostat → Configure → Home.">Managed in Home Assistant: OpenThermostat → Configure → Home.</span>
+      <button type="button" class="btn btn-outline-primary" data-care-unlock><span data-i18n="Edit here anyway">Edit here anyway</span></button></div>
     <ul class="hc-list" data-care-list></ul>
     <details class="ot-advanced hc-more"><summary data-i18n="More settings">More settings</summary><ul class="hc-list" data-care-fixed></ul></details>
     <p class="ot-actions"><button type="button" class="btn btn-outline-primary" data-care-all-auto><span data-i18n="Back to automatic for all">Back to automatic for all</span></button>
@@ -113,7 +116,10 @@
 #house-settings .hc-list{list-style:none;padding:0;margin:0}#house-settings .hc-item{padding:10px 0;border-bottom:1px solid var(--ot-border,rgba(127,127,127,.25));overflow-wrap:anywhere}
 #house-settings .hc-value{white-space:nowrap}#house-settings .hc-mode{color:var(--ot-muted);font-size:.875rem;white-space:nowrap}
 #house-settings .hc-actions,#house-settings .hc-edit{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}#house-settings .hc-item .btn{min-height:44px}
-#house-settings .hc-edit input{max-width:8rem;min-height:44px}#house-settings .hc-more{margin:12px 0 0}#house-settings [data-house-care] .ot-actions .btn{min-height:44px}</style>
+#house-settings .hc-edit input{max-width:8rem;min-height:44px}#house-settings .hc-more{margin:12px 0 0}#house-settings [data-house-care] .ot-actions .btn{min-height:44px}
+#house-settings [data-care-lock]{display:none}#house-settings.hs-locked [data-care-lock]{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#house-settings.hs-locked [data-house-care] :is(.hc-actions,p.ot-actions) .btn:disabled{border-color:transparent;background:none;color:var(--ot-muted);opacity:.6;font-weight:500;padding:2px 12px 2px 0;min-height:0}
+#house-settings.hs-locked [data-house-care] .hc-actions{margin-top:0}</style>
 <script>
 // House page (E32 beta.23): the house mode and away temperature (POST /config/heating/comfort), presence from Home
 // Assistant (read-only) and the house-wide heating settings. One 10 s refresh of /status/heating feeds every part
@@ -558,6 +564,7 @@
     care.querySelector('[data-care-all-auto]').hidden = !manual?.length;
   }
   care.querySelector('[data-care-all-auto]').addEventListener('click', () => save({tuning_manual: []}));
+  care.querySelector('[data-care-unlock]').addEventListener('click', () => root.querySelector('[data-house-unlock]').click());
   care.querySelector('[data-care-reset]').addEventListener('click', () => {
     if (confirm(uiText("All these settings go back to their start values and the thermostat starts learning them again. Continue?"))) save({tuning: null});
   });

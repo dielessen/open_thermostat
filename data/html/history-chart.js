@@ -75,7 +75,8 @@
     }
 
     // Each chart has its own viewBox width, so its text keeps a readable size where it is shown.
-    const L = 30, R = 8, T = 16;
+    // T leaves room above the top tick for the unit (°C, %), so the two never touch.
+    const L = 30, R = 8, T = 24;
     function frame(id, w, W, h, y, label, body, unit) {
         const B = h - 18, x = t => L + (t - w.from) / (w.to - w.from) * (W - L - R);
         let grid = '';
@@ -152,7 +153,7 @@
         summary += '.';
         const key = 'room:' + id;
         register(key, model, w, 220, p => [[uiText("Measured"), t[p], '°C'], [uiText("Target"), s[p], '°C']]);
-        return '<div class="oth" data-oth-chart="room">' + frame(key, w, 220, 120, y, (name ? name + ': ' : '') + summary, (x, py) =>
+        return '<div class="oth" data-oth-chart="room">' + frame(key, w, 220, 128, y, (name ? name + ': ' : '') + summary, (x, py) =>
             '<path class="oth-line oth-target" d="' + path(model, w, s, x, py) + '"/><path class="oth-line oth-measured" d="' + path(model, w, t, x, py) + '"/>', '°C') +
             legend([['measured', uiText("Measured")], ['target', uiText("Target")]]) +
             '<p class="pd-help oth-summary">' + esc(summary) + ' ' + esc(uiText("Kept in the E32's memory since the last restart.")) + '</p>' +
@@ -187,13 +188,13 @@
         register('boiler', model, w, BW, p => items.map(i => [i[1], i[2][p] === 0 && (i[0] === 'request' || i[0] === 'thermostat') ? uiText("off") : i[2][p], '°C'])
             .concat(burner ? [[uiText("Burner on"), burner[p], '%']] : [], hotRows(p)));
         let html = '<div class="oth" data-oth-chart="boiler"><h3 class="oth-title">' + esc(uiText("Boiler history")) + '</h3>';
-        if (all) html += frame('boiler', w, BW, 170, scale(all[0], all[1], 10), summary, (x, py) => items.map(i =>
+        if (all) html += frame('boiler', w, BW, 178, scale(all[0], all[1], 10), summary, (x, py) => items.map(i =>
             '<path class="oth-line oth-' + i[0] + '" d="' + path(model, w, i[2], x, py, i[0] === 'request' || i[0] === 'thermostat') + '"/>').join(''), '°C') +
             legend(items.map(i => [i[0], i[1]]));
         if (br) {
             // One path of bars: the share of each 5 minutes with the burner on.
             const strip = {lo: 0, hi: 100, ticks: [0, 100], digits: 0};
-            html += frame('burner', w, BW, 64, strip, uiText("Burner on") + ': ' + Math.round(on) + ' %', (x, py, base) => {
+            html += frame('burner', w, BW, 72, strip, uiText("Burner on") + ': ' + Math.round(on) + ' %', (x, py, base) => {
                 let d = ''; const width = Math.max(0.6, (x(w.from + model.period) - x(w.from)) - 0.4);
                 burner.forEach((v, p) => { if (v) d += 'M' + (x(w.at(p)) - width / 2).toFixed(1) + ',' + base + 'V' + py(v).toFixed(1) + 'h' + width.toFixed(1) + 'V' + base + 'z'; });
                 return '<path class="oth-bars" d="' + d + '"/>';
@@ -203,7 +204,7 @@
         if (dhw) {
             // Two paths of stacked bars: tapping from the base, keeping warm on top of it.
             const strip = {lo: 0, hi: 100, ticks: [0, 100], digits: 0};
-            html += frame('dhw', w, BW, 64, strip, hot[0].toUpperCase() + hot.slice(1), (x, py, base) => {
+            html += frame('dhw', w, BW, 72, strip, hot[0].toUpperCase() + hot.slice(1), (x, py, base) => {
                 const width = Math.max(0.6, (x(w.from + model.period) - x(w.from)) - 0.4), d = ['', ''];
                 tap.forEach((v, p) => {
                     const left = (x(w.at(p)) - width / 2).toFixed(1), low = v || 0, high = Math.min(100, low + (warm[p] || 0));

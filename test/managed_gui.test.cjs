@@ -64,7 +64,7 @@ test('root does not load Chart; legacy curve deduplicates on-demand dependency',
 test('dependency failure is recoverable GET-only and late chart cannot replace another page',async()=>{
  const p=page();p.context.applyControlMode({controlMode:'legacy'});
  const first=p.context.loadNativePage('curve');await tick();p.scripts[0].onerror();
- assert.equal(await first,false);assert.match(p.main.textContent,/could not be loaded/);
+ assert.equal(await first,false);assert.match(p.main.innerHTML,/could not be loaded/);
  const second=p.context.loadNativePage('curve');await tick();
  assert.equal(p.scripts.length,2);
  await p.context.loadNativePage('network');
@@ -113,7 +113,7 @@ test('weather editor follows actual runtime mode, legacy edits remain supported'
 test('saving before settings load never overwrites stored values with defaults',()=>{
  const p=page();p.run('network.html');p.context.validateForm=()=>true;
  p.context.saveDeviceSettings();assert.equal(p.calls.length,0);
- assert.match(p.alerts[0],/Load device settings/);
+ assert.equal(p.alerts.length,0);assert.match(p.main.textContent,/Load device settings/);
 });
 
 test('network/update/about recovery remain accessible when mode/status is unavailable',async()=>{
@@ -122,5 +122,5 @@ test('network/update/about recovery remain accessible when mode/status is unavai
  for(const name of ['network','update','about'])assert.equal(await p.context.loadNativePage(name),true);
  assert.deepEqual(p.loads,['network.html','update.html','about.html']);
  assert.equal(await p.context.loadNativePage('curve'),false);
- assert.match(p.main.textContent,/could not be loaded/);
+ assert.match(p.main.innerHTML,/could not be loaded/);
 });

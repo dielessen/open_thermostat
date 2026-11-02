@@ -3,9 +3,27 @@
     <script src="/ui-messages.js"></script>
     <script src="/ui-language.js"></script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title data-i18n="Sign in — OpenThermostat">Sign in — OpenThermostat</title>
-<style>:root{color-scheme:light dark;--bg:#f6f8f8;--card:#fff;--text:#173b40;--muted:#4f666b;--line:#7a8f93;--edge:#c9d6d8;--accent:#08665b;--ink:#fff}@media (prefers-color-scheme:dark){:root{--bg:#0f1719;--card:#162124;--text:#e3eeef;--muted:#a3b7bb;--line:#6f878c;--edge:#2f4247;--accent:#4cc2b0;--ink:#06201c}}body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);max-width:26rem;margin:6vh auto;padding:1.2rem}main{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:1.5rem}h1{font-size:1.6rem;margin:0 0 .2rem}h2{font-size:1.1rem;font-weight:600;margin:0 0 1rem;color:var(--muted)}label,input,button{display:block;box-sizing:border-box;width:100%;font-size:1rem}label{margin-top:1rem;font-weight:600}input,button,select{min-height:44px;border-radius:8px;font:inherit}input{padding:.6rem .8rem;margin-top:.4rem;border:1px solid var(--line);background:var(--card);color:var(--text)}button{margin-top:1.2rem;background:var(--accent);color:var(--ink);border:0;font-weight:700;cursor:pointer}button:disabled{opacity:.6}:focus-visible{outline:3px solid #b06313;outline-offset:2px}input[type=checkbox]{display:inline;width:20px;min-height:0;height:20px;margin-right:.5rem;vertical-align:-4px;accent-color:var(--accent)}#message{min-height:1.5em;margin:.75rem 0 0}small,.hint{color:var(--muted)}.hint{margin:0 0 .5rem}select{border:1px solid var(--line);background:var(--card);color:var(--text);padding:0 8px}footer{display:flex;justify-content:flex-end;margin:8px 0}footer label{width:auto;font-weight:400}</style>
+<!-- The same tokens, bar, panel, fields and buttons as the app (index.html), without loading Bootstrap before sign-in. -->
+<style>:root{color-scheme:light dark;--ot-bg:#f6f8f8;--ot-surface:#fff;--ot-surface-2:#f1f5f5;--ot-border:#c9d6d8;--ot-field:#7a8f93;--ot-text:#173b40;--ot-muted:#4f666b;--ot-accent:#08665b;--ot-accent-ink:#fff;--ot-accent-soft:#e0f2ee;--ot-focus:#b06313;--ot-nav:#123c41;--ot-r1:8px;--ot-r2:14px;--ot-tap:44px}
+@media (prefers-color-scheme:dark){:root{--ot-bg:#0f1719;--ot-surface:#162124;--ot-surface-2:#1d2b2f;--ot-border:#2f4247;--ot-field:#6f878c;--ot-text:#e3eeef;--ot-muted:#a3b7bb;--ot-accent:#4cc2b0;--ot-accent-ink:#06201c;--ot-accent-soft:#163a35;--ot-focus:#f0a35a;--ot-nav:#0a1315}}
+*{box-sizing:border-box}body{margin:0;font:1rem/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--ot-bg);color:var(--ot-text)}
+.bar{background:var(--ot-nav);color:#fff;display:flex;align-items:center;gap:.5rem;min-height:52px;padding:4px 16px;font-size:1.25rem;font-weight:700}.bar svg{flex:none}
+.wrap{max-width:26rem;margin:6vh auto 24px;padding:0 16px}
+main{background:var(--ot-surface);border:1px solid var(--ot-border);border-radius:var(--ot-r2);padding:20px}
+h1{font-size:1.75rem;font-weight:700;margin:0 0 4px}h2{font-size:1.4rem;font-weight:700;margin:0 0 4px}.hint{color:var(--ot-muted);font-size:.87rem;margin:0 0 16px}
+label{display:block;margin:12px 0 6px}input,button,select{font:inherit;min-height:var(--ot-tap);border-radius:var(--ot-r1)}
+input{display:block;width:100%;padding:.375rem .75rem;border:1px solid var(--ot-field);background:var(--ot-surface);color:var(--ot-text)}
+input:focus{outline:0;border-color:var(--ot-accent);box-shadow:0 0 0 3px var(--ot-accent-soft)}:focus-visible{outline:3px solid var(--ot-focus)!important;outline-offset:2px}
+button{display:block;width:100%;margin-top:20px;background:var(--ot-accent);color:var(--ot-accent-ink);border:1px solid var(--ot-accent);font-weight:600;cursor:pointer}button:hover{filter:brightness(1.06)}button:disabled{opacity:.65;cursor:default}
+#session-recovery label{display:flex;align-items:center;gap:10px;min-height:var(--ot-tap);margin:12px 0 0}#session-recovery p{color:var(--ot-muted);font-size:.87rem;margin:4px 0 0}
+input[type=checkbox]{display:inline;width:24px;height:24px;min-height:0;margin:0;flex:none;accent-color:var(--ot-accent);box-shadow:none}
+#message{min-height:1.5em;margin:12px 0 0}#message:empty{margin:0;min-height:0}
+footer{display:flex;justify-content:flex-end;margin:12px 0 4px;color:var(--ot-muted)}footer label{margin:0!important}
+select{border:1px solid var(--ot-field);background:var(--ot-surface);color:var(--ot-text);padding:0 8px}
+small{display:block;color:var(--ot-muted);font-size:.85rem;line-height:1.4}</style>
 <script src="/login.js" defer></script></head>
-<body><main><h1>OpenThermostat</h1><div id="sign-in"><h2><span data-i18n="Sign in">Sign in</span></h2>
+<body><div class="bar"><svg width="1.75rem" height="1.75rem" viewBox="0 0 4.2333 4.2333" aria-hidden="true"><defs><linearGradient id="gas-gradient" x2="0.35" y2="1"><stop offset="20%" stop-color="white"/><stop offset="40%" stop-color="orange"/><stop offset="100%" stop-color="red"/></linearGradient></defs><path fill="url(#gas-gradient)" d="m1.0276 3.652c-0.52914-0.52914-0.46246-1.0489 0.32008-2.4949l0.56075-1.0361 0.65813 0.6276c1.1241 1.072 1.3138 2.5225 0.40809 3.1209l-0.36768 0.24293 0.22207-0.55103c0.24403-0.60552 0.11048-1.4328-0.28417-1.7604l-0.2268-0.18822s-0.00588 0.35823-0.036595 0.53397c-0.038924 0.22264-0.18591 0.65207-0.18591 0.65207l-0.4127-0.5644-0.21452 0.51789c-0.16307 0.39369-0.17068 0.61411-0.031726 0.91907"/></svg><span>OpenThermostat</span></div>
+<div class="wrap"><main><div id="sign-in"><h1><span data-i18n="Sign in">Sign in</span></h1>
 <p class="hint" data-i18n="First time? Sign in with user admin and password admin. Then you choose your own password.">First time? Sign in with user admin and password admin. Then you choose your own password.</p>
 <form id="login" method="post" action="/auth/login">
 <label for="username"><span data-i18n="Username">Username</span></label><input id="username" name="username" value="admin" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="64" required>
@@ -30,4 +48,4 @@
 <p id="hand-back-message" role="status" aria-live="polite"></p></div></form></main>
 <footer data-language-host></footer>
 <small><span data-i18n="This session expires after 30 minutes without contact from this browser, or after seven days at most. A device restart ends the session. Use only your trusted local network; this device currently uses HTTP.">This session expires after 30 minutes without contact from this browser, or after seven days at most. A device restart ends the session. Use only your trusted local network; this device currently uses HTTP.</span></small>
-<noscript><span data-i18n="JavaScript is required for the device interface.">JavaScript is required for the device interface.</span></noscript></body></html>
+<noscript><span data-i18n="JavaScript is required for the device interface.">JavaScript is required for the device interface.</span></noscript></div></body></html>

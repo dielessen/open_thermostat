@@ -379,6 +379,18 @@ TEST(AutoTuner, ShadowModeOnlyShowsWhatItWouldDo) {
     EXPECT_EQ(m.tuning().startCentiC, 25);
 }
 
+// Review of rc.2 (finding 4): an applied change is in the log only, not also under "would".
+TEST(AutoTuner, AppliedChangesAreNotAlsoProposals) {
+    Driver d;
+    d.day(cycles(5, 5));
+    ASSERT_EQ(d.tuner.logCount(), 2u);
+    Json root(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(d.tuner.addStatus(root.get(), d.now, d.tuning(), 0));
+    const cJSON* tuning = cJSON_GetObjectItem(root.get(), "tuning");
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(tuning, "would")), 0);
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(tuning, "log")), 2);
+}
+
 TEST(AutoTuner, ResetAndTheStoredRecord) {
     Driver d;
     for (int i = 0; i < 3; ++i) d.day(cycles(5, 5));

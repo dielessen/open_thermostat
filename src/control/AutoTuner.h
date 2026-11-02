@@ -337,8 +337,7 @@ private:
         c.utc = utc_; c.knob = knob; c.from = from; c.to = uint16_t(to); c.reason = reason; c.figure = figure;
         if (room >= 0 && plan_ && size_t(room) < plan_->rooms.size()) std::snprintf(c.room, sizeof c.room, "%s", plan_->rooms[room].id.c_str());
         changed_ |= uint16_t(1u << knob);
-        if (wouldCount_ < would_.size()) would_[wouldCount_++] = c;
-        if (!apply_) return;
+        if (!apply_) { if (wouldCount_ < would_.size()) would_[wouldCount_++] = c; return; } // shown only
         values_.*k[knob].field = uint16_t(to);
         // The overshoot starts anew after a margin step or a gentler gain; a raise keeps the
         // evidence (it was raised on it), so a cycle-poor floor cannot be raised day after day.

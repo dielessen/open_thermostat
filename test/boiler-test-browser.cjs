@@ -47,7 +47,7 @@ const fixture = () => ({reception: {state:'classic_reports_received', report_cou
     assert.equal(await page.locator('[data-short-cycling]').innerText(),'De brander slaat erg vaak aan en uit');
     const dhw = await page.locator('[data-dhw]').innerText();
     assert.match(dhw,/Tappen\s+3 × · 9 min/); assert.match(dhw,/Warmhouden\s+2 × · 5 min/); assert.match(dhw,/Brandertijd\s+16 min/);
-    assert.doesNotMatch(dhw,/Hoogste doorstroming/); assert.match(dhw,/dalende tapwatertemperatuur/);
+    assert.doesNotMatch(dhw,/Hoogste warmwaterdoorstroming/); assert.match(dhw,/dalende warmwatertemperatuur/);
     // Older firmware without these objects hides both blocks.
     delete data.burner_cycles; delete data.dhw_episodes;
     await page.locator('[data-dhw]').waitFor({state:'hidden'});

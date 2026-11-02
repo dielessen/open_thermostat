@@ -65,9 +65,9 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await page.goto('http://opth.test/');await page.waitForFunction(()=>typeof loadNativePage==='function');
   await page.evaluate(()=>{sessionStorage.removeItem('ot-rooms-edit');loadNativePage('house');});
   const root=page.locator('#house-settings'),box=root.locator('[data-heating-flow-options]');
-  await box.getByRole('heading',{name:'Aanvoertemperatuur'}).waitFor();
-  const curve=box.getByLabel('Weersafhankelijke stooklijn'),learned=box.getByLabel('Geleerde aanvoer en optimale start gebruiken');
-  const design=box.getByLabel('Aanvoer bij −10 °C'),message=box.locator('[data-flow-message]');
+  await box.getByRole('heading',{name:'Watertemperatuur'}).waitFor();
+  const curve=box.getByLabel('Buitentemperatuur volgen (stooklijn)'),learned=box.getByLabel('Op tijd warm met het koelste water');
+  const design=box.getByLabel('Watertemperatuur bij −10 °C buiten'),message=box.locator('[data-flow-message]');
   // Status lines from /status/heating: source, curve, slope, learned, optimum start, gas calibration and boiler power,
   // collapsed under "Status en leren" below the two settings.
   const more=box.locator('details.hp-more');
@@ -75,14 +75,14 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await more.locator('summary').click();
   await box.locator('[data-flow-status] dt').first().waitFor();
   const time=await page.evaluate(()=>new Date(1793248800000).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}));
-  assert.deepEqual(await pairs(box.locator('[data-flow-status]')),[['Aanvoer nu','Ruimteregeling · 36 °C'],['Stooklijn','Alleen advies · 41 °C'],
-   ['Helling stooklijn','0,67 · Uit de ontwerpaanvoer'],['Geleerde aanvoer','Nog aan het leren'],['Optimale start','Alleen advies · geplande start '+time],
+  assert.deepEqual(await pairs(box.locator('[data-flow-status]')),[['Watertemperatuur nu','Ruimteregeling · 36 °C'],['Stooklijn','Alleen advies · 41 °C'],
+   ['Steilheid stooklijn','0,67 · Uit de instelling bij −10 °C'],['Geleerde watertemperatuur','Nog aan het leren'],['Op tijd warm (vroege start)','Alleen advies · geplande start '+time],
    ['Gasijking','Geijkt met de gasmeter (middel)'],['Ketelvermogen','22,3 kW bij volle brander']]);
-  assert.equal(await box.locator('[data-flow-compare]').innerText(),'Gisteren tijdens verwarmen: ruimteregeling 38,4 °C, stooklijn 41,3 °C, geleerd — °C');
-  assert.equal(await box.locator('[data-flow-night]').innerText(),'Afgelopen nacht: 1,73 m³ gas voor verwarmen (0,18 m³ warm water); model voorspelde 1,60 m³');
+  assert.equal(await box.locator('[data-flow-compare]').innerText(),'Gisteren tijdens verwarmen, watertemperatuur: ruimteregeling 38,4 °C, stooklijn 41,3 °C, geleerd — °C');
+  assert.equal(await box.locator('[data-flow-night]').innerText(),'Afgelopen nacht: 1,73 m³ gas voor verwarming (0,18 m³ warm water); de E32 verwachtte 1,60 m³');
   // Help texts and the design flow choice: automatic by emitter, or 25–80 °C.
-  assert.match(await box.innerText(),/Bepaalt de aanvoertemperatuur uit de buitentemperatuur, met de ruimtecorrectie erbovenop\./);
-  assert.match(await box.innerText(),/Uit: de E32 geeft alleen advies\. Aan: bij opwarmen gebruikt hij de laagste aanvoer/);
+  assert.match(await box.innerText(),/Kouder buiten betekent warmer water naar de radiatoren en vloer, nog voordat de ruimtes afkoelen\./);
+  assert.match(await box.innerText(),/Uit: de E32 geeft alleen advies\. Aan: elke ruimte warmt op met het koelste water/);
   const choices=await design.locator('option').allInnerTexts();
   assert.equal(choices[0],'Automatisch (vloer 40 °C, radiatoren 55 °C)');assert.equal(choices[1],'25 °C');assert.equal(choices.at(-1),'80 °C');assert.equal(choices.length,57);
   assert.equal(await design.inputValue(),'0');assert.equal(await curve.isChecked(),false);assert.equal(await learned.isChecked(),false);
@@ -125,9 +125,9 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
    curve:{...status.flow.curve,state:'applied',slope:0.71,slope_source:'learned'}});
   status.learned.gas={status:'no_meter',confidence:'none',factor:1,kw_at_full_modulation:24,kw_source:'boiler_kw',intervals:0,rejected:0,last:'no_interval',spread:null};
   status.night_gas.last={...status.night_gas.last,status:'no_meter',measured_m3:null,heating_m3:null,hot_water_m3:null};
-  await box.locator('[data-flow-status]').getByText('Geleerde aanvoer · 34 °C').waitFor({timeout:15000});
-  assert.deepEqual(await pairs(box.locator('[data-flow-status]')),[['Aanvoer nu','Geleerde aanvoer · 34 °C'],['Stooklijn','In gebruik · 41 °C'],
-   ['Helling stooklijn','0,71 · Geleerd van dit huis'],['Geleerde aanvoer','In gebruik · 34 °C'],['Optimale start','Geen start gepland'],
+  await box.locator('[data-flow-status]').getByText('Geleerde watertemperatuur · 34 °C').waitFor({timeout:15000});
+  assert.deepEqual(await pairs(box.locator('[data-flow-status]')),[['Watertemperatuur nu','Geleerde watertemperatuur · 34 °C'],['Stooklijn','In gebruik · 41 °C'],
+   ['Steilheid stooklijn','0,71 · Geleerd van dit huis'],['Geleerde watertemperatuur','In gebruik · 34 °C'],['Op tijd warm (vroege start)','Geen start gepland'],
    ['Gasijking','Geen gasmeter: schatting uit het ketelvermogen (ruw)'],['Ketelvermogen','24,0 kW bij volle brander']]);
   assert.equal(await box.locator('[data-flow-night]').innerText(),'Afgelopen nacht: geen gasmeterstand');
   // Changed elsewhere (Home Assistant): the stored options come with the status.
@@ -180,7 +180,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   // Firmware before the knobs: the options without "tuning", and no tuning section.
   delete settings.tuning;
   await page.evaluate(()=>loadNativePage('house'));
-  await box.getByRole('heading',{name:'Aanvoertemperatuur'}).waitFor();
+  await box.getByRole('heading',{name:'Watertemperatuur'}).waitFor();
   await page.waitForTimeout(300);
   assert.equal(await box.locator('[data-flow-tuning]').isVisible(),false);
   settings.tuning={...tuningDefaults};
@@ -196,12 +196,12 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
    confirmation:{age_s:40,restored:true,listened_s:45},warnings:['boiler_limit_unknown'],enabled:true,confirmation_stored:true,
    boiler_limit:{flow_c:null,age_s:null,reads:2}};
   await activeFacts.waitFor({timeout:15000});
-  assert.deepEqual(await pairs(activeFacts),[['Maximale aanvoer (gemeld door de ketel)','nog niet bekend']]);
+  assert.deepEqual(await pairs(activeFacts),[['Ketelmaximum (gemeld door de ketel)','nog niet bekend']]);
   assert.deepEqual(await activeNotes.locator('p').allInnerTexts(),[
    'Herstart: de E32 luistert eerst 2 minuten of er een andere thermostaat is voordat hij weer overneemt. (45 van 120 s)',
    'Je bevestiging blijft bewaard na een herstart.']);
   assert.deepEqual(await control.locator('[data-heating-active-warnings] li').allInnerTexts(),
-   ['De ketel heeft zijn maximale aanvoertemperatuur nog niet gemeld; de E32 vraagt geen warmte en vraagt het elke 5 minuten opnieuw.']);
+   ['De ketel heeft zijn hoogste watertemperatuur nog niet gemeld. Tot dan vraagt de E32 geen warmte; hij vraagt het de ketel elke 5 minuten opnieuw.']);
   // Listening done and the limit read: the maximum with its age, only the stored confirmation remains.
   Object.assign(status.active,{state:'active',confirmation:{age_s:200,restored:false},warnings:[],boiler_limit:{flow_c:75,age_s:30,reads:3}});
   await activeFacts.getByText('75 °C · 30 s geleden').waitFor({timeout:15000});

@@ -48,16 +48,16 @@ const items=list=>list.evaluate(ul=>[...ul.children].map(li=>[li.className.repla
   // Right before "Comparison with your thermostat", in shadow mode.
   assert.equal(await box.evaluate(b=>b.nextElementSibling.matches('[data-heating-shadow]')),true);
   if(language==='en'){
-   assert.equal(await box.locator('h2').innerText(),'Ready to take over?');
-   assert.equal(await verdict.innerText(),'Not yet: the E32 is still collecting shadow data (at least 3 days).');
+   assert.equal(await box.locator('h2').innerText(),'Ready for the E32 to control the boiler?');
+   assert.equal(await verdict.innerText(),'Not yet: the trial run needs at least 3 days of data.');
    assert.equal(await box.locator('[data-heating-readiness-alone]').isVisible(),false);
    assert.deepEqual(await items(list),[
     ['wait','Stable for 72 hours','Waiting','50.6 of 72 h without a hang or unexpected restart.'],
     ['wait','Heating periods compared','Waiting','9 of 10 periods. Still needed: a morning warm-up.'],
     ['wait','Heat at the same moments','Waiting','18 of 20 starts and stops.'],
-    ['pass','Flow request below the hard limit','Passed','Highest 54 °C, limit 60 °C.'],
+    ['pass','Water temperature stays below the safe maximum','Passed','Highest 54 °C, limit 60 °C.'],
     ['wait','Not more burner starts than the thermostat','Waiting','9 of 10 thermostat periods.'],
-    ['pass','Room sources work','Passed','Every active room is measured, and a fallback source has taken over.']]);
+    ['pass','Room sensors work','Passed','Every active room is measured, and a backup sensor has stepped in at least once.']]);
    // Colour and icon per result: green pass, orange wait, red fail.
    const colours=await list.evaluate(ul=>[...ul.children].map(li=>getComputedStyle(li.querySelector('.hp-mark')).color));
    assert.notEqual(colours[0],colours[3]);
@@ -66,7 +66,7 @@ const items=list=>list.evaluate(ul=>[...ul.children].map(li=>[li.className.repla
    await show({...status,readiness:{...pass,state:'ready',stable:{result:'pass',s:300000,restart:'planned'},
     periods:{...pass.periods,thermostat:14,morning_warmups:2},timing:{result:'pass',events:28,matched:27,within_5min:22,within_15min:26},
     cycling:{result:'pass',e32:12,thermostat:14}}});
-   assert.equal(await verdict.innerText(),'Ready: follow the switch-over steps.');
+   assert.equal(await verdict.innerText(),'Ready: follow the steps to switch over.');
    assert.equal(await verdict.evaluate(v=>v.className),'hp-verdict hp-verdict--ready');
    assert.deepEqual((await items(list)).map(i=>i[0]),['pass','pass','pass','pass','pass','pass']);
    assert.equal((await items(list))[2][3],'22 of 28 starts and stops within 5 minutes, 27 within 30 minutes.');
@@ -76,27 +76,27 @@ const items=list=>list.evaluate(ul=>[...ul.children].map(li=>[li.className.repla
    assert.equal(await verdict.innerText(),'Not ready: fix the items marked in red first.');
    const failed=await items(list);
    assert.deepEqual(failed[0],['wait','Stable for 72 hours','Waiting','2 of 72 h without a hang or unexpected restart. The E32 restarted unexpectedly; counting started again.']);
-   assert.deepEqual(failed[3],['fail','Flow request below the hard limit','Action needed','2 times above the limit of 60 °C. Do not switch over: check the flow limits and report this.']);
-   assert.deepEqual(failed[5],['fail','Room sources work','Action needed','No room has a second source to fall back on. Add one, for example a Bluetooth sensor.']);
+   assert.deepEqual(failed[3],['fail','Water temperature stays below the safe maximum','Action needed','2 times above the limit of 60 °C. Do not switch over: check the water temperature limits and report this.']);
+   assert.deepEqual(failed[5],['fail','Room sensors work','Action needed','No room has a backup sensor yet. Add one, for example a Bluetooth sensor.']);
   }else{
-   assert.equal(await box.locator('h2').innerText(),'Klaar om over te nemen?');
-   assert.equal(await verdict.innerText(),'Nog niet: de E32 verzamelt nog schaduwgegevens (minstens 3 dagen).');
+   assert.equal(await box.locator('h2').innerText(),'Klaar om de E32 de ketel te laten regelen?');
+   assert.equal(await verdict.innerText(),'Nog niet: de proefperiode heeft minstens 3 dagen gegevens nodig.');
    assert.deepEqual((await items(list)).map(i=>[i[2],i[3]]),[
     ['Wacht','50,6 van 72 uur zonder vastloper of onverwachte herstart.'],
     ['Wacht','9 van 10 periodes. Nog nodig: een ochtendopwarming.'],
     ['Wacht','18 van 20 starts en stops.'],
     ['Geslaagd','Hoogste 54 °C, grens 60 °C.'],
     ['Wacht','9 van 10 thermostaatperiodes.'],
-    ['Geslaagd','Elke actieve ruimte wordt gemeten, en een terugvalbron heeft het overgenomen.']]);
+    ['Geslaagd','Elke actieve ruimte wordt gemeten, en een reservesensor heeft het al eens overgenomen.']]);
    // A home without a thermostat on the bus: the E32 and the boiler only, and it says so.
    await show({...status,readiness:{state:'not_ready',comparison:false,stable:{result:'wait',s:36000,restart:'first'},
     sources:{result:'wait',rooms:1,working:1,backup:1,fallback_seen:false},boiler:{result:'pass',age_s:12},boiler_limit:{result:'fail',limit_c:null}}});
    assert.equal(await box.locator('[data-heating-readiness-alone]').innerText(),
     'Er is geen thermostaat op de ketelbus om mee te vergelijken, dus alleen de E32 zelf en de ketel worden gecontroleerd.');
-   assert.deepEqual((await items(list)).map(i=>i[1]),['72 uur stabiel','Ruimtebronnen werken','Ketel gehoord op de bus','Ketelmaximum bekend']);
+   assert.deepEqual((await items(list)).map(i=>i[1]),['72 uur stabiel','Ruimtesensoren werken','De E32 hoort de ketel','Ketelmaximum bekend']);
    assert.equal((await items(list))[0][3],'10 van 72 uur zonder vastloper of onverwachte herstart. Het tellen begon toen deze firmware voor het eerst draaide.');
    assert.equal((await items(list))[2][3],'Laatste melding 12 s geleden.');
-   assert.equal((await items(list))[3][3],'De ketel heeft zijn verwarmingsgrens niet gemeld. Controleer de busverbinding.');
+   assert.equal((await items(list))[3][3],'De ketel heeft zijn hoogste watertemperatuur niet gemeld. Controleer de kabel naar de ketel.');
   }
   // Taken over: no checklist (the firmware says not_applicable; active mode hides it too).
   await show({...status,mode:'active',readiness:{state:'not_applicable'}});

@@ -1,4 +1,4 @@
-// The Boiler profile card on the real shipped boiler page (fixture transport only):
+// The "What your boiler reports" card (boiler profile) on the real shipped boiler page (fixture transport only):
 // three groups with friendly Dutch names, other-family fields left out, and the
 // owner's "show anyway" for a not-fitted value.
 const {chromium} = require('playwright-core');
@@ -60,17 +60,17 @@ function profile(shown) {
     assert.equal(await box.evaluate(node => node.open), false, 'collapsed by default');
     await page.locator('[data-profile-summary]').filter({hasText:'3 beschikbaar, 2 niet aanwezig'}).waitFor();
     await box.locator('summary').click();
-    assert.match(await box.locator('summary').innerText(), /Ketelprofiel/);
+    assert.match(await box.locator('summary').innerText(), /Wat je ketel meldt/);
     const group = key => box.locator(`[data-profile-group="${key}"]`).innerText();
     const supported = await group('supported'), notFitted = await group('not_fitted'), pending = await group('pending');
-    assert.match(supported, /Aanvoertemperatuur/); assert.match(supported, /Retourtemperatuur/);
+    assert.match(supported, /Watertemperatuur naar verwarming \(aanvoer\)/); assert.match(supported, /Watertemperatuur terug \(retour\)/);
     assert.match(supported, /<img src=x onerror=alert\(1\)>/);  // text, never markup
     assert.equal(await box.locator('img').count(), 0);
     assert.match(notFitted, /Waterdruk/); assert.match(notFitted, /Opslagtemperatuur 1/);
     assert.match(pending, /Buitentemperatuur/); assert.match(pending, /gezien, nog te weinig berichten/);
-    assert.match(pending, /Gekozen aanvoertemperatuur · blijft 0 terwijl de ketel werkt/);
+    assert.match(pending, /Doel watertemperatuur \(ketel\) · blijft 0 terwijl de ketel werkt/);
     assert.doesNotMatch(pending, /Buitentemperatuur · blijft 0/, 'only a value left empty says so');
-    assert.doesNotMatch(supported, /Gekozen aanvoertemperatuur/);
+    assert.doesNotMatch(supported, /Doel watertemperatuur/);
     assert.doesNotMatch(pending, /EMS\+/, 'a Classic boiler lists no EMS+ fields');
     assert.equal(await box.locator('[data-profile-family]').isVisible(), true);
     // Show anyway: one POST, then the button reads "hide again".
@@ -84,7 +84,7 @@ function profile(shown) {
     available = false;
     await page.evaluate(() => loadNativePage('boiler_test'));
     await page.locator('[data-boiler-profile]').waitFor({state:'hidden'});
-    await page.locator('[data-essentials]').filter({hasText:'Aanvoertemperatuur'}).waitFor();
+    await page.locator('[data-essentials]').filter({hasText:'Watertemperatuur naar verwarming (aanvoer)'}).waitFor();
     assert.deepEqual(errors, []);
     await page.close();
   } } finally { await browser.close(); }

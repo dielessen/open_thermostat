@@ -174,7 +174,7 @@
         const all = range([flow, ret, positive(request), positive(thermostat)]);
         const fr = range([flow]), br = range([burner]);
         if (!all && !br) return '';
-        let summary = spanText(model, now, w) + ': ' + (fr ? uiText("flow {range} °C").replace('{range}', between(fr)) : uiText("no flow temperature"));
+        let summary = spanText(model, now, w) + ': ' + (fr ? uiText("water to heating {range} °C").replace('{range}', between(fr)) : uiText("no water temperature"));
         const on = mean(burner, 0, model.n);
         if (on !== null) summary += ', ' + uiText("burner on {pct} % of the time").replace('{pct}', Math.round(on));
         const hot = dhw && uiText("hot water: tapping {tap} %, keeping warm {warm} % of the time")
@@ -182,7 +182,7 @@
         if (hot) summary += ', ' + hot;
         summary += '.';
         const hotRows = p => dhw ? [[uiText("Tapping"), tap[p], '%'], [uiText("Keeping warm"), warm[p], '%']] : [];
-        const items = [['flow', uiText("Flow"), flow], ['return', uiText("Return"), ret], ['request', uiText("E32 request"), request], ['thermostat', uiText("Thermostat request"), thermostat]]
+        const items = [['flow', uiText("Water to heating"), flow], ['return', uiText("Water back"), ret], ['request', uiText("E32 request"), request], ['thermostat', uiText("Thermostat request"), thermostat]]
             .filter(i => range([i[0] === 'request' || i[0] === 'thermostat' ? positive(i[2]) : i[2]]));
         register('boiler', model, w, BW, p => items.map(i => [i[1], i[2][p] === 0 && (i[0] === 'request' || i[0] === 'thermostat') ? uiText("off") : i[2][p], '°C'])
             .concat(burner ? [[uiText("Burner on"), burner[p], '%']] : [], hotRows(p)));

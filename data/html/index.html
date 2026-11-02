@@ -433,7 +433,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
         function managedControlNotice() {
             if (controlUiMode === 'unknown') {
                 document.getElementById('maincontainer').textContent =
-                    uiText("Controller mode unavailable. Reload Home before editing heating settings.");
+                    uiText("Control mode unknown. Reload this page before changing heating settings.");
                 return;
             }
             document.getElementById('maincontainer').innerHTML =
@@ -939,22 +939,22 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             window_open:"Heating paused by window/door status", dhw_active:"Hot water has priority",
             limits_unknown:"Installation limits not yet confirmed", no_fresh_local_safety:"Installation conditions not yet confirmed",
             unqualified:"Installation conditions not yet confirmed", idle:"No heat demand",
-            awaiting_readiness:"Waiting for an available heat delivery path",
-            hydraulic_profile_unqualified:"Installation profile not yet confirmed",
+            awaiting_readiness:"Waiting until heat can be delivered",
+            hydraulic_profile_unqualified:"Installation settings not yet confirmed in Home Assistant",
             adapter_unavailable:"Home Assistant connection missing",
             source_unavailable:"No valid measurement or program source",
             fault_state_unknown:"Boiler fault status still unknown",
             dhw_state_unknown:"Hot water status still unknown", dhw_priority:"Hot water has priority",
             no_demand:"No calculated heat demand", stop:"Control stopped",
-            water_target_invalid:"Calculated water target is outside the installation limits",
-            postrun:"Post-run after heat demand", logical_demand:"Calculated heat demand",
+            water_target_invalid:"Calculated water temperature is outside the limits",
+            postrun:"Pump running on after heating", logical_demand:"Calculated heat demand",
             shadow_seasonal_demand:"Calculated heat demand",
             shadow_low_load_or_satisfied:"Temperature reached or heat demand too low",
             seasonal_target_or_sensor_invalid:"Temperature measurement or target invalid",
-            shadow_frost_advice:"Frost protection advice; no confirmed control",
-            profile_unqualified:"Room comfort profile not yet confirmed",
+            shadow_frost_advice:"Frost protection would heat now (trial run: nothing sent)",
+            profile_unqualified:"Room settings not yet confirmed in Home Assistant",
             owner_unavailable:"Home Assistant connection missing",
-            monotonic_fault:"Room control clock changed; waiting for a new session",
+            monotonic_fault:"The E32 clock jumped; the room control restarts shortly",
             limit_stop:"Heating paused by the installation limits",
             explicit_off:"Room disabled",
             vacation_time_invalid:"Vacation needs a reliable clock",
@@ -1106,8 +1106,8 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
         }
 
         // The E32's own room engine (/status/heating) shares its words with the Rooms page.
-        var engineReasons = {heating:"Heating", minimum_on:"Minimum burner time", minimum_off:"Minimum pause", satisfied:"Warm enough", no_demand:"No room can ask for heat", idle:"No heat needed", invalid_parameters:"Invalid limits"};
-        var engineRoomStatus = {fallback:"Fallback source", stale:"Last value (source lost)", lost:"No measurement: no heat request", inactive:"Inactive"};
+        var engineReasons = {heating:"Heating", minimum_on:"Burner finishing its shortest run", minimum_off:"Burner resting before the next start", satisfied:"Warm enough", no_demand:"No room can ask for heat", idle:"No heat needed", invalid_parameters:"Limits do not fit: check the room settings"};
+        var engineRoomStatus = {fallback:"Backup sensor in use", stale:"Sensor silent: last reading used", lost:"No reading: this room does not ask for heat", inactive:"Inactive"};
         var engineTargetSource = {ha:"Target temperature from Home Assistant", schedule:"Target temperature from the week program", fallback:"Target temperature: fixed value without Home Assistant"};
         // Beta.19 comfort on the E32 (POST /config/heating/comfort): a temporary room
         // override, the window pause and away. Shown only by firmware that reports "away".
@@ -1144,7 +1144,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 '</option><option value="120" selected>'+uiText("2 hours")+'</option><option value="240">'+uiText("4 hours")+'</option></select> '+
                 '<button type="button" class="btn btn-primary" data-comfort="set" data-room="'+id+'">'+uiText("Set")+'</button></div>'+
                 (overriding ? '<div class="ot-actions"><button type="button" class="btn btn-outline-secondary" data-comfort="none" data-room="'+id+'">'+uiText("Back to the week program")+'</button></div>' : '')+
-                '<p class="pd-help">'+uiText("Only the room's target changes; flow limits and frost protection stay.")+'</p>'+comfortNoticeHtml(r.id)+'</details>';
+                '<p class="pd-help">'+uiText("Only the room's target changes; the water temperature limits and frost protection stay.")+'</p>'+comfortNoticeHtml(r.id)+'</details>';
         }
         function comfortAway(away) {
             if (!away || typeof away !== 'object') return '';
@@ -1266,11 +1266,11 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             // In shadow mode the thermostat controls the boiler: a calm chip, no "Blocked".
             var controlChip = !activePlan ? chip(uiText("Your thermostat controls the boiler")) : controlling ? chip(uiText("The E32 controls the boiler"),'ok') :
                 !engine || /^(stopped|blocked)/.test(activeState) ? chip(uiText("Boiler control")+': '+uiText("Blocked"),'err') : chip(uiText("Switch-over in progress"),'warn');
-            var statusHelp = request ? uiText("Calculated boiler request")+': '+(request.heat ? dashboardText(request.flow_c)+' °C'+(request.capped_by === 'boiler_limit' ? ' ('+uiText("limited by the boiler's own maximum")+')' : '') : uiText("off"))+' · '+uiText(dashboardKnown(engineReasons,request.reason) || "No heat needed") :
+            var statusHelp = request ? uiText("Boiler request (E32)")+': '+(request.heat ? dashboardText(request.flow_c)+' °C'+(request.capped_by === 'boiler_limit' ? ' ('+uiText("limited by the boiler's own maximum")+')' : '') : uiText("off"))+' · '+uiText(dashboardKnown(engineReasons,request.reason) || "No heat needed") :
                 state ? (controlling ? dashboardReason(supervisor.reason) : '') : uiText("Set up rooms on the Rooms page, or connect Home Assistant.");
             var html = '<section class="product-dashboard" aria-label="OpenThermostat">'+
                 uiHtml("<header class=\"pd-heading\"><div><h1>Your heating system</h1><p>Rooms and boiler at a glance.</p></div>")+
-                chip(activePlan?uiText("Active control"):uiText("Shadow mode"),controlling?'ok':activePlan?'warn':'')+'</header>'+
+                chip(activePlan?uiText("Active control"):uiText("Trial run"),controlling?'ok':activePlan?'warn':'')+'</header>'+
                 dashboardUpdateNotice(status.firmware_update)+dashboardPasswordNotice()+
                 '<section class="pd-status" data-dashboard-key="headline"><div class="pd-flow"><p class="pd-headline">'+dashboardText(headline)+'</p><p class="ot-chips">'+
                 chip(mode,ems.warmWaterActive===true||ems.heatingActive===true?'ok':'')+
@@ -1297,9 +1297,9 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             html += '</div>'+(trendPending && cards.length ? uiHtml("<p class=\"pd-help\" data-dashboard-key=\"trend-hint\">The trend appears after two reports.</p>") : '')+
                 (engine && dashboardHistory ? (function(chart) { return chart ? '<section class="pd-panel pd-history" data-dashboard-key="boiler-history">'+chart+'</section>' : ''; })(OpenThermostatHistory.boiler(dashboardHistory)) : '')+
                 '<section class="pd-panel pd-boiler">'+dashboardBoilerCodeHtml(boilerCode)+'<div class="pd-facts">'+
-                fact(uiText("Flow"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C')+
-                fact(uiText("Return"),dashboardNumber(ems.currentReturnTemperature,10,-20,150),'°C')+
-                fact(uiText("Modulation"),dashboardNumber(ems.currentBurnerPower,1,0,100),'%')+
+                fact(uiText("Water to heating"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C')+
+                fact(uiText("Water back"),dashboardNumber(ems.currentReturnTemperature,10,-20,150),'°C')+
+                fact(uiText("Burner power"),dashboardNumber(ems.currentBurnerPower,1,0,100),'%')+
                 fact(uiText("Pressure"),dashboardNumber(ems.pressure,10,0,10),'bar')+
                 uiHtml("</div><div class=\"pd-lower\"><details class=\"ot-advanced\"><summary>More boiler data</summary><dl class=\"pd-detail-grid\">");
             // Reliable reported fields only, and only when a value was received.
@@ -1308,18 +1308,18 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             var shown = 0;
             function detail(label,value) {if (value === null || value === undefined) return;shown++;html+='<dt>'+label+'</dt><dd>'+value+'</dd>';}
             [['displayCode',uiText("Display code")],['serviceCode',uiText("Service code")]].forEach(function(item){var value=ems[item[0]];detail(item[1],value==null?null:dashboardText(String(value).slice(0,80)));});
-            [['heatingEnabled',uiText("CH enabled")],['warmWaterEnabled',uiText("Hot water enabled")]].forEach(function(item){detail(item[1],typeof ems[item[0]]==='boolean'?dashboardBool(ems[item[0]],uiText("On"),uiText("Off")):null);});
-            [['currentWarmWaterTemperature',uiText("Hot water · reported"),10,-20,150],['selectedWarmWaterTemperature',uiText("Hot water target · read back"),1,0,150],['outdoorTemperature',uiText("Outdoor temperature · boiler source"),100,-60,60]].forEach(function(item){var value=dashboardNumber(ems[item[0]],item[2],item[3],item[4]);detail(item[1],value===null||value===undefined||value===''?null:dashboardValue(value,'°C'));});
+            [['heatingEnabled',uiText("Heating enabled")],['warmWaterEnabled',uiText("Hot water enabled")]].forEach(function(item){detail(item[1],typeof ems[item[0]]==='boolean'?dashboardBool(ems[item[0]],uiText("On"),uiText("Off")):null);});
+            [['currentWarmWaterTemperature',uiText("Hot water temperature"),10,-20,150],['selectedWarmWaterTemperature',uiText("Hot water target (as the boiler reports it)"),1,0,150],['outdoorTemperature',uiText("Outdoor temperature (boiler sensor)"),100,-60,60]].forEach(function(item){var value=dashboardNumber(ems[item[0]],item[2],item[3],item[4]);detail(item[1],value===null||value===undefined||value===''?null:dashboardValue(value,'°C'));});
             if (!shown) html += '<dt>'+uiText("Boiler data")+'</dt><dd>'+uiText("No reliable values received yet")+'</dd>';
-            html += uiHtml("</dl><p class=\"pd-help\">Only values the boiler reported recently are shown. All values, with their quality, are on the Boiler page. Telemetry is not an independent physical flame or heat measurement.</p></details></div></section>")+
-                uiHtml("<section class=\"pd-panel\"><h2>How this works</h2><details class=\"ot-advanced\" data-dashboard-key=\"shadow-mode-help\"><summary>Shadow mode and boiler commands</summary><p>")+
+            html += uiHtml("</dl><p class=\"pd-help\">Only values the boiler reported recently are shown; all values are on the Boiler page. They are what the boiler says, not separate measurements.</p></details></div></section>")+
+                uiHtml("<section class=\"pd-panel\"><h2>How this works</h2><details class=\"ot-advanced\" data-dashboard-key=\"shadow-mode-help\"><summary>Who controls the boiler?</summary><p>")+
                 (controlling ? uiText("Active control: the E32 controls your boiler. Your old thermostat must stay disconnected.") :
-                uiText("Shadow mode: the E32 reads data and calculates demand. Valve and boiler commands remain disabled until the physical command and safe-stop tests are completed."))+'</p>'+
+                uiText("Trial run: your own thermostat still controls the boiler. The E32 only reads the boiler data and works out what it would do, so you can compare. It sends nothing to the boiler."))+'</p>'+
                 // The Home Assistant controller's own state and reason are technical detail here.
                 (state ? '<p>'+dashboardText(uiText("Boiler control")+': '+dashboardBool(boilerEnabled,uiText("Enabled"),uiText("Blocked"))+' · '+dashboardReason(supervisor.reason))+'</p>' : '')+'<p>'+
-                dashboardBool(boilerEnabled,uiText("Control is enabled according to the controller."),uiText("The controller reports blocked outputs."))+
-                uiHtml(" No confirmed command timeline is available yet. Calculated room demand is not presented as a transmitted or executed boiler command.</p><p class=\"pd-help\">Flow and return come from the boiler. Modulation is the burner percentage from telemetry, not measured consumption.</p></details>")+
-                '<details class="ot-advanced" data-dashboard-key="connection-fallback-help"><summary>'+uiText("Connection loss and fallback")+'</summary><p>'+uiText("An unreachable HA web page alone does not mean the heating connection has failed.")+'</p><p>'+uiText("Without HA heartbeats, control permission expires locally on the E32 after 15 seconds. Reconnecting does not restore old commands or qualified measurements. This software deadline is not proof that the boiler has physically stopped.")+'</p><p>'+uiText("An unpowered E32 cannot send a stop command. Boiler timeout, local valve behaviour and minimum flow during pump overrun require installation-specific tests. This version keeps physical outputs disabled.")+'</p></details>'+
+                dashboardBool(boilerEnabled,uiText("Boiler control is allowed."),uiText("Boiler control is blocked for now."))+
+                uiHtml(" The heat demand shown is what the E32 calculated, not proof that the boiler received it.</p><p class=\"pd-help\">The water temperatures come from the boiler. Burner power is the percentage the boiler reports, not measured gas use.</p></details>")+
+                '<details class="ot-advanced" data-dashboard-key="connection-fallback-help"><summary>'+uiText("What if the connection drops?")+'</summary><p>'+uiText("If the Home Assistant web page does not open, the heating link can still be fine.")+'</p><p>'+uiText("If the E32 hears nothing from Home Assistant for 15 seconds, it stops following Home Assistant's commands. After reconnecting it waits for fresh ones. Check the boiler itself if you must be sure it stopped.")+'</p><p>'+uiText("Without power the E32 cannot tell the boiler to stop; the boiler then relies on its own timeout. How long that takes differs per boiler, so ask your installer if you are unsure.")+'</p></details>'+
                 dashboardBuildSupport(status.control_build)+'</section></section>';
             var main = document.getElementById('maincontainer');
             var current = main.querySelector('.product-dashboard');

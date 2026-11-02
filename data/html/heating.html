@@ -8,21 +8,21 @@
     <button type="button" class="btn btn-outline-primary" data-heating-unlock><span data-i18n="Edit here anyway">Edit here anyway</span></button></div>
   <div class="hp-rooms" data-heating-rooms></div>
   <p data-heating-add-row><button type="button" class="btn btn-outline-primary" data-heating-add><span data-i18n="Add room">Add room</span></button></p>
-  <p class="pd-help"><span data-i18n="Heating curve, learned flow and flow limits for the whole house:">Heating curve, learned flow and flow limits for the whole house:</span> <a href="#house" data-page="house"><span data-i18n="Home">Home</span></a></p>
+  <p class="pd-help"><span data-i18n="Heating curve, water temperature limits and learning for the whole house:">Heating curve, water temperature limits and learning for the whole house:</span> <a href="#house" data-page="house"><span data-i18n="Home">Home</span></a></p>
   <section class="pd-panel" data-heating-readiness hidden>
-    <h2 data-i18n="Ready to take over?">Ready to take over?</h2>
+    <h2 data-i18n="Ready for the E32 to control the boiler?">Ready for the E32 to control the boiler?</h2>
     <p class="hp-verdict" data-heating-readiness-verdict role="status" aria-live="polite"></p>
     <p class="pd-help" data-heating-readiness-alone hidden data-i18n="There is no thermostat on the boiler bus to compare with, so only the E32 itself and the boiler are checked.">There is no thermostat on the boiler bus to compare with, so only the E32 itself and the boiler are checked.</p>
     <ul class="hp-checks" data-heating-readiness-list></ul>
   </section>
   <section class="pd-panel" data-heating-shadow>
     <h2 data-heating-shadow-title></h2>
-    <p class="pd-help" data-heating-shadow-help data-i18n="Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what your thermostat asked of the boiler.">Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what your thermostat asked of the boiler.</p>
+    <p class="pd-help" data-heating-shadow-help data-i18n="Trial run: the E32 works out what it would ask of the boiler, but sends nothing. Here you see that next to what your thermostat really asked.">Trial run: the E32 works out what it would ask of the boiler, but sends nothing. Here you see that next to what your thermostat really asked.</p>
     <div data-heating-shadow-body><span data-i18n="Loading…">Loading…</span></div>
   </section>
   <section class="pd-panel" data-heating-active>
     <h2 data-i18n="Active control">Active control</h2>
-    <p class="pd-help" data-i18n="Lets the E32 control the boiler itself instead of your thermostat, after an attended switch-over.">Lets the E32 control the boiler itself instead of your thermostat, after an attended switch-over.</p>
+    <p class="pd-help" data-i18n="Lets the E32 control the boiler instead of your thermostat. You switch over once, while you are at home and can check the boiler.">Lets the E32 control the boiler instead of your thermostat. You switch over once, while you are at home and can check the boiler.</p>
     <p class="pd-help" data-heating-active-gate hidden data-i18n="Active control is not enabled in this firmware.">Active control is not enabled in this firmware.</p>
     <div data-heating-active-state role="status" aria-live="polite"><span data-i18n="Loading…">Loading…</span></div>
     <dl class="pd-detail-grid" data-heating-active-facts hidden></dl>
@@ -30,20 +30,20 @@
     <ul data-heating-active-warnings></ul>
     <p class="d-flex flex-wrap gap-2" data-heating-active-actions hidden>
       <button type="button" class="btn btn-primary" data-heating-takeover hidden><span data-i18n="My thermostat is disconnected from the boiler — let the E32 take over">My thermostat is disconnected from the boiler — let the E32 take over</span></button>
-      <button type="button" class="btn btn-outline-secondary" data-heating-handback hidden><span data-i18n="Hand back to the thermostat (the E32 asks for zero for one minute)">Hand back to the thermostat (the E32 asks for zero for one minute)</span></button>
+      <button type="button" class="btn btn-outline-secondary" data-heating-handback hidden><span data-i18n="Give control back to my thermostat (the E32 first asks the boiler for no heat for a minute)">Give control back to my thermostat (the E32 first asks the boiler for no heat for a minute)</span></button>
     </p>
     <p class="pd-help" role="status" aria-live="polite" data-heating-active-message></p>
   </section>
   <!-- The flow limits for all rooms are on the Home page (#boiler-limits); a floor-heating room with a high maximum is flagged here. -->
   <div class="alert alert-warning ot-actions" data-heating-flow-warn role="status" hidden><span><span data-i18n="A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.">A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.</span> <span data-heating-flow-max></span></span>
-    <a class="btn btn-outline-primary" href="#boiler-limits" data-page="boiler_limits"><span data-i18n="Change the flow limits">Change the flow limits</span></a></div>
+    <a class="btn btn-outline-primary" href="#boiler-limits" data-page="boiler_limits"><span data-i18n="Change the water temperature limits">Change the water temperature limits</span></a></div>
   <details class="ot-advanced">
     <summary data-i18n="Where do I set what?">Where do I set what?</summary>
     <ol class="hp-flow">
       <li><strong data-i18n="Without Home Assistant">Without Home Assistant</strong><span data-i18n="Set everything on this page: rooms, Bluetooth sensors and week programs work on the E32 alone.">Set everything on this page: rooms, Bluetooth sensors and week programs work on the E32 alone.</span></li>
       <li><strong data-i18n="Home Assistant (optional)">Home Assistant (optional)</strong><span data-i18n="When you use it, it is the main place: rooms, temperature sources, target temperatures and week programs.">When you use it, it is the main place: rooms, temperature sources, target temperatures and week programs.</span></li>
       <li><strong data-i18n="Room plan on the E32">Room plan on the E32</strong><span data-i18n="Stored on the E32 and kept in step with Home Assistant. It keeps running without Home Assistant.">Stored on the E32 and kept in step with Home Assistant. It keeps running without Home Assistant.</span></li>
-      <li><strong data-i18n="Boiler">Boiler</strong><span data-i18n="In shadow mode the E32 only calculates. It controls the boiler only after the attended switch-over.">In shadow mode the E32 only calculates. It controls the boiler only after the attended switch-over.</span></li>
+      <li><strong data-i18n="Boiler">Boiler</strong><span data-i18n="During the trial run the E32 only calculates. It controls the boiler only after you switch over.">During the trial run the E32 only calculates. It controls the boiler only after you switch over.</span></li>
     </ol>
     <p class="pd-help" data-i18n="When Home Assistant is offline, the E32 continues with its own Bluetooth sensors and week programs; otherwise it keeps the temperature without Home Assistant.">When Home Assistant is offline, the E32 continues with its own Bluetooth sensors and week programs; otherwise it keeps the temperature without Home Assistant.</p>
   </details>
@@ -80,26 +80,26 @@
   const lockBox = root.querySelector('[data-heating-lock]'), lockText = root.querySelector('[data-heating-lock-text]'), unlock = root.querySelector('[data-heating-unlock]');
   let locked = true; try { locked = sessionStorage.getItem('ot-rooms-edit') !== '1'; } catch (_) {}
   let neverHa = false, lockDecided = false, bleSensors = [], bleKey = '';
-  const statusText = {ok:"Measured", fallback:"Fallback source", stale:"Last value (source lost)", lost:"No measurement: no heat request", inactive:"Inactive"};
-  const reasonText = {heating:"Heating", minimum_on:"Minimum burner time", minimum_off:"Minimum pause", satisfied:"Warm enough", no_demand:"No room can ask for heat", idle:"No heat needed", invalid_parameters:"Invalid limits"};
+  const statusText = {ok:"Measured", fallback:"Backup sensor in use", stale:"Sensor silent: last reading used", lost:"No reading: this room does not ask for heat", inactive:"Inactive"};
+  const reasonText = {heating:"Heating", minimum_on:"Burner finishing its shortest run", minimum_off:"Burner resting before the next start", satisfied:"Warm enough", no_demand:"No room can ask for heat", idle:"No heat needed", invalid_parameters:"Limits do not fit: check the room settings"};
   const sourceText = {ha:"Target temperature from Home Assistant", schedule:"Target temperature from the week program", fallback:"Target temperature: fixed value without Home Assistant"};
   const activeBox = root.querySelector('[data-heating-active]'), activeMessage = activeBox.querySelector('[data-heating-active-message]');
   const takeover = activeBox.querySelector('[data-heating-takeover]'), handback = activeBox.querySelector('[data-heating-handback]');
-  const activeText = {shadow:"Shadow mode: your thermostat controls the boiler.",
+  const activeText = {shadow:"Trial run: your thermostat controls the boiler.",
     awaiting_confirmation:"Waiting for your confirmation that your thermostat is disconnected from the boiler.",
-    arming:"Taking over: waiting for fresh room readings and the boiler bus.", active:"The E32 controls the boiler.",
+    arming:"Switching over: waiting for fresh room readings and a reply from the boiler.", active:"The E32 controls the boiler.",
     stopped_measurement_lost:"No room measurements: the E32 asks the boiler for no heat until a reading returns.",
-    stopping:"Stopping: the E32 asks the boiler for zero for one minute.",
-    blocked_foreign_controller:"Stopped: another controller sent a boiler request after the takeover."};
-  const warningText = {foreign_controller:"Another controller (your thermostat?) still sends boiler requests. Disconnect it from the boiler, then confirm again.",
+    stopping:"Stopping: the E32 asks the boiler for no heat for one minute.",
+    blocked_foreign_controller:"Stopped: another thermostat still asked the boiler for heat after the switch-over."};
+  const warningText = {foreign_controller:"Another thermostat (your old one?) still asks the boiler for heat. Disconnect it from the boiler, then confirm again.",
     measurement_lost:"Room measurements are missing.", boiler_no_response:"The boiler does not respond to the heat request.",
-    transmit_failed:"Sending to the boiler fails.", boiler_limit_unknown:"The boiler has not reported its heating limit yet; the E32 asks for no heat and asks again every 5 minutes."};
+    transmit_failed:"Sending to the boiler fails.", boiler_limit_unknown:"The boiler has not reported its highest water temperature yet. Until then the E32 asks for no heat; it asks the boiler again every 5 minutes."};
   let plan = null, timer = null;
   // Radiator valves (beta.24, /config/heating/trv): null on firmware without them, so the block never shows.
   let trv = null;
   const valveModels = [['bosch_bth_ra', "Bosch BTH-RA (position, external temperature)"], ['sonoff_trvzb', "Sonoff TRVZB (external temperature)"],
     ['sonoff_trv_zbt', "Sonoff TRV Gen2 / TRV-ZBT (external temperature)"],
-    ['tuya_tv02', "Tuya TV02 (setpoint only)"], ['generic', "Other (setpoint only)"]];
+    ['tuya_tv02', "Tuya TV02 (target temperature only)"], ['generic', "Other (target temperature only)"]];
   const valveHealth = {ok:"Reporting", low_battery:"Battery low", offline:"Not reporting", unknown:"Waiting for a report"};
   // A valve Home Assistant drives (model ha_climate, its climate entity): chosen and judged in Home Assistant.
   const healthText = v => v.model === 'ha_climate' ? uiText("Driven by Home Assistant") : uiText(valveHealth[v.health] || valveHealth.unknown);
@@ -120,7 +120,7 @@
     duplicate_room:"Two rooms have the same name.", duplicate_source:"A sensor is listed twice in one room.",
     invalid_setpoint_entity:"The Home Assistant entity for the target temperature is not valid.",
     invalid_room_limits:"Keep the temperature without Home Assistant between the minimum and maximum.",
-    invalid_flow_limits:"The E32 refused the flow limits. Use a minimum of 20–79 °C and a maximum of 21–80 °C, with the minimum below the maximum.",
+    invalid_flow_limits:"The E32 refused the water temperature limits. Use a lowest of 20–79 °C and a highest of 21–80 °C, with the lowest below the highest.",
     storage_full:"The E32 storage is full. Remove switch points or a room, then save again.",
     save_unconfirmed:"The E32 could not confirm the save. Reload the page and check the rooms.",
     active_mode_not_released:"Active control is not enabled in this firmware.", plan_not_active:"Save the rooms first, then confirm the switch-over again."};
@@ -152,7 +152,7 @@
   function checkFlow() {
     const max = plan ? plan.maximum_flow_c : 0;
     flowWarn.hidden = !(max > 50 && [...roomsBox.querySelectorAll('[data-heating-emitter]')].some(s => s.value === 'floor'));
-    flowMax.textContent = uiText("The maximum flow is now {max} °C.").replace('{max}', max);
+    flowMax.textContent = uiText("The highest water temperature is now {max} °C.").replace('{max}', max);
   }
   // link: {fresh, ms} since Home Assistant last sent input; undefined when unknown.
   // Preferred source: /status/heating "ha"; older firmware: /status "control" (HA snapshot age).
@@ -254,7 +254,7 @@
     const showUntil = () => { until.parentElement.hidden = state.value !== 'until'; };
     state.addEventListener('change', showUntil); showUntil();
     const temp = section('temperature', "Temperature");
-    temp.box.append(el('h4', uiText("Temperature sources"), {class:'h6'}), el('p', uiText("Temperature sources, in order: the first fresh one leads, the rest are fallback."), {class:'pd-help'}));
+    temp.box.append(el('h4', uiText("Temperature sources"), {class:'h6'}), el('p', uiText("Temperature sensors, in order: the first one that reports is used; the others are backups."), {class:'pd-help'}));
     const sources = el('div'); temp.box.append(sources);
     const addSource = (s) => {
       const row = el('div', null, {'data-heating-source':''});
@@ -449,7 +449,7 @@
     const box = el('div', null, {'data-heating-valves':''}), rows = el('div'), live = el('ul', null, {class:'hp-valves', 'data-heating-valve-live':''});
     const note = el('p', null, {class:'pd-help', role:'status', 'aria-live':'polite', 'data-heating-valve-message':''}), valvesBrief = el('dd');
     const mine = () => trv.rooms.find(r => r.room === room.id) || {room:room.id, control:false, valves:[]};
-    box.append(el('p', uiText("Zigbee radiator valves (through Zigbee2MQTT on the same MQTT broker). The E32 sends them the room target and temperature and keeps the boiler flow as low as the valves allow."), {class:'pd-help'}), live);
+    box.append(el('p', uiText("Zigbee radiator valves (through Zigbee2MQTT on the same MQTT broker). The E32 sends them the room target and temperature and keeps the heating water as cool as the valves allow."), {class:'pd-help'}), live);
     const control = check(box, uiText("Drive these valves from the E32"), mine().control);
     control.setAttribute('data-heating-valve-control', '');
     box.append(el('p', uiText("Only while the E32 controls the boiler itself. Off: nothing is sent to the valves."), {class:'pd-help'}), rows);
@@ -533,8 +533,8 @@
   function renderMode(mode) {
     const active = mode === 'active';
     modeText.textContent = uiText(active ? "Active control: the E32 controls your boiler. Your old thermostat must stay disconnected."
-      : "Shadow mode: the E32 calculates the boiler request from these rooms but does not send it. Your thermostat keeps controlling the boiler until the attended switch-over.");
-    root.querySelector('[data-heating-shadow-title]').textContent = uiText(active ? "Comparison from the shadow period" : "Comparison with your thermostat (today)");
+      : "Trial run: the E32 works out what these rooms need, but sends nothing to the boiler. Your thermostat keeps controlling the boiler until you switch over.");
+    root.querySelector('[data-heating-shadow-title]').textContent = uiText(active ? "Comparison from the trial run" : "Comparison with your thermostat (today)");
     root.querySelector('[data-heating-shadow-help]').hidden = active;
   }
   function renderShadow(shadow) {
@@ -542,7 +542,7 @@
     if (d?.s) {
       const rows = [["Compared time", minutes(d.s)], ["Heating time E32 / thermostat", minutes(d.e32.heat_s) + ' / ' + minutes(d.tado.heat_s)],
         ["Burner starts E32 / thermostat", d.e32.starts + ' / ' + d.tado.starts], ["Agreement (both on or both off)", agreement(d)],
-        ["E32 flow range", range(d.e32)], ["Thermostat flow range", range(d.tado)],
+        ["E32 water temperature range", range(d.e32)], ["Thermostat water temperature range", range(d.tado)],
         ["Starts at about the same time (±5 min)", d.starts_within_5min + ' / ' + d.tado.starts]];
       if (d.tado_unknown_s) rows.push(["Without thermostat data", minutes(d.tado_unknown_s)]);
       const dl = el('dl', null, {class:'pd-detail-grid', 'data-heating-shadow-today':''});
@@ -564,9 +564,9 @@
     }
     shadowBox.replaceChildren(...parts);
   }
-  // "Ready to take over?" (TakeoverReadiness on the E32): one line per criterion, shadow mode only.
+  // "Ready for the E32 to control the boiler?" (TakeoverReadiness on the E32): one line per criterion, shadow mode only.
   const readinessBox = root.querySelector('[data-heating-readiness]');
-  const readinessVerdict = {ready:"Ready: follow the switch-over steps.", waiting:"Not yet: the E32 is still collecting shadow data (at least 3 days).",
+  const readinessVerdict = {ready:"Ready: follow the steps to switch over.", waiting:"Not yet: the trial run needs at least 3 days of data.",
     not_ready:"Not ready: fix the items marked in red first."};
   const resultWord = {pass:"Passed", wait:"Waiting", fail:"Action needed"}, resultMark = {pass:'✓', wait:'…', fail:'!'};
   const fill = (text, values) => Object.entries(values).reduce((t, [k, v]) => t.replace('{' + k + '}', v), uiText(text));
@@ -591,26 +591,26 @@
       : fill("{close} of {events} starts and stops within 5 minutes, {matched} within 30 minutes.", {close: t.within_5min, events: t.events, matched: t.matched})
         + (t.result === 'fail' ? ' ' + uiText("The E32 heats at other moments than your thermostat: check the room targets and the week program.") : ''));
     const f = r.flow;
-    if (f) add(f, "Flow request below the hard limit", f.result === 'fail'
-      ? fill("{n} times above the limit of {limit} °C. Do not switch over: check the flow limits and report this.", {n: f.over, limit: f.limit_c})
+    if (f) add(f, "Water temperature stays below the safe maximum", f.result === 'fail'
+      ? fill("{n} times above the limit of {limit} °C. Do not switch over: check the water temperature limits and report this.", {n: f.over, limit: f.limit_c})
       : (f.max_c == null ? fill("No heat request yet; limit {limit} °C.", {limit: f.limit_c}) : fill("Highest {max} °C, limit {limit} °C.", {max: f.max_c, limit: f.limit_c}))
         + (f.result === 'wait' ? ' ' + uiText("Needs an hour of heat requests.") : ''));
     const c = r.cycling;
     if (c) add(c, "Not more burner starts than the thermostat", c.result === 'wait' ? fill("{n} of 10 thermostat periods.", {n: c.thermostat})
       : fill("E32 {e} heating periods, thermostat {t}.", {e: c.e32, t: c.thermostat})
-        + (c.result === 'fail' ? ' ' + uiText("The E32 would start the burner more often: check the minimum flow and the flow limits.") : ''));
+        + (c.result === 'fail' ? ' ' + uiText("The E32 would start the burner more often: check the water temperature limits on the Home page.") : ''));
     const so = r.sources;
-    if (so) add(so, "Room sources work", so.result === 'pass' ? uiText("Every active room is measured, and a fallback source has taken over.")
+    if (so) add(so, "Room sensors work", so.result === 'pass' ? uiText("Every active room is measured, and a backup sensor has stepped in at least once.")
       : !so.rooms ? uiText("Add a room with a temperature sensor.")
       : so.working < so.rooms ? fill("{n} of {rooms} rooms have no fresh reading. Check the sensor's battery and range.", {n: so.rooms - so.working, rooms: so.rooms})
-      : !so.backup ? uiText("No room has a second source to fall back on. Add one, for example a Bluetooth sensor.")
-      : uiText("No fallback source has taken over yet. It happens when the main sensor drops out; you can test it by taking its battery out for half an hour."));
+      : !so.backup ? uiText("No room has a backup sensor yet. Add one, for example a Bluetooth sensor.")
+      : uiText("No backup sensor has stepped in yet. That happens when the main sensor drops out; you can test it by taking its battery out for half an hour."));
     const b = r.boiler;
-    if (b) add(b, "Boiler heard on the bus", b.result === 'pass' ? fill("Last report {age}.", {age: ago(b.age_s)})
-      : b.result === 'wait' ? uiText("Waiting for the boiler.") : uiText("The E32 hears nothing from the boiler. Check the bus cable and the adapter."));
+    if (b) add(b, "The E32 hears the boiler", b.result === 'pass' ? fill("Last report {age}.", {age: ago(b.age_s)})
+      : b.result === 'wait' ? uiText("Waiting for the boiler.") : uiText("The E32 hears nothing from the boiler. Check the cable to the boiler and the adapter."));
     const l = r.boiler_limit;
     if (l) add(l, "Boiler maximum known", l.result === 'pass' ? l.limit_c + ' °C.'
-      : l.result === 'wait' ? uiText("Waiting for the boiler to report it.") : uiText("The boiler has not reported its heating limit. Check the bus connection."));
+      : l.result === 'wait' ? uiText("Waiting for the boiler to report it.") : uiText("The boiler has not reported its highest water temperature. Check the cable to the boiler."));
     return lines;
   }
   function renderReadiness(r, mode) {
@@ -637,7 +637,7 @@
     if (a.state !== 'shadow') parts.push(uiText("Boiler request") + ': ' + (a.command.flow_c ? a.command.flow_c + ' °C' : uiText("off")));
     if (a.last_sent) parts.push(uiText("last sent") + ' ' + ago(a.last_sent.age_s));
     // The bus address belongs in the system log; here it is simply your thermostat (or, after a takeover, another controller).
-    if (a.foreign_controller) parts.push(uiText(a.state === 'shadow' ? "last request from your thermostat" : "last request from another controller") + ' ' + ago(a.foreign_controller.age_s));
+    if (a.foreign_controller) parts.push(uiText(a.state === 'shadow' ? "last request from your thermostat" : "last request from another thermostat") + ' ' + ago(a.foreign_controller.age_s));
     box.textContent = parts.join(' · ');
     // The boiler's own heating limit (0x16), the ceiling of every request; and the stored switch-over confirmation.
     const facts = activeBox.querySelector('[data-heating-active-facts]'), notes = activeBox.querySelector('[data-heating-active-notes]');
@@ -656,7 +656,7 @@
   function renderRequest(status) {
     const r = status?.request;
     requestBox.textContent = !r ? uiText("Status unavailable")
-      : uiText("Calculated boiler request") + ': ' + (r.heat ? r.flow_c + ' °C' : uiText("off")) + (r.heat && r.capped_by === 'boiler_limit' ? ' (' + uiText("limited by the boiler's own maximum") + ')' : '')
+      : uiText("Boiler request (E32)") + ': ' + (r.heat ? r.flow_c + ' °C' : uiText("off")) + (r.heat && r.capped_by === 'boiler_limit' ? ' (' + uiText("limited by the boiler's own maximum") + ')' : '')
         + ' · ' + uiText(reasonText[r.reason] || r.reason);
     requestBox.classList.toggle('ot-chip--ok', !!r?.heat);
     if (status?.ha && typeof status.ha === 'object') {
@@ -800,7 +800,7 @@
         }
         activeMessage.textContent = uiText("Handed back. The E32 asks the boiler for zero for one minute. Then reconnect your thermostat to the boiler.");
       } catch (error) {
-        activeMessage.textContent = uiText("The E32 stopped asking for heat, but saving the plan as shadow failed. Press the button again.") + ' (' + (error.code || 'network') + ')';
+        activeMessage.textContent = uiText("The E32 stopped asking for heat, but the plan could not be set back to the trial run. Press the button again.") + ' (' + (error.code || 'network') + ')';
         if (error.code === 'plan_changed') await load();
       }
     } finally {
@@ -808,7 +808,7 @@
       await refreshStatus();
     }
   };
-  takeover.addEventListener('click', () => plan && confirm(uiText("Confirm that your current thermostat is disconnected from the boiler. The E32 then controls the heating; two controllers must never be connected at the same time."))
+  takeover.addEventListener('click', () => plan && confirm(uiText("Confirm that your current thermostat is disconnected from the boiler. The E32 then controls the heating; never connect two thermostats to the boiler at the same time."))
     && switchOver('active', "Confirmed. The E32 takes over the boiler within a minute."));
   handback.addEventListener('click', () => plan && !handback.disabled && handBack());
   load();

@@ -64,20 +64,20 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await page.evaluate(()=>loadNativePage('heating'));
   const root=page.locator('#heating-plan');
   await root.getByText('Begin met de woonkamer: geef hem een naam en kies de temperatuursensor.').waitFor();
-  await root.locator('[data-heating-request]').getByText(/Berekende ketelvraag: uit/).waitFor();
+  await root.locator('[data-heating-request]').getByText(/Ketelvraag \(E32\): uit/).waitFor();
   // Active control with the firmware gate closed: a notice, no switch-over buttons.
   const control=root.locator('[data-heating-active]'),takeover=control.locator('[data-heating-takeover]'),handback=control.locator('[data-heating-handback]');
   await control.getByText('Actieve regeling is in deze firmware niet ingeschakeld.').waitFor();
-  assert.equal(await control.locator('[data-heating-active-state]').innerText(),'Schaduwmodus: je thermostaat regelt de ketel. · laatste vraag van je thermostaat 30 s geleden');
+  assert.equal(await control.locator('[data-heating-active-state]').innerText(),'Proefperiode: je thermostaat regelt de ketel. · laatste vraag van je thermostaat 30 s geleden');
   assert.equal(await takeover.isVisible(),false);assert.equal(await handback.isVisible(),false);
   // The paired Bluetooth sensors are chosen in the room itself; there is no separate read-only list.
   assert.equal(await root.locator('[data-heating-ble]').count(),0);
   // Shadow comparison of today and the completed days.
   const shadow=root.locator('[data-heating-shadow]');
-  assert.match(await shadow.innerText(),/Vergelijking met je thermostaat \(vandaag\)[\s\S]*Schaduwmodus: de E32 berekent zijn ketelvraag maar verstuurt die niet/);
+  assert.match(await shadow.innerText(),/Vergelijking met je thermostaat \(vandaag\)[\s\S]*Proefperiode: de E32 rekent uit wat hij de ketel zou vragen, maar stuurt niets/);
   assert.deepEqual(await pairs(shadow.locator('[data-heating-shadow-today]')),[['Vergeleken tijd','10 u 0 min'],
    ['Stooktijd E32 / thermostaat','2 u 0 min / 2 u 10 min'],['Branderstarts E32 / thermostaat','4 / 5'],['Overeenstemming (beide aan of beide uit)','95 %'],
-   ['Aanvoerbereik E32','31–42 °C (gemiddeld 36,4 °C)'],['Aanvoerbereik thermostaat','35–45 °C (gemiddeld 39,2 °C)'],
+   ['Watertemperatuur E32 (bereik)','31–42 °C (gemiddeld 36,4 °C)'],['Watertemperatuur thermostaat (bereik)','35–45 °C (gemiddeld 39,2 °C)'],
    ['Starts rond hetzelfde moment (±5 min)','3 / 5'],['Zonder thermostaatgegevens','10 min']]);
   const days=await shadow.locator('[data-heating-shadow-days] tr').evaluateAll(rows=>rows.map(r=>[...r.children].map(c=>c.textContent)));
   assert.deepEqual(days.map(r=>r.slice(1)),[['E32','Thermostaat','Overeenstemming','Starts E32 / thermostaat'],
@@ -132,7 +132,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(await root.locator('[data-heating-flow-warn]').isVisible(),true);
   assert.match(await root.locator('[data-heating-room="woonkamer"]>summary').innerText(),/^Woonkamer\s+Vraagt warmte\s+20,4 °C\s+Gewenst 21,0 °C\s+Gewenste temperatuur uit Home Assistant$/);
   assert.equal(await root.locator('[data-heating-room="woonkamer"]').getByLabel('Weekprogramma gebruiken').isChecked(),true,'a new room has a week program');
-  await root.locator('[data-heating-request]').getByText('Berekende ketelvraag: 36 °C · Verwarmen').waitFor();
+  await root.locator('[data-heating-request]').getByText('Ketelvraag (E32): 36 °C · Verwarmen').waitFor();
   // Home Assistant saved in between: the stale write is refused and the page reloads the plan.
   plan={...plan,revision:plan.revision+1,rooms:plan.rooms.map(r=>({...r,name:'Living',schedule:week}))};
   status.rooms[0].setpoint_source='schedule';
@@ -229,7 +229,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await control.getByText('Bevestigd. De E32 neemt de ketel binnen een minuut over.').waitFor();
   assert.match(dialogs.at(-1),/^Bevestig dat je huidige thermostaat van de ketel is losgekoppeld\./);
   assert.equal(posts.at(-1).mode,'active');assert.deepEqual(handovers,[{thermostat_disconnected:true}]);
-  await control.getByText('De E32 regelt de ketel. · Ketelvraag: 45 °C · laatst verzonden 5 s geleden · laatste vraag van een andere regelaar 30 s geleden').waitFor();
+  await control.getByText('De E32 regelt de ketel. · Ketelvraag: 45 °C · laatst verzonden 5 s geleden · laatste vraag van een andere thermostaat 30 s geleden').waitFor();
   assert.equal(await takeover.isVisible(),false);assert.equal(await handback.isVisible(),true);
   await root.locator('[data-heating-save]').click();await root.getByText('Ruimtes opgeslagen.').waitFor();
   assert.equal(posts.at(-1).mode,'active','saving rooms keeps the plan mode');
@@ -243,7 +243,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   // The stop worked, the plan save did not: the message says so and the next press completes it.
   calls.length=0;reject={error:'storage_failed',code:507};
   await handback.click();
-  await control.getByText(/^De E32 vraagt de ketel geen warmte meer, maar het plan kon niet als schaduw .*\(storage_failed\)$/).waitFor();
+  await control.getByText(/^De E32 vraagt de ketel geen warmte meer, maar het plan kon niet terug naar de proefperiode\. .*\(storage_failed\)$/).waitFor();
   assert.deepEqual(calls,['handover:false','plan:shadow']);assert.equal(plan.mode,'active');
   assert.equal(await handback.isVisible(),true);
   // Home Assistant saved the plan in between: reloaded and saved as shadow once more. A double
@@ -254,9 +254,9 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await control.getByText('Teruggegeven. De E32 vraagt de ketel één minuut lang nul. Sluit daarna je thermostaat weer aan op de ketel.').waitFor();
   assert.deepEqual(calls,['handover:false','plan:shadow','plan:shadow']);
   assert.equal(posts.at(-1).mode,'shadow');assert.equal(plan.mode,'shadow');assert.deepEqual(handovers.at(-1),{thermostat_disconnected:false});
-  await control.getByText(/^Stoppen: de E32 vraagt de ketel één minuut lang nul\. · Ketelvraag: uit/).waitFor();
+  await control.getByText(/^Stoppen: de E32 vraagt de ketel een minuut lang geen warmte\. · Ketelvraag: uit/).waitFor();
   assert.deepEqual(await control.locator('[data-heating-active-warnings] li').allInnerTexts(),
-   ['Een andere regelaar (je thermostaat?) stuurt nog ketelvragen. Koppel die los van de ketel en bevestig daarna opnieuw.']);
+   ['Een andere thermostaat (je oude?) vraagt de ketel nog om warmte. Koppel die los van de ketel en bevestig daarna opnieuw.']);
   assert.equal(await handback.isVisible(),false);assert.equal(await takeover.isVisible(),true);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll with active control');
   // An E32 that never had Home Assistant input opens unlocked, with a calm note instead of a warning.
@@ -272,9 +272,9 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await page.evaluate(()=>sessionStorage.removeItem('ot-rooms-edit'));
   await page.evaluate(()=>loadNativePage('heating'));
   const warn=root.locator('[data-heating-flow-warn]');await warn.waitFor();
-  assert.match(await warn.innerText(),/vloerverwarming[\s\S]*De maximale aanvoer is nu 60 °C\./);
+  assert.match(await warn.innerText(),/vloerverwarming[\s\S]*De hoogste watertemperatuur is nu 60 °C\./);
   assert.equal(await page.locator('#heating-min-flow,#heating-max-flow').count(),0,'no flow limits on the Rooms page');
-  await warn.getByRole('link',{name:'Aanvoergrenzen wijzigen'}).click();
+  await warn.getByRole('link',{name:'Grenzen watertemperatuur wijzigen'}).click();
   const limits=page.locator('#boiler-limits'),minFlow=limits.locator('#boiler-min-flow'),maxFlow=limits.locator('#boiler-max-flow');
   await page.waitForFunction(()=>document.getElementById('boiler-max-flow')?.value==='60');
   assert.equal(await page.evaluate(()=>location.hash),'#boiler-limits');
@@ -291,12 +291,12 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await maxFlow.fill('45');assert.equal(await limits.locator('[data-limits-floor-warn]').isVisible(),false);
   const saved=plan,count=posts.length;
   await limits.locator('[data-limits-save]').click();
-  await limits.getByText('Aanvoergrenzen opgeslagen.').waitFor();
+  await limits.getByText('Grenzen watertemperatuur opgeslagen.').waitFor();
   assert.equal(posts.length,count+1);assert.deepEqual(posts.at(-1),{...saved,maximum_flow_c:45},'the whole plan, only the maximum changed');
   assert.equal(await limits.locator('[data-limits-summary]').innerText(),'30–45 °C');
   // A minimum above the maximum is refused before sending.
   await minFlow.fill('50');await limits.locator('[data-limits-save]').click();
-  await limits.getByText('Houd de minimale aanvoer lager dan de maximale, tussen 20 en 80 °C.').waitFor();
+  await limits.getByText('Houd de laagste watertemperatuur onder de hoogste, tussen 20 en 80 °C.').waitFor();
   assert.equal(posts.length,count+1);
   // Home Assistant saved in between: refused by revision, reloaded, nothing overwritten.
   plan={...plan,revision:plan.revision+1,minimum_flow_c:25};

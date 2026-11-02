@@ -403,6 +403,49 @@ TEST(LearnedStore, FullNvsCorruptEntriesAndPlanChangesAreHandled) {
     EXPECT_STREQ(m.readiness(1), "collecting");
 }
 
+// rc.2: the global frame is version 2 with the boiler's learned minimum flow at its end; a
+// version 1 global frame (firmware before rc.2) is still read, with the minimum unlearned.
+TEST(LearnedState, TheBoilerMinimumIsKeptAndAnOldGlobalFrameStillReads) {
+    FlowLearner l; l.setPlan(plan());
+    FlowLearner::Boiler b;
+    b.flowCentiC = 3800; b.burnerOn = false; b.hotWater = false; b.modulationPct = 0;
+    b.requestedFlowC = 34; b.ownRequest = true; b.productId = 0x7b;
+    const FlowLearner::RoomInput in[2] = {{int16_t(2000), int16_t(2100), 0}, {int16_t(2100), int16_t(2100), 0}};
+    uint64_t now = 0;
+    for (int k = 0; k < 6 * 16; ++k) { now += 10 * second; l.sample(now, b, in, 2); }
+    ASSERT_EQ(l.effectiveMinimumC(70), 40);
+    const auto g = LearnedState::globalFrame(l, FlowPolicy{});
+    EXPECT_EQ(uint8_t(g[0]), LearnedState::globalVersion);
+    EXPECT_EQ(uint8_t(LearnedState::roomFrame(Learned().h.learner, 0)[0]), LearnedState::version); // rooms stay version 1
+    FlowLearner back; back.setPlan(plan());
+    FlowPolicy p;
+    ASSERT_TRUE(LearnedState::restoreGlobal(g, back, p));
+    EXPECT_EQ(back.effectiveMinimumC(70), 40);
+    EXPECT_EQ(back.boilerMinimum().raises(), 1);
+    EXPECT_EQ(back.heatingPeriods(), l.heatingPeriods());
+    // The same frame as version 1 wrote it: without the last 8 payload bytes.
+    const auto seal = [](std::string f, uint8_t v) {
+        f[0] = char(v);
+        const size_t n = f.size() - 8; f[2] = char(n & 0xFF); f[3] = char(n >> 8);
+        const uint32_t c = LearnedState::crc(f.data(), f.size() - 4);
+        std::memcpy(&f[f.size() - 4], &c, 4);
+        return f;
+    };
+    const auto v1 = seal(g.substr(0, g.size() - 12) + g.substr(g.size() - 4), 1);
+    ASSERT_TRUE(LearnedState::restoreGlobal(v1, back, p));
+    EXPECT_EQ(back.boilerMinimum().learnedC(), 0);  // an old frame has no minimum: it starts over
+    EXPECT_EQ(back.effectiveMinimumC(70), 30);
+    EXPECT_EQ(back.heatingPeriods(), l.heatingPeriods());
+    EXPECT_TRUE(LearnedState::validBundle(v1));
+    // Version 2 without the minimum, version 3, or a minimum it can never learn: refused whole.
+    EXPECT_FALSE(LearnedState::restoreGlobal(seal(v1, 2), back, p));
+    EXPECT_FALSE(LearnedState::restoreGlobal(seal(g, 3), back, p));
+    auto high = g; high[g.size() - 12] = char(90);  // learnedC_, the first of the 8 bytes
+    EXPECT_FALSE(LearnedState::restoreGlobal(seal(high, 2), back, p));
+    EXPECT_TRUE(LearnedState::restoreGlobal(seal(g, 2), back, p));
+    EXPECT_EQ(back.effectiveMinimumC(70), 40);
+}
+
 // Fuzz findings (soak run on 043e228): an edited settings backup with CRC-valid room frames
 // whose bins or heat sums FlowLearner::finish() can never produce. Before: accepted, then
 // NaN advice (a NaN cast to uint8_t), NaN/inf in the JSON and an infinite capacity.

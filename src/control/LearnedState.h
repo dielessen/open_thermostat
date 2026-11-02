@@ -22,10 +22,14 @@ namespace heating::control {
 // (boiler power, calorific value, price). Another version, a bad CRC or a
 // value that is not finite: the frame is ignored as a whole, never half
 // loaded. A room comes back only into a plan room with its id and emitter.
+// rc.2: the global frame is version 2, with the boiler's learned minimum flow
+// (BoilerMinimumFlow, 8 B) at its end; a version 1 global frame is still read
+// (the minimum then starts unlearned). Room frames stay version 1, so older
+// firmware after a rollback keeps every room and only drops the global frame.
 // Pure; LearnedStore below decides when the frames are written.
 class LearnedState {
 public:
-    static constexpr uint8_t version = 1;
+    static constexpr uint8_t version = 1, globalVersion = 2; // room frames; the global frame (also reads 1)
     static constexpr char globalKind = 'G', roomKind = 'R';
     static constexpr size_t maxFrame = 1024;
     static constexpr size_t backupBytes = 4096; // in the settings backup: 8 KB of hex at most
@@ -37,19 +41,22 @@ public:
     static std::string globalFrame(const FlowLearner& l, const FlowPolicy& p) {
         auto& m = const_cast<FlowLearner&>(l);   // Out only reads
         auto& q = const_cast<FlowPolicy&>(p);
-        return frame(globalKind, [&](Out& o) { globals(o, m.period_, m.gas_, q.curveLearner_, q.compare_, q.nights_); });
+        return frame(globalKind, globalVersion, [&](Out& o) { globals(o, m.period_, m.gas_, q.curveLearner_, q.compare_, q.nights_, m.minimum_); });
     }
     // Empty for a room that learned nothing yet (no NVS entry needed).
     static std::string roomFrame(const FlowLearner& l, size_t i) {
         if (i >= l.rooms_.size()) return {};
         auto& r = const_cast<FlowLearner::Room&>(l.rooms_[i]);
         if (!r.segments && !r.heat.coolSegments && !r.heat.powerSegments) return {};
-        return frame(roomKind, [&](Out& o) { room(o, r); });
+        return frame(roomKind, version, [&](Out& o) { room(o, r); });
     }
     static bool restoreGlobal(std::string_view f, FlowLearner& l, FlowPolicy& p) {
-        std::unique_ptr<Globals> g(new (std::nothrow) Globals{l.period_, l.gas_, p.curveLearner_, p.compare_, p.nights_});
-        if (!g || !readGlobal(f, *g)) return false;
+        std::unique_ptr<Globals> g(new (std::nothrow) Globals{l.period_, l.gas_, p.curveLearner_, p.compare_, p.nights_, l.minimum_});
+        if (!g) return false;
+        g->minimum.forget(); // a version 1 frame has none
+        if (!readGlobal(f, *g)) return false;
         l.period_ = g->period; l.gas_ = g->gas; p.curveLearner_ = g->curve; p.compare_ = g->compare; p.nights_ = g->nights;
+        l.minimum_ = g->minimum;
         return true;
     }
     // Into the plan room with the same id and emitter (removed or changed: false);
@@ -103,6 +110,7 @@ public:
 private:
     struct Out {
         static constexpr bool reading = false;
+        uint8_t version = 0; // of the frame being written
         std::string s;
         bool ok = true;
         template <class... T> void operator()(T&... v) { (s.append(reinterpret_cast<const char*>(&v), sizeof v), ...); }
@@ -111,6 +119,7 @@ private:
         static constexpr bool reading = true;
         const char* p = nullptr;
         size_t n = 0;
+        uint8_t version = 0; // of the frame being read
         bool ok = true;
         template <class... T> void operator()(T&... v) { (take(v), ...); }
         template <class T> void take(T& v) {
@@ -121,9 +130,10 @@ private:
         }
         bool done() const { return ok && !n; }
     };
-    template <class F> static std::string frame(char kind, F&& body) {
+    template <class F> static std::string frame(char kind, uint8_t v, F&& body) {
         Out o;
-        o.s.assign(4, '\0'); o.s[0] = char(version); o.s[1] = kind;
+        o.version = v;
+        o.s.assign(4, '\0'); o.s[0] = char(v); o.s[1] = kind;
         body(o);
         const size_t n = o.s.size() - 4;
         if (n + 8 > maxFrame) return {};
@@ -133,13 +143,15 @@ private:
         return o.s;
     }
     static bool open(std::string_view f, char kind, In& in) {
-        if (f.size() < 8 || uint8_t(f[0]) != version || f[1] != kind) return false;
+        if (f.size() < 8 || f[1] != kind) return false;
+        const uint8_t v = uint8_t(f[0]);
+        if (!(kind == globalKind ? v == 1 || v == globalVersion : v == version)) return false;
         const size_t n = uint8_t(f[2]) | size_t(uint8_t(f[3])) << 8;
         uint32_t c;
         if (f.size() != n + 8) return false;
         std::memcpy(&c, f.data() + 4 + n, sizeof c);
         if (c != crc(f.data(), n + 4)) return false;
-        in.p = f.data() + 4; in.n = n;
+        in.p = f.data() + 4; in.n = n; in.version = v;
         return true;
     }
     // The next frame of a bundle (by its length; the CRC is checked by open()).
@@ -150,10 +162,10 @@ private:
         f = b.substr(0, n); b.remove_prefix(n);
         return true;
     }
-    struct Globals { uint16_t period = 0; GasCalibration gas; CurveLearner curve; FlowCompare compare; NightLedger nights; };
+    struct Globals { uint16_t period = 0; GasCalibration gas; CurveLearner curve; FlowCompare compare; NightLedger nights; BoilerMinimumFlow minimum; };
     static bool readGlobal(std::string_view f, Globals& g) {
         In in;
-        return open(f, globalKind, in) && (globals(in, g.period, g.gas, g.curve, g.compare, g.nights), in.done());
+        return open(f, globalKind, in) && (globals(in, g.period, g.gas, g.curve, g.compare, g.nights, g.minimum), in.done());
     }
     static bool readRoom(std::string_view f, FlowLearner::Room& r) {
         In in;
@@ -173,7 +185,8 @@ private:
         io(i);
         if constexpr (IO::reading) s = i < N ? names[i] : nullptr;
     }
-    template <class IO> static void globals(IO& io, uint16_t& period, GasCalibration& g, CurveLearner& c, FlowCompare& f, NightLedger& n) {
+    template <class IO> static void globals(IO& io, uint16_t& period, GasCalibration& g, CurveLearner& c, FlowCompare& f, NightLedger& n,
+                                            BoilerMinimumFlow& m) {
         io(period, g.intervals_, g.rejected_, g.measuredSum_, g.predicted_, g.n_, g.r_, g.rr_);
         io(c.windows_, c.rejected_, c.sxy_, c.sxx_, c.n_);
         io(f.today_);
@@ -181,9 +194,17 @@ private:
         io(n.nights_, n.ratioN_, n.ratioSum_);
         uint8_t has = n.last_.has_value();
         io(has);
-        if (!has) { n.last_.reset(); return; }
-        if (!n.last_) n.last_.emplace();
-        auto& r = *n.last_;
+        if (!has) n.last_.reset();
+        else {
+            if (!n.last_) n.last_.emplace();
+            night(io, *n.last_);
+        }
+        if (io.version < 2) return;
+        // Version 2: the boiler's minimum flow; never above what BoilerMinimumFlow can learn.
+        io(m.learnedC_, m.productId_, m.raises_, m.burnS_);
+        if constexpr (IO::reading) if (m.learnedC_ > m.params().maxC) io.ok = false;
+    }
+    template <class IO> static void night(IO& io, NightLedger::Record& r) {
         io(r.startUtc, r.switchUtc);
         for (auto* v : {&r.measuredM3, &r.hotWaterM3, &r.heatingM3, &r.programM3, &r.thermostatM3, &r.recommendedM3}) optional(io, *v);
         name(io, r.status, std::array<const char*, 3>{"open", "measured", "no_meter"});

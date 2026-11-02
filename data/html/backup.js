@@ -252,7 +252,7 @@
                 if (secrets) request.passphrase = pass.value;
                 const result = await post(request);
                 if (result.status !== 200 || !result.value || result.value.format !== 'openthermostat-e32-backup') { fail(status, result); return; }
-                const text = JSON.stringify(result.value, null, 2);
+                const text = JSON.stringify(result.value); // compact: the restore takes at most maxBytes
                 const day = typeof result.value.created === 'string' ? result.value.created.slice(0, 10) : new Date().toISOString().slice(0, 10);
                 const link = element('a', {href: URL.createObjectURL(new Blob([text], {type: 'application/json'})), download: 'openthermostat-e32-backup-' + day + '.json'});
                 document.body.append(link); link.click(); link.remove();

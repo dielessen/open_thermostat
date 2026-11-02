@@ -470,6 +470,46 @@ TEST(ConfigBackup, FailedApplyRestoresTheOldSettings) {
     EXPECT_EQ(failed, "network,heating");
 }
 
+// Review of rc.2 (finding 6): the learned hex (up to 8 KB) could push the export over the
+// 24 KB a restore accepts. Printed unformatted the export fits; the learned rooms give way first.
+TEST(ConfigBackup, TheExportAlwaysFitsWhatARestoreAccepts) {
+    auto s = configured();
+    // The learned state at its largest: frames up to backupBytes (the fixture's frame repeated:
+    // every frame valid, the size is what counts here).
+    const auto room = b::learnedFrames(s.learned, 1);
+    ASSERT_FALSE(room.empty());
+    std::string learned = b::learnedFrames(s.learned, 1);
+    while (learned.size() + room.size() <= LearnedState::backupBytes) learned += room;
+    ASSERT_TRUE(LearnedState::validBundle(learned));
+    s.learned = learned;
+    const std::string sealed(2 * (16 + 13 + 16 + b::maxSecretsBytes), 'a');
+    for (const size_t pad : {size_t(0), size_t(9000), size_t(12000), size_t(15000), size_t(30000)}) {
+        auto big = s;
+        big.plan.insert(big.plan.size() - 1, ",\"pad\":\"" + std::string(pad, 'p') + "\""); // the other sections at their largest
+        auto doc = b::exportDocument(big, meta(), sealed);
+        ASSERT_TRUE(doc);
+        const auto text = print(doc.get());
+        const auto hex = b::text(b::item(b::item(doc.get(), "learned"), "state"));
+        if (pad < 30000) { EXPECT_LE(text.size(), b::maxBytes) << pad; }
+        std::string bytes;
+        for (size_t i = 0; i + 1 < hex.size(); i += 2) bytes += char(std::stoi(std::string(hex.substr(i, 2)), nullptr, 16));
+        if (!bytes.empty()) {
+            EXPECT_TRUE(LearnedState::validBundle(bytes)) << pad;
+            EXPECT_EQ(bytes, b::learnedFrames(learned, 1) + learned.substr(b::learnedFrames(learned, 1).size(), bytes.size() - b::learnedFrames(learned, 1).size()));
+        }
+        std::printf("[ backup ] other sections +%zu B: export %zu B, learned %zu of %zu B\n", pad, text.size(), bytes.size(), learned.size());
+        if (pad == 0) { EXPECT_EQ(bytes, learned) << "room enough: all of it"; }
+        if (pad < 30000) {
+            b::Request r;
+            const auto body = request("validate", doc.get());
+            EXPECT_EQ(b::readRequest(body.c_str(), body.size(), r), nullptr) << pad;
+        }
+    }
+    EXPECT_EQ(b::learnedFrames(learned, 0), "");
+    EXPECT_EQ(b::learnedFrames(learned, 99), learned);
+    EXPECT_EQ(b::learnedFrames(learned.substr(0, 5), 1), "");
+}
+
 // rc.2: a replacement E32 keeps what the old one learned; a damaged state is only skipped.
 TEST(ConfigBackup, LearnedStateTravelsWithTheBackup) {
     const auto source = configured();

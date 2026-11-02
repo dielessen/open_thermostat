@@ -116,7 +116,7 @@ void configBackupRequest(const char* body, std::size_t size, ConfigBackupHost& h
         }
         auto document = b::exportDocument(state, device, sealedHex);
         if (!document) { fail(out, 503, "settings_unavailable"); return; }
-        reply(out, 200, document.get()); // the browser saves it indented
+        reply(out, 200, document.get()); // unformatted, at most maxBytes: the browser saves it as it is
         return;
     }
 

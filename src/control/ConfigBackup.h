@@ -260,7 +260,20 @@ inline void notIncluded(const DeviceState& s, bool sealed, cJSON* list) {
 }
 
 inline std::string toHex(std::string_view bytes);
+// The first `frames` frames of a LearnedState bundle (each: its payload length as u16 LE at
+// bytes 2..3, 8 bytes around it); the global frame first, then the rooms in plan order.
+inline std::string learnedFrames(std::string_view bundle, std::size_t frames) {
+    std::size_t at = 0;
+    for (; frames && bundle.size() - at >= 8; --frames) {
+        const std::size_t n = (uint8_t(bundle[at + 2]) | std::size_t(uint8_t(bundle[at + 3])) << 8) + 8;
+        if (n > bundle.size() - at) break;
+        at += n;
+    }
+    return std::string(bundle.substr(0, at));
+}
 // The whole backup document. sealedHex: the sealed secrets box (hex), or empty.
+// Printed unformatted it never exceeds maxBytes (what a restore accepts): the learned
+// state gives way first, its last rooms first.
 inline ControlJson exportDocument(const DeviceState& s, const Meta& m, const std::string& sealedHex) {
     const auto fail = [] { return ControlJson(nullptr, cJSON_Delete); };
     ControlJson root(cJSON_CreateObject(), cJSON_Delete);
@@ -318,6 +331,13 @@ inline ControlJson exportDocument(const DeviceState& s, const Meta& m, const std
     // A replacement E32 keeps learning where this one was (LearnedState.h, at most backupBytes).
     if (!s.learned.empty()) if (auto l = cJSON_AddObjectToObject(r, "learned")) cJSON_AddStringToObject(l, "state", toHex(s.learned).c_str());
     if (m.language == "en" || m.language == "nl") if (auto u = cJSON_AddObjectToObject(r, "ui")) cJSON_AddStringToObject(u, "language", m.language.c_str());
+    std::size_t frames = 0;
+    for (std::string_view b = s.learned; learnedFrames(b, frames + 1).size() > learnedFrames(b, frames).size();) ++frames;
+    while (item(r, "learned") && print(r).size() > maxBytes) {
+        const auto fewer = frames > 1 ? learnedFrames(s.learned, --frames) : std::string();
+        if (fewer.empty()) { cJSON_DeleteItemFromObjectCaseSensitive(r, "learned"); break; }
+        cJSON_ReplaceItemInObjectCaseSensitive(cJSON_GetObjectItemCaseSensitive(r, "learned"), "state", cJSON_CreateString(toHex(fewer).c_str()));
+    }
     return root;
 }
 

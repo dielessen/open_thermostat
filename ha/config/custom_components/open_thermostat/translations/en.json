@@ -3011,7 +3011,7 @@
         "step": {
           "choose_password": {
             "title": "Choose a new E32 password",
-            "description": "{name}: the E32 still uses the default password admin, so anyone on your network could change your heating. Until you choose a new password, the E32 accepts no changes: Home Assistant can still read it and the heating keeps running on its current plan, but changes to rooms, targets and settings and firmware updates wait.\n\nChoose a new password of 8 to 64 characters. Home Assistant changes it on the E32 and stores it for this connection. Sign in to the E32 web page with it from now on (user name admin).",
+            "description": "{name}: the E32 still uses the default password admin, so anyone on your network could change your heating. Until you choose a new password, the E32 accepts no changes: Home Assistant can still read it and the heating keeps running on its current plan, but changes to rooms, targets and settings and firmware updates wait. Giving control back to your old thermostat on the E32 Rooms page always works.\n\nChoose a new password of 8 to 64 characters. Home Assistant changes it on the E32 and stores it for this connection. Sign in to the E32 web page with it from now on (user name admin).",
             "data": {
               "new_password": "New E32 password",
               "repeat_password": "Repeat the new password"

@@ -229,7 +229,9 @@ the router.
    **Your new password** (8 to 64 characters) and **Repeat your new
    password**, then choose **Save password**. The user name stays `admin`.
    Until you do, the E32 shows its pages but accepts no change, from the
-   browser or from Home Assistant.
+   browser or from Home Assistant, with one exception: giving control back to
+   your old thermostat always works (a button on this step while the E32
+   controls the boiler).
 
 *Why it matters:* with the default password, anyone on your network could
 change your heating. Write the new password down: Home Assistant asks for it in

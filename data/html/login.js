@@ -23,6 +23,27 @@
         csrf = state.csrf;
         signIn.hidden = true; choose.hidden = false;
         document.getElementById('new-password').focus();
+        offerHandBack();
+    }
+    // Giving control back is a safety action the E32 never refuses (HandoverRequest.h):
+    // offered here while it controls the boiler, as on the Rooms page.
+    const handBack = document.getElementById('hand-back');
+    const send = (url, body) => fetch(url, {method: 'POST', credentials: 'same-origin', cache: 'no-store',
+        headers: {'Content-Type': 'application/json', 'X-OpenThermostat-CSRF': csrf}, body: JSON.stringify(body)});
+    async function offerHandBack() {
+        const response = await fetch('/config/heating', {credentials: 'same-origin', cache: 'no-store'}).catch(() => null);
+        const plan = response && response.ok ? await response.json().catch(() => null) : null;
+        if (!plan || plan.mode !== 'active' || !handBack) return;
+        handBack.hidden = false;
+        const button = document.getElementById('hand-back-button'), out = document.getElementById('hand-back-message');
+        button.onclick = async () => {
+            button.disabled = true;
+            try {
+                if (!(await send('/config/heating/handover', {thermostat_disconnected: false})).ok) throw new Error('handover');
+                if (!(await send('/config/heating', {...plan, mode: 'shadow'})).ok) throw new Error('plan');
+                out.textContent = uiText("Handed back. The E32 asks the boiler for no heat for a minute. Then reconnect your old thermostat to the boiler.");
+            } catch (_) { out.textContent = uiText("The E32 did not confirm that it stopped. Try again; if that keeps failing, switch the E32 off."); button.disabled = false; }
+        };
     }
     // Sent here by another page (auth-client.js) while the default password is in use.
     if (window.location.hash === '#password') session().then(state => { if (state && state.default_password === true) choosePassword(state); }, () => {});

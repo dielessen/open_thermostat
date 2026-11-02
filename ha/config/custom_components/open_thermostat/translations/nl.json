@@ -3011,7 +3011,7 @@
         "step": {
           "choose_password": {
             "title": "Kies een nieuw E32-wachtwoord",
-            "description": "{name}: de E32 gebruikt nog het standaardwachtwoord admin, dus iedereen op je netwerk kan je verwarming wijzigen. Tot je een nieuw wachtwoord kiest, accepteert de E32 geen wijzigingen: Home Assistant kan hem nog wel uitlezen en de verwarming blijft op het huidige plan werken, maar wijzigingen van ruimtes, doelen en instellingen en firmware-updates wachten.\n\nKies een nieuw wachtwoord van 8 tot 64 tekens. Home Assistant wijzigt het op de E32 en bewaart het voor deze verbinding. Meld je er voortaan mee aan op de E32-webpagina (gebruikersnaam admin).",
+            "description": "{name}: de E32 gebruikt nog het standaardwachtwoord admin, dus iedereen op je netwerk kan je verwarming wijzigen. Tot je een nieuw wachtwoord kiest, accepteert de E32 geen wijzigingen: Home Assistant kan hem nog wel uitlezen en de verwarming blijft op het huidige plan werken, maar wijzigingen van ruimtes, doelen en instellingen en firmware-updates wachten. Regeling teruggeven aan je oude thermostaat op de pagina Ruimtes van de E32 werkt altijd.\n\nKies een nieuw wachtwoord van 8 tot 64 tekens. Home Assistant wijzigt het op de E32 en bewaart het voor deze verbinding. Meld je er voortaan mee aan op de E32-webpagina (gebruikersnaam admin).",
             "data": {
               "new_password": "Nieuw E32-wachtwoord",
               "repeat_password": "Herhaal het nieuwe wachtwoord"

@@ -202,3 +202,34 @@ TEST(ActiveHeatRoutes, GuardAndRouteKeepTheRefreshCadence) {
     EXPECT_TRUE(driver.claimed());
 }
 }
+
+#include "control/WebAuthSession.h"
+TEST(HandBack, WorksWithTheFactoryPasswordWhileEveryOtherChangeIsRefused) {
+    using heating::control::handBackRequest;
+    using heating::control::passwordChangeRequired;
+    using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
+    const auto parse = [](const char* text) { return Json(cJSON_Parse(text), cJSON_Delete); };
+    const auto plan = parse(R"({"schema":1,"revision":7,"mode":"active","features":["levels"],"rooms":[{"id":"woonkamer","target":2000}]})");
+    // The gate refuses these routes with the factory password ...
+    for (auto path : {"/config/heating", "/config/heating/handover"}) EXPECT_TRUE(passwordChangeRequired(path, "POST", true));
+    // ... except giving control back: the confirmation withdrawn, then the same plan in the trial run.
+    EXPECT_TRUE(handBackRequest("/config/heating/handover", parse(R"({"thermostat_disconnected":false})").get(), nullptr));
+    EXPECT_TRUE(handBackRequest("/config/heating/handover", parse(R"({"tado_disconnected":false})").get(), nullptr));
+    EXPECT_TRUE(handBackRequest("/config/heating", parse(
+        R"({"rooms":[{"target":2000,"id":"woonkamer"}],"mode":"shadow","revision":7,"schema":1,"features":["levels"]})").get(), plan.get()));
+    // Taking control, and every plan change beyond the mode, stay refused.
+    for (const char* other : {R"({"thermostat_disconnected":true})", R"({"thermostat_disconnected":false,"x":1})", "{}", "[]"})
+        EXPECT_FALSE(handBackRequest("/config/heating/handover", parse(other).get(), nullptr)) << other;
+    for (const char* other : {
+             R"({"schema":1,"revision":7,"mode":"active","features":["levels"],"rooms":[{"id":"woonkamer","target":2000}]})",
+             R"({"schema":1,"revision":7,"mode":"shadow","features":["levels"],"rooms":[{"id":"woonkamer","target":2400}]})",
+             R"({"schema":1,"revision":7,"mode":"shadow","features":["levels"],"rooms":[]})",
+             R"({"schema":1,"revision":7,"mode":"shadow","features":["levels"],"rooms":[{"id":"woonkamer","target":2000}],"extra":1})",
+             R"({"schema":1,"revision":6,"mode":"shadow","features":["levels"],"rooms":[{"id":"woonkamer","target":2000}]})",
+             R"({"schema":1,"revision":7,"features":["levels"],"rooms":[{"id":"woonkamer","target":2000}]})",
+             R"({"schema":1,"revision":7,"mode":"SHADOW","features":["levels"],"rooms":[{"id":"woonkamer","target":2000}]})"})
+        EXPECT_FALSE(handBackRequest("/config/heating", parse(other).get(), plan.get())) << other;
+    EXPECT_FALSE(handBackRequest("/config/heating", parse(R"({"mode":"shadow"})").get(), nullptr));
+    for (auto path : {"/config/heating/comfort", "/config/device", "/config/heating/flow"})
+        EXPECT_FALSE(handBackRequest(path, parse(R"({"thermostat_disconnected":false,"mode":"shadow"})").get(), plan.get())) << path;
+}

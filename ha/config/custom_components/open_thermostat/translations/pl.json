@@ -3011,7 +3011,7 @@
         "step": {
           "choose_password": {
             "title": "Wybierz nowe hasło E32",
-            "description": "{name}: E32 nadal używa domyślnego hasła admin, więc każdy w Twojej sieci mógłby zmienić ogrzewanie. Dopóki nie wybierzesz nowego hasła, E32 nie przyjmuje żadnych zmian: Home Assistant nadal może go odczytywać, a ogrzewanie działa według obecnego planu, ale zmiany pomieszczeń, temperatur docelowych i ustawień oraz aktualizacje oprogramowania czekają.\n\nWybierz nowe hasło o długości od 8 do 64 znaków. Home Assistant zmieni je w E32 i zapisze dla tego połączenia. Od teraz loguj się nim na stronie E32 (nazwa użytkownika admin).",
+            "description": "{name}: E32 nadal używa domyślnego hasła admin, więc każdy w Twojej sieci mógłby zmienić ogrzewanie. Dopóki nie wybierzesz nowego hasła, E32 nie przyjmuje żadnych zmian: Home Assistant nadal może go odczytywać, a ogrzewanie działa według obecnego planu, ale zmiany pomieszczeń, temperatur docelowych i ustawień oraz aktualizacje oprogramowania czekają. Oddanie sterowania staremu termostatowi na stronie Pomieszczenia E32 działa zawsze.\n\nWybierz nowe hasło o długości od 8 do 64 znaków. Home Assistant zmieni je w E32 i zapisze dla tego połączenia. Od teraz loguj się nim na stronie E32 (nazwa użytkownika admin).",
             "data": {
               "new_password": "Nowe hasło E32",
               "repeat_password": "Powtórz nowe hasło"

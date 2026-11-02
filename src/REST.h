@@ -421,8 +421,8 @@ private:
 		}
 		if(decision==control::WebAuthDecision::authentication_required)return reject(401,"application/json","{\"error\":\"authentication_required\"}");
 		if(decision==control::WebAuthDecision::csrf_required)return reject(403,"application/json","{\"error\":\"csrf_required\"}");
-		if(portal!=control::PortalAccess::Setup&&control::passwordChangeRequired(server_.uri().c_str(),method,deviceAccess.defaultPassword()))
-			return reject(403,"application/json","{\"error\":\"password_change_required\"}");
+		if(portal!=control::PortalAccess::Setup&&control::passwordChangeRequired(server_.uri().c_str(),method,deviceAccess.defaultPassword())
+				&&!handBackRequest()) return reject(403,"application/json","{\"error\":\"password_change_required\"}");
 		if(server_.method()!=HTTP_GET&&update::mutationBlocked(server_.uri().c_str())) {
 			server_.send(409,"text/plain","Wait until the update has finished and the device has restarted");return false;
 		}
@@ -454,11 +454,22 @@ private:
         return heap_caps_malloc(size,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
     },heap_caps_free};
 	// Before a large body or an upload is read (the parser holds the loop while it
-	// reads): a live session with its CSRF proof, and no factory password.
+	// reads): a live session with its CSRF proof, and no factory password (except the
+	// plan, whose hand-back to the trial run authorize() checks).
 	int admitLargeRequest(const control::HttpRequestHead &head) {
 		const auto token=control::WebAuthSession::cookieToken(head.header("Cookie"));
 		if(!sessions_.csrf(token,head.header("X-OpenThermostat-CSRF"),networkNow())) return 401;
-		return deviceAccess.defaultPassword()?403:0;
+		return deviceAccess.defaultPassword()&&head.path!="/config/heating"?403:0;
+	}
+	// The factory password never blocks giving control back (control/HandoverRequest.h).
+	bool handBackRequest() {
+		const std::string_view path(server_.uri().c_str());
+		if(server_.method()!=HTTP_POST||(path!="/config/heating"&&path!="/config/heating/handover")) return false;
+		const auto body=server_.arg("plain");
+		if(body.length()>control::RoomPlan::requestBytes) return false;
+		const auto request=control::parseNestedJson(body,true,10);
+		const auto current=path=="/config/heating"?control::parseNestedJson(controller_.heatingPlanJson(),true,10):control::ControlJson(nullptr,cJSON_Delete);
+		return control::handBackRequest(path,request.get(),current.get());
 	}
 	String requestToken() {
 		const auto cookie=server_.header("Cookie");

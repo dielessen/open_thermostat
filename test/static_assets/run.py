@@ -93,6 +93,7 @@ struct Fixture {
  Fixture(){assert(sessions_.issue(cookie,std::string(64,'2'),now));}
  uint64_t networkNow(){return now;}String requestToken(){return cookie;}
  std::string_view deviceHostname(){return "openthermostat-ab12";}
+ bool handBack=false;bool handBackRequest(){return handBack;}
  void get(const char *path="/index.html"){server_.path=path;if(authorize())serveFile(path);}
 '''
 post = r'''
@@ -134,7 +135,9 @@ int main(){
  {Fixture f;deviceAccess.factory=true;f.get();assert(f.server_.status==200);
   f.server_.path="/config/device";f.server_.verb=HTTP_POST;f.server_.incoming["X-OpenThermostat-CSRF"]=std::string(64,'2');
   assert(!f.authorize());assert(f.server_.status==403);assert(f.server_.body=="{\"error\":\"password_change_required\"}");
-  f.server_.path="/auth/password";f.server_.status=0;assert(f.authorize());deviceAccess.factory=false;
+  f.server_.path="/auth/password";f.server_.status=0;assert(f.authorize());
+  // Giving control back is never blocked (control/HandoverRequest.h decides what is one).
+  f.server_.path="/config/heating/handover";f.handBack=true;assert(f.authorize());f.handBack=false;assert(!f.authorize());deviceAccess.factory=false;
   f.server_.path="/config/device";assert(f.authorize());}
  std::cout<<"PASS 31 actual E32 response/authorization scenarios (gzip-only UI, Host check, factory password)\n";
 }

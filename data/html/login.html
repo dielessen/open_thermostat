@@ -24,7 +24,10 @@
 <label for="repeat-password"><span data-i18n="Repeat your new password">Repeat your new password</span></label><input id="repeat-password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
 <p class="hint" data-i18n="Use 8 to 64 characters. Home Assistant asks for this password too.">Use 8 to 64 characters. Home Assistant asks for this password too.</p>
 <button id="save-password" type="submit"><span data-i18n="Save password">Save password</span></button>
-<p id="password-message" role="status" aria-live="polite"></p></form></main>
+<p id="password-message" role="status" aria-live="polite"></p>
+<div id="hand-back" hidden><p class="hint" data-i18n="The E32 controls your boiler. You can give control back now, before you choose a password.">The E32 controls your boiler. You can give control back now, before you choose a password.</p>
+<button id="hand-back-button" type="button"><span data-i18n="Give control back to my old thermostat">Give control back to my old thermostat</span></button>
+<p id="hand-back-message" role="status" aria-live="polite"></p></div></form></main>
 <footer data-language-host></footer>
 <small><span data-i18n="This session expires after 30 minutes without contact from this browser, or after seven days at most. A device restart ends the session. Use only your trusted local network; this device currently uses HTTP.">This session expires after 30 minutes without contact from this browser, or after seven days at most. A device restart ends the session. Use only your trusted local network; this device currently uses HTTP.</span></small>
 <noscript><span data-i18n="JavaScript is required for the device interface.">JavaScript is required for the device interface.</span></noscript></body></html>

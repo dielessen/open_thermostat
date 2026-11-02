@@ -587,6 +587,10 @@ _WARNINGS = {
     "secrets_skipped": ("Passwords and keys in the backup are skipped.",
                         "Wachtwoorden en sleutels in de back-up worden overgeslagen.",
                         "Hasła i klucze z kopii zostaną pominięte."),
+    # rc.2: a backup made before it carries its secrets without the binding to its network settings.
+    "secrets_unbound": ("This backup was made before 1.0 rc.2; make a new backup after the restore.",
+                        "Deze back-up is van vóór 1.0 rc.2; maak na het terugzetten een nieuwe back-up.",
+                        "Ta kopia powstała przed 1.0 rc.2; po przywróceniu utwórz nową kopię."),
     "unknown_boiler_model": ("Unknown boiler model skipped: {v}", "Onbekend ketelmodel overgeslagen: {v}",
                              "Pominięto nieznany model kotła: {v}"),
     "unknown_language": ("Unknown language skipped.", "Onbekende taal overgeslagen.", "Pominięto nieznany język."),

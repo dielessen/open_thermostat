@@ -62,6 +62,8 @@
         "This backup belongs to another type of device.": "Deze back-up hoort bij een ander soort apparaat.",
         "The passphrase is not correct.": "De wachtzin klopt niet.",
         "Use a passphrase of 8 to 64 characters.": "Gebruik een wachtzin van 8 tot 64 tekens.",
+        "Use a passphrase of 12 to 64 characters.": "Gebruik een wachtzin van 12 tot 64 tekens.",
+        "This backup was made before 1.0 rc.2: its passwords are not tied to its network settings. Make a new backup after the restore.": "Deze back-up is gemaakt vóór 1.0 rc.2: de wachtwoorden zijn niet aan de netwerkinstellingen gekoppeld. Maak na het terugzetten een nieuwe back-up.",
         "Restore is blocked while the E32 controls the boiler or a boiler test is running.": "Terugzetten kan niet zolang de E32 de ketel regelt of er een keteltest loopt.",
         "Wait until the firmware update has finished.": "Wacht tot de firmware-update klaar is.",
         "The file is too large for a backup.": "Het bestand is te groot voor een back-up.",
@@ -137,6 +139,7 @@
         plan_mode_shadow: "The rooms are restored in the trial run. Switch over to E32 control yourself when you are ready.",
         wifi_not_restored: "Wi-Fi is not changed by a restore. Use the Wi-Fi setup for another network.",
         secrets_skipped: "Passwords and keys in the backup are skipped because no passphrase was entered.",
+        secrets_unbound: "This backup was made before 1.0 rc.2: its passwords are not tied to its network settings. Make a new backup after the restore.",
         unknown_boiler_model: "Unknown boiler model skipped: {v}", unknown_language: "Unknown language skipped.",
         heating: "Rooms: {v}", bluetooth: "Bluetooth sensors: {v}",
         learned_skipped: "What the thermostat learned could not be read from this backup; it keeps learning from what it has."
@@ -163,7 +166,7 @@
         "The E32 restarts after the restore; sign in again afterwards.", "Restoring…", "Settings restored.",
         "The E32 restarts in about {v} seconds. Sign in again afterwards.", "Restart the E32 to use all restored settings.",
         "The file could not be read.", "The backup contains invalid settings.", "The request was not confirmed. Try again.",
-        "On", "Off", "will change", "Choose a backup file first."]);
+        "On", "Off", "will change", "Choose a backup file first.", "Use a passphrase of 12 to 64 characters."]);
 
     function element(tag, attributes = {}, ...children) {
         const node = document.createElement(tag);
@@ -207,8 +210,8 @@
         const status = element('p', {role: 'status', 'aria-live': 'polite', id: 'BackupStatus'});
         const restoreStatus = element('div', {role: 'status', 'aria-live': 'polite', id: 'RestoreStatus'});
         const include = element('input', {type: 'checkbox', className: 'form-check-input', id: 'BackupSecrets'});
-        const pass = element('input', {type: 'password', className: 'form-control', id: 'BackupPassphrase', autocomplete: 'new-password', minLength: 8, maxLength: 64});
-        const pass2 = element('input', {type: 'password', className: 'form-control', id: 'BackupPassphrase2', autocomplete: 'new-password', minLength: 8, maxLength: 64});
+        const pass = element('input', {type: 'password', className: 'form-control', id: 'BackupPassphrase', autocomplete: 'new-password', minLength: 12, maxLength: 64});
+        const pass2 = element('input', {type: 'password', className: 'form-control', id: 'BackupPassphrase2', autocomplete: 'new-password', minLength: 12, maxLength: 64});
         const passRow = element('div', {className: 'mb-2', hidden: true},
             element('label', {htmlFor: 'BackupPassphrase', className: 'form-label', text: t("Passphrase")}), pass,
             element('label', {htmlFor: 'BackupPassphrase2', className: 'form-label mt-2', text: t("Repeat passphrase")}), pass2);
@@ -244,7 +247,8 @@
         download.addEventListener('click', async () => {
             if (busy) return;
             const secrets = include.checked;
-            if (secrets && (pass.value.length < 8 || pass.value.length > 64)) { status.textContent = t(errors.invalid_passphrase); return; }
+            // A new backup: at least 12 characters (older backups still open with 8).
+            if (secrets && (pass.value.length < 12 || pass.value.length > 64)) { status.textContent = t("Use a passphrase of 12 to 64 characters."); return; }
             if (secrets && pass.value !== pass2.value) { status.textContent = t("The passphrases do not match."); return; }
             busy = true; controls(); status.textContent = t("Making the backup…");
             try {

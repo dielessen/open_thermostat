@@ -70,7 +70,7 @@ const summary={valid:true,fingerprint:'f'.repeat(64),restart:true,secrets_sealed
   // Encrypted export: passphrase rules are checked before any request.
   await page.locator('#BackupSecrets').check();await page.locator('#BackupPassphrase').waitFor();
   await page.fill('#BackupPassphrase','short');await page.locator('#BackupDownload').click();
-  assert.match(await status.innerText(),lang==='nl'?/8 tot 64/:/8 to 64/);
+  assert.match(await status.innerText(),lang==='nl'?/12 tot 64/:/12 to 64/);
   await page.fill('#BackupPassphrase','correct horse');await page.fill('#BackupPassphrase2','correct house');await page.locator('#BackupDownload').click();
   assert.match(await status.innerText(),lang==='nl'?/niet gelijk/:/do not match/);assert.equal(posts.length,1);
   await page.fill('#BackupPassphrase2','correct horse');wait=page.waitForEvent('download');await page.locator('#BackupDownload').click();download=await wait;

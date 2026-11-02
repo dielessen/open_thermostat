@@ -169,6 +169,12 @@ int main() {
     assert(B::permitsHeatingPlanWrite({20480,630,testBluetoothStorage::usedEntries(),630-testBluetoothStorage::usedEntries(),true},930+64));
     pass("before a rollback the optional records stop and make the previous firmware's plan-save room");
     optionalRecordsFrozen().store(false);
+    // The access secret of the untagged October builds: no tagged firmware reads it.
+    testNvs::committed["ot_access"]["secret"]=std::vector<unsigned char>(32,'s');
+    testNvs::committed["ot_access"]["web_pw"]=std::vector<unsigned char>(53,'w');
+    assert(eraseStaleNvsKeys()&&!testNvs::committed["ot_access"].count("secret")&&testNvs::committed["ot_access"].count("web_pw"));
+    assert(!eraseStaleNvsKeys());
+    pass("the unused access secret is erased once, the password record kept");
     testBluetoothStorage::baseline.reset();
     std::cout<<cases<<" storage cases PASS\n";
 }

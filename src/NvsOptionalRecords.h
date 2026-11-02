@@ -107,5 +107,19 @@ inline bool prepareNvsForPreviousFirmware() {
     return makeNvsRoom([&](control::ControlPartitionStats s) {
         return s.valid && s.freeEntries >= B::previousFirmwareReserveEntries(plan, ble); });
 }
+// Keys no firmware since the first tagged release (alpha.1) reads: the generated access
+// secret of the untagged October builds ("ot_access"/"secret", 32 bytes; DeviceAccess.h
+// ignores it). Erased once at boot when present; true: one was erased (logged by the caller).
+inline bool eraseStaleNvsKeys() {
+    nvs_handle_t handle;
+    if (nvs_open("ot_access", NVS_READONLY, &handle) != ESP_OK) return false;
+    size_t size = 0;
+    const bool present = nvs_get_blob(handle, "secret", nullptr, &size) == ESP_OK;
+    nvs_close(handle);
+    if (!present || nvs_open("ot_access", NVS_READWRITE, &handle) != ESP_OK) return false;
+    const bool erased = nvs_erase_key(handle, "secret") == ESP_OK && nvs_commit(handle) == ESP_OK;
+    nvs_close(handle);
+    return erased;
+}
 }
 #endif

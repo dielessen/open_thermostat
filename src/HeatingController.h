@@ -172,6 +172,7 @@ public:
         }
         // What was learned (control/LearnedState.h), after the plan and the tuning, before the first step.
         {
+            if (eraseStaleNvsKeys()) DBGLOGFI(log_, logFeature_, "NVS: erased the unused access secret of untagged October builds (ot_access/secret)\n");
             LearnedNvs nvs;
             const auto rooms = learnedStore_.restore(nvs, flowLearner_, flowPolicy_, bleReceiptClock());
             DBGLOGFI(log_, logFeature_, "Learned state restored for %u room(s)\n", unsigned(rooms));

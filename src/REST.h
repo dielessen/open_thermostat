@@ -213,6 +213,7 @@ public:
 		route("/config/debug", [this]() { configDebug(); });
 #ifdef OPENTHERMOSTAT_E32V2
         route("/config/heating/handover",HTTP_POST,[this] { heatingHandover(); });
+        route("/config/heating/takeover-test",HTTP_POST,[this] { heatingTakeoverTest(); });
         route("/config/heating/flow",[this] { heatingFlow(); });
         route("/config/heating/trv",[this] { heatingTrv(); });
         route("/config/heating/comfort",[this] { heatingComfort(); });
@@ -1430,6 +1431,16 @@ private:
 		}
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> active(controller_.activeHeatJson(),cJSON_Delete);
 		diagnostics::sendJson(server_,200,active.get());
+	}
+	// POST {"action":"start"|"stop"|"skip"}: the guided boiler test and takeover; answers its status.
+	void heatingTakeoverTest() {
+		const auto body = server_.arg("plain");
+		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= 64 ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));
+		if (const char* error = root ? controller_.takeoverTestCommand(root.get()) : "invalid_request") {
+			server_.send(std::strcmp(error,"invalid_request") ? 409 : 400,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
+		}
+		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> test(controller_.takeoverTestJson(),cJSON_Delete);
+		diagnostics::sendJson(server_,200,test.get());
 	}
 	// GET: the beta.19 flow options; POST any of {"weather_curve","apply_learned",
 	// "curve_design_flow_c"} (control/FlowPolicy.h FlowSettings, stored in NVS).

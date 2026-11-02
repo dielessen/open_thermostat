@@ -379,15 +379,24 @@ TEST(ConfigBackup, RestoreIsRefusedWhileTheE32OwnsTheBoiler) {
     EXPECT_STREQ(validate(request("validate", doc.get()), onto).error, "boiler_owned");
 }
 
-TEST(ConfigBackup, PlanIsAlwaysRestoredInShadowMode) {
+// rc.2: the plan keeps the mode of the backup; an active one says that the takeover must be
+// confirmed on this E32 (the confirmation is no part of a backup).
+TEST(ConfigBackup, PlanKeepsItsModeAndAnActiveOneAsksForTheConfirmation) {
     auto source = configured();
     auto plan = parse(source.plan); b::put(plan.get(), "mode", cJSON_CreateString("active"));
     source.plan = print(plan.get());
     auto doc = b::exportDocument(source, meta(), "");
     const auto v = validate(request("validate", doc.get()), factory());
     ASSERT_EQ(v.error, nullptr);
-    EXPECT_TRUE(has(v.report.warnings.get(), "plan_mode_shadow"));
-    EXPECT_EQ(field(v.prepared.plan, nullptr, "mode"), "\"shadow\"");
+    EXPECT_TRUE(has(v.report.warnings.get(), "plan_takeover_confirm"));
+    EXPECT_FALSE(has(v.report.warnings.get(), "plan_mode_shadow"));
+    EXPECT_EQ(field(v.prepared.plan, nullptr, "mode"), "\"active\"");
+    EXPECT_EQ(v.prepared.plan.find("handover"), std::string::npos);
+    // A backup of the trial run stays in the trial run, without that warning.
+    const auto trial = validate(request("validate", b::exportDocument(configured(), meta(), "").get()), factory());
+    ASSERT_EQ(trial.error, nullptr);
+    EXPECT_FALSE(has(trial.report.warnings.get(), "plan_takeover_confirm"));
+    EXPECT_EQ(field(trial.prepared.plan, nullptr, "mode"), "\"shadow\"");
     // Invalid rooms are refused with the RoomPlan error as the reason.
     auto bad = ControlJson(cJSON_Duplicate(doc.get(), true), cJSON_Delete);
     auto rooms = cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive(bad.get(), "heating"), "rooms");
@@ -562,7 +571,7 @@ TEST(ConfigBackup, MalformedBackupsNeverYieldInvalidCandidates) {
         if (!v.prepared.plan.empty()) {
             RoomPlan plan;
             EXPECT_EQ(RoomPlan::parse(parse(v.prepared.plan).get(), plan), nullptr);
-            EXPECT_EQ(plan.mode, RoomPlan::Mode::shadow);
+            if (plan.mode == RoomPlan::Mode::active) EXPECT_TRUE(has(v.report.warnings.get(), "plan_takeover_confirm"));
         }
         if (!v.prepared.flow.empty()) { FlowSettings f; EXPECT_EQ(FlowSettings::parse(parse(v.prepared.flow).get(), f), nullptr); }
     }

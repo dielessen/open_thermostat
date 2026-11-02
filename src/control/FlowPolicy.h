@@ -105,7 +105,10 @@ public:
         if (unixNow) {
             const int32_t day = RoomSchedule::localDay(*unixNow);
             if (today_.day < 0) today_.day = day;
-            else if (day > today_.day) { yesterday_ = today_; today_ = {}; today_.day = day; }
+            else if (day > today_.day) { // a day the E32 was off (or a restored older one) leaves no "yesterday"
+                yesterday_ = day == today_.day + 1 ? std::optional<Day>(today_) : std::nullopt;
+                today_ = {}; today_.day = day;
+            }
         }
         carryMs_ += static_cast<uint32_t>(haveLast_ && now > lastMs_ ? std::min<uint64_t>(now - lastMs_, maxCreditMs) : 0);
         const uint32_t dt = carryMs_ / 1000;
@@ -133,6 +136,7 @@ public:
         return cJSON_AddNumberToObject(o, "optimum_start_s", d.startS) != nullptr;
     }
 private:
+    friend class LearnedState;
     Day today_{};
     std::optional<Day> yesterday_;
     uint64_t lastMs_ = 0;
@@ -210,6 +214,7 @@ public:
     uint16_t nights() const { return nights_; }
 
 private:
+    friend class LearnedState;
     static bool fresh(const FlowLearner& l, uint64_t now) {
         const auto at = l.gas().meterAt();
         return at && *at <= now && now - *at <= meterFreshMs && l.gas().meterM3();
@@ -396,6 +401,7 @@ public:
     }
 
 private:
+    friend class LearnedState; // the curve learner, the comparison and the night ledger
     template <class Bound> void optimumStart(const Inputs& in, const FlowLearner& learner, Bound bound) {
         const auto& plan = *in.plan;
         if (!in.utc) { start_ = {}; startState_ = "no_clock"; startHeating_ = false; return; }

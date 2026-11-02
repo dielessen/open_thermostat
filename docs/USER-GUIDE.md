@@ -616,6 +616,11 @@ the trial run even then nothing is sent to the boiler.
 | Recommended water temperature (1 °C) | The coolest water (flow temperature) that warms the room by 1 °C in an acceptable time. Unknown until learned. Its attributes show what the room control asks now, for comparison. |
 | Predicted heating start | When the E32 would start heating to reach the next higher week-program temperature on time. Its attributes compare night strategies (holding a night temperature versus letting it drop) in kWh, m³ and €. |
 
+What the E32 has learned is kept when it restarts, loses power or gets a
+firmware update, so learning carries on where it was (it is saved every 6
+hours, at midnight and before a restart or update; a power cut loses at most
+the last few hours).
+
 The predictions need a valid clock; the night-setback estimate also needs an
 outdoor temperature (from the boiler or from Home Assistant). The product
 device also shows hot water today (taps, keeping warm, burner time) and a
@@ -672,7 +677,10 @@ keeping warm there).
 System → **Backup and restore** saves the settings of the E32 in
 one file: network and time (host name, time zone, time server), MQTT and the
 Home Assistant link, the room plan with its week programs, the Bluetooth
-sensors, the flow options, the boiler model and the page language.
+sensors, the flow options, the boiler model and the page language. It also
+holds what the thermostat has learned about your rooms, so a replacement E32
+carries on learning where the old one was. If that part of a backup cannot be
+read, the restore skips it with a note and the E32 learns from the start.
 
 - **Passwords and keys.** By default the file holds no secret. The page lists
   what you need to enter again after a restore: the MQTT password, the

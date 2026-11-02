@@ -25,6 +25,7 @@
 #include "RoomOverridesStore.h"
 #include "control/ShadowComparison.h"
 #include "ReadinessStore.h"
+#include "LearnedStore.h"
 #include "control/RoomEngine.h"
 #include "control/ActiveHeatGuard.h"
 #include "control/HandoverConfirmation.h"
@@ -168,6 +169,12 @@ public:
             const bool found = ReadinessNvs::read(stored);
             readiness_.restore(found ? &stored : nullptr, control::TakeoverReadiness::classify(
                 int(esp_reset_reason()), diagnostics::blackBox.previousRestart()));
+        }
+        // What was learned (control/LearnedState.h), after the plan and the tuning, before the first step.
+        {
+            LearnedNvs nvs;
+            const auto rooms = learnedStore_.restore(nvs, flowLearner_, flowPolicy_, bleReceiptClock());
+            DBGLOGFI(log_, logFeature_, "Learned state restored for %u room(s)\n", unsigned(rooms));
         }
         // A stored "thermostat disconnected" (same firmware) resumes active heat
         // after 2 min of bus reception without a foreign 0x1A, which clears it.
@@ -372,6 +379,13 @@ public:
     // "tuning" answers the knobs in effect (the automatic ones from AutoTuner). "tuning": null is
     // "back to start values": the built-in values, all automatic, and the tuner learns anew.
     std::string flowSettingsJson() const { const auto t = effectiveTuning(); return flowSettings_.json(&t); }
+    // The settings backup: what was learned (control/LearnedState.h bundle), and a restore of it.
+    std::string learnedState() const { return control::LearnedState::bundle(flowLearner_, flowPolicy_, control::LearnedState::backupBytes); }
+    bool setLearnedState(std::string_view bundle) {
+        if (control::LearnedState::restoreBundle(bundle, flowLearner_, flowPolicy_) < 0) return false;
+        LearnedNvs nvs;
+        return learnedStore_.save(nvs, flowLearner_, flowPolicy_, bleReceiptClock());
+    }
     const char* setFlowSettings(const cJSON* root) {
         auto settings = flowSettings_;
         if (const char* error = control::FlowSettings::parse(root, settings)) return error;
@@ -484,7 +498,9 @@ public:
     // still be held, or after BoilerReleaseHold::maxMs. Shadow mode: at once.
     bool releaseBoilerForRestart() {
         activeGuard_.withdraw(bleReceiptClock());
-        if (!readinessStored_) { readinessStored_ = true; ReadinessNvs::write(readiness_.stored()); } // once: the counters survive it
+        if (!readinessStored_) { // once: the counters and what was learned survive it
+            readinessStored_ = true; ReadinessNvs::write(readiness_.stored()); saveLearned(bleReceiptClock());
+        }
         return restartHold_.ready(static_cast<uint32_t>(bleReceiptClock()), activeGuard_.released());
     }
     uint32_t managedBleQueueDrops() const { return managedBle_.queueDrops(); }
@@ -805,6 +821,12 @@ private:
     control::FlowPolicy flowPolicy_; // beta.19 options: weather curve, learned flow, optimum start (default: advice)
     control::FlowSettings flowSettings_; // as stored: the options, the owner's knobs and which are manual
     control::AutoTuner autoTuner_;       // rc.2: the automatic knobs from the measured days (NVS "autotune")
+    control::LearnedStore learnedStore_; // rc.2: the learner's, curve's and night ledger's state over restarts (NVS "learned*")
+    void saveLearned(uint64_t now) {
+        LearnedNvs nvs;
+        if (!learnedStore_.save(nvs, flowLearner_, flowPolicy_, now))
+            DBGLOGFI(log_, logFeature_, "Learned state not saved (NVS full or write failed); kept in RAM, retried in 6 h\n");
+    }
     control::HeatingHistory history_; // 24 h of 5-minute averages, ~12.5 KB PSRAM, RAM only
     control::HeatingInputRoute haInput_;  // ha/heating_input: rooms, gas, price, outdoor, boiler power
     uint32_t activePosted_ = 0; uint64_t activePostedAt_ = 0; // the last command handed to the EMS route
@@ -875,6 +897,7 @@ private:
         shadowComparison_.sample(now, unixNow, request, tadoFlowC);
         sampleReadiness(now, unixNow, request, tadoFlowC, ems);
         stepFlowLearner(now, ems, tadoFlowC);
+        if (learnedStore_.due(now, unixNow)) saveLearned(now); // every 6 h and at a day change, when changed
         // Radiator valves: their feedback on the request and their commands, both only while the E32
         // drives the boiler after a confirmed takeover (the last step's output; frost protection
         // while waiting for a new confirmation is no takeover) and a room's valve control is on.

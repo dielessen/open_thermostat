@@ -31,6 +31,7 @@ struct Target {
             case b::Part::plan: s.plan = text; break;
             case b::Part::bluetooth: s.bluetooth = text; break;
             case b::Part::network: s.network = text; break;
+            case b::Part::learned: s.learned = text; break;
         }
         return true;
     }
@@ -85,6 +86,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
         if (RoomPlan::parse(parsed(prepared.plan).get(), p) || p.mode != RoomPlan::Mode::shadow) otfuzz::invariant("plan candidate invalid");
     }
     if (!prepared.flow.empty()) { FlowSettings f; if (FlowSettings::parse(parsed(prepared.flow).get(), f)) otfuzz::invariant("flow candidate invalid"); }
+    if (!prepared.learned.empty() && !LearnedState::validBundle(prepared.learned)) otfuzz::invariant("learned candidate invalid");
     const auto before = state;
     const bool failing = (selector & 4) != 0;
     Target target{state, failing};
@@ -92,7 +94,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
     const auto result = b::apply(before, prepared, target, failed);
     if (failing && !prepared.network.empty()) {
         if (result != b::Applied::restored || state.plan != before.plan || state.bluetooth != before.bluetooth
-                || state.flow != before.flow || state.display != before.display || state.network != before.network)
+                || state.flow != before.flow || state.display != before.display || state.network != before.network
+                || (!before.learned.empty() && state.learned != before.learned))
             otfuzz::invariant("failed apply not restored");
     } else if (result != b::Applied::applied) otfuzz::invariant("apply failed without a failing write");
     (void)b::summaryJson(report, prepared, "fingerprint", !sealed.empty(), secrets.present);

@@ -14,6 +14,7 @@
 #include "control/BleDeviceSettings.h"
 #include "control/BoundedJson.h"
 #include "control/FlowPolicy.h"
+#include "control/LearnedState.h"
 #include "control/ManagedDeviceSettings.h"
 #include "control/NativeSourceProvisioning.h"
 #include "control/RoomPlan.h"
@@ -49,6 +50,7 @@ struct DeviceState {
     std::string plan;          // RoomPlan API form, with its revision
     std::string flow;          // FlowSettings::json()
     std::string display;       // boiler display model id
+    std::string learned;       // LearnedState::bundle() (binary): what the thermostat learned
     std::string wifiSsid;      // shown in the export only
     bool modernMode = false;   // HA-managed: legacy weather settings are read-only
     bool ethernetUp = false;   // an Ethernet link carries the network now
@@ -67,7 +69,7 @@ struct Secrets {
     ~Secrets() { wipe(); }
 };
 // Candidates; an empty one leaves its section as it is.
-struct Prepared { std::string network, bluetooth, plan, flow, display, language; bool restart = false; };
+struct Prepared { std::string network, bluetooth, plan, flow, display, learned, language; bool restart = false; };
 // The summary the owner confirms: changes, warnings and what to re-enter.
 struct Report {
     ControlJson changes{cJSON_CreateArray(), cJSON_Delete}, warnings{cJSON_CreateArray(), cJSON_Delete},
@@ -257,6 +259,7 @@ inline void notIncluded(const DeviceState& s, bool sealed, cJSON* list) {
             if (bindings->devices[i].hasKey) { cJSON_AddItemToArray(list, cJSON_CreateString("bluetooth_keys")); break; }
 }
 
+inline std::string toHex(std::string_view bytes);
 // The whole backup document. sealedHex: the sealed secrets box (hex), or empty.
 inline ControlJson exportDocument(const DeviceState& s, const Meta& m, const std::string& sealedHex) {
     const auto fail = [] { return ControlJson(nullptr, cJSON_Delete); };
@@ -312,6 +315,8 @@ inline ControlJson exportDocument(const DeviceState& s, const Meta& m, const std
     }
     if (auto flow = parseStored(s.flow)) { if (!cJSON_AddItemToObject(r, "flow", flow.get())) return fail(); flow.release(); }
     if (!s.display.empty()) if (auto d = cJSON_AddObjectToObject(r, "boiler_display")) cJSON_AddStringToObject(d, "model", s.display.c_str());
+    // A replacement E32 keeps learning where this one was (LearnedState.h, at most backupBytes).
+    if (!s.learned.empty()) if (auto l = cJSON_AddObjectToObject(r, "learned")) cJSON_AddStringToObject(l, "state", toHex(s.learned).c_str());
     if (m.language == "en" || m.language == "nl") if (auto u = cJSON_AddObjectToObject(r, "ui")) cJSON_AddStringToObject(u, "language", m.language.c_str());
     return root;
 }
@@ -389,7 +394,7 @@ inline const char* checkEnvelope(const cJSON* b, const Meta& device, Report& rep
         if (k == "format" || k == "schema" || k == "board" || k == "firmware" || k == "created") continue;
         if (k == "not_included") { if (!cJSON_IsArray(c)) return "invalid_not_included"; continue; }
         if (k == "secrets") { if (!cJSON_IsNull(c) && !cJSON_IsObject(c)) return "invalid_secrets"; continue; }
-        if (k == "network" || k == "wifi" || k == "bluetooth" || k == "heating" || k == "flow" || k == "boiler_display" || k == "ui") {
+        if (k == "network" || k == "wifi" || k == "bluetooth" || k == "heating" || k == "flow" || k == "boiler_display" || k == "ui" || k == "learned") {
             if (!cJSON_IsObject(c)) return "invalid_section";
             continue;
         }
@@ -677,6 +682,19 @@ inline const char* prepareFlow(const cJSON* backup, const DeviceState& s, std::s
     return nullptr;
 }
 
+// What the thermostat learned: never an error. An old or damaged state is skipped
+// with a note, and learning goes on from what this E32 has.
+inline void prepareLearned(const cJSON* backup, const DeviceState& s, std::string& out, Report& report) {
+    const auto learned = item(backup, "learned");
+    if (!learned) return;
+    const auto hex = text(item(learned, "state"));
+    if (hex.size() > 2 * LearnedState::backupBytes || !fromHex(hex, out) || !LearnedState::validBundle(out)) {
+        out.clear(); report.warn("learned_skipped"); return;
+    }
+    if (out == s.learned) out.clear();
+    else report.change("learned", "learned", nullptr, nullptr, true);
+}
+
 inline const char* prepareDisplay(const cJSON* backup, const DeviceState& s, std::string& out, Report& report) {
     const auto display = item(backup, "boiler_display");
     if (!display) return nullptr;
@@ -705,6 +723,7 @@ inline const char* prepare(const cJSON* backup, const DeviceState& s, const Secr
     if (!e) e = prepareFlow(backup, s, out.flow, report);
     if (!e) e = prepareDisplay(backup, s, out.display, report);
     if (e) { out = Prepared{}; return e; }
+    prepareLearned(backup, s, out.learned, report);
     if (const auto wifi = item(backup, "wifi"); !text(item(wifi, "ssid")).empty()) report.warn("wifi_not_restored");
     const auto ui = item(backup, "ui");
     const auto language = text(item(ui, "language"));
@@ -718,8 +737,9 @@ inline const char* prepare(const cJSON* backup, const DeviceState& s, const Secr
 // recomputes it and refuses when anything changed in between.
 inline std::string fingerprintInput(const DeviceState& s, const Prepared& p) {
     std::string out;
+    // Not s.learned: it changes while the owner reads the summary.
     for (const auto* part : {&s.network, &s.bluetooth, &s.plan, &s.flow, &s.display,
-                             &p.network, &p.bluetooth, &p.plan, &p.flow, &p.display}) {
+                             &p.network, &p.bluetooth, &p.plan, &p.flow, &p.display, &p.learned}) {
         out += std::to_string(part->size()); out += ':'; out += *part; out += '\n';
     }
     return out;
@@ -727,12 +747,13 @@ inline std::string fingerprintInput(const DeviceState& s, const Prepared& p) {
 
 // Ordered writes with rollback: the cheapest first, the network (which needs
 // the restart) last. A failure restores every section already written.
-enum class Part : uint8_t { display, flow, plan, bluetooth, network };
+enum class Part : uint8_t { display, flow, plan, bluetooth, network, learned };
 inline const char* partName(Part p) {
     switch (p) {
         case Part::display: return "boiler_display";
         case Part::flow: return "flow";
         case Part::plan: return "heating";
+        case Part::learned: return "learned";
         case Part::bluetooth: return "bluetooth";
         default: return "network";
     }
@@ -744,7 +765,7 @@ Applied apply(const DeviceState& s, const Prepared& p, Target& target, std::stri
     failed.clear();
     const std::pair<Part, std::pair<const std::string*, const std::string*>> steps[] = {
         {Part::display, {&p.display, &s.display}}, {Part::flow, {&p.flow, &s.flow}}, {Part::plan, {&p.plan, &s.plan}},
-        {Part::bluetooth, {&p.bluetooth, &s.bluetooth}}, {Part::network, {&p.network, &s.network}}};
+        {Part::learned, {&p.learned, &s.learned}}, {Part::bluetooth, {&p.bluetooth, &s.bluetooth}}, {Part::network, {&p.network, &s.network}}};
     std::size_t done = 0;
     for (; done < sizeof steps / sizeof steps[0]; ++done) {
         const auto& step = steps[done];

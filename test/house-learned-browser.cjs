@@ -1,5 +1,5 @@
 // Home page (E32 rc.2) with simulated HTTP: "What the thermostat has learned" (per room: learning progress, how fast it
-// warms and cools, the lowest water temperature, the planned start and the night advice; the heating curve, the burner
+// warms and cools, the lowest water temperature, the planned start and the night advice; weather compensation, the burner
 // and the self-tuning's changes) and "Comfort and boiler care" (the knobs of /config/heating/flow: automatic or set by
 // the owner, back to automatic, back to start values). English on a desktop in light, Dutch on a phone in dark.
 const {chromium}=require('playwright-core');
@@ -110,9 +110,9 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.innerText.replace(/\s+/g,' ').t
    '\'s Nachts laten afkoelen, zoals je programma doet, is het goedkoopst. Dit is een advies: je weekprogramma blijft zoals het is.'));
   // House and boiler; the self-tuning's state and its changes in words, the newest first.
   assert.deepEqual(await texts(learned.locator('[data-learned-house] li')),lang==='en'?[
-   'Heating curve, learned from your house: the water gets about 0.62 °C warmer for every degree colder outside. The heating curve sets the water temperature, so the boiler runs as cool as the weather allows.',
+   'Weather compensation, learned from your house: the water gets about 0.62 °C warmer for every degree colder outside. Weather compensation sets the water temperature, so the boiler runs as cool as the weather allows.',
    'Yesterday the burner started 59 times for heating; a burn lasted 7 min on average. That is often. Fewer, longer burns are gentler on the boiler; the thermostat works on that.']:[
-   'Stooklijn, geleerd van je huis: het water wordt ongeveer 0,62 °C warmer voor elke graad kouder buiten. De stooklijn bepaalt de watertemperatuur, zodat de ketel zo koel draait als het weer toelaat.',
+   'Weerafhankelijke regeling, geleerd van je huis: het water wordt ongeveer 0,62 °C warmer voor elke graad kouder buiten. De weerafhankelijke regeling bepaalt de watertemperatuur, zodat de ketel zo koel draait als het weer toelaat.',
    'Gisteren startte de brander 59 keer voor verwarmen; hij brandde gemiddeld 7 min. Dat is vaak. Minder en langer branden is beter voor de ketel; de thermostaat werkt daaraan.']);
   assert.equal(await learned.locator('[data-learned-state]').innerText(),t('The thermostat adjusts its settings itself, at most one small step a day.',
    'De thermostaat past zijn instellingen zelf aan, hooguit één kleine stap per dag.'));
@@ -136,7 +136,7 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.innerText.replace(/\s+/g,' ').t
   assert.equal(await head('floor_lead_min_per_c'),t('Warm-up time for floor heating: 2 h per °C (automatic)','Opwarmtijd voor vloerverwarming: 2 u per °C (automatisch)'));
   assert.match(await knob('min_off_s').innerText(),t(/so the boiler switches on and off less often\./,/zodat de ketel minder vaak aan en uit gaat\./));
   assert.equal(await care.locator('details.hc-more').evaluate(d=>d.open),false,'the fixed knobs start collapsed');
-  assert.equal(await knob('curve_correction_pct').locator('div').first().evaluate(e=>e.textContent.replace(/\s+/g,' ')),t('Room correction on the heating curve: 50 % (standard value)','Ruimtecorrectie op de stooklijn: 50 % (standaardwaarde)'));
+  assert.equal(await knob('curve_correction_pct').locator('div').first().evaluate(e=>e.textContent.replace(/\s+/g,' ')),t('Room correction on weather compensation: 50 % (standard value)','Ruimtecorrectie op de weerafhankelijke regeling: 50 % (standaardwaarde)'));
   // Read-only while Home Assistant manages the settings; editable once unlocked.
   const own=knob('min_on_s').getByRole('button',{name:t('Set it myself','Zelf instellen')});
   assert.equal(await own.isDisabled(),true);

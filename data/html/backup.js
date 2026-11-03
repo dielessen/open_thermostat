@@ -34,9 +34,9 @@
         "Room settings": "Instellingen van de ruimtes",
         "Lowest water temperature": "Laagste watertemperatuur",
         "Highest water temperature": "Hoogste watertemperatuur",
-        "Follow outdoor temperature (heating curve)": "Buitentemperatuur volgen (stooklijn)",
+        "Weather compensation": "Weerafhankelijke regeling",
         "Smart warm-up": "Slim opwarmen",
-        "Water temperature at −10 °C outside": "Watertemperatuur bij −10 °C buiten",
+        "Water temperature in hard frost (−10 °C)": "Watertemperatuur bij strenge vorst (−10 °C)",
         "Wi-Fi password": "Wifi-wachtwoord",
         "Web page password": "Wachtwoord van de webpagina",
         "Bluetooth sensor keys": "Sleutels van Bluetooth-sensoren",
@@ -123,8 +123,8 @@
         'openweather.latitude': "OpenWeather", 'openweather.longitude': "OpenWeather", 'openweather.interval': "OpenWeather",
         'openweather.appid': "OpenWeather API key", 'bt.scanTime': "Bluetooth listening time", 'bt.scanInterval': "Bluetooth pause",
         devices: "Sensors", rooms: "Rooms", room_settings: "Room settings", minimum_flow_c: "Lowest water temperature",
-        maximum_flow_c: "Highest water temperature", weather_curve: "Follow outdoor temperature (heating curve)", apply_learned: "Smart warm-up",
-        curve_design_flow_c: "Water temperature at −10 °C outside", tuning: "Comfort and boiler care", tuning_manual: "Comfort and boiler care: set by you",
+        maximum_flow_c: "Highest water temperature", weather_curve: "Weather compensation", apply_learned: "Smart warm-up",
+        curve_design_flow_c: "Water temperature in hard frost (−10 °C)", tuning: "Comfort and boiler care", tuning_manual: "Comfort and boiler care: set by you",
         model: "Boiler model", learned: "What the thermostat has learned"
     };
     // Comfort and boiler care (house.html's settings): name, how its value reads, and whether the thermostat sets it.
@@ -133,7 +133,7 @@
         heat_stop_c: ["Stop heating when the room is this much above its target", 'c', true],
         flow_per_degree_c: ["How strongly the water temperature reacts to a cold room", 'gain', true],
         floor_lead_min_per_c: ["Warm-up time for floor heating", 'lead', true], radiator_lead_min_per_c: ["Warm-up time for radiators", 'lead', true],
-        curve_correction_pct: ["Room correction on the heating curve", 'pct', false],
+        curve_correction_pct: ["Room correction on weather compensation", 'pct', false],
         learned_accept_pct: ["Accepted warm-up time with the learned water temperature", 'pct', false],
         night_saving_min_pct: ["Smallest night saving worth advising", 'pct', false]};
     const reenter = {wifi_password: "Wi-Fi password", web_password: "Web page password", mqtt_password: "MQTT password",

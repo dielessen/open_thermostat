@@ -383,7 +383,7 @@ window.OT_UI_MESSAGES = {
   "Add room": "Ruimte toevoegen",
   "Base": "Basis",
   "Boiler": "Ketel",
-  "Boiler and heating curve": "Ketel en stooklijn",
+  "Boiler and weather compensation": "Ketel en weerafhankelijke regeling",
   "Cancel": "Annuleren",
   "Cannot reach the device. Check the connection and try again.": "Apparaat niet bereikbaar. Controleer de verbinding en probeer opnieuw.",
   "Change active program": "Actief programma wijzigen",

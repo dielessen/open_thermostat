@@ -13,12 +13,16 @@ mixin keeps the trail of menus the user walked through:
 Aborts that carry information (errors, "restart the E32", "these IDs changed")
 still close the dialog as before.
 """
-from functools import wraps
+from functools import lru_cache, wraps
+import json
+from pathlib import Path
 
 from homeassistant.config_entries import OptionsFlow
 
+from .const import DOMAIN
+
 SAVED = {"en": "Saved.", "nl": "Opgeslagen.", "pl": "Zapisano."}
-UNCHANGED = {"en": "Nothing changed.", "nl": "Niets gewijzigd.", "pl": "Nic się nie zmieniło."}
+UNCHANGED = {"en": "Nothing changed.", "nl": "Niets veranderd.", "pl": "Nic się nie zmieniło."}
 
 # Abort reasons that only say "saved" (a menu with SAVED) or "nothing changed" (a menu with UNCHANGED).
 SAVED_REASONS = frozenset({
@@ -34,7 +38,14 @@ ALIASES = {"e32_rooms_saved": "e32_rooms", "e32_rooms_removed": "e32_rooms"}
 class _MenuAgain(dict):
     """An abort result that the step wrapper replaces by the menu the step was opened from."""
 
-    note = ""
+    reason = ""
+    placeholders = None
+
+
+@lru_cache(maxsize=4)
+def _abort_texts(language):
+    path = Path(__file__).parent / "translations" / f"{language}.json"
+    return json.loads(path.read_text(encoding="utf-8"))["options"]["abort"]
 
 
 def _language(hass):
@@ -47,7 +58,7 @@ def _wrap(step):
     async def wrapper(self, *args, **kwargs):
         result = await step(self, *args, **kwargs)
         if isinstance(result, _MenuAgain):
-            return await self._menu_again(result.note)
+            return await self._menu_again(await self._note(result))
         return result
     return wrapper
 
@@ -94,9 +105,21 @@ class MenuNavigation:
         result = super().async_abort(reason=reason, description_placeholders=description_placeholders)
         if self._trail() and (reason in SAVED_REASONS or reason in UNCHANGED_REASONS):
             again = _MenuAgain(result)
-            again.note = (SAVED if reason in SAVED_REASONS else UNCHANGED)[_language(self.hass)]
+            again.reason, again.placeholders = reason, description_placeholders
             return again
         return result
+
+    async def _note(self, result):
+        """The line on top of the menu: the abort's own text when it carries details (a name, a value), else a plain one."""
+        language = _language(self.hass)
+        plain = (SAVED if result.reason in SAVED_REASONS else UNCHANGED)[language]
+        if not result.placeholders:
+            return plain
+        try:
+            abort = (await self.hass.async_add_executor_job(_abort_texts, language))[result.reason]
+            return " ".join(abort.format(**result.placeholders).split())
+        except Exception:  # a missing translation or placeholder never blocks the menu
+            return plain
 
     async def _menu_again(self, note):
         """The menu this step was opened from, rebuilt (its texts show what was just saved)."""

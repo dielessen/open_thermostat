@@ -169,6 +169,7 @@ async def test_the_forwarder_sends_room_presence_only_to_an_e32_that_understands
 
 from homeassistant.data_entry_flow import section  # noqa: E402
 from test_e32_room_flow import manager, product, room_form, rooms_menu, shown  # noqa: E402,F401
+from nav_helpers import is_again  # noqa: E402
 from test_room_plan import FakeE32  # noqa: E402
 
 
@@ -205,7 +206,7 @@ async def test_the_room_form_has_a_persons_section_and_saving_it_writes_no_plan(
     persons = next(v for k, v in form["data_schema"].schema.items() if str(k) == "persons")
     assert persons.options["collapsed"] is False
     result = await manager.async_configure(form["flow_id"], shown(form))
-    assert result["reason"] == "e32_room_unchanged"
+    assert is_again(result, "unchanged")
     # A person that does not exist is refused in the section.
     form = await room_form(manager, parent, "woonkamer")
     result = await manager.async_configure(form["flow_id"], {**shown(form), "persons": {"persons": ["person.nobody"]}})

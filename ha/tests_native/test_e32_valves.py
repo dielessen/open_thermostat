@@ -16,6 +16,7 @@ from custom_components.open_thermostat.heating_link import HeatingHub, track_ent
 from custom_components.open_thermostat.room_plan import RoomPlanLink
 from e32_telemetry import split_status
 from test_e32_telemetry_topics import STATUS, UNIQUE_IDS, _setup
+from nav_helpers import is_again  # noqa: E402
 
 VALVE = {"name": "Kraan woonkamer", "model": "bosch_bth_ra", "health": "ok", "position_pct": 40, "battery_pct": 85,
          "setpoint_c": 21.0}
@@ -505,7 +506,7 @@ async def test_valves_are_a_section_of_the_room_form_and_each_gets_its_route(has
     assert options["collapsed"] is False and (fields["valves"][0].description or {})["suggested_value"] == [bosch, aqara, zha]
     assert "- Living room radiator: works without Home Assistant (Bosch BTH-RA)" in form["description_placeholders"]["valve_routes"]
     result = await manager.async_configure(form["flow_id"], shown(form))
-    assert result["type"] == "abort" and result["reason"] == "e32_room_unchanged"   # nothing changed: nothing written
+    assert is_again(result, "unchanged")   # nothing changed: nothing written
 
 
 @pytest.mark.asyncio
@@ -531,7 +532,7 @@ async def test_existing_valve_records_keep_working_and_map_to_their_entities(has
         "- Kraan oud: works without Home Assistant (not found in Home Assistant, kept as it was)\n"
         "- climate.zha_trv: through Home Assistant")
     result = await manager.async_configure(form["flow_id"], shown(form))
-    assert result["type"] == "abort" and result["reason"] == "e32_room_unchanged"
+    assert is_again(result, "unchanged")
     assert [c for c in e32.valves.calls if c is not None] == []           # the stored record is never rewritten as is
     # Deselecting the kept valve removes it; the others keep their order, model and control.
     form = await room_form(manager, parent, "woonkamer")
@@ -674,7 +675,7 @@ async def test_a_home_assistant_valve_the_e32_can_drive_moves_to_the_e32_unless_
     assert form["description_placeholders"]["valve_routes"] == "- Kraan woonkamer: through Home Assistant"
     writes = len([c for c in e32.valves.calls if c is not None])
     result = await manager.async_configure(form["flow_id"], shown(form))
-    assert result["type"] == "abort" and result["reason"] == "e32_room_unchanged"
+    assert is_again(result, "unchanged")
     assert len([c for c in e32.valves.calls if c is not None]) == writes
     # A model chosen under Advanced again: back to the E32, the choice forgotten.
     form = await room_form(manager, parent, "woonkamer")

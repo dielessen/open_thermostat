@@ -11,7 +11,7 @@ import probatio as vol
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 
-from .const import CONF_CREATE_DASHBOARD
+from .const import CONF_CREATE_DASHBOARD, DOMAIN
 from .product import (central_entry, commit_configuration, configuration_snapshot,
                       default_document)
 from .product import INSTALLATION

@@ -15,6 +15,7 @@ from custom_components.open_thermostat import e32_boiler_model as module
 from custom_components.open_thermostat.controller_link import ControllerLinkError
 from custom_components.open_thermostat.ems_devices import MODEL_CHOSEN, products
 from test_controller_link import BASE, Response, login_responses, setup
+from nav_helpers import is_again  # noqa: E402
 from test_e32_room_flow import manager, product  # noqa: F401  (the manager fixture)
 from test_room_plan import FakeE32 as PlanE32
 
@@ -48,9 +49,8 @@ class FakeE32(PlanE32):
 async def model_form(manager, parent):
     await manager.hass.async_block_till_done()
     flow = await manager.async_init(parent.entry_id)
-    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
-    menu = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
-    assert menu["menu_options"] == ["heating_boiler_limits", "boiler_model"]
+    menu = await manager.async_configure(flow["flow_id"], {"next_step_id": "heating_boiler"})
+    assert menu["menu_options"] == ["heating_boiler_limits", "comfort_care", "boiler_model", "back"]
     return await manager.async_configure(menu["flow_id"], {"next_step_id": "boiler_model"})
 
 
@@ -85,15 +85,15 @@ async def test_the_boiler_model_is_saved_on_the_e32_and_names_the_boiler_at_once
     assert default == "none" and options[0] == {"value": "none", "label": "No boiler selected yet"}
     logins = e32.logins
     done = await manager.async_configure(form["flow_id"], {"model": "nefit-ecomline-classic-hrc-22h"})
-    assert done["type"] == FlowResultType.ABORT and done["reason"] == "boiler_model_saved"
-    assert done["description_placeholders"]["model"] == "Nefit Ecomline Classic HRC 22H"
+    assert is_again(done)
+    assert "Nefit Ecomline Classic HRC 22H" in done["description_placeholders"]["saved"]
     assert e32.posts == [("nefit-ecomline-classic-hrc-22h", logins + 1)]  # one sign-in for the change
     assert renamed == ["nefit-ecomline-classic-hrc-22h"]
     # The same model again: nothing is written.
     form = await model_form(manager, parent)
     assert choices(form)[1] == "nefit-ecomline-classic-hrc-22h"
     done = await manager.async_configure(form["flow_id"], {"model": "nefit-ecomline-classic-hrc-22h"})
-    assert done["reason"] == "e32_settings_unchanged" and len(e32.posts) == 1
+    assert is_again(done, "unchanged") and len(e32.posts) == 1
 
 
 @pytest.mark.asyncio
@@ -135,7 +135,7 @@ def test_every_boiler_model_text_exists_in_every_language():
     assert files["strings.json"] == files["translations/en.json"]
     for name, data in files.items():
         step = data["options"]["step"]
-        assert set(step["heating_boiler"]["menu_options"]) == {"heating_boiler_limits", "boiler_model"}, name
+        assert set(step["heating_boiler"]["menu_options"]) >= {"heating_boiler_limits", "boiler_model"}, name
         assert step["boiler_model"]["data"]["model"] and "{current}" in step["boiler_model"]["description"]
         assert data["options"]["error"]["boiler_model_invalid"]
         assert "{model}" in data["options"]["abort"]["boiler_model_saved"]

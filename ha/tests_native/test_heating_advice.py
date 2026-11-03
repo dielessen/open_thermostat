@@ -554,6 +554,7 @@ async def test_heating_route_forwards_energy_values_next_to_the_room_inputs(hass
 
 
 from test_product_flow import managers, option, product  # noqa: E402,F401
+from nav_helpers import is_again  # noqa: E402
 
 
 @pytest.mark.asyncio
@@ -570,7 +571,7 @@ async def test_energy_options_step_validates_saves_without_reload(hass, managers
     f = await m.async_configure(f["flow_id"], {"gas_meter": "sensor.gas_rate"})
     assert f["errors"] == {"gas_meter": "gas_meter_unit"}
     f = await m.async_configure(f["flow_id"], {"gas_meter": "sensor.gas", "gas_price": 1.35, "boiler_kw": 22})
-    assert f["type"] == "abort" and f["reason"] == "energy_saved"
+    assert is_again(f)
     assert dict(p.options) == {**before, CONF_GAS_METER: "sensor.gas", CONF_GAS_PRICE: 1.35, CONF_BOILER_KW: 22}
     state = hass.data["open_thermostat"][p.entry_id]
     assert state[ENERGY_ONLY_UPDATE] == dict(p.options)

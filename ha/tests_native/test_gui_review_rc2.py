@@ -24,6 +24,7 @@ from custom_components.open_thermostat import dashboard
 from custom_components.open_thermostat.dashboard import RoomDashboard
 from custom_components.open_thermostat.v1_boiler_fields import secondary_field
 from test_dashboard_heating import installation, walk
+from nav_helpers import is_again  # noqa: E402
 from test_e32_room_flow import manager, product, rooms_menu  # noqa: F401  (the manager fixture)
 from test_room_plan import FakeE32
 
@@ -191,7 +192,7 @@ async def test_the_house_window_delay_is_in_minutes_like_each_rooms_own(hass, ma
     assert (key.default(), selector["unit_of_measurement"], selector["max"]) == (2, "min", 30)
     done = await manager.async_configure(form["flow_id"], {"comfort_temperature": 20, "eco_temperature": 16,
                                                            "contact_delay": 1.5, "override_minutes": 120})
-    assert done["type"] == FlowResultType.ABORT and done["reason"] == "comfort_saved"
+    assert is_again(done)
     assert parent.options["comfort_settings"]["contact_delay_s"] == 90  # stored in seconds, as before
     for name in ("strings.json", "translations/nl.json", "translations/pl.json"):
         help_text = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["options"]["step"][

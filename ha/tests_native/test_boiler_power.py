@@ -61,6 +61,7 @@ def test_advice_card_says_which_power_the_estimates_use():
 
 import pytest  # noqa: E402
 from test_heating_advice import set_inputs  # noqa: E402
+from nav_helpers import is_again  # noqa: E402
 from test_product_flow import managers, option, product  # noqa: E402,F401
 
 
@@ -75,7 +76,7 @@ async def test_house_energy_form_names_the_suggestion_and_saves_it_only_when_typ
     boiler = next(key for key in f["data_schema"].schema if str(key) == "boiler_kw")
     assert boiler.description is None                    # not prefilled: saving the form leaves it unset
     result = await m.async_configure(f["flow_id"], {})
-    assert result["reason"] == "energy_saved" and CONF_BOILER_KW not in p.options
+    assert is_again(result) and CONF_BOILER_KW not in p.options
     # The boiler type from the E32's EMS bus list (ems_devices), named in the description.
     dr.async_get(hass).async_get_or_create(config_entry_id=p.entry_id, identifiers={("open_thermostat", "fixture_ems_08")},
                                            name="Nefit EcomLine HRC 30 (0x08)", model="EcomLine")

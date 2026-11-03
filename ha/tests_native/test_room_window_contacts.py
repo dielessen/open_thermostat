@@ -15,6 +15,7 @@ from custom_components.open_thermostat.e32_comfort import (
     CONF_COMFORT, comfort_options, contact_delay_text, room_contacts, with_room_contacts)
 from custom_components.open_thermostat.heating_link import ROOM_STATUSES, HeatingHub, RoomStatusSensor, room_status
 from test_e32_room_flow import NEW_ROOM, manager, product, room_form, rooms_menu, shown  # noqa: F401
+from nav_helpers import is_again  # noqa: E402
 from test_room_plan import STATUS, FakeE32
 
 def contacts_of(parent):
@@ -96,7 +97,7 @@ async def test_changing_only_the_contacts_writes_no_plan(hass, manager):
     assert reconfigured  # the forwarder follows the new sensors at once
     form = await room_form(manager, parent, "woonkamer")
     result = await manager.async_configure(form["flow_id"], shown(form))
-    assert result["reason"] == "e32_room_unchanged"
+    assert is_again(result, "unchanged")
     # Removing all contacts switches the pause off for the room.
     form = await room_form(manager, parent, "woonkamer")
     result = await manager.async_configure(form["flow_id"], {**shown(form), "window": {}})

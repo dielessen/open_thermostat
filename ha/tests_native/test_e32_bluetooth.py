@@ -72,11 +72,11 @@ async def test_renames_and_a_forget_are_one_save_one_restart_and_keys_stay_on_th
     e32 = FakeE32()
     parent, _ = product(hass, e32)
     menu = await ble_menu(manager, parent)
-    assert menu["type"] == FlowResultType.MENU and menu["menu_options"] == ["ble_rename", "ble_forget"]
+    assert menu["type"] == FlowResultType.MENU and menu["menu_options"] == ["ble_rename", "ble_forget", "back"]
     assert "- Slaapkamer (a4c138a3e8db)" in menu["description_placeholders"]["sensors"]
     rename = await manager.async_configure(menu["flow_id"], {"next_step_id": "ble_rename"})
     menu = await manager.async_configure(rename["flow_id"], {"sensor": "a4c138a3e8db", "name": " Woonkamer "})
-    assert menu["step_id"] == "ble_sensors" and menu["menu_options"] == ["ble_rename", "ble_forget", "ble_save"]
+    assert menu["step_id"] == "ble_sensors" and menu["menu_options"] == ["ble_rename", "ble_forget", "ble_save", "back"]
     assert "a4c138a3e8db) → new name: Woonkamer" in menu["description_placeholders"]["sensors"]
     forget = await manager.async_configure(menu["flow_id"], {"next_step_id": "ble_forget"})
     assert "Badkamer" in forget["description_placeholders"]["used"]  # the rooms that measure with it
@@ -177,7 +177,7 @@ def test_every_bluetooth_text_exists_in_every_language():
     for name, data in files.items():
         options = data["options"]
         assert options["step"]["advanced_settings"]["menu_options"]["ble_sensors"], name
-        assert set(options["step"]["ble_sensors"]["menu_options"]) == {"ble_rename", "ble_forget", "ble_save"}
+        assert set(options["step"]["ble_sensors"]["menu_options"]) == {"ble_rename", "ble_forget", "ble_save", "back", "done"}
         assert "30" in options["step"]["ble_sensors"]["description"] and "30" in options["step"]["ble_save"]["description"]
         for key in ("ble_sensor_invalid", "ble_name_invalid", "ble_storage_full", "ble_rejected"):
             assert options["error"][key], (name, key)

@@ -244,4 +244,4 @@ def test_the_house_menu_holds_presence_heating_and_energy():
         menu = main_menu(entry)
     finally:
         room_plan.has_room_plan = original
-    assert menu == ["e32_rooms", "house", "controller_connection", "general", "advanced_settings"]
+    assert menu == ["e32_rooms", "house", "heating_boiler", "energy", "controller_connection", "advanced_settings"]

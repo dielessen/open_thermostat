@@ -71,6 +71,7 @@ async def test_the_issue_follows_the_e32_and_survives_an_outage(hass):
     sensor.hass = hass
     sensor.evaluate()
     raised = issue(hass)
+    # E32 rc.3: no thermostat ever heard on the bus (or older firmware): the neutral words.
     assert raised is not None and raised.is_fixable and raised.translation_key == "reconfirm_takeover"
     assert raised.severity == ir.IssueSeverity.WARNING and raised.data == {"entry_id": "e1"}
     sensor.evaluate()
@@ -86,6 +87,31 @@ async def test_the_issue_follows_the_e32_and_survives_an_outage(hass):
         sensor.evaluate()
         assert issue(hass) is None
     assert e32.handovers == []  # raising the issue never writes to the E32
+
+
+@pytest.mark.asyncio
+async def test_the_words_name_the_old_thermostat_only_when_the_e32_heard_one(hass):
+    """E32 rc.3 active.thermostat_seen: the same issue, the words of a home that had another thermostat."""
+    e32, hub = await rig(hass, {**WAITING, "thermostat_seen": True})
+    entry = SimpleNamespace(entry_id="e1", data={})
+    module.update_reconfirm_issue(hass, entry, hub)
+    raised = issue(hass)
+    assert raised is not None and raised.translation_key == "reconfirm_takeover_thermostat"
+    assert raised.data == {"entry_id": "e1"} and raised.is_fixable
+    module.update_reconfirm_issue(hass, entry, hub)
+    assert issue(hass) is raised  # unchanged: not raised again
+    # Never heard one: the neutral words; a thermostat heard later switches them (one issue, its id kept).
+    hub.update(status({**WAITING, "thermostat_seen": False}))
+    module.update_reconfirm_issue(hass, entry, hub)
+    assert issue(hass).translation_key == "reconfirm_takeover"
+    hub.update(status({**WAITING, "thermostat_seen": True}))
+    module.update_reconfirm_issue(hass, entry, hub)
+    assert issue(hass).translation_key == "reconfirm_takeover_thermostat"
+    assert len([i for i in ir.async_get(hass).issues.values() if i.domain == "open_thermostat"]) == 1
+    # Its repair flow is the same one: one confirmation.
+    flow = await async_create_fix_flow(hass, ISSUE, {"entry_id": "e1"})
+    assert isinstance(flow, module.ReconfirmTakeoverRepairFlow)
+    assert e32.handovers == []
 
 
 @pytest.mark.asyncio
@@ -201,13 +227,22 @@ def test_the_issue_texts_exist_in_every_language():
     from pathlib import Path
     base = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
     titles = {}
+    old = {"en": "old thermostat", "nl": "oude thermostaat", "pl": "stary termostat"}
     for name in ("strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"):
-        texts = json.loads((base / name).read_text(encoding="utf-8"))["issues"]["reconfirm_takeover"]
-        flow = texts["fix_flow"]
-        assert set(flow["step"]) == {"reconfirm_takeover"}
-        assert set(flow["error"]) == {"reconfirm_not_released", "reconfirm_unconfirmed", "e32_unreachable",
-                                      "e32_password_change_required"}
-        assert set(flow["abort"]) == {"reconfirm_done", "reconfirm_plan_not_active", "e32_rooms_unavailable"}
+        lang = "en" if name == "strings.json" else name[-7:-5]
+        issues = json.loads((base / name).read_text(encoding="utf-8"))["issues"]
+        for key in ("reconfirm_takeover", "reconfirm_takeover_thermostat"):
+            flow = issues[key]["fix_flow"]
+            assert set(flow["step"]) == {"reconfirm_takeover"}
+            assert set(flow["error"]) == {"reconfirm_not_released", "reconfirm_unconfirmed", "e32_unreachable",
+                                          "e32_password_change_required"}
+            assert set(flow["abort"]) == {"reconfirm_done", "reconfirm_plan_not_active", "e32_rooms_unavailable"}
+            assert issues[key]["title"] == issues["reconfirm_takeover"]["title"]
+        # rc.3: the neutral words never assume an old thermostat; the other ones name it.
+        neutral = issues["reconfirm_takeover"]["fix_flow"]["step"]["reconfirm_takeover"]["description"]
+        named = issues["reconfirm_takeover_thermostat"]["fix_flow"]["step"]["reconfirm_takeover"]["description"]
+        assert old[lang] not in neutral and old[lang] in named, name
+        texts = issues["reconfirm_takeover"]
         titles[name] = texts["title"]
     assert titles["translations/nl.json"] == "Bevestig opnieuw dat de E32 de ketel mag regelen"
     assert titles["strings.json"] == titles["translations/en.json"] == "Confirm again that the E32 may control the boiler"

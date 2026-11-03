@@ -2981,6 +2981,28 @@
         "step": {
           "reconfirm_takeover": {
             "title": "Confirm again that the E32 may control the boiler",
+            "description": "The E32 controlled your boiler before its firmware was updated. For safety the new firmware does not take control again until you confirm once more that the E32 may control the boiler. Until then the E32 only keeps frost protection, and only while no other thermostat is heard on the boiler bus.\n\nConfirm only if no other thermostat is connected to the boiler: never connect two thermostats to the boiler at the same time. To stop E32 control instead, open the E32 Rooms page → Active control → Stop E32 control."
+          }
+        },
+        "error": {
+          "reconfirm_not_released": "This E32 firmware does not allow the E32 to control the boiler. Nothing was changed.",
+          "reconfirm_unconfirmed": "The E32 did not confirm. Check the E32 Rooms page → Active control.",
+          "e32_unreachable": "The E32 cannot be reached right now. Try again in a moment.",
+          "e32_password_change_required": "The E32 still uses its default password and accepts no changes. Choose a new E32 password first (Settings → Repairs → “E32 still uses the default password”), then confirm here."
+        },
+        "abort": {
+          "reconfirm_done": "The E32 no longer waits for a confirmation.",
+          "reconfirm_plan_not_active": "The room plan is no longer active, so there is nothing to confirm.",
+          "e32_rooms_unavailable": "The E32 rooms cannot be read right now. Try again in a moment."
+        }
+      }
+    },
+    "reconfirm_takeover_thermostat": {
+      "title": "Confirm again that the E32 may control the boiler",
+      "fix_flow": {
+        "step": {
+          "reconfirm_takeover": {
+            "title": "Confirm again that the E32 may control the boiler",
             "description": "The E32 controlled your boiler before its firmware was updated. For safety the new firmware does not take control again until you confirm once more that your old thermostat is still disconnected from the boiler. Until then the E32 only keeps frost protection, and only while no other thermostat is heard on the boiler bus.\n\nConfirm only if the old thermostat is disconnected: never connect two thermostats to the boiler at the same time. To give control back instead, open the E32 Rooms page → Active control → Give control back to my thermostat."
           }
         },

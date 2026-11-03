@@ -2981,6 +2981,28 @@
         "step": {
           "reconfirm_takeover": {
             "title": "Potwierdź ponownie, że E32 może sterować kotłem",
+            "description": "E32 sterował Twoim kotłem przed aktualizacją oprogramowania. Ze względów bezpieczeństwa nowe oprogramowanie nie przejmie sterowania ponownie, dopóki jeszcze raz nie potwierdzisz, że E32 może sterować kotłem. Do tego czasu E32 utrzymuje tylko ochronę przed zamarzaniem, i to tylko wtedy, gdy na magistrali kotła nie słychać innego termostatu.\n\nPotwierdź tylko, jeśli do kotła nie jest podłączony żaden inny termostat: nigdy nie podłączaj dwóch termostatów do kotła jednocześnie. Aby zamiast tego zatrzymać sterowanie przez E32, otwórz w E32 stronę Rooms → Active control → Stop E32 control."
+          }
+        },
+        "error": {
+          "reconfirm_not_released": "To oprogramowanie E32 nie pozwala E32 sterować kotłem. Nic nie zostało zmienione.",
+          "reconfirm_unconfirmed": "E32 tego nie potwierdził. Sprawdź na E32 stronę Rooms → Active control.",
+          "e32_unreachable": "E32 jest teraz nieosiągalny. Spróbuj ponownie za chwilę.",
+          "e32_password_change_required": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian. Najpierw wybierz nowe hasło E32 (Ustawienia → Naprawy → „E32 nadal używa domyślnego hasła”), a potem potwierdź tutaj."
+        },
+        "abort": {
+          "reconfirm_done": "E32 nie czeka już na potwierdzenie.",
+          "reconfirm_plan_not_active": "Plan pomieszczeń nie jest już aktywny, więc nie ma czego potwierdzać.",
+          "e32_rooms_unavailable": "Pomieszczeń E32 nie można teraz odczytać. Spróbuj ponownie za chwilę."
+        }
+      }
+    },
+    "reconfirm_takeover_thermostat": {
+      "title": "Potwierdź ponownie, że E32 może sterować kotłem",
+      "fix_flow": {
+        "step": {
+          "reconfirm_takeover": {
+            "title": "Potwierdź ponownie, że E32 może sterować kotłem",
             "description": "E32 sterował Twoim kotłem przed aktualizacją oprogramowania. Ze względów bezpieczeństwa nowe oprogramowanie nie przejmie sterowania ponownie, dopóki jeszcze raz nie potwierdzisz, że stary termostat jest nadal odłączony od kotła. Do tego czasu E32 utrzymuje tylko ochronę przed zamarzaniem, i to tylko wtedy, gdy na magistrali kotła nie słychać innego termostatu.\n\nPotwierdź tylko, jeśli stary termostat jest odłączony: nigdy nie podłączaj dwóch termostatów do kotła jednocześnie. Aby zamiast tego oddać sterowanie, otwórz w E32 stronę Rooms → Active control → Give control back to my thermostat."
           }
         },

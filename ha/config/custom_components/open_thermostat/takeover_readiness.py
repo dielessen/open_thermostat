@@ -19,7 +19,12 @@ leads to the takeover. Its result comes with the readiness (``takeover_test``)
 and is shown in every state: ``boiler_test`` (idle / running / passed / failed
 / stopped / aborted), ``boiler_test_at``, ``boiler_test_steps`` (per step pass,
 wait, fail, skipped, aborted or not_run), ``boiler_test_step`` and
-``boiler_test_reason``.
+``boiler_test_reason``. Since E32 rc.3 it is the one boiler test and the E32
+keeps it over restarts and updates: ``boiler_test_summary`` (running / passed /
+marked / failed / stopped / not_needed / aborted / never: ``marked`` is the
+owner's "already done", never a measured pass; ``not_needed``: the E32
+controlled this boiler before), ``boiler_test_flow_c`` (the highest water
+temperature the E32 asked during it) and ``boiler_test_marked_at``.
 """
 import time
 from datetime import datetime, timezone
@@ -58,6 +63,12 @@ RESULT_ATTRIBUTE = {"flow": "flow_limit"}
 TEST_STATES = ("idle", "running", "passed", "failed", "stopped", "aborted")
 TEST_STEPS = ("disconnect", "confirm", "start", "hot_water", "stop")
 TEST_RESULTS = ("pass", "wait", "fail", "skipped", "aborted", "not_run")
+TEST_SUMMARIES = ("running", "passed", "marked", "failed", "stopped", "not_needed", "aborted", "never")
+
+
+def _utc(value):
+    return (datetime.fromtimestamp(value, timezone.utc).isoformat(timespec="minutes")
+            if type(value) in (int, float) and value > 0 else None)
 
 
 def takeover_test(readiness):
@@ -66,14 +77,18 @@ def takeover_test(readiness):
     if type(test) is not dict or test.get("state") not in TEST_STATES:
         return {}
     steps = test.get("steps") if type(test.get("steps")) is dict else {}
-    at = test.get("at")
     running = test["state"] == "running"
+    summary = test.get("summary")
+    flow = test.get("flow_c")
     return {"boiler_test": test["state"],
-            "boiler_test_at": (datetime.fromtimestamp(at, timezone.utc).isoformat(timespec="minutes")
-                               if type(at) in (int, float) and at > 0 else None),
+            "boiler_test_at": _utc(test.get("at")),
             "boiler_test_steps": {key: steps.get(key) if steps.get(key) in TEST_RESULTS else "not_run" for key in TEST_STEPS},
             "boiler_test_step": test.get("step") if running and test.get("step") in TEST_STEPS else None,
-            "boiler_test_reason": test.get("reason") if type(test.get("reason")) is str else None}
+            "boiler_test_reason": test.get("reason") if type(test.get("reason")) is str else None,
+            # E32 rc.3; older firmware: the state alone (never for idle).
+            "boiler_test_summary": summary if summary in TEST_SUMMARIES else "never" if test["state"] == "idle" else test["state"],
+            "boiler_test_flow_c": flow if type(flow) in (int, float) and 0 < flow <= 90 else None,
+            "boiler_test_marked_at": _utc(test.get("marked_at")) if test.get("marked") is True else None}
 
 
 def readiness_status(status):

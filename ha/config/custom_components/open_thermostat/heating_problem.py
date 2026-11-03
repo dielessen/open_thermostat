@@ -9,7 +9,6 @@ each held long enough that a short hiccup never raises it:
   has heard from it, or when the E32 connection is stored);
 * the heating advice reports a low or high water pressure (that advice already
   waits 30 / 60 minutes);
-* the E32 has seen the burner short cycling for more than 2 hours without a break;
 * in active mode (the E32 controls the boiler): a warning of the E32's active
   control for more than 5 minutes;
 * active control is chosen but the E32 waits for the owner to confirm that
@@ -49,7 +48,6 @@ from .issue_sync import clear_issues, sync_issues
 
 ROOM_LOST_SECONDS = 30 * 60
 TELEMETRY_STALE_SECONDS = 10 * 60
-SHORT_CYCLING_SECONDS = 2 * 3600
 ACTIVE_WARNING_SECONDS = 5 * 60
 AWAITING_CONFIRMATION_SECONDS = 10 * 60
 ROOM_SLOW_SECONDS = WARN_ROOM_SLOW_HOURS * 3600
@@ -77,7 +75,6 @@ TEXT = {
                                             "Active control.",
         "pressure_low": "The water pressure is low ({pressure} bar). Top up the heating system.",
         "pressure_high": "The water pressure is high ({pressure} bar). Have the expansion vessel checked.",
-        "short_cycling": "The boiler has been switching on and off too often for more than 2 hours.",
         "active_foreign_controller": "Another thermostat still sends heat requests to the boiler.",
         "active_measurement_lost": "The E32 lost the room measurements and stopped asking for heat.",
         "active_boiler_no_response": "The boiler does not respond to the E32's heat request.",
@@ -100,7 +97,6 @@ TEXT = {
                                             "regeling.",
         "pressure_low": "De waterdruk is laag ({pressure} bar). Vul de cv-installatie bij.",
         "pressure_high": "De waterdruk is hoog ({pressure} bar). Laat het expansievat controleren.",
-        "short_cycling": "De ketel slaat al meer dan 2 uur te vaak aan en uit.",
         "active_foreign_controller": "Een andere thermostaat stuurt nog warmtevragen naar de ketel.",
         "active_measurement_lost": "De E32 heeft geen ruimtemetingen meer en vraagt geen warmte meer.",
         "active_boiler_no_response": "De ketel reageert niet op de warmtevraag van de E32.",
@@ -122,7 +118,6 @@ TEXT = {
                                             "czasu nie grzeje. Otwórz na E32 stronę Rooms → Active control.",
         "pressure_low": "Ciśnienie wody jest niskie ({pressure} bar). Uzupełnij wodę w instalacji grzewczej.",
         "pressure_high": "Ciśnienie wody jest wysokie ({pressure} bar). Zleć sprawdzenie naczynia wzbiorczego.",
-        "short_cycling": "Kocioł od ponad 2 godzin zbyt często się włącza i wyłącza.",
         "active_foreign_controller": "Inny termostat nadal wysyła do kotła żądania ciepła.",
         "active_measurement_lost": "E32 stracił pomiary z pomieszczeń i przestał żądać ciepła.",
         "active_boiler_no_response": "Kocioł nie reaguje na żądanie ciepła z E32.",
@@ -181,7 +176,6 @@ class ProblemTracker:
         self.started = now
         self.expect_telemetry = expect_telemetry
         self.rooms = {}          # room id -> since without a measurement
-        self.short_cycling = None
         self.active = {}         # warning -> since
         self.awaiting = None     # since active control waits for the owner's confirmation
         self.slow = {}           # room id -> since it asks for heat but stays well below its target
@@ -220,12 +214,6 @@ class ProblemTracker:
             if room.get("status") in ROOM_WITHOUT_MEASUREMENT:
                 rooms[room_id] = self.rooms.get(room_id, now)
         self.rooms = rooms
-        burner = status.get("burner") if type(status.get("burner")) is dict else {}
-        flag = burner.get("short_cycling")
-        if flag is True:
-            self.short_cycling = self.short_cycling if self.short_cycling is not None else now
-        elif flag is False:
-            self.short_cycling = None
         active = _active(status)
         warnings = active.get("warnings") if active and status.get("mode") == "active" else None
         current = [w for w in warnings if w in ACTIVE_WARNINGS] if type(warnings) is list else []
@@ -265,9 +253,51 @@ class ProblemTracker:
         for item in advice_items or ():
             if item.get("id") in ("pressure_low", "pressure_high"):
                 result.append((item["id"], {"pressure": item.get("values", {}).get("pressure")}))
-        if self.short_cycling is not None and now - self.short_cycling > SHORT_CYCLING_SECONDS:
-            result.append(("short_cycling", {}))
         return result
+
+
+# What the problem tile says in a few words (the first problem); the long reasons are TEXT.
+SHORT = {
+    "en": {
+        "room_without_measurement": "No measurement in {room}",
+        "e32_offline": "E32 not reporting",
+        "awaiting_confirmation": "Waiting for your confirmation",
+        "pressure_low": "Water pressure low",
+        "pressure_high": "Water pressure high",
+        "active_foreign_controller": "Another thermostat is still active",
+        "active_measurement_lost": "Room measurements lost",
+        "active_boiler_no_response": "Boiler does not respond",
+        "active_transmit_failed": "Cannot reach the boiler",
+        "room_slow": "{room} stays too cold",
+        "session_lost": "Home Assistant lost the E32",
+    },
+    "nl": {
+        "room_without_measurement": "Geen meting in {room}",
+        "e32_offline": "E32 meldt zich niet",
+        "awaiting_confirmation": "Wacht op jouw bevestiging",
+        "pressure_low": "Waterdruk te laag",
+        "pressure_high": "Waterdruk te hoog",
+        "active_foreign_controller": "Andere thermostaat nog actief",
+        "active_measurement_lost": "Ruimtemetingen kwijt",
+        "active_boiler_no_response": "Ketel reageert niet",
+        "active_transmit_failed": "Ketel niet bereikbaar",
+        "room_slow": "{room} blijft te koud",
+        "session_lost": "Home Assistant is de E32 kwijt",
+    },
+    "pl": {
+        "room_without_measurement": "Brak pomiaru: {room}",
+        "e32_offline": "E32 się nie odzywa",
+        "awaiting_confirmation": "Czeka na Twoje potwierdzenie",
+        "pressure_low": "Ciśnienie wody za niskie",
+        "pressure_high": "Ciśnienie wody za wysokie",
+        "active_foreign_controller": "Inny termostat nadal działa",
+        "active_measurement_lost": "Utracono pomiary pomieszczeń",
+        "active_boiler_no_response": "Kocioł nie odpowiada",
+        "active_transmit_failed": "Brak łączności z kotłem",
+        "room_slow": "{room}: zbyt zimno",
+        "session_lost": "Home Assistant utracił E32",
+    },
+}
 
 
 def _number(value):
@@ -282,6 +312,19 @@ def render(problems, lang):
     return [texts[key + "_thermostat" if values.get("thermostat") else key].format(
         **{name: fmt(value, lang) if name in ("pressure", "margin") else value for name, value in values.items()})
         for key, values in problems]
+
+
+def render_short(problems, lang):
+    """The first problem in a few words (``reason`` of the sensor: "Waiting for your confirmation"), or None.
+
+    More problems add "+n"; the long sentences are ``reasons`` and the Repairs issues.
+    """
+    if not problems:
+        return None
+    texts = SHORT.get(lang, SHORT["en"])
+    key, values = problems[0]
+    text = texts[key].format(**{name: value for name, value in values.items() if name == "room"})
+    return text + (f" (+{len(problems) - 1})" if len(problems) > 1 else "")
 
 
 def issues(problems, lang, reconfirm=False):
@@ -307,7 +350,7 @@ class HeatingProblemSensor(BinarySensorEntity):
     _attr_translation_key = "heating_problem"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     # The texts are shown and sent, not kept in the history.
-    _unrecorded_attributes = frozenset({"reasons"})
+    _unrecorded_attributes = frozenset({"reasons", "reason"})
 
     def __init__(self, entry, hub):
         from .room_plan import has_room_plan
@@ -359,6 +402,7 @@ class HeatingProblemSensor(BinarySensorEntity):
         from .heating_advice import language
         lang = language(self.hass) if getattr(self, "hass", None) is not None else "en"
         return {"problems": [key for key, _ in self.current], "reasons": render(self.current, lang),
+                "reason": render_short(self.current, lang),
                 "rooms": [values["room_id"] for key, values in self.current if "room_id" in values]}
 
     async def async_added_to_hass(self):

@@ -363,7 +363,7 @@
         },
         {
           "path": "scripts/final_check.sh",
-          "sha256": "e016b589e25a850ae7cd5463cd26f8372a948b6c9838cb2356cf88264624abbb"
+          "sha256": "4276044ad782994e06e479014e5840801e501c2c5a35c5a4fcf9dd0656325aa6"
         },
         {
           "path": "scripts/test_browser_suite.py",

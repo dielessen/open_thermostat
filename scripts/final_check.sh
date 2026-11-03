@@ -132,12 +132,13 @@ locked(){
 }
 pio_locked(){ locked pio "$@"; }
 accepted_tag(){ python3 -c "import json;print(json.load(open('docs/modern-thermostat/E32-UPDATE-GATE.json'))['accepted']['tag'])"; }
-# Native dependencies and HA interop runners, once per run (several lanes need them).
-native_deps(){
-  ( flock 9
-    [ -f "$L/.deps-ok" ] && exit 0
-    pio_locked pkg install -e native && locked bash test/interop/prepare_runners.sh && touch "$L/.deps-ok"
-  ) 9> "$L/.deps.lock"
+# Lanes: the pio lane installs the native dependencies and builds the HA interop runners
+# once, holding the PIO lock; the lanes that need them wait for that.
+native_deps(){ pio_locked pkg install -e native && bash test/interop/prepare_runners.sh && touch "$L/.deps-ok"; touch "$L/.deps-done"; }
+wait_native_deps(){
+  [ $SERIAL = 1 ] && return 0
+  while [ ! -f "$L/.deps-done" ]; do sleep 2; done
+  [ -f "$L/.deps-ok" ] || { echo "native dependencies or HA interop runners failed: $L/deps.log"; return 1; }
 }
 # Before pio processes of one project run at the same time: let PlatformIO bring
 # .pio/build/project.checksum up to date now (a stale checksum makes every pio run
@@ -203,7 +204,7 @@ s_verifiers(){
 export HARNESS_OUT=$L/harnesses
 s_harnesses(){
   set -e
-  if [ $SERIAL = 1 ]; then pio_locked pkg install -e native; else native_deps; fi
+  if [ $SERIAL = 1 ]; then pio_locked pkg install -e native; else wait_native_deps; cat "$L/deps.log"; fi
   locked bash test/native_harnesses.sh build
   [ $SERIAL = 0 ] || locked bash test/interop/prepare_runners.sh
 }
@@ -223,7 +224,7 @@ start_broker(){ # start_broker <port> <dir>
 }
 s_ha(){
   set -e
-  if [ $SERIAL = 1 ]; then pio_locked pkg install -e native; bash test/interop/prepare_runners.sh; else native_deps; fi
+  if [ $SERIAL = 1 ]; then pio_locked pkg install -e native; bash test/interop/prepare_runners.sh; else wait_native_deps; fi
   # shellcheck disable=SC1091
   source "$HA_VENV/bin/activate"
   start_broker "$MQTT_PORT" "$L/mqtt-fixture"; trap 'kill $BROKER 2>/dev/null' EXIT
@@ -233,7 +234,7 @@ s_ha(){
 }
 s_ha_min(){ # the minimum accepted Core, its package overlaid on the shared venv (venv untouched)
   set -e
-  [ $SERIAL = 1 ] || native_deps
+  wait_native_deps
   # shellcheck disable=SC1091
   source "$HA_VENV/bin/activate"
   local core=2026.10.0
@@ -267,11 +268,11 @@ s_browser_stress(){
   if [ $SERIAL = 1 ]; then BROWSER_TEST_LOGS=$L/browser-stress bash test/run-browser-tests.sh --stress "$STRESS"
   else BROWSER_TEST_LOGS=$L/browser-stress BROWSER_TEST_DURATIONS=$DURATIONS STRESS_CPU=$STRESS_CPUS bash test/run-browser-tests.sh --stress "$STRESS"; fi
 }
-s_soak(){ [ $SERIAL = 1 ] || native_deps; SOAK_BUILD=$L/soak-build SOAK_OUT=$L/soak-out bash test/soak/run.sh smoke; }
+s_soak(){ wait_native_deps || return 1; SOAK_BUILD=$L/soak-build SOAK_OUT=$L/soak-out bash test/soak/run.sh smoke; }
 # The learning and self-tuning on the anonymised real-data fixture (tools/replay/README.md), about 25 s with the build.
 REPLAY_FIXTURE=test/fixtures/replay/house-shadow.csv
-s_replay(){ [ $SERIAL = 1 ] || native_deps; REPLAY_BUILD=$L/replay-build REPLAY_OUT=$L/replay-out REPLAY_VERBOSE=1 python3 tools/replay/test_replay.py -v; }
-s_fuzz(){ [ $SERIAL = 1 ] || native_deps; OUT=$L/fz-build WORK=$L/fz-work bash test/fuzz/run.sh smoke 60; }
+s_replay(){ wait_native_deps || return 1; REPLAY_BUILD=$L/replay-build REPLAY_OUT=$L/replay-out REPLAY_VERBOSE=1 python3 tools/replay/test_replay.py -v; }
+s_fuzz(){ wait_native_deps || return 1; OUT=$L/fz-build WORK=$L/fz-work bash test/fuzz/run.sh smoke 60; }
 build_env(){ # build_env <env>: build, sizes into $L/sizes-<env>.txt, OTA slot check
   local env=$1
   echo "== build $env"; pio_locked run -e "$env" > "$L/build-$env.log" 2>&1 || { tail -30 "$L/build-$env.log"; return 1; }
@@ -364,19 +365,21 @@ lane(){ # lane <name> <cpus> <function>: a group of steps in the background, pin
   ) &
 }
 lane_pio(){
+  local name needed=0 waited
+  for name in harnesses native builds ha ha_min soak replay fuzz; do want "$name" && needed=1; done
+  if [ $needed = 1 ]; then
+    # One hold of the shared PIO lock for the native dependencies, harnesses, native and builds.
+    waited=$(date +%s); exec 8>> "$LOCK"; flock 8; PIO_LOCK_HELD=1
+    echo "   PIO lock [pio] after $(( $(date +%s) - waited ))s of waiting for other worktrees" | tee "$L/pio-lock-wait.txt"
+    native_deps > "$L/deps.log" 2>&1
+  fi
   step harnesses s_harnesses
   if want native || want builds; then
-    # native and builds at the same time, under one hold of the shared PIO lock.
-    local waited; waited=$(date +%s); exec 8> "$LOCK"; flock 8
-    echo "   PIO lock [pio] after $(( $(date +%s) - waited ))s of waiting for other worktrees"
-    if PIO_LOCK_HELD=1 pio_build_dir_ready; then
-      PIO_LOCK_HELD=1; step native s_native & step builds s_builds & wait
-    else
-      echo "   could not prepare .pio/build: native and builds one after another"
-      PIO_LOCK_HELD=1; step native s_native; step builds s_builds
-    fi
-    flock -u 8; exec 8>&-; PIO_LOCK_HELD=0
-  else step native s_native; step builds s_builds; fi
+    # native and builds at the same time (pio checks .pio/build/project.checksum first, once).
+    if pio_build_dir_ready; then step native s_native & step builds s_builds & wait
+    else echo "   could not prepare .pio/build: native and builds one after another"; step native s_native; step builds s_builds; fi
+  fi
+  if [ $needed = 1 ]; then flock -u 8; exec 8>&-; PIO_LOCK_HELD=0; fi
   step literal_reach s_literal_reach
   step link_review s_link_review
   step unittests s_unittests

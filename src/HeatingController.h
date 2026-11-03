@@ -572,6 +572,15 @@ public:
         }
         return restartHold_.ready(static_cast<uint32_t>(bleReceiptClock()), activeGuard_.released());
     }
+    // R2-03: a firmware upload (/ota, /otafs) holds the loop task for minutes, so nothing reaches
+    // the boiler meanwhile. Before its body is read the guard pauses (asks the boiler for zero at
+    // the next steps); true once no positive request can still be held, or after
+    // BoilerReleaseHold::maxMs. resumeAfterUpload(): the upload ended without a staged firmware.
+    bool pauseForUpload() {
+        if (!uploadPaused_) { activeGuard_.pause(bleReceiptClock()); uploadPaused_ = true; uploadHold_ = update::BoilerReleaseHold{}; }
+        return uploadHold_.ready(static_cast<uint32_t>(bleReceiptClock()), activeGuard_.released());
+    }
+    void resumeAfterUpload() { if (uploadPaused_) { activeGuard_.resume(); uploadPaused_ = false; } }
     uint32_t managedBleQueueDrops() const { return managedBle_.queueDrops(); }
     // Queued, not refused: a running automatic scan ends first (loop() starts the Search).
     bool requestBleDiscovery() {
@@ -909,6 +918,7 @@ private:
     std::vector<control::TrvControl::Room> trvRooms_; // the last step's room views, for the status
     std::atomic<bool> actuatorOutput_{false}; // trv_.actuatorOutput() of the last step (actuator.output.v1)
     update::BoilerReleaseHold restartHold_;
+    update::BoilerReleaseHold uploadHold_; bool uploadPaused_ = false; // R2-03: a firmware upload waits for the zero
     // Per room how fast it warms per flow (report only; ~1.15 KB heap per room, PSRAM extmem).
     control::FlowLearner flowLearner_;
     control::FlowPolicy flowPolicy_; // beta.19 options: weather curve, learned flow, optimum start (default: advice)

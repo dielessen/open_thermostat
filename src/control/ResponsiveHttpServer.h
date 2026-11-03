@@ -81,7 +81,10 @@ private:
 // * a request of at most 4 KB is read complete here as well, so the SDK parses it
 //   from memory and never waits; larger bodies and uploads must pass admit (REST:
 //   a signed-in session with its CSRF proof) and are parsed with an overall
-//   deadline from the connection (10 s, uploads 10 min).
+//   deadline from the connection (10 s, uploads 10 min);
+// * admit may answer HttpRequestBounds::admitLater: the request then waits unread
+//   while the loop runs (an upload until the boiler request is withdrawn), asked
+//   again on every pass, at most holdMs; its deadline counts from the admission.
 // Io: using Client = the SDK client type; static void noWait(Client&) sets the Stream timeout to 0.
 template<class Server, class Io>
 class ResponsiveHttpServer : public Server {
@@ -92,6 +95,8 @@ public:
     // 0: go on; else the HTTP status the request is refused with before parsing.
     using Admission = std::function<int(const HttpRequestHead &)>;
     void setAdmission(Admission admit) { admit_ = std::move(admit); }
+    // No request is being read, held or answered (REST: an upload that paused the boiler request is over).
+    bool idle() const { return this->_currentStatus == HC_NONE; }
 
     void handleClient() override {
         if (this->_currentStatus == HC_NONE) {
@@ -113,21 +118,32 @@ public:
         const uint32_t age = millis() - this->_statusChange;
         const bool late = age >= HttpRequestBounds::deadlineMs;
         if (!pending_.admitted) {
-            const size_t room = HttpRequestBounds::maxHeadBytes - pending_.bytes.size();
-            if (!take(room)) {
-                if ((pending_.bytes.empty() && age >= initialDataWaitMs) || late) {
-                    if (pending_.bytes.empty()) drop(); else refuse(408);
+            auto &head = pending_.head; // views into pending_.bytes, which stays unchanged once the head is complete
+            if (!pending_.held) {
+                const size_t room = HttpRequestBounds::maxHeadBytes - pending_.bytes.size();
+                if (!take(room)) {
+                    if ((pending_.bytes.empty() && age >= initialDataWaitMs) || late) {
+                        if (pending_.bytes.empty()) drop(); else refuse(408);
+                    }
+                    return;
                 }
-                return;
+                const auto status = parseHttpRequestHead(pending_.bytes, head);
+                if (status == HttpHeadStatus::incomplete) { if (late) refuse(408); return; }
+                if (status != HttpHeadStatus::complete) { refuse(status == HttpHeadStatus::too_large ? 431 : 400); return; }
+                if (const int refusal = httpRequestRefusal(head)) { refuse(refusal); return; }
+                pending_.buffered = httpBufferedRequest(head);
             }
-            HttpRequestHead head;
-            const auto status = parseHttpRequestHead(pending_.bytes, head);
-            if (status == HttpHeadStatus::incomplete) { if (late) refuse(408); return; }
-            if (status != HttpHeadStatus::complete) { refuse(status == HttpHeadStatus::too_large ? 431 : 400); return; }
-            int refusal = httpRequestRefusal(head);
-            pending_.buffered = httpBufferedRequest(head);
-            if (!refusal && !pending_.buffered && admit_) refusal = admit_(head);
-            if (refusal) { refuse(refusal); return; }
+            if (!pending_.buffered && admit_) {
+                const int refusal = admit_(head);
+                if (refusal == HttpRequestBounds::admitLater) {
+                    // Held (review R2-03): nothing more is read and the loop runs on; asked again next pass.
+                    if (!pending_.held) { pending_.held = true; pending_.heldSince = millis(); }
+                    else if (uint32_t(millis() - pending_.heldSince) >= HttpRequestBounds::holdMs) refuse(503);
+                    return;
+                }
+                if (refusal) { refuse(refusal); return; }
+                if (pending_.held) this->_statusChange = millis(); // its deadline counts from the admission
+            }
             pending_.admitted = true;
             pending_.need = head.size + size_t(head.contentLength);
             pending_.limitMs = httpUploadRoute(head.path) ? HttpRequestBounds::uploadDeadlineMs : HttpRequestBounds::deadlineMs;
@@ -142,10 +158,11 @@ public:
 
 private:
     struct Pending {
-        bool admitted = false, buffered = false;
+        bool admitted = false, buffered = false, held = false;
         size_t need = 0;
-        uint32_t limitMs = HttpRequestBounds::deadlineMs;
+        uint32_t limitMs = HttpRequestBounds::deadlineMs, heldSince = 0;
         std::string bytes, boundary;
+        HttpRequestHead head;
     };
     // Reads what has arrived (at most room bytes) without waiting; false: nothing new.
     bool take(size_t room) {

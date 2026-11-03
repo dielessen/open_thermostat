@@ -344,6 +344,9 @@ public:
 #endif
 		server_.handleClient();
 #ifdef OPENTHERMOSTAT_E32V2
+        // R2-03: an upload paused the boiler request. Once it is over without a staged firmware
+        // (refused, failed, aborted, a filesystem image) the guard may take over again.
+        if(uploadPaused_&&server_.idle()&&!update::staged()){controller_.resumeAfterUpload();uploadPaused_=false;}
         controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
 #endif
 		// Includes disconnect/parse failure and a failed final authorization.
@@ -460,8 +463,14 @@ private:
 	int admitLargeRequest(const control::HttpRequestHead &head) {
 		const auto token=control::WebAuthSession::cookieToken(head.header("Cookie"));
 		if(!sessions_.csrf(token,head.header("X-OpenThermostat-CSRF"),networkNow())) return 401;
-		return deviceAccess.defaultPassword()&&head.path!="/config/heating"?403:0;
+		if(deviceAccess.defaultPassword()&&head.path!="/config/heating") return 403;
+		if(!control::httpUploadRoute(head.path)) return 0; // other large bodies: at most HttpRequestBounds::deadlineMs
+		// R2-03: an upload holds the loop for minutes and nothing reaches the boiler meanwhile. It
+		// waits unread until the E32 withdrew its boiler request (zero delivered, at most 90 s).
+		uploadPaused_=true;
+		return controller_.pauseForUpload()?0:control::HttpRequestBounds::admitLater;
 	}
+	bool uploadPaused_=false; // the guard is paused for an upload (resumed in handle() once it is over)
 	// The factory password never blocks giving control back (control/HandoverRequest.h).
 	bool handBackRequest() {
 		const std::string_view path(server_.uri().c_str());

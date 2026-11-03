@@ -118,6 +118,16 @@ public:
         if (owning()) enter(State::stopping, now);
     }
     bool withdrawn() const { return withdrawn_; }
+    // A firmware upload is about to hold the loop task for minutes (review R2-03): like
+    // withdraw(), stop at once with the zero window and take over nothing (no frost request
+    // either), but reversibly. resume() lets the guard take over again under the usual
+    // conditions (the upload failed or was refused); a staged firmware restarts through withdraw().
+    void pause(uint64_t now) {
+        paused_ = true;
+        if (owning()) enter(State::stopping, now);
+    }
+    void resume() { paused_ = false; }
+    bool paused() const { return paused_; }
     // No positive request can still be held by the boiler: a zero was delivered
     // after the last positive one, or none was ever sent. A planned restart waits for this.
     bool released() const { return !holdsPositive_; }
@@ -142,12 +152,13 @@ public:
         // Shadow mode stays silent: a leftover record sends no boot zero either.
         if ((foreign_ || (!wanted && !owedZero)) && bootZero_) { bootZero_ = false; if (!frostSending_) holdsPositive_ = false; }
         if (foreign_ && reconfirm_) { reconfirm_ = false; blocked_ = true; }
-        if (owning() && (!confirmedAt_ || withdrawn_)) enter(State::stopping, now);
+        if (owning() && (!confirmedAt_ || withdrawn_ || paused_)) enter(State::stopping, now);
         // Frost heating while waiting for a new confirmation lost its conditions
         // (handed back, shadow, a foreign 0x1A, withdrawn): stop with the zero window.
         // Confirmed instead: the takeover below decides.
         if (frostSending_ && !frostEligible(in) && !confirmedAt_) { frostSending_ = false; lastTarget2_ = 0; enter(State::stopping, now); }
-        if (state_ == State::stopping && !withdrawn_ && elapsed(now, since_) >= p_.stopWindowMs && !holdsPositive_) enter(State::shadow, now);
+        if (state_ == State::stopping && !withdrawn_ && !paused_ && elapsed(now, since_) >= p_.stopWindowMs && !holdsPositive_)
+            enter(State::shadow, now);
         if (state_ != State::stopping) {
             if (!wanted) state_ = State::shadow;
             else if (blocked_) state_ = State::blockedForeignController;
@@ -155,7 +166,7 @@ public:
             else if (!owning()) {
                 if (state_ != State::arming) enter(State::arming, now);
                 const bool inputsFresh = in.rooms.fresh == in.rooms.active;
-                if (!withdrawn_ && in.uptimeMs >= p_.bootHoldoffMs && in.routeReady && (!restored_ || listenedMs(now) >= p_.restoredListenMs)
+                if (!withdrawn_ && !paused_ && in.uptimeMs >= p_.bootHoldoffMs && in.routeReady && (!restored_ || listenedMs(now) >= p_.restoredListenMs)
                     && (inputsFresh || elapsed(now, since_) >= p_.lostAfterMs)) { enter(State::active, now); restored_ = false; }
             }
             if (owning()) state_ = in.rooms.active && in.rooms.lost == in.rooms.active ? State::stoppedMeasurementLost : State::active;
@@ -207,7 +218,7 @@ public:
     // lost measurements: reported to HA as boiler_output_enabled.
     // Also while it keeps frost protection waiting for a new confirmation.
     bool outputActive() const {
-        return ((state_ == State::active && confirmedAt_) || (frostSending_ && lastTarget2_)) && !withdrawn_ && routeReady_;
+        return ((state_ == State::active && confirmedAt_) || (frostSending_ && lastTarget2_)) && !withdrawn_ && !paused_ && routeReady_;
     }
     // outputActive() after a confirmed takeover only, never for frost while waiting: the
     // radiator valves get room setpoints (TrvControl, HA's actuator_output_enabled) only then.
@@ -275,7 +286,7 @@ private:
     // boiler under other firmware): plan active, no foreign master this boot, past
     // the boot holdoff and the restore listening window, over a ready route.
     bool frostEligible(const Inputs& in) const {
-        return reconfirm_ && state_ == State::awaitingConfirmation && !blocked_ && !foreign_ && !withdrawn_
+        return reconfirm_ && state_ == State::awaitingConfirmation && !blocked_ && !foreign_ && !withdrawn_ && !paused_
             && in.uptimeMs >= p_.bootHoldoffMs && in.routeReady && listenedMs(lastNow_) >= p_.restoredListenMs;
     }
     Command frostUnconfirmed(uint64_t now, const Inputs& in) {
@@ -342,6 +353,7 @@ private:
     bool restored_ = false; // confirmation from NVS: listen restoredListenMs before owning
     bool routeReady_ = false; // the last step's in.routeReady
     bool withdrawn_ = false; // a planned restart is coming: stopping, no new takeover this boot
+    bool paused_ = false;    // a firmware upload holds the loop: stopping, no takeover until resume()
     bool reconfirm_ = false; // owned the boiler before new firmware: waits for a confirmation, keeps frost
     bool bootZero_ = false, bootZeroTried_ = false; // owned the boiler before this boot: one zero first
     uint64_t bootZeroAt_ = 0, bootZeroFirst_ = 0, frostEndedAt_ = 0, lastNow_ = 0;

@@ -253,6 +253,45 @@ TEST(HttpRequestBounds, AnUploadWhoseSenderVanishesInsideAFormFieldEndsAndIsNotH
     EXPECT_FALSE(s.hung); EXPECT_EQ(s.parses, 1u); EXPECT_EQ(s.handled, 0u);
     EXPECT_LE(s.blockedMs, 1000u) << s.blockedMs;
 }
+#ifndef OT_OLD_RESPONSIVE_SERVER
+// Review R2-03: an upload waits unread, without blocking the loop, while the admission holds it
+// (the E32 first withdraws its boiler request); admitted, it is parsed and gets its full deadline.
+// A hold that never ends is refused after holdMs, the body never read.
+TEST(HttpRequestBounds, AHeldUploadWaitsUnreadWhileTheLoopRunsThenIsParsed) {
+    using heating::control::HttpRequestBounds;
+    const std::string form = "--OTB\r\nContent-Disposition: form-data; name=\"size\"\r\n\r\n12\r\n--OTB--\r\n";
+    const std::string upload = "POST /ota HTTP/1.1\r\nHost: 192.168.1.40\r\nContent-Type: multipart/form-data; boundary=OTB\r\n"
+                               "Content-Length: " + std::to_string(form.size()) + "\r\n\r\n" + form;
+    HttpServer s; httpTestNow = 100;
+    unsigned asks = 0; bool released = false;
+    admit(s, [&](const heating::control::HttpRequestHead &head) {
+        ++asks; EXPECT_EQ(head.path, "/ota");
+        return released ? 0 : HttpRequestBounds::admitLater;
+    });
+    auto socket = connect(s, upload);
+    run(s, 30000); // 30 s of loop passes: each one returns at once
+    EXPECT_EQ(s.parses, 0u); EXPECT_EQ(s.blockedMs, 0u); EXPECT_GT(asks, 100u);
+    EXPECT_EQ(socket->stops, 0u); EXPECT_FALSE(s.idle()); EXPECT_TRUE(socket->out.empty());
+    released = true;
+    run(s, 30100);
+    EXPECT_EQ(s.parses, 1u); EXPECT_EQ(s.handled, 1u); EXPECT_TRUE(s.idle());
+    // Never released: refused after holdMs.
+    HttpServer never; httpTestNow = 100;
+    admit(never, [](const heating::control::HttpRequestHead &) { return HttpRequestBounds::admitLater; });
+    auto refused = connect(never, upload);
+    run(never, 100 + HttpRequestBounds::holdMs - 1000);
+    EXPECT_TRUE(refused->out.empty());
+    run(never, 100 + HttpRequestBounds::holdMs + 1000);
+    EXPECT_EQ(refused->out.rfind("HTTP/1.1 503 ", 0), 0u) << refused->out;
+    EXPECT_EQ(never.parses, 0u); EXPECT_TRUE(never.idle());
+    // The sender gives up while held: the request ends, nothing parsed.
+    HttpServer gone; httpTestNow = 100;
+    admit(gone, [](const heating::control::HttpRequestHead &) { return HttpRequestBounds::admitLater; });
+    auto vanished = connect(gone, upload); vanished->closeAt = 5000;
+    run(gone, 6000);
+    EXPECT_EQ(gone.parses, 0u); EXPECT_TRUE(gone.idle());
+}
+#endif
 TEST(HttpRequestBounds, HeadParsingMirrorsThePinnedParser) {
     using namespace heating::control;
     HttpRequestHead head;

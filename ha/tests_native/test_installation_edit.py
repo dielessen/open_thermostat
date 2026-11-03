@@ -11,6 +11,7 @@ from custom_components.open_thermostat.product import configuration_snapshot, ce
 from test_native_control_plan import native_plan, native_two
 from test_product_flow import managers, option
 from test_room_profile_apply import saved_connection
+from nav_helpers import is_again
 from test_controller_connection import drive
 
 PROFILE = {'week':True,'single':True,'local_source':True,'product':True}
@@ -73,7 +74,7 @@ async def test_connected_options_show_only_supported_fields_and_no_visit_io(nati
     assert (await n.peer.request('durable_readback'))['writes']==writes
     connect.assert_not_called()
     result=await manager.async_configure(form['flow_id'],{'name':n.parent.title,'create_dashboard':False})
-    assert result['reason']=='installation_saved'
+    assert is_again(result)
     assert n.runtime.enabled and (await n.peer.request('durable_readback'))['writes']==writes
 
 

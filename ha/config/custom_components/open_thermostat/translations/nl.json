@@ -3390,6 +3390,9 @@
     "ems_boiler": {
       "name": "EMS-ketel {address} (product {product})"
     },
+    "ems_boiler_brand": {
+      "name": "{brand}-ketel (product {product}) ({address})"
+    },
     "ems_thermostat": {
       "name": "EMS-thermostaat {address} (product {product})"
     },

@@ -96,6 +96,13 @@ public:
         saveNow_ = valid && restart != Restart::planned; // the stored stable time no longer holds
     }
     Stored stored() const { Stored s; s.stableS = stableS(); s.days = days_; return s; }
+    // A stored record with a thermostat period in its window: the E32 heard another controller ask
+    // the boiler for heat before (rc.3: the boiler test's record keeps that fact from then on).
+    static bool thermostatSeenIn(const Stored& s) {
+        if (s.version != Stored::currentVersion || s.size != sizeof(Stored)) return false;
+        for (const auto& d : s.days) if (d.flags & thermostatSeen) return true;
+        return false;
+    }
     bool saveDue(uint64_t nowMs) const { return saveNow_ || nowMs - savedAtMs_ >= saveEveryMs; }
     void saved(uint64_t nowMs) { saveNow_ = false; savedAtMs_ = nowMs; }
 

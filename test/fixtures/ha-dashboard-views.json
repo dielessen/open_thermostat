@@ -53,6 +53,7 @@
         ]
        }
       ],
+      "column_span": 2,
       "type": "grid"
      },
      {
@@ -82,6 +83,7 @@
         "type": "tile"
        }
       ],
+      "column_span": 2,
       "type": "grid"
      }
     ],
@@ -1408,6 +1410,7 @@
         ]
        }
       ],
+      "column_span": 2,
       "type": "grid"
      },
      {
@@ -1437,6 +1440,7 @@
         "type": "tile"
        }
       ],
+      "column_span": 2,
       "type": "grid"
      }
     ],

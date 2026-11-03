@@ -1261,7 +1261,10 @@ class RoomDashboard:
         return {
             "views": [
                 # 1. Overview: the house, the problem (only while there is one) and one card per room.
-                *([view(t["overview"], "heating", "mdi:home-thermometer", parts["overview"])] if parts["overview"] else []),
+                # Its sections span both columns and stack: a short House section never sits beside the
+                # long Rooms section with empty space under it.
+                *([view(t["overview"], "heating", "mdi:home-thermometer",
+                        [{**section, "column_span": 2} for section in parts["overview"]])] if parts["overview"] else []),
                 # 2. Rooms: thermostat, the day, sensors, windows, people and what it learned, per room.
                 *([view(t["rooms"], "rooms", "mdi:thermostat", parts["rooms"])] if parts["rooms"] else []),
                 *([{

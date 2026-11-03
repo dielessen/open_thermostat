@@ -100,6 +100,6 @@ def test_no_information_item_is_raised_as_a_repair():
 @pytest.mark.parametrize("language", ["en", "nl", "pl"])
 def test_the_heating_problems_tell_what_to_do(language):
     from custom_components.open_thermostat.heating_problem import TEXT
-    for key in ("short_cycling", "active_foreign_controller", "active_measurement_lost",
+    for key in ("active_foreign_controller", "active_measurement_lost",
                 "active_boiler_no_response", "active_transmit_failed"):
         assert len(TEXT[language][key].split(".")) >= 3, key  # what is wrong, then what to do

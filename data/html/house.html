@@ -147,7 +147,7 @@
   const fill = (text, values) => Object.entries(values).reduce((t, [k, v]) => t.split('{' + k + '}').join(v), text);
   const fixed = v => typeof v === 'number' && Number.isFinite(v) ? v.toFixed(1).replace('.', document.documentElement.lang === 'nl' ? ',' : '.') : '—';
   const when = utc => new Date(utc * 1000).toLocaleString(OpenThermostatLanguage.locale, {weekday:'short', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
-  let away = null, busy = false, locked = true, lockDecided = false, timer = null, chosen = null;
+  let away = null, busy = false, locked = true, lockDecided = false, timer = null, chosen = null, failures = 0;
   try { locked = sessionStorage.getItem('ot-rooms-edit') !== '1'; } catch (_) {}
   async function json(url, options = {}) {
     const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), 8000), stop = () => controller.abort();
@@ -163,14 +163,16 @@
   const modeOf = a => ['auto', 'home', 'away', 'holiday'].includes(a?.mode) ? a.mode : a?.on && a.source === 'manual' ? (a.until ? 'holiday' : 'away') : 'auto';
   function paint() {
     const mode = away ? modeOf(away) : null, shown = chosen || mode;
-    for (const b of modeButtons) { b.setAttribute('aria-pressed', String(b.dataset.houseMode === mode)); b.disabled = busy || !away; }
+    const off = busy || !away || failures >= 2;
+    for (const b of modeButtons) { b.setAttribute('aria-pressed', String(b.dataset.houseMode === mode)); b.disabled = off; }
     modeButtons.find(b => b.dataset.houseMode === 'home').hidden = !!away && !('mode' in away);
     holiday.hidden = shown !== 'holiday';
-    awayC.disabled = root.querySelector('[data-house-away-save]').disabled = busy || !away;
-    root.querySelector('[data-house-holiday-save]').disabled = busy || !away;
+    awayC.disabled = root.querySelector('[data-house-away-save]').disabled = off;
+    root.querySelector('[data-house-holiday-save]').disabled = off;
     lockBox.hidden = !locked;
     root.classList.toggle('hs-locked', locked);
     if (!away) return;
+    if (failures >= 2) { now.textContent = uiText("Status unavailable"); return; }
     const t = fixed(away.target_c) + ' °C';
     now.textContent = mode === 'home' ? uiText("At home: the rooms follow their week programs, also when everyone is away.")
       : mode === 'away' ? fill(uiText("Away: every room at most {t} until you switch back."), {t})
@@ -181,12 +183,15 @@
     presenceNow.textContent = uiText(away.presence === 'home' ? "Now: someone is home." : away.presence === 'away' ? "Now: everyone is away."
       : "Now: not known (no report from Home Assistant in the last 15 minutes). The E32 then counts the house as occupied.");
   }
+  const typed = () => { delete awayC.dataset.dirty; delete until.dataset.dirty; };
+  for (const field of [awayC, until]) field.addEventListener('input', () => { field.dataset.dirty = '1'; }, {signal: lifecycle.signal});
   function show(status) {
     const a = status?.away;
     if (a && typeof a === 'object' && typeof a.on === 'boolean') {
-      const first = !away; away = a;
-      if (first || document.activeElement !== awayC) awayC.value = Number.isFinite(a.target_c) ? a.target_c : '';
-      if (modeOf(a) === 'holiday' && Number.isFinite(a.until) && document.activeElement !== until) {
+      const first = !away, before = away && modeOf(away); away = a;
+      if (before && before !== modeOf(a)) typed(); // the house mode changed (here or elsewhere): show its values
+      if (first || (!awayC.dataset.dirty && document.activeElement !== awayC)) awayC.value = Number.isFinite(a.target_c) ? a.target_c : '';
+      if (modeOf(a) === 'holiday' && Number.isFinite(a.until) && !until.dataset.dirty && document.activeElement !== until) {
         const d = new Date(a.until * 1000); until.value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
       }
     }
@@ -200,14 +205,20 @@
   }
   async function refresh() {
     if (!root.isConnected) { clearInterval(timer); lifecycle.abort(); return; }
-    try { const status = await json('/status/heating'); errorBox.hidden = true; show(status); }
-    catch (_) { if (!away && !lifecycle.signal.aborted) { errorBox.hidden = false; now.textContent = uiText("Status unavailable"); } }
+    // A hidden tab does not poll (R3-02): every read renews the web session, and the E32 has only four.
+    if (document.visibilityState === 'hidden') return;
+    try { const status = await json('/status/heating'); failures = 0; errorBox.hidden = true; show(status); }
+    catch (_) {
+      if (lifecycle.signal.aborted) return;
+      // R3-17: also after the first answer, two failed reads in a row show the alert and hold the controls.
+      if (!away || ++failures >= 2) { errorBox.hidden = false; now.textContent = uiText("Status unavailable"); paint(); }
+    }
   }
   async function send(body, done) {
     busy = true; paint(); message.textContent = uiText("Saving…");
     try {
       await json('/config/heating/comfort', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-      chosen = null; message.textContent = uiText(done); await refresh();
+      chosen = null; typed(); message.textContent = uiText(done); await refresh();
     } catch (error) {
       if (lifecycle.signal.aborted) return;
       message.textContent = errorText[error.code] ? uiText(errorText[error.code])
@@ -242,6 +253,7 @@
   const removal = new MutationObserver(() => { if (!root.isConnected) { lifecycle.abort(); clearInterval(timer); removal.disconnect(); } });
   removal.observe(document.body, {childList: true, subtree: true});
   paint(); refresh(); timer = setInterval(refresh, 10000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); }, {signal: lifecycle.signal});
 })();
 </script>
 <script>

@@ -45,7 +45,7 @@
 3 test/ha-room-vacation-browser.cjs  # 10 s
 3 test/house-browser.cjs  # 20 s (beta.23)
 3 test/takeover-test-browser.cjs  # 16 s (rc.2 boiler test and takeover)
-# shard 4: about 258 s
+# shard 4: about 270 s
 4 test/onboarding/browser.cjs  # 19 s
 4 test/onboarding/body-browser.cjs  # 2 s
 4 test/updates/browser.cjs  # 66 s
@@ -60,3 +60,4 @@
 4 test/boiler-test-confirm-browser.cjs  # 30 s
 4 test/week-editor-browser.cjs  # 17 s
 4 test/week-levels-browser.cjs  # 20 s (beta.23)
+4 test/pages-r3-browser.cjs  # 12 s (rc.4 review fixes of the Rooms, Home and Overview pages)

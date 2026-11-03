@@ -46,7 +46,7 @@
         link.textContent = uiText("Product image source") + ': ' + model.imageCredit;
         credit.append(link); parent.append(credit);
     }
-    let selected = null, generation = 0;
+    let selected = null, generation = 0, attempted = 0;
     async function request(options={}) {
         const controller=new AbortController(),deadline=setTimeout(()=>controller.abort(),5000);
         try {
@@ -77,7 +77,7 @@
         text.append(link); box.append(text);
     }
     async function load() {
-        const own = ++generation;
+        const own = ++generation; attempted = Date.now();
         try {
             const data = await request();
             if (!valid(data)) throw Error('model');
@@ -88,10 +88,12 @@
             throw error;
         }
     }
+    // Called with every Overview render: the card is drawn once, and a failed read (a busy E32 at page load) is
+    // tried again at most every 30 s until the selection is known (R3-34).
     function mountHome(parent) {
         let box = document.getElementById('boiler-home');
-        if (!box) {box = document.createElement('section');box.id = 'boiler-home';parent.prepend(box);}
-        box.className = 'boiler-summary'; renderHome();
+        if (!box) {box = document.createElement('section');box.id = 'boiler-home';parent.prepend(box);box.className = 'boiler-summary'; renderHome();}
+        if (selected === null && Date.now() - attempted > 30000) load().catch(() => {});
     }
     async function settings(root) {
         const select = root.querySelector('select'), save = root.querySelector('button[type=submit]');

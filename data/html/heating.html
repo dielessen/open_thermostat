@@ -140,7 +140,8 @@
   const warningText = {foreign_controller:"Another thermostat (your old one?) still asks the boiler for heat. Disconnect it from the boiler, then confirm again.",
     measurement_lost:"Room measurements are missing.", boiler_no_response:"The boiler does not respond to the heat request.",
     transmit_failed:"Sending to the boiler fails.", boiler_limit_unknown:"The boiler has not reported its highest water temperature yet. Until then the E32 asks for no heat; it asks the boiler again every 5 minutes."};
-  let plan = null, timer = null;
+  let plan = null, timer = null, saving = false;
+  const life = new AbortController(); // the page's listeners; aborted once the page is gone
   let houseAwayC = null; // the house away temperature (status "away"), the placeholder of a room's own value
   // rc.3 Smart warm-up (/status/heating flow.settings.apply_learned): the planners' hint says what a time means.
   let smartWarmUp, planners = [];
@@ -190,11 +191,13 @@
   const agreement = d => d.s - d.tado_unknown_s > 0 ? Math.round(100 * d.agree_s / (d.s - d.tado_unknown_s)) + ' %' : '—';
   const dayName = day => day ? new Date(day + 'T12:00:00Z').toLocaleDateString(OpenThermostatLanguage.locale, {weekday:'short', day:'numeric', month:'numeric', timeZone:'UTC'}) : '—';
   const colons = id => id.match(/../g).join(':');
+  // A unix time as the value of a datetime-local field, with the time zone offset of that date (R3-24).
+  const localTime = unix => { const d = new Date(unix * 1000); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
   // "Kitchen thermometer (Bluetooth)" for a paired sensor, the entity for Home Assistant.
   const sourceName = id => { const s = bleSensors.find(b => b.id === id); return s ? (s.name || colons(id)) + ' (Bluetooth)' : /^[0-9a-f]{12}$/.test(id) ? colons(id) + ' (Bluetooth)' : id + ' (Home Assistant)'; };
   // Unsaved-changes marker for the sticky save bar; cleared by every (re)load.
   const discard = root.querySelector('[data-heating-discard]');
-  const setDirty = value => { dirtyChip.hidden = !value; discard.hidden = !value; };
+  const setDirty = value => { dirtyChip.hidden = !value; discard.hidden = !value || saving; };
   function applyLock() {
     root.classList.toggle('hp-locked', locked); lockBox.hidden = !locked && !neverHa; unlock.hidden = !locked;
     for (const box of root.querySelectorAll('.hp-body')) box.disabled = locked;
@@ -300,7 +303,7 @@
     const name = field(basics, uiText("Name"), input('text', room.name, {maxlength:'40'}), "Shown here and in Home Assistant. Up to 40 characters (fewer with accents or emoji).");
     const state = field(basics, uiText("State"), select([['active', "Active"], ['inactive', "Inactive"], ['until', "Inactive until"]],
       room.state === 'active' ? 'active' : room.inactive_until ? 'until' : 'inactive'), "An inactive room never asks for heat.");
-    const until = field(basics, uiText("Inactive until"), input('datetime-local', room.inactive_until ? new Date(room.inactive_until * 1000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''), "The room becomes active again after this moment (time on this phone or computer).");
+    const until = field(basics, uiText("Inactive until"), input('datetime-local', room.inactive_until ? localTime(room.inactive_until) : ''), "The room becomes active again after this moment (time on this phone or computer).");
     const emitter = field(basics, uiText("Heating type"), select([['floor', "Floor heating"], ['radiator', "Radiators"]], room.emitter), "Floor heating warms up and cools down slowly; the E32 takes this into account for the water temperature.");
     emitter.setAttribute('data-heating-emitter', '');
     const showUntil = () => { until.parentElement.hidden = state.value !== 'until'; };
@@ -667,7 +670,7 @@
   const readinessVerdict = {ready:"Ready: start the boiler test and takeover above.", waiting:"Not yet: the trial run needs at least 3 days of data.",
     not_ready:"Not ready: fix the items marked in red first."};
   const resultWord = {pass:"Passed", wait:"Waiting", fail:"Action needed"}, resultMark = {pass:'✓', wait:'…', fail:'!'};
-  const fill = (text, values) => Object.entries(values).reduce((t, [k, v]) => t.replace('{' + k + '}', v), uiText(text));
+  const fill = (text, values) => Object.entries(values).reduce((t, [k, v]) => t.split('{' + k + '}').join(v), uiText(text));
   const hours = s => (Math.floor((s || 0) / 360) / 10).toLocaleString(OpenThermostatLanguage.locale);
   function readinessLines(r) {
     const lines = [];
@@ -1016,7 +1019,9 @@
     } finally { clearTimeout(deadline); }
   }
   async function refreshStatus() {
-    if (!root.isConnected) { clearInterval(timer); return; }
+    if (!root.isConnected) { clearInterval(timer); life.abort(); return; }
+    // A hidden tab does not poll (R3-02): every read renews the web session, and the E32 has only four.
+    if (document.visibilityState === 'hidden') return;
     if (locked) readControl();
     try { renderRequest(await json('/status/heating')); } catch (_) { renderRequest(null); }
   }
@@ -1036,7 +1041,7 @@
   // Back to what the E32 has stored.
   discard.addEventListener('click', async () => { await load(); message.textContent = uiText("Changes discarded."); });
   async function removeUnused(room, button) {
-    if (!plan || !confirm(uiText("Remove the room {name}? It is deleted from the E32 and from Home Assistant at once. You can add it again later.").replace('{name}', room.name)
+    if (!plan || !confirm(uiText("Remove the room {name}? It is deleted from the E32 and from Home Assistant at once. You can add it again later.").split('{name}').join(room.name)
       + (dirtyChip.hidden ? '' : ' ' + uiText("Your unsaved changes on this page are discarded.")))) return;
     button.disabled = true; message.textContent = uiText("Saving…");
     try {
@@ -1060,41 +1065,52 @@
     card.querySelector('input')?.select();
   }
   root.querySelector('[data-heating-add]').addEventListener('click', addRoom);
-  root.querySelector('[data-heating-save]').addEventListener('click', async () => {
-    let rooms;
+  // The rooms as the form has them now; a mistake throws {text, node}.
+  function readRooms() {
+    const rooms = [...roomsBox.querySelectorAll('[data-heating-room]')].map(card => card.read());
+    const names = rooms.map(r => r.name.toLowerCase());
+    if (new Set(names).size !== names.length) throw Object.assign(Error('room'), {text: uiText(saveError.duplicate_room)});
+    const ids = new Set(plan.rooms.map(r => r.id));
+    for (const r of rooms) if (!plan.rooms.some(p => p.id === r.id)) { // a new room gets a free ID
+      let id = r.id, n = 2; while (ids.has(id)) id = r.id.slice(0, 29) + '_' + n++;
+      r.id = id; ids.add(id);
+    }
+    return rooms;
+  }
+  const showMistake = error => {
+    message.textContent = error.text;
+    if (error.node) { error.node.closest('details') && (error.node.closest('details').open = true); error.node.focus?.(); }
+  };
+  // R3-03: one save at a time (the button is disabled meanwhile), Discard hidden, and the form read again after the
+  // boiler bus check (up to 150 s for a first plan), so what the owner typed during the wait is saved too.
+  const saveButton = root.querySelector('[data-heating-save]');
+  saveButton.addEventListener('click', async () => {
+    if (saving || !plan) return;
+    try { readRooms(); } catch (error) { showMistake(error); return; } // a mistake shows at once, before any wait
+    saving = true; saveButton.disabled = true; discard.hidden = true;
     try {
-      rooms = [...roomsBox.querySelectorAll('[data-heating-room]')].map(card => card.read());
-      const names = rooms.map(r => r.name.toLowerCase());
-      if (new Set(names).size !== names.length) throw Object.assign(Error('room'), {text: uiText(saveError.duplicate_room)});
-      const ids = new Set(plan.rooms.map(r => r.id));
-      for (const r of rooms) if (!plan.rooms.some(p => p.id === r.id)) { // a new room gets a free ID
-        let id = r.id, n = 2; while (ids.has(id)) id = r.id.slice(0, 29) + '_' + n++;
-        r.id = id; ids.add(id);
+      // A first plan takes the route of the boiler bus (new_plan), once the E32 has listened long enough.
+      for (let wait = 0; newPlan && newPlan.stored === false && newPlan.reason === 'checking' && wait < 30; ++wait) {
+        message.textContent = uiText("Checking the boiler bus…");
+        await new Promise(done => setTimeout(done, 5000));
+        try { const s = await json('/status/heating'); newPlan = s.new_plan || null; } catch (_) {}
       }
-    } catch (error) {
-      message.textContent = error.text;
-      if (error.node) { error.node.closest('details') && (error.node.closest('details').open = true); error.node.focus?.(); }
-      return;
-    }
-    // A first plan takes the route of the boiler bus (new_plan), once the E32 has listened long enough.
-    for (let wait = 0; newPlan && newPlan.stored === false && newPlan.reason === 'checking' && wait < 30; ++wait) {
-      message.textContent = uiText("Checking the boiler bus…");
-      await new Promise(done => setTimeout(done, 5000));
-      try { const s = await json('/status/heating'); newPlan = s.new_plan || null; } catch (_) {}
-    }
-    const mode = newPlan && newPlan.stored === false ? newPlan.mode : plan.mode;
-    // The flow limits are set on the Boiler page; the room save keeps the plan's values.
-    const next = {schema:1, revision:plan.revision, mode, minimum_flow_c:plan.minimum_flow_c, maximum_flow_c:plan.maximum_flow_c, rooms};
-    message.textContent = uiText("Saving…");
-    try {
-      plan = await json('/config/heating', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(next)});
-      message.textContent = uiText("Rooms saved.") + ' ✓ ' + new Date().toLocaleTimeString(OpenThermostatLanguage.locale, {hour:'2-digit', minute:'2-digit'});
-      await load();
-    } catch (error) {
-      if (error.code !== 'plan_changed') { message.textContent = refused(error.code); return; }
-      await load();
-      message.textContent = uiText("The plan was changed elsewhere (Home Assistant). It has been reloaded; make your change again.");
-    }
+      let rooms;
+      try { rooms = readRooms(); } catch (error) { showMistake(error); return; }
+      const mode = newPlan && newPlan.stored === false ? newPlan.mode : plan.mode;
+      // The flow limits are set on the Home page; the room save keeps the plan's values.
+      const next = {schema:1, revision:plan.revision, mode, minimum_flow_c:plan.minimum_flow_c, maximum_flow_c:plan.maximum_flow_c, rooms};
+      message.textContent = uiText("Saving…");
+      try {
+        plan = await json('/config/heating', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(next)});
+        message.textContent = uiText("Rooms saved.") + ' ✓ ' + new Date().toLocaleTimeString(OpenThermostatLanguage.locale, {hour:'2-digit', minute:'2-digit'});
+        saving = false; await load();
+      } catch (error) {
+        if (error.code !== 'plan_changed') { message.textContent = refused(error.code); return; }
+        saving = false; await load();
+        message.textContent = uiText("The plan was changed elsewhere (Home Assistant). It has been reloaded; make your change again.");
+      }
+    } finally { saving = false; saveButton.disabled = false; discard.hidden = dirtyChip.hidden; }
   });
   // Switch-over: the saved plan goes active, then the owner's confirmation (RAM only).
   const post = (url, body) => json(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
@@ -1154,6 +1170,7 @@
   handback.addEventListener('click', () => plan && !handback.disabled && handBack());
   load();
   timer = setInterval(refreshStatus, 10000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshStatus(); }, {signal: life.signal});
 })();
 </script>
 <style>#heating-plan .hp-flow-design{margin:0 0 8px 34px;max-width:30rem}#heating-plan .hp-flow-design label{display:block;margin-bottom:4px}#heating-plan [data-flow-message]:empty{display:none}#heating-plan .hp-more{margin:12px 0 0}#heating-plan .hp-unused{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:6px;padding:10px 12px;border-radius:var(--ot-r1);background:var(--ot-surface-2);font-weight:400;font-size:.9rem}

@@ -1405,10 +1405,9 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                 if (focused && focused.isConnected && current.contains(focused) && document.activeElement !== focused)
                     focused.focus({preventScroll:true});
                 if (window.scrollX !== left || window.scrollY !== top) window.scrollTo(left,top);
-            } else {
-                main.innerHTML = html;
-                if (typeof BoilerDisplay !== 'undefined') BoilerDisplay.mountHome(main.querySelector('.pd-boiler'));
-            }
+            } else main.innerHTML = html;
+            // Every render: the boiler card is drawn once and retries a failed selection read (R3-34).
+            if (typeof BoilerDisplay !== 'undefined') BoilerDisplay.mountHome(main.querySelector('.pd-boiler'));
         }
 
 		function updateRooms(status) {

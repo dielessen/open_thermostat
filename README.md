@@ -10,9 +10,9 @@ needed. Home Assistant is optional: without it you set everything up on the
 E32's own web pages. With it you get a thermostat per room, a week planner card,
 energy figures and updates with one click.
 
-**Status:** version 1.0 is in its last test phase (release candidate rc.2). It
-runs every day in the developer's home. Version 1.0.0 follows once rc.2 has run
-for 14 days without problems.
+**Status:** version 1.0 is in its last test phase (release candidate rc.3,
+3 November 2026). It runs every day in the developer's home. Version 1.0.0
+follows once rc.3 has run for 14 days without problems.
 
 ![The E32 Overview page with rooms, their last 24 hours and the boiler](docs/img/screenshots/e32-overview-rc2.png)
 
@@ -38,13 +38,19 @@ broker (for example the Mosquitto add-on) and the MQTT integration.
 
 - **A week program per room**, up to 8 rooms, with Comfort, Eco and Night
   temperatures. You change a time by dragging it.
-- **Warm on time.** It learns how long each room takes to warm up and starts
-  early enough. It also learns the lowest water temperature that still does
-  the job, because cooler water uses less gas.
+- **Warm on time (Smart warm-up).** A time in the week program means "warm at
+  that time". It learns how long each room takes to warm up and starts early
+  enough, with the lowest water temperature that still does the job, because
+  cooler water uses less gas. On by default.
+- **Weather compensation.** The colder it is outside, the warmer the water. It
+  starts with a standard setting and learns the right one for your house. On
+  by default.
 - **Tunes itself.** It adjusts its burner settings by itself, in small steps,
   and tells you in plain words what it changed and why.
 - **Away and holiday.** It can follow who is at home, lower the temperature
-  while everyone is out and be warm again when you come back.
+  while everyone is out and be warm again when you come back. A room can have
+  its own away temperature: a bedroom cools down when its people are out,
+  while the living room stays warm for the others.
 - **Windows and doors.** A contact in Home Assistant pauses a room while a
   window is open.
 - **Radiator valves** through Zigbee2MQTT or Home Assistant, set per room.
@@ -65,23 +71,49 @@ broker (for example the Mosquitto add-on) and the MQTT integration.
 - **Frost protection** always stays on: below 8 °C a room always gets heat.
 - **The water temperature never goes above your limit** or the boiler's own
   maximum.
-- **Giving control back** to your old thermostat is one button, and always
-  works.
+- **No existing thermostat needed.** Have one? Giving control back to it is
+  one button, and always works.
 
 ## Getting started
 
-1. Put the OpenThermostat firmware on the E32 over USB
-   ([installation guide, step 2](docs/INSTALL.md#2-install-the-firmware-on-the-e32-first-time-over-usb)).
+### New installation
+
+1. **Put the firmware on the E32** over USB, in the browser with
+   [ESPConnect](https://thelastoutpostworkshop.github.io/ESPConnect/) (Chrome or
+   Edge): download `open-thermostat-e32v2-<version>.zip` from the
+   [latest release](https://github.com/dielessen/open_thermostat/releases),
+   flash `e32v2-factory.bin` at `0x0`
+   ([step by step](docs/INSTALL.md#2-install-the-firmware-on-the-e32-first-time-over-usb)).
    The gateway usually comes with EMS-ESP; this replaces it, so
    [make a backup first](docs/FLASHING.md#make-a-full-backup-first).
-2. Connect the E32 to your Wi-Fi and choose your own password.
-3. Add your rooms and their thermometers, on the E32 or in Home Assistant.
-4. Optional: install the Home Assistant integration with
-   [HACS](https://github.com/dielessen/openthermostat-ha).
-5. Run the boiler test and let the E32 take over.
+2. **Wi-Fi:** join the network `OpenThermostat-xxxxxx` (password
+   `openthermostat`) and pick your home Wi-Fi.
+3. **Sign in** at the E32's new address with `admin` / `admin` and choose your
+   own password. Under **System → Network and Home Assistant** set your time
+   zone and turn on **Boiler bus (EMS) on**.
+4. **Connect the E32 to the boiler**, with the boiler switched off
+   ([how](docs/INSTALL.md#6-connect-the-e32-to-the-boiler)).
+5. **Home Assistant (optional):** set up MQTT on the E32, add the custom
+   repository `https://github.com/dielessen/openthermostat-ha` in
+   [HACS](https://hacs.xyz/docs/use/) (type Integration), download
+   OpenThermostat (for a release candidate: **Need a different version?**),
+   restart Home Assistant, add the integration and choose **Configure → E32
+   connection**.
+6. **Add your rooms** with their thermometers and week programs, in Home
+   Assistant or on the E32's Rooms page.
+7. **Run the boiler test** on the E32's Rooms page, with someone at the
+   boiler. It ends with the E32 controlling your boiler.
 
-The [installation guide](docs/INSTALL.md) walks through every step. There is
-also a [checklist](docs/INSTALL-CHECK.md) to do it together with someone else.
+The [installation guide](docs/INSTALL.md) explains every step. There is also a
+[checklist](docs/INSTALL-CHECK.md) to do it together with someone else.
+
+### Updating from an earlier version
+
+1. Update the integration in HACS and restart Home Assistant.
+2. Install the new firmware with the E32's **Firmware** entity (Settings →
+   Updates), while someone is home.
+3. Confirm the takeover again: Repairs → **Confirm again that the E32 may
+   control the boiler**. Until then the E32 keeps only frost protection.
 
 <!-- openthermostat-readme-releases:start -->
 
@@ -137,6 +169,7 @@ On a phone, in the dark theme:
 - Behind some adapters, such as the Bosch EasyControl Adapter, the position
   of the three-way valve (heating or hot water) cannot be read.
 - Changing the boiler's own settings from the E32. That comes after 1.0.
+- Pairing Bluetooth thermometers from Home Assistant: pair them on the E32.
 - The charts start empty again after a restart.
 
 ## Documentation

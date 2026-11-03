@@ -42,6 +42,7 @@ from homeassistant.data_entry_flow import section
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
+from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
@@ -50,7 +51,7 @@ from .e32_comfort import (DELAY_LIMITS, ComfortError, comfort_options, contact_d
                           save_comfort, validate_contacts, validate_room_persons, with_room_contacts, with_room_persons)
 from .heating_link import TEMPERATURE_UNITS, celsius, heating_hub, label, number
 from .native_form import retained_input_schema
-from .room_plan import has_room_plan, plan_room
+from .room_plan import LATEST_UNTIL, has_room_plan, plan_room, until_datetime
 from . import room_away
 
 MAX_ROOMS = 8
@@ -770,6 +771,9 @@ class E32RoomFlow:
         return {
             "name": room.get("name", ""), "state": room.get("state", "active"),
             "emitter": room.get("emitter", "radiator"),
+            # "Off until": local time of the room's end of inactivity (None: no end set).
+            "inactive_until": None if (until := until_datetime(room)) is None else dt_util.as_local(until).strftime(
+                "%Y-%m-%d %H:%M:%S"),
             "ha_sources": [s["id"] for s in sources if s.get("type") == "ha"],
             "ble_sources": [s["id"] for s in sources if s.get("type") == "ble"],
             "contacts": room_contacts(self.config_entry, room["id"]) if room.get("id") else [],
@@ -857,10 +861,28 @@ class E32RoomFlow:
             schedule = default_program(low, high)
         values = {"name": name, "state": state, "emitter": emitter, "sources": sources,
                   "setpoint_entity": setpoint, "fallback_centi_c": fallback,
-                  "minimum_centi_c": low, "maximum_centi_c": high, "schedule": schedule}
+                  "minimum_centi_c": low, "maximum_centi_c": high, "schedule": schedule,
+                  "inactive_until": self._e32_inactive_until(user_input, state, room)}
         if self._e32_away_supported():  # an older E32 ignores the field: not offered, not sent
             values[room_away.FIELD] = self._e32_room_away(user_input, room, defaults)
         return values
+
+    def _e32_inactive_until(self, user_input, state, room):
+        """The submitted "Off until" as epoch seconds; 0 (no end) when blank or the room heats."""
+        text = user_input.get("inactive_until")
+        if state != "inactive" or text is None or not str(text).strip():
+            return 0
+        parsed = dt_util.parse_datetime(str(text).strip().replace("T", " ", 1))
+        if parsed is None:
+            raise FlowError("e32_inactive_until_invalid", "inactive_until")
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+        until = int(parsed.timestamp())
+        if until == room.get("inactive_until") and until <= LATEST_UNTIL:
+            return until  # as shown: kept, even when it has just passed
+        if until <= dt_util.utcnow().timestamp() or until > LATEST_UNTIL:
+            raise FlowError("e32_inactive_until_invalid", "inactive_until")
+        return until
 
     def _e32_away_supported(self):
         return room_away.supported(getattr(self, "_e32_plan", None))
@@ -975,7 +997,8 @@ class E32RoomFlow:
                 settings = comfort_options(self.config_entry)
                 same_delay = delay is None or not room or self._same_delay(settings, room_id, delay)
                 if room is not None:
-                    edits = {k: v for k, v in values.items() if room.get(k) != v}
+                    edits = {k: v for k, v in values.items()
+                             if room.get(k, 0 if k == "inactive_until" else None) != v}
                     if (not edits and not valves_changed and contacts == room_contacts(self.config_entry, room_id) and same_delay
                             and persons == room_persons(self.config_entry, room_id)):
                         return self.async_abort(reason="e32_room_unchanged")
@@ -1053,6 +1076,8 @@ class E32RoomFlow:
             vol.Required("name", default=d["name"]): str,
             vol.Required("state", default=d["state"]): selector.SelectSelector({
                 "options": ["active", "inactive"], "translation_key": "e32_room_state"}),
+            vol.Optional("inactive_until", description={"suggested_value": d["inactive_until"]}):
+                selector.DateTimeSelector(),
             vol.Required("emitter", default=d["emitter"]): selector.SelectSelector({
                 "options": ["radiator", "floor"], "translation_key": "e32_room_emitter"}),
             vol.Optional("ha_sources", description={"suggested_value": d["ha_sources"]}):
@@ -1101,7 +1126,7 @@ class E32RoomFlow:
                     room.pop(key, None)  # schedule cleared: fallback only
                 else:
                     room[key] = deepcopy(value)
-            if "state" in edits:
+            if "state" in edits and "inactive_until" not in edits:
                 room["inactive_until"] = 0
             return candidate
         return change, lambda stored: plan_room(stored, room_id) is not None

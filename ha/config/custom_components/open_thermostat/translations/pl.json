@@ -106,7 +106,9 @@
         "description": "Czujniki okien i drzwi wstrzymują ogrzewanie pomieszczenia, dopóki są otwarte; ustawienia wstępne, nieobecność i obecność określają temperatury dla termostatów pomieszczeń E32. Wszystko tutaj jest opcjonalne.",
         "menu_options": {
           "comfort_settings": "Poziomy bez programu tygodniowego oraz czasy",
-          "comfort_contacts": "Czujniki okien i drzwi w pomieszczeniach"
+          "comfort_contacts": "Czujniki okien i drzwi w pomieszczeniach",
+          "back": "← Wstecz",
+          "done": "Gotowe"
         }
       },
       "house": {
@@ -409,7 +411,9 @@
           "delete_block": "Usuń blok czasowy",
           "save_program": "Zapisz program i powiązania pomieszczenia",
           "cancel_program": "Anuluj bez zapisywania",
-          "copy_day": "Kopiuj dzień"
+          "copy_day": "Kopiuj dzień",
+          "back": "← Wstecz",
+          "done": "Gotowe"
         }
       },
       "block": {
@@ -585,18 +589,20 @@
           "bluetooth_first": "Najpierw używaj czujników Bluetooth",
           "setpoint_entity": "Urządzenie nastawcze (opcjonalnie)",
           "fallback_temperature": "Temperatura bez Home Assistant",
-          "program": "Program tygodniowy na E32"
+          "program": "Program tygodniowy na E32",
+          "inactive_until": "Wyłączony do (opcjonalnie)"
         },
         "data_description": {
           "name": "Nazwa widoczna w Home Assistant i na E32. Do 40 liter (mniej przy znakach diakrytycznych lub emoji); zmiana nazwy zachowuje pomieszczenie i jego historię.",
-          "state": "Wł.: pomieszczenie może prosić o ciepło. Wył.: pomieszczenie nie prosi o ciepło. Tymczasowe \"Wyłączone do\" jest na stronie urządzenia pomieszczenia.",
+          "state": "Wł.: pomieszczenie może prosić o ciepło. Wył.: pomieszczenie nie prosi o ciepło. Na tymczasowe wyłączenie ustaw poniżej „Wyłączony do”.",
           "emitter": "Grzejniki lub ogrzewanie podłogowe. Podłogówka nagrzewa się powoli i potrzebuje chłodniejszej wody, więc każdy rodzaj ma własną temperaturę wody.",
           "ha_sources": "Termostaty lub czujniki temperatury (°C lub °F) w Home Assistant, które mierzą to pomieszczenie. Używany jest pierwszy ze świeżą wartością; pozostałe są zapasowe. Przeciągnij, aby zmienić kolejność.",
           "ble_sources": "Czujniki sparowane bezpośrednio z E32; działają także bez Home Assistant.",
           "bluetooth_first": "Wł.: E32 używa swoich czujników Bluetooth przed źródłami z Home Assistant.",
           "setpoint_entity": "Opcjonalnie: termostat lub głowica grzejnikowa (na przykład tado lub TV02) albo liczba z wartością docelową, którymi ustawiasz pomieszczenie. Home Assistant w każdym punkcie przełączenia zapisuje na nim temperaturę z programu tygodniowego; zmiana na nim obowiązuje do następnego punktu przełączenia. Wyłącz własny harmonogram urządzenia (tryb ręczny), inaczej samo zmienia temperaturę. Puste: brak urządzenia nastawczego; ustawiaj pomieszczenie jego termostatem w Home Assistant lub na stronie E32.{setting_hint}",
           "fallback_temperature": "Temperatura, którą E32 utrzymuje, gdy Home Assistant nie podaje celu, a pomieszczenie nie ma programu tygodniowego lub zegar E32 nie jest jeszcze ustawiony.",
-          "program": "Najprościej: wizualny planer w widoku Program tygodniowy na pulpicie OpenThermostat. Ten tekst to zaawansowany widok tego samego programu: jedna linia na grupę dni, na przykład mon-fri: 06:30 20.5; 22:30 18 oraz sat-sun: 08:00 20.5; 23:00 18. Temperatury w jednostce Twojego Home Assistant. Linia bez dni obowiązuje każdego dnia. Do 6 punktów przełączenia na dzień; każda temperatura obowiązuje do następnego punktu. Każde pomieszczenie ma program tygodniowy: gdy zostawisz to pole puste, pomieszczenie dostanie standardowy program \"Dni robocze i weekend\" (20 °C w dzień, 18 °C podczas nieobecności w dni robocze, 16 °C w nocy)."
+          "program": "Najprościej: wizualny planer w widoku Program tygodniowy na pulpicie OpenThermostat. Ten tekst to zaawansowany widok tego samego programu: jedna linia na grupę dni, na przykład mon-fri: 06:30 20.5; 22:30 18 oraz sat-sun: 08:00 20.5; 23:00 18. Temperatury w jednostce Twojego Home Assistant. Linia bez dni obowiązuje każdego dnia. Do 6 punktów przełączenia na dzień; każda temperatura obowiązuje do następnego punktu. Każde pomieszczenie ma program tygodniowy: gdy zostawisz to pole puste, pomieszczenie dostanie standardowy program \"Dni robocze i weekend\" (20 °C w dzień, 18 °C podczas nieobecności w dni robocze, 16 °C w nocy).",
+          "inactive_until": "Tylko przy wyłączonym ogrzewaniu: data i godzina, od której pomieszczenie samo znów grzeje. Puste: wyłączone, dopóki go nie włączysz."
         },
         "sections": {
           "window": {
@@ -1223,7 +1229,8 @@
       "house_holiday_date_needed": "Wybierz dzień i godzinę końca urlopu.",
       "house_holiday_date_invalid": "Wybierz moment w przyszłości, najwyżej rok naprzód.",
       "house_mode_not_saved": "E32 nie przyjął tej zmiany ({error}). Spróbuj ponownie.",
-      "house_mode_update_required": "To oprogramowanie E32 nie zna tego trybu. Najpierw zaktualizuj E32."
+      "house_mode_update_required": "To oprogramowanie E32 nie zna tego trybu. Najpierw zaktualizuj E32.",
+      "e32_inactive_until_invalid": "Wybierz dla „Wyłączony do” przyszłą datę i godzinę (przed 2100) albo zostaw pole puste."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",

@@ -106,7 +106,9 @@
         "description": "Window and door sensors pause a room while they are open; presets, away and presence set temperatures for the thermostats of your E32 rooms. Everything here is optional.",
         "menu_options": {
           "comfort_settings": "Levels without a week program, and timing",
-          "comfort_contacts": "Window and door contacts per room"
+          "comfort_contacts": "Window and door contacts per room",
+          "back": "← Back",
+          "done": "Done"
         }
       },
       "house": {
@@ -409,7 +411,9 @@
           "delete_block": "Delete time block",
           "save_program": "Save program and room bindings",
           "cancel_program": "Cancel without saving",
-          "copy_day": "Copy day"
+          "copy_day": "Copy day",
+          "back": "← Back",
+          "done": "Done"
         }
       },
       "block": {
@@ -585,18 +589,20 @@
           "bluetooth_first": "Use the Bluetooth sensors first",
           "setpoint_entity": "Setting device (optional)",
           "fallback_temperature": "Temperature without Home Assistant",
-          "program": "Week program on the E32"
+          "program": "Week program on the E32",
+          "inactive_until": "Off until (optional)"
         },
         "data_description": {
           "name": "The name you see in Home Assistant and on the E32. Up to 40 letters (fewer with accents or emoji); renaming keeps the room and its history.",
-          "state": "On: the room can ask for heat. Off: the room asks for no heat. A temporary \"Off until\" is on the room's device page.",
+          "state": "On: the room can ask for heat. Off: the room asks for no heat. For a temporary stop, set \"Off until\" below.",
           "emitter": "Radiators or floor heating. Floor heating warms up slowly and needs cooler water, so each type gets its own water temperature.",
           "ha_sources": "Thermostats or temperature sensors (°C or °F) in Home Assistant that measure this room. The first one with a fresh value is used; the others are backups. Drag to change the order.",
           "ble_sources": "Sensors paired on the E32 itself; they keep working without Home Assistant.",
           "bluetooth_first": "On: the E32 uses its Bluetooth sensors before the Home Assistant sources.",
           "setpoint_entity": "Optional: a thermostat or radiator valve (for example a tado or TV02), or a number with a target, to set the room with. Home Assistant writes the week program's temperature to it at every switch point; turning it changes the room until the next switch point. Turn off the device's own schedule (manual mode), otherwise it changes the temperature by itself. Empty: no setting device; set the room with its thermostat in Home Assistant or on the E32 page.{setting_hint}",
           "fallback_temperature": "The temperature the E32 keeps when Home Assistant gives no target and the room has no week program, or its clock is not set yet.",
-          "program": "Easiest: the visual planner under Week program on the OpenThermostat dashboard. This text is the advanced view of the same program: one line per group of days, for example mon-fri: 06:30 20.5; 22:30 18 and sat-sun: 08:00 20.5; 23:00 18. Temperatures in your Home Assistant unit. A line without days applies to every day. Up to 6 switch points per day; each temperature holds until the next point. Every room has a week program: left empty, the room gets the standard program \"Workdays and weekend\" (20 °C by day, 18 °C while away on workdays, 16 °C at night)."
+          "program": "Easiest: the visual planner under Week program on the OpenThermostat dashboard. This text is the advanced view of the same program: one line per group of days, for example mon-fri: 06:30 20.5; 22:30 18 and sat-sun: 08:00 20.5; 23:00 18. Temperatures in your Home Assistant unit. A line without days applies to every day. Up to 6 switch points per day; each temperature holds until the next point. Every room has a week program: left empty, the room gets the standard program \"Workdays and weekend\" (20 °C by day, 18 °C while away on workdays, 16 °C at night).",
+          "inactive_until": "Only with Heating off: the date and time the room heats again by itself. Empty: off until you turn it on."
         },
         "sections": {
           "window": {
@@ -1223,7 +1229,8 @@
       "house_holiday_date_needed": "Choose the day and time the holiday ends.",
       "house_holiday_date_invalid": "Choose a moment in the future, at most a year ahead.",
       "house_mode_not_saved": "The E32 did not accept this ({error}). Try again.",
-      "house_mode_update_required": "This E32 software does not know this mode. Update the E32 first."
+      "house_mode_update_required": "This E32 software does not know this mode. Update the E32 first.",
+      "e32_inactive_until_invalid": "Choose a date and time in the future (before 2100) for \"Off until\", or leave it empty."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",

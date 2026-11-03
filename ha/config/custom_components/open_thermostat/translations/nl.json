@@ -1143,7 +1143,9 @@
         "description": "Raam- en deursensoren pauzeren een ruimte zolang ze open staan; voorinstellingen, afwezig en aanwezigheid bepalen temperaturen voor de thermostaten van je E32-ruimtes. Alles hier is optioneel.",
         "menu_options": {
           "comfort_settings": "Niveaus zonder weekprogramma, en tijden",
-          "comfort_contacts": "Raam- en deurcontacten per ruimte"
+          "comfort_contacts": "Raam- en deurcontacten per ruimte",
+          "back": "← Terug",
+          "done": "Klaar"
         }
       },
       "house": {
@@ -1446,7 +1448,9 @@
           "delete_block": "Tijdblok verwijderen",
           "save_program": "Weekprogramma behouden en verder",
           "cancel_program": "Annuleren zonder opslaan",
-          "copy_day": "Dag kopiëren"
+          "copy_day": "Dag kopiëren",
+          "back": "← Terug",
+          "done": "Klaar"
         }
       },
       "block": {
@@ -1622,18 +1626,20 @@
           "bluetooth_first": "Bluetooth-sensoren eerst gebruiken",
           "setpoint_entity": "Instelapparaat (optioneel)",
           "fallback_temperature": "Temperatuur zonder Home Assistant",
-          "program": "Weekprogramma op de E32"
+          "program": "Weekprogramma op de E32",
+          "inactive_until": "Uit tot (optioneel)"
         },
         "data_description": {
           "name": "De naam die je in Home Assistant en op de E32 ziet. Maximaal 40 tekens (minder met accenten of emoji); hernoemen behoudt de ruimte en haar geschiedenis.",
-          "state": "Aan: de ruimte kan warmte vragen. Uit: de ruimte vraagt geen warmte. Een tijdelijk \"Uit tot\" staat op de apparaatpagina van de ruimte.",
+          "state": "Aan: de ruimte kan warmte vragen. Uit: de ruimte vraagt geen warmte. Voor een tijdelijke stop vult u hieronder \"Uit tot\" in.",
           "emitter": "Radiatoren of vloerverwarming. Vloerverwarming warmt langzaam op en wil koeler water, dus elk type krijgt een eigen watertemperatuur.",
           "ha_sources": "Thermostaten of temperatuursensoren (°C of °F) in Home Assistant die deze ruimte meten. De eerste met een actuele waarde wordt gebruikt; de andere zijn reserve. Sleep om de volgorde te wijzigen.",
           "ble_sources": "Sensoren die aan de E32 zelf gekoppeld zijn; ze blijven werken zonder Home Assistant.",
           "bluetooth_first": "Aan: de E32 gebruikt zijn Bluetooth-sensoren vóór de bronnen uit Home Assistant.",
           "setpoint_entity": "Optioneel: een thermostaat of radiatorkraan (bijvoorbeeld een tado of TV02), of een getal met een doel, om de ruimte mee in te stellen. Home Assistant zet bij elk schakelpunt de temperatuur van het weekprogramma erop; eraan draaien verandert de ruimte tot het volgende schakelpunt. Zet het eigen programma van het apparaat uit (handmatige stand), anders verandert het de temperatuur zelf. Leeg: geen instelapparaat; stel de ruimte in met haar thermostaat in Home Assistant of op de E32-pagina.{setting_hint}",
           "fallback_temperature": "De temperatuur die de E32 aanhoudt als Home Assistant geen doel doorgeeft en de ruimte geen weekprogramma heeft, of zijn klok nog niet is gezet.",
-          "program": "Het makkelijkst: de visuele planner onder Weekprogramma op het OpenThermostat-dashboard. Deze tekst is de geavanceerde weergave van hetzelfde programma: één regel per groep dagen, bijvoorbeeld ma-vr: 06:30 20,5; 22:30 18 en za-zo: 08:00 20,5; 23:00 18. Temperaturen in de eenheid van je Home Assistant. Een regel zonder dagen geldt voor elke dag. Maximaal 6 schakelpunten per dag; elke temperatuur geldt tot het volgende punt. Elke ruimte heeft een weekprogramma: laat je dit leeg, dan krijgt de ruimte het standaardprogramma \"Werkdagen en weekend\" (overdag 20 °C, 18 °C als je op werkdagen weg bent, 's nachts 16 °C)."
+          "program": "Het makkelijkst: de visuele planner onder Weekprogramma op het OpenThermostat-dashboard. Deze tekst is de geavanceerde weergave van hetzelfde programma: één regel per groep dagen, bijvoorbeeld ma-vr: 06:30 20,5; 22:30 18 en za-zo: 08:00 20,5; 23:00 18. Temperaturen in de eenheid van je Home Assistant. Een regel zonder dagen geldt voor elke dag. Maximaal 6 schakelpunten per dag; elke temperatuur geldt tot het volgende punt. Elke ruimte heeft een weekprogramma: laat je dit leeg, dan krijgt de ruimte het standaardprogramma \"Werkdagen en weekend\" (overdag 20 °C, 18 °C als je op werkdagen weg bent, 's nachts 16 °C).",
+          "inactive_until": "Alleen bij Verwarming uit: het moment waarop de ruimte vanzelf weer verwarmt. Leeg: uit tot u het weer aanzet."
         },
         "sections": {
           "window": {
@@ -2260,7 +2266,8 @@
       "house_holiday_date_needed": "Kies dag en tijd waarop de vakantie eindigt.",
       "house_holiday_date_invalid": "Kies een moment in de toekomst, hoogstens een jaar vooruit.",
       "house_mode_not_saved": "De E32 nam dit niet aan ({error}). Probeer het opnieuw.",
-      "house_mode_update_required": "Deze E32-software kent deze modus niet. Werk eerst de E32 bij."
+      "house_mode_update_required": "Deze E32-software kent deze modus niet. Werk eerst de E32 bij.",
+      "e32_inactive_until_invalid": "Kies voor \"Uit tot\" een moment in de toekomst (voor 2100), of laat het leeg."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",

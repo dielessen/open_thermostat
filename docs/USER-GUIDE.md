@@ -35,6 +35,7 @@ energy inputs.
 | House mode: automatic, at home, away, holiday | E32: Home | The House mode control (E32 device, dashboard) |
 | Who lives here (presence) and how long before the house counts as away | — | Configure → Home → Presence: who lives here |
 | Who uses a room (persons per room) | E32: Rooms (shown, read-only) | Same room editor → Persons |
+| Away temperature of a single room | E32: Rooms → the room → Persons | Same room editor → Persons |
 | Window and door contacts per room | — | Same room editor → Windows and doors |
 | Levels of a room without a week program, default window pause, length of a manual change | — | Configure → Home → Defaults for rooms and timing |
 | Radiator valves per room | E32: Rooms → the room → Radiator valves | Configure → Rooms → Edit or remove a room → Radiator valves |
@@ -250,7 +251,8 @@ and the paired Bluetooth thermometer as fallback.
    - **Temperature limits** (folded section): the lowest and highest target
      this room may get.
    - **Windows and doors** and **Persons** (folded sections, optional): see
-     [Temporary changes, open windows and away](#temporary-changes-open-windows-and-away).
+     [Temporary changes, open windows and away](#temporary-changes-open-windows-and-away)
+     and [Away: the whole house and single rooms](#away-the-whole-house-and-single-rooms).
 3. Choose **Submit**. Home Assistant forwards the selected entities to the
    E32 on every change and every five minutes.
 
@@ -325,10 +327,12 @@ everything else.
     home, or someone whose place is not known, keeps the house warm.
     A room can have **persons of its own** (the room editor in Home
     Assistant, section **Persons** → **Persons of this room**, for example a
-    bedroom and its occupants). Such a room goes to the away temperature when all of its persons have been away
-    for the same delay, also while others are home. A room without persons of
-    its own follows the house. The E32's room card shows what Home Assistant
-    reports for the room's persons.
+    bedroom and its occupants). Such a room goes to its own away temperature
+    (or the house one) when all of its persons have been away for the same
+    delay, also while others are home. A room without persons of its own
+    follows the house. The E32's room card shows what Home Assistant reports
+    for the room's persons. See
+    [Away: the whole house and single rooms](#away-the-whole-house-and-single-rooms).
   - **At home**: the week programs always, also when everyone is away (guests,
     a babysitter).
   - **Away**: every room is at most the away temperature until you switch back.
@@ -351,6 +355,103 @@ switch point; a room without a week program keeps it for the **Length of a
 manual change** under Configure → **Home** → **Defaults for rooms and
 timing**, and a room with only a fixed target changes that fixed target in
 the plan.
+
+### Away: the whole house and single rooms
+
+OpenThermostat turns rooms down while people are out. It does this for the
+whole house, and for single rooms.
+
+**The three rules**
+
+1. **Everyone is away.** Every room goes to the house away temperature
+   (**Temperature when nobody is home**, 15 °C by default). The house modes
+   **Away** and **Holiday** do the same.
+2. **Only the people of one room are away.** A room can have its own people.
+   When all of them are away, that room goes to its own away temperature,
+   even while others are home. A room with two people only cools down when
+   both are out.
+3. **A room without its own people** follows the house. It only cools down
+   when everyone is away (rule 1).
+
+A room with its own people but without its own away temperature uses the
+house away temperature in rule 2.
+
+| Situation | Room without its own people | Room with its own people and its own value | Room with its own people, no own value |
+| --- | --- | --- | --- |
+| Someone home, the room's people home | Week program | Week program | Week program |
+| Someone home, the room's people away | Week program | Its own away temperature | House away temperature |
+| Everyone away | House away temperature | House away temperature | House away temperature |
+| House mode Away or Holiday | House away temperature | House away temperature | House away temperature |
+| House mode At home | Week program | Week program | Week program |
+
+**Examples** (house away temperature 17 °C, living room 21 °C)
+
+- **Jolien's study.** The study has one person: Jolien. Its own away
+  temperature is 16 °C. Jolien goes out and Mark stays home. The study goes
+  to 16 °C. The living room has no people of its own, so it stays at 21 °C.
+- **Both out.** Jolien and Mark both leave, so everyone is away. Every room
+  goes to the house value of 17 °C, the study too. When everyone is out, the
+  house value counts for every room.
+- **A room for two.** The bedroom belongs to Jolien and Mark. Jolien leaves,
+  Mark is still home: the bedroom stays warm. It cools down only when both
+  are out.
+
+**Good to know**
+
+- The away temperature is an upper limit. A room whose program is already
+  cooler stays cooler.
+- **At home** ignores who is home. No room cools down, also when everyone is
+  out (for guests or a babysitter).
+- An open window still pauses the room. That always comes first.
+- Frost protection always stays on: any room below 8 °C asks for heat.
+- A person counts as away only after the away delay (15 minutes by
+  default). Someone whose place is not known counts as home: in doubt, the
+  room stays warm.
+
+**Coming home**
+
+When one of the room's people comes back, the room follows its week program
+again at once and starts to heat. The E32 cannot know in advance when you
+come back, so the room needs some time: roughly 45 minutes per °C with
+radiators and about 2 hours per °C with floor heating. A floor-heated room
+that went 4 °C down can need most of a working day. For floor heating,
+choose an own away temperature only 1 or 2 °C below the normal temperature.
+
+A **Holiday** has an end date. Then the E32 starts warming up early enough to
+be warm when you are back.
+
+**How to set it up** (in Home Assistant)
+
+1. Choose who lives in the house: Settings → Devices & services →
+   OpenThermostat → **Configure** → **Home** → **Presence: who lives here**.
+2. Give a room its own people: **Configure** → **Rooms** → **Edit or remove a
+   room** → choose the room → section **Persons** → **Persons of this
+   room**.
+3. In the same section, fill in **Temperature when this room's people are
+   away**, for example 16 °C. Leave it empty to use the house away
+   temperature.
+4. Choose **Submit**.
+
+The E32 **Rooms** page shows the same value in the room's **Persons** block,
+and you can change it there too, also without Home Assistant. The people
+themselves are chosen in Home Assistant, because Home Assistant knows where
+they are.
+
+The value is stored on the E32 with the room. It is part of the E32's
+settings backup and comes back with a restore.
+
+**Where you see it**
+
+- The E32 **Overview**: "Away: this room's people are out" or "Away:
+  everyone is out".
+- The E32 **Rooms** page, in the room's **Persons** block.
+- The room's thermostat in Home Assistant shows the lower target. Its
+  attributes `away_reason` (`room_persons`, `everyone` or `house_mode`) and
+  `own_away_temperature` tell why.
+
+E32 firmware up to 1.0.0-rc.2 has no away temperature per room. Home
+Assistant and the E32 page then do not show the field, and every room uses
+the house value.
 
 ### Week program and setting device
 

@@ -115,6 +115,7 @@
         "menu_options": {
           "house_presence": "Presence: who lives here",
           "heating_boiler": "Heating and boiler",
+          "comfort_care": "Comfort and boiler care",
           "energy": "Energy and outdoor temperature",
           "comfort_settings": "Defaults for rooms and timing"
         }
@@ -472,7 +473,9 @@
           "installation": "Water limits of the old room profile",
           "entity_ids": "Tidy entity IDs",
           "entity_ids_undo": "Undo the entity ID tidy",
-          "e32_restore": "Restore settings to this E32"
+          "e32_restore": "Restore settings to this E32",
+          "e32_logging": "E32 system log",
+          "e32_time_zone": "E32 time zone"
         }
       },
       "edit_room": {
@@ -804,6 +807,101 @@
         "data_description": {
           "confirm": "Nothing changes until you tick this."
         }
+      },
+      "comfort_care": {
+        "title": "Comfort and boiler care",
+        "description": "The thermostat sets these itself and keeps adjusting them as it learns your house. Change one only if you want it differently. The same settings as on the E32's Home page.\n\nNow:\n{settings}",
+        "menu_options": {
+          "comfort_care_knob": "Change a setting",
+          "comfort_care_auto_all": "Back to automatic for all",
+          "comfort_care_reset": "Back to start values"
+        }
+      },
+      "comfort_care_knob": {
+        "title": "Change a setting",
+        "description": "Choose the setting to change.",
+        "data": {
+          "knob": "Setting"
+        },
+        "data_description": {
+          "knob": "The settings of the E32's Home page, section Comfort and boiler care."
+        }
+      },
+      "comfort_care_auto_value": {
+        "title": "Change: {name}",
+        "description": "Now: {current} {mode}. Standard value: {standard}.\n\nAutomatic: the thermostat sets it itself and keeps adjusting it, at most one small step a day. Switch Automatic off to use your own value ({range}).",
+        "data": {
+          "automatic": "Automatic",
+          "value": "Your value"
+        },
+        "data_description": {
+          "automatic": "On: the thermostat sets this itself (your value below is not used).",
+          "value": "Used when Automatic is off. Possible: {range}."
+        }
+      },
+      "comfort_care_fixed_value": {
+        "title": "Change: {name}",
+        "description": "Now: {current} {mode}. Standard value: {standard}.",
+        "data": {
+          "value": "Value"
+        },
+        "data_description": {
+          "value": "Possible: {range}. Enter the standard value to go back to it."
+        }
+      },
+      "comfort_care_auto_all": {
+        "title": "Back to automatic for all",
+        "description": "Every setting you set yourself goes back to the thermostat, which sets it itself again. The fixed settings keep their values.",
+        "data": {
+          "confirm": "Yes, back to automatic"
+        },
+        "data_description": {
+          "confirm": "Tick to confirm."
+        }
+      },
+      "comfort_care_reset": {
+        "title": "Back to start values",
+        "description": "All these settings go back to their start values and the thermostat starts learning them again. What it learned about your rooms stays.",
+        "data": {
+          "confirm": "Yes, back to the start values"
+        },
+        "data_description": {
+          "confirm": "Tick to confirm."
+        }
+      },
+      "e32_logging": {
+        "title": "E32 system log",
+        "description": "Send the E32's log to a syslog server on your network, for example to look into a problem. The E32 keeps its own log as well (Diagnostics and system log on its web page).",
+        "data": {
+          "syslog_enabled": "Send to a syslog server",
+          "server": "Syslog server",
+          "port": "UDP port",
+          "syslog_level": "Send up to level",
+          "syslog_esp": "Send the E32's own messages",
+          "syslog_ems": "Send the boiler bus messages",
+          "web_level": "Keep on the E32 up to level",
+          "mark_interval_s": "Still-running message every"
+        },
+        "data_description": {
+          "syslog_enabled": "Off: the E32 keeps its log only on its own page.",
+          "server": "The IPv4 address of the syslog server, for example 192.168.1.10. Needed when sending is on.",
+          "port": "Usually 514.",
+          "syslog_level": "Error is enough for normal use; Debug and Trace send a lot.",
+          "syslog_esp": "Messages of the E32 itself: network, heating, updates.",
+          "syslog_ems": "The messages the E32 hears on the boiler bus; useful to look into a boiler problem.",
+          "web_level": "The most detailed level the E32 keeps for its own log page.",
+          "mark_interval_s": "Seconds between short “still running” messages; 0 is off."
+        }
+      },
+      "e32_time_zone": {
+        "title": "E32 time zone",
+        "description": "The E32 runs the week programs in its own time zone. Now: {e32}. Home Assistant: {home}.\n\nAfter saving, the E32 restarts once to use the new time zone; the heating continues after about a minute.",
+        "data": {
+          "time_zone": "Time zone"
+        },
+        "data_description": {
+          "time_zone": "Home Assistant's own time zone is chosen when the E32 knows it."
+        }
       }
     },
     "error": {
@@ -965,7 +1063,23 @@
       "e32_restore_adopt_confirm_required": "Tick the box to use this E32 from now on.",
       "e32_restore_adopt_failed": "Home Assistant could not switch to this E32. Try again, or connect it under Configure → E32 connection.",
       "e32_restore_unconfirmed": "The E32 did not answer after the restore, so it is not known whether the settings arrived. Check that the E32 is on and its web page opens, then choose the backup again: the E32 checks what is still different.",
-      "e32_restore_not_applied": "The E32 did not confirm the restore, and its check shows that not all settings arrived. Choose the backup again to restore it once more."
+      "e32_restore_not_applied": "The E32 did not confirm the restore, and its check shows that not all settings arrived. Choose the backup again to restore it once more.",
+      "care_value_invalid": "This value is not possible. Use a value within {range}.",
+      "care_knob_invalid": "Choose one of the settings.",
+      "care_confirm": "Tick the box to confirm.",
+      "care_rejected": "The E32 refused the change ({error}). Nothing was saved.",
+      "care_unconfirmed": "The E32 could not confirm that the change was saved. Check the setting before trying again.",
+      "care_unreachable": "The E32 could not be reached ({error}). Nothing was saved.",
+      "care_no_free_session": "The E32 has no free web session: close E32 pages you do not use, or wait two minutes, then try again.",
+      "e32_log_server_invalid": "Enter the IPv4 address of the syslog server, for example 192.168.1.10.",
+      "e32_log_number_invalid": "Use a whole number within the range shown.",
+      "e32_settings_invalid": "The E32 refused these settings. Nothing was saved.",
+      "e32_settings_unconfirmed": "The E32 could not confirm that the settings were saved. Check them on the E32 before trying again.",
+      "e32_settings_changed": "The E32 settings were changed meanwhile (on its web page?). Nothing was saved; try again.",
+      "e32_settings_busy": "The E32 is updating or restarting. Try again once its web page opens normally.",
+      "e32_settings_unreachable": "The E32 could not be reached ({error}). Nothing was saved.",
+      "e32_settings_no_free_session": "The E32 has no free web session: close E32 pages you do not use, or wait two minutes, then try again.",
+      "e32_time_zone_invalid": "Choose a time zone from the list."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -1035,7 +1149,20 @@
       "e32_restore_done_waiting": "Settings restored. The E32 is restarting and did not answer yet; Home Assistant reconnects by itself as soon as it is back. The rooms keep the mode of the backup; a new or reset E32 controls the boiler only after you confirm the takeover on its Rooms page.\n\nEnter these again on the E32 page:\n{reenter}",
       "e32_restore_done_restart": "Settings restored. Restart the E32 (System → Restart device on its page) to use all of them. The rooms keep the mode of the backup; a new or reset E32 controls the boiler only after you confirm the takeover on its Rooms page.\n\nEnter these again on the E32 page:\n{reenter}",
       "e32_restore_done": "Settings restored. The rooms keep the mode of the backup; a new or reset E32 controls the boiler only after you confirm the takeover on its Rooms page.\n\nEnter these again on the E32 page:\n{reenter}",
-      "e32_restore_adopted": "Done: Home Assistant uses this E32 from now on. Nothing was restored; it already had these settings."
+      "e32_restore_adopted": "Done: Home Assistant uses this E32 from now on. Nothing was restored; it already had these settings.",
+      "care_unreachable": "The E32 could not be reached ({error}). Try again later.",
+      "care_rejected": "The E32 refused the request ({error}).",
+      "care_unconfirmed": "The E32 did not answer as expected. Try again later.",
+      "care_update_required": "This E32 firmware shows these settings but cannot change them from Home Assistant. Update the E32 (Firmware update) first.",
+      "care_unchanged": "Nothing changed; the E32 was not written.",
+      "care_saved": "Saved on the E32. The thermostat watches a whole day before it adjusts anything again.",
+      "e32_settings_unreachable": "The E32 could not be reached ({error}). Try again later.",
+      "e32_settings_update_required": "This E32 firmware does not offer this setting. Update the E32 (Firmware update) first.",
+      "e32_settings_password_default": "The E32 still uses its default password and accepts no changes until you choose a new one: Settings → Repairs → “E32 still uses the default password”.",
+      "e32_settings_unchanged": "Nothing changed; the E32 was not written.",
+      "e32_settings_unconfirmed": "The E32 could not confirm the new settings. Check them on the E32's web page.",
+      "e32_logging_saved": "The system log settings are saved on the E32.",
+      "e32_time_zone_saved": "The E32 now uses {zone}. It restarts once; the heating continues after about a minute."
     },
     "progress": {
       "controller_connect": "Connecting to the E32…",
@@ -2012,6 +2139,9 @@
     "button": {
       "e32_backup_now": {
         "name": "Back up E32 settings now"
+      },
+      "e32_restart": {
+        "name": "Restart E32"
       }
     }
   },
@@ -2957,6 +3087,30 @@
         "unused": "Only entities that are not used anywhere",
         "all": "All, I will update the places where they are used"
       }
+    },
+    "comfort_care_knob": {
+      "options": {
+        "min_off_s": "Burner rest between starts",
+        "min_on_s": "Burner run time",
+        "heat_start_c": "Start heating when the room is this much below its target",
+        "heat_stop_c": "Stop heating when the room is this much above its target",
+        "flow_per_degree_c": "How strongly the water temperature reacts to a cold room",
+        "floor_lead_min_per_c": "Warm-up time for floor heating",
+        "radiator_lead_min_per_c": "Warm-up time for radiators",
+        "curve_correction_pct": "Room correction on the heating curve",
+        "learned_accept_pct": "Accepted warm-up time with the learned water temperature",
+        "night_saving_min_pct": "Smallest night saving worth advising"
+      }
+    },
+    "e32_log_level": {
+      "options": {
+        "0": "Off",
+        "1": "Error",
+        "2": "Warning",
+        "3": "Info",
+        "4": "Debug",
+        "5": "Trace"
+      }
     }
   },
   "issues": {
@@ -3384,6 +3538,12 @@
     },
     "e32_password_change_required": {
       "message": "The E32 still uses its default password and accepts no changes until you choose a new one. Open Settings → Repairs → “E32 still uses the default password” to choose it. Nothing was saved."
+    },
+    "e32_restart_busy": {
+      "message": "The E32 cannot restart now: an update or the check of new firmware is running. Try again later."
+    },
+    "e32_restart_failed": {
+      "message": "The E32 restart was not confirmed ({error}). Check the connection and try again."
     }
   },
   "device": {

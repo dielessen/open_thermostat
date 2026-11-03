@@ -14,7 +14,8 @@ language (English, Dutch or Polish), each figure with a line on what it means:
   (``fw/telemetry/tuning``); this sensor keeps the last ten over restarts;
 - ``settings``: the knobs in effect by their plain names, "(automatic)" or "(set by you)".
 
-Read only: the knobs are changed on the E32 page (Home -> Comfort and boiler care).
+Read only: the knobs are changed in Configure → Home → Comfort and boiler care (e32_care.py) or on
+the E32 page (Home -> Comfort and boiler care).
 """
 import time
 from datetime import datetime, timezone

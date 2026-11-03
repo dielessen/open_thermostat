@@ -115,6 +115,7 @@
         "menu_options": {
           "house_presence": "Obecność: kto tu mieszka",
           "heating_boiler": "Ogrzewanie i kocioł",
+          "comfort_care": "Komfort i dbałość o kocioł",
           "energy": "Energia i temperatura zewnętrzna",
           "comfort_settings": "Ustawienia domyślne pomieszczeń i czasy"
         }
@@ -472,7 +473,9 @@
           "installation": "Limity wody starego profilu pomieszczeń",
           "entity_ids": "Uporządkuj identyfikatory encji",
           "entity_ids_undo": "Cofnij porządkowanie identyfikatorów",
-          "e32_restore": "Przywróć ustawienia na tym E32"
+          "e32_restore": "Przywróć ustawienia na tym E32",
+          "e32_logging": "Dziennik systemowy E32",
+          "e32_time_zone": "Strefa czasowa E32"
         }
       },
       "edit_room": {
@@ -804,6 +807,101 @@
         "data_description": {
           "confirm": "Nic się nie zmieni, dopóki tego nie zaznaczysz."
         }
+      },
+      "comfort_care": {
+        "title": "Komfort i dbałość o kocioł",
+        "description": "Termostat ustawia je sam i dostosowuje je, poznając Twój dom. Zmieniaj je tylko wtedy, gdy chcesz inaczej. Te same ustawienia co na stronie Dom w E32.\n\nTeraz:\n{settings}",
+        "menu_options": {
+          "comfort_care_knob": "Zmień ustawienie",
+          "comfort_care_auto_all": "Wszystko z powrotem na automatyczne",
+          "comfort_care_reset": "Powrót do wartości początkowych"
+        }
+      },
+      "comfort_care_knob": {
+        "title": "Zmień ustawienie",
+        "description": "Wybierz ustawienie do zmiany.",
+        "data": {
+          "knob": "Ustawienie"
+        },
+        "data_description": {
+          "knob": "Ustawienia ze strony Dom w E32, sekcja Komfort i dbałość o kocioł."
+        }
+      },
+      "comfort_care_auto_value": {
+        "title": "Zmiana: {name}",
+        "description": "Teraz: {current} {mode}. Wartość standardowa: {standard}.\n\nAutomatycznie: termostat ustawia to sam i dostosowuje, najwyżej o jeden mały krok dziennie. Wyłącz Automatycznie, aby użyć własnej wartości ({range}).",
+        "data": {
+          "automatic": "Automatycznie",
+          "value": "Twoja wartość"
+        },
+        "data_description": {
+          "automatic": "Włączone: termostat ustawia to sam (Twoja wartość poniżej nie jest używana).",
+          "value": "Używana, gdy Automatycznie jest wyłączone. Możliwe: {range}."
+        }
+      },
+      "comfort_care_fixed_value": {
+        "title": "Zmiana: {name}",
+        "description": "Teraz: {current} {mode}. Wartość standardowa: {standard}.",
+        "data": {
+          "value": "Wartość"
+        },
+        "data_description": {
+          "value": "Możliwe: {range}. Wpisz wartość standardową, aby do niej wrócić."
+        }
+      },
+      "comfort_care_auto_all": {
+        "title": "Wszystko z powrotem na automatyczne",
+        "description": "Każde ustawienie, które ustawiłeś sam, wraca do termostatu, który znów ustawia je sam. Stałe ustawienia zachowują swoje wartości.",
+        "data": {
+          "confirm": "Tak, z powrotem na automatyczne"
+        },
+        "data_description": {
+          "confirm": "Zaznacz, aby potwierdzić."
+        }
+      },
+      "comfort_care_reset": {
+        "title": "Powrót do wartości początkowych",
+        "description": "Wszystkie te ustawienia wracają do wartości początkowych, a termostat zaczyna uczyć się ich od nowa. To, czego nauczył się o Twoich pomieszczeniach, zostaje.",
+        "data": {
+          "confirm": "Tak, powrót do wartości początkowych"
+        },
+        "data_description": {
+          "confirm": "Zaznacz, aby potwierdzić."
+        }
+      },
+      "e32_logging": {
+        "title": "Dziennik systemowy E32",
+        "description": "Wysyłaj dziennik E32 do serwera syslog w Twojej sieci, na przykład aby zbadać problem. E32 prowadzi też własny dziennik (Diagnostyka i dziennik systemowy na jego stronie).",
+        "data": {
+          "syslog_enabled": "Wysyłaj do serwera syslog",
+          "server": "Serwer syslog",
+          "port": "Port UDP",
+          "syslog_level": "Wysyłaj do poziomu",
+          "syslog_esp": "Wysyłaj własne komunikaty E32",
+          "syslog_ems": "Wysyłaj komunikaty magistrali kotła",
+          "web_level": "Przechowuj w E32 do poziomu",
+          "mark_interval_s": "Komunikat „nadal działa” co"
+        },
+        "data_description": {
+          "syslog_enabled": "Wyłączone: E32 przechowuje dziennik tylko na własnej stronie.",
+          "server": "Adres IPv4 serwera syslog, na przykład 192.168.1.10. Wymagany, gdy wysyłanie jest włączone.",
+          "port": "Zwykle 514.",
+          "syslog_level": "Błąd wystarcza do normalnego użytku; Debug i Trace wysyłają dużo.",
+          "syslog_esp": "Komunikaty samego E32: sieć, ogrzewanie, aktualizacje.",
+          "syslog_ems": "Komunikaty, które E32 słyszy na magistrali kotła; przydatne do zbadania problemu z kotłem.",
+          "web_level": "Najbardziej szczegółowy poziom, który E32 przechowuje dla własnej strony dziennika.",
+          "mark_interval_s": "Sekundy między krótkimi komunikatami „nadal działa”; 0 to wyłączone."
+        }
+      },
+      "e32_time_zone": {
+        "title": "Strefa czasowa E32",
+        "description": "E32 wykonuje programy tygodniowe we własnej strefie czasowej. Teraz: {e32}. Home Assistant: {home}.\n\nPo zapisaniu E32 uruchomi się ponownie jeden raz, aby użyć nowej strefy czasowej; ogrzewanie działa dalej po około minucie.",
+        "data": {
+          "time_zone": "Strefa czasowa"
+        },
+        "data_description": {
+          "time_zone": "Wybrana jest strefa czasowa Home Assistant, jeśli E32 ją zna."
+        }
       }
     },
     "error": {
@@ -965,7 +1063,23 @@
       "e32_restore_adopt_confirm_required": "Zaznacz pole, aby od teraz używać tego E32.",
       "e32_restore_adopt_failed": "Home Assistant nie mógł przejść na ten E32. Spróbuj ponownie albo połącz go w Konfiguruj → Połączenie z E32.",
       "e32_restore_unconfirmed": "E32 nie odpowiedział po przywróceniu, więc nie wiadomo, czy ustawienia dotarły. Sprawdź, czy E32 jest włączony i jego strona się otwiera, a potem wybierz kopię ponownie: E32 sprawdzi, co nadal się różni.",
-      "e32_restore_not_applied": "E32 nie potwierdził przywrócenia, a jego sprawdzenie pokazuje, że nie wszystkie ustawienia dotarły. Wybierz kopię ponownie, aby przywrócić ją jeszcze raz."
+      "e32_restore_not_applied": "E32 nie potwierdził przywrócenia, a jego sprawdzenie pokazuje, że nie wszystkie ustawienia dotarły. Wybierz kopię ponownie, aby przywrócić ją jeszcze raz.",
+      "care_value_invalid": "Ta wartość nie jest możliwa. Użyj wartości z zakresu {range}.",
+      "care_knob_invalid": "Wybierz jedno z ustawień.",
+      "care_confirm": "Zaznacz pole, aby potwierdzić.",
+      "care_rejected": "E32 odrzucił zmianę ({error}). Nic nie zostało zapisane.",
+      "care_unconfirmed": "E32 nie mógł potwierdzić zapisania zmiany. Sprawdź ustawienie, zanim spróbujesz ponownie.",
+      "care_unreachable": "Nie udało się połączyć z E32 ({error}). Nic nie zostało zapisane.",
+      "care_no_free_session": "E32 nie ma wolnej sesji WWW: zamknij nieużywane strony E32 lub odczekaj dwie minuty, a potem spróbuj ponownie.",
+      "e32_log_server_invalid": "Wpisz adres IPv4 serwera syslog, na przykład 192.168.1.10.",
+      "e32_log_number_invalid": "Użyj liczby całkowitej z pokazanego zakresu.",
+      "e32_settings_invalid": "E32 odrzucił te ustawienia. Nic nie zostało zapisane.",
+      "e32_settings_unconfirmed": "E32 nie mógł potwierdzić zapisania ustawień. Sprawdź je w E32, zanim spróbujesz ponownie.",
+      "e32_settings_changed": "Ustawienia E32 zostały w międzyczasie zmienione (na jego stronie?). Nic nie zostało zapisane; spróbuj ponownie.",
+      "e32_settings_busy": "E32 jest aktualizowany lub uruchamia się ponownie. Spróbuj ponownie, gdy jego strona otworzy się normalnie.",
+      "e32_settings_unreachable": "Nie udało się połączyć z E32 ({error}). Nic nie zostało zapisane.",
+      "e32_settings_no_free_session": "E32 nie ma wolnej sesji WWW: zamknij nieużywane strony E32 lub odczekaj dwie minuty, a potem spróbuj ponownie.",
+      "e32_time_zone_invalid": "Wybierz strefę czasową z listy."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -1035,7 +1149,20 @@
       "e32_restore_done_waiting": "Ustawienia przywrócone. E32 uruchamia się ponownie i jeszcze nie odpowiada; Home Assistant połączy się sam, gdy wróci. Pomieszczenia zachowają tryb z kopii; nowy lub zresetowany E32 steruje kotłem dopiero po potwierdzeniu przejęcia na jego stronie „Rooms”.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
       "e32_restore_done_restart": "Ustawienia przywrócone. Uruchom E32 ponownie (System → Uruchom urządzenie ponownie na jego stronie), aby użyć ich wszystkich. Pomieszczenia zachowają tryb z kopii; nowy lub zresetowany E32 steruje kotłem dopiero po potwierdzeniu przejęcia na jego stronie „Rooms”.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
       "e32_restore_done": "Ustawienia przywrócone. Pomieszczenia zachowają tryb z kopii; nowy lub zresetowany E32 steruje kotłem dopiero po potwierdzeniu przejęcia na jego stronie „Rooms”.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
-      "e32_restore_adopted": "Gotowe: Home Assistant od teraz używa tego E32. Nic nie przywrócono; miał już te ustawienia."
+      "e32_restore_adopted": "Gotowe: Home Assistant od teraz używa tego E32. Nic nie przywrócono; miał już te ustawienia.",
+      "care_unreachable": "Nie udało się połączyć z E32 ({error}). Spróbuj ponownie później.",
+      "care_rejected": "E32 odrzucił żądanie ({error}).",
+      "care_unconfirmed": "E32 nie odpowiedział zgodnie z oczekiwaniami. Spróbuj ponownie później.",
+      "care_update_required": "To oprogramowanie E32 pokazuje te ustawienia, ale nie może ich zmienić z Home Assistant. Najpierw zaktualizuj E32 (Aktualizacja oprogramowania).",
+      "care_unchanged": "Nic się nie zmieniło; nic nie zostało zapisane w E32.",
+      "care_saved": "Zapisano w E32. Termostat obserwuje cały dzień, zanim znów coś dostosuje.",
+      "e32_settings_unreachable": "Nie udało się połączyć z E32 ({error}). Spróbuj ponownie później.",
+      "e32_settings_update_required": "To oprogramowanie E32 nie ma tego ustawienia. Najpierw zaktualizuj E32 (Aktualizacja oprogramowania).",
+      "e32_settings_password_default": "E32 nadal używa domyślnego hasła i nie przyjmuje zmian, dopóki nie wybierzesz nowego: Ustawienia → Naprawy → „E32 nadal używa domyślnego hasła”.",
+      "e32_settings_unchanged": "Nic się nie zmieniło; nic nie zostało zapisane w E32.",
+      "e32_settings_unconfirmed": "E32 nie mógł potwierdzić nowych ustawień. Sprawdź je na stronie E32.",
+      "e32_logging_saved": "Ustawienia dziennika systemowego zostały zapisane w E32.",
+      "e32_time_zone_saved": "E32 używa teraz strefy {zone}. Uruchomi się ponownie jeden raz; ogrzewanie działa dalej po około minucie."
     },
     "progress": {
       "controller_connect": "Łączenie z E32…",
@@ -2012,6 +2139,9 @@
     "button": {
       "e32_backup_now": {
         "name": "Utwórz teraz kopię ustawień E32"
+      },
+      "e32_restart": {
+        "name": "Uruchom ponownie E32"
       }
     }
   },
@@ -2957,6 +3087,30 @@
         "unused": "Tylko encje, które nigdzie nie są używane",
         "all": "Wszystkie, sam zaktualizuję miejsca użycia"
       }
+    },
+    "comfort_care_knob": {
+      "options": {
+        "min_off_s": "Przerwa palnika między uruchomieniami",
+        "min_on_s": "Czas pracy palnika",
+        "heat_start_c": "Zacznij grzać, gdy w pomieszczeniu jest o tyle chłodniej niż zadana temperatura",
+        "heat_stop_c": "Przestań grzać, gdy w pomieszczeniu jest o tyle cieplej niż zadana temperatura",
+        "flow_per_degree_c": "Jak mocno temperatura wody reaguje na zimne pomieszczenie",
+        "floor_lead_min_per_c": "Czas nagrzewania dla ogrzewania podłogowego",
+        "radiator_lead_min_per_c": "Czas nagrzewania dla grzejników",
+        "curve_correction_pct": "Korekta pomieszczenia na krzywej grzewczej",
+        "learned_accept_pct": "Dopuszczalny czas nagrzewania przy wyuczonej temperaturze wody",
+        "night_saving_min_pct": "Najmniejsza nocna oszczędność warta porady"
+      }
+    },
+    "e32_log_level": {
+      "options": {
+        "0": "Wyłączony",
+        "1": "Błąd",
+        "2": "Ostrzeżenie",
+        "3": "Informacje",
+        "4": "Debugowanie",
+        "5": "Śledzenie"
+      }
     }
   },
   "issues": {
@@ -3384,6 +3538,12 @@
     },
     "e32_password_change_required": {
       "message": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian, dopóki nie wybierzesz nowego. Otwórz Ustawienia → Naprawy → „E32 nadal używa domyślnego hasła”, aby je wybrać. Nic nie zostało zapisane."
+    },
+    "e32_restart_busy": {
+      "message": "E32 nie może teraz uruchomić się ponownie: trwa aktualizacja lub sprawdzanie nowego oprogramowania. Spróbuj ponownie później."
+    },
+    "e32_restart_failed": {
+      "message": "Ponowne uruchomienie E32 nie zostało potwierdzone ({error}). Sprawdź połączenie i spróbuj ponownie."
     }
   },
   "device": {

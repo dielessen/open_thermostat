@@ -64,14 +64,21 @@ GAS_STATUSES = ["no_meter", "collecting", "calibrated", "meter_stale"]
 
 
 def decode_settings(value):
-    """The options as the E32 stored them, or None when the answer is not well-formed."""
+    """The options as the E32 stored them, or None when the answer is not well-formed.
+
+    Since 1.0 the answer also has the "Comfort and boiler care" knobs ("tuning", the values
+    in effect) and since rc.2 which automatic knobs the owner set ("tuning_manual"); both
+    are kept only when well-formed (e32_care.decode_tuning). The options above never
+    depend on them.
+    """
     if type(value) is not dict:
         return None
     design = value.get(DESIGN_FLOW_KEY)
     if (any(type(value.get(key)) is not bool for key in OPTIONS) or type(design) is not int
             or design != 0 and not DESIGN_FLOW_LIMITS[0] <= design <= DESIGN_FLOW_LIMITS[1]):
         return None
-    return {**{key: value[key] for key in OPTIONS}, DESIGN_FLOW_KEY: design}
+    from .e32_care import decode_tuning
+    return {**{key: value[key] for key in OPTIONS}, DESIGN_FLOW_KEY: design, **decode_tuning(value)}
 
 
 def flow_error(err):
@@ -148,6 +155,18 @@ class FlowSettingsLink:
                 # A change waits for a free E32 web session; a read does not.
                 await self.plan._login(client, None if change is None else self.plan.claim())
                 return await client.async_flow_settings(change)
+
+    async def async_read_now(self):
+        """Read the options for a Configure form: what the E32 stored, or a clear HomeAssistantError."""
+        from .controller_link import ControllerLinkError
+        try:
+            value = decode_settings(await self._call())
+        except ControllerLinkError as err:
+            raise flow_error(err) from None
+        if value is None:
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="flow_settings_unconfirmed")
+        self._set(value)
+        return value
 
     async def async_refresh(self):
         from .controller_link import ControllerLinkError

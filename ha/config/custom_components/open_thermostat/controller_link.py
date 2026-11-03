@@ -74,6 +74,9 @@ HEATING_FLOW = "/config/heating/flow"
 HEATING_HANDOVER = "/config/heating/handover"
 # The radiator valves per room, reached through Zigbee2MQTT (E32 beta.24, TrvConfig.h).
 HEATING_TRV = "/config/heating/trv"
+# The E32 system log: syslog forwarding and the kept log levels (diagnostics/LogSettings.h).
+# Not part of a settings backup; refusals are plain text (400 invalid, 503 not confirmed or unavailable).
+LOGGING = "/config/logging"
 HEATING_PLAN_BYTES = 8192  # The E32 refuses larger request bodies (413 plan_too_large).
 # Backup and restore of the E32 settings (E32 beta.19, ConfigBackupRoute.h): export,
 # validate and apply, each one POST. A backup file holds at most 24 KB; a request
@@ -513,9 +516,10 @@ class ControllerClient:
 
     _reads = frozenset(("/auth/session", "/status/version", "/status", "/updates/status",
                         "/config/device", "/config/rooms", HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW,
-                        HEATING_TRV, "/status/heating"))
+                        HEATING_TRV, "/status/heating", LOGGING))
     _writes = frozenset(("/auth/login", "/auth/logout", "/auth/password", "/config/device", "/updates/reboot",
-                         HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER, HEATING_TRV, CONFIG_BACKUP))
+                         HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER, HEATING_TRV, CONFIG_BACKUP,
+                         LOGGING))
 
     def __init__(self, address):
         self.address = controller_address(address)
@@ -605,6 +609,9 @@ class ControllerClient:
                     raise BackupRejected(response.status, await _backup_error(response))
                 if backup and response.status == 404:
                     raise ControllerLinkError("controller_update_required")  # firmware before beta.19
+                if path == LOGGING and response.status in (400, 404, 503):
+                    raise ControllerLinkError({400: "controller_settings_invalid", 404: "controller_update_required",
+                                               503: "controller_settings_unconfirmed"}[response.status])
                 if path in (HEATING_FLOW, HEATING_TRV) and response.status == 404:
                     raise ControllerLinkError("controller_update_required")  # firmware before beta.19 / beta.24
                 if response.status == 429:
@@ -724,6 +731,21 @@ class ControllerClient:
         if type(change) is not dict or not change:
             raise ControllerLinkError("controller_request_invalid")
         raw, _, _ = await self._request("POST", HEATING_FLOW, document=change)
+        return _decode(raw)
+
+    async def async_logging(self, document=None):
+        """GET the system log settings, or POST all of them; returns what the E32 stored.
+
+        A POST carries all eight fields (syslog_enabled, server, port, syslog_level,
+        web_level, mark_interval_s, syslog_esp, syslog_ems). Refusals raise
+        controller_settings_invalid (400) or controller_settings_unconfirmed (503);
+        firmware without the route raises controller_update_required.
+        """
+        if document is None:
+            return await self.async_read(LOGGING)
+        if type(document) is not dict:
+            raise ControllerLinkError("controller_request_invalid")
+        raw, _, _ = await self._request("POST", LOGGING, document=document)
         return _decode(raw)
 
     async def async_valves(self, document=None):

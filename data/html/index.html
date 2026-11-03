@@ -421,10 +421,18 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
         var pageLoadRequest = null;
         const pageScripts = new Map();
         const legacyEditorPages = ['program','room_management','room_setup','curve','hardware','rooms'];
-
+        // F9 (R3-01): an E32 without a Home Assistant link reports controlMode "legacy" (no modern_shadow), yet it
+        // has its own rooms (/status/heating): that is the modern Overview as well. The tile grid and the old
+        // editors stay for a status without the room engine (the ib-therm builds). The firmware keeps the meaning of
+        // controlMode ("shadow": the Home Assistant link is live), which Home Assistant's link check relies on.
+        var ownRoomEngine = false; // once seen it stays, so a failed /status/heating read never brings the tiles back
+        function heatingRead(signal) {
+            return fetch(hostName + '/status/heating', {signal: signal, cache: 'no-store'}).then(res => res.ok ? res.json() : null).catch(() => null);
+        }
         function applyControlMode(status) {
-            controlUiMode = status.controlMode === 'legacy' ? 'legacy'
-                : status.controlMode === 'shadow' ? 'shadow' : 'unknown';
+            if (status.heating && typeof status.heating === 'object' && Array.isArray(status.heating.rooms)) ownRoomEngine = true;
+            controlUiMode = status.controlMode === 'shadow' || ownRoomEngine ? 'shadow'
+                : status.controlMode === 'legacy' ? 'legacy' : 'unknown';
             document.querySelectorAll('[data-legacy-editor]').forEach(item => {
                 item.hidden = controlUiMode !== 'legacy';
             });
@@ -432,8 +440,9 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
         }
         function ensureControllerMode() {
             if (controlUiMode !== 'unknown') return Promise.resolve(controlUiMode);
-            if (!controllerModePromise) controllerModePromise = getJSON('/status')
-                .then(applyControlMode).finally(() => { controllerModePromise = null; });
+            if (!controllerModePromise) controllerModePromise = Promise.all([getJSON('/status'), heatingRead()])
+                .then(([status, heating]) => { if (heating && typeof heating === 'object') status.heating = heating; return applyControlMode(status); })
+                .finally(() => { controllerModePromise = null; });
             return controllerModePromise;
         }
         function managedControlNotice() {
@@ -685,12 +694,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
             const request = new AbortController();
             statusPoll = request;
             const timeout = setTimeout(function() { request.abort(); }, 15000);
-            const heatingRead = controlUiMode === 'legacy' ? Promise.resolve(null) :
-                fetch(hostName + '/status/heating', {signal: request.signal, cache: 'no-store'}).then(res => res.ok ? res.json() : null).catch(() => null);
+            // Always read the E32's own rooms (F9): a firmware without them answers 404, which becomes null.
+            const rooms = heatingRead(request.signal);
 			fetch(hostName + '/status', {signal: request.signal})
                 .then(validateResponse)
 				.then(res => res.json())
-                .then(out => heatingRead.then(heating => { if (out && heating && typeof heating === 'object') out.heating = heating; return out; }))
+                .then(out => rooms.then(heating => { if (out && heating && typeof heating === 'object') out.heating = heating; return out; }))
                 .then(out => readDashboardHistory(out, request.signal))
 				.then((out) => {
 					if (navigation !== navigationGeneration || statusPoll !== request ||
@@ -1405,7 +1414,9 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
 		function updateRooms(status) {
             applyControlMode(status);
 			var maincontainer = document.getElementById('maincontainer');
-			if (status.controlMode === 'shadow') {
+            // The tile grid only for a legacy status with its own room list and no room engine (F9); any other
+            // answer (an E32 without Home Assistant, a newer or partial status) gets the Overview, never a TypeError.
+			if (controlUiMode !== 'legacy' || !Array.isArray(status.rooms)) {
                 renderInstallationDashboard(status);
 				return;
 			}

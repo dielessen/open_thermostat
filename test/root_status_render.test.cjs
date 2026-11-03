@@ -258,3 +258,24 @@ test('without Home Assistant the overview shows the E32 room engine, calmly and 
  p.updateRooms({controlMode:'shadow',ems:{},control:{fresh:false},heating:{...heating,mode:'active',active:{state:'active',warnings:[],enabled:true}}});
  assert.match(p.main.innerHTML,/De E32 regelt de ketel/);assert.match(p.main.innerHTML,/Actieve regeling: de E32 regelt je ketel/);
 });
+test('F9 (R3-01): an E32 without Home Assistant reports legacy, yet the Overview shows its own rooms',async()=>{
+ const heating={schema:1,mode:'shadow',request:{heat:false,flow_c:0,reason:'idle'},ha:{input_age_s:null,broker_connected:false},
+  active:{state:'shadow',warnings:[],enabled:false},ble_sensors:[],
+  rooms:[{id:'keuken',name:'Keuken',state:'active',status:'ok',source:'0a1b2c3d4e5f',setpoint_source:'schedule',temperature:19.9,setpoint:20,demand:false}]};
+ // The live answer of such an E32 (controlMode legacy, an empty legacy room list) with the room engine beside it.
+ const p=rootPage(),urls=[];p.document.getElementById=id=>id==='maincontainer'?p.main:null;p.document.visibilityState='visible';
+ Object.assign(p,{AbortController,setTimeout,clearTimeout,hostName:'',
+  fetch:async url=>{urls.push(url);const body=url==='/status'?fixture:url==='/status/heating'?heating:null;
+   return {ok:!!body,status:body?200:404,json:async()=>structuredClone(body)};}});
+ p.showRooms();for(let i=0;i<5;i++)await new Promise(setImmediate);
+ assert.ok(urls.includes('/status/heating'),'the room engine is read although the status says legacy');
+ assert.equal(p.controlUiMode,'shadow');
+ for(const text of ['Je verwarmingsinstallatie','Keuken','Home Assistant: niet verbonden (optioneel)'])assert.ok(p.main.innerHTML.includes(text),text);
+ assert.doesNotMatch(p.main.innerHTML,/actief sinds|NaN|undefined/);
+ // A later poll without the room engine (a busy E32) keeps the Overview: never the tile grid in between.
+ p.updateRooms(structuredClone(fixture));assert.match(p.main.innerHTML,/Je verwarmingsinstallatie/);
+ // A status that is neither shadow nor legacy and has no room list renders the Overview instead of throwing.
+ const q=rootPage();q.updateRooms({controlMode:'future',ems:{}});assert.match(q.main.innerHTML,/Je verwarmingsinstallatie/);
+ // Without the room engine (ib-therm builds) the legacy status keeps its tile grid and editors.
+ const r=rootPage();r.updateRooms(structuredClone(fixture));assert.equal(r.controlUiMode,'legacy');assert.match(rendered(r.main),/actief sinds:/);
+});

@@ -45,9 +45,12 @@ PRESUMED = {
 
 @pytest.mark.parametrize("name", sorted(PRESUMED))
 def test_no_text_presumes_an_old_thermostat(name):
-    text = (BASE / name).read_text(encoding="utf-8")
+    issues = json.loads((BASE / name).read_text(encoding="utf-8"))["issues"]
+    # The thermostat words only where the E32 heard one on the bus (rc.3 active.thermostat_seen).
+    neutral = json.loads((BASE / name).read_text(encoding="utf-8"))
+    del neutral["issues"]["reconfirm_takeover_thermostat"]
+    text = json.dumps(neutral, ensure_ascii=False)
     assert [phrase for phrase in PRESUMED[name] if phrase in text] == []
-    issues = json.loads(text)["issues"]
     confirm = issues["reconfirm_takeover"]["fix_flow"]["step"]["reconfirm_takeover"]["description"]
     # The safety rule stays: never two thermostats on the boiler.
     assert {"strings.json": "never connect two thermostats", "translations/en.json": "never connect two thermostats",

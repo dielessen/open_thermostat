@@ -860,7 +860,7 @@
       },
       "comfort_care_auto_all": {
         "title": "Back to automatic for all",
-        "description": "Every setting you set yourself goes back to the thermostat, which sets it itself again. The fixed settings keep their values.",
+        "description": "Every setting you set yourself goes back to automatic: the E32 sets it itself again. The fixed settings keep their values.",
         "data": {
           "confirm": "Yes, back to automatic"
         },

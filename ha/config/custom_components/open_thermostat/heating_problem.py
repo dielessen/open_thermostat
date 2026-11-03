@@ -13,9 +13,11 @@ each held long enough that a short hiccup never raises it:
 * in active mode (the E32 controls the boiler): a warning of the E32's active
   control for more than 5 minutes;
 * active control is chosen but the E32 waits for the owner to confirm that
-  the old thermostat is disconnected (for example after a firmware update
-  cleared the confirmation), for 10 minutes or more: it gives no heat until
-  then (``active.awaiting_confirmation`` of the heating status). Not on a new
+  it may control the boiler (for example after a firmware update cleared the
+  confirmation), for 10 minutes or more: it gives no heat until then
+  (``active.awaiting_confirmation`` of the heating status). The reason speaks
+  of the old thermostat only when the E32 ever heard another controller on the
+  boiler bus (E32 rc.3 ``active.thermostat_seen``). Not on a new
   installation that never let the E32 control its boiler (E32 rc.2:
   ``active.taken_over_before`` false): a new plan starts active, and the
   confirmation is its next step (the boiler test on the Rooms page), not a problem;
@@ -68,8 +70,11 @@ TEXT = {
         "room_without_measurement": "{room}: no temperature measurement for more than 30 minutes, so this room "
                                     "does not ask for heat. Check the sensor's battery and distance.",
         "e32_offline": "The E32 has not reported for more than 10 minutes. Check its power and Wi-Fi.",
-        "awaiting_confirmation": "The E32 is waiting for you to confirm that the old thermostat is disconnected; "
-                                 "it is not heating until you do. Open the E32 Rooms page → Active control.",
+        "awaiting_confirmation": "The E32 is waiting for you to confirm that it may control the boiler; it is not "
+                                 "heating until you do. Open the E32 Rooms page → Active control.",
+        "awaiting_confirmation_thermostat": "The E32 is waiting for you to confirm that the old thermostat is "
+                                            "disconnected; it is not heating until you do. Open the E32 Rooms page → "
+                                            "Active control.",
         "pressure_low": "The water pressure is low ({pressure} bar). Top up the heating system.",
         "pressure_high": "The water pressure is high ({pressure} bar). Have the expansion vessel checked.",
         "short_cycling": "The boiler has been switching on and off too often for more than 2 hours.",
@@ -88,8 +93,11 @@ TEXT = {
         "room_without_measurement": "{room}: al meer dan 30 minuten geen temperatuurmeting, dus deze ruimte "
                                     "vraagt geen warmte. Controleer de batterij en de afstand van de sensor.",
         "e32_offline": "De E32 meldt zich al meer dan 10 minuten niet. Controleer de stroom en de wifi.",
-        "awaiting_confirmation": "De E32 wacht tot je bevestigt dat de oude thermostaat is losgekoppeld; tot "
-                                 "dan verwarmt hij niet. Open op de E32 de pagina Ruimtes → Actieve regeling.",
+        "awaiting_confirmation": "De E32 wacht tot je bevestigt dat hij de ketel mag regelen; tot dan verwarmt hij "
+                                 "niet. Open op de E32 de pagina Ruimtes → Actieve regeling.",
+        "awaiting_confirmation_thermostat": "De E32 wacht tot je bevestigt dat de oude thermostaat is losgekoppeld; "
+                                            "tot dan verwarmt hij niet. Open op de E32 de pagina Ruimtes → Actieve "
+                                            "regeling.",
         "pressure_low": "De waterdruk is laag ({pressure} bar). Vul de cv-installatie bij.",
         "pressure_high": "De waterdruk is hoog ({pressure} bar). Laat het expansievat controleren.",
         "short_cycling": "De ketel slaat al meer dan 2 uur te vaak aan en uit.",
@@ -108,8 +116,10 @@ TEXT = {
         "room_without_measurement": "{room}: brak pomiaru temperatury od ponad 30 minut, więc to pomieszczenie "
                                     "nie żąda ciepła. Sprawdź baterię i odległość czujnika.",
         "e32_offline": "E32 nie odzywa się od ponad 10 minut. Sprawdź jego zasilanie i Wi-Fi.",
-        "awaiting_confirmation": "E32 czeka, aż potwierdzisz, że stary termostat jest odłączony; do tego czasu "
-                                 "nie grzeje. Otwórz na E32 stronę Rooms → Active control.",
+        "awaiting_confirmation": "E32 czeka, aż potwierdzisz, że może sterować kotłem; do tego czasu nie grzeje. "
+                                 "Otwórz na E32 stronę Rooms → Active control.",
+        "awaiting_confirmation_thermostat": "E32 czeka, aż potwierdzisz, że stary termostat jest odłączony; do tego "
+                                            "czasu nie grzeje. Otwórz na E32 stronę Rooms → Active control.",
         "pressure_low": "Ciśnienie wody jest niskie ({pressure} bar). Uzupełnij wodę w instalacji grzewczej.",
         "pressure_high": "Ciśnienie wody jest wysokie ({pressure} bar). Zleć sprawdzenie naczynia wzbiorczego.",
         "short_cycling": "Kocioł od ponad 2 godzin zbyt często się włącza i wyłącza.",
@@ -143,6 +153,13 @@ def awaiting_confirmation(hub):
     active = active if type(active) is dict else _active(hub.status)
     return bool(active) and (active.get("awaiting_confirmation") is True
                              or active.get("state") == "awaiting_confirmation")
+
+
+def thermostat_seen(hub):
+    """Whether the E32 ever heard another controller ask the boiler for heat (E32 rc.3 ``active.thermostat_seen``)."""
+    active = getattr(hub, "active", None)
+    active = active if type(active) is dict else _active(hub.status)
+    return bool(active) and active.get("thermostat_seen") is True
 
 
 def first_takeover(hub):
@@ -228,7 +245,8 @@ class ProblemTracker:
                 result.append(("e32_offline", {}))
         if hub.fresh:
             if self.awaiting is not None and now - self.awaiting >= AWAITING_CONFIRMATION_SECONDS:
-                result.append(("awaiting_confirmation", {}))
+                # The same problem id either way; the words name the old thermostat only when there was one.
+                result.append(("awaiting_confirmation", {"thermostat": True} if thermostat_seen(hub) else {}))
             for warning, since in self.active.items():
                 if now - since > ACTIVE_WARNING_SECONDS:
                     result.append(("active_" + warning, {}))
@@ -261,8 +279,9 @@ def render(problems, lang):
     """The plain-language reasons in a language (English, Dutch or Polish; English otherwise)."""
     from .heating_advice import fmt
     texts = TEXT.get(lang, TEXT["en"])
-    return [texts[key].format(**{name: fmt(value, lang) if name in ("pressure", "margin") else value
-                                 for name, value in values.items()}) for key, values in problems]
+    return [texts[key + "_thermostat" if values.get("thermostat") else key].format(
+        **{name: fmt(value, lang) if name in ("pressure", "margin") else value for name, value in values.items()})
+        for key, values in problems]
 
 
 def issues(problems, lang, reconfirm=False):

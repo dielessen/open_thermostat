@@ -14,6 +14,8 @@
       <p class="ot-hint" data-dhw-method hidden><span data-i18n="Recognised by the hot water temperature dropping">Recognised by the hot water temperature dropping</span>. <span data-i18n="This adapter does not report how much hot water flows, so a tap is recognised by the hot water temperature dropping.">This adapter does not report how much hot water flows, so a tap is recognised by the hot water temperature dropping.</span></p>
     </div>
   </section>
+  <p class="pd-panel bt-boiler-test" data-boiler-test-status hidden><strong data-i18n="Boiler test:">Boiler test:</strong> <span data-boiler-test-line role="status" aria-live="polite"></span>
+    · <a href="#boiler-test" data-page="boiler_test_rooms"><span data-i18n="Open">Open</span></a></p>
   <p class="pd-help"><span data-i18n="The water temperature limits for all rooms are on the Home page:">The water temperature limits for all rooms are on the Home page:</span> <a href="#boiler-limits" data-page="boiler_limits"><span data-i18n="Home → Water temperature limits">Home → Water temperature limits</span></a></p>
   <details class="ot-advanced" data-boiler-model><summary data-i18n="Boiler model">Boiler model</summary><div data-boiler-display-host></div></details>
   <details class="ot-advanced" data-boiler-profile id="boiler-profile"><summary><span data-i18n="What your boiler reports">What your boiler reports</span> <small class="bp-summary" data-profile-summary></small></summary>
@@ -33,39 +35,40 @@
   </details>
   <div data-boiler-entities-host id="boiler-entities-panel"><p role="status" data-i18n="Loading boiler entities…">Loading boiler entities…</p></div>
   <details class="ot-advanced bt-trial" id="boiler-test-trial">
-  <summary data-i18n="Boiler test (attended)">Boiler test (attended)</summary>
-  <p class="pd-help" data-i18n="For commissioning only, with someone at the boiler. The test asks the boiler for heat for a few minutes and checks that it stops again.">For commissioning only, with someone at the boiler. The test asks the boiler for heat for a few minutes and checks that it stops again.</p>
+  <summary data-i18n="Installer check (no heat)">Installer check (no heat)</summary>
+  <p class="pd-help" data-i18n="For an installer, with someone at the boiler: read the boiler's heating settings and device identity, or check that a zero demand reaches the boiler. Nothing here asks the boiler for heat. To test heating, use the boiler test on the Rooms page.">For an installer, with someone at the boiler: read the boiler's heating settings and device identity, or check that a zero demand reaches the boiler. Nothing here asks the boiler for heat. To test heating, use the boiler test on the Rooms page.</p>
   <div class="pd-panel bt-control" id="boiler-test-controls">
     <h2 data-workflow-title data-i18n="Prepare a heating test">Prepare a heating test</h2>
     <p data-workflow-help role="status" aria-live="polite"></p>
-    <p class="pd-help" data-i18n="This test requests heating at the selected temperature, checks the boiler response, then checks that heating stops. The default is 50 °C for up to 10 minutes.">This test requests heating at the selected temperature, checks the boiler response, then checks that heating stops. The default is 50 °C for up to 10 minutes.</p>
-    <ol class="bt-steps" aria-label="Test steps" data-i18n-aria-label="Test steps">
+    <p class="pd-help" data-heat-trial data-i18n="This test requests heating at the selected temperature, checks the boiler response, then checks that heating stops. The default is 50 °C for up to 10 minutes.">This test requests heating at the selected temperature, checks the boiler response, then checks that heating stops. The default is 50 °C for up to 10 minutes.</p>
+    <ol class="bt-steps" data-heat-trial aria-label="Test steps" data-i18n-aria-label="Test steps">
       <li data-trial-step="1"><span data-i18n="1. Check setup">1. Check setup</span></li>
       <li data-trial-step="2"><span data-i18n="2. Prepare">2. Prepare</span></li>
       <li data-trial-step="3"><span data-i18n="3. Heat">3. Heat</span></li>
       <li data-trial-step="4"><span data-i18n="4. Result">4. Result</span></li>
     </ol>
-    <p data-trial-remaining hidden></p>
+    <p data-trial-remaining data-heat-trial hidden></p>
     <p data-test-state role="status" aria-live="polite"><span data-i18n="Checking test status…">Checking test status…</span></p>
     <p data-controller-request hidden><strong data-i18n="Last water temperature the E32 asked">Last water temperature the E32 asked</strong>: <span data-controller-request-value></span><br><small data-i18n="Sent by E32; separate from the boiler-reported target.">Sent by E32; separate from the boiler-reported target.</small></p>
     <form data-test-form>
-      <label class="d-block"><span data-i18n="Desired water temperature (°C)">Desired water temperature (°C)</span><input class="form-control" data-test-flow type="number" step="1" required disabled data-hint="The water temperature the boiler should deliver during the test."></label>
-      <label class="d-block"><span data-i18n="Maximum heat demand (seconds)">Maximum heat demand (seconds)</span><input class="form-control" data-test-duration type="number" step="1" required disabled data-hint="After this many seconds the E32 stops asking for heat."></label>
-      <p class="pd-help" data-trial-selection></p>
-      <p class="pd-help" data-trial-cadence hidden></p>
-      <dl class="bt-live" data-trial-live hidden aria-label="Live boiler values" data-i18n-aria-label="Live boiler values"></dl>
+      <label class="d-block" data-heat-trial><span data-i18n="Desired water temperature (°C)">Desired water temperature (°C)</span><input class="form-control" data-test-flow type="number" step="1" required disabled data-hint="The water temperature the boiler should deliver during the test."></label>
+      <label class="d-block" data-heat-trial><span data-i18n="Maximum heat demand (seconds)">Maximum heat demand (seconds)</span><input class="form-control" data-test-duration type="number" step="1" required disabled data-hint="After this many seconds the E32 stops asking for heat."></label>
+      <p class="pd-help" data-trial-selection data-heat-trial></p>
+      <p class="pd-help" data-trial-cadence data-heat-trial hidden></p>
+      <dl class="bt-live" data-trial-live data-heat-trial hidden aria-label="Live boiler values" data-i18n-aria-label="Live boiler values"></dl>
     <fieldset data-test-site hidden>
       <legend data-i18n="Prepare this test">Prepare this test</legend>
-      <label data-site-pressure-value-label hidden><span data-i18n="Installation pressure read from the boiler gauge (bar)">Installation pressure read from the boiler gauge (bar)</span><input class="form-control" data-site-pressure-value type="number" step="0.1" inputmode="decimal" autocomplete="off"></label>
+      <label data-site-pressure-value-label data-heat-trial hidden><span data-i18n="Installation pressure read from the boiler gauge (bar)">Installation pressure read from the boiler gauge (bar)</span><input class="form-control" data-site-pressure-value type="number" step="0.1" inputmode="decimal" autocomplete="off"></label>
       <label class="bt-confirm"><input type="checkbox" data-site-confirm> <span data-i18n="The E32 is the only controller. I am at the boiler, can switch it off independently, and the heating circuit can take heat (radiator valves or the floor manifold open).">The E32 is the only controller. I am at the boiler, can switch it off independently, and the heating circuit can take heat (radiator valves or the floor manifold open).</span></label>
-      <p class="pd-help" data-i18n="This confirmation applies to the preparation below and expires after two minutes. Heating starts only after your separate Start action.">This confirmation applies to the preparation below and expires after two minutes. Heating starts only after your separate Start action.</p>
+      <p class="pd-help" data-i18n="This confirmation applies to the next reading or zero check and expires after two minutes.">This confirmation applies to the next reading or zero check and expires after two minutes.</p>
+      <p class="pd-help" data-heat-trial data-i18n="This confirmation applies to the preparation below and expires after two minutes. Heating starts only after your separate Start action.">This confirmation applies to the preparation below and expires after two minutes. Heating starts only after your separate Start action.</p>
     </fieldset>
     <button class="btn btn-outline-secondary" type="button" data-read-configuration disabled aria-describedby="bt-read-help"><span data-i18n="1. Read heating settings">1. Read heating settings</span></button>
     <p class="pd-help" id="bt-read-help" data-read-help role="status" aria-live="polite"></p>
     <p data-read-status role="status" aria-live="polite"></p>
       <div class="d-flex flex-wrap" style="gap:10px;margin:14px 0">
-        <div class="bt-act"><button class="btn btn-outline-primary" type="button" data-test-prepare disabled><span data-i18n="2. Prepare test">2. Prepare test</span></button><p class="pd-help bt-why" id="bt-why-prepare" data-why hidden></p></div>
-        <div class="bt-act"><button class="btn btn-primary" type="button" data-test-start disabled><span data-i18n="3. Start heating">3. Start heating</span></button><p class="pd-help bt-why" id="bt-why-start" data-why hidden></p></div>
+        <div class="bt-act" data-heat-trial><button class="btn btn-outline-primary" type="button" data-test-prepare disabled><span data-i18n="2. Prepare test">2. Prepare test</span></button><p class="pd-help bt-why" id="bt-why-prepare" data-why hidden></p></div>
+        <div class="bt-act" data-heat-trial><button class="btn btn-primary" type="button" data-test-start disabled><span data-i18n="3. Start heating">3. Start heating</span></button><p class="pd-help bt-why" id="bt-why-start" data-why hidden></p></div>
         <div class="bt-act"><button class="btn btn-danger" type="button" data-test-stop disabled><span data-i18n="Stop test">Stop test</span></button><p class="pd-help bt-why" id="bt-why-stop" data-why hidden></p></div>
       </div>
     </form>
@@ -87,8 +90,8 @@
     <p><span data-i18n="A zero-only test cannot start heating. A heat test requires separate preparation.">A zero-only test cannot start heating. A heat test requires separate preparation.</span></p>
     <p class="pd-help" data-adapter-help><span data-i18n="Using an EasyControl Adapter? Confirm its boiler-side protocol before testing. A green LED or received EMS data alone does not prove the correct protocol. Opening this page does not restart or configure the adapter.">Using an EasyControl Adapter? Confirm its boiler-side protocol before testing. A green LED or received EMS data alone does not prove the correct protocol. Opening this page does not restart or configure the adapter.</span></p>
     <dl class="pd-detail-grid" data-test-facts></dl>
-    <h3 data-i18n="Heat trial profile">Heat trial profile</h3>
-    <p data-heat-status role="status"></p><dl class="pd-detail-grid" data-heat-limits></dl>
+    <h3 data-heat-trial data-i18n="Heat trial profile">Heat trial profile</h3>
+    <p data-heat-status data-heat-trial role="status"></p><dl class="pd-detail-grid" data-heat-trial data-heat-limits></dl>
     <h3 data-i18n="Connection and reception">Connection and reception</h3>
     <dl class="pd-detail-grid" data-transport></dl>
     <p data-inventory-status></p>
@@ -100,7 +103,7 @@
   </details>
 </section>
 <style>
-#boiler-test [hidden]{display:none!important}#boiler-test .bt-attention{color:var(--ot-text);font-size:1rem;padding:10px 14px;border-left:4px solid var(--ot-warn);border-radius:var(--ot-r1);background:var(--ot-warn-bg)}[data-boiler-display-host]>section{margin:0!important;padding:0 0 8px!important}.bt-trial>.pd-panel{background:var(--ot-surface)}#boiler-test-controls{border-top:4px solid var(--ot-accent)}#boiler-test-controls fieldset{border:0;margin:16px 0;padding:0}#boiler-test input[type=number]{max-width:220px}#boiler-test .bt-confirm{display:flex;gap:10px;align-items:start;max-width:650px;margin:16px 0}#boiler-test .bt-confirm input{margin-top:3px;flex-shrink:0}#boiler-test [data-workflow-help]{font-weight:500;padding:12px;background:var(--ot-surface-2);border-radius:var(--ot-r1)}#boiler-test [data-test-form]{display:flex;flex-wrap:wrap;align-items:end;gap:16px}#boiler-test [data-test-form]>div{flex-basis:100%}
+#boiler-test [hidden]{display:none!important}#boiler-test [data-heat-trial]{display:none!important}#boiler-test .bt-boiler-test{margin:0 0 12px;padding:10px 14px}#boiler-test .bt-attention{color:var(--ot-text);font-size:1rem;padding:10px 14px;border-left:4px solid var(--ot-warn);border-radius:var(--ot-r1);background:var(--ot-warn-bg)}[data-boiler-display-host]>section{margin:0!important;padding:0 0 8px!important}.bt-trial>.pd-panel{background:var(--ot-surface)}#boiler-test-controls{border-top:4px solid var(--ot-accent)}#boiler-test-controls fieldset{border:0;margin:16px 0;padding:0}#boiler-test input[type=number]{max-width:220px}#boiler-test .bt-confirm{display:flex;gap:10px;align-items:start;max-width:650px;margin:16px 0}#boiler-test .bt-confirm input{margin-top:3px;flex-shrink:0}#boiler-test [data-workflow-help]{font-weight:500;padding:12px;background:var(--ot-surface-2);border-radius:var(--ot-r1)}#boiler-test [data-test-form]{display:flex;flex-wrap:wrap;align-items:end;gap:16px}#boiler-test [data-test-form]>div{flex-basis:100%}
 #boiler-test .bt-steps{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:18px 0}#boiler-test .bt-steps li{padding:8px 12px;border:1px solid var(--ot-border);border-radius:var(--ot-r1)}#boiler-test .bt-steps [aria-current=step]{background:var(--ot-accent-soft);border:2px solid var(--ot-accent);font-weight:600}#boiler-test .bt-result{border:1px solid var(--ot-border);border-left:5px solid var(--ot-warn);border-radius:var(--ot-r1);padding:16px;margin-top:16px;width:100%}#boiler-test .bt-result[data-outcome=passed],#boiler-test .bt-result[data-outcome=zero_passed]{border-left-color:var(--ot-ok)}#boiler-test .bt-result[data-outcome=failed]{border-left-color:var(--ot-err)}#boiler-test .bt-result h3{font-size:1.2rem}#boiler-test [data-trial-checks]{padding-left:20px}#boiler-test [data-trial-checks] li{margin:6px 0}#boiler-test [data-trial-selection]{flex-basis:100%;margin:0}
 #boiler-test .bt-act{display:inline-flex;flex-direction:column;align-items:flex-start;gap:4px;max-width:100%;min-width:0;vertical-align:top;margin:0 10px 10px 0}#boiler-test .d-flex>.bt-act{margin:0}#boiler-test .bt-why{margin:0;max-width:34ch;font-weight:500}#boiler-test .bt-live{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 20px;margin:0;padding:10px 12px;border:1px solid var(--ot-border);border-radius:var(--ot-r1);min-width:0}#boiler-test .bt-live>div{display:flex;gap:6px;flex-wrap:wrap;min-width:0}#boiler-test .bt-live dt{font-weight:500;color:var(--ot-muted)}#boiler-test .bt-live dd{margin:0;font-weight:600}#boiler-test .bt-live>p{flex-basis:100%;margin:0}
 @media(max-width:600px){#boiler-test .bt-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#boiler-test .bt-steps li{padding:8px 6px;font-size:.9rem}}
@@ -113,6 +116,10 @@
   // Sections: the model and the attended test open on request (#boiler-model,
   // #boiler-trial); the test also opens whenever a test is in progress.
   const modelBox = root.querySelector('[data-boiler-model]'), trialBox = root.querySelector('#boiler-test-trial');
+  // rc.3: one boiler test, on the Rooms page. The attended heating test is retired (firmware:
+  // EmsController attendedHeatTestOffered; its controls stay hidden, [data-heat-trial]). What is
+  // left here never asks for heat: the readings and the zero-only check.
+  const heatTrialOffered = false;
   modelBox.open = window.otPageSection === 'boiler_display';
   trialBox.open = window.otPageSection === 'boiler_trial';
   const essentials = root.querySelector('[data-essentials]');
@@ -667,7 +674,7 @@
     root.querySelector('[data-test-form]').hidden=!test&&!lastScope;
     flowInput.closest('label').hidden=durationInput.closest('label').hidden=!idle;
     testFacts.hidden=!test||idle;
-    title.textContent=uiText(test?.phase==='closed'?'Restart required before another test':test?.phase==='fault'?'Test needs attention':test?.phase==='completed'?'Test result':test?.phase==='stopping'?'Waiting for the stop':test?.phase==='baseline'?'Checking the stopped boiler':test?.phase==='heating'?'Heating test in progress':test?.phase==='ready'&&sameScope(held,test)?'Ready to start heating':test?.phase==='ready'?'Previous test is still open':'Prepare a heating test');
+    title.textContent=uiText(test?.phase==='closed'?'Restart required before another test':test?.phase==='fault'?'Test needs attention':test?.phase==='completed'?'Test result':test?.phase==='stopping'?'Waiting for the stop':test?.phase==='baseline'?'Checking the stopped boiler':test?.phase==='heating'?'Heating test in progress':test?.phase==='ready'&&sameScope(held,test)?'Ready to start heating':test?.phase==='ready'?'Previous test is still open':heatTrialOffered?'Prepare a heating test':'Installer check without heat');
     setText(help,!test?lastScope?uiText('Test status cannot be read. Press Stop test for the last known test and check the boiler. No new heating will be started.'):uiText('Test status unavailable. No heat demand will be started.')
       :pending||configurationRead?.active?uiText('Wait for the current request to finish.')
       :test.phase==='baseline'?!sameScope(held,test)?uiText('This page is not supervising the previous test. Press Stop test and wait for the reported stop before preparing a new test.')
@@ -681,6 +688,9 @@
         :uiText('The test could not confirm a normal end. Check the boiler now. If heating continues, switch it off locally. Use Stop test and wait for a reported stop before closing the fault.')
       :test.phase==='closed'?uiText('The faulted test is closed and the stop was reported. Restart the E32 before a new preparation. No heating resumes automatically.')
       :!idle?testState.textContent
+      :!heatTrialOffered?uiText(test.phase==='completed'?'The check is complete. Read the result below. To repeat it, confirm the setup again.'
+        :needsRead?'Read the heating settings first. This does not request heating. Your setup confirmation remains valid for the next preparation step.'
+        :'Confirm the setup once to read the heating settings or the device identity, or to run the zero-only test under Diagnostics. Nothing here asks the boiler for heat.')
       :!test.can_prepare&&!needsRead?(heatTrialSnapshot&&heatTrialSnapshot.reason!=='telemetry_ready'
         ?heatReasons[heatTrialSnapshot.reason]:testState.textContent)
       :test.phase==='completed'?uiText('The test is complete. Read the result below. To repeat it, confirm the setup again and press 2. Prepare test.')
@@ -1025,6 +1035,51 @@
   removal.observe(document.body,{childList:true,subtree:true});
   lifecycle.signal.addEventListener('abort',()=>removal.disconnect(),{once:true});
   BoilerData.subscribe(refresh,{signal:lifecycle.signal});
+})();
+</script>
+<script>
+// "Boiler test: passed on … · Open": the one boiler test (control/TakeoverTest.h, run on the Rooms page)
+// from /status/heating, read when the page opens and every minute while it is visible. Hidden on
+// firmware without the test or without active control.
+(() => {
+  'use strict';
+  const box = document.querySelector('#boiler-test [data-boiler-test-status]');
+  if (!box) return;
+  const line = box.querySelector('[data-boiler-test-line]'), lifecycle = new AbortController();
+  const words = {never:"not run yet", running:"running now (step {n} of 5)", passed:"passed{when}", failed:"not passed{when}",
+    stopped:"stopped by a safety rule{when}", restarted:"ended{when} because the E32 restarted", aborted:"stopped by you{when}",
+    marked:"marked as done by you{when}", not_needed:"not needed: the E32 has controlled this boiler before"};
+  const steps = ['disconnect', 'confirm', 'start', 'hot_water', 'stop'];
+  const fill = (text, values) => uiText(text).replace(/\{(\w+)\}/g, (_, k) => values[k] ?? '');
+  let timer = null;
+  function paint(status) {
+    const t = status?.readiness?.takeover_test;
+    box.hidden = !t || typeof t !== 'object' || status.active?.enabled === false;
+    if (box.hidden) return;
+    const summary = t.summary || (t.state === 'idle' ? 'never' : t.state), marked = summary === 'marked';
+    const utc = marked ? t.marked_at : t.at;
+    const at = Number.isFinite(utc) && utc > 0 ? new Date(utc * 1000).toLocaleString(OpenThermostatLanguage.locale,
+      marked ? {dateStyle:'medium'} : {dateStyle:'medium', timeStyle:'short'}) : '';
+    const key = t.state === 'stopped' && t.reason === 'e32_restarted' ? 'restarted' : words[summary] ? summary : 'never';
+    line.textContent = fill(words[key], {n: steps.indexOf(t.step) + 1, when: at ? fill(" on {at}", {at}) : ''});
+  }
+  async function refresh() {
+    clearTimeout(timer);
+    if (!box.isConnected || lifecycle.signal.aborted) return;
+    try {
+      const response = await fetch('/status/heating', {cache: 'no-store', signal: lifecycle.signal});
+      if (!response.ok) throw Error('status');
+      paint(await response.json());
+    } catch (_) {
+      if (lifecycle.signal.aborted || !box.isConnected) return;
+      box.hidden = true;
+    }
+    if (document.visibilityState === 'visible' && !lifecycle.signal.aborted) timer = setTimeout(refresh, 60000);
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); else clearTimeout(timer); }, {signal: lifecycle.signal});
+  const removal = new MutationObserver(() => { if (!box.isConnected) { lifecycle.abort(); clearTimeout(timer); removal.disconnect(); } });
+  removal.observe(document.body, {childList: true, subtree: true});
+  refresh();
 })();
 </script>
 <script>

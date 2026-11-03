@@ -35,7 +35,7 @@
 3 test/about-password-browser.cjs  # 2 s
 3 test/system-log-browser.cjs  # 42 s
 3 test/config-backup-browser.cjs  # 6 s
-3 test/boiler-trial-guidance-browser.cjs  # 3 s
+3 test/boiler-test-status-browser.cjs  # 8 s (rc.3 one boiler test: its kept result on the Boiler page; the attended heating test retired)
 3 test/ha-device-metadata-browser.cjs  # 5 s
 3 test/ha-tv02-mode-browser.cjs  # 4 s
 3 test/ha-room-contacts-browser.cjs  # 9 s

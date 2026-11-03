@@ -3217,6 +3217,28 @@
         "step": {
           "reconfirm_takeover": {
             "title": "Bevestig opnieuw dat de E32 de ketel mag regelen",
+            "description": "De E32 regelde je ketel voordat zijn firmware werd bijgewerkt. Voor de veiligheid neemt de nieuwe firmware de regeling pas weer over als je nog een keer bevestigt dat de E32 de ketel mag regelen. Tot dan houdt de E32 alleen de vorstbeveiliging aan, en alleen zolang er geen andere thermostaat op de ketelbus te horen is.\n\nBevestig alleen als er geen andere thermostaat op de ketel is aangesloten: sluit nooit twee thermostaten tegelijk op de ketel aan. Wil je de E32 in plaats daarvan laten stoppen, open dan op de E32 de pagina Ruimtes → Actieve regeling → Regeling door de E32 stoppen."
+          }
+        },
+        "error": {
+          "reconfirm_not_released": "Deze E32-firmware laat de E32 de ketel niet regelen. Er is niets gewijzigd.",
+          "reconfirm_unconfirmed": "De E32 heeft het niet bevestigd. Kijk op de E32 bij Ruimtes → Actieve regeling.",
+          "e32_unreachable": "De E32 is nu niet bereikbaar. Probeer het zo opnieuw.",
+          "e32_password_change_required": "De E32 gebruikt nog het standaardwachtwoord en accepteert geen wijzigingen. Kies eerst een nieuw E32-wachtwoord (Instellingen → Reparaties → “E32 gebruikt nog het standaardwachtwoord”) en bevestig dan hier."
+        },
+        "abort": {
+          "reconfirm_done": "De E32 wacht niet meer op een bevestiging.",
+          "reconfirm_plan_not_active": "Het ruimteplan is niet meer actief, dus er valt niets te bevestigen.",
+          "e32_rooms_unavailable": "De E32-ruimtes zijn nu niet leesbaar. Probeer het zo opnieuw."
+        }
+      }
+    },
+    "reconfirm_takeover_thermostat": {
+      "title": "Bevestig opnieuw dat de E32 de ketel mag regelen",
+      "fix_flow": {
+        "step": {
+          "reconfirm_takeover": {
+            "title": "Bevestig opnieuw dat de E32 de ketel mag regelen",
             "description": "De E32 regelde je ketel voordat zijn firmware werd bijgewerkt. Voor de veiligheid neemt de nieuwe firmware de regeling pas weer over als je nog een keer bevestigt dat je oude thermostaat nog steeds van de ketel is losgekoppeld. Tot dan houdt de E32 alleen de vorstbeveiliging aan, en alleen zolang er geen andere thermostaat op de ketelbus te horen is.\n\nBevestig alleen als de oude thermostaat is losgekoppeld: sluit nooit twee thermostaten tegelijk op de ketel aan. Wil je de regeling in plaats daarvan teruggeven, open dan op de E32 de pagina Ruimtes → Actieve regeling → Regeling teruggeven aan mijn thermostaat."
           }
         },

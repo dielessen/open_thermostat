@@ -60,7 +60,9 @@ examples; use your own.
   again (`active.reconfirm_required`, `active.reconfirm_stored`). The E32
   sends the boot zero and then waits for you: Home Assistant shows the Repairs
   issue **Confirm again that the E32 may control the boiler** with one confirm action (the Rooms page
-  works too). Until then it keeps **only frost protection**: the plan minimum
+  works too). Its words, like the Rooms page's, mention the old thermostat only
+  when the E32 ever heard another controller on the bus (`active.thermostat_seen`,
+  rc.3). Until then it keeps **only frost protection**: the plan minimum
   flow while a room reads below 8 °C (`why: frost_unconfirmed`), and only from
   60 s after boot and 2 minutes of boiler reception without a foreign 0x1A.
   A foreign 0x1A, handing back or the plan back to shadow end the wait and
@@ -194,7 +196,11 @@ foreign 0x1A keeps growing. Also check the boiler's own display.
 **Guided (recommended):** Rooms → **Boiler test and takeover** → **Start the
 boiler test** (in a trial run: **Go straight to the boiler test**) and follow
 its six steps; they replace steps 3–5 below and the attended tests Start, Hot
-water while heating and Stop. Keep the monitor (step 2) running if you use it.
+water while heating and Stop. It is the one boiler test since rc.3 (the
+attended heating test of the Boiler page is retired), and the E32 remembers
+its result over restarts and updates; an installation the E32 controlled
+before shows it as not needed, and **I have already done this test** keeps the
+owner's own mark (never a measured pass). Keep the monitor (step 2) running if you use it.
 When the test stops by a safety rule, give control back as described under
 [Hand back](#hand-back-to-the-old-thermostat).
 
@@ -221,8 +227,10 @@ with the pass criteria of this table (start: burner within 10 minutes; stop:
 burner off within about 45 s of the delivered zero) and stops on the abort rules
 below that the E32 can see itself: another thermostat, a hand-back, lost
 measurements, an active-control warning, the flow above the ceiling while
-heating, or the boiler silent for 3 minutes. Its result is kept per step. The
-other tests stay attended by hand.
+heating, the boiler silent for 3 minutes, or a boiler settings change or the
+Boiler page's installer check holding the connection to the boiler (a start is
+refused then too). Its result is kept per step, with the highest flow the E32
+asked. The other tests stay attended by hand.
 
 | Test | Do | Pass when | Check |
 | --- | --- | --- | --- |

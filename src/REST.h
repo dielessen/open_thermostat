@@ -1481,7 +1481,7 @@ private:
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> active(controller_.activeHeatJson(),cJSON_Delete);
 		diagnostics::sendJson(server_,200,active.get());
 	}
-	// POST {"action":"start"|"stop"|"skip"}: the guided boiler test and takeover; answers its status.
+	// POST {"action":"start"|"stop"|"skip"|"mark_done"|"unmark"}: the one boiler test (and takeover); answers its status.
 	void heatingTakeoverTest() {
 		const auto body = server_.arg("plain");
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= 64 ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));

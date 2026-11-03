@@ -61,7 +61,8 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   await page.locator('#ems-unidentified').waitFor();assert.match(await page.locator('[data-unidentified-traffic]').textContent(),/0x17/);
   assert.equal(await button.isDisabled(),true);assert.equal(await page.locator('[data-test-prepare]').isHidden(),true);
   assert.equal(await page.locator('[data-test-flow]').inputValue(),'50');assert.equal(await page.locator('[data-test-duration]').inputValue(),'600');
-  await page.locator('[data-site-pressure-value]').fill('2');await confirm.check();assert.equal(await button.isEnabled(),true);
+  // rc.3: the gauge pressure belongs to the retired heating test (hidden); a read needs only the setup declaration.
+  assert.equal(await page.locator('[data-site-pressure-value]').isVisible(),false);await confirm.check();assert.equal(await button.isEnabled(),true);
   await identify.dblclick();assert.equal(posts.length,1);assert.equal(posts[0].p,'/boiler/test/read_identity');
   assert.equal(await confirm.isChecked(),true);assert.equal(await button.isDisabled(),true);
   identified=true;read={...read,active:false,available:true,phase:'completed',reason:'identity_received',observed_at_ms:read.observed_at_ms+1};
@@ -81,23 +82,18 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   read={...read,active:false,available:true,phase:'completed',reason:'settings_report_received',observed_at_ms:read.observed_at_ms+1};
   state={...state,available:true,can_prepare:true,state_sequence:state.state_sequence+1,observed_at_ms:state.observed_at_ms+1};heatReason='telemetry_ready';
   await page.evaluate(()=>BoilerData.refresh());
-  const prepare=page.locator('[data-test-prepare]'),start=page.locator('[data-test-start]'),stop=page.locator('[data-test-stop]');
-  await prepare.waitFor();assert.equal(await prepare.isEnabled(),true);assert.equal(await button.isHidden(),true);assert.equal(await confirm.isChecked(),true);
-  await page.screenshot({path:path.join(out,`READY-TO-PREPARE-${lang}-${width}.png`),fullPage:true});
-  await prepare.click();await start.waitFor();assert.equal(await confirm.isChecked(),false);assert.equal(await prepare.isHidden(),true);
-  assert.equal(posts.filter(r=>r.p.endsWith('/start')).length,0,'Preparation never starts heating');
-  page.once('dialog',d=>d.dismiss());await start.click();assert.equal(posts.length,2);
-  page.once('dialog',d=>d.accept());await start.click();assert.equal(posts.filter(r=>r.p.endsWith('/start')).length,1);
-  await page.waitForFunction(()=>document.querySelector('[data-test-start]').hidden);
-  await stop.waitFor();assert.equal(await stop.isEnabled(),true);assert.equal(await start.isHidden(),true);
-  await page.screenshot({path:path.join(out,`HEATING-${lang}-${width}.png`),fullPage:true});
-  await stop.click();assert.equal(posts.filter(r=>r.p.endsWith('/stop')).length,1);
+  // rc.3: the attended heating test is retired. Even a status that claims it could prepare shows no heat control.
+  const prepare=page.locator('[data-test-prepare]'),start=page.locator('[data-test-start]');
+  await page.waitForFunction(()=>document.querySelector('[data-read-configuration]').hidden);
+  assert.equal(await prepare.isVisible(),false);assert.equal(await start.isVisible(),false);assert.equal(await confirm.isChecked(),true);
+  await page.screenshot({path:path.join(out,`READ-COMPLETE-${lang}-${width}.png`),fullPage:true});
+  assert.equal(posts.filter(r=>/\/(prepare|start)$/.test(r.p)).length,0,'Nothing prepares or starts heating');
   // A new page never inherits the old operator declaration or starts heating.
   state=initial();heatReason='heating_setting_unavailable';read={...read,active:false,available:true,phase:'idle'};
   await page.evaluate(()=>loadNativePage('boiler_trial'));await button.waitFor();assert.equal(await confirm.isChecked(),false);
-  await page.locator('[data-site-pressure-value]').fill('2');await confirm.check();await page.clock.fastForward(120001);
+  await confirm.check();await page.clock.fastForward(120001);
   assert.equal(await confirm.isChecked(),false);assert.equal(await button.isDisabled(),true,'Polling never renews the declaration');
-  await page.locator('[data-site-pressure-value]').fill('2');await confirm.check();uncertain=true;const before=posts.length;
+  await confirm.check();uncertain=true;const before=posts.length;
   await button.click();await page.locator('[data-read-status]').filter({hasText:lang==='nl'?'niet bevestigd':'not confirmed'}).waitFor();
   await page.clock.fastForward(5001);assert.equal(posts.length,before+1,'A failed read is not replayed by polling');
   state={...initial(),revision:1,state_sequence:state.state_sequence+1,phase:'closed',reason:'test_transport_unavailable',restart_required:true,reported_stop_confirmed:true,blocked_reason:'restart_required'};
@@ -107,7 +103,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   assert.equal(posts.length,count,'Cancelled restart sends no request');assert(!requests.includes('/updates/status'));
   assert(!requests.some(p=>['/status/ems/devices','/status/boiler/settings'].includes(p)));
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
-  results.push({lang,width,result:'PASS',explicitIdentityRead:true,canonicalDeviceIdentity:true,closedRestartCancellation:true,readPrepareStartStop:true,oneBoundedDeclaration:true,noAutoHeat:true});await page.close();
+  results.push({lang,width,result:'PASS',explicitIdentityRead:true,canonicalDeviceIdentity:true,closedRestartCancellation:true,heatTrialRetired:true,oneBoundedDeclaration:true,noAutoHeat:true});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'RESULT.json'),JSON.stringify(results,null,2));console.log(JSON.stringify(results));
 })().catch(e=>{console.error(e);process.exitCode=1;});

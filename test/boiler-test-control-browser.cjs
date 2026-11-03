@@ -117,101 +117,22 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   assert.match(await page.locator('[data-heat-limits]').innerText(),/Grenzen afzonderlijke drukcontrole/);
   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
 
-  // No test code can grant real hardware permission. This is an explicit IO fixture.
+  // rc.3 (owner, 3 Nov 2026): one boiler test, on the Rooms page. The attended heating test is retired: the
+  // firmware closes its heat path (EmsController attendedHeatTestOffered), and even a status that claims it
+  // could prepare (an explicit IO fixture, never real permission) shows no heat control and sends nothing.
   heatTrial={...heatTrial,installation_reviewed:true,separate_pressure_method_reviewed:true,telemetry_ready:true,reason:'telemetry_ready'};
   if(gaugeTrial)heatTrial={...heatTrial,mode:'supervised_commissioning',installation_reviewed:false,separate_pressure_method_reviewed:false,operator_gauge_reading_required:true,limits:{...heatTrial.limits,minimum_pressure_decibar:11}};
   const gaugeFields=gaugeTrial?{pressure_reading_required:true,pressure_reading_limits:{minimum_decibar:11,maximum_decibar:25}}:{};
   update({available:true,blocked_reason:'',can_prepare:true,limits,site_confirmation_required:true,pressure_check_required:true,...gaugeFields});
   await page.locator('[data-test-site]').waitFor({state:'visible'});
-  assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
-  assert.equal(await page.locator('[data-site-confirm]').isChecked(),false);
   await page.locator('[data-site-confirm]').check();
-  assert.equal(requests.some(r=>r.path.endsWith('/prepare')),false);
-  if(gaugeTrial){
-   assert.equal(await page.locator('[data-site-pressure-value]').evaluate(e=>e.required&&e.validity.valueMissing),true,
-    'An empty required gauge reading must not appear valid');
-   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
-   for(const invalid of ['1','2.6','1.55']){
-    await page.locator('[data-site-pressure-value]').fill(invalid);
-    assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
-   }
-   await page.locator('[data-site-pressure-value]').fill('1.5');
-   assert.match(await page.locator('[data-heat-limits]').innerText(),/fysieke acceptatie staat nog open/);
-  }
-  feedback={measured_flow_temperature:{value:66,unit:'degC',state:'valid',quality:'reported'}};
-  await page.locator('[data-heat-status]').filter({hasText:'Het water is al op of boven'}).waitFor({state:'attached'});
-  await page.waitForFunction(()=>!document.querySelector('[data-test-prepare]').disabled);
-  await page.locator('[data-test-flow]').fill('61');await page.locator('[data-test-duration]').fill('600');
-  await page.locator('[data-test-prepare]').click();assert.equal(requests.some(r=>r.path.endsWith('/prepare')),false);
-  await page.locator('[data-test-flow]').fill('50');await page.locator('[data-test-prepare]').click();
-  await page.waitForFunction(()=>!document.querySelector('[data-test-start]').disabled);
-  assert.equal(await page.locator('[data-site-confirm]').isChecked(),false);
-  assert.equal(await page.locator('[data-site-confirm]').isChecked(),false);
-  assert.equal(await page.locator('[data-site-confirm]').isChecked(),false);
-  assert.equal(await page.locator('[data-site-confirm]').isChecked(),false);
-  if(gaugeTrial)assert.equal(await page.locator('[data-site-pressure-value]').inputValue(),'');
-  const readySnapshot=structuredClone(state);
-  assert.equal(requests.filter(r=>r.path.endsWith('/start')).length,0); // ready never auto-starts
-  page.once('dialog',dialog=>dialog.dismiss());await page.locator('[data-test-start]').click();
-  assert.equal(requests.filter(r=>r.path.endsWith('/start')).length,0);
-  page.once('dialog',dialog=>dialog.accept());await page.locator('[data-test-start]').click();
-  if(width===390){
-   await until(()=>delayedStart);
-   assert.equal(await page.locator('[data-test-stop]').isDisabled(),false); // stop works while start response is pending
-  }else await page.locator('[data-test-action]').filter({hasText:'Startverzoek aangenomen'}).waitFor();
-  await page.locator('[data-test-stop]').click();
-  if(width===320){
-   await page.locator('[data-test-action]').filter({hasText:'niet bevestigd'}).waitFor();
-   await page.waitForTimeout(200);assert.equal(requests.filter(r=>r.path.endsWith('/stop')).length,1);
-   await page.locator('[data-test-stop]').click(); // explicit retry, never automatic
-  }
-  await page.locator('[data-test-action]').filter({hasText:'Stopverzoek aangenomen'}).waitFor();
-  if(delayedStart){await response(delayedStart.route,delayedStart.body,202);await page.waitForTimeout(100);}
-  assert.match(await page.locator('[data-test-state]').innerText(),/Stop aangevraagd/);
-  assert.doesNotMatch(await page.locator('[data-test-action]').innerText(),/Startverzoek aangenomen/);
-  assert.match(await page.locator('[data-test-facts]').innerText(),/Nog niet bevestigd/);
-  const keepalives=requests.filter(r=>r.path.endsWith('/keepalive')).length;
-  await page.waitForTimeout(1300);assert.equal(requests.filter(r=>r.path.endsWith('/keepalive')).length,keepalives);
-  if(width===1280){
-   forcedOld=readySnapshot;
-   const before=requests.filter(r=>r.path==='/status/ems/telemetry').length;
-   const deadline=Date.now()+8000;
-   while(requests.filter(r=>r.path==='/status/ems/telemetry').length===before&&Date.now()<deadline)await page.waitForTimeout(100);
-   assert(requests.filter(r=>r.path==='/status/ems/telemetry').length>before);
-   await page.waitForTimeout(100);
-   assert.match(await page.locator('[data-test-state]').innerText(),/Stop aangevraagd/);
-   assert.equal(await page.locator('[data-test-start]').isDisabled(),true);
-   forcedOld=null;
-  }
-  update({phase:'completed',can_prepare:true,can_stop:false,reported_stop_confirmed:true,zero_frames:2});
-  await page.locator('[data-test-state]').filter({hasText:'afgerond'}).waitFor({state:'attached'});
-  assert.match(await page.locator('[data-test-action]').innerText(),/Stop na de opdracht gemeld; proef afgerond/,
-   'Confirmed stop must replace the earlier waiting-for-stop notice');
-  assert.equal(await page.locator('[data-test-stop]').isDisabled(),true);
+  for(const selector of ['[data-test-prepare]','[data-test-start]','[data-test-flow]','[data-test-duration]','[data-site-pressure-value]','.bt-steps'])
+   assert.equal(await page.locator(selector).isVisible(),false,selector+' stays hidden');
+  assert.equal(await page.locator('#boiler-test-trial > summary').innerText(),'Controle voor de installateur (zonder warmte)');
+  await page.waitForTimeout(1300);
+  assert.equal(requests.some(r=>r.method==='POST'),false,'nothing prepares or starts heating');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.screenshot({path:path.join(out,`CONTROL-${width}.png`),fullPage:true});
-  // Reopening a ready owned session does not renew or start it automatically.
-  update({phase:'ready',can_prepare:false,can_stop:true,can_start:true,owned:true,reported_stop_confirmed:true});
-  await page.evaluate(()=>loadNativePage('boiler_trial'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
-  await page.locator('[data-test-state]').filter({hasText:'Stopbasis gemeld'}).waitFor({state:'attached'});
-  const before=requests.filter(r=>r.method==='POST').length;await page.waitForTimeout(1300);
-  assert.equal(requests.filter(r=>r.method==='POST').length,before);
-  assert.equal(await page.locator('[data-test-start]').isDisabled(),true);
-  await page.evaluate(()=>mainScreen());await page.waitForTimeout(1300);
-  assert.equal(requests.filter(r=>r.method==='POST').length,before);
-  assert.equal(requests.some(r=>r.method==='POST'&&!r.path.startsWith('/boiler/test/')),false);
-  // The same reported stop is translated after reopening in English.
-  await page.context().addCookies([{name:'ot_ui_lang',value:'en',url:'http://boiler.test'}]);
-  await page.reload();await page.waitForFunction(()=>typeof loadNativePage==='function');
-  await page.evaluate(()=>loadNativePage('boiler_trial'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
-  await page.locator('[data-test-facts] dd').filter({hasText:/^Yes$/}).waitFor();
-  assert.equal(await page.locator('[data-test-facts] dd').filter({hasText:/^Ja$/}).count(),0);
-  assert.match(await page.locator('[data-heat-limits]').innerText(),gaugeTrial?/1.1–2.5 bar/:/1–2.5 bar/);
-  assert.match(await page.locator('[data-heat-limits]').innerText(),gaugeTrial?/physical acceptance remains open/:/Reviewed/);
-  assert.match(await page.locator('[data-heat-limits]').innerText(),/Separate pressure check window/);
-
-  await page.waitForTimeout(1300);assert.equal(requests.filter(r=>r.method==='POST').length,before);
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   assert.deepEqual(errors,[]);
   for(const language of ['nl','en']) {
    update({phase:'idle',owned:false,available:false,blocked_reason:'profile_missing',limits:null,
@@ -284,7 +205,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   }
   // Brief visibility loss between renewal ticks must retire authority forever,
   // including preparation replies which arrive after the page becomes visible.
-  for(const mode of ['prepare','prepare_zero','ready','pagehide']) {
+  for(const mode of ['prepare_zero']) { // the heat modes went with the attended heating test (rc.3)
    state={...initial(),revision:state.revision,state_sequence:state.state_sequence+1,observed_at_ms:state.observed_at_ms+100,
     available:true,blocked_reason:'',can_prepare:true,can_prepare_zero:true,zero_test_available:true,
     site_confirmation_required:true,pressure_check_required:true,operator_lease_ms:5000,limits,...gaugeFields};
@@ -292,8 +213,6 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    await page.waitForFunction(()=>!document.querySelector('[data-site-confirm]').disabled);
    await page.locator('[data-site-confirm]').check();await page.locator('[data-site-confirm]').check();
    await page.locator('[data-site-confirm]').check();await page.locator('[data-site-confirm]').check();
-   if(gaugeTrial)await page.locator('[data-site-pressure-value]').fill('1.5');
-   await page.locator('[data-test-flow]').fill('50');await page.locator('[data-test-duration]').fill('600');
    delayPreparation=true;delayedPreparation=null;
    if(mode==='prepare_zero')page.once('dialog',dialog=>dialog.accept());
    await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
@@ -319,8 +238,9 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    assert.equal(await page.locator('[data-test-start]').isDisabled(),true);
    assert.equal(await page.locator('[data-test-stop]').isDisabled(),false);
   }
-  results.push({width,result:'PASS',fixtureOnly:true,noAutoStartOrResume:true,csrfPresent:true,stopWhilePending:true,
-   uncertainStopNotReplayed:true,lateStartIgnored:true,staleReadbackIgnored:width===1280,navigationStopsRenewal:true,englishStopConfirmation:true,zeroOnlyNlEn:true,perTestDeclarations:true,zeroNeedsNoHeatPath:true,faultClosureNlEn:true,uncertainClosureNotReplayed:true,closedDoesNotResume:true,heatEnvelopeNlEn:true,gaugeTrial,healthyTelemetryCannotUnlock:true,briefHideRetiresSupervision:true,latePreparationCannotRearm:true,pagehideRetiresSupervision:true,physicalProof:false});
+  results.push({width,result:'PASS',fixtureOnly:true,csrfPresent:true,heatTrialRetired:true,zeroOnlyNlEn:true,perTestDeclarations:true,zeroNeedsNoHeatPath:true,
+   faultClosureNlEn:true,uncertainClosureNotReplayed:true,closedDoesNotResume:true,heatEnvelopeNlEn:true,gaugeTrial,healthyTelemetryCannotUnlock:true,
+   briefHideRetiresSupervision:true,latePreparationCannotRearm:true,physicalProof:false});
   await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'BROWSER.json'),JSON.stringify({result:'PASS',cases:results},null,2)+'\n');

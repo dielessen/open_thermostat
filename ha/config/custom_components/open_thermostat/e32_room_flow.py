@@ -540,10 +540,11 @@ class E32RoomFlow:
         """What the valves section needs: the record, this room's stored valves as routes, the exclusions."""
         from types import SimpleNamespace
         from .e32_valves import HA_MODEL
-        from .valve_routes import RouteFinder
+        from .valve_routes import RouteFinder, through_ha_choices
         current = next((r for r in config["rooms"] if room_id and r["room"] == room_id), {"control": False, "valves": []})
         finder = RouteFinder(self.hass, config["base_topic"])
-        stored = finder.stored(current["valves"])
+        pins = through_ha_choices(self.config_entry)
+        stored = finder.stored(current["valves"], pins)  # a Home Assistant valve the E32 can drive now: shown and saved so
         others = [v for r in config["rooms"] if r["room"] != room_id for v in r["valves"]]
         # Never a valve of this room: OpenThermostat's own thermostats, the room's thermostat sources
         # and the valves of the other rooms (Home Assistant ones by entity, Zigbee2MQTT ones by name).
@@ -554,7 +555,7 @@ class E32RoomFlow:
         mine = {r.entity_id for r in stored if r.entity_id}
         excluded = [e for e in dict.fromkeys(own + sources + taken) if e and e not in mine]
         return SimpleNamespace(config=config, room_id=room_id, finder=finder, stored=stored, control=current["control"],
-                               others=others, excluded=excluded)
+                               records=[dict(v) for v in current["valves"]], pins=pins, others=others, excluded=excluded)
 
     def _e32_valve_fields(self, ctx):
         """The valves section: just the climate entities; the route per valve is decided by valve_routes."""
@@ -622,6 +623,18 @@ class E32RoomFlow:
                 found.append((entity_id, *details))
         return found[:MAX_VALVE_MODELS]
 
+    @staticmethod
+    def _e32_valve_pins(ctx, models):
+        """The "Through Home Assistant" choices after this save: Advanced decides for the valves it showed."""
+        from .e32_valves import HA_MODEL
+        pins = set(ctx.pins)
+        for entity_id, model in (models or {}).items():
+            if model == HA_MODEL and ctx.finder.route(entity_id).direct:
+                pins.add(entity_id)  # would go to the E32 by itself: the explicit choice sticks
+            else:
+                pins.discard(entity_id)
+        return pins
+
     def _e32_wants_models(self, user_input, ctx):
         """Advanced ticked with a Zigbee2MQTT valve chosen (then its models are chosen first)."""
         part = user_input.get("valves")
@@ -639,15 +652,18 @@ class E32RoomFlow:
             return ""
         return f"\n\n{ROUTE_HEADING[language_of(self)]}\n{self._e32_valve_routes(valves[0])}"
 
-    async def _e32_save_valves(self, room_id, routes, control):
-        """Store the room's valves on the E32 (after its plan); a refusal keeps the room and says so."""
+    async def _e32_save_valves(self, room_id, routes, control, ctx=None, pins=None):
+        """Store the room's valves on the E32 (after its plan) and the Advanced choices; a refusal keeps the
+        room and says so."""
         from .e32_valves import valve_link
+        from .valve_routes import save_through_ha
         link = valve_link(self.hass, self.config_entry)
         try:
             if link is None:
                 raise HomeAssistantError(translation_domain=DOMAIN, translation_key="valves_unreachable",
                                          translation_placeholders={"error": "no_connection"})
-            await link.async_change(room_id, control=control, valves=[r.record() for r in routes])
+            if ctx is None or [r.record() for r in routes] != ctx.records or control != ctx.control:
+                await link.async_change(room_id, control=control, valves=[r.record() for r in routes])
         except HomeAssistantError as err:
             # The room itself is stored: the same form now edits it, so saving again only retries the valves.
             self._e32_room_id = room_id
@@ -657,6 +673,8 @@ class E32RoomFlow:
             error = (getattr(err, "translation_placeholders", None) or {}).get("error") or \
                 getattr(err, "translation_key", None) or "unknown"
             raise FlowError("e32_valves_rejected", error=error) from None
+        if pins is not None:
+            save_through_ha(self.hass, self.config_entry, pins)
 
     async def async_step_e32_room_valve_models(self, user_input=None):
         """Advanced: per Zigbee2MQTT valve its model (the E32 drives it) or Home Assistant (always works).
@@ -891,8 +909,9 @@ class E32RoomFlow:
                 if not models_chosen and self._e32_wants_models(user_input, valve_ctx):
                     self._e32_pending = user_input  # Advanced: the models first, then this same save
                     return await self.async_step_e32_room_valve_models()
-                valves_changed = valves is not None and (
-                    [r.record() for r in valves[0]] != [r.record() for r in valve_ctx.stored] or valves[1] != valve_ctx.control)
+                pins = self._e32_valve_pins(valve_ctx, self._e32_valve_models) if valves is not None else None
+                valves_changed = valves is not None and ([r.record() for r in valves[0]] != valve_ctx.records
+                                                         or valves[1] != valve_ctx.control or pins != valve_ctx.pins)
                 settings = comfort_options(self.config_entry)
                 same_delay = delay is None or not room or self._same_delay(settings, room_id, delay)
                 if room is not None:
@@ -910,7 +929,7 @@ class E32RoomFlow:
                 if room is None:
                     saved = created[0]
                 if valves_changed:  # after the plan: a new room exists on the E32 before its valves
-                    await self._e32_save_valves(saved, *valves)
+                    await self._e32_save_valves(saved, *valves, valve_ctx, pins)
                 settings = comfort_options(self.config_entry)
                 if contacts != room_contacts(self.config_entry, saved) or (
                         contacts and delay is not None and not self._same_delay(settings, saved, delay)):

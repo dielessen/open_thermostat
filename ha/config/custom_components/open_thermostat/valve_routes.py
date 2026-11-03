@@ -20,19 +20,28 @@ Home Assistant device name: a device renamed in Home Assistant keeps its
 Zigbee2MQTT name. Without known topics the device name Zigbee2MQTT gave it
 (``name``, never ``name_by_user``) is used.
 
-A valve stored before (the E32 valve record) keeps its route and model: a
-Zigbee2MQTT valve maps back to its entity by its friendly name; one Home
-Assistant no longer knows stays as stored and is listed as kept.
+A valve stored before (the E32 valve record) keeps its model: a Zigbee2MQTT
+valve maps back to its entity by its friendly name; one Home Assistant no
+longer knows stays as stored and is listed as kept. A valve stored "through
+Home Assistant" that is now a Zigbee2MQTT valve the E32 drives itself moves
+to the E32 at the next save of its room (shown in the form before that),
+unless the installer chose "Through Home Assistant" for it under Advanced:
+that choice is kept in the entry options (``valves_through_ha``).
 """
 from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
 
+from homeassistant.core import callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
+from .const import DOMAIN
 from .e32_valves import HA_MODEL, ZIGBEE_MODELS, guess_model, valid_entity, valid_name
+
+# The entities the installer explicitly keeps "Through Home Assistant" (Advanced), in the entry options.
+CONF_THROUGH_HA = "valves_through_ha"
 
 Z2M_PREFIX = "zigbee2mqtt_"
 Z2M_BRIDGE_PREFIX = "zigbee2mqtt_bridge_"
@@ -188,14 +197,20 @@ class RouteFinder:
             self._index = found
         return self._index
 
-    def stored(self, valves):
-        """The stored valves of a room as routes, each with its entity (None: Home Assistant does not know it)."""
+    def stored(self, valves, through_ha=()):
+        """The stored valves of a room as routes, each with its entity (None: Home Assistant does not know it).
+
+        A Home Assistant valve the E32 can now drive itself gets that route (saved with the room),
+        unless it is in through_ha: the installer's explicit choice.
+        """
         routes = []
         for valve in valves:
             name, model = valve["name"], valve["model"]
             if model == HA_MODEL:
                 entity = name if valid_entity(name) else None
-                routes.append(ValveRoute(name, model, entity, *self._friendly_detected(entity)))
+                found = self.route(entity) if entity is not None and entity not in through_ha else None
+                routes.append(found if found is not None and found.direct
+                              else ValveRoute(name, model, entity, *self._friendly_detected(entity)))
             else:
                 entity = self.index().get(name)
                 routes.append(ValveRoute(name, model, entity, name, *self._friendly_detected(entity)[1:]))
@@ -206,6 +221,29 @@ class RouteFinder:
             return None, None
         device, friendly = self._z2m(entity_id)
         return friendly, detect_model(device) if device is not None else None
+
+
+def through_ha_choices(entry):
+    """The climate entities the installer keeps "Through Home Assistant" (Advanced)."""
+    value = (getattr(entry, "options", None) or {}).get(CONF_THROUGH_HA)
+    return {e for e in value if valid_entity(e)} if type(value) is list else set()
+
+
+@callback
+def save_through_ha(hass, entry, entities):
+    """Store those choices without a reload (the same no-reload marker as the comfort and energy steps)."""
+    from .energy_input import ENERGY_ONLY_UPDATE
+    options = {**entry.options, CONF_THROUGH_HA: sorted(entities)}
+    if not entities:
+        options.pop(CONF_THROUGH_HA)
+    if options == dict(entry.options):
+        return False
+    state = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if state is not None:
+        state[ENERGY_ONLY_UPDATE] = dict(options)
+    if not hass.config_entries.async_update_entry(entry, options=options) and state is not None:
+        state.pop(ENERGY_ONLY_UPDATE, None)  # no listener runs: never leave the marker behind
+    return True
 
 
 def language_of(flow):

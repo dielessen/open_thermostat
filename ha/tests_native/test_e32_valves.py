@@ -641,6 +641,147 @@ async def test_firmware_without_valves_shows_the_room_form_without_them(hass, ma
     assert [c for c in e32.valves.calls if c is not None] == []
 
 
+@pytest.mark.asyncio
+async def test_a_home_assistant_valve_the_e32_can_drive_moves_to_the_e32_unless_chosen_otherwise(hass, manager, monkeypatch):
+    """A stored "through Home Assistant" valve that is now a supported Zigbee2MQTT valve goes to the E32 at the next
+    save (and the form says so first); only an explicit Advanced "Through Home Assistant" keeps it there."""
+    zigbee = Zigbee(hass, monkeypatch)
+    bosch = zigbee.valve("Kraan woonkamer", "BTH-RA")
+    e32 = E32WithValves({"schema": 1, "base_topic": "zigbee2mqtt", "rooms": [
+        {"room": "woonkamer", "control": True, "valves": [{"name": bosch, "model": "ha_climate"}]}]})
+    parent, _ = product(hass, e32)
+    form = await room_form(manager, parent, "woonkamer")
+    assert form["description_placeholders"]["valve_routes"] == (
+        "- Kraan woonkamer: works without Home Assistant (Bosch BTH-RA)")          # shown before saving
+    assert section_of(form)[0]["valves"][0].description["suggested_value"] == [bosch]
+    result = await manager.async_configure(form["flow_id"], shown(form))         # saved as shown: it moves
+    assert result["type"] == "menu" and result["step_id"] == "e32_rooms_saved", result
+    assert e32.valves.config["rooms"] == [{"room": "woonkamer", "control": True, "valves": [
+        {"name": "Kraan woonkamer", "model": "bosch_bth_ra"}]}]
+    # Advanced: "Through Home Assistant" by choice; stored on the E32 and remembered in the entry.
+    form = await room_form(manager, parent, "woonkamer")
+    values = shown(form)
+    values["valves"]["choose_models"] = True
+    step = await manager.async_configure(form["flow_id"], values)
+    assert step["step_id"] == "e32_room_valve_models" and {str(k): k.default() for k in step["data_schema"].schema} == {
+        "model_1": "bosch_bth_ra"}
+    result = await manager.async_configure(step["flow_id"], {"model_1": "ha_climate"})
+    assert result["type"] == "menu", result
+    assert e32.valves.config["rooms"][0]["valves"] == [{"name": bosch, "model": "ha_climate"}]
+    assert parent.options["valves_through_ha"] == [bosch]
+    # It sticks: shown through Home Assistant, and saving as shown changes nothing.
+    form = await room_form(manager, parent, "woonkamer")
+    assert form["description_placeholders"]["valve_routes"] == "- Kraan woonkamer: through Home Assistant"
+    writes = len([c for c in e32.valves.calls if c is not None])
+    result = await manager.async_configure(form["flow_id"], shown(form))
+    assert result["type"] == "abort" and result["reason"] == "e32_room_unchanged"
+    assert len([c for c in e32.valves.calls if c is not None]) == writes
+    # A model chosen under Advanced again: back to the E32, the choice forgotten.
+    form = await room_form(manager, parent, "woonkamer")
+    values = shown(form)
+    values["valves"]["choose_models"] = True
+    step = await manager.async_configure(form["flow_id"], values)
+    assert {str(k): k.default() for k in step["data_schema"].schema} == {"model_1": "ha_climate"}
+    result = await manager.async_configure(step["flow_id"], {"model_1": "bosch_bth_ra"})
+    assert result["type"] == "menu", result
+    assert e32.valves.config["rooms"][0]["valves"] == [{"name": "Kraan woonkamer", "model": "bosch_bth_ra"}]
+    assert "valves_through_ha" not in parent.options
+
+
+@pytest.mark.asyncio
+async def test_choosing_through_home_assistant_for_a_valve_stored_so_only_remembers_the_choice(hass, manager, monkeypatch):
+    zigbee = Zigbee(hass, monkeypatch)
+    bosch = zigbee.valve("Kraan woonkamer", "BTH-RA")
+    e32 = E32WithValves({"schema": 1, "base_topic": "zigbee2mqtt", "rooms": [
+        {"room": "woonkamer", "control": False, "valves": [{"name": bosch, "model": "ha_climate"}]}]})
+    parent, _ = product(hass, e32)
+    form = await room_form(manager, parent, "woonkamer")
+    values = shown(form)
+    values["valves"]["choose_models"] = True
+    step = await manager.async_configure(form["flow_id"], values)
+    result = await manager.async_configure(step["flow_id"], {"model_1": "ha_climate"})
+    assert result["type"] == "menu" and result["step_id"] == "e32_rooms_saved", result
+    assert [c for c in e32.valves.calls if c is not None] == []            # the E32 record already says so
+    assert parent.options["valves_through_ha"] == [bosch]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("valves_on_e32", [True, False])
+async def test_the_room_form_signs_out_of_every_e32_session_it_opens(hass, manager, monkeypatch, valves_on_e32):
+    """The E32 has 4 web sessions: the plan read, the valve read and the valve write each end with a logout."""
+    from aiohttp import web
+    from aiohttp.test_utils import TestServer
+    from custom_components.open_thermostat import controller_link
+    from custom_components.open_thermostat.e32_setting_device import default_program
+    from test_room_plan import PLAN
+    zigbee = Zigbee(hass, monkeypatch)
+    bosch = zigbee.valve("Kraan woonkamer", "BTH-RA")
+    plan = deepcopy(PLAN)
+    for room in plan["rooms"]:
+        room["schedule"] = default_program(room["minimum_centi_c"], room["maximum_centi_c"])
+    state = {"logins": 0, "logouts": 0, "record": deepcopy(RECORD)}
+
+    async def login(request):
+        state["logins"] += 1
+        return web.json_response({"ok": True})
+
+    async def session(request):
+        return web.json_response({"authenticated": True, "csrf": "c" * 64})
+
+    async def logout(request):
+        state["logouts"] += 1
+        return web.json_response({})
+
+    async def heating(request):
+        return web.json_response(plan)
+
+    async def trv(request):
+        if not valves_on_e32:
+            return web.Response(status=404, text="Not found")
+        if request.method == "POST":
+            state["record"] = await request.json()
+        return web.json_response({**state["record"], "features": [], "models": [], "status": None})
+
+    app = web.Application()
+    app.router.add_post("/auth/login", login)
+    app.router.add_get("/auth/session", session)
+    app.router.add_post("/auth/logout", logout)
+    app.router.add_get("/config/heating", heating)
+    app.router.add_route("*", "/config/heating/trv", trv)
+    server = TestServer(app, host="127.0.0.1")
+    await server.start_server()
+    import _socket
+    import socket
+
+    def loopback_only(sock, address):  # this test's own server only; every other connection stays forbidden
+        if address[0] != "127.0.0.1" or address[1] != server.port:
+            raise AssertionError("offline test attempted a network connection")
+        return _socket.socket.connect(sock, address)
+    monkeypatch.setattr(socket.socket, "connect", loopback_only)
+
+    class LocalClient(controller_link.ControllerClient):
+        async def __aenter__(self):
+            await super().__aenter__()
+            self.address = f"http://127.0.0.1:{server.port}"  # loopback is refused by design: set after the check
+            return self
+
+    try:
+        parent, hub = product(hass, PlanE32(plan))
+        hub.plan._client = lambda: LocalClient("http://192.168.1.206")
+        form = await room_form(manager, parent, "woonkamer")
+        assert ("valves" in [str(k) for k in form["data_schema"].schema]) is valves_on_e32
+        assert state["logins"] >= 2 and state["logins"] == state["logouts"]    # plan read and valve read: both closed
+        if valves_on_e32:
+            values = shown(form)
+            values["valves"] = {"valves": [bosch], "control": False, "choose_models": False}
+            result = await manager.async_configure(form["flow_id"], values)
+            assert result["type"] == "menu", result
+            assert state["record"]["rooms"][0]["valves"] == [{"name": "Kraan woonkamer", "model": "bosch_bth_ra"}]
+            assert state["logins"] == state["logouts"]
+    finally:
+        await server.close()
+
+
 # -- the dashboard ---------------------------------------------------------------------------------
 
 

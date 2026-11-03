@@ -492,8 +492,12 @@ each valve itself and shows it in plain words:
 
 Under **Choose the models myself (advanced)** you can still choose the model
 of a Zigbee2MQTT valve (or *Through Home Assistant*) after saving. A valve that
-was set up before keeps its route and model; a stored Zigbee2MQTT valve Home
-Assistant does not know is listed under **Kept valves** and keeps working.
+was set up before keeps its model. A valve set up *through Home Assistant*
+that the E32 can drive itself moves to the E32 the next time you save the room
+(the form shows it first); only choosing *Through Home Assistant* for it under
+Advanced keeps it there, and that choice is remembered. A stored Zigbee2MQTT
+valve Home Assistant does not know is listed under **Kept valves** and keeps
+working.
 On the E32 itself: the room card
 on the Rooms page has a **Radiator valves** block with its own *Save valves*
 button; Home Assistant valves show there read-only, as *Home Assistant climate

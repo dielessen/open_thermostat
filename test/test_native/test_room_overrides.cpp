@@ -387,7 +387,8 @@ TEST(RoomOverrides, ReturnLeadUsesTheWarmupPlannersDefaultWhileNotLearned) {
 }
 
 // The telemetry budget (TELEMETRIEBUDGET.nl.md): fw/state/room/<id> is at most 319 B for a
-// worst-case plan and fw/state/heating 754 B; comfort adds at most 160 B and away 100 B.
+// worst-case plan and fw/state/heating 754 B; comfort adds at most 160 B here and 180 B with "away_by"
+// (RoomAway.TheReasonFitsTheTelemetryBudget), away 100 B.
 TEST(RoomOverrides, StatusAdditionsStayWithinTheTelemetryBudget) {
     ScopedTz tz(ScopedTz::amsterdam);
     const auto p = plan();

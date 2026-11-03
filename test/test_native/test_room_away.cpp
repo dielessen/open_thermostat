@@ -447,3 +447,21 @@ TEST(RoomAway, TheValueTravelsWithTheSettingsBackup) {
     EXPECT_EQ(parsed(changed.plan).rooms[study].awayCentiC, 1600);
     EXPECT_NE(b::print(changedReport.changes.get()).find("room_settings"), std::string::npos);
 }
+
+// The telemetry budget: "away_by" adds at most 18 B to a room's comfort. Its worst case (a stored override
+// waiting for the clock, a pending window, the room's persons and everyone away) stays within 180 B, so
+// fw/state/room/<id> (at most 319 B without comfort) stays far below telemetrySoftBytes (1024 B).
+TEST(RoomAway, TheReasonFitsTheTelemetryBudget) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    const auto p = parsed(houseText);
+    RoomOverrides o;
+    ASSERT_TRUE(o.restore(R"({"v":1,"away_c":1525,"o":[{"id":"study","k":"timed","c":2125,"u":4102444000}]})"));
+    house(o, p, false);
+    persons(o, p, "study", false);
+    EXPECT_TRUE(o.input(R"({"kind":"contact","room":"study","open":true,"delay_s":1800})", p, 0));
+    o.step(p, 0, std::nullopt, noLead);
+    const auto comfort = comfortJson(o, p, "study");
+    EXPECT_EQ(comfort, R"({"mode":"presence_away","window":"pending","persons":"away","away_by":"house","target_c":15.25,)"
+                       R"("until":4102444000,"override":"timed","waiting_for_clock":true})");
+    EXPECT_LE(comfort.size() + std::strlen(R"(,"comfort":)"), 180u);
+}

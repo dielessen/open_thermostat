@@ -7,7 +7,7 @@ namespace heating::diagnostics {
 struct SupervisorPolicy {
     enum class Reason : uint8_t { none = 0, loopStall = 1, wifiLost = 2, brokerLost = 3, networkDead = 4,
         updateStuck = 5, bluetoothApply = 6, bluetoothSilent = 7, settingsRestore = 8,
-        controlFault = 9 }; // append only
+        controlFault = 9, setupReenter = 10 }; // append only; setupReenter: the owner asked for Wi-Fi setup (planned)
     static constexpr uint32_t loopStallMs = 300000;   // a firmware upload blocks the loop for minutes
     static constexpr uint32_t wifiLostMs = 900000;    // loop already calls WiFi.reconnect() every 10 s
     static constexpr uint32_t brokerLostMs = 900000;  // link "up" but the MQTT broker unreachable
@@ -94,6 +94,7 @@ struct SupervisorPolicy {
             case Reason::bluetoothSilent: return "bluetooth_silent";
             case Reason::settingsRestore: return "settings_restore";
             case Reason::controlFault: return "control_fault";
+            case Reason::setupReenter: return "setup_reenter";
             default: return "none";
         }
     }

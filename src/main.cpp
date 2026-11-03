@@ -565,8 +565,10 @@ void loop() {
 			[] { return !heating::controller || heating::controller->releaseBoilerForRestart(); });
 	}
 	heating::diagnostics::blackBox.loopPhase(heating::diagnostics::LoopPhase::network);
-	// Only while asked: bootPending() reads the OTA state from flash.
-	heating::setupRestartHeld = heating::setupRebootRequested && (heating::update::busy() || heating::update::bootPending());
+	// Only while asked. Like /config/reboot, the E32 first withdraws its boiler request (R2-07).
+	heating::setupRestartHeld = heating::update::setupRestartHeld(heating::setupRebootRequested,
+		[] { return heating::update::busy(); }, [] { return heating::update::bootPending(); },
+		[] { return !heating::controller || heating::controller->releaseBoilerForRestart(); });
 	heating::pollSetupWifi();
 	if (heating::pollBoardNetwork()) {
 		// Common REST/NTP/mDNS startup, once per route/IP change, not in event task.

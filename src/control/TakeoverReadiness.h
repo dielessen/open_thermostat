@@ -82,7 +82,8 @@ public:
     static Restart classify(int resetReason, diagnostics::SupervisorPolicy::Reason previous) {
         using R = diagnostics::SupervisorPolicy::Reason;
         if (resetReason == resetSoftware)
-            return previous == R::none || previous == R::bluetoothApply || previous == R::settingsRestore ? Restart::planned : Restart::unexpected;
+            return previous == R::none || previous == R::bluetoothApply || previous == R::settingsRestore || previous == R::setupReenter
+                ? Restart::planned : Restart::unexpected;
         return resetReason == resetPowerOn || resetReason == resetExternal || resetReason == resetBrownout ? Restart::power : Restart::unexpected;
     }
 

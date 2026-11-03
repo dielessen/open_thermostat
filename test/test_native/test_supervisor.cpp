@@ -242,6 +242,8 @@ TEST(SupervisorPolicy, ControlFaultReasonIsAppendedAndNamed) {
     EXPECT_EQ(static_cast<int>(Reason::settingsRestore), 8);
     EXPECT_EQ(static_cast<int>(Reason::controlFault), 9);
     EXPECT_STREQ(SupervisorPolicy::name(Reason::controlFault), "control_fault");
+    EXPECT_EQ(static_cast<int>(Reason::setupReenter), 10); // rc.4 (R2-07): the owner's Wi-Fi setup restart
+    EXPECT_STREQ(SupervisorPolicy::name(Reason::setupReenter), "setup_reenter");
 }
 TEST(SupervisorPolicy, WifiLostRestartsBackOffExponentially) {
     auto in = healthy18(1000 * minute18);

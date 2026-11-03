@@ -44,6 +44,26 @@ TEST(GitHubOtaRestart, MillisRolloverAndZeroSentinelRemainBounded) {
     RestartTimer zero;zero.schedule(UINT32_MAX-2999);
     EXPECT_TRUE(zero.pending());EXPECT_FALSE(zero.due(0,false));EXPECT_TRUE(zero.due(1,false));
 }
+// Review R2-07: POST /setup/reenter and the USB "setup" restart like /config/reboot: after an
+// update and the boot check, and only once the boiler request is withdrawn. The withdrawal is
+// final for the boot, so it is asked only for a requested restart that nothing else holds.
+TEST(GitHubOtaRestart, SetupRestartWaitsForTheBoilerReleaseLikeTheOtherRestarts) {
+    struct Case { bool requested, busy, pending, released, held; int releaseCalls; };
+    for (const Case c : {Case{false, false, false, true, false, 0}, Case{false, true, true, false, false, 0},
+                         Case{true, false, false, true, false, 1}, Case{true, false, false, false, true, 1},
+                         Case{true, true, false, true, true, 0}, Case{true, false, true, true, true, 0}}) {
+        int busyCalls = 0, pendingCalls = 0, releaseCalls = 0;
+        const bool held = setupRestartHeld(c.requested, [&] { ++busyCalls; return c.busy; }, [&] { ++pendingCalls; return c.pending; },
+                                           [&] { ++releaseCalls; return c.released; });
+        EXPECT_EQ(held, c.held) << c.requested << c.busy << c.pending << c.released;
+        EXPECT_EQ(releaseCalls, c.releaseCalls) << c.requested << c.busy << c.pending << c.released;
+        if (!c.requested) { EXPECT_EQ(busyCalls + pendingCalls, 0); } // nothing is read while not asked
+    }
+    // The release itself is bounded (BoilerReleaseHold): a zero that never arrives holds it 90 s.
+    BoilerReleaseHold hold; uint32_t now = 5000; int loops = 0;
+    while (setupRestartHeld(true, [] { return false; }, [] { return false; }, [&] { return hold.ready(now, false); })) { now += 1000; ++loops; }
+    EXPECT_EQ(loops, 90);
+}
 namespace {
 Manifest manifest(){return {"v0.1.0-e32v2-alpha.2",std::string(40,'a'),std::string(64,'b'),std::string(64,'c'),1024};}
 std::string document(){auto m=manifest();return "{\"update_schema\":1,\"settings_schema\":1,\"board\":\"bbqkees_e32v2\",\"layout\":\"e32v2-dual-app-spiffs-v1\",\"ui\":\"embedded\",\"asset\":\"firmware.bin\",\"version\":\""+m.tag+"\",\"source_commit\":\""+m.source+"\",\"web_sha256\":\""+m.webSha+"\",\"sha256\":\""+m.sha256+"\",\"size\":1024}";}

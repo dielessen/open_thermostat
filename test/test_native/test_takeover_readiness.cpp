@@ -74,6 +74,7 @@ TEST(TakeoverReadiness, OnlyASoftwareRestartWithoutAFaultIsPlanned) {
     EXPECT_EQ(TakeoverReadiness::classify(3, R::none), Restart::planned);            // update, restart button
     EXPECT_EQ(TakeoverReadiness::classify(3, R::bluetoothApply), Restart::planned);
     EXPECT_EQ(TakeoverReadiness::classify(3, R::settingsRestore), Restart::planned);
+    EXPECT_EQ(TakeoverReadiness::classify(3, R::setupReenter), Restart::planned); // the owner asked for Wi-Fi setup (R2-07)
     for (R fault : {R::loopStall, R::wifiLost, R::brokerLost, R::networkDead, R::updateStuck, R::bluetoothSilent, R::controlFault})
         EXPECT_EQ(TakeoverReadiness::classify(3, fault), Restart::unexpected) << SupervisorPolicy::name(fault);
     for (int reset : {0, 4, 5, 6, 7}) EXPECT_EQ(TakeoverReadiness::classify(reset, R::none), Restart::unexpected) << reset; // panic, watchdogs

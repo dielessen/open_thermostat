@@ -69,7 +69,7 @@ const telemetry={reception:{state:'classic_reports_received'},transport:{enabled
    // An arbitrarily slow catalogue must not delay the actual test controls.
    holdReference=true;releaseReference=undefined;
    await page.evaluate(()=>loadNativePage('boiler_trial'));
-   await page.locator('[data-test-prepare]').waitFor();
+   await page.locator('#boiler-test [data-workflow-title]').waitFor(); // the installer check (rc.3: no heat controls)
    await page.waitForFunction(()=>document.querySelector('script[src="/ems-metadata.js"]'));
    await new Promise((resolve,reject)=>{const until=Date.now()+5000;const poll=()=>releaseReference?resolve():Date.now()>until?reject(Error('reference request missing')):setTimeout(poll,10);poll();});
    const beforeLeaving=requests.length;

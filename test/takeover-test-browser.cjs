@@ -1,5 +1,7 @@
 // Real shipped Rooms page with simulated HTTP: the guided "Boiler test and takeover" (rc.2, TakeoverTest::json()),
 // a new installation in active mode waiting for the takeover, the optional trial run, EN at 1280 and NL at phone width.
+// rc.3: the one boiler test remembers itself (passed, marked by the owner, not needed, never run, ended by a restart),
+// and an old thermostat is mentioned only when the E32 ever heard another controller (active.thermostat_seen).
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html');
@@ -63,10 +65,16 @@ const lines=list=>list.evaluate(ol=>[...ol.children].map(li=>[li.className.repla
   assert.equal(await page.locator('#heating-plan [data-heating-readiness]').isVisible(),false);
   const fresh=await lines(list);
   assert.deepEqual(fresh.map(l=>l[0]),['idle','idle','idle','idle','idle','idle']);
-  assert.deepEqual(fresh.map(l=>l[1]),en?['Disconnect your old thermostat','Confirm the takeover','Start heating','Hot water while heating','Stop heating','Done']
-   :['Koppel je oude thermostaat los','Overname bevestigen','Verwarmen starten','Warm water tijdens verwarmen','Verwarmen stoppen','Klaar']);
-  assert.equal(fresh[0][3],en?'Switch the boiler off, disconnect your old thermostat from the boiler, then switch the boiler back on.'
-   :'Zet de ketel uit, koppel je oude thermostaat los van de ketel en zet de ketel daarna weer aan.');
+  // No thermostat ever heard on the boiler bus: no "old thermostat" in the steps.
+  assert.deepEqual(fresh.map(l=>l[1]),en?['No other thermostat on the boiler','Confirm the takeover','Start heating','Hot water while heating','Stop heating','Done']
+   :['Geen andere thermostaat op de ketel','Overname bevestigen','Verwarmen starten','Warm water tijdens verwarmen','Verwarmen stoppen','Klaar']);
+  assert.equal(fresh[0][3],en?'The E32 listens for 2 minutes that no other thermostat asks the boiler for heat.'
+   :'De E32 luistert 2 minuten of geen andere thermostaat de ketel om warmte vraagt.');
+  assert.equal(fresh[1][3],en?'Confirm that the E32 may control the boiler; from then on it does.':'Bevestig dat de E32 de ketel mag regelen; vanaf dan doet hij dat.');
+  assert.match(await page.locator('#heating-plan [data-heating-active-state]').innerText(),en?/until you confirm that it may control the boiler/:/tot je bevestigt dat hij de ketel mag regelen/);
+  assert.equal(await verdict.evaluate(v=>v.className),'hp-verdict hp-verdict--idle');
+  assert.equal(await button('mark').innerText(),en?'I have already done this test':'Ik heb deze test al gedaan');
+  assert.equal(await button('unmark').isVisible(),false);
   assert.equal(fresh[3][3],en?'Open a hot tap for 3 minutes. Hot water goes first, then heating resumes.':'Open een warme kraan 3 minuten. Warm water gaat voor, daarna gaat het verwarmen verder.');
   assert.equal(await button('start').isVisible(),true);
   assert.equal(await button('stop').isVisible(),false);
@@ -78,12 +86,12 @@ const lines=list=>list.evaluate(ol=>[...ol.children].map(li=>[li.className.repla
   const why=box.locator('[data-heating-test-why]');
   assert.equal(await why.innerText(),en?'No other thermostat was found on the boiler bus, so you can go straight to the boiler test.'
    :'Er is geen andere thermostaat op de ketelbus gevonden, dus je kunt meteen naar de keteltest.');
-  // Start: one POST, then the first step listens.
+  // Start: a dialog (stay near the boiler; accepted), one POST, then the first step listens.
   await Promise.all([page.waitForResponse(r=>r.url().endsWith('/takeover-test')),button('start').click()]);
   assert.deepEqual(posts.filter(([p])=>p.endsWith('takeover-test')).map(([,b])=>b),[{action:'start'}]);
   await show(withTest(running('disconnect','listening',{quiet_s:45})));
   let now=await lines(list);
-  assert.deepEqual(now[0],['wait',en?'Disconnect your old thermostat':'Koppel je oude thermostaat los',en?'Waiting':'Wacht',
+  assert.deepEqual(now[0],['wait',en?'No other thermostat on the boiler':'Geen andere thermostaat op de ketel',en?'Waiting':'Wacht',
    en?'Listening: no other thermostat heard for 45 of 120 s.':'Luisteren: al 45 van 120 s geen andere thermostaat gehoord.']);
   assert.equal(await verdict.innerText(),en?'Test running: step 1 of 5.':'Test loopt: stap 1 van 5.');
   assert.equal(await box.locator('[data-heating-test-choices]').isVisible(),false);
@@ -121,7 +129,7 @@ const lines=list=>list.evaluate(ol=>[...ol.children].map(li=>[li.className.repla
   // Passed: the result is kept and shown, with its time.
   await show(withTest({state:'passed',at:1762077600,steps:steps({disconnect:'pass',confirm:'pass',start:'pass',hot_water:'pass',stop:'pass'}),reason:null},
    {active:{...waiting,state:'active',awaiting_confirmation:false,confirmation:{age_s:900,restored:false},taken_over_before:true}}));
-  assert.match(await verdict.innerText(),en?/^Passed\. The E32 now controls your boiler\. \(.+\)$/:/^Geslaagd\. De E32 regelt nu je ketel\. \(.+\)$/);
+  assert.match(await verdict.innerText(),en?/^Last test: passed on .+\.$/:/^Laatste test: geslaagd op .+\.$/);
   now=await lines(list);
   assert.deepEqual(now.map(l=>l[0]),['pass','pass','pass','pass','pass','pass']);
   assert.equal(now[5][3],en?'The E32 now controls your boiler. The test temperature has ended; the week program continues.'
@@ -166,7 +174,8 @@ const lines=list=>list.evaluate(ol=>[...ol.children].map(li=>[li.className.repla
   assert.equal(now[2][3],en?"The burner did not start within 10 minutes. Check that the boiler's heating switch is on and that it shows no fault."
    :'De brander ging niet binnen 10 minuten aan. Controleer of de verwarmingsschakelaar van de ketel aan staat en of hij geen storing toont.');
   assert.equal(await box.locator('[data-heating-test-abort-steps]').isVisible(),false);
-  await show(withTest({state:'stopped',at:1762077600,steps:steps({disconnect:'pass',confirm:'pass',start:'pass',hot_water:'fail'}),reason:'foreign_controller'}));
+  await show(withTest({state:'stopped',at:1762077600,steps:steps({disconnect:'pass',confirm:'pass',start:'pass',hot_water:'fail'}),reason:'foreign_controller'},
+   {active:{...waiting,thermostat_seen:true}})); // a foreign controller: the E32 keeps that it heard one
   assert.equal(await verdict.evaluate(v=>v.className),'hp-verdict hp-verdict--stopped');
   assert.equal((await lines(list))[3][3],en?'Another thermostat asked the boiler for heat. Disconnect it from the boiler.':'Een andere thermostaat vroeg de ketel om warmte. Koppel hem los van de ketel.');
   const abort=box.locator('[data-heating-test-abort-steps]');
@@ -174,6 +183,89 @@ const lines=list=>list.evaluate(ol=>[...ol.children].map(li=>[li.className.repla
   assert.match(await abort.innerText(),en?/Stop and give control back to your thermostat:[\s\S]*Give control back to my thermostat[\s\S]*reconnect your old thermostat/
    :/Stop en geef de regeling terug aan je thermostaat:[\s\S]*Regeling teruggeven aan mijn thermostaat[\s\S]*sluit je oude thermostaat weer/);
   assert.equal(await page.locator('#heating-plan [data-heating-handback]').isVisible(),true);
+  assert.match(await verdict.innerText(),en?/^Last test: stopped by a safety rule on .+\. Give control back to your thermostat\.$/
+   :/^Laatste test: gestopt door een veiligheidsregel op .+\. Geef de regeling terug aan je thermostaat\.$/);
+  // The same safety stop without a past thermostat (it cannot be foreign_controller then): neutral steps, no reconnecting.
+  await show(withTest({state:'stopped',at:1762077600,steps:steps({disconnect:'pass',confirm:'pass',start:'fail'}),reason:'flow_above_limit'}));
+  assert.match(await abort.innerText(),en?/^Stop E32 control:\s*Press “Stop E32 control”, or switch the boiler off\.\s*Check hot water/
+   :/^Regeling door de E32 stoppen:\s*Druk op “Regeling door de E32 stoppen”, of zet de ketel uit\.\s*Controleer het warme water/);
+  assert.doesNotMatch(await abort.innerText(),en?/thermostat/:/thermostaat/);
+  assert.match(await verdict.innerText(),en?/Stop E32 control and check the boiler\.$/:/Stop de regeling door de E32 en controleer de ketel\.$/);
+  // rc.3: the test remembers itself. Never run: "Not run yet", start, and "I have already done this test".
+  const owned={active:{...waiting,state:'active',awaiting_confirmation:false,confirmation:{age_s:900,restored:false},taken_over_before:true}};
+  const kept=o=>({...idle,summary:'never',flow_c:null,marked:false,marked_at:null,...o});
+  await show(withTest(kept()));
+  assert.equal(await verdict.innerText(),en?'Not run yet.':'Nog niet uitgevoerd.');
+  assert.equal(await button('start').innerText(),en?'Start the boiler test':'Keteltest starten');
+  assert.equal(await button('mark').isVisible(),true);
+  assert.equal(await box.locator('[data-heating-test-flow]').isVisible(),false);
+  // Marking it: a dialog (accepted), one POST; the E32 keeps it.
+  posts.length=0;
+  await Promise.all([page.waitForResponse(r=>r.url().endsWith('/takeover-test')),button('mark').click()]);
+  assert.deepEqual(posts,[['/config/heating/takeover-test',{action:'mark_done'}]]);
+  await box.locator('[data-heating-test-message]').getByText(en?'Saved: marked as done by you.':'Opgeslagen: door jou gemarkeerd als gedaan.').waitFor();
+  // Marked: the owner's mark with its date, never a pass; folded; undo, or run the test anyway.
+  await show(withTest(kept({summary:'marked',marked:true,marked_at:1762180000})));
+  assert.match(await verdict.innerText(),en?/^Marked as done by you on .+\. This is your own mark, not a test the E32 measured\.$/
+   :/^Door jou gemarkeerd als gedaan op .+\. Dit is je eigen markering, geen test die de E32 heeft gemeten\.$/);
+  assert.equal(await verdict.evaluate(v=>v.className),'hp-verdict hp-verdict--idle');
+  assert.equal(await box.locator('[data-heating-test-steps]').evaluate(d=>d.open),false);
+  assert.equal(await box.locator('[data-heating-test-intro]').isVisible(),false);
+  assert.deepEqual((await lines(list)).map(l=>l[0]),['idle','idle','idle','idle','idle','idle'],'a mark passes no step');
+  assert.equal(await button('start').innerText(),en?'Run the test anyway':'Test toch uitvoeren');
+  assert.equal(await button('start').getAttribute('class'),'btn btn-outline-primary');
+  assert.equal(await button('mark').isVisible(),false);
+  assert.equal(await button('unmark').innerText(),en?'Undo my mark':'Mijn markering ongedaan maken');
+  posts.length=0;
+  await Promise.all([page.waitForResponse(r=>r.url().endsWith('/takeover-test')),button('unmark').click()]);
+  assert.deepEqual(posts,[['/config/heating/takeover-test',{action:'unmark'}]]);
+  await box.locator('[data-heating-test-message]').getByText(en?'Your mark is undone.':'Je markering is ongedaan gemaakt.').waitFor();
+  // Not needed: the E32 controlled this boiler before (as the owner's E32 since 1 Nov): folded, run anyway, no mark.
+  await show(withTest(kept({summary:'not_needed'}),owned));
+  assert.equal(await verdict.innerText(),en?'Not needed: the E32 has controlled this boiler before.':'Niet nodig: de E32 heeft deze ketel al eerder geregeld.');
+  assert.equal(await box.locator('[data-heating-test-steps]').evaluate(d=>d.open),false);
+  assert.equal(await button('start').innerText(),en?'Run the test anyway':'Test toch uitvoeren');
+  assert.equal(await button('mark').isVisible(),false);
+  assert.equal(await order(),'active,rooms,test');
+  // Passed and kept across restarts and updates: its date and the flow used.
+  await show(withTest({...taken,summary:'passed',flow_c:52,marked:false,marked_at:null},owned));
+  assert.match(await verdict.innerText(),en?/^Last test: passed on .+\.$/:/^Laatste test: geslaagd op .+\.$/);
+  assert.equal(await box.locator('[data-heating-test-flow]').innerText(),en?'Highest water temperature the E32 asked during the test: 52 °C.'
+   :'Hoogste watertemperatuur die de E32 tijdens de test vroeg: 52 °C.');
+  assert.equal(await button('mark').isVisible(),false);
+  assert.equal(await button('unmark').isVisible(),false);
+  // A test that was running at a restart reads back as ended by it: no safety steps; start again or mark it.
+  await show(withTest(kept({state:'stopped',at:1762077600,steps:steps({disconnect:'pass',confirm:'fail'}),reason:'e32_restarted',summary:'stopped'})));
+  assert.match(await verdict.innerText(),en?/^Last test: ended on .+ because the E32 restarted\. Start it again when you are ready\.$/
+   :/^Laatste test: beëindigd op .+ omdat de E32 herstartte\. Start hem opnieuw als je klaar bent\.$/);
+  assert.equal(await abort.isVisible(),false);
+  assert.equal((await lines(list))[1][3],en?'The E32 restarted during the test.':'De E32 is tijdens de test herstart.');
+  assert.equal(await button('mark').isVisible(),true);
+  // An old thermostat in the words only once the E32 heard another controller: the steps, the takeover, the
+  // hand-back and the note after new firmware.
+  await show(withTest(kept(),{active:{...waiting,thermostat_seen:true}}));
+  const said=await lines(list);
+  assert.equal(said[0][1],en?'Disconnect your old thermostat':'Koppel je oude thermostaat los');
+  assert.equal(said[0][3],en?'Switch the boiler off, disconnect your old thermostat from the boiler, then switch the boiler back on.'
+   :'Zet de ketel uit, koppel je oude thermostaat los van de ketel en zet de ketel daarna weer aan.');
+  assert.equal(said[1][3],en?'Confirm that your old thermostat is disconnected; the E32 then controls the boiler.':'Bevestig dat je oude thermostaat is losgekoppeld; daarna regelt de E32 de ketel.');
+  assert.match(await page.locator('#heating-plan [data-heating-active-state]').innerText(),en?/your old thermostat is disconnected/:/je oude thermostaat is losgekoppeld/);
+  const notes=page.locator('#heating-plan [data-heating-active-notes]'),handbackLabel=page.locator('#heating-plan [data-heating-handback]');
+  const reconfirm=seen=>({...owned.active,state:'awaiting_confirmation',awaiting_confirmation:true,confirmation:null,reconfirm_required:true,thermostat_seen:seen});
+  await show(withTest(taken,{active:reconfirm(true)}));
+  assert.equal(await notes.innerText(),en?'New firmware: the E32 controlled your boiler before. Check that your old thermostat is still disconnected, then confirm the takeover again.'
+   :'Nieuwe firmware: de E32 regelde je ketel al. Controleer dat je oude thermostaat nog steeds is losgekoppeld en bevestig de overname opnieuw.');
+  assert.equal(await handbackLabel.innerText(),en?'Give control back to my thermostat (the E32 first asks the boiler for no heat for a minute)'
+   :'Regeling teruggeven aan mijn thermostaat (de E32 vraagt de ketel eerst een minuut geen warmte)');
+  await show(withTest(taken,{active:reconfirm(false)}));
+  assert.equal(await notes.innerText(),en?'New firmware: the E32 controlled your boiler before. Confirm again that the E32 may control the boiler.'
+   :'Nieuwe firmware: de E32 regelde je ketel al. Bevestig opnieuw dat de E32 de ketel mag regelen.');
+  assert.equal(await handbackLabel.innerText(),en?'Stop E32 control (the E32 first asks the boiler for no heat for a minute)'
+   :'Regeling door de E32 stoppen (de E32 vraagt de ketel eerst een minuut geen warmte)');
+  assert.equal(await page.locator('#heating-plan [data-heating-active-intro]').innerText(),en?'Lets the E32 control the boiler. You switch over once, while you are at home and can check the boiler.'
+   :'Hiermee regelt de E32 de ketel. Je stapt één keer over, terwijl je thuis bent en de ketel kunt controleren.');
+  await show(withTest(taken,owned));
+  assert.equal(await page.locator('#heating-plan [data-heating-mode-text]').innerText(),en?'Active control: the E32 controls your boiler.':'Actieve regeling: de E32 regelt je ketel.');
   // The trial run first is an explicit choice: the plan goes to shadow mode, nothing else.
   await show(status);
   posts.length=0;

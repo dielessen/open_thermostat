@@ -929,8 +929,9 @@ class E32RoomFlow:
         persons = {vol.Optional("persons", description={"suggested_value": d["persons"] or None}): persons_selector()}
         if self._e32_away_supported():
             away_low, away_high = (shown(limit, unit) for limit in room_away.LIMITS_CENTI_C)
-            persons[vol.Optional("away_temperature", description={"suggested_value": d["away_temperature"]})] =                 selector.NumberSelector({"min": away_low, "max": away_high, "step": 0.5 if unit == CELSIUS else 0.1,
-                                         "mode": "box", "unit_of_measurement": unit})
+            persons[vol.Optional("away_temperature", description={"suggested_value": d["away_temperature"]})] = (
+                selector.NumberSelector({"min": away_low, "max": away_high, "step": 0.5 if unit == CELSIUS else 0.1,
+                                         "mode": "box", "unit_of_measurement": unit}))
         if own:
             sources["exclude_entities"] = own
         fields = {

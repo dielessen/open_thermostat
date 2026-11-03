@@ -1588,7 +1588,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/e32_room_flow.py",
-          "sha256": "a85463dabed05180e95a7421b982b85db234eaceb16a0f20afbe694cd1ff1a3e"
+          "sha256": "497a44e5ad2533e58ba8d3892d59a5bad5b3b3bc77cdbffc95cc074c0006a5c7"
         },
         {
           "path": "ha/tests_native/test_e32_room_flow.py",

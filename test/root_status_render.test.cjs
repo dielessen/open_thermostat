@@ -88,6 +88,7 @@ test('old firmware and invalid compiled capability claims remain unknown and saf
 });
 test('managed view separates actual boiler units, computed demand and inhibited output',()=>{
  const p=rootPage();p.updateRooms(managed());const html=p.main.innerHTML;
+ assert.match(html,/data-dashboard-wanting>Badkamer: 19[.,]3 → 21[.,]0 °C</,'the room that wants heat, under the headline');
  for(const text of ['43.2','1.4','0.0','-5.5','19.3','21.0','Badkamer','1 ruimte vraagt warmte','Geblokkeerd','geen bewijs dat de ketel die kreeg'])assert.ok(html.includes(text),text);
  // The read-back setpoint is unreliable on Classic boilers and stays off the dashboard.
  assert.ok(!html.includes('55.0'),'read-back setpoint is not a dashboard value');

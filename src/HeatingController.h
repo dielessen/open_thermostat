@@ -166,11 +166,13 @@ public:
         loadFlowSettings();
         overrides_.restore(RoomOverridesNvs::read()); // waits for a trusted clock before it applies
         // The takeover readiness counters; the stable time only after a planned restart.
+        bool readinessThermostat = false;
         {
             control::TakeoverReadiness::Stored stored;
             const bool found = ReadinessNvs::read(stored);
             readiness_.restore(found ? &stored : nullptr, control::TakeoverReadiness::classify(
                 int(esp_reset_reason()), diagnostics::blackBox.previousRestart()));
+            readinessThermostat = found && control::TakeoverReadiness::thermostatSeenIn(stored);
         }
         // What was learned (control/LearnedState.h), after the plan and the tuning, before the first step.
         {
@@ -192,7 +194,12 @@ public:
         // confirmation is then a problem for Home Assistant, on a new E32 only the next step.
         ownedBefore_ = HeatingNoteNvs{"owned"}.read() == "1";
         if (activeGuard_.confirmed() || activeGuard_.reconfirmPending()) markOwned();
-        takeoverTest_.restore(HeatingNoteNvs{"takeover_test"}.read()); // the guided boiler test's last result
+        // The boiler test's record (rc.3: its last result, the owner's mark, a past thermostat). A
+        // thermostat period in the stored readiness window is the same fact from before rc.3.
+        testRecord_ = HeatingNoteNvs{"takeover_test"}.read();
+        takeoverTest_.restore(testRecord_);
+        if (readinessThermostat) takeoverTest_.sawThermostat();
+        saveTest();
         mqtt_.setBoilerOutput([this] { return boilerOutput_.load(); });
         // Radiator valves (beta.24, off until configured): nothing is subscribed or sent without valves.
         trv_.setConfig(TrvNvs::read());
@@ -357,9 +364,12 @@ public:
         handover_.sync(activeGuard_.confirmed(), activeGuard_.reconfirmPending());
         return nullptr;
     }
-    // POST /config/heating/takeover-test {"action":"start"|"stop"|"skip"}: the guided boiler test
-    // (control/TakeoverTest.h). It starts on an active plan with the first active room that has a
-    // fresh reading; "skip" passes over the hot-water step only.
+    // POST /config/heating/takeover-test {"action":"start"|"stop"|"skip"|"mark_done"|"unmark"}: the
+    // one boiler test (control/TakeoverTest.h). It starts on an active plan with the first active
+    // room that has a fresh reading, never while a boiler settings write or an attended bus check
+    // (Boiler page) holds the bus; "skip" passes over the hot-water step only. "mark_done": the
+    // owner's "I have already done this test", kept as a mark (never a pass); "unmark" undoes it.
+    // Both are stored before they are answered (save_unconfirmed: nothing changed).
     const char* takeoverTestCommand(const cJSON* root) {
         const cJSON* a = cJSON_GetObjectItemCaseSensitive(root, "action");
         if (!cJSON_IsObject(root) || cJSON_GetArraySize(root) != 1 || !cJSON_IsString(a)) return "invalid_request";
@@ -367,12 +377,21 @@ public:
         const auto now = bleReceiptClock();
         if (action == "stop") takeoverTest_.abort(now);
         else if (action == "skip") { if (!takeoverTest_.skip(now)) return "not_skippable"; }
+        else if (action == "mark_done" || action == "unmark") {
+            const auto before = takeoverTest_;
+            if (action == "unmark") { if (!takeoverTest_.unmark()) return "not_marked"; }
+            else if (const char* refused = takeoverTest_.markDone(networkTimeTrusted ? static_cast<uint32_t>(std::time(nullptr)) : 0)) return refused;
+            if (!saveTest()) { takeoverTest_ = before; return "save_unconfirmed"; }
+            return nullptr;
+        }
         else if (action != "start") return "invalid_request";
         else {
             const auto& plan = roomEngine_.plan();
             if (!board::emsActiveHeatAllowed) return "active_mode_not_released";
             if (plan.mode != control::RoomPlan::Mode::active) return "plan_not_active";
             if (takeoverTest_.running()) return "test_running";
+            // The attended test's rule: never while a settings write, a read or a zero check holds the bus.
+            if (ems_.boilerTestActive() || ems_.boilerSettingsActive()) return "boiler_busy";
             const control::RoomPlan::Room* room = nullptr;
             for (size_t i = 0; i < plan.rooms.size() && !room; ++i)
                 if (plan.rooms[i].state == control::RoomDemand::State::active && roomEngine_.freshTemperature(i, now)) room = &plan.rooms[i];
@@ -380,10 +399,10 @@ public:
             takeoverTest_.start(now, room->id, networkTimeTrusted ? static_cast<uint32_t>(std::time(nullptr)) : 0);
         }
         if (takeoverTest_.takeTargetChange()) applyTestTarget(now);
-        if (!takeoverTest_.running()) HeatingNoteNvs{"takeover_test"}.write(takeoverTest_.record());
+        saveTest();
         return nullptr;
     }
-    cJSON* takeoverTestJson() const { return takeoverTest_.json(bleReceiptClock()); }
+    cJSON* takeoverTestJson() const { return takeoverTest_.json(bleReceiptClock(), ownedBefore_); }
     // Radiator valves (GET/POST /config/heating/trv): the record, its features and the live status.
     std::string trvJson() const {
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(trv_.config().json().c_str()), cJSON_Delete);
@@ -460,6 +479,9 @@ public:
         cJSON_AddBoolToObject(active, "confirmation_stored", handover_.stored());
         cJSON_AddBoolToObject(active, "reconfirm_stored", handover_.pending());
         cJSON_AddBoolToObject(active, "taken_over_before", ownedBefore_);
+        // rc.3: the E32 ever heard another controller ask the boiler for heat (kept in the boiler
+        // test's record); the pages and Home Assistant mention an old thermostat only then.
+        cJSON_AddBoolToObject(active, "thermostat_seen", takeoverTest_.thermostatSeen());
         // Today's boiler maximum: its own 0x16 heating limit, the active ceiling.
         cJSON* limit = cJSON_AddObjectToObject(active, "boiler_limit");
         if (limitC_) cJSON_AddNumberToObject(limit, "flow_c", *limitC_); else cJSON_AddNullToObject(limit, "flow_c");
@@ -485,7 +507,7 @@ public:
         if (!readiness || !cJSON_AddItemToObject(root, "readiness", readiness)) { cJSON_Delete(readiness); cJSON_Delete(root); return nullptr; }
         if (!newPlan_.addJson(root, planStored_)) { cJSON_Delete(root); return nullptr; }
         // The guided boiler test beside it, so Home Assistant gets it with the readiness topic.
-        cJSON* test = takeoverTest_.json(bleReceiptClock());
+        cJSON* test = takeoverTest_.json(bleReceiptClock(), ownedBefore_);
         if (!test || !cJSON_AddItemToObject(readiness, "takeover_test", test)) { cJSON_Delete(test); cJSON_Delete(root); return nullptr; }
         cJSON* active = activeHeatJson();
         if (!active || !cJSON_AddItemToObject(root, "active", active)) { cJSON_Delete(active); cJSON_Delete(root); return nullptr; }
@@ -861,6 +883,24 @@ private:
     control::NewPlanDefault newPlan_;            // a new plan's route from the boiler bus (rc.2)
     bool ownedBefore_ = false;                   // the E32 owned the boiler once (NVS "owned")
     void markOwned() { if (!ownedBefore_) { ownedBefore_ = true; HeatingNoteNvs{"owned"}.write("1"); } }
+    std::string testRecord_;                     // the boiler test's record as last stored
+    // Stores the boiler test's record when it changed (each step, the end, a mark, the first foreign
+    // controller), gated like an optional record (HeatingNoteNvs::writeGated). A refused write keeps
+    // RAM and is tried again at the next change; false: not stored.
+    bool saveTest() {
+        std::string record = takeoverTest_.record();
+        if (record.empty()) { // nothing to keep: none stored, or the idle record replaces the undone mark
+            if (testRecord_.empty()) return true;
+            record = control::TakeoverTest::emptyRecord();
+        }
+        if (record == testRecord_) return true;
+        if (!HeatingNoteNvs{"takeover_test"}.writeGated(record)) {
+            DBGLOGFI(log_, logFeature_, "Boiler test record not saved (NVS short of room or write failed); kept in RAM\n");
+            return false;
+        }
+        testRecord_ = record;
+        return true;
+    }
     std::atomic<bool> boilerOutput_{false}; // activeGuard_.outputActive() of the last step, for other tasks
     control::TrvControl trv_;                 // radiator valves via Zigbee2MQTT (beta.24; harmless while unused)
     std::vector<control::TrvControl::Room> trvRooms_; // the last step's room views, for the status
@@ -1134,10 +1174,11 @@ private:
         activePostedAt_ = now;
         limitC_ = ems.limitC; limitAtMs_ = ems.limitAtMs; limitReads_ = ems.limitReads;
         if (activeGuard_.owning()) markOwned();
-        stepTakeoverTest(now, ems);
         // A new plan: a trial run beside a thermostat that still asks the boiler, else active.
         const bool foreign = ems.foreign && ems.foreign->address != control::ActiveHeatGuard::serviceAddress
             && ems.foreign->address != control::ActiveHeatGuard::boilerAddress;
+        if (foreign && takeoverTest_.sawThermostat()) saveTest(); // kept: texts may mention the old thermostat
+        stepTakeoverTest(now, ems, c.send && c.flowC ? std::optional<uint8_t>(c.flowC) : std::nullopt);
         newPlan_ = control::NewPlanDefault::decide(foreign, activeGuard_.listenedMs(now), board::emsActiveHeatAllowed);
         if (!planStored_ && roomEngine_.plan().mode != newPlan_.mode) {
             auto next = roomEngine_.plan();
@@ -1147,7 +1188,7 @@ private:
     }
     // The guided boiler test on the guard's and the boiler's view. Its temporary override of the
     // test room stays in RAM: a restart ends the test and the room follows its program again.
-    void stepTakeoverTest(uint64_t now, const ems::EmsController::ActiveHeatView& ems) {
+    void stepTakeoverTest(uint64_t now, const ems::EmsController::ActiveHeatView& ems, std::optional<uint8_t> requestC) {
         if (!takeoverTest_.running()) return;
         const auto& plan = roomEngine_.plan();
         const auto* room = plan.find(takeoverTest_.room());
@@ -1161,6 +1202,7 @@ private:
             in.boilerHeardAtMs = ems.boilerHeardAtMs;
             in.confirmed = activeGuard_.confirmed(); in.owning = activeGuard_.owning();
             in.blocked = activeGuard_.warning(W::foreignController); in.released = activeGuard_.released();
+            in.busy = ems_.boilerTestActive() || ems_.boilerSettingsActive(); in.requestC = requestC;
             in.warning = activeGuard_.warning(W::transmitFailed) ? "transmit_failed" : activeGuard_.warning(W::boilerNoResponse)
                 ? "boiler_no_response" : activeGuard_.warning(W::measurementLost) ? "measurement_lost" : nullptr;
             in.burnerOn = ems.burnerOn; in.hotWater = ems.hotWater; in.flowCentiC = ems.flowCentiC;
@@ -1170,7 +1212,7 @@ private:
             takeoverTest_.step(now, in);
         }
         if (takeoverTest_.takeTargetChange()) applyTestTarget(now);
-        if (!takeoverTest_.running()) HeatingNoteNvs{"takeover_test"}.write(takeoverTest_.record());
+        saveTest(); // each step: a restart during the test reads back as stopped
     }
     // The test target as a timed override with an end time (never the week program); none: it ends.
     void applyTestTarget(uint64_t now) {

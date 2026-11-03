@@ -22,8 +22,17 @@ marked as having delivered a value (REPORTED), and never at setup: only once
 the E32's metrics have arrived for RETIRED_GRACE_S without a value for it
 (note_metrics). A record from before the REPORTED mark existed whose value
 still comes is thus marked and kept, never removed. Entities that are still
-provided but appear only once their data arrives (the shadow comparison, the
-predicted heating start, the definition v2 counters) are never removed here.
+provided but appear only once their data arrives (the predicted heating start,
+the definition v2 counters) are never removed here.
+
+The shadow comparison (heating_link.SHADOW_SENSORS) compares the E32 with a
+thermostat on the boiler bus, which only means something in the trial run
+(shadow mode) while such a thermostat is heard. Once the E32 controls the
+boiler (mode active) and reports no thermostat to compare with, its records
+go, like the RETIRED ones: only this entry's, only while untouched, and never
+at setup, only once that status has lasted RETIRED_GRACE_S
+(note_heating_status). A customised record is kept. Back in the trial run
+with a thermostat on the bus, heating_link.wanted_sensors creates them again.
 
 Removing a record keeps the Recorder history and the long-term statistics of
 its entity_id; the entity comes back under the same entity_id (and continues
@@ -255,6 +264,50 @@ def cleanup_retired(hass, entry, prefix, payload):
                      "Their history and long-term statistics are kept", len(removed), ", ".join(sorted(removed)))
     from .metrics_reports import reconcile_migration_issues
     reconcile_migration_issues(hass, entry, prefix)
+    return removed
+
+
+def comparison_unique_ids(prefix):
+    """The unique IDs of the shadow comparison sensors (heating_link.ShadowSensor)."""
+    from .heating_link import SHADOW_SENSORS
+    return {f"{prefix}_hub_shadow_{key}" for key in SHADOW_SENSORS}
+
+
+def comparison_over(status):
+    """The E32 controls the boiler (mode active) and reports no thermostat to compare with."""
+    from .heating_link import shadow_has_thermostat
+    return type(status) is dict and status.get("mode") == "active" and not shadow_has_thermostat(status)
+
+
+def note_heating_status(hass, entry, prefix, status):
+    """Every heating status (heating_link): once comparison_over has held for RETIRED_GRACE_S,
+    remove the untouched comparison records (once per such stretch; a new stretch starts over)."""
+    state = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if state is None:
+        return
+    if not comparison_over(status):
+        state.pop("comparison_watch", None)
+        return
+    watch = state.setdefault("comparison_watch", {"since": _clock(), "done": False})
+    if watch["done"] or _clock() - watch["since"] < RETIRED_GRACE_S:
+        return
+    watch["done"] = True
+    cleanup_comparison(hass, entry, prefix)
+
+
+def cleanup_comparison(hass, entry, prefix):
+    """Remove this entry's untouched shadow comparison records; returns their entity IDs."""
+    registry = er.async_get(hass)
+    ids = comparison_unique_ids(prefix)
+    removed = []
+    for record in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if record.platform == DOMAIN and record.unique_id in ids and untouched(record):
+            registry.async_remove(record.entity_id)
+            removed.append(record.entity_id)
+    if removed:
+        _LOGGER.info("Removed %d OpenThermostat comparison entities (the E32 controls the boiler and hears no "
+                     "thermostat to compare with): %s. Their history and long-term statistics are kept; they "
+                     "come back in a trial run with a thermostat on the bus", len(removed), ", ".join(sorted(removed)))
     return removed
 
 

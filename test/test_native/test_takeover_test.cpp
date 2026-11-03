@@ -5,7 +5,10 @@
 #include "control/HttpAccessPolicy.h"
 #include "control/NewPlanDefault.h"
 #include "control/RoomPlan.h"
+#include "control/ControlPartitionBudget.h"
+#include "control/TakeoverReadiness.h"
 #include "control/TakeoverTest.h"
+#include <cstdio>
 #include <gtest/gtest.h>
 #include <functional>
 #include <memory>
@@ -239,6 +242,7 @@ TEST(TakeoverTest, AllStepsPass) {
     EXPECT_NE(s.json().find(R"("phase":"waiting_confirmation")"), std::string::npos);
     s.confirm();
     EXPECT_EQ(s.test.mark(Step::confirm), Mark::pass);
+    s.in.requestC = 52; // the E32's flow request from here on (the record keeps the highest)
     // Start: 1 degC above the room (20.4 -> 21.4), as a temporary override.
     ASSERT_EQ(s.test.current(), Step::start);
     s.run(10 * second);
@@ -269,9 +273,9 @@ TEST(TakeoverTest, AllStepsPass) {
     // Done: the override ends, the program continues; the result is kept.
     EXPECT_EQ(s.test.target(), std::nullopt);
     EXPECT_EQ(s.targets.back(), std::nullopt);
-    EXPECT_EQ(s.test.record(), "1762070400 ppppp p -");
+    EXPECT_EQ(s.test.record(), "1762070400 ppppp p - 52 - -");
     EXPECT_EQ(s.json(), R"({"state":"passed","at":1762070400,"steps":{"disconnect":"pass","confirm":"pass","start":"pass",)"
-                        R"("hot_water":"pass","stop":"pass"},"reason":null})");
+                        R"("hot_water":"pass","stop":"pass"},"reason":null,"summary":"passed","flow_c":52,"marked":false,"marked_at":null})");
     TakeoverTest kept;
     ASSERT_TRUE(kept.restore(s.test.record()));
     EXPECT_EQ(kept.state(), State::passed);
@@ -528,6 +532,232 @@ TEST(TakeoverTest, RecordsAndRunningStatus) {
     s.test.start(s.now, "living", 0);
     EXPECT_EQ(s.test.mark(Step::disconnect), Mark::none);
     EXPECT_EQ(s.test.reason(), "");
+}
+
+// --- rc.3: the one boiler test remembers itself ------------------------------------------------------------------------
+
+TEST(BoilerTestRecord, ARc2RecordIsReadAndRewrittenWithTheNewFields) {
+    // rc.2 kept "<utc> <marks> <state> <reason>"; rc.3 reads it and adds flow, mark and thermostat.
+    TakeoverTest t;
+    ASSERT_TRUE(t.restore("1762070400 ppppp p -"));
+    EXPECT_EQ(t.state(), State::passed);
+    EXPECT_EQ(t.flowC(), 0);
+    EXPECT_FALSE(t.marked());
+    EXPECT_FALSE(t.thermostatSeen());
+    EXPECT_EQ(t.record(), "1762070400 ppppp p - 0 - -");
+    // rc.2 after a rollback reads the first four fields of an rc.3 record (it ignores the rest).
+    char marks[6] = {}, state = 0, reason[25] = {};
+    unsigned long at = 0;
+    EXPECT_EQ(std::sscanf("1762070400 ppfnn f no_burner 55 - t", "%lu %5s %c %24s", &at, marks, &state, reason), 4);
+    EXPECT_EQ(std::string(reason), "no_burner");
+}
+
+TEST(BoilerTestRecord, TheLastResultSurvivesARestartWithTheFlowUsed) {
+    Sim s;
+    s.disconnect(); s.confirm();
+    s.in.requestC = 48;
+    s.run(30 * second);
+    s.in.requestC = 55;
+    s.run(30 * second);
+    s.in.requestC = 50;
+    s.run(10 * minute + 10 * second); // no burner within 10 minutes
+    ASSERT_EQ(s.test.state(), State::failed);
+    EXPECT_EQ(s.test.reason(), "no_burner");
+    EXPECT_EQ(s.test.flowC(), 55);
+    EXPECT_EQ(s.test.record(), "1762070400 ppfnn f no_burner 55 - -");
+    TakeoverTest kept;
+    ASSERT_TRUE(kept.restore(s.test.record()));
+    EXPECT_EQ(kept.state(), State::failed);
+    EXPECT_EQ(kept.reason(), "no_burner");
+    EXPECT_EQ(kept.flowC(), 55);
+    EXPECT_EQ(kept.record(), s.test.record());
+    Json j(kept.json(0), cJSON_Delete);
+    EXPECT_EQ(text(j.get(), "summary"), "failed");
+    EXPECT_DOUBLE_EQ(cJSON_GetObjectItemCaseSensitive(j.get(), "flow_c")->valuedouble, 55);
+    EXPECT_DOUBLE_EQ(cJSON_GetObjectItemCaseSensitive(j.get(), "at")->valuedouble, 1762070400);
+}
+
+TEST(BoilerTestRecord, ATestRunningAtARestartReadsBackAsStopped) {
+    // The record is written at every step; the override was RAM only, so the restart ended the test.
+    Sim s;
+    s.disconnect();
+    ASSERT_EQ(s.test.current(), Step::confirm);
+    EXPECT_EQ(s.test.record(), "1762070400 pnnnn r - 0 - -");
+    TakeoverTest kept;
+    ASSERT_TRUE(kept.restore(s.test.record()));
+    EXPECT_FALSE(kept.running());
+    EXPECT_EQ(kept.state(), State::stopped);
+    EXPECT_EQ(kept.reason(), "e32_restarted");
+    EXPECT_EQ(kept.mark(Step::disconnect), Mark::pass);
+    EXPECT_EQ(kept.mark(Step::confirm), Mark::fail);
+    EXPECT_EQ(kept.mark(Step::start), Mark::none);
+    EXPECT_EQ(kept.record(), "1762070400 pfnnn s e32_restarted 0 - -");
+}
+
+TEST(BoilerTestRecord, MarkedAsDoneIsKeptAsAMarkAndCanBeUndone) {
+    TakeoverTest t;
+    Json never(t.json(0), cJSON_Delete);
+    EXPECT_EQ(text(never.get(), "summary"), "never");
+    EXPECT_EQ(t.markDone(1762180000), nullptr);
+    EXPECT_TRUE(t.marked());
+    EXPECT_EQ(t.state(), State::idle); // a mark, never a measured pass
+    EXPECT_EQ(t.summary(false), std::string("marked"));
+    EXPECT_EQ(t.record(), "0 nnnnn i - 0 1762180000 -");
+    Json marked(t.json(0), cJSON_Delete);
+    EXPECT_EQ(text(marked.get(), "state"), "idle");
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(marked.get(), "marked")));
+    EXPECT_DOUBLE_EQ(cJSON_GetObjectItemCaseSensitive(marked.get(), "marked_at")->valuedouble, 1762180000);
+    // Across a restart.
+    TakeoverTest kept;
+    ASSERT_TRUE(kept.restore(t.record()));
+    EXPECT_TRUE(kept.marked());
+    EXPECT_EQ(kept.markedAt(), 1762180000u);
+    EXPECT_EQ(kept.summary(false), std::string("marked"));
+    // Undo: nothing left to keep; the stored record is replaced by the idle one.
+    EXPECT_TRUE(kept.unmark());
+    EXPECT_FALSE(kept.unmark());
+    EXPECT_EQ(kept.summary(false), std::string("never"));
+    EXPECT_EQ(kept.record(), "");
+    TakeoverTest empty;
+    ASSERT_TRUE(empty.restore(TakeoverTest::emptyRecord()));
+    EXPECT_EQ(empty.state(), State::idle);
+    EXPECT_FALSE(empty.marked());
+    EXPECT_EQ(empty.record(), "");
+    // The clock unknown: a mark without a date.
+    TakeoverTest undated;
+    EXPECT_EQ(undated.markDone(0), nullptr);
+    EXPECT_EQ(undated.record(), "0 nnnnn i - 0 0 -");
+    Json u(undated.json(0), cJSON_Delete);
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(u.get(), "marked")));
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItemCaseSensitive(u.get(), "marked_at")));
+}
+
+TEST(BoilerTestRecord, AMarkBesideAFailedTestAndANewStartReplacesIt) {
+    TakeoverTest t;
+    ASSERT_TRUE(t.restore("1762070400 ppfnn f no_burner 55 - -"));
+    EXPECT_EQ(t.markDone(1762180000), nullptr); // newer than the failure: the owner's word
+    EXPECT_EQ(t.summary(true), std::string("marked"));
+    EXPECT_EQ(t.record(), "1762070400 ppfnn f no_burner 55 1762180000 -");
+    EXPECT_TRUE(t.unmark());
+    EXPECT_EQ(t.summary(false), std::string("failed")); // the measured result again
+    // A start: what the E32 measures replaces the mark.
+    EXPECT_EQ(t.markDone(1762180000), nullptr);
+    t.start(0, "living", 1762190000);
+    EXPECT_FALSE(t.marked());
+    EXPECT_EQ(t.summary(false), std::string("running"));
+    EXPECT_EQ(t.markDone(1762190100), std::string("test_running"));
+    t.abort(10 * second);
+    EXPECT_EQ(t.summary(false), std::string("aborted"));
+    EXPECT_EQ(t.markDone(1762190200), nullptr);
+    // A measured pass needs no mark.
+    TakeoverTest passed;
+    ASSERT_TRUE(passed.restore("1762070400 ppppp p - 52 - -"));
+    EXPECT_EQ(passed.markDone(1762180000), std::string("test_passed"));
+    EXPECT_FALSE(passed.marked());
+    EXPECT_FALSE(passed.unmark());
+}
+
+TEST(BoilerTestRecord, AnInstallationTheE32ControlledBeforeNeedsNoTest) {
+    TakeoverTest never;
+    EXPECT_EQ(never.summary(true), std::string("not_needed"));
+    Json j(never.json(0, true), cJSON_Delete);
+    EXPECT_EQ(text(j.get(), "summary"), "not_needed");
+    EXPECT_EQ(text(j.get(), "state"), "idle");
+    TakeoverTest aborted;
+    ASSERT_TRUE(aborted.restore("1762070400 pannn a owner 0 - -"));
+    EXPECT_EQ(aborted.summary(true), std::string("not_needed"));
+    EXPECT_EQ(aborted.summary(false), std::string("aborted"));
+    // A measured failure or a safety stop stays visible: it says what to check.
+    for (const char* record : {"1762070400 ppfnn f no_burner 0 - -", "1762070400 ppfnn s flow_above_limit 60 - -"}) {
+        TakeoverTest t;
+        ASSERT_TRUE(t.restore(record)) << record;
+        EXPECT_NE(t.summary(true), std::string("not_needed")) << record;
+    }
+    TakeoverTest passed;
+    ASSERT_TRUE(passed.restore("1762070400 ppppp p - 52 - -"));
+    EXPECT_EQ(passed.summary(true), std::string("passed"));
+}
+
+TEST(BoilerTestRecord, APastThermostatIsKept) {
+    TakeoverTest t;
+    EXPECT_FALSE(t.thermostatSeen());
+    EXPECT_TRUE(t.sawThermostat());
+    EXPECT_FALSE(t.sawThermostat()); // once: written only when new
+    EXPECT_EQ(t.record(), "0 nnnnn i - 0 - t");
+    TakeoverTest kept;
+    ASSERT_TRUE(kept.restore(t.record()));
+    EXPECT_TRUE(kept.thermostatSeen());
+    EXPECT_EQ(kept.summary(false), std::string("never"));
+    // A start, an abort or a mark keeps the fact.
+    kept.start(0, "living", 0);
+    EXPECT_TRUE(kept.thermostatSeen());
+    kept.abort(second);
+    EXPECT_EQ(kept.markDone(1762180000), nullptr);
+    EXPECT_EQ(kept.record(), "0 annnn a owner 0 1762180000 t");
+    // Before rc.3: a thermostat period in the stored readiness window is the same fact.
+    using Readiness = heating::control::TakeoverReadiness;
+    Readiness::Stored stored;
+    EXPECT_FALSE(Readiness::thermostatSeenIn(stored));
+    stored.days[4].flags = Readiness::fallbackSeen;
+    EXPECT_FALSE(Readiness::thermostatSeenIn(stored));
+    stored.days[4].flags |= Readiness::thermostatSeen;
+    EXPECT_TRUE(Readiness::thermostatSeenIn(stored));
+    stored.version = 2;
+    EXPECT_FALSE(Readiness::thermostatSeenIn(stored));
+}
+
+TEST(BoilerTestRecord, MalformedRecordsAreRefused) {
+    for (const char* bad : {"1 ppppp p - x - -", "1 ppppp p - 100 - -", "1 ppppp p - -1 - -", "1 ppppp p - 0 abc -", "1 ppppp p - 0 12a -",
+                            "1 ppppp p - 0 - x", "1 pnnnn i - 0 - -", "1 ppppp r - 0", "1 ppppp p - 0 -", "1 ppppp q - 0 - -",
+                            "1 ppppp i -", "1 ppppp r -", "1 ppppp p - 0 99999999999 -"}) {
+        TakeoverTest t;
+        EXPECT_FALSE(t.restore(bad)) << bad;
+        EXPECT_EQ(t.state(), State::idle) << bad;
+        EXPECT_FALSE(t.marked()) << bad;
+    }
+}
+
+TEST(BoilerTestRecord, TheRecordFitsTheSmallNoteOfRc2) {
+    // The same NVS key and bound as rc.2 (a string < 64 bytes: the 3 entries of a handover record),
+    // never among the records erased to make room.
+    TakeoverTest t;
+    ASSERT_TRUE(t.restore("4294967295 ppppf s abcdefghijklmnopqrstuvwx 99 4294967295 t"));
+    EXPECT_EQ(t.record(), "4294967295 ppppf s abcdefghijklmnopqrstuvwx 99 4294967295 t");
+    EXPECT_LT(t.record().size(), 64u);
+    EXPECT_LE(t.record().size(), 59u);
+    using B = heating::control::ControlPartitionBudget;
+    EXPECT_LE(B::reclaimEntries(t.record().size() + 1), B::handoverEntries); // 1 + 2 entries
+    for (const char* key : B::optionalKeys) EXPECT_STRNE(key, "takeover_test");
+}
+
+TEST(BoilerTestSafety, TheAttendedTestsRulesStopTheMergedTest) {
+    // Another controller, a hand-back, the flow ceiling and the stop check (above) stay; and from the
+    // attended test: a boiler settings write or an attended bus check holding the bus ends it.
+    Sim busy;
+    busy.disconnect(); busy.confirm();
+    busy.in.busy = true;
+    busy.run(10 * second);
+    EXPECT_EQ(busy.test.state(), State::stopped);
+    EXPECT_EQ(busy.test.reason(), "boiler_busy");
+    EXPECT_EQ(busy.test.target(), std::nullopt);
+    // Before the E32 owns the boiler the bus check may run (the takeover waits for it).
+    Sim early;
+    early.in.busy = true;
+    early.run(minute);
+    EXPECT_TRUE(early.test.running());
+    // The flow ceiling while heating: twice in a row above min(plan maximum, boiler limit) + 5 degC.
+    Sim hot;
+    hot.disconnect(); hot.confirm();
+    hot.in.burnerOn = true; hot.in.flowCentiC = 6600; // ceiling 60
+    hot.run(20 * second);
+    EXPECT_EQ(hot.test.state(), State::stopped);
+    EXPECT_EQ(hot.test.reason(), "flow_above_limit");
+    // Another controller once the E32 owns the boiler.
+    Sim foreign;
+    foreign.disconnect(); foreign.confirm();
+    foreign.in.blocked = true;
+    foreign.run(10 * second);
+    EXPECT_EQ(foreign.test.reason(), "foreign_controller");
 }
 
 TEST(TakeoverTest, TheRouteTakesPostOnly) {

@@ -170,7 +170,9 @@ def test_the_guided_boiler_test_is_shown_in_every_state():
     state, attributes = evaluate({"state": "not_applicable", "takeover_test": passed}, now=NOW)
     assert state == "not_applicable"
     assert attributes == {"boiler_test": "passed", "boiler_test_at": "2025-11-02T10:00+00:00", "boiler_test_steps": steps,
-                          "boiler_test_step": None, "boiler_test_reason": None}
+                          "boiler_test_step": None, "boiler_test_reason": None,
+                          # rc.2 firmware: no summary, flow or mark (the summary follows the state)
+                          "boiler_test_summary": "passed", "boiler_test_flow_c": None, "boiler_test_marked_at": None}
     running = {"state": "running", "at": None, "reason": None, "step": "start", "phase": "waiting_burner",
                "steps": {"disconnect": "pass", "confirm": "pass", "start": "wait", "hot_water": "not_run", "stop": "x"}}
     _, attributes = evaluate({"state": "not_applicable", "takeover_test": running}, now=NOW)
@@ -187,3 +189,34 @@ def test_the_guided_boiler_test_is_shown_in_every_state():
     assert evaluate({"state": "not_applicable"}, now=NOW) == ("not_applicable", None)
     assert "boiler_test" not in evaluate(OWNER, now=NOW)[1]
     assert evaluate({"state": "not_applicable", "takeover_test": {"state": "bogus"}}, now=NOW) == ("not_applicable", None)
+
+
+def test_the_one_boiler_test_remembers_itself():
+    """E32 rc.3: the kept result with the flow used, the owner's mark (never a pass) and "not needed"."""
+    steps = {"disconnect": "pass", "confirm": "pass", "start": "pass", "hot_water": "pass", "stop": "pass"}
+    passed = {"state": "passed", "at": 1762029120, "steps": steps, "reason": None, "summary": "passed", "flow_c": 52,
+              "marked": False, "marked_at": None}
+    _, attributes = evaluate({"state": "not_applicable", "takeover_test": passed}, now=NOW)
+    assert attributes["boiler_test_summary"] == "passed" and attributes["boiler_test_flow_c"] == 52
+    assert attributes["boiler_test_at"] == "2025-11-01T20:32+00:00" and attributes["boiler_test_marked_at"] is None
+    idle = {"state": "idle", "at": None, "steps": {}, "reason": None, "flow_c": None}
+    marked = {**idle, "summary": "marked", "marked": True, "marked_at": 1762180000}
+    _, attributes = evaluate({"state": "not_applicable", "takeover_test": marked}, now=NOW)
+    assert attributes["boiler_test"] == "idle"  # a mark is no measured pass
+    assert attributes["boiler_test_summary"] == "marked" and attributes["boiler_test_marked_at"] == "2025-11-03T14:26+00:00"
+    assert set(attributes["boiler_test_steps"].values()) == {"not_run"}
+    for summary in ("not_needed", "never"):
+        _, attributes = evaluate({"state": "not_applicable", "takeover_test": {**idle, "summary": summary, "marked": False}}, now=NOW)
+        assert attributes["boiler_test_summary"] == summary and attributes["boiler_test_marked_at"] is None
+    # A restart during the test: stopped, its reason kept.
+    restarted = {"state": "stopped", "at": 1762029120, "steps": {**steps, "confirm": "fail"}, "reason": "e32_restarted",
+                 "summary": "stopped", "flow_c": None, "marked": False, "marked_at": None}
+    _, attributes = evaluate({"state": "not_applicable", "takeover_test": restarted}, now=NOW)
+    assert attributes["boiler_test_summary"] == "stopped" and attributes["boiler_test_reason"] == "e32_restarted"
+    # Unknown or implausible values are not passed on.
+    _, attributes = evaluate({"state": "not_applicable", "takeover_test": {**passed, "summary": "great", "flow_c": 200,
+                                                                          "marked_at": 1762180000}}, now=NOW)
+    assert attributes["boiler_test_summary"] == "passed" and attributes["boiler_test_flow_c"] is None
+    assert attributes["boiler_test_marked_at"] is None  # not marked
+    _, attributes = evaluate({"state": "not_applicable", "takeover_test": {**idle}}, now=NOW)
+    assert attributes["boiler_test_summary"] == "never"

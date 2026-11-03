@@ -8,6 +8,9 @@
 #                                    them (CI job "harnesses": a stale test stub fails in minutes)
 #   test/native_harnesses.sh run     build and run each harness in order (CI job "build (native)")
 #   test/native_harnesses.sh build onboarding web_auth    only the named harnesses
+#   HARNESS_PREBUILT=1 test/native_harnesses.sh run       run the binaries that `build` just made in
+#                                    the same HARNESS_OUT instead of compiling them again one by one
+#                                    (scripts/final_check.sh, whose HARNESS_OUT is fresh every run)
 #
 # Run from the repository root after `pio pkg install -e native` (and, for run,
 # after `pio test -e native`, whose googletest library is reused when present).
@@ -76,6 +79,10 @@ if [ $# -gt 0 ]; then
   HARNESSES=("$@")
 fi
 
+# A binary counts as prebuilt only with HARNESS_PREBUILT=1 and the marker that `build` writes
+# after that harness compiled and linked without error.
+prebuilt(){ [ "${HARNESS_PREBUILT:-0}" = 1 ] && [ -f "$OUT/$1.built" ] && [ -x "$OUT/$1" ] && echo "(built by test/native_harnesses.sh build)"; }
+
 prepare
 if [ "$mode" = run ]; then
   for name in "${HARNESSES[@]}"; do
@@ -83,10 +90,10 @@ if [ "$mode" = run ]; then
     case "$name" in
       manual_ota) python3 test/manual_ota/run.py ;;
       web_auth) python3 test/web_auth/run.py ;;
-      learning_replay) build_learning_replay
+      learning_replay) prebuilt learning_replay || build_learning_replay
         python3 -I -c "import sys; sys.path.insert(0, 'tools/switchover'); import replay_export as rx, test_replay_tools as t; rx.write_csv(t.house(hours=60, store=True), sys.argv[1])" "$OUT/replay.csv"
         "$OUT/learning_replay" "$OUT/replay.csv" > "$OUT/replay.json" ;;
-      *) "build_$name"; "$OUT/$name" ;;
+      *) prebuilt "$name" || "build_$name"; "$OUT/$name" ;;
     esac
   done
   exit 0
@@ -98,7 +105,8 @@ failed=()
 declare -A pids=()
 for name in "${HARNESSES[@]}"; do
   while [ "$(jobs -rp | wc -l)" -ge "$JOBS" ]; do wait -n || true; done
-  ( "build_$name" ) > "$OUT/$name.build.log" 2>&1 &
+  rm -f "$OUT/$name.built"
+  ( "build_$name" && touch "$OUT/$name.built" ) > "$OUT/$name.build.log" 2>&1 &
   pids[$name]=$!
 done
 for name in "${HARNESSES[@]}"; do

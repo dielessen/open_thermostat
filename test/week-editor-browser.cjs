@@ -35,6 +35,14 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    const main=page.locator('main'),week=()=>page.evaluate(()=>ed.get()),last=()=>page.evaluate(()=>changes.at(-1));
    await main.getByText(t.empty).waitFor();
    assert.equal(await main.locator('.wpe-seg').count(),7,'one empty block per day');
+   // rc.3 Smart warm-up: one hint line says what a time in the program means; switched off, it says so.
+   const warmUp=main.locator('[data-k="warm-up"]');
+   assert.equal(await warmUp.innerText(),lang==='nl'?'De thermostaat begint vanzelf eerder met verwarmen, zodat het warm is op de tijd die je instelt.'
+    :'The thermostat starts heating early by itself, so it is warm at the time you set.');
+   await page.evaluate(()=>ed.smartWarmUp(false));
+   assert.equal(await warmUp.innerText(),lang==='nl'?'Slim opwarmen staat uit: verwarmen begint pas op de tijd die je instelt.'
+    :'Smart warm-up is off: heating starts at the time you set.');
+   await page.evaluate(()=>ed.smartWarmUp(true));
    // Template: the levels fill it in (no program yet: comfort 20, eco 18, night 16).
    await main.locator('select').selectOption({label:t.work});
    assert.deepEqual(await week(),template(levelsOf(2000,1800,1600)));
@@ -161,7 +169,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    page.on('pageerror',e=>errors.push(e.message));
    await page.route('http://ha.test/**',route=>{const p=new URL(route.request().url()).pathname;
     if(p==='/')return route.fulfill({contentType:'text/html',body:'<meta name="viewport" content="width=device-width, initial-scale=1"><body style="margin:0;font:15px system-ui"><main></main></body>'});
-    if(p==='/open_thermostat/week-editor-1.0.0rc2.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'week-editor.js'))});
+    if(p==='/open_thermostat/week-editor-1.0.0rc3.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'week-editor.js'))});
     if(p==='/card.js')return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(frontend,'e32-week-card.js'))});
     return route.fulfill({status:404,body:''});});
    await page.goto('http://ha.test/');await page.addScriptTag({url:'/card.js',type:'module'});

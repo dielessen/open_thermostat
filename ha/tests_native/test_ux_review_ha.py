@@ -361,11 +361,12 @@ async def test_a_program_error_names_the_line_that_could_not_be_read(hass, manag
 
 
 async def flow_form(manager, parent):
-    # Configure -> Home -> Heating and boiler opens the flow limits form directly.
+    # Configure -> Home -> Heating and boiler -> Water temperature limits (rc.3: next to the boiler model).
     await manager.hass.async_block_till_done()
     flow = await manager.async_init(parent.entry_id)
     house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
-    return await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
+    menu = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
+    return await manager.async_configure(menu["flow_id"], {"next_step_id": "heating_boiler_limits"})
 
 
 @pytest.mark.asyncio

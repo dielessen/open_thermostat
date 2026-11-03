@@ -72,6 +72,15 @@ struct HeatingNoteNvs {
         nvs_close(handle);
         return committed && read() == text;
     }
+    // rc.3: the boiler test's record is written more often (each step, the owner's mark, the
+    // first foreign controller) and on installations that never ran the test, so it is gated
+    // like the optional records: written only while the handover, the flow record, a plan save,
+    // a 2 KB Bluetooth save and the control record's replacement keep their room after it
+    // (NvsOptionalRecords.h). The same key and size bound as rc.2 (< 64 bytes: 3 entries). It is
+    // not in ControlPartitionBudget::optionalKeys: never erased to make room.
+    bool writeGated(const std::string& text) const {
+        return !text.empty() && text.size() < 64 && optionalHeatingRecordFits(key, text.size() + 1) && write(text);
+    }
 };
 // The owner's handover confirmation (control/HandoverConfirmation.h): one short
 // string beside the plan, written only when the confirmation changes.

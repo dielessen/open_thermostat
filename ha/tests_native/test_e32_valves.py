@@ -319,16 +319,22 @@ def test_the_record_rules_match_the_e32():
     assert CONFIG["rooms"][1]["valves"]                          # the input is never changed
 
 
-# -- the room settings step ------------------------------------------------------------------
+# -- the valves section of the room form (rc.3) ----------------------------------------------
 
-from test_e32_room_flow import manager, product, rooms_menu  # noqa: E402,F401 - the fixture and helpers
+from test_e32_room_flow import manager, product, room_form, rooms_menu, shown  # noqa: E402,F401 - the fixture and helpers
 from test_room_plan import FakeE32 as PlanE32  # noqa: E402
+from custom_components.open_thermostat import valve_routes  # noqa: E402
+
+RECORD = {"schema": 1, "base_topic": "zigbee2mqtt", "rooms": []}
 
 
 class E32WithValves(PlanE32):
     def __init__(self, config=None):
         super().__init__()
-        self.valves = FakeE32(config or {"schema": 1, "base_topic": "zigbee2mqtt", "rooms": []})
+        self.valves = FakeE32(config or RECORD)
+        from custom_components.open_thermostat.e32_setting_device import default_program
+        for room in self.plan["rooms"]:  # every room has its week program: saving it as shown changes nothing
+            room["schedule"] = default_program(room["minimum_centi_c"], room["maximum_centi_c"])
 
     def client(self, address):
         client = super().client(address)
@@ -336,83 +342,444 @@ class E32WithValves(PlanE32):
         return client
 
 
-async def valves_form(manager, parent, room_id="woonkamer"):
-    flow = await rooms_menu(manager, parent)
-    flow = await manager.async_configure(flow["flow_id"], {"next_step_id": "e32_room_pick"})
-    return await manager.async_configure(flow["flow_id"], {"room": room_id, "action": "valves"})
+class Zigbee:
+    """Home Assistant's registries with Zigbee2MQTT and other valves; topics: what the MQTT debug info says."""
+
+    def __init__(self, hass, monkeypatch):
+        from homeassistant.config_entries import ConfigEntry
+        from types import MappingProxyType
+        self.hass, self.topics = hass, {}
+        self.mqtt = ConfigEntry(domain="mqtt", title="MQTT", version=1, minor_version=1, data={}, options={},
+                                source="user", unique_id="mqtt", discovery_keys=MappingProxyType({}), subentries_data=[])
+        hass.config_entries._entries[self.mqtt.entry_id] = self.mqtt
+        monkeypatch.setattr(valve_routes, "device_topics", lambda h, device_id: self.topics.get(device_id, []))
+
+    def valve(self, name, model_id, *, manufacturer="Bosch", model="Radiator thermostat II", renamed=None,
+              topic_name=None, base="zigbee2mqtt", platform="mqtt", ieee=None, topics=True, label=None):
+        """A climate entity on a Zigbee2MQTT device (Zigbee2MQTT friendly name: topic_name or name)."""
+        from homeassistant.helpers import device_registry as dr, entity_registry as er
+        ieee = ieee or f"0x{abs(hash(name)) % 16 ** 16:016x}"
+        device = dr.async_get(self.hass).async_get_or_create(
+            config_entry_id=self.mqtt.entry_id, identifiers={("mqtt", f"zigbee2mqtt_{ieee}")},
+            manufacturer=manufacturer, model=model, model_id=model_id, name=name)
+        if renamed:
+            device = dr.async_get(self.hass).async_update_device(device.id, name_by_user=renamed)
+        entity = er.async_get(self.hass).async_get_or_create(
+            "climate", platform, f"{ieee}_climate", device_id=device.id, suggested_object_id=slug(name))
+        if topics:
+            friendly = topic_name or name
+            self.topics[device.id] = [f"{base}/{friendly}", f"{base}/{friendly}/availability", f"{base}/bridge/state",
+                                      f"{base}/{friendly}", f"{base}/{friendly}/set"]
+        self.hass.states.async_set(entity.entity_id, "heat", {"current_temperature": 20, "temperature": 20,
+                                                               "friendly_name": label or renamed or name})
+        return entity.entity_id
+
+    def other(self, object_id, platform="zha"):
+        """A climate entity of another integration (no Zigbee2MQTT device)."""
+        from homeassistant.helpers import entity_registry as er
+        entity = er.async_get(self.hass).async_get_or_create("climate", platform, object_id, suggested_object_id=object_id)
+        self.hass.states.async_set(entity.entity_id, "heat", {"current_temperature": 20, "temperature": 20})
+        return entity.entity_id
+
+
+def slug(name):
+    return name.lower().replace(" ", "_")
+
+
+def section_of(form, name="valves"):
+    """{field: (marker, selector)} of a section of the room form."""
+    value = next(v for k, v in form["data_schema"].schema.items() if str(k) == name)
+    return {str(k): (k, v) for k, v in value.schema.schema.items()}, value.options
 
 
 @pytest.mark.asyncio
-async def test_valves_are_chosen_in_the_room_settings_with_control_off_by_default(hass, manager):
+async def test_route_detection_picks_the_e32_only_for_zigbee2mqtt_valves_it_knows(hass, monkeypatch):
+    zigbee = Zigbee(hass, monkeypatch)
+    # Renamed in Home Assistant, and named differently by Zigbee2MQTT's discovery: the topic decides.
+    bosch = zigbee.valve("Bosch valve", "BTH-RA", renamed="Living room radiator", topic_name="Kraan woonkamer")
+    sonoff = zigbee.valve("Kraan keuken", "TRVZB", manufacturer="SONOFF", model="Zigbee thermostatic radiator valve")
+    gen2 = zigbee.valve("Kraan zolder", "TRV-ZBT", manufacturer="SONOFF", model="Zigbee thermostatic radiator valve")
+    tuya = zigbee.valve("Kraan bad", "TV02-Zigbee", manufacturer="TuYa", model="Thermostat radiator valve")
+    old_style = zigbee.valve("Kraan hal", None, model="Radiator thermostat II (BTH-RA)")  # older Zigbee2MQTT: one model text
+    aqara = zigbee.valve("Kraan raam", "SRTS-A01", manufacturer="Aqara", model="Radiator thermostat E1")
+    wall = zigbee.valve("Thermostaat gang", "BTH-RM", model="Room thermostat II")  # a Bosch wall thermostat, no valve
+    elsewhere = zigbee.valve("Kraan schuur", "BTH-RA", base="z2m")                    # another Zigbee2MQTT base topic
+    no_topics = zigbee.valve("Kraan studeer", "BTH-RA", renamed="Study", topics=False)
+    template = zigbee.valve("Kraan bijkeuken", "BTH-RA", platform="template")       # not the Zigbee2MQTT entity itself
+    zha = zigbee.other("zha_trv")
+    finder = valve_routes.RouteFinder(hass, "zigbee2mqtt")
+    routes = {entity: finder.route(entity) for entity in (bosch, sonoff, gen2, tuya, old_style, aqara, wall, elsewhere,
+                                                          no_topics, template, zha)}
+    assert routes[bosch].record() == {"name": "Kraan woonkamer", "model": "bosch_bth_ra"} and routes[bosch].direct
+    assert routes[sonoff].record() == {"name": "Kraan keuken", "model": "sonoff_trvzb"}
+    assert routes[gen2].record() == {"name": "Kraan zolder", "model": "sonoff_trv_zbt"}
+    assert routes[tuya].record() == {"name": "Kraan bad", "model": "tuya_tv02"}
+    assert routes[old_style].record() == {"name": "Kraan hal", "model": "bosch_bth_ra"}
+    assert routes[no_topics].record() == {"name": "Kraan studeer", "model": "bosch_bth_ra"}  # Zigbee2MQTT's name, not "Study"
+    for entity in (aqara, wall, elsewhere, template, zha):  # through Home Assistant: its climate entity
+        assert routes[entity].record() == {"name": entity, "model": "ha_climate"} and not routes[entity].direct, entity
+    assert routes[aqara].friendly == "Kraan raam" and routes[aqara].detected is None   # Zigbee2MQTT, model unknown
+    assert routes[elsewhere].friendly is None                                         # the E32 cannot reach it
+    # Advanced: a model chosen by hand, or Home Assistant for a valve the E32 knows.
+    assert finder.route(aqara, "generic").record() == {"name": "Kraan raam", "model": "generic"}
+    assert finder.route(bosch, "ha_climate").record() == {"name": bosch, "model": "ha_climate"}
+    assert finder.route(zha, "generic").record() == {"name": zha, "model": "ha_climate"}   # no Zigbee2MQTT name: HA
+    assert finder.index()["Kraan woonkamer"] == bosch and "Kraan schuur" not in finder.index()
+
+
+def test_the_friendly_name_comes_from_the_state_topic():
+    topics = ["zigbee2mqtt/Kamer/kraan", "zigbee2mqtt/Kamer/kraan/availability", "zigbee2mqtt/bridge/state",
+              "zigbee2mqtt/Kamer/kraan/set", "zigbee2mqtt/Kamer/kraan"]
+    assert valve_routes.friendly_from_topics(topics, "zigbee2mqtt") == "Kamer/kraan"   # a / in the name stays
+    assert valve_routes.friendly_from_topics(topics, "zigbee2mqtt/") == "Kamer/kraan"
+    assert valve_routes.friendly_from_topics(topics, "z2m") is None                    # another base topic
+    assert valve_routes.friendly_from_topics(["zigbee2mqtt/A", "zigbee2mqtt/B"], "zigbee2mqtt") is None  # ambiguous
+    assert valve_routes.friendly_from_topics(["zigbee2mqtt/a#b"], "zigbee2mqtt") is None    # not a name the E32 takes
+
+
+def test_the_topics_are_read_from_the_mqtt_debug_info(hass):
+    """The MQTT integration's own debug info (subscriptions and discovery) of a device's entities."""
+    from homeassistant.components.mqtt.const import ATTR_DISCOVERY_PAYLOAD, ATTR_DISCOVERY_TOPIC
+    from homeassistant.components.mqtt.models import DATA_MQTT
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
+    from homeassistant.config_entries import ConfigEntry
+    from types import MappingProxyType
+    mqtt = ConfigEntry(domain="mqtt", title="MQTT", version=1, minor_version=1, data={}, options={}, source="user",
+                       unique_id="mqtt", discovery_keys=MappingProxyType({}), subentries_data=[])
+    hass.config_entries._entries[mqtt.entry_id] = mqtt
+    device = dr.async_get(hass).async_get_or_create(config_entry_id=mqtt.entry_id,
+                                                    identifiers={("mqtt", "zigbee2mqtt_0x01")}, name="Bosch valve")
+    entity = er.async_get(hass).async_get_or_create("climate", "mqtt", "0x01_climate", device_id=device.id)
+    assert valve_routes.device_topics(hass, device.id) == []        # no MQTT integration: no topics, no error
+    payload = {"current_temperature_topic": "zigbee2mqtt/Kraan woonkamer", "json_attributes_topic": "zigbee2mqtt/Kraan woonkamer",
+               "temperature_command_topic": "zigbee2mqtt/Kraan woonkamer/set", "name": None}
+    hass.data[DATA_MQTT] = SimpleNamespace(debug_info_triggers={}, debug_info_entities={entity.entity_id: {
+        "subscriptions": {"zigbee2mqtt/Kraan woonkamer": {"messages": [], "count": 1},
+                          "zigbee2mqtt/Kraan woonkamer/availability": {"messages": [], "count": 1}},
+        "discovery_data": {ATTR_DISCOVERY_TOPIC: "homeassistant/climate/0x01/climate/config",
+                           ATTR_DISCOVERY_PAYLOAD: payload},
+        "transmitted": {}}})
+    try:
+        topics = valve_routes.device_topics(hass, device.id)
+        assert "zigbee2mqtt/Kraan woonkamer/set" not in topics       # command topics are left out
+        assert valve_routes.friendly_name(hass, dr.async_get(hass).async_get(device.id), "zigbee2mqtt") == "Kraan woonkamer"
+    finally:
+        hass.data.pop(DATA_MQTT)
+
+
+@pytest.mark.asyncio
+async def test_valves_are_a_section_of_the_room_form_and_each_gets_its_route(hass, manager, monkeypatch):
+    zigbee = Zigbee(hass, monkeypatch)
+    bosch = zigbee.valve("Kraan woonkamer", "BTH-RA", renamed="Living room radiator")
+    aqara = zigbee.valve("Kraan raam", "SRTS-A01", manufacturer="Aqara", model="Radiator thermostat E1")
+    zha = zigbee.other("zha_trv")
     e32 = E32WithValves()
     parent, _ = product(hass, e32)
-    form = await valves_form(manager, parent)
-    assert form["type"] == "form" and form["step_id"] == "e32_room_valves", form
-    defaults = {str(k): k.default() for k in form["data_schema"].schema if hasattr(k, "default") and callable(k.default)}
-    assert defaults["control"] is False
-    result = await manager.async_configure(form["flow_id"], {"control": False, "valve_1": "Kraan woonkamer", "model_1": "bosch_bth_ra"})
+    menu = await rooms_menu(manager, parent)
+    pick = await manager.async_configure(menu["flow_id"], {"next_step_id": "e32_room_pick"})
+    action = next(v for k, v in pick["data_schema"].schema.items() if str(k) == "action")
+    assert action.config["options"] == ["edit", "remove"]                 # no separate valves action any more
+    form = await manager.async_configure(pick["flow_id"], {"room": "woonkamer", "action": "edit"})
+    keys = [str(k) for k in form["data_schema"].schema]
+    assert keys[-4:] == ["window", "persons", "limits", "valves"]
+    fields, options = section_of(form)
+    assert list(fields) == ["valves", "control", "choose_models"] and options["collapsed"] is True   # no valves yet
+    assert fields["valves"][1].config["filter"] == [{"domain": ["climate"]}] and fields["valves"][1].config["multiple"]
+    assert fields["control"][0].default() is False                      # valve control stays off until switched on
+    assert form["description_placeholders"]["valve_routes"] == "No radiator valves yet."
+    posts = len(e32.posts)
+    values = shown(form)
+    values["valves"] = {"valves": [bosch, aqara, zha], "control": False, "choose_models": False}
+    result = await manager.async_configure(form["flow_id"], values)
     assert result["type"] == "menu" and result["step_id"] == "e32_rooms_saved", result
-    assert e32.valves.config["rooms"] == [{"room": "woonkamer", "control": False,
-                                           "valves": [{"name": "Kraan woonkamer", "model": "bosch_bth_ra"}]}]
+    assert len(e32.posts) == posts                                      # only the valves changed: the plan is not written
+    assert e32.valves.config["rooms"] == [{"room": "woonkamer", "control": False, "valves": [
+        {"name": "Kraan woonkamer", "model": "bosch_bth_ra"},             # renamed in HA: the Zigbee2MQTT name
+        {"name": aqara, "model": "ha_climate"}, {"name": zha, "model": "ha_climate"}]}]
+    assert result["description_placeholders"]["valves"] == (
+        "\n\nRadiator valves:\n- Living room radiator: works without Home Assistant (Bosch BTH-RA)\n"
+        "- Kraan raam: through Home Assistant (model not recognised)\n- climate.zha_trv: through Home Assistant")
+    # Opened again: the section is open, with the three valves and their routes.
+    form = await room_form(manager, parent, "woonkamer")
+    fields, options = section_of(form)
+    assert options["collapsed"] is False and (fields["valves"][0].description or {})["suggested_value"] == [bosch, aqara, zha]
+    assert "- Living room radiator: works without Home Assistant (Bosch BTH-RA)" in form["description_placeholders"]["valve_routes"]
+    result = await manager.async_configure(form["flow_id"], shown(form))
+    assert result["type"] == "abort" and result["reason"] == "e32_room_unchanged"   # nothing changed: nothing written
 
 
 @pytest.mark.asyncio
-async def test_valve_names_are_checked_before_the_e32_is_written(hass, manager):
-    e32 = E32WithValves({"schema": 1, "base_topic": "zigbee2mqtt",
-                         "rooms": [{"room": "badkamer", "control": False, "valves": [{"name": "Kraan bad", "model": "generic"}]}]})
+async def test_existing_valve_records_keep_working_and_map_to_their_entities(hass, manager, monkeypatch):
+    zigbee = Zigbee(hass, monkeypatch)
+    bosch = zigbee.valve("Kraan woonkamer", "BTH-RA")
+    zha = zigbee.other("zha_trv")
+    record = {"schema": 1, "base_topic": "zigbee2mqtt", "rooms": [{"room": "woonkamer", "control": True, "valves": [
+        {"name": "Kraan woonkamer", "model": "generic"},       # chosen by hand before: stays generic
+        {"name": "Kraan oud", "model": "sonoff_trvzb"},        # Home Assistant does not know it: kept as stored
+        {"name": zha, "model": "ha_climate"}]}]}
+    e32 = E32WithValves(record)
     parent, _ = product(hass, e32)
-    for change, field, error in (({"valve_1": "a#b"}, "valve_1", "e32_valve_name_invalid"),
-                                 ({"valve_1": "Kraan bad"}, "valve_1", "e32_valve_duplicate"),
-                                 ({"valve_1": "K", "valve_2": "K"}, "valve_2", "e32_valve_duplicate")):
-        form = await valves_form(manager, parent)
-        result = await manager.async_configure(form["flow_id"], {"control": True, **change})
-        assert result["type"] == "form" and result["errors"] == {field: error}, (change, result)
-    assert [c for c in e32.valves.calls if c is not None] == []   # nothing was written
+    form = await room_form(manager, parent, "woonkamer")
+    fields, options = section_of(form)
+    assert list(fields) == ["valves", "kept", "control", "choose_models"] and options["collapsed"] is False
+    assert fields["valves"][0].description["suggested_value"] == [bosch, zha]
+    assert fields["kept"][0].description["suggested_value"] == ["Kraan oud"]
+    assert fields["kept"][1].config["options"] == [{"value": "Kraan oud", "label": "Kraan oud (Sonoff TRVZB)"}]
+    assert fields["control"][0].default() is True
+    assert form["description_placeholders"]["valve_routes"] == (
+        "- Kraan woonkamer: works without Home Assistant (Zigbee2MQTT)\n"
+        "- Kraan oud: works without Home Assistant (not found in Home Assistant, kept as it was)\n"
+        "- climate.zha_trv: through Home Assistant")
+    result = await manager.async_configure(form["flow_id"], shown(form))
+    assert result["type"] == "abort" and result["reason"] == "e32_room_unchanged"
+    assert [c for c in e32.valves.calls if c is not None] == []           # the stored record is never rewritten as is
+    # Deselecting the kept valve removes it; the others keep their order, model and control.
+    form = await room_form(manager, parent, "woonkamer")
+    values = shown(form)
+    values["valves"]["kept"] = []
+    result = await manager.async_configure(form["flow_id"], values)
+    assert result["type"] == "menu", result
+    assert e32.valves.config["rooms"] == [{"room": "woonkamer", "control": True, "valves": [
+        {"name": "Kraan woonkamer", "model": "generic"}, {"name": zha, "model": "ha_climate"}]}]
 
 
 @pytest.mark.asyncio
-async def test_home_assistant_valves_are_chosen_beside_the_zigbee2mqtt_ones(hass, manager):
+async def test_valves_are_checked_before_the_e32_is_written(hass, manager, monkeypatch):
+    from homeassistant.data_entry_flow import InvalidData
     from homeassistant.helpers import entity_registry as er
+    zigbee = Zigbee(hass, monkeypatch)
+    bath = zigbee.valve("Kraan bad", "BTH-RA")
+    hal = zigbee.valve("Kraan hal", "BTH-RA")
+    twin = zigbee.valve("Kraan hal oud", "BTH-RA", topic_name="Kraan hal")   # a re-paired valve: the same Zigbee2MQTT name
+    many = [zigbee.valve(f"Kraan {n}", "TRVZB", manufacturer="SONOFF") for n in range(5)]
+    long = zigbee.other("x" * 60)
+    others = [{"name": f"V{n}", "model": "generic"} for n in range(13)]
     e32 = E32WithValves({"schema": 1, "base_topic": "zigbee2mqtt", "rooms": [
-        {"room": "badkamer", "control": False, "valves": [{"name": "climate.bad_trv", "model": "ha_climate"}]}]})
+        {"room": "badkamer", "control": False, "valves": [{"name": "Kraan bad", "model": "bosch_bth_ra"},
+                                                          {"name": "climate.bad_ha", "model": "ha_climate"}]}]})
     parent, _ = product(hass, e32)
     own = er.async_get(hass).async_get_or_create("climate", "open_thermostat", "fixture_thermostat", suggested_object_id="ot_woonkamer")
-    form = await valves_form(manager, parent)
-    fields = {str(k): (k, v) for k, v in form["data_schema"].schema.items()}
-    picker = fields["ha_valves"][1].config
-    assert picker["filter"] == [{"domain": ["climate"]}] and picker["multiple"] is True
-    # Never our own thermostat, the room's thermostat source or another room's valve.
-    assert set(picker["exclude_entities"]) == {own.entity_id, "climate.woonkamer", "climate.bad_trv"}
-    assert "ha_climate" not in fields["model_1"][1].config["options"]           # Zigbee2MQTT models only
-    from homeassistant.data_entry_flow import InvalidData
-    with pytest.raises(InvalidData):                                           # the picker itself refuses them
-        await manager.async_configure(form["flow_id"], {"control": True, "ha_valves": ["climate.woonkamer"]})
-    for change, field, error in (({"ha_valves": ["climate." + "x" * 60]}, "ha_valves", "e32_valve_entity_invalid"),
-                                 ({"valve_1": "climate.trv", "ha_valves": ["climate.trv"]}, "ha_valves", "e32_valve_duplicate"),
-                                 ({"valve_1": "A", "valve_2": "B", "valve_3": "C", "ha_valves": ["climate.x", "climate.y"]},
-                                  "base", "e32_valve_room_limit")):
-        result = await manager.async_configure(form["flow_id"], {"control": True, **change})
-        assert result["type"] == "form" and result["errors"] == {field: error}, (change, result)
+    form = await room_form(manager, parent, "woonkamer")
+    fields, _ = section_of(form)
+    # Never our own thermostat, the room's thermostat source or another room's valve (by entity or Zigbee2MQTT name).
+    assert set(fields["valves"][1].config["exclude_entities"]) == {own.entity_id, "climate.woonkamer", "climate.bad_ha", bath}
+    with pytest.raises(InvalidData):                                   # the picker itself refuses them
+        await manager.async_configure(form["flow_id"], {**shown(form), "valves": {"valves": [bath]}})
+    for chosen, field, error in (([hal, twin], "valves", "e32_valve_duplicate"),
+                                 ([long], "valves", "e32_valve_entity_invalid"),
+                                 (many, "base", "e32_valve_room_limit")):
+        result = await manager.async_configure(form["flow_id"], {**shown(form), "valves": {"valves": chosen}})
+        assert result["type"] == "form" and result["errors"] == {field: error}, (chosen, result)
         form = result
-    assert [c for c in e32.valves.calls if c is not None] == []
-    result = await manager.async_configure(form["flow_id"], {"control": True, "valve_1": "Kraan woonkamer", "model_1": "bosch_bth_ra",
-                                                             "ha_valves": ["climate.trv_woonkamer"]})
-    assert result["type"] == "menu", result
-    assert e32.valves.config["rooms"][1] == {"room": "woonkamer", "control": True, "valves": [
-        {"name": "Kraan woonkamer", "model": "bosch_bth_ra"}, {"name": "climate.trv_woonkamer", "model": "ha_climate"}]}
-    # Shown again: the Zigbee2MQTT valve in its slot, the Home Assistant valve in the picker.
-    form = await valves_form(manager, parent)
-    suggested = {str(k): (k.description or {}).get("suggested_value") for k in form["data_schema"].schema}
-    assert (suggested["valve_1"], suggested["valve_2"], suggested["ha_valves"]) == ("Kraan woonkamer", None, ["climate.trv_woonkamer"])
+    e32.valves.config["rooms"] = [{"room": f"r{n}", "control": False, "valves": others[n * 4:n * 4 + 4]} for n in range(4)]
+    form = await room_form(manager, parent, "woonkamer")             # 13 valves elsewhere, 4 more is 17
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "valves": {"valves": many[:4]}})
+    assert result["type"] == "form" and result["errors"] == {"base": "e32_valve_limit"}, result
+    assert [c for c in e32.valves.calls if c is not None] == []       # nothing was written
 
 
 @pytest.mark.asyncio
-async def test_firmware_without_valves_says_to_update_first(hass, manager):
+async def test_advanced_lets_the_installer_choose_the_model_of_an_unknown_zigbee2mqtt_valve(hass, manager, monkeypatch):
+    zigbee = Zigbee(hass, monkeypatch)
+    aqara = zigbee.valve("Kraan raam", "SRTS-A01", manufacturer="Aqara", model="Radiator thermostat E1")
+    bosch = zigbee.valve("Kraan woonkamer", "BTH-RA")
+    zha = zigbee.other("zha_trv")
+    e32 = E32WithValves()
+    parent, _ = product(hass, e32)
+    form = await room_form(manager, parent, "woonkamer")
+    values = shown(form)
+    values["valves"] = {"valves": [aqara, bosch, zha], "control": True, "choose_models": True}
+    step = await manager.async_configure(form["flow_id"], values)
+    assert step["type"] == "form" and step["step_id"] == "e32_room_valve_models", step
+    defaults = {str(k): k.default() for k in step["data_schema"].schema}
+    assert defaults == {"model_1": "ha_climate", "model_2": "bosch_bth_ra"}   # unknown: Home Assistant; known: its model
+    assert step["description_placeholders"]["valve_1"] == "Kraan raam · Aqara Radiator thermostat E1 SRTS-A01"
+    assert step["description_placeholders"]["valve_3"] == ""                  # the ZHA valve has no model to choose
+    result = await manager.async_configure(step["flow_id"], {"model_1": "generic", "model_2": "bosch_bth_ra"})
+    assert result["type"] == "menu" and result["step_id"] == "e32_rooms_saved", result
+    assert e32.valves.config["rooms"] == [{"room": "woonkamer", "control": True, "valves": [
+        {"name": "Kraan raam", "model": "generic"}, {"name": "Kraan woonkamer", "model": "bosch_bth_ra"},
+        {"name": zha, "model": "ha_climate"}]}]
+    # The chosen model is stored on the E32 and stays (a stored valve keeps its route and model).
+    form = await room_form(manager, parent, "woonkamer")
+    assert section_of(form)[0]["valves"][0].description["suggested_value"] == [aqara, bosch, zha]
+    assert "- Kraan raam: works without Home Assistant (Zigbee2MQTT)" in form["description_placeholders"]["valve_routes"]
+
+
+@pytest.mark.asyncio
+async def test_a_new_room_gets_its_valves_after_the_room_and_a_refusal_keeps_the_room(hass, manager, monkeypatch):
+    zigbee = Zigbee(hass, monkeypatch)
+    bosch = zigbee.valve("Kraan slaapkamer", "BTH-RA")
+    e32 = E32WithValves()
+    parent, _ = product(hass, e32)
+    form = await room_form(manager, parent)
+    values = {**shown(form), "name": "Slaapkamer", "ha_sources": ["sensor.hal"],
+              "valves": {"valves": [bosch], "control": False, "choose_models": False}}
+    e32.valves.fail = HeatingPlanRejected(400, "unknown_room")
+    result = await manager.async_configure(form["flow_id"], values)
+    assert result["type"] == "form" and result["errors"] == {"base": "e32_valves_rejected"}, result
+    assert result["description_placeholders"]["error"] == "unknown_room"
+    assert [r["id"] for r in e32.plan["rooms"]] == ["woonkamer", "badkamer", "slaapkamer"]   # the room is stored
+    assert result["description_placeholders"]["room_name"] == "Slaapkamer"                  # the form now edits it
+    e32.valves.fail = None
+    result = await manager.async_configure(result["flow_id"], values)
+    assert result["type"] == "menu" and result["step_id"] == "e32_rooms_saved", result
+    assert [r["id"] for r in e32.plan["rooms"]] == ["woonkamer", "badkamer", "slaapkamer"]   # no second room
+    assert e32.valves.config["rooms"] == [{"room": "slaapkamer", "control": False, "valves": [
+        {"name": "Kraan slaapkamer", "model": "bosch_bth_ra"}]}]
+
+
+@pytest.mark.asyncio
+async def test_firmware_without_valves_shows_the_room_form_without_them(hass, manager):
     e32 = E32WithValves()
     e32.valves.missing = True
     parent, _ = product(hass, e32)
-    result = await valves_form(manager, parent)
-    assert result["type"] == "abort" and result["reason"] == "e32_valves_update_required"
+    form = await room_form(manager, parent, "woonkamer")
+    assert form["step_id"] == "e32_room" and "valves" not in [str(k) for k in form["data_schema"].schema]
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "name": "Woonkamer beneden"})
+    assert result["type"] == "menu" and e32.plan["rooms"][0]["name"] == "Woonkamer beneden"
+    assert [c for c in e32.valves.calls if c is not None] == []
+
+
+@pytest.mark.asyncio
+async def test_a_home_assistant_valve_the_e32_can_drive_moves_to_the_e32_unless_chosen_otherwise(hass, manager, monkeypatch):
+    """A stored "through Home Assistant" valve that is now a supported Zigbee2MQTT valve goes to the E32 at the next
+    save (and the form says so first); only an explicit Advanced "Through Home Assistant" keeps it there."""
+    zigbee = Zigbee(hass, monkeypatch)
+    bosch = zigbee.valve("Kraan woonkamer", "BTH-RA")
+    e32 = E32WithValves({"schema": 1, "base_topic": "zigbee2mqtt", "rooms": [
+        {"room": "woonkamer", "control": True, "valves": [{"name": bosch, "model": "ha_climate"}]}]})
+    parent, _ = product(hass, e32)
+    form = await room_form(manager, parent, "woonkamer")
+    assert form["description_placeholders"]["valve_routes"] == (
+        "- Kraan woonkamer: works without Home Assistant (Bosch BTH-RA)")          # shown before saving
+    assert section_of(form)[0]["valves"][0].description["suggested_value"] == [bosch]
+    result = await manager.async_configure(form["flow_id"], shown(form))         # saved as shown: it moves
+    assert result["type"] == "menu" and result["step_id"] == "e32_rooms_saved", result
+    assert e32.valves.config["rooms"] == [{"room": "woonkamer", "control": True, "valves": [
+        {"name": "Kraan woonkamer", "model": "bosch_bth_ra"}]}]
+    # Advanced: "Through Home Assistant" by choice; stored on the E32 and remembered in the entry.
+    form = await room_form(manager, parent, "woonkamer")
+    values = shown(form)
+    values["valves"]["choose_models"] = True
+    step = await manager.async_configure(form["flow_id"], values)
+    assert step["step_id"] == "e32_room_valve_models" and {str(k): k.default() for k in step["data_schema"].schema} == {
+        "model_1": "bosch_bth_ra"}
+    result = await manager.async_configure(step["flow_id"], {"model_1": "ha_climate"})
+    assert result["type"] == "menu", result
+    assert e32.valves.config["rooms"][0]["valves"] == [{"name": bosch, "model": "ha_climate"}]
+    assert parent.options["valves_through_ha"] == [bosch]
+    # It sticks: shown through Home Assistant, and saving as shown changes nothing.
+    form = await room_form(manager, parent, "woonkamer")
+    assert form["description_placeholders"]["valve_routes"] == "- Kraan woonkamer: through Home Assistant"
+    writes = len([c for c in e32.valves.calls if c is not None])
+    result = await manager.async_configure(form["flow_id"], shown(form))
+    assert result["type"] == "abort" and result["reason"] == "e32_room_unchanged"
+    assert len([c for c in e32.valves.calls if c is not None]) == writes
+    # A model chosen under Advanced again: back to the E32, the choice forgotten.
+    form = await room_form(manager, parent, "woonkamer")
+    values = shown(form)
+    values["valves"]["choose_models"] = True
+    step = await manager.async_configure(form["flow_id"], values)
+    assert {str(k): k.default() for k in step["data_schema"].schema} == {"model_1": "ha_climate"}
+    result = await manager.async_configure(step["flow_id"], {"model_1": "bosch_bth_ra"})
+    assert result["type"] == "menu", result
+    assert e32.valves.config["rooms"][0]["valves"] == [{"name": "Kraan woonkamer", "model": "bosch_bth_ra"}]
+    assert "valves_through_ha" not in parent.options
+
+
+@pytest.mark.asyncio
+async def test_choosing_through_home_assistant_for_a_valve_stored_so_only_remembers_the_choice(hass, manager, monkeypatch):
+    zigbee = Zigbee(hass, monkeypatch)
+    bosch = zigbee.valve("Kraan woonkamer", "BTH-RA")
+    e32 = E32WithValves({"schema": 1, "base_topic": "zigbee2mqtt", "rooms": [
+        {"room": "woonkamer", "control": False, "valves": [{"name": bosch, "model": "ha_climate"}]}]})
+    parent, _ = product(hass, e32)
+    form = await room_form(manager, parent, "woonkamer")
+    values = shown(form)
+    values["valves"]["choose_models"] = True
+    step = await manager.async_configure(form["flow_id"], values)
+    result = await manager.async_configure(step["flow_id"], {"model_1": "ha_climate"})
+    assert result["type"] == "menu" and result["step_id"] == "e32_rooms_saved", result
+    assert [c for c in e32.valves.calls if c is not None] == []            # the E32 record already says so
+    assert parent.options["valves_through_ha"] == [bosch]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("valves_on_e32", [True, False])
+async def test_the_room_form_signs_out_of_every_e32_session_it_opens(hass, manager, monkeypatch, valves_on_e32):
+    """The E32 has 4 web sessions: the plan read, the valve read and the valve write each end with a logout."""
+    from aiohttp import web
+    from aiohttp.test_utils import TestServer
+    from custom_components.open_thermostat import controller_link
+    from custom_components.open_thermostat.e32_setting_device import default_program
+    from test_room_plan import PLAN
+    zigbee = Zigbee(hass, monkeypatch)
+    bosch = zigbee.valve("Kraan woonkamer", "BTH-RA")
+    plan = deepcopy(PLAN)
+    for room in plan["rooms"]:
+        room["schedule"] = default_program(room["minimum_centi_c"], room["maximum_centi_c"])
+    state = {"logins": 0, "logouts": 0, "record": deepcopy(RECORD)}
+
+    async def login(request):
+        state["logins"] += 1
+        return web.json_response({"ok": True})
+
+    async def session(request):
+        return web.json_response({"authenticated": True, "csrf": "c" * 64})
+
+    async def logout(request):
+        state["logouts"] += 1
+        return web.json_response({})
+
+    async def heating(request):
+        return web.json_response(plan)
+
+    async def trv(request):
+        if not valves_on_e32:
+            return web.Response(status=404, text="Not found")
+        if request.method == "POST":
+            state["record"] = await request.json()
+        return web.json_response({**state["record"], "features": [], "models": [], "status": None})
+
+    app = web.Application()
+    app.router.add_post("/auth/login", login)
+    app.router.add_get("/auth/session", session)
+    app.router.add_post("/auth/logout", logout)
+    app.router.add_get("/config/heating", heating)
+    app.router.add_route("*", "/config/heating/trv", trv)
+    server = TestServer(app, host="127.0.0.1")
+    await server.start_server()
+    import _socket
+    import socket
+
+    def loopback_only(sock, address):  # this test's own server only; every other connection stays forbidden
+        if address[0] != "127.0.0.1" or address[1] != server.port:
+            raise AssertionError("offline test attempted a network connection")
+        return _socket.socket.connect(sock, address)
+    monkeypatch.setattr(socket.socket, "connect", loopback_only)
+
+    class LocalClient(controller_link.ControllerClient):
+        async def __aenter__(self):
+            await super().__aenter__()
+            self.address = f"http://127.0.0.1:{server.port}"  # loopback is refused by design: set after the check
+            return self
+
+    try:
+        parent, hub = product(hass, PlanE32(plan))
+        hub.plan._client = lambda: LocalClient("http://192.168.1.206")
+        form = await room_form(manager, parent, "woonkamer")
+        assert ("valves" in [str(k) for k in form["data_schema"].schema]) is valves_on_e32
+        assert state["logins"] >= 2 and state["logins"] == state["logouts"]    # plan read and valve read: both closed
+        if valves_on_e32:
+            values = shown(form)
+            values["valves"] = {"valves": [bosch], "control": False, "choose_models": False}
+            result = await manager.async_configure(form["flow_id"], values)
+            assert result["type"] == "menu", result
+            assert state["record"]["rooms"][0]["valves"] == [{"name": "Kraan woonkamer", "model": "bosch_bth_ra"}]
+            assert state["logins"] == state["logouts"]
+    finally:
+        await server.close()
 
 
 # -- the dashboard ---------------------------------------------------------------------------------
@@ -447,6 +814,7 @@ async def test_the_dashboard_shows_the_valve_opening_and_a_problem_badge_only_fo
     ("SONOFF Zigbee thermostatic radiator valve TRVZB", "sonoff_trvzb"),
     ("TuYa Radiator valve TV02-Zigbee", "tuya_tv02"),
     ("Aqara Radiator thermostat E1 SRTS-A01", None),
+    ("Bosch Room thermostat II BTH-RM", None),              # a wall thermostat, no radiator valve
 ])
 def test_the_valve_model_is_guessed_from_the_zigbee2mqtt_device(text, model):
     assert module.guess_model(text) == model

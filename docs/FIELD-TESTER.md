@@ -102,17 +102,17 @@ it is done.
    and the readiness check wants one to step in at least once. The valve's
    own thermostat entity can be that second source, but it measures close to
    the radiator, so keep it second.
-7. **Radiator valves**, one of two routes
-   ([user guide: Radiator valves](USER-GUIDE.md#radiator-valves)):
-   - **Zigbee2MQTT valves:** **Configure → Rooms → Edit or remove a room**,
-     pick the room, choose **Radiator valves**. Enter each valve's
-     Zigbee2MQTT friendly name (or pick one that was found) and its model.
-     The E32 drives these itself, so its broker login must be allowed to read
+7. **Radiator valves** ([user guide: Radiator valves](USER-GUIDE.md#radiator-valves)):
+   in the room form (**Configure → Rooms → Edit or remove a room → Edit
+   room**), section **Radiator valves**, pick the valves' climate entities.
+   Each valve then shows its route:
+   - *works without Home Assistant*: a Zigbee2MQTT valve the E32 knows; the
+     E32 drives it itself, so its broker login must be allowed to read
      `zigbee2mqtt/#` and write `zigbee2mqtt/+/set` (see the ACL in
      [section 15](INSTALL.md#15-secure-your-setup)).
-   - **ZHA or another integration:** the same form, but choose the valve's
-     climate entity under **Home Assistant valves**. Home Assistant then drives
-     it for the E32.
+   - *through Home Assistant*: ZHA, Z-Wave, any other integration, or a
+     Zigbee2MQTT valve whose model is not recognised (choose it under
+     **Choose the models myself (advanced)**).
 
    Each room has a **Valve control** switch, off by default. Valves are
    driven only while that switch is on **and** the E32 controls the boiler.
@@ -144,8 +144,11 @@ You can always choose the other route on the Rooms page: **Trial run first
 boiler until you confirm it, in step 2 of the boiler test. Do the boiler test
 with someone at the boiler; it takes about 30 minutes and checks each step for
 you ([section 12](INSTALL.md#12-what-the-trial-run-does-and-does-not-do)).
-Step 1 asks you to disconnect your old thermostat, also when the E32 could
-not hear it.
+Disconnect your old thermostat before step 1, also when the E32 could not
+hear it: step 1 then says **No other thermostat on the boiler** (it names your
+old thermostat only once the E32 has heard it on the bus). The E32 remembers
+the test's result, so after a restart or an update the Rooms page still says
+"Last test: passed on …".
 
 One thing does act on your home before the takeover: a **setting device**.
 If you chose a valve or thermostat as a room's setting device, Home Assistant

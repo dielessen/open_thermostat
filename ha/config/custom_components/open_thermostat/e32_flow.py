@@ -4,11 +4,16 @@ Controls on the product device (configuration), read and written over the
 stored controller connection (``GET/POST /config/heating/flow``, one field per
 change), the same login and lock as the room plan:
 
-- switch "Weather-compensated heating curve" (``weather_curve``): the flow
-  follows the outdoor temperature, the room correction on top;
-- switch "Use learned flow and optimum start" (``apply_learned``): off, the
-  E32 only advises; on, it warms up with the lowest flow that is still in time
-  and starts early enough for the next program step;
+- switch "Follow outdoor temperature (heating curve)" (``weather_curve``; on by
+  default since E32 rc.3): the flow follows the outdoor temperature, the room
+  correction on top; a standard curve until the E32 learned the house's own,
+  the room control alone without a fresh outdoor temperature;
+- switch "Smart warm-up" (``apply_learned``; on by default since E32 rc.3: a
+  time in the week program means "warm at that time"): it starts early enough
+  for the next program step, with the lowest flow that is still in time; off,
+  heating starts at the program time and the E32 only advises. The entity keeps
+  its unique ID (and entity ID) of "Use learned flow and optimum start": the
+  meaning is the same, only the name and the default changed;
 - number "Flow at −10 °C" (``curve_design_flow_c``): 0 is automatic (floor
   heating 40 °C, radiators 55 °C), else 25–80 °C.
 
@@ -64,14 +69,21 @@ GAS_STATUSES = ["no_meter", "collecting", "calibrated", "meter_stale"]
 
 
 def decode_settings(value):
-    """The options as the E32 stored them, or None when the answer is not well-formed."""
+    """The options as the E32 stored them, or None when the answer is not well-formed.
+
+    Since 1.0 the answer also has the "Comfort and boiler care" knobs ("tuning", the values
+    in effect) and since rc.2 which automatic knobs the owner set ("tuning_manual"); both
+    are kept only when well-formed (e32_care.decode_tuning). The options above never
+    depend on them.
+    """
     if type(value) is not dict:
         return None
     design = value.get(DESIGN_FLOW_KEY)
     if (any(type(value.get(key)) is not bool for key in OPTIONS) or type(design) is not int
             or design != 0 and not DESIGN_FLOW_LIMITS[0] <= design <= DESIGN_FLOW_LIMITS[1]):
         return None
-    return {**{key: value[key] for key in OPTIONS}, DESIGN_FLOW_KEY: design}
+    from .e32_care import decode_tuning
+    return {**{key: value[key] for key in OPTIONS}, DESIGN_FLOW_KEY: design, **decode_tuning(value)}
 
 
 def flow_error(err):
@@ -149,6 +161,18 @@ class FlowSettingsLink:
                 await self.plan._login(client, None if change is None else self.plan.claim())
                 return await client.async_flow_settings(change)
 
+    async def async_read_now(self):
+        """Read the options for a Configure form: what the E32 stored, or a clear HomeAssistantError."""
+        from .controller_link import ControllerLinkError
+        try:
+            value = decode_settings(await self._call())
+        except ControllerLinkError as err:
+            raise flow_error(err) from None
+        if value is None:
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="flow_settings_unconfirmed")
+        self._set(value)
+        return value
+
     async def async_refresh(self):
         from .controller_link import ControllerLinkError
         try:
@@ -203,6 +227,14 @@ def flow_link(hass, entry):
         entry.async_on_unload(async_track_time_interval(hass, link.poll, REFRESH))
         link.hub_changed()
     return link
+
+
+def smart_warm_up(hass, entry_id):
+    """Smart warm-up (``apply_learned``) as last read from the E32, or None while unknown."""
+    data = getattr(hass, "data", None)
+    link = data.get(DOMAIN, {}).get(entry_id, {}).get(KEY) if isinstance(data, dict) else None
+    value = (link.settings or {}).get("apply_learned") if link is not None else None
+    return value if type(value) is bool else None
 
 
 # -- the controls ----------------------------------------------------------------------

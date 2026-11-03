@@ -166,9 +166,9 @@ niveau haalt):
 expliciete bevestiging ("ik begrijp dat dit monteursinstellingen zijn en pas ze
 op eigen risico aan"):
 
-- branderinstellingen: `burnminpower`, `burnmaxpower`, `selburnpow`, `burnminperiod`;
-- hysterese: `boilhyston`, `boilhystoff`, `boil2hyston`, `boil2hystoff`;
-- pomp: `pumpmode`, `pumpcharacter`, `pumpmodmin`, `pumpmodmax`, `pumpdelay`, `pumpontemp`, pompkick (`pumpkickhour`, `pumpkickday`, `pumpkickdelay`);
+- branderinstellingen: `burnminpower`, `burnmaxpower`, `burnminperiod`;
+- hysterese: `boilhyston`, `boilhystoff`;
+- pomp: `pumpmode`, `pumpcharacter`, `pumpmodmin`, `pumpmodmax`, `pumpdelay`, pompkick (`pumpkickhour`, `pumpkickday`, `pumpkickdelay`);
 - stooklijn van de ketel: `curveon`, `curvebase`, `curveend`;
 - vorst en noodbedrijf: `nofrostmode`, `nofrosttemp`, `emergencyops`, `emergencytemp`;
 - tapwater: `dhw.maxtemp`, `dhw.maxpower`, `dhw.flowtempoffset`, `dhw.hyston`, `dhw.hystoff`, `dhw.disinfectiontemp`, `dhw.circmode`, `dhw.circ`, `dhw.circpump`, `dhw.dhwprio`, `dhw.chargeoptimization`, `dhw.seltemplow`, `dhw.tempecoplus`, `dhw.seltempsingle`;
@@ -183,6 +183,45 @@ op eigen risico aan"):
 - `chimneysweeper` en `reset`. Dit zijn servicecommando's, geen instellingen.
   Hooguit later onder Geavanceerd: tijdgebonden, met waarschuwing, en `reset`
   alleen voor "storing resetten" na een expliciete melding.
+- `selburnpow` (3 november). Dit is byte 1 van dezelfde warmtevraag 0x1A als
+  `selflowtemp`; de ketel volgt de hoogste vraag. Een tweede schrijver zou met
+  de regeling van de E32 vechten. Eerder stond hij onder Geavanceerd.
+- `boil2hyston` en `boil2hystoff` (3 november). Alleen voor tweetrapsbranders
+  (oudere staande ketels); op een modulerende wandketel horen ze niets te doen.
+- Voorlopig ook niet: `pumpontemp` (bedoeld voor lagetemperatuurketels met een
+  MC10, EMS-ESP issue #2088; betekenis op wandketels onbekend) en
+  `dhw.disinfecting` (EMS-ESP meldt dat uitzetten via de bus niet lijkt te
+  werken). `dhw.onetime` en `dhw.circ` zijn opdrachten, geen instellingen: later
+  hooguit een knop.
+
+## De nuttigste instellingen en het bewijs per instelling (3 november)
+
+De uitleg per instelling (wat het doet, wat we verwachten, risico, bronnen) staat
+in [EMS-BOILER-SETTINGS.md](../EMS-BOILER-SETTINGS.md). De korte teksten staan
+in `public/ems/setting-descriptions.json` en verschijnen op de ketelpagina onder
+"Over deze instelling" (alleen uitleg, geen schrijfrecht). Hieronder de
+instellingen die voor gewone gebruikers het meest opleveren, in de volgorde
+waarin we ze zouden aanbieden, met het bewijs dat we eerst nodig hebben.
+Steeds geldt: één instelling tegelijk, uitgangswaarde eerst bewaard, automatisch
+terugzetten, en L1 + L2 als ondergrens.
+
+| # | Instelling | Waarom nuttig | Niveau | Bewijs vóór aanbieden (L3) |
+| --- | --- | --- | --- | --- |
+| 1 | `pumpdelay` (pompnaloop) | Restwarmte naar de ruimtes; weinig risico; zit al in de Classic-transactie | Geavanceerd | Pompbit (`raw_pump_bit`, 0x18) blijft na branderstop ongeveer de ingestelde minuten aan (±1 min), over minstens 3 brandercycli. Eerste schrijftest. |
+| 2 | `dhw.seltemp` (warmwatertemperatuur) | Minder gas voor warmhouden en minder kalk | Gebruiker | Gemeld tapwaterdoel (0x34 offset 0) volgt; de gemeten temperatuur (0x34 offset 1) eindigt na een oplaadbeurt binnen ±3 K van het nieuwe doel. Gebruikersbereik 50–60 °C met een legionellawaarschuwing onder 55 °C; daarbuiten alleen Geavanceerd. |
+| 3 | Comfort / eco (`dhw.comfort` bij Classic, `dhw.comfort1` bij EMS+) | Minder warmhoudbeurten per dag; past bij de warmhoudvraag van de eigenaar | Gebruiker | Over 24–48 uur minder `keep_warm`-episodes in `DhwEpisodes` dan op een vergelijkbare dag. Let op: de E32 leest Classic-byte 9 van 0x33 maar koppelt die aan `dhw.comfort1`; de W1-tabel moet per familie het goede telegram dragen (0x33 offset 9 Classic, 0xEA EMS+). |
+| 4 | `dhw.hyston` (schakelmarge warm water) | Minder en langere opwarmbeurten | Geavanceerd | Bij het begin van een warmhoudepisode ligt de boilertemperatuur ongeveer op doel min marge (±2 K). Ook vaststellen of comfort/eco en deze marge per model gekoppeld zijn: wijzig de één en lees de ander terug. |
+| 5 | `burnminperiod` (rusttijd brander) | Tegen pendelen bij weinig vraag | Geavanceerd | In `BurnerCycleMonitor` worden de uittijden tussen CV-starts niet korter dan de waarde. Liefst ook 0x19 offset 8 (resterende antipendeltijd, nu nog niet gedecodeerd) toevoegen. Vereist een periode met lage warmtevraag. |
+| 6 | `boilhyston` (schakelmarge herstart) | Tegen pendelen | Geavanceerd | Herstart van de brander valt bij een aanvoer van ongeveer gevraagd min marge (±1 K), over meerdere cycli. Alleen meetbaar met een vaste gevraagde aanvoer: tijdens actieve regeling of de bijgewoonde keteltest. |
+| 7 | `burnmaxpower` (maximaal cv-vermogen) | Voor een te zware ketel; rustiger stoken | Geavanceerd | Gemeld brandervermogen (0x18 offset 4) komt tijdens CV niet boven de waarde (±2 %). Per model vastleggen of warm water ook begrensd wordt. Uitleg in de interface: het helpt niet tegen pendelen bij laaglast. |
+| 8 | `heatingtemp` (maximale cv-temperatuur) | Bescherming vloer, condenseren | Gebruiker | Zie de L3-tabel hierboven; nooit boven het systeemmaximum van de E32. |
+| 9 | `pumpmodmax` / `pumpmodmin` (pompsnelheid) | Geluid en stroom | Geavanceerd | Gemelde pompsnelheid (0x19 offset 9) blijft binnen de nieuwe grenzen. |
+
+**Nog open:** de opdracht van 3 november noemt product-ID 206 voor de adapter
+van de eigenaar; dit plan en de notities noemen 211. Beide groepen hebben
+dezelfde 27 schrijfbare entiteiten, dus voor de uitleg maakt het niet uit. Het
+capaciteitsprofiel moet wel het echte product-ID vastleggen ("Apparaatidentiteit
+ophalen" op de ketelpagina).
 
 ## Home Assistant
 

@@ -38,4 +38,21 @@ class ReferenceTests(unittest.TestCase):
             self.assertEqual([compact['entities'][i] for i in group['fields']],expected)
         self.assertLess((ROOT/'data/html/ems-metadata.js').stat().st_size,30000)
 
+    def test_setting_help_explains_every_writable_boiler_field_in_both_languages(self):
+        generate(check=True)
+        compact=json.loads((ROOT/'data/html/ems-metadata.js').read_text().removeprefix('window.OT_EMS_METADATA = ').rstrip(';\n'))
+        writable={spec[0] for spec in compact['entities'] if spec[4]}
+        source=(ROOT/'data/html/ems-setting-help.js').read_text(encoding='utf-8')
+        help=json.loads(re.search(r'window.OT_EMS_SETTING_HELP = (.*);\n',source).group(1))
+        dutch=json.loads(re.search(r'Object.entries\((\{.*\})\)\) if',source).group(1))
+        self.assertEqual(set(help),writable)
+        self.assertEqual(len(help),27)
+        for entity,row in help.items():
+            self.assertIn(row['level'],('user','installer'))
+            for key in ('what','expect','risk','e32'):
+                self.assertNotEqual(dutch[row[key]],row[key],(entity,key))
+        # The E32's own heat request and the second burner stage are explained, never offered.
+        for entity in ('selflowtemp','selburnpow','boil2hyston','boil2hystoff'):self.assertEqual(help[entity]['offer'],'never')
+        self.assertLess(len(source.encode()),40000)
+
 if __name__=='__main__':unittest.main()

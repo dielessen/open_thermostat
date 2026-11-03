@@ -13,8 +13,10 @@ Zigbee2MQTT on the same broker; Home Assistant only shows and configures:
 - Repairs: a low battery (about 20 %), a valve that stopped reporting, and a room
   whose valve control is on while the room has a single temperature source (a
   separate sensor keeps it heating when that one fails);
-- the valves of a room are chosen in Configure → Rooms → Edit or remove a room →
-  Radiator valves (e32_room_flow.py).
+- the valves of a room are chosen in the room's own form, section Radiator valves
+  (Configure → Rooms → Edit or remove a room → Edit room, e32_room_flow.py): just
+  their climate entities; valve_routes.py decides per valve whether the E32
+  drives it over Zigbee2MQTT or Home Assistant does.
 
 A valve Home Assistant controls (ZHA, Z-Wave, Shelly, a cloud integration) is model
 ``ha_climate`` with its climate entity id as name: the E32 only lists it, Home
@@ -61,9 +63,12 @@ PENDING_SECONDS = 30
 
 
 def guess_model(text):
-    """Our model id from a Zigbee2MQTT device's manufacturer/model text, or None (the installer chooses)."""
+    """Our model id from a Zigbee2MQTT device's manufacturer/model text, or None (the installer chooses).
+
+    By the model number only: a Bosch room thermostat (BTH-RM) is no BTH-RA valve.
+    """
     text = text.lower()
-    if "bth-ra" in text or "bosch" in text and "thermostat" in text:
+    if "bth-ra" in text:
         return "bosch_bth_ra"
     if "trv-zbt" in text:  # Sonoff TRV Gen2, before the TRVZB match
         return "sonoff_trv_zbt"

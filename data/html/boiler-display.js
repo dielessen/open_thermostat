@@ -155,6 +155,8 @@
     style.textContent = '.boiler-summary{overflow-wrap:anywhere;display:flex;align-items:center;gap:16px;margin:0 0 4px;max-width:100%}.boiler-summary img{object-fit:contain;flex:none;width:46px;height:70px}.boiler-summary h2{font-size:1.2rem;margin:0 0 4px}.boiler-summary p{margin:0 0 4px;color:var(--ot-muted);font-size:.87rem}.boiler-summary>div{min-width:0}';
     document.head.append(style);
     // model(): the saved boiler-model selection, null while unknown (display-codes.js uses its table).
-    window.BoilerDisplay = {load,mountHome,settings,model:() => selected};
+    // modelName(): its name, null while unknown or when no boiler is chosen (ems-devices.js names the boiler).
+    const modelName = () => selected !== null && models[selected] && models[selected].kind !== 'none' ? models[selected].name : null;
+    window.BoilerDisplay = {load,mountHome,settings,model:() => selected,modelName};
     document.addEventListener('DOMContentLoaded', () => {void load().catch(()=>{});});
 })();

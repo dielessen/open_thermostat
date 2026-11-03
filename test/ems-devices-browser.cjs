@@ -5,7 +5,7 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(__dirnam
 const sample=(value,unit='degC',extra={})=>({value,unit,state:'valid',quality:'reported',source_type:24,source_address:8,age_ms:100,...extra});
 function snapshot(){return {reception:{state:'classic_reports_received'},transport:{enabled:true},
  manual_bus_identity:{source_address:23,matches_reviewed_address:true,source_conflict:false},
- inventory:{schema:1,capacity:16,untracked_frames:0,devices:[{address:8,frames:20,age_ms:100,product_id:211,version:'2.3',brand_id:1,untracked_types:0,telegram_types:[2,24]},
+ inventory:{schema:1,capacity:16,untracked_frames:0,devices:[{address:8,frames:20,age_ms:100,product_id:206,version:'2.1',brand_id:4,untracked_types:0,telegram_types:[2,24]},
  {address:23,frames:2,age_ms:200,product_id:null,version:null,brand_id:null,untracked_types:0,telegram_types:[32]}]},
  fields:{measured_flow_temperature:sample(47.2),pressure:sample(2,'bar',{quality:'unreliable'}),
  measured_return_temperature:sample(null,'degC',{state:'stale',age_ms:45000}),
@@ -15,13 +15,13 @@ function snapshot(){return {reception:{state:'classic_reports_received'},transpo
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[];
  try{for(const lang of ['en','nl'])for(const width of [1280,390,320]){
-  const page=await browser.newPage({viewport:{width,height:950}}),errors=[],requests=[];let data=snapshot(),failed=false,missingMetadata=false;
+  const page=await browser.newPage({viewport:{width,height:950}}),errors=[],requests=[];let data=snapshot(),failed=false,missingMetadata=false,displayModel='none';
   page.on('pageerror',e=>errors.push(e.message));await page.context().addCookies([{name:'ot_ui_lang',value:lang,url:'http://opth.test'}]);
   await page.route('http://opth.test/**',route=>{
    const req=route.request(),p=new URL(req.url()).pathname;requests.push({path:p,method:req.method()});
    if(p==='/auth/session')return route.fulfill({json:{authenticated:true,csrf:'a'.repeat(64)}});
    if(p==='/status')return route.fulfill({json:{controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}}});
-   if(p==='/config/boiler-display')return route.fulfill({json:{model:'none'}});
+   if(p==='/config/boiler-display')return route.fulfill({json:{model:displayModel}});
    if(p==='/status/ems/telemetry')return route.fulfill(failed?{status:503,body:'unavailable'}:{json:data});
    if(p==='/ems-metadata.js'&&missingMetadata)return route.fulfill({status:503,body:''});
    const file=path.join(assets,p==='/'?'index.html':p);if(!file.startsWith(assets+'/')||!fs.existsSync(file))return route.fulfill({status:404,body:''});
@@ -30,7 +30,9 @@ function snapshot(){return {reception:{state:'classic_reports_received'},transpo
   });
   await page.goto('http://opth.test/');await page.evaluate(()=>loadNativePage('boiler_test'));
   const boiler=page.locator('details[data-address="8"]'),rows=boiler.locator('tbody tr');await rows.first().waitFor();
-  assert.match(await boiler.locator('summary').first().innerText(),/Bosch EasyControl Adapter/);
+  // The owner's EcomLine Classic reports product 206 (EMS-ESP: "Ecomline Excellent"): without a chosen model a neutral name.
+  const title=()=>boiler.locator('summary span').first().innerText();
+  assert.equal(await title(),lang==='nl'?'Nefit-ketel (product 206) 0x08':'Nefit boiler (product 206) 0x08');
   assert.equal(await rows.count(),7);assert.equal(await page.locator('[data-fields],#ems-all-entities,#ems-settings-table,.ems-reference').count(),0);
   assert.equal(await page.locator('[data-address="23"]').count(),0,'Our own reviewed bus identity is not an external thermostat');
   assert.equal(requests.filter(r=>r.path==='/status/ems/telemetry').length,1,'Both consumers share the initial read');
@@ -53,7 +55,31 @@ function snapshot(){return {reception:{state:'classic_reports_received'},transpo
   assert.equal(await page.locator('#ems-devices').getAttribute('data-failed'),'true');
   data=snapshot();data.fields.safe_text=sample('<img src=x onerror=alert(1)>','text');await page.locator('#ems-search').fill('');await refresh();
   assert.equal(await page.locator('#ems-device-list img').count(),0);assert.match(await boiler.innerText(),/<img/);
+  // Post-1.0 help: a value EMS-ESP can write explains itself in plain words, collapsed by default.
+  data=snapshot();data.fields.heating_hysteresis_on=sample(-6,'K',{source_type:22});
+  data.fields.selected_dhw_temperature=sample(60,'degC',{source_type:51});await refresh();
+  const hysteresis=boiler.locator('[data-field="heating_hysteresis_on"]'),help=hysteresis.locator('details.ems-help');await help.waitFor();
+  assert.match(await hysteresis.innerText(),lang==='nl'?/Instelbaar in EMS-ESP · Alleen lezen op E32/:/Configurable in EMS-ESP · Read only on E32/);
+  assert.equal(await help.evaluate(n=>n.open),false,'help starts collapsed');
+  assert.equal((await help.locator('summary').innerText()).trim(),lang==='nl'?'Over deze instelling':'About this setting');
+  assert.equal(await help.locator('p').first().isVisible(),false);
+  assert.equal(await boiler.locator('.ems-help').count(),6,'four Classic settings, the hysteresis and the hot water temperature');
+  assert.equal(await boiler.locator('[data-field="measured_flow_temperature"] .ems-help').count(),0,'a measurement has no setting help');
+  await help.locator('summary').click();
+  const helpText=await help.innerText();
+  assert.match(helpText,lang==='nl'?/Wat het doet: Hoe ver het water naar de verwarming onder het doel moet zakken/:/What it does: How far the water to the heating must drop below its target/);
+  assert.match(helpText,lang==='nl'?/Wat je kunt verwachten als het verandert: Een grotere marge/:/What to expect when it changes: A larger margin/);
+  assert.match(helpText,lang==='nl'?/Risico: .*pendelen/:/Risk: .*short-cycle/);
+  assert.match(helpText,lang==='nl'?/Monteursinstelling: Geavanceerd, op eigen risico/:/Installer setting: Advanced, at your own risk/);
+  assert.match(await boiler.locator('[data-field="selected_dhw_temperature"] .ems-help').textContent(),lang==='nl'?/Gebruikersinstelling/:/User setting/);
+  assert.match(await boiler.locator('[data-field="selected_dhw_temperature"] .ems-help').textContent(),/55 °C/);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'open help fits the width');
+  fs.mkdirSync(output,{recursive:true});await hysteresis.screenshot({path:path.join(output,`${lang}-${width}-help.png`)});
+  await refresh();assert.equal(await help.evaluate(n=>n.open),true,'a refresh keeps the reader\'s place');
+  assert.equal(await hysteresis.locator('button').count(),0,'help never adds an edit control');
   data.inventory.devices[0].product_id=null;await refresh();assert(!/EasyControl/.test(await boiler.locator('summary').first().innerText()));
+  assert.equal(await title(),lang==='nl'?'Ketel 0x08':'Boiler 0x08');
+  assert.equal(await boiler.locator('.ems-help').count(),0,'without an identified product there is no setting help');
   // Release 1.0: a value the boiler leaves at 0 while it works reads "not reported", never 0 or "off".
   data=snapshot();data.fields.reported_selected_flow_temperature=sample(null,'degC',{state:'not_reported'});
   data.fields.raw_burner_bit=sample(null,'bool',{state:'not_reported',quality:'unreliable'});await refresh();
@@ -76,12 +102,15 @@ function snapshot(){return {reception:{state:'classic_reports_received'},transpo
   assert.equal(await page.locator('#ems-device-list > details[data-address="8"]').count(),1);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   fs.mkdirSync(output,{recursive:true});await page.screenshot({path:path.join(output,`${lang}-${width}.png`),fullPage:true});
-  missingMetadata=true;data=snapshot();await page.reload();await page.evaluate(()=>loadNativePage('boiler_test'));
+  // The model chosen on the Boiler page names the boiler, as in Home Assistant; the next snapshot follows it.
+  missingMetadata=true;displayModel='nefit-ecomline-classic-hrc-22h';data=snapshot();await page.reload();await page.evaluate(()=>loadNativePage('boiler_test'));
   await page.locator('[data-field="measured_flow_temperature"]').waitFor();
+  await page.waitForFunction(()=>BoilerDisplay.modelName()!==null);await refresh();
+  assert.equal(await title(),'Nefit Ecomline Classic HRC 22H 0x08');
   assert.match(await page.locator('[data-field="measured_flow_temperature"]').innerText(),lang==='nl'?/47,2/:/47.2/);
   assert(!requests.some(r=>['/status/ems/devices','/status/boiler/settings','/ems-reference.js.gz'].includes(r.path)));
   assert(!requests.some(r=>r.method!=='GET'));assert.deepEqual(errors,[]);
-  results.push({lang,width,result:'PASS',oneEntityTable:true,sharedSnapshot:true,noGuessedIdentity:true});await page.close();
+  results.push({lang,width,result:'PASS',oneEntityTable:true,sharedSnapshot:true,noGuessedIdentity:true,chosenBoilerName:true});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(output,'RESULT.json'),JSON.stringify(results,null,2));console.log(JSON.stringify(results));
 })().catch(e=>{console.error(e);process.exitCode=1;});

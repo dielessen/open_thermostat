@@ -28,8 +28,8 @@ from .room_levels import room_levels, supported, valid_levels
 from .room_plan import has_room_plan, plan_room
 
 MAX_POINTS = 6
-CARD_URL = "/open_thermostat/e32-week-card-1.0.0rc2.js"
-EDITOR_URL = "/open_thermostat/week-editor-1.0.0rc2.js"
+CARD_URL = "/open_thermostat/e32-week-card-1.0.0rc3.js"
+EDITOR_URL = "/open_thermostat/week-editor-1.0.0rc3.js"
 # RoomPlanLink failures -> the short codes the card explains in plain words.
 FAILURES = {"room_plan_changed": "plan_changed", "room_plan_too_large": "plan_too_large",
             "room_plan_storage_full": "storage_full", "room_plan_unconfirmed": "save_unconfirmed",
@@ -188,7 +188,10 @@ async def ws_week_get(hass, connection, msg):
         connection.send_error(msg["id"], str(err), "The week programs could not be read")
     else:
         # The module this backend serves: a page still running an older card asks for a reload.
-        connection.send_result(msg["id"], {**result, "card_url": CARD_URL})
+        # rc.3: Smart warm-up as last read, so the planner's hint says what a time in the program means.
+        from .e32_flow import smart_warm_up
+        smart = smart_warm_up(hass, msg["entry_id"])
+        connection.send_result(msg["id"], {**result, "card_url": CARD_URL, **({"smart_warm_up": smart} if smart is not None else {})})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "open_thermostat/e32_week/save",

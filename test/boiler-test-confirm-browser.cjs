@@ -39,7 +39,8 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   await page.context().addCookies([{name:'ot_session',value:'b'.repeat(64),url:'http://confirmation.test'},
    {name:'ot_ui_lang',value:language,url:'http://confirmation.test'}]);
   await page.goto('http://confirmation.test/');await page.waitForFunction(()=>typeof loadNativePage==='function');
-  for(const action of ['start','prepare_zero','close_fault'])for(const interruption of ['cancel','confirm','hidden','brief','pagehide','detach']){
+  // rc.3: the attended heating test is retired (its Start is never shown); the zero-only check and closing a fault stay.
+  for(const action of ['prepare_zero','close_fault'])for(const interruption of ['cancel','confirm','hidden','brief','pagehide','detach']){
    state=initial();posts=[];
    if(action==='close_fault')state={...state,revision:1,phase:'fault',can_prepare:false,can_prepare_zero:false,can_stop:true,can_close_fault:true,reported_stop_confirmed:true,zero_frames:1};
    await page.evaluate(()=>{delete document.visibilityState;return loadNativePage('boiler_trial');});
@@ -48,11 +49,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
     await page.waitForFunction(()=>!document.querySelector('[data-test-flow]').disabled);
     await page.locator('[data-site-confirm]').check();
    }
-   if(action==='start'){
-    await page.locator('[data-test-flow]').fill('40');await page.locator('[data-test-duration]').fill('1');
-    await page.locator('[data-test-prepare]').click();
-    await page.waitForFunction(()=>!document.querySelector('[data-test-start]').disabled);
-   }
+   assert.equal(await page.locator('[data-test-prepare]').isVisible(),false);assert.equal(await page.locator('[data-test-start]').isVisible(),false);
    if(action==='prepare_zero')await page.locator('#boiler-test-reception > summary').click();
    const before=posts.length;
    await page.evaluate(({action,interruption})=>{
@@ -70,7 +67,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
      if(interruption==='detach')document.querySelector('#boiler-test').remove();
      return interruption!=='cancel';
     };
-    document.querySelector(action==='start'?'[data-test-start]':action==='close_fault'?'[data-test-close-fault]':'[data-test-zero]').click();
+    document.querySelector(action==='close_fault'?'[data-test-close-fault]':'[data-test-zero]').click();
     window.confirm=original;
    },{action,interruption});
    if(interruption==='confirm')await until(()=>posts.length>before);

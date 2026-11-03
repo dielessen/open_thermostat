@@ -3,6 +3,7 @@
 #include <cJSON.h>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <optional>
 #include <string>
@@ -30,6 +31,22 @@ namespace heating::control {
 // heating, the boiler silent for 3 minutes.
 // Each step has a timeout. The result (start time, a mark per step, the end
 // and its reason) is kept as one short NVS string (record()/restore()).
+//
+// rc.3 (owner, 3 Nov 2026): this is the one boiler test (the attended heating
+// test of the Boiler page is retired; its rules the E32 can apply here are
+// kept: no start while a boiler settings write or an attended bus check holds
+// the bus, the flow ceiling, the stop check, another controller ends it).
+// The kept record also holds
+//   - the highest water temperature the E32 asked during the test ("flow used"),
+//   - the owner's mark "I have already done this test" (markDone/unmark): kept
+//     and shown as a mark with its date, never as a measured pass; a new start
+//     replaces it with what the E32 measures,
+//   - whether the E32 ever heard another controller ask the boiler for heat
+//     (sawThermostat): the pages mention an old thermostat only then,
+//   - a test that was still running when the record was written: after a
+//     restart it reads back as stopped, reason "e32_restarted".
+// summary() folds it into one word for the pages and Home Assistant, with the
+// installation's history (the E32 controlled this boiler before: not needed).
 // Pure and single-threaded: step() every 10 s; the caller applies target().
 class TakeoverTest {
 public:
@@ -52,7 +69,9 @@ public:
         std::optional<uint64_t> foreignAtMs;     // the last 0x1A to the boiler from another master
         std::optional<uint64_t> boilerHeardAtMs; // the last boiler report
         bool confirmed = false, owning = false, blocked = false;
+        bool busy = false;                       // a boiler settings write or an attended bus check holds the bus
         bool released = true;                    // no positive request held: the zero was delivered
+        std::optional<uint8_t> requestC;         // the E32's flow request now (nullopt: none sent)
         const char* warning = nullptr;           // a guard warning that ends the test (nullptr: none)
         std::optional<bool> burnerOn, hotWater;
         std::optional<int16_t> flowCentiC, roomCentiC; // the boiler's flow; the test room's fresh reading
@@ -66,6 +85,7 @@ public:
     // Starts (again) from the first step for this room; utc 0 = clock unknown.
     void start(uint64_t now, std::string room, uint32_t utc) {
         room_ = std::move(room); at_ = utc; state_ = State::running; reason_.clear();
+        flowC_ = 0; marked_ = false; markedAt_ = 0; // what the E32 measures replaces the owner's mark
         std::fill(marks_, marks_ + steps, Mark::none);
         enter(Step::disconnect, now);
         setTarget(std::nullopt);
@@ -80,6 +100,42 @@ public:
         mark(Mark::skipped); next(now);
         return true;
     }
+    // The owner's "I have already done this test" (utc 0: clock unknown). Refused while the test
+    // runs ("test_running") or after a measured pass ("test_passed"); nullptr: marked.
+    const char* markDone(uint32_t utc) {
+        if (running()) return "test_running";
+        if (state_ == State::passed) return "test_passed";
+        marked_ = true; markedAt_ = utc;
+        return nullptr;
+    }
+    // Undoes the mark; false: there was none.
+    bool unmark() {
+        if (!marked_) return false;
+        marked_ = false; markedAt_ = 0;
+        return true;
+    }
+    bool marked() const { return marked_; }
+    uint32_t markedAt() const { return markedAt_; }
+    // Another controller asked the boiler for heat (a foreign 0x1A). True once: the fact is new.
+    bool sawThermostat() {
+        if (thermostat_) return false;
+        thermostat_ = true;
+        return true;
+    }
+    bool thermostatSeen() const { return thermostat_; }
+    uint8_t flowC() const { return flowC_; }
+    // One word for the pages and Home Assistant: running, passed, marked, failed, stopped,
+    // not_needed (never measured, but the E32 controlled this boiler before), aborted or never.
+    // A mark is always newer than the result it stands beside (a start clears it); a measured
+    // failure or safety stop stays visible on an installation the E32 controlled before.
+    const char* summary(bool takenOverBefore) const {
+        if (running()) return "running";
+        if (state_ == State::passed) return "passed";
+        if (marked_) return "marked";
+        if (state_ == State::failed || state_ == State::stopped) return name(state_);
+        if (takenOverBefore) return "not_needed";
+        return state_ == State::aborted ? "aborted" : "never";
+    }
 
     void step(uint64_t now, const Inputs& in) {
         if (!running()) return;
@@ -89,6 +145,8 @@ public:
         if (step_ > Step::confirm) {
             if (in.blocked) return stop("foreign_controller", now);
             if (!in.confirmed) return stop("handed_back", now);
+            if (in.busy) return stop("boiler_busy", now);
+            if (in.requestC && *in.requestC > flowC_) flowC_ = *in.requestC;
             if (in.warning) return stop(in.warning, now);
             if (!in.boilerHeardAtMs || now - *in.boilerHeardAtMs > p_.silentMs) return stop("boiler_silent", now);
             const bool over = heating && in.flowCentiC && *in.flowCentiC > in.ceilingC * 100 + p_.marginCentiC;
@@ -168,23 +226,45 @@ public:
     bool takeTargetChange() { const bool c = targetChanged_; targetChanged_ = false; return c; }
     uint16_t overrideMinutes() const { return p_.overrideMinutes; }
 
-    // The kept result: "<utc> <marks> <state> <reason>", at most 48 characters.
+    // The kept record: "<utc> <marks> <state> <reason> <flow> <mark> <thermostat>", at most 59
+    // characters (NVS note < 64). The first four fields are rc.2's record, which rc.2 still reads
+    // after a rollback (it ignores the rest). state: also 'i' (never run: only the mark or the
+    // thermostat is kept) and 'r' (running when written). flow: the highest request in degC (0:
+    // none); mark: "-" or the mark's utc (0: clock unknown); thermostat: "t" or "-".
+    // Empty: nothing to keep.
     std::string record() const {
-        if (state_ == State::idle || running()) return {};
-        char text[64];
-        std::snprintf(text, sizeof(text), "%lu %.*s %c %.24s", (unsigned long)at_, int(steps), (const char*)marks_, char(state_),
-                      reason_.empty() ? "-" : reason_.c_str());
+        if (state_ == State::idle && !marked_ && !thermostat_) return {};
+        char text[64], mark[12] = "-";
+        if (marked_) std::snprintf(mark, sizeof(mark), "%lu", (unsigned long)markedAt_);
+        std::snprintf(text, sizeof(text), "%lu %.*s %c %.24s %u %s %c", (unsigned long)at_, int(steps), (const char*)marks_, char(state_),
+                      reason_.empty() ? "-" : reason_.c_str(), unsigned(flowC_), mark, thermostat_ ? 't' : '-');
         return text;
     }
-    // At boot: a record of record(); anything else leaves the test idle.
+    // What replaces a stored record once nothing is left to keep (the mark undone): reads back idle.
+    static std::string emptyRecord() { return "0 nnnnn i - 0 - -"; }
+    // At boot: a record of record() or of rc.2; anything else leaves the test idle. A test that was
+    // running when its record was written was ended by the restart: stopped, "e32_restarted", its
+    // current step failed.
     bool restore(std::string_view text) {
-        unsigned long at = 0; char marks[steps + 1] = {}, state = 0, reason[25] = {};
+        unsigned long at = 0; char marks[steps + 1] = {}, state = 0, reason[25] = {}, flow[4] = {}, mark[12] = {}, seen[2] = {};
         const std::string copy(text.substr(0, 63));
-        if (std::sscanf(copy.c_str(), "%lu %5s %c %24s", &at, marks, &state, reason) != 4 || std::strlen(marks) != steps) return false;
+        const int fields = std::sscanf(copy.c_str(), "%lu %5s %c %24s %3s %11s %1s", &at, marks, &state, reason, flow, mark, seen);
+        if ((fields != 4 && fields != 7) || std::strlen(marks) != steps) return false;
         for (const char m : marks) if (m && !std::strchr("npfsa", m)) return false;
-        if (!std::strchr("pfsa", state)) return false;
+        const bool extended = fields == 7;
+        if (!std::strchr(extended ? "pfsair" : "pfsa", state)) return false;
+        unsigned long flowC = 0, markedAt = 0;
+        const bool marked = extended && std::strcmp(mark, "-") != 0;
+        if (extended && (!digits(flow, 99, flowC) || (marked && !digits(mark, 4294967295ul, markedAt))
+                         || (std::strcmp(seen, "t") && std::strcmp(seen, "-")))) return false;
+        if (state == 'i' && leading(marks, [](char c) { return c == 'n'; }) != steps) return false;
         at_ = uint32_t(at); state_ = State(state); reason_ = std::strcmp(reason, "-") ? reason : "";
         std::copy(marks, marks + steps, (char*)marks_);
+        flowC_ = uint8_t(flowC); marked_ = marked; markedAt_ = uint32_t(markedAt); thermostat_ = extended && seen[0] == 't';
+        if (state_ == State::running) {
+            state_ = State::stopped; reason_ = "e32_restarted";
+            if (Mark* m = std::find(marks_, marks_ + steps, Mark::none); m != marks_ + steps) *m = Mark::fail;
+        }
         return true;
     }
 
@@ -211,8 +291,10 @@ public:
             default: return "idle";
         }
     }
-    // {"state","at","steps":{name: result},"reason"[,"step","phase","step_s","room","target_c","quiet_s","rise_c"]}
-    cJSON* json(uint64_t now) const {
+    // {"state","at","steps":{name: result},"reason","summary","flow_c","marked","marked_at"
+    //  [,"step","phase","step_s","room","target_c","quiet_s","rise_c"]}; takenOverBefore: the E32
+    // controlled this boiler before (summary not_needed).
+    cJSON* json(uint64_t now, bool takenOverBefore = false) const {
         cJSON* root = cJSON_CreateObject();
         if (!root) return nullptr;
         bool ok = cJSON_AddStringToObject(root, "state", name(state_)) != nullptr;
@@ -221,6 +303,10 @@ public:
         for (size_t i = 0; list && i < steps; ++i)
             ok = ok && cJSON_AddStringToObject(list, name(Step(i)), running() && Step(i) == step_ ? "wait" : name(marks_[i]));
         ok = ok && list && (reason_.empty() ? cJSON_AddNullToObject(root, "reason") : cJSON_AddStringToObject(root, "reason", reason_.c_str()));
+        ok = ok && cJSON_AddStringToObject(root, "summary", summary(takenOverBefore))
+            && (flowC_ ? cJSON_AddNumberToObject(root, "flow_c", flowC_) : cJSON_AddNullToObject(root, "flow_c"))
+            && cJSON_AddBoolToObject(root, "marked", marked_)
+            && (marked_ && markedAt_ ? cJSON_AddNumberToObject(root, "marked_at", markedAt_) : cJSON_AddNullToObject(root, "marked_at"));
         if (ok && running()) {
             ok = cJSON_AddStringToObject(root, "step", name(step_)) && cJSON_AddStringToObject(root, "phase", phase_)
                 && cJSON_AddNumberToObject(root, "step_s", double((now - std::min(now, since_)) / 1000))
@@ -234,6 +320,20 @@ public:
     }
 
 private:
+    // How many leading characters pass `ok` (strspn without linking newlib's, see e32v2-link-review.json).
+    template <typename Ok> static size_t leading(const char* text, Ok ok) {
+        size_t n = 0;
+        while (text[n] && ok(text[n])) ++n;
+        return n;
+    }
+    // A whole decimal number of at most `max` (no sign, no blanks).
+    static bool digits(const char* text, unsigned long max, unsigned long& out) {
+        if (!*text || leading(text, [](char c) { return c >= '0' && c <= '9'; }) != std::strlen(text) || std::strlen(text) > 10) return false;
+        const unsigned long long v = std::strtoull(text, nullptr, 10);
+        if (v > max) return false;
+        out = static_cast<unsigned long>(v);
+        return true;
+    }
     void enter(Step s, uint64_t now) {
         static constexpr const char* first[] = {"listening", "waiting_confirmation", "waiting_burner", "waiting_tap", "waiting_zero", ""};
         step_ = s; since_ = now; phase_ = first[size_t(s)]; aimed_ = tapSeen_ = overSeen_ = false;
@@ -272,7 +372,9 @@ private:
     Mark marks_[steps] = {Mark::none, Mark::none, Mark::none, Mark::none, Mark::none};
     std::string room_, reason_;
     const char* phase_ = "";
-    uint32_t at_ = 0, quietS_ = 0;
+    uint32_t at_ = 0, quietS_ = 0, markedAt_ = 0;
+    uint8_t flowC_ = 0;                  // the highest flow the E32 asked during the test (0: none)
+    bool marked_ = false, thermostat_ = false;
     uint64_t since_ = 0;
     std::optional<int16_t> target_, lowFlow_;
     int16_t riseCentiC_ = 0;

@@ -309,12 +309,12 @@ async def test_platforms_add_flow_entities_only_for_a_product_with_a_stored_conn
 @pytest.mark.asyncio
 @pytest.mark.parametrize("language,names", [
     ("en", {"switch.weather_curve": "OpenThermostat Follow outdoor temperature (heating curve)",
-            "switch.apply_learned": "OpenThermostat Warm on time with the coolest water",
+            "switch.apply_learned": "OpenThermostat Smart warm-up",
             "select": "OpenThermostat Water temperature at −10 °C outside", "sensor.source": "OpenThermostat Water temperature set by",
             "sensor.gas": "OpenThermostat Gas calibration", "sensor.night": "OpenThermostat Last night's heating gas"},
      ),
     ("nl", {"switch.weather_curve": "OpenThermostat Buitentemperatuur volgen (stooklijn)",
-            "switch.apply_learned": "OpenThermostat Op tijd warm met het koelste water",
+            "switch.apply_learned": "OpenThermostat Slim opwarmen",
             "select": "OpenThermostat Watertemperatuur bij −10 °C buiten", "sensor.source": "OpenThermostat Watertemperatuur bepaald door",
             "sensor.gas": "OpenThermostat Gasijking", "sensor.night": "OpenThermostat Gas voor verwarmen afgelopen nacht"}),
 ])

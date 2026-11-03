@@ -60,6 +60,10 @@ every job as before.
    timing race in a test shows up there, not on a loaded CI runner. Fix a race at
    its cause, never with a retry, a longer timeout or a skip.
 
+   Experimental, not yet the release check: `--lanes` runs independent steps at
+   the same time on their own CPUs, `--copy` runs in a copy on the WSL disk (the
+   script header describes both). Use the default serial run before a tag.
+
    A change to learning or self-tuning (FlowLearner, AutoTuner, WarmupPlanner,
    FlowPolicy) is also replayed on the owner's full recording, before and after
    the change (`tools/replay/README.md`). The `replay` step checks the

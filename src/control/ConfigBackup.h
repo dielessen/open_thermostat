@@ -710,7 +710,9 @@ inline const char* preparePlan(const cJSON* backup, const DeviceState& s, std::s
 }
 
 // Flow options through FlowSettings::parse, one key at a time: a key this
-// firmware does not know is reported and skipped, a bad value refused.
+// firmware does not know is reported and skipped, a bad value refused. A backup
+// before rc.3 (no "version" >= 2) restores apply_learned and weather_curve as on:
+// their false was the old default (FlowSettings::beforeSmartWarmup), like the NVS record's.
 inline const char* prepareFlow(const cJSON* backup, const DeviceState& s, std::string& out, Report& report) {
     const auto flow = item(backup, "flow");
     if (!flow) return nullptr;
@@ -723,6 +725,10 @@ inline const char* prepareFlow(const cJSON* backup, const DeviceState& s, std::s
         const char* e = FlowSettings::parse(one.get(), next);
         if (e && !std::strcmp(e, "invalid_key")) report.warn("unknown_key", std::string("flow.") + c->string);
         else if (e) { report.warn("invalid_value", std::string("flow.") + c->string); return "flow_invalid_value"; }
+    }
+    if (FlowSettings::beforeSmartWarmup(flow)) {
+        if (item(flow, "apply_learned")) next.applyLearned = true;
+        if (item(flow, "weather_curve")) next.weatherCurve = true;
     }
     if (next == current) return nullptr;
     auto a = parseStored(current.json()), b = parseStored(next.json());

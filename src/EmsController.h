@@ -492,6 +492,8 @@ public:
                 <<",\"error\":\""<<result.error<<"\",\"configuration_read\":";
             configurationRead_.writeJSON(ss,now,configurationReadPermitted(),boilerTest_.active());ss<<'}';return result.http;
         }
+        // The retired attended heating test (attendedHeatTestOffered): the boiler test on the Rooms page.
+        if(!attendedHeatTestOffered&&action=="prepare"){ss<<"{\"accepted\":false,\"error\":\"use_boiler_test\"}";return 409;}
         if(configurationRead_.active() && (action=="prepare"||action=="prepare_zero"||action=="start")) {
             ss<<"{\"accepted\":false,\"error\":\"configuration_read_active\"}";return 409;
         }
@@ -690,9 +692,16 @@ private:
             && !boilerTestTransportFault_.load(std::memory_order_acquire)
             && !resetRequested_.load(std::memory_order_relaxed);
     }
+    // rc.3 (owner, 3 Nov 2026): one boiler test. The attended heating test of the Boiler page is
+    // retired; the boiler test on the Rooms page (control/TakeoverTest.h) replaces it. Its heat path
+    // stays closed through the reviewed gate (pathReady: allowsHeat() never holds, so no positive
+    // request is prepared, started or sent); the zero-only check and the reads keep working.
+    static constexpr bool attendedHeatTestOffered = false;
     BoilerTestSession::Gates boilerTestGates() const {
-        return EcomlineCommissioningProfile::gates(monitor_, static_cast<uint64_t>(esp_timer_get_time() / 1000),
+        auto gates = EcomlineCommissioningProfile::gates(monitor_, static_cast<uint64_t>(esp_timer_get_time() / 1000),
             manualTransportReviewed() && !configurationRead_.active() && !boilerSettings_.active() && settingsUpdateAllowed_, boilerTest_.heating());
+        gates.pathReady = gates.pathReady && attendedHeatTestOffered;
+        return gates;
     }
     // Fixed Classic service identity; observed mask and conflicts must still
     // match at final admission. No HTTP/config address selection or TX unlock.

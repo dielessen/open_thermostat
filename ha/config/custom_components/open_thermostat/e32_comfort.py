@@ -321,17 +321,33 @@ def settings_schema(vol, settings):
     })
 
 
-def presence_schema(vol, settings):
-    """Configure → Home → Presence: the people of the house and how long everyone must be away."""
+def presence_schema(vol, settings, away=False):
+    """Configure → Home → Presence: the people of the house, how long everyone must be away and the away
+    temperature (away: the E32's current one in °C, None when it reports none; False: no E32 field)."""
     people = settings["presence_entities"]
-    return vol.Schema({
+    fields = {
         (vol.Optional("presence_entities", description={"suggested_value": people}) if people
          else vol.Optional("presence_entities")): selector.EntitySelector(
             {"filter": [{"domain": list(PRESENCE_DOMAINS)}], "multiple": True}),
         vol.Required("away_delay", default=settings["away_delay_min"]): selector.NumberSelector(
             {"min": AWAY_DELAY_LIMITS[0], "max": AWAY_DELAY_LIMITS[1], "step": 1, "mode": "box",
              "unit_of_measurement": "min"}),
-    })
+    }
+    if away is not False:  # the same range and step as the number "Temperature when nobody is home"
+        fields[vol.Optional("away_temperature", description={"suggested_value": away})] = selector.NumberSelector(
+            {"min": AWAY_LIMITS[0], "max": AWAY_LIMITS[1], "step": 0.5, "mode": "box", "unit_of_measurement": "°C"})
+    return vol.Schema(fields)
+
+
+def validate_away_temperature(user_input, current):
+    """The away temperature to send (5–25 °C), or None when it is empty or unchanged."""
+    value = user_input.get("away_temperature")
+    if value is None or value == "":
+        return None
+    temperature = number(value, *AWAY_LIMITS)
+    if temperature is None:
+        raise ComfortError("away_temperature", "comfort_away_temperature_invalid")
+    return None if current is not None and float(temperature) == float(current) else float(temperature)
 
 
 def contacts_room_schema(vol, rooms, room_id):
@@ -807,12 +823,31 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
         if room is None:
             return None
         comfort, away = self.comfort, self.away
+        from .room_away import away_reason, room_away
+        own = room_away(self.plan_room)
         return {"room_id": self.room_id, "comfort_mode": comfort.get("mode", "program"),
                 "window": comfort.get("window"), "override": comfort.get("override"),
                 "until": _iso(comfort.get("until")), "waiting_for_clock": comfort.get("waiting_for_clock") is True,
                 "setpoint_source": room.get("setpoint_source"),
                 "away": away.get("on") is True, "away_source": away.get("source"),
-                "away_until": _iso(away.get("until"))}
+                "away_until": _iso(away.get("until")),
+                # Why this room is cooler (room_persons: only its own persons are out; everyone; house_mode:
+                # Away or Holiday), what its own persons are (home/away) and its own away temperature
+                # (None: the house value, plan.room_away.v1).
+                "away_reason": away_reason(comfort, away), "room_persons": comfort.get("persons"),
+                "own_away_temperature": own / 100 if own is not None else None,
+                "smart_warm_up": self._smart_warm_up()}
+
+    def _smart_warm_up(self):
+        """E32 rc.3: what Smart warm-up does for the next program step, in the Home Assistant language, or None."""
+        if self.hass is None:
+            return None
+        from .e32_flow import smart_warm_up
+        from .learned_overview import language, local_clock, smart_warm_up_line
+        plan = self.hub.warmup.get(self.room_id) if type(getattr(self.hub, "warmup", None)) is dict else None
+        start = plan.get("optimum_start") if type(plan) is dict else None
+        line = smart_warm_up_line(start, smart_warm_up(self.hass, self.entry.entry_id), language(self.hass), local_clock(self.hass))
+        return line[0] if line else None
 
     # -- commands ----------------------------------------------------------------
     def _write_state(self):
@@ -1022,22 +1057,60 @@ class ComfortOptionsSteps:
         # One place for everything house-wide (beta.23): presence, heating, energy, and the defaults for rooms
         # (levels without a week program, the default window pause, timing). The window contacts are set per
         # room in Configure → Rooms; the old Comfort menu is no longer offered (its steps stay for old links).
-        return self.async_show_menu(step_id="house", menu_options=["house_presence", "heating_boiler", "energy", "comfort_settings"])
+        # rc.3: Comfort and boiler care (the E32's control knobs, e32_care) as on the E32's Home page;
+        # not offered once the E32 is known to have firmware that cannot change them.
+        from .e32_care import care_offered
+        care = ["comfort_care"] if care_offered(self.hass, self.config_entry) else []
+        return self.async_show_menu(step_id="house", menu_options=["house_presence", "heating_boiler", *care,
+                                                                   "energy", "comfort_settings"])
+
+    def _presence_house(self):
+        """The house state of the away temperature (e32_house.HouseState), or None without an E32 that reports it."""
+        state = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id)
+        hub = state.get("heating_hub") if type(state) is dict else None
+        if hub is None or getattr(hub, "plan", None) is None:
+            return None
+        from .e32_house import house_state
+        house = house_state(self.hass, self.config_entry, hub)
+        return house if house.away is not None else None
 
     async def async_step_house_presence(self, user_input=None):
-        """The people of the house and how long everyone must be away (the house mode itself is a select)."""
+        """The people of the house, how long everyone must be away and the away temperature.
+
+        The away temperature is the E32's own setting (the number "Temperature when nobody is
+        home" and the E32's Home page): it is sent with the same house command as that number
+        (e32_house.HouseState.async_command), so all three show the same value. The house
+        mode itself is a select.
+        """
         import voluptuous as vol
         current = comfort_options(self.config_entry)
-        errors = {}
+        house = self._presence_house()
+        away = number(house.away.get("target_c"), *AWAY_LIMITS) if house is not None else None
+        errors, placeholders = {}, {"error": ""}
         if user_input is not None:
             try:
                 settings = validate_presence(self.hass, user_input, current)
+                temperature = validate_away_temperature(user_input, away) if house is not None else None
             except ComfortError as err:
                 errors[err.field] = err.code
             else:
-                save_comfort(self.hass, self.config_entry, settings)
-                return self.async_abort(reason="presence_saved")
-        return self.async_show_form(step_id="house_presence", data_schema=presence_schema(vol, current), errors=errors)
+                try:
+                    if temperature is not None:  # first: refused by the E32, nothing is saved
+                        await house.async_command(temperature=temperature)
+                except HomeAssistantError as err:
+                    key = getattr(err, "translation_key", None)
+                    errors["away_temperature"] = ("away_temperature_update_required" if key == "house_mode_update_required"
+                                                  else "away_temperature_not_saved")
+                    placeholders["error"] = (getattr(err, "translation_placeholders", None) or {}).get("error") or \
+                        key or "unknown"
+                else:
+                    save_comfort(self.hass, self.config_entry, settings)
+                    return self.async_abort(reason="presence_saved")
+        schema = presence_schema(vol, current, away if house is not None else False)
+        if user_input is not None and errors:  # shown again: what was just entered
+            schema = self.add_suggested_values_to_schema(schema, user_input)
+        return self.async_show_form(step_id="house_presence", data_schema=schema, errors=errors,
+                                    description_placeholders=placeholders)
 
     async def async_step_comfort(self, user_input=None):
         return self.async_show_menu(step_id="comfort", menu_options=["comfort_settings", "comfort_contacts"])

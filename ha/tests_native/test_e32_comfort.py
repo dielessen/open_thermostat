@@ -476,3 +476,21 @@ async def test_the_presence_form_takes_several_people_and_the_away_delay(hass):
         with pytest.raises(ComfortError) as error:
             validate_presence(hass, bad, current)
         assert error.value.field == field
+
+
+@pytest.mark.asyncio
+async def test_the_room_says_what_smart_warm_up_does(hass):
+    """E32 rc.3: the room's thermostat tells in plain words when heating starts for the next program step."""
+    entity, hub, link = await climate(hass, FakeE32(), room_state("living"))
+    entity.hass = hass
+    assert entity.extra_state_attributes["smart_warm_up"] is None  # no plan without a trusted clock
+    at = int(datetime(2026, 11, 4, 7, 0, tzinfo=timezone.utc).timestamp())
+    hub.update_learned("living", ({"id": "living", "emitter": "floor", "readiness": "ready"},
+                                  {"id": "living", "optimum_start": {"reason": "planned", "predicted_start_utc": at - 6000,
+                                   "next_switch": {"utc": at, "target_c": 21}, "lead_minutes": 100, "confidence": "learned",
+                                   "reachable": True, "start_now": False, "applies": True}}))
+    text = entity.extra_state_attributes["smart_warm_up"]
+    assert text.startswith("Smart warm-up: starts at ") and " so it is 21 °C at " in text
+    hass.data.setdefault("open_thermostat", {})["e1"] = {"e32_flow": SimpleNamespace(settings={"apply_learned": False})}
+    assert entity.extra_state_attributes["smart_warm_up"].startswith("Smart warm-up is off: heating starts at ")
+    link.stop()

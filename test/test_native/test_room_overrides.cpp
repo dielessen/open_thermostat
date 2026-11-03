@@ -387,7 +387,8 @@ TEST(RoomOverrides, ReturnLeadUsesTheWarmupPlannersDefaultWhileNotLearned) {
 }
 
 // The telemetry budget (TELEMETRIEBUDGET.nl.md): fw/state/room/<id> is at most 319 B for a
-// worst-case plan and fw/state/heating 754 B; comfort adds at most 160 B and away 100 B.
+// worst-case plan and fw/state/heating 754 B; comfort adds at most 160 B here and 180 B with "away_by"
+// (RoomAway.TheReasonFitsTheTelemetryBudget), away 100 B.
 TEST(RoomOverrides, StatusAdditionsStayWithinTheTelemetryBudget) {
     ScopedTz tz(ScopedTz::amsterdam);
     const auto p = plan();
@@ -623,7 +624,7 @@ TEST(RoomOverrides, RoomPresenceReportsAreCheckedAndNeverStored) {
     }
     ASSERT_TRUE(o.addStatus(status.get(), p, 0));
     char* living = cJSON_PrintUnformatted(cJSON_GetObjectItem(cJSON_GetArrayItem(rooms, 0), "comfort"));
-    EXPECT_STREQ(living, R"({"mode":"presence_away","persons":"away","target_c":15})");
+    EXPECT_STREQ(living, R"({"mode":"presence_away","persons":"away","away_by":"room","target_c":15})");
     cJSON_free(living);
     char* study = cJSON_PrintUnformatted(cJSON_GetObjectItem(cJSON_GetArrayItem(rooms, 1), "comfort"));
     EXPECT_STREQ(study, R"({"mode":"program","persons":"home"})");

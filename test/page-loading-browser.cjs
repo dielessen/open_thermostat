@@ -50,7 +50,7 @@ const telemetry={reception:{state:'classic_reports_received'},transport:{enabled
    await page.goto(base+'/');await page.locator('.product-dashboard').waitFor();
    await page.locator('[data-bluetooth-settings]:not([hidden])').waitFor({state:'attached'});
    const cold=requests.slice(start),coldBytes=cold.reduce((sum,r)=>sum+r.bytes,0);
-   for(const unused of ['/ems-metadata.js','/ems-devices.js','/bluetooth.js','/system-log.js','/deps/chart.umd.js.gz','/history-chart.js','/ui-messages-pages.js'])
+   for(const unused of ['/ems-metadata.js','/ems-setting-help.js','/ems-devices.js','/bluetooth.js','/system-log.js','/deps/chart.umd.js.gz','/history-chart.js','/ui-messages-pages.js'])
     assert(!cold.some(r=>r.path===unused),'Home must not load '+unused);
    // beta.18: the Overview also reads the E32's own rooms and both languages grew (about +5 kB gzip).
    // beta.19: Dutch for the other pages moved to ui-messages-pages.js (about -35 kB gzip): 132.4 kB.
@@ -69,7 +69,7 @@ const telemetry={reception:{state:'classic_reports_received'},transport:{enabled
    // An arbitrarily slow catalogue must not delay the actual test controls.
    holdReference=true;releaseReference=undefined;
    await page.evaluate(()=>loadNativePage('boiler_trial'));
-   await page.locator('[data-test-prepare]').waitFor();
+   await page.locator('#boiler-test [data-workflow-title]').waitFor(); // the installer check (rc.3: no heat controls)
    await page.waitForFunction(()=>document.querySelector('script[src="/ems-metadata.js"]'));
    await new Promise((resolve,reject)=>{const until=Date.now()+5000;const poll=()=>releaseReference?resolve():Date.now()>until?reject(Error('reference request missing')):setTimeout(poll,10);poll();});
    const beforeLeaving=requests.length;
@@ -96,7 +96,7 @@ const telemetry={reception:{state:'classic_reports_received'},transport:{enabled
   assert.equal(await page.evaluate(()=>!!window.OT_EMS_METADATA),false);
   assert.equal(await page.locator('[data-field="measured_flow_temperature"]').count(),1);
   await page.evaluate(()=>loadNativePage('about'));await page.evaluate(()=>loadNativePage('boiler_test'));
-  await page.locator('[data-address="8"] > summary').filter({hasText:'EasyControl Adapter'}).waitFor();
+  await page.locator('[data-address="8"] > summary').filter({hasText:'(product 211)'}).waitFor();
   await context.close();assert.deepEqual(errors,[]);
  }finally{await browser.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
  fs.mkdirSync(out,{recursive:true});fs.writeFileSync(path.join(out,'RESULT.json'),JSON.stringify({scope:'Browser/cache fixture; no physical timing claim',results,errors},null,2));

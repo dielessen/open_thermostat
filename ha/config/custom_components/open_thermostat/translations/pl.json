@@ -7,7 +7,7 @@
           "legacy": "Starsze oprogramowanie OpenThermostat (ib-therm)",
           "shadow": "OpenThermostat E32 (zalecane)"
         },
-        "description": "Wybierz swój OpenThermostat. Z E32 strona E32 poprowadzi Cię dalej: dopóki stary termostat wysyła żądania do kotła, E32 najpierw działa obok niego w okresie próbnym; bez termostatu przechodzi od razu do testu kotła i przejęcia. Nic nie wysyła do kotła, dopóki nie potwierdzisz, że stary termostat jest odłączony."
+        "description": "Wybierz swój OpenThermostat. Z E32 strona E32 poprowadzi Cię dalej: jeśli stary termostat nadal wysyła żądania do kotła, E32 najpierw działa obok niego w okresie próbnym; bez termostatu przechodzi od razu do testu kotła i przejęcia. Nic nie wysyła do kotła, dopóki nie potwierdzisz tam przejęcia."
       },
       "confirm": {
         "title": "Wykryto OpenThermostat",
@@ -33,7 +33,7 @@
       },
       "shadow": {
         "title": "Połącz OpenThermostat E32",
-        "description": "E32 nic nie wysyła do kotła, dopóki nie potwierdzisz przejęcia na jego stronie „Rooms”, najlepiej przez test kotła („Boiler test and takeover”). Dopóki stary termostat jest na magistrali kotła, E32 najpierw działa obok niego w okresie próbnym (tylko liczy i porównuje); zawsze możesz tam wybrać drugą drogę. Home Assistant ustawia jednak temperaturę zadaną na urządzeniu nastawczym każdego pomieszczenia (zawór termostatyczny, tado lub pomocnik liczbowy) zgodnie z programem tygodniowym tego pomieszczenia. Zwykle łączysz E32 później przez Konfiguruj → Połączenie z E32, co samo wypełnia identyfikator połączenia.",
+        "description": "E32 nic nie wysyła do kotła, dopóki nie potwierdzisz przejęcia na jego stronie „Rooms”, najlepiej przez test kotła („Boiler test and takeover”). Jeśli na magistrali kotła jest jeszcze stary termostat, E32 najpierw działa obok niego w okresie próbnym (tylko liczy i porównuje); zawsze możesz tam wybrać drugą drogę. Home Assistant ustawia jednak temperaturę zadaną na urządzeniu nastawczym każdego pomieszczenia (zawór termostatyczny, tado lub pomocnik liczbowy) zgodnie z programem tygodniowym tego pomieszczenia. Zwykle łączysz E32 później przez Konfiguruj → Połączenie z E32, co samo wypełnia identyfikator połączenia.",
         "data": {
           "topic_prefix": "Prefiks MQTT urządzenia E32",
           "adapter_id": "Identyfikator połączenia (wypełniany automatycznie)"
@@ -115,6 +115,7 @@
         "menu_options": {
           "house_presence": "Obecność: kto tu mieszka",
           "heating_boiler": "Ogrzewanie i kocioł",
+          "comfort_care": "Komfort i dbałość o kocioł",
           "energy": "Energia i temperatura zewnętrzna",
           "comfort_settings": "Ustawienia domyślne pomieszczeń i czasy"
         }
@@ -124,11 +125,13 @@
         "description": "W trybie domu Automatyczny pomieszczenia przechodzą na temperaturę nieobecności, gdy wszyscy wyszli. Ktoś w domu albo ktoś, kogo położenie jest nieznane, utrzymuje ciepło w domu.",
         "data": {
           "presence_entities": "Kto tu mieszka",
-          "away_delay": "Nieobecność po"
+          "away_delay": "Nieobecność po",
+          "away_temperature": "Temperatura, gdy nikogo nie ma w domu"
         },
         "data_description": {
           "presence_entities": "Opcjonalnie. Domownicy (encje osób) albo grupa, strefa (na przykład zone.home), lokalizator urządzenia lub przełącznik, który jest włączony, gdy ktoś jest w domu.",
-          "away_delay": "Minuty, przez które wszyscy muszą być poza domem, zanim dom zostanie uznany za pusty, aby krótkie wyjście nie wychładzało domu. 0: od razu."
+          "away_delay": "Minuty, przez które wszyscy muszą być poza domem, zanim dom zostanie uznany za pusty, aby krótkie wyjście nie wychładzało domu. 0: od razu.",
+          "away_temperature": "Każde pomieszczenie jest najwyżej tak ciepłe, gdy wszyscy wyszli, w trybie domu Nieobecność i podczas urlopu (5–25 °C; ochrona przed mrozem zawsze działa). To samo ustawienie co \"Temperatura, gdy nikogo nie ma w domu\" na urządzeniu E32 i na stronie Dom E32."
         }
       },
       "comfort_settings": {
@@ -472,7 +475,10 @@
           "installation": "Limity wody starego profilu pomieszczeń",
           "entity_ids": "Uporządkuj identyfikatory encji",
           "entity_ids_undo": "Cofnij porządkowanie identyfikatorów",
-          "e32_restore": "Przywróć ustawienia na tym E32"
+          "e32_restore": "Przywróć ustawienia na tym E32",
+          "ble_sensors": "Czujniki Bluetooth",
+          "e32_logging": "Dziennik systemowy E32",
+          "e32_time_zone": "Strefa czasowa E32"
         }
       },
       "edit_room": {
@@ -558,7 +564,7 @@
         },
         "data_description": {
           "room": "Pomieszczenie z planu pomieszczeń E32.",
-          "action": "Edytuj jego ustawienia, wybierz zawory grzejnikowe lub usuń je z planu pomieszczeń E32."
+          "action": "Edytuj jego ustawienia (także zawory grzejnikowe) lub usuń je z planu pomieszczeń E32."
         },
         "description": "Wybierz pomieszczenie, które chcesz zmienić."
       },
@@ -614,26 +620,48 @@
           },
           "persons": {
             "name": "Osoby",
-            "description": "Opcjonalnie. Kto korzysta z tego pomieszczenia. Gdy wszystkie te osoby są poza domem, pomieszczenie używa temperatury nieobecności, także gdy inni są w domu. Puste: pomieszczenie podąża za domem (Konfiguruj → Dom → Obecność).",
+            "description": "Opcjonalnie. Kto korzysta z tego pomieszczenia. Gdy wszystkie te osoby są poza domem, pomieszczenie używa własnej temperatury nieobecności (lub temperatury domu), także gdy inni są w domu. Puste: pomieszczenie podąża za domem (Konfiguruj → Dom → Obecność).",
             "data": {
-              "persons": "Osoby tego pomieszczenia"
+              "persons": "Osoby tego pomieszczenia",
+              "away_temperature": "Temperatura, gdy osób z tego pomieszczenia nie ma"
             },
             "data_description": {
-              "persons": "W domu, gdy tylko jedna z nich jest w domu; poza domem dopiero, gdy wszystkie są poza domem przez opóźnienie nieobecności domu. Osoba o nieznanym położeniu liczy się jako w domu. Tryb domu W domu utrzymuje każde pomieszczenie na jego programie; Nieobecność i Urlop obniżają każde pomieszczenie."
+              "persons": "W domu, gdy tylko jedna z nich jest w domu; poza domem dopiero, gdy wszystkie są poza domem przez opóźnienie nieobecności domu. Osoba o nieznanym położeniu liczy się jako w domu. Tryb domu W domu utrzymuje każde pomieszczenie na jego programie; Nieobecność i Urlop obniżają każde pomieszczenie.",
+              "away_temperature": "Obowiązuje, gdy wszystkie osoby tego pomieszczenia są poza domem, a ktoś inny jest w domu. Puste: temperatura nieobecności domu ({house_away}). Gdy nikogo nie ma w domu, każde pomieszczenie używa temperatury nieobecności domu. Pomieszczenie, które jest już chłodniejsze, pozostaje chłodniejsze."
+            }
+          },
+          "valves": {
+            "name": "Zawory grzejnikowe",
+            "description": "Opcjonalnie. Wybierz zawory grzejnikowe pomieszczenia; OpenThermostat sam ustala, jak sterować każdym z nich. Zawory Zigbee2MQTT znane E32 (Bosch BTH-RA, Sonoff TRVZB, Sonoff TRV Gen2, Tuya TV02) steruje sam E32 i działają także bez Home Assistant. Każdy inny zawór działa przez Home Assistant i zachowuje ostatni cel, gdy Home Assistant nie działa.",
+            "data": {
+              "valves": "Zawory grzejnikowe",
+              "kept": "Zachowane zawory",
+              "control": "Sterowanie zaworami",
+              "choose_models": "Sam wybiorę modele (zaawansowane)"
+            },
+            "data_description": {
+              "valves": "Ich encje termostatu (climate), najwyżej 4 na pomieszczenie i 16 łącznie. Sterowanie jest wyłączone, dopóki nie włączysz go poniżej.\n\n{valve_routes}",
+              "kept": "Zawory Zigbee2MQTT zapisane na E32, których Home Assistant nie zna (już). Działają dalej bez zmian; odznacz zawór, aby go usunąć.",
+              "control": "Wł.: te zawory podążają za pomieszczeniem (tylko gdy E32 sam steruje kotłem). Wył.: zawory zachowują własne ustawienia i nic do nich nie jest wysyłane.",
+              "choose_models": "Potrzebne tylko dla zaworu Zigbee2MQTT, którego model nie został rozpoznany (działa wtedy przez Home Assistant). Po zapisaniu wybierasz model każdego zaworu Zigbee2MQTT albo Przez Home Assistant."
             }
           }
         }
       },
       "e32_flow_limits": {
-        "title": "Limity temperatury wody",
-        "description": "Najniższa i najwyższa temperatura wody, którą kocioł wysyła do grzejników i podłogi (temperatura zasilania), dla wszystkich pomieszczeń razem. „Krzywa grzewcza wg temperatury zewnętrznej” i „Ciepło na czas przy najchłodniejszej wodzie” to przełączniki na stronie urządzenia E32 w Home Assistant. {boiler} {error}",
+        "title": "Temperatura wody, Inteligentne nagrzewanie i krzywa grzewcza",
+        "description": "Najniższa i najwyższa temperatura wody, którą kocioł wysyła do grzejników i podłogi (temperatura zasilania), dla wszystkich pomieszczeń razem. Inteligentne nagrzewanie i krzywa grzewcza są domyślnie włączone; E32 sam decyduje, kiedy to, czego się nauczył, jest wystarczająco dobre. {boiler} {error}",
         "data": {
           "minimum_flow_temperature": "Najniższa temperatura wody",
-          "maximum_flow_temperature": "Najwyższa temperatura wody"
+          "maximum_flow_temperature": "Najwyższa temperatura wody",
+          "smart_warm_up": "Inteligentne nagrzewanie",
+          "follow_outdoor": "Krzywa grzewcza wg temperatury zewnętrznej"
         },
         "data_description": {
           "minimum_flow_temperature": "Najniższa temperatura wody, o jaką E32 prosi podczas grzania ({minimum_range}).",
-          "maximum_flow_temperature": "Najwyższa temperatura wody, o jaką E32 kiedykolwiek prosi ({maximum_range}, powyżej najniższej). Ogrzewanie podłogowe zasilane bez zaworu mieszającego: zwykle najwyżej 45–50 °C. Grzejniki: w zimne dni często 60–75 °C. Maksymalna temperatura grzania ustawiona w kotle zawsze pozostaje górną granicą; E32 nigdy nie prosi o więcej."
+          "maximum_flow_temperature": "Najwyższa temperatura wody, o jaką E32 kiedykolwiek prosi ({maximum_range}, powyżej najniższej). Ogrzewanie podłogowe zasilane bez zaworu mieszającego: zwykle najwyżej 45–50 °C. Grzejniki: w zimne dni często 60–75 °C. Maksymalna temperatura grzania ustawiona w kotle zawsze pozostaje górną granicą; E32 nigdy nie prosi o więcej.",
+          "smart_warm_up": "Samo zaczyna grzać wcześniej, aby pomieszczenie było ciepłe o godzinie z jego programu tygodniowego, przy najchłodniejszej wodzie, która jeszcze na to wystarcza. Wyłączone: grzanie zaczyna się o godzinie z programu; po każdej zmianie programu przez jakiś czas może być chłodniej (ogrzewanie podłogowe może potrzebować godziny lub dłużej). To także przełącznik na stronie urządzenia E32.",
+          "follow_outdoor": "Im zimniej na zewnątrz, tym cieplejsza woda do grzejników i podłogi, zanim pomieszczenia się wychłodzą; temperatura pomieszczenia nadal ją koryguje. Zaczyna od standardowej krzywej i uczy się krzywej Twojego domu. Bez temperatury zewnętrznej działa zwykła regulacja pomieszczeń. To także przełącznik na stronie urządzenia E32."
         }
       },
       "e32_room_remove": {
@@ -670,7 +698,7 @@
       },
       "e32_rooms_saved": {
         "title": "Pomieszczenia",
-        "description": "{name} zapisano na E32. Dodaj lub edytuj kolejne pomieszczenie albo zamknij to okno.\n\n{rooms}",
+        "description": "{name} zapisano na E32. Dodaj lub edytuj kolejne pomieszczenie albo zamknij to okno.{valves}\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Dodaj pomieszczenie",
           "e32_room_pick": "Edytuj lub usuń pomieszczenie"
@@ -712,34 +740,6 @@
         "title": "E32 połączony",
         "description": "E32 jest połączony i nie ma jeszcze pomieszczeń. Dalej: pierwsze pomieszczenie. Potrzebuje nazwy i jednego źródła temperatury: czujnika lub termostatu w Home Assistant albo czujnika Bluetooth sparowanego z E32. Urządzenie nastawcze i program tygodniowy są opcjonalne; pomieszczenie zapisane bez programu zaczyna od szablonu \"Dni robocze i weekend\", który możesz później zmienić. Home Assistant nie włącza wyjść grzewczych.",
         "submit": "Dodaj pierwsze pomieszczenie"
-      },
-      "e32_room_valves": {
-        "title": "Zawory grzejnikowe w {name}",
-        "description": "Wybierz zawory grzejnikowe pomieszczenia. Zawory Zigbee2MQTT: wpisz nazwę każdego zaworu w Zigbee2MQTT (friendly name) lub wybierz jeden z {found} znalezionych oraz jego model; E32 sam wysyła im cel i temperaturę pomieszczenia i utrzymuje wodę grzewczą tak chłodną, jak pozwalają zawory. Każdy inny zawór sterowany przez Home Assistant (ZHA, Z-Wave, Shelly lub integracja chmurowa): wybierz jego encję climate w polu Zawory przez Home Assistant; Home Assistant wysyła mu wtedy cel pomieszczenia. Zawory Zigbee2MQTT działają dalej, gdy Home Assistant nie działa; zawory przez Home Assistant zachowują ostatnią temperaturę zadaną, dopóki Home Assistant nie wróci. Sterowanie jest wyłączone, dopóki go nie włączysz; do tego czasu zawory nie dostają żadnych poleceń.",
-        "data": {
-          "control": "Sterowanie zaworami",
-          "valve_1": "Zawór 1",
-          "model_1": "Model zaworu 1",
-          "valve_2": "Zawór 2",
-          "model_2": "Model zaworu 2",
-          "valve_3": "Zawór 3",
-          "model_3": "Model zaworu 3",
-          "valve_4": "Zawór 4",
-          "model_4": "Model zaworu 4",
-          "ha_valves": "Zawory przez Home Assistant"
-        },
-        "data_description": {
-          "control": "Wł.: te zawory podążają za pomieszczeniem (tylko gdy E32 sam steruje kotłem). Wył.: zawory zachowują własne ustawienia.",
-          "valve_1": "Nazwa w Zigbee2MQTT, np. \"Zawór salon\". Zostaw puste, jeśli nie ma zaworu.",
-          "model_1": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
-          "valve_2": "Kolejny zawór w tym pomieszczeniu, tak samo jak zawór 1. Zostaw puste, jeśli nie ma zaworu.",
-          "model_2": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
-          "valve_3": "Kolejny zawór w tym pomieszczeniu, tak samo jak zawór 1. Zostaw puste, jeśli nie ma zaworu.",
-          "model_3": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
-          "valve_4": "Kolejny zawór w tym pomieszczeniu, tak samo jak zawór 1. Zostaw puste, jeśli nie ma zaworu.",
-          "model_4": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
-          "ha_valves": "Zawory grzejnikowe z dowolnej innej integracji jako encje climate (łącznie najwyżej 4 zawory na pomieszczenie). Gdy sterowanie jest włączone, Home Assistant ustawia je na cel pomieszczenia lub na 8 °C, gdy pomieszczenie jest wyłączone."
-        }
       },
       "entity_ids": {
         "title": "Uporządkuj identyfikatory encji",
@@ -803,6 +803,176 @@
         },
         "data_description": {
           "confirm": "Nic się nie zmieni, dopóki tego nie zaznaczysz."
+        }
+      },
+      "e32_room_valve_models": {
+        "title": "Modele zaworów grzejnikowych w {name}",
+        "description": "OpenThermostat zwykle sam rozpoznaje model zaworu. Wybierz model tutaj tylko wtedy, gdy się to nie udało, albo aby zmienić sposób sterowania zaworem. Z modelem E32 sam steruje zaworem przez Zigbee2MQTT, więc działa on bez Home Assistant. Przez Home Assistant działa zawsze, z każdym zaworem. Inny (tylko nastawa): E32 wysyła tylko temperaturę zadaną.",
+        "data": {
+          "model_1": "Zawór 1",
+          "model_2": "Zawór 2",
+          "model_3": "Zawór 3",
+          "model_4": "Zawór 4"
+        },
+        "data_description": {
+          "model_1": "Ten zawór: {valve_1}.",
+          "model_2": "Ten zawór: {valve_2}.",
+          "model_3": "Ten zawór: {valve_3}.",
+          "model_4": "Ten zawór: {valve_4}."
+        }
+      },
+      "comfort_care": {
+        "title": "Komfort i dbałość o kocioł",
+        "description": "Termostat ustawia je sam i dostosowuje je, poznając Twój dom. Zmieniaj je tylko wtedy, gdy chcesz inaczej. Te same ustawienia co na stronie Dom w E32.\n\nTeraz:\n{settings}",
+        "menu_options": {
+          "comfort_care_knob": "Zmień ustawienie",
+          "comfort_care_auto_all": "Wszystko z powrotem na automatyczne",
+          "comfort_care_reset": "Powrót do wartości początkowych"
+        }
+      },
+      "comfort_care_knob": {
+        "title": "Zmień ustawienie",
+        "description": "Wybierz ustawienie do zmiany.",
+        "data": {
+          "knob": "Ustawienie"
+        },
+        "data_description": {
+          "knob": "Ustawienia ze strony Dom w E32, sekcja Komfort i dbałość o kocioł."
+        }
+      },
+      "comfort_care_auto_value": {
+        "title": "Zmiana: {name}",
+        "description": "Teraz: {current} {mode}. Wartość standardowa: {standard}.\n\nAutomatycznie: termostat ustawia to sam i dostosowuje, najwyżej o jeden mały krok dziennie. Wyłącz Automatycznie, aby użyć własnej wartości ({range}).",
+        "data": {
+          "automatic": "Automatycznie",
+          "value": "Twoja wartość"
+        },
+        "data_description": {
+          "automatic": "Włączone: termostat ustawia to sam (Twoja wartość poniżej nie jest używana).",
+          "value": "Używana, gdy Automatycznie jest wyłączone. Możliwe: {range}."
+        }
+      },
+      "comfort_care_fixed_value": {
+        "title": "Zmiana: {name}",
+        "description": "Teraz: {current} {mode}. Wartość standardowa: {standard}.",
+        "data": {
+          "value": "Wartość"
+        },
+        "data_description": {
+          "value": "Możliwe: {range}. Wpisz wartość standardową, aby do niej wrócić."
+        }
+      },
+      "comfort_care_auto_all": {
+        "title": "Wszystko z powrotem na automatyczne",
+        "description": "Każde ustawienie, które ustawiłeś sam, wraca do termostatu, który znów ustawia je sam. Stałe ustawienia zachowują swoje wartości.",
+        "data": {
+          "confirm": "Tak, z powrotem na automatyczne"
+        },
+        "data_description": {
+          "confirm": "Zaznacz, aby potwierdzić."
+        }
+      },
+      "comfort_care_reset": {
+        "title": "Powrót do wartości początkowych",
+        "description": "Wszystkie te ustawienia wracają do wartości początkowych, a termostat zaczyna uczyć się ich od nowa. To, czego nauczył się o Twoich pomieszczeniach, zostaje.",
+        "data": {
+          "confirm": "Tak, powrót do wartości początkowych"
+        },
+        "data_description": {
+          "confirm": "Zaznacz, aby potwierdzić."
+        }
+      },
+      "e32_logging": {
+        "title": "Dziennik systemowy E32",
+        "description": "Wysyłaj dziennik E32 do serwera syslog w Twojej sieci, na przykład aby zbadać problem. E32 prowadzi też własny dziennik (Diagnostyka i dziennik systemowy na jego stronie).",
+        "data": {
+          "syslog_enabled": "Wysyłaj do serwera syslog",
+          "server": "Serwer syslog",
+          "port": "Port UDP",
+          "syslog_level": "Wysyłaj do poziomu",
+          "syslog_esp": "Wysyłaj własne komunikaty E32",
+          "syslog_ems": "Wysyłaj komunikaty magistrali kotła",
+          "web_level": "Przechowuj w E32 do poziomu",
+          "mark_interval_s": "Komunikat „nadal działa” co"
+        },
+        "data_description": {
+          "syslog_enabled": "Wyłączone: E32 przechowuje dziennik tylko na własnej stronie.",
+          "server": "Adres IPv4 serwera syslog, na przykład 192.168.1.10. Wymagany, gdy wysyłanie jest włączone.",
+          "port": "Zwykle 514.",
+          "syslog_level": "Błąd wystarcza do normalnego użytku; Debug i Trace wysyłają dużo.",
+          "syslog_esp": "Komunikaty samego E32: sieć, ogrzewanie, aktualizacje.",
+          "syslog_ems": "Komunikaty, które E32 słyszy na magistrali kotła; przydatne do zbadania problemu z kotłem.",
+          "web_level": "Najbardziej szczegółowy poziom, który E32 przechowuje dla własnej strony dziennika.",
+          "mark_interval_s": "Sekundy między krótkimi komunikatami „nadal działa”; 0 to wyłączone."
+        }
+      },
+      "e32_time_zone": {
+        "title": "Strefa czasowa E32",
+        "description": "E32 wykonuje programy tygodniowe we własnej strefie czasowej. Teraz: {e32}. Home Assistant: {home}.\n\nPo zapisaniu E32 uruchomi się ponownie jeden raz, aby użyć nowej strefy czasowej; ogrzewanie działa dalej po około minucie.",
+        "data": {
+          "time_zone": "Strefa czasowa"
+        },
+        "data_description": {
+          "time_zone": "Wybrana jest strefa czasowa Home Assistant, jeśli E32 ją zna."
+        }
+      },
+      "heating_boiler": {
+        "title": "Ogrzewanie i kocioł",
+        "description": "Limity temperatury wody dla wszystkich pomieszczeń i model Twojego kotła.",
+        "menu_options": {
+          "heating_boiler_limits": "Limity temperatury wody",
+          "boiler_model": "Model kotła"
+        }
+      },
+      "boiler_model": {
+        "title": "Model kotła",
+        "description": "Wybierz swój kocioł, tak jak na stronie Kocioł w E32. Nadaje on kotłowi nazwę w Home Assistant i w E32 oraz wybiera objaśnienia kodów wyświetlacza; nie zmienia sposobu sterowania kotłem.\n\nTeraz: {current}.",
+        "data": {
+          "model": "Model kotła"
+        },
+        "data_description": {
+          "model": "Modele pochodzą z EMS-ESP. Obecność na liście nie potwierdza obsługi w OpenThermostat."
+        }
+      },
+      "ble_sensors": {
+        "title": "Czujniki Bluetooth",
+        "description": "Czujniki Bluetooth sparowane z E32. Tutaj możesz zmienić ich nazwę lub je usunąć; najpierw zbierz wszystkie zmiany i zapisz je razem: po zapisaniu E32 uruchomi się ponownie jeden raz, około 30 sekund później, aby ich użyć. Parowanie nowego czujnika (wyszukiwanie i klucz) odbywa się na stronie Czujniki Bluetooth w E32, przy czujniku. To, które pomieszczenie mierzy czujnik, ustawia się dla każdego pomieszczenia w Pomieszczenia.\n\n{sensors}\n\n{pending}",
+        "menu_options": {
+          "ble_rename": "Zmień nazwę czujnika",
+          "ble_forget": "Usuń czujnik",
+          "ble_save": "Zapisz zmiany (E32 uruchomi się ponownie jeden raz)"
+        }
+      },
+      "ble_rename": {
+        "title": "Zmień nazwę czujnika",
+        "description": "Nowa nazwa zostanie zapisana razem z pozostałymi zmianami.",
+        "data": {
+          "sensor": "Czujnik",
+          "name": "Nowa nazwa"
+        },
+        "data_description": {
+          "sensor": "Sparowany czujnik z jego adresem Bluetooth.",
+          "name": "Najwyżej 40 znaków (mniej przy znakach specjalnych)."
+        }
+      },
+      "ble_forget": {
+        "title": "Usuń czujnik",
+        "description": "Usunięty czujnik nie jest już odczytywany przez E32; jego klucz zostaje skasowany w E32. Aby znów go używać, sparuj go ponownie w E32. Pomieszczenie, które nim mierzy, używa swoich pozostałych źródeł.\n\nCzujniki używane przez pomieszczenie:\n{used}",
+        "data": {
+          "sensors": "Czujniki do usunięcia"
+        },
+        "data_description": {
+          "sensors": "Usuwane razem z pozostałymi zmianami przy zapisie."
+        }
+      },
+      "ble_save": {
+        "title": "Zapisz zmiany Bluetooth",
+        "description": "{sensors}\n\nE32 zapisze te zmiany i uruchomi się ponownie jeden raz, około 30 sekund później; ogrzewanie działa dalej po około minucie.",
+        "data": {
+          "confirm": "Zapisz i pozwól E32 uruchomić się ponownie"
+        },
+        "data_description": {
+          "confirm": "Zaznacz, aby potwierdzić."
         }
       }
     },
@@ -950,7 +1120,7 @@
       "entity_ids_confirm": "Zaznacz pole, aby potwierdzić.",
       "water_meter_unit": "Wybierz czujnik przepływu wody (L/min, L/h, m³/h) lub stan wodomierza (m³, L).",
       "water_meter_not_total": "Wybierz stan wodomierza (klasa stanu total lub total increasing) albo czujnik przepływu w L/min.",
-      "e32_restore_boiler_owned": "E32 odmawia przywrócenia, gdy steruje kotłem lub trwa test kotła albo zapis ustawień kotła. Oddaj sterowanie termostatowi na stronie E32 (Pomieszczenia → Aktywne sterowanie) lub poczekaj na koniec testu i spróbuj ponownie.",
+      "e32_restore_boiler_owned": "E32 odmawia przywrócenia, gdy steruje kotłem lub trwa test kotła albo zapis ustawień kotła. Oddaj sterowanie na stronie E32 (Pomieszczenia → Aktywne sterowanie) lub poczekaj na koniec testu i spróbuj ponownie.",
       "e32_restore_busy": "E32 jest zajęty (aktualizacja oprogramowania lub za mało pamięci). Poczekaj minutę i spróbuj ponownie.",
       "e32_restore_settings_changed": "Ustawienia E32 zmieniły się po sprawdzeniu. Wybierz kopię ponownie, aby E32 sprawdził ją jeszcze raz.",
       "e32_restore_wrong_passphrase": "E32 nie mógł otworzyć haseł i kluczy w tej kopii. Wybierz inną kopię.",
@@ -965,7 +1135,33 @@
       "e32_restore_adopt_confirm_required": "Zaznacz pole, aby od teraz używać tego E32.",
       "e32_restore_adopt_failed": "Home Assistant nie mógł przejść na ten E32. Spróbuj ponownie albo połącz go w Konfiguruj → Połączenie z E32.",
       "e32_restore_unconfirmed": "E32 nie odpowiedział po przywróceniu, więc nie wiadomo, czy ustawienia dotarły. Sprawdź, czy E32 jest włączony i jego strona się otwiera, a potem wybierz kopię ponownie: E32 sprawdzi, co nadal się różni.",
-      "e32_restore_not_applied": "E32 nie potwierdził przywrócenia, a jego sprawdzenie pokazuje, że nie wszystkie ustawienia dotarły. Wybierz kopię ponownie, aby przywrócić ją jeszcze raz."
+      "e32_restore_not_applied": "E32 nie potwierdził przywrócenia, a jego sprawdzenie pokazuje, że nie wszystkie ustawienia dotarły. Wybierz kopię ponownie, aby przywrócić ją jeszcze raz.",
+      "e32_away_invalid": "Wybierz temperaturę w zakresie {away_range} albo zostaw pole puste, aby użyć temperatury nieobecności domu.",
+      "comfort_away_temperature_invalid": "Wybierz temperaturę nieobecności od 5 do 25 °C.",
+      "away_temperature_not_saved": "E32 nie zapisał temperatury nieobecności ({error}), więc nic nie zapisano. Sprawdź, czy E32 jest online, i spróbuj ponownie.",
+      "away_temperature_update_required": "Zmiana temperatury nieobecności tutaj wymaga oprogramowania E32 beta.23 lub nowszego. Zaktualizuj E32 za pomocą jego encji Oprogramowanie.",
+      "care_value_invalid": "Ta wartość nie jest możliwa. Użyj wartości z zakresu {range}.",
+      "care_knob_invalid": "Wybierz jedno z ustawień.",
+      "care_confirm": "Zaznacz pole, aby potwierdzić.",
+      "care_rejected": "E32 odrzucił zmianę ({error}). Nic nie zostało zapisane.",
+      "care_unconfirmed": "E32 nie mógł potwierdzić zapisania zmiany. Sprawdź ustawienie, zanim spróbujesz ponownie.",
+      "care_unreachable": "Nie udało się połączyć z E32 ({error}). Nic nie zostało zapisane.",
+      "care_no_free_session": "E32 nie ma wolnej sesji WWW: zamknij nieużywane strony E32 lub odczekaj dwie minuty, a potem spróbuj ponownie.",
+      "e32_log_server_invalid": "Wpisz adres IPv4 serwera syslog, na przykład 192.168.1.10.",
+      "e32_log_number_invalid": "Użyj liczby całkowitej z pokazanego zakresu.",
+      "e32_settings_invalid": "E32 odrzucił te ustawienia. Nic nie zostało zapisane.",
+      "e32_settings_unconfirmed": "E32 nie mógł potwierdzić zapisania ustawień. Sprawdź je w E32, zanim spróbujesz ponownie.",
+      "e32_settings_changed": "Ustawienia E32 zostały w międzyczasie zmienione (na jego stronie?). Nic nie zostało zapisane; spróbuj ponownie.",
+      "e32_settings_busy": "E32 jest aktualizowany lub uruchamia się ponownie. Spróbuj ponownie, gdy jego strona otworzy się normalnie.",
+      "e32_settings_unreachable": "Nie udało się połączyć z E32 ({error}). Nic nie zostało zapisane.",
+      "e32_settings_no_free_session": "E32 nie ma wolnej sesji WWW: zamknij nieużywane strony E32 lub odczekaj dwie minuty, a potem spróbuj ponownie.",
+      "e32_time_zone_invalid": "Wybierz strefę czasową z listy.",
+      "boiler_model_invalid": "Wybierz model z listy.",
+      "ble_sensor_invalid": "Wybierz jeden ze sparowanych czujników.",
+      "ble_name_invalid": "Użyj nazwy od 1 do 40 znaków bez podziału wiersza.",
+      "ble_storage_full": "E32 nie ma już miejsca na zapisanie czujników. Nic nie zostało zapisane.",
+      "ble_rejected": "E32 odrzucił zmiany ({error}). Nic nie zostało zapisane.",
+      "e32_flow_options_failed": "E32 nie zapisał zmiany. Sprawdź połączenie i spróbuj ponownie."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -1035,7 +1231,26 @@
       "e32_restore_done_waiting": "Ustawienia przywrócone. E32 uruchamia się ponownie i jeszcze nie odpowiada; Home Assistant połączy się sam, gdy wróci. Pomieszczenia zachowają tryb z kopii; nowy lub zresetowany E32 steruje kotłem dopiero po potwierdzeniu przejęcia na jego stronie „Rooms”.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
       "e32_restore_done_restart": "Ustawienia przywrócone. Uruchom E32 ponownie (System → Uruchom urządzenie ponownie na jego stronie), aby użyć ich wszystkich. Pomieszczenia zachowają tryb z kopii; nowy lub zresetowany E32 steruje kotłem dopiero po potwierdzeniu przejęcia na jego stronie „Rooms”.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
       "e32_restore_done": "Ustawienia przywrócone. Pomieszczenia zachowają tryb z kopii; nowy lub zresetowany E32 steruje kotłem dopiero po potwierdzeniu przejęcia na jego stronie „Rooms”.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
-      "e32_restore_adopted": "Gotowe: Home Assistant od teraz używa tego E32. Nic nie przywrócono; miał już te ustawienia."
+      "e32_restore_adopted": "Gotowe: Home Assistant od teraz używa tego E32. Nic nie przywrócono; miał już te ustawienia.",
+      "care_unreachable": "Nie udało się połączyć z E32 ({error}). Spróbuj ponownie później.",
+      "care_rejected": "E32 odrzucił żądanie ({error}).",
+      "care_unconfirmed": "E32 nie odpowiedział zgodnie z oczekiwaniami. Spróbuj ponownie później.",
+      "care_update_required": "To oprogramowanie E32 pokazuje te ustawienia, ale nie może ich zmienić z Home Assistant. Najpierw zaktualizuj E32 (Aktualizacja oprogramowania).",
+      "care_unchanged": "Nic się nie zmieniło; nic nie zostało zapisane w E32.",
+      "care_saved": "Zapisano w E32. Termostat obserwuje cały dzień, zanim znów coś dostosuje.",
+      "e32_settings_unreachable": "Nie udało się połączyć z E32 ({error}). Spróbuj ponownie później.",
+      "e32_settings_update_required": "To oprogramowanie E32 nie ma tego ustawienia. Najpierw zaktualizuj E32 (Aktualizacja oprogramowania).",
+      "e32_settings_password_default": "E32 nadal używa domyślnego hasła i nie przyjmuje zmian, dopóki nie wybierzesz nowego: Ustawienia → Naprawy → „E32 nadal używa domyślnego hasła”.",
+      "e32_settings_unchanged": "Nic się nie zmieniło; nic nie zostało zapisane w E32.",
+      "e32_settings_unconfirmed": "E32 nie mógł potwierdzić nowych ustawień. Sprawdź je na stronie E32.",
+      "e32_logging_saved": "Ustawienia dziennika systemowego zostały zapisane w E32.",
+      "e32_time_zone_saved": "E32 używa teraz strefy {zone}. Uruchomi się ponownie jeden raz; ogrzewanie działa dalej po około minucie.",
+      "boiler_model_saved": "E32 pokazuje teraz {model}. Urządzenie kotła w Home Assistant otrzymało tę nazwę.",
+      "ble_none": "Z E32 nie sparowano jeszcze żadnego czujnika Bluetooth. Najpierw sparuj czujnik na stronie Czujniki Bluetooth w E32.",
+      "ble_changed": "Czujniki Bluetooth zostały w międzyczasie zmienione w E32. Nic nie zostało zapisane; otwórz ponownie Czujniki Bluetooth.",
+      "ble_saved": "Zapisano w E32. Uruchomi się ponownie za około 30 sekund, aby użyć zmian.",
+      "ble_saved_restart_later": "Zapisano w E32. Uruchomi się ponownie, aby użyć zmian, gdy tylko zakończy się aktualizacja lub test kotła.",
+      "e32_flow_options_saved": "Ustawienia temperatury wody zostały zapisane w E32."
     },
     "progress": {
       "controller_connect": "Łączenie z E32…",
@@ -1998,7 +2213,7 @@
         "name": "Krzywa grzewcza wg temperatury zewnętrznej"
       },
       "flow_apply_learned": {
-        "name": "Ciepło na czas przy najchłodniejszej wodzie"
+        "name": "Inteligentne nagrzewanie"
       },
       "room_valve_control": {
         "name": "Sterowanie zaworami"
@@ -2012,6 +2227,9 @@
     "button": {
       "e32_backup_now": {
         "name": "Utwórz teraz kopię ustawień E32"
+      },
+      "e32_restart": {
+        "name": "Uruchom ponownie E32"
       }
     }
   },
@@ -2939,8 +3157,7 @@
     "e32_room_action": {
       "options": {
         "edit": "Edytuj pomieszczenie",
-        "remove": "Usuń pomieszczenie",
-        "valves": "Zawory grzejnikowe"
+        "remove": "Usuń pomieszczenie"
       }
     },
     "e32_valve_model": {
@@ -2949,13 +3166,38 @@
         "sonoff_trvzb": "Sonoff TRVZB (temperatura zewnętrzna)",
         "sonoff_trv_zbt": "Sonoff TRV Gen2 / TRV-ZBT (temperatura zewnętrzna)",
         "tuya_tv02": "Tuya TV02 (tylko nastawa)",
-        "generic": "Inny (tylko nastawa)"
+        "generic": "Inny (tylko nastawa)",
+        "ha_climate": "Przez Home Assistant (dowolny zawór)"
       }
     },
     "entity_ids_scope": {
       "options": {
         "unused": "Tylko encje, które nigdzie nie są używane",
         "all": "Wszystkie, sam zaktualizuję miejsca użycia"
+      }
+    },
+    "comfort_care_knob": {
+      "options": {
+        "min_off_s": "Przerwa palnika między uruchomieniami",
+        "min_on_s": "Czas pracy palnika",
+        "heat_start_c": "Zacznij grzać, gdy w pomieszczeniu jest o tyle chłodniej niż zadana temperatura",
+        "heat_stop_c": "Przestań grzać, gdy w pomieszczeniu jest o tyle cieplej niż zadana temperatura",
+        "flow_per_degree_c": "Jak mocno temperatura wody reaguje na zimne pomieszczenie",
+        "floor_lead_min_per_c": "Czas nagrzewania dla ogrzewania podłogowego",
+        "radiator_lead_min_per_c": "Czas nagrzewania dla grzejników",
+        "curve_correction_pct": "Korekta pomieszczenia na krzywej grzewczej",
+        "learned_accept_pct": "Dopuszczalny czas nagrzewania przy wyuczonej temperaturze wody",
+        "night_saving_min_pct": "Najmniejsza nocna oszczędność warta porady"
+      }
+    },
+    "e32_log_level": {
+      "options": {
+        "0": "Wyłączony",
+        "1": "Błąd",
+        "2": "Ostrzeżenie",
+        "3": "Informacje",
+        "4": "Debugowanie",
+        "5": "Śledzenie"
       }
     }
   },
@@ -2976,6 +3218,28 @@
       }
     },
     "reconfirm_takeover": {
+      "title": "Potwierdź ponownie, że E32 może sterować kotłem",
+      "fix_flow": {
+        "step": {
+          "reconfirm_takeover": {
+            "title": "Potwierdź ponownie, że E32 może sterować kotłem",
+            "description": "E32 sterował Twoim kotłem przed aktualizacją oprogramowania. Ze względów bezpieczeństwa nowe oprogramowanie nie przejmie sterowania ponownie, dopóki jeszcze raz nie potwierdzisz, że do kotła nie jest podłączony żaden inny termostat. Do tego czasu E32 utrzymuje tylko ochronę przed zamarzaniem, i to tylko wtedy, gdy na magistrali kotła nie słychać innego termostatu.\n\nPotwierdź tylko, jeśli żaden inny termostat nie jest podłączony: nigdy nie podłączaj dwóch termostatów do kotła jednocześnie. Aby zamiast tego oddać sterowanie, otwórz w E32 stronę Rooms → Active control."
+          }
+        },
+        "error": {
+          "reconfirm_not_released": "To oprogramowanie E32 nie pozwala E32 sterować kotłem. Nic nie zostało zmienione.",
+          "reconfirm_unconfirmed": "E32 tego nie potwierdził. Sprawdź na E32 stronę Rooms → Active control.",
+          "e32_unreachable": "E32 jest teraz nieosiągalny. Spróbuj ponownie za chwilę.",
+          "e32_password_change_required": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian. Najpierw wybierz nowe hasło E32 (Ustawienia → Naprawy → „E32 nadal używa domyślnego hasła”), a potem potwierdź tutaj."
+        },
+        "abort": {
+          "reconfirm_done": "E32 nie czeka już na potwierdzenie.",
+          "reconfirm_plan_not_active": "Plan pomieszczeń nie jest już aktywny, więc nie ma czego potwierdzać.",
+          "e32_rooms_unavailable": "Pomieszczeń E32 nie można teraz odczytać. Spróbuj ponownie za chwilę."
+        }
+      }
+    },
+    "reconfirm_takeover_thermostat": {
       "title": "Potwierdź ponownie, że E32 może sterować kotłem",
       "fix_flow": {
         "step": {
@@ -3027,7 +3291,7 @@
         "step": {
           "choose_password": {
             "title": "Wybierz nowe hasło E32",
-            "description": "{name}: E32 nadal używa domyślnego hasła admin, więc każdy w Twojej sieci mógłby zmienić ogrzewanie. Dopóki nie wybierzesz nowego hasła, E32 nie przyjmuje żadnych zmian: Home Assistant nadal może go odczytywać, a ogrzewanie działa według obecnego planu, ale zmiany pomieszczeń, temperatur docelowych i ustawień oraz aktualizacje oprogramowania czekają. Oddanie sterowania staremu termostatowi na stronie Pomieszczenia E32 działa zawsze.\n\nWybierz nowe hasło o długości od 8 do 64 znaków. Home Assistant zmieni je w E32 i zapisze dla tego połączenia. Od teraz loguj się nim na stronie E32 (nazwa użytkownika admin).",
+            "description": "{name}: E32 nadal używa domyślnego hasła admin, więc każdy w Twojej sieci mógłby zmienić ogrzewanie. Dopóki nie wybierzesz nowego hasła, E32 nie przyjmuje żadnych zmian: Home Assistant nadal może go odczytywać, a ogrzewanie działa według obecnego planu, ale zmiany pomieszczeń, temperatur docelowych i ustawień oraz aktualizacje oprogramowania czekają. Oddanie sterowania na stronie Pomieszczenia E32 (Aktywne sterowanie) działa zawsze.\n\nWybierz nowe hasło o długości od 8 do 64 znaków. Home Assistant zmieni je w E32 i zapisze dla tego połączenia. Od teraz loguj się nim na stronie E32 (nazwa użytkownika admin).",
             "data": {
               "new_password": "Nowe hasło E32",
               "repeat_password": "Powtórz nowe hasło"
@@ -3196,6 +3460,32 @@
     "e32_backup_failing": {
       "title": "Brak aktualnej kopii ustawień E32",
       "description": "{name}: Home Assistant od ponad 3 dni nie może utworzyć kopii ustawień E32 (ostatnia kopia: {last}). Bez aktualnej kopii zastępczy E32 nie odzyska bieżących ustawień. Sprawdź, czy E32 jest włączony i jego strona się otwiera oraz czy jego hasło w Home Assistant jest nadal poprawne; potem naciśnij Utwórz teraz kopię ustawień E32 na urządzeniu E32. Ten komunikat zniknie po następnej udanej kopii."
+    },
+    "e32_time_zone": {
+      "title": "E32 używa innej strefy czasowej",
+      "fix_flow": {
+        "step": {
+          "confirm_time_zone": {
+            "title": "Użyj strefy czasowej Home Assistant w E32",
+            "description": "{name}: E32 wykonuje programy tygodniowe w strefie {e32}, a Home Assistant jest ustawiony na {home}. Programy przełączają się wtedy o innych godzinach, niż się spodziewasz.\n\nZatwierdź, aby ustawić E32 na {home}. E32 uruchomi się ponownie jeden raz; ogrzewanie działa dalej po około minucie."
+          }
+        },
+        "error": {
+          "e32_settings_no_free_session": "E32 nie ma wolnej sesji WWW: zamknij nieużywane strony E32 lub odczekaj dwie minuty, a potem spróbuj ponownie.",
+          "e32_settings_unreachable": "Nie udało się połączyć z E32 ({error}). Nic nie zostało zapisane.",
+          "e32_settings_busy": "E32 jest aktualizowany lub uruchamia się ponownie. Spróbuj ponownie, gdy jego strona otworzy się normalnie.",
+          "e32_settings_changed": "Ustawienia E32 zostały w międzyczasie zmienione (na jego stronie?). Nic nie zostało zapisane; spróbuj ponownie.",
+          "e32_settings_invalid": "E32 odrzucił te ustawienia. Nic nie zostało zapisane.",
+          "e32_settings_unconfirmed": "E32 nie mógł potwierdzić zapisania ustawień. Sprawdź je w E32, zanim spróbujesz ponownie."
+        },
+        "abort": {
+          "e32_rooms_unavailable": "Najpierw połącz E32 (Połączenie z E32), aby Home Assistant mógł edytować jego plan pomieszczeń.",
+          "e32_time_zone_unknown": "Strefy czasowej Home Assistant nie ma na liście E32. Ustaw strefę czasową E32 na jego stronie Ustawienia (Czas, Zaawansowane).",
+          "e32_password_changed": "E32 nie akceptuje już zapisanego hasła. Home Assistant prosi o nowe: Ustawienia → Urządzenia i usługi → OpenThermostat → Uwierzytelnij ponownie.",
+          "e32_settings_password_default": "E32 nadal używa domyślnego hasła i nie przyjmuje zmian, dopóki nie wybierzesz nowego: Ustawienia → Naprawy → „E32 nadal używa domyślnego hasła”.",
+          "e32_settings_update_required": "To oprogramowanie E32 nie ma tego ustawienia. Najpierw zaktualizuj E32 (Aktualizacja oprogramowania)."
+        }
+      }
     }
   },
   "services": {
@@ -3384,6 +3674,12 @@
     },
     "e32_password_change_required": {
       "message": "E32 nadal używa domyślnego hasła i nie przyjmuje żadnych zmian, dopóki nie wybierzesz nowego. Otwórz Ustawienia → Naprawy → „E32 nadal używa domyślnego hasła”, aby je wybrać. Nic nie zostało zapisane."
+    },
+    "e32_restart_busy": {
+      "message": "E32 nie może teraz uruchomić się ponownie: trwa aktualizacja lub sprawdzanie nowego oprogramowania. Spróbuj ponownie później."
+    },
+    "e32_restart_failed": {
+      "message": "Ponowne uruchomienie E32 nie zostało potwierdzone ({error}). Sprawdź połączenie i spróbuj ponownie."
     }
   },
   "device": {
@@ -3395,6 +3691,9 @@
     },
     "ems_device": {
       "name": "Urządzenie EMS {address} (produkt {product})"
+    },
+    "ems_boiler_brand": {
+      "name": "Kocioł {brand} (produkt {product}) ({address})"
     }
   }
 }

@@ -1,3 +1,70 @@
+# E32 V2 1.0.0-rc.3 — the third 1.0 candidate: away per room, smart warm-up on by default and one boiler test
+<!-- user-release-notes:v2:en -->
+
+The third 1.0 candidate. A room can have its own away temperature, the E32
+warms rooms up on time and follows the outdoor temperature by default, and
+there is one boiler test that it remembers. If it runs 14 days without
+problems with the E32 controlling the boiler, the same code becomes 1.0.0.
+Install it with HA 1.0.0rc3.
+
+## New
+
+- **Away per room:** a room can have its own away temperature. It is used
+  when all persons linked to that room are away, even if others are still
+  home, so a bedroom cools down while the living room stays warm. When
+  everyone is away, or the house is set to Away or Holiday, every room uses
+  the house away temperature. A room without persons, or without its own
+  value, follows the house.
+- **Smart warm-up, on by default:** a time in the week program means "warm
+  at that time". The E32 learns how long each room takes and starts early,
+  with the coolest water that still makes it: "starts at 07:20 so it is
+  21 °C at 09:00". Until a room is learned it starts at the program time and
+  says so. You can switch it off under Home → Heating settings → Advanced.
+- **Heating curve, on by default:** the water temperature follows the
+  outdoor temperature, with the room correction on top. It starts with a
+  standard curve and switches to one learned for your house after 6 steady
+  periods; the page shows which one it uses. Without an outdoor temperature
+  the water temperature follows the rooms only. A setting you switched off
+  yourself stays off.
+- **One boiler test** (Rooms): the guided test is the only boiler test and
+  its result is kept over restarts and updates ("passed on 1 Nov 2026,
+  21:12"). "I have already done this test" records your own mark; an E32
+  that controlled this boiler before shows the test as not needed. The
+  Boiler page shows the last result and an installer check without heat.
+- **No old thermostat assumed:** texts mention an old thermostat only when
+  the E32 heard one on the boiler bus.
+- **Which rooms want heat:** the Overview names the rooms that want heat,
+  each with its temperature and target.
+- **Boiler settings explained:** each setting EMS-ESP can change has a short
+  "About this setting": what it does, what to expect and the risk. The E32
+  still only reads them.
+
+## Fixed
+
+- The Overview showed Home Assistant as "last connected 3 min ago" in orange
+  between its 5-minute refreshes; it now stays connected until two refreshes
+  are missed.
+
+## Updating
+
+From 1.0.0-rc.2, while someone is home. First install HA 1.0.0rc3 (HACS)
+and restart Home Assistant, then press Install on the E32's Firmware entity.
+Then confirm the takeover again: a firmware change clears it, and until then
+the E32 keeps only frost protection. Repair "Confirm again that the E32 may
+control the boiler", or Rooms on the E32.
+
+- Smart warm-up and the heating curve switch on with this update, unless
+  you switched them off in rc.3. Settings, rooms, programs, sensors, valves
+  and learning are kept.
+
+## Limitations
+
+Radiator valve control is not yet verified on real valves. Behind an EMS
+adapter that leaves byte 7 of telegram 0x18 empty (such as the Bosch
+EasyControl Adapter) the three-way valve position cannot be seen. EMS Classic
+boilers only; EMS+ comes in 1.1. Writing boiler settings comes after 1.0.
+Pairing Bluetooth sensors is done on the E32. Charts are lost on a restart.
+
 # E32 V2 1.0.0-rc.2 — the second 1.0 candidate: self-tuning, learning that is kept and a guided boiler test
 <!-- user-release-notes:v2:en -->
 

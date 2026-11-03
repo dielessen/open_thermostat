@@ -2,10 +2,11 @@
 # Every test/**/*-browser.cjs must be listed once (scripts/test_browser_suite.py).
 # Shards are fixed and balanced by measured duration (seconds, local WSL, 30 Oct 2026);
 # put a new test in the shard with the lowest total. Run: test/run-browser-tests.sh.
-# shard 1: about 259 s
+# shard 1: about 267 s
 1 test/boiler-test-control-browser.cjs  # 249 s
 1 test/readiness-browser.cjs  # 6 s (1.0 takeover readiness)
 1 test/house-learned-browser.cjs  # 4 s (rc.2 what the thermostat learned, comfort and boiler care)
+1 test/room-away-browser.cjs  # 8 s (away temperature per room, plan.room_away.v1)
 # shard 2: about 266 s
 2 test/onboarding/network-browser.cjs  # 1 s
 2 test/rooms/browser.cjs  # 35 s

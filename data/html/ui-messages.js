@@ -597,6 +597,8 @@ window.OT_UI_MESSAGES = {
   "{temp} °C for {minutes} min": "{temp} °C nog {minutes} min",
   "Away until {time}": "Afwezig tot {time}",
   "Everyone away": "Iedereen weg",
+  "Away: this room's people are out": "Afwezig: de mensen van deze ruimte zijn weg",
+  "Away: everyone is out": "Afwezig: iedereen is weg",
   "Warming up for your return": "Opwarmen voor je terugkomst",
   "Waiting for the clock": "Wacht op de klok",
   "Change temporarily": "Tijdelijk wijzigen",

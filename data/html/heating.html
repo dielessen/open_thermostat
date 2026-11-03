@@ -130,6 +130,7 @@
     measurement_lost:"Room measurements are missing.", boiler_no_response:"The boiler does not respond to the heat request.",
     transmit_failed:"Sending to the boiler fails.", boiler_limit_unknown:"The boiler has not reported its highest water temperature yet. Until then the E32 asks for no heat; it asks the boiler again every 5 minutes."};
   let plan = null, timer = null;
+  let houseAwayC = null; // the house away temperature (status "away"), the placeholder of a room's own value
   // Radiator valves (beta.24, /config/heating/trv): null on firmware without them, so the block never shows.
   let trv = null;
   const valveModels = [['bosch_bth_ra', "Bosch BTH-RA (position, external temperature)"], ['sonoff_trvzb', "Sonoff TRVZB (external temperature)"],
@@ -157,6 +158,7 @@
     invalid_room_limits:"Keep the temperature without Home Assistant between the minimum and maximum.",
     invalid_flow_limits:"The E32 refused the water temperature limits. Use a lowest of 20–79 °C and a highest of 21–80 °C, with the lowest below the highest.",
     storage_full:"The E32 storage is full. Remove switch points or a room, then save again.",
+    invalid_room_away:"Choose an away temperature between 5 and 25 °C for this room, or leave it empty for the house value.",
     save_unconfirmed:"The E32 could not confirm the save. Reload the page and check the rooms.",
     active_mode_not_released:"Active control is not enabled in this firmware.", plan_not_active:"Save the rooms first, then confirm the switch-over again.",
     not_skippable:"Only the hot-water step can be skipped."};
@@ -424,9 +426,24 @@
     };
     const personsState = el('p', null, {class:'pd-help', 'data-heating-persons':''}), personsBrief = el('dd');
     brief.append(el('dt', uiText("Persons")), personsBrief);
+    // The room's own away temperature (plan.room_away.v1, after rc.2): edited here and in Home Assistant, used
+    // while all of the room's persons are away and someone else is home. Empty: the house value.
+    const ownAwayFeature = (plan.features || []).includes('plan.room_away.v1');
+    const ownAway = ownAwayFeature && typeof room.away_centi_c === 'number' ? room.away_centi_c : null;
+    const houseValue = () => uiText("House value") + (typeof houseAwayC === 'number' ? ' (' + degrees(houseAwayC) + ')' : '');
+    if (ownAwayFeature) {
+      const awayBrief = el('dd', ownAway !== null ? degrees(ownAway / 100) : houseValue(), {'data-heating-own-away-brief':''});
+      brief.append(el('dt', uiText("Away temperature of this room")), awayBrief);
+    }
+    // Why the room is cooler: its own persons are out (its own or the house value), or everyone is out.
     const showPersons = s => {
-      const p = s?.comfort?.persons;
-      personsState.textContent = personsBrief.textContent = p === 'home' ? uiText("Now: someone of this room is home.")
+      const c = s?.comfort, p = c?.persons, t = typeof c?.target_c === 'number' ? degrees(c.target_c) : '—';
+      personsState.textContent = personsBrief.textContent = c?.mode === 'presence_away' && c.away_by === 'house'
+          ? uiText("Now: everyone is away; every room uses the house away temperature ({temp}).").replace('{temp}', t)
+        : c?.mode === 'presence_away' && c.away_by === 'room'
+          ? uiText(ownAway !== null ? "Now: everyone of this room is away; the room uses its own away temperature ({temp})."
+            : "Now: everyone of this room is away; the room uses the house away temperature ({temp}).").replace('{temp}', t)
+        : p === 'home' ? uiText("Now: someone of this room is home.")
         : p === 'away' ? uiText("Now: everyone of this room is away; the room uses the away temperature.")
         : uiText("No persons of its own: the room follows the house.");
     };
@@ -436,6 +453,14 @@
     const windows = section('windows', "Windows and doors"), persons = section('persons', "Persons");
     windows.box.append(el('p', uiText("Choose the window and door contacts and the pause delay in Home Assistant: OpenThermostat → Configure → Rooms."), {class:'pd-help'}), windowState);
     persons.box.append(el('p', uiText("Choose who uses this room in Home Assistant: OpenThermostat → Configure → Rooms. While all of them are away, the room uses the away temperature."), {class:'pd-help'}), personsState);
+    let ownAwayInput = null;
+    if (ownAwayFeature) {
+      const grid = el('div', null, {class:'hp-grid'});
+      ownAwayInput = field(grid, uiText("Temperature when this room's people are away (°C)"), input('number', ownAway !== null ? ownAway / 100 : '',
+        {min:'5', max:'25', step:'0.5', placeholder:houseValue(), 'data-heating-own-away':''}),
+        "Used while all persons of this room are away and someone else is home. Empty: the house away temperature. When everyone is away, every room uses the house away temperature.");
+      persons.box.append(grid);
+    }
     // The one-line summaries of the closed blocks.
     const shortSource = x => { const b = bleSensors.find(s => s.id === x.id); return x.type === 'ble' ? (b?.name || 'Bluetooth') : x.id; };
     const levelLine = lv => [['comfort', "Comfort"], ['eco', "Eco"], ['night', "Night"]].map(([k, n]) => uiText(n) + ' ' + degrees(lv[k] / 100)).join(' · ');
@@ -445,8 +470,9 @@
         : uiText("{n} switch points").replace('{n}', rows.querySelectorAll('[data-heating-point]').length);
       const w = s?.comfort?.window;
       windows.line.textContent = uiText(w === 'open' ? "A window or door is open" : w === 'closed' ? "All closed" : "No contacts");
-      const p = s?.comfort?.persons;
-      persons.line.textContent = uiText(p === 'home' ? "Home" : p === 'away' ? "Away" : "Everyone");
+      const p = s?.comfort?.persons, own = ownAwayInput && ownAwayInput.value !== '' ? Number(ownAwayInput.value) : null;
+      persons.line.textContent = [uiText(p === 'home' ? "Home" : p === 'away' ? "Away" : "Everyone"),
+        own !== null && Number.isFinite(own) ? uiText("own away temperature {temp}").replace('{temp}', degrees(own)) : null].filter(Boolean).join(' · ');
     };
     let last = status; briefs(last);
     const shownBriefs = card.status; card.status = s => { last = s; briefs(s); shownBriefs(s); };
@@ -472,9 +498,15 @@
       const f = Math.round(fallback.value * 100), min = Math.round(lo.value * 100), max = Math.round(hi.value * 100);
       if (![f, min, max].every(v => v >= 500 && v <= 3000) || min > max || f < min || f > max) fail('invalid_room_limits', fallback);
       const untilValue = state.value === 'until' && until.value ? Math.floor(new Date(until.value).getTime() / 1000) : 0;
+      // The room's own away temperature only for firmware that stores it; empty: the house value.
+      const away = {};
+      if (ownAwayInput && (ownAwayInput.value !== '' || ownAwayInput.validity.badInput)) {
+        away.away_centi_c = Math.round(ownAwayInput.value * 100);
+        if (!(away.away_centi_c >= 500 && away.away_centi_c <= 2500)) fail('invalid_room_away', ownAwayInput);
+      }
       return {id: room.id || slug(title), name: title, state: state.value === 'active' ? 'active' : 'inactive',
         inactive_until: untilValue, emitter: emitter.value, sources: used,
-        setpoint_entity: target, fallback_centi_c: f, minimum_centi_c: min, maximum_centi_c: max, ...schedule()};
+        setpoint_entity: target, fallback_centi_c: f, minimum_centi_c: min, maximum_centi_c: max, ...schedule(), ...away};
     };
     OpenThermostatLanguage.apply(card);
     return card;
@@ -862,6 +894,7 @@
   }
   function renderRequest(status) {
     const r = status?.request;
+    if (typeof status?.away?.target_c === 'number') houseAwayC = status.away.target_c;
     requestBox.textContent = !r ? uiText("Status unavailable")
       : uiText("Boiler request (E32)") + ': ' + (r.heat ? r.flow_c + ' °C' : uiText("off")) + (r.heat && r.capped_by === 'boiler_limit' ? ' (' + uiText("limited by the boiler's own maximum") + ')' : '')
         + ' · ' + uiText(reasonText[r.reason] || r.reason);

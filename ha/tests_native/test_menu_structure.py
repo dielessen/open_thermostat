@@ -25,7 +25,9 @@ from test_v1_native import entry, room
 
 COMPONENT = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
 # beta.23: Home holds presence, heating and boiler, and energy (the same order as the E32's Home page).
-E32_MENU = ["e32_rooms", "house", "controller_connection", "general", "advanced_settings"]
+E32_MENU = ["e32_rooms", "house", "heating_boiler", "energy", "controller_connection", "advanced_settings"]
+# The flow adds "done" to the first menu and "back" to every other menu (options_navigation.py).
+ROOT_MENU = [*E32_MENU, "done"]
 
 
 def new_installation(hass):
@@ -60,12 +62,12 @@ async def test_a_typical_e32_install_has_rooms_first_and_advanced_last(hass, man
     parent, _ = product(hass, FakeE32())
     assert has_room_plan(parent) and main_menu(parent) == E32_MENU
     flow = await manager.async_init(parent.entry_id)
-    assert flow["type"] == FlowResultType.MENU and flow["menu_options"] == E32_MENU
+    assert flow["type"] == FlowResultType.MENU and flow["menu_options"] == ROOT_MENU
     # The legacy "Manage rooms" and the old installation form are not in the main menu.
     assert "room_settings" not in flow["menu_options"] and "installation" not in flow["menu_options"]
     advanced = await manager.async_configure(flow["flow_id"], {"next_step_id": "advanced_settings"})
     # No older HA rooms: nothing about them (nor hot water status); rc.3: the E32's system log and time zone.
-    assert advanced["menu_options"] == ["ble_sensors", "e32_logging", "e32_time_zone", "entity_ids"]
+    assert advanced["menu_options"] == ["general", "ble_sensors", "e32_logging", "e32_time_zone", "entity_ids", "back"]
 
 
 @pytest.mark.asyncio
@@ -74,15 +76,18 @@ async def test_rooms_hold_the_rooms_and_heating_and_boiler_opens_the_flow_limits
     await hass.async_block_till_done()
     flow = await manager.async_init(parent.entry_id)
     rooms = await manager.async_configure(flow["flow_id"], {"next_step_id": "e32_rooms"})
-    assert rooms["menu_options"] == ["e32_room_add", "e32_room_pick"]
+    assert rooms["menu_options"] == ["e32_room_add", "e32_room_pick", "back"]
     flow = await manager.async_init(parent.entry_id)
     house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
-    # beta.23: no Comfort submenu; the room defaults are a step of Home, the window contacts are per room.
-    # rc.3: Comfort and boiler care (the E32's control knobs) after Heating and boiler, as on the E32's Home page.
+    # House: presence and away temperature, house mode and holiday, comfort defaults (the window contacts are per room).
     assert house["type"] == FlowResultType.MENU and house["menu_options"] == [
-        "house_presence", "heating_boiler", "comfort_care", "energy", "comfort_settings"]
-    menu = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
-    assert menu["type"] == FlowResultType.MENU and menu["menu_options"] == ["heating_boiler_limits", "boiler_model"]
+        "house_presence", "comfort_settings", "back"]  # house_mode: only when the E32 reports its house status
+    back = await manager.async_configure(house["flow_id"], {"next_step_id": "back"})
+    assert back["type"] == FlowResultType.MENU and back["step_id"] == "init" and back["menu_options"] == ROOT_MENU
+    menu = await manager.async_configure(back["flow_id"], {"next_step_id": "heating_boiler"})
+    # No flow options known yet (no read from the E32): only the limits, care when offered, and the boiler model.
+    assert menu["type"] == FlowResultType.MENU and menu["menu_options"][-1] == "back"
+    assert {"heating_boiler_limits", "boiler_model"} <= set(menu["menu_options"])
     form = await manager.async_configure(menu["flow_id"], {"next_step_id": "heating_boiler_limits"})
     assert form["type"] == FlowResultType.FORM and form["step_id"] == "e32_flow_limits", form
 
@@ -102,7 +107,7 @@ async def test_home_presence_takes_several_people_and_the_away_delay(hass, manag
     assert error["errors"] == {"presence_entities": "presence_entity_invalid"}
     result = await manager.async_configure(form["flow_id"], {"presence_entities": ["person.anna", "person.ben"],
                                                              "away_delay": 10})
-    assert result["type"] == FlowResultType.ABORT and result["reason"] == "presence_saved"
+    assert result["type"] == FlowResultType.MENU and result["step_id"] == "house" and "Saved" in result["description_placeholders"]["saved"]
     comfort = parent.options["comfort_settings"]
     assert comfort["presence_entities"] == ["person.anna", "person.ben"] and comfort["away_delay_min"] == 10
 
@@ -150,7 +155,7 @@ async def test_home_presence_holds_the_away_temperature_like_the_number_entity(h
     assert (number.config["min"], number.config["max"], number.config["step"]) == (5, 25, 0.5)  # as the number entity
     result = await manager.async_configure(form["flow_id"], {"presence_entities": ["person.anna"], "away_delay": 15,
                                                              "away_temperature": 16.5})
-    assert result["type"] == FlowResultType.ABORT and result["reason"] == "presence_saved", result
+    assert result["type"] == FlowResultType.MENU and result["step_id"] == "house", result
     entity = AwayTemperature(house_state(hass, parent, hub))
     assert e32.commands == [{"house_mode": "auto", "temperature": 16.5}]
     assert entity.native_value == 16.5                 # the number shows it at once (the E32's read-back)
@@ -165,7 +170,7 @@ async def test_home_presence_holds_the_away_temperature_like_the_number_entity(h
         "suggested_value"] == 17
     sent = len(e32.commands)
     result = await manager.async_configure(form["flow_id"], {"presence_entities": [], "away_delay": 20, "away_temperature": 17})
-    assert result["type"] == FlowResultType.ABORT and len(e32.commands) == sent
+    assert result["type"] == FlowResultType.MENU and len(e32.commands) == sent
     assert parent.options["comfort_settings"]["away_delay_min"] == 20
     form = await manager.async_configure((await manager.async_configure((await manager.async_init(parent.entry_id))["flow_id"],
                                                                          {"next_step_id": "house"}))["flow_id"],
@@ -187,13 +192,18 @@ async def test_name_and_dashboard_only_change_the_name_and_the_dashboard(hass, m
     parent, _ = product(hass, FakeE32())
     data, subentries = dict(parent.data), dict(parent.subentries)
     flow = await manager.async_init(parent.entry_id)
-    form = await manager.async_configure(flow["flow_id"], {"next_step_id": "general"})
+    advanced = await manager.async_configure(flow["flow_id"], {"next_step_id": "advanced_settings"})
+    form = await manager.async_configure(advanced["flow_id"], {"next_step_id": "general"})
     assert form["step_id"] == "general"
     assert {str(k) for k in form["data_schema"].schema} == {"name", "create_dashboard"}
     error = await manager.async_configure(form["flow_id"], {"name": "  "})
     assert error["errors"] == {"name": "invalid_name"}
     result = await manager.async_configure(form["flow_id"], {"name": "Thuis", "create_dashboard": True})
-    assert result["type"] == FlowResultType.ABORT and result["reason"] == "installation_saved"
+    # After the save the Advanced menu is shown again (saved line, Done) and Done closes without changing options.
+    assert result["type"] == FlowResultType.MENU and result["step_id"] == "advanced_settings"
+    assert result["menu_options"][-2:] == ["back", "done"] and "Saved" in result["description_placeholders"]["saved"]
+    closed = await manager.async_configure(result["flow_id"], {"next_step_id": "done"})
+    assert closed["type"] == FlowResultType.CREATE_ENTRY and closed["data"] == dict(parent.options)
     assert parent.title == "Thuis" and parent.options["create_dashboard"] is True
     assert dict(parent.data) == data and dict(parent.subentries) == subentries
 
@@ -204,7 +214,7 @@ async def test_a_new_installation_starts_with_connect_e32_and_offers_no_older_ro
     assert uses_e32_rooms(parent) and not has_room_plan(parent)
     assert OpenThermostatConfigFlow.async_get_supported_subentry_types(parent) == {}
     flow = await manager.async_init(parent.entry_id)
-    assert flow["menu_options"] == ["controller_connection", "energy", "general", "advanced_settings"]
+    assert flow["menu_options"] == ["controller_connection", "energy", "advanced_settings", "done"]
     # A cached "Add room" button explains the way instead of starting the older wizard.
     room_flow = ProductRoomFlow()
     room_flow.hass, room_flow.handler = hass, (parent.entry_id, "zone")
@@ -244,7 +254,7 @@ def test_every_menu_entry_and_new_step_has_a_label(filename):
     steps = document["options"]["step"]
     for option in E32_MENU + ["room_settings", "installation"]:
         assert steps["init"]["menu_options"][option].strip(), option
-    for option in ("configuration_status", "installation", "hot_water", "graph_prepare", "graph_status",
+    for option in ("general", "configuration_status", "installation", "graph_prepare", "graph_status",
                    "legacy_rooms"):
         assert steps["advanced_settings"]["menu_options"][option].strip(), option
     assert "e32_flow_limits" not in steps["e32_rooms"]["menu_options"]
@@ -290,17 +300,18 @@ async def test_home_opens_the_room_defaults_directly_and_contacts_live_in_the_ro
 
 
 def test_configure_labels_follow_the_e32_menu_in_every_language():
-    """Rooms · Home · E32 connection · Dashboard and name · Advanced, in EN/NL/PL."""
+    """Rooms · House · Heating and boiler · Energy · E32 connection · Advanced, in EN/NL/PL."""
     import json
     from pathlib import Path
     root = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
-    expected = {"strings.json": ("Rooms", "Home", "E32 connection", "Dashboard and name", "Advanced and diagnostics"),
-                "translations/en.json": ("Rooms", "Home", "E32 connection", "Dashboard and name", "Advanced and diagnostics"),
-                "translations/nl.json": ("Ruimtes", "Huis", "E32-verbinding", "Dashboard en naam", "Geavanceerd en diagnose")}
+    expected = {"strings.json": ("Rooms", "House", "Heating and boiler", "Energy and outdoor temperature", "E32 connection", "Advanced and diagnostics"),
+                "translations/en.json": ("Rooms", "House", "Heating and boiler", "Energy and outdoor temperature", "E32 connection", "Advanced and diagnostics"),
+                "translations/nl.json": ("Ruimtes", "Huis", "Verwarming en ketel", "Energie en buitentemperatuur",
+                                         "E32-verbinding", "Geavanceerd en diagnose")}
     for name, labels in expected.items():
         menu = json.loads((root / name).read_text(encoding="utf-8"))["options"]["step"]["init"]["menu_options"]
         assert tuple(menu[k] for k in E32_MENU) == labels, name
     pl = json.loads((root / "translations/pl.json").read_text(encoding="utf-8"))["options"]["step"]
     assert all(pl["init"]["menu_options"].get(k) for k in E32_MENU)
-    assert list(pl["house"]["menu_options"]) == ["house_presence", "heating_boiler", "comfort_care", "energy",
-                                                 "comfort_settings"]
+    assert set(pl["house"]["menu_options"]) == {"house_presence", "house_mode", "house_holiday_stop", "comfort_settings",
+                                                 "back", "done"}

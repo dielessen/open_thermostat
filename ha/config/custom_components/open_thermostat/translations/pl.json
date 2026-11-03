@@ -111,17 +111,18 @@
       },
       "house": {
         "title": "Dom",
-        "description": "Wszystko, co dotyczy całego domu, tak jak na stronie Dom w E32. Sam tryb domu (automatyczny, w domu, nieobecność, urlop) to kontrolka Tryb domu na urządzeniu E32 i na pulpicie.",
+        "description": "{saved}Ustawienia dla całego domu: kto jest w domu, tryb domu i urlop oraz standardowe temperatury pomieszczeń.",
         "menu_options": {
-          "house_presence": "Obecność: kto tu mieszka",
-          "heating_boiler": "Ogrzewanie i kocioł",
-          "comfort_care": "Komfort i dbałość o kocioł",
-          "energy": "Energia i temperatura zewnętrzna",
-          "comfort_settings": "Ustawienia domyślne pomieszczeń i czasy"
+          "house_presence": "Obecność i temperatura podczas nieobecności",
+          "comfort_settings": "Domyślne temperatury pomieszczeń",
+          "back": "← Wstecz",
+          "done": "Gotowe",
+          "house_mode": "Tryb domu i urlop",
+          "house_holiday_stop": "Zakończ urlop"
         }
       },
       "house_presence": {
-        "title": "Obecność",
+        "title": "Obecność i temperatura podczas nieobecności",
         "description": "W trybie domu Automatyczny pomieszczenia przechodzą na temperaturę nieobecności, gdy wszyscy wyszli. Ktoś w domu albo ktoś, kogo położenie jest nieznane, utrzymuje ciepło w domu.",
         "data": {
           "presence_entities": "Kto tu mieszka",
@@ -172,20 +173,20 @@
       },
       "init": {
         "title": "OpenThermostat",
-        "description": "Najpierw pomieszczenia, potem ogrzewanie, energia i połączenie z E32. Pierwszy raz? Zacznij od Połącz E32; potem dodasz pomieszczenia.",
+        "description": "{saved}Najpierw pomieszczenia, potem dom, ogrzewanie, energia i połączenie z E32. Pierwszy raz? Zacznij od połączenia z E32; potem dodasz pomieszczenia.",
         "menu_options": {
           "e32_rooms": "Pomieszczenia",
           "house": "Dom",
-          "comfort": "Komfort: ustawienia wstępne i czujniki okien",
           "heating_boiler": "Ogrzewanie i kocioł",
           "energy": "Energia i temperatura zewnętrzna",
           "controller_connection": "Połączenie z E32",
-          "general": "Panel i nazwa",
           "advanced_settings": "Zaawansowane i diagnostyka",
           "room_settings": "Zarządzaj pomieszczeniami",
           "installation": "Ustawienia instalacji",
           "configuration_status": "Stan instalacji",
-          "graph_prepare": "Przejrzyj lub odzyskaj plan pomieszczeń"
+          "graph_prepare": "Przejrzyj lub odzyskaj plan pomieszczeń",
+          "back": "← Wstecz",
+          "done": "Gotowe"
         }
       },
       "graph_review": {
@@ -464,12 +465,11 @@
       },
       "advanced_settings": {
         "title": "Zaawansowane i diagnostyka",
-        "description": "Przywracanie kopii zapasowej ustawień E32, porządkowanie identyfikatorów encji i kontrole techniczne. Codzienne ustawienia są w menu głównym.",
+        "description": "{saved}Panel i nazwa, strefa czasowa i dziennik systemowy E32, nazwy czujników Bluetooth, przywracanie kopii zapasowej, porządkowanie identyfikatorów encji i kontrole. Codzienne ustawienia są w menu głównym.",
         "menu_options": {
           "configuration_status": "Stan instalacji",
           "installation_source": "Sprawdź połączenie ze sterownikiem",
           "graph_status": "Sprawdź zastosowany plan pomieszczeń",
-          "hot_water": "Pokaż stan ciepłej wody",
           "graph_prepare": "Przejrzyj lub odzyskaj plan pomieszczeń",
           "legacy_rooms": "Usuń stare pomieszczenia Home Assistant",
           "installation": "Limity wody starego profilu pomieszczeń",
@@ -478,7 +478,10 @@
           "e32_restore": "Przywróć ustawienia na tym E32",
           "ble_sensors": "Czujniki Bluetooth",
           "e32_logging": "Dziennik systemowy E32",
-          "e32_time_zone": "Strefa czasowa E32"
+          "e32_time_zone": "Strefa czasowa E32",
+          "back": "← Wstecz",
+          "done": "Gotowe",
+          "general": "Panel i nazwa"
         }
       },
       "edit_room": {
@@ -550,10 +553,12 @@
       },
       "e32_rooms": {
         "title": "Pomieszczenia",
-        "description": "Tu konfigurujesz swoje pomieszczenia. E32 je przechowuje i nadal je ogrzewa, także bez Home Assistant (wersja {revision}).\n\n{rooms}",
+        "description": "{saved}Tu konfigurujesz swoje pomieszczenia. E32 je przechowuje i nadal je ogrzewa, także bez Home Assistant (wersja {revision}).\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Dodaj pomieszczenie",
-          "e32_room_pick": "Edytuj lub usuń pomieszczenie"
+          "e32_room_pick": "Edytuj lub usuń pomieszczenie",
+          "back": "← Wstecz",
+          "done": "Gotowe"
         }
       },
       "e32_room_pick": {
@@ -649,19 +654,15 @@
         }
       },
       "e32_flow_limits": {
-        "title": "Temperatura wody, Inteligentne nagrzewanie i krzywa grzewcza",
-        "description": "Najniższa i najwyższa temperatura wody, którą kocioł wysyła do grzejników i podłogi (temperatura zasilania), dla wszystkich pomieszczeń razem. Inteligentne nagrzewanie i krzywa grzewcza są domyślnie włączone; E32 sam decyduje, kiedy to, czego się nauczył, jest wystarczająco dobre. {boiler} {error}",
+        "title": "Limity temperatury wody",
+        "description": "Najniższa i najwyższa temperatura wody, którą kocioł wysyła do grzejników i podłogi, dla wszystkich pomieszczeń razem. {boiler} {error}",
         "data": {
           "minimum_flow_temperature": "Najniższa temperatura wody",
-          "maximum_flow_temperature": "Najwyższa temperatura wody",
-          "smart_warm_up": "Inteligentne nagrzewanie",
-          "follow_outdoor": "Krzywa grzewcza wg temperatury zewnętrznej"
+          "maximum_flow_temperature": "Najwyższa temperatura wody"
         },
         "data_description": {
           "minimum_flow_temperature": "Najniższa temperatura wody, o jaką E32 prosi podczas grzania ({minimum_range}).",
-          "maximum_flow_temperature": "Najwyższa temperatura wody, o jaką E32 kiedykolwiek prosi ({maximum_range}, powyżej najniższej). Ogrzewanie podłogowe zasilane bez zaworu mieszającego: zwykle najwyżej 45–50 °C. Grzejniki: w zimne dni często 60–75 °C. Maksymalna temperatura grzania ustawiona w kotle zawsze pozostaje górną granicą; E32 nigdy nie prosi o więcej.",
-          "smart_warm_up": "Samo zaczyna grzać wcześniej, aby pomieszczenie było ciepłe o godzinie z jego programu tygodniowego, przy najchłodniejszej wodzie, która jeszcze na to wystarcza. Wyłączone: grzanie zaczyna się o godzinie z programu; po każdej zmianie programu przez jakiś czas może być chłodniej (ogrzewanie podłogowe może potrzebować godziny lub dłużej). To także przełącznik na stronie urządzenia E32.",
-          "follow_outdoor": "Im zimniej na zewnątrz, tym cieplejsza woda do grzejników i podłogi, zanim pomieszczenia się wychłodzą; temperatura pomieszczenia nadal ją koryguje. Zaczyna od standardowej krzywej i uczy się krzywej Twojego domu. Bez temperatury zewnętrznej działa zwykła regulacja pomieszczeń. To także przełącznik na stronie urządzenia E32."
+          "maximum_flow_temperature": "Najwyższa temperatura wody, o jaką E32 kiedykolwiek prosi ({maximum_range}, powyżej najniższej). Ogrzewanie podłogowe zasilane bez zaworu mieszającego: zwykle najwyżej 45–50 °C. Grzejniki: w zimne dni często 60–75 °C. Maksymalna temperatura grzania ustawiona w kotle zawsze pozostaje górną granicą; E32 nigdy nie prosi o więcej."
         }
       },
       "e32_room_remove": {
@@ -698,18 +699,22 @@
       },
       "e32_rooms_saved": {
         "title": "Pomieszczenia",
-        "description": "{name} zapisano na E32. Dodaj lub edytuj kolejne pomieszczenie albo zamknij to okno.{valves}\n\n{rooms}",
+        "description": "{saved}{name} zapisano na E32. Dodaj lub edytuj kolejne pomieszczenie albo zamknij to okno.{valves}\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Dodaj pomieszczenie",
-          "e32_room_pick": "Edytuj lub usuń pomieszczenie"
+          "e32_room_pick": "Edytuj lub usuń pomieszczenie",
+          "back": "← Wstecz",
+          "done": "Gotowe"
         }
       },
       "e32_rooms_removed": {
         "title": "Pomieszczenia",
-        "description": "{name} usunięto z E32. Dodaj lub edytuj kolejne pomieszczenie albo zamknij to okno.\n\n{rooms}",
+        "description": "{saved}{name} usunięto z E32. Dodaj lub edytuj kolejne pomieszczenie albo zamknij to okno.\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Dodaj pomieszczenie",
-          "e32_room_pick": "Edytuj lub usuń pomieszczenie"
+          "e32_room_pick": "Edytuj lub usuń pomieszczenie",
+          "back": "← Wstecz",
+          "done": "Gotowe"
         }
       },
       "legacy_rooms": {
@@ -823,11 +828,13 @@
       },
       "comfort_care": {
         "title": "Komfort i dbałość o kocioł",
-        "description": "Termostat ustawia je sam i dostosowuje je, poznając Twój dom. Zmieniaj je tylko wtedy, gdy chcesz inaczej. Te same ustawienia co na stronie Dom w E32.\n\nTeraz:\n{settings}",
+        "description": "{saved}Termostat ustawia je sam i dostosowuje je, poznając Twój dom. Zmieniaj je tylko wtedy, gdy chcesz inaczej. Te same ustawienia co na stronie Dom w E32.\n\nTeraz:\n{settings}",
         "menu_options": {
           "comfort_care_knob": "Zmień ustawienie",
           "comfort_care_auto_all": "Wszystko z powrotem na automatyczne",
-          "comfort_care_reset": "Powrót do wartości początkowych"
+          "comfort_care_reset": "Powrót do wartości początkowych",
+          "back": "← Wstecz",
+          "done": "Gotowe"
         }
       },
       "comfort_care_knob": {
@@ -918,10 +925,15 @@
       },
       "heating_boiler": {
         "title": "Ogrzewanie i kocioł",
-        "description": "Limity temperatury wody dla wszystkich pomieszczeń i model Twojego kotła.",
+        "description": "{saved}Nagrzewanie, pogoda i temperatura wody, komfort i dbałość o kocioł oraz model kotła.",
         "menu_options": {
           "heating_boiler_limits": "Limity temperatury wody",
-          "boiler_model": "Model kotła"
+          "boiler_model": "Model kotła",
+          "back": "← Wstecz",
+          "done": "Gotowe",
+          "heating_warm_up": "Inteligentne nagrzewanie",
+          "heating_weather": "Kompensacja pogodowa",
+          "comfort_care": "Komfort i dbałość o kocioł"
         }
       },
       "boiler_model": {
@@ -936,11 +948,13 @@
       },
       "ble_sensors": {
         "title": "Czujniki Bluetooth",
-        "description": "Czujniki Bluetooth sparowane z E32. Tutaj możesz zmienić ich nazwę lub je usunąć; najpierw zbierz wszystkie zmiany i zapisz je razem: po zapisaniu E32 uruchomi się ponownie jeden raz, około 30 sekund później, aby ich użyć. Parowanie nowego czujnika (wyszukiwanie i klucz) odbywa się na stronie Czujniki Bluetooth w E32, przy czujniku. To, które pomieszczenie mierzy czujnik, ustawia się dla każdego pomieszczenia w Pomieszczenia.\n\n{sensors}\n\n{pending}",
+        "description": "{saved}Czujniki Bluetooth sparowane z E32. Tutaj możesz zmienić ich nazwę lub je usunąć; najpierw zbierz wszystkie zmiany i zapisz je razem: po zapisaniu E32 uruchomi się ponownie jeden raz, około 30 sekund później, aby ich użyć. Parowanie nowego czujnika (wyszukiwanie i klucz) odbywa się na stronie Czujniki Bluetooth w E32, przy czujniku. To, które pomieszczenie mierzy czujnik, ustawia się dla każdego pomieszczenia w Pomieszczenia.\n\n{sensors}\n\n{pending}",
         "menu_options": {
           "ble_rename": "Zmień nazwę czujnika",
           "ble_forget": "Usuń czujnik",
-          "ble_save": "Zapisz zmiany (E32 uruchomi się ponownie jeden raz)"
+          "ble_save": "Zapisz zmiany (E32 uruchomi się ponownie jeden raz)",
+          "back": "← Wstecz",
+          "done": "Gotowe"
         }
       },
       "ble_rename": {
@@ -973,6 +987,49 @@
         },
         "data_description": {
           "confirm": "Zaznacz, aby potwierdzić."
+        }
+      },
+      "house_mode": {
+        "title": "Tryb domu i urlop",
+        "description": "Wybierz, jak ogrzewany jest dom. W przypadku urlopu wybierz też, kiedy się kończy; dom będzie ciepły na czas. {error}",
+        "data": {
+          "house_mode": "Tryb domu",
+          "holiday_until": "Koniec urlopu"
+        },
+        "data_description": {
+          "house_mode": "Automatyczny: decydują osoby ustawione w Obecności. W domu: zawsze programy tygodniowe. Nieobecność: każde pomieszczenie najwyżej do temperatury nieobecności. Urlop: nieobecność do daty poniżej.",
+          "holiday_until": "Tylko dla Urlopu: dzień i godzina powrotu. Najwyżej rok naprzód."
+        }
+      },
+      "heating_warm_up": {
+        "title": "Inteligentne nagrzewanie",
+        "description": "E32 zaczyna grzać wcześniej, aby pomieszczenie było ciepłe o godzinie z programu tygodniowego, przy najchłodniejszej wodzie, która jeszcze wystarcza. Wyłączone: grzanie zaczyna się o godzinie z programu, więc pomieszczenie może być przez jakiś czas chłodne (ogrzewanie podłogowe godzinę lub dłużej).",
+        "data": {
+          "smart_warm_up": "Inteligentne nagrzewanie"
+        },
+        "data_description": {
+          "smart_warm_up": "Ten sam przełącznik co na urządzeniu E32."
+        }
+      },
+      "heating_weather": {
+        "title": "Kompensacja pogodowa",
+        "description": "Im zimniej na zewnątrz, tym cieplejsza woda do ogrzewania, zanim pomieszczenia się wychłodzą. Temperatura pomieszczenia nadal ją koryguje. Bez temperatury zewnętrznej działa zwykła regulacja pomieszczeń.",
+        "data": {
+          "weather_compensation": "Kompensacja pogodowa"
+        },
+        "data_description": {
+          "weather_compensation": "Ten sam przełącznik co na urządzeniu E32. Zaczyna od ustawienia standardowego i uczy się Twojego domu."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Zaawansowane",
+            "data": {
+              "hard_frost_water_temperature": "Temperatura wody przy silnym mrozie (−10 °C)"
+            },
+            "data_description": {
+              "hard_frost_water_temperature": "Jak ciepła jest woda do ogrzewania, gdy na zewnątrz jest −10 °C. Przy łagodniejszej pogodzie E32 wybiera mniej. Nie jesteś pewien? Zostaw Automatycznie: E32 uczy się tego dla Twojego domu."
+            }
+          }
         }
       }
     },
@@ -1161,7 +1218,12 @@
       "ble_name_invalid": "Użyj nazwy od 1 do 40 znaków bez podziału wiersza.",
       "ble_storage_full": "E32 nie ma już miejsca na zapisanie czujników. Nic nie zostało zapisane.",
       "ble_rejected": "E32 odrzucił zmiany ({error}). Nic nie zostało zapisane.",
-      "e32_flow_options_failed": "E32 nie zapisał zmiany. Sprawdź połączenie i spróbuj ponownie."
+      "e32_flow_options_failed": "E32 nie zapisał zmiany. Sprawdź połączenie i spróbuj ponownie.",
+      "house_mode_invalid": "Wybierz jeden z trybów.",
+      "house_holiday_date_needed": "Wybierz dzień i godzinę końca urlopu.",
+      "house_holiday_date_invalid": "Wybierz moment w przyszłości, najwyżej rok naprzód.",
+      "house_mode_not_saved": "E32 nie przyjął tej zmiany ({error}). Spróbuj ponownie.",
+      "house_mode_update_required": "To oprogramowanie E32 nie zna tego trybu. Najpierw zaktualizuj E32."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -1250,7 +1312,9 @@
       "ble_changed": "Czujniki Bluetooth zostały w międzyczasie zmienione w E32. Nic nie zostało zapisane; otwórz ponownie Czujniki Bluetooth.",
       "ble_saved": "Zapisano w E32. Uruchomi się ponownie za około 30 sekund, aby użyć zmian.",
       "ble_saved_restart_later": "Zapisano w E32. Uruchomi się ponownie, aby użyć zmian, gdy tylko zakończy się aktualizacja lub test kotła.",
-      "e32_flow_options_saved": "Ustawienia temperatury wody zostały zapisane w E32."
+      "e32_flow_options_saved": "Ustawienia temperatury wody zostały zapisane w E32.",
+      "house_mode_unavailable": "E32 nie podaje teraz trybu domu. Sprawdź, czy jest włączony, i spróbuj ponownie.",
+      "house_mode_saved": "Zapisano."
     },
     "progress": {
       "controller_connect": "Łączenie z E32…",
@@ -2122,7 +2186,7 @@
     },
     "select": {
       "flow_curve_design_flow_c": {
-        "name": "Temperatura wody przy −10 °C na zewnątrz",
+        "name": "Temperatura wody przy silnym mrozie (−10 °C)",
         "state": {
           "automatic": "Automatycznie (podłoga 40 °C, grzejniki 55 °C)",
           "25": "25 °C",
@@ -2210,7 +2274,7 @@
     },
     "switch": {
       "flow_weather_curve": {
-        "name": "Krzywa grzewcza wg temperatury zewnętrznej"
+        "name": "Kompensacja pogodowa"
       },
       "flow_apply_learned": {
         "name": "Inteligentne nagrzewanie"
@@ -3198,6 +3262,75 @@
         "3": "Informacje",
         "4": "Debugowanie",
         "5": "Śledzenie"
+      }
+    },
+    "house_mode_choice": {
+      "options": {
+        "auto": "Automatyczny",
+        "home": "W domu",
+        "away": "Nieobecność",
+        "holiday": "Urlop"
+      }
+    },
+    "flow_design_choice": {
+      "options": {
+        "automatic": "Automatycznie",
+        "25": "25 °C",
+        "26": "26 °C",
+        "27": "27 °C",
+        "28": "28 °C",
+        "29": "29 °C",
+        "30": "30 °C",
+        "31": "31 °C",
+        "32": "32 °C",
+        "33": "33 °C",
+        "34": "34 °C",
+        "35": "35 °C",
+        "36": "36 °C",
+        "37": "37 °C",
+        "38": "38 °C",
+        "39": "39 °C",
+        "40": "40 °C",
+        "41": "41 °C",
+        "42": "42 °C",
+        "43": "43 °C",
+        "44": "44 °C",
+        "45": "45 °C",
+        "46": "46 °C",
+        "47": "47 °C",
+        "48": "48 °C",
+        "49": "49 °C",
+        "50": "50 °C",
+        "51": "51 °C",
+        "52": "52 °C",
+        "53": "53 °C",
+        "54": "54 °C",
+        "55": "55 °C",
+        "56": "56 °C",
+        "57": "57 °C",
+        "58": "58 °C",
+        "59": "59 °C",
+        "60": "60 °C",
+        "61": "61 °C",
+        "62": "62 °C",
+        "63": "63 °C",
+        "64": "64 °C",
+        "65": "65 °C",
+        "66": "66 °C",
+        "67": "67 °C",
+        "68": "68 °C",
+        "69": "69 °C",
+        "70": "70 °C",
+        "71": "71 °C",
+        "72": "72 °C",
+        "73": "73 °C",
+        "74": "74 °C",
+        "75": "75 °C",
+        "76": "76 °C",
+        "77": "77 °C",
+        "78": "78 °C",
+        "79": "79 °C",
+        "80": "80 °C"
       }
     }
   },

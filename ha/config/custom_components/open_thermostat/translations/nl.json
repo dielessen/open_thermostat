@@ -965,6 +965,75 @@
         "4": "Foutzoeken",
         "5": "Alles (trace)"
       }
+    },
+    "house_mode_choice": {
+      "options": {
+        "auto": "Automatisch",
+        "home": "Thuis",
+        "away": "Afwezig",
+        "holiday": "Vakantie"
+      }
+    },
+    "flow_design_choice": {
+      "options": {
+        "automatic": "Automatisch",
+        "25": "25 °C",
+        "26": "26 °C",
+        "27": "27 °C",
+        "28": "28 °C",
+        "29": "29 °C",
+        "30": "30 °C",
+        "31": "31 °C",
+        "32": "32 °C",
+        "33": "33 °C",
+        "34": "34 °C",
+        "35": "35 °C",
+        "36": "36 °C",
+        "37": "37 °C",
+        "38": "38 °C",
+        "39": "39 °C",
+        "40": "40 °C",
+        "41": "41 °C",
+        "42": "42 °C",
+        "43": "43 °C",
+        "44": "44 °C",
+        "45": "45 °C",
+        "46": "46 °C",
+        "47": "47 °C",
+        "48": "48 °C",
+        "49": "49 °C",
+        "50": "50 °C",
+        "51": "51 °C",
+        "52": "52 °C",
+        "53": "53 °C",
+        "54": "54 °C",
+        "55": "55 °C",
+        "56": "56 °C",
+        "57": "57 °C",
+        "58": "58 °C",
+        "59": "59 °C",
+        "60": "60 °C",
+        "61": "61 °C",
+        "62": "62 °C",
+        "63": "63 °C",
+        "64": "64 °C",
+        "65": "65 °C",
+        "66": "66 °C",
+        "67": "67 °C",
+        "68": "68 °C",
+        "69": "69 °C",
+        "70": "70 °C",
+        "71": "71 °C",
+        "72": "72 °C",
+        "73": "73 °C",
+        "74": "74 °C",
+        "75": "75 °C",
+        "76": "76 °C",
+        "77": "77 °C",
+        "78": "78 °C",
+        "79": "79 °C",
+        "80": "80 °C"
+      }
     }
   },
   "config": {
@@ -1079,17 +1148,18 @@
       },
       "house": {
         "title": "Huis",
-        "description": "Alles wat voor het hele huis geldt, net als op de pagina Huis van de E32. De huismodus zelf (automatisch, thuis, afwezig, vakantie) is de bediening Huismodus op het E32-apparaat en op het dashboard.",
+        "description": "{saved}Instellingen voor het hele huis: wie thuis is, de huismodus en vakantie, en de standaardtemperaturen voor ruimtes.",
         "menu_options": {
-          "house_presence": "Aanwezigheid: wie hier woont",
-          "heating_boiler": "Verwarming en ketel",
-          "comfort_care": "Comfort en zorg voor de ketel",
-          "energy": "Energie en buitentemperatuur",
-          "comfort_settings": "Standaarden voor ruimtes en tijden"
+          "house_presence": "Aanwezigheid en afwezigheidstemperatuur",
+          "comfort_settings": "Standaardtemperaturen voor ruimtes",
+          "back": "← Terug",
+          "done": "Klaar",
+          "house_mode": "Huismodus en vakantie",
+          "house_holiday_stop": "Vakantie stoppen"
         }
       },
       "house_presence": {
-        "title": "Aanwezigheid",
+        "title": "Aanwezigheid en afwezigheidstemperatuur",
         "description": "In de huismodus Automatisch gaan de ruimtes naar de afwezigheidstemperatuur als iedereen weg is. Iemand thuis, of iemand van wie niet bekend is waar die is, houdt het huis warm.",
         "data": {
           "presence_entities": "Wie hier woont",
@@ -1140,20 +1210,20 @@
       },
       "init": {
         "title": "OpenThermostat",
-        "description": "Eerst je ruimtes, dan verwarming, energie en de E32-verbinding. Nieuw? Begin met E32-verbinding; daarna voeg je je ruimtes toe.",
+        "description": "{saved}Eerst je ruimtes, dan het huis, de verwarming, energie en de E32-verbinding. Nieuw? Begin met E32-verbinding; daarna voeg je je ruimtes toe.",
         "menu_options": {
           "e32_rooms": "Ruimtes",
           "house": "Huis",
-          "comfort": "Comfort: presets en raamsensoren",
           "heating_boiler": "Verwarming en ketel",
           "energy": "Energie en buitentemperatuur",
           "controller_connection": "E32-verbinding",
-          "general": "Dashboard en naam",
           "advanced_settings": "Geavanceerd en diagnose",
           "room_settings": "Ruimtes beheren",
           "installation": "Installatie instellen",
           "configuration_status": "Status installatie",
-          "graph_prepare": "Ruimteplan controleren en herstellen"
+          "graph_prepare": "Ruimteplan controleren en herstellen",
+          "back": "← Terug",
+          "done": "Klaar"
         }
       },
       "graph_review": {
@@ -1432,12 +1502,11 @@
       },
       "advanced_settings": {
         "title": "Geavanceerd en diagnose",
-        "description": "Een back-up van de E32-instellingen terugzetten, entiteit-ID's opruimen en technische controles. Gewone instellingen staan in het hoofdmenu.",
+        "description": "{saved}Dashboard en naam, de tijdzone en het systeemlogboek van de E32, namen van Bluetooth-sensoren, een back-up terugzetten, entiteits-ID's opruimen en controles. Dagelijkse instellingen staan in het hoofdmenu.",
         "menu_options": {
           "configuration_status": "Status installatie",
           "installation_source": "Verbinding met regelaar controleren",
           "graph_status": "Toegepast ruimteplan bekijken",
-          "hot_water": "Tapwaterstatus bekijken",
           "graph_prepare": "Ruimteplan controleren en herstellen",
           "legacy_rooms": "Oude Home Assistant-ruimtes verwijderen",
           "installation": "Watergrenzen van het oude ruimteprofiel",
@@ -1446,7 +1515,10 @@
           "e32_restore": "Instellingen terugzetten op deze E32",
           "ble_sensors": "Bluetooth-sensoren",
           "e32_logging": "Systeemlog van de E32",
-          "e32_time_zone": "Tijdzone van de E32"
+          "e32_time_zone": "Tijdzone van de E32",
+          "back": "← Terug",
+          "done": "Klaar",
+          "general": "Dashboard en naam"
         }
       },
       "edit_room": {
@@ -1518,10 +1590,12 @@
       },
       "e32_rooms": {
         "title": "Ruimtes",
-        "description": "Hier stel je de ruimtes in. De E32 bewaart ze en blijft ze verwarmen, ook zonder Home Assistant (revisie {revision}).\n\n{rooms}",
+        "description": "{saved}Hier stel je de ruimtes in. De E32 bewaart ze en blijft ze verwarmen, ook zonder Home Assistant (revisie {revision}).\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Ruimte toevoegen",
-          "e32_room_pick": "Ruimte bewerken of verwijderen"
+          "e32_room_pick": "Ruimte bewerken of verwijderen",
+          "back": "← Terug",
+          "done": "Klaar"
         }
       },
       "e32_room_pick": {
@@ -1617,19 +1691,15 @@
         }
       },
       "e32_flow_limits": {
-        "title": "Watertemperatuur, Slim opwarmen en stooklijn",
-        "description": "De laagste en hoogste temperatuur van het water dat de ketel naar de radiatoren en vloer stuurt (aanvoertemperatuur), voor alle ruimtes samen. Slim opwarmen en de stooklijn staan standaard aan; de E32 beslist zelf wanneer wat hij leerde goed genoeg is. {boiler} {error}",
+        "title": "Grenzen van de watertemperatuur",
+        "description": "De laagste en hoogste temperatuur van het water dat de ketel naar de radiatoren en vloer stuurt, voor alle ruimtes samen. {boiler} {error}",
         "data": {
           "minimum_flow_temperature": "Laagste watertemperatuur",
-          "maximum_flow_temperature": "Hoogste watertemperatuur",
-          "smart_warm_up": "Slim opwarmen",
-          "follow_outdoor": "Buitentemperatuur volgen (stooklijn)"
+          "maximum_flow_temperature": "Hoogste watertemperatuur"
         },
         "data_description": {
           "minimum_flow_temperature": "De laagste watertemperatuur die de E32 vraagt zolang hij verwarmt ({minimum_range}).",
-          "maximum_flow_temperature": "De hoogste watertemperatuur die de E32 ooit vraagt ({maximum_range}, boven de laagste). Vloerverwarming zonder mengklep: meestal hoogstens 45–50 °C. Radiatoren: op koude dagen vaak 60–75 °C. De maximale cv-temperatuur die op je ketel staat, blijft altijd de bovengrens; de E32 vraagt nooit meer.",
-          "smart_warm_up": "Begint vanzelf eerder met verwarmen, zodat een ruimte warm is op de tijd in zijn weekprogramma, met het koelste water dat dat nog haalt. Uit: verwarmen begint pas op de tijd van het programma; na elk programmatijdstip kan het een tijdje koeler zijn (vloerverwarming kan een uur of langer nodig hebben). Ook een schakelaar op de apparaatpagina van de E32.",
-          "follow_outdoor": "Kouder buiten betekent warmer water naar de radiatoren en vloer, nog voordat de ruimtes afkoelen; de ruimtetemperatuur stuurt nog bij. Hij begint met een standaard stooklijn en leert die van je huis. Zonder buitentemperatuur geldt de gewone ruimteregeling. Ook een schakelaar op de apparaatpagina van de E32."
+          "maximum_flow_temperature": "De hoogste watertemperatuur die de E32 ooit vraagt ({maximum_range}, boven de laagste). Vloerverwarming zonder mengklep: meestal hoogstens 45–50 °C. Radiatoren: op koude dagen vaak 60–75 °C. De maximale cv-temperatuur die op je ketel staat, blijft altijd de bovengrens; de E32 vraagt nooit meer."
         }
       },
       "e32_room_remove": {
@@ -1666,18 +1736,22 @@
       },
       "e32_rooms_saved": {
         "title": "Ruimtes",
-        "description": "{name} is opgeslagen op de E32. Voeg nog een ruimte toe of bewerk er een, of sluit dit venster.{valves}\n\n{rooms}",
+        "description": "{saved}{name} is opgeslagen op de E32. Voeg nog een ruimte toe of bewerk er een, of sluit dit venster.{valves}\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Ruimte toevoegen",
-          "e32_room_pick": "Ruimte bewerken of verwijderen"
+          "e32_room_pick": "Ruimte bewerken of verwijderen",
+          "back": "← Terug",
+          "done": "Klaar"
         }
       },
       "e32_rooms_removed": {
         "title": "Ruimtes",
-        "description": "{name} is verwijderd van de E32. Voeg nog een ruimte toe of bewerk er een, of sluit dit venster.\n\n{rooms}",
+        "description": "{saved}{name} is verwijderd van de E32. Voeg nog een ruimte toe of bewerk er een, of sluit dit venster.\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Ruimte toevoegen",
-          "e32_room_pick": "Ruimte bewerken of verwijderen"
+          "e32_room_pick": "Ruimte bewerken of verwijderen",
+          "back": "← Terug",
+          "done": "Klaar"
         }
       },
       "legacy_rooms": {
@@ -1791,11 +1865,13 @@
       },
       "comfort_care": {
         "title": "Comfort en zorg voor de ketel",
-        "description": "De thermostaat stelt deze zelf in en past ze aan terwijl hij je huis leert kennen. Wijzig er alleen een als je het anders wilt. Dezelfde instellingen als op de pagina Huis van de E32.\n\nNu:\n{settings}",
+        "description": "{saved}De thermostaat stelt deze zelf in en past ze aan terwijl hij je huis leert kennen. Wijzig er alleen een als je het anders wilt. Dezelfde instellingen als op de pagina Huis van de E32.\n\nNu:\n{settings}",
         "menu_options": {
           "comfort_care_knob": "Een instelling wijzigen",
           "comfort_care_auto_all": "Alles terug naar automatisch",
-          "comfort_care_reset": "Terug naar de startwaarden"
+          "comfort_care_reset": "Terug naar de startwaarden",
+          "back": "← Terug",
+          "done": "Klaar"
         }
       },
       "comfort_care_knob": {
@@ -1886,10 +1962,15 @@
       },
       "heating_boiler": {
         "title": "Verwarming en ketel",
-        "description": "De grenzen van de watertemperatuur voor alle ruimtes en het model van je ketel.",
+        "description": "{saved}Opwarmen, weer en watertemperatuur, comfort en zorg voor de ketel, en je ketelmodel.",
         "menu_options": {
           "heating_boiler_limits": "Grenzen van de watertemperatuur",
-          "boiler_model": "Ketelmodel"
+          "boiler_model": "Ketelmodel",
+          "back": "← Terug",
+          "done": "Klaar",
+          "heating_warm_up": "Slim opwarmen",
+          "heating_weather": "Weerafhankelijke regeling",
+          "comfort_care": "Comfort en zorg voor de ketel"
         }
       },
       "boiler_model": {
@@ -1904,11 +1985,13 @@
       },
       "ble_sensors": {
         "title": "Bluetooth-sensoren",
-        "description": "De Bluetooth-sensoren die aan de E32 gekoppeld zijn. Geef ze hier een andere naam of vergeet ze; verzamel eerst alle wijzigingen en sla ze samen op: na opslaan start de E32 één keer opnieuw, ongeveer 30 seconden later, om ze te gebruiken. Een nieuwe sensor koppelen (zoeken en sleutel) doe je op de pagina Bluetooth-sensoren van de E32, bij de sensor. Welke ruimte een sensor meet stel je per ruimte in onder Ruimtes.\n\n{sensors}\n\n{pending}",
+        "description": "{saved}De Bluetooth-sensoren die aan de E32 gekoppeld zijn. Geef ze hier een andere naam of vergeet ze; verzamel eerst alle wijzigingen en sla ze samen op: na opslaan start de E32 één keer opnieuw, ongeveer 30 seconden later, om ze te gebruiken. Een nieuwe sensor koppelen (zoeken en sleutel) doe je op de pagina Bluetooth-sensoren van de E32, bij de sensor. Welke ruimte een sensor meet stel je per ruimte in onder Ruimtes.\n\n{sensors}\n\n{pending}",
         "menu_options": {
           "ble_rename": "Een sensor hernoemen",
           "ble_forget": "Een sensor vergeten",
-          "ble_save": "De wijzigingen opslaan (de E32 start één keer opnieuw)"
+          "ble_save": "De wijzigingen opslaan (de E32 start één keer opnieuw)",
+          "back": "← Terug",
+          "done": "Klaar"
         }
       },
       "ble_rename": {
@@ -1941,6 +2024,49 @@
         },
         "data_description": {
           "confirm": "Vink aan om te bevestigen."
+        }
+      },
+      "house_mode": {
+        "title": "Huismodus en vakantie",
+        "description": "Kies hoe het huis wordt verwarmd. Kies voor een vakantie ook wanneer die eindigt; het huis is op tijd weer warm. {error}",
+        "data": {
+          "house_mode": "Huismodus",
+          "holiday_until": "Vakantie eindigt"
+        },
+        "data_description": {
+          "house_mode": "Automatisch: de mensen die je bij Aanwezigheid instelt, bepalen het. Thuis: altijd de weekprogramma's. Afwezig: elke ruimte hoogstens de afwezigheidstemperatuur. Vakantie: afwezig tot de datum hieronder.",
+          "holiday_until": "Alleen voor Vakantie: dag en tijd waarop je terug bent. Hoogstens een jaar vooruit."
+        }
+      },
+      "heating_warm_up": {
+        "title": "Slim opwarmen",
+        "description": "De E32 begint eerder met verwarmen, zodat een ruimte warm is op de tijd in het weekprogramma, met het koelste water dat dat nog haalt. Uit: verwarmen begint pas op de programmatijd, dus een ruimte kan een tijdje koel blijven (vloerverwarming een uur of langer).",
+        "data": {
+          "smart_warm_up": "Slim opwarmen"
+        },
+        "data_description": {
+          "smart_warm_up": "Dezelfde schakelaar als op het E32-apparaat."
+        }
+      },
+      "heating_weather": {
+        "title": "Weerafhankelijke regeling",
+        "description": "Hoe kouder het buiten is, hoe warmer het water naar je verwarming wordt, nog voordat de ruimtes afkoelen. De ruimtetemperatuur stuurt nog bij. Zonder buitentemperatuur geldt de gewone ruimteregeling.",
+        "data": {
+          "weather_compensation": "Weerafhankelijke regeling"
+        },
+        "data_description": {
+          "weather_compensation": "Dezelfde schakelaar als op het E32-apparaat. Hij begint met een standaardinstelling en leert je huis kennen."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Geavanceerd",
+            "data": {
+              "hard_frost_water_temperature": "Watertemperatuur bij strenge vorst (−10 °C)"
+            },
+            "data_description": {
+              "hard_frost_water_temperature": "Hoe warm het water naar je verwarming wordt als het −10 °C is buiten. Bij milder weer kiest de E32 minder. Niet zeker? Laat het op Automatisch staan: de E32 leert dit voor jouw huis."
+            }
+          }
         }
       }
     },
@@ -2129,7 +2255,12 @@
       "ble_name_invalid": "Gebruik een naam van 1 tot 40 tekens zonder regeleinden.",
       "ble_storage_full": "De E32 heeft geen ruimte meer om de sensoren op te slaan. Er is niets opgeslagen.",
       "ble_rejected": "De E32 weigerde de wijzigingen ({error}). Er is niets opgeslagen.",
-      "e32_flow_options_failed": "De E32 heeft de wijziging niet opgeslagen. Controleer de verbinding en probeer het opnieuw."
+      "e32_flow_options_failed": "De E32 heeft de wijziging niet opgeslagen. Controleer de verbinding en probeer het opnieuw.",
+      "house_mode_invalid": "Kies een van de modi.",
+      "house_holiday_date_needed": "Kies dag en tijd waarop de vakantie eindigt.",
+      "house_holiday_date_invalid": "Kies een moment in de toekomst, hoogstens een jaar vooruit.",
+      "house_mode_not_saved": "De E32 nam dit niet aan ({error}). Probeer het opnieuw.",
+      "house_mode_update_required": "Deze E32-software kent deze modus niet. Werk eerst de E32 bij."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",
@@ -2218,7 +2349,9 @@
       "ble_changed": "De Bluetooth-sensoren zijn intussen op de E32 gewijzigd. Er is niets opgeslagen; open Bluetooth-sensoren opnieuw.",
       "ble_saved": "Opgeslagen op de E32. Hij start over ongeveer 30 seconden opnieuw om de wijzigingen te gebruiken.",
       "ble_saved_restart_later": "Opgeslagen op de E32. Hij start opnieuw om de wijzigingen te gebruiken zodra een update of keteltest klaar is.",
-      "e32_flow_options_saved": "De instellingen voor de watertemperatuur zijn op de E32 opgeslagen."
+      "e32_flow_options_saved": "De instellingen voor de watertemperatuur zijn op de E32 opgeslagen.",
+      "house_mode_unavailable": "De E32 geeft zijn huismodus nu niet door. Controleer of hij aan staat en probeer het opnieuw.",
+      "house_mode_saved": "Opgeslagen."
     },
     "progress": {
       "controller_connect": "Verbinden met de E32…",
@@ -3090,7 +3223,7 @@
     },
     "select": {
       "flow_curve_design_flow_c": {
-        "name": "Watertemperatuur bij −10 °C buiten",
+        "name": "Watertemperatuur bij strenge vorst (−10 °C)",
         "state": {
           "automatic": "Automatisch (vloer 40 °C, radiatoren 55 °C)",
           "25": "25 °C",
@@ -3178,7 +3311,7 @@
     },
     "switch": {
       "flow_weather_curve": {
-        "name": "Buitentemperatuur volgen (stooklijn)"
+        "name": "Weerafhankelijke regeling"
       },
       "flow_apply_learned": {
         "name": "Slim opwarmen"

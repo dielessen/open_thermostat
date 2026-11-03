@@ -110,18 +110,19 @@
         }
       },
       "house": {
-        "title": "Home",
-        "description": "Everything that applies to the whole house, as on the E32's Home page. The house mode itself (automatic, at home, away, holiday) is the House mode control on the E32 device and on the dashboard.",
+        "title": "House",
+        "description": "{saved}Settings for the whole house: who is home, the house mode and holiday, and the standard temperatures for rooms.",
         "menu_options": {
-          "house_presence": "Presence: who lives here",
-          "heating_boiler": "Heating and boiler",
-          "comfort_care": "Comfort and boiler care",
-          "energy": "Energy and outdoor temperature",
-          "comfort_settings": "Defaults for rooms and timing"
+          "house_presence": "Presence and away temperature",
+          "comfort_settings": "Comfort defaults for rooms",
+          "back": "← Back",
+          "done": "Done",
+          "house_mode": "House mode and holiday",
+          "house_holiday_stop": "Stop holiday"
         }
       },
       "house_presence": {
-        "title": "Presence",
+        "title": "Presence and away temperature",
         "description": "In the house mode Automatic the rooms go to the away temperature when everyone is away. Someone home, or someone whose place is not known, keeps the house warm.",
         "data": {
           "presence_entities": "Who lives here",
@@ -172,20 +173,20 @@
       },
       "init": {
         "title": "OpenThermostat",
-        "description": "Your rooms first, then heating, energy and the E32 connection. New here? Start with E32 connection; after it you add your rooms.",
+        "description": "{saved}Rooms first, then the house, heating, energy and the E32 connection. New here? Start with E32 connection; after it you add your rooms.",
         "menu_options": {
           "e32_rooms": "Rooms",
-          "house": "Home",
-          "comfort": "Comfort: presets and window sensors",
+          "house": "House",
           "heating_boiler": "Heating and boiler",
           "energy": "Energy and outdoor temperature",
           "controller_connection": "E32 connection",
-          "general": "Dashboard and name",
           "advanced_settings": "Advanced and diagnostics",
           "room_settings": "Manage rooms",
           "installation": "Installation settings",
           "configuration_status": "Installation status",
-          "graph_prepare": "Review or recover room plan"
+          "graph_prepare": "Review or recover room plan",
+          "back": "← Back",
+          "done": "Done"
         }
       },
       "graph_review": {
@@ -464,12 +465,11 @@
       },
       "advanced_settings": {
         "title": "Advanced and diagnostics",
-        "description": "Restore an E32 settings backup, tidy entity IDs and technical checks. Everyday settings are in the main menu.",
+        "description": "{saved}Dashboard and name, the E32 time zone and system log, Bluetooth sensor names, restoring a backup, tidying entity IDs and checks. Everyday settings are in the main menu.",
         "menu_options": {
           "configuration_status": "Installation status",
           "installation_source": "Review controller connection",
           "graph_status": "Inspect applied room plan",
-          "hot_water": "View hot water status",
           "graph_prepare": "Review or recover room plan",
           "legacy_rooms": "Remove old Home Assistant rooms",
           "installation": "Water limits of the old room profile",
@@ -478,7 +478,10 @@
           "e32_restore": "Restore settings to this E32",
           "ble_sensors": "Bluetooth sensors",
           "e32_logging": "E32 system log",
-          "e32_time_zone": "E32 time zone"
+          "e32_time_zone": "E32 time zone",
+          "back": "← Back",
+          "done": "Done",
+          "general": "Dashboard and name"
         }
       },
       "edit_room": {
@@ -550,10 +553,12 @@
       },
       "e32_rooms": {
         "title": "Rooms",
-        "description": "Set up your rooms here. The E32 stores them and keeps heating them, also without Home Assistant (revision {revision}).\n\n{rooms}",
+        "description": "{saved}Set up your rooms here. The E32 stores them and keeps heating them, also without Home Assistant (revision {revision}).\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Add a room",
-          "e32_room_pick": "Edit or remove a room"
+          "e32_room_pick": "Edit or remove a room",
+          "back": "← Back",
+          "done": "Done"
         }
       },
       "e32_room_pick": {
@@ -649,19 +654,15 @@
         }
       },
       "e32_flow_limits": {
-        "title": "Water temperature, Smart warm-up and heating curve",
-        "description": "The lowest and highest temperature of the water the boiler sends to the radiators and floor (flow temperature), for all rooms together. Smart warm-up and the heating curve are on by default; the E32 decides itself when what it learned is good enough. {boiler} {error}",
+        "title": "Water temperature limits",
+        "description": "The lowest and highest temperature of the water the boiler sends to the radiators and floor, for all rooms together. {boiler} {error}",
         "data": {
           "minimum_flow_temperature": "Lowest water temperature",
-          "maximum_flow_temperature": "Highest water temperature",
-          "smart_warm_up": "Smart warm-up",
-          "follow_outdoor": "Follow outdoor temperature (heating curve)"
+          "maximum_flow_temperature": "Highest water temperature"
         },
         "data_description": {
           "minimum_flow_temperature": "The lowest water temperature the E32 asks for while it heats ({minimum_range}).",
-          "maximum_flow_temperature": "The highest water temperature the E32 ever asks for ({maximum_range}, above the lowest). Floor heating fed without a mixing valve: usually at most 45–50 °C. Radiators: often 60–75 °C on cold days. The maximum heating temperature set on your boiler always stays the ceiling; the E32 never asks for more.",
-          "smart_warm_up": "Starts heating early by itself so a room is warm at the time in its week program, with the coolest water that still does it. Off: heating starts at the program time; it may be cooler for a while after each program time (floor heating can take an hour or more). Also a switch on the E32 device page.",
-          "follow_outdoor": "Colder outside means warmer water to the radiators and floor, before the rooms cool down; the room temperature still corrects it. It starts with a standard curve and learns your house's own. Without an outdoor temperature the normal room control is used. Also a switch on the E32 device page."
+          "maximum_flow_temperature": "The highest water temperature the E32 ever asks for ({maximum_range}, above the lowest). Floor heating fed without a mixing valve: usually at most 45–50 °C. Radiators: often 60–75 °C on cold days. The maximum heating temperature set on your boiler always stays the ceiling; the E32 never asks for more."
         }
       },
       "e32_room_remove": {
@@ -698,18 +699,22 @@
       },
       "e32_rooms_saved": {
         "title": "Rooms",
-        "description": "{name} is saved on the E32. Add or edit another room, or close this window.{valves}\n\n{rooms}",
+        "description": "{saved}{name} is saved on the E32. Add or edit another room, or close this window.{valves}\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Add a room",
-          "e32_room_pick": "Edit or remove a room"
+          "e32_room_pick": "Edit or remove a room",
+          "back": "← Back",
+          "done": "Done"
         }
       },
       "e32_rooms_removed": {
         "title": "Rooms",
-        "description": "{name} is removed from the E32. Add or edit another room, or close this window.\n\n{rooms}",
+        "description": "{saved}{name} is removed from the E32. Add or edit another room, or close this window.\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Add a room",
-          "e32_room_pick": "Edit or remove a room"
+          "e32_room_pick": "Edit or remove a room",
+          "back": "← Back",
+          "done": "Done"
         }
       },
       "legacy_rooms": {
@@ -823,11 +828,13 @@
       },
       "comfort_care": {
         "title": "Comfort and boiler care",
-        "description": "The thermostat sets these itself and keeps adjusting them as it learns your house. Change one only if you want it differently. The same settings as on the E32's Home page.\n\nNow:\n{settings}",
+        "description": "{saved}The thermostat sets these itself and keeps adjusting them as it learns your house. Change one only if you want it differently. The same settings as on the E32's Home page.\n\nNow:\n{settings}",
         "menu_options": {
           "comfort_care_knob": "Change a setting",
           "comfort_care_auto_all": "Back to automatic for all",
-          "comfort_care_reset": "Back to start values"
+          "comfort_care_reset": "Back to start values",
+          "back": "← Back",
+          "done": "Done"
         }
       },
       "comfort_care_knob": {
@@ -918,10 +925,15 @@
       },
       "heating_boiler": {
         "title": "Heating and boiler",
-        "description": "The water temperature limits for all rooms and the model of your boiler.",
+        "description": "{saved}Warm-up, weather and water temperature, comfort and care for the boiler, and your boiler model.",
         "menu_options": {
           "heating_boiler_limits": "Water temperature limits",
-          "boiler_model": "Boiler model"
+          "boiler_model": "Boiler model",
+          "back": "← Back",
+          "done": "Done",
+          "heating_warm_up": "Smart warm-up",
+          "heating_weather": "Weather compensation",
+          "comfort_care": "Comfort and boiler care"
         }
       },
       "boiler_model": {
@@ -936,11 +948,13 @@
       },
       "ble_sensors": {
         "title": "Bluetooth sensors",
-        "description": "The Bluetooth sensors paired with the E32. Rename or forget them here; collect all changes first and save them together: after saving, the E32 restarts once, about 30 seconds later, to use them. Pairing a new sensor (scan and key) is done on the E32's Bluetooth sensors page, next to the sensor. Which room a sensor measures is set per room under Rooms.\n\n{sensors}\n\n{pending}",
+        "description": "{saved}The Bluetooth sensors paired with the E32. Rename or forget them here; collect all changes first and save them together: after saving, the E32 restarts once, about 30 seconds later, to use them. Pairing a new sensor (scan and key) is done on the E32's Bluetooth sensors page, next to the sensor. Which room a sensor measures is set per room under Rooms.\n\n{sensors}\n\n{pending}",
         "menu_options": {
           "ble_rename": "Rename a sensor",
           "ble_forget": "Forget a sensor",
-          "ble_save": "Save the changes (the E32 restarts once)"
+          "ble_save": "Save the changes (the E32 restarts once)",
+          "back": "← Back",
+          "done": "Done"
         }
       },
       "ble_rename": {
@@ -973,6 +987,49 @@
         },
         "data_description": {
           "confirm": "Tick to confirm."
+        }
+      },
+      "house_mode": {
+        "title": "House mode and holiday",
+        "description": "Choose how the house is heated. For a holiday, also choose when it ends; the house is warm again in time. {error}",
+        "data": {
+          "house_mode": "House mode",
+          "holiday_until": "Holiday ends"
+        },
+        "data_description": {
+          "house_mode": "Automatic: the people you set under Presence decide. At home: always the week programs. Away: every room at most the away temperature. Holiday: away until the date below.",
+          "holiday_until": "Only for Holiday: the day and time you are back. At most a year ahead."
+        }
+      },
+      "heating_warm_up": {
+        "title": "Smart warm-up",
+        "description": "The E32 starts heating early, so a room is warm at the time in its week program, with the coolest water that still does it. Off: heating starts at the program time, so a room can stay cool for a while (floor heating an hour or more).",
+        "data": {
+          "smart_warm_up": "Smart warm-up"
+        },
+        "data_description": {
+          "smart_warm_up": "The same switch as on the E32 device."
+        }
+      },
+      "heating_weather": {
+        "title": "Weather compensation",
+        "description": "The colder it is outside, the warmer the water to your heating gets, before the rooms cool down. The room temperature still corrects it. Without an outdoor temperature the normal room control is used.",
+        "data": {
+          "weather_compensation": "Weather compensation"
+        },
+        "data_description": {
+          "weather_compensation": "The same switch as on the E32 device. It starts with a standard setting and learns your house."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced",
+            "data": {
+              "hard_frost_water_temperature": "Water temperature in hard frost (−10 °C)"
+            },
+            "data_description": {
+              "hard_frost_water_temperature": "How warm the water to your heating gets when it is −10 °C outside. In milder weather the E32 picks less. Not sure? Leave it on Automatic: the E32 learns this for your house."
+            }
+          }
         }
       }
     },
@@ -1161,7 +1218,12 @@
       "ble_name_invalid": "Use a name of 1 to 40 characters without line breaks.",
       "ble_storage_full": "The E32 has no room left to store the sensors. Nothing was saved.",
       "ble_rejected": "The E32 refused the changes ({error}). Nothing was saved.",
-      "e32_flow_options_failed": "The E32 did not save the change. Check the connection and try again."
+      "e32_flow_options_failed": "The E32 did not save the change. Check the connection and try again.",
+      "house_mode_invalid": "Choose one of the modes.",
+      "house_holiday_date_needed": "Choose the day and time the holiday ends.",
+      "house_holiday_date_invalid": "Choose a moment in the future, at most a year ahead.",
+      "house_mode_not_saved": "The E32 did not accept this ({error}). Try again.",
+      "house_mode_update_required": "This E32 software does not know this mode. Update the E32 first."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -1250,7 +1312,9 @@
       "ble_changed": "The Bluetooth sensors were changed on the E32 meanwhile. Nothing was saved; open Bluetooth sensors again.",
       "ble_saved": "Saved on the E32. It restarts in about 30 seconds to use the changes.",
       "ble_saved_restart_later": "Saved on the E32. It restarts to use the changes as soon as an update or boiler test has finished.",
-      "e32_flow_options_saved": "The water temperature settings are saved on the E32."
+      "e32_flow_options_saved": "The water temperature settings are saved on the E32.",
+      "house_mode_unavailable": "The E32 does not report its house mode right now. Check that it is on, then try again.",
+      "house_mode_saved": "Saved."
     },
     "progress": {
       "controller_connect": "Connecting to the E32…",
@@ -2122,7 +2186,7 @@
     },
     "select": {
       "flow_curve_design_flow_c": {
-        "name": "Water temperature at −10 °C outside",
+        "name": "Water temperature in hard frost (−10 °C)",
         "state": {
           "automatic": "Automatic (floor 40 °C, radiators 55 °C)",
           "25": "25 °C",
@@ -2210,7 +2274,7 @@
     },
     "switch": {
       "flow_weather_curve": {
-        "name": "Follow outdoor temperature (heating curve)"
+        "name": "Weather compensation"
       },
       "flow_apply_learned": {
         "name": "Smart warm-up"
@@ -3198,6 +3262,75 @@
         "3": "Info",
         "4": "Debug",
         "5": "Trace"
+      }
+    },
+    "house_mode_choice": {
+      "options": {
+        "auto": "Automatic",
+        "home": "At home",
+        "away": "Away",
+        "holiday": "Holiday"
+      }
+    },
+    "flow_design_choice": {
+      "options": {
+        "automatic": "Automatic",
+        "25": "25 °C",
+        "26": "26 °C",
+        "27": "27 °C",
+        "28": "28 °C",
+        "29": "29 °C",
+        "30": "30 °C",
+        "31": "31 °C",
+        "32": "32 °C",
+        "33": "33 °C",
+        "34": "34 °C",
+        "35": "35 °C",
+        "36": "36 °C",
+        "37": "37 °C",
+        "38": "38 °C",
+        "39": "39 °C",
+        "40": "40 °C",
+        "41": "41 °C",
+        "42": "42 °C",
+        "43": "43 °C",
+        "44": "44 °C",
+        "45": "45 °C",
+        "46": "46 °C",
+        "47": "47 °C",
+        "48": "48 °C",
+        "49": "49 °C",
+        "50": "50 °C",
+        "51": "51 °C",
+        "52": "52 °C",
+        "53": "53 °C",
+        "54": "54 °C",
+        "55": "55 °C",
+        "56": "56 °C",
+        "57": "57 °C",
+        "58": "58 °C",
+        "59": "59 °C",
+        "60": "60 °C",
+        "61": "61 °C",
+        "62": "62 °C",
+        "63": "63 °C",
+        "64": "64 °C",
+        "65": "65 °C",
+        "66": "66 °C",
+        "67": "67 °C",
+        "68": "68 °C",
+        "69": "69 °C",
+        "70": "70 °C",
+        "71": "71 °C",
+        "72": "72 °C",
+        "73": "73 °C",
+        "74": "74 °C",
+        "75": "75 °C",
+        "76": "76 °C",
+        "77": "77 °C",
+        "78": "78 °C",
+        "79": "79 °C",
+        "80": "80 °C"
       }
     }
   },

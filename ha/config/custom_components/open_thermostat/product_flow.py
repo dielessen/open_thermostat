@@ -256,9 +256,11 @@ from .e32_care import CareOptionsSteps  # noqa: E402
 from .e32_system import SystemOptionsSteps  # noqa: E402
 from .e32_boiler_model import BoilerModelSteps  # noqa: E402
 from .e32_bluetooth import BluetoothOptionsSteps  # noqa: E402
+from .options_house_heating import HouseHeatingSteps  # noqa: E402
+from .options_navigation import MenuNavigation  # noqa: E402
 
 
-class ProductOptionsFlow(E32RestoreSteps, CareOptionsSteps, SystemOptionsSteps, BoilerModelSteps, BluetoothOptionsSteps, ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, ControllerSetupFlow, ShadowOptionsFlow,
+class ProductOptionsFlow(MenuNavigation, HouseHeatingSteps, E32RestoreSteps, CareOptionsSteps, SystemOptionsSteps, BoilerModelSteps, BluetoothOptionsSteps, ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, ControllerSetupFlow, ShadowOptionsFlow,
                          ProductRoomFlow):
     """One central options entrypoint, using the same room editor and native Store.
 
@@ -280,15 +282,19 @@ class ProductOptionsFlow(E32RestoreSteps, CareOptionsSteps, SystemOptionsSteps, 
         return self.async_show_menu(step_id="init", menu_options=main_menu(self.config_entry))
 
     async def async_step_heating_boiler(self, user_input=None):
-        """Configure → Home → Heating and boiler: the water temperature limits and (rc.3) the boiler model."""
-        return self.async_show_menu(step_id="heating_boiler", menu_options=["heating_boiler_limits", "boiler_model"])
+        """Configure → Heating and boiler: Smart warm-up, Weather compensation, the water temperature limits,
+        Comfort and boiler care (when the E32 can change them) and the boiler model."""
+        from .e32_care import care_offered
+        from .e32_flow import KEY
+        link = (self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id) or {}).get(KEY)
+        # Offered once the E32 device page has the two controls (the link exists from the platform setup on).
+        flow = ["heating_warm_up", "heating_weather"] if link is not None and not link.unsupported else []
+        care = ["comfort_care"] if care_offered(self.hass, self.config_entry) else []
+        return self.async_show_menu(step_id="heating_boiler", menu_options=[
+            *flow, "heating_boiler_limits", *care, "boiler_model"])
 
     async def async_step_heating_boiler_limits(self, user_input=None):
-        """The E32 plan's flow temperature limits (e32_room_flow.py).
-
-        The heating curve and the learned flow are switches on the E32 device page
-        (e32_flow.py); the form says so.
-        """
+        """The E32 plan's water temperature limits (e32_room_flow.py)."""
         from homeassistant.exceptions import HomeAssistantError
         link = self._e32_link()
         if link is None:
@@ -574,13 +580,12 @@ class ProductOptionsFlow(E32RestoreSteps, CareOptionsSteps, SystemOptionsSteps, 
         e32 = uses_e32_rooms(entry)
         # "Installation status" counts and checks the older Home Assistant rooms only:
         # with the E32 room plan it is shown while such rooms are left.
-        options = ["configuration_status"] if not e32 or legacy_zones(entry) else []
+        options = ["general"]
+        if not e32 or legacy_zones(entry):
+            options.append("configuration_status")
         if e32 and legacy_zones(entry):
             # The water limits of the older room profile, while its rooms are left.
             options.append("installation")
-        if not e32:
-            # Older installations only: the E32 shows hot water on the dashboard (Boiler and Diagnostics).
-            options.append("hot_water")
         if self._native_plan_review_available():
             options += ["graph_prepare", "graph_status"]
         if legacy_rooms_pending(entry):
@@ -652,16 +657,19 @@ class ProductOptionsFlow(E32RestoreSteps, CareOptionsSteps, SystemOptionsSteps, 
 
 
 def main_menu(entry):
-    """Configure's top level, in the order a user needs it.
+    """Configure's top level, in the order a user needs it, without duplicates.
 
-    E32 room plan (connected): Rooms, Home (presence, room defaults and window contacts, heating and
-    boiler, energy; beta.23), E32 connection, Name and dashboard, Advanced. A new installation whose E32
-    is not connected yet starts with Connect E32 (rooms and heating need it).
+    E32 room plan (connected): Rooms, House, Heating and boiler, Energy and outdoor temperature,
+    E32 connection, Advanced and diagnostics (dashboard and name are in Advanced). A new installation whose
+    E32 is not connected yet starts with E32 connection (rooms and heating need it).
     Older installations on the Home Assistant room route keep their menu.
     """
     from .room_plan import has_room_plan, uses_e32_rooms
     if has_room_plan(entry):
-        return ["e32_rooms", "house", "controller_connection", "general", "advanced_settings"]
+        return ["e32_rooms", "house", "heating_boiler", "energy", "controller_connection", "advanced_settings"]
     if uses_e32_rooms(entry):
-        return ["controller_connection", "energy", "general", "advanced_settings"]
+        return ["controller_connection", "energy", "advanced_settings"]
     return ["room_settings", "controller_connection", "energy", "installation", "advanced_settings"]
+
+
+ProductOptionsFlow.wrap_steps()

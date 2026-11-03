@@ -20,6 +20,7 @@ namespace heating::control {
 // Priority per active room: open window (after its delay; target = frost floor)
 // > override > away return (warm-up before the away end) > away (the plan target,
 // at most the away temperature) > the plan (HA target, week program, fallback).
+// Away is a ceiling: a room whose program is already cooler stays cooler.
 //
 // Time: an override set with a trusted clock ends at a wall-clock time, kept in
 // NVS (one small versioned record beside the plan, "ot_heating"/"comfort"), and
@@ -46,6 +47,18 @@ namespace heating::control {
 // without a fresh report follows the house presence. Home ignores both, away and
 // holiday lower every room. Reports are not stored and expire like presence
 // (15 min); an older firmware does not consume "room_presence" at all.
+//
+// Away temperature per room ("plan.room_away.v1", the plan's optional
+// away_centi_c, RoomPlan.h). Which away temperature a room gets:
+//  1. everyone away (house presence), house mode away or holiday: the house away
+//     temperature for every room, also for a room with its own value;
+//  2. a room whose own persons are all away while the house is not: the room's
+//     own away temperature (status "away_by":"room");
+//  3. a room without persons of its own follows the house (rule 1 only);
+//  4. a room with persons but without its own value: the house value in rule 2.
+// House mode home ignores presence (rules 1 and 2). Rule 2 has no known end, so
+// no warm-up lead: the room heats again as soon as one of its persons is back.
+// The warm-up before a holiday's end (rule 1) starts from the house value.
 // Pure and single-threaded: the caller owns timing, storage and transmission.
 class RoomOverrides {
 public:
@@ -66,6 +79,7 @@ public:
         const char* mode = nullptr;  // nullptr: the plan; else window_open, boost, timed, next, away_return, away, presence_away
         const char* window = nullptr; // open (paused), pending (delay running)
         const char* persons = nullptr; // home / away: the room's own persons (fresh report), else nullptr
+        const char* awayBy = nullptr;  // presence_away: "room" (its own persons, its own value) or "house" (everyone)
         uint32_t until = 0;           // end of the mode (unix s); 0: none or unknown
         uint32_t remainingS = 0;      // override without a trusted clock
         std::optional<int16_t> targetCentiC; // the mode's own target
@@ -295,7 +309,10 @@ public:
                     v.mode = "away"; v.until = away_.until; v.targetCentiC = awayCentiC_; a.ceiling = awayCentiC_;
                 }
             } else if (roomAway) {
-                v.mode = "presence_away"; v.targetCentiC = awayCentiC_; a.ceiling = awayCentiC_;
+                // Everyone away: the house value for every room. Only the room's own persons: its own value.
+                const int16_t c = presenceAway ? awayCentiC_ : room.awayCentiC.value_or(awayCentiC_);
+                v.mode = "presence_away"; v.awayBy = presenceAway ? "house" : "room";
+                v.targetCentiC = c; a.ceiling = c;
             }
             if (away_.on && dated && !utc) v.waiting = true;
         }
@@ -495,6 +512,7 @@ private:
         if (!cJSON_AddStringToObject(c, "mode", v.mode ? v.mode : "program")) return false;
         if (v.window && !cJSON_AddStringToObject(c, "window", v.window)) return false;
         if (v.persons && !cJSON_AddStringToObject(c, "persons", v.persons)) return false;
+        if (v.awayBy && !cJSON_AddStringToObject(c, "away_by", v.awayBy)) return false;
         if (v.targetCentiC && !celsius(c, "target_c", v.targetCentiC)) return false;
         if (v.until && !cJSON_AddNumberToObject(c, "until", v.until)) return false;
         if (v.remainingS && !cJSON_AddNumberToObject(c, "remaining_s", v.remainingS)) return false;

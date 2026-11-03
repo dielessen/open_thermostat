@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -22,6 +23,10 @@ namespace heating::control {
 // rollback; only a larger plan packs each week program into a "week" string
 // (4 characters per switch point instead of up to 12). 8 rooms with 4 switch
 // points a day no longer exceed the store.
+//
+// Unknown room keys are ignored by every parser since beta.16, so an optional
+// field added later (levels, the room's own away temperature) is simply
+// absent after a rollback; the plan itself still loads.
 struct RoomPlan {
     static constexpr size_t maxRooms = 8;
     static constexpr size_t storeBytes = ControlPartitionBudget::configBytes;
@@ -53,7 +58,13 @@ struct RoomPlan {
         std::array<int16_t, 3> levels{};
         std::array<uint16_t, 7> pointLevels{};
         uint8_t pointLevel(size_t day, size_t i) const { return uint8_t(pointLevels[day] >> (2 * i) & 3); }
+        // The room's own away temperature ("plan.room_away.v1", after 1.0.0-rc.2), centi degC 500..2500:
+        // used while all of the room's own persons are away and someone else is home (RoomOverrides.h).
+        // Absent: the house away temperature. Everyone away, Away and Holiday always use the house value.
+        // API form "away_centi_c", packed stored form "aw"; firmware up to rc.2 ignores both.
+        std::optional<int16_t> awayCentiC;
     };
+    static constexpr int16_t minimumAwayCentiC = 500, maximumAwayCentiC = 2500;
     uint32_t revision = 0;  // +1 on every save; a write must name the revision it was based on
     // A new plan's mode follows the boiler bus (NewPlanDefault.h): shadow until decided.
     Mode mode = Mode::shadow;
@@ -87,10 +98,11 @@ struct RoomPlan {
         out = std::move(plan);
         return nullptr;
     }
-    // The capability of this firmware's plan, only in the API form (GET /config/heating): HA and the
-    // pages send levels only to firmware that names it. Not in the hello: HA 0.4.0b13 accepts at most
-    // 8 control capabilities there.
+    // The capabilities of this firmware's plan, only in the API form (GET /config/heating): HA and the
+    // pages send levels (or a room's own away temperature) only to firmware that names it. Not in the
+    // hello: HA 0.4.0b13 accepts at most 8 control capabilities there.
     static constexpr const char* levelsFeature = "plan.levels.v1";
+    static constexpr const char* roomAwayFeature = "plan.room_away.v1";
     // The API form; empty when out of memory.
     std::string json() const { return print(false, true); }
     // The API form without "features": the plan as a document (backup, restore).
@@ -171,7 +183,8 @@ private:
         cJSON_AddNumberToObject(root.get(), "maximum_flow_c", maximumFlowC);
         if (features) {
             cJSON* f = cJSON_AddArrayToObject(root.get(), "features");
-            if (!f || !cJSON_AddItemToArray(f, cJSON_CreateString(levelsFeature))) return {};
+            if (!f || !cJSON_AddItemToArray(f, cJSON_CreateString(levelsFeature))
+                || !cJSON_AddItemToArray(f, cJSON_CreateString(roomAwayFeature))) return {};
         }
         cJSON* list = cJSON_AddArrayToObject(root.get(), "rooms");
         for (const auto& room : rooms) {
@@ -193,6 +206,7 @@ private:
             cJSON_AddNumberToObject(r, "fallback_centi_c", room.fallbackCentiC);
             cJSON_AddNumberToObject(r, "minimum_centi_c", room.minimumCentiC);
             cJSON_AddNumberToObject(r, "maximum_centi_c", room.maximumCentiC);
+            if (room.awayCentiC && !cJSON_AddNumberToObject(r, packedWeek ? "aw" : "away_centi_c", *room.awayCentiC)) return {};
             if (!room.schedule.empty() && packedWeek) {
                 if (!cJSON_AddStringToObject(r, "week", packWeek(room.schedule).c_str())) return {};
             } else if (!room.schedule.empty()) {
@@ -247,6 +261,15 @@ private:
         const double fallback = number(r, "fallback_centi_c"), lo = number(r, "minimum_centi_c"), hi = number(r, "maximum_centi_c");
         if (!whole(lo, 500, 3000) || !whole(hi, 500, 3000) || lo > hi || !whole(fallback, lo, hi)) return "invalid_room_limits";
         room.fallbackCentiC = int16_t(fallback); room.minimumCentiC = int16_t(lo); room.maximumCentiC = int16_t(hi);
+        // Optional: the room's own away temperature ("aw" only in the packed stored form). Not bound to the
+        // room limits: it is a ceiling, like the house away temperature, and frost protection stays.
+        const auto* away = cJSON_GetObjectItemCaseSensitive(r, "away_centi_c");
+        const auto* packedAway = cJSON_GetObjectItemCaseSensitive(r, "aw");
+        if (away && packedAway) return "invalid_room_away";
+        if (const auto* a = away ? away : packedAway) {
+            if (!cJSON_IsNumber(a) || !whole(a->valuedouble, minimumAwayCentiC, maximumAwayCentiC)) return "invalid_room_away";
+            room.awayCentiC = int16_t(a->valuedouble);
+        }
         // Optional (absent in beta.16 plans); "week" only in the stored form of a large plan.
         const auto* schedule = cJSON_GetObjectItemCaseSensitive(r, "schedule");
         const auto* week = cJSON_GetObjectItemCaseSensitive(r, "week");

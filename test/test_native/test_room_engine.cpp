@@ -359,7 +359,7 @@ TEST(RoomPlan, PlansThatFitAreStoredInTheFormOlderFirmwareReads) {
     ASSERT_FALSE(plan.rooms[0].schedule.empty());
     // A rollback to beta.18 keeps the week program: the stored form is the API form without "features".
     auto api = plan.json();
-    const std::string features = R"("features":["plan.levels.v1"],)";
+    const std::string features = R"("features":["plan.levels.v1","plan.room_away.v1"],)";
     api.erase(api.find(features), features.size());
     EXPECT_EQ(plan.storedJson(), api);
     EXPECT_NE(plan.storedJson().find("\"schedule\":[[[390,2050]"), std::string::npos);

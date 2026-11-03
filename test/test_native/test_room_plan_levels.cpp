@@ -61,7 +61,7 @@ TEST(RoomPlanLevels, StoredPerRoomAndReturnedInTheApiForm) {
     EXPECT_TRUE(plan.rooms[1].hasLevels);
     EXPECT_EQ(plan.rooms[1].levels[2], 2400);
     const auto api = plan.json();
-    EXPECT_NE(api.find(R"("features":["plan.levels.v1"])"), std::string::npos);
+    EXPECT_NE(api.find(R"("features":["plan.levels.v1","plan.room_away.v1"])"), std::string::npos);
     EXPECT_NE(api.find(R"("levels":{"comfort":2100,"eco":1850,"night":1850},"schedule_levels":"1213.13....0.")"), std::string::npos);
     EXPECT_EQ(api.find("schedule_levels", api.find("badkamer")), std::string::npos);
     EXPECT_EQ(parsed(api).json(), api);

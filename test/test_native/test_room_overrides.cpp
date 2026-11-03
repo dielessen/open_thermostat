@@ -623,7 +623,7 @@ TEST(RoomOverrides, RoomPresenceReportsAreCheckedAndNeverStored) {
     }
     ASSERT_TRUE(o.addStatus(status.get(), p, 0));
     char* living = cJSON_PrintUnformatted(cJSON_GetObjectItem(cJSON_GetArrayItem(rooms, 0), "comfort"));
-    EXPECT_STREQ(living, R"({"mode":"presence_away","persons":"away","target_c":15})");
+    EXPECT_STREQ(living, R"({"mode":"presence_away","persons":"away","away_by":"room","target_c":15})");
     cJSON_free(living);
     char* study = cJSON_PrintUnformatted(cJSON_GetObjectItem(cJSON_GetArrayItem(rooms, 1), "comfort"));
     EXPECT_STREQ(study, R"({"mode":"program","persons":"home"})");

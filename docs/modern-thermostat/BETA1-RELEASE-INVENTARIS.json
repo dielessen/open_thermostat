@@ -339,7 +339,7 @@
         },
         {
           "path": "docs/RELEASING.md",
-          "sha256": "eb68693ffb05f1610cb25091b7c9f4bf7cc1efb0060d1674a1faf90005332273"
+          "sha256": "cae39da9c697da5c73da86d3afd4ca41dc07b71089dc989a75944e4ea372d9f1"
         },
         {
           "path": "docs/modern-thermostat/BETA21-KANDIDAAT.json",
@@ -363,7 +363,7 @@
         },
         {
           "path": "scripts/final_check.sh",
-          "sha256": "442625a7c9d7fe9a3e75735cf8093bdc8ec2573dbd0deb770be9f2882edcf39d"
+          "sha256": "e016b589e25a850ae7cd5463cd26f8372a948b6c9838cb2356cf88264624abbb"
         },
         {
           "path": "scripts/test_browser_suite.py",
@@ -387,11 +387,11 @@
         },
         {
           "path": "test/native_harnesses.sh",
-          "sha256": "c42c0166de3ef27e61f5b291cc15e4c57dba4d8f02a8262da6e47f40a456ce57"
+          "sha256": "e45d7e0772a1660dd2e8fdfd4bb632ccbbd622c01ceb22a66af747c156944741"
         },
         {
           "path": "test/run-browser-tests.sh",
-          "sha256": "2c47d99196f4f7483e23d8dee90e8782908c9a23a4d7e12f86b7de4716bc246c"
+          "sha256": "3a34d564248c7c889fbb4e525ab71a7f35c9c530ff9507595f00ceb4e6ad17ce"
         },
         {
           "path": "docs/modern-thermostat/BETA22-KANDIDAAT.json",

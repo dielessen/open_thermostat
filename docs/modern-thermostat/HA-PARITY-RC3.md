@@ -53,7 +53,7 @@ Decisions:
 
 | E32 setting (page) | Home Assistant today | Decision |
 |---|---|---|
-| Boiler model (display model profile) (Boiler → My boiler) | not settable; the device name follows it | LATER: a choice list needs the boiler catalog that `rc3-boiler-name` adds to `ems_products.json`; add a Configure → Home → Heating and boiler step after that merge (`POST /config/boiler-display {"model"}`). Device name COVERED by `rc3-boiler-name` |
+| Boiler model (display model profile) (Boiler → My boiler) | not settable | **ADD (rc3-ha-parity)**: Configure → Home → Heating and boiler → Boiler model (catalog of `rc3-boiler-name`, merged here); the boiler device is renamed at once |
 | Attended boiler test (prepare, start, stop, close fault) (Boiler) | — | E32 ONLY: someone must stand at the boiler and watch it; test memory COVERED by `rc3-boiler-test` |
 | First takeover confirmation ("my old thermostat is disconnected") (Rooms → Active control) | — (only the re-confirmation after an update, Repairs) | E32 ONLY: it is a physical statement about the wiring at the boiler |
 | Give control back to the old thermostat (handover off) (Rooms) | — | E32 ONLY: the old thermostat must be reconnected at the boiler first; from afar it could leave the house without heat |
@@ -69,7 +69,7 @@ Decisions:
 | MQTT broker, user, password, client ID, base, keep-alive, interval (Settings → MQTT) | — | E32 ONLY: this is the link HA uses; HA checks it at Connect E32 and explains how to set it |
 | HA link in trial run, adapter ID, installation profile (Settings → Home Assistant) | Configure → E32 connection (written by HA itself) | ALREADY |
 | E32 password | Repairs "Choose a new E32 password" (factory password); re-authentication after a change on the E32 | ALREADY for those two; any other change E32 ONLY (security: HA never chooses a new password unasked) |
-| Time zone (Settings → Time) | — | **ADD (rc3-ha-parity)**: Configure → Advanced and diagnostics → E32 time zone (Home Assistant's own zone first; one restart) |
+| Time zone (Settings → Time) | — | **ADD (rc3-ha-parity)**: Configure → Advanced and diagnostics → E32 time zone (Home Assistant's own zone first; one restart), and a Repairs issue "The E32 uses another time zone" with a one-step fix |
 | NTP on/off, NTP server, POSIX text, UTC offsets (Settings → Time, advanced) | — | E32 ONLY: technical; the time zone above covers the everyday need |
 | Battery clock, EMS bus on/off, EMS forwarder (Settings → Advanced) | — | E32 ONLY: hardware and diagnosis switches; switching the bus off from afar stops the heating data |
 | Bluetooth scan time and interval (Settings → Advanced) | — | E32 ONLY: radio timing, normally never changed |
@@ -83,7 +83,7 @@ Decisions:
 | Level kept on the E32 log page (Diagnostics and system log) | — | **ADD (rc3-ha-parity)**, same step |
 | Clear the local log, end idle web sessions (Diagnostics) | HA diagnostics download | E32 ONLY: on-device housekeeping; HA itself never leaves sessions open |
 | Bluetooth sensors: scan, pair, bindkey (System → Bluetooth sensors) | — | E32 ONLY: pairing needs the sensor next to the E32 and the key is a secret |
-| Bluetooth sensor name, forget a sensor (System → Bluetooth sensors) | HA entity name can be changed in HA | LATER: each change restarts the E32 and travels with the pairing record (`/config/bluetooth`, ETag); room assignment is ALREADY in the room form |
+| Bluetooth sensor name, forget a sensor (System → Bluetooth sensors) | — | **ADD (rc3-ha-parity)**: Configure → Advanced and diagnostics → Bluetooth sensors (changes collected, one save = one E32 restart ~30 s later); room assignment is ALREADY in the room form |
 | Page language (all pages) | — | not a device setting: the browser's choice; HA uses its own language |
 | Device name | Configure → Dashboard and name (the HA name) | ALREADY; the E32 hostname is E32 ONLY (above) |
 | Hardware page, GPIO and I²C tests, legacy programs and curve pages | — | E32 ONLY: legacy mode and bench tools |
@@ -108,7 +108,22 @@ Decisions:
    list, Home Assistant's own zone pre-selected. In one sign-in: read `/config/device` (ETag), save
    it back with only `timeZone` changed (the redacted secrets stay on the E32; a change made on the
    E32 meanwhile is refused with 412 and nothing is written), read back, restart.
-4. **Button "Restart E32"** (`e32_system.py`, device class restart, entity category config): the
+4. **Configure → Home → Heating and boiler → Boiler model** (`e32_boiler_model.py`): Heating and
+   boiler is now a menu (Water temperature limits, Boiler model). The list is the shipped catalog
+   (`ems_products.json` `boiler_models`, now with `selectable`): the models a new choice may pick,
+   the current one, and "No boiler selected yet". `POST /config/boiler-display {"model": id}`, the
+   answer is the read-back; the boiler device is renamed at once (ems_devices, `MODEL_CHOSEN`).
+5. **Configure → Advanced and diagnostics → Bluetooth sensors** (`e32_bluetooth.py`): rename and
+   forget, collected in the flow and saved together, because each save restarts the E32 about 30 s
+   later. The save reads `/config/bluetooth` again in the same sign-in, checks the list is still
+   the one shown, and posts the remaining sensors with that ETag and `"key_action": "keep"` (no
+   bindkey passes through HA). Pairing stays on the E32. The forget form lists the rooms that measure
+   with a sensor.
+6. **Repairs "The E32 uses another time zone"** (`e32_system.py`): checked from the daily settings
+   backup (its network section), the time zone step and every change of Home Assistant's time zone;
+   only for a Home Assistant zone the E32 lists. The fix sets the E32 to Home Assistant's zone (same
+   write as the step, one restart); the issue clears itself when the zones match.
+7. **Button "Restart E32"** (`e32_system.py`, device class restart, entity category config): the
    E32's controlled restart (`POST /updates/reboot`), refused with a clear message while it updates.
 
 Every request goes through the room-plan link's lock and one sign-in that ends with a logout; a
@@ -118,7 +133,4 @@ new entity is the restart button (unique ID `<prefix>_e32_restart`).
 
 ## Open questions
 
-- Boiler model choice in HA: add right after `rc3-boiler-name` merges (it brings the catalog names).
-- Bluetooth sensor rename/forget from HA: worth it if the owner renames sensors more than once;
-  each change restarts the E32.
-- Time zone: should HA also warn (Repairs) when the E32 zone differs from Home Assistant's?
+- A time zone changed on the E32 page is seen by the next daily backup (at most a day later), not at once.

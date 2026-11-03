@@ -183,13 +183,12 @@ async def test_legacy_history_records_go_and_their_repairs_items_close(hass, cap
     assert all(registry.async_get(entity_id) is None for entity_id in old)
     assert all(entity_id in caplog.text for entity_id in old)
     assert registry.async_get(kept) is not None and registry.async_get(v2) is not None
-    # The customised old record keeps the counters item open; the other two close.
-    assert issues.async_get_issue("open_thermostat", f"metrics_definition_v2_{p.entry_id}") is not None
+    # The information items are notifications now, never Repairs items.
+    assert issues.async_get_issue("open_thermostat", f"metrics_definition_v2_{p.entry_id}") is None
     assert issues.async_get_issue("open_thermostat", f"room_model_v2_{p.entry_id}") is None
     assert issues.async_get_issue("open_thermostat", f"legacy_metrics_history_{p.entry_id}") is None
     registry.async_remove(kept)  # the user deletes it
     cleanup_stale_entities(hass, p, "fixture")
-    assert issues.async_get_issue("open_thermostat", f"metrics_definition_v2_{p.entry_id}") is None
     # Firmware that still sends old-format values keeps the old record (a value now).
     again = record("fixture_hub_energy")
     hass.data["open_thermostat"][p.entry_id].pop("retired_watch")  # the next setup

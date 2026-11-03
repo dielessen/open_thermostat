@@ -69,7 +69,10 @@ async def test_real_platform_handler_fresh_setup_no_legacy_alias_existing_identi
         assert not compat.available and compat.state_class is None
         assert er.async_get(hass).async_get(old.entity_id).unique_id=="fixture_hub_energy"
         compat.hass=hass;await compat.async_added_to_hass()
-        assert ir.async_get(hass).async_get_issue(DOMAIN,f"metrics_definition_v2_{e.entry_id}")
+        await hass.async_block_till_done()
+        from homeassistant.components import persistent_notification as pn
+        assert f"open_thermostat_metrics_definition_v2_{e.entry_id}" in pn._async_get_or_create_notifications(hass)
+        assert not ir.async_get(hass).async_get_issue(DOMAIN,f"metrics_definition_v2_{e.entry_id}")
     if existing=="foreign":
         assert er.async_get(hass).async_get(old.entity_id).config_entry_id==old_owner.entry_id
     await e._async_process_on_unload(hass)

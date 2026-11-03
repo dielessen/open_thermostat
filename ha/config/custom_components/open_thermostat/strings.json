@@ -4,10 +4,10 @@
       "user": {
         "title": "Set up OpenThermostat",
         "menu_options": {
-          "legacy": "Older OpenThermostat firmware (ib-therm)",
+          "legacy": "Older OpenThermostat (before the E32)",
           "shadow": "OpenThermostat E32 (recommended)"
         },
-        "description": "Choose your OpenThermostat. With the E32, the E32 page then guides you: if an old thermostat still sends requests to the boiler, the E32 first runs a trial run beside it; without one it goes straight to a boiler test and the takeover. It sends nothing to the boiler until you confirm the takeover there."
+        "description": "Connect your E32. It shows you what to do next. It only starts controlling your boiler after you say so."
       },
       "confirm": {
         "title": "OpenThermostat detected",
@@ -33,7 +33,7 @@
       },
       "shadow": {
         "title": "Connect an OpenThermostat E32",
-        "description": "The E32 sends nothing to the boiler until you confirm the takeover on its Rooms page, best through the boiler test there. If an old thermostat is still on the boiler bus, the E32 first runs a trial run beside it (it only calculates and compares); you can always choose the other route there. Home Assistant does set the target temperature on each room's setting device (radiator valve, tado or number helper) according to that room's week program. Normally you connect the E32 later with Configure → E32 connection, which fills in the connection ID for you.",
+        "description": "The E32 sends nothing to the boiler until you say so on its Rooms page, best through the boiler test there. If an old thermostat is still on the boiler, the E32 first runs a trial run beside it. Home Assistant sets the target temperature on each room's setting device (radiator valve, tado or number helper) following that room's week program. Normally you connect the E32 later with Configure → E32 connection. That fills in the connection ID for you.",
         "data": {
           "topic_prefix": "MQTT prefix of the E32",
           "adapter_id": "Connection ID (filled in for you)"
@@ -58,10 +58,10 @@
           "advanced": {
             "name": "Advanced",
             "data": {
-              "topic_prefix": "Controller MQTT prefix"
+              "topic_prefix": "E32 MQTT prefix"
             },
             "data_description": {
-              "topic_prefix": "Must match your E32: openthermostat on a new E32, ib-therm on older installations. Changing the connection can interrupt communication; it does not move an existing controller."
+              "topic_prefix": "Use openthermostat on a new E32 and ib-therm on an older OpenThermostat. Changing it can interrupt the connection."
             }
           }
         },
@@ -86,13 +86,13 @@
       "reauth_no_e32": "This installation has no E32 connection yet. Use Configure → E32 connection."
     },
     "error": {
-      "invalid_topic": "Unsupported prefix for this mode. Shadow requires 1–32 ASCII letters/digits, - or _; existing legacy IDs are not renamed.",
+      "invalid_topic": "Use 1 to 32 letters, digits, - or _.",
       "invalid_adapter_id": "Use the same explicit owner ID as provisioned on the E32 (1–32 letters, digits, _ or -).",
       "invalid_name": "Enter a name of 1 to 80 characters.",
       "reauth_password_invalid": "Enter the E32 password (1 to 128 characters).",
       "reauth_password_wrong": "The E32 did not accept this password. Check it and try again.",
       "reauth_unreachable": "The E32 could not be reached. Check that it is on and connected to your network, then try again.",
-      "reauth_session_capacity": "The E32 has too many open sign-ins. Sign out on the E32 web page (or sign in there with “End previous web sessions and sign in”) or restart the E32, then try again.",
+      "reauth_session_capacity": "The E32 has too many open sign-ins.\n1. Sign out on the E32 web page, or restart the E32.\n2. Try again here.",
       "reauth_try_again_later": "Too many sign-in attempts on the E32. Wait 30 seconds, then try again."
     },
     "create_entry": {
@@ -185,25 +185,25 @@
           "advanced_settings": "Advanced and diagnostics",
           "room_settings": "Manage rooms",
           "installation": "Installation settings",
-          "configuration_status": "Installation status",
-          "graph_prepare": "Review or recover room plan",
+          "configuration_status": "Is everything connected?",
+          "graph_prepare": "Repair room plan",
           "back": "← Back",
           "done": "Done"
         }
       },
       "graph_review": {
-        "title": "Review staged heating configuration",
-        "description": "{scope}.\n\n{summary}\n\nAccepted revision {accepted}; staged revision {revision}.\n{status_label}.\n\nApplying stores this exact reviewed configuration, never physical actuation. Only fresh exact readback verifies it. Owner, boot, session or candidate changes cancel this review.\n\nConfiguration digest: {digest}",
+        "title": "Check your heating setup",
+        "description": "Check your heating setup. Everything is saved on the E32. Nothing starts heating yet.\n\n{scope}.\n\n{summary}\n\nSaved version: {accepted}. New version: {revision}.\n{status_label}.\n\nIf something changes in the meantime, this check stops and you start again.\n\nTechnical details\nCode: {digest}",
         "data": {
-          "confirm_apply": "Apply this exact staged configuration"
+          "confirm_apply": "Save this setup on the E32"
         },
         "data_description": {
-          "confirm_apply": "Tick to store exactly this reviewed configuration on the E32. It does not switch on heating control."
+          "confirm_apply": "Tick to save exactly this setup on the E32. It does not start heating."
         }
       },
       "graph_status": {
-        "title": "Heating configuration status",
-        "description": "{status_label}.\n\nDevice result: {result_label}; an ACK is not applied/readback proof.\nLocally accepted revision: {accepted}; staged revision: {staged_label}.\nCurrent readback verified:{verified}.\n\nScope: {data_scope}.\n{control_status}.\n\nRefresh only reads the current status. It never applies configuration or qualifies a physical source.",
+        "title": "Status of your heating setup",
+        "description": "{status_label}.\n\nThe E32 answered: {result_label}. An answer alone does not prove that the setup is in use.\nSaved version: {accepted}. New version: {staged_label}.\n\n{data_scope}.\n{control_status}.\n\nRefresh only reads the current status. It changes nothing.\n\nTechnical details\nChecked on the E32: {verified}",
         "data": {
           "status_action": "Next action"
         },
@@ -217,8 +217,8 @@
         "data": {}
       },
       "graph_source_status": {
-        "title": "Reviewed source shadow-control status",
-        "description": "Scope:{scope}. Contract:{profile}. Software control:{control_status}. Current source-config readback verified:{verified}. Journal:{journal_status}. Accepted revision:{accepted}; staged:{staged}. Boiler and actuator outputs remain disabled. Refresh never applies DATA or qualifies a source, physical profile or protection.",
+        "title": "Status of your room setup",
+        "description": "{scope}.\nControl by Home Assistant: {control_status}. Nothing here starts the boiler or the valves.\nSaved version: {accepted}. New version: {staged}.\n\nRefresh only reads the current status. It changes nothing.\n\nTechnical details\nProfile: {profile}\nChecked on the E32: {verified}\nLog: {journal_status}",
         "data": {
           "status_action": "Next action"
         },
@@ -227,25 +227,25 @@
         }
       },
       "installation_source": {
-        "title": "Advanced: check installation profile",
-        "description": "Keep calculations off during this check. This technical profile identifies the rooms, devices and control limits belonging to this E32. It does not turn heating control on. HA and E32 settings must match; HA then checks the room plan returned by the E32. Measurements, valve operation and safe stopping are tested separately.",
+        "title": "Advanced: check the E32 room setup",
+        "description": "Keep calculations off during this check. This checks which rooms, devices and limits belong to this E32. It does not start heating. The settings in Home Assistant and on the E32 must match; Home Assistant then checks the room plan the E32 returns. Measurements, valves and safe stopping are tested separately.",
         "data": {
-          "controller_id": "Exact E32 controller ID (from device settings)",
-          "legacy_readback": "Allow known old schema1 records in read-only quarantine",
-          "week_reviewed": "Use the complete-week shadow contract (requires matching E32 support)"
+          "controller_id": "E32 ID (see the E32 device settings)",
+          "legacy_readback": "Allow known older records (read only)",
+          "week_reviewed": "Check the full week program (needs a matching E32 version)"
         },
         "data_description": {
-          "legacy_readback": "No restored grants, overrides or learning. Incompatible old records remain refused.",
-          "controller_id": "The controller ID as shown in the E32 device settings; it must match exactly.",
-          "week_reviewed": "Only when the E32 firmware supports the complete-week shadow contract."
+          "legacy_readback": "Nothing from old records is switched back on. Records that do not fit are still refused.",
+          "controller_id": "The E32 ID as shown in the E32 device settings. It must match exactly.",
+          "week_reviewed": "Only when the E32 firmware supports it."
         }
       },
       "installation_source_review": {
-        "title": "Confirm the independent shadow profile",
-        "description": "Rooms: {rooms}\nReviewed logical limits (not physical protection):\n{limits}\nDevice: {controller}\nHA owner: {owner}\nProfile fingerprint: {fingerprint}\n\nPaste the descriptor below into the E32 local network settings only after reviewing the installation. Save/read back there. Initial selection or network changes need a separately authorized restart; an existing native profile may use the explicit local SOURCE-only action without device restart. This screen does not send it or restart anything.\n\n{descriptor}\n\n{scope}",
+        "title": "Confirm the room setup of this E32",
+        "description": "Rooms: {rooms}\nLimits (a check in Home Assistant, not a safety device):\n{limits}\nE32: {controller}\nHome Assistant ID: {owner}\n\nCheck that this is your installation. Then copy the text under Technical details into the E32's local network settings and save it there. A first choice or a network change needs a restart that you start yourself. This screen sends nothing and restarts nothing.\n\n{scope}\n\nTechnical details\nCode: {fingerprint}\n{descriptor}",
         "data": {
-          "confirm_source": "Save this HA logical profile selection (no control/config send)",
-          "confirm_replacement": "I reviewed the exact previous profile and its readback-only migration"
+          "confirm_source": "Save this choice in Home Assistant (nothing is sent)",
+          "confirm_replacement": "I checked the previous setup that this one replaces"
         },
         "data_description": {
           "confirm_source": "Tick to save this profile choice in Home Assistant. Nothing is sent to the E32.",
@@ -254,7 +254,7 @@
       },
       "installation": {
         "title": "Set up your heating installation",
-        "description": "One installation for your controller and rooms. You can configure everything while the controller or boiler is disconnected. Saving does not start heating.",
+        "description": "One installation for your E32 and rooms. You can set everything up while the E32 or boiler is disconnected. Saving does not start heating.",
         "data": {
           "name": "Installation name",
           "create_dashboard": "Show the OpenThermostat dashboard",
@@ -398,7 +398,7 @@
         "submit": "Remove room"
       },
       "configuration_status": {
-        "title": "Installation status",
+        "title": "Is everything connected?",
         "description": "Configured rooms: **{rooms}**\n\nE32: **{connection}**\n\nControl: **{runtime}**\n\nSaved does not yet mean the E32 has taken the settings over. You can set up rooms while it is not connected.\n\n**Check of the saved valve targets**\n\n{actuator_checks}\n\nThis compares what the valves report they can do; it does not prove a valve's position.\n\n**What do these checks mean?**\nConfiguration confirmed: the E32 sent the saved room plan back. Calculations on: the E32 works out the heat demand; it controls the boiler only after you switch over. Valve-target check: compares the saved temperatures with the limits the valves report, and flags differences. None of these checks proves that a valve opens or the boiler stops; check that at the valve or boiler itself.",
         "submit": "Close"
       },
@@ -471,10 +471,10 @@
         "title": "Advanced and diagnostics",
         "description": "{saved}Dashboard and name, the E32 time zone and system log, Bluetooth sensor names, restoring a backup, tidying entity IDs and checks. Everyday settings are in the main menu.",
         "menu_options": {
-          "configuration_status": "Installation status",
-          "installation_source": "Review controller connection",
+          "configuration_status": "Is everything connected?",
+          "installation_source": "Check the E32 room setup",
           "graph_status": "Inspect applied room plan",
-          "graph_prepare": "Review or recover room plan",
+          "graph_prepare": "Repair room plan",
           "legacy_rooms": "Remove old Home Assistant rooms",
           "installation": "Water limits of the old room profile",
           "entity_ids": "Tidy entity IDs",
@@ -1047,11 +1047,11 @@
       "not_contact_sensor": "Choose window, door or opening sensors only.",
       "room_invalid": "Choose one of the E32 rooms.",
       "invalid_adapter_id": "Use the same explicit owner ID as provisioned on the E32 (1–32 letters, digits, _ or -).",
-      "graph_room_contract_unavailable": "No matching graph DATA or explicitly SOURCE-selected shadow contract is available for these rooms. Saving a graph or enabling this checkbox never qualifies a source or enables physical outputs.",
+      "graph_room_contract_unavailable": "These rooms do not fit the saved setup of the E32. Saving or ticking this box starts no heating.",
       "graph_control_source_review_required": "The selected SOURCE contract does not match the current owner or reviewed graph, or changed during verification. Nothing was enabled. Review the saved DATA and SOURCE contract; reconnect alone cannot approve changes.",
       "native_plan_schedule_limit": "The saved programs exceed the current limit of eight UTC transitions across both rooms over the 15-day planning window. A weekly block can produce several transitions. Reduce the programs and try again. Saved room settings and existing plans were retained; nothing was sent. Full-week support remains pending.",
       "native_plan_config_limit": "The complete saved room plan exceeds the current 4096-byte device configuration limit. Reduce the program complexity and try again. Saved room settings and existing plans were retained; nothing was sent.",
-      "native_source_unsupported": "This source layout, binding or controller ID is unsupported. No profile was saved.",
+      "native_source_unsupported": "This room setup or E32 ID is not supported. Nothing was saved.",
       "binding_missing": "Select an existing enabled entity.",
       "loop_binding": "Do not select an OpenThermostat output as an input.",
       "not_temperature": "Select a temperature sensor using °C or °F.",
@@ -1069,11 +1069,11 @@
       "program_export_failed": "Cannot compile a bounded 15-day program: check timezone, room limits and maximum 128 transitions.",
       "room_mode_actuator_conflict": "Climate-TRV rooms require TRVs; graph-only rooms must have no climate TRV selection.",
       "unsupported_room_binding_mode": "Unsupported room output configuration.",
-      "graph_room_runtime_off_required": "Stop the shadow runtime before editing a graph-only room or changing its mode.",
+      "graph_room_runtime_off_required": "Turn off the trial run first, then change this room.",
       "confirm_room_mode_change": "Explicit confirmation is required to change the room output configuration.",
       "invalid_name": "Enter a room name between 1 and 80 characters.",
       "select_radiators": "Choose between one and eight radiator valves.",
-      "output_has_multiple_owners": "This output already belongs to another room, controller, pump, mixer or actuator declaration.",
+      "output_has_multiple_owners": "This output is already used by another room or device.",
       "input_output_loop": "An output cannot also be a configured input or an OpenThermostat-derived entity.",
       "setup_invalid": "The room could not be prepared. Check the selected devices and their existing assignments; nothing has been saved.",
       "emitter_not_available": "This heating type is not yet available in this version. Nothing was saved. Choose radiators or wait for its compatible profile.",
@@ -1121,7 +1121,7 @@
       "controller_connection_failed": "The connection could not be completed. Check that the E32 is on and its web page opens, wait a minute and submit again. If it keeps failing, the E32 web page shows the reason under System → Diagnostics and system log.",
       "controller_connection_unconfirmed": "Home Assistant did not hear back from the E32 in time. On the E32 web page, check under System → Network and Home Assistant → MQTT that it uses the same broker as Home Assistant and that its user name and password are accepted; then submit again.",
       "controller_connection_changed": "The E32 connection changed while the room plan was being saved, for example by a restart or a second Connect E32. Wait a minute and submit again.",
-      "controller_plan_pending": "An earlier room-plan change is still unresolved. Check its actual E32 readback before applying another change.",
+      "controller_plan_pending": "An earlier room plan change is not finished yet. Check on the E32 what it has saved before you change anything else.",
       "controller_plan_unconfirmed": "The E32 did not confirm the room plan in time. Wait until the E32 is back after its restart (its web page opens again), then submit again.",
       "controller_partial_connection": "Connecting stopped halfway: some settings may already be saved on the E32. Submit again to finish the connection; Home Assistant checks what is already there.",
       "setup_changed": "The installation changed while connecting. Check its current settings before connecting again.",
@@ -1246,19 +1246,19 @@
       "native_plan_config_limit": "The complete saved room plan exceeds the current 4096-byte device configuration limit. Reduce the program complexity and try again. Saved room settings and existing plans were retained; nothing was sent.",
       "native_plan_prepare_failed": "Could not verify the saved room plan. Check the connection, selected profile and configuration status, then prepare again. No automatic apply was performed.",
       "hot_water_information_complete": "Read-only hot water information closed; no settings changed.",
-      "native_source_runtime_off_required": "Turn shadow runtime off before reviewing its independent local profile.",
+      "native_source_runtime_off_required": "Turn off the trial run first, then check the room setup.",
       "native_source_review_changed": "Configuration, owner or registry changed. No new profile was saved.",
       "native_source_review_cancelled": "Profile review cancelled; existing configuration is unchanged.",
       "native_source_owner_conflict": "Another independent source owner is already selected. No profile was saved.",
       "native_source_replacement_unsupported": "Changing an existing source profile needs a supported durable-plan migration. Existing profile and data were retained.",
-      "native_source_plan_apply_required": "Pending, mixed, incompatible or unreadable configuration history cannot authorize this source revision. Resolve the exact current plan readback first. Existing data was retained.",
+      "native_source_plan_apply_required": "The earlier room plan change is not finished or cannot be read. Check on the E32 what it has saved first. Nothing was lost.",
       "room_limit": "At most 8 rooms",
-      "shadow_mode_required": "Select explicit v1 shadow mode first",
+      "shadow_mode_required": "Choose the trial run mode first.",
       "program_cancelled": "Program editing cancelled; nothing saved.",
       "program_changed": "The room was changed or removed while editing; reopen it.",
       "program_not_started": "Open the week editor from room bindings first.",
       "room_changed": "The room changed during editing. Reopen it before saving.",
-      "setup_runtime_off": "Turn off shadow observation in the integration settings before changing rooms. No settings have been changed.",
+      "setup_runtime_off": "Turn off the trial run in the integration settings before you change rooms. Nothing was changed.",
       "setup_changed": "The installation changed while you were editing. Open room setup again; nothing has been saved by this form.",
       "advanced_room_required": "This room has floor, mixing, multiple-group or external comfort controls. Use Advanced room settings to preserve that configuration. Nothing has been changed.",
       "room_saved": "Room and radiator group saved. Heating remains disabled.",
@@ -2459,11 +2459,11 @@
         "program_export_failed": "Cannot compile a bounded 15-day program: check timezone, room limits and maximum 128 transitions.",
         "room_mode_actuator_conflict": "Climate-TRV rooms require TRVs; graph-only rooms must have no climate TRV selection.",
         "unsupported_room_binding_mode": "Unsupported room output configuration.",
-        "graph_room_runtime_off_required": "Stop the shadow runtime before editing a graph-only room or changing its mode.",
+        "graph_room_runtime_off_required": "Turn off the trial run first, then change this room.",
         "confirm_room_mode_change": "Explicit confirmation is required to change the room output configuration.",
         "invalid_name": "Enter a room name between 1 and 80 characters.",
         "select_radiators": "Choose between one and eight radiator valves.",
-        "output_has_multiple_owners": "A selected valve already belongs to another room or controller. Choose another valve or correct its existing assignment in Advanced settings.",
+        "output_has_multiple_owners": "A selected valve is already used by another room or device. Choose another valve, or fix its assignment in Advanced settings.",
         "input_output_loop": "A valve cannot also be a temperature-setting input. Check the selected devices.",
         "setup_invalid": "The room could not be prepared. Check the selected devices and their existing assignments; nothing has been saved.",
         "invalid_contacts": "Choose up to eight distinct window or door contacts.",
@@ -2474,16 +2474,16 @@
         "manual_target_has_multiple_rooms": "This target helper already belongs to another room.",
         "invalid_comfort_profile": "Check the away/frost targets and temporary duration; targets must fit the room limits.",
         "invalid_comfort_selection": "Choose a valid presence source, or disable comfort modes without a presence binding.",
-        "native_comfort_frost_profile": "The native controller retains a 5 °C frost target. Use 5 °C and allow it in the room limits."
+        "native_comfort_frost_profile": "The E32 keeps a frost target of 5 °C. Use 5 °C and allow it in the room limits."
       },
       "abort": {
         "room_limit": "At most 8 rooms",
-        "shadow_mode_required": "Select explicit v1 shadow mode first",
+        "shadow_mode_required": "Choose the trial run mode first.",
         "program_cancelled": "Program editing cancelled; nothing saved.",
         "program_changed": "The room was changed or removed while editing; reopen it.",
         "program_not_started": "Open the week editor from room bindings first.",
         "room_changed": "The room changed during editing. Reopen it before saving.",
-        "setup_runtime_off": "Turn off shadow observation in the integration settings before changing rooms. No settings have been changed.",
+        "setup_runtime_off": "Turn off the trial run in the integration settings before you change rooms. Nothing was changed.",
         "setup_changed": "The installation changed while you were editing. Open room setup again; nothing has been saved by this form.",
         "advanced_room_required": "This room has floor, mixing, multiple-group or external comfort controls. Use Advanced room settings to preserve that configuration. Nothing has been changed.",
         "room_saved": "Room and radiator group saved. Heating remains disabled.",
@@ -2791,11 +2791,11 @@
         "program_export_failed": "Cannot compile a bounded 15-day program: check timezone, room limits and maximum 128 transitions.",
         "room_mode_actuator_conflict": "Climate-TRV rooms require TRVs; graph-only rooms must have no climate TRV selection.",
         "unsupported_room_binding_mode": "Unsupported room output configuration.",
-        "graph_room_runtime_off_required": "Stop the shadow runtime before editing a graph-only room or changing its mode.",
+        "graph_room_runtime_off_required": "Turn off the trial run first, then change this room.",
         "confirm_room_mode_change": "Explicit confirmation is required to change the room output configuration.",
         "invalid_name": "Enter a room name between 1 and 80 characters.",
         "select_radiators": "Choose between one and eight radiator valves.",
-        "output_has_multiple_owners": "A selected valve already belongs to another room or controller. Choose another valve or correct its existing assignment in Advanced settings.",
+        "output_has_multiple_owners": "A selected valve is already used by another room or device. Choose another valve, or fix its assignment in Advanced settings.",
         "input_output_loop": "A valve cannot also be a temperature-setting input. Check the selected devices.",
         "setup_invalid": "The room could not be prepared. Check the selected devices and their existing assignments; nothing has been saved.",
         "emitter_not_available": "This heating type is not yet available in this version. Nothing was saved. Choose radiators or wait for its compatible profile.",
@@ -2805,12 +2805,12 @@
       },
       "abort": {
         "room_limit": "At most 8 rooms",
-        "shadow_mode_required": "Select explicit v1 shadow mode first",
+        "shadow_mode_required": "Choose the trial run mode first.",
         "program_cancelled": "Program editing cancelled; nothing saved.",
         "program_changed": "The room was changed or removed while editing; reopen it.",
         "program_not_started": "Open the week editor from room bindings first.",
         "room_changed": "The room changed during editing. Reopen it before saving.",
-        "setup_runtime_off": "Turn off shadow observation in the integration settings before changing rooms. No settings have been changed.",
+        "setup_runtime_off": "Turn off the trial run in the integration settings before you change rooms. Nothing was changed.",
         "setup_changed": "The installation changed while you were editing. Open room setup again; nothing has been saved by this form.",
         "advanced_room_required": "This room has floor, mixing, multiple-group or external comfort controls. Use Advanced room settings to preserve that configuration. Nothing has been changed.",
         "room_saved": "Room and radiator group saved. Heating remains disabled.",
@@ -3068,7 +3068,7 @@
         "invalid_heating_draft": "The desired configuration is invalid. No changes were saved.",
         "wrong_entity_domain": "Select an entity from the required domain.",
         "input_output_loop": "An output cannot also be a configured input or an OpenThermostat-derived entity.",
-        "output_has_multiple_owners": "This output already belongs to another room, controller, pump, mixer or actuator declaration.",
+        "output_has_multiple_owners": "This output is already used by another room or device.",
         "floor_requires_mixing_or_shared_safe_limit": "An unmixed floor requires the shared central upper bound to remain within the floor group limit.",
         "invalid_tpi_travel_or_minimum_times": "TPI on-time must cover travel and minimum on+off times must fit the cycle.",
         "pump_times_without_pump": "Clear both pump times when no group pump is selected.",
@@ -3083,9 +3083,9 @@
         "room_required": "Configure a room before adding actuator declarations."
       },
       "abort": {
-        "shadow_mode_required": "Only explicit shadow entries support this configuration draft.",
-        "disable_runtime_before_draft": "This draft editor requires the shadow runtime to remain disabled.",
-        "single_central_owner": "This controller already has a central heating draft. Reconfigure that draft instead.",
+        "shadow_mode_required": "This draft only works in trial run mode.",
+        "disable_runtime_before_draft": "Turn off the trial run to edit this draft.",
+        "single_central_owner": "This E32 already has a central heating draft. Change that draft instead.",
         "graph_not_started": "Open the graph from central heating settings.",
         "graph_changed": "The central draft or room catalog changed during editing. Reopen the draft; no changes were saved.",
         "graph_cancelled": "All staged graph changes cancelled; nothing saved."
@@ -3355,7 +3355,8 @@
           "room_programs_done": "Every room already has a week program.",
           "e32_rooms_unavailable": "The E32 rooms cannot be read right now. Try again in a moment."
         }
-      }
+      },
+      "description": "These rooms have no week program yet: {rooms}. Choose Fix to give them the standard program. You can change it in the week planner."
     },
     "reconfirm_takeover": {
       "title": "Confirm again that the E32 may control the boiler",
@@ -3377,7 +3378,8 @@
           "reconfirm_plan_not_active": "The room plan is no longer active, so there is nothing to confirm.",
           "e32_rooms_unavailable": "The E32 rooms cannot be read right now. Try again in a moment."
         }
-      }
+      },
+      "description": "The E32 controlled your boiler before its firmware was updated. It waits for you before it takes over again, so two thermostats never control the boiler at once. Until then it only keeps frost protection. Choose Fix and confirm that no other thermostat is connected to the boiler."
     },
     "reconfirm_takeover_thermostat": {
       "title": "Confirm again that the E32 may control the boiler",
@@ -3399,23 +3401,24 @@
           "reconfirm_plan_not_active": "The room plan is no longer active, so there is nothing to confirm.",
           "e32_rooms_unavailable": "The E32 rooms cannot be read right now. Try again in a moment."
         }
-      }
+      },
+      "description": "The E32 controlled your boiler before its firmware was updated. It waits for you before it takes over again, so two thermostats never control the boiler at once. Until then it only keeps frost protection. Choose Fix and confirm that your old thermostat is still disconnected from the boiler."
     },
     "device_own_schedule": {
       "title": "{device} seems to run its own schedule",
       "description": "The target of {device} (room {room}) changed by itself at the same time on several days. Turn off its own schedule (set it to manual mode), so the E32 week program decides; the device then follows it, and turning it changes the room until the next switch point."
     },
     "legacy_metrics_history": {
-      "title": "Old boiler counters stay separate",
-      "description": "This installation sent boiler counters in an older format. Their history is kept, but they are not mixed with the corrected counters. If your own cards combine old and new energy or water counters, check them."
+      "title": "Boiler counters were renewed",
+      "description": "Boiler counters were renewed. Your history is kept. If you made your own cards with the old sensors, switch them to the new ones."
     },
     "metrics_definition_v2": {
-      "title": "New, corrected boiler counters",
-      "description": "Some boiler counters got new, corrected sensors. Your history is kept; update your own cards if they use the old sensors. Energy is an estimate, not a gas or heat meter."
+      "title": "Boiler counters were renewed",
+      "description": "Boiler counters were renewed. Your history is kept. If you made your own cards with the old sensors, switch them to the new ones. Energy is an estimate, not a gas or heat meter."
     },
     "room_model_v2": {
-      "title": "New room heat estimates",
-      "description": "The heat estimates per room use new sensors; the old ones keep their history. These are estimates, not measured heat. Update your own cards if they use the old sensors."
+      "title": "Room heat estimates were renewed",
+      "description": "Room heat estimates were renewed. Your history is kept. If you made your own cards with the old sensors, switch them to the new ones. These are estimates, not measured heat."
     },
     "measurement_clock": {
       "title": "Room measurements paused: the clock of Home Assistant jumped",
@@ -3456,7 +3459,8 @@
           "e32_password_no_connection": "Home Assistant has no stored E32 connection for this entry. Connect the E32 first (Configure → E32 connection).",
           "e32_password_already_changed": "The E32 no longer uses the default password. Nothing was changed."
         }
-      }
+      },
+      "description": "{name}: the E32 still has its starting password. Anyone on your network could change your heating. Until you choose a new one, the E32 accepts no changes. Choose Fix and set a new password."
     },
     "e32_no_free_session": {
       "title": "E32 has no free web session",
@@ -3502,7 +3506,8 @@
           "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
           "legacy_rooms_cancelled": "Cancelled. Choose Configure → E32 connection to check the connection; some settings may already be saved on the E32."
         }
-      }
+      },
+      "description": "Your rooms now live on the E32. These older Home Assistant rooms are no longer used: {rooms}. Choose Fix to remove them. Your sensors, thermostats and valves stay as they are."
     },
     "legacy_rooms_finish": {
       "title": "Finish removing the old Home Assistant room",
@@ -3544,7 +3549,8 @@
           "legacy_rooms_none": "There are no old Home Assistant rooms to remove.",
           "legacy_rooms_cancelled": "Cancelled. Choose Configure → E32 connection to check the connection; some settings may already be saved on the E32."
         }
-      }
+      },
+      "description": "An older Home Assistant room was removed, but the E32 still has its old connection settings. Choose Fix to connect the E32 again without it. Your rooms stay as they are."
     },
     "e32_room_choose_source": {
       "title": "Choose a temperature source for {room}",
@@ -3625,7 +3631,8 @@
           "e32_settings_password_default": "The E32 still uses its default password and accepts no changes until you choose a new one: Settings → Repairs → “E32 still uses the default password”.",
           "e32_settings_update_required": "This E32 firmware does not offer this setting. Update the E32 (Firmware update) first."
         }
-      }
+      },
+      "description": "{name}: the E32 clock uses {e32}, Home Assistant uses {home}. Week programs would switch at the wrong time. Choose Fix to set the E32 to {home}. The E32 restarts once."
     }
   },
   "services": {

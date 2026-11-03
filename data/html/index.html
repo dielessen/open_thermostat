@@ -482,6 +482,9 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                 // if its download fails. Retry it on a subsequent visit.
                 await ensurePageScript('/ems-metadata.js', () => !!window.OT_EMS_METADATA)
                     .catch(() => {});
+                // Plain-language help for the settings EMS-ESP can write; optional as well.
+                await ensurePageScript('/ems-setting-help.js', () => !!window.OT_EMS_SETTING_HELP)
+                    .catch(() => {});
                 await ensurePageScript('/ems-devices.js', () => !!window.EMSDevicesPage);
             } else if (page === 'bluetooth') {
                 await ensurePageScript('/bluetooth.js', () => !!window.BluetoothPage);

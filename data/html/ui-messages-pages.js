@@ -50,7 +50,7 @@ window.OT_UI_PAGE_MESSAGES = {
   "Who is home comes from Home Assistant (OpenThermostat → Configure → Home → Presence). The E32 hears only “someone is home” or “everyone is away”.": "Wie er thuis is, komt uit Home Assistant (OpenThermostat → Configureren → Huis → Aanwezigheid). De E32 hoort alleen „iemand thuis” of „iedereen weg”.",
   "Heating settings": "Verwarming",
   "Managed in Home Assistant: OpenThermostat → Configure → Home.": "Beheerd in Home Assistant: OpenThermostat → Configureren → Huis.",
-  "Active control and the comparison with your thermostat:": "Actieve aansturing en de vergelijking met je thermostaat:",
+  "Active control and the boiler test:": "Actieve aansturing en de keteltest:",
   "Energy": "Energie",
   "Boiler power, gas meter, gas price and the outdoor temperature are set in Home Assistant: OpenThermostat → Configure → Home → Energy. The E32 uses them for the gas estimate and the heating curve.": "Ketelvermogen, gasmeter, gasprijs en de buitentemperatuur stel je in Home Assistant in: OpenThermostat → Configureren → Huis → Energie. De E32 gebruikt ze voor de gasschatting en de stooklijn.",
   "At home: the rooms follow their week programs, also when everyone is away.": "Thuis: de ruimtes volgen hun weekprogramma, ook als iedereen weg is.",

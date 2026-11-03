@@ -1558,12 +1558,14 @@
           },
           "persons": {
             "name": "Personen",
-            "description": "Optioneel. Wie deze ruimte gebruikt. Zijn ze allemaal weg, dan gebruikt de ruimte de afwezigheidstemperatuur, ook als anderen thuis zijn. Leeg: de ruimte volgt het huis (Configureren → Huis → Aanwezigheid).",
+            "description": "Optioneel. Wie deze ruimte gebruikt. Zijn ze allemaal weg, dan gaat de ruimte naar haar eigen afwezigheidstemperatuur (of die van het huis), ook als anderen thuis zijn. Leeg: de ruimte volgt het huis (Configureren → Huis → Aanwezigheid).",
             "data": {
-              "persons": "Personen van deze ruimte"
+              "persons": "Personen van deze ruimte",
+              "away_temperature": "Temperatuur als de mensen van deze ruimte weg zijn"
             },
             "data_description": {
-              "persons": "Thuis zodra een van hen thuis is; pas afwezig als ze allemaal de afwezigheidsvertraging van het huis weg zijn. Iemand van wie de plek onbekend is, telt als thuis. Huismodus Thuis houdt elke ruimte op haar programma; Afwezig en Vakantie verlagen elke ruimte."
+              "persons": "Thuis zodra een van hen thuis is; pas afwezig als ze allemaal de afwezigheidsvertraging van het huis weg zijn. Iemand van wie de plek onbekend is, telt als thuis. Huismodus Thuis houdt elke ruimte op haar programma; Afwezig en Vakantie verlagen elke ruimte.",
+              "away_temperature": "Geldt als alle personen van deze ruimte weg zijn en iemand anders thuis is. Leeg: de afwezigheidstemperatuur van het huis ({house_away}). Is iedereen weg, dan krijgt elke ruimte de afwezigheidstemperatuur van het huis. Een ruimte die al koeler is, blijft koeler."
             }
           }
         }
@@ -1909,7 +1911,8 @@
       "e32_restore_adopt_confirm_required": "Vink het vakje aan om deze E32 voortaan te gebruiken.",
       "e32_restore_adopt_failed": "Home Assistant kon deze E32 niet in gebruik nemen. Probeer het opnieuw, of verbind hem onder Configureren → E32-verbinding.",
       "e32_restore_unconfirmed": "De E32 antwoordde niet na het terugzetten, dus het is niet bekend of de instellingen zijn aangekomen. Controleer of de E32 aan staat en zijn webpagina opent, en kies de back-up daarna opnieuw: de E32 controleert wat nog anders is.",
-      "e32_restore_not_applied": "De E32 bevestigde het terugzetten niet, en zijn controle laat zien dat niet alle instellingen zijn aangekomen. Kies de back-up opnieuw om hem nog een keer terug te zetten."
+      "e32_restore_not_applied": "De E32 bevestigde het terugzetten niet, en zijn controle laat zien dat niet alle instellingen zijn aangekomen. Kies de back-up opnieuw om hem nog een keer terug te zetten.",
+      "e32_away_invalid": "Kies een temperatuur tussen {away_range}, of laat het veld leeg voor de afwezigheidstemperatuur van het huis."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",

@@ -16,6 +16,11 @@ binary sensor of the class window, door, opening or garage door. They are not
 part of the E32 plan but of this entry's comfort settings (e32_comfort.py),
 which forward the room's combined state to the E32 (RoomOverrides.h): open
 for longer than the delay pauses the room at frost protection.
+
+Its Persons section holds the room's persons (comfort settings, like the
+contacts) and, for an E32 that names "plan.room_away.v1", the room's own away
+temperature (room_away.py): a plan field, used while all of the room's persons
+are away and someone else is home; empty is the house value.
 """
 from __future__ import annotations
 
@@ -38,6 +43,7 @@ from .e32_comfort import (DELAY_LIMITS, ComfortError, comfort_options, contact_d
 from .heating_link import TEMPERATURE_UNITS, celsius, heating_hub, label, number
 from .native_form import retained_input_schema
 from .room_plan import has_room_plan, plan_room
+from . import room_away
 from .e32_valves import valid_name as valid_valve_name
 
 MAX_ROOMS = 8
@@ -67,7 +73,7 @@ REJECTIONS = {"invalid_sources": "e32_rejected_sources", "invalid_room_name": "e
               "duplicate_room": "e32_rejected_duplicate_room", "duplicate_source": "e32_rejected_duplicate_source",
               "invalid_setpoint_entity": "e32_rejected_setpoint", "invalid_room_limits": "e32_limits_invalid",
               "invalid_flow_limits": "e32_rejected_flow_limits", "invalid_schedule": "e32_rejected_schedule",
-              "invalid_schedule_limits": "e32_rejected_schedule"}
+              "invalid_schedule_limits": "e32_rejected_schedule", "invalid_room_away": "e32_away_invalid"}
 # The one sentence about the boiler's own maximum in the flow-limits form.
 BOILER_MAXIMUM_TEXT = {
     "en": "Your boiler allows at most {maximum}; the E32 never asks for more. A lower limit here is useful "
@@ -675,6 +681,8 @@ class E32RoomFlow:
             "ble_sources": [s["id"] for s in sources if s.get("type") == "ble"],
             "contacts": room_contacts(self.config_entry, room["id"]) if room.get("id") else [],
             "persons": room_persons(self.config_entry, room["id"]) if room.get("id") else [],
+            # The room's own away temperature (plan.room_away.v1); None: the house value.
+            "away_temperature": None if room_away.room_away(room) is None else shown(room_away.room_away(room), unit),
             # The room's own pause delay in minutes (beta.23; default 2 min).
             "contact_delay": room_contact_delay(comfort_options(self.config_entry), room.get("id") or "") / 60,
             "bluetooth_first": bool(sources) and sources[0].get("type") == "ble",
@@ -754,9 +762,48 @@ class E32RoomFlow:
             schedule = parse_program(text, low, high, self._unit())
         if not schedule:  # every room has a week program: the planner's "Workdays and weekend"
             schedule = default_program(low, high)
-        return {"name": name, "state": state, "emitter": emitter, "sources": sources,
-                "setpoint_entity": setpoint, "fallback_centi_c": fallback,
-                "minimum_centi_c": low, "maximum_centi_c": high, "schedule": schedule}
+        values = {"name": name, "state": state, "emitter": emitter, "sources": sources,
+                  "setpoint_entity": setpoint, "fallback_centi_c": fallback,
+                  "minimum_centi_c": low, "maximum_centi_c": high, "schedule": schedule}
+        if self._e32_away_supported():  # an older E32 ignores the field: not offered, not sent
+            values[room_away.FIELD] = self._e32_room_away(user_input, room, defaults)
+        return values
+
+    def _e32_away_supported(self):
+        return room_away.supported(getattr(self, "_e32_plan", None))
+
+    def _e32_room_away(self, user_input, room, defaults):
+        """The submitted own away temperature (the form's "persons" section) as centi-°C; None: the house value."""
+        value = (user_input.get("persons") or {}).get("away_temperature")
+        if value is None or type(value) is str and not value.strip():
+            return None
+        stored = room_away.room_away(room)
+        try:
+            if stored is not None and float(value) == float(defaults["away_temperature"]):
+                return stored  # as shown: kept exactly (no °F rounding)
+        except (TypeError, ValueError):
+            pass
+        try:
+            centi_c = centi(value, self._unit())
+        except FlowError:
+            raise FlowError("e32_away_invalid", "persons", **self._away_range()) from None
+        if not room_away.LIMITS_CENTI_C[0] <= centi_c <= room_away.LIMITS_CENTI_C[1]:
+            raise FlowError("e32_away_invalid", "persons", **self._away_range())
+        return centi_c
+
+    def _away_range(self):
+        unit = self._unit()
+        low, high = room_away.LIMITS_CENTI_C
+        return {"away_range": f"{shown(low, unit):g}–{shown(high, unit):g} {unit}"}
+
+    def _e32_house_away(self):
+        """The house away temperature as the form shows it ("15 °C"), from the E32's status."""
+        from .e32_house import house_away
+        unit = self._unit()
+        away = house_away(heating_hub(self.hass, self.config_entry)) or {}
+        value = number(away.get("target_c"), 5, 25)
+        value = 15.0 if value is None else value
+        return f"{shown(round(value * 100), unit):g} {unit}"
 
     def _e32_room_contacts(self, user_input, room):
         """The submitted window/door contacts (the form's "window" section); raises FlowError."""
@@ -803,8 +850,9 @@ class E32RoomFlow:
             return self.async_abort(reason="e32_room_missing", description_placeholders={"room": room_id})
         ble_options = self._e32_ble_options(room)
         errors = {}
-        placeholders = {"source": "", "error": "", "line": "", "text": "", **self._limit_range(),
-                        "delay": contact_delay_text(comfort_options(self.config_entry), room_id)}
+        placeholders = {"source": "", "error": "", "line": "", "text": "", **self._limit_range(), **self._away_range(),
+                        "delay": contact_delay_text(comfort_options(self.config_entry), room_id),
+                        "house_away": self._e32_house_away()}
         link = self._e32_link()
         if link is None:
             return self.async_abort(reason="e32_rooms_unavailable")
@@ -878,6 +926,11 @@ class E32RoomFlow:
                                                "mode": "box", "unit_of_measurement": unit})
         sources = {"filter": [{"domain": "climate"}, {"domain": "sensor", "device_class": "temperature"}],
                    "multiple": True, "reorder": True}
+        persons = {vol.Optional("persons", description={"suggested_value": d["persons"] or None}): persons_selector()}
+        if self._e32_away_supported():
+            away_low, away_high = (shown(limit, unit) for limit in room_away.LIMITS_CENTI_C)
+            persons[vol.Optional("away_temperature", description={"suggested_value": d["away_temperature"]})] =                 selector.NumberSelector({"min": away_low, "max": away_high, "step": 0.5 if unit == CELSIUS else 0.1,
+                                         "mode": "box", "unit_of_measurement": unit})
         if own:
             sources["exclude_entities"] = own
         fields = {
@@ -906,10 +959,10 @@ class E32RoomFlow:
                     {"min": DELAY_LIMITS[0] / 60, "max": DELAY_LIMITS[1] / 60, "step": 0.5, "mode": "box",
                      "unit_of_measurement": "min"}),
             }), {"collapsed": False}),
-            # Persons per room (beta.23): empty = the room follows the house's presence.
-            vol.Optional("persons"): section(vol.Schema({
-                vol.Optional("persons", description={"suggested_value": d["persons"] or None}): persons_selector(),
-            }), {"collapsed": not d["persons"]}),
+            # Persons per room (beta.23): empty = the room follows the house's presence. With
+            # plan.room_away.v1 also the room's own away temperature (empty = the house value).
+            vol.Optional("persons"): section(vol.Schema(persons), {
+                "collapsed": not d["persons"] and d["away_temperature"] is None}),
             vol.Optional("limits"): section(vol.Schema({
                 vol.Required("minimum_temperature", default=d["minimum_temperature"]): temperature,
                 vol.Required("maximum_temperature", default=d["maximum_temperature"]): temperature,

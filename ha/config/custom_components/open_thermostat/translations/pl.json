@@ -614,12 +614,14 @@
           },
           "persons": {
             "name": "Osoby",
-            "description": "Opcjonalnie. Kto korzysta z tego pomieszczenia. Gdy wszystkie te osoby są poza domem, pomieszczenie używa temperatury nieobecności, także gdy inni są w domu. Puste: pomieszczenie podąża za domem (Konfiguruj → Dom → Obecność).",
+            "description": "Opcjonalnie. Kto korzysta z tego pomieszczenia. Gdy wszystkie te osoby są poza domem, pomieszczenie używa własnej temperatury nieobecności (lub temperatury domu), także gdy inni są w domu. Puste: pomieszczenie podąża za domem (Konfiguruj → Dom → Obecność).",
             "data": {
-              "persons": "Osoby tego pomieszczenia"
+              "persons": "Osoby tego pomieszczenia",
+              "away_temperature": "Temperatura, gdy osób z tego pomieszczenia nie ma"
             },
             "data_description": {
-              "persons": "W domu, gdy tylko jedna z nich jest w domu; poza domem dopiero, gdy wszystkie są poza domem przez opóźnienie nieobecności domu. Osoba o nieznanym położeniu liczy się jako w domu. Tryb domu W domu utrzymuje każde pomieszczenie na jego programie; Nieobecność i Urlop obniżają każde pomieszczenie."
+              "persons": "W domu, gdy tylko jedna z nich jest w domu; poza domem dopiero, gdy wszystkie są poza domem przez opóźnienie nieobecności domu. Osoba o nieznanym położeniu liczy się jako w domu. Tryb domu W domu utrzymuje każde pomieszczenie na jego programie; Nieobecność i Urlop obniżają każde pomieszczenie.",
+              "away_temperature": "Obowiązuje, gdy wszystkie osoby tego pomieszczenia są poza domem, a ktoś inny jest w domu. Puste: temperatura nieobecności domu ({house_away}). Gdy nikogo nie ma w domu, każde pomieszczenie używa temperatury nieobecności domu. Pomieszczenie, które jest już chłodniejsze, pozostaje chłodniejsze."
             }
           }
         }
@@ -965,7 +967,8 @@
       "e32_restore_adopt_confirm_required": "Zaznacz pole, aby od teraz używać tego E32.",
       "e32_restore_adopt_failed": "Home Assistant nie mógł przejść na ten E32. Spróbuj ponownie albo połącz go w Konfiguruj → Połączenie z E32.",
       "e32_restore_unconfirmed": "E32 nie odpowiedział po przywróceniu, więc nie wiadomo, czy ustawienia dotarły. Sprawdź, czy E32 jest włączony i jego strona się otwiera, a potem wybierz kopię ponownie: E32 sprawdzi, co nadal się różni.",
-      "e32_restore_not_applied": "E32 nie potwierdził przywrócenia, a jego sprawdzenie pokazuje, że nie wszystkie ustawienia dotarły. Wybierz kopię ponownie, aby przywrócić ją jeszcze raz."
+      "e32_restore_not_applied": "E32 nie potwierdził przywrócenia, a jego sprawdzenie pokazuje, że nie wszystkie ustawienia dotarły. Wybierz kopię ponownie, aby przywrócić ją jeszcze raz.",
+      "e32_away_invalid": "Wybierz temperaturę w zakresie {away_range} albo zostaw pole puste, aby użyć temperatury nieobecności domu."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",

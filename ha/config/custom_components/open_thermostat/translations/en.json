@@ -614,12 +614,14 @@
           },
           "persons": {
             "name": "Persons",
-            "description": "Optional. Who uses this room. While all of them are away, the room uses the away temperature, also when others are home. Empty: the room follows the house (Configure → Home → Presence).",
+            "description": "Optional. Who uses this room. While all of them are away, the room uses its own away temperature (or the house one), also when others are home. Empty: the room follows the house (Configure → Home → Presence).",
             "data": {
-              "persons": "Persons of this room"
+              "persons": "Persons of this room",
+              "away_temperature": "Temperature when this room's people are away"
             },
             "data_description": {
-              "persons": "Home as soon as one of them is home; away only after all of them have been away for the house's away delay. A person whose place is unknown counts as home. House mode Home keeps every room on its program; Away and Holiday lower every room."
+              "persons": "Home as soon as one of them is home; away only after all of them have been away for the house's away delay. A person whose place is unknown counts as home. House mode Home keeps every room on its program; Away and Holiday lower every room.",
+              "away_temperature": "Used while all persons of this room are away and someone else is home. Empty: the house away temperature ({house_away}). When everyone is away, every room uses the house away temperature. A room that is already cooler stays cooler."
             }
           }
         }
@@ -965,7 +967,8 @@
       "e32_restore_adopt_confirm_required": "Tick the box to use this E32 from now on.",
       "e32_restore_adopt_failed": "Home Assistant could not switch to this E32. Try again, or connect it under Configure → E32 connection.",
       "e32_restore_unconfirmed": "The E32 did not answer after the restore, so it is not known whether the settings arrived. Check that the E32 is on and its web page opens, then choose the backup again: the E32 checks what is still different.",
-      "e32_restore_not_applied": "The E32 did not confirm the restore, and its check shows that not all settings arrived. Choose the backup again to restore it once more."
+      "e32_restore_not_applied": "The E32 did not confirm the restore, and its check shows that not all settings arrived. Choose the backup again to restore it once more.",
+      "e32_away_invalid": "Choose a temperature between {away_range}, or leave it empty for the house away temperature."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",

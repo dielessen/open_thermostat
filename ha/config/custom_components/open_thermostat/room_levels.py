@@ -59,9 +59,11 @@ def room_levels(room):
 
 
 def normalize(plan):
-    """The plan as HA posts it: levels only for an E32 that stores them, marks that fit each program,
-    and without the read-only "features"."""
+    """The plan as HA posts it: levels (and a room's own away temperature, room_away) only for an E32
+    that stores them, marks that fit each program, and without the read-only "features"."""
+    from . import room_away
     keep = supported(plan)
+    room_away.normalize(plan, room_away.supported(plan))
     plan.pop("features", None)
     for room in plan.get("rooms", []):
         if type(room) is not dict:

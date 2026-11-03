@@ -807,12 +807,19 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
         if room is None:
             return None
         comfort, away = self.comfort, self.away
+        from .room_away import away_reason, room_away
+        own = room_away(self.plan_room)
         return {"room_id": self.room_id, "comfort_mode": comfort.get("mode", "program"),
                 "window": comfort.get("window"), "override": comfort.get("override"),
                 "until": _iso(comfort.get("until")), "waiting_for_clock": comfort.get("waiting_for_clock") is True,
                 "setpoint_source": room.get("setpoint_source"),
                 "away": away.get("on") is True, "away_source": away.get("source"),
-                "away_until": _iso(away.get("until"))}
+                "away_until": _iso(away.get("until")),
+                # Why this room is cooler (room_persons: only its own persons are out; everyone; house_mode:
+                # Away or Holiday), what its own persons are (home/away) and its own away temperature
+                # (None: the house value, plan.room_away.v1).
+                "away_reason": away_reason(comfort, away), "room_persons": comfort.get("persons"),
+                "own_away_temperature": own / 100 if own is not None else None}
 
     # -- commands ----------------------------------------------------------------
     def _write_state(self):

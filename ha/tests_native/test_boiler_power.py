@@ -25,6 +25,7 @@ def test_order_gas_meter_then_boiler_then_known_type_then_default():
 
 def test_only_types_whose_power_is_in_the_name():
     assert product_kw("Nefit EcomLine HRC 30") == 30.0 and product_kw("EcomLine HR 22") == 22.0
+    assert product_kw("Nefit Ecomline Classic HRC 22H") == 22.0  # the catalog name of the chosen model
     assert product_kw("Logamax Plus GB192") is None and product_kw(None) is None
 
 

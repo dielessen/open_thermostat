@@ -100,8 +100,9 @@ async def test_heating_view_is_sections_of_built_in_cards_per_room_with_the_esse
     words = [c for c in now if c["type"] == "markdown" and "'meaning'" in c["content"]]
     assert len(words) == 1 and words[0]["visibility"] == [
         {"condition": "state", "entity": fields["display_code"], "state_not": ["unavailable", "unknown"]}]
-    assert now.index(words[0]) == 1  # first thing under the heading (no house mode or problem tile here)
-    explain = next(c for c in now if c["type"] == "markdown" and c not in words)
+    # Under the heading and the rooms that want heat (no house mode or problem tile here).
+    assert now.index(words[0]) == 2 and "set wanting" in now[1]["content"]
+    explain = next(c for c in now if c["type"] == "markdown" and c not in words and "set wanting" not in c["content"])
     # One short line instead of a "How it works" block.
     assert "How it works" not in explain["content"] and "You set the rooms" not in explain["content"]
     assert "also without Home Assistant" in explain["content"] and "Trial run" in explain["content"]
@@ -187,7 +188,8 @@ async def test_no_comparison_without_a_thermostat_on_the_bus(hass):
     assert "Thermostat request" not in text and "Agreement" not in text and "shadow_agreement" not in text
     # The subview keeps only the loose Bluetooth sensor.
     assert [s["cards"][0]["heading"] for s in config["views"][3]["sections"]] == ["Bluetooth sensors"]
-    explain = next(c for c in heating["sections"][0]["cards"] if c["type"] == "markdown" and "'meaning'" not in c["content"])
+    explain = next(c for c in heating["sections"][0]["cards"] if c["type"] == "markdown"
+                   and "'meaning'" not in c["content"] and "set wanting" not in c["content"])
     assert "your thermostat controls" not in explain["content"]
     assert "current thermostat or the boiler's own control" in explain["content"]
 
@@ -420,3 +422,24 @@ async def test_status_comes_first_with_the_reasons_only_while_there_is_a_problem
     hass.config.language = "nl"
     text = json.dumps(RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config(), ensure_ascii=False)
     assert '"Nu"' in text and '"Verwarming"' in text and '"Ketelmaximum"' in text
+
+
+@pytest.mark.asyncio
+async def test_rooms_wanting_heat_card_lists_the_rooms_and_the_request(hass):
+    """Under Now, like the E32's dashboard: how many rooms want heat, which, and the boiler request."""
+    from homeassistant.helpers.template import Template
+    from custom_components.open_thermostat.dashboard import TEXT, _wanting_card
+    rooms = [{"id": "woonkamer", "name": "Woonkamer", "demand": True, "temperature": 20.1, "setpoint": 21},
+             {"id": "badkamer", "name": "Badkamer", "demand": False, "temperature": 19.0, "setpoint": 20},
+             {"id": "zolder", "name": "Zolder", "demand": True, "temperature": None, "setpoint": 18}]
+    request = "sensor.e32_heat_request"
+    assert _wanting_card(TEXT["en"], None) is None
+    hass.states.async_set(request, "54", {"rooms": rooms})
+    nl = Template(_wanting_card(TEXT["nl"], request)["content"], hass).async_render()
+    assert nl == "### 2 ruimtes vragen warmte\n- **Woonkamer**: 20,1 → 21,0 °C\n- **Zolder**\n\nKetelvraag: 54,0 °C"
+    hass.states.async_set(request, "0", {"rooms": rooms[:2]})
+    en = Template(_wanting_card(TEXT["en"], request)["content"], hass).async_render()
+    # Home Assistant strips the rendered text's trailing newline.
+    assert en == "### 1 room wants heat\n- **Woonkamer**: 20.1 → 21.0 °C"
+    hass.states.async_set(request, "unavailable", {})
+    assert Template(_wanting_card(TEXT["en"], request)["content"], hass).async_render() == "### No room wants heat"

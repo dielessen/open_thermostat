@@ -1284,6 +1284,10 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
             var known = engine || state, wanting = cards.filter(function(c){return c.demand===true;}).length;
             var headline = !known ? uiText("Waiting for Home Assistant") : !cards.length ? uiText("No rooms set up yet") :
                 wanting === 1 ? uiText("1 room wants heat") : wanting ? wanting+uiText(" rooms want heat") : uiText("No room wants heat");
+            // Which rooms want heat, each with its temperature and target (rc.3).
+            var wantingLine = !wanting ? '' : '<p class="pd-help" data-dashboard-wanting>'+cards.filter(function(c){return c.demand===true;}).map(function(c){
+                return dashboardText(c.name)+(c.actual !== null && c.target !== null ? ': '+dashboardText(dashboardFixed(c.actual,1))+' → '+dashboardText(dashboardFixed(c.target,1))+' °C' : '');
+            }).join(' · ')+'</p>';
             // Home Assistant is optional: a status chip, never a precondition.
             var ha = engine && engine.ha && typeof engine.ha === 'object' ? engine.ha : null;
             // HA sends on every change and at least every 5 min (REFRESH_SECONDS): fresh until two refreshes are missed.
@@ -1299,7 +1303,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                 uiHtml("<header class=\"pd-heading\"><div><h1>Your heating system</h1><p>Rooms and boiler at a glance.</p></div>")+
                 chip(activePlan?uiText("Active control"):uiText("Trial run"),controlling?'ok':activePlan?'warn':'')+'</header>'+
                 dashboardUpdateNotice(status.firmware_update)+dashboardPasswordNotice()+
-                '<section class="pd-status" data-dashboard-key="headline"><div class="pd-flow"><p class="pd-headline">'+dashboardText(headline)+'</p><p class="ot-chips">'+
+                '<section class="pd-status" data-dashboard-key="headline"><div class="pd-flow"><p class="pd-headline">'+dashboardText(headline)+'</p>'+wantingLine+'<p class="ot-chips">'+
                 chip(mode,ems.warmWaterActive===true||ems.heatingActive===true?'ok':'')+
                 (boilerCode && boilerCode.fault ? chip(uiText("Boiler fault")+' '+boilerCode.code,boilerCode.lockout?'err':'warn') : '')+
                 (known?chip(dashboardBool(demand,uiText("Heat demand"),uiText("No heat demand")),demand===true?'ok':''):'')+controlChip+haChip+'</p></div>'+

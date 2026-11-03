@@ -223,6 +223,8 @@ TEXT = {
         "learned_link": "Everything it learned", "learned_latest": "Latest change", "learning_how": "How it learns",
         "compare_link": "E32 compared with your thermostat",
         "no_request": "No boiler request",
+        "wanting_one": "1 room wants heat", "wanting_many": "{n} rooms want heat", "wanting_none": "No room wants heat",
+        "decimal": ".",
         "flow_short": "Water to heating", "return_short": "Water back",
         "e32": "E32", "thermostat": "Thermostat",
         "comparison_view": "Comparison",
@@ -355,6 +357,8 @@ TEXT = {
         "learned_link": "Alles wat hij heeft geleerd", "learned_latest": "Laatste aanpassing", "learning_how": "Hoe hij leert",
         "compare_link": "E32 vergeleken met je thermostaat",
         "no_request": "Geen ketelvraag",
+        "wanting_one": "1 ruimte vraagt warmte", "wanting_many": "{n} ruimtes vragen warmte",
+        "wanting_none": "Geen ruimte vraagt warmte", "decimal": ",",
         "flow_short": "Aanvoerwater", "return_short": "Retourwater",
         "e32": "E32", "thermostat": "Thermostaat",
         "comparison_view": "Vergelijking",
@@ -489,6 +493,8 @@ TEXT = {
         "learned_link": "Wszystko, czego się nauczył", "learned_latest": "Ostatnia zmiana", "learning_how": "Jak się uczy",
         "compare_link": "E32 w porównaniu z Twoim termostatem",
         "no_request": "Brak żądania do kotła",
+        "wanting_one": "1 pomieszczenie potrzebuje ciepła", "wanting_many": "Pomieszczenia potrzebujące ciepła: {n}",
+        "wanting_none": "Żadne pomieszczenie nie potrzebuje ciepła", "decimal": ",",
         "flow_short": "Woda do ogrzewania", "return_short": "Woda powrotna",
         "e32": "E32", "thermostat": "Termostat",
         "comparison_view": "Porównanie",
@@ -829,6 +835,31 @@ def _value_tile(entity_id, name, icon, color=None):
     """A boiler value, shown only while it has one. Without the E32 the "Heating" tile says why,
     instead of a row of "Unavailable" tiles."""
     return _tile(entity_id, name, icon, color=color, visibility=_known(entity_id)) if entity_id else None
+
+
+def _wanting_card(t, request):
+    """Which rooms want heat and the boiler request, as the E32's dashboard shows it (rc.3, owner's wish).
+
+    "1 room wants heat", then each such room with its temperature and target, then the request.
+    From the heat request's ``rooms`` attribute, so it follows the E32 without regenerating.
+    """
+    if not request:
+        return None
+    quoted = json.dumps(request)
+
+    def number(value):
+        return "{{ ('%.1f' % (" + value + " | float)) | replace('.', " + json.dumps(t["decimal"]) + ") }}"
+
+    return {"type": "markdown", "content": (
+        "{% set wanting = (state_attr(" + quoted + ", 'rooms') or []) | selectattr('demand', 'eq', true) | list %}"
+        "### {% if wanting | length == 1 %}" + t["wanting_one"]
+        + "{% elif wanting %}" + t["wanting_many"].replace("{n}", "{{ wanting | length }}")
+        + "{% else %}" + t["wanting_none"] + "{% endif %}\n"
+        "{% for room in wanting %}- **{{ room.name }}**"
+        "{% if room.temperature is number and room.setpoint is number %}: "
+        + number("room.temperature") + " → " + number("room.setpoint") + " °C{% endif %}\n{% endfor %}"
+        "{% if states(" + quoted + ") | float(0) > 0 %}\n" + t["boiler_request"] + ": "
+        + number("states(" + quoted + ")") + " °C{% endif %}")}
 
 
 def _wide(card):
@@ -1228,6 +1259,8 @@ class RoomDashboard:
             {"type": "markdown", "content": "{% for reason in state_attr(" + json.dumps(problem)
              + ", 'reasons') or [] %}- {{ reason }}\n{% endfor %}",
              "visibility": [{"condition": "state", "entity": problem, "state": "on"}]} if problem else None,
+            # Which rooms want heat and the boiler request, as on the E32's own dashboard.
+            _wanting_card(t, request),
             # The boiler in words ("Boiler: Hot water", "Boiler: Waiting: anti-cycle", "No flame after ignition").
             _boiler_status_card(t, essential("code")),
             _tile(request, t["boiler_request"], "mdi:fire", color="deep-orange",

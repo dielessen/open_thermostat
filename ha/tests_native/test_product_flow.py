@@ -4,6 +4,7 @@ from dataclasses import replace
 from types import MappingProxyType
 from unittest.mock import AsyncMock
 
+from nav_helpers import is_again
 import pytest
 from homeassistant import config_entries
 
@@ -25,13 +26,13 @@ def product(hass, binding=None):
     hass.data.setdefault("open_thermostat", {})[p.entry_id] = {}
     return p
 
-# Configure's top level (product_flow.main_menu). With a stored E32 connection the rooms
-# are the E32 room plan: Rooms, Home (presence, heating and boiler, energy; beta.23), Comfort,
-# Connect E32, Name and dashboard, Advanced. A new installation (config flow from beta.19) starts with Connect E32.
+# Configure's top level (product_flow.main_menu), closed by "Done". With a stored E32 connection the rooms
+# are the E32 room plan: Rooms, House, Heating and boiler, Energy and outdoor temperature, E32 connection,
+# Advanced and diagnostics. A new installation (config flow from beta.19) starts with the E32 connection.
 # Older entries without an E32 connection keep the Home Assistant room route.
-E32_MENU=['e32_rooms','house','controller_connection','general','advanced_settings']
-NEW_MENU=['controller_connection','energy','general','advanced_settings']
-LEGACY_MENU=['room_settings','controller_connection','energy','installation','advanced_settings']
+E32_MENU=['e32_rooms','house','heating_boiler','energy','controller_connection','advanced_settings','done']
+NEW_MENU=['controller_connection','energy','advanced_settings','done']
+LEGACY_MENU=['room_settings','controller_connection','energy','installation','advanced_settings','done']
 
 def expected_menu(parent):
     from custom_components.open_thermostat.room_plan import has_room_plan, uses_e32_rooms
@@ -41,10 +42,10 @@ async def option(manager,parent,step):
     f=await manager.async_init(parent.entry_id)
     menu=expected_menu(parent)
     assert f['menu_options']==menu
-    # Presence, heating and energy live under Home (beta.23); status, plan recovery and the rest under Advanced.
+    # Presence lives under House; status, plan recovery and the rest under Advanced.
     if step not in menu:
         f=await manager.async_configure(f['flow_id'],{'next_step_id':'house' if 'house' in menu and step in
-                                                      ('house_presence','heating_boiler','energy') else 'advanced_settings'})
+                                                      ('house_presence',) else 'advanced_settings'})
     return await manager.async_configure(f['flow_id'],{'next_step_id':step})
 
 async def new_room(manager,parent,binding):
@@ -83,7 +84,7 @@ async def test_central_options_creates_one_owner_preserves_options_no_activation
     _,m=managers;p=product(hass);before_options=deepcopy(dict(p.options))
     f=await option(m,p,'installation');assert set(str(k) for k in f['data_schema'].schema)=={'name','weather_enabled','outdoor_source','create_dashboard','advanced'}
     result=await m.async_configure(f['flow_id'],{'name':'Home','weather_enabled':False,'create_dashboard':False})
-    assert result['reason']=='installation_saved',result
+    assert is_again(result),result
     c=central_entry(p);assert c and c.title=='Installation' and len(p.subentries)==0
     assert p.title=='Home' and dict(p.options)=={**before_options,'create_dashboard':False}
     stored=deepcopy(dict(c.data))
@@ -123,7 +124,7 @@ async def test_existing_room_edit_from_central_options_reuses_identity(hass,mana
     result=await opts.async_configure(f['flow_id'],{'name':'Renamed','emitter':'radiator',
         'temperature_entity':b.temperature.entity_id,'radiator_entities':[b.actuators[0].entity_id],
         'base_temperature':19})
-    assert result['reason']=='room_saved',result
+    assert is_again(result),result
     assert p.subentries[z.subentry_id].title=='Renamed' and len(p.subentries)==1
     assert p.subentries[z.subentry_id].data['base_centi_c']==1900
 

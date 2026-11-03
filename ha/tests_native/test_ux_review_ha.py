@@ -459,7 +459,7 @@ async def test_flow_limits_in_fahrenheit(hass, manager):
                                                              "maximum_flow_temperature": 158})
     assert is_again(result)
     assert (e32.plan["minimum_flow_c"], e32.plan["maximum_flow_c"]) == (25, 70)
-    assert result["description_placeholders"] == {"minimum": "77", "maximum": "158", "unit": "°F"}
+    assert "77 and 158 °F" in result["description_placeholders"]["saved"]
 
 
 # -- F06 (HA side): the E32's refusals as plain messages ------------------------------------------

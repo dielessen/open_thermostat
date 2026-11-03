@@ -1593,6 +1593,8 @@ class DhwTodaySensor(HubEntity, SensorEntity):
 
 def wanted_sensors(hub):
     # Firmware that compares (E32 beta.18), and only once a thermostat to compare with shows up.
+    # In active mode without one they are removed (native_entity_cleanup.note_heating_status); a
+    # removed one is forgotten (track_entities) and comes again with a thermostat in a trial run.
     if shadow_has_thermostat(hub.status):
         for key in SHADOW_SENSORS:
             yield ("shadow", key), lambda key=key: ShadowSensor(hub, key)
@@ -1682,6 +1684,10 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     sensor = HeatRequestSensor(hub)
     async_add_entities([sensor], **options)
     entry.async_on_unload(track_entities(hub, async_add_entities, options, wanted_sensors))
+    # The comparison sensors go once the E32 controls the boiler and hears no thermostat to compare
+    # with for a while; wanted_sensors creates them again in a trial run with a thermostat on the bus.
+    from .native_entity_cleanup import note_heating_status
+    entry.async_on_unload(hub.add_listener(lambda: note_heating_status(hass, entry, hub.prefix, hub.status)))
     if is_product(entry):  # the tuning advice (advice only) on the product device
         from .heating_advice import async_setup_heating_advice
         try:

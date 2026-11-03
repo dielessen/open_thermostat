@@ -91,10 +91,25 @@ async def test_the_comparison_is_a_link_that_explains_it_not_a_bare_percentage(h
     assert hub["shadow_agreement_today"] not in [c.get("entity") for c in now]
     link = next(c for c in now if c.get("heading") == "E32 compared with your thermostat")
     assert link["tap_action"]["navigation_path"].endswith("/comparison")
+    assert link["visibility"] == [known(hub["shadow_agreement_today"])]  # only while a thermostat is heard
     # The subview names it in full.
     compare = config["views"][-1]["sections"][0]["cards"]
     agreement = next(c for c in compare if c.get("entity") == hub["shadow_agreement_today"])
     assert agreement["name"] == "Agreement with thermostat"
+
+
+@pytest.mark.asyncio
+async def test_no_comparison_once_the_e32_controls_the_boiler(hass):
+    """The owner's E32 in active mode, the agreement record restored: no link and no Comparison subview."""
+    config, rooms, sensors, hub, fields, flow = live(hass)
+    entry_id = er.async_get(hass).async_get(hub["heat_request"]).config_entry_id
+    heating_hub = hass.data["open_thermostat"][entry_id]["heating_hub"]
+    heating_hub.update({**heating_hub.status, "mode": "active"})
+    config = RoomDashboard(hass, "fixture", entry_id)._dashboard_config()
+    assert [v["path"] for v in config["views"]] == ["heating", "boiler", "diagnostics"]
+    text = json.dumps(config)
+    assert "compared with your thermostat" not in text and "/comparison" not in text
+    assert hub["shadow_agreement_today"] not in text and "Agreement with thermostat" not in text
 
 
 @pytest.mark.asyncio

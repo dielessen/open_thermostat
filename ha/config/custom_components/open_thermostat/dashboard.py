@@ -10,8 +10,8 @@ disabled and absent entities are left out) with built-in cards only:
   area once the E32 reports it), what the E32 asks the boiler now, the boiler
   essentials (with today's hot-water taps and the boiler's own maximum), the
   gas for heating and for hot water per day (once the E32 counts it), the
-  E32 next to the current thermostat (only in a home with one) and the
-  Bluetooth sensors. Room settings that are easy to change by accident (mode,
+  E32 next to the thermostat on the boiler bus (only in the trial run, and
+  only while such a thermostat is heard) and the Bluetooth sensors. Room settings that are easy to change by accident (mode,
   temperature without Home Assistant) stay on the room's device page. A short
   "what the thermostat learned" follows the rooms; the whole overview is the
   Learned subview, the comparison with the thermostat the Comparison subview;
@@ -121,9 +121,6 @@ COMPARISON_PATH = "comparison"
 ICONS = {"flow": "mdi:thermometer-chevron-up", "return": "mdi:thermometer-chevron-down",
          "max_ch": "mdi:thermometer-high", "modulation": "mdi:fire", "pressure": "mdi:gauge",
          "dhw": "mdi:water-thermometer", "code": "mdi:information-outline"}
-
-# The shadow comparison entities: created only once the E32 saw a thermostat to compare with.
-COMPARISON_KEYS = ("shadow_agreement_today", "shadow_tado_heating_time_today", "shadow_tado_starts_today")
 
 TEXT = {
     "en": {
@@ -871,6 +868,7 @@ class RoomDashboard:
         self._hub = None
         self._hub_unsubscribe = None
         self._hub_signature = None
+        self._mode = None  # the E32's last reported mode (shadow / active), kept while it is silent
         self._candidate: LovelaceStorage | None = None  # registered, panel not yet (async_start)
 
     async def async_start(self) -> None:
@@ -1167,7 +1165,8 @@ class RoomDashboard:
                  "type": "sections", "max_columns": 3, "dense_section_placement": True, "sections": boiler},
                 {"title": t["diagnostics"], "path": "diagnostics", "icon": "mdi:information-outline",
                  "type": "sections", "max_columns": 3, "dense_section_placement": True, "sections": diagnostics},
-                # Reached from the "E32 compared with your thermostat" link under Now.
+                # Trial run only: reached from the "E32 compared with your thermostat" link and the
+                # "Ready to take over?" tile under Now.
                 *([{"title": t["comparison_view"], "path": COMPARISON_PATH, "subview": True,
                     "back_path": "/" + self.path + "/heating", "icon": "mdi:compare-horizontal",
                     "type": "sections", "max_columns": 2, "sections": comparison}] if comparison else []),
@@ -1178,6 +1177,18 @@ class RoomDashboard:
             ]
         }
 
+    def _trial_run(self):
+        """Whether the E32 runs the trial run (shadow mode), from its live status, never the registry.
+
+        The last reported mode counts while the E32 is silent, so an outage does not drop the
+        Comparison subview; nothing reported yet is no trial run. A change of mode rebuilds the
+        dashboard (_signature), so this follows the E32 by itself.
+        """
+        heating_hub = self._heating_hub()
+        if heating_hub is not None and heating_hub.fresh:
+            self._mode = heating_hub.status.get("mode")
+        return self._mode == "shadow"
+
     def _heating_sections(self, t, entries, hub, fields, essential, registry, e32_rooms, legacy):
         """The Heating view (sections) and the sections of its Comparison and Learned subviews.
 
@@ -1186,6 +1197,13 @@ class RoomDashboard:
         "what the thermostat learned", the boiler, the heating curve settings and the gas. The
         shadow comparison and loose sensors go to the Comparison subview (a link under "Now"),
         the whole learned overview to the Learned subview (a link in its summary).
+
+        The comparison with the thermostat on the boiler bus means something only in the trial run
+        and only while such a thermostat is heard: the Comparison subview exists only in the trial
+        run (the E32's live mode, _trial_run), and its link and comparison cards show only while the
+        agreement has a value (it has none without a thermostat). Once the E32 controls the boiler,
+        the comparison sensors are removed (native_entity_cleanup.note_heating_status), and the
+        loose sensors and the learning note move to the Heating view.
         """
         request = hub.get("heat_request")
         # The house mode (beta.23, e32_house.py): automatic, at home, away, holiday, switched right here.
@@ -1193,8 +1211,7 @@ class RoomDashboard:
         e32_room_entities = self._e32_rooms(entries)
         flow = self._flow_entities(entries)
         problem = hub.get("heating_problem")
-        # The comparison entities exist only once the E32 saw a thermostat to compare with.
-        thermostat_on_bus = any(key in hub for key in COMPARISON_KEYS)
+        trial = self._trial_run()
         sub_path = "/" + self.path + "/" + COMPARISON_PATH
 
         explain = None
@@ -1208,8 +1225,12 @@ class RoomDashboard:
                 + "{% elif mode == 'shadow' %}" + t["shadow"] + " {% endif %}" + t["how"])}
         elif e32_room_entities:
             explain = {"type": "markdown", "content": t["how"]}
-        agreement = hub.get("shadow_agreement_today")
+        # The comparison entities exist only once the E32 saw a thermostat to compare with; outside
+        # the trial run a record left behind leads nowhere.
+        agreement = hub.get("shadow_agreement_today") if trial else None
         readiness = hub.get("takeover_readiness")  # E32 1.0: ready to take over? (shadow mode only)
+        # The Comparison subview: the readiness check and the comparison, in the trial run only.
+        subview = trial and bool(readiness or agreement)
         # The request in °C while there is one; "No boiler request" (not "0,0 °C") while there is none.
         no_request = None
         if request:
@@ -1236,13 +1257,14 @@ class RoomDashboard:
                         color="blue-grey"),
             _value_tile(essential("dhw"), t["dhw"], ICONS["dhw"], color="light-blue"),
             explain,
-            # A bare percentage meant nothing here: a link to the comparison, which explains it.
-            _link(t["compare_link"], "mdi:compare-horizontal", sub_path) if thermostat_on_bus and agreement else None,
+            # A bare percentage meant nothing here: a link to the comparison, which explains it; only
+            # while a thermostat is heard to compare with (the agreement has a value).
+            _link(t["compare_link"], "mdi:compare-horizontal", sub_path, _known(agreement)) if agreement else None,
             # Ready to take over? Leads to the Comparison subview, which opens with the check.
             # The whole width: its state ("Waiting for more data") was cut short on a phone.
             _wide(_tile(readiness, t["readiness"], "mdi:clipboard-check-outline",
                         visibility=_known(readiness, ("not_applicable",)),
-                        tap_action={"action": "navigate", "navigation_path": sub_path})),
+                        tap_action={"action": "navigate", "navigation_path": sub_path} if subview else None)),
         )
         sections = [now] if len(now["cards"]) > 1 else []
         advice = _advice_section(t, hub.get("heating_advice"))
@@ -1322,14 +1344,16 @@ class RoomDashboard:
         if yesterday:
             sections.append(yesterday)
 
-        # Comparison subview: the E32's decision next to the thermostat's, the learning note and
-        # the Bluetooth sensors that feed no single room.
+        # Comparison subview (trial run only): the readiness check, the E32's decision next to the
+        # thermostat's, the learning note and the Bluetooth sensors that feed no single room. Without
+        # the subview the note and those sensors go to the Heating view.
         comparison = []
-        if readiness:
+        if readiness and subview:
             hidden = _known(readiness, ("not_applicable",))
             comparison.append(_section(_heading(t["readiness"], "mdi:clipboard-check-outline", visibility=hidden),
                                        _readiness_card(t, readiness)))
-        if thermostat_on_bus:
+        if agreement:
+            compared = []
             compare_entities = [{"entity": entity_id, "name": name} for entity_id, name in (
                 (request, t["e32_request"]),
                 (fields.get("thermostat_requested_flow_temperature"), t["thermostat_request"]),
@@ -1348,30 +1372,36 @@ class RoomDashboard:
                 if compare_entities else None,
             )
             if len(compare["cards"]) > 1:
-                comparison.append(compare)
+                compared.append(compare)
             names = {"shadow_e32_heating_time_today": t["e32"], "shadow_tado_heating_time_today": t["thermostat"]}
             if heating_time:
-                comparison.append(_section(
+                compared.append(_section(
                     _heading(t["heating_per_day"], "mdi:chart-bar"),
                     {"type": "statistics-graph", "entities": [
                         {"entity": hub[key], "name": name} for key, name in names.items() if key in hub],
                      "stat_types": ["max"], "period": "day", "days_to_show": 7, "chart_type": "bar"}))
+            # Only while a thermostat is heard to compare with: no "Unavailable" tiles without one.
+            for card in (card for section in compared for card in section["cards"]):
+                card.setdefault("visibility", _known(agreement))
+            comparison.extend(compared)
+        extra = comparison if subview else sections
         learning = next((room["learning"] for room in e32_room_entities.values() if room.get("learning")), None)
         if learning:
             quoted = json.dumps(learning)
             note = {"type": "markdown", "visibility": _known(learning), "content": (
                 t["learning_note"] + "{% if not state_attr(" + quoted + ", 'applied') %} " + t["advice_only"] + "{% endif %}")}
-            # How the learning works: with the learned overview (its own subview), else on the Comparison.
+            # How the learning works: with the learned overview (its own subview), else on the
+            # Comparison subview, or on the Heating view when there is none.
             if learned:
                 learned.append(_section(_heading(t["learning_how"], "mdi:help-circle-outline"), note))
             else:
-                comparison.append(_section(_heading(t["learning"], "mdi:school-outline"), note))
+                extra.append(_section(_heading(t["learning"], "mdi:school-outline"), note))
         loose = [{"type": "glance", "columns": 3, "state_color": False,
                   "title": self._device_name((DOMAIN, f"{self.prefix}_e32_ble_{sensor_id}"), sensor_id),
                   "entities": [{"entity": metrics[key], "name": t[key]} for key in BLE_KEYS if key in metrics]}
                  for sensor_id, metrics in sorted(ble.items()) if not in_room.get(sensor_id)]
         if loose:
-            comparison.append(_section(_heading(t["bluetooth"], "mdi:bluetooth"), *loose))
+            extra.append(_section(_heading(t["bluetooth"], "mdi:bluetooth"), *loose))
         return sections, comparison, learned
 
     @staticmethod

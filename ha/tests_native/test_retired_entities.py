@@ -6,7 +6,8 @@ Live list after HA 0.4.0b11 (unavailable/restored on the owner's installation), 
 - the definition v2 counters (energy, warm water volume/flow, flame time): still provided by
   v1_metrics once the E32 session offers metrics - kept (they carry energy statistics);
 - the shadow comparison (heating time / burner starts today, agreement with thermostat) and the
-  per-room predicted heating start: still provided once their data arrives - kept.
+  per-room predicted heating start: still provided once their data arrives - kept here (rc.3: the
+  comparison goes only in active mode without a thermostat, test_comparison_only_in_trial_run.py).
 """
 import logging
 from types import SimpleNamespace

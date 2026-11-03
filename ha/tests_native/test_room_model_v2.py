@@ -202,7 +202,10 @@ async def test_actual_sensor_platform_legacy_identity_preserved_no_total_backfil
         await old.async_added_to_hass()
         old.async_get_last_state.assert_not_awaited()
         assert old.native_value is None and old.state_class is None and not old.available
-        assert ir.async_get(hass).async_get_issue(DOMAIN,f"room_model_v2_{e.entry_id}")
+        await hass.async_block_till_done()
+        from homeassistant.components import persistent_notification as pn
+        assert f"open_thermostat_room_model_v2_{e.entry_id}" in pn._async_get_or_create_notifications(hass)
+        assert not ir.async_get(hass).async_get_issue(DOMAIN,f"room_model_v2_{e.entry_id}")
         assert er.async_get(hass).async_get(old_record.entity_id).unique_id==old_record.unique_id
     if existing=="foreign":
         assert old_record.config_entry_id==other.entry_id

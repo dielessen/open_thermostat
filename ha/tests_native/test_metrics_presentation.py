@@ -75,19 +75,45 @@ def test_negative_cumulative_counters_never_enter_recorder(key,field):
     assert sensor.native_value is None
 
 @pytest.mark.asyncio
-async def test_actual_old_numeric_receipt_creates_persistent_native_repair_no_clear_on_v2(hass):
+async def test_actual_old_numeric_receipt_shows_one_notification_not_a_repair(hass):
+    from homeassistant.components import persistent_notification as pn
     e=entry(hass);sensor=HubMetric("fixture","ems_metrics","energy",e.entry_id);sensor.hass=hass
     sensor.update_payload({"totalEnergyUsedKwh":.01},True)
-    issue=ir.async_get(hass).async_get_issue("open_thermostat",f"legacy_metrics_history_{e.entry_id}")
-    assert issue and issue.is_persistent and not issue.is_fixable
-    sensor.update_payload({"metricsSchema":2,"counterDefinition":"observation-total-v2","totalEnergyUsedKwhV2":0},True)
-    assert ir.async_get(hass).async_get_issue("open_thermostat",f"legacy_metrics_history_{e.entry_id}") is issue
+    sensor.update_payload({"totalEnergyUsedKwh":.02},True)
+    await hass.async_block_till_done()
+    assert not ir.async_get(hass).async_get_issue("open_thermostat",f"legacy_metrics_history_{e.entry_id}")
+    notes=pn._async_get_or_create_notifications(hass)
+    note=notes[f"open_thermostat_legacy_metrics_history_{e.entry_id}"]
+    assert "Your history is kept" in note["message"] and "renewed" in note["title"]
+    pn.async_dismiss(hass,note["notification_id"])
+    # After a restart (new in-memory state) the stored flag keeps it from coming back.
+    hass.data["open_thermostat"].pop("info_notes_shown")
+    sensor.update_payload({"totalEnergyUsedKwh":.03},True)
+    await hass.async_block_till_done()
+    assert f"open_thermostat_legacy_metrics_history_{e.entry_id}" not in pn._async_get_or_create_notifications(hass)
 
 @pytest.mark.asyncio
-async def test_empty_or_corrected_payload_does_not_fabricate_old_history_repair(hass):
+async def test_old_information_repairs_are_removed_when_the_note_is_raised_or_the_entry_reconciles(hass):
+    e=entry(hass)
+    for key in reports.INFO_NOTES:
+        ir.async_create_issue(hass,"open_thermostat",f"{key}_{e.entry_id}",is_fixable=False,
+                              severity=ir.IssueSeverity.WARNING,translation_key=key)
+    reports.reconcile_migration_issues(hass,e,"fixture")
+    assert not [i for (d,_),i in ir.async_get(hass).issues.items() if d=="open_thermostat"]
+    ir.async_create_issue(hass,"open_thermostat",f"room_model_v2_{e.entry_id}",is_fixable=False,
+                          severity=ir.IssueSeverity.WARNING,translation_key="room_model_v2")
+    reports.note_room_definition_migration(hass,e.entry_id)
+    await hass.async_block_till_done()
+    assert not ir.async_get(hass).async_get_issue("open_thermostat",f"room_model_v2_{e.entry_id}")
+
+@pytest.mark.asyncio
+async def test_empty_or_corrected_payload_does_not_fabricate_old_history_note(hass):
+    from homeassistant.components import persistent_notification as pn
     e=entry(hass);sensor=HubMetric("fixture","ems_metrics","energy",e.entry_id);sensor.hass=hass
     sensor.update_payload({},True);sensor.update_payload({"metricsSchema":2,"counterDefinition":"observation-total-v2","totalEnergyUsedKwhV2":0},True)
+    await hass.async_block_till_done()
     assert not ir.async_get(hass).async_get_issue("open_thermostat",f"legacy_metrics_history_{e.entry_id}")
+    assert f"open_thermostat_legacy_metrics_history_{e.entry_id}" not in pn._async_get_or_create_notifications(hass)
 
 @pytest.mark.asyncio
 async def test_export_exact_ownership_no_attributes_formula_and_truncation_bound(hass,monkeypatch):

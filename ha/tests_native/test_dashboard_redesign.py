@@ -83,9 +83,9 @@ def test_every_boiler_field_has_one_group():
 async def test_the_boiler_view_groups_the_values_and_shows_only_rows_with_a_value(hass):
     config, hub, fields = setup(hass)
     boiler = view(config, "boiler")
-    assert (boiler["type"], boiler["max_columns"], boiler["dense_section_placement"]) == ("sections", 3, True)
+    assert (boiler["type"], boiler["max_columns"], boiler["dense_section_placement"]) == ("sections", 2, True)
     sections = headed(boiler)
-    assert list(sections) == ["Heating", "Hot water", "Status and faults", "Boiler settings",
+    assert list(sections) == ["Boiler", "Heating", "Hot water", "Status and faults", "Boiler settings",
                               "Thermostat on the bus", "Last 24 hours"]
 
     def rows(heading):
@@ -124,16 +124,16 @@ async def test_the_boiler_view_groups_the_values_and_shows_only_rows_with_a_valu
 async def test_diagnostics_shows_each_value_once_and_hides_counters_until_they_have_data(hass):
     config, hub, fields = setup(hass)
     diagnostics = view(config, "diagnostics")
-    assert (diagnostics["type"], diagnostics["max_columns"]) == ("sections", 3)
+    assert (diagnostics["type"], diagnostics["max_columns"]) == ("sections", 2)
     sections = headed(diagnostics)
-    assert list(sections) == ["E32", "Hot water today", "Energy and hot water counters", "Raw boiler data"]
+    assert list(sections) == ["E32", "Energy and hot water counters", "Raw boiler data"]
     text = json.dumps(diagnostics)
     # Every value shown once (the counters were listed twice), and no legacy hub rows any more.
     shown = [row["row"]["entity"] if row.get("type") == "conditional" else row["entity"]
              for c in view_cards(diagnostics) if c["type"] == "entities" for row in c["entities"]]
     assert not [c for c in view_cards(diagnostics) if c["type"] == "tile"]  # rows: whole names on a phone
     assert len(shown) == len(set(shown))
-    assert {hub[k] for k in ("energy_v2", "memory_free", "dhw_taps_today", "warm_water_usage_v2")} <= set(shown)
+    assert {hub[k] for k in ("energy_v2", "memory_free", "warm_water_usage_v2")} <= set(shown)
     for key in ("outdoor_temperature", "boiler_heating_enabled", "boiler_display_code"):
         assert hub[key] not in text, key
     assert "Unreliable" not in text and "EMS information" not in text
@@ -164,9 +164,9 @@ async def test_diagnostics_shows_each_value_once_and_hides_counters_until_they_h
 @pytest.mark.asyncio
 async def test_dutch_headings_for_the_new_groups(hass):
     config, hub, fields = setup(hass, "nl")
-    assert list(headed(view(config, "boiler"))) == ["Verwarming", "Warm water", "Status en storingen",
+    assert list(headed(view(config, "boiler"))) == ["Ketel", "Verwarming", "Warm water", "Status en storingen",
                                                     "Ketelinstellingen", "Thermostaat op de bus", "Afgelopen 24 uur"]
-    assert list(headed(view(config, "diagnostics"))) == ["E32", "Warm water vandaag",
+    assert list(headed(view(config, "diagnostics"))) == ["E32",
                                                          "Tellers voor energie en warm water", "Ruwe keteldata"]
     assert set(TEXT["en"]) == set(TEXT["nl"])
 

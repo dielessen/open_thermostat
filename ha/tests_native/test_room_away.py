@@ -15,6 +15,7 @@ from custom_components.open_thermostat.e32_comfort import comfort_options, comfo
 from custom_components.open_thermostat.controller_link import HeatingPlanRejected
 from custom_components.open_thermostat.room_plan import plan_room
 from test_e32_backup import FakeBackupE32, backups, finish, open_restore
+from nav_helpers import is_again  # noqa: E402
 from test_e32_comfort import FakeE32 as ComfortE32, PLAN as COMFORT_PLAN, climate, room_state
 from test_e32_room_flow import manager, product, room_form, shown  # noqa: F401  (the manager fixture)
 from test_room_plan import PLAN, STATUS, FakeE32
@@ -125,7 +126,7 @@ async def test_the_persons_section_sets_and_clears_the_rooms_own_away_temperatur
     assert values["persons"]["away_temperature"] == 16.0
     posts = len(e32.posts)
     unchanged = await manager.async_configure(form["flow_id"], values)
-    assert unchanged["type"] == "abort" and unchanged["reason"] == "e32_room_unchanged"
+    assert is_again(unchanged, "unchanged")
     assert len(e32.posts) == posts
     # Cleared: the room uses the house value again (the field leaves the plan).
     form = await room_form(manager, parent, "woonkamer")

@@ -64,8 +64,8 @@ def test_the_overview_in_plain_english():
     assert bedroom["progress"] == "Learning: 3 of 6 warm-ups seen"
     assert bedroom["lines"] == [{"text": "It learns from every warm-up while the heating runs.", "meaning": "Until then it uses safe standard times."}]
     assert [line["text"] for line in a["house"]] == [
-        "Heating curve: learned for your house.",
-        "Heating curve, learned from your house: the water gets about 0.62 °C warmer for every degree colder outside.",
+        "Weather compensation: learned for your house.",
+        "Weather compensation, learned from your house: the water gets about 0.62 °C warmer for every degree colder outside.",
         "Yesterday the burner started 59 times for heating; a burn lasted 7 min on average."]
     assert a["house"][2]["meaning"].startswith("That is often.")
     assert [c["text"] for c in a["changes"]] == [
@@ -75,7 +75,7 @@ def test_the_overview_in_plain_english():
     assert a["settings"]["Burner rest between starts"] == "10 min (set by you)"
     assert a["settings"]["Stop heating when the room is this much above its target"] == "0.15 °C (automatic)"
     assert a["settings"]["Warm-up time for floor heating"] == "1 h 30 min per °C (automatic)"
-    assert a["settings"]["Room correction on the heating curve"] == "50 % (standard value)"
+    assert a["settings"]["Room correction on weather compensation"] == "50 % (standard value)"
 
 
 @pytest.mark.parametrize("language", ["nl", "pl", "nl-NL", "pl-PL"])
@@ -170,27 +170,21 @@ def test_the_tuning_topic_joins_the_summary():
         assert "tuning" not in h.summary
 
 
-def test_the_dashboard_sums_it_up_on_heating_and_shows_it_all_on_its_own_page():
-    """A page of text pushed the rooms down on a phone: the Heating view shows how far each room is and the
-    latest change, with a link; the whole overview is its own subview (rooms, house and boiler, its changes)."""
+def test_the_learning_view_sums_it_up_and_shows_the_house_and_its_changes():
+    """What it learned is the "Learning and settings" view: how far each room is and the latest change, the house and
+    boiler, and what it changed by itself. What it learned per room is in that room's section of the Rooms view."""
     from custom_components.open_thermostat import dashboard
     entity = "sensor.what_the_thermostat_learned"
     shown = [{"condition": "state", "entity": entity, "state_not": "unavailable"}]
-    summary = dashboard._learned_summary(dashboard.TEXT["en"], entity, "/dash/learned")
-    heading, text, link = summary["cards"]
-    assert heading["heading"] == "What the thermostat has learned" and summary["visibility"] == shown
-    assert "room.progress" in text["content"] and "'changes') or [])[:1]" in text["content"]
-    assert "room.lines" not in text["content"]  # the details are on the subview
-    assert (link["heading"], link["tap_action"]) == ("Everything it learned",
-                                                    {"action": "navigate", "navigation_path": "/dash/learned"})
-    rooms, house, changes = dashboard._learned_sections(dashboard.TEXT["en"], entity)
-    assert [s["cards"][0]["heading"] for s in (rooms, house, changes)] == [
+    summary, house, changes = dashboard._learned_sections(dashboard.TEXT["en"], entity)
+    assert [s["cards"][0]["heading"] for s in (summary, house, changes)] == [
         "What the thermostat has learned", "House and boiler", "What it changed by itself"]
-    assert f"state_attr(\"{entity}\", 'rooms')" in rooms["cards"][1]["content"]
-    assert "'explanation'" in rooms["cards"][1]["content"] and "'house'" in house["cards"][1]["content"]
-    assert "'changes'" in changes["cards"][1]["content"] and "Home → Comfort and boiler care" in changes["cards"][1]["content"]
-    assert all(s["visibility"] == shown for s in (rooms, house, changes))
-    assert dashboard._learned_summary(dashboard.TEXT["nl"], None, "/x") is None
+    assert "room.progress" in summary["cards"][1]["content"] and "'changes') or [])[:1]" in summary["cards"][1]["content"]
+    assert "room.lines" not in summary["cards"][1]["content"]  # the lines are in the rooms
+    assert "'explanation'" in summary["cards"][1]["content"] and "<details>" in summary["cards"][1]["content"]
+    assert "'house'" in house["cards"][1]["content"] and "'changes'" in changes["cards"][1]["content"]
+    assert "Home → Comfort and boiler care" in changes["cards"][2]["content"]
+    assert all(s["visibility"] == shown for s in (summary, house, changes))
     assert dashboard._learned_sections(dashboard.TEXT["nl"], None) == []
     assert dashboard._learned_sections(dashboard.TEXT["nl"], "sensor.x")[0]["cards"][0]["heading"] == "Wat de thermostaat heeft geleerd"
 
@@ -299,23 +293,23 @@ def test_the_overview_follows_the_smart_warm_up_switch():
 # the overview says plainly what it uses now, and the same for the learned coolest water.
 @pytest.mark.parametrize("curve,on,english,dutch", [
     ({"state": "applied", "slope_source": "design", "windows": 2}, True,
-     "Heating curve: standard for now, learning from your house (2 of 6 steady periods).",
-     "Stooklijn: voorlopig standaard, hij leert van je huis (2 van 6 rustige periodes)."),
+     "Weather compensation: standard for now, learning from your house (2 of 6 steady periods).",
+     "Weerafhankelijke regeling: voorlopig standaard, hij leert van je huis (2 van 6 rustige periodes)."),
     ({"state": "applied", "slope_source": "design"}, None,                       # older firmware: no count
-     "Heating curve: standard for now, learning from your house.", "Stooklijn: voorlopig standaard, hij leert van je huis."),
+     "Weather compensation: standard for now, learning from your house.", "Weerafhankelijke regeling: voorlopig standaard, hij leert van je huis."),
     ({"state": "applied", "slope_source": "learned", "windows": 9}, True,
-     "Heating curve: learned for your house.", "Stooklijn: geleerd voor je huis."),
+     "Weather compensation: learned for your house.", "Weerafhankelijke regeling: geleerd voor je huis."),
     ({"state": "no_outdoor", "slope_source": "design", "windows": 0}, True,
-     "Heating curve: no outdoor temperature right now, so the water temperature follows the rooms only.",
-     "Stooklijn: nu geen buitentemperatuur, dus de watertemperatuur volgt alleen de ruimtes."),
+     "Weather compensation: no outdoor temperature right now, so the water temperature follows the rooms only.",
+     "Weerafhankelijke regeling: nu geen buitentemperatuur, dus de watertemperatuur volgt alleen de ruimtes."),
     ({"state": "advice", "slope_source": "learned", "windows": 7}, False,
-     "Heating curve: off, the water temperature follows the rooms only.",
-     "Stooklijn: uit, de watertemperatuur volgt alleen de ruimtes."),
+     "Weather compensation: off, the water temperature follows the rooms only.",
+     "Weerafhankelijke regeling: uit, de watertemperatuur volgt alleen de ruimtes."),
 ])
 def test_the_curve_says_what_it_uses_now(curve, on, english, dutch):
     assert lo.curve_status(curve, on, "en")[0] == english
     assert lo.curve_status(curve, on, "nl")[0] == dutch
-    assert lo.curve_status(curve, on, "pl")[0].startswith("Krzywa grzewcza: ")
+    assert lo.curve_status(curve, on, "pl")[0].startswith("Kompensacja pogodowa: ")
     assert lo.curve_status({"state": "no_room"}, on, "en") is None and lo.curve_status(None, on, "en") is None
 
 
@@ -331,4 +325,4 @@ def test_the_learned_water_says_whether_it_is_ready():
     s.hass = SimpleNamespace(config=SimpleNamespace(language="en"),
                              data={"open_thermostat": {"e": {"e32_flow": SimpleNamespace(settings={"weather_curve": True, "apply_learned": True})}}})
     assert [line["text"] for line in s.extra_state_attributes["house"]][:2] == [
-        "Heating curve: standard for now, learning from your house (2 of 6 steady periods).", "Coolest water: still learning from each warm-up."]
+        "Weather compensation: standard for now, learning from your house (2 of 6 steady periods).", "Coolest water: still learning from each warm-up."]

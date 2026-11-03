@@ -1,3 +1,60 @@
+# HA 1.0.0rc4 — a tidier Configure menu and dashboard, and why each room heats
+<!-- user-release-notes:v2:en -->
+
+Companion release for the E32 1.0.0-rc.3; the E32 itself is unchanged. Needs
+Home Assistant 2026.10.0 or newer.
+
+## New
+
+- **Configure, tidied up:** six main items (Rooms, House, Heating and boiler,
+  Energy and outdoor temperature, E32 connection, Advanced and diagnostics).
+  Every submenu has "← Back"; after saving you are back in the menu, and
+  "Done" closes it.
+- **Every setting in Configure:** also the house mode and holiday (with its
+  end date, and "Stop holiday"), Smart warm-up, Weather compensation and a
+  room's "Off until".
+- **Dashboard in tabs:** Overview, Rooms, Week program, Boiler, Learning and
+  settings, and Diagnostics. Tiles sit in full rows or pairs, without gaps.
+- **Why each room heats or not:** on the Overview every room has a status
+  card: temperature and target, and in one line why it heats or not (window
+  open, away, warm enough, Smart warm-up heating early…). Also as a "Reason"
+  sensor per room.
+- **The heating problem says what it is**, for example "Waiting for your
+  confirmation", and tapping it opens Repairs.
+- **Weather compensation** is the new name for "Follow outdoor temperature";
+  its setting is now "Water temperature in hard frost (−10 °C)", with an
+  explanation.
+- **Plainer words** in Configure and Repairs; technical details only under
+  "Technical details".
+
+## Fixed
+
+- Repairs only appear for real problems, and each says what to do. Notices
+  such as renewed boiler counters are shown once as a notification.
+- "Switching on and off too often" is shown as learning information while the
+  E32 lengthens the burner rest, not as a problem.
+- HACS no longer offers the main branch (a commit such as 5043af7) as an
+  update, and the HACS page shows the logo instead of code.
+
+## Updating
+
+1. Update OpenThermostat in HACS and restart Home Assistant. In HACS, switch
+   **Pre-release** on for OpenThermostat, or the update is not offered.
+2. The E32 stays on 1.0.0-rc.3: no firmware update and no need to confirm
+   the takeover again.
+3. If HACS shows a commit such as 5043af7 as the installed version, download
+   the release version once (Redownload, pick 1.0.0rc4).
+
+Entity IDs and history are kept. The dashboard is rebuilt with the new tabs;
+your own dashboards are not changed.
+
+## Limitations
+
+Radiator valve control is not yet verified on real valves. EMS Classic
+boilers only; EMS+ comes in 1.1. Writing boiler settings comes after 1.0.
+Pairing Bluetooth sensors is done on the E32. HACS lists OpenThermostat as a
+custom repository, not yet in the default HACS list.
+
 # HA 1.0.0rc3 — the third 1.0 candidate: everything from Home Assistant, away per room and which rooms want heat
 <!-- user-release-notes:v2:en -->
 

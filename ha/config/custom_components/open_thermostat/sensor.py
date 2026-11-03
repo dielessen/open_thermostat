@@ -54,8 +54,8 @@ HUB_METRICS = {
     },
     "ems_status": {
         "boiler_selected_hot_water_temperature": ("selectedWarmWaterTemperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "Boiler selected hot water temperature"),
-        "boiler_selected_flow_temperature": ("selectedFlowTemperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "Boiler selected flow temperature"),
-        "boiler_current_flow_temperature": ("currentFlowTemperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "Boiler current flow temperature"),
+        "boiler_selected_flow_temperature": ("selectedFlowTemperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "Boiler selected water temperature (flow)"),
+        "boiler_current_flow_temperature": ("currentFlowTemperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "Boiler current water temperature (flow)"),
         "boiler_pressure": ("pressure", SensorDeviceClass.PRESSURE, "bar", SensorStateClass.MEASUREMENT, "Boiler pressure"),
         "boiler_burner_power": ("currentBurnerPower", None, PERCENTAGE, SensorStateClass.MEASUREMENT, "Reported burner modulation"),
         "boiler_hot_water_flow": ("warmWaterFlow", None, "L/min", SensorStateClass.MEASUREMENT, "Boiler hot water flow"),

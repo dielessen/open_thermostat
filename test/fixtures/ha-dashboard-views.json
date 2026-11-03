@@ -1,0 +1,2716 @@
+{
+ "en": {
+  "views": [
+   {
+    "dense_section_placement": true,
+    "icon": "mdi:home-thermometer",
+    "max_columns": 2,
+    "path": "heating",
+    "sections": [
+     {
+      "cards": [
+       {
+        "heading": "House",
+        "heading_style": "title",
+        "icon": "mdi:home-account",
+        "type": "heading"
+       },
+       {
+        "content": "{% set wanting = (state_attr(\"sensor.fixture_hub_heat_request\", 'rooms') or []) | selectattr('demand', 'eq', true) | list %}### {% if wanting | length == 1 %}1 room wants heat{% elif wanting %}{{ wanting | length }} rooms want heat{% else %}No room wants heat{% endif %}\n{% for room in wanting %}- **{{ room.name }}**{% if room.temperature is number and room.setpoint is number %}: {{ ('%.1f' % (room.temperature | float)) | replace('.', \".\") }} → {{ ('%.1f' % (room.setpoint | float)) | replace('.', \".\") }} °C{% endif %}\n{% endfor %}{% if states(\"sensor.fixture_hub_heat_request\") | float(0) > 0 %}\nBoiler request: {{ ('%.1f' % (states(\"sensor.fixture_hub_heat_request\") | float)) | replace('.', \".\") }} °C{% endif %}",
+        "type": "markdown"
+       },
+       {
+        "entity": "binary_sensor.heating_problem",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Heating",
+        "state_content": [
+         "reason"
+        ],
+        "tap_action": {
+         "action": "navigate",
+         "navigation_path": "/config/repairs"
+        },
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "binary_sensor.heating_problem",
+          "state": "on"
+         }
+        ]
+       },
+       {
+        "content": "<details><summary>All reasons</summary>\n\n{% for reason in state_attr(\"binary_sensor.heating_problem\", 'reasons') or [] %}- {{ reason }}\n{% endfor %}\n\n</details>",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "binary_sensor.heating_problem",
+          "state": "on"
+         }
+        ]
+       }
+      ],
+      "column_span": 2,
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Rooms",
+        "heading_style": "title",
+        "icon": "mdi:thermostat",
+        "type": "heading"
+       },
+       {
+        "entity": "sensor.fixture_e32_room_woonkamer_temperature",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:home-thermometer-outline",
+        "name": "Woonkamer",
+        "type": "tile"
+       },
+       {
+        "entity": "sensor.fixture_e32_room_badkamer_temperature",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:home-thermometer-outline",
+        "name": "Badkamer",
+        "type": "tile"
+       }
+      ],
+      "column_span": 2,
+      "type": "grid"
+     }
+    ],
+    "title": "Overview",
+    "type": "sections"
+   },
+   {
+    "dense_section_placement": true,
+    "icon": "mdi:thermostat",
+    "max_columns": 2,
+    "path": "rooms",
+    "sections": [
+     {
+      "cards": [
+       {
+        "badges": [
+         {
+          "color": "deep-orange",
+          "entity": "binary_sensor.fixture_e32_room_woonkamer_demand",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "condition": "state",
+            "entity": "select.fixture_e32_room_woonkamer_state",
+            "state_not": "inactive"
+           }
+          ]
+         },
+         {
+          "color": "amber",
+          "entity": "sensor.fixture_e32_room_woonkamer_status",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_e32_room_woonkamer_status",
+            "state_not": [
+             "ok",
+             "inactive"
+            ]
+           }
+          ]
+         },
+         {
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "icon": "mdi:power-off",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "condition": "state",
+            "entity": "select.fixture_e32_room_woonkamer_state",
+            "state": "inactive"
+           }
+          ]
+         },
+         {
+          "color": "red",
+          "entity": "sensor.fixture_e32_ble_a4c138a3e8db_battery",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "below": 20,
+            "condition": "numeric_state",
+            "entity": "sensor.fixture_e32_ble_a4c138a3e8db_battery"
+           }
+          ]
+         }
+        ],
+        "heading": "Woonkamer",
+        "heading_style": "title",
+        "icon": "mdi:home-thermometer-outline",
+        "type": "heading"
+       },
+       {
+        "entity": "climate.woonkamer_thermostat",
+        "type": "thermostat",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state_not": "inactive"
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_e32_room_woonkamer_temperature",
+          "name": "Measured"
+         },
+         {
+          "entity": "sensor.fixture_e32_room_woonkamer_setpoint",
+          "name": "Target"
+         }
+        ],
+        "hours_to_show": 24,
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state_not": "inactive"
+         }
+        ]
+       },
+       {
+        "entity": "datetime.fixture_e32_room_woonkamer_inactive_until",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Off until",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "datetime.fixture_e32_room_woonkamer_inactive_until",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "heading": "Sensors, windows and people",
+        "heading_style": "subtitle",
+        "icon": "mdi:window-open-variant",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_e32_ble_a4c138a3e8db_temperature",
+          "name": "Temperature"
+         },
+         {
+          "entity": "sensor.fixture_e32_ble_a4c138a3e8db_humidity",
+          "name": "Humidity"
+         },
+         {
+          "entity": "sensor.fixture_e32_ble_a4c138a3e8db_battery",
+          "name": "Battery"
+         }
+        ],
+        "type": "entities"
+       },
+       {
+        "badges": [
+         {
+          "color": "teal",
+          "entity": "sensor.woonkamer_learning",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity"
+         }
+        ],
+        "heading": "Learning",
+        "heading_style": "subtitle",
+        "icon": "mdi:school-outline",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_learning",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.woonkamer_flow_advice",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Recommended water temperature",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_learning",
+          "state": "ready"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_flow_advice",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.woonkamer_heating_start",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Heating starts",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_heating_start",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "This room is off and never asks for heat.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state": "inactive"
+         }
+        ]
+       },
+       {
+        "heading": "Woonkamer settings",
+        "heading_style": "subtitle",
+        "icon": "mdi:cog",
+        "tap_action": {
+         "action": "navigate",
+         "navigation_path": "/config/integrations/integration/open_thermostat"
+        },
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state": "inactive"
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "badges": [
+         {
+          "color": "deep-orange",
+          "entity": "binary_sensor.fixture_e32_room_badkamer_demand",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "condition": "state",
+            "entity": "select.fixture_e32_room_badkamer_state",
+            "state_not": "inactive"
+           }
+          ]
+         },
+         {
+          "color": "amber",
+          "entity": "sensor.fixture_e32_room_badkamer_status",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_e32_room_badkamer_status",
+            "state_not": [
+             "ok",
+             "inactive"
+            ]
+           }
+          ]
+         },
+         {
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "icon": "mdi:power-off",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "condition": "state",
+            "entity": "select.fixture_e32_room_badkamer_state",
+            "state": "inactive"
+           }
+          ]
+         }
+        ],
+        "heading": "Badkamer",
+        "heading_style": "title",
+        "icon": "mdi:home-thermometer-outline",
+        "type": "heading"
+       },
+       {
+        "entity": "climate.badkamer_thermostat",
+        "type": "thermostat",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state_not": "inactive"
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_e32_room_badkamer_temperature",
+          "name": "Measured"
+         },
+         {
+          "entity": "sensor.fixture_e32_room_badkamer_setpoint",
+          "name": "Target"
+         }
+        ],
+        "hours_to_show": 24,
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state_not": "inactive"
+         }
+        ]
+       },
+       {
+        "entity": "datetime.fixture_e32_room_badkamer_inactive_until",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Off until",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "datetime.fixture_e32_room_badkamer_inactive_until",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "badges": [
+         {
+          "color": "teal",
+          "entity": "sensor.badkamer_learning",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity"
+         }
+        ],
+        "heading": "Learning",
+        "heading_style": "subtitle",
+        "icon": "mdi:school-outline",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_learning",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.badkamer_flow_advice",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Recommended water temperature",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_learning",
+          "state": "ready"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_flow_advice",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.badkamer_heating_start",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Heating starts",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_heating_start",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "This room is off and never asks for heat.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state": "inactive"
+         }
+        ]
+       },
+       {
+        "heading": "Badkamer settings",
+        "heading_style": "subtitle",
+        "icon": "mdi:cog",
+        "tap_action": {
+         "action": "navigate",
+         "navigation_path": "/config/integrations/integration/open_thermostat"
+        },
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state": "inactive"
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     }
+    ],
+    "title": "Rooms",
+    "type": "sections"
+   },
+   {
+    "dense_section_placement": true,
+    "icon": "mdi:water-boiler",
+    "max_columns": 2,
+    "path": "boiler",
+    "sections": [
+     {
+      "cards": [
+       {
+        "heading": "Boiler",
+        "heading_style": "title",
+        "icon": "mdi:water-boiler",
+        "type": "heading"
+       },
+       {
+        "content": "{% set e = \"sensor.fixture_boiler_fields_v1_display_code\" %}{% set code = states(e) %}{% set meaning = state_attr(e, 'meaning') %}{% set severity = state_attr(e, 'severity') %}{% set advice = state_attr(e, 'advice') %}{% set cause = state_attr(e, 'cause') %}{% set raw = code ~ (' ' ~ cause if cause else '') %}{% if severity in [\"blocking\", \"locking\", \"fault\"] %}<ha-alert alert-type=\"{{ 'error' if severity == 'locking' else 'warning' }}\" title=\"{{ meaning }}\">{{ state_attr(e, 'severity_text') }}.{% if advice %} {{ advice }}{% endif %} <small>Display code {{ raw }}</small></ha-alert>{% elif severity == 'unknown' %}<ha-icon icon=\"mdi:help-circle-outline\"></ha-icon> **Display code {{ raw }}** · {{ meaning }}{% elif meaning %}<ha-icon icon=\"{{ {\"normal\": \"mdi:water-boiler\", \"waiting\": \"mdi:timer-sand\", \"service\": \"mdi:wrench-outline\"}.get(severity, 'mdi:water-boiler') }}\"></ha-icon> Boiler: **{{ meaning }}** <small>{{ raw }}</small>{% if advice and severity != 'normal' %}\n\n<small>{{ advice }}</small>{% endif %}{% else %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> Display code **{{ code }}**{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_display_code",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_hub_burner_starts_last_hour",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_hub_burner_starts_last_hour",
+           "name": "Starts per hour"
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_burner_starts_last_hour",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Heating",
+        "heading_style": "title",
+        "icon": "mdi:radiator",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_pressure",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_pressure",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_pressure",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Values as the boiler reports them; a value the boiler does not send is left out.\n\n<details><summary>More</summary>\n\nBurner power is a percentage of the boiler's maximum, not kW; \"active\" is what the boiler reports, not a separate check.\n\n</details>",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Hot water",
+        "heading_style": "title",
+        "icon": "mdi:water-thermometer",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Status and faults",
+        "heading_style": "title",
+        "icon": "mdi:information-outline",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_display_code",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_display_code",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_display_code",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Thermostat on the bus",
+        "heading_style": "title",
+        "icon": "mdi:thermostat",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Last 24 hours",
+        "heading_style": "title",
+        "icon": "mdi:chart-line",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "name": "To heating (flow)"
+         },
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+          "name": "Back (return)"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "Water temperatures: target, to heating and back",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "name": "Burner power (%)"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "Burner power (%) — not kW",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "name": "Measured hot water"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "Hot water temperatures",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     }
+    ],
+    "title": "Boiler",
+    "type": "sections"
+   },
+   {
+    "dense_section_placement": true,
+    "icon": "mdi:school-outline",
+    "max_columns": 2,
+    "path": "learned",
+    "sections": [
+     {
+      "cards": [
+       {
+        "heading": "Smart warm-up and weather compensation",
+        "heading_style": "title",
+        "icon": "mdi:chart-bell-curve-cumulative",
+        "type": "heading"
+       },
+       {
+        "entity": "switch.flow_apply_learned",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:school-outline",
+        "name": "Smart warm-up",
+        "type": "tile"
+       },
+       {
+        "entity": "switch.flow_weather_curve",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:sun-thermometer",
+        "name": "Weather compensation",
+        "type": "tile"
+       },
+       {
+        "entity": "select.flow_curve_design_flow_c",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:thermometer-lines",
+        "name": "Water temperature at −10 °C outside",
+        "type": "tile"
+       },
+       {
+        "entity": "sensor.flow_source",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:thermometer-water",
+        "name": "Water temperature set by",
+        "type": "tile"
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Boiler control",
+        "heading_style": "title",
+        "icon": "mdi:water-boiler",
+        "type": "heading"
+       },
+       {
+        "content": "{% set mode = state_attr(\"sensor.fixture_hub_heat_request\", 'mode') %}{% if mode == 'active' and state_attr(\"sensor.fixture_hub_heat_request\", 'control') == 'awaiting_confirmation' %}Next step: run the boiler test and confirm the takeover on the E32 Rooms page.{% elif mode == 'active' %}The E32 controls the boiler.{% elif mode == 'shadow' %}Trial run: the E32 calculates along but does not control the boiler yet; your current thermostat or the boiler's own control stays in charge.{% else %}The E32 keeps your rooms running, also without Home Assistant.{% endif %}\n\n<details><summary>More</summary>\n\n{% if mode == 'active' and state_attr(\"sensor.fixture_hub_heat_request\", 'control') == 'awaiting_confirmation' %}Until then the E32 sends nothing to the boiler.{% elif mode == 'active' %}{% elif mode == 'shadow' %}{% endif %} The E32 keeps your rooms running, also without Home Assistant.\n\n</details>",
+        "type": "markdown"
+       },
+       {
+        "content": "{% if is_state(\"binary_sensor.fixture_hub_burner_short_cycling\", 'on') %}<ha-icon icon=\"mdi:sync\"></ha-icon> **Switching on and off too often**\n\nThe E32 lengthens the burner rest step by step.{% else %}<ha-icon icon=\"mdi:check-circle-outline\"></ha-icon> The burner runs calmly.{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "binary_sensor.fixture_hub_burner_short_cycling",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "heading": "E32 compared with your thermostat",
+        "heading_style": "subtitle",
+        "icon": "mdi:compare-horizontal",
+        "tap_action": {
+         "action": "navigate",
+         "navigation_path": "/open-thermostat-fixture-x/comparison"
+        },
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "How it learns",
+        "heading_style": "title",
+        "icon": "mdi:help-circle-outline",
+        "type": "heading"
+       },
+       {
+        "content": "The E32 also learns how fast each room warms up and works out the coolest water that still warms the room 1 °C in time (the recommended water temperature).{% if not state_attr(\"sensor.woonkamer_learning\", 'applied') %}\n\n<details><summary>More</summary>\n\nFor now this is advice only; the E32 keeps using its room control.\n\n</details>{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_learning",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     }
+    ],
+    "title": "Learning and settings",
+    "type": "sections"
+   },
+   {
+    "dense_section_placement": true,
+    "icon": "mdi:information-outline",
+    "max_columns": 2,
+    "path": "diagnostics",
+    "sections": [],
+    "title": "Diagnostics",
+    "type": "sections"
+   },
+   {
+    "back_path": "/open-thermostat-fixture-x/heating",
+    "dense_section_placement": true,
+    "icon": "mdi:compare-horizontal",
+    "max_columns": 2,
+    "path": "comparison",
+    "sections": [
+     {
+      "cards": [
+       {
+        "heading": "E32 and thermostat",
+        "heading_style": "title",
+        "icon": "mdi:compare-horizontal",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "color": "teal",
+        "entity": "sensor.fixture_hub_shadow_agreement_today",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:compare-horizontal",
+        "name": "Agreement with thermostat",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_hub_shadow_e32_heating_time_today",
+        "icon": "mdi:timer-outline",
+        "name": "Heating time E32",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_hub_shadow_tado_heating_time_today",
+        "icon": "mdi:timer-outline",
+        "name": "Heating time thermostat",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_hub_shadow_e32_starts_today",
+        "icon": "mdi:counter",
+        "name": "Starts E32",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_hub_shadow_tado_starts_today",
+        "icon": "mdi:counter",
+        "name": "Starts thermostat",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_hub_heat_request",
+          "name": "Boiler request E32"
+         },
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+          "name": "Thermostat request"
+         },
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "name": "Water to heating (flow)"
+         }
+        ],
+        "hours_to_show": 24,
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Heating time per day",
+        "heading_style": "title",
+        "icon": "mdi:chart-bar",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         {
+          "entity": "sensor.fixture_hub_shadow_e32_heating_time_today",
+          "name": "E32"
+         },
+         {
+          "entity": "sensor.fixture_hub_shadow_tado_heating_time_today",
+          "name": "Thermostat"
+         }
+        ],
+        "period": "day",
+        "stat_types": [
+         "max"
+        ],
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     }
+    ],
+    "subview": true,
+    "title": "Comparison",
+    "type": "sections"
+   }
+  ]
+ },
+ "nl": {
+  "views": [
+   {
+    "dense_section_placement": true,
+    "icon": "mdi:home-thermometer",
+    "max_columns": 2,
+    "path": "heating",
+    "sections": [
+     {
+      "cards": [
+       {
+        "heading": "Huis",
+        "heading_style": "title",
+        "icon": "mdi:home-account",
+        "type": "heading"
+       },
+       {
+        "content": "{% set wanting = (state_attr(\"sensor.fixture_hub_heat_request\", 'rooms') or []) | selectattr('demand', 'eq', true) | list %}### {% if wanting | length == 1 %}1 ruimte vraagt warmte{% elif wanting %}{{ wanting | length }} ruimtes vragen warmte{% else %}Geen ruimte vraagt warmte{% endif %}\n{% for room in wanting %}- **{{ room.name }}**{% if room.temperature is number and room.setpoint is number %}: {{ ('%.1f' % (room.temperature | float)) | replace('.', \",\") }} → {{ ('%.1f' % (room.setpoint | float)) | replace('.', \",\") }} °C{% endif %}\n{% endfor %}{% if states(\"sensor.fixture_hub_heat_request\") | float(0) > 0 %}\nKetelvraag: {{ ('%.1f' % (states(\"sensor.fixture_hub_heat_request\") | float)) | replace('.', \",\") }} °C{% endif %}",
+        "type": "markdown"
+       },
+       {
+        "entity": "binary_sensor.heating_problem",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Verwarming",
+        "state_content": [
+         "reason"
+        ],
+        "tap_action": {
+         "action": "navigate",
+         "navigation_path": "/config/repairs"
+        },
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "binary_sensor.heating_problem",
+          "state": "on"
+         }
+        ]
+       },
+       {
+        "content": "<details><summary>Alle redenen</summary>\n\n{% for reason in state_attr(\"binary_sensor.heating_problem\", 'reasons') or [] %}- {{ reason }}\n{% endfor %}\n\n</details>",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "binary_sensor.heating_problem",
+          "state": "on"
+         }
+        ]
+       }
+      ],
+      "column_span": 2,
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Ruimtes",
+        "heading_style": "title",
+        "icon": "mdi:thermostat",
+        "type": "heading"
+       },
+       {
+        "entity": "sensor.fixture_e32_room_woonkamer_temperature",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:home-thermometer-outline",
+        "name": "Woonkamer",
+        "type": "tile"
+       },
+       {
+        "entity": "sensor.fixture_e32_room_badkamer_temperature",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:home-thermometer-outline",
+        "name": "Badkamer",
+        "type": "tile"
+       }
+      ],
+      "column_span": 2,
+      "type": "grid"
+     }
+    ],
+    "title": "Overzicht",
+    "type": "sections"
+   },
+   {
+    "dense_section_placement": true,
+    "icon": "mdi:thermostat",
+    "max_columns": 2,
+    "path": "rooms",
+    "sections": [
+     {
+      "cards": [
+       {
+        "badges": [
+         {
+          "color": "deep-orange",
+          "entity": "binary_sensor.fixture_e32_room_woonkamer_demand",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "condition": "state",
+            "entity": "select.fixture_e32_room_woonkamer_state",
+            "state_not": "inactive"
+           }
+          ]
+         },
+         {
+          "color": "amber",
+          "entity": "sensor.fixture_e32_room_woonkamer_status",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_e32_room_woonkamer_status",
+            "state_not": [
+             "ok",
+             "inactive"
+            ]
+           }
+          ]
+         },
+         {
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "icon": "mdi:power-off",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "condition": "state",
+            "entity": "select.fixture_e32_room_woonkamer_state",
+            "state": "inactive"
+           }
+          ]
+         },
+         {
+          "color": "red",
+          "entity": "sensor.fixture_e32_ble_a4c138a3e8db_battery",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "below": 20,
+            "condition": "numeric_state",
+            "entity": "sensor.fixture_e32_ble_a4c138a3e8db_battery"
+           }
+          ]
+         }
+        ],
+        "heading": "Woonkamer",
+        "heading_style": "title",
+        "icon": "mdi:home-thermometer-outline",
+        "type": "heading"
+       },
+       {
+        "entity": "climate.woonkamer_thermostat",
+        "type": "thermostat",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state_not": "inactive"
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_e32_room_woonkamer_temperature",
+          "name": "Gemeten"
+         },
+         {
+          "entity": "sensor.fixture_e32_room_woonkamer_setpoint",
+          "name": "Gewenst"
+         }
+        ],
+        "hours_to_show": 24,
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state_not": "inactive"
+         }
+        ]
+       },
+       {
+        "entity": "datetime.fixture_e32_room_woonkamer_inactive_until",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Uit tot",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "datetime.fixture_e32_room_woonkamer_inactive_until",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "heading": "Sensoren, ramen en personen",
+        "heading_style": "subtitle",
+        "icon": "mdi:window-open-variant",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_e32_ble_a4c138a3e8db_temperature",
+          "name": "Temperatuur"
+         },
+         {
+          "entity": "sensor.fixture_e32_ble_a4c138a3e8db_humidity",
+          "name": "Luchtvochtigheid"
+         },
+         {
+          "entity": "sensor.fixture_e32_ble_a4c138a3e8db_battery",
+          "name": "Batterij"
+         }
+        ],
+        "type": "entities"
+       },
+       {
+        "badges": [
+         {
+          "color": "teal",
+          "entity": "sensor.woonkamer_learning",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity"
+         }
+        ],
+        "heading": "Leren",
+        "heading_style": "subtitle",
+        "icon": "mdi:school-outline",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_learning",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.woonkamer_flow_advice",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Geadviseerde watertemperatuur",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_learning",
+          "state": "ready"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_flow_advice",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.woonkamer_heating_start",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Start verwarmen",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_heating_start",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Deze ruimte staat uit en vraagt nooit warmte.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state": "inactive"
+         }
+        ]
+       },
+       {
+        "heading": "Instellingen Woonkamer",
+        "heading_style": "subtitle",
+        "icon": "mdi:cog",
+        "tap_action": {
+         "action": "navigate",
+         "navigation_path": "/config/integrations/integration/open_thermostat"
+        },
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state": "inactive"
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "badges": [
+         {
+          "color": "deep-orange",
+          "entity": "binary_sensor.fixture_e32_room_badkamer_demand",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "condition": "state",
+            "entity": "select.fixture_e32_room_badkamer_state",
+            "state_not": "inactive"
+           }
+          ]
+         },
+         {
+          "color": "amber",
+          "entity": "sensor.fixture_e32_room_badkamer_status",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_e32_room_badkamer_status",
+            "state_not": [
+             "ok",
+             "inactive"
+            ]
+           }
+          ]
+         },
+         {
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "icon": "mdi:power-off",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity",
+          "visibility": [
+           {
+            "condition": "state",
+            "entity": "select.fixture_e32_room_badkamer_state",
+            "state": "inactive"
+           }
+          ]
+         }
+        ],
+        "heading": "Badkamer",
+        "heading_style": "title",
+        "icon": "mdi:home-thermometer-outline",
+        "type": "heading"
+       },
+       {
+        "entity": "climate.badkamer_thermostat",
+        "type": "thermostat",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state_not": "inactive"
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_e32_room_badkamer_temperature",
+          "name": "Gemeten"
+         },
+         {
+          "entity": "sensor.fixture_e32_room_badkamer_setpoint",
+          "name": "Gewenst"
+         }
+        ],
+        "hours_to_show": 24,
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state_not": "inactive"
+         }
+        ]
+       },
+       {
+        "entity": "datetime.fixture_e32_room_badkamer_inactive_until",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Uit tot",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "datetime.fixture_e32_room_badkamer_inactive_until",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "badges": [
+         {
+          "color": "teal",
+          "entity": "sensor.badkamer_learning",
+          "show_icon": true,
+          "show_state": true,
+          "type": "entity"
+         }
+        ],
+        "heading": "Leren",
+        "heading_style": "subtitle",
+        "icon": "mdi:school-outline",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_learning",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.badkamer_flow_advice",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Geadviseerde watertemperatuur",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_learning",
+          "state": "ready"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_flow_advice",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.badkamer_heating_start",
+        "grid_options": {
+         "columns": 12
+        },
+        "name": "Start verwarmen",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_heating_start",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Deze ruimte staat uit en vraagt nooit warmte.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state": "inactive"
+         }
+        ]
+       },
+       {
+        "heading": "Instellingen Badkamer",
+        "heading_style": "subtitle",
+        "icon": "mdi:cog",
+        "tap_action": {
+         "action": "navigate",
+         "navigation_path": "/config/integrations/integration/open_thermostat"
+        },
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state": "inactive"
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     }
+    ],
+    "title": "Ruimtes",
+    "type": "sections"
+   },
+   {
+    "dense_section_placement": true,
+    "icon": "mdi:water-boiler",
+    "max_columns": 2,
+    "path": "boiler",
+    "sections": [
+     {
+      "cards": [
+       {
+        "heading": "Ketel",
+        "heading_style": "title",
+        "icon": "mdi:water-boiler",
+        "type": "heading"
+       },
+       {
+        "content": "{% set e = \"sensor.fixture_boiler_fields_v1_display_code\" %}{% set code = states(e) %}{% set meaning = state_attr(e, 'meaning') %}{% set severity = state_attr(e, 'severity') %}{% set advice = state_attr(e, 'advice') %}{% set cause = state_attr(e, 'cause') %}{% set raw = code ~ (' ' ~ cause if cause else '') %}{% if severity in [\"blocking\", \"locking\", \"fault\"] %}<ha-alert alert-type=\"{{ 'error' if severity == 'locking' else 'warning' }}\" title=\"{{ meaning }}\">{{ state_attr(e, 'severity_text') }}.{% if advice %} {{ advice }}{% endif %} <small>Displaycode {{ raw }}</small></ha-alert>{% elif severity == 'unknown' %}<ha-icon icon=\"mdi:help-circle-outline\"></ha-icon> **Displaycode {{ raw }}** · {{ meaning }}{% elif meaning %}<ha-icon icon=\"{{ {\"normal\": \"mdi:water-boiler\", \"waiting\": \"mdi:timer-sand\", \"service\": \"mdi:wrench-outline\"}.get(severity, 'mdi:water-boiler') }}\"></ha-icon> Ketel: **{{ meaning }}** <small>{{ raw }}</small>{% if advice and severity != 'normal' %}\n\n<small>{{ advice }}</small>{% endif %}{% else %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> Displaycode **{{ code }}**{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_display_code",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_hub_burner_starts_last_hour",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_hub_burner_starts_last_hour",
+           "name": "Starts per uur"
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_burner_starts_last_hour",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Verwarming",
+        "heading_style": "title",
+        "icon": "mdi:radiator",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_pressure",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_pressure",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_pressure",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Waarden zoals de ketel ze meldt; een waarde die de ketel niet stuurt, staat er niet.\n\n<details><summary>Meer</summary>\n\nBrandervermogen is een percentage van het maximum van de ketel, geen kW; \"actief\" is wat de ketel meldt, geen aparte controle.\n\n</details>",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Warm water",
+        "heading_style": "title",
+        "icon": "mdi:water-thermometer",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Status en storingen",
+        "heading_style": "title",
+        "icon": "mdi:information-outline",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_display_code",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_display_code",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_display_code",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Thermostaat op de bus",
+        "heading_style": "title",
+        "icon": "mdi:thermostat",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Afgelopen 24 uur",
+        "heading_style": "title",
+        "icon": "mdi:chart-line",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "name": "Naar verwarming (aanvoer)"
+         },
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+          "name": "Terug (retour)"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "Watertemperaturen: doel, naar verwarming en terug",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "name": "Brandervermogen (%)"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "Brandervermogen (%) — geen kW",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "name": "Gemeten warm water"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "Warmwatertemperaturen",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     }
+    ],
+    "title": "Ketel",
+    "type": "sections"
+   },
+   {
+    "dense_section_placement": true,
+    "icon": "mdi:school-outline",
+    "max_columns": 2,
+    "path": "learned",
+    "sections": [
+     {
+      "cards": [
+       {
+        "heading": "Slim opwarmen en weerafhankelijke regeling",
+        "heading_style": "title",
+        "icon": "mdi:chart-bell-curve-cumulative",
+        "type": "heading"
+       },
+       {
+        "entity": "switch.flow_apply_learned",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:school-outline",
+        "name": "Slim opwarmen",
+        "type": "tile"
+       },
+       {
+        "entity": "switch.flow_weather_curve",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:sun-thermometer",
+        "name": "Weerafhankelijke regeling",
+        "type": "tile"
+       },
+       {
+        "entity": "select.flow_curve_design_flow_c",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:thermometer-lines",
+        "name": "Watertemperatuur bij −10 °C buiten",
+        "type": "tile"
+       },
+       {
+        "entity": "sensor.flow_source",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:thermometer-water",
+        "name": "Watertemperatuur bepaald door",
+        "type": "tile"
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Aansturing van de ketel",
+        "heading_style": "title",
+        "icon": "mdi:water-boiler",
+        "type": "heading"
+       },
+       {
+        "content": "{% set mode = state_attr(\"sensor.fixture_hub_heat_request\", 'mode') %}{% if mode == 'active' and state_attr(\"sensor.fixture_hub_heat_request\", 'control') == 'awaiting_confirmation' %}Volgende stap: doe de keteltest en bevestig de overname op de E32-pagina Ruimtes.{% elif mode == 'active' %}De E32 regelt de ketel.{% elif mode == 'shadow' %}Proefperiode: de E32 rekent mee maar stuurt de ketel nog niet; je huidige thermostaat of de eigen regeling van de ketel blijft de baas.{% else %}De E32 houdt je ruimtes op temperatuur, ook zonder Home Assistant.{% endif %}\n\n<details><summary>Meer</summary>\n\n{% if mode == 'active' and state_attr(\"sensor.fixture_hub_heat_request\", 'control') == 'awaiting_confirmation' %}Tot dan stuurt de E32 niets naar de ketel.{% elif mode == 'active' %}{% elif mode == 'shadow' %}{% endif %} De E32 houdt je ruimtes op temperatuur, ook zonder Home Assistant.\n\n</details>",
+        "type": "markdown"
+       },
+       {
+        "content": "{% if is_state(\"binary_sensor.fixture_hub_burner_short_cycling\", 'on') %}<ha-icon icon=\"mdi:sync\"></ha-icon> **Te vaak aan en uit**\n\nDe E32 verlengt de rusttijd van de brander stap voor stap.{% else %}<ha-icon icon=\"mdi:check-circle-outline\"></ha-icon> De brander loopt rustig.{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "binary_sensor.fixture_hub_burner_short_cycling",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "heading": "E32 vergeleken met je thermostaat",
+        "heading_style": "subtitle",
+        "icon": "mdi:compare-horizontal",
+        "tap_action": {
+         "action": "navigate",
+         "navigation_path": "/open-thermostat-fixture-x/comparison"
+        },
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Hoe hij leert",
+        "heading_style": "title",
+        "icon": "mdi:help-circle-outline",
+        "type": "heading"
+       },
+       {
+        "content": "De E32 leert ook hoe snel elke ruimte opwarmt en berekent de laagste watertemperatuur die de ruimte nog op tijd 1 °C opwarmt (de geadviseerde watertemperatuur).{% if not state_attr(\"sensor.woonkamer_learning\", 'applied') %}\n\n<details><summary>Meer</summary>\n\nVoorlopig is dat alleen advies; de E32 blijft zijn ruimteregeling gebruiken.\n\n</details>{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_learning",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     }
+    ],
+    "title": "Leren en instellingen",
+    "type": "sections"
+   },
+   {
+    "dense_section_placement": true,
+    "icon": "mdi:information-outline",
+    "max_columns": 2,
+    "path": "diagnostics",
+    "sections": [],
+    "title": "Diagnose",
+    "type": "sections"
+   },
+   {
+    "back_path": "/open-thermostat-fixture-x/heating",
+    "dense_section_placement": true,
+    "icon": "mdi:compare-horizontal",
+    "max_columns": 2,
+    "path": "comparison",
+    "sections": [
+     {
+      "cards": [
+       {
+        "heading": "E32 en thermostaat vergeleken",
+        "heading_style": "title",
+        "icon": "mdi:compare-horizontal",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "color": "teal",
+        "entity": "sensor.fixture_hub_shadow_agreement_today",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:compare-horizontal",
+        "name": "Overeenstemming met thermostaat",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_hub_shadow_e32_heating_time_today",
+        "icon": "mdi:timer-outline",
+        "name": "Stooktijd E32",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_hub_shadow_tado_heating_time_today",
+        "icon": "mdi:timer-outline",
+        "name": "Stooktijd thermostaat",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_hub_shadow_e32_starts_today",
+        "icon": "mdi:counter",
+        "name": "Starts E32",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_hub_shadow_tado_starts_today",
+        "icon": "mdi:counter",
+        "name": "Starts thermostaat",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_hub_heat_request",
+          "name": "Ketelvraag E32"
+         },
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+          "name": "Vraag thermostaat"
+         },
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "name": "Water naar verwarming (aanvoer)"
+         }
+        ],
+        "hours_to_show": 24,
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Stooktijd per dag",
+        "heading_style": "title",
+        "icon": "mdi:chart-bar",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         {
+          "entity": "sensor.fixture_hub_shadow_e32_heating_time_today",
+          "name": "E32"
+         },
+         {
+          "entity": "sensor.fixture_hub_shadow_tado_heating_time_today",
+          "name": "Thermostaat"
+         }
+        ],
+        "period": "day",
+        "stat_types": [
+         "max"
+        ],
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_hub_shadow_agreement_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     }
+    ],
+    "subview": true,
+    "title": "Vergelijking",
+    "type": "sections"
+   }
+  ]
+ }
+}

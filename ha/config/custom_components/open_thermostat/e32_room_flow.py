@@ -42,6 +42,7 @@ from homeassistant.data_entry_flow import section
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
+from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
@@ -50,7 +51,7 @@ from .e32_comfort import (DELAY_LIMITS, ComfortError, comfort_options, contact_d
                           save_comfort, validate_contacts, validate_room_persons, with_room_contacts, with_room_persons)
 from .heating_link import TEMPERATURE_UNITS, celsius, heating_hub, label, number
 from .native_form import retained_input_schema
-from .room_plan import has_room_plan, plan_room
+from .room_plan import LATEST_UNTIL, has_room_plan, plan_room, until_datetime
 from . import room_away
 
 MAX_ROOMS = 8
@@ -91,8 +92,6 @@ BOILER_MAXIMUM_TEXT = {
     "pl": "Twój kocioł pozwala najwyżej na {maximum}; E32 nigdy nie żąda więcej. Niższy limit jest tu przydatny "
           "przy ogrzewaniu podłogowym."}
 FLOW_LIMIT_FIELDS = {"minimum_flow_temperature": "minimum_flow_c", "maximum_flow_temperature": "maximum_flow_c"}
-# rc.3: the E32 flow options beside the limits (form field: GET/POST /config/heating/flow key), both on by default.
-FLOW_OPTION_FIELDS = {"smart_warm_up": "apply_learned", "follow_outdoor": "weather_curve"}
 
 DAYS = {"en": ("mon", "tue", "wed", "thu", "fri", "sat", "sun"),
         "nl": ("ma", "di", "wo", "do", "vr", "za", "zo")}
@@ -406,31 +405,9 @@ class E32RoomFlow:
         from .heating_advice import boiler_maximum
         return boiler_maximum(client)
 
-    def _e32_flow_options(self):
-        """(flow link, {form field: stored bool}) for the form; (None, None) while the E32's flow options are not known.
-
-        rc.3: Smart warm-up (``apply_learned``) and the heating curve (``weather_curve``), GET/POST
-        /config/heating/flow, are also switches on the E32 device page (e32_flow.py, which reads the options
-        when the E32 comes online); here they sit with the other heating settings (Configure → Home →
-        Heating and boiler).
-        """
-        from .e32_flow import KEY
-        link = self.hass.data[DOMAIN][self.config_entry.entry_id].get(KEY)
-        settings = getattr(link, "settings", None) or {}
-        values = {field: settings.get(key) for field, key in FLOW_OPTION_FIELDS.items()}
-        return (link, values) if all(type(v) is bool for v in values.values()) else (None, None)
-
-    @staticmethod
-    def _e32_option_change(stored, user_input):
-        """The options the user changed, as the E32's keys ({} without the options or a change)."""
-        if stored is None:
-            return {}
-        return {FLOW_OPTION_FIELDS[field]: user_input[field] for field, value in stored.items()
-                if type(user_input.get(field)) is bool and user_input[field] != value}
-
     async def async_step_e32_flow_limits(self, user_input=None):
-        """The plan's minimum/maximum flow temperature (whole °C, 20–79 / 21–80, minimum below maximum),
-        and (E32 rc.3) Smart warm-up and the heating curve.
+        """The plan's minimum/maximum flow temperature (whole °C, 20–79 / 21–80, minimum below maximum).
+        Smart warm-up and Weather compensation have their own steps (options_house_heating.py).
 
         Shown and entered in the Home Assistant unit. A maximum above 50 °C with
         floor heating, or above the boiler's own maximum, is saved only after a
@@ -440,8 +417,6 @@ class E32RoomFlow:
         plan = self._e32_plan
         unit = self._unit()
         current = {key: plan.get(key) for key in FLOW_LIMIT_FIELDS.values()}
-        options_link, options = self._e32_flow_options()
-        self._e32_options = options
         boiler = self._boiler_maximum()
         errors, placeholders = {}, {"error": "", "boiler": "", **self._flow_ranges(unit)}
         if boiler is not None:
@@ -460,12 +435,7 @@ class E32RoomFlow:
             elif low >= high:
                 errors["base"] = "e32_flow_limits_order"
             elif current == {"minimum_flow_c": low, "maximum_flow_c": high}:
-                change = self._e32_option_change(options, user_input)
-                if not change:
-                    return self.async_abort(reason="e32_room_unchanged")
-                if (error := await self._e32_save_flow_options(options_link, change)) is None:
-                    return self.async_abort(reason="e32_flow_options_saved")
-                errors["base"] = error
+                return self.async_abort(reason="e32_room_unchanged")
             else:
                 warnings = {}
                 if high > FLOOR_FLOW_WARNING_C and any(
@@ -477,11 +447,6 @@ class E32RoomFlow:
                     self._e32_flow_warned = (low, high)  # the same values once more: save
                     errors.update(warnings)
                 else:
-                    if change := self._e32_option_change(options, user_input):
-                        if (error := await self._e32_save_flow_options(options_link, change)) is not None:
-                            errors["base"] = error
-                            return self._e32_flow_form(current, unit, user_input, errors, placeholders)
-                        self._e32_options = {field: user_input[field] for field in options}
                     return await self._e32_save_flow_limits(low, high, errors, placeholders)
         return self._e32_flow_form(current, unit, user_input, errors, placeholders)
 
@@ -537,8 +502,6 @@ class E32RoomFlow:
             fields[vol.Required(field, default=flow_shown(default[field], unit))] = selector.NumberSelector({
                 "min": flow_shown(low, unit), "max": flow_shown(high, unit), "step": 1, "mode": "box",
                 "unit_of_measurement": unit})
-        for field, value in (getattr(self, "_e32_options", None) or {}).items():  # firmware with the flow options
-            fields[vol.Required(field, default=value)] = selector.BooleanSelector()
         return self.async_show_form(step_id="e32_flow_limits", data_schema=retained_input_schema(
             self, vol.Schema(fields), user_input), errors=errors, description_placeholders=placeholders)
 
@@ -808,6 +771,9 @@ class E32RoomFlow:
         return {
             "name": room.get("name", ""), "state": room.get("state", "active"),
             "emitter": room.get("emitter", "radiator"),
+            # "Off until": local time of the room's end of inactivity (None: no end set).
+            "inactive_until": None if (until := until_datetime(room)) is None else dt_util.as_local(until).strftime(
+                "%Y-%m-%d %H:%M:%S"),
             "ha_sources": [s["id"] for s in sources if s.get("type") == "ha"],
             "ble_sources": [s["id"] for s in sources if s.get("type") == "ble"],
             "contacts": room_contacts(self.config_entry, room["id"]) if room.get("id") else [],
@@ -895,10 +861,28 @@ class E32RoomFlow:
             schedule = default_program(low, high)
         values = {"name": name, "state": state, "emitter": emitter, "sources": sources,
                   "setpoint_entity": setpoint, "fallback_centi_c": fallback,
-                  "minimum_centi_c": low, "maximum_centi_c": high, "schedule": schedule}
+                  "minimum_centi_c": low, "maximum_centi_c": high, "schedule": schedule,
+                  "inactive_until": self._e32_inactive_until(user_input, state, room)}
         if self._e32_away_supported():  # an older E32 ignores the field: not offered, not sent
             values[room_away.FIELD] = self._e32_room_away(user_input, room, defaults)
         return values
+
+    def _e32_inactive_until(self, user_input, state, room):
+        """The submitted "Off until" as epoch seconds; 0 (no end) when blank or the room heats."""
+        text = user_input.get("inactive_until")
+        if state != "inactive" or text is None or not str(text).strip():
+            return 0
+        parsed = dt_util.parse_datetime(str(text).strip().replace("T", " ", 1))
+        if parsed is None:
+            raise FlowError("e32_inactive_until_invalid", "inactive_until")
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+        until = int(parsed.timestamp())
+        if until == room.get("inactive_until") and until <= LATEST_UNTIL:
+            return until  # as shown: kept, even when it has just passed
+        if until <= dt_util.utcnow().timestamp() or until > LATEST_UNTIL:
+            raise FlowError("e32_inactive_until_invalid", "inactive_until")
+        return until
 
     def _e32_away_supported(self):
         return room_away.supported(getattr(self, "_e32_plan", None))
@@ -1013,7 +997,8 @@ class E32RoomFlow:
                 settings = comfort_options(self.config_entry)
                 same_delay = delay is None or not room or self._same_delay(settings, room_id, delay)
                 if room is not None:
-                    edits = {k: v for k, v in values.items() if room.get(k) != v}
+                    edits = {k: v for k, v in values.items()
+                             if room.get(k, 0 if k == "inactive_until" else None) != v}
                     if (not edits and not valves_changed and contacts == room_contacts(self.config_entry, room_id) and same_delay
                             and persons == room_persons(self.config_entry, room_id)):
                         return self.async_abort(reason="e32_room_unchanged")
@@ -1091,6 +1076,8 @@ class E32RoomFlow:
             vol.Required("name", default=d["name"]): str,
             vol.Required("state", default=d["state"]): selector.SelectSelector({
                 "options": ["active", "inactive"], "translation_key": "e32_room_state"}),
+            vol.Optional("inactive_until", description={"suggested_value": d["inactive_until"]}):
+                selector.DateTimeSelector(),
             vol.Required("emitter", default=d["emitter"]): selector.SelectSelector({
                 "options": ["radiator", "floor"], "translation_key": "e32_room_emitter"}),
             vol.Optional("ha_sources", description={"suggested_value": d["ha_sources"]}):
@@ -1139,7 +1126,7 @@ class E32RoomFlow:
                     room.pop(key, None)  # schedule cleared: fallback only
                 else:
                     room[key] = deepcopy(value)
-            if "state" in edits:
+            if "state" in edits and "inactive_until" not in edits:
                 room["inactive_until"] = 0
             return candidate
         return change, lambda stored: plan_room(stored, room_id) is not None

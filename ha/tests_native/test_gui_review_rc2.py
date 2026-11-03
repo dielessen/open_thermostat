@@ -21,9 +21,10 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.template import Template
 
 from custom_components.open_thermostat import dashboard
-from custom_components.open_thermostat.dashboard import RoomDashboard
+from custom_components.open_thermostat.dashboard import RoomDashboard, view_cards
 from custom_components.open_thermostat.v1_boiler_fields import secondary_field
 from test_dashboard_heating import installation, walk
+from nav_helpers import is_again  # noqa: E402
 from test_e32_room_flow import manager, product, rooms_menu  # noqa: F401  (the manager fixture)
 from test_room_plan import FakeE32
 
@@ -53,36 +54,41 @@ def view(config, path):
 
 
 @pytest.mark.asyncio
-async def test_the_rooms_follow_now_and_the_learned_overview_is_its_own_page(hass):
+async def test_the_overview_is_short_and_what_it_learned_is_its_own_view(hass):
     board, config, rooms, hub = with_learned(hass)
     heating = view(config, "heating")
-    headings = [s["cards"][0]["heading"] for s in heating["sections"]]
-    assert headings == ["Now", "Woonkamer", "Badkamer", "What the thermostat has learned", "Boiler"]
-    summary = heating["sections"][3]["cards"]
-    assert summary[-1]["tap_action"] == {"action": "navigate", "navigation_path": f"/{board.path}/learned"}
+    assert [s["cards"][0]["heading"] for s in heating["sections"]] == ["House", "Rooms"]
+    # What it learned is not on the Overview any more; the view "Learning and settings" has it.
+    assert "learned_overview" not in json.dumps(heating) and hub["learned_overview"] not in json.dumps(heating)
     learned = view(config, "learned")
-    assert (learned["subview"], learned["back_path"], learned["type"]) == (True, f"/{board.path}/heating", "sections")
+    assert (learned["title"], learned["type"], "subview" in learned) == ("Learning and settings", "sections", False)
     assert [s["cards"][0]["heading"] for s in learned["sections"]] == [
-        "What the thermostat has learned", "House and boiler", "What it changed by itself", "How it learns"]
+        "What the thermostat has learned", "House and boiler", "What it changed by itself", "Boiler control",
+        "How it learns"]
+    # What it learned per room is in that room's section, not in the learning view.
+    living = next(s["cards"] for s in view(config, "rooms")["sections"] if s["cards"][0]["heading"] == "Woonkamer")
+    lines = next(c for c in living if c["type"] == "markdown" and "mine[0].lines" in c["content"])
+    assert '"Woonkamer"' in lines["content"] and hub["learned_overview"] in lines["content"]
     # How the learning works is with what it learned, not on the Comparison page.
     assert "learns how fast each room warms up" not in json.dumps(view(config, "comparison"))
     # Dutch.
     hass.config.language = "nl"
     dutch = RoomDashboard(hass, "fixture", board.entry_id)._dashboard_config()
-    assert view(dutch, "learned")["title"] == "Wat de thermostaat heeft geleerd"
-    assert "Alles wat hij heeft geleerd" in json.dumps(view(dutch, "heating"), ensure_ascii=False)
+    assert view(dutch, "learned")["title"] == "Leren en instellingen"
+    assert "Wat de thermostaat heeft geleerd" in json.dumps(view(dutch, "learned"), ensure_ascii=False)
 
 
 @pytest.mark.asyncio
-async def test_now_names_the_house_mode_and_gives_long_states_the_whole_width(hass):
+async def test_the_overview_names_the_house_mode_and_long_states_get_the_whole_width(hass):
     board, config, rooms, hub = with_learned(hass)
-    now = view(config, "heating")["sections"][0]["cards"]
-    mode = next(c for c in now if c.get("entity") == hub["house_mode"])
+    house = view(config, "heating")["sections"][0]["cards"]
+    mode = next(c for c in house if c.get("entity") == hub["house_mode"])
     assert mode["name"] == "House mode" and mode["grid_options"] == {"columns": 12}
     assert mode["features"] == [{"type": "select-options"}]
-    ready = next(c for c in now if c.get("entity") == hub["takeover_readiness"])
+    control = next(s["cards"] for s in view(config, "learned")["sections"] if s["cards"][0]["heading"] == "Boiler control")
+    ready = next(c for c in control if c.get("entity") == hub["takeover_readiness"])
     assert ready["grid_options"] == {"columns": 12}
-    words = next(c for c in now if c["type"] == "markdown" and "'meaning'" in c["content"])
+    words = next(c for c in view_cards(view(config, "boiler")) if c["type"] == "markdown" and "'meaning'" in c["content"])
     assert " Boiler: **{{ meaning }}**" in words["content"]
 
 
@@ -191,7 +197,7 @@ async def test_the_house_window_delay_is_in_minutes_like_each_rooms_own(hass, ma
     assert (key.default(), selector["unit_of_measurement"], selector["max"]) == (2, "min", 30)
     done = await manager.async_configure(form["flow_id"], {"comfort_temperature": 20, "eco_temperature": 16,
                                                            "contact_delay": 1.5, "override_minutes": 120})
-    assert done["type"] == FlowResultType.ABORT and done["reason"] == "comfort_saved"
+    assert is_again(done)
     assert parent.options["comfort_settings"]["contact_delay_s"] == 90  # stored in seconds, as before
     for name in ("strings.json", "translations/nl.json", "translations/pl.json"):
         help_text = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["options"]["step"][

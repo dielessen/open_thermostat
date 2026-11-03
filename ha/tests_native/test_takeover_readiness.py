@@ -143,9 +143,10 @@ async def test_the_dashboard_shows_the_check_next_to_the_comparison(hass):
         suggested_object_id="fixture_hub_takeover_readiness").entity_id
     dashboard = RoomDashboard(hass, "fixture", e.entry_id)
     config = dashboard._dashboard_config()
-    heating, comparison = config["views"][0], config["views"][3]
+    learning = next(v for v in config["views"] if v["path"] == "learned")
+    comparison = next(v for v in config["views"] if v["path"] == "comparison")
     hidden = [{"condition": "state", "entity": readiness, "state_not": ["unavailable", "unknown", "not_applicable"]}]
-    tile = next(c for c in heating["sections"][0]["cards"] if c.get("entity") == readiness)
+    tile = next(c for s in learning["sections"] for c in s["cards"] if c.get("entity") == readiness)
     assert tile["name"] == "Ready to take over?" and tile["visibility"] == hidden
     assert tile["tap_action"] == {"action": "navigate", "navigation_path": "/" + dashboard.path + "/comparison"}
     check = comparison["sections"][0]["cards"]
@@ -158,7 +159,7 @@ async def test_the_dashboard_shows_the_check_next_to_the_comparison(hass):
         assert text in card["content"], text
     # In Dutch.
     hass.config.language = "nl"
-    dutch = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"][3]["sections"][0]["cards"]
+    dutch = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"][-1]["sections"][0]["cards"]
     assert dutch[0]["heading"] == "Klaar om over te nemen?"
     assert "Klaar: volg de stappen voor de overschakeling." in dutch[1]["content"]
 

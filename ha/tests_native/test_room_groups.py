@@ -348,7 +348,7 @@ async def test_new_room_entities_are_added_to_their_room_group(hass, caplog):
         records = er.async_entries_for_config_entry(er.async_get(hass), parent.entry_id)
         assert {r.unique_id for r in records if r.config_subentry_id == group.subentry_id} == {
             "fixture_e32_room_woonkamer_temperature", "fixture_e32_room_woonkamer_setpoint",
-            "fixture_e32_room_woonkamer_status", f"fixture_e32_ble_{BLE}_temperature",
+            "fixture_e32_room_woonkamer_status", "fixture_e32_room_woonkamer_reason", f"fixture_e32_ble_{BLE}_temperature",
             f"fixture_e32_ble_{BLE}_humidity", f"fixture_e32_ble_{BLE}_battery"}
         moved = er.async_get(hass).async_get(early.entity_id)
         assert (moved.id, moved.device_id, moved.config_subentry_id) == (early.id, room.id, group.subentry_id)

@@ -20,6 +20,7 @@ from custom_components.open_thermostat import controller_link as link_module
 from custom_components.open_thermostat import e32_system as module
 from custom_components.open_thermostat.controller_link import ControllerLinkError
 from test_controller_link import BASE, Response, login_responses, setup
+from nav_helpers import is_again  # noqa: E402
 from test_e32_room_flow import manager, product  # noqa: F401  (the manager fixture)
 from test_room_plan import FakeE32 as PlanE32
 
@@ -125,7 +126,7 @@ async def test_the_system_log_settings_are_read_and_saved_whole_in_one_sign_in(h
     done = await manager.async_configure(form["flow_id"], {
         "syslog_enabled": True, "server": " 192.168.1.10 ", "port": 5140, "syslog_level": "4",
         "syslog_esp": True, "syslog_ems": True, "web_level": "2", "mark_interval_s": 600})
-    assert done["type"] == FlowResultType.ABORT and done["reason"] == "e32_logging_saved"
+    assert is_again(done)
     assert e32.requests[-1][1] == {"syslog_enabled": True, "server": "192.168.1.10", "port": 5140, "syslog_level": 4,
                                    "web_level": 2, "mark_interval_s": 600, "syslog_esp": True, "syslog_ems": True}
     assert e32.closed == closed + 1  # one sign-in for the change, closed again
@@ -157,11 +158,11 @@ async def test_unchanged_log_settings_and_older_firmware(hass, manager):
     # Firmware without the message choice: neither shown nor sent.
     assert "syslog_esp" not in defaults(form)
     done = await manager.async_configure(form["flow_id"], {k: v for k, v in defaults(form).items() if v is not None})
-    assert done["reason"] == "e32_settings_unchanged" and all(r[1] is None for r in e32.requests)
+    assert is_again(done, "unchanged") and all(r[1] is None for r in e32.requests)
     form = await advanced(manager, parent, "e32_logging")
     done = await manager.async_configure(form["flow_id"], {**{k: v for k, v in defaults(form).items() if v is not None},
                                                            "web_level": "4"})
-    assert done["reason"] == "e32_logging_saved" and set(e32.requests[-1][1]) == set(LOGGING) - {"syslog_esp", "syslog_ems"}
+    assert is_again(done) and set(e32.requests[-1][1]) == set(LOGGING) - {"syslog_esp", "syslog_ems"}
     e32.logging_missing = True
     done = await advanced(manager, parent, "e32_logging")
     assert done["type"] == FlowResultType.ABORT and done["reason"] == "e32_settings_update_required"
@@ -209,7 +210,7 @@ async def test_the_time_zone_follows_home_assistant_and_only_it_changes(hass, ma
     assert defaults(form) == {"time_zone": "Europe/Amsterdam"}  # Home Assistant's own zone first
     e32.requests.clear()
     done = await manager.async_configure(form["flow_id"], {"time_zone": "Europe/Amsterdam"})
-    assert done["type"] == FlowResultType.ABORT and done["reason"] == "e32_time_zone_saved"
+    assert is_again(done)
     assert [r[0] for r in e32.requests] == ["read_device", "save_device", "read_device", "reboot"]
     saved = e32.requests[1]
     expected = deepcopy(DEVICE)
@@ -230,7 +231,7 @@ async def test_a_time_zone_changed_meanwhile_or_the_same_zone_writes_nothing(has
     form = await advanced(manager, parent, "e32_time_zone")
     assert form["description_placeholders"]["e32"] == "Europe/Amsterdam"
     done = await manager.async_configure(form["flow_id"], {"time_zone": "Europe/Berlin"})
-    assert done["reason"] == "e32_settings_unchanged" and "save_device" not in [r[0] for r in e32.requests]
+    assert is_again(done, "unchanged") and "save_device" not in [r[0] for r in e32.requests]
     form = await advanced(manager, parent, "e32_time_zone")
     e32.device["timeZone"] = "GMT0BST,M3.5.0/1,M10.5.0"  # changed on the E32 page meanwhile
     again = await manager.async_configure(form["flow_id"], {"time_zone": "Europe/Lisbon"})

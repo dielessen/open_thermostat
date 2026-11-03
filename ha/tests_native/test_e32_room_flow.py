@@ -24,6 +24,7 @@ from custom_components.open_thermostat.heating_link import HeatingHub, input_pay
 from custom_components.open_thermostat.product import PRODUCT_CONFIG
 from custom_components.open_thermostat.room_plan import RoomPlanLink, has_room_plan
 from test_room_plan import PLAN, STATUS, FakeE32, _Failing, other_side
+from nav_helpers import is_again  # noqa: E402
 from test_v1_native import entry, room
 
 COMPONENT = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
@@ -31,7 +32,7 @@ CREDENTIALS = {CONTROLLER_ADDRESS: "http://192.168.1.206", CONTROLLER_PASSWORD: 
 BLE = [{"id": "a4c138a3e8db", "name": "Slaapkamer", "profile": "atc", "temperature": 19.4},
        {"id": "112233445566", "name": "Zolder", "profile": "atc", "temperature": 17.0}]
 # Configure's top level for an E32 install (product_flow.main_menu); flow limits are under Heating and boiler.
-MENU = ["e32_rooms", "house", "controller_connection", "general", "advanced_settings"]  # beta.23: Home holds heating
+MENU = ["e32_rooms", "house", "heating_boiler", "energy", "controller_connection", "advanced_settings", "done"]  # beta.23: Home holds heating
 
 
 @pytest.fixture
@@ -106,13 +107,13 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
     e32 = FakeE32()
     parent, hub = product(hass, e32)
     menu = await rooms_menu(manager, parent)
-    assert menu["menu_options"] == ["e32_room_add", "e32_room_pick"]
+    assert menu["menu_options"] == ["e32_room_add", "e32_room_pick", "back"]
     assert menu["description_placeholders"]["revision"] == "4"
     assert "- Woonkamer: climate.woonkamer, Bluetooth Slaapkamer (a4c138a3e8db)" in menu["description_placeholders"]["rooms"]
     form = await manager.async_configure(menu["flow_id"], {"next_step_id": "e32_room_add"})
     assert form["step_id"] == "e32_room"
     keys = [str(k) for k in form["data_schema"].schema]
-    assert keys == ["name", "state", "emitter", "ha_sources", "ble_sources", "bluetooth_first",
+    assert keys == ["name", "state", "inactive_until", "emitter", "ha_sources", "ble_sources", "bluetooth_first",
                     "setpoint_entity", "fallback_temperature", "program", "window", "persons", "limits"]
     ble = next(v for k, v in form["data_schema"].schema.items() if str(k) == "ble_sources")
     assert [o["value"] for o in ble.config["options"]] == ["a4c138a3e8db", "112233445566"]
@@ -125,7 +126,7 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
     assert result["type"] == "menu" and result["step_id"] == "e32_rooms_saved", result
     assert result["description_placeholders"]["name"] == "Slaapkamer Zoë"
     assert "Slaapkamer Zoë" in result["description_placeholders"]["rooms"]
-    assert result["menu_options"] == ["e32_room_add", "e32_room_pick"]
+    assert result["menu_options"] == ["e32_room_add", "e32_room_pick", "back"]
     assert len(e32.posts) == posts + 1 and e32.posts[-1]["revision"] == 4
     assert e32.plan["rooms"][:2] == PLAN["rooms"]  # the other rooms travel back unchanged
     assert e32.plan["rooms"][2] == {
@@ -203,8 +204,7 @@ async def flow_limits_form(manager, parent):
     await manager.hass.async_block_till_done()
     flow = await manager.async_init(parent.entry_id)
     assert flow["menu_options"] == MENU
-    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
-    menu = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
+    menu = await manager.async_configure(flow["flow_id"], {"next_step_id": "heating_boiler"})
     form = await manager.async_configure(menu["flow_id"], {"next_step_id": "heating_boiler_limits"})
     assert form["type"] == "form" and form["step_id"] == "e32_flow_limits", form
     return form
@@ -231,8 +231,8 @@ async def test_flow_temperature_limits_are_edited_in_the_e32_plan(hass, manager)
     e32.before_save.append(other_side("name", "Badkamer boven"))
     result = await manager.async_configure(form["flow_id"], {"minimum_flow_temperature": 25,
                                                              "maximum_flow_temperature": 45})
-    assert result["type"] == "abort" and result["reason"] == "e32_flow_limits_saved", result
-    assert result["description_placeholders"] == {"minimum": "25", "maximum": "45", "unit": "°C"}
+    assert is_again(result), result
+    assert "25" in result["description_placeholders"]["saved"] and "45" in result["description_placeholders"]["saved"]
     assert (e32.plan["minimum_flow_c"], e32.plan["maximum_flow_c"]) == (25, 45)
     assert next(r for r in e32.plan["rooms"] if r["id"] == "badkamer")["name"] == "Badkamer boven"
     assert hub.plan.plan == e32.plan
@@ -241,7 +241,7 @@ async def test_flow_temperature_limits_are_edited_in_the_e32_plan(hass, manager)
     assert shown(form) == {"minimum_flow_temperature": 25, "maximum_flow_temperature": 45}
     posts = len(e32.posts)
     result = await manager.async_configure(form["flow_id"], shown(form))
-    assert result["reason"] == "e32_room_unchanged" and len(e32.posts) == posts
+    assert is_again(result, "unchanged") and len(e32.posts) == posts
 
 
 class FakeFlowLink:
@@ -250,6 +250,9 @@ class FakeFlowLink:
     def __init__(self, apply_learned=True, weather_curve=True, fail=False):
         self.settings = {"weather_curve": weather_curve, "apply_learned": apply_learned, "curve_design_flow_c": 0}
         self.changes, self.fail, self.unsupported = [], fail, False
+
+    async def async_read_now(self):
+        return self.settings
 
     async def async_change(self, change):
         from homeassistant.exceptions import HomeAssistantError
@@ -260,44 +263,49 @@ class FakeFlowLink:
         return self.settings
 
 
+async def heating_menu(manager, parent):
+    flow = await manager.async_init(parent.entry_id)
+    return await manager.async_configure(flow["flow_id"], {"next_step_id": "heating_boiler"})
+
+
 @pytest.mark.asyncio
-async def test_smart_warm_up_and_the_curve_sit_with_the_heating_settings(hass, manager):
-    """E32 rc.3: Configure → Home → Heating and boiler also switches Smart warm-up and the heating curve (on by default)."""
+async def test_smart_warm_up_and_weather_compensation_have_their_own_steps(hass, manager):
+    """Configure → Heating and boiler → Smart warm-up / Weather compensation: the same writes as the switches."""
     e32 = FakeE32()
     parent, _ = product(hass, e32)
     flow = hass.data["open_thermostat"][parent.entry_id]["e32_flow"] = FakeFlowLink()
-    form = await flow_limits_form(manager, parent)
-    assert shown(form) == {"minimum_flow_temperature": 30, "maximum_flow_temperature": 60, "smart_warm_up": True,
-                           "follow_outdoor": True}
-    posts = len(e32.posts)
-    # Only an option changed: the plan is not written.
-    result = await manager.async_configure(form["flow_id"], {**shown(form), "smart_warm_up": False})
-    assert result["type"] == "abort" and result["reason"] == "e32_flow_options_saved", result
-    assert flow.changes == [{"apply_learned": False}] and len(e32.posts) == posts
-    form = await flow_limits_form(manager, parent)
-    assert shown(form)["smart_warm_up"] is False
-    # Options and limits: the options first (one write), then the limits.
-    result = await manager.async_configure(form["flow_id"], {"minimum_flow_temperature": 28, "maximum_flow_temperature": 45,
-                                                             "smart_warm_up": True, "follow_outdoor": False})
-    assert result["reason"] == "e32_flow_limits_saved"
-    assert flow.changes[-1] == {"apply_learned": True, "weather_curve": False}
-    assert (e32.plan["minimum_flow_c"], e32.plan["maximum_flow_c"]) == (28, 45)
+    menu = await heating_menu(manager, parent)
+    assert menu["menu_options"][:3] == ["heating_warm_up", "heating_weather", "heating_boiler_limits"]
+    form = await manager.async_configure(menu["flow_id"], {"next_step_id": "heating_warm_up"})
+    assert shown(form) == {"smart_warm_up": True}
+    result = await manager.async_configure(form["flow_id"], {"smart_warm_up": False})
+    assert is_again(result) and result["step_id"] == "heating_boiler" and result["menu_options"][-2:] == ["back", "done"]
+    assert flow.changes == [{"apply_learned": False}]
     # Unchanged: nothing written.
-    form = await flow_limits_form(manager, parent)
-    assert shown(form)["follow_outdoor"] is False
-    result = await manager.async_configure(form["flow_id"], shown(form))
-    assert result["reason"] == "e32_room_unchanged" and len(flow.changes) == 2
-    # A refused write keeps the form with a plain error and writes no limits either.
+    form = await manager.async_configure(result["flow_id"], {"next_step_id": "heating_warm_up"})
+    result = await manager.async_configure(form["flow_id"], {"smart_warm_up": False})
+    assert is_again(result, "unchanged") and len(flow.changes) == 1
+    # Weather compensation: the switch and, under Advanced, the water temperature in hard frost (one write each).
+    form = await manager.async_configure(result["flow_id"], {"next_step_id": "heating_weather"})
+    assert {str(k) for k in form["data_schema"].schema} == {"weather_compensation", "advanced"}
+    result = await manager.async_configure(form["flow_id"], {
+        "weather_compensation": False, "advanced": {"hard_frost_water_temperature": "55"}})
+    assert is_again(result)
+    assert flow.changes[1:] == [{"weather_curve": False}, {"curve_design_flow_c": 55}]
+    # Back to Automatic stores 0, like the select entity.
+    form = await manager.async_configure(result["flow_id"], {"next_step_id": "heating_weather"})
+    result = await manager.async_configure(form["flow_id"], {
+        "weather_compensation": False, "advanced": {"hard_frost_water_temperature": "automatic"}})
+    assert flow.changes[-1] == {"curve_design_flow_c": 0}
+    # A refused write keeps the form with a plain error.
     flow.fail = True
-    form = await flow_limits_form(manager, parent)
-    form = await manager.async_configure(form["flow_id"], {"minimum_flow_temperature": 30, "maximum_flow_temperature": 50,
-                                                           "smart_warm_up": False, "follow_outdoor": False})
+    form = await manager.async_configure(result["flow_id"], {"next_step_id": "heating_weather"})
+    form = await manager.async_configure(form["flow_id"], {"weather_compensation": True})
     assert form["type"] == "form" and form["errors"] == {"base": "e32_flow_options_failed"}
-    assert e32.plan["maximum_flow_c"] == 45
-    # Firmware or a link without the flow options: no switches in the form.
-    del hass.data["open_thermostat"][parent.entry_id]["e32_flow"]
-    form = await flow_limits_form(manager, parent)
-    assert "smart_warm_up" not in shown(form) and "follow_outdoor" not in shown(form)
+    # The water temperature limits no longer hold the two options.
+    flow.fail = False
+    limits = await flow_limits_form(manager, parent)
+    assert set(shown(limits)) == {"minimum_flow_temperature", "maximum_flow_temperature"}
 
 
 @pytest.mark.asyncio
@@ -320,7 +328,7 @@ async def test_a_flow_minimum_up_to_79_is_accepted_below_the_maximum(hass, manag
     if result["type"] == "form":  # a warning (floor heating above 50 °C) asks for the same values once more
         assert result["errors"], result
         result = await manager.async_configure(form["flow_id"], values)
-    assert result["type"] == "abort" and result["reason"] == "e32_flow_limits_saved", result
+    assert is_again(result), result
     assert (e32.plan["minimum_flow_c"], e32.plan["maximum_flow_c"]) == (79, 80)
 
 
@@ -391,7 +399,7 @@ async def test_editing_changes_only_the_edited_fields_and_sources_can_be_reorder
     form = await room_form(manager, parent, "woonkamer")
     posts = len(e32.posts)
     result = await manager.async_configure(form["flow_id"], shown(form))
-    assert result["reason"] == "e32_room_unchanged" and len(e32.posts) == posts  # nothing written
+    assert is_again(result, "unchanged") and len(e32.posts) == posts  # nothing written
 
     # Bluetooth first: the same two sources in the other order.
     form = await room_form(manager, parent, "woonkamer")
@@ -627,7 +635,7 @@ async def test_menu_offers_no_add_with_eight_rooms_and_an_unreachable_e32_aborts
     e32 = FakeE32({**PLAN, "rooms": [{**PLAN["rooms"][0], "id": f"room_{n}"} for n in range(8)]})
     parent, hub = product(hass, e32)
     menu = await rooms_menu(manager, parent)
-    assert menu["menu_options"] == ["e32_room_pick"]
+    assert menu["menu_options"] == ["e32_room_pick", "back"]
     attempts = []
     hub.plan._client = lambda: _Failing(attempts)
     flow = await manager.async_init(parent.entry_id)
@@ -657,8 +665,10 @@ async def test_dashboard_has_no_old_room_settings_view_when_the_e32_plan_is_the_
     from custom_components.open_thermostat.dashboard import view_cards
     config = RoomDashboard(hass, "fixture", parent.entry_id)._dashboard_config()
     paths = [view["path"] for view in config["views"]]
-    buttons = [card["name"] for card in view_cards(config["views"][0]) if card["type"] == "button"]
-    links = [card["heading"] for card in view_cards(config["views"][0]) if card["type"] == "heading" and card.get("tap_action")]
+    buttons = [card["name"] for view in config["views"] for card in view_cards(view) if card["type"] == "button"]
+    # The links to the room editor and the week program sit with the settings in "Learning and settings".
+    learning = next((view for view in config["views"] if view["path"] == "learned"), {})
+    links = [card["heading"] for card in view_cards(learning) if card["type"] == "heading" and card.get("tap_action")]
     assert "room-a1b2c3d4" in paths  # the old record's own subview, linked from its reconfigure dialog
     if credentials:
         assert "week" not in paths and buttons == [] and links[-2:] == ["Set up rooms", "Week program"]
@@ -721,14 +731,13 @@ def test_every_flow_key_has_a_translation(filename):
     assert "{valve_routes}" in options["step"]["e32_room"]["sections"]["valves"]["data_description"]["valves"]
     assert set(options["step"]["e32_room_valve_models"]["data"]) == {"model_1", "model_2", "model_3", "model_4"}
     assert "{valves}" in options["step"]["e32_rooms_saved"]["description"]
-    assert set(options["step"]["e32_rooms"]["menu_options"]) == {"e32_room_add", "e32_room_pick"}
+    assert set(options["step"]["e32_rooms"]["menu_options"]) == {"e32_room_add", "e32_room_pick", "back", "done"}
     assert options["step"]["init"]["menu_options"]["heating_boiler"]
-    assert set(options["step"]["e32_flow_limits"]["data"]) == {"minimum_flow_temperature", "maximum_flow_temperature", "smart_warm_up",
-                                                                "follow_outdoor"}
+    assert set(options["step"]["e32_flow_limits"]["data"]) == {"minimum_flow_temperature", "maximum_flow_temperature"}
     assert "45–50 °C" in options["step"]["e32_flow_limits"]["data_description"]["maximum_flow_temperature"]
     assert options["step"]["init"]["menu_options"]["e32_rooms"]
     room_step = options["step"]["e32_room"]
-    assert set(room_step["data"]) == {"name", "state", "emitter", "ha_sources", "ble_sources", "bluetooth_first",
+    assert set(room_step["data"]) == {"name", "state", "inactive_until", "emitter", "ha_sources", "ble_sources", "bluetooth_first",
                                       "setpoint_entity", "fallback_temperature", "program"}
     assert set(room_step["sections"]["limits"]["data"]) == {"minimum_temperature", "maximum_temperature"}
     assert set(room_step["sections"]["window"]["data"]) == {"contacts", "contact_delay"}  # the delay per room (beta.23)
@@ -765,7 +774,7 @@ async def test_a_climate_source_is_only_hinted_as_setting_device_never_pre_selec
     # Saving the room as shown leaves it exactly as it was: no setting device appears by itself.
     posts = len(e32.posts)
     result = await manager.async_configure(form["flow_id"], shown(form))
-    assert result["reason"] == "e32_room_unchanged" and len(e32.posts) == posts
+    assert is_again(result, "unchanged") and len(e32.posts) == posts
     assert plan_room(e32.plan, "woonkamer")["setpoint_entity"] == ""
     # Picked explicitly: stored, and then no hint any more.
     form = await room_form(manager, parent, "woonkamer")
@@ -808,3 +817,60 @@ def test_the_setting_hint_follows_the_language_the_flow_knows():
     assert "climate.hal gebruiken als instelapparaat" in flow._e32_setting_hint(room, None)
     flow.context = {}
     assert "Use climate.hal as this room's setting device?" in flow._e32_setting_hint(room, None)
+
+
+# -- "Off until" in the room form ------------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_off_until_is_set_shown_again_and_cleared_by_the_room_form(hass, manager):
+    from datetime import timedelta
+    from homeassistant.util import dt as dt_util
+    e32 = FakeE32()
+    parent, _ = product(hass, e32)
+    soon = dt_util.now().replace(microsecond=0) + timedelta(days=2)
+    text = soon.strftime("%Y-%m-%d %H:%M:%S")
+    form = await room_form(manager, parent, "woonkamer")
+    assert "inactive_until" not in shown(form)  # active room: no suggestion
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "state": "inactive", "inactive_until": text})
+    assert result["step_id"] == "e32_rooms_saved", result
+    room_ = plan_room(e32.plan, "woonkamer")
+    assert (room_["state"], room_["inactive_until"]) == ("inactive", int(soon.timestamp()))
+    # Shown again as it was stored; submitting it unchanged writes nothing.
+    form = await room_form(manager, parent, "woonkamer")
+    assert shown(form)["inactive_until"] == text
+    posts = len(e32.posts)
+    result = await manager.async_configure(form["flow_id"], shown(form))
+    assert is_again(result, "unchanged") and len(e32.posts) == posts
+    # Blank: off without an end.
+    form = await room_form(manager, parent, "woonkamer")
+    values = shown(form)
+    del values["inactive_until"]
+    result = await manager.async_configure(form["flow_id"], values)
+    assert result["step_id"] == "e32_rooms_saved" and plan_room(e32.plan, "woonkamer")["inactive_until"] == 0
+    # Turning the heating on again ignores (and clears) any end.
+    form = await room_form(manager, parent, "woonkamer")
+    result = await manager.async_configure(form["flow_id"], {
+        **shown(form), "state": "inactive", "inactive_until": text})
+    form = await room_form(manager, parent, "woonkamer")
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "state": "active"})
+    room_ = plan_room(e32.plan, "woonkamer")
+    assert (room_["state"], room_["inactive_until"]) == ("active", 0)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("when", ["2001-01-01 10:00:00", "2101-01-01 10:00:00"])
+async def test_off_until_in_the_past_or_beyond_the_limit_is_refused(hass, manager, when):
+    e32 = FakeE32()
+    parent, _ = product(hass, e32)
+    form = await room_form(manager, parent, "woonkamer")
+    posts = len(e32.posts)
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "state": "inactive", "inactive_until": when})
+    assert result["errors"] == {"inactive_until": "e32_inactive_until_invalid"}, result
+    assert len(e32.posts) == posts
+
+
+@pytest.mark.parametrize("filename", ["strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"])
+def test_every_options_menu_names_back_and_done(filename):
+    """The comfort and program menus (like the others) have "← Back" and "Done" texts."""
+    steps = json.loads((COMPONENT / filename).read_text(encoding="utf-8"))["options"]["step"]
+    for step in ("init", "house", "comfort", "program", "heating_boiler", "advanced_settings", "e32_rooms"):
+        assert {"back", "done"} <= set(steps[step]["menu_options"]), step

@@ -381,6 +381,8 @@ async def _async_mqtt_ready(hass):
 
 
 async def async_setup_entry(hass, entry):
+    from .metrics_reports import remove_info_issues
+    remove_info_issues(hass, entry.entry_id)  # older versions showed these as Repairs items
     from .v1_model import integration_mode, MODE_LEGACY, MODE_SHADOW, RoomBinding
     mode = integration_mode(entry)
     from .v1_model import has_graph_rooms, CONF_ENABLED

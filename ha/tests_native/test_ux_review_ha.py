@@ -20,6 +20,7 @@ from custom_components.open_thermostat.e32_access import DEFAULT_PASSWORD_ISSUE
 from custom_components.open_thermostat.e32_room_flow import (
     flow_celsius, flow_shown, format_program, parse_program, shown as shown_c, FlowError)
 from custom_components.open_thermostat.room_plan import RoomPlanLink, has_room_plan
+from nav_helpers import is_again
 from test_e32_room_flow import (  # noqa: F401  (the manager fixture)
     CREDENTIALS, NEW_ROOM, manager, product, room_form, rooms_menu, shown)
 from test_room_plan import PLAN, FakeE32
@@ -323,7 +324,7 @@ async def test_a_room_edited_in_fahrenheit_keeps_its_exact_celsius_values(hass, 
     assert values["limits"] == {"minimum_temperature": 50.0, "maximum_temperature": 75.2}
     posts = len(e32.posts)
     result = await manager.async_configure(form["flow_id"], values)
-    assert result["reason"] == "e32_room_unchanged" and len(e32.posts) == posts
+    assert is_again(result, "unchanged") and len(e32.posts) == posts
     form = await room_form(manager, parent, "woonkamer")
     result = await manager.async_configure(form["flow_id"], {**shown(form), "name": "Huiskamer"})
     assert result["step_id"] == "e32_rooms_saved", result
@@ -364,8 +365,7 @@ async def flow_form(manager, parent):
     # Configure -> Home -> Heating and boiler -> Water temperature limits (rc.3: next to the boiler model).
     await manager.hass.async_block_till_done()
     flow = await manager.async_init(parent.entry_id)
-    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
-    menu = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
+    menu = await manager.async_configure(flow["flow_id"], {"next_step_id": "heating_boiler"})
     return await manager.async_configure(menu["flow_id"], {"next_step_id": "heating_boiler_limits"})
 
 
@@ -383,7 +383,7 @@ async def test_a_radiator_home_can_ask_up_to_80_degrees(hass, manager):
     assert form["description_placeholders"]["boiler"] == ""  # the boiler reports no maximum
     result = await manager.async_configure(form["flow_id"], {"minimum_flow_temperature": 30,
                                                              "maximum_flow_temperature": 75})
-    assert result["reason"] == "e32_flow_limits_saved", result
+    assert is_again(result), result
     assert e32.plan["maximum_flow_c"] == 75
 
 
@@ -399,7 +399,7 @@ async def test_floor_heating_above_50_warns_once_and_then_saves(hass, manager):
         "maximum_flow_temperature": "e32_flow_limits_floor_warning"}
     assert form["description_placeholders"]["floor_maximum"] == "50 °C" and len(e32.posts) == posts
     result = await manager.async_configure(form["flow_id"], values)  # saved on the second press
-    assert result["reason"] == "e32_flow_limits_saved" and e32.plan["maximum_flow_c"] == 65
+    assert is_again(result) and e32.plan["maximum_flow_c"] == 65
 
 
 @pytest.mark.asyncio
@@ -419,7 +419,7 @@ async def test_the_boiler_maximum_is_shown_and_a_higher_limit_warns(hass, manage
     form = await manager.async_configure(form["flow_id"], values)
     assert form["errors"] == {"base": "e32_flow_limits_above_boiler"}
     result = await manager.async_configure(form["flow_id"], values)
-    assert result["reason"] == "e32_flow_limits_saved" and e32.plan["maximum_flow_c"] == 75
+    assert is_again(result) and e32.plan["maximum_flow_c"] == 75
     hass.config.language = "nl"
     form = await flow_form(manager, parent)
     assert form["description_placeholders"]["boiler"].startswith("Je ketel staat hoogstens 70 °C toe")
@@ -453,13 +453,13 @@ async def test_flow_limits_in_fahrenheit(hass, manager):
     assert form["description_placeholders"]["maximum_range"] == "70–176 °F"
     posts = len(e32.posts)
     result = await manager.async_configure(form["flow_id"], shown(form))
-    assert result["reason"] == "e32_room_unchanged" and len(e32.posts) == posts
+    assert is_again(result, "unchanged") and len(e32.posts) == posts
     form = await flow_form(manager, parent)
     result = await manager.async_configure(form["flow_id"], {"minimum_flow_temperature": 77,
                                                              "maximum_flow_temperature": 158})
-    assert result["reason"] == "e32_flow_limits_saved"
+    assert is_again(result)
     assert (e32.plan["minimum_flow_c"], e32.plan["maximum_flow_c"]) == (25, 70)
-    assert result["description_placeholders"] == {"minimum": "77", "maximum": "158", "unit": "°F"}
+    assert "77 and 158 °F" in result["description_placeholders"]["saved"]
 
 
 # -- F06 (HA side): the E32's refusals as plain messages ------------------------------------------
@@ -489,8 +489,8 @@ async def test_e32_refusals_are_plain_messages(hass, manager, error, key):
 async def test_the_main_menu_starts_with_the_rooms_and_keeps_status_under_advanced(hass, manager):
     parent, _ = product(hass, FakeE32())
     flow = await manager.async_init(parent.entry_id)
-    assert flow["menu_options"] == ["e32_rooms", "house", "controller_connection", "general",
-                                    "advanced_settings"]
+    assert flow["menu_options"] == ["e32_rooms", "house", "heating_boiler", "energy",
+                                    "controller_connection", "advanced_settings", "done"]
     advanced = await manager.async_configure(flow["flow_id"], {"next_step_id": "advanced_settings"})
     # Installation status counts the older HA rooms only: not shown without them. The raw hot water status
     # is for older installations too: the E32 shows hot water on the dashboard.

@@ -452,7 +452,7 @@ TEXT = {
                 "observed+flow": " The water going out (flow) was typically {flow} °C.",
                 "why": "A condensing boiler only condenses (recovers the heat in its flue gas, about 10% more "
                        "efficient) when the return water stays below about 55 °C.",
-                "action": "Lower the water temperature to the heating: the maximum heating temperature or heating curve on "
+                "action": "Lower the water temperature to the heating: the maximum heating temperature or weather compensation on "
                           "your boiler, or the E32's highest water temperature. If the water going out and coming back "
                           "are close together, a lower pump speed makes the returning water cooler.",
                 "where": "On the boiler: on many models a knob, on others the boiler menu or its app. Home Assistant: OpenThermostat → Configure → Heating and boiler (or on the E32: Home → Water temperature limits).",
@@ -630,7 +630,7 @@ TEXT = {
                 "observed+flow": " Het water dat de ketel uitging (aanvoer) was meestal {flow} °C.",
                 "why": "Een HR-ketel condenseert alleen (haalt de warmte uit zijn rookgas, ongeveer 10% zuiniger) "
                        "als het retourwater onder ongeveer 55 °C blijft.",
-                "action": "Verlaag de watertemperatuur naar de verwarming: de maximale cv-temperatuur of stooklijn op je ketel, of "
+                "action": "Verlaag de watertemperatuur naar de verwarming: de maximale cv-temperatuur of weerafhankelijke regeling op je ketel, of "
                           "de hoogste watertemperatuur van de E32. Liggen het uitgaande en terugkomende water dicht bij elkaar, "
                           "dan maakt een lagere pompstand het terugkomende water koeler.",
                 "where": "Op de ketel: bij veel modellen een draaiknop, bij andere het ketelmenu of de app van de ketel. Home Assistant: OpenThermostat → Configureren → Verwarming en ketel (of op de E32: Huis → Grenzen watertemperatuur).",
@@ -813,7 +813,7 @@ TEXT = {
                 "observed+flow": " Woda wychodząca (zasilanie) miała zwykle {flow} °C.",
                 "why": "Kocioł kondensacyjny kondensuje (odzyskuje ciepło ze spalin, około 10% wyższa sprawność) "
                        "tylko wtedy, gdy woda powrotna pozostaje poniżej około 55 °C.",
-                "action": "Obniż temperaturę wody do ogrzewania: maksymalną temperaturę c.o. lub krzywą grzewczą "
+                "action": "Obniż temperaturę wody do ogrzewania: maksymalną temperaturę c.o. lub kompensację pogodową "
                           "w kotle albo najwyższą temperaturę wody w E32. Jeśli woda wychodząca i wracająca mają "
                           "zbliżone temperatury, niższa prędkość pompy sprawi, że woda powrotna będzie chłodniejsza.",
                 "where": "Na kotle: w wielu modelach pokrętło, w innych menu kotła lub jego aplikacja. Home Assistant: "

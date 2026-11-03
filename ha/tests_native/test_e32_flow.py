@@ -308,14 +308,14 @@ async def test_platforms_add_flow_entities_only_for_a_product_with_a_stored_conn
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("language,names", [
-    ("en", {"switch.weather_curve": "OpenThermostat Follow outdoor temperature (heating curve)",
+    ("en", {"switch.weather_curve": "OpenThermostat Weather compensation",
             "switch.apply_learned": "OpenThermostat Smart warm-up",
-            "select": "OpenThermostat Water temperature at −10 °C outside", "sensor.source": "OpenThermostat Water temperature set by",
+            "select": "OpenThermostat Water temperature in hard frost (−10 °C)", "sensor.source": "OpenThermostat Water temperature set by",
             "sensor.gas": "OpenThermostat Gas calibration", "sensor.night": "OpenThermostat Last night's heating gas"},
      ),
-    ("nl", {"switch.weather_curve": "OpenThermostat Buitentemperatuur volgen (stooklijn)",
+    ("nl", {"switch.weather_curve": "OpenThermostat Weerafhankelijke regeling",
             "switch.apply_learned": "OpenThermostat Slim opwarmen",
-            "select": "OpenThermostat Watertemperatuur bij −10 °C buiten", "sensor.source": "OpenThermostat Watertemperatuur bepaald door",
+            "select": "OpenThermostat Watertemperatuur bij strenge vorst (−10 °C)", "sensor.source": "OpenThermostat Watertemperatuur bepaald door",
             "sensor.gas": "OpenThermostat Gasijking", "sensor.night": "OpenThermostat Gas voor verwarmen afgelopen nacht"}),
 ])
 async def test_entities_on_real_platforms_have_translated_names_and_valid_states(hass, monkeypatch, language, names):

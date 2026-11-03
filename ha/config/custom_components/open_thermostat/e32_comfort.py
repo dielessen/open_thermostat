@@ -1053,16 +1053,20 @@ class ComfortOptionsSteps:
     """Mixin for the product options flow: the house (presence) and comfort settings, window/door sensors per room."""
 
     async def async_step_house(self, user_input=None):
-        """Configure → Home: everything that applies to the whole house, as on the E32's Home page."""
-        # One place for everything house-wide (beta.23): presence, heating, energy, and the defaults for rooms
-        # (levels without a week program, the default window pause, timing). The window contacts are set per
-        # room in Configure → Rooms; the old Comfort menu is no longer offered (its steps stay for old links).
-        # rc.3: Comfort and boiler care (the E32's control knobs, e32_care) as on the E32's Home page;
-        # not offered once the E32 is known to have firmware that cannot change them.
-        from .e32_care import care_offered
-        care = ["comfort_care"] if care_offered(self.hass, self.config_entry) else []
-        return self.async_show_menu(step_id="house", menu_options=["house_presence", "heating_boiler", *care,
-                                                                   "energy", "comfort_settings"])
+        """Configure → House: presence and the away temperature, the house mode and holiday, and the comfort defaults.
+
+        Heating and boiler, energy and the E32 connection have their own place in the main menu; the window contacts
+        are set per room in Configure → Rooms.
+        """
+        from .e32_house import house_mode
+        house = self._presence_house()
+        options = ["house_presence"]
+        if house is not None:
+            options.append("house_mode")
+            if house_mode(house.away) == "holiday":
+                options.append("house_holiday_stop")
+        options.append("comfort_settings")
+        return self.async_show_menu(step_id="house", menu_options=options)
 
     def _presence_house(self):
         """The house state of the away temperature (e32_house.HouseState), or None without an E32 that reports it."""

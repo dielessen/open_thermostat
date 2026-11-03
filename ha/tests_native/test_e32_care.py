@@ -17,6 +17,7 @@ from custom_components.open_thermostat import e32_care as module
 from custom_components.open_thermostat.controller_link import ControllerLinkError, HeatingPlanRejected
 from custom_components.open_thermostat.e32_flow import KEY as FLOW_KEY, decode_settings
 from test_e32_room_flow import manager, product  # noqa: F401  (the manager fixture)
+from nav_helpers import is_again  # noqa: E402
 from test_room_plan import FakeE32 as PlanE32
 
 COMPONENT = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
@@ -98,7 +99,7 @@ class FakeE32(PlanE32):
 async def care_menu(manager, parent):
     await manager.hass.async_block_till_done()
     flow = await manager.async_init(parent.entry_id)
-    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
+    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "heating_boiler"})
     assert "comfort_care" in house["menu_options"]
     return await manager.async_configure(house["flow_id"], {"next_step_id": "comfort_care"})
 
@@ -154,16 +155,16 @@ async def test_the_overview_shows_every_knob_in_words_and_the_actions(hass, mana
     parent, _ = product(hass, e32)
     menu = await care_menu(manager, parent)
     assert menu["type"] == FlowResultType.MENU and menu["step_id"] == "comfort_care"
-    assert menu["menu_options"] == ["comfort_care_knob", "comfort_care_auto_all", "comfort_care_reset"]
+    assert menu["menu_options"] == ["comfort_care_knob", "comfort_care_auto_all", "comfort_care_reset", "back"]
     lines = menu["description_placeholders"]["settings"].splitlines()
     assert "- Burner rest between starts: 7 min (automatic)" in lines  # the self-tuning's value
     assert "- Burner run time: at least 10 min (set by you)" in lines
-    assert "- Room correction on the heating curve: 50 % (standard value)" in lines and len(lines) == 10
+    assert "- Room correction on weather compensation: 50 % (standard value)" in lines and len(lines) == 10
     assert e32.flow_posts == []  # reading changes nothing
     # Nothing set by you: no "back to automatic for all".
     e32.manual, e32.record["min_on_s"] = [], 300
     menu = await care_menu(manager, parent)
-    assert menu["menu_options"] == ["comfort_care_knob", "comfort_care_reset"]
+    assert menu["menu_options"] == ["comfort_care_knob", "comfort_care_reset", "back"]
 
 
 @pytest.mark.asyncio
@@ -176,7 +177,7 @@ async def test_an_automatic_knob_is_set_by_you_and_back_to_automatic(hass, manag
     assert form["description_placeholders"]["range"] == "2–30 min"
     logins = e32.logins
     done = await manager.async_configure(form["flow_id"], {"automatic": False, "value": 10})
-    assert done["type"] == FlowResultType.ABORT and done["reason"] == "care_saved"
+    assert is_again(done)
     assert e32.flow_posts == [{"tuning": {"min_off_s": 600}, "tuning_manual": ["min_off_s"]}]
     assert e32.flow_logins[-1] == logins + 1  # one sign-in for the change (and a logout)
     assert e32.answer()["tuning"]["min_off_s"] == 600 and e32.manual == ["min_off_s"]
@@ -184,12 +185,12 @@ async def test_an_automatic_knob_is_set_by_you_and_back_to_automatic(hass, manag
     form = await knob_form(manager, parent, "min_off_s")
     assert defaults(form) == {"automatic": False, "value": 10}
     done = await manager.async_configure(form["flow_id"], {"automatic": True, "value": 10})
-    assert done["reason"] == "care_saved" and e32.flow_posts[-1] == {"tuning_manual": []}
+    assert is_again(done) and e32.flow_posts[-1] == {"tuning_manual": []}
     assert e32.answer()["tuning"]["min_off_s"] == 420
     # Automatic again while automatic: nothing is written.
     form = await knob_form(manager, parent, "min_off_s")
     done = await manager.async_configure(form["flow_id"], {"automatic": True, "value": 3})
-    assert done["reason"] == "care_unchanged" and len(e32.flow_posts) == 2
+    assert is_again(done, "unchanged") and len(e32.flow_posts) == 2
 
 
 @pytest.mark.asyncio
@@ -217,10 +218,10 @@ async def test_a_fixed_knob_takes_a_value_and_impossible_values_never_leave_home
     assert form["errors"] == {"value": "care_value_invalid"} and form["description_placeholders"]["range"] == "0–100 %"
     assert e32.flow_posts == []
     done = await manager.async_configure(form["flow_id"], {"value": 50})
-    assert done["reason"] == "care_unchanged" and e32.flow_posts == []
+    assert is_again(done, "unchanged") and e32.flow_posts == []
     form = await knob_form(manager, parent, "curve_correction_pct")
     done = await manager.async_configure(form["flow_id"], {"value": 70})
-    assert done["reason"] == "care_saved" and e32.flow_posts == [{"tuning": {"curve_correction_pct": 70}}]
+    assert is_again(done) and e32.flow_posts == [{"tuning": {"curve_correction_pct": 70}}]
 
 
 @pytest.mark.asyncio
@@ -233,12 +234,12 @@ async def test_back_to_automatic_for_all_and_back_to_start_values_need_a_confirm
     form = await manager.async_configure(form["flow_id"], {"confirm": False})
     assert form["errors"] == {"base": "care_confirm"} and e32.flow_posts == []
     done = await manager.async_configure(form["flow_id"], {"confirm": True})
-    assert done["reason"] == "care_saved" and e32.flow_posts == [{"tuning_manual": []}]
+    assert is_again(done) and e32.flow_posts == [{"tuning_manual": []}]
     assert e32.record["night_saving_min_pct"] == 5  # fixed knobs keep their value
     menu = await care_menu(manager, parent)
     form = await manager.async_configure(menu["flow_id"], {"next_step_id": "comfort_care_reset"})
     done = await manager.async_configure(form["flow_id"], {"confirm": True})
-    assert done["reason"] == "care_saved" and e32.flow_posts[-1] == {"tuning": None}
+    assert is_again(done) and e32.flow_posts[-1] == {"tuning": None}
     assert e32.record == BUILT_IN and e32.manual == []
 
 
@@ -266,7 +267,7 @@ async def test_older_firmware_is_told_to_update_and_then_not_offered(hass, manag
     # The flow options are now known to lack changeable knobs: Home no longer offers them.
     assert hass.data["open_thermostat"][parent.entry_id][FLOW_KEY].settings is not None
     flow = await manager.async_init(parent.entry_id)
-    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
+    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "heating_boiler"})
     assert "comfort_care" not in house["menu_options"]
     assert module.care_offered(hass, parent) is False
 
@@ -283,11 +284,11 @@ def test_every_comfort_and_boiler_care_text_exists_in_every_language():
               "care_saved", "e32_rooms_unavailable", "e32_password_changed")
     for name, data in files.items():
         options = data["options"]
-        assert options["step"]["house"]["menu_options"]["comfort_care"], name
+        assert options["step"]["heating_boiler"]["menu_options"]["comfort_care"], name
         for step in steps:
             assert options["step"][step]["title"], (name, step)
         assert set(options["step"]["comfort_care"]["menu_options"]) == {
-            "comfort_care_knob", "comfort_care_auto_all", "comfort_care_reset"}
+            "comfort_care_knob", "comfort_care_auto_all", "comfort_care_reset", "back", "done"}
         assert set(options["step"]["comfort_care_auto_value"]["data"]) == {"automatic", "value"}
         assert set(options["step"]["comfort_care_fixed_value"]["data"]) == {"value"}
         assert "{settings}" in options["step"]["comfort_care"]["description"]

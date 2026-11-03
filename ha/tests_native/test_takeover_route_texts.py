@@ -10,10 +10,10 @@ import pytest
 
 BASE = Path(__file__).resolve().parents[1] / "config" / "custom_components" / "open_thermostat"
 WORDS = {
-    "strings.json": ("trial run beside it", "boiler test", "sends nothing to the boiler until you confirm"),
-    "translations/en.json": ("trial run beside it", "boiler test", "sends nothing to the boiler until you confirm"),
-    "translations/nl.json": ("proefperiode mee", "keteltest", "stuurt niets naar de ketel tot je bevestigt"),
-    "translations/pl.json": ("w okresie próbnym", "test", "Nic nie wysyła do kotła"),
+    "strings.json": ("trial run beside it", "boiler test", "sends nothing to the boiler until you say so", "boiler"),
+    "translations/en.json": ("trial run beside it", "boiler test", "sends nothing to the boiler until you say so", "boiler"),
+    "translations/nl.json": ("proefrun ernaast", "keteltest", "stuurt niets naar de ketel", "ketel"),
+    "translations/pl.json": ("próbę obok niego", "test kotła", "nie wysyła nic do kotła", "kotłem"),
 }
 
 
@@ -21,10 +21,11 @@ WORDS = {
 def test_the_setup_says_which_route_a_new_e32_takes(name):
     step = json.loads((BASE / name).read_text(encoding="utf-8"))["config"]["step"]
     user, shadow = step["user"]["description"], step["shadow"]["description"]
-    trial, test, nothing = WORDS[name]
-    assert trial in user and test in user and nothing in user, user
-    # The E32 step: the takeover on the E32 page, the trial run only beside an old thermostat.
-    assert "Rooms" in shadow or "Ruimtes" in shadow
+    trial, test, nothing, boiler = WORDS[name]
+    # First run: short and calm; the route words live on the E32 step, the trial run only beside an old thermostat.
+    assert boiler in user and len(user) < 140, user
+    assert trial in shadow and test in shadow and nothing in shadow, shadow
+    assert "Rooms" in shadow or "Ruimtes" in shadow or "Pomieszczenia" in shadow
     for old in ("calculates along; your current thermostat keeps controlling the boiler until you switch over",
                 "rekent de E32 mee; je huidige thermostaat blijft de ketel regelen tot je overstapt",
                 "During the trial run the E32 only calculates", "Tijdens de proefperiode rekent de E32 alleen"):

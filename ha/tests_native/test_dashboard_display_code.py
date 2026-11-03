@@ -15,8 +15,9 @@ OWNER = "nefit-ecomline-classic-hrc-22h"
 
 
 def card(hass, e):
-    now = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"][0]["sections"][0]
-    assert now["cards"][0]["heading"] in ("Now", "Nu")
+    config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
+    now = next(v for v in config["views"] if v["path"] == "boiler")["sections"][0]
+    assert now["cards"][0]["heading"] in ("Boiler", "Ketel")
     return next(c for c in now["cards"] if c["type"] == "markdown" and "'meaning'" in c["content"])
 
 

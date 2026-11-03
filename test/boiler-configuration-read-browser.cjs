@@ -66,7 +66,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   assert.equal(await confirm.isChecked(),true);assert.equal(await button.isDisabled(),true);
   identified=true;read={...read,active:false,available:true,phase:'completed',reason:'identity_received',observed_at_ms:read.observed_at_ms+1};
   await page.evaluate(()=>BoilerData.refresh());await page.waitForFunction(()=>document.querySelector('[data-read-configuration]').disabled===false);
-  assert.equal(await identify.isHidden(),true);assert.match(await page.locator('#ems-device-list summary').textContent(),/EasyControl/);
+  assert.equal(await identify.isHidden(),true);assert.match(await page.locator('#ems-device-list summary').textContent(),/Bosch(?: boiler|-ketel) \(product 211\)/);
   assert.equal(await confirm.isChecked(),true,'Identity read retains the same bounded setup declaration');
   // Another observed device gets its own explicit identity read, addressed to it.
   read={...read,identity_available:true,observed_at_ms:read.observed_at_ms+1};await page.evaluate(()=>BoilerData.refresh());

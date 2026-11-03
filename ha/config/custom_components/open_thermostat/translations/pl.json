@@ -1411,6 +1411,82 @@
           "window_pending": "Okno otwarte, wkrótce wstrzymanie"
         }
       },
+      "room_reason": {
+        "name": "Powód",
+        "state": {
+          "off": "Tylko ochrona przed mrozem (pomieszczenie wyłączone)",
+          "window_open": "Wstrzymane: otwarte okno lub drzwi",
+          "window_pending": "Otwarte okno lub drzwi, wkrótce wstrzymanie",
+          "no_measurement": "Brak pomiaru",
+          "hot_water": "Czeka: kocioł przygotowuje ciepłą wodę",
+          "boiler_pause": "Czeka: minimalna przerwa kotła",
+          "away_return": "Nagrzewanie przed Twoim powrotem",
+          "holiday": "Urlop",
+          "away": "Nieobecność",
+          "room_away": "Nieobecność: nikogo z tego pomieszczenia nie ma w domu",
+          "house_away": "Nieobecność: wszyscy są poza domem",
+          "boost": "Szybkie grzanie",
+          "temporary": "Tymczasowa temperatura",
+          "heating": "Grzeje",
+          "wants_heat": "Potrzebuje ciepła",
+          "warm_enough": "Wystarczająco ciepło",
+          "warm_up": "Inteligentne nagrzewanie: grzanie wcześniej"
+        },
+        "state_attributes": {
+          "line": {
+            "name": "Zdanie",
+            "state": {
+              "off": "Tylko ochrona przed mrozem (pomieszczenie wyłączone)",
+              "window_open": "Wstrzymane: otwarte jest okno lub drzwi",
+              "window_open_contact": "Wstrzymane: {contact} otwarte od {since}",
+              "window_pending": "Otwarte jest okno lub drzwi: pomieszczenie wkrótce wstrzyma grzanie",
+              "window_pending_contact": "{contact} otwarte: pomieszczenie wkrótce wstrzyma grzanie",
+              "no_measurement": "Brak pomiaru: to pomieszczenie nie prosi o ciepło",
+              "hot_water": "Czeka: kocioł przygotowuje ciepłą wodę",
+              "boiler_pause": "Czeka: minimalna przerwa kotła",
+              "away_return": "Nagrzewanie przed Twoim powrotem",
+              "holiday": "Urlop do {until} ({target} °C)",
+              "away": "Nieobecność: dom ustawiony na nieobecność ({target} °C)",
+              "room_away": "Nieobecność: nikogo z tego pomieszczenia nie ma w domu ({target} °C)",
+              "house_away": "Nieobecność: wszyscy są poza domem ({target} °C)",
+              "boost": "Szybkie grzanie",
+              "boost_until": "Szybkie grzanie do {until}",
+              "temporary": "Tymczasowo {target} °C",
+              "temporary_until": "Tymczasowo {target} °C do {until}",
+              "heating": "Grzeje: {temperature} → {target} °C",
+              "wants_heat": "Potrzebuje ciepła: {temperature} → {target} °C",
+              "warm_enough": "Wystarczająco ciepło: {temperature} °C (cel {target} °C)",
+              "no_heat_needed": "Ciepło niepotrzebne",
+              "warm_up": "Inteligentne nagrzewanie: grzeje wcześniej na {time} ({target} °C)"
+            }
+          },
+          "presence": {
+            "name": "Obecność",
+            "state": {
+              "room_home": "Ktoś z tego pomieszczenia jest w domu",
+              "room_away": "Nikogo z tego pomieszczenia nie ma w domu",
+              "house_home": "Ktoś jest w domu",
+              "house_away": "Wszyscy są poza domem"
+            }
+          },
+          "window": {
+            "name": "Okno lub drzwi",
+            "state": {
+              "open": "Otwarte okno lub drzwi",
+              "pending": "Otwarte okno lub drzwi, wkrótce wstrzymanie"
+            }
+          },
+          "temperature": {
+            "name": "Teraz"
+          },
+          "setpoint": {
+            "name": "Cel"
+          },
+          "valve_position": {
+            "name": "Otwarcie zaworów grzejnikowych"
+          }
+        }
+      },
       "ble_temperature": {
         "name": "Temperatura"
       },

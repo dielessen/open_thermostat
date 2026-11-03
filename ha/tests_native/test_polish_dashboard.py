@@ -117,8 +117,9 @@ async def test_a_polish_home_assistant_gets_a_polish_dashboard(hass):
     e, *_ = installation(hass, "pl")
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     text = json.dumps(config, ensure_ascii=False)
-    assert [view["title"] for view in config["views"][:3]] == ["Ogrzewanie", "Kocioł", "Diagnostyka"]
-    for words in ("Teraz", "Żądanie do kotła", "Woda do ogrzewania", "Moc palnika", "Okres próbny",
+    assert [view["title"] for view in config["views"]][:5] == [
+        "Przegląd", "Pomieszczenia", "Kocioł", "Uczenie i ustawienia", "Diagnostyka"]
+    for words in ("Dom", "Żądanie do kotła", "Okres próbny", "Czujniki Bluetooth",
                   "Czujniki Bluetooth"):
         assert words in text, words
     # No English dashboard text is left (the names in it come from the registry).

@@ -24,7 +24,9 @@ STATUS = {"schema": 1, "revision": 7, "mode": "shadow", "request": {"heat": True
 UNIQUE_IDS = sorted([
     "fixture_hub_heat_request", "fixture_hub_burner_starts_last_hour",
     "fixture_e32_room_woonkamer_temperature", "fixture_e32_room_woonkamer_setpoint", "fixture_e32_room_woonkamer_status",
+    "fixture_e32_room_woonkamer_reason",
     "fixture_e32_room_keuken_temperature", "fixture_e32_room_keuken_setpoint", "fixture_e32_room_keuken_status",
+    "fixture_e32_room_keuken_reason",
     "fixture_e32_ble_a4c138a3e8db_temperature", "fixture_e32_ble_a4c138a3e8db_humidity",
     "fixture_e32_ble_a4c138a3e8db_battery"])
 

@@ -184,7 +184,7 @@ async def test_rooms_and_bluetooth_sensors_become_entities_for_the_ids_seen(hass
     assert sorted(by_id) == sorted([
         "fixture_hub_heat_request",
         "fixture_e32_room_woonkamer_temperature", "fixture_e32_room_woonkamer_setpoint",
-        "fixture_e32_room_woonkamer_status",
+        "fixture_e32_room_woonkamer_status", "fixture_e32_room_woonkamer_reason",
         "fixture_e32_ble_a4c138a3e8db_temperature", "fixture_e32_ble_a4c138a3e8db_humidity",
         "fixture_e32_ble_a4c138a3e8db_battery",
         # The cellar sensor reports no humidity or battery: no entities that would stay unknown.
@@ -203,7 +203,7 @@ async def test_rooms_and_bluetooth_sensors_become_entities_for_the_ids_seen(hass
     assert by_id["fixture_e32_ble_a4c138a3e8db_temperature"].native_unit_of_measurement == "°C"
     devices = {e.unique_id: e.device_info for e in added}
     assert devices["fixture_hub_heat_request"]["identifiers"] == {("open_thermostat", "fixture")}
-    for key in ("temperature", "setpoint", "status"):
+    for key in ("temperature", "setpoint", "status", "reason"):
         assert devices[f"fixture_e32_room_woonkamer_{key}"] == {
             "identifiers": {("open_thermostat", "fixture_e32_room_woonkamer")}, "name": "Woonkamer",
             "manufacturer": "OpenThermostat"}
@@ -213,12 +213,12 @@ async def test_rooms_and_bluetooth_sensors_become_entities_for_the_ids_seen(hass
     assert devices["fixture_e32_ble_112233445566_temperature"]["name"] == "Kelder"
     # The same status again adds nothing; a reading that appears later adds its entity once.
     send(FULL)
-    assert len(added) == 8
+    assert len(added) == 9
     later = json.loads(json.dumps(FULL))
     later["ble_sensors"][1]["battery"] = 64
     later["rooms"][0]["status"] = "future_status"
     send(later)
-    assert len(added) == 9 and added[-1].unique_id == "fixture_e32_ble_112233445566_battery"
+    assert len(added) == 10 and added[-1].unique_id == "fixture_e32_ble_112233445566_battery"
     assert status.native_value is None  # An unknown status is not passed to the enum.
     # A room the E32 no longer reports is unavailable, not removed.
     send({**FULL, "rooms": [], "ble_sensors": []})

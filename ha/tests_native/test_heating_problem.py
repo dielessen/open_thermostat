@@ -5,8 +5,8 @@ import pytest
 
 from custom_components.open_thermostat.heating_link import HeatingHub
 from custom_components.open_thermostat.heating_problem import (
-    ACTIVE_WARNING_SECONDS, AWAITING_CONFIRMATION_SECONDS, ROOM_LOST_SECONDS, SHORT_CYCLING_SECONDS, TELEMETRY_STALE_SECONDS, TEXT,
-    HeatingProblemSensor, ProblemTracker, render)
+    ACTIVE_WARNING_SECONDS, AWAITING_CONFIRMATION_SECONDS, ROOM_LOST_SECONDS, TELEMETRY_STALE_SECONDS, TEXT,
+    HeatingProblemSensor, ProblemTracker, render, render_short)
 
 MIN = 60
 
@@ -92,21 +92,24 @@ def test_the_e32_silent_for_more_than_10_minutes():
     assert problems(tracker, hub, clock) == ["e32_offline"]
 
 
-def test_pressure_advice_and_hours_of_short_cycling():
+def test_pressure_advice_is_a_problem_and_short_cycling_is_only_information():
     clock, hub, tracker = setup()
     hub.update(status(burner={"short_cycling": True}))
     low = [{"id": "pressure_low", "values": {"pressure": 0.8}}]
     assert problems(tracker, hub, clock, low) == ["pressure_low"]
     assert render(tracker.problems(hub, clock(), low), "nl") == ["De waterdruk is laag (0,8 bar). Vul de "
                                                                  "cv-installatie bij."]
-    clock.now += SHORT_CYCLING_SECONDS - MIN
+    # The burner switching on and off too often is information (the learning area), never a problem.
+    clock.now += 5 * 3600
     hub.update(status(burner={"short_cycling": True}))
     assert problems(tracker, hub, clock) == []
-    clock.now += 2 * MIN
-    hub.update(status(burner={"short_cycling": None}))  # unknown for a moment: the stretch goes on
-    assert problems(tracker, hub, clock) == ["short_cycling"]
-    hub.update(status(burner={"short_cycling": False}))
-    assert problems(tracker, hub, clock) == []
+    # The tile says what is wrong in a few words, in the Home Assistant language.
+    assert render_short(tracker.problems(hub, clock(), low), "en") == "Water pressure low"
+    assert render_short(tracker.problems(hub, clock(), low), "nl") == "Waterdruk te laag"
+    assert render_short([], "en") is None
+    two = [("awaiting_confirmation", {}), ("room_slow", {"room": "Kitchen"})]
+    assert render_short(two, "en") == "Waiting for your confirmation (+1)"
+    assert render_short(two[1:], "pl") == "Kitchen: zbyt zimno"
     # Other advice (suggestions) is not a problem.
     assert problems(tracker, hub, clock, [{"id": "max_ch_high", "values": {}}]) == []
 
@@ -212,7 +215,7 @@ async def test_the_sensor_is_a_problem_entity_with_reasons_for_an_automation(has
     assert sensor.extra_state_attributes["reasons"][0].startswith("De waterdruk is hoog (2,9 bar)")
     advice.items = []
     sensor.evaluate()
-    assert sensor.is_on is False and sensor.extra_state_attributes == {"problems": [], "reasons": [], "rooms": []}
+    assert sensor.is_on is False and sensor.extra_state_attributes == {"problems": [], "reasons": [], "reason": None, "rooms": []}
     assert "reasons" in sensor._unrecorded_attributes
 
 

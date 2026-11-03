@@ -170,27 +170,21 @@ def test_the_tuning_topic_joins_the_summary():
         assert "tuning" not in h.summary
 
 
-def test_the_dashboard_sums_it_up_on_heating_and_shows_it_all_on_its_own_page():
-    """A page of text pushed the rooms down on a phone: the Heating view shows how far each room is and the
-    latest change, with a link; the whole overview is its own subview (rooms, house and boiler, its changes)."""
+def test_the_learning_view_sums_it_up_and_shows_the_house_and_its_changes():
+    """What it learned is the "Learning and settings" view: how far each room is and the latest change, the house and
+    boiler, and what it changed by itself. What it learned per room is in that room's section of the Rooms view."""
     from custom_components.open_thermostat import dashboard
     entity = "sensor.what_the_thermostat_learned"
     shown = [{"condition": "state", "entity": entity, "state_not": "unavailable"}]
-    summary = dashboard._learned_summary(dashboard.TEXT["en"], entity, "/dash/learned")
-    heading, text, link = summary["cards"]
-    assert heading["heading"] == "What the thermostat has learned" and summary["visibility"] == shown
-    assert "room.progress" in text["content"] and "'changes') or [])[:1]" in text["content"]
-    assert "room.lines" not in text["content"]  # the details are on the subview
-    assert (link["heading"], link["tap_action"]) == ("Everything it learned",
-                                                    {"action": "navigate", "navigation_path": "/dash/learned"})
-    rooms, house, changes = dashboard._learned_sections(dashboard.TEXT["en"], entity)
-    assert [s["cards"][0]["heading"] for s in (rooms, house, changes)] == [
+    summary, house, changes = dashboard._learned_sections(dashboard.TEXT["en"], entity)
+    assert [s["cards"][0]["heading"] for s in (summary, house, changes)] == [
         "What the thermostat has learned", "House and boiler", "What it changed by itself"]
-    assert f"state_attr(\"{entity}\", 'rooms')" in rooms["cards"][1]["content"]
-    assert "'explanation'" in rooms["cards"][1]["content"] and "'house'" in house["cards"][1]["content"]
-    assert "'changes'" in changes["cards"][1]["content"] and "Home → Comfort and boiler care" in changes["cards"][1]["content"]
-    assert all(s["visibility"] == shown for s in (rooms, house, changes))
-    assert dashboard._learned_summary(dashboard.TEXT["nl"], None, "/x") is None
+    assert "room.progress" in summary["cards"][1]["content"] and "'changes') or [])[:1]" in summary["cards"][1]["content"]
+    assert "room.lines" not in summary["cards"][1]["content"]  # the lines are in the rooms
+    assert "'explanation'" in summary["cards"][1]["content"] and "<details>" in summary["cards"][1]["content"]
+    assert "'house'" in house["cards"][1]["content"] and "'changes'" in changes["cards"][1]["content"]
+    assert "Home → Comfort and boiler care" in changes["cards"][2]["content"]
+    assert all(s["visibility"] == shown for s in (summary, house, changes))
     assert dashboard._learned_sections(dashboard.TEXT["nl"], None) == []
     assert dashboard._learned_sections(dashboard.TEXT["nl"], "sensor.x")[0]["cards"][0]["heading"] == "Wat de thermostaat heeft geleerd"
 

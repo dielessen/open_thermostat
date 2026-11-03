@@ -56,40 +56,45 @@ def section(view, heading):
 @pytest.mark.asyncio
 async def test_boiler_values_are_hidden_while_they_have_none_instead_of_showing_unavailable(hass):
     config, rooms, sensors, hub, fields, flow = live(hass)
-    heating = config["views"][0]
+    overview, boiler = config["views"][0], next(v for v in config["views"] if v["path"] == "boiler")
     values = [fields[k] for k in ("measured_flow_temperature", "measured_dhw_temperature",
                                   "measured_return_temperature", "reported_burner_modulation", "pressure")]
-    tiles = {c["entity"]: c for c in view_cards(heating) if c["type"] == "tile" and c["entity"] in values}
-    assert set(tiles) == set(values)
-    for entity_id, tile in tiles.items():
-        assert tile["visibility"] == [known(entity_id)], entity_id
+    # The boiler's values are all in the Boiler view, as rows that appear once they have a value; never on the Overview.
+    rows = {row["row"]["entity"]: row for card in view_cards(boiler) if card["type"] == "entities"
+            for row in card["entities"] if row.get("type") == "conditional"}
+    for entity_id in values:
+        assert rows[entity_id]["conditions"] == [known(entity_id)], entity_id
+    assert not any(entity_id in json.dumps(overview) for entity_id in values)
     # The display code in words: hidden as long as the boiler reports no code.
-    words = [c for c in view_cards(heating) if c["type"] == "markdown" and "'meaning'" in c["content"]]
+    words = [c for c in view_cards(boiler) if c["type"] == "markdown" and "'meaning'" in c["content"]]
     assert [c["visibility"] for c in words] == [[known(fields["display_code"])]]
-    # The "Heating" status stays always visible: it says when the E32 has not reported.
-    status = next(c for c in section(heating, "Now") if c.get("entity") == hub["heating_problem"])
-    assert status["name"] == "Heating" and "visibility" not in status
+    # The "Heating" problem tile is shown only while there is a problem, with its reason.
+    status = next(c for c in section(overview, "House") if c.get("entity") == hub["heating_problem"])
+    assert status["name"] == "Heating" and status["state_content"] == ["reason"]
+    assert status["visibility"] == [{"condition": "state", "entity": hub["heating_problem"], "state": "on"}]
 
 
 @pytest.mark.asyncio
 async def test_the_boiler_request_says_no_request_instead_of_zero_degrees(hass):
+    """One card whose text follows the E32: "Boiler request: 54,0 °C" or nothing but "No room wants heat"."""
+    from homeassistant.helpers.template import Template
     config, rooms, sensors, hub, fields, flow = live(hass)
-    now = section(config["views"][0], "Now")
-    request, idle = [c for c in now if c.get("entity") == hub["heat_request"]]
-    assert request["name"] == "Boiler request" and "hide_state" not in request
-    assert request["visibility"] == [{"condition": "numeric_state", "entity": hub["heat_request"], "above": 0}]
-    assert (idle["name"], idle["icon"], idle["hide_state"]) == ("No boiler request", "mdi:fire-off", True)
-    assert idle["visibility"] == [{"condition": "numeric_state", "entity": hub["heat_request"], "below": 0.1}]
+    wanting = section(config["views"][0], "House")[1]
+    assert wanting["type"] == "markdown" and hub["heat_request"] in wanting["content"]
+    assert "visibility" not in wanting  # no card that comes and goes
+    hass.states.async_set(hub["heat_request"], "0", {"rooms": []})
+    assert "0,0" not in Template(wanting["content"], hass).async_render()
     nl, *_ = live(hass, "nl")
-    assert "Geen ketelvraag" in json.dumps(nl, ensure_ascii=False)
+    assert "Geen ruimte vraagt warmte" in json.dumps(nl, ensure_ascii=False)
 
 
 @pytest.mark.asyncio
 async def test_the_comparison_is_a_link_that_explains_it_not_a_bare_percentage(hass):
     config, rooms, sensors, hub, fields, flow = live(hass)
-    now = section(config["views"][0], "Now")
-    assert hub["shadow_agreement_today"] not in [c.get("entity") for c in now]
-    link = next(c for c in now if c.get("heading") == "E32 compared with your thermostat")
+    learning = next(v for v in config["views"] if v["path"] == "learned")
+    control = section(learning, "Boiler control")
+    assert hub["shadow_agreement_today"] not in [c.get("entity") for c in control]
+    link = next(c for c in control if c.get("heading") == "E32 compared with your thermostat")
     assert link["tap_action"]["navigation_path"].endswith("/comparison")
     assert link["visibility"] == [known(hub["shadow_agreement_today"])]  # only while a thermostat is heard
     # The subview names it in full.
@@ -106,7 +111,7 @@ async def test_no_comparison_once_the_e32_controls_the_boiler(hass):
     heating_hub = hass.data["open_thermostat"][entry_id]["heating_hub"]
     heating_hub.update({**heating_hub.status, "mode": "active"})
     config = RoomDashboard(hass, "fixture", entry_id)._dashboard_config()
-    assert [v["path"] for v in config["views"]] == ["heating", "boiler", "diagnostics"]
+    assert [v["path"] for v in config["views"]] == ["heating", "rooms", "boiler", "learned", "diagnostics"]
     text = json.dumps(config)
     assert "compared with your thermostat" not in text and "/comparison" not in text
     assert hub["shadow_agreement_today"] not in text and "Agreement with thermostat" not in text
@@ -115,7 +120,7 @@ async def test_no_comparison_once_the_e32_controls_the_boiler(hass):
 @pytest.mark.asyncio
 async def test_an_inactive_room_is_compact_without_a_dial_or_learning_and_links_to_its_settings(hass):
     config, rooms, sensors, hub, fields, flow = live(hass)
-    bathroom = section(config["views"][0], "Badkamer")
+    bathroom = section(config["views"][1], "Badkamer")
     off = [{"condition": "state", "entity": rooms["badkamer"]["state"], "state": "inactive"}]
     on = {"condition": "state", "entity": rooms["badkamer"]["state"], "state_not": "inactive"}
     # Its own climate (which could switch it on) and its learning area only while it is on.
@@ -134,31 +139,33 @@ async def test_an_inactive_room_is_compact_without_a_dial_or_learning_and_links_
     assert not any(c.get("features") for c in bathroom)
     assert "Choose a source" not in json.dumps(bathroom)  # its source works: no hint to choose one
     # The room that is on keeps its dial.
-    living = section(config["views"][0], "Woonkamer")
+    living = section(config["views"][1], "Woonkamer")
     assert any(c["type"] == "thermostat" for c in living)
 
 
 @pytest.mark.asyncio
-async def test_the_humidity_badge_says_what_it_is(hass):
+async def test_the_humidity_is_a_named_row_in_the_rooms_sensors_not_a_second_badge(hass):
     config, rooms, sensors, hub, fields, flow = live(hass)
-    badge = next(b for b in section(config["views"][0], "Woonkamer")[0]["badges"] if b["entity"] == sensors["humidity"])
-    assert (badge["name"], badge["icon"]) == ("Humidity", "mdi:water-percent")
+    living = section(config["views"][1], "Woonkamer")
+    assert sensors["humidity"] not in [b["entity"] for b in living[0]["badges"]]
+    rows = next(c for c in living if c["type"] == "entities")["entities"]
+    assert {"entity": sensors["humidity"], "name": "Humidity"} in rows
 
 
 @pytest.mark.asyncio
-async def test_long_choices_get_the_whole_width_and_no_gap_is_left_under_now(hass):
+async def test_long_choices_get_the_whole_width_and_sections_fill_the_gaps(hass):
     config, rooms, sensors, hub, fields, flow = live(hass)
-    heating = config["views"][0]
-    assert heating["dense_section_placement"] is True
-    settings = section(heating, "Weather compensation and learning")
+    learning = next(v for v in config["views"] if v["path"] == "learned")
+    assert learning["dense_section_placement"] is True
+    settings = section(learning, "Smart warm-up and weather compensation")
     # The settings carry their entities' own long names (as on the device page) and a long choice:
     # every tile takes the whole width, none is cut short.
     tiles = [c for c in settings if c["type"] == "tile"]
-    assert [c["entity"] for c in tiles] == [flow[k] for k in ("source", "weather_curve", "curve_design_flow_c",
-                                                              "apply_learned")]
+    assert [c["entity"] for c in tiles] == [flow[k] for k in ("apply_learned", "weather_curve", "curve_design_flow_c",
+                                                              "source")]
     assert all(c["grid_options"] == {"columns": 12} for c in tiles)
-    assert [c["name"] for c in tiles] == ["Water temperature set by", "Weather compensation",
-                                          "Water temperature at −10 °C outside", "Smart warm-up"]
+    assert [c["name"] for c in tiles] == ["Smart warm-up", "Weather compensation",
+                                          "Water temperature at −10 °C outside", "Water temperature set by"]
 
 
 @pytest.mark.asyncio
@@ -170,5 +177,6 @@ async def test_rows_in_entities_cards_are_named_by_the_entity_alone(hass):
     assert rows
     # Boiler rows show only while they have a value: a conditional row around the same plain row.
     plain = [row["row"] if row.get("type") == "conditional" else row for row in rows]
-    assert all(row == {"entity": row["entity"], "name": {"type": "entity"}} for row in plain)
+    # The entity's own name (no device name in front) or a name this dashboard chose, written out.
+    assert all(row.get("name", {"type": "entity"}) == {"type": "entity"} or isinstance(row["name"], str) for row in plain)
     assert all(row["conditions"] == [known(row["row"]["entity"])] for row in rows if row.get("type") == "conditional")

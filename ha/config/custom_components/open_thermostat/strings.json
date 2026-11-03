@@ -115,9 +115,9 @@
         "menu_options": {
           "house_presence": "Presence: who lives here",
           "heating_boiler": "Heating and boiler",
+          "comfort_care": "Comfort and boiler care",
           "energy": "Energy and outdoor temperature",
-          "comfort_settings": "Defaults for rooms and timing",
-          "comfort_care": "Comfort and boiler care"
+          "comfort_settings": "Defaults for rooms and timing"
         }
       },
       "house_presence": {

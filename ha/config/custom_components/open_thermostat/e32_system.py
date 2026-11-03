@@ -132,12 +132,15 @@ def decode_logging(value):
 
 
 def link_for(hass, entry):
-    """The room-plan link of the stored E32 connection (its lock and sign-in), or None without one."""
-    from .heating_link import heating_hub
+    """The room-plan link of the stored E32 connection (its lock and sign-in), or None without one.
+
+    Only the hub the platforms already set up: building a menu never creates one as a side effect.
+    """
     from .room_plan import has_room_plan
-    if not has_room_plan(entry) or entry.entry_id not in hass.data.get(DOMAIN, {}):
+    if not has_room_plan(entry):
         return None
-    return heating_hub(hass, entry).plan
+    hub = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("heating_hub")
+    return getattr(hub, "plan", None)
 
 
 async def async_e32_call(link, call, *, write):

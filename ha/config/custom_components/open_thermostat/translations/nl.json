@@ -1083,9 +1083,9 @@
         "menu_options": {
           "house_presence": "Aanwezigheid: wie hier woont",
           "heating_boiler": "Verwarming en ketel",
+          "comfort_care": "Comfort en zorg voor de ketel",
           "energy": "Energie en buitentemperatuur",
-          "comfort_settings": "Standaarden voor ruimtes en tijden",
-          "comfort_care": "Comfort en zorg voor de ketel"
+          "comfort_settings": "Standaarden voor ruimtes en tijden"
         }
       },
       "house_presence": {

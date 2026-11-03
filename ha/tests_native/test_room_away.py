@@ -50,6 +50,9 @@ class AwayE32(FakeE32):
 
             async def async_save_heating_plan(self, plan):
                 return {**await inner.async_save_heating_plan(plan), "features": list(features)}
+
+            async def async_valves(self, document=None):
+                return None  # firmware without valve records: the room form has no valves section
         return Client()
 
 

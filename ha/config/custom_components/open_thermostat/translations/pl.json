@@ -115,9 +115,9 @@
         "menu_options": {
           "house_presence": "Obecność: kto tu mieszka",
           "heating_boiler": "Ogrzewanie i kocioł",
+          "comfort_care": "Komfort i dbałość o kocioł",
           "energy": "Energia i temperatura zewnętrzna",
-          "comfort_settings": "Ustawienia domyślne pomieszczeń i czasy",
-          "comfort_care": "Komfort i dbałość o kocioł"
+          "comfort_settings": "Ustawienia domyślne pomieszczeń i czasy"
         }
       },
       "house_presence": {

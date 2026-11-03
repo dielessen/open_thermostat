@@ -343,7 +343,7 @@ public:
         rewriteEvicted(); // the plan first: optional records may have made room for it
         if (saved == HeatingPlanSave::storage_full) return "storage_full";
         if (saved != HeatingPlanSave::saved) return "save_unconfirmed";
-        planStored_ = true;
+        planStored_ = true; planReadable_ = true;
         roomEngine_.setPlan(plan);
         flowLearner_.setPlan(plan);
         autoTuner_.restart(bleReceiptClock()); // a new plan: a day of its own before the tuner moves
@@ -479,6 +479,8 @@ public:
         cJSON_AddBoolToObject(active, "confirmation_stored", handover_.stored());
         cJSON_AddBoolToObject(active, "reconfirm_stored", handover_.pending());
         cJSON_AddBoolToObject(active, "taken_over_before", ownedBefore_);
+        // rc.4 (R1-05): the stored plan could not be read at boot; the E32 runs without rooms until a plan is saved.
+        cJSON_AddBoolToObject(active, "plan_unreadable", !planReadable_);
         // rc.3: the E32 ever heard another controller ask the boiler for heat (kept in the boiler
         // test's record); the pages and Home Assistant mention an old thermostat only then.
         cJSON_AddBoolToObject(active, "thermostat_seen", takeoverTest_.thermostatSeen());
@@ -880,6 +882,7 @@ private:
     control::ActiveHeatGuard activeGuard_;
     control::TakeoverTest takeoverTest_;         // the guided boiler test and takeover (rc.2)
     bool planStored_ = true;                     // false: no plan in NVS yet, its mode follows newPlan_
+    bool planReadable_ = true;                   // false: the stored plan was unreadable at boot (R1-05), until a save
     control::NewPlanDefault newPlan_;            // a new plan's route from the boiler bus (rc.2)
     bool ownedBefore_ = false;                   // the E32 owned the boiler once (NVS "owned")
     void markOwned() { if (!ownedBefore_) { ownedBefore_ = true; HeatingNoteNvs{"owned"}.write("1"); } }
@@ -949,8 +952,9 @@ private:
         const auto raw = readHeatingPlan(&planStored_);
         const auto root = control::parseNestedJson(raw);
         control::RoomPlan plan;
-        if (root && !control::RoomPlan::parse(root.get(), plan)) { roomEngine_.setPlan(plan); flowLearner_.setPlan(plan); }
-        else DBGLOGFI(log_, logFeature_, "Room plan unreadable; heating control has no rooms\n");
+        planReadable_ = root && !control::RoomPlan::parse(root.get(), plan);
+        if (planReadable_) { roomEngine_.setPlan(plan); flowLearner_.setPlan(plan); }
+        else DBGLOGFI(log_, logFeature_, "Room plan unreadable; heating control has no rooms (a boot zero is still owed)\n");
     }
     // ha/heating_input: room states and the learner's gas, price, outdoor and
     // boiler power (control/HeatingInput.h). Anything else is ignored.
@@ -1160,6 +1164,7 @@ private:
         if (ems.foreign) in.foreign = control::ActiveHeatGuard::Foreign{ems.foreign->address, ems.foreign->receivedAtMs};
         in.uptimeMs = now; in.routeReady = ems.routeReady; in.boilerLimitC = ems.limitC;
         in.boiler = {ems.burnerOn, ems.flowCentiC}; in.boilerHeardAtMs = ems.boilerHeardAtMs;
+        in.planUnreadable = !planReadable_; // R1-05: the boot zero of a stored confirmation still goes out
         // The learned lowest flow the boiler fires at (FlowLearner::effectiveMinimumC, below the plan's maximum).
         activeGuard_.setFlowLimits(flowLearner_.effectiveMinimumC(ems.limitC), plan.maximumFlowC);
         const auto c = activeGuard_.step(now, in);

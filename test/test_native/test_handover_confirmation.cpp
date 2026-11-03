@@ -297,6 +297,50 @@ TEST(HandoverConfirmation, BootZeroOwedPastTheListeningWindowIsStillSent) {
     }
 }
 
+// Review R1-05: the stored plan was unreadable at boot (an NVS error, a plan this firmware
+// refuses), so the E32 runs the empty shadow plan. A plan the owner switched to shadow sent its
+// zeros before; this one never did: the boot zero of a stored confirmation still goes out, and
+// the record stays until it was delivered (a restart before that sends it again). Nothing positive.
+TEST(HandoverConfirmation, UnreadablePlanStillSendsTheBootZero) {
+    for (const char* record : {"fw/1", "fw/0"}) { // confirmed under this firmware, or under other firmware (reconfirm)
+        FakeStore store; store.record = record;
+        Boot b(store, "fw/1");
+        b.in.mode = RoomPlan::Mode::shadow; b.in.planUnreadable = true;
+        b.in.rooms = {}; b.in.request = {}; // the empty plan: no rooms, no request
+        EXPECT_TRUE(b.guard.bootZeroDue()) << record;
+        EXPECT_TRUE(b.guard.claimsBoiler()) << record;
+        b.in.routeReady = false; b.runFor(30 * second);
+        EXPECT_EQ(b.attempts, 0) << record;
+        EXPECT_TRUE(b.guard.bootZeroDue()) << record;
+        EXPECT_FALSE(store.record.empty()) << record;
+        b.in.routeReady = true; b.delivers = false; b.runFor(20 * second); // two attempts that fail
+        EXPECT_EQ(b.attempts, 2) << record;
+        EXPECT_FALSE(store.record.empty()) << record; // a restart now sends it again
+        EXPECT_FALSE(b.guard.released()) << record;
+        b.delivers = true; b.runFor(10 * second);
+        ASSERT_EQ(b.sent.size(), 1u) << record;
+        EXPECT_EQ(b.sent[0], 0);
+        EXPECT_EQ(b.why[0], "boot_zero");
+        EXPECT_FALSE(b.guard.bootZeroDue());
+        EXPECT_TRUE(b.guard.released());
+        b.runFor(30 * minute);
+        EXPECT_EQ(b.sent.size(), 1u) << record; // once, then the shadow plan stays silent
+        EXPECT_FALSE(b.anyPositive());
+        EXPECT_TRUE(store.record.empty()) << record; // erased after the zero, like any shadow plan
+        EXPECT_FALSE(b.guard.claimsBoiler());
+        EXPECT_EQ(b.guard.state(), State::shadow);
+    }
+    // Another master's 0x1A still cancels the zero over its request.
+    FakeStore store; store.record = "fw/1";
+    Boot foreign(store, "fw/1");
+    foreign.in.mode = RoomPlan::Mode::shadow; foreign.in.planUnreadable = true;
+    foreign.in.foreign = ActiveHeatGuard::Foreign{0x17, 0};
+    foreign.runFor(5 * minute);
+    EXPECT_EQ(foreign.attempts, 0);
+    EXPECT_FALSE(foreign.guard.bootZeroDue());
+    EXPECT_TRUE(store.record.empty());
+}
+
 // Shadow mode stays silent whatever the store holds: command for command and
 // status for status the same as a boot without any record. A boot without a
 // record in active mode sends no boot zero either.

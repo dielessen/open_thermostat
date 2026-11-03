@@ -31,7 +31,7 @@
         },
         {
           "path": "docs/third-party/shipped-policy.json",
-          "sha256": "003c7ce59163b2fd18ec8c48adced9de44e244462b02e1295b41a54b620b2c23"
+          "sha256": "d3e75f2621c73b38e0e34ddcc8bc740d216c594c17ebe12b4b39d220b99058d8"
         },
         {
           "path": "scripts/esp32_size_link.py",
@@ -307,7 +307,7 @@
         },
         {
           "path": "test/soak/soak.cpp",
-          "sha256": "03e9aaacc418e4f2e22ff138c99a5d683d67584fde411407b0bd5a6da16fd7d5"
+          "sha256": "2f07cf16949d3e027ff407917242b1de483500ee4286462a6ea8bccf86eb5405"
         },
         {
           "path": "test/time-zone-picker.test.cjs",
@@ -1369,7 +1369,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "fa7e247f90f3ee0d2512911dcfdd72ed10208181f6b520b10a667e4eefb75732"
+          "sha256": "c8bd0e222ea8cd67e9e6cc9f1c99f36fe8373a55a69b34bbba9ebc3cc26fea4e"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -1648,7 +1648,7 @@
         },
         {
           "path": "ha/tests_native/test_e32_room_flow.py",
-          "sha256": "ad150556582d61334bfd182c2572c8239c3a762fe5d03f8d5accccebca90a55d"
+          "sha256": "2c09fef5540395f73721ae850030ec87e72a608eb9bd6a2b275eb62a79756431"
         },
         {
           "path": "ha/tests_native/test_native_entity_cleanup.py",
@@ -3726,7 +3726,7 @@
         },
         {
           "path": "src/control/TakeoverTest.h",
-          "sha256": "e4b0e3830044bde2aa37ee05b83a42b9ae46ab9155b0b060382f8ea9978fe0c4"
+          "sha256": "7175fef46189b5b326f59ffb43bb3574309259706ff0527a4966ae01f9a46f0e"
         },
         {
           "path": "test/fixtures/replay/house-shadow.csv",

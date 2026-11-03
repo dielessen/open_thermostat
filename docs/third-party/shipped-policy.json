@@ -236,7 +236,7 @@
     "cached_newlib_header_sha256": "93a397574a25b9c143cee7fcb86d8fc9a0c9ba418e4710a30d2d19ba1e4120db"
   },
   "ha": {
-    "source_candidate": "sha256:98c661571f5cf0353774506ef626781a18b40b95af8c0e9796876bb9dbaa1127",
+    "source_candidate": "sha256:1df03704b0d49ed4a2df17714531e031ba8a87319229c007aba3e329f0120959",
     "manifest": "ha/config/custom_components/open_thermostat/manifest.json",
     "source_files": {
       "ha/config/custom_components/open_thermostat/__init__.py": "d64732874d53c577a32691eaef9554bb7214a2d3f9a33af92574e95e0ac10d54",
@@ -368,7 +368,7 @@
       "ha/config/custom_components/open_thermostat/takeover_readiness.py": "da659bc3ffffe44aef6de4dcba81296d10f7db5d94f344a9840c38c761358b8d",
       "ha/config/custom_components/open_thermostat/topology_control_source.py": "accfc185d85a14aeada50aec745f150f1f0d9138d123e78f442a8e7d9245d5d7",
       "ha/config/custom_components/open_thermostat/translations/en.json": "28135c935b1c84b78b32085cd5b12b5e1ce1846023c219e4b274d344ec04ad02",
-      "ha/config/custom_components/open_thermostat/translations/nl.json": "fa7e247f90f3ee0d2512911dcfdd72ed10208181f6b520b10a667e4eefb75732",
+      "ha/config/custom_components/open_thermostat/translations/nl.json": "c8bd0e222ea8cd67e9e6cc9f1c99f36fe8373a55a69b34bbba9ebc3cc26fea4e",
       "ha/config/custom_components/open_thermostat/translations/pl.json": "5baf81c3f0258ce49a0fd314cb5b4165f895525be5385caeac2fb9e77643ca85",
       "ha/config/custom_components/open_thermostat/update.py": "2431b1bf5b23d009e5831e4cc3c75958fe3196490f6e87c1028ffeb4b4d0dc86",
       "ha/config/custom_components/open_thermostat/v1_bench_actions.py": "1352091626fe1265adef1db87c6b7430a46dc380b1a0fb61da9b40bbc4312493",
@@ -399,7 +399,7 @@
     ],
     "requirements_state": "No separate custom requirement needed for probatio0.13.0: exact direct HA2026.10.2 requirement. Existing native platform supplies voluptuous transitively. Original installed metadata/RECORD/license bound; production HA version still UNKNOWN.",
     "stdlib_scope": "Python3.14 test scope; unknown external imports remain blocked",
-    "source_git_parent": "658b05ff51e798125f8d112d878d2b7d70fd211f",
+    "source_git_parent": "b512c831b3d6b8097595dff441206bb9e63c821f",
     "native_platform_evidence": {
       "path": "docs/third-party/native-ha-validator.json",
       "sha256": "5433ce5d998f80202659e42468122d42d0db210925bd5e7eb17e95a88f82bf0e",

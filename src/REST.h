@@ -1601,8 +1601,11 @@ private:
 				}
 
 				// Parsed at every boot: a document cJSON cannot parse safely would
-				// turn into a restart loop. Validate before replacing the file.
-				if (body.length() > 4096 || !control::parseNestedJson(body, true)) {
+				// turn into a restart loop. Validate before replacing the file; the
+				// curve needs exactly nine points (R2-06).
+				std::array<uint8_t, 9> curve{};
+				const auto parsed = body.length() > 4096 ? control::ControlJson(nullptr, cJSON_Delete) : control::parseNestedJson(body, true);
+				if (!parsed || !readHeatingCurvePoints(cJSON_GetObjectItem(parsed.get(), "heatingCurve"), curve)) {
 					server_.send(400, "text/plain", "Invalid boiler settings");
 					break;
 				}

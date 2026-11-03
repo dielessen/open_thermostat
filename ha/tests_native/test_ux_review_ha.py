@@ -20,8 +20,8 @@ from custom_components.open_thermostat.e32_access import DEFAULT_PASSWORD_ISSUE
 from custom_components.open_thermostat.e32_room_flow import (
     flow_celsius, flow_shown, format_program, parse_program, shown as shown_c, FlowError)
 from custom_components.open_thermostat.room_plan import RoomPlanLink, has_room_plan
+from nav_helpers import is_again
 from test_e32_room_flow import (  # noqa: F401  (the manager fixture)
-from nav_helpers import is_again  # noqa: E402
     CREDENTIALS, NEW_ROOM, manager, product, room_form, rooms_menu, shown)
 from test_room_plan import PLAN, FakeE32
 

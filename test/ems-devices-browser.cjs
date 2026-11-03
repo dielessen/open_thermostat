@@ -53,7 +53,30 @@ function snapshot(){return {reception:{state:'classic_reports_received'},transpo
   assert.equal(await page.locator('#ems-devices').getAttribute('data-failed'),'true');
   data=snapshot();data.fields.safe_text=sample('<img src=x onerror=alert(1)>','text');await page.locator('#ems-search').fill('');await refresh();
   assert.equal(await page.locator('#ems-device-list img').count(),0);assert.match(await boiler.innerText(),/<img/);
+  // Post-1.0 help: a value EMS-ESP can write explains itself in plain words, collapsed by default.
+  data=snapshot();data.fields.heating_hysteresis_on=sample(-6,'K',{source_type:22});
+  data.fields.selected_dhw_temperature=sample(60,'degC',{source_type:51});await refresh();
+  const hysteresis=boiler.locator('[data-field="heating_hysteresis_on"]'),help=hysteresis.locator('details.ems-help');await help.waitFor();
+  assert.match(await hysteresis.innerText(),lang==='nl'?/Instelbaar in EMS-ESP · Alleen lezen op E32/:/Configurable in EMS-ESP · Read only on E32/);
+  assert.equal(await help.evaluate(n=>n.open),false,'help starts collapsed');
+  assert.equal((await help.locator('summary').innerText()).trim(),lang==='nl'?'Over deze instelling':'About this setting');
+  assert.equal(await help.locator('p').first().isVisible(),false);
+  assert.equal(await boiler.locator('.ems-help').count(),6,'four Classic settings, the hysteresis and the hot water temperature');
+  assert.equal(await boiler.locator('[data-field="measured_flow_temperature"] .ems-help').count(),0,'a measurement has no setting help');
+  await help.locator('summary').click();
+  const helpText=await help.innerText();
+  assert.match(helpText,lang==='nl'?/Wat het doet: Hoe ver het water naar de verwarming onder het doel moet zakken/:/What it does: How far the water to the heating must drop below its target/);
+  assert.match(helpText,lang==='nl'?/Wat je kunt verwachten als het verandert: Een grotere marge/:/What to expect when it changes: A larger margin/);
+  assert.match(helpText,lang==='nl'?/Risico: .*pendelen/:/Risk: .*short-cycle/);
+  assert.match(helpText,lang==='nl'?/Monteursinstelling: Geavanceerd, op eigen risico/:/Installer setting: Advanced, at your own risk/);
+  assert.match(await boiler.locator('[data-field="selected_dhw_temperature"] .ems-help').textContent(),lang==='nl'?/Gebruikersinstelling/:/User setting/);
+  assert.match(await boiler.locator('[data-field="selected_dhw_temperature"] .ems-help').textContent(),/55 °C/);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'open help fits the width');
+  fs.mkdirSync(output,{recursive:true});await hysteresis.screenshot({path:path.join(output,`${lang}-${width}-help.png`)});
+  await refresh();assert.equal(await help.evaluate(n=>n.open),true,'a refresh keeps the reader\'s place');
+  assert.equal(await hysteresis.locator('button').count(),0,'help never adds an edit control');
   data.inventory.devices[0].product_id=null;await refresh();assert(!/EasyControl/.test(await boiler.locator('summary').first().innerText()));
+  assert.equal(await boiler.locator('.ems-help').count(),0,'without an identified product there is no setting help');
   // Release 1.0: a value the boiler leaves at 0 while it works reads "not reported", never 0 or "off".
   data=snapshot();data.fields.reported_selected_flow_temperature=sample(null,'degC',{state:'not_reported'});
   data.fields.raw_burner_bit=sample(null,'bool',{state:'not_reported',quality:'unreliable'});await refresh();

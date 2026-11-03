@@ -131,9 +131,27 @@ window.EMSDevicesPage=(()=>{
       return text(validOperation(settingsSnapshot)&&settingsSnapshot.available&&fresh()&&measurementFresh
         ?'Classic editor available':'Classic setting; changes blocked');
     }
-    function fieldAccess(id,d){
+    // The EMS-ESP definition of a received field for this device's product group, if known.
+    function emsSpec(id,d){
       const known=d&&deviceReference(d),group=known&&reference.groups[known.type+':'+d.product_id];
-      const alias=reference.aliases[id],spec=group?.fields.map(i=>reference.entities[i]).find(v=>v[0]===alias);
+      const alias=reference.aliases[id];return group?.fields.map(i=>reference.entities[i]).find(v=>v[0]===alias);
+    }
+    // Plain-language help (ems-setting-help.js) for a setting EMS-ESP can write;
+    // collapsed by default. Explanation only: it never enables an edit.
+    function settingHelp(entity){
+      const h=window.OT_EMS_SETTING_HELP?.[entity];
+      if(!h||typeof h!=='object')return null;
+      const box=el('details',undefined,'ems-help');box.append(el('summary',text('About this setting')));
+      for(const [key,title] of [['what',text('What it does')],['expect',text('What to expect when it changes')],['risk',text('Risk')],['e32','OpenThermostat']]){
+        if(typeof h[key]!=='string')continue;
+        const p=el('p');p.append(el('strong',title+': '),document.createTextNode(text(h[key])));box.append(p);
+      }
+      const note=h.offer==='action'?text('A command, not a stored setting'):h.offer==='never'?text('Not offered as a setting'):'';
+      box.append(el('p',text(h.level==='user'?'User setting':'Installer setting: Advanced, at your own risk')+(note?' · '+note:''),'ems-help-level'));
+      return box;
+    }
+    function fieldAccess(id,d){
+      const spec=emsSpec(id,d);
       if(spec?.[4]&&!Object.hasOwn(nativeFields,id)&&id!=='reported_selected_flow_temperature')
         return {kind:'write',label:text('Configurable in EMS-ESP')+' · '+text('Read only on E32')};
       // Without the settings transmitter in this firmware the four Classic settings are plain readings.
@@ -322,6 +340,12 @@ window.EMSDevicesPage=(()=>{
           let value=v.state==='not_reported'?text('Not reported'):'—';
           if(v.value!==null){value=v.unit==='bool'?text(v.value?'On':'Off'):typeof v.value==='number'?format.format(v.value):v.value;const unit=Object.hasOwn(units,v.unit)?units[v.unit]:v.unit;if(unit)value+=' '+unit;}
           const cells=row.children;
+          // Help follows the device's identity: only where EMS-ESP can write the value on this product.
+          const helpFor=emsSpec(id,d)?.[4]?reference.aliases[id]:'';
+          if(row.dataset.help!==helpFor){
+            row.dataset.help=helpFor;cells[0].querySelector('.ems-help')?.remove();
+            const help=helpFor&&settingHelp(helpFor);if(help)cells[0].append(help);
+          }
           update(cells[1],measurementFresh?value:'—');
           // A fresh reported value needs no status text; only exceptions are shown.
           update(cells[3],!measurementFresh?text('Snapshot unavailable'):[['valid','not_reported'].includes(v.state)?'':text(states[v.state]),

@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "bfae274c9fdd28fc92662c0a169c0c0f356b2d280a429d49fc516ca03d8849f1"
+          "sha256": "0eb64910eb5ce0b9f994136413695f86a1d8ef27103107b88b0079f17d304731"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -784,6 +784,86 @@
         {
           "path": "test/ha-room-status-card-browser.cjs",
           "sha256": "42520f18d2532f8374912de54afca91e523095d7f5e040aaeb897e7f59c5dc47"
+        },
+        {
+          "path": "docs/modern-thermostat/LEREN-PLAN-RC4.nl.md",
+          "sha256": "bd29a0f5967dd4a9568478b4a101b0a3f4ee568dc792ddd033e9e3502a53aeb2"
+        },
+        {
+          "path": "docs/modern-thermostat/RC4-CODE-REVIEW.md",
+          "sha256": "b4b8f25d9a2351f257f4c3bb9afc431103daa257259641e2033c9e966294390b"
+        },
+        {
+          "path": "docs/modern-thermostat/RC4-PLAN.nl.md",
+          "sha256": "bcdb175c285e0d9e732523560f9f37ad9068ad33bee76ea3fbb8fe5ccddd78aa"
+        },
+        {
+          "path": "tools/acceptance/README.md",
+          "sha256": "bf203c8e85c9b181bd4aa1b6c46b9157cc022fd71a1efa45997ec9e4ee44be8f"
+        },
+        {
+          "path": "tools/acceptance/rc2-kit/RC2-INSTALL-STAPPEN.nl.md",
+          "sha256": "390861bea9ed923e1c871b04278f629fc86c841aab2771c5bdfdffa971df730d"
+        },
+        {
+          "path": "tools/acceptance/rc2-kit/capture_rc2_independent.py",
+          "sha256": "7c9563a79e2a6b1b99ba236b8d65a39dd1b625c9c6187cfb34015bf07b42fa34"
+        },
+        {
+          "path": "tools/acceptance/rc2-kit/capture_rc2_post.py",
+          "sha256": "8b8dc41d798607e35a3da72fc3f034adb7bc56e250f095faa4106a1d7f7c85ce"
+        },
+        {
+          "path": "tools/acceptance/rc2-kit/capture_rc2_preinstall.py",
+          "sha256": "129656090f9e5aa0f2c506648f9bd874a97ed06370aba174cd018fc3250a05b4"
+        },
+        {
+          "path": "tools/acceptance/rc2-kit/mqtt_listen_rc2.py",
+          "sha256": "ab1b1994548d74237ab9c356c67cb6fa85a76d4d81e7d748b8be3f186649be87"
+        },
+        {
+          "path": "tools/acceptance/rc2-kit/rc2_acc.py",
+          "sha256": "2aa6984a43101b042370924d731bd3ba931790e7fcc2a64233aa5f0343b8f022"
+        },
+        {
+          "path": "tools/acceptance/rc2-kit/test_rc2_capture_smoke.py",
+          "sha256": "c11aa40316f3dfa1e9f09c6ba21647a782ba2b8c14b65a6556d7214846cfcb9e"
+        },
+        {
+          "path": "tools/acceptance/rc2-kit/test_rc2_receipt.py",
+          "sha256": "b94d40b9a1b0b02ad80900e4749c4f03098dae65e22a6749e56780192ff6b24f"
+        },
+        {
+          "path": "tools/acceptance/rc2-kit/write_rc2_receipt.py",
+          "sha256": "e7bdecccfe54cfc32dab65bba94770ccfd09e5b07bd48c7377e8d7ecb5e01f64"
+        },
+        {
+          "path": "tools/dev/README.md",
+          "sha256": "339821ba1311e16182e30e2cbe4681031daa9a0879a030acf856defcff3f4ff9"
+        },
+        {
+          "path": "tools/dev/ci_wait.py",
+          "sha256": "9ab4cf1088c5cf54b42ff8d29b5fbf8dcd6819512f7e37858653a49b207660e9"
+        },
+        {
+          "path": "tools/dev/final_check_runner.sh",
+          "sha256": "9d00a1cb470ac94b8f106b404eab98a8d517b10679fb5a9ad2da79906fe909ca"
+        },
+        {
+          "path": "tools/dev/json_merge3.py",
+          "sha256": "7404e2362bf207381201b25c1a39fdefcf178db65e1381a7d7cf5881e5dc8c23"
+        },
+        {
+          "path": "tools/dev/prepare_rc3.py",
+          "sha256": "b5bb25bedccbaba181c8487c97402964a38742eb38af5a28d9d8267c16dcdbf9"
+        },
+        {
+          "path": "tools/dev/refresh_beta19_inventory.py",
+          "sha256": "5417143dd764f4c03757b44821cf2ca6c438b43fb6dd5b43bb559f102fe1641e"
+        },
+        {
+          "path": "tools/dev/tag_wait.py",
+          "sha256": "afc063001759d2682a5dbe5261b4f7b053252f938e3e7c722b9b14de018fc05d"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."

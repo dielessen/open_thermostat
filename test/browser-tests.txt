@@ -8,6 +8,7 @@
 1 test/house-learned-browser.cjs  # 4 s (rc.2 what the thermostat learned, comfort and boiler care)
 1 test/room-away-browser.cjs  # 8 s (away temperature per room, plan.room_away.v1)
 1 test/ha-room-status-card-browser.cjs  # 3 s (room status card)
+1 test/dashboard-views-browser.cjs  # 8 s (generated dashboard layout at phone and desktop width)
 # shard 2: about 266 s
 2 test/onboarding/network-browser.cjs  # 1 s
 2 test/rooms/browser.cjs  # 35 s

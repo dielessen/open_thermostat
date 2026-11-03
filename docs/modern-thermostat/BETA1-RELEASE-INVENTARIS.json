@@ -647,7 +647,7 @@
         },
         {
           "path": "scripts/publish_hacs_repo.py",
-          "sha256": "c2b5a4cd91c73673b59342f660c0c21787c0943c7db77198d042341f0809464e"
+          "sha256": "31eaf9b1f75c94c14bfaadf6859810534d8c4a0488527bb14e5a81bd7814d1cf"
         },
         {
           "path": "src/LearnedStore.h",
@@ -752,6 +752,18 @@
         {
           "path": "test/boiler-test-status-browser.cjs",
           "sha256": "f995bd447f8329f2f6a1d148f83da4bdae0cf61089641f8a4619cb4347c11b9c"
+        },
+        {
+          "path": "docs/modern-thermostat/HA-ONLY-RELEASE-CHECKLIST.md",
+          "sha256": "99bb68994fbe87ac8fa53526d5e503c36eafa2792669c5bf180fa6256ce2cfae"
+        },
+        {
+          "path": "docs/modern-thermostat/HA-RC4-NOTES-DRAFT.en.md",
+          "sha256": "7fdabcea20ccc123bd610c782174d9ac15b5ab4eb189160a0d18abf875ddf37b"
+        },
+        {
+          "path": "scripts/test_publish_hacs_repo.py",
+          "sha256": "a241291b6d759db4d25bffdb123afb08cdf5917f7264f20f78f1779028e99817"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."

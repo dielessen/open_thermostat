@@ -45,6 +45,8 @@
 #include <WebServer.h>
 #ifdef OPENTHERMOSTAT_E32V2
 #include "control/ResponsiveHttpServer.h"
+#include <lwip/sockets.h>
+#include <cerrno>
 #endif
 #include <Wire.h>
 #include <uri/UriBraces.h>
@@ -89,6 +91,15 @@ public:
 struct WebClientIo {
 	using Client = WiFiClient;
 	static void noWait(WiFiClient &client) { static_cast<Stream &>(client).setTimeout(0); }
+	// One non-blocking send for the bounded response writes (R2-02): bytes taken, 0 = the send
+	// buffer is full, -1 = the connection failed.
+	static int send(WiFiClient &client, const uint8_t *data, size_t size) {
+		const int socket = client.fd();
+		if (socket < 0) return -1;
+		const int sent = ::send(socket, data, size, MSG_DONTWAIT);
+		if (sent >= 0) return sent;
+		return errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR ? 0 : -1;
+	}
 };
 using ProductWebServer = control::ResponsiveHttpServer<WebServer, WebClientIo>;
 #else

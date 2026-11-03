@@ -1,8 +1,8 @@
 // ResponsiveHttpServer against a model of the pinned WebServer (arduino-esp32 2.0.17):
 // its handleClient, and a _parseRequest that reads like Parsing.cpp (Stream timeout per
 // read, 5 s per pause of a body, a form field loop that waits for a boundary line).
-// The fake clock advances only while that parser waits, so "blocked" is measured
-// exactly. -DOT_OLD_RESPONSIVE_SERVER builds the same tests against the beta header
+// The fake clock advances only while that parser waits (or delay() runs), so "blocked" is
+// measured exactly. -DOT_OLD_RESPONSIVE_SERVER builds the same tests against the beta header
 // (one template argument, no admission) to show which ones failed before the bounds.
 #include <cstdint>
 #include <deque>
@@ -14,7 +14,7 @@
 namespace {
 uint32_t httpTestNow;
 uint32_t millis() { return httpTestNow; }
-void delay(uint32_t) {}
+void delay(uint32_t ms) { httpTestNow += ms; }
 enum HTTPClientStatus { HC_NONE, HC_WAIT_READ, HC_WAIT_CLOSE };
 struct Socket {
     std::string in, out;
@@ -22,9 +22,20 @@ struct Socket {
     std::vector<std::pair<uint32_t, std::string>> later;  // bytes that arrive at a time
     uint32_t closeAt = UINT32_MAX;                          // the sender goes away
     unsigned stops = 0, reads = 0;
+    // How the peer reads a response: at most `takes` bytes per send, at most once per takeEveryMs.
+    size_t takes = SIZE_MAX;
+    uint32_t takeEveryMs = 0, lastTake = 0;
     void deliver() {
         for (auto it = later.begin(); it != later.end();)
             if (it->first <= httpTestNow) { in += it->second; it = later.erase(it); } else ++it;
+    }
+    int take(const uint8_t *b, size_t n) {  // one non-blocking send: bytes taken, 0 = the buffer is full
+        if (takeEveryMs && lastTake && httpTestNow - lastTake < takeEveryMs) return 0;
+        const size_t k = std::min(n, takes);
+        if (!k) return 0;
+        lastTake = httpTestNow;
+        out.append(reinterpret_cast<const char *>(b), k);
+        return int(k);
     }
 };
 struct FakeClient {
@@ -134,11 +145,26 @@ struct PinnedServerSurface {
         blockedMs += millis() - start;
         return complete;
     }
-    void _handleRequest() { ++handled; }
+    // The handler's answer, written like WebServer::send: the head, then the body.
+    std::string response;
+    size_t responded = 0;
+    uint32_t writeMs = 0;
+    virtual size_t _currentClientWrite(const char *b, size_t l) { return _currentClient.write(reinterpret_cast<const uint8_t *>(b), l); }
+    virtual size_t _currentClientWrite_P(const char *b, size_t l) { return _currentClientWrite(b, l); }
+    void _handleRequest() {
+        ++handled;
+        if (response.empty()) return;
+        const uint32_t start = millis();
+        const size_t head = std::min<size_t>(response.size(), 100);
+        responded += _currentClientWrite(response.data(), head);
+        responded += _currentClientWrite_P(response.data() + head, response.size() - head);
+        writeMs += millis() - start;
+    }
 };
 struct FakeIo {
     using Client = FakeClient;
     static void noWait(FakeClient &c) { c.timeoutMs = 0; }
+    static int send(FakeClient &c, const uint8_t *b, size_t n) { return c.s ? c.s->take(b, n) : -1; }
 };
 }
 #define HTTP_MAX_SEND_WAIT 5000
@@ -290,6 +316,31 @@ TEST(HttpRequestBounds, AHeldUploadWaitsUnreadWhileTheLoopRunsThenIsParsed) {
     auto vanished = connect(gone, upload); vanished->closeAt = 5000;
     run(gone, 6000);
     EXPECT_EQ(gone.parses, 0u); EXPECT_TRUE(gone.idle());
+}
+// Review R2-02: the response side is bounded like the request side. A client that takes nothing
+// holds the loop 2 s, one that drips a byte a second at most 10 s for the whole response (head
+// and body together); it is then closed and the rest is dropped. A fast client gets everything.
+TEST(HttpResponseBounds, AStalledOrDrippingClientIsClosedAfterTheWriteBound) {
+    using heating::control::BoundedSend;
+    const std::string body(100000, 'x');
+    struct Case { size_t takes; uint32_t everyMs, atMostMs; bool complete; };
+    for (const Case c : {Case{0, 0, BoundedSend::stallMs, false}, Case{1, 1000, BoundedSend::totalMs, false},
+                         Case{1460, 1, 1000, true}, Case{SIZE_MAX, 0, 0, true}}) {
+        HttpServer s; httpTestNow = 100; s.response = body;
+        auto socket = connect(s, request("GET", "/status/history", ""));
+        socket->takes = c.takes; socket->takeEveryMs = c.everyMs;
+        s.handleClient();
+        EXPECT_EQ(s.handled, 1u) << c.takes;
+        EXPECT_LE(s.writeMs, c.atMostMs) << c.takes;
+        EXPECT_EQ(s.responded == body.size(), c.complete) << c.takes << " " << s.responded;
+        EXPECT_EQ(socket->out.size(), s.responded) << c.takes;
+        EXPECT_TRUE(s.idle());
+        if (!c.complete) { EXPECT_GE(s.writeMs + 1, c.atMostMs) << c.takes; }
+        // The next request gets its own budget.
+        auto next = connect(s, request("GET", "/status/history", ""));
+        s.handleClient();
+        EXPECT_EQ(next->out, body);
+    }
 }
 #endif
 TEST(HttpRequestBounds, HeadParsingMirrorsThePinnedParser) {

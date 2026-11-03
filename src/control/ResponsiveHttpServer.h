@@ -1,4 +1,5 @@
 #pragma once
+#include "control/BoundedSend.h"
 #include "control/HttpRequestBounds.h"
 #include <algorithm>
 #include <cstdint>
@@ -84,8 +85,11 @@ private:
 //   deadline from the connection (10 s, uploads 10 min);
 // * admit may answer HttpRequestBounds::admitLater: the request then waits unread
 //   while the loop runs (an upload until the boiler request is withdrawn), asked
-//   again on every pass, at most holdMs; its deadline counts from the admission.
-// Io: using Client = the SDK client type; static void noWait(Client&) sets the Stream timeout to 0.
+//   again on every pass, at most holdMs; its deadline counts from the admission;
+// * every response write is bounded too (BoundedSend, review R2-02): a client that
+//   takes nothing for 2 s, or a response still not out after 10 s, is closed.
+// Io: using Client = the SDK client type; static void noWait(Client&) sets the Stream timeout to 0;
+// static int send(Client&, const uint8_t*, size_t): one non-blocking send (bytes taken, 0 = full, < 0 = failed).
 template<class Server, class Io>
 class ResponsiveHttpServer : public Server {
 public:
@@ -156,7 +160,23 @@ public:
         parse();
     }
 
+protected:
+    // Every write of a response (status line, headers, body; sendContent_P too) through
+    // BoundedSend over Io::send. A client that stops reading is closed: the rest of that
+    // response is dropped and the loop goes on.
+    size_t _currentClientWrite(const char *b, size_t l) override { return boundedWrite(b, l); }
+    size_t _currentClientWrite_P(const char *b, size_t l) override { return boundedWrite(b, l); }
+
 private:
+    size_t boundedWrite(const char *b, size_t l) {
+        if (writeFailed_) return 0;
+        if (!responseOpen_) { responseOpen_ = true; responseStart_ = millis(); } // the response's budget starts
+        const auto r = BoundedSend::write(reinterpret_cast<const uint8_t *>(b), l, responseStart_,
+            [this](const uint8_t *data, size_t size) { return Io::send(this->_currentClient, data, size); },
+            [] { return uint32_t(millis()); }, [] { delay(1); });
+        if (!r.complete) { writeFailed_ = true; this->_currentClient.stop(); }
+        return r.sent;
+    }
     struct Pending {
         bool admitted = false, buffered = false, held = false;
         size_t need = 0;
@@ -186,7 +206,9 @@ private:
         if (handled) {
             this->_currentClient.setTimeout(HTTP_MAX_SEND_WAIT / 1000);
             this->_contentLength = CONTENT_LENGTH_NOT_SET;
+            responseOpen_ = writeFailed_ = false; // a new response, a new write budget
             this->_handleRequest();
+            responseOpen_ = writeFailed_ = false;
         }
         drop();
     }
@@ -212,5 +234,7 @@ private:
     }
     Admission admit_;
     Pending pending_;
+    bool responseOpen_ = false, writeFailed_ = false; // the current response's write budget (R2-02)
+    uint32_t responseStart_ = 0;
 };
 }

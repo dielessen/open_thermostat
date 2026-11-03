@@ -7,7 +7,7 @@ import pytest
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from custom_components.open_thermostat import room_plan as module
-from custom_components.open_thermostat.controller_link import HeatingPlanRejected
+from custom_components.open_thermostat.controller_link import ControllerLinkError, HeatingPlanRejected
 from custom_components.open_thermostat.heating_link import HeatingHub
 from custom_components.open_thermostat.room_plan import (
     RoomFallbackSetpoint, RoomInactiveUntil, RoomPlanLink, RoomStateSelect, decode_plan, set_fallback, set_state)
@@ -61,6 +61,10 @@ class FakeE32:
                     raise HeatingPlanRejected(409, "plan_changed")
                 e32.plan = {**deepcopy(plan), "revision": plan["revision"] + 1}
                 return deepcopy(e32.plan)
+
+            async def async_valves(self, document=None):
+                # No radiator valve record (as before E32 beta.24): the room form shows no valves section.
+                raise ControllerLinkError("controller_update_required")
         return Client()
 
 

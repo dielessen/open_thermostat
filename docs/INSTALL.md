@@ -579,8 +579,9 @@ from 08:30, 20 °C from 17:00 and 16 °C from 22:30; at the weekend 20 °C from
 08:00 and 16 °C from 23:00.
 
 To change or remove a room later: **Configure → Rooms → Edit or remove a
-room**, pick the room and choose **Edit room**, **Remove room** or
-**Radiator valves** (see [Radiator valves](USER-GUIDE.md#radiator-valves)).
+room**, pick the room and choose **Edit room** or **Remove room**. The room's
+radiator valves are a section of the same room form (see
+[Radiator valves](USER-GUIDE.md#radiator-valves)).
 
 On the E32 **Rooms** page each room is a card that opens with a click. Inside
 it, the blocks **Temperature**, **Week program**, **Windows and doors** and

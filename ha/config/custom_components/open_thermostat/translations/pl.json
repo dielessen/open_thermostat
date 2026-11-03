@@ -124,11 +124,13 @@
         "description": "W trybie domu Automatyczny pomieszczenia przechodzą na temperaturę nieobecności, gdy wszyscy wyszli. Ktoś w domu albo ktoś, kogo położenie jest nieznane, utrzymuje ciepło w domu.",
         "data": {
           "presence_entities": "Kto tu mieszka",
-          "away_delay": "Nieobecność po"
+          "away_delay": "Nieobecność po",
+          "away_temperature": "Temperatura, gdy nikogo nie ma w domu"
         },
         "data_description": {
           "presence_entities": "Opcjonalnie. Domownicy (encje osób) albo grupa, strefa (na przykład zone.home), lokalizator urządzenia lub przełącznik, który jest włączony, gdy ktoś jest w domu.",
-          "away_delay": "Minuty, przez które wszyscy muszą być poza domem, zanim dom zostanie uznany za pusty, aby krótkie wyjście nie wychładzało domu. 0: od razu."
+          "away_delay": "Minuty, przez które wszyscy muszą być poza domem, zanim dom zostanie uznany za pusty, aby krótkie wyjście nie wychładzało domu. 0: od razu.",
+          "away_temperature": "Każde pomieszczenie jest najwyżej tak ciepłe, gdy wszyscy wyszli, w trybie domu Nieobecność i podczas urlopu (5–25 °C; ochrona przed mrozem zawsze działa). To samo ustawienie co \"Temperatura, gdy nikogo nie ma w domu\" na urządzeniu E32 i na stronie Dom E32."
         }
       },
       "comfort_settings": {
@@ -558,7 +560,7 @@
         },
         "data_description": {
           "room": "Pomieszczenie z planu pomieszczeń E32.",
-          "action": "Edytuj jego ustawienia, wybierz zawory grzejnikowe lub usuń je z planu pomieszczeń E32."
+          "action": "Edytuj jego ustawienia (także zawory grzejnikowe) lub usuń je z planu pomieszczeń E32."
         },
         "description": "Wybierz pomieszczenie, które chcesz zmienić."
       },
@@ -623,6 +625,22 @@
               "persons": "W domu, gdy tylko jedna z nich jest w domu; poza domem dopiero, gdy wszystkie są poza domem przez opóźnienie nieobecności domu. Osoba o nieznanym położeniu liczy się jako w domu. Tryb domu W domu utrzymuje każde pomieszczenie na jego programie; Nieobecność i Urlop obniżają każde pomieszczenie.",
               "away_temperature": "Obowiązuje, gdy wszystkie osoby tego pomieszczenia są poza domem, a ktoś inny jest w domu. Puste: temperatura nieobecności domu ({house_away}). Gdy nikogo nie ma w domu, każde pomieszczenie używa temperatury nieobecności domu. Pomieszczenie, które jest już chłodniejsze, pozostaje chłodniejsze."
             }
+          },
+          "valves": {
+            "name": "Zawory grzejnikowe",
+            "description": "Opcjonalnie. Wybierz zawory grzejnikowe pomieszczenia; OpenThermostat sam ustala, jak sterować każdym z nich. Zawory Zigbee2MQTT znane E32 (Bosch BTH-RA, Sonoff TRVZB, Sonoff TRV Gen2, Tuya TV02) steruje sam E32 i działają także bez Home Assistant. Każdy inny zawór działa przez Home Assistant i zachowuje ostatni cel, gdy Home Assistant nie działa.",
+            "data": {
+              "valves": "Zawory grzejnikowe",
+              "kept": "Zachowane zawory",
+              "control": "Sterowanie zaworami",
+              "choose_models": "Sam wybiorę modele (zaawansowane)"
+            },
+            "data_description": {
+              "valves": "Ich encje termostatu (climate), najwyżej 4 na pomieszczenie i 16 łącznie. Sterowanie jest wyłączone, dopóki nie włączysz go poniżej.\n\n{valve_routes}",
+              "kept": "Zawory Zigbee2MQTT zapisane na E32, których Home Assistant nie zna (już). Działają dalej bez zmian; odznacz zawór, aby go usunąć.",
+              "control": "Wł.: te zawory podążają za pomieszczeniem (tylko gdy E32 sam steruje kotłem). Wył.: zawory zachowują własne ustawienia i nic do nich nie jest wysyłane.",
+              "choose_models": "Potrzebne tylko dla zaworu Zigbee2MQTT, którego model nie został rozpoznany (działa wtedy przez Home Assistant). Po zapisaniu wybierasz model każdego zaworu Zigbee2MQTT albo Przez Home Assistant."
+            }
           }
         }
       },
@@ -672,7 +690,7 @@
       },
       "e32_rooms_saved": {
         "title": "Pomieszczenia",
-        "description": "{name} zapisano na E32. Dodaj lub edytuj kolejne pomieszczenie albo zamknij to okno.\n\n{rooms}",
+        "description": "{name} zapisano na E32. Dodaj lub edytuj kolejne pomieszczenie albo zamknij to okno.{valves}\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Dodaj pomieszczenie",
           "e32_room_pick": "Edytuj lub usuń pomieszczenie"
@@ -714,34 +732,6 @@
         "title": "E32 połączony",
         "description": "E32 jest połączony i nie ma jeszcze pomieszczeń. Dalej: pierwsze pomieszczenie. Potrzebuje nazwy i jednego źródła temperatury: czujnika lub termostatu w Home Assistant albo czujnika Bluetooth sparowanego z E32. Urządzenie nastawcze i program tygodniowy są opcjonalne; pomieszczenie zapisane bez programu zaczyna od szablonu \"Dni robocze i weekend\", który możesz później zmienić. Home Assistant nie włącza wyjść grzewczych.",
         "submit": "Dodaj pierwsze pomieszczenie"
-      },
-      "e32_room_valves": {
-        "title": "Zawory grzejnikowe w {name}",
-        "description": "Wybierz zawory grzejnikowe pomieszczenia. Zawory Zigbee2MQTT: wpisz nazwę każdego zaworu w Zigbee2MQTT (friendly name) lub wybierz jeden z {found} znalezionych oraz jego model; E32 sam wysyła im cel i temperaturę pomieszczenia i utrzymuje wodę grzewczą tak chłodną, jak pozwalają zawory. Każdy inny zawór sterowany przez Home Assistant (ZHA, Z-Wave, Shelly lub integracja chmurowa): wybierz jego encję climate w polu Zawory przez Home Assistant; Home Assistant wysyła mu wtedy cel pomieszczenia. Zawory Zigbee2MQTT działają dalej, gdy Home Assistant nie działa; zawory przez Home Assistant zachowują ostatnią temperaturę zadaną, dopóki Home Assistant nie wróci. Sterowanie jest wyłączone, dopóki go nie włączysz; do tego czasu zawory nie dostają żadnych poleceń.",
-        "data": {
-          "control": "Sterowanie zaworami",
-          "valve_1": "Zawór 1",
-          "model_1": "Model zaworu 1",
-          "valve_2": "Zawór 2",
-          "model_2": "Model zaworu 2",
-          "valve_3": "Zawór 3",
-          "model_3": "Model zaworu 3",
-          "valve_4": "Zawór 4",
-          "model_4": "Model zaworu 4",
-          "ha_valves": "Zawory przez Home Assistant"
-        },
-        "data_description": {
-          "control": "Wł.: te zawory podążają za pomieszczeniem (tylko gdy E32 sam steruje kotłem). Wył.: zawory zachowują własne ustawienia.",
-          "valve_1": "Nazwa w Zigbee2MQTT, np. \"Zawór salon\". Zostaw puste, jeśli nie ma zaworu.",
-          "model_1": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
-          "valve_2": "Kolejny zawór w tym pomieszczeniu, tak samo jak zawór 1. Zostaw puste, jeśli nie ma zaworu.",
-          "model_2": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
-          "valve_3": "Kolejny zawór w tym pomieszczeniu, tak samo jak zawór 1. Zostaw puste, jeśli nie ma zaworu.",
-          "model_3": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
-          "valve_4": "Kolejny zawór w tym pomieszczeniu, tak samo jak zawór 1. Zostaw puste, jeśli nie ma zaworu.",
-          "model_4": "Model określa, co E32 wysyła oprócz celu, na przykład temperaturę pomieszczenia lub pozycję zaworu. Wybierz Inny, jeśli twojego nie ma na liście.",
-          "ha_valves": "Zawory grzejnikowe z dowolnej innej integracji jako encje climate (łącznie najwyżej 4 zawory na pomieszczenie). Gdy sterowanie jest włączone, Home Assistant ustawia je na cel pomieszczenia lub na 8 °C, gdy pomieszczenie jest wyłączone."
-        }
       },
       "entity_ids": {
         "title": "Uporządkuj identyfikatory encji",
@@ -805,6 +795,22 @@
         },
         "data_description": {
           "confirm": "Nic się nie zmieni, dopóki tego nie zaznaczysz."
+        }
+      },
+      "e32_room_valve_models": {
+        "title": "Modele zaworów grzejnikowych w {name}",
+        "description": "OpenThermostat zwykle sam rozpoznaje model zaworu. Wybierz model tutaj tylko wtedy, gdy się to nie udało, albo aby zmienić sposób sterowania zaworem. Z modelem E32 sam steruje zaworem przez Zigbee2MQTT, więc działa on bez Home Assistant. Przez Home Assistant działa zawsze, z każdym zaworem. Inny (tylko nastawa): E32 wysyła tylko temperaturę zadaną.",
+        "data": {
+          "model_1": "Zawór 1",
+          "model_2": "Zawór 2",
+          "model_3": "Zawór 3",
+          "model_4": "Zawór 4"
+        },
+        "data_description": {
+          "model_1": "Ten zawór: {valve_1}.",
+          "model_2": "Ten zawór: {valve_2}.",
+          "model_3": "Ten zawór: {valve_3}.",
+          "model_4": "Ten zawór: {valve_4}."
         }
       }
     },
@@ -968,7 +974,10 @@
       "e32_restore_adopt_failed": "Home Assistant nie mógł przejść na ten E32. Spróbuj ponownie albo połącz go w Konfiguruj → Połączenie z E32.",
       "e32_restore_unconfirmed": "E32 nie odpowiedział po przywróceniu, więc nie wiadomo, czy ustawienia dotarły. Sprawdź, czy E32 jest włączony i jego strona się otwiera, a potem wybierz kopię ponownie: E32 sprawdzi, co nadal się różni.",
       "e32_restore_not_applied": "E32 nie potwierdził przywrócenia, a jego sprawdzenie pokazuje, że nie wszystkie ustawienia dotarły. Wybierz kopię ponownie, aby przywrócić ją jeszcze raz.",
-      "e32_away_invalid": "Wybierz temperaturę w zakresie {away_range} albo zostaw pole puste, aby użyć temperatury nieobecności domu."
+      "e32_away_invalid": "Wybierz temperaturę w zakresie {away_range} albo zostaw pole puste, aby użyć temperatury nieobecności domu.",
+      "comfort_away_temperature_invalid": "Wybierz temperaturę nieobecności od 5 do 25 °C.",
+      "away_temperature_not_saved": "E32 nie zapisał temperatury nieobecności ({error}), więc nic nie zapisano. Sprawdź, czy E32 jest online, i spróbuj ponownie.",
+      "away_temperature_update_required": "Zmiana temperatury nieobecności tutaj wymaga oprogramowania E32 beta.23 lub nowszego. Zaktualizuj E32 za pomocą jego encji Oprogramowanie."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -2942,8 +2951,7 @@
     "e32_room_action": {
       "options": {
         "edit": "Edytuj pomieszczenie",
-        "remove": "Usuń pomieszczenie",
-        "valves": "Zawory grzejnikowe"
+        "remove": "Usuń pomieszczenie"
       }
     },
     "e32_valve_model": {
@@ -2952,7 +2960,8 @@
         "sonoff_trvzb": "Sonoff TRVZB (temperatura zewnętrzna)",
         "sonoff_trv_zbt": "Sonoff TRV Gen2 / TRV-ZBT (temperatura zewnętrzna)",
         "tuya_tv02": "Tuya TV02 (tylko nastawa)",
-        "generic": "Inny (tylko nastawa)"
+        "generic": "Inny (tylko nastawa)",
+        "ha_climate": "Przez Home Assistant (dowolny zawór)"
       }
     },
     "entity_ids_scope": {

@@ -124,11 +124,13 @@
         "description": "In the house mode Automatic the rooms go to the away temperature when everyone is away. Someone home, or someone whose place is not known, keeps the house warm.",
         "data": {
           "presence_entities": "Who lives here",
-          "away_delay": "Away after"
+          "away_delay": "Away after",
+          "away_temperature": "Temperature when nobody is home"
         },
         "data_description": {
           "presence_entities": "Optional. The people of the house (person entities), or a group, zone (for example zone.home), device tracker or switch that is on while someone is home.",
-          "away_delay": "Minutes everyone must be away before the house counts as away, so a short errand does not cool the house. 0: at once."
+          "away_delay": "Minutes everyone must be away before the house counts as away, so a short errand does not cool the house. 0: at once.",
+          "away_temperature": "Every room stays at most this warm while everyone is away, in house mode Away and on holiday (5–25 °C; frost protection always stays on). The same setting as \"Temperature when nobody is home\" on the E32 device and on the E32's Home page."
         }
       },
       "comfort_settings": {
@@ -558,7 +560,7 @@
         },
         "data_description": {
           "room": "A room in the E32 room plan.",
-          "action": "Edit its settings, choose its radiator valves, or remove it from the E32 room plan."
+          "action": "Edit its settings (radiator valves included) or remove it from the E32 room plan."
         },
         "description": "Pick the room you want to change."
       },
@@ -623,6 +625,22 @@
               "persons": "Home as soon as one of them is home; away only after all of them have been away for the house's away delay. A person whose place is unknown counts as home. House mode Home keeps every room on its program; Away and Holiday lower every room.",
               "away_temperature": "Used while all persons of this room are away and someone else is home. Empty: the house away temperature ({house_away}). When everyone is away, every room uses the house away temperature. A room that is already cooler stays cooler."
             }
+          },
+          "valves": {
+            "name": "Radiator valves",
+            "description": "Optional. Pick the room's radiator valves; OpenThermostat works out how each one is driven. Zigbee2MQTT valves the E32 knows (Bosch BTH-RA, Sonoff TRVZB, Sonoff TRV Gen2, Tuya TV02) are driven by the E32 itself and keep working without Home Assistant. Every other valve goes through Home Assistant and keeps its last target while Home Assistant is down.",
+            "data": {
+              "valves": "Radiator valves",
+              "kept": "Kept valves",
+              "control": "Valve control",
+              "choose_models": "Choose the models myself (advanced)"
+            },
+            "data_description": {
+              "valves": "Their thermostat (climate) entities, at most 4 per room and 16 in all. Valve control stays off until you switch it on below.\n\n{valve_routes}",
+              "kept": "Zigbee2MQTT valves stored on the E32 that Home Assistant does not know (any more). They keep working as they are; deselect one to remove it.",
+              "control": "On: these valves follow the room (only while the E32 controls the boiler itself). Off: the valves keep their own settings and nothing is sent to them.",
+              "choose_models": "Only needed for a Zigbee2MQTT valve whose model is not recognised (it then goes through Home Assistant). After saving you choose each Zigbee2MQTT valve's model, or Through Home Assistant."
+            }
           }
         }
       },
@@ -672,7 +690,7 @@
       },
       "e32_rooms_saved": {
         "title": "Rooms",
-        "description": "{name} is saved on the E32. Add or edit another room, or close this window.\n\n{rooms}",
+        "description": "{name} is saved on the E32. Add or edit another room, or close this window.{valves}\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Add a room",
           "e32_room_pick": "Edit or remove a room"
@@ -714,34 +732,6 @@
         "title": "E32 connected",
         "description": "The E32 is connected and has no rooms yet. Next: your first room. It needs a name and one temperature source: a sensor or thermostat in Home Assistant, or a Bluetooth sensor paired on the E32. A setting device and a week program are optional; a room saved without a program starts with the \"Workdays and weekend\" template, which you can change later. Home Assistant does not switch heating outputs on.",
         "submit": "Add the first room"
-      },
-      "e32_room_valves": {
-        "title": "Radiator valves in {name}",
-        "description": "Choose the room's radiator valves. Zigbee2MQTT valves: enter each valve's Zigbee2MQTT friendly name (or pick one of the {found} found) and its model; the E32 sends them the room's target and temperature itself, and keeps the heating water as cool as the valves allow. Any other valve Home Assistant controls (ZHA, Z-Wave, Shelly or a cloud integration): choose its climate entity under Home Assistant valves; Home Assistant then sends it the room's target. Zigbee2MQTT valves keep working when Home Assistant is down; Home Assistant valves keep their last target temperature until Home Assistant is back. Valve control stays off until you switch it on; with control off nothing is sent to the valves.",
-        "data": {
-          "control": "Valve control",
-          "valve_1": "Valve 1",
-          "model_1": "Model of valve 1",
-          "valve_2": "Valve 2",
-          "model_2": "Model of valve 2",
-          "valve_3": "Valve 3",
-          "model_3": "Model of valve 3",
-          "valve_4": "Valve 4",
-          "model_4": "Model of valve 4",
-          "ha_valves": "Home Assistant valves"
-        },
-        "data_description": {
-          "control": "On: these valves follow the room (only while the E32 controls the boiler itself). Off: the valves keep their own settings.",
-          "valve_1": "The friendly name in Zigbee2MQTT, e.g. \"Living room valve\". Leave empty for no valve.",
-          "model_1": "The model decides what the E32 sends besides the target, such as the room temperature or a valve position. Pick Other if yours is not listed.",
-          "valve_2": "Another valve in this room, the same way as valve 1. Leave empty for no valve.",
-          "model_2": "The model decides what the E32 sends besides the target, such as the room temperature or a valve position. Pick Other if yours is not listed.",
-          "valve_3": "Another valve in this room, the same way as valve 1. Leave empty for no valve.",
-          "model_3": "The model decides what the E32 sends besides the target, such as the room temperature or a valve position. Pick Other if yours is not listed.",
-          "valve_4": "Another valve in this room, the same way as valve 1. Leave empty for no valve.",
-          "model_4": "The model decides what the E32 sends besides the target, such as the room temperature or a valve position. Pick Other if yours is not listed.",
-          "ha_valves": "Radiator valves of any other integration, as climate entities (at most 4 valves per room in total). While valve control is on, Home Assistant sets them to the room's target, or to 8 °C while the room is off."
-        }
       },
       "entity_ids": {
         "title": "Tidy entity IDs",
@@ -805,6 +795,22 @@
         },
         "data_description": {
           "confirm": "Nothing changes until you tick this."
+        }
+      },
+      "e32_room_valve_models": {
+        "title": "Radiator valve models in {name}",
+        "description": "OpenThermostat normally recognises a valve's model by itself. Choose a model here only when it does not, or to change how a valve is driven. With a model the E32 drives the valve over Zigbee2MQTT itself, so it works without Home Assistant. Through Home Assistant always works, with any valve. Other (setpoint only): the E32 sends just the target temperature.",
+        "data": {
+          "model_1": "Valve 1",
+          "model_2": "Valve 2",
+          "model_3": "Valve 3",
+          "model_4": "Valve 4"
+        },
+        "data_description": {
+          "model_1": "This valve: {valve_1}.",
+          "model_2": "This valve: {valve_2}.",
+          "model_3": "This valve: {valve_3}.",
+          "model_4": "This valve: {valve_4}."
         }
       }
     },
@@ -968,7 +974,10 @@
       "e32_restore_adopt_failed": "Home Assistant could not switch to this E32. Try again, or connect it under Configure → E32 connection.",
       "e32_restore_unconfirmed": "The E32 did not answer after the restore, so it is not known whether the settings arrived. Check that the E32 is on and its web page opens, then choose the backup again: the E32 checks what is still different.",
       "e32_restore_not_applied": "The E32 did not confirm the restore, and its check shows that not all settings arrived. Choose the backup again to restore it once more.",
-      "e32_away_invalid": "Choose a temperature between {away_range}, or leave it empty for the house away temperature."
+      "e32_away_invalid": "Choose a temperature between {away_range}, or leave it empty for the house away temperature.",
+      "comfort_away_temperature_invalid": "Choose an away temperature between 5 and 25 °C.",
+      "away_temperature_not_saved": "The E32 did not save the away temperature ({error}), so nothing was saved. Check that the E32 is online and try again.",
+      "away_temperature_update_required": "Changing the away temperature here needs E32 firmware beta.23 or newer. Update the E32 with its Firmware entity."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -2942,8 +2951,7 @@
     "e32_room_action": {
       "options": {
         "edit": "Edit room",
-        "remove": "Remove room",
-        "valves": "Radiator valves"
+        "remove": "Remove room"
       }
     },
     "e32_valve_model": {
@@ -2952,7 +2960,8 @@
         "sonoff_trvzb": "Sonoff TRVZB (external temperature)",
         "sonoff_trv_zbt": "Sonoff TRV Gen2 / TRV-ZBT (external temperature)",
         "tuya_tv02": "Tuya TV02 (setpoint only)",
-        "generic": "Other (setpoint only)"
+        "generic": "Other (setpoint only)",
+        "ha_climate": "Through Home Assistant (any valve)"
       }
     },
     "entity_ids_scope": {

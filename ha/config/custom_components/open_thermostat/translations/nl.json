@@ -923,8 +923,7 @@
     "e32_room_action": {
       "options": {
         "edit": "Ruimte bewerken",
-        "remove": "Ruimte verwijderen",
-        "valves": "Radiatorkranen"
+        "remove": "Ruimte verwijderen"
       }
     },
     "e32_valve_model": {
@@ -933,7 +932,8 @@
         "sonoff_trvzb": "Sonoff TRVZB (externe temperatuur)",
         "sonoff_trv_zbt": "Sonoff TRV Gen2 / TRV-ZBT (externe temperatuur)",
         "tuya_tv02": "Tuya TV02 (alleen setpoint)",
-        "generic": "Anders (alleen setpoint)"
+        "generic": "Anders (alleen setpoint)",
+        "ha_climate": "Via Home Assistant (elke kraan)"
       }
     },
     "entity_ids_scope": {
@@ -1068,11 +1068,13 @@
         "description": "In de huismodus Automatisch gaan de ruimtes naar de afwezigheidstemperatuur als iedereen weg is. Iemand thuis, of iemand van wie niet bekend is waar die is, houdt het huis warm.",
         "data": {
           "presence_entities": "Wie hier woont",
-          "away_delay": "Afwezig na"
+          "away_delay": "Afwezig na",
+          "away_temperature": "Temperatuur als niemand thuis is"
         },
         "data_description": {
           "presence_entities": "Optioneel. De mensen van het huis (persoonentiteiten), of een groep, zone (bijvoorbeeld zone.home), apparaattracker of schakelaar die aan is als er iemand thuis is.",
-          "away_delay": "Minuten dat iedereen weg moet zijn voordat het huis als afwezig telt, zodat een korte boodschap het huis niet laat afkoelen. 0: meteen."
+          "away_delay": "Minuten dat iedereen weg moet zijn voordat het huis als afwezig telt, zodat een korte boodschap het huis niet laat afkoelen. 0: meteen.",
+          "away_temperature": "Elke ruimte wordt hoogstens zo warm zolang iedereen weg is, in huismodus Afwezig en op vakantie (5–25 °C; vorstbeveiliging blijft altijd aan). Dezelfde instelling als \"Temperatuur als niemand thuis is\" op het E32-apparaat en op de Huis-pagina van de E32."
         }
       },
       "comfort_settings": {
@@ -1502,7 +1504,7 @@
         },
         "data_description": {
           "room": "Een ruimte in het ruimteplan van de E32.",
-          "action": "Bewerk de instellingen, kies de radiatorkranen of verwijder de ruimte uit het ruimteplan van de E32."
+          "action": "Bewerk de instellingen (ook de radiatorkranen) of verwijder de ruimte uit het ruimteplan van de E32."
         },
         "description": "Kies de ruimte die je wilt wijzigen."
       },
@@ -1567,6 +1569,22 @@
               "persons": "Thuis zodra een van hen thuis is; pas afwezig als ze allemaal de afwezigheidsvertraging van het huis weg zijn. Iemand van wie de plek onbekend is, telt als thuis. Huismodus Thuis houdt elke ruimte op haar programma; Afwezig en Vakantie verlagen elke ruimte.",
               "away_temperature": "Geldt als alle personen van deze ruimte weg zijn en iemand anders thuis is. Leeg: de afwezigheidstemperatuur van het huis ({house_away}). Is iedereen weg, dan krijgt elke ruimte de afwezigheidstemperatuur van het huis. Een ruimte die al koeler is, blijft koeler."
             }
+          },
+          "valves": {
+            "name": "Radiatorkranen",
+            "description": "Optioneel. Kies de radiatorkranen van de ruimte; OpenThermostat zoekt zelf uit hoe elke kraan aangestuurd wordt. Zigbee2MQTT-kranen die de E32 kent (Bosch BTH-RA, Sonoff TRVZB, Sonoff TRV Gen2, Tuya TV02) stuurt de E32 zelf aan; die blijven werken zonder Home Assistant. Elke andere kraan gaat via Home Assistant en houdt zijn laatste doel zolang Home Assistant uitvalt.",
+            "data": {
+              "valves": "Radiatorkranen",
+              "kept": "Bewaarde kranen",
+              "control": "Radiatorkranen aansturen",
+              "choose_models": "Zelf de modellen kiezen (geavanceerd)"
+            },
+            "data_description": {
+              "valves": "Hun thermostaat-entiteiten (climate), hoogstens 4 per ruimte en 16 in totaal. Aansturen staat uit tot je het hieronder aanzet.\n\n{valve_routes}",
+              "kept": "Zigbee2MQTT-kranen die op de E32 staan maar die Home Assistant (niet meer) kent. Ze blijven werken zoals ze zijn; vink er een uit om hem te verwijderen.",
+              "control": "Aan: deze kranen volgen de ruimte (alleen zolang de E32 de ketel zelf aanstuurt). Uit: de kranen houden hun eigen instellingen en er gaat niets naar ze toe.",
+              "choose_models": "Alleen nodig voor een Zigbee2MQTT-kraan waarvan het model niet herkend wordt (die gaat dan via Home Assistant). Na opslaan kies je per Zigbee2MQTT-kraan het model, of Via Home Assistant."
+            }
           }
         }
       },
@@ -1616,7 +1634,7 @@
       },
       "e32_rooms_saved": {
         "title": "Ruimtes",
-        "description": "{name} is opgeslagen op de E32. Voeg nog een ruimte toe of bewerk er een, of sluit dit venster.\n\n{rooms}",
+        "description": "{name} is opgeslagen op de E32. Voeg nog een ruimte toe of bewerk er een, of sluit dit venster.{valves}\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Ruimte toevoegen",
           "e32_room_pick": "Ruimte bewerken of verwijderen"
@@ -1658,34 +1676,6 @@
         "title": "E32 verbonden",
         "description": "De E32 is verbonden en heeft nog geen ruimtes. Volgende stap: je eerste ruimte. Die heeft een naam en één temperatuurbron nodig: een sensor of thermostaat in Home Assistant, of een Bluetooth-sensor die aan de E32 gekoppeld is. Een instelapparaat en een weekprogramma zijn optioneel; een ruimte zonder programma begint met het sjabloon \"Werkdagen en weekend\", dat je later kunt aanpassen. Home Assistant schakelt geen verwarmingsuitgangen in.",
         "submit": "Eerste ruimte toevoegen"
-      },
-      "e32_room_valves": {
-        "title": "Radiatorkranen in {name}",
-        "description": "Kies de radiatorkranen van de ruimte. Zigbee2MQTT-kranen: vul per kraan de Zigbee2MQTT-naam (friendly name) in, of kies er een van de {found} gevonden, en het model; de E32 stuurt ze zelf het doel en de temperatuur van de ruimte, en houdt het cv-water zo koel als de kranen toelaten. Elke andere kraan die Home Assistant aanstuurt (ZHA, Z-Wave, Shelly of een cloudintegratie): kies de climate-entiteit bij Kranen via Home Assistant; Home Assistant stuurt die dan het doel van de ruimte. Zigbee2MQTT-kranen blijven werken als Home Assistant uitvalt; kranen via Home Assistant houden hun laatste gewenste temperatuur tot Home Assistant terug is. Aansturen staat uit tot je het aanzet; zolang het uit staat, gaat er niets naar de kranen.",
-        "data": {
-          "control": "Radiatorkranen aansturen",
-          "valve_1": "Kraan 1",
-          "model_1": "Model van kraan 1",
-          "valve_2": "Kraan 2",
-          "model_2": "Model van kraan 2",
-          "valve_3": "Kraan 3",
-          "model_3": "Model van kraan 3",
-          "valve_4": "Kraan 4",
-          "model_4": "Model van kraan 4",
-          "ha_valves": "Kranen via Home Assistant"
-        },
-        "data_description": {
-          "control": "Aan: deze kranen volgen de ruimte (alleen zolang de E32 de ketel zelf aanstuurt). Uit: de kranen houden hun eigen instellingen.",
-          "valve_1": "De naam in Zigbee2MQTT, bijv. \"Kraan woonkamer\". Leeg laten voor geen kraan.",
-          "model_1": "Het model bepaalt wat de E32 naast het doel stuurt, zoals de ruimtetemperatuur of een klepstand. Kies Anders als het jouwe er niet bij staat.",
-          "valve_2": "Nog een kraan in deze ruimte, op dezelfde manier als kraan 1. Leeg laten voor geen kraan.",
-          "model_2": "Het model bepaalt wat de E32 naast het doel stuurt, zoals de ruimtetemperatuur of een klepstand. Kies Anders als het jouwe er niet bij staat.",
-          "valve_3": "Nog een kraan in deze ruimte, op dezelfde manier als kraan 1. Leeg laten voor geen kraan.",
-          "model_3": "Het model bepaalt wat de E32 naast het doel stuurt, zoals de ruimtetemperatuur of een klepstand. Kies Anders als het jouwe er niet bij staat.",
-          "valve_4": "Nog een kraan in deze ruimte, op dezelfde manier als kraan 1. Leeg laten voor geen kraan.",
-          "model_4": "Het model bepaalt wat de E32 naast het doel stuurt, zoals de ruimtetemperatuur of een klepstand. Kies Anders als het jouwe er niet bij staat.",
-          "ha_valves": "Radiatorkranen van elke andere integratie, als climate-entiteit (samen hoogstens 4 kranen per ruimte). Zolang aansturen aan staat, zet Home Assistant ze op het doel van de ruimte, of op 8 °C zolang de ruimte uit staat."
-        }
       },
       "entity_ids": {
         "title": "Entiteit-ID's opruimen",
@@ -1749,6 +1739,22 @@
         },
         "data_description": {
           "confirm": "Er verandert niets tot je dit aanvinkt."
+        }
+      },
+      "e32_room_valve_models": {
+        "title": "Modellen van de radiatorkranen in {name}",
+        "description": "OpenThermostat herkent het model van een kraan normaal zelf. Kies hier alleen een model als dat niet lukt, of om te wijzigen hoe een kraan aangestuurd wordt. Met een model stuurt de E32 de kraan zelf aan via Zigbee2MQTT, dus werkt hij zonder Home Assistant. Via Home Assistant werkt altijd, met elke kraan. Anders (alleen setpoint): de E32 stuurt alleen de gewenste temperatuur.",
+        "data": {
+          "model_1": "Kraan 1",
+          "model_2": "Kraan 2",
+          "model_3": "Kraan 3",
+          "model_4": "Kraan 4"
+        },
+        "data_description": {
+          "model_1": "Deze kraan: {valve_1}.",
+          "model_2": "Deze kraan: {valve_2}.",
+          "model_3": "Deze kraan: {valve_3}.",
+          "model_4": "Deze kraan: {valve_4}."
         }
       }
     },
@@ -1912,7 +1918,10 @@
       "e32_restore_adopt_failed": "Home Assistant kon deze E32 niet in gebruik nemen. Probeer het opnieuw, of verbind hem onder Configureren → E32-verbinding.",
       "e32_restore_unconfirmed": "De E32 antwoordde niet na het terugzetten, dus het is niet bekend of de instellingen zijn aangekomen. Controleer of de E32 aan staat en zijn webpagina opent, en kies de back-up daarna opnieuw: de E32 controleert wat nog anders is.",
       "e32_restore_not_applied": "De E32 bevestigde het terugzetten niet, en zijn controle laat zien dat niet alle instellingen zijn aangekomen. Kies de back-up opnieuw om hem nog een keer terug te zetten.",
-      "e32_away_invalid": "Kies een temperatuur tussen {away_range}, of laat het veld leeg voor de afwezigheidstemperatuur van het huis."
+      "e32_away_invalid": "Kies een temperatuur tussen {away_range}, of laat het veld leeg voor de afwezigheidstemperatuur van het huis.",
+      "comfort_away_temperature_invalid": "Kies een afwezigheidstemperatuur tussen 5 en 25 °C.",
+      "away_temperature_not_saved": "De E32 heeft de afwezigheidstemperatuur niet opgeslagen ({error}), dus er is niets opgeslagen. Controleer of de E32 online is en probeer het opnieuw.",
+      "away_temperature_update_required": "Hier de afwezigheidstemperatuur wijzigen kan met E32-firmware beta.23 of nieuwer. Werk de E32 bij met zijn Firmware-entiteit."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",

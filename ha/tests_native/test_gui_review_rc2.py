@@ -171,9 +171,12 @@ async def test_the_room_list_names_sources_and_the_form_says_which_room(hass, ma
     edit = await manager.async_configure(pick["flow_id"], {"room": "woonkamer", "action": "edit"})
     assert edit["step_id"] == "e32_room" and edit["description_placeholders"]["room_name"] == "Woonkamer"
     for name in ("strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"):
-        steps = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["options"]["step"]
+        document = json.loads((COMPONENT / name).read_text(encoding="utf-8"))
+        steps = document["options"]["step"]
         assert "{room_name}" in steps["e32_room"]["title"], name
-        assert steps["e32_room_pick"]["data_description"]["action"].count(",") >= 1, name  # names all three
+        # rc.3: edit (radiator valves included, a section of the room form) or remove; both named.
+        assert set(document["selector"]["e32_room_action"]["options"]) == {"edit", "remove"}, name
+        assert "(" in steps["e32_room_pick"]["data_description"]["action"], name  # "... (radiator valves included)"
 
 
 @pytest.mark.asyncio

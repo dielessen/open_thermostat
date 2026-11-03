@@ -9,7 +9,9 @@ One select on the product device (the house, not one room) chooses the mode:
 - holiday: away until a date ("Holiday until"), warm again in time.
 
 "Holiday until" (datetime) starts a holiday until that time; "Temperature when
-nobody is home" (number) is the away temperature for all rooms. Frost
+nobody is home" (number) is the away temperature for all rooms. Configure →
+Home → Presence sets the same away temperature with the same command
+(HouseState.async_command, e32_comfort.async_step_house_presence). Frost
 protection is never affected (the E32 heats any room below 8 °C).
 
 Capability ``house.mode.v1``: the E32 announces it as the ``mode`` field of the

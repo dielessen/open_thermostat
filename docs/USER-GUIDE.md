@@ -33,12 +33,12 @@ energy inputs.
 | Week program per room | E32: Rooms (visual planner) | Same room editor, or the Week program view of the OpenThermostat dashboard |
 | Setting device per room (valve, tado, number) | — | Same room editor |
 | House mode: automatic, at home, away, holiday | E32: Home | The House mode control (E32 device, dashboard) |
-| Who lives here (presence) and how long before the house counts as away | — | Configure → Home → Presence: who lives here |
+| Who lives here (presence), how long before the house counts as away, and the away temperature | E32: Home (away temperature) | Configure → Home → Presence: who lives here |
 | Who uses a room (persons per room) | E32: Rooms (shown, read-only) | Same room editor → Persons |
 | Away temperature of a single room | E32: Rooms → the room → Persons | Same room editor → Persons |
 | Window and door contacts per room | — | Same room editor → Windows and doors |
 | Levels of a room without a week program, default window pause, length of a manual change | — | Configure → Home → Defaults for rooms and timing |
-| Radiator valves per room | E32: Rooms → the room → Radiator valves | Configure → Rooms → Edit or remove a room → Radiator valves |
+| Radiator valves per room | E32: Rooms → the room → Radiator valves | Same room editor → Radiator valves |
 | Lowest and highest water temperature for the boiler request | E32: Home → Water temperature limits | Configure → Home → Heating and boiler |
 | Follow outdoor temperature (heating curve) and Warm on time with the coolest water | E32: Home | Switches on the E32 device |
 | Gas meter, gas price, outdoor temperature, boiler power, water meter (all optional) | — | Configure → Home → Energy and outdoor temperature |
@@ -343,7 +343,8 @@ everything else.
     hours per °C for floor heating).
 
   The away temperature is **Temperature when nobody is home** (15 °C by
-  default). Frost protection always stays on.
+  default): on the E32 device, on the E32 Home page and in Configure → Home →
+  Presence, all three the same setting. Frost protection always stays on.
 
 In Home Assistant each E32 room has a thermostat: current temperature,
 target, mode *Auto* (week program), *Heat* (a temporary change) or *Off* (the
@@ -577,11 +578,28 @@ such as the opening limits, window detection and child lock, stay yours to set
 in Zigbee2MQTT.
 
 **Choosing the valves.** In Home Assistant: Configure → **Rooms** → *Edit or
-remove a room* → **Radiator valves**. Pick each Zigbee2MQTT valve (Zigbee2MQTT
-devices that look like a thermostat are offered) or type its Zigbee2MQTT
-friendly name, and choose its model. Pick any other valve under **Home
-Assistant valves** (its climate entity; OpenThermostat's own thermostats and
-the room's thermostat source are not offered). On the E32 itself: the room card
+remove a room* → *Edit room*, section **Radiator valves** of the room form
+(also when you add a room). Just pick the valves' climate entities, of any
+brand; OpenThermostat's own thermostats, the room's thermostat source and the
+valves of other rooms are not offered. OpenThermostat works out the route of
+each valve itself and shows it in plain words:
+
+- *works without Home Assistant*: a Zigbee2MQTT valve of a model the E32
+  knows (Bosch BTH-RA, Sonoff TRVZB, Sonoff TRV Gen2, Tuya TV02) on the E32's
+  Zigbee2MQTT base topic. Its Zigbee2MQTT friendly name comes from the
+  device's MQTT topics, so a device renamed in Home Assistant still works.
+- *through Home Assistant*: every other valve, including a Zigbee2MQTT valve
+  whose model is not recognised.
+
+Under **Choose the models myself (advanced)** you can still choose the model
+of a Zigbee2MQTT valve (or *Through Home Assistant*) after saving. A valve that
+was set up before keeps its model. A valve set up *through Home Assistant*
+that the E32 can drive itself moves to the E32 the next time you save the room
+(the form shows it first); only choosing *Through Home Assistant* for it under
+Advanced keeps it there, and that choice is remembered. A stored Zigbee2MQTT
+valve Home Assistant does not know is listed under **Kept valves** and keeps
+working.
+On the E32 itself: the room card
 on the Rooms page has a **Radiator valves** block with its own *Save valves*
 button; Home Assistant valves show there read-only, as *Home Assistant climate
 entity (set in Home Assistant)*. At most 4 valves per room and 16 in all.

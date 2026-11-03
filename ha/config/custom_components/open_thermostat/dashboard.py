@@ -190,7 +190,8 @@ TEXT = {
         "advice_note": "Advice only: nothing is changed automatically.",
         "learned": "What the thermostat has learned", "learned_house": "House and boiler",
         "learned_changes": "What it changed by itself",
-        "learned_note": "The thermostat adjusts these settings itself; change them on the E32 page under Home, Comfort and boiler care.",
+        "learned_note": "The thermostat adjusts these settings itself; to change one: Configure → Home → Comfort and boiler care "
+                        "(or the E32 page, Home).",
         "confidence_low": "low", "confidence_medium": "medium", "confidence_high": "high",
         "gas_heating": "Heating", "gas_hot_water": "Hot water", "gas_keep_warm": "Of which keeping hot water warm",
         "gas_tapping": "Tapping", "gas_keeping_warm": "Keeping warm",
@@ -321,7 +322,8 @@ TEXT = {
         "advice_note": "Alleen advies: er wordt niets automatisch veranderd.",
         "learned": "Wat de thermostaat heeft geleerd", "learned_house": "Huis en ketel",
         "learned_changes": "Wat hij zelf heeft aangepast",
-        "learned_note": "De thermostaat past deze instellingen zelf aan; wijzigen kan op de E32-pagina onder Thuis, Comfort en zorg voor de ketel.",
+        "learned_note": "De thermostaat past deze instellingen zelf aan; wijzigen kan onder Configureren → Huis → Comfort en "
+                        "zorg voor de ketel (of op de E32-pagina, Huis).",
         "confidence_low": "laag", "confidence_medium": "middel", "confidence_high": "hoog",
         "gas_heating": "Verwarmen", "gas_hot_water": "Warm water", "gas_keep_warm": "Waarvan warm water warmhouden",
         "gas_tapping": "Tappen", "gas_keeping_warm": "Warmhouden",
@@ -453,8 +455,8 @@ TEXT = {
         "advice_note": "Tylko porada: nic nie jest zmieniane automatycznie.",
         "learned": "Czego nauczył się termostat", "learned_house": "Dom i kocioł",
         "learned_changes": "Co zmienił sam",
-        "learned_note": "Termostat sam dostosowuje te ustawienia; zmienić je można na stronie E32 Home, w sekcji "
-                        "Comfort and boiler care.",
+        "learned_note": "Termostat sam dostosowuje te ustawienia; aby zmienić jedno z nich: Konfiguruj → Dom → Komfort i "
+                        "dbałość o kocioł (lub strona E32, Dom).",
         "confidence_low": "niska", "confidence_medium": "średnia", "confidence_high": "wysoka",
         "gas_heating": "Ogrzewanie", "gas_hot_water": "Ciepła woda", "gas_keep_warm": "W tym podtrzymanie ciepłej wody",
         "gas_tapping": "Pobór", "gas_keeping_warm": "Podtrzymanie",

@@ -187,7 +187,7 @@ def test_the_dashboard_sums_it_up_on_heating_and_shows_it_all_on_its_own_page():
         "What the thermostat has learned", "House and boiler", "What it changed by itself"]
     assert f"state_attr(\"{entity}\", 'rooms')" in rooms["cards"][1]["content"]
     assert "'explanation'" in rooms["cards"][1]["content"] and "'house'" in house["cards"][1]["content"]
-    assert "'changes'" in changes["cards"][1]["content"] and "Home, Comfort and boiler care" in changes["cards"][1]["content"]
+    assert "'changes'" in changes["cards"][1]["content"] and "Home → Comfort and boiler care" in changes["cards"][1]["content"]
     assert all(s["visibility"] == shown for s in (rooms, house, changes))
     assert dashboard._learned_summary(dashboard.TEXT["nl"], None, "/x") is None
     assert dashboard._learned_sections(dashboard.TEXT["nl"], None) == []

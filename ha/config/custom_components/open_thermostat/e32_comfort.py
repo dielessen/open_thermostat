@@ -1045,7 +1045,12 @@ class ComfortOptionsSteps:
         # One place for everything house-wide (beta.23): presence, heating, energy, and the defaults for rooms
         # (levels without a week program, the default window pause, timing). The window contacts are set per
         # room in Configure → Rooms; the old Comfort menu is no longer offered (its steps stay for old links).
-        return self.async_show_menu(step_id="house", menu_options=["house_presence", "heating_boiler", "energy", "comfort_settings"])
+        # rc.3: Comfort and boiler care (the E32's control knobs, e32_care) as on the E32's Home page;
+        # not offered once the E32 is known to have firmware that cannot change them.
+        from .e32_care import care_offered
+        care = ["comfort_care"] if care_offered(self.hass, self.config_entry) else []
+        return self.async_show_menu(step_id="house", menu_options=["house_presence", "heating_boiler", *care,
+                                                                   "energy", "comfort_settings"])
 
     def _presence_house(self):
         """The house state of the away temperature (e32_house.HouseState), or None without an E32 that reports it."""

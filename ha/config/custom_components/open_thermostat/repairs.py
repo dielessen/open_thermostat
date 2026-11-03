@@ -110,6 +110,9 @@ async def async_create_fix_flow(hass, issue_id, data):
     from .e32_reconfirm import RECONFIRM_ISSUE, ReconfirmTakeoverRepairFlow
     if issue_id.startswith(RECONFIRM_ISSUE + "_"):  # confirm the takeover again after a firmware update
         return ReconfirmTakeoverRepairFlow(issue_id, data)
+    from .e32_system import TIME_ZONE_ISSUE, TimeZoneRepairFlow
+    if issue_id.startswith(TIME_ZONE_ISSUE + "_"):  # the E32 takes Home Assistant's time zone
+        return TimeZoneRepairFlow(issue_id, data)
     if not issue_id.startswith(LEGACY_ROOMS_ISSUE + "_"):
         raise ValueError("unknown_issue")
     return LegacyRoomsRepairFlow(data.get("entry_id"))

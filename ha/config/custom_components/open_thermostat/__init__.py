@@ -519,6 +519,7 @@ async def async_setup_entry(hass, entry):
             await tracker.async_start()
             # Daily backups of the E32 settings (before the platforms: the button and sensor use them).
             from .e32_backup import async_setup_backups
+            backups = None
             try:
                 backups = await async_setup_backups(hass, entry, state)
             except Exception:  # optional: never blocks the rooms
@@ -526,6 +527,12 @@ async def async_setup_entry(hass, entry):
             else:
                 if backups is not None:
                     cleanup.callback(backups.stop)
+            # Repairs when the E32's time zone differs from Home Assistant's (e32_system, rc.3).
+            from .e32_system import setup_time_zone_check
+            try:
+                cleanup.callback(setup_time_zone_check(hass, entry, backups))
+            except Exception:  # optional: never blocks the rooms
+                _LOGGER.exception("OpenThermostat %s: the E32 time zone check could not be started", entry.title)
         if not stale_link:
             await runtime.async_start()
         if runtime.enabled:

@@ -1,4 +1,4 @@
-"""Button platform: back up the E32 settings now (e32_backup.py)."""
+"""Button platform: back up the E32 settings now (e32_backup.py) and restart the E32 (e32_system.py)."""
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -15,3 +15,5 @@ async def async_setup_entry(
         return
     from .e32_backup_entities import async_setup_buttons
     await async_setup_buttons(hass, entry, async_add_entities)
+    from .e32_system import async_setup_buttons as async_setup_restart_button
+    await async_setup_restart_button(hass, entry, async_add_entities)

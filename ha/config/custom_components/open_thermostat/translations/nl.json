@@ -941,6 +941,30 @@
         "unused": "Alleen entiteiten die nergens gebruikt worden",
         "all": "Alle, ik pas de plekken waar ze gebruikt worden zelf aan"
       }
+    },
+    "comfort_care_knob": {
+      "options": {
+        "min_off_s": "Rust van de brander tussen starts",
+        "min_on_s": "Brandtijd",
+        "heat_start_c": "Begin met verwarmen als de ruimte zoveel onder de gewenste temperatuur is",
+        "heat_stop_c": "Stop met verwarmen als de ruimte zoveel boven de gewenste temperatuur is",
+        "flow_per_degree_c": "Hoe sterk de watertemperatuur reageert op een koude ruimte",
+        "floor_lead_min_per_c": "Opwarmtijd voor vloerverwarming",
+        "radiator_lead_min_per_c": "Opwarmtijd voor radiatoren",
+        "curve_correction_pct": "Ruimtecorrectie op de stooklijn",
+        "learned_accept_pct": "Toegestane opwarmtijd met de geleerde watertemperatuur",
+        "night_saving_min_pct": "Kleinste nachtbesparing die een advies waard is"
+      }
+    },
+    "e32_log_level": {
+      "options": {
+        "0": "Uit",
+        "1": "Fout",
+        "2": "Waarschuwing",
+        "3": "Info",
+        "4": "Debug",
+        "5": "Trace"
+      }
     }
   },
   "config": {
@@ -1060,7 +1084,8 @@
           "house_presence": "Aanwezigheid: wie hier woont",
           "heating_boiler": "Verwarming en ketel",
           "energy": "Energie en buitentemperatuur",
-          "comfort_settings": "Standaarden voor ruimtes en tijden"
+          "comfort_settings": "Standaarden voor ruimtes en tijden",
+          "comfort_care": "Comfort en zorg voor de ketel"
         }
       },
       "house_presence": {
@@ -1418,7 +1443,10 @@
           "installation": "Watergrenzen van het oude ruimteprofiel",
           "entity_ids": "Entiteit-ID's opruimen",
           "entity_ids_undo": "Opruimen van entiteit-ID's terugzetten",
-          "e32_restore": "Instellingen terugzetten op deze E32"
+          "e32_restore": "Instellingen terugzetten op deze E32",
+          "ble_sensors": "Bluetooth-sensoren",
+          "e32_logging": "Systeemlog van de E32",
+          "e32_time_zone": "Tijdzone van de E32"
         }
       },
       "edit_room": {
@@ -1756,6 +1784,160 @@
           "model_3": "Deze kraan: {valve_3}.",
           "model_4": "Deze kraan: {valve_4}."
         }
+      },
+      "comfort_care": {
+        "title": "Comfort en zorg voor de ketel",
+        "description": "De thermostaat stelt deze zelf in en past ze aan terwijl hij je huis leert kennen. Wijzig er alleen een als je het anders wilt. Dezelfde instellingen als op de pagina Huis van de E32.\n\nNu:\n{settings}",
+        "menu_options": {
+          "comfort_care_knob": "Een instelling wijzigen",
+          "comfort_care_auto_all": "Alles terug naar automatisch",
+          "comfort_care_reset": "Terug naar de startwaarden"
+        }
+      },
+      "comfort_care_knob": {
+        "title": "Een instelling wijzigen",
+        "description": "Kies de instelling die je wilt wijzigen.",
+        "data": {
+          "knob": "Instelling"
+        },
+        "data_description": {
+          "knob": "De instellingen van de pagina Huis van de E32, onderdeel Comfort en zorg voor de ketel."
+        }
+      },
+      "comfort_care_auto_value": {
+        "title": "Wijzigen: {name}",
+        "description": "Nu: {current} {mode}. Standaardwaarde: {standard}.\n\nAutomatisch: de thermostaat stelt dit zelf in en past het aan, hoogstens één kleine stap per dag. Zet Automatisch uit om je eigen waarde te gebruiken ({range}).",
+        "data": {
+          "automatic": "Automatisch",
+          "value": "Jouw waarde"
+        },
+        "data_description": {
+          "automatic": "Aan: de thermostaat stelt dit zelf in (je waarde hieronder wordt niet gebruikt).",
+          "value": "Gebruikt als Automatisch uit staat. Mogelijk: {range}."
+        }
+      },
+      "comfort_care_fixed_value": {
+        "title": "Wijzigen: {name}",
+        "description": "Nu: {current} {mode}. Standaardwaarde: {standard}.",
+        "data": {
+          "value": "Waarde"
+        },
+        "data_description": {
+          "value": "Mogelijk: {range}. Vul de standaardwaarde in om daarnaar terug te gaan."
+        }
+      },
+      "comfort_care_auto_all": {
+        "title": "Alles terug naar automatisch",
+        "description": "Elke instelling die je zelf hebt ingesteld gaat terug naar de thermostaat, die haar weer zelf instelt. De vaste instellingen houden hun waarde.",
+        "data": {
+          "confirm": "Ja, terug naar automatisch"
+        },
+        "data_description": {
+          "confirm": "Vink aan om te bevestigen."
+        }
+      },
+      "comfort_care_reset": {
+        "title": "Terug naar de startwaarden",
+        "description": "Al deze instellingen gaan terug naar hun startwaarden en de thermostaat begint ze opnieuw te leren. Wat hij over je ruimtes heeft geleerd blijft.",
+        "data": {
+          "confirm": "Ja, terug naar de startwaarden"
+        },
+        "data_description": {
+          "confirm": "Vink aan om te bevestigen."
+        }
+      },
+      "e32_logging": {
+        "title": "Systeemlog van de E32",
+        "description": "Stuur het log van de E32 naar een syslog-server in je netwerk, bijvoorbeeld om een probleem uit te zoeken. De E32 houdt ook zelf een log bij (Diagnose en systeemlog op zijn webpagina).",
+        "data": {
+          "syslog_enabled": "Naar een syslog-server sturen",
+          "server": "Syslog-server",
+          "port": "UDP-poort",
+          "syslog_level": "Sturen tot en met niveau",
+          "syslog_esp": "Eigen berichten van de E32 sturen",
+          "syslog_ems": "Berichten van de ketelbus sturen",
+          "web_level": "Op de E32 bewaren tot en met niveau",
+          "mark_interval_s": "Bericht ‘draait nog’ elke"
+        },
+        "data_description": {
+          "syslog_enabled": "Uit: de E32 bewaart zijn log alleen op zijn eigen pagina.",
+          "server": "Het IPv4-adres van de syslog-server, bijvoorbeeld 192.168.1.10. Nodig als sturen aan staat.",
+          "port": "Meestal 514.",
+          "syslog_level": "Fout is genoeg voor normaal gebruik; Debug en Trace sturen veel.",
+          "syslog_esp": "Berichten van de E32 zelf: netwerk, verwarming, updates.",
+          "syslog_ems": "De berichten die de E32 op de ketelbus hoort; handig om een probleem met de ketel uit te zoeken.",
+          "web_level": "Het meest gedetailleerde niveau dat de E32 voor zijn eigen logpagina bewaart.",
+          "mark_interval_s": "Seconden tussen korte berichten ‘draait nog’; 0 is uit."
+        }
+      },
+      "e32_time_zone": {
+        "title": "Tijdzone van de E32",
+        "description": "De E32 voert de weekprogramma's uit in zijn eigen tijdzone. Nu: {e32}. Home Assistant: {home}.\n\nNa opslaan start de E32 één keer opnieuw om de nieuwe tijdzone te gebruiken; de verwarming gaat na ongeveer een minuut verder.",
+        "data": {
+          "time_zone": "Tijdzone"
+        },
+        "data_description": {
+          "time_zone": "De eigen tijdzone van Home Assistant is gekozen als de E32 die kent."
+        }
+      },
+      "heating_boiler": {
+        "title": "Verwarming en ketel",
+        "description": "De grenzen van de watertemperatuur voor alle ruimtes en het model van je ketel.",
+        "menu_options": {
+          "heating_boiler_limits": "Grenzen van de watertemperatuur",
+          "boiler_model": "Ketelmodel"
+        }
+      },
+      "boiler_model": {
+        "title": "Ketelmodel",
+        "description": "Kies je ketel, net als op de pagina Ketel van de E32. Het geeft de ketel zijn naam in Home Assistant en op de E32 en kiest de uitleg van zijn displaycodes; het verandert niet hoe de ketel wordt geregeld.\n\nNu: {current}.",
+        "data": {
+          "model": "Ketelmodel"
+        },
+        "data_description": {
+          "model": "De modellen komen uit EMS-ESP. Een vermelding betekent niet dat OpenThermostat het model ondersteunt."
+        }
+      },
+      "ble_sensors": {
+        "title": "Bluetooth-sensoren",
+        "description": "De Bluetooth-sensoren die aan de E32 gekoppeld zijn. Geef ze hier een andere naam of vergeet ze; verzamel eerst alle wijzigingen en sla ze samen op: na opslaan start de E32 één keer opnieuw, ongeveer 30 seconden later, om ze te gebruiken. Een nieuwe sensor koppelen (zoeken en sleutel) doe je op de pagina Bluetooth-sensoren van de E32, bij de sensor. Welke ruimte een sensor meet stel je per ruimte in onder Ruimtes.\n\n{sensors}\n\n{pending}",
+        "menu_options": {
+          "ble_rename": "Een sensor hernoemen",
+          "ble_forget": "Een sensor vergeten",
+          "ble_save": "De wijzigingen opslaan (de E32 start één keer opnieuw)"
+        }
+      },
+      "ble_rename": {
+        "title": "Een sensor hernoemen",
+        "description": "De nieuwe naam wordt samen met de andere wijzigingen opgeslagen.",
+        "data": {
+          "sensor": "Sensor",
+          "name": "Nieuwe naam"
+        },
+        "data_description": {
+          "sensor": "De gekoppelde sensor, met zijn Bluetooth-adres.",
+          "name": "Hoogstens 40 tekens (minder met bijzondere letters)."
+        }
+      },
+      "ble_forget": {
+        "title": "Een sensor vergeten",
+        "description": "Een vergeten sensor wordt niet meer door de E32 gelezen; zijn sleutel wordt op de E32 gewist. Om hem weer te gebruiken koppel je hem opnieuw op de E32. Een ruimte die ermee meet gebruikt zijn andere bronnen.\n\nSensoren die een ruimte gebruikt:\n{used}",
+        "data": {
+          "sensors": "Sensoren om te vergeten"
+        },
+        "data_description": {
+          "sensors": "Samen met de andere wijzigingen vergeten als je opslaat."
+        }
+      },
+      "ble_save": {
+        "title": "De Bluetooth-wijzigingen opslaan",
+        "description": "{sensors}\n\nDe E32 slaat deze wijzigingen op en start één keer opnieuw, ongeveer 30 seconden later; de verwarming gaat na ongeveer een minuut verder.",
+        "data": {
+          "confirm": "Opslaan en de E32 opnieuw laten starten"
+        },
+        "data_description": {
+          "confirm": "Vink aan om te bevestigen."
+        }
       }
     },
     "error": {
@@ -1921,7 +2103,28 @@
       "e32_away_invalid": "Kies een temperatuur tussen {away_range}, of laat het veld leeg voor de afwezigheidstemperatuur van het huis.",
       "comfort_away_temperature_invalid": "Kies een afwezigheidstemperatuur tussen 5 en 25 °C.",
       "away_temperature_not_saved": "De E32 heeft de afwezigheidstemperatuur niet opgeslagen ({error}), dus er is niets opgeslagen. Controleer of de E32 online is en probeer het opnieuw.",
-      "away_temperature_update_required": "Hier de afwezigheidstemperatuur wijzigen kan met E32-firmware beta.23 of nieuwer. Werk de E32 bij met zijn Firmware-entiteit."
+      "away_temperature_update_required": "Hier de afwezigheidstemperatuur wijzigen kan met E32-firmware beta.23 of nieuwer. Werk de E32 bij met zijn Firmware-entiteit.",
+      "care_value_invalid": "Deze waarde kan niet. Gebruik een waarde binnen {range}.",
+      "care_knob_invalid": "Kies een van de instellingen.",
+      "care_confirm": "Vink het vakje aan om te bevestigen.",
+      "care_rejected": "De E32 weigerde de wijziging ({error}). Er is niets opgeslagen.",
+      "care_unconfirmed": "De E32 kon niet bevestigen dat de wijziging is opgeslagen. Controleer de instelling voordat je het opnieuw probeert.",
+      "care_unreachable": "De E32 was niet bereikbaar ({error}). Er is niets opgeslagen.",
+      "care_no_free_session": "De E32 heeft geen vrije websessie: sluit E32-pagina's die je niet gebruikt, of wacht twee minuten, en probeer het opnieuw.",
+      "e32_log_server_invalid": "Vul het IPv4-adres van de syslog-server in, bijvoorbeeld 192.168.1.10.",
+      "e32_log_number_invalid": "Gebruik een heel getal binnen het getoonde bereik.",
+      "e32_settings_invalid": "De E32 weigerde deze instellingen. Er is niets opgeslagen.",
+      "e32_settings_unconfirmed": "De E32 kon niet bevestigen dat de instellingen zijn opgeslagen. Controleer ze op de E32 voordat je het opnieuw probeert.",
+      "e32_settings_changed": "De E32-instellingen zijn intussen gewijzigd (op zijn webpagina?). Er is niets opgeslagen; probeer het opnieuw.",
+      "e32_settings_busy": "De E32 wordt bijgewerkt of start opnieuw. Probeer het opnieuw zodra zijn webpagina normaal opent.",
+      "e32_settings_unreachable": "De E32 was niet bereikbaar ({error}). Er is niets opgeslagen.",
+      "e32_settings_no_free_session": "De E32 heeft geen vrije websessie: sluit E32-pagina's die je niet gebruikt, of wacht twee minuten, en probeer het opnieuw.",
+      "e32_time_zone_invalid": "Kies een tijdzone uit de lijst.",
+      "boiler_model_invalid": "Kies een model uit de lijst.",
+      "ble_sensor_invalid": "Kies een van de gekoppelde sensoren.",
+      "ble_name_invalid": "Gebruik een naam van 1 tot 40 tekens zonder regeleinden.",
+      "ble_storage_full": "De E32 heeft geen ruimte meer om de sensoren op te slaan. Er is niets opgeslagen.",
+      "ble_rejected": "De E32 weigerde de wijzigingen ({error}). Er is niets opgeslagen."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",
@@ -1991,7 +2194,25 @@
       "e32_restore_done_waiting": "Instellingen teruggezet. De E32 start opnieuw op en antwoordt nog niet; Home Assistant maakt vanzelf weer verbinding zodra hij terug is. De ruimtes houden de modus uit de back-up; een nieuwe of gewiste E32 regelt de ketel pas nadat je de overname bevestigt op zijn pagina Ruimtes.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
       "e32_restore_done_restart": "Instellingen teruggezet. Start de E32 opnieuw op (Systeem → Apparaat herstarten op zijn pagina) om ze allemaal te gebruiken. De ruimtes houden de modus uit de back-up; een nieuwe of gewiste E32 regelt de ketel pas nadat je de overname bevestigt op zijn pagina Ruimtes.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
       "e32_restore_done": "Instellingen teruggezet. De ruimtes houden de modus uit de back-up; een nieuwe of gewiste E32 regelt de ketel pas nadat je de overname bevestigt op zijn pagina Ruimtes.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
-      "e32_restore_adopted": "Klaar: Home Assistant gebruikt voortaan deze E32. Er is niets teruggezet; hij had deze instellingen al."
+      "e32_restore_adopted": "Klaar: Home Assistant gebruikt voortaan deze E32. Er is niets teruggezet; hij had deze instellingen al.",
+      "care_unreachable": "De E32 was niet bereikbaar ({error}). Probeer het later opnieuw.",
+      "care_rejected": "De E32 weigerde het verzoek ({error}).",
+      "care_unconfirmed": "De E32 antwoordde niet zoals verwacht. Probeer het later opnieuw.",
+      "care_update_required": "Deze E32-firmware toont deze instellingen, maar kan ze niet vanuit Home Assistant wijzigen. Werk de E32 eerst bij (Firmware-update).",
+      "care_unchanged": "Er is niets gewijzigd; er is niets naar de E32 geschreven.",
+      "care_saved": "Opgeslagen op de E32. De thermostaat kijkt eerst een hele dag voordat hij weer iets aanpast.",
+      "e32_settings_unreachable": "De E32 was niet bereikbaar ({error}). Probeer het later opnieuw.",
+      "e32_settings_update_required": "Deze E32-firmware heeft deze instelling niet. Werk de E32 eerst bij (Firmware-update).",
+      "e32_settings_password_default": "De E32 gebruikt nog het standaardwachtwoord en accepteert geen wijzigingen tot je een nieuw kiest: Instellingen → Reparaties → “E32 gebruikt nog het standaardwachtwoord”.",
+      "e32_settings_unchanged": "Er is niets gewijzigd; er is niets naar de E32 geschreven.",
+      "e32_settings_unconfirmed": "De E32 kon de nieuwe instellingen niet bevestigen. Controleer ze op de webpagina van de E32.",
+      "e32_logging_saved": "De instellingen van het systeemlog zijn opgeslagen op de E32.",
+      "e32_time_zone_saved": "De E32 gebruikt nu {zone}. Hij start één keer opnieuw; de verwarming gaat na ongeveer een minuut verder.",
+      "boiler_model_saved": "De E32 toont nu {model}. Het ketelapparaat in Home Assistant heeft die naam gekregen.",
+      "ble_none": "Er is nog geen Bluetooth-sensor aan de E32 gekoppeld. Koppel er eerst een op de pagina Bluetooth-sensoren van de E32.",
+      "ble_changed": "De Bluetooth-sensoren zijn intussen op de E32 gewijzigd. Er is niets opgeslagen; open Bluetooth-sensoren opnieuw.",
+      "ble_saved": "Opgeslagen op de E32. Hij start over ongeveer 30 seconden opnieuw om de wijzigingen te gebruiken.",
+      "ble_saved_restart_later": "Opgeslagen op de E32. Hij start opnieuw om de wijzigingen te gebruiken zodra een update of keteltest klaar is."
     },
     "progress": {
       "controller_connect": "Verbinden met de E32…",
@@ -2968,6 +3189,9 @@
     "button": {
       "e32_backup_now": {
         "name": "Nu een back-up van de E32 maken"
+      },
+      "e32_restart": {
+        "name": "E32 opnieuw starten"
       }
     }
   },
@@ -3208,6 +3432,32 @@
     "e32_backup_failing": {
       "title": "Geen recente back-up van de E32-instellingen",
       "description": "{name}: Home Assistant kon al meer dan 3 dagen geen back-up van de E32-instellingen maken (laatste back-up: {last}). Zonder recente back-up krijgt een vervangende E32 je huidige instellingen niet terug. Controleer of de E32 aan staat en zijn webpagina opent, en of zijn wachtwoord in Home Assistant nog klopt; druk daarna op Nu een back-up van de E32 maken op het E32-apparaat. Deze melding verdwijnt na de volgende geslaagde back-up."
+    },
+    "e32_time_zone": {
+      "title": "De E32 gebruikt een andere tijdzone",
+      "fix_flow": {
+        "step": {
+          "confirm_time_zone": {
+            "title": "De tijdzone van Home Assistant op de E32 gebruiken",
+            "description": "{name}: de E32 voert de weekprogramma's uit in {e32}, Home Assistant staat op {home}. Programma's schakelen dan op andere tijden dan je verwacht.\n\nBevestig om de E32 op {home} te zetten. De E32 start één keer opnieuw; de verwarming gaat na ongeveer een minuut verder."
+          }
+        },
+        "error": {
+          "e32_settings_no_free_session": "De E32 heeft geen vrije websessie: sluit E32-pagina's die je niet gebruikt, of wacht twee minuten, en probeer het opnieuw.",
+          "e32_settings_unreachable": "De E32 was niet bereikbaar ({error}). Er is niets opgeslagen.",
+          "e32_settings_busy": "De E32 wordt bijgewerkt of start opnieuw. Probeer het opnieuw zodra zijn webpagina normaal opent.",
+          "e32_settings_changed": "De E32-instellingen zijn intussen gewijzigd (op zijn webpagina?). Er is niets opgeslagen; probeer het opnieuw.",
+          "e32_settings_invalid": "De E32 weigerde deze instellingen. Er is niets opgeslagen.",
+          "e32_settings_unconfirmed": "De E32 kon niet bevestigen dat de instellingen zijn opgeslagen. Controleer ze op de E32 voordat je het opnieuw probeert."
+        },
+        "abort": {
+          "e32_rooms_unavailable": "Verbind eerst de E32 (E32-verbinding) zodat Home Assistant het ruimteplan kan bewerken.",
+          "e32_time_zone_unknown": "De tijdzone van Home Assistant staat niet in de lijst van de E32. Stel de tijdzone van de E32 in op zijn pagina Instellingen (Tijd, Geavanceerd).",
+          "e32_password_changed": "De E32 accepteert het bewaarde wachtwoord niet meer. Home Assistant vraagt om het nieuwe: Instellingen → Apparaten en diensten → OpenThermostat → Opnieuw verifiëren.",
+          "e32_settings_password_default": "De E32 gebruikt nog het standaardwachtwoord en accepteert geen wijzigingen tot je een nieuw kiest: Instellingen → Reparaties → “E32 gebruikt nog het standaardwachtwoord”.",
+          "e32_settings_update_required": "Deze E32-firmware heeft deze instelling niet. Werk de E32 eerst bij (Firmware-update)."
+        }
+      }
     }
   },
   "services": {
@@ -3396,6 +3646,12 @@
     },
     "e32_password_change_required": {
       "message": "De E32 gebruikt nog het standaardwachtwoord en accepteert geen wijzigingen tot je een nieuw wachtwoord kiest. Open Instellingen → Reparaties → “E32 gebruikt nog het standaardwachtwoord” om het te kiezen. Er is niets opgeslagen."
+    },
+    "e32_restart_busy": {
+      "message": "De E32 kan nu niet opnieuw starten: er loopt een update of een controle op nieuwe firmware. Probeer het later opnieuw."
+    },
+    "e32_restart_failed": {
+      "message": "De herstart van de E32 is niet bevestigd ({error}). Controleer de verbinding en probeer het opnieuw."
     }
   },
   "device": {
@@ -3407,6 +3663,9 @@
     },
     "ems_device": {
       "name": "EMS-apparaat {address} (product {product})"
+    },
+    "ems_boiler_brand": {
+      "name": "{brand}-ketel (product {product}) ({address})"
     }
   }
 }

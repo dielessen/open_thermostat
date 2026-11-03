@@ -170,5 +170,4 @@ parallel in HA. Het volledige werkpakket van rc.4 staat in
   als menu-item; 10 % marge boven en onder de grafieklijnen.
 - Standaardstooklijn alleen op ruimtes die aan staan (bij de eigenaar nu
   vanzelf goed: de badkamer is uit het plan).
-- Open, keuze eigenaar: een eigen vakantietemperatuur naast de
-  afwezigheidstemperatuur.
+- Vakantieplanner met eigen vakantietemperatuur (besluit eigenaar 4 november; RC4-PLAN F8).

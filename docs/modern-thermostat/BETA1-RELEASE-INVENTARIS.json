@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "0eb64910eb5ce0b9f994136413695f86a1d8ef27103107b88b0079f17d304731"
+          "sha256": "243d5cd4450e8be2a3a8abb1af8cb691458d1bd95741afc01a3d13ca6f547ea9"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -787,7 +787,7 @@
         },
         {
           "path": "docs/modern-thermostat/LEREN-PLAN-RC4.nl.md",
-          "sha256": "bd29a0f5967dd4a9568478b4a101b0a3f4ee568dc792ddd033e9e3502a53aeb2"
+          "sha256": "11a3b9a5c2366f8170cf5717011e60d7b874d6c5edc4bc6abcdf44f47f6e4b57"
         },
         {
           "path": "docs/modern-thermostat/RC4-CODE-REVIEW.md",
@@ -795,7 +795,7 @@
         },
         {
           "path": "docs/modern-thermostat/RC4-PLAN.nl.md",
-          "sha256": "bcdb175c285e0d9e732523560f9f37ad9068ad33bee76ea3fbb8fe5ccddd78aa"
+          "sha256": "dcd492addb915df81d808934168b34b81e373f74553679ab3ffe501f11411c85"
         },
         {
           "path": "tools/acceptance/README.md",

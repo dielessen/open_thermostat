@@ -210,7 +210,7 @@ Pendelen: eerst meten met de nieuwe driewegklep (vanaf 4 november); geen regelwi
 - Tellers die een herstart overleven (warm water vandaag en 7 dagen); branderstarts en -uren verbergen als de ketel ze nooit meldt.
 - Geleerd-kaart korter; Uitloggen als menu-item; marge in de grafiek.
 - Standaardstooklijn alleen op ruimtes die aan staan.
-- Open (keuze eigenaar): een eigen vakantietemperatuur.
+- Vakantieplanner: periodes vooruit plannen (tot 8), met een eigen vakantietemperatuur (besluit eigenaar 4 november; RC4-PLAN F8).
 
 **C. Codereview** (eigenaar 3 november: "bekijk ook de rest van de code, check op fouten en kijk waar we kunnen optimaliseren"): de gevonden fouten en optimalisaties staan in [RC4-CODE-REVIEW.md](RC4-CODE-REVIEW.md) en zijn als werkpakketten in RC4-PLAN.nl.md opgenomen.
 

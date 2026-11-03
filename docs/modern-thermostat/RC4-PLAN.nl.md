@@ -117,11 +117,34 @@ Geleerd-kaart 2 regels per ruimte met "Meer"; Uitloggen als menu-item in plaats 
 grote knop; 10 % marge boven en onder de lijnen in de grafiek; de standaardstooklijn telt
 alleen ruimtes die aan staan (`FlowPolicy::apply`, `radiator` alleen over actieve ruimtes).
 
-### F8. Eigen vakantietemperatuur (alleen als de eigenaar ja zegt)
+### F8. Vakantieplanner met eigen vakantietemperatuur (besluit eigenaar 4 november)
 
-`RoomOverrides.h` huismodus: `holiday_temperature` naast de afwezigheidstemperatuur;
-HA: nummer-entiteit en veld in Configureren → Huis; E32 Huis-pagina. Standaard gelijk
-aan de afwezigheidstemperatuur, zodat niets verandert zonder keuze.
+Nu kan alleen "Vakantie tot" (de vakantie begint meteen) met de afwezigheidstemperatuur.
+Nieuw:
+
+- **Vooruit plannen:** periodes met begin en einde (lokale datum/tijd), tot 8 periodes,
+  bewaard op de E32 (eigen NVS-record via `HeatingNoteNvs::writeGated`, ~100 B; in de
+  ruimteboekhouding `ControlPartitionBudget` opnemen; onderdeel van de back-up).
+  `RoomOverrides.h`: de huismodus wordt automatisch "holiday" binnen een periode en gaat
+  daarna terug naar wat hij was (meestal Automatisch); de opwarming vóór het einde werkt
+  zoals nu (regel 1 in `RoomOverrides.h`, startend vanaf de vakantietemperatuur). Een
+  periode in het verleden wordt bij het opslaan geweigerd; overlappende periodes worden
+  samengevoegd; een lopende periode kan worden ingekort of gestopt.
+- **Eigen vakantietemperatuur:** `holiday_temperature` naast de afwezigheidstemperatuur
+  (grenzen gelijk: 5–20 °C). Standaard gelijk aan de afwezigheidstemperatuur, zodat niets
+  verandert tot de eigenaar hem lager zet. De vorstbeveiliging blijft altijd.
+- **API:** `GET/POST /config/heating/comfort` krijgt `holidays: [{"from":unix,"until":unix}]`
+  en `holiday_temperature`; oude firmware negeert onbekende velden; HA herkent de functie
+  aan een capability (`house.holidays.v1` in de status).
+- **E32 Huis-pagina:** de lijst periodes (toevoegen, aanpassen, verwijderen) en de
+  vakantietemperatuur; het "Vakantie tot"-veld blijft voor "nu meteen".
+- **HA (1.0.0rc5):** Configureren → Huis → Huismodus en vakantie: periodes toevoegen,
+  aanpassen en verwijderen, en de vakantietemperatuur; een nummer-entiteit
+  "Temperatuur op vakantie"; op het dashboard (Overzicht) de eerstvolgende vakantie
+  ("Vakantie vanaf 20 dec t/m 3 jan").
+- **Tests:** native (periode begint/eindigt, DST-overgang, overlap, herstart midden in een
+  periode, restore van een oud record zonder periodes), browsertest Huis, HA-tests voor
+  de stappen en de entiteit, taaltest.
 
 ### F9. Moderne weergave zonder Home Assistant (R3-01)
 

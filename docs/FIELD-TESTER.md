@@ -144,8 +144,11 @@ You can always choose the other route on the Rooms page: **Trial run first
 boiler until you confirm it, in step 2 of the boiler test. Do the boiler test
 with someone at the boiler; it takes about 30 minutes and checks each step for
 you ([section 12](INSTALL.md#12-what-the-trial-run-does-and-does-not-do)).
-Step 1 asks you to disconnect your old thermostat, also when the E32 could
-not hear it.
+Disconnect your old thermostat before step 1, also when the E32 could not
+hear it: step 1 then says **No other thermostat on the boiler** (it names your
+old thermostat only once the E32 has heard it on the bus). The E32 remembers
+the test's result, so after a restart or an update the Rooms page still says
+"Last test: passed on …".
 
 One thing does act on your home before the takeover: a **setting device**.
 If you chose a valve or thermostat as a room's setting device, Home Assistant

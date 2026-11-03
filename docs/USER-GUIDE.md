@@ -839,15 +839,25 @@ with your thermostat)** or **Go straight to the boiler test**. A stored plan
 keeps its mode.
 
 **Boiler test and takeover (recommended).** Rooms → **Boiler test and
-takeover**: disconnect your old thermostat, confirm the takeover, start
-heating, hot water while heating, stop heating, done. The E32 checks every step
+takeover**: no other thermostat on the boiler (an old one disconnected),
+confirm the takeover, start heating, hot water while heating, stop heating,
+done. It is the only boiler test (the attended heating test of the Boiler page
+is retired since rc.3), and no existing thermostat is required: the page
+speaks of an old thermostat only when the E32 has heard one. The E32 checks every step
 from the boiler's reports and shows each as passed, waiting or failed in plain
 words; the details and pass criteria are in
 [INSTALL.md section 12](INSTALL.md#12-what-the-trial-run-does-and-does-not-do).
 Its temporary room target has an end time and never changes the week
 program. When a safety rule stops it, the page says "Stop and give control
-back to your thermostat" with the steps. The result is kept and shown, also
-in Home Assistant on the sensor *Ready for E32 control*.
+back to your thermostat" (without a thermostat the E32 ever heard: "Stop E32
+control") with the steps. The E32 remembers the result over restarts and
+updates ("Last test: passed on 1 Nov 2026, 21:12."). **I have already done
+this test** keeps your own mark with its date, shown as a mark and never as a
+passed test; **Undo my mark** takes it back. An E32 that has controlled this
+boiler before shows the test as not needed, folded away, with **Run the test
+anyway**. The Boiler page shows the same in one line with a link ("Boiler
+test: passed on … · Open"), and Home Assistant on the sensor *Ready for E32
+control* (`boiler_test_summary` and the other `boiler_test` attributes).
 
 **By hand**, following [the switch-over procedure](SWITCHOVER.md), it involves:
 
@@ -859,15 +869,18 @@ in Home Assistant on the sensor *Ready for E32 control*.
 3. Tests with someone at the boiler: start, stop and modulation; hot water
    while heating; an E32 restart; loss of Wi-Fi, Home Assistant and room
    measurements; and the boiler adapter's behaviour when the E32 stops sending.
-4. Handing back with **Give control back to my thermostat**: the E32 asks the boiler
-   for zero for one minute, then you reconnect the thermostat.
+4. Handing back with **Give control back to my thermostat** (without a thermostat the
+   E32 ever heard: **Stop E32 control**): the E32 asks the boiler for zero for one
+   minute, then you reconnect the thermostat if there is one.
 
 Safeguards in active mode: the E32 stops and warns when another controller
 still sends boiler requests; without room measurements it asks for no heat
 until a reading returns; frost protection switches on below 8 °C; the flow
 request never exceeds the plan maximum (at most 80 °C) or the boiler's own
 maximum heating temperature setting. While the E32 controls the boiler, the
-attended boiler test is refused.
+installer check on the Boiler page (readings, zero-only check) is refused; the
+boiler test does not start while that check or a boiler settings change uses
+the connection to the boiler.
 
 After the switch-over follow one to two weeks of active mode with daily
 checks; the **Daily summary** in Home Assistant gives the figures for each

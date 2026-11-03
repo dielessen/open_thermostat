@@ -715,15 +715,22 @@ straight to the boiler test**. An installation that already has a room plan
 keeps its mode.
 
 **Boiler test and takeover** (E32 **Rooms** page). With someone at the boiler,
-about 30 minutes. The E32 checks each step itself from what the boiler
-reports and shows it as passed, waiting or failed, with what to do:
+about 30 minutes; **Start the boiler test** first asks you to stay near the
+boiler, so you can switch it off if something looks wrong. The E32 checks each
+step itself from what the boiler reports and shows it as passed, waiting or
+failed, with what to do. No existing thermostat is required: the page speaks
+of an old thermostat only when the E32 has heard another controller ask the
+boiler for heat (it remembers that).
 
-1. **Disconnect your old thermostat:** switch the boiler off, disconnect the
-   old thermostat from the boiler, switch the boiler on again. Passes when no
-   other thermostat is heard for 2 minutes while boiler messages arrive.
+1. **No other thermostat on the boiler** (**Disconnect your old thermostat**
+   when the E32 heard one): with an old thermostat, switch the boiler off,
+   disconnect the thermostat from the boiler and switch the boiler on again.
+   Passes when no other thermostat is heard for 2 minutes while boiler
+   messages arrive.
 2. **Confirm the takeover:** **Confirm the takeover** opens the usual
-   confirmation ("Confirm that your current thermostat is disconnected…").
-   Passes once the E32 controls the boiler.
+   confirmation ("Let the E32 control the boiler?"; after an old thermostat:
+   "Confirm that your current thermostat is disconnected…"). Passes once the
+   E32 controls the boiler.
 3. **Start heating:** the E32 sets the first active room with a working sensor
    about 1 °C above its temperature, as a temporary change with an end time
    (the week program is not changed). Passes when the burner starts for
@@ -739,15 +746,36 @@ reports and shows it as passed, waiting or failed, with what to do:
    the week program continues.
 
 Each step has a time limit. The E32 stops the test with "Stop and give control
-back to your thermostat" and the steps to do so when another thermostat asks
-the boiler for heat, control is given back, room measurements are lost, a
-warning of active control appears, the water to heating goes above the highest
-water temperature, or the boiler is silent for 3 minutes. **Stop the test**
-ends it at any step. The result (time and every step) is kept over restarts,
-shown on the Rooms page, and in Home Assistant as attributes of the sensor
-*Ready for E32 control* (`boiler_test`, `boiler_test_at`, `boiler_test_steps`,
-`boiler_test_step`, `boiler_test_reason`). **Skip the test and confirm the
-takeover now** is possible too, but the test is the recommended path.
+back to your thermostat" (without a thermostat it ever heard: "Stop E32
+control") and the steps to do so when another thermostat asks the boiler for
+heat, control is given back, room measurements are lost, a warning of active
+control appears, the water to heating goes above the highest water
+temperature, the boiler is silent for 3 minutes, or a boiler settings change
+or the installer check on the Boiler page uses the connection to the boiler
+(a start is refused while one runs). **Stop the test** ends it at any step.
+
+**The E32 remembers the test** over restarts and firmware updates. The Rooms
+page says for example "Last test: passed on 1 Nov 2026, 21:12." with the
+highest water temperature the E32 asked during it; a test that was still
+running when the E32 restarted shows as ended by the restart. **I have already
+done this test** marks it as done without running it: the page then says
+"Marked as done by you on 3 Nov 2026. This is your own mark, not a test the
+E32 measured." **Undo my mark** takes it back, and running the test replaces
+it. An E32 that has controlled this boiler before (for example since an
+earlier release) shows "Not needed: the E32 has controlled this boiler
+before." When the test passed, is marked or is not needed, its steps fold away
+and **Run the test anyway** stays available. The Boiler page shows the same in
+one line, "Boiler test: passed on … · Open", with a link to the test. Home
+Assistant shows it as attributes of the sensor *Ready for E32 control*
+(`boiler_test`, `boiler_test_summary`, `boiler_test_at`, `boiler_test_flow_c`,
+`boiler_test_marked_at`, `boiler_test_steps`, `boiler_test_step`,
+`boiler_test_reason`). **Skip the test and confirm the takeover now** is
+possible too, but the test is the recommended path.
+
+This is the only boiler test since rc.3: the attended heating test of the
+Boiler page is retired. What stays there, under **Installer check (no heat)**,
+never asks the boiler for heat: reading the heating settings and the device
+identity, and the zero-only check.
 
 ### What the trial run does and does not do
 
@@ -789,12 +817,13 @@ day you set it up. If you only want to watch during the trial run first, leave t
 setting device empty and add it later.
 
 The firmware can control the boiler, but it never starts on its own. The E32
-takes over only after you disconnect your old thermostat from the boiler and
-confirm it: in the boiler test (step 2), or with **My thermostat is
-disconnected from the boiler — let the E32 take over** in the **Active
+takes over only after you confirm it (with an existing thermostat on the
+boiler: after you disconnected it): in the boiler test (step 2), or with **Let
+the E32 control the boiler** (after an old thermostat: **My thermostat is
+disconnected from the boiler — let the E32 take over**) in the **Active
 control** section of the **Rooms** page. Do that with someone at the boiler;
 the [switch-over procedure](SWITCHOVER.md) has the details and the hand-back.
-Until then, keep your existing thermostat connected.
+Until then, an existing thermostat stays connected and in control.
 
 <a id="9-updates"></a>
 

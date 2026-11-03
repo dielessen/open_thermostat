@@ -64,8 +64,8 @@ def test_the_overview_in_plain_english():
     assert bedroom["progress"] == "Learning: 3 of 6 warm-ups seen"
     assert bedroom["lines"] == [{"text": "It learns from every warm-up while the heating runs.", "meaning": "Until then it uses safe standard times."}]
     assert [line["text"] for line in a["house"]] == [
-        "Heating curve: learned for your house.",
-        "Heating curve, learned from your house: the water gets about 0.62 °C warmer for every degree colder outside.",
+        "Weather compensation: learned for your house.",
+        "Weather compensation, learned from your house: the water gets about 0.62 °C warmer for every degree colder outside.",
         "Yesterday the burner started 59 times for heating; a burn lasted 7 min on average."]
     assert a["house"][2]["meaning"].startswith("That is often.")
     assert [c["text"] for c in a["changes"]] == [
@@ -75,7 +75,7 @@ def test_the_overview_in_plain_english():
     assert a["settings"]["Burner rest between starts"] == "10 min (set by you)"
     assert a["settings"]["Stop heating when the room is this much above its target"] == "0.15 °C (automatic)"
     assert a["settings"]["Warm-up time for floor heating"] == "1 h 30 min per °C (automatic)"
-    assert a["settings"]["Room correction on the heating curve"] == "50 % (standard value)"
+    assert a["settings"]["Room correction on weather compensation"] == "50 % (standard value)"
 
 
 @pytest.mark.parametrize("language", ["nl", "pl", "nl-NL", "pl-PL"])
@@ -299,23 +299,23 @@ def test_the_overview_follows_the_smart_warm_up_switch():
 # the overview says plainly what it uses now, and the same for the learned coolest water.
 @pytest.mark.parametrize("curve,on,english,dutch", [
     ({"state": "applied", "slope_source": "design", "windows": 2}, True,
-     "Heating curve: standard for now, learning from your house (2 of 6 steady periods).",
-     "Stooklijn: voorlopig standaard, hij leert van je huis (2 van 6 rustige periodes)."),
+     "Weather compensation: standard for now, learning from your house (2 of 6 steady periods).",
+     "Weerafhankelijke regeling: voorlopig standaard, hij leert van je huis (2 van 6 rustige periodes)."),
     ({"state": "applied", "slope_source": "design"}, None,                       # older firmware: no count
-     "Heating curve: standard for now, learning from your house.", "Stooklijn: voorlopig standaard, hij leert van je huis."),
+     "Weather compensation: standard for now, learning from your house.", "Weerafhankelijke regeling: voorlopig standaard, hij leert van je huis."),
     ({"state": "applied", "slope_source": "learned", "windows": 9}, True,
-     "Heating curve: learned for your house.", "Stooklijn: geleerd voor je huis."),
+     "Weather compensation: learned for your house.", "Weerafhankelijke regeling: geleerd voor je huis."),
     ({"state": "no_outdoor", "slope_source": "design", "windows": 0}, True,
-     "Heating curve: no outdoor temperature right now, so the water temperature follows the rooms only.",
-     "Stooklijn: nu geen buitentemperatuur, dus de watertemperatuur volgt alleen de ruimtes."),
+     "Weather compensation: no outdoor temperature right now, so the water temperature follows the rooms only.",
+     "Weerafhankelijke regeling: nu geen buitentemperatuur, dus de watertemperatuur volgt alleen de ruimtes."),
     ({"state": "advice", "slope_source": "learned", "windows": 7}, False,
-     "Heating curve: off, the water temperature follows the rooms only.",
-     "Stooklijn: uit, de watertemperatuur volgt alleen de ruimtes."),
+     "Weather compensation: off, the water temperature follows the rooms only.",
+     "Weerafhankelijke regeling: uit, de watertemperatuur volgt alleen de ruimtes."),
 ])
 def test_the_curve_says_what_it_uses_now(curve, on, english, dutch):
     assert lo.curve_status(curve, on, "en")[0] == english
     assert lo.curve_status(curve, on, "nl")[0] == dutch
-    assert lo.curve_status(curve, on, "pl")[0].startswith("Krzywa grzewcza: ")
+    assert lo.curve_status(curve, on, "pl")[0].startswith("Kompensacja pogodowa: ")
     assert lo.curve_status({"state": "no_room"}, on, "en") is None and lo.curve_status(None, on, "en") is None
 
 
@@ -331,4 +331,4 @@ def test_the_learned_water_says_whether_it_is_ready():
     s.hass = SimpleNamespace(config=SimpleNamespace(language="en"),
                              data={"open_thermostat": {"e": {"e32_flow": SimpleNamespace(settings={"weather_curve": True, "apply_learned": True})}}})
     assert [line["text"] for line in s.extra_state_attributes["house"]][:2] == [
-        "Heating curve: standard for now, learning from your house (2 of 6 steady periods).", "Coolest water: still learning from each warm-up."]
+        "Weather compensation: standard for now, learning from your house (2 of 6 steady periods).", "Coolest water: still learning from each warm-up."]

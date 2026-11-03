@@ -739,10 +739,10 @@ def test_the_summary_is_plain_and_in_the_users_language():
                            {"section": "flow", "field": "weather_curve", "from": False, "to": True}],
                "warnings": ["plan_mode_shadow"], "reenter": ["mqtt_password"], "restart": False}
     english = summary_text(summary, "en")
-    assert "Rooms: Hal → Hal, Zolder" in english and "Water temperature · Follow outdoor temperature (heating curve): Off → On" in english
+    assert "Rooms: Hal → Hal, Zolder" in english and "Water temperature · Weather compensation: Off → On" in english
     assert "The rooms are restored in the trial run." in english and "- MQTT password" in english
     dutch = summary_text(summary, "nl")
-    assert "Stooklijn" not in dutch and "Buitentemperatuur volgen (stooklijn): Uit → Aan" in dutch
+    assert "Stooklijn" not in dutch and "Weerafhankelijke regeling: Uit → Aan" in dutch
     assert "proefperiode" in dutch and "MQTT-wachtwoord" in dutch
     assert "Hasło MQTT" in summary_text(summary, "pl")
 
@@ -761,7 +761,7 @@ def test_the_summary_names_each_changed_comfort_setting_and_who_set_it_in_plain_
     assert "- Comfort and boiler care · Burner run time: at least 5 min → at least 10 min" in english, english
     assert "- Comfort and boiler care · Stop heating when the room is this much above its target: 0.1 °C → 0.15 °C" in english
     assert "- Comfort and boiler care · Burner run time: automatic → set by you" in english
-    assert "- Comfort and boiler care · Room correction on the heating curve: set by you → standard value" in english
+    assert "- Comfort and boiler care · Room correction on weather compensation: set by you → standard value" in english
     assert english.count("Burner rest between starts") == 0  # unchanged settings are not listed
     dutch = summary_text(summary, "nl")
     assert "- Comfort en zorg voor de ketel · Brandtijd: minstens 5 min → minstens 10 min" in dutch, dutch

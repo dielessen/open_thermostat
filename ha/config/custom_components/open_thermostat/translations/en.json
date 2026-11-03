@@ -1139,7 +1139,7 @@
       "e32_program_too_many": "Line {line}: a day can have up to 6 switch points.",
       "e32_program_outside_limits": "Line {line}: a temperature is outside the room's temperature limits.",
       "e32_plan_changed": "The room plan was changed on the E32 twice while saving. Nothing was saved; try again.",
-      "e32_flow_limits_order": "The minimum flow temperature must be below the maximum.",
+      "e32_flow_limits_order": "The lowest water temperature must be below the highest.",
       "e32_flow_limits_invalid": "Enter whole degrees: minimum {minimum_range}, maximum {maximum_range}.",
       "e32_plan_too_large": "The room plan is too large for the E32 (4 KB). Use shorter names, fewer sources or fewer switch points. Nothing was saved.",
       "e32_storage_full": "The E32 has no storage space left for its room plan. Remove a room you no longer use, or a few switch points from the week programs, and save again. Nothing was saved.",
@@ -1160,7 +1160,7 @@
       "e32_rejected_duplicate_source": "A sensor is listed twice in one room.",
       "e32_rejected_setpoint": "The Home Assistant entity for the target temperature is not valid.",
       "e32_rejected_schedule": "The E32 did not accept the week program. Check the times and that every temperature is within the room's limits.",
-      "e32_rejected_flow_limits": "The E32 did not accept these flow limits. Older E32 firmware accepts at most 60 °C; update the E32 to use a higher maximum.",
+      "e32_rejected_flow_limits": "The E32 did not accept these water temperature limits. Older E32 software accepts at most 60 °C; update the E32 to use a higher maximum.",
       "e32_flow_limits_floor_warning": "A room has floor heating. Above {floor_maximum} floor heating without a mixing valve can get too hot. Save again to keep this maximum.",
       "e32_flow_limits_above_boiler": "This maximum is above your boiler's own maximum; the boiler does not go higher anyway. Save again to keep it, or lower it.",
       "controller_ha_version_unsupported": "This integration needs Home Assistant 2026.10.0 or newer (tested with 2026.10.2 to 2026.10.4). Update Home Assistant; if yours is newer, check for an integration update. Nothing has been changed.",
@@ -1282,7 +1282,7 @@
       "e32_room_saved": "{name} is saved in the E32 room plan.",
       "e32_room_removed": "{name} is removed from the E32 room plan.",
       "e32_room_unchanged": "Nothing changed; the E32 room plan was not written.",
-      "e32_flow_limits_saved": "The E32 now asks for a flow temperature between {minimum} and {maximum} {unit}.",
+      "e32_flow_limits_saved": "The E32 now asks for a water temperature between {minimum} and {maximum} {unit}.",
       "energy_saved": "Energy settings saved. Nothing is required; the E32 receives the values within a few minutes.",
       "e32_password_changed": "The E32 no longer accepts the saved password. Home Assistant asks for the new one: Settings → Devices & services → OpenThermostat → Re-authenticate.",
       "legacy_rooms_removed": "The old Home Assistant rooms have been removed. The E32 stays connected with {rooms} room(s) in its plan.",
@@ -2025,13 +2025,13 @@
         "name": "Water temperature set by",
         "state": {
           "rule": "Room control",
-          "curve": "Heating curve",
+          "curve": "Weather compensation",
           "learned": "Learned water temperature",
           "optimum_start": "Warm on time (early start)"
         }
       },
       "flow_curve": {
-        "name": "Water temperature by heating curve"
+        "name": "Water temperature by weather compensation"
       },
       "flow_learned": {
         "name": "Learned water temperature"
@@ -2040,7 +2040,7 @@
         "name": "Water temperature by room control"
       },
       "flow_curve_slope": {
-        "name": "Heating curve steepness"
+        "name": "Weather compensation steepness"
       },
       "gas_calibration": {
         "name": "Gas calibration",
@@ -2124,10 +2124,10 @@
         "name": "Boiler selected hot water temperature"
       },
       "hub_boiler_selected_flow_temperature": {
-        "name": "Boiler selected flow temperature"
+        "name": "Boiler selected water temperature (flow)"
       },
       "hub_boiler_current_flow_temperature": {
-        "name": "Boiler current flow temperature"
+        "name": "Boiler current water temperature (flow)"
       },
       "hub_boiler_pressure": {
         "name": "Boiler pressure"
@@ -3256,7 +3256,7 @@
         "flow_per_degree_c": "How strongly the water temperature reacts to a cold room",
         "floor_lead_min_per_c": "Warm-up time for floor heating",
         "radiator_lead_min_per_c": "Warm-up time for radiators",
-        "curve_correction_pct": "Room correction on the heating curve",
+        "curve_correction_pct": "Room correction on weather compensation",
         "learned_accept_pct": "Accepted warm-up time with the learned water temperature",
         "night_saving_min_pct": "Smallest night saving worth advising"
       }
@@ -3759,13 +3759,13 @@
       "message": "The E32 no longer accepts the saved password. Re-authenticate OpenThermostat under Settings → Devices & services. Nothing was saved."
     },
     "flow_settings_rejected": {
-      "message": "The E32 refused the flow setting ({error}). Nothing was changed."
+      "message": "The E32 refused the water temperature setting ({error}). Nothing was changed."
     },
     "flow_settings_unconfirmed": {
-      "message": "The E32 did not confirm the saved flow setting. Try again."
+      "message": "The E32 did not confirm the saved water temperature setting. Try again."
     },
     "flow_settings_unreachable": {
-      "message": "The E32 could not be reached to change the flow setting ({error}). Nothing was changed."
+      "message": "The E32 could not be reached to change the water temperature setting ({error}). Nothing was changed."
     },
     "flow_design_invalid": {
       "message": "Choose Automatic, or {minimum}–{maximum} °C."

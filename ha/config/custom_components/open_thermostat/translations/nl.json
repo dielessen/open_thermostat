@@ -951,7 +951,7 @@
         "flow_per_degree_c": "Hoe sterk de watertemperatuur reageert op een koude ruimte",
         "floor_lead_min_per_c": "Opwarmtijd voor vloerverwarming",
         "radiator_lead_min_per_c": "Opwarmtijd voor radiatoren",
-        "curve_correction_pct": "Ruimtecorrectie op de stooklijn",
+        "curve_correction_pct": "Ruimtecorrectie op de weerafhankelijke regeling",
         "learned_accept_pct": "Toegestane opwarmtijd met de geleerde watertemperatuur",
         "night_saving_min_pct": "Kleinste nachtbesparing die een advies waard is"
       }
@@ -2176,7 +2176,7 @@
       "e32_program_too_many": "Regel {line}: een dag kan maximaal 6 schakelpunten hebben.",
       "e32_program_outside_limits": "Regel {line}: een temperatuur ligt buiten de temperatuurgrenzen van de ruimte.",
       "e32_plan_changed": "Het ruimteplan is tijdens het opslaan twee keer op de E32 gewijzigd. Er is niets opgeslagen; probeer het opnieuw.",
-      "e32_flow_limits_order": "De minimale aanvoertemperatuur moet lager zijn dan de maximale.",
+      "e32_flow_limits_order": "De laagste watertemperatuur moet lager zijn dan de hoogste.",
       "e32_flow_limits_invalid": "Vul hele graden in: minimum {minimum_range}, maximum {maximum_range}.",
       "e32_plan_too_large": "Het ruimteplan is te groot voor de E32 (4 KB). Gebruik kortere namen, minder bronnen of minder schakelpunten. Er is niets opgeslagen.",
       "e32_storage_full": "De E32 heeft geen opslagruimte meer voor zijn ruimteplan. Verwijder een ruimte die je niet meer gebruikt, of een paar schakelpunten uit de weekprogramma's, en sla opnieuw op. Er is niets opgeslagen.",
@@ -2197,7 +2197,7 @@
       "e32_rejected_duplicate_source": "Een sensor staat twee keer in dezelfde ruimte.",
       "e32_rejected_setpoint": "De Home Assistant-entiteit voor de gewenste temperatuur klopt niet.",
       "e32_rejected_schedule": "De E32 accepteert het weekprogramma niet. Controleer de tijden en of elke temperatuur binnen de grenzen van de ruimte ligt.",
-      "e32_rejected_flow_limits": "De E32 accepteert deze aanvoergrenzen niet. Oudere E32-firmware accepteert hoogstens 60 °C; werk de E32 bij om een hoger maximum te gebruiken.",
+      "e32_rejected_flow_limits": "De E32 accepteert deze grenzen van de watertemperatuur niet. Oudere E32-software accepteert hoogstens 60 °C; werk de E32 bij om een hoger maximum te gebruiken.",
       "e32_flow_limits_floor_warning": "Een ruimte heeft vloerverwarming. Boven {floor_maximum} kan vloerverwarming zonder mengklep te heet worden. Sla opnieuw op om dit maximum te houden.",
       "e32_flow_limits_above_boiler": "Dit maximum ligt boven het eigen maximum van je ketel; de ketel gaat toch niet hoger. Sla opnieuw op om het te houden, of verlaag het.",
       "controller_ha_version_unsupported": "Deze integratie heeft Home Assistant 2026.10.0 of nieuwer nodig (getest met 2026.10.2 tot en met 2026.10.4). Werk Home Assistant bij; is jouw versie nieuwer, kijk dan of er een integratie-update is. Er is niets aangepast.",
@@ -2319,7 +2319,7 @@
       "e32_room_saved": "{name} is opgeslagen in het ruimteplan van de E32.",
       "e32_room_removed": "{name} is verwijderd uit het ruimteplan van de E32.",
       "e32_room_unchanged": "Er is niets gewijzigd; het ruimteplan van de E32 is niet opnieuw geschreven.",
-      "e32_flow_limits_saved": "De E32 vraagt nu een aanvoertemperatuur tussen {minimum} en {maximum} {unit}.",
+      "e32_flow_limits_saved": "De E32 vraagt nu een watertemperatuur tussen {minimum} en {maximum} {unit}.",
       "energy_saved": "Energie-instellingen opgeslagen. Niets is verplicht; de E32 krijgt de waarden binnen een paar minuten.",
       "e32_password_changed": "De E32 accepteert het bewaarde wachtwoord niet meer. Home Assistant vraagt om het nieuwe: Instellingen → Apparaten en diensten → OpenThermostat → Opnieuw verifiëren.",
       "legacy_rooms_removed": "De oude Home Assistant-ruimtes zijn verwijderd. De E32 blijft verbonden met {rooms} ruimte(s) in zijn plan.",
@@ -3062,13 +3062,13 @@
         "name": "Watertemperatuur bepaald door",
         "state": {
           "rule": "Ruimteregeling",
-          "curve": "Stooklijn",
+          "curve": "Weerafhankelijke regeling",
           "learned": "Geleerde watertemperatuur",
           "optimum_start": "Op tijd warm (vroege start)"
         }
       },
       "flow_curve": {
-        "name": "Watertemperatuur volgens stooklijn"
+        "name": "Watertemperatuur (weerafhankelijke regeling)"
       },
       "flow_learned": {
         "name": "Geleerde watertemperatuur"
@@ -3077,7 +3077,7 @@
         "name": "Watertemperatuur volgens ruimteregeling"
       },
       "flow_curve_slope": {
-        "name": "Steilheid stooklijn"
+        "name": "Steilheid weerafhankelijke regeling"
       },
       "gas_calibration": {
         "name": "Gasijking",
@@ -3161,10 +3161,10 @@
         "name": "Gekozen warmwatertemperatuur ketel"
       },
       "hub_boiler_selected_flow_temperature": {
-        "name": "Gekozen aanvoertemperatuur ketel"
+        "name": "Gekozen watertemperatuur ketel (aanvoer)"
       },
       "hub_boiler_current_flow_temperature": {
-        "name": "Huidige aanvoertemperatuur ketel"
+        "name": "Huidige watertemperatuur ketel (aanvoer)"
       },
       "hub_boiler_pressure": {
         "name": "Keteldruk"
@@ -3759,13 +3759,13 @@
       "message": "De E32 accepteert het bewaarde wachtwoord niet meer. Verifieer OpenThermostat opnieuw onder Instellingen → Apparaten en diensten. Er is niets opgeslagen."
     },
     "flow_settings_rejected": {
-      "message": "De E32 weigerde de aanvoerinstelling ({error}). Er is niets gewijzigd."
+      "message": "De E32 weigerde de instelling van de watertemperatuur ({error}). Er is niets gewijzigd."
     },
     "flow_settings_unconfirmed": {
-      "message": "De E32 heeft het opslaan van de aanvoerinstelling niet bevestigd. Probeer het opnieuw."
+      "message": "De E32 heeft het opslaan van de instelling van de watertemperatuur niet bevestigd. Probeer het opnieuw."
     },
     "flow_settings_unreachable": {
-      "message": "De E32 was niet bereikbaar om de aanvoerinstelling te wijzigen ({error}). Er is niets gewijzigd."
+      "message": "De E32 was niet bereikbaar om de instelling van de watertemperatuur te wijzigen ({error}). Er is niets gewijzigd."
     },
     "flow_design_invalid": {
       "message": "Kies Automatisch, of {minimum}–{maximum} °C."

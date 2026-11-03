@@ -150,14 +150,14 @@ async def test_long_choices_get_the_whole_width_and_no_gap_is_left_under_now(has
     config, rooms, sensors, hub, fields, flow = live(hass)
     heating = config["views"][0]
     assert heating["dense_section_placement"] is True
-    settings = section(heating, "Heating curve and learning")
+    settings = section(heating, "Weather compensation and learning")
     # The settings carry their entities' own long names (as on the device page) and a long choice:
     # every tile takes the whole width, none is cut short.
     tiles = [c for c in settings if c["type"] == "tile"]
     assert [c["entity"] for c in tiles] == [flow[k] for k in ("source", "weather_curve", "curve_design_flow_c",
                                                               "apply_learned")]
     assert all(c["grid_options"] == {"columns": 12} for c in tiles)
-    assert [c["name"] for c in tiles] == ["Water temperature set by", "Follow outdoor temperature (heating curve)",
+    assert [c["name"] for c in tiles] == ["Water temperature set by", "Weather compensation",
                                           "Water temperature at −10 °C outside", "Smart warm-up"]
 
 

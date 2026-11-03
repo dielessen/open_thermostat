@@ -1139,7 +1139,7 @@
       "e32_program_too_many": "Linia {line}: dzień może mieć najwyżej 6 punktów przełączenia.",
       "e32_program_outside_limits": "Linia {line}: temperatura jest poza limitami temperatury pomieszczenia.",
       "e32_plan_changed": "Plan pomieszczeń został dwukrotnie zmieniony na E32 podczas zapisywania. Nic nie zapisano; spróbuj ponownie.",
-      "e32_flow_limits_order": "Minimalna temperatura zasilania musi być niższa od maksymalnej.",
+      "e32_flow_limits_order": "Najniższa temperatura wody musi być niższa od najwyższej.",
       "e32_flow_limits_invalid": "Podaj pełne stopnie: minimum {minimum_range}, maksimum {maximum_range}.",
       "e32_plan_too_large": "Plan pomieszczeń jest za duży dla E32 (4 KB). Użyj krótszych nazw, mniej źródeł lub mniej punktów przełączenia. Nic nie zapisano.",
       "e32_storage_full": "E32 nie ma już miejsca na plan pomieszczeń. Usuń nieużywane pomieszczenie lub kilka punktów przełączenia z programów tygodniowych i zapisz ponownie. Nic nie zapisano.",
@@ -1160,7 +1160,7 @@
       "e32_rejected_duplicate_source": "Czujnik występuje dwa razy w jednym pomieszczeniu.",
       "e32_rejected_setpoint": "Encja Home Assistant dla temperatury docelowej jest nieprawidłowa.",
       "e32_rejected_schedule": "E32 nie zaakceptował programu tygodniowego. Sprawdź godziny i czy każda temperatura mieści się w limitach pomieszczenia.",
-      "e32_rejected_flow_limits": "E32 nie zaakceptował tych limitów zasilania. Starsze oprogramowanie E32 akceptuje najwyżej 60 °C; zaktualizuj E32, aby użyć wyższego maksimum.",
+      "e32_rejected_flow_limits": "E32 nie zaakceptował tych limitów temperatury wody. Starsze oprogramowanie E32 akceptuje najwyżej 60 °C; zaktualizuj E32, aby użyć wyższego maksimum.",
       "e32_flow_limits_floor_warning": "W jednym pomieszczeniu jest ogrzewanie podłogowe. Powyżej {floor_maximum} ogrzewanie podłogowe bez zaworu mieszającego może się zbytnio nagrzać. Zapisz ponownie, aby zachować to maksimum.",
       "e32_flow_limits_above_boiler": "To maksimum jest wyższe niż maksimum samego kotła; kocioł i tak nie pójdzie wyżej. Zapisz ponownie, aby je zachować, albo je obniż.",
       "controller_ha_version_unsupported": "Ta integracja wymaga Home Assistant 2026.10.0 lub nowszego (testowano z 2026.10.2 do 2026.10.4). Zaktualizuj Home Assistant; jeśli Twoja wersja jest nowsza, sprawdź, czy jest aktualizacja integracji. Nic nie zostało zmienione.",
@@ -1282,7 +1282,7 @@
       "e32_room_saved": "{name} zapisano w planie pomieszczeń E32.",
       "e32_room_removed": "{name} usunięto z planu pomieszczeń E32.",
       "e32_room_unchanged": "Nic się nie zmieniło; plan pomieszczeń E32 nie został zapisany.",
-      "e32_flow_limits_saved": "E32 prosi teraz o temperaturę zasilania od {minimum} do {maximum} {unit}.",
+      "e32_flow_limits_saved": "E32 prosi teraz o temperaturę wody od {minimum} do {maximum} {unit}.",
       "energy_saved": "Ustawienia energii zapisane. Nic więcej nie trzeba robić; E32 otrzyma wartości w ciągu kilku minut.",
       "e32_password_changed": "E32 nie akceptuje już zapisanego hasła. Home Assistant prosi o nowe: Ustawienia → Urządzenia i usługi → OpenThermostat → Uwierzytelnij ponownie.",
       "legacy_rooms_removed": "Stare pomieszczenia Home Assistant zostały usunięte. E32 pozostaje połączony; w jego planie są pomieszczenia: {rooms}.",
@@ -2025,13 +2025,13 @@
         "name": "Temperatura wody ustalana przez",
         "state": {
           "rule": "Regulacja pokojowa",
-          "curve": "Krzywa grzewcza",
+          "curve": "Kompensacja pogodowa",
           "learned": "Wyuczona temperatura wody",
           "optimum_start": "Ciepło na czas (wczesny start)"
         }
       },
       "flow_curve": {
-        "name": "Temperatura wody wg krzywej grzewczej"
+        "name": "Temperatura wody wg kompensacji pogodowej"
       },
       "flow_learned": {
         "name": "Wyuczona temperatura wody"
@@ -2040,7 +2040,7 @@
         "name": "Temperatura wody wg regulacji pokojowej"
       },
       "flow_curve_slope": {
-        "name": "Nachylenie krzywej grzewczej"
+        "name": "Nachylenie kompensacji pogodowej"
       },
       "gas_calibration": {
         "name": "Kalibracja gazu",
@@ -2124,10 +2124,10 @@
         "name": "Wybrana temperatura ciepłej wody kotła"
       },
       "hub_boiler_selected_flow_temperature": {
-        "name": "Wybrana temperatura zasilania kotła"
+        "name": "Wybrana temperatura wody kotła (zasilanie)"
       },
       "hub_boiler_current_flow_temperature": {
-        "name": "Bieżąca temperatura zasilania kotła"
+        "name": "Bieżąca temperatura wody kotła (zasilanie)"
       },
       "hub_boiler_pressure": {
         "name": "Ciśnienie kotła"
@@ -3256,7 +3256,7 @@
         "flow_per_degree_c": "Jak mocno temperatura wody reaguje na zimne pomieszczenie",
         "floor_lead_min_per_c": "Czas nagrzewania dla ogrzewania podłogowego",
         "radiator_lead_min_per_c": "Czas nagrzewania dla grzejników",
-        "curve_correction_pct": "Korekta pomieszczenia na krzywej grzewczej",
+        "curve_correction_pct": "Korekta pomieszczenia przy kompensacji pogodowej",
         "learned_accept_pct": "Dopuszczalny czas nagrzewania przy wyuczonej temperaturze wody",
         "night_saving_min_pct": "Najmniejsza nocna oszczędność warta porady"
       }
@@ -3759,13 +3759,13 @@
       "message": "E32 nie akceptuje już zapisanego hasła. Uwierzytelnij ponownie OpenThermostat w Ustawienia → Urządzenia i usługi. Nic nie zapisano."
     },
     "flow_settings_rejected": {
-      "message": "E32 odrzucił ustawienie zasilania ({error}). Niczego nie zmieniono."
+      "message": "E32 odrzucił ustawienie temperatury wody ({error}). Niczego nie zmieniono."
     },
     "flow_settings_unconfirmed": {
-      "message": "E32 nie potwierdził zapisania ustawienia zasilania. Spróbuj ponownie."
+      "message": "E32 nie potwierdził zapisania ustawienia temperatury wody. Spróbuj ponownie."
     },
     "flow_settings_unreachable": {
-      "message": "Nie udało się połączyć z E32, aby zmienić ustawienie zasilania ({error}). Niczego nie zmieniono."
+      "message": "Nie udało się połączyć z E32, aby zmienić ustawienie temperatury wody ({error}). Niczego nie zmieniono."
     },
     "flow_design_invalid": {
       "message": "Wybierz tryb automatyczny albo {minimum}–{maximum} °C."

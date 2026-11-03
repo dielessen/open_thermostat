@@ -114,7 +114,7 @@ ESSENTIALS = (
     ("code", "display_code", "boiler_display_code"),
 )
 
-# Heating curve and learning on the product device (e32_flow.py): unique ID f"{prefix}_flow_{key}".
+# Weather compensation and learning on the product device (e32_flow.py): unique ID f"{prefix}_flow_{key}".
 FLOW_KEYS = ("source", "weather_curve", "curve_design_flow_c", "apply_learned")
 COMPARISON_PATH = "comparison"
 # One icon per boiler value, the same in every view.
@@ -211,9 +211,9 @@ TEXT = {
         "day_partial": "Partial day: the E32 was not heard all day, so the figures are incomplete.",
         "day_none": "The first full day appears here tomorrow.",
         "outdoor": "Outdoor",
-        "flow_settings": "Heating curve and learning",
+        "flow_settings": "Weather compensation and learning",
         "flow_source": "Water temperature set by",
-        "weather_curve": "Follow outdoor temperature (heating curve)",
+        "weather_curve": "Weather compensation",
         "design_flow": "Water temperature at −10 °C outside",
         "apply_learned": "Smart warm-up",
         "house_mode": "House mode", "boiler_now": "Boiler",
@@ -345,9 +345,9 @@ TEXT = {
         "day_partial": "Gedeeltelijke dag: de E32 was niet de hele dag te horen, dus de cijfers zijn onvolledig.",
         "day_none": "Morgen staat hier de eerste volledige dag.",
         "outdoor": "Buiten",
-        "flow_settings": "Stooklijn en leren",
+        "flow_settings": "Weerafhankelijke regeling en leren",
         "flow_source": "Watertemperatuur bepaald door",
-        "weather_curve": "Buitentemperatuur volgen (stooklijn)",
+        "weather_curve": "Weerafhankelijke regeling",
         "design_flow": "Watertemperatuur bij −10 °C buiten",
         "apply_learned": "Slim opwarmen",
         "house_mode": "Huismodus", "boiler_now": "Ketel",
@@ -481,9 +481,9 @@ TEXT = {
         "day_partial": "Niepełny dzień: E32 nie był słyszalny przez cały dzień, więc dane są niekompletne.",
         "day_none": "Pierwszy pełny dzień pojawi się tu jutro.",
         "outdoor": "Na zewnątrz",
-        "flow_settings": "Krzywa grzewcza i nauka",
+        "flow_settings": "Kompensacja pogodowa i nauka",
         "flow_source": "Temperatura wody ustalana przez",
-        "weather_curve": "Krzywa grzewcza wg temperatury zewnętrznej",
+        "weather_curve": "Kompensacja pogodowa",
         "design_flow": "Temperatura wody przy −10 °C na zewnątrz",
         "apply_learned": "Inteligentne nagrzewanie",
         "house_mode": "Tryb domu", "boiler_now": "Kocioł",

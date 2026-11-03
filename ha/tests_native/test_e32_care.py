@@ -159,7 +159,7 @@ async def test_the_overview_shows_every_knob_in_words_and_the_actions(hass, mana
     lines = menu["description_placeholders"]["settings"].splitlines()
     assert "- Burner rest between starts: 7 min (automatic)" in lines  # the self-tuning's value
     assert "- Burner run time: at least 10 min (set by you)" in lines
-    assert "- Room correction on the heating curve: 50 % (standard value)" in lines and len(lines) == 10
+    assert "- Room correction on weather compensation: 50 % (standard value)" in lines and len(lines) == 10
     assert e32.flow_posts == []  # reading changes nothing
     # Nothing set by you: no "back to automatic for all".
     e32.manual, e32.record["min_on_s"] = [], 300

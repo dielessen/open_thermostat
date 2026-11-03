@@ -647,7 +647,7 @@ _FIELDS = {
     "room_settings": ("Room settings", "Instellingen van de ruimtes", "Ustawienia pomieszczeń"),
     "minimum_flow_c": ("Lowest water temperature", "Laagste watertemperatuur", "Najniższa temperatura wody"),
     "maximum_flow_c": ("Highest water temperature", "Hoogste watertemperatuur", "Najwyższa temperatura wody"),
-    "weather_curve": ("Follow outdoor temperature (heating curve)", "Buitentemperatuur volgen (stooklijn)", "Krzywa grzewcza wg temperatury zewnętrznej"),
+    "weather_curve": ("Weather compensation", "Weerafhankelijke regeling", "Kompensacja pogodowa"),
     "apply_learned": ("Smart warm-up", "Slim opwarmen", "Inteligentne nagrzewanie"),
     "curve_design_flow_c": ("Water temperature at −10 °C outside", "Watertemperatuur bij −10 °C buiten", "Temperatura wody przy −10 °C na zewnątrz"),
     "model": ("Boiler model", "Ketelmodel", "Model kotła"),

@@ -84,7 +84,9 @@ const PLANNER_PL = {days: ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Pi�
   blocks: 'Bloki: {day}', limits: 'Utrzymuj temperatury między {min} a {max}.', preview: 'Podgląd tygodnia',
   advanced: 'Zaawansowane: edytuj jako tekst', textHelp: 'Jedna linia na grupę dni, na przykład: mon-fri: 06:30 20.5; 22:30 18', apply: 'Zastosuj tekst',
   bad: 'Nie można odczytać linii {line}: {text}', outside: 'Linia {line}: temperatury muszą mieścić się między {min} a {max}.', many: 'Linia {line}: najwyżej 6 punktów przełączenia na dzień.',
-  textApplied: 'Zastosowano tekst.', inF: 'Temperatury w °F.'};
+  textApplied: 'Zastosowano tekst.', inF: 'Temperatury w °F.',
+  warmUp: 'Termostat sam zaczyna grzać wcześniej, aby było ciepło o ustawionej godzinie.',
+  warmUpOff: 'Inteligentne nagrzewanie jest wyłączone: grzanie zaczyna się dopiero o ustawionej godzinie.'};
 const STYLE = `:host{display:block}ha-card{display:block;padding:16px;max-width:1100px;margin:auto;color:var(--primary-text-color)}h2{margin:0 0 4px;font-size:1.3rem}
 p{margin:0 0 12px;line-height:1.45}.muted{color:var(--secondary-text-color);font-size:.9rem}.tabs,.actions,.more{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.actions{position:sticky;bottom:0;z-index:3;align-items:center;padding:8px 0;background:var(--card-background-color,var(--ha-card-background,#fff))}
 button{font:inherit;font-weight:600;color:inherit;background:transparent;border:1px solid var(--divider-color,#ccd);border-radius:10px;min-height:44px;min-width:44px;padding:6px 14px;cursor:pointer}
@@ -153,6 +155,7 @@ class OpenThermostatE32Week extends HTMLElement {
    if (!result || !Array.isArray(result.rooms)) throw {code: 'unknown_command'};
    this._rooms = result.rooms; this._drafts = {}; this._levels = {}; this._base = {}; this._waiting = false; this._waitSince = null;
    this._levelsSupported = result.levels_supported === true;
+   this._smartWarmUp = result.smart_warm_up !== false; // rc.3 Smart warm-up; unknown: on (the default)
    this._outdated = typeof result.card_url === 'string' && !!SELF && result.card_url !== SELF;
    if (!this._rooms.some(r => r.id === this._room)) this._room = this._rooms[0]?.id ?? null;
   } catch (err) {
@@ -241,7 +244,7 @@ class OpenThermostatE32Week extends HTMLElement {
   // The room's stored levels (or, before its first program, the former house settings); none: inferred.
   this._planner = window.OTWeekEditor.mount(host, {week: week || Array.from({length: 7}, () => []), min: r.minimum_centi_c, max: r.maximum_centi_c,
    lang: language(this._hass), text: language(this._hass) === 'pl' ? PLANNER_PL : undefined, fahrenheit: fahrenheit(this._hass), theme: this._hass?.themes?.darkMode ? 'dark' : 'light',
-   levels: st ? st.levels : r.levels, scheduleLevels: st ? st.schedule_levels : r.schedule_levels,
+   levels: st ? st.levels : r.levels, scheduleLevels: st ? st.schedule_levels : r.schedule_levels, smartWarmUp: this._smartWarmUp !== false,
    onChange: (w, state) => { this._drafts[r.id] = w; if (state) this._levels[r.id] = state; this._message = ''; this.refresh(); },
    onLevels: () => { this._levels[r.id] = this._planner.state(); this._message = ''; this.refresh(); }});
   // What the planner showed at load: levels and marks are compared with this, not with the stored fields.

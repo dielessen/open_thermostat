@@ -625,15 +625,17 @@
         }
       },
       "e32_flow_limits": {
-        "title": "Limity temperatury wody",
-        "description": "Najniższa i najwyższa temperatura wody, którą kocioł wysyła do grzejników i podłogi (temperatura zasilania), dla wszystkich pomieszczeń razem. „Krzywa grzewcza wg temperatury zewnętrznej” i „Ciepło na czas przy najchłodniejszej wodzie” to przełączniki na stronie urządzenia E32 w Home Assistant. {boiler} {error}",
+        "title": "Temperatura wody i Inteligentne nagrzewanie",
+        "description": "Najniższa i najwyższa temperatura wody, którą kocioł wysyła do grzejników i podłogi (temperatura zasilania), dla wszystkich pomieszczeń razem. „Krzywa grzewcza wg temperatury zewnętrznej” to przełącznik na stronie urządzenia E32 w Home Assistant. {boiler} {error}",
         "data": {
           "minimum_flow_temperature": "Najniższa temperatura wody",
-          "maximum_flow_temperature": "Najwyższa temperatura wody"
+          "maximum_flow_temperature": "Najwyższa temperatura wody",
+          "smart_warm_up": "Inteligentne nagrzewanie"
         },
         "data_description": {
           "minimum_flow_temperature": "Najniższa temperatura wody, o jaką E32 prosi podczas grzania ({minimum_range}).",
-          "maximum_flow_temperature": "Najwyższa temperatura wody, o jaką E32 kiedykolwiek prosi ({maximum_range}, powyżej najniższej). Ogrzewanie podłogowe zasilane bez zaworu mieszającego: zwykle najwyżej 45–50 °C. Grzejniki: w zimne dni często 60–75 °C. Maksymalna temperatura grzania ustawiona w kotle zawsze pozostaje górną granicą; E32 nigdy nie prosi o więcej."
+          "maximum_flow_temperature": "Najwyższa temperatura wody, o jaką E32 kiedykolwiek prosi ({maximum_range}, powyżej najniższej). Ogrzewanie podłogowe zasilane bez zaworu mieszającego: zwykle najwyżej 45–50 °C. Grzejniki: w zimne dni często 60–75 °C. Maksymalna temperatura grzania ustawiona w kotle zawsze pozostaje górną granicą; E32 nigdy nie prosi o więcej.",
+          "smart_warm_up": "Samo zaczyna grzać wcześniej, aby pomieszczenie było ciepłe o godzinie z jego programu tygodniowego, przy najchłodniejszej wodzie, która jeszcze na to wystarcza. Wyłączone: grzanie zaczyna się o godzinie z programu; po każdej zmianie programu przez jakiś czas może być chłodniej (ogrzewanie podłogowe może potrzebować godziny lub dłużej). To także przełącznik na stronie urządzenia E32."
         }
       },
       "e32_room_remove": {
@@ -965,7 +967,8 @@
       "e32_restore_adopt_confirm_required": "Zaznacz pole, aby od teraz używać tego E32.",
       "e32_restore_adopt_failed": "Home Assistant nie mógł przejść na ten E32. Spróbuj ponownie albo połącz go w Konfiguruj → Połączenie z E32.",
       "e32_restore_unconfirmed": "E32 nie odpowiedział po przywróceniu, więc nie wiadomo, czy ustawienia dotarły. Sprawdź, czy E32 jest włączony i jego strona się otwiera, a potem wybierz kopię ponownie: E32 sprawdzi, co nadal się różni.",
-      "e32_restore_not_applied": "E32 nie potwierdził przywrócenia, a jego sprawdzenie pokazuje, że nie wszystkie ustawienia dotarły. Wybierz kopię ponownie, aby przywrócić ją jeszcze raz."
+      "e32_restore_not_applied": "E32 nie potwierdził przywrócenia, a jego sprawdzenie pokazuje, że nie wszystkie ustawienia dotarły. Wybierz kopię ponownie, aby przywrócić ją jeszcze raz.",
+      "e32_smart_warm_up_failed": "E32 nie zapisał Inteligentnego nagrzewania. Sprawdź połączenie i spróbuj ponownie."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -1035,7 +1038,9 @@
       "e32_restore_done_waiting": "Ustawienia przywrócone. E32 uruchamia się ponownie i jeszcze nie odpowiada; Home Assistant połączy się sam, gdy wróci. Pomieszczenia zachowają tryb z kopii; nowy lub zresetowany E32 steruje kotłem dopiero po potwierdzeniu przejęcia na jego stronie „Rooms”.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
       "e32_restore_done_restart": "Ustawienia przywrócone. Uruchom E32 ponownie (System → Uruchom urządzenie ponownie na jego stronie), aby użyć ich wszystkich. Pomieszczenia zachowają tryb z kopii; nowy lub zresetowany E32 steruje kotłem dopiero po potwierdzeniu przejęcia na jego stronie „Rooms”.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
       "e32_restore_done": "Ustawienia przywrócone. Pomieszczenia zachowają tryb z kopii; nowy lub zresetowany E32 steruje kotłem dopiero po potwierdzeniu przejęcia na jego stronie „Rooms”.\n\nWpisz to ponownie na stronie E32:\n{reenter}",
-      "e32_restore_adopted": "Gotowe: Home Assistant od teraz używa tego E32. Nic nie przywrócono; miał już te ustawienia."
+      "e32_restore_adopted": "Gotowe: Home Assistant od teraz używa tego E32. Nic nie przywrócono; miał już te ustawienia.",
+      "e32_smart_warm_up_on": "Inteligentne nagrzewanie jest włączone: każde pomieszczenie samo zaczyna grzać wcześniej, aby było ciepłe o godzinie z programu tygodniowego.",
+      "e32_smart_warm_up_off": "Inteligentne nagrzewanie jest wyłączone: grzanie zaczyna się dopiero o godzinie z programu."
     },
     "progress": {
       "controller_connect": "Łączenie z E32…",
@@ -1998,7 +2003,7 @@
         "name": "Krzywa grzewcza wg temperatury zewnętrznej"
       },
       "flow_apply_learned": {
-        "name": "Ciepło na czas przy najchłodniejszej wodzie"
+        "name": "Inteligentne nagrzewanie"
       },
       "room_valve_control": {
         "name": "Sterowanie zaworami"

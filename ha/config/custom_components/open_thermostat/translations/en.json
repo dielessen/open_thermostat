@@ -625,15 +625,17 @@
         }
       },
       "e32_flow_limits": {
-        "title": "Water temperature limits",
-        "description": "The lowest and highest temperature of the water the boiler sends to the radiators and floor (flow temperature), for all rooms together. \"Follow outdoor temperature (heating curve)\" and \"Warm on time with the coolest water\" are switches on the E32 device page in Home Assistant. {boiler} {error}",
+        "title": "Water temperature and Smart warm-up",
+        "description": "The lowest and highest temperature of the water the boiler sends to the radiators and floor (flow temperature), for all rooms together. \"Follow outdoor temperature (heating curve)\" is a switch on the E32 device page in Home Assistant. {boiler} {error}",
         "data": {
           "minimum_flow_temperature": "Lowest water temperature",
-          "maximum_flow_temperature": "Highest water temperature"
+          "maximum_flow_temperature": "Highest water temperature",
+          "smart_warm_up": "Smart warm-up"
         },
         "data_description": {
           "minimum_flow_temperature": "The lowest water temperature the E32 asks for while it heats ({minimum_range}).",
-          "maximum_flow_temperature": "The highest water temperature the E32 ever asks for ({maximum_range}, above the lowest). Floor heating fed without a mixing valve: usually at most 45–50 °C. Radiators: often 60–75 °C on cold days. The maximum heating temperature set on your boiler always stays the ceiling; the E32 never asks for more."
+          "maximum_flow_temperature": "The highest water temperature the E32 ever asks for ({maximum_range}, above the lowest). Floor heating fed without a mixing valve: usually at most 45–50 °C. Radiators: often 60–75 °C on cold days. The maximum heating temperature set on your boiler always stays the ceiling; the E32 never asks for more.",
+          "smart_warm_up": "Starts heating early by itself so a room is warm at the time in its week program, with the coolest water that still does it. Off: heating starts at the program time; it may be cooler for a while after each program time (floor heating can take an hour or more). Also a switch on the E32 device page."
         }
       },
       "e32_room_remove": {
@@ -965,7 +967,8 @@
       "e32_restore_adopt_confirm_required": "Tick the box to use this E32 from now on.",
       "e32_restore_adopt_failed": "Home Assistant could not switch to this E32. Try again, or connect it under Configure → E32 connection.",
       "e32_restore_unconfirmed": "The E32 did not answer after the restore, so it is not known whether the settings arrived. Check that the E32 is on and its web page opens, then choose the backup again: the E32 checks what is still different.",
-      "e32_restore_not_applied": "The E32 did not confirm the restore, and its check shows that not all settings arrived. Choose the backup again to restore it once more."
+      "e32_restore_not_applied": "The E32 did not confirm the restore, and its check shows that not all settings arrived. Choose the backup again to restore it once more.",
+      "e32_smart_warm_up_failed": "The E32 did not save Smart warm-up. Check the connection and try again."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -1035,7 +1038,9 @@
       "e32_restore_done_waiting": "Settings restored. The E32 is restarting and did not answer yet; Home Assistant reconnects by itself as soon as it is back. The rooms keep the mode of the backup; a new or reset E32 controls the boiler only after you confirm the takeover on its Rooms page.\n\nEnter these again on the E32 page:\n{reenter}",
       "e32_restore_done_restart": "Settings restored. Restart the E32 (System → Restart device on its page) to use all of them. The rooms keep the mode of the backup; a new or reset E32 controls the boiler only after you confirm the takeover on its Rooms page.\n\nEnter these again on the E32 page:\n{reenter}",
       "e32_restore_done": "Settings restored. The rooms keep the mode of the backup; a new or reset E32 controls the boiler only after you confirm the takeover on its Rooms page.\n\nEnter these again on the E32 page:\n{reenter}",
-      "e32_restore_adopted": "Done: Home Assistant uses this E32 from now on. Nothing was restored; it already had these settings."
+      "e32_restore_adopted": "Done: Home Assistant uses this E32 from now on. Nothing was restored; it already had these settings.",
+      "e32_smart_warm_up_on": "Smart warm-up is on: each room starts heating early by itself, so it is warm at the time in its week program.",
+      "e32_smart_warm_up_off": "Smart warm-up is off: heating starts at the program time."
     },
     "progress": {
       "controller_connect": "Connecting to the E32…",
@@ -1998,7 +2003,7 @@
         "name": "Follow outdoor temperature (heating curve)"
       },
       "flow_apply_learned": {
-        "name": "Warm on time with the coolest water"
+        "name": "Smart warm-up"
       },
       "room_valve_control": {
         "name": "Valve control"

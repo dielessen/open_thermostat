@@ -812,7 +812,18 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
                 "until": _iso(comfort.get("until")), "waiting_for_clock": comfort.get("waiting_for_clock") is True,
                 "setpoint_source": room.get("setpoint_source"),
                 "away": away.get("on") is True, "away_source": away.get("source"),
-                "away_until": _iso(away.get("until"))}
+                "away_until": _iso(away.get("until")), "smart_warm_up": self._smart_warm_up()}
+
+    def _smart_warm_up(self):
+        """E32 rc.3: what Smart warm-up does for the next program step, in the Home Assistant language, or None."""
+        if self.hass is None:
+            return None
+        from .e32_flow import smart_warm_up
+        from .learned_overview import language, local_clock, smart_warm_up_line
+        plan = self.hub.warmup.get(self.room_id) if type(getattr(self.hub, "warmup", None)) is dict else None
+        start = plan.get("optimum_start") if type(plan) is dict else None
+        line = smart_warm_up_line(start, smart_warm_up(self.hass, self.entry.entry_id), language(self.hass), local_clock(self.hass))
+        return line[0] if line else None
 
     # -- commands ----------------------------------------------------------------
     def _write_state(self):

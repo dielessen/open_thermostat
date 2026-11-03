@@ -6,9 +6,12 @@ change), the same login and lock as the room plan:
 
 - switch "Weather-compensated heating curve" (``weather_curve``): the flow
   follows the outdoor temperature, the room correction on top;
-- switch "Use learned flow and optimum start" (``apply_learned``): off, the
-  E32 only advises; on, it warms up with the lowest flow that is still in time
-  and starts early enough for the next program step;
+- switch "Smart warm-up" (``apply_learned``; on by default since E32 rc.3: a
+  time in the week program means "warm at that time"): it starts early enough
+  for the next program step, with the lowest flow that is still in time; off,
+  heating starts at the program time and the E32 only advises. The entity keeps
+  its unique ID (and entity ID) of "Use learned flow and optimum start": the
+  meaning is the same, only the name and the default changed;
 - number "Flow at −10 °C" (``curve_design_flow_c``): 0 is automatic (floor
   heating 40 °C, radiators 55 °C), else 25–80 °C.
 
@@ -203,6 +206,14 @@ def flow_link(hass, entry):
         entry.async_on_unload(async_track_time_interval(hass, link.poll, REFRESH))
         link.hub_changed()
     return link
+
+
+def smart_warm_up(hass, entry_id):
+    """Smart warm-up (``apply_learned``) as last read from the E32, or None while unknown."""
+    data = getattr(hass, "data", None)
+    link = data.get(DOMAIN, {}).get(entry_id, {}).get(KEY) if isinstance(data, dict) else None
+    value = (link.settings or {}).get("apply_learned") if link is not None else None
+    return value if type(value) is bool else None
 
 
 # -- the controls ----------------------------------------------------------------------

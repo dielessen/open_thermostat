@@ -58,7 +58,7 @@ def test_the_overview_in_plain_english():
         "Warms about 1 °C in 1 h 15 min with water of 40 °C.",
         "The lowest water temperature that still warms it in time: 34 °C.",
         "Loses about 0.3 °C per hour at 5 °C outside.",
-        "Starts heating at 07:30 to be 21 °C at 08:50.",
+        "Smart warm-up: starts at 07:30 so it is 21 °C at 08:50.",
         "Keeping it at 19 °C at night is cheaper than letting it cool down: about 0.12 m³ gas (0.15) a night."]
     assert all(line["meaning"] for line in living["lines"])  # every figure says what it means
     assert bedroom["progress"] == "Learning: 3 of 6 warm-ups seen"
@@ -238,3 +238,57 @@ def test_the_dashboard_house_section_shows_the_boiler_minimum_line():
     house = dashboard._learned_sections(dashboard.TEXT["en"], "sensor.x")[1]["cards"][1]["content"]
     assert "'house'" in house and "line.text" in house and "line.meaning" in house
     assert s.extra_state_attributes["house"][-1]["text"].startswith("Your boiler only starts heating from about 41 °C water")
+
+
+# E32 rc.3 Smart warm-up: a time in the week program means "warm at that time"; one line per room says what
+# the next program step means (the same words as the E32 page, index.html smartWarmupLine).
+START = {"reason": "planned", "predicted_start_utc": 1793257800, "next_switch": {"utc": 1793262600, "target_c": 21},
+         "lead_minutes": 80, "confidence": "learned", "reachable": True, "start_now": False, "applies": True}
+
+
+@pytest.mark.parametrize("change,on,english,dutch", [
+    ({}, True, "Smart warm-up: starts at 07:30 so it is 21 °C at 08:50.",
+     "Slim opwarmen: begint om 07:30, zodat het om 08:50 21 °C is."),
+    ({}, None, "Smart warm-up: starts at 07:30 so it is 21 °C at 08:50.",       # not read yet: on by default
+     "Slim opwarmen: begint om 07:30, zodat het om 08:50 21 °C is."),
+    ({"start_now": True}, True, "Smart warm-up: heating now so it is 21 °C at 08:50.",
+     "Slim opwarmen: verwarmt nu, zodat het om 08:50 21 °C is."),
+    ({"start_now": True, "reachable": False}, True, "Smart warm-up: heating now; 21 °C may come a little after 08:50.",
+     "Slim opwarmen: verwarmt nu; 21 °C wordt misschien pas iets na 08:50 gehaald."),
+    ({"lead_minutes": 0, "predicted_start_utc": 1793262600}, True,
+     "Smart warm-up: warm enough for 21 °C at 08:50, no early start needed.",
+     "Slim opwarmen: warm genoeg voor 21 °C om 08:50, eerder beginnen is niet nodig."),
+    ({"applies": False, "confidence": "default"}, True,
+     "Smart warm-up is still learning: for now heating starts at 08:50 (estimate: from 07:30 it would be 21 °C on time).",
+     "Slim opwarmen leert nog: voorlopig begint verwarmen om 08:50 (schatting: vanaf 07:30 zou het op tijd 21 °C zijn)."),
+    ({"applies": False}, True,                                                   # warm-up learned, cooling not yet
+     "Smart warm-up is still learning: for now heating starts at 08:50 (estimate: from 07:30 it would be 21 °C on time).",
+     "Slim opwarmen leert nog: voorlopig begint verwarmen om 08:50 (schatting: vanaf 07:30 zou het op tijd 21 °C zijn)."),
+    ({}, False, "Smart warm-up is off: heating starts at 08:50.", "Slim opwarmen staat uit: verwarmen begint om 08:50."),
+])
+def test_smart_warm_up_says_what_the_next_program_step_means(change, on, english, dutch):
+    start = {**START, **change}
+    clock = {1793257800: "07:30", 1793262600: "08:50"}.get
+    text, meaning = lo.smart_warm_up_line(start, on, "en", clock)
+    assert text == english and meaning
+    assert lo.smart_warm_up_line(start, on, "nl", clock)[0] == dutch
+    polish = lo.smart_warm_up_line(start, on, "pl", clock)[0]
+    assert polish.startswith("Inteligentne nagrzewanie") and "08:50" in polish
+    # Older firmware (no "applies"): a learned warm-up counts as applied, a default estimate does not.
+    older = {k: v for k, v in start.items() if k != "applies"}
+    if "applies" not in change or start["confidence"] == "default":
+        assert lo.smart_warm_up_line(older, on, "en", clock)[0] == english
+
+
+def test_smart_warm_up_needs_a_planned_next_switch():
+    clock = {1793257800: "07:30", 1793262600: "08:50"}.get
+    for start in (None, {}, {**START, "reason": "no_rise_within_24h"}, {k: v for k, v in START.items() if k != "next_switch"}):
+        assert lo.smart_warm_up_line(start, True, "en", clock) is None
+
+
+def test_the_overview_follows_the_smart_warm_up_switch():
+    s = sensor()
+    s.hass = SimpleNamespace(config=SimpleNamespace(language="en"),
+                             data={"open_thermostat": {"e": {"e32_flow": SimpleNamespace(settings={"apply_learned": False})}}})
+    living = s.extra_state_attributes["rooms"][0]
+    assert {"text": "Smart warm-up is off: heating starts at 08:50.", "meaning": "Turn Smart warm-up on to be warm on time."} in living["lines"]

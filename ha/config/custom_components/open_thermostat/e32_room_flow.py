@@ -77,6 +77,7 @@ BOILER_MAXIMUM_TEXT = {
     "pl": "Twój kocioł pozwala najwyżej na {maximum}; E32 nigdy nie żąda więcej. Niższy limit jest tu przydatny "
           "przy ogrzewaniu podłogowym."}
 FLOW_LIMIT_FIELDS = {"minimum_flow_temperature": "minimum_flow_c", "maximum_flow_temperature": "maximum_flow_c"}
+SMART_WARM_UP_FIELD = "smart_warm_up"  # rc.3: the E32 flow option apply_learned, beside the limits
 
 DAYS = {"en": ("mon", "tue", "wed", "thu", "fri", "sat", "sun"),
         "nl": ("ma", "di", "wo", "do", "vr", "za", "zo")}
@@ -387,16 +388,32 @@ class E32RoomFlow:
         from .heating_advice import boiler_maximum
         return boiler_maximum(client)
 
+    def _e32_smart_warm_up(self):
+        """(flow link, Smart warm-up as stored) for the form; (None, None) while the E32's flow options are not known.
+
+        rc.3: Smart warm-up (``apply_learned``, GET/POST /config/heating/flow) is also a switch on the E32
+        device page (e32_flow.py, which reads the options when the E32 comes online); here it sits with the
+        other heating settings (Configure → Home → Heating and boiler).
+        """
+        from .e32_flow import KEY, smart_warm_up
+        value = smart_warm_up(self.hass, self.config_entry.entry_id)
+        link = self.hass.data[DOMAIN][self.config_entry.entry_id].get(KEY) if value is not None else None
+        return (link, value) if link is not None else (None, None)
+
     async def async_step_e32_flow_limits(self, user_input=None):
-        """The plan's minimum/maximum flow temperature (whole °C, 20–79 / 21–80, minimum below maximum).
+        """The plan's minimum/maximum flow temperature (whole °C, 20–79 / 21–80, minimum below maximum),
+        and (E32 rc.3) Smart warm-up.
 
         Shown and entered in the Home Assistant unit. A maximum above 50 °C with
         floor heating, or above the boiler's own maximum, is saved only after a
         second confirming save (a warning, not a block: the boiler caps anyway).
+        Smart warm-up is written first (its own setting on the E32), then the limits.
         """
         plan = self._e32_plan
         unit = self._unit()
         current = {key: plan.get(key) for key in FLOW_LIMIT_FIELDS.values()}
+        smart_link, smart = self._e32_smart_warm_up()
+        self._e32_smart = smart
         boiler = self._boiler_maximum()
         errors, placeholders = {}, {"error": "", "boiler": "", **self._flow_ranges(unit)}
         if boiler is not None:
@@ -415,7 +432,12 @@ class E32RoomFlow:
             elif low >= high:
                 errors["base"] = "e32_flow_limits_order"
             elif current == {"minimum_flow_c": low, "maximum_flow_c": high}:
-                return self.async_abort(reason="e32_room_unchanged")
+                wanted = user_input.get(SMART_WARM_UP_FIELD)
+                if smart is None or type(wanted) is not bool or wanted == smart:
+                    return self.async_abort(reason="e32_room_unchanged")
+                if (error := await self._e32_save_smart_warm_up(smart_link, wanted)) is None:
+                    return self.async_abort(reason="e32_smart_warm_up_on" if wanted else "e32_smart_warm_up_off")
+                errors["base"] = error
             else:
                 warnings = {}
                 if high > FLOOR_FLOW_WARNING_C and any(
@@ -427,8 +449,24 @@ class E32RoomFlow:
                     self._e32_flow_warned = (low, high)  # the same values once more: save
                     errors.update(warnings)
                 else:
+                    wanted = user_input.get(SMART_WARM_UP_FIELD)
+                    if smart is not None and type(wanted) is bool and wanted != smart:
+                        if (error := await self._e32_save_smart_warm_up(smart_link, wanted)) is not None:
+                            errors["base"] = error
+                            return self._e32_flow_form(current, unit, user_input, errors, placeholders)
+                        self._e32_smart = wanted
                     return await self._e32_save_flow_limits(low, high, errors, placeholders)
         return self._e32_flow_form(current, unit, user_input, errors, placeholders)
+
+    @staticmethod
+    async def _e32_save_smart_warm_up(link, value):
+        """None once the E32 stored Smart warm-up as asked, else the form's error key."""
+        from homeassistant.exceptions import HomeAssistantError as Failed
+        try:
+            stored = await link.async_change({"apply_learned": value})
+        except Failed:
+            return "e32_smart_warm_up_failed"
+        return None if stored.get("apply_learned") is value else "e32_smart_warm_up_failed"
 
     @staticmethod
     def _flow_ranges(unit):
@@ -472,6 +510,8 @@ class E32RoomFlow:
             fields[vol.Required(field, default=flow_shown(default[field], unit))] = selector.NumberSelector({
                 "min": flow_shown(low, unit), "max": flow_shown(high, unit), "step": 1, "mode": "box",
                 "unit_of_measurement": unit})
+        if type(getattr(self, "_e32_smart", None)) is bool:  # firmware with the flow options
+            fields[vol.Required(SMART_WARM_UP_FIELD, default=self._e32_smart)] = selector.BooleanSelector()
         return self.async_show_form(step_id="e32_flow_limits", data_schema=retained_input_schema(
             self, vol.Schema(fields), user_input), errors=errors, description_placeholders=placeholders)
 

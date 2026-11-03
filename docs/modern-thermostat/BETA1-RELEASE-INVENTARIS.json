@@ -647,7 +647,7 @@
         },
         {
           "path": "scripts/publish_hacs_repo.py",
-          "sha256": "8c8e1c2a07dcd006aeac9e983d4e99720299f4e9d6c651357b3dc3173ae77cd3"
+          "sha256": "c2b5a4cd91c73673b59342f660c0c21787c0943c7db77198d042341f0809464e"
         },
         {
           "path": "src/LearnedStore.h",

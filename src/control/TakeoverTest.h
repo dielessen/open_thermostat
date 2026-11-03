@@ -257,7 +257,7 @@ public:
         const bool marked = extended && std::strcmp(mark, "-") != 0;
         if (extended && (!digits(flow, 99, flowC) || (marked && !digits(mark, 4294967295ul, markedAt))
                          || (std::strcmp(seen, "t") && std::strcmp(seen, "-")))) return false;
-        if (state == 'i' && std::strspn(marks, "n") != steps) return false;
+        if (state == 'i' && leading(marks, [](char c) { return c == 'n'; }) != steps) return false;
         at_ = uint32_t(at); state_ = State(state); reason_ = std::strcmp(reason, "-") ? reason : "";
         std::copy(marks, marks + steps, (char*)marks_);
         flowC_ = uint8_t(flowC); marked_ = marked; markedAt_ = uint32_t(markedAt); thermostat_ = extended && seen[0] == 't';
@@ -320,9 +320,15 @@ public:
     }
 
 private:
+    // How many leading characters pass `ok` (strspn without linking newlib's, see e32v2-link-review.json).
+    template <typename Ok> static size_t leading(const char* text, Ok ok) {
+        size_t n = 0;
+        while (text[n] && ok(text[n])) ++n;
+        return n;
+    }
     // A whole decimal number of at most `max` (no sign, no blanks).
     static bool digits(const char* text, unsigned long max, unsigned long& out) {
-        if (!*text || std::strspn(text, "0123456789") != std::strlen(text) || std::strlen(text) > 10) return false;
+        if (!*text || leading(text, [](char c) { return c >= '0' && c <= '9'; }) != std::strlen(text) || std::strlen(text) > 10) return false;
         const unsigned long long v = std::strtoull(text, nullptr, 10);
         if (v > max) return false;
         out = static_cast<unsigned long>(v);

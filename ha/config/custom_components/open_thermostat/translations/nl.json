@@ -961,9 +961,9 @@
         "0": "Uit",
         "1": "Fout",
         "2": "Waarschuwing",
-        "3": "Info",
-        "4": "Debug",
-        "5": "Trace"
+        "3": "Informatie",
+        "4": "Foutzoeken",
+        "5": "Alles (trace)"
       }
     }
   },
@@ -1915,7 +1915,7 @@
         "title": "Een sensor hernoemen",
         "description": "De nieuwe naam wordt samen met de andere wijzigingen opgeslagen.",
         "data": {
-          "sensor": "Sensor",
+          "sensor": "Bluetooth-sensor",
           "name": "Nieuwe naam"
         },
         "data_description": {

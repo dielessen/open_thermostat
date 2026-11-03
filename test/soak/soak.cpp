@@ -407,7 +407,8 @@ struct OracleRoom {
 class Chain {
 public:
     explicit Chain(const Options& o) : o_(o) {
-        if (o_.flowOptions) { FlowSettings f; f.weatherCurve = f.applyLearned = true; policy_.setSettings(f); learner_.setApplied(true); }
+        // rc.3: both options default on; without --flow-options the chain switches them off explicitly.
+        { FlowSettings f; f.weatherCurve = f.applyLearned = o_.flowOptions; policy_.setSettings(f); learner_.setApplied(o_.flowOptions); }
     }
     int run();
 

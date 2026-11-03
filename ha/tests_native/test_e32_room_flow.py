@@ -249,7 +249,7 @@ class FakeFlowLink:
 
     def __init__(self, apply_learned=True, weather_curve=True, fail=False):
         self.settings = {"weather_curve": weather_curve, "apply_learned": apply_learned, "curve_design_flow_c": 0}
-        self.changes, self.fail = [], fail
+        self.changes, self.fail, self.unsupported = [], fail, False
 
     async def async_change(self, change):
         from homeassistant.exceptions import HomeAssistantError

@@ -124,7 +124,7 @@ inline void compactPlanRoom(cJSON* p) {
     using telemetry_detail::keepOnly;
     keepOnly(p, {"optimum_start", "night"});
     cJSON* start = cJSON_GetObjectItemCaseSensitive(p, "optimum_start");
-    keepOnly(start, {"reason", "predicted_start_utc", "lead_minutes", "flow_c", "confidence", "reachable", "start_now", "next_switch"});
+    keepOnly(start, {"reason", "predicted_start_utc", "lead_minutes", "flow_c", "confidence", "reachable", "start_now", "applies", "next_switch"});
     keepOnly(cJSON_GetObjectItemCaseSensitive(start, "next_switch"), {"utc", "target_c"}); // rc.2: "to be 21 degC at 09:00"
     keepOnly(cJSON_GetObjectItemCaseSensitive(p, "night"), {"reason", "recommended", "recommended_night_c", "saving_m3", "saving_eur"});
 }

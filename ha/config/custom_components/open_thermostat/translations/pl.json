@@ -649,15 +649,19 @@
         }
       },
       "e32_flow_limits": {
-        "title": "Limity temperatury wody",
-        "description": "Najniższa i najwyższa temperatura wody, którą kocioł wysyła do grzejników i podłogi (temperatura zasilania), dla wszystkich pomieszczeń razem. „Krzywa grzewcza wg temperatury zewnętrznej” i „Ciepło na czas przy najchłodniejszej wodzie” to przełączniki na stronie urządzenia E32 w Home Assistant. {boiler} {error}",
+        "title": "Temperatura wody, Inteligentne nagrzewanie i krzywa grzewcza",
+        "description": "Najniższa i najwyższa temperatura wody, którą kocioł wysyła do grzejników i podłogi (temperatura zasilania), dla wszystkich pomieszczeń razem. Inteligentne nagrzewanie i krzywa grzewcza są domyślnie włączone; E32 sam decyduje, kiedy to, czego się nauczył, jest wystarczająco dobre. {boiler} {error}",
         "data": {
           "minimum_flow_temperature": "Najniższa temperatura wody",
-          "maximum_flow_temperature": "Najwyższa temperatura wody"
+          "maximum_flow_temperature": "Najwyższa temperatura wody",
+          "smart_warm_up": "Inteligentne nagrzewanie",
+          "follow_outdoor": "Krzywa grzewcza wg temperatury zewnętrznej"
         },
         "data_description": {
           "minimum_flow_temperature": "Najniższa temperatura wody, o jaką E32 prosi podczas grzania ({minimum_range}).",
-          "maximum_flow_temperature": "Najwyższa temperatura wody, o jaką E32 kiedykolwiek prosi ({maximum_range}, powyżej najniższej). Ogrzewanie podłogowe zasilane bez zaworu mieszającego: zwykle najwyżej 45–50 °C. Grzejniki: w zimne dni często 60–75 °C. Maksymalna temperatura grzania ustawiona w kotle zawsze pozostaje górną granicą; E32 nigdy nie prosi o więcej."
+          "maximum_flow_temperature": "Najwyższa temperatura wody, o jaką E32 kiedykolwiek prosi ({maximum_range}, powyżej najniższej). Ogrzewanie podłogowe zasilane bez zaworu mieszającego: zwykle najwyżej 45–50 °C. Grzejniki: w zimne dni często 60–75 °C. Maksymalna temperatura grzania ustawiona w kotle zawsze pozostaje górną granicą; E32 nigdy nie prosi o więcej.",
+          "smart_warm_up": "Samo zaczyna grzać wcześniej, aby pomieszczenie było ciepłe o godzinie z jego programu tygodniowego, przy najchłodniejszej wodzie, która jeszcze na to wystarcza. Wyłączone: grzanie zaczyna się o godzinie z programu; po każdej zmianie programu przez jakiś czas może być chłodniej (ogrzewanie podłogowe może potrzebować godziny lub dłużej). To także przełącznik na stronie urządzenia E32.",
+          "follow_outdoor": "Im zimniej na zewnątrz, tym cieplejsza woda do grzejników i podłogi, zanim pomieszczenia się wychłodzą; temperatura pomieszczenia nadal ją koryguje. Zaczyna od standardowej krzywej i uczy się krzywej Twojego domu. Bez temperatury zewnętrznej działa zwykła regulacja pomieszczeń. To także przełącznik na stronie urządzenia E32."
         }
       },
       "e32_room_remove": {
@@ -1156,7 +1160,8 @@
       "ble_sensor_invalid": "Wybierz jeden ze sparowanych czujników.",
       "ble_name_invalid": "Użyj nazwy od 1 do 40 znaków bez podziału wiersza.",
       "ble_storage_full": "E32 nie ma już miejsca na zapisanie czujników. Nic nie zostało zapisane.",
-      "ble_rejected": "E32 odrzucił zmiany ({error}). Nic nie zostało zapisane."
+      "ble_rejected": "E32 odrzucił zmiany ({error}). Nic nie zostało zapisane.",
+      "e32_flow_options_failed": "E32 nie zapisał zmiany. Sprawdź połączenie i spróbuj ponownie."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -1244,7 +1249,8 @@
       "ble_none": "Z E32 nie sparowano jeszcze żadnego czujnika Bluetooth. Najpierw sparuj czujnik na stronie Czujniki Bluetooth w E32.",
       "ble_changed": "Czujniki Bluetooth zostały w międzyczasie zmienione w E32. Nic nie zostało zapisane; otwórz ponownie Czujniki Bluetooth.",
       "ble_saved": "Zapisano w E32. Uruchomi się ponownie za około 30 sekund, aby użyć zmian.",
-      "ble_saved_restart_later": "Zapisano w E32. Uruchomi się ponownie, aby użyć zmian, gdy tylko zakończy się aktualizacja lub test kotła."
+      "ble_saved_restart_later": "Zapisano w E32. Uruchomi się ponownie, aby użyć zmian, gdy tylko zakończy się aktualizacja lub test kotła.",
+      "e32_flow_options_saved": "Ustawienia temperatury wody zostały zapisane w E32."
     },
     "progress": {
       "controller_connect": "Łączenie z E32…",
@@ -2207,7 +2213,7 @@
         "name": "Krzywa grzewcza wg temperatury zewnętrznej"
       },
       "flow_apply_learned": {
-        "name": "Ciepło na czas przy najchłodniejszej wodzie"
+        "name": "Inteligentne nagrzewanie"
       },
       "room_valve_control": {
         "name": "Sterowanie zaworami"

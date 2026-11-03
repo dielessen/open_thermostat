@@ -1617,15 +1617,19 @@
         }
       },
       "e32_flow_limits": {
-        "title": "Grenzen watertemperatuur",
-        "description": "De laagste en hoogste temperatuur van het water dat de ketel naar de radiatoren en vloer stuurt (aanvoertemperatuur), voor alle ruimtes samen. \"Buitentemperatuur volgen (stooklijn)\" en \"Op tijd warm met het koelste water\" zijn schakelaars op de apparaatpagina van de E32 in Home Assistant. {boiler} {error}",
+        "title": "Watertemperatuur, Slim opwarmen en stooklijn",
+        "description": "De laagste en hoogste temperatuur van het water dat de ketel naar de radiatoren en vloer stuurt (aanvoertemperatuur), voor alle ruimtes samen. Slim opwarmen en de stooklijn staan standaard aan; de E32 beslist zelf wanneer wat hij leerde goed genoeg is. {boiler} {error}",
         "data": {
           "minimum_flow_temperature": "Laagste watertemperatuur",
-          "maximum_flow_temperature": "Hoogste watertemperatuur"
+          "maximum_flow_temperature": "Hoogste watertemperatuur",
+          "smart_warm_up": "Slim opwarmen",
+          "follow_outdoor": "Buitentemperatuur volgen (stooklijn)"
         },
         "data_description": {
           "minimum_flow_temperature": "De laagste watertemperatuur die de E32 vraagt zolang hij verwarmt ({minimum_range}).",
-          "maximum_flow_temperature": "De hoogste watertemperatuur die de E32 ooit vraagt ({maximum_range}, boven de laagste). Vloerverwarming zonder mengklep: meestal hoogstens 45–50 °C. Radiatoren: op koude dagen vaak 60–75 °C. De maximale cv-temperatuur die op je ketel staat, blijft altijd de bovengrens; de E32 vraagt nooit meer."
+          "maximum_flow_temperature": "De hoogste watertemperatuur die de E32 ooit vraagt ({maximum_range}, boven de laagste). Vloerverwarming zonder mengklep: meestal hoogstens 45–50 °C. Radiatoren: op koude dagen vaak 60–75 °C. De maximale cv-temperatuur die op je ketel staat, blijft altijd de bovengrens; de E32 vraagt nooit meer.",
+          "smart_warm_up": "Begint vanzelf eerder met verwarmen, zodat een ruimte warm is op de tijd in zijn weekprogramma, met het koelste water dat dat nog haalt. Uit: verwarmen begint pas op de tijd van het programma; na elk programmatijdstip kan het een tijdje koeler zijn (vloerverwarming kan een uur of langer nodig hebben). Ook een schakelaar op de apparaatpagina van de E32.",
+          "follow_outdoor": "Kouder buiten betekent warmer water naar de radiatoren en vloer, nog voordat de ruimtes afkoelen; de ruimtetemperatuur stuurt nog bij. Hij begint met een standaard stooklijn en leert die van je huis. Zonder buitentemperatuur geldt de gewone ruimteregeling. Ook een schakelaar op de apparaatpagina van de E32."
         }
       },
       "e32_room_remove": {
@@ -2124,7 +2128,8 @@
       "ble_sensor_invalid": "Kies een van de gekoppelde sensoren.",
       "ble_name_invalid": "Gebruik een naam van 1 tot 40 tekens zonder regeleinden.",
       "ble_storage_full": "De E32 heeft geen ruimte meer om de sensoren op te slaan. Er is niets opgeslagen.",
-      "ble_rejected": "De E32 weigerde de wijzigingen ({error}). Er is niets opgeslagen."
+      "ble_rejected": "De E32 weigerde de wijzigingen ({error}). Er is niets opgeslagen.",
+      "e32_flow_options_failed": "De E32 heeft de wijziging niet opgeslagen. Controleer de verbinding en probeer het opnieuw."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",
@@ -2212,7 +2217,8 @@
       "ble_none": "Er is nog geen Bluetooth-sensor aan de E32 gekoppeld. Koppel er eerst een op de pagina Bluetooth-sensoren van de E32.",
       "ble_changed": "De Bluetooth-sensoren zijn intussen op de E32 gewijzigd. Er is niets opgeslagen; open Bluetooth-sensoren opnieuw.",
       "ble_saved": "Opgeslagen op de E32. Hij start over ongeveer 30 seconden opnieuw om de wijzigingen te gebruiken.",
-      "ble_saved_restart_later": "Opgeslagen op de E32. Hij start opnieuw om de wijzigingen te gebruiken zodra een update of keteltest klaar is."
+      "ble_saved_restart_later": "Opgeslagen op de E32. Hij start opnieuw om de wijzigingen te gebruiken zodra een update of keteltest klaar is.",
+      "e32_flow_options_saved": "De instellingen voor de watertemperatuur zijn op de E32 opgeslagen."
     },
     "progress": {
       "controller_connect": "Verbinden met de E32…",
@@ -3175,7 +3181,7 @@
         "name": "Buitentemperatuur volgen (stooklijn)"
       },
       "flow_apply_learned": {
-        "name": "Op tijd warm met het koelste water"
+        "name": "Slim opwarmen"
       },
       "room_valve_control": {
         "name": "Radiatorkranen aansturen"

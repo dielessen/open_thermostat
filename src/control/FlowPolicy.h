@@ -1,4 +1,5 @@
 #pragma once
+#include "control/BoundedJson.h"
 #include "control/ControlTuning.h"
 #include "control/FlowDemand.h"
 #include "control/FlowLearner.h"
@@ -12,17 +13,27 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <optional>
 #include <string>
 namespace heating::control {
 // The beta.19 flow options, stored on the E32 (NVS, beside the plan) and edited
-// with GET/POST /config/heating/flow. Both default off: the E32 only advises.
+// with GET/POST /config/heating/flow.
 // 1.0: with the tuning knobs (ControlTuning, "tuning"); an older record has none
 // and keeps the built-in values. rc.2: per automatic knob (ControlTuning::autoKnobs)
 // "set by you" (manual) or automatic (AutoTuner); "tuning" holds the owner's values.
+// rc.3: both options are on unless the owner turns them off, and the E32 decides
+// itself when what it learned is good enough. "Smart warm-up" (apply_learned): a
+// time in the week program means "warm at that time" (learned starts and flows
+// only once learned, FlowPolicy). The heating curve (weather_curve): the design
+// slope until CurveLearner has its steady periods, then the learned one; without
+// a fresh outdoor temperature the rule's flow. Before rc.3 both defaulted off and
+// a record cannot tell that default from a choice: a record or backup of an older
+// format (no "version" >= 2) reads both as on; one this firmware wrote keeps the
+// owner's off (see stored()/readStored()).
 struct FlowSettings {
-    bool weatherCurve = false; // item 19: the weather curve sets the flow
-    bool applyLearned = false; // item 6: the learned lowest flow and optimum start set the request
+    bool weatherCurve = true;  // item 19, rc.3 on by default: the weather curve sets the flow
+    bool applyLearned = true;  // item 6, rc.3 "Smart warm-up": the learned lowest flow and optimum start set the request
     uint8_t designFlowC = 0;   // curve flow at -10 degC outdoor; 0: by emitter (floor 40, radiator 55)
     ControlTuning tuning;
     uint16_t manual = 0;       // bit i: knobs()[i] is the owner's; else AutoTuner sets it
@@ -46,6 +57,8 @@ struct FlowSettings {
             if (!std::strcmp(c->string, "weather_curve") || !std::strcmp(c->string, "apply_learned")) {
                 if (!cJSON_IsBool(c)) return "invalid_value";
                 (c->string[0] == 'w' ? s.weatherCurve : s.applyLearned) = cJSON_IsTrue(c);
+            } else if (!std::strcmp(c->string, "version")) { // the record format; a newer one restores here too
+                if (!cJSON_IsNumber(c) || c->valuedouble < 1 || c->valuedouble != double(int(c->valuedouble))) return "invalid_value";
             } else if (!std::strcmp(c->string, "curve_design_flow_c")) {
                 const double v = cJSON_IsNumber(c) ? c->valuedouble : -1;
                 if (!(v == 0 || (v >= WeatherCurve::minDesignFlowC && v <= WeatherCurve::maxDesignFlowC)) || v != double(int(v))) return "invalid_value";
@@ -77,18 +90,55 @@ struct FlowSettings {
         out = s;
         return nullptr;
     }
+    // The record format: 2 since rc.3 (apply_learned and weather_curve are the owner's choices).
+    static constexpr int version = 2;
+    // The rc.2 read buffer (its maxBytes): the stored text never grows past it, so a rollback reads it.
+    static constexpr size_t rc2StoredMaxBytes = 548;
+    static_assert(maxBytes == rc2StoredMaxBytes, "the NVS read buffer of this firmware and of rc.2");
     // shown: the knobs to report as "tuning" (GET: those in effect); nullptr: the owner's (the record).
+    // GET, POST answers and backups: one object with "version".
     std::string json(const ControlTuning* shown = nullptr) const {
+        return fields(shown) + ",\"version\":" + std::to_string(version) + "}";
+    }
+    // The NVS record: the object rc.2 reads (only the keys it knows: it refuses
+    // any other and then falls back to its defaults), then on its own line the
+    // format, which rc.2 never reads (its parser stops after the first document).
+    std::string stored() const { return fields(nullptr) + "}\n{\"version\":" + std::to_string(version) + "}"; }
+    // A record or backup object before rc.3 (no "version" >= 2): apply_learned and weather_curve false were defaults, not choices.
+    static bool beforeSmartWarmup(const cJSON* root) {
+        const cJSON* v = cJSON_GetObjectItemCaseSensitive(root, "version");
+        return !cJSON_IsNumber(v) || v->valuedouble < version;
+    }
+    // A stored record (stored(), or rc.2's single object): false when it is not one.
+    static bool readStored(const char* text, size_t size, FlowSettings& out) {
+        if (!text || !size) return false;
+        const char* end = static_cast<const char*>(std::memchr(text, '\n', size));
+        const size_t head = end ? size_t(end - text) : size;
+        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(parseNestedJson(std::string(text, head), true));
+        FlowSettings parsed;
+        if (!root || parse(root.get(), parsed)) return false;
+        bool legacy = true;
+        if (end) {
+            std::unique_ptr<cJSON, decltype(&cJSON_Delete)> tail(parseNestedJson(std::string(end + 1, size - head - 1), true));
+            legacy = !cJSON_IsObject(tail.get()) || beforeSmartWarmup(tail.get());
+        }
+        if (legacy) parsed.applyLearned = parsed.weatherCurve = true; // the old defaults off become on
+        out = parsed;
+        return true;
+    }
+    bool operator==(const FlowSettings& o) const {
+        return weatherCurve == o.weatherCurve && applyLearned == o.applyLearned && designFlowC == o.designFlowC && tuning == o.tuning && manual == o.manual;
+    }
+private:
+    // The rc.2 record without its closing brace.
+    std::string fields(const ControlTuning* shown) const {
         char text[96];
         std::snprintf(text, sizeof text, "{\"weather_curve\":%s,\"apply_learned\":%s,\"curve_design_flow_c\":%u,\"tuning\":",
                       weatherCurve ? "true" : "false", applyLearned ? "true" : "false", unsigned(designFlowC));
         std::string out = text + (shown ? *shown : tuning).json() + ",\"tuning_manual\":[";
         size_t n; const auto* k = ControlTuning::knobs(n);
         for (size_t i = 0, first = 1; i < n; ++i) if (manual >> i & 1) { out += first ? "\"" : ",\""; out += k[i].key; out += '"'; first = 0; }
-        return out + "]}";
-    }
-    bool operator==(const FlowSettings& o) const {
-        return weatherCurve == o.weatherCurve && applyLearned == o.applyLearned && designFlowC == o.designFlowC && tuning == o.tuning && manual == o.manual;
+        return out + "]";
     }
 };
 
@@ -366,7 +416,7 @@ public:
     // heating_summary, compact (about 1 KB with the rest of the summary):
     // "flow":{"source","rule_flow_c","applied_flow_c","curve":{"state","flow_c","slope",
     // "slope_source"},"learned":{"state","flow_c"},"optimum_start":state,"yesterday":
-    // {"rule_mean_c","applied_mean_c","curve_mean_c","learned_mean_c"}|null} and
+    // {"rule_mean_c","applied_mean_c","curve_mean_c","learned_mean_c"}|null} (rc.3: curve "windows") and
     // "night_gas" (NightLedger::json compact). The options themselves are static:
     // GET /config/heating/flow.
     bool addSummary(cJSON* root) const {
@@ -380,6 +430,7 @@ public:
         FlowLearner::number(curve, "flow_c", curveFlow_ ? std::optional<float>(*curveFlow_) : std::nullopt, 1);
         FlowLearner::number(curve, "slope", slope_, 100);
         cJSON_AddStringToObject(curve, "slope_source", slopeLearned_ ? "learned" : "design");
+        cJSON_AddNumberToObject(curve, "windows", curveLearner_.windows()); // rc.3: "2 of 6 steady periods"
         cJSON_AddStringToObject(learned, "state", learnedState());
         FlowLearner::number(learned, "flow_c", learnedFlow_ ? std::optional<float>(*learnedFlow_) : std::nullopt, 1);
         cJSON_AddStringToObject(flow, "optimum_start", startState_);

@@ -648,7 +648,7 @@ _FIELDS = {
     "minimum_flow_c": ("Lowest water temperature", "Laagste watertemperatuur", "Najniższa temperatura wody"),
     "maximum_flow_c": ("Highest water temperature", "Hoogste watertemperatuur", "Najwyższa temperatura wody"),
     "weather_curve": ("Follow outdoor temperature (heating curve)", "Buitentemperatuur volgen (stooklijn)", "Krzywa grzewcza wg temperatury zewnętrznej"),
-    "apply_learned": ("Warm on time with the coolest water", "Op tijd warm met het koelste water", "Ciepło na czas przy najchłodniejszej wodzie"),
+    "apply_learned": ("Smart warm-up", "Slim opwarmen", "Inteligentne nagrzewanie"),
     "curve_design_flow_c": ("Water temperature at −10 °C outside", "Watertemperatuur bij −10 °C buiten", "Temperatura wody przy −10 °C na zewnątrz"),
     "model": ("Boiler model", "Ketelmodel", "Model kotła"),
     "tuning": ("Comfort and boiler care", "Comfort en zorg voor de ketel", "Komfort i dbałość o kocioł"),

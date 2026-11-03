@@ -571,7 +571,7 @@ TEST(AutoTuner, ManualKnobsInTheFlowRecord) {
     EXPECT_EQ(s.manual, (1u << 1) | (1u << 3)) << "the curve share is never automatic";
     EXPECT_EQ(s.json(), R"({"weather_curve":false,"apply_learned":false,"curve_design_flow_c":0,"tuning":{"min_on_s":300,"min_off_s":600,)"
         R"("heat_start_c":0.20,"heat_stop_c":0.10,"flow_per_degree_c":10,"curve_correction_pct":40,"floor_lead_min_per_c":120,)"
-        R"("radiator_lead_min_per_c":45,"learned_accept_pct":100,"night_saving_min_pct":2},"tuning_manual":["min_off_s","heat_stop_c"]})");
+        R"("radiator_lead_min_per_c":45,"learned_accept_pct":100,"night_saving_min_pct":2},"tuning_manual":["min_off_s","heat_stop_c"],"version":2})");
     FlowSettings back;
     ASSERT_EQ(FlowSettings::parse(parse(s.json().c_str()).get(), back), nullptr);
     EXPECT_TRUE(back == s);

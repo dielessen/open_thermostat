@@ -24,7 +24,9 @@ const T = {
   blocks: 'Blocks on {day}', limits: 'Keep temperatures between {min} and {max}.', preview: 'Week preview',
   advanced: 'Advanced: edit as text', textHelp: 'One line per group of days, for example: mon-fri: 06:30 20.5; 22:30 18', apply: 'Apply text',
   bad: 'Line {line} cannot be read: {text}', outside: 'Line {line}: temperatures must lie between {min} and {max}.', many: 'Line {line}: at most 6 switch times per day.',
-  textApplied: 'Text applied.', inF: 'Temperatures in °F.'},
+  textApplied: 'Text applied.', inF: 'Temperatures in °F.',
+  warmUp: 'The thermostat starts heating early by itself, so it is warm at the time you set.',
+  warmUpOff: 'Smart warm-up is off: heating starts at the time you set.'},
  nl: {days: ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'], short: ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'],
   text: ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'], names: {comfort: 'Comfort', eco: 'Eco', night: 'Nacht'}, levels: 'Temperatuurniveaus',
   warmer: '{level} warmer', cooler: '{level} kouder', custom: 'Eigen temperatuur', template: 'Begin met een sjabloon', choose: 'Kies…',
@@ -38,7 +40,9 @@ const T = {
   blocks: 'Blokken op {day}', limits: 'Houd temperaturen tussen {min} en {max}.', preview: 'Voorbeeld van de week',
   advanced: 'Geavanceerd: als tekst bewerken', textHelp: 'Eén regel per groep dagen, bijvoorbeeld: ma-vr: 06:30 20,5; 22:30 18', apply: 'Tekst toepassen',
   bad: 'Regel {line} is niet te lezen: {text}', outside: 'Regel {line}: temperaturen moeten tussen {min} en {max} liggen.', many: 'Regel {line}: maximaal 6 schakeltijden per dag.',
-  textApplied: 'Tekst toegepast.', inF: 'Temperaturen in °F.'}};
+  textApplied: 'Tekst toegepast.', inF: 'Temperaturen in °F.',
+  warmUp: 'De thermostaat begint vanzelf eerder met verwarmen, zodat het warm is op de tijd die je instelt.',
+  warmUpOff: 'Slim opwarmen staat uit: verwarmen begint pas op de tijd die je instelt.'}};
 // Templates in level names; the owner's level temperatures fill them in.
 const WORK = [[390, 'comfort'], [510, 'eco'], [1020, 'comfort'], [1350, 'night']], HOME = [[420, 'comfort'], [1350, 'night']], FREE = [[480, 'comfort'], [1380, 'night']];
 const TEMPLATES = {work: [WORK, WORK, WORK, WORK, WORK, FREE, FREE], home: [HOME, HOME, HOME, HOME, HOME, FREE, FREE], daily: Array(7).fill(HOME)};
@@ -154,7 +158,8 @@ const CSS = `.wpe{--wt:var(--primary-text-color,var(--ot-text,#173b40));--wm:var
 
 function mount(host, options) {
  // o.text: a host's own table in another language (the Home Assistant card's Polish), over English.
- const o = Object.assign({min: 500, max: 3000, lang: 'en'}, options), t = o.text ? {...T.en, ...o.text} : tr(o.lang);
+ // o.smartWarmUp: false when the owner turned Smart warm-up off (rc.3); the hint line says what a time means.
+ const o = Object.assign({min: 500, max: 3000, lang: 'en', smartWarmUp: true}, options), t = o.text ? {...T.en, ...o.text} : tr(o.lang);
  // Stored levels (o.levels, o.scheduleLevels) when the firmware has them, else inferred from the program.
  const load = (w, lv, marks) => {
   const given = valid(w) ? plain(w) : Array.from({length: 7}, () => []);
@@ -444,7 +449,8 @@ function mount(host, options) {
   for (let d = 0; d < 7; d++) grid.append(renderDay(d));
   const empty = !week.some(day => day.length);
   const narrow = (root.clientWidth || host.clientWidth || 0) > 0 && (root.clientWidth || host.clientWidth) < NARROW;
-  root.replaceChildren(renderLevels(), renderTools(), el('p', empty ? t.empty : t.hint, {class: 'wpe-note'}), grid, ...(narrow && !empty ? [renderList()] : []),
+  root.replaceChildren(renderLevels(), renderTools(), el('p', empty ? t.empty : t.hint, {class: 'wpe-note'}),
+   el('p', o.smartWarmUp === false ? t.warmUpOff : t.warmUp, {class: 'wpe-note', 'data-k': 'warm-up'}), grid, ...(narrow && !empty ? [renderList()] : []),
    ...(copyFrom != null ? [renderCopy()] : sel ? [renderPanel()] : []), el('p', msg, {class: 'wpe-msg', role: 'status', 'aria-live': 'polite'}),
    ...(empty ? [] : [el('h4', t.preview), renderChart()]), renderText());
   const again = focus && root.querySelector('[data-k="' + focus + '"]');
@@ -471,6 +477,8 @@ function mount(host, options) {
    sel = copyFrom = null; textDraft = null; textError = ''; history = []; baseline = stateText(); render(); return true;
   },
   limits(min, max) { o.min = min; o.max = max; render(); },
+  // Smart warm-up switched (the host read GET /config/heating/flow or the Home Assistant switch).
+  smartWarmUp(on) { if (o.smartWarmUp !== (on !== false)) { o.smartWarmUp = on !== false; render(); } },
   levels: () => ({...levels}),
   // A template with the current levels (the E32 page starts a new program with "Workdays and weekend").
   template(key) { if (TEMPLATES[key]) { applyTemplate(key); render(); } },

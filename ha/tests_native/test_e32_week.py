@@ -116,6 +116,13 @@ async def test_websocket_commands_are_admin_only_and_answer_with_plain_codes(has
     e32_week.ws_week_get(hass, connection, {"id": 1, "type": "open_thermostat/e32_week/get", "entry_id": parent.entry_id})
     await hass.async_block_till_done()
     assert sent[-1][:2] == ("result", 1) and sent[-1][2]["rooms"][0]["id"] == "woonkamer"
+    assert "smart_warm_up" not in sent[-1][2]  # the flow options not read: the card assumes on (the default)
+    # E32 rc.3: Smart warm-up as read, so the planner's hint says what a time in the program means.
+    hass.data["open_thermostat"][parent.entry_id]["e32_flow"] = SimpleNamespace(settings={"apply_learned": False})
+    e32_week.ws_week_get(hass, connection, {"id": 5, "type": "open_thermostat/e32_week/get", "entry_id": parent.entry_id})
+    await hass.async_block_till_done()
+    assert sent[-1][:2] == ("result", 5) and sent[-1][2]["smart_warm_up"] is False
+    del hass.data["open_thermostat"][parent.entry_id]["e32_flow"]
     e32_week.ws_week_save(hass, connection, {"id": 2, "type": "open_thermostat/e32_week/save", "entry_id": parent.entry_id,
                                              "room_id": "woonkamer", "schedule": deepcopy(WEEK), "expected": [[]] * 7})
     await hass.async_block_till_done()

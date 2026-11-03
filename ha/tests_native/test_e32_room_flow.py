@@ -244,6 +244,62 @@ async def test_flow_temperature_limits_are_edited_in_the_e32_plan(hass, manager)
     assert result["reason"] == "e32_room_unchanged" and len(e32.posts) == posts
 
 
+class FakeFlowLink:
+    """The E32 flow options as e32_flow.FlowSettingsLink holds them (GET/POST /config/heating/flow)."""
+
+    def __init__(self, apply_learned=True, weather_curve=True, fail=False):
+        self.settings = {"weather_curve": weather_curve, "apply_learned": apply_learned, "curve_design_flow_c": 0}
+        self.changes, self.fail = [], fail
+
+    async def async_change(self, change):
+        from homeassistant.exceptions import HomeAssistantError
+        self.changes.append(change)
+        if self.fail:
+            raise HomeAssistantError("flow_settings_unreachable")
+        self.settings = {**self.settings, **change}
+        return self.settings
+
+
+@pytest.mark.asyncio
+async def test_smart_warm_up_and_the_curve_sit_with_the_heating_settings(hass, manager):
+    """E32 rc.3: Configure → Home → Heating and boiler also switches Smart warm-up and the heating curve (on by default)."""
+    e32 = FakeE32()
+    parent, _ = product(hass, e32)
+    flow = hass.data["open_thermostat"][parent.entry_id]["e32_flow"] = FakeFlowLink()
+    form = await flow_limits_form(manager, parent)
+    assert shown(form) == {"minimum_flow_temperature": 30, "maximum_flow_temperature": 60, "smart_warm_up": True,
+                           "follow_outdoor": True}
+    posts = len(e32.posts)
+    # Only an option changed: the plan is not written.
+    result = await manager.async_configure(form["flow_id"], {**shown(form), "smart_warm_up": False})
+    assert result["type"] == "abort" and result["reason"] == "e32_flow_options_saved", result
+    assert flow.changes == [{"apply_learned": False}] and len(e32.posts) == posts
+    form = await flow_limits_form(manager, parent)
+    assert shown(form)["smart_warm_up"] is False
+    # Options and limits: the options first (one write), then the limits.
+    result = await manager.async_configure(form["flow_id"], {"minimum_flow_temperature": 28, "maximum_flow_temperature": 45,
+                                                             "smart_warm_up": True, "follow_outdoor": False})
+    assert result["reason"] == "e32_flow_limits_saved"
+    assert flow.changes[-1] == {"apply_learned": True, "weather_curve": False}
+    assert (e32.plan["minimum_flow_c"], e32.plan["maximum_flow_c"]) == (28, 45)
+    # Unchanged: nothing written.
+    form = await flow_limits_form(manager, parent)
+    assert shown(form)["follow_outdoor"] is False
+    result = await manager.async_configure(form["flow_id"], shown(form))
+    assert result["reason"] == "e32_room_unchanged" and len(flow.changes) == 2
+    # A refused write keeps the form with a plain error and writes no limits either.
+    flow.fail = True
+    form = await flow_limits_form(manager, parent)
+    form = await manager.async_configure(form["flow_id"], {"minimum_flow_temperature": 30, "maximum_flow_temperature": 50,
+                                                           "smart_warm_up": False, "follow_outdoor": False})
+    assert form["type"] == "form" and form["errors"] == {"base": "e32_flow_options_failed"}
+    assert e32.plan["maximum_flow_c"] == 45
+    # Firmware or a link without the flow options: no switches in the form.
+    del hass.data["open_thermostat"][parent.entry_id]["e32_flow"]
+    form = await flow_limits_form(manager, parent)
+    assert "smart_warm_up" not in shown(form) and "follow_outdoor" not in shown(form)
+
+
 @pytest.mark.asyncio
 async def test_a_flow_minimum_up_to_79_is_accepted_below_the_maximum(hass, manager):
     """The E32 accepts a minimum of 20–79 °C and a maximum of 21–80 °C, minimum below maximum."""
@@ -667,7 +723,8 @@ def test_every_flow_key_has_a_translation(filename):
     assert "{valves}" in options["step"]["e32_rooms_saved"]["description"]
     assert set(options["step"]["e32_rooms"]["menu_options"]) == {"e32_room_add", "e32_room_pick"}
     assert options["step"]["init"]["menu_options"]["heating_boiler"]
-    assert set(options["step"]["e32_flow_limits"]["data"]) == {"minimum_flow_temperature", "maximum_flow_temperature"}
+    assert set(options["step"]["e32_flow_limits"]["data"]) == {"minimum_flow_temperature", "maximum_flow_temperature", "smart_warm_up",
+                                                                "follow_outdoor"}
     assert "45–50 °C" in options["step"]["e32_flow_limits"]["data_description"]["maximum_flow_temperature"]
     assert options["step"]["init"]["menu_options"]["e32_rooms"]
     room_step = options["step"]["e32_room"]

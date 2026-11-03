@@ -188,7 +188,10 @@ async def ws_week_get(hass, connection, msg):
         connection.send_error(msg["id"], str(err), "The week programs could not be read")
     else:
         # The module this backend serves: a page still running an older card asks for a reload.
-        connection.send_result(msg["id"], {**result, "card_url": CARD_URL})
+        # rc.3: Smart warm-up as last read, so the planner's hint says what a time in the program means.
+        from .e32_flow import smart_warm_up
+        smart = smart_warm_up(hass, msg["entry_id"])
+        connection.send_result(msg["id"], {**result, "card_url": CARD_URL, **({"smart_warm_up": smart} if smart is not None else {})})
 
 
 @websocket_api.websocket_command({vol.Required("type"): "open_thermostat/e32_week/save",

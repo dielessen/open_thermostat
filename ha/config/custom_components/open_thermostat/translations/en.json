@@ -649,15 +649,19 @@
         }
       },
       "e32_flow_limits": {
-        "title": "Water temperature limits",
-        "description": "The lowest and highest temperature of the water the boiler sends to the radiators and floor (flow temperature), for all rooms together. \"Follow outdoor temperature (heating curve)\" and \"Warm on time with the coolest water\" are switches on the E32 device page in Home Assistant. {boiler} {error}",
+        "title": "Water temperature, Smart warm-up and heating curve",
+        "description": "The lowest and highest temperature of the water the boiler sends to the radiators and floor (flow temperature), for all rooms together. Smart warm-up and the heating curve are on by default; the E32 decides itself when what it learned is good enough. {boiler} {error}",
         "data": {
           "minimum_flow_temperature": "Lowest water temperature",
-          "maximum_flow_temperature": "Highest water temperature"
+          "maximum_flow_temperature": "Highest water temperature",
+          "smart_warm_up": "Smart warm-up",
+          "follow_outdoor": "Follow outdoor temperature (heating curve)"
         },
         "data_description": {
           "minimum_flow_temperature": "The lowest water temperature the E32 asks for while it heats ({minimum_range}).",
-          "maximum_flow_temperature": "The highest water temperature the E32 ever asks for ({maximum_range}, above the lowest). Floor heating fed without a mixing valve: usually at most 45–50 °C. Radiators: often 60–75 °C on cold days. The maximum heating temperature set on your boiler always stays the ceiling; the E32 never asks for more."
+          "maximum_flow_temperature": "The highest water temperature the E32 ever asks for ({maximum_range}, above the lowest). Floor heating fed without a mixing valve: usually at most 45–50 °C. Radiators: often 60–75 °C on cold days. The maximum heating temperature set on your boiler always stays the ceiling; the E32 never asks for more.",
+          "smart_warm_up": "Starts heating early by itself so a room is warm at the time in its week program, with the coolest water that still does it. Off: heating starts at the program time; it may be cooler for a while after each program time (floor heating can take an hour or more). Also a switch on the E32 device page.",
+          "follow_outdoor": "Colder outside means warmer water to the radiators and floor, before the rooms cool down; the room temperature still corrects it. It starts with a standard curve and learns your house's own. Without an outdoor temperature the normal room control is used. Also a switch on the E32 device page."
         }
       },
       "e32_room_remove": {
@@ -1156,7 +1160,8 @@
       "ble_sensor_invalid": "Choose one of the paired sensors.",
       "ble_name_invalid": "Use a name of 1 to 40 characters without line breaks.",
       "ble_storage_full": "The E32 has no room left to store the sensors. Nothing was saved.",
-      "ble_rejected": "The E32 refused the changes ({error}). Nothing was saved."
+      "ble_rejected": "The E32 refused the changes ({error}). Nothing was saved.",
+      "e32_flow_options_failed": "The E32 did not save the change. Check the connection and try again."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -1244,7 +1249,8 @@
       "ble_none": "No Bluetooth sensor is paired with the E32 yet. Pair one on the E32's Bluetooth sensors page first.",
       "ble_changed": "The Bluetooth sensors were changed on the E32 meanwhile. Nothing was saved; open Bluetooth sensors again.",
       "ble_saved": "Saved on the E32. It restarts in about 30 seconds to use the changes.",
-      "ble_saved_restart_later": "Saved on the E32. It restarts to use the changes as soon as an update or boiler test has finished."
+      "ble_saved_restart_later": "Saved on the E32. It restarts to use the changes as soon as an update or boiler test has finished.",
+      "e32_flow_options_saved": "The water temperature settings are saved on the E32."
     },
     "progress": {
       "controller_connect": "Connecting to the E32…",
@@ -2207,7 +2213,7 @@
         "name": "Follow outdoor temperature (heating curve)"
       },
       "flow_apply_learned": {
-        "name": "Warm on time with the coolest water"
+        "name": "Smart warm-up"
       },
       "room_valve_control": {
         "name": "Valve control"

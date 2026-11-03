@@ -835,7 +835,19 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
                 # Away or Holiday), what its own persons are (home/away) and its own away temperature
                 # (None: the house value, plan.room_away.v1).
                 "away_reason": away_reason(comfort, away), "room_persons": comfort.get("persons"),
-                "own_away_temperature": own / 100 if own is not None else None}
+                "own_away_temperature": own / 100 if own is not None else None,
+                "smart_warm_up": self._smart_warm_up()}
+
+    def _smart_warm_up(self):
+        """E32 rc.3: what Smart warm-up does for the next program step, in the Home Assistant language, or None."""
+        if self.hass is None:
+            return None
+        from .e32_flow import smart_warm_up
+        from .learned_overview import language, local_clock, smart_warm_up_line
+        plan = self.hub.warmup.get(self.room_id) if type(getattr(self.hub, "warmup", None)) is dict else None
+        start = plan.get("optimum_start") if type(plan) is dict else None
+        line = smart_warm_up_line(start, smart_warm_up(self.hass, self.entry.entry_id), language(self.hass), local_clock(self.hass))
+        return line[0] if line else None
 
     # -- commands ----------------------------------------------------------------
     def _write_state(self):

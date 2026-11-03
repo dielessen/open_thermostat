@@ -5,7 +5,8 @@ the self-tuning made (or what it is doing), its attributes the whole overview in
 language (English, Dutch or Polish), each figure with a line on what it means:
 
 - ``rooms``: per room its learning progress and what was learned (how fast it warms and cools,
-  the lowest water temperature that still warms it in time, the planned start, the night advice),
+  the lowest water temperature that still warms it in time, Smart warm-up's start for the next
+  program step, the night advice),
   from ``fw/telemetry/learned/<room>``;
 - ``house``: the heating curve, the burner (starts and burn time yesterday) and, once learned, the
   lowest water temperature the boiler starts heating at, from the summary; that last figure is
@@ -73,14 +74,30 @@ TEXT = {
         "lowest_mean": "Cooler water lets the boiler condense better, so it uses less gas.",
         "cools": "Loses about {rate} °C per hour at {out} °C outside.",
         "cools_mean": "This is how fast it cools when the heating is off, for example at night.",
-        "start": "Starts heating at {start} to be {target} °C at {time}.", "start_now": "Heating up now to be {target} °C at {time}.",
         "start_only": "Starts heating at {start} for the next program step.",
         "start_mean": "So the room is warm on time, without heating longer than needed.",
-        "start_default": "This is a standard estimate until the room has been learned.",
+        "warmup_on": "Smart warm-up: starts at {start} so it is {target} °C at {time}.",
+        "warmup_now": "Smart warm-up: heating now so it is {target} °C at {time}.",
+        "warmup_late": "Smart warm-up: heating now; {target} °C may come a little after {time}.",
+        "warmup_ready": "Smart warm-up: warm enough for {target} °C at {time}, no early start needed.",
+        "warmup_learning": "Smart warm-up is still learning: for now heating starts at {time} (estimate: from {start} it would be {target} °C on time).",
+        "warmup_learning_mean": "Until the room has been learned, it does not start early on an estimate.",
+        "warmup_off": "Smart warm-up is off: heating starts at {time}.",
+        "warmup_off_mean": "Turn Smart warm-up on to be warm on time.",
         "saving_eur": "about {m3} m³ gas ({eur}) a night", "saving": "about {m3} m³ gas a night",
         "night_hold": "Keeping it at {night} °C at night is cheaper than letting it cool down: {saving}.",
         "night_program": "Letting it cool down at night, as your program does, is the cheapest.",
         "night_mean": "This is advice: your week program stays as it is.",
+        "curve_status_off": "Heating curve: off, the water temperature follows the rooms only.",
+        "curve_status_no_outdoor": "Heating curve: no outdoor temperature right now, so the water temperature follows the rooms only.",
+        "curve_status_learned": "Heating curve: learned for your house.",
+        "curve_status_learning": "Heating curve: standard for now, learning from your house ({n} of {m} steady periods).",
+        "curve_status_learning_plain": "Heating curve: standard for now, learning from your house.",
+        "curve_status_mean": "The E32 decides by itself when what it learned is good enough to use.",
+        "flow_status_collecting": "Coolest water: still learning from each warm-up.",
+        "flow_status_ready": "Coolest water: learned for your house.",
+        "flow_status_advice": "Coolest water: learned; used when Smart warm-up is on.",
+        "flow_status_mean": "Cooler water lets the boiler condense better, so it uses less gas.",
         "curve_learned": "Heating curve, learned from your house: the water gets about {s} °C warmer for every degree colder outside.",
         "curve": "Heating curve: the water gets about {s} °C warmer for every degree colder outside.",
         "curve_on": "The heating curve sets the water temperature, so the boiler runs as cool as the weather allows.",
@@ -134,14 +151,30 @@ TEXT = {
         "lowest_mean": "Met koeler water condenseert de ketel beter, dus verbruikt hij minder gas.",
         "cools": "Verliest ongeveer {rate} °C per uur bij {out} °C buiten.",
         "cools_mean": "Zo snel koelt de ruimte af als de verwarming uit is, bijvoorbeeld 's nachts.",
-        "start": "Begint om {start} met verwarmen om om {time} {target} °C te zijn.", "start_now": "Warmt nu op om om {time} {target} °C te zijn.",
         "start_only": "Begint om {start} met verwarmen voor de volgende stap van het programma.",
         "start_mean": "Zo is de ruimte op tijd warm, zonder langer te verwarmen dan nodig.",
-        "start_default": "Dit is een standaardschatting totdat de ruimte geleerd is.",
+        "warmup_on": "Slim opwarmen: begint om {start}, zodat het om {time} {target} °C is.",
+        "warmup_now": "Slim opwarmen: verwarmt nu, zodat het om {time} {target} °C is.",
+        "warmup_late": "Slim opwarmen: verwarmt nu; {target} °C wordt misschien pas iets na {time} gehaald.",
+        "warmup_ready": "Slim opwarmen: warm genoeg voor {target} °C om {time}, eerder beginnen is niet nodig.",
+        "warmup_learning": "Slim opwarmen leert nog: voorlopig begint verwarmen om {time} (schatting: vanaf {start} zou het op tijd {target} °C zijn).",
+        "warmup_learning_mean": "Zolang de ruimte niet geleerd is, begint hij niet eerder op een schatting.",
+        "warmup_off": "Slim opwarmen staat uit: verwarmen begint om {time}.",
+        "warmup_off_mean": "Zet Slim opwarmen aan om op tijd warm te zijn.",
         "saving_eur": "ongeveer {m3} m³ gas ({eur}) per nacht", "saving": "ongeveer {m3} m³ gas per nacht",
         "night_hold": "'s Nachts op {night} °C houden is goedkoper dan laten afkoelen: {saving}.",
         "night_program": "'s Nachts laten afkoelen, zoals je programma doet, is het goedkoopst.",
         "night_mean": "Dit is een advies: je weekprogramma blijft zoals het is.",
+        "curve_status_off": "Stooklijn: uit, de watertemperatuur volgt alleen de ruimtes.",
+        "curve_status_no_outdoor": "Stooklijn: nu geen buitentemperatuur, dus de watertemperatuur volgt alleen de ruimtes.",
+        "curve_status_learned": "Stooklijn: geleerd voor je huis.",
+        "curve_status_learning": "Stooklijn: voorlopig standaard, hij leert van je huis ({n} van {m} rustige periodes).",
+        "curve_status_learning_plain": "Stooklijn: voorlopig standaard, hij leert van je huis.",
+        "curve_status_mean": "De E32 beslist zelf wanneer wat hij leerde goed genoeg is om te gebruiken.",
+        "flow_status_collecting": "Koelste water: leert nog van elke keer opwarmen.",
+        "flow_status_ready": "Koelste water: geleerd voor je huis.",
+        "flow_status_advice": "Koelste water: geleerd; wordt gebruikt als Slim opwarmen aan staat.",
+        "flow_status_mean": "Met koeler water condenseert de ketel beter, dus verbruikt hij minder gas.",
         "curve_learned": "Stooklijn, geleerd van je huis: het water wordt ongeveer {s} °C warmer voor elke graad kouder buiten.",
         "curve": "Stooklijn: het water wordt ongeveer {s} °C warmer voor elke graad kouder buiten.",
         "curve_on": "De stooklijn bepaalt de watertemperatuur, zodat de ketel zo koel draait als het weer toelaat.",
@@ -195,14 +228,30 @@ TEXT = {
         "lowest_mean": "Chłodniejsza woda pozwala kotłowi lepiej kondensować, więc zużywa mniej gazu.",
         "cools": "Traci około {rate} °C na godzinę przy {out} °C na zewnątrz.",
         "cools_mean": "Tak szybko stygnie, gdy ogrzewanie jest wyłączone, na przykład w nocy.",
-        "start": "Zaczyna grzać o {start}, aby o {time} było {target} °C.", "start_now": "Nagrzewa teraz, aby o {time} było {target} °C.",
         "start_only": "Zaczyna grzać o {start} przed następnym krokiem programu.",
         "start_mean": "Dzięki temu pomieszczenie jest ciepłe na czas, bez grzania dłużej niż trzeba.",
-        "start_default": "To standardowe oszacowanie, dopóki pomieszczenie nie zostanie wyuczone.",
+        "warmup_on": "Inteligentne nagrzewanie: start o {start}, aby o {time} było {target} °C.",
+        "warmup_now": "Inteligentne nagrzewanie: grzeje teraz, aby o {time} było {target} °C.",
+        "warmup_late": "Inteligentne nagrzewanie: grzeje teraz; {target} °C może być dopiero nieco po {time}.",
+        "warmup_ready": "Inteligentne nagrzewanie: jest dość ciepło na {target} °C o {time}, wcześniejszy start nie jest potrzebny.",
+        "warmup_learning": "Inteligentne nagrzewanie wciąż się uczy: na razie grzanie zaczyna się o {time} (szacunek: od {start} byłoby {target} °C na czas).",
+        "warmup_learning_mean": "Dopóki pomieszczenie nie zostanie wyuczone, nie zaczyna grzać wcześniej na podstawie szacunku.",
+        "warmup_off": "Inteligentne nagrzewanie jest wyłączone: grzanie zaczyna się o {time}.",
+        "warmup_off_mean": "Włącz Inteligentne nagrzewanie, aby było ciepło na czas.",
         "saving_eur": "około {m3} m³ gazu ({eur}) na noc", "saving": "około {m3} m³ gazu na noc",
         "night_hold": "Utrzymywanie {night} °C w nocy jest tańsze niż wychładzanie: {saving}.",
         "night_program": "Wychładzanie w nocy, tak jak robi to Twój program, jest najtańsze.",
         "night_mean": "To porada: Twój program tygodniowy pozostaje bez zmian.",
+        "curve_status_off": "Krzywa grzewcza: wyłączona, temperatura wody zależy tylko od pomieszczeń.",
+        "curve_status_no_outdoor": "Krzywa grzewcza: teraz brak temperatury zewnętrznej, więc temperatura wody zależy tylko od pomieszczeń.",
+        "curve_status_learned": "Krzywa grzewcza: wyuczona dla Twojego domu.",
+        "curve_status_learning": "Krzywa grzewcza: na razie standardowa, uczy się Twojego domu ({n} z {m} stabilnych okresów).",
+        "curve_status_learning_plain": "Krzywa grzewcza: na razie standardowa, uczy się Twojego domu.",
+        "curve_status_mean": "E32 sam decyduje, kiedy to, czego się nauczył, jest wystarczająco dobre, by tego używać.",
+        "flow_status_collecting": "Najchłodniejsza woda: wciąż uczy się z każdego nagrzewania.",
+        "flow_status_ready": "Najchłodniejsza woda: wyuczona dla Twojego domu.",
+        "flow_status_advice": "Najchłodniejsza woda: wyuczona; używana, gdy Inteligentne nagrzewanie jest włączone.",
+        "flow_status_mean": "Przy chłodniejszej wodzie kocioł lepiej kondensuje, więc zużywa mniej gazu.",
         "curve_learned": "Krzywa grzewcza wyuczona z Twojego domu: woda jest cieplejsza o około {s} °C na każdy stopień zimniej na zewnątrz.",
         "curve": "Krzywa grzewcza: woda jest cieplejsza o około {s} °C na każdy stopień zimniej na zewnątrz.",
         "curve_on": "Krzywa grzewcza ustala temperaturę wody, więc kocioł pracuje tak chłodno, jak pozwala pogoda.",
@@ -315,7 +364,37 @@ def _line(text, meaning):
     return {"text": text, "meaning": meaning}
 
 
-def room_overview(name, learned, plan, lang, clock):
+def smart_warm_up_line(start, on, lang, clock):
+    """(text, meaning) for the room's next program step with Smart warm-up (E32 rc.3), or None.
+
+    ``start``: the room's ``optimum_start``; ``on``: the stored option (``apply_learned``; None: not
+    known, on by default). ``applies``: the E32 uses this start (older firmware: a learned warm-up);
+    otherwise it is an estimate and heating starts at the program time. The E32 page says the same
+    (``data/html/index.html`` smartWarmupLine).
+    """
+    t = TEXT[lang]
+    start = start if type(start) is dict else {}
+    switch = start.get("next_switch") if type(start.get("next_switch")) is dict else {}
+    if (start.get("reason") != "planned" or not _ok(start.get("predicted_start_utc"))
+            or not _ok(switch.get("utc")) or not _ok(switch.get("target_c"))):
+        return None
+    values = {"start": clock(start["predicted_start_utc"]), "time": clock(switch["utc"]),
+              "target": number(switch["target_c"], lang)}
+    applies = start["applies"] if type(start.get("applies")) is bool else start.get("confidence") == "learned"
+    if on is False:
+        return t["warmup_off"].format(**values), t["warmup_off_mean"]
+    if not applies:
+        return t["warmup_learning"].format(**values), t["warmup_learning_mean"]
+    if start.get("lead_minutes") == 0 and start.get("start_now") is not True:
+        key = "warmup_ready"
+    elif start.get("start_now") is True:
+        key = "warmup_late" if start.get("reachable") is False else "warmup_now"
+    else:
+        key = "warmup_on"
+    return t[key].format(**values), t["start_mean"]
+
+
+def room_overview(name, learned, plan, lang, clock, smart=None):
     """{name, progress, lines: [{text, meaning}]} of one room; clock: utc -> "07:10" in local time."""
     t = TEXT[lang]
     learned = learned if type(learned) is dict else {}
@@ -335,14 +414,10 @@ def room_overview(name, learned, plan, lang, clock):
         lines.append(_line(t["cools"].format(rate=number(rate, lang, 2), out=REFERENCE_OUTDOOR_C), t["cools_mean"]))
     plan = plan if type(plan) is dict else {}
     start = plan.get("optimum_start") if type(plan.get("optimum_start")) is dict else {}
-    if start.get("reason") == "planned" and _ok(start.get("predicted_start_utc")):
-        switch = start.get("next_switch") if type(start.get("next_switch")) is dict else {}
-        if _ok(switch.get("utc")) and _ok(switch.get("target_c")):
-            values = {"start": clock(start["predicted_start_utc"]), "time": clock(switch["utc"]), "target": number(switch["target_c"], lang)}
-            text = t["start_now" if start.get("start_now") is True else "start"].format(**values)
-        else:  # firmware before rc.2: no next switch in the per-room message
-            text = t["start_only"].format(start=clock(start["predicted_start_utc"]))
-        lines.append(_line(text, t["start_mean" if start.get("confidence") == "learned" else "start_default"]))
+    if (warm := smart_warm_up_line(start, smart, lang, clock)) is not None:
+        lines.append(_line(*warm))
+    elif start.get("reason") == "planned" and _ok(start.get("predicted_start_utc")):  # firmware before rc.2: no next switch
+        lines.append(_line(t["start_only"].format(start=clock(start["predicted_start_utc"])), t["start_mean"]))
     night = plan.get("night") if type(plan.get("night")) is dict else {}
     if night.get("reason") == "estimated" and type(night.get("recommended")) is str:
         hold = night["recommended"] not in ("program", "thermostat_like") and _ok(night.get("recommended_night_c"))
@@ -366,10 +441,54 @@ def boiler_minimum_flow(summary):
     return value if _ok(value) and 20 <= value <= 90 else None
 
 
-def house_overview(summary, lang):
-    """[{text, meaning}] for the heating curve, the burner and the boiler's learned minimum flow, from the summary."""
+CURVE_STEPS = 6  # CurveLearner::Params::minWindows: steady 3-hour periods before the learned curve is used
+
+
+def curve_status(curve, on, lang):
+    """(text, meaning) for what the heating curve uses now (E32 rc.3, on by default), or None.
+
+    ``curve``: the summary's ``flow.curve`` (state, slope_source, windows); ``on``: the stored option
+    ``weather_curve`` (None: not known, on by default).
+    """
+    t = TEXT[lang]
+    if type(curve) is not dict or curve.get("state") in (None, "no_room"):
+        return None
+    if on is False:
+        return t["curve_status_off"], t["curve_off"]
+    if curve.get("state") == "no_outdoor":
+        return t["curve_status_no_outdoor"], t["curve_status_mean"]
+    if curve.get("slope_source") == "learned":
+        return t["curve_status_learned"], t["curve_status_mean"]
+    windows = curve.get("windows")
+    if type(windows) is int and windows >= 0:
+        return t["curve_status_learning"].format(n=min(windows, CURVE_STEPS), m=CURVE_STEPS), t["curve_status_mean"]
+    return t["curve_status_learning_plain"], t["curve_status_mean"]
+
+
+def learned_flow_status(learned, smart, lang):
+    """(text, meaning) for the learned coolest water (the summary's ``flow.learned``), or None."""
+    t = TEXT[lang]
+    state = learned.get("state") if type(learned) is dict else None
+    if type(state) is not str or state == "no_room":
+        return None
+    if state == "not_ready":
+        return t["flow_status_collecting"], t["flow_status_mean"]
+    return t["flow_status_advice" if smart is False else "flow_status_ready"], t["flow_status_mean"]
+
+
+def house_overview(summary, lang, options=None):
+    """[{text, meaning}] for the heating curve, the burner and the boiler's learned minimum flow, from the summary.
+
+    ``options``: the E32's stored flow options when known (weather_curve, apply_learned).
+    """
     t, lines = TEXT[lang], []
     summary = summary if type(summary) is dict else {}
+    options = options if type(options) is dict else {}
+    flow = summary.get("flow") if type(summary.get("flow")) is dict else {}
+    for status in (curve_status(flow.get("curve"), options.get("weather_curve"), lang),
+                   learned_flow_status(flow.get("learned"), options.get("apply_learned"), lang)):
+        if status is not None:
+            lines.append(_line(*status))
     curve = (summary.get("flow") or {}).get("curve") if type(summary.get("flow")) is dict else None
     if type(curve) is dict and _ok(curve.get("slope")):
         lines.append(_line(t["curve_learned" if curve.get("slope_source") == "learned" else "curve"].format(s=number(curve["slope"], lang, 2)),
@@ -425,6 +544,13 @@ class LearnedOverviewSensor(RestoreEntity, SensorEntity):
         summary = self.hub.summary if type(self.hub.summary) is dict else {}
         return summary.get("tuning") if type(summary.get("tuning")) is dict else None
 
+    def _flow_options(self):
+        """The E32's flow options as last read (e32_flow.py), or None."""
+        from .e32_flow import KEY
+        data = getattr(getattr(self, "hass", None), "data", None)
+        link = data.get(DOMAIN, {}).get(self.entry.entry_id, {}).get(KEY) if isinstance(data, dict) else None
+        return getattr(link, "settings", None)
+
     def _names(self):
         from .heating_link import label
         return {room_id: label(room) for room_id, room in self.hub.rooms.items()}
@@ -467,11 +593,13 @@ class LearnedOverviewSensor(RestoreEntity, SensorEntity):
             text = change_text(change[1:], names, lang)
             if text:
                 changes.append({"time": datetime.fromtimestamp(change[0], timezone.utc).isoformat(timespec="seconds"), "text": text})
-        rooms = [room_overview(name, self.hub.learned.get(room_id), self.hub.warmup.get(room_id), lang, clock)
+        from .e32_flow import smart_warm_up
+        smart = smart_warm_up(self.hass, self.entry.entry_id) if getattr(self, "hass", None) is not None else None
+        rooms = [room_overview(name, self.hub.learned.get(room_id), self.hub.warmup.get(room_id), lang, clock, smart)
                  for room_id, name in names.items() if self.hub.rooms[room_id].get("state") != "inactive"]
         manual = tuning.get("manual") if type(tuning.get("manual")) is list else []
         attributes = {"explanation": t.get("state." + str(tuning.get("state")), "") if tuning else t["unavailable"],
-                      "rooms": rooms, "house": house_overview(self.hub.summary, lang),
+                      "rooms": rooms, "house": house_overview(self.hub.summary, lang, self._flow_options()),
                       "changes": changes or [{"time": None, "text": t["state.none"]}],
                       "settings": settings(tuning.get("values"), manual, lang)}
         lowest = boiler_minimum_flow(self.hub.summary)

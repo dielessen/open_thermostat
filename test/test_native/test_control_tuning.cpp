@@ -139,7 +139,9 @@ struct Replay {
 // 12 burner starts, 5219 heating steps of 10 s. rc.2 (learning in active mode): a floor room's
 // segment counts from 30 min instead of 45, so the learner's JSON in the hash holds more
 // segments; every request, start and heating step is unchanged (was 0x092730cbef929f94).
-constexpr uint64_t goldenHash = 0x0e57c515176989e2ull;
+// rc.3: the planner's JSON says whether a start "applies" and the summary's curve its
+// "windows"; still 12 starts and 5219 heating steps (was 0x0e57c515176989e2).
+constexpr uint64_t goldenHash = 0x76c5bb38db527eecull;
 
 Replay replay(const std::function<void(Replay&)>& tune = nullptr) {
     ScopedTz tz(ScopedTz::amsterdam);
@@ -316,7 +318,7 @@ TEST(ControlTuning, CurveCorrectionShare) {
     std::array<RoomDemand::Result, RoomPlan::maxRooms> rooms{};
     rooms[0].status = RoomDemand::Status::ok; rooms[0].usable = true; rooms[0].temperature = 2000; rooms[0].setpoint = 2100; rooms[0].errorCentiC = 100;
     const auto flowWith = [&](const char* tuning) {
-        FlowPolicy policy; FlowSettings s; s.weatherCurve = true; s.tuning = tuned(tuning); policy.setSettings(s);
+        FlowPolicy policy; FlowSettings s; s.weatherCurve = true; s.applyLearned = false; s.tuning = tuned(tuning); policy.setSettings(s);
         FlowPolicy::Inputs in; in.now = 10 * second; in.plan = &p; in.rooms = rooms.data(); in.outdoorCentiC = 500;
         in.rule = {true, 40, FlowDemand::Reason::heating};
         const auto with = policy.apply(in, l).flowC;
@@ -357,7 +359,7 @@ TEST(ControlTuning, OptimumStartRunsTheMinimumOnTime) {
     const FlowLearner learner = untouched().learner; // a learned house
     const auto plan = replayPlan();
     const auto runFor = [&](const char* tuning) {
-        FlowPolicy policy; FlowSettings s; s.applyLearned = true; s.tuning = tuned(tuning); policy.setSettings(s);
+        FlowPolicy policy; FlowSettings s; s.applyLearned = true; s.weatherCurve = false; s.tuning = tuned(tuning); policy.setSettings(s);
         const auto planned = WarmupPlanner::optimumStart(learner, 0, plan.rooms[0].schedule, wednesday23, int16_t(1850), int16_t(500));
         EXPECT_STREQ(planned.confidence, "learned");
         std::array<RoomDemand::Result, RoomPlan::maxRooms> rooms{};

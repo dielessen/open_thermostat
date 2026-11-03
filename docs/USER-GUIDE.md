@@ -39,8 +39,7 @@ energy inputs.
 | Levels of a room without a week program, default window pause, length of a manual change | — | Configure → Home → Defaults for rooms and timing |
 | Radiator valves per room | E32: Rooms → the room → Radiator valves | Configure → Rooms → Edit or remove a room → Radiator valves |
 | Lowest and highest water temperature for the boiler request | E32: Home → Water temperature limits | Configure → Home → Heating and boiler |
-| Follow outdoor temperature (heating curve) | E32: Home | Switch on the E32 device |
-| Smart warm-up (on by default) | E32: Home → Heating settings → Advanced | Configure → Home → Heating and boiler, or the switch on the E32 device |
+| Smart warm-up and Follow outdoor temperature (heating curve), both on by default | E32: Home → Heating settings → Advanced | Configure → Home → Heating and boiler, or the switches on the E32 device |
 | Gas meter, gas price, outdoor temperature, boiler power, water meter (all optional) | — | Configure → Home → Energy and outdoor temperature |
 | Pairing Bluetooth sensors (address, profile, encryption key) | E32: System → Bluetooth sensors | E32: System → Bluetooth sensors |
 | Boiler model (name, picture and the display code table) | E32: Boiler → Boiler model | E32: Boiler → Boiler model |
@@ -410,14 +409,25 @@ learned" and the room's thermostat in Home Assistant (attribute
   have been learned (a few days of heating), it does not start early on an
   estimate.
 
-Smart warm-up is on for every installation. An installation that had the
-former option "Warm on time with the coolest water" off (its default) has it
-on after the update; if you switch it off yourself, it stays off. Switch it
-off under E32 **Home → Heating settings → Advanced**, under **Configure →
-Home → Heating and boiler** in Home Assistant, or with the **Smart warm-up**
-switch on the E32 device. Heating then starts at the program time: it may be
-cooler for a while after each program time, and floor heating can take an
-hour or more.
+The heating curve ("Follow outdoor temperature") is on by default too: colder
+outside means warmer water, before the rooms cool down. The E32 starts with a
+standard curve and learns your house's own from steady heating periods of
+three hours; the Home page and the learned overview in Home Assistant say
+which it uses ("Heating curve: standard for now, learning from your house (2
+of 6 steady periods)" or "Heating curve: learned for your house"). Without an
+outdoor temperature (from the boiler or Home Assistant) the water temperature
+follows the rooms only, and the status says so. The coolest water per room is
+used once learned ("Coolest water: still learning from each warm-up" until
+then).
+
+Both are on for every installation. An installation that had the former
+option "Warm on time with the coolest water" or the heating curve off (their
+default) has them on after the update; what you switch off yourself stays
+off. Switch them off under E32 **Home → Heating settings → Advanced**, under
+**Configure → Home → Heating and boiler** in Home Assistant, or with the
+switches on the E32 device. Without Smart warm-up heating starts at the
+program time: it may be cooler for a while after each program time, and floor
+heating can take an hour or more.
 
 ### Energy inputs and heating advice
 

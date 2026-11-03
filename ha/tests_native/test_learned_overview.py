@@ -64,9 +64,10 @@ def test_the_overview_in_plain_english():
     assert bedroom["progress"] == "Learning: 3 of 6 warm-ups seen"
     assert bedroom["lines"] == [{"text": "It learns from every warm-up while the heating runs.", "meaning": "Until then it uses safe standard times."}]
     assert [line["text"] for line in a["house"]] == [
+        "Heating curve: learned for your house.",
         "Heating curve, learned from your house: the water gets about 0.62 °C warmer for every degree colder outside.",
         "Yesterday the burner started 59 times for heating; a burn lasted 7 min on average."]
-    assert a["house"][1]["meaning"].startswith("That is often.")
+    assert a["house"][2]["meaning"].startswith("That is often.")
     assert [c["text"] for c in a["changes"]] == [
         "Woonkamer got 0.6 °C warmer than its target; the thermostat now stops heating a little earlier.",
         "The burner now rests at least 10 min before it starts again, because it started 59 times yesterday. Fewer starts are gentler on the boiler."]
@@ -154,7 +155,7 @@ def test_shadow_mode_shows_what_it_would_change_and_older_firmware_shows_what_th
     assert s.native_value == "The E32 has not reported what it learned yet."
     assert a["changes"] == [{"time": None, "text": "Nothing changed yet: the start values still fit, or there is not enough to go on."}]
     assert "Starts heating at 07:30 for the next program step." in [line["text"] for line in a["rooms"][0]["lines"]]
-    assert a["settings"] == {} and len(a["house"]) == 1
+    assert a["settings"] == {} and len(a["house"]) == 2  # the curve: its status and its figure
 
 
 def test_the_tuning_topic_joins_the_summary():
@@ -211,21 +212,21 @@ def test_the_boiler_minimum_flow_is_a_house_line_and_an_attribute_once_learned(l
     s = sensor(language)
     before = s.extra_state_attributes
     assert "boiler_minimum_flow_c" not in before
-    assert all("40" not in line["text"] for line in before["house"]) and len(before["house"]) == 2
+    assert all("40" not in line["text"] for line in before["house"]) and len(before["house"]) == 3
     s.hub.update_summary({**SUMMARY, "learned": {**SUMMARY["learned"], "boiler_minimum_flow_c": 40}})
     s._hub_changed()
     a = s.extra_state_attributes
     assert a["boiler_minimum_flow_c"] == 40
-    assert a["house"][:2] == before["house"]  # after the curve and the burner, as on the E32 page
-    assert a["house"][2] == {"text": BOILER_MINIMUM[language][0], "meaning": BOILER_MINIMUM[language][1]}
+    assert a["house"][:3] == before["house"]  # after the curve and the burner, as on the E32 page
+    assert a["house"][3] == {"text": BOILER_MINIMUM[language][0], "meaning": BOILER_MINIMUM[language][1]}
     # Alone it still shows (no "nothing yet").
     alone = lo.house_overview({"schema": 1, "learned": {"boiler_minimum_flow_c": 40}}, language)
-    assert alone == [a["house"][2]]
+    assert alone == [a["house"][3]]
     # Not understood or implausible: left out, never half a sentence.
     for bad in (None, "40", True, float("nan"), 5, 120):
         summary = {**SUMMARY, "learned": {**SUMMARY["learned"], "boiler_minimum_flow_c": bad}}
         assert lo.boiler_minimum_flow(summary) is None
-        assert len(lo.house_overview(summary, language)) == 2
+        assert len(lo.house_overview(summary, language)) == 3
     assert lo.boiler_minimum_flow(None) is None and lo.boiler_minimum_flow({"learned": None}) is None
 
 
@@ -292,3 +293,42 @@ def test_the_overview_follows_the_smart_warm_up_switch():
                              data={"open_thermostat": {"e": {"e32_flow": SimpleNamespace(settings={"apply_learned": False})}}})
     living = s.extra_state_attributes["rooms"][0]
     assert {"text": "Smart warm-up is off: heating starts at 08:50.", "meaning": "Turn Smart warm-up on to be warm on time."} in living["lines"]
+
+
+# E32 rc.3: the heating curve is on by default and the E32 decides itself when its own curve is good enough;
+# the overview says plainly what it uses now, and the same for the learned coolest water.
+@pytest.mark.parametrize("curve,on,english,dutch", [
+    ({"state": "applied", "slope_source": "design", "windows": 2}, True,
+     "Heating curve: standard for now, learning from your house (2 of 6 steady periods).",
+     "Stooklijn: voorlopig standaard, hij leert van je huis (2 van 6 rustige periodes)."),
+    ({"state": "applied", "slope_source": "design"}, None,                       # older firmware: no count
+     "Heating curve: standard for now, learning from your house.", "Stooklijn: voorlopig standaard, hij leert van je huis."),
+    ({"state": "applied", "slope_source": "learned", "windows": 9}, True,
+     "Heating curve: learned for your house.", "Stooklijn: geleerd voor je huis."),
+    ({"state": "no_outdoor", "slope_source": "design", "windows": 0}, True,
+     "Heating curve: no outdoor temperature right now, so the water temperature follows the rooms only.",
+     "Stooklijn: nu geen buitentemperatuur, dus de watertemperatuur volgt alleen de ruimtes."),
+    ({"state": "advice", "slope_source": "learned", "windows": 7}, False,
+     "Heating curve: off, the water temperature follows the rooms only.",
+     "Stooklijn: uit, de watertemperatuur volgt alleen de ruimtes."),
+])
+def test_the_curve_says_what_it_uses_now(curve, on, english, dutch):
+    assert lo.curve_status(curve, on, "en")[0] == english
+    assert lo.curve_status(curve, on, "nl")[0] == dutch
+    assert lo.curve_status(curve, on, "pl")[0].startswith("Krzywa grzewcza: ")
+    assert lo.curve_status({"state": "no_room"}, on, "en") is None and lo.curve_status(None, on, "en") is None
+
+
+def test_the_learned_water_says_whether_it_is_ready():
+    assert lo.learned_flow_status({"state": "not_ready"}, True, "en")[0] == "Coolest water: still learning from each warm-up."
+    assert lo.learned_flow_status({"state": "applied", "flow_c": 34}, True, "en")[0] == "Coolest water: learned for your house."
+    assert lo.learned_flow_status({"state": "holding", "flow_c": 34}, None, "nl")[0] == "Koelste water: geleerd voor je huis."
+    assert lo.learned_flow_status({"state": "advice", "flow_c": 34}, False, "en")[0] == "Coolest water: learned; used when Smart warm-up is on."
+    assert lo.learned_flow_status({"state": "no_room"}, True, "en") is None and lo.learned_flow_status(None, True, "en") is None
+    s = sensor()
+    s.hub.update_summary({**SUMMARY, "flow": {"curve": {"state": "applied", "slope": 1.17, "slope_source": "design", "windows": 2},
+                                              "learned": {"state": "not_ready", "flow_c": None}}})
+    s.hass = SimpleNamespace(config=SimpleNamespace(language="en"),
+                             data={"open_thermostat": {"e": {"e32_flow": SimpleNamespace(settings={"weather_curve": True, "apply_learned": True})}}})
+    assert [line["text"] for line in s.extra_state_attributes["house"]][:2] == [
+        "Heating curve: standard for now, learning from your house (2 of 6 steady periods).", "Coolest water: still learning from each warm-up."]

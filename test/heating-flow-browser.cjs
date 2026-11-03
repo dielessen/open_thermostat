@@ -84,6 +84,10 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.match(await box.innerText(),/Kouder buiten betekent warmer water naar de radiatoren en vloer, nog voordat de ruimtes afkoelen\./);
   // rc.3 Smart warm-up: under Advanced, opened while the owner has it off; one line says what it does.
   const advanced=box.locator('details.hp-advanced'),smart=box.locator('[data-smart-warmup-state]');
+  // rc.3: the heating curve and the learned water say plainly what they use now (the curve is off in this fixture).
+  const curveLine=box.locator('[data-curve-state]'),waterLine=box.locator('[data-learned-flow-state]');
+  assert.equal(await curveLine.innerText(),'Stooklijn: uit, de watertemperatuur volgt alleen de ruimtes.');
+  assert.equal(await waterLine.innerText(),'Koelste water: leert nog van elke keer opwarmen.');
   assert.equal(await advanced.evaluate(d=>d.open),true,'off: the switch is in view');
   assert.equal(await smart.innerText(),'Slim opwarmen staat uit: verwarmen begint pas op de tijd van het programma.');
   assert.match(await advanced.innerText(),/Begint vanzelf eerder met verwarmen, zodat een ruimte warm is op de tijd in zijn weekprogramma, met het koelste water dat dat nog haalt\. Uit: verwarmen begint pas op de tijd van het programma\./);
@@ -135,6 +139,14 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
    ['Steilheid stooklijn','0,71 · Geleerd van dit huis'],['Geleerde watertemperatuur','In gebruik · 34 °C'],['Slim opwarmen','Geen start gepland'],
    ['Gasijking','Geen gasmeter: schatting uit het ketelvermogen (ruw)'],['Ketelvermogen','24,0 kW bij volle brander']]);
   assert.equal(await box.locator('[data-flow-night]').innerText(),'Afgelopen nacht: geen gasmeterstand');
+  // Both on now: the learned curve and the learned water, in plain words.
+  assert.equal(await curveLine.innerText(),'Stooklijn: geleerd voor je huis.');
+  assert.equal(await waterLine.innerText(),'Koelste water: geleerd voor je huis.');
+  // Still learning the curve (2 of 6 steady periods), and no outdoor temperature at all.
+  status.flow.curve={...status.flow.curve,slope_source:'design',windows:2};
+  await curveLine.getByText('Stooklijn: voorlopig standaard, hij leert van je huis (2 van 6 rustige periodes).').waitFor({timeout:15000});
+  status.flow.curve={...status.flow.curve,state:'no_outdoor',flow_c:null};
+  await curveLine.getByText('Stooklijn: nu geen buitentemperatuur, dus de watertemperatuur volgt alleen de ruimtes.').waitFor({timeout:15000});
   // Changed elsewhere (Home Assistant): the stored options come with the status.
   settings={weather_curve:false,apply_learned:true,curve_design_flow_c:0,tuning:settings.tuning};
   status.flow.settings={weather_curve:false,apply_learned:true,curve_design_flow_c:0};

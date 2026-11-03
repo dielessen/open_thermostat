@@ -1569,17 +1569,19 @@
         }
       },
       "e32_flow_limits": {
-        "title": "Watertemperatuur en Slim opwarmen",
-        "description": "De laagste en hoogste temperatuur van het water dat de ketel naar de radiatoren en vloer stuurt (aanvoertemperatuur), voor alle ruimtes samen. \"Buitentemperatuur volgen (stooklijn)\" is een schakelaar op de apparaatpagina van de E32 in Home Assistant. {boiler} {error}",
+        "title": "Watertemperatuur, Slim opwarmen en stooklijn",
+        "description": "De laagste en hoogste temperatuur van het water dat de ketel naar de radiatoren en vloer stuurt (aanvoertemperatuur), voor alle ruimtes samen. Slim opwarmen en de stooklijn staan standaard aan; de E32 beslist zelf wanneer wat hij leerde goed genoeg is. {boiler} {error}",
         "data": {
           "minimum_flow_temperature": "Laagste watertemperatuur",
           "maximum_flow_temperature": "Hoogste watertemperatuur",
-          "smart_warm_up": "Slim opwarmen"
+          "smart_warm_up": "Slim opwarmen",
+          "follow_outdoor": "Buitentemperatuur volgen (stooklijn)"
         },
         "data_description": {
           "minimum_flow_temperature": "De laagste watertemperatuur die de E32 vraagt zolang hij verwarmt ({minimum_range}).",
           "maximum_flow_temperature": "De hoogste watertemperatuur die de E32 ooit vraagt ({maximum_range}, boven de laagste). Vloerverwarming zonder mengklep: meestal hoogstens 45–50 °C. Radiatoren: op koude dagen vaak 60–75 °C. De maximale cv-temperatuur die op je ketel staat, blijft altijd de bovengrens; de E32 vraagt nooit meer.",
-          "smart_warm_up": "Begint vanzelf eerder met verwarmen, zodat een ruimte warm is op de tijd in zijn weekprogramma, met het koelste water dat dat nog haalt. Uit: verwarmen begint pas op de tijd van het programma; na elk programmatijdstip kan het een tijdje koeler zijn (vloerverwarming kan een uur of langer nodig hebben). Ook een schakelaar op de apparaatpagina van de E32."
+          "smart_warm_up": "Begint vanzelf eerder met verwarmen, zodat een ruimte warm is op de tijd in zijn weekprogramma, met het koelste water dat dat nog haalt. Uit: verwarmen begint pas op de tijd van het programma; na elk programmatijdstip kan het een tijdje koeler zijn (vloerverwarming kan een uur of langer nodig hebben). Ook een schakelaar op de apparaatpagina van de E32.",
+          "follow_outdoor": "Kouder buiten betekent warmer water naar de radiatoren en vloer, nog voordat de ruimtes afkoelen; de ruimtetemperatuur stuurt nog bij. Hij begint met een standaard stooklijn en leert die van je huis. Zonder buitentemperatuur geldt de gewone ruimteregeling. Ook een schakelaar op de apparaatpagina van de E32."
         }
       },
       "e32_room_remove": {
@@ -1912,7 +1914,7 @@
       "e32_restore_adopt_failed": "Home Assistant kon deze E32 niet in gebruik nemen. Probeer het opnieuw, of verbind hem onder Configureren → E32-verbinding.",
       "e32_restore_unconfirmed": "De E32 antwoordde niet na het terugzetten, dus het is niet bekend of de instellingen zijn aangekomen. Controleer of de E32 aan staat en zijn webpagina opent, en kies de back-up daarna opnieuw: de E32 controleert wat nog anders is.",
       "e32_restore_not_applied": "De E32 bevestigde het terugzetten niet, en zijn controle laat zien dat niet alle instellingen zijn aangekomen. Kies de back-up opnieuw om hem nog een keer terug te zetten.",
-      "e32_smart_warm_up_failed": "De E32 heeft Slim opwarmen niet opgeslagen. Controleer de verbinding en probeer het opnieuw."
+      "e32_flow_options_failed": "De E32 heeft de wijziging niet opgeslagen. Controleer de verbinding en probeer het opnieuw."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",
@@ -1983,8 +1985,7 @@
       "e32_restore_done_restart": "Instellingen teruggezet. Start de E32 opnieuw op (Systeem → Apparaat herstarten op zijn pagina) om ze allemaal te gebruiken. De ruimtes houden de modus uit de back-up; een nieuwe of gewiste E32 regelt de ketel pas nadat je de overname bevestigt op zijn pagina Ruimtes.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
       "e32_restore_done": "Instellingen teruggezet. De ruimtes houden de modus uit de back-up; een nieuwe of gewiste E32 regelt de ketel pas nadat je de overname bevestigt op zijn pagina Ruimtes.\n\nVoer dit opnieuw in op de E32-pagina:\n{reenter}",
       "e32_restore_adopted": "Klaar: Home Assistant gebruikt voortaan deze E32. Er is niets teruggezet; hij had deze instellingen al.",
-      "e32_smart_warm_up_on": "Slim opwarmen staat aan: elke ruimte begint vanzelf eerder met verwarmen, zodat hij warm is op de tijd in zijn weekprogramma.",
-      "e32_smart_warm_up_off": "Slim opwarmen staat uit: verwarmen begint pas op de tijd van het programma."
+      "e32_flow_options_saved": "De instellingen voor de watertemperatuur zijn op de E32 opgeslagen."
     },
     "progress": {
       "controller_connect": "Verbinden met de E32…",

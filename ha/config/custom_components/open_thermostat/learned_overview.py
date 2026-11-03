@@ -87,6 +87,16 @@ TEXT = {
         "night_hold": "Keeping it at {night} °C at night is cheaper than letting it cool down: {saving}.",
         "night_program": "Letting it cool down at night, as your program does, is the cheapest.",
         "night_mean": "This is advice: your week program stays as it is.",
+        "curve_status_off": "Heating curve: off, the water temperature follows the rooms only.",
+        "curve_status_no_outdoor": "Heating curve: no outdoor temperature right now, so the water temperature follows the rooms only.",
+        "curve_status_learned": "Heating curve: learned for your house.",
+        "curve_status_learning": "Heating curve: standard for now, learning from your house ({n} of {m} steady periods).",
+        "curve_status_learning_plain": "Heating curve: standard for now, learning from your house.",
+        "curve_status_mean": "The E32 decides by itself when what it learned is good enough to use.",
+        "flow_status_collecting": "Coolest water: still learning from each warm-up.",
+        "flow_status_ready": "Coolest water: learned for your house.",
+        "flow_status_advice": "Coolest water: learned; used when Smart warm-up is on.",
+        "flow_status_mean": "Cooler water lets the boiler condense better, so it uses less gas.",
         "curve_learned": "Heating curve, learned from your house: the water gets about {s} °C warmer for every degree colder outside.",
         "curve": "Heating curve: the water gets about {s} °C warmer for every degree colder outside.",
         "curve_on": "The heating curve sets the water temperature, so the boiler runs as cool as the weather allows.",
@@ -154,6 +164,16 @@ TEXT = {
         "night_hold": "'s Nachts op {night} °C houden is goedkoper dan laten afkoelen: {saving}.",
         "night_program": "'s Nachts laten afkoelen, zoals je programma doet, is het goedkoopst.",
         "night_mean": "Dit is een advies: je weekprogramma blijft zoals het is.",
+        "curve_status_off": "Stooklijn: uit, de watertemperatuur volgt alleen de ruimtes.",
+        "curve_status_no_outdoor": "Stooklijn: nu geen buitentemperatuur, dus de watertemperatuur volgt alleen de ruimtes.",
+        "curve_status_learned": "Stooklijn: geleerd voor je huis.",
+        "curve_status_learning": "Stooklijn: voorlopig standaard, hij leert van je huis ({n} van {m} rustige periodes).",
+        "curve_status_learning_plain": "Stooklijn: voorlopig standaard, hij leert van je huis.",
+        "curve_status_mean": "De E32 beslist zelf wanneer wat hij leerde goed genoeg is om te gebruiken.",
+        "flow_status_collecting": "Koelste water: leert nog van elke keer opwarmen.",
+        "flow_status_ready": "Koelste water: geleerd voor je huis.",
+        "flow_status_advice": "Koelste water: geleerd; wordt gebruikt als Slim opwarmen aan staat.",
+        "flow_status_mean": "Met koeler water condenseert de ketel beter, dus verbruikt hij minder gas.",
         "curve_learned": "Stooklijn, geleerd van je huis: het water wordt ongeveer {s} °C warmer voor elke graad kouder buiten.",
         "curve": "Stooklijn: het water wordt ongeveer {s} °C warmer voor elke graad kouder buiten.",
         "curve_on": "De stooklijn bepaalt de watertemperatuur, zodat de ketel zo koel draait als het weer toelaat.",
@@ -221,6 +241,16 @@ TEXT = {
         "night_hold": "Utrzymywanie {night} °C w nocy jest tańsze niż wychładzanie: {saving}.",
         "night_program": "Wychładzanie w nocy, tak jak robi to Twój program, jest najtańsze.",
         "night_mean": "To porada: Twój program tygodniowy pozostaje bez zmian.",
+        "curve_status_off": "Krzywa grzewcza: wyłączona, temperatura wody zależy tylko od pomieszczeń.",
+        "curve_status_no_outdoor": "Krzywa grzewcza: teraz brak temperatury zewnętrznej, więc temperatura wody zależy tylko od pomieszczeń.",
+        "curve_status_learned": "Krzywa grzewcza: wyuczona dla Twojego domu.",
+        "curve_status_learning": "Krzywa grzewcza: na razie standardowa, uczy się Twojego domu ({n} z {m} stabilnych okresów).",
+        "curve_status_learning_plain": "Krzywa grzewcza: na razie standardowa, uczy się Twojego domu.",
+        "curve_status_mean": "E32 sam decyduje, kiedy to, czego się nauczył, jest wystarczająco dobre, by tego używać.",
+        "flow_status_collecting": "Najchłodniejsza woda: wciąż uczy się z każdego nagrzewania.",
+        "flow_status_ready": "Najchłodniejsza woda: wyuczona dla Twojego domu.",
+        "flow_status_advice": "Najchłodniejsza woda: wyuczona; używana, gdy Inteligentne nagrzewanie jest włączone.",
+        "flow_status_mean": "Przy chłodniejszej wodzie kocioł lepiej kondensuje, więc zużywa mniej gazu.",
         "curve_learned": "Krzywa grzewcza wyuczona z Twojego domu: woda jest cieplejsza o około {s} °C na każdy stopień zimniej na zewnątrz.",
         "curve": "Krzywa grzewcza: woda jest cieplejsza o około {s} °C na każdy stopień zimniej na zewnątrz.",
         "curve_on": "Krzywa grzewcza ustala temperaturę wody, więc kocioł pracuje tak chłodno, jak pozwala pogoda.",
@@ -410,10 +440,54 @@ def boiler_minimum_flow(summary):
     return value if _ok(value) and 20 <= value <= 90 else None
 
 
-def house_overview(summary, lang):
-    """[{text, meaning}] for the heating curve, the burner and the boiler's learned minimum flow, from the summary."""
+CURVE_STEPS = 6  # CurveLearner::Params::minWindows: steady 3-hour periods before the learned curve is used
+
+
+def curve_status(curve, on, lang):
+    """(text, meaning) for what the heating curve uses now (E32 rc.3, on by default), or None.
+
+    ``curve``: the summary's ``flow.curve`` (state, slope_source, windows); ``on``: the stored option
+    ``weather_curve`` (None: not known, on by default).
+    """
+    t = TEXT[lang]
+    if type(curve) is not dict or curve.get("state") in (None, "no_room"):
+        return None
+    if on is False:
+        return t["curve_status_off"], t["curve_off"]
+    if curve.get("state") == "no_outdoor":
+        return t["curve_status_no_outdoor"], t["curve_status_mean"]
+    if curve.get("slope_source") == "learned":
+        return t["curve_status_learned"], t["curve_status_mean"]
+    windows = curve.get("windows")
+    if type(windows) is int and windows >= 0:
+        return t["curve_status_learning"].format(n=min(windows, CURVE_STEPS), m=CURVE_STEPS), t["curve_status_mean"]
+    return t["curve_status_learning_plain"], t["curve_status_mean"]
+
+
+def learned_flow_status(learned, smart, lang):
+    """(text, meaning) for the learned coolest water (the summary's ``flow.learned``), or None."""
+    t = TEXT[lang]
+    state = learned.get("state") if type(learned) is dict else None
+    if type(state) is not str or state == "no_room":
+        return None
+    if state == "not_ready":
+        return t["flow_status_collecting"], t["flow_status_mean"]
+    return t["flow_status_advice" if smart is False else "flow_status_ready"], t["flow_status_mean"]
+
+
+def house_overview(summary, lang, options=None):
+    """[{text, meaning}] for the heating curve, the burner and the boiler's learned minimum flow, from the summary.
+
+    ``options``: the E32's stored flow options when known (weather_curve, apply_learned).
+    """
     t, lines = TEXT[lang], []
     summary = summary if type(summary) is dict else {}
+    options = options if type(options) is dict else {}
+    flow = summary.get("flow") if type(summary.get("flow")) is dict else {}
+    for status in (curve_status(flow.get("curve"), options.get("weather_curve"), lang),
+                   learned_flow_status(flow.get("learned"), options.get("apply_learned"), lang)):
+        if status is not None:
+            lines.append(_line(*status))
     curve = (summary.get("flow") or {}).get("curve") if type(summary.get("flow")) is dict else None
     if type(curve) is dict and _ok(curve.get("slope")):
         lines.append(_line(t["curve_learned" if curve.get("slope_source") == "learned" else "curve"].format(s=number(curve["slope"], lang, 2)),
@@ -469,6 +543,13 @@ class LearnedOverviewSensor(RestoreEntity, SensorEntity):
         summary = self.hub.summary if type(self.hub.summary) is dict else {}
         return summary.get("tuning") if type(summary.get("tuning")) is dict else None
 
+    def _flow_options(self):
+        """The E32's flow options as last read (e32_flow.py), or None."""
+        from .e32_flow import KEY
+        data = getattr(getattr(self, "hass", None), "data", None)
+        link = data.get(DOMAIN, {}).get(self.entry.entry_id, {}).get(KEY) if isinstance(data, dict) else None
+        return getattr(link, "settings", None)
+
     def _names(self):
         from .heating_link import label
         return {room_id: label(room) for room_id, room in self.hub.rooms.items()}
@@ -517,7 +598,7 @@ class LearnedOverviewSensor(RestoreEntity, SensorEntity):
                  for room_id, name in names.items() if self.hub.rooms[room_id].get("state") != "inactive"]
         manual = tuning.get("manual") if type(tuning.get("manual")) is list else []
         attributes = {"explanation": t.get("state." + str(tuning.get("state")), "") if tuning else t["unavailable"],
-                      "rooms": rooms, "house": house_overview(self.hub.summary, lang),
+                      "rooms": rooms, "house": house_overview(self.hub.summary, lang, self._flow_options()),
                       "changes": changes or [{"time": None, "text": t["state.none"]}],
                       "settings": settings(tuning.get("values"), manual, lang)}
         lowest = boiler_minimum_flow(self.hub.summary)

@@ -4,8 +4,10 @@ Controls on the product device (configuration), read and written over the
 stored controller connection (``GET/POST /config/heating/flow``, one field per
 change), the same login and lock as the room plan:
 
-- switch "Weather-compensated heating curve" (``weather_curve``): the flow
-  follows the outdoor temperature, the room correction on top;
+- switch "Follow outdoor temperature (heating curve)" (``weather_curve``; on by
+  default since E32 rc.3): the flow follows the outdoor temperature, the room
+  correction on top; a standard curve until the E32 learned the house's own,
+  the room control alone without a fresh outdoor temperature;
 - switch "Smart warm-up" (``apply_learned``; on by default since E32 rc.3: a
   time in the week program means "warm at that time"): it starts early enough
   for the next program step, with the lowest flow that is still in time; off,

@@ -24,7 +24,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from .heating_link import RoomEntity, number
 
 # The room status card's module (served and loaded with the week planner's, week_planner.card_modules).
-CARD_URL = "/open_thermostat/room-status-card-1.0.0rc3.js"
+CARD_URL = "/open_thermostat/room-status-card-1.0.0rc4.js"
 # The reasons, in the order they win: a room that is off or paused says so before
 # anything else; a room that wants heat but waits for the boiler says why it waits;
 # then the mode that sets its target (away, boost); then what it does.

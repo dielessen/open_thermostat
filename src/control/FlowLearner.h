@@ -35,7 +35,6 @@ inline double sqrt(double v) {
     for (int k = 0; k < 6; ++k) y = 0.5 * (y + v / y);
     return y;
 }
-inline float sqrt(float x) { return static_cast<float>(sqrt(double(x))); }
 // Half away from zero, like std::round.
 inline double round(double x) { return x < 0 ? -std::floor(-x + 0.5) : std::floor(x + 0.5); }
 }
@@ -384,7 +383,7 @@ public:
             const float mean = b.wr / b.w;
             number(p, "flow_c", b.wf / b.w, 10);
             number(p, "rate_c_per_h", mean, 100);
-            number(p, "sd_c_per_h", learnmath::sqrt(std::max(0.0f, b.wrr / b.w - mean * mean)), 100);
+            number(p, "sd_c_per_h", float(learnmath::sqrt(std::max(0.0f, b.wrr / b.w - mean * mean))), 100);
             cJSON_AddNumberToObject(p, "segments", b.segments);
             cJSON_AddNumberToObject(p, "periods", b.periods);
             cJSON_AddBoolToObject(p, "ready", ready(b));

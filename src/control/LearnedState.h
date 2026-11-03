@@ -297,12 +297,12 @@ private:
     // weight x mean (+ spread^2): the flow 0.005 degC, the rates 0.0005 degC/h from RAM.
     static constexpr double hourScale = 600, centiScale = 100, milliScale = 1000;
     template <class T> static bool fixed(double v, double scale, T& out) {
-        const double r = std::round(v * scale);
+        const double r = learnmath::round(v * scale); // not std::round: no libm member (FlowLearner.h)
         if (!(r >= double(std::numeric_limits<T>::min()) && r <= double(std::numeric_limits<T>::max()))) return false; // NaN too
         out = T(r);
         return true;
     }
-    static double spread(double meanSquare, double mean) { return std::sqrt(std::max(0.0, meanSquare - mean * mean)); }
+    static double spread(double meanSquare, double mean) { return learnmath::sqrt(std::max(0.0, meanSquare - mean * mean)); }
     static void compactRoom(Out& o, FlowLearner::Room& r) {
         roomHead(o, r);
         auto& h = r.heat;

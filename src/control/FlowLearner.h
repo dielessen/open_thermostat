@@ -25,15 +25,17 @@ inline double exp(double x) {
     for (int k = 0; k < 10; ++k) sum *= sum;
     return sum;
 }
-// Newton iterations from a power-of-two start; 0 for x <= 0.
-inline float sqrt(float x) {
-    if (!(x > 0)) return 0;
-    double y = 1, v = x;
+// Newton iterations from a power-of-two start (within a factor 2, so 6 steps reach double
+// precision); 0 for x <= 0.
+inline double sqrt(double v) {
+    if (!(v > 0)) return 0;
+    double y = 1;
     while (y * y > v * 4) y *= 0.5;
     while (y * y < v * 0.25) y *= 2;
     for (int k = 0; k < 6; ++k) y = 0.5 * (y + v / y);
-    return static_cast<float>(y);
+    return y;
 }
+inline float sqrt(float x) { return static_cast<float>(sqrt(double(x))); }
 // Half away from zero, like std::round.
 inline double round(double x) { return x < 0 ? -std::floor(-x + 0.5) : std::floor(x + 0.5); }
 }

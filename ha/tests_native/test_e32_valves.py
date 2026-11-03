@@ -799,7 +799,7 @@ async def test_the_dashboard_shows_the_valve_opening_and_a_problem_badge_only_fo
                                                         suggested_object_id=f"woonkamer_{key}").entity_id
             for domain, key in (("sensor", "valve_position"), ("binary_sensor", "valve_problem"), ("switch", "valve_control"))}
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
-    sections = {s["cards"][0]["heading"]: s for s in config["views"][0]["sections"]}
+    sections = {s["cards"][0]["heading"]: s for s in config["views"][1]["sections"]}
     living = sections["Woonkamer"]["cards"]
     tile = next(c for c in living if c.get("entity") == made["valve_position"])
     assert tile["type"] == "tile" and tile["name"] == "Valves open" and tile["icon"] == "mdi:valve"

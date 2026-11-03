@@ -39,7 +39,9 @@ def readiness_record(hass, e):
 
 
 def now_cards(config):
-    return config["views"][0]["sections"][0]["cards"]
+    """The takeover check and the comparison link: the "Boiler control" section of the learning view."""
+    learning = next(v for v in config["views"] if v["path"] == "learned")
+    return next(s["cards"] for s in learning["sections"] if s["cards"][0]["heading"] in ("Boiler control", "Aansturing van de ketel"))
 
 
 # -- the dashboard -------------------------------------------------------------------------------------------
@@ -50,7 +52,7 @@ async def test_active_mode_has_no_comparison_link_or_subview(hass):
     readiness = readiness_record(hass, e)
     hass.data["open_thermostat"][e.entry_id]["heating_hub"].update({**STATUS, "mode": "active"})
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
-    assert [v["path"] for v in config["views"]] == ["heating", "boiler", "diagnostics"]
+    assert [v["path"] for v in config["views"]] == ["heating", "rooms", "boiler", "learned", "diagnostics"]
     text = json.dumps(config)
     assert "compared with your thermostat" not in text and "/comparison" not in text
     for key in ("shadow_agreement_today", "shadow_tado_heating_time_today", "shadow_tado_starts_today"):
@@ -58,10 +60,10 @@ async def test_active_mode_has_no_comparison_link_or_subview(hass):
     # The readiness tile stays (it hides itself on not_applicable) but leads to no missing subview.
     tile = next(c for c in now_cards(config) if c.get("entity") == readiness)
     assert tile["visibility"] == known(readiness, ("not_applicable",)) and "tap_action" not in tile
-    # The loose Bluetooth sensor is not lost with the subview: it is on the Heating view.
-    headings = [s["cards"][0]["heading"] for s in config["views"][0]["sections"]]
-    assert headings[-1] == "Bluetooth sensors"
-    assert sensors["temperature"] in json.dumps(config["views"][0])
+    # The loose Bluetooth sensor is never in the subview: it is in the Rooms view.
+    rooms_view = next(v for v in config["views"] if v["path"] == "rooms")
+    assert [s["cards"][0]["heading"] for s in rooms_view["sections"]][-1] == "Bluetooth sensors"
+    assert sensors["temperature"] in json.dumps(rooms_view)
 
 
 @pytest.mark.asyncio
@@ -101,7 +103,7 @@ async def test_trial_run_without_a_thermostat_keeps_the_readiness_check_reachabl
     tile = next(c for c in now_cards(config) if c.get("entity") == readiness)
     assert tile["tap_action"]["navigation_path"] == "/" + dashboard.path + "/comparison"
     subview = next(v for v in config["views"] if v["path"] == "comparison")
-    assert [s["cards"][0]["heading"] for s in subview["sections"]] == ["Ready to take over?", "Bluetooth sensors"]
+    assert [s["cards"][0]["heading"] for s in subview["sections"]] == ["Ready to take over?"]
 
 
 @pytest.mark.asyncio

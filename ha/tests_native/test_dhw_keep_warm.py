@@ -324,8 +324,8 @@ async def test_the_boiler_views_hot_water_section_holds_the_timeline_and_the_gas
     config = RoomDashboard(hass, "fixture", entry.entry_id)._dashboard_config()
     assert None not in list(walk(config))
     sections = headed(view(config, "boiler"))
-    assert list(sections) == ["Heating", "Hot water", "Status and faults", "Boiler settings",
-                              "Thermostat on the bus", "Last 24 hours"]  # no extra section
+    assert list(sections) == ["Boiler", "Heating", "Hot water", "Status and faults", "Boiler settings",
+                              "Thermostat on the bus", "Last 24 hours", "Gas per day"]  # no extra section for hot water
     cards = sections["Hot water"]
     timeline = next(card for card in cards if card["type"] == "history-graph")
     assert [item["entity"] for item in timeline["entities"]] == ["sensor.boiler_activity", fields["heating_active"]]

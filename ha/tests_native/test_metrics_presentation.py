@@ -34,8 +34,8 @@ async def test_native_dashboard_three_views_reported_vs_estimated_no_legacy_coun
         entity(hass,e,key,"binary_sensor")
     dashboard=RoomDashboard(hass,"fixture",e.entry_id)
     config=dashboard._dashboard_config()
-    assert [v["path"] for v in config["views"]]==["heating","boiler","diagnostics"]
-    boiler=view_cards(config["views"][1])
+    assert [v["path"] for v in config["views"]]==["boiler","diagnostics"]
+    boiler=view_cards(config["views"][0])
     assert [c["type"] for c in boiler]==["heading","markdown","history-graph","history-graph","history-graph"]
     assert [x["name"] for x in boiler[2]["entities"]]==["Target (boiler)","To heating, as the boiler reports it"]
     assert boiler[3]["title"]=="Burner power (%) — not kW"

@@ -6,6 +6,10 @@ from custom_components.open_thermostat.dashboard import RoomDashboard
 from test_dashboard_heating import installation, walk
 
 
+def boiler(config):
+    return next(v for v in config["views"] if v["path"] == "boiler")
+
+
 def heading_section(view, heading):
     return next((s["cards"] for s in view["sections"] if s["cards"][0].get("heading") == heading), None)
 
@@ -26,7 +30,7 @@ def with_summary(hass, language):
 @pytest.mark.asyncio
 async def test_yesterday_section_with_the_summary_and_two_daily_bar_charts(hass):
     config, hub = with_summary(hass, "en")
-    cards = heading_section(config["views"][0], "Yesterday")
+    cards = heading_section(boiler(config), "Yesterday")
     assert cards is not None
     text = cards[1]["content"]
     assert f"state_attr(\"{hub['daily_summary']}\", 'last_day')" in text
@@ -42,7 +46,7 @@ async def test_yesterday_section_with_the_summary_and_two_daily_bar_charts(hass)
 @pytest.mark.asyncio
 async def test_yesterday_section_in_dutch(hass):
     config, hub = with_summary(hass, "nl")
-    cards = heading_section(config["views"][0], "Gisteren")
+    cards = heading_section(boiler(config), "Gisteren")
     assert "Brander {{ d.burner_hours }} uur" in cards[1]["content"]
     assert [c["title"] for c in cards if c.get("type") == "statistics-graph"] == [
         "Branderuren per dag", "Gemiste comfort per dag (minuten)"]
@@ -52,4 +56,4 @@ async def test_yesterday_section_in_dutch(hass):
 async def test_no_yesterday_section_without_the_summary(hass):
     e, rooms, sensors, hub, fields = installation(hass, "en")
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
-    assert heading_section(config["views"][0], "Yesterday") is None
+    assert heading_section(boiler(config), "Yesterday") is None

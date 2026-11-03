@@ -11,8 +11,10 @@ Entities (product entries with a stored controller connection, one per room
 the E32 telemetry reports): a select (active / inactive), a datetime
 (inactive until) and a number (fallback setpoint). Whole rooms are added,
 edited and removed by the "E32 rooms" options flow (e32_room_flow.py) through
-the same writer. A plan read from or confirmed by the E32 removes the devices
-of rooms it no longer has (native_entity_cleanup.cleanup_removed_rooms).
+the same writer. Plans read from or confirmed by the E32 remove the devices
+of rooms they no longer have once two reads at least a minute apart miss
+them; a plan without rooms never removes any
+(native_entity_cleanup.cleanup_removed_rooms).
 """
 from __future__ import annotations
 
@@ -178,6 +180,7 @@ class RoomPlanLink:
         self.plan = None
         self._lock = asyncio.Lock()
         self._task = None
+        self._confirm = None  # the scheduled plan read that confirms a room missing from the plan
         self._seen_revision = None
         self._failed_at = None
         # Writes wait for a free E32 web session (only 4; all in use: 429 session_capacity).
@@ -342,15 +345,37 @@ class RoomPlanLink:
 
     @callback
     def _set(self, plan):
-        """A plan read from (or confirmed by) the E32: rooms no longer in it lose their device."""
+        """A plan read from (or confirmed by) the E32: rooms no longer in it lose their device.
+
+        Only once a second plan read at least a minute later misses them too (and never on a plan
+        without rooms, R4-01): that read is scheduled here when a room waits for it.
+        """
         self.plan = plan
         if self.entry is not None:
-            from .native_entity_cleanup import cleanup_removed_rooms
-            cleanup_removed_rooms(self.hass, self.entry, self.hub.prefix, plan)
+            from .native_entity_cleanup import ABSENT_CONFIRM_SECONDS, absent_rooms, cleanup_removed_rooms
+            cleanup_removed_rooms(self.hass, self.entry, self.hub.prefix, plan, self.clock())
+            waiting = absent_rooms(self.hass, self.entry)
+            if waiting:
+                self._confirm_later(min(waiting.values()) + ABSENT_CONFIRM_SECONDS - self.clock())
             # "Choose a temperature source for <room>" goes once the room has a new source.
             from .legacy_room_migration import update_choose_source_issues
             update_choose_source_issues(self.hass, self.entry, plan)
         self.hub.notify()
+
+    @callback
+    def _confirm_later(self, delay):
+        """Read the plan again after delay s (at least 1 s): a room it missed goes only when that read misses it too."""
+        if self._confirm is not None:
+            return
+        from homeassistant.helpers.event import async_call_later
+
+        @callback
+        def due(_now):
+            self._confirm = None
+            if self.login_rejected or (self._task is not None and not self._task.done()):
+                return  # a read that is running confirms as well; a refused password never signs in again
+            self._task = self.hass.async_create_task(self.async_refresh(), "OpenThermostat E32 room plan check")
+        self._confirm = async_call_later(self.hass, max(1.0, delay), due)
 
     async def async_change_room(self, room_id, change, key=None):
         """GET, change one room field, POST with the read revision; one re-read on 409."""
@@ -407,6 +432,9 @@ class RoomPlanLink:
     @callback
     def stop(self):
         self._remove()
+        if self._confirm is not None:
+            self._confirm()
+            self._confirm = None
         if self._task is not None and not self._task.done():
             self._task.cancel()
 

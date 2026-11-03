@@ -41,7 +41,10 @@ those statistics) when the integration provides it again.
 E32 rooms: a room that is no longer in the E32 room plan (removed in the HA
 room editor or on the E32's own page) loses its room device and that device's
 entities, but only once a plan has actually been read from the E32 (never on
-a missing or unreadable plan) and only this entry's own devices.
+a missing or unreadable plan) and only this entry's own devices. A plan
+without rooms never removes anything (the E32 serves one when its stored plan
+is unreadable, R4-01), and a room goes only once two successful plan reads at
+least ABSENT_CONFIRM_SECONDS apart both miss it (cleanup_removed_rooms).
 """
 import logging
 import re
@@ -461,19 +464,64 @@ def remove_room_devices(hass, entry, prefix, room_ids):
     return removed
 
 
-def cleanup_removed_rooms(hass, entry, prefix, plan):
-    """Remove the room devices of rooms a plan read from the E32 no longer has.
+# hass.data key: {room id: clock time of the plan read that first missed it} for rooms that still
+# have a device of this entry while the latest successful plan reads did not list them.
+ABSENT_ROOMS = "e32_absent_rooms"
+# A room leaves Home Assistant only once two successful plan reads at least this far apart miss it.
+ABSENT_CONFIRM_SECONDS = 60
 
-    plan is a decoded E32 room plan; None (not read yet, unreadable) removes
-    nothing. A room removed during this setup that is back in the plan (the
-    same name added again) gets its entities again from the heating hub's
-    trackers (heating_link.track_entities), without reloading the entry.
+
+def absent_rooms(hass, entry):
+    """{room id: clock time first missed} of the rooms that wait for a confirming plan read."""
+    state = hass.data.get(DOMAIN, {}).get(entry.entry_id) if entry is not None else None
+    return dict(state.get(ABSENT_ROOMS) or {}) if isinstance(state, dict) else {}
+
+
+def cleanup_removed_rooms(hass, entry, prefix, plan, now=None):
+    """Remove the room devices of rooms the E32 room plan no longer has; returns their room ids.
+
+    plan is a decoded E32 room plan, just read from (or confirmed by) the E32;
+    None (not read yet, unreadable) removes nothing. A plan without rooms never
+    removes anything either: the E32 serves exactly that when its stored plan
+    cannot be read (and after a factory reset), so it proves nothing. Removing
+    a room in Configure (e32_room_flow) removes its device at once, also the
+    last room's.
+
+    Otherwise a room goes only when two consecutive successful plan reads at
+    least ABSENT_CONFIRM_SECONDS apart both miss it (now: the clock time of this
+    read, monotonic seconds); a read that lists it again keeps it. absent_rooms()
+    says which rooms wait for that second read.
+
+    A room removed during this setup that is back in the plan (the same name
+    added again) gets its entities again from the heating hub's trackers
+    (heating_link.track_entities), without reloading the entry.
     """
     state = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     if state is None or type(plan) is not dict or type(plan.get("rooms")) is not list:
         return []
+    now = _clock() if now is None else now
     planned = {room.get("id") for room in plan["rooms"] if type(room) is dict}
-    removed = remove_room_devices(hass, entry, prefix, sorted(room_device_ids(hass, entry, prefix) - planned))
+    absent = state.setdefault(ABSENT_ROOMS, {})
+    if not planned:
+        absent.clear()  # no proof either way: the next plan with rooms starts counting again
+        kept = room_device_ids(hass, entry, prefix)
+        if kept:
+            _LOGGER.info("The E32 room plan (revision %s) lists no rooms; the devices of %s stay "
+                         "(a plan without rooms never removes any)", plan.get("revision"), ", ".join(sorted(kept)))
+        return []
+    missing = room_device_ids(hass, entry, prefix) - planned
+    for room_id in [r for r in absent if r not in missing]:
+        del absent[room_id]  # listed again, or its device is gone already
+    due = sorted(r for r in missing if r in absent and now - absent[r] >= ABSENT_CONFIRM_SECONDS)
+    first = sorted(r for r in missing if r not in absent)
+    for room_id in first:
+        absent[room_id] = now
+    if first:
+        _LOGGER.info("The E32 room plan no longer lists %s; their devices stay until a plan read at least "
+                     "%d s later confirms it", ", ".join(first), ABSENT_CONFIRM_SECONDS)
+    removed = remove_room_devices(hass, entry, prefix, due)
+    for room_id in due:
+        absent.pop(room_id, None)
     returned = state.get(REMOVED_ROOMS, set()) & planned
     if returned:
         state[REMOVED_ROOMS] -= returned

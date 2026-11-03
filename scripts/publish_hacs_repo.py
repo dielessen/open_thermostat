@@ -35,11 +35,9 @@ CO_AUTHOR = "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 # The front page of the HACS repository. Images and links are absolute (the main repository's main
 # branch), so they work on GitHub and inside HACS. {source}, {source_raw} (raw files on main) and
 # {ha} are filled in by str.format: write a literal brace as {{ or }}.
+# One plain <img>: HACS shows <picture>/<source> as text.
 README = """<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="{source_raw}/docs/brand/dark_logo.svg">
-    <img src="{source_raw}/docs/brand/logo.svg" alt="OpenThermostat" width="420">
-  </picture>
+  <img src="{source_raw}/docs/brand/logo.svg" alt="OpenThermostat" width="420">
 </p>
 
 # OpenThermostat for Home Assistant
@@ -192,7 +190,8 @@ def git(repo, *args):
 def write_front_page(repo):
     """README.md and hacs.json: the files HACS and GitHub show for the repository."""
     (repo / "hacs.json").write_text(json.dumps({"name": "OpenThermostat", "homeassistant": MINIMUM_HA,
-                                                "render_readme": True}, indent=2) + "\n", encoding="utf-8", newline="\n")
+                                                "render_readme": True,
+                                                "hide_default_branch": True}, indent=2) + "\n", encoding="utf-8", newline="\n")
     readme = README.format(source=SOURCE, source_raw=SOURCE.replace("https://github.com/", "https://raw.githubusercontent.com/") + "/main",
                            ha=MINIMUM_HA)
     (repo / "README.md").write_text(readme, encoding="utf-8", newline="\n")

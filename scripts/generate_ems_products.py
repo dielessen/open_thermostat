@@ -4,7 +4,7 @@
 Sources: data/html/ems-metadata.js, the metadata-only EMS reference the E32's own
 EMS devices page uses (devices), and public/boilers/catalog-v1.json, the boiler
 models the owner can choose on the E32 Boiler page (boiler_models: id -> brand and
-name, the ids the E32 sends as "display_model"). Home Assistant names the devices
+name, the ids the E32 sends as "display_model", and whether a new choice may pick it). Home Assistant names the devices
 on the bus with these (ems_devices.py). Run with --check in CI and tests: exit 1
 when the committed copy differs.
 """
@@ -25,7 +25,8 @@ def generate():
     for device in reference["devices"]:
         devices.setdefault(str(device["product_id"]), []).append({"type": device["type"], "name": device["name"]})
     # Every model, also the ones hidden from new selections: a saved older choice stays named.
-    models = {model["id"]: {"brand": model["brand"], "name": model["name"]}
+    # selectable: offered for a new choice (the E32 Boiler page's list; Configure → Heating and boiler → Boiler model).
+    models = {model["id"]: {"brand": model["brand"], "name": model["name"], "selectable": model.get("selectable", True)}
               for model in json.loads(CATALOG.read_text(encoding="utf-8"))["models"] if model["kind"] != "none"}
     products = {"source": "data/html/ems-metadata.js", "devices": dict(sorted(devices.items(), key=lambda i: int(i[0]))),
                 "models_source": "public/boilers/catalog-v1.json", "boiler_models": models}

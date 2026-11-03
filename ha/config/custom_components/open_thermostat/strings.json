@@ -474,6 +474,7 @@
           "entity_ids": "Tidy entity IDs",
           "entity_ids_undo": "Undo the entity ID tidy",
           "e32_restore": "Restore settings to this E32",
+          "ble_sensors": "Bluetooth sensors",
           "e32_logging": "E32 system log",
           "e32_time_zone": "E32 time zone"
         }
@@ -902,6 +903,65 @@
         "data_description": {
           "time_zone": "Home Assistant's own time zone is chosen when the E32 knows it."
         }
+      },
+      "heating_boiler": {
+        "title": "Heating and boiler",
+        "description": "The water temperature limits for all rooms and the model of your boiler.",
+        "menu_options": {
+          "heating_boiler_limits": "Water temperature limits",
+          "boiler_model": "Boiler model"
+        }
+      },
+      "boiler_model": {
+        "title": "Boiler model",
+        "description": "Choose your boiler, as on the E32's Boiler page. It names the boiler in Home Assistant and on the E32 and chooses the explanation of its display codes; it does not change how the boiler is controlled.\n\nNow: {current}.",
+        "data": {
+          "model": "Boiler model"
+        },
+        "data_description": {
+          "model": "The models are listed from EMS-ESP. A listing does not confirm support in OpenThermostat."
+        }
+      },
+      "ble_sensors": {
+        "title": "Bluetooth sensors",
+        "description": "The Bluetooth sensors paired with the E32. Rename or forget them here; collect all changes first and save them together: after saving, the E32 restarts once, about 30 seconds later, to use them. Pairing a new sensor (scan and key) is done on the E32's Bluetooth sensors page, next to the sensor. Which room a sensor measures is set per room under Rooms.\n\n{sensors}\n\n{pending}",
+        "menu_options": {
+          "ble_rename": "Rename a sensor",
+          "ble_forget": "Forget a sensor",
+          "ble_save": "Save the changes (the E32 restarts once)"
+        }
+      },
+      "ble_rename": {
+        "title": "Rename a sensor",
+        "description": "The new name is saved together with the other changes.",
+        "data": {
+          "sensor": "Sensor",
+          "name": "New name"
+        },
+        "data_description": {
+          "sensor": "The paired sensor, with its Bluetooth address.",
+          "name": "At most 40 characters (fewer with special letters)."
+        }
+      },
+      "ble_forget": {
+        "title": "Forget a sensor",
+        "description": "A forgotten sensor is no longer read by the E32; its key is deleted on the E32. To use it again, pair it again on the E32. A room that measures with it uses its other sources.\n\nSensors used by a room:\n{used}",
+        "data": {
+          "sensors": "Sensors to forget"
+        },
+        "data_description": {
+          "sensors": "Forgotten together with the other changes when you save."
+        }
+      },
+      "ble_save": {
+        "title": "Save the Bluetooth changes",
+        "description": "{sensors}\n\nThe E32 saves these changes and restarts once, about 30 seconds later; the heating continues after about a minute.",
+        "data": {
+          "confirm": "Save and let the E32 restart"
+        },
+        "data_description": {
+          "confirm": "Tick to confirm."
+        }
       }
     },
     "error": {
@@ -1079,7 +1139,12 @@
       "e32_settings_busy": "The E32 is updating or restarting. Try again once its web page opens normally.",
       "e32_settings_unreachable": "The E32 could not be reached ({error}). Nothing was saved.",
       "e32_settings_no_free_session": "The E32 has no free web session: close E32 pages you do not use, or wait two minutes, then try again.",
-      "e32_time_zone_invalid": "Choose a time zone from the list."
+      "e32_time_zone_invalid": "Choose a time zone from the list.",
+      "boiler_model_invalid": "Choose a model from the list.",
+      "ble_sensor_invalid": "Choose one of the paired sensors.",
+      "ble_name_invalid": "Use a name of 1 to 40 characters without line breaks.",
+      "ble_storage_full": "The E32 has no room left to store the sensors. Nothing was saved.",
+      "ble_rejected": "The E32 refused the changes ({error}). Nothing was saved."
     },
     "abort": {
       "comfort_saved": "The comfort settings are saved and apply at once.",
@@ -1162,7 +1227,12 @@
       "e32_settings_unchanged": "Nothing changed; the E32 was not written.",
       "e32_settings_unconfirmed": "The E32 could not confirm the new settings. Check them on the E32's web page.",
       "e32_logging_saved": "The system log settings are saved on the E32.",
-      "e32_time_zone_saved": "The E32 now uses {zone}. It restarts once; the heating continues after about a minute."
+      "e32_time_zone_saved": "The E32 now uses {zone}. It restarts once; the heating continues after about a minute.",
+      "boiler_model_saved": "The E32 now shows {model}. The boiler device in Home Assistant is named after it.",
+      "ble_none": "No Bluetooth sensor is paired with the E32 yet. Pair one on the E32's Bluetooth sensors page first.",
+      "ble_changed": "The Bluetooth sensors were changed on the E32 meanwhile. Nothing was saved; open Bluetooth sensors again.",
+      "ble_saved": "Saved on the E32. It restarts in about 30 seconds to use the changes.",
+      "ble_saved_restart_later": "Saved on the E32. It restarts to use the changes as soon as an update or boiler test has finished."
     },
     "progress": {
       "controller_connect": "Connecting to the E32…",
@@ -3350,6 +3420,32 @@
     "e32_backup_failing": {
       "title": "No recent backup of the E32 settings",
       "description": "{name}: Home Assistant could not back up the E32 settings for more than 3 days (last backup: {last}). Without a recent backup a replacement E32 cannot get your current settings back. Check that the E32 is on and its web page opens, and that its password in Home Assistant is still right; then press Back up E32 settings now on the E32 device. This message disappears after the next successful backup."
+    },
+    "e32_time_zone": {
+      "title": "The E32 uses another time zone",
+      "fix_flow": {
+        "step": {
+          "confirm_time_zone": {
+            "title": "Use Home Assistant's time zone on the E32",
+            "description": "{name}: the E32 runs the week programs in {e32}, Home Assistant is set to {home}. Programs then switch at other times than you expect.\n\nSubmit to set the E32 to {home}. The E32 restarts once; the heating continues after about a minute."
+          }
+        },
+        "error": {
+          "e32_settings_no_free_session": "The E32 has no free web session: close E32 pages you do not use, or wait two minutes, then try again.",
+          "e32_settings_unreachable": "The E32 could not be reached ({error}). Nothing was saved.",
+          "e32_settings_busy": "The E32 is updating or restarting. Try again once its web page opens normally.",
+          "e32_settings_changed": "The E32 settings were changed meanwhile (on its web page?). Nothing was saved; try again.",
+          "e32_settings_invalid": "The E32 refused these settings. Nothing was saved.",
+          "e32_settings_unconfirmed": "The E32 could not confirm that the settings were saved. Check them on the E32 before trying again."
+        },
+        "abort": {
+          "e32_rooms_unavailable": "Connect the E32 first (E32 connection) so Home Assistant can edit its room plan.",
+          "e32_time_zone_unknown": "Home Assistant's time zone is not in the E32's list. Set the E32's time zone on its Settings page (Time, Advanced).",
+          "e32_password_changed": "The E32 no longer accepts the saved password. Home Assistant asks for the new one: Settings → Devices & services → OpenThermostat → Re-authenticate.",
+          "e32_settings_password_default": "The E32 still uses its default password and accepts no changes until you choose a new one: Settings → Repairs → “E32 still uses the default password”.",
+          "e32_settings_update_required": "This E32 firmware does not offer this setting. Update the E32 (Firmware update) first."
+        }
+      }
     }
   },
   "services": {

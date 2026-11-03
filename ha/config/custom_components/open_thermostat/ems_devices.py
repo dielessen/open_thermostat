@@ -86,6 +86,10 @@ def parse(payload):
     return devices
 
 
+# hass.data state key: the callback that applies a boiler model choice made in Home Assistant.
+MODEL_CHOSEN = "ems_boiler_model_chosen"
+
+
 def profile_model(payload):
     """The boiler model chosen on the E32 in a retained fw/config/boiler_profile.
 
@@ -257,15 +261,23 @@ async def async_setup_ems_devices(hass, entry):
         stale.check()
 
     @callback
-    def profile_received(message):
-        # Retained like the device list; either may arrive first. The profile is
-        # republished as fields are learned: only a new model choice renames.
-        model = profile_model(message.payload)
+    def chosen(model):
+        """A new boiler model choice (catalog id or None): the boiler device follows it in place."""
         if model is False or model == state.get("ems_boiler_model"):
             return
         state["ems_boiler_model"] = model
         if state.get("ems_devices") is not None:
             sync_devices(hass, entry, state["ems_devices"], subentry, model)
+
+    # Configure → Heating and boiler → Boiler model (e32_boiler_model) renames at once after its save;
+    # the E32's next boiler profile then says the same.
+    state[MODEL_CHOSEN] = chosen
+
+    @callback
+    def profile_received(message):
+        # Retained like the device list; either may arrive first. The profile is
+        # republished as fields are learned: only a new model choice renames.
+        chosen(profile_model(message.payload))
 
     await mqtt.async_wait_for_mqtt_client(hass)
     entry.async_on_unload(await mqtt.async_subscribe(hass, f"{prefix}/v1/{TOPIC}", received))

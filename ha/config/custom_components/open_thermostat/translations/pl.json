@@ -474,6 +474,7 @@
           "entity_ids": "Uporządkuj identyfikatory encji",
           "entity_ids_undo": "Cofnij porządkowanie identyfikatorów",
           "e32_restore": "Przywróć ustawienia na tym E32",
+          "ble_sensors": "Czujniki Bluetooth",
           "e32_logging": "Dziennik systemowy E32",
           "e32_time_zone": "Strefa czasowa E32"
         }
@@ -902,6 +903,65 @@
         "data_description": {
           "time_zone": "Wybrana jest strefa czasowa Home Assistant, jeśli E32 ją zna."
         }
+      },
+      "heating_boiler": {
+        "title": "Ogrzewanie i kocioł",
+        "description": "Limity temperatury wody dla wszystkich pomieszczeń i model Twojego kotła.",
+        "menu_options": {
+          "heating_boiler_limits": "Limity temperatury wody",
+          "boiler_model": "Model kotła"
+        }
+      },
+      "boiler_model": {
+        "title": "Model kotła",
+        "description": "Wybierz swój kocioł, tak jak na stronie Kocioł w E32. Nadaje on kotłowi nazwę w Home Assistant i w E32 oraz wybiera objaśnienia kodów wyświetlacza; nie zmienia sposobu sterowania kotłem.\n\nTeraz: {current}.",
+        "data": {
+          "model": "Model kotła"
+        },
+        "data_description": {
+          "model": "Modele pochodzą z EMS-ESP. Obecność na liście nie potwierdza obsługi w OpenThermostat."
+        }
+      },
+      "ble_sensors": {
+        "title": "Czujniki Bluetooth",
+        "description": "Czujniki Bluetooth sparowane z E32. Tutaj możesz zmienić ich nazwę lub je usunąć; najpierw zbierz wszystkie zmiany i zapisz je razem: po zapisaniu E32 uruchomi się ponownie jeden raz, około 30 sekund później, aby ich użyć. Parowanie nowego czujnika (wyszukiwanie i klucz) odbywa się na stronie Czujniki Bluetooth w E32, przy czujniku. To, które pomieszczenie mierzy czujnik, ustawia się dla każdego pomieszczenia w Pomieszczenia.\n\n{sensors}\n\n{pending}",
+        "menu_options": {
+          "ble_rename": "Zmień nazwę czujnika",
+          "ble_forget": "Usuń czujnik",
+          "ble_save": "Zapisz zmiany (E32 uruchomi się ponownie jeden raz)"
+        }
+      },
+      "ble_rename": {
+        "title": "Zmień nazwę czujnika",
+        "description": "Nowa nazwa zostanie zapisana razem z pozostałymi zmianami.",
+        "data": {
+          "sensor": "Czujnik",
+          "name": "Nowa nazwa"
+        },
+        "data_description": {
+          "sensor": "Sparowany czujnik z jego adresem Bluetooth.",
+          "name": "Najwyżej 40 znaków (mniej przy znakach specjalnych)."
+        }
+      },
+      "ble_forget": {
+        "title": "Usuń czujnik",
+        "description": "Usunięty czujnik nie jest już odczytywany przez E32; jego klucz zostaje skasowany w E32. Aby znów go używać, sparuj go ponownie w E32. Pomieszczenie, które nim mierzy, używa swoich pozostałych źródeł.\n\nCzujniki używane przez pomieszczenie:\n{used}",
+        "data": {
+          "sensors": "Czujniki do usunięcia"
+        },
+        "data_description": {
+          "sensors": "Usuwane razem z pozostałymi zmianami przy zapisie."
+        }
+      },
+      "ble_save": {
+        "title": "Zapisz zmiany Bluetooth",
+        "description": "{sensors}\n\nE32 zapisze te zmiany i uruchomi się ponownie jeden raz, około 30 sekund później; ogrzewanie działa dalej po około minucie.",
+        "data": {
+          "confirm": "Zapisz i pozwól E32 uruchomić się ponownie"
+        },
+        "data_description": {
+          "confirm": "Zaznacz, aby potwierdzić."
+        }
       }
     },
     "error": {
@@ -1079,7 +1139,12 @@
       "e32_settings_busy": "E32 jest aktualizowany lub uruchamia się ponownie. Spróbuj ponownie, gdy jego strona otworzy się normalnie.",
       "e32_settings_unreachable": "Nie udało się połączyć z E32 ({error}). Nic nie zostało zapisane.",
       "e32_settings_no_free_session": "E32 nie ma wolnej sesji WWW: zamknij nieużywane strony E32 lub odczekaj dwie minuty, a potem spróbuj ponownie.",
-      "e32_time_zone_invalid": "Wybierz strefę czasową z listy."
+      "e32_time_zone_invalid": "Wybierz strefę czasową z listy.",
+      "boiler_model_invalid": "Wybierz model z listy.",
+      "ble_sensor_invalid": "Wybierz jeden ze sparowanych czujników.",
+      "ble_name_invalid": "Użyj nazwy od 1 do 40 znaków bez podziału wiersza.",
+      "ble_storage_full": "E32 nie ma już miejsca na zapisanie czujników. Nic nie zostało zapisane.",
+      "ble_rejected": "E32 odrzucił zmiany ({error}). Nic nie zostało zapisane."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -1162,7 +1227,12 @@
       "e32_settings_unchanged": "Nic się nie zmieniło; nic nie zostało zapisane w E32.",
       "e32_settings_unconfirmed": "E32 nie mógł potwierdzić nowych ustawień. Sprawdź je na stronie E32.",
       "e32_logging_saved": "Ustawienia dziennika systemowego zostały zapisane w E32.",
-      "e32_time_zone_saved": "E32 używa teraz strefy {zone}. Uruchomi się ponownie jeden raz; ogrzewanie działa dalej po około minucie."
+      "e32_time_zone_saved": "E32 używa teraz strefy {zone}. Uruchomi się ponownie jeden raz; ogrzewanie działa dalej po około minucie.",
+      "boiler_model_saved": "E32 pokazuje teraz {model}. Urządzenie kotła w Home Assistant otrzymało tę nazwę.",
+      "ble_none": "Z E32 nie sparowano jeszcze żadnego czujnika Bluetooth. Najpierw sparuj czujnik na stronie Czujniki Bluetooth w E32.",
+      "ble_changed": "Czujniki Bluetooth zostały w międzyczasie zmienione w E32. Nic nie zostało zapisane; otwórz ponownie Czujniki Bluetooth.",
+      "ble_saved": "Zapisano w E32. Uruchomi się ponownie za około 30 sekund, aby użyć zmian.",
+      "ble_saved_restart_later": "Zapisano w E32. Uruchomi się ponownie, aby użyć zmian, gdy tylko zakończy się aktualizacja lub test kotła."
     },
     "progress": {
       "controller_connect": "Łączenie z E32…",
@@ -3350,6 +3420,32 @@
     "e32_backup_failing": {
       "title": "Brak aktualnej kopii ustawień E32",
       "description": "{name}: Home Assistant od ponad 3 dni nie może utworzyć kopii ustawień E32 (ostatnia kopia: {last}). Bez aktualnej kopii zastępczy E32 nie odzyska bieżących ustawień. Sprawdź, czy E32 jest włączony i jego strona się otwiera oraz czy jego hasło w Home Assistant jest nadal poprawne; potem naciśnij Utwórz teraz kopię ustawień E32 na urządzeniu E32. Ten komunikat zniknie po następnej udanej kopii."
+    },
+    "e32_time_zone": {
+      "title": "E32 używa innej strefy czasowej",
+      "fix_flow": {
+        "step": {
+          "confirm_time_zone": {
+            "title": "Użyj strefy czasowej Home Assistant w E32",
+            "description": "{name}: E32 wykonuje programy tygodniowe w strefie {e32}, a Home Assistant jest ustawiony na {home}. Programy przełączają się wtedy o innych godzinach, niż się spodziewasz.\n\nZatwierdź, aby ustawić E32 na {home}. E32 uruchomi się ponownie jeden raz; ogrzewanie działa dalej po około minucie."
+          }
+        },
+        "error": {
+          "e32_settings_no_free_session": "E32 nie ma wolnej sesji WWW: zamknij nieużywane strony E32 lub odczekaj dwie minuty, a potem spróbuj ponownie.",
+          "e32_settings_unreachable": "Nie udało się połączyć z E32 ({error}). Nic nie zostało zapisane.",
+          "e32_settings_busy": "E32 jest aktualizowany lub uruchamia się ponownie. Spróbuj ponownie, gdy jego strona otworzy się normalnie.",
+          "e32_settings_changed": "Ustawienia E32 zostały w międzyczasie zmienione (na jego stronie?). Nic nie zostało zapisane; spróbuj ponownie.",
+          "e32_settings_invalid": "E32 odrzucił te ustawienia. Nic nie zostało zapisane.",
+          "e32_settings_unconfirmed": "E32 nie mógł potwierdzić zapisania ustawień. Sprawdź je w E32, zanim spróbujesz ponownie."
+        },
+        "abort": {
+          "e32_rooms_unavailable": "Najpierw połącz E32 (Połączenie z E32), aby Home Assistant mógł edytować jego plan pomieszczeń.",
+          "e32_time_zone_unknown": "Strefy czasowej Home Assistant nie ma na liście E32. Ustaw strefę czasową E32 na jego stronie Ustawienia (Czas, Zaawansowane).",
+          "e32_password_changed": "E32 nie akceptuje już zapisanego hasła. Home Assistant prosi o nowe: Ustawienia → Urządzenia i usługi → OpenThermostat → Uwierzytelnij ponownie.",
+          "e32_settings_password_default": "E32 nadal używa domyślnego hasła i nie przyjmuje zmian, dopóki nie wybierzesz nowego: Ustawienia → Naprawy → „E32 nadal używa domyślnego hasła”.",
+          "e32_settings_update_required": "To oprogramowanie E32 nie ma tego ustawienia. Najpierw zaktualizuj E32 (Aktualizacja oprogramowania)."
+        }
+      }
     }
   },
   "services": {

@@ -254,9 +254,11 @@ from .e32_comfort import ComfortOptionsSteps  # noqa: E402
 from .e32_backup_flow import E32RestoreSteps  # noqa: E402
 from .e32_care import CareOptionsSteps  # noqa: E402
 from .e32_system import SystemOptionsSteps  # noqa: E402
+from .e32_boiler_model import BoilerModelSteps  # noqa: E402
+from .e32_bluetooth import BluetoothOptionsSteps  # noqa: E402
 
 
-class ProductOptionsFlow(E32RestoreSteps, CareOptionsSteps, SystemOptionsSteps, ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, ControllerSetupFlow, ShadowOptionsFlow,
+class ProductOptionsFlow(E32RestoreSteps, CareOptionsSteps, SystemOptionsSteps, BoilerModelSteps, BluetoothOptionsSteps, ComfortOptionsSteps, E32RoomFlow, LegacyRoomsSteps, ControllerSetupFlow, ShadowOptionsFlow,
                          ProductRoomFlow):
     """One central options entrypoint, using the same room editor and native Store.
 
@@ -278,7 +280,11 @@ class ProductOptionsFlow(E32RestoreSteps, CareOptionsSteps, SystemOptionsSteps, 
         return self.async_show_menu(step_id="init", menu_options=main_menu(self.config_entry))
 
     async def async_step_heating_boiler(self, user_input=None):
-        """Configure → Heating and boiler: the E32 plan's flow temperature limits (e32_room_flow.py).
+        """Configure → Home → Heating and boiler: the water temperature limits and (rc.3) the boiler model."""
+        return self.async_show_menu(step_id="heating_boiler", menu_options=["heating_boiler_limits", "boiler_model"])
+
+    async def async_step_heating_boiler_limits(self, user_input=None):
+        """The E32 plan's flow temperature limits (e32_room_flow.py).
 
         The heating curve and the learned flow are switches on the E32 device page
         (e32_flow.py); the form says so.
@@ -586,7 +592,7 @@ class ProductOptionsFlow(E32RestoreSteps, CareOptionsSteps, SystemOptionsSteps, 
         from .e32_system import link_for
         if link_for(self.hass, entry) is not None:
             # The E32's system log and time zone (e32_system), as on its System pages.
-            options += ["e32_logging", "e32_time_zone"]
+            options += ["ble_sensors", "e32_logging", "e32_time_zone"]
         from .entity_id_tidy import async_undo_available
         options.append("entity_ids")
         if await async_undo_available(self.hass, entry):

@@ -14,6 +14,7 @@ from homeassistant.components.button import ButtonDeviceClass
 from homeassistant.const import EntityCategory
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import issue_registry as ir
 
 from custom_components.open_thermostat import controller_link as link_module
 from custom_components.open_thermostat import e32_system as module
@@ -243,6 +244,87 @@ def test_time_zones_match_the_e32_list():
         assert f"['{posix}','{' '.join(zones)}']" in page, posix
     assert module.zone_of("CET-1CEST,M3.5.0,M10.5.0/3", "Europe/Paris") == "Europe/Paris"
     assert module.zone_of("CET-1CEST,M3.5.0,M10.5.0/3") == "Europe/Amsterdam" and module.zone_of("xyz") is None
+
+
+# -- Repairs: another time zone on the E32 -----------------------------------------------
+
+
+def zone_issue(hass, parent):
+    return ir.async_get(hass).async_get_issue("open_thermostat", module.time_zone_issue_id(parent))
+
+
+class Backups:
+    """The settings backups as the check sees them: the newest record's network section."""
+
+    def __init__(self, zone):
+        self.zone, self.listeners = zone, []
+
+    def records(self):
+        return [{"document": {"network": {"timeZone": self.zone}}}] if self.zone else []
+
+    def add_listener(self, listener):
+        self.listeners.append(listener)
+        return lambda: self.listeners.remove(listener)
+
+
+@pytest.mark.asyncio
+async def test_another_time_zone_on_the_e32_is_a_repair_that_clears_itself(hass):
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
+    parent, _ = product(hass, FakeE32())
+    backups = Backups("UTC0")
+    remove = module.setup_time_zone_check(hass, parent, backups)
+    issue = zone_issue(hass, parent)
+    assert issue is not None and issue.is_fixable and issue.translation_key == "e32_time_zone"
+    assert issue.translation_placeholders["e32"] == "UTC" and issue.translation_placeholders["home"] == "Europe/Amsterdam"
+    # The next backup has the same rules (also in the beta.17 text): the issue goes.
+    backups.zone = "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00"
+    backups.listeners[0]()
+    assert zone_issue(hass, parent) is None
+    # Home Assistant moves to London: the last seen E32 zone is checked again.
+    await hass.config.async_update(time_zone="Europe/London")
+    await hass.async_block_till_done()
+    assert zone_issue(hass, parent) is not None
+    # A Home Assistant zone the E32 does not list: nothing to fix from here.
+    await hass.config.async_update(time_zone="Asia/Kathmandu")
+    await hass.async_block_till_done()
+    assert zone_issue(hass, parent) is None
+    remove()
+    assert backups.listeners == []
+
+
+@pytest.mark.asyncio
+async def test_the_repair_sets_home_assistant_s_zone_in_one_sign_in(hass):
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
+    e32 = FakeE32()
+    parent, _ = product(hass, e32)
+    await hass.async_block_till_done()
+    module.check_time_zone(hass, parent, "UTC0")
+    from custom_components.open_thermostat.repairs import async_create_fix_flow
+    flow = await async_create_fix_flow(hass, module.time_zone_issue_id(parent), {"entry_id": parent.entry_id})
+    assert isinstance(flow, module.TimeZoneRepairFlow)
+    flow.hass = hass
+    form = await flow.async_step_init()
+    assert form["step_id"] == "confirm_time_zone" and form["description_placeholders"]["home"] == "Europe/Amsterdam"
+    e32.requests.clear()
+    done = await flow.async_step_confirm_time_zone({})
+    assert done["type"] == FlowResultType.CREATE_ENTRY
+    assert [r[0] for r in e32.requests] == ["read_device", "save_device", "read_device", "reboot"]
+    assert e32.requests[1][1]["timeZone"] == "CET-1CEST,M3.5.0,M10.5.0/3"
+    assert zone_issue(hass, parent) is None
+    # Refused: the form says why and the issue stays.
+    module.check_time_zone(hass, parent, "UTC0")
+    e32.reboot_fail = ControllerLinkError("controller_busy_or_conflict")
+    again = await flow.async_step_confirm_time_zone({})
+    assert again["errors"] == {"base": "e32_settings_busy"} and zone_issue(hass, parent) is not None
+
+
+def test_the_time_zone_repair_texts_exist_in_every_language():
+    for name in ("strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"):
+        issue = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["issues"]["e32_time_zone"]
+        step = issue["fix_flow"]["step"]["confirm_time_zone"]
+        assert issue["title"] and "{home}" in step["description"] and "{e32}" in step["description"], name
+        assert {"e32_settings_busy", "e32_settings_unreachable"} <= set(issue["fix_flow"]["error"])
+        assert {"e32_rooms_unavailable", "e32_time_zone_unknown"} <= set(issue["fix_flow"]["abort"])
 
 
 # -- the restart button ------------------------------------------------------------------

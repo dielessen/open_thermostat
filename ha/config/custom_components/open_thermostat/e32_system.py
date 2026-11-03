@@ -13,6 +13,9 @@ logout afterwards, so no E32 web session is left open.
   on the E32 meanwhile is never overwritten; everything else travels back unchanged, the
   secrets stay on the E32) and used after one restart (``POST /updates/reboot``), in the
   same sign-in.
+- Repairs "The E32 uses another time zone" (checked from the daily settings backup, the time
+  zone step and every change of Home Assistant's own zone); its fix sets Home Assistant's zone
+  with the same write, and the issue clears itself once both match.
 - the button "Restart E32" (configuration) on the product device: the E32's controlled
   restart; refused while it updates or checks new firmware.
 
@@ -24,8 +27,11 @@ from __future__ import annotations
 import re
 
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
+from homeassistant.components.repairs import RepairsFlow
 from homeassistant.const import EntityCategory
+from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
@@ -252,6 +258,7 @@ class SystemOptionsSteps:
             if type(settings) is not dict or type(settings.get("timeZone")) is not str:
                 return self.async_abort(reason="e32_settings_update_required")
             self._e32_zone = settings["timeZone"]
+            check_time_zone(self.hass, self.config_entry, self._e32_zone)
         posix, home = self._e32_zone, ha_zone(self.hass)
         current = zone_of(posix, home)
         errors, placeholders = {}, {"error": "", "e32": current or posix or "-",
@@ -264,8 +271,7 @@ class SystemOptionsSteps:
                 return self.async_abort(reason="e32_settings_unchanged")
             else:
                 try:
-                    await async_e32_call(link, lambda c: self._e32_write_zone(c, posix, ZONE_POSIX[chosen]),
-                                         write=True)
+                    await async_e32_call(link, lambda c: async_write_zone(c, ZONE_POSIX[chosen], posix), write=True)
                 except ControllerLinkError as err:
                     key, values = failure(err)
                     if key in ABORTS:
@@ -274,6 +280,7 @@ class SystemOptionsSteps:
                     self._e32_zone = None  # read again: the E32 may have changed meanwhile
                 else:
                     self._e32_zone = None
+                    check_time_zone(self.hass, self.config_entry, ZONE_POSIX[chosen])
                     return self.async_abort(reason="e32_time_zone_saved", description_placeholders={"zone": chosen})
         zones = sorted(ZONE_POSIX)
         default = home or current or zones[0]
@@ -281,23 +288,139 @@ class SystemOptionsSteps:
                                     data_schema=vol.Schema({vol.Required("time_zone", default=default): selector.SelectSelector(
                                         selector.SelectSelectorConfig(options=zones, mode=selector.SelectSelectorMode.DROPDOWN))}))
 
-    @staticmethod
-    async def _e32_write_zone(client, expected, posix):
-        """Read the device settings again (fresh ETag), change only the time zone, save, restart."""
+
+
+async def async_write_zone(client, posix, expected=None):
+    """In one sign-in: read the device settings (fresh ETag), change only the time zone, save, read back, restart.
+
+    expected: the zone the form showed; another one on the E32 now is controller_settings_changed.
+    """
+    from .controller_link import ControllerLinkError
+    settings, tag = await client.async_read("/config/device")
+    if type(settings) is not dict or type(settings.get("timeZone")) is not str:
+        raise ControllerLinkError("controller_update_required")
+    if expected is not None and settings.get("timeZone") != expected:
+        raise ControllerLinkError("controller_settings_changed")
+    document = {**settings, "timeZone": posix}
+    if type(document.get("mqtt")) is dict:
+        # Shown by the E32 on a read, never stored (REST.h configDevice).
+        document["mqtt"] = {k: v for k, v in document["mqtt"].items()
+                            if k not in ("native_source_device_id", "native_source_live_apply")}
+    await client.async_save_settings(document, tag)
+    saved, _ = await client.async_read("/config/device")
+    if type(saved) is not dict or saved.get("timeZone") != posix:
+        raise ControllerLinkError("controller_settings_unconfirmed")
+    await client.async_reboot()
+
+
+# -- Repairs: the E32's time zone differs from Home Assistant's --------------------------
+
+TIME_ZONE_ISSUE = "e32_time_zone"
+TIME_ZONE_STATE = "e32_time_zone_posix"  # hass.data state key: the E32's zone as last seen
+
+
+def time_zone_issue_id(entry):
+    return f"{TIME_ZONE_ISSUE}_{entry.entry_id}"
+
+
+@callback
+def check_time_zone(hass, entry, posix=None):
+    """Show or clear "The E32 uses another time zone" for the E32's POSIX text (None: the last one seen).
+
+    Only for a Home Assistant zone the E32 knows (its Settings list); unknown on either side
+    shows nothing. Sources: the daily settings backup, the E32 time zone step, and a change of
+    Home Assistant's own time zone.
+    """
+    state = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if state is None:
+        return
+    if type(posix) is str:
+        state[TIME_ZONE_STATE] = posix
+    posix = state.get(TIME_ZONE_STATE)
+    home = ha_zone(hass)
+    issue = time_zone_issue_id(entry)
+    if type(posix) is not str or home is None or ZONE_POSIX[home] == POSIX_ALIASES.get(posix, posix):
+        ir.async_delete_issue(hass, DOMAIN, issue)
+        return
+    ir.async_create_issue(hass, DOMAIN, issue, is_fixable=True, is_persistent=False,
+                          severity=ir.IssueSeverity.WARNING, translation_key=TIME_ZONE_ISSUE,
+                          translation_placeholders={"name": entry.title, "e32": zone_of(posix) or posix,
+                                                    "home": home},
+                          data={"entry_id": entry.entry_id})
+
+
+def _backup_zone(manager):
+    """The time zone in the newest settings backup (its cleartext network section), or None."""
+    records = manager.records() if manager is not None else []
+    network = records[0].get("document", {}).get("network") if records else None
+    zone = network.get("timeZone") if type(network) is dict else None
+    return zone if type(zone) is str else None
+
+
+@callback
+def setup_time_zone_check(hass, entry, backups):
+    """Check at start, after every backup and when Home Assistant's time zone changes; returns the undo."""
+    from homeassistant.const import EVENT_CORE_CONFIG_UPDATE
+    removers = []
+
+    @callback
+    def from_backup():
+        zone = _backup_zone(backups)
+        if zone is not None:
+            check_time_zone(hass, entry, zone)
+
+    if backups is not None:
+        removers.append(backups.add_listener(from_backup))
+        from_backup()
+    @callback
+    def home_changed(_event):  # in the event loop: the issue registry is not thread-safe
+        check_time_zone(hass, entry)
+
+    removers.append(hass.bus.async_listen(EVENT_CORE_CONFIG_UPDATE, home_changed))
+
+    @callback
+    def remove():
+        for undo in removers:
+            undo()
+        ir.async_delete_issue(hass, DOMAIN, time_zone_issue_id(entry))
+    return remove
+
+
+class TimeZoneRepairFlow(RepairsFlow):
+    """One confirmation: the E32 takes Home Assistant's time zone (and restarts once)."""
+
+    def __init__(self, issue_id, data):
+        self._issue_id, self._data = issue_id, data if isinstance(data, dict) else {}
+
+    async def async_step_init(self, user_input=None):
+        return await self.async_step_confirm_time_zone(user_input)
+
+    async def async_step_confirm_time_zone(self, user_input=None):
         from .controller_link import ControllerLinkError
-        settings, tag = await client.async_read("/config/device")
-        if type(settings) is not dict or settings.get("timeZone") != expected:
-            raise ControllerLinkError("controller_settings_changed")
-        document = {**settings, "timeZone": posix}
-        if type(document.get("mqtt")) is dict:
-            # Shown by the E32 on a read, never stored (REST.h configDevice).
-            document["mqtt"] = {k: v for k, v in document["mqtt"].items()
-                                if k not in ("native_source_device_id", "native_source_live_apply")}
-        await client.async_save_settings(document, tag)
-        saved, _ = await client.async_read("/config/device")
-        if type(saved) is not dict or saved.get("timeZone") != posix:
-            raise ControllerLinkError("controller_settings_unconfirmed")
-        await client.async_reboot()
+        entry = self.hass.config_entries.async_get_entry(self._data.get("entry_id"))
+        link = link_for(self.hass, entry) if entry is not None else None
+        if link is None:
+            return self.async_abort(reason="e32_rooms_unavailable")
+        home = ha_zone(self.hass)
+        if home is None:
+            ir.async_delete_issue(self.hass, DOMAIN, self._issue_id)
+            return self.async_abort(reason="e32_time_zone_unknown")
+        state = self.hass.data[DOMAIN][entry.entry_id]
+        placeholders = {"name": entry.title, "home": home, "error": "",
+                        "e32": zone_of(state.get(TIME_ZONE_STATE) or "") or state.get(TIME_ZONE_STATE) or "-"}
+        if user_input is None:
+            return self.async_show_form(step_id="confirm_time_zone", description_placeholders=placeholders)
+        posix = ZONE_POSIX[home]
+        try:
+            await async_e32_call(link, lambda c: async_write_zone(c, posix), write=True)
+        except ControllerLinkError as err:
+            key, values = failure(err)
+            if key in ABORTS:
+                return self.async_abort(reason=key, description_placeholders=values)
+            return self.async_show_form(step_id="confirm_time_zone", errors={"base": key},
+                                        description_placeholders={**placeholders, **values})
+        check_time_zone(self.hass, entry, posix)
+        return self.async_create_entry(data={})
 
 
 # -- the restart button ----------------------------------------------------------------

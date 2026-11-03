@@ -77,6 +77,13 @@ HEATING_TRV = "/config/heating/trv"
 # The E32 system log: syslog forwarding and the kept log levels (diagnostics/LogSettings.h).
 # Not part of a settings backup; refusals are plain text (400 invalid, 503 not confirmed or unavailable).
 LOGGING = "/config/logging"
+# The boiler model shown on the E32 (BoilerDisplay.h): GET/POST {"model": <catalog id>}; refusals are plain text.
+BOILER_DISPLAY = "/config/boiler-display"
+# The paired Bluetooth sensors (REST.h bluetoothSettings): GET with an ETag of this sign-in, POST the whole
+# list with If-Match; a change restarts the E32 about 30 s later. The answer lists the sensors and the
+# discovery, so it may be larger than the other settings.
+BLUETOOTH = "/config/bluetooth"
+BLUETOOTH_RESPONSE_BYTES = 32768
 HEATING_PLAN_BYTES = 8192  # The E32 refuses larger request bodies (413 plan_too_large).
 # Backup and restore of the E32 settings (E32 beta.19, ConfigBackupRoute.h): export,
 # validate and apply, each one POST. A backup file holds at most 24 KB; a request
@@ -94,6 +101,15 @@ CONFIG_BACKUP_TIMEOUT = 45
 
 class BackupRejected(ControllerLinkError):
     """The E32 refused a /config/backup request with a named reason (boiler_owned, wrong_passphrase, ...)."""
+
+    def __init__(self, status, error):
+        super().__init__(error)
+        self.status = status
+        self.error = error
+
+
+class BluetoothRejected(ControllerLinkError):
+    """The E32 refused a /config/bluetooth change with a named reason (invalid_device_name, ...)."""
 
     def __init__(self, status, error):
         super().__init__(error)
@@ -516,10 +532,10 @@ class ControllerClient:
 
     _reads = frozenset(("/auth/session", "/status/version", "/status", "/updates/status",
                         "/config/device", "/config/rooms", HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW,
-                        HEATING_TRV, "/status/heating", LOGGING))
+                        HEATING_TRV, "/status/heating", LOGGING, BOILER_DISPLAY, BLUETOOTH))
     _writes = frozenset(("/auth/login", "/auth/logout", "/auth/password", "/config/device", "/updates/reboot",
                          HEATING_PLAN, HEATING_COMFORT, HEATING_FLOW, HEATING_HANDOVER, HEATING_TRV, CONFIG_BACKUP,
-                         LOGGING))
+                         LOGGING, BOILER_DISPLAY, BLUETOOTH))
 
     def __init__(self, address):
         self.address = controller_address(address)
@@ -590,7 +606,8 @@ class ControllerClient:
             elif len(data.encode()) >= 2048:
                 raise ControllerLinkError("controller_settings_too_large")
         backup = path == CONFIG_BACKUP
-        limit = CONFIG_BACKUP_RESPONSE_BYTES if backup else 8192
+        limit = (CONFIG_BACKUP_RESPONSE_BYTES if backup else BLUETOOTH_RESPONSE_BYTES if path == BLUETOOTH
+                 else 8192)
         extra = {"timeout": aiohttp.ClientTimeout(total=CONFIG_BACKUP_TIMEOUT)} if backup else {}
         try:
             async with self._session.request(method, self.address + path, data=data,
@@ -609,7 +626,11 @@ class ControllerClient:
                     raise BackupRejected(response.status, await _backup_error(response))
                 if backup and response.status == 404:
                     raise ControllerLinkError("controller_update_required")  # firmware before beta.19
-                if path == LOGGING and response.status in (400, 404, 503):
+                if path == BLUETOOTH and response.status in (400, 413, 503, 507):
+                    raise BluetoothRejected(response.status, await _error_name(response))
+                if path in (BLUETOOTH, BOILER_DISPLAY) and response.status == 404:
+                    raise ControllerLinkError("controller_update_required")
+                if path in (LOGGING, BOILER_DISPLAY) and response.status in (400, 404, 503):
                     raise ControllerLinkError({400: "controller_settings_invalid", 404: "controller_update_required",
                                                503: "controller_settings_unconfirmed"}[response.status])
                 if path in (HEATING_FLOW, HEATING_TRV) and response.status == 404:
@@ -624,7 +645,7 @@ class ControllerClient:
                     raise ControllerLinkError("controller_settings_changed")
                 if response.status == 409:
                     raise ControllerLinkError("controller_busy_or_conflict")
-                accepted = ({200, 201} if method == "POST" and path in ("/config/device", CONFIG_BACKUP)
+                accepted = ({200, 201} if method == "POST" and path in ("/config/device", CONFIG_BACKUP, BLUETOOTH)
                             else {202} if method == "POST" and path == "/updates/reboot"
                             else {204} if method == "POST" and path == "/auth/password"
                             else {200})
@@ -746,6 +767,32 @@ class ControllerClient:
         if type(document) is not dict:
             raise ControllerLinkError("controller_request_invalid")
         raw, _, _ = await self._request("POST", LOGGING, document=document)
+        return _decode(raw)
+
+    async def async_boiler_display(self, model=None):
+        """GET the boiler model shown on the E32, or POST a new one; returns {"model": ...} as stored."""
+        if model is None:
+            return await self.async_read(BOILER_DISPLAY)
+        if type(model) is not str or not model:
+            raise ControllerLinkError("controller_request_invalid")
+        raw, _, _ = await self._request("POST", BOILER_DISPLAY, document={"model": model})
+        return _decode(raw)
+
+    async def async_bluetooth(self, document=None, etag=None):
+        """GET the paired Bluetooth sensors with this sign-in's ETag, or POST the whole list with it.
+
+        GET returns (value, etag). POST needs the ETag of a GET in the same sign-in; a list
+        changed meanwhile raises controller_settings_changed (412), a refusal
+        BluetoothRejected with the E32's name. Bindkeys never travel: rows say "keep".
+        """
+        if document is None:
+            raw, tag, _ = await self._request("GET", BLUETOOTH)
+            if type(tag) is not str or re.fullmatch(r'"[0-9a-f]{64}"', tag) is None:
+                raise ControllerLinkError("controller_update_required")
+            return _decode(raw), tag
+        if type(document) is not dict or etag is None:
+            raise ControllerLinkError("controller_request_invalid")
+        raw, _, _ = await self._request("POST", BLUETOOTH, document=document, etag=etag)
         return _decode(raw)
 
     async def async_valves(self, document=None):

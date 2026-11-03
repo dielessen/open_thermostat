@@ -204,7 +204,8 @@ async def flow_limits_form(manager, parent):
     flow = await manager.async_init(parent.entry_id)
     assert flow["menu_options"] == MENU
     house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
-    form = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
+    menu = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
+    form = await manager.async_configure(menu["flow_id"], {"next_step_id": "heating_boiler_limits"})
     assert form["type"] == "form" and form["step_id"] == "e32_flow_limits", form
     return form
 

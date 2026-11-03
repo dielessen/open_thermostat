@@ -65,7 +65,7 @@ async def test_a_typical_e32_install_has_rooms_first_and_advanced_last(hass, man
     assert "room_settings" not in flow["menu_options"] and "installation" not in flow["menu_options"]
     advanced = await manager.async_configure(flow["flow_id"], {"next_step_id": "advanced_settings"})
     # No older HA rooms: nothing about them (nor hot water status); rc.3: the E32's system log and time zone.
-    assert advanced["menu_options"] == ["e32_logging", "e32_time_zone", "entity_ids"]
+    assert advanced["menu_options"] == ["ble_sensors", "e32_logging", "e32_time_zone", "entity_ids"]
 
 
 @pytest.mark.asyncio
@@ -81,7 +81,9 @@ async def test_rooms_hold_the_rooms_and_heating_and_boiler_opens_the_flow_limits
     # rc.3: Comfort and boiler care (the E32's control knobs) after Heating and boiler, as on the E32's Home page.
     assert house["type"] == FlowResultType.MENU and house["menu_options"] == [
         "house_presence", "heating_boiler", "comfort_care", "energy", "comfort_settings"]
-    form = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
+    menu = await manager.async_configure(house["flow_id"], {"next_step_id": "heating_boiler"})
+    assert menu["type"] == FlowResultType.MENU and menu["menu_options"] == ["heating_boiler_limits", "boiler_model"]
+    form = await manager.async_configure(menu["flow_id"], {"next_step_id": "heating_boiler_limits"})
     assert form["type"] == FlowResultType.FORM and form["step_id"] == "e32_flow_limits", form
 
 

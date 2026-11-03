@@ -792,539 +792,673 @@
  "boiler_models": {
   "nefit-ecomline-classic": {
    "brand": "Nefit",
-   "name": "Nefit Ecomline Classic"
+   "name": "Nefit Ecomline Classic",
+   "selectable": true
   },
   "nefit-ecomline-classic-hrc-22h": {
    "brand": "Nefit",
-   "name": "Nefit Ecomline Classic HRC 22H"
+   "name": "Nefit Ecomline Classic HRC 22H",
+   "selectable": true
   },
   "emsesp-product-8": {
    "brand": "Bosch",
-   "name": "Bosch Compress CS5800i / Bosch Compress CS6800i / Buderus Logatherm WLW176i / Buderus Logatherm WLW186i"
+   "name": "Bosch Compress CS5800i / Bosch Compress CS6800i / Buderus Logatherm WLW176i / Buderus Logatherm WLW186i",
+   "selectable": false
   },
   "emsesp-product-11": {
    "brand": "Worcester Bosch",
-   "name": "Worcester Bosch Greenstar 2000"
+   "name": "Worcester Bosch Greenstar 2000",
+   "selectable": false
   },
   "emsesp-product-12": {
    "brand": "Bosch",
-   "name": "Bosch C1200W"
+   "name": "Bosch C1200W",
+   "selectable": false
   },
   "emsesp-product-16": {
    "brand": "Bosch",
-   "name": "Bosch Compress CS5800iG"
+   "name": "Bosch Compress CS5800iG",
+   "selectable": false
   },
   "emsesp-product-64": {
    "brand": "Sieger",
-   "name": "Sieger BK13 / Sieger BK15 / Nefit SmartLine / Buderus GB1*2"
+   "name": "Sieger BK13 / Sieger BK15 / Nefit SmartLine / Buderus GB1*2",
+   "selectable": false
   },
   "emsesp-product-72": {
    "brand": "Buderus",
-   "name": "Buderus Logano GB1*5 / Buderus Logamatic MC10"
+   "name": "Buderus Logano GB1*5 / Buderus Logamatic MC10",
+   "selectable": false
   },
   "emsesp-product-81": {
    "brand": "Buderus",
-   "name": "Buderus Cascade CM10"
+   "name": "Buderus Cascade CM10",
+   "selectable": false
   },
   "emsesp-product-84": {
    "brand": "Buderus",
-   "name": "Buderus Logamax Plus GB022"
+   "name": "Buderus Logamax Plus GB022",
+   "selectable": false
   },
   "emsesp-product-95": {
    "brand": "Bosch",
-   "name": "Bosch Condens / Buderus Logamax / Buderus Logamatic / Junkers Cerapur Top / Worcester Bosch Greenstar"
+   "name": "Bosch Condens / Buderus Logamax / Buderus Logamatic / Junkers Cerapur Top / Worcester Bosch Greenstar",
+   "selectable": false
   },
   "emsesp-product-115": {
    "brand": "Nefit",
-   "name": "Nefit TopLine / Buderus Logamax plus GB162"
+   "name": "Nefit TopLine / Buderus Logamax plus GB162",
+   "selectable": false
   },
   "emsesp-product-121": {
    "brand": "Bosch",
-   "name": "Bosch Cascade MCM10"
+   "name": "Bosch Cascade MCM10",
+   "selectable": false
   },
   "emsesp-product-122": {
    "brand": "Nefit",
-   "name": "Nefit ProLine"
+   "name": "Nefit ProLine",
+   "selectable": false
   },
   "emsesp-product-123": {
    "brand": "Buderus",
-   "name": "Buderus GB*72 / Nefit TrendLine / Junkers Cerapur / Worcester Bosch Greenstar Si"
+   "name": "Buderus GB*72 / Nefit TrendLine / Junkers Cerapur / Worcester Bosch Greenstar Si",
+   "selectable": false
   },
   "emsesp-product-131": {
    "brand": "Buderus",
-   "name": "Buderus GB212"
+   "name": "Buderus GB212",
+   "selectable": false
   },
   "emsesp-product-132": {
    "brand": "Bosch",
-   "name": "Bosch GC7000F"
+   "name": "Bosch GC7000F",
+   "selectable": false
   },
   "emsesp-product-133": {
    "brand": "Buderus",
-   "name": "Buderus Logano GB125 / Buderus Logano KB195i / Buderus Logamatic MC110"
+   "name": "Buderus Logano GB125 / Buderus Logano KB195i / Buderus Logamatic MC110",
+   "selectable": false
   },
   "emsesp-product-154": {
    "brand": "Worcester Bosch",
-   "name": "Worcester Bosch Greenstar 30Ri Compact"
+   "name": "Worcester Bosch Greenstar 30Ri Compact",
+   "selectable": false
   },
   "emsesp-product-155": {
    "brand": "Junkers",
-   "name": "Junkers Suprapur-o"
+   "name": "Junkers Suprapur-o",
+   "selectable": false
   },
   "emsesp-product-167": {
    "brand": "Junkers",
-   "name": "Junkers Cerapur Aero"
+   "name": "Junkers Cerapur Aero",
+   "selectable": false
   },
   "emsesp-product-168": {
    "brand": "Bosch",
-   "name": "Bosch Hybrid Heatpump"
+   "name": "Bosch Hybrid Heatpump",
+   "selectable": false
   },
   "emsesp-product-170": {
    "brand": "Buderus",
-   "name": "Buderus Logano GB212"
+   "name": "Buderus Logano GB212",
+   "selectable": false
   },
   "emsesp-product-172": {
    "brand": "Nefit",
-   "name": "Nefit EnviLine / Bosch Compress 6000AW / Bosch Hybrid 3000-7000iAW / Junkers SupraEco / IVT Geo 5xx / Buderus Logatherm WLW196i / Buderus Logatherm WSW196i"
+   "name": "Nefit EnviLine / Bosch Compress 6000AW / Bosch Hybrid 3000-7000iAW / Junkers SupraEco / IVT Geo 5xx / Buderus Logatherm WLW196i / Buderus Logatherm WSW196i",
+   "selectable": false
   },
   "emsesp-product-173": {
    "brand": "IVT",
-   "name": "IVT Geo 5xx"
+   "name": "IVT Geo 5xx",
+   "selectable": false
   },
   "emsesp-product-195": {
    "brand": "Bosch",
-   "name": "Bosch Condens 5000i / Worcester Bosch Greenstar 8000 / Bosch GC9800iW / Buderus GB192i*2"
+   "name": "Bosch Condens 5000i / Worcester Bosch Greenstar 8000 / Bosch GC9800iW / Buderus GB192i*2",
+   "selectable": false
   },
   "emsesp-product-203": {
    "brand": "Buderus",
-   "name": "Buderus Logamax U122 / Junkers Cerapur"
+   "name": "Buderus Logamax U122 / Junkers Cerapur",
+   "selectable": false
   },
   "emsesp-product-206": {
    "brand": "Nefit",
-   "name": "Nefit Ecomline Excellent"
+   "name": "Nefit Ecomline Excellent",
+   "selectable": false
   },
   "emsesp-product-208": {
    "brand": "Buderus",
-   "name": "Buderus Logamax Plus / Buderus GB192 / Bosch Condens GC9000 / Worcester Bosch Greenstar ErP"
+   "name": "Buderus Logamax Plus / Buderus GB192 / Bosch Condens GC9000 / Worcester Bosch Greenstar ErP",
+   "selectable": false
   },
   "emsesp-product-210": {
    "brand": "Buderus",
-   "name": "Buderus Cascade MC400"
+   "name": "Buderus Cascade MC400",
+   "selectable": false
   },
   "emsesp-product-211": {
    "brand": "Bosch",
-   "name": "Bosch EasyControl Adapter"
+   "name": "Bosch EasyControl Adapter",
+   "selectable": false
   },
   "emsesp-product-219": {
    "brand": "Worcester Bosch",
-   "name": "Worcester Bosch Greenstar HIU / Buderus Logamax kompakt WS170"
+   "name": "Worcester Bosch Greenstar HIU / Buderus Logamax kompakt WS170",
+   "selectable": false
   },
   "emsesp-product-234": {
    "brand": "Buderus",
-   "name": "Buderus Logamax Plus GB122 / Bosch Condens 2300 / Junkers Cerapur GC2200W"
+   "name": "Buderus Logamax Plus GB122 / Bosch Condens 2300 / Junkers Cerapur GC2200W",
+   "selectable": false
   },
   "emsesp-doc-bk13-bk15": {
    "brand": "Sieger",
-   "name": "Sieger BK13 / Sieger BK15"
+   "name": "Sieger BK13 / Sieger BK15",
+   "selectable": false
   },
   "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192": {
    "brand": "Buderus",
-   "name": "Buderus GB125 / Buderus GB135 / Buderus GB1x2i / Buderus Logamax plus GB162 / Buderus GBx72 / Buderus GB212 / Buderus GB192 / Buderus GB122 / Buderus GB192i.2"
+   "name": "Buderus GB125 / Buderus GB135 / Buderus GB1x2i / Buderus Logamax plus GB162 / Buderus GBx72 / Buderus GB212 / Buderus GB192 / Buderus GB122 / Buderus GB192i.2",
+   "selectable": false
   },
   "emsesp-doc-mc10": {
    "brand": "Buderus",
-   "name": "Buderus Logamatic MC10"
+   "name": "Buderus Logamatic MC10",
+   "selectable": false
   },
   "emsesp-doc-cascade-cm10-mc400": {
    "brand": "Buderus",
-   "name": "Buderus Cascade CM10 / Buderus Cascade MC400"
+   "name": "Buderus Cascade CM10 / Buderus Cascade MC400",
+   "selectable": false
   },
   "emsesp-doc-logano": {
    "brand": "Buderus",
-   "name": "Buderus Logano"
+   "name": "Buderus Logano",
+   "selectable": false
   },
   "emsesp-doc-logamax-plus-gb022-u122": {
    "brand": "Buderus",
-   "name": "Buderus Logamax Plus GB022 / Buderus Logamax U122"
+   "name": "Buderus Logamax Plus GB022 / Buderus Logamax U122",
+   "selectable": false
   },
   "emsesp-doc-logamatic-mc10-mc110": {
    "brand": "Buderus",
-   "name": "Buderus Logamatic MC10 / Buderus Logamatic MC110"
+   "name": "Buderus Logamatic MC10 / Buderus Logamatic MC110",
+   "selectable": false
   },
   "emsesp-doc-condens-2500-gc9000": {
    "brand": "Bosch",
-   "name": "Bosch Condens 2500 / Bosch Condens GC9000"
+   "name": "Bosch Condens 2500 / Bosch Condens GC9000",
+   "selectable": false
   },
   "emsesp-doc-bosch-junkers-cerapur-gc2200w": {
    "brand": "Junkers",
-   "name": "Junkers Cerapur GC2200W"
+   "name": "Junkers Cerapur GC2200W",
+   "selectable": false
   },
   "emsesp-doc-logomatic": {
    "brand": "Buderus",
-   "name": "Buderus Logamatic"
+   "name": "Buderus Logamatic",
+   "selectable": false
   },
   "emsesp-doc-bosch-junkers-cerapur-top-aero": {
    "brand": "Junkers",
-   "name": "Junkers Cerapur Top / Junkers Cerapur Aero"
+   "name": "Junkers Cerapur Top / Junkers Cerapur Aero",
+   "selectable": false
   },
   "emsesp-doc-bosch-junkers-cerapur-zsb-14-3-a": {
    "brand": "Junkers",
-   "name": "Junkers Cerapur ZSB 14-3 A"
+   "name": "Junkers Cerapur ZSB 14-3 A",
+   "selectable": false
   },
   "emsesp-doc-greenstar-si-30ri-compact-erp-hiu-8000": {
    "brand": "Worcester Bosch",
-   "name": "Worcester Bosch Greenstar Si / Worcester Bosch Greenstar 30Ri Compact / Worcester Bosch Greenstar ErP / Worcester Bosch Greenstar HIU / Worcester Bosch Greenstar 8000"
+   "name": "Worcester Bosch Greenstar Si / Worcester Bosch Greenstar 30Ri Compact / Worcester Bosch Greenstar ErP / Worcester Bosch Greenstar HIU / Worcester Bosch Greenstar 8000",
+   "selectable": false
   },
   "emsesp-doc-nefit-topline-trendline": {
    "brand": "Nefit",
-   "name": "Nefit TopLine / Nefit TrendLine"
+   "name": "Nefit TopLine / Nefit TrendLine",
+   "selectable": false
   },
   "emsesp-doc-nefit-proline": {
    "brand": "Nefit",
-   "name": "Nefit ProLine"
+   "name": "Nefit ProLine",
+   "selectable": false
   },
   "emsesp-doc-nefit-smartline": {
    "brand": "Nefit",
-   "name": "Nefit SmartLine"
+   "name": "Nefit SmartLine",
+   "selectable": false
   },
   "emsesp-doc-gc7000f-gc700iw-gc9800iw": {
    "brand": "Bosch",
-   "name": "Bosch GC7000F / Bosch GC700iW / Bosch GC9800iW"
+   "name": "Bosch GC7000F / Bosch GC700iW / Bosch GC9800iW",
+   "selectable": false
   },
   "emsesp-doc-kb195i": {
    "brand": "Buderus",
-   "name": "Buderus Logano KB195i"
+   "name": "Buderus Logano KB195i",
+   "selectable": false
   },
   "emsesp-doc-enviline": {
    "brand": "Nefit",
-   "name": "Nefit EnviLine"
+   "name": "Nefit EnviLine",
+   "selectable": false
   },
   "emsesp-doc-compress-6000aw": {
    "brand": "Bosch",
-   "name": "Bosch Compress 6000AW"
+   "name": "Bosch Compress 6000AW",
+   "selectable": false
   },
   "emsesp-doc-hybrid-3000-7000iaw": {
    "brand": "Bosch",
-   "name": "Bosch Hybrid 3000-7000iAW"
+   "name": "Bosch Hybrid 3000-7000iAW",
+   "selectable": false
   },
   "emsesp-doc-supraeco": {
    "brand": "Junkers",
-   "name": "Junkers SupraEco"
+   "name": "Junkers SupraEco",
+   "selectable": false
   },
   "emsesp-doc-wlw196i-wsw196i": {
    "brand": "Buderus",
-   "name": "Buderus Logatherm WLW196i / Buderus Logatherm WSW196i"
+   "name": "Buderus Logatherm WLW196i / Buderus Logatherm WSW196i",
+   "selectable": false
   },
   "emsesp-doc-condens-2300-5000i": {
    "brand": "Bosch",
-   "name": "Bosch Condens 2300 / Bosch Condens 5000i"
+   "name": "Bosch Condens 2300 / Bosch Condens 5000i",
+   "selectable": false
   },
   "nefit-trendline-ii": {
    "brand": "Nefit",
-   "name": "Nefit TrendLine II"
+   "name": "Nefit TrendLine II",
+   "selectable": true
   },
   "buderus-gb162": {
    "brand": "Buderus",
-   "name": "Buderus Logamax plus GB162"
+   "name": "Buderus Logamax plus GB162",
+   "selectable": true
   },
   "bosch-compress-cs5800i": {
    "brand": "Bosch",
-   "name": "Bosch Compress CS5800i"
+   "name": "Bosch Compress CS5800i",
+   "selectable": true
   },
   "bosch-compress-cs6800i": {
    "brand": "Bosch",
-   "name": "Bosch Compress CS6800i"
+   "name": "Bosch Compress CS6800i",
+   "selectable": true
   },
   "buderus-logatherm-wlw176i": {
    "brand": "Buderus",
-   "name": "Buderus Logatherm WLW176i"
+   "name": "Buderus Logatherm WLW176i",
+   "selectable": true
   },
   "buderus-logatherm-wlw186i": {
    "brand": "Buderus",
-   "name": "Buderus Logatherm WLW186i"
+   "name": "Buderus Logatherm WLW186i",
+   "selectable": true
   },
   "worcester-bosch-greenstar-2000": {
    "brand": "Worcester Bosch",
-   "name": "Worcester Bosch Greenstar 2000"
+   "name": "Worcester Bosch Greenstar 2000",
+   "selectable": true
   },
   "bosch-c1200w": {
    "brand": "Bosch",
-   "name": "Bosch C1200W"
+   "name": "Bosch C1200W",
+   "selectable": true
   },
   "bosch-compress-cs5800ig": {
    "brand": "Bosch",
-   "name": "Bosch Compress CS5800iG"
+   "name": "Bosch Compress CS5800iG",
+   "selectable": true
   },
   "sieger-bk13": {
    "brand": "Sieger",
-   "name": "Sieger BK13"
+   "name": "Sieger BK13",
+   "selectable": true
   },
   "sieger-bk15": {
    "brand": "Sieger",
-   "name": "Sieger BK15"
+   "name": "Sieger BK15",
+   "selectable": true
   },
   "nefit-smartline": {
    "brand": "Nefit",
-   "name": "Nefit SmartLine"
+   "name": "Nefit SmartLine",
+   "selectable": true
   },
   "buderus-gb1-2": {
    "brand": "Buderus",
-   "name": "Buderus GB1*2"
+   "name": "Buderus GB1*2",
+   "selectable": true
   },
   "buderus-logano-gb1-5": {
    "brand": "Buderus",
-   "name": "Buderus Logano GB1*5"
+   "name": "Buderus Logano GB1*5",
+   "selectable": true
   },
   "buderus-logamatic-mc10": {
    "brand": "Buderus",
-   "name": "Buderus Logamatic MC10"
+   "name": "Buderus Logamatic MC10",
+   "selectable": true
   },
   "buderus-cascade-cm10": {
    "brand": "Buderus",
-   "name": "Buderus Cascade CM10"
+   "name": "Buderus Cascade CM10",
+   "selectable": true
   },
   "buderus-logamax-plus-gb022": {
    "brand": "Buderus",
-   "name": "Buderus Logamax Plus GB022"
+   "name": "Buderus Logamax Plus GB022",
+   "selectable": true
   },
   "bosch-condens": {
    "brand": "Bosch",
-   "name": "Bosch Condens"
+   "name": "Bosch Condens",
+   "selectable": true
   },
   "buderus-logamax": {
    "brand": "Buderus",
-   "name": "Buderus Logamax"
+   "name": "Buderus Logamax",
+   "selectable": true
   },
   "buderus-logamatic": {
    "brand": "Buderus",
-   "name": "Buderus Logamatic"
+   "name": "Buderus Logamatic",
+   "selectable": true
   },
   "junkers-cerapur-top": {
    "brand": "Junkers",
-   "name": "Junkers Cerapur Top"
+   "name": "Junkers Cerapur Top",
+   "selectable": true
   },
   "worcester-bosch-greenstar": {
    "brand": "Worcester Bosch",
-   "name": "Worcester Bosch Greenstar"
+   "name": "Worcester Bosch Greenstar",
+   "selectable": true
   },
   "nefit-topline": {
    "brand": "Nefit",
-   "name": "Nefit TopLine"
+   "name": "Nefit TopLine",
+   "selectable": true
   },
   "bosch-cascade-mcm10": {
    "brand": "Bosch",
-   "name": "Bosch Cascade MCM10"
+   "name": "Bosch Cascade MCM10",
+   "selectable": true
   },
   "nefit-proline": {
    "brand": "Nefit",
-   "name": "Nefit ProLine"
+   "name": "Nefit ProLine",
+   "selectable": true
   },
   "buderus-gb-72": {
    "brand": "Buderus",
-   "name": "Buderus GB*72"
+   "name": "Buderus GB*72",
+   "selectable": true
   },
   "nefit-trendline": {
    "brand": "Nefit",
-   "name": "Nefit TrendLine"
+   "name": "Nefit TrendLine",
+   "selectable": true
   },
   "junkers-cerapur": {
    "brand": "Junkers",
-   "name": "Junkers Cerapur"
+   "name": "Junkers Cerapur",
+   "selectable": true
   },
   "worcester-bosch-greenstar-si": {
    "brand": "Worcester Bosch",
-   "name": "Worcester Bosch Greenstar Si"
+   "name": "Worcester Bosch Greenstar Si",
+   "selectable": true
   },
   "buderus-gb212": {
    "brand": "Buderus",
-   "name": "Buderus Logano GB212"
+   "name": "Buderus Logano GB212",
+   "selectable": false
   },
   "bosch-gc7000f": {
    "brand": "Bosch",
-   "name": "Bosch GC7000F"
+   "name": "Bosch GC7000F",
+   "selectable": true
   },
   "buderus-logano-gb125": {
    "brand": "Buderus",
-   "name": "Buderus Logano GB125"
+   "name": "Buderus Logano GB125",
+   "selectable": true
   },
   "buderus-logano-kb195i": {
    "brand": "Buderus",
-   "name": "Buderus Logano KB195i"
+   "name": "Buderus Logano KB195i",
+   "selectable": true
   },
   "buderus-logamatic-mc110": {
    "brand": "Buderus",
-   "name": "Buderus Logamatic MC110"
+   "name": "Buderus Logamatic MC110",
+   "selectable": true
   },
   "worcester-bosch-greenstar-30ri-compact": {
    "brand": "Worcester Bosch",
-   "name": "Worcester Bosch Greenstar 30Ri Compact"
+   "name": "Worcester Bosch Greenstar 30Ri Compact",
+   "selectable": true
   },
   "junkers-suprapur-o": {
    "brand": "Junkers",
-   "name": "Junkers Suprapur-o"
+   "name": "Junkers Suprapur-o",
+   "selectable": true
   },
   "junkers-cerapur-aero": {
    "brand": "Junkers",
-   "name": "Junkers Cerapur Aero"
+   "name": "Junkers Cerapur Aero",
+   "selectable": true
   },
   "bosch-hybrid-heatpump": {
    "brand": "Bosch",
-   "name": "Bosch Hybrid Heatpump"
+   "name": "Bosch Hybrid Heatpump",
+   "selectable": true
   },
   "buderus-logano-gb212": {
    "brand": "Buderus",
-   "name": "Buderus Logano GB212"
+   "name": "Buderus Logano GB212",
+   "selectable": true
   },
   "nefit-enviline": {
    "brand": "Nefit",
-   "name": "Nefit EnviLine"
+   "name": "Nefit EnviLine",
+   "selectable": true
   },
   "bosch-compress-6000aw": {
    "brand": "Bosch",
-   "name": "Bosch Compress 6000AW"
+   "name": "Bosch Compress 6000AW",
+   "selectable": true
   },
   "bosch-hybrid-3000-7000iaw": {
    "brand": "Bosch",
-   "name": "Bosch Hybrid 3000-7000iAW"
+   "name": "Bosch Hybrid 3000-7000iAW",
+   "selectable": true
   },
   "junkers-supraeco": {
    "brand": "Junkers",
-   "name": "Junkers SupraEco"
+   "name": "Junkers SupraEco",
+   "selectable": true
   },
   "ivt-geo-5xx": {
    "brand": "IVT",
-   "name": "IVT Geo 5xx"
+   "name": "IVT Geo 5xx",
+   "selectable": true
   },
   "buderus-logatherm-wlw196i": {
    "brand": "Buderus",
-   "name": "Buderus Logatherm WLW196i"
+   "name": "Buderus Logatherm WLW196i",
+   "selectable": true
   },
   "buderus-logatherm-wsw196i": {
    "brand": "Buderus",
-   "name": "Buderus Logatherm WSW196i"
+   "name": "Buderus Logatherm WSW196i",
+   "selectable": true
   },
   "bosch-condens-5000i": {
    "brand": "Bosch",
-   "name": "Bosch Condens 5000i"
+   "name": "Bosch Condens 5000i",
+   "selectable": true
   },
   "worcester-bosch-greenstar-8000": {
    "brand": "Worcester Bosch",
-   "name": "Worcester Bosch Greenstar 8000"
+   "name": "Worcester Bosch Greenstar 8000",
+   "selectable": true
   },
   "bosch-gc9800iw": {
    "brand": "Bosch",
-   "name": "Bosch GC9800iW"
+   "name": "Bosch GC9800iW",
+   "selectable": true
   },
   "buderus-gb192i-2": {
    "brand": "Buderus",
-   "name": "Buderus GB192i*2"
+   "name": "Buderus GB192i*2",
+   "selectable": true
   },
   "buderus-logamax-u122": {
    "brand": "Buderus",
-   "name": "Buderus Logamax U122"
+   "name": "Buderus Logamax U122",
+   "selectable": true
   },
   "nefit-ecomline-excellent": {
    "brand": "Nefit",
-   "name": "Nefit Ecomline Excellent"
+   "name": "Nefit Ecomline Excellent",
+   "selectable": true
   },
   "buderus-logamax-plus": {
    "brand": "Buderus",
-   "name": "Buderus Logamax Plus"
+   "name": "Buderus Logamax Plus",
+   "selectable": true
   },
   "buderus-gb192": {
    "brand": "Buderus",
-   "name": "Buderus GB192"
+   "name": "Buderus GB192",
+   "selectable": true
   },
   "bosch-condens-gc9000": {
    "brand": "Bosch",
-   "name": "Bosch Condens GC9000"
+   "name": "Bosch Condens GC9000",
+   "selectable": true
   },
   "worcester-bosch-greenstar-erp": {
    "brand": "Worcester Bosch",
-   "name": "Worcester Bosch Greenstar ErP"
+   "name": "Worcester Bosch Greenstar ErP",
+   "selectable": true
   },
   "buderus-cascade-mc400": {
    "brand": "Buderus",
-   "name": "Buderus Cascade MC400"
+   "name": "Buderus Cascade MC400",
+   "selectable": true
   },
   "bosch-easycontrol-adapter": {
    "brand": "Bosch",
-   "name": "Bosch EasyControl Adapter"
+   "name": "Bosch EasyControl Adapter",
+   "selectable": true
   },
   "worcester-bosch-greenstar-hiu": {
    "brand": "Worcester Bosch",
-   "name": "Worcester Bosch Greenstar HIU"
+   "name": "Worcester Bosch Greenstar HIU",
+   "selectable": true
   },
   "buderus-logamax-kompakt-ws170": {
    "brand": "Buderus",
-   "name": "Buderus Logamax kompakt WS170"
+   "name": "Buderus Logamax kompakt WS170",
+   "selectable": true
   },
   "buderus-logamax-plus-gb122": {
    "brand": "Buderus",
-   "name": "Buderus Logamax Plus GB122"
+   "name": "Buderus Logamax Plus GB122",
+   "selectable": true
   },
   "bosch-condens-2300": {
    "brand": "Bosch",
-   "name": "Bosch Condens 2300"
+   "name": "Bosch Condens 2300",
+   "selectable": true
   },
   "junkers-cerapur-gc2200w": {
    "brand": "Junkers",
-   "name": "Junkers Cerapur GC2200W"
+   "name": "Junkers Cerapur GC2200W",
+   "selectable": true
   },
   "buderus-gb125": {
    "brand": "Buderus",
-   "name": "Buderus Logano GB125"
+   "name": "Buderus Logano GB125",
+   "selectable": false
   },
   "buderus-gb135": {
    "brand": "Buderus",
-   "name": "Buderus GB135"
+   "name": "Buderus GB135",
+   "selectable": true
   },
   "buderus-gb1x2i": {
    "brand": "Buderus",
-   "name": "Buderus GB1x2i"
+   "name": "Buderus GB1x2i",
+   "selectable": true
   },
   "buderus-gbx72": {
    "brand": "Buderus",
-   "name": "Buderus GBx72"
+   "name": "Buderus GBx72",
+   "selectable": true
   },
   "buderus-gb122": {
    "brand": "Buderus",
-   "name": "Buderus Logamax Plus GB122"
+   "name": "Buderus Logamax Plus GB122",
+   "selectable": false
   },
   "buderus-gb192i-2-series": {
    "brand": "Buderus",
-   "name": "Buderus GB192i.2"
+   "name": "Buderus GB192i.2",
+   "selectable": true
   },
   "buderus-logano": {
    "brand": "Buderus",
-   "name": "Buderus Logano"
+   "name": "Buderus Logano",
+   "selectable": true
   },
   "bosch-condens-2500": {
    "brand": "Bosch",
-   "name": "Bosch Condens 2500"
+   "name": "Bosch Condens 2500",
+   "selectable": true
   },
   "junkers-cerapur-zsb-14-3-a": {
    "brand": "Junkers",
-   "name": "Junkers Cerapur ZSB 14-3 A"
+   "name": "Junkers Cerapur ZSB 14-3 A",
+   "selectable": true
   },
   "bosch-gc700iw": {
    "brand": "Bosch",
-   "name": "Bosch GC700iW"
+   "name": "Bosch GC700iW",
+   "selectable": true
   },
   "buderus-logamax-plus-gb172": {
    "brand": "Buderus",
-   "name": "Buderus Logamax plus GB172"
+   "name": "Buderus Logamax plus GB172",
+   "selectable": true
   },
   "bosch-condens-7000i-w": {
    "brand": "Bosch",
-   "name": "Bosch Condens 7000i W"
+   "name": "Bosch Condens 7000i W",
+   "selectable": true
   },
   "bosch-cerapur-zsb-zwb-5c": {
    "brand": "Bosch",
-   "name": "Bosch Cerapur ZSB/ZWB 5C"
+   "name": "Bosch Cerapur ZSB/ZWB 5C",
+   "selectable": true
   },
   "worcester-bosch-greenstar-4000": {
    "brand": "Worcester Bosch",
-   "name": "Worcester Bosch Greenstar 4000"
+   "name": "Worcester Bosch Greenstar 4000",
+   "selectable": true
   }
  }
 }

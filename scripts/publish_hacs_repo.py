@@ -192,7 +192,8 @@ def git(repo, *args):
 def write_front_page(repo):
     """README.md and hacs.json: the files HACS and GitHub show for the repository."""
     (repo / "hacs.json").write_text(json.dumps({"name": "OpenThermostat", "homeassistant": MINIMUM_HA,
-                                                "render_readme": True}, indent=2) + "\n", encoding="utf-8", newline="\n")
+                                                "render_readme": True,
+                                                "hide_default_branch": True}, indent=2) + "\n", encoding="utf-8", newline="\n")
     readme = README.format(source=SOURCE, source_raw=SOURCE.replace("https://github.com/", "https://raw.githubusercontent.com/") + "/main",
                            ha=MINIMUM_HA)
     (repo / "README.md").write_text(readme, encoding="utf-8", newline="\n")

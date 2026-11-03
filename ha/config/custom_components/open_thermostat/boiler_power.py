@@ -21,9 +21,9 @@ DEFAULT_KW = 22.0
 SOURCES = ("set", "gas_meter", "boiler", "product", "default")
 # Only types whose nominal heating power is in the name and certain; the E32 may only know a product group.
 KNOWN_PRODUCTS = (
-    (re.compile(r"\bEcomLine\b.*\bHRC?\s*22\b", re.I), 22.0),
-    (re.compile(r"\bEcomLine\b.*\bHRC?\s*30\b", re.I), 30.0),
-    (re.compile(r"\bEcomLine\b.*\bHRC?\s*43\b", re.I), 43.0),
+    (re.compile(r"\bEcomLine\b.*\bHRC?\s*22H?\b", re.I), 22.0),
+    (re.compile(r"\bEcomLine\b.*\bHRC?\s*30H?\b", re.I), 30.0),
+    (re.compile(r"\bEcomLine\b.*\bHRC?\s*43H?\b", re.I), 43.0),
 )
 # The word after the number in the House → Energy form, per language (the rest of the sentence is translated).
 BASIS = {

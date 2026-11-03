@@ -484,6 +484,8 @@ window.OT_UI_PAGE_MESSAGES = {
   "No recent report": "Geen recent rapport",
   "Report received": "Rapport ontvangen",
   "Product ID": "Product-ID",
+  "{brand} boiler (product {product})": "{brand}-ketel (product {product})",
+  "Boiler (product {product})": "Ketel (product {product})",
   "Brand ID": "Merk-ID",
   "Last report": "Laatste rapport",
   "Observed telegrams": "Ontvangen telegrammen",

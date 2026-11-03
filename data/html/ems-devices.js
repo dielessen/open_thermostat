@@ -56,10 +56,18 @@ window.EMSDevicesPage=(()=>{
     return matched.length===1?matched[0]:null;
   }
   function deviceTitle(d) {
-    const known=deviceReference(d),role=text(roles[d.address]||'EMS device');
     const brand=brands[d.brand_id]||'';
-    const boilerNames=known?.type==='boiler'&&brand?reference.boilerNames[d.product_id]?.[brand]:null;
-    return (boilerNames?.length?boilerNames.join(' / '):known?((brand?brand+' ':'')+known.name):role)+' '+hex(d.address);
+    if(d.address===8){
+      // Boilers of different models share one product ID (the owner's EcomLine Classic reports 206,
+      // which EMS-ESP calls "Ecomline Excellent"): the boiler is named after the model chosen on the
+      // Boiler page, else neutrally with its product ID, as in Home Assistant (ems_devices.py).
+      const chosen=window.BoilerDisplay?.modelName?.();
+      const neutral=d.product_id===null?text('Boiler'):text(brand?'{brand} boiler (product {product})':'Boiler (product {product})')
+        .replace('{brand}',brand).replace('{product}',d.product_id);
+      return (chosen||neutral)+' '+hex(d.address);
+    }
+    const known=deviceReference(d),role=text(roles[d.address]||'EMS device');
+    return (known?((brand?brand+' ':'')+known.name):role)+' '+hex(d.address);
   }
   function valid(s){
     const i=s?.inventory,f=s?.boiler?.fields;

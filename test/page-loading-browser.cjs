@@ -96,7 +96,7 @@ const telemetry={reception:{state:'classic_reports_received'},transport:{enabled
   assert.equal(await page.evaluate(()=>!!window.OT_EMS_METADATA),false);
   assert.equal(await page.locator('[data-field="measured_flow_temperature"]').count(),1);
   await page.evaluate(()=>loadNativePage('about'));await page.evaluate(()=>loadNativePage('boiler_test'));
-  await page.locator('[data-address="8"] > summary').filter({hasText:'EasyControl Adapter'}).waitFor();
+  await page.locator('[data-address="8"] > summary').filter({hasText:'(product 211)'}).waitFor();
   await context.close();assert.deepEqual(errors,[]);
  }finally{await browser.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
  fs.mkdirSync(out,{recursive:true});fs.writeFileSync(path.join(out,'RESULT.json'),JSON.stringify({scope:'Browser/cache fixture; no physical timing claim',results,errors},null,2));

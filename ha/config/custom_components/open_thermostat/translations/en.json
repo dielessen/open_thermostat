@@ -3550,6 +3550,9 @@
     "ems_boiler": {
       "name": "EMS boiler {address} (product {product})"
     },
+    "ems_boiler_brand": {
+      "name": "{brand} boiler (product {product}) ({address})"
+    },
     "ems_thermostat": {
       "name": "EMS thermostat {address} (product {product})"
     },

@@ -2,9 +2,9 @@
 # The whole local pre-tag check, with a PASS/FAIL summary (docs/RELEASING.md).
 # Run it on the exact commit that will be tagged, in WSL or Linux.
 #
-#   scripts/final_check.sh                         every step, independent steps at the same time
-#   scripts/final_check.sh --serial                every step one after another (the old way, slow)
-#   scripts/final_check.sh --in-place              run in this worktree even on a Windows drive (slow)
+#   scripts/final_check.sh                         every step, one after another, in this worktree
+#   scripts/final_check.sh --lanes                 EXPERIMENTAL: independent steps at the same time (below)
+#   scripts/final_check.sh --copy                  EXPERIMENTAL: run in a copy on the WSL disk (below)
 #   scripts/final_check.sh --stress 3              also every browser test 3 rounds x 4 copies on one CPU core
 #   scripts/final_check.sh --only harnesses,native / --skip builds    a subset (names: STEPS below)
 #   scripts/final_check.sh --dry                   prerequisites, CI step extraction and the fast steps
@@ -16,7 +16,7 @@
 # test/run-browser-tests.sh); the remaining CI commands are read from
 # .github/workflows/build.yml at run time (scripts/ci_step.py).
 #
-# Lanes (the default; machines with fewer than 12 CPUs run --serial). After `static`,
+# Lanes (--lanes; not yet proven equivalent to the serial run; fewer than 12 CPUs: serial). After `static`,
 # independent groups run at the same time, each pinned to its own CPUs:
 #   pio      harnesses, then native and builds together, then literal_reach, link_review, unittests
 #   ha       ha and ha_min together (own MQTT broker port each)
@@ -26,7 +26,7 @@
 # Every step keeps its own log and PASS/FAIL line; the summary adds the wall time per lane.
 #
 # A worktree on a Windows drive under WSL (/mnt/c, 9p) makes every file access of the
-# builds, scans and tests slow. The check then runs in a copy on the Linux disk
+# builds, scans and tests slow. With --copy the check runs in a copy on the Linux disk
 # (CHECK_TREE [~/.cache/openthermostat-final-check/tree-<worktree name>]): a git clone
 # sharing this repository's objects, at this worktree's HEAD, plus its uncommitted and
 # untracked (not ignored) files, so `static` sees the same state. The copy keeps its
@@ -52,12 +52,14 @@ STEPS="static verifiers harnesses native ha ha_min browser browser_stress soak r
 # Durations of the last browser run on this machine: lanes start the longest tests first.
 DURATIONS=${BROWSER_TEST_DURATIONS:-${XDG_CACHE_HOME:-$HOME/.cache}/openthermostat-final-check/browser-durations.txt}
 
-DRY=0; ONLY=""; SKIP=""; STRESS=0; SERIAL=0; IN_PLACE=0
+DRY=0; ONLY=""; SKIP=""; STRESS=0; SERIAL=1; IN_PLACE=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry) DRY=1 ;;
     --serial) SERIAL=1 ;;
+    --lanes) SERIAL=0 ;;
     --in-place) IN_PLACE=1 ;;
+    --copy) IN_PLACE=0 ;;
     --only) ONLY=",$2,"; shift ;;
     --skip) SKIP=",$2,"; shift ;;
     --stress) STRESS=$2; shift ;;

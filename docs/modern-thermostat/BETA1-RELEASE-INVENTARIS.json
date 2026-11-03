@@ -339,7 +339,7 @@
         },
         {
           "path": "docs/RELEASING.md",
-          "sha256": "cae39da9c697da5c73da86d3afd4ca41dc07b71089dc989a75944e4ea372d9f1"
+          "sha256": "1ea439e324fe73c2f7767c7a705760d5e41dd480933e1a77363f05bde17b4715"
         },
         {
           "path": "docs/modern-thermostat/BETA21-KANDIDAAT.json",
@@ -363,7 +363,7 @@
         },
         {
           "path": "scripts/final_check.sh",
-          "sha256": "4276044ad782994e06e479014e5840801e501c2c5a35c5a4fcf9dd0656325aa6"
+          "sha256": "19b907602d17574a93519e04ec18ac2664fbb9efb064f20a7bfc9db572a77574"
         },
         {
           "path": "scripts/test_browser_suite.py",

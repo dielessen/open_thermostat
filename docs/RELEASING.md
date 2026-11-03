@@ -60,11 +60,9 @@ every job as before.
    timing race in a test shows up there, not on a loaded CI runner. Fix a race at
    its cause, never with a retry, a longer timeout or a skip.
 
-   Independent steps run at the same time in lanes pinned to their own CPUs (the
-   stress lane keeps 4 copies per core, one test per stress core); `--serial` runs
-   them one after another. A worktree on a Windows drive is checked in a copy on
-   the WSL disk (`--in-place` checks the worktree itself); the script header
-   describes both.
+   Experimental, not yet the release check: `--lanes` runs independent steps at
+   the same time on their own CPUs, `--copy` runs in a copy on the WSL disk (the
+   script header describes both). Use the default serial run before a tag.
 
    A change to learning or self-tuning (FlowLearner, AutoTuner, WarmupPlanner,
    FlowPolicy) is also replayed on the owner's full recording, before and after

@@ -344,6 +344,52 @@ def test_away_dates_are_checked_before_anything_is_sent():
         away_command(True, 26)
 
 
+@pytest.mark.asyncio
+async def test_set_comfort_on_an_e32_room_is_handled(hass, monkeypatch):
+    """R4-06: set_comfort belongs to the older Home Assistant rooms; an E32 room answers with a clear message."""
+    import logging
+    from unittest.mock import AsyncMock
+    from homeassistant.core import ServiceCall
+    from homeassistant.helpers import entity_platform
+    from custom_components.open_thermostat import climate as climate_platform, v1_climate
+    from test_v1_native import entry as v1_entry
+    # An E32 installation without older rooms: the action is not offered at all.
+    monkeypatch.setattr(module, "async_setup_e32_climates", AsyncMock())
+    monkeypatch.setattr(v1_climate, "async_setup_entry", AsyncMock())
+    item = v1_entry(hass)
+    platform = entity_platform.EntityPlatform(
+        hass=hass, logger=logging.getLogger(__name__), domain="climate", platform_name="open_thermostat",
+        platform=None, scan_interval=timedelta(seconds=30), entity_namespace=None)
+    platform.config_entry = item
+    token = entity_platform.current_platform.set(platform)
+    try:
+        await climate_platform.async_setup_entry(hass, item, lambda *args, **kwargs: None)
+    finally:
+        entity_platform.current_platform.reset(token)
+    assert hass.services.has_service("open_thermostat", "set_room_override")
+    assert not hass.services.has_service("open_thermostat", "set_comfort")
+    # Registered by an installation that still has older rooms, it answers an E32 room clearly.
+    e32 = FakeE32()
+    entity, hub, link = await climate(hass, e32, room_state("living"))
+    entity.entity_id = "climate.living"
+    call = ServiceCall(hass, "open_thermostat", "set_comfort", {"entity_id": ["climate.living"], "mode": "boost"})
+    with pytest.raises(ServiceValidationError) as caught:
+        await climate_platform.set_comfort(entity, call)
+    assert caught.value.translation_key == "set_comfort_unsupported"
+    assert caught.value.translation_placeholders == {"entity": "climate.living"}
+    assert e32.commands == [] and e32.plan_posts == []
+    seen = []
+
+    class OlderRoom:
+        entity_id = "climate.older_room"
+
+        async def async_set_comfort(self, **kwargs):
+            seen.append(kwargs)
+    await climate_platform.set_comfort(OlderRoom(), call)
+    assert seen == [{"mode": "boost"}]
+    link.stop()
+
+
 def test_every_message_and_action_is_translated():
     from pathlib import Path
     import re

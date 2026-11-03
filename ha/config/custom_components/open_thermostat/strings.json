@@ -3903,6 +3903,9 @@
     },
     "e32_restart_failed": {
       "message": "The E32 restart was not confirmed ({error}). Check the connection and try again."
+    },
+    "set_comfort_unsupported": {
+      "message": "{entity} is an E32 room: use Set a temporary room override, End the room override or Away instead."
     }
   },
   "device": {

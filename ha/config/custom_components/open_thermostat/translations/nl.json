@@ -3903,6 +3903,9 @@
     },
     "e32_restart_failed": {
       "message": "De herstart van de E32 is niet bevestigd ({error}). Controleer de verbinding en probeer het opnieuw."
+    },
+    "set_comfort_unsupported": {
+      "message": "{entity} is een E32-ruimte: gebruik in plaats daarvan Tijdelijk overrulen, Overrulen beëindigen of Afwezig."
     }
   },
   "device": {

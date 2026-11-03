@@ -97,8 +97,8 @@ export_metrics_csv:
         boolean:
 
 set_comfort:
-  name: Set bounded shadow comfort
-  description: Requires an admitted comfort.target.v1 shadow room. Firmware owns expiry; no physical outputs. Temporary/boost default to the room's visible bounded duration. Vacation needs an explicit future date/time with timezone. No restoration across boot/reconnect.
+  name: Set the comfort mode of an older room
+  description: Only for rooms that were set up in Home Assistant before the rooms moved to the E32. E32 rooms use Set a temporary room override, End the room override and Away instead. Temporary and boost last the room's own duration unless you choose one. Vacation needs a future date and time with a time zone.
   target:
     entity:
       domain: climate

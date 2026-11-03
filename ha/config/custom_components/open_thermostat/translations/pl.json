@@ -3903,6 +3903,9 @@
     },
     "e32_restart_failed": {
       "message": "Ponowne uruchomienie E32 nie zostało potwierdzone ({error}). Sprawdź połączenie i spróbuj ponownie."
+    },
+    "set_comfort_unsupported": {
+      "message": "{entity} to pomieszczenie E32: zamiast tego użyj akcji Ustaw tymczasową zmianę w pomieszczeniu, Zakończ zmianę w pomieszczeniu lub Nieobecność."
     }
   },
   "device": {

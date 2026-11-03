@@ -219,6 +219,8 @@ struct WarmupPlanner {
             cJSON_AddStringToObject(st, "confidence", start.confidence);
             cJSON_AddBoolToObject(st, "reachable", start.reachable);
             cJSON_AddBoolToObject(st, "start_now", start.startNow);
+            // rc.3: Smart warm-up (FlowPolicy) uses this start; false: an estimate until the room is learned.
+            cJSON_AddBoolToObject(st, "applies", start.applicable());
         }
         const auto n = night(l, i, schedule, utc, temperature, outdoor);
         cJSON_AddStringToObject(ni, "reason", n.reason);

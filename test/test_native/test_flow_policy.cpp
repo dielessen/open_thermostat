@@ -1,6 +1,8 @@
 #include "control/BoundedJson.h"
+#include "control/ControlPartitionBudget.h"
 #include "control/FlowPolicy.h"
 #include "control/HeatingTelemetry.h"
+#include "FlowSettingsRc2.h"
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
 #include <memory>
@@ -13,6 +15,8 @@ using heating::control::FlowDemand;
 using heating::control::FlowLearner;
 using heating::control::FlowPolicy;
 using heating::control::FlowSettings;
+using heating::control::FlowSettingsRc2;
+using heating::control::readFlowRecordRc2;
 using heating::control::RoomDemand;
 using heating::control::RoomPlan;
 using heating::control::RoomSchedule;
@@ -84,7 +88,9 @@ struct Step {
     RoomPlan p = plan();
     std::array<RoomDemand::Result, RoomPlan::maxRooms> rooms{};
     FlowPolicy::Inputs in;
-    Step() { learner.setPlan(p); rooms[0] = room(2000, 2100); in.plan = &p; in.rooms = rooms.data(); }
+    // Options off (Smart warm-up is on by default since rc.3: the tests turn it on themselves).
+    Step() { learner.setPlan(p); rooms[0] = room(2000, 2100); in.plan = &p; in.rooms = rooms.data(); policy.setSettings(off()); }
+    static FlowSettings off() { FlowSettings s; s.applyLearned = s.weatherCurve = false; return s; }
     FlowDemand::Request apply(FlowDemand::Request rule, const FlowLearner* l = nullptr) {
         in.now += 10 * second; in.rule = rule;
         return policy.apply(in, l ? *l : learner);
@@ -119,8 +125,8 @@ TEST(FlowSettings, TheWholeRecordPostsBack) {
 }
 
 TEST(FlowSettings, ParsesPartialUpdatesStrictly) {
-    FlowSettings s;
-    EXPECT_EQ(s.json(), R"({"weather_curve":false,"apply_learned":false,"curve_design_flow_c":0,"tuning":)" + s.tuning.json() + R"(,"tuning_manual":[]})");
+    FlowSettings s; s.applyLearned = s.weatherCurve = false;
+    EXPECT_EQ(s.json(), R"({"weather_curve":false,"apply_learned":false,"curve_design_flow_c":0,"tuning":)" + s.tuning.json() + R"(,"tuning_manual":[],"version":2})");
     EXPECT_LE(s.json().size(), FlowSettings::maxBytes);
     EXPECT_EQ(FlowSettings::parse(parse(R"({"weather_curve":true})").get(), s), nullptr);
     EXPECT_TRUE(s.weatherCurve); EXPECT_FALSE(s.applyLearned);
@@ -141,6 +147,100 @@ TEST(FlowSettings, ParsesPartialUpdatesStrictly) {
     EXPECT_TRUE(s == before);                  // a refused update changes nothing
     EXPECT_EQ(FlowSettings::parse(parse(R"({"curve_design_flow_c":0})").get(), s), nullptr);
     EXPECT_EQ(s.designFlowC, 0);
+    // "version": the record format; any whole number from 1 (a newer backup restores too), ignored here.
+    EXPECT_EQ(FlowSettings::parse(parse(R"({"version":3})").get(), s), nullptr);
+    EXPECT_STREQ(FlowSettings::parse(parse(R"({"version":"2"})").get(), s), "invalid_value");
+    EXPECT_STREQ(FlowSettings::parse(parse(R"({"version":0})").get(), s), "invalid_value");
+    EXPECT_STREQ(FlowSettings::parse(parse(R"({"version":2.5})").get(), s), "invalid_value");
+}
+
+// rc.3 (owner, 3 Nov 2026): a time in the week program means "warm at that time",
+// and the E32 decides itself when what it learned is good enough. Smart warm-up
+// (apply_learned) and the heating curve (weather_curve) are on for a fresh install.
+TEST(FlowSettings, SmartWarmupAndTheCurveAreOnForAFreshInstall) {
+    const FlowSettings fresh;
+    EXPECT_TRUE(fresh.applyLearned);
+    EXPECT_TRUE(fresh.weatherCurve);
+    EXPECT_EQ(fresh.designFlowC, 0) << "automatic by emitter";
+    FlowSettings read;
+    EXPECT_FALSE(FlowSettings::readStored("", 0, read)) << "absent: the defaults (FlowSettingsNvs::read)";
+    EXPECT_FALSE(FlowSettings::readStored("{", 1, read));
+    EXPECT_TRUE(read.applyLearned); EXPECT_TRUE(read.weatherCurve);
+}
+
+// The record rc.2 (and every firmware before rc.3) wrote: its apply_learned and
+// weather_curve false were the old defaults, so they read as on; everything else is kept.
+TEST(FlowSettings, AnOlderRecordsDefaultOffBecomesOn) {
+    FlowSettingsRc2 old; old.designFlowC = 45; old.tuning.minOnS = 600; old.manual = 1;
+    ASSERT_FALSE(old.applyLearned); ASSERT_FALSE(old.weatherCurve);
+    const auto text = old.json();
+    FlowSettings read;
+    ASSERT_TRUE(FlowSettings::readStored(text.c_str(), text.size(), read));
+    EXPECT_TRUE(read.applyLearned);
+    EXPECT_TRUE(read.weatherCurve); EXPECT_EQ(read.designFlowC, 45); EXPECT_EQ(read.tuning.minOnS, 600); EXPECT_EQ(read.manual, 1);
+    old.applyLearned = old.weatherCurve = true;    // on stays on
+    const auto on = old.json();
+    ASSERT_TRUE(FlowSettings::readStored(on.c_str(), on.size(), read));
+    EXPECT_TRUE(read.applyLearned); EXPECT_TRUE(read.weatherCurve);
+    // A broken format line after it is no rc.3 record either.
+    const auto broken = text + "\n{\"version\":";
+    ASSERT_TRUE(FlowSettings::readStored(broken.c_str(), broken.size(), read));
+    EXPECT_TRUE(read.applyLearned); EXPECT_TRUE(read.weatherCurve);
+}
+
+// The owner's off, saved by rc.3 (POST, the E32 page, Home Assistant or a restore), stays off.
+TEST(FlowSettings, AnExplicitOffIsKept) {
+    FlowSettings s;
+    ASSERT_EQ(FlowSettings::parse(parse(R"({"apply_learned":false})").get(), s), nullptr);
+    EXPECT_FALSE(s.applyLearned);
+    const auto text = s.stored();
+    EXPECT_EQ(text, s.json().substr(0, s.json().size() - std::string(R"(,"version":2})").size()) + "}\n{\"version\":2}");
+    FlowSettings read;
+    ASSERT_TRUE(FlowSettings::readStored(text.c_str(), text.size(), read));
+    EXPECT_FALSE(read.applyLearned);
+    EXPECT_TRUE(read == s);
+    s.applyLearned = true;                          // and on again
+    const auto on = s.stored();
+    ASSERT_TRUE(FlowSettings::readStored(on.c_str(), on.size(), read));
+    EXPECT_TRUE(read.applyLearned);
+    // The heating curve the same way: the owner's off stays, the rest is untouched.
+    ASSERT_EQ(FlowSettings::parse(parse(R"({"weather_curve":false})").get(), s), nullptr);
+    const auto curveOff = s.stored();
+    ASSERT_TRUE(FlowSettings::readStored(curveOff.c_str(), curveOff.size(), read));
+    EXPECT_FALSE(read.weatherCurve); EXPECT_TRUE(read.applyLearned);
+    // The GET answer (and a backup) carries the format; posted back it is the same.
+    s.applyLearned = false;
+    FlowSettings back;
+    ASSERT_EQ(FlowSettings::parse(parse(s.json().c_str()).get(), back), nullptr);
+    EXPECT_TRUE(back == s);
+}
+
+// A rollback to rc.2 reads the record rc.3 wrote: the same options, its widest
+// form within rc.2's read buffer and the partition budget's flow record.
+TEST(FlowSettings, Rc2ReadsTheRecordAfterARollback) {
+    for (const bool smart : {false, true}) {
+        FlowSettings s;
+        s.weatherCurve = !smart; s.applyLearned = smart; s.designFlowC = 80;
+        size_t n; const auto* k = heating::control::ControlTuning::knobs(n);
+        for (size_t i = 0; i < n; ++i) s.tuning.*k[i].field = k[i].high;
+        s.manual = heating::control::ControlTuning::autoKnobs;
+        const auto text = s.stored();
+        EXPECT_LE(text.size(), FlowSettingsRc2::maxBytes);
+        EXPECT_LE(text.size() + 1, heating::control::ControlPartitionBudget::flowRecordBytes);
+        EXPECT_LE(s.json().size(), FlowSettings::postMaxBytes);
+        FlowSettingsRc2 old;
+        ASSERT_TRUE(readFlowRecordRc2(text, old)) << text;
+        EXPECT_EQ(old.applyLearned, smart); EXPECT_EQ(old.weatherCurve, !smart);
+        EXPECT_EQ(old.designFlowC, 80);
+        EXPECT_TRUE(old.tuning == s.tuning); EXPECT_EQ(old.manual, s.manual);
+        // What rc.2 writes after that reads back here by the older rule.
+        const auto again = old.json();
+        FlowSettings forward;
+        ASSERT_TRUE(FlowSettings::readStored(again.c_str(), again.size(), forward));
+        EXPECT_TRUE(forward.applyLearned); EXPECT_TRUE(forward.weatherCurve);
+    }
+    FlowSettingsRc2 old;
+    EXPECT_FALSE(readFlowRecordRc2(FlowSettings{}.json(), old)) << "the GET form is not the record: rc.2 refuses \"version\"";
 }
 
 // Options on but neither a curve (no outdoor) nor a learned flow: the rule's
@@ -149,14 +249,14 @@ TEST(FlowPolicy, OptionsOnClampTheRulesFlowToTheBoilerLimit) {
     Step s;
     s.in.boilerLimitC = 45;
     const FlowDemand::Request rule{true, 60, FlowDemand::Reason::heating};
-    FlowSettings on; on.weatherCurve = on.applyLearned = true;
+    FlowSettings on = Step::off(); on.weatherCurve = on.applyLearned = true;
     s.policy.setSettings(on);
     auto out = s.apply(rule);
     EXPECT_EQ(s.policy.source(), FlowPolicy::Source::rule);
     EXPECT_TRUE(out.heat); EXPECT_EQ(out.flowC, 45); EXPECT_EQ(out.reason, rule.reason);
     s.in.boilerLimitC = 20; // a limit below the plan minimum: the limit wins
     EXPECT_EQ(s.apply(rule).flowC, 20);
-    s.policy.setSettings(FlowSettings{}); // off: byte for byte the rule (the guard caps what it sends)
+    s.policy.setSettings(Step::off()); // off: byte for byte the rule (the guard caps what it sends)
     out = s.apply(rule);
     EXPECT_EQ(out.flowC, 60); EXPECT_FALSE(out.capped);
     const FlowDemand::Request capped{true, 45, FlowDemand::Reason::holdOn, true}; // a rule the boiler's limit lowered
@@ -213,7 +313,7 @@ TEST(FlowPolicy, OptionsOffLeaveTheRuleAndAdvise) {
 
 TEST(FlowPolicy, WeatherCurveSetsTheFlowWithinAllBounds) {
     Step s;
-    FlowSettings on; on.weatherCurve = true;
+    FlowSettings on = Step::off(); on.weatherCurve = true;
     s.policy.setSettings(on);
     s.rooms[0] = room(1980, 2000);
     const FlowDemand::Request small{true, 32, FlowDemand::Reason::heating}; // 0.2 degC short: 30 + 2
@@ -255,7 +355,7 @@ TEST(FlowPolicy, TheHighestRoomBaseCountsOnOneCircuit) {
     Step s;
     s.p.rooms.resize(2); s.p.rooms[1].id = "badkamer"; s.p.rooms[1].emitter = RoomPlan::Emitter::floor;
     s.rooms[0] = room(2050, 2100); s.rooms[1] = room(2250, 2300); // the bathroom is warmer, nearly satisfied
-    FlowSettings on; on.weatherCurve = true; s.policy.setSettings(on);
+    FlowSettings on = Step::off(); on.weatherCurve = true; s.policy.setSettings(on);
     s.in.outdoorCentiC = 0;
     // Bath: 23 + 0.667 x 23 = 38.3 -> 39; the living room has the larger error (lead) and a lower base.
     EXPECT_EQ(s.apply(FlowDemand::Request{true, 35, FlowDemand::Reason::heating}).flowC, 39 + 2);
@@ -277,7 +377,7 @@ TEST(FlowPolicy, LearnedFlowAppliesDuringAWarmUp) {
     ASSERT_TRUE(s.policy.addStatus(status.get(), false));
     EXPECT_STREQ(at(at(at(status.get(), "flow"), "learned"), "state")->valuestring, "advice");
     EXPECT_EQ(at(at(at(status.get(), "flow"), "learned"), "flow_c")->valuedouble, *advice.flowC);
-    FlowSettings on; on.applyLearned = true; s.policy.setSettings(on);
+    FlowSettings on = Step::off(); on.applyLearned = true; s.policy.setSettings(on);
     out = s.apply(heat40, &h.learner);
     EXPECT_EQ(out.flowC, *advice.flowC); EXPECT_EQ(s.policy.source(), FlowPolicy::Source::learned);
     on.weatherCurve = true; s.policy.setSettings(on);
@@ -305,11 +405,11 @@ TEST(FlowPolicy, LearnedOptimumStartHeatsAheadOfTheProgram) {
     EXPECT_FALSE(out.heat);
     s.in.utc = planned.startUtc + 60;
     out = s.apply(idle, &h.learner);
-    EXPECT_FALSE(out.heat);                    // advice only by default
+    EXPECT_FALSE(out.heat);                    // advice only while off
     Json advice(cJSON_CreateObject(), cJSON_Delete);
     ASSERT_TRUE(s.policy.addStatus(advice.get(), false));
     EXPECT_STREQ(at(at(at(advice.get(), "flow"), "optimum_start"), "state")->valuestring, "advice");
-    FlowSettings on; on.applyLearned = true; s.policy.setSettings(on);
+    FlowSettings on = Step::off(); on.applyLearned = true; s.policy.setSettings(on);
     s.in.utc = *s.in.utc + 60;
     out = s.apply(idle, &h.learner);
     ASSERT_TRUE(out.heat);
@@ -351,7 +451,7 @@ TEST(FlowPolicy, OptimumStartNeedsTheCoolingModelToo) {
     House h(plan(RoomPlan::Emitter::floor, true)); h.learn();
     ASSERT_TRUE(h.learner.heatModel(0).lossPerHour);
     Step s; s.p = plan(RoomPlan::Emitter::floor, true);
-    FlowSettings on; on.applyLearned = true; s.policy.setSettings(on);
+    FlowSettings on = Step::off(); on.applyLearned = true; s.policy.setSettings(on);
     const auto planned = WarmupPlanner::optimumStart(h.learner, 0, s.p.rooms[0].schedule, wednesday23, int16_t(1850), std::nullopt);
     ASSERT_STREQ(planned.confidence, "learned");
     EXPECT_FALSE(planned.coolingLearned);
@@ -372,7 +472,7 @@ TEST(FlowPolicy, OptimumStartNeedsTheCoolingModelToo) {
 TEST(FlowPolicy, DefaultLeadsAreOnlyAdvice) {
     ScopedTz tz(ScopedTz::amsterdam);
     Step s; s.p = plan(RoomPlan::Emitter::floor, true); s.learner.setPlan(s.p);
-    FlowSettings on; on.applyLearned = true; s.policy.setSettings(on);
+    FlowSettings on = Step::off(); on.applyLearned = true; s.policy.setSettings(on);
     const auto planned = WarmupPlanner::optimumStart(s.learner, 0, s.p.rooms[0].schedule, wednesday23, int16_t(1850), std::nullopt);
     ASSERT_STREQ(planned.confidence, "default");
     s.rooms[0] = room(1850, 1850); s.in.utc = planned.startUtc + 60;
@@ -483,7 +583,7 @@ TEST(FlowPolicy, WorstCaseSummaryStaysSmall) {
     House h(plan(RoomPlan::Emitter::floor, true)); h.learn();
     Step s; s.p = plan(RoomPlan::Emitter::floor, true); s.p.rooms[0].id = std::string(32, 'w');
     s.in.outdoorCentiC = -1234;
-    FlowSettings on; on.weatherCurve = on.applyLearned = true; on.designFlowC = 55; s.policy.setSettings(on);
+    FlowSettings on = Step::off(); on.weatherCurve = on.applyLearned = true; on.designFlowC = 55; s.policy.setSettings(on);
     h.learner.setApplied(true);           // as HeatingController::setFlowSettings does
     uint64_t now = h.now; double total = 12345678.123;
     for (int64_t utc = wednesday23 - 26 * 3600; utc <= wednesday23 + 14 * 3600; utc += 60) {
@@ -501,5 +601,9 @@ TEST(FlowPolicy, WorstCaseSummaryStaysSmall) {
     ASSERT_TRUE(root);
     EXPECT_TRUE(cJSON_IsObject(at(at(root.get(), "flow"), "yesterday")));
     EXPECT_TRUE(cJSON_IsTrue(at(at(root.get(), "learned"), "applied")));
+    // rc.3: how far the curve learned, for "standard for now (2 of 6 steady periods)" / "learned for your house".
+    const cJSON* curve = at(at(root.get(), "flow"), "curve");
+    EXPECT_TRUE(cJSON_IsNumber(at(curve, "windows")));
+    EXPECT_EQ(at(curve, "windows")->valuedouble, s.policy.curveLearner().windows());
 }
 }

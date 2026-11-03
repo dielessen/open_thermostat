@@ -448,6 +448,35 @@ TEST(ConfigBackup, FlowAndDisplayIgnoreUnknownButRefuseInvalidValues) {
     EXPECT_EQ(field(older.prepared.flow, "tuning", "min_off_s"), "900");
 }
 
+// rc.3 Smart warm-up and heating curve: a backup before rc.3 (no "version") had
+// apply_learned and weather_curve false as defaults, so they restore as on; an rc.3
+// backup keeps the owner's off.
+TEST(ConfigBackup, SmartWarmupFollowsTheBackupsFormat) {
+    auto doc = b::exportDocument(configured(), meta(), "");
+    auto copy = ControlJson(cJSON_Duplicate(doc.get(), true), cJSON_Delete);
+    auto flow = cJSON_GetObjectItemCaseSensitive(copy.get(), "flow");
+    ASSERT_TRUE(cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(flow, "version")));
+    b::put(flow, "apply_learned", cJSON_CreateFalse());
+    b::put(flow, "weather_curve", cJSON_CreateFalse());
+    auto target = factory();
+    ASSERT_EQ(field(target.flow, nullptr, "apply_learned"), "true");
+    auto v = validate(request("validate", copy.get()), target);
+    ASSERT_EQ(v.error, nullptr);
+    EXPECT_EQ(field(v.prepared.flow, nullptr, "apply_learned"), "false");
+    EXPECT_EQ(field(v.prepared.flow, nullptr, "weather_curve"), "false");
+    EXPECT_FALSE(has(v.report.warnings.get(), "unknown_key:flow.version"));
+    cJSON_DeleteItemFromObjectCaseSensitive(flow, "version");   // a backup of rc.2 or older
+    v = validate(request("validate", copy.get()), target);
+    ASSERT_EQ(v.error, nullptr);
+    EXPECT_EQ(field(v.prepared.flow, nullptr, "apply_learned"), "true");
+    EXPECT_EQ(field(v.prepared.flow, nullptr, "weather_curve"), "true");
+    EXPECT_EQ(field(v.prepared.flow, nullptr, "curve_design_flow_c"), "45"); // the rest restores
+    FlowSettings off; off.applyLearned = off.weatherCurve = false; target.flow = off.json(); // onto an E32 whose owner turned both off
+    v = validate(request("validate", copy.get()), target);
+    ASSERT_EQ(v.error, nullptr);
+    EXPECT_EQ(field(v.prepared.flow, nullptr, "apply_learned"), "true");
+}
+
 TEST(ConfigBackup, FailedApplyRestoresTheOldSettings) {
     const auto source = configured();
     auto doc = b::exportDocument(source, meta(), "");

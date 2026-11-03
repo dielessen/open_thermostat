@@ -13,7 +13,9 @@
 namespace heating {
 // The beta.19 flow options (control/FlowPolicy.h FlowSettings) as one short NVS
 // string beside the room plan ("ot_heating"/"flow"), read back after the commit.
-// Absent or unreadable: the defaults (everything off, advice only).
+// Absent or unreadable: the defaults (Smart warm-up and the weather curve on).
+// rc.3: FlowSettings::stored(), which rc.2 still reads after a rollback; a record
+// of rc.2 or older reads apply_learned and weather_curve as on (FlowSettings::readStored()).
 struct FlowSettingsNvs {
     static constexpr const char* key = "flow";
     static control::FlowSettings read() {
@@ -25,13 +27,12 @@ struct FlowSettingsNvs {
         const bool ok = nvs_get_str(handle, key, text, &size) == ESP_OK;
         nvs_close(handle);
         if (!ok) return settings;
-        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(control::parseNestedJson(text, std::strlen(text)));
         control::FlowSettings parsed;
-        return root && !control::FlowSettings::parse(root.get(), parsed) ? parsed : settings;
+        return control::FlowSettings::readStored(text, std::strlen(text), parsed) ? parsed : settings;
     }
     static bool write(const control::FlowSettings& settings) {
-        const auto record = settings.json();
-        if (record.size() > control::FlowSettings::maxBytes) return false;
+        const auto record = settings.stored();
+        if (record.size() > control::FlowSettings::rc2StoredMaxBytes) return false;
         nvs_handle_t handle;
         if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
         const bool committed = nvs_set_str(handle, key, record.c_str()) == ESP_OK && nvs_commit(handle) == ESP_OK;

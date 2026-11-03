@@ -4,10 +4,10 @@
       "user": {
         "title": "Skonfiguruj OpenThermostat",
         "menu_options": {
-          "legacy": "Starsze oprogramowanie OpenThermostat (ib-therm)",
+          "legacy": "Starszy OpenThermostat (sprzed E32)",
           "shadow": "OpenThermostat E32 (zalecane)"
         },
-        "description": "Wybierz swój OpenThermostat. Z E32 strona E32 poprowadzi Cię dalej: jeśli stary termostat nadal wysyła żądania do kotła, E32 najpierw działa obok niego w okresie próbnym; bez termostatu przechodzi od razu do testu kotła i przejęcia. Nic nie wysyła do kotła, dopóki nie potwierdzisz tam przejęcia."
+        "description": "Połącz swoje E32. Pokaże Ci, co zrobić dalej. Zacznie sterować kotłem dopiero wtedy, gdy na to pozwolisz."
       },
       "confirm": {
         "title": "Wykryto OpenThermostat",
@@ -33,7 +33,7 @@
       },
       "shadow": {
         "title": "Połącz OpenThermostat E32",
-        "description": "E32 nic nie wysyła do kotła, dopóki nie potwierdzisz przejęcia na jego stronie „Rooms”, najlepiej przez test kotła („Boiler test and takeover”). Jeśli na magistrali kotła jest jeszcze stary termostat, E32 najpierw działa obok niego w okresie próbnym (tylko liczy i porównuje); zawsze możesz tam wybrać drugą drogę. Home Assistant ustawia jednak temperaturę zadaną na urządzeniu nastawczym każdego pomieszczenia (zawór termostatyczny, tado lub pomocnik liczbowy) zgodnie z programem tygodniowym tego pomieszczenia. Zwykle łączysz E32 później przez Konfiguruj → Połączenie z E32, co samo wypełnia identyfikator połączenia.",
+        "description": "E32 nie wysyła nic do kotła, dopóki nie zezwolisz na to na jego stronie Pomieszczenia, najlepiej przez test kotła. Jeśli do kotła nadal jest podłączony stary termostat, E32 najpierw robi próbę obok niego. Home Assistant ustawia temperaturę docelową na urządzeniu nastawczym każdego pomieszczenia (zawór grzejnikowy, tado lub pomocnik liczbowy) zgodnie z programem tygodniowym tego pomieszczenia. Zwykle łączysz E32 później przez Konfiguruj → Połączenie z E32. To wypełnia za Ciebie identyfikator połączenia.",
         "data": {
           "topic_prefix": "Prefiks MQTT urządzenia E32",
           "adapter_id": "Identyfikator połączenia (wypełniany automatycznie)"
@@ -58,10 +58,10 @@
           "advanced": {
             "name": "Zaawansowane",
             "data": {
-              "topic_prefix": "Prefiks MQTT sterownika"
+              "topic_prefix": "Prefiks MQTT E32"
             },
             "data_description": {
-              "topic_prefix": "Musi zgadzać się z Twoim E32: openthermostat w nowym E32, ib-therm w starszych instalacjach. Zmiana połączenia może przerwać komunikację; nie przenosi istniejącego sterownika."
+              "topic_prefix": "Użyj openthermostat w nowym E32 i ib-therm w starszym OpenThermostat. Zmiana może przerwać połączenie."
             }
           }
         },
@@ -86,13 +86,13 @@
       "reauth_no_e32": "Ta instalacja nie ma jeszcze połączenia z E32. Użyj Konfiguruj → Połączenie z E32."
     },
     "error": {
-      "invalid_topic": "Nieobsługiwany prefiks dla tego trybu. Tryb cienia wymaga 1–32 liter/cyfr ASCII, - lub _; istniejące starsze identyfikatory nie są zmieniane.",
+      "invalid_topic": "Użyj od 1 do 32 liter, cyfr, - lub _.",
       "invalid_adapter_id": "Użyj tego samego jawnego identyfikatora właściciela, który ustawiono na E32 (1–32 litery, cyfry, _ lub -).",
       "invalid_name": "Podaj nazwę o długości od 1 do 80 znaków.",
       "reauth_password_invalid": "Podaj hasło E32 (od 1 do 128 znaków).",
       "reauth_password_wrong": "E32 nie zaakceptował tego hasła. Sprawdź je i spróbuj ponownie.",
       "reauth_unreachable": "Nie udało się połączyć z E32. Sprawdź, czy jest włączony i podłączony do Twojej sieci, a potem spróbuj ponownie.",
-      "reauth_session_capacity": "E32 ma zbyt wiele otwartych logowań. Wyloguj się na stronie internetowej E32 (lub zaloguj się tam z opcją „End previous web sessions and sign in”) albo uruchom E32 ponownie, a potem spróbuj ponownie.",
+      "reauth_session_capacity": "E32 ma zbyt wiele otwartych logowań.\n1. Wyloguj się na stronie WWW E32 lub uruchom E32 ponownie.\n2. Spróbuj ponownie tutaj.",
       "reauth_try_again_later": "Zbyt wiele prób logowania do E32. Poczekaj 30 sekund, a potem spróbuj ponownie."
     },
     "create_entry": {
@@ -184,23 +184,23 @@
           "advanced_settings": "Zaawansowane i diagnostyka",
           "room_settings": "Zarządzaj pomieszczeniami",
           "installation": "Ustawienia instalacji",
-          "configuration_status": "Stan instalacji",
-          "graph_prepare": "Przejrzyj lub odzyskaj plan pomieszczeń"
+          "configuration_status": "Czy wszystko jest połączone?",
+          "graph_prepare": "Napraw plan pomieszczeń"
         }
       },
       "graph_review": {
-        "title": "Przejrzyj przygotowaną konfigurację ogrzewania",
-        "description": "{scope}.\n\n{summary}\n\nZaakceptowana wersja {accepted}; przygotowana wersja {revision}.\n{status_label}.\n\nZastosowanie zapisuje dokładnie tę przejrzaną konfigurację i nigdy nie uruchamia urządzeń fizycznie. Potwierdza ją tylko świeży, dokładny odczyt zwrotny. Zmiana właściciela, uruchomienia, sesji lub kandydata anuluje ten przegląd.\n\nSkrót konfiguracji: {digest}",
+        "title": "Sprawdź ustawienia ogrzewania",
+        "description": "Sprawdź ustawienia ogrzewania. Wszystko jest zapisywane w E32. Ogrzewanie jeszcze się tu nie włącza.\n\n{scope}.\n\n{summary}\n\nZapisana wersja: {accepted}. Nowa wersja: {revision}.\n{status_label}.\n\nJeśli w międzyczasie coś się zmieni, to sprawdzenie zostanie przerwane i zaczniesz od nowa.\n\nSzczegóły techniczne\nKod: {digest}",
         "data": {
-          "confirm_apply": "Zastosuj dokładnie tę przygotowaną konfigurację"
+          "confirm_apply": "Zapisz to ustawienie w E32"
         },
         "data_description": {
-          "confirm_apply": "Zaznacz, aby zapisać na E32 dokładnie tę przejrzaną konfigurację. Nie włącza to sterowania ogrzewaniem."
+          "confirm_apply": "Zaznacz, aby zapisać dokładnie to ustawienie w E32. Nie włącza to ogrzewania."
         }
       },
       "graph_status": {
-        "title": "Stan konfiguracji ogrzewania",
-        "description": "{status_label}.\n\nWynik urządzenia: {result_label}; potwierdzenie ACK nie jest dowodem zastosowania ani odczytu zwrotnego.\nLokalnie zaakceptowana wersja: {accepted}; przygotowana wersja: {staged_label}.\nBieżący odczyt zwrotny potwierdzony:{verified}.\n\nZakres: {data_scope}.\n{control_status}.\n\nOdświeżenie tylko odczytuje bieżący stan. Nigdy nie stosuje konfiguracji ani nie kwalifikuje fizycznego źródła.",
+        "title": "Stan ustawień ogrzewania",
+        "description": "{status_label}.\n\nE32 odpowiedziało: {result_label}. Sama odpowiedź nie dowodzi, że ustawienia są używane.\nZapisana wersja: {accepted}. Nowa wersja: {staged_label}.\n\n{data_scope}.\n{control_status}.\n\nOdświeżenie tylko odczytuje aktualny stan. Niczego nie zmienia.\n\nSzczegóły techniczne\nSprawdzone w E32: {verified}",
         "data": {
           "status_action": "Następny krok"
         },
@@ -214,8 +214,8 @@
         "data": {}
       },
       "graph_source_status": {
-        "title": "Stan sterowania w trybie cienia dla przejrzanego źródła",
-        "description": "Zakres:{scope}. Kontrakt:{profile}. Sterowanie programowe:{control_status}. Bieżący odczyt zwrotny konfiguracji źródła potwierdzony:{verified}. Dziennik:{journal_status}. Zaakceptowana wersja:{accepted}; przygotowana:{staged}. Wyjścia kotła i siłowników pozostają wyłączone. Odświeżenie nigdy nie stosuje DATA ani nie kwalifikuje źródła, profilu fizycznego lub zabezpieczenia.",
+        "title": "Stan ustawień pomieszczeń",
+        "description": "{scope}.\nSterowanie przez Home Assistant: {control_status}. Nic tutaj nie włącza kotła ani zaworów.\nZapisana wersja: {accepted}. Nowa wersja: {staged}.\n\nOdświeżenie tylko odczytuje aktualny stan. Niczego nie zmienia.\n\nSzczegóły techniczne\nProfil: {profile}\nSprawdzone w E32: {verified}\nDziennik: {journal_status}",
         "data": {
           "status_action": "Następny krok"
         },
@@ -224,25 +224,25 @@
         }
       },
       "installation_source": {
-        "title": "Zaawansowane: sprawdź profil instalacji",
-        "description": "Podczas tego sprawdzenia nie włączaj obliczeń. Ten profil techniczny określa pomieszczenia, urządzenia i limity sterowania należące do tego E32. Nie włącza sterowania ogrzewaniem. Ustawienia HA i E32 muszą się zgadzać; HA sprawdza następnie plan pomieszczeń zwrócony przez E32. Pomiary, działanie zaworów i bezpieczne zatrzymanie są testowane osobno.",
+        "title": "Zaawansowane: sprawdź ustawienia pomieszczeń E32",
+        "description": "Podczas tego sprawdzenia wyłącz obliczenia. Sprawdza ono, które pomieszczenia, urządzenia i limity należą do tego E32. Nie włącza ogrzewania. Ustawienia w Home Assistant i w E32 muszą być zgodne; potem Home Assistant sprawdza plan pomieszczeń zwrócony przez E32. Pomiary, zawory i bezpieczne zatrzymanie są testowane osobno.",
         "data": {
-          "controller_id": "Dokładny identyfikator sterownika E32 (z ustawień urządzenia)",
-          "legacy_readback": "Dopuść znane stare rekordy schema1 w kwarantannie tylko do odczytu",
-          "week_reviewed": "Użyj kontraktu cienia dla pełnego tygodnia (wymaga obsługi w E32)"
+          "controller_id": "ID E32 (zobacz ustawienia urządzenia E32)",
+          "legacy_readback": "Zezwól na znane starsze zapisy (tylko odczyt)",
+          "week_reviewed": "Sprawdź pełny program tygodniowy (wymaga odpowiedniej wersji E32)"
         },
         "data_description": {
-          "legacy_readback": "Bez przywracania uprawnień, nadpisań ani nauki. Niezgodne stare rekordy nadal są odrzucane.",
-          "controller_id": "Identyfikator sterownika widoczny w ustawieniach urządzenia E32; musi zgadzać się dokładnie.",
-          "week_reviewed": "Tylko gdy oprogramowanie E32 obsługuje kontrakt cienia dla pełnego tygodnia."
+          "legacy_readback": "Nic ze starych zapisów nie jest włączane ponownie. Zapisy, które nie pasują, nadal są odrzucane.",
+          "controller_id": "ID E32 widoczne w ustawieniach urządzenia E32. Musi się dokładnie zgadzać.",
+          "week_reviewed": "Tylko gdy oprogramowanie E32 to obsługuje."
         }
       },
       "installation_source_review": {
-        "title": "Potwierdź niezależny profil cienia",
-        "description": "Pomieszczenia: {rooms}\nPrzejrzane limity logiczne (nie są zabezpieczeniem fizycznym):\n{limits}\nUrządzenie: {controller}\nWłaściciel HA: {owner}\nOdcisk profilu: {fingerprint}\n\nWklej poniższy deskryptor do lokalnych ustawień sieci E32 dopiero po przejrzeniu instalacji. Zapisz go i odczytaj tam ponownie. Pierwszy wybór lub zmiany sieci wymagają osobno zatwierdzonego restartu; istniejący profil natywny może użyć jawnej lokalnej akcji tylko SOURCE bez restartu urządzenia. Ten ekran niczego nie wysyła ani niczego nie restartuje.\n\n{descriptor}\n\n{scope}",
+        "title": "Potwierdź ustawienia pomieszczeń tego E32",
+        "description": "Pomieszczenia: {rooms}\nLimity (sprawdzenie w Home Assistant, nie zabezpieczenie):\n{limits}\nE32: {controller}\nIdentyfikator Home Assistant: {owner}\n\nSprawdź, czy to Twoja instalacja. Następnie skopiuj tekst z sekcji Szczegóły techniczne do lokalnych ustawień sieci E32 i zapisz go tam. Pierwszy wybór lub zmiana sieci wymaga restartu, który uruchamiasz sam. Ten ekran niczego nie wysyła i niczego nie restartuje.\n\n{scope}\n\nSzczegóły techniczne\nKod: {fingerprint}\n{descriptor}",
         "data": {
-          "confirm_source": "Zapisz ten wybór profilu logicznego HA (bez wysyłania sterowania/konfiguracji)",
-          "confirm_replacement": "Przejrzałem dokładnie poprzedni profil i jego migrację tylko z odczytem zwrotnym"
+          "confirm_source": "Zapisz ten wybór w Home Assistant (nic nie jest wysyłane)",
+          "confirm_replacement": "Sprawdziłem poprzednie ustawienia, które to zastępuje"
         },
         "data_description": {
           "confirm_source": "Zaznacz, aby zapisać ten wybór profilu w Home Assistant. Nic nie jest wysyłane do E32.",
@@ -251,7 +251,7 @@
       },
       "installation": {
         "title": "Skonfiguruj swoją instalację grzewczą",
-        "description": "Jedna instalacja dla sterownika i pomieszczeń. Możesz wszystko skonfigurować, gdy sterownik lub kocioł jest odłączony. Zapisanie nie uruchamia ogrzewania.",
+        "description": "Jedna instalacja dla Twojego E32 i pomieszczeń. Wszystko możesz ustawić, gdy E32 lub kocioł jest odłączony. Zapis nie włącza ogrzewania.",
         "data": {
           "name": "Nazwa instalacji",
           "create_dashboard": "Pokaż panel OpenThermostat",
@@ -395,7 +395,7 @@
         "submit": "Usuń pomieszczenie"
       },
       "configuration_status": {
-        "title": "Stan instalacji",
+        "title": "Czy wszystko jest połączone?",
         "description": "Skonfigurowane pomieszczenia: **{rooms}**\n\nE32: **{connection}**\n\nSterowanie: **{runtime}**\n\nZapisanie nie oznacza jeszcze, że E32 przejął ustawienia. Pomieszczenia możesz konfigurować także bez połączenia.\n\n**Sprawdzenie zapisanych temperatur zaworów**\n\n{actuator_checks}\n\nPorównuje to, co zawory zgłaszają o swoich możliwościach; nie dowodzi położenia zaworu.\n\n**Co oznaczają te sprawdzenia?**\nKonfiguracja potwierdzona: E32 odesłał zapisany plan pomieszczeń. Obliczenia włączone: E32 oblicza zapotrzebowanie na ciepło; steruje kotłem dopiero po przełączeniu. Sprawdzenie temperatur zaworów: porównuje zapisane temperatury z limitami zgłaszanymi przez zawory i oznacza różnice. Żadne z tych sprawdzeń nie dowodzi, że zawór się otwiera ani że kocioł się zatrzymuje; sprawdź to przy samym zaworze lub kotle.",
         "submit": "Zamknij"
       },
@@ -466,11 +466,11 @@
         "title": "Zaawansowane i diagnostyka",
         "description": "Przywracanie kopii zapasowej ustawień E32, porządkowanie identyfikatorów encji i kontrole techniczne. Codzienne ustawienia są w menu głównym.",
         "menu_options": {
-          "configuration_status": "Stan instalacji",
-          "installation_source": "Sprawdź połączenie ze sterownikiem",
+          "configuration_status": "Czy wszystko jest połączone?",
+          "installation_source": "Sprawdź ustawienia pomieszczeń E32",
           "graph_status": "Sprawdź zastosowany plan pomieszczeń",
           "hot_water": "Pokaż stan ciepłej wody",
-          "graph_prepare": "Przejrzyj lub odzyskaj plan pomieszczeń",
+          "graph_prepare": "Napraw plan pomieszczeń",
           "legacy_rooms": "Usuń stare pomieszczenia Home Assistant",
           "installation": "Limity wody starego profilu pomieszczeń",
           "entity_ids": "Uporządkuj identyfikatory encji",
@@ -984,11 +984,11 @@
       "not_contact_sensor": "Wybierz tylko czujniki okien, drzwi lub otwarcia.",
       "room_invalid": "Wybierz jedno z pomieszczeń E32.",
       "invalid_adapter_id": "Użyj tego samego jawnego identyfikatora właściciela, który ustawiono na E32 (1–32 litery, cyfry, _ lub -).",
-      "graph_room_contract_unavailable": "Dla tych pomieszczeń nie jest dostępny pasujący graf DATA ani jawnie wybrany przez SOURCE kontrakt cienia. Zapisanie grafu lub zaznaczenie tego pola nigdy nie kwalifikuje źródła ani nie włącza wyjść fizycznych.",
+      "graph_room_contract_unavailable": "Te pomieszczenia nie pasują do zapisanych ustawień E32. Zapis ani zaznaczenie tego pola nie włącza ogrzewania.",
       "graph_control_source_review_required": "Wybrany kontrakt SOURCE nie pasuje do bieżącego właściciela lub przejrzanego grafu albo zmienił się podczas weryfikacji. Nic nie zostało włączone. Przejrzyj zapisany kontrakt DATA i SOURCE; samo ponowne połączenie nie może zatwierdzić zmian.",
       "native_plan_schedule_limit": "Zapisane programy przekraczają obecny limit ośmiu przejść UTC dla obu pomieszczeń w 15-dniowym oknie planowania. Jeden blok tygodniowy może dać kilka przejść. Ogranicz programy i spróbuj ponownie. Zapisane ustawienia pomieszczeń i istniejące plany zostały zachowane; nic nie wysłano. Obsługa pełnego tygodnia jest jeszcze w przygotowaniu.",
       "native_plan_config_limit": "Cały zapisany plan pomieszczeń przekracza obecny limit konfiguracji urządzenia wynoszący 4096 bajtów. Uprość programy i spróbuj ponownie. Zapisane ustawienia pomieszczeń i istniejące plany zostały zachowane; nic nie wysłano.",
-      "native_source_unsupported": "Ten układ źródła, powiązanie lub identyfikator sterownika nie są obsługiwane. Nie zapisano żadnego profilu.",
+      "native_source_unsupported": "To ustawienie pomieszczeń lub ID E32 nie jest obsługiwane. Nic nie zapisano.",
       "binding_missing": "Wybierz istniejącą, włączoną encję.",
       "loop_binding": "Nie wybieraj wyjścia OpenThermostat jako wejścia.",
       "not_temperature": "Wybierz czujnik temperatury w °C lub °F.",
@@ -1006,11 +1006,11 @@
       "program_export_failed": "Nie można skompilować ograniczonego programu 15-dniowego: sprawdź strefę czasową, limity pomieszczenia i maksymalnie 128 przejść.",
       "room_mode_actuator_conflict": "Pomieszczenia z głowicami klimatu (TRV) wymagają głowic TRV; pomieszczenia tylko z grafem nie mogą mieć wybranej głowicy klimatu.",
       "unsupported_room_binding_mode": "Nieobsługiwana konfiguracja wyjść pomieszczenia.",
-      "graph_room_runtime_off_required": "Zatrzymaj działanie trybu cienia przed edycją pomieszczenia tylko z grafem lub zmianą jego trybu.",
+      "graph_room_runtime_off_required": "Najpierw wyłącz próbę, potem zmień to pomieszczenie.",
       "confirm_room_mode_change": "Zmiana konfiguracji wyjść pomieszczenia wymaga jawnego potwierdzenia.",
       "invalid_name": "Podaj nazwę pomieszczenia o długości od 1 do 80 znaków.",
       "select_radiators": "Wybierz od jednego do ośmiu zaworów grzejnikowych.",
-      "output_has_multiple_owners": "To wyjście należy już do innego pomieszczenia, sterownika, pompy, mieszacza lub deklaracji siłownika.",
+      "output_has_multiple_owners": "To wyjście jest już używane przez inne pomieszczenie lub urządzenie.",
       "input_output_loop": "Wyjście nie może być jednocześnie skonfigurowanym wejściem ani encją pochodzącą z OpenThermostat.",
       "setup_invalid": "Nie udało się przygotować pomieszczenia. Sprawdź wybrane urządzenia i ich istniejące przypisania; nic nie zostało zapisane.",
       "emitter_not_available": "Ten rodzaj ogrzewania nie jest jeszcze dostępny w tej wersji. Nic nie zostało zapisane. Wybierz grzejniki lub poczekaj na zgodny profil.",
@@ -1058,7 +1058,7 @@
       "controller_connection_failed": "Nie udało się dokończyć połączenia. Sprawdź, czy E32 jest włączony i czy jego strona internetowa się otwiera, poczekaj minutę i wyślij ponownie. Jeśli nadal się nie udaje, przyczynę pokazuje strona E32 w System → Diagnostics and system log.",
       "controller_connection_unconfirmed": "Home Assistant nie otrzymał na czas odpowiedzi od E32. Na stronie E32 sprawdź w System → Network and Home Assistant → MQTT, czy używa tego samego brokera co Home Assistant i czy jego nazwa użytkownika i hasło są akceptowane; potem wyślij ponownie.",
       "controller_connection_changed": "Połączenie z E32 zmieniło się podczas zapisywania planu pomieszczeń, na przykład przez restart lub drugie Połącz E32. Poczekaj minutę i wyślij ponownie.",
-      "controller_plan_pending": "Wcześniejsza zmiana planu pomieszczeń nie jest jeszcze rozstrzygnięta. Sprawdź jej rzeczywisty odczyt zwrotny z E32 przed zastosowaniem kolejnej zmiany.",
+      "controller_plan_pending": "Wcześniejsza zmiana planu pomieszczeń nie jest jeszcze zakończona. Sprawdź w E32, co zostało zapisane, zanim zmienisz coś innego.",
       "controller_plan_unconfirmed": "E32 nie potwierdził na czas planu pomieszczeń. Poczekaj, aż E32 wróci po restarcie (jego strona internetowa znów się otwiera), potem wyślij ponownie.",
       "controller_partial_connection": "Łączenie zatrzymało się w połowie: część ustawień mogła już zostać zapisana na E32. Wyślij ponownie, aby dokończyć połączenie; Home Assistant sprawdzi, co już tam jest.",
       "setup_changed": "Instalacja zmieniła się podczas łączenia. Sprawdź jej bieżące ustawienia przed ponownym połączeniem.",
@@ -1177,19 +1177,19 @@
       "native_plan_config_limit": "Cały zapisany plan pomieszczeń przekracza obecny limit konfiguracji urządzenia wynoszący 4096 bajtów. Uprość programy i spróbuj ponownie. Zapisane ustawienia pomieszczeń i istniejące plany zostały zachowane; nic nie wysłano.",
       "native_plan_prepare_failed": "Nie udało się zweryfikować zapisanego planu pomieszczeń. Sprawdź połączenie, wybrany profil i stan konfiguracji, a potem przygotuj go ponownie. Nie wykonano automatycznego zastosowania.",
       "hot_water_information_complete": "Informacje o ciepłej wodzie (tylko odczyt) zamknięte; ustawienia nie zmieniły się.",
-      "native_source_runtime_off_required": "Wyłącz działanie trybu cienia przed przeglądem jego niezależnego profilu lokalnego.",
+      "native_source_runtime_off_required": "Najpierw wyłącz próbę, potem sprawdź ustawienia pomieszczeń.",
       "native_source_review_changed": "Konfiguracja, właściciel lub rejestr zmieniły się. Nie zapisano nowego profilu.",
       "native_source_review_cancelled": "Przegląd profilu anulowany; istniejąca konfiguracja jest bez zmian.",
       "native_source_owner_conflict": "Wybrano już innego niezależnego właściciela źródła. Nie zapisano żadnego profilu.",
       "native_source_replacement_unsupported": "Zmiana istniejącego profilu źródła wymaga obsługiwanej migracji trwałego planu. Istniejący profil i dane zostały zachowane.",
-      "native_source_plan_apply_required": "Oczekująca, mieszana, niezgodna lub nieczytelna historia konfiguracji nie może zatwierdzić tej wersji źródła. Najpierw rozwiąż dokładny bieżący odczyt zwrotny planu. Istniejące dane zostały zachowane.",
+      "native_source_plan_apply_required": "Wcześniejsza zmiana planu pomieszczeń nie jest zakończona lub nie można jej odczytać. Najpierw sprawdź w E32, co zostało zapisane. Nic nie zostało utracone.",
       "room_limit": "Najwyżej 8 pomieszczeń",
-      "shadow_mode_required": "Najpierw wybierz jawny tryb cienia v1",
+      "shadow_mode_required": "Najpierw wybierz tryb próby.",
       "program_cancelled": "Edycja programu anulowana; nic nie zapisano.",
       "program_changed": "Pomieszczenie zostało zmienione lub usunięte podczas edycji; otwórz je ponownie.",
       "program_not_started": "Najpierw otwórz edytor tygodnia z powiązań pomieszczenia.",
       "room_changed": "Pomieszczenie zmieniło się podczas edycji. Otwórz je ponownie przed zapisaniem.",
-      "setup_runtime_off": "Wyłącz obserwację w trybie cienia w ustawieniach integracji przed zmianą pomieszczeń. Żadne ustawienia nie zostały zmienione.",
+      "setup_runtime_off": "Wyłącz próbę w ustawieniach integracji, zanim zmienisz pomieszczenia. Nic nie zmieniono.",
       "setup_changed": "Instalacja zmieniła się podczas edycji. Otwórz ponownie konfigurację pomieszczenia; ten formularz niczego nie zapisał.",
       "advanced_room_required": "To pomieszczenie ma sterowanie podłogowe, mieszające, wielogrupowe lub zewnętrzne sterowanie komfortem. Użyj zaawansowanych ustawień pomieszczenia, aby zachować tę konfigurację. Nic nie zostało zmienione.",
       "room_saved": "Pomieszczenie i grupa grzejników zapisane. Ogrzewanie pozostaje wyłączone.",
@@ -2388,11 +2388,11 @@
         "program_export_failed": "Nie można skompilować ograniczonego programu 15-dniowego: sprawdź strefę czasową, limity pomieszczenia i maksymalnie 128 przejść.",
         "room_mode_actuator_conflict": "Pomieszczenia z głowicami klimatu (TRV) wymagają głowic TRV; pomieszczenia tylko z grafem nie mogą mieć wybranej głowicy klimatu.",
         "unsupported_room_binding_mode": "Nieobsługiwana konfiguracja wyjść pomieszczenia.",
-        "graph_room_runtime_off_required": "Zatrzymaj działanie trybu cienia przed edycją pomieszczenia tylko z grafem lub zmianą jego trybu.",
+        "graph_room_runtime_off_required": "Najpierw wyłącz próbę, potem zmień to pomieszczenie.",
         "confirm_room_mode_change": "Zmiana konfiguracji wyjść pomieszczenia wymaga jawnego potwierdzenia.",
         "invalid_name": "Podaj nazwę pomieszczenia o długości od 1 do 80 znaków.",
         "select_radiators": "Wybierz od jednego do ośmiu zaworów grzejnikowych.",
-        "output_has_multiple_owners": "Wybrany zawór należy już do innego pomieszczenia lub sterownika. Wybierz inny zawór albo popraw jego istniejące przypisanie w ustawieniach zaawansowanych.",
+        "output_has_multiple_owners": "Wybrany zawór jest już używany przez inne pomieszczenie lub urządzenie. Wybierz inny zawór lub popraw przypisanie w ustawieniach zaawansowanych.",
         "input_output_loop": "Zawór nie może być jednocześnie wejściem do ustawiania temperatury. Sprawdź wybrane urządzenia.",
         "setup_invalid": "Nie udało się przygotować pomieszczenia. Sprawdź wybrane urządzenia i ich istniejące przypisania; nic nie zostało zapisane.",
         "invalid_contacts": "Wybierz do ośmiu różnych czujników okien lub drzwi.",
@@ -2403,16 +2403,16 @@
         "manual_target_has_multiple_rooms": "Ten pomocnik temperatury docelowej należy już do innego pomieszczenia.",
         "invalid_comfort_profile": "Sprawdź temperatury nieobecności i ochrony przed mrozem oraz czas tymczasowy; temperatury muszą mieścić się w limitach pomieszczenia.",
         "invalid_comfort_selection": "Wybierz prawidłowe źródło obecności albo wyłącz tryby komfortu bez powiązania obecności.",
-        "native_comfort_frost_profile": "Natywny sterownik zachowuje temperaturę ochrony przed mrozem 5 °C. Użyj 5 °C i dopuść ją w limitach pomieszczenia."
+        "native_comfort_frost_profile": "E32 utrzymuje temperaturę ochrony przed mrozem 5 °C. Użyj 5 °C i zezwól na nią w limitach pomieszczenia."
       },
       "abort": {
         "room_limit": "Najwyżej 8 pomieszczeń",
-        "shadow_mode_required": "Najpierw wybierz jawny tryb cienia v1",
+        "shadow_mode_required": "Najpierw wybierz tryb próby.",
         "program_cancelled": "Edycja programu anulowana; nic nie zapisano.",
         "program_changed": "Pomieszczenie zostało zmienione lub usunięte podczas edycji; otwórz je ponownie.",
         "program_not_started": "Najpierw otwórz edytor tygodnia z powiązań pomieszczenia.",
         "room_changed": "Pomieszczenie zmieniło się podczas edycji. Otwórz je ponownie przed zapisaniem.",
-        "setup_runtime_off": "Wyłącz obserwację w trybie cienia w ustawieniach integracji przed zmianą pomieszczeń. Żadne ustawienia nie zostały zmienione.",
+        "setup_runtime_off": "Wyłącz próbę w ustawieniach integracji, zanim zmienisz pomieszczenia. Nic nie zmieniono.",
         "setup_changed": "Instalacja zmieniła się podczas edycji. Otwórz ponownie konfigurację pomieszczenia; ten formularz niczego nie zapisał.",
         "advanced_room_required": "To pomieszczenie ma sterowanie podłogowe, mieszające, wielogrupowe lub zewnętrzne sterowanie komfortem. Użyj zaawansowanych ustawień pomieszczenia, aby zachować tę konfigurację. Nic nie zostało zmienione.",
         "room_saved": "Pomieszczenie i grupa grzejników zapisane. Ogrzewanie pozostaje wyłączone.",
@@ -2720,11 +2720,11 @@
         "program_export_failed": "Nie można skompilować ograniczonego programu 15-dniowego: sprawdź strefę czasową, limity pomieszczenia i maksymalnie 128 przejść.",
         "room_mode_actuator_conflict": "Pomieszczenia z głowicami klimatu (TRV) wymagają głowic TRV; pomieszczenia tylko z grafem nie mogą mieć wybranej głowicy klimatu.",
         "unsupported_room_binding_mode": "Nieobsługiwana konfiguracja wyjść pomieszczenia.",
-        "graph_room_runtime_off_required": "Zatrzymaj działanie trybu cienia przed edycją pomieszczenia tylko z grafem lub zmianą jego trybu.",
+        "graph_room_runtime_off_required": "Najpierw wyłącz próbę, potem zmień to pomieszczenie.",
         "confirm_room_mode_change": "Zmiana konfiguracji wyjść pomieszczenia wymaga jawnego potwierdzenia.",
         "invalid_name": "Podaj nazwę pomieszczenia o długości od 1 do 80 znaków.",
         "select_radiators": "Wybierz od jednego do ośmiu zaworów grzejnikowych.",
-        "output_has_multiple_owners": "Wybrany zawór należy już do innego pomieszczenia lub sterownika. Wybierz inny zawór albo popraw jego istniejące przypisanie w ustawieniach zaawansowanych.",
+        "output_has_multiple_owners": "Wybrany zawór jest już używany przez inne pomieszczenie lub urządzenie. Wybierz inny zawór lub popraw przypisanie w ustawieniach zaawansowanych.",
         "input_output_loop": "Zawór nie może być jednocześnie wejściem do ustawiania temperatury. Sprawdź wybrane urządzenia.",
         "setup_invalid": "Nie udało się przygotować pomieszczenia. Sprawdź wybrane urządzenia i ich istniejące przypisania; nic nie zostało zapisane.",
         "emitter_not_available": "Ten rodzaj ogrzewania nie jest jeszcze dostępny w tej wersji. Nic nie zostało zapisane. Wybierz grzejniki lub poczekaj na zgodny profil.",
@@ -2734,12 +2734,12 @@
       },
       "abort": {
         "room_limit": "Najwyżej 8 pomieszczeń",
-        "shadow_mode_required": "Najpierw wybierz jawny tryb cienia v1",
+        "shadow_mode_required": "Najpierw wybierz tryb próby.",
         "program_cancelled": "Edycja programu anulowana; nic nie zapisano.",
         "program_changed": "Pomieszczenie zostało zmienione lub usunięte podczas edycji; otwórz je ponownie.",
         "program_not_started": "Najpierw otwórz edytor tygodnia z powiązań pomieszczenia.",
         "room_changed": "Pomieszczenie zmieniło się podczas edycji. Otwórz je ponownie przed zapisaniem.",
-        "setup_runtime_off": "Wyłącz obserwację w trybie cienia w ustawieniach integracji przed zmianą pomieszczeń. Żadne ustawienia nie zostały zmienione.",
+        "setup_runtime_off": "Wyłącz próbę w ustawieniach integracji, zanim zmienisz pomieszczenia. Nic nie zmieniono.",
         "setup_changed": "Instalacja zmieniła się podczas edycji. Otwórz ponownie konfigurację pomieszczenia; ten formularz niczego nie zapisał.",
         "advanced_room_required": "To pomieszczenie ma sterowanie podłogowe, mieszające, wielogrupowe lub zewnętrzne sterowanie komfortem. Użyj zaawansowanych ustawień pomieszczenia, aby zachować tę konfigurację. Nic nie zostało zmienione.",
         "room_saved": "Pomieszczenie i grupa grzejników zapisane. Ogrzewanie pozostaje wyłączone.",
@@ -2997,7 +2997,7 @@
         "invalid_heating_draft": "Żądana konfiguracja jest nieprawidłowa. Żadne zmiany nie zostały zapisane.",
         "wrong_entity_domain": "Wybierz encję z wymaganej domeny.",
         "input_output_loop": "Wyjście nie może być jednocześnie skonfigurowanym wejściem ani encją pochodzącą z OpenThermostat.",
-        "output_has_multiple_owners": "To wyjście należy już do innego pomieszczenia, sterownika, pompy, mieszacza lub deklaracji siłownika.",
+        "output_has_multiple_owners": "To wyjście jest już używane przez inne pomieszczenie lub urządzenie.",
         "floor_requires_mixing_or_shared_safe_limit": "Podłoga bez mieszania wymaga, aby wspólna centralna górna granica mieściła się w limicie grupy podłogowej.",
         "invalid_tpi_travel_or_minimum_times": "Czas włączenia TPI musi obejmować czas przesuwu, a minimalne czasy włączenia i wyłączenia muszą mieścić się w cyklu.",
         "pump_times_without_pump": "Wyczyść oba czasy pompy, gdy nie wybrano pompy grupy.",
@@ -3012,9 +3012,9 @@
         "room_required": "Skonfiguruj pomieszczenie przed dodaniem deklaracji siłowników."
       },
       "abort": {
-        "shadow_mode_required": "Tylko jawne wpisy trybu cienia obsługują ten szkic konfiguracji.",
-        "disable_runtime_before_draft": "Ten edytor szkicu wymaga, aby działanie trybu cienia pozostało wyłączone.",
-        "single_central_owner": "Ten sterownik ma już szkic centralnego ogrzewania. Zamiast tego skonfiguruj ponownie ten szkic.",
+        "shadow_mode_required": "Ten szkic działa tylko w trybie próby.",
+        "disable_runtime_before_draft": "Wyłącz próbę, aby edytować ten szkic.",
+        "single_central_owner": "To E32 ma już szkic ogrzewania centralnego. Zmień ten szkic.",
         "graph_not_started": "Otwórz graf z centralnych ustawień ogrzewania.",
         "graph_changed": "Szkic centralny lub katalog pomieszczeń zmienił się podczas edycji. Otwórz szkic ponownie; żadne zmiany nie zostały zapisane.",
         "graph_cancelled": "Wszystkie przygotowane zmiany grafu anulowane; nic nie zapisano."
@@ -3215,7 +3215,8 @@
           "room_programs_done": "Każde pomieszczenie ma już program tygodniowy.",
           "e32_rooms_unavailable": "Nie można teraz odczytać pomieszczeń E32. Spróbuj ponownie za chwilę."
         }
-      }
+      },
+      "description": "Te pomieszczenia nie mają jeszcze programu tygodniowego: {rooms}. Wybierz Napraw, aby nadać im program standardowy. Możesz go zmienić w planerze tygodnia."
     },
     "reconfirm_takeover": {
       "title": "Potwierdź ponownie, że E32 może sterować kotłem",
@@ -3237,7 +3238,8 @@
           "reconfirm_plan_not_active": "Plan pomieszczeń nie jest już aktywny, więc nie ma czego potwierdzać.",
           "e32_rooms_unavailable": "Pomieszczeń E32 nie można teraz odczytać. Spróbuj ponownie za chwilę."
         }
-      }
+      },
+      "description": "E32 sterowało Twoim kotłem przed aktualizacją oprogramowania. Czeka teraz na Ciebie, zanim przejmie sterowanie ponownie, aby dwa termostaty nigdy nie sterowały kotłem jednocześnie. Do tego czasu utrzymuje tylko ochronę przed mrozem. Wybierz Napraw i potwierdź, że do kotła nie jest podłączony żaden inny termostat."
     },
     "reconfirm_takeover_thermostat": {
       "title": "Potwierdź ponownie, że E32 może sterować kotłem",
@@ -3259,23 +3261,24 @@
           "reconfirm_plan_not_active": "Plan pomieszczeń nie jest już aktywny, więc nie ma czego potwierdzać.",
           "e32_rooms_unavailable": "Pomieszczeń E32 nie można teraz odczytać. Spróbuj ponownie za chwilę."
         }
-      }
+      },
+      "description": "E32 sterowało Twoim kotłem przed aktualizacją oprogramowania. Czeka teraz na Ciebie, zanim przejmie sterowanie ponownie, aby dwa termostaty nigdy nie sterowały kotłem jednocześnie. Do tego czasu utrzymuje tylko ochronę przed mrozem. Wybierz Napraw i potwierdź, że Twój stary termostat jest nadal odłączony od kotła."
     },
     "device_own_schedule": {
       "title": "{device} wydaje się mieć własny harmonogram",
       "description": "Temperatura docelowa {device} (pomieszczenie {room}) zmieniała się sama o tej samej porze przez kilka dni. Wyłącz jego własny harmonogram (tryb ręczny), aby decydował program tygodniowy E32; urządzenie będzie go wtedy stosować, a zmiana na nim obowiązuje do następnego punktu przełączenia."
     },
     "legacy_metrics_history": {
-      "title": "Stare liczniki kotła pozostają osobno",
-      "description": "Ta instalacja wysyłała liczniki kotła w starszym formacie. Ich historia jest zachowana, ale nie jest mieszana z poprawionymi licznikami. Jeśli Twoje własne karty łączą stare i nowe liczniki energii lub wody, sprawdź je."
+      "title": "Liczniki kotła zostały odnowione",
+      "description": "Liczniki kotła zostały odnowione. Twoja historia jest zachowana. Jeśli zrobiłeś własne karty ze starymi czujnikami, przełącz je na nowe."
     },
     "metrics_definition_v2": {
-      "title": "Nowe, poprawione liczniki kotła",
-      "description": "Niektóre liczniki kotła otrzymały nowe, poprawione czujniki. Twoja historia jest zachowana; zaktualizuj własne karty, jeśli używają starych czujników. Energia jest szacunkiem, a nie licznikiem gazu ani ciepła."
+      "title": "Liczniki kotła zostały odnowione",
+      "description": "Liczniki kotła zostały odnowione. Twoja historia jest zachowana. Jeśli zrobiłeś własne karty ze starymi czujnikami, przełącz je na nowe. Energia to oszacowanie, a nie licznik gazu ani ciepła."
     },
     "room_model_v2": {
-      "title": "Nowe szacunki ciepła pomieszczeń",
-      "description": "Szacunki ciepła dla pomieszczeń używają nowych czujników; stare zachowują swoją historię. To szacunki, a nie zmierzone ciepło. Zaktualizuj własne karty, jeśli używają starych czujników."
+      "title": "Szacunki ciepła w pomieszczeniach zostały odnowione",
+      "description": "Szacunki ciepła w pomieszczeniach zostały odnowione. Twoja historia jest zachowana. Jeśli zrobiłeś własne karty ze starymi czujnikami, przełącz je na nowe. To oszacowania, a nie zmierzone ciepło."
     },
     "measurement_clock": {
       "title": "Pomiary pomieszczeń wstrzymane: zegar Home Assistant przeskoczył",
@@ -3316,7 +3319,8 @@
           "e32_password_no_connection": "Home Assistant nie ma zapisanego połączenia z E32 dla tego wpisu. Najpierw połącz E32 (Konfiguruj → Połączenie E32).",
           "e32_password_already_changed": "E32 nie używa już domyślnego hasła. Nic nie zostało zmienione."
         }
-      }
+      },
+      "description": "{name}: E32 nadal ma hasło startowe. Każdy w Twojej sieci mógłby zmienić ogrzewanie. Dopóki nie ustawisz nowego, E32 nie przyjmuje zmian. Wybierz Napraw i ustaw nowe hasło."
     },
     "e32_no_free_session": {
       "title": "E32 nie ma wolnej sesji internetowej",
@@ -3362,7 +3366,8 @@
           "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
           "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połączenie z E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32."
         }
-      }
+      },
+      "description": "Twoje pomieszczenia są teraz w E32. Te starsze pomieszczenia Home Assistant nie są już używane: {rooms}. Wybierz Napraw, aby je usunąć. Czujniki, termostaty i zawory pozostają bez zmian."
     },
     "legacy_rooms_finish": {
       "title": "Dokończ usuwanie starego pomieszczenia Home Assistant",
@@ -3404,7 +3409,8 @@
           "legacy_rooms_none": "Nie ma starych pomieszczeń Home Assistant do usunięcia.",
           "legacy_rooms_cancelled": "Anulowano. Wybierz Konfiguruj → Połączenie z E32, aby sprawdzić połączenie; część ustawień mogła już zostać zapisana na E32."
         }
-      }
+      },
+      "description": "Starsze pomieszczenie Home Assistant zostało usunięte, ale E32 nadal ma stare ustawienia połączenia. Wybierz Napraw, aby połączyć E32 ponownie bez niego. Twoje pomieszczenia pozostają bez zmian."
     },
     "e32_room_choose_source": {
       "title": "Wybierz źródło temperatury dla {room}",
@@ -3485,7 +3491,8 @@
           "e32_settings_password_default": "E32 nadal używa domyślnego hasła i nie przyjmuje zmian, dopóki nie wybierzesz nowego: Ustawienia → Naprawy → „E32 nadal używa domyślnego hasła”.",
           "e32_settings_update_required": "To oprogramowanie E32 nie ma tego ustawienia. Najpierw zaktualizuj E32 (Aktualizacja oprogramowania)."
         }
-      }
+      },
+      "description": "{name}: zegar E32 używa {e32}, Home Assistant używa {home}. Programy tygodniowe przełączałyby się o złej porze. Wybierz Napraw, aby ustawić E32 na {home}. E32 uruchomi się raz ponownie."
     }
   },
   "services": {

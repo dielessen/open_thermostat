@@ -77,11 +77,16 @@ TEXT = {
                                             "Active control.",
         "pressure_low": "The water pressure is low ({pressure} bar). Top up the heating system.",
         "pressure_high": "The water pressure is high ({pressure} bar). Have the expansion vessel checked.",
-        "short_cycling": "The boiler has been switching on and off too often for more than 2 hours.",
-        "active_foreign_controller": "Another thermostat still sends heat requests to the boiler.",
-        "active_measurement_lost": "The E32 lost the room measurements and stopped asking for heat.",
-        "active_boiler_no_response": "The boiler does not respond to the E32's heat request.",
-        "active_transmit_failed": "The E32 cannot send its heat request to the boiler.",
+        "short_cycling": "The boiler has been switching on and off too often for more than 2 hours. This wears it out. "
+                         "Open the E32 Home page and raise the lowest water temperature, or ask your installer.",
+        "active_foreign_controller": "Another thermostat still sends heat requests to the boiler, so the E32 cannot control it safely. "
+                                      "Disconnect that thermostat from the boiler.",
+        "active_measurement_lost": "The E32 lost the room measurements and stopped asking for heat. Check the temperature "
+                                   "sensors of your rooms: batteries and distance.",
+        "active_boiler_no_response": "The boiler does not respond to the E32's heat request. Check the cable between the E32 "
+                                   "and the boiler, and that the boiler is on.",
+        "active_transmit_failed": "The E32 cannot send its heat request to the boiler. Check the cable between the E32 and "
+                                 "the boiler.",
         "room_slow": "{room} asks for heat but has stayed more than {margin} °C below its target for "
                      "{hours} hours. Check that the radiators or floor heating get warm and that the highest water "
                      "temperature (on the boiler and on the E32 Home page) is high enough.",
@@ -100,11 +105,16 @@ TEXT = {
                                             "regeling.",
         "pressure_low": "De waterdruk is laag ({pressure} bar). Vul de cv-installatie bij.",
         "pressure_high": "De waterdruk is hoog ({pressure} bar). Laat het expansievat controleren.",
-        "short_cycling": "De ketel slaat al meer dan 2 uur te vaak aan en uit.",
-        "active_foreign_controller": "Een andere thermostaat stuurt nog warmtevragen naar de ketel.",
-        "active_measurement_lost": "De E32 heeft geen ruimtemetingen meer en vraagt geen warmte meer.",
-        "active_boiler_no_response": "De ketel reageert niet op de warmtevraag van de E32.",
-        "active_transmit_failed": "De E32 kan zijn warmtevraag niet naar de ketel sturen.",
+        "short_cycling": "De ketel slaat al meer dan 2 uur te vaak aan en uit. Dat slijt hem. Open op de E32 de pagina "
+                         "Huis en verhoog de laagste watertemperatuur, of vraag je installateur.",
+        "active_foreign_controller": "Een andere thermostaat stuurt nog warmtevragen naar de ketel, dus de E32 kan hem niet veilig "
+                                      "regelen. Koppel die thermostaat los van de ketel.",
+        "active_measurement_lost": "De E32 heeft geen ruimtemetingen meer en vraagt geen warmte meer. Controleer de "
+                                   "temperatuursensoren van je ruimtes: batterij en afstand.",
+        "active_boiler_no_response": "De ketel reageert niet op de warmtevraag van de E32. Controleer de kabel tussen de E32 en "
+                                   "de ketel, en of de ketel aan staat.",
+        "active_transmit_failed": "De E32 kan zijn warmtevraag niet naar de ketel sturen. Controleer de kabel tussen de E32 en "
+                                 "de ketel.",
         "room_slow": "{room} vraagt warmte, maar blijft al {hours} uur meer dan {margin} °C onder de gewenste "
                      "temperatuur. Kijk of de radiatoren of de vloerverwarming warm worden en of de hoogste "
                      "watertemperatuur (op de ketel en op de E32-pagina Huis) hoog genoeg is.",
@@ -122,11 +132,15 @@ TEXT = {
                                             "czasu nie grzeje. Otwórz na E32 stronę Rooms → Active control.",
         "pressure_low": "Ciśnienie wody jest niskie ({pressure} bar). Uzupełnij wodę w instalacji grzewczej.",
         "pressure_high": "Ciśnienie wody jest wysokie ({pressure} bar). Zleć sprawdzenie naczynia wzbiorczego.",
-        "short_cycling": "Kocioł od ponad 2 godzin zbyt często się włącza i wyłącza.",
-        "active_foreign_controller": "Inny termostat nadal wysyła do kotła żądania ciepła.",
-        "active_measurement_lost": "E32 stracił pomiary z pomieszczeń i przestał żądać ciepła.",
-        "active_boiler_no_response": "Kocioł nie reaguje na żądanie ciepła z E32.",
-        "active_transmit_failed": "E32 nie może wysłać żądania ciepła do kotła.",
+        "short_cycling": "Kocioł od ponad 2 godzin zbyt często się włącza i wyłącza. To go zużywa. Otwórz na E32 stronę "
+                         "Home i podnieś najniższą temperaturę wody lub zapytaj instalatora.",
+        "active_foreign_controller": "Inny termostat nadal wysyła do kotła żądania ciepła, więc E32 nie może go bezpiecznie "
+                                      "sterować. Odłącz ten termostat od kotła.",
+        "active_measurement_lost": "E32 stracił pomiary z pomieszczeń i przestał żądać ciepła. Sprawdź czujniki temperatury "
+                                   "w pomieszczeniach: baterie i odległość.",
+        "active_boiler_no_response": "Kocioł nie reaguje na żądanie ciepła z E32. Sprawdź kabel między E32 a kotłem i czy kocioł "
+                                   "jest włączony.",
+        "active_transmit_failed": "E32 nie może wysłać żądania ciepła do kotła. Sprawdź kabel między E32 a kotłem.",
         "room_slow": "{room}: pomieszczenie żąda ciepła, ale od {hours} godz. pozostaje ponad {margin} °C poniżej "
                      "temperatury docelowej. Sprawdź, czy grzejniki lub ogrzewanie podłogowe się nagrzewają i czy "
                      "najwyższa temperatura wody (na kotle i na stronie E32 Home) jest wystarczająco wysoka.",

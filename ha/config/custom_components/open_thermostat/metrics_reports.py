@@ -1,5 +1,6 @@
 """Native admin read-only Recorder export. No DB writes, files or extra service."""
 from __future__ import annotations
+import asyncio
 import csv
 from datetime import datetime, timezone, timedelta
 from functools import partial
@@ -34,50 +35,92 @@ SCHEMA = vol.Schema({
 })
 
 
+INFO_NOTES = ("legacy_metrics_history", "metrics_definition_v2", "room_model_v2")
+_NOTES_STORE = DOMAIN + ".info_notes"
+_SHOWN = "info_notes_shown"
+_FALLBACK = {
+    "legacy_metrics_history": ("Boiler counters were renewed",
+                               "Boiler counters were renewed. Your history is kept. If you made your own cards "
+                               "with the old sensors, switch them to the new ones."),
+    "metrics_definition_v2": ("Boiler counters were renewed",
+                              "Boiler counters were renewed. Your history is kept. If you made your own cards "
+                              "with the old sensors, switch them to the new ones."),
+    "room_model_v2": ("Room heat estimates were renewed",
+                      "Room heat estimates were renewed. Your history is kept. If you made your own cards "
+                      "with the old sensors, switch them to the new ones."),
+}
+
+
+def info_note_shown(hass, entry_id, key=None):
+    """True when this run showed (or found already shown) the note: for diagnostics."""
+    shown = hass.data.get(DOMAIN, {}).get(_SHOWN, set())
+    return any((entry_id, k) in shown for k in ([key] if key else INFO_NOTES))
+
+
+@callback
+def remove_info_issues(hass, entry_id):
+    """Earlier versions raised these three as Repairs items; they are only information now."""
+    for key in INFO_NOTES:
+        ir.async_delete_issue(hass, DOMAIN, f"{key}_{entry_id}")
+
+
+async def _async_note_once(hass, entry_id, key):
+    from homeassistant.components import persistent_notification
+    from homeassistant.helpers.storage import Store
+    from homeassistant.helpers.translation import async_get_translations
+    store = Store(hass, 1, _NOTES_STORE)
+    lock = hass.data.setdefault(DOMAIN, {}).setdefault(_NOTES_STORE + ".lock", asyncio.Lock())
+    async with lock:
+        data = await store.async_load() or {}
+        done = data.setdefault(entry_id, [])
+        if key in done:
+            return
+        title, message = _FALLBACK[key]
+        try:
+            words = await async_get_translations(hass, hass.config.language, "issues", [DOMAIN])
+            base = f"component.{DOMAIN}.issues.{key}."
+            title = words.get(base + "title", title)
+            message = words.get(base + "description", message)
+        except Exception:  # the English text above is enough
+            pass
+        persistent_notification.async_create(hass, message, title=title, notification_id=f"{DOMAIN}_{key}_{entry_id}")
+        done.append(key)
+        await store.async_save(data)
+
+
+@callback
+def _note(hass, entry_id, key):
+    """Show the information once per installation: a notification, never a Repairs item."""
+    ir.async_delete_issue(hass, DOMAIN, f"{key}_{entry_id}")
+    shown = hass.data.setdefault(DOMAIN, {}).setdefault(_SHOWN, set())
+    if (entry_id, key) in shown:
+        return
+    shown.add((entry_id, key))
+    hass.async_create_task(_async_note_once(hass, entry_id, key))
+
+
 @callback
 def note_legacy_metrics(hass, entry_id):
-    """Only actual receipt of old-schema numeric counters creates this issue."""
-    ir.async_create_issue(
-        hass, DOMAIN, f"legacy_metrics_history_{entry_id}",
-        is_fixable=False, is_persistent=True, severity=ir.IssueSeverity.WARNING,
-        translation_key="legacy_metrics_history",
-    )
+    """Only actual receipt of old-schema numeric counters creates this note."""
+    _note(hass, entry_id, "legacy_metrics_history")
 
 
 @callback
 def note_metric_definition_migration(hass, entry_id):
-    """An actual existing legacy registry identity needs explicit user remapping."""
-    ir.async_create_issue(hass, DOMAIN, f"metrics_definition_v2_{entry_id}",
-        is_fixable=False, is_persistent=True, severity=ir.IssueSeverity.WARNING,
-        translation_key="metrics_definition_v2")
+    """An actual existing legacy registry identity: tell the user once about the new sensors."""
+    _note(hass, entry_id, "metrics_definition_v2")
 
 
 @callback
 def note_room_definition_migration(hass, entry_id):
-    """Only an existing legacy room identity triggers review; no DB migration."""
-    ir.async_create_issue(hass, DOMAIN, f"room_model_v2_{entry_id}",
-        is_fixable=False, is_persistent=True, severity=ir.IssueSeverity.WARNING,
-        translation_key="room_model_v2")
+    """Only an existing legacy room identity triggers the note; no DB migration."""
+    _note(hass, entry_id, "room_model_v2")
 
 
 @callback
-def reconcile_migration_issues(hass, entry, prefix):
-    """A native E32 entry: the three information items close once nothing they describe is left.
-
-    - metrics_definition_v2: while an old <prefix>_hub_<metric> record of this
-      entry remains (the stale-entity cleanup retires untouched ones; a record
-      the user customised keeps it open);
-    - room_model_v2: native mode has no legacy room heat estimates at all;
-    - legacy_metrics_history: created again only when an old-format counter
-      packet actually arrives (note_legacy_metrics).
-    """
-    from .sensor import VERSIONED_METRICS
-    own = {record.unique_id for record in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
-           if record.platform == DOMAIN}
-    if not any(f"{prefix}_hub_{metric}" in own for metric in VERSIONED_METRICS):
-        ir.async_delete_issue(hass, DOMAIN, f"metrics_definition_v2_{entry.entry_id}")
-    ir.async_delete_issue(hass, DOMAIN, f"room_model_v2_{entry.entry_id}")
-    ir.async_delete_issue(hass, DOMAIN, f"legacy_metrics_history_{entry.entry_id}")
+def reconcile_migration_issues(hass, entry, prefix=None):
+    """The three information items are notifications now: remove any Repairs item an older version left."""
+    remove_info_issues(hass, entry.entry_id)
 
 
 def _utc(value):

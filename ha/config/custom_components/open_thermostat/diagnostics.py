@@ -32,10 +32,10 @@ async def async_get_device_diagnostics(hass, entry, device):
 
 async def _async_native_diagnostics(hass, entry):
     runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("v1_runtime")
-    from homeassistant.helpers import issue_registry as ir
-    issue = ir.async_get(hass).async_get_issue(DOMAIN, f"legacy_metrics_history_{entry.entry_id}")
-    migration = ir.async_get(hass).async_get_issue(DOMAIN, f"metrics_definition_v2_{entry.entry_id}")
-    room_migration = ir.async_get(hass).async_get_issue(DOMAIN, f"room_model_v2_{entry.entry_id}")
+    from .metrics_reports import info_note_shown
+    issue = info_note_shown(hass, entry.entry_id, "legacy_metrics_history") or None
+    migration = info_note_shown(hass, entry.entry_id, "metrics_definition_v2") or None
+    room_migration = info_note_shown(hass, entry.entry_id, "room_model_v2") or None
     result = {"integration_mode": integration_mode(entry), "entry_version": entry.version,
               "metrics_history": {"review_required": issue is not None or migration is not None or room_migration is not None,
                   "room_model_review_required": room_migration is not None,

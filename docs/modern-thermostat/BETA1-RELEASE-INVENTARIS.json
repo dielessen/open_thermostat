@@ -3882,7 +3882,7 @@
         },
         {
           "path": "ha/tests_native/test_installation_edit.py",
-          "sha256": "a2eff1c078b0153ac307b0525572b2ae21ecf6ac7c93d8170de405a4c09b9e75"
+          "sha256": "e772c869b7f2ffe1073d6d28d80a75286c6904672cd6f4d354044d928f0d072b"
         },
         {
           "path": "docs/modern-thermostat/ACTIVE-INSTALLATION-20261027.json",

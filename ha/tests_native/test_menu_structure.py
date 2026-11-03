@@ -102,6 +102,81 @@ async def test_home_presence_takes_several_people_and_the_away_delay(hass, manag
     assert comfort["presence_entities"] == ["person.anna", "person.ben"] and comfort["away_delay_min"] == 10
 
 
+class E32WithHouse(FakeE32):
+    """The room-plan E32 that also takes house commands (POST /config/heating/comfort, RoomOverrides::command)."""
+
+    def __init__(self, away):
+        super().__init__()
+        self.away, self.commands, self.refuse = dict(away), [], None
+
+    def client(self, address):
+        client, e32 = super().client(address), self
+
+        async def async_comfort_command(command):
+            from custom_components.open_thermostat.controller_link import HeatingPlanRejected
+            e32.commands.append(dict(command))
+            if e32.refuse:
+                raise HeatingPlanRejected(503, e32.refuse)
+            if "temperature" in command:
+                e32.away["target_c"] = command["temperature"]
+            return {"schema": 1, "away": dict(e32.away), "rooms": []}
+        client.async_comfort_command = async_comfort_command
+        return client
+
+
+@pytest.mark.asyncio
+async def test_home_presence_holds_the_away_temperature_like_the_number_entity(hass, manager):
+    """Configure → Home → Presence also sets the away temperature, with the very command of the number entity."""
+    from custom_components.open_thermostat.e32_house import AwayTemperature, house_state
+    from test_room_plan import STATUS
+    away = {"on": False, "source": "none", "target_c": 15, "until": None, "presence": "home", "mode": "auto"}
+    e32 = E32WithHouse(away)
+    parent, hub = product(hass, e32)
+    hub.update({**STATUS, "away": away})
+    await hass.async_block_till_done()
+    hass.states.async_set("person.anna", "home")
+    flow = await manager.async_init(parent.entry_id)
+    house = await manager.async_configure(flow["flow_id"], {"next_step_id": "house"})
+    form = await manager.async_configure(house["flow_id"], {"next_step_id": "house_presence"})
+    fields = {str(k): (k, v) for k, v in form["data_schema"].schema.items()}
+    assert list(fields) == ["presence_entities", "away_delay", "away_temperature"]
+    marker, number = fields["away_temperature"]
+    assert marker.description["suggested_value"] == 15
+    assert (number.config["min"], number.config["max"], number.config["step"]) == (5, 25, 0.5)  # as the number entity
+    result = await manager.async_configure(form["flow_id"], {"presence_entities": ["person.anna"], "away_delay": 15,
+                                                             "away_temperature": 16.5})
+    assert result["type"] == FlowResultType.ABORT and result["reason"] == "presence_saved", result
+    entity = AwayTemperature(house_state(hass, parent, hub))
+    assert e32.commands == [{"house_mode": "auto", "temperature": 16.5}]
+    assert entity.native_value == 16.5                 # the number shows it at once (the E32's read-back)
+    await entity.async_set_native_value(17)           # and the number sends the same command
+    assert e32.commands[-1] == {"house_mode": "auto", "temperature": 17}
+    assert parent.options["comfort_settings"]["presence_entities"] == ["person.anna"]
+    # Unchanged: nothing is sent; refused by the E32: an error on the field and nothing saved.
+    form = await manager.async_configure((await manager.async_configure((await manager.async_init(parent.entry_id))["flow_id"],
+                                                                         {"next_step_id": "house"}))["flow_id"],
+                                         {"next_step_id": "house_presence"})
+    assert form["data_schema"].schema and {str(k): k for k in form["data_schema"].schema}["away_temperature"].description[
+        "suggested_value"] == 17
+    sent = len(e32.commands)
+    result = await manager.async_configure(form["flow_id"], {"presence_entities": [], "away_delay": 20, "away_temperature": 17})
+    assert result["type"] == FlowResultType.ABORT and len(e32.commands) == sent
+    assert parent.options["comfort_settings"]["away_delay_min"] == 20
+    form = await manager.async_configure((await manager.async_configure((await manager.async_init(parent.entry_id))["flow_id"],
+                                                                         {"next_step_id": "house"}))["flow_id"],
+                                         {"next_step_id": "house_presence"})
+    e32.refuse = "busy"
+    result = await manager.async_configure(form["flow_id"], {"presence_entities": [], "away_delay": 30, "away_temperature": 12})
+    assert result["type"] == FlowResultType.FORM and result["errors"] == {"away_temperature": "away_temperature_not_saved"}
+    assert result["description_placeholders"]["error"]
+    assert parent.options["comfort_settings"]["away_delay_min"] == 20   # nothing saved
+    for name in ("strings.json", "translations/en.json", "translations/nl.json", "translations/pl.json"):
+        document = json.loads((COMPONENT / name).read_text(encoding="utf-8"))
+        step = document["options"]["step"]["house_presence"]
+        assert step["data"]["away_temperature"] == document["entity"]["number"]["away_temperature"]["name"], name
+        assert "5–25 °C" in step["data_description"]["away_temperature"], name
+        assert "{error}" in document["options"]["error"]["away_temperature_not_saved"], name
+
 @pytest.mark.asyncio
 async def test_name_and_dashboard_only_change_the_name_and_the_dashboard(hass, manager):
     parent, _ = product(hass, FakeE32())

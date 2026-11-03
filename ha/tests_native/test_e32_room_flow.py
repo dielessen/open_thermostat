@@ -653,13 +653,17 @@ def test_every_flow_key_has_a_translation(filename):
     source = (COMPONENT / "e32_room_flow.py").read_text(encoding="utf-8")
     keys = set(re.findall(r'"(e32_[a-z_]+)"', source)) - {"e32_room_flow"}
     steps = {"e32_rooms", "e32_room", "e32_room_add", "e32_room_pick", "e32_room_remove", "e32_flow_limits",
-             "e32_room_valves"}
+             "e32_room_valve_models"}
     selectors = {"e32_room_state", "e32_room_emitter", "e32_room_action", "e32_valve_model"}
     for key in keys - steps - selectors:
         assert key in options["error"] or key in options["abort"], key
     for key in selectors:
         assert document["selector"][key]["options"], key
-    assert options["step"]["e32_room_valves"]["data"]["control"]
+    assert "e32_room_valves" not in options["step"]  # rc.3: the valves are a section of the room form
+    assert set(options["step"]["e32_room"]["sections"]["valves"]["data"]) == {"valves", "kept", "control", "choose_models"}
+    assert "{valve_routes}" in options["step"]["e32_room"]["sections"]["valves"]["data_description"]["valves"]
+    assert set(options["step"]["e32_room_valve_models"]["data"]) == {"model_1", "model_2", "model_3", "model_4"}
+    assert "{valves}" in options["step"]["e32_rooms_saved"]["description"]
     assert set(options["step"]["e32_rooms"]["menu_options"]) == {"e32_room_add", "e32_room_pick"}
     assert options["step"]["init"]["menu_options"]["heating_boiler"]
     assert set(options["step"]["e32_flow_limits"]["data"]) == {"minimum_flow_temperature", "maximum_flow_temperature"}

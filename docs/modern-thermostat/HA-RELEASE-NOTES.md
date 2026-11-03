@@ -1,3 +1,57 @@
+# HA 1.0.0rc3 — the third 1.0 candidate: everything from Home Assistant, away per room and which rooms want heat
+<!-- user-release-notes:v2:en -->
+
+Companion release for the E32 1.0.0-rc.3. Needs Home Assistant 2026.10.0 or
+newer.
+
+## New
+
+- **Set it all up in Home Assistant:** what you can set on the E32 can now
+  also be set under Configure, except pairing Bluetooth sensors, Wi-Fi, MQTT
+  and passwords:
+  - Home → Presence: the house away temperature.
+  - Rooms → a room: its radiator valves (just pick their climate entities;
+    a known Zigbee2MQTT valve is driven by the E32 directly, so it keeps
+    working without Home Assistant) and the room's own away temperature.
+  - Home → Comfort and boiler care: each setting automatic or set by you.
+  - Home → Heating and boiler → Boiler model.
+  - Advanced and diagnostics: Bluetooth sensor names, the E32 system log and
+    the E32 time zone (with a repair when it differs from Home Assistant's).
+- **Away per room:** the room's climate shows why it is cooler (its own
+  persons are away, everyone is away, or the house mode).
+- **Smart warm-up:** the switch "Warm on time with the coolest water" is now
+  called Smart warm-up and is on by default (same entity ID). The room's
+  climate says when it starts: "starts at 07:20 so it is 21 °C at 09:00".
+- **Which rooms want heat:** a card under Now on the dashboard: how many
+  rooms want heat, which, and the boiler request.
+- **Boiler device name** from the model chosen on the E32, or a neutral
+  "Nefit boiler (product 206)" when none is chosen.
+- **No old thermostat assumed** in setup, repairs and advice.
+
+## Fixed
+
+- "E32 compared with your thermostat" stayed on the dashboard after the E32
+  took over, with an unavailable agreement entity. The comparison now only
+  appears in a trial run with a thermostat on the boiler bus; once the E32
+  controls the boiler, the comparison entities you did not change are
+  removed (history is kept).
+
+## Updating
+
+1. Install HA 1.0.0rc3 with HACS (or the release ZIP) and restart Home
+   Assistant.
+2. Update the E32 with its Firmware entity, while someone is home.
+3. Then fix the repair "Confirm again that the E32 may control the boiler".
+
+Entity IDs and history are kept. Most new features need E32 1.0.0-rc.3.
+
+## Limitations
+
+Radiator valve control is not yet verified on real valves. EMS Classic
+boilers only; EMS+ comes in 1.1. Writing boiler settings comes after 1.0.
+Pairing Bluetooth sensors is done on the E32. HACS lists OpenThermostat as a
+custom repository, not yet in the default HACS list.
+
 # HA 1.0.0rc2 — the second 1.0 candidate: HACS, what the thermostat learned and plainer words
 <!-- user-release-notes:v2:en -->
 

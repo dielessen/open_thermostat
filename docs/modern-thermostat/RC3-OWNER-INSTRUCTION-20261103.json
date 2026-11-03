@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-11-03T10:15:08Z",
+  "requests": [
+    "Owner, 3 Nov 2026: \"zet alle agents in voor de volgende rc3\" and \"zorg dat RC3 een stuk completer is\": per-room away by the owner's presence rules, everything configurable on the E32 also from HA (except Bluetooth pairing, Wi-Fi, MQTT, passwords), valves by entity inside the room form, away temperature in Configure, boiler named after the chosen model, one remembered boiler test with an already-done mark, no existing thermostat assumed, smart warm-up and the heating curve on by default with the E32 deciding when its data is good enough, which rooms want heat on both dashboards."
+  ],
+  "scope": "1.0 candidate rc.3: E32 v1.0.0-e32v2-rc.3 + HA ha-v1.0.0rc3 from release-1.0. Publish after a green check and exact-tag CI. Installing is a separate, attended step with pre- and post-install capture.",
+  "not_included": [
+    "installation (a separate, attended step)",
+    "v1.0.0 itself (after 14 days with all release_ready.py criteria PASS)"
+  ],
+  "publication_approval_reply": null,
+  "publication_approval_at_utc": null,
+  "installation_approval_reply": null
+}

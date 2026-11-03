@@ -87,7 +87,8 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.match(await root.locator('[data-heating-lock]').innerText(),/Home Assistant is niet bereikbaar/);
   assert.equal(await root.locator('[data-heating-add]').isVisible(),false);
   // Newer firmware reports Home Assistant input freshness in /status/heating; it replaces the /status fallback.
-  status.ha={input_age_s:30,broker_connected:true};
+  // HA sends at least every 5 min: four minutes of quiet is still connected (no orange flicker).
+  status.ha={input_age_s:240,broker_connected:true};
   await root.locator('[data-heating-lock]').getByText('Beheerd in Home Assistant · verbonden').waitFor({timeout:15000});
   delete status.ha; // the fixture is shared by both viewport passes
   await root.locator('[data-heating-unlock]').click();assert.match(dialogs.at(-1),/ook in Home Assistant[\s\S]*tot je dit tabblad sluit/);

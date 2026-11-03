@@ -195,7 +195,8 @@
   // link: {fresh, ms} since Home Assistant last sent input; undefined when unknown.
   // Preferred source: /status/heating "ha"; older firmware: /status "control" (HA snapshot age).
   let haLink = false;
-  const fromHa = ha => ({fresh: ha.broker_connected === true && Number.isFinite(ha.input_age_s) && ha.input_age_s < 120,
+  // HA sends on every change and at least every 5 min: fresh until two refreshes are missed.
+  const fromHa = ha => ({fresh: ha.broker_connected === true && Number.isFinite(ha.input_age_s) && ha.input_age_s < 660,
     ms: Number.isFinite(ha.input_age_s) ? ha.input_age_s * 1000 : null});
   function paintLock(link) {
     const ms = typeof link?.ms === 'number' ? link.ms : null;

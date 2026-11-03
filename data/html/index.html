@@ -1286,7 +1286,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                 wanting === 1 ? uiText("1 room wants heat") : wanting ? wanting+uiText(" rooms want heat") : uiText("No room wants heat");
             // Home Assistant is optional: a status chip, never a precondition.
             var ha = engine && engine.ha && typeof engine.ha === 'object' ? engine.ha : null;
-            var haFresh = !!ha && ha.broker_connected === true && Number.isFinite(ha.input_age_s) && ha.input_age_s < 120;
+            // HA sends on every change and at least every 5 min (REFRESH_SECONDS): fresh until two refreshes are missed.
+            var haFresh = !!ha && ha.broker_connected === true && Number.isFinite(ha.input_age_s) && ha.input_age_s < 660;
             var haChip = !ha ? '' : haFresh ? chip('Home Assistant: '+uiText("connected"),'ok') : !Number.isFinite(ha.input_age_s) ? chip(uiText("Home Assistant: not connected (optional)")) :
                 chip('Home Assistant: '+uiText("last connected {age} ago").replace('{age}',dashboardAge(ha.input_age_s)),'warn');
             // In shadow mode the thermostat controls the boiler: a calm chip, no "Blocked".

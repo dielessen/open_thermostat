@@ -8,7 +8,7 @@ blueprint:
     minutes, an E32 that has not reported for more than 10 minutes, a low or
     high water pressure, a boiler that short cycles for hours, a warning of
     the E32's own boiler control, or active control that has waited 10
-    minutes for you to confirm that the old thermostat is disconnected (the
+    minutes for you to confirm that no other thermostat is connected to the boiler (the
     E32 does not heat until you confirm it on its Rooms page).
   domain: automation
   input:

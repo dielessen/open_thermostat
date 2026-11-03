@@ -141,9 +141,13 @@ def test_active_control_waiting_for_the_owners_confirmation_for_10_minutes():
     assert problems(tracker, hub, clock) == ["awaiting_confirmation"]
     found = tracker.problems(hub, clock())
     assert render(found, "en") == [
-        "The E32 is waiting for you to confirm that the old thermostat is disconnected; it is not heating until "
-        "you do. Open the E32 Rooms page → Active control."]
-    assert render(found, "nl")[0].startswith("De E32 wacht tot je bevestigt dat de oude thermostaat is losgekoppeld")
+        "The E32 is waiting for you to confirm that no other thermostat is connected to the boiler; it is not "
+        "heating until you do. Open the E32 Rooms page → Active control."]
+    # Neutral: a home that never had a thermostat on the bus is not told about an "old" one.
+    assert render(found, "nl")[0].startswith(
+        "De E32 wacht tot je bevestigt dat er geen andere thermostaat op de ketel is aangesloten")
+    assert not any("old thermostat" in text or "oude thermostaat" in text or "stary termostat" in text
+                   for language in ("en", "nl", "pl") for text in render(found, language))
     # Confirmed (active) or back to the thermostat (shadow): over at once, and the 10 minutes start again.
     hub.update(status(mode="active", active={"state": "active", "awaiting_confirmation": False, "warnings": []}))
     assert problems(tracker, hub, clock) == []
@@ -216,7 +220,7 @@ def test_the_notification_blueprint_is_a_valid_automation_blueprint():
     assert raw == {"integration": "open_thermostat", "domain": "binary_sensor", "device_class": "problem"}
     text = path.read_text(encoding="utf-8")
     assert "state_attr(problem, 'reasons')" in text  # the plain-language reasons of the sensor
-    assert "old thermostat is disconnected" in text  # awaiting_confirmation is in its description
+    assert "no other thermostat is connected" in text  # awaiting_confirmation is in its description
 
 
 # -- 1.0: a room that does not get warm, a lost session and the Repairs issues -----------------------------

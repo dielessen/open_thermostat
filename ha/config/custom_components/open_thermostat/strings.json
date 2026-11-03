@@ -7,7 +7,7 @@
           "legacy": "Older OpenThermostat firmware (ib-therm)",
           "shadow": "OpenThermostat E32 (recommended)"
         },
-        "description": "Choose your OpenThermostat. With the E32, the E32 page then guides you: while your old thermostat still sends requests to the boiler, the E32 first runs a trial run beside it; without one it goes straight to a boiler test and the takeover. It sends nothing to the boiler until you confirm that your old thermostat is disconnected."
+        "description": "Choose your OpenThermostat. With the E32, the E32 page then guides you: if an old thermostat still sends requests to the boiler, the E32 first runs a trial run beside it; without one it goes straight to a boiler test and the takeover. It sends nothing to the boiler until you confirm the takeover there."
       },
       "confirm": {
         "title": "OpenThermostat detected",
@@ -33,7 +33,7 @@
       },
       "shadow": {
         "title": "Connect an OpenThermostat E32",
-        "description": "The E32 sends nothing to the boiler until you confirm the takeover on its Rooms page, best through the boiler test there. While your old thermostat is still on the boiler bus, the E32 first runs a trial run beside it (it only calculates and compares); you can always choose the other route there. Home Assistant does set the target temperature on each room's setting device (radiator valve, tado or number helper) according to that room's week program. Normally you connect the E32 later with Configure → E32 connection, which fills in the connection ID for you.",
+        "description": "The E32 sends nothing to the boiler until you confirm the takeover on its Rooms page, best through the boiler test there. If an old thermostat is still on the boiler bus, the E32 first runs a trial run beside it (it only calculates and compares); you can always choose the other route there. Home Assistant does set the target temperature on each room's setting device (radiator valve, tado or number helper) according to that room's week program. Normally you connect the E32 later with Configure → E32 connection, which fills in the connection ID for you.",
         "data": {
           "topic_prefix": "MQTT prefix of the E32",
           "adapter_id": "Connection ID (filled in for you)"
@@ -950,7 +950,7 @@
       "entity_ids_confirm": "Tick the box to confirm.",
       "water_meter_unit": "Choose a water flow sensor (L/min, L/h, m³/h) or a water meter reading (m³, L).",
       "water_meter_not_total": "Choose a water meter reading (state class total or total increasing), or a flow sensor in L/min.",
-      "e32_restore_boiler_owned": "The E32 refuses a restore while it controls the boiler or a boiler test or boiler settings write is running. Hand back to the thermostat on the E32 page (Rooms → Active control) or wait until the test has finished, then try again.",
+      "e32_restore_boiler_owned": "The E32 refuses a restore while it controls the boiler or a boiler test or boiler settings write is running. Hand back control on the E32 page (Rooms → Active control) or wait until the test has finished, then try again.",
       "e32_restore_busy": "The E32 is busy (a firmware update, or it is short of memory). Wait a minute and try again.",
       "e32_restore_settings_changed": "The settings on the E32 changed after the check. Choose the backup again so that the E32 checks it once more.",
       "e32_restore_wrong_passphrase": "The E32 could not open the passwords and keys in this backup. Choose another backup.",
@@ -2981,7 +2981,7 @@
         "step": {
           "reconfirm_takeover": {
             "title": "Confirm again that the E32 may control the boiler",
-            "description": "The E32 controlled your boiler before its firmware was updated. For safety the new firmware does not take control again until you confirm once more that your old thermostat is still disconnected from the boiler. Until then the E32 only keeps frost protection, and only while no other thermostat is heard on the boiler bus.\n\nConfirm only if the old thermostat is disconnected: never connect two thermostats to the boiler at the same time. To give control back instead, open the E32 Rooms page → Active control → Give control back to my thermostat."
+            "description": "The E32 controlled your boiler before its firmware was updated. For safety the new firmware does not take control again until you confirm once more that no other thermostat is connected to the boiler. Until then the E32 only keeps frost protection, and only while no other thermostat is heard on the boiler bus.\n\nConfirm only if no other thermostat is connected: never connect two thermostats to the boiler at the same time. To hand back control instead, open the E32 Rooms page → Active control."
           }
         },
         "error": {
@@ -3027,7 +3027,7 @@
         "step": {
           "choose_password": {
             "title": "Choose a new E32 password",
-            "description": "{name}: the E32 still uses the default password admin, so anyone on your network could change your heating. Until you choose a new password, the E32 accepts no changes: Home Assistant can still read it and the heating keeps running on its current plan, but changes to rooms, targets and settings and firmware updates wait. Giving control back to your old thermostat on the E32 Rooms page always works.\n\nChoose a new password of 8 to 64 characters. Home Assistant changes it on the E32 and stores it for this connection. Sign in to the E32 web page with it from now on (user name admin).",
+            "description": "{name}: the E32 still uses the default password admin, so anyone on your network could change your heating. Until you choose a new password, the E32 accepts no changes: Home Assistant can still read it and the heating keeps running on its current plan, but changes to rooms, targets and settings and firmware updates wait. Handing back control on the E32 Rooms page (Active control) always works.\n\nChoose a new password of 8 to 64 characters. Home Assistant changes it on the E32 and stores it for this connection. Sign in to the E32 web page with it from now on (user name admin).",
             "data": {
               "new_password": "New E32 password",
               "repeat_password": "Repeat the new password"

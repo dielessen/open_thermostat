@@ -951,7 +951,7 @@
           "legacy": "Oudere OpenThermostat-firmware (ib-therm)",
           "shadow": "OpenThermostat E32 (aanbevolen)"
         },
-        "description": "Kies je OpenThermostat. Met de E32 leidt de E32-pagina je daarna verder: zolang je oude thermostaat nog vragen naar de ketel stuurt, draait de E32 eerst een proefperiode mee; zonder thermostaat gaat hij meteen naar een keteltest en de overname. Hij stuurt niets naar de ketel tot je bevestigt dat je oude thermostaat is losgekoppeld."
+        "description": "Kies je OpenThermostat. Met de E32 leidt de E32-pagina je daarna verder: stuurt er nog een oude thermostaat vragen naar de ketel, dan draait de E32 eerst een proefperiode mee; zonder thermostaat gaat hij meteen naar een keteltest en de overname. Hij stuurt niets naar de ketel tot je bevestigt dat hij de regeling overneemt."
       },
       "confirm": {
         "title": "OpenThermostat gevonden",
@@ -977,7 +977,7 @@
       },
       "shadow": {
         "title": "Een OpenThermostat E32 koppelen",
-        "description": "De E32 stuurt niets naar de ketel tot je de overname bevestigt op zijn pagina Ruimtes, het liefst via de keteltest daar. Zolang je oude thermostaat nog op de ketelbus zit, draait de E32 eerst een proefperiode mee (hij rekent alleen mee en vergelijkt); daar kun je altijd de andere route kiezen. Home Assistant zet wel de gewenste temperatuur op het instelapparaat van elke ruimte (radiatorkraan, tado of getalhelper), volgens het weekprogramma van die ruimte. Normaal koppel je de E32 later via Configureren → E32-verbinding; dat vult het verbindings-ID voor je in.",
+        "description": "De E32 stuurt niets naar de ketel tot je de overname bevestigt op zijn pagina Ruimtes, het liefst via de keteltest daar. Zit er nog een oude thermostaat op de ketelbus, dan draait de E32 eerst een proefperiode mee (hij rekent alleen mee en vergelijkt); daar kun je altijd de andere route kiezen. Home Assistant zet wel de gewenste temperatuur op het instelapparaat van elke ruimte (radiatorkraan, tado of getalhelper), volgens het weekprogramma van die ruimte. Normaal koppel je de E32 later via Configureren → E32-verbinding; dat vult het verbindings-ID voor je in.",
         "data": {
           "topic_prefix": "MQTT-prefix van de E32",
           "adapter_id": "Verbindings-ID (al ingevuld)"
@@ -1894,7 +1894,7 @@
       "entity_ids_confirm": "Vink het vakje aan om te bevestigen.",
       "water_meter_unit": "Kies een waterdebietsensor (L/min, L/h, m³/h) of een watermeterstand (m³, L).",
       "water_meter_not_total": "Kies een watermeterstand (state class total of total increasing), of een debietsensor in L/min.",
-      "e32_restore_boiler_owned": "De E32 weigert terug te zetten zolang hij de ketel regelt of er een keteltest of ketelinstelling loopt. Geef de regeling terug aan de thermostaat op de E32-pagina (Ruimtes → Actieve regeling) of wacht tot de test klaar is, en probeer het opnieuw.",
+      "e32_restore_boiler_owned": "De E32 weigert terug te zetten zolang hij de ketel regelt of er een keteltest of ketelinstelling loopt. Geef de regeling terug op de E32-pagina (Ruimtes → Actieve regeling) of wacht tot de test klaar is, en probeer het opnieuw.",
       "e32_restore_busy": "De E32 is bezig (een firmware-update, of hij heeft te weinig geheugen). Wacht een minuut en probeer het opnieuw.",
       "e32_restore_settings_changed": "De instellingen op de E32 zijn na de controle veranderd. Kies de back-up opnieuw, zodat de E32 hem nog een keer controleert.",
       "e32_restore_wrong_passphrase": "De E32 kon de wachtwoorden en sleutels in deze back-up niet openen. Kies een andere back-up.",
@@ -2981,7 +2981,7 @@
         "step": {
           "reconfirm_takeover": {
             "title": "Bevestig opnieuw dat de E32 de ketel mag regelen",
-            "description": "De E32 regelde je ketel voordat zijn firmware werd bijgewerkt. Voor de veiligheid neemt de nieuwe firmware de regeling pas weer over als je nog een keer bevestigt dat je oude thermostaat nog steeds van de ketel is losgekoppeld. Tot dan houdt de E32 alleen de vorstbeveiliging aan, en alleen zolang er geen andere thermostaat op de ketelbus te horen is.\n\nBevestig alleen als de oude thermostaat is losgekoppeld: sluit nooit twee thermostaten tegelijk op de ketel aan. Wil je de regeling in plaats daarvan teruggeven, open dan op de E32 de pagina Ruimtes → Actieve regeling → Regeling teruggeven aan mijn thermostaat."
+            "description": "De E32 regelde je ketel voordat zijn firmware werd bijgewerkt. Voor de veiligheid neemt de nieuwe firmware de regeling pas weer over als je nog een keer bevestigt dat er geen andere thermostaat op de ketel is aangesloten. Tot dan houdt de E32 alleen de vorstbeveiliging aan, en alleen zolang er geen andere thermostaat op de ketelbus te horen is.\n\nBevestig alleen als er geen andere thermostaat is aangesloten: sluit nooit twee thermostaten tegelijk op de ketel aan. Wil je de regeling in plaats daarvan teruggeven, open dan op de E32 de pagina Ruimtes → Actieve regeling."
           }
         },
         "error": {
@@ -3027,7 +3027,7 @@
         "step": {
           "choose_password": {
             "title": "Kies een nieuw E32-wachtwoord",
-            "description": "{name}: de E32 gebruikt nog het standaardwachtwoord admin, dus iedereen op je netwerk kan je verwarming wijzigen. Tot je een nieuw wachtwoord kiest, accepteert de E32 geen wijzigingen: Home Assistant kan hem nog wel uitlezen en de verwarming blijft op het huidige plan werken, maar wijzigingen van ruimtes, doelen en instellingen en firmware-updates wachten. Regeling teruggeven aan je oude thermostaat op de pagina Ruimtes van de E32 werkt altijd.\n\nKies een nieuw wachtwoord van 8 tot 64 tekens. Home Assistant wijzigt het op de E32 en bewaart het voor deze verbinding. Meld je er voortaan mee aan op de E32-webpagina (gebruikersnaam admin).",
+            "description": "{name}: de E32 gebruikt nog het standaardwachtwoord admin, dus iedereen op je netwerk kan je verwarming wijzigen. Tot je een nieuw wachtwoord kiest, accepteert de E32 geen wijzigingen: Home Assistant kan hem nog wel uitlezen en de verwarming blijft op het huidige plan werken, maar wijzigingen van ruimtes, doelen en instellingen en firmware-updates wachten. Regeling teruggeven op de pagina Ruimtes van de E32 (Actieve regeling) werkt altijd.\n\nKies een nieuw wachtwoord van 8 tot 64 tekens. Home Assistant wijzigt het op de E32 en bewaart het voor deze verbinding. Meld je er voortaan mee aan op de E32-webpagina (gebruikersnaam admin).",
             "data": {
               "new_password": "Nieuw E32-wachtwoord",
               "repeat_password": "Herhaal het nieuwe wachtwoord"

@@ -130,6 +130,8 @@
     measurement_lost:"Room measurements are missing.", boiler_no_response:"The boiler does not respond to the heat request.",
     transmit_failed:"Sending to the boiler fails.", boiler_limit_unknown:"The boiler has not reported its highest water temperature yet. Until then the E32 asks for no heat; it asks the boiler again every 5 minutes."};
   let plan = null, timer = null;
+  // rc.3 Smart warm-up (/status/heating flow.settings.apply_learned): the planners' hint says what a time means.
+  let smartWarmUp, planners = [];
   // Radiator valves (beta.24, /config/heating/trv): null on firmware without them, so the block never shows.
   let trv = null;
   const valveModels = [['bosch_bth_ra', "Bosch BTH-RA (position, external temperature)"], ['sonoff_trvzb', "Sonoff TRVZB (external temperature)"],
@@ -375,9 +377,9 @@
       const days = () => { const d = raw().map(p => p.filter(([m, c]) => Number.isFinite(m) && Number.isFinite(c)).sort((a, b) => a[0] - b[0])); return same.checked ? Array(7).fill(d[0] || []) : d; };
       // The room's own levels (Comfort, Eco, Night) when the firmware stores them (plan.levels.v1).
       planner = OTWeekEditor.mount(host, {week: given || [[], [], [], [], [], [], []], min: cc(lo), max: cc(hi), lang: OpenThermostatLanguage.language,
-        levels: room.levels, scheduleLevels: room.schedule_levels,
+        levels: room.levels, scheduleLevels: room.schedule_levels, smartWarmUp: smartWarmUp !== false,
         onChange: w => { same.checked = w.every(d => JSON.stringify(d) === JSON.stringify(w[0])); draw(same.checked ? [w[0]] : w); setDirty(true); }});
-      list.forEach(n => { n.hidden = true; }); editor.prepend(host);
+      list.forEach(n => { n.hidden = true; }); editor.prepend(host); planners.push(planner);
       // A new program starts from "Workdays and weekend" with the room's current target as comfort.
       let target = status?.setpoint; const shown = card.status; card.status = s => { target = s?.setpoint; shown(s); };
       useWeek.addEventListener('change', () => {
@@ -555,6 +557,8 @@
   };
   function render(status) {
     const byId = new Map((status?.rooms || []).map(r => [r.id, r]));
+    if (typeof status?.flow?.settings?.apply_learned === 'boolean') smartWarmUp = status.flow.settings.apply_learned;
+    planners = [];
     roomsBox.replaceChildren(...plan.rooms.map((room, i) => roomCard(room, i, byId.get(room.id))));
     addRow.hidden = !plan.rooms.length;
     if (!plan.rooms.length) {
@@ -862,6 +866,9 @@
   }
   function renderRequest(status) {
     const r = status?.request;
+    if (typeof status?.flow?.settings?.apply_learned === 'boolean' && status.flow.settings.apply_learned !== smartWarmUp) {
+      smartWarmUp = status.flow.settings.apply_learned; planners.forEach(p => p.smartWarmUp?.(smartWarmUp));
+    }
     requestBox.textContent = !r ? uiText("Status unavailable")
       : uiText("Boiler request (E32)") + ': ' + (r.heat ? r.flow_c + ' °C' : uiText("off")) + (r.heat && r.capped_by === 'boiler_limit' ? ' (' + uiText("limited by the boiler's own maximum") + ')' : '')
         + ' · ' + uiText(reasonText[r.reason] || r.reason);

@@ -1151,6 +1151,26 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
             if (c.window === 'pending') return uiText("Window open: heating pauses soon");
             return c.waiting_for_clock ? uiText("Waiting for the clock") : '';
         }
+        // rc.3 Smart warm-up in one plain line (also the Home page's learned rooms): what the next program step
+        // means for this room. start: "plans.rooms[].optimum_start" of /status/heating; on: the stored option
+        // (apply_learned; undefined: not known, on by default). "applies": the E32 uses this start (older
+        // firmware: a learned warm-up); otherwise it is an estimate and heating starts at the program time.
+        function smartWarmupLine(start, on) {
+            var ok = function(v) { return typeof v === 'number' && Number.isFinite(v); }, sw = start && start.next_switch;
+            if (!start || start.reason !== 'planned' || !ok(start.predicted_start_utc) || !sw || !ok(sw.utc) || !ok(sw.target_c)) return '';
+            var locale = window.OpenThermostatLanguage && OpenThermostatLanguage.locale || undefined;
+            var clock = function(utc) { return new Date(utc * 1000).toLocaleTimeString(locale, {hour:'2-digit', minute:'2-digit'}); };
+            var values = {start: clock(start.predicted_start_utc), time: clock(sw.utc),
+                target: Number(sw.target_c).toLocaleString(locale, {maximumFractionDigits:1})};
+            var applies = typeof start.applies === 'boolean' ? start.applies : start.confidence === 'learned';
+            var text = on === false ? "Smart warm-up is off: heating starts at {time}." :
+                !applies ? "Smart warm-up is still learning: for now heating starts at {time} (estimate: from {start} it would be {target} °C on time)." :
+                start.lead_minutes === 0 && start.start_now !== true ? "Smart warm-up: warm enough for {target} °C at {time}, no early start needed." :
+                start.start_now === true ? (start.reachable === false ? "Smart warm-up: heating now; {target} °C may come a little after {time}." :
+                    "Smart warm-up: heating now so it is {target} °C at {time}.") :
+                "Smart warm-up: starts at {start} so it is {target} °C at {time}.";
+            return Object.keys(values).reduce(function(t, k) { return t.split('{' + k + '}').join(values[k]); }, uiText(text));
+        }
         function comfortNoticeHtml(room) {
             return comfortNotice && comfortNotice.room === room && comfortNotice.until > Date.now() ?
                 '<p class="pd-help" role="status" data-dashboard-key="comfort-notice">'+dashboardText(comfortNotice.text)+'</p>' : '';
@@ -1219,6 +1239,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
             var sensor = sensors.find(function(s) { return s && s.id === id; }), colons = /^[0-9a-f]{12}$/.test(id) ? id.match(/../g).join(':') : null;
             return sensor ? (sensor.name || colons) + ' (Bluetooth)' : colons ? colons + ' (Bluetooth)' : id + ' (Home Assistant)';
         }
+        // The room's optimum start from /status/heating "learned.plans" (absent without a trusted clock).
+        function engineStart(engine, id) {
+            var plans = engine.learned && engine.learned.plans && Array.isArray(engine.learned.plans.rooms) ? engine.learned.plans.rooms : [];
+            var plan = plans.find(function(p) { return p && p.id === id; });
+            return plan && plan.optimum_start && typeof plan.optimum_start === 'object' ? plan.optimum_start : null;
+        }
         function renderInstallationDashboard(status) {
             var control = status.control || {}, ems = status.ems || {};
             var state = control.fresh === true && control.state && typeof control.state === 'object' && !Array.isArray(control.state) && Array.isArray(control.state.zones) ? control.state : null;
@@ -1261,7 +1287,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                     series.push({id:id, actual:actual, target:target});
                     var comfortText = engine.away ? comfortState(r.comfort) : '';
                     var off = r.state !== 'active';
-                    cards.push({key:id, id:id, name:name, actual:actual, target:target, demand:r.demand === true, off:off, help:help && !off ? uiText(help) : '',
+                    var warmup = off ? '' : smartWarmupLine(engineStart(engine, r.id), engine.flow && engine.flow.settings ? engine.flow.settings.apply_learned : undefined);
+                    cards.push({key:id, id:id, name:name, actual:actual, target:target, demand:r.demand === true, off:off, help:help && !off ? uiText(help) : '', warmup:warmup,
                         comfort:engine.away && r.state === 'active' ? comfortControls(r, target) : '',
                         chips:(extra ? chip(uiText(extra), r.status === 'fallback' ? 'warn' : r.status === 'stale' || r.status === 'lost' ? 'err' : '') : '')+
                             (comfortText ? chip(comfortText, r.comfort && r.comfort.mode === 'window_open' ? 'warn' : 'ok') : ''),
@@ -1314,7 +1341,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                     (c.off ? '' : chip(dashboardBool(c.demand,uiText("Requesting heat"),uiText("No request")),c.demand===true?'ok':''))+c.chips+'</span></div>'+
                     (c.off ? '<p class="pd-room-off">'+uiText("Off: this room never asks for heat.")+' <a href="#rooms" data-page="heating">'+uiText("Change or remove on the Rooms page")+'</a></p>' :
                     uiHtml("<div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Now</span>")+dashboardValue(c.actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(c.target,'°C')+'</div></div>')+
-                    (c.help?'<p class="pd-help">'+dashboardText(c.help)+'</p>':'')+trend+(c.comfort||'')+
+                    (c.help?'<p class="pd-help">'+dashboardText(c.help)+'</p>':'')+
+                    (c.warmup?'<p class="pd-help pd-warmup" data-dashboard-key="warmup">'+dashboardText(c.warmup)+'</p>':'')+trend+(c.comfort||'')+
                     uiHtml("<details class=\"pd-room-detail\"><summary>Technical details</summary>")+c.details+'</details></article>';
             });
             html += '</div>'+(trendPending && cards.length ? uiHtml("<p class=\"pd-help\" data-dashboard-key=\"trend-hint\">The trend appears after two reports.</p>") : '')+

@@ -57,8 +57,12 @@
         <label class="form-check-label" for="heating-flow-curve" data-i18n="Follow outdoor temperature (heating curve)">Follow outdoor temperature (heating curve)</label></div>
       <div class="hp-flow-design"><label for="heating-flow-design" data-i18n="Water temperature at −10 °C outside">Water temperature at −10 °C outside</label>
         <select id="heating-flow-design" class="form-control" data-flow-design data-hint="How warm the water gets on a very cold day (−10 °C outside); milder weather gives cooler water."></select></div>
-      <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-learned" data-flow-option="apply_learned" data-hint="Off: the E32 only advises. On: each room warms up with the coolest water that still gets it warm in time, and heating starts early enough to be warm at the next program time.">
-        <label class="form-check-label" for="heating-flow-learned" data-i18n="Warm on time with the coolest water">Warm on time with the coolest water</label></div>
+      <!-- rc.3: Smart warm-up (apply_learned) is the meaning of the week program, on by default; switching it off is advanced. -->
+      <p class="pd-help" data-smart-warmup-state></p>
+      <details class="ot-advanced hp-advanced" data-smart-warmup-advanced><summary data-i18n="Advanced">Advanced</summary>
+      <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-learned" data-flow-option="apply_learned" data-hint="Starts heating early by itself so a room is warm at the time in its week program, with the coolest water that still does it. Off: heating starts at the program time.">
+        <label class="form-check-label" for="heating-flow-learned" data-i18n="Smart warm-up">Smart warm-up</label></div>
+      </details>
       <p class="pd-help" role="status" aria-live="polite" data-flow-message></p>
       <details class="ot-advanced hp-more"><summary data-i18n="Status and learning">Status and learning</summary>
       <dl class="pd-detail-grid" data-flow-status></dl>
@@ -105,7 +109,7 @@
 #house-settings [data-house-message]:empty,#house-settings [data-flow-message]:empty,#house-settings [data-limits-message]:empty{display:none}
 #house-settings h3{font-size:1.05rem;margin:14px 0 6px}#house-settings .bl-grid{display:grid;gap:0 16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));max-width:480px}#house-settings .bl-grid label{display:block;margin-bottom:8px}
 #house-settings .bp-summary{color:var(--ot-muted);font-weight:400;font-size:.85rem}
-#house-settings .hp-flow-design{margin:0 0 8px 34px;max-width:30rem}#house-settings .hp-flow-design label{display:block;margin-bottom:4px}#house-settings .hp-more{margin:12px 0 0}
+#house-settings .hp-flow-design{margin:0 0 8px 34px;max-width:30rem}#house-settings .hp-flow-design label{display:block;margin-bottom:4px}#house-settings .hp-more,#house-settings .hp-advanced{margin:12px 0 0}
 @media(max-width:560px){#house-settings .hp-flow-design{margin-left:0}}
 #house-settings .hl-state{margin:0 0 12px;padding:10px 12px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}#house-settings .hl-state:empty,#house-settings [data-care-message]:empty{display:none}
 #house-settings .hl-rooms{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
@@ -333,7 +337,8 @@
   const options = [...box.querySelectorAll('[data-flow-option]')], design = box.querySelector('[data-flow-design]');
   const message = box.querySelector('[data-flow-message]'), facts = box.querySelector('[data-flow-status]');
   const compare = box.querySelector('[data-flow-compare]'), night = box.querySelector('[data-flow-night]');
-  const sourceText = {rule:"Room control", curve:"Heating curve", learned:"Learned water temperature", optimum_start:"Warm on time (early start)"};
+  const sourceText = {rule:"Room control", curve:"Heating curve", learned:"Learned water temperature", optimum_start:"Smart warm-up (early start)"};
+  const smartState = box.querySelector('[data-smart-warmup-state]'), advanced = box.querySelector('[data-smart-warmup-advanced]');
   const stateText = {advice:"Advice only", applied:"In use", no_outdoor:"No outdoor temperature", no_room:"No room with a measurement",
     not_ready:"Still learning", holding:"Holding temperature", none:"No start planned", no_clock:"Clock not set"};
   const slopeText = {design:"From the setting at −10 °C", learned:"Learned from this house"};
@@ -361,6 +366,10 @@
     for (const o of options) { o.disabled = off; if (settings && !saving) o.checked = settings[o.dataset.flowOption]; }
     design.disabled = off;
     if (settings && !saving) design.value = String(settings.curve_design_flow_c);
+    // Smart warm-up is on unless the owner turned it off: then the line says so and the switch is in view.
+    smartState.textContent = !settings ? '' : uiText(settings.apply_learned ? "Smart warm-up is on: each room starts heating early by itself, so it is warm at the time in its week program."
+      : "Smart warm-up is off: heating starts at the program time.");
+    if (settings && !settings.apply_learned) advanced.open = true;
   }
   new MutationObserver(paint).observe(root, {attributes:true, attributeFilter:['class']});
   async function call(init = {}) {
@@ -401,7 +410,7 @@
       rows.push(["Heating curve", join(label(stateText, curve.state), degrees(curve.flow_c))]);
       if (typeof curve.slope === 'number') rows.push(["Heating curve steepness", join(fixed(curve.slope, 2), label(slopeText, curve.slope_source))]);
       rows.push(["Learned water temperature", join(label(stateText, learned.state), degrees(learned.flow_c))]);
-      rows.push(["Warm on time (early start)", join(label(stateText, start.state),
+      rows.push(["Smart warm-up", join(label(stateText, start.state),
         start.state !== 'none' && Number.isFinite(start.start_utc) ? fill(uiText("planned start {time}"), {time: clock(start.start_utc)}) : null)]);
     }
     const gas = status.learned?.gas;
@@ -596,7 +605,7 @@
     return fill(uiText(reasons[key]), {to: k.show(to), figure: minutes ? duration(figure) : Number.isInteger(figure) ? String(figure) : num(figure, 2),
       room: room ? names[room] || room : uiText("A typical room")});
   }
-  function roomCard(r, l, plan, names, outdoor) {
+  function roomCard(r, l, plan, names, outdoor, smartOn) {
     const card = document.createElement('article'); card.className = 'hl-room'; card.dataset.room = r.id;
     const h = document.createElement('h4'); h.textContent = names[r.id];
     const badge = document.createElement('span');
@@ -619,11 +628,12 @@
       ul.append(item(fill(uiText("Loses about {rate} °C per hour at {out} °C outside."), {rate: num(Math.max(0, l.loss_per_h * (inside - out)), 2), out: num(out, 0)}),
         uiText("This is how fast it cools when the heating is off, for example at night.")));
     }
-    const start = plan?.optimum_start;
-    if (start?.reason === 'planned' && ok(start.predicted_start_utc) && ok(start.next_switch?.utc) && ok(start.next_switch?.target_c)) {
-      const values = {start: clock(start.predicted_start_utc), target: num(start.next_switch.target_c, 1), time: clock(start.next_switch.utc)};
-      ul.append(item(fill(uiText(start.start_now ? "Heating up now to be {target} °C at {time}." : "Starts heating at {start} to be {target} °C at {time}."), values),
-        uiText(start.confidence === 'learned' ? "So the room is warm on time, without heating longer than needed." : "This is a standard estimate until the room has been learned.")));
+    // rc.3 Smart warm-up: the same line as the room on the Overview (index.html smartWarmupLine).
+    const start = plan?.optimum_start, line = typeof smartWarmupLine === 'function' ? smartWarmupLine(start, smartOn) : '';
+    if (line) {
+      const applies = typeof start.applies === 'boolean' ? start.applies : start.confidence === 'learned';
+      ul.append(item(line, uiText(smartOn === false ? "Turn Smart warm-up on (Heating settings → Advanced) to be warm on time."
+        : applies ? "So the room is warm on time, without heating longer than needed." : "Until the room has been learned, it does not start early on an estimate.")));
     }
     const night = plan?.night;
     if (night?.reason === 'estimated' && typeof night.recommended === 'string') {
@@ -643,7 +653,7 @@
     for (const r of rooms) names[r.id] = typeof r.name === 'string' && r.name ? r.name : r.id;
     const byId = items => Object.fromEntries((Array.isArray(items) ? items : []).filter(x => x && typeof x.id === 'string').map(x => [x.id, x]));
     const lr = byId(learned?.rooms), plans = byId(learned?.plans?.rooms);
-    roomsBox.replaceChildren(...rooms.filter(r => r.state !== 'inactive').map(r => roomCard(r, lr[r.id], plans[r.id], names, learned?.outdoor_c)));
+    roomsBox.replaceChildren(...rooms.filter(r => r.state !== 'inactive').map(r => roomCard(r, lr[r.id], plans[r.id], names, learned?.outdoor_c, status.flow?.settings?.apply_learned)));
     const house = [], curve = status.flow?.curve;
     if (curve && ok(curve.slope)) house.push(item(fill(uiText(curve.slope_source === 'learned' ? "Heating curve, learned from your house: the water gets about {s} °C warmer for every degree colder outside."
       : "Heating curve: the water gets about {s} °C warmer for every degree colder outside."), {s: num(curve.slope, 2)}),

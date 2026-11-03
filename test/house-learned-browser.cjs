@@ -69,9 +69,18 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.innerText.replace(/\s+/g,' ').t
   });
   await page.context().addCookies([{name:'ot_ui_lang',value:lang,url:'http://opth.test'}]);
   await page.goto('http://opth.test/');await page.waitForFunction(()=>typeof loadNativePage==='function');
+  const t=(en,nl)=>lang==='nl'?nl:en;
+  const at=utc=>page.evaluate(([u,l])=>new Date(u*1000).toLocaleTimeString(l,{hour:'2-digit',minute:'2-digit'}),[utc,lang==='nl'?'nl-NL':'en-GB']);
+  // rc.3 Smart warm-up on the Overview: per active room one line on what the next program step means
+  // (a learned room starts early; one still learning starts at the program time; the room that is off has none).
+  const overview=page.locator('.pd-room .pd-warmup');
+  await overview.nth(1).waitFor();
+  assert.deepEqual(await texts(overview),t([`Smart warm-up: starts at ${await at(start)} so it is 21 °C at ${await at(rise)}.`,
+   `Smart warm-up is still learning: for now heating starts at ${await at(rise)} (estimate: from ${await at(start+3000)} it would be 18 °C on time).`],
+   [`Slim opwarmen: begint om ${await at(start)}, zodat het om ${await at(rise)} 21 °C is.`,
+   `Slim opwarmen leert nog: voorlopig begint verwarmen om ${await at(rise)} (schatting: vanaf ${await at(start+3000)} zou het op tijd 18 °C zijn).`]));
   await page.evaluate(()=>{sessionStorage.removeItem('ot-rooms-edit');loadNativePage('house');});
   const root=page.locator('#house-settings'),learned=root.locator('[data-house-learned]'),care=root.locator('[data-house-care]');
-  const t=(en,nl)=>lang==='nl'?nl:en;
   await learned.getByRole('heading',{name:t('What the thermostat has learned','Wat de thermostaat heeft geleerd')}).waitFor();
   const clock=utc=>page.evaluate(([u,l])=>new Date(u*1000).toLocaleTimeString(l,{hour:'2-digit',minute:'2-digit'}),[utc,lang==='nl'?'nl-NL':'en-GB']);
   // Per room: progress, then each figure with what it means; an inactive room is left out.
@@ -83,18 +92,20 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.innerText.replace(/\s+/g,' ').t
    'Warms about 1 °C in 1 h 15 min with water of 40 °C. The thermostat plans the start of every warm-up with this.',
    'The lowest water temperature that still warms it in time: 34 °C. Cooler water lets the boiler condense better, so it uses less gas.',
    'Loses about 0.31 °C per hour at 5 °C outside. This is how fast it cools when the heating is off, for example at night.',
-   `Starts heating at ${await clock(start)} to be 21 °C at ${await clock(rise)}. So the room is warm on time, without heating longer than needed.`,
+   `Smart warm-up: starts at ${await clock(start)} so it is 21 °C at ${await clock(rise)}. So the room is warm on time, without heating longer than needed.`,
    'Keeping it at 19 °C at night is cheaper than letting it cool down: about 0.12 m³ gas (€ 0.15) a night. This is advice: your week program stays as it is.']:[
    'Warmt ongeveer 1 °C op in 1 u 15 min met water van 40 °C. Hiermee plant de thermostaat de start van elke keer opwarmen.',
    'De laagste watertemperatuur die nog op tijd opwarmt: 34 °C. Met koeler water condenseert de ketel beter, dus verbruikt hij minder gas.',
    'Verliest ongeveer 0,31 °C per uur bij 5 °C buiten. Zo snel koelt de ruimte af als de verwarming uit is, bijvoorbeeld \'s nachts.',
-   `Begint om ${await clock(start)} met verwarmen om om ${await clock(rise)} 21 °C te zijn. Zo is de ruimte op tijd warm, zonder langer te verwarmen dan nodig.`,
+   `Slim opwarmen: begint om ${await clock(start)}, zodat het om ${await clock(rise)} 21 °C is. Zo is de ruimte op tijd warm, zonder langer te verwarmen dan nodig.`,
    '\'s Nachts op 19 °C houden is goedkoper dan laten afkoelen: ongeveer 0,12 m³ gas (€ 0,15) per nacht. Dit is een advies: je weekprogramma blijft zoals het is.']);
   assert.equal(await cards.nth(1).locator('.hl-progress').innerText(),t('Learning: 3 of 6 warm-ups seen','Aan het leren: 3 van 6 keer opwarmen gezien'));
   const bedroom=await texts(cards.nth(1).locator('li'));
   assert.equal(bedroom[0],t('It learns from every warm-up while the heating runs. Until then it uses safe standard times.',
    'Hij leert van elke keer opwarmen terwijl de verwarming aan staat. Tot dan gebruikt hij veilige standaardtijden.'));
-  assert.match(bedroom[1],t(/This is a standard estimate until the room has been learned\.$/,/Dit is een standaardschatting totdat de ruimte geleerd is\.$/));
+  // Not learned yet (a default estimate): heating starts at the program time; the estimate is shown.
+  assert.equal(bedroom[1],t(`Smart warm-up is still learning: for now heating starts at ${await clock(rise)} (estimate: from ${await clock(start+3000)} it would be 18 °C on time). Until the room has been learned, it does not start early on an estimate.`,
+   `Slim opwarmen leert nog: voorlopig begint verwarmen om ${await clock(rise)} (schatting: vanaf ${await clock(start+3000)} zou het op tijd 18 °C zijn). Zolang de ruimte niet geleerd is, begint hij niet eerder op een schatting.`));
   assert.equal(bedroom[2],t('Letting it cool down at night, as your program does, is the cheapest. This is advice: your week program stays as it is.',
    '\'s Nachts laten afkoelen, zoals je programma doet, is het goedkoopst. Dit is een advies: je weekprogramma blijft zoals het is.'));
   // House and boiler; the self-tuning's state and its changes in words, the newest first.

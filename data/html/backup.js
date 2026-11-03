@@ -35,7 +35,7 @@
         "Lowest water temperature": "Laagste watertemperatuur",
         "Highest water temperature": "Hoogste watertemperatuur",
         "Follow outdoor temperature (heating curve)": "Buitentemperatuur volgen (stooklijn)",
-        "Warm on time with the coolest water": "Op tijd warm met het koelste water",
+        "Smart warm-up": "Slim opwarmen",
         "Water temperature at −10 °C outside": "Watertemperatuur bij −10 °C buiten",
         "Wi-Fi password": "Wifi-wachtwoord",
         "Web page password": "Wachtwoord van de webpagina",
@@ -123,7 +123,7 @@
         'openweather.latitude': "OpenWeather", 'openweather.longitude': "OpenWeather", 'openweather.interval': "OpenWeather",
         'openweather.appid': "OpenWeather API key", 'bt.scanTime': "Bluetooth listening time", 'bt.scanInterval': "Bluetooth pause",
         devices: "Sensors", rooms: "Rooms", room_settings: "Room settings", minimum_flow_c: "Lowest water temperature",
-        maximum_flow_c: "Highest water temperature", weather_curve: "Follow outdoor temperature (heating curve)", apply_learned: "Warm on time with the coolest water",
+        maximum_flow_c: "Highest water temperature", weather_curve: "Follow outdoor temperature (heating curve)", apply_learned: "Smart warm-up",
         curve_design_flow_c: "Water temperature at −10 °C outside", tuning: "Comfort and boiler care", tuning_manual: "Comfort and boiler care: set by you",
         model: "Boiler model", learned: "What the thermostat has learned"
     };

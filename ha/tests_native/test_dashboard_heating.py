@@ -179,6 +179,26 @@ async def test_heating_view_is_sections_of_built_in_cards_per_room_with_the_esse
 
 
 @pytest.mark.asyncio
+async def test_each_room_says_why_right_under_its_name(hass):
+    """1.1: the room status card (now against target, why it heats or not) is the first thing in a room."""
+    from custom_components.open_thermostat.dashboard import ROOM_STATUS_CARD_TYPE
+    e, rooms, sensors, hub, fields = installation(hass)
+    device = dr.async_get(hass).async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_woonkamer"), e.entry_id)
+    reason = er.async_get(hass).async_get_or_create("sensor", "open_thermostat", "fixture_e32_room_woonkamer_reason",
+                                                    config_entry=e, device_id=device.id,
+                                                    suggested_object_id="woonkamer_reason").entity_id
+    heating = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"][0]
+    living, bathroom = heating["sections"][1]["cards"], heating["sections"][2]["cards"]
+    assert living[0]["heading"] == "Woonkamer" and living[1] == {"type": ROOM_STATUS_CARD_TYPE, "entity": reason}
+    # Shown also while the room is off: the card says "Frost protection only (room off)", so no second line.
+    assert not any(c["type"] == "markdown" for c in living)
+    assert any(c.get("heading") == "Woonkamer settings" for c in living)
+    # A room without its Reason sensor (an older integration's registry) keeps the built-in cards only.
+    assert all(c["type"] != ROOM_STATUS_CARD_TYPE for c in bathroom)
+    assert [c["type"] for c in view_cards(heating)].count(ROOM_STATUS_CARD_TYPE) == 1
+
+
+@pytest.mark.asyncio
 async def test_no_comparison_without_a_thermostat_on_the_bus(hass):
     e, rooms, sensors, hub, fields = installation(hass)
     entities = er.async_get(hass)

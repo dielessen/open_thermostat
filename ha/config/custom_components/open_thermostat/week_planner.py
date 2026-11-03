@@ -132,7 +132,8 @@ _MODULES_KEY = DOMAIN + "_card_modules"
 def card_modules():
     """The dashboard cards' modules: each defines its custom elements (custom:openthermostat-*)."""
     from .e32_week import CARD_URL
-    return (CARD_URL, URL)
+    from .room_overview import CARD_URL as ROOM_STATUS_URL
+    return (CARD_URL, URL, ROOM_STATUS_URL)
 
 
 @callback
@@ -198,8 +199,10 @@ async def async_setup_planner(hass):
     async def setup():
         # The E32 rooms' visual week planner: the card and the editor shared with the E32 page.
         from .e32_week import CARD_URL, EDITOR_URL, ws_week_get, ws_week_save
+        from .room_overview import CARD_URL as ROOM_STATUS_URL  # the room status card (1.1)
         for url, name in ((URL, "week-planner.js"), *((old, "week-planner.js") for old in LEGACY_URLS),
-                          (CARD_URL, "e32-week-card.js"), (EDITOR_URL, "week-editor.js")):
+                          (CARD_URL, "e32-week-card.js"), (EDITOR_URL, "week-editor.js"),
+                          (ROOM_STATUS_URL, "room-status-card.js")):
             await _async_serve(hass, url, name)
         websocket_api.async_register_command(hass, ws_week_get)
         websocket_api.async_register_command(hass, ws_week_save)

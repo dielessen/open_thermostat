@@ -1612,6 +1612,9 @@ def wanted_sensors(hub):
         yield ("room", room_id, "temperature"), lambda room=room: RoomTemperatureSensor(hub, room)
         yield ("room", room_id, "setpoint"), lambda room=room: RoomTemperatureSensor(hub, room, "setpoint", 5, 30)
         yield ("room", room_id, "status"), lambda room=room: RoomStatusSensor(hub, room)
+        # Why it heats or not, in words (room_overview.py, 1.1): the room status card reads it.
+        from .room_overview import RoomReasonSensor
+        yield ("room", room_id, "reason"), lambda room=room: RoomReasonSensor(hub, room)
         if room_id in hub.learned:  # firmware that learns the rooms (E32 beta.18)
             yield ("room", room_id, "learning"), lambda room=room: RoomLearningSensor(hub, room)
             yield ("room", room_id, "flow_advice"), lambda room=room: RoomFlowAdviceSensor(hub, room)

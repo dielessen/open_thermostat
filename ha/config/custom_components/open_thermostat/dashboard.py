@@ -49,6 +49,8 @@ from .product import is_product
 from .week_planner import ROOM_CARD_TYPE
 
 E32_WEEK_CARD_TYPE = "custom:openthermostat-e32-week"
+# Per room (1.1): temperature against target and why it heats or not, from the room's Reason sensor.
+ROOM_STATUS_CARD_TYPE = "custom:openthermostat-room-status"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -97,7 +99,7 @@ def boiler_group(name):
 
 # E32 room entities: unique ID f"{prefix}_e32_room_{room id}_{key}" (longest key first).
 ROOM_KEYS = ("valve_position", "valve_battery", "valve_problem", "valve_control", "fallback_setpoint", "inactive_until", "heating_start", "flow_advice", "temperature", "thermostat",
-             "learning",
+             "learning", "reason",
              "setpoint", "status", "demand", "state")
 # Today's hot water from the E32 (unique ID f"{prefix}_hub_{key}").
 DHW_TODAY = ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today")
@@ -1483,8 +1485,11 @@ class RoomDashboard:
         history = [{"entity": room[key], "name": t[name]} for key, name in (("temperature", "room_measured"),
                                                                              ("setpoint", "room_target")) if room.get(key)]
         when_active = {"visibility": active} if active else {}
+        reason = room.get("reason")
         cards = [
             _heading(name, "mdi:home-thermometer-outline", badges),
+            # At a glance: now against target, why it heats or not, who is home, an open window, the valves.
+            {"type": ROOM_STATUS_CARD_TYPE, "entity": reason} if reason else None,
             # An inactive room stays compact: its heading says "Off"; no dial, so no way to switch it on here.
             {"type": "thermostat", "entity": thermostat, **when_active} if thermostat else None,
             # The E32's own measurement next to another thermostat; the room's own climate already shows it.
@@ -1501,7 +1506,8 @@ class RoomDashboard:
             *_learning_cards(t, room, active),
         ]
         if inactive and working:
-            cards += [{"type": "markdown", "content": t["room_off"], "visibility": inactive},
+            # The status card already says the room is off (frost protection only).
+            cards += [None if reason else {"type": "markdown", "content": t["room_off"], "visibility": inactive},
                       _link(t["settings"].format(room=name), "mdi:cog",
                             "/config/integrations/integration/" + DOMAIN, inactive)]
         elif inactive:

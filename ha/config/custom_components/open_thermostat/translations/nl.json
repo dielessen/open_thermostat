@@ -2308,6 +2308,82 @@
           "window_pending": "Raam open, pauzeert zo"
         }
       },
+      "room_reason": {
+        "name": "Reden",
+        "state": {
+          "off": "Alleen vorstbeveiliging (ruimte uit)",
+          "window_open": "Gepauzeerd: raam of deur open",
+          "window_pending": "Raam of deur open, pauzeert zo",
+          "no_measurement": "Geen meting",
+          "hot_water": "Wacht: de ketel maakt warm water",
+          "boiler_pause": "Wacht: minimale ketelpauze",
+          "away_return": "Opwarmen voor je terugkomst",
+          "holiday": "Vakantie",
+          "away": "Afwezig",
+          "room_away": "Afwezig: niemand van deze ruimte is thuis",
+          "house_away": "Afwezig: iedereen is weg",
+          "boost": "Boost actief",
+          "temporary": "Tijdelijke temperatuur",
+          "heating": "Verwarmt",
+          "wants_heat": "Vraagt warmte",
+          "warm_enough": "Warm genoeg",
+          "warm_up": "Slim opwarmen: eerder verwarmen"
+        },
+        "state_attributes": {
+          "line": {
+            "name": "Zin",
+            "state": {
+              "off": "Alleen vorstbeveiliging (ruimte uit)",
+              "window_open": "Gepauzeerd: er staat een raam of deur open",
+              "window_open_contact": "Gepauzeerd: {contact} open sinds {since}",
+              "window_pending": "Er staat een raam of deur open: de ruimte pauzeert zo",
+              "window_pending_contact": "{contact} open: de ruimte pauzeert zo",
+              "no_measurement": "Geen meting: deze ruimte vraagt geen warmte",
+              "hot_water": "Wacht: de ketel maakt warm water",
+              "boiler_pause": "Wacht: minimale ketelpauze",
+              "away_return": "Opwarmen voor je terugkomst",
+              "holiday": "Vakantie tot {until} ({target} °C)",
+              "away": "Afwezig: het huis staat op afwezig ({target} °C)",
+              "room_away": "Afwezig: niemand van deze ruimte is thuis ({target} °C)",
+              "house_away": "Afwezig: iedereen is weg ({target} °C)",
+              "boost": "Boost actief",
+              "boost_until": "Boost tot {until}",
+              "temporary": "Tijdelijk {target} °C",
+              "temporary_until": "Tijdelijk {target} °C tot {until}",
+              "heating": "Verwarmt: {temperature} → {target} °C",
+              "wants_heat": "Vraagt warmte: {temperature} → {target} °C",
+              "warm_enough": "Warm genoeg: {temperature} °C (gewenst {target} °C)",
+              "no_heat_needed": "Geen warmte nodig",
+              "warm_up": "Slim opwarmen: nu al verwarmen voor {time} ({target} °C)"
+            }
+          },
+          "presence": {
+            "name": "Aanwezigheid",
+            "state": {
+              "room_home": "Iemand van deze ruimte is thuis",
+              "room_away": "Niemand van deze ruimte is thuis",
+              "house_home": "Er is iemand thuis",
+              "house_away": "Iedereen is weg"
+            }
+          },
+          "window": {
+            "name": "Raam of deur",
+            "state": {
+              "open": "Raam of deur open",
+              "pending": "Raam of deur open, pauzeert zo"
+            }
+          },
+          "temperature": {
+            "name": "Nu"
+          },
+          "setpoint": {
+            "name": "Gewenst"
+          },
+          "valve_position": {
+            "name": "Radiatorkranen open"
+          }
+        }
+      },
       "ble_temperature": {
         "name": "Temperatuur"
       },

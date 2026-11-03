@@ -1340,6 +1340,82 @@
           "window_pending": "Window open, pausing soon"
         }
       },
+      "room_reason": {
+        "name": "Reason",
+        "state": {
+          "off": "Frost protection only (room off)",
+          "window_open": "Paused: window or door open",
+          "window_pending": "Window or door open, pausing soon",
+          "no_measurement": "No measurement",
+          "hot_water": "Waiting: the boiler is making hot water",
+          "boiler_pause": "Waiting: minimum boiler pause",
+          "away_return": "Warming up for your return",
+          "holiday": "Holiday",
+          "away": "Away",
+          "room_away": "Away: nobody of this room is home",
+          "house_away": "Away: everyone is away",
+          "boost": "Boost",
+          "temporary": "Temporary temperature",
+          "heating": "Heating",
+          "wants_heat": "Wants heat",
+          "warm_enough": "Warm enough",
+          "warm_up": "Smart warm-up: heating early"
+        },
+        "state_attributes": {
+          "line": {
+            "name": "Sentence",
+            "state": {
+              "off": "Frost protection only (room off)",
+              "window_open": "Paused: a window or door is open",
+              "window_open_contact": "Paused: {contact} open since {since}",
+              "window_pending": "A window or door is open: the room pauses soon",
+              "window_pending_contact": "{contact} open: the room pauses soon",
+              "no_measurement": "No measurement: this room does not ask for heat",
+              "hot_water": "Waiting: the boiler is making hot water",
+              "boiler_pause": "Waiting: minimum boiler pause",
+              "away_return": "Warming up for your return",
+              "holiday": "Holiday until {until} ({target} °C)",
+              "away": "Away: the house is set to away ({target} °C)",
+              "room_away": "Away: nobody of this room is home ({target} °C)",
+              "house_away": "Away: everyone is away ({target} °C)",
+              "boost": "Boost active",
+              "boost_until": "Boost until {until}",
+              "temporary": "Temporarily {target} °C",
+              "temporary_until": "Temporarily {target} °C until {until}",
+              "heating": "Heating: {temperature} → {target} °C",
+              "wants_heat": "Wants heat: {temperature} → {target} °C",
+              "warm_enough": "Warm enough: {temperature} °C (target {target} °C)",
+              "no_heat_needed": "No heat needed",
+              "warm_up": "Smart warm-up: heating early for {time} ({target} °C)"
+            }
+          },
+          "presence": {
+            "name": "Presence",
+            "state": {
+              "room_home": "Someone of this room is home",
+              "room_away": "Nobody of this room is home",
+              "house_home": "Someone is home",
+              "house_away": "Everyone is away"
+            }
+          },
+          "window": {
+            "name": "Window or door",
+            "state": {
+              "open": "Window or door open",
+              "pending": "Window or door open, pausing soon"
+            }
+          },
+          "temperature": {
+            "name": "Now"
+          },
+          "setpoint": {
+            "name": "Target"
+          },
+          "valve_position": {
+            "name": "Radiator valves open"
+          }
+        }
+      },
       "ble_temperature": {
         "name": "Temperature"
       },

@@ -31,6 +31,36 @@ def test_the_setup_says_which_route_a_new_e32_takes(name):
         assert old not in user and old not in shadow
 
 
+# rc.3: an installation never needs a thermostat on the bus, so no text takes one for granted.
+PRESUMED = {
+    "strings.json": ("your old thermostat", "the old thermostat is", "back to the thermostat", "to my thermostat"),
+    "translations/en.json": ("your old thermostat", "the old thermostat is", "back to the thermostat",
+                             "to my thermostat"),
+    "translations/nl.json": ("je oude thermostaat", "de oude thermostaat is", "terug aan de thermostaat",
+                             "aan mijn thermostaat"),
+    "translations/pl.json": ("stary termostat jest", "staremu termostatowi", "sterowanie termostatowi",
+                             "to my thermostat"),
+}
+
+
+@pytest.mark.parametrize("name", sorted(PRESUMED))
+def test_no_text_presumes_an_old_thermostat(name):
+    text = (BASE / name).read_text(encoding="utf-8")
+    assert [phrase for phrase in PRESUMED[name] if phrase in text] == []
+    issues = json.loads(text)["issues"]
+    confirm = issues["reconfirm_takeover"]["fix_flow"]["step"]["reconfirm_takeover"]["description"]
+    # The safety rule stays: never two thermostats on the boiler.
+    assert {"strings.json": "never connect two thermostats", "translations/en.json": "never connect two thermostats",
+            "translations/nl.json": "sluit nooit twee thermostaten",
+            "translations/pl.json": "nigdy nie podłączaj dwóch termostatów"}[name] in confirm
+
+
+def test_the_hot_water_advice_does_not_presume_a_thermostat():
+    from custom_components.open_thermostat.heating_advice import TEXT
+    for language, phrase in (("en", "your thermostat"), ("nl", "je thermostaat"), ("pl", "w termostacie.")):
+        assert phrase not in json.dumps(TEXT[language], ensure_ascii=False), language
+
+
 def test_the_dashboard_shows_the_next_step_before_the_takeover():
     from custom_components.open_thermostat.dashboard import TEXT
     assert TEXT["en"]["next"].startswith("Next step: run the boiler test and confirm the takeover")

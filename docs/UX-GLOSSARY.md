@@ -25,8 +25,8 @@ English and Dutch only.
 | Burner finishing its shortest run | Brander maakt zijn kortste brandtijd af | Palnik kończy najkrótszą pracę | Room status: once started, the burner runs a minimum time, even when the room is warm enough. |
 | Burner resting before the next start | Brander rust voor de volgende start | Palnik odpoczywa przed kolejnym startem | Room status: the E32 waits before it asks for heat again, to spare the boiler. |
 | Burner switching on and off too often (short cycling) | Brander slaat te vaak aan en uit (pendelen) | Palnik zbyt często się włącza | More burner starts per hour than is good for gas use and wear. |
-| Trial run (shadow mode) | Proefperiode (schaduwmodus) | Okres próbny | The E32 works out what it would ask of the boiler and compares it with your thermostat, but sends nothing to the boiler. Home Assistant does set each room's setting device. |
-| Active control | Actieve regeling | Aktywne sterowanie | The E32 controls the boiler itself; your old thermostat is disconnected. |
+| Trial run (shadow mode) | Proefperiode (schaduwmodus) | Okres próbny | The E32 works out what it would ask of the boiler and compares it with the thermostat still on the boiler bus, but sends nothing to the boiler. Home Assistant does set each room's setting device. |
+| Active control | Actieve regeling | Aktywne sterowanie | The E32 controls the boiler itself; no other thermostat is connected to the boiler. |
 | Switch over / switch-over (takeover) | Overstappen (overname) | Przełączenie (przejęcie) | The one attended step from the trial run to active control, while you are at home. |
 | Ready for E32 control | Klaar voor regeling door de E32 | Gotowość do sterowania przez E32 | The E32's own check whether the trial run shows it is ready to control the boiler. |
 | Give control back to my thermostat | Regeling teruggeven aan mijn thermostaat | Oddanie sterowania termostatowi | Back from active control to the trial run; the E32 first asks the boiler for no heat for a minute. |

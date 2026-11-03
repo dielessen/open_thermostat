@@ -514,7 +514,8 @@ TEXT = {
                        "raises the scalding risk.",
                 "action": "Set the hot water temperature to {suggest} °C. With a hot water tank, keep the "
                           "boiler's weekly disinfection (thermal legionella protection) switched on.",
-                "where": "Boiler display (hot water temperature) or the hot water setting of your thermostat.",
+                "where": "Boiler display (hot water temperature), or the hot water setting of a thermostat "
+                         "that sets it, if you have one.",
             },
             "dhw_low": {
                 "title": "Hot water below 50 °C",
@@ -524,7 +525,8 @@ TEXT = {
                        "boiler without a tank the risk is small; with a hot water tank it matters.",
                 "action": "With a hot water tank, set at least {suggest} °C or make sure the weekly disinfection "
                           "runs (60 °C or more). With a combi boiler without a tank you can keep this setting.",
-                "where": "Boiler display (hot water temperature) or the hot water setting of your thermostat.",
+                "where": "Boiler display (hot water temperature), or the hot water setting of a thermostat "
+                         "that sets it, if you have one.",
             },
             "pressure_low": {
                 "title": "Water pressure low",
@@ -692,7 +694,8 @@ TEXT = {
                        "een groter risico op verbranden.",
                 "action": "Zet de warmwatertemperatuur op {suggest} °C. Laat bij een warmwaterboiler de wekelijkse "
                           "desinfectie (thermische legionellabescherming) van de ketel aan staan.",
-                "where": "Ketelscherm (warmwatertemperatuur) of de warmwaterinstelling van je thermostaat.",
+                "where": "Ketelscherm (warmwatertemperatuur), of de warmwaterinstelling van een thermostaat "
+                         "die hem instelt, als je die hebt.",
             },
             "dhw_low": {
                 "title": "Warm water onder 50 °C",
@@ -703,7 +706,8 @@ TEXT = {
                 "action": "Zet bij een warmwaterboiler minstens {suggest} °C of zorg dat de wekelijkse desinfectie "
                           "draait (60 °C of meer). Bij een combiketel zonder voorraadvat kun je deze instelling "
                           "houden.",
-                "where": "Ketelscherm (warmwatertemperatuur) of de warmwaterinstelling van je thermostaat.",
+                "where": "Ketelscherm (warmwatertemperatuur), of de warmwaterinstelling van een thermostaat "
+                         "die hem instelt, als je die hebt.",
             },
             "pressure_low": {
                 "title": "Waterdruk laag",
@@ -875,7 +879,8 @@ TEXT = {
                        "kamienia i ryzyko poparzenia.",
                 "action": "Ustaw temperaturę ciepłej wody na {suggest} °C. Przy zasobniku c.w.u. pozostaw włączoną "
                           "cotygodniową dezynfekcję kotła (termiczną ochronę przed Legionellą).",
-                "where": "Wyświetlacz kotła (temperatura ciepłej wody) lub ustawienie ciepłej wody w termostacie.",
+                "where": "Wyświetlacz kotła (temperatura ciepłej wody) lub ustawienie ciepłej wody w "
+                         "termostacie, który ją ustawia, jeśli go masz.",
             },
             "dhw_low": {
                 "title": "Ciepła woda poniżej 50 °C",
@@ -886,7 +891,8 @@ TEXT = {
                 "action": "Przy zasobniku c.w.u. ustaw co najmniej {suggest} °C lub upewnij się, że działa "
                           "cotygodniowa dezynfekcja (60 °C lub więcej). Przy kotle dwufunkcyjnym bez zasobnika "
                           "możesz zostawić to ustawienie.",
-                "where": "Wyświetlacz kotła (temperatura ciepłej wody) lub ustawienie ciepłej wody w termostacie.",
+                "where": "Wyświetlacz kotła (temperatura ciepłej wody) lub ustawienie ciepłej wody w "
+                         "termostacie, który ją ustawia, jeśli go masz.",
             },
             "pressure_low": {
                 "title": "Niskie ciśnienie wody",

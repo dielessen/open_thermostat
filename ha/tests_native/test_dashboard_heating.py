@@ -95,6 +95,9 @@ async def test_heating_view_is_sections_of_built_in_cards_per_room_with_the_esse
     link = now[-1]
     assert (link["type"], link["heading"]) == ("heading", "E32 compared with your thermostat")
     assert link["tap_action"] == {"action": "navigate", "navigation_path": "/" + dashboard.path + "/comparison"}
+    # Trial run (the E32's mode), and only while a thermostat is heard (the agreement has a value).
+    assert link["visibility"] == [{"condition": "state", "entity": hub["shadow_agreement_today"],
+                                   "state_not": ["unavailable", "unknown"]}]
     assert hub["shadow_agreement_today"] not in [c.get("entity") for c in now]
     # The boiler in words (its display code) right under the heating status.
     words = [c for c in now if c["type"] == "markdown" and "'meaning'" in c["content"]]
@@ -183,11 +186,13 @@ async def test_no_comparison_without_a_thermostat_on_the_bus(hass):
         entities.async_remove(hub.pop(key))
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     heating = config["views"][0]
-    assert [s["cards"][0]["heading"] for s in heating["sections"]] == ["Now", "Woonkamer", "Badkamer", "Boiler"]
+    # No comparison and no readiness check: no subview; the loose Bluetooth sensor is on the Heating view.
+    assert [s["cards"][0]["heading"] for s in heating["sections"]] == [
+        "Now", "Woonkamer", "Badkamer", "Boiler", "Bluetooth sensors"]
+    assert [v["path"] for v in config["views"]] == ["heating", "boiler", "diagnostics"]
     text = json.dumps(config)
     assert "Thermostat request" not in text and "Agreement" not in text and "shadow_agreement" not in text
-    # The subview keeps only the loose Bluetooth sensor.
-    assert [s["cards"][0]["heading"] for s in config["views"][3]["sections"]] == ["Bluetooth sensors"]
+    assert "/comparison" not in text and "compared with your thermostat" not in text
     explain = next(c for c in heating["sections"][0]["cards"] if c["type"] == "markdown"
                    and "'meaning'" not in c["content"] and "set wanting" not in c["content"])
     assert "your thermostat controls" not in explain["content"]
@@ -325,10 +330,10 @@ async def test_dutch_headings_and_only_existing_enabled_entities(hass):
     registry.async_remove(hub["burner_short_cycling"])
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     heating = config["views"][0]
-    assert [v["title"] for v in config["views"]] == ["Verwarming", "Ketel", "Diagnose", "Vergelijking"]
-    assert [s["cards"][0]["heading"] for s in heating["sections"]] == ["Nu", "Badkamer", "Woonkamer", "Ketel"]
-    assert [s["cards"][0]["heading"] for s in config["views"][3]["sections"]] == [
-        "E32 en thermostaat vergeleken", "Stooktijd per dag", "Bluetooth-sensoren"]
+    # No E32 status yet, so no trial run known: no Comparison subview (its records lead nowhere).
+    assert [v["title"] for v in config["views"]] == ["Verwarming", "Ketel", "Diagnose"]
+    assert [s["cards"][0]["heading"] for s in heating["sections"]] == [
+        "Nu", "Badkamer", "Woonkamer", "Ketel", "Bluetooth-sensoren"]
     text = json.dumps(config, ensure_ascii=False)
     for gone in (hub["heat_request"], rooms["woonkamer"]["fallback_setpoint"], sensors["humidity"],
                  fields["thermostat_requested_flow_temperature"], hub["burner_short_cycling"]):

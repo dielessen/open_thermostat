@@ -676,7 +676,14 @@ E32's decision next to what that thermostat actually asked of the boiler. You
 find it on the E32 Rooms page under "Comparison with your thermostat (today)".
 Home Assistant adds today's figures as sensors (heating time and burner
 starts today for the E32 and the thermostat, and their agreement) once it has
-seen such a thermostat; a home without one gets no comparison sensors.
+seen such a thermostat; a home without one gets no comparison sensors. The
+generated dashboard links to the comparison under **Now** ("E32 compared with
+your thermostat") only during the trial run, and only while that thermostat is
+heard. Once the E32 controls the boiler and hears no thermostat any more, the
+link and the Comparison page disappear, and after about ten minutes Home
+Assistant removes the comparison sensors (their history is kept; a sensor you
+renamed or changed stays). They come back by themselves if you return to a
+trial run with a thermostat on the bus.
 
 | Line | Meaning |
 | --- | --- |

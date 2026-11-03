@@ -228,7 +228,7 @@ def test_the_notification_blueprint_is_a_valid_automation_blueprint():
     assert raw == {"integration": "open_thermostat", "domain": "binary_sensor", "device_class": "problem"}
     text = path.read_text(encoding="utf-8")
     assert "state_attr(problem, 'reasons')" in text  # the plain-language reasons of the sensor
-    assert "old thermostat is disconnected" in text  # awaiting_confirmation is in its description
+    assert "no other thermostat is connected" in text  # awaiting_confirmation is in its description
 
 
 # -- 1.0: a room that does not get warm, a lost session and the Repairs issues -----------------------------

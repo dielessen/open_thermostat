@@ -7,7 +7,7 @@
           "legacy": "Starsze oprogramowanie OpenThermostat (ib-therm)",
           "shadow": "OpenThermostat E32 (zalecane)"
         },
-        "description": "Wybierz swój OpenThermostat. Z E32 strona E32 poprowadzi Cię dalej: dopóki stary termostat wysyła żądania do kotła, E32 najpierw działa obok niego w okresie próbnym; bez termostatu przechodzi od razu do testu kotła i przejęcia. Nic nie wysyła do kotła, dopóki nie potwierdzisz, że stary termostat jest odłączony."
+        "description": "Wybierz swój OpenThermostat. Z E32 strona E32 poprowadzi Cię dalej: jeśli stary termostat nadal wysyła żądania do kotła, E32 najpierw działa obok niego w okresie próbnym; bez termostatu przechodzi od razu do testu kotła i przejęcia. Nic nie wysyła do kotła, dopóki nie potwierdzisz tam przejęcia."
       },
       "confirm": {
         "title": "Wykryto OpenThermostat",
@@ -33,7 +33,7 @@
       },
       "shadow": {
         "title": "Połącz OpenThermostat E32",
-        "description": "E32 nic nie wysyła do kotła, dopóki nie potwierdzisz przejęcia na jego stronie „Rooms”, najlepiej przez test kotła („Boiler test and takeover”). Dopóki stary termostat jest na magistrali kotła, E32 najpierw działa obok niego w okresie próbnym (tylko liczy i porównuje); zawsze możesz tam wybrać drugą drogę. Home Assistant ustawia jednak temperaturę zadaną na urządzeniu nastawczym każdego pomieszczenia (zawór termostatyczny, tado lub pomocnik liczbowy) zgodnie z programem tygodniowym tego pomieszczenia. Zwykle łączysz E32 później przez Konfiguruj → Połączenie z E32, co samo wypełnia identyfikator połączenia.",
+        "description": "E32 nic nie wysyła do kotła, dopóki nie potwierdzisz przejęcia na jego stronie „Rooms”, najlepiej przez test kotła („Boiler test and takeover”). Jeśli na magistrali kotła jest jeszcze stary termostat, E32 najpierw działa obok niego w okresie próbnym (tylko liczy i porównuje); zawsze możesz tam wybrać drugą drogę. Home Assistant ustawia jednak temperaturę zadaną na urządzeniu nastawczym każdego pomieszczenia (zawór termostatyczny, tado lub pomocnik liczbowy) zgodnie z programem tygodniowym tego pomieszczenia. Zwykle łączysz E32 później przez Konfiguruj → Połączenie z E32, co samo wypełnia identyfikator połączenia.",
         "data": {
           "topic_prefix": "Prefiks MQTT urządzenia E32",
           "adapter_id": "Identyfikator połączenia (wypełniany automatycznie)"
@@ -1116,7 +1116,7 @@
       "entity_ids_confirm": "Zaznacz pole, aby potwierdzić.",
       "water_meter_unit": "Wybierz czujnik przepływu wody (L/min, L/h, m³/h) lub stan wodomierza (m³, L).",
       "water_meter_not_total": "Wybierz stan wodomierza (klasa stanu total lub total increasing) albo czujnik przepływu w L/min.",
-      "e32_restore_boiler_owned": "E32 odmawia przywrócenia, gdy steruje kotłem lub trwa test kotła albo zapis ustawień kotła. Oddaj sterowanie termostatowi na stronie E32 (Pomieszczenia → Aktywne sterowanie) lub poczekaj na koniec testu i spróbuj ponownie.",
+      "e32_restore_boiler_owned": "E32 odmawia przywrócenia, gdy steruje kotłem lub trwa test kotła albo zapis ustawień kotła. Oddaj sterowanie na stronie E32 (Pomieszczenia → Aktywne sterowanie) lub poczekaj na koniec testu i spróbuj ponownie.",
       "e32_restore_busy": "E32 jest zajęty (aktualizacja oprogramowania lub za mało pamięci). Poczekaj minutę i spróbuj ponownie.",
       "e32_restore_settings_changed": "Ustawienia E32 zmieniły się po sprawdzeniu. Wybierz kopię ponownie, aby E32 sprawdził ją jeszcze raz.",
       "e32_restore_wrong_passphrase": "E32 nie mógł otworzyć haseł i kluczy w tej kopii. Wybierz inną kopię.",
@@ -3217,7 +3217,7 @@
         "step": {
           "reconfirm_takeover": {
             "title": "Potwierdź ponownie, że E32 może sterować kotłem",
-            "description": "E32 sterował Twoim kotłem przed aktualizacją oprogramowania. Ze względów bezpieczeństwa nowe oprogramowanie nie przejmie sterowania ponownie, dopóki jeszcze raz nie potwierdzisz, że E32 może sterować kotłem. Do tego czasu E32 utrzymuje tylko ochronę przed zamarzaniem, i to tylko wtedy, gdy na magistrali kotła nie słychać innego termostatu.\n\nPotwierdź tylko, jeśli do kotła nie jest podłączony żaden inny termostat: nigdy nie podłączaj dwóch termostatów do kotła jednocześnie. Aby zamiast tego zatrzymać sterowanie przez E32, otwórz w E32 stronę Rooms → Active control → Stop E32 control."
+            "description": "E32 sterował Twoim kotłem przed aktualizacją oprogramowania. Ze względów bezpieczeństwa nowe oprogramowanie nie przejmie sterowania ponownie, dopóki jeszcze raz nie potwierdzisz, że do kotła nie jest podłączony żaden inny termostat. Do tego czasu E32 utrzymuje tylko ochronę przed zamarzaniem, i to tylko wtedy, gdy na magistrali kotła nie słychać innego termostatu.\n\nPotwierdź tylko, jeśli żaden inny termostat nie jest podłączony: nigdy nie podłączaj dwóch termostatów do kotła jednocześnie. Aby zamiast tego oddać sterowanie, otwórz w E32 stronę Rooms → Active control."
           }
         },
         "error": {
@@ -3285,7 +3285,7 @@
         "step": {
           "choose_password": {
             "title": "Wybierz nowe hasło E32",
-            "description": "{name}: E32 nadal używa domyślnego hasła admin, więc każdy w Twojej sieci mógłby zmienić ogrzewanie. Dopóki nie wybierzesz nowego hasła, E32 nie przyjmuje żadnych zmian: Home Assistant nadal może go odczytywać, a ogrzewanie działa według obecnego planu, ale zmiany pomieszczeń, temperatur docelowych i ustawień oraz aktualizacje oprogramowania czekają. Oddanie sterowania staremu termostatowi na stronie Pomieszczenia E32 działa zawsze.\n\nWybierz nowe hasło o długości od 8 do 64 znaków. Home Assistant zmieni je w E32 i zapisze dla tego połączenia. Od teraz loguj się nim na stronie E32 (nazwa użytkownika admin).",
+            "description": "{name}: E32 nadal używa domyślnego hasła admin, więc każdy w Twojej sieci mógłby zmienić ogrzewanie. Dopóki nie wybierzesz nowego hasła, E32 nie przyjmuje żadnych zmian: Home Assistant nadal może go odczytywać, a ogrzewanie działa według obecnego planu, ale zmiany pomieszczeń, temperatur docelowych i ustawień oraz aktualizacje oprogramowania czekają. Oddanie sterowania na stronie Pomieszczenia E32 (Aktywne sterowanie) działa zawsze.\n\nWybierz nowe hasło o długości od 8 do 64 znaków. Home Assistant zmieni je w E32 i zapisze dla tego połączenia. Od teraz loguj się nim na stronie E32 (nazwa użytkownika admin).",
             "data": {
               "new_password": "Nowe hasło E32",
               "repeat_password": "Powtórz nowe hasło"

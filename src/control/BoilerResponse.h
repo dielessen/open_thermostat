@@ -29,7 +29,7 @@ namespace heating::control {
 //    (the season or the house changed: it is found out again), always within [the lowest flow
 //    the E32 asks (BoilerMinimumFlow), the plan's maximum]. FlowPolicy asks no more than it
 //    (Smart warm-up on, the E32 driving the boiler). Learned from one over-asked request (the
-//    boiler said so itself), "learned" from two;
+//    boiler said so itself);
 //  - its own rest: after a held target, the time until the burner starts again (60..1800 s;
 //    the median of the last 8, from 3). RestFloor keeps the E32's burner rest at least as long;
 //  - absorbed heat: with the return reported, a steady burn (5 min on, no hot water, burner
@@ -39,7 +39,8 @@ namespace heating::control {
 //    the emitters take m x 4.186 x (flow - return) kW whenever the burner heats, also without
 //    the burner power, and per K of water above the rooms' mean (steady, from 5 K; EMA 0.2):
 //    the emitters' output per K for the house model. Without the return both stay unknown
-//    ("no_return") and nothing else changes.
+//    and nothing else changes: the state is "learned" from the first ceiling or the rest rhythm
+//    either way ("no_return" only while nothing is learned yet; "return" in the JSON tells).
 // Hot water, a silence over 60 s, an unknown burner, the end of the request or another
 // controller close an open rest without counting it; another boiler (EMS product id) starts
 // over, as BoilerMinimumFlow does. Pure and single-threaded: sample() every 10 s. What was
@@ -74,7 +75,6 @@ public:
         uint8_t candidateBelowC = 2;               // its candidate: the request - 2 degC
         float ceilingAlpha = 0.3f;
         uint32_t raiseS = 6 * 3600;                // heat asked at or above the ceiling without a held target: +1 degC
-        uint8_t learnedRequests = 2;               // "learned" from this many over-asked requests
         uint32_t steadyMs = 300000;                // a steady burn: on this long
         int16_t minDeltaCentiC = 200;              // flow - return at least
         int16_t minOverRoomCentiC = 500;           // flow - the rooms' mean at least (kW per K)
@@ -194,10 +194,16 @@ public:
     std::optional<float> pumpKgPerS() const { return pump_; }     // the learned mass flow of the pump
     uint16_t heldToday() const { return held_; }                   // held targets today (local day via utc)
     uint8_t overAsked() const { return overAsked_; }               // over-asked requests (saturating)
+    // What the boiler said about itself: a ceiling (any band) or its rest rhythm, also without the return.
+    bool learned() const { return restS() || std::any_of(ceiling_.begin(), ceiling_.end(), [](float c) { return c > 0; }); }
+    // The return temperature reported in the last 15 min: absorbed heat can be known (false: never "no_return" once learned).
+    bool hasReturn() const { return returnAt_ && lastMs_ - *returnAt_ <= p_.returnStaleMs; }
+    // "not_driving" while another controller drives the boiler, "learned" from the first ceiling or the
+    // rest rhythm, until then "no_return" without the return (the absorption cannot be learned) or "collecting".
     const char* state() const {
         if (have_ && !driving_) return "not_driving";
-        if (overAsked_ >= p_.learnedRequests) return "learned";
-        if (have_ && (!returnAt_ || lastMs_ - *returnAt_ > p_.returnStaleMs)) return "no_return";
+        if (learned()) return "learned";
+        if (have_ && !hasReturn()) return "no_return";
         return "collecting";
     }
     // Outdoor band: <-5, -5..0, 0..5, 5..10, 10..15, >=15 degC; unknown: 5..10.
@@ -208,8 +214,9 @@ public:
     }
     const Params& params() const { return p_; }
 
-    // "boiler":{"held","rest_s","ceiling_c","absorbed_kw","kw_per_k","state"} (at most jsonMaxBytes
-    // printed); ceiling_c for the last sample's outdoor. False: no memory.
+    // "boiler":{"held","rest_s","ceiling_c","absorbed_kw","kw_per_k","state","return"} (at most
+    // jsonMaxBytes printed); ceiling_c for the last sample's outdoor; "return": hasReturn(), so a page
+    // can say that absorbed heat is unavailable on this boiler. False: no memory.
     bool addJson(cJSON* parent) const {
         cJSON* o = cJSON_AddObjectToObject(parent, "boiler");
         if (!o || !cJSON_AddNumberToObject(o, "held", held_)) return false;
@@ -219,7 +226,7 @@ public:
         FlowLearner::number(o, "ceiling_c", ceiling ? std::optional<float>(*ceiling) : std::nullopt, 1);
         FlowLearner::number(o, "absorbed_kw", absorbed_, 10);
         FlowLearner::number(o, "kw_per_k", emitter_, 1000);
-        return cJSON_AddStringToObject(o, "state", state()) != nullptr;
+        return cJSON_AddStringToObject(o, "state", state()) && cJSON_AddBoolToObject(o, "return", hasReturn());
     }
 
     // The LearnedState frame (kind 'B', version 1, frameBytes; empty: nothing learned). Payload,

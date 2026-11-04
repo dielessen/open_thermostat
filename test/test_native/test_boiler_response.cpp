@@ -101,7 +101,7 @@ TEST(BoilerResponse, TwoHeldTargetsInOneRequestGiveACeilingAndTheRestsTheirMedia
     EXPECT_EQ(b.r.ceilingC(800), b.r.ceilingC(700)) << "the same band";
     EXPECT_FALSE(b.r.ceilingC(1000)) << "another band";
     EXPECT_FALSE(b.r.ceilingC(std::nullopt)) << "unknown outdoor: not applied";
-    EXPECT_STREQ(b.r.state(), "collecting") << "learned from one over-asked request, reported from two";
+    EXPECT_STREQ(b.r.state(), "learned") << "from the first ceiling: the boiler said so itself";
     EXPECT_FALSE(b.r.restS()) << "two rests so far";
     b.hold(10 * minute);                            // held 3 in the same request: one verdict per request
     EXPECT_EQ(b.r.overAsked(), 1u);
@@ -328,13 +328,16 @@ TEST(BoilerResponse, AbsorbedHeatFromFlowMinusReturnAndThePumpFlow) {
     EXPECT_FALSE(rising.r.pumpKgPerS()) << "0.3 degC a minute: not steady";
 }
 
-// Without the return temperature: "no_return", the absorption stays unknown, and the held targets,
-// the rest and the ceiling are learned as before.
+// Without the return temperature: "no_return" while nothing is learned, the absorption stays
+// unknown, and the held targets, the rest and the ceiling are learned as before: "learned" from
+// the first ceiling or the rest rhythm (the knowledge figure can reach 100 % on such a boiler);
+// "return": false tells the page that absorbed heat is unavailable.
 TEST(BoilerResponse, WithoutTheReturnOnlyTheAbsorptionIsUnknown) {
     Bench b;
     b.s.returnCentiC.reset();
     b.run(11 * minute);
     EXPECT_STREQ(b.r.state(), "no_return");
+    EXPECT_FALSE(b.r.hasReturn());
     for (int k = 0; k < 4; ++k) { b.burn(3 * minute, 5000, 20, false); b.run(10 * minute); }
     b.s.burnerOn = true; b.s.modulationPct = 50; b.s.returnCentiC.reset(); b.run(20 * minute);
     EXPECT_FALSE(b.r.absorbedKw());
@@ -343,16 +346,35 @@ TEST(BoilerResponse, WithoutTheReturnOnlyTheAbsorptionIsUnknown) {
     EXPECT_EQ(b.r.heldToday(), 4u);
     EXPECT_EQ(b.r.restS().value_or(0), 600u);
     EXPECT_EQ(b.r.ceilingC(700).value_or(0), 43);
-    EXPECT_STREQ(b.r.state(), "no_return");
-    // A second over-asked request: learned, with or without the return.
-    b.s.burnerOn = false; b.s.requestC = 0; b.run(minute);
-    b.s.requestC = 45; b.run(11 * minute);
-    b.burn(3 * minute, 5000, 20, false); b.run(10 * minute); b.burn(3 * minute, 5000, 20, false); b.run(10 * minute);
-    EXPECT_STREQ(b.r.state(), "learned");
+    EXPECT_STREQ(b.r.state(), "learned") << "nothing else degrades";
+    Json o(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(b.r.addJson(o.get()));
+    EXPECT_TRUE(cJSON_IsFalse(at(at(o.get(), "boiler"), "return")));
+    EXPECT_TRUE(cJSON_IsNull(at(at(o.get(), "boiler"), "kw_per_k")));
+    // The rest rhythm alone is enough too: one held target per request (no ceiling), its rest closed
+    // by the next burn, then the request ends.
+    Bench rests;
+    rests.s.returnCentiC.reset();
+    rests.run(11 * minute);
+    for (int k = 0; k < 3; ++k) {
+        EXPECT_STREQ(rests.r.state(), "no_return") << k;
+        rests.burn(3 * minute, 5000, 20, false); rests.run(10 * minute);         // held, then its rest
+        rests.s.burnerOn = true; rests.s.modulationPct = 30; rests.step();      // back on: one rest
+        rests.s.requestC = 0; rests.step();                                       // the request ends
+        rests.s.burnerOn = false; rests.s.modulationPct = 0; rests.run(minute);
+        rests.s.requestC = 45; rests.run(11 * minute);
+    }
+    EXPECT_FALSE(rests.r.ceilingC(700)) << "one held target per request";
+    EXPECT_EQ(rests.r.restS().value_or(0), 600u);
+    EXPECT_STREQ(rests.r.state(), "learned");
     // Another controller drives the boiler: "not_driving" (what was learned stays).
     b.s.ownRequest = false; b.step();
     EXPECT_STREQ(b.r.state(), "not_driving");
     EXPECT_EQ(b.r.ceilingC(700).value_or(0), 43);
+    // The return comes back: absorbed heat can be learned again.
+    b.s.ownRequest = true; b.s.returnCentiC = 4500; b.step();
+    EXPECT_TRUE(b.r.hasReturn());
+    EXPECT_STREQ(b.r.state(), "learned");
 }
 
 // Another boiler (EMS product id): nothing learned about the old one applies.
@@ -494,13 +516,15 @@ TEST(BoilerResponse, TheFrameTravelsInTheGlobalRecordAndOlderFirmwareSkipsIt) {
     EXPECT_EQ(empty.parts[0], g);
 }
 
-// "boiler":{"held","rest_s","ceiling_c","absorbed_kw","kw_per_k","state"}, at most 140 B printed.
+// "boiler":{"held","rest_s","ceiling_c","absorbed_kw","kw_per_k","state","return"}, at most 140 B
+// printed: the plan's shape plus "return" (whether absorbed heat can be known on this boiler).
 TEST(BoilerResponse, TheBoilerObjectKeepsItsShapeAndSize) {
     Json fresh(cJSON_CreateObject(), cJSON_Delete);
     ASSERT_TRUE(BoilerResponse().addJson(fresh.get()));
-    EXPECT_EQ(print(fresh.get()), R"({"boiler":{"held":0,"rest_s":null,"ceiling_c":null,"absorbed_kw":null,"kw_per_k":null,"state":"collecting"}})");
+    EXPECT_EQ(print(fresh.get()), R"({"boiler":{"held":0,"rest_s":null,"ceiling_c":null,"absorbed_kw":null,"kw_per_k":null,"state":"collecting","return":false}})");
     // The widest (BoilerResponseWidest.h): 65535 held targets, a rest of 1800 s, no ceiling for the
-    // outdoor now (null is wider), 999.9 kW, 19.999 kW per K and "not_driving".
+    // outdoor now (null is wider), 999.9 kW (so the return is reported: "true" and "999.9" are as
+    // wide as "false" and "null"), 19.999 kW per K and "not_driving".
     ASSERT_TRUE(BoilerResponse().restore(widestBoilerFrame()));
     const BoilerResponse r = widestBoilerResponse();
     Json worst(cJSON_CreateObject(), cJSON_Delete);
@@ -515,6 +539,8 @@ TEST(BoilerResponse, TheBoilerObjectKeepsItsShapeAndSize) {
     EXPECT_EQ(at(o, "absorbed_kw")->valuedouble, 999.9);
     EXPECT_EQ(at(o, "kw_per_k")->valuedouble, 19.999);
     EXPECT_STREQ(at(o, "state")->valuestring, "not_driving");
+    EXPECT_TRUE(cJSON_IsTrue(at(o, "return")));
+    EXPECT_EQ(cJSON_GetArraySize(o), 7);
 }
 
 TEST(RestFloor, TheBurnerRestIsAtLeastTheBoilersOwnUnlessARoomIsCold) {

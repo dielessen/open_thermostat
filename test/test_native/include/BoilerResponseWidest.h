@@ -5,7 +5,8 @@
 #include <string>
 // rc.5 (P1): BoilerResponse at its widest, for the payload bounds (the flow topic, the insight
 // topic, the page): 65535 held targets today, eight rests of 1800 s, no ceiling for the outdoor
-// now (null is wider than a number), 999.9 kW absorbed now, 19.999 kW per K and "not_driving".
+// now (null is wider than a number), 999.9 kW absorbed now, 19.999 kW per K, "not_driving" and
+// "return": true ("true" with "999.9" is as wide as "false" with "null").
 // Built from a frame (BoilerResponse::stored()'s layout) and 1000 s of a steady 60 kW burn at 90
 // degC with 3 K across, then 90 K across (the reported kW are capped at 999.9).
 inline std::string widestBoilerFrame() {

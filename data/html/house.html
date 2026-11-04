@@ -812,7 +812,7 @@
   function arrivalLine(a) {
     if (!a || typeof a !== 'object' || !ok(a.last_at_utc) || a.last_at_utc <= 0 || !ok(a.last_error_min)) return '';
     const n = Math.round(a.last_error_min), values = {day: dayWord(new Date(a.last_at_utc * 1000)), time: clock(a.last_at_utc + n * 60), n: Math.abs(n)};
-    const went = fill(uiText(n > 0 ? "{day} warm at {time} ({n} min late)" : n < 0 ? "{day} warm at {time} ({n} min early)" : "{day} warm at {time}, on time"), values);
+    const went = fill(uiText(n > 0 ? "{day} warm at {time} ({n} min late)" : n < 0 ? "{day} warm at {time} ({n} min early)" : "{day} warm at {time} (on time)"), values);
     const pct = ok(a.factor) ? Math.round(Math.abs(a.factor - 1) * 100) : 0;
     return went + (pct ? '; ' + fill(uiText(a.factor > 1 ? "tomorrow {pct} % earlier" : "tomorrow {pct} % later"), {pct}) : '') + '.';
   }

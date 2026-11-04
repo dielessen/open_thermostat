@@ -11,7 +11,7 @@ window.OT_UI_PAGE_MESSAGES = {
   "The warm-up time is learned; the coolest water is still being learned.": "De opwarmtijd is geleerd; het koelste water leert hij nog.",
   "{day} warm at {time} ({n} min late)": "{day} warm om {time} ({n} min te laat)",
   "{day} warm at {time} ({n} min early)": "{day} warm om {time} ({n} min te vroeg)",
-  "{day} warm at {time}, on time": "{day} warm om {time}, op tijd",
+  "{day} warm at {time} (on time)": "{day} warm om {time} (op tijd)",
   "tomorrow {pct} % earlier": "morgen {pct} % eerder",
   "tomorrow {pct} % later": "morgen {pct} % later",
   "Heating time": "Stooktijd",

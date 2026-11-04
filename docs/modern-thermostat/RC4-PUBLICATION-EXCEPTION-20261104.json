@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "status": "DRAFT_NOT_APPROVED",
+  "scope": "one_prerelease_publication",
+  "candidate_tag": "v1.0.0-e32v2-rc.4",
+  "unaccepted_predecessor": "v1.0.0-e32v2-rc.3",
+  "accepted_basis_tag": "v0.1.0-e32v2-beta.22",
+  "accepted_basis_receipt_sha256": "15e4aa4f22c2056b63f61a3225e778eb117621198de58e1ada3f6cfcdbe00223",
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "gap_report": "docs/modern-thermostat/RC3-UPDATE-GAP-20261104.json",
+  "gap_report_sha256": "86ed4ed8c971820afd2bebca6a90733ab71c21d2404328755e4172e842fff44f",
+  "reason": "rc.3 is installed and runs, but no acceptance receipt was captured. Publish this one rc.4 pre-release with beta.22 as the last accepted basis. The rc.4 installation is captured as its acceptance (pre- and post-install, Home Assistant route); v1.0.0 still needs an accepted rc.4 update and a 14-day PASS readiness report.",
+  "device_installation_authorized": false,
+  "boiler_trial_authorized": false,
+  "approval": null,
+  "separate_installation_instruction": "docs/modern-thermostat/RC4-OWNER-INSTRUCTION-20261104.json"
+}

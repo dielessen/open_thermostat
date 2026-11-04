@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "date": "2026-11-04",
+  "status": "INCOMPLETE",
+  "scope": "rc.3 update evidence gap; do not replace the accepted beta.22 basis",
+  "candidate_tag": "v1.0.0-e32v2-rc.3",
+  "published": true,
+  "installed_tag": "v1.0.0-e32v2-rc.3",
+  "install_route": "home_assistant_update_entity",
+  "native_install_commands": 0,
+  "manual_upload_commands": 0,
+  "manual_result": "Installed by the owner on 3 Nov 2026 through the Home Assistant update entity; no pre-install capture was made, so there is no acceptance receipt.",
+  "acceptance_receipt": null,
+  "acceptance_receipt_status": "NOT_CAPTURED",
+  "last_accepted": "v0.1.0-e32v2-beta.22"
+}

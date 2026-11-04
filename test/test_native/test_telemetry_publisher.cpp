@@ -20,6 +20,7 @@ struct Bench {
     int boilerFlow = 4500;
     std::string learnedResult = "learning";
     std::string scoreboard;    // rc.4: the summary source's "scoreboard" object, when set (HeatingController's Scoreboard::addJson)
+    std::string insight;       // rc.5: the summary source's "insight" object, when set (HeatingController's addInsightJson)
     TrvControl* trv = nullptr; // radiator valves, added to the status as HeatingController does
     TelemetryPublisher publisher{
         TelemetryPublisher::Sources{
@@ -45,7 +46,8 @@ struct Bench {
             },
             [this] {
                 return std::string(R"({"schema":1,"learned":{"schema":1},"flow":{"source":"rule"},"night_gas":{"m3":0.1})")
-                    + (scoreboard.empty() ? std::string() : ",\"scoreboard\":" + scoreboard) + "}";
+                    + (scoreboard.empty() ? std::string() : ",\"scoreboard\":" + scoreboard)
+                    + (insight.empty() ? std::string() : ",\"insight\":" + insight) + "}";
             },
             [this](std::string& out, size_t group) {
                 if (group != 0) { out.clear(); return; }
@@ -118,6 +120,43 @@ TEST(TelemetryPublisher, TheScoreboardGoesOutOnItsOwnTopicAndLeavesTheSummary) {
     b.run(310000);
     EXPECT_EQ(b.count("fw/telemetry/summary", again), 1u);
     EXPECT_EQ(b.count("fw/telemetry/scoreboard", again), 0u);
+}
+
+// rc.5 (P2): what the E32 knows about the house, its boiler and yesterday goes out on its own topic,
+// fw/telemetry/insight, retained, with the summary every 5 minutes: the source's "insight" object's
+// members after a schema, {"schema":1,"knowledge":..,"house":..,"boiler":..,"insights":[..]}. The
+// summary keeps nothing of it; a source without it sends nothing there.
+TEST(TelemetryPublisher, TheInsightGoesOutOnItsOwnTopicAndLeavesTheSummary) {
+    Bench b;
+    b.publisher.connected(b.now);
+    b.run(30000);
+    ASSERT_GE(b.count("fw/telemetry/summary"), 1u);
+    EXPECT_EQ(b.count("fw/telemetry/insight"), 0u) << "no insight in the source: nothing sent";
+    b.scoreboard = R"({"yesterday":null,"today":{"day":"2026-11-04","heating_h":3}})";
+    b.insight = R"({"knowledge":{"pct":70,"missing":["curve","boiler_response"],"more":0},)"
+                R"("house":{"ua_kw_per_k":0.2,"kw_per_flow_k":0.5,"slope":0.4,"state":"learned"},)"
+                R"("boiler":{"held":0,"rest_s":null,"ceiling_c":null,"absorbed_kw":null,"kw_per_k":null,"state":"not_driving"},)"
+                R"("insights":[{"kind":"gas_per_dd_up","pct":35}]})";
+    const uint64_t at = b.now;
+    b.run(310000);                                          // the next 5-minute summary
+    ASSERT_EQ(b.count("fw/telemetry/summary", at), 1u);
+    ASSERT_EQ(b.count("fw/telemetry/insight", at), 1u);
+    EXPECT_EQ(b.count("fw/telemetry/scoreboard", at), 1u) << "all five parts in the same round";
+    EXPECT_EQ(b.last("fw/telemetry/insight", at), R"({"schema":1,)" + b.insight.substr(1));
+    const auto summary = b.last("fw/telemetry/summary", at);
+    for (const char* key : {"insight", "knowledge", "house", "boiler", "insights"})
+        EXPECT_EQ(summary.find(std::string("\"") + key + "\""), std::string::npos) << key << ": " << summary;
+    for (const auto& s : b.sent) { if (s.topic == "fw/telemetry/insight") EXPECT_TRUE(s.retained); }
+    // A reconnect sends it once more; a source that drops it again sends nothing there.
+    uint64_t again = b.now;
+    b.publisher.connected(b.now);
+    b.run(30000);
+    EXPECT_EQ(b.count("fw/telemetry/insight", again), 1u);
+    b.insight.clear();
+    again = b.now;
+    b.run(310000);
+    EXPECT_EQ(b.count("fw/telemetry/summary", again), 1u);
+    EXPECT_EQ(b.count("fw/telemetry/insight", again), 0u);
 }
 
 TEST(TelemetryPublisher, AConnectSendsEverythingOnceSpreadOverSeconds) {

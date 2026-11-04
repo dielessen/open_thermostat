@@ -1,7 +1,9 @@
+#include "control/ControlPartitionBudget.h"
 #include "control/Scoreboard.h"
 #include "control/ShadowComparison.h"
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
+#include <cstring>
 #include <memory>
 
 // rc.4 (F1): the daily scoreboard: a day's outdoor mean and heating gas, the judged mornings,
@@ -9,6 +11,7 @@
 // survives a restart (today, or yesterday when the E32 was off at the day change).
 namespace {
 using heating::control::AutoTuner;
+using heating::control::Insights;
 using heating::control::RoomDemand;
 using heating::control::RoomPlan;
 using heating::control::RoomSchedule;
@@ -139,22 +142,119 @@ TEST(Scoreboard, TheRecordComesBackForTodayOrYesterdayOnly) {
     EXPECT_FALSE(stale.restore(R"({"t":{"d":1,"os":0,"on":-5,"k":0,"a":null}})", 1));
 }
 
-// The record's bound (storedMaxBytes, 14 NVS entries): two days with the widest values that can occur.
+// The record's bound (storedMaxBytes, 15 NVS entries): two days with the widest values that can occur
+// (999.99 kWh a day, -50 degC all day, every arrival beyond the stored limit) and rc.5's Insights
+// baselines after a week at two degree-days a day (gas 500 kWh/DD, the starts and the rooms at their
+// bounds). The widest baselines of all ("b", 65 B, test_insights.cpp) beside the widest days fit too.
 TEST(Scoreboard, TheWidestRecordStaysWithinItsBound) {
     ScopedTz tz(ScopedTz::amsterdam);
     Scoreboard s;
-    const int64_t day0 = int64_t(ShadowComparison::daysFromCivil(2099, 12, 30)) * 86400 - 3600;  // a five-digit day number
-    for (int d = 0; d < 2; ++d) {                                                              // two whole days, up to 23:59
-        for (int64_t t = day0 + d * 86400 + 60; t < day0 + (d + 1) * 86400; t += 60)
-            s.step(t, 60, int16_t(-5000), 500.0 + d * 500.0);                                // -50 degC all day, 500 kWh a day
+    const int64_t day0 = int64_t(ShadowComparison::daysFromCivil(2099, 12, 21)) * 86400 - 3600;  // a five-digit day number
+    double kwh = 0;
+    std::array<std::optional<uint16_t>, RoomPlan::maxRooms> slow{};
+    slow.fill(uint16_t(1000));
+    for (int d = 0; d < 9; ++d) {                                                              // nine whole days, up to 23:59
+        const int16_t outdoor = d < 7 ? 1600 : -5000;                                          // 2 degree-days a week, then -50 degC
+        for (int64_t t = day0 + d * 86400 + 60; t < day0 + (d + 1) * 86400; t += 60) {
+            if (s.step(t, 60, outdoor, kwh += 999.99 / 1439)) {                                // 999.99 kWh a day
+                AutoTuner::Day tuned; tuned.day = s.yesterday()->day; tuned.hours = 0xFFFFFF; tuned.starts = 65535;
+                s.judge(tuned, slow.data(), slow.size());
+            }
+        }
         for (size_t r = 0; r < RoomPlan::maxRooms; ++r) s.arrival(r, day0 + d * 86400 + 3600, int16_t(-32000));
     }
+    ASSERT_EQ(s.insights().baseline(0).days, 8);
     const auto text = s.stored();
     std::printf("[ scoreboard ] widest record %zu B of %zu: %s\n", text.size(), Scoreboard::storedMaxBytes, text.c_str());
     ASSERT_FALSE(text.empty()) << "a record wider than the bound is not stored at all";
     EXPECT_LE(text.size(), Scoreboard::storedMaxBytes);
-    EXPECT_GE(text.size(), 200u) << "the widest values really are in it";
+    EXPECT_GE(text.size(), 260u) << "the widest values really are in it";
+    EXPECT_NE(text.find(R"("k":999.99,"a":[-9999,)"), std::string::npos) << "an arrival is stored within a week either way";
+    EXPECT_NE(text.find(R"(,9998,9998])"), std::string::npos) << "the rooms' baselines at their bound";
+    EXPECT_EQ(heating::control::ControlPartitionBudget::blobEntries(Scoreboard::storedMaxBytes + 1), 15u);
+    // The widest days without any baselines, plus the widest baselines of all: still within the bound.
+    Json root(cJSON_Parse(text.c_str()), cJSON_Delete);
+    cJSON_DeleteItemFromObject(root.get(), "b"); cJSON_DeleteItemFromObject(root.get(), "x");
+    char* days = cJSON_PrintUnformatted(root.get());
+    const size_t widestDays = std::strlen(days);
+    cJSON_free(days);
+    EXPECT_EQ(widestDays, 213u);
+    EXPECT_LE(widestDays + 65, Scoreboard::storedMaxBytes);
     Scoreboard back;
-    ASSERT_TRUE(back.restore(text.c_str(), RoomSchedule::localDay(day0 + 86400 + 3600)));
-    ASSERT_TRUE(back.yesterday()); EXPECT_EQ(back.yesterday()->arrivalMin[7], -32000); EXPECT_EQ(back.today().arrivalSeen, 0xFF);
+    ASSERT_TRUE(back.restore(text.c_str(), RoomSchedule::localDay(day0 + 8 * 86400 + 3600)));
+    ASSERT_TRUE(back.yesterday()); EXPECT_EQ(back.yesterday()->arrivalMin[7], -9999); EXPECT_EQ(back.today().arrivalSeen, 0xFF);
+    EXPECT_EQ(back.insights().baseline(Insights::houseFigures + 7).days, 8);
+    EXPECT_NEAR(back.insights().baseline(Insights::houseFigures + 7).value, 999, 1e-3);
+}
+
+// rc.5 (P2): at the day change step() says so; judge() then takes yesterday's gas per degree-day, starts
+// and heating hours (AutoTuner's same day) and the rooms' warm-up, judges them and only then folds them.
+TEST(Scoreboard, TheDayChangeJudgesYesterdayBeforeFoldingItIn) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    Scoreboard s;
+    double kwh = 0;
+    int changes = 0;
+    const auto run = [&](int days, double kwhPerDay, int16_t outdoor, uint32_t hours, uint16_t starts, std::optional<uint16_t> warmup) {
+        for (int64_t end = wednesday + (changes + days) * 86400 + 60, t = wednesday + changes * 86400 + 60; t <= end; t += 60) {
+            if (!s.step(t, 60, outdoor, kwh += kwhPerDay / 1440)) continue;
+            ++changes;
+            AutoTuner::Day tuned; tuned.day = s.yesterday()->day; tuned.hours = hours; tuned.starts = starts;
+            const std::optional<uint16_t> rooms[2] = {warmup, std::nullopt};
+            s.judge(tuned, rooms, 2);
+        }
+    };
+    EXPECT_FALSE(s.step(wednesday + 60, 60, int16_t(800), kwh)) << "the first step starts a day, it ends none";
+    run(4, 40, 800, 0xFFF, 24, 45);                          // 4 usual days: 4 kWh/DD, 2 starts/h, 1.2 h/DD, 45 min/degC
+    EXPECT_EQ(changes, 4);
+    EXPECT_EQ(s.insights().count(), 0u) << "four days only build the baseline";
+    EXPECT_NEAR(*s.insights().gasPerDegreeDay(4), 4.0, 0.01);
+    run(1, 60, 800, 0xFFFFF, 80, 70);                         // +50 % gas, 4 starts/h, 2 h/DD, 70 min/degC
+    ASSERT_EQ(s.insights().count(), 4u);
+    Json root(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(s.insights().addJson(root.get(), plan()));
+    char* text = cJSON_PrintUnformatted(root.get());
+    EXPECT_STREQ(text, R"({"insights":[{"kind":"gas_per_dd_up","pct":50},{"kind":"starts_up","pct":100},)"
+                       R"({"kind":"hours_per_dd_up","pct":67},{"kind":"warmup_slower","pct":56,"room":"woonkamer"}]})");
+    cJSON_free(text);
+    EXPECT_NEAR(*s.insights().gasPerDegreeDay(), 4.4, 0.02) << "folded in after the judgement";
+    run(1, 0, 1700, 0, 0, 45);                                // no heating (and 1 degree-day): neither judged nor folded
+    EXPECT_EQ(s.insights().count(), 0u);
+    EXPECT_EQ(s.insights().baseline(0).days, 5);
+    run(1, 40, 1700, 0xF, 3, 45);                             // heated but mild: the per-degree-day figures are skipped
+    EXPECT_EQ(s.insights().baseline(0).days, 5);
+    EXPECT_EQ(s.insights().baseline(1).days, 6);
+    // A day the E32 was off (two days later) ends no day to judge: its figures would be partial.
+    EXPECT_FALSE(s.step(wednesday + (changes + 2) * 86400 + 600, 60, int16_t(800), kwh));
+}
+
+// rc.5 (P2): the baselines come back with any readable record; the items only on the day they were made.
+// A record of rc.4 (no baselines) restores as before, with empty baselines.
+TEST(Scoreboard, TheBaselinesSurviveARestartAndTheItemsOnlyTheSameDay) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    Scoreboard s;
+    double kwh = 0;
+    int changes = 0;
+    for (int64_t t = wednesday + 60; changes < 6; t += 60)
+        if (s.step(t, 60, int16_t(800), kwh += (changes < 5 ? 40.0 : 80.0) / 1440)) {
+            AutoTuner::Day tuned; tuned.day = s.yesterday()->day; tuned.hours = 0xFFF; tuned.starts = 24;
+            s.judge(tuned, nullptr, 0);
+            ++changes;
+        }
+    ASSERT_EQ(s.insights().count(), 1u);
+    const auto text = s.stored();
+    EXPECT_NE(text.find(R"("x":[)"), std::string::npos) << text;
+    const int32_t today = s.today().day;
+    Scoreboard same, next, later;
+    ASSERT_TRUE(same.restore(text.c_str(), today));
+    EXPECT_EQ(same.insights().count(), 1u);
+    EXPECT_NEAR(*same.insights().gasPerDegreeDay(5), *s.insights().gasPerDegreeDay(), 0.01);
+    ASSERT_TRUE(next.restore(text.c_str(), today + 1));
+    EXPECT_EQ(next.insights().count(), 0u) << "the item described the day before yesterday";
+    EXPECT_EQ(next.insights().baseline(0).days, 6);
+    EXPECT_FALSE(later.restore(text.c_str(), today + 5)) << "no day comes back";
+    EXPECT_EQ(later.insights().baseline(0).days, 6) << "the baselines span weeks: they still do";
+    Scoreboard rc4;
+    ASSERT_TRUE(rc4.restore(R"({"t":{"d":20761,"os":0,"on":0,"k":1.5,"a":null},"y":null})", 20761));
+    EXPECT_EQ(rc4.insights().baseline(0).days, 0);
+    EXPECT_NEAR(rc4.today().heatingKwh, 1.5, 1e-9);
 }

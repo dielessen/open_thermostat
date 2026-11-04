@@ -222,6 +222,15 @@ public:
   about {flow} °C and rests {rest} minutes; the E32 asks at most {ceiling} °C now".
 - Tests: fixture payloads for the new topic, entity tests, dashboard tests, browser tests for the pages
   (`test/browser-tests.txt`), translation completeness.
+- Owner's wish (4 Nov, "dat is wel mooi om te zien"): a heating-curve chart "Water temperature by outdoor
+  temperature" on the E32 Heating page (inline SVG from the flow document) and on the HA Learning view (a
+  sixth Lovelace card `heating-curve-card.js`, versioned like the others; P6's card list is data-driven):
+  the standard line (dashed, the design slope), the learned line (solid, when `slope_source` is "learned" or
+  "house"), the point of now and the frost point at −10 °C; legend EN/NL/PL "Standard", "Learned for your
+  house", "Now". The MQTT `flow.curve` also carries `base_c` (the line's own value at the outdoor
+  temperature, one decimal; `flow_c` adds the room correction) and `design_flow_c` (the standard line's
+  anchor), so the chart draws "now" on the line and the standard line from the E32's own numbers
+  (P14 review); the label shows `flow_c` as what the E32 asks.
 
 ### 2.6 Release tooling (P6)
 
@@ -243,6 +252,18 @@ public:
 README (what it does: three sentences), USER-GUIDE (Learning section, insights, the boiler line), the
 release notes drafts (`RELEASE-1.0-RC5-NOTES-DRAFT.en.md`, `HA-RC6-NOTES-DRAFT.en.md`, ≤ 6000 B rendered),
 the Dutch PDF manual (tools/dev/manual), NEXT-RELEASE.nl.md.
+
+### 2.8 The Home Assistant dashboard redesign (P11 house card, P12 views; owner 4 Nov: "alles moet gewoon in de volgende release komen")
+
+The review of 4 Nov (RC5-DASHBOARD-SPEC.md, written on Fable at the owner's request) found the duplicate gas-per-day chart,
+a duplicate "Yesterday", lone headings over hidden cards (the owner's "open ruimte") and a cluttered Boiler view, and
+proposes a calm, striking dashboard: a house card hero on the Overview (a new custom card `house-card.js`), a Boiler view
+ordered by need (Now, Advice, Today and this week, Hot water, Last 24 hours, What the boiler reports, Boiler settings), one
+gas story, "Yesterday" once (on Learning), whole-section visibility everywhere, no HACS frontend dependencies and no entity
+id changes. P11 builds the house card (section 7 of the spec, its browser test, the registration and the versioned URL
+`/open_thermostat/house-card-1.0.0rc5.js`); P12 restructures the views (sections 1-6, 8, 10). Both start from the pages
+package's branch `rc5-ha-pages` and keep its Learning additions; the docs follow-ups of spec section 13 go to the
+integrator after P5, P11 and P12 landed.
 
 ## 3. Proof before integration and before the release
 

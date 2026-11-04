@@ -3,6 +3,7 @@
 #include "control/ControlTuning.h"
 #include "control/FlowDemand.h"
 #include "control/FlowLearner.h"
+#include "control/FreeHeat.h" // rc.5 (P3)
 #include "control/RoomDemand.h"
 #include "control/RoomPlan.h"
 #include "control/WarmupPlanner.h"
@@ -26,7 +27,8 @@ namespace heating::control {
 // itself when what it learned is good enough. "Smart warm-up" (apply_learned): a
 // time in the week program means "warm at that time" (learned starts and flows
 // only once learned, FlowPolicy). The heating curve (weather_curve): the design
-// slope until CurveLearner has its steady periods, then the learned one; without
+// slope until CurveLearner has its steady periods, then the learned one (rc.5: in
+// between the house model's, HouseModel: heat loss over emitter output); without
 // a fresh outdoor temperature the rule's flow. Before rc.3 both defaulted off and
 // a record cannot tell that default from a choice: a record or backup of an older
 // format (no "version" >= 2) reads both as on; one this firmware wrote keeps the
@@ -305,7 +307,10 @@ private:
 //    rule is in its minimum off time or has no usable room), at least 5 min
 //    (tuning: min_on_s).
 // Every flow stays within [plan minimum, min(plan maximum, 80, boiler limit)];
-// the boiler limit wins over the plan minimum. Off (the default), everything is
+// the boiler limit wins over the plan minimum. rc.5 (P1): with Smart warm-up on and
+// the E32 driving the boiler, also at most the ceiling the boiler itself showed for
+// this outdoor (BoilerResponse; the learned state "held" when it bound, an optimum
+// start's lead planned for that flow). Off (the default), everything is
 // computed and reported as advice and the request is the rule's, unchanged.
 // ActiveHeatGuard still bounds and sends (or, in shadow mode, only reports).
 // Pure and single-threaded: apply() every 10 s after RoomEngine::step().
@@ -313,6 +318,9 @@ class FlowPolicy {
 public:
     enum class Source : uint8_t { rule, curve, learned, optimumStart };
     static constexpr int16_t warmupFromCentiC = 30;
+    static constexpr int16_t warmupCapCentiC = 100;  // rc.5: a room this short gets the full flow, not the boiler's ceiling
+    static constexpr float houseSlopeFloor = 0.5f;   // rc.5 (P2): the house model's slope at least this share of the design slope
+    static constexpr float houseSlopeCeiling = 1.5f; // rc.5: and at most this multiple of it (without a return or on floors the estimate ran to 2.5 in the soak; only the learned curve may go higher)
     struct Inputs {
         uint64_t now = 0;
         std::optional<int64_t> utc;                 // trusted clock only
@@ -323,18 +331,30 @@ public:
         std::optional<uint8_t> boilerLimitC;        // the boiler's 0x16 heating limit
         std::optional<int16_t> flowCentiC;          // fresh EMS view, for the curve learner
         std::optional<bool> burnerOn, hotWater;
+        // rc.5 (P2): HouseModel::slope(), the curve's slope until CurveLearner learned one, at least half the
+        // design slope (order: learned curve, house model, design; "slope_source" "learned" / "house" / "design").
+        std::optional<float> houseSlope;
+        // rc.5 (P1): the E32 drives the boiler (ActiveHeatGuard::outputActive) and the boiler's learned
+        // ceiling for this outdoor (BoilerResponse::ceilingC; nullopt: none). With Smart warm-up on and
+        // the E32 driving, no request (rule, curve, learned flow or optimum start) goes above it.
+        bool ownRequest = false;
+        std::optional<uint8_t> ceilingC;
     };
 
     void setSettings(const FlowSettings& s) { settings_ = s; }
     // A plan edit (rc.4, R1-04): what was keyed by room index restarts or is re-keyed by id.
     void setPlan(const RoomPlan& plan) {
         arrival_.setPlan(plan);
+        freeHeat_.setPlan(plan); // rc.5 (P3): the free heat per room id
         starts_ = {}; heating_ = {}; start_ = {}; startHeating_ = false; startEnded_ = false; startMinute_ = -1;
         lead_ = -1; copyId(leadId_, ""); copyId(startId_, "");
         curveLearner_.interrupt();
     }
     const ArrivalLearner& arrival() const { return arrival_; }
     ArrivalLearner& arrival() { return arrival_; }
+    // rc.5 (P3): sampled by HeatingController every step, applied in optimumStart(), kept by LearnedState.
+    const FreeHeat& freeHeat() const { return freeHeat_; }
+    FreeHeat& freeHeat() { return freeHeat_; }
     const FlowSettings& settings() const { return settings_; }
     const FlowDemand::Request& request() const { return applied_; }
     Source source() const { return source_; }
@@ -344,6 +364,7 @@ public:
     FlowDemand::Request apply(const Inputs& in, const FlowLearner& learner) {
         rule_ = in.rule; applied_ = in.rule; source_ = Source::rule;
         curveFlow_.reset(); curveBase_.reset(); learnedFlow_.reset(); lead_ = -1;
+        ceiling_.reset(); ceilingBound_ = false; // rc.5 (P1)
         if (!in.plan || !in.rooms) { step(in, learner); return applied_; }
         const auto& plan = *in.plan;
         const size_t n = std::min(plan.rooms.size(), RoomPlan::maxRooms);
@@ -360,9 +381,22 @@ public:
             if (r.usable && (lead_ < 0 || r.errorCentiC > in.rooms[lead_].errorCentiC)) lead_ = int8_t(i);
         }
         copyId(leadId_, lead_ >= 0 ? plan.rooms[lead_].id.c_str() : "");
+        // rc.5 (P1): the cap in effect: the boiler's learned ceiling (never below the plan's minimum), only with
+        // Smart warm-up on and the E32 driving the boiler, and not while the lead room is a warm-up short
+        // (warmupCapCentiC): comfort first. The ceiling is what the house absorbs near its targets, and held
+        // targets are not counted during warm-ups either (BoilerResponse).
+        if (settings_.applyLearned && in.ownRequest && in.ceilingC && !(lead_ >= 0 && in.rooms[lead_].errorCentiC >= warmupCapCentiC))
+            ceiling_ = std::max(*in.ceilingC, lo);
         designFlowC_ = settings_.designFlowC ? settings_.designFlowC : radiator ? WeatherCurve::radiatorDesignFlowC : WeatherCurve::floorDesignFlowC;
         const auto learnedSlope = curveLearner_.slope();
-        slope_ = learnedSlope.value_or(WeatherCurve::slopeFor(designFlowC_)); slopeLearned_ = learnedSlope.has_value();
+        // rc.5 (P2): the house model's slope (HouseModel) until the curve learned its own; comfort first, an
+        // estimate takes at most half off the design slope (only CurveLearner, from steady periods at the
+        // target, may go lower).
+        const bool house = !learnedSlope && in.houseSlope && std::isfinite(*in.houseSlope) && *in.houseSlope > 0;
+        const float design = WeatherCurve::slopeFor(designFlowC_);
+        slope_ = learnedSlope ? *learnedSlope
+            : house ? std::clamp(*in.houseSlope, std::max(WeatherCurve::minSlope, design * houseSlopeFloor), std::min(WeatherCurve::maxSlope, design * houseSlopeCeiling)) : design;
+        slopeSource_ = learnedSlope ? "learned" : house ? "house" : "design";
         // Weather curve: the highest base over the usable rooms (one circuit).
         if (in.outdoorCentiC && lead_ >= 0) {
             for (size_t i = 0; i < n; ++i)
@@ -388,6 +422,8 @@ public:
             int want = in.rule.flowC;
             if (settings_.weatherCurve && curveFlow_) { want = curveWant; source_ = Source::curve; }
             if (settings_.applyLearned && learnedFlow_) { want = learnedWant; source_ = Source::learned; }
+            // rc.5 (P1): no more than the boiler held at this outdoor (BoilerResponse).
+            if (ceiling_ && want > *ceiling_) { want = *ceiling_; ceilingBound_ = true; }
             // Options off: the rule's own request (already within the boiler's
             // limit), byte for byte. Options on: every output within [plan min, cap].
             if (source_ != Source::rule || settings_.weatherCurve || settings_.applyLearned) {
@@ -435,10 +471,15 @@ public:
         cJSON* learned = curve ? cJSON_AddObjectToObject(flow, "learned") : nullptr;
         if (!learned || !cJSON_AddStringToObject(flow, "source", name(source_)) || !cJSON_AddNumberToObject(flow, "rule_flow_c", rule_.flowC)
             || !cJSON_AddNumberToObject(flow, "applied_flow_c", applied_.flowC)) return false;
+        FlowLearner::number(flow, "ceiling_c", ceiling_ ? std::optional<float>(*ceiling_) : std::nullopt, 1); // rc.5 (P1): the cap in effect
         cJSON_AddStringToObject(curve, "state", curveState());
         FlowLearner::number(curve, "flow_c", curveFlow_ ? std::optional<float>(*curveFlow_) : std::nullopt, 1);
+        // rc.5 (P14 review): the line's own value (flow_c adds the room correction) and the standard line's anchor,
+        // so the Home Assistant chart draws "now" on the line and the standard line from the E32's own numbers.
+        FlowLearner::number(curve, "base_c", curveBase_ ? std::optional<float>(*curveBase_ / 100.0f) : std::nullopt, 10);
         FlowLearner::number(curve, "slope", slope_, 100);
-        cJSON_AddStringToObject(curve, "slope_source", slopeLearned_ ? "learned" : "design");
+        cJSON_AddStringToObject(curve, "slope_source", slopeSource_); // rc.5: also "house" (HouseModel)
+        cJSON_AddNumberToObject(curve, "design_flow_c", designFlowC_);
         cJSON_AddNumberToObject(curve, "windows", curveLearner_.windows()); // rc.3: "2 of 6 steady periods"
         cJSON_AddStringToObject(learned, "state", learnedState());
         FlowLearner::number(learned, "flow_c", learnedFlow_ ? std::optional<float>(*learnedFlow_) : std::nullopt, 1);
@@ -487,7 +528,10 @@ private:
                     continue;
                 }
                 const auto& r = in.rooms[i];
-                const auto s = WarmupPlanner::optimumStart(learner, i, plan.rooms[i].schedule, *in.utc, r.temperature, in.outdoorCentiC, arrival_.lead(i));
+                // rc.5 (P1): the lead for the flow it will get under the boiler's ceiling (warm-ups are not capped, see apply()).
+                auto s = WarmupPlanner::optimumStart(learner, i, plan.rooms[i].schedule, *in.utc, r.temperature, in.outdoorCentiC, arrival_.lead(i), ceiling_);
+                // rc.5 (P3): free heat in the warm-up's daypart starts it later (5 judged windows, never below half the lead).
+                freeHeat_.shorten(i, *in.utc, s, !latched);
                 std::optional<ArrivalLearner::Rise> rise;
                 if (s.reason[0] == 'p') rise = ArrivalLearner::Rise{s.rise.atUtc, s.startUtc, s.rise.toCentiC};
                 arrival_.observe(i, *in.utc, rise, heating_[i], fresh(r) ? r.temperature : std::nullopt);
@@ -522,6 +566,7 @@ private:
         }
         if (!startHeating_) { startHeating_ = true; startedAt_ = in.now; startFlowC_ = bound(want ? want : startFlowC_); }
         if (want) startFlowC_ = bound(want);
+        if (ceiling_ && startFlowC_ > *ceiling_) { startFlowC_ = *ceiling_; ceilingBound_ = true; } // rc.5 (P1): under the ceiling too
         if (wanted) heating_ = wants; // held on for the minimum on time: the rooms stay its rooms (they rest after it)
         if (!applied_.heat) { applied_ = {true, startFlowC_, FlowDemand::Reason::heating}; source_ = Source::optimumStart; }
         else if (startFlowC_ > applied_.flowC) { applied_.flowC = startFlowC_; source_ = Source::optimumStart; }
@@ -542,7 +587,8 @@ private:
         nights_.step(*in.utc, in.now, learner, *in.plan, room, room >= 0 ? in.rooms[room].temperature : std::nullopt, in.outdoorCentiC);
     }
     const char* curveState() const { return !curveBase_ ? (lead_ < 0 ? "no_room" : "no_outdoor") : settings_.weatherCurve ? "applied" : "advice"; }
-    const char* learnedState() const { return !learnedFlow_ ? learnedReason_ : settings_.applyLearned ? "applied" : "advice"; }
+    // rc.5 (P1): "held" while the boiler's ceiling bound the request.
+    const char* learnedState() const { return ceilingBound_ ? "held" : !learnedFlow_ ? learnedReason_ : settings_.applyLearned ? "applied" : "advice"; }
     const char* reason() const { return source_ == Source::optimumStart && !rule_.heat ? "optimum_start" : FlowDemand::name(applied_.reason); }
     bool detail(cJSON* flow) const {
         cJSON* settings = cJSON_CreateObject();
@@ -552,6 +598,7 @@ private:
         cJSON_AddNumberToObject(settings, "curve_design_flow_c", settings_.designFlowC);
         cJSON_AddNumberToObject(flow, "applied_flow_c", applied_.flowC);
         cJSON_AddNumberToObject(flow, "cap_c", cap_);
+        FlowLearner::number(flow, "ceiling_c", ceiling_ ? std::optional<float>(*ceiling_) : std::nullopt, 1); // rc.5 (P1)
         cJSON* curve = cJSON_AddObjectToObject(flow, "curve");
         cJSON* learned = curve ? cJSON_AddObjectToObject(flow, "learned") : nullptr;
         cJSON* start = learned ? cJSON_AddObjectToObject(flow, "optimum_start") : nullptr;
@@ -560,7 +607,7 @@ private:
         FlowLearner::number(curve, "flow_c", curveFlow_ ? std::optional<float>(*curveFlow_) : std::nullopt, 1);
         FlowLearner::number(curve, "base_c", curveBase_ ? std::optional<float>(*curveBase_ / 100.0f) : std::nullopt, 10);
         FlowLearner::number(curve, "slope", slope_, 100);
-        cJSON_AddStringToObject(curve, "slope_source", slopeLearned_ ? "learned" : "design");
+        cJSON_AddStringToObject(curve, "slope_source", slopeSource_);
         cJSON_AddNumberToObject(curve, "design_flow_c", designFlowC_);
         cJSON_AddNumberToObject(curve, "windows", curveLearner_.windows());
         cJSON_AddStringToObject(curve, "last", curveLearner_.last());
@@ -587,10 +634,13 @@ private:
     FlowDemand::Request rule_{}, applied_{};
     Source source_ = Source::rule;
     std::optional<uint8_t> curveFlow_, learnedFlow_;
+    std::optional<uint8_t> ceiling_;                   // rc.5 (P1): the boiler's ceiling in effect this step
+    bool ceilingBound_ = false;                        // rc.5 (P1): it lowered the request this step
     std::optional<int16_t> curveBase_;
     uint8_t cap_ = FlowDemand::ceilingC, designFlowC_ = WeatherCurve::floorDesignFlowC, startFlowC_ = 0;
     float slope_ = 0;
-    bool slopeLearned_ = false, startHeating_ = false, startEnded_ = false;
+    const char* slopeSource_ = "design"; // rc.5: "learned", "house" or "design"
+    bool startHeating_ = false, startEnded_ = false;
     int8_t lead_ = -1;
     char leadId_[33] = "", startId_[33] = "";
     const char* learnedReason_ = "no_room";
@@ -601,6 +651,7 @@ private:
     int64_t startMinute_ = -1;
     uint64_t startedAt_ = 0, endedAt_ = 0;
     ArrivalLearner arrival_;                           // rc.4 (L2), kept by LearnedState
+    FreeHeat freeHeat_;                                // rc.5 (P3), kept by LearnedState
     CurveLearner curveLearner_;
     FlowCompare compare_;
     NightLedger nights_;

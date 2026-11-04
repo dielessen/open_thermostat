@@ -1,8 +1,10 @@
 #pragma once
 #include "control/AutoTuner.h"
 #include "control/BoundedJson.h"
+#include "control/Insights.h"
 #include "control/RoomPlan.h"
 #include "control/RoomSchedule.h"
+#include <algorithm>
 #include <array>
 #include <cJSON.h>
 #include <cmath>
@@ -21,12 +23,25 @@ namespace heating::control {
 // the counts of starts, hours, short cycling and overshoot come from AutoTuner's days (the same
 // local day), only the outdoor, the gas and the arrivals are summed here. Pure; stored() and
 // restore() keep it over a restart (ScoreboardNvs, hourly with the self-tuning's record).
+// rc.5 (P2): the house's own usual figures (Insights) live here too: at the day change (step()
+// returns true) judge() takes yesterday's figures, judges them against the baselines and only
+// then folds them in. Their baselines and items are kept in the same record.
 class Scoreboard {
 public:
     static constexpr double degreeDayBaseC = 18;
-    // The record (stored()): two days of {d, os, on, k, a[8]} are at most 231 B with the widest values
-    // (test_scoreboard.cpp pins it); 240 B is 14 NVS entries (ControlPartitionBudget::blobEntries).
-    static constexpr size_t storedMaxBytes = 240;
+    // The record (stored()): two days of {d, os, on, k, a[8]} are at most 213 B with the widest values
+    // (rc.5: an arrival is stored within +-9999 min, a week either way; the arrival learner's errors
+    // stay within a day), the Insights' baselines ("b") at most 65 B more (test_scoreboard.cpp pins
+    // both). 287 B is 15 NVS entries (ControlPartitionBudget::blobEntries; rc.4: 240 B, 14): the
+    // plan allowed 304 B (16), but the owner's-unit model of test_control_partition_budget.cpp keeps
+    // every record only up to 15. The items ("x", up to 30 B) go in only while the record stays
+    // within the bound; otherwise they come back with the next day change.
+    static constexpr size_t storedMaxBytes = 287;
+    static constexpr int16_t storedArrivalMin = 9999;
+    // rc.5 (P2): yesterday's per-degree-day figures need this many degree-days and this much of the
+    // day with the outdoor known (a day the E32 was partly off would read as a frugal one).
+    static constexpr double insightMinDegreeDays = 2;
+    static constexpr uint32_t insightMinOutdoorS = 20 * 3600;
     struct Day {
         int32_t day = -1;
         double outdoorSum = 0;      // degC x s
@@ -37,15 +52,46 @@ public:
     };
 
     // Every step with a trusted clock: the seconds since the last step, the outdoor (fresh only)
-    // and the learner's heating energy total (GasCalibration::heatingKwh, this boot).
-    void step(int64_t utc, uint32_t dtS, std::optional<int16_t> outdoorCentiC, double heatingKwhTotal) {
+    // and the learner's heating energy total (GasCalibration::heatingKwh, this boot). rc.5: true when
+    // a local day ended (yesterday() is the day before; then judge() it).
+    bool step(int64_t utc, uint32_t dtS, std::optional<int16_t> outdoorCentiC, double heatingKwhTotal) {
         const int32_t day = RoomSchedule::localDay(utc);
+        bool closed = false;
         if (today_.day < 0) today_.day = day;
-        else if (day > today_.day) { yesterday_ = today_; hasYesterday_ = true; today_ = {}; today_.day = day; }
+        else if (day > today_.day) {
+            // A day the E32 was off leaves no "yesterday" to judge (its figures would be partial).
+            closed = day == today_.day + 1;
+            yesterday_ = today_; hasYesterday_ = true; today_ = {}; today_.day = day;
+        }
         if (outdoorCentiC && dtS) { today_.outdoorSum += *outdoorCentiC / 100.0 * dtS; today_.outdoorS += dtS; }
         if (haveKwh_ && heatingKwhTotal >= kwh_) today_.heatingKwh += heatingKwhTotal - kwh_;
         kwh_ = heatingKwhTotal; haveKwh_ = true;
+        return closed;
     }
+    // rc.5 (P2): yesterday's figures for the Insights. tuned: AutoTuner's yesterday (its heating hours
+    // and starts, only when it is the same local day); warmupMinPerC: per plan room the learned minutes
+    // per degC (nullopt: not learned), `count` rooms. No yesterday: a day without heating.
+    Insights::Day figures(const AutoTuner::Day& tuned, const std::optional<uint16_t>* warmupMinPerC, size_t count) const {
+        Insights::Day f;
+        if (!hasYesterday_) return f;
+        const Day& d = yesterday_;
+        const int hours = tuned.day == d.day ? __builtin_popcount(tuned.hours) : 0;
+        f.heated = hours >= 1;
+        const std::optional<double> dd = d.outdoorS >= insightMinOutdoorS
+            ? std::optional<double>(std::max(0.0, degreeDayBaseC - d.outdoorSum / d.outdoorS)) : std::nullopt;
+        const bool cold = dd && *dd >= insightMinDegreeDays;
+        if (cold && d.heatingKwh > 0) f.gasPerDegreeDay = float(d.heatingKwh / *dd);
+        if (cold && hours) f.hoursPerDegreeDay = float(hours / *dd);
+        if (hours) f.startsPerHour = float(double(tuned.starts) / hours);
+        for (size_t i = 0; warmupMinPerC && i < count && i < RoomPlan::maxRooms; ++i)
+            if (warmupMinPerC[i]) f.warmupMinPerC[i] = float(*warmupMinPerC[i]);
+        return f;
+    }
+    // At the day change (step() returned true): yesterday judged against the baselines, then folded in.
+    void judge(const AutoTuner::Day& tuned, const std::optional<uint16_t>* warmupMinPerC, size_t count) {
+        insights_.dayChange(figures(tuned, warmupMinPerC, count));
+    }
+    const Insights& insights() const { return insights_; }
     // A judged morning (ArrivalLearner): into the day of its switch time, if that is today or yesterday.
     void arrival(size_t room, int64_t atUtc, int16_t errorMin) {
         if (room >= RoomPlan::maxRooms) return;
@@ -56,8 +102,10 @@ public:
     }
     const Day& today() const { return today_; }
     const Day* yesterday() const { return hasYesterday_ ? &yesterday_ : nullptr; }
-    // A plan edit: the arrivals follow their rooms (new index -> old index, -1: none).
+    // A plan edit: the arrivals (rc.5: and the rooms' baselines and insights) follow their rooms
+    // (new index -> old index, -1: none).
     void remap(const std::array<int8_t, RoomPlan::maxRooms>& from) {
+        insights_.remap(from);
         for (Day* d : {&today_, &yesterday_}) {
             std::array<int16_t, RoomPlan::maxRooms> a{};
             uint8_t seen = 0;
@@ -88,19 +136,26 @@ public:
         else if (!cJSON_AddNullToObject(o, "yesterday")) return false;
         return today_.day >= 0 ? dayJson(o, "today", today_, tuner.today(), plan, !compact) : cJSON_AddNullToObject(o, "today") != nullptr;
     }
-    // {"t":{"d":..,"os":..,"on":..,"k":..,"a":[..]},"y":{..}|null}; a: the arrivals (null: none).
+    // {"t":{"d":..,"os":..,"on":..,"k":..,"a":[..]},"y":{..}|null,"b":[..],"x":[..]}; a: the arrivals
+    // (null: none); rc.5: b and x the Insights' baselines and items (Insights::addStored), x only while
+    // the record stays within storedMaxBytes. rc.4 reads such a record too (it reads only t and y).
     std::string stored() const {
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_CreateObject(), cJSON_Delete);
         if (!root) return {};
         if (!storedDay(root.get(), "t", today_)) return {};
         if (hasYesterday_) { if (!storedDay(root.get(), "y", yesterday_)) return {}; }
         else cJSON_AddNullToObject(root.get(), "y");
-        char* text = cJSON_PrintUnformatted(root.get());
-        std::string out = text ? text : "";
-        cJSON_free(text);
+        if (!insights_.addStored(root.get(), true)) return {};
+        std::string out = print(root.get());
+        if (out.size() > storedMaxBytes && cJSON_GetObjectItemCaseSensitive(root.get(), "x")) {
+            cJSON_DeleteItemFromObjectCaseSensitive(root.get(), "x"); // the items come back at the next day change
+            out = print(root.get());
+        }
         return out.size() <= storedMaxBytes ? out : std::string();
     }
     // A stored record: today when its day is `today`, yesterday when it is the day before; anything else is dropped.
+    // rc.5: the baselines come back with any readable record (they span weeks); the items only with
+    // today's (they describe yesterday). false: no day came back.
     bool restore(const char* text, int32_t today) {
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(parseNestedJson(text, text ? std::strlen(text) : 0));
         if (!root) return false;
@@ -108,6 +163,8 @@ public:
         const bool hasT = readDay(cJSON_GetObjectItemCaseSensitive(root.get(), "t"), t);
         const bool hasY = readDay(cJSON_GetObjectItemCaseSensitive(root.get(), "y"), y);
         if (!hasT) return false;
+        insights_.restoreStored(root.get());
+        if (t.day != today) insights_.dayChange({}); // stale items go; the baselines stay
         if (t.day == today) { today_ = t; if (hasY && y.day == today - 1) { yesterday_ = y; hasYesterday_ = true; } }
         else if (t.day == today - 1) { yesterday_ = t; hasYesterday_ = true; today_ = {}; today_.day = today; }
         else return false;
@@ -126,6 +183,12 @@ public:
     }
 
 private:
+    static std::string print(const cJSON* root) {
+        char* text = cJSON_PrintUnformatted(root);
+        std::string out = text ? text : "";
+        cJSON_free(text);
+        return out;
+    }
     static bool dayJson(cJSON* parent, const char* key, const Day& d, const AutoTuner::Day& t, const RoomPlan& plan, bool withRooms) {
         cJSON* o = cJSON_AddObjectToObject(parent, key);
         if (!o) return false;
@@ -168,7 +231,8 @@ private:
         if (!d.arrivalSeen) return cJSON_AddNullToObject(o, "a") != nullptr;
         cJSON* a = cJSON_AddArrayToObject(o, "a");
         for (size_t i = 0; a && i < RoomPlan::maxRooms; ++i)
-            cJSON_AddItemToArray(a, d.arrivalSeen >> i & 1 ? cJSON_CreateNumber(d.arrivalMin[i]) : cJSON_CreateNull());
+            cJSON_AddItemToArray(a, d.arrivalSeen >> i & 1
+                ? cJSON_CreateNumber(std::clamp<int16_t>(d.arrivalMin[i], -storedArrivalMin, storedArrivalMin)) : cJSON_CreateNull());
         return a != nullptr;
     }
     static bool readDay(const cJSON* o, Day& d) {
@@ -192,5 +256,6 @@ private:
     Day today_, yesterday_;
     bool hasYesterday_ = false, haveKwh_ = false;
     double kwh_ = 0;
+    Insights insights_; // rc.5 (P2): the house's own usual figures and yesterday's insights
 };
 }

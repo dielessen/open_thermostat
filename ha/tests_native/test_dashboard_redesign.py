@@ -42,9 +42,17 @@ def known(entity_id):
 UNKNOWN = ("unavailable", "unknown")
 
 
+def target(condition):
+    """What a condition reads: the entity's state, or (entity, attribute) for one of its attributes."""
+    return (condition["entity"], condition["attribute"]) if "attribute" in condition else condition["entity"]
+
+
 def shown(conditions, states):
     """Whether Home Assistant shows a card or section with these visibility ``conditions`` in ``states`` (as its
-    frontend checks them; an entity without a state is unavailable). The condition kinds this dashboard uses."""
+    frontend checks them; an entity without a state is unavailable). The condition kinds this dashboard uses.
+
+    ``states`` also holds an attribute as the frontend reads it, under (entity, attribute): as text (an empty list
+    is ""), "unknown" while the attribute or its entity is missing (rc.5: Noticed and Free heat)."""
     for condition in conditions:
         kind = condition.get("condition", "state")
         if kind == "and":
@@ -52,12 +60,12 @@ def shown(conditions, states):
         elif kind == "or":
             ok = any(shown([item], states) for item in condition["conditions"])
         elif kind == "state":
-            state = states.get(condition["entity"], "unavailable")
+            state = states.get(target(condition), "unknown" if "attribute" in condition else "unavailable")
             listed = condition["state"] if "state" in condition else condition["state_not"]
             ok = (state in listed if isinstance(listed, list) else state == listed) == ("state" in condition)
         elif kind == "numeric_state":
             try:
-                value = float(states.get(condition["entity"], "unavailable"))
+                value = float(states.get(target(condition), "unavailable"))
             except ValueError:
                 ok = False
             else:

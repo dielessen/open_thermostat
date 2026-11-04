@@ -189,14 +189,17 @@ async def test_long_choices_get_the_whole_width_and_sections_fill_the_gaps(hass)
     learning = next(v for v in config["views"] if v["path"] == "learned")
     assert learning["dense_section_placement"] is True
     settings = section(learning, "Smart warm-up and weather compensation")
-    # The settings carry their entities' own long names (as on the device page) and a long choice:
-    # every tile takes the whole width, none is cut short.
-    tiles = [c for c in settings if c["type"] == "tile"]
-    assert [c["entity"] for c in tiles] == [flow[k] for k in ("apply_learned", "weather_curve", "curve_design_flow_c",
-                                                              "source")]
-    assert all(c["grid_options"] == {"columns": 12} for c in tiles)
-    assert [c["name"] for c in tiles] == ["Smart warm-up", "Weather compensation",
-                                          "Water temperature in hard frost (−10 °C)", "Water temperature set by"]
+    # The settings carry their entities' own long names (as on the device page) and a long choice: rows of one card
+    # across the whole width (the owner's sketch, rc.5), none cut short; what sets the water temperature only while
+    # it has a value.
+    rows, = [c["entities"] for c in settings if c["type"] == "entities"]
+    assert not any(c["type"] == "tile" for c in settings)
+    plain = [row.get("row", row) for row in rows]
+    assert [row["entity"] for row in plain] == [flow[k] for k in ("apply_learned", "weather_curve",
+                                                                  "curve_design_flow_c", "source")]
+    assert [row["name"] for row in plain] == ["Smart warm-up", "Weather compensation",
+                                              "Water temperature in hard frost (−10 °C)", "Water temperature set by"]
+    assert [row.get("conditions") for row in rows] == [None, None, None, [known(flow["source"])]]
 
 
 @pytest.mark.asyncio

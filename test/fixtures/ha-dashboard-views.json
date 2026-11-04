@@ -2721,30 +2721,6 @@
           ]
          }
         ]
-       },
-       {
-        "content": "{% set s = state_attr(\"sensor.boiler_response\", 'sentence') %}{% if s %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> {{ s }}{% endif %}",
-        "show_empty": false,
-        "type": "markdown",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_response",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "content": "{% set items = state_attr(\"sensor.learned_overview\", 'insights') or [] %}{% if items %}**Yesterday compared with usual**\n{% for line in items %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n{% endfor %}{% endif %}",
-        "show_empty": false,
-        "type": "markdown"
-       },
-       {
-        "content": "The E32 learns all this by itself while the heating runs.\n\n<details><summary>More</summary>\n\nYesterday is compared with your house's own usual days; that is information and changes nothing.\n\n</details>",
-        "type": "markdown"
        }
       ],
       "type": "grid",
@@ -2759,10 +2735,76 @@
            "unavailable",
            "unknown"
           ]
-         },
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Your boiler",
+        "heading_style": "title",
+        "icon": "mdi:water-boiler",
+        "type": "heading"
+       },
+       {
+        "content": "{% set s = state_attr(\"sensor.boiler_response\", 'sentence') %}{% if s %}<font color=\"#ff6f22\"><ha-icon icon=\"mdi:fire\"></ha-icon></font> {{ s }}{% endif %}",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
          {
           "condition": "state",
           "entity": "sensor.boiler_response",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Water temperature by outdoor temperature",
+        "heading_style": "title",
+        "icon": "mdi:chart-bell-curve-cumulative",
+        "type": "heading"
+       },
+       {
+        "entity": "sensor.flow_curve",
+        "grid_options": {
+         "columns": 12
+        },
+        "show_name": false,
+        "type": "custom:openthermostat-heating-curve",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.flow_curve",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.flow_curve",
           "state_not": [
            "unavailable",
            "unknown"
@@ -2814,6 +2856,7 @@
         "type": "markdown"
        }
       ],
+      "row_span": 2,
       "type": "grid",
       "visibility": [
        {
@@ -2902,6 +2945,109 @@
         ]
        }
       ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Noticed",
+        "heading_style": "title",
+        "icon": "mdi:information-outline",
+        "type": "heading"
+       },
+       {
+        "content": "{% for line in state_attr(\"sensor.learned_overview\", 'insights') or [] %}<font color=\"#039be5\"><ha-icon icon=\"mdi:information-outline\"></ha-icon></font> {{ line.text }}{% if line.meaning %} {{ line.meaning }}{% endif %}\n\n{% endfor %}*Yesterday is compared with your house's own usual days; that is information and changes nothing.*",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "attribute": "insights",
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": [
+         "unavailable",
+         "unknown",
+         ""
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Free heat",
+        "heading_style": "title",
+        "icon": "mdi:weather-sunny",
+        "type": "heading"
+       },
+       {
+        "content": "{% for line in state_attr(\"sensor.learned_overview\", 'free_heat') or [] %}<font color=\"#ffc107\"><ha-icon icon=\"mdi:weather-sunny\"></ha-icon></font> **{{ line.name }}** · {{ line.text }}{% if line.meaning %} {{ line.meaning }}{% endif %}\n\n{% endfor %}",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "attribute": "free_heat",
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": [
+         "unavailable",
+         "unknown",
+         ""
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Smart warm-up and weather compensation",
+        "heading_style": "title",
+        "icon": "mdi:cog-outline",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "entity": "switch.flow_apply_learned",
+          "icon": "mdi:school-outline",
+          "name": "Smart warm-up"
+         },
+         {
+          "entity": "switch.flow_weather_curve",
+          "icon": "mdi:sun-thermometer",
+          "name": "Weather compensation"
+         },
+         {
+          "entity": "select.flow_curve_design_flow_c",
+          "icon": "mdi:thermometer-lines",
+          "name": "Water temperature in hard frost (−10 °C)"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.flow_source",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.flow_source",
+           "icon": "mdi:thermometer-water",
+           "name": "Water temperature set by"
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities"
+       }
+      ],
+      "type": "grid"
      },
      {
       "cards": [
@@ -3035,70 +3181,6 @@
         "state_not": "unavailable"
        }
       ]
-     },
-     {
-      "cards": [
-       {
-        "heading": "Smart warm-up and weather compensation",
-        "heading_style": "title",
-        "icon": "mdi:chart-bell-curve-cumulative",
-        "type": "heading"
-       },
-       {
-        "entity": "switch.flow_apply_learned",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:school-outline",
-        "name": "Smart warm-up",
-        "type": "tile"
-       },
-       {
-        "entity": "switch.flow_weather_curve",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:sun-thermometer",
-        "name": "Weather compensation",
-        "type": "tile"
-       },
-       {
-        "entity": "select.flow_curve_design_flow_c",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:thermometer-lines",
-        "name": "Water temperature in hard frost (−10 °C)",
-        "type": "tile"
-       },
-       {
-        "entity": "sensor.flow_curve",
-        "grid_options": {
-         "columns": 12
-        },
-        "type": "custom:openthermostat-heating-curve",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.flow_curve",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.flow_source",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:thermometer-water",
-        "name": "Water temperature set by",
-        "type": "tile"
-       }
-      ],
-      "type": "grid"
      },
      {
       "cards": [
@@ -6959,30 +7041,6 @@
           ]
          }
         ]
-       },
-       {
-        "content": "{% set s = state_attr(\"sensor.boiler_response\", 'sentence') %}{% if s %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> {{ s }}{% endif %}",
-        "show_empty": false,
-        "type": "markdown",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_response",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "content": "{% set items = state_attr(\"sensor.learned_overview\", 'insights') or [] %}{% if items %}**Gisteren vergeleken met normaal**\n{% for line in items %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n{% endfor %}{% endif %}",
-        "show_empty": false,
-        "type": "markdown"
-       },
-       {
-        "content": "De E32 leert dit allemaal zelf terwijl de verwarming draait.\n\n<details><summary>Meer</summary>\n\nGisteren wordt vergeleken met de gewone dagen van je eigen huis; dat is informatie en verandert niets.\n\n</details>",
-        "type": "markdown"
        }
       ],
       "type": "grid",
@@ -6997,10 +7055,76 @@
            "unavailable",
            "unknown"
           ]
-         },
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Je ketel",
+        "heading_style": "title",
+        "icon": "mdi:water-boiler",
+        "type": "heading"
+       },
+       {
+        "content": "{% set s = state_attr(\"sensor.boiler_response\", 'sentence') %}{% if s %}<font color=\"#ff6f22\"><ha-icon icon=\"mdi:fire\"></ha-icon></font> {{ s }}{% endif %}",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
          {
           "condition": "state",
           "entity": "sensor.boiler_response",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Watertemperatuur bij buitentemperatuur",
+        "heading_style": "title",
+        "icon": "mdi:chart-bell-curve-cumulative",
+        "type": "heading"
+       },
+       {
+        "entity": "sensor.flow_curve",
+        "grid_options": {
+         "columns": 12
+        },
+        "show_name": false,
+        "type": "custom:openthermostat-heating-curve",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.flow_curve",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.flow_curve",
           "state_not": [
            "unavailable",
            "unknown"
@@ -7052,6 +7176,7 @@
         "type": "markdown"
        }
       ],
+      "row_span": 2,
       "type": "grid",
       "visibility": [
        {
@@ -7140,6 +7265,109 @@
         ]
        }
       ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Opgevallen",
+        "heading_style": "title",
+        "icon": "mdi:information-outline",
+        "type": "heading"
+       },
+       {
+        "content": "{% for line in state_attr(\"sensor.learned_overview\", 'insights') or [] %}<font color=\"#039be5\"><ha-icon icon=\"mdi:information-outline\"></ha-icon></font> {{ line.text }}{% if line.meaning %} {{ line.meaning }}{% endif %}\n\n{% endfor %}*Gisteren wordt vergeleken met de gewone dagen van je eigen huis; dat is informatie en verandert niets.*",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "attribute": "insights",
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": [
+         "unavailable",
+         "unknown",
+         ""
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Gratis warmte",
+        "heading_style": "title",
+        "icon": "mdi:weather-sunny",
+        "type": "heading"
+       },
+       {
+        "content": "{% for line in state_attr(\"sensor.learned_overview\", 'free_heat') or [] %}<font color=\"#ffc107\"><ha-icon icon=\"mdi:weather-sunny\"></ha-icon></font> **{{ line.name }}** · {{ line.text }}{% if line.meaning %} {{ line.meaning }}{% endif %}\n\n{% endfor %}",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "attribute": "free_heat",
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": [
+         "unavailable",
+         "unknown",
+         ""
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Slim opwarmen en weerafhankelijke regeling",
+        "heading_style": "title",
+        "icon": "mdi:cog-outline",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "entity": "switch.flow_apply_learned",
+          "icon": "mdi:school-outline",
+          "name": "Slim opwarmen"
+         },
+         {
+          "entity": "switch.flow_weather_curve",
+          "icon": "mdi:sun-thermometer",
+          "name": "Weerafhankelijke regeling"
+         },
+         {
+          "entity": "select.flow_curve_design_flow_c",
+          "icon": "mdi:thermometer-lines",
+          "name": "Watertemperatuur bij strenge vorst (−10 °C)"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.flow_source",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.flow_source",
+           "icon": "mdi:thermometer-water",
+           "name": "Watertemperatuur bepaald door"
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities"
+       }
+      ],
+      "type": "grid"
      },
      {
       "cards": [
@@ -7273,70 +7501,6 @@
         "state_not": "unavailable"
        }
       ]
-     },
-     {
-      "cards": [
-       {
-        "heading": "Slim opwarmen en weerafhankelijke regeling",
-        "heading_style": "title",
-        "icon": "mdi:chart-bell-curve-cumulative",
-        "type": "heading"
-       },
-       {
-        "entity": "switch.flow_apply_learned",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:school-outline",
-        "name": "Slim opwarmen",
-        "type": "tile"
-       },
-       {
-        "entity": "switch.flow_weather_curve",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:sun-thermometer",
-        "name": "Weerafhankelijke regeling",
-        "type": "tile"
-       },
-       {
-        "entity": "select.flow_curve_design_flow_c",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:thermometer-lines",
-        "name": "Watertemperatuur bij strenge vorst (−10 °C)",
-        "type": "tile"
-       },
-       {
-        "entity": "sensor.flow_curve",
-        "grid_options": {
-         "columns": 12
-        },
-        "type": "custom:openthermostat-heating-curve",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.flow_curve",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.flow_source",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:thermometer-water",
-        "name": "Watertemperatuur bepaald door",
-        "type": "tile"
-       }
-      ],
-      "type": "grid"
      },
      {
       "cards": [

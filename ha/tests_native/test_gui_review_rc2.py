@@ -62,10 +62,13 @@ async def test_the_overview_is_short_and_what_it_learned_is_its_own_view(hass):
     assert "learned_overview" not in json.dumps(heating) and hub["learned_overview"] not in json.dumps(heating)
     learned = view(config, "learned")
     assert (learned["title"], learned["type"], "subview" in learned) == ("Learning and settings", "sections", False)
+    # rc.5 (the owner's sketch): what stood out yesterday and the free heat come from the same sensor, each hidden
+    # while it has nothing to say.
     assert [s["cards"][0]["heading"] for s in learned["sections"]] == [
-        "What the thermostat has learned", "House and boiler", "What it changed by itself", "Who controls the boiler"]
+        "Noticed", "Free heat", "What the thermostat has learned", "House and boiler", "What it changed by itself",
+        "Who controls the boiler"]
     # How it learns is the note of what it learned (rc.5), not a section of its own.
-    first = learned["sections"][0]["cards"]
+    first = next(s["cards"] for s in learned["sections"] if s["cards"][0]["heading"] == "What the thermostat has learned")
     assert first[-1]["type"] == "markdown" and "learns how fast each room warms up" in first[-1]["content"]
     # What it learned per room is in that room's section, not in the learning view.
     living = next(s["cards"] for s in view(config, "rooms")["sections"] if s["cards"][0]["heading"] == "Woonkamer")

@@ -451,6 +451,10 @@ def test_dashboard_text_has_the_same_keys_in_every_language():
     assert {"today_week", "gas_heating_today", "gas_hot_water_today", "starts_today", "burner_today", "boiler_values",
             "who_controls", "yesterday_figures", "dhw_target_short"} <= set(TEXT["en"])
     assert not {"gas_per_post", "control", "learning_how"} & set(TEXT["en"])
+    # rc.5, the Learning view as the owner's sketch: its new headings, and the insights' old title and the knowledge
+    # note (whose first sentence the knowledge card says itself) are gone.
+    assert {"your_boiler", "curve_title", "noticed", "noticed_note", "free_heat"} <= set(TEXT["en"])
+    assert not {"insights", "knowledge_note"} & set(TEXT["en"])
     # No "Heating page" any more: the gas per day is on the Boiler tab and the E32's Home page (named as the other
     # Home Assistant texts name it).
     assert [all(page in TEXT[language]["estimates_empty"] for page in pages) for language, pages in (

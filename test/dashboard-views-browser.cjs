@@ -1,6 +1,7 @@
-// The generated OpenThermostat dashboard laid out like Home Assistant's sections view (12-column sections, tiles 6 wide),
-// at phone and desktop width: every row of every section is full, nothing scrolls sideways, each section starts with its
-// heading. Cards are wireframes (their type and name), the structure and the words are the generated config
+// The generated OpenThermostat dashboard laid out like Home Assistant's sections view (12-column sections, tiles 6 wide,
+// sections placed with their column and row spans), at phone and desktop width: every row of every section is full,
+// nothing scrolls sideways, each section starts with its heading, and the Learning view stands in the columns of the
+// owner's sketch (rc.5). Cards are wireframes (their type and name), the structure and the words are the generated config
 // (test/fixtures/ha-dashboard-views.json, kept current by ha/tests_native/test_dashboard_layout.py). No HA, no device.
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
@@ -8,7 +9,8 @@ const root=path.resolve(__dirname,'..');
 const config=JSON.parse(fs.readFileSync(path.join(root,'test/fixtures/ha-dashboard-views.json'),'utf8'));
 const out=path.resolve(process.env.OPENTHERMOSTAT_DASHBOARD_VIEWS_EVIDENCE||path.join(root,'out/ha-dashboard-views-20261103'));
 const HEIGHT={heading:40,tile:64,thermostat:300,'history-graph':200,'statistics-graph':200,markdown:90,entities:150,glance:90,button:56,
- 'custom:openthermostat-room-status':150,'custom:openthermostat-e32-week':400,'custom:openthermostat-house':260};
+ 'custom:openthermostat-room-status':150,'custom:openthermostat-e32-week':400,'custom:openthermostat-house':260,
+ 'custom:openthermostat-knowledge':200,'custom:openthermostat-heating-curve':380};
 const label=card=>card.heading||card.name||card.title||card.entity||(card.content||'').replace(/<[^>]+>|\{[%{#][^}]*[%}#]\}/g,' ').replace(/\s+/g,' ').trim().slice(0,70)||card.type;
 // Half-width by default (6 of 12 columns), as in Home Assistant's sections view; grid_options override both.
 const HALF=['tile','button','statistic','gauge'];
@@ -18,16 +20,18 @@ const ROWS={statistic:2,gauge:2};
 const height=card=>{const rows=(card.grid_options&&card.grid_options.rows)||ROWS[card.type];
  return rows?rows*56+(rows-1)*8:(HEIGHT[card.type]||90);};
 const html=(view,hidden,width)=>{
- // Home Assistant fits as many section columns as the width allows (about 320 px each), up to max_columns.
+ // Home Assistant fits as many section columns as the width allows (about 320 px each), up to max_columns, and places
+ // the sections in order on that grid, each spanning its column_span (at most the columns there are) and row_span, the
+ // gaps filled where dense_section_placement says so (hui-sections-view: grid-auto-flow dense).
  const columns=Math.max(1,Math.min(view.max_columns||1,Math.floor((width-32)/320)));
- const sections=(view.sections||[]).map(section=>`<section>${section.cards.filter(c=>!(hidden&&c.visibility)).map(card=>{
+ const sections=(view.sections||[]).map(section=>`<section style="grid-column:span ${Math.min(section.column_span||1,columns)};grid-row:span ${section.row_span||1}">${section.cards.filter(c=>!(hidden&&c.visibility)).map(card=>{
   const span=(card.grid_options&&card.grid_options.columns)||(HALF.includes(card.type)?6:12);
   return `<div class="card ${card.type.replace(/[^a-z-]/g,'')}" data-span="${span}" style="grid-column:span ${span};min-height:${height(card)}px">`+
    `<small>${card.type.replace('custom:openthermostat-','')}</small><b>${String(label(card)).replace(/</g,'&lt;')}</b>${card.visibility&&!hidden?'<i>conditional</i>':''}</div>`;}).join('')}</section>`).join('');
  return `<style>:root{--bg:#fafafa;--fg:#212121;--card:#fff;--muted:#727272;--tile:#eef5ff;--note:#fffbe8;--chart:#f1f8f1;--tag:#b26a00}
   @media (prefers-color-scheme:dark){:root{--bg:#111111;--fg:#e1e1e1;--card:#1c1c1c;--muted:#9b9b9b;--tile:#1d2a3a;--note:#2e2a1b;--chart:#1c2b1f;--tag:#e0a040}}
   body{margin:0;padding:16px;font:13px Roboto,Arial;background:var(--bg);color:var(--fg)}h1{font-size:16px;margin:0 0 12px}
-  .view{display:grid;grid-template-columns:repeat(${columns},minmax(0,1fr));gap:8px 12px;align-items:start}
+  .view{display:grid;grid-template-columns:repeat(${columns},minmax(0,1fr));gap:8px 12px;align-items:start;grid-auto-flow:${view.dense_section_placement?'row dense':'row'}}
   section{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px;box-sizing:border-box}
   .card{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.25);padding:8px 10px;overflow:hidden;box-sizing:border-box}
   .card b{display:block;overflow-wrap:anywhere}.card small{color:var(--muted)}.card i{float:right;color:var(--tag);font-size:11px}
@@ -52,6 +56,18 @@ const html=(view,hidden,width)=>{
    });
    if(document.documentElement.scrollWidth>innerWidth)bad.push('sideways scroll');
    return bad;});
+  // The Learning view as the owner's sketch (rc.5): on a wide screen two columns, the curve (section 2) with what stood
+  // out (4) and the free heat (5) under it in one, your boiler (1), yesterday (3, two rows) and the settings (6) in the
+  // other; the ring (0), first on a phone, above the curve. On a phone one column, in order.
+  if(view.path==='learned'){
+   const at=await page.evaluate(()=>[...document.querySelectorAll('section')].map(s=>{const r=s.getBoundingClientRect();
+    return [Math.round(r.left),Math.round(r.top)];}));
+   const [k,b,c,y,n,f,s]=at,x=p=>p[0],top=p=>p[1];
+   const sketch=width>=1280?x(k)===x(c)&&x(c)===x(n)&&x(n)===x(f)&&x(b)===x(y)&&x(y)===x(s)&&x(c)<x(b)
+    &&top(c)<top(n)&&top(n)<top(f)&&top(b)<top(y)&&top(y)<top(s)
+    :at.every((p,i)=>x(p)===x(at[0])&&(i===0||top(p)>top(at[i-1])));
+   if(!sketch)found.push('not the sketch\'s '+(width>=1280?'two columns':'one column in order')+': '+JSON.stringify(at.slice(0,7)));
+  }
   const file=`${lang}-${view.path}-${width}${hidden?'-conditional-hidden':''}.png`;
   if(!hidden){
    await page.screenshot({path:path.join(out,file),fullPage:true});

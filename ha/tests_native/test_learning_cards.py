@@ -1,11 +1,12 @@
 """The Learning view's new cards (E32 rc.5): what the E32 knows, and water temperature by outdoor temperature.
 
-The knowledge section comes first on the Learning view: the knowledge card (a ring, frontend/heating-curve-card.js),
-the boiler's response in one sentence and yesterday compared with usual; hidden until the E32 reports them. The
-heating-curve card sits with weather compensation's own controls and reads what "Water temperature by weather
-compensation" carries, all in °C: the slope and where it comes from, the standard slope from the water temperature in
-hard frost the E32 publishes (WeatherCurve::slopeFor), the room temperature, the outdoor temperature now, the limits
-(the highest also within the boiler's own maximum), the line's value now and what weather compensation asks.
+The knowledge section comes first on the Learning view: the knowledge card (a ring, frontend/heating-curve-card.js);
+then your boiler (the boiler's response in one sentence) and the heating-curve card under its own heading, as the
+owner's sketch (the order of all seven: test_dashboard_learning_sketch.py); each hidden until the E32 reports it. The
+heating-curve card reads what "Water temperature by weather compensation" carries, all in °C: the slope and where it
+comes from, the standard slope from the water temperature in hard frost the E32 publishes (WeatherCurve::slopeFor),
+the room temperature, the outdoor temperature now, the limits (the highest also within the boiler's own maximum), the
+line's value now and what weather compensation asks.
 """
 import json
 from types import SimpleNamespace
@@ -44,65 +45,73 @@ def render(hass, card):
     return Template(card["content"], hass).async_render(parse_result=False)
 
 
+def known(entity_id):
+    return {"condition": "state", "entity": entity_id, "state_not": ["unavailable", "unknown"]}
+
+
 @pytest.mark.asyncio
 async def test_what_the_e32_knows_comes_first_on_the_learning_view(hass):
     learning, hub, _ = learning_installation(hass)
-    section = learning["sections"][0]
-    heading, knowledge, boiler, insights, note = section["cards"]
+    section, boiler = learning["sections"][:2]
+    heading, knowledge = section["cards"]
     assert heading == {"type": "heading", "heading": "What the E32 knows", "heading_style": "title", "icon": "mdi:home-analytics"}
-    # The knowledge card: a ring with the percentage and what it still learns (the sixth card module).
+    # The knowledge card: a ring beside "The E32 knows your house: 70 %" and what it still learns (the sixth card
+    # module); the card says it learns by itself, so no note repeats it under the card (the owner's sketch, rc.5).
     assert knowledge == {"type": "custom:openthermostat-knowledge", "entity": hub["knowledge"], "grid_options": {"columns": 12},
-                         "visibility": [{"condition": "state", "entity": hub["knowledge"], "state_not": ["unavailable", "unknown"]}]}
-    # Hidden as a whole until the E32 reports what it knows or how the boiler responds (rc.5).
-    assert section["visibility"] == [{"condition": "or", "conditions": [
-        {"condition": "state", "entity": hub[key], "state_not": ["unavailable", "unknown"]} for key in ("knowledge", "boiler_response")]}]
-    assert note["content"].startswith("The E32 learns all this by itself while the heating runs.\n\n<details>")
-    # The boiler's response in one sentence, and yesterday compared with usual; each empty (hidden) without text.
-    for card in (boiler, insights):
-        assert card["type"] == "markdown" and card["show_empty"] is False
+                         "visibility": [known(hub["knowledge"])]}
+    # Hidden as a whole until the E32 reports what it knows (rc.5).
+    assert section["visibility"] == [{"condition": "or", "conditions": [known(hub["knowledge"])]}]
+    # Your boiler: the boiler's response in one sentence behind a flame in the heating colour; hidden as a whole while
+    # the response is unknown (every known state has its sentence).
+    heading, sentence = boiler["cards"]
+    assert (heading["heading"], heading["icon"]) == ("Your boiler", "mdi:water-boiler")
+    assert boiler["visibility"] == [{"condition": "or", "conditions": [known(hub["boiler_response"])]}]
+    assert sentence["type"] == "markdown" and "show_empty" not in sentence and "visibility" not in sentence
     hass.states.async_set(hub["boiler_response"], "learned", {"sentence": "Your boiler holds about 50 °C and rests 9 minutes; "
                                                                "near the target the E32 asks at most 48 °C."})
-    assert render(hass, boiler) == ("<ha-icon icon=\"mdi:water-boiler\"></ha-icon> Your boiler holds about 50 °C and rests 9 "
-                                    "minutes; near the target the E32 asks at most 48 °C.")
-    hass.states.async_set(hub["learned_overview"], "x", {"insights": [
-        {"text": "Yesterday used 34 % more gas per degree of cold than usual.",
-         "meaning": "A window or door left open, or a room set warmer, can cause this."}]})
-    assert render(hass, insights) == ("**Yesterday compared with usual**\n- Yesterday used 34 % more gas per degree of cold than "
-                                      "usual.<br>*A window or door left open, or a room set warmer, can cause this.*")
-    hass.states.async_set(hub["learned_overview"], "x", {"insights": []})
+    assert render(hass, sentence) == ('<font color="#ff6f22"><ha-icon icon="mdi:fire"></ha-icon></font> Your boiler holds '
+                                      "about 50 °C and rests 9 minutes; near the target the E32 asks at most 48 °C.")
     hass.states.async_set(hub["boiler_response"], "unknown", {})
-    assert render(hass, insights) == "" and render(hass, boiler) == ""
-    # The rest of the Learning view follows unchanged.
-    assert [s["cards"][0]["heading"] for s in learning["sections"][1:4]] == [
-        "What the thermostat has learned", "House and boiler", "What it changed by itself"]
+    assert render(hass, sentence) == ""
 
 
 @pytest.mark.asyncio
 async def test_no_knowledge_section_without_its_sensors(hass):
     learning, _, _ = learning_installation(hass, hub_keys=("learned_overview",))
-    assert learning["sections"][0]["cards"][0]["heading"] == "What the thermostat has learned"
+    assert learning["sections"][0]["cards"][0]["heading"] == "Water temperature by outdoor temperature"
     assert "openthermostat-knowledge" not in json.dumps(learning)
+    assert not {"What the E32 knows", "Your boiler"} & {s["cards"][0]["heading"] for s in learning["sections"]}
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("language, heading, insights", [("nl", "Wat de E32 weet", "Gisteren vergeleken met normaal"),
-                                                          ("pl", "Co wie E32", "Wczoraj w porównaniu ze zwykłymi dniami")])
-async def test_the_knowledge_section_in_dutch_and_polish(hass, language, heading, insights):
+@pytest.mark.parametrize("language, headings", [
+    ("nl", ["Wat de E32 weet", "Je ketel", "Watertemperatuur bij buitentemperatuur"]),
+    ("pl", ["Co wie E32", "Twój kocioł", "Temperatura wody a temperatura zewnętrzna"])])
+async def test_the_knowledge_section_in_dutch_and_polish(hass, language, headings):
     learning, hub, _ = learning_installation(hass, language)
-    cards = learning["sections"][0]["cards"]
-    assert cards[0]["heading"] == heading and f"**{insights}**" in cards[3]["content"]
+    assert [s["cards"][0]["heading"] for s in learning["sections"][:3]] == headings
 
 
 @pytest.mark.asyncio
-async def test_the_heating_curve_sits_with_weather_compensation(hass):
+async def test_the_heating_curve_has_a_section_of_its_own(hass):
+    """The owner's sketch (rc.5): the curve under its own heading (the card leaves out its own title, which would say
+    the same), the switches of Smart warm-up and weather compensation as rows in a section of their own."""
     learning, _, controls = learning_installation(hass)
-    settings = next(s["cards"] for s in learning["sections"] if s["cards"][0].get("heading") == "Smart warm-up and weather compensation")
-    entities = [card.get("entity") for card in settings[1:5]]
-    assert entities == [controls[key] for key in ("apply_learned", "weather_curve", "curve_design_flow_c", "curve")]
-    curve = settings[4]
-    assert curve == {"type": "custom:openthermostat-heating-curve", "entity": controls["curve"], "grid_options": {"columns": 12},
-                     "visibility": [{"condition": "state", "entity": controls["curve"], "state_not": ["unavailable", "unknown"]}]}
+    headed = {s["cards"][0].get("heading"): s for s in learning["sections"]}
+    section = headed["Water temperature by outdoor temperature"]
+    heading, curve = section["cards"]
+    assert heading["icon"] == "mdi:chart-bell-curve-cumulative"
+    assert curve == {"type": "custom:openthermostat-heating-curve", "entity": controls["curve"], "show_name": False,
+                     "grid_options": {"columns": 12}, "visibility": [known(controls["curve"])]}
+    assert section["visibility"] == [{"condition": "or", "conditions": [known(controls["curve"])]}]
     assert e32_flow.CURVE_CARD_TYPE == curve["type"]
+    settings = headed["Smart warm-up and weather compensation"]["cards"]
+    assert "openthermostat-heating-curve" not in json.dumps(settings)
+    rows = settings[1]["entities"]
+    assert [row["entity"] for row in rows[:3]] == [controls[key] for key in ("apply_learned", "weather_curve",
+                                                                             "curve_design_flow_c")]
+    assert rows[3] == {"type": "conditional", "conditions": [known(controls["source"])], "row": {
+        "entity": controls["source"], "name": "Water temperature set by", "icon": "mdi:thermometer-water"}}
 
 
 @pytest.mark.asyncio

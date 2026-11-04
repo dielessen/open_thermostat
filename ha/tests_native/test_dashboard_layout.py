@@ -18,7 +18,7 @@ import pytest
 from custom_components.open_thermostat.dashboard import RoomDashboard
 from custom_components.open_thermostat.heating_link import BOILER_ACTIVITIES
 from test_dashboard_heating import installation, walk
-from test_dashboard_redesign import UNKNOWN, shown
+from test_dashboard_redesign import UNKNOWN, shown, target
 from test_dashboard_tidy import live
 
 FIXTURE = Path(__file__).resolve().parents[2] / "test/fixtures/ha-dashboard-views.json"
@@ -103,13 +103,15 @@ async def test_half_width_cards_come_in_pairs_on_one_condition(hass):
 
 def state_pools(config):
     """{entity: the states it can have}: unknown and unavailable, every state a condition names for it and, unless
-    those are a complete set (what the boiler does, an on/off sensor, a room on or off), a few numbers."""
+    those are a complete set (what the boiler does, an on/off sensor, a room on or off), a few numbers. An attribute a
+    condition reads has a pool of its own under (entity, attribute) (test_dashboard_redesign.shown): what it names
+    and a list with items, as the frontend reads one."""
     named = {}
 
     def collect(node):
         if isinstance(node, dict):
             if node.get("condition") in ("state", "numeric_state"):
-                states = named.setdefault(node["entity"], set())
+                states = named.setdefault(target(node), set())
                 for key in ("state", "state_not"):
                     value = node.get(key)
                     states.update(value if isinstance(value, list) else [] if value is None else [value])
@@ -122,7 +124,9 @@ def state_pools(config):
     pools = {}
     for entity, states in named.items():
         states -= set(UNKNOWN)
-        if states >= set(BOILER_ACTIVITIES):
+        if isinstance(entity, tuple):
+            pool = states | {"[object Object]"}
+        elif states >= set(BOILER_ACTIVITIES):
             pool = states
         elif states and states <= {"on", "off"}:
             pool = {"on", "off"}

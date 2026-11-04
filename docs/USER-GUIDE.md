@@ -81,25 +81,28 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
 - **Overview**, from top to bottom: the **house card**, then **Rooms**,
   **Today** and **House**. On a wide screen the last three stand side by side.
   - The **house card** shows the whole house at a glance:
-    - A **status band** in the colour of what the boiler does now: orange for
-      heating (with the water temperature), blue for hot water, grey for
-      "Boiler resting". The house mode is on the right of the band; tap it to
-      open the house mode control. While rooms want heat, a second line says
-      how many and what the boiler request is. A problem comes first: the
-      band turns red and says "Attention" with the first reason. Tap it to
-      open Repairs; **All reasons** lists every reason.
-    - Today's figures, large: the room that is switched on (its temperature,
-      its target and why it heats or not), **Hot water** (the taps so far
-      today, or "running now"), **Gas today** (heating and hot water
-      together) with a small line of the last 7 days, and **Burner starts
-      today**. A figure that your boiler or the E32 does not report is left
-      out. The gas and the burner starts are read from Home Assistant's
-      statistics; on the first day, until it has some, they show "—".
+    - A **status band** in the colour of what the boiler does now, in white
+      letters: orange while heating (with the water temperature), blue for
+      hot water, grey for "Boiler resting". The house mode is on the right of
+      the band; tap it to open the house mode control. While rooms want heat,
+      a second line says how many and what the boiler request is. A problem
+      comes first: the band turns red and says "Attention" with the first
+      reason. Tap it to open Repairs; **All reasons** lists every reason.
+    - Today's figures, large. In a house with only one room switched on, that
+      room is the first figure, with its temperature, its target and why it
+      heats or not; the other rooms are then listed under **Other rooms**.
+      Then **Hot water** (the taps so far today, or "running now"), **Gas
+      today** (heating and hot water together) with a small line of the last
+      7 days beside it and the average day of the week before under it, and
+      **Burner starts today**. While the band shows a problem, **Heating**
+      (on, with the water temperature, or off) is added, because the band
+      then cannot say it. A figure that your boiler or the E32 does not
+      report is left out. The gas and the burner starts are read from Home
+      Assistant's statistics; on the first day, until it has some, they show
+      "—".
     - A **day strip** from midnight until now: when the boiler was heating,
-      making hot water or keeping it warm. Point at a part for its start and
-      end time.
-    - In a house with only one room switched on, that room is the first figure
-      of the card. The other rooms are then listed under **Other rooms**.
+      making hot water or keeping it warm, with the hours and "now" under it.
+      Point at a part for its start and end time.
   - **Rooms**: a card per room, with a round icon in the colour of what the
     room does, its name, its temperature, large, and, in one line, why it
     heats or not: window open, away, warm enough, Smart warm-up heating
@@ -121,24 +124,28 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
 - **Rooms**: per room its thermostat, a 24-hour graph, its sensors, windows and
   people, and what it learned for that room.
 - **Week program**: the visual week planner for all rooms.
-- **Boiler**, in the order you need it. It opens with the **Now** card: a
-  band in the colour of what the boiler does (heating, hot water or resting)
-  that says it in words, with the display code ("Heating", "Code -H: the
-  boiler heats the house"). Under it are four figures: the **water to the
-  heating** (with the water temperature the E32 asks), the **water back**
-  (with the difference), the **burner power** with its gauge and the **burner
-  starts in the last hour**. Then, from top to bottom: **Advice** (the
-  heating advice, when there is any), **Today and this week** (the gas for
-  heating and for hot water, the burner starts and the burner time of today,
-  one chart with the gas per day of the last week, and the burner hours per
-  day), **Hot water** (its temperature and target, the taps of today and a
-  24-hour timeline), **Last 24 hours** (graphs of the water temperatures, the
-  burner power and the hot water), **What the boiler reports** (the values your
-  boiler sends, in groups) and **Boiler settings**. A section is hidden while
-  the boiler reports nothing for it, so a heading never stands over nothing.
-  Yesterday is not here; it is on the **Learning and settings** tab.
+- **Boiler**, in the order you need it. It opens with the **Now** card: a band
+  in the colour of what the boiler does, in white letters (orange for heating,
+  blue for hot water, grey for resting; red for a fault, with what to do). The
+  band says it in words, with the display code ("Code -H: Heating"), and on its
+  right it shows the connection with the boiler and whether the boiler serves
+  hot water. Under the band are four large figures: the **water to the heating**
+  (what the E32 asks, and the most it asks near the target), the **water back**
+  (with the difference), the **burner power** (a small arc and a word: low fire,
+  medium fire, full fire) and the **starts in the last hour** (calm, or switching
+  on and off too often, and today's starts). A figure that your boiler does not
+  report is left out. Then, from top to bottom: **Advice** (the heating advice,
+  when there is any), **Today and this week** (the gas for heating and for hot
+  water, the burner starts and the burner time of today, one chart with the gas
+  per day of the last week, and the burner hours per day), **Hot water** (its
+  temperature and target, the taps of today and a 24-hour timeline), **Last 24
+  hours** (graphs of the water temperatures, the burner power and the hot
+  water), **What the boiler reports** (the values your boiler sends, in groups)
+  and **Boiler settings**. A section is hidden while the boiler reports nothing
+  for it, so a heading never stands over nothing. Yesterday is not here; it is
+  on the **Learning and settings** tab.
 - **Learning and settings**: what the E32 learned, so you read what it did.
-  It has seven sections, in this order:
+  It starts with seven sections, in this order:
   1. **What the E32 knows**: a ring with how much of your house the E32
      knows ("The E32 knows your house: 62 %") and, in words, what it still
      has to learn.
@@ -147,18 +154,25 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
   3. **Water temperature by outdoor temperature**: the chart with the
      standard line (dashed), the line learned for your house (solid), the
      point of now and the water temperature in hard frost.
-  4. **Yesterday in figures**, the only Yesterday of the dashboard: how early
-     or late the room was warm, the burner starts per heating hour, the gas
-     for heating and the degree-days, large; then the rest of yesterday and
+  4. **Yesterday in figures**, the only Yesterday of the dashboard. Four
+     figures stand large at the top: how early or late the first room that is
+     switched on was warm, the burner starts per heating hour, the gas for
+     heating and the degree-days. Under them come the rest of yesterday and
      the missed comfort of the last days.
   5. **Noticed**: yesterday compared with your own usual days, one sentence
      for each thing that stood out, with what can cause it.
-  6. **Free heat**: the warmth that sun, cooking and people give a room
-     without the boiler, once the E32 has seen it often enough.
-  7. **Smart warm-up and Weather compensation**: the two switches and the
-     water temperature in hard frost.
+  6. **Free heat**: per room the warmth it gets from sun, cooking and people
+     without the boiler, once the E32 has seen it often enough, and what
+     Smart warm-up does with it.
+  7. **Smart warm-up and Weather compensation**: the two switches, the water
+     temperature in hard frost, what sets the water temperature now, and the
+     links to the room editor and the week program.
 
-  On a narrow screen the sections stand under each other in this order.
+  After them come **What the thermostat has learned** (how far each room is,
+  your house and your boiler, what the E32 changed by itself, and how it
+  learns) and **Who controls the boiler** (the burner as information and the
+  check before the E32 takes over). On a phone the sections stand under each
+  other in this order; on a wide screen they stand in columns.
 - **Diagnostics**: the E32 itself, **Thermostat on the bus** (what a
   thermostat on the boiler bus asks, as the E32 hears it; mostly of use in the
   trial run), the energy and hot water counters, the raw boiler data and the
@@ -1026,8 +1040,11 @@ restart; whatever the E32 did not measure is left out.
 | Per room | How many minutes late or early the room was warm ("warm 12 min late", "warm 5 min early" or "warm on time") and how far it went above its target ("0.3 °C too warm"). |
 
 In Home Assistant it is the section **Yesterday in figures** on the **Learning
-and settings** tab ("Living room: warm 12 min late · 0.3 °C too warm", "Burner:
-2.1 starts per heating hour", "Gas for heating: 8.4 kWh"). It is the only
+and settings** tab. Four figures stand large at the top: how many minutes early
+or late the first room that is switched on was warm, the burner starts per
+heating hour, the gas for heating and the degree days; tap one for its
+history. The rest follows in lines ("Bathroom: warm 12 min late · 0.3 °C too
+warm", "Heating time: 6.2 h · Short burner runs: 0.4 h"). It is the only
 Yesterday of the dashboard, so it also holds the daily summary (see
 [Daily summary and warnings](#daily-summary-and-warnings)): the burner time and
 starts, the gas for heating and hot water and, per room, how long it asked for

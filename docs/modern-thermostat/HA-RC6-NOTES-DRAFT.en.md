@@ -41,11 +41,11 @@ Assistant 2026.10.0 or newer.
   chips for its state), **Today** (when each room warms up next, and what
   Weather compensation asks now) and **House** (home or away, holiday, outdoor
   temperature).
-- **The Boiler tab opens with a Now card:** what the boiler does in words with
-  its display code, the water to the heating and back, the burner power with a
-  gauge and the starts in the last hour. After it: Advice, Today and this
-  week, Hot water, Last 24 hours, What the boiler reports and Boiler settings.
-  The gas per day is one chart now.
+- **The Boiler tab opens with a Now card:** a band in the colour of what the
+  boiler does, with its display code in words, and four large figures: the
+  water to the heating and back, the burner power and the starts in the last
+  hour. After it: Advice, Today and this week, Hot water, Last 24 hours, What
+  the boiler reports and Boiler settings. The gas per day is one chart now.
 - **The Learning and settings tab in seven sections:** What the E32 knows, Your
   boiler, Water temperature by outdoor temperature, Yesterday in figures (the
   only Yesterday), Noticed, Free heat, and Smart warm-up and Weather

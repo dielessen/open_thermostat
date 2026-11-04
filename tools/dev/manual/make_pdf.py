@@ -339,8 +339,8 @@ def content():
          # (sections of Leren en instellingen).
          table([["Tabblad", "Wat je ziet"],
                 [ui("Overzicht"), "Bovenaan de <b>huiskaart</b>: een band in de kleur van wat de ketel nu doet (bij een probleem rood, met de "
-                 "reden; een tik brengt je bij Reparaties) met de huismodus rechts, de cijfers van vandaag (de ruimte die aan staat, warm water, "
-                 "gas met de laatste 7 dagen, branderstarts) en de dag tot nu toe als balk. Staat er maar één ruimte aan, dan zit die in de "
+                 "reden; een tik brengt je bij Reparaties) met de huismodus rechts, de cijfers van vandaag, groot (de ruimte die aan staat, warm "
+                 "water, gas met de laatste 7 dagen, branderstarts; bij een probleem ook de verwarming) en de dag tot nu toe als balk. Staat er maar één ruimte aan, dan zit die in de "
                  "huiskaart en staan de andere onder " + ui("Overige ruimtes") + ". Daaronder, naast elkaar: " + ui("Ruimtes") + " (een kaart per "
                  "ruimte, met in één regel waarom ze verwarmt of niet), <b>Vandaag</b> (wanneer elke ruimte opwarmt en wat de weerafhankelijke "
                  "regeling vraagt) en <b>Huis</b> (thuis of weg, vakantie plannen, buiten)."],
@@ -351,11 +351,12 @@ def content():
                  + ui("Vandaag en deze week") + " (gas en branderstarts van vandaag, met één grafiek met het gas per dag van de laatste week), "
                  + ui("Warm water") + ", " + ui("Afgelopen 24 uur") + ", " + ui("Wat de ketel meldt") + " en " + ui("Ketelinstellingen") + ". Een "
                  "onderdeel verschijnt pas als de ketel er iets voor meldt. Gisteren staat hier niet; dat vind je bij " + ui("Leren en instellingen") + "."],
-                [ui("Leren en instellingen"), "Wat de E32 zelf leerde en deed, in zeven onderdelen: " + ui("Wat de E32 weet") + " (en nog moet leren), "
-                 "<b>Je ketel</b> (hoe hij zijn temperatuur vasthoudt), " + ui("Watertemperatuur bij buitentemperatuur") + " (de grafiek met de "
-                 "standaardlijn en de lijn voor jouw huis), " + ui("Gisteren in cijfers") + " (gisteren staat alleen hier), <b>Opgevallen</b> "
-                 "(gisteren vergeleken met je eigen gewone dagen), <b>Gratis warmte</b> (zon, koken en mensen) en "
-                 + ui("Slim opwarmen en weerafhankelijke regeling") + " (de twee schakelaars)."],
+                [ui("Leren en instellingen"), "Wat de E32 zelf leerde en deed, in zeven onderdelen: " + ui("Wat de E32 weet") + " (en nog moet "
+                 "leren), <b>Je ketel</b> (hoe hij zijn temperatuur vasthoudt), " + ui("Watertemperatuur bij buitentemperatuur") + " (de grafiek "
+                 "met de standaardlijn en de lijn voor jouw huis), " + ui("Gisteren in cijfers") + " (gisteren staat alleen hier), "
+                 "<b>Opgevallen</b> (gisteren tegenover je eigen gewone dagen), <b>Gratis warmte</b> (zon, koken en mensen) en "
+                 + ui("Slim opwarmen en weerafhankelijke regeling") + " (de schakelaars). Daarna " + ui("Wat de thermostaat heeft geleerd")
+                 + " en " + ui("Wie regelt de ketel") + "."],
                 [ui("Diagnose"), "Voor het zoeken naar fouten, met ook " + ui("Thermostaat op de bus") + ": wat een andere thermostaat aan de ketel "
                  "vraagt, zoals de E32 het hoort."]],
                [48 * mm, W - 48 * mm])]),

@@ -304,6 +304,14 @@ async def test_the_overview_names_the_next_holiday(hass):
     assert render("en") == ""
     hass.states.async_set(select, "auto", {})  # an older E32
     assert render("en") == ""
+    # Home Assistant's markdown card renders strictly: still "" (so the card hides), no error.
+    for holidays in ([], None):
+        hass.states.async_set(select, "auto", {"holidays": holidays} if holidays is not None else {})
+        assert Template(_holiday_card(TEXT["nl"], select)["content"], hass).async_render(strict=True) == ""
+    hass.states.async_set(select, "auto", {"holidays": [{"from": dt_util.utc_from_timestamp(first[0]).isoformat(),
+                                                         "until": dt_util.utc_from_timestamp(first[1]).isoformat()}]})
+    assert Template(_holiday_card(TEXT["nl"], select)["content"], hass).async_render(strict=True) == (
+        "Vakantie vanaf 20 dec t/m 3 jan")
     assert _holiday_card(TEXT["en"], None) is None and _holiday_card(TEXT["en"], select)["show_empty"] is False
 
 

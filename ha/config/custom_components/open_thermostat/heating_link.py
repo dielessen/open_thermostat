@@ -16,7 +16,12 @@ most 1.5 KB, sent on a real change (deadbands), at most every 10 s, else every
   entity list has; ``fw/config/entities`` (and ``.../entities/<k>``): the HA
   entities the plan reads (``ha_entities``);
 - ``fw/telemetry/learned/<id>`` (every 15 min or on a new result),
-  ``fw/telemetry/summary`` (learned header, hot water; 5 min) and
+  ``fw/telemetry/summary`` (learned header, hot water; 5 min) with its parts
+  sent apart to keep each within 1 KB and merged into it again here:
+  ``fw/telemetry/flow`` (the flow policy's ``flow`` and ``night_gas``),
+  ``fw/telemetry/tuning`` (the self-tuning's ``tuning``, E32 rc.2) and
+  ``fw/telemetry/scoreboard`` (yesterday's and today's ``scoreboard``, E32 rc.4;
+  rc.4 preview firmware carried it inside the summary itself), and
   ``fw/telemetry/shadow`` (today's comparison; 5 min) and
   ``fw/telemetry/readiness`` (E32 1.0: ready to take over?, takeover_readiness.py; 5 min);
 - ``fw/availability`` (retained online/offline, the LWT) and ``fw/heartbeat``
@@ -108,12 +113,15 @@ FLOW_TOPIC = "fw/telemetry/flow"
 FLOW_KEYS = ("flow", "night_gas")
 # The self-tuning's state, knobs and newest changes (rc.2, AutoTuner), merged into the summary as "tuning".
 TUNING_TOPIC = "fw/telemetry/tuning"
+# Yesterday's and today's scoreboard (rc.4, Scoreboard), {"schema": 1, "scoreboard": {...}}, merged into the
+# summary as "scoreboard" (scoreboard.py reads it there; a summary that still carries it keeps working).
+SCOREBOARD_TOPIC = "fw/telemetry/scoreboard"
 HEARTBEAT_TOPIC = "fw/heartbeat"
 AVAILABILITY_TOPIC = "fw/availability"
 # What only the hub reads: the shadow session (v1_mqtt.NativeShadowConnection, subscribed to fw/#)
 # drops these at once instead of decoding every E32 message a second time (R4-03).
-_HUB_ONLY = (HEATING_TOPIC, PLAN_TOPIC, ENTITIES_TOPIC, SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SHADOW_TOPIC,
-             READINESS_TOPIC)
+_HUB_ONLY = (HEATING_TOPIC, PLAN_TOPIC, ENTITIES_TOPIC, SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SCOREBOARD_TOPIC,
+             SHADOW_TOPIC, READINESS_TOPIC)
 _HUB_ONLY_PARTS = (ROOM_TOPIC, BLE_TOPIC, TRV_TOPIC, LEARNED_TOPIC, ENTITIES_TOPIC + "/")
 
 
@@ -420,10 +428,12 @@ class HeatingHub:
         # The latest summary (decode_summary) and when it arrived (monotonic).
         self.summary = None
         self.summary_received = None
-        # fw/telemetry/summary and fw/telemetry/flow as received; summary is the two merged.
+        # fw/telemetry/summary, fw/telemetry/flow, fw/telemetry/tuning and fw/telemetry/scoreboard as
+        # received; summary is the four merged.
         self.summary_doc = None
         self.flow_doc = None
         self.tuning_doc = None
+        self.scoreboard_doc = None
         self.received = None
         # The last live sign of the E32 (monotonic), kept while it is silent.
         self.last_seen = None
@@ -659,21 +669,27 @@ class HeatingHub:
                 if value is None:
                     return
                 self.learned_messages[room_id] = (self.clock(), *value)
-        elif suffix in (SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC):
+        elif suffix in (SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SCOREBOARD_TOPIC):
             if suffix == SUMMARY_TOPIC:
                 self.summary_doc = None if empty else decode_summary(payload)
             elif suffix == FLOW_TOPIC:
                 flow = None if empty else decode_document(payload)
                 self.flow_doc = ({k: flow[k] for k in FLOW_KEYS if type(flow.get(k)) is dict}
                                  if flow is not None else None)
-            else:
+            elif suffix == TUNING_TOPIC:
                 tuning = None if empty else decode_document(payload)
                 self.tuning_doc = tuning["tuning"] if tuning is not None and type(tuning.get("tuning")) is dict else None
+            else:
+                board = None if empty else decode_document(payload)
+                self.scoreboard_doc = (board["scoreboard"] if board is not None and type(board.get("scoreboard")) is dict
+                                       else None)
             summary = self.summary_doc
             if summary is not None and self.flow_doc:
                 summary = {**summary, **self.flow_doc}
             if summary is not None and self.tuning_doc is not None:
                 summary = {**summary, "tuning": self.tuning_doc}
+            if summary is not None and self.scoreboard_doc is not None:
+                summary = {**summary, "scoreboard": self.scoreboard_doc}  # the topic wins over an older summary's own
             self.summary = summary
             self.summary_received = self.clock() if summary is not None else None
         elif suffix == SHADOW_TOPIC:
@@ -1832,8 +1848,8 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     await mqtt.async_wait_for_mqtt_client(hass)
     entry.async_on_unload(hub.add_listener(follow, first=True))
     for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", TRV_TOPIC + "+", PLAN_TOPIC,
-                  ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SHADOW_TOPIC,
-                  READINESS_TOPIC):
+                  ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SCOREBOARD_TOPIC,
+                  SHADOW_TOPIC, READINESS_TOPIC):
         entry.async_on_unload(await mqtt.async_subscribe(hass, base + topic, receive))
     entry.async_on_unload(async_track_time_interval(hass, refresh, timedelta(seconds=REFRESH_SECONDS)))
     entry.async_on_unload(async_track_time_interval(hass, hub.check_stale, STALE_CHECK))

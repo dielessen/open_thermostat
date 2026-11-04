@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from custom_components.open_thermostat import learned_overview as lo
-from custom_components.open_thermostat.heating_link import HeatingHub, TUNING_TOPIC
+from custom_components.open_thermostat.heating_link import HeatingHub, SCOREBOARD_TOPIC, TUNING_TOPIC
 
 STATUS = {"schema": 1, "revision": 4, "mode": "active", "request": {"heat": True, "flow_c": 36, "reason": "heating"},
           "ha_entities": ["climate.woonkamer"],
@@ -168,6 +168,38 @@ def test_the_tuning_topic_joins_the_summary():
     for bad in ("", "{}", json.dumps({"schema": 1, "tuning": []}), "not json"):
         h.receive(TUNING_TOPIC, bad)
         assert "tuning" not in h.summary
+
+
+BOARD = {"yesterday": {"day": "2026-11-03", "heating_h": 9, "heating_starts_per_h": 2.1, "short_cycle_h": 0, "heating_kwh": 31.2,
+                       "degree_days": 10.5, "rooms": [{"id": "woonkamer", "on_time_min": -5, "overshoot_c": 0.3}]},
+         "today": {"day": "2026-11-04", "heating_h": 3, "heating_starts_per_h": 1.7, "short_cycle_h": 0, "heating_kwh": 8.1,
+                   "degree_days": 11}}
+
+
+def test_the_scoreboard_topic_joins_the_summary():
+    """E32 rc.4: the scoreboard left fw/telemetry/summary for its own topic (eight rooms pushed the summary over
+    the 1.5 KB limit, where the E32 drops it); merged back as "scoreboard", so scoreboard.py reads it as before."""
+    h = HeatingHub("fixture")
+    h.receive("fw/telemetry/summary", json.dumps({"schema": 1, "learned": {"schema": 1}}))
+    assert "scoreboard" not in h.summary
+    h.receive(SCOREBOARD_TOPIC, json.dumps({"schema": 1, "scoreboard": BOARD}))
+    assert h.summary["scoreboard"] == BOARD and h.summary["learned"] == {"schema": 1}
+    h.receive(TUNING_TOPIC, json.dumps({"schema": 1, "tuning": TUNING}))
+    h.receive("fw/telemetry/flow", json.dumps({"schema": 1, "flow": {"source": "rule"}}))
+    assert h.summary["scoreboard"] == BOARD and h.summary["tuning"] == TUNING and h.summary["flow"] == {"source": "rule"}
+    from custom_components.open_thermostat.scoreboard import scoreboard
+    assert scoreboard(h.summary) == BOARD
+    # A summary that still carries the scoreboard itself (rc.4 preview firmware): the topic wins while it is there.
+    inside = {**BOARD, "today": None}
+    h.receive("fw/telemetry/summary", json.dumps({"schema": 1, "learned": {"schema": 1}, "scoreboard": inside}))
+    assert h.summary["scoreboard"] == BOARD
+    for bad in ("", "{}", json.dumps({"schema": 1, "scoreboard": []}), json.dumps({"schema": 2, "scoreboard": BOARD}), "not json"):
+        h.receive(SCOREBOARD_TOPIC, bad)
+        assert h.summary["scoreboard"] == inside, bad  # the topic dropped: the summary's own again
+    h.receive("fw/telemetry/summary", json.dumps({"schema": 1, "learned": {"schema": 1}}))
+    assert "scoreboard" not in h.summary
+    h.receive(SCOREBOARD_TOPIC, json.dumps({"schema": 1, "scoreboard": BOARD}))
+    assert h.summary["scoreboard"] == BOARD
 
 
 def test_the_learning_view_sums_it_up_and_shows_the_house_and_its_changes():

@@ -109,7 +109,7 @@ class PrepareTests(unittest.TestCase):
         lf(root / prep.GATE, json.dumps(gate, indent=2) + '\n')
 
     def snapshot(self):
-        return {str(p.relative_to(self.root)): p.read_bytes() for p in sorted(self.root.rglob('*')) if p.is_file()}
+        return {p.relative_to(self.root).as_posix(): p.read_bytes() for p in sorted(self.root.rglob('*')) if p.is_file()}
 
     def run_prepare(self, *extra, check=True):
         arguments = [str(self.root), '--date', '20261110', '--changes-file', str(self.changes), *extra]

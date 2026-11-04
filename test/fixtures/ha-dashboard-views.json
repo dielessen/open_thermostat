@@ -16,12 +16,21 @@
         "type": "heading"
        },
        {
+        "activity": "sensor.boiler_activity",
         "flow": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+        "gas": [
+         "sensor.heating_gas",
+         "sensor.hot_water_gas"
+        ],
         "grid_options": {
          "columns": 12
         },
+        "heating": "sensor.boiler_heating_active",
+        "hot_water": "sensor.boiler_dhw_active",
         "problem": "binary_sensor.heating_problem",
         "request": "sensor.fixture_hub_heat_request",
+        "starts": "sensor.daily_burner_starts",
+        "taps": "sensor.dhw_taps_today",
         "type": "custom:openthermostat-house"
        }
       ],
@@ -4245,12 +4254,21 @@
         "type": "heading"
        },
        {
+        "activity": "sensor.boiler_activity",
         "flow": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+        "gas": [
+         "sensor.heating_gas",
+         "sensor.hot_water_gas"
+        ],
         "grid_options": {
          "columns": 12
         },
+        "heating": "sensor.boiler_heating_active",
+        "hot_water": "sensor.boiler_dhw_active",
         "problem": "binary_sensor.heating_problem",
         "request": "sensor.fixture_hub_heat_request",
+        "starts": "sensor.daily_burner_starts",
+        "taps": "sensor.dhw_taps_today",
         "type": "custom:openthermostat-house"
        }
       ],

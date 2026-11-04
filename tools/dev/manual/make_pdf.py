@@ -341,18 +341,18 @@ def content():
                  "met de huismodus rechts. Bij een probleem wordt de strook rood met de reden; een tik brengt je bij Reparaties. Onder de strook "
                  "staan de cijfers van vandaag (verwarming, warm water, gas met de laatste 7 dagen, branderstarts) en de dag tot nu toe als balk. "
                  "Daaronder komen de huismodus, de volgende vakantie en een kaart per ruimte die in één regel zegt waarom ze verwarmt of niet. "
-                 "Staat er maar één ruimte aan, dan zit die in de huiskaart en staan de andere onder <b>Overige ruimtes</b>."],
+                 "Staat er maar één ruimte aan, dan zit die in de huiskaart en staan de andere onder " + ui("Overige ruimtes") + "."],
                 [ui("Ruimtes"), "Per ruimte de thermostaat, de dag, de sensoren, ramen en personen, en wat de E32 leerde."],
                 [ui("Weekprogramma"), "De weekplanner voor alle ruimtes."],
                 [ui("Ketel"), "In de volgorde van wat je nodig hebt: " + ui("Nu") + " (wat de ketel doet, met de displaycode, de watertemperaturen "
-                 "en het brandervermogen), " + ui("Advies") + ", <b>Vandaag en deze week</b> (gas en branderstarts van vandaag, met één grafiek "
-                 "met het gas per dag van de laatste week), " + ui("Warm water") + ", " + ui("Afgelopen 24 uur") + ", <b>Wat de ketel meldt</b> en "
+                 "en het brandervermogen), " + ui("Advies") + ", " + ui("Vandaag en deze week") + " (gas en branderstarts van vandaag, met één grafiek "
+                 "met het gas per dag van de laatste week), " + ui("Warm water") + ", " + ui("Afgelopen 24 uur") + ", " + ui("Wat de ketel meldt") + " en "
                  + ui("Ketelinstellingen") + ". Een onderdeel verschijnt pas als de ketel er iets voor meldt. Gisteren staat hier niet; dat vind "
                  "je bij " + ui("Leren en instellingen") + "."],
-                [ui("Leren en instellingen"), "Hier lees je wat de E32 zelf leerde en deed: <b>Wat de E32 weet</b> en nog moet leren, met de reactie "
-                 "van de ketel en gisteren vergeleken met normaal; <b>Gisteren in cijfers</b> (gisteren staat alleen hier); wat de "
+                [ui("Leren en instellingen"), "Hier lees je wat de E32 zelf leerde en deed: " + ui("Wat de E32 weet") + " en nog moet leren, met de reactie "
+                 "van de ketel en gisteren vergeleken met normaal; " + ui("Gisteren in cijfers") + " (gisteren staat alleen hier); wat de "
                  "thermostaat leerde over je ruimtes, je huis en je ketel, met de gratis warmte; Slim opwarmen en de weerafhankelijke regeling "
-                 "met de grafiek <b>Watertemperatuur bij buitentemperatuur</b>; en <b>Wie regelt de ketel</b>, met de controle voor de overname."],
+                 "met de grafiek " + ui("Watertemperatuur bij buitentemperatuur") + "; en " + ui("Wie regelt de ketel") + ", met de controle voor de overname."],
                 [ui("Diagnose"), "Voor het zoeken naar fouten, met ook " + ui("Thermostaat op de bus") + ": wat een andere thermostaat aan de ketel "
                  "vraagt, zoals de E32 het hoort."]],
                [48 * mm, W - 48 * mm])]),
@@ -419,16 +419,13 @@ def content():
                 ["Gisteren in cijfers", "Zodra de E32 een dag heeft gemeten, toont <b>Gisteren</b> hoe die dag ging: stooktijd, branderstarts per "
                  "stookuur, korte brandtijden, gas voor verwarmen (schatting), graaddagen en per ruimte hoeveel minuten te laat of te vroeg "
                  "ze warm was en hoeveel graden te warm. Home Assistant: dashboardtabblad " + ui("Leren en instellingen") + ", blok "
-                 "<b>Gisteren in cijfers</b> (gisteren staat op het dashboard alleen daar). E32: <b>Huis → Wat de thermostaat heeft geleerd</b>, "
+                 + ui("Gisteren in cijfers") + " (gisteren staat op het dashboard alleen daar). E32: <b>Huis → Wat de thermostaat heeft geleerd</b>, "
                  "blok <b>Gisteren</b>."],
-                # The names below (Kennis, Reactie van de ketel, Wat de E32 weet, Watertemperatuur bij buitentemperatuur) come with
-                # HA 1.0.0rc6 (branch rc5-ha-pages); they are plain <b> until they are in translations/nl.json. Then move them into
-                # ui() so that tools/dev/test_manual_labels.py checks them.
                 ["De E32 kent je huis", "Sinds rc.5 zegt de E32 hoeveel hij al van je huis weet: <b>De E32 kent je huis: 70 %</b>, met in gewone "
                  "woorden wat hij nog moet leren, bijvoorbeeld \"Hij moet nog zien hoe snel de woonkamer opwarmt\". Het getal stijgt vanzelf "
                  "terwijl de verwarming draait; het is alleen informatie en er is niets in te stellen. Home Assistant: dashboardtabblad "
-                 + ui("Leren en instellingen") + ", bovenaan <b>Wat de E32 weet</b>; de sensoren <b>Kennis</b> en <b>Reactie van de ketel</b> "
-                 "staan op het E32-apparaat. E32: <b>Huis → Wat de thermostaat heeft geleerd</b>."],
+                 + ui("Leren en instellingen") + ", bovenaan " + ui("Wat de E32 weet") + "; de sensoren " + ui("Kennis") + " en "
+                 + ui("Reactie van de ketel") + " staan op het E32-apparaat. E32: <b>Huis → Wat de thermostaat heeft geleerd</b>."],
                 ["Luisteren naar de ketel", "Haalt de ketel de gevraagde watertemperatuur en slaat hij zelf af terwijl een ruimte nog warmte wil, "
                  "dan vroeg de E32 meer dan het huis opneemt. Gebeurt dat twee keer in één warmtevraag, dan leert de E32 een <b>plafond</b> voor "
                  "de watertemperatuur (per bereik van de buitentemperatuur) en vraagt hij niet meer dan dat: koeler water en minder branderstarts. "
@@ -443,7 +440,7 @@ def content():
                  "E32 uit hoe snel je huis warmte verliest en hoeveel warmte radiatoren of vloer per graad watertemperatuur afgeven. Daarmee schat "
                  "hij de <b>weerafhankelijke regeling</b> al voordat hij zes rustige stookperiodes van drie uur heeft gezien, nooit minder dan half "
                  "zo steil als de standaardlijn. De pagina's zeggen het: \"Weerafhankelijke regeling: voorlopig geschat uit je huis, hij leert nog "
-                 "bij (2 van 6 rustige periodes).\" De grafiek <b>Watertemperatuur bij buitentemperatuur</b> toont de standaardlijn (gestippeld), "
+                 "bij (2 van 6 rustige periodes).\" De grafiek " + ui("Watertemperatuur bij buitentemperatuur") + " toont de standaardlijn (gestippeld), "
                  "de lijn die voor je huis is geleerd (doorgetrokken), het punt van nu en de watertemperatuur bij −10 °C. Home Assistant: "
                  "dashboardtabblad " + ui("Leren en instellingen") + ". E32: <b>Huis → Verwarming → Watertemperatuur</b>."],
                 ["Gisteren vergeleken met normaal", "Vanaf de vijfde dag vergelijkt de E32 gisteren met de gewone dagen van je eigen huis: gas per "

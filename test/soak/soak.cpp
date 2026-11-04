@@ -1601,7 +1601,8 @@ void Chain::publish(bool mqtt, bool learned, bool full) {
         // fw/telemetry/heating_summary
         std::array<std::optional<int16_t>, RoomPlan::maxRooms> temperatures{};
         const auto summary = heatingSummaryTelemetry(learner_, learnedContext(temperatures), dhwEpisodes_.summaryJson(), &policy_);
-        checkPayload("mqtt_summary", summary, 1100);
+        checkPayload("mqtt_summary", summary, 1300); // the whole document; TelemetryPublisher splits it into summary, flow,
+                                                 // tuning and scoreboard topics of at most 1 KB each (test_heating_telemetry.cpp)
         // The plan and the per-module status objects.
         checkPayload("plan", engine_.plan().storedJson(), RoomPlan::storeBytes - 1);
         std::ostringstream b; cycles_.writeJSON(b, now_); checkPayload("burner_cycles", b.str(), 0);

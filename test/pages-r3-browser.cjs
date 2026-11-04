@@ -119,6 +119,7 @@ const heatingStatus=()=>({schema:1,revision:4,mode:'shadow',request:{heat:false,
   assert.equal(posts.length,before+1,'exactly one save');
   assert.equal(posts.at(-1).rooms[0].emitter,'floor','the edit made during the wait is saved');
   assert.equal(await root.getByText(/changed elsewhere/).count(),0);
+  await root.locator('[data-heating-save]:not([disabled])').waitFor(); // re-enabled a tick after the text under load
   assert.equal(await save.isDisabled(),false);delete status.new_plan;
 
   // Home page.

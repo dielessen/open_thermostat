@@ -1097,12 +1097,16 @@ What it learns from it:
   that figure, and it counts for the knowledge figure too.
 
 On the E32 the **Home** page says it in one sentence under **What the
-thermostat has learned**, for example "Your boiler rests about 6 min each time
-it reaches its temperature; the E32 asks at most 41 °C now, so it starts less
-often." (The ceiling it names holds near the target temperatures; a room that
-is 1 °C or more below its target gets more.) Home Assistant shows the same
-sentence on the **Learning and settings** tab and has the sensor **Boiler
-response** on the E32 device. Its state is:
+thermostat has learned**, for example "Your boiler holds about 43 °C and rests
+6 min; near the target the E32 asks at most 41 °C." (The ceiling it names holds
+near the target temperatures; a room that is 1 °C or more below its target gets
+more. With Smart warm-up off the sentence says what the E32 would ask.) While
+the boiler is still listening but the heat per °C is already known, the sentence
+says that figure instead: "Your boiler has not held a water temperature by
+itself yet; every degree the water is warmer than the rooms gives your house
+about 0.3 kW. The E32 keeps listening."
+Home Assistant shows the same sentence on the **Learning and settings** tab and
+has the sensor **Boiler response** on the E32 device. Its state is:
 
 | State | Meaning |
 | --- | --- |

@@ -1,7 +1,8 @@
 // Away temperature per room ("plan.room_away.v1", after rc.2) on the E32 pages, against isolated HTTP
 // fixtures (no device): the Rooms page shows and edits a room's own away temperature in its Persons block
 // (empty = the house value), sends it only to firmware that names the feature, refuses a value outside
-// 5–25 °C, and says why a room is cooler; the Overview says "this room's people are out" or "everyone".
+// 5–25 °C, and says why a room is cooler; the Overview's why line (rc.4) says "nobody of this room is home" or
+// "everyone is away", in the words of Home Assistant's Reason sensor.
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html');
@@ -121,9 +122,9 @@ async function save(page,expect){
    await page.evaluate(()=>clearInterval(intervalID));
    const engine=heating([['woonkamer','Woonkamer',null,20],['werkkamer','Werkkamer Jolien',studyAway,16]]);
    await page.evaluate(s=>updateRooms({controlMode:'shadow',ems:{},control:{},heating:s}),engine);
-   await page.locator('.pd-room').nth(1).getByText("Away: this room's people are out").waitFor();
+   await page.locator('.pd-room').nth(1).getByText('Away: nobody of this room is home (16 °C)').waitFor();
    await page.evaluate(s=>updateRooms({controlMode:'shadow',ems:{},control:{},heating:s}),status);
-   await page.locator('.pd-room').nth(1).getByText('Away: everyone is out').waitFor();
+   await page.locator('.pd-room').nth(1).getByText('Away: everyone is away (17 °C)').waitFor();
    pass('en: the Overview says whose absence lowers a room');
    assert.deepEqual(errors,[]);
    await page.close();
@@ -133,7 +134,7 @@ async function save(page,expect){
    const status=heating([['woonkamer','Woonkamer',null,20],['werkkamer','Werkkamer Jolien',studyAway,16]]);
    const {page,errors}=await open(browser,{lang:'nl',features:FEATURES,status});
    await page.waitForFunction(()=>document.querySelectorAll('.pd-room').length===2,null,{timeout:15000});
-   await page.locator('.pd-room').nth(1).getByText('Afwezig: de mensen van deze ruimte zijn weg').waitFor();
+   await page.locator('.pd-room').nth(1).getByText('Afwezig: niemand van deze ruimte is thuis (16 °C)').waitFor();
    pass('nl: the Overview reason');
    assert.deepEqual(errors,[]);
    await page.close();

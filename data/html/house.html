@@ -53,7 +53,7 @@
     <div data-heating-flow-options hidden>
       <h3 data-i18n="Water temperature">Water temperature</h3>
       <p class="pd-help" data-i18n="Each change is saved on the E32 at once.">Each change is saved on the E32 at once.</p>
-      <!-- rc.3: Smart warm-up (apply_learned) and the heating curve (weather_curve) are on by default and the E32 decides
+      <!-- rc.3: Smart warm-up (apply_learned) and weather compensation (weather_curve) are on by default and the E32 decides
            itself when what it learned is good enough; the lines say what it uses now, switching off is advanced. -->
       <p class="pd-help" data-smart-warmup-state></p>
       <p class="pd-help" data-curve-state></p>
@@ -61,10 +61,10 @@
       <details class="ot-advanced hp-advanced" data-smart-warmup-advanced><summary data-i18n="Advanced">Advanced</summary>
       <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-learned" data-flow-option="apply_learned" data-hint="Starts heating early by itself so a room is warm at the time in its week program, with the coolest water that still does it. Off: heating starts at the program time.">
         <label class="form-check-label" for="heating-flow-learned" data-i18n="Smart warm-up">Smart warm-up</label></div>
-      <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-curve" data-flow-option="weather_curve" data-hint="Colder outside means warmer water to the radiators and floor, before the rooms cool down. The room temperature still corrects it. It starts with a standard curve and learns your house's own. Without an outdoor temperature the normal room control is used.">
-        <label class="form-check-label" for="heating-flow-curve" data-i18n="Follow outdoor temperature (heating curve)">Follow outdoor temperature (heating curve)</label></div>
-      <div class="hp-flow-design"><label for="heating-flow-design" data-i18n="Water temperature at −10 °C outside">Water temperature at −10 °C outside</label>
-        <select id="heating-flow-design" class="form-control" data-flow-design data-hint="How warm the water gets on a very cold day (−10 °C outside); milder weather gives cooler water."></select></div>
+      <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-curve" data-flow-option="weather_curve" data-hint="Colder outside means warmer water to the radiators and floor, before the rooms cool down. The room temperature still corrects it. It starts with a standard setting and learns your house's own. Without an outdoor temperature the normal room control is used.">
+        <label class="form-check-label" for="heating-flow-curve" data-i18n="Weather compensation">Weather compensation</label></div>
+      <div class="hp-flow-design"><label for="heating-flow-design" data-i18n="Water temperature in hard frost (−10 °C)">Water temperature in hard frost (−10 °C)</label>
+        <select id="heating-flow-design" class="form-control" data-flow-design data-hint="How warm the water to your heating gets when it is −10 °C outside. In milder weather the E32 picks less. Not sure? Leave it on Automatic: the E32 learns this for your house."></select></div>
       </details>
       <p class="pd-help" role="status" aria-live="polite" data-flow-message></p>
       <details class="ot-advanced hp-more"><summary data-i18n="Status and learning">Status and learning</summary>
@@ -78,14 +78,16 @@
   <!-- rc.2: everything the E32 learned, in plain language (/status/heating "learned", "flow", "tuning", "rooms"). -->
   <section class="pd-panel" data-house-learned hidden>
     <h2 data-i18n="What the thermostat has learned">What the thermostat has learned</h2>
-    <p class="pd-help" data-i18n="The thermostat watches how your rooms warm up and cool down and how the boiler runs, and adjusts itself to that.">The thermostat watches how your rooms warm up and cool down and how the boiler runs, and adjusts itself to that.</p>
-    <p class="pd-help" data-i18n="What it learned is kept when the thermostat restarts, loses power or gets an update.">What it learned is kept when the thermostat restarts, loses power or gets an update.</p>
+    <p class="pd-help"><span data-i18n="The thermostat watches how your rooms warm up and cool down and how the boiler runs, and adjusts itself to that.">The thermostat watches how your rooms warm up and cool down and how the boiler runs, and adjusts itself to that.</span>
+      <span data-i18n="What it learned is kept when the thermostat restarts, loses power or gets an update.">What it learned is kept when the thermostat restarts, loses power or gets an update.</span></p>
     <p class="hl-state" role="status" aria-live="polite" data-learned-state></p>
     <div class="hl-rooms" data-learned-rooms></div>
+    <!-- rc.4 scoreboard (/status/heating "scoreboard"): yesterday in figures; hidden without it. -->
+    <div class="hl-yesterday" data-learned-yesterday hidden><h3 data-i18n="Yesterday">Yesterday</h3><dl class="ot-kv" data-learned-score></dl></div>
     <h3 data-i18n="House and boiler">House and boiler</h3>
-    <ul class="hl-list" data-learned-house></ul>
+    <div data-learned-house></div>
     <h3 data-i18n="What it changed by itself">What it changed by itself</h3>
-    <ul class="hl-list" data-learned-log></ul>
+    <div data-learned-log></div>
   </section>
   <!-- rc.2: the control knobs ("tuning" and "tuning_manual" of GET/POST /config/heating/flow); hidden on firmware without them. -->
   <section class="pd-panel" data-house-care hidden>
@@ -102,7 +104,7 @@
   </section>
   <section class="pd-panel" data-house-energy>
     <h2 data-i18n="Energy">Energy</h2>
-    <p class="pd-help" data-i18n="Boiler power, gas meter, gas price and the outdoor temperature are set in Home Assistant: OpenThermostat → Configure → Home → Energy. The E32 uses them for the gas estimate and the heating curve.">Boiler power, gas meter, gas price and the outdoor temperature are set in Home Assistant: OpenThermostat → Configure → Home → Energy. The E32 uses them for the gas estimate and the heating curve.</p>
+    <p class="pd-help" data-i18n="Boiler power, gas meter, gas price and the outdoor temperature are set in Home Assistant: OpenThermostat → Configure → Home → Energy. The E32 uses them for the gas estimate and weather compensation.">Boiler power, gas meter, gas price and the outdoor temperature are set in Home Assistant: OpenThermostat → Configure → Home → Energy. The E32 uses them for the gas estimate and weather compensation.</p>
   </section>
 </section>
 <style>#house-settings .hs-modes{flex-wrap:wrap;margin:4px 0 10px}#house-settings .hs-modes .btn{min-height:44px}#house-settings .hs-field .btn,#house-settings .hs-holiday .btn,#house-settings .hs-field input,#house-settings .hs-holiday input{min-height:44px}#house-settings .hs-modes .btn[aria-pressed=true]{background:var(--ot-accent);border-color:var(--ot-accent);color:var(--ot-accent-ink)}
@@ -117,7 +119,7 @@
 #house-settings .hl-state{margin:0 0 12px;padding:10px 12px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}#house-settings .hl-state:empty,#house-settings [data-care-message]:empty{display:none}
 #house-settings .hl-rooms{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
 #house-settings .hl-room{border:1px solid var(--ot-border,rgba(127,127,127,.3));border-radius:var(--ot-r1);padding:12px 14px;min-width:0}#house-settings .hl-room h4{font-size:1rem;margin:0 0 4px;overflow-wrap:anywhere}
-#house-settings .hl-progress{margin-bottom:8px}
+#house-settings .hl-progress{margin-bottom:8px}#house-settings .hl-more{border:0;background:none;padding:0;margin:0}#house-settings .hl-more>summary{font-size:.92rem;color:var(--ot-accent);padding:6px 0}#house-settings .hl-more[open]>summary{margin-bottom:4px}#house-settings .hl-yesterday dl{margin:0 0 8px}
 #house-settings .hl-list{list-style:none;padding:0;margin:0}#house-settings .hl-list li,#house-settings .hl-room li{margin:0 0 10px;overflow-wrap:anywhere}#house-settings .hl-room ul{list-style:none;padding:0;margin:0}
 #house-settings .hl-mean,#house-settings .hc-why{display:block;color:var(--ot-muted);font-size:.875rem;margin:2px 0 0}#house-settings .hl-when{color:var(--ot-muted);font-size:.85rem;margin-right:6px}
 #house-settings .hc-list{list-style:none;padding:0;margin:0}#house-settings .hc-item{padding:10px 0;border-bottom:1px solid var(--ot-border,rgba(127,127,127,.25));overflow-wrap:anywhere}
@@ -147,7 +149,7 @@
   const fill = (text, values) => Object.entries(values).reduce((t, [k, v]) => t.split('{' + k + '}').join(v), text);
   const fixed = v => typeof v === 'number' && Number.isFinite(v) ? v.toFixed(1).replace('.', document.documentElement.lang === 'nl' ? ',' : '.') : '—';
   const when = utc => new Date(utc * 1000).toLocaleString(OpenThermostatLanguage.locale, {weekday:'short', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'});
-  let away = null, busy = false, locked = true, lockDecided = false, timer = null, chosen = null;
+  let away = null, busy = false, locked = true, lockDecided = false, timer = null, chosen = null, failures = 0;
   try { locked = sessionStorage.getItem('ot-rooms-edit') !== '1'; } catch (_) {}
   async function json(url, options = {}) {
     const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), 8000), stop = () => controller.abort();
@@ -163,14 +165,16 @@
   const modeOf = a => ['auto', 'home', 'away', 'holiday'].includes(a?.mode) ? a.mode : a?.on && a.source === 'manual' ? (a.until ? 'holiday' : 'away') : 'auto';
   function paint() {
     const mode = away ? modeOf(away) : null, shown = chosen || mode;
-    for (const b of modeButtons) { b.setAttribute('aria-pressed', String(b.dataset.houseMode === mode)); b.disabled = busy || !away; }
+    const off = busy || !away || failures >= 2;
+    for (const b of modeButtons) { b.setAttribute('aria-pressed', String(b.dataset.houseMode === mode)); b.disabled = off; }
     modeButtons.find(b => b.dataset.houseMode === 'home').hidden = !!away && !('mode' in away);
     holiday.hidden = shown !== 'holiday';
-    awayC.disabled = root.querySelector('[data-house-away-save]').disabled = busy || !away;
-    root.querySelector('[data-house-holiday-save]').disabled = busy || !away;
+    awayC.disabled = root.querySelector('[data-house-away-save]').disabled = off;
+    root.querySelector('[data-house-holiday-save]').disabled = off;
     lockBox.hidden = !locked;
     root.classList.toggle('hs-locked', locked);
     if (!away) return;
+    if (failures >= 2) { now.textContent = uiText("Status unavailable"); return; }
     const t = fixed(away.target_c) + ' °C';
     now.textContent = mode === 'home' ? uiText("At home: the rooms follow their week programs, also when everyone is away.")
       : mode === 'away' ? fill(uiText("Away: every room at most {t} until you switch back."), {t})
@@ -181,12 +185,15 @@
     presenceNow.textContent = uiText(away.presence === 'home' ? "Now: someone is home." : away.presence === 'away' ? "Now: everyone is away."
       : "Now: not known (no report from Home Assistant in the last 15 minutes). The E32 then counts the house as occupied.");
   }
+  const typed = () => { delete awayC.dataset.dirty; delete until.dataset.dirty; };
+  for (const field of [awayC, until]) field.addEventListener('input', () => { field.dataset.dirty = '1'; }, {signal: lifecycle.signal});
   function show(status) {
     const a = status?.away;
     if (a && typeof a === 'object' && typeof a.on === 'boolean') {
-      const first = !away; away = a;
-      if (first || document.activeElement !== awayC) awayC.value = Number.isFinite(a.target_c) ? a.target_c : '';
-      if (modeOf(a) === 'holiday' && Number.isFinite(a.until) && document.activeElement !== until) {
+      const first = !away, before = away && modeOf(away); away = a;
+      if (before && before !== modeOf(a)) typed(); // the house mode changed (here or elsewhere): show its values
+      if (first || (!awayC.dataset.dirty && document.activeElement !== awayC)) awayC.value = Number.isFinite(a.target_c) ? a.target_c : '';
+      if (modeOf(a) === 'holiday' && Number.isFinite(a.until) && !until.dataset.dirty && document.activeElement !== until) {
         const d = new Date(a.until * 1000); until.value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
       }
     }
@@ -200,14 +207,20 @@
   }
   async function refresh() {
     if (!root.isConnected) { clearInterval(timer); lifecycle.abort(); return; }
-    try { const status = await json('/status/heating'); errorBox.hidden = true; show(status); }
-    catch (_) { if (!away && !lifecycle.signal.aborted) { errorBox.hidden = false; now.textContent = uiText("Status unavailable"); } }
+    // A hidden tab does not poll (R3-02): every read renews the web session, and the E32 has only four.
+    if (document.visibilityState === 'hidden') return;
+    try { const status = await json('/status/heating'); failures = 0; errorBox.hidden = true; show(status); }
+    catch (_) {
+      if (lifecycle.signal.aborted) return;
+      // R3-17: also after the first answer, two failed reads in a row show the alert and hold the controls.
+      if (!away || ++failures >= 2) { errorBox.hidden = false; now.textContent = uiText("Status unavailable"); paint(); }
+    }
   }
   async function send(body, done) {
     busy = true; paint(); message.textContent = uiText("Saving…");
     try {
       await json('/config/heating/comfort', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-      chosen = null; message.textContent = uiText(done); await refresh();
+      chosen = null; typed(); message.textContent = uiText(done); await refresh();
     } catch (error) {
       if (lifecycle.signal.aborted) return;
       message.textContent = errorText[error.code] ? uiText(errorText[error.code])
@@ -242,6 +255,7 @@
   const removal = new MutationObserver(() => { if (!root.isConnected) { lifecycle.abort(); clearInterval(timer); removal.disconnect(); } });
   removal.observe(document.body, {childList: true, subtree: true});
   paint(); refresh(); timer = setInterval(refresh, 10000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); }, {signal: lifecycle.signal});
 })();
 </script>
 <script>
@@ -331,7 +345,7 @@
 })();
 </script>
 <script>
-// Flow temperature (E32 beta.19): the weather curve, the learned flow and optimum start, gas calibration and last night.
+// Flow temperature (E32 beta.19): weather compensation, the learned flow and optimum start, gas calibration and last night.
 // Settings: GET/POST /config/heating/flow, one field per change. State: /status/heating "flow", "learned.gas" and
 // "night_gas", from the house page's own 10 s refresh ('heating-status'). Firmware without the route keeps it hidden.
 (() => {
@@ -340,12 +354,12 @@
   const options = [...box.querySelectorAll('[data-flow-option]')], design = box.querySelector('[data-flow-design]');
   const message = box.querySelector('[data-flow-message]'), facts = box.querySelector('[data-flow-status]');
   const compare = box.querySelector('[data-flow-compare]'), night = box.querySelector('[data-flow-night]');
-  const sourceText = {rule:"Room control", curve:"Heating curve", learned:"Learned water temperature", optimum_start:"Smart warm-up (early start)"};
+  const sourceText = {rule:"Room control", curve:"Weather compensation", learned:"Learned water temperature", optimum_start:"Smart warm-up (early start)"};
   const smartState = box.querySelector('[data-smart-warmup-state]'), advanced = box.querySelector('[data-smart-warmup-advanced]');
   const curveState = box.querySelector('[data-curve-state]'), learnedState = box.querySelector('[data-learned-flow-state]');
   const stateText = {advice:"Advice only", applied:"In use", no_outdoor:"No outdoor temperature", no_room:"No room with a measurement",
     not_ready:"Still learning", holding:"Holding temperature", none:"No start planned", no_clock:"Clock not set"};
-  const slopeText = {design:"From the setting at −10 °C", learned:"Learned from this house"};
+  const slopeText = {design:"From the setting for hard frost (−10 °C)", learned:"Learned from this house"};
   const gasText = {no_meter:"No gas meter: estimate from the boiler power (rough)", collecting:"Gas meter connected, calibrating",
     calibrated:"Calibrated with the gas meter ({confidence})", meter_stale:"Gas meter not reporting"};
   const confidenceText = {low:"low", medium:"medium", high:"high"};
@@ -376,18 +390,18 @@
     if (settings && (!settings.apply_learned || !settings.weather_curve)) advanced.open = true;
     lines();
   }
-  // rc.3: what the heating curve and the learned water temperature use now, in plain words (FlowPolicy curve.state,
+  // rc.3: what weather compensation and the learned water temperature use now, in plain words (FlowPolicy curve.state,
   // slope_source and windows: a learned slope from CurveLearner's 6 steady periods; learned.state).
   const curveSteps = 6;
   let lastFlow = null; // the newest status "flow", so the lines follow a change of the options at once
   function lines() { curveState.textContent = curveLine(lastFlow?.curve); learnedState.textContent = learnedLine(lastFlow?.learned); }
   function curveLine(curve) {
     if (!settings || !curve || curve.state === 'no_room') return '';
-    if (!settings.weather_curve) return uiText("Heating curve: off, the water temperature follows the rooms only.");
-    if (curve.state === 'no_outdoor') return uiText("Heating curve: no outdoor temperature right now, so the water temperature follows the rooms only.");
-    if (curve.slope_source === 'learned') return uiText("Heating curve: learned for your house.");
-    return Number.isInteger(curve.windows) ? fill(uiText("Heating curve: standard for now, learning from your house ({n} of {m} steady periods)."), {n: Math.min(curve.windows, curveSteps), m: curveSteps})
-      : uiText("Heating curve: standard for now, learning from your house.");
+    if (!settings.weather_curve) return uiText("Weather compensation: off, the water temperature follows the rooms only.");
+    if (curve.state === 'no_outdoor') return uiText("Weather compensation: no outdoor temperature right now, so the water temperature follows the rooms only.");
+    if (curve.slope_source === 'learned') return uiText("Weather compensation: learned for your house.");
+    return Number.isInteger(curve.windows) ? fill(uiText("Weather compensation: standard for now, learning from your house ({n} of {m} steady periods)."), {n: Math.min(curve.windows, curveSteps), m: curveSteps})
+      : uiText("Weather compensation: standard for now, learning from your house.");
   }
   function learnedLine(learned) {
     if (!settings || !learned || typeof learned.state !== 'string' || learned.state === 'no_room') return '';
@@ -431,11 +445,12 @@
       const curve = flow.curve || {}, learned = flow.learned || {};
       const start = typeof flow.optimum_start === 'string' ? {state: flow.optimum_start} : flow.optimum_start || {};
       rows.push(["Water temperature now", join(label(sourceText, flow.source), status.request?.heat ? degrees(flow.applied_flow_c) : uiText("off"))]);
-      rows.push(["Heating curve", join(label(stateText, curve.state), degrees(curve.flow_c))]);
-      if (typeof curve.slope === 'number') rows.push(["Heating curve steepness", join(fixed(curve.slope, 2), label(slopeText, curve.slope_source))]);
+      rows.push(["Weather compensation", join(label(stateText, curve.state), degrees(curve.flow_c))]);
+      if (typeof curve.slope === 'number') rows.push(["Weather compensation steepness", join(fixed(curve.slope, 2), label(slopeText, curve.slope_source))]);
       rows.push(["Learned water temperature", join(label(stateText, learned.state), degrees(learned.flow_c))]);
       rows.push(["Smart warm-up", join(label(stateText, start.state),
-        start.state !== 'none' && Number.isFinite(start.start_utc) ? fill(uiText("planned start {time}"), {time: clock(start.start_utc)}) : null)]);
+        start.state !== 'none' && Number.isFinite(start.start_utc) ? fill(uiText("planned start {time}"), {time: clock(start.start_utc)}) : null,
+        start.estimate === true ? uiText("estimate") : null)]);
     }
     const gas = status.learned?.gas;
     if (gas && typeof gas === 'object') {
@@ -446,7 +461,7 @@
     facts.replaceChildren(...rows.flatMap(([k, v]) => [el('dt', uiText(k)), el('dd', v)]));
     const y = flow?.yesterday;
     compare.hidden = !(y && typeof y.rule_mean_c === 'number');
-    if (!compare.hidden) compare.textContent = fill(uiText("Yesterday while heating, water temperature: room control {rule} °C, heating curve {curve} °C, learned {learned} °C"),
+    if (!compare.hidden) compare.textContent = fill(uiText("Yesterday while heating, water temperature: room control {rule} °C, weather compensation {curve} °C, learned {learned} °C"),
       {rule: fixed(y.rule_mean_c, 1), curve: fixed(y.curve_mean_c, 1), learned: fixed(y.learned_mean_c, 1)});
     const last = status.night_gas?.last;
     night.hidden = !(last && typeof last === 'object');
@@ -476,6 +491,7 @@
   const care = root.querySelector('[data-house-care]'), list = care.querySelector('[data-care-list]'), fixedList = care.querySelector('[data-care-fixed]');
   const careMessage = care.querySelector('[data-care-message]'), stateLine = panel.querySelector('[data-learned-state]');
   const roomsBox = panel.querySelector('[data-learned-rooms]'), houseList = panel.querySelector('[data-learned-house]'), logList = panel.querySelector('[data-learned-log]');
+  const yesterdayBox = panel.querySelector('[data-learned-yesterday]'), scoreList = panel.querySelector('[data-learned-score]');
   const fill = (text, values) => Object.entries(values).reduce((t, [k, v]) => t.split('{' + k + '}').join(v), text);
   const num = (v, digits = 1) => Number(v).toFixed(digits).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace('.', document.documentElement.lang === 'nl' ? ',' : '.');
   const ok = v => typeof v === 'number' && Number.isFinite(v);
@@ -508,8 +524,8 @@
      show: v => fill(uiText("{d} per °C"), {d: duration(v)}), why: "How early heating starts for the next program step, until a floor-heated room has been learned."},
     {key: 'radiator_lead_min_per_c', auto: true, d: 45, scale: 1, step: 5, min: 10, max: 180, unit: "min", name: "Warm-up time for radiators",
      show: v => fill(uiText("{d} per °C"), {d: duration(v)}), why: "How early heating starts for the next program step, until a room with radiators has been learned."},
-    {key: 'curve_correction_pct', d: 50, scale: 1, step: 1, min: 0, max: 100, unit: "%", name: "Room correction on the heating curve",
-     show: v => v + ' %', why: "How much a room that is too cold adds to the water temperature of the heating curve."},
+    {key: 'curve_correction_pct', d: 50, scale: 1, step: 1, min: 0, max: 100, unit: "%", name: "Room correction on weather compensation",
+     show: v => v + ' %', why: "How much a room that is too cold adds to the water temperature of weather compensation."},
     {key: 'learned_accept_pct', d: 100, scale: 1, step: 1, min: 50, max: 200, unit: "%", name: "Accepted warm-up time with the learned water temperature",
      show: v => v + ' %', why: "More allows a slower warm-up at a lower, more economical water temperature."},
     {key: 'night_saving_min_pct', d: 2, scale: 1, step: 1, min: 0, max: 20, unit: "%", name: "Smallest night saving worth advising",
@@ -621,6 +637,8 @@
     collecting: "Yesterday there was too little heating to learn from; the settings stay as they are.",
     shadow: "Your own thermostat still controls the boiler, so the E32 only shows what it would change.",
     active: "The thermostat adjusts its settings itself, at most one small step a day."};
+  // The burner rest lengthened for many starts (F5, the same count as the Overview).
+  const restSteps = t => Array.isArray(t?.log) ? t.log.filter(e => Array.isArray(e) && e[1] === 'min_off_s' && e[4] === 'many_starts').length : 0;
   function sentence(c, names) {
     const [knobKey, from, to, reason, figure, room] = c, k = knob(knobKey);
     const key = reason === 'room_response' ? (to > from ? 'room_response_up' : 'room_response_down') : reason;
@@ -629,45 +647,99 @@
     return fill(uiText(reasons[key]), {to: k.show(to), figure: minutes ? duration(figure) : Number.isInteger(figure) ? String(figure) : num(figure, 2),
       room: room ? names[room] || room : uiText("A typical room")});
   }
+  // "More" (F7): the rest of a list, closed; once the owner opens one it stays open over the 10 s refresh.
+  const opened = new Set();
+  function moreList(key, items, shown) {
+    const box = document.createDocumentFragment(), first = document.createElement('ul');
+    first.className = 'hl-list'; first.append(...items.slice(0, shown)); box.append(first);
+    if (items.length > shown) {
+      const more = document.createElement('details'), summary = document.createElement('summary'), rest = document.createElement('ul');
+      more.className = 'ot-advanced hl-more'; more.dataset.more = key; summary.textContent = uiText("More");
+      rest.className = 'hl-list'; rest.append(...items.slice(shown)); more.append(summary, rest); more.open = opened.has(key);
+      more.addEventListener('toggle', () => { if (more.open) opened.add(key); else opened.delete(key); });
+      box.append(more);
+    }
+    return box;
+  }
+  // rc.4 arrival feedback (plan "arrival"): how warm the room was at its last judged program time, and the change of
+  // its warm-up time since (factor 1.1: it starts 10 % earlier than its standard).
+  const dayWord = d => {
+    const today = new Date(), before = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+    return d.toDateString() === today.toDateString() ? uiText("Today") : d.toDateString() === before.toDateString() ? uiText("Yesterday")
+      : d.toLocaleDateString(OpenThermostatLanguage.locale, {weekday: 'short', day: 'numeric', month: 'short'});
+  };
+  function arrivalLine(a) {
+    if (!a || typeof a !== 'object' || !ok(a.last_at_utc) || a.last_at_utc <= 0 || !ok(a.last_error_min)) return '';
+    const n = Math.round(a.last_error_min), values = {day: dayWord(new Date(a.last_at_utc * 1000)), time: clock(a.last_at_utc + n * 60), n: Math.abs(n)};
+    const went = fill(uiText(n > 0 ? "{day} warm at {time} ({n} min late)" : n < 0 ? "{day} warm at {time} ({n} min early)" : "{day} warm at {time}, on time"), values);
+    const pct = ok(a.factor) ? Math.round(Math.abs(a.factor - 1) * 100) : 0;
+    return went + (pct ? '; ' + fill(uiText(a.factor > 1 ? "tomorrow {pct} % earlier" : "tomorrow {pct} % later"), {pct}) : '') + '.';
+  }
   function roomCard(r, l, plan, names, outdoor, smartOn) {
     const card = document.createElement('article'); card.className = 'hl-room'; card.dataset.room = r.id;
     const h = document.createElement('h4'); h.textContent = names[r.id];
-    const badge = document.createElement('span');
-    const ul = document.createElement('ul');
-    card.append(h, badge, ul);
+    const badge = document.createElement('span'), ul = [], arrival = arrivalLine(plan?.arrival);
+    card.append(h, badge);
     const ready = l?.readiness === 'ready', seen = Math.min(6, ok(l?.segments) ? l.segments : 0);
     badge.className = 'hl-progress ot-chip' + (ready ? ' ot-chip--ok' : ''); // learned: the "ok" colour of every page
     badge.textContent = ready ? uiText("Learned") : fill(uiText("Learning: {n} of {m} warm-ups seen"), {n: seen, m: 6});
-    if (!ready) ul.append(item(uiText(seen >= 6 ? "It needs a few more warm-ups, on other days or at other water temperatures." : "It learns from every warm-up while the heating runs."),
-      uiText("Until then it uses safe standard times.")));
+    // rc.4 (L4): the warm-up time can be learned before the coolest water.
+    if (!ready) ul.push(l?.readiness_timing === 'ready' ? item(uiText("The warm-up time is learned; the coolest water is still being learned."), null)
+      : item(uiText(seen >= 6 ? "It needs a few more warm-ups, on other days or at other water temperatures." : "It learns from every warm-up while the heating runs."),
+        uiText("Until then it uses safe standard times.")));
     const advice = Array.isArray(l?.advice) ? l.advice.find(a => a && a.shortfall_c === 1) : null;
     if (ready && advice && ok(advice.rule_warmup_h) && ok(advice.rule_flow_c))
-      ul.append(item(fill(uiText("Warms about 1 °C in {d} with water of {flow} °C."), {d: duration(advice.rule_warmup_h * 60), flow: advice.rule_flow_c}),
+      ul.push(item(fill(uiText("Warms about 1 °C in {d} with water of {flow} °C."), {d: duration(advice.rule_warmup_h * 60), flow: advice.rule_flow_c}),
         uiText("The thermostat plans the start of every warm-up with this.")));
     if (ready && advice && ok(advice.flow_c) && /^(learned|lowest_learned)$/.test(advice.reason))
-      ul.append(item(fill(uiText("The lowest water temperature that still warms it in time: {flow} °C."), {flow: advice.flow_c}),
+      ul.push(item(fill(uiText("The lowest water temperature that still warms it in time: {flow} °C."), {flow: advice.flow_c}),
         uiText("Cooler water lets the boiler condense better, so it uses less gas.")));
     if (ok(l?.loss_per_h)) {
       const out = ok(outdoor) ? outdoor : 5, inside = ok(r.temperature) ? r.temperature : 20;
-      ul.append(item(fill(uiText("Loses about {rate} °C per hour at {out} °C outside."), {rate: num(Math.max(0, l.loss_per_h * (inside - out)), 2), out: num(out, 0)}),
+      ul.push(item(fill(uiText("Loses about {rate} °C per hour at {out} °C outside."), {rate: num(Math.max(0, l.loss_per_h * (inside - out)), 2), out: num(out, 0)}),
         uiText("This is how fast it cools when the heating is off, for example at night.")));
     }
     // rc.3 Smart warm-up: the same line as the room on the Overview (index.html smartWarmupLine).
+    // With the arrival feedback (rc.4) as its second line: how the last morning went.
     const start = plan?.optimum_start, line = typeof smartWarmupLine === 'function' ? smartWarmupLine(start, smartOn) : '';
+    let lead = null;
     if (line) {
       const applies = typeof start.applies === 'boolean' ? start.applies : start.confidence === 'learned';
-      ul.append(item(line, uiText(smartOn === false ? "Turn Smart warm-up on (Heating settings → Advanced) to be warm on time."
-        : applies ? "So the room is warm on time, without heating longer than needed." : "Until the room has been learned, it does not start early on an estimate.")));
-    }
+      lead = item(line, smartOn === false ? uiText("Turn Smart warm-up on (Heating settings → Advanced) to be warm on time.")
+        : arrival || uiText(applies ? "So the room is warm on time, without heating longer than needed." : "Until the room has been learned, it does not start early on an estimate."));
+    } else if (arrival) lead = item(arrival, null);
     const night = plan?.night;
     if (night?.reason === 'estimated' && typeof night.recommended === 'string') {
       const hold = night.recommended !== 'program' && night.recommended !== 'thermostat_like';
       const saving = ok(night.saving_eur) && night.saving_eur > 0 ? fill(uiText("about {m3} m³ gas (€ {eur}) a night"), {m3: num(night.saving_m3, 2), eur: num(night.saving_eur, 2)})
         : fill(uiText("about {m3} m³ gas a night"), {m3: num(ok(night.saving_m3) ? night.saving_m3 : 0, 2)});
-      ul.append(item(hold && ok(night.recommended_night_c) ? fill(uiText("Keeping it at {night} °C at night is cheaper than letting it cool down: {saving}."), {night: num(night.recommended_night_c, 1), saving})
+      ul.push(item(hold && ok(night.recommended_night_c) ? fill(uiText("Keeping it at {night} °C at night is cheaper than letting it cool down: {saving}."), {night: num(night.recommended_night_c, 1), saving})
         : uiText("Letting it cool down at night, as your program does, is the cheapest."), uiText("This is advice: your week program stays as it is.")));
     }
+    // Two lines per room (F7): its progress and the Smart warm-up line (else the first one); the rest under "More".
+    card.append(moreList('room:' + r.id, lead ? [lead, ...ul] : ul, 1));
     return card;
+  }
+  // rc.4 scoreboard: yesterday in figures; whatever the E32 did not measure is left out.
+  function scoreboard(day, names) {
+    const rows = [];
+    if (day && typeof day === 'object') {
+      if (ok(day.heating_h)) rows.push([uiText("Heating time"), fill(uiText("{h} h"), {h: num(day.heating_h, 1)})]);
+      if (ok(day.heating_starts_per_h)) rows.push([uiText("Burner starts per heating hour"), num(day.heating_starts_per_h, 1)]);
+      if (ok(day.short_cycle_h)) rows.push([uiText("Short burner runs"), fill(uiText("{h} h"), {h: num(day.short_cycle_h, 1)})]);
+      if (ok(day.heating_kwh)) rows.push([uiText("Gas for heating (estimate)"), num(day.heating_kwh, 1) + ' kWh']);
+      if (ok(day.degree_days)) rows.push([uiText("Degree days (how cold it was)"), num(day.degree_days, 1)]);
+      for (const room of Array.isArray(day.rooms) ? day.rooms : []) {
+        if (!room || typeof room.id !== 'string') continue;
+        const facts = [], late = ok(room.on_time_min) ? Math.round(room.on_time_min) : null;
+        if (late !== null) facts.push(late > 0 ? fill(uiText("warm {n} min late"), {n: late}) : late < 0 ? fill(uiText("warm {n} min early"), {n: -late}) : uiText("warm on time"));
+        if (ok(room.overshoot_c) && room.overshoot_c >= 0.05) facts.push(fill(uiText("{c} °C too warm"), {c: num(room.overshoot_c, 1)}));
+        if (facts.length) rows.push([names[room.id] || room.id, facts.join(' · ')]); // a room name is data, never translated
+      }
+    }
+    const el = (tag, text) => { const e = document.createElement(tag); e.textContent = text; return e; };
+    scoreList.replaceChildren(...rows.flatMap(([k, v]) => [el('dt', k), el('dd', v)]));
+    yesterdayBox.hidden = !rows.length;
   }
   function render(status) {
     const learned = status.learned && typeof status.learned === 'object' ? status.learned : null, t = status.tuning && typeof status.tuning === 'object' ? status.tuning : null;
@@ -679,17 +751,19 @@
     const lr = byId(learned?.rooms), plans = byId(learned?.plans?.rooms);
     roomsBox.replaceChildren(...rooms.filter(r => r.state !== 'inactive').map(r => roomCard(r, lr[r.id], plans[r.id], names, learned?.outdoor_c, status.flow?.settings?.apply_learned)));
     const house = [], curve = status.flow?.curve;
-    if (curve && ok(curve.slope)) house.push(item(fill(uiText(curve.slope_source === 'learned' ? "Heating curve, learned from your house: the water gets about {s} °C warmer for every degree colder outside."
-      : "Heating curve: the water gets about {s} °C warmer for every degree colder outside."), {s: num(curve.slope, 2)}),
-      uiText(status.flow?.settings?.weather_curve ? "The heating curve sets the water temperature, so the boiler runs as cool as the weather allows." : "The heating curve is not switched on; this is shown as advice.")));
+    if (curve && ok(curve.slope)) house.push(item(fill(uiText(curve.slope_source === 'learned' ? "Weather compensation, learned from your house: the water gets about {s} °C warmer for every degree colder outside."
+      : "Weather compensation: the water gets about {s} °C warmer for every degree colder outside."), {s: num(curve.slope, 2)}),
+      uiText(status.flow?.settings?.weather_curve ? "Weather compensation sets the water temperature, so the boiler runs as cool as the weather allows." : "Weather compensation is not switched on; this is shown as advice.")));
     const y = t?.yesterday;
     if (y && ok(y.starts)) house.push(item(y.burns > 0 ? fill(uiText("Yesterday the burner started {n} times for heating; a burn lasted {d} on average."), {n: y.starts, d: duration(y.burn_s / 60)})
       : fill(uiText("Yesterday the burner started {n} times for heating."), {n: y.starts}),
-      uiText(y.heating_h > 0 && y.starts > 3 * y.heating_h ? "That is often. Fewer, longer burns are gentler on the boiler; the thermostat works on that." : "Fewer, longer burns are gentler on the boiler and use gas more efficiently.")));
+      y.heating_h > 0 && y.starts > 3 * y.heating_h && t.state === 'active' && restSteps(t) ? fill(uiText("The burner starts often; the E32 lengthens the burner rest step by step (step {n})."), {n: restSteps(t)})
+        : uiText(y.heating_h > 0 && y.starts > 3 * y.heating_h ? "That is often. Fewer, longer burns are gentler on the boiler; the thermostat works on that." : "Fewer, longer burns are gentler on the boiler and use gas more efficiently.")));
     if (ok(learned?.boiler_minimum_flow_c)) house.push(item(fill(uiText("Your boiler only starts heating from about {flow} °C water; the thermostat asks at least that much."), {flow: learned.boiler_minimum_flow_c}),
       uiText("It learned this when the boiler did not start for cooler water.")));
     if (!house.length) house.push(item(uiText("Nothing yet: this appears after the first heating days."), null));
-    houseList.replaceChildren(...house);
+    houseList.replaceChildren(moreList('house', house, 1));
+    scoreboard(status.scoreboard?.yesterday, names);
     stateLine.textContent = t && states[t.state] ? uiText(states[t.state]) : '';
     const changes = [];
     for (const w of Array.isArray(t?.would) ? t.would : []) { const s = Array.isArray(w) && sentence(w, names); if (s) changes.push(item(s, null, uiText("Would change:"))); }
@@ -698,7 +772,7 @@
       if (s) changes.push(item(s, null, new Date(c[0] * 1000).toLocaleDateString(OpenThermostatLanguage.locale, {day: 'numeric', month: 'short'})));
     }
     if (!changes.length) changes.push(item(uiText("Nothing changed yet: the start values still fit, or there is not enough to go on."), null));
-    logList.replaceChildren(...changes);
+    logList.replaceChildren(moreList('log', changes, 3)); // the newest three, the rest under "More"
     // Another tab or Home Assistant may have changed the knobs: the status carries those in effect.
     if (t && tuning && !busy && t.values && typeof t.values === 'object' && Array.isArray(t.manual)) { tuning = t.values; manual = t.manual; paint(); }
   }

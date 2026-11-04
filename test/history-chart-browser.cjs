@@ -68,6 +68,12 @@ function history(){
   assert.equal(await living.locator('svg.oth-chart').getAttribute('role'),'img');
   assert.match(await living.locator('svg.oth-chart').getAttribute('aria-label'),/^Living: /);
   assert.deepEqual(await living.locator('.oth-legend span').allInnerTexts(),lang==='en'?['Measured','Target']:['Gemeten','Gewenst']);
+  // rc.4 F7: room above and below the lines, so the target of 21.0 °C (a tick) does not sit on the edge of the plot.
+  const edges=await living.locator('svg.oth-chart').evaluate(svg=>{
+   const ys=[...svg.querySelectorAll('path.oth-line')].flatMap(p=>[...p.getAttribute('d').matchAll(/[ML][\d.]+,([\d.]+)/g)].map(m=>Number(m[1])));
+   const grid=[...svg.querySelectorAll('line.oth-grid')].map(l=>Number(l.getAttribute('y1')));
+   return {top:Math.min(...ys),bottom:Math.max(...ys),gridTop:Math.min(...grid),gridBottom:Math.max(...grid)};});
+  assert(edges.top>edges.gridTop&&edges.bottom<edges.gridBottom,JSON.stringify(edges));
   // The boiler: one degC axis for flow, return and both requests; the burner on its own strip.
   const boiler=page.locator('.pd-history');
   assert.deepEqual(await boiler.locator('.oth-legend span').allInnerTexts(),lang==='en'?['Water to heating','Water back','E32 request','Thermostat request','Burner on (share of each 5 minutes)','Tapping','Keeping warm']:

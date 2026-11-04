@@ -1,5 +1,5 @@
 // Home page (E32 rc.2) with simulated HTTP: "What the thermostat has learned" (per room: learning progress, how fast it
-// warms and cools, the lowest water temperature, the planned start and the night advice; the heating curve, the burner
+// warms and cools, the lowest water temperature, the planned start and the night advice; weather compensation, the burner
 // and the self-tuning's changes) and "Comfort and boiler care" (the knobs of /config/heating/flow: automatic or set by
 // the owner, back to automatic, back to start values). English on a desktop in light, Dutch on a phone in dark.
 const {chromium}=require('playwright-core');
@@ -31,7 +31,8 @@ const fixture=()=>({schema:1,revision:4,mode:'active',request:{heat:true,flow_c:
    yesterday:{starts:59,heating_h:14,burns:58,burn_s:420},today:{starts:12,heating_h:5},would:[],
    log:[[1793232000,'heat_stop_c',0.2,0.15,'overshoot',0.6,'woonkamer'],[1793145600,'min_off_s',450,600,'many_starts',59,''],
     [1793059200,'floor_lead_min_per_c',120,90,'learned_warmup',90,'woonkamer']]}});
-const texts=list=>list.evaluateAll(l=>l.map(e=>e.innerText.replace(/\s+/g,' ').trim()));
+// textContent: the figures under a closed "More" are read too (rc.4).
+const texts=list=>list.evaluateAll(l=>l.map(e=>e.textContent.replace(/\s+/g,' ').trim()));
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[];
  try{for(const [width,scheme,lang] of [[1280,'light','en'],[360,'dark','nl']]){
@@ -79,41 +80,67 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.innerText.replace(/\s+/g,' ').t
    `Smart warm-up is still learning: for now heating starts at ${await at(rise)} (estimate: from ${await at(start+3000)} it would be 18 °C on time).`],
    [`Slim opwarmen: begint om ${await at(start)}, zodat het om ${await at(rise)} 21 °C is.`,
    `Slim opwarmen leert nog: voorlopig begint verwarmen om ${await at(rise)} (schatting: vanaf ${await at(start+3000)} zou het op tijd 18 °C zijn).`]));
+  // rc.4 learning on the Home page: the living room's arrival feedback (warm 12 min late yesterday at 09:00, the
+  // warm-up 10 % longer since), the bedroom's warm-up time learned before its coolest water and a start on an
+  // estimate (rc.4: "applies" and "estimate"), and the scoreboard's yesterday.
+  const yesterdayNine=await page.evaluate(()=>{const d=new Date();d.setDate(d.getDate()-1);d.setHours(9,0,0,0);return Math.floor(d/1000);});
+  status.learned.plans.rooms[0].arrival={factor:1.1,events:3,last_error_min:12,last_at_utc:yesterdayNine};
+  status.learned.rooms[1].readiness_timing='ready';
+  Object.assign(status.learned.plans.rooms[1].optimum_start,{applies:true,estimate:true});
+  status.scoreboard={yesterday:{day:'2026-11-03',heating_h:9,heating_starts_per_h:2.1,short_cycle_h:0.5,heating_kwh:18.2,degree_days:9.4,
+   rooms:[{id:'woonkamer',on_time_min:12,overshoot_c:0.3},{id:'slaapkamer',on_time_min:null,overshoot_c:null}]},today:null};
   await page.evaluate(()=>{sessionStorage.removeItem('ot-rooms-edit');loadNativePage('house');});
   const root=page.locator('#house-settings'),learned=root.locator('[data-house-learned]'),care=root.locator('[data-house-care]');
   await learned.getByRole('heading',{name:t('What the thermostat has learned','Wat de thermostaat heeft geleerd')}).waitFor();
   const clock=utc=>page.evaluate(([u,l])=>new Date(u*1000).toLocaleTimeString(l,{hour:'2-digit',minute:'2-digit'}),[utc,lang==='nl'?'nl-NL':'en-GB']);
-  // Per room: progress, then each figure with what it means; an inactive room is left out.
+  // Per room: progress and the Smart warm-up line with how the last morning went; each other figure with what it
+  // means under "More" (rc.4: two lines per room); an inactive room is left out.
   const cards=learned.locator('.hl-room');
   assert.equal(await cards.count(),2);
   assert.equal(await cards.nth(0).locator('.hl-progress').innerText(),t('Learned','Geleerd'));
   const living=await texts(cards.nth(0).locator('li'));
   assert.deepEqual(living,lang==='en'?[
+   `Smart warm-up: starts at ${await clock(start)} so it is 21 °C at ${await clock(rise)}. Yesterday warm at ${await clock(yesterdayNine+720)} (12 min late); tomorrow 10 % earlier.`,
    'Warms about 1 °C in 1 h 15 min with water of 40 °C. The thermostat plans the start of every warm-up with this.',
    'The lowest water temperature that still warms it in time: 34 °C. Cooler water lets the boiler condense better, so it uses less gas.',
    'Loses about 0.31 °C per hour at 5 °C outside. This is how fast it cools when the heating is off, for example at night.',
-   `Smart warm-up: starts at ${await clock(start)} so it is 21 °C at ${await clock(rise)}. So the room is warm on time, without heating longer than needed.`,
    'Keeping it at 19 °C at night is cheaper than letting it cool down: about 0.12 m³ gas (€ 0.15) a night. This is advice: your week program stays as it is.']:[
+   `Slim opwarmen: begint om ${await clock(start)}, zodat het om ${await clock(rise)} 21 °C is. Gisteren warm om ${await clock(yesterdayNine+720)} (12 min te laat); morgen 10 % eerder.`,
    'Warmt ongeveer 1 °C op in 1 u 15 min met water van 40 °C. Hiermee plant de thermostaat de start van elke keer opwarmen.',
    'De laagste watertemperatuur die nog op tijd opwarmt: 34 °C. Met koeler water condenseert de ketel beter, dus verbruikt hij minder gas.',
    'Verliest ongeveer 0,31 °C per uur bij 5 °C buiten. Zo snel koelt de ruimte af als de verwarming uit is, bijvoorbeeld \'s nachts.',
-   `Slim opwarmen: begint om ${await clock(start)}, zodat het om ${await clock(rise)} 21 °C is. Zo is de ruimte op tijd warm, zonder langer te verwarmen dan nodig.`,
    '\'s Nachts op 19 °C houden is goedkoper dan laten afkoelen: ongeveer 0,12 m³ gas (€ 0,15) per nacht. Dit is een advies: je weekprogramma blijft zoals het is.']);
+  // Two lines per room: the first figure visible, the others under a closed "More".
+  const firstLine=cards.nth(0).locator('li').nth(0),more=cards.nth(0).locator('details.hl-more');
+  assert.equal(await firstLine.isVisible(),true);assert.equal(await cards.nth(0).locator('li').nth(1).isVisible(),false);
+  assert.equal(await more.locator('summary').innerText(),t('More','Meer'));
+  // Opened, it stays open over the page's refresh.
+  await more.locator('summary').click();assert.equal(await cards.nth(0).locator('li').nth(1).isVisible(),true);
+  await page.evaluate(async()=>{const s=await (await fetch('/status/heating')).json();document.getElementById('house-settings').dispatchEvent(new CustomEvent('heating-status',{detail:s}));});
+  assert.equal(await learned.locator('.hl-room').nth(0).locator('details.hl-more').evaluate(d=>d.open),true);
   assert.equal(await cards.nth(1).locator('.hl-progress').innerText(),t('Learning: 3 of 6 warm-ups seen','Aan het leren: 3 van 6 keer opwarmen gezien'));
   const bedroom=await texts(cards.nth(1).locator('li'));
-  assert.equal(bedroom[0],t('It learns from every warm-up while the heating runs. Until then it uses safe standard times.',
-   'Hij leert van elke keer opwarmen terwijl de verwarming aan staat. Tot dan gebruikt hij veilige standaardtijden.'));
-  // Not learned yet (a default estimate): heating starts at the program time; the estimate is shown.
-  assert.equal(bedroom[1],t(`Smart warm-up is still learning: for now heating starts at ${await clock(rise)} (estimate: from ${await clock(start+3000)} it would be 18 °C on time). Until the room has been learned, it does not start early on an estimate.`,
-   `Slim opwarmen leert nog: voorlopig begint verwarmen om ${await clock(rise)} (schatting: vanaf ${await clock(start+3000)} zou het op tijd 18 °C zijn). Zolang de ruimte niet geleerd is, begint hij niet eerder op een schatting.`));
+  // rc.4 (L3): a start on an estimate says so; it is used, and it learns from every morning.
+  assert.equal(bedroom[0],t(`Smart warm-up: starts at ${await clock(start+3000)} so it is 18 °C at ${await clock(rise)} (estimate; it learns from every morning). So the room is warm on time, without heating longer than needed.`,
+   `Slim opwarmen: begint om ${await clock(start+3000)}, zodat het om ${await clock(rise)} 18 °C is (schatting; hij leert van elke ochtend). Zo is de ruimte op tijd warm, zonder langer te verwarmen dan nodig.`));
+  // rc.4 (L4): the warm-up time is learned before the coolest water.
+  assert.equal(bedroom[1],t('The warm-up time is learned; the coolest water is still being learned.','De opwarmtijd is geleerd; het koelste water leert hij nog.'));
   assert.equal(bedroom[2],t('Letting it cool down at night, as your program does, is the cheapest. This is advice: your week program stays as it is.',
    '\'s Nachts laten afkoelen, zoals je programma doet, is het goedkoopst. Dit is een advies: je weekprogramma blijft zoals het is.'));
-  // House and boiler; the self-tuning's state and its changes in words, the newest first.
+  // The scoreboard's yesterday: the figures the E32 measured; a room without any is left out.
+  const score=await learned.locator('[data-learned-score]').evaluate(dl=>[...dl.querySelectorAll('dt')].map(dt=>[dt.textContent,dt.nextElementSibling.textContent]));
+  assert.deepEqual(score,lang==='en'?[['Heating time','9 h'],['Burner starts per heating hour','2.1'],['Short burner runs','0.5 h'],['Gas for heating (estimate)','18.2 kWh'],
+   ['Degree days (how cold it was)','9.4'],['Woonkamer','warm 12 min late · 0.3 °C too warm']]:[['Stooktijd','9 u'],['Branderstarts per stookuur','2,1'],
+   ['Korte brandtijden','0,5 u'],['Gas voor verwarmen (schatting)','18,2 kWh'],['Graaddagen (hoe koud het was)','9,4'],['Woonkamer','12 min te laat warm · 0,3 °C te warm']]);
+  assert.equal(await learned.locator('[data-learned-yesterday] h3').innerText(),t('Yesterday','Gisteren'));
+  // House and boiler: the first item, the rest under "More"; the self-tuning's state and its changes in words, the newest first.
+  assert.equal(await learned.locator('[data-learned-house] li').nth(1).isVisible(),false);
   assert.deepEqual(await texts(learned.locator('[data-learned-house] li')),lang==='en'?[
-   'Heating curve, learned from your house: the water gets about 0.62 °C warmer for every degree colder outside. The heating curve sets the water temperature, so the boiler runs as cool as the weather allows.',
-   'Yesterday the burner started 59 times for heating; a burn lasted 7 min on average. That is often. Fewer, longer burns are gentler on the boiler; the thermostat works on that.']:[
-   'Stooklijn, geleerd van je huis: het water wordt ongeveer 0,62 °C warmer voor elke graad kouder buiten. De stooklijn bepaalt de watertemperatuur, zodat de ketel zo koel draait als het weer toelaat.',
-   'Gisteren startte de brander 59 keer voor verwarmen; hij brandde gemiddeld 7 min. Dat is vaak. Minder en langer branden is beter voor de ketel; de thermostaat werkt daaraan.']);
+   'Weather compensation, learned from your house: the water gets about 0.62 °C warmer for every degree colder outside. Weather compensation sets the water temperature, so the boiler runs as cool as the weather allows.',
+   // rc.4 F5: often, and the self-tuning lengthened the rest once (the "many_starts" change in its log).
+   'Yesterday the burner started 59 times for heating; a burn lasted 7 min on average. The burner starts often; the E32 lengthens the burner rest step by step (step 1).']:[
+   'Weerafhankelijke regeling, geleerd van je huis: het water wordt ongeveer 0,62 °C warmer voor elke graad kouder buiten. De weerafhankelijke regeling bepaalt de watertemperatuur, zodat de ketel zo koel draait als het weer toelaat.',
+   'Gisteren startte de brander 59 keer voor verwarmen; hij brandde gemiddeld 7 min. De brander gaat vaak kort aan; de E32 verlengt de rusttijd stap voor stap (stap 1).']);
   assert.equal(await learned.locator('[data-learned-state]').innerText(),t('The thermostat adjusts its settings itself, at most one small step a day.',
    'De thermostaat past zijn instellingen zelf aan, hooguit één kleine stap per dag.'));
   const log=await texts(learned.locator('[data-learned-log] li'));
@@ -136,7 +163,7 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.innerText.replace(/\s+/g,' ').t
   assert.equal(await head('floor_lead_min_per_c'),t('Warm-up time for floor heating: 2 h per °C (automatic)','Opwarmtijd voor vloerverwarming: 2 u per °C (automatisch)'));
   assert.match(await knob('min_off_s').innerText(),t(/so the boiler switches on and off less often\./,/zodat de ketel minder vaak aan en uit gaat\./));
   assert.equal(await care.locator('details.hc-more').evaluate(d=>d.open),false,'the fixed knobs start collapsed');
-  assert.equal(await knob('curve_correction_pct').locator('div').first().evaluate(e=>e.textContent.replace(/\s+/g,' ')),t('Room correction on the heating curve: 50 % (standard value)','Ruimtecorrectie op de stooklijn: 50 % (standaardwaarde)'));
+  assert.equal(await knob('curve_correction_pct').locator('div').first().evaluate(e=>e.textContent.replace(/\s+/g,' ')),t('Room correction on weather compensation: 50 % (standard value)','Ruimtecorrectie op de weerafhankelijke regeling: 50 % (standaardwaarde)'));
   // Read-only while Home Assistant manages the settings; editable once unlocked.
   const own=knob('min_on_s').getByRole('button',{name:t('Set it myself','Zelf instellen')});
   assert.equal(await own.isDisabled(),true);
@@ -191,6 +218,9 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.innerText.replace(/\s+/g,' ').t
   assert.equal(await learned.locator('[data-learned-state]').innerText(),t('Your own thermostat still controls the boiler, so the E32 only shows what it would change.',
    'Je eigen thermostaat regelt de ketel nog, dus de E32 laat alleen zien wat hij zou aanpassen.'));
   assert.deepEqual(await texts(learned.locator('[data-learned-house] li')),[t('Nothing yet: this appears after the first heating days.','Nog niets: dit verschijnt na de eerste dagen met verwarming.')]);
+  // Firmware without the scoreboard: no "Yesterday" block.
+  assert.equal(await learned.locator('[data-learned-yesterday]').isVisible(),true);delete status.scoreboard;
+  await learned.locator('[data-learned-yesterday]').waitFor({state:'hidden',timeout:15000});
   // Firmware before rc.2: neither panel.
   route=false;status=fixture();delete status.tuning;delete status.learned;
   await page.evaluate(()=>loadNativePage('house'));

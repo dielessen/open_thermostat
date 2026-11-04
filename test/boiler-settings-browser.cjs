@@ -38,7 +38,7 @@ const devices={enabled:true,inventory:{schema:1,capacity:16,untracked_frames:0,d
    let body=fs.readFileSync(file);if(p.endsWith('.gz'))body=zlib.gunzipSync(body);
    return route.fulfill({contentType:/\.js(?:\.gz)?$/.test(p)?'application/javascript':p.endsWith('.css.gz')?'text/css':'text/html',body});
   });
-  await page.goto('http://opth.test/');await page.locator('#auth-sign-out').waitFor();
+  await page.goto('http://opth.test/');await page.locator('[data-sign-out-item]:not([hidden]) #auth-sign-out').waitFor({state:'attached'});
   const button=page.locator('#ems-setting-submit'),note=page.locator('#ems-settings-operation');
   async function reset(next='accepted'){
    state=metadata();mode=next;held=null;

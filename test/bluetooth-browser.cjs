@@ -37,7 +37,7 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
    return route.fulfill({contentType:/\.js(?:\.gz)?$/.test(p)?'application/javascript':p.endsWith('.css.gz')?'text/css':'text/html',body});
   });
   data.nearby.push('aabbccddeeff');data.nearby_devices=[{address:data.nearby[0],name:'Saved sensor',rssi:-60},{address:'aabbccddeeff',name:'Sensor <img src=x>',rssi:-72}];
-  await page.goto('http://opth.test/');await page.locator('#auth-sign-out').waitFor();if(await page.locator('.navbar-toggler').isVisible())await page.locator('.navbar-toggler').click();await page.locator('#navbarDropdownMenuLink').click();await page.locator('a[data-page="bluetooth"]').click();
+  await page.goto('http://opth.test/');await page.locator('[data-sign-out-item]:not([hidden]) #auth-sign-out').waitFor({state:'attached'});if(await page.locator('.navbar-toggler').isVisible())await page.locator('.navbar-toggler').click();await page.locator('#navbarDropdownMenuLink').click();await page.locator('a[data-page="bluetooth"]').click();
   const root=page.locator('#bluetooth-page'),status=page.locator('#ble-status'),box=page.locator('#ble-rows fieldset');await box.waitFor();
   await page.waitForFunction(()=>document.querySelector('#ble-save')?.disabled===false);
   const found=page.locator('#ble-nearby');

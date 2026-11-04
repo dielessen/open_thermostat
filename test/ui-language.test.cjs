@@ -46,3 +46,15 @@ test('English defaults, unsupported preference falls back, whitespace and HTML e
  assert.equal(nl.uiHtml('<input value="Settings"><p>Settings</p>'),'<input value="Settings"><p>Instellingen</p>');
  assert.equal(nl.uiText('constructor'),'constructor');
 });
+test('the E32 room why line uses the words of the Reason sensor in Home Assistant (rc.4 F3)',()=>{
+ const base=path.join(root,'ha/config/custom_components/open_thermostat/translations');
+ const words=lang=>JSON.parse(fs.readFileSync(path.join(base,lang+'.json'))).entity.sensor.room_reason.state_attributes;
+ const en=words('en'),nl=words('nl'),index=fs.readFileSync(path.join(root,'data/html/index.html'),'utf8');
+ // Every sentence the E32 can say (it never knows a contact's name), and the icon and valve labels.
+ const pairs=[...Object.keys(en.line.state).filter(k=>!k.endsWith('_contact')).map(k=>[en.line.state[k],nl.line.state[k]]),
+  ...['presence','window'].flatMap(a=>Object.keys(en[a].state).map(k=>[en[a].state[k],nl[a].state[k]])),[en.valve_position.name,nl.valve_position.name]];
+ for(const [english,dutch] of pairs){
+  assert.equal(core[english],dutch,english);
+  assert(index.includes('"'+english+'"'),'index.html says '+english);
+ }
+});

@@ -2,12 +2,12 @@
 <html lang="en">
 
 <head>
-    <script src="/ui-messages.js"></script>
     <script src="/ui-language.js"></script>
 	<script src="/auth-client.js"></script>
 	<script src="/boiler-data.js"></script>
 	<script src="/boiler-display.js"></script>
-	<script src="/display-codes.js"></script>
+	<!-- The display codes in the page's language only (R3-20): display-codes.js or display-codes-nl.js. -->
+	<script>if (document.write) document.write('<script src="/display-codes' + (window.OpenThermostatLanguage && OpenThermostatLanguage.language === 'nl' ? '-nl' : '') + '.js"><\/script>');</script>
 	<script src="/device-restart.js" defer></script>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -96,8 +96,8 @@
 	<title>OpenThermostat</title>
 <style>
 /* OpenThermostat design system: tokens (light + dark), Bootstrap 4 bridge, shared components. */
-:root{color-scheme:light dark;--ot-bg:#f6f8f8;--ot-surface:#fff;--ot-surface-2:#f1f5f5;--ot-border:#c9d6d8;--ot-field:#7a8f93;--ot-text:#173b40;--ot-muted:#4f666b;--ot-accent:#08665b;--ot-accent-ink:#fff;--ot-accent-soft:#e0f2ee;--ot-focus:#b06313;--ot-ok:#0b6b3a;--ot-ok-bg:#dcf3e6;--ot-warn:#7a4a00;--ot-warn-bg:#fff1d6;--ot-err:#a1261d;--ot-err-bg:#fde4e1;--ot-off:#4f5b61;--ot-off-bg:#e8ecee;--ot-nav:#123c41;--ot-r1:8px;--ot-r2:14px;--ot-tap:44px}
-@media (prefers-color-scheme:dark){:root{--ot-bg:#0f1719;--ot-surface:#162124;--ot-surface-2:#1d2b2f;--ot-border:#2f4247;--ot-field:#6f878c;--ot-text:#e3eeef;--ot-muted:#a3b7bb;--ot-accent:#4cc2b0;--ot-accent-ink:#06201c;--ot-accent-soft:#163a35;--ot-focus:#f0a35a;--ot-ok:#7fdba6;--ot-ok-bg:#143524;--ot-warn:#f3c56b;--ot-warn-bg:#3a2c10;--ot-err:#ff9d93;--ot-err-bg:#3d1714;--ot-off:#b4c0c4;--ot-off-bg:#263337;--ot-nav:#0a1315}}
+:root{color-scheme:light dark;--ot-away:#4a7cc0;--ot-bg:#f6f8f8;--ot-surface:#fff;--ot-surface-2:#f1f5f5;--ot-border:#c9d6d8;--ot-field:#7a8f93;--ot-text:#173b40;--ot-muted:#4f666b;--ot-accent:#08665b;--ot-accent-ink:#fff;--ot-accent-soft:#e0f2ee;--ot-focus:#b06313;--ot-ok:#0b6b3a;--ot-ok-bg:#dcf3e6;--ot-warn:#7a4a00;--ot-warn-bg:#fff1d6;--ot-err:#a1261d;--ot-err-bg:#fde4e1;--ot-off:#4f5b61;--ot-off-bg:#e8ecee;--ot-nav:#123c41;--ot-r1:8px;--ot-r2:14px;--ot-tap:44px}
+@media (prefers-color-scheme:dark){:root{--ot-away:#8fb4e8;--ot-bg:#0f1719;--ot-surface:#162124;--ot-surface-2:#1d2b2f;--ot-border:#2f4247;--ot-field:#6f878c;--ot-text:#e3eeef;--ot-muted:#a3b7bb;--ot-accent:#4cc2b0;--ot-accent-ink:#06201c;--ot-accent-soft:#163a35;--ot-focus:#f0a35a;--ot-ok:#7fdba6;--ot-ok-bg:#143524;--ot-warn:#f3c56b;--ot-warn-bg:#3a2c10;--ot-err:#ff9d93;--ot-err-bg:#3d1714;--ot-off:#b4c0c4;--ot-off-bg:#263337;--ot-nav:#0a1315}}
 body{background:var(--ot-bg);color:var(--ot-text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 h1,h2,h3,h4,h5,legend{color:var(--ot-text);font-weight:700}h1{font-size:1.75rem}h2{font-size:1.25rem}h3,legend{font-size:1.05rem}
 a,a:hover{color:var(--ot-accent)}:focus-visible{outline:3px solid var(--ot-focus)!important;outline-offset:2px}
@@ -124,9 +124,9 @@ summary{cursor:pointer;min-height:var(--ot-tap);padding:10px 0;font-weight:600}d
 .device-navbar{background:var(--ot-nav)!important;padding:4px 12px}.device-navbar .navbar-brand{display:flex;align-items:center;gap:.5rem;min-width:0;font-weight:700;color:#fff}.device-navbar .navbar-brand svg{flex-shrink:0}.device-navbar .navbar-brand span{min-width:0;overflow:hidden;text-overflow:ellipsis}.device-navbar .navbar-brand{min-height:var(--ot-tap)}.device-navbar .navbar-toggler{min-height:var(--ot-tap);min-width:48px}
 .device-navbar .nav-link{color:#e3eeef!important;min-height:var(--ot-tap);display:flex;align-items:center;padding:8px 12px!important;border-radius:var(--ot-r1)}
 .device-navbar .nav-link:hover{background:rgba(255,255,255,.1)}.device-navbar .nav-link.active{color:#fff!important;background:rgba(255,255,255,.14);box-shadow:inset 0 -3px #4cc2b0}
-.device-navbar .dropdown-menu{right:0;left:auto}#auth-sign-out{white-space:nowrap;min-height:var(--ot-tap);color:#fff;border-color:#a3b7bb}
+.device-navbar .dropdown-menu{right:0;left:auto}
 .ot-foot{max-width:1140px;margin:32px auto 0;padding:8px 15px 24px;border-top:1px solid var(--ot-border);color:var(--ot-muted);display:flex;justify-content:flex-end}#ui-language-choice{min-height:var(--ot-tap);border-radius:var(--ot-r1);border:1px solid var(--ot-field);background:var(--ot-surface);color:var(--ot-text);padding:0 8px}
-@media (max-width:991.98px){.device-navbar .navbar-brand{flex:1 1 0;font-size:1.05rem}.device-navbar .navbar-brand svg{width:1.5rem;height:1.5rem}.device-navbar .nav-link{min-height:48px}}@media (max-width:400px){.device-navbar .navbar-brand{font-size:.95rem;gap:.35rem}.device-navbar .navbar-brand svg{width:1.25rem;height:1.25rem}.device-navbar{padding:4px 6px}.device-navbar .navbar-toggler{margin-right:4px!important;padding:4px 8px}#auth-sign-out{padding:6px 10px}}
+@media (max-width:991.98px){.device-navbar .navbar-brand{flex:1 1 0;font-size:1.05rem}.device-navbar .navbar-brand svg{width:1.5rem;height:1.5rem}.device-navbar .nav-link{min-height:48px}}@media (max-width:400px){.device-navbar .navbar-brand{font-size:.95rem;gap:.35rem}.device-navbar .navbar-brand svg{width:1.25rem;height:1.25rem}.device-navbar{padding:4px 6px}.device-navbar .navbar-toggler{margin-right:4px!important;padding:4px 8px}}
 /* Components (pd-* names are kept for tests and older markup) */
 .product-dashboard,.ot-page{overflow-wrap:anywhere;max-width:1180px;margin:20px auto;padding:8px}.product-dashboard p{margin:8px 0}
 .pd-heading,.ot-head,.pd-section-title,.pd-room-title{display:flex;flex-direction:column;align-items:flex-start;gap:6px}.pd-room-title h3{max-width:100%;overflow-wrap:anywhere}.pd-heading,.ot-head{margin-bottom:20px}.pd-heading p,.ot-head p{margin:4px 0 0;color:var(--ot-muted)}.pd-section-title{margin:24px 0 12px}.pd-section-title h2,.pd-heading h1,.ot-head h1{margin:0}
@@ -135,6 +135,8 @@ summary{cursor:pointer;min-height:var(--ot-tap);padding:10px 0;font-weight:600}d
 .ot-chip--ok{background:var(--ot-ok-bg);color:var(--ot-ok)}.ot-chip--warn{background:var(--ot-warn-bg);color:var(--ot-warn)}.ot-chip--err{background:var(--ot-err-bg);color:var(--ot-err)}.ot-chips{display:flex;flex-wrap:wrap;gap:6px}
 .pd-headline{font-size:1.3rem;font-weight:700;margin:0 0 10px!important}.pd-help,.pd-missing,.ot-hint{color:var(--ot-muted);font-size:.87rem}small.ot-hint,.ot-hint{display:block;font-size:.85rem!important;font-weight:400;margin:2px 0 4px;line-height:1.35}.product-dashboard small{font-size:.55em;font-weight:400;color:var(--ot-muted)}
 .pd-rooms{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));align-items:stretch;margin-bottom:8px}.pd-room-off{color:var(--ot-muted);margin:10px 0 4px!important}.pd-room details.ot-advanced{border:0;background:none;padding:0;margin:0}details.pd-away{padding-top:0;padding-bottom:0}details.pd-away[open]{padding-bottom:12px}.pd-rooms .pd-room{margin:0}
+.pd-why{margin:12px 0 4px!important;padding:8px 12px;border-radius:var(--ot-r1);border-left:4px solid var(--ot-field);background:var(--ot-surface-2);font-weight:600;line-height:1.35}.pd-why--heat{border-color:var(--ot-focus);background:color-mix(in srgb,var(--ot-focus) 14%,var(--ot-surface))}.pd-why--warn{border-color:var(--ot-warn);background:var(--ot-warn-bg)}.pd-why--err{border-color:var(--ot-err);background:var(--ot-err-bg)}.pd-why--ok{border-color:var(--ot-ok);background:var(--ot-ok-bg)}.pd-why--info{border-color:var(--ot-accent);background:var(--ot-accent-soft)}.pd-why--away{border-color:var(--ot-away)}.pd-why--off{border-color:var(--ot-off);background:var(--ot-off-bg)}
+.pd-icon{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--ot-off-bg);color:var(--ot-off)}.pd-icon svg{width:17px;height:17px;fill:currentColor}.pd-icon .pd-line{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}.pd-icon--ok{background:var(--ot-ok-bg);color:var(--ot-ok)}.pd-icon--warn{background:var(--ot-warn-bg);color:var(--ot-warn)}.pd-valves{margin:4px 0!important}
 .pd-room-temperatures{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:1.9rem;font-weight:600;font-variant-numeric:tabular-nums;margin:12px 0 4px}.pd-flow-label{display:block;font-size:.8rem;font-weight:500;color:var(--ot-muted)}
 .pd-code{margin:12px 0 4px;padding:10px 14px;border-radius:var(--ot-r1);background:var(--ot-surface-2);border-left:4px solid var(--ot-accent)}.pd-code p{margin:0}.pd-code-title strong{font-size:1.25rem;font-weight:600}.pd-code .pd-code-raw{margin-left:6px;font-size:.85rem;font-weight:500;font-variant-numeric:tabular-nums}.pd-code-more{margin-top:4px!important;font-size:.9rem}.pd-code--warn{border-left-color:var(--ot-warn);background:var(--ot-warn-bg)}.pd-code--err{border-left-color:var(--ot-err);background:var(--ot-err-bg)}.pd-code--unknown{border-left-color:var(--ot-field)}
 .pd-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,132px),1fr));gap:10px;margin:12px 0}.pd-fact{margin:0;padding:10px 14px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}.pd-fact h3{font-size:.85rem;font-weight:500;color:var(--ot-muted);margin:0;overflow-wrap:normal;hyphens:auto}.pd-value{font-size:1.5rem;font-weight:600;font-variant-numeric:tabular-nums}
@@ -178,18 +180,6 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
 				<g id="img-watertap-off" style="display: none;">
 					<!-- <rect x="0.2" y="0.2" width="3.8" height="3.8" stroke-width="0.5" stroke="black" fill="none" rx="0.7"></rect> -->
 					<line x1="3.8" y1="0.2" x2="0.2" y2="3.8" stroke-width="0.5" stroke="black" fill="none"></line>
-				</g>
-			</symbol>
-			<symbol id="img-burning-gas" viewBox="0 0 4.2333 4.2333">
-				<g transform="matrix(.044941 0 0 .044941 -4.2842 -1.8869)">
-					<path
-						d="m136.4 43.46c-4.8282 27.2-26.031 37.896-24.257 54.579 1.0042 10.848 7.1723 22.827 31.422 36.672 11.494-6.8147 26.215-8.8199 29.068-34.094 1.1135-9.8656-2.7878-19.596-12.827-28.4-0.0636 1.0691-0.34435 1.6842-0.70506 2.1321-10.529-22.882-16.571-26.609-22.701-30.89z"
-						fill="none" />
-					<path
-						d="m140.68 80.847 2.0204-0.04251c0.69859 3.4274 2.8907 5.6537 9.0074 12.46 3.0813 3.4288 6.6544 11.677 0.96803 17.729-1.8198 1.9369-4.8749 0.0924-4.3123-2.0311 2.3475-3.8846 2.5434-7.3212 1.3509-10.659-3.0281-4.9248-5.4086-6.4544-7.4807-8.7952-1.7387 3.651-4.5361 5.1031-6.0965 7.9352-2.264 4.7798-1.4595 8.5211 0.30166 11.801 1.8834 3.508-3.4785 4.8659-4.3382 2.7424-5.1078-12.617-1.7883-15.205 0.40182-18.259 6.3448-8.8495 7.3727-8.0156 8.1776-12.882z"
-						stroke="#000" stroke-width=".26458px" />
-					<path transform="scale(.26458)"
-						d="m533.81 503.07c-66.849-39.936-100.6-78.616-108.09-123.89-2.9051-17.551-1.5806-30.346 4.7459-45.848 5.4114-13.259 11.228-22.78 34.378-56.271 23.089-33.402 35.295-56.357 43.732-82.247 2.4652-7.5646 5.3598-18.522 6.625-25.079 0.41486-2.15 0.79924-3.9761 0.85417-4.0581 0.16348-0.24385 9.849 6.7672 15.164 10.977 6.4336 5.0955 16.591 15.312 22.137 22.265 10.369 13 20.364 28.926 31.652 50.438 4.2087 8.0202 13.115 26.197 15.173 30.964 0.41509 0.96184 0.90017 1.7465 1.078 1.7437 0.62036-0.01 2.202-2.9151 2.7476-5.0472 0.30243-1.1818 0.65248-2.1486 0.77789-2.1486 0.5334 0 8.9517 8.1276 12.964 12.516 14.922 16.321 25.247 33.686 30.301 50.959 3.2736 11.187 4.1487 17.533 4.1275 29.931-0.0136 7.9289-0.19878 11.173-0.93936 16.459-5.6732 40.492-19.109 67.319-43.433 86.717-9.58 7.6401-18.998 13.175-42.022 24.698-8.3736 4.1907-17.021 8.6396-19.217 9.8864l-3.9924 2.267zm15.627-46.879c20.27-15.261 30.544-24.706 38.464-35.362 15.534-20.899 17.859-42.996 7.4054-70.367-0.80377-2.1045-1.5887-3.6784-1.7442-3.4976-0.15554 0.18084-0.70702 1.5324-1.2255 3.0034s-1.4729 3.7313-2.1209 5.0228c-1.1458 2.2835-3.4327 5.2642-4.039 5.2642-0.9331 0-9.6132-17.008-16.695-32.713-6.4914-14.395-10.171-21.997-13.742-28.392-3.5581-6.3718-9.5677-15.519-13.382-20.368-2.9684-3.7741-8.9403-10.619-9.3072-10.668-0.12377-0.0165-1.0374 1.9605-2.0302 4.3934-3.2072 7.8592-12.138 28.07-16.027 36.271-9.4973 20.026-19.628 37.147-28.999 49.008-5.5035 6.9656-9.101 13.934-11.218 21.73-0.94824 3.4912-1.087 4.8068-1.115 10.571-0.0266 5.4769 0.11868 7.1798 0.8643 10.13 5.0586 20.012 24.753 39.514 58.134 57.566 3.0552 1.6522 6.1105 3.3297 6.7894 3.7278s1.378 0.73916 1.5534 0.7579c0.17544 0.0188 3.9714-2.7157 8.4354-6.0766z" />
 				</g>
 			</symbol>
 			<symbol id="img-pump" viewBox="0 0 4.2333 4.2333">
@@ -315,7 +305,7 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
 						<ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#program" data-page="program"><span data-i18n="Change active program">Change active program</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#room_management" data-page="room_management"><span data-i18n="Rooms and programs">Rooms and programs</span></a></li>
-							<li data-legacy-editor hidden><a class="dropdown-item" href="#curve" data-page="curve"><span data-i18n="Boiler and heating curve">Boiler and heating curve</span></a></li>
+							<li data-legacy-editor hidden><a class="dropdown-item" href="#curve" data-page="curve"><span data-i18n="Boiler and weather compensation">Boiler and weather compensation</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#hardware" data-page="hardware"><span data-i18n="Hardware configuration">Hardware configuration</span></a></li>
 							<li><a class="dropdown-item" href="#settings" data-page="network" data-nav="network"><span data-i18n="Network and Home Assistant">Network and Home Assistant</span></a></li>
 							<li><a class="dropdown-item" href="#password" data-page="password" data-nav="password"><span data-i18n="Password">Password</span></a></li>
@@ -327,11 +317,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
 							<li><a class="dropdown-item" href="#about" data-page="about" data-nav="about"><span data-i18n="About">About</span></a></li>
 							<li role="separator" class="dropdown-divider"></li>
 							<li><button type="button" class="dropdown-item" id="device-restart" hidden><span data-i18n="Restart device">Restart device</span></button></li>
+							<li role="separator" class="dropdown-divider" data-sign-out-item hidden></li>
+							<li data-sign-out-item hidden><button type="button" class="dropdown-item" id="auth-sign-out"><span data-i18n="Sign out">Sign out</span></button></li>
 						</ul>
 					</li>
 				</ul>
 			</div>
-			<button type="button" class="btn btn-outline-light order-2 order-lg-3" id="auth-sign-out" hidden><span data-i18n="Sign out">Sign out</span></button>
 		</div>
 	</nav>
 	<small class="d-block text-muted px-3" id="device-restart-status" role="status" aria-live="polite"></small>
@@ -421,10 +412,18 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
         var pageLoadRequest = null;
         const pageScripts = new Map();
         const legacyEditorPages = ['program','room_management','room_setup','curve','hardware','rooms'];
-
+        // F9 (R3-01): an E32 without a Home Assistant link reports controlMode "legacy" (no modern_shadow), yet it
+        // has its own rooms (/status/heating): that is the modern Overview as well. The tile grid and the old
+        // editors stay for a status without the room engine (the ib-therm builds). The firmware keeps the meaning of
+        // controlMode ("shadow": the Home Assistant link is live), which Home Assistant's link check relies on.
+        var ownRoomEngine = false; // once seen it stays, so a failed /status/heating read never brings the tiles back
+        function heatingRead(signal) {
+            return fetch(hostName + '/status/heating', {signal: signal, cache: 'no-store'}).then(res => res.ok ? res.json() : null).catch(() => null);
+        }
         function applyControlMode(status) {
-            controlUiMode = status.controlMode === 'legacy' ? 'legacy'
-                : status.controlMode === 'shadow' ? 'shadow' : 'unknown';
+            if (status.heating && typeof status.heating === 'object' && Array.isArray(status.heating.rooms)) ownRoomEngine = true;
+            controlUiMode = status.controlMode === 'shadow' || ownRoomEngine ? 'shadow'
+                : status.controlMode === 'legacy' ? 'legacy' : 'unknown';
             document.querySelectorAll('[data-legacy-editor]').forEach(item => {
                 item.hidden = controlUiMode !== 'legacy';
             });
@@ -432,8 +431,9 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
         }
         function ensureControllerMode() {
             if (controlUiMode !== 'unknown') return Promise.resolve(controlUiMode);
-            if (!controllerModePromise) controllerModePromise = getJSON('/status')
-                .then(applyControlMode).finally(() => { controllerModePromise = null; });
+            if (!controllerModePromise) controllerModePromise = Promise.all([getJSON('/status'), heatingRead()])
+                .then(([status, heating]) => { if (heating && typeof heating === 'object') status.heating = heating; return applyControlMode(status); })
+                .finally(() => { controllerModePromise = null; });
             return controllerModePromise;
         }
         function managedControlNotice() {
@@ -685,12 +685,12 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
             const request = new AbortController();
             statusPoll = request;
             const timeout = setTimeout(function() { request.abort(); }, 15000);
-            const heatingRead = controlUiMode === 'legacy' ? Promise.resolve(null) :
-                fetch(hostName + '/status/heating', {signal: request.signal, cache: 'no-store'}).then(res => res.ok ? res.json() : null).catch(() => null);
+            // Always read the E32's own rooms (F9): a firmware without them answers 404, which becomes null.
+            const rooms = heatingRead(request.signal);
 			fetch(hostName + '/status', {signal: request.signal})
                 .then(validateResponse)
 				.then(res => res.json())
-                .then(out => heatingRead.then(heating => { if (out && heating && typeof heating === 'object') out.heating = heating; return out; }))
+                .then(out => rooms.then(heating => { if (out && heating && typeof heating === 'object') out.heating = heating; return out; }))
                 .then(out => readDashboardHistory(out, request.signal))
 				.then((out) => {
 					if (navigation !== navigationGeneration || statusPoll !== request ||
@@ -1142,25 +1142,88 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
             try { return d.toLocaleString(document.documentElement.lang || undefined, today ? {hour:'2-digit', minute:'2-digit'} : {weekday:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}); }
             catch (_) { return d.toISOString().slice(0,16).replace('T',' '); }
         }
-        function comfortState(c) {
-            if (!c || typeof c !== 'object') return '';
-            var until = Number.isFinite(c.until) && c.until > 0 ? comfortTime(c.until) : null, t = dashboardNumber(c.target_c,1,5,35);
-            if (c.mode === 'window_open') return uiText("Window open: heating paused");
-            if (c.mode === 'boost') return until ? uiText("Boost until {time}").replace('{time}',until) : uiText("Boost");
-            if ((c.mode === 'timed' || c.mode === 'next') && t !== null) return until ? uiText("{temp} °C until {time}").replace('{time}',until).replace('{temp}',t) :
-                Number.isFinite(c.remaining_s) ? uiText("{temp} °C for {minutes} min").replace('{minutes}',Math.ceil(c.remaining_s/60)).replace('{temp}',t) : '';
-            if (c.mode === 'away') return until ? uiText("Away until {time}").replace('{time}',until) : uiText("Away");
-            // Why the room is cooler (plan.room_away.v1): only its own persons are out, or everyone is.
-            if (c.mode === 'presence_away') return c.away_by === 'room' ? uiText("Away: this room's people are out") :
-                c.away_by === 'house' ? uiText("Away: everyone is out") : uiText("Everyone away");
-            if (c.mode === 'away_return') return uiText("Warming up for your return");
-            if (c.window === 'pending') return uiText("Window open: heating pauses soon");
-            return c.waiting_for_clock ? uiText("Waiting for the clock") : '';
+        // Why the room heats or not, in one line (F3): the same choice, order and words as Home Assistant's Reason sensor
+        // (room_overview.py room_reason). Reported fields only; the E32 does not know a contact's name.
+        var whyHotWater = ['tapping','keep_warm','charging','hot_water'];
+        function whyDegrees(value, fixed) {
+            if (value === null) return '–';
+            return typeof OpenThermostatLanguage === 'undefined' ? String(fixed ? value.toFixed(1) : Math.round(value*10)/10) :
+                value.toLocaleString(OpenThermostatLanguage.locale, {minimumFractionDigits:fixed ? 1 : 0, maximumFractionDigits:1, useGrouping:false});
+        }
+        function whyClock(utc) {
+            try { return new Date(utc * 1000).toLocaleTimeString(window.OpenThermostatLanguage && OpenThermostatLanguage.locale || undefined, {hour:'2-digit', minute:'2-digit'}); }
+            catch (_) { return new Date(utc * 1000).toISOString().slice(11,16); }
+        }
+        // start: the room's optimum start (engineStart), for "heating early" (Smart warm-up).
+        function roomWhy(r, engine, start) {
+            var c = r.comfort && typeof r.comfort === 'object' ? r.comfort : {}, mode = c.mode;
+            var t = dashboardNumber(r.temperature,1,-50,80), target = dashboardNumber(r.setpoint,1,5,35), held = dashboardNumber(c.target_c,1,5,35);
+            var away = engine.away && typeof engine.away === 'object' ? engine.away : {}, awayTarget = held !== null ? held : dashboardNumber(away.target_c,1,5,25);
+            var until = Number.isSafeInteger(c.until) && c.until > 0 ? comfortTime(c.until) : null;
+            var activity = engine.burner && typeof engine.burner === 'object' ? engine.burner.activity : null;
+            var reason = engine.request && typeof engine.request === 'object' ? engine.request.reason : null, demand = r.demand === true;
+            function why(key, tone, text, values) {
+                values = values || {};
+                return {key:key, tone:tone, text:uiText(text).replace(/\{(\w+)\}/g, function(all, name) {
+                    return Object.prototype.hasOwnProperty.call(values, name) ? values[name] : all; })};
+            }
+            if (r.state !== 'active') return why('off', 'off', "Frost protection only (room off)");
+            if (c.window === 'open' || mode === 'window_open') return why('window_open', 'warn', "Paused: a window or door is open");
+            if (c.window === 'pending') return why('window_pending', 'warn', "A window or door is open: the room pauses soon");
+            if (r.status === 'lost' || t === null) return why('no_measurement', 'err', "No measurement: this room does not ask for heat");
+            if (demand && whyHotWater.indexOf(activity) >= 0) return why('hot_water', 'info', "Waiting: the boiler is making hot water");
+            if (demand && engine.mode === 'active' && reason === 'minimum_off') return why('boiler_pause', 'info', "Waiting: minimum boiler pause");
+            var sw = start && start.next_switch && typeof start.next_switch === 'object' ? start.next_switch : {}, warmTo = dashboardNumber(sw.target_c,1,5,35);
+            if (demand && start && start.start_now === true && start.applies === true && (mode === undefined || mode === null || mode === 'program') &&
+                Number.isSafeInteger(sw.utc) && sw.utc > 0 && warmTo !== null)
+                return why('warm_up', 'heat', "Smart warm-up: heating early for {time} ({target} °C)", {time:whyClock(sw.utc), target:whyDegrees(warmTo)});
+            if (mode === 'away_return') return why('away_return', 'heat', "Warming up for your return");
+            if (mode === 'away') return until ? why('holiday', 'away', "Holiday until {until} ({target} °C)", {until:until, target:whyDegrees(awayTarget)}) :
+                why('away', 'away', "Away: the house is set to away ({target} °C)", {target:whyDegrees(awayTarget)});
+            // The room's own persons when the E32 names it (away_by, rc.3), else on older firmware its own persons away.
+            if (mode === 'presence_away') return (c.away_by === 'room' || c.away_by === 'house' ? c.away_by === 'room' : c.persons === 'away') ?
+                why('room_away', 'away', "Away: nobody of this room is home ({target} °C)", {target:whyDegrees(awayTarget)}) :
+                why('house_away', 'away', "Away: everyone is away ({target} °C)", {target:whyDegrees(awayTarget)});
+            if (mode === 'boost') return until ? why('boost', 'heat', "Boost until {until}", {until:until}) : why('boost', 'heat', "Boost active");
+            if (mode === 'timed' || mode === 'next') {
+                var hold = whyDegrees(held !== null ? held : target);
+                return until ? why('temporary', 'info', "Temporarily {target} °C until {until}", {target:hold, until:until}) : why('temporary', 'info', "Temporarily {target} °C", {target:hold});
+            }
+            var values = {temperature:whyDegrees(t, true), target:whyDegrees(target)};
+            // In shadow mode the old thermostat runs the boiler: the room wants heat, the E32 does not heat.
+            if (demand) return engine.mode === 'active' ? why('heating', 'heat', "Heating: {temperature} → {target} °C", values) :
+                why('wants_heat', 'heat', "Wants heat: {temperature} → {target} °C", values);
+            return target === null ? why('warm_enough', 'ok', "No heat needed") : why('warm_enough', 'ok', "Warm enough: {temperature} °C (target {target} °C)", values);
+        }
+        // Small icons beside the room name: who is home (the room's own persons, else the house) and an open contact.
+        var whySvg = {person:'<circle cx="12" cy="7.5" r="4"/><path d="M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5z"/>', house:'<path d="M3 11.5 12 4l9 7.5V21h-6v-6H9v6H3z"/>',
+            window:'<path class="pd-line" d="M5 3h14v18H5zM12 3v18M5 12h14"/>', away:'<path class="pd-line" d="M3 3l18 18"/>'};
+        function roomIcon(tone, shapes, label, attr) {
+            return '<span class="pd-icon'+(tone ? ' pd-icon--'+tone : '')+'" role="img" aria-label="'+dashboardText(label)+'" title="'+dashboardText(label)+'" '+attr+'>'+
+                '<svg viewBox="0 0 24 24" aria-hidden="true">'+shapes.map(function(s) { return whySvg[s]; }).join('')+'</svg></span>';
+        }
+        function roomIcons(r, engine) {
+            var c = r.comfort && typeof r.comfort === 'object' ? r.comfort : {}, away = engine.away && typeof engine.away === 'object' ? engine.away : {};
+            var own = c.persons === 'home' || c.persons === 'away', presence = own ? c.persons : away.presence === 'home' || away.presence === 'away' ? away.presence : null, html = '';
+            if (presence) html += roomIcon(presence === 'home' ? 'ok' : '', [own ? 'person' : 'house'].concat(presence === 'home' ? [] : ['away']),
+                uiText(own ? (presence === 'home' ? "Someone of this room is home" : "Nobody of this room is home") : presence === 'home' ? "Someone is home" : "Everyone is away"),
+                'data-presence="'+(own ? 'room_' : 'house_')+presence+'"');
+            if (c.window === 'open' || c.window === 'pending') html += roomIcon('warn', ['window'],
+                uiText(c.window === 'open' ? "Window or door open" : "Window or door open, pausing soon"), 'data-window="'+c.window+'"');
+            return html;
+        }
+        // The room's radiator valves (beta.24 "trv"): how far they are open on average.
+        function roomValves(r, engine) {
+            var trv = engine.trv && Array.isArray(engine.trv.rooms) ? engine.trv.rooms : [], room = trv.find(function(x) { return x && x.room === r.id; });
+            var open = room && Array.isArray(room.valves) ? room.valves.map(function(v) { return v && typeof v === 'object' ? dashboardNumber(v.position_pct,1,0,100) : null; })
+                .filter(function(v) { return v !== null; }) : [];
+            return open.length ? '<p class="pd-help pd-valves" data-valves>'+uiText("Radiator valves open")+': '+Math.round(open.reduce(function(a,b) { return a+b; },0)/open.length)+' %</p>' : '';
         }
         // rc.3 Smart warm-up in one plain line (also the Home page's learned rooms): what the next program step
         // means for this room. start: "plans.rooms[].optimum_start" of /status/heating; on: the stored option
         // (apply_learned; undefined: not known, on by default). "applies": the E32 uses this start (older
         // firmware: a learned warm-up); otherwise it is an estimate and heating starts at the program time.
+        // rc.4 (L3): the E32 also starts on an estimate ("estimate": true) and learns from every morning.
         function smartWarmupLine(start, on) {
             var ok = function(v) { return typeof v === 'number' && Number.isFinite(v); }, sw = start && start.next_switch;
             if (!start || start.reason !== 'planned' || !ok(start.predicted_start_utc) || !sw || !ok(sw.utc) || !ok(sw.target_c)) return '';
@@ -1173,8 +1236,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                 !applies ? "Smart warm-up is still learning: for now heating starts at {time} (estimate: from {start} it would be {target} °C on time)." :
                 start.lead_minutes === 0 && start.start_now !== true ? "Smart warm-up: warm enough for {target} °C at {time}, no early start needed." :
                 start.start_now === true ? (start.reachable === false ? "Smart warm-up: heating now; {target} °C may come a little after {time}." :
-                    "Smart warm-up: heating now so it is {target} °C at {time}.") :
-                "Smart warm-up: starts at {start} so it is {target} °C at {time}.";
+                    start.estimate === true ? "Smart warm-up: heating now so it is {target} °C at {time} (estimate; it learns from every morning)." : "Smart warm-up: heating now so it is {target} °C at {time}.") :
+                start.estimate === true ? "Smart warm-up: starts at {start} so it is {target} °C at {time} (estimate; it learns from every morning)." : "Smart warm-up: starts at {start} so it is {target} °C at {time}.";
             return Object.keys(values).reduce(function(t, k) { return t.split('{' + k + '}').join(values[k]); }, uiText(text));
         }
         function comfortNoticeHtml(room) {
@@ -1239,6 +1302,22 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                 comfortNotice = {room:room, until:Date.now() + 15000, text:uiText("The change was not saved:") + ' ' + uiText("the E32 could not be reached")};
             }).finally(function() { button.disabled = false; showRooms(); });
         }
+        // A phone width (the layout breakpoint of 560 px): at most two status chips (F4). A change of width draws again.
+        function dashboardPhone() { return typeof matchMedia === 'function' && matchMedia('(max-width:560px)').matches; }
+        if (typeof matchMedia === 'function') matchMedia('(max-width:560px)').addEventListener?.('change', function() {
+            if (intervalID && lastLoadedStatus && document.querySelector('#maincontainer > .product-dashboard')) updateRooms(lastLoadedStatus);
+        });
+        // Frequent burner starts are learning information, not a fault (F5): the self-tuning lengthens the burner rest
+        // one step a day ("many_starts" in its log). TODO(rc.4 F5): a warning only when it persists (the tuner's rest
+        // ceiling reached, or 3 days without improvement), once the firmware reports tuning.short_cycling_persists.
+        function restSteps(tuning) {
+            return tuning && Array.isArray(tuning.log) ? tuning.log.filter(function(e) { return Array.isArray(e) && e[1] === 'min_off_s' && e[4] === 'many_starts'; }).length : 0;
+        }
+        function cyclingLine(engine, active) {
+            if (!engine || !engine.burner || engine.burner.short_cycling !== true) return '';
+            var steps = active ? restSteps(engine.tuning) : 0;
+            return !active ? uiText("The burner starts often. When the E32 controls the boiler, it lengthens the burner rest step by step.") : steps ? uiText("The burner starts often; the E32 lengthens the burner rest step by step (step {n}).").replace('{n}', steps) : uiText("The burner starts often; the E32 lengthens the burner rest step by step.");
+        }
         function dashboardKnown(map, key) { return typeof key === 'string' && Object.prototype.hasOwnProperty.call(map, key) ? map[key] : null; }
         function dashboardAge(s) { return s < 120 ? s + ' s' : s < 7200 ? Math.round(s/60) + ' min' : Math.round(s/3600) + ' h'; }
         function dashboardSourceName(sensors, id) {
@@ -1265,9 +1344,9 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
             var activePlan = engine ? engine.mode === 'active' : boilerEnabled === true;
             var controlling = engine ? activePlan && activeState === 'active' : boilerEnabled === true;
             var request = engine && engine.request && typeof engine.request === 'object' ? engine.request : null;
-            var demand = request ? request.heat === true : typeof supervisor.requested_heat === 'boolean' ? supervisor.requested_heat : null;
-            var mode = ems.warmWaterActive === true ? uiText("Hot water") : ems.heatingActive === true ? uiText("CH active") :
-                ems.warmWaterActive === false && ems.heatingActive === false ? uiText("No CH or hot water") : uiText("Waiting for boiler data");
+            // What the boiler does now, in one chip (F4): hot water, heating on or off.
+            var mode = ems.warmWaterActive === true ? [uiText("Hot water"),'ok'] : ems.heatingActive === true ? [uiText("Heating on"),'ok'] :
+                ems.warmWaterActive === false && ems.heatingActive === false ? [uiText("Heating off"),''] : [uiText("Waiting for boiler data"),''];
             var age = typeof control.age_ms === 'number' && Number.isFinite(control.age_ms) ? Math.max(0,Math.round(control.age_ms/1000)) : null;
             var freshText = engine ? '' : state ? (age === null ? uiText("Control status received") : uiText("Updated {age} ago").replace('{age}', dashboardAge(age))) :
                 control.reason === 'stale' ? uiText("Control status stale") : uiText("Waiting for control status");
@@ -1291,13 +1370,14 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                     var source = typeof r.source === 'string' && r.source ? dashboardSourceName(sensors,r.source) : null, ha = byName[name.trim().toLowerCase()];
                     var help = dashboardKnown(engineTargetSource,r.setpoint_source);
                     series.push({id:id, actual:actual, target:target});
-                    var comfortText = engine.away ? comfortState(r.comfort) : '';
-                    var off = r.state !== 'active';
-                    var warmup = off ? '' : smartWarmupLine(engineStart(engine, r.id), engine.flow && engine.flow.settings ? engine.flow.settings.apply_learned : undefined);
+                    var off = r.state !== 'active', start = engineStart(engine, r.id), why = roomWhy(r, engine, start);
+                    // The why line already says "heating early": the Smart warm-up line then waits for the next step.
+                    var warmup = off || why.key === 'warm_up' ? '' : smartWarmupLine(start, engine.flow && engine.flow.settings ? engine.flow.settings.apply_learned : undefined);
                     cards.push({key:id, id:id, name:name, actual:actual, target:target, demand:r.demand === true, off:off, help:help && !off ? uiText(help) : '', warmup:warmup,
-                        comfort:engine.away && r.state === 'active' ? comfortControls(r, target) : '',
-                        chips:(extra ? chip(uiText(extra), r.status === 'fallback' ? 'warn' : r.status === 'stale' || r.status === 'lost' ? 'err' : '') : '')+
-                            (comfortText ? chip(comfortText, r.comfort && r.comfort.mode === 'window_open' ? 'warn' : 'ok') : ''),
+                        why:why, valves:roomValves(r, engine), comfort:engine.away && r.state === 'active' ? comfortControls(r, target) : '',
+                        // The why line says whether it asks for heat; the chips keep a source problem and the icons.
+                        chips:(extra && !off && why.key !== 'no_measurement' ? chip(uiText(extra), r.status === 'fallback' ? 'warn' : r.status === 'stale' || r.status === 'lost' ? 'err' : '') : '')+
+                            roomIcons(r, engine),
                         details:uiHtml("<p>Room ID: ")+dashboardText(r.id || '')+(source ? '<br>'+uiText("Measured by")+': '+dashboardText(source) : '')+'</p>'+(ha ? dashboardRoomContext(ha) : '')});
                 });
                 recordRoomSeries(Date.now(), 'e32', series);
@@ -1320,24 +1400,27 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
             var ha = engine && engine.ha && typeof engine.ha === 'object' ? engine.ha : null;
             // HA sends on every change and at least every 5 min (REFRESH_SECONDS): fresh until two refreshes are missed.
             var haFresh = !!ha && ha.broker_connected === true && Number.isFinite(ha.input_age_s) && ha.input_age_s < 660;
-            var haChip = !ha ? '' : haFresh ? chip('Home Assistant: '+uiText("connected"),'ok') : !Number.isFinite(ha.input_age_s) ? chip(uiText("Home Assistant: not connected (optional)")) :
-                chip('Home Assistant: '+uiText("last connected {age} ago").replace('{age}',dashboardAge(ha.input_age_s)),'warn');
+            var haChip = !ha ? null : haFresh ? ['Home Assistant: '+uiText("connected"),'ok'] : !Number.isFinite(ha.input_age_s) ? [uiText("Home Assistant: not connected (optional)"),''] :
+                ['Home Assistant: '+uiText("last connected {age} ago").replace('{age}',dashboardAge(ha.input_age_s)),'warn'];
             // In shadow mode the thermostat controls the boiler: a calm chip, no "Blocked".
-            var controlChip = !activePlan ? chip(uiText("Your thermostat controls the boiler")) : controlling ? chip(uiText("The E32 controls the boiler"),'ok') :
-                !engine || /^(stopped|blocked)/.test(activeState) ? chip(uiText("Boiler control")+': '+uiText("Blocked"),'err') : chip(uiText("Switch-over in progress"),'warn');
+            var controlChip = !activePlan ? [uiText("Your thermostat controls the boiler"),''] : controlling ? [uiText("The E32 controls the boiler"),'ok'] :
+                !engine || /^(stopped|blocked)/.test(activeState) ? [uiText("Boiler control")+': '+uiText("Blocked"),'err'] : [uiText("Switch-over in progress"),'warn'];
+            // In this order: a fault, what the boiler does, who controls it, Home Assistant. On a phone the first two are
+            // chips and the others one line under "Who controls the boiler?" (F4), so nothing is lost.
+            var statusChips = [boilerCode && boilerCode.fault ? [uiText("Boiler fault")+' '+boilerCode.code,boilerCode.lockout?'err':'warn'] : null, mode, controlChip, haChip]
+                .filter(Boolean), chipCount = dashboardPhone() ? 2 : statusChips.length;
+            var moreStatus = statusChips.slice(chipCount).map(function(c) { return c[0]; }).join(' · ');
             var statusHelp = request ? uiText("Boiler request (E32)")+': '+(request.heat ? dashboardText(request.flow_c)+' °C'+(request.capped_by === 'boiler_limit' ? ' ('+uiText("limited by the boiler's own maximum")+')' : '') : uiText("off"))+' · '+uiText(dashboardKnown(engineReasons,request.reason) || "No heat needed") :
                 state ? (controlling ? dashboardReason(supervisor.reason) : '') : uiText("Set up rooms on the Rooms page, or connect Home Assistant.");
             var html = '<section class="product-dashboard" aria-label="OpenThermostat">'+
-                uiHtml("<header class=\"pd-heading\"><div><h1>Your heating system</h1><p>Rooms and boiler at a glance.</p></div>")+
-                chip(activePlan?uiText("Active control"):uiText("Trial run"),controlling?'ok':activePlan?'warn':'')+'</header>'+
+                uiHtml("<header class=\"pd-heading\"><div><h1>Your heating system</h1><p>Rooms and boiler at a glance.</p></div></header>")+
                 dashboardUpdateNotice(status.firmware_update)+dashboardPasswordNotice()+
                 '<section class="pd-status" data-dashboard-key="headline"><div class="pd-flow"><p class="pd-headline">'+dashboardText(headline)+'</p>'+wantingLine+'<p class="ot-chips">'+
-                chip(mode,ems.warmWaterActive===true||ems.heatingActive===true?'ok':'')+
-                (boilerCode && boilerCode.fault ? chip(uiText("Boiler fault")+' '+boilerCode.code,boilerCode.lockout?'err':'warn') : '')+
-                (known?chip(dashboardBool(demand,uiText("Heat demand"),uiText("No heat demand")),demand===true?'ok':''):'')+controlChip+haChip+'</p></div>'+
+                statusChips.slice(0,chipCount).map(function(c) { return chip(c[0],c[1]); }).join('')+'</p></div>'+
                 // A fault or lockout is the first thing to read: its meaning and what to do, not only a chip.
                 (boilerCode && boilerCode.fault ? dashboardBoilerCodeHtml(boilerCode,'boiler-alert') : '')+
                 (statusHelp?'<p class="pd-help">'+dashboardText(statusHelp)+'</p>':'')+
+                (function(line) { return line ? '<p class="pd-help" data-dashboard-key="cycling">'+dashboardText(line)+'</p>' : ''; })(cyclingLine(engine, activePlan))+
                 (freshText?'<p class="pd-help"><span>'+dashboardText(freshText)+'</span></p>':'')+'</section>'+
                 uiHtml("<div class=\"pd-section-title\"><h2>Rooms</h2>")+(engine && !haFresh ? '<a href="#rooms" data-page="heating">'+uiText("Change rooms and week programs")+'</a>' :
                 uiHtml("<span class=\"pd-help\">Controls and programs in Home Assistant</span>"))+'</div>'+(engine && cards.length ? comfortAway(engine.away) : '')+'<div class="pd-rooms">';
@@ -1349,9 +1432,10 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                 // The E32's 24 h history (RAM, since restart) when it has this room; else the live trend.
                 var trend = c.off ? '' : (engine && dashboardHistory && c.id.indexOf('e32:') === 0 ? OpenThermostatHistory.room(dashboardHistory,c.id.slice(4),c.name) : '') || dashboardTrend(c.id); if (!trend && !c.off) trendPending = true;
                 html += '<article class="pd-room" data-dashboard-key="'+dashboardText(c.key)+'"><div class="pd-room-title"><h3>'+dashboardText(c.name)+'</h3><span class="ot-chips">'+
-                    (c.off ? '' : chip(dashboardBool(c.demand,uiText("Requesting heat"),uiText("No request")),c.demand===true?'ok':''))+c.chips+'</span></div>'+
-                    (c.off ? '<p class="pd-room-off">'+uiText("Off: this room never asks for heat.")+' <a href="#rooms" data-page="heating">'+uiText("Change or remove on the Rooms page")+'</a></p>' :
-                    uiHtml("<div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Now</span>")+dashboardValue(c.actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(c.target,'°C')+'</div></div>')+
+                    (c.off || c.why ? '' : chip(dashboardBool(c.demand,uiText("Requesting heat"),uiText("No request")),c.demand===true?'ok':''))+c.chips+'</span></div>'+
+                    (c.off ? '' : uiHtml("<div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Now</span>")+dashboardValue(c.actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(c.target,'°C')+'</div></div>')+
+                    (c.why ? '<p class="pd-why pd-why--'+c.why.tone+'" data-why="'+c.why.key+'">'+dashboardText(c.why.text)+'</p>' : '')+(c.valves||'')+
+                    (c.off ? '<p class="pd-room-off">'+(c.why ? '' : uiText("Off: this room never asks for heat.")+' ')+'<a href="#rooms" data-page="heating">'+uiText("Change or remove on the Rooms page")+'</a></p>' : '')+
                     (c.help?'<p class="pd-help">'+dashboardText(c.help)+'</p>':'')+
                     (c.warmup?'<p class="pd-help pd-warmup" data-dashboard-key="warmup">'+dashboardText(c.warmup)+'</p>':'')+trend+(c.comfort||'')+
                     uiHtml("<details class=\"pd-room-detail\"><summary>Technical details</summary>")+c.details+'</details></article>';
@@ -1377,7 +1461,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
             html += uiHtml("</dl><p class=\"pd-help\">Only values the boiler reported recently are shown; all values are on the Boiler page. They are what the boiler says, not separate measurements.</p></details></div></section>")+
                 // The boiler as it is now first, then its last 24 hours.
                 (engine && dashboardHistory ? (function(chart) { return chart ? '<section class="pd-panel pd-history" data-dashboard-key="boiler-history">'+chart+'</section>' : ''; })(OpenThermostatHistory.boiler(dashboardHistory)) : '')+
-                uiHtml("<section class=\"pd-panel\"><h2>How this works</h2><details class=\"ot-advanced\" data-dashboard-key=\"shadow-mode-help\"><summary>Who controls the boiler?</summary><p>")+
+                uiHtml("<section class=\"pd-panel\"><h2>How this works</h2><details class=\"ot-advanced\" data-dashboard-key=\"shadow-mode-help\"><summary>Who controls the boiler?</summary>")+
+                (moreStatus ? '<p class="pd-help" data-dashboard-key="more-status">'+dashboardText(moreStatus)+'</p>' : '')+'<p>'+
                 (controlling ? uiText("Active control: the E32 controls your boiler. Your old thermostat must stay disconnected.") :
                 uiText("Trial run: your own thermostat still controls the boiler. The E32 only reads the boiler data and works out what it would do, so you can compare. It sends nothing to the boiler."))+'</p>'+
                 // The Home Assistant controller's own state and reason are technical detail here.
@@ -1396,16 +1481,17 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                 if (focused && focused.isConnected && current.contains(focused) && document.activeElement !== focused)
                     focused.focus({preventScroll:true});
                 if (window.scrollX !== left || window.scrollY !== top) window.scrollTo(left,top);
-            } else {
-                main.innerHTML = html;
-                if (typeof BoilerDisplay !== 'undefined') BoilerDisplay.mountHome(main.querySelector('.pd-boiler'));
-            }
+            } else main.innerHTML = html;
+            // Every render: the boiler card is drawn once and retries a failed selection read (R3-34).
+            if (typeof BoilerDisplay !== 'undefined') BoilerDisplay.mountHome(main.querySelector('.pd-boiler'));
         }
 
 		function updateRooms(status) {
             applyControlMode(status);
 			var maincontainer = document.getElementById('maincontainer');
-			if (status.controlMode === 'shadow') {
+            // The tile grid only for a legacy status with its own room list and no room engine (F9); any other
+            // answer (an E32 without Home Assistant, a newer or partial status) gets the Overview, never a TypeError.
+			if (controlUiMode !== 'legacy' || !Array.isArray(status.rooms)) {
                 renderInstallationDashboard(status);
 				return;
 			}

@@ -66,8 +66,8 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await page.evaluate(()=>{sessionStorage.removeItem('ot-rooms-edit');loadNativePage('house');});
   const root=page.locator('#house-settings'),box=root.locator('[data-heating-flow-options]');
   await box.getByRole('heading',{name:'Watertemperatuur'}).waitFor();
-  const curve=box.getByLabel('Buitentemperatuur volgen (stooklijn)'),learned=box.getByLabel('Slim opwarmen',{exact:true});
-  const design=box.getByLabel('Watertemperatuur bij −10 °C buiten'),message=box.locator('[data-flow-message]');
+  const curve=box.getByLabel('Weerafhankelijke regeling',{exact:true}),learned=box.getByLabel('Slim opwarmen',{exact:true});
+  const design=box.getByLabel('Watertemperatuur bij strenge vorst (−10 °C)'),message=box.locator('[data-flow-message]');
   // Status lines from /status/heating: source, curve, slope, learned, optimum start, gas calibration and boiler power,
   // collapsed under "Status en leren" below the two settings.
   const more=box.locator('details.hp-more');
@@ -75,18 +75,18 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await more.locator('summary').click();
   await box.locator('[data-flow-status] dt').first().waitFor();
   const time=await page.evaluate(()=>new Date(1793248800000).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}));
-  assert.deepEqual(await pairs(box.locator('[data-flow-status]')),[['Watertemperatuur nu','Ruimteregeling · 36 °C'],['Stooklijn','Alleen advies · 41 °C'],
-   ['Steilheid stooklijn','0,67 · Uit de instelling bij −10 °C'],['Geleerde watertemperatuur','Nog aan het leren'],['Slim opwarmen','Alleen advies · geplande start '+time],
+  assert.deepEqual(await pairs(box.locator('[data-flow-status]')),[['Watertemperatuur nu','Ruimteregeling · 36 °C'],['Weerafhankelijke regeling','Alleen advies · 41 °C'],
+   ['Steilheid weerafhankelijke regeling','0,67 · Uit de instelling voor strenge vorst (−10 °C)'],['Geleerde watertemperatuur','Nog aan het leren'],['Slim opwarmen','Alleen advies · geplande start '+time],
    ['Gasijking','Geijkt met de gasmeter (middel)'],['Ketelvermogen','22,3 kW bij volle brander']]);
-  assert.equal(await box.locator('[data-flow-compare]').innerText(),'Gisteren tijdens verwarmen, watertemperatuur: ruimteregeling 38,4 °C, stooklijn 41,3 °C, geleerd — °C');
+  assert.equal(await box.locator('[data-flow-compare]').innerText(),'Gisteren tijdens verwarmen, watertemperatuur: ruimteregeling 38,4 °C, weerafhankelijke regeling 41,3 °C, geleerd — °C');
   assert.equal(await box.locator('[data-flow-night]').innerText(),'Afgelopen nacht: 1,73 m³ gas voor verwarming (0,18 m³ warm water); de E32 verwachtte 1,60 m³');
   // Help texts and the design flow choice: automatic by emitter, or 25–80 °C.
   assert.match(await box.innerText(),/Kouder buiten betekent warmer water naar de radiatoren en vloer, nog voordat de ruimtes afkoelen\./);
   // rc.3 Smart warm-up: under Advanced, opened while the owner has it off; one line says what it does.
   const advanced=box.locator('details.hp-advanced'),smart=box.locator('[data-smart-warmup-state]');
-  // rc.3: the heating curve and the learned water say plainly what they use now (the curve is off in this fixture).
+  // rc.3: weather compensation and the learned water say plainly what they use now (the curve is off in this fixture).
   const curveLine=box.locator('[data-curve-state]'),waterLine=box.locator('[data-learned-flow-state]');
-  assert.equal(await curveLine.innerText(),'Stooklijn: uit, de watertemperatuur volgt alleen de ruimtes.');
+  assert.equal(await curveLine.innerText(),'Weerafhankelijke regeling: uit, de watertemperatuur volgt alleen de ruimtes.');
   assert.equal(await waterLine.innerText(),'Koelste water: leert nog van elke keer opwarmen.');
   assert.equal(await advanced.evaluate(d=>d.open),true,'off: the switch is in view');
   assert.equal(await smart.innerText(),'Slim opwarmen staat uit: verwarmen begint pas op de tijd van het programma.');
@@ -135,18 +135,23 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   status.learned.gas={status:'no_meter',confidence:'none',factor:1,kw_at_full_modulation:24,kw_source:'boiler_kw',intervals:0,rejected:0,last:'no_interval',spread:null};
   status.night_gas.last={...status.night_gas.last,status:'no_meter',measured_m3:null,heating_m3:null,hot_water_m3:null};
   await box.locator('[data-flow-status]').getByText('Geleerde watertemperatuur · 34 °C').waitFor({timeout:15000});
-  assert.deepEqual(await pairs(box.locator('[data-flow-status]')),[['Watertemperatuur nu','Geleerde watertemperatuur · 34 °C'],['Stooklijn','In gebruik · 41 °C'],
-   ['Steilheid stooklijn','0,71 · Geleerd van dit huis'],['Geleerde watertemperatuur','In gebruik · 34 °C'],['Slim opwarmen','Geen start gepland'],
+  assert.deepEqual(await pairs(box.locator('[data-flow-status]')),[['Watertemperatuur nu','Geleerde watertemperatuur · 34 °C'],['Weerafhankelijke regeling','In gebruik · 41 °C'],
+   ['Steilheid weerafhankelijke regeling','0,71 · Geleerd van dit huis'],['Geleerde watertemperatuur','In gebruik · 34 °C'],['Slim opwarmen','Geen start gepland'],
    ['Gasijking','Geen gasmeter: schatting uit het ketelvermogen (ruw)'],['Ketelvermogen','24,0 kW bij volle brander']]);
   assert.equal(await box.locator('[data-flow-night]').innerText(),'Afgelopen nacht: geen gasmeterstand');
   // Both on now: the learned curve and the learned water, in plain words.
-  assert.equal(await curveLine.innerText(),'Stooklijn: geleerd voor je huis.');
+  assert.equal(await curveLine.innerText(),'Weerafhankelijke regeling: geleerd voor je huis.');
   assert.equal(await waterLine.innerText(),'Koelste water: geleerd voor je huis.');
+  // rc.4 (L3): a start planned on an estimate says so in its row.
+  const none=status.flow.optimum_start;
+  status.flow.optimum_start={state:'applied',room:'woonkamer',start_utc:1793248800,flow_c:38,confidence:'default',heating:false,estimate:true,rooms:1};
+  await box.locator('[data-flow-status]').getByText(/^In gebruik · geplande start \d\d:\d\d · schatting$/).waitFor({timeout:15000});
+  status.flow.optimum_start=none;
   // Still learning the curve (2 of 6 steady periods), and no outdoor temperature at all.
   status.flow.curve={...status.flow.curve,slope_source:'design',windows:2};
-  await curveLine.getByText('Stooklijn: voorlopig standaard, hij leert van je huis (2 van 6 rustige periodes).').waitFor({timeout:15000});
+  await curveLine.getByText('Weerafhankelijke regeling: voorlopig standaard, hij leert van je huis (2 van 6 rustige periodes).').waitFor({timeout:15000});
   status.flow.curve={...status.flow.curve,state:'no_outdoor',flow_c:null};
-  await curveLine.getByText('Stooklijn: nu geen buitentemperatuur, dus de watertemperatuur volgt alleen de ruimtes.').waitFor({timeout:15000});
+  await curveLine.getByText('Weerafhankelijke regeling: nu geen buitentemperatuur, dus de watertemperatuur volgt alleen de ruimtes.').waitFor({timeout:15000});
   // Changed elsewhere (Home Assistant): the stored options come with the status.
   settings={weather_curve:false,apply_learned:true,curve_design_flow_c:0,tuning:settings.tuning};
   status.flow.settings={weather_curve:false,apply_learned:true,curve_design_flow_c:0};

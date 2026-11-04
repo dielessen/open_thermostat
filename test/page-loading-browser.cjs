@@ -50,10 +50,12 @@ const telemetry={reception:{state:'classic_reports_received'},transport:{enabled
    await page.goto(base+'/');await page.locator('.product-dashboard').waitFor();
    await page.locator('[data-bluetooth-settings]:not([hidden])').waitFor({state:'attached'});
    const cold=requests.slice(start),coldBytes=cold.reduce((sum,r)=>sum+r.bytes,0);
-   for(const unused of ['/ems-metadata.js','/ems-setting-help.js','/ems-devices.js','/bluetooth.js','/system-log.js','/deps/chart.umd.js.gz','/history-chart.js','/ui-messages-pages.js'])
+   // rc.4 (R3-19): an English browser never loads the Dutch catalogue.
+   for(const unused of ['/ems-metadata.js','/ems-setting-help.js','/ems-devices.js','/bluetooth.js','/system-log.js','/deps/chart.umd.js.gz','/history-chart.js','/ui-messages-pages.js','/ui-messages.js'])
     assert(!cold.some(r=>r.path===unused),'Home must not load '+unused);
    // beta.18: the Overview also reads the E32's own rooms and both languages grew (about +5 kB gzip).
    // beta.19: Dutch for the other pages moved to ui-messages-pages.js (about -35 kB gzip): 132.4 kB.
+   // rc.4: English without the Dutch catalogue (-14.9 kB); the Dutch cold load is checked below.
    assert(coldBytes<150000,'Cold Home payload budget exceeded: '+coldBytes);
    await page.evaluate(()=>loadNativePage('about'));await page.locator('#about-heading').waitFor();
    await page.evaluate(()=>loadNativePage('about'));
@@ -63,7 +65,7 @@ const telemetry={reception:{state:'classic_reports_received'},transport:{enabled
    const beforeReload=requests.length;
    await page.reload();await page.locator('.product-dashboard').waitFor();
    const reload=requests.slice(beforeReload);
-   assert(reload.some(r=>r.path==='/ui-messages.js'&&r.status===304));
+   assert(reload.some(r=>r.path==='/ui-language.js'&&r.status===304));
    assert(reload.some(r=>r.path==='/status'&&r.status===200),'Live state is read again');
    assert(reload.some(r=>r.path==='/auth/session'&&r.status===200),'Session is checked again');
    // An arbitrarily slow catalogue must not delay the actual test controls.
@@ -86,6 +88,18 @@ const telemetry={reception:{state:'classic_reports_received'},transport:{enabled
    assert(!requests.slice(start).some(r=>r.method!=='GET'));
    results.push({width,result:'PASS',cold_payload_bytes:coldBytes,cold_requests:cold.length,
     revalidated_ui_bytes:reload.filter(r=>r.status===304).length,controls_mount_before_reference:true});
+   await context.close();
+  }
+  // A Dutch browser loads the Dutch catalogue before the page scripts, and still stays within the budget.
+  {
+   const context=await browser.newContext({locale:'nl-NL'}),page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+   const start=requests.length;await page.goto(base+'/');await page.locator('.product-dashboard').waitFor();
+   await page.locator('[data-bluetooth-settings]:not([hidden])').waitFor({state:'attached'});
+   const cold=requests.slice(start),coldBytes=cold.reduce((sum,r)=>sum+r.bytes,0);
+   assert(cold.some(r=>r.path==='/ui-messages.js'&&r.status===200),'Dutch loads its catalogue');
+   assert.equal(await page.locator('.pd-heading h1').innerText(),'Je verwarmingsinstallatie');
+   assert(coldBytes<150000,'Dutch cold Home payload budget exceeded: '+coldBytes);
+   results.push({language:'nl',result:'PASS',cold_payload_bytes:coldBytes,cold_requests:cold.length});
    await context.close();
   }
   // A missing optional catalogue keeps the entity panel available, then retries

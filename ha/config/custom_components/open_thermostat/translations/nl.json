@@ -2116,6 +2116,9 @@
         "description": "Kies de vakantie.",
         "data": {
           "holiday": "Vakantie"
+        },
+        "data_description": {
+          "holiday": "De vakantie die je wilt wijzigen of verwijderen."
         }
       },
       "house_holiday_edit": {
@@ -2127,6 +2130,7 @@
           "remove": "Deze vakantie verwijderen"
         },
         "data_description": {
+          "holiday_from": "Dag en tijd waarop de vakantie begint. Een moment in het verleden laat hem nu beginnen.",
           "holiday_to": "Dag en tijd waarop je terug bent. Hoogstens een jaar vooruit.",
           "remove": "Aan: de vakantie wordt verwijderd; een vakantie die nu loopt, stopt meteen."
         }

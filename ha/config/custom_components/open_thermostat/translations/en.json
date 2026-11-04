@@ -1079,6 +1079,9 @@
         "description": "Choose the holiday.",
         "data": {
           "holiday": "Holiday"
+        },
+        "data_description": {
+          "holiday": "The holiday you want to change or remove."
         }
       },
       "house_holiday_edit": {
@@ -1090,6 +1093,7 @@
           "remove": "Remove this holiday"
         },
         "data_description": {
+          "holiday_from": "The day and time the holiday starts. A moment in the past starts it now.",
           "holiday_to": "The day and time you are back. At most a year ahead.",
           "remove": "On: the holiday is removed; a holiday that runs now ends at once."
         }

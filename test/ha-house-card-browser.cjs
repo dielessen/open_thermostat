@@ -217,6 +217,10 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   assert(Number(marks.cx)>marks.w-10,'the dot is today, at the right end');
   assert(marks.top<=5.01&&Number(marks.cy)>=marks.h-5.01,'its own range: the highest day at the top, today (the lowest) at the bottom');
   if(width>=390)assert(marks.beside,'the line beside the number');
+  // Home Assistant's sidebar leaves a card of about 960 px at 1280: a figure of 240 px still has the line beside.
+  if(width>=1000){const narrow=await heating.evaluate(el=>{el.style.width='960px';const s=el.shadowRoot.querySelector('svg.spark'),
+    v=s.closest('.figure').querySelector('.value').getBoundingClientRect(),b=s.getBoundingClientRect();el.style.width='';
+    return b.left>=v.right&&b.top<v.bottom&&b.width>=64;});assert(narrow,'beside the number on a 960 px card too');}
   assert(marks.shown>=56&&marks.shown<=(width>=1000?110.5:84.5),`its width ${marks.shown}`);
   // The day so far: midnight to now in the house's time zone, by what the boiler did; touching colours 2 px apart.
   const segments=await heating.locator('.seg').evaluateAll(s=>s.map(x=>({kind:x.dataset.kind,title:x.title,cls:x.className,

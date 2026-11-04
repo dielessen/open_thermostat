@@ -28,7 +28,7 @@ const TEXT = {title: 'Your house', heating: 'Heating', status_heating: 'Heating 
  all_reasons: 'All reasons', mode: 'House mode: {mode}', today: 'Today', legend_heating: 'Heating', legend_hot_water: 'Hot water',
  legend_keep_warm: 'Keeping warm', waiting: 'The E32 has not reported yet.'};
 const DASH = '—';  // a figure not known yet: the same in every language
-const NBSP = ' ';
+const NBSP = '\u00a0';
 // What the boiler does (boiler_activity, heating_link.BOILER_ACTIVITIES): the kind in the strip and the status tone.
 const KIND = {heating: 'heat', tapping: 'water', hot_water: 'water', keep_warm: 'keep', charging: 'keep', idle: 'rest'};
 const RUNNING = new Set(['tapping', 'charging', 'hot_water']);
@@ -50,7 +50,7 @@ const ROOM_ICON = {warm_up: 'mdi:clock-fast', heating: 'mdi:fire', wants_heat: '
 const RESTATED = new Set(['heating', 'wants_heat', 'warm_enough']);
 const PRESENCE = {room_home: 'mdi:account-check', room_away: 'mdi:account-off-outline', house_home: 'mdi:home-account',
  house_away: 'mdi:home-export-outline'};
-const HISTORY_MS = 5 * 60000, STATS_MS = 10 * 60000, TICK_MS = 60000, DAY_MS = 86400000;
+const HISTORY_MS = 5 * 60000, STATS_MS = 10 * 60000, TICK_MS = 60000, DAY_MS = 86400000, PENDING_MS = 2 * 60000;
 
 const STYLE = `:host{display:block}
 ha-card{display:block;padding:16px;color:var(--primary-text-color);
@@ -65,12 +65,13 @@ ha-card.dark{--oth-1:#239c8a}
 p{margin:0}
 .tone-heat{--tone:var(--heat)}.tone-water,.tone-keep,.tone-info{--tone:var(--info)}.tone-rest,.tone-off,.tone-wait{--tone:var(--off)}
 .tone-error{--tone:var(--error)}.tone-warn{--tone:var(--warn)}.tone-ok{--tone:var(--ok)}.tone-away{--tone:var(--away)}
-.status{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px 12px;padding:10px 12px;border-radius:12px;
-border-left:6px solid var(--tone);background:var(--secondary-background-color);background:color-mix(in srgb,var(--tone) 12%,var(--oth-surface))}
-.status>ha-icon{color:var(--tone);--mdc-icon-size:24px;display:flex}
+.status{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px;border-radius:12px;
+border-left:6px solid var(--tone);background:var(--secondary-background-color);background:color-mix(in srgb,var(--tone) 10%,var(--oth-surface))}
+.main{display:flex;align-items:center;gap:12px;flex:1 1 0;min-width:min(100%,220px);border-radius:8px}
+.main>ha-icon{color:var(--tone);--mdc-icon-size:24px;display:flex;flex:none}.words{min-width:0}
 .line{font-size:1rem;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
 .sub{margin-top:2px;font-size:.875rem;line-height:1.35;color:var(--oth-muted);overflow-wrap:anywhere}
-.status.problem{cursor:pointer}
+.main[role=link]{cursor:pointer}
 .chip{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 12px;border-radius:16px;border:1px solid var(--oth-line);
 background:var(--oth-surface);color:var(--primary-text-color);font:inherit;font-size:.875rem;font-weight:500;cursor:pointer;white-space:nowrap;
 --mdc-icon-size:18px}
@@ -87,12 +88,13 @@ background:var(--oth-surface);color:var(--primary-text-color);font:inherit;font-
 .room{cursor:pointer;border-radius:8px}.room .value{font-size:2.25rem;line-height:1.1}
 .room .arrow{font-size:.55em;font-weight:500;color:var(--oth-muted);margin:0 .2em}.room .target{font-size:.6em;font-weight:600;color:var(--oth-muted)}
 .room .label ha-icon{--mdc-icon-size:16px;display:flex}.room .label .on{color:var(--ok)}.room .label .warn{color:var(--warn)}
-.why{display:flex;align-items:flex-start;gap:6px;margin-top:6px;font-size:.9rem;line-height:1.4;overflow-wrap:anywhere}
+.why{display:flex;align-items:flex-start;gap:6px;margin-top:6px;font-size:.9rem;line-height:1.4;overflow-wrap:anywhere;text-wrap:pretty}
 .why ha-icon{color:var(--tone);--mdc-icon-size:18px;flex:none;display:flex;margin-top:1px}
 .running{display:inline-flex;align-items:center;gap:6px;font-size:.875rem;color:var(--oth-muted)}
 .running::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--info)}
 .trend{display:flex;flex-wrap:wrap;align-items:flex-end;gap:4px 12px}
 .spark{display:block;flex:none;overflow:visible}.spark path{fill:none;stroke:var(--oth-1);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.spark path.partial{stroke-opacity:.45}
 .spark circle{fill:var(--oth-1);stroke:var(--oth-surface);stroke-width:2}
 .p2{grid-column:span 2}
 .today{margin-top:20px}
@@ -108,7 +110,7 @@ background:var(--oth-surface);color:var(--primary-text-color);font:inherit;font-
 .ticks{position:relative;height:16px;margin-top:6px;font-size:12px;line-height:16px;color:var(--oth-muted);font-variant-numeric:tabular-nums}
 .ticks span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}.ticks span:first-child{transform:none}
 @media(max-width:480px){ha-card{padding:12px}}
-@container house (max-width:400px){.status{grid-template-columns:auto minmax(0,1fr)}.chip{grid-column:2;justify-self:start}
+@container house (max-width:400px){.main{flex-basis:100%}.chip{margin-left:36px}
 .value{font-size:1.125rem}.room .value{font-size:2.25rem}}
 @container house (min-width:720px){.figures{grid-template-columns:repeat(var(--wc,4),minmax(0,1fr));gap:16px 24px}
 .p2{grid-column:auto}.w2{grid-column:span 2}.room{grid-row:span var(--rr,1)}}`;
@@ -122,6 +124,8 @@ const hour12 = hass => {
 };
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const numeric = value => { const n = typeof value === 'string' && value.trim() !== '' ? Number(value) : value; return finite(n) ? n : null; };
+// A figure and its unit stay on one line ("41 °C" is never cut into "41" and "°C" on a phone).
+const together = text => typeof text === 'string' ? text.replace(/ (°C|m³|kWh)/g, NBSP + '$1') : text;
 const known = st => !!st && typeof st.state === 'string' && !['unknown', 'unavailable', ''].includes(st.state);
 const SVG = 'http://www.w3.org/2000/svg';
 const make = (tag, attrs = {}, text) => {
@@ -183,16 +187,21 @@ function runs(list, start, now) {
  return out;
 }
 
-// The last 7 days as a line: points [{i: 0..6, v}], the newest with its dot (marks 2 px, the dot ringed in the card colour).
+// The last 7 days as a line: points [{i: 0..6, v}] (6: today), scaled to their own range (the shape is the point).
+// Today is a day still running: the step to it is drawn lighter, its dot solid. Marks 2 px, the dot ringed in the card colour.
 function sparkline(points, label) {
- const W = 84, H = 30, P = 5, max = Math.max(...points.map(p => p.v)) || 1;
- const x = i => P + i * (W - 2 * P) / 6, y = v => H - P - Math.max(0, v) / max * (H - 2 * P);
+ const W = 84, H = 30, P = 5, values = points.map(p => p.v), low = Math.min(...values), high = Math.max(...values);
+ const x = i => P + i * (W - 2 * P) / 6, y = v => high > low ? H - P - (v - low) / (high - low) * (H - 2 * P) : H / 2;
  const svg = make('svg:svg', {class: 'spark', width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': label});
  svg.append(make('svg:title', {}, label));
+ const at = p => x(p.i).toFixed(1) + ',' + y(p.v).toFixed(1), last = points[points.length - 1];
+ const done = points.filter(p => p.i < 6);
  let d = '';
- points.forEach((p, k) => { d += (k && p.i === points[k - 1].i + 1 ? 'L' : 'M') + x(p.i).toFixed(1) + ',' + y(p.v).toFixed(1); });
- const last = points[points.length - 1];
- svg.append(make('svg:path', {d}), make('svg:circle', {cx: x(last.i).toFixed(1), cy: y(last.v).toFixed(1), r: 4}));
+ done.forEach((p, k) => { d += (k && p.i === done[k - 1].i + 1 ? 'L' : 'M') + at(p); });
+ if (d) svg.append(make('svg:path', {d, 'data-days': done.length}));
+ const before = done[done.length - 1];
+ if (last.i === 6 && before?.i === 5) svg.append(make('svg:path', {class: 'partial', d: 'M' + at(before) + 'L' + at(last)}));
+ svg.append(make('svg:circle', {cx: x(last.i).toFixed(1), cy: y(last.v).toFixed(1), r: 4}));
  return svg;
 }
 
@@ -203,8 +212,8 @@ class OpenThermostatHouse extends HTMLElement {
   this.reset();
  }
  reset() {
-  this._history = null; this._live = []; this._stats = null; this._changed = false; this._seen = undefined;
-  this._fetched = {history: 0, day: null, stats: 0, statsDay: null}; this._pending = {history: false, stats: false};
+  this._history = null; this._live = []; this._stats = null; this._changed = false; this._seen = undefined; this._seenAt = undefined;
+  this._fetched = {history: 0, day: null, stats: 0, statsDay: null}; this._pending = {history: 0, stats: 0};
  }
  setConfig(config) {
   const id = value => typeof value === 'string' && value.includes('.') ? value : undefined;
@@ -231,12 +240,13 @@ class OpenThermostatHouse extends HTMLElement {
  connectedCallback() {
   // Once a minute: the day strip reaches now, and data that is due is asked again (Home Assistant only).
   if (!this._timer) this._timer = setInterval(() => { if (this._hass && this._config) { this.refresh(); this.render(); } }, TICK_MS);
+  this._changed = true;  // back on the page: what happened meanwhile is read again (at most every 5 minutes)
   if (this._hass && this._config) this.refresh();
  }
  disconnectedCallback() {
   clearInterval(this._timer); this._timer = null;
   this._gen++;  // what is still on its way is dropped when it comes
-  this._pending = {history: false, stats: false};
+  this._pending = {history: 0, stats: 0};
  }
  getCardSize() { return 5; }
  getGridOptions() { return {columns: 12, min_columns: 12}; }
@@ -249,7 +259,7 @@ class OpenThermostatHouse extends HTMLElement {
  t(key, values = {}) {
   let text = '';
   try { text = this._hass?.localize?.(PREFIX + CARD + key, values) || ''; } catch (e) { text = ''; }
-  return typeof text === 'string' && text ? text : TEXT[key].replace(/\{(\w+)\}/g, (all, k) => k in values ? values[k] : all);
+  return together(typeof text === 'string' && text ? text : TEXT[key].replace(/\{(\w+)\}/g, (all, k) => k in values ? values[k] : all));
  }
  word(key, values) {
   try { const text = this._hass?.localize?.(PREFIX + key, values); return typeof text === 'string' ? text : ''; } catch (e) { return ''; }
@@ -278,22 +288,24 @@ class OpenThermostatHouse extends HTMLElement {
   const t = Date.parse(st.last_changed), last = this._live[this._live.length - 1];
   if (Number.isFinite(t) && (!last || t > last.t || (t === last.t && st.state !== last.s))) this._live.push({s: st.state, t});
   if (this._live.length > 400) this._live.splice(0, this._live.length - 400);
-  if (this._seen !== undefined && this._seen !== st.state) this._changed = true;
-  this._seen = st.state;
+  // A new state, or the same one again since a later moment (a change came and went unseen): read the history again.
+  if (this._seen !== undefined && (this._seen !== st.state || this._seenAt !== st.last_changed)) this._changed = true;
+  this._seen = st.state; this._seenAt = st.last_changed;
  }
  statIds() { return [...this._config.gas, this._config.starts].filter(id => id && this.st(id)); }
  refresh() {
   const hass = this._hass;
   if (!hass || !this.isConnected || typeof hass.callWS !== 'function') return;
   const now = Date.now(), zone = houseZone(hass), day = midnight(now, zone);
-  if (this.st(this._config.activity) && !this._pending.history
+  const busy = key => now - this._pending[key] < PENDING_MS;  // a read that never answers stops nothing for long
+  if (this.st(this._config.activity) && !busy('history')
       && (this._fetched.day !== day || (this._changed && now - this._fetched.history >= HISTORY_MS))) this.readHistory(day);
   const ids = this.statIds();
-  if (ids.length && !this._pending.stats && (this._fetched.statsDay !== day || now - this._fetched.stats >= STATS_MS)) this.readStats(ids, day, zone);
+  if (ids.length && !busy('stats') && (this._fetched.statsDay !== day || now - this._fetched.stats >= STATS_MS)) this.readStats(ids, day, zone);
  }
  async readHistory(day) {
   const gen = this._gen, id = this._config.activity;
-  this._pending.history = true; this._changed = false;
+  this._pending.history = Date.now(); this._changed = false;
   try {
    const result = await this._hass.callWS({type: 'history/history_during_period', start_time: new Date(day).toISOString(),
     entity_ids: [id], minimal_response: true, no_attributes: true});
@@ -306,12 +318,12 @@ class OpenThermostatHouse extends HTMLElement {
    if (gen !== this._gen) return;
    this._changed = true;  // tried again with the next change, 5 minutes on
   }
-  this._fetched.day = day; this._fetched.history = Date.now(); this._pending.history = false;
+  this._fetched.day = day; this._fetched.history = Date.now(); this._pending.history = 0;
   this.render();
  }
  async readStats(ids, day, zone) {
   const gen = this._gen, hass = this._hass;
-  this._pending.stats = true;
+  this._pending.stats = Date.now();
   const days = Array.from({length: 7}, (_, i) => midnight(day, zone, i - 6));
   try {
    const [week, ...today] = await Promise.all([
@@ -337,7 +349,7 @@ class OpenThermostatHouse extends HTMLElement {
    if (gen !== this._gen) return;
    if (this._stats?.day !== day) this._stats = null;
   }
-  this._fetched.statsDay = day; this._fetched.stats = Date.now(); this._pending.stats = false;
+  this._fetched.statsDay = day; this._fetched.stats = Date.now(); this._pending.stats = 0;
   this.render();
  }
  // Today's change of the entities (a sum), or null while no statistics exist.
@@ -404,11 +416,13 @@ class OpenThermostatHouse extends HTMLElement {
   wrap.append(this.statusStrip(status, room ? roomState.attributes?.room_id : undefined));
   if (status.reasons?.length) {
    // Every reason, behind "All reasons" (kept open over a redraw).
-   const details = make('details', {class: 'reasons'}), list = make('ul');
+   const details = make('details', {class: 'reasons'}), list = make('ul'), summary = make('summary', {'data-focus': 'reasons'}, this.t('all_reasons'));
    for (const reason of status.reasons) list.append(make('li', {}, reason));
-   details.append(make('summary', {'data-focus': 'reasons'}, this.t('all_reasons')), list);
+   details.append(summary, list);
    details.open = this._open;
-   details.addEventListener('toggle', () => { this._open = details.open; });
+   // The click comes before the toggle (which is a later task): a redraw in between keeps it.
+   summary.addEventListener('click', () => { this._open = !details.open; });
+   details.addEventListener('toggle', () => { if (details.isConnected) this._open = details.open; });
    wrap.append(details);
   }
   const figures = this.figures(room, roomState);
@@ -421,18 +435,23 @@ class OpenThermostatHouse extends HTMLElement {
  statusStrip(status, inlined) {
   const config = this._config;
   const box = make('div', {class: 'status tone-' + status.tone, 'data-status': status.tone});
-  const words = make('div', {class: 'words'});
+  const main = make('div', {class: 'main'}), words = make('div', {class: 'words'});
   words.append(make('p', {class: 'line'}, status.line));
   const sub = this.wanting(status, inlined);
   if (sub) words.append(make('p', {class: 'sub'}, sub));
-  box.append(icon(status.icon), words);
+  main.append(icon(status.icon), words);
+  box.append(main);
   if (status.problem) {
-   // A tap leads to the fix: Repairs (Home Assistant's own navigation: the new path and location-changed).
-   Object.assign(box.dataset, {focus: 'problem'});
-   box.setAttribute('role', 'link'); box.setAttribute('tabindex', '0');
-   const go = () => { history.pushState(null, '', '/config/repairs'); window.dispatchEvent(new CustomEvent('location-changed', {detail: {replace: false}})); };
-   box.addEventListener('click', go);
-   box.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+   // A tap leads to the fix: Repairs (Home Assistant's own navigation: the new path and location-changed). The link
+   // is the icon and the words; the house mode chip beside it is a control of its own.
+   Object.assign(main.dataset, {focus: 'problem'});
+   main.setAttribute('role', 'link'); main.setAttribute('tabindex', '0');
+   const go = () => {
+    try { history.pushState(null, '', '/config/repairs'); } catch (e) { /* not on a Home Assistant page */ }
+    window.dispatchEvent(new CustomEvent('location-changed', {detail: {replace: false}}));
+   };
+   main.addEventListener('click', go);
+   main.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
   }
   const mode = this.st(config.mode);
   if (mode) {
@@ -440,8 +459,7 @@ class OpenThermostatHouse extends HTMLElement {
    const chip = make('button', {class: 'chip', type: 'button', 'data-focus': 'mode', 'aria-label': this.t('mode', {mode: label}),
     title: this.t('mode', {mode: label})});
    chip.append(icon('mdi:home-account'), make('span', {}, label));
-   chip.addEventListener('click', e => { e.stopPropagation(); this.moreInfo(config.mode); });
-   chip.addEventListener('keydown', e => e.stopPropagation());
+   chip.addEventListener('click', () => this.moreInfo(config.mode));
    box.append(chip);
   }
   return box;
@@ -545,7 +563,7 @@ class OpenThermostatHouse extends HTMLElement {
   const values = {contact: typeof v.contact === 'string' ? v.contact : '', since: at(v.since), time: at(v.time), until: at(v.until),
    temperature: deg(v.temperature, true), target: deg(v.target)};
   const line = typeof a.line === 'string' ? this.word('room_reason.state_attributes.line.state.' + a.line, values) : '';
-  return line || this.stateText(st);
+  return together(line || this.stateText(st));
  }
  gasFigure(ids) {
   const total = this.today(ids), unit = this.st(ids[0])?.attributes?.unit_of_measurement;
@@ -560,7 +578,8 @@ class OpenThermostatHouse extends HTMLElement {
   }
   if (points.length >= 2) {
    const row = make('div', {class: 'trend'});
-   const label = this.t('week', {values: points.map(p => this.number(p.v, 1)).join(', ') + (unit ? NBSP + unit : '')});
+   // "; " between the values: a comma is the decimal separator in Dutch and Polish.
+   const label = this.t('week', {values: points.map(p => this.number(p.v, 1)).join('; ') + (unit ? NBSP + unit : '')});
    row.append(box.querySelector('.value'), sparkline(points, label));
    box.append(row);
   }

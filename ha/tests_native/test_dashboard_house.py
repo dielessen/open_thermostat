@@ -257,8 +257,9 @@ def test_the_card_module_is_served_with_the_others_and_carries_the_version():
 
 def test_the_card_asks_home_assistant_only_and_sparingly():
     """Never the E32 (session hygiene): Home Assistant's history and statistics, throttled, dropped on disconnect."""
-    assert set(re.findall(r"type: '([\w/]+)'", CARD)) == {
-        "history/history_during_period", "recorder/statistics_during_period", "recorder/statistic_during_period"}
+    assert re.findall(r"callWS\(\{type: '([\w/]+)'", CARD) == [
+        "history/history_during_period", "recorder/statistics_during_period", "recorder/statistic_during_period"]
+    assert CARD.count("callWS(") == 3 and "subscribe" not in CARD  # no stream that keeps running
     assert re.findall(r"https?://[^'\"\s]+", CARD) == ["http://www.w3.org/2000/svg"]
     for word in ("fetch(", "XMLHttpRequest", "WebSocket", "EventSource", "192.168.", "/api/"):
         assert word not in CARD, word

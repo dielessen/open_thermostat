@@ -16,41 +16,13 @@
         "type": "heading"
        },
        {
-        "content": "{% set wanting = (state_attr(\"sensor.fixture_hub_heat_request\", 'rooms') or []) | selectattr('demand', 'eq', true) | list %}### {% if wanting | length == 1 %}1 room wants heat{% elif wanting %}{{ wanting | length }} rooms want heat{% else %}No room wants heat{% endif %}\n{% for room in wanting %}- **{{ room.name }}**{% if room.temperature is number and room.setpoint is number %}: {{ ('%.1f' % (room.temperature | float)) | replace('.', \".\") }} → {{ ('%.1f' % (room.setpoint | float)) | replace('.', \".\") }} °C{% endif %}\n{% endfor %}{% if states(\"sensor.fixture_hub_heat_request\") | float(0) > 0 %}\nBoiler request: {{ ('%.1f' % (states(\"sensor.fixture_hub_heat_request\") | float)) | replace('.', \".\") }} °C{% endif %}",
-        "type": "markdown"
-       },
-       {
-        "entity": "binary_sensor.heating_problem",
+        "flow": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
         "grid_options": {
          "columns": 12
         },
-        "name": "Heating",
-        "state_content": [
-         "reason"
-        ],
-        "tap_action": {
-         "action": "navigate",
-         "navigation_path": "/config/repairs"
-        },
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "binary_sensor.heating_problem",
-          "state": "on"
-         }
-        ]
-       },
-       {
-        "content": "<details><summary>All reasons</summary>\n\n{% for reason in state_attr(\"binary_sensor.heating_problem\", 'reasons') or [] %}- {{ reason }}\n{% endfor %}\n\n</details>",
-        "type": "markdown",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "binary_sensor.heating_problem",
-          "state": "on"
-         }
-        ]
+        "problem": "binary_sensor.heating_problem",
+        "request": "sensor.fixture_hub_heat_request",
+        "type": "custom:openthermostat-house"
        }
       ],
       "column_span": 2,
@@ -1722,41 +1694,13 @@
         "type": "heading"
        },
        {
-        "content": "{% set wanting = (state_attr(\"sensor.fixture_hub_heat_request\", 'rooms') or []) | selectattr('demand', 'eq', true) | list %}### {% if wanting | length == 1 %}1 ruimte vraagt warmte{% elif wanting %}{{ wanting | length }} ruimtes vragen warmte{% else %}Geen ruimte vraagt warmte{% endif %}\n{% for room in wanting %}- **{{ room.name }}**{% if room.temperature is number and room.setpoint is number %}: {{ ('%.1f' % (room.temperature | float)) | replace('.', \",\") }} → {{ ('%.1f' % (room.setpoint | float)) | replace('.', \",\") }} °C{% endif %}\n{% endfor %}{% if states(\"sensor.fixture_hub_heat_request\") | float(0) > 0 %}\nKetelvraag: {{ ('%.1f' % (states(\"sensor.fixture_hub_heat_request\") | float)) | replace('.', \",\") }} °C{% endif %}",
-        "type": "markdown"
-       },
-       {
-        "entity": "binary_sensor.heating_problem",
+        "flow": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
         "grid_options": {
          "columns": 12
         },
-        "name": "Verwarming",
-        "state_content": [
-         "reason"
-        ],
-        "tap_action": {
-         "action": "navigate",
-         "navigation_path": "/config/repairs"
-        },
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "binary_sensor.heating_problem",
-          "state": "on"
-         }
-        ]
-       },
-       {
-        "content": "<details><summary>Alle redenen</summary>\n\n{% for reason in state_attr(\"binary_sensor.heating_problem\", 'reasons') or [] %}- {{ reason }}\n{% endfor %}\n\n</details>",
-        "type": "markdown",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "binary_sensor.heating_problem",
-          "state": "on"
-         }
-        ]
+        "problem": "binary_sensor.heating_problem",
+        "request": "sensor.fixture_hub_heat_request",
+        "type": "custom:openthermostat-house"
        }
       ],
       "column_span": 2,

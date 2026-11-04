@@ -245,7 +245,7 @@ private:
         // rc.5 (P1): "boiler" (BoilerResponse::addJson) travels with the flow.
         for (const char* key : {"flow", "night_gas", "tuning", "scoreboard", "boiler"})
             if (cJSON* part = cJSON_DetachItemFromObjectCaseSensitive(doc.get(), key))
-                cJSON_AddItemToObject((key[0] == 't' ? tuning : key[0] == 's' ? board : flow).get(), key, part);
+                if (!cJSON_AddItemToObject((key[0] == 't' ? tuning : key[0] == 's' ? board : flow).get(), key, part)) cJSON_Delete(part); // rc.5: a failed key copy (low memory) no longer leaks the part
         // rc.5: the insight's members go out after its schema, under their own keys.
         if (Doc part{cJSON_DetachItemFromObjectCaseSensitive(doc.get(), "insight"), cJSON_Delete}; cJSON_IsObject(part.get()))
             while (cJSON* member = cJSON_DetachItemViaPointer(part.get(), part->child))

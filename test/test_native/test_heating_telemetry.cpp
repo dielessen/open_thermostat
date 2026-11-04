@@ -534,9 +534,9 @@ TEST(HeatingTelemetry, BurnerKeepsItsKeysWhileUnknown) {
     EXPECT_EQ(print(active.get()), R"({"burner":{"starts_last_hour":7,"heating_starts_last_hour":6,"short_cycling":true,"activity":"keep_warm"}})");
 }
 
-// The budget (TELEMETRIEBUDGET.nl.md, the soak chain's sizes and fuzz_room_plan): 1000 B. rc.4
+// The budget (TELEMETRIEBUDGET.nl.md, the soak chain's sizes and fuzz_room_plan): learnedRoomBytes, rc.5 1100 B. rc.4
 // added "readiness_timing", "estimate" and "arrival" (an object once a morning was judged).
-TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder1000Bytes) {
+TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayWithinTheirBudget) {
     for (const bool worst : {false, true}) {
         Bench b(worst, true, true);                      // worst: 32-character ids and a judged morning
         if (worst) b.learner.gasPrice(FlowLearner::maxGasPrice); // the longest prices and savings
@@ -545,7 +545,7 @@ TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder1000Bytes) {
             const auto payload = learnedRoomTelemetry(b.learner, b.plan, i, b.context);
             ASSERT_FALSE(payload.empty());
             largest = std::max(largest, payload.size());
-            EXPECT_LE(payload.size(), 1000u) << i;
+            EXPECT_LE(payload.size(), learnedRoomBytes) << i;
             Json j(cJSON_Parse(payload.c_str()), cJSON_Delete);
             ASSERT_TRUE(j);
             EXPECT_EQ(cJSON_GetObjectItem(j.get(), "schema")->valuedouble, 1);
@@ -584,7 +584,7 @@ TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder1000Bytes) {
         std::printf("[ heating telemetry ] per-room %s largest %zu B\n", worst ? "worst-case" : "realistic", largest);
         EXPECT_TRUE(learnedRoomTelemetry(b.learner, b.plan, 8, b.context).empty());
         // rc.5 (P3): with the widest free heat in every room, "free_heat" (88 B and its comma) goes in
-        // "learned" while the payload keeps its 1000 B with a 32-character id (the soak's rule), and stays
+        // "learned" while the payload keeps its budget with a 32-character id (the soak's rule), and stays
         // out of a payload it would push over (/status/heating always has it).
         const auto free = widestFreeHeat(b.plan);
         b.context.freeHeat = &free;

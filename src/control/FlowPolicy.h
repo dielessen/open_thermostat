@@ -319,7 +319,8 @@ public:
     enum class Source : uint8_t { rule, curve, learned, optimumStart };
     static constexpr int16_t warmupFromCentiC = 30;
     static constexpr int16_t warmupCapCentiC = 100;  // rc.5: a room this short gets the full flow, not the boiler's ceiling
-    static constexpr float houseSlopeFloor = 0.5f; // rc.5 (P2): the house model's slope at least this share of the design slope
+    static constexpr float houseSlopeFloor = 0.5f;   // rc.5 (P2): the house model's slope at least this share of the design slope
+    static constexpr float houseSlopeCeiling = 1.5f; // rc.5: and at most this multiple of it (without a return or on floors the estimate ran to 2.5 in the soak; only the learned curve may go higher)
     struct Inputs {
         uint64_t now = 0;
         std::optional<int64_t> utc;                 // trusted clock only
@@ -394,7 +395,7 @@ public:
         const bool house = !learnedSlope && in.houseSlope && std::isfinite(*in.houseSlope) && *in.houseSlope > 0;
         const float design = WeatherCurve::slopeFor(designFlowC_);
         slope_ = learnedSlope ? *learnedSlope
-            : house ? std::clamp(*in.houseSlope, std::max(WeatherCurve::minSlope, design * houseSlopeFloor), WeatherCurve::maxSlope) : design;
+            : house ? std::clamp(*in.houseSlope, std::max(WeatherCurve::minSlope, design * houseSlopeFloor), std::min(WeatherCurve::maxSlope, design * houseSlopeCeiling)) : design;
         slopeSource_ = learnedSlope ? "learned" : house ? "house" : "design";
         // Weather curve: the highest base over the usable rooms (one circuit).
         if (in.outdoorCentiC && lead_ >= 0) {

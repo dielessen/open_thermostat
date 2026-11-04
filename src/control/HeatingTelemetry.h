@@ -27,7 +27,7 @@ struct LearnedContext {
 };
 // rc.5 (P3): the budget of fw/telemetry/learned/<id> (TELEMETRIEBUDGET.nl.md; the tests, fuzz_room_plan
 // and the soak check it), counted as if the room id had its maximum of 32 characters.
-inline constexpr size_t learnedRoomBytes = 1000;
+inline constexpr size_t learnedRoomBytes = 1100; // rc.5: a judged morning, long reasons and free heat with a 32-character id (the rc.4 soak saw 1018 B at 1000); above 1024 B the message only counts as "large", the hard limit is 1536
 // A gas meter counts as connected while its last total is at most 2 h old
 // (DSMR 4 meters report gas once an hour).
 inline constexpr uint64_t gasMeterFreshMs = 2 * 3600000ull;

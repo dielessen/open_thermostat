@@ -198,7 +198,7 @@ Injected events:
   telemetry, DhwEpisodes, RoomPlan json/parse, RoomSchedule, HeatingInput, and
   the compact and full status.
 - **JSON**: every payload parses back with cJSON. Size bounds: fw/telemetry/heating
-  ≤ 7900 B, heating_learned/<id> ≤ 1000 B, the whole summary document ≤ 1300 B
+  ≤ 7900 B, heating_learned/<id> ≤ 1100 B (rc.5), the whole summary document ≤ 1300 B
   (the publisher splits it into summary, flow, tuning and scoreboard topics of at most 1 KB each), and the
   stored plan ≤ 4095 B. Shape changes of the MQTT payload are reported (a
   documented `{..}|null` value does not count).
@@ -260,7 +260,7 @@ Injected events:
   Backoff arithmetic is safe for every stored counter value.
 - **rc.5 documents**: fw/telemetry/flow (the summary's "flow" and "night_gas", with
   P1's "boiler") ≤ 1024 B, fw/telemetry/insight ≤ 700 B, "boiler" ≤ 140 B, "house"
-  ≤ 110 B and every room's "free_heat" ≤ 90 B; heating_learned/<id> keeps its 1000 B
+  ≤ 110 B and every room's "free_heat" ≤ 90 B; heating_learned/<id> keeps its 1100 B
   with or without "free_heat" (P3 leaves it out of a message it would push over).
 - **BoilerResponse** (P1): while the E32 drives the boiler with Smart warm-up on, no
   request (rule, curve, learned flow or optimum start) goes above max(the learned

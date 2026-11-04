@@ -77,7 +77,8 @@ struct HeatingNoteNvs {
     // like the optional records: written only while the handover, the flow record, a plan save,
     // a 2 KB Bluetooth save and the control record's replacement keep their room after it
     // (NvsOptionalRecords.h). The same key and size bound as rc.2 (< 64 bytes: 3 entries). It is
-    // not in ControlPartitionBudget::optionalKeys: never erased to make room.
+    // not in ControlPartitionBudget::optionalKeys: never erased to make room. rc.4 (R1-06): the
+    // "owned" note is written the same way.
     bool writeGated(const std::string& text) const {
         return !text.empty() && text.size() < 64 && optionalHeatingRecordFits(key, text.size() + 1) && write(text);
     }

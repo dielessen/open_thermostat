@@ -192,7 +192,7 @@ public:
         }
         // Whether the E32 ever owned the boiler (a stored confirmation says so too): waiting for a
         // confirmation is then a problem for Home Assistant, on a new E32 only the next step.
-        ownedBefore_ = HeatingNoteNvs{"owned"}.read() == "1";
+        ownedBefore_ = ownedStored_ = HeatingNoteNvs{"owned"}.read() == "1";
         if (activeGuard_.confirmed() || activeGuard_.reconfirmPending()) markOwned();
         // The boiler test's record (rc.3: its last result, the owner's mark, a past thermostat). A
         // thermostat period in the stored readiness window is the same fact from before rc.3.
@@ -428,7 +428,9 @@ public:
         if (const char* error = control::TrvConfig::parse(root, config)) return error;
         for (const auto& r : config.rooms) if (!roomEngine_.plan().find(r.id)) return "unknown_room";
         if (config == trv_.config()) return nullptr;
-        if (!TrvNvs::write(config)) return "save_unconfirmed";
+        const bool saved = TrvNvs::write(config);
+        rewriteEvicted(); // R1-06: the valves may have made room from what was learned
+        if (!saved) return "save_unconfirmed";
         trv_.setConfig(std::move(config));
         return nullptr;
     }
@@ -467,7 +469,11 @@ public:
         if (networkTimeTrusted) utc = static_cast<uint32_t>(std::time(nullptr));
         bool persist = false;
         if (const char* error = next->command(root, roomEngine_.plan(), bleReceiptClock(), utc, persist)) return error;
-        if (persist && !RoomOverridesNvs::write(next->stored())) return "save_unconfirmed";
+        if (persist) {
+            const bool saved = RoomOverridesNvs::write(next->stored());
+            rewriteEvicted(); // R1-06: the record may have made room from what was learned
+            if (!saved) return "save_unconfirmed";
+        }
         overrides_ = *next;
         return nullptr;
     }
@@ -893,8 +899,16 @@ private:
     bool planStored_ = true;                     // false: no plan in NVS yet, its mode follows newPlan_
     bool planReadable_ = true;                   // false: the stored plan was unreadable at boot (R1-05), until a save
     control::NewPlanDefault newPlan_;            // a new plan's route from the boiler bus (rc.2)
-    bool ownedBefore_ = false;                   // the E32 owned the boiler once (NVS "owned")
-    void markOwned() { if (!ownedBefore_) { ownedBefore_ = true; HeatingNoteNvs{"owned"}.write("1"); } }
+    bool ownedBefore_ = false, ownedStored_ = false; // the E32 owned the boiler once (NVS "owned")
+    uint64_t ownedRetryAt_ = 0;
+    // R1-06: the note is gated like the other notes (HeatingNoteNvs::writeGated, in the ledger); a
+    // refused write keeps RAM and is tried again every 10 minutes while the E32 owns the boiler (R1-19).
+    void markOwned() {
+        ownedBefore_ = true;
+        if (ownedStored_ || bleReceiptClock() < ownedRetryAt_) return;
+        ownedStored_ = HeatingNoteNvs{"owned"}.writeGated("1");
+        if (!ownedStored_) ownedRetryAt_ = bleReceiptClock() + 600000;
+    }
     std::string testRecord_;                     // the boiler test's record as last stored
     // Stores the boiler test's record when it changed (each step, the end, a mark, the first foreign
     // controller), gated like an optional record (HeatingNoteNvs::writeGated). A refused write keeps

@@ -95,6 +95,19 @@ template <class Permits> bool makeNvsRoom(Permits&& permits) {
     nvs_close(read);
     return room;
 }
+// rc.4 (review R1-06): the owner's own records beside the plan, "comfort" (overrides and away,
+// RoomOverridesStore.h) and "trv" (the radiator valves, TrvStore.h), bypassed the ledger, so after
+// them a plan or Bluetooth save could end in storage_full. Now one is written only while control's
+// room stays free after it (the optional records' gate, ControlPartitionBudget::permitsOptionalWrite),
+// but it comes before what was learned: optional records are erased first, the least useful first,
+// when that makes the room (their owners write them again where they fit; optionalRecordEvictions).
+// False: no room, nothing erased (the caller answers save_unconfirmed).
+inline bool userHeatingRecordFits(const char* key, size_t bytes) {
+    using B = control::ControlPartitionBudget;
+    if (optionalRecordsFrozen().load()) return false; // a requested rollback keeps the previous firmware's room
+    const size_t old = storedNvsRecordBytes("ot_heating", key, B::configBytes), reserve = optionalRecordReserve();
+    return makeNvsRoom([&](control::ControlPartitionStats s) { return B::permitsOptionalWrite(s, bytes, old, reserve); });
+}
 // Before a requested rollback (update::requestRollback): the previous firmware (beta.22, rc.1)
 // reads none of the learned or tuning records and gates its plan and Bluetooth saves with a full
 // control replacement. Freeze the optional records and erase them, the least useful first, until

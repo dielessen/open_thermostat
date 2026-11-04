@@ -28,7 +28,7 @@
 2 test/menu-browser.cjs  # 15 s (beta.23 menus)
 2 test/heating-valves-browser.cjs  # 23 s (beta.24 radiator valves)
 2 test/display-code-browser.cjs  # 3 s (1.0)
-# shard 3: about 258 s
+# shard 3: about 266 s
 3 test/auth-body-browser.cjs  # 1 s
 3 test/boiler-display-browser.cjs  # 20 s
 3 test/heating-browser.cjs  # 27 s
@@ -45,6 +45,7 @@
 3 test/ha-room-vacation-browser.cjs  # 10 s
 3 test/house-browser.cjs  # 20 s (beta.23)
 3 test/takeover-test-browser.cjs  # 16 s (rc.2 boiler test and takeover)
+3 test/dashboard-room-why-browser.cjs  # 8 s (rc.4 why each room heats or not, two chips on a phone)
 # shard 4: about 270 s
 4 test/onboarding/browser.cjs  # 19 s
 4 test/onboarding/body-browser.cjs  # 2 s

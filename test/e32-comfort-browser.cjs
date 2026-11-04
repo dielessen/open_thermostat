@@ -44,9 +44,9 @@ function heating(){
   // The test drives every later state itself: stop the 10 s poll so a timed refresh cannot interleave.
   await page.evaluate(()=>clearInterval(intervalID));
   const rooms=page.locator('.pd-room');
-  // The state is visible with its reason.
-  assert.match(await rooms.nth(0).locator('.ot-chips').innerText(),lang==='en'?/21 °C until/:/21 °C tot/);
-  assert.match(await rooms.nth(1).locator('.ot-chips').innerText(),lang==='en'?/Window open: heating paused/:/Raam open: verwarming gepauzeerd/);
+  // The state is visible with its reason (the why line, rc.4 F3).
+  assert.match(await rooms.nth(0).locator('.pd-why').innerText(),lang==='en'?/Temporarily 21 °C until/:/Tijdelijk 21 °C tot/);
+  assert.match(await rooms.nth(1).locator('.pd-why').innerText(),lang==='en'?/Paused: a window or door is open/:/Gepauzeerd: er staat een raam of deur open/);
   // Controls only for active rooms; "back to the program" only while overriding.
   assert.equal(await page.locator('.pd-room-comfort').count(),2);
   assert.equal(await rooms.nth(0).locator('[data-comfort="none"]').count(),1);

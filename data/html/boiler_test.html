@@ -158,7 +158,7 @@
     const format = (value, digits) => new Intl.NumberFormat(OpenThermostatLanguage.locale, {minimumFractionDigits:digits, maximumFractionDigits:digits}).format(value);
     const show = (name, digits, unit) => { const v = field(name); return v && Number.isFinite(v.value) ? format(v.value, digits) + unit : null; };
     const heat = field('heating_active'), dhw = field('dhw_active'), code = field('display_code'), service = field('service_number'), hours = field('reported_burner_runtime');
-    const rows = [[uiText("Status"), dhw?.value === 1 ? uiText("Hot water") : heat?.value === 1 ? uiText("CH active") : heat || dhw ? uiText("No CH or hot water") : null],
+    const rows = [[uiText("Status"), dhw?.value === 1 ? uiText("Hot water") : heat?.value === 1 ? uiText("Heating on") : heat || dhw ? uiText("Heating off") : null],
       [uiText("Water temperature to heating (flow)"), show('measured_flow_temperature', 1, ' °C')], [uiText("Water temperature back (return)"), show('measured_return_temperature', 1, ' °C')],
       [uiText("Water pressure"), show('pressure', 1, ' bar')], [uiText("Hot water temperature"), show('measured_dhw_temperature', 1, ' °C')],
       [uiText("Burner power"), show('reported_burner_modulation', 0, ' %')],

@@ -201,6 +201,58 @@ async def test_the_boiler_view_groups_the_values_and_shows_only_rows_with_a_valu
     assert hot_water[4]["visibility"] == hot_water[5]["visibility"] == [known(hub["boiler_activity"])]
 
 
+# Roboto Medium at 16 px, the statistic card's name (--ha-font-size-l, weight 500): advance widths in CSS px, measured
+# in Chromium with the frontend's own Roboto-Medium.woff2 (P21); kerning moves these names by less than 0.3 px.
+ROBOTO_MEDIUM_16 = {
+    "a": 8.7, "b": 9, "c": 8.4, "d": 9, "e": 8.6, "f": 5.7, "g": 9.1, "h": 8.9, "i": 4.1, "j": 4, "k": 8.4,
+    "l": 4.1, "m": 13.9, "n": 8.9, "o": 9.1, "p": 9, "q": 9.1, "r": 5.6, "s": 8.3, "t": 5.3, "u": 8.9, "v": 7.9,
+    "w": 11.9, "x": 8, "y": 7.8, "z": 8, "A": 10.7, "B": 10.1, "C": 10.5, "D": 10.5, "E": 9, "F": 8.8, "G": 10.9,
+    "H": 11.4, "I": 4.5, "J": 8.9, "K": 10.1, "L": 8.7, "M": 14, "N": 11.4, "O": 11, "P": 10.2, "Q": 11, "R": 10,
+    "S": 9.7, "T": 9.7, "U": 10.4, "V": 10.4, "W": 14.1, "X": 10.1, "Y": 9.8, "Z": 9.6, "ą": 8.7, "ć": 8.4,
+    "ę": 8.6, "ł": 4.6, "ń": 8.9, "ó": 9.1, "ś": 8.3, "ź": 8, "ż": 8, "Ą": 10.7, "Ć": 10.5, "Ę": 9, "Ł": 8.8,
+    "Ń": 11.4, "Ó": 11, "Ś": 9.7, "Ź": 9.6, "Ż": 9.6, "ë": 8.6, "é": 8.6, "è": 8.6, "ü": 8.9, "ö": 9.1, "ä": 8.7,
+    "0": 9.1, "1": 9.1, "2": 9.1, "3": 9.1, "4": 9.1, "5": 9.1, "6": 9.1, "7": 9.1, "8": 9.1, "9": 9.1, " ": 4,
+    ":": 4.3, ",": 3.5, ".": 4.5, "(": 5.6, ")": 5.6, "–": 10.3, "-": 5.3, "…": 11.3, "/": 6.3}
+
+
+def name_width(text):
+    return round(sum(ROBOTO_MEDIUM_16[c] for c in text), 1)
+
+
+def test_todays_figures_have_names_a_phone_shows_in_full():
+    """The demo Home Assistant at 390 px (P16) cut every name of the four figures ("Gas verwarmen…", "Branderstarts
+    v…"): a half-width statistic card there showed "Gas verwarmen…" (122.8 px) in full and cut "Gas warm water…"
+    (125.9 px). The names fit that, in every language; "today" is said once, by the section's heading."""
+    from custom_components.open_thermostat.dashboard import _energy_section
+    budget = name_width("Gas verwarmen…")
+    assert 122.5 <= budget < name_width("Gas warm water…")
+    hub = {key: "sensor." + key for key in ("heating_gas", "hot_water_gas", "daily_burner_starts", "daily_burner_time")}
+    for language, t in TEXT.items():
+        figures = [card for card in _energy_section(t, hub)["cards"] if card["type"] == "statistic"]
+        assert len(figures) == 4, language
+        for card in figures:
+            assert name_width(card["name"]) <= budget, (language, card["name"], name_width(card["name"]))
+    assert [TEXT[language]["today_week"] for language in ("en", "nl", "pl")] == [
+        "Today and this week", "Vandaag en deze week", "Dziś i w tym tygodniu"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("language,heading,note", [
+    ("en", "Boiler settings", "Settings the boiler reports only when asked are read at start-up and every six hours; "
+                              "the time of the last reading is on the sensor."),
+    ("nl", "Ketelinstellingen", "Instellingen die de ketel alleen op verzoek meldt, leest de E32 bij het opstarten en "
+                                "daarna elke zes uur; wanneer ze voor het laatst zijn gelezen staat op de sensor."),
+    ("pl", "Ustawienia kotła", "Ustawienia, które kocioł zgłasza tylko na żądanie, E32 odczytuje przy uruchomieniu, "
+                               "a potem co sześć godzin; czas ostatniego odczytu jest podany na czujniku.")])
+async def test_the_boiler_settings_say_when_the_boiler_reports_them(hass, language, heading, note):
+    """The owner (4 Nov 2026): settings the boiler reports only once or at start-up are shown, with a remark. Under
+    the settings one sentence says when they are read and where the time of the last reading is."""
+    config, hub, fields = setup(hass, language)
+    cards = headed(view(config, "boiler"))[heading]
+    assert [card["type"] for card in cards] == ["heading", "entities", "markdown"]
+    assert cards[2]["content"] == note and cards[2]["visibility"] == cards[1]["visibility"]
+
+
 @pytest.mark.asyncio
 async def test_today_and_this_week_has_todays_figures_and_the_one_gas_chart(hass):
     """rc.5 (dashboard-spec §5.3): gas and burner of today as pairs of figures, one gas-per-day chart, the burner
@@ -210,10 +262,10 @@ async def test_today_and_this_week_has_todays_figures_and_the_one_gas_chart(hass
     cards = headed(boiler)["Today and this week"]
     figures = [c for c in cards if c["type"] == "statistic"]
     assert [(c["entity"], c["name"], c["icon"]) for c in figures] == [
-        (hub["heating_gas"], "Gas for heating today", "mdi:meter-gas"),
-        (hub["hot_water_gas"], "Gas for hot water today", "mdi:meter-gas"),
-        (hub["daily_burner_starts"], "Burner starts today", "mdi:counter"),
-        (hub["daily_burner_time"], "Burner time today", "mdi:timer-outline")]
+        (hub["heating_gas"], "Heating gas", "mdi:meter-gas"),
+        (hub["hot_water_gas"], "Hot water gas", "mdi:meter-gas"),
+        (hub["daily_burner_starts"], "Burner starts", "mdi:counter"),
+        (hub["daily_burner_time"], "Burner time", "mdi:timer-outline")]
     assert all(c["period"] == {"calendar": {"period": "day"}} and c["stat_type"] == "change"
                and c["grid_options"] == {"columns": 6, "rows": 2} for c in figures)
     # Pairs that appear together: the gas while the gas has a value, the burner while its starts have one.

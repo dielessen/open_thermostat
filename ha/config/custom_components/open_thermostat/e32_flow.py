@@ -148,6 +148,11 @@ class FlowSettingsLink:
     def available(self):
         return self.hub.fresh and self.settings is not None
 
+    @property
+    def closed(self):
+        """The entry is unloading (HeatingHub.close): track_entities adds no control from now on."""
+        return getattr(self.hub, "closed", False)
+
     @callback
     def add_listener(self, listener):
         self._listeners.append(listener)

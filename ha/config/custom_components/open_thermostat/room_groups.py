@@ -30,6 +30,7 @@ created.
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
 import logging
@@ -129,6 +130,7 @@ class RoomGroups:
         self._titles = {}  # room id: the group title this setup gave it
         self._signature = None
         self._restoring = False
+        self._changing = False  # one of our own group changes is under way (_own_change)
         self._unsubscribe = []
 
     # -- identifiers ---------------------------------------------------------
@@ -193,6 +195,18 @@ class RoomGroups:
 
     # -- groups --------------------------------------------------------------
 
+    @contextmanager
+    def _own_change(self):
+        """One of our own group changes. Home Assistant runs the entry's update listener at once, inside
+        the change (an eager task), and that listener reconciles: halfway through, a new room's group
+        exists but neither this setup's record of it nor the room's device does yet, so without this the
+        reconcile removed the new group and then reported it deleted (room_group_restored) on a new install."""
+        changing, self._changing = self._changing, True
+        try:
+            yield
+        finally:
+            self._changing = changing
+
     @callback
     def ensure_room(self, room_id, name):
         """The room's group, made when missing; the room's device (and its entities) moved into it."""
@@ -204,14 +218,16 @@ class RoomGroups:
         if created:
             group = ConfigSubentry(data=MappingProxyType({}), subentry_type=GROUP_TYPE,
                                    title=name, unique_id=group_unique_id(room_id))
-            entries.async_add_subentry(self.entry, group)
+            with self._own_change():
+                entries.async_add_subentry(self.entry, group)
             group_id = group.subentry_id
             self._titles[room_id] = name
         else:
             title = self.entry.subentries[group_id].title
             # The group follows the E32 room name; a title the user gave it on the integration page stays.
             if title != name and title in {room_id, self._titles.get(room_id), getattr(device, "name", None)}:
-                entries.async_update_subentry(self.entry, self.entry.subentries[group_id], title=name)
+                with self._own_change():
+                    entries.async_update_subentry(self.entry, self.entry.subentries[group_id], title=name)
                 self._titles[room_id] = name
         self._known[room_id] = group_id
         if device is not None:
@@ -313,13 +329,15 @@ class RoomGroups:
     @callback
     def reconcile(self, force=False):
         """Follow the plan: titles, moved Bluetooth sensors, removed rooms, a group the user deleted."""
-        if self._restoring or self.hass.config_entries.async_get_entry(self.entry.entry_id) is not self.entry:
-            return
+        if (self._restoring or self._changing
+                or self.hass.config_entries.async_get_entry(self.entry.entry_id) is not self.entry):
+            return  # (_changing: the update listener inside one of our own changes, see _own_change)
         self._expire_restored()
         if self._current_signature() == self._signature and not force:
             return  # every telemetry message notifies the hub; nothing that matters here changed
         try:
-            self._reconcile()
+            with self._own_change():
+                self._reconcile()
         except Exception:  # presentation only: never break the telemetry path
             _LOGGER.exception("Could not arrange the OpenThermostat room groups")
         self._signature = self._current_signature()

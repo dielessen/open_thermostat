@@ -495,6 +495,22 @@ async def test_dutch_headings_and_only_existing_enabled_entities(hass):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("language,titles", [
+    ("en", ["Overview", "Rooms", "Boiler", "Learning and settings", "Diagnostics"]),
+    ("nl", ["Overzicht", "Ruimtes", "Ketel", "Leren en instellingen", "Diagnose"]),
+    ("pl", ["Przegląd", "Pomieszczenia", "Kocioł", "Uczenie i ustawienia", "Diagnostyka"])])
+async def test_the_view_tabs_show_their_titles(hass, language, titles):
+    """Home Assistant shows a view that has an icon as that icon alone in the tab bar: the first real render (demo
+    Home Assistant, P16) was a row of six icons. The approved sketches read "Overzicht · Ruimtes · Weekprogramma ·
+    Ketel · Leren · Diagnose": no view has an icon, so every tab shows its title; the paths stay."""
+    e, *_ = installation(hass, language, with_hub=False)
+    views = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"]
+    assert [v["title"] for v in views] == titles
+    assert [v["path"] for v in views] == ["heating", "rooms", "boiler", "learned", "diagnostics"]
+    assert [v for v in views if "icon" in v or "show_icon_and_title" in v] == []
+
+
+@pytest.mark.asyncio
 async def test_empty_installation_has_no_empty_sections(hass):
     e = entry(hass)
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()

@@ -1159,3 +1159,58 @@ def test_room_message_is_not_queued_twice():
     queued = [connection.queue.get_nowait() for _ in range(connection.queue.qsize())]
     assert [kind for kind, _ in queued] == ["message"] * (len(session) - 1) + ["boiler_message"]
     assert observed == session
+
+
+@pytest.mark.asyncio
+async def test_no_entity_is_added_while_the_entry_unloads(hass, caplog, monkeypatch):
+    """A reload during the first E32 telemetry (demo Home Assistant, P16/P21). Home Assistant removes the entry's
+    platforms before its MQTT subscriptions end; the flow report that arrived in between added the flow sensors to
+    the removed platform, where they stayed, and the next setup's flow sensors were refused ("does not generate
+    unique IDs"). The unload closes the hub first: nothing is added until the next setup."""
+    import logging
+    from datetime import timedelta
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers.entity_platform import EntityPlatform
+    import custom_components.open_thermostat as integration
+    from custom_components.open_thermostat import e32_flow, heating_link as module
+    from custom_components.open_thermostat.product import PRODUCT_CONFIG
+    from test_e32_flow import summary
+    from test_v1_native import entry as make_entry
+    config_entry = make_entry(hass)
+    hass.config_entries.async_update_entry(config_entry, data={**config_entry.data, PRODUCT_CONFIG: 1})
+    dr.async_get(hass).async_get_or_create(config_entry_id=config_entry.entry_id,
+                                           identifiers={("open_thermostat", "fixture")})
+
+    def setup():
+        hub = module.HeatingHub("fixture")
+        platform = EntityPlatform(hass=hass, logger=logging.getLogger(__name__), domain="sensor",
+                                  platform_name="open_thermostat", platform=None,
+                                  scan_interval=timedelta(seconds=30), entity_namespace=None)
+        platform.config_entry = config_entry
+
+        def add(new, **options):
+            hass.async_create_task(platform.async_add_entities(new, **options))
+        return hub, platform, module.track_entities(hub, add, {}, e32_flow.wanted_sensors)
+    hub, platform, stop = setup()
+    hass.data.setdefault("open_thermostat", {})[config_entry.entry_id] = {
+        "v1_runtime": SimpleNamespace(async_stop=AsyncMock()), "heating_hub": hub}
+
+    async def unload_platforms(entry, platforms):
+        await platform.async_reset()  # the sensor platform goes first ...
+        hub.update_summary(summary())  # ... then the E32's flow report arrives
+        await hass.async_block_till_done()
+        return True
+    monkeypatch.setattr(hass.config_entries, "async_unload_platforms", unload_platforms)
+    assert await integration.async_unload_entry(hass, config_entry)
+    stop()  # the entry's unload callbacks run after async_unload_entry
+    assert not platform.entities and hass.states.async_entity_ids("sensor") == []  # nothing outlived the platform
+    hub, platform, stop = setup()  # the next setup: the same sensors, once, without an error
+    try:
+        hub.update_summary(summary())
+        await hass.async_block_till_done()
+        assert {"fixture_flow_source", "fixture_flow_curve", "fixture_night_heating_gas"} <= {
+            entity.unique_id for entity in platform.entities.values()}
+        assert "does not generate unique IDs" not in caplog.text
+    finally:
+        stop()
+        await platform.async_reset()

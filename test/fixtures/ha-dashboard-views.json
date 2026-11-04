@@ -3,7 +3,6 @@
   "views": [
    {
     "dense_section_placement": true,
-    "icon": "mdi:home-thermometer",
     "max_columns": 2,
     "path": "heating",
     "sections": [
@@ -73,7 +72,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:thermostat",
     "max_columns": 2,
     "path": "rooms",
     "sections": [
@@ -612,7 +610,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:water-boiler",
     "max_columns": 2,
     "path": "boiler",
     "sections": [
@@ -865,7 +862,7 @@
          "rows": 2
         },
         "icon": "mdi:meter-gas",
-        "name": "Gas for heating today",
+        "name": "Heating gas",
         "period": {
          "calendar": {
           "period": "day"
@@ -891,7 +888,7 @@
          "rows": 2
         },
         "icon": "mdi:meter-gas",
-        "name": "Gas for hot water today",
+        "name": "Hot water gas",
         "period": {
          "calendar": {
           "period": "day"
@@ -917,7 +914,7 @@
          "rows": 2
         },
         "icon": "mdi:counter",
-        "name": "Burner starts today",
+        "name": "Burner starts",
         "period": {
          "calendar": {
           "period": "day"
@@ -943,7 +940,7 @@
          "rows": 2
         },
         "icon": "mdi:timer-outline",
-        "name": "Burner time today",
+        "name": "Burner time",
         "period": {
          "calendar": {
           "period": "day"
@@ -2596,6 +2593,97 @@
           ]
          }
         ]
+       },
+       {
+        "content": "Settings the boiler reports only when asked are read at start-up and every six hours; the time of the last reading is on the sensor.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_heating_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_hysteresis_on",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_flow_temperature_offset",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_circulation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_circulation_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_disinfection_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_charge_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_comfort_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
        }
       ],
       "type": "grid",
@@ -2693,7 +2781,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:school-outline",
     "max_columns": 2,
     "path": "learned",
     "sections": [
@@ -3272,7 +3359,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:information-outline",
     "max_columns": 2,
     "path": "diagnostics",
     "sections": [
@@ -4160,7 +4246,6 @@
    {
     "back_path": "/open-thermostat-fixture-x/heating",
     "dense_section_placement": true,
-    "icon": "mdi:compare-horizontal",
     "max_columns": 2,
     "path": "comparison",
     "sections": [
@@ -4358,7 +4443,6 @@
   "views": [
    {
     "dense_section_placement": true,
-    "icon": "mdi:home-thermometer",
     "max_columns": 2,
     "path": "heating",
     "sections": [
@@ -4428,7 +4512,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:thermostat",
     "max_columns": 2,
     "path": "rooms",
     "sections": [
@@ -4967,7 +5050,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:water-boiler",
     "max_columns": 2,
     "path": "boiler",
     "sections": [
@@ -5220,7 +5302,7 @@
          "rows": 2
         },
         "icon": "mdi:meter-gas",
-        "name": "Gas verwarmen vandaag",
+        "name": "Gas verwarmen",
         "period": {
          "calendar": {
           "period": "day"
@@ -5246,7 +5328,7 @@
          "rows": 2
         },
         "icon": "mdi:meter-gas",
-        "name": "Gas warm water vandaag",
+        "name": "Gas warm water",
         "period": {
          "calendar": {
           "period": "day"
@@ -5272,7 +5354,7 @@
          "rows": 2
         },
         "icon": "mdi:counter",
-        "name": "Branderstarts vandaag",
+        "name": "Branderstarts",
         "period": {
          "calendar": {
           "period": "day"
@@ -5298,7 +5380,7 @@
          "rows": 2
         },
         "icon": "mdi:timer-outline",
-        "name": "Brandertijd vandaag",
+        "name": "Brandertijd",
         "period": {
          "calendar": {
           "period": "day"
@@ -6951,6 +7033,97 @@
           ]
          }
         ]
+       },
+       {
+        "content": "Instellingen die de ketel alleen op verzoek meldt, leest de E32 bij het opstarten en daarna elke zes uur; wanneer ze voor het laatst zijn gelezen staat op de sensor.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_heating_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_hysteresis_on",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_flow_temperature_offset",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_circulation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_circulation_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_disinfection_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_charge_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_comfort_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
        }
       ],
       "type": "grid",
@@ -7048,7 +7221,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:school-outline",
     "max_columns": 2,
     "path": "learned",
     "sections": [
@@ -7627,7 +7799,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:information-outline",
     "max_columns": 2,
     "path": "diagnostics",
     "sections": [
@@ -8515,7 +8686,6 @@
    {
     "back_path": "/open-thermostat-fixture-x/heating",
     "dense_section_placement": true,
-    "icon": "mdi:compare-horizontal",
     "max_columns": 2,
     "path": "comparison",
     "sections": [

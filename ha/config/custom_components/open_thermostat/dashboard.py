@@ -214,6 +214,8 @@ TEXT = {
         "boiler_note": "Values as the boiler reports them; a value the boiler does not send is left out. "
                        "Burner power is a percentage of the boiler's maximum, not kW; \"active\" is what the boiler "
                        "reports, not a separate check.",
+        "settings_note": "Settings the boiler reports only when asked are read at start-up and every six hours; the "
+                         "time of the last reading is on the sensor.",
         "raw": "Raw boiler data",
         "raw_note": "For troubleshooting: values exactly as the boiler sends them, not checked by the E32.",
         "e32_device": "E32",
@@ -329,9 +331,9 @@ TEXT = {
         "fix_boiler_limit": "The boiler has not reported its maximum: check the bus connection.",
         # rc.5 dashboard (dashboard-spec §1): the Boiler view's sections and today's figures, Yesterday once on the
         # Learning view and who controls the boiler.
-        "today_week": "Today and this week", "gas_heating_today": "Gas for heating today",
-        "gas_hot_water_today": "Gas for hot water today", "starts_today": "Burner starts today",
-        "burner_today": "Burner time today", "boiler_values": "What the boiler reports",
+        "today_week": "Today and this week", "gas_heating_today": "Heating gas",
+        "gas_hot_water_today": "Hot water gas", "starts_today": "Burner starts",
+        "burner_today": "Burner time", "boiler_values": "What the boiler reports",
         "who_controls": "Who controls the boiler", "yesterday_figures": "Yesterday in figures",
         "dhw_target_short": "Hot water target",
         # E32 rc.5, the Learning view as the owner's sketch: what the E32 knows, your boiler (its response in one
@@ -385,6 +387,8 @@ TEXT = {
         "boiler_note": "Waarden zoals de ketel ze meldt; een waarde die de ketel niet stuurt, staat er niet. "
                        "Brandervermogen is een percentage van het maximum van de ketel, geen kW; \"actief\" is wat de ketel "
                        "meldt, geen aparte controle.",
+        "settings_note": "Instellingen die de ketel alleen op verzoek meldt, leest de E32 bij het opstarten en daarna "
+                         "elke zes uur; wanneer ze voor het laatst zijn gelezen staat op de sensor.",
         "raw": "Ruwe keteldata",
         "raw_note": "Voor het zoeken naar fouten: waarden precies zoals de ketel ze stuurt, niet gecontroleerd "
                     "door de E32.",
@@ -501,9 +505,9 @@ TEXT = {
         "fix_sources": "Controleer de ruimtesensoren (batterij, bereik) en geef een ruimte een tweede bron.",
         "fix_boiler": "De E32 hoort niets van de ketel: controleer de buskabel.",
         "fix_boiler_limit": "De ketel heeft zijn maximum niet gemeld: controleer de busverbinding.",
-        "today_week": "Vandaag en deze week", "gas_heating_today": "Gas verwarmen vandaag",
-        "gas_hot_water_today": "Gas warm water vandaag", "starts_today": "Branderstarts vandaag",
-        "burner_today": "Brandertijd vandaag", "boiler_values": "Wat de ketel meldt",
+        "today_week": "Vandaag en deze week", "gas_heating_today": "Gas verwarmen",
+        "gas_hot_water_today": "Gas warm water", "starts_today": "Branderstarts",
+        "burner_today": "Brandertijd", "boiler_values": "Wat de ketel meldt",
         "who_controls": "Wie regelt de ketel", "yesterday_figures": "Gisteren in cijfers",
         "dhw_target_short": "Doel warm water",
         "knowledge": "Wat de E32 weet", "your_boiler": "Je ketel",
@@ -556,6 +560,8 @@ TEXT = {
         "boiler_note": "Wartości tak, jak zgłasza je kocioł; wartości, której kocioł nie wysyła, tu nie ma. "
                        "Moc palnika to procent maksimum kotła, a nie kW; \"aktywny\" to to, co zgłasza kocioł, "
                        "a nie osobne sprawdzenie.",
+        "settings_note": "Ustawienia, które kocioł zgłasza tylko na żądanie, E32 odczytuje przy uruchomieniu, a potem "
+                         "co sześć godzin; czas ostatniego odczytu jest podany na czujniku.",
         "raw": "Surowe dane kotła",
         "raw_note": "Do szukania usterek: wartości dokładnie tak, jak wysyła je kocioł, niesprawdzane przez E32.",
         "e32_device": "E32",
@@ -673,9 +679,9 @@ TEXT = {
         "fix_sources": "Sprawdź czujniki w pomieszczeniach (bateria, zasięg) i dodaj pomieszczeniu drugie źródło.",
         "fix_boiler": "E32 nic nie słyszy z kotła: sprawdź kabel magistrali.",
         "fix_boiler_limit": "Kocioł nie zgłosił swojego maksimum: sprawdź połączenie z magistralą.",
-        "today_week": "Dziś i w tym tygodniu", "gas_heating_today": "Gaz na ogrzewanie dziś",
-        "gas_hot_water_today": "Gaz na ciepłą wodę dziś", "starts_today": "Starty palnika dziś",
-        "burner_today": "Czas pracy palnika dziś", "boiler_values": "Co zgłasza Twój kocioł",
+        "today_week": "Dziś i w tym tygodniu", "gas_heating_today": "Gaz: ogrzewanie",
+        "gas_hot_water_today": "Gaz: ciepła woda", "starts_today": "Starty palnika",
+        "burner_today": "Praca palnika", "boiler_values": "Co zgłasza Twój kocioł",
         "who_controls": "Kto steruje kotłem", "yesterday_figures": "Wczoraj w liczbach",
         "dhw_target_short": "Cel ciepłej wody",
         "knowledge": "Co wie E32", "your_boiler": "Twój kocioł",
@@ -1775,9 +1781,11 @@ class RoomDashboard:
         boiler, raw, thermostat = self._boiler_sections(t, hub_entities, native_fields, graph, essential)
         diagnostics = self._diagnostics_sections(t, registry, hub_entities, raw, thermostat)
 
-        def view(title, path, icon, sections, columns=2, **more):
+        def view(title, path, sections, columns=2, **more):
             # Sections side by side, a short one filling the gap under itself (never half-empty rows inside).
-            return {"title": title, "path": path, "icon": icon, "type": "sections", "max_columns": columns,
+            # No view icon: Home Assistant then shows the view's title in the tab bar ("Overzicht · Ruimtes · ..."),
+            # as in the approved sketches; with an icon a tab is only that icon.
+            return {"title": title, "path": path, "type": "sections", "max_columns": columns,
                     "dense_section_placement": True, "sections": sections, **more}
         back = "/" + self.path + "/heating"
         comparison = parts["comparison"]
@@ -1786,35 +1794,35 @@ class RoomDashboard:
                 # 1. Overview: the house, the problem (only while there is one) and one card per room.
                 # Its sections span both columns and stack: a short House section never sits beside the
                 # long Rooms section with empty space under it.
-                *([view(t["overview"], "heating", "mdi:home-thermometer",
+                *([view(t["overview"], "heating",
                         [{**section, "column_span": 2} for section in parts["overview"]])] if parts["overview"] else []),
                 # 2. Rooms: thermostat, the day, sensors, windows, people and what it learned, per room.
-                *([view(t["rooms"], "rooms", "mdi:thermostat", parts["rooms"])] if parts["rooms"] else []),
+                *([view(t["rooms"], "rooms", parts["rooms"])] if parts["rooms"] else []),
                 *([{
                     "title": t["room_settings"],
                     "panel": True,
-                    "path": "week", "icon": "mdi:calendar-week",
+                    "path": "week",
                     "cards": [{"type": ROOM_CARD_TYPE,
                                "entry_id": self.entry_id, "room_id": sub.data["room_id"]}
                               for sub in legacy[:1]],
                 }] if product and not e32_rooms else []),
                 *[{"title": sub.title, "path": "room-" + sub.data["room_id"],
-                   "subview": True, "panel": True, "icon": "mdi:cog",
+                   "subview": True, "panel": True,
                    "cards": [{"type": ROOM_CARD_TYPE, "entry_id": self.entry_id,
                               "room_id": sub.data["room_id"]}]}
                   for sub in legacy],
                 # 3. The E32 rooms' visual week planner (e32_week.py), one card for all rooms.
-                *([{"title": t["week_program"], "path": "week-program", "panel": True, "icon": "mdi:calendar-week",
+                *([{"title": t["week_program"], "path": "week-program", "panel": True,
                     "cards": [{"type": E32_WEEK_CARD_TYPE, "entry_id": self.entry_id}]}] if e32_rooms else []),
                 # 4. Boiler: everything about the boiler in one place.
-                view(t["boiler_view"], "boiler", "mdi:water-boiler", boiler),
+                view(t["boiler_view"], "boiler", boiler),
                 # 5. What it learned, Smart warm-up, weather compensation, short cycling and the takeover check.
-                *([view(t["learning_view"], LEARNED_PATH, "mdi:school-outline", parts["learning"])] if parts["learning"] else []),
+                *([view(t["learning_view"], LEARNED_PATH, parts["learning"])] if parts["learning"] else []),
                 # 6. Diagnostics last.
-                view(t["diagnostics"], "diagnostics", "mdi:information-outline", diagnostics),
+                view(t["diagnostics"], "diagnostics", diagnostics),
                 # Trial run only: reached from the "E32 compared with your thermostat" link and the
                 # "Ready to take over?" tile in the learning view.
-                *([view(t["comparison_view"], COMPARISON_PATH, "mdi:compare-horizontal", comparison, subview=True,
+                *([view(t["comparison_view"], COMPARISON_PATH, comparison, subview=True,
                         back_path=back)] if comparison else []),
             ]
         }
@@ -2269,11 +2277,12 @@ class RoomDashboard:
             sections.append(_filled(_section_known(
                 [entity for key in reported for entity in groups[key]],
                 _heading(t["boiler_values"], ICONS["boiler"]), *cards, hidden=hidden)))
-            # The boiler's own settings, read only, last.
+            # The boiler's own settings, read only, last, with when the boiler reports them (only when asked).
             settings = groups.get("settings")
             if settings:
                 sections.append(_section_known(settings, _heading(t["group_settings"], ICONS["settings"]),
-                                               _known_entities_card(settings, hidden), hidden=hidden))
+                                               _known_entities_card(settings, hidden),
+                                               _note(t, t["settings_note"], _any_known(settings, hidden)), hidden=hidden))
         else:
             # An older integration without the boiler fields: what the hub reports, as graphs.
             legacy = _section(

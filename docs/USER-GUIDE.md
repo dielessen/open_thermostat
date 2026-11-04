@@ -78,11 +78,16 @@ back in the menu, and **Done** closes Configure.
 
 The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
 
-- **Overview** opens with the **house card**, then the house mode, the next
-  planned holiday and one **status card** per room. A status card shows the
-  room's temperature and target and, in one line, why it heats or not: window
-  open, away, warm enough, Smart warm-up heating early, and so on. The same
-  line is the **Reason** sensor of the room. The house card shows:
+- **Overview** opens with the **house card**. Under it, side by side on a wide
+  screen and one after another on a phone: **Rooms**, one **status card** per
+  room; **Today**, when each room warms up next and how yesterday's warm-up
+  went, and what weather compensation asks now; and **House**, home or away
+  (tap it to change the house mode), **Plan** for the holiday planner (the next
+  planned holiday under it) and the outdoor temperature. A status card shows
+  the room's temperature, in one line why it heats or not (window open, away,
+  warm enough, Smart warm-up heating early, and so on) and, as chips, what it
+  does in a word, "Smart warm-up on" and whether the house is at home or away.
+  The same line is the **Reason** sensor of the room. The house card shows:
   - A **band** in the colour of what the boiler does now, in white letters:
     orange while heating (with the water temperature), blue for hot water,
     grey for "Boiler resting". The house mode is on the right of the band; tap

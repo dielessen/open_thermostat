@@ -1,16 +1,17 @@
-"""Independent post-check for E32 rc.2 + HA 1.0.0rc2 (checklist section 6): a separate tool, separate code,
-separate folder. Run it LAST: after the re-confirmation and after the final post capture, never at the same
-time as another capture (the E32 has 4 web sessions).
+"""Independent post-check for an E32 update on the Home Assistant route (checklist section 6): a separate tool,
+separate code, separate folder. Run it LAST: after the re-confirmation and after the final post capture, never at the
+same time as another capture (the E32 has 4 web sessions).
 
-It does not import e32client or rc2_acc and never reuses the installer's files. It reads the E32 and Home
+It does not import e32client or acceptance and never reuses the installer's files. It reads the E32 and Home
 Assistant directly and compares them with the public release on GitHub:
-  * E32 (http://192.168.1.206): one POST /auth/login, GETs, one POST /auth/logout (also after an error).
-  * HA: GET only, https://192.168.1.130:8123 only: the update entity, /api/config, the open_thermostat config
+  * E32 (the configured LAN address): one POST /auth/login, GETs, one POST /auth/logout (also after an error).
+  * HA: GET only, the configured LAN address only: the update entity, /api/config, the open_thermostat config
     entries and the integration's diagnostics download (only its version fields are kept).
   * GitHub: anonymous GET of the release and e32v2-update.json.
+Which release it is comes from install-config.json next to the scripts (or --config); the arguments below override it.
 
-Usage (PowerShell): python -I capture_rc2_independent.py --out <new folder> [--preinstall-backup <pre>/backup]
-                    [--factory-password] [--dry-run]
+Usage (PowerShell): python -I capture_independent.py --out <new folder> [--preinstall-backup <pre>/backup]
+                    [--config <file>] [--factory-password] [--dry-run]
   E32 password: OT_E32_PASSWORD or a prompt (--factory-password: the public factory default). With
   --preinstall-backup the settings documents are compared with the installer's backup *files* read-only.
 Output: INDEPENDENT-SUMMARY.json and INDEPENDENT-MANIFEST.json (its SHA-256 = independent_receipt_sha256).
@@ -20,8 +21,10 @@ import getpass
 import hashlib
 import http.client
 import http.cookies
+import ipaddress
 import json
 import os
+import re
 import ssl
 import sys
 import urllib.parse
@@ -29,27 +32,70 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-TAG, PREV, HA_VERSION = 'v1.0.0-e32v2-rc.2', 'v0.1.0-e32v2-beta.22', '1.0.0rc2'
-E32 = '192.168.1.206'
-HA = 'https://192.168.1.130:8123'
-ENTITY = 'update.woonkamer_e32_regelaar_ketel_en_diagnose_firmware'
+HERE = Path(__file__).resolve().parent
 ROUTES = ('/config/rooms', '/config/boiler', '/config/hardware', '/config/program/current', '/status/programs',
           '/config/bluetooth', '/config/heating')
 CAP = 262144
+KEYS = ('tag', 'ha_version', 'entity_id', 'ha_url', 'e32_url', 'repository')
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+parser.add_argument('--config', help='JSON file with the release and the installation (default: install-config.json '
+                                     'next to this script)')
+for key in KEYS:
+    parser.add_argument('--' + key.replace('_', '-'), help=f'overrides "{key}" of the configuration')
 parser.add_argument('--out', required=True)
-parser.add_argument('--token-file', default=str(Path(__file__).resolve().parent / 'ha-token.txt'))
+parser.add_argument('--token-file', default=str(HERE / 'ha-token.txt'))
 parser.add_argument('--preinstall-backup')
 parser.add_argument('--factory-password', action='store_true')
 parser.add_argument('--dry-run', action='store_true')
 args = parser.parse_args()
+
+
+def lan(host):
+    """Passwords and tokens only go to a private, loopback or link-local address, or a local name."""
+    try:
+        address = ipaddress.ip_address(host or '')
+        return address.is_private or address.is_loopback or address.is_link_local
+    except ValueError:
+        host = (host or '').lower().rstrip('.')
+        return bool(host) and ('.' not in host or host.endswith(('.local', '.lan', '.home.arpa', '.internal')))
+
+
+def configuration():
+    values = {'repository': 'dielessen/open_thermostat'}
+    path = Path(args.config) if args.config else HERE / 'install-config.json'
+    if path.exists():
+        document = json.loads(path.read_text(encoding='utf-8'))
+        values.update({key: document[key] for key in KEYS if key in document})
+    elif args.config:
+        raise SystemExit(f'{path} does not exist')
+    values.update({key: getattr(args, key) for key in KEYS if getattr(args, key) is not None})
+    missing = [key for key in KEYS if not values.get(key)]
+    if missing:
+        raise SystemExit(f'Missing {", ".join(missing)} (install-config.json or the matching arguments)')
+    if not re.fullmatch(r'v\d+\.\d+\.\d+-e32v2(-(alpha|beta|rc)\.\d+)?', values['tag']):
+        raise SystemExit(f'{values["tag"]!r} is not an E32 firmware tag')
+    ha_parts, e32_parts = urllib.parse.urlsplit(values['ha_url']), urllib.parse.urlsplit(values['e32_url'])
+    if ha_parts.scheme not in ('http', 'https') or not lan(ha_parts.hostname) or e32_parts.scheme != 'http' \
+            or not lan(e32_parts.hostname):
+        raise SystemExit('ha_url and e32_url must be http(s)://<LAN address>: passwords never leave the home network')
+    return values
+
+
+config = configuration()
+TAG, HA_VERSION, ENTITY, HA, REPOSITORY = (config['tag'], config['ha_version'], config['entity_id'],
+                                           config['ha_url'].rstrip('/'), config['repository'])
+E32 = urllib.parse.urlsplit(config['e32_url']).hostname
+E32_PORT = urllib.parse.urlsplit(config['e32_url']).port or 80
+HA_HOST = urllib.parse.urlsplit(HA).hostname
+STABLE = re.fullmatch(r'v\d+\.\d+\.\d+-e32v2', TAG) is not None
+
 if args.dry_run:
-    print('DRY RUN capture_rc2_independent.py: nothing is sent, read from the network, prompted or written.')
+    print('DRY RUN capture_independent.py: nothing is sent, read from the network, prompted or written.')
     planned = ['resolve the E32 password first (' + ('factory default' if args.factory_password
                                                     else 'OT_E32_PASSWORD or a prompt') + ')',
                'refuse a non-empty --out folder',
-               f'GitHub GET api.github.com/repos/dielessen/open_thermostat/releases/tags/{TAG} and e32v2-update.json',
+               f'GitHub GET api.github.com/repos/{REPOSITORY}/releases/tags/{TAG} and e32v2-update.json',
                f'E32 POST http://{E32}/auth/login once, GET /auth/session',
                'E32 GET /status/version, /updates/status, /status, /status/heating, ' + ', '.join(ROUTES),
                'E32 POST /auth/logout (also after an error)',
@@ -59,6 +105,7 @@ if args.dry_run:
         planned.append(f'read {args.preinstall_backup} (installer backup files, read-only, to compare)')
     for line in planned:
         print('  would ' + line)
+    print(f'  note: release {TAG}, integration {HA_VERSION}')
     sys.exit(0)
 
 
@@ -100,8 +147,8 @@ class Device:
         self.cookie, self.csrf = None, None
 
     def call(self, method, path, body=None, kind=None):
-        connection = http.client.HTTPConnection(E32, 80, timeout=40)
-        headers = {'Origin': 'http://' + E32, 'Cache-Control': 'no-store'}
+        connection = http.client.HTTPConnection(E32, E32_PORT, timeout=40)
+        headers = {'Origin': f'http://{E32}', 'Cache-Control': 'no-store'}
         if self.cookie:
             headers['Cookie'] = self.cookie
         if method == 'POST' and self.csrf:
@@ -159,11 +206,11 @@ def phase(heating):
 
 checks = {}
 gh = {'User-Agent': 'openthermostat-independent-check', 'Accept': 'application/vnd.github+json'}
-release = fetch(f'https://api.github.com/repos/dielessen/open_thermostat/releases/tags/{TAG}', gh, 'github/release.json')
+release = fetch(f'https://api.github.com/repos/{REPOSITORY}/releases/tags/{TAG}', gh, 'github/release.json')
 asset = {a['name']: a for a in release['assets']}
 public = fetch(asset['e32v2-update.json']['browser_download_url'], {'User-Agent': gh['User-Agent']},
                'github/e32v2-update.json')
-checks['release_published'] = release['draft'] is False and release['prerelease'] is True \
+checks['release_published'] = release['draft'] is False and release['prerelease'] is (not STABLE) \
     and asset['firmware.bin']['digest'] == 'sha256:' + public['sha256'] and asset['firmware.bin']['size'] == public['size']
 
 device = Device()
@@ -188,7 +235,7 @@ checks['boot_confirmed'] = updates.get('boot_pending') is False and not updates.
 control_phase, control_ok = phase(heating)
 taken_over_before = (heating.get('active') or {}).get('taken_over_before') is True
 checks['control_state_safe'] = control_ok
-# The E32 controlled the boiler before the update (rc.2 reports it): the owner must have confirmed again.
+# The E32 controlled the boiler before the update (it reports so): the owner must have confirmed again.
 checks['takeover_reconfirmed'] = control_phase == 'taken_over' if taken_over_before else control_phase == 'shadow'
 if args.preinstall_backup:
     backup = Path(args.preinstall_backup)
@@ -209,13 +256,16 @@ if args.preinstall_backup:
     checks['settings_same_as_preinstall_backup'] = all(same.values())
     checks['settings_detail'] = same
 
-token = Path(args.token_file).read_text(encoding='utf-8').strip()
+token_path = Path(args.token_file)
+if not token_path.exists():
+    raise SystemExit(f'No Home Assistant token: put a long-lived access token in {token_path} (git-ignored)')
+token = token_path.read_text(encoding='utf-8').strip()
+assert urllib.parse.urlsplit(HA).hostname == HA_HOST and lan(HA_HOST)
 context = ssl.create_default_context()
 context.check_hostname, context.verify_mode = False, ssl.CERT_NONE
-assert urllib.parse.urlsplit(HA).hostname == '192.168.1.130'
 auth = {'Authorization': 'Bearer ' + token}
 entity = fetch(HA + '/api/states/' + ENTITY, auth, 'ha/update-entity.json', context)
-config = fetch(HA + '/api/config', auth, None, context)
+config_doc = fetch(HA + '/api/config', auth, None, context)
 entries = [e for e in fetch(HA + '/api/config/config_entries/entry?domain=open_thermostat', auth,
                             'ha/config-entries.json', context) if e.get('domain') == 'open_thermostat']
 integration = None
@@ -235,19 +285,20 @@ checks['ha_last_install_matches_e32'] = reported == {'version': TAG, 'source_com
 checks['ha_one_config_entry'] = len(entries) == 1 and entries[0].get('state') == 'loaded'
 checks['ha_integration_version'] = integration == HA_VERSION
 
-summary = {'schema': 1, 'kind': 'independent_postcheck', 'tool': 'capture_rc2_independent.py (own HTTP code)',
-           'at_utc': now(), 'tag': TAG, 'e32': {'version': version.get('version'), 'source_commit': version.get('source'),
-           'web_sha256': version.get('web_sha256'), 'elf_sha256': version.get('sha256'), 'uptime_seconds': status.get('uptime'),
-           'boot_pending': updates.get('boot_pending'), 'control_phase': control_phase,
-           'taken_over_before': taken_over_before, 'default_password': default_password,
-           'own_password_in_use': default_password is False},
-           'ha_core_version': config.get('version'), 'ha_integration_version': integration, 'checks': checks,
+summary = {'schema': 1, 'kind': 'independent_postcheck', 'tool': 'capture_independent.py (own HTTP code)',
+           'at_utc': now(), 'tag': TAG, 'config': {key: config[key] for key in KEYS},
+           'e32': {'version': version.get('version'), 'source_commit': version.get('source'),
+                   'web_sha256': version.get('web_sha256'), 'elf_sha256': version.get('sha256'),
+                   'uptime_seconds': status.get('uptime'), 'boot_pending': updates.get('boot_pending'),
+                   'control_phase': control_phase, 'taken_over_before': taken_over_before,
+                   'default_password': default_password, 'own_password_in_use': default_password is False},
+           'ha_core_version': config_doc.get('version'), 'ha_integration_version': integration, 'checks': checks,
            'passed': all(v is True for k, v in checks.items() if k != 'settings_detail'), 'requests': log}
 keep('INDEPENDENT-SUMMARY.json', (json.dumps(summary, indent=2) + '\n').encode())
 files = sorted(p for p in out.rglob('*') if p.is_file() and p.name != 'INDEPENDENT-MANIFEST.json')
 manifest = {'schema': 1, 'kind': 'independent_postcheck', 'files': [
     {'file': p.relative_to(out).as_posix(), 'sha256': hashlib.sha256(p.read_bytes()).hexdigest()} for p in files]}
-(out / 'INDEPENDENT-MANIFEST.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+(out / 'INDEPENDENT-MANIFEST.json').write_bytes((json.dumps(manifest, indent=2) + '\n').encode())
 print(json.dumps({'out': str(out), 'passed': summary['passed'], 'checks': checks,
                   'independent_receipt_sha256': hashlib.sha256((out / 'INDEPENDENT-MANIFEST.json').read_bytes()).hexdigest()},
                  indent=1))

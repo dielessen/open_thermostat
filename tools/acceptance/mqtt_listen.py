@@ -1,10 +1,10 @@
-"""Read-only MQTT listener for the rc.2 acceptance (runs in WSL with paho-mqtt).
+"""Read-only MQTT listener for the E32 update acceptance (needs paho-mqtt: on Windows it runs inside WSL).
 
 Reads one JSON line {"host","port","user","pw"} from stdin (never from a file or the command line), subscribes
 to <prefix>/# for N seconds and prints, per message: seconds since start, R (retained) or -, topic, size and
 the payload. The payload is printed whole (up to 6000 characters) for the topics the acceptance parses
 (fw/availability, fw/heartbeat, fw/state/heating, fw/telemetry/tuning), else its first 300 characters.
-It never publishes. Usage: python mqtt_listen_rc2.py <seconds> [prefix]
+It never publishes. Usage: python mqtt_listen.py <seconds> [prefix]   (acceptance.mqtt_listen starts it)
 """
 import json
 import sys

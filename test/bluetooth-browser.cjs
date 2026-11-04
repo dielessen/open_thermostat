@@ -37,7 +37,18 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
    return route.fulfill({contentType:/\.js(?:\.gz)?$/.test(p)?'application/javascript':p.endsWith('.css.gz')?'text/css':'text/html',body});
   });
   data.nearby.push('aabbccddeeff');data.nearby_devices=[{address:data.nearby[0],name:'Saved sensor',rssi:-60},{address:'aabbccddeeff',name:'Sensor <img src=x>',rssi:-72}];
-  await page.goto('http://opth.test/');await page.locator('[data-sign-out-item]:not([hidden]) #auth-sign-out').waitFor({state:'attached'});if(await page.locator('.navbar-toggler').isVisible())await page.locator('.navbar-toggler').click();await page.locator('#navbarDropdownMenuLink').click();await page.locator('a[data-page="bluetooth"]').click();
+  // rc.4: Sign out is an item of the System menu (R3-14): the session is known once that item is attached.
+  await page.goto('http://opth.test/');await page.locator('[data-sign-out-item]:not([hidden]) #auth-sign-out').waitFor({state:'attached'});
+  // Open the System menu and choose Bluetooth sensors. Every step waits for the state it needs (R5-03): the width
+  // decides whether the navbar is collapsed (Bootstrap navbar-expand-lg, below 992 px), not a point-in-time
+  // visibility read, and the item is clicked only once its dropdown is open and the collapse has stopped moving.
+  if(width<992){
+   await page.locator('.navbar-toggler').click();
+   await page.waitForFunction(()=>{const c=document.getElementById('navbarNavDropdown');return c.classList.contains('show')&&!c.classList.contains('collapsing');});
+  }
+  await page.locator('#navbarDropdownMenuLink').click();
+  await page.locator('ul[aria-labelledby="navbarDropdownMenuLink"].show').waitFor();
+  await page.locator('a[data-page="bluetooth"]').click();
   const root=page.locator('#bluetooth-page'),status=page.locator('#ble-status'),box=page.locator('#ble-rows fieldset');await box.waitFor();
   await page.waitForFunction(()=>document.querySelector('#ble-save')?.disabled===false);
   const found=page.locator('#ble-nearby');
@@ -102,7 +113,7 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
   if(!await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)){await page.screenshot({path:path.join(output,`overflow-${profile}-${lang}-${width}.png`),fullPage:true});console.log(await page.evaluate(()=>[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1).map(e=>({tag:e.tagName,id:e.id,width:e.getBoundingClientRect().width,text:e.textContent.slice(0,90)})).slice(-15)));}assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.screenshot({path:path.join(output,`${profile}-${lang}-${width}.png`),fullPage:true});
   const mac=box.locator('input').nth(0),choice=box.locator('[data-ble-field=profile]');
-  await mac.fill('54:48:e6:8f:80:a6');await page.waitForTimeout(160);assert.match(await box.locator('[data-readings]').innerText(),lang==='nl'?/Sla op en herstart/:/Save and restart/);assert.equal(await box.locator('[data-extra]').textContent(),'—');
+  await mac.fill('54:48:e6:8f:80:a6');await box.locator('[data-readings]').filter({hasText:lang==='nl'?/Sla op en herstart/:/Save and restart/}).waitFor();assert.equal(await box.locator('[data-extra]').textContent(),'—');
   await mac.fill('54:48:e6:8f:80:a5');await page.waitForFunction(()=>document.querySelector('[data-readings]')?.textContent.includes('24'));
   await choice.selectOption(profile==='shelly_ht_display'?'xiaomi_monitor_3':'shelly_ht_display');assert.match(await box.locator('[data-readings]').innerText(),lang==='nl'?/Sla op en herstart/:/Save and restart/);
   if(profile==='shelly_ht_display')assert.equal(await box.locator('[data-ble-field=encryption] option').count(),1);
@@ -136,8 +147,7 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
     await page.locator('#ble-save').click();
     await page.waitForFunction(()=>document.querySelector('#ble-save').disabled&&document.querySelector('#ble-rows input[type=password]').value==='');
     assert.equal(await name.inputValue(),'Draft – Zoë');
-    await page.waitForTimeout(180);
-    assert.match(await status.textContent(),lang==='nl'?/niet.*bevestigd/:/not.*confirmed/);
+    await status.filter({hasText:lang==='nl'?/niet.*bevestigd/:/not.*confirmed/}).waitFor();
     const writes=requests.filter(r=>r.path==='/config/bluetooth'&&r.method==='POST').length;
     await page.waitForTimeout(180);assert.equal(requests.filter(r=>r.path==='/config/bluetooth'&&r.method==='POST').length,writes);
     readbackMismatch=false;postTransportFailure=false;

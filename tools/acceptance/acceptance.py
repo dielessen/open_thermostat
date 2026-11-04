@@ -1,28 +1,30 @@
-"""Shared helpers for the attended beta.22 -> rc.2 acceptance on the Home Assistant route.
+"""Shared helpers for the attended acceptance of an E32 firmware update on the Home Assistant route.
 
-E32 v0.1.0-e32v2-beta.22 -> v1.0.0-e32v2-rc.2 through the HA Firmware update entity, after HA 0.4.0b15 (manual
-install) -> 1.0.0rc2 through HACS. rc.1 (v1.0.0-e32v2-rc.1 / 1.0.0rc1) is never installed.
-
-Used by capture_rc2_preinstall.py, capture_rc2_post.py and write_rc2_receipt.py. capture_rc2_independent.py
-deliberately does NOT import this module.
+One release is described by a small JSON file (install-config.json next to the scripts, or --config) and by
+command-line overrides: the E32 tag and the tag it replaces, the Home Assistant integration version and the one it
+replaces, the update entity, the addresses and the MQTT prefix. Nothing about a release is written in the code.
+Used by capture_preinstall.py, capture_post.py and write_receipt.py; capture_independent.py deliberately does NOT
+import this module (it has its own HTTP code and reads the same configuration file itself).
 
 Network rules (binding):
-  * E32: only through out/beta19-install/e32client.py: GETs plus at most one POST /auth/login per session. The
-    only extra POSTs are POST /config/backup {"action":"export"} (no passphrase) and POST /auth/logout, both with
-    the session's CSRF header. Every session ends with a logout (also after an error). One session at a time:
-    the E32 has 4 web sessions and Home Assistant needs its own for the update.
+  * E32: only through e32client.py: GETs plus at most one POST /auth/login per session. The only extra POSTs are
+    POST /config/backup {"action":"export"} (no passphrase) and POST /auth/logout, both with the session's CSRF
+    header. Every session ends with a logout (also after an error). One session at a time: the E32 has 4 web
+    sessions and Home Assistant needs its own for the update. Only a LAN address is accepted.
   * E32 password: OT_E32_PASSWORD or a getpass prompt, or --factory-password for the public factory default.
-    Never on the command line, never in a file; removed from the process environment after the login.
-  * MQTT (preferred over E32 web sessions for liveness): a read-only listener; the broker password comes from
-    OT_MQTT_PASSWORD or a prompt (the Samba share with HA's stored credentials is not readable any more).
-  * Home Assistant: GET only, and only https://192.168.1.130:8123 (self-signed certificate), with the token file
-    in the scratchpad. Nothing is posted to HA: no service calls, no websocket.
+    Never on the command line, never in a file, never in the process environment after the login.
+  * MQTT (preferred over E32 web sessions for liveness): a read-only listener (mqtt_listen.py); the broker login
+    comes from OT_MQTT_USER / OT_MQTT_PASSWORD or is typed at a prompt, and travels to the listener on its stdin.
+    It is never read from Home Assistant's storage.
+  * Home Assistant: GET only, only the configured LAN address, with the token from ha-token.txt next to these
+    scripts (git-ignored). Nothing is posted to HA: no service calls, no websocket.
   * GitHub: anonymous GET of the public API and the release assets.
 
-Pure evaluators (no network) are at the end; the offline tests (test_rc2_receipt.py) exercise them.
+Pure evaluators (no network) are at the end; the offline tests (test_receipt.py) exercise them.
 """
 import getpass
 import hashlib
+import ipaddress
 import json
 import os
 import re
@@ -33,24 +35,13 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-TAG, PREV, HA_TAG = 'v1.0.0-e32v2-rc.2', 'v0.1.0-e32v2-beta.22', 'ha-v1.0.0rc2'
-HA_VERSION = '1.0.0rc2'
-HA_PREV_VERSION = '0.4.0b15'
-NEVER_INSTALL = ('v1.0.0-e32v2-rc.1', '1.0.0rc1', 'ha-v1.0.0rc1')
-REPOSITORY = 'dielessen/open_thermostat'
-HACS_REPOSITORY = 'dielessen/openthermostat-ha'
-HACS_TAG = HA_VERSION  # publish_hacs_repo.py tags the HACS repository with the bare version
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[1]  # the worktree this kit lives in: scripts/verify_e32_update_gate.py is read from here
+TOKEN_FILE = HERE / 'ha-token.txt'
+DEFAULT_CONFIG = HERE / 'install-config.json'
 DOMAIN = 'open_thermostat'
-HA_HOST = '192.168.1.130'
-HA_URL = 'https://' + HA_HOST + ':8123'
-ENTITY = 'update.woonkamer_e32_regelaar_ketel_en_diagnose_firmware'
-CLIENT_DIR = Path(r'C:\Users\m.dielessen\Downloads\open_thermostat-vscode-20261021\out\beta19-install')
-SCRATCH = Path(__file__).resolve().parent
-TOKEN_FILE = SCRATCH / 'ha-token.txt'
-RELEASE_WORKTREE = Path(r'C:\Users\m.dielessen\Downloads\open_thermostat-10-release')
 E32_PASSWORD_ENV, MQTT_PASSWORD_ENV, MQTT_USER_ENV = 'OT_E32_PASSWORD', 'OT_MQTT_PASSWORD', 'OT_MQTT_USER'
 FACTORY_PASSWORD = 'admin'  # the public factory default, not a secret
-MQTT_PREFIX = 'ib-therm'
 SETTINGS_ROUTES = ('/config/rooms', '/config/wifi', '/config/boiler', '/config/boiler-display', '/config/hardware',
                    '/config/debug', '/config/logging', '/config/program/current', '/status/programs',
                    '/config/bluetooth', '/config/heating')
@@ -61,8 +52,20 @@ VOLATILE = re.compile(r'(last|seen|age|rssi|battery|temp|humid|reading|advert|re
 # Top-level members of GET /config/heating that are device-local history, not settings (the backup export drops
 # them too: ConfigBackup.h exportDocument deletes "revision" and "features"). Reported, not compared.
 PLAN_LOCAL = ('revision',)
-# Safe phases of the active-control guard after the update (rc.2 ActiveHeatGuard / HeatingController).
+# Safe phases of the active-control guard after the update (ActiveHeatGuard / HeatingController).
 OWNING = ('arming', 'active')
+# The boot instant of the E32 (observation time minus uptime) may differ this much between two observations ...
+BOOT_JITTER_S = 5
+# ... and the first one must lie in [install start - BOOT_BEFORE_S, install end + BOOT_AFTER_S] (R5-08).
+BOOT_BEFORE_S, BOOT_AFTER_S = 60, 300
+
+TAG_RE = re.compile(r'v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-e32v2(?:-(alpha|beta|rc)\.(0|[1-9]\d*))?')
+HA_VERSION_RE = re.compile(r'\d+\.\d+\.\d+(?:(?:\.dev|a|b|rc)\d+)?')
+CONFIG_KEYS = ('tag', 'previous_tag', 'ha_version', 'ha_previous_version', 'entity_id', 'ha_url', 'e32_url',
+               'mqtt_host', 'mqtt_port', 'mqtt_prefix', 'repository', 'hacs_repository', 'wsl_python')
+CONFIG_DEFAULTS = {'mqtt_port': 1883, 'mqtt_prefix': 'ib-therm', 'repository': 'dielessen/open_thermostat',
+                   'hacs_repository': 'dielessen/openthermostat-ha', 'wsl_python': '~/venvs/ha/bin/python'}
+CONFIG_REQUIRED = ('tag', 'previous_tag', 'ha_version', 'ha_previous_version', 'entity_id', 'ha_url', 'e32_url')
 
 
 def digest(raw):
@@ -76,7 +79,7 @@ def file_digest(path):
 def save(path, obj):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    path.write_bytes((json.dumps(obj, ensure_ascii=False, indent=2) + '\n').encode('utf-8'))  # LF on every OS
     return path
 
 
@@ -114,14 +117,153 @@ def verify_manifest(out, name):
     return len(manifest['files'])
 
 
-def dry_run(script, requests, notes=()):
+# ------------------------------------------------------------------ release tags and versions
+
+def tag_key(tag):
+    """The order key of an E32 firmware tag (the same order as scripts/verify_e32_update_gate.version), or None."""
+    match = TAG_RE.fullmatch(tag) if isinstance(tag, str) else None
+    if not match:
+        return None
+    major, minor, patch, stage, sequence = match.groups()
+    return (int(major), int(minor), int(patch), {'alpha': 0, 'beta': 1, 'rc': 2, None: 3}[stage], int(sequence or 0))
+
+
+def is_stable_tag(tag):
+    """vX.Y.Z-e32v2 without alpha/beta/rc: a normal GitHub release, not a pre-release."""
+    key = tag_key(tag)
+    return key is not None and key[3] == 3
+
+
+def receipt_stem(tag):
+    """The receipt file name stem of a tag: v1.0.0-e32v2-rc.4 -> e32-rc4, v0.1.0-e32v2-beta.19 -> e32-beta19."""
+    match = TAG_RE.fullmatch(tag)
+    if not match:
+        raise ValueError('not an E32 firmware tag: ' + str(tag))
+    major, minor, patch, stage, sequence = match.groups()
+    return f'e32-{stage}{sequence}' if stage else f'e32-{major}.{minor}.{patch}'
+
+
+# ------------------------------------------------------------------ configuration (no release in the code)
+
+class Config:
+    """One release and one installation: versions, tags, addresses, update entity and MQTT prefix."""
+
+    def __init__(self, values):
+        self.__dict__.update(values)
+
+    @property
+    def ha_tag(self):
+        return 'ha-v' + self.ha_version
+
+    @property
+    def hacs_tag(self):
+        return self.ha_version  # publish_hacs_repo.py tags the HACS repository with the bare version
+
+    @property
+    def ha_host(self):
+        return urllib.parse.urlsplit(self.ha_url).hostname
+
+    @property
+    def expect_prerelease(self):
+        """True for -rc/-beta/-alpha tags, False for a stable tag: GitHub's flag follows the tag."""
+        return not is_stable_tag(self.tag)
+
+    def as_dict(self):
+        return {key: getattr(self, key, None) for key in CONFIG_KEYS}
+
+
+def is_lan_host(host):
+    """A private, loopback or link-local address, or a local name: tokens and passwords never go further than that."""
+    if not host:
+        return False
+    try:
+        address = ipaddress.ip_address(host)
+        return address.is_private or address.is_loopback or address.is_link_local
+    except ValueError:
+        pass
+    host = host.lower().rstrip('.')
+    return '.' not in host or host.endswith(('.local', '.lan', '.home.arpa', '.internal'))
+
+
+def add_config_arguments(parser):
+    """--config and one override per configuration key (the file is the default, the argument wins)."""
+    parser.add_argument('--config', help=f'JSON file with the release and the installation (default: {DEFAULT_CONFIG.name}'
+                                         ' next to these scripts)')
+    parser.add_argument('--tag', help='E32 firmware tag to install, e.g. v1.0.0-e32v2-rc.4')
+    parser.add_argument('--previous-tag', help='the E32 firmware tag that is installed now')
+    parser.add_argument('--ha-version', help='Home Assistant integration version to install, e.g. 1.0.0rc5')
+    parser.add_argument('--ha-previous-version', help='the integration version that is installed now')
+    parser.add_argument('--entity-id', help='the E32 Firmware update entity in Home Assistant')
+    parser.add_argument('--ha-url', help='https://<LAN address of Home Assistant>:8123')
+    parser.add_argument('--e32-url', help='http://<LAN address of the E32>')
+    parser.add_argument('--mqtt-host', help='MQTT broker (default: the host of --ha-url)')
+    parser.add_argument('--mqtt-port', type=int, help='MQTT broker port (default 1883)')
+    parser.add_argument('--mqtt-prefix', help='MQTT topic prefix of the E32 (default ib-therm)')
+    parser.add_argument('--repository', help='GitHub repository of the firmware release')
+    parser.add_argument('--hacs-repository', help='GitHub repository HACS installs the integration from')
+    parser.add_argument('--wsl-python', help='Python with paho-mqtt inside WSL, used when this Windows Python has none')
+
+
+def load_config(args, needs=CONFIG_REQUIRED):
+    """The configuration: defaults, then the JSON file, then the command-line overrides; checked as far as needed."""
+    values = dict(CONFIG_DEFAULTS)
+    path = Path(args.config) if getattr(args, 'config', None) else DEFAULT_CONFIG
+    if path.exists():
+        document = json.loads(path.read_text(encoding='utf-8'))
+        unknown = sorted(set(document) - set(CONFIG_KEYS) - {'comment'})
+        if unknown:
+            raise SystemExit(f'{path}: unknown keys {unknown}')
+        values.update({key: document[key] for key in CONFIG_KEYS if key in document})
+    elif getattr(args, 'config', None):
+        raise SystemExit(f'{path} does not exist')
+    for key in CONFIG_KEYS:
+        override = getattr(args, key, None)
+        if override is not None:
+            values[key] = override
+    if not values.get('mqtt_host') and values.get('ha_url'):
+        values['mqtt_host'] = urllib.parse.urlsplit(values['ha_url']).hostname
+    missing = [key for key in needs if not values.get(key)]
+    if missing:
+        raise SystemExit(f'Missing {", ".join(missing)}: put it in {path.name} or give it as an argument '
+                         f'(--{missing[0].replace("_", "-")})')
+    cfg = Config(values)
+    check_config(cfg, needs)
+    return cfg
+
+
+def check_config(cfg, needs=CONFIG_REQUIRED):
+    problems = []
+    if 'tag' in needs and tag_key(cfg.tag) is None:
+        problems.append(f'tag {cfg.tag!r} is not an E32 firmware tag (vX.Y.Z-e32v2[-rc.N])')
+    if 'previous_tag' in needs and tag_key(cfg.previous_tag) is None:
+        problems.append(f'previous_tag {cfg.previous_tag!r} is not an E32 firmware tag')
+    if 'tag' in needs and 'previous_tag' in needs and tag_key(cfg.tag) and tag_key(cfg.previous_tag) \
+            and tag_key(cfg.previous_tag) >= tag_key(cfg.tag):
+        problems.append('previous_tag must be older than tag')
+    for key in ('ha_version', 'ha_previous_version'):
+        if key in needs and not HA_VERSION_RE.fullmatch(str(getattr(cfg, key))):
+            problems.append(f'{key} {getattr(cfg, key)!r} is not an integration version (like 1.0.0rcN)')
+    if 'entity_id' in needs and not re.fullmatch(r'update\.[a-z0-9_]{1,200}', str(cfg.entity_id)):
+        problems.append(f'entity_id {cfg.entity_id!r} is not an update entity')
+    for key, schemes in (('ha_url', ('http', 'https')), ('e32_url', ('http',))):
+        if key in needs:
+            parts = urllib.parse.urlsplit(str(getattr(cfg, key)))
+            if parts.scheme not in schemes or not is_lan_host(parts.hostname) or parts.path not in ('', '/') \
+                    or parts.username or parts.query:
+                problems.append(f'{key} {getattr(cfg, key)!r} must be {"/".join(schemes)}://<LAN address> '
+                                '(passwords and tokens never leave the home network)')
+    if problems:
+        raise SystemExit('Configuration problems:\n  ' + '\n  '.join(problems))
+
+
+def dry_run(script, requests, notes=(), token_file=TOKEN_FILE):
     """--dry-run: print what the script would request, touch nothing (no network, no files, no prompts)."""
     print(f'DRY RUN {script}: nothing is sent, read from the network, prompted or written.')
     for line in requests:
         print('  would ' + line)
     for line in notes:
         print('  note: ' + line)
-    print('  token file ' + ('present' if TOKEN_FILE.exists() else 'MISSING') + f': {TOKEN_FILE}')
+    print('  token file ' + ('present' if Path(token_file).exists() else 'MISSING') + f': {token_file}')
     sys.exit(0)
 
 
@@ -182,8 +324,9 @@ def release_summary(value, asset_name='firmware.bin'):
                       if asset else None)}
 
 
-def release(tag, record=None, repository=REPOSITORY):
+def release(cfg, tag, record=None, repository=None):
     """The release by tag; a missing release (404) is returned as {'tag_name': None, ...}."""
+    repository = repository or cfg.repository
     try:
         raw = github(f'https://api.github.com/repos/{repository}/releases/tags/{urllib.parse.quote(tag)}', record=record)
     except urllib.error.HTTPError as error:
@@ -195,8 +338,17 @@ def release(tag, record=None, repository=REPOSITORY):
     return value, release_summary(value)
 
 
+def release_published(cfg, summary, tag=None):
+    """The firmware release is published (not a draft), has firmware.bin with a SHA-256 digest, and its channel
+    follows the tag: a pre-release for -rc/-beta/-alpha, a normal release for a stable tag."""
+    asset = summary.get('asset')
+    return (summary.get('tag_name') == (tag or cfg.tag) and summary.get('draft') is False
+            and summary.get('prerelease') is cfg.expect_prerelease and bool(asset)
+            and str(asset.get('digest', '')).startswith('sha256:'))
+
+
 def app_descriptor(raw):
-    """esp_app_desc_t right after the image header and the first segment header (as scratchpad/appdesc.py)."""
+    """esp_app_desc_t right after the image header and the first segment header."""
     import struct
     off = 24 + 8
     magic, _ = struct.unpack_from('<II', raw, off)
@@ -206,19 +358,49 @@ def app_descriptor(raw):
             'idf': cut(d[96:128]), 'elf_sha256': d[128:160].hex()}
 
 
-# ------------------------------------------------------------------ Home Assistant (GET only, LAN IP only)
+def release_files(raw_release, cache, summary):
+    """firmware.bin and e32v2-update.json of the release, cached in `cache`, checked against each other and
+    against GitHub's digest and size, with the app descriptor's ELF hash. Returns (public, image, descriptor, ok)."""
+    cache = Path(cache)
+    cache.mkdir(parents=True, exist_ok=True)
+    assets = {a['name']: a for a in raw_release.get('assets', [])}
+    manifest_path = cache / 'e32v2-update.json'
+    if not manifest_path.exists():
+        github(assets['e32v2-update.json']['browser_download_url'], record=manifest_path)
+    public = json.loads(manifest_path.read_bytes())
+    firmware = cache / 'firmware.bin'
+    if not firmware.exists():
+        github(assets['firmware.bin']['browser_download_url'], cap=0x3C0000, record=firmware)
+    image = firmware.read_bytes()
+    descriptor = app_descriptor(image)
+    asset = summary.get('asset') or {}
+    marker = ('OT_E32V2_OTA_V1:' + str(summary.get('tag_name')) + ':' + str(public.get('source_commit')) + ':').encode()
+    ok = ('sha256:' + digest(image) == asset.get('digest') and len(image) == asset.get('size') == public.get('size')
+          and digest(image) == public.get('sha256') and public.get('version') == summary.get('tag_name')
+          and descriptor['magic'] == '0xabcd5432' and marker in image)
+    return public, image, descriptor, ok
+
+
+# ------------------------------------------------------------------ Home Assistant (GET only, LAN address only)
 
 def ha_token(path=TOKEN_FILE):
-    return Path(path).read_text(encoding='utf-8').strip()
+    path = Path(path)
+    if not path.exists():
+        raise SystemExit(f'No Home Assistant token: put a long-lived access token in {path} (git-ignored)')
+    return path.read_text(encoding='utf-8').strip()
 
 
-def ha_bytes(path, token, cap=4 * 1024 * 1024):
-    url = HA_URL + path
-    assert urllib.parse.urlsplit(url).hostname == HA_HOST, 'HA requests only go to the LAN IP'
-    context = ssl.create_default_context()
-    context.check_hostname = False
-    context.verify_mode = ssl.CERT_NONE  # HA's own self-signed certificate on the LAN IP
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), urllib.request.HTTPSHandler(context=context))
+def ha_bytes(cfg, path, token, cap=4 * 1024 * 1024):
+    url = cfg.ha_url.rstrip('/') + path
+    assert urllib.parse.urlsplit(url).hostname == cfg.ha_host and is_lan_host(cfg.ha_host), \
+        'HA requests only go to the configured LAN address'
+    handlers = [urllib.request.ProxyHandler({})]
+    if url.startswith('https://'):
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE  # HA's own self-signed certificate on the LAN address
+        handlers.append(urllib.request.HTTPSHandler(context=context))
+    opener = urllib.request.build_opener(*handlers)
     request = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + token}, method='GET')
     with opener.open(request, timeout=60) as response:
         raw = response.read(cap + 1)
@@ -226,8 +408,8 @@ def ha_bytes(path, token, cap=4 * 1024 * 1024):
     return raw
 
 
-def ha(path, token, record=None, cap=4 * 1024 * 1024):
-    raw = ha_bytes(path, token, cap)
+def ha(cfg, path, token, record=None, cap=4 * 1024 * 1024):
+    raw = ha_bytes(cfg, path, token, cap)
     if record:
         Path(record).parent.mkdir(parents=True, exist_ok=True)
         Path(record).write_bytes(raw)
@@ -242,34 +424,30 @@ def entity_summary(state):
             'release_url': a.get('release_url')}
 
 
-def ha_entity(token, record=None):
-    return entity_summary(ha('/api/states/' + urllib.parse.quote(ENTITY), token, record))
-
-
-def ha_snapshot(token, folder):
+def ha_snapshot(cfg, token, folder):
     """Everything this acceptance needs from HA in GETs: Core version, the update entity, the config entries of
     open_thermostat, the integration's diagnostics download (integration version from HA itself, the entity
     registry counts and the Repairs issues of the domain), and the states list (reduced to id/state/restored).
     The diagnostics and the states list are kept as extracts plus the SHA-256 of the full answer."""
     folder = Path(folder)
-    config = ha('/api/config', token)
+    config = ha(cfg, '/api/config', token)
     save(folder / 'config-extract.json', {k: config.get(k) for k in ('version', 'state', 'safe_mode', 'recovery_mode')})
-    entity_raw = ha('/api/states/' + urllib.parse.quote(ENTITY), token, record=folder / 'update-entity.json')
-    entries = ha('/api/config/config_entries/entry?domain=' + DOMAIN, token, record=folder / 'config-entries.json')
+    entity_raw = ha(cfg, '/api/states/' + urllib.parse.quote(cfg.entity_id), token, record=folder / 'update-entity.json')
+    entries = ha(cfg, '/api/config/config_entries/entry?domain=' + DOMAIN, token, record=folder / 'config-entries.json')
     ours = [e for e in entries if isinstance(e, dict) and e.get('domain') == DOMAIN]
     diagnostics = None
     if len(ours) == 1:
-        raw = ha_bytes('/api/diagnostics/config_entry/' + urllib.parse.quote(ours[0]['entry_id'], safe=''), token,
+        raw = ha_bytes(cfg, '/api/diagnostics/config_entry/' + urllib.parse.quote(ours[0]['entry_id'], safe=''), token,
                        cap=16 * 1024 * 1024)
         diagnostics = {**diagnostics_extract(json.loads(raw)), 'sha256': digest(raw), 'bytes': len(raw)}
         save(folder / 'diagnostics-extract.json', diagnostics)
-    raw = ha_bytes('/api/states', token, cap=32 * 1024 * 1024)
+    raw = ha_bytes(cfg, '/api/states', token, cap=32 * 1024 * 1024)
     states = json.loads(raw)
     reduced = reduce_states(states)
     save(folder / 'states-reduced.json', {'sha256': digest(raw), 'bytes': len(raw), 'count': len(reduced),
                                           'entities': reduced})
     hacs = [entity_summary(s) for s in states if str(s.get('entity_id', '')).startswith('update.')
-            and HACS_REPOSITORY in str((s.get('attributes') or {}).get('release_url') or '')]
+            and cfg.hacs_repository in str((s.get('attributes') or {}).get('release_url') or '')]
     control = control_sensors(states)
     save(folder / 'hacs-and-control.json', {'hacs_update_entities': hacs, 'control_sensors': control})
     return summarize_snapshot(config, entity_summary(entity_raw), entries, diagnostics, reduced, hacs, control)
@@ -282,25 +460,24 @@ def summarize_snapshot(config, entity, entries, diagnostics, reduced, hacs, cont
             'hacs_update_entities': hacs, 'control_sensors': control}
 
 
-def ha_history(token, entity_id, since, record=None):
-    return ha('/api/history/period/' + urllib.parse.quote(since) + '?filter_entity_id=' + urllib.parse.quote(entity_id)
+def ha_history(cfg, token, entity_id, since, record=None):
+    return ha(cfg, '/api/history/period/' + urllib.parse.quote(since) + '?filter_entity_id=' + urllib.parse.quote(entity_id)
               + '&significant_changes_only=0', token, record=record)
 
 
 # ------------------------------------------------------------------ E32
 
-def e32(out, cookie_name, password):
-    """The bounded e32client, with its request log and cookies in this capture folder; one login at most."""
-    sys.path.insert(0, str(CLIENT_DIR))
+def e32(cfg, out, cookie_name, password):
+    """The bounded e32client, with its request log and cookies in this capture folder; one login at most.
+    The password goes to the login call as an argument; it is not put into the environment at all."""
+    sys.path.insert(0, str(HERE))
     import e32client as e
     e.D = Path(out)
+    e.HOST = cfg.e32_url.rstrip('/')
+    assert is_lan_host(urllib.parse.urlsplit(e.HOST).hostname), 'the E32 is only reached on the LAN'
     assert e.POST_ALLOWED == ('/auth/login',), 'e32client allows more than /auth/login; refusing'
     client = e.Client(cookie_name=cookie_name)
-    os.environ[E32_PASSWORD_ENV] = password  # e32client reads it here; removed again right after the login
-    try:
-        e.login_if_needed(client, Path(out).name)
-    finally:
-        os.environ.pop(E32_PASSWORD_ENV, None)
+    e.login_if_needed(client, Path(out).name, password)
     return e, client
 
 
@@ -355,7 +532,7 @@ def logout(e, client):
 def read_settings(e, client, folder, export_required=True):
     """GET every settings document and program, then the passphrase-less backup export.
 
-    rc.2 refuses every change while the E32 has the factory password, the export included (403
+    The E32 refuses every change while it has the factory password, the export included (403
     password_change_required). With export_required=False that refusal is recorded instead of failing; the
     comparison then skips the export for this run (another run must compare it)."""
     folder = Path(folder)
@@ -392,40 +569,32 @@ def read_settings(e, client, folder, export_required=True):
     return entries, export
 
 
-# ------------------------------------------------------------------ MQTT (read-only listener in WSL)
+# ------------------------------------------------------------------ MQTT (read-only listener)
 
-WSL_PYTHON = '/home/dielessen/venvs/ha/bin/python'
 MQTT_LINE = re.compile(r'^\s*([\d.]+) ([R-]) (\S+) (\d+)B ?(.*)$')
 
 
-def mqtt_credentials(args):
-    """Resolved before any network: host/port/user from the arguments or OT_MQTT_USER, the password from
-    OT_MQTT_PASSWORD or a prompt; --mqtt-smb keeps the old route (HA's stored credentials over Samba)."""
-    if args.no_mqtt:
-        return None
-    if args.mqtt_smb:
-        import subprocess
-        creds = subprocess.run([sys.executable, '-I', str(SCRATCH / 'mqtt_creds.py')], capture_output=True,
-                               timeout=60, check=True)
-        return creds.stdout
-    user = args.mqtt_user or os.environ.get(MQTT_USER_ENV)
-    if not user and sys.stdin is not None and sys.stdin.isatty():
-        user = input(f'MQTT user on {args.mqtt_host} (the broker account Home Assistant uses): ').strip()
-    if not user:
-        raise SystemExit(f'Give --mqtt-user (or {MQTT_USER_ENV}); or --no-mqtt (the MQTT checks then stay false).')
-    password = read_secret(MQTT_PASSWORD_ENV, f'MQTT password for {user}@{args.mqtt_host}: ')
-    return (json.dumps({'host': args.mqtt_host, 'port': args.mqtt_port, 'user': user, 'pw': password}) + '\n').encode()
-
-
 def add_mqtt_arguments(parser):
-    parser.add_argument('--mqtt-host', default=HA_HOST)
-    parser.add_argument('--mqtt-port', type=int, default=1883)
     parser.add_argument('--mqtt-user', help=f'broker user (or {MQTT_USER_ENV}); password: {MQTT_PASSWORD_ENV} or a prompt')
-    parser.add_argument('--mqtt-smb', action='store_true', help='read HA\'s stored broker credentials over Samba (old route)')
     parser.add_argument('--no-mqtt', action='store_true', help='skip the listener (the MQTT checks stay false)')
 
 
+def mqtt_credentials(args, cfg):
+    """Resolved before any network: host/port from the configuration, user from --mqtt-user, OT_MQTT_USER or a
+    prompt, the password from OT_MQTT_PASSWORD or a prompt. They only ever travel on the listener's stdin."""
+    if args.no_mqtt:
+        return None
+    user = args.mqtt_user or os.environ.get(MQTT_USER_ENV)
+    if not user and sys.stdin is not None and sys.stdin.isatty():
+        user = input(f'MQTT user on {cfg.mqtt_host} (the broker account Home Assistant uses): ').strip()
+    if not user:
+        raise SystemExit(f'Give --mqtt-user (or {MQTT_USER_ENV}); or --no-mqtt (the MQTT checks then stay false).')
+    password = read_secret(MQTT_PASSWORD_ENV, f'MQTT password for {user}@{cfg.mqtt_host}: ')
+    return (json.dumps({'host': cfg.mqtt_host, 'port': cfg.mqtt_port, 'user': user, 'pw': password}) + '\n').encode()
+
+
 def wsl_path(path):
+    """C:\\Users\\x\\file -> /mnt/c/Users/x/file (long form: GetLongPathName turns 8.3 names into real ones)."""
     import ctypes
     buffer = ctypes.create_unicode_buffer(1024)
     ctypes.windll.kernel32.GetLongPathNameW(str(path), buffer, 1024)
@@ -433,11 +602,28 @@ def wsl_path(path):
     return '/mnt/' + long[0].lower() + long[2:].replace('\\', '/')
 
 
-def mqtt_listen(credentials, seconds):
-    """Runs mqtt_listen_rc2.py in WSL with the credentials on stdin (never on a command line or in a file)."""
+def listener_command(cfg, seconds):
+    """How to run mqtt_listen.py: with this Python when it has paho-mqtt, else (Windows) inside WSL."""
+    script = HERE / 'mqtt_listen.py'
+    try:
+        import importlib.util
+        if importlib.util.find_spec('paho') is not None:
+            return [sys.executable, '-I', str(script), str(seconds), cfg.mqtt_prefix]
+    except (ImportError, ValueError):
+        pass
+    if sys.platform != 'win32':
+        raise SystemExit('The MQTT listener needs paho-mqtt: pip install paho-mqtt (or use --no-mqtt)')
+    python = cfg.wsl_python
+    python = '"$HOME/' + python[2:] + '"' if python.startswith('~/') else "'" + python.replace("'", "'\\''") + "'"
+    return ['wsl', '-e', 'bash', '-c', f'exec {python} "$@"', 'ot-mqtt-listen', wsl_path(script), str(seconds),
+            cfg.mqtt_prefix]
+
+
+def mqtt_listen(cfg, credentials, seconds):
+    """Runs mqtt_listen.py with the credentials on stdin (never on a command line or in a file)."""
     import subprocess
-    listen = subprocess.run(['wsl', '-e', WSL_PYTHON, wsl_path(SCRATCH / 'mqtt_listen_rc2.py'), str(seconds), MQTT_PREFIX],
-                            input=credentials, capture_output=True, timeout=seconds + 120)
+    listen = subprocess.run(listener_command(cfg, seconds), input=credentials, capture_output=True,
+                            timeout=seconds + 120)
     return listen.stdout
 
 
@@ -447,7 +633,7 @@ def parse_mqtt(text):
 
 def mqtt_evaluate(messages, listen_s):
     """Findings from one listening window: availability, heartbeat cadence and the heartbeat's own disconnect
-    counters, the boiler fields, and the active-control block of the last fw/state/heating."""
+    counters and uptime, the boiler fields, and the active-control block of the last fw/state/heating."""
     availability = [p for t, r, topic, n, p in messages if topic.endswith('/fw/availability')]
     beats = [(float(t), p) for t, r, topic, n, p in messages if topic.endswith('/fw/heartbeat') and r == '-']
     times = [t for t, _ in beats]
@@ -485,6 +671,40 @@ def mqtt_evaluate(messages, listen_s):
 
 # ------------------------------------------------------------------ pure evaluators (offline-tested)
 
+def stamp(text):
+    import datetime as dt
+    return dt.datetime.strptime(text[:19], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=dt.timezone.utc)
+
+
+def boot_instant(at_utc, uptime_seconds):
+    """When the E32 booted: the time of the reading minus its uptime (a datetime), or None."""
+    import datetime as dt
+    if not isinstance(at_utc, str) or type(uptime_seconds) is not int:
+        return None
+    try:
+        return stamp(at_utc) - dt.timedelta(seconds=uptime_seconds)
+    except ValueError:
+        return None
+
+
+def boot_continuity(observations, install_started, install_finished):
+    """R5-08: the observations belong to the boot that the install produced. `observations` = [{'at_utc',
+    'uptime_seconds'}] in time order. All boot instants agree (BOOT_JITTER_S: the same boot, no restart between
+    the reads), and the first one lies in [install start - 60 s, install end + 300 s]."""
+    import datetime as dt
+    boots = [boot_instant(o.get('at_utc'), o.get('uptime_seconds')) for o in observations]
+    detail = {'boot_instants': [b and b.strftime('%Y-%m-%dT%H:%M:%SZ') for b in boots]}
+    if not boots or any(b is None for b in boots):
+        return False, {**detail, 'why': 'an observation has no time or uptime'}
+    try:
+        started, finished = stamp(install_started), stamp(install_finished)
+    except (TypeError, ValueError):
+        return False, {**detail, 'why': 'the install record has no start or end time'}
+    same = all(abs((b - boots[0]).total_seconds()) <= BOOT_JITTER_S for b in boots)
+    inside = (started - dt.timedelta(seconds=BOOT_BEFORE_S) <= boots[0] <= finished + dt.timedelta(seconds=BOOT_AFTER_S))
+    return same and inside, {**detail, 'same_boot': same, 'boot_inside_install_window': inside}
+
+
 def diagnostics_extract(doc):
     """HA's diagnostics download (homeassistant.components.diagnostics): the loaded integration's own manifest
     version, the custom_components list entry, Core, HACS, the integration's entity-registry counts
@@ -493,13 +713,13 @@ def diagnostics_extract(doc):
     info = doc.get('home_assistant') or {}
     custom = doc.get('custom_components') or {}
     manifest = doc.get('integration_manifest') or {}
-    e32 = (doc.get('data') or {}).get('e32') or {}
+    e32_data = (doc.get('data') or {}).get('e32') or {}
     issues = doc.get('issues')
     return {'home_assistant_version': info.get('version'), 'manifest_domain': manifest.get('domain'),
             'manifest_version': manifest.get('version'), 'custom_component_version': (custom.get(DOMAIN) or {}).get('version'),
             'hacs_version': (custom.get('hacs') or {}).get('version'),
-            'entities': e32.get('entities'),
-            'firmware': {k: (e32.get('firmware') or {}).get(k) for k in ('installed_version', 'latest_version', 'in_progress')},
+            'entities': e32_data.get('entities'),
+            'firmware': {k: (e32_data.get('firmware') or {}).get(k) for k in ('installed_version', 'latest_version', 'in_progress')},
             'issues': None if not isinstance(issues, list) else [
                 {'issue_id': i.get('issue_id'), 'translation_key': i.get('translation_key'),
                  'dismissed_version': i.get('dismissed_version'), 'is_fixable': i.get('is_fixable')}
@@ -534,7 +754,7 @@ def reduce_states(states):
 
 def control_sensors(states):
     """HA's heat-request sensor of the E32 (heating_link.HeatRequestSensor): its "control" attribute is the
-    E32's active-control state (rc.2 HA; absent in 0.4.0b15)."""
+    E32's active-control state."""
     found = []
     for s in states:
         a = (s.get('attributes') or {}) if isinstance(s, dict) else {}
@@ -551,10 +771,16 @@ def entries_summary(entries):
 
 
 def single_entry(baseline, now):
-    """One loaded open_thermostat config entry, the same one as before the HACS migration."""
+    """One loaded open_thermostat config entry, the same one as before the Home Assistant upgrade."""
     b, n = baseline['config_entries'], now['config_entries']
     return (b['count'] == 1 and n['count'] == 1 and n['entry_ids'] == b['entry_ids'] and n['states'] == ['loaded']
             and n['disabled_by'] == [None])
+
+
+def one_loaded_entry(now):
+    """Without a baseline (post-only): exactly one loaded, enabled open_thermostat config entry."""
+    n = now['config_entries']
+    return n['count'] == 1 and n['states'] == ['loaded'] and n['disabled_by'] == [None]
 
 
 _SUFFIX = re.compile(r'_\d+$')
@@ -582,15 +808,15 @@ def entity_changes(before, after, before_diag=None, after_diag=None):
 
 
 def owned_before(heating):
-    """Did the E32 control the boiler before the update (beta.22: active state with a stored confirmation)?"""
+    """Did the E32 control the boiler before the update (an active state with a stored confirmation)?"""
     a = (heating or {}).get('active') or {}
     return a.get('confirmation_stored') is True and a.get('state') in OWNING + ('stopped_measurement_lost',)
 
 
 def control_state(heating, owned):
-    """The E32's active control after the update (rc.2 ActiveHeatGuard), as a phase and whether it is safe.
+    """The E32's active control after the update (ActiveHeatGuard), as a phase and whether it is safe.
 
-    owned (the E32 controlled the boiler under beta.22):
+    owned (the E32 controlled the boiler before the update):
       awaiting_reconfirm: reconfirm_required, no confirmation of this firmware, the reconfirm record stored,
                           state awaiting_confirmation, and at most frost protection or a zero is requested;
       reconfirmed:        the owner confirmed again: confirmation stored, nothing pending, arming/active;
@@ -636,13 +862,29 @@ def learned_summary(heating):
 
 
 def learned_fresh(summary):
-    """rc.2 is the first firmware that keeps what it learned (one NVS record); beta.22 kept nothing over a
-    restart. Right after the update the self-tuning has no history and the learner counts only this boot."""
+    """Right after an update from a firmware that kept nothing over a restart, the self-tuning has no history and
+    the learner counts only this boot. (Informational: a firmware that keeps what it learned does not start fresh.)"""
     tuning = summary.get('tuning') or {}
     small = lambda v: isinstance(v, (int, float)) and v <= 1
     return (summary.get('tuning') is not None and tuning.get('log_entries') == 0 and tuning.get('yesterday') is None
             and small(summary.get('heating_periods')) and all(small(r.get('periods')) for r in summary['rooms'])
             and summary.get('boiler_minimum_flow_c') is None)
+
+
+def learned_kept(before, after):
+    """Did what the E32 had learned survive the update? True when no counter went down, False when one did,
+    None when there was nothing to keep (or no earlier reading). Informational, never gating."""
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        return None
+    pairs = [(before.get('heating_periods'), after.get('heating_periods'))]
+    rooms = {r.get('id'): r for r in after.get('rooms') or []}
+    for room in before.get('rooms') or []:
+        now = rooms.get(room.get('id')) or {}
+        pairs += [(room.get('periods'), now.get('periods')), (room.get('segments'), now.get('segments'))]
+    pairs = [(b, a) for b, a in pairs if isinstance(b, (int, float)) and b > 0]
+    if not pairs:
+        return None
+    return all(isinstance(a, (int, float)) and a >= b for b, a in pairs)
 
 
 def _diff(before, after, where, volatile, out):
@@ -666,11 +908,25 @@ def _diff(before, after, where, volatile, out):
 
 def settings_finding(differences, notes, export, default_password):
     """One run's settings verdict: no differences, and the export compared, or refused only because the E32 still
-    has the factory password (rc.2: 403 password_change_required; a later run must compare it)."""
+    has the factory password (403 password_change_required; a later run must compare it)."""
     refused_for_password = (export.get('http_status') == 403 and export.get('refusal') == 'password_change_required'
                             and default_password is True)
     ok = not differences and (bool(export.get('compared')) or refused_for_password)
     return ok, {'differences': differences[:50], 'export': export, **notes}
+
+
+def compare_export(before, after):
+    """The passphrase-less export document of two moments: everything the first had must be in the second
+    (schema additions are allowed). `firmware` and `created` describe the export itself, not a setting."""
+    before, after = dict(before), dict(after)
+    for key in ('firmware', 'created', 'secrets'):  # the sealed secrets box differs per export and cannot be compared
+        before.pop(key, None)
+        after.pop(key, None)
+    bt_before, bt_after = before.pop('bluetooth', None), after.pop('bluetooth', None)
+    found = []
+    _diff(before, after, 'config-backup-export.json', False, found)
+    _diff(bt_before, bt_after, 'config-backup-export.json.bluetooth', True, found)
+    return found
 
 
 def compare_settings(before_dir, after_dir, entries):
@@ -693,13 +949,7 @@ def compare_settings(before_dir, after_dir, entries):
         found = []
         if name == 'config-backup-export.json':
             notes['export_compared'] = True
-            before, after = dict(before), dict(after)
-            for key in ('firmware', 'created'):  # describe the export itself, not a setting
-                before.pop(key, None)
-                after.pop(key, None)
-            bt_before, bt_after = before.pop('bluetooth', None), after.pop('bluetooth', None)
-            _diff(before, after, name, False, found)
-            _diff(bt_before, bt_after, name + '.bluetooth', True, found)
+            found = compare_export(before, after)
         elif name == 'config-heating.json' and isinstance(before, dict) and isinstance(after, dict):
             before, after = dict(before), dict(after)
             notes['plan_revision'] = {'before': before.get('revision'), 'after': after.get('revision')}
@@ -711,3 +961,14 @@ def compare_settings(before_dir, after_dir, entries):
             _diff(before, after, name, name == 'config-bluetooth.json', found)
         differences.extend(found)
     return differences, notes
+
+
+def export_document(raw):
+    """A saved E32 settings export (the passphrase-less /config/backup export, or the plain document that Home
+    Assistant's daily backup holds), or None when the bytes are something else."""
+    try:
+        document = json.loads(raw)
+    except ValueError:
+        return None
+    ok = isinstance(document, dict) and document.get('format') == 'openthermostat-e32-backup' and document.get('schema') == 1
+    return document if ok else None

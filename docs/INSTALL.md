@@ -501,7 +501,11 @@ Before you start, check that MQTT on the E32 is on with a broker user name and
 password (section 8.3). Without it, this step stops with a message.
 
 1. Go to **Settings → Devices & services → OpenThermostat** and choose
-   **Configure** (the gear icon).
+   **Configure** (the gear icon). Configure has six items: **Rooms**,
+   **House**, **Heating and boiler**, **Energy and outdoor temperature**,
+   **E32 connection** and **Advanced and diagnostics**. Every submenu has
+   **← Back**. After you save you are back in the menu, and **Done** closes
+   Configure.
 2. Choose **E32 connection**.
 3. **E32 web address**: the address you use in your browser, including
    `http://`, for example `http://192.168.1.50` or
@@ -589,7 +593,7 @@ it, the blocks **Temperature**, **Week program**, **Windows and doors** and
 
 ### 11.2 Edit the week program in the visual planner
 
-The easiest way to change a program is the **Week program** view of the
+The easiest way to change a program is the **Week program** tab of the
 **OpenThermostat** dashboard in the Home Assistant sidebar. Every room has
 three levels, **Comfort**, **Eco** and **Night**, each with its own
 temperature; changing a level changes every block that uses it. Paint a block
@@ -647,9 +651,9 @@ changes on the device are not seen until Home Assistant is back.
 
 These limits are the lowest and highest water temperature to the heating
 (flow temperature) that the E32 may ask of the boiler, for all rooms
-together. Check them under **Configure → Home → Heating and boiler** in Home
-Assistant (without Home Assistant: the E32 **Home** page, section **Water
-temperature limits**, then **Save limits**). The default is 30–60 °C. Floor
+together. Check them under **Configure → Heating and boiler → Water
+temperature limits** in Home Assistant (without Home Assistant: the E32
+**Home** page, section **Water temperature limits**, then **Save limits**). The default is 30–60 °C. Floor
 heating fed without a mixing valve usually needs at most 45–50 °C; radiators
 often need 60–75 °C on cold days. The E32 never asks for more than the maximum heating temperature
 set on the boiler itself.
@@ -659,17 +663,25 @@ set on the boiler itself.
 - **Window and door contacts**: sensors that pause a room while a window or
   door is open (it drops to frost protection and asks for no heat). Choose
   them per room in the room form, section **Windows and doors**.
-- **Configure → Home → Presence: who lives here**: the people of the house.
-  In the house mode Automatic the rooms go to the away temperature once
-  everyone has been away for 15 minutes. A room can also have **persons of
-  its own** (room form, section **Persons**): it goes to the away temperature
-  when they are all away, also while others are home. The **House mode**
-  control (**Automatic**, **At home**, **Away**, **Holiday**) is on the E32
-  device, on the dashboard and on the E32's **Home** page.
-- **Configure → Home → Defaults for rooms and timing**: the Comfort and Night
+- **Configure → House → Presence and away temperature**: the people of the
+  house, how long everyone must be away, and the temperature for an empty
+  house. In the house mode Automatic the rooms go to the away temperature once
+  everyone has been away for that time (15 minutes by default). A room can
+  also have **persons of its own** (room form, section **Persons**): it goes
+  to the away temperature when they are all away, also while others are home.
+- **Configure → House → House mode and holiday**: **Automatic**, **At home**,
+  **Away** or **Holiday**. For a holiday you also choose when it ends, and
+  **Stop holiday** ends it at once. The same control is on the E32 device, on
+  the dashboard and on the E32's **Home** page.
+- **Configure → House → Comfort defaults for rooms**: the Comfort and Night
   temperatures of a room without a week program, the pause after a window
   opens, and how long a manual change lasts in such a room.
-- **Configure → Home → Energy and outdoor temperature**: a gas meter, gas price,
+- **Configure → Heating and boiler → Smart warm-up** and **Weather
+  compensation**: both are on by default. Smart warm-up starts heating early,
+  so a room is warm at the time in its week program. Weather compensation
+  makes the water warmer when it is colder outside. The E32 learns both for
+  your house.
+- **Configure → Energy and outdoor temperature**: a gas meter, gas price,
   outdoor temperature and your boiler's power. All optional; they make the gas
   and cost estimates and the heating advice more accurate.
 - The **Daily summary**, the warnings and the notification blueprints: see
@@ -677,9 +689,11 @@ set on the boiler itself.
 
 ### 11.6 Check it
 
-- The **OpenThermostat** dashboard in the sidebar shows each room with its
-  temperature, its target and a 24-hour graph, and the calculated boiler
-  request.
+- The **OpenThermostat** dashboard in the sidebar opens on the **Overview**
+  tab. It shows which rooms want heat and the calculated boiler request, and a
+  status card for each room with its temperature and target and, in one line,
+  why the room heats or not. The **Rooms** tab has the 24-hour graph of each
+  room.
 - Each room has its own group on the integration page, with a thermostat
   (climate entity).
 - The **Heating problem** sensor is off when all is well, and **Settings →

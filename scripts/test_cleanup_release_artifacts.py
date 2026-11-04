@@ -124,5 +124,41 @@ class CleanupTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'unrelated_report'):cleanup.report_destination(self.root,proof)
         self.assertEqual(source.read_bytes(),b'Source documentation')
 
+    def test_installation_captures_are_protected_like_backups(self):
+        for marker in ('CAPTURE-MANIFEST.json','OBS-MANIFEST.json','INDEPENDENT-MANIFEST.json'):
+            base='out/'+marker.replace('.','_')
+            self.write(base+'/'+marker)
+            self.write(base+'/node_modules/retained.js')
+        self.assertEqual(cleanup.plan(self.root)['generated_caches'],[])
+
+    def applied_report(self,name,removed=1):
+        report={'schema':1,'root':str(self.root),'generated_caches':[],'identical_archive_groups':[],
+                'published_archive_removals':[{'path':'out/a.zip','sha256':'a'*64,'restore_url':'https://example.invalid/a.zip'}],
+                'result':{'cache_directories_removed':0,'published_archives_removed':removed}}
+        return self.write(name,json.dumps(report).encode())
+
+    def test_an_applied_report_with_removals_is_kept_before_the_next_cleanup_overwrites_it(self):
+        latest=self.applied_report('out/cleanup-latest.json')
+        first=cleanup.keep_previous_report(latest)
+        second=cleanup.keep_previous_report(latest)
+        self.assertTrue(first.name.startswith('cleanup-latest-') and first.name.endswith('.json'))
+        self.assertNotEqual(first,second,'a kept copy is never replaced')
+        self.assertEqual(first.read_bytes(),latest.read_bytes())
+        self.assertEqual(second.read_bytes(),latest.read_bytes())
+        # The kept copies are valid reports of their own, and the next run may overwrite the latest one.
+        self.assertEqual(cleanup.report_destination(self.root,first),first)
+        latest.write_text('{}')
+        self.assertTrue(first.exists() and first.stat().st_size>10)
+
+    def test_previews_and_empty_runs_are_not_kept_and_a_missing_report_is_fine(self):
+        self.assertIsNone(cleanup.keep_previous_report(self.root/'out'/'none.json'))
+        preview=self.write('out/preview.json',json.dumps({'schema':1,'root':str(self.root),'generated_caches':[],
+            'published_archive_removals':[{'path':'x'}],'result':{'mode':'preview'}}).encode())
+        self.assertIsNone(cleanup.keep_previous_report(preview))
+        self.assertIsNone(cleanup.keep_previous_report(self.write('out/empty.json',json.dumps({'schema':1,'published_archive_removals':[],
+            'result':{'published_archives_removed':0}}).encode())))
+        self.assertIsNone(cleanup.keep_previous_report(self.write('out/broken.json',b'{not json')))
+        self.assertEqual(sorted(p.name for p in (self.root/'out').iterdir()),['broken.json','empty.json','preview.json'])
+
 
 if __name__=='__main__':unittest.main()

@@ -1,0 +1,11 @@
+{
+  "comment": "The release and the installation the acceptance scripts work on. The scripts have no release in their code: change this file for the next release (or pass the same names as arguments, e.g. --tag). Addresses must be on the home network; the token is in ha-token.txt (git-ignored), passwords are typed.",
+  "tag": "v1.0.0-e32v2-rc.4",
+  "previous_tag": "v1.0.0-e32v2-rc.3",
+  "ha_version": "1.0.0rc5",
+  "ha_previous_version": "1.0.0rc4",
+  "entity_id": "update.woonkamer_e32_regelaar_ketel_en_diagnose_firmware",
+  "ha_url": "https://192.168.1.130:8123",
+  "e32_url": "http://192.168.1.206",
+  "mqtt_prefix": "ib-therm"
+}

@@ -143,6 +143,14 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   assert.equal(await page.locator('[data-dashboard-key="firmware-update"]').count(),0);
   status.firmware_update.version='v0.1.0-e32v2-alpha.99';
   await page.evaluate(s=>updateRooms(s),status);
+  // Pause page time (it flows naturally after clock.install): from here only runFor moves it, so a naturally
+  // elapsing poll tick cannot add a request between an action and its count assertion, and cannot overwrite
+  // lastLoadedStatus/controlUiMode while the legacy-tile part below sets them by hand (a poll answer landing there
+  // made the tile's click handler read a status without rooms: a page error that failed this test under load).
+  // A request that was already in flight when time stopped may still answer: wait until none is.
+  const pause=async()=>{for(;;){const at=await page.evaluate(()=>Date.now())+500;
+   try{await page.clock.pauseAt(at);return;}catch(e){if(!/past/.test(e.message))throw e;}}};
+  await pause();await page.waitForFunction(()=>statusPoll===null);
   // Exercise the shipped legacy tile too: names are data, never inline JS.
   for (const name of ["Guest's \"room\"\\floor\nZoë", 'x");window.__roomInjection=1;//']) {
    await page.evaluate(name=>{
@@ -168,11 +176,7 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   assert.match(legacyClockText,/Wachten op de apparaattijd; verwarming is gepauzeerd/);
   // A hidden dashboard retires its pending GET. Resume does not wait on that
   // request's 15-second deadline or allow its response to overwrite current data.
-  // Pause page time (it flows naturally after clock.install): from here only runFor moves it, so a
-  // naturally elapsing poll tick cannot add a request between an action and its count assertion.
-  const pause=async()=>{for(;;){const at=await page.evaluate(()=>Date.now())+500;
-   try{await page.clock.pauseAt(at);return;}catch(e){if(!/past/.test(e.message))throw e;}}};
-  await pause();await page.waitForFunction(()=>statusPoll===null);
+  // (Page time is already paused here, see above.)
   holdStatus=true;pendingStatus=undefined;await page.evaluate(()=>showRooms());
   await page.waitForFunction(()=>statusPoll!==null);await awaitPendingStatus();
   const releaseHidden=pendingStatus,failedBefore=failed.length;
@@ -197,7 +201,10 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   holdStatus=false;pendingStatus();await page.waitForTimeout(50);
   assert.equal(requests.filter(r=>r.path==='/status').length,deadlineCount);
   assert.equal(await page.locator('#dashboard-poll-error').count(),1);
-  await page.clock.runFor(5000);await page.waitForFunction(()=>!document.getElementById('dashboard-poll-error'));
+  // The next poll tick clears the notice. The page polls with setInterval(10000), and where its next tick falls
+  // against the paused clock depends on the real time that passed before pause(): a 5000 ms window holds a tick
+  // only for half of all phases (R5-01). One full interval always holds exactly one tick, whatever the phase.
+  await page.clock.runFor(10000);await page.waitForFunction(()=>!document.getElementById('dashboard-poll-error'));
   // Loading another page needs its timers: let page time flow again.
   await page.clock.resume();
   // Navigation retires root polling; visibility events cannot start it on About.

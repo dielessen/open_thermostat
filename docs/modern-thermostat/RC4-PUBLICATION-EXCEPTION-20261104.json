@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "status": "APPROVED",
+  "scope": "one_prerelease_publication",
+  "candidate_tag": "v1.0.0-e32v2-rc.4",
+  "unaccepted_predecessor": "v1.0.0-e32v2-rc.3",
+  "accepted_basis_tag": "v0.1.0-e32v2-beta.22",
+  "accepted_basis_receipt_sha256": "15e4aa4f22c2056b63f61a3225e778eb117621198de58e1ada3f6cfcdbe00223",
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "gap_report": "docs/modern-thermostat/RC3-UPDATE-GAP-20261104.json",
+  "gap_report_sha256": "86ed4ed8c971820afd2bebca6a90733ab71c21d2404328755e4172e842fff44f",
+  "reason": "rc.3 is installed and runs, but no acceptance receipt was captured. Publish this one rc.4 pre-release with beta.22 as the last accepted basis. The rc.4 installation is captured as its acceptance (pre- and post-install, Home Assistant route); v1.0.0 still needs an accepted rc.4 update and a 14-day PASS readiness report.",
+  "device_installation_authorized": false,
+  "boiler_trial_authorized": false,
+  "approval": {
+    "actor": "repository_owner",
+    "method": "explicit_user_instruction",
+    "decision": "approve_one_prerelease_publication",
+    "statement": "Owner, after the explanation of the one-time exception (publication only; rc.3 is installed and runs but has no acceptance receipt; beta.22 stays the accepted basis) and of how the rc.4 acceptance receipt is made on install day, answer to \"Ik wacht nog op je bevestiging voor die uitzondering voor ik iets vastleg.\": \"doe het nu maar even gewoon met akkoord\". Earlier the same day (12:30 UTC), answer to the request for the go, the exception statement and the install-config confirmation (E32 http://192.168.1.206, MQTT prefix ib-therm): \"ja akkoord\".",
+    "at_utc": "2026-11-04T12:36:14Z"
+  },
+  "separate_installation_instruction": "docs/modern-thermostat/RC4-OWNER-INSTRUCTION-20261104.json"
+}

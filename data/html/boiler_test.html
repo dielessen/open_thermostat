@@ -10,6 +10,7 @@
     <div data-dhw hidden>
       <h3 class="mt-3" data-i18n="Hot water today">Hot water today</h3>
       <dl class="ot-kv" data-dhw-list></dl>
+      <p class="ot-hint" data-dhw-since hidden></p>
       <p class="ot-hint" data-i18n="Keeping warm: the boiler reheats its hot water without anyone using a tap.">Keeping warm: the boiler reheats its hot water without anyone using a tap.</p>
       <p class="ot-hint" data-dhw-method hidden><span data-i18n="Recognised by the hot water temperature dropping">Recognised by the hot water temperature dropping</span>. <span data-i18n="This adapter does not report how much hot water flows, so a tap is recognised by the hot water temperature dropping.">This adapter does not report how much hot water flows, so a tap is recognised by the hot water temperature dropping.</span></p>
     </div>
@@ -141,6 +142,13 @@
     const signature = JSON.stringify(rows);
     if (list.dataset.rendered !== signature) { list.dataset.rendered = signature; list.replaceChildren(); for (const [k, v] of rows) { cell(list, 'dt', k); cell(list, 'dd', v); } }
     root.querySelector('[data-dhw-method]').hidden = d.method !== 'dhw_temperature_fall';
+    // rc.4: without the stored days (a new E32, NVS full) today's totals start at the restart.
+    const since = root.querySelector('[data-dhw-since]'), restart = d.since_restart_utc;
+    since.hidden = !(Number.isSafeInteger(restart) && restart > 0);
+    if (!since.hidden) {
+      const time = new Intl.DateTimeFormat(OpenThermostatLanguage.locale, {hour:'2-digit', minute:'2-digit'}).format(new Date(restart * 1000));
+      since.textContent = uiText("Counted since the restart at {time}.").replace('{time}', () => time);
+    }
   }
   // The display code in words for the chosen boiler model (display-codes.js); the raw code stays next to it.
   let codeInWords = null;
@@ -157,17 +165,19 @@
     const field = name => { const v = currentFields[name]; return v && v.state === 'valid' && v.value !== null && v.value !== undefined ? v : null; };
     const format = (value, digits) => new Intl.NumberFormat(OpenThermostatLanguage.locale, {minimumFractionDigits:digits, maximumFractionDigits:digits}).format(value);
     const show = (name, digits, unit) => { const v = field(name); return v && Number.isFinite(v.value) ? format(v.value, digits) + unit : null; };
+    // The boiler's own lifetime counters: hidden while it never reported one (the EasyControl adapter always sends 0).
+    const counted = (name, text) => field(name)?.value > 0 ? text : null;
     const heat = field('heating_active'), dhw = field('dhw_active'), code = field('display_code'), service = field('service_number'), hours = field('reported_burner_runtime');
-    const rows = [[uiText("Status"), dhw?.value === 1 ? uiText("Hot water") : heat?.value === 1 ? uiText("CH active") : heat || dhw ? uiText("No CH or hot water") : null],
+    const rows = [[uiText("Status"), dhw?.value === 1 ? uiText("Hot water") : heat?.value === 1 ? uiText("Heating on") : heat || dhw ? uiText("Heating off") : null],
       [uiText("Water temperature to heating (flow)"), show('measured_flow_temperature', 1, ' °C')], [uiText("Water temperature back (return)"), show('measured_return_temperature', 1, ' °C')],
       [uiText("Water pressure"), show('pressure', 1, ' bar')], [uiText("Hot water temperature"), show('measured_dhw_temperature', 1, ' °C')],
       [uiText("Burner power"), show('reported_burner_modulation', 0, ' %')],
       [uiText("Maximum heating temperature (boiler setting)"), show('configured_heating_temperature', 0, ' °C')],
       [uiText("Display code"), codeText(code, service)],
-      [uiText("Burner starts"), show('reported_burner_starts', 0, '')],
+      [uiText("Burner starts"), counted('reported_burner_starts', show('reported_burner_starts', 0, ''))],
       [uiText("Burner starts (last hour)"), burnerCycles?.known === true && Number.isInteger(burnerCycles.starts_last_hour) ? String(burnerCycles.starts_last_hour) : null],
       [uiText("Typical heating run"), burnerCycles?.known === true && Number.isFinite(burnerCycles.median_heating_run_s) ? duration(burnerCycles.median_heating_run_s) : null],
-      [uiText("Burner hours"), hours && hours.unit === 'min' && Number.isFinite(hours.value) ? format(Math.round(hours.value / 60), 0) + ' h' : null]].filter(row => row[1] !== null);
+      [uiText("Burner hours"), hours && hours.unit === 'min' && Number.isFinite(hours.value) && hours.value > 0 ? format(Math.round(hours.value / 60), 0) + ' h' : null]].filter(row => row[1] !== null);
     if (!rows.length) rows.push([uiText("Boiler data"), uiText("No reliable values received yet")]);
     const shortCycling = burnerCycles?.known === true && burnerCycles.short_cycling === true;
     root.querySelector('[data-cycles-help]').hidden = !rows.some(row => row[0] === uiText("Burner starts (last hour)"));
@@ -185,8 +195,8 @@
         if (codeInWords.advice) { const advice = document.createElement('small'); advice.className = 'd-block'; advice.textContent = codeInWords.advice; essentials.lastElementChild.append(advice); }
       }
       if (shortCycling && label === uiText("Burner starts (last hour)")) {
-        const chip = document.createElement('span'); chip.className = 'ot-chip ot-chip--warn ml-2'; chip.dataset.shortCycling = '';
-        chip.textContent = uiText("The burner switches on and off very often"); essentials.lastElementChild.append(chip);
+        const chip = document.createElement('small'); chip.className = 'd-block'; chip.dataset.shortCycling = ''; // information, not a fault (F5)
+        chip.textContent = uiText("The burner starts often. When the E32 controls the boiler, it lengthens the burner rest step by step."); essentials.lastElementChild.append(chip);
       }
     }
   }

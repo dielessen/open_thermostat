@@ -715,3 +715,105 @@ TEST(AutoTuner, ClosedLoopOvershootingFloorOvershootsLess) {
     for (int i = 0; i < 14; ++i) EXPECT_GT(days[i].lowest, -0.3) << "no comfort loss, day " << i + 1;
 }
 }
+
+// rc.4 (L5): the record keeps the day's counters, a boot with the record waits 2 h instead of a day,
+// and a restart no longer throws the evidence of the day away.
+TEST(AutoTuner, ARestartKeepsTheDaysEvidenceAndWaitsTwoHours) {
+    Driver d;
+    d.day(cycles(5, 5));                                                // Monday: its changes are in the log
+    const auto changes = d.tuner.logCount();
+    ASSERT_GT(changes, 0u);
+    for (uint32_t t = 10; t <= 6 * 3600; t += 10) d.step(cycles(5, 5)(t)); // 6 heating hours of Tuesday
+    const auto record = d.tuner.stored();
+    EXPECT_NE(record.find("\"day\":"), std::string::npos);
+    EXPECT_LE(record.size(), AutoTuner::storedMaxBytes);
+    const auto tail = [](Driver& e) {                                   // 3 h more heating, then idle until midnight
+        for (uint32_t t = 6 * 3600 + 10; t <= 86400; t += 10) e.step(t <= 9 * 3600 ? cycles(5, 5)(t) : S{});
+    };
+    Driver restored, fresh;                                             // both "booted" Tuesday 06:00
+    restored.utc = fresh.utc = monday + 86400 + 6 * 3600;
+    ASSERT_TRUE(restored.tuner.restore(record.c_str()));
+    EXPECT_EQ(restored.tuner.stored(), record) << "stored again before the clock is trusted: the record as it came";
+    restored.tuner.boot(restored.now, true);
+    restored.tuner.adoptDay(heating::control::RoomSchedule::localDay(restored.utc));
+    EXPECT_EQ(restored.tuner.today().starts, d.tuner.today().starts);
+    EXPECT_EQ(restored.tuner.today().hours, d.tuner.today().hours);
+    fresh.tuner.boot(fresh.now, false);
+    tail(restored); tail(fresh);
+    EXPECT_GT(restored.tuner.logCount(), changes) << "6 restored hours + 3 own: enough, and the 2 h grace passed";
+    EXPECT_EQ(fresh.tuner.logCount(), 0u) << "a day of grace without the record";
+    // Booted the day after the record: its day is yesterday and is evaluated once the grace passed.
+    Driver later; later.utc = monday + 2 * 86400 + 3600;
+    ASSERT_TRUE(later.tuner.restore(record.c_str())); later.tuner.boot(later.now, true);
+    later.tuner.adoptDay(heating::control::RoomSchedule::localDay(later.utc));
+    EXPECT_FALSE(later.tuner.evaluationPending(later.now));
+    EXPECT_TRUE(later.tuner.evaluationPending(later.now + AutoTuner::bootGraceMs));
+    later.tuner.evaluate(later.now + AutoTuner::bootGraceMs, later.utc, 0, later.rooms, later.learned.data(), 1);
+    EXPECT_FALSE(later.tuner.evaluationPending(later.now + AutoTuner::bootGraceMs));
+    EXPECT_GT(later.tuner.logCount(), changes) << "Tuesday's 6 heating hours were evaluated";
+    // Hourly stores.
+    AutoTuner t;
+    EXPECT_TRUE(t.dayStoreDue(AutoTuner::dayStoreMs)); EXPECT_FALSE(t.dayStoreDue(AutoTuner::dayStoreMs + 1000)); EXPECT_TRUE(t.dayStoreDue(2 * AutoTuner::dayStoreMs));
+}
+
+// rc.4 (L3): a restart between 22:00 and 24:00 (the usual update time) brought the day's counters
+// back from the record, but the day then closed inside the 2 h boot grace, where evaluate() cleared
+// the pending day and answered "waiting": the restart still lost the day L5 set out to keep. A day
+// that closes inside the boot grace stays pending and is judged once the grace has passed.
+TEST(AutoTuner, ADayThatClosesInsideTheBootGraceIsJudgedAfterIt) {
+    Driver d;
+    d.day(cycles(5, 5));                                                     // Monday: its changes are in the log
+    for (uint32_t t = 10; t <= 6 * 3600; t += 10) d.step(cycles(5, 5)(t));   // Tuesday 00:00..06:00: 6 heating hours, 6 starts an hour
+    const auto record = d.tuner.stored();
+    const auto changes = d.tuner.logCount();
+    ASSERT_GT(changes, 0u);
+    Driver late;                                                              // "booted" Tuesday 23:00 with the record
+    late.utc = monday + 86400 + 23 * 3600;
+    ASSERT_TRUE(late.tuner.restore(record.c_str()));
+    late.tuner.boot(late.now, true);
+    late.tuner.adoptDay(heating::control::RoomSchedule::localDay(late.utc));
+    EXPECT_EQ(late.tuner.today().hours, d.tuner.today().hours);
+    EXPECT_EQ(late.tuner.today().starts, d.tuner.today().starts);
+    for (int i = 0; i < 70 * 6; ++i) late.step(S{});                         // idle through midnight to 00:10
+    EXPECT_EQ(late.tuner.logCount(), changes) << "the day closed inside the grace: not judged yet";
+    EXPECT_STREQ(late.tuner.state(late.now), "waiting");
+    EXPECT_FALSE(late.tuner.evaluationPending(late.now));
+    EXPECT_TRUE(late.tuner.evaluationPending(late.now + AutoTuner::bootGraceMs)) << "kept pending for after the grace, not dropped";
+    late.tuner.evaluate(late.now + AutoTuner::bootGraceMs, late.utc, 0, late.rooms, late.learned.data(), 1);
+    EXPECT_GT(late.tuner.logCount(), changes) << "Tuesday had 6 heating hours with many starts: a change";
+    EXPECT_FALSE(late.tuner.evaluationPending(late.now + AutoTuner::bootGraceMs));
+    EXPECT_GT(late.tuning().minOffS, d.tuning().minOffS) << "the rest lengthened another step";
+}
+
+TEST(AutoTuner, OnlyControlChangesRestartTheTunerAndRoomsKeepTheirEvidenceById) {
+    RoomPlan a = plan({RoomPlan::Emitter::floor, RoomPlan::Emitter::radiator});
+    RoomPlan b = a;
+    b.rooms[0].name = "Living"; b.rooms[1].inactiveUntil = 12345;      // cosmetic
+    EXPECT_FALSE(AutoTuner::controlChanged(a, b));
+    b = a; b.rooms[1].schedule.days[2].points[0] = {420, 2000}; b.rooms[1].schedule.days[2].count = 1;
+    EXPECT_TRUE(AutoTuner::controlChanged(a, b));
+    b = a; b.rooms[0].state = RoomDemand::State::inactive;
+    EXPECT_TRUE(AutoTuner::controlChanged(a, b));
+    b = a; b.maximumFlowC = 55;
+    EXPECT_TRUE(AutoTuner::controlChanged(a, b));
+    b = a; b.rooms[0].sources.push_back({RoomPlan::SourceType::ble, "a4c138a3e8db"});
+    EXPECT_TRUE(AutoTuner::controlChanged(a, b));
+    // The day's overshoot follows the rooms through a reorder.
+    AutoTuner t; t.setPlan(a);
+    ControlTuning tuning;
+    std::array<AutoTuner::Room, 2> rooms{};
+    uint64_t now = 0; uint32_t utc = monday;
+    const auto feed = [&](bool heat, int16_t t1) {
+        now += 10000; utc += 10;
+        rooms[0] = {2000, 2000, false}; rooms[1] = {t1, 2000, heat};
+        AutoTuner::Step s; s.now = now; s.utc = utc; s.request = {heat, uint8_t(heat ? 40 : 0), heat ? Reason::heating : Reason::satisfied};
+        s.burnerOn = heat; s.hotWater = false; s.active = true; s.tuning = &tuning; s.rooms = rooms.data(); s.count = 2;
+        t.sample(s);
+    };
+    for (int i = 0; i < 3 * 360; ++i) feed(false, 2000);                // 3 h settled
+    for (int c = 0; c < 3; ++c) { for (int i = 0; i < 60; ++i) feed(true, 1990); for (int i = 0; i < 60; ++i) feed(false, 2045); } // overshoots 0.45
+    ASSERT_TRUE(t.today().overSeen & 2); EXPECT_EQ(t.today().over[1], 45);
+    RoomPlan swapped = a; std::swap(swapped.rooms[0], swapped.rooms[1]);
+    t.setPlan(swapped);
+    EXPECT_TRUE(t.today().overSeen & 1); EXPECT_EQ(t.today().over[0], 45); EXPECT_FALSE(t.today().overSeen & 2);
+}

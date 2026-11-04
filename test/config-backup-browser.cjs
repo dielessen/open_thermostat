@@ -100,7 +100,7 @@ const summary={valid:true,fingerprint:'f'.repeat(64),restart:true,secrets_sealed
   const shown=await page.locator('#RestoreSummary').innerText();
   assert.match(shown,lang==='nl'?/Netwerk · Apparaatnaam: — → heating-home/:/Network · Device name: — → heating-home/);
   assert.match(shown,lang==='nl'?/MQTT-wachtwoord: verandert/:/MQTT password: will change/);
-  assert.match(shown,lang==='nl'?/Buitentemperatuur volgen \(stooklijn\): Uit → Aan/:/Follow outdoor temperature \(heating curve\): Off → On/);
+  assert.match(shown,lang==='nl'?/Weerafhankelijke regeling: Uit → Aan/:/Weather compensation: Off → On/);
   assert.match(shown,lang==='nl'?/Terugzetten verandert de wifi niet/:/Wi-Fi is not changed by a restore/);
   assert.match(shown,lang==='nl'?/onbekend voor deze firmware: network\.future/:/not known by this firmware: network\.future/);
   assert.match(shown,lang==='nl'?/Bluetooth-sleutel van Living/:/Bluetooth key for Living/);

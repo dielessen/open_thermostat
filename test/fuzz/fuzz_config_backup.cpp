@@ -32,6 +32,7 @@ struct Target {
             case b::Part::bluetooth: s.bluetooth = text; break;
             case b::Part::network: s.network = text; break;
             case b::Part::learned: s.learned = text; break;
+            case b::Part::holidays: s.holidays = text; break;
         }
         return true;
     }

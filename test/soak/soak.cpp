@@ -1601,7 +1601,8 @@ void Chain::publish(bool mqtt, bool learned, bool full) {
         // fw/telemetry/heating_summary
         std::array<std::optional<int16_t>, RoomPlan::maxRooms> temperatures{};
         const auto summary = heatingSummaryTelemetry(learner_, learnedContext(temperatures), dhwEpisodes_.summaryJson(), &policy_);
-        checkPayload("mqtt_summary", summary, 1100);
+        checkPayload("mqtt_summary", summary, 1300); // the whole document; TelemetryPublisher splits it into summary, flow,
+                                                 // tuning and scoreboard topics of at most 1 KB each (test_heating_telemetry.cpp)
         // The plan and the per-module status objects.
         checkPayload("plan", engine_.plan().storedJson(), RoomPlan::storeBytes - 1);
         std::ostringstream b; cycles_.writeJSON(b, now_); checkPayload("burner_cycles", b.str(), 0);
@@ -1639,10 +1640,10 @@ void Chain::publish(bool mqtt, bool learned, bool full) {
             const auto payload = learnedRoomTelemetry(learner_, engine_.plan(), room, learnedContext(temperatures));
             noteLocaltime("mqtt_learned_room", localtimeCalls - calls0, utc_);
             EXPECT(topicSafeRoomId(engine_.plan().rooms[room].id), "topic_unsafe_id", "room id %s", engine_.plan().rooms[room].id.c_str());
-            checkPayload("mqtt_learned_room", payload, 900);
+            checkPayload("mqtt_learned_room", payload, 1000);
             // The id appears once; a 32-character id (the plan maximum) would add this much.
             const size_t worst = payload.size() + (32 - std::min<size_t>(32, engine_.plan().rooms[room].id.size()));
-            EXPECT(worst <= 900, "mqtt_learned_room_32_char_id", "%zu B with a 32-character room id", worst);
+            EXPECT(worst <= 1000, "mqtt_learned_room_32_char_id", "%zu B with a 32-character room id", worst);
             auto& w = counters[ctx.scenario + ":mqtt_learned_room_max_with_32_char_id"];
             w = std::max<uint64_t>(w, worst);
         });
@@ -2036,6 +2037,7 @@ struct ActiveRig {
     ActiveHeatGuard::Command last{};
     uint32_t posted = 0;
     uint64_t postedAt = 0, nextHa = 0, nextBle = 0, nextTado = 0;
+    bool planUnreadable = false; // review R1-05: the stored plan cannot be read at the next boot
 
     ActiveRig() { boot(); }
     uint64_t up() const { return wall - bootWall; }
@@ -2056,7 +2058,7 @@ struct ActiveRig {
     // A (re)boot: RAM state is gone, NVS and the boiler's held request stay.
     void boot() {
         ++boots; bootWall = wall; firstReadingAt = firstBleAt = 0;
-        engine = RoomEngine(); engine.setPlan(plan());
+        engine = RoomEngine(); engine.setPlan(planUnreadable ? RoomPlan{} : plan()); // HeatingController::loadHeatingPlan
         guard = ActiveHeatGuard(); monitor = ems::ClassicBoilerMonitor(); foreign = ems::ForeignBoilerRequest();
         driver = ems::ActiveHeatPollDriver(boots, hostActiveGate); limitRead = ems::BoilerLimitRead(true);
         handover.reset(new HandoverConfirmation<SoakNvs>(nvs, firmware));
@@ -2130,6 +2132,7 @@ struct ActiveRig {
         const auto flow = monitor.value(ems::BoilerField::flow, now);
         in.boiler = {modulation ? std::optional<bool>(*modulation > 0) : std::nullopt, flow ? std::optional<int16_t>(int16_t(*flow)) : std::nullopt};
         in.boilerHeardAtMs = monitor.lastReportMs();
+        in.planUnreadable = planUnreadable;
         const bool restoredBefore = guard.restored();
         guard.setFlowLimits(p.minimumFlowC, p.maximumFlowC);
         last = guard.step(now, in);
@@ -2269,6 +2272,26 @@ void activeReboot(ActiveRig& r) {
            zero ? (*zero - updated) / 1000 : 0);
     EXPECT(frost ? warm && *warm - updated >= a6ListenMs : !warm, "active_reboot_reconfirm_frost", "%s %" PRIu64 " s after boot",
            warm ? "frost" : "no frost", warm ? (*warm - updated) / 1000 : 0);
+}
+
+// Review R1-05: a restart while the E32 heats, and the stored plan cannot be read at that boot (an
+// NVS error, a plan this firmware refuses): the empty shadow plan runs, but the boot zero of the
+// stored confirmation still goes out; nothing positive follows and the record goes after the zero.
+void activeRebootUnreadablePlan(ActiveRig& r) {
+    r.livingC = uniform(18.0, 19.0);
+    r.takeOver();
+    r.run(uint64_t(uniformInt(5, 15)) * 60000); // still below the target: the boiler holds a positive request
+    EXPECT(r.held.flowC > 0, "active_unreadable_plan_setup", "the boiler holds no request before the restart");
+    r.wall += uint64_t(uniformInt(5, 120)) * 1000;
+    const uint64_t bootAt = r.wall;
+    r.planUnreadable = true; r.boot();
+    EXPECT(r.until(60000, [&] { return r.firstDelivered(bootAt, false).has_value(); }), "active_unreadable_plan_no_zero",
+           "no zero %" PRIu64 " s after a boot with an unreadable plan (%s)", (r.wall - bootAt) / 1000, ActiveHeatGuard::name(r.guard.state()));
+    r.run(10 * 60000);
+    EXPECT(!r.firstDelivered(bootAt, true), "active_unreadable_plan_heat", "heat with an unreadable plan");
+    EXPECT(r.held.flowC == 0, "active_unreadable_plan_held", "the boiler still holds %u", r.held.flowC);
+    EXPECT(r.nvs.record.empty() && !r.guard.claimsBoiler(), "active_unreadable_plan_after", "NVS '%s', claims %d", r.nvs.record.c_str(), r.guard.claimsBoiler());
+    count("active_reboot_unreadable_plan");
 }
 
 // Review A6: after an emergency hand-back by power the owner plugs the tado in
@@ -2448,7 +2471,7 @@ void activeScenario() {
     const std::pair<const char*, void (*)(ActiveRig&)> cases[] = {
         {"ha_gone", activeHaGone}, {"measurement_gone", activeMeasurementGone}, {"reboot", activeReboot}, {"wifi_gone", activeWifiGone},
         {"foreign_1a", activeForeign}, {"dhw", activeDhw}, {"frost", activeFrost}, {"stop_until_delivered", activeStopUntilDelivered},
-        {"boiler_limit", activeBoilerLimit}, {"reboot_tado_back", activeRebootTadoBack}};
+        {"boiler_limit", activeBoilerLimit}, {"reboot_tado_back", activeRebootTadoBack}, {"reboot_unreadable_plan", activeRebootUnreadablePlan}};
     const int runs = std::max(1, int(opt.days));
     uint64_t steps = 0;
     for (const auto& [name, run] : cases)

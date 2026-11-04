@@ -12,6 +12,7 @@
 #include <esp_timer.h>
 #include <cJSON.h>
 #include "control/BoundedJson.h"
+#include "diagnostics/BlackBox.h"
 
 namespace heating {
 extern bool wifiAPMode;
@@ -138,8 +139,11 @@ inline void rejoinSavedWifi() {
 }
 inline void pollSetupWifi() {
     static bool restartHeldNoted=false;
-    if(setupRebootRequested&&!setupRestartHeld) { delay(250); ESP.restart(); return; }
-    if(setupRebootRequested&&!restartHeldNoted) { restartHeldNoted=true; Serial.printf("Setup restart deferred until the update or the check of new firmware has finished\n"); }
+    if(setupRebootRequested&&!setupRestartHeld) {
+        diagnostics::blackBox.restartReason(diagnostics::SupervisorPolicy::Reason::setupReenter);
+        delay(250); ESP.restart(); return;
+    }
+    if(setupRebootRequested&&!restartHeldNoted) { restartHeldNoted=true; Serial.printf("Setup restart deferred until an update or the check of new firmware has finished and the boiler request is withdrawn\n"); }
     const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
     if(wifiAPMode&&setupDnsActive) setupDns.processNextRequest();
     pollWifiScan();

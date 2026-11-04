@@ -26,6 +26,17 @@ from .program import room_program_name
 _LOGGER = logging.getLogger(__name__)
 
 
+async def set_comfort(entity, call):
+    """open_thermostat.set_comfort on one thermostat: only an older Home Assistant room has its modes."""
+    handler = getattr(entity, "async_set_comfort", None)
+    if handler is None:
+        from homeassistant.exceptions import ServiceValidationError
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key="set_comfort_unsupported",
+                                     translation_placeholders={"entity": entity.entity_id or ""})
+    from homeassistant.helpers.service import remove_entity_service_fields
+    await handler(**remove_entity_service_fields(call))
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -37,14 +48,19 @@ async def async_setup_entry(
         import voluptuous as vol
         from homeassistant.helpers import entity_platform
         platform=entity_platform.async_get_current_platform()
-        platform.async_register_entity_service("set_comfort",{
-            vol.Required("mode"):vol.In(["auto","off","temporary","boost","away","vacation","frost"]),
-            vol.Optional("temperature"):vol.All(vol.Coerce(float),vol.Range(min=5,max=35)),
-            vol.Optional("duration_minutes"):vol.All(int,vol.Range(min=1,max=720)),
-            vol.Optional("vacation_until"):str,
-            vol.Optional('expected_entry_id'):str,vol.Optional('expected_room_id'):str,
-            vol.Optional('expected_token'):str,vol.Optional('expected_time_zone'):str,
-        },"async_set_comfort")
+        # Only the older Home Assistant rooms (zone records, v1_climate.ShadowRoom) have these comfort
+        # modes; E32 room thermostats use set_room_override, clear_room_override, set_away and
+        # clear_away (R4-06). The action is shared by every open_thermostat thermostat, so set_comfort
+        # answers an E32 room with a clear message instead of failing.
+        if any(sub.subentry_type == "zone" for sub in entry.subentries.values()):
+            platform.async_register_entity_service("set_comfort",{
+                vol.Required("mode"):vol.In(["auto","off","temporary","boost","away","vacation","frost"]),
+                vol.Optional("temperature"):vol.All(vol.Coerce(float),vol.Range(min=5,max=35)),
+                vol.Optional("duration_minutes"):vol.All(int,vol.Range(min=1,max=720)),
+                vol.Optional("vacation_until"):str,
+                vol.Optional('expected_entry_id'):str,vol.Optional('expected_room_id'):str,
+                vol.Optional('expected_token'):str,vol.Optional('expected_time_zone'):str,
+            },set_comfort)
         # E32 room plan entries: a thermostat per E32 room (e32_comfort.py).
         from .e32_comfort import async_setup_e32_climates, register_services
         register_services(platform)

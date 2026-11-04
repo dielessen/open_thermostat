@@ -19,6 +19,7 @@ struct Bench {
     int flow = 40;
     int boilerFlow = 4500;
     std::string learnedResult = "learning";
+    std::string scoreboard;    // rc.4: the summary source's "scoreboard" object, when set (HeatingController's Scoreboard::addJson)
     TrvControl* trv = nullptr; // radiator valves, added to the status as HeatingController does
     TelemetryPublisher publisher{
         TelemetryPublisher::Sources{
@@ -42,7 +43,10 @@ struct Bench {
                 id = rooms.at(i);
                 return R"({"schema":1,"id":")" + id + R"(","learned":{"readiness":")" + learnedResult + R"(","now":{"flow_c":)" + std::to_string(now / 1000 % 50) + "}},\"plan\":null}";
             },
-            [] { return std::string(R"({"schema":1,"learned":{"schema":1},"flow":{"source":"rule"},"night_gas":{"m3":0.1}})"); },
+            [this] {
+                return std::string(R"({"schema":1,"learned":{"schema":1},"flow":{"source":"rule"},"night_gas":{"m3":0.1})")
+                    + (scoreboard.empty() ? std::string() : ",\"scoreboard\":" + scoreboard) + "}";
+            },
             [this](std::string& out, size_t group) {
                 if (group != 0) { out.clear(); return; }
                 std::string rows;
@@ -74,7 +78,46 @@ struct Bench {
         for (const auto& s : sent) if (s.topic != "fw/heartbeat") ++m[s.at / 1000];
         return m;
     }
+    // The last payload of a topic sent at or after `since` (empty: none).
+    std::string last(const std::string& topic, uint64_t since = 0) const {
+        std::string payload;
+        for (const auto& s : sent) if (s.topic == topic && s.at >= since) payload = s.payload;
+        return payload;
+    }
 };
+}
+
+// rc.4 (B1): HeatingController's summary now carries the daily scoreboard (two days, a rooms
+// array per day). Left inside fw/telemetry/summary, six to eight rooms pushed that topic over
+// the 1.5 KB hard limit, where send() drops it silently every 5 minutes (Home Assistant then
+// lost the learned header and today's hot water too). It goes out on its own topic, like
+// "flow" and "tuning"; a source without the key sends nothing there.
+TEST(TelemetryPublisher, TheScoreboardGoesOutOnItsOwnTopicAndLeavesTheSummary) {
+    Bench b;
+    b.publisher.connected(b.now);
+    b.run(30000);
+    ASSERT_GE(b.count("fw/telemetry/summary"), 1u);
+    EXPECT_EQ(b.count("fw/telemetry/scoreboard"), 0u) << "no scoreboard in the source: nothing sent";
+    EXPECT_EQ(b.last("fw/telemetry/summary").find("scoreboard"), std::string::npos);
+    b.scoreboard = R"({"yesterday":{"day":"2026-11-03","heating_h":9,"rooms":[{"id":"woonkamer","on_time_min":-5,"overshoot_c":0.3}]},)"
+                   R"("today":{"day":"2026-11-04","heating_h":3}})";
+    const uint64_t at = b.now;
+    b.run(310000);                                          // the next 5-minute summary
+    ASSERT_EQ(b.count("fw/telemetry/summary", at), 1u);
+    ASSERT_EQ(b.count("fw/telemetry/scoreboard", at), 1u);
+    EXPECT_EQ(b.last("fw/telemetry/scoreboard", at), R"({"schema":1,"scoreboard":)" + b.scoreboard + "}");
+    const auto summary = b.last("fw/telemetry/summary", at);
+    EXPECT_EQ(summary.find("scoreboard"), std::string::npos) << summary;
+    EXPECT_NE(summary.find(R"("learned":{"schema":1})"), std::string::npos) << summary;
+    EXPECT_EQ(summary.find("\"flow\""), std::string::npos) << "flow still goes apart";
+    EXPECT_EQ(b.count("fw/telemetry/flow", at), 1u);
+    for (const auto& s : b.sent) { if (s.topic == "fw/telemetry/scoreboard") EXPECT_TRUE(s.retained); }
+    // The source dropped the key again (no memory for the board): the topic falls silent.
+    b.scoreboard.clear();
+    const uint64_t again = b.now;
+    b.run(310000);
+    EXPECT_EQ(b.count("fw/telemetry/summary", again), 1u);
+    EXPECT_EQ(b.count("fw/telemetry/scoreboard", again), 0u);
 }
 
 TEST(TelemetryPublisher, AConnectSendsEverythingOnceSpreadOverSeconds) {

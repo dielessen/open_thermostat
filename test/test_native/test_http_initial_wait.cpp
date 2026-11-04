@@ -1,8 +1,8 @@
 // ResponsiveHttpServer against a model of the pinned WebServer (arduino-esp32 2.0.17):
 // its handleClient, and a _parseRequest that reads like Parsing.cpp (Stream timeout per
 // read, 5 s per pause of a body, a form field loop that waits for a boundary line).
-// The fake clock advances only while that parser waits, so "blocked" is measured
-// exactly. -DOT_OLD_RESPONSIVE_SERVER builds the same tests against the beta header
+// The fake clock advances only while that parser waits (or delay() runs), so "blocked" is
+// measured exactly. -DOT_OLD_RESPONSIVE_SERVER builds the same tests against the beta header
 // (one template argument, no admission) to show which ones failed before the bounds.
 #include <cstdint>
 #include <deque>
@@ -14,7 +14,7 @@
 namespace {
 uint32_t httpTestNow;
 uint32_t millis() { return httpTestNow; }
-void delay(uint32_t) {}
+void delay(uint32_t ms) { httpTestNow += ms; }
 enum HTTPClientStatus { HC_NONE, HC_WAIT_READ, HC_WAIT_CLOSE };
 struct Socket {
     std::string in, out;
@@ -22,9 +22,20 @@ struct Socket {
     std::vector<std::pair<uint32_t, std::string>> later;  // bytes that arrive at a time
     uint32_t closeAt = UINT32_MAX;                          // the sender goes away
     unsigned stops = 0, reads = 0;
+    // How the peer reads a response: at most `takes` bytes per send, at most once per takeEveryMs.
+    size_t takes = SIZE_MAX;
+    uint32_t takeEveryMs = 0, lastTake = 0;
     void deliver() {
         for (auto it = later.begin(); it != later.end();)
             if (it->first <= httpTestNow) { in += it->second; it = later.erase(it); } else ++it;
+    }
+    int take(const uint8_t *b, size_t n) {  // one non-blocking send: bytes taken, 0 = the buffer is full
+        if (takeEveryMs && lastTake && httpTestNow - lastTake < takeEveryMs) return 0;
+        const size_t k = std::min(n, takes);
+        if (!k) return 0;
+        lastTake = httpTestNow;
+        out.append(reinterpret_cast<const char *>(b), k);
+        return int(k);
     }
 };
 struct FakeClient {
@@ -134,11 +145,26 @@ struct PinnedServerSurface {
         blockedMs += millis() - start;
         return complete;
     }
-    void _handleRequest() { ++handled; }
+    // The handler's answer, written like WebServer::send: the head, then the body.
+    std::string response;
+    size_t responded = 0;
+    uint32_t writeMs = 0;
+    virtual size_t _currentClientWrite(const char *b, size_t l) { return _currentClient.write(reinterpret_cast<const uint8_t *>(b), l); }
+    virtual size_t _currentClientWrite_P(const char *b, size_t l) { return _currentClientWrite(b, l); }
+    void _handleRequest() {
+        ++handled;
+        if (response.empty()) return;
+        const uint32_t start = millis();
+        const size_t head = std::min<size_t>(response.size(), 100);
+        responded += _currentClientWrite(response.data(), head);
+        responded += _currentClientWrite_P(response.data() + head, response.size() - head);
+        writeMs += millis() - start;
+    }
 };
 struct FakeIo {
     using Client = FakeClient;
     static void noWait(FakeClient &c) { c.timeoutMs = 0; }
+    static int send(FakeClient &c, const uint8_t *b, size_t n) { return c.s ? c.s->take(b, n) : -1; }
 };
 }
 #define HTTP_MAX_SEND_WAIT 5000
@@ -253,6 +279,86 @@ TEST(HttpRequestBounds, AnUploadWhoseSenderVanishesInsideAFormFieldEndsAndIsNotH
     EXPECT_FALSE(s.hung); EXPECT_EQ(s.parses, 1u); EXPECT_EQ(s.handled, 0u);
     EXPECT_LE(s.blockedMs, 1000u) << s.blockedMs;
 }
+#ifndef OT_OLD_RESPONSIVE_SERVER
+// Review R2-08: an upload the update gate refuses anyway (a boot not confirmed yet, an update or a
+// boiler session) is refused by the admission, 409 before a byte of its body is read; before, the
+// parser read the whole image and every 1436-byte chunk ran the authorization and wrote a refusal.
+TEST(HttpRequestBounds, ABlockedUploadIsRefusedBeforeItsBodyIsRead) {
+    HttpServer s; httpTestNow = 100;
+    admit(s, [](const heating::control::HttpRequestHead &head) { return head.path == "/ota" ? 409 : 0; });
+    const std::string image(500000, 'x');
+    auto socket = connect(s, "POST /ota HTTP/1.1\r\nHost: 192.168.1.40\r\nContent-Type: multipart/form-data; boundary=OTB\r\n"
+                             "Content-Length: " + std::to_string(image.size()) + "\r\n\r\n" + image);
+    run(s, 200);
+    EXPECT_EQ(s.parses, 0u); EXPECT_EQ(s.handled, 0u);
+    EXPECT_EQ(socket->out.rfind("HTTP/1.1 409 Conflict\r\n", 0), 0u) << socket->out;
+    EXPECT_NE(socket->out.find(R"({"error":"device_busy"})"), std::string::npos);
+    EXPECT_LT(socket->pos, 4096u); // the image was never read
+    EXPECT_EQ(socket->stops, 1u);
+}
+// Review R2-03: an upload waits unread, without blocking the loop, while the admission holds it
+// (the E32 first withdraws its boiler request); admitted, it is parsed and gets its full deadline.
+// A hold that never ends is refused after holdMs, the body never read.
+TEST(HttpRequestBounds, AHeldUploadWaitsUnreadWhileTheLoopRunsThenIsParsed) {
+    using heating::control::HttpRequestBounds;
+    const std::string form = "--OTB\r\nContent-Disposition: form-data; name=\"size\"\r\n\r\n12\r\n--OTB--\r\n";
+    const std::string upload = "POST /ota HTTP/1.1\r\nHost: 192.168.1.40\r\nContent-Type: multipart/form-data; boundary=OTB\r\n"
+                               "Content-Length: " + std::to_string(form.size()) + "\r\n\r\n" + form;
+    HttpServer s; httpTestNow = 100;
+    unsigned asks = 0; bool released = false;
+    admit(s, [&](const heating::control::HttpRequestHead &head) {
+        ++asks; EXPECT_EQ(head.path, "/ota");
+        return released ? 0 : HttpRequestBounds::admitLater;
+    });
+    auto socket = connect(s, upload);
+    run(s, 30000); // 30 s of loop passes: each one returns at once
+    EXPECT_EQ(s.parses, 0u); EXPECT_EQ(s.blockedMs, 0u); EXPECT_GT(asks, 100u);
+    EXPECT_EQ(socket->stops, 0u); EXPECT_FALSE(s.idle()); EXPECT_TRUE(socket->out.empty());
+    released = true;
+    run(s, 30100);
+    EXPECT_EQ(s.parses, 1u); EXPECT_EQ(s.handled, 1u); EXPECT_TRUE(s.idle());
+    // Never released: refused after holdMs.
+    HttpServer never; httpTestNow = 100;
+    admit(never, [](const heating::control::HttpRequestHead &) { return HttpRequestBounds::admitLater; });
+    auto refused = connect(never, upload);
+    run(never, 100 + HttpRequestBounds::holdMs - 1000);
+    EXPECT_TRUE(refused->out.empty());
+    run(never, 100 + HttpRequestBounds::holdMs + 1000);
+    EXPECT_EQ(refused->out.rfind("HTTP/1.1 503 ", 0), 0u) << refused->out;
+    EXPECT_EQ(never.parses, 0u); EXPECT_TRUE(never.idle());
+    // The sender gives up while held: the request ends, nothing parsed.
+    HttpServer gone; httpTestNow = 100;
+    admit(gone, [](const heating::control::HttpRequestHead &) { return HttpRequestBounds::admitLater; });
+    auto vanished = connect(gone, upload); vanished->closeAt = 5000;
+    run(gone, 6000);
+    EXPECT_EQ(gone.parses, 0u); EXPECT_TRUE(gone.idle());
+}
+// Review R2-02: the response side is bounded like the request side. A client that takes nothing
+// holds the loop 2 s, one that drips a byte a second at most 10 s for the whole response (head
+// and body together); it is then closed and the rest is dropped. A fast client gets everything.
+TEST(HttpResponseBounds, AStalledOrDrippingClientIsClosedAfterTheWriteBound) {
+    using heating::control::BoundedSend;
+    const std::string body(100000, 'x');
+    struct Case { size_t takes; uint32_t everyMs, atMostMs; bool complete; };
+    for (const Case c : {Case{0, 0, BoundedSend::stallMs, false}, Case{1, 1000, BoundedSend::totalMs, false},
+                         Case{1460, 1, 1000, true}, Case{SIZE_MAX, 0, 0, true}}) {
+        HttpServer s; httpTestNow = 100; s.response = body;
+        auto socket = connect(s, request("GET", "/status/history", ""));
+        socket->takes = c.takes; socket->takeEveryMs = c.everyMs;
+        s.handleClient();
+        EXPECT_EQ(s.handled, 1u) << c.takes;
+        EXPECT_LE(s.writeMs, c.atMostMs) << c.takes;
+        EXPECT_EQ(s.responded == body.size(), c.complete) << c.takes << " " << s.responded;
+        EXPECT_EQ(socket->out.size(), s.responded) << c.takes;
+        EXPECT_TRUE(s.idle());
+        if (!c.complete) { EXPECT_GE(s.writeMs + 1, c.atMostMs) << c.takes; }
+        // The next request gets its own budget.
+        auto next = connect(s, request("GET", "/status/history", ""));
+        s.handleClient();
+        EXPECT_EQ(next->out, body);
+    }
+}
+#endif
 TEST(HttpRequestBounds, HeadParsingMirrorsThePinnedParser) {
     using namespace heating::control;
     HttpRequestHead head;

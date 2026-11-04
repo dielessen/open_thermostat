@@ -38,6 +38,11 @@ class LearnedState {
 public:
     static constexpr uint8_t version = 1, roomVersion = 2, globalVersion = 2; // room frames v1 (lossless) and v2; the global frame (also reads 1)
     static constexpr char globalKind = 'G', roomKind = 'R';
+    // rc.4: the arrival feedback (ArrivalLearner) as one frame, kind 'A' version 1: a count, then per
+    // room with events its id, factor (f32), events (u16), the last error (i16 min, with a flag) and
+    // when (i64 utc). Restored into the plan room with that id; firmware before rc.4 skips the frame.
+    static constexpr char arrivalKind = 'A';
+    static constexpr uint8_t arrivalVersion = 1;
     static constexpr size_t maxFrame = 1024;
     // A version 2 room frame's size: an id of `idBytes`, bins whose segments all had the
     // outdoor (19 B), bins where some had (23 B) and bins without it (13 B).
@@ -49,6 +54,30 @@ public:
         uint32_t c = ~0u;
         while (n--) { c ^= uint8_t(*p++); for (int k = 0; k < 8; ++k) c = (c >> 1) ^ (0xEDB88320u & (0u - (c & 1))); }
         return ~c;
+    }
+    // Empty while no room has a judged morning (no frame needed).
+    static std::string arrivalFrame(const FlowPolicy& p) {
+        auto& a = const_cast<FlowPolicy&>(p).arrival_;
+        uint8_t count = 0;
+        for (const auto& r : a.rooms_) if (r.events) ++count;
+        if (!count) return {};
+        return frame(arrivalKind, arrivalVersion, [&](Out& o) {
+            o(count);
+            for (auto& r : a.rooms_) {
+                if (!r.events) continue;
+                uint8_t size = uint8_t(std::min<size_t>(r.id.size(), 32)), has = r.hasLast;
+                o(size); o.s.append(r.id, 0, size);
+                o(r.factor, r.events, has, r.lastErrorMin, r.lastAtUtc);
+            }
+        });
+    }
+    static bool restoreArrival(std::string_view f, FlowPolicy& p) {
+        std::vector<ArrivalLearner::Room> rooms;
+        if (!readArrival(f, rooms)) return false;
+        for (auto& t : p.arrival_.rooms_)
+            for (const auto& r : rooms)
+                if (t.id == r.id) { t.factor = r.factor; t.events = r.events; t.hasLast = r.hasLast; t.lastErrorMin = r.lastErrorMin; t.lastAtUtc = r.lastAtUtc; }
+        return true;
     }
     static std::string globalFrame(const FlowLearner& l, const FlowPolicy& p) {
         auto& m = const_cast<FlowLearner&>(l);   // Out only reads
@@ -97,6 +126,7 @@ public:
     // The settings backup: the global frame and as many room frames as fit in maxBytes.
     static std::string bundle(const FlowLearner& l, const FlowPolicy& p, size_t maxBytes) {
         std::string out = globalFrame(l, p);
+        if (const auto a = arrivalFrame(p); out.size() + a.size() <= maxBytes) out += a;
         for (size_t i = 0; i < l.rooms_.size(); ++i) {
             const auto f = roomFrame(l, i);
             if (out.size() + f.size() <= maxBytes) out += f;
@@ -107,10 +137,11 @@ public:
     static bool validBundle(std::string_view b) {
         std::unique_ptr<Globals> g(new (std::nothrow) Globals{});
         std::unique_ptr<FlowLearner::Room> r(new (std::nothrow) FlowLearner::Room);
+        std::vector<ArrivalLearner::Room> a;
         std::string_view f;
         size_t frames = 0;
         for (; g && r && next(b, f); ++frames)
-            if (!(f[1] == globalKind ? readGlobal(f, *g) : readRoom(f, *r))) return false;
+            if (!(f[1] == globalKind ? readGlobal(f, *g) : f[1] == arrivalKind ? readArrival(f, a) : readRoom(f, *r))) return false;
         return frames && b.empty();
     }
     // A packed record part (LearnedStore): each valid frame applied (the global
@@ -121,6 +152,7 @@ public:
         size_t rooms = 0;
         while (next(b, f)) {
             if (f[1] == globalKind) { if (!global && restoreGlobal(f, l, p)) global = true; }
+            else if (f[1] == arrivalKind) restoreArrival(f, p);
             else rooms += restoreRoom(f, l, done);
         }
         return rooms;
@@ -133,6 +165,7 @@ public:
         int rooms = 0;
         while (next(b, f)) {
             if (f[1] == globalKind) restoreGlobal(f, l, p);
+            else if (f[1] == arrivalKind) restoreArrival(f, p);
             else rooms += restoreRoom(f, l, done);
         }
         return rooms;
@@ -176,7 +209,7 @@ private:
     static bool open(std::string_view f, char kind, In& in) {
         if (f.size() < 8 || f[1] != kind) return false;
         const uint8_t v = uint8_t(f[0]);
-        if (!(kind == globalKind ? v == 1 || v == globalVersion : v == version || v == roomVersion)) return false;
+        if (!(kind == globalKind ? v == 1 || v == globalVersion : kind == arrivalKind ? v == arrivalVersion : v == version || v == roomVersion)) return false;
         const size_t n = uint8_t(f[2]) | size_t(uint8_t(f[3])) << 8;
         uint32_t c;
         if (f.size() != n + 8) return false;
@@ -197,6 +230,27 @@ private:
     static bool readGlobal(std::string_view f, Globals& g) {
         In in;
         return open(f, globalKind, in) && (globals(in, g.period, g.gas, g.curve, g.compare, g.nights, g.minimum), in.done());
+    }
+    static bool readArrival(std::string_view f, std::vector<ArrivalLearner::Room>& rooms) {
+        In in;
+        if (!open(f, arrivalKind, in)) return false;
+        uint8_t count = 0;
+        in(count);
+        if (count > RoomPlan::maxRooms) return false;
+        rooms.clear();
+        const ArrivalLearner::Params limits;
+        for (uint8_t k = 0; k < count && in.ok; ++k) {
+            ArrivalLearner::Room r;
+            uint8_t size = 0, has = 0;
+            in(size);
+            if (!in.ok || !size || size > 32 || in.n < size) return false;
+            r.id.assign(in.p, size); in.p += size; in.n -= size;
+            in(r.factor, r.events, has, r.lastErrorMin, r.lastAtUtc);
+            r.hasLast = has != 0;
+            if (!in.ok || !(r.factor >= limits.minFactor && r.factor <= limits.maxFactor) || !r.events) return false;
+            rooms.push_back(std::move(r));
+        }
+        return in.done();
     }
     static bool readRoom(std::string_view f, FlowLearner::Room& r) {
         In in;
@@ -455,6 +509,7 @@ public:
         savedAt_ = now;
         std::vector<std::string> frames;
         if (auto g = LearnedState::globalFrame(l, p); !g.empty()) frames.push_back(std::move(g));
+        if (auto a = LearnedState::arrivalFrame(p); !a.empty()) frames.push_back(std::move(a)); // rc.4
         for (size_t i = 0; i < l.rooms(); ++i)
             if (auto f = LearnedState::roomFrame(l, i); !f.empty()) frames.push_back(std::move(f));
         bool complete = savePacked(b, frames);

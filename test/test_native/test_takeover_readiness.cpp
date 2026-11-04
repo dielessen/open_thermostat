@@ -74,6 +74,7 @@ TEST(TakeoverReadiness, OnlyASoftwareRestartWithoutAFaultIsPlanned) {
     EXPECT_EQ(TakeoverReadiness::classify(3, R::none), Restart::planned);            // update, restart button
     EXPECT_EQ(TakeoverReadiness::classify(3, R::bluetoothApply), Restart::planned);
     EXPECT_EQ(TakeoverReadiness::classify(3, R::settingsRestore), Restart::planned);
+    EXPECT_EQ(TakeoverReadiness::classify(3, R::setupReenter), Restart::planned); // the owner asked for Wi-Fi setup (R2-07)
     for (R fault : {R::loopStall, R::wifiLost, R::brokerLost, R::networkDead, R::updateStuck, R::bluetoothSilent, R::controlFault})
         EXPECT_EQ(TakeoverReadiness::classify(3, fault), Restart::unexpected) << SupervisorPolicy::name(fault);
     for (int reset : {0, 4, 5, 6, 7}) EXPECT_EQ(TakeoverReadiness::classify(reset, R::none), Restart::unexpected) << reset; // panic, watchdogs
@@ -457,4 +458,28 @@ TEST(TakeoverReadiness, TheJsonStaysWithinTheTelemetryBudget) {
         cJSON_free(text);
     }
 }
+}
+
+// rc.4 (R1-04): a plan edit that reorders the rooms moves their last known targets with them,
+// so the reorder itself is no night setback (and no morning rise).
+TEST(TakeoverReadiness, APlanReorderIsNoSetback) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    TakeoverReadiness r;
+    TakeoverReadiness::Inputs in;
+    in.planMaximumC = 60; in.boilerLimitC = 70; in.limitRead = true; in.boilerHeardAtMs = 0;
+    in.roomCount = 2; in.rooms[0] = {RoomDemand::Status::ok, int16_t(2100), 2}; in.rooms[1] = {RoomDemand::Status::ok, int16_t(1700), 2};
+    in.utc = midnight + 20 * 3600;                                    // 20:00 local: a drop counts as a setback
+    r.sample(0, in); r.sample(10 * second, in);
+    std::array<int8_t, TakeoverReadiness::maxRooms> from{}; from.fill(-1); from[0] = 1; from[1] = 0;
+    r.remap(from);
+    std::swap(in.rooms[0], in.rooms[1]);
+    r.sample(20 * second, in);
+    EXPECT_EQ(r.totals().setbacks, 0u);
+    in.rooms[1].setpoint = int16_t(2000);                              // the warm room's real setback
+    r.sample(30 * second, in);
+    EXPECT_EQ(r.totals().setbacks, 1u);
+    TakeoverReadiness other;                                           // without the remap the swap itself would count
+    in.rooms[0] = {RoomDemand::Status::ok, int16_t(2100), 2}; in.rooms[1] = {RoomDemand::Status::ok, int16_t(1700), 2};
+    other.sample(0, in); std::swap(in.rooms[0], in.rooms[1]); other.sample(10 * second, in);
+    EXPECT_EQ(other.totals().setbacks, 1u);
 }

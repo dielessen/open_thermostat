@@ -444,43 +444,149 @@ TEST(FlowPolicy, LearnedOptimumStartHeatsAheadOfTheProgram) {
     EXPECT_TRUE(both.heat); EXPECT_GE(both.flowC, 31);
 }
 
-// A learned warm-up curve without a usable cooling model (here: no outdoor reading, so the
-// heat-loss rate cannot be used) plans from the current temperature: advice, never applied.
-TEST(FlowPolicy, OptimumStartNeedsTheCoolingModelToo) {
+// rc.4 (L3): a learned warm-up curve without a usable cooling model (no outdoor reading) plans
+// from the current temperature and is applied as an estimate; with the outdoor it is a measurement.
+TEST(FlowPolicy, OptimumStartWithoutTheCoolingModelAppliesAsAnEstimate) {
     ScopedTz tz(ScopedTz::amsterdam);
     House h(plan(RoomPlan::Emitter::floor, true)); h.learn();
     ASSERT_TRUE(h.learner.heatModel(0).lossPerHour);
-    Step s; s.p = plan(RoomPlan::Emitter::floor, true);
+    Step s; s.p = plan(RoomPlan::Emitter::floor, true); s.policy.setPlan(s.p);
     FlowSettings on = Step::off(); on.applyLearned = true; s.policy.setSettings(on);
     const auto planned = WarmupPlanner::optimumStart(h.learner, 0, s.p.rooms[0].schedule, wednesday23, int16_t(1850), std::nullopt);
     ASSERT_STREQ(planned.confidence, "learned");
     EXPECT_FALSE(planned.coolingLearned);
     EXPECT_FALSE(planned.applicable());
+    EXPECT_TRUE(planned.estimate);
     s.rooms[0] = room(1850, 1850); s.in.utc = planned.startUtc + 60;
-    EXPECT_FALSE(s.apply(idle, &h.learner).heat);
+    EXPECT_TRUE(s.apply(idle, &h.learner).heat);
     Json status(cJSON_CreateObject(), cJSON_Delete);
     ASSERT_TRUE(s.policy.addStatus(status.get(), false));
-    EXPECT_STREQ(at(at(at(status.get(), "flow"), "optimum_start"), "state")->valuestring, "advice");
-    // With the outdoor known, both models count and the start is applied.
-    s.in.outdoorCentiC = 500;
+    EXPECT_STREQ(at(at(at(status.get(), "flow"), "optimum_start"), "state")->valuestring, "applied");
+    EXPECT_TRUE(cJSON_IsTrue(at(at(at(status.get(), "flow"), "optimum_start"), "estimate")));
+    // With the outdoor known, both models count: no estimate.
     const auto both = WarmupPlanner::optimumStart(h.learner, 0, s.p.rooms[0].schedule, wednesday23, int16_t(1850), int16_t(500));
-    EXPECT_TRUE(both.applicable());
-    s.in.utc = both.startUtc + 120;
-    EXPECT_TRUE(s.apply(idle, &h.learner).heat);
+    EXPECT_TRUE(both.applicable()); EXPECT_FALSE(both.estimate);
 }
 
-TEST(FlowPolicy, DefaultLeadsAreOnlyAdvice) {
+// rc.4 (L3, R1-07): the default lead is applied as a capped estimate (floor 3 h until the arrival
+// feedback is trusted), only on fresh readings, with the start's own rest after it ended, and for
+// every room that needs it.
+TEST(FlowPolicy, DefaultLeadsAreAppliedAsACappedEstimateWithARest) {
     ScopedTz tz(ScopedTz::amsterdam);
-    Step s; s.p = plan(RoomPlan::Emitter::floor, true); s.learner.setPlan(s.p);
+    Step s; s.p = plan(RoomPlan::Emitter::floor, true); s.learner.setPlan(s.p); s.policy.setPlan(s.p);
     FlowSettings on = Step::off(); on.applyLearned = true; s.policy.setSettings(on);
     const auto planned = WarmupPlanner::optimumStart(s.learner, 0, s.p.rooms[0].schedule, wednesday23, int16_t(1850), std::nullopt);
     ASSERT_STREQ(planned.confidence, "default");
+    EXPECT_TRUE(planned.estimate);
+    EXPECT_EQ(planned.leadS, WarmupPlanner::estimateCapFloorS) << "2.5 degC x 2 h would be 5 h: capped";
+    EXPECT_EQ(WarmupPlanner::optimumStart(s.learner, 0, s.p.rooms[0].schedule, wednesday23, int16_t(1850), std::nullopt, {1.0f, true}).leadS, 18000u)
+        << "a trusted factor lifts the cap";
+    EXPECT_EQ(WarmupPlanner::optimumStart(s.learner, 0, s.p.rooms[0].schedule, wednesday23, int16_t(1850), std::nullopt, {0.5f, false}).leadS, 9000u);
     s.rooms[0] = room(1850, 1850); s.in.utc = planned.startUtc + 60;
-    EXPECT_FALSE(s.apply(idle).heat);
+    EXPECT_TRUE(s.apply(idle).heat);
+    EXPECT_EQ(s.policy.source(), FlowPolicy::Source::optimumStart);
     Json status(cJSON_CreateObject(), cJSON_Delete);
     ASSERT_TRUE(s.policy.addStatus(status.get(), false));
-    EXPECT_STREQ(at(at(at(status.get(), "flow"), "optimum_start"), "state")->valuestring, "advice");
-    EXPECT_STREQ(at(at(at(status.get(), "flow"), "optimum_start"), "confidence")->valuestring, "default");
+    const cJSON* start = at(at(status.get(), "flow"), "optimum_start");
+    EXPECT_STREQ(at(start, "state")->valuestring, "applied");
+    EXPECT_STREQ(at(start, "confidence")->valuestring, "default");
+    EXPECT_TRUE(cJSON_IsTrue(at(start, "estimate")));
+    EXPECT_EQ(at(start, "rooms")->valueint, 1);
+    // A stale reading is not served.
+    s.rooms[0].status = RoomDemand::Status::stale; s.in.now += 6 * minute; s.in.utc = *s.in.utc + 360;
+    EXPECT_FALSE(s.apply(idle).heat);
+    s.rooms[0].status = RoomDemand::Status::ok;
+    // Arrived 40 min before the rise: the start ends after its minimum on. A dip to 20.7 right
+    // after plans a 40-minute start again (0.3 degC x 2 h): it waits the burner rest first.
+    s.in.utc = *s.in.utc + 60; EXPECT_TRUE(s.apply(idle).heat);
+    s.rooms[0] = room(2100, 1850); s.in.now += 6 * minute; s.in.utc = planned.rise.atUtc - 40 * 60;
+    EXPECT_FALSE(s.apply(idle).heat);
+    s.rooms[0] = room(2070, 1850); s.in.now += minute; s.in.utc = *s.in.utc + 60;
+    EXPECT_FALSE(s.apply(idle).heat) << "within the rest";
+    s.in.now += 6 * minute; s.in.utc = *s.in.utc + 360;
+    EXPECT_TRUE(s.apply(idle).heat) << "after the rest";
+    // Two rooms: both served, the higher flow wins. The radiator room rises to 22.5 degC (4 degC
+    // from the setback: 3 h by default, capped at 90 min); 80 min before the rise both starts run.
+    Step two; two.p = plan(RoomPlan::Emitter::floor, true);
+    two.p.rooms.push_back(two.p.rooms[0]); two.p.rooms[1].id = "keuken"; two.p.rooms[1].emitter = RoomPlan::Emitter::radiator;
+    for (auto& d : two.p.rooms[1].schedule.days) d.points[0].centiC = 2250;
+    two.learner.setPlan(two.p); two.policy.setPlan(two.p); two.policy.setSettings(on);
+    two.rooms[0] = room(1850, 1850); two.rooms[1] = room(1850, 1850);
+    two.in.utc = planned.rise.atUtc - 80 * 60;
+    const auto both = two.apply(idle);
+    ASSERT_TRUE(both.heat);
+    Json st(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(two.policy.addStatus(st.get(), false));
+    EXPECT_EQ(at(at(at(st.get(), "flow"), "optimum_start"), "rooms")->valueint, 2);
+    EXPECT_EQ(both.flowC, two.learner.ruleFlow(400)) << "the radiator room's larger shortfall sets the flow";
+    EXPECT_GT(both.flowC, two.learner.ruleFlow(250));
+}
+
+// rc.4 (L1, R1-07): a start whose room arrived while the burner's minimum on still held kept
+// `apply` true but forgot its rooms (heating_ took the empty wants), so when the hold ended no
+// room had "arrived": the start never ended and never rested, and a dip of 0.3 degC a minute
+// later restarted the burner at once. A held-on start keeps its rooms and rests after it.
+TEST(FlowPolicy, AStartThatArrivesWithinItsMinimumOnStillRestsAfterwards) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    Step s; s.p = plan(RoomPlan::Emitter::floor, true); s.learner.setPlan(s.p); s.policy.setPlan(s.p);
+    FlowSettings on = Step::off(); on.applyLearned = true; s.policy.setSettings(on);
+    const auto planned = WarmupPlanner::optimumStart(s.learner, 0, s.p.rooms[0].schedule, wednesday23, int16_t(1850), std::nullopt);
+    ASSERT_STREQ(planned.confidence, "default");
+    EXPECT_TRUE(planned.estimate);
+    // 45 min before the rise the room still reads its night 18.5 degC: the (late) default start begins.
+    s.rooms[0] = room(1850, 1850); s.in.utc = planned.rise.atUtc - 45 * 60;
+    ASSERT_TRUE(s.apply(idle).heat);
+    EXPECT_EQ(s.policy.source(), FlowPolicy::Source::optimumStart);
+    // A minute later the room reads 21.0: arrived within the 5-minute minimum on, the burner stays on.
+    s.rooms[0] = room(2100, 1850); s.in.now += minute; s.in.utc = *s.in.utc + 60;
+    EXPECT_TRUE(s.apply(idle).heat) << "held on for the minimum on time";
+    EXPECT_EQ(s.policy.source(), FlowPolicy::Source::optimumStart);
+    // Six minutes later the hold is over: the start ends.
+    s.in.now += 6 * minute; s.in.utc = *s.in.utc + 360;
+    EXPECT_FALSE(s.apply(idle).heat);
+    // A dip to 20.7 right after plans a 40-minute start again (0.3 degC x 2 h): the burner rests first.
+    s.rooms[0] = room(2070, 1850); s.in.now += minute; s.in.utc = *s.in.utc + 60;
+    EXPECT_FALSE(s.apply(idle).heat) << "within the rest of a start that arrived during its minimum on";
+    s.in.now += 6 * minute; s.in.utc = *s.in.utc + 360;
+    EXPECT_TRUE(s.apply(idle).heat) << "after the rest";
+    EXPECT_EQ(s.policy.source(), FlowPolicy::Source::optimumStart);
+}
+
+// rc.4 (L2): a morning that arrived late raises the room's lead factor through the policy, so the
+// next morning starts earlier; the status shows the estimate and the arrival.
+TEST(FlowPolicy, ALateMorningStartsTheNextOneEarlier) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    RoomSchedule mild;                                         // 06:30 -> 21 degC, 22:30 -> 20 degC: 1 degC, 2 h by default
+    for (auto& d : mild.days) { d.points[0] = {390, 2100}; d.points[1] = {1350, 2000}; d.count = 2; }
+    Step s; s.p = plan(RoomPlan::Emitter::floor); s.p.rooms[0].schedule = mild; s.learner.setPlan(s.p); s.policy.setPlan(s.p);
+    FlowSettings on = Step::off(); on.applyLearned = true; s.policy.setSettings(on);
+    const int64_t rise = wednesday23 + 7 * 3600 + 1800;        // Thursday 06:30 local
+    const auto first = WarmupPlanner::optimumStart(s.learner, 0, mild, wednesday23, int16_t(2000), std::nullopt);
+    EXPECT_EQ(first.leadS, 7200u);
+    int64_t startedAt = 0;
+    const int64_t arriveAt = rise + 15 * 60;                   // the room is within 0.1 degC of 21 only 15 min after the switch
+    for (int64_t t = wednesday23; t <= rise + 30 * 60; t += 60) {
+        int16_t temp = 2000;
+        if (startedAt) temp = t < arriveAt ? int16_t(2000 + 90 * (t - startedAt) / std::max<int64_t>(60, arriveAt - startedAt)) : int16_t(2100);
+        s.rooms[0] = room(temp, t < rise ? 2000 : 2100);
+        s.in.now += minute; s.in.utc = t; s.in.rule = t < rise ? idle : FlowDemand::Request{true, 40, FlowDemand::Reason::heating};
+        const auto out = s.policy.apply(s.in, s.learner);
+        if (out.heat && !startedAt) startedAt = t;
+    }
+    EXPECT_NEAR(double(startedAt), double(rise - 7200), 120);
+    EXPECT_EQ(s.policy.arrival().events(0), 1u);
+    EXPECT_NEAR(s.policy.arrival().lead(0).factor, 1.10f, 1e-5);
+    ASSERT_TRUE(s.policy.arrival().lastErrorMin(0));
+    EXPECT_GE(*s.policy.arrival().lastErrorMin(0), 11); EXPECT_LE(*s.policy.arrival().lastErrorMin(0), 16);
+    const auto next = WarmupPlanner::optimumStart(s.learner, 0, mild, wednesday23 + 86400, int16_t(2000), std::nullopt, s.policy.arrival().lead(0));
+    EXPECT_EQ(next.leadS, 8100u) << "7200 x 1.1 = 7920, the next 5-minute step";
+    // The arrival travels with the plans telemetry.
+    std::array<std::optional<int16_t>, RoomPlan::maxRooms> temps{}; temps[0] = 2000;
+    Json plans(WarmupPlanner::json(s.learner, s.p, wednesday23 + 86400, temps.data(), std::nullopt, &s.policy.arrival()), cJSON_Delete);
+    const cJSON* r0 = cJSON_GetArrayItem(at(plans.get(), "rooms"), 0);
+    EXPECT_EQ(at(at(r0, "arrival"), "events")->valueint, 1);
+    EXPECT_TRUE(cJSON_IsTrue(at(at(r0, "optimum_start"), "estimate")));
+    EXPECT_EQ(at(at(r0, "optimum_start"), "lead_minutes")->valueint, 135);
 }
 
 TEST(FlowCompare, MeansAtTheSameMomentsPerDay) {

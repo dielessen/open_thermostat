@@ -473,8 +473,8 @@ cJSON* run(const Data& d, const Options& o, const RoomPlan& basePlan, const std:
     FlowLearner::Params lp; lp.bridgeHotWater = o.bridge;
     RoomEngine engine; engine.setPlan(plan);
     FlowLearner learner(lp); learner.setPlan(plan);
-    FlowPolicy policy;
-    AutoTuner tuner;
+    FlowPolicy policy; policy.setPlan(plan);  // rc.4: the arrival factors and the start latch by room id
+    AutoTuner tuner; tuner.setPlan(plan);
     BurnerCycleMonitor cycles;
     FlowSettings settings; settings.weatherCurve = o.weatherCurve; settings.applyLearned = o.applyLearned;
     // HeatingController::applyFlowSettings: the knobs in effect for every part.
@@ -666,7 +666,7 @@ cJSON* run(const Data& d, const Options& o, const RoomPlan& basePlan, const std:
             const auto temp = engine.result(i).temperature;
             if (!temp) continue;
             if (!plan.rooms[i].schedule.empty() && t / 900 != (t - stepS) / 900) {
-                const auto st = WarmupPlanner::optimumStart(learner, i, plan.rooms[i].schedule, t, temp, outdoor);
+                const auto st = WarmupPlanner::optimumStart(learner, i, plan.rooms[i].schedule, t, temp, outdoor, policy.arrival().lead(i));
                 check.add(st, learner, i);
                 if (t / 3600 != (t - stepS) / 3600) {
                     cJSON* p = startJson(t, st);
@@ -685,7 +685,7 @@ cJSON* run(const Data& d, const Options& o, const RoomPlan& basePlan, const std:
                 if (i == rooms) continue;
                 const auto temp = engine.result(i).temperature;
                 if (!temp) continue;
-                const auto st = WarmupPlanner::optimumStart(learner, i, rr.schedule, t, temp, outdoor);
+                const auto st = WarmupPlanner::optimumStart(learner, i, rr.schedule, t, temp, outdoor, policy.arrival().lead(i));
                 if (st.reason[0] != 'p' || std::llabs(st.rise.atUtc - rise.atUtc) >= 60) continue; // the program's minute
                 check.add(st, learner, i);
                 ++rr.evaluations;
@@ -717,6 +717,9 @@ cJSON* run(const Data& d, const Options& o, const RoomPlan& basePlan, const std:
     cJSON_AddStringToObject(learnerOut, "status", learner.status());
     cJSON* learnedRooms = cJSON_AddArrayToObject(learnerOut, "rooms");
     for (size_t i = 0; i < rooms; ++i) cJSON_AddItemToArray(learnedRooms, learner.roomJson(i));
+    // rc.4: the arrival feedback per room ({"factor","events","last_error_min","last_at_utc"} or null).
+    cJSON* arrivals = cJSON_AddArrayToObject(learnerOut, "arrival");
+    for (size_t i = 0; i < rooms; ++i) cJSON_AddItemToArray(arrivals, policy.arrival().json(i));
     {
         Json status(cJSON_CreateObject(), cJSON_Delete);
         policy.addStatus(status.get(), false);

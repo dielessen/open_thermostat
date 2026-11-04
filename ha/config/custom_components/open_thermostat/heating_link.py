@@ -16,7 +16,12 @@ most 1.5 KB, sent on a real change (deadbands), at most every 10 s, else every
   entity list has; ``fw/config/entities`` (and ``.../entities/<k>``): the HA
   entities the plan reads (``ha_entities``);
 - ``fw/telemetry/learned/<id>`` (every 15 min or on a new result),
-  ``fw/telemetry/summary`` (learned header, hot water; 5 min) and
+  ``fw/telemetry/summary`` (learned header, hot water; 5 min) with its parts
+  sent apart to keep each within 1 KB and merged into it again here:
+  ``fw/telemetry/flow`` (the flow policy's ``flow`` and ``night_gas``),
+  ``fw/telemetry/tuning`` (the self-tuning's ``tuning``, E32 rc.2) and
+  ``fw/telemetry/scoreboard`` (yesterday's and today's ``scoreboard``, E32 rc.4;
+  rc.4 preview firmware carried it inside the summary itself), and
   ``fw/telemetry/shadow`` (today's comparison; 5 min) and
   ``fw/telemetry/readiness`` (E32 1.0: ready to take over?, takeover_readiness.py; 5 min);
 - ``fw/availability`` (retained online/offline, the LWT) and ``fw/heartbeat``
@@ -59,6 +64,8 @@ MAX_ENTITIES = 40  # the E32 plan: 8 rooms x (4 sources + setpoint entity)
 HEARTBEAT_SECONDS = 60
 STALE_SECONDS = 3 * HEARTBEAT_SECONDS + 15
 STALE_CHECK = timedelta(seconds=15)
+# A telemetry listener that keeps failing logs its traceback at most this often (R4-10).
+LISTENER_LOG_SECONDS = 60
 ROOM_ID = re.compile(r"[a-z0-9_]{1,32}")
 BLE_ID = re.compile(r"[0-9a-f]{12}")
 ROOM_STATUSES = ["ok", "fallback", "stale", "lost", "inactive", "window_open", "window_pending"]
@@ -106,8 +113,21 @@ FLOW_TOPIC = "fw/telemetry/flow"
 FLOW_KEYS = ("flow", "night_gas")
 # The self-tuning's state, knobs and newest changes (rc.2, AutoTuner), merged into the summary as "tuning".
 TUNING_TOPIC = "fw/telemetry/tuning"
+# Yesterday's and today's scoreboard (rc.4, Scoreboard), {"schema": 1, "scoreboard": {...}}, merged into the
+# summary as "scoreboard" (scoreboard.py reads it there; a summary that still carries it keeps working).
+SCOREBOARD_TOPIC = "fw/telemetry/scoreboard"
 HEARTBEAT_TOPIC = "fw/heartbeat"
 AVAILABILITY_TOPIC = "fw/availability"
+# What only the hub reads: the shadow session (v1_mqtt.NativeShadowConnection, subscribed to fw/#)
+# drops these at once instead of decoding every E32 message a second time (R4-03).
+_HUB_ONLY = (HEATING_TOPIC, PLAN_TOPIC, ENTITIES_TOPIC, SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SCOREBOARD_TOPIC,
+             SHADOW_TOPIC, READINESS_TOPIC)
+_HUB_ONLY_PARTS = (ROOM_TOPIC, BLE_TOPIC, TRV_TOPIC, LEARNED_TOPIC, ENTITIES_TOPIC + "/")
+
+
+def hub_only_topic(suffix):
+    """True for an E32 topic (after the prefix) that only the heating hub reads."""
+    return suffix in _HUB_ONLY or suffix.startswith(_HUB_ONLY_PARTS)
 
 
 def decode_document(payload, max_bytes=MAX_DOC_BYTES):
@@ -408,10 +428,12 @@ class HeatingHub:
         # The latest summary (decode_summary) and when it arrived (monotonic).
         self.summary = None
         self.summary_received = None
-        # fw/telemetry/summary and fw/telemetry/flow as received; summary is the two merged.
+        # fw/telemetry/summary, fw/telemetry/flow, fw/telemetry/tuning and fw/telemetry/scoreboard as
+        # received; summary is the four merged.
         self.summary_doc = None
         self.flow_doc = None
         self.tuning_doc = None
+        self.scoreboard_doc = None
         self.received = None
         # The last live sign of the E32 (monotonic), kept while it is silent.
         self.last_seen = None
@@ -434,6 +456,7 @@ class HeatingHub:
         self.started = clock()
         self._listeners = []
         self._trackers = []  # each track_entities' forget_rooms(room_ids)
+        self._failures_logged = {}  # listener: clock time its last failure was logged with a traceback
 
     @property
     def fresh(self):
@@ -485,16 +508,26 @@ class HeatingHub:
         def remove():
             if listener in self._listeners:
                 self._listeners.remove(listener)
+            self._failures_logged.pop(listener, None)
         return remove
 
     @callback
     def notify(self):
-        # One failing listener (an entity, a forwarder) never stops the others.
+        """Tell every listener; one failing listener (an entity, a forwarder) never stops the others.
+
+        A listener that fails on every E32 message logs its traceback at most once a minute
+        (LISTENER_LOG_SECONDS, R4-10), the failures in between at debug level.
+        """
         for listener in list(self._listeners):
             try:
                 listener()
             except Exception:  # noqa: BLE001
-                _LOGGER.exception("OpenThermostat: an E32 telemetry listener failed")
+                now, logged = self.clock(), self._failures_logged.get(listener)
+                if logged is None or not 0 <= now - logged < LISTENER_LOG_SECONDS:
+                    self._failures_logged[listener] = now
+                    _LOGGER.exception("OpenThermostat: an E32 telemetry listener failed")
+                else:
+                    _LOGGER.debug("OpenThermostat: an E32 telemetry listener failed again", exc_info=True)
 
     @callback
     def forget_removed_rooms(self, room_ids):
@@ -636,21 +669,27 @@ class HeatingHub:
                 if value is None:
                     return
                 self.learned_messages[room_id] = (self.clock(), *value)
-        elif suffix in (SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC):
+        elif suffix in (SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SCOREBOARD_TOPIC):
             if suffix == SUMMARY_TOPIC:
                 self.summary_doc = None if empty else decode_summary(payload)
             elif suffix == FLOW_TOPIC:
                 flow = None if empty else decode_document(payload)
                 self.flow_doc = ({k: flow[k] for k in FLOW_KEYS if type(flow.get(k)) is dict}
                                  if flow is not None else None)
-            else:
+            elif suffix == TUNING_TOPIC:
                 tuning = None if empty else decode_document(payload)
                 self.tuning_doc = tuning["tuning"] if tuning is not None and type(tuning.get("tuning")) is dict else None
+            else:
+                board = None if empty else decode_document(payload)
+                self.scoreboard_doc = (board["scoreboard"] if board is not None and type(board.get("scoreboard")) is dict
+                                       else None)
             summary = self.summary_doc
             if summary is not None and self.flow_doc:
                 summary = {**summary, **self.flow_doc}
             if summary is not None and self.tuning_doc is not None:
                 summary = {**summary, "tuning": self.tuning_doc}
+            if summary is not None and self.scoreboard_doc is not None:
+                summary = {**summary, "scoreboard": self.scoreboard_doc}  # the topic wins over an older summary's own
             self.summary = summary
             self.summary_received = self.clock() if summary is not None else None
         elif suffix == SHADOW_TOPIC:
@@ -694,6 +733,46 @@ class HeatingHub:
         if self.plan is not None:
             self.plan.stop()
         self._listeners.clear()
+
+
+# At most this many ha/heating_input messages wait for the broker at once (R4-07); more are dropped
+# while it does not answer: every value is sent again on its next change and every five minutes.
+MAX_PENDING_PUBLISHES = 50
+_PUBLISH_STATE = DOMAIN + "_heating_input"
+
+
+@callback
+def publish_input(hass, topic, payload):
+    """Send one ha/heating_input message in the background; a broker failure is logged, never raised.
+
+    The forwarders (room inputs, energy, comfort) call this on every state change: a broker that is
+    down logs one warning per outage (then debug lines) and one line when it works again, instead of
+    an unretrieved task error per message.
+    """
+    state = hass.data.setdefault(_PUBLISH_STATE, {"pending": 0, "failing": False})
+    if state["pending"] >= MAX_PENDING_PUBLISHES:
+        _LOGGER.debug("OpenThermostat: %d messages to the E32 still wait for the MQTT broker; %s not sent",
+                      state["pending"], topic)
+        return
+    state["pending"] += 1
+
+    async def publish():
+        try:
+            await mqtt.async_publish(hass, topic, payload, 0, False)
+        except Exception as err:  # noqa: BLE001 - a broker failure never reaches the forwarders
+            if state["failing"]:
+                _LOGGER.debug("OpenThermostat: still no MQTT broker for %s (%s)", topic, err)
+            else:
+                state["failing"] = True
+                _LOGGER.warning("OpenThermostat could not send room values to the E32 over MQTT (%s); "
+                                "it sends them again once the broker answers", err)
+        else:
+            if state["failing"]:
+                state["failing"] = False
+                _LOGGER.info("OpenThermostat sends room values to the E32 again")
+        finally:
+            state["pending"] -= 1
+    hass.async_create_task(publish(), "OpenThermostat heating_input")
 
 
 def topic_base(hass, entry):
@@ -1338,12 +1417,15 @@ class RoomLearningSensor(LearnedRoomEntity, SensorEntity):
         if learned is None:
             return None
         whole = self.hub.learned_header or {}
-        return {"room_id": self.room_id, "emitter": _text(learned, "emitter"),
-                "segments": _count(learned.get("segments")), "periods": _count(learned.get("periods")),
-                "heating_periods": _count(whole.get("heating_periods")), "learner": _text(whole, "status"),
-                "loss_per_h": number(learned.get("loss_per_h"), 0, 1),
-                "capacity_kwh_per_k": number(learned.get("capacity_kwh_per_k"), 0, 100),
-                "applied": self._applied()}
+        result = {"room_id": self.room_id, "emitter": _text(learned, "emitter"),
+                  "segments": _count(learned.get("segments")), "periods": _count(learned.get("periods")),
+                  "heating_periods": _count(whole.get("heating_periods")), "learner": _text(whole, "status"),
+                  "loss_per_h": number(learned.get("loss_per_h"), 0, 1),
+                  "capacity_kwh_per_k": number(learned.get("capacity_kwh_per_k"), 0, 100),
+                  "applied": self._applied()}
+        if "readiness_timing" in learned:  # E32 rc.4: the warm-up time, learned before the coolest water
+            result["timing"] = learned["readiness_timing"] if learned["readiness_timing"] in LEARNING_STATES else None
+        return result
 
 
 class RoomFlowAdviceSensor(LearnedRoomEntity, SensorEntity):
@@ -1429,6 +1511,8 @@ class RoomHeatingStartSensor(RoomEntity, SensorEntity):
                   "night_saving_eur": number(night.get("saving_eur"), 0, 1000)}
         if "confidence" in night:
             result["night_confidence"] = _text(night, "confidence")
+        if "estimate" in start:  # E32 rc.4: a start from the standard warm-up time (it learns from every morning)
+            result["estimate"] = _flag(start, "estimate")
         if type(start.get("next_switch")) is dict:
             switch = start["next_switch"]
             at = _utc(switch.get("utc"))
@@ -1625,6 +1709,9 @@ def wanted_sensors(hub):
             # Only readings the sensor actually reports (not every profile has humidity).
             if sensor.get(metric) is not None:
                 yield ("ble", sensor_id, metric), lambda sensor=sensor, metric=metric: BleSensor(hub, sensor, metric)
+    # Yesterday's scoreboard (E32 rc.4): each figure once the E32 reported a value for it.
+    from .scoreboard import wanted_scoreboard
+    yield from wanted_scoreboard(hub)
 
 
 def wanted_demand(hub):
@@ -1703,7 +1790,7 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     was_fresh = False
 
     def send(payload):
-        hass.async_create_task(mqtt.async_publish(hass, base + "ha/heating_input", payload, 0, False))
+        publish_input(hass, base + "ha/heating_input", payload)
 
     def publish(entity_id):
         payload = input_payload(hass.states.get(entity_id), hass.config.units.temperature_unit)
@@ -1761,8 +1848,8 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     await mqtt.async_wait_for_mqtt_client(hass)
     entry.async_on_unload(hub.add_listener(follow, first=True))
     for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", TRV_TOPIC + "+", PLAN_TOPIC,
-                  ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SHADOW_TOPIC,
-                  READINESS_TOPIC):
+                  ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SCOREBOARD_TOPIC,
+                  SHADOW_TOPIC, READINESS_TOPIC):
         entry.async_on_unload(await mqtt.async_subscribe(hass, base + topic, receive))
     entry.async_on_unload(async_track_time_interval(hass, refresh, timedelta(seconds=REFRESH_SECONDS)))
     entry.async_on_unload(async_track_time_interval(hass, hub.check_stale, STALE_CHECK))

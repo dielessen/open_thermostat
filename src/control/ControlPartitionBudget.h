@@ -95,6 +95,15 @@ public:
     static constexpr size_t bluetoothBytes=2048,editBytes=64;
     static constexpr size_t handoverEntries=3;   // nvs_set_str of < 64 bytes: 1 + 2
     static constexpr size_t flowRecordBytes=640; // >= FlowSettings::maxBytes + 1 (asserted in the tests)
+    // rc.4: the owner's holiday planner ("holidays", RoomOverrides::holidaysStored(): 8 periods and
+    // the holiday temperature, a string of at most holidayRecordBytes with its NUL). Written like an
+    // optional record (permitsHolidayWrite: control keeps its room after it), but it is the owner's:
+    // like a plan save it makes room for itself (makeRoom erases what was learned, the least useful
+    // first, written again where it fits), and it is not in optionalKeys (never erased itself).
+    static constexpr size_t holidayRecordBytes=224;
+    static constexpr bool permitsHolidayWrite(ControlPartitionStats s,size_t bytes,size_t oldBytes,size_t reserve) {
+        return bytes<=holidayRecordBytes&&permitsOptionalWrite(s,bytes,oldBytes,reserve);
+    }
     static constexpr size_t privateSaveBytes(size_t planBytes,size_t bleBytes) {
         const size_t plan=planBytes+editBytes<configBytes?planBytes+editBytes:configBytes;
         return plan>bleBytes?plan:bleBytes;
@@ -125,13 +134,14 @@ public:
         // Written at all (the new record beside the old one, the GC page), then control's room after it.
         return s.freeEntries>=need+entriesPerPage&&s.freeEntries+reclaim>=need+reserve+priority;
     }
-    // The optional keys, erased in this order to make room: the per-room keys
+    // The optional keys, erased in this order to make room: the scoreboard and
+    // the hot water days (rc.4, F1/F2: counts only), the per-room keys
     // of rc.2 builds before the packed record, the learned record's second and
     // first part (the later rooms first; the first part also holds the
     // globals), the readiness counters, the automatic knobs (written again by
     // their owner where they fit).
-    static constexpr size_t optionalKeyCount=13;
-    static constexpr const char* optionalKeys[optionalKeyCount]={"learned7","learned6","learned5","learned4","learned3",
+    static constexpr size_t optionalKeyCount=15;
+    static constexpr const char* optionalKeys[optionalKeyCount]={"scoreboard","dhw","learned7","learned6","learned5","learned4","learned3",
         "learned2","learned1","learned0","learned","learned_b","learned_a","readiness","autotune"};
     // permits(stats): the write that needs room; stats(): fresh statistics;
     // bytes(key): a stored optional record's size (0: absent); erase(key):

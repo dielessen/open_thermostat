@@ -125,7 +125,7 @@ struct BoilerConfig {
 	struct HeatingCurve {
 		uint8_t minHeatingCurveTemp = 20;
 		uint8_t maxHeatingCurveTemp	= 90;
-		std::array<uint8_t, 9> heatingCurve;
+		std::array<uint8_t, 9> heatingCurve{};
 	} heatingCurve;
 
 	enum class controlMode_t : uint8_t { onoff, onoff_outdoor, ems };

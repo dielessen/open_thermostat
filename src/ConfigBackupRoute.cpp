@@ -36,6 +36,8 @@ b::DeviceState deviceState(ConfigBackupHost& host) {
     s.plan = host.plan();
     s.flow = host.flow();
     s.learned = host.learned();
+    s.holidays = host.holidays();
+    if (networkTimeTrusted) s.utc = static_cast<uint32_t>(std::time(nullptr));
     if (const auto model = readBoilerDisplayModel()) s.display = *model;
     s.wifiSsid = host.wifiSsid();
     s.modernMode = host.modernMode();
@@ -66,6 +68,7 @@ struct Target {
                 return saveDeviceBluetoothSettings(text);
             case b::Part::network: return saveDeviceNetworkSettings(String(text.c_str()));
             case b::Part::learned: return host.setLearned(text);
+            case b::Part::holidays: return host.setHolidays(text);
         }
         return false;
     }

@@ -45,6 +45,8 @@
 #include <WebServer.h>
 #ifdef OPENTHERMOSTAT_E32V2
 #include "control/ResponsiveHttpServer.h"
+#include <lwip/sockets.h>
+#include <cerrno>
 #endif
 #include <Wire.h>
 #include <uri/UriBraces.h>
@@ -89,6 +91,15 @@ public:
 struct WebClientIo {
 	using Client = WiFiClient;
 	static void noWait(WiFiClient &client) { static_cast<Stream &>(client).setTimeout(0); }
+	// One non-blocking send for the bounded response writes (R2-02): bytes taken, 0 = the send
+	// buffer is full, -1 = the connection failed.
+	static int send(WiFiClient &client, const uint8_t *data, size_t size) {
+		const int socket = client.fd();
+		if (socket < 0) return -1;
+		const int sent = ::send(socket, data, size, MSG_DONTWAIT);
+		if (sent >= 0) return sent;
+		return errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR ? 0 : -1;
+	}
 };
 using ProductWebServer = control::ResponsiveHttpServer<WebServer, WebClientIo>;
 #else
@@ -339,11 +350,15 @@ public:
 		// one handleClient() call. Each request owns at most one app transaction.
 		appUpload_.reset(appBackend_);
 		appBackend_.error=ESP_OK;
+		uploadAuthorized_=false; // R2-08: set once, at the start of an upload in this request
 #ifdef OPENTHERMOSTAT_E32V2
         controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
 #endif
 		server_.handleClient();
 #ifdef OPENTHERMOSTAT_E32V2
+        // R2-03: an upload paused the boiler request. Once it is over without a staged firmware
+        // (refused, failed, aborted, a filesystem image) the guard may take over again.
+        if(uploadPaused_&&server_.idle()&&!update::staged()){controller_.resumeAfterUpload();uploadPaused_=false;}
         controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
 #endif
 		// Includes disconnect/parse failure and a failed final authorization.
@@ -374,15 +389,17 @@ private:
 			 control::embeddedAssetPath(std::string_view(uri.c_str(),uri.length()),embedded::assets));
 	}
 #endif
+	// responseHeaders=false: an upload callback at the start of the upload (R2-08). It neither adds
+	// headers (WebServer appends sendHeader() calls until the response) nor answers: the route's
+	// final gate sends the one response.
 	bool authorize(bool responseHeaders=true) {
 #ifdef OPENTHERMOSTAT_E32V2
 		const bool staticRequest=staticAssetRequest();
 		const auto reject=[&](int code,const char *type,const char *body) {
-			if(responseHeaders&&staticRequest)server_.sendHeader("Cache-Control","no-store");
+			if(!responseHeaders)return false;
+			if(staticRequest)server_.sendHeader("Cache-Control","no-store");
 			server_.send(code,type,body);return false;
 		};
-		// Upload callbacks run for every chunk. WebServer appends sendHeader()
-		// calls until the response, so headers belong to the final route gate.
 		if(responseHeaders) {
 			if(!staticRequest)server_.sendHeader("Cache-Control","no-store");
 			server_.sendHeader("X-Content-Type-Options","nosniff");
@@ -395,7 +412,8 @@ private:
 		if(listenPort_==80&&host==canonical+":80") host=canonical;
 		const auto portal=control::portalAccess(wifiAPMode,server_.client().localIP()==WiFi.softAPIP(),host.c_str(),canonical.c_str(),server_.uri().c_str(),method);
 		if(portal==control::PortalAccess::Redirect) {
-			server_.sendHeader("Location","http://"+canonical+"/setup"); return reject(302,"text/plain","OpenThermostat WiFi setup");
+			if(responseHeaders)server_.sendHeader("Location","http://"+canonical+"/setup");
+			return reject(302,"text/plain","OpenThermostat WiFi setup");
 		}
 		// DNS rebinding: outside the setup access point the Host must name this E32
 		// (its IP, the setup AP IP or its hostname), before any sign-in route runs.
@@ -418,24 +436,21 @@ private:
 		const auto decision=control::webAuthDecision(sessions_,server_.uri().c_str(),method,token.c_str(),
 			server_.header("X-OpenThermostat-CSRF").c_str(),accessNow,portal==control::PortalAccess::Setup);
 		if(decision==control::WebAuthDecision::redirect_login){
-			server_.sendHeader("Location","/login");return reject(303,"text/plain","Sign in to OpenThermostat");
+			if(responseHeaders)server_.sendHeader("Location","/login");
+			return reject(303,"text/plain","Sign in to OpenThermostat");
 		}
 		if(decision==control::WebAuthDecision::authentication_required)return reject(401,"application/json","{\"error\":\"authentication_required\"}");
 		if(decision==control::WebAuthDecision::csrf_required)return reject(403,"application/json","{\"error\":\"csrf_required\"}");
 		if(portal!=control::PortalAccess::Setup&&control::passwordChangeRequired(server_.uri().c_str(),method,deviceAccess.defaultPassword())
 				&&!handBackRequest()) return reject(403,"application/json","{\"error\":\"password_change_required\"}");
-		if(server_.method()!=HTTP_GET&&update::mutationBlocked(server_.uri().c_str())) {
-			server_.send(409,"text/plain","Wait until the update has finished and the device has restarted");return false;
-		}
-		if(server_.method()!=HTTP_GET&&control::boilerTestMutationBlocked(server_.uri().c_str(),controller_.boilerTestActive())) {
-			server_.send(409,"text/plain","Stop the boiler test and check the boiler's response before this change"); return false;
-		}
-        if(server_.method()!=HTTP_GET&&control::boilerSettingsMutationBlocked(server_.uri().c_str(),controller_.boilerSettingsActive())){
-            server_.send(409,"application/json","{\"error\":\"settings_write_active\"}");return false;
-        }
-		if(controller_.modernMode()&&control::legacyControlWrite(server_.uri().c_str(),method)) {
-			server_.send(409,"text/plain","HA-managed shadow mode: legacy control writer disabled"); return false;
-		}
+		if(server_.method()!=HTTP_GET&&update::mutationBlocked(server_.uri().c_str()))
+			return reject(409,"text/plain","Wait until the update has finished and the device has restarted");
+		if(server_.method()!=HTTP_GET&&control::boilerTestMutationBlocked(server_.uri().c_str(),controller_.boilerTestActive()))
+			return reject(409,"text/plain","Stop the boiler test and check the boiler's response before this change");
+        if(server_.method()!=HTTP_GET&&control::boilerSettingsMutationBlocked(server_.uri().c_str(),controller_.boilerSettingsActive()))
+            return reject(409,"application/json","{\"error\":\"settings_write_active\"}");
+		if(controller_.modernMode()&&control::legacyControlWrite(server_.uri().c_str(),method))
+			return reject(409,"text/plain","HA-managed shadow mode: legacy control writer disabled");
 		sessions_.touch(token.c_str(),accessNow);
 #endif
 		return true;
@@ -460,8 +475,18 @@ private:
 	int admitLargeRequest(const control::HttpRequestHead &head) {
 		const auto token=control::WebAuthSession::cookieToken(head.header("Cookie"));
 		if(!sessions_.csrf(token,head.header("X-OpenThermostat-CSRF"),networkNow())) return 401;
-		return deviceAccess.defaultPassword()&&head.path!="/config/heating"?403:0;
+		if(deviceAccess.defaultPassword()&&head.path!="/config/heating") return 403;
+		if(!control::httpUploadRoute(head.path)) return 0; // other large bodies: at most HttpRequestBounds::deadlineMs
+		// R2-08: an upload the update gate or a boiler session refuses anyway is refused before its
+		// body is read (the route gate would refuse it only after megabytes).
+		if(update::mutationBlocked(head.path)||control::boilerTestMutationBlocked(head.path,controller_.boilerTestActive())
+			||control::boilerSettingsMutationBlocked(head.path,controller_.boilerSettingsActive())) return 409;
+		// R2-03: an upload holds the loop for minutes and nothing reaches the boiler meanwhile. It
+		// waits unread until the E32 withdrew its boiler request (zero delivered, at most 90 s).
+		uploadPaused_=true;
+		return controller_.pauseForUpload()?0:control::HttpRequestBounds::admitLater;
 	}
+	bool uploadPaused_=false; // the guard is paused for an upload (resumed in handle() once it is over)
 	// The factory password never blocks giving control back (control/HandoverRequest.h).
 	bool handBackRequest() {
 		const std::string_view path(server_.uri().c_str());
@@ -1516,13 +1541,14 @@ private:
 		} else if (server_.method() != HTTP_GET) { server_.send(405,"application/json","{\"error\":\"method_not_allowed\"}"); return; }
 		server_.sendView(200,"application/json"sv,controller_.trvJson());
 	}
-	// GET: overrides and away (control/RoomOverrides.h); POST one command:
-	// {"room","override":"boost"|"timed"|"next"|"none","temperature","minutes"} or
-	// {"away":true|false,"temperature","until"}. Answers the state like GET.
+	// GET: overrides, away and the holidays (control/RoomOverrides.h); POST one command:
+	// {"room","override":"boost"|"timed"|"next"|"none","temperature","minutes"},
+	// {"away":true|false,"temperature","until"}, {"house_mode",..} or (rc.4)
+	// {"holidays":[{"from","until"}],"holiday_temperature"}. Answers the state like GET.
 	void heatingComfort() {
 		if (server_.method() == HTTP_POST) {
 			const auto body = server_.arg("plain");
-			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= control::RoomOverrides::commandBytes ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));
+			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= control::RoomOverrides::commandBytes ? control::parseNestedJson(body,true,3) : control::ControlJson(nullptr,cJSON_Delete));
 			if (const char* error = root ? controller_.setHeatingComfort(root.get()) : "invalid_json") {
 				server_.send(!std::strcmp(error,"save_unconfirmed") ? 503 : !std::strcmp(error,"no_clock") ? 409 : 400,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
 			}
@@ -1581,8 +1607,11 @@ private:
 				}
 
 				// Parsed at every boot: a document cJSON cannot parse safely would
-				// turn into a restart loop. Validate before replacing the file.
-				if (body.length() > 4096 || !control::parseNestedJson(body, true)) {
+				// turn into a restart loop. Validate before replacing the file; the
+				// curve needs exactly nine points (R2-06).
+				std::array<uint8_t, 9> curve{};
+				const auto parsed = body.length() > 4096 ? control::ControlJson(nullptr, cJSON_Delete) : control::parseNestedJson(body, true);
+				if (!parsed || !readHeatingCurvePoints(cJSON_GetObjectItem(parsed.get(), "heatingCurve"), curve)) {
 					server_.send(400, "text/plain", "Invalid boiler settings");
 					break;
 				}
@@ -1978,9 +2007,15 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 #endif
 	}
 
+	// R2-08: an upload is authorized once, at its start (the admission checked the session, the
+	// update gate and the boiler sessions before the body; nothing on the loop can change them
+	// while the parser holds it). A refused upload is skipped silently chunk by chunk; the route's
+	// final gate answers once and selects nothing.
+	bool uploadAuthorized_=false;
 	void handleOTAUpdate() {
 		HTTPUpload &upload = server_.upload();
-		if(!authorize(false)) {
+		if(upload.status==UPLOAD_FILE_START) uploadAuthorized_=authorize(false);
+		if(!uploadAuthorized_) {
 			noteUpload(UPLOAD_FILE_ABORTED);
 			appUpload_.cancel(appBackend_);
 			return;
@@ -2034,8 +2069,8 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 
 	void handleOTAFFSUpdate() {
 		HTTPUpload &upload = server_.upload();
-		if(upload.status==UPLOAD_FILE_START) ota_=OTAUpload{};
-		if(!authorize(false)) {noteUpload(UPLOAD_FILE_ABORTED);ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
+		if(upload.status==UPLOAD_FILE_START) {ota_=OTAUpload{};uploadAuthorized_=authorize(false);} // once (R2-08)
+		if(!uploadAuthorized_) {noteUpload(UPLOAD_FILE_ABORTED);ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
 		noteUpload(upload.status);
 
 		if (upload.status == UPLOAD_FILE_START) {

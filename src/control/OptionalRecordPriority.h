@@ -20,5 +20,8 @@ struct OptionalRecordPriority {
     }
     // The knobs' log leaves room for what was learned and is not stored yet (LearnedStore::pendingEntries).
     static constexpr size_t tuningLog(size_t learnedPendingEntries) { return learnedPendingEntries; }
+    // The hourly day counters (rc.4: the scoreboard) leave that room too: a day's figures are worth
+    // less than a room's learned warm-up.
+    static constexpr size_t dayCounters(size_t learnedPendingEntries) { return learnedPendingEntries; }
 };
 }

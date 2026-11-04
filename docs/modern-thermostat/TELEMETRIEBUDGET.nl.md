@@ -18,7 +18,7 @@ Wat de E32 nu verstuurt (uit de broncode):
 | --- | --- | --- | --- |
 | `fw/telemetry/boiler_fields` (één groep per keer, rondgaand) | elke 1,8 s | tot 2 KB | ~4 MB |
 | `fw/telemetry/heating` (alle ruimtes + `ha_entities`) | elke 15 s | 3,8 KB normaal, tot 7,9 KB | ~1–1,9 MB |
-| `fw/telemetry/heating_learned/<ruimte>` (2 per keer) | elke 15 s | tot 0,9 KB elk | ~0,4 MB |
+| `fw/telemetry/heating_learned/<ruimte>` (2 per keer) | elke 15 s | tot 1,0 KB elk (rc.4: `readiness_timing`, `estimate`, `arrival`) | ~0,5 MB |
 | `fw/telemetry/heating_summary` | elke 15 s | ~0,4 KB | ~0,1 MB |
 | `fw/telemetry/device_status`, `controller_request` | elke 15 s | klein | <0,1 MB |
 | `fw/telemetry/ems_metrics` | elke 30 s | tot 2 KB | ~0,2 MB |
@@ -64,6 +64,7 @@ dat duurt soms langer dan de 300 ms die een bericht mag kosten → verbreken.
 | `fw/state/boiler_fields/<groep>` | overige ketelvelden (de huidige catalogus) | per groep bij verandering, hoogstens elke 60 s per groep; anders elke 15 min | ja |
 | `fw/telemetry/learned/<id>` | wat per ruimte geleerd is, advies | elke 15 min of bij nieuw resultaat | ja |
 | `fw/telemetry/summary` | dagtotalen, tapwater vandaag, schaduwvergelijking | elke 5 min | ja |
+| `fw/telemetry/scoreboard` | scorebord van gisteren en vandaag (rc.4): per ruimte op tijd warm en te warm, starts per uur verwarmen, kort pendelen, gas voor verwarmen, graaddagen; vandaag zonder ruimtes | elke 5 min, tot 1,0 KB | ja |
 | `fw/config/plan` + `fw/config/entities` | ruimteplan, lijst entiteiten (nu `ha_entities` in elk statusbericht) | alleen bij wijziging en bij verbinden | ja |
 | `fw/telemetry/ems_metrics` | ontvangststatistiek | elke 5 min | nee |
 | `fw/availability` | online / offline (LWT) | bij verbinden / verbreken | ja |

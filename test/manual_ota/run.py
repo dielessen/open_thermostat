@@ -62,6 +62,7 @@ int esp_ota_set_boot_partition(const esp_partition_t *p) {assert(p&&!native.open
 int esp_ota_abort(unsigned h) {assert(h==1&&native.open);native.open=false;++native.aborts;return 0;}
 namespace heating::update {
 void firmwareInstalled(){++native.reboots;native.settingsBlocked=true;}
+bool staged(){return native.reboots>0;} // a selected image waits for its restart
 bool mutationBlocked(std::string_view path){assert(path=="/boiler/settings/write");return native.settingsBlocked;}
 std::atomic<bool> httpUploadActive{false};
 }
@@ -88,19 +89,24 @@ struct Server {
     String arg(const char*){return declared;}
     String uri(){return path;}
     void handleClient(){if(callback)callback();}
+    bool idle(){return true;} // the request is over once handleClient() returns here
     void sendView(int status,std::string_view,std::string_view body){statuses.push_back(status);bodies.emplace_back(body);}
 };
 struct Controller {
     std::vector<bool> settingsPermission;
+    int resumes=0; // the boiler request paused for an upload (R2-03) given back
     void boilerSettingsSynchronize(const control::WebAuthSession&,uint64_t now,bool allowed){
         assert(now==1000);settingsPermission.push_back(allowed);
     }
+    void resumeAfterUpload(){++resumes;}
 };
 struct REST {
     Server server_;Controller controller_;control::WebAuthSession sessions_;
     uint64_t networkNow(){return 1000;}
     bool authorized=true;
-    bool authorize(bool=true){return authorized;}
+    int authorizations=0;std::vector<bool> answering; // R2-08: the callbacks ask once and never answer
+    bool authorize(bool respond=true){++authorizations;answering.push_back(respond);return authorized;}
+    bool uploadPaused_=false; // set by the admission of an upload (R2-03)
     struct {bool success=false;int error=0;std::string errorMessage;} ota_;
 '''
 tail = r'''
@@ -145,6 +151,8 @@ int main(){
         assert(native.aborts==(fault==1?1:0));assert(native.selects==(fault==3?1:0));
     }
     pass("begin/write/end/select failures clean exact handle lifetime and never schedule restart");
+    // R2-08: an upload is authorized once, at its start (nothing on the loop can change the gates while
+    // the parser holds it); lost later, the route's final gate still refuses: checked, never selected.
     for(int loss=0;loss<3;++loss) {
         native={};REST r;r.server_.callback=[&]{
             event(r,UPLOAD_FILE_START);
@@ -155,9 +163,18 @@ int main(){
             if(loss==2)r.authorized=false;
             finalHandler(r);
         };r.handle();assert(!native.open&&native.selects==0&&native.reboots==0);
-        assert(native.aborts==(loss==2?0:1));
+        assert(native.aborts==0&&native.ends==1);
+        assert(r.authorizations==2&&r.answering==std::vector<bool>({false,true})); // the start quietly, the final gate answers
     }
     pass("authorization lost during writing, validation or final gate cannot commit");
+    {
+        native={};REST r;r.authorized=false;r.server_.callback=[&]{
+            event(r,UPLOAD_FILE_START);for(int i=0;i<100;++i)event(r,UPLOAD_FILE_WRITE,256);event(r,UPLOAD_FILE_END);finalHandler(r);
+        };r.handle();
+        assert(r.authorizations==2&&r.answering==std::vector<bool>({false,true}));
+        assert(native.begins==0&&native.writes==0&&native.selects==0&&!native.open&&r.server_.statuses.empty());
+        pass("a refused upload is authorized once at its start, skipped silently and answered once by the route");
+    }
     for(bool complete:{false,true}) {
         native={};REST r;r.server_.callback=[&]{
             event(r,UPLOAD_FILE_START);if(complete){event(r,UPLOAD_FILE_WRITE,256);event(r,UPLOAD_FILE_END);}
@@ -191,12 +208,22 @@ int main(){
             event(r,UPLOAD_FILE_START);assert(update::httpUploadActive);
             event(r,UPLOAD_FILE_WRITE,256);assert(update::httpUploadActive);
             event(r,UPLOAD_FILE_END);assert(!update::httpUploadActive);
-            event(r,UPLOAD_FILE_START);assert(update::httpUploadActive);
-            r.authorized=false;event(r,UPLOAD_FILE_WRITE,256);assert(!update::httpUploadActive);
+            r.authorized=false;event(r,UPLOAD_FILE_START);assert(!update::httpUploadActive);
+            event(r,UPLOAD_FILE_WRITE,256);assert(!update::httpUploadActive);
             r.authorized=true;event(r,UPLOAD_FILE_START);assert(update::httpUploadActive);
             finalHandler(r);assert(!update::httpUploadActive);
         };r.handle();assert(!native.open);
-        pass("upload counts as running update from start until end, abort, lost authorization or final reply");
+        pass("upload counts as running update from start until end, abort, refused start or final reply");
+    }
+    {
+        // R2-03: the admission paused the E32's boiler request for the upload. A staged firmware restarts
+        // (the restart withdraws it for good); any other end gives it back.
+        native={};REST r;r.uploadPaused_=true;r.server_.callback=[&]{data(r);finalHandler(r);};r.handle();
+        assert(native.reboots==1&&r.controller_.resumes==0&&r.uploadPaused_);
+        native={};native.endOk=false;REST failed;failed.uploadPaused_=true;failed.server_.callback=[&]{data(failed);finalHandler(failed);};failed.handle();
+        assert(native.reboots==0&&failed.controller_.resumes==1&&!failed.uploadPaused_);
+        REST idle;idle.handle();assert(idle.controller_.resumes==0); // nothing paused: nothing given back
+        pass("an upload that paused the boiler request gives it back unless a firmware is staged");
     }
     std::cout<<cases<<" production REST boundary scenarios passed\n";
 }

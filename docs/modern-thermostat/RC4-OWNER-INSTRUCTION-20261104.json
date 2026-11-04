@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-11-04T08:45:12Z",
+  "requests": [
+    "Owner, 3 Nov 2026 evening (chat, Dutch): \"ja laten we maar voor rc4 gaan neem daar alles in op wat we daarvoor moeten gaan doen\" (yes, let's go for rc4; put everything we need to do for it in there).\nOwner, 4 Nov 2026 early morning (chat, Dutch): \"ok voer nu alles uit voor fable 5.2 max\" (ok, now execute everything).\nOwner, 4 Nov 2026 ~09:10 (chat, Dutch): \"ok je mag agents inzetten waar nodig he\" (you may use agents where needed)."
+  ],
+  "scope": "1.0 candidate rc.4: E32 v1.0.0-e32v2-rc.4 + HA ha-v1.0.0rc5 from release-1.0. Publish after a green check and exact-tag CI. Installing is a separate, attended step with pre- and post-install capture.",
+  "not_included": [
+    "installation (a separate, attended step)",
+    "v1.0.0 itself (after 14 days with all release_ready.py criteria PASS)"
+  ],
+  "publication_approval_reply": null,
+  "publication_approval_at_utc": null,
+  "installation_approval_reply": null
+}

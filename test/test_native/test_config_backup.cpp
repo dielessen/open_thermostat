@@ -92,6 +92,7 @@ struct FakeTarget {
             case b::Part::bluetooth: s.bluetooth = text; break;
             case b::Part::network: s.network = text; break;
             case b::Part::learned: if (!LearnedState::validBundle(text)) return false; s.learned = text; break;
+            case b::Part::holidays: { RoomOverrides o; if (!o.restoreHolidays(text)) return false; s.holidays = o.holidaysStored(); break; }
         }
         return true;
     }
@@ -591,6 +592,80 @@ TEST(ConfigBackup, LearnedStateTravelsWithTheBackup) {
     // What it learns while the owner reads the summary does not block the restore.
     auto later = before; later.learned = source.learned;
     EXPECT_EQ(b::fingerprintInput(later, v.prepared), b::fingerprintInput(before, v.prepared));
+}
+
+// rc.4: the planned holidays and the holiday temperature (RoomOverrides' "holidays" record) travel
+// as a section of their own; periods that ended by the restore stay out, a backup without the
+// section (made before rc.4) leaves them as they are.
+TEST(ConfigBackup, TheHolidaysTravelWithTheBackup) {
+    auto source = configured();
+    source.holidays = R"({"v":1,"c":1250,"p":[[1797670800,1798995600],[1801000000,1801600000]]})";
+    auto doc = b::exportDocument(source, meta(), "");
+    ASSERT_TRUE(doc);
+    EXPECT_EQ(print(b::item(doc.get(), "holidays")),
+              R"({"temperature_c":12.5,"periods":[{"from":1797670800,"until":1798995600},{"from":1801000000,"until":1801600000}]})");
+    auto onto = factory();
+    onto.holidays = R"({"v":1,"p":[]})";
+    onto.utc = 1797000000;  // before both
+    auto v = validate(request("validate", doc.get()), onto);
+    ASSERT_EQ(v.error, nullptr);
+    EXPECT_EQ(v.prepared.holidays, source.holidays);
+    const auto changes = print(v.report.changes.get());
+    EXPECT_NE(changes.find(R"({"section":"holidays","field":"temperature_c","from":null,"to":12.5})"), std::string::npos) << changes;
+    EXPECT_NE(changes.find(R"({"section":"holidays","field":"periods","hidden":true})"), std::string::npos) << changes;
+    const auto before = onto;
+    FakeTarget fake{onto};
+    std::string failed;
+    ASSERT_EQ(b::apply(before, v.prepared, fake, failed), b::Applied::applied);
+    EXPECT_EQ(onto.holidays, source.holidays);
+    // The same E32 again: nothing changes. A failed holidays write puts the old record back.
+    v = validate(request("validate", doc.get()), onto);
+    ASSERT_EQ(v.error, nullptr);
+    EXPECT_TRUE(v.prepared.holidays.empty());
+    v = validate(request("validate", doc.get()), before);
+    auto again = before;
+    FakeTarget failing{again};
+    failing.failAt[b::Part::holidays] = 1;
+    EXPECT_EQ(b::apply(before, v.prepared, failing, failed), b::Applied::restored);
+    EXPECT_EQ(failed, "holidays");
+    EXPECT_EQ(again.holidays, before.holidays);
+    // Restored after the first one ended: it stays out, with a note; without a clock both come along
+    // (the E32 drops an ended one itself once its clock is known).
+    auto later = factory();
+    later.holidays = R"({"v":1,"p":[]})";
+    later.utc = 1799000000;
+    v = validate(request("validate", doc.get()), later);
+    ASSERT_EQ(v.error, nullptr);
+    EXPECT_EQ(v.prepared.holidays, R"({"v":1,"c":1250,"p":[[1801000000,1801600000]]})");
+    EXPECT_TRUE(has(v.report.warnings.get(), "holidays_ended_skipped"));
+    later.utc = 0;
+    v = validate(request("validate", doc.get()), later);
+    EXPECT_EQ(v.prepared.holidays, source.holidays);
+    // A backup made before rc.4 has no section: the holidays stay as they are.
+    auto old = parse(print(doc.get()));
+    cJSON_DeleteItemFromObjectCaseSensitive(old.get(), "holidays");
+    v = validate(request("validate", old.get()), before);
+    ASSERT_EQ(v.error, nullptr);
+    EXPECT_TRUE(v.prepared.holidays.empty());
+    // Checked like the record itself; an unknown key is a note.
+    for (const char* bad : {R"({"temperature_c":30,"periods":[]})", R"({"temperature_c":"12","periods":[]})",
+                            R"({"periods":{"from":1}})", R"({"periods":[{"from":1801600000,"until":1801000000}]})",
+                            R"({"periods":[{"from":1.5,"until":1801000000}]})", R"({"periods":[[1801000000,1801600000]]})",
+                            R"({"periods":[{},{},{},{},{},{},{},{},{}]})"}) {
+        auto edited = parse(print(doc.get()));
+        cJSON_ReplaceItemInObjectCaseSensitive(edited.get(), "holidays", cJSON_Parse(bad));
+        v = validate(request("validate", edited.get()), before);
+        EXPECT_STREQ(v.error, "holidays_invalid") << bad;
+    }
+    auto extra = parse(print(doc.get()));
+    cJSON_AddBoolToObject(cJSON_GetObjectItemCaseSensitive(extra.get(), "holidays"), "colour", true);
+    v = validate(request("validate", extra.get()), before);
+    ASSERT_EQ(v.error, nullptr);
+    EXPECT_TRUE(has(v.report.warnings.get(), "unknown_key:holidays.colour"));
+    // The fingerprint covers them.
+    v = validate(request("validate", doc.get()), before);
+    auto other = before; other.holidays = R"({"v":1,"c":1300,"p":[]})";
+    EXPECT_NE(b::fingerprintInput(other, v.prepared), b::fingerprintInput(before, v.prepared));
 }
 
 TEST(ConfigBackup, FingerprintCoversDeviceAndCandidates) {

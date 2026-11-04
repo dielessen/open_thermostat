@@ -11,6 +11,7 @@
 #include <limits>
 #include <thread>
 #include <vector>
+#include <time.h>
 
 namespace {
 using Tcp=heating::control::PendingTcpConnect;
@@ -274,4 +275,20 @@ TEST_F(PendingTcpTest, SilentMqttPeerRetainsSeparateOneSecondConnackTimeout) {
      const auto start=std::chrono::steady_clock::now();connected=mqtt.connect("silent-fixture");
      elapsed=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-start).count();}
     server.join();EXPECT_TRUE(adopted);EXPECT_FALSE(connected);EXPECT_GE(elapsed,900);EXPECT_LT(elapsed,3000);EXPECT_EQ(opens,1u);
+}
+// Review R2-09: ModernTransport marks the CONNACK wait as a handshake. The 1 s bound stays the
+// same, but an empty read yields 1 ms instead of spinning the loop task for the whole second.
+TEST_F(PendingTcpTest, HandshakeWaitForASilentPeerYieldsInsteadOfSpinning) {
+    simulated=false;Listener listener;
+    std::thread server([&]{Socket accepted(listener.accept());if(accepted.value>=0){receivePacket(accepted.value);delay(1500);}});
+    bool connected=false,adopted=false;long long elapsed=0,cpu=0;
+    {Tcp pending;MqttSocket socket;const int raw=connectedSocket(pending,listener.port);
+     adopted=socket.adoptConnectedSocket(raw);PubSubClient mqtt(socket);mqtt.setServer(IPAddress(arbitraryIpv4),listener.port);mqtt.setSocketTimeout(1);
+     const auto threadCpuMs=[]{timespec t{};clock_gettime(CLOCK_THREAD_CPUTIME_ID,&t);return (long long)t.tv_sec*1000+t.tv_nsec/1000000;};
+     socket.handshake(true);const auto cpuStart=threadCpuMs();
+     const auto start=std::chrono::steady_clock::now();connected=mqtt.connect("silent-fixture");
+     elapsed=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-start).count();
+     cpu=threadCpuMs()-cpuStart;socket.handshake(false);}
+    server.join();EXPECT_TRUE(adopted);EXPECT_FALSE(connected);EXPECT_GE(elapsed,900);EXPECT_LT(elapsed,3000);
+    EXPECT_LT(cpu,elapsed/2)<<cpu<<" ms of CPU in "<<elapsed<<" ms";
 }

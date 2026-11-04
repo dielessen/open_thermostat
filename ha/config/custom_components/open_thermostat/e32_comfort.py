@@ -51,7 +51,6 @@ from datetime import datetime, timedelta, timezone
 import json
 import time
 
-from homeassistant.components import mqtt
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
     PRESET_BOOST, PRESET_COMFORT, PRESET_ECO, PRESET_NONE, PRESET_SLEEP, ClimateEntityFeature, HVACAction, HVACMode)
@@ -619,31 +618,34 @@ def comfort_error(err):
     return plan_error(err)
 
 
-async def async_comfort_command(link, command):
-    """POST one command over the room-plan link's stored connection (one login, its lock).
+def comfort_key(command):
+    """What a newer house command supersedes: the house (mode, away temperature, holiday end), or (rc.4)
+    the holiday temperature on its own, so a house mode chosen right after it never drops it."""
+    if type(command) is dict and "holiday_temperature" in command and not {"house_mode", "away", "holidays"} & set(command):
+        return ("holiday_temperature",)
+    return ("house",)
 
-    With every E32 web session in use it waits for one (RoomPlanLink._login). A
-    newer command for the same room (or the house mode) supersedes it: None,
-    nothing sent; the newest value is the one that goes out. House commands go
-    through e32_house.async_house_change, which carries the superseded one's
-    fields along (the E32 takes the house mode, away temperature and holiday end
-    as one command).
+
+async def async_comfort_command(link, command):
+    """POST one command over the room-plan link's stored connection (RoomPlanLink.async_call).
+
+    With every E32 web session in use it waits for one, without holding up
+    other requests. A newer command for the same room (or the house mode)
+    supersedes it: None, nothing sent; the newest value is the one that goes
+    out. House commands go through e32_house.async_house_change, which carries
+    the superseded one's fields along (the E32 takes the house mode, away
+    temperature and holiday end as one command).
     """
     from .controller_link import ControllerLinkError
     from .room_plan import WriteSuperseded
     room = command.get("room") if type(command) is dict else None
-    wanted = link.claim(("room", room) if room is not None else ("house",))
-    async with link._lock:
-        try:
-            if not wanted():
-                raise WriteSuperseded()
-            async with link._client() as client:
-                await link._login(client, wanted)
-                answer = await client.async_comfort_command(command)
-        except WriteSuperseded:
-            return None
-        except ControllerLinkError as err:
-            raise comfort_error(err) from None
+    try:
+        answer = await link.async_call(lambda client: client.async_comfort_command(command), write=True,
+                                       key=("room", room) if room is not None else comfort_key(command))
+    except WriteSuperseded:
+        return None
+    except ControllerLinkError as err:
+        raise comfort_error(err) from None
     if type(answer) is not dict or answer.get("schema") != 1:
         raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unconfirmed")
     return answer
@@ -839,15 +841,19 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
                 "smart_warm_up": self._smart_warm_up()}
 
     def _smart_warm_up(self):
-        """E32 rc.3: what Smart warm-up does for the next program step, in the Home Assistant language, or None."""
+        """What Smart warm-up does for the next program step (E32 rc.3) and how the last step up turned out
+        (E32 rc.4: "Yesterday warm at 09:12 (12 min late); tomorrow 10 % earlier."), in the Home Assistant
+        language, or None."""
         if self.hass is None:
             return None
         from .e32_flow import smart_warm_up
-        from .learned_overview import language, local_clock, smart_warm_up_line
+        from .learned_overview import arrival_line, language, local_clock, local_day, smart_warm_up_line
         plan = self.hub.warmup.get(self.room_id) if type(getattr(self.hub, "warmup", None)) is dict else None
-        start = plan.get("optimum_start") if type(plan) is dict else None
-        line = smart_warm_up_line(start, smart_warm_up(self.hass, self.entry.entry_id), language(self.hass), local_clock(self.hass))
-        return line[0] if line else None
+        plan = plan if type(plan) is dict else {}
+        lang, clock = language(self.hass), local_clock(self.hass)
+        line = smart_warm_up_line(plan.get("optimum_start"), smart_warm_up(self.hass, self.entry.entry_id), lang, clock)
+        arrived = arrival_line(plan.get("arrival"), lang, clock, *local_day(self.hass))
+        return " ".join(item[0] for item in (line, arrived) if item) or None
 
     # -- commands ----------------------------------------------------------------
     def _write_state(self):
@@ -1029,11 +1035,11 @@ async def async_setup_e32_climates(hass, entry, async_add_entities):
     pusher = state["setting_device_pusher"] = SettingDevicePusher(hass, entry, hub)
     entry.async_on_unload(pusher.start())
     # Only the MQTT prefix and the broker, not the shadow link (heating_link.topic_base).
-    from .heating_link import topic_base
+    from .heating_link import publish_input, topic_base
     topic = topic_base(hass, entry) + "ha/heating_input"
 
     def send(payload):
-        hass.async_create_task(mqtt.async_publish(hass, topic, payload, 0, False))
+        publish_input(hass, topic, payload)  # a broker failure is logged once, never an unretrieved task (R4-07)
 
     if PRESENCE_MEMORY not in hass.data:
         from homeassistant.helpers.storage import Store

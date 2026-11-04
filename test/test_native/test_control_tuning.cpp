@@ -141,7 +141,10 @@ struct Replay {
 // segments; every request, start and heating step is unchanged (was 0x092730cbef929f94).
 // rc.3: the planner's JSON says whether a start "applies" and the summary's curve its
 // "windows"; still 12 starts and 5219 heating steps (was 0x0e57c515176989e2).
-constexpr uint64_t goldenHash = 0x76c5bb38db527eecull;
+// rc.4: estimate starts are applied, each room's start has its own rest, the planner's JSON
+// carries "estimate" and "arrival" and the learner's "readiness_timing"; still 12 starts and
+// 5219 heating steps (was 0x76c5bb38db527eec).
+constexpr uint64_t goldenHash = 0x1a32287f37d8bf9aull;
 
 Replay replay(const std::function<void(Replay&)>& tune = nullptr) {
     ScopedTz tz(ScopedTz::amsterdam);
@@ -340,16 +343,20 @@ TEST(ControlTuning, UnlearnedWarmupLeads) {
     EXPECT_EQ(WarmupPlanner::defaultLeadS(E::floor, 100, t), 3600u);
     EXPECT_EQ(WarmupPlanner::defaultLeadS(E::radiator, 100, t), 5400u);
     EXPECT_EQ(WarmupPlanner::defaultLeadS(E::floor, 500, tuned(R"({"floor_lead_min_per_c":360})")), 21600u); // the 6 h maximum stays
-    // The optimum start plan (default confidence) follows the learner's tuning.
+    // The optimum start plan (default confidence) follows the learner's tuning. rc.4: an estimate
+    // no morning has judged yet is capped at 3 h (floor); trusted arrival feedback lifts the cap.
     ScopedTz tz(ScopedTz::amsterdam);
     FlowLearner l; RoomPlan p; p.rooms.resize(1); p.rooms[0].id = "w"; p.rooms[0].emitter = E::floor; l.setPlan(p);
-    const auto before = WarmupPlanner::optimumStart(l, 0, program(), wednesday23, int16_t(1850), std::nullopt);
+    const heating::control::LeadFactor trusted{1.0f, true};
+    EXPECT_EQ(WarmupPlanner::optimumStart(l, 0, program(), wednesday23, int16_t(1850), std::nullopt).leadS, WarmupPlanner::estimateCapFloorS);
+    const auto before = WarmupPlanner::optimumStart(l, 0, program(), wednesday23, int16_t(1850), std::nullopt, trusted);
     l.setTuning(tuned(R"({"floor_lead_min_per_c":60})"));
-    const auto after = WarmupPlanner::optimumStart(l, 0, program(), wednesday23, int16_t(1850), std::nullopt);
+    const auto after = WarmupPlanner::optimumStart(l, 0, program(), wednesday23, int16_t(1850), std::nullopt, trusted);
     ASSERT_STREQ(after.confidence, "default");
     EXPECT_EQ(before.leadS, 18000u);            // 2.5 degC at 2 h per degC
     EXPECT_EQ(after.leadS, 9000u);
     EXPECT_GT(after.startUtc, before.startUtc);
+    EXPECT_EQ(WarmupPlanner::optimumStart(l, 0, program(), wednesday23, int16_t(1850), std::nullopt).leadS, 9000u) << "under the cap";
 }
 
 TEST(ControlTuning, OptimumStartRunsTheMinimumOnTime) {

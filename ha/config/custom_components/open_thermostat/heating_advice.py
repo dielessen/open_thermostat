@@ -571,7 +571,7 @@ TEXT = {
                 "why": "The flow and night estimates scale with the boiler's power; a wrong power gives wrong "
                        "savings.",
                 "action": "Check the nominal heating power on the boiler's type plate and enter it only if it differs.",
-                "where": "Home Assistant: OpenThermostat → Configure → Home → Energy and outdoor temperature.",
+                "where": "Home Assistant: OpenThermostat → Configure → Energy and outdoor temperature.",
             },
         },
         "missing": {
@@ -754,7 +754,7 @@ TEXT = {
                        "een verkeerde besparing.",
                 "action": "Kijk het nominale verwarmingsvermogen na op het typeplaatje van de ketel en vul het alleen "
                           "in als het afwijkt.",
-                "where": "Home Assistant: OpenThermostat → Configureren → Huis → Energie en buitentemperatuur.",
+                "where": "Home Assistant: OpenThermostat → Configureren → Energie en buitentemperatuur.",
             },
         },
         "missing": {
@@ -938,7 +938,7 @@ TEXT = {
                 "why": "Szacunki zasilania i nocy zależą od mocy kotła; błędna moc daje błędne oszczędności.",
                 "action": "Sprawdź znamionową moc grzewczą na tabliczce znamionowej kotła i wpisz ją tylko wtedy, "
                           "gdy jest inna.",
-                "where": "Home Assistant: OpenThermostat → Konfiguruj → Dom → Energia i temperatura zewnętrzna.",
+                "where": "Home Assistant: OpenThermostat → Konfiguruj → Energia i temperatura zewnętrzna.",
             },
         },
         "missing": {

@@ -385,7 +385,10 @@ async def test_empty_installation_has_no_empty_sections(hass):
 
 
 @pytest.mark.asyncio
-async def test_dashboard_rebuilds_for_new_rooms_or_language_but_not_every_reading(hass):
+async def test_dashboard_rebuilds_for_new_rooms_or_language_but_not_every_reading(hass, monkeypatch):
+    from custom_components.open_thermostat import dashboard as module
+    later = []
+    monkeypatch.setattr(module, "async_call_later", lambda hass, delay, action: later.append(action) or (lambda: None))
     e, rooms, sensors, hub, fields = installation(hass)
     dashboard = RoomDashboard(hass, "fixture", e.entry_id)
     saved = []
@@ -409,6 +412,10 @@ async def test_dashboard_rebuilds_for_new_rooms_or_language_but_not_every_readin
     assert len(saved) == 1
     hass.config.language = "nl"
     dashboard._registry_updated(SimpleNamespace(data={}))  # core config update (language)
+    dashboard._registry_updated(SimpleNamespace(data={}))  # ... and more events of the same burst
+    await hass.async_block_till_done()
+    assert len(saved) == 1 and len(later) == 1  # one rebuild, once the burst settled (R4-11)
+    later.pop()(None)
     await hass.async_block_till_done()
     assert saved[-1]["views"][0]["title"] == "Overzicht" and len(saved) == 2
     # A room or sensor the E32 no longer reports leaves the dashboard.
@@ -473,3 +480,57 @@ async def test_rooms_wanting_heat_card_lists_the_rooms_and_the_request(hass):
     assert en == "### 1 room wants heat\n- **Woonkamer**: 20.1 → 21.0 °C"
     hass.states.async_set(request, "unavailable", {})
     assert Template(_wanting_card(TEXT["en"], request)["content"], hass).async_render() == "### No room wants heat"
+
+
+@pytest.mark.asyncio
+async def test_registry_events_of_other_integrations_never_rebuild_the_dashboard(hass, monkeypatch):
+    """R4-11: 150 entities of another integration were 150 rebuilds; now none, and a burst of our own is one."""
+    from homeassistant.const import EVENT_CORE_CONFIG_UPDATE
+    from custom_components.open_thermostat import dashboard as module
+    from test_e32_room_flow import other_entry
+    later = []
+    monkeypatch.setattr(module, "async_call_later", lambda hass, delay, action: later.append((delay, action))
+                        or (lambda: None))
+    e, rooms, sensors, hub, fields = installation(hass)
+    dashboard = RoomDashboard(hass, "fixture", e.entry_id)
+    built = []
+    build = dashboard._dashboard_config
+
+    def counted():
+        built.append(True)
+        return build()
+    dashboard._dashboard_config = counted
+    saved = []
+
+    class Store:
+        async def async_load(self, force):
+            return saved[-1] if saved else None
+
+        async def async_save(self, config):
+            saved.append(config)
+    dashboard._store = Store()
+    build()  # what the start builds: this entry's entities and devices are known
+    dashboard._listen()
+    other = other_entry(hass)
+    entities, devices = er.async_get(hass), dr.async_get(hass)
+    for n in range(150):
+        device = devices.async_get_or_create(config_entry_id=other.entry_id, identifiers={("other_integration", str(n))})
+        entities.async_get_or_create("sensor", "other_integration", f"other_{n}", config_entry=other, device_id=device.id)
+    hass.bus.async_fire(EVENT_CORE_CONFIG_UPDATE, {"latitude": 52.1})  # not the language or units
+    await hass.async_block_till_done()
+    assert later == [] and built == [] and saved == []
+    # This entry's own new entities (and a rename of one): one rebuild once the burst settled.
+    for n in range(20):
+        entities.async_get_or_create("sensor", "open_thermostat", f"fixture_extra_{n}", config_entry=e)
+    entities.async_update_entity(rooms["woonkamer"]["temperature"], new_entity_id="sensor.living_room_temperature")
+    await hass.async_block_till_done()
+    assert [delay for delay, _ in later] == [module.REGISTRY_SETTLE_SECONDS] and built == []
+    later.pop()[1](None)
+    await hass.async_block_till_done()
+    assert len(built) == 1 and len(saved) == 1
+    assert "sensor.living_room_temperature" in json.dumps(saved[-1])
+    hass.bus.async_fire(EVENT_CORE_CONFIG_UPDATE, {"language": "nl"})
+    await hass.async_block_till_done()
+    assert len(later) == 1
+    for unsubscribe in dashboard._unsubscribe:
+        unsubscribe()

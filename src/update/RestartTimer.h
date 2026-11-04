@@ -65,6 +65,15 @@ private:
     uint32_t since_ = 0;
     bool started_ = false;
 };
+// The setup restart (POST /setup/reenter, the USB command "setup"; review R2-07) waits like
+// /config/reboot: for no update, a confirmed boot, and the E32's boiler request withdrawn
+// (release: HeatingController::releaseBoilerForRestart, bounded by BoilerReleaseHold). Nothing is
+// asked unless a restart is requested, and release only once nothing else holds it (the
+// withdrawal is final for the boot). True: the restart waits for now.
+template<class Busy, class Pending, class Release>
+bool setupRestartHeld(bool requested, Busy&& busy, Pending&& pendingBoot, Release&& release) {
+    return requested && (busy() || pendingBoot() || !release());
+}
 // Shared by the OTA worker and HTTP/main loop. The EARLIEST requested deadline
 // wins: polling, a duplicate completion or a slower request can never
 // postpone a pending restart. Zero denotes an unarmed timer. Deadlines are

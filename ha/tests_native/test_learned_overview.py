@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from custom_components.open_thermostat import learned_overview as lo
-from custom_components.open_thermostat.heating_link import HeatingHub, TUNING_TOPIC
+from custom_components.open_thermostat.heating_link import HeatingHub, SCOREBOARD_TOPIC, TUNING_TOPIC
 
 STATUS = {"schema": 1, "revision": 4, "mode": "active", "request": {"heat": True, "flow_c": 36, "reason": "heating"},
           "ha_entities": ["climate.woonkamer"],
@@ -170,6 +170,38 @@ def test_the_tuning_topic_joins_the_summary():
         assert "tuning" not in h.summary
 
 
+BOARD = {"yesterday": {"day": "2026-11-03", "heating_h": 9, "heating_starts_per_h": 2.1, "short_cycle_h": 0, "heating_kwh": 31.2,
+                       "degree_days": 10.5, "rooms": [{"id": "woonkamer", "on_time_min": -5, "overshoot_c": 0.3}]},
+         "today": {"day": "2026-11-04", "heating_h": 3, "heating_starts_per_h": 1.7, "short_cycle_h": 0, "heating_kwh": 8.1,
+                   "degree_days": 11}}
+
+
+def test_the_scoreboard_topic_joins_the_summary():
+    """E32 rc.4: the scoreboard left fw/telemetry/summary for its own topic (eight rooms pushed the summary over
+    the 1.5 KB limit, where the E32 drops it); merged back as "scoreboard", so scoreboard.py reads it as before."""
+    h = HeatingHub("fixture")
+    h.receive("fw/telemetry/summary", json.dumps({"schema": 1, "learned": {"schema": 1}}))
+    assert "scoreboard" not in h.summary
+    h.receive(SCOREBOARD_TOPIC, json.dumps({"schema": 1, "scoreboard": BOARD}))
+    assert h.summary["scoreboard"] == BOARD and h.summary["learned"] == {"schema": 1}
+    h.receive(TUNING_TOPIC, json.dumps({"schema": 1, "tuning": TUNING}))
+    h.receive("fw/telemetry/flow", json.dumps({"schema": 1, "flow": {"source": "rule"}}))
+    assert h.summary["scoreboard"] == BOARD and h.summary["tuning"] == TUNING and h.summary["flow"] == {"source": "rule"}
+    from custom_components.open_thermostat.scoreboard import scoreboard
+    assert scoreboard(h.summary) == BOARD
+    # A summary that still carries the scoreboard itself (rc.4 preview firmware): the topic wins while it is there.
+    inside = {**BOARD, "today": None}
+    h.receive("fw/telemetry/summary", json.dumps({"schema": 1, "learned": {"schema": 1}, "scoreboard": inside}))
+    assert h.summary["scoreboard"] == BOARD
+    for bad in ("", "{}", json.dumps({"schema": 1, "scoreboard": []}), json.dumps({"schema": 2, "scoreboard": BOARD}), "not json"):
+        h.receive(SCOREBOARD_TOPIC, bad)
+        assert h.summary["scoreboard"] == inside, bad  # the topic dropped: the summary's own again
+    h.receive("fw/telemetry/summary", json.dumps({"schema": 1, "learned": {"schema": 1}}))
+    assert "scoreboard" not in h.summary
+    h.receive(SCOREBOARD_TOPIC, json.dumps({"schema": 1, "scoreboard": BOARD}))
+    assert h.summary["scoreboard"] == BOARD
+
+
 def test_the_learning_view_sums_it_up_and_shows_the_house_and_its_changes():
     """What it learned is the "Learning and settings" view: how far each room is and the latest change, the house and
     boiler, and what it changed by itself. What it learned per room is in that room's section of the Rooms view."""
@@ -183,7 +215,7 @@ def test_the_learning_view_sums_it_up_and_shows_the_house_and_its_changes():
     assert "room.lines" not in summary["cards"][1]["content"]  # the lines are in the rooms
     assert "'explanation'" in summary["cards"][1]["content"] and "<details>" in summary["cards"][1]["content"]
     assert "'house'" in house["cards"][1]["content"] and "'changes'" in changes["cards"][1]["content"]
-    assert "Home → Comfort and boiler care" in changes["cards"][2]["content"]
+    assert "Configure → Heating and boiler → Comfort and boiler care" in changes["cards"][2]["content"]  # the rc4 menu path
     assert all(s["visibility"] == shown for s in (summary, house, changes))
     assert dashboard._learned_sections(dashboard.TEXT["nl"], None) == []
     assert dashboard._learned_sections(dashboard.TEXT["nl"], "sensor.x")[0]["cards"][0]["heading"] == "Wat de thermostaat heeft geleerd"
@@ -326,3 +358,115 @@ def test_the_learned_water_says_whether_it_is_ready():
                              data={"open_thermostat": {"e": {"e32_flow": SimpleNamespace(settings={"weather_curve": True, "apply_learned": True})}}})
     assert [line["text"] for line in s.extra_state_attributes["house"]][:2] == [
         "Weather compensation: standard for now, learning from your house (2 of 6 steady periods).", "Coolest water: still learning from each warm-up."]
+
+
+# E32 rc.4: a start from the standard warm-up time is applied too ("estimate"), the warm-up time can be learned
+# before the coolest water ("readiness_timing") and every morning is checked ("arrival").
+def test_an_estimated_start_says_so():
+    clock = {1793257800: "07:30", 1793262600: "08:50"}.get
+    start = {**START, "confidence": "default", "estimate": True}
+    assert lo.smart_warm_up_line(start, True, "en", clock)[0] == (
+        "Smart warm-up: starts at 07:30 (estimate; it learns from every morning) so it is 21 °C at 08:50.")
+    assert lo.smart_warm_up_line(start, True, "nl", clock)[0] == (
+        "Slim opwarmen: begint om 07:30 (schatting; hij leert van elke ochtend), zodat het om 08:50 21 °C is.")
+    assert lo.smart_warm_up_line(start, True, "pl", clock)[0].startswith("Inteligentne nagrzewanie: start o 07:30 (")
+    # Heating now, or off: the same words as before; firmware without "estimate" too.
+    assert lo.smart_warm_up_line({**start, "start_now": True}, True, "en", clock)[0] == (
+        "Smart warm-up: heating now so it is 21 °C at 08:50.")
+    assert lo.smart_warm_up_line(start, False, "en", clock)[0] == "Smart warm-up is off: heating starts at 08:50."
+    assert lo.smart_warm_up_line({**start, "estimate": False}, True, "en", clock)[0] == (
+        "Smart warm-up: starts at 07:30 so it is 21 °C at 08:50.")
+
+
+def test_the_warm_up_time_can_be_learned_before_the_coolest_water():
+    learned = {"emitter": "floor", "readiness": "learning", "readiness_timing": "ready", "segments": 3}
+    room = lo.room_overview("Woonkamer", learned, None, "en", CLOCK.get)
+    assert room["lines"][0] == {
+        "text": "The warm-up time is learned; the coolest water is still being learned.",
+        "meaning": "Smart warm-up already plans with it; the coolest water needs a few more warm-ups at other "
+                   "water temperatures."}
+    assert lo.room_overview("Woonkamer", learned, None, "nl", CLOCK.get)["lines"][0]["text"] == (
+        "De opwarmtijd is geleerd; het koelste water leert hij nog.")
+    # Not yet (or firmware without it): the learning line as before; fully learned: no learning line at all.
+    for timing in ("learning", "collecting", None):
+        lines = lo.room_overview("Woonkamer", {**learned, "readiness_timing": timing}, None, "en", CLOCK.get)["lines"]
+        assert lines[0]["text"] == "It learns from every warm-up while the heating runs.", timing
+    ready = lo.room_overview("Woonkamer", {**LEARNED, "readiness_timing": "ready"}, None, "en", CLOCK.get)
+    assert "warm-up time is learned" not in str(ready["lines"])
+
+
+# The firmware (ArrivalLearner::resolve) sends the program's switch time as last_at_utc and the minutes the
+# room was late as last_error_min: the room was warm at last_at_utc + last_error_min (09:12 in every case
+# here, the only moment the clock below knows), as the E32's Home page shows it.
+@pytest.mark.parametrize("arrival,english,dutch", [
+    ({"factor": 1.1, "events": 3, "last_error_min": 12, "last_at_utc": 1793265120 - 12 * 60},
+     "Yesterday warm at 09:12 (12 min late); tomorrow 10 % earlier.",
+     "Gisteren warm om 09:12 (12 min te laat); morgen 10 % eerder."),
+    ({"factor": 0.92, "events": 4, "last_error_min": -25, "last_at_utc": 1793265120 + 25 * 60},
+     "Yesterday warm at 09:12 (25 min early); tomorrow 8 % later.",
+     "Gisteren warm om 09:12 (25 min te vroeg); morgen 8 % later."),
+    ({"factor": 1.0, "events": 1, "last_error_min": 0.4, "last_at_utc": 1793265120},
+     "Yesterday warm at 09:12 (on time).", "Gisteren warm om 09:12 (op tijd)."),
+])
+def test_every_morning_is_checked(arrival, english, dutch):
+    from datetime import date, timedelta
+    clock = {1793265120: "09:12"}.get
+
+    def day(utc):
+        return date(2026, 10, 29) if abs(utc - 1793265120) <= 3600 else None
+    text, meaning = lo.arrival_line(arrival, "en", clock, day, date(2026, 10, 30))
+    assert text == english
+    assert meaning == "It checks every morning whether the room was warm on time and adjusts its warm-up time."
+    assert lo.arrival_line(arrival, "nl", clock, day, date(2026, 10, 30))[0] == dutch
+    assert lo.arrival_line(arrival, "pl", clock, day, date(2026, 10, 30))[0].startswith("Wczoraj ciepło o 09:12 (")
+    assert lo.arrival_line(arrival, "en", clock, day, date(2026, 10, 29))[0].startswith("Today warm at 09:12 (")
+    assert lo.arrival_line(arrival, "en", clock, day, date(2026, 10, 29) + timedelta(days=5))[0].startswith(
+        "On 29 Oct warm at 09:12 (")
+    assert lo.arrival_line(arrival, "nl", clock, day, date(2026, 11, 3))[0].startswith("Op 29 okt warm om 09:12 (")
+
+
+def test_no_arrival_line_without_a_checked_morning():
+    def clock(utc):
+        return "09:12"
+    for arrival in (None, {}, {"factor": 1.0, "events": 0, "last_error_min": None, "last_at_utc": None},
+                    {"factor": 1.1, "events": 2, "last_error_min": 12, "last_at_utc": 0},
+                    {"factor": 1.1, "events": 2, "last_error_min": 9999, "last_at_utc": 1793265120}):
+        assert lo.arrival_line(arrival, "en", clock) is None, arrival
+
+
+def test_the_room_lines_end_with_how_the_morning_went():
+    from datetime import date
+    # The switch time was 09:00 (last_at_utc); the room was warm 12 min later, at 09:12.
+    plan = {**PLAN, "arrival": {"factor": 1.1, "events": 3, "last_error_min": 12, "last_at_utc": 1793265120 - 12 * 60},
+            "optimum_start": {**PLAN["optimum_start"], "applies": True, "estimate": True}}
+    clock = {**CLOCK, 1793265120: "09:12"}.get
+    room = lo.room_overview("Woonkamer", LEARNED, plan, "en", clock, True,
+                            lambda utc: date(2026, 10, 29), date(2026, 10, 30))
+    texts = [line["text"] for line in room["lines"]]
+    assert texts[3:5] == [
+        "Smart warm-up: starts at 07:30 (estimate; it learns from every morning) so it is 21 °C at 08:50.",
+        "Yesterday warm at 09:12 (12 min late); tomorrow 10 % earlier."]
+    s = sensor()
+    s.hub.update_learned("woonkamer", ({**LEARNED, "id": "woonkamer"}, {**plan, "id": "woonkamer"}))
+    s._clock = clock
+    assert any(line["text"].endswith("warm at 09:12 (12 min late); tomorrow 10 % earlier.")
+               for line in s.extra_state_attributes["rooms"][0]["lines"])
+
+
+def test_the_learned_entities_carry_the_rc4_fields():
+    """The learning status names the learned warm-up time; the predicted start says whether it is an estimate."""
+    from custom_components.open_thermostat.heating_link import RoomHeatingStartSensor, RoomLearningSensor
+    h = HeatingHub("fixture")
+    h.update(STATUS)
+    room = STATUS["rooms"][0]
+    start = {"reason": "planned", "predicted_start_utc": 1793257800, "lead_minutes": 80, "confidence": "default",
+             "applies": True, "estimate": True}
+    h.update_learned("woonkamer", ({"id": "woonkamer", "readiness": "learning", "readiness_timing": "ready"},
+                                   {"id": "woonkamer", "optimum_start": start}))
+    assert RoomLearningSensor(h, room).extra_state_attributes["timing"] == "ready"
+    assert RoomHeatingStartSensor(h, room).extra_state_attributes["estimate"] is True
+    # Firmware before rc.4: the attributes are as before.
+    h.update_learned("woonkamer", ({"id": "woonkamer", "readiness": "learning"},
+                                   {"id": "woonkamer", "optimum_start": {k: v for k, v in start.items() if k != "estimate"}}))
+    assert "timing" not in RoomLearningSensor(h, room).extra_state_attributes
+    assert "estimate" not in RoomHeatingStartSensor(h, room).extra_state_attributes

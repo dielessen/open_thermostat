@@ -1,6 +1,6 @@
 # Releaseplan tot en na 1.0 (eigenaar, 30 oktober – 2 november 2026)
 
-Dit is het actuele plan (stand 2 november: rc.1 gepubliceerd vanaf 1dc0b06; rc.2 compleet op `release-1.0`, versies gezet, in de laatste controle vóór publicatie). De oudere secties hieronder zijn geschiedenis.
+Dit is het actuele plan (stand 3 november: rc.3 gepubliceerd en geïnstalleerd, HA 1.0.0rc4 gepubliceerd; de volgende firmware-release is rc.4, zie [RC4-PLAN.nl.md](RC4-PLAN.nl.md)). De oudere secties hieronder zijn geschiedenis.
 
 ## Klaar
 
@@ -12,6 +12,9 @@ Dit is het actuele plan (stand 2 november: rc.1 gepubliceerd vanaf 1dc0b06; rc.2
 | HA 0.4.0b15 | Alleen HA: weekplanner zonder "Configuration error" (de weekkaarten zetten zich terug); de E32 blijft op beta.22 | Gepubliceerd 31 okt |
 | **Overstap naar actieve regeling** | Tado los van de adapter, plan actief, overname bevestigd | **Gedaan zondag 1 november rond 21:05** (lokale tijd), eerder dan het geplande dinsdag 3 november; de eigenaar deed het zelf |
 | **E32 1.0.0-rc.1 + HA 1.0.0rc1** | De eerste 1.0-kandidaat: beta.23, beta.24 en 1.0 in één release (zie hieronder) | **Gepubliceerd 2 november** (tags `v1.0.0-e32v2-rc.1` en `ha-v1.0.0rc1` op 1dc0b06, GitHub-pre-releases; akkoord eigenaar "publoceren mag ook"). HA 1.0.0rc1 staat ook als pre-release in de HACS-repository `dielessen/openthermostat-ha`. **Niet geïnstalleerd:** de E32 draait beta.22 in actieve regeling; installeren gebeurt met rc.2 |
+| **E32 1.0.0-rc.2 + HA 1.0.0rc2** | Zelf bijstellen, leren bewaard, ketelproef, eigen wachtwoord, gewone taal, HACS | Gepubliceerd 3 november (88edbb8); door de eigenaar zelf geïnstalleerd 3 november 07:34 (geen acceptatiebewijs; eenmalige uitzondering voor rc.3) |
+| **E32 1.0.0-rc.3 + HA 1.0.0rc3** | Afwezigheid per ruimte, alles instelbaar vanuit HA, Slim opwarmen en weerafhankelijke regeling standaard aan, één onthouden ketelproef, geen oude thermostaat verondersteld, welke ruimtes warmte vragen | **Gepubliceerd en geïnstalleerd 3 november** (tags op 666daf68, HACS 1.0.0rc3), opnieuw zonder acceptatiebewijs |
+| HA 1.0.0rc4 | Alleen HA: Configureren met 6 onderdelen, ← Terug en Klaar, alle instellingen erin, dashboard in tabbladen zonder gaten, ruimtestatus met reden, probleemtegel met reden, reparaties alleen voor echte problemen, gewone taal, HACS zonder schijnupdate | **Gepubliceerd 3 november** (43d231b1, HACS 1.0.0rc4); de E32 blijft op rc.3 |
 
 ## Beta.22 — de overstap ✅ klaar
 
@@ -154,10 +157,10 @@ Inhoud (stand `release-1.0` 7916d31: al het 1.0-werk samengevoegd):
 
 ## 1.0
 
-Volgorde: beta.22 (✅ overstap gedaan op 1 november) → rc.1 (✅ gepubliceerd 2 november, niet geïnstalleerd) → rc.2 (installeren rond 8 november) → `v1.0.0`.
+Volgorde: beta.22 (✅ overstap 1 november) → rc.1 (✅ gepubliceerd, niet geïnstalleerd) → rc.2 (✅ geïnstalleerd 3 november) → rc.3 (✅ geïnstalleerd 3 november) → **rc.4** (besluit eigenaar 3 november, zie hieronder) → `v1.0.0`.
 
 **De weg naar `v1.0.0` (eigenaar 2 november):**
-- rc.2 draait **14 dagen ongewijzigd**; elke codewijziging geeft een nieuwe kandidaat en zet de klok terug;
+- de laatste kandidaat draait **14 dagen ongewijzigd** (dat wordt rc.4); elke firmwarewijziging geeft een nieuwe kandidaat en zet de klok terug;
 - de resterende **bijgewoonde tests** T1–T12 gedaan en vastgelegd met `tools/switchover/record_test.py`;
 - het **leren gezien werken** in actieve regeling: geleerde opwarming per ruimte, de minimale aanvoer van de ketel en stappen van het zelf bijstellen op dagen dat de E32 stuurde;
 - de **radiatorkranen via de veldtester** (hierboven); lukt dat niet op tijd, dan komt `v1.0.0` zonder claim over kranen op echte hardware.
@@ -176,13 +179,50 @@ De criteria, gemeten met `tools/switchover/release_ready.py` (alleen lezen):
 | `install_guide` | iemand anders volgde de installatiehandleiding tot het eind; elk gevonden probleem opgelost | `INSTALLATIETEST-<datum>.json`, via `record_test.py install` |
 
 De kandidaat mag uit vóór de 14 dagen. De gate (`scripts/verify_e32_update_gate.py`) laat `v1.0.0-e32v2` pas toe met een definitief readinessrapport (`release_ready.py --stage final --json …`) van de kandidaat ervoor: elk criterium PASS, minstens 14 dagen, vastgelegd met zijn hash onder `readiness_report` in `E32-UPDATE-GATE.json`.
-Verwachting: met rc.2 rond 8 november op zijn vroegst eind november, anders begin december; de kranen hangen af van de veldtester (de 14 dagen van `trv_control` lopen pas als de kraansturing aan staat).
+Verwachting: rc.4 geïnstalleerd rond 8–10 november, dus 1.0.0 op zijn vroegst eind november; de kranen hangen af van de veldtester (de 14 dagen van `trv_control` lopen pas als de kraansturing aan staat). Let op: rc.2 en rc.3 hebben geen acceptatiebewijs; rc.4 wordt mét vastlegging vooraf en achteraf geïnstalleerd, want `v1.0.0` krijgt geen uitzondering.
+
+## rc.4 — zelf leren dat echt werkt, en de rest van de lijst (besluit eigenaar 3 november)
+
+Het volledige werkpakket, uitvoerbaar door een ander model, staat in [RC4-PLAN.nl.md](RC4-PLAN.nl.md); de onderbouwing van het leerdeel in [LEREN-PLAN-RC4.nl.md](LEREN-PLAN-RC4.nl.md); de codereview in [RC4-CODE-REVIEW.md](RC4-CODE-REVIEW.md).
+
+Aanleiding (eigenaar 3 november): "het zelflerende stuk, is dat goed genoeg? kunnen we dat verbeteren?" De code van rc.3 heeft in dit huis vier blokkades: warm water zet de afkoelmeting terug (afkoeling nooit geleerd, dus Slim opwarmen past zich nooit toe), vóór het leren wordt niets toegepast, "klaar" eist twee aanvoerbakken, en het zelf bijstellen heeft door de 24 uur wachttijd na elke herstart nog nooit een dag beoordeeld.
+
+**A. Zelf leren (de kern)**
+
+| # | Punt | Werk |
+| --- | --- | --- |
+| L1 | Afkoelen leren ondanks warm water: een warmwaterronde pauzeert de afkoelmeting in plaats van hem te wissen | klein |
+| L2 | Terugkoppeling op aankomsttijd: per ruimte een correctiefactor (te laat → 10 % eerder, te vroeg → later), op de standaard- én de geleerde voorlooptijd, bewaard | klein–middel |
+| L3 | Slim opwarmen vanaf dag één toepassen met de standaardschatting vanaf de huidige kamertemperatuur, gestuurd door L2, met een plafond | klein |
+| L4 | "Klaar" voor de opwarmtijd bij één gevulde aanvoerbak; de laagste watertemperatuur houdt twee bakken | klein |
+| L5 | Zelf bijstellen: dagtellers bewaard bij een herstart, 2 uur wachten na een herstart, geen herstart bij cosmetische planwijzigingen | klein–middel |
+| L6 | Scorebord per dag: op tijd warm, doorschieten, starts per uur, pendeluren, gas per graaddag; in HA op het tabblad Leren | middel (vooral HA) |
+| L7 | Later (1.1): één natuurkundig huismodel dat van elke meting leert | groot |
+
+Pendelen: eerst meten met de nieuwe driewegklep (vanaf 4 november); geen regelwijziging vóór die data.
+
+**B. Overige E32-punten uit de lijst van na rc.3**
+
+- E32-overzicht: per ruimte de regel waarom hij wel of niet verwarmt (zoals de ruimtekaart in HA 1.0.0rc4; E32-deel van `v11-room-overview`).
+- Overzichtslabels: "CH active" en "Heat demand" → "Verwarming aan"; hooguit 2 labels op een telefoon.
+- "Te vaak aan en uit" als leerinformatie, niet als probleem (in HA al zo sinds 1.0.0rc4).
+- Namen op de E32-pagina's: Weerafhankelijke regeling en "Watertemperatuur bij strenge vorst (−10 °C)".
+- Tellers die een herstart overleven (warm water vandaag en 7 dagen); branderstarts en -uren verbergen als de ketel ze nooit meldt.
+- Geleerd-kaart korter; Uitloggen als menu-item; marge in de grafiek.
+- Standaardstooklijn alleen op ruimtes die aan staan.
+- Vakantieplanner: periodes vooruit plannen (tot 8), met een eigen vakantietemperatuur (besluit eigenaar 4 november; RC4-PLAN F8).
+
+**C. Codereview** (eigenaar 3 november: "bekijk ook de rest van de code, check op fouten en kijk waar we kunnen optimaliseren"): de gevonden fouten en optimalisaties staan in [RC4-CODE-REVIEW.md](RC4-CODE-REVIEW.md) en zijn als werkpakketten in RC4-PLAN.nl.md opgenomen.
+
+**D. Al gedaan in HA 1.0.0rc4 (3 november, alleen HA)**: Configureren met 6 onderdelen, ← Terug en Klaar, alle instellingen in Configureren, dashboard in tabbladen, ruimtestatus met reden, probleemtegel met reden, reparaties alleen voor echte problemen, gewone taal, HACS zonder schijnupdate.
+
+**Gevolg:** de 14 dagen naar 1.0.0 beginnen opnieuw bij de installatie van rc.4; 1.0.0 eind november op zijn vroegst. Slim opwarmen werkt dan echt in 1.0.0.
 
 ## Na 1.0
 
 - **Alleen-lezen API-sleutel voor assistenten** (eigenaar 2 november): een sleutel op de E32 voor gereedschap en assistenten, standaard uit en in te trekken; alleen GET-routes, zonder websessie, met een verzoeklimiet. Zo kan bijvoorbeeld de Claude van een vriend zijn E32 lezen zonder het admin-wachtwoord.
 - **1.1:** EMS+-ketels lezen en aansturen.
-- **Overzicht per ruimte (1.1, prototype op branch `v11-room-overview`):** elke ruimte zegt in één regel waarom hij wel of niet verwarmt (uit, raam open, geen meting, wachten op warm water of ketelpauze, vakantie, weg, boost, tijdelijk doel, verwarmen, warm genoeg), met iconen voor wie thuis is en open ramen of deuren, en de kraanopening. In HA een sensor "Reason" en een ruimtestatuskaart op het dashboard; op het E32-overzicht dezelfde regel per ruimtekaart. Geen nieuw firmwareveld.
+- **Overzicht per ruimte:** het HA-deel (sensor "Reason", ruimtestatuskaart) zit in HA 1.0.0rc4; de regel op het E32-overzicht staat in rc.4 (B hierboven).
 - **Schrijfbare EMS-instellingen (access/write):** pas na 1.0 (eigenaar 30 en 31 okt). Plan: [EMS-INSTELBARE-WAARDEN.nl.md](EMS-INSTELBARE-WAARDEN.nl.md).
   - W1: tabel met schrijfgegevens;
   - W2: bewijsniveaus (L0 verzonden, L1 teruggelezen, L2 blijvend, L3 effect gemeten) met automatisch terugzetten;
@@ -195,6 +235,15 @@ Verwachting: met rc.2 rond 8 november op zijn vroegst eind november, anders begi
 - **Testerprogramma:** opt-in in HA; "Deel resultaat" opent een vooraf ingevuld GitHub-issue met alleen het ketelprofiel; een GitHub Action controleert het; een profiel komt pas na beoordeling mee.
 - **HACS-vermelding** van de integratie in de standaardlijst van HACS; sinds 2 november staat ze al als custom repository `dielessen/openthermostat-ha`.
 - De overige ruimtes (Badkamer, slaapkamers) zodra de eigenaar dat wil.
+- **Bewust niet in rc.4 (uit de eindreviews van 4 november), voor 1.0.x of 1.1:**
+  - R2-16 een eigen EMS-projectie voor `controller_request` (HA leest nu nog `fw/telemetry/controller_request`);
+  - R2-26 generatietellers in `FlowLearner`/`RoomEngine`;
+  - F5 de waarschuwing als het pendelen aanhoudt nadat de zelfafstemming haar kans had (`tuning.short_cycling_persists`; de pagina's tonen nu alleen de leerinformatie);
+  - F9 het firmwaredeel (de moderne status zonder koppeling melden zou de HA-koppeling haar herstart laten overslaan);
+  - de terugkeervoorlooptijd met de aankomstfactor (`RoomOverrides::returnLeadS` neemt de standaardvoorlooptijd zonder plafond);
+  - review-fw L2 (een herstart midden in een opwarmstart telt als één les "te laat"), L5 (~0,9 KB stapel in `AutoTuner::setPlan` op het HTTP-pad), L6 (het terugzetten van het vakantierecord na een mislukte comfort-opslag is zelf gepoort);
+  - R5-28 (tooling) en het echt draaien van de publicatiescripts tegen GitHub (gebeurt bij deze release);
+  - **idee eigenaar 4 november:** de ketel meldt displaycode 0Y (water warmer dan gevraagd, brander uit) zelf op de bus; dat als direct signaal gebruiken dat de gevraagde aanvoer te hoog is voor wat het huis afneemt, zodat het leren de aanvoer sneller verlaagt dan via het doorschieten van de kamer.
 
 ## Werkafspraken
 

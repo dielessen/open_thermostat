@@ -73,12 +73,17 @@ struct MqttOutbox {
         std::string_view topic;
         if (!arena_ || !parse(frame, size, topic) || size > 0xFFFF) return Push::rejected;
         if (topic.empty()) { cls = control; coalesce = false; }
-        bool replaced = false;
+        // The waiting frame of the same topic goes only when the newer one fits in its place
+        // (review R2-13): a refused push never loses the frame it would have replaced.
+        size_t old = count_;
         if (coalesce)
             for (size_t i = 0; i < count_; ++i)
-                if (!entries_[i].sent && entries_[i].cls == cls && topicOf(i) == topic) { remove(i); replaced = true; break; }
+                if (!entries_[i].sent && entries_[i].cls == cls && topicOf(i) == topic) { old = i; break; }
+        const bool replaced = old < count_;
+        const size_t frames = count_ - (replaced ? 1 : 0), reclaim = replaced ? entries_[old].size : 0;
         const size_t limit = cls == control ? capacity_ : (capacity_ > reserve_ ? capacity_ - reserve_ : 0);
-        if (count_ >= maxFrames || used_ + size > limit) return Push::rejected;
+        if (frames >= maxFrames || used_ - reclaim + size > limit) return Push::rejected;
+        if (replaced) remove(old);
         if (!count_) lastProgress_ = now;
         Entry& e = entries_[count_++];
         e = Entry{uint32_t(used_), uint16_t(size), 0, uint16_t(topic.empty() ? 0 : reinterpret_cast<const uint8_t*>(topic.data()) - frame),

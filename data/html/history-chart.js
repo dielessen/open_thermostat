@@ -64,6 +64,8 @@
     }
     function scale(lo, hi, minSpan) {
         if (hi - lo < minSpan) { const mid = (lo + hi) / 2; lo = mid - minSpan / 2; hi = mid + minSpan / 2; }
+        // 10 % room above and below the lines (rc.4 F7): a value on a tick never sits on the edge of the plot.
+        const pad = Math.max((hi - lo) * 0.1, minSpan * 0.05); lo -= pad; hi += pad;
         const step = [0.5, 1, 2, 5, 10, 20, 50].find(s => (hi - lo) / s <= 4) || 50;
         lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
         const ticks = []; for (let v = lo; v <= hi + 1e-9; v += step) ticks.push(v);

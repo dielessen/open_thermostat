@@ -366,7 +366,8 @@ TEST(RoomOverrides, StatusShowsTheReasonPerRoomAndTheHouseAway) {
     cJSON_free(study);
     EXPECT_FALSE(comfort(2)); // following its plan: nothing added
     char* away = cJSON_PrintUnformatted(cJSON_GetObjectItem(status.get(), "away"));
-    EXPECT_STREQ(away, R"({"on":false,"source":"none","target_c":15,"until":null,"presence":"unknown","mode":"auto","room_presence":true})");
+    EXPECT_STREQ(away, R"({"on":false,"source":"none","target_c":15,"until":null,"presence":"unknown","mode":"auto","room_presence":true,)"
+                       R"("holiday_temperature_c":15,"holidays":[]})");
     cJSON_free(away);
     Json api(o.json(p, 0), cJSON_Delete);
     ASSERT_TRUE(api);
@@ -388,7 +389,8 @@ TEST(RoomOverrides, ReturnLeadUsesTheWarmupPlannersDefaultWhileNotLearned) {
 
 // The telemetry budget (TELEMETRIEBUDGET.nl.md): fw/state/room/<id> is at most 319 B for a
 // worst-case plan and fw/state/heating 754 B; comfort adds at most 160 B here and 180 B with "away_by"
-// (RoomAway.TheReasonFitsTheTelemetryBudget), away 100 B.
+// (RoomAway.TheReasonFitsTheTelemetryBudget), away 100 B. rc.4: the holidays, see
+// HeatingStateTopics.WorstCaseHeatingWithTheHouseAwayStaysBelowTheHardLimit.
 TEST(RoomOverrides, StatusAdditionsStayWithinTheTelemetryBudget) {
     ScopedTz tz(ScopedTz::amsterdam);
     const auto p = plan();
@@ -396,6 +398,12 @@ TEST(RoomOverrides, StatusAdditionsStayWithinTheTelemetryBudget) {
     RoomOverrides o;
     ASSERT_EQ(command(o, p, R"({"room":"living","override":"timed","temperature":21.25,"minutes":1440})", 0, monNoon), nullptr);
     ASSERT_EQ(command(o, p, R"({"away":true,"temperature":15.5,"until":1817000000})", 0, monNoon), nullptr);
+    // rc.4: two holidays in the status (the running one and the next), an own holiday temperature.
+    bool holidays = false, persisted = false;
+    Json plan2(cJSON_Parse(R"({"holidays":[{"from":1793617200,"until":1817000000},{"from":1817000001,"until":1819999999}],)"
+                           R"("holiday_temperature":12.25})"), cJSON_Delete);
+    ASSERT_EQ(o.command(plan2.get(), p, 0, monNoon, persisted, &holidays), nullptr);
+    EXPECT_TRUE(holidays);
     EXPECT_TRUE(o.input(R"({"kind":"contact","room":"living","open":true,"delay_s":0})", p, 0));
     EXPECT_TRUE(o.input(R"({"kind":"presence","home":false})", p, 0));
     o.step(p, 0, monNoon, noLead);
@@ -411,8 +419,10 @@ TEST(RoomOverrides, StatusAdditionsStayWithinTheTelemetryBudget) {
     ASSERT_TRUE(living);
     EXPECT_LE(size(living) + std::strlen(R"(,"comfort":)"), 160u);
     // 100 B until beta.21; beta.23 adds "mode" (at most ,"mode":"holiday", 17 B) and the room.presence.v1
-    // flag (,"room_presence":true, 21 B). fw/state/heating stays well below 1 KB.
-    EXPECT_LE(size(cJSON_GetObjectItem(status.get(), "away")) + std::strlen(R"(,"away":)"), 138u);
+    // flag (,"room_presence":true, 21 B); rc.4 the holiday temperature (,"holiday_temperature_c":12.25,
+    // 30 B) and the next two holidays (,"holidays":[..], 93 B).
+    EXPECT_LE(size(cJSON_GetObjectItem(status.get(), "away")) + std::strlen(R"(,"away":)"), 138u + 30u + 93u);
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(cJSON_GetObjectItem(status.get(), "away"), "holidays")), 2);
     EXPECT_LE(o.stored().size(), RoomOverrides::storeBytes);
 }
 
@@ -446,7 +456,8 @@ TEST(RoomOverrides, HouseModeAutoHomeAwayAndHoliday) {
     cJSON_AddArrayToObject(status.get(), "rooms");
     ASSERT_TRUE(o.addStatus(status.get(), p, 0));
     char* home = cJSON_PrintUnformatted(cJSON_GetObjectItem(status.get(), "away"));
-    EXPECT_STREQ(home, R"({"on":false,"source":"none","target_c":15,"until":null,"presence":"away","mode":"home","room_presence":true})");
+    EXPECT_STREQ(home, R"({"on":false,"source":"none","target_c":15,"until":null,"presence":"away","mode":"home","room_presence":true,)"
+                       R"("holiday_temperature_c":15,"holidays":[]})");
     cJSON_free(home);
     // Auto: presence decides again.
     ASSERT_EQ(command(o, p, R"({"house_mode":"auto","temperature":16})", 0, monNoon, &persisted), nullptr);

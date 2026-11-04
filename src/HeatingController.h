@@ -33,6 +33,7 @@
 #include "control/NewPlanDefault.h"
 #include "control/HeatingInput.h"
 #include "control/HeatingTelemetry.h"
+#include "control/Scoreboard.h"
 #include "control/HeatingHistory.h"
 #include <esp_heap_caps.h>
 #include "diagnostics/BlackBox.h"
@@ -165,6 +166,8 @@ public:
         history_.begin([](size_t size) { return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT); }, heap_caps_free);
         loadFlowSettings();
         overrides_.restore(RoomOverridesNvs::read()); // waits for a trusted clock before it applies
+        ems_.restoreDhw(DhwNvs::read()); // F2: today's and the week's hot water, joined once the clock is known
+        overrides_.restoreHolidays(HolidaysNvs::read()); // rc.4: the planned holidays (absent: none)
         // The takeover readiness counters; the stable time only after a planned restart.
         bool readinessThermostat = false;
         {
@@ -181,6 +184,12 @@ public:
             const auto rooms = learnedStore_.restore(nvs, flowLearner_, flowPolicy_, bleReceiptClock());
             DBGLOGFI(log_, logFeature_, "Learned state restored for %u room(s)\n", unsigned(rooms));
         }
+        // A holiday set before rc.4 (the comfort record's dated away): into its own record once. After the
+        // learned restore: the two writes may make room from the learned records, which are then written
+        // again where they fit (rewriteEvicted) instead of being erased before they were read.
+        if (overrides_.legacyHoliday() && HolidaysNvs::write(overrides_.holidaysStored()) && RoomOverridesNvs::write(overrides_.stored()))
+            overrides_.legacyHolidaySaved();
+        rewriteEvicted();
         // A stored "thermostat disconnected" (same firmware) resumes active heat
         // after 2 min of bus reception without a foreign 0x1A, which clears it.
         // One of other firmware (an update): wait for the owner to confirm again,
@@ -192,7 +201,7 @@ public:
         }
         // Whether the E32 ever owned the boiler (a stored confirmation says so too): waiting for a
         // confirmation is then a problem for Home Assistant, on a new E32 only the next step.
-        ownedBefore_ = HeatingNoteNvs{"owned"}.read() == "1";
+        ownedBefore_ = ownedStored_ = HeatingNoteNvs{"owned"}.read() == "1";
         if (activeGuard_.confirmed() || activeGuard_.reconfirmPending()) markOwned();
         // The boiler test's record (rc.3: its last result, the owner's mark, a past thermostat). A
         // thermostat period in the stored readiness window is the same fact from before rc.3.
@@ -223,7 +232,10 @@ public:
             std::array<std::optional<int16_t>, control::RoomPlan::maxRooms> temperatures{};
             const auto now = bleReceiptClock();
             return control::heatingSummaryTelemetry(flowLearner_, learnedContext(now, temperatures), ems_.dhwSummaryJson(), &flowPolicy_,
-                [&](cJSON* root) { return autoTuner_.addStatus(root, now, effectiveTuning(), flowSettings_.manual, control::AutoTuner::mqttEntries); });
+                [&](cJSON* root) {
+                    return autoTuner_.addStatus(root, now, effectiveTuning(), flowSettings_.manual, control::AutoTuner::mqttEntries)
+                        && scoreboard_.addJson(root, autoTuner_, roomEngine_.plan(), true); // rc.4 (F1): its own topic, today without rooms
+                });
         });
 #endif
 	}
@@ -343,15 +355,28 @@ public:
         rewriteEvicted(); // the plan first: optional records may have made room for it
         if (saved == HeatingPlanSave::storage_full) return "storage_full";
         if (saved != HeatingPlanSave::saved) return "save_unconfirmed";
-        planStored_ = true;
+        planStored_ = true; planReadable_ = true;
+        // rc.4 (L5): only a change of the control itself (rooms, sources, programs, limits) gives the
+        // tuner a day of its own; a renamed room or an away temperature keeps its evidence.
+        const bool controlChanged = control::AutoTuner::controlChanged(roomEngine_.plan(), plan);
+        const auto roomMap = control::Scoreboard::roomMap(roomEngine_.plan(), plan);
+        scoreboard_.remap(roomMap);
+        readiness_.remap(roomMap);  // rc.4 (R1-04): the last known targets follow their rooms
         roomEngine_.setPlan(plan);
         flowLearner_.setPlan(plan);
-        autoTuner_.restart(bleReceiptClock()); // a new plan: a day of its own before the tuner moves
+        flowPolicy_.setPlan(plan);  // rc.4 (R1-04): the start latch, the curve window and the arrival factors follow the ids
+        autoTuner_.setPlan(plan);
+        if (controlChanged) autoTuner_.restart(bleReceiptClock());
         // Valves of rooms the plan no longer has leave their record (stored), so a later valve
         // save is not refused as unknown_room and their fw/state/trv/<room> topic is cleared.
         auto valves = trv_.config();
-        if (valves.dropRooms([&](const std::string& id) { return plan.find(id) != nullptr; }) && TrvNvs::write(valves))
+        if (valves.dropRooms([&](const std::string& id) { return plan.find(id) != nullptr; }) && TrvNvs::write(valves)) {
             trv_.setConfig(std::move(valves));
+            rewriteEvicted(); // R1-06: the valve record may have made room from what was learned
+        }
+        // Overrides, windows and warm-up leads stay with their room's id; the views follow the new plan (R1-04).
+        overrides_.planChanged(roomEngine_.plan(), bleReceiptClock(),
+                               networkTimeTrusted ? std::optional<uint32_t>(static_cast<uint32_t>(std::time(nullptr))) : std::nullopt);
         return nullptr;
     }
     // The owner's handover on the page: true = "the tado is disconnected from
@@ -428,7 +453,9 @@ public:
         if (const char* error = control::TrvConfig::parse(root, config)) return error;
         for (const auto& r : config.rooms) if (!roomEngine_.plan().find(r.id)) return "unknown_room";
         if (config == trv_.config()) return nullptr;
-        if (!TrvNvs::write(config)) return "save_unconfirmed";
+        const bool saved = TrvNvs::write(config);
+        rewriteEvicted(); // R1-06: the valves may have made room from what was learned
+        if (!saved) return "save_unconfirmed";
         trv_.setConfig(std::move(config));
         return nullptr;
     }
@@ -457,19 +484,27 @@ public:
         applyFlowSettings(settings);
         return nullptr;
     }
-    // GET/POST /config/heating/comfort (control/RoomOverrides.h): overrides and away,
-    // stored in NVS only when the record changes; the state is kept only once saved.
+    // GET/POST /config/heating/comfort (control/RoomOverrides.h): overrides, away and the
+    // holidays, stored in NVS only when a record changes; the state is kept only once saved.
     cJSON* heatingComfortJson() const { return overrides_.json(roomEngine_.plan(), bleReceiptClock()); }
     const char* setHeatingComfort(const cJSON* root) {
         std::unique_ptr<control::RoomOverrides> next(new (std::nothrow) control::RoomOverrides(overrides_));
         if (!next) return "save_unconfirmed";
         std::optional<uint32_t> utc;
         if (networkTimeTrusted) utc = static_cast<uint32_t>(std::time(nullptr));
-        bool persist = false;
-        if (const char* error = next->command(root, roomEngine_.plan(), bleReceiptClock(), utc, persist)) return error;
-        if (persist && !RoomOverridesNvs::write(next->stored())) return "save_unconfirmed";
-        overrides_ = *next;
-        return nullptr;
+        bool persist = false, holidays = false;
+        if (const char* error = next->command(root, roomEngine_.plan(), bleReceiptClock(), utc, persist, &holidays)) return error;
+        return saveComfort(*next, persist, holidays);
+    }
+    // The settings backup (control/ConfigBackup.h "holidays"): the holidays record, and its restore.
+    std::string heatingHolidays() const { return overrides_.holidaysStored(); }
+    bool setHeatingHolidays(std::string_view record) {
+        std::unique_ptr<control::RoomOverrides> next(new (std::nothrow) control::RoomOverrides(overrides_));
+        if (!next || !next->restoreHolidays(record)) return false;
+        std::optional<uint32_t> utc;
+        if (networkTimeTrusted) utc = static_cast<uint32_t>(std::time(nullptr));
+        next->refresh(roomEngine_.plan(), bleReceiptClock(), utc);
+        return !saveComfort(*next, next->stored() != overrides_.stored(), next->holidaysStored() != overrides_.holidaysStored());
     }
     cJSON* activeHeatJson() const {
         const auto now = bleReceiptClock();
@@ -479,6 +514,8 @@ public:
         cJSON_AddBoolToObject(active, "confirmation_stored", handover_.stored());
         cJSON_AddBoolToObject(active, "reconfirm_stored", handover_.pending());
         cJSON_AddBoolToObject(active, "taken_over_before", ownedBefore_);
+        // rc.4 (R1-05): the stored plan could not be read at boot; the E32 runs without rooms until a plan is saved.
+        cJSON_AddBoolToObject(active, "plan_unreadable", !planReadable_);
         // rc.3: the E32 ever heard another controller ask the boiler for heat (kept in the boiler
         // test's record); the pages and Home Assistant mention an old thermostat only then.
         cJSON_AddBoolToObject(active, "thermostat_seen", takeoverTest_.thermostatSeen());
@@ -540,6 +577,8 @@ public:
         if (mqtt) return root;
         // The self-tuning (AutoTuner): its state, the knobs in effect, yesterday and the change log.
         if (!autoTuner_.addStatus(root, now, effectiveTuning(), flowSettings_.manual)) { cJSON_Delete(root); return nullptr; }
+        // rc.4 (F1): the daily scoreboard (on time, overshoot, starts, short cycling, gas, degree-days).
+        if (!scoreboard_.addJson(root, autoTuner_, roomEngine_.plan())) { cJSON_Delete(root); return nullptr; }
         // What the learner found (report only) and, with a trusted clock, its plans.
         std::array<std::optional<int16_t>, control::RoomPlan::maxRooms> temperatures{};
         cJSON* learned = control::learnedJson(flowLearner_, roomEngine_.plan(), learnedContext(now, temperatures));
@@ -565,11 +604,21 @@ public:
     // still be held, or after BoilerReleaseHold::maxMs. Shadow mode: at once.
     bool releaseBoilerForRestart() {
         activeGuard_.withdraw(bleReceiptClock());
-        if (!readinessStored_) { // once: the counters and what was learned survive it
+        if (!readinessStored_) { // once: the counters, what was learned and the hot water days survive it
             readinessStored_ = true; ReadinessNvs::write(readiness_.stored()); saveLearned(bleReceiptClock());
+            saveDhw(bleReceiptClock(), true);
         }
         return restartHold_.ready(static_cast<uint32_t>(bleReceiptClock()), activeGuard_.released());
     }
+    // R2-03: a firmware upload (/ota, /otafs) holds the loop task for minutes, so nothing reaches
+    // the boiler meanwhile. Before its body is read the guard pauses (asks the boiler for zero at
+    // the next steps); true once no positive request can still be held, or after
+    // BoilerReleaseHold::maxMs. resumeAfterUpload(): the upload ended without a staged firmware.
+    bool pauseForUpload() {
+        if (!uploadPaused_) { activeGuard_.pause(bleReceiptClock()); uploadPaused_ = true; uploadHold_ = update::BoilerReleaseHold{}; }
+        return uploadHold_.ready(static_cast<uint32_t>(bleReceiptClock()), activeGuard_.released());
+    }
+    void resumeAfterUpload() { if (uploadPaused_) { activeGuard_.resume(); uploadPaused_ = false; } }
     uint32_t managedBleQueueDrops() const { return managedBle_.queueDrops(); }
     // Queued, not refused: a running automatic scan ends first (loop() starts the Search).
     bool requestBleDiscovery() {
@@ -873,16 +922,45 @@ private:
     control::BleDeviceDiscovery bleDiscovery_;
     static_assert(sizeof(decltype(managedBle_)) <= 4096, "BLE observer resident budget changed");
     control::RoomEngine roomEngine_;
-    control::RoomOverrides overrides_; // beta.19: temporary overrides, window pauses, away (targets only)
+    control::RoomOverrides overrides_; // beta.19: temporary overrides, window pauses, away (targets only); rc.4: holidays
+    // Stores what a comfort change touched, the holidays record first (the comfort record keeps rc.3's
+    // copy of a running holiday for a rollback), and only then keeps it. A failed comfort write puts the
+    // holidays record back (best effort; gated like an optional record).
+    const char* saveComfort(const control::RoomOverrides& next, bool comfort, bool holidays) {
+        if (holidays) {
+            const bool saved = HolidaysNvs::write(next.holidaysStored());
+            rewriteEvicted(); // the holidays may have made room: the learned records are written again where they fit
+            if (!saved) return "save_unconfirmed";
+        }
+        if (comfort) {
+            const bool saved = RoomOverridesNvs::write(next.stored());
+            rewriteEvicted(); // R1-06: the record may have made room from what was learned
+            if (!saved) {
+                if (holidays) HolidaysNvs::write(overrides_.holidaysStored());
+                return "save_unconfirmed";
+            }
+        }
+        overrides_ = next;
+        return nullptr;
+    }
     control::ShadowComparison shadowComparison_; // E32 decision vs the tado's 0x1A, per day
     control::TakeoverReadiness readiness_;       // the shadow exit criteria over 7 days (NVS)
     bool readinessStored_ = false;               // stored for the coming planned restart
     control::ActiveHeatGuard activeGuard_;
     control::TakeoverTest takeoverTest_;         // the guided boiler test and takeover (rc.2)
     bool planStored_ = true;                     // false: no plan in NVS yet, its mode follows newPlan_
+    bool planReadable_ = true;                   // false: the stored plan was unreadable at boot (R1-05), until a save
     control::NewPlanDefault newPlan_;            // a new plan's route from the boiler bus (rc.2)
-    bool ownedBefore_ = false;                   // the E32 owned the boiler once (NVS "owned")
-    void markOwned() { if (!ownedBefore_) { ownedBefore_ = true; HeatingNoteNvs{"owned"}.write("1"); } }
+    bool ownedBefore_ = false, ownedStored_ = false; // the E32 owned the boiler once (NVS "owned")
+    uint64_t ownedRetryAt_ = 0;
+    // R1-06: the note is gated like the other notes (HeatingNoteNvs::writeGated, in the ledger); a
+    // refused write keeps RAM and is tried again every 10 minutes while the E32 owns the boiler (R1-19).
+    void markOwned() {
+        ownedBefore_ = true;
+        if (ownedStored_ || bleReceiptClock() < ownedRetryAt_) return;
+        ownedStored_ = HeatingNoteNvs{"owned"}.writeGated("1");
+        if (!ownedStored_) ownedRetryAt_ = bleReceiptClock() + 600000;
+    }
     std::string testRecord_;                     // the boiler test's record as last stored
     // Stores the boiler test's record when it changed (each step, the end, a mark, the first foreign
     // controller), gated like an optional record (HeatingNoteNvs::writeGated). A refused write keeps
@@ -906,11 +984,16 @@ private:
     std::vector<control::TrvControl::Room> trvRooms_; // the last step's room views, for the status
     std::atomic<bool> actuatorOutput_{false}; // trv_.actuatorOutput() of the last step (actuator.output.v1)
     update::BoilerReleaseHold restartHold_;
+    update::BoilerReleaseHold uploadHold_; bool uploadPaused_ = false; // R2-03: a firmware upload waits for the zero
     // Per room how fast it warms per flow (report only; ~1.15 KB heap per room, PSRAM extmem).
     control::FlowLearner flowLearner_;
     control::FlowPolicy flowPolicy_; // beta.19 options: weather curve, learned flow, optimum start (default: advice)
     control::FlowSettings flowSettings_; // as stored: the options, the owner's knobs and which are manual
     control::AutoTuner autoTuner_;       // rc.2: the automatic knobs from the measured days (NVS "autotune")
+    control::Scoreboard scoreboard_;     // rc.4: the daily scoreboard (NVS "scoreboard")
+    std::string scoreboardStored_;       // the stored record until the clock knows the local day
+    bool scoreboardAdopted_ = false;
+    uint64_t scoreboardLastMs_ = 0;
     control::LearnedStore learnedStore_; // rc.2: the learner's, curve's and night ledger's state over restarts (NVS "learned_a", "learned_b")
     // A plan or Bluetooth save erased optional NVS records to make room (NvsOptionalRecords.h):
     // what was learned and the knobs are written again where they fit (readiness: its next save).
@@ -929,6 +1012,14 @@ private:
         if (!learnedStore_.save(nvs, flowLearner_, flowPolicy_, now))
             DBGLOGFI(log_, logFeature_, "Learned state of %u of %u room(s) saved (NVS short of room or a write failed); the rest kept in RAM, retried in 6 h\n",
                      unsigned(learnedStore_.storedRooms()), unsigned(learnedStore_.rooms()));
+    }
+    // F2 (rc.4): today's and the last 7 days' hot water over restarts (DhwEpisodes, NVS "dhw"): at a
+    // new day, hourly when it changed and before a planned restart; gated like an optional record.
+    static_assert(DhwNvs::maxBytes == control::DhwEpisodes::recordBytes, "the hot water record's bound");
+    void saveDhw(uint64_t now, bool restart) {
+        const auto record = ems_.dhwRecordDue(now, restart);
+        if (!record.empty() && !DhwNvs::write(record))
+            DBGLOGFD(log_, logFeature_, "Hot water days not saved (NVS short of room or write failed); kept in RAM\n");
     }
     control::HeatingHistory history_; // 24 h of 5-minute averages, ~12.5 KB PSRAM, RAM only
     control::HeatingInputRoute haInput_;  // ha/heating_input: rooms, gas, price, outdoor, boiler power
@@ -949,8 +1040,11 @@ private:
         const auto raw = readHeatingPlan(&planStored_);
         const auto root = control::parseNestedJson(raw);
         control::RoomPlan plan;
-        if (root && !control::RoomPlan::parse(root.get(), plan)) { roomEngine_.setPlan(plan); flowLearner_.setPlan(plan); }
-        else DBGLOGFI(log_, logFeature_, "Room plan unreadable; heating control has no rooms\n");
+        planReadable_ = root && !control::RoomPlan::parse(root.get(), plan);
+        if (planReadable_) {
+            roomEngine_.setPlan(plan); flowLearner_.setPlan(plan);
+            flowPolicy_.setPlan(plan); autoTuner_.setPlan(plan); // rc.4: per-room state keyed by id
+        } else DBGLOGFI(log_, logFeature_, "Room plan unreadable; heating control has no rooms (a boot zero is still owed)\n");
     }
     // ha/heating_input: room states and the learner's gas, price, outdoor and
     // boiler power (control/HeatingInput.h). Anything else is ignored.
@@ -969,6 +1063,7 @@ private:
         if (networkTimeTrusted) context.utc = static_cast<int64_t>(std::time(nullptr));
         context.temperatures = temperatures.data();
         context.outdoorCentiC = outdoor.centiC; context.outdoorSource = outdoor.source; context.now = now;
+        context.arrival = &flowPolicy_.arrival(); // rc.4 (L2)
         return context;
     }
     // Every 10 s: feed the Bluetooth sources, then compute the (shadow) request.
@@ -1012,11 +1107,13 @@ private:
                                         tuning.minOnS * 1000u, tuning.minOffS * 1000u);
         stepActiveHeat(now, valved, ems);
         stepAutoTuner(now, unixNow, valved, ems);
+        stepScoreboard(now, unixNow);
         trv_.step(now, trvRooms_, activeGuard_.confirmedOutput(), [this](const std::string& topic, const std::string& payload) {
             return mqtt_.publishExternal(topic, payload);
         });
         actuatorOutput_.store(trv_.actuatorOutput());
         sampleHistory(now, valved, ems, tadoFlowC); // the request after the valves' feedback
+        saveDhw(now, false); // F2: at a new day, hourly when it changed
     }
     // The rooms as the valve control sees them (control/TrvControl.h); empty without valves.
     std::vector<control::TrvControl::Room> trvRoomViews(uint64_t now) const {
@@ -1090,7 +1187,27 @@ private:
         }
         flowLearner_.sample(now, boiler, rooms.data(), count);
     }
-    void loadFlowSettings() { AutoTunerNvs::read(autoTuner_); applyFlowSettings(FlowSettingsNvs::read()); }
+    void loadFlowSettings() {
+        const bool restored = AutoTunerNvs::read(autoTuner_);
+        applyFlowSettings(FlowSettingsNvs::read());
+        autoTuner_.boot(bleReceiptClock(), restored); // rc.4 (L5): 2 h after a boot with its record, else a day
+        scoreboardStored_ = ScoreboardNvs::read();    // adopted once the clock knows the local day
+    }
+    // rc.4 (F1): the scoreboard follows the clock; the arrival learner's judged mornings go in.
+    void stepScoreboard(uint64_t now, std::optional<uint32_t> unixNow) {
+        if (!unixNow) return;
+        const int32_t day = control::RoomSchedule::localDay(*unixNow);
+        if (!scoreboardAdopted_) {
+            scoreboardAdopted_ = true;
+            autoTuner_.adoptDay(day);
+            if (!scoreboardStored_.empty() && !scoreboard_.restore(scoreboardStored_.c_str(), day)) DBGLOGFI(log_, logFeature_, "Scoreboard record not for today; dropped\n");
+            scoreboardStored_.clear();
+        }
+        const uint32_t dtS = scoreboardLastMs_ && now > scoreboardLastMs_ ? uint32_t(std::min<uint64_t>(now - scoreboardLastMs_, 60000) / 1000) : 0;
+        scoreboardLastMs_ = now;
+        scoreboard_.step(*unixNow, dtS, learnerOutdoor(now).centiC, flowLearner_.gas().heatingKwh());
+        for (control::ArrivalLearner::Event ev; flowPolicy_.arrival().pop(ev);) scoreboard_.arrival(ev.room, ev.atUtc, ev.errorMin);
+    }
     control::ControlTuning effectiveTuning() const { return autoTuner_.effective(flowSettings_.tuning, flowSettings_.manual); }
     // The stored settings with the knobs in effect for every part.
     void applyFlowSettings(const control::FlowSettings& settings) {
@@ -1115,7 +1232,15 @@ private:
         s.now = now; s.utc = unixNow; s.request = request; s.burnerOn = ems.burnerOn; s.hotWater = ems.hotWater;
         s.shortCycling = ems_.burnerCycles().shortCycling; s.active = activeGuard_.confirmedOutput();
         s.tuning = &tuning; s.rooms = rooms.data(); s.count = count;
-        if (!autoTuner_.sample(s)) return;
+        const bool closed = autoTuner_.sample(s);
+        // rc.4 (L5): the day counters and the scoreboard every hour, so a restart loses at most an hour.
+        if (unixNow && autoTuner_.dayStoreDue(now)) {
+            if (!AutoTunerNvs::write(autoTuner_, learnedStore_.pendingEntries())) DBGLOGFI(log_, logFeature_, "Tuning day not saved (NVS short of room or write failed)\n");
+            if (!scoreboardAdopted_) {} // not before the clock told the local day: the stored record is still the better one
+            else if (const auto text = scoreboard_.stored(); !text.empty() && !ScoreboardNvs::write(text, learnedStore_.pendingEntries()))
+                DBGLOGFI(log_, logFeature_, "Scoreboard not saved (NVS short of room or write failed)\n");
+        }
+        if (!closed && !(unixNow && autoTuner_.evaluationPending(now))) return;
         std::array<control::AutoTuner::Learned, control::RoomPlan::maxRooms> learned{};
         const auto outdoor = learnerOutdoor(now).centiC;
         for (size_t i = 0; i < count && i < flowLearner_.rooms(); ++i) {
@@ -1160,6 +1285,7 @@ private:
         if (ems.foreign) in.foreign = control::ActiveHeatGuard::Foreign{ems.foreign->address, ems.foreign->receivedAtMs};
         in.uptimeMs = now; in.routeReady = ems.routeReady; in.boilerLimitC = ems.limitC;
         in.boiler = {ems.burnerOn, ems.flowCentiC}; in.boilerHeardAtMs = ems.boilerHeardAtMs;
+        in.planUnreadable = !planReadable_; // R1-05: the boot zero of a stored confirmation still goes out
         // The learned lowest flow the boiler fires at (FlowLearner::effectiveMinimumC, below the plan's maximum).
         activeGuard_.setFlowLimits(flowLearner_.effectiveMinimumC(ems.limitC), plan.maximumFlowC);
         const auto c = activeGuard_.step(now, in);

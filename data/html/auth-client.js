@@ -33,6 +33,7 @@
                     typeof data.csrf !== 'string' || !/^[a-f0-9]{64}$/.test(data.csrf)) throw new Error(uiText("Invalid session response"));
                 state = {legacy: false, csrf: data.csrf, default_password: data.default_password === true};
                 if (state.default_password) choosePassword();
+                if (document.readyState !== 'loading') showSession(state); // also after a failed first check (R3-14)
                 return state;
             } catch (error) {
                 if (controller.signal.aborted) throw new Error(uiText("Session check unavailable"));
@@ -63,6 +64,28 @@
         return response;
     };
     window.OpenThermostatAuth = {headers, ready: session};
+    // What depends on the session: Bluetooth (E32 only) and Sign out, an item of the System menu (rc.4, R3-14).
+    let signOutReady = false;
+    function showSession(current) {
+        document.querySelectorAll('[data-bluetooth-settings]').forEach(node => {
+            node.hidden = current.legacy;
+        });
+        const button = document.getElementById('auth-sign-out');
+        if (!button || current.legacy || signOutReady) return;
+        signOutReady = true;
+        const items = document.querySelectorAll('[data-sign-out-item]');
+        if (items.length) items.forEach(item => { item.hidden = false; }); else button.hidden = false;
+        button.addEventListener('click', async event => {
+            event.preventDefault();
+            event.stopPropagation(); // Do not let the legacy menu handler clear the page on failed logout.
+            button.disabled = true;
+            try {
+                const response = await window.fetch('/auth/logout', {method: 'POST'});
+                if (!response.ok) throw new Error(uiText("Sign out failed"));
+                state = null; signIn();
+            } catch (error) { button.disabled = false; window.alert(uiText("Could not sign out. Check the connection and try again.")); }
+        });
+    }
     async function attachSignOut() {
         // Existing fragment navigation uses jQuery.load (GET), not window.fetch.
         if (window.jQuery) window.jQuery(document).ajaxError((event, xhr, settings) => {
@@ -71,25 +94,8 @@
                 state = null; signIn();
             }
         });
-        try {
-            const current = await session();
-            document.querySelectorAll('[data-bluetooth-settings]').forEach(node => {
-                node.hidden = current.legacy;
-            });
-            const button = document.getElementById('auth-sign-out');
-            if (!button || current.legacy) return;
-            button.hidden = false;
-            button.addEventListener('click', async event => {
-                event.preventDefault();
-                event.stopPropagation(); // Do not let the legacy menu handler clear the page on failed logout.
-                button.disabled = true;
-                try {
-                    const response = await window.fetch('/auth/logout', {method: 'POST'});
-                    if (!response.ok) throw new Error(uiText("Sign out failed"));
-                    state = null; signIn();
-                } catch (error) { button.disabled = false; window.alert(uiText("Could not sign out. Check the connection and try again.")); }
-            });
-        } catch (error) { /* API calls surface the same bounded session error. */ }
+        try { showSession(await session()); }
+        catch (error) { /* API calls surface the same bounded session error; the next good check shows Sign out. */ }
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attachSignOut);
     else attachSignOut();

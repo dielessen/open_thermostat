@@ -18,7 +18,7 @@ const assets=path.resolve(__dirname,'../data/html'),out=path.resolve(__dirname,'
    const f=path.join(assets,p==='/'?'index.html':p);if(!f.startsWith(assets+'/')||!fs.existsSync(f))return route.fulfill({status:404,body:''});let body=fs.readFileSync(f);if(p.endsWith('.gz'))body=zlib.gunzipSync(body);
    return route.fulfill({contentType:/\.js(?:\.gz)?$/.test(p)?'application/javascript':p.endsWith('.css.gz')?'text/css':'text/html',body});
   });
-  await page.goto('http://opth.test/');await page.locator('#auth-sign-out').waitFor();
+  await page.goto('http://opth.test/');await page.locator('[data-sign-out-item]:not([hidden]) #auth-sign-out').waitFor({state:'attached'});
   await page.evaluate(()=>{window.navigationAttempt=loadNativePage('ems_devices');});await release;
   await page.evaluate(()=>loadNativePage('about'));await page.locator('#about-heading').waitFor();
   await held.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(assets,'ems_devices.html'))}).catch(()=>{});await complete;

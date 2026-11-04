@@ -16,6 +16,7 @@
 #include "DeviceNetworkSettings.h"
 #include "DeadlineWiFiClient.h"
 #include "AsyncBrokerDns.h"
+#include "BrokerRetry.h"
 #include "PendingTcpConnect.h"
 #include "ControllerRequestTelemetry.h"
 #include "HeatingTelemetry.h"
@@ -328,7 +329,7 @@ public:
             return;
         }
         if(!heating::networkConnected()||!client_.connected()) {
-            if(wasConnected_) { retireActuators(); ui_.clear(); withOwner([](auto& owner){owner.disconnected();}); wasConnected_=false; trvSubscribed_.clear(); }
+            if(wasConnected_) { retireActuators(); ui_.clear(); withOwner([](auto& owner){owner.disconnected();}); wasConnected_=false; trvSubscribed_.clear(); retry_.disconnected(now); }
             // Advance local withdrawal deadlines even if network/reconnect fails.
             // Offline owner ticks never publish or consult remote observers.
             withOwner([&](auto& owner){owner.tick(now,0,false);});
@@ -342,7 +343,7 @@ public:
                     const auto resolved=brokerDns_.poll(now);
                     if(resolved.state==AsyncBrokerDns::State::pending)return;
                     brokerDns_.cancel(); // Native DNS remains the only address cache.
-                    if(resolved.state!=AsyncBrokerDns::State::ready) {nextConnect_=now+5000;return;}
+                    if(resolved.state!=AsyncBrokerDns::State::ready) {nextConnect_=retry_.next(now,esp_random());return;}
                     address=resolved.ipv4;
                 }
                 client_.setServer(address,cfg_.brokerPort);
@@ -353,7 +354,8 @@ public:
             const auto connectDeadline=brokerTcp_.deadlineMs();
             const auto handoffAt=monotonicMs();
             const int socket=state==PendingTcpConnect::State::ready?brokerTcp_.take(handoffAt):-1;
-            brokerTcp_.cancel();nextConnect_=monotonicMs()+5000;
+            // R2-09: 5, 10, 20, 40, then 60 s between attempts (BrokerRetry); a session of a minute starts over.
+            brokerTcp_.cancel();nextConnect_=retry_.next(monotonicMs(),esp_random());
             if(socket<0)return;
             if(!network_.adoptConnectedSocket(socket))return;
             // Allocation/scheduler delay during adoption cannot revive an
@@ -364,7 +366,11 @@ public:
             // existing one-second CONNACK/read timeout remains separate.
             const auto id=cfg_.clientId.empty()?cfg_.base:cfg_.clientId;
             const auto willTopic=base_+"fw/availability";
-            if(!client_.connect(id.c_str(),cfg_.username.c_str(),cfg_.password.c_str(),willTopic.c_str(),0,true,"offline",true)) return; // retained will
+            // The CONNACK wait (PubSubClient's 1 s socket timeout) yields instead of spinning (R2-09).
+            network_.handshake(true);
+            const bool session=client_.connect(id.c_str(),cfg_.username.c_str(),cfg_.password.c_str(),willTopic.c_str(),0,true,"offline",true); // retained will
+            network_.handshake(false);
+            if(!session) return;
             bool subscriptions=true;
             for(auto suffix:{"ha/open_session","ha/heartbeat","ha/config","ha/observations","ha/user_command","ha/snapshot_request","ha/capabilities"}) {
                 if(graph_&&(std::string_view(suffix)=="ha/observations"||std::string_view(suffix)=="ha/user_command"))continue;
@@ -377,7 +383,7 @@ public:
             if(!subscriptions) { client_.disconnect(); return; }
             subscribeTrv();
             now=monotonicMs();
-            withOwner([&](auto& owner){owner.connected(now);}); wasConnected_=true; nextDeviceDiagnostics_=0;
+            withOwner([&](auto& owner){owner.connected(now);}); wasConnected_=true; nextDeviceDiagnostics_=0; retry_.connected(now);
             // Retained like the will: a restarted HA sees at once whether the E32 is there.
             client_.publish(willTopic.c_str(),"online",true);
             if(telemetry_)telemetry_->connected(now);
@@ -496,6 +502,7 @@ private:
     std::unique_ptr<GraphSessionOwner> graphController_;
     ControlUiSnapshot ui_;
     uint64_t nextConnect_=0,nextDeviceDiagnostics_=0;
+    BrokerRetry retry_; // R2-09: the wait before the next broker attempt
     std::atomic<bool> valid_{false},wasConnected_{false};
     bool graph_=false;
     std::unique_ptr<ActuatorChannels> actuatorChannels_;

@@ -2074,6 +2074,76 @@
             }
           }
         }
+      },
+      "house_holidays": {
+        "title": "Huismodus en vakantie",
+        "description": "{saved}Kies de huismodus, of plan vakanties vooruit. Op vakantie blijft elke ruimte hoogstens op de temperatuur op vakantie en is het huis weer warm als je terugkomt; daarna staat de huismodus weer zoals ervoor.\n\nGeplande vakanties:\n{holidays}",
+        "menu_options": {
+          "house_mode_set": "Huismodus",
+          "house_holiday_add": "Vakantie plannen",
+          "house_holiday_change": "Vakantie wijzigen of verwijderen",
+          "house_holiday_temperature": "Temperatuur op vakantie",
+          "back": "← Terug",
+          "done": "Klaar"
+        }
+      },
+      "house_mode_set": {
+        "title": "Huismodus",
+        "description": "Kies hoe het huis wordt verwarmd. Kies voor een vakantie die nu begint ook wanneer die eindigt; het huis is op tijd weer warm. {error}",
+        "data": {
+          "house_mode": "Huismodus",
+          "holiday_until": "Vakantie eindigt"
+        },
+        "data_description": {
+          "house_mode": "Automatisch: de mensen die je bij Aanwezigheid instelt, bepalen het. Thuis: altijd de weekprogramma's. Afwezig: elke ruimte hoogstens de afwezigheidstemperatuur. Vakantie: vanaf nu tot de datum hieronder.",
+          "holiday_until": "Alleen voor Vakantie: dag en tijd waarop je terug bent. Hoogstens een jaar vooruit."
+        }
+      },
+      "house_holiday_add": {
+        "title": "Vakantie plannen",
+        "description": "Kies wanneer de vakantie begint en wanneer je terug bent. Het huis is op dat moment weer warm; daarna staat de huismodus weer zoals ervoor. Vakanties die overlappen, worden één vakantie. {error}",
+        "data": {
+          "holiday_from": "Begint",
+          "holiday_to": "Eindigt (weer thuis)"
+        },
+        "data_description": {
+          "holiday_from": "Dag en tijd waarop de vakantie begint. Een moment in het verleden laat hem nu beginnen.",
+          "holiday_to": "Dag en tijd waarop je terug bent. Hoogstens een jaar vooruit."
+        }
+      },
+      "house_holiday_change": {
+        "title": "Vakantie wijzigen of verwijderen",
+        "description": "Kies de vakantie.",
+        "data": {
+          "holiday": "Vakantie"
+        },
+        "data_description": {
+          "holiday": "De vakantie die je wilt wijzigen of verwijderen."
+        }
+      },
+      "house_holiday_edit": {
+        "title": "Vakantie wijzigen",
+        "description": "{holiday}\n\nWijzig de tijden, of verwijder de vakantie. {error}",
+        "data": {
+          "holiday_from": "Begint",
+          "holiday_to": "Eindigt (weer thuis)",
+          "remove": "Deze vakantie verwijderen"
+        },
+        "data_description": {
+          "holiday_from": "Dag en tijd waarop de vakantie begint. Een moment in het verleden laat hem nu beginnen.",
+          "holiday_to": "Dag en tijd waarop je terug bent. Hoogstens een jaar vooruit.",
+          "remove": "Aan: de vakantie wordt verwijderd; een vakantie die nu loopt, stopt meteen."
+        }
+      },
+      "house_holiday_temperature": {
+        "title": "Temperatuur op vakantie",
+        "description": "Elke ruimte blijft tijdens een vakantie hoogstens zo warm (5–25 °C; de vorstbeveiliging blijft altijd aan). Tot je hem verandert, is dit de temperatuur als niemand thuis is. {error}",
+        "data": {
+          "holiday_temperature": "Temperatuur op vakantie"
+        },
+        "data_description": {
+          "holiday_temperature": "Dezelfde instelling als \"Temperatuur op vakantie\" op het E32-apparaat en op de pagina Huis van de E32."
+        }
       }
     },
     "error": {
@@ -2267,7 +2337,16 @@
       "house_holiday_date_invalid": "Kies een moment in de toekomst, hoogstens een jaar vooruit.",
       "house_mode_not_saved": "De E32 nam dit niet aan ({error}). Probeer het opnieuw.",
       "house_mode_update_required": "Deze E32-software kent deze modus niet. Werk eerst de E32 bij.",
-      "e32_inactive_until_invalid": "Kies voor \"Uit tot\" een moment in de toekomst (voor 2100), of laat het leeg."
+      "e32_inactive_until_invalid": "Kies voor \"Uit tot\" een moment in de toekomst (voor 2100), of laat het leeg.",
+      "house_holiday_dates_needed": "Kies wanneer de vakantie begint en wanneer die eindigt.",
+      "house_holiday_order": "De vakantie moet eindigen na het begin.",
+      "house_holiday_past": "Deze vakantie is al voorbij. Kies een einde in de toekomst.",
+      "house_holiday_too_far": "Kies een einde hoogstens een jaar vooruit.",
+      "house_holiday_too_many": "Er kunnen hoogstens 8 vakanties gepland worden. Verwijder er eerst een.",
+      "house_holiday_changed": "Deze vakantie is ergens anders gewijzigd. Open hem opnieuw.",
+      "house_holiday_no_clock": "De klok van de E32 is nog niet gelijkgezet, dus een vakantiedatum kan nog niet. Probeer het over een minuut opnieuw.",
+      "house_holiday_not_saved": "De E32 nam dit niet aan ({error}). Probeer het opnieuw.",
+      "house_holiday_temperature_invalid": "Kies een temperatuur tussen 5 en 25 °C."
     },
     "abort": {
       "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",
@@ -2358,7 +2437,8 @@
       "ble_saved_restart_later": "Opgeslagen op de E32. Hij start opnieuw om de wijzigingen te gebruiken zodra een update of keteltest klaar is.",
       "e32_flow_options_saved": "De instellingen voor de watertemperatuur zijn op de E32 opgeslagen.",
       "house_mode_unavailable": "De E32 geeft zijn huismodus nu niet door. Controleer of hij aan staat en probeer het opnieuw.",
-      "house_mode_saved": "Opgeslagen."
+      "house_mode_saved": "Opgeslagen.",
+      "house_holidays_none": "Er zijn geen vakanties gepland."
     },
     "progress": {
       "controller_connect": "Verbinden met de E32…",
@@ -2415,6 +2495,9 @@
       },
       "away_temperature": {
         "name": "Temperatuur als niemand thuis is"
+      },
+      "holiday_temperature": {
+        "name": "Temperatuur op vakantie"
       }
     },
     "sensor": {
@@ -3302,6 +3385,24 @@
             "name": "Grootte van de nieuwste back-up"
           }
         }
+      },
+      "room_warm_on_time": {
+        "name": "Op tijd warm"
+      },
+      "room_overshoot": {
+        "name": "Warmer dan gewenst"
+      },
+      "burner_starts_per_heating_hour": {
+        "name": "Branderstarts per stookuur"
+      },
+      "short_cycling_hours": {
+        "name": "Korte brandtijden (u)"
+      },
+      "heating_gas_yesterday": {
+        "name": "Gas voor verwarming (schatting)"
+      },
+      "gas_per_degree_day": {
+        "name": "Gas per graaddag"
       }
     },
     "select": {
@@ -3903,6 +4004,18 @@
     },
     "e32_restart_failed": {
       "message": "De herstart van de E32 is niet bevestigd ({error}). Controleer de verbinding en probeer het opnieuw."
+    },
+    "set_comfort_unsupported": {
+      "message": "{entity} is een E32-ruimte: gebruik in plaats daarvan Tijdelijk overrulen, Overrulen beëindigen of Afwezig."
+    },
+    "holiday_temperature_invalid": {
+      "message": "Kies een temperatuur op vakantie tussen 5 en 25 °C."
+    },
+    "house_holiday_changed": {
+      "message": "Deze vakantie is ergens anders gewijzigd. Open hem opnieuw."
+    },
+    "house_holiday_too_many": {
+      "message": "Er kunnen hoogstens 8 vakanties gepland worden. Verwijder er eerst een."
     }
   },
   "device": {

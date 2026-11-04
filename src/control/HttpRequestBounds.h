@@ -20,6 +20,11 @@ struct HttpRequestBounds {
     static constexpr uint64_t maxUploadBytes = 8ULL << 20; // /ota and /otafs (the handlers check the image size)
     static constexpr uint32_t deadlineMs = 10000;          // from the connection to the end of the request
     static constexpr uint32_t uploadDeadlineMs = 600000;   // Home Assistant paces an image in 2 KB blocks
+    // An admission answer: not yet (review R2-03, an upload waits until the E32 withdrew its boiler
+    // request). The request stays unread while the loop runs and is asked again on every pass, at
+    // most holdMs (then refused 503); the deadline above counts from its admission.
+    static constexpr int admitLater = -1;
+    static constexpr uint32_t holdMs = 120000;
 };
 inline bool httpUploadRoute(std::string_view path) { return path == "/ota" || path == "/otafs"; }
 
@@ -129,17 +134,20 @@ inline const char *httpRefusalBody(int status) {
     case 401: return "{\"error\":\"authentication_required\"}";
     case 403: return "{\"error\":\"password_change_required\"}";
     case 408: return "{\"error\":\"request_timeout\"}";
+    case 409: return "{\"error\":\"device_busy\"}"; // an update, an unconfirmed boot or a boiler session (R2-08)
     case 413: return "{\"error\":\"request_too_large\"}";
     case 415: return "{\"error\":\"unsupported_request\"}";
     case 431: return "{\"error\":\"headers_too_large\"}";
+    case 503: return "{\"error\":\"try_again_later\"}"; // an admission hold that did not end (R2-03)
     default: return "{\"error\":\"request_refused\"}";
     }
 }
 inline const char *httpReason(int status) {
     switch (status) {
     case 400: return "Bad Request"; case 401: return "Unauthorized"; case 403: return "Forbidden";
-    case 408: return "Request Timeout"; case 413: return "Payload Too Large"; case 415: return "Unsupported Media Type";
-    case 431: return "Request Header Fields Too Large"; default: return "Error";
+    case 408: return "Request Timeout"; case 409: return "Conflict"; case 413: return "Payload Too Large";
+    case 415: return "Unsupported Media Type"; case 431: return "Request Header Fields Too Large";
+    case 503: return "Service Unavailable"; default: return "Error";
     }
 }
 }

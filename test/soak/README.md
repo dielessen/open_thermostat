@@ -142,7 +142,8 @@ Injected events:
   telemetry, DhwEpisodes, RoomPlan json/parse, RoomSchedule, HeatingInput, and
   the compact and full status.
 - **JSON**: every payload parses back with cJSON. Size bounds: fw/telemetry/heating
-  ≤ 7900 B, heating_learned/<id> ≤ 900 B, heating_summary ≤ 1100 B, and the
+  ≤ 7900 B, heating_learned/<id> ≤ 1000 B, the whole summary document ≤ 1300 B
+  (the publisher splits it into summary, flow, tuning and scoreboard topics of at most 1 KB each), and the
   stored plan ≤ 4095 B. Shape changes of the MQTT payload are reported (a
   documented `{..}|null` value does not count).
 - **RoomEngine/RoomDemand against an oracle**: the leading source, status
@@ -233,7 +234,7 @@ The notes were resolved as well:
 - The burner keys keep their shape while the state is unknown: `null` values,
   which HA reads as unknown.
 - heating_learned/<id> names its room once (HA takes the topic's id), so a
-  32-character id stays under 900 B. The chain checks this extrapolation
+  32-character id stays under 1000 B (rc.4: with its arrival feedback). The chain checks this extrapolation
   (`mqtt_learned_room_32_char_id`).
 - Near a DST change WarmupPlanner reads the UTC offset hourly and bisects the
   change, so it no longer converts each minute (about 30 instead of 1,440

@@ -1,6 +1,8 @@
 #include "update/VerifiedOta.h"
 #include "update/ReleaseCatalog.h"
 #include "update/RestartTimer.h"
+#include "update/RollbackSequence.h"
+#include "update/PendingBootState.h"
 #include "control/HttpAccessPolicy.h"
 #include "control/CaptivePortalPolicy.h"
 #include <gtest/gtest.h>
@@ -43,6 +45,66 @@ TEST(GitHubOtaRestart, MillisRolloverAndZeroSentinelRemainBounded) {
     EXPECT_TRUE(timer.due(1999,false));
     RestartTimer zero;zero.schedule(UINT32_MAX-2999);
     EXPECT_TRUE(zero.pending());EXPECT_FALSE(zero.due(0,false));EXPECT_TRUE(zero.due(1,false));
+}
+// Review R2-07: POST /setup/reenter and the USB "setup" restart like /config/reboot: after an
+// update and the boot check, and only once the boiler request is withdrawn. The withdrawal is
+// final for the boot, so it is asked only for a requested restart that nothing else holds.
+TEST(GitHubOtaRestart, SetupRestartWaitsForTheBoilerReleaseLikeTheOtherRestarts) {
+    struct Case { bool requested, busy, pending, released, held; int releaseCalls; };
+    for (const Case c : {Case{false, false, false, true, false, 0}, Case{false, true, true, false, false, 0},
+                         Case{true, false, false, true, false, 1}, Case{true, false, false, false, true, 1},
+                         Case{true, true, false, true, true, 0}, Case{true, false, true, true, true, 0}}) {
+        int busyCalls = 0, pendingCalls = 0, releaseCalls = 0;
+        const bool held = setupRestartHeld(c.requested, [&] { ++busyCalls; return c.busy; }, [&] { ++pendingCalls; return c.pending; },
+                                           [&] { ++releaseCalls; return c.released; });
+        EXPECT_EQ(held, c.held) << c.requested << c.busy << c.pending << c.released;
+        EXPECT_EQ(releaseCalls, c.releaseCalls) << c.requested << c.busy << c.pending << c.released;
+        if (!c.requested) { EXPECT_EQ(busyCalls + pendingCalls, 0); } // nothing is read while not asked
+    }
+    // The release itself is bounded (BoilerReleaseHold): a zero that never arrives holds it 90 s.
+    BoilerReleaseHold hold; uint32_t now = 5000; int loops = 0;
+    while (setupRestartHeld(true, [] { return false; }, [] { return false; }, [&] { return hold.ready(now, false); })) { now += 1000; ++loops; }
+    EXPECT_EQ(loops, 90);
+}
+// Review R2-04: "restore previous firmware" erased the learned and tuning records before the
+// previous image was checked. After a failed or aborted update otadata can still call that slot
+// valid while its image is gone: nothing may be erased unless it reads back and is selected.
+TEST(GitHubOtaRollback, NothingIsErasedUnlessThePreviousImageReadsBackAndIsSelected) {
+    struct Backend {
+        bool described = true, selectable = true; std::string version = "v1.0.0-e32v2-rc.3";
+        std::vector<std::string> steps;
+        bool describe(std::string &v) { steps.push_back("describe"); v = described ? version : ""; return described; }
+        bool select() { steps.push_back("select"); return selectable; }
+        void prepareNvs() { steps.push_back("erase"); }
+    };
+    Backend ok;
+    EXPECT_TRUE(runRollback(ok));
+    EXPECT_EQ(ok.steps, (std::vector<std::string>{"describe", "select", "erase"}));
+    Backend gone; gone.described = false; // no app description (magic word): a partly erased slot
+    EXPECT_FALSE(runRollback(gone));
+    EXPECT_EQ(gone.steps, std::vector<std::string>{"describe"});
+    Backend unnamed; unnamed.version.clear();
+    EXPECT_FALSE(runRollback(unnamed));
+    EXPECT_EQ(unnamed.steps, std::vector<std::string>{"describe"});
+    Backend refused; refused.selectable = false; // the bootloader's image check fails
+    EXPECT_FALSE(runRollback(refused));
+    EXPECT_EQ(refused.steps, (std::vector<std::string>{"describe", "select"}));
+}
+// Review R2-01: REST asked the OTA state about 2000 times a second (mutationBlocked), each a flash
+// map and unmap. It is read once; only the boot confirmation changes it.
+TEST(GitHubOtaBoot, PendingBootIsReadOnceAndEndsWithTheConfirmation) {
+    PendingBootState pending; int reads = 0;
+    const auto unconfirmed = [&] { ++reads; return true; };
+    for (int i = 0; i < 1000; ++i) EXPECT_TRUE(pending.pending(unconfirmed));
+    EXPECT_EQ(reads, 1);
+    pending.confirmed();
+    for (int i = 0; i < 1000; ++i) EXPECT_FALSE(pending.pending(unconfirmed));
+    EXPECT_EQ(reads, 1);
+    PendingBootState normal; int normalReads = 0;
+    for (int i = 0; i < 10; ++i) EXPECT_FALSE(normal.pending([&] { ++normalReads; return false; }));
+    EXPECT_EQ(normalReads, 1);
+    PendingBootState early; early.confirmed(); // confirmed before anyone asked: never read
+    EXPECT_FALSE(early.pending([] { ADD_FAILURE() << "read after the confirmation"; return true; }));
 }
 namespace {
 Manifest manifest(){return {"v0.1.0-e32v2-alpha.2",std::string(40,'a'),std::string(64,'b'),std::string(64,'c'),1024};}

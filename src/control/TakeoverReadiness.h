@@ -82,7 +82,8 @@ public:
     static Restart classify(int resetReason, diagnostics::SupervisorPolicy::Reason previous) {
         using R = diagnostics::SupervisorPolicy::Reason;
         if (resetReason == resetSoftware)
-            return previous == R::none || previous == R::bluetoothApply || previous == R::settingsRestore ? Restart::planned : Restart::unexpected;
+            return previous == R::none || previous == R::bluetoothApply || previous == R::settingsRestore || previous == R::setupReenter
+                ? Restart::planned : Restart::unexpected;
         return resetReason == resetPowerOn || resetReason == resetExternal || resetReason == resetBrownout ? Restart::power : Restart::unexpected;
     }
 
@@ -105,6 +106,13 @@ public:
     }
     bool saveDue(uint64_t nowMs) const { return saveNow_ || nowMs - savedAtMs_ >= saveEveryMs; }
     void saved(uint64_t nowMs) { saveNow_ = false; savedAtMs_ = nowMs; }
+    // rc.4 (R1-04): a plan edit moves the rooms' last known targets with them (new index -> old
+    // index, -1: a new room), so a reorder is no setback or rise of its own.
+    void remap(const std::array<int8_t, maxRooms>& from) {
+        std::array<std::optional<int16_t>, maxRooms> moved{};
+        for (size_t i = 0; i < maxRooms; ++i) if (from[i] >= 0 && size_t(from[i]) < maxRooms) moved[i] = setpoints_[from[i]];
+        setpoints_ = moved;
+    }
 
     void sample(uint64_t nowMs, const Inputs& in) {
         carryMs_ += static_cast<uint32_t>(haveLast_ && nowMs > lastMs_ ? std::min<uint64_t>(nowMs - lastMs_, maxCreditMs) : 0);

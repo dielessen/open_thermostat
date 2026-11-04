@@ -21,3 +21,7 @@ __pycache__/
 /data_test_s3/
 /data_prod/
 /apache_*
+
+# Acceptance kit: the Home Assistant token and captures never enter the repository
+tools/acceptance/**/ha-token.txt
+tools/acceptance/**/captures/

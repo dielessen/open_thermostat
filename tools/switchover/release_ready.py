@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Release readiness for 1.0: are the four 1.0 criteria met? (NEXT-RELEASE.nl.md, "1.0")
+"""Release readiness for 1.0: are the 1.0 criteria met? (NEXT-RELEASE.nl.md, "1.0")
 
 Read-only. It reads Home Assistant history (GET only), the attended switch-over results,
 the update receipts and the install-test record in the repository, and prints PASS / WAIT /
@@ -17,10 +17,17 @@ FAIL per criterion:
   6. install_guide   someone other than the author followed the install guide to the end and
                      every problem found is resolved (INSTALLATIETEST-<date>.json)
 
+  7. release_window  the 14 days are the days of --release: the update entity showed that release
+                     as installed for the whole window and no install happened inside it. An
+                     install, or a later candidate, starts a new window; a report of "rc.4"
+                     cannot include days on rc.3 (R5-09). It counts toward the overall result in
+                     --stage final, and the gate requires it PASS for v1.0.0.
+
 WAIT means not yet; FAIL blocks until it is fixed and measured again. --stage final writes
 the report the release gate requires for v1.0.0 (scripts/verify_e32_update_gate.py);
 --stage candidate is the same report for a 1.0 candidate, which may be published before
-the 14 days.
+the 14 days. Start the window (--since) after the install of --release ended; the gate also
+requires that.
 
     export OT_HA_TOKEN='<long-lived token>'
     python3 -I tools/switchover/release_ready.py --ha-url https://homeassistant.local:8123 \\
@@ -48,6 +55,7 @@ HOURS_NEEDED = DAYS_NEEDED * 24
 GAP_TOLERANCE_S = 3600   # Home Assistant unavailable for less than this does not end a span
 DOCS = 'docs/modern-thermostat'
 CRITERIA = ('stability', 'active_control', 'trv_control', 'failure_tests', 'updates', 'install_guide')
+WINDOW = 'release_window'  # the seventh criterion: the window is about --release only (R5-09)
 
 
 def spans(series, end, gap_tolerance_s=GAP_TOLERANCE_S):
@@ -158,9 +166,30 @@ def install_guide(records):
             'guide_commit': last.get('guide_commit')}
 
 
-def evaluate(history, end, repo):
-    """history: {'uptime', 'offline', 'planned', 'output': [(t, bool|None)], 'trv': {entity: series}};
-    repo: {'sessions', 'receipts', 'installs'}."""
+def release_window(installed, release):
+    """installed: [(t, installed_version)] from the update entity's history over the window, oldest first.
+    PASS only when that history shows `release` and nothing else: no other version, so no install inside it."""
+    versions = []
+    for _, version in installed:
+        if version and (not versions or versions[-1] != version):
+            versions.append(version)
+    if not versions:
+        return {'result': WAIT, 'why': 'no history of the update entity: the window cannot be tied to the release',
+                'versions': []}
+    if versions == [release]:
+        return {'result': PASS, 'why': f'{release} was installed for the whole window, no install inside it',
+                'versions': versions}
+    if release not in versions:
+        return {'result': FAIL, 'why': f'the update entity never showed {release} in this window (it showed '
+                                       f'{", ".join(versions)})', 'versions': versions}
+    return {'result': FAIL, 'why': f'the window contains more than {release}: {", ".join(versions)}; start it after '
+                                   'the install of the release ended', 'versions': versions}
+
+
+def evaluate(history, end, repo, release=None, stage='candidate'):
+    """history: {'uptime', 'offline', 'planned', 'output': [(t, bool|None)], 'trv': {entity: series},
+    'installed': [(t, version)]}; repo: {'sessions', 'receipts', 'installs'}. With `release`, the release_window
+    criterion is added; in --stage final it takes part in the overall result."""
     out = {
         'stability': se.stability(history['uptime'], end, history.get('offline', ()), history.get('planned', ()),
                                   hours_needed=HOURS_NEEDED),
@@ -170,7 +199,9 @@ def evaluate(history, end, repo):
         'updates': updates(repo.get('receipts', [])),
         'install_guide': install_guide(repo.get('installs', [])),
     }
-    results = [out[c]['result'] for c in CRITERIA]
+    if release is not None:
+        out[WINDOW] = release_window(history.get('installed', []), release)
+    results = [out[c]['result'] for c in CRITERIA + ((WINDOW,) if release is not None and stage == 'final' else ())]
     overall = PASS if all(r == PASS for r in results) else FAIL if FAIL in results else WAIT
     return overall, out
 
@@ -221,14 +252,17 @@ def load_history(ha, args, start, end):
     if since is not None:
         offline.append((since, end.timestamp()))
     history['offline'] = offline
-    planned, seen = [], None
+    planned, seen, installed = [], None, []
     if update:
         for r in ha.history([update], start, end, minimal=False).get(update, []):
             version = (r.get('attributes') or {}).get('installed_version')
             if version and seen and version != seen:
                 planned.append(se.parse_time(r.get('last_changed') or r.get('last_updated')))
+            if version:
+                installed.append((se.parse_time(r.get('last_changed') or r.get('last_updated')), version))
             seen = version or seen
     history['planned'] = planned
+    history['installed'] = installed
     history['output'] = []
     if output:
         for r in ha.history([output], start, end, minimal=False).get(output, []):
@@ -247,6 +281,7 @@ def report(release, stage, start, end, ids, overall, criteria):
     return {'schema': 1, 'kind': 'release_readiness', 'release': release, 'stage': stage,
             'from': start.strftime('%Y-%m-%dT%H:%M:%SZ'), 'to': end.strftime('%Y-%m-%dT%H:%M:%SZ'),
             'days_needed': DAYS_NEEDED, 'entities': ids, 'overall': overall, 'criteria': criteria,
+            'installed_versions': (criteria.get(WINDOW) or {}).get('versions'),
             'generated_by': 'tools/switchover/release_ready.py'}
 
 
@@ -270,9 +305,9 @@ def main(argv=None):
     end = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
     start = se.parse_since(args.since) if args.since else end - dt.timedelta(days=DAYS_NEEDED + 1)
     ids, history = load_history(ha, args, start, end)
-    overall, criteria = evaluate(history, end.timestamp(), read_repo(args.root))
+    overall, criteria = evaluate(history, end.timestamp(), read_repo(args.root), release=args.release, stage=args.stage)
     print(f'1.0 readiness of {args.release} ({args.stage}), {start:%Y-%m-%d %H:%M} to {end:%Y-%m-%d %H:%M} UTC')
-    for name in CRITERIA:
+    for name in CRITERIA + (WINDOW,):
         print(f'  {criteria[name]["result"]:<4}  {name:<15} {criteria[name]["why"]}')
     print(f'Overall: {overall}')
     if args.json:

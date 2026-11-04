@@ -29,7 +29,7 @@ def live(hass, language="en"):
     for room_id in ("woonkamer", "badkamer"):
         device = devices.async_get_device_by_identifier(("open_thermostat", f"fixture_e32_room_{room_id}"), e.entry_id)
         for domain, key in (("climate", "thermostat"), ("sensor", "learning"), ("sensor", "flow_advice"),
-                            ("sensor", "heating_start")):
+                            ("sensor", "heating_start"), ("sensor", "warm_on_time"), ("sensor", "overshoot")):
             rooms[room_id][key] = entities.async_get_or_create(
                 domain, "open_thermostat", f"fixture_e32_room_{room_id}_{key}", config_entry=e, device_id=device.id,
                 suggested_object_id=f"{room_id}_{key}").entity_id
@@ -37,6 +37,10 @@ def live(hass, language="en"):
     hub["heating_problem"] = entities.async_get_or_create(
         "binary_sensor", "open_thermostat", "fixture_hub_heating_problem", config_entry=e, device_id=product.id,
         suggested_object_id="heating_problem").entity_id
+    # Yesterday's scoreboard (E32 rc.4).
+    for key in ("burner_starts_per_heating_hour", "short_cycling_hours", "heating_gas_yesterday", "gas_per_degree_day"):
+        hub[key] = entities.async_get_or_create("sensor", "open_thermostat", f"fixture_hub_{key}", config_entry=e,
+                                                device_id=product.id, suggested_object_id=key).entity_id
     flow = {key: entities.async_get_or_create(domain, "open_thermostat", f"fixture_flow_{key}", config_entry=e,
                                               device_id=product.id, suggested_object_id=f"flow_{key}").entity_id
             for domain, key in (("sensor", "source"), ("switch", "weather_curve"),
@@ -165,7 +169,7 @@ async def test_long_choices_get_the_whole_width_and_sections_fill_the_gaps(hass)
                                                               "source")]
     assert all(c["grid_options"] == {"columns": 12} for c in tiles)
     assert [c["name"] for c in tiles] == ["Smart warm-up", "Weather compensation",
-                                          "Water temperature at −10 °C outside", "Water temperature set by"]
+                                          "Water temperature in hard frost (−10 °C)", "Water temperature set by"]
 
 
 @pytest.mark.asyncio

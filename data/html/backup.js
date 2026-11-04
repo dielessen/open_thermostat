@@ -34,9 +34,9 @@
         "Room settings": "Instellingen van de ruimtes",
         "Lowest water temperature": "Laagste watertemperatuur",
         "Highest water temperature": "Hoogste watertemperatuur",
-        "Follow outdoor temperature (heating curve)": "Buitentemperatuur volgen (stooklijn)",
+        "Weather compensation": "Weerafhankelijke regeling",
         "Smart warm-up": "Slim opwarmen",
-        "Water temperature at −10 °C outside": "Watertemperatuur bij −10 °C buiten",
+        "Water temperature in hard frost (−10 °C)": "Watertemperatuur bij strenge vorst (−10 °C)",
         "Wi-Fi password": "Wifi-wachtwoord",
         "Web page password": "Wachtwoord van de webpagina",
         "Bluetooth sensor keys": "Sleutels van Bluetooth-sensoren",
@@ -102,7 +102,11 @@
         "The backup contains invalid settings.": "De back-up bevat ongeldige instellingen.",
         "The request was not confirmed. Try again.": "Het verzoek is niet bevestigd. Probeer het opnieuw.",
         "will change": "verandert",
-        "Choose a backup file first.": "Kies eerst een back-upbestand."
+        "Choose a backup file first.": "Kies eerst een back-upbestand.",
+        "Holidays": "Vakanties",
+        "Planned holidays": "Geplande vakanties",
+        "Temperature on holiday": "Temperatuur op vakantie",
+        "Holidays that are already over are left out.": "Vakanties die al voorbij zijn, blijven weg."
     };
     const catalog = window.OT_UI_MESSAGES;
     if (catalog && typeof catalog === 'object') for (const [key, value] of Object.entries(dutch)) if (!Object.hasOwn(catalog, key)) catalog[key] = value;
@@ -110,7 +114,7 @@
     const fill = (value, v) => t(value).replace('{v}', v);
     const maxBytes = 24576;
     const sections = {network: "Network", bluetooth: "Bluetooth sensors", heating: "Rooms", flow: "Water temperature", boiler_display: "Boiler model",
-        learned: "What the thermostat has learned"};
+        learned: "What the thermostat has learned", holidays: "Holidays"};
     const fields = {
         hostname: "Device name", interface_mode: "Connection", listenPort: "Web page port", emsEnabled: "Boiler bus (EMS)",
         emsForwarderEnabled: "EMS forwarder", rtcEnabled: "Clock chip", ntpEnabled: "Time from the internet", ntpHost: "Time server",
@@ -123,9 +127,9 @@
         'openweather.latitude': "OpenWeather", 'openweather.longitude': "OpenWeather", 'openweather.interval': "OpenWeather",
         'openweather.appid': "OpenWeather API key", 'bt.scanTime': "Bluetooth listening time", 'bt.scanInterval': "Bluetooth pause",
         devices: "Sensors", rooms: "Rooms", room_settings: "Room settings", minimum_flow_c: "Lowest water temperature",
-        maximum_flow_c: "Highest water temperature", weather_curve: "Follow outdoor temperature (heating curve)", apply_learned: "Smart warm-up",
-        curve_design_flow_c: "Water temperature at −10 °C outside", tuning: "Comfort and boiler care", tuning_manual: "Comfort and boiler care: set by you",
-        model: "Boiler model", learned: "What the thermostat has learned"
+        maximum_flow_c: "Highest water temperature", weather_curve: "Weather compensation", apply_learned: "Smart warm-up",
+        curve_design_flow_c: "Water temperature in hard frost (−10 °C)", tuning: "Comfort and boiler care", tuning_manual: "Comfort and boiler care: set by you",
+        model: "Boiler model", learned: "What the thermostat has learned", periods: "Planned holidays", temperature_c: "Temperature on holiday"
     };
     // Comfort and boiler care (house.html's settings): name, how its value reads, and whether the thermostat sets it.
     const knobs = {min_off_s: ["Burner rest between starts", 'rest', true], min_on_s: ["Burner run time", 'run', true],
@@ -133,7 +137,7 @@
         heat_stop_c: ["Stop heating when the room is this much above its target", 'c', true],
         flow_per_degree_c: ["How strongly the water temperature reacts to a cold room", 'gain', true],
         floor_lead_min_per_c: ["Warm-up time for floor heating", 'lead', true], radiator_lead_min_per_c: ["Warm-up time for radiators", 'lead', true],
-        curve_correction_pct: ["Room correction on the heating curve", 'pct', false],
+        curve_correction_pct: ["Room correction on weather compensation", 'pct', false],
         learned_accept_pct: ["Accepted warm-up time with the learned water temperature", 'pct', false],
         night_saving_min_pct: ["Smallest night saving worth advising", 'pct', false]};
     const reenter = {wifi_password: "Wi-Fi password", web_password: "Web page password", mqtt_password: "MQTT password",
@@ -151,7 +155,8 @@
         secrets_unbound: "This backup was made before 1.0 rc.2: its passwords are not tied to its network settings. Make a new backup after the restore.",
         unknown_boiler_model: "Unknown boiler model skipped: {v}", unknown_language: "Unknown language skipped.",
         heating: "Rooms: {v}", bluetooth: "Bluetooth sensors: {v}",
-        learned_skipped: "What the thermostat learned could not be read from this backup; it keeps learning from what it has."
+        learned_skipped: "What the thermostat learned could not be read from this backup; it keeps learning from what it has.",
+        holidays_ended_skipped: "Holidays that are already over are left out."
     };
     const errors = {
         not_a_backup: "This file is not an OpenThermostat E32 backup.", newer_schema: "This backup was made by newer firmware. Update this E32 first.",

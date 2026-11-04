@@ -1037,6 +1037,76 @@
             }
           }
         }
+      },
+      "house_holidays": {
+        "title": "Tryb domu i urlop",
+        "description": "{saved}Wybierz tryb domu albo zaplanuj urlopy z wyprzedzeniem. Podczas urlopu każde pomieszczenie ma najwyżej temperaturę urlopową, a dom jest znów ciepły, gdy wracasz; potem tryb domu jest taki jak wcześniej.\n\nZaplanowane urlopy:\n{holidays}",
+        "menu_options": {
+          "house_mode_set": "Tryb domu",
+          "house_holiday_add": "Zaplanuj urlop",
+          "house_holiday_change": "Zmień lub usuń urlop",
+          "house_holiday_temperature": "Temperatura podczas urlopu",
+          "back": "← Wstecz",
+          "done": "Gotowe"
+        }
+      },
+      "house_mode_set": {
+        "title": "Tryb domu",
+        "description": "Wybierz, jak ogrzewany jest dom. W przypadku urlopu, który zaczyna się teraz, wybierz też, kiedy się kończy; dom będzie ciepły na czas. {error}",
+        "data": {
+          "house_mode": "Tryb domu",
+          "holiday_until": "Koniec urlopu"
+        },
+        "data_description": {
+          "house_mode": "Automatyczny: decydują osoby ustawione w Obecności. W domu: zawsze programy tygodniowe. Nieobecność: każde pomieszczenie najwyżej do temperatury nieobecności. Urlop: od teraz do daty poniżej.",
+          "holiday_until": "Tylko dla Urlopu: dzień i godzina powrotu. Najwyżej rok naprzód."
+        }
+      },
+      "house_holiday_add": {
+        "title": "Zaplanuj urlop",
+        "description": "Wybierz, kiedy urlop się zaczyna i kiedy wracasz. Dom będzie wtedy znów ciepły; potem tryb domu jest taki jak wcześniej. Nakładające się urlopy stają się jednym. {error}",
+        "data": {
+          "holiday_from": "Początek",
+          "holiday_to": "Koniec (powrót do domu)"
+        },
+        "data_description": {
+          "holiday_from": "Dzień i godzina rozpoczęcia urlopu. Moment w przeszłości rozpoczyna go teraz.",
+          "holiday_to": "Dzień i godzina powrotu. Najwyżej rok naprzód."
+        }
+      },
+      "house_holiday_change": {
+        "title": "Zmień lub usuń urlop",
+        "description": "Wybierz urlop.",
+        "data": {
+          "holiday": "Urlop"
+        },
+        "data_description": {
+          "holiday": "Urlop, który chcesz zmienić lub usunąć."
+        }
+      },
+      "house_holiday_edit": {
+        "title": "Zmień urlop",
+        "description": "{holiday}\n\nZmień godziny albo usuń urlop. {error}",
+        "data": {
+          "holiday_from": "Początek",
+          "holiday_to": "Koniec (powrót do domu)",
+          "remove": "Usuń ten urlop"
+        },
+        "data_description": {
+          "holiday_from": "Dzień i godzina rozpoczęcia urlopu. Moment w przeszłości rozpoczyna go teraz.",
+          "holiday_to": "Dzień i godzina powrotu. Najwyżej rok naprzód.",
+          "remove": "Włączone: urlop zostanie usunięty; trwający urlop kończy się od razu."
+        }
+      },
+      "house_holiday_temperature": {
+        "title": "Temperatura podczas urlopu",
+        "description": "Podczas urlopu każde pomieszczenie jest najwyżej tak ciepłe (5–25 °C; ochrona przed mrozem zawsze działa). Dopóki jej nie zmienisz, jest to temperatura, gdy nikogo nie ma w domu. {error}",
+        "data": {
+          "holiday_temperature": "Temperatura podczas urlopu"
+        },
+        "data_description": {
+          "holiday_temperature": "To samo ustawienie co \"Temperatura podczas urlopu\" na urządzeniu E32 i na stronie Dom w E32."
+        }
       }
     },
     "error": {
@@ -1230,7 +1300,16 @@
       "house_holiday_date_invalid": "Wybierz moment w przyszłości, najwyżej rok naprzód.",
       "house_mode_not_saved": "E32 nie przyjął tej zmiany ({error}). Spróbuj ponownie.",
       "house_mode_update_required": "To oprogramowanie E32 nie zna tego trybu. Najpierw zaktualizuj E32.",
-      "e32_inactive_until_invalid": "Wybierz dla „Wyłączony do” przyszłą datę i godzinę (przed 2100) albo zostaw pole puste."
+      "e32_inactive_until_invalid": "Wybierz dla „Wyłączony do” przyszłą datę i godzinę (przed 2100) albo zostaw pole puste.",
+      "house_holiday_dates_needed": "Wybierz, kiedy urlop się zaczyna i kiedy się kończy.",
+      "house_holiday_order": "Urlop musi się kończyć po rozpoczęciu.",
+      "house_holiday_past": "Ten urlop już minął. Wybierz koniec w przyszłości.",
+      "house_holiday_too_far": "Wybierz koniec najwyżej rok naprzód.",
+      "house_holiday_too_many": "Można zaplanować najwyżej 8 urlopów. Najpierw usuń jeden.",
+      "house_holiday_changed": "Ten urlop został zmieniony gdzie indziej. Otwórz go ponownie.",
+      "house_holiday_no_clock": "Zegar E32 nie jest jeszcze ustawiony, więc data urlopu nie może być użyta. Spróbuj ponownie za minutę.",
+      "house_holiday_not_saved": "E32 nie przyjął tej zmiany ({error}). Spróbuj ponownie.",
+      "house_holiday_temperature_invalid": "Wybierz temperaturę od 5 do 25 °C."
     },
     "abort": {
       "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
@@ -1321,7 +1400,8 @@
       "ble_saved_restart_later": "Zapisano w E32. Uruchomi się ponownie, aby użyć zmian, gdy tylko zakończy się aktualizacja lub test kotła.",
       "e32_flow_options_saved": "Ustawienia temperatury wody zostały zapisane w E32.",
       "house_mode_unavailable": "E32 nie podaje teraz trybu domu. Sprawdź, czy jest włączony, i spróbuj ponownie.",
-      "house_mode_saved": "Zapisano."
+      "house_mode_saved": "Zapisano.",
+      "house_holidays_none": "Nie zaplanowano żadnych urlopów."
     },
     "progress": {
       "controller_connect": "Łączenie z E32…",
@@ -1378,6 +1458,9 @@
       },
       "away_temperature": {
         "name": "Temperatura, gdy nikogo nie ma w domu"
+      },
+      "holiday_temperature": {
+        "name": "Temperatura podczas urlopu"
       }
     },
     "sensor": {
@@ -2265,6 +2348,24 @@
             "name": "Rozmiar najnowszej kopii"
           }
         }
+      },
+      "room_warm_on_time": {
+        "name": "Ciepło na czas"
+      },
+      "room_overshoot": {
+        "name": "Przegrzanie"
+      },
+      "burner_starts_per_heating_hour": {
+        "name": "Starty palnika na godzinę grzania"
+      },
+      "short_cycling_hours": {
+        "name": "Krótkie cykle palnika (godz.)"
+      },
+      "heating_gas_yesterday": {
+        "name": "Gaz na ogrzewanie (szacunek)"
+      },
+      "gas_per_degree_day": {
+        "name": "Gaz na stopniodzień"
       }
     },
     "select": {
@@ -3903,6 +4004,18 @@
     },
     "e32_restart_failed": {
       "message": "Ponowne uruchomienie E32 nie zostało potwierdzone ({error}). Sprawdź połączenie i spróbuj ponownie."
+    },
+    "set_comfort_unsupported": {
+      "message": "{entity} to pomieszczenie E32: zamiast tego użyj akcji Ustaw tymczasową zmianę w pomieszczeniu, Zakończ zmianę w pomieszczeniu lub Nieobecność."
+    },
+    "holiday_temperature_invalid": {
+      "message": "Wybierz temperaturę podczas urlopu od 5 do 25 °C."
+    },
+    "house_holiday_changed": {
+      "message": "Ten urlop został zmieniony gdzie indziej. Otwórz go ponownie."
+    },
+    "house_holiday_too_many": {
+      "message": "Można zaplanować najwyżej 8 urlopów. Najpierw usuń jeden."
     }
   },
   "device": {

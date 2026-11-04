@@ -257,3 +257,25 @@ from the first row:
 - WarmupPlanner, without a learned model, plans default leads of 240-300 min for the
   morning rises. The recorded warm-ups that reached their target (31 Oct 12:49,
   1 Nov 09:00) started at the switch time and were 74 and 109 min late.
+
+### rc.4 on the fixture (4 Nov 2026, `test/fixtures/replay/house-shadow.csv`, 30 Oct 22:00 - 31 Oct 12:29)
+
+`tools/replay/run.sh test/fixtures/replay/house-shadow.csv --plan test/fixtures/replay/plan.json
+--mode shadow,active --apply-learned --weather-curve`, before (a694327c, rc.3 code) and after
+the rc.4 learning changes (L1-L5):
+
+- Cooling: rc.3 learned 1 cooling segment in shadow and 1 in active mode on this night; rc.4
+  the same here (the fixture has one night), but the keep-warm rounds no longer reset the coast
+  clock (L1), so on the full recording every night counts (test `KeepWarmRoundsPauseTheCooling`).
+- The morning rise of 31 Oct 08:33 (18.5 -> 21.0 degC): rc.3 planned a start at the switch
+  time (lead 0, no cooling model: advice only, "start now" only from 07:15); rc.4 plans the
+  default lead as an estimate, capped at 3 h (floor), and applies it (L3). The recorded room
+  (20.3 degC at the rise, never 20.9 while the target held) is judged "late": one arrival event,
+  factor 1.0 -> 1.1 (L2), so the next planned lead is 10 % longer ("1 over the default lead").
+- AutoTuner: 1 evaluation (the day change), state "waiting" at the end: a boot without a stored
+  record now waits a day (`--no-grace` evaluates the fixture's one day as before; L5 makes a boot
+  WITH its record wait 2 h instead).
+- Active mode: 3 heating segments in 2 periods with the E32's own request as the reference
+  (unchanged); computed vs recorded E32 heat 73 % of 5215 steps (was 76 %: the estimate start
+  asks for heat where the recording shows none).
+- `tools/replay/test_replay.py`: 6/6 OK on rc.4.

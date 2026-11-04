@@ -5,6 +5,7 @@ exact GitHub asset digest; identical retained ZIPs share read-only hard links.
 """
 import argparse
 from collections import defaultdict
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -16,8 +17,11 @@ import tempfile
 
 from organize_releases import classify, fetch
 
+# A folder with one of these is evidence or a delivery and is never cleaned: the relink inputs, the backups and the
+# installation captures of tools/acceptance (installer, post-install and independent manifests, R5-21).
 PROTECTED = ('SHA256SUMS.txt', 'RELINK-MANIFEST.json', 'NOTICE-INVENTORY.json',
-             'backup-manifest.json', 'BACKUP-MANIFEST.json')
+             'backup-manifest.json', 'BACKUP-MANIFEST.json',
+             'CAPTURE-MANIFEST.json', 'OBS-MANIFEST.json', 'INDEPENDENT-MANIFEST.json')
 
 
 def filehash(path):
@@ -127,6 +131,32 @@ def report_destination(root,path):
     return path
 
 
+def keep_previous_report(path):
+    """R5-21: the report of an applied cleanup holds the restore URLs and hashes of the archives it removed, and
+    AGENTS.md says to keep it; the documented command writes the same file every time. The report that is about to
+    be overwritten is copied to a file of its own first (never replacing a copy), when it removed archives."""
+    path = Path(path)
+    if not path.is_file():
+        return None
+    try:
+        saved = json.loads(path.read_text())
+    except ValueError:
+        return None
+    if not (isinstance(saved, dict) and saved.get('published_archive_removals')
+            and 'published_archives_removed' in (saved.get('result') or {})):
+        return None  # a preview, or a run that removed no archive: nothing to restore
+    stamp = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    for number in range(1000):
+        target = path.with_name(f'{path.stem}-{stamp}{"" if number == 0 else f"-{number}"}{path.suffix}')
+        try:
+            with target.open('xb') as stream:
+                stream.write(path.read_bytes())
+            return target
+        except FileExistsError:
+            continue
+    raise RuntimeError('could_not_keep_the_previous_report')
+
+
 def apply(report):
     root=Path(report['root']).resolve();before=shutil.disk_usage(root).free
     # Validate every archive before changing any of them. A stale plan must be regenerated.
@@ -169,6 +199,8 @@ def main():
     releases=fetch('dielessen/open_thermostat') if args.fetch_published else json.loads(args.published_catalog.read_text()) if args.published_catalog else []
     report=plan(root,releases,args.keep_releases)
     args.report.parent.mkdir(parents=True,exist_ok=True)
+    kept=keep_previous_report(args.report)
+    if kept:report['previous_report_kept']=str(kept.relative_to(root))
     args.report.write_text(json.dumps(report,indent=2)+'\n')
     result=apply(report) if args.apply else {'mode':'preview','cache_directories':len(report['generated_caches']),
         'old_published_archives':len(report['published_archive_removals']),'duplicate_archive_groups':len(report['identical_archive_groups'])}

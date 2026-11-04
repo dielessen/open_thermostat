@@ -78,7 +78,8 @@ public:
         const size_t house = n;
         for (size_t r = 0; r < RoomPlan::maxRooms; ++r)
             judge(houseFigures + r, y.warmupMinPerC[r], p_.warmupFloor, Kind::warmupSlower, std::nullopt, int8_t(r));
-        std::stable_sort(found.begin() + house, found.begin() + n, [](const Item& a, const Item& b) { return a.pct > b.pct; });
+        for (size_t i = house + 1; i < n; ++i) // the rooms by their change, largest first (stable: plan order on a tie)
+            for (size_t j = i; j > house && found[j - 1].pct < found[j].pct; --j) std::swap(found[j - 1], found[j]);
         count_ = std::min(n, maxItems);
         std::copy(found.begin(), found.begin() + count_, items_.begin());
         fold(0, y.gasPerDegreeDay); fold(1, y.startsPerHour); fold(2, y.hoursPerDegreeDay);

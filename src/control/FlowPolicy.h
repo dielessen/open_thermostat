@@ -314,6 +314,7 @@ class FlowPolicy {
 public:
     enum class Source : uint8_t { rule, curve, learned, optimumStart };
     static constexpr int16_t warmupFromCentiC = 30;
+    static constexpr float houseSlopeFloor = 0.5f; // rc.5 (P2): the house model's slope at least this share of the design slope
     struct Inputs {
         uint64_t now = 0;
         std::optional<int64_t> utc;                 // trusted clock only
@@ -324,8 +325,8 @@ public:
         std::optional<uint8_t> boilerLimitC;        // the boiler's 0x16 heating limit
         std::optional<int16_t> flowCentiC;          // fresh EMS view, for the curve learner
         std::optional<bool> burnerOn, hotWater;
-        // rc.5 (P2): HouseModel::slope(), the curve's slope until CurveLearner learned one
-        // (order: learned curve, house model, design; "slope_source" "learned" / "house" / "design").
+        // rc.5 (P2): HouseModel::slope(), the curve's slope until CurveLearner learned one, at least half the
+        // design slope (order: learned curve, house model, design; "slope_source" "learned" / "house" / "design").
         std::optional<float> houseSlope;
     };
 
@@ -366,9 +367,13 @@ public:
         copyId(leadId_, lead_ >= 0 ? plan.rooms[lead_].id.c_str() : "");
         designFlowC_ = settings_.designFlowC ? settings_.designFlowC : radiator ? WeatherCurve::radiatorDesignFlowC : WeatherCurve::floorDesignFlowC;
         const auto learnedSlope = curveLearner_.slope();
-        const bool house = !learnedSlope && in.houseSlope && std::isfinite(*in.houseSlope) && *in.houseSlope > 0; // rc.5 (P2)
+        // rc.5 (P2): the house model's slope (HouseModel) until the curve learned its own; comfort first, an
+        // estimate takes at most half off the design slope (only CurveLearner, from steady periods at the
+        // target, may go lower).
+        const bool house = !learnedSlope && in.houseSlope && std::isfinite(*in.houseSlope) && *in.houseSlope > 0;
+        const float design = WeatherCurve::slopeFor(designFlowC_);
         slope_ = learnedSlope ? *learnedSlope
-            : house ? std::clamp(*in.houseSlope, WeatherCurve::minSlope, WeatherCurve::maxSlope) : WeatherCurve::slopeFor(designFlowC_);
+            : house ? std::clamp(*in.houseSlope, std::max(WeatherCurve::minSlope, design * houseSlopeFloor), WeatherCurve::maxSlope) : design;
         slopeSource_ = learnedSlope ? "learned" : house ? "house" : "design";
         // Weather curve: the highest base over the usable rooms (one circuit).
         if (in.outdoorCentiC && lead_ >= 0) {

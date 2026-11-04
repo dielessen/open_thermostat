@@ -314,8 +314,8 @@ TEST(FlowPolicy, OptionsOffLeaveTheRuleAndAdvise) {
 }
 
 // rc.5 (P2): the curve's slope in this order: CurveLearner's once it has its six steady periods, else
-// the house model's (HouseModel: heat loss over emitter output, within the curve's bounds), else the
-// design slope. "slope_source" says which.
+// the house model's (HouseModel: heat loss over emitter output, within the curve's bounds and at least
+// half the design slope), else the design slope. "slope_source" says which.
 TEST(FlowPolicy, TheHouseSlopeComesBetweenTheLearnedCurveAndTheDesign) {
     Step s;
     FlowSettings on = Step::off(); on.weatherCurve = true;
@@ -337,6 +337,10 @@ TEST(FlowPolicy, TheHouseSlopeComesBetweenTheLearnedCurveAndTheDesign) {
     s.in.houseSlope = 9.0f;                                        // bounded to the curve's 2.5, the flow to the plan's 60
     EXPECT_EQ(s.apply(heat40).flowC, 60);
     EXPECT_EQ(std::get<1>(curve()), 2.5);
+    // Comfort first: an estimate takes at most half off the design slope (0.667 / 2: 21 + 0.333 x 31 = 31.3 -> 32, + 5).
+    s.in.houseSlope = 0.2f;
+    EXPECT_EQ(s.apply(heat40).flowC, 37);
+    EXPECT_EQ(curve(), std::make_tuple(std::string("house"), 0.33, 37));
     for (const float bad : {0.0f, -1.0f, std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity()}) {
         s.in.houseSlope = bad;
         EXPECT_EQ(s.apply(heat40).flowC, 47) << bad;

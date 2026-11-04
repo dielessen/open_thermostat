@@ -15,7 +15,8 @@ namespace heating::control {
 // give per K of water above the rooms (kW/K). Their ratio is the weather curve's slope: in a
 // steady state the emitters give what the house loses, k (flow - room) = UA (room - outdoor), so
 //   flow - room = UA / k x (room - outdoor), the slope of WeatherCurve::baseCentiC.
-// FlowPolicy uses it between the learned curve and the design slope: CurveLearner needs six
+// FlowPolicy uses it between the learned curve and the design slope (there at least half the design
+// slope: an estimate never takes more off, comfort first): CurveLearner needs six
 // steady 3-hour windows, which a mild autumn or a boiler that cycles may take weeks to give, while
 // the house model comes from what the learners already know:
 //  - UA: the median of the rooms' UA (FlowLearner's heat model, b x C: the house as seen from each
@@ -105,7 +106,7 @@ private:
         return static_cast<float>(sxp / sxx);
     }
     static float median(std::array<float, RoomPlan::maxRooms>& v, size_t n) {
-        std::sort(v.begin(), v.begin() + n);
+        for (size_t i = 1; i < n; ++i) for (size_t j = i; j > 0 && v[j - 1] > v[j]; --j) std::swap(v[j - 1], v[j]);
         return n % 2 ? v[n / 2] : (v[n / 2 - 1] + v[n / 2]) / 2;
     }
     Params p_;

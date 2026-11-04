@@ -213,7 +213,6 @@ class E32Backups:
         self._listeners = []
         self._unsubscribe = []
         self._task = None
-        self._rejected_password = None
 
     # -- state ------------------------------------------------------------
 
@@ -331,17 +330,19 @@ class E32Backups:
         self._changed()
 
     def _login_password(self, password):
-        if password == self._rejected_password:
+        from .e32_access import password_rejected
+        if password_rejected(self.hass, self.entry, password):
             raise ControllerLoginRejected()  # wait for the new password; Home Assistant asks for it
 
     async def _sign_in(self, client, password, *, stored):
+        if stored:
+            self._login_password(password)
         try:
             await client.async_login(password)
         except ControllerLoginRejected:
-            if stored and password != self._rejected_password:
-                from .e32_access import login_rejected
-                self._rejected_password = password
-                login_rejected(self.hass, self.entry)
+            if stored:  # one latch for every part of the entry (e32_access, R4-05)
+                from .e32_access import mark_rejected
+                mark_rejected(self.hass, self.entry, password)
             raise
         if stored:
             from .e32_access import report_password
@@ -526,7 +527,8 @@ class E32Backups:
         if other_installation(self.hass, entry, check):
             _LOGGER.warning("E32 settings restored; that E32 belongs to another installation and is not linked")
             return False
-        self._rejected_password = None
+        from .e32_access import clear_rejected
+        clear_rejected(self.hass, entry)
         if all(entry.data.get(k) == v for k, v in wanted.items() if k != CONTROLLER_PASSWORD):
             from .e32_access import save_password
             save_password(self.hass, entry, check.password)

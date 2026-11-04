@@ -243,6 +243,23 @@ class E32FirmwareUpdate(UpdateEntity):
     def _client(self):
         return ControllerClient(self._entry.data[CONTROLLER_ADDRESS])
 
+    async def _sign_in(self, client, waits=()):
+        """Sign in with the stored password, never with one the E32 refused before (one latch for every
+        part of the entry, e32_access, R4-05); waits: the pauses for a free E32 web session."""
+        from .e32_access import mark_rejected, password_rejected, report_password
+        password = self._entry.data[CONTROLLER_PASSWORD]
+        if password_rejected(self.hass, self._entry, password):
+            raise ControllerLoginRejected()  # wait for the new password; Repairs asks for it
+        try:
+            if waits:
+                await async_login_waiting(client, password, waits)
+            else:
+                await client.async_login(password)
+        except ControllerLoginRejected:
+            mark_rejected(self.hass, self._entry, password)
+            raise
+        report_password(self.hass, self._entry, getattr(client, "default_password", None))
+
     async def async_refresh(self, _now=None):
         """Read the installed version from the E32 and the newest release from GitHub."""
         if self._lock.locked():
@@ -251,22 +268,15 @@ class E32FirmwareUpdate(UpdateEntity):
         # E32 (restarting, all web sessions in use) or a refused password keeps the
         # last known one (and its channel). A refused password is a Repairs item.
         try:
-            if self._entry.data.get(CONTROLLER_PASSWORD) == getattr(self, "_rejected_password", None):
-                raise ControllerLoginRejected()  # wait for the new password; Repairs asks for it
             async with self._client() as client:
-                await client.async_login(self._entry.data[CONTROLLER_PASSWORD])
+                await self._sign_in(client)
                 version = await client.async_read("/status/version")
-                from .e32_access import report_password
-                report_password(self.hass, self._entry, getattr(client, "default_password", None))
             if not self._set_installed(version.get("version") if isinstance(version, dict) else None):
                 raise ControllerLinkError("controller_response_invalid")
             self._failures = 0
             self._cancel_retry()
         except ControllerLoginRejected:
-            if self._entry.data.get(CONTROLLER_PASSWORD) != getattr(self, "_rejected_password", None):
-                from .e32_access import login_rejected
-                self._rejected_password = self._entry.data.get(CONTROLLER_PASSWORD)
-                login_rejected(self.hass, self._entry)
+            pass  # Repairs asks for the new password; no retries until then
         except (ControllerLinkError, TimeoutError) as err:
             self._failures += 1
             _LOGGER.debug("E32 firmware version not read (%s); attempt %d", err, self._failures)
@@ -313,7 +323,7 @@ class E32FirmwareUpdate(UpdateEntity):
                 outcome["result"] = "upload_failed"
                 async with self._client() as client:
                     # The owner pressed Install: wait for a free E32 web session (all 4 in use).
-                    await async_login_waiting(client, self._entry.data[CONTROLLER_PASSWORD], SESSION_WAITS)
+                    await self._sign_in(client, SESSION_WAITS)
                     await client.async_upload_firmware(image)
                 outcome["uploads"], outcome["result"] = 1, "not_confirmed"
                 # The E32 restarts itself; confirm the new version is running.
@@ -321,7 +331,7 @@ class E32FirmwareUpdate(UpdateEntity):
                     await asyncio.sleep(5)
                     try:
                         async with self._client() as client:
-                            await client.async_login(self._entry.data[CONTROLLER_PASSWORD])
+                            await self._sign_in(client)  # a refused password ends the wait (never tried twice)
                             running = await client.async_read("/status/version")
                         outcome["reported"] = reported_identity(running) or outcome["reported"]
                         if isinstance(running, dict) and running.get("version") == release["tag"]:
@@ -329,6 +339,8 @@ class E32FirmwareUpdate(UpdateEntity):
                             self._sync_device_version()
                             outcome["result"] = "installed"
                             return
+                    except ControllerLoginRejected:
+                        raise  # never a second failed sign-in: Repairs asks for the new password
                     except ControllerLinkError:
                         continue
                 raise ValueError("The E32 did not report the new version within 3 minutes")

@@ -34,7 +34,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .controller_link import (ControllerClient, ControllerLinkError, ControllerLoginRejected, HeatingPlanRejected,
-                              SESSION_WAITS, async_login_waiting)
+                              SESSION_WAITS)
 from .heating_link import ROOM_ID, RoomEntity, add_options, heating_hub, track_entities
 from .room_levels import normalize
 
@@ -174,9 +174,8 @@ class RoomPlanLink:
     def __init__(self, hass, address, password, hub, clock=time.monotonic, entry=None):
         self.hass, self._address, self._password, self.hub, self.clock = hass, address, password, hub, clock
         self.entry = entry
-        # The E32 refused this password once: never try it again (its login limit
-        # would lock the owner out of the web page); the re-authentication brings a new one.
-        self.login_rejected = False
+        # The password the E32 refused (login_rejected), for a link without an entry's state.
+        self._rejected = None
         self.plan = None
         self._lock = asyncio.Lock()
         self._task = None
@@ -199,10 +198,31 @@ class RoomPlanLink:
             return None
         return cls(hass, address, password, hub, entry=entry)
 
+    @property
+    def login_rejected(self):
+        """The E32 refused this password once: never try it again (its login limit would lock the
+        owner out of the web page); the re-authentication brings a new one. One latch for every part
+        of the entry that signs in with the stored password (e32_access.password_rejected, R4-05)."""
+        if self.entry is None:
+            return self._rejected is not None and self._rejected == self._password
+        from .e32_access import password_rejected
+        return password_rejected(self.hass, self.entry, self._password)
+
+    @login_rejected.setter
+    def login_rejected(self, rejected):
+        self._rejected = self._password if rejected else None
+        if self.entry is not None:
+            from .e32_access import clear_rejected, remember_rejected
+            if rejected:
+                remember_rejected(self.hass, self.entry, self._password)
+            else:
+                clear_rejected(self.hass, self.entry)
+
     @callback
     def use_password(self, password):
         """A new password (re-authentication): log in with it and read the plan again."""
-        self._password, self.login_rejected = password, False
+        self._password = password
+        self.login_rejected = False
         self._failed_at = self._seen_revision = None
         self._status_changed()
 
@@ -269,34 +289,75 @@ class RoomPlanLink:
                 return
         raise WriteSuperseded()
 
-    async def _login(self, client, wanted=None):
-        """Sign in. A write (wanted, from claim) waits for a free E32 web session while still wanted.
+    async def async_call(self, call, *, write=False, key=None):
+        """call(client) after one sign-in to the E32: the one way this entry's E32 requests are made.
 
-        Reads never wait: they would hold the lock the user's writes need, and
-        the telemetry triggers them again (RETRY_SECONDS).
+        The lock is held only while signed in (the sign-in and call(client)), so a write that waits
+        for a free E32 web session never holds up reads or other writes (R4-02): while every session
+        is in use it lets go of the lock and signs in again after each of session_waits. A newer write
+        with the same key supersedes a waiting one: WriteSuperseded, nothing sent. Reads never wait
+        (the telemetry triggers them again, RETRY_SECONDS). A password the E32 refused is never tried
+        again (one latch for the whole entry, R4-05). The client signs out after the lock is released.
+        Returns what call(client) returns; raises ControllerLinkError.
         """
-        from .e32_access import login_rejected, report_password
+        wanted = self.claim(key) if write else None
+        waits = list(self.session_waits) if write else []
+        async with self._client() as client:
+            while True:
+                if wanted is not None and not wanted():
+                    raise WriteSuperseded()
+                async with self._lock:
+                    try:
+                        await self._sign_in(client)
+                    except ControllerLinkError as err:
+                        if not write or str(err) != "controller_session_capacity":
+                            raise
+                        if not waits:
+                            self._no_free_session()
+                    else:
+                        if write:
+                            self._session_issue(False)
+                        return await call(client)
+                await self._pause(waits.pop(0), wanted)
+
+    async def _sign_in(self, client):
+        """One sign-in with the stored password, never with one the E32 refused before (any part of the entry)."""
+        from .e32_access import mark_rejected, report_password
         if self.login_rejected:
             raise ControllerLoginRejected()
         try:
-            if wanted is None:
-                await client.async_login(self._password)
-            else:
-                await async_login_waiting(client, self._password, self.session_waits,
-                                          lambda seconds: self._pause(seconds, wanted))
+            await client.async_login(self._password)
         except ControllerLoginRejected:
-            self.login_rejected = True
-            login_rejected(self.hass, self.entry)
+            self._rejected = self._password
+            mark_rejected(self.hass, self.entry, self._password)  # Home Assistant asks for the new one
             raise
-        except ControllerLinkError as err:
-            if str(err) == "controller_no_free_session":
-                _LOGGER.warning("No free E32 web session for %s s: a change from Home Assistant was not sent",
-                                sum(self.session_waits))
-                self._session_issue(True)
-            raise
-        if wanted is not None:
-            self._session_issue(False)
         report_password(self.hass, self.entry, getattr(client, "default_password", None))
+
+    def _no_free_session(self):
+        _LOGGER.warning("No free E32 web session for %s s: a change from Home Assistant was not sent",
+                        sum(self.session_waits))
+        self._session_issue(True)
+        raise ControllerLinkError("controller_no_free_session")
+
+    async def _login(self, client, wanted=None):
+        """Sign in on a client whose caller already holds self._lock (kept for such callers; use async_call).
+
+        A write (wanted, from claim) waits for a free E32 web session while still wanted, under that lock.
+        """
+        if wanted is None:
+            return await self._sign_in(client)
+        waits = list(self.session_waits)
+        while True:
+            try:
+                await self._sign_in(client)
+                break
+            except ControllerLinkError as err:
+                if str(err) != "controller_session_capacity":
+                    raise
+                if not waits:
+                    self._no_free_session()
+            await self._pause(waits.pop(0), wanted)
+        self._session_issue(False)
 
     @callback
     def _session_issue(self, failed):
@@ -313,10 +374,7 @@ class RoomPlanLink:
                               translation_placeholders={"name": getattr(self.entry, "title", "E32")})
 
     async def _async_fetch(self):
-        async with self._lock:
-            async with self._client() as client:
-                await self._login(client)
-                plan = decode_plan(await client.async_read_heating_plan())
+        plan = decode_plan(await self.async_call(lambda client: client.async_read_heating_plan()))
         if plan is None:
             raise ControllerLinkError("controller_response_invalid")
         return plan
@@ -389,37 +447,32 @@ class RoomPlanLink:
         change runs again on the re-read plan, so a concurrent save elsewhere is
         kept and only this edit is applied on top. confirm(stored) checks the
         E32's answer; a stored plan it does not accept is reported unconfirmed.
-        With every E32 web session in use it waits for one; a newer change with
-        the same key (a room's fixed target) supersedes it: None, nothing sent.
+        With every E32 web session in use it waits for one (without holding up
+        reads, async_call); a newer change with the same key (a room's fixed
+        target) supersedes it: None, nothing sent.
         """
-        wanted = self.claim(key)
-        async with self._lock:
-            try:
-                if not wanted():
-                    raise WriteSuperseded()
-                async with self._client() as client:
-                    await self._login(client, wanted)
-                    for attempt in (1, 2):
-                        plan = decode_plan(await client.async_read_heating_plan())
-                        if plan is None:
-                            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_invalid")
-                        # Levels only for an E32 that stores them; marks that fit every program.
-                        candidate = normalize(change(plan))
-                        try:
-                            stored = await client.async_save_heating_plan(candidate)
-                        except HeatingPlanRejected as err:
-                            if err.error == "plan_changed" and attempt == 1:
-                                _LOGGER.info("E32 room plan changed since revision %s; applying the change again",
-                                             plan["revision"])
-                                continue
-                            raise
-                        break
-            except WriteSuperseded:
-                return None
-            except ControllerLinkError as err:
-                if isinstance(err, HeatingPlanRejected) and err.error == "save_unconfirmed":
-                    self._seen_revision = None  # Read back what the E32 really stored.
-                raise plan_error(err) from None
+        async def save(client):
+            for attempt in (1, 2):
+                plan = decode_plan(await client.async_read_heating_plan())
+                if plan is None:
+                    raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_invalid")
+                # Levels only for an E32 that stores them; marks that fit every program.
+                candidate = normalize(change(plan))
+                try:
+                    return await client.async_save_heating_plan(candidate)
+                except HeatingPlanRejected as err:
+                    if err.error != "plan_changed" or attempt == 2:
+                        raise
+                    _LOGGER.info("E32 room plan changed since revision %s; applying the change again",
+                                 plan["revision"])
+        try:
+            stored = await self.async_call(save, write=True, key=key)
+        except WriteSuperseded:
+            return None
+        except ControllerLinkError as err:
+            if isinstance(err, HeatingPlanRejected) and err.error == "save_unconfirmed":
+                self._seen_revision = None  # Read back what the E32 really stored.
+            raise plan_error(err) from None
         stored = decode_plan(stored)
         if stored is None or not confirm(stored):
             self._seen_revision = None

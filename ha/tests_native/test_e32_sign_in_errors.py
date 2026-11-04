@@ -133,3 +133,73 @@ def test_every_raised_controller_error_code_has_a_text():
     for name in ("strings.json", "translations/nl.json", "translations/pl.json"):
         errors = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["options"]["error"]
         assert "controller_readback_unconfirmed" in errors, name
+
+
+@pytest.mark.asyncio
+async def test_one_rejected_login_stops_every_subsystem(hass, monkeypatch):
+    """R4-05: after a password change on the E32 Home Assistant makes one failed sign-in, not one per part.
+
+    The room plan, the backups, the firmware check, the flow options and the Configure check all sign in
+    with the stored password; the E32 limits failed sign-ins (and would lock the owner's browser out too).
+    """
+    import aiohttp
+    from types import SimpleNamespace
+    from custom_components.open_thermostat import e32_link, firmware_update
+    from custom_components.open_thermostat import controller_setup_flow as setup_flow
+    from custom_components.open_thermostat.e32_backup import E32Backups
+    from custom_components.open_thermostat.e32_flow import FlowSettingsLink
+    from custom_components.open_thermostat.legacy_room_migration import async_read_plan
+    from homeassistant.exceptions import HomeAssistantError
+    from test_e32_room_flow import product
+    from test_room_plan import FakeE32
+    attempts = []
+
+    class Refusing:
+        def __init__(self, *_):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            return None
+
+        async def async_login(self, password):
+            attempts.append(password)
+            raise link.ControllerLoginRejected()
+
+    parent, hub = product(hass, FakeE32())
+    await hass.async_block_till_done()  # the hub's own first plan read (with the old client)
+    hub.plan.entry = parent
+    hub.plan._client = Refusing
+    reauth = []
+    monkeypatch.setattr(parent, "async_start_reauth", lambda h: reauth.append(True))
+    monkeypatch.setattr(firmware_update, "ControllerClient", Refusing)
+    monkeypatch.setattr(setup_flow, "ControllerClient", Refusing)
+
+    def offline(*_args, **_kwargs):
+        raise aiohttp.ClientError()
+    monkeypatch.setattr(firmware_update, "async_get_clientsession", lambda h: SimpleNamespace(get=offline))
+
+    await hub.plan.async_refresh()                                   # the plan read: the one failed sign-in
+    assert attempts == ["secret"] and reauth == [True] and hub.plan.login_rejected
+    backups = E32Backups(hass, parent)
+    backups._client = Refusing
+    await backups.async_load()
+    with pytest.raises(link.ControllerLoginRejected):
+        await backups.async_backup("daily")                         # the daily backup
+    firmware = firmware_update.E32FirmwareUpdate(hass, parent)
+    await firmware.async_refresh()                                   # the firmware check
+    with pytest.raises(HomeAssistantError):
+        await FlowSettingsLink(hass, hub, hub.plan).async_read_now()  # Configure -> Heating
+    await hub.plan.async_refresh()                                   # the next plan read
+    assert await async_read_plan(hass, parent) is None               # the rooms confirmation step
+    hub.update(None)  # the E32 silent: the Configure check would sign in itself
+    assert await e32_link.async_room_plan_firmware_problem(hass, parent) is None
+    assert attempts == ["secret"] and reauth == [True]
+    # The new password from the re-authentication: every part may sign in again.
+    from custom_components.open_thermostat.e32_access import password_rejected, save_password
+    monkeypatch.setattr(hass.config_entries, "async_schedule_reload", lambda entry_id: None)
+    save_password(hass, parent, "new-password")
+    assert not password_rejected(hass, parent, "new-password") and not password_rejected(hass, parent, "secret")
+    hub.plan.stop()

@@ -620,30 +620,25 @@ def comfort_error(err):
 
 
 async def async_comfort_command(link, command):
-    """POST one command over the room-plan link's stored connection (one login, its lock).
+    """POST one command over the room-plan link's stored connection (RoomPlanLink.async_call).
 
-    With every E32 web session in use it waits for one (RoomPlanLink._login). A
-    newer command for the same room (or the house mode) supersedes it: None,
-    nothing sent; the newest value is the one that goes out. House commands go
-    through e32_house.async_house_change, which carries the superseded one's
-    fields along (the E32 takes the house mode, away temperature and holiday end
-    as one command).
+    With every E32 web session in use it waits for one, without holding up
+    other requests. A newer command for the same room (or the house mode)
+    supersedes it: None, nothing sent; the newest value is the one that goes
+    out. House commands go through e32_house.async_house_change, which carries
+    the superseded one's fields along (the E32 takes the house mode, away
+    temperature and holiday end as one command).
     """
     from .controller_link import ControllerLinkError
     from .room_plan import WriteSuperseded
     room = command.get("room") if type(command) is dict else None
-    wanted = link.claim(("room", room) if room is not None else ("house",))
-    async with link._lock:
-        try:
-            if not wanted():
-                raise WriteSuperseded()
-            async with link._client() as client:
-                await link._login(client, wanted)
-                answer = await client.async_comfort_command(command)
-        except WriteSuperseded:
-            return None
-        except ControllerLinkError as err:
-            raise comfort_error(err) from None
+    try:
+        answer = await link.async_call(lambda client: client.async_comfort_command(command), write=True,
+                                       key=("room", room) if room is not None else ("house",))
+    except WriteSuperseded:
+        return None
+    except ControllerLinkError as err:
+        raise comfort_error(err) from None
     if type(answer) is not dict or answer.get("schema") != 1:
         raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unconfirmed")
     return answer

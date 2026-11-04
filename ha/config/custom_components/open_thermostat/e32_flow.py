@@ -155,11 +155,8 @@ class FlowSettingsLink:
         self._was_fresh = fresh
 
     async def _call(self, change=None):
-        async with self.plan._lock:
-            async with self.plan._client() as client:
-                # A change waits for a free E32 web session; a read does not.
-                await self.plan._login(client, None if change is None else self.plan.claim())
-                return await client.async_flow_settings(change)
+        # A change waits for a free E32 web session; a read does not.
+        return await self.plan.async_call(lambda client: client.async_flow_settings(change), write=change is not None)
 
     async def async_read_now(self):
         """Read the options for a Configure form: what the E32 stored, or a clear HomeAssistantError."""

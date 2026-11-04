@@ -883,11 +883,11 @@
         },
         {
           "path": "tools/dev/manual/README.md",
-          "sha256": "e23d9b2d2e47a9fcd8b5fc14677f48b6d63e50d80d50ccb58e75bdc058f1aa64"
+          "sha256": "10949d5d0d8174c40bd1d38fffb0e8c3d576fa6b08a95e76fe53439573af36bf"
         },
         {
           "path": "tools/dev/manual/make_pdf.py",
-          "sha256": "d87aa1c71c933e1e9ad3048e8f5a10f229eb51b3043736697a03ebab07ed6100"
+          "sha256": "6cb7ea3cbdd847e39badb1b15a5f5625a09716a5bb92eef458cc22c69f1f36d5"
         },
         {
           "path": "tools/dev/prepare_rc4.py",

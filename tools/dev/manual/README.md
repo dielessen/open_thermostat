@@ -26,8 +26,8 @@ To look at a page without a PDF viewer, `pypdfium2` can render it:
 
 ## At each release
 
-1. Set `E32_TAG`, `E32_VERSION` and `HA_VERSION` at the top of `make_pdf.py` (cover, firmware example, HACS step and
-   footer use them).
+1. Set `E32_TAG`, `E32_VERSION` and `HA_VERSION` at the top of `make_pdf.py` to the release pair (cover, firmware
+   example, HACS step and footer use them). They are not read from the tree, so a release does not change them by itself.
 2. Names that Home Assistant shows are written through `ui(...)` and `named(...)`. Run
    `python3 -I -m unittest discover -s tools/dev -p "test_manual_labels.py"`: it looks every such name up in
    `translations/nl.json` and in the Dutch dashboard texts, so a renamed menu fails there. Names of the E32's own

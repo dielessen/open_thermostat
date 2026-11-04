@@ -7,7 +7,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from custom_components.open_thermostat.dashboard import RoomDashboard, view_cards
 from custom_components.open_thermostat.heating_link import HeatingHub
-from custom_components.open_thermostat.room_overview import HOUSE_CARD_TYPE
+from custom_components.open_thermostat.room_overview import BOILER_NOW_CARD_TYPE, HOUSE_CARD_TYPE
 from test_v1_native import entry
 
 BUILT_IN = {"heading", "tile", "thermostat", "history-graph", "statistics-graph", "entities", "glance",
@@ -83,8 +83,9 @@ async def test_the_views_are_overview_rooms_boiler_learning_and_diagnostics(hass
     assert [v["title"] for v in config["views"]] == [
         "Overview", "Rooms", "Boiler", "Learning and settings", "Diagnostics", "Comparison"]
     assert comparison["subview"] is True and comparison["back_path"] == "/" + dashboard.path + "/heating"
-    # Built-in cards, and on the Overview the integration's own house card (rc.5).
-    assert {card["type"] for view in config["views"] for card in view_cards(view)} <= BUILT_IN | {HOUSE_CARD_TYPE}
+    # Built-in cards, and the integration's own house card on the Overview and Now card on the Boiler view (rc.5).
+    assert {card["type"] for view in config["views"] for card in view_cards(view)} <= BUILT_IN | {HOUSE_CARD_TYPE,
+                                                                                                   BOILER_NOW_CARD_TYPE}
     assert None not in list(walk(config))
     # Every section starts with its heading.
     assert all(s["cards"][0]["type"] == "heading" for v in config["views"] for s in v["sections"])
@@ -139,31 +140,25 @@ async def test_the_views_are_overview_rooms_boiler_learning_and_diagnostics(hass
     assert bluetooth[1]["type"] == "glance" and bluetooth[1]["title"] == "Thermometer badkamer"
     assert [x["entity"] for x in bluetooth[1]["entities"]] == [sensors[k] for k in ("temperature", "humidity", "battery")]
 
-    # Boiler, first "Now": the boiler in words, the water to the heating next to the water back, and the burner
-    # power next to its starts in the last hour; nothing of it on the other views.
+    # Boiler, first "Now" (rc.5, the owner's sketch): one card (frontend/boiler-now-card.js) with the boiler's display
+    # code in words, the water to the heating and back, the burner power and its starts in the last hour (calm or
+    # not) and what the E32 asks; across both columns; nothing of it on the other views.
     known = lambda entity: [{"condition": "state", "entity": entity, "state_not": ["unavailable", "unknown"]}]
     now_section = boiler_view["sections"][0]
     now = now_section["cards"]
     assert (now[0]["heading"], now[0]["icon"]) == ("Now", "mdi:water-boiler")
-    words = [c for c in now if c["type"] == "markdown" and "'meaning'" in c["content"]]
-    assert len(words) == 1 and words[0]["visibility"] == known(fields["display_code"])
-    flow, back, gauge, starts = now[2:]
-    assert (flow["entity"], flow["name"], flow["icon"]) == (
-        fields["measured_flow_temperature"], "Water to heating", "mdi:thermometer-chevron-up")
-    assert (back["entity"], back["name"], back["icon"]) == (
-        fields["measured_return_temperature"], "Water back", "mdi:thermometer-chevron-down")
-    assert flow["visibility"] == back["visibility"] == known(fields["measured_flow_temperature"])
-    assert "grid_options" not in flow and "grid_options" not in back  # one row of two tiles
-    assert gauge == {"type": "gauge", "entity": fields["reported_burner_modulation"], "name": "Burner power",
-                     "min": 0, "max": 100, "needle": False, "grid_options": {"columns": 6, "rows": 2},
-                     "visibility": known(fields["reported_burner_modulation"])}
-    assert (starts["entity"], starts["name"], starts["icon"], starts["grid_options"], starts["visibility"]) == (
-        hub["burner_starts_last_hour"], "Starts per hour", "mdi:counter", {"columns": 6, "rows": 2},
-        known(fields["reported_burner_modulation"]))
+    assert now[1:] == [{"type": BOILER_NOW_CARD_TYPE, "grid_options": {"columns": "full"}, "code": fields["display_code"],
+                        "flow": fields["measured_flow_temperature"], "return": fields["measured_return_temperature"],
+                        "modulation": fields["reported_burner_modulation"], "starts": hub["burner_starts_last_hour"],
+                        "cycling": hub["burner_short_cycling"], "request": hub["heat_request"]}]
+    assert now_section["column_span"] == 2
     # The section hides as a whole while the boiler reports none of it: never a heading over nothing.
     assert now_section["visibility"] == [{"condition": "or", "conditions": [
         known(fields[name])[0] for name in ("display_code", "measured_flow_temperature", "reported_burner_modulation")]}]
-    assert hub["burner_short_cycling"] not in json.dumps(boiler_view)
+    # Short cycling is the Now card's word for the starts ("calm" or "switching on and off too often"), never a tile,
+    # row or problem of its own on this view.
+    assert all(hub["burner_short_cycling"] not in json.dumps(card) for card in view_cards(boiler_view)
+               if card["type"] != BOILER_NOW_CARD_TYPE)
     assert fields["display_code"] not in [c.get("entity") for v in (overview, rooms_view, learning) for c in view_cards(v)]
 
     # Learning and settings: the control line, short cycling as information, the takeover check and the comparison link.
@@ -217,41 +212,40 @@ async def test_each_room_says_why_in_one_status_card_on_the_overview(hass):
 
 
 @pytest.mark.asyncio
-async def test_now_shows_what_the_boiler_does_as_one_coloured_tile(hass):
-    """rc.5 (dashboard-spec §5.1): heating (deep orange), hot water (blue) or resting (grey) as one wide tile:
-    exactly one shows for every state the boiler activity has. An older integration without the activity uses the
-    boiler's own heating bit, on and off."""
-    from custom_components.open_thermostat.dashboard import ACTIVITY_TILES
-    from custom_components.open_thermostat.heating_link import BOILER_ACTIVITIES
+async def test_now_takes_what_the_boiler_does_from_the_activity_else_its_own_bits(hass):
+    """rc.5 (the owner's sketch): the Now card's band is in the colour of what the boiler does (heating deep orange,
+    hot water blue, resting grey; frontend/boiler-now-card.js, its words and colours checked in
+    test/ha-boiler-now-browser.cjs), from the E32's boiler activity. Without it (an older integration) the card has the
+    boiler's own heating and hot water bits: the boiler fields, else the hub's own."""
     e, rooms, sensors, hub, fields = installation(hass)
     entities, devices = er.async_get(hass), dr.async_get(hass)
     product = devices.async_get_device_by_identifier(("open_thermostat", "fixture"), e.entry_id)
-    fields["heating_active"] = entities.async_get_or_create(
-        "sensor", "open_thermostat", "fixture_boiler_fields_v1_heating_active", config_entry=e, device_id=product.id,
-        suggested_object_id="boiler_heating_active").entity_id
+
+    def add(unique_id, domain="sensor"):
+        return entities.async_get_or_create(domain, "open_thermostat", unique_id, config_entry=e, device_id=product.id,
+                                            suggested_object_id=unique_id).entity_id
 
     def now():
         config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
         section = next(v for v in config["views"] if v["path"] == "boiler")["sections"][0]
         assert section["cards"][0]["heading"] in ("Now", "Teraz")
+        assert [card["type"] for card in section["cards"]] == ["heading", BOILER_NOW_CARD_TYPE]
         return section
-    bit = [c for c in now()["cards"] if c.get("entity") == fields["heating_active"]]
-    assert [(c["name"], c["icon"], c["color"], c["grid_options"], c["visibility"]) for c in bit] == [
-        ("Reported heating", "mdi:fire", "deep-orange", {"columns": 12},
-         [{"condition": "state", "entity": fields["heating_active"], "state": ["on"]}]),
-        ("Reported heating", "mdi:water-boiler", "grey", {"columns": 12},
-         [{"condition": "state", "entity": fields["heating_active"], "state": ["off"]}])]
-    hub["boiler_activity"] = entities.async_get_or_create(
-        "sensor", "open_thermostat", "fixture_hub_boiler_activity", config_entry=e, device_id=product.id,
-        suggested_object_id="boiler_activity").entity_id
+    card = now()["cards"][1]
+    assert not {"activity", "heating", "hot_water"} & set(card)  # nothing to say what it does: the card says so
+    # An older integration: the hub's own heating and hot water bits.
+    legacy = {key: add(f"fixture_hub_{key}", "binary_sensor") for key in ("boiler_heating_active", "boiler_hot_water_active")}
+    card = now()["cards"][1]
+    assert (card["heating"], card["hot_water"]) == (legacy["boiler_heating_active"], legacy["boiler_hot_water_active"])
+    # The boiler fields' own bits come first.
+    fields["heating_active"] = add("fixture_boiler_fields_v1_heating_active")
+    fields["dhw_active"] = add("fixture_boiler_fields_v1_dhw_active")
+    card = now()["cards"][1]
+    assert (card["heating"], card["hot_water"]) == (fields["heating_active"], fields["dhw_active"]) and "activity" not in card
+    # The E32's boiler activity (beta.23): the band follows it, and the section shows while it has a value.
+    hub["boiler_activity"] = add("fixture_hub_boiler_activity")
     section = now()
-    tiles = [c for c in section["cards"] if c.get("entity") == hub["boiler_activity"]]
-    assert [(c["name"], c["icon"], c["color"], c["grid_options"]) for c in tiles] == [
-        ("Boiler", "mdi:fire", "deep-orange", {"columns": 12}), ("Boiler", "mdi:faucet", "blue", {"columns": 12}),
-        ("Boiler", "mdi:water-boiler", "grey", {"columns": 12})]
-    shown = [state for c in tiles for state in c["visibility"][0]["state"]]
-    assert sorted(shown) == sorted(BOILER_ACTIVITIES) and len(shown) == len(set(shown))  # one tile per state
-    assert len(ACTIVITY_TILES) == 3 and not any(c.get("entity") == fields["heating_active"] for c in section["cards"])
+    assert section["cards"][1]["activity"] == hub["boiler_activity"]
     assert {"condition": "state", "entity": hub["boiler_activity"], "state_not": ["unavailable", "unknown"]} in (
         section["visibility"][0]["conditions"])
     hass.config.language = "pl"
@@ -451,6 +445,10 @@ def test_dashboard_text_has_the_same_keys_in_every_language():
     assert {"today_week", "gas_heating_today", "gas_hot_water_today", "starts_today", "burner_today", "boiler_values",
             "who_controls", "yesterday_figures", "dhw_target_short"} <= set(TEXT["en"])
     assert not {"gas_per_post", "control", "learning_how"} & set(TEXT["en"])
+    # rc.5, the Learning view as the owner's sketch: its new headings, and the insights' old title and the knowledge
+    # note (whose first sentence the knowledge card says itself) are gone.
+    assert {"your_boiler", "curve_title", "noticed", "noticed_note", "free_heat"} <= set(TEXT["en"])
+    assert not {"insights", "knowledge_note"} & set(TEXT["en"])
     # No "Heating page" any more: the gas per day is on the Boiler tab and the E32's Home page (named as the other
     # Home Assistant texts name it).
     assert [all(page in TEXT[language]["estimates_empty"] for page in pages) for language, pages in (
@@ -488,6 +486,22 @@ async def test_dutch_headings_and_only_existing_enabled_entities(hass):
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     assert config["views"][1]["sections"][0]["cards"][0]["heading"] == "Badkamer boven"
     assert config["views"][0]["sections"][0]["cards"][1]["name"] == "Badkamer boven"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("language,titles", [
+    ("en", ["Overview", "Rooms", "Boiler", "Learning and settings", "Diagnostics"]),
+    ("nl", ["Overzicht", "Ruimtes", "Ketel", "Leren en instellingen", "Diagnose"]),
+    ("pl", ["Przegląd", "Pomieszczenia", "Kocioł", "Uczenie i ustawienia", "Diagnostyka"])])
+async def test_the_view_tabs_show_their_titles(hass, language, titles):
+    """Home Assistant shows a view that has an icon as that icon alone in the tab bar: the first real render (demo
+    Home Assistant, P16) was a row of six icons. The approved sketches read "Overzicht · Ruimtes · Weekprogramma ·
+    Ketel · Leren · Diagnose": no view has an icon, so every tab shows its title; the paths stay."""
+    e, *_ = installation(hass, language, with_hub=False)
+    views = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"]
+    assert [v["title"] for v in views] == titles
+    assert [v["path"] for v in views] == ["heating", "rooms", "boiler", "learned", "diagnostics"]
+    assert [v for v in views if "icon" in v or "show_icon_and_title" in v] == []
 
 
 @pytest.mark.asyncio

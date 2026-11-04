@@ -244,6 +244,9 @@ public:
                         && insightJson(root, control::insightMaxKeys, control::insightMaxBytes); // rc.5 (P2): fw/telemetry/insight
                 });
         });
+        // P22: Home Assistant sends values while the plan reads its entities; 15 silent minutes then
+        // make the E32 subscribe ha/heating_input again (control/HaInputSilence.h).
+        mqtt_.setHeatingInputExpected([this] { return planReadsHa(); });
 #endif
 	}
 
@@ -580,8 +583,11 @@ public:
             scaled("age_s", value.temperatureAgeMs ? std::optional<uint32_t>(*value.temperatureAgeMs / 1000) : std::nullopt, 1.0);
         }
         const auto now = bleReceiptClock();
-        // The HA route's freshness for the rooms page banner.
-        if (!control::addHaLink(root, haInput_.lastAcceptedMs(), now, brokerConnected())) { cJSON_Delete(root); return nullptr; }
+        // The HA route's freshness for the rooms page banner; why the last value was refused and when the
+        // E32 last subscribed again after 15 silent minutes (P22).
+        const auto rejected = haInput_.lastRejected();
+        if (!control::addHaLink(root, haInput_.lastAcceptedMs(), now, brokerConnected(), rejected.reason, rejected.atMs,
+                                mqtt_.haResubscribedMs())) { cJSON_Delete(root); return nullptr; }
         if (mqtt) return root;
         // The self-tuning (AutoTuner): its state, the knobs in effect, yesterday and the change log.
         if (!autoTuner_.addStatus(root, now, effectiveTuning(), flowSettings_.manual)) { cJSON_Delete(root); return nullptr; }
@@ -1038,6 +1044,7 @@ private:
     }
     control::HeatingHistory history_; // 24 h of 5-minute averages, ~12.5 KB PSRAM, RAM only
     control::HeatingInputRoute haInput_;  // ha/heating_input: rooms, gas, price, outdoor, boiler power
+    uint32_t haResubscribesLogged_ = 0;   // HaInputSilence resubscriptions already logged (P22)
     uint32_t activePosted_ = 0; uint64_t activePostedAt_ = 0; // the last command handed to the EMS route
     std::optional<uint8_t> limitC_; std::optional<uint64_t> limitAtMs_; uint32_t limitReads_ = 0; // last step's 0x16 view
     // The owner's confirmation over restarts, bound to this firmware build.
@@ -1062,10 +1069,24 @@ private:
         } else DBGLOGFI(log_, logFeature_, "Room plan unreadable; heating control has no rooms (a boot zero is still owed)\n");
     }
     // ha/heating_input: room states and the learner's gas, price, outdoor and
-    // boiler power (control/HeatingInput.h). Anything else is ignored.
+    // boiler power (control/HeatingInput.h). Anything else is ignored; why is ha.last_rejected (P22).
     void heatingInput(std::string_view payload) {
-        if (overrides_.input(payload, roomEngine_.plan(), bleReceiptClock())) return; // window/door contacts, presence
-        haInput_.accept(payload, bleReceiptClock(), roomEngine_, flowLearner_);
+        const auto now = bleReceiptClock();
+        const char* rejected = nullptr;
+        if (overrides_.input(payload, roomEngine_.plan(), now, &rejected)) { // window/door contacts, presence
+            if (rejected) haInput_.reject(rejected, now); else haInput_.accepted(now);
+            return;
+        }
+        haInput_.accept(payload, now, roomEngine_, flowLearner_);
+    }
+    // The plan reads Home Assistant entities (a source or a setpoint entity): HA then sends at least every
+    // five minutes, so a long silence on ha/heating_input means nothing arrives (P22, HaInputSilence).
+    bool planReadsHa() const {
+        for (const auto& room : roomEngine_.plan().rooms) {
+            if (!room.setpointEntity.empty()) return true;
+            for (const auto& source : room.sources) if (source.type == control::RoomPlan::SourceType::ha) return true;
+        }
+        return false;
     }
     // The learner's outdoor: the boiler's (0x19/0xD1) while fresh, else HA's for 15 min.
     control::HeatingInputRoute::Outdoor learnerOutdoor(uint64_t now) const { return haInput_.outdoor(ems_.getOutdoorTemperature(), now); }
@@ -1085,6 +1106,11 @@ private:
     // Every 10 s: feed the Bluetooth sources, then compute the (shadow) request.
     void stepHeating() {
         const auto now = bleReceiptClock();
+        if (const auto resubscribes = mqtt_.haResubscribes(); resubscribes != haResubscribesLogged_) { // P22
+            haResubscribesLogged_ = resubscribes;
+            DBGLOGFI(log_, logFeature_, "No Home Assistant input for 15 min on a live MQTT session: ha/heating_input subscribed again (%lu)\n",
+                     static_cast<unsigned long>(resubscribes));
+        }
         for (const auto& room : roomEngine_.plan().rooms)
             for (const auto& source : room.sources) {
                 control::ManagedBleAddress address{};

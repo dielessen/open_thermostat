@@ -1636,7 +1636,16 @@
               "legend_heating": "Heating",
               "legend_hot_water": "Hot water",
               "legend_keep_warm": "Keeping warm",
-              "waiting": "The E32 has not reported yet."
+              "waiting": "The E32 has not reported yet.",
+              "now": "now",
+              "warm": "{room} was warm",
+              "early": "{m} min early",
+              "late": "{m} min late",
+              "on_time": "on time",
+              "degree_days": "Degree-days",
+              "target": "target {t} °C",
+              "per_day": "{n} days: {value} a day",
+              "today_since": "Today since midnight"
             }
           }
         }
@@ -2475,6 +2484,40 @@
           "keep_warm": "Keeping warm",
           "charging": "Heating the hot water tank",
           "hot_water": "Hot water"
+        },
+        "state_attributes": {
+          "card": {
+            "state": {
+              "title": "The boiler now",
+              "no_data": "No data from the boiler",
+              "boiler": "Boiler",
+              "code": "Display code {code}: {meaning}",
+              "code_bare": "Display code {code}",
+              "code_fault": "{severity} · display code {code}",
+              "link": "connection with the boiler: {state}",
+              "link_good": "good",
+              "link_none": "none",
+              "dhw": "hot water: {state}",
+              "yes": "yes",
+              "no": "no",
+              "flow": "Water to heating",
+              "asked": "asked {flow} °C",
+              "would_ask": "E32 would ask {flow} °C",
+              "no_request": "no request",
+              "ceiling": "at most {flow} °C",
+              "back": "Water back",
+              "difference": "difference {n} °C",
+              "power": "Burner power",
+              "power_off": "burner off",
+              "power_low": "low fire, calm",
+              "power_mid": "medium fire",
+              "power_full": "full fire",
+              "starts": "Starts in the last hour",
+              "calm": "calm",
+              "often": "switching on and off too often",
+              "today": "today {n}"
+            }
+          }
         }
       },
       "e32_last_backup": {
@@ -3922,6 +3965,10 @@
     "e32_backup_failing": {
       "title": "No recent backup of the E32 settings",
       "description": "{name}: Home Assistant could not back up the E32 settings for more than 3 days (last backup: {last}). Without a recent backup a replacement E32 cannot get your current settings back. Check that the E32 is on and its web page opens, and that its password in Home Assistant is still right; then press Back up E32 settings now on the E32 device. This message disappears after the next successful backup."
+    },
+    "heating_input_lost": {
+      "title": "The E32 does not receive the room values from Home Assistant",
+      "description": "The E32 has accepted no room values from Home Assistant for {minutes} minutes, so it runs the rooms on its own sensors and week program. Home Assistant last sent a value at {last_sent} (last send error: {error}). OpenThermostat has started sending afresh. If this message stays, restart Home Assistant: reloading the integration is not always enough. This message clears itself once the E32 accepts the values again."
     },
     "e32_time_zone": {
       "title": "The E32 uses another time zone",

@@ -1636,7 +1636,16 @@
               "legend_heating": "Ogrzewanie",
               "legend_hot_water": "Ciepła woda",
               "legend_keep_warm": "Podtrzymanie",
-              "waiting": "E32 jeszcze niczego nie przekazał."
+              "waiting": "E32 jeszcze niczego nie przekazał.",
+              "now": "teraz",
+              "warm": "{room}: ciepło",
+              "early": "{m} min za wcześnie",
+              "late": "{m} min za późno",
+              "on_time": "na czas",
+              "degree_days": "Stopniodni",
+              "target": "cel {t} °C",
+              "per_day": "{n} dni: {value} dziennie",
+              "today_since": "Dziś od północy"
             }
           }
         }
@@ -2475,6 +2484,40 @@
           "keep_warm": "Podtrzymanie ciepła",
           "charging": "Nagrzewanie zasobnika",
           "hot_water": "Ciepła woda"
+        },
+        "state_attributes": {
+          "card": {
+            "state": {
+              "title": "Kocioł teraz",
+              "no_data": "Brak danych z kotła",
+              "boiler": "Kocioł",
+              "code": "Kod {code}: {meaning}",
+              "code_bare": "Kod {code}",
+              "code_fault": "{severity} · kod {code}",
+              "link": "połączenie z kotłem: {state}",
+              "link_good": "dobre",
+              "link_none": "brak",
+              "dhw": "ciepła woda: {state}",
+              "yes": "tak",
+              "no": "nie",
+              "flow": "Woda do ogrzewania",
+              "asked": "żądanie {flow} °C",
+              "would_ask": "E32 zażądałby {flow} °C",
+              "no_request": "brak żądania",
+              "ceiling": "najwyżej {flow} °C",
+              "back": "Woda powrotna",
+              "difference": "różnica {n} °C",
+              "power": "Moc palnika",
+              "power_off": "palnik wyłączony",
+              "power_low": "mały płomień, spokojnie",
+              "power_mid": "średni płomień",
+              "power_full": "pełny płomień",
+              "starts": "Starty w ostatniej godzinie",
+              "calm": "spokojnie",
+              "often": "włącza się zbyt często",
+              "today": "dziś {n}"
+            }
+          }
         }
       },
       "e32_last_backup": {
@@ -3922,6 +3965,10 @@
     "e32_backup_failing": {
       "title": "Brak aktualnej kopii ustawień E32",
       "description": "{name}: Home Assistant od ponad 3 dni nie może utworzyć kopii ustawień E32 (ostatnia kopia: {last}). Bez aktualnej kopii zastępczy E32 nie odzyska bieżących ustawień. Sprawdź, czy E32 jest włączony i jego strona się otwiera oraz czy jego hasło w Home Assistant jest nadal poprawne; potem naciśnij Utwórz teraz kopię ustawień E32 na urządzeniu E32. Ten komunikat zniknie po następnej udanej kopii."
+    },
+    "heating_input_lost": {
+      "title": "E32 nie otrzymuje wartości pokojowych z Home Assistant",
+      "description": "E32 od {minutes} minut nie przyjął żadnych wartości pokojowych z Home Assistant, więc steruje pomieszczeniami według własnych czujników i programu tygodniowego. Home Assistant wysłał ostatnią wartość o {last_sent} (ostatni błąd wysyłania: {error}). OpenThermostat zaczął wysyłać od nowa. Jeśli ten komunikat nie znika, uruchom ponownie Home Assistant: ponowne wczytanie integracji nie zawsze wystarcza. Komunikat zniknie sam, gdy E32 znów przyjmie wartości."
     },
     "e32_time_zone": {
       "title": "E32 używa innej strefy czasowej",

@@ -153,6 +153,8 @@ async def test_the_dashboard_has_a_week_program_view_for_the_e32_rooms(hass, cre
     links = [card for card in view_cards(views.get("learned", {})) if card["type"] == "heading" and card.get("tap_action")]
     if credentials:
         assert views["week-program"]["cards"] == [{"type": "custom:openthermostat-e32-week", "entry_id": parent.entry_id}]
+        # Its tab shows the title, as every view's (no icon: test_dashboard_heating).
+        assert views["week-program"]["title"] == "Week program" and "icon" not in views["week-program"]
         assert links[-1]["heading"] == "Week program"
         assert links[-1]["tap_action"]["navigation_path"] == "/" + dashboard.path + "/week-program"
     else:

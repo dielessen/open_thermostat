@@ -617,6 +617,30 @@ def test_a_room_with_free_heat_says_so_and_a_room_without_it_says_nothing():
     assert not any("by itself" in line["text"] for line in sensor.extra_state_attributes["rooms"][1]["lines"])
 
 
+def test_the_learned_overview_lists_the_free_heat_per_room():
+    """rc.5 (the owner's sketch): the Learning view's "Free heat" reads the rooms that get heat for free, by name, from
+    an attribute of their own: the room's own line, an empty list while no room has one (so the section hides), and a
+    room switched off left out as in ``rooms``."""
+    h = HeatingHub("fixture")
+    h.update(STATUS)
+    sensor = lo.LearnedOverviewSensor(SimpleNamespace(entry_id="e"), h, clock=str)
+    sensor.hass = SimpleNamespace(config=SimpleNamespace(language="nl"))
+    assert sensor.extra_state_attributes["free_heat"] == []
+    for room_id in ("woonkamer", "slaapkamer"):
+        h.update_learned(room_id, decode_learned(room_id, json.dumps(
+            {"schema": 1, "id": room_id, "learned": {"readiness": "learning", "segments": 3, "free_heat": FREE_HEAT},
+             "plan": None})))
+    line = {"text": "'s Middags warmt deze ruimte vanzelf op, ongeveer 0,4 °C per uur (zon, koken of mensen).",
+            "meaning": "De volgende opwarming begint daardoor 12 min later, zodat Slim opwarmen niet verwarmt wat gratis "
+                       "komt."}
+    attributes = sensor.extra_state_attributes
+    assert attributes["free_heat"] == [{"name": "Woonkamer", **line}, {"name": "Slaapkamer", **line}]
+    assert line in attributes["rooms"][1]["lines"]  # the same words as the room's own line
+    assert "free_heat" in sensor._unrecorded_attributes  # shown, not kept in the history
+    h.update({**STATUS, "rooms": [STATUS["rooms"][0], {**STATUS["rooms"][1], "state": "inactive"}]})
+    assert [room["name"] for room in sensor.extra_state_attributes["free_heat"]] == ["Woonkamer"]
+
+
 def test_free_heat_needs_five_windows_and_a_real_rise():
     assert lo.free_heat({"free_heat": FREE_HEAT}) == (3, 0.4, 12)
     morning = {"rate": [None, None, 0.3, None, None, None], "n": [0, 0, 5, 0, 0, 0], "applied_min": 0}

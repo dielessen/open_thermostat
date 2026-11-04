@@ -62,10 +62,13 @@ async def test_the_overview_is_short_and_what_it_learned_is_its_own_view(hass):
     assert "learned_overview" not in json.dumps(heating) and hub["learned_overview"] not in json.dumps(heating)
     learned = view(config, "learned")
     assert (learned["title"], learned["type"], "subview" in learned) == ("Learning and settings", "sections", False)
+    # rc.5 (the owner's sketch): what stood out yesterday and the free heat come from the same sensor, each hidden
+    # while it has nothing to say.
     assert [s["cards"][0]["heading"] for s in learned["sections"]] == [
-        "What the thermostat has learned", "House and boiler", "What it changed by itself", "Who controls the boiler"]
+        "Noticed", "Free heat", "What the thermostat has learned", "House and boiler", "What it changed by itself",
+        "Who controls the boiler"]
     # How it learns is the note of what it learned (rc.5), not a section of its own.
-    first = learned["sections"][0]["cards"]
+    first = next(s["cards"] for s in learned["sections"] if s["cards"][0]["heading"] == "What the thermostat has learned")
     assert first[-1]["type"] == "markdown" and "learns how fast each room warms up" in first[-1]["content"]
     # What it learned per room is in that room's section, not in the learning view.
     living = next(s["cards"] for s in view(config, "rooms")["sections"] if s["cards"][0]["heading"] == "Woonkamer")
@@ -85,14 +88,18 @@ async def test_the_overview_names_the_house_mode_and_long_states_get_the_whole_w
     board, config, rooms, hub = with_learned(hass)
     house = view(config, "heating")["sections"][0]["cards"]
     mode = next(c for c in house if c.get("entity") == hub["house_mode"])
-    assert mode["name"] == "House mode" and mode["grid_options"] == {"columns": 12}
+    # The whole width, also where the Overview's section spans both view columns on a wide screen (rc.5: "full").
+    assert mode["name"] == "House mode" and mode["grid_options"] == {"columns": "full"}
     assert mode["features"] == [{"type": "select-options"}]
     control = next(s["cards"] for s in view(config, "learned")["sections"]
                    if s["cards"][0]["heading"] == "Who controls the boiler")
     ready = next(c for c in control if c.get("entity") == hub["takeover_readiness"])
     assert ready["grid_options"] == {"columns": 12}
-    words = next(c for c in view_cards(view(config, "boiler")) if c["type"] == "markdown" and "'meaning'" in c["content"])
-    assert " Boiler: **{{ meaning }}**" in words["content"]
+    # The boiler's state in words: since rc.5 the Now card's band says what it does and its display code in words
+    # ("Heating", "Code -H: heating"; frontend/boiler-now-card.js, checked in test/ha-boiler-now-browser.cjs).
+    code = er.async_get(hass).async_get_entity_id("sensor", "open_thermostat", "fixture_boiler_fields_v1_display_code")
+    now = next(c for c in view_cards(view(config, "boiler")) if c["type"] == "custom:openthermostat-boiler-now")
+    assert code and now["code"] == code
 
 
 @pytest.mark.asyncio

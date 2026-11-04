@@ -173,7 +173,8 @@ Json worstStatus(const RoomPlan& plan) {
     cJSON_ReplaceItemInObjectCaseSensitive(trvStatus, "flow_offset_c", cJSON_CreateNumber(-8));
     cJSON_AddStringToObject(trvStatus, "flow_reason", "valves_partly_closed");
     cJSON_AddItemToObject(root.get(), "trv", trvStatus);
-    addHaLink(root.get(), uint64_t(0), 4294967295000ull, false);
+    // P22: the longest refusal reason and a resubscription, both as old as they can get.
+    addHaLink(root.get(), uint64_t(0), 4294967295000ull, false, "invalid_value", 0, uint64_t(0));
     compactHeatingTelemetry(root.get());
     return root;
 }

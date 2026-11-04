@@ -395,3 +395,91 @@ async def test_first_real_value_creates_field_marks_record_and_restores_our_reti
     assert unreliable in by_index(added) and marked(odd)
     assert reg.async_get(odd).disabled_by is er.RegistryEntryDisabler.INTEGRATION  # Stays a default-off diagnostic.
     await r.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_no_value_entity_is_added_once_the_entry_unloads(hass):
+    """An entity added while the entry's platforms are removed outlives them (P21): once the unload closed the
+    entry's hub (HeatingHub.close), a first value adds no entity."""
+    from custom_components.open_thermostat.heating_link import HeatingHub
+    e,r,c,now=await system(hass);c.boiler_fields_supported=True;added=[]
+    hub=hass.data["open_thermostat"][e.entry_id]["heating_hub"]=HeatingHub("fixture")
+    await async_setup_boiler_fields(hass,e,lambda entities:added.extend(entities))
+    hub.close()
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c)));r._notify()
+    assert not added
+    await r.async_stop()
+
+
+def test_the_field_catalog_matches_the_firmware():
+    """FIELDS is the E32's own catalog (src/EMS/ClassicBoilerMonitor.h boilerFieldSpecs): the same names, units,
+    divisors and source TTLs in the same order. The 23 settings the boiler reports only on request carry no TTL here
+    (REQUEST_ONLY: kept until the E32 reports a new value); the firmware marks the same rows, with its interim one-day
+    settingTtlMs (rc.5 f55e5895) or with its request-only marker (P23). A firmware form whose marker does not name
+    "request" needs this test adapted."""
+    import re
+    from pathlib import Path
+    from custom_components.open_thermostat.boiler_fields import REQUEST_ONLY, request_only
+    header = (Path(__file__).resolve().parents[2] / "src/EMS/ClassicBoilerMonitor.h").read_text(encoding="utf-8")
+    constants = {name: int(value) for name, value in re.findall(r"constexpr uint32_t (\w+) = (\d+);", header)}
+    start = header.index("boilerFieldSpecs{{")
+    rows = re.findall(r'\{"(\w+)", "([^"]+)", (\d+), ([^{}]*)\}', header[start:header.index("}};", start)])
+    assert [(name, unit, int(divisor)) for name, unit, divisor, _ in rows] == [field[:3] for field in FIELDS]
+    for (name, _, _, rest), field in zip(rows, FIELDS):
+        token = rest.split(",")[0].strip()
+        if field[3] is REQUEST_ONLY:
+            assert token == "settingTtlMs" or "request" in rest.lower(), (name, rest)
+        else:
+            assert (int(token) if token.isdigit() else constants[token]) == field[3], (name, rest)
+    assert sum(request_only(index) for index in range(len(FIELDS))) == 23
+    assert {field[0] for field in FIELDS if field[3] is REQUEST_ONLY} >= {
+        "configured_heating_temperature", "maximum_burner_power", "selected_dhw_temperature", "pump_run_on"}
+
+
+def test_a_request_only_setting_stays_until_the_next_report_while_a_live_value_expires():
+    """The owner's E32 page said "Boiler maximum (reported by the boiler) 62 °C · 5 h ago" while Home Assistant had
+    "Heating temperature setting" unknown. The boiler reports its settings (0x16, 0x33) only when asked (at start-up
+    and every 6 hours): such a value stays until the E32 reports a new one; a live reading keeps its 30 seconds."""
+    from custom_components.open_thermostat.boiler_fields import BoilerFieldCache, INDEX_BY_NAME, request_only, spec
+    setting, live = INDEX_BY_NAME['configured_heating_temperature'], INDEX_BY_NAME['measured_flow_temperature']
+    assert request_only(setting) and spec(setting)[3] is None and not request_only(live) and spec(live)[3] == 30000
+    cache = BoilerFieldCache()
+    cache.accept(values(0), 0, 1, 100)  # the flow temperatures (group 0), observed 1 s before the snapshot
+    cache.accept(values(2), 2, 2, 100)  # the 0x16 settings (group 2), the same moment
+    assert cache.source_age_ms(setting, 100) == 1000
+    for hours, sequence in ((5, 3), (48, 4)):
+        # Hours on, another report keeps the stream alive: the setting still reads, the live value is gone.
+        later = 100 + hours * 3600
+        cache.accept(values(1, sampled=10000 + hours * 3600000, observed=9000 + hours * 3600000), 1, sequence, later)
+        reading = cache.reading(setting, later)
+        assert reading['usable'] and reading['raw'] == 4500 and reading['availability_reason'] == 'ready', hours
+        assert cache.reading(live, later)['availability_reason'] == 'source_expired'
+        assert cache.source_age_ms(setting, later) == 1000 + hours * 3600000  # read that long ago
+    snapshot = cache.diagnostic_snapshot(100 + 48 * 3600)["fields"]["configured_heating_temperature"]
+    assert snapshot["source_ttl_ms"] is None and snapshot["estimated_source_age_ms"] == 1000 + 48 * 3600000
+
+
+@pytest.mark.asyncio
+async def test_a_request_only_setting_says_when_it_was_read(hass):
+    """Its sensor carries request_only and when the E32 last read it (the E32 page's "62 °C · 5 h ago"); a live
+    value has neither."""
+    from datetime import datetime, timedelta
+    from homeassistant.util import dt as dt_util
+    from custom_components.open_thermostat.boiler_fields import INDEX_BY_NAME
+    from test_boiler_state import group_doc
+    e,r,c,now=await system(hass);c.boiler_fields_supported=False;added=[]
+    await async_setup_boiler_fields(hass,e,lambda entities:added.extend(entities))
+    later=5*3600*1000+10000  # the E32's snapshot, five hours after it read the 0x16 settings
+    await c.receive("fw/state/boiler_fields/0",group_doc(0,sampled=later,observed=later-1000),retained=True)
+    await c.receive("fw/state/boiler_fields/2",group_doc(2,sampled=later,observed=9000),retained=True)
+    r._notify()
+    fields=by_index(added)
+    setting=fields[INDEX_BY_NAME["configured_heating_temperature"]]
+    attributes=setting.extra_state_attributes
+    assert setting.native_value==45 and attributes["request_only"] is True and attributes["source_ttl_ms"] is None
+    read=datetime.fromisoformat(attributes["last_read"])
+    assert abs(dt_util.utcnow()-read-timedelta(hours=5)) < timedelta(seconds=5)
+    assert "last_read" in setting._unrecorded_attributes  # changes with every reading: not in the history
+    live=fields[INDEX_BY_NAME["measured_flow_temperature"]].extra_state_attributes
+    assert "request_only" not in live and "last_read" not in live
+    await r.async_stop()

@@ -68,6 +68,12 @@ def _drop_test_setup_name(hass, entry):
         registry.async_update_device(device.id, name_by_user=None)
 
 
+def _close_hub(state):
+    """No new E32 entities once the entry unloads (heating_link.HeatingHub.close)."""
+    if (hub := state.get("heating_hub")) is not None:
+        hub.close()
+
+
 async def _cleanup_setup_bench(hass, entry_id, owner):
     from .v1_bench_actions import KEY, async_unregister_entry
     if hass.data.get(KEY, {}).get(entry_id) is owner:
@@ -552,6 +558,7 @@ async def async_setup_entry(hass, entry):
                                     hass.data.get(BENCH_KEY, {}).get(entry.entry_id))
         platforms = _shadow_platforms(product)
         cleanup.push_async_callback(hass.config_entries.async_unload_platforms, entry, platforms)
+        cleanup.callback(_close_hub, state)  # before those platforms go (cleanup runs last in, first out)
         await hass.config_entries.async_forward_entry_setups(entry, platforms)
         if entry.options.get(CONF_CREATE_DASHBOARD,False):
             dashboard=hass.data.get(_RELOAD_DASHBOARDS, {}).pop(entry.entry_id, None)
@@ -600,6 +607,9 @@ async def async_unload_entry(hass, entry):
     state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     if "v1_runtime" not in state:
         return await _legacy_unload_entry(hass, entry)
+    # The platforms go before the E32 subscriptions end (Home Assistant runs the entry's unload callbacks
+    # after this): from here on, telemetry that arrives adds no entity that would outlive its platform.
+    _close_hub(state)
     from .v1_bench_actions import async_unregister_entry
     await async_unregister_entry(hass, entry.entry_id)
     # Withdraw listener/task/transport ownership before any mode transfer.

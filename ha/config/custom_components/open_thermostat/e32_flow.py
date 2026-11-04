@@ -148,6 +148,11 @@ class FlowSettingsLink:
     def available(self):
         return self.hub.fresh and self.settings is not None
 
+    @property
+    def closed(self):
+        """The entry is unloading (HeatingHub.close): track_entities adds no control from now on."""
+        return getattr(self.hub, "closed", False)
+
     @callback
     def add_listener(self, listener):
         self._listeners.append(listener)
@@ -515,6 +520,10 @@ class FlowSourceSensor(FlowSummarySensor):
         yesterday = flow.get("yesterday") if type(flow.get("yesterday")) is dict else {}
         for key in ("rule", "applied", "curve", "learned"):
             attributes[f"yesterday_{key}_mean_c"] = _flow(yesterday.get(f"{key}_mean_c"))
+        # E32 rc.5: the most the E32 asks near the target now (flow.ceiling_c, in effect only with Smart warm-up on and
+        # the E32 driving the boiler; None otherwise), as the Boiler view's Now card says it ("at most 40 °C").
+        from .insight import ceiling_in_effect
+        attributes["ceiling_c"] = ceiling_in_effect({"flow": flow})
         return attributes
 
 

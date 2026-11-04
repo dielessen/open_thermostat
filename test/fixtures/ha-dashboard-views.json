@@ -3,7 +3,6 @@
   "views": [
    {
     "dense_section_placement": true,
-    "icon": "mdi:home-thermometer",
     "max_columns": 2,
     "path": "heating",
     "sections": [
@@ -23,7 +22,7 @@
          "sensor.hot_water_gas"
         ],
         "grid_options": {
-         "columns": 12
+         "columns": "full"
         },
         "heating": "sensor.boiler_heating_active",
         "hot_water": "sensor.boiler_dhw_active",
@@ -73,7 +72,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:thermostat",
     "max_columns": 2,
     "path": "rooms",
     "sections": [
@@ -612,7 +610,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:water-boiler",
     "max_columns": 2,
     "path": "boiler",
     "sections": [
@@ -625,154 +622,25 @@
         "type": "heading"
        },
        {
-        "content": "{% set e = \"sensor.fixture_boiler_fields_v1_display_code\" %}{% set code = states(e) %}{% set meaning = state_attr(e, 'meaning') %}{% set severity = state_attr(e, 'severity') %}{% set advice = state_attr(e, 'advice') %}{% set cause = state_attr(e, 'cause') %}{% set raw = code ~ (' ' ~ cause if cause else '') %}{% if severity in [\"blocking\", \"locking\", \"fault\"] %}<ha-alert alert-type=\"{{ 'error' if severity == 'locking' else 'warning' }}\" title=\"{{ meaning }}\">{{ state_attr(e, 'severity_text') }}.{% if advice %} {{ advice }}{% endif %} <small>Display code {{ raw }}</small></ha-alert>{% elif severity == 'unknown' %}<ha-icon icon=\"mdi:help-circle-outline\"></ha-icon> **Display code {{ raw }}** · {{ meaning }}{% elif meaning %}<ha-icon icon=\"{{ {\"normal\": \"mdi:water-boiler\", \"waiting\": \"mdi:timer-sand\", \"service\": \"mdi:wrench-outline\"}.get(severity, 'mdi:water-boiler') }}\"></ha-icon> Boiler: **{{ meaning }}** <small>{{ raw }}</small>{% if advice and severity != 'normal' %}\n\n<small>{{ advice }}</small>{% endif %}{% else %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> Display code **{{ code }}**{% endif %}",
-        "type": "markdown",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_display_code",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "color": "deep-orange",
-        "entity": "sensor.boiler_activity",
+        "activity": "sensor.boiler_activity",
+        "ceiling": "sensor.flow_source",
+        "code": "sensor.fixture_boiler_fields_v1_display_code",
+        "cycling": "binary_sensor.fixture_hub_burner_short_cycling",
+        "flow": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
         "grid_options": {
-         "columns": 12
+         "columns": "full"
         },
-        "icon": "mdi:fire",
-        "name": "Boiler",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_activity",
-          "state": [
-           "heating"
-          ]
-         }
-        ]
-       },
-       {
-        "color": "blue",
-        "entity": "sensor.boiler_activity",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:faucet",
-        "name": "Boiler",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_activity",
-          "state": [
-           "tapping",
-           "keep_warm",
-           "charging",
-           "hot_water"
-          ]
-         }
-        ]
-       },
-       {
-        "color": "grey",
-        "entity": "sensor.boiler_activity",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:water-boiler",
-        "name": "Boiler",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_activity",
-          "state": [
-           "idle"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-        "icon": "mdi:thermometer-chevron-up",
-        "name": "Water to heating",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
-        "icon": "mdi:thermometer-chevron-down",
-        "name": "Water back",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-        "grid_options": {
-         "columns": 6,
-         "rows": 2
-        },
-        "max": 100,
-        "min": 0,
-        "name": "Burner power",
-        "needle": false,
-        "type": "gauge",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_hub_burner_starts_last_hour",
-        "grid_options": {
-         "columns": 6,
-         "rows": 2
-        },
-        "icon": "mdi:counter",
-        "name": "Starts per hour",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
+        "heating": "sensor.boiler_heating_active",
+        "hot_water": "sensor.boiler_dhw_active",
+        "modulation": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+        "request": "sensor.fixture_hub_heat_request",
+        "return": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+        "starts": "sensor.fixture_hub_burner_starts_last_hour",
+        "starts_today": "sensor.daily_burner_starts",
+        "type": "custom:openthermostat-boiler-now"
        }
       ],
+      "column_span": 2,
       "type": "grid",
       "visibility": [
        {
@@ -831,6 +699,9 @@
        },
        {
         "content": "{% set icons = {\"warning\": \"mdi:alert-outline\", \"suggestion\": \"mdi:lightbulb-on-outline\", \"info\": \"mdi:information-outline\"} %}{% set confidence = {\"low\": \"low\", \"medium\": \"medium\", \"high\": \"high\"} %}{% for item in state_attr(\"sensor.heating_advice\", 'items') or [] %}<ha-icon icon=\"{{ icons.get(item.severity, 'mdi:information-outline') }}\"></ha-icon> **{{ item.title }}**\n\n{{ item.action }}\n\n*Where: {{ item.where }} · Confidence: {{ confidence.get(item.confidence, item.confidence) }}*\n\n{% endfor %}Advice only: nothing is changed automatically.",
+        "grid_options": {
+         "columns": "full"
+        },
         "type": "markdown",
         "visibility": [
          {
@@ -841,6 +712,7 @@
         ]
        }
       ],
+      "column_span": 2,
       "type": "grid",
       "visibility": [
        {
@@ -865,7 +737,7 @@
          "rows": 2
         },
         "icon": "mdi:meter-gas",
-        "name": "Gas for heating today",
+        "name": "Heating gas",
         "period": {
          "calendar": {
           "period": "day"
@@ -891,7 +763,7 @@
          "rows": 2
         },
         "icon": "mdi:meter-gas",
-        "name": "Gas for hot water today",
+        "name": "Hot water gas",
         "period": {
          "calendar": {
           "period": "day"
@@ -917,7 +789,7 @@
          "rows": 2
         },
         "icon": "mdi:counter",
-        "name": "Burner starts today",
+        "name": "Burner starts",
         "period": {
          "calendar": {
           "period": "day"
@@ -943,7 +815,7 @@
          "rows": 2
         },
         "icon": "mdi:timer-outline",
-        "name": "Burner time today",
+        "name": "Burner time",
         "period": {
          "calendar": {
           "period": "day"
@@ -2596,6 +2468,97 @@
           ]
          }
         ]
+       },
+       {
+        "content": "Settings the boiler reports only when asked are read at start-up and every six hours; the time of the last reading is on the sensor.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_heating_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_hysteresis_on",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_flow_temperature_offset",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_circulation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_circulation_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_disinfection_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_charge_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_comfort_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
        }
       ],
       "type": "grid",
@@ -2693,7 +2656,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:school-outline",
     "max_columns": 2,
     "path": "learned",
     "sections": [
@@ -2721,30 +2683,6 @@
           ]
          }
         ]
-       },
-       {
-        "content": "{% set s = state_attr(\"sensor.boiler_response\", 'sentence') %}{% if s %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> {{ s }}{% endif %}",
-        "show_empty": false,
-        "type": "markdown",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_response",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "content": "{% set items = state_attr(\"sensor.learned_overview\", 'insights') or [] %}{% if items %}**Yesterday compared with usual**\n{% for line in items %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n{% endfor %}{% endif %}",
-        "show_empty": false,
-        "type": "markdown"
-       },
-       {
-        "content": "The E32 learns all this by itself while the heating runs.\n\n<details><summary>More</summary>\n\nYesterday is compared with your house's own usual days; that is information and changes nothing.\n\n</details>",
-        "type": "markdown"
        }
       ],
       "type": "grid",
@@ -2759,10 +2697,76 @@
            "unavailable",
            "unknown"
           ]
-         },
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Your boiler",
+        "heading_style": "title",
+        "icon": "mdi:water-boiler",
+        "type": "heading"
+       },
+       {
+        "content": "{% set s = state_attr(\"sensor.boiler_response\", 'sentence') %}{% if s %}<font color=\"#ff6f22\"><ha-icon icon=\"mdi:fire\"></ha-icon></font> {{ s }}{% endif %}",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
          {
           "condition": "state",
           "entity": "sensor.boiler_response",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Water temperature by outdoor temperature",
+        "heading_style": "title",
+        "icon": "mdi:chart-bell-curve-cumulative",
+        "type": "heading"
+       },
+       {
+        "entity": "sensor.flow_curve",
+        "grid_options": {
+         "columns": 12
+        },
+        "show_name": false,
+        "type": "custom:openthermostat-heating-curve",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.flow_curve",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.flow_curve",
           "state_not": [
            "unavailable",
            "unknown"
@@ -2781,7 +2785,60 @@
         "type": "heading"
        },
        {
-        "content": "{% set shown = namespace(lines=0) %}{% set parts = [] %}{% set v = states(\"sensor.woonkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [(\"warm \" ~ (m) ~ \" min late\") if m > 0 else (\"warm \" ~ (-m) ~ \" min early\") if m < 0 else \"warm on time\"] %}{% endif %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [(\"warm \" ~ (m) ~ \" min late\") if m > 0 else (\"warm \" ~ (-m) ~ \" min early\") if m < 0 else \"warm on time\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = state_attr(\"sensor.burner_starts_per_heating_hour\", \"heating_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Heating time: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" h\"] %}{% endif %}{% set v = states(\"sensor.burner_starts_per_heating_hour\") %}{% if is_number(v) %}{% set parts = parts + [\"Burner starts per heating hour: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\")))] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Short burner runs: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" h\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.heating_gas_yesterday\") %}{% if is_number(v) %}{% set parts = parts + [\"Gas for heating (estimate): \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" kWh\"] %}{% endif %}{% set v = state_attr(\"sensor.gas_per_degree_day\", \"degree_days\") %}{% if is_number(v) %}{% set parts = parts + [\"Degree-days: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\")))] %}{% endif %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \".\"))) ~ \" kWh per degree-day\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set d = state_attr(\"sensor.daily_summary\", 'last_day') %}{% if d %}- Burner {{ d.burner_hours }} h, {{ d.burner_starts }} starts ({{ d.short_runs }} shorter than 10 minutes).{% if d.gas and d.gas.heating is not none and d.gas.hot_water is not none and not is_number(states(\"sensor.heating_gas_yesterday\")) %} Gas: heating {{ d.gas.heating ~ '' }}, hot water {{ d.gas.hot_water ~ '' }}.{% endif %}{% if d.outdoor %} Outdoor {{ d.outdoor.min }} to {{ d.outdoor.max }} °C.{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}{{ r.name }}: asked for heat {{ r.heat_hours }} h; warm after {{ r.time_to_target_minutes }} min on average; missed comfort {{ r.missed_minutes }} min.{% else %}{{ r.name }}: asked for heat {{ r.heat_hours }} h; missed comfort {{ r.missed_minutes }} min.{% endif %}\n{% endfor %}{% if not d.complete %}\n_Partial day: the E32 was not heard all day, so the figures are incomplete._{% endif %}{% elif not shown.lines %}The first full day appears here tomorrow.{% endif %}",
+        "degree_days": "sensor.gas_per_degree_day",
+        "gas": "sensor.heating_gas_yesterday",
+        "grid_options": {
+         "columns": 12
+        },
+        "room": {
+         "entity": "sensor.woonkamer_warm_on_time",
+         "name": "Woonkamer"
+        },
+        "starts": "sensor.burner_starts_per_heating_hour",
+        "type": "custom:openthermostat-yesterday",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.woonkamer_warm_on_time",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.burner_starts_per_heating_hour",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.heating_gas_yesterday",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.gas_per_degree_day",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "{% set shown = namespace(lines=0) %}{% if is_number(states(\"sensor.woonkamer_warm_on_time\")) or is_number(states(\"sensor.burner_starts_per_heating_hour\")) or is_number(states(\"sensor.heating_gas_yesterday\")) or is_number(states(\"sensor.gas_per_degree_day\")) %}{% set shown.lines = shown.lines + 1 %}{% endif %}{% set parts = [] %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [(\"warm \" ~ (m) ~ \" min late\") if m > 0 else (\"warm \" ~ (-m) ~ \" min early\") if m < 0 else \"warm on time\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = state_attr(\"sensor.burner_starts_per_heating_hour\", \"heating_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Heating time: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" h\"] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Short burner runs: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" h\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \".\"))) ~ \" kWh per degree-day\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set d = state_attr(\"sensor.daily_summary\", 'last_day') %}{% if d %}- Burner {{ d.burner_hours }} h, {{ d.burner_starts }} starts ({{ d.short_runs }} shorter than 10 minutes).{% if d.gas and d.gas.heating is not none and d.gas.hot_water is not none and not is_number(states(\"sensor.heating_gas_yesterday\")) %} Gas: heating {{ d.gas.heating ~ '' }}, hot water {{ d.gas.hot_water ~ '' }}.{% endif %}{% if d.outdoor %} Outdoor {{ d.outdoor.min }} to {{ d.outdoor.max }} °C.{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}{{ r.name }}: asked for heat {{ r.heat_hours }} h; warm after {{ r.time_to_target_minutes | round | int }} min on average; missed comfort {{ r.missed_minutes }} min.{% else %}{{ r.name }}: asked for heat {{ r.heat_hours }} h; missed comfort {{ r.missed_minutes }} min.{% endif %}\n{% endfor %}{% if not d.complete %}\n_Partial day: the E32 was not heard all day, so the figures are incomplete._{% endif %}{% elif not shown.lines %}The first full day appears here tomorrow.{% endif %}",
+        "show_empty": false,
         "type": "markdown"
        },
        {
@@ -2814,6 +2871,7 @@
         "type": "markdown"
        }
       ],
+      "row_span": 2,
       "type": "grid",
       "visibility": [
        {
@@ -2902,6 +2960,91 @@
         ]
        }
       ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Noticed",
+        "heading_style": "title",
+        "icon": "mdi:information-outline",
+        "type": "heading"
+       },
+       {
+        "content": "{% for line in state_attr(\"sensor.learned_overview\", 'insights') or [] %}<font color=\"#039be5\"><ha-icon icon=\"mdi:information-outline\"></ha-icon></font> {{ line.text }}{% if line.meaning %} {{ line.meaning }}{% endif %}\n\n{% endfor %}*Yesterday is compared with your house's own usual days; that is information and changes nothing.*",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "attribute": "insights",
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": [
+         "unavailable",
+         "unknown",
+         ""
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Free heat",
+        "heading_style": "title",
+        "icon": "mdi:weather-sunny",
+        "type": "heading"
+       },
+       {
+        "content": "{% for line in state_attr(\"sensor.learned_overview\", 'free_heat') or [] %}<font color=\"#ffc107\"><ha-icon icon=\"mdi:weather-sunny\"></ha-icon></font> **{{ line.name }}** · {{ line.text }}{% if line.meaning %} {{ line.meaning }}{% endif %}\n\n{% endfor %}",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "attribute": "free_heat",
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": [
+         "unavailable",
+         "unknown",
+         ""
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Smart warm-up and weather compensation",
+        "heading_style": "title",
+        "icon": "mdi:cog-outline",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "entity": "switch.flow_apply_learned",
+          "icon": "mdi:school-outline",
+          "name": "Smart warm-up"
+         },
+         {
+          "entity": "switch.flow_weather_curve",
+          "icon": "mdi:sun-thermometer",
+          "name": "Weather compensation"
+         },
+         {
+          "entity": "select.flow_curve_design_flow_c",
+          "icon": "mdi:thermometer-lines",
+          "name": "Water temperature in hard frost (−10 °C)"
+         }
+        ],
+        "type": "entities"
+       }
+      ],
+      "type": "grid"
      },
      {
       "cards": [
@@ -3039,70 +3182,6 @@
      {
       "cards": [
        {
-        "heading": "Smart warm-up and weather compensation",
-        "heading_style": "title",
-        "icon": "mdi:chart-bell-curve-cumulative",
-        "type": "heading"
-       },
-       {
-        "entity": "switch.flow_apply_learned",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:school-outline",
-        "name": "Smart warm-up",
-        "type": "tile"
-       },
-       {
-        "entity": "switch.flow_weather_curve",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:sun-thermometer",
-        "name": "Weather compensation",
-        "type": "tile"
-       },
-       {
-        "entity": "select.flow_curve_design_flow_c",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:thermometer-lines",
-        "name": "Water temperature in hard frost (−10 °C)",
-        "type": "tile"
-       },
-       {
-        "entity": "sensor.flow_curve",
-        "grid_options": {
-         "columns": 12
-        },
-        "type": "custom:openthermostat-heating-curve",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.flow_curve",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.flow_source",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:thermometer-water",
-        "name": "Water temperature set by",
-        "type": "tile"
-       }
-      ],
-      "type": "grid"
-     },
-     {
-      "cards": [
-       {
         "heading": "Who controls the boiler",
         "heading_style": "title",
         "icon": "mdi:water-boiler",
@@ -3155,7 +3234,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:information-outline",
     "max_columns": 2,
     "path": "diagnostics",
     "sections": [
@@ -4043,7 +4121,6 @@
    {
     "back_path": "/open-thermostat-fixture-x/heating",
     "dense_section_placement": true,
-    "icon": "mdi:compare-horizontal",
     "max_columns": 2,
     "path": "comparison",
     "sections": [
@@ -4241,7 +4318,6 @@
   "views": [
    {
     "dense_section_placement": true,
-    "icon": "mdi:home-thermometer",
     "max_columns": 2,
     "path": "heating",
     "sections": [
@@ -4261,7 +4337,7 @@
          "sensor.hot_water_gas"
         ],
         "grid_options": {
-         "columns": 12
+         "columns": "full"
         },
         "heating": "sensor.boiler_heating_active",
         "hot_water": "sensor.boiler_dhw_active",
@@ -4311,7 +4387,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:thermostat",
     "max_columns": 2,
     "path": "rooms",
     "sections": [
@@ -4850,7 +4925,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:water-boiler",
     "max_columns": 2,
     "path": "boiler",
     "sections": [
@@ -4863,154 +4937,25 @@
         "type": "heading"
        },
        {
-        "content": "{% set e = \"sensor.fixture_boiler_fields_v1_display_code\" %}{% set code = states(e) %}{% set meaning = state_attr(e, 'meaning') %}{% set severity = state_attr(e, 'severity') %}{% set advice = state_attr(e, 'advice') %}{% set cause = state_attr(e, 'cause') %}{% set raw = code ~ (' ' ~ cause if cause else '') %}{% if severity in [\"blocking\", \"locking\", \"fault\"] %}<ha-alert alert-type=\"{{ 'error' if severity == 'locking' else 'warning' }}\" title=\"{{ meaning }}\">{{ state_attr(e, 'severity_text') }}.{% if advice %} {{ advice }}{% endif %} <small>Displaycode {{ raw }}</small></ha-alert>{% elif severity == 'unknown' %}<ha-icon icon=\"mdi:help-circle-outline\"></ha-icon> **Displaycode {{ raw }}** · {{ meaning }}{% elif meaning %}<ha-icon icon=\"{{ {\"normal\": \"mdi:water-boiler\", \"waiting\": \"mdi:timer-sand\", \"service\": \"mdi:wrench-outline\"}.get(severity, 'mdi:water-boiler') }}\"></ha-icon> Ketel: **{{ meaning }}** <small>{{ raw }}</small>{% if advice and severity != 'normal' %}\n\n<small>{{ advice }}</small>{% endif %}{% else %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> Displaycode **{{ code }}**{% endif %}",
-        "type": "markdown",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_display_code",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "color": "deep-orange",
-        "entity": "sensor.boiler_activity",
+        "activity": "sensor.boiler_activity",
+        "ceiling": "sensor.flow_source",
+        "code": "sensor.fixture_boiler_fields_v1_display_code",
+        "cycling": "binary_sensor.fixture_hub_burner_short_cycling",
+        "flow": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
         "grid_options": {
-         "columns": 12
+         "columns": "full"
         },
-        "icon": "mdi:fire",
-        "name": "Ketel",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_activity",
-          "state": [
-           "heating"
-          ]
-         }
-        ]
-       },
-       {
-        "color": "blue",
-        "entity": "sensor.boiler_activity",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:faucet",
-        "name": "Ketel",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_activity",
-          "state": [
-           "tapping",
-           "keep_warm",
-           "charging",
-           "hot_water"
-          ]
-         }
-        ]
-       },
-       {
-        "color": "grey",
-        "entity": "sensor.boiler_activity",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:water-boiler",
-        "name": "Ketel",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_activity",
-          "state": [
-           "idle"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-        "icon": "mdi:thermometer-chevron-up",
-        "name": "Aanvoerwater",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
-        "icon": "mdi:thermometer-chevron-down",
-        "name": "Retourwater",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-        "grid_options": {
-         "columns": 6,
-         "rows": 2
-        },
-        "max": 100,
-        "min": 0,
-        "name": "Brandervermogen",
-        "needle": false,
-        "type": "gauge",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.fixture_hub_burner_starts_last_hour",
-        "grid_options": {
-         "columns": 6,
-         "rows": 2
-        },
-        "icon": "mdi:counter",
-        "name": "Starts per uur",
-        "type": "tile",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
+        "heating": "sensor.boiler_heating_active",
+        "hot_water": "sensor.boiler_dhw_active",
+        "modulation": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+        "request": "sensor.fixture_hub_heat_request",
+        "return": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+        "starts": "sensor.fixture_hub_burner_starts_last_hour",
+        "starts_today": "sensor.daily_burner_starts",
+        "type": "custom:openthermostat-boiler-now"
        }
       ],
+      "column_span": 2,
       "type": "grid",
       "visibility": [
        {
@@ -5069,6 +5014,9 @@
        },
        {
         "content": "{% set icons = {\"warning\": \"mdi:alert-outline\", \"suggestion\": \"mdi:lightbulb-on-outline\", \"info\": \"mdi:information-outline\"} %}{% set confidence = {\"low\": \"laag\", \"medium\": \"middel\", \"high\": \"hoog\"} %}{% for item in state_attr(\"sensor.heating_advice\", 'items') or [] %}<ha-icon icon=\"{{ icons.get(item.severity, 'mdi:information-outline') }}\"></ha-icon> **{{ item.title }}**\n\n{{ item.action }}\n\n*Waar: {{ item.where }} · Zekerheid: {{ confidence.get(item.confidence, item.confidence) }}*\n\n{% endfor %}Alleen advies: er wordt niets automatisch veranderd.",
+        "grid_options": {
+         "columns": "full"
+        },
         "type": "markdown",
         "visibility": [
          {
@@ -5079,6 +5027,7 @@
         ]
        }
       ],
+      "column_span": 2,
       "type": "grid",
       "visibility": [
        {
@@ -5103,7 +5052,7 @@
          "rows": 2
         },
         "icon": "mdi:meter-gas",
-        "name": "Gas verwarmen vandaag",
+        "name": "Gas verwarmen",
         "period": {
          "calendar": {
           "period": "day"
@@ -5129,7 +5078,7 @@
          "rows": 2
         },
         "icon": "mdi:meter-gas",
-        "name": "Gas warm water vandaag",
+        "name": "Gas warm water",
         "period": {
          "calendar": {
           "period": "day"
@@ -5155,7 +5104,7 @@
          "rows": 2
         },
         "icon": "mdi:counter",
-        "name": "Branderstarts vandaag",
+        "name": "Branderstarts",
         "period": {
          "calendar": {
           "period": "day"
@@ -5181,7 +5130,7 @@
          "rows": 2
         },
         "icon": "mdi:timer-outline",
-        "name": "Brandertijd vandaag",
+        "name": "Brandertijd",
         "period": {
          "calendar": {
           "period": "day"
@@ -6834,6 +6783,97 @@
           ]
          }
         ]
+       },
+       {
+        "content": "Instellingen die de ketel alleen op verzoek meldt, leest de E32 bij het opstarten en daarna elke zes uur; wanneer ze voor het laatst zijn gelezen staat op de sensor.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_heating_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_hysteresis_on",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_flow_temperature_offset",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_circulation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_circulation_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_disinfection_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_charge_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_comfort_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
        }
       ],
       "type": "grid",
@@ -6931,7 +6971,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:school-outline",
     "max_columns": 2,
     "path": "learned",
     "sections": [
@@ -6959,30 +6998,6 @@
           ]
          }
         ]
-       },
-       {
-        "content": "{% set s = state_attr(\"sensor.boiler_response\", 'sentence') %}{% if s %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> {{ s }}{% endif %}",
-        "show_empty": false,
-        "type": "markdown",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.boiler_response",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "content": "{% set items = state_attr(\"sensor.learned_overview\", 'insights') or [] %}{% if items %}**Gisteren vergeleken met normaal**\n{% for line in items %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n{% endfor %}{% endif %}",
-        "show_empty": false,
-        "type": "markdown"
-       },
-       {
-        "content": "De E32 leert dit allemaal zelf terwijl de verwarming draait.\n\n<details><summary>Meer</summary>\n\nGisteren wordt vergeleken met de gewone dagen van je eigen huis; dat is informatie en verandert niets.\n\n</details>",
-        "type": "markdown"
        }
       ],
       "type": "grid",
@@ -6997,10 +7012,76 @@
            "unavailable",
            "unknown"
           ]
-         },
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Je ketel",
+        "heading_style": "title",
+        "icon": "mdi:water-boiler",
+        "type": "heading"
+       },
+       {
+        "content": "{% set s = state_attr(\"sensor.boiler_response\", 'sentence') %}{% if s %}<font color=\"#ff6f22\"><ha-icon icon=\"mdi:fire\"></ha-icon></font> {{ s }}{% endif %}",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
          {
           "condition": "state",
           "entity": "sensor.boiler_response",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Watertemperatuur bij buitentemperatuur",
+        "heading_style": "title",
+        "icon": "mdi:chart-bell-curve-cumulative",
+        "type": "heading"
+       },
+       {
+        "entity": "sensor.flow_curve",
+        "grid_options": {
+         "columns": 12
+        },
+        "show_name": false,
+        "type": "custom:openthermostat-heating-curve",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.flow_curve",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.flow_curve",
           "state_not": [
            "unavailable",
            "unknown"
@@ -7019,7 +7100,60 @@
         "type": "heading"
        },
        {
-        "content": "{% set shown = namespace(lines=0) %}{% set parts = [] %}{% set v = states(\"sensor.woonkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [((m) ~ \" min te laat warm\") if m > 0 else ((-m) ~ \" min te vroeg warm\") if m < 0 else \"op tijd warm\"] %}{% endif %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [((m) ~ \" min te laat warm\") if m > 0 else ((-m) ~ \" min te vroeg warm\") if m < 0 else \"op tijd warm\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = state_attr(\"sensor.burner_starts_per_heating_hour\", \"heating_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Stooktijd: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" u\"] %}{% endif %}{% set v = states(\"sensor.burner_starts_per_heating_hour\") %}{% if is_number(v) %}{% set parts = parts + [\"Branderstarts per stookuur: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\")))] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Korte brandtijden: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" u\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.heating_gas_yesterday\") %}{% if is_number(v) %}{% set parts = parts + [\"Gas voor verwarming (schatting): \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" kWh\"] %}{% endif %}{% set v = state_attr(\"sensor.gas_per_degree_day\", \"degree_days\") %}{% if is_number(v) %}{% set parts = parts + [\"Graaddagen: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\")))] %}{% endif %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \",\"))) ~ \" kWh per graaddag\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set d = state_attr(\"sensor.daily_summary\", 'last_day') %}{% if d %}- Brander {{ d.burner_hours }} uur, {{ d.burner_starts }} starts ({{ d.short_runs }} korter dan 10 minuten).{% if d.gas and d.gas.heating is not none and d.gas.hot_water is not none and not is_number(states(\"sensor.heating_gas_yesterday\")) %} Gas: verwarmen {{ d.gas.heating ~ '' }}, warm water {{ d.gas.hot_water ~ '' }}.{% endif %}{% if d.outdoor %} Buiten {{ d.outdoor.min }} tot {{ d.outdoor.max }} °C.{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}{{ r.name }}: vroeg {{ r.heat_hours }} uur warmte; gemiddeld na {{ r.time_to_target_minutes }} min op temperatuur; gemiste comfort {{ r.missed_minutes }} min.{% else %}{{ r.name }}: vroeg {{ r.heat_hours }} uur warmte; gemiste comfort {{ r.missed_minutes }} min.{% endif %}\n{% endfor %}{% if not d.complete %}\n_Gedeeltelijke dag: de E32 was niet de hele dag te horen, dus de cijfers zijn onvolledig._{% endif %}{% elif not shown.lines %}Morgen staat hier de eerste volledige dag.{% endif %}",
+        "degree_days": "sensor.gas_per_degree_day",
+        "gas": "sensor.heating_gas_yesterday",
+        "grid_options": {
+         "columns": 12
+        },
+        "room": {
+         "entity": "sensor.woonkamer_warm_on_time",
+         "name": "Woonkamer"
+        },
+        "starts": "sensor.burner_starts_per_heating_hour",
+        "type": "custom:openthermostat-yesterday",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.woonkamer_warm_on_time",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.burner_starts_per_heating_hour",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.heating_gas_yesterday",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.gas_per_degree_day",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "{% set shown = namespace(lines=0) %}{% if is_number(states(\"sensor.woonkamer_warm_on_time\")) or is_number(states(\"sensor.burner_starts_per_heating_hour\")) or is_number(states(\"sensor.heating_gas_yesterday\")) or is_number(states(\"sensor.gas_per_degree_day\")) %}{% set shown.lines = shown.lines + 1 %}{% endif %}{% set parts = [] %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [((m) ~ \" min te laat warm\") if m > 0 else ((-m) ~ \" min te vroeg warm\") if m < 0 else \"op tijd warm\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = state_attr(\"sensor.burner_starts_per_heating_hour\", \"heating_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Stooktijd: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" u\"] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Korte brandtijden: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" u\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \",\"))) ~ \" kWh per graaddag\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set d = state_attr(\"sensor.daily_summary\", 'last_day') %}{% if d %}- Brander {{ (((d.burner_hours) ~ '') | replace('.', \",\")) }} uur, {{ d.burner_starts }} starts ({{ d.short_runs }} korter dan 10 minuten).{% if d.gas and d.gas.heating is not none and d.gas.hot_water is not none and not is_number(states(\"sensor.heating_gas_yesterday\")) %} Gas: verwarmen {{ (((d.gas.heating) ~ '') | replace('.', \",\")) ~ '' }}, warm water {{ (((d.gas.hot_water) ~ '') | replace('.', \",\")) ~ '' }}.{% endif %}{% if d.outdoor %} Buiten {{ (((d.outdoor.min) ~ '') | replace('.', \",\")) }} tot {{ (((d.outdoor.max) ~ '') | replace('.', \",\")) }} °C.{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}{{ r.name }}: vroeg {{ (((r.heat_hours) ~ '') | replace('.', \",\")) }} uur warmte; gemiddeld na {{ r.time_to_target_minutes | round | int }} min op temperatuur; gemiste comfort {{ r.missed_minutes }} min.{% else %}{{ r.name }}: vroeg {{ (((r.heat_hours) ~ '') | replace('.', \",\")) }} uur warmte; gemiste comfort {{ r.missed_minutes }} min.{% endif %}\n{% endfor %}{% if not d.complete %}\n_Gedeeltelijke dag: de E32 was niet de hele dag te horen, dus de cijfers zijn onvolledig._{% endif %}{% elif not shown.lines %}Morgen staat hier de eerste volledige dag.{% endif %}",
+        "show_empty": false,
         "type": "markdown"
        },
        {
@@ -7052,6 +7186,7 @@
         "type": "markdown"
        }
       ],
+      "row_span": 2,
       "type": "grid",
       "visibility": [
        {
@@ -7140,6 +7275,91 @@
         ]
        }
       ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Opgevallen",
+        "heading_style": "title",
+        "icon": "mdi:information-outline",
+        "type": "heading"
+       },
+       {
+        "content": "{% for line in state_attr(\"sensor.learned_overview\", 'insights') or [] %}<font color=\"#039be5\"><ha-icon icon=\"mdi:information-outline\"></ha-icon></font> {{ line.text }}{% if line.meaning %} {{ line.meaning }}{% endif %}\n\n{% endfor %}*Gisteren wordt vergeleken met de gewone dagen van je eigen huis; dat is informatie en verandert niets.*",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "attribute": "insights",
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": [
+         "unavailable",
+         "unknown",
+         ""
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Gratis warmte",
+        "heading_style": "title",
+        "icon": "mdi:weather-sunny",
+        "type": "heading"
+       },
+       {
+        "content": "{% for line in state_attr(\"sensor.learned_overview\", 'free_heat') or [] %}<font color=\"#ffc107\"><ha-icon icon=\"mdi:weather-sunny\"></ha-icon></font> **{{ line.name }}** · {{ line.text }}{% if line.meaning %} {{ line.meaning }}{% endif %}\n\n{% endfor %}",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "attribute": "free_heat",
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": [
+         "unavailable",
+         "unknown",
+         ""
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Slim opwarmen en weerafhankelijke regeling",
+        "heading_style": "title",
+        "icon": "mdi:cog-outline",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "entity": "switch.flow_apply_learned",
+          "icon": "mdi:school-outline",
+          "name": "Slim opwarmen"
+         },
+         {
+          "entity": "switch.flow_weather_curve",
+          "icon": "mdi:sun-thermometer",
+          "name": "Weerafhankelijke regeling"
+         },
+         {
+          "entity": "select.flow_curve_design_flow_c",
+          "icon": "mdi:thermometer-lines",
+          "name": "Watertemperatuur bij strenge vorst (−10 °C)"
+         }
+        ],
+        "type": "entities"
+       }
+      ],
+      "type": "grid"
      },
      {
       "cards": [
@@ -7277,70 +7497,6 @@
      {
       "cards": [
        {
-        "heading": "Slim opwarmen en weerafhankelijke regeling",
-        "heading_style": "title",
-        "icon": "mdi:chart-bell-curve-cumulative",
-        "type": "heading"
-       },
-       {
-        "entity": "switch.flow_apply_learned",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:school-outline",
-        "name": "Slim opwarmen",
-        "type": "tile"
-       },
-       {
-        "entity": "switch.flow_weather_curve",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:sun-thermometer",
-        "name": "Weerafhankelijke regeling",
-        "type": "tile"
-       },
-       {
-        "entity": "select.flow_curve_design_flow_c",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:thermometer-lines",
-        "name": "Watertemperatuur bij strenge vorst (−10 °C)",
-        "type": "tile"
-       },
-       {
-        "entity": "sensor.flow_curve",
-        "grid_options": {
-         "columns": 12
-        },
-        "type": "custom:openthermostat-heating-curve",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.flow_curve",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       },
-       {
-        "entity": "sensor.flow_source",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:thermometer-water",
-        "name": "Watertemperatuur bepaald door",
-        "type": "tile"
-       }
-      ],
-      "type": "grid"
-     },
-     {
-      "cards": [
-       {
         "heading": "Wie regelt de ketel",
         "heading_style": "title",
         "icon": "mdi:water-boiler",
@@ -7393,7 +7549,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:information-outline",
     "max_columns": 2,
     "path": "diagnostics",
     "sections": [
@@ -8281,7 +8436,6 @@
    {
     "back_path": "/open-thermostat-fixture-x/heating",
     "dense_section_placement": true,
-    "icon": "mdi:compare-horizontal",
     "max_columns": 2,
     "path": "comparison",
     "sections": [

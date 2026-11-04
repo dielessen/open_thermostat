@@ -1400,7 +1400,20 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
             var ha = engine && engine.ha && typeof engine.ha === 'object' ? engine.ha : null;
             // HA sends on every change and at least every 5 min (REFRESH_SECONDS): fresh until two refreshes are missed.
             var haFresh = !!ha && ha.broker_connected === true && Number.isFinite(ha.input_age_s) && ha.input_age_s < 660;
-            var haChip = !ha ? null : haFresh ? ['Home Assistant: '+uiText("connected"),'ok'] : !Number.isFinite(ha.input_age_s) ? [uiText("Home Assistant: not connected (optional)"),''] :
+            // Values that still arrive but are refused (ha.last_rejected, newer than the last accepted one): say why,
+            // instead of "last connected" (P22).
+            var haRefused = !!ha && !haFresh && !!ha.last_rejected && typeof ha.last_rejected === 'object'
+                && Number.isFinite(ha.last_rejected.age_s) && ha.last_rejected.age_s < 660
+                && (!Number.isFinite(ha.input_age_s) || ha.last_rejected.age_s < ha.input_age_s);
+            var haReason = !haRefused ? '' : (function(reason) {
+                var known = {too_large: uiText("message too long"), invalid_json: uiText("message not readable"),
+                    no_entity: uiText("no entity named"), unknown_kind: uiText("unknown kind of value"),
+                    invalid_value: uiText("value out of range"), unknown_room: uiText("room not in the plan")};
+                return Object.prototype.hasOwnProperty.call(known, reason) ? known[reason] : String(reason);
+            })(ha.last_rejected.reason);
+            var haChip = !ha ? null : haFresh ? ['Home Assistant: '+uiText("connected"),'ok'] :
+                haRefused ? ['Home Assistant: '+uiText("values refused ({reason})").replace('{reason}',haReason),'warn'] :
+                !Number.isFinite(ha.input_age_s) ? [uiText("Home Assistant: not connected (optional)"),''] :
                 ['Home Assistant: '+uiText("last connected {age} ago").replace('{age}',dashboardAge(ha.input_age_s)),'warn'];
             // In shadow mode the thermostat controls the boiler: a calm chip, no "Blocked".
             var controlChip = !activePlan ? [uiText("Your thermostat controls the boiler"),''] : controlling ? [uiText("The E32 controls the boiler"),'ok'] :

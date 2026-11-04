@@ -14,7 +14,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from custom_components.open_thermostat import dashboard as module
 from custom_components.open_thermostat.dashboard import RoomDashboard, view_cards
-from custom_components.open_thermostat.room_overview import HOUSE_CARD_TYPE
+from custom_components.open_thermostat.room_overview import BOILER_NOW_CARD_TYPE, HOUSE_CARD_TYPE
 from test_dashboard_heating import installation, walk
 from test_dashboard_redesign import LIVE_FIELDS
 
@@ -91,9 +91,12 @@ async def test_boiler_values_are_hidden_while_they_have_none_instead_of_showing_
     assert house["flow"] == fields["measured_flow_temperature"]
     others = [c for c in view_cards(overview) if c["type"] != HOUSE_CARD_TYPE]
     assert not any(entity_id in json.dumps(others) for entity_id in values)
-    # The display code in words: hidden as long as the boiler reports no code.
-    words = [c for c in view_cards(boiler) if c["type"] == "markdown" and "'meaning'" in c["content"]]
-    assert [c["visibility"] for c in words] == [[known(fields["display_code"])]]
+    # The display code in words: the Now card's (frontend/boiler-now-card.js), which says it only while the code has a
+    # value; the section shows while one of its values has one (here the code among them).
+    now = section(boiler, "Now")
+    assert [c["type"] for c in now] == ["heading", BOILER_NOW_CARD_TYPE] and now[1]["code"] == fields["display_code"]
+    assert known(fields["display_code"]) in next(s for s in boiler["sections"] if s["cards"] is now)["visibility"][0]["conditions"]
+    assert not any(c["type"] == "markdown" and "'meaning'" in c["content"] for c in view_cards(boiler))
     # The problem is the house card's (its strip turns red with the reason only while there is one); no tile of its own.
     assert house["problem"] == hub["heating_problem"]
     assert not any(c.get("entity") == hub["heating_problem"] for c in view_cards(overview))
@@ -189,14 +192,15 @@ async def test_long_choices_get_the_whole_width_and_sections_fill_the_gaps(hass)
     learning = next(v for v in config["views"] if v["path"] == "learned")
     assert learning["dense_section_placement"] is True
     settings = section(learning, "Smart warm-up and weather compensation")
-    # The settings carry their entities' own long names (as on the device page) and a long choice:
-    # every tile takes the whole width, none is cut short.
-    tiles = [c for c in settings if c["type"] == "tile"]
-    assert [c["entity"] for c in tiles] == [flow[k] for k in ("apply_learned", "weather_curve", "curve_design_flow_c",
-                                                              "source")]
-    assert all(c["grid_options"] == {"columns": 12} for c in tiles)
-    assert [c["name"] for c in tiles] == ["Smart warm-up", "Weather compensation",
-                                          "Water temperature in hard frost (−10 °C)", "Water temperature set by"]
+    # The settings carry their entities' own long names (as on the device page) and a long choice: rows of one card
+    # across the whole width (the owner's sketch, rc.5), none cut short. What sets the water temperature now is no
+    # setting (its long state cut a row's name short on a phone): it stays on the E32 device.
+    rows, = [c["entities"] for c in settings if c["type"] == "entities"]
+    assert not any(c["type"] == "tile" for c in settings)
+    assert [row["entity"] for row in rows] == [flow[k] for k in ("apply_learned", "weather_curve", "curve_design_flow_c")]
+    assert [row["name"] for row in rows] == ["Smart warm-up", "Weather compensation",
+                                             "Water temperature in hard frost (−10 °C)"]
+    assert flow["source"] not in json.dumps(learning)
 
 
 @pytest.mark.asyncio

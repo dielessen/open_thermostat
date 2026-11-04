@@ -279,3 +279,22 @@ test('F9 (R3-01): an E32 without Home Assistant reports legacy, yet the Overview
  // Without the room engine (ib-therm builds) the legacy status keeps its tile grid and editors.
  const r=rootPage();r.updateRooms(structuredClone(fixture));assert.equal(r.controlUiMode,'legacy');assert.match(rendered(r.main),/actief sinds:/);
 });
+test('P22: values Home Assistant still sends but the E32 refuses are named, not "last connected"',()=>{
+ const room={id:'woonkamer',name:'Woonkamer',state:'active',status:'fallback',source:'0a1b2c3d4e5f',setpoint_source:'schedule',temperature:20.8,setpoint:20.5,demand:false};
+ const status=ha=>({controlMode:'shadow',ems:{},control:{fresh:false},heating:{schema:1,mode:'shadow',request:{heat:false,flow_c:0,reason:'idle'},ha,
+  active:{state:'shadow',warnings:[],enabled:false},ble_sensors:[],rooms:[room]}});
+ const chip=(ha,language='nl')=>{const p=rootPage(language);p.updateRooms(status(ha));return p.main.innerHTML;};
+ assert.match(chip({input_age_s:900,broker_connected:true,last_rejected:{reason:'unknown_room',age_s:12}}),
+  /Home Assistant: waarden geweigerd \(ruimte staat niet in het plan\)/);
+ assert.match(chip({input_age_s:null,broker_connected:true,last_rejected:{reason:'invalid_json',age_s:30}},'en'),
+  /Home Assistant: values refused \(message not readable\)/);
+ // An unknown code is shown as it is (escaped), also one that names an object property.
+ assert.match(chip({input_age_s:900,broker_connected:true,last_rejected:{reason:'constructor',age_s:5}}),/waarden geweigerd \(constructor\)/);
+ assert.match(chip({input_age_s:900,broker_connected:true,last_rejected:{reason:'<b>',age_s:5}}),/waarden geweigerd \(&lt;b&gt;\)/);
+ // A refusal older than the last accepted value, or long ago, is not the story: "last connected" as before.
+ for(const ha of [{input_age_s:900,broker_connected:true,last_rejected:{reason:'unknown_room',age_s:950}},
+  {input_age_s:11582,broker_connected:true,last_rejected:{reason:'unknown_room',age_s:700}},{input_age_s:11582,broker_connected:true}])
+  assert.match(chip(ha),/Home Assistant: laatst verbonden 3 h geleden|Home Assistant: laatst verbonden 15 min geleden/,JSON.stringify(ha));
+ // Fresh values win over an older refusal.
+ assert.match(chip({input_age_s:40,broker_connected:true,last_rejected:{reason:'unknown_room',age_s:30}}),/Home Assistant: verbonden/);
+});

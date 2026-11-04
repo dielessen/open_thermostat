@@ -299,7 +299,7 @@ async def test_dashboard_gas_section_shows_both_sensors_per_day_and_how_they_are
     heading, heating, hot_water, graph, note = section["cards"]
     assert heading["heading"] == "Vandaag en deze week"
     assert [(card["type"], card["name"]) for card in (heating, hot_water)] == [
-        ("statistic", "Gas verwarmen vandaag"), ("statistic", "Gas warm water vandaag")]
+        ("statistic", "Gas verwarmen"), ("statistic", "Gas warm water")]
     assert graph["type"] == "statistics-graph" and graph["stat_types"] == ["change"] and graph["period"] == "day"
     assert graph["title"] == "Gas per dag"
     assert graph["entities"] == [{"entity": "sensor.gas_voor_verwarmen", "name": "Verwarmen"},

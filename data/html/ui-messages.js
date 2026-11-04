@@ -546,6 +546,14 @@ window.OT_UI_MESSAGES = {
   // Plain-language help for every option (beta.18).
   "connected": "verbonden",
   "last connected {age} ago": "laatst verbonden {age} geleden",
+  // Why the E32 refused Home Assistant's last value (ha.last_rejected, P22).
+  "values refused ({reason})": "waarden geweigerd ({reason})",
+  "message too long": "bericht te lang",
+  "message not readable": "bericht onleesbaar",
+  "no entity named": "geen entiteit genoemd",
+  "unknown kind of value": "onbekend soort waarde",
+  "value out of range": "waarde buiten bereik",
+  "room not in the plan": "ruimte staat niet in het plan",
   "The name of your home WiFi network.": "De naam van je wifi-netwerk thuis.",
   "The password of that network.": "Het wachtwoord van dat netwerk.",
   "Thermostat requested hot water temperature": "Door thermostaat gevraagde tapwatertemperatuur",

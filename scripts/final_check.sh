@@ -164,21 +164,23 @@ c = ProjectConfig.get_instance(); clean_build_dir(c.get("platformio", "build_dir
 # --- steps --------------------------------------------------------------------
 s_static(){
   echo "release.json $FW, manifest.json $HA"
-  # Cache busting (R5-12): the seven versioned frontend URLs of the integration, and the test that routes one of
+  # Cache busting (R5-12): the eight versioned frontend URLs of the integration, and the test that routes one of
   # them, carry the integration version. (week_planner.py keeps older URLs on purpose, in LEGACY_URLS.)
   # rc.5 (P5): the sixth is the Learning view's cards (e32_flow.py CURVE_CARD_URL, frontend/heating-curve-card.js).
   # rc.5 (P11): the seventh is the Overview's house card (room_overview.py HOUSE_CARD_URL, frontend/house-card.js).
+  # rc.5 (P17): the eighth is the Boiler view's Now card (room_overview.py BOILER_NOW_CARD_URL, frontend/boiler-now-card.js).
   local ha_dir=ha/config/custom_components/open_thermostat missing="" entry
   for entry in 'e32_week.py|CARD_URL = "/open_thermostat/e32-week-card-' 'e32_week.py|EDITOR_URL = "/open_thermostat/week-editor-' \
                'frontend/e32-week-card.js|const EDITOR = '"'"'/open_thermostat/week-editor-' \
                'room_overview.py|CARD_URL = "/open_thermostat/room-status-card-' 'week_planner.py|URL = "/open_thermostat/week-planner-' \
                'e32_flow.py|CURVE_CARD_URL = "/open_thermostat/heating-curve-card-' \
-               'room_overview.py|HOUSE_CARD_URL = "/open_thermostat/house-card-'; do
+               'room_overview.py|HOUSE_CARD_URL = "/open_thermostat/house-card-' \
+               'room_overview.py|BOILER_NOW_CARD_URL = "/open_thermostat/boiler-now-card-'; do
     grep -qF "${entry#*|}$HA.js" "$ha_dir/${entry%%|*}" || missing+=" ${entry%%|*}:${entry#*|}$HA.js"
   done
   grep -qF "p==='/open_thermostat/week-editor-$HA.js'" test/week-editor-browser.cjs || missing+=" test/week-editor-browser.cjs"
   [ -z "$missing" ] || { echo "FAIL versioned frontend URLs do not carry $HA:$missing"; return 1; }
-  echo "versioned frontend URLs: all seven carry $HA"
+  echo "versioned frontend URLs: all eight carry $HA"
   # Since beta.22 only the E32 V2 build may send an active heat request (after the
   # owner's plan + handover); every other board keeps the gate closed.
   python3 - <<'PY' || { echo "FAIL active heat gate: only the E32 V2 branch of src/Board.h may be open"; return 1; }

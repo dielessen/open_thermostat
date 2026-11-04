@@ -2673,7 +2673,16 @@
               "legend_heating": "Verwarmen",
               "legend_hot_water": "Warm water",
               "legend_keep_warm": "Warmhouden",
-              "waiting": "De E32 heeft nog niets gemeld."
+              "waiting": "De E32 heeft nog niets gemeld.",
+              "now": "nu",
+              "warm": "{room} warm",
+              "early": "{m} min te vroeg",
+              "late": "{m} min te laat",
+              "on_time": "op tijd",
+              "degree_days": "Graaddagen",
+              "target": "doel {t} °C",
+              "per_day": "{n} dagen: {value} per dag",
+              "today_since": "Vandaag sinds middernacht"
             }
           }
         }
@@ -3512,6 +3521,40 @@
           "keep_warm": "Warmhouden",
           "charging": "Warmwatervoorraad opwarmen",
           "hot_water": "Warm water"
+        },
+        "state_attributes": {
+          "card": {
+            "state": {
+              "title": "De ketel nu",
+              "no_data": "Geen gegevens van de ketel",
+              "boiler": "Ketel",
+              "code": "Code {code}: {meaning}",
+              "code_bare": "Code {code}",
+              "code_fault": "{severity} · code {code}",
+              "link": "verbinding met de ketel: {state}",
+              "link_good": "goed",
+              "link_none": "geen",
+              "dhw": "warm water: {state}",
+              "yes": "ja",
+              "no": "nee",
+              "flow": "Water naar de verwarming",
+              "asked": "gevraagd {flow} °C",
+              "would_ask": "E32 zou {flow} °C vragen",
+              "no_request": "geen vraag",
+              "ceiling": "hoogstens {flow} °C",
+              "back": "Water terug",
+              "difference": "verschil {n} °C",
+              "power": "Brandervermogen",
+              "power_off": "brander uit",
+              "power_low": "laag vuur, rustig",
+              "power_mid": "half vuur",
+              "power_full": "vol vuur",
+              "starts": "Starts afgelopen uur",
+              "calm": "rustig",
+              "often": "slaat te vaak aan en uit",
+              "today": "vandaag {n}"
+            }
+          }
         }
       },
       "e32_last_backup": {
@@ -3922,6 +3965,10 @@
     "e32_backup_failing": {
       "title": "Geen recente back-up van de E32-instellingen",
       "description": "{name}: Home Assistant kon al meer dan 3 dagen geen back-up van de E32-instellingen maken (laatste back-up: {last}). Zonder recente back-up krijgt een vervangende E32 je huidige instellingen niet terug. Controleer of de E32 aan staat en zijn webpagina opent, en of zijn wachtwoord in Home Assistant nog klopt; druk daarna op Nu een back-up van de E32 maken op het E32-apparaat. Deze melding verdwijnt na de volgende geslaagde back-up."
+    },
+    "heating_input_lost": {
+      "title": "De E32 ontvangt de kamerwaarden van Home Assistant niet",
+      "description": "De E32 heeft al {minutes} minuten geen kamerwaarden van Home Assistant aangenomen en regelt de kamers daarom met zijn eigen sensoren en weekprogramma. Home Assistant stuurde de laatste waarde om {last_sent} (laatste verzendfout: {error}). OpenThermostat is opnieuw begonnen met verzenden. Blijft deze melding staan, herstart dan Home Assistant: de integratie herladen is niet altijd genoeg. Deze melding verdwijnt vanzelf zodra de E32 de waarden weer aanneemt."
     },
     "e32_time_zone": {
       "title": "De E32 gebruikt een andere tijdzone",

@@ -7,6 +7,11 @@ CAPABILITY = "boiler.fields.v1"
 MAX_BYTES = 2048
 PER_GROUP = 10
 GROUPS = 7
+# The source TTL of a setting the boiler reports only on request (0x16 heating, 0x33 hot water; the E32 reads 0x16
+# at boot and every 6 hours): none. Its last value is shown until the E32 reports a new one, and its sensor says when
+# it was read (the owner, 4 Nov 2026: show what is read only at start-up or once, with a remark). The firmware marks
+# the same fields (src/EMS/ClassicBoilerMonitor.h; test_boiler_fields keeps the two catalogs equal).
+REQUEST_ONLY = None
 # name, unit, raw divisor, original source TTL ms, telegram type
 FIELDS = (
     ('reported_selected_flow_temperature', 'degC', 100, 30000, 24),
@@ -22,11 +27,11 @@ FIELDS = (
     ('raw_boiler_state', 'bits', 1, 30000, 24),
     ('heating_active', 'bool', 1, 30000, 24),
     ('dhw_active', 'bool', 1, 30000, 24),
-    ('selected_dhw_temperature', 'degC', 100, 600000, 51),
+    ('selected_dhw_temperature', 'degC', 100, REQUEST_ONLY, 51),
     ('measured_dhw_temperature', 'degC', 100, 30000, 52),
     ('dhw_flow', 'L/min', 10, 30000, 52),
-    ('heating_enabled', 'bool', 1, 600000, 22),
-    ('dhw_enabled', 'bool', 1, 600000, 51),
+    ('heating_enabled', 'bool', 1, REQUEST_ONLY, 22),
+    ('dhw_enabled', 'bool', 1, REQUEST_ONLY, 51),
     ('reported_burner_starts', 'starts', 1, 180000, 25),
     ('reported_burner_runtime', 'min', 1, 180000, 25),
     ('reported_heating_runtime', 'min', 1, 180000, 25),
@@ -35,9 +40,9 @@ FIELDS = (
     ('reported_dhw_starts', 'starts', 1, 30000, 52),
     ('display_code', 'text', 1, 30000, 24),
     ('service_number', 'code', 1, 30000, 24),
-    ('maximum_burner_power', '%', 1, 600000, 22),
-    ('pump_run_on', 'min', 1, 600000, 22),
-    ('configured_heating_temperature', 'degC', 100, 600000, 22),
+    ('maximum_burner_power', '%', 1, REQUEST_ONLY, 22),
+    ('pump_run_on', 'min', 1, REQUEST_ONLY, 22),
+    ('configured_heating_temperature', 'degC', 100, REQUEST_ONLY, 22),
     ('reported_dhw_target', 'degC', 100, 30000, 52),
     ('storage_temperature_1', 'degC', 100, 30000, 24),
     ('storage_temperature_2', 'degC', 100, 30000, 24),
@@ -52,23 +57,23 @@ FIELDS = (
     ('hydraulic_switch_temperature', 'degC', 100, 180000, 25),
     ('reported_heating_pump_modulation', '%', 1, 180000, 25),
     ('reported_second_burner_runtime', 'min', 1, 180000, 25),
-    ('heating_hysteresis_off', 'K', 1, 600000, 22),
-    ('heating_hysteresis_on', 'K', 1, 600000, 22),
-    ('minimum_burner_period', 'min', 1, 600000, 22),
-    ('pump_modulation_maximum', '%', 1, 600000, 22),
-    ('pump_modulation_minimum', '%', 1, 600000, 22),
-    ('configured_pump_mode', 'code', 1, 600000, 22),
-    ('secondary_heating_hysteresis_off', 'K', 1, 600000, 22),
-    ('secondary_heating_hysteresis_on', 'K', 1, 600000, 22),
-    ('pump_start_temperature', 'degC', 100, 600000, 22),
-    ('dhw_hysteresis_on', 'K', 1, 600000, 51),
-    ('dhw_charge_optimisation_enabled', 'bool', 1, 600000, 51),
-    ('dhw_flow_temperature_offset', 'K', 1, 600000, 51),
-    ('dhw_circulation_enabled', 'bool', 1, 600000, 51),
-    ('configured_dhw_circulation_mode', 'code', 1, 600000, 51),
-    ('dhw_disinfection_temperature', 'degC', 100, 600000, 51),
-    ('configured_dhw_charge_type', 'code', 1, 600000, 51),
-    ('configured_dhw_comfort_mode', 'code', 1, 600000, 51),
+    ('heating_hysteresis_off', 'K', 1, REQUEST_ONLY, 22),
+    ('heating_hysteresis_on', 'K', 1, REQUEST_ONLY, 22),
+    ('minimum_burner_period', 'min', 1, REQUEST_ONLY, 22),
+    ('pump_modulation_maximum', '%', 1, REQUEST_ONLY, 22),
+    ('pump_modulation_minimum', '%', 1, REQUEST_ONLY, 22),
+    ('configured_pump_mode', 'code', 1, REQUEST_ONLY, 22),
+    ('secondary_heating_hysteresis_off', 'K', 1, REQUEST_ONLY, 22),
+    ('secondary_heating_hysteresis_on', 'K', 1, REQUEST_ONLY, 22),
+    ('pump_start_temperature', 'degC', 100, REQUEST_ONLY, 22),
+    ('dhw_hysteresis_on', 'K', 1, REQUEST_ONLY, 51),
+    ('dhw_charge_optimisation_enabled', 'bool', 1, REQUEST_ONLY, 51),
+    ('dhw_flow_temperature_offset', 'K', 1, REQUEST_ONLY, 51),
+    ('dhw_circulation_enabled', 'bool', 1, REQUEST_ONLY, 51),
+    ('configured_dhw_circulation_mode', 'code', 1, REQUEST_ONLY, 51),
+    ('dhw_disinfection_temperature', 'degC', 100, REQUEST_ONLY, 51),
+    ('configured_dhw_charge_type', 'code', 1, REQUEST_ONLY, 51),
+    ('configured_dhw_comfort_mode', 'code', 1, REQUEST_ONLY, 51),
     ('secondary_dhw_temperature', 'degC', 100, 30000, 52),
     ('solar_dhw_temperature', 'degC', 100, 30000, 52),
     ('reported_dhw_type', 'code', 1, 30000, 52),
@@ -142,10 +147,16 @@ STATE_STALE_SECONDS = 3 * 60 + 15
 
 
 def spec(index):
-    """(name, unit, raw divisor, source TTL ms) of a v1 or catalog field."""
+    """(name, unit, raw divisor, source TTL ms) of a v1 or catalog field; the TTL is REQUEST_ONLY (None) for a
+    setting the boiler reports only on request."""
     if index < len(FIELDS):
         return FIELDS[index][:4]
     return CATALOG_FIELDS[index - CATALOG_BASE][:4]
+
+
+def request_only(index):
+    """A setting the boiler reports only on request: kept until the E32 reports a new value, never expired."""
+    return spec(index)[3] is REQUEST_ONLY
 
 
 def quality(index):
@@ -362,6 +373,7 @@ class BoilerFieldCache:
         self.heartbeat_at = None
         self.first_state_at = None
         self.sampled_by_index = {}
+        self.read_at = {}  # index: (E32 snapshot ms, local time it arrived) of the field's latest report (source_age_ms)
         self.sequence = 0
         self.sampled = -1
         self.profile = "unknown"
@@ -426,7 +438,7 @@ class BoilerFieldCache:
         """A live fw/heartbeat; an uptime below what was seen means the E32 restarted."""
         if (type(uptime_s) is int and self.sampled_by_index
                 and uptime_s * 1000 + 60000 < max(self.sampled_by_index.values())):
-            self.records, self.sampled_by_index = {}, {}
+            self.records, self.sampled_by_index, self.read_at = {}, {}, {}
         self.heartbeat_at, self.online = now, True
 
     def availability(self, online, now):
@@ -450,6 +462,7 @@ class BoilerFieldCache:
                 continue  # a newer value of this field came on the other topic
             self.records[index] = (tuple(field), math.inf if field[2] is not None else None)
             self.sampled_by_index[index] = sampled
+            self.read_at[index] = (sampled, now)
         self.profile = value["profile"]
         self.sampled = max(self.sampled, sampled)
         self.received = now
@@ -485,12 +498,14 @@ class BoilerFieldCache:
                         raise ValueError("boiler acquisition changed")
                     # Even a different publication sequence cannot extend the deadline.
                     continue
-            deadline = (None if observed is None else
-                now + (spec(index)[3] - (value["sampled_at_ms"] - observed)) / 1000)
+            ttl = spec(index)[3]
+            deadline = (None if observed is None else math.inf if ttl is REQUEST_ONLY else
+                now + (ttl - (value["sampled_at_ms"] - observed)) / 1000)
             pending[index] = (tuple(field), deadline)
         if self.profile == "conflicting_families" and value["profile"] != self.profile:
             raise ValueError("boiler family conflict reverted")
         self.records.update(pending)
+        self.read_at.update({index: (value["sampled_at_ms"], now) for index in pending})
         self.profile = value["profile"]
         self.sequence = sequence
         self.sampled = value["sampled_at_ms"]
@@ -526,6 +541,14 @@ class BoilerFieldCache:
                 "measurement_state": state, "availability_reason": reason}
 
 
+    def source_age_ms(self, index, now):
+        """How long ago (ms) the boiler reported this field's value: its age in the E32's snapshot plus the time since
+        that snapshot arrived; None without an observed value."""
+        record, read = self.records.get(index), self.read_at.get(index)
+        if record is None or record[0][2] is None or read is None or now < read[1]:
+            return None
+        return max(0, read[0] - record[0][2]) + (now - read[1]) * 1000
+
     def diagnostic_snapshot(self, now):
         """Bounded public cache evidence, never a new measurement or permission."""
         clock_valid = (type(now) in (int, float) and math.isfinite(now) and now >= 0
@@ -538,7 +561,10 @@ class BoilerFieldCache:
             value = self.reading(index, now) if clock_valid else None
             record = self.records.get(index)
             age = None
-            if clock_valid and record is not None and record[1] is not None:
+            if clock_valid and record is not None and record[1] is not None and ttl is REQUEST_ONLY:
+                source_age = self.source_age_ms(index, now)  # kept until the next report: its age since the reading
+                age = math.ceil(source_age) if source_age is not None else None
+            elif clock_valid and record is not None and record[1] is not None:
                 # The original deadline survives repeated publications/groups.
                 elapsed = ttl + (now-record[1])*1000
                 if math.isfinite(elapsed):

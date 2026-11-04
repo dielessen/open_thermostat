@@ -321,7 +321,7 @@ def traced(gh, log):
             if error.result is not None:
                 report(log, error.result)
             else:
-                log(f'  not run: {error.message}')
+                log(f'  failed without an exit code: {error.message}')
             raise
         report(log, result, quiet_stdout=arguments[:1] == ['api'])
         return result

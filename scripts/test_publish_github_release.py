@@ -461,7 +461,7 @@ class PublishTests(unittest.TestCase):
             lines = []
             with self.assertRaises(publisher.Failure):
                 publisher.traced(publisher.gh_command, lines.append)(['--version'])
-        self.assertIn('not run: cannot run', '\n'.join(lines))
+        self.assertIn('failed without an exit code: cannot run', '\n'.join(lines))
         self.assertIsNone(caught.exception.result)
 
     def test_gh_command_failures_keep_their_text_for_the_job_log(self):

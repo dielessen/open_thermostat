@@ -16,7 +16,7 @@ window.OT_UI_PAGE_MESSAGES = {
   "tomorrow {pct} % later": "morgen {pct} % later",
   "Heating time": "Stooktijd",
   "Burner starts per heating hour": "Branderstarts per stookuur",
-  "Short burner runs": "Korte branderrondes",
+  "Short burner runs": "Korte brandtijden",
   "Gas for heating (estimate)": "Gas voor verwarmen (schatting)",
   "Degree days (how cold it was)": "Graaddagen (hoe koud het was)",
   "warm {n} min late": "{n} min te laat warm",

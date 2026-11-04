@@ -242,7 +242,7 @@ Pendelen: eerst meten met de nieuwe driewegklep (vanaf 4 november); geen regelwi
   - F9 het firmwaredeel (de moderne status zonder koppeling melden zou de HA-koppeling haar herstart laten overslaan);
   - de terugkeervoorlooptijd met de aankomstfactor (`RoomOverrides::returnLeadS` neemt de standaardvoorlooptijd zonder plafond);
   - review-fw L2 (een herstart midden in een opwarmstart telt als één les "te laat"), L5 (~0,9 KB stapel in `AutoTuner::setPlan` op het HTTP-pad), L6 (het terugzetten van het vakantierecord na een mislukte comfort-opslag is zelf gepoort);
-  - R5-28 (tooling) en het echt draaien van de publicatiescripts tegen GitHub (gebeurt bij deze release);
+  - R5-28 (tooling) en het echt draaien van de publicatiescripts tegen GitHub (gebeurd bij rc.4 op 4 november: de eerste poging van beide tag-runs faalde binnen seconden in de nieuwe publicatiestap `publish_github_release.py`, alle bouw- en testjobs groen; "Re-run failed jobs" maakte het concept af en publiceerde. Oorzaak onbekend zonder het logboek van poging 1 (vereist beheerdersrechten) — vóór 1.0.0 dat logboek lezen en de eerste poging betrouwbaar maken, want 1.0.0 kent geen herkansing via een uitzondering);
   - **idee eigenaar 4 november:** de ketel meldt displaycode 0Y (water warmer dan gevraagd, brander uit) zelf op de bus; dat als direct signaal gebruiken dat de gevraagde aanvoer te hoog is voor wat het huis afneemt, zodat het leren de aanvoer sneller verlaagt dan via het doorschieten van de kamer.
 
 ## Werkafspraken

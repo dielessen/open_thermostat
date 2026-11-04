@@ -235,6 +235,15 @@ Pendelen: eerst meten met de nieuwe driewegklep (vanaf 4 november); geen regelwi
 - **Testerprogramma:** opt-in in HA; "Deel resultaat" opent een vooraf ingevuld GitHub-issue met alleen het ketelprofiel; een GitHub Action controleert het; een profiel komt pas na beoordeling mee.
 - **HACS-vermelding** van de integratie in de standaardlijst van HACS; sinds 2 november staat ze al als custom repository `dielessen/openthermostat-ha`.
 - De overige ruimtes (Badkamer, slaapkamers) zodra de eigenaar dat wil.
+- **Bewust niet in rc.4 (uit de eindreviews van 4 november), voor 1.0.x of 1.1:**
+  - R2-16 een eigen EMS-projectie voor `controller_request` (HA leest nu nog `fw/telemetry/controller_request`);
+  - R2-26 generatietellers in `FlowLearner`/`RoomEngine`;
+  - F5 de waarschuwing als het pendelen aanhoudt nadat de zelfafstemming haar kans had (`tuning.short_cycling_persists`; de pagina's tonen nu alleen de leerinformatie);
+  - F9 het firmwaredeel (de moderne status zonder koppeling melden zou de HA-koppeling haar herstart laten overslaan);
+  - de terugkeervoorlooptijd met de aankomstfactor (`RoomOverrides::returnLeadS` neemt de standaardvoorlooptijd zonder plafond);
+  - review-fw L2 (een herstart midden in een opwarmstart telt als één les "te laat"), L5 (~0,9 KB stapel in `AutoTuner::setPlan` op het HTTP-pad), L6 (het terugzetten van het vakantierecord na een mislukte comfort-opslag is zelf gepoort);
+  - R5-28 (tooling) en het echt draaien van de publicatiescripts tegen GitHub (gebeurt bij deze release);
+  - **idee eigenaar 4 november:** de ketel meldt displaycode 0Y (water warmer dan gevraagd, brander uit) zelf op de bus; dat als direct signaal gebruiken dat de gevraagde aanvoer te hoog is voor wat het huis afneemt, zodat het leren de aanvoer sneller verlaagt dan via het doorschieten van de kamer.
 
 ## Werkafspraken
 

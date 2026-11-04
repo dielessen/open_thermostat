@@ -1318,7 +1318,8 @@ def _holiday_card(t, select):
     # box and a logged error on every render), so the first holiday is taken only when there is one.
     return {"type": "markdown", "show_empty": False, "content": (
         "{% set planned = state_attr(" + json.dumps(select) + ", 'holidays') or [] %}"
-        "{% if planned %}{% set h = planned[0] %}{% set months = " + json.dumps(t["months"], ensure_ascii=False) + ".split(',') %}"
+        "{% if planned %}{% set h = planned[0] %}"
+        "{% set months = " + json.dumps(t["months"], ensure_ascii=False) + ".split(',') %}"
         "{% set f = as_local(as_datetime(h['from'])) %}{% set u = as_local(as_datetime(h['until'])) %}"
         "{% if f <= now() %}" + t["holiday_now"].replace("{until}", day("u"))
         + "{% else %}" + t["holiday_next"].replace("{from}", day("f")).replace("{until}", day("u"))

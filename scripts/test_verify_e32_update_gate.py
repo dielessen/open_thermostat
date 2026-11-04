@@ -1,10 +1,14 @@
+import contextlib
 import copy
 import hashlib
+import io
 import json
 from pathlib import Path
 import tempfile
 import unittest
-from verify_e32_update_gate import HA_REQUIRED, READINESS_CRITERIA, REQUIRED, stable, verify, version
+import urllib.error
+import verify_e32_update_gate as gate
+from verify_e32_update_gate import HA_REQUIRED, POLICY, READINESS_CRITERIA, REQUIRED, stable, verify, version
 
 class GateFixture(unittest.TestCase):
     def setUp(self):
@@ -64,7 +68,7 @@ class UpdateGateTests(GateFixture):
         self.policy['required_for_successor_release']=True;self.policy['accepted']['tag']='v0.1.0-e32v2-alpha.35'
         with self.assertRaises(ValueError):verify(self.root,self.policy)
 
-class PublicationExceptionTests(GateFixture):
+class ExceptionFixture(GateFixture):
     def setUp(self):
         super().setUp()
         self.record['tag']='v0.1.0-e32v2-beta.1';self.accept()
@@ -84,6 +88,8 @@ class PublicationExceptionTests(GateFixture):
         raw=json.dumps(self.exception if record is None else record).encode()
         (self.root/'exception.json').write_bytes(raw)
         self.policy['publication_exception']=dict(receipt='exception.json',sha256=hashlib.sha256(raw).hexdigest())
+
+class PublicationExceptionTests(ExceptionFixture):
     def test_pending_rewrite_cannot_skip_published_predecessor(self):
         with self.assertRaisesRegex(ValueError,'Previous published release is not accepted'):
             verify(self.root,self.policy,self.target)
@@ -286,6 +292,125 @@ class HomeAssistantRouteTests(GateFixture):
         for key,value in [('method','home-assistant'),('method',None),('method','esphome'),('status','PENDING'),('schema',2)]:
             self.record={**ha_record(),key:value}
             with self.subTest(key=key,value=value):self.blocked()
+    def shifted(self,**changes):
+        """Both observations moved: (at_utc, uptime_seconds) per observation."""
+        self.record=ha_record()
+        for index,(at,uptime) in changes.items():
+            self.record['observations'][int(index)].update(at_utc=at,uptime_seconds=uptime)
+    def test_observations_must_come_from_one_boot_the_install_produced(self):
+        """R5-08: rising uptimes alone do not tie the reads to the install (the boot instant is the time minus uptime)."""
+        # A restart between the reads that still leaves a rising uptime: 09:02:05 and then 09:07:05.
+        self.shifted(**{'1':('2026-10-30T09:20:00Z',775)});self.blocked('different boots')
+        # Reads of a later boot: consistent with each other, but not the boot of the install.
+        self.shifted(**{'0':('2026-10-30T11:02:30Z',25),'1':('2026-10-30T11:15:00Z',775)});self.blocked('not of the boot the install produced')
+        # A boot long before the install started (the E32 did not restart for the install).
+        self.shifted(**{'0':('2026-10-30T09:12:00Z',1200),'1':('2026-10-30T09:20:00Z',1680)});self.blocked('not of the boot the install produced')
+    def test_late_reads_of_the_boot_the_install_produced_are_fine(self):
+        """Two days after the install, without a restart since: the boot instant is still the install's."""
+        self.shifted(**{'0':('2026-11-01T09:02:30Z',172800+25),'1':('2026-11-01T09:15:00Z',172800+775)})
+        self.accept();verify(self.root,self.policy,self.candidate)
+    def test_boot_instants_may_differ_by_the_jitter_of_the_reads_only(self):
+        limit=gate.BOOT_JITTER_S
+        self.shifted(**{'1':('2026-10-30T09:15:00Z',775-limit)});self.accept();verify(self.root,self.policy,self.candidate)
+        self.shifted(**{'1':('2026-10-30T09:15:00Z',775-limit-1)});self.blocked('different boots')
+    def test_the_real_accepted_receipts_satisfy_the_boot_rule(self):
+        root=Path(__file__).resolve().parents[1];checked=0
+        for path in sorted((root/'docs/modern-thermostat/update-acceptance').glob('e32-*.json')):
+            record=json.loads(path.read_text())
+            if record.get('method')=='home_assistant' and record.get('status')=='PASS':
+                gate.home_assistant_acceptance(record);checked+=1
+        self.assertGreaterEqual(checked,1)
+
+def releases(*tags,drafts=()):
+    return [{'tag_name':tag,'draft':tag in drafts,'prerelease':True} for tag in tags]
+
+class PublishedReleaseTests(ExceptionFixture):
+    """R5-07: the plan's previous_published_tag is checked against the releases that really exist."""
+    LINEUP=('v0.1.0-e32v2-beta.1','v0.1.0-e32v2-beta.3','v0.1.0-e32v2-beta.4')
+    def test_lying_plan_is_found_out(self):
+        """The plan says the previous release is beta.1 although beta.3 was published after it and never accepted."""
+        self.activate();self.plan(self.target,'v0.1.0-e32v2-beta.1');self.record['tag']='v0.1.0-e32v2-beta.1'
+        published=releases('v0.1.0-e32v2-beta.1',self.previous)
+        with self.assertRaisesRegex(ValueError,'latest published release below'):verify(self.root,self.policy,self.target,published)
+        self.assertEqual(verify(self.root,self.policy,self.target)['previous_published_checked'],False)   # not compared: no list
+    def test_honest_plan_passes_and_says_it_was_checked(self):
+        self.activate()
+        result=verify(self.root,self.policy,self.target,releases('v0.1.0-e32v2-beta.1',self.previous))
+        self.assertTrue(result['previous_published_checked'])
+        self.assertEqual(result['publication_basis'],'operator_approved_one_time_exception')
+    def test_a_previous_release_that_was_never_published_is_refused(self):
+        self.activate()
+        with self.assertRaisesRegex(ValueError,'latest published release below'):
+            verify(self.root,self.policy,self.target,releases('v0.1.0-e32v2-beta.1'))
+    def test_drafts_and_other_channels_do_not_count_as_published(self):
+        self.activate()
+        with self.assertRaisesRegex(ValueError,'latest published release below'):
+            verify(self.root,self.policy,self.target,releases('v0.1.0-e32v2-beta.1',self.previous,drafts=(self.previous,)))
+        rows=releases('v0.1.0-e32v2-beta.1',self.previous)+[{'tag_name':'ha-v0.4.0b15','draft':False},{'tag_name':'sources-e32v2-20261030.1','draft':False}]
+        verify(self.root,self.policy,self.target,rows)
+    def test_the_candidate_itself_and_later_releases_are_not_its_predecessor(self):
+        self.activate()
+        verify(self.root,self.policy,self.target,releases('v0.1.0-e32v2-beta.1',self.previous,self.target,'v0.1.0-e32v2-beta.5'))
+        with self.assertRaisesRegex(ValueError,'No published firmware release below'):
+            verify(self.root,self.policy,self.target,releases(self.target))
+    def test_a_plain_list_of_tags_is_a_catalog_too(self):
+        self.activate();verify(self.root,self.policy,self.target,['v0.1.0-e32v2-beta.1',self.previous])
+    def test_fetch_reads_all_pages_with_a_token_and_fails_on_any_error(self):
+        seen=[]
+        def page(rows):
+            class Response(io.BytesIO):
+                def __enter__(self):return self
+                def __exit__(self,*exc):return False
+            return Response(json.dumps(rows).encode())
+        def urlopen(request,timeout=None):
+            seen.append((request.full_url,request.get_header('Authorization')))
+            return page([{'tag_name':f'v0.1.0-e32v2-beta.{n}','draft':False} for n in range(100)] if len(seen)==1 else releases('v0.1.0-e32v2-beta.100'))
+        rows=gate.fetch_published('o/p','TOKEN',urlopen=urlopen)
+        self.assertEqual(len(rows),101);self.assertEqual([url[-6:] for url,_ in seen],['page=1','page=2'])
+        self.assertTrue(all(auth=='Bearer TOKEN' for _,auth in seen))
+        def broken(request,timeout=None):raise urllib.error.URLError('offline')
+        with self.assertRaises(urllib.error.URLError):gate.fetch_published('o/p',urlopen=broken)
+        def endless(request,timeout=None):return page([{'tag_name':'v0.1.0-e32v2-beta.1','draft':False}]*100)
+        with self.assertRaisesRegex(ValueError,'More release pages'):gate.fetch_published('o/p',urlopen=endless,max_pages=3)
+        def object_answer(request,timeout=None):return page({'message':'API rate limit exceeded'})
+        with self.assertRaisesRegex(ValueError,'Unexpected answer'):gate.fetch_published('o/p',urlopen=object_answer)
+
+class CommandLineTests(unittest.TestCase):
+    """The candidate check of the real policy: it fails closed when the published releases cannot be read."""
+    ROOT=Path(__file__).resolve().parents[1]
+    def setUp(self):
+        policy=json.loads((self.ROOT/POLICY).read_text())
+        if not policy.get('pending_tag') or not policy.get('candidate_plan'):self.skipTest('no candidate pending in the policy')
+        self.candidate=policy['pending_tag'];self.previous=json.loads((self.ROOT/policy['candidate_plan']).read_text())['previous_published_tag']
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+    def run_main(self,*argv,fetch=None):
+        out,err=io.StringIO(),io.StringIO()
+        with contextlib.redirect_stdout(out),contextlib.redirect_stderr(err):
+            code=gate.main(list(argv),**({'fetch':fetch} if fetch else {}))
+        return code,out.getvalue(),err.getvalue()
+    def test_unreadable_release_list_fails_closed(self):
+        def offline(repository,token=None):raise urllib.error.URLError('no network')
+        code,out,err=self.run_main('--candidate',self.candidate,fetch=offline)
+        self.assertEqual(code,1);self.assertEqual(out,'');self.assertIn('--offline only when you mean to skip',err)
+        bad=Path(self.temp.name)/'catalog.json';bad.write_text('{not json')
+        self.assertEqual(self.run_main('--candidate',self.candidate,'--published-file',str(bad))[0],1)
+        self.assertEqual(self.run_main('--candidate',self.candidate,'--published-file',str(Path(self.temp.name)/'missing.json'))[0],1)
+    def test_explicit_offline_skips_and_says_so(self):
+        code,out,err=self.run_main('--candidate',self.candidate,'--offline')
+        self.assertEqual(code,0);self.assertFalse(json.loads(out)['previous_published_checked']);self.assertIn('WARNING --offline',err)
+    def test_catalog_file_and_api_are_compared(self):
+        catalog=Path(self.temp.name)/'catalog.json';catalog.write_text(json.dumps(releases(self.previous)))
+        code,out,_=self.run_main('--candidate',self.candidate,'--published-file',str(catalog))
+        self.assertEqual(code,0);self.assertTrue(json.loads(out)['previous_published_checked'])
+        code,out,_=self.run_main('--candidate',self.candidate,fetch=lambda repository,token=None:releases(self.previous))
+        self.assertEqual(code,0);self.assertTrue(json.loads(out)['previous_published_checked'])
+        catalog.write_text(json.dumps(releases('v0.1.0-e32v2-beta.1')))
+        with self.assertRaisesRegex(ValueError,'latest published release below'):
+            self.run_main('--candidate',self.candidate,'--published-file',str(catalog))
+    def test_no_candidate_needs_no_release_list(self):
+        code,out,_=self.run_main()
+        self.assertEqual(code,0);self.assertNotIn('previous_published_checked',json.loads(out))
+        with self.assertRaises(SystemExit):self.run_main('--offline')
 
 class StableVersionTests(GateFixture):
     def test_stable_tag_form_and_order(self):
@@ -298,7 +423,7 @@ class StableVersionTests(GateFixture):
             self.assertIsNone(version(bad),bad)
     def readiness(self,measured,**changes):
         doc=dict(schema=1,kind='release_readiness',release=measured,stage='final',overall='PASS',
-                 **{'from':'2026-11-10T12:00:00Z','to':'2026-11-24T12:00:00Z'},
+                 **{'from':'2026-11-10T12:00:00Z','to':'2026-11-24T12:00:00Z'},installed_versions=[measured],
                  criteria={c:{'result':'PASS'} for c in READINESS_CRITERIA})
         doc.update(changes);raw=json.dumps(doc).encode();(self.root/'readiness.json').write_bytes(raw)
         self.policy['readiness_report']=dict(report='readiness.json',sha256=hashlib.sha256(raw).hexdigest())
@@ -322,6 +447,27 @@ class StableVersionTests(GateFixture):
                 with self.assertRaisesRegex(ValueError,'not PASS on every criterion'):verify(self.root,self.policy,'v1.0.0-e32v2')
         self.readiness(self.record['tag']);self.policy['readiness_report']['sha256']='0'*64
         with self.assertRaisesRegex(ValueError,'changed'):verify(self.root,self.policy,'v1.0.0-e32v2')
+    def test_the_window_is_tied_to_the_measured_release(self):
+        """R5-09: a 14-day window that includes days on another release, or an install, is not about this release."""
+        self.record=ha_record();self.accept();self.policy['pending_tag']='v1.0.0-e32v2'
+        self.plan('v1.0.0-e32v2',self.record['tag'])
+        tag=self.record['tag']
+        for changes,message in [(dict(installed_versions=['v0.1.0-e32v2-beta.18',tag]),'not the measured release only'),
+                                (dict(installed_versions=[tag,'v0.1.0-e32v2-beta.20']),'not the measured release only'),
+                                (dict(installed_versions=['v0.1.0-e32v2-beta.18']),'not the measured release only'),
+                                (dict(installed_versions=[]),'not the measured release only'),
+                                (dict(installed_versions=None),'not the measured release only'),
+                                (dict(**{'from':'2026-10-30T09:01:00Z','to':'2026-11-13T09:01:00Z'}),'before the accepted install ended')]:
+            with self.subTest(changes=changes):
+                doc=dict(changes)
+                if 'installed_versions' not in doc and 'from' not in doc:doc['installed_versions']=[tag]
+                self.readiness(tag,**doc)
+                with self.assertRaisesRegex(ValueError,message):verify(self.root,self.policy,'v1.0.0-e32v2')
+        # A window that starts exactly when the install ended is fine; the window criteria must all be PASS.
+        self.readiness(tag,**{'from':'2026-10-30T09:02:10Z','to':'2026-11-13T09:02:10Z'})
+        self.assertEqual(verify(self.root,self.policy,'v1.0.0-e32v2')['publication_basis'],'accepted_previous_release')
+        self.readiness(tag,criteria={c:{'result':'WAIT' if c=='release_window' else 'PASS'} for c in READINESS_CRITERIA})
+        with self.assertRaisesRegex(ValueError,'not PASS on every criterion'):verify(self.root,self.policy,'v1.0.0-e32v2')
     def test_a_release_candidate_needs_no_readiness_report(self):
         self.record=ha_record();self.accept();self.policy['pending_tag']='v1.0.0-e32v2-rc.1'
         self.plan('v1.0.0-e32v2-rc.1',self.record['tag'])

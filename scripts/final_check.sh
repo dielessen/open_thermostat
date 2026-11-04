@@ -207,8 +207,11 @@ PY
 s_verifiers(){
   set -e
   python3 scripts/verify_e32_update_gate.py
+  # The candidate check also compares the plan's previous_published_tag with the published releases (GitHub, R5-07)
+  # and fails when it cannot read them; FINAL_CHECK_OFFLINE=1 skips that comparison on purpose (it says so).
+  local gate_offline=(); [ "${FINAL_CHECK_OFFLINE:-0}" = 1 ] && gate_offline=(--offline)
   if [ "$FW" = "$(accepted_tag)" ]; then echo "release.json $FW is the accepted basis: no candidate check (development tree)"
-  else python3 scripts/verify_e32_update_gate.py --candidate "$FW"; fi
+  else python3 scripts/verify_e32_update_gate.py --candidate "$FW" ${gate_offline[@]+"${gate_offline[@]}"}; fi
   python3 scripts/verify_beta_release_inventory.py
   python3 scripts/inventory_boiler_writes.py --check
   python3 scripts/organize_releases.py --publication-notes-for "$FW" --output "$L/notes-fw.md"

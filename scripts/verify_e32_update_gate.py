@@ -15,15 +15,27 @@ See docs/modern-thermostat/HA-UPDATE-ACCEPTANCE.en.md.
 
 A stable release also needs the 1.0 readiness report of the release it follows
 (tools/switchover/release_ready.py --stage final): every criterion PASS over at
-least 14 days, bound by digest under ``readiness_report`` in the policy. A
+least 14 days, bound by digest under ``readiness_report`` in the policy. The
+window is tied to that release: it starts after the accepted install of it
+ended and the update entity showed that release, and no other, throughout. A
 release candidate (``-rc.N``) may be published before that.
+
+A candidate check compares the candidate plan's ``previous_published_tag`` with
+the releases that really exist: it must be the highest published (not draft)
+firmware release below the candidate. The list comes from the GitHub releases
+API (token from GITHUB_TOKEN or GH_TOKEN when set) or from a saved release
+catalog (--published-file); when it cannot be read the check fails, unless
+--offline says explicitly that it is skipped.
 """
 from pathlib import Path
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
 import json
+import os
 import re
+import sys
+import urllib.request
 
 POLICY = 'docs/modern-thermostat/E32-UPDATE-GATE.json'
 REQUIRED = ('public_package_exact', 'fresh_preflight_passed', 'backup_verified',
@@ -44,8 +56,14 @@ HA_REQUIRED = ('public_release_exact', 'fresh_preflight_passed', 'backup_verifie
 HA_MIN_IMAGE, HA_MAX_IMAGE = 1000000, 0x3C0000  # firmware_update.py's limits
 STABLE_UPTIME_SECONDS = 600  # beyond the E32's 10-minute boot-confirmation window
 UTC = r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z'
-READINESS_CRITERIA = ('stability', 'active_control', 'trv_control', 'failure_tests', 'updates', 'install_guide')
+READINESS_CRITERIA = ('stability', 'active_control', 'trv_control', 'failure_tests', 'updates', 'install_guide',
+                      'release_window')
 READINESS_DAYS = 14
+# The observations after an install must come from the boot that install produced (R5-08): the boot instant (the
+# time of the reading minus its uptime) is the same in all of them, give or take BOOT_JITTER_S, and lies between
+# BOOT_BEFORE_S before the install started and BOOT_AFTER_S after it ended.
+BOOT_JITTER_S, BOOT_BEFORE_S, BOOT_AFTER_S = 5, 60, 300
+DEFAULT_REPOSITORY = 'dielessen/open_thermostat'
 
 
 def require(ok, message):
@@ -169,16 +187,64 @@ def home_assistant_acceptance(record):
     observations = record.get('observations')
     require(isinstance(observations, list) and len(observations) >= 2, 'Missing boot observations')
     uptime = -1
+    boots = []
     for item in observations:
         require(isinstance(item, dict) and item.get('version') == tag and item.get('boot_pending') is False
                 and integer(item.get('uptime_seconds')) and item['uptime_seconds'] > uptime,
                 'Boot not confirmed or restarted during observation')
-        require(utc_time(item.get('at_utc'), 'observation') >= finished, 'Observation before the install ended')
+        at = utc_time(item.get('at_utc'), 'observation')
+        require(at >= finished, 'Observation before the install ended')
+        boots.append(at - timedelta(seconds=item['uptime_seconds']))
         uptime = item['uptime_seconds']
     require(uptime >= STABLE_UPTIME_SECONDS, 'Uptime after the update too short')
+    # R5-08: rising uptimes alone do not say that the reads belong to this install: a later restart, or reads taken
+    # days afterwards, would pass. All reads share one boot, and it is the boot the install produced.
+    require(all(abs((boot - boots[0]).total_seconds()) <= BOOT_JITTER_S for boot in boots),
+            'Observations come from different boots')
+    require(started - timedelta(seconds=BOOT_BEFORE_S) <= boots[0] <= finished + timedelta(seconds=BOOT_AFTER_S),
+            'Observations are not of the boot the install produced')
 
 
 METHODS = {'native_github': native_acceptance, 'home_assistant': home_assistant_acceptance}
+
+
+def published_tags(releases):
+    """The firmware tags that are published (not drafts) in a list of GitHub release objects, or of plain tags."""
+    tags = set()
+    for row in releases:
+        tag, draft = (row, False) if isinstance(row, str) else (row.get('tag_name'), row.get('draft') is True)
+        if not draft and valid_tag(tag):
+            tags.add(tag)
+    return tags
+
+
+def fetch_published(repository, token=None, urlopen=urllib.request.urlopen, max_pages=12):
+    """The releases of a repository from the GitHub API (anonymous, or with a token); any failure raises."""
+    rows = []
+    for page in range(1, max_pages + 1):
+        headers = {'Accept': 'application/vnd.github+json', 'User-Agent': 'openthermostat-update-gate',
+                   'X-GitHub-Api-Version': '2022-11-28'}
+        if token:
+            headers['Authorization'] = 'Bearer ' + token
+        request = urllib.request.Request(f'https://api.github.com/repos/{repository}/releases?per_page=100&page={page}',
+                                         headers=headers)
+        with urlopen(request, timeout=30) as response:
+            batch = json.load(response)
+        require(isinstance(batch, list), 'Unexpected answer from the GitHub releases API')
+        rows += batch
+        if len(batch) < 100:
+            return rows
+    raise ValueError('More release pages than the gate reads: cannot tell the latest published release')
+
+
+def check_previous_published(previous, candidate, published):
+    """R5-07: the plan's previous_published_tag is the highest published firmware release below the candidate.
+    A plan that names an older release (or one that was never published) would hide unaccepted releases."""
+    below = sorted((version(tag), tag) for tag in published_tags(published) if version(tag) < version(candidate))
+    require(below, 'No published firmware release below the candidate')
+    latest = below[-1][1]
+    require(latest == previous, f'previous_published_tag is {previous}, but the latest published release below '
+                                f'{candidate} is {latest}')
 
 
 def document(root, name, label, expected_sha=None):
@@ -196,9 +262,11 @@ def document(root, name, label, expected_sha=None):
     return value
 
 
-def readiness_report(root, reference, measured):
+def readiness_report(root, reference, measured, installed_at=None):
     """The 1.0 readiness report a stable release needs: final, every criterion PASS, at
-    least READINESS_DAYS long, about the release the stable one follows."""
+    least READINESS_DAYS long, about the release the stable one follows. The window is tied to
+    that release (R5-09): it starts after the accepted install of it ended, and the update entity
+    showed that release, and no other, for the whole window."""
     require(isinstance(reference, dict), 'A stable release needs a PASS readiness report')
     report = document(root, reference.get('report'), 'readiness report', reference.get('sha256'))
     require(report.get('schema') == 1 and report.get('kind') == 'release_readiness', 'Invalid readiness report')
@@ -211,6 +279,9 @@ def readiness_report(root, reference, measured):
     start = utc_time(report.get('from'), 'readiness start')
     end = utc_time(report.get('to'), 'readiness end')
     require((end - start).total_seconds() >= READINESS_DAYS * 86400, 'Readiness window is shorter than 14 days')
+    require(report.get('installed_versions') == [measured], 'Readiness window is not the measured release only')
+    require(installed_at is not None and start >= utc_time(installed_at, 'accepted install end'),
+            'Readiness window starts before the accepted install ended')
     return report
 
 
@@ -257,7 +328,7 @@ def publication_exception(root, reference):
     return record
 
 
-def verify(root, policy, candidate=None):
+def verify(root, policy, candidate=None, published=None):
     root = Path(root).resolve()
     require(policy.get('schema') == 1, 'Unknown E32 update-gate schema')
     require(policy.get('required_for_successor_release') is True, 'Mandatory update gate disabled')
@@ -296,6 +367,8 @@ def verify(root, policy, candidate=None):
         previous = plan.get('previous_published_tag')
         require(plan.get('planned_tag') == candidate and valid_tag(previous)
                 and version(previous) < version(candidate), 'Candidate plan identity/order mismatch')
+        if published is not None:
+            check_previous_published(previous, candidate, published)
         if stable(candidate):
             # Version 1.0 and later: one update on the official route succeeded.
             require(record['method'] == 'home_assistant',
@@ -311,7 +384,8 @@ def verify(root, policy, candidate=None):
             basis = 'operator_approved_one_time_exception'
         if stable(candidate):
             # ...and the 1.0 criteria were met with the release it follows (14 days).
-            readiness_report(root, policy.get('readiness_report'), previous)
+            readiness_report(root, policy.get('readiness_report'), previous,
+                             (record.get('ha_install_record') or {}).get('finished_at'))
     ready = accepted is not None and pending is None
     if plan is not None:
         ready = ready and accepted['tag'] in {plan.get('previous_published_tag'), plan.get('planned_tag')}
@@ -320,12 +394,41 @@ def verify(root, policy, candidate=None):
               'physical_test_performed_by_verifier': False}
     if basis is not None:
         result['publication_basis'] = basis
+    if candidate is not None:
+        result['previous_published_checked'] = published is not None
     return result
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+def main(argv=None, fetch=fetch_published):
+    parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('--candidate')
-    args = parser.parse_args()
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument('--published-file', help='saved GitHub release list (or a JSON list of tags) instead of the API')
+    source.add_argument('--offline', action='store_true',
+                        help='skip the comparison of previous_published_tag with the published releases (explicit)')
+    parser.add_argument('--repository', default=os.environ.get('GITHUB_REPOSITORY') or DEFAULT_REPOSITORY)
+    args = parser.parse_args(argv)
+    if args.candidate is None and (args.published_file or args.offline):
+        parser.error('--published-file and --offline belong to --candidate')
     root = Path(__file__).resolve().parents[1]
-    print(json.dumps(verify(root, json.loads((root / POLICY).read_text()), args.candidate)))
+    published = None
+    if args.candidate is not None and not args.offline:
+        try:
+            if args.published_file:
+                published = json.loads(Path(args.published_file).read_text(encoding='utf-8'))
+                require(isinstance(published, list), 'The release catalog is not a list')
+            else:
+                published = fetch(args.repository, os.environ.get('GITHUB_TOKEN') or os.environ.get('GH_TOKEN'))
+        except (OSError, ValueError) as error:  # URLError, HTTPError, timeouts, bad JSON: fail closed
+            print(f'FAIL cannot read the published releases of {args.repository} ({type(error).__name__}: {error}); '
+                  'the previous release cannot be checked. Use --offline only when you mean to skip that check.',
+                  file=sys.stderr)
+            return 1
+    elif args.offline:
+        print('WARNING --offline: previous_published_tag is not compared with the published releases', file=sys.stderr)
+    print(json.dumps(verify(root, json.loads((root / POLICY).read_text()), args.candidate, published)))
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

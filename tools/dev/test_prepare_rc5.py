@@ -445,10 +445,13 @@ class PrepareTests(unittest.TestCase):
         self.assertIn('keep strings of the rc.4 records', self.run_prepare(check=False))
         self.assertEqual(self.snapshot(), before)
 
-    def test_a_missing_draft_is_refused_with_a_reason(self):
+    def test_a_missing_or_empty_draft_is_refused_with_a_reason(self):
         (self.root / prep.DEFAULT_E32_NOTES).unlink()
         before = self.snapshot()
         self.assertIn('does not exist (the docs package writes', self.run_prepare(check=False))
+        lf(self.root / prep.DEFAULT_E32_NOTES, '\n\n')
+        before = self.snapshot()
+        self.assertIn('RELEASE-1.0-RC5-NOTES-DRAFT.en.md is empty', self.run_prepare(check=False))
         self.assertEqual(self.snapshot(), before)
 
     def test_a_tree_that_is_not_at_rc4_or_is_prepared_already_is_refused(self):
@@ -657,10 +660,11 @@ class PrepareTests(unittest.TestCase):
             self.assertEqual(caught.exception.code, 2)
         statement = Path(self.temp.name) / 'statement.txt'
         lf(statement, 'Yes.\n')
-        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as caught:
-            prep.main([str(self.root), '--changes-file', str(self.changes), '--statement-file', str(statement),
-                       '--approved-at-utc', '10 Nov 09:30'])
-        self.assertEqual(caught.exception.code, 2)
+        for at in ('10 Nov 09:30', '2026-11-10T24:00:00Z', '2026-13-10T09:30:00Z'):
+            with self.subTest(at), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as caught:
+                prep.main([str(self.root), '--changes-file', str(self.changes), '--statement-file', str(statement),
+                           '--approved-at-utc', at])
+            self.assertEqual(caught.exception.code, 2)
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as caught:
             prep.main([str(self.root)])
         self.assertEqual(caught.exception.code, 2)

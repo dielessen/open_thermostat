@@ -1,12 +1,12 @@
 """Prepare E32 v1.0.0-e32v2-rc.5 / HA 1.0.0rc6 in a worktree: the content of the version commit (Checklist A, part 1).
 
-From prepare_rc4.py, with the same rules: every field of the planning records is set here (nothing is copied from the
-rc.4 files and patched), the user-visible notes come from draft files that are validated before anything is written,
-nothing about the owner's approval is ever invented, nothing is overwritten, and either everything is written or
-nothing. What is new since rc.4: the versioned frontend URLs are found, not listed (a sixth card needs no change here),
-the acceptance kit's install-config.json and the "nu ..." lines of its Dutch install steps follow the release pair,
-the planning record is refused when it has a field this script does not know, and no string of the rc.4 records may be
-left in the rc.5 records.
+From prepare_rc4.py, with the same rules: every release field of the planning records is set here (only the structure
+and the fixed safety flags are carried from the rc.4 record), the user-visible notes come from draft files that are
+validated before anything is written, nothing about the owner's approval is ever invented, nothing is overwritten,
+and either everything is written or nothing. What is new since rc.4: the versioned frontend URLs are found, not
+listed (a sixth card needs no change here), the acceptance kit's install-config.json and the "nu ..." lines of its
+Dutch install steps follow the release pair, the planning record is refused when it has a field this script neither
+sets nor carries, and no string of the rc.4 records may be left in the rc.5 records.
 
 Run it once, in the release worktree, on a clean tree that is still at E32 rc.4 / HA 1.0.0rc5 (the script refuses
 otherwise and writes nothing when any check fails). Never on a tree you want to keep as it is: --dry-run first.
@@ -173,6 +173,8 @@ def prepend_notes(tree, name, draft_name, tag, repository, allow_placeholders=Fa
     if not tree.exists(draft_name):
         raise Refusal(f'{draft_name} does not exist (the docs package writes the release notes drafts)')
     draft = tree.text(draft_name)
+    if not draft.strip():
+        raise Refusal(f'{draft_name} is empty')
     left = [number for number, line in enumerate(draft.splitlines(), 1) if any(mark in line for mark in PLACEHOLDERS)]
     if left and not allow_placeholders:
         raise Refusal(f'{draft_name} still has pending or TODO markers (line {left[0]}'
@@ -182,7 +184,7 @@ def prepend_notes(tree, name, draft_name, tag, repository, allow_placeholders=Fa
         tree.warnings.append(f'{draft_name}: {len(left)} placeholder line(s) remain (--allow-placeholders): a rehearsal '
                              'on a throwaway copy only, never the version commit')
     current = tree.text(name)
-    first = draft.splitlines()[0] if draft.strip() else ''
+    first = draft.splitlines()[0]
     if current.startswith(first):
         raise Refusal(f'{name} already starts with {first!r}: this tree is already prepared')
     combined = draft.rstrip('\n') + '\n\n' + current
@@ -474,8 +476,13 @@ def main(argv=None):
         parser.error('--date is YYYYMMDD')
     if bool(args.statement_file) != bool(args.approved_at_utc):
         parser.error('--statement-file and --approved-at-utc go together (the owner\'s words and the time of his answer)')
-    if args.approved_at_utc and not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', args.approved_at_utc):
-        parser.error('--approved-at-utc is a UTC time like 2026-11-10T09:30:00Z')
+    if args.approved_at_utc:
+        try:  # the shape, and a time that exists (the gate parses it, but only after the files were written)
+            if not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', args.approved_at_utc):
+                raise ValueError
+            datetime.strptime(args.approved_at_utc, '%Y-%m-%dT%H:%M:%SZ')
+        except ValueError:
+            parser.error('--approved-at-utc is a UTC time like 2026-11-10T09:30:00Z')
     if args.rebind:
         return rebind(args)
     if not args.changes_file:

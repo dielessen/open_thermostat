@@ -56,7 +56,7 @@ background:var(--hc-surface);color:var(--primary-text-color);border:1px solid va
 .tip-row b{font-weight:600;font-variant-numeric:tabular-nums}.tip-row span{color:var(--hc-muted)}
 .caption{margin:8px 0 0;color:var(--hc-muted);font-size:.9rem}.note{margin:6px 0 0;font-size:.9rem}
 details{margin:8px 0 0}summary{cursor:pointer;color:var(--primary-color);font-size:.9rem;padding:6px 0;min-height:24px}
-table{border-collapse:collapse;color:inherit;font-size:.875rem;font-variant-numeric:tabular-nums;margin-top:4px}th,td{padding:4px 12px 4px 0;text-align:right;vertical-align:bottom}td{white-space:nowrap}
+table{border-collapse:collapse;color:inherit;font-size:.875rem;font-variant-numeric:tabular-nums;margin-top:4px}th,td{padding:4px 12px 4px 0;text-align:right;vertical-align:bottom;overflow-wrap:normal}td{white-space:nowrap}
 th{font-weight:500;color:var(--hc-muted)}th:first-child,td:first-child{text-align:left}tr+tr td{border-top:1px solid var(--hc-grid)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}`;
 const KNOWLEDGE_STYLE = `${BASE}

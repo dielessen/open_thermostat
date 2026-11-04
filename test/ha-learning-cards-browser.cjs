@@ -22,6 +22,9 @@ const MISSING={en:['It still has to see how fast Slaapkamer warms up.','It still
  'Hij moet nog nagaan of Slaapkamer op tijd warm is.','Hij luistert nog hoe je ketel zijn temperatuur vasthoudt.'],
  pl:['Musi jeszcze zobaczyć, jak szybko nagrzewa się pomieszczenie Slaapkamer.','Musi jeszcze sprawdzić, czy pomieszczenie Slaapkamer jest ciepłe na czas.',
  'Wciąż wsłuchuje się, jak Twój kocioł utrzymuje swoją temperaturę.']};
+// The words of these cells that the layout broke over two lines.
+const splitWords=cells=>cells.flatMap(cell=>[...cell.childNodes].filter(n=>n.nodeType===3).flatMap(node=>[...node.textContent.matchAll(/\S+/g)].filter(m=>{
+ const r=document.createRange();r.setStart(node,m.index);r.setEnd(node,m.index+m[0].length);return new Set([...r.getClientRects()].map(x=>Math.round(x.top))).size>1;}).map(m=>m[0])));
 // Two crowded drawings: hard frost in the radiator house, and a cold day in a house that needs hot water (steep lines).
 const COLD={outdoor_c:-15},STEEP={design_flow_c:70,standard_slope:1.667,slope:1.9,room_c:22,minimum_flow_c:30,maximum_flow_c:80,outdoor_c:-5};
 const states=lang=>({'sensor.curve':curve(),'sensor.curve_standard':curve({slope_source:'design',slope:1.167}),'sensor.curve_off':curve({state:'advice'}),
@@ -104,9 +107,11 @@ const LINE={light:'rgb(0, 135, 111)',dark:'rgb(35, 156, 138)'},NOW={light:'rgb(1
   }
   // The table view: every 5 °C, both lines, within the plan's water temperature limits.
   await card('curve').locator('summary').click();
-  // Open, the table fits the card (a long header wraps), so the card keeps its width and the table stays open.
+  // Open, the table fits the card (a long header wraps, between words only), so the card keeps its width and the
+  // table stays open.
   assert.equal(await card('curve').evaluate(c=>{const d=c.shadowRoot.querySelector('details.values');
    return d.open&&d.scrollWidth<=d.clientWidth+1&&c.getBoundingClientRect().width<=c.parentElement.clientWidth+1;}),true,'the open table fits the card');
+  assert.deepEqual(await card('curve').locator('th').evaluateAll(splitWords),[]);
   const rows=await card('curve').locator('table tr').evaluateAll(r=>r.map(x=>[...x.children].map(c=>c.textContent)));
   assert.deepEqual(rows[0],[{en:'Outside',nl:'Buiten',pl:'Na zewnątrz'}[lang],...words.legend.slice(0,2)]);
   assert.deepEqual(rows.slice(1),TABLE.map(([o,s,l])=>[String(o).replace('-','−')+' °C',s+' °C',l+' °C']));

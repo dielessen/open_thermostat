@@ -70,10 +70,10 @@ New TEXT keys (EN / NL / PL):
 | key | EN | NL | PL |
 | --- | --- | --- | --- |
 | `today_week` | Today and this week | Vandaag en deze week | Dziś i w tym tygodniu |
-| `gas_heating_today` | Gas for heating today | Gas verwarmen vandaag | Gaz na ogrzewanie dziś |
-| `gas_hot_water_today` | Gas for hot water today | Gas warm water vandaag | Gaz na ciepłą wodę dziś |
-| `starts_today` | Burner starts today | Branderstarts vandaag | Starty palnika dziś |
-| `burner_today` | Burner time today | Brandertijd vandaag | Czas pracy palnika dziś |
+| `gas_heating_today` | Heating gas | Gas verwarmen | Gaz: ogrzewanie |
+| `gas_hot_water_today` | Hot water gas | Gas warm water | Gaz: ciepła woda |
+| `starts_today` | Burner starts | Branderstarts | Starty palnika |
+| `burner_today` | Burner time | Brandertijd | Praca palnika |
 | `boiler_values` | What the boiler reports | Wat de ketel meldt | Co zgłasza Twój kocioł |
 | `who_controls` | Who controls the boiler | Wie regelt de ketel | Kto steruje kotłem |
 | `yesterday_figures` | Yesterday in figures | Gisteren in cijfers | Wczoraj w liczbach |

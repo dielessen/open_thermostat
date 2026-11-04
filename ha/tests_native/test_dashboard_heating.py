@@ -454,6 +454,10 @@ def test_dashboard_text_has_the_same_keys_in_every_language():
     assert {"today_week", "gas_heating_today", "gas_hot_water_today", "starts_today", "burner_today", "boiler_values",
             "who_controls", "yesterday_figures", "dhw_target_short"} <= set(TEXT["en"])
     assert not {"gas_per_post", "control", "learning_how"} & set(TEXT["en"])
+    # rc.5, the Learning view as the owner's sketch: its new headings, and the insights' old title and the knowledge
+    # note (whose first sentence the knowledge card says itself) are gone.
+    assert {"your_boiler", "curve_title", "noticed", "noticed_note", "free_heat"} <= set(TEXT["en"])
+    assert not {"insights", "knowledge_note"} & set(TEXT["en"])
     # No "Heating page" any more: the gas per day is on the Boiler tab and the E32's Home page (named as the other
     # Home Assistant texts name it).
     assert [all(page in TEXT[language]["estimates_empty"] for page in pages) for language, pages in (
@@ -491,6 +495,22 @@ async def test_dutch_headings_and_only_existing_enabled_entities(hass):
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     assert config["views"][1]["sections"][0]["cards"][0]["heading"] == "Badkamer boven"
     assert config["views"][0]["sections"][0]["cards"][1]["name"] == "Badkamer boven"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("language,titles", [
+    ("en", ["Overview", "Rooms", "Boiler", "Learning and settings", "Diagnostics"]),
+    ("nl", ["Overzicht", "Ruimtes", "Ketel", "Leren en instellingen", "Diagnose"]),
+    ("pl", ["Przegląd", "Pomieszczenia", "Kocioł", "Uczenie i ustawienia", "Diagnostyka"])])
+async def test_the_view_tabs_show_their_titles(hass, language, titles):
+    """Home Assistant shows a view that has an icon as that icon alone in the tab bar: the first real render (demo
+    Home Assistant, P16) was a row of six icons. The approved sketches read "Overzicht · Ruimtes · Weekprogramma ·
+    Ketel · Leren · Diagnose": no view has an icon, so every tab shows its title; the paths stay."""
+    e, *_ = installation(hass, language, with_hub=False)
+    views = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"]
+    assert [v["title"] for v in views] == titles
+    assert [v["path"] for v in views] == ["heating", "rooms", "boiler", "learned", "diagnostics"]
+    assert [v for v in views if "icon" in v or "show_icon_and_title" in v] == []
 
 
 @pytest.mark.asyncio

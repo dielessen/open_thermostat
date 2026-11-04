@@ -70,7 +70,8 @@ public:
             const auto kind = diff > 0 ? up : down;
             if (!kind) return;
             const float pct = b.value > 0 ? std::fabs(diff) / b.value * 100 : 999;
-            found[n++] = {*kind, uint16_t(std::min(999.0f, std::floor(pct + 0.5f))), room};
+            // Rounded in double: the e32v2 link review approves libm's s_floor, not the float sf_floor.
+            found[n++] = {*kind, uint16_t(std::min(999.0, std::floor(double(pct) + 0.5))), room};
         };
         judge(0, y.gasPerDegreeDay, p_.gasFloor, Kind::gasPerDdUp, Kind::gasPerDdDown, -1);
         judge(1, y.startsPerHour, p_.startsFloor, Kind::startsUp, std::nullopt, -1);

@@ -358,6 +358,74 @@ async def test_new_room_entities_are_added_to_their_room_group(hass, caplog):
         await platform.async_reset()
 
 
+@pytest.mark.asyncio
+async def test_a_new_installation_never_reports_a_restored_room_group(hass, caplog, monkeypatch):
+    """The first E32 telemetry after Connect E32 (demo Home Assistant, P21): the rooms' entities make their groups
+    while the plan is not read yet. Home Assistant runs the entry's update listener inside each group's creation
+    (an eager task); its reconcile removed the group it saw made (no record, no device yet), the room's entities
+    went to an unknown group and the next group reported it deleted, restored it and reloaded the entry."""
+    from unittest.mock import AsyncMock
+    from homeassistant.helpers.entity_platform import EntityPlatform
+    import custom_components.open_thermostat as integration
+    from custom_components.open_thermostat import heating_link
+    hass.config.language = "en"
+    await ar.async_load(hass, load_empty=True)
+    parent = make_entry(hass)
+    hass.config_entries.async_update_entry(parent, data={**parent.data, PRODUCT_CONFIG: 1})
+    devices = dr.async_get(hass)
+    devices.async_get_or_create(config_entry_id=parent.entry_id, identifiers={(DOMAIN, "fixture")}, name="OpenThermostat")
+    hass.data.setdefault(DOMAIN, {})[parent.entry_id] = {}
+    install = ensure_installation_group(hass, parent)
+    groups = module.async_setup_room_groups(hass, parent, install)
+    hub = heating_link.HeatingHub("fixture")
+    hub.plan = SimpleNamespace(plan=None)  # Connect E32 just stored the link; the room plan is not read yet
+    groups.attach(hub)
+    # The end of the setup: the configuration as applied, then the entry's update listener.
+    module.remember_configuration(hass, parent)
+    parent.async_on_unload(parent.add_update_listener(integration._async_options_updated))
+    scheduled, reload = Mock(), AsyncMock()
+    monkeypatch.setattr(hass.config_entries, "async_schedule_reload", scheduled)
+    monkeypatch.setattr(hass.config_entries, "async_reload", reload)
+    platform = EntityPlatform(hass=hass, logger=logging.getLogger(__name__), domain="sensor",
+                              platform_name=DOMAIN, platform=None, scan_interval=timedelta(seconds=30),
+                              entity_namespace=None)
+    platform.config_entry = parent
+
+    def add(new, **options):
+        hass.async_create_task(platform.async_add_entities(new, **options))
+    stop = heating_link.track_entities(hub, add, {"config_subentry_id": install}, heating_link.wanted_sensors)
+    rooms = {"woonkamer": "Woonkamer", "badkamer": "Badkamer", "slaapkamer": "Slaapkamer"}
+    try:
+        hub.update({"schema": 1, "mode": "shadow", "request": {"heat": True, "flow_c": 42, "reason": "heating"},
+                    "ha_entities": [], "rooms": [{"id": room_id, "name": name, "status": "ok", "source": "climate.x",
+                                                  "temperature": 20.4, "setpoint": 21.0, "demand": False}
+                                                 for room_id, name in rooms.items()]})
+        await hass.async_block_till_done()
+        made = groups_of(parent)
+        assert {room_id: group.title for room_id, group in made.items()} == rooms
+        for room_id, group in made.items():
+            device = devices.async_get_device_by_identifier((DOMAIN, f"fixture_e32_room_{room_id}"), parent.entry_id)
+            assert device is not None and device.config_subentry_id == group.subentry_id, room_id
+        # Nothing was deleted: no "group restored" message, no reload, no entity without its group.
+        assert not [key for key in ir.async_get(hass).issues if key[1].startswith(module.RESTORED_ISSUE)]
+        scheduled.assert_not_called()
+        reload.assert_not_called()
+        assert "was deleted in Home Assistant" not in caplog.text and "unknown subentry" not in caplog.text
+        # Only our own changes are kept from the reconcile; the next message still reconciles: a room renamed on
+        # the E32 renames its group.
+        assert not groups._changing
+        hub.update({**hub.status, "rooms": [{**room, "name": "Logeerkamer"} if room["id"] == "slaapkamer" else room
+                                            for room in hub.status["rooms"]]})
+        await hass.async_block_till_done()
+        assert {room_id: group.title for room_id, group in groups_of(parent).items()} == {
+            **rooms, "slaapkamer": "Logeerkamer"}
+        scheduled.assert_not_called()
+        reload.assert_not_called()
+    finally:
+        stop()
+        await platform.async_reset()
+
+
 def test_add_grouped_without_groups_adds_as_before():
     calls = []
     entity = SimpleNamespace(_attr_device_info={"identifiers": {(DOMAIN, "fixture_e32_room_woonkamer")}})

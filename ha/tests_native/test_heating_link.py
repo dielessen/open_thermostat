@@ -1067,23 +1067,28 @@ async def test_publish_failure_logs_once(hass, monkeypatch, caplog):
             raise HomeAssistantError("MQTT is not connected")
         sent.append((topic, payload))
     monkeypatch.setattr(mqtt, "async_publish", publish)
+    from custom_components.open_thermostat.const import DOMAIN
+    hass.data[DOMAIN] = {"e": {"v1_connection": SimpleNamespace(client=object(), prefix="fixture/v1/")}}
+    link = module.heating_input_link(hass, SimpleNamespace(entry_id="e", data={"topic_prefix": "fixture"},
+                                                           async_on_unload=lambda _: None))
     loop = asyncio.get_running_loop()
     unretrieved = []
     previous = loop.get_exception_handler()
     loop.set_exception_handler(lambda loop, context: unretrieved.append(context))
     try:
         for _ in range(5):
-            module.publish_input(hass, "fixture/v1/ha/heating_input", '{"entity": "climate.woonkamer"}')
+            link.send('{"entity": "climate.woonkamer"}')
         await hass.async_block_till_done()
         down[0] = False
-        module.publish_input(hass, "fixture/v1/ha/heating_input", '{"entity": "climate.woonkamer"}')
+        link.send('{"entity": "climate.woonkamer"}')
         await hass.async_block_till_done()
     finally:
         loop.set_exception_handler(previous)
     warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
     assert len(warnings) == 1 and "could not send room values to the E32" in warnings[0].getMessage()
     assert "sends room values to the E32 again" in caplog.text
-    assert unretrieved == [] and len(sent) == 1
+    assert unretrieved == [] and sent == [("fixture/v1/ha/heating_input", '{"entity": "climate.woonkamer"}')]
+    assert link.failures == 5 and link.error == "MQTT is not connected" and link.sent_at is not None
     # A broker that does not answer at all: at most MAX_PENDING_PUBLISHES sends wait, newer ones are dropped.
     release = asyncio.Event()
 
@@ -1092,12 +1097,12 @@ async def test_publish_failure_logs_once(hass, monkeypatch, caplog):
         sent.append((topic, payload))
     monkeypatch.setattr(mqtt, "async_publish", hanging)
     for _ in range(module.MAX_PENDING_PUBLISHES + 20):
-        module.publish_input(hass, "fixture/v1/ha/heating_input", "{}")
+        link.send("{}")
     await asyncio.sleep(0)
-    assert hass.data[module._PUBLISH_STATE]["pending"] == module.MAX_PENDING_PUBLISHES
+    assert link.pending == module.MAX_PENDING_PUBLISHES and link.dropped == 20
     release.set()
     await hass.async_block_till_done()
-    assert len(sent) == 1 + module.MAX_PENDING_PUBLISHES and hass.data[module._PUBLISH_STATE]["pending"] == 0
+    assert len(sent) == 1 + module.MAX_PENDING_PUBLISHES and link.pending == 0
 
 
 def test_a_failing_listener_logs_once_a_minute(caplog):
@@ -1159,3 +1164,58 @@ def test_room_message_is_not_queued_twice():
     queued = [connection.queue.get_nowait() for _ in range(connection.queue.qsize())]
     assert [kind for kind, _ in queued] == ["message"] * (len(session) - 1) + ["boiler_message"]
     assert observed == session
+
+
+@pytest.mark.asyncio
+async def test_no_entity_is_added_while_the_entry_unloads(hass, caplog, monkeypatch):
+    """A reload during the first E32 telemetry (demo Home Assistant, P16/P21). Home Assistant removes the entry's
+    platforms before its MQTT subscriptions end; the flow report that arrived in between added the flow sensors to
+    the removed platform, where they stayed, and the next setup's flow sensors were refused ("does not generate
+    unique IDs"). The unload closes the hub first: nothing is added until the next setup."""
+    import logging
+    from datetime import timedelta
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers.entity_platform import EntityPlatform
+    import custom_components.open_thermostat as integration
+    from custom_components.open_thermostat import e32_flow, heating_link as module
+    from custom_components.open_thermostat.product import PRODUCT_CONFIG
+    from test_e32_flow import summary
+    from test_v1_native import entry as make_entry
+    config_entry = make_entry(hass)
+    hass.config_entries.async_update_entry(config_entry, data={**config_entry.data, PRODUCT_CONFIG: 1})
+    dr.async_get(hass).async_get_or_create(config_entry_id=config_entry.entry_id,
+                                           identifiers={("open_thermostat", "fixture")})
+
+    def setup():
+        hub = module.HeatingHub("fixture")
+        platform = EntityPlatform(hass=hass, logger=logging.getLogger(__name__), domain="sensor",
+                                  platform_name="open_thermostat", platform=None,
+                                  scan_interval=timedelta(seconds=30), entity_namespace=None)
+        platform.config_entry = config_entry
+
+        def add(new, **options):
+            hass.async_create_task(platform.async_add_entities(new, **options))
+        return hub, platform, module.track_entities(hub, add, {}, e32_flow.wanted_sensors)
+    hub, platform, stop = setup()
+    hass.data.setdefault("open_thermostat", {})[config_entry.entry_id] = {
+        "v1_runtime": SimpleNamespace(async_stop=AsyncMock()), "heating_hub": hub}
+
+    async def unload_platforms(entry, platforms):
+        await platform.async_reset()  # the sensor platform goes first ...
+        hub.update_summary(summary())  # ... then the E32's flow report arrives
+        await hass.async_block_till_done()
+        return True
+    monkeypatch.setattr(hass.config_entries, "async_unload_platforms", unload_platforms)
+    assert await integration.async_unload_entry(hass, config_entry)
+    stop()  # the entry's unload callbacks run after async_unload_entry
+    assert not platform.entities and hass.states.async_entity_ids("sensor") == []  # nothing outlived the platform
+    hub, platform, stop = setup()  # the next setup: the same sensors, once, without an error
+    try:
+        hub.update_summary(summary())
+        await hass.async_block_till_done()
+        assert {"fixture_flow_source", "fixture_flow_curve", "fixture_night_heating_gas"} <= {
+            entity.unique_id for entity in platform.entities.values()}
+        assert "does not generate unique IDs" not in caplog.text
+    finally:
+        stop()
+        await platform.async_reset()

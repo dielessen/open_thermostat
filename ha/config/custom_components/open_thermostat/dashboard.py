@@ -21,8 +21,8 @@ planner and, per room, the room status card (frontend/room-status-card.js):
   (today's gas and burner as figures, the one chart of the gas per day and the
   burner hours per day), Hot water (its temperature and target, today's taps and
   keeping warm, what the boiler did in the last 24 hours), the last 24 hours,
-  What the boiler reports (its values in groups) and the boiler settings.
-  Nothing about the boiler is on another view, except the thermostat on the bus;
+  What the boiler reports (its values in groups) and the boiler settings. The
+  thermostat on the bus and the raw boiler data are on Diagnostics;
 * Learning and settings: what the E32 knows (the knowledge tile, what it still
   learns, the boiler's response, yesterday compared with usual; E32 rc.5),
   yesterday in figures (the scoreboard and the daily summary, once), what the

@@ -138,6 +138,96 @@ class Criteria(unittest.TestCase):
         self.assertEqual(rr.install_guide([fixed])['result'], rr.PASS)
 
 
+class ReleaseWindow(unittest.TestCase):
+    """R5-09: the 14 days are about one release. An install inside the window, or days on an earlier or later
+    candidate, make a report about "rc.4" untrue."""
+    RELEASE, EARLIER = 'v1.0.0-e32v2-rc.4', 'v1.0.0-e32v2-rc.3'
+
+    def history(self, end, installed, restarts=()):
+        return {'uptime': uptime(T0 - D, end, restarts), 'offline': [], 'planned': [], 'output': [(T0, True)],
+                'trv': {'switch.slaapkamer_valve_control': [(T0, True)]}, 'installed': installed}
+
+    def repo(self):
+        return {'sessions': [full_session()], 'receipts': [ha_receipt()], 'installs': [install()]}
+
+    def test_the_whole_window_on_the_release_passes_in_the_final_stage(self):
+        end = T0 + 15 * D
+        installed = [(T0 - D, self.RELEASE), (T0 + 5 * D, self.RELEASE)]
+        overall, out = rr.evaluate(self.history(end, installed), end, self.repo(), release=self.RELEASE, stage='final')
+        self.assertEqual(out[rr.WINDOW]['result'], rr.PASS)
+        self.assertEqual(out[rr.WINDOW]['versions'], [self.RELEASE])
+        self.assertEqual(overall, rr.PASS, {k: v['why'] for k, v in out.items()})
+
+    def test_days_on_the_earlier_candidate_make_the_final_report_fail(self):
+        end = T0 + 15 * D
+        installed = [(T0 - D, self.EARLIER), (T0 + 3 * D, self.RELEASE)]  # installed after three days of the window
+        overall, out = rr.evaluate(self.history(end, installed, restarts=[T0 + 3 * D]), end, self.repo(),
+                                   release=self.RELEASE, stage='final')
+        self.assertEqual(out[rr.WINDOW]['result'], rr.FAIL)
+        self.assertIn('start it after the install', out[rr.WINDOW]['why'])
+        self.assertEqual(overall, rr.FAIL)
+        # The same days are fine for the candidate stage: that report is not the 14-day proof.
+        overall, out = rr.evaluate(self.history(end, installed, restarts=[T0 + 3 * D]), end, self.repo(),
+                                   release=self.RELEASE, stage='candidate')
+        self.assertNotEqual(overall, rr.FAIL)
+
+    def test_a_later_candidate_in_the_window_fails_too(self):
+        end = T0 + 15 * D
+        installed = [(T0 - D, self.RELEASE), (T0 + 10 * D, 'v1.0.0-e32v2-rc.5')]
+        _, out = rr.evaluate(self.history(end, installed), end, self.repo(), release=self.RELEASE, stage='final')
+        self.assertEqual(out[rr.WINDOW]['result'], rr.FAIL)
+        self.assertEqual(out[rr.WINDOW]['versions'], [self.RELEASE, 'v1.0.0-e32v2-rc.5'])
+
+    def test_another_release_only_or_no_history_cannot_be_tied_to_the_release(self):
+        end = T0 + 15 * D
+        _, out = rr.evaluate(self.history(end, [(T0, self.EARLIER)]), end, self.repo(), release=self.RELEASE, stage='final')
+        self.assertEqual(out[rr.WINDOW]['result'], rr.FAIL)
+        self.assertIn('never showed', out[rr.WINDOW]['why'])
+        overall, out = rr.evaluate(self.history(end, []), end, self.repo(), release=self.RELEASE, stage='final')
+        self.assertEqual(out[rr.WINDOW]['result'], rr.WAIT)
+        self.assertNotEqual(overall, rr.PASS)
+
+    def test_without_a_release_the_criterion_is_not_added(self):
+        end = T0 + 15 * D
+        _, out = rr.evaluate(self.history(end, []), end, self.repo())
+        self.assertNotIn(rr.WINDOW, out)
+
+    def test_the_report_carries_the_versions_the_gate_checks(self):
+        start = dt.datetime(2026, 11, 3, tzinfo=dt.timezone.utc)
+        end = start + dt.timedelta(days=15)
+        criteria = {c: {'result': rr.PASS} for c in rr.CRITERIA}
+        criteria[rr.WINDOW] = rr.release_window([(0, self.RELEASE)], self.RELEASE)
+        doc = rr.report(self.RELEASE, 'final', start, end, {}, rr.PASS, criteria)
+        self.assertEqual(doc['installed_versions'], [self.RELEASE])
+        self.assertIsNone(rr.report(self.RELEASE, 'final', start, end, {}, rr.PASS,
+                                    {c: {'result': rr.PASS} for c in rr.CRITERIA})['installed_versions'])
+
+    def test_the_history_of_the_update_entity_becomes_the_installed_versions(self):
+        class Entity:
+            def get(self, path):
+                return [{'entity_id': 'sensor.x_device_uptime'}, {'entity_id': 'update.e32_firmware'},
+                        {'entity_id': 'climate.x', 'attributes': {'boiler_output_enabled': True}}]
+
+            def history(self, ids, start, end, minimal):
+                rows = {'update.e32_firmware': [
+                    {'last_changed': '2026-11-01T10:00:00+00:00', 'attributes': {'installed_version': 'v1.0.0-e32v2-rc.3'}},
+                    {'last_changed': '2026-11-04T10:00:00+00:00', 'attributes': {'installed_version': self.release}},
+                    {'last_changed': '2026-11-05T10:00:00+00:00', 'attributes': {}}]}
+                return {i: rows.get(i, []) for i in ids}
+
+        entity = Entity()
+        entity.release = self.RELEASE
+
+        class Args:
+            uptime = output_entity = update_entity = None
+            trv_entity = []
+            trv_suffix = '_valve_control'
+        start = dt.datetime(2026, 11, 1, tzinfo=dt.timezone.utc)
+        _, history = rr.load_history(entity, Args(), start, start + dt.timedelta(days=15))
+        self.assertEqual([v for _, v in history['installed']], ['v1.0.0-e32v2-rc.3', self.RELEASE])
+        self.assertEqual(len(history['planned']), 1)
+
+
 class Repository(unittest.TestCase):
     def test_record_test_and_read_repo_round_trip(self):
         with tempfile.TemporaryDirectory() as temp:

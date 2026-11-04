@@ -5,7 +5,9 @@
 #include "FlowSettingsRc2.h"
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
+#include <limits>
 #include <memory>
+#include <tuple>
 
 namespace {
 using heating::control::FlowCompare;
@@ -309,6 +311,52 @@ TEST(FlowPolicy, OptionsOffLeaveTheRuleAndAdvise) {
     Json again(cJSON_CreateObject(), cJSON_Delete);
     ASSERT_TRUE(s.policy.addStatus(again.get(), false));
     EXPECT_STREQ(at(at(at(again.get(), "flow"), "curve"), "state")->valuestring, "no_outdoor");
+}
+
+// rc.5 (P2): the curve's slope in this order: CurveLearner's once it has its six steady periods, else
+// the house model's (HouseModel: heat loss over emitter output, within the curve's bounds), else the
+// design slope. "slope_source" says which.
+TEST(FlowPolicy, TheHouseSlopeComesBetweenTheLearnedCurveAndTheDesign) {
+    Step s;
+    FlowSettings on = Step::off(); on.weatherCurve = true;
+    s.policy.setSettings(on);
+    s.rooms[0] = room(2000, 2100);
+    s.in.outdoorCentiC = -1000;
+    const auto curve = [&] {
+        Json status(cJSON_CreateObject(), cJSON_Delete);
+        EXPECT_TRUE(s.policy.addStatus(status.get(), false));
+        const cJSON* c = at(at(status.get(), "flow"), "curve");
+        return std::make_tuple(std::string(at(c, "slope_source")->valuestring), at(c, "slope")->valuedouble, int(at(c, "flow_c")->valuedouble));
+    };
+    // The design: floor 0.67, 21 + 0.667 x 31 = 41.7 -> 42, + (40 - 30) / 2.
+    EXPECT_EQ(s.apply(heat40).flowC, 47);
+    EXPECT_EQ(curve(), std::make_tuple(std::string("design"), 0.67, 47));
+    s.in.houseSlope = 0.4f;                                        // 21 + 0.4 x 31 = 33.4 -> 34, + 5
+    EXPECT_EQ(s.apply(heat40).flowC, 39);
+    EXPECT_EQ(curve(), std::make_tuple(std::string("house"), 0.4, 39));
+    s.in.houseSlope = 9.0f;                                        // bounded to the curve's 2.5, the flow to the plan's 60
+    EXPECT_EQ(s.apply(heat40).flowC, 60);
+    EXPECT_EQ(std::get<1>(curve()), 2.5);
+    for (const float bad : {0.0f, -1.0f, std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity()}) {
+        s.in.houseSlope = bad;
+        EXPECT_EQ(s.apply(heat40).flowC, 47) << bad;
+        EXPECT_EQ(std::get<0>(curve()), "design") << bad;
+    }
+    // Six steady 3-hour periods at 50 degC with the burner on half the time, 15 K colder outside: the
+    // learned slope (20 + 0.5 x 30 = 35 against 20: 15 / 15 = 1.0) wins over the house model's.
+    s.in.houseSlope = 0.4f;
+    s.rooms[0] = room(2000, 2000);
+    s.in.outdoorCentiC = 500; s.in.flowCentiC = 5000; s.in.hotWater = false;
+    for (int i = 0; i < 7 * 1081; ++i) { s.in.burnerOn = (i / 30) % 2 == 0; s.apply(idle); }
+    const auto learned = s.policy.curveLearner().slope();
+    ASSERT_TRUE(learned);
+    EXPECT_NEAR(*learned, 1.0, 0.01);
+    s.rooms[0] = room(2000, 2100);
+    s.in.outdoorCentiC = -1000;
+    const int flow = (heating::control::WeatherCurve::baseCentiC(*learned, 2100, -1000) + 99) / 100 + 5; // 21 + 1.0 x 31 = 52, + 5
+    EXPECT_EQ(s.apply(heat40).flowC, flow);
+    EXPECT_EQ(std::get<0>(curve()), "learned");
+    EXPECT_EQ(std::get<2>(curve()), flow);
 }
 
 TEST(FlowPolicy, WeatherCurveSetsTheFlowWithinAllBounds) {

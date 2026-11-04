@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,8 @@ struct FakeBoiler {
     const char* s = "not_driving";
     size_t width = 0;
     const char* state() const { return s; }
+    std::optional<float> kwPerK;                          // rc.5: the emitter output per K counts as learned too
+    std::optional<float> kwPerFlowK() const { return kwPerK; }
     bool addJson(cJSON* parent) const {
         cJSON* o = cJSON_AddObjectToObject(parent, "boiler");
         const size_t fixed = std::string(R"("boiler":{"state":""})").size();

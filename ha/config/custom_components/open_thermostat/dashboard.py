@@ -161,7 +161,7 @@ ICONS = {"flow": "mdi:thermometer-chevron-up", "return": "mdi:thermometer-chevro
          "thermostat": "mdi:thermostat",
          # rc.5 (P18, the owner's sketch of the Overview): Today with its two lines, and the House card's rows.
          "today": "mdi:calendar-today", "warm_up": "mdi:clock-outline", "weather": "mdi:sun-thermometer",
-         "house_mode": "mdi:home-account", "holiday": "mdi:calendar-month-outline", "outdoor": "mdi:thermometer"}
+         "house_mode": "mdi:home-account", "holiday": "mdi:calendar-month-outline"}
 # What the boiler does now (hub boiler_activity, heating_link.BOILER_ACTIVITIES) as one tile of three: its icon
 # (ICONS), its theme colour and the activities it stands for; exactly one shows at a time.
 ACTIVITY_TILES = (("heating", "deep-orange", ["heating"]),
@@ -1322,22 +1322,32 @@ def _warm_up_line(t, name, start, state=None, warm=None, smart=None):
     on = " and not is_state(" + json.dumps(state) + ", 'inactive')" if state else ""
     off = "is_state(" + json.dumps(smart) + ", 'off')" if smart else "false"
     step = {"room": room, "time": _clock("w"), "target": _degrees(t, "g")}
-    line = ("{% set s = states(" + q + ") %}{% set b = as_datetime(s, none) if s not in ['unknown', 'unavailable'] else none %}"
+    # b: the planned start, w: the program step's time and g its temperature (local), d: days from today.
+    line = ("{% set s = states(" + q + ") %}"
+            "{% set b = as_datetime(s, none) if s not in ['unknown', 'unavailable'] else none %}"
             "{% if b is not none" + on + " %}{% set b = as_local(b) %}{% set at = state_attr(" + q + ", 'switch_at') %}"
             "{% set w = as_datetime(at, none) if at else none %}{% set w = as_local(w) if w is not none else none %}"
             "{% set g = state_attr(" + q + ", 'target_c') %}{% set d = (b.date() - now().date()).days %}"
             "<ha-icon icon=\"" + ICONS["warm_up"] + "\"></ha-icon> {% if w is not none and g is number %}"
-            "{% if " + off + " %}{% set d = (w.date() - now().date()).days %}{{ "
-            + _jinja_text(t["warm_up_off"], when=_when(t, "d", "w"), **step) + " }}"
-            "{% elif state_attr(" + q + ", 'start_now') == true or b <= now() %}{{ " + _jinja_text(t["warm_up_now"], **step) + " }}"
-            "{% else %}{{ " + _jinja_text(t["warm_up_at"], when=_when(t, "d", "b"), start=_clock("b"), **step) + " }}{% endif %}"
+            # Smart warm-up off: heating starts at the program time (the day of that time).
+            "{% if " + off + " %}{% set d = (w.date() - now().date()).days %}"
+            "{{ " + _jinja_text(t["warm_up_off"], when=_when(t, "d", "w"), **step) + " }}"
+            # The start has come (or the E32 says it started): warming up now.
+            "{% elif state_attr(" + q + ", 'start_now') == true or b <= now() %}"
+            "{{ " + _jinja_text(t["warm_up_now"], **step) + " }}"
+            "{% else %}{{ " + _jinja_text(t["warm_up_at"], when=_when(t, "d", "b"), start=_clock("b"), **step) + " }}"
+            "{% endif %}"
+            # An E32 before rc.2 names no program step: the start alone.
             "{% else %}{{ " + _jinja_text(t["warm_up_from"], when=_when(t, "d", "b"), room=room, start=_clock("b")) + " }}"
             "{% endif %}")
     if warm:  # yesterday's warm-up: minutes late, early or on time
-        line += ("{% set m = states(" + json.dumps(warm) + ") %}{% if is_number(m) %}{% set m = m | float | round(0) | int %} "
-                 "{% if m > 1 %}{{ " + _jinja_text(t["arrived_late"], m="m") + " }}{% elif m == 1 %}" + t["arrived_late_one"]
-                 + "{% elif m < -1 %}{{ " + _jinja_text(t["arrived_early"], m="-m") + " }}{% elif m == -1 %}"
-                 + t["arrived_early_one"] + "{% else %}" + t["arrived_on_time"] + "{% endif %}{% endif %}")
+        line += ("{% set m = states(" + json.dumps(warm) + ") %}"
+                 "{% if is_number(m) %}{% set m = m | float | round(0) | int %} "
+                 "{% if m > 1 %}{{ " + _jinja_text(t["arrived_late"], m="m") + " }}"
+                 "{% elif m == 1 %}" + t["arrived_late_one"]
+                 + "{% elif m < -1 %}{{ " + _jinja_text(t["arrived_early"], m="-m") + " }}"
+                 "{% elif m == -1 %}" + t["arrived_early_one"]
+                 + "{% else %}" + t["arrived_on_time"] + "{% endif %}{% endif %}")
     return line + "\n\n{% endif %}"
 
 
@@ -1352,16 +1362,18 @@ def _weather_line(t, curve):
     from .learned_overview import CURVE_STEPS
     q, steps = json.dumps(curve), str(CURVE_STEPS)
     outside = _jinja_text(t["weather_outside"], outdoor="o | round(0) | int")
-    main = ("(" + _jinja_text(t["weather_off"], flow="f") + ") if advice else (" + _jinja_text(t["weather_asks"], flow="f")
-            + ")")
+    main = ("(" + _jinja_text(t["weather_off"], flow="f") + ") if advice else ("
+            + _jinja_text(t["weather_asks"], flow="f") + ")")
     lines = json.dumps({"design": t["line_standard"], "house": t["line_house"], "learned": t["line_learned"]},
                        ensure_ascii=False)
-    follows = ("(" + _jinja_text(t["line_follows_n"], m=steps, n="[n, " + steps + "] | min") + ") if n is number and n > 0 "
-               "else (" + _jinja_text(t["line_follows"], m=steps) + ")")
+    follows = ("(" + _jinja_text(t["line_follows_n"], m=steps, n="[n, " + steps + "] | min") + ")"
+               " if n is number and n > 0 else (" + _jinja_text(t["line_follows"], m=steps) + ")")
     return ("{% set f = state_attr(" + q + ", 'flow_c') %}{% if f is number %}{% set f = f | round(0) | int %}"
             "{% set o = state_attr(" + q + ", 'outdoor_c') %}{% set n = state_attr(" + q + ", 'windows') %}"
-            "{% set src = state_attr(" + q + ", 'slope_source') %}{% set advice = state_attr(" + q + ", 'state') == 'advice' %}"
+            "{% set src = state_attr(" + q + ", 'slope_source') %}"
+            "{% set advice = state_attr(" + q + ", 'state') == 'advice' %}"
             "{% set main = " + main + " %}<ha-icon icon=\"" + ICONS["weather"] + "\"></ha-icon> "
+            # Without an outdoor temperature the sentence starts with what it asks, from a capital.
             "{% if o is number %}{{ " + outside + " }}: {{ main }}{% else %}{{ main[:1] | upper }}{{ main[1:] }}{% endif %}"
             "{% if not advice and src in " + json.dumps(["design", "house", "learned"]) + " %}, {{ " + lines + "[src] }}"
             "{% if src != 'learned' %} ({{ " + follows + " }}){% endif %}{% endif %}.{% endif %}")

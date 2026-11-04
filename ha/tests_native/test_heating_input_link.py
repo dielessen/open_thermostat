@@ -217,6 +217,9 @@ async def test_a_broker_that_never_answers_frees_its_places_and_a_reload_starts_
     assert fresh is not link and published[-1] == (TOPIC, '{"value": 51}') and len(published) == 2
 
 
+WALL = dt_util.parse_datetime("2026-11-04T17:00:30+00:00")  # the wall clock at now == 1000 (mid-minute)
+
+
 def _watch(hass, monkeypatch, now, **link_options):
     from homeassistant.components import mqtt
     clock = lambda: now[0]  # noqa: E731
@@ -231,8 +234,9 @@ def _watch(hass, monkeypatch, now, **link_options):
     monkeypatch.setattr(mqtt, "async_publish", publish)
     link = heating_link.HeatingInputLink(hass, entry, hub, clock=clock)
     resent = []
-    watch = hub.input_watch = heating_link.HeatingInputWatch(hass, entry, hub, link, lambda: resent.append(now[0]),
-                                                             clock=clock)
+    watch = hub.input_watch = heating_link.HeatingInputWatch(
+        hass, entry, hub, link, lambda: resent.append(now[0]), clock=clock,
+        wall=lambda: WALL + timedelta(seconds=now[0] - 1000))
     return hub, link, watch, resent, published
 
 
@@ -254,7 +258,15 @@ async def test_the_e32_not_accepting_raises_a_repair_and_sends_everything_again(
     link.send("{}")
     await hass.async_block_till_done()
     watch.check()
-    assert watch.attributes()["state"] == "ok" and watch.attributes()["e32_input_age_s"] == 3
+    assert watch.attributes()["state"] == "ok" and watch.diagnostics()["e32_input_age_s"] == 3
+    # The attribute names moments to the minute: a newer E32 message about the same acceptance changes nothing.
+    first = watch.attributes()
+    assert first["e32_last_input"] == "2026-11-04T17:00:00+00:00" and first["last_sent"].endswith(":00+00:00")
+    now[0] += 4
+    _e32(hub, 7)
+    assert watch.attributes() == first
+    now[0] -= 4
+    _e32(hub, 3)
     issue_id = "heating_input_lost_e"
     for minute in range(1, 31):  # the E32 accepts nothing more; Home Assistant sends every five minutes
         now[0] = 1000.0 + 60 * minute
@@ -271,10 +283,11 @@ async def test_the_e32_not_accepting_raises_a_repair_and_sends_everything_again(
     assert issue.translation_key == "heating_input_lost" and issue.translation_placeholders["minutes"] == "30"
     assert issue.translation_placeholders["error"] == "-" and issue.translation_placeholders["last_sent"] != "-"
     attributes = watch.attributes()
-    assert attributes["state"] == "not_received" and attributes["e32_input_age_s"] == 1803
+    assert attributes["state"] == "not_received" and attributes["e32_last_input"] == "2026-11-04T17:00:00+00:00"
     assert attributes["last_sent"] is not None and attributes["last_error"] is None
     diagnostics = watch.diagnostics()
     assert diagnostics["state"] == "not_received" and diagnostics["not_received_for_s"] == 900
+    assert diagnostics["e32_input_age_s"] == 1803
     assert diagnostics["e32_ha"] == {"input_age_s": 1803, "broker_connected": True}
     # The E32 accepts again: the repair goes, the state is ok.
     now[0] += 30
@@ -359,11 +372,12 @@ async def test_the_heat_request_sensor_and_the_diagnostics_show_the_route(hass, 
     sensor = next(e for e in added if isinstance(e, heating_link.HeatRequestSensor))
     assert "ha_input" in sensor._unrecorded_attributes
     attributes = sensor.extra_state_attributes["ha_input"]
-    assert attributes["state"] == "ok" and attributes["e32_input_age_s"] == 3 and attributes["last_sent"] is not None
+    assert attributes["state"] == "ok" and attributes["e32_last_input"] is not None and attributes["last_sent"] is not None
     assert attributes["last_error"] is None and attributes["dropped"] == 0 and attributes["e32_last_rejected"] is None
     link.e32.status({**STATUS, "ha": {"input_age_s": 40, "broker_connected": True,
                                       "last_rejected": {"reason": "invalid_json", "age_s": 12}}})
-    assert sensor.extra_state_attributes["ha_input"]["e32_last_rejected"] == {"reason": "invalid_json", "age_s": 12}
+    rejected = sensor.extra_state_attributes["ha_input"]["e32_last_rejected"]
+    assert rejected["reason"] == "invalid_json" and rejected["at"].endswith(":00+00:00")
     block = support_diagnostics.inputs(hass, link.entry, link.hub)["heating_input"]
     assert block["state"] == "ok" and block["pending"] == 0 and block["last_sent"] is not None
     assert block["e32_ha"]["last_rejected"]["reason"] == "invalid_json"

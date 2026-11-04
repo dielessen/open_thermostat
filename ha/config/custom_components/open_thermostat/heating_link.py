@@ -829,6 +829,11 @@ def _iso_time(moment):
     return moment.isoformat() if moment is not None else None
 
 
+def _iso_minute(moment):
+    """To the minute: an attribute that changes when something happens, not with every E32 message."""
+    return moment.replace(second=0, microsecond=0).isoformat() if moment is not None else None
+
+
 class HeatingInputLink:
     """The route of one entry's room, energy and comfort values to the E32: ``<base>ha/heating_input``.
 
@@ -977,6 +982,11 @@ def e32_input_age(hub, now):
         beat, at = hub.heartbeat, hub.heartbeat_received
         uptime = beat.get("uptime_s") if type(beat) is dict else None
         return uptime + max(0.0, now - at) if type(uptime) is int and at is not None else None
+    return _e32_age(hub, age, now)
+
+
+def _e32_age(hub, age, now):
+    """An age from the E32's heating status (seconds when it was sent) as of now, or None when it is no age."""
     if type(age) not in (int, float) or not math.isfinite(age) or age < 0:
         return None
     at = hub.heating_received if hub.heating_received is not None else hub.received
@@ -995,8 +1005,9 @@ class HeatingInputWatch:
     INPUT_LOST_S of the start: the E32 may still report an age from before Home Assistant (re)started.
     """
 
-    def __init__(self, hass, entry, hub, link, resend, clock=time.monotonic):
+    def __init__(self, hass, entry, hub, link, resend, clock=time.monotonic, wall=None):
         self.hass, self.entry, self.hub, self.link, self.resend, self.clock = hass, entry, hub, link, resend, clock
+        self.wall = wall if wall is not None else dt_util.utcnow
         self.started = clock()
         self.lost_since = None  # monotonic: when the check found the values not arriving
         self._resent = None
@@ -1072,14 +1083,19 @@ class HeatingInputWatch:
         self._issue(None)
 
     def attributes(self):
-        """The ``ha_input`` attribute: does the E32 get Home Assistant's values, the last send and error."""
-        age = e32_input_age(self.hub, self.clock())
+        """The ``ha_input`` attribute: does the E32 get Home Assistant's values, when it last took one (and refused
+        one, and why), the last send and error. Times to the minute (the diagnostics have the exact ages)."""
+        now, wall = self.clock(), self.wall()
+        age = e32_input_age(self.hub, now)
         ha = self.hub.status.get("ha") if self.hub.fresh else None
         rejected = ha.get("last_rejected") if type(ha) is dict else None
-        return {"state": self.state(age), "e32_input_age_s": int(age) if age is not None else None,
-                "e32_last_rejected": rejected if type(rejected) is dict else None,
-                "last_sent": _iso_time(self.link.sent_at), "last_error": self.link.error,
-                "last_error_at": _iso_time(self.link.error_at), "dropped": self.link.dropped}
+        refused = _e32_age(self.hub, rejected.get("age_s"), now) if type(rejected) is dict else None
+        return {"state": self.state(age),
+                "e32_last_input": _iso_minute(wall - timedelta(seconds=age)) if age is not None else None,
+                "e32_last_rejected": {"reason": rejected.get("reason"), "at": _iso_minute(wall - timedelta(seconds=refused))}
+                if refused is not None and type(rejected.get("reason")) is str else None,
+                "last_sent": _iso_minute(self.link.sent_at), "last_error": self.link.error,
+                "last_error_at": _iso_minute(self.link.error_at), "dropped": self.link.dropped}
 
     def diagnostics(self):
         now = self.clock()

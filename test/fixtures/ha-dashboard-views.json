@@ -12,7 +12,7 @@
        {
         "heading": "House",
         "heading_style": "title",
-        "icon": "mdi:home-account",
+        "icon": "mdi:home-thermometer",
         "type": "heading"
        },
        {
@@ -1690,7 +1690,7 @@
        {
         "heading": "Huis",
         "heading_style": "title",
-        "icon": "mdi:home-account",
+        "icon": "mdi:home-thermometer",
         "type": "heading"
        },
        {

@@ -1613,7 +1613,7 @@ class RoomDashboard:
                 + json.dumps(problem) + ", 'reasons') or [] %}- {{ reason }}\n{% endfor %}\n\n</details>")}
             if problem else None)
         house = _section(
-            _heading(t["house"], "mdi:home-account"),
+            _heading(t["house"], "mdi:home-thermometer"),  # the icon of "house" (dashboard-spec §1, ICONS in rc.5)
             house_card,
             # Named: without a name the tile showed the device name, cut short on a phone.
             _wide(_tile(house_mode, t["house_mode"], "mdi:home-account", features=[{"type": "select-options"}],

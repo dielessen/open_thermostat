@@ -89,7 +89,7 @@ async def test_the_house_card_heads_the_overview_and_reads_every_entity_it_needs
     cards = section(config, 0)
     # Phone order: the house card, the house mode (with its options) and the holiday line; nothing else in House.
     assert [card["type"] for card in cards] == ["heading", HOUSE_CARD_TYPE, "tile", "markdown"]
-    assert cards[0]["heading"] == "House"
+    assert cards[0] == {"type": "heading", "heading": "House", "heading_style": "title", "icon": "mdi:home-thermometer"}
     assert cards[1] == {
         "type": HOUSE_CARD_TYPE, "grid_options": {"columns": 12}, "request": hub["heat_request"],
         "activity": hub["boiler_activity"], "heating": fields["heating_active"],

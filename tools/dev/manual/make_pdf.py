@@ -333,11 +333,13 @@ def content():
          p("Het dashboard", "h2"),
          p("Open in de zijbalk het dashboard <b>OpenThermostat</b>. Het heeft zes tabbladen:"),
          table([["Tabblad", "Wat je ziet"],
-                [ui("Overzicht"), "Het huis (met de huismodus), een eventueel probleem met de reden, en een kaart per ruimte."],
+                [ui("Overzicht"), "Het huis (met de huismodus en de volgende vakantie), een eventueel probleem met de reden, en een kaart per ruimte "
+                 "die in één regel zegt waarom ze verwarmt of niet."],
                 [ui("Ruimtes"), "Per ruimte de thermostaat, de dag, de sensoren, ramen en personen, en wat de E32 leerde."],
                 [ui("Weekprogramma"), "De weekplanner voor alle ruimtes."],
                 [ui("Ketel"), "Alles over de ketel op één plek."],
-                [ui("Leren en instellingen"), "Wat de E32 leerde, Slim opwarmen, de weerafhankelijke regeling en de controle voor de overname."],
+                [ui("Leren en instellingen"), "Wat de E32 leerde, " + ui("Gisteren") + " in cijfers, Slim opwarmen, de weerafhankelijke regeling "
+                 "en de controle voor de overname."],
                 [ui("Diagnose"), "Voor het zoeken naar fouten."]],
                [48 * mm, W - 48 * mm])]),
          Spacer(1, 4),
@@ -351,9 +353,9 @@ def content():
          p("<b>Configureren</b> → " + ui("Huis", "Aanwezigheid en afwezigheidstemperatuur") + ": " + ui("Wie hier woont")
            + ", " + ui("Afwezig na") + " en " + ui("Temperatuur als niemand thuis is") + ". Is iedereen weg, "
            "dan gaan alle kamers naar die temperatuur."),
-         p("De huismodus (" + named("Automatisch", "Thuis", "Afwezig", "Vakantie") + ") en het einde van een vakantie stel je in onder "
-           "<b>Configureren</b> → " + ui("Huis", "Huismodus en vakantie") + " (" + ui("Huismodus") + " en " + ui("Vakantie eindigt")
-           + "). De huismodus staat ook op het dashboard en op het apparaat."),
+         p("De huismodus (" + named("Automatisch", "Thuis", "Afwezig", "Vakantie") + ") stel je in onder <b>Configureren</b> → "
+           + ui("Huis", "Huismodus en vakantie", "Huismodus") + " (voor een vakantie die nu begint kies je ook " + ui("Vakantie eindigt")
+           + "). De huismodus staat ook op het dashboard en op het apparaat. Vakanties vooruit plannen staat in hoofdstuk 10."),
          p("<b>Waterlimieten</b>: onder <b>Configureren</b> → " + ui("Verwarming en ketel", "Grenzen van de watertemperatuur")
            + ". Standaard 30–60 °C. Vloerverwarming zonder mengklep meestal hooguit 45–50 °C.", "small"),
          ])
@@ -385,20 +387,45 @@ def content():
 
     # ---- 10 and 11 After -------------------------------------------------------------------------------
     add([p("10. Na de ingebruikname", "h1"),
+         p("De thermostaat draait nu zelf. Dit is goed om te weten:"),
          table([["Onderwerp", "Wat je moet weten"],
-                ["Zelf leren", "De E32 leert hoe snel elke kamer opwarmt, met welke laagste watertemperatuur, en een stooklijn voor jouw huis. "
-                 "<b>Slim opwarmen</b> en de <b>stooklijn</b> staan standaard aan; tot hij genoeg weet gebruikt hij veilige standaardwaarden. "
+                ["Zelf leren", "De E32 leert hoe snel elke kamer opwarmt, met welke laagste watertemperatuur, en een weerafhankelijke regeling "
+                 "voor jouw huis. <b>Slim opwarmen</b> en de <b>weerafhankelijke regeling</b> staan standaard aan. "
                  "Wat hij leerde, zie je op het dashboardtabblad " + ui("Leren en instellingen") + " en op de E32 onder "
-                 "<b>Huis → What the thermostat has learned</b>. Aanpassen kan onder <b>Configureren</b> → "
+                 "<b>Huis → Wat de thermostaat heeft geleerd</b>. Aanpassen kan onder <b>Configureren</b> → "
                  + ui("Verwarming en ketel") + " (" + named("Slim opwarmen", "Weerafhankelijke regeling") + ")."],
+                ["Slim opwarmen vanaf dag één", "Een tijd in het weekprogramma betekent: <i>op die tijd warm</i>. Slim opwarmen begint vanaf de eerste "
+                 "ochtend op tijd met verwarmen, eerst met een <b>schatting</b> (vloerverwarming 2 uur per graad, radiatoren 45 minuten per graad; "
+                 "hooguit 3 uur of 90 minuten vooruit). Je leest het aan \"begint om 07:40 (schatting; hij leert van elke ochtend)\". "
+                 "Elke ochtend kijkt de E32 of de ruimte op tijd warm was. Meer dan 10 minuten te laat: de volgende start is 10 % eerder. "
+                 "Meer dan 15 minuten te vroeg: 8 % later. Je ziet de uitkomst, bijvoorbeeld \"Gisteren warm om 09:12 (12 min te laat); "
+                 "morgen 10 % eerder.\" De eerste ochtenden kan een ruimte dus iets te vroeg of te laat warm zijn."],
+                ["Gisteren in cijfers", "Zodra de E32 een dag heeft gemeten, toont <b>Gisteren</b> hoe die dag ging: stooktijd, branderstarts per "
+                 "stookuur, korte brandtijden, gas voor verwarmen (schatting), graaddagen en per ruimte hoeveel minuten te laat of te vroeg "
+                 "ze warm was en hoeveel graden te warm. Home Assistant: dashboardtabblad " + ui("Leren en instellingen") + ", blok "
+                 + ui("Gisteren") + ". E32: <b>Huis → Wat de thermostaat heeft geleerd</b>, blok <b>Gisteren</b>."],
+                ["Waarom verwarmt een ruimte?", "Op de E32-pagina <b>Overzicht</b> zegt elke ruimte in één regel waarom ze verwarmt of niet, "
+                 "in dezelfde woorden als Home Assistant, bijvoorbeeld \"Warm genoeg: 21 °C (gewenst 21 °C)\", \"Gepauzeerd: er staat een raam "
+                 "of deur open\" of \"Slim opwarmen: nu al verwarmen voor 08:00 (21 °C)\". Dat werkt ook zonder Home Assistant."],
+                ["Vakantie plannen", "Plan vakanties vooruit (hooguit 8), elk met een begin en een einde (weer thuis). Een vakantie begint en "
+                 "eindigt vanzelf: ondertussen wordt elke ruimte hooguit zo warm als de <b>vakantietemperatuur</b> (de vorstbeveiliging blijft aan), "
+                 "het huis is op tijd weer warm als je terugkomt, en daarna staat de huismodus weer zoals ervoor. Home Assistant: <b>Configureren</b> → "
+                 + ui("Huis", "Huismodus en vakantie") + ", daar " + ui("Vakantie plannen") + " (kies " + ui("Begint") + " en "
+                 + ui("Eindigt (weer thuis)") + "; het einde ligt hooguit een jaar vooruit) en " + ui("Temperatuur op vakantie")
+                 + " (5–25 °C; tot je die instelt is het de afwezigheidstemperatuur). Wijzigen of verwijderen kan met "
+                 + ui("Vakantie wijzigen of verwijderen") + "; een lopende vakantie stop je met " + ui("Vakantie stoppen")
+                 + " onder <b>Configureren</b> → " + ui("Huis") + ". Op de E32: pagina <b>Huis</b>, blok <b>Vakanties</b> "
+                 "(<b>Vakantie toevoegen</b> met <b>Van</b> en <b>Tot</b>, <b>Vakantie opslaan</b>, <b>Temperatuur op vakantie (°C)</b>). "
+                 "Beide plekken wijzigen dezelfde lijst. Een vakantie heeft de klok van de E32 nodig."],
                 ["Zelfafstelling", "Branderrust, brandtijd en marges stelt hij zelf af, met hooguit één kleine stap per dag. "
-                 "Na een update of herstart wacht hij eerst 24 uur."],
-                ["Updates", "Eerst de integratie (HACS) en Home Assistant herstarten, dan de firmware via de entiteit " + ui("Firmware")
-                 + " (<b>Instellingen → Updates</b>). Doe dit als er iemand thuis is."],
+                 "Na een herstart wacht hij eerst 2 uur, na de eerste start of een wijziging die de regeling raakt 24 uur."],
+                ["Updates", f"Eerst de integratie ({HA_VERSION}) in HACS (met <b>Pre-release</b> aan) en Home Assistant herstarten, dan de firmware via de "
+                 "entiteit " + ui("Firmware") + " (<b>Instellingen → Updates</b>). Doe dit als er iemand thuis is."],
                 ["Na elke firmware-update", "<b>Bevestig de overname opnieuw</b>: Reparatie " + ui("Bevestig opnieuw dat de E32 de ketel mag regelen")
                  + " (<b>Instellingen → Systeem → Reparaties</b>), of Ruimtes op de E32. Tot dan houdt de E32 alleen vorstbeveiliging aan."],
-                ["Back-up", "Home Assistant maakt dagelijks een back-up van de E32-instellingen, inclusief wat hij geleerd heeft (7 dagen bewaard). "
-                 "Zelf maken kan op <b>Systeem → Backup and restore</b>."],
+                ["Back-up", "Home Assistant maakt dagelijks een back-up van de E32-instellingen, inclusief geplande vakanties en wat hij geleerd heeft "
+                 "(7 dagen bewaard). Zelf maken kan op <b>Systeem → Backup and restore</b>."],
+                ["Afmelden", "Onderaan het menu <b>Systeem</b> staat <b>Afmelden</b>, zodra je bent aangemeld. Daarmee sluit je je sessie op de E32."],
                 ["Problemen zien", "Het tabblad " + ui("Overzicht") + " toont " + ui("Verwarming") + " met de reden eronder; elk probleem staat ook onder "
                  "<b>Instellingen → Systeem → Reparaties</b>. Een blauwdruk stuurt desgewenst een melding naar je telefoon."]],
                [42 * mm, W - 42 * mm]),

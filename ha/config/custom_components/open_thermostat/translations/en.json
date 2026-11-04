@@ -1636,7 +1636,16 @@
               "legend_heating": "Heating",
               "legend_hot_water": "Hot water",
               "legend_keep_warm": "Keeping warm",
-              "waiting": "The E32 has not reported yet."
+              "waiting": "The E32 has not reported yet.",
+              "now": "now",
+              "warm": "{room} was warm",
+              "early": "{m} min early",
+              "late": "{m} min late",
+              "on_time": "on time",
+              "degree_days": "Degree-days",
+              "target": "target {t} °C",
+              "per_day": "{n} days: {value} a day",
+              "today_since": "Today since midnight"
             }
           }
         }

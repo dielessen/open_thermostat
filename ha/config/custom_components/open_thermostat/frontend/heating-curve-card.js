@@ -11,10 +11,11 @@
    the standard line dashed, the learned one solid with the gain between them as a soft band, "Now" on the line
    (with what the E32 asks when the room correction adds to it) and the hard-frost point (−10 °C). A crosshair
    reads any outdoor temperature (pointer, touch or arrow keys); the values are also a table. Plain inline SVG;
-   marks 2 px, markers with a ring in the card colour.
+   marks 2 px, markers with a ring in the card colour. `show_name: false` leaves the card's own title out where a
+   heading above it says it (the Learning view).
 
-   openthermostat-knowledge — what the E32 knows: a ring with the percentage and, below it, what it still
-   learns in words (the Knowledge sensor, insight.py).
+   openthermostat-knowledge — what the E32 knows: a ring with the percentage beside the headline "The E32 knows
+   your house: 70 %" and, below them, what it still learns in words (the Knowledge sensor, insight.py).
 
    The words are the integration's translations (strings.json entity.sensor.flow_curve.state_attributes.chart
    and entity.sensor.knowledge.state_attributes.card), so every viewer reads them in their own Home Assistant
@@ -319,7 +320,8 @@ class OpenThermostatHeatingCurve extends OpenThermostatCard {
   if (!hass || !config) return;
   const t = (key, values) => this.text('flow_curve.state_attributes.chart.state.', CURVE_TEXT, key, values), n = (v, d) => this.number(v, d);
   const card = this.frame(CURVE_STYLE), st = hass.states?.[config.entity];
-  card.append(make('h2', {}, config.name || t('title')));
+  // show_name: false where a heading above the card already says it (the Learning view's own section, rc.5).
+  if (config.show_name !== false) card.append(make('h2', {}, config.name || t('title')));
   if (this.missing(card, config, st)) return;
   // Everything in °C from the attributes, never from the state (Home Assistant converts that on an imperial system).
   const a = st.attributes || {}, slope = numeric(a.slope), usable = slope !== null && slope > 0;
@@ -362,11 +364,13 @@ class OpenThermostatKnowledge extends OpenThermostatCard {
   const t = (key, values) => this.text('knowledge.state_attributes.card.state.', KNOWLEDGE_TEXT, key, values);
   const card = this.frame(KNOWLEDGE_STYLE), st = hass.states?.[config.entity];
   if (this.missing(card, config, st)) return;
-  const pct = numeric(st.state), a = st.attributes || {};
+  const pct = numeric(st.state), a = st.attributes || {}, share = pct === null ? null : Math.min(100, Math.max(0, pct));
   const head = make('div', {class: 'head'}), words = make('div');
-  words.append(make('h2', {}, config.name || t('title')), make('p', {class: 'muted'}, pct === null ? t('waiting') : t('hint')));
+  // The headline beside the ring says the figure ("The E32 knows your house: 62 %", the owner's sketch, rc.5).
+  words.append(make('h2', {}, config.name || (share === null ? t('title') : t('ring', {pct: this.number(share)}))),
+   make('p', {class: 'muted'}, pct === null ? t('waiting') : t('hint')));
   if (pct !== null) {
-   const share = Math.min(100, Math.max(0, pct)), r = 30, length = 2 * Math.PI * r;
+   const r = 30, length = 2 * Math.PI * r;
    const ring = make('svg:svg', {class: 'ring', viewBox: '0 0 72 72', role: 'img', 'aria-label': t('ring', {pct: this.number(share)})});
    ring.append(make('svg:circle', {class: 'track', cx: 36, cy: 36, r, fill: 'none', 'stroke-width': 7}));
    if (share > 0) ring.append(make('svg:circle', {class: 'fill', cx: 36, cy: 36, r, fill: 'none', 'stroke-width': 7, 'stroke-linecap': 'round',

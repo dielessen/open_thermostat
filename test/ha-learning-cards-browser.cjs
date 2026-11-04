@@ -1,7 +1,8 @@
 // The Learning view's two cards (E32 rc.5, frontend/heating-curve-card.js) with the integration's real translations and
 // a fixture hass; no HA or device. The heating curve: the standard line dashed, the learned one solid with the gain
 // between them, "Now" and the hard-frost point labelled, a crosshair by pointer and keyboard, the values as a table, one
-// line of plain language; what the E32 knows: a ring with the percentage and what it still learns. English, Dutch and
+// line of plain language, its title left out under a heading that says it; what the E32 knows: a ring beside the
+// headline with the percentage, and what it still learns. English, Dutch and
 // Polish; light and dark (each mode its own validated colours); desktop, phone and a narrow phone. Screenshots go to the
 // evidence directory for the visual check.
 const {chromium}=require('playwright-core');
@@ -91,11 +92,18 @@ const LINE={light:'rgb(0, 135, 111)',dark:'rgb(35, 156, 138)'},NOW={light:'rgb(1
     const card=document.createElement('openthermostat-'+type);card.dataset.id=id.split('.')[1];card.setConfig({entity:id});
     document.querySelector('main').append(card);card.hass=hass;
    }
+   // Under the Learning view's own heading "Water temperature by outdoor temperature" (rc.5): no title of its own.
+   const untitled=document.createElement('openthermostat-heating-curve');untitled.dataset.id='curve_untitled';
+   untitled.setConfig({entity:'sensor.curve',show_name:false});document.querySelector('main').append(untitled);untitled.hass=hass;
   },{states:states(lang),lang,dict:resources(lang),dark:theme==='dark'});
   const card=id=>page.locator(`[data-id="${id}"]`),svg=card('curve').locator('svg[role=img]');
   await svg.locator('[data-point=now]').waitFor();
   // The heating curve: title, legend (line keys), the two lines, the band between them, the points and their labels.
   assert.equal(await card('curve').locator('h2').innerText(),words.title);
+  // show_name: false leaves out only the title; the chart keeps its name for a screen reader.
+  assert.equal(await card('curve_untitled').locator('h2').count(),0);
+  assert.deepEqual(await card('curve_untitled').locator('.legend li').allInnerTexts(),words.legend);
+  assert((await card('curve_untitled').locator('svg[role=img]').getAttribute('aria-label')).startsWith(words.title+'. '));
   assert.deepEqual(await card('curve').locator('.legend li').allInnerTexts(),words.legend);
   assert.equal(await svg.locator('path[data-line=standard]').count(),1);assert.equal(await svg.locator('path[data-line=learned]').count(),1);
   assert.equal(await svg.locator('path.band').count(),1);
@@ -170,10 +178,14 @@ const LINE={light:'rgb(0, 135, 111)',dark:'rgb(35, 156, 138)'},NOW={light:'rgb(1
   const at=id=>card(id).locator('svg[role=img] [data-point=now]').evaluate(c=>Number(c.getAttribute('cy')));
   assert(Math.abs(await at('curve_rc4')-await at('curve'))<0.5,'now on the line');
   assert.deepEqual(await card('curve_rc4').locator('svg[role=img] [data-label=now] tspan').allTextContents(),words.now);
-  // What the E32 knows: the ring with the percentage, what it still learns, and the last line counting the rest.
+  // What the E32 knows: the ring with the percentage beside the headline that says it ("The E32 knows your house: 70 %",
+  // the owner's sketch, rc.5), what it still learns, and the last line counting the rest. Before the E32 reports it,
+  // the headline is the plain title.
   const ring=card('knowledge').locator('svg.ring');
   assert.equal(await ring.getAttribute('aria-label'),words.ring);assert.equal(await ring.locator('text').textContent(),'70 %');
-  assert.equal(await card('knowledge').locator('h2').innerText(),words.knows);assert.equal(await card('knowledge').locator('h3').innerText(),words.missing);
+  assert.equal(await card('knowledge').locator('h2').innerText(),words.ring);assert.equal(await card('knowledge').locator('h3').innerText(),words.missing);
+  assert.equal(await card('knowledge_full').locator('h2').innerText(),words.ring.replace('70','100'));
+  assert.equal(await card('knowledge_unknown').locator('h2').innerText(),words.knows);
   assert.deepEqual(await card('knowledge').locator('li').allInnerTexts(),[...MISSING[lang],words.more]);
   const arc=await ring.locator('.fill').evaluate(c=>c.getAttribute('stroke-dasharray').split(' ').map(Number));
   assert(Math.abs(arc[0]/arc[1]-0.7)<0.001,'the ring is filled 70 %');

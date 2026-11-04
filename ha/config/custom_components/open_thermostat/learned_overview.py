@@ -16,7 +16,9 @@ language (English, Dutch or Polish), each figure with a line on what it means:
   (``fw/telemetry/tuning``); this sensor keeps the last ten over restarts;
 - ``settings``: the knobs in effect by their plain names, "(automatic)" or "(set by you)";
 - ``insights``: yesterday against the house's own usual days, each with what can cause it (E32 rc.5,
-  insight.py; also a notification each).
+  insight.py; also a notification each);
+- ``free_heat``: the rooms that get heat for free from sun, cooking and people, each with its free-heat line
+  of ``rooms`` and the room's name (E32 rc.5), for the dashboard's "Free heat".
 
 Read only: the knobs are changed in Configure → Home → Comfort and boiler care (e32_care.py) or on
 the E32 page (Home -> Comfort and boiler care).
@@ -538,6 +540,12 @@ def free_heat_line(learned, plan, lang):
     return text, t["free_heat_applied"].format(m=applied) if applied else t["free_heat_mean"]
 
 
+def free_heat_lines(rooms, lang):
+    """[{name, text, meaning}] of the rooms with free heat (free_heat_line), in order; rooms: [(name, learned, plan)]."""
+    return [{"name": name, "text": found[0], "meaning": found[1]} for name, learned, plan in rooms
+            if (found := free_heat_line(learned, plan, lang)) is not None]
+
+
 def room_overview(name, learned, plan, lang, clock, smart=None, day=None, today=None):
     """{name, progress, lines: [{text, meaning}]} of one room; clock: utc -> "07:10" in local time.
 
@@ -692,7 +700,7 @@ class LearnedOverviewSensor(RestoreEntity, SensorEntity):
     _attr_translation_key = "learned_overview"
     _attr_icon = "mdi:school-outline"
     # The texts are shown, not kept in the history.
-    _unrecorded_attributes = frozenset({"rooms", "house", "changes", "settings", "explanation", "insights"})
+    _unrecorded_attributes = frozenset({"rooms", "house", "changes", "settings", "explanation", "insights", "free_heat"})
 
     def __init__(self, entry, hub, clock=None):
         self.entry, self.hub = entry, hub
@@ -760,16 +768,19 @@ class LearnedOverviewSensor(RestoreEntity, SensorEntity):
         from .e32_flow import smart_warm_up
         smart = smart_warm_up(self.hass, self.entry.entry_id) if getattr(self, "hass", None) is not None else None
         day, today = local_day(self.hass) if getattr(self, "hass", None) is not None and self._clock is None else (None, None)
+        active = [(room_id, name) for room_id, name in names.items() if self.hub.rooms[room_id].get("state") != "inactive"]
         rooms = [room_overview(name, self.hub.learned.get(room_id), self.hub.warmup.get(room_id), lang, clock, smart,
                                day, today)
-                 for room_id, name in names.items() if self.hub.rooms[room_id].get("state") != "inactive"]
+                 for room_id, name in active]
         manual = tuning.get("manual") if type(tuning.get("manual")) is list else []
         from .insight import insight_lines  # E32 rc.5: yesterday against the house's own usual days
         attributes = {"explanation": t.get("state." + str(tuning.get("state")), "") if tuning else t["unavailable"],
                       "rooms": rooms, "house": house_overview(self.hub.summary, lang, self._flow_options()),
                       "changes": changes or [{"time": None, "text": t["state.none"]}],
                       "settings": settings(tuning.get("values"), manual, lang),
-                      "insights": insight_lines(self.hub.summary, names, lang)}
+                      "insights": insight_lines(self.hub.summary, names, lang),
+                      "free_heat": free_heat_lines([(name, self.hub.learned.get(room_id), self.hub.warmup.get(room_id))
+                                                    for room_id, name in active], lang)}
         lowest = boiler_minimum_flow(self.hub.summary)
         if lowest is not None:  # only once learned
             attributes["boiler_minimum_flow_c"] = lowest

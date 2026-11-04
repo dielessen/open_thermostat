@@ -5,9 +5,10 @@ disabled and absent entities are left out) with built-in cards, the week
 planner and, per room, the room status card (frontend/room-status-card.js):
 
 * Overview (first): the House section headed by the house card
-  (custom:openthermostat-house: what the boiler does now, today's heating, hot
-  water and gas, a problem with its reason that leads to Repairs, and the one
-  room that is on; without a heat request and boiler activity there is no card,
+  (custom:openthermostat-house: what the boiler does now in a band of its
+  colour, today's hot water, gas and burner starts as large figures, a problem
+  with its reason that leads to Repairs, and the one room that is on; the day so
+  far; without a heat request and boiler activity there is no card,
   and the rooms that want heat with the boiler request and the problem tile
   stand there instead), the house mode and the next holiday; then one status
   card per other room: temperature against target and, in one line, why it
@@ -23,13 +24,17 @@ planner and, per room, the room status card (frontend/room-status-card.js):
   keeping warm, what the boiler did in the last 24 hours), the last 24 hours,
   What the boiler reports (its values in groups) and the boiler settings. The
   thermostat on the bus and the raw boiler data are on Diagnostics;
-* Learning and settings: what the E32 knows (the knowledge tile, what it still
-  learns, the boiler's response, yesterday compared with usual; E32 rc.5),
-  yesterday in figures (the scoreboard and the daily summary, once), what the
-  thermostat learned (house and boiler, its own changes, how it learns), Smart
-  warm-up and Weather compensation with its curve (water temperature by outdoor
-  temperature) and who controls the boiler (short cycling as information, the
-  takeover check);
+* Learning and settings, in the order of the owner's sketch (rc.5): what the
+  E32 knows (the knowledge ring and what it still learns), your boiler (its
+  response in one sentence), water temperature by outdoor temperature (the
+  curve), yesterday in figures (the four headline figures large on their own
+  card, custom:openthermostat-yesterday, then the rest of the scoreboard and the
+  daily summary, once), what stood out yesterday compared with usual, the free
+  heat per room, and Smart warm-up and Weather compensation as rows; then what
+  the thermostat learned (house and boiler, its own changes, how it learns) and
+  who controls the boiler (short cycling as information, the takeover check).
+  On a wide screen the sketch's two columns: the curve with what stood out and
+  the free heat under it beside your boiler, yesterday and the settings;
 * Diagnostics (last): the E32 itself, the thermostat on the boiler bus, the
   energy and hot water counters, the raw boiler data and the hot water capability;
 * Comparison (subview, trial run with a thermostat on the bus only).
@@ -156,7 +161,11 @@ ICONS = {"flow": "mdi:thermometer-chevron-up", "return": "mdi:thermometer-chevro
          "burner_time": "mdi:timer-outline", "house": "mdi:home-thermometer", "learning": "mdi:school-outline",
          "boiler": "mdi:water-boiler", "now": "mdi:water-boiler", "week": "mdi:chart-bar",
          "history": "mdi:chart-line", "settings": "mdi:cog-outline", "yesterday": "mdi:scoreboard-outline",
-         "thermostat": "mdi:thermostat"}
+         "thermostat": "mdi:thermostat", "knowledge": "mdi:home-analytics", "curve": "mdi:chart-bell-curve-cumulative",
+         "insight": "mdi:information-outline", "free_heat": "mdi:weather-sunny"}
+# The sketch's coloured icons in a markdown line (_icon), in the colours of Home Assistant's default theme: heating
+# (--state-climate-heat-color, deep orange), information (--info-color) and the sun (--amber-color).
+ICON_COLOURS = {"heating": "#ff6f22", "insight": "#039be5", "free_heat": "#ffc107"}
 # What the boiler does now (hub boiler_activity, heating_link.BOILER_ACTIVITIES) as one tile of three: its icon
 # (ICONS), its theme colour and the activities it stands for; exactly one shows at a time.
 ACTIVITY_TILES = (("heating", "deep-orange", ["heating"]),
@@ -325,11 +334,12 @@ TEXT = {
         "burner_today": "Burner time today", "boiler_values": "What the boiler reports",
         "who_controls": "Who controls the boiler", "yesterday_figures": "Yesterday in figures",
         "dhw_target_short": "Hot water target",
-        # E32 rc.5: what the E32 knows, the boiler's response and yesterday's insights (insight.py).
-        "knowledge": "What the E32 knows",
-        "insights": "Yesterday compared with usual",
-        "knowledge_note": "The E32 learns all this by itself while the heating runs. Yesterday is compared with your "
-                          "house's own usual days; that is information and changes nothing.",
+        # E32 rc.5, the Learning view as the owner's sketch: what the E32 knows, your boiler (its response in one
+        # sentence), water temperature by outdoor temperature, what stood out yesterday (insight.py), the free heat.
+        "knowledge": "What the E32 knows", "your_boiler": "Your boiler",
+        "curve_title": "Water temperature by outdoor temperature", "noticed": "Noticed",
+        "noticed_note": "Yesterday is compared with your house's own usual days; that is information and changes nothing.",
+        "free_heat": "Free heat",
         # rc.5 (P11): the Overview's rooms beside the one room the house card shows.
         "other_rooms": "Other rooms",
     },
@@ -496,10 +506,11 @@ TEXT = {
         "burner_today": "Brandertijd vandaag", "boiler_values": "Wat de ketel meldt",
         "who_controls": "Wie regelt de ketel", "yesterday_figures": "Gisteren in cijfers",
         "dhw_target_short": "Doel warm water",
-        "knowledge": "Wat de E32 weet",
-        "insights": "Gisteren vergeleken met normaal",
-        "knowledge_note": "De E32 leert dit allemaal zelf terwijl de verwarming draait. Gisteren wordt vergeleken met de "
-                          "gewone dagen van je eigen huis; dat is informatie en verandert niets.",
+        "knowledge": "Wat de E32 weet", "your_boiler": "Je ketel",
+        "curve_title": "Watertemperatuur bij buitentemperatuur", "noticed": "Opgevallen",
+        "noticed_note": "Gisteren wordt vergeleken met de gewone dagen van je eigen huis; dat is informatie en verandert "
+                        "niets.",
+        "free_heat": "Gratis warmte",
         "other_rooms": "Overige ruimtes",
     },
     # Polish: the terms of translations/pl.json and docs/UX-GLOSSARY.md; E32 page names stay English.
@@ -667,10 +678,11 @@ TEXT = {
         "burner_today": "Czas pracy palnika dziś", "boiler_values": "Co zgłasza Twój kocioł",
         "who_controls": "Kto steruje kotłem", "yesterday_figures": "Wczoraj w liczbach",
         "dhw_target_short": "Cel ciepłej wody",
-        "knowledge": "Co wie E32",
-        "insights": "Wczoraj w porównaniu ze zwykłymi dniami",
-        "knowledge_note": "E32 uczy się tego wszystkiego sam, gdy ogrzewanie pracuje. Wczoraj jest porównywane ze "
-                          "zwykłymi dniami Twojego domu; to tylko informacja i niczego nie zmienia.",
+        "knowledge": "Co wie E32", "your_boiler": "Twój kocioł",
+        "curve_title": "Temperatura wody a temperatura zewnętrzna", "noticed": "Spostrzeżenia",
+        "noticed_note": "Wczoraj jest porównywane ze zwykłymi dniami Twojego domu; to tylko informacja i niczego nie "
+                        "zmienia.",
+        "free_heat": "Darmowe ciepło",
         "other_rooms": "Pozostałe pomieszczenia",
     },
 }
@@ -905,36 +917,94 @@ def _learned_sections(t, learned, how=None):
     return sections
 
 
-def _knowledge_section(t, knowledge, boiler, learned=None):
-    """What the E32 knows (insight.py, E32 rc.5), first on the Learning view: the knowledge card (a ring with "The
-    E32 knows your house: 70 %" and what it still learns in words, frontend/heating-curve-card.js), the boiler's
-    response in one sentence and yesterday against the house's own usual days (the learned overview's
-    ``insights``).
+# The Learning view as the owner's sketch (rc.5, Leren.dc.html): what the E32 knows, your boiler, water temperature by
+# outdoor temperature, yesterday in figures (_yesterday_figures), what stood out, the free heat and Smart warm-up and
+# weather compensation, each a section of its own that hides as a whole while it has nothing to show.
 
-    Every card follows its sensor without a rebuild; the section stays hidden until the E32 reports the
-    knowledge or the boiler's response (firmware before rc.5 leaves both unknown).
-    """
-    entities = [entity for entity in (knowledge, boiler) if entity]
-    if not entities:
+
+def _icon(concept):
+    """The icon of a concept (ICONS) in its colour, at the start of a markdown line, as the sketch draws it. A markdown
+    card cannot read the theme's CSS variables (its sanitiser keeps <font color> only), so the colours are those of
+    Home Assistant's default theme (ICON_COLOURS)."""
+    return '<font color="' + ICON_COLOURS[concept] + '"><ha-icon icon="' + ICONS[concept] + '"></ha-icon></font>'
+
+
+def _listed(entity_id, attribute):
+    """Visibility: while the entity's list ``attribute`` has an item (Home Assistant 2026.10 reads an attribute in a
+    state condition as text: an empty list is "", a missing attribute or entity "unknown")."""
+    return [{"condition": "state", "entity": entity_id, "attribute": attribute,
+             "state_not": ["unavailable", "unknown", ""]}]
+
+
+def _knowledge_section(t, knowledge):
+    """What the E32 knows (insight.py, E32 rc.5), first on the Learning view: the knowledge card, a ring beside "The
+    E32 knows your house: 70 %" and what it still learns in words (frontend/heating-curve-card.js). It follows its
+    sensor without a rebuild and hides until the E32 reports it (firmware before rc.5 leaves it unknown)."""
+    if not knowledge:
         return None
-    cards = [_heading(t["knowledge"], "mdi:home-analytics")]
-    if knowledge:
-        cards.append(_wide({"type": KNOWLEDGE_CARD_TYPE, "entity": knowledge, "visibility": _known(knowledge)}))
-    if boiler:
-        quoted = json.dumps(boiler)
-        cards.append({"type": "markdown", "show_empty": False, "visibility": _known(boiler), "content": (
-            "{% set s = state_attr(" + quoted + ", 'sentence') %}{% if s %}"
-            "<ha-icon icon=\"mdi:water-boiler\"></ha-icon> {{ s }}{% endif %}")})
-    if learned:  # empty (and hidden) while nothing stood out yesterday
-        quoted = json.dumps(learned)
-        cards.append({"type": "markdown", "show_empty": False, "content": (
-            "{% set items = state_attr(" + quoted + ", 'insights') or [] %}{% if items %}**" + t["insights"] + "**\n"
-            "{% for line in items %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n"
-            "{% endfor %}{% endif %}")})
-    cards.append(_note(t, t["knowledge_note"]))
-    section = _section(*cards)
-    section["visibility"] = _any_known(entities)
+    return _section_known([knowledge], _heading(t["knowledge"], ICONS["knowledge"]),
+                          _wide({"type": KNOWLEDGE_CARD_TYPE, "entity": knowledge, "visibility": _known(knowledge)}))
+
+
+def _boiler_section(t, boiler):
+    """Your boiler: what the E32 learned from the boiler itself, in one sentence behind a flame (the Boiler response
+    sensor's ``sentence``, insight.py); every known state has one. Hidden while the response is unknown."""
+    if not boiler:
+        return None
+    quoted = json.dumps(boiler)
+    return _section_known([boiler], _heading(t["your_boiler"], ICONS["boiler"]), {"type": "markdown", "content": (
+        "{% set s = state_attr(" + quoted + ", 'sentence') %}{% if s %}" + _icon("heating") + " {{ s }}{% endif %}")})
+
+
+def _curve_section(t, curve):
+    """Water temperature by outdoor temperature (E32 rc.5): the heating-curve card (frontend/heating-curve-card.js)
+    under a heading of its own, so the card leaves its own title out; shown while the curve has a value."""
+    if not curve:
+        return None
+    return _section_known([curve], _heading(t["curve_title"], ICONS["curve"]), _wide(
+        {"type": CURVE_CARD_TYPE, "entity": curve, "show_name": False, "visibility": _known(curve)}))
+
+
+def _noticed_section(t, learned):
+    """Noticed: what stood out yesterday against the house's own usual days (the learned overview's ``insights``,
+    insight.py), each line behind an information icon with what can cause it, in one card with one line on what the
+    comparison is; hidden while nothing stood out."""
+    if not learned:
+        return None
+    quoted = json.dumps(learned)
+    section = _section(_heading(t["noticed"], ICONS["insight"]), {"type": "markdown", "content": (
+        "{% for line in state_attr(" + quoted + ", 'insights') or [] %}" + _icon("insight") + " {{ line.text }}"
+        "{% if line.meaning %} {{ line.meaning }}{% endif %}\n\n{% endfor %}*" + t["noticed_note"] + "*")})
+    section["visibility"] = _listed(learned, "insights")
     return section
+
+
+def _free_heat_section(t, learned):
+    """Free heat: per room the heat it gets for free from sun, cooking and people (E32 rc.5, the learned overview's
+    ``free_heat``), each room on a line behind a sun with what Smart warm-up does with it; hidden while there is none."""
+    if not learned:
+        return None
+    quoted = json.dumps(learned)
+    section = _section(_heading(t["free_heat"], ICONS["free_heat"]), {"type": "markdown", "content": (
+        "{% for line in state_attr(" + quoted + ", 'free_heat') or [] %}" + _icon("free_heat") + " **{{ line.name }}** · "
+        "{{ line.text }}{% if line.meaning %} {{ line.meaning }}{% endif %}\n\n{% endfor %}")})
+    section["visibility"] = _listed(learned, "free_heat")
+    return section
+
+
+def _settings_section(t, flow, rooms=None, week=None):
+    """Smart warm-up and weather compensation: the two switches and the water temperature in hard frost as rows
+    (stored on the E32, e32_flow.py; always there to change), and the links to the rooms editor (``rooms``) and the
+    week program (``week``); None without any of them. What sets the water temperature now (the sensor "Water
+    temperature set by") is not a setting and stays on the E32 device: as a row its long state cut its name short on
+    a phone, and the sketch has the three rows only."""
+    rows = [{"entity": flow[key], "name": t[name], "icon": icon} for key, name, icon in (
+        ("apply_learned", "apply_learned", "mdi:school-outline"), ("weather_curve", "weather_curve", "mdi:sun-thermometer"),
+        ("curve_design_flow_c", "design_flow", "mdi:thermometer-lines")) if flow.get(key)]
+    return _filled(_section(
+        _heading(t["smart_heating"], ICONS["settings"]), {"type": "entities", "entities": rows} if rows else None,
+        _link(t["set_up_rooms"], "mdi:home-edit-outline", rooms) if rooms else None,
+        _link(t["week_program"], "mdi:calendar-week", week) if week else None))
 
 
 def _per_day(title, entities, entity_id):
@@ -992,20 +1062,29 @@ def _summary_lines(t, summary, gas_unit, scoreboard_gas=None):
         for name, expr in names.items():
             text = text.replace("{" + name + "}", "{{ " + expr + " }}")
         return text
+
+    def number(expr):
+        """The summary's number as it is, in the language's decimal sign ("7,4 uur", as elsewhere on the dashboard)."""
+        if t["decimal"] == ".":
+            return expr
+        return "(((" + expr + ") ~ '') | replace('.', " + json.dumps(t["decimal"]) + "))"
     unit = " " + gas_unit if gas_unit else ""
     gas = "d.gas and d.gas.heating is not none and d.gas.hot_water is not none"
     if scoreboard_gas:
         gas += " and not is_number(states(" + json.dumps(scoreboard_gas) + "))"
     return (
         "{% set d = state_attr(" + q + ", 'last_day') %}{% if d %}- "
-        + fill(t["day_burner"], h="d.burner_hours", n="d.burner_starts", short="d.short_runs")
+        + fill(t["day_burner"], h=number("d.burner_hours"), n="d.burner_starts", short="d.short_runs")
         + "{% if " + gas + " %} "
-        + fill(t["day_gas"], heating="d.gas.heating ~ '" + unit + "'", hot_water="d.gas.hot_water ~ '" + unit + "'")
-        + "{% endif %}{% if d.outdoor %} " + fill(t["day_outdoor"], low="d.outdoor.min", high="d.outdoor.max")
+        + fill(t["day_gas"], heating=number("d.gas.heating") + " ~ '" + unit + "'",
+               hot_water=number("d.gas.hot_water") + " ~ '" + unit + "'")
+        + "{% endif %}{% if d.outdoor %} "
+        + fill(t["day_outdoor"], low=number("d.outdoor.min"), high=number("d.outdoor.max"))
         + "{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}"
-        + fill(t["day_room"], room="r.name", h="r.heat_hours", ttt="r.time_to_target_minutes",
+        # Whole minutes ("25 min", not "25.0 min": the summary keeps the median as a float).
+        + fill(t["day_room"], room="r.name", h=number("r.heat_hours"), ttt="r.time_to_target_minutes | round | int",
                missed="r.missed_minutes")
-        + "{% else %}" + fill(t["day_room_no_step"], room="r.name", h="r.heat_hours", missed="r.missed_minutes")
+        + "{% else %}" + fill(t["day_room_no_step"], room="r.name", h=number("r.heat_hours"), missed="r.missed_minutes")
         + "{% endif %}\n{% endfor %}{% if not d.complete %}\n_" + t["day_partial"] + "_{% endif %}"
         + "{% elif not shown.lines %}" + t["day_none"] + "{% endif %}")
 
@@ -1026,7 +1105,14 @@ def _jinja_text(text, **values):
     return " ~ ".join(pieces) or '""'
 
 
-def _scoreboard_lines(t, rooms, names, house):
+# The headline figures of "Yesterday in figures", large on their own card above the lines (frontend/house-card.js,
+# custom:openthermostat-yesterday), each from its own scoreboard sensor: (card key, sensor, its attribute or None for
+# the state). The first figure is the lead room's warm on time (_yesterday_figures).
+YESTERDAY_FIGURES = (("starts", "burner_starts_per_heating_hour", None), ("gas", "heating_gas_yesterday", None),
+                     ("degree_days", "gas_per_degree_day", "degree_days"))
+
+
+def _scoreboard_lines(t, rooms, names, house, large=()):
     """Yesterday's scoreboard (scoreboard.py, E32 rc.4) in plain words, as list lines of "Yesterday in figures":
     each room warm on time and how far it got above its target; the heating time, the burner's starts per heating
     hour and its short runs; the gas for heating, the degree-days and the gas per degree-day.
@@ -1034,6 +1120,8 @@ def _scoreboard_lines(t, rooms, names, house):
     rooms: {room id: {"warm_on_time": entity, "overshoot": entity}}; house: {key: entity}. The text follows the
     sensors' states (the heating time and the degree-days their attributes), so a new day needs no rebuild; a
     figure without a value is left out. Every line it writes counts in ``shown.lines`` (_yesterday_figures).
+    large: the figures the card above shows large, (house key, attribute) as in YESTERDAY_FIGURES and
+    ("warm_on_time", room id); they are not said again here.
     """
     def part(entity, expression, attribute=None):
         """One figure from the entity's state, or from one of its attributes (the heating hours, the degree-days)."""
@@ -1047,7 +1135,7 @@ def _scoreboard_lines(t, rooms, names, house):
     content = ""
     for room_id, keys in rooms.items():
         content += "{% set parts = [] %}"
-        if keys.get("warm_on_time"):  # minutes after the switch time: late, early or on time
+        if keys.get("warm_on_time") and ("warm_on_time", room_id) not in large:  # minutes after the switch time
             content += ("{% set v = states(" + json.dumps(keys["warm_on_time"]) + ") %}{% if is_number(v) %}"
                         "{% set m = v | float | round(0) | int %}{% set parts = parts + [("
                         + _jinja_text(t["scoreboard_late"], m="m") + ") if m > 0 else ("
@@ -1064,31 +1152,51 @@ def _scoreboard_lines(t, rooms, names, house):
                     (("heating_gas_yesterday", None, "scoreboard_gas", "kwh", 1),
                      ("gas_per_degree_day", "degree_days", "scoreboard_degree_days", "d", 1),
                      ("gas_per_degree_day", None, "scoreboard_degree_day", "v", 2))):
-        if any(house.get(key) for key, *_ in figures):
+        said = [(key, attribute) for key, attribute, *_ in figures if house.get(key) and (key, attribute) not in large]
+        if said:
             content += "{% set parts = [] %}"
             for key, attribute, text, name, digits in figures:
-                if house.get(key):
+                if (key, attribute) in said:
                     content += part(house[key], _jinja_text(t[text], **{name: _figure(t, digits)}), attribute)
             content += line("")
     return content
 
 
-def _yesterday_figures(t, rooms, names, house, summary=None, missed=None, gas_unit=None):
-    """Yesterday in figures (dashboard-spec §6), once, on the Learning view: the scoreboard (scoreboard.py, E32
-    rc.4) and the daily summary (daily_summary.py) in one card, then the missed comfort per day and one note.
+def _yesterday_figures(t, rooms, names, house, summary=None, missed=None, gas_unit=None, lead=None):
+    """Yesterday in figures (dashboard-spec §6), once, on the Learning view: the four headline figures large, two
+    by two (frontend/house-card.js, custom:openthermostat-yesterday: the lead room warm on time, burner starts per
+    heating hour, gas for heating and the degree-days, each from its own scoreboard sensor), under them the rest of
+    the scoreboard (scoreboard.py, E32 rc.4) and the daily summary (daily_summary.py) in lines, then the missed
+    comfort per day and one note.
 
-    rooms, house: the scoreboard's sensors (_scoreboard_lines); summary, missed: the daily summary's. The card
-    follows their states, so a new day needs no rebuild; the section hides as a whole until one figure has a value.
+    rooms, house: the scoreboard's sensors (_scoreboard_lines); summary, missed: the daily summary's; lead: the room
+    whose warm on time is a headline figure. A figure without its sensor is left out. The cards follow the states,
+    so a new day needs no rebuild; the section hides as a whole until one figure has a value, the figures card
+    until one of its own has, and the lines while they have nothing to add (one gas figure: the summary's gas line
+    only while the scoreboard has none).
     """
     scoreboard = [entity for keys in rooms.values() for entity in keys.values()] + list(house.values())
     if not scoreboard and not summary:
         return None
-    content = ("{% set shown = namespace(lines=0) %}" + _scoreboard_lines(t, rooms, names, house)
+    from .room_overview import YESTERDAY_CARD_TYPE
+    room = rooms.get(lead, {}).get("warm_on_time")
+    figures = {"room": {"entity": room, "name": names.get(lead, lead)} if room else None,
+               **{key: house.get(sensor) for key, sensor, _ in YESTERDAY_FIGURES}}
+    figures = {key: value for key, value in figures.items() if value}
+    large = {(sensor, attribute) for key, sensor, attribute in YESTERDAY_FIGURES if key in figures}
+    large |= {("warm_on_time", lead)} if room else set()
+    entities = [entity for entity in [room, *(house.get(sensor) for _, sensor, _ in YESTERDAY_FIGURES)] if entity]
+    # A figure on the card counts as a line: "tomorrow" only while nothing has a value yet.
+    counted = ("{% if " + " or ".join("is_number(states(" + json.dumps(entity) + "))" for entity in entities)
+               + " %}{% set shown.lines = shown.lines + 1 %}{% endif %}") if entities else ""
+    content = ("{% set shown = namespace(lines=0) %}" + counted + _scoreboard_lines(t, rooms, names, house, large)
                + (_summary_lines(t, summary, gas_unit, house.get("heating_gas_yesterday")) if summary else ""))
     return _section_known(
         [*scoreboard, summary, missed],
         _heading(t["yesterday_figures"], ICONS["yesterday"]),
-        {"type": "markdown", "content": content},
+        {"type": YESTERDAY_CARD_TYPE, "grid_options": {"columns": 12}, **figures, "visibility": _any_known(entities)}
+        if figures else None,
+        {"type": "markdown", "show_empty": False, "content": content},
         _per_day(t["missed_per_day"], [{"entity": missed}], missed) if missed else None,
         _note(t, t["scoreboard_note"]))
 
@@ -1216,7 +1324,9 @@ def _wanting_card(t, request):
 def _holiday_card(t, select):
     """The next holiday (E32 rc.4, house.holidays.v1): "Holiday from 20 Dec to 3 Jan", or "On holiday until 3 Jan"
     while it runs. From the house mode select's ``holidays`` attribute, so it follows the E32 without regenerating;
-    empty (and hidden) without a planned holiday or on firmware without them.
+    empty (and hidden) without a planned holiday or on firmware without them. The first holiday only once there is
+    one: Home Assistant's markdown card renders strictly, where "first" of an empty list is an error that left an
+    empty card standing (and an error in the log every 30 s).
     """
     if not select:
         return None
@@ -1225,8 +1335,9 @@ def _holiday_card(t, select):
         return "{{ " + name + ".day }} {{ months[" + name + ".month - 1] }}"
 
     return {"type": "markdown", "show_empty": False, "content": (
-        "{% set h = (state_attr(" + json.dumps(select) + ", 'holidays') or []) | first %}"
-        "{% if h %}{% set months = " + json.dumps(t["months"], ensure_ascii=False) + ".split(',') %}"
+        "{% set holidays = state_attr(" + json.dumps(select) + ", 'holidays') or [] %}"
+        "{% if holidays %}{% set h = holidays[0] %}{% set months = " + json.dumps(t["months"], ensure_ascii=False)
+        + ".split(',') %}"
         "{% set f = as_local(as_datetime(h['from'])) %}{% set u = as_local(as_datetime(h['until'])) %}"
         "{% if f <= now() %}" + t["holiday_now"].replace("{until}", day("u"))
         + "{% else %}" + t["holiday_next"].replace("{from}", day("f")).replace("{until}", day("u"))
@@ -1265,6 +1376,14 @@ def _wide(card):
     """A card across the whole section (12 of 12 grid columns), so its state is not cut short."""
     if card is not None:
         card["grid_options"] = {"columns": 12}
+    return card
+
+
+def _full(card):
+    """A card across the whole section also where the section spans both columns of a wide view (the Overview's:
+    Home Assistant gives it 24 grid columns there, so 12 would be half the width); on a phone the same as _wide."""
+    if card is not None:
+        card["grid_options"] = {"columns": "full"}
     return card
 
 
@@ -1717,8 +1836,9 @@ class RoomDashboard:
 
         Overview: the house (mode, rooms that want heat and the boiler request, the problem with its reason, only
         while there is one) and one status card per room. Rooms: one section per room (thermostat, its day, sensors,
-        windows and people, what it learned), then the sensors that feed no single room. Learning: what the E32
-        knows, yesterday in figures, what it learned (and how), Smart warm-up and Weather compensation, and who
+        windows and people, what it learned), then the sensors that feed no single room. Learning, as the owner's
+        sketch: what the E32 knows, your boiler, water temperature by outdoor temperature, yesterday in figures, what
+        stood out, the free heat, Smart warm-up and Weather compensation; then what it learned (and how) and who
         controls the boiler (the burner as information and the takeover check). The Boiler view is _boiler_sections.
 
         The comparison with the thermostat on the boiler bus means something only in the trial run
@@ -1759,8 +1879,9 @@ class RoomDashboard:
                  "starts": hub.get("daily_burner_starts"), "mode": house_mode, "problem": problem,
                  "rooms": [{"entity": e32_room_entities[inline]["reason"],
                             "name": self._room_name(inline, heating_hub, label)}] if inline else None}
-        house_card = ({"type": HOUSE_CARD_TYPE, "grid_options": {"columns": 12},
-                       **{key: value for key, value in reads.items() if value}} if request or activity else None)
+        # Across the whole view on a wide screen too, as the sketch (the section spans both columns).
+        house_card = (_full({"type": HOUSE_CARD_TYPE, **{key: value for key, value in reads.items() if value}})
+                      if request or activity else None)
         before = () if house_card else (
             # Which rooms want heat and the boiler request: one card whose text follows the E32.
             _wanting_card(t, request),
@@ -1774,11 +1895,12 @@ class RoomDashboard:
         house = _section(
             _heading(t["house"], ICONS["house"]),  # one icon per concept (dashboard-spec §1)
             house_card,
-            # Named: without a name the tile showed the device name, cut short on a phone.
-            _wide(_tile(house_mode, t["house_mode"], "mdi:home-account", features=[{"type": "select-options"}],
+            # Named: without a name the tile showed the device name, cut short on a phone. Under the card, across the
+            # view as the card is (half of it would stand alone in its row on a wide screen).
+            _full(_tile(house_mode, t["house_mode"], "mdi:home-account", features=[{"type": "select-options"}],
                         color="teal")),
             # rc.4: the next holiday, only while one is planned.
-            _holiday_card(t, house_mode),
+            _full(_holiday_card(t, house_mode)),
             *before)
         from .e32_comfort import room_contacts, room_persons
         entry = self.hass.config_entries.async_get_entry(self.entry_id)
@@ -1830,20 +1952,37 @@ class RoomDashboard:
             rooms.append(_section(_heading(t["bluetooth"], "mdi:bluetooth"), *loose))
 
         # -- Learning and settings -----------------------------------------------------------------
-        # E32 rc.5: what the E32 knows first.
-        knows = _knowledge_section(t, hub.get("knowledge"), hub.get("boiler_response"), learned_overview)
-        learning = [knows] if knows else []
+        # In the order of the owner's sketch (rc.5): what the E32 knows, your boiler in one sentence and water
+        # temperature by outdoor temperature, then yesterday in figures, what stood out yesterday, the free heat and
+        # Smart warm-up and weather compensation as rows; after them what it learned and who controls the boiler.
+        learning = [section for section in (_knowledge_section(t, hub.get("knowledge")),
+                                            _boiler_section(t, hub.get("boiler_response")),
+                                            _curve_section(t, flow.get("curve"))) if section]
         # Yesterday in figures, once (dashboard-spec §6): the scoreboard (E32 rc.4) and the daily summary, with the
-        # gas in the gas sensor's unit. Is it getting better? Only once one figure has a value.
+        # gas in the gas sensor's unit. Is it getting better? Only once one figure has a value. The headline figures
+        # large (rc.5, as the owner's sketch): the warm on time of the lead room, the first room switched on that
+        # has one (in the owner's house the room inside the house card).
         heating_gas = hub.get("heating_gas")
         gas_state = self.hass.states.get(heating_gas) if heating_gas and self.hass is not None else None
+        lead = next((room_id for room_id in [*switched_on, *e32_room_entities]
+                     if e32_room_entities[room_id].get("warm_on_time")), None)
         yesterday = _yesterday_figures(
             t, {room_id: {key: room[key] for key in ("warm_on_time", "overshoot") if room.get(key)}
                 for room_id, room in e32_room_entities.items() if room.get("warm_on_time") or room.get("overshoot")},
             names, {key: hub[key] for key in SCOREBOARD_HOUSE if key in hub}, hub.get("daily_summary"),
-            hub.get("daily_missed_comfort"), gas_state.attributes.get("unit_of_measurement") if gas_state else None)
+            hub.get("daily_missed_comfort"), gas_state.attributes.get("unit_of_measurement") if gas_state else None,
+            lead)
         if yesterday:
             learning.append(yesterday)
+        learning += [section for section in (
+            _noticed_section(t, learned_overview), _free_heat_section(t, learned_overview),
+            _settings_section(t, flow, "/config/integrations/integration/" + DOMAIN if e32_rooms else None,
+                              "/" + self.path + "/week-program" if e32_rooms else None)) if section]
+        # The sketch's two columns on a wide screen, within the sections view's own placement (in this order, dense,
+        # a row as tall as its tallest section): yesterday spans two rows, so the curve and what stood out under it
+        # fill the column beside it, your boiler above it and the settings under it. A phone stacks them in order.
+        if yesterday:
+            yesterday["row_span"] = 2
         # What it learned, with how it learns as the note of its first section, only while the E32 reports it.
         learning_entity = next((room["learning"] for room in e32_room_entities.values() if room.get("learning")), None)
         how = None
@@ -1853,23 +1992,6 @@ class RoomDashboard:
                 t["learning_note"] + "{% if not state_attr(" + quoted + ", 'applied') %}"
                 + _details(t, t["advice_only"]) + "{% endif %}")}
         learning += _learned_sections(t, learned_overview, how)
-        # The heating curve and learning switches (stored on the E32), and the rooms editor.
-        settings = _section(
-            _heading(t["smart_heating"], "mdi:chart-bell-curve-cumulative"),
-            # The full section width: "Automatic (floor 40 °C, radiators 55 °C)" is a long state; half tiles cut it short.
-            _wide(_tile(flow.get("apply_learned"), t["apply_learned"], "mdi:school-outline")),
-            _wide(_tile(flow.get("weather_curve"), t["weather_curve"], "mdi:sun-thermometer")),
-            _wide(_tile(flow.get("curve_design_flow_c"), t["design_flow"], "mdi:thermometer-lines")),
-            # E32 rc.5: water temperature by outdoor temperature (frontend/heating-curve-card.js), while it has a value.
-            _wide({"type": CURVE_CARD_TYPE, "entity": flow["curve"], "visibility": _known(flow["curve"])})
-            if flow.get("curve") else None,
-            _wide(_tile(flow.get("source"), t["flow_source"], "mdi:thermometer-water")),
-            _link(t["set_up_rooms"], "mdi:home-edit-outline", "/config/integrations/integration/" + DOMAIN)
-            if e32_rooms else None,
-            _link(t["week_program"], "mdi:calendar-week", "/" + self.path + "/week-program") if e32_rooms else None,
-        )
-        if len(settings["cards"]) > 1:
-            learning.append(settings)
         # The comparison entities exist only once the E32 saw a thermostat to compare with; outside
         # the trial run a record left behind leads nowhere.
         agreement = hub.get("shadow_agreement_today") if trial else None

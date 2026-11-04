@@ -83,22 +83,24 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
   room's temperature and target and, in one line, why it heats or not: window
   open, away, warm enough, Smart warm-up heating early, and so on. The same
   line is the **Reason** sensor of the room. The house card shows:
-  - A **status strip** in the colour of what the boiler does now: heating
-    (with the water temperature), hot water, or "Boiler resting". The house
-    mode is on the right of the strip; tap it to open the house mode control.
-    While rooms want heat, a second line says how many and what the boiler
-    request is. A problem comes first: the strip turns red and says
-    "Attention" with the first reason. Tap it to open Repairs; **All reasons**
-    lists every reason.
-  - Today's figures: **Heating** (on, with the water temperature, or off),
-    **Hot water** (the taps so far today, or "running now"), **Gas today**
-    (heating and hot water together) with a small line of the last 7 days, and
-    **Burner starts today**. A figure that your boiler or the E32 does not
-    report is left out. The gas and the burner starts are read from Home
-    Assistant's statistics; on the first day, until it has some, they show "—".
+  - A **band** in the colour of what the boiler does now, in white letters:
+    orange while heating (with the water temperature), blue for hot water,
+    grey for "Boiler resting". The house mode is on the right of the band; tap
+    it to open the house mode control. While rooms want heat, a second line
+    says how many and what the boiler request is. A problem comes first: the
+    band turns red and says "Attention" with the first reason. Tap it to open
+    Repairs; **All reasons** lists every reason.
+  - Today's figures, large: **Hot water** (the taps so far today, or "running
+    now"), **Gas today** (heating and hot water together) with a small line of
+    the last 7 days beside it and the average day of the week before under it,
+    and **Burner starts today**. While the band shows a problem, **Heating**
+    (on, with the water temperature, or off) is added, because the band then
+    cannot say it. A figure that your boiler or the E32 does not report is left
+    out. The gas and the burner starts are read from Home Assistant's
+    statistics; on the first day, until it has some, they show "—".
   - A **day strip** from midnight until now: when the boiler was heating,
-    making hot water or keeping it warm. Point at a part for its start and end
-    time.
+    making hot water or keeping it warm, with the hours and "now" under it.
+    Point at a part for its start and end time.
   - In a house with only one room switched on, that room is the first figure
     of the card, with its temperature, its target and why it heats or not. The
     other rooms are then listed under **Other rooms**.
@@ -117,15 +119,20 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
   boiler sends, in groups) and **Boiler settings**. A section is hidden while
   the boiler reports nothing for it, so a heading never stands over nothing.
   Yesterday is not here; it is on the **Learning and settings** tab.
-- **Learning and settings**: what the E32 learned, so you read what it did. It
-  starts with what the E32 knows and what it still lacks, how your boiler
-  responds and yesterday compared with usual (E32 rc.5). Then comes **Yesterday
-  in figures**, the only Yesterday of the dashboard. After it: what the
-  thermostat learned about your rooms, your house and your boiler, with the
-  free heat of sun, cooking and people; Smart warm-up and Weather compensation
-  with the chart **Water temperature by outdoor temperature**; and **Who
-  controls the boiler**, with the burner as information and the check before
-  the E32 takes over.
+- **Learning and settings**: what the E32 learned, so you read what it did.
+  From top to bottom: **What the E32 knows** (the figure "The E32 knows your
+  house: 70 %" beside a ring, and what it still lacks), **Your boiler** (how
+  your boiler responds, in one sentence), the chart **Water temperature by
+  outdoor temperature**, **Yesterday in figures** (the only Yesterday of the
+  dashboard), **Noticed** (yesterday compared with usual, when something stood
+  out), **Free heat** (per room, the heat of sun, cooking and people) and
+  **Smart warm-up and weather compensation** (the two switches and the water
+  temperature in hard frost). After them: what the thermostat learned about
+  your rooms, your house and your boiler, and **Who controls the boiler**, with
+  the burner as information and the check before the E32 takes over. Each part
+  shows only once it has something to say (E32 rc.5). On a wide screen the
+  chart, **Noticed** and **Free heat** stand in one column, your boiler,
+  yesterday and the switches in the other.
 - **Diagnostics**: the E32 itself, **Thermostat on the bus** (what a
   thermostat on the boiler bus asks, as the E32 hears it; mostly of use in the
   trial run), the energy and hot water counters, the raw boiler data and the
@@ -743,7 +750,7 @@ learning information.
 
 Each problem except the water pressure (which has its own message) also
 appears under **Settings → System → Repairs** as **Heating needs attention**,
-and clears itself once the cause is gone. On the dashboard, the strip of the
+and clears itself once the cause is gone. On the dashboard, the band of the
 **house card** turns red while the sensor is on and names the first reason; a
 tap on it opens Repairs. The sensor's `problems` and `reasons` attributes say
 what is wrong, so you can use it in your own notification automation.
@@ -993,8 +1000,11 @@ restart; whatever the E32 did not measure is left out.
 | Per room | How many minutes late or early the room was warm ("warm 12 min late", "warm 5 min early" or "warm on time") and how far it went above its target ("0.3 °C too warm"). |
 
 In Home Assistant it is the section **Yesterday in figures** on the **Learning
-and settings** tab ("Living room: warm 12 min late · 0.3 °C too warm", "Burner:
-2.1 starts per heating hour", "Gas for heating: 8.4 kWh"). It is the only
+and settings** tab. Four figures stand large at the top: how many minutes early
+or late the first room that is switched on was warm, the burner starts per
+heating hour, the gas for heating and the degree days; tap one for its
+history. The rest follows in lines ("Bathroom: warm 12 min late · 0.3 °C too
+warm", "Heating time: 6.2 h · Short burner runs: 0.4 h"). It is the only
 Yesterday of the dashboard, so it also holds the daily summary (see
 [Daily summary and warnings](#daily-summary-and-warnings)): the burner time and
 starts, the gas for heating and hot water and, per room, how long it asked for
@@ -1105,8 +1115,9 @@ the boiler is still listening but the heat per °C is already known, the sentenc
 says that figure instead: "Your boiler has not held a water temperature by
 itself yet; every degree the water is warmer than the rooms gives your house
 about 0.3 kW. The E32 keeps listening."
-Home Assistant shows the same sentence on the **Learning and settings** tab and
-has the sensor **Boiler response** on the E32 device. Its state is:
+Home Assistant shows the same sentence on the **Learning and settings** tab,
+under **Your boiler**, and has the sensor **Boiler response** on the E32 device.
+Its state is:
 
 | State | Meaning |
 | --- | --- |
@@ -1168,8 +1179,8 @@ Repair, and you do not need to do anything.
 On the E32 you find the sentences on the **Home** page under **What the
 thermostat has learned**, under **Yesterday compared with usual**. In Home
 Assistant each one is a notification (dismiss it and it stays dismissed until
-the sentence changes) and the list **Yesterday compared with usual** is on the
-**Learning and settings** tab.
+the sentence changes) and the list is on the **Learning and settings** tab,
+under **Noticed**.
 
 ### Free heat from sun, cooking and people
 
@@ -1194,8 +1205,9 @@ The room's learned details say it in words, for example "In the afternoon this
 room warms up by itself, about 0.4 °C per hour (sun, cooking or people)" and,
 when it changes a start, "Smart warm-up now starts 20 min later for it, so it
 does not heat what comes for free." The E32 **Home** page always shows them,
-under **What the thermostat has learned**. Home Assistant's learned overview
-shows them when the E32's report for that room has room for them.
+under **What the thermostat has learned**. Home Assistant shows them, per room
+under **Free heat** on the **Learning and settings** tab, when the E32's report
+for that room has room for them.
 
 ### The heating-curve chart
 
@@ -1215,9 +1227,10 @@ values** lists the same as a table. With Weather compensation switched off the
 chart shows what it would ask.
 
 On the E32 it is on the **Home** page under **Heating settings**, in the water
-temperature block. In Home Assistant it is a card on the **Learning and
-settings** tab, which you can also add to a dashboard of your own
-(`custom:openthermostat-heating-curve`).
+temperature block. In Home Assistant it has its own part on the **Learning and
+settings** tab, and you can add the card to a dashboard of your own
+(`custom:openthermostat-heating-curve`; `show_name: false` leaves out its
+title).
 
 ### Gas for heating, hot water and keeping warm
 

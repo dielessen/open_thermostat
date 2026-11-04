@@ -127,8 +127,11 @@ def inputs(hass, entry, hub):
                 "state": state.state, **{name: state.attributes.get(name) for name in
                                          ("unit_of_measurement", "device_class", "state_class")}}
     header = hub.learned_header if hub is not None and hub.fresh else None
+    # How the sending goes and whether the E32 accepts it (heating_link.HeatingInputWatch, P22).
+    watch = getattr(hub, "input_watch", None) if hub is not None else None
     return {"options": options, "entities": entities, "on_e32": learned_inputs(header),
-            "forwarded_room_entities": list((hub.status or {}).get("ha_entities") or []) if hub is not None else []}
+            "forwarded_room_entities": list((hub.status or {}).get("ha_entities") or []) if hub is not None else [],
+            "heating_input": watch.diagnostics() if watch is not None else None}
 
 
 def entity_counts(hass, entry):

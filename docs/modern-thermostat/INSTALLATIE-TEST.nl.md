@@ -31,7 +31,7 @@ klopten, ontbrekende uitleg).
 | 1 | Firmware via USB (2) | ESPConnect of esptool meldt succes en de MD5 klopt met `FACTORY-CHECK.txt` |
 | 2 | Eerste start en wifi (3) | Het setupnetwerk `OpenThermostat-xxxxxx` verschijnt, de E32 meldt **WiFi connected** en is op het thuisnetwerk bereikbaar |
 | 3 | Inloggen en wachtwoord (4) | Ingelogd met `admin`/`admin`, eigen wachtwoord gezet onder **System → Password** |
-| 4 | Tijdzone en ketelontvangst (5) | Tijdzone gekozen, **EMS bus enabled** aangevinkt, opgeslagen en herstart |
+| 4 | Tijdzone en ketelontvangst (5) | Tijdzone gekozen, **Boiler bus (EMS) on** aangevinkt (op de Nederlandse pagina: **Ketelbus (EMS) aan**), opgeslagen en herstart |
 | 5 | Aansluiten op de ketel (6) | De pagina **Boiler** toont binnen enkele minuten aanvoer- en retourtemperatuur |
 | 6 | Bluetooth-thermometer (7, optioneel) | De sensor staat onder **Your sensors** met een temperatuur |
 | 7 | MQTT (8) | Broker en MQTT-integratie in Home Assistant draaien; **System → Diagnostics and system log** op de E32 toont een verbinding met de broker |
@@ -39,7 +39,7 @@ klopten, ontbrekende uitleg).
 | 9 | Integratie toevoegen en E32 verbinden (10) | **E32 connected** verschijnt; de E32 **Overview** toont **Home Assistant: connected** |
 | 10 | Eerste ruimte (11.1) | De ruimte staat op de E32 en in Home Assistant, met een temperatuur |
 | 11 | Weekprogramma (11.2) | In de weekplanner **Comfort**, **Eco** en **Nacht** gezet, een dag gekopieerd en opgeslagen |
-| 12 | Huismodus en aanwezigheid (11.5) | **Configure → Home → Presence** ingesteld; de keuzelijst **House mode** werkt |
+| 12 | Huismodus en aanwezigheid (11.5) | **Configure → House → Presence and away temperature** ingesteld; de keuzelijst **House mode** werkt |
 | 13 | Raamcontact (11.5, optioneel) | Raam open langer dan de vertraging: de ruimte pauzeert; dicht: hij gaat verder |
 | 14 | Controle (11.6) | Het OpenThermostat-dashboard toont de ruimtes; **Heating problem** staat uit |
 | 15 | Update via Home Assistant (13.3) | Bij een nieuwe release installeert de **Firmware**-entiteit hem zonder hulp |

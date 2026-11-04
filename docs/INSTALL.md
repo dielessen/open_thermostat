@@ -1115,7 +1115,7 @@ While the E32 still works on your network, you can also change Wi-Fi from
 ### I cannot sign in on the E32
 
 - The user name is always `admin`. Forgot the password? Use `password-reset`
-  over USB (section 15).
+  over USB (section 16).
 - "Four saved web sessions occupy all sign-in slots": the E32 remembers up to
   four signed-in browsers. Tick **End previous web sessions and sign in** and
   enter your password again. A sign-in ends by itself after 30 minutes

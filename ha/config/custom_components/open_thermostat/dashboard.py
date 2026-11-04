@@ -4,15 +4,17 @@ The views, built from the entity registry (renamed entity IDs are followed,
 disabled and absent entities are left out) with built-in cards, the week
 planner and, per room, the room status card (frontend/room-status-card.js):
 
-* Overview (first): the House section headed by the house card
+* Overview (first), as the owner's sketch: the house card across the top
   (custom:openthermostat-house: what the boiler does now in a band of its
   colour, today's hot water, gas and burner starts as large figures, a problem
   with its reason that leads to Repairs, and the one room that is on; the day so
   far; without a heat request and boiler activity there is no card,
   and the rooms that want heat with the boiler request and the problem tile
-  stand there instead), the house mode and the next holiday; then one status
-  card per other room: temperature against target and, in one line, why it
-  heats or not. Nothing else;
+  stand there instead); under it, side by side on a wide screen and in this
+  order on a phone, Rooms (one status card per other room: now, why it heats or
+  not, what it does in a word), Today (when each room warms up and how yesterday
+  went, what weather compensation asks) and House (home or away, the holiday
+  planner, the outdoor temperature, the next holiday). Nothing else;
 * Rooms: per room its thermostat, 24-hour graph, sensors, windows and people,
   and what it learned for that room; then the sensors that feed no single room;
 * Week program (with an E32 room plan): the visual week planner card;
@@ -165,10 +167,15 @@ ICONS = {"flow": "mdi:thermometer-chevron-up", "return": "mdi:thermometer-chevro
          "boiler": "mdi:water-boiler", "now": "mdi:water-boiler", "week": "mdi:chart-bar",
          "history": "mdi:chart-line", "settings": "mdi:cog-outline", "yesterday": "mdi:scoreboard-outline",
          "thermostat": "mdi:thermostat", "knowledge": "mdi:home-analytics", "curve": "mdi:chart-bell-curve-cumulative",
-         "insight": "mdi:information-outline", "free_heat": "mdi:weather-sunny"}
+         "insight": "mdi:information-outline", "free_heat": "mdi:weather-sunny",
+         # rc.5 (P18, the owner's sketch of the Overview): Today with its two lines, and the House card's rows.
+         "today": "mdi:calendar-today", "warm_up": "mdi:clock-outline", "weather": "mdi:sun-thermometer",
+         "house_mode": "mdi:home-account", "holiday": "mdi:calendar-month-outline"}
 # The sketch's coloured icons in a markdown line (_icon), in the colours of Home Assistant's default theme: heating
 # (--state-climate-heat-color, deep orange), information (--info-color) and the sun (--amber-color).
-ICON_COLOURS = {"heating": "#ff6f22", "insight": "#039be5", "free_heat": "#ffc107"}
+ICON_COLOURS = {"heating": "#ff6f22", "insight": "#039be5", "free_heat": "#ffc107",
+                # rc.5 (P18): the Overview's Today, blue as in the sketch (information: --info-color).
+                "warm_up": "#039be5", "weather": "#039be5"}
 TEXT = {
     "en": {
         "heating": "Heating", "boiler_view": "Boiler", "diagnostics": "Diagnostics",
@@ -339,8 +346,21 @@ TEXT = {
         "curve_title": "Water temperature by outdoor temperature", "noticed": "Noticed",
         "noticed_note": "Yesterday is compared with your house's own usual days; that is information and changes nothing.",
         "free_heat": "Free heat",
-        # rc.5 (P11): the Overview's rooms beside the one room the house card shows.
-        "other_rooms": "Other rooms",
+        # rc.5 (P18): the Overview's Today (when each room warms up, what weather compensation asks) and House rows.
+        "today": "Today", "home_or_away": "Home or away", "holiday": "Holiday", "plan": "Plan",
+        "when_today": "Today", "when_tomorrow": "Tomorrow", "when_date": "On {date}",
+        "warm_up_at": "{when} {room} warms up from **{start}** to be {target} °C at **{time}**.",
+        "warm_up_now": "{room} is warming up now to be {target} °C at **{time}**.",
+        "warm_up_from": "{when} {room} starts warming up at **{start}**.",
+        "warm_up_off": "{when} {room} starts heating at **{time}** for {target} °C (Smart warm-up is off).",
+        "arrived_late": "Yesterday it was warm {m} minutes late.", "arrived_late_one": "Yesterday it was warm 1 minute late.",
+        "arrived_early": "Yesterday it was warm {m} minutes early.",
+        "arrived_early_one": "Yesterday it was warm 1 minute early.", "arrived_on_time": "Yesterday it was warm on time.",
+        "weather_outside": "Outside {outdoor} °C", "weather_asks": "weather compensation asks for {flow} °C water",
+        "weather_off": "weather compensation is off; it would ask for {flow} °C water",
+        "line_standard": "standard line", "line_house": "line estimated from your house",
+        "line_learned": "line learned for your house", "line_follows": "the learned line follows after {m} steady periods",
+        "line_follows_n": "the learned line follows after {m} steady periods, {n} of {m} so far",
     },
     "nl": {
         "heating": "Verwarming", "boiler_view": "Ketel", "diagnostics": "Diagnose",
@@ -512,7 +532,21 @@ TEXT = {
         "noticed_note": "Gisteren wordt vergeleken met de gewone dagen van je eigen huis; dat is informatie en verandert "
                         "niets.",
         "free_heat": "Gratis warmte",
-        "other_rooms": "Overige ruimtes",
+        "today": "Vandaag", "home_or_away": "Thuis of weg", "holiday": "Vakantie", "plan": "Plannen",
+        "when_today": "Vandaag", "when_tomorrow": "Morgen", "when_date": "Op {date}",
+        "warm_up_at": "{when} warmt {room} vanaf **{start}** op om **{time}** op {target} °C te zijn.",
+        "warm_up_now": "{room} warmt nu op om **{time}** op {target} °C te zijn.",
+        "warm_up_from": "{when} begint {room} om **{start}** met opwarmen.",
+        "warm_up_off": "{when} begint {room} om **{time}** met verwarmen naar {target} °C (Slim opwarmen staat uit).",
+        "arrived_late": "Gisteren was het {m} minuten te laat warm.",
+        "arrived_late_one": "Gisteren was het 1 minuut te laat warm.",
+        "arrived_early": "Gisteren was het {m} minuten te vroeg warm.",
+        "arrived_early_one": "Gisteren was het 1 minuut te vroeg warm.", "arrived_on_time": "Gisteren was het op tijd warm.",
+        "weather_outside": "Buiten {outdoor} °C", "weather_asks": "weerafhankelijke regeling vraagt {flow} °C water",
+        "weather_off": "weerafhankelijke regeling staat uit; die zou {flow} °C water vragen",
+        "line_standard": "standaardlijn", "line_house": "lijn geschat uit je huis", "line_learned": "lijn geleerd voor je huis",
+        "line_follows": "de geleerde lijn volgt na {m} rustige periodes",
+        "line_follows_n": "de geleerde lijn volgt na {m} rustige periodes, nu {n} van {m}",
     },
     # Polish: the terms of translations/pl.json and docs/UX-GLOSSARY.md; E32 page names stay English.
     "pl": {
@@ -686,7 +720,21 @@ TEXT = {
         "noticed_note": "Wczoraj jest porównywane ze zwykłymi dniami Twojego domu; to tylko informacja i niczego nie "
                         "zmienia.",
         "free_heat": "Darmowe ciepło",
-        "other_rooms": "Pozostałe pomieszczenia",
+        # The room name before a colon, so the sentence fits any name (docs/UX-GLOSSARY.md, Room).
+        "today": "Dziś", "home_or_away": "W domu czy poza domem", "holiday": "Urlop", "plan": "Zaplanuj",
+        "when_today": "dziś", "when_tomorrow": "jutro", "when_date": "{date}",
+        "warm_up_at": "{room}: {when} nagrzewanie od **{start}**, aby o **{time}** było {target} °C.",
+        "warm_up_now": "{room}: nagrzewanie trwa, aby o **{time}** było {target} °C.",
+        "warm_up_from": "{room}: {when} nagrzewanie od **{start}**.",
+        "warm_up_off": "{room}: {when} grzanie od **{time}** do {target} °C (Inteligentne nagrzewanie wyłączone).",
+        "arrived_late": "Wczoraj ciepło {m} min za późno.", "arrived_late_one": "Wczoraj ciepło 1 min za późno.",
+        "arrived_early": "Wczoraj ciepło {m} min za wcześnie.", "arrived_early_one": "Wczoraj ciepło 1 min za wcześnie.",
+        "arrived_on_time": "Wczoraj ciepło na czas.",
+        "weather_outside": "Na zewnątrz {outdoor} °C", "weather_asks": "kompensacja pogodowa zadaje {flow} °C wody",
+        "weather_off": "kompensacja pogodowa jest wyłączona; zadałaby {flow} °C wody",
+        "line_standard": "linia standardowa", "line_house": "linia oszacowana na podstawie Twojego domu",
+        "line_learned": "linia wyuczona dla Twojego domu", "line_follows": "wyuczona linia po {m} stabilnych okresach",
+        "line_follows_n": "wyuczona linia po {m} stabilnych okresach, na razie {n} z {m}",
     },
 }
 
@@ -1321,6 +1369,157 @@ def _holiday_card(t, select):
         + "{% endif %}{% endif %}")}
 
 
+# -- rc.5 (P18): the Overview as the owner's sketch: Today and the House rows -------------------------------------------
+
+
+def _clock(moment):
+    """A Jinja expression: the local datetime ``moment`` as a time of day, 6:10 (no leading zero, as in the sketch)."""
+    return "(" + moment + ".hour ~ ':' ~ ('%02d' % " + moment + ".minute))"
+
+
+def _degrees(t, value):
+    """A Jinja expression: a temperature as a target is set, 21 or 20.5, with the language's decimal sign."""
+    return ("((" + value + " | int) ~ '' if " + value + " == (" + value + " | int) else (('%.1f' % " + value
+            + ") | replace('.', " + json.dumps(t["decimal"]) + ")))")
+
+
+def _when(t, days, moment):
+    """A Jinja expression: "Today", "Tomorrow" or "On 7 Nov" for ``moment``, ``days`` days from today."""
+    months = json.dumps(t["months"].split(","), ensure_ascii=False)
+    date = _jinja_text(t["when_date"], date=moment + ".day ~ ' ' ~ " + months + "[" + moment + ".month - 1]")
+    return ("(" + json.dumps(t["when_today"], ensure_ascii=False) + " if " + days + " == 0 else "
+            + json.dumps(t["when_tomorrow"], ensure_ascii=False) + " if " + days + " == 1 else (" + date + "))")
+
+
+def _warm_up_line(t, name, start, state=None, warm=None, smart=None):
+    """One line of Today for a room that is switched on: when it warms up and for what ("Tomorrow Living room warms
+    up from 6:10 to be 20.5 °C at 7:00."), then how yesterday's warm-up turned out ("Yesterday it was warm 4 minutes
+    early.").
+
+    From the room's "Heating starts" sensor (heating_link.RoomHeatingStartSensor: its state the start the E32 plans,
+    its attributes the program step it plans for, switch_at and target_c, and start_now) and its "Warm on time"
+    (scoreboard.py: yesterday, minutes after the switch time; negative: early). With Smart warm-up switched off the
+    heating starts at the program time, so the line says that. Nothing while the start is unknown (no step up within
+    24 hours) or the room is off (``state``, its on/off select); _today_section shows the card on the same terms.
+    """
+    q, room = json.dumps(start), json.dumps(name, ensure_ascii=False)
+    on = " and not is_state(" + json.dumps(state) + ", 'inactive')" if state else ""
+    off = "is_state(" + json.dumps(smart) + ", 'off')" if smart else "false"
+    step = {"room": room, "time": _clock("w"), "target": _degrees(t, "g")}
+    # b: the planned start, w: the program step's time and g its temperature (local), d: days from today.
+    line = ("{% set s = states(" + q + ") %}"
+            "{% set b = as_datetime(s, none) if s not in ['unknown', 'unavailable'] else none %}"
+            "{% if b is not none" + on + " %}{% set b = as_local(b) %}{% set at = state_attr(" + q + ", 'switch_at') %}"
+            "{% set w = as_datetime(at, none) if at else none %}{% set w = as_local(w) if w is not none else none %}"
+            "{% set g = state_attr(" + q + ", 'target_c') %}{% set d = (b.date() - now().date()).days %}"
+            + _icon("warm_up") + " {% if w is not none and g is number %}"
+            # Smart warm-up off: heating starts at the program time (the day of that time).
+            "{% if " + off + " %}{% set d = (w.date() - now().date()).days %}"
+            "{{ " + _jinja_text(t["warm_up_off"], when=_when(t, "d", "w"), **step) + " }}"
+            # The start has come (or the E32 says it started): warming up now.
+            "{% elif state_attr(" + q + ", 'start_now') == true or b <= now() %}"
+            "{{ " + _jinja_text(t["warm_up_now"], **step) + " }}"
+            "{% else %}{{ " + _jinja_text(t["warm_up_at"], when=_when(t, "d", "b"), start=_clock("b"), **step) + " }}"
+            "{% endif %}"
+            # An E32 before rc.2 names no program step: the start alone.
+            "{% else %}{{ " + _jinja_text(t["warm_up_from"], when=_when(t, "d", "b"), room=room, start=_clock("b")) + " }}"
+            "{% endif %}")
+    if warm:  # yesterday's warm-up: minutes late, early or on time
+        line += ("{% set m = states(" + json.dumps(warm) + ") %}"
+                 "{% if is_number(m) %}{% set m = m | float | round(0) | int %} "
+                 "{% if m > 1 %}{{ " + _jinja_text(t["arrived_late"], m="m") + " }}"
+                 "{% elif m == 1 %}" + t["arrived_late_one"]
+                 + "{% elif m < -1 %}{{ " + _jinja_text(t["arrived_early"], m="-m") + " }}"
+                 "{% elif m == -1 %}" + t["arrived_early_one"]
+                 + "{% else %}" + t["arrived_on_time"] + "{% endif %}{% endif %}")
+    return line + "\n\n{% endif %}"
+
+
+def _weather_line(t, curve):
+    """The line of Today on weather compensation: "Outside 9 °C: weather compensation asks for 30 °C water, standard
+    line (the learned line follows after 6 steady periods)." From "Water temperature by weather compensation"
+    (e32_flow.py): its attributes flow_c (what it asks, °C) and outdoor_c (the outdoor temperature the E32 uses, °C),
+    state (applied, or advice while weather compensation is switched off), slope_source (design: the standard line,
+    house: worked out from the house, learned) and windows (the steady periods seen so far; the E32 uses the learned
+    line from 6). There whenever the sensor has a value; without an outdoor temperature it starts with what it asks.
+    """
+    from .learned_overview import CURVE_STEPS
+    q, steps = json.dumps(curve), str(CURVE_STEPS)
+    outside = _jinja_text(t["weather_outside"], outdoor="o | round(0) | int")
+    main = ("(" + _jinja_text(t["weather_off"], flow="f") + ") if advice else ("
+            + _jinja_text(t["weather_asks"], flow="f") + ")")
+    lines = json.dumps({"design": t["line_standard"], "house": t["line_house"], "learned": t["line_learned"]},
+                       ensure_ascii=False)
+    follows = ("(" + _jinja_text(t["line_follows_n"], m=steps, n="[n, " + steps + "] | min") + ")"
+               " if n is number and n > 0 else (" + _jinja_text(t["line_follows"], m=steps) + ")")
+    return ("{% set f = state_attr(" + q + ", 'flow_c') %}{% if f is number %}{% set f = f | round(0) | int %}"
+            "{% set o = state_attr(" + q + ", 'outdoor_c') %}{% set n = state_attr(" + q + ", 'windows') %}"
+            "{% set src = state_attr(" + q + ", 'slope_source') %}"
+            "{% set advice = state_attr(" + q + ", 'state') == 'advice' %}"
+            "{% set main = " + main + " %}" + _icon("weather") + " "
+            # Without an outdoor temperature the sentence starts with what it asks, from a capital.
+            "{% if o is number %}{{ " + outside + " }}: {{ main }}{% else %}{{ main[:1] | upper }}{{ main[1:] }}{% endif %}"
+            "{% if not advice and src in " + json.dumps(["design", "house", "learned"]) + " %}, {{ " + lines + "[src] }}"
+            "{% if src != 'learned' %} ({{ " + follows + " }}){% endif %}{% endif %}.{% endif %}")
+
+
+def _today_section(t, rooms, curve=None, smart=None):
+    """Today (rc.5, the owner's sketch), on the Overview: per room that is switched on, when it warms up and how
+    yesterday went (_warm_up_line), then what weather compensation asks now (_weather_line), in one card.
+
+    rooms: [(name, "Heating starts" sensor, the room's on/off select or None, "Warm on time" or None)]; curve: "Water
+    temperature by weather compensation" or None; smart: the Smart warm-up switch or None. The card and its section
+    show while one of its lines has its value (the start known and the room on, or the curve known), so a heading
+    never stands over nothing; the text follows the sensors without a rebuild. None without any of them.
+    """
+    shown, content = [], ""
+    for name, start, state, warm in rooms:
+        content += _warm_up_line(t, name, start, state, warm, smart)
+        on = [{"condition": "state", "entity": state, "state_not": "inactive"}] if state else []
+        shown.append({"condition": "and", "conditions": _known(start) + on})
+    if curve:
+        content += _weather_line(t, curve)
+        shown.append({"condition": "and", "conditions": _known(curve)})
+    if not shown:
+        return None
+    visibility = [{"condition": "or", "conditions": shown}]
+    section = _section(_heading(t["today"], ICONS["today"]), {"type": "markdown", "content": content,
+                                                               "visibility": visibility})
+    section["visibility"] = visibility
+    return section
+
+
+def _house_rows(t, select, outdoor, planner):
+    """House (rc.5, the owner's sketch) in rows: "Home or away" with the house mode (a tap opens it, to switch), "Holiday"
+    with "Plan", which leads to the holiday planner (Configure → House → House mode and holiday, on the integration's
+    page: ``planner``), and "Outside" with the outdoor temperature (a sensor, or a weather entity's own row). Each row
+    shows while its entity has a value, the card while one of them does; None without both."""
+    rows = []
+    if select:
+        rows += [{"type": "conditional", "conditions": _known(select), "row": {
+                     "type": "simple-entity", "entity": select, "name": t["home_or_away"], "icon": ICONS["house_mode"]}},
+                 {"type": "conditional", "conditions": _known(select), "row": {
+                     "type": "button", "name": t["holiday"], "icon": ICONS["holiday"], "action_name": t["plan"],
+                     "tap_action": {"action": "navigate", "navigation_path": planner}}}]
+    if outdoor:
+        rows.append({"type": "conditional", "conditions": _known(outdoor), "row": {"entity": outdoor, "name": t["outdoor"]}})
+    if not rows:
+        return None
+    return {"type": "entities", "entities": rows, "visibility": _any_known([e for e in (select, outdoor) if e])}
+
+
+def _shown_while_one_is(section, cards):
+    """``section``, hidden while none of ``cards`` shows; None when none can (a markdown card that may render empty
+    keeps no section). A card without a visibility of its own always shows: then the section needs none."""
+    cards = [card for card in cards if card and not (card["type"] == "markdown" and card.get("show_empty") is False)]
+    if not cards:
+        return None
+    if all(card.get("visibility") for card in cards):
+        section["visibility"] = [{"condition": "or", "conditions": [
+            {"condition": "and", "conditions": card["visibility"]} for card in cards]}]
+    return section
+
+
 def _split(text):
     """(first sentence, the rest) of a note; the rest is "" for a note of one sentence."""
     parts = re.split(r"(?<=[.!?])\s+(?=\S)", text.strip(), maxsplit=1)
@@ -1519,7 +1718,9 @@ class RoomDashboard:
         if device_id in self._device_ids:
             return True
         device = dr.async_get(self.hass).async_get(device_id) if type(device_id) is str else None
-        return device is not None and self.entry_id in device.config_entries
+        # A device belongs to one config entry (Core 2026.10, the minimum): DeviceEntry.config_entries is a deprecated
+        # shim there; every read of it logs a deprecation warning, and it stops working in Core 2027.10.
+        return device is not None and device.config_entry_id == self.entry_id
 
     @staticmethod
     @callback
@@ -1763,11 +1964,9 @@ class RoomDashboard:
         comparison = parts["comparison"]
         return {
             "views": [
-                # 1. Overview: the house, the problem (only while there is one) and one card per room.
-                # Its sections span both columns and stack: a short House section never sits beside the
-                # long Rooms section with empty space under it.
-                *([view(t["overview"], "heating",
-                        [{**section, "column_span": 2} for section in parts["overview"]])] if parts["overview"] else []),
+                # 1. Overview (rc.5, the owner's sketch): the house card across the whole width, under it Rooms,
+                # Today and House side by side in three columns on a wide screen, under each other on a phone.
+                *([view(t["overview"], "heating", parts["overview"], columns=3)] if parts["overview"] else []),
                 # 2. Rooms: thermostat, the day, sensors, windows, people and what it learned, per room.
                 *([view(t["rooms"], "rooms", parts["rooms"])] if parts["rooms"] else []),
                 *([{
@@ -1814,12 +2013,13 @@ class RoomDashboard:
     def _heating_sections(self, t, entries, hub, fields, essential, registry, e32_rooms, legacy):
         """The sections of the views that come from the E32's heating: {overview, rooms, learning, comparison}.
 
-        Overview: the house (mode, rooms that want heat and the boiler request, the problem with its reason, only
-        while there is one) and one status card per room. Rooms: one section per room (thermostat, its day, sensors,
-        windows and people, what it learned), then the sensors that feed no single room. Learning, as the owner's
-        sketch: what the E32 knows, your boiler, water temperature by outdoor temperature, yesterday in figures, what
-        stood out, the free heat, Smart warm-up and Weather compensation; then what it learned (and how) and who
-        controls the boiler (the burner as information and the takeover check). The Boiler view is _boiler_sections.
+        Overview: the house card (what the boiler does, today, the problem with its reason while there is one), one
+        status card per room, Today and House (home or away, holidays, outside). Rooms: one section per room
+        (thermostat, its day, sensors, windows and people, what it learned), then the sensors that feed no single
+        room. Learning, as the owner's sketch: what the E32 knows, your boiler, water temperature by outdoor
+        temperature, yesterday in figures, what stood out, the free heat, Smart warm-up and Weather compensation; then
+        what it learned (and how) and who controls the boiler (the burner as information and the takeover check). The
+        Boiler view is _boiler_sections.
 
         The comparison with the thermostat on the boiler bus means something only in the trial run
         and only while such a thermostat is heard: the Comparison subview exists only in the trial
@@ -1844,8 +2044,9 @@ class RoomDashboard:
         # problem first, with its reason, a tap to Repairs and all reasons inside), today in figures and the day so
         # far, read from Home Assistant alone. It replaces the rooms-that-want-heat card and the problem tile with its
         # reasons, which stay as before only without a heat request and boiler activity (then there is no card). A
-        # house with exactly one room switched on shows that room in the card (its Reason sensor), the others under
-        # "Other rooms"; _signature follows the rooms' state, so switching a room on or off rebuilds the dashboard.
+        # house with exactly one room switched on shows that room in the card (its Reason sensor) as a summary; as the
+        # owner's sketch, every room keeps its status card under Rooms, the rooms that are on first (rc.5, P18).
+        # _signature follows the rooms' state, so switching a room on or off rebuilds the dashboard.
         from .room_overview import HOUSE_CARD_TYPE
         activity = hub.get("boiler_activity")
         reported = heating_hub.rooms if heating_hub is not None else {}
@@ -1872,16 +2073,14 @@ class RoomDashboard:
                 "<details><summary>" + t["problem_more"] + "</summary>\n\n{% for reason in state_attr("
                 + json.dumps(problem) + ", 'reasons') or [] %}- {{ reason }}\n{% endfor %}\n\n</details>")}
             if problem else None)
-        house = _section(
-            _heading(t["house"], ICONS["house"]),  # one icon per concept (dashboard-spec §1)
-            house_card,
-            # Named: without a name the tile showed the device name, cut short on a phone. Under the card, across the
-            # view as the card is (half of it would stand alone in its row on a wide screen).
-            _full(_tile(house_mode, t["house_mode"], "mdi:home-account", features=[{"type": "select-options"}],
-                        color="teal")),
-            # rc.4: the next holiday, only while one is planned.
-            _full(_holiday_card(t, house_mode)),
-            *before)
+        # rc.5 (P18, the owner's sketch): the house card alone across the top, without a heading (it says what it is),
+        # or, without a card, what it replaces; then Rooms, Today and House, one column each: beside each other on a
+        # wide screen (the Overview has three columns), in that order on a phone. The top spans every column, so its
+        # cards are "full" (Home Assistant gives such a section 12 grid columns per view column: 12 would be a part).
+        top = _section(house_card, *(_full(card) for card in before))
+        top = _shown_while_one_is(top, top["cards"])
+        if top is not None:
+            top["column_span"] = 3
         from .e32_comfort import room_contacts, room_persons
         entry = self.hass.config_entries.async_get_entry(self.entry_id)
         ble = self._e32_ble(entries)
@@ -1893,18 +2092,39 @@ class RoomDashboard:
                     in_room[source["id"]] = None if source["id"] in in_room else room_id
         names = {room_id: self._room_name(room_id, heating_hub, label) for room_id in e32_room_entities}
         room_cards = []
-        for room_id, room in e32_room_entities.items():
-            if room_id == inline:  # rc.5 (P11): inside the house card
-                continue
+        # rc.5 (P18, the owner's sketch): every room under Rooms, also the one the house card shows (the card is its
+        # summary; the status card its line, its chips and the tap to its history); the rooms that are on first.
+        for room_id in [*switched_on, *(room_id for room_id in e32_room_entities if room_id not in switched_on)]:
+            room = e32_room_entities[room_id]
             if room.get("reason"):
-                room_cards.append({"type": ROOM_STATUS_CARD_TYPE, "entity": room["reason"], "name": names[room_id]})
+                # rc.5 (P18): its chips "Smart warm-up on" (the switch) and at home, away or on holiday (the house mode).
+                room_cards.append({"type": ROOM_STATUS_CARD_TYPE, "entity": room["reason"], "name": names[room_id],
+                                   **{key: value for key, value in (("smart", flow.get("apply_learned")),
+                                                                    ("mode", house_mode)) if value}})
             else:  # a registry without the Reason sensor (older integration): the temperature at least
                 room_cards.append(_wide(_tile(room.get("temperature") or room.get("setpoint"), names[room_id],
                                               "mdi:home-thermometer-outline")))
-        overview = [section for section in (
-            house if len(house["cards"]) > 1 else None,
-            _section(_heading(t["other_rooms"] if inline else t["rooms"], "mdi:thermostat"), *room_cards)
-            if any(room_cards) else None) if section]
+        # Today: when each room that is on warms up next, and what weather compensation asks now.
+        today = _today_section(t, [(names[room_id], room["heating_start"], room.get("state"), room.get("warm_on_time"))
+                                   for room_id, room in e32_room_entities.items() if room.get("heating_start")],
+                               flow.get("curve"), flow.get("apply_learned"))
+        # House: home or away, the holiday planner and the outdoor temperature (the one set under Energy and outdoor
+        # temperature, else the boiler's own), with the next holiday under it while one is planned (rc.4).
+        from .energy_input import CONF_OUTDOOR, energy_options
+        outdoor = energy_options(entry).get(CONF_OUTDOOR) if entry is not None else None
+        if type(outdoor) is not str or outdoor.split(".")[0] not in ("sensor", "weather"):
+            outdoor = fields.get("outdoor_temperature") or hub.get("outdoor_temperature")
+        house = _section(_heading(t["house"], ICONS["house"]),  # one icon per concept (dashboard-spec §1)
+                         _house_rows(t, house_mode, outdoor, "/config/integrations/integration/" + DOMAIN),
+                         _holiday_card(t, house_mode))
+        house = _shown_while_one_is(house, house["cards"][1:])
+        rooms_section = _section(_heading(t["rooms"], "mdi:thermostat"), *room_cards) if any(room_cards) else None
+        if rooms_section is not None and today and house:
+            # Two rows high: where Home Assistant has room for two columns only (1280 px with its sidebar open), Today and
+            # House stand on top of each other beside the rooms instead of House under them; three columns side by side,
+            # and a phone in order, are the same as without it.
+            rooms_section["row_span"] = 2
+        overview = [section for section in (top, rooms_section, today, house) if section]
 
         # -- Rooms ---------------------------------------------------------------------------------
         learned_overview = hub.get("learned_overview")

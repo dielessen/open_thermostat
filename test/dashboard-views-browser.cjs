@@ -1,7 +1,8 @@
 // The generated OpenThermostat dashboard laid out like Home Assistant's sections view (12-column sections, tiles 6 wide,
 // sections placed with their column and row spans), at phone and desktop width: every row of every section is full,
-// nothing scrolls sideways, each section starts with its heading, and the Learning view stands in the columns of the
-// owner's sketch (rc.5). Cards are wireframes (their type and name), the structure and the words are the generated config
+// nothing scrolls sideways, each section starts with its heading (but the house card, alone on top of the Overview),
+// and the Overview and the Learning view stand in the columns of the owner's sketch (rc.5). Cards are wireframes (their
+// type and name), the structure and the words are the generated config
 // (test/fixtures/ha-dashboard-views.json, kept current by ha/tests_native/test_dashboard_layout.py). No HA, no device.
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
@@ -9,7 +10,7 @@ const root=path.resolve(__dirname,'..');
 const config=JSON.parse(fs.readFileSync(path.join(root,'test/fixtures/ha-dashboard-views.json'),'utf8'));
 const out=path.resolve(process.env.OPENTHERMOSTAT_DASHBOARD_VIEWS_EVIDENCE||path.join(root,'out/ha-dashboard-views-20261103'));
 const HEIGHT={heading:40,tile:64,thermostat:300,'history-graph':200,'statistics-graph':200,markdown:90,entities:150,glance:90,button:56,
- 'custom:openthermostat-room-status':150,'custom:openthermostat-e32-week':400,'custom:openthermostat-house':330,
+ 'custom:openthermostat-room-status':120,'custom:openthermostat-e32-week':400,'custom:openthermostat-house':330,
  'custom:openthermostat-yesterday':130,'custom:openthermostat-knowledge':200,'custom:openthermostat-heating-curve':380};
 const label=card=>card.heading||card.name||card.title||card.entity||(card.content||'').replace(/<[^>]+>|\{[%{#][^}]*[%}#]\}/g,' ').replace(/\s+/g,' ').trim().slice(0,70)||card.type;
 // Half-width by default (6 of 12 columns), as in Home Assistant's sections view; grid_options override both.
@@ -26,11 +27,15 @@ const html=(view,hidden,width)=>{
  // the sections in order on that grid, each spanning its column_span (at most the columns there are) and row_span, the
  // gaps filled where dense_section_placement says so (hui-sections-view: grid-auto-flow dense).
  const columns=Math.max(1,Math.min(view.max_columns||1,Math.floor((width-32)/320)));
- const sections=(view.sections||[]).map(section=>`<section style="grid-column:span ${Math.min(section.column_span||1,columns)};grid-row:span ${section.row_span||1}">${section.cards.filter(c=>!(hidden&&c.visibility)).map(card=>{
-  // "full": the whole section (also one spanning both view columns, which Home Assistant gives 24 grid columns).
-  const asked=card.grid_options&&card.grid_options.columns,span=asked==='full'?12:asked||(HALF.includes(card.type)?6:12);
+ // A section spans its column_span (the Overview's house card: all three columns), never more than there are, and
+ // Home Assistant gives it 12 grid columns per view column: a card that asks for 12 is then a part of it (P16's real
+ // render), "full" the whole; a card that asks nothing is drawn across it. A section's row_span rows (the Overview's
+ // Rooms: two, so Today and House stack beside it in two columns), as Home Assistant's grid-row span.
+ const sections=(view.sections||[]).map(section=>{const wide=Math.min(section.column_span||1,columns);
+  return `<section style="grid-column:span ${wide};grid-row:span ${section.row_span||1};grid-template-columns:repeat(${12*wide},minmax(0,1fr))">${section.cards.filter(c=>!(hidden&&c.visibility)).map(card=>{
+  const asked=card.grid_options&&card.grid_options.columns,span=asked==='full'?12*wide:asked||(HALF.includes(card.type)?6:12*wide);
   return `<div class="card ${card.type.replace(/[^a-z-]/g,'')}" data-span="${span}" style="grid-column:span ${span};min-height:${height(card)}px">`+
-   `<small>${card.type.replace('custom:openthermostat-','')}</small><b>${String(label(card)).replace(/</g,'&lt;')}</b>${card.visibility&&!hidden?'<i>conditional</i>':''}</div>`;}).join('')}</section>`).join('');
+   `<small>${card.type.replace('custom:openthermostat-','')}</small><b>${String(label(card)).replace(/</g,'&lt;')}</b>${card.visibility&&!hidden?'<i>conditional</i>':''}</div>`;}).join('')}</section>`;}).join('');
  return `<style>:root{--bg:#fafafa;--fg:#212121;--card:#fff;--muted:#727272;--tile:#eef5ff;--note:#fffbe8;--chart:#f1f8f1;--tag:#b26a00}
   @media (prefers-color-scheme:dark){:root{--bg:#111111;--fg:#e1e1e1;--card:#1c1c1c;--muted:#9b9b9b;--tile:#1d2a3a;--note:#2e2a1b;--chart:#1c2b1f;--tag:#e0a040}}
   body{margin:0;padding:16px;font:13px Roboto,Arial;background:var(--bg);color:var(--fg)}h1{font-size:16px;margin:0 0 12px}
@@ -50,7 +55,9 @@ const html=(view,hidden,width)=>{
    const bad=[],tolerance=2;
    document.querySelectorAll('section').forEach(section=>{
     const cards=[...section.children],box=section.getBoundingClientRect(),rows=new Map();
-    if(cards.length&&!cards[0].classList.contains('heading'))bad.push('section does not start with a heading');
+    // The house card stands alone on top of the Overview: it says what it is (rc.5, the owner's sketch).
+    const house=cards.length===1&&cards[0].classList.contains('customopenthermostat-house');
+    if(cards.length&&!cards[0].classList.contains('heading')&&!house)bad.push('section does not start with a heading');
     for(const card of cards){const r=card.getBoundingClientRect(),key=Math.round(r.top);
      // cards of one row share a top (the tallest sets the row), so group by the row they start in
      const row=[...rows.keys()].find(k=>Math.abs(k-key)<=tolerance)??key;rows.set(row,[...(rows.get(row)||[]),r]);}
@@ -59,6 +66,17 @@ const html=(view,hidden,width)=>{
    });
    if(document.documentElement.scrollWidth>innerWidth)bad.push('sideways scroll');
    return bad;});
+  // The Overview as the owner's sketch: the house card across the width, then Rooms, Today and House side by side on a
+  // wide screen and in that order under each other on a phone.
+  if(view.path==='heating'&&!hidden){
+   const boxes=await page.evaluate(()=>[...document.querySelectorAll('section')].map(s=>{const r=s.getBoundingClientRect();
+    return {left:r.left,top:r.top,width:r.width,bottom:r.bottom,heading:(s.querySelector('.heading b')||{}).textContent||null};}));
+   const view=await page.evaluate(()=>document.querySelector('.view').getBoundingClientRect().width);
+   if(boxes.length!==4||boxes[0].heading!==null||Math.abs(boxes[0].width-view)>1)found.push('the house card is not alone across the top');
+   else if(width>=1280&&!(boxes.slice(1).every(b=>Math.abs(b.top-boxes[1].top)<=1)&&boxes[1].left<boxes[2].left&&boxes[2].left<boxes[3].left))
+    found.push('Rooms, Today and House are not side by side');
+   else if(width<1280&&!boxes.every((b,i)=>i===0||b.top>=boxes[i-1].bottom))found.push('the sections are not under each other in order');
+  }
   // The Learning view as the owner's sketch (rc.5): on a wide screen two columns, the curve (section 2) with what stood
   // out (4) and the free heat (5) under it in one, your boiler (1), yesterday (3, two rows) and the settings (6) in the
   // other; the ring (0), first on a phone, above the curve. On a phone one column, in order.

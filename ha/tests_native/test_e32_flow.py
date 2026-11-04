@@ -248,7 +248,8 @@ def test_sensors_follow_the_summary_and_stay_few():
     assert (curve.native_value, learned.native_value, rule.native_value) == (41, None, 38)
     # E32 rc.5: also what the heating-curve card draws (here without an E32 plan, flow options or rooms: a 20 °C room;
     # firmware before rc.5 publishes no line value or design flow), in °C.
-    assert curve.extra_state_attributes == {"state": "applied", "slope": 0.67, "slope_source": "design", "design_flow_c": None,
+    assert curve.extra_state_attributes == {"state": "applied", "slope": 0.67, "slope_source": "design", "windows": None,
+                                            "design_flow_c": None,
                                             "standard_slope": None, "room_c": 20, "outdoor_c": None, "minimum_flow_c": None,
                                             "maximum_flow_c": None, "base_c": None, "flow_c": 41}
     assert learned.extra_state_attributes == {"state": "not_ready"} and rule.extra_state_attributes is None

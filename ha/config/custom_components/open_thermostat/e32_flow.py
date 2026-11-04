@@ -49,7 +49,8 @@ temperature the E32 uses now, the water temperature limits (the plan's, the
 highest also within the boiler's own maximum, as FlowPolicy's cap), the line's
 own value now (``curve.base_c``) and what weather compensation asks with the
 room correction (``curve.flow_c``), next to the curve's slope and where it comes
-from (standard, learned, or worked out from the house).
+from (standard, learned, or worked out from the house) and the steady periods
+it learned from so far (``curve.windows``).
 """
 from __future__ import annotations
 
@@ -575,7 +576,11 @@ class FlowTemperatureSensor(FlowSummarySensor):
             return None
         attributes = {"state": _text(block, "state")}
         if self.block == "curve":
-            attributes.update(slope=number(block.get("slope"), 0, 10), slope_source=_text(block, "slope_source"))
+            # windows (E32 rc.3): the steady periods seen so far; the E32 uses the learned line from 6 (the Overview's
+            # Today says so, dashboard._weather_line).
+            windows = block.get("windows")
+            attributes.update(slope=number(block.get("slope"), 0, 10), slope_source=_text(block, "slope_source"),
+                              windows=windows if type(windows) is int and windows >= 0 else None)
             attributes.update(self._chart(block))  # E32 rc.5: the heating-curve card
         return attributes
 

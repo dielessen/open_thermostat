@@ -113,14 +113,18 @@ def test_polish_weekly_summary_message():
 
 @pytest.mark.asyncio
 async def test_a_polish_home_assistant_gets_a_polish_dashboard(hass):
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
     from test_dashboard_heating import installation
     e, *_ = installation(hass, "pl")
+    product = dr.async_get(hass).async_get_device_by_identifier(("open_thermostat", "fixture"), e.entry_id)
+    er.async_get(hass).async_get_or_create("select", "open_thermostat", "fixture_house_mode", config_entry=e,
+                                           device_id=product.id, suggested_object_id="house_mode")
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     text = json.dumps(config, ensure_ascii=False)
     assert [view["title"] for view in config["views"]][:5] == [
         "Przegląd", "Pomieszczenia", "Kocioł", "Uczenie i ustawienia", "Diagnostyka"]
-    for words in ("Dom", "Żądanie do kotła", "Okres próbny", "Czujniki Bluetooth",
-                  "Czujniki Bluetooth"):
+    for words in ("Dom", "Żądanie do kotła", "Okres próbny", "Czujniki Bluetooth", "W domu czy poza domem", "Urlop",
+                  "Zaplanuj"):
         assert words in text, words
     # No English dashboard text is left (the names in it come from the registry).
     english = {value for key, value in TEXT["en"].items()

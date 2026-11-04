@@ -78,7 +78,7 @@ New TEXT keys (EN / NL / PL):
 | `who_controls` | Who controls the boiler | Wie regelt de ketel | Kto steruje kotłem |
 | `yesterday_figures` | Yesterday in figures | Gisteren in cijfers | Wczoraj w liczbach |
 | `dhw_target_short` | Hot water target | Doel warm water | Cel ciepłej wody |
-| `other_rooms` | Other rooms | Overige ruimtes | Pozostałe pomieszczenia |
+| `other_rooms` | Other rooms | Overige ruimtes | Pozostałe pomieszczenia (removed again in P18: see §2, as built) |
 
 Removed keys: `gas_per_post` (and its chart), `control` (replaced by `who_controls`), `learning_how` (folded into a
 note). `estimates_empty`: replace "The Heating page" by "The Boiler tab" (EN/NL/PL). Keep every other key (the
@@ -115,6 +115,15 @@ Section visibility: none needed (the house mode tile and the card are always bui
   rebuilds the dashboard.
 
 Phone order: House card → house mode → holiday → other rooms. Desktop: the same, both columns wide.
+
+**As built (P18, the owner's sketch of 4 Nov):** the view has `max_columns: 3`. The house card stands alone on top,
+without a heading (`column_span: 3`, the card `columns: "full"`; without a card, what it replaces stands there).
+Under it, one column each (side by side on a wide screen, in this order on a phone): **Rooms** (`t["rooms"]`: every
+room's status card, also the one inside the house card, the rooms that are on first; `other_rooms` is gone), **Today**
+(`t["today"]`: per room that is on, when it warms up next and how yesterday went, then what weather compensation asks;
+one markdown card, shown while one of its lines has a value) and **House** (`t["house"]`: an entities card with "Home
+or away" (the house mode), "Holiday" with "Plan" to the holiday planner and "Outside", then `_holiday_card`). The
+house mode tile is gone: the rows and the house card's chip carry the mode.
 
 Effort: 2.0 days (1.25 card + browser test, 0.5 generator + Python tests, 0.25 translations).
 

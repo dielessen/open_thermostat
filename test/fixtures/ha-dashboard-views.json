@@ -3,17 +3,11 @@
   "views": [
    {
     "dense_section_placement": true,
-    "max_columns": 2,
+    "max_columns": 3,
     "path": "heating",
     "sections": [
      {
       "cards": [
-       {
-        "heading": "House",
-        "heading_style": "title",
-        "icon": "mdi:home-thermometer",
-        "type": "heading"
-       },
        {
         "activity": "sensor.boiler_activity",
         "flow": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
@@ -26,6 +20,7 @@
         },
         "heating": "sensor.boiler_heating_active",
         "hot_water": "sensor.boiler_dhw_active",
+        "mode": "select.house_mode",
         "problem": "binary_sensor.heating_problem",
         "request": "sensor.fixture_hub_heat_request",
         "starts": "sensor.daily_burner_starts",
@@ -33,7 +28,7 @@
         "type": "custom:openthermostat-house"
        }
       ],
-      "column_span": 2,
+      "column_span": 3,
       "type": "grid"
      },
      {
@@ -45,26 +40,285 @@
         "type": "heading"
        },
        {
-        "entity": "sensor.fixture_e32_room_woonkamer_temperature",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:home-thermometer-outline",
+        "entity": "sensor.woonkamer_reason",
+        "mode": "select.house_mode",
         "name": "Woonkamer",
-        "type": "tile"
+        "smart": "switch.flow_apply_learned",
+        "type": "custom:openthermostat-room-status"
        },
        {
-        "entity": "sensor.fixture_e32_room_badkamer_temperature",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:home-thermometer-outline",
+        "entity": "sensor.badkamer_reason",
+        "mode": "select.house_mode",
         "name": "Badkamer",
-        "type": "tile"
+        "smart": "switch.flow_apply_learned",
+        "type": "custom:openthermostat-room-status"
        }
       ],
-      "column_span": 2,
+      "row_span": 2,
       "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Today",
+        "heading_style": "title",
+        "icon": "mdi:calendar-today",
+        "type": "heading"
+       },
+       {
+        "content": "{% set s = states(\"sensor.woonkamer_heating_start\") %}{% set b = as_datetime(s, none) if s not in ['unknown', 'unavailable'] else none %}{% if b is not none and not is_state(\"select.fixture_e32_room_woonkamer_state\", 'inactive') %}{% set b = as_local(b) %}{% set at = state_attr(\"sensor.woonkamer_heating_start\", 'switch_at') %}{% set w = as_datetime(at, none) if at else none %}{% set w = as_local(w) if w is not none else none %}{% set g = state_attr(\"sensor.woonkamer_heating_start\", 'target_c') %}{% set d = (b.date() - now().date()).days %}<font color=\"#039be5\"><ha-icon icon=\"mdi:clock-outline\"></ha-icon></font> {% if w is not none and g is number %}{% if is_state(\"switch.flow_apply_learned\", 'off') %}{% set d = (w.date() - now().date()).days %}{{ ((\"Today\" if d == 0 else \"Tomorrow\" if d == 1 else (\"On \" ~ (w.day ~ ' ' ~ [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"][w.month - 1])))) ~ \" \" ~ (\"Woonkamer\") ~ \" starts heating at **\" ~ ((w.hour ~ ':' ~ ('%02d' % w.minute))) ~ \"** for \" ~ (((g | int) ~ '' if g == (g | int) else (('%.1f' % g) | replace('.', \".\")))) ~ \" °C (Smart warm-up is off).\" }}{% elif state_attr(\"sensor.woonkamer_heating_start\", 'start_now') == true or b <= now() %}{{ (\"Woonkamer\") ~ \" is warming up now to be \" ~ (((g | int) ~ '' if g == (g | int) else (('%.1f' % g) | replace('.', \".\")))) ~ \" °C at **\" ~ ((w.hour ~ ':' ~ ('%02d' % w.minute))) ~ \"**.\" }}{% else %}{{ ((\"Today\" if d == 0 else \"Tomorrow\" if d == 1 else (\"On \" ~ (b.day ~ ' ' ~ [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"][b.month - 1])))) ~ \" \" ~ (\"Woonkamer\") ~ \" warms up from **\" ~ ((b.hour ~ ':' ~ ('%02d' % b.minute))) ~ \"** to be \" ~ (((g | int) ~ '' if g == (g | int) else (('%.1f' % g) | replace('.', \".\")))) ~ \" °C at **\" ~ ((w.hour ~ ':' ~ ('%02d' % w.minute))) ~ \"**.\" }}{% endif %}{% else %}{{ ((\"Today\" if d == 0 else \"Tomorrow\" if d == 1 else (\"On \" ~ (b.day ~ ' ' ~ [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"][b.month - 1])))) ~ \" \" ~ (\"Woonkamer\") ~ \" starts warming up at **\" ~ ((b.hour ~ ':' ~ ('%02d' % b.minute))) ~ \"**.\" }}{% endif %}{% set m = states(\"sensor.woonkamer_warm_on_time\") %}{% if is_number(m) %}{% set m = m | float | round(0) | int %} {% if m > 1 %}{{ \"Yesterday it was warm \" ~ (m) ~ \" minutes late.\" }}{% elif m == 1 %}Yesterday it was warm 1 minute late.{% elif m < -1 %}{{ \"Yesterday it was warm \" ~ (-m) ~ \" minutes early.\" }}{% elif m == -1 %}Yesterday it was warm 1 minute early.{% else %}Yesterday it was warm on time.{% endif %}{% endif %}\n\n{% endif %}{% set s = states(\"sensor.badkamer_heating_start\") %}{% set b = as_datetime(s, none) if s not in ['unknown', 'unavailable'] else none %}{% if b is not none and not is_state(\"select.fixture_e32_room_badkamer_state\", 'inactive') %}{% set b = as_local(b) %}{% set at = state_attr(\"sensor.badkamer_heating_start\", 'switch_at') %}{% set w = as_datetime(at, none) if at else none %}{% set w = as_local(w) if w is not none else none %}{% set g = state_attr(\"sensor.badkamer_heating_start\", 'target_c') %}{% set d = (b.date() - now().date()).days %}<font color=\"#039be5\"><ha-icon icon=\"mdi:clock-outline\"></ha-icon></font> {% if w is not none and g is number %}{% if is_state(\"switch.flow_apply_learned\", 'off') %}{% set d = (w.date() - now().date()).days %}{{ ((\"Today\" if d == 0 else \"Tomorrow\" if d == 1 else (\"On \" ~ (w.day ~ ' ' ~ [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"][w.month - 1])))) ~ \" \" ~ (\"Badkamer\") ~ \" starts heating at **\" ~ ((w.hour ~ ':' ~ ('%02d' % w.minute))) ~ \"** for \" ~ (((g | int) ~ '' if g == (g | int) else (('%.1f' % g) | replace('.', \".\")))) ~ \" °C (Smart warm-up is off).\" }}{% elif state_attr(\"sensor.badkamer_heating_start\", 'start_now') == true or b <= now() %}{{ (\"Badkamer\") ~ \" is warming up now to be \" ~ (((g | int) ~ '' if g == (g | int) else (('%.1f' % g) | replace('.', \".\")))) ~ \" °C at **\" ~ ((w.hour ~ ':' ~ ('%02d' % w.minute))) ~ \"**.\" }}{% else %}{{ ((\"Today\" if d == 0 else \"Tomorrow\" if d == 1 else (\"On \" ~ (b.day ~ ' ' ~ [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"][b.month - 1])))) ~ \" \" ~ (\"Badkamer\") ~ \" warms up from **\" ~ ((b.hour ~ ':' ~ ('%02d' % b.minute))) ~ \"** to be \" ~ (((g | int) ~ '' if g == (g | int) else (('%.1f' % g) | replace('.', \".\")))) ~ \" °C at **\" ~ ((w.hour ~ ':' ~ ('%02d' % w.minute))) ~ \"**.\" }}{% endif %}{% else %}{{ ((\"Today\" if d == 0 else \"Tomorrow\" if d == 1 else (\"On \" ~ (b.day ~ ' ' ~ [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"][b.month - 1])))) ~ \" \" ~ (\"Badkamer\") ~ \" starts warming up at **\" ~ ((b.hour ~ ':' ~ ('%02d' % b.minute))) ~ \"**.\" }}{% endif %}{% set m = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(m) %}{% set m = m | float | round(0) | int %} {% if m > 1 %}{{ \"Yesterday it was warm \" ~ (m) ~ \" minutes late.\" }}{% elif m == 1 %}Yesterday it was warm 1 minute late.{% elif m < -1 %}{{ \"Yesterday it was warm \" ~ (-m) ~ \" minutes early.\" }}{% elif m == -1 %}Yesterday it was warm 1 minute early.{% else %}Yesterday it was warm on time.{% endif %}{% endif %}\n\n{% endif %}{% set f = state_attr(\"sensor.flow_curve\", 'flow_c') %}{% if f is number %}{% set f = f | round(0) | int %}{% set o = state_attr(\"sensor.flow_curve\", 'outdoor_c') %}{% set n = state_attr(\"sensor.flow_curve\", 'windows') %}{% set src = state_attr(\"sensor.flow_curve\", 'slope_source') %}{% set advice = state_attr(\"sensor.flow_curve\", 'state') == 'advice' %}{% set main = (\"weather compensation is off; it would ask for \" ~ (f) ~ \" °C water\") if advice else (\"weather compensation asks for \" ~ (f) ~ \" °C water\") %}<font color=\"#039be5\"><ha-icon icon=\"mdi:sun-thermometer\"></ha-icon></font> {% if o is number %}{{ \"Outside \" ~ (o | round(0) | int) ~ \" °C\" }}: {{ main }}{% else %}{{ main[:1] | upper }}{{ main[1:] }}{% endif %}{% if not advice and src in [\"design\", \"house\", \"learned\"] %}, {{ {\"design\": \"standard line\", \"house\": \"line estimated from your house\", \"learned\": \"line learned for your house\"}[src] }}{% if src != 'learned' %} ({{ (\"the learned line follows after \" ~ (6) ~ \" steady periods, \" ~ ([n, 6] | min) ~ \" of \" ~ (6) ~ \" so far\") if n is number and n > 0 else (\"the learned line follows after \" ~ (6) ~ \" steady periods\") }}){% endif %}{% endif %}.{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "and",
+            "conditions": [
+             {
+              "condition": "state",
+              "entity": "sensor.woonkamer_heating_start",
+              "state_not": [
+               "unavailable",
+               "unknown"
+              ]
+             },
+             {
+              "condition": "state",
+              "entity": "select.fixture_e32_room_woonkamer_state",
+              "state_not": "inactive"
+             }
+            ]
+           },
+           {
+            "condition": "and",
+            "conditions": [
+             {
+              "condition": "state",
+              "entity": "sensor.badkamer_heating_start",
+              "state_not": [
+               "unavailable",
+               "unknown"
+              ]
+             },
+             {
+              "condition": "state",
+              "entity": "select.fixture_e32_room_badkamer_state",
+              "state_not": "inactive"
+             }
+            ]
+           },
+           {
+            "condition": "and",
+            "conditions": [
+             {
+              "condition": "state",
+              "entity": "sensor.flow_curve",
+              "state_not": [
+               "unavailable",
+               "unknown"
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "and",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.woonkamer_heating_start",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "select.fixture_e32_room_woonkamer_state",
+            "state_not": "inactive"
+           }
+          ]
+         },
+         {
+          "condition": "and",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.badkamer_heating_start",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "select.fixture_e32_room_badkamer_state",
+            "state_not": "inactive"
+           }
+          ]
+         },
+         {
+          "condition": "and",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.flow_curve",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "House",
+        "heading_style": "title",
+        "icon": "mdi:home-thermometer",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "select.house_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "select.house_mode",
+           "icon": "mdi:home-account",
+           "name": "Home or away",
+           "type": "simple-entity"
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "select.house_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "action_name": "Plan",
+           "icon": "mdi:calendar-month-outline",
+           "name": "Holiday",
+           "tap_action": {
+            "action": "navigate",
+            "navigation_path": "/config/integrations/integration/open_thermostat"
+           },
+           "type": "button"
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.buitentemperatuur",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.buitentemperatuur",
+           "name": "Outdoor"
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "select.house_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.buitentemperatuur",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "{% set holidays = state_attr(\"select.house_mode\", 'holidays') or [] %}{% if holidays %}{% set h = holidays[0] %}{% set months = \"Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec\".split(',') %}{% set f = as_local(as_datetime(h['from'])) %}{% set u = as_local(as_datetime(h['until'])) %}{% if f <= now() %}On holiday until {{ u.day }} {{ months[u.month - 1] }}{% else %}Holiday from {{ f.day }} {{ months[f.month - 1] }} to {{ u.day }} {{ months[u.month - 1] }}{% endif %}{% endif %}",
+        "show_empty": false,
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "and",
+          "conditions": [
+           {
+            "condition": "or",
+            "conditions": [
+             {
+              "condition": "state",
+              "entity": "select.house_mode",
+              "state_not": [
+               "unavailable",
+               "unknown"
+              ]
+             },
+             {
+              "condition": "state",
+              "entity": "sensor.buitentemperatuur",
+              "state_not": [
+               "unavailable",
+               "unknown"
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
      }
     ],
     "title": "Overview",
@@ -4318,17 +4572,11 @@
   "views": [
    {
     "dense_section_placement": true,
-    "max_columns": 2,
+    "max_columns": 3,
     "path": "heating",
     "sections": [
      {
       "cards": [
-       {
-        "heading": "Huis",
-        "heading_style": "title",
-        "icon": "mdi:home-thermometer",
-        "type": "heading"
-       },
        {
         "activity": "sensor.boiler_activity",
         "flow": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
@@ -4341,6 +4589,7 @@
         },
         "heating": "sensor.boiler_heating_active",
         "hot_water": "sensor.boiler_dhw_active",
+        "mode": "select.house_mode",
         "problem": "binary_sensor.heating_problem",
         "request": "sensor.fixture_hub_heat_request",
         "starts": "sensor.daily_burner_starts",
@@ -4348,7 +4597,7 @@
         "type": "custom:openthermostat-house"
        }
       ],
-      "column_span": 2,
+      "column_span": 3,
       "type": "grid"
      },
      {
@@ -4360,26 +4609,285 @@
         "type": "heading"
        },
        {
-        "entity": "sensor.fixture_e32_room_woonkamer_temperature",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:home-thermometer-outline",
+        "entity": "sensor.woonkamer_reason",
+        "mode": "select.house_mode",
         "name": "Woonkamer",
-        "type": "tile"
+        "smart": "switch.flow_apply_learned",
+        "type": "custom:openthermostat-room-status"
        },
        {
-        "entity": "sensor.fixture_e32_room_badkamer_temperature",
-        "grid_options": {
-         "columns": 12
-        },
-        "icon": "mdi:home-thermometer-outline",
+        "entity": "sensor.badkamer_reason",
+        "mode": "select.house_mode",
         "name": "Badkamer",
-        "type": "tile"
+        "smart": "switch.flow_apply_learned",
+        "type": "custom:openthermostat-room-status"
        }
       ],
-      "column_span": 2,
+      "row_span": 2,
       "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Vandaag",
+        "heading_style": "title",
+        "icon": "mdi:calendar-today",
+        "type": "heading"
+       },
+       {
+        "content": "{% set s = states(\"sensor.woonkamer_heating_start\") %}{% set b = as_datetime(s, none) if s not in ['unknown', 'unavailable'] else none %}{% if b is not none and not is_state(\"select.fixture_e32_room_woonkamer_state\", 'inactive') %}{% set b = as_local(b) %}{% set at = state_attr(\"sensor.woonkamer_heating_start\", 'switch_at') %}{% set w = as_datetime(at, none) if at else none %}{% set w = as_local(w) if w is not none else none %}{% set g = state_attr(\"sensor.woonkamer_heating_start\", 'target_c') %}{% set d = (b.date() - now().date()).days %}<font color=\"#039be5\"><ha-icon icon=\"mdi:clock-outline\"></ha-icon></font> {% if w is not none and g is number %}{% if is_state(\"switch.flow_apply_learned\", 'off') %}{% set d = (w.date() - now().date()).days %}{{ ((\"Vandaag\" if d == 0 else \"Morgen\" if d == 1 else (\"Op \" ~ (w.day ~ ' ' ~ [\"jan\", \"feb\", \"mrt\", \"apr\", \"mei\", \"jun\", \"jul\", \"aug\", \"sep\", \"okt\", \"nov\", \"dec\"][w.month - 1])))) ~ \" begint \" ~ (\"Woonkamer\") ~ \" om **\" ~ ((w.hour ~ ':' ~ ('%02d' % w.minute))) ~ \"** met verwarmen naar \" ~ (((g | int) ~ '' if g == (g | int) else (('%.1f' % g) | replace('.', \",\")))) ~ \" °C (Slim opwarmen staat uit).\" }}{% elif state_attr(\"sensor.woonkamer_heating_start\", 'start_now') == true or b <= now() %}{{ (\"Woonkamer\") ~ \" warmt nu op om **\" ~ ((w.hour ~ ':' ~ ('%02d' % w.minute))) ~ \"** op \" ~ (((g | int) ~ '' if g == (g | int) else (('%.1f' % g) | replace('.', \",\")))) ~ \" °C te zijn.\" }}{% else %}{{ ((\"Vandaag\" if d == 0 else \"Morgen\" if d == 1 else (\"Op \" ~ (b.day ~ ' ' ~ [\"jan\", \"feb\", \"mrt\", \"apr\", \"mei\", \"jun\", \"jul\", \"aug\", \"sep\", \"okt\", \"nov\", \"dec\"][b.month - 1])))) ~ \" warmt \" ~ (\"Woonkamer\") ~ \" vanaf **\" ~ ((b.hour ~ ':' ~ ('%02d' % b.minute))) ~ \"** op om **\" ~ ((w.hour ~ ':' ~ ('%02d' % w.minute))) ~ \"** op \" ~ (((g | int) ~ '' if g == (g | int) else (('%.1f' % g) | replace('.', \",\")))) ~ \" °C te zijn.\" }}{% endif %}{% else %}{{ ((\"Vandaag\" if d == 0 else \"Morgen\" if d == 1 else (\"Op \" ~ (b.day ~ ' ' ~ [\"jan\", \"feb\", \"mrt\", \"apr\", \"mei\", \"jun\", \"jul\", \"aug\", \"sep\", \"okt\", \"nov\", \"dec\"][b.month - 1])))) ~ \" begint \" ~ (\"Woonkamer\") ~ \" om **\" ~ ((b.hour ~ ':' ~ ('%02d' % b.minute))) ~ \"** met opwarmen.\" }}{% endif %}{% set m = states(\"sensor.woonkamer_warm_on_time\") %}{% if is_number(m) %}{% set m = m | float | round(0) | int %} {% if m > 1 %}{{ \"Gisteren was het \" ~ (m) ~ \" minuten te laat warm.\" }}{% elif m == 1 %}Gisteren was het 1 minuut te laat warm.{% elif m < -1 %}{{ \"Gisteren was het \" ~ (-m) ~ \" minuten te vroeg warm.\" }}{% elif m == -1 %}Gisteren was het 1 minuut te vroeg warm.{% else %}Gisteren was het op tijd warm.{% endif %}{% endif %}\n\n{% endif %}{% set s = states(\"sensor.badkamer_heating_start\") %}{% set b = as_datetime(s, none) if s not in ['unknown', 'unavailable'] else none %}{% if b is not none and not is_state(\"select.fixture_e32_room_badkamer_state\", 'inactive') %}{% set b = as_local(b) %}{% set at = state_attr(\"sensor.badkamer_heating_start\", 'switch_at') %}{% set w = as_datetime(at, none) if at else none %}{% set w = as_local(w) if w is not none else none %}{% set g = state_attr(\"sensor.badkamer_heating_start\", 'target_c') %}{% set d = (b.date() - now().date()).days %}<font color=\"#039be5\"><ha-icon icon=\"mdi:clock-outline\"></ha-icon></font> {% if w is not none and g is number %}{% if is_state(\"switch.flow_apply_learned\", 'off') %}{% set d = (w.date() - now().date()).days %}{{ ((\"Vandaag\" if d == 0 else \"Morgen\" if d == 1 else (\"Op \" ~ (w.day ~ ' ' ~ [\"jan\", \"feb\", \"mrt\", \"apr\", \"mei\", \"jun\", \"jul\", \"aug\", \"sep\", \"okt\", \"nov\", \"dec\"][w.month - 1])))) ~ \" begint \" ~ (\"Badkamer\") ~ \" om **\" ~ ((w.hour ~ ':' ~ ('%02d' % w.minute))) ~ \"** met verwarmen naar \" ~ (((g | int) ~ '' if g == (g | int) else (('%.1f' % g) | replace('.', \",\")))) ~ \" °C (Slim opwarmen staat uit).\" }}{% elif state_attr(\"sensor.badkamer_heating_start\", 'start_now') == true or b <= now() %}{{ (\"Badkamer\") ~ \" warmt nu op om **\" ~ ((w.hour ~ ':' ~ ('%02d' % w.minute))) ~ \"** op \" ~ (((g | int) ~ '' if g == (g | int) else (('%.1f' % g) | replace('.', \",\")))) ~ \" °C te zijn.\" }}{% else %}{{ ((\"Vandaag\" if d == 0 else \"Morgen\" if d == 1 else (\"Op \" ~ (b.day ~ ' ' ~ [\"jan\", \"feb\", \"mrt\", \"apr\", \"mei\", \"jun\", \"jul\", \"aug\", \"sep\", \"okt\", \"nov\", \"dec\"][b.month - 1])))) ~ \" warmt \" ~ (\"Badkamer\") ~ \" vanaf **\" ~ ((b.hour ~ ':' ~ ('%02d' % b.minute))) ~ \"** op om **\" ~ ((w.hour ~ ':' ~ ('%02d' % w.minute))) ~ \"** op \" ~ (((g | int) ~ '' if g == (g | int) else (('%.1f' % g) | replace('.', \",\")))) ~ \" °C te zijn.\" }}{% endif %}{% else %}{{ ((\"Vandaag\" if d == 0 else \"Morgen\" if d == 1 else (\"Op \" ~ (b.day ~ ' ' ~ [\"jan\", \"feb\", \"mrt\", \"apr\", \"mei\", \"jun\", \"jul\", \"aug\", \"sep\", \"okt\", \"nov\", \"dec\"][b.month - 1])))) ~ \" begint \" ~ (\"Badkamer\") ~ \" om **\" ~ ((b.hour ~ ':' ~ ('%02d' % b.minute))) ~ \"** met opwarmen.\" }}{% endif %}{% set m = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(m) %}{% set m = m | float | round(0) | int %} {% if m > 1 %}{{ \"Gisteren was het \" ~ (m) ~ \" minuten te laat warm.\" }}{% elif m == 1 %}Gisteren was het 1 minuut te laat warm.{% elif m < -1 %}{{ \"Gisteren was het \" ~ (-m) ~ \" minuten te vroeg warm.\" }}{% elif m == -1 %}Gisteren was het 1 minuut te vroeg warm.{% else %}Gisteren was het op tijd warm.{% endif %}{% endif %}\n\n{% endif %}{% set f = state_attr(\"sensor.flow_curve\", 'flow_c') %}{% if f is number %}{% set f = f | round(0) | int %}{% set o = state_attr(\"sensor.flow_curve\", 'outdoor_c') %}{% set n = state_attr(\"sensor.flow_curve\", 'windows') %}{% set src = state_attr(\"sensor.flow_curve\", 'slope_source') %}{% set advice = state_attr(\"sensor.flow_curve\", 'state') == 'advice' %}{% set main = (\"weerafhankelijke regeling staat uit; die zou \" ~ (f) ~ \" °C water vragen\") if advice else (\"weerafhankelijke regeling vraagt \" ~ (f) ~ \" °C water\") %}<font color=\"#039be5\"><ha-icon icon=\"mdi:sun-thermometer\"></ha-icon></font> {% if o is number %}{{ \"Buiten \" ~ (o | round(0) | int) ~ \" °C\" }}: {{ main }}{% else %}{{ main[:1] | upper }}{{ main[1:] }}{% endif %}{% if not advice and src in [\"design\", \"house\", \"learned\"] %}, {{ {\"design\": \"standaardlijn\", \"house\": \"lijn geschat uit je huis\", \"learned\": \"lijn geleerd voor je huis\"}[src] }}{% if src != 'learned' %} ({{ (\"de geleerde lijn volgt na \" ~ (6) ~ \" rustige periodes, nu \" ~ ([n, 6] | min) ~ \" van \" ~ (6)) if n is number and n > 0 else (\"de geleerde lijn volgt na \" ~ (6) ~ \" rustige periodes\") }}){% endif %}{% endif %}.{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "and",
+            "conditions": [
+             {
+              "condition": "state",
+              "entity": "sensor.woonkamer_heating_start",
+              "state_not": [
+               "unavailable",
+               "unknown"
+              ]
+             },
+             {
+              "condition": "state",
+              "entity": "select.fixture_e32_room_woonkamer_state",
+              "state_not": "inactive"
+             }
+            ]
+           },
+           {
+            "condition": "and",
+            "conditions": [
+             {
+              "condition": "state",
+              "entity": "sensor.badkamer_heating_start",
+              "state_not": [
+               "unavailable",
+               "unknown"
+              ]
+             },
+             {
+              "condition": "state",
+              "entity": "select.fixture_e32_room_badkamer_state",
+              "state_not": "inactive"
+             }
+            ]
+           },
+           {
+            "condition": "and",
+            "conditions": [
+             {
+              "condition": "state",
+              "entity": "sensor.flow_curve",
+              "state_not": [
+               "unavailable",
+               "unknown"
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "and",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.woonkamer_heating_start",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "select.fixture_e32_room_woonkamer_state",
+            "state_not": "inactive"
+           }
+          ]
+         },
+         {
+          "condition": "and",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.badkamer_heating_start",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "select.fixture_e32_room_badkamer_state",
+            "state_not": "inactive"
+           }
+          ]
+         },
+         {
+          "condition": "and",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.flow_curve",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Huis",
+        "heading_style": "title",
+        "icon": "mdi:home-thermometer",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "select.house_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "select.house_mode",
+           "icon": "mdi:home-account",
+           "name": "Thuis of weg",
+           "type": "simple-entity"
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "select.house_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "action_name": "Plannen",
+           "icon": "mdi:calendar-month-outline",
+           "name": "Vakantie",
+           "tap_action": {
+            "action": "navigate",
+            "navigation_path": "/config/integrations/integration/open_thermostat"
+           },
+           "type": "button"
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.buitentemperatuur",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.buitentemperatuur",
+           "name": "Buiten"
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "select.house_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.buitentemperatuur",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "{% set holidays = state_attr(\"select.house_mode\", 'holidays') or [] %}{% if holidays %}{% set h = holidays[0] %}{% set months = \"jan,feb,mrt,apr,mei,jun,jul,aug,sep,okt,nov,dec\".split(',') %}{% set f = as_local(as_datetime(h['from'])) %}{% set u = as_local(as_datetime(h['until'])) %}{% if f <= now() %}Op vakantie t/m {{ u.day }} {{ months[u.month - 1] }}{% else %}Vakantie vanaf {{ f.day }} {{ months[f.month - 1] }} t/m {{ u.day }} {{ months[u.month - 1] }}{% endif %}{% endif %}",
+        "show_empty": false,
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "and",
+          "conditions": [
+           {
+            "condition": "or",
+            "conditions": [
+             {
+              "condition": "state",
+              "entity": "select.house_mode",
+              "state_not": [
+               "unavailable",
+               "unknown"
+              ]
+             },
+             {
+              "condition": "state",
+              "entity": "sensor.buitentemperatuur",
+              "state_not": [
+               "unavailable",
+               "unknown"
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
      }
     ],
     "title": "Overzicht",

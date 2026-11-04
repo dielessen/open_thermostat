@@ -291,7 +291,10 @@ async def test_the_overview_names_the_next_holiday(hass):
     holidays = [{"from": dt_util.utc_from_timestamp(f).isoformat(), "until": dt_util.utc_from_timestamp(u).isoformat()}
                 for f, u in (first,)]
     hass.states.async_set(select, "auto", {"holidays": holidays})
-    render = lambda language: Template(_holiday_card(TEXT[language], select)["content"], hass).async_render()  # noqa: E731
+    # Strictly, as Home Assistant's markdown card renders it: an undefined value (the first of no holidays) is an error
+    # there, an empty box with an error logged on every render, not an empty text.
+    render = lambda language: Template(_holiday_card(TEXT[language], select)["content"], hass).async_render(  # noqa: E731
+        strict=True)
     assert render("en") == "Holiday from 20 Dec to 3 Jan"
     assert render("nl") == "Vakantie vanaf 20 dec t/m 3 jan"
     assert render("pl") == "Urlop od 20 gru do 3 sty"
@@ -323,9 +326,11 @@ async def test_the_card_sits_under_house_on_the_overview(hass):
     select = er.async_get(hass).async_get_or_create("select", "open_thermostat", "fixture_house_mode", config_entry=e,
                                                     device_id=product_device.id, suggested_object_id="house_mode").entity_id
     overview = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"][0]
-    house = overview["sections"][0]["cards"]
-    # rc.5: under the house card (which shows the house mode as a chip), the house mode tile and the holiday.
-    assert house[0]["heading"] == "House" and house[1]["type"] == "custom:openthermostat-house"
-    assert house[1]["mode"] == select and house[2]["entity"] == select
-    assert house[3]["type"] == "markdown" and house[3]["show_empty"] is False and select in house[3]["content"]
+    # rc.5: the house card on top shows the house mode as a chip; the House section (the owner's sketch: home or
+    # away, the holiday planner, outside) has the next holiday under its rows.
+    assert overview["sections"][0]["cards"][0]["type"] == "custom:openthermostat-house"
+    assert overview["sections"][0]["cards"][0]["mode"] == select
+    house = overview["sections"][-1]["cards"]
+    assert house[0]["heading"] == "House" and house[1]["entities"][0]["row"]["entity"] == select
+    assert house[2]["type"] == "markdown" and house[2]["show_empty"] is False and select in house[2]["content"]
 

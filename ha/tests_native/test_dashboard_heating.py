@@ -79,7 +79,8 @@ async def test_the_views_are_overview_rooms_boiler_learning_and_diagnostics(hass
     # The trial-run comparison is a subview, last.
     assert [v["path"] for v in config["views"]] == ["heating", "rooms", "boiler", "learned", "diagnostics", "comparison"]
     overview, rooms_view, boiler_view, learning, diagnostics, comparison = config["views"]
-    assert (overview["title"], overview["type"], overview["max_columns"]) == ("Overview", "sections", 2)
+    # rc.5 (the owner's sketch): three columns, the house card across them and Rooms, Today and House one each.
+    assert (overview["title"], overview["type"], overview["max_columns"]) == ("Overview", "sections", 3)
     assert [v["title"] for v in config["views"]] == [
         "Overview", "Rooms", "Boiler", "Learning and settings", "Diagnostics", "Comparison"]
     assert comparison["subview"] is True and comparison["back_path"] == "/" + dashboard.path + "/heating"
@@ -87,14 +88,16 @@ async def test_the_views_are_overview_rooms_boiler_learning_and_diagnostics(hass
     assert {card["type"] for view in config["views"] for card in view_cards(view)} <= BUILT_IN | {HOUSE_CARD_TYPE,
                                                                                                    BOILER_NOW_CARD_TYPE}
     assert None not in list(walk(config))
-    # Every section starts with its heading.
-    assert all(s["cards"][0]["type"] == "heading" for v in config["views"] for s in v["sections"])
+    # Every section starts with its heading, except the house card alone on top of the Overview (it says what it is).
+    assert all(s["cards"][0]["type"] == "heading" for v in config["views"] for s in v["sections"]
+               if [c["type"] for c in s["cards"]] != [HOUSE_CARD_TYPE])
 
-    # Overview: the house (the house card: what the boiler does, the rooms that want heat with the boiler request),
-    # then one card per room. Nothing else. Two rooms switched on: both have their own card.
-    assert [s["cards"][0]["heading"] for s in overview["sections"]] == ["House", "Rooms"]
+    # Overview: the house card (what the boiler does, the rooms that want heat with the boiler request), then one card
+    # per room. Nothing else here (no Today without its sensors, no House without the house mode or outside). Two
+    # rooms switched on: both have their own card.
+    assert [s["cards"][0].get("heading") for s in overview["sections"]] == [None, "Rooms"]
     house = overview["sections"][0]["cards"]
-    assert house[1]["type"] == HOUSE_CARD_TYPE and house[1]["request"] == hub["heat_request"] and "rooms" not in house[1]
+    assert house[0]["type"] == HOUSE_CARD_TYPE and house[0]["request"] == hub["heat_request"] and "rooms" not in house[0]
     assert not any(c["type"] == "markdown" and "set wanting" in c["content"] for c in view_cards(overview))
     assert len(overview["sections"][1]["cards"]) == 3  # heading and two rooms, in the E32's order
     assert not any(c["type"] in ("history-graph", "statistics-graph", "entities") for c in view_cards(overview))
@@ -574,14 +577,14 @@ async def test_the_house_card_names_the_problem_and_leads_to_the_fix_only_while_
                                          device_id=product.id, suggested_object_id="boiler_maximum").entity_id
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     overview, boiler_view = config["views"][0], config["views"][2]
-    assert [s["cards"][0]["heading"] for s in overview["sections"]] == ["House", "Rooms"]
+    assert [s["cards"][0].get("heading") for s in overview["sections"]] == [None, "Rooms"]
     # The advice belongs to the boiler, second after "Now".
     assert [s["cards"][0]["heading"] for s in boiler_view["sections"]][:2] == ["Now", "Advice"]
     assert hub["heating_advice"] not in json.dumps(overview)
     house = overview["sections"][0]["cards"]
-    assert house[1]["type"] == HOUSE_CARD_TYPE and house[1]["problem"] == hub["heating_problem"]
+    assert house[0]["type"] == HOUSE_CARD_TYPE and house[0]["problem"] == hub["heating_problem"]
     # The card reads the problem; no native tile or markdown card shows it a second time.
-    assert [c["type"] for c in house] == ["heading", HOUSE_CARD_TYPE]
+    assert [c["type"] for c in house] == [HOUSE_CARD_TYPE]
     assert [c for c in view_cards(overview) if c.get("entity") == hub["heating_problem"]] == []
     assert "'reasons'" not in json.dumps(overview)
     # The boiler's own maximum (a knob on some boilers, a menu on others) is a boiler value, in the Boiler view only.
@@ -589,7 +592,7 @@ async def test_the_house_card_names_the_problem_and_leads_to_the_fix_only_while_
     hass.config.language = "nl"
     text = json.dumps(RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config(), ensure_ascii=False)
     # "All reasons" is the card's own text now (translations, entity.sensor.heat_request.state_attributes.card).
-    assert '"Huis"' in text and '"Overzicht"' in text and "Alle redenen" not in text
+    assert '"Ruimtes"' in text and '"Overzicht"' in text and "Alle redenen" not in text
 
 
 @pytest.mark.asyncio
@@ -622,6 +625,10 @@ async def test_registry_events_of_other_integrations_never_rebuild_the_dashboard
     later = []
     monkeypatch.setattr(module, "async_call_later", lambda hass, delay, action: later.append((delay, action))
                         or (lambda: None))
+    # Never a deprecated registry read (DeviceEntry.config_entries, Core 2026.10): each one logs a deprecation warning,
+    # and the shim is gone in Core 2027.10.
+    deprecated = []
+    monkeypatch.setattr(dr, "report_usage", lambda what, **kwargs: deprecated.append(what))
     e, rooms, sensors, hub, fields = installation(hass)
     dashboard = RoomDashboard(hass, "fixture", e.entry_id)
     built = []
@@ -663,5 +670,13 @@ async def test_registry_events_of_other_integrations_never_rebuild_the_dashboard
     hass.bus.async_fire(EVENT_CORE_CONFIG_UPDATE, {"language": "nl"})
     await hass.async_block_till_done()
     assert len(later) == 1
+    # A new device of this entry (a room the E32 reports) rebuilds it too: known by its one config entry, read without
+    # the deprecated DeviceEntry.config_entries (none of the 150 other devices read it either).
+    later.pop()[1](None)
+    await hass.async_block_till_done()
+    devices.async_get_or_create(config_entry_id=e.entry_id, identifiers={("open_thermostat", "fixture_e32_room_zolder")},
+                                name="Zolder")
+    await hass.async_block_till_done()
+    assert len(later) == 1 and deprecated == []
     for unsubscribe in dashboard._unsubscribe:
         unsubscribe()

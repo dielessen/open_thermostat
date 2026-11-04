@@ -57,7 +57,7 @@ def view(config, path):
 async def test_the_overview_is_short_and_what_it_learned_is_its_own_view(hass):
     board, config, rooms, hub = with_learned(hass)
     heating = view(config, "heating")
-    assert [s["cards"][0]["heading"] for s in heating["sections"]] == ["House", "Rooms"]
+    assert [s["cards"][0].get("heading") for s in heating["sections"]] == [None, "Rooms", "House"]
     # What it learned is not on the Overview any more; the view "Learning and settings" has it.
     assert "learned_overview" not in json.dumps(heating) and hub["learned_overview"] not in json.dumps(heating)
     learned = view(config, "learned")
@@ -86,11 +86,12 @@ async def test_the_overview_is_short_and_what_it_learned_is_its_own_view(hass):
 @pytest.mark.asyncio
 async def test_the_overview_names_the_house_mode_and_long_states_get_the_whole_width(hass):
     board, config, rooms, hub = with_learned(hass)
-    house = view(config, "heating")["sections"][0]["cards"]
-    mode = next(c for c in house if c.get("entity") == hub["house_mode"])
-    # The whole width, also where the Overview's section spans both view columns on a wide screen (rc.5: "full").
-    assert mode["name"] == "House mode" and mode["grid_options"] == {"columns": "full"}
-    assert mode["features"] == [{"type": "select-options"}]
+    # rc.5 (the owner's sketch): the House section's first row, named "Home or away" and as wide as the section (an
+    # entities row); a tap opens it to switch. The house card on top shows it as a chip.
+    house = view(config, "heating")["sections"][-1]["cards"]
+    mode = next(row["row"] for c in house if c["type"] == "entities" for row in c["entities"]
+                if row["row"].get("entity") == hub["house_mode"])
+    assert mode == {"type": "simple-entity", "entity": hub["house_mode"], "name": "Home or away", "icon": "mdi:home-account"}
     control = next(s["cards"] for s in view(config, "learned")["sections"]
                    if s["cards"][0]["heading"] == "Who controls the boiler")
     ready = next(c for c in control if c.get("entity") == hub["takeover_readiness"])

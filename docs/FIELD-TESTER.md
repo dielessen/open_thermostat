@@ -94,7 +94,10 @@ it is done.
 5. **Add the integration and connect the E32:**
    [section 10](INSTALL.md#10-add-the-integration-and-connect-the-e32).
    **Settings → Devices & services → Add integration → OpenThermostat**, then
-   **Configure → E32 connection**. Wait for **E32 connected**.
+   **Configure → E32 connection**. Wait for **E32 connected**. Configure has
+   six items (Rooms, House, Heating and boiler, Energy and outdoor
+   temperature, E32 connection, Advanced and diagnostics); every submenu has
+   **← Back** and **Done** closes it.
 6. **Rooms and sensors:** [section 11](INSTALL.md#11-add-your-rooms).
    **Configure → Rooms → Add a room**. For each room choose its temperature
    sensor under **Temperature sources from Home Assistant**. A second source
@@ -213,7 +216,7 @@ only your home can tell us:
   ever shows "Backup sensor in use", "Sensor silent: last reading used" or
   "No reading: this room does not ask for heat".
 - **Learning after one to two weeks.** In Home Assistant the sensor **What the
-  thermostat learned** and the Learned page of the dashboard, or on the E32
+  thermostat learned** and the **Learning and settings** tab of the dashboard, or on the E32
   **Home → What the thermostat has learned**: how far each room is, and
   whether the figures make sense for your home. Self-tuning only changes
   settings on days the E32 controlled the boiler.

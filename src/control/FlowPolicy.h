@@ -305,7 +305,10 @@ private:
 //    rule is in its minimum off time or has no usable room), at least 5 min
 //    (tuning: min_on_s).
 // Every flow stays within [plan minimum, min(plan maximum, 80, boiler limit)];
-// the boiler limit wins over the plan minimum. Off (the default), everything is
+// the boiler limit wins over the plan minimum. rc.5 (P1): with Smart warm-up on and
+// the E32 driving the boiler, also at most the ceiling the boiler itself showed for
+// this outdoor (BoilerResponse; the learned state "held" when it bound, an optimum
+// start's lead planned for that flow). Off (the default), everything is
 // computed and reported as advice and the request is the rule's, unchanged.
 // ActiveHeatGuard still bounds and sends (or, in shadow mode, only reports).
 // Pure and single-threaded: apply() every 10 s after RoomEngine::step().
@@ -323,6 +326,11 @@ public:
         std::optional<uint8_t> boilerLimitC;        // the boiler's 0x16 heating limit
         std::optional<int16_t> flowCentiC;          // fresh EMS view, for the curve learner
         std::optional<bool> burnerOn, hotWater;
+        // rc.5 (P1): the E32 drives the boiler (ActiveHeatGuard::outputActive) and the boiler's learned
+        // ceiling for this outdoor (BoilerResponse::ceilingC; nullopt: none). With Smart warm-up on and
+        // the E32 driving, no request (rule, curve, learned flow or optimum start) goes above it.
+        bool ownRequest = false;
+        std::optional<uint8_t> ceilingC;
     };
 
     void setSettings(const FlowSettings& s) { settings_ = s; }
@@ -344,12 +352,16 @@ public:
     FlowDemand::Request apply(const Inputs& in, const FlowLearner& learner) {
         rule_ = in.rule; applied_ = in.rule; source_ = Source::rule;
         curveFlow_.reset(); curveBase_.reset(); learnedFlow_.reset(); lead_ = -1;
+        ceiling_.reset(); ceilingBound_ = false; // rc.5 (P1)
         if (!in.plan || !in.rooms) { step(in, learner); return applied_; }
         const auto& plan = *in.plan;
         const size_t n = std::min(plan.rooms.size(), RoomPlan::maxRooms);
         cap_ = std::min<uint8_t>(std::min<uint8_t>(plan.maximumFlowC, FlowDemand::ceilingC), in.boilerLimitC.value_or(FlowDemand::ceilingC));
         const uint8_t lo = std::min(plan.minimumFlowC, cap_);
         const auto bound = [&](int v) { return static_cast<uint8_t>(std::clamp<int>(v, lo, cap_)); };
+        // rc.5 (P1): the cap in effect: the boiler's learned ceiling (never below the plan's minimum),
+        // only with Smart warm-up on and the E32 driving the boiler.
+        if (settings_.applyLearned && in.ownRequest && in.ceilingC) ceiling_ = std::max(*in.ceilingC, lo);
         // The boiler's own limit, not the plan, is the ceiling for `v`.
         const bool limitBelowPlan = in.boilerLimitC && *in.boilerLimitC < std::min(plan.maximumFlowC, FlowDemand::ceilingC);
         int curveWant = 0, learnedWant = 0;
@@ -388,6 +400,8 @@ public:
             int want = in.rule.flowC;
             if (settings_.weatherCurve && curveFlow_) { want = curveWant; source_ = Source::curve; }
             if (settings_.applyLearned && learnedFlow_) { want = learnedWant; source_ = Source::learned; }
+            // rc.5 (P1): no more than the boiler held at this outdoor (BoilerResponse).
+            if (ceiling_ && want > *ceiling_) { want = *ceiling_; ceilingBound_ = true; }
             // Options off: the rule's own request (already within the boiler's
             // limit), byte for byte. Options on: every output within [plan min, cap].
             if (source_ != Source::rule || settings_.weatherCurve || settings_.applyLearned) {
@@ -435,6 +449,7 @@ public:
         cJSON* learned = curve ? cJSON_AddObjectToObject(flow, "learned") : nullptr;
         if (!learned || !cJSON_AddStringToObject(flow, "source", name(source_)) || !cJSON_AddNumberToObject(flow, "rule_flow_c", rule_.flowC)
             || !cJSON_AddNumberToObject(flow, "applied_flow_c", applied_.flowC)) return false;
+        FlowLearner::number(flow, "ceiling_c", ceiling_ ? std::optional<float>(*ceiling_) : std::nullopt, 1); // rc.5 (P1): the cap in effect
         cJSON_AddStringToObject(curve, "state", curveState());
         FlowLearner::number(curve, "flow_c", curveFlow_ ? std::optional<float>(*curveFlow_) : std::nullopt, 1);
         FlowLearner::number(curve, "slope", slope_, 100);
@@ -487,7 +502,8 @@ private:
                     continue;
                 }
                 const auto& r = in.rooms[i];
-                const auto s = WarmupPlanner::optimumStart(learner, i, plan.rooms[i].schedule, *in.utc, r.temperature, in.outdoorCentiC, arrival_.lead(i));
+                // rc.5 (P1): the lead for the flow it will get under the boiler's ceiling.
+                const auto s = WarmupPlanner::optimumStart(learner, i, plan.rooms[i].schedule, *in.utc, r.temperature, in.outdoorCentiC, arrival_.lead(i), ceiling_);
                 std::optional<ArrivalLearner::Rise> rise;
                 if (s.reason[0] == 'p') rise = ArrivalLearner::Rise{s.rise.atUtc, s.startUtc, s.rise.toCentiC};
                 arrival_.observe(i, *in.utc, rise, heating_[i], fresh(r) ? r.temperature : std::nullopt);
@@ -522,6 +538,7 @@ private:
         }
         if (!startHeating_) { startHeating_ = true; startedAt_ = in.now; startFlowC_ = bound(want ? want : startFlowC_); }
         if (want) startFlowC_ = bound(want);
+        if (ceiling_ && startFlowC_ > *ceiling_) { startFlowC_ = *ceiling_; ceilingBound_ = true; } // rc.5 (P1): under the ceiling too
         if (wanted) heating_ = wants; // held on for the minimum on time: the rooms stay its rooms (they rest after it)
         if (!applied_.heat) { applied_ = {true, startFlowC_, FlowDemand::Reason::heating}; source_ = Source::optimumStart; }
         else if (startFlowC_ > applied_.flowC) { applied_.flowC = startFlowC_; source_ = Source::optimumStart; }
@@ -542,7 +559,8 @@ private:
         nights_.step(*in.utc, in.now, learner, *in.plan, room, room >= 0 ? in.rooms[room].temperature : std::nullopt, in.outdoorCentiC);
     }
     const char* curveState() const { return !curveBase_ ? (lead_ < 0 ? "no_room" : "no_outdoor") : settings_.weatherCurve ? "applied" : "advice"; }
-    const char* learnedState() const { return !learnedFlow_ ? learnedReason_ : settings_.applyLearned ? "applied" : "advice"; }
+    // rc.5 (P1): "held" while the boiler's ceiling bound the request.
+    const char* learnedState() const { return ceilingBound_ ? "held" : !learnedFlow_ ? learnedReason_ : settings_.applyLearned ? "applied" : "advice"; }
     const char* reason() const { return source_ == Source::optimumStart && !rule_.heat ? "optimum_start" : FlowDemand::name(applied_.reason); }
     bool detail(cJSON* flow) const {
         cJSON* settings = cJSON_CreateObject();
@@ -552,6 +570,7 @@ private:
         cJSON_AddNumberToObject(settings, "curve_design_flow_c", settings_.designFlowC);
         cJSON_AddNumberToObject(flow, "applied_flow_c", applied_.flowC);
         cJSON_AddNumberToObject(flow, "cap_c", cap_);
+        FlowLearner::number(flow, "ceiling_c", ceiling_ ? std::optional<float>(*ceiling_) : std::nullopt, 1); // rc.5 (P1)
         cJSON* curve = cJSON_AddObjectToObject(flow, "curve");
         cJSON* learned = curve ? cJSON_AddObjectToObject(flow, "learned") : nullptr;
         cJSON* start = learned ? cJSON_AddObjectToObject(flow, "optimum_start") : nullptr;
@@ -587,6 +606,8 @@ private:
     FlowDemand::Request rule_{}, applied_{};
     Source source_ = Source::rule;
     std::optional<uint8_t> curveFlow_, learnedFlow_;
+    std::optional<uint8_t> ceiling_;                   // rc.5 (P1): the boiler's ceiling in effect this step
+    bool ceilingBound_ = false;                        // rc.5 (P1): it lowered the request this step
     std::optional<int16_t> curveBase_;
     uint8_t cap_ = FlowDemand::ceilingC, designFlowC_ = WeatherCurve::floorDesignFlowC, startFlowC_ = 0;
     float slope_ = 0;

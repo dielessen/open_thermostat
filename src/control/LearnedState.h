@@ -1,10 +1,12 @@
 #pragma once
 #include "control/ControlPartitionBudget.h"
 #include "control/FlowPolicy.h"
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <new>
@@ -43,6 +45,10 @@ public:
     // when (i64 utc). Restored into the plan room with that id; firmware before rc.4 skips the frame.
     static constexpr char arrivalKind = 'A';
     static constexpr uint8_t arrivalVersion = 1;
+    // rc.5 (P1): frames of other learners (BoilerResponse, kind 'B') are built and read by their
+    // owners; LearnedStore keeps them in the global record after the arrival frame and hands them
+    // back by `other`. Firmware before rc.5 skips them: they are no room frames.
+    using OtherFrames = std::function<void(std::string_view)>;
     static constexpr size_t maxFrame = 1024;
     // A version 2 room frame's size: an id of `idBytes`, bins whose segments all had the
     // outdoor (19 B), bins where some had (23 B) and bins without it (13 B).
@@ -147,13 +153,14 @@ public:
     // A packed record part (LearnedStore): each valid frame applied (the global
     // frame only while `global` is false), a damaged frame skipped, a bad length
     // ends the walk. The rooms restored.
-    static size_t restoreFrames(std::string_view b, FlowLearner& l, FlowPolicy& p, uint32_t& done, bool& global) {
+    static size_t restoreFrames(std::string_view b, FlowLearner& l, FlowPolicy& p, uint32_t& done, bool& global, const OtherFrames& other = nullptr) {
         std::string_view f;
         size_t rooms = 0;
         while (next(b, f)) {
             if (f[1] == globalKind) { if (!global && restoreGlobal(f, l, p)) global = true; }
             else if (f[1] == arrivalKind) restoreArrival(f, p);
-            else rooms += restoreRoom(f, l, done);
+            else if (f[1] == roomKind) rooms += restoreRoom(f, l, done);
+            else if (other) other(f); // rc.5 (P1): another learner's frame (BoilerResponse 'B')
         }
         return rooms;
     }
@@ -471,7 +478,8 @@ public:
     static constexpr size_t parts = 2, partBytes = 4000, legacySlots = 1 + RoomPlan::maxRooms;
     static constexpr int32_t unknownDay = INT32_MIN;
     // At boot, after the plan and the tuning, before the first step: the rooms restored.
-    size_t restore(Backend& b, FlowLearner& l, FlowPolicy& p, uint64_t now) {
+    // rc.5 (P1): `other` gets the frames of other learners (BoilerResponse 'B').
+    size_t restore(Backend& b, FlowLearner& l, FlowPolicy& p, uint64_t now, const LearnedState::OtherFrames& other = nullptr) {
         savedAt_ = now;
         size_t rooms = 0;
         uint32_t done = 0;
@@ -480,7 +488,7 @@ public:
             std::string f;
             if (!b.read(i, f)) continue;
             present_ |= 1u << i; id_[i] = identity(f);
-            rooms += LearnedState::restoreFrames(f, l, p, done, global);
+            rooms += LearnedState::restoreFrames(f, l, p, done, global, other);
         }
         // The per-frame keys: restored only without a part (an interrupted migration
         // leaves both); erased by the next save that stores everything.
@@ -504,12 +512,14 @@ public:
         }
         return now - savedAt_ >= saveEveryMs;
     }
-    // The changed parts; true when every frame is stored.
-    bool save(Backend& b, const FlowLearner& l, const FlowPolicy& p, uint64_t now) {
+    // The changed parts; true when every frame is stored. rc.5 (P1): `more`, the frames of other
+    // learners (BoilerResponse::stored(); empty: none), go with the globals, before the rooms.
+    bool save(Backend& b, const FlowLearner& l, const FlowPolicy& p, uint64_t now, const std::vector<std::string>& more = {}) {
         savedAt_ = now;
         std::vector<std::string> frames;
         if (auto g = LearnedState::globalFrame(l, p); !g.empty()) frames.push_back(std::move(g));
         if (auto a = LearnedState::arrivalFrame(p); !a.empty()) frames.push_back(std::move(a)); // rc.4
+        for (const auto& m : more) if (!m.empty()) frames.push_back(m);
         for (size_t i = 0; i < l.rooms(); ++i)
             if (auto f = LearnedState::roomFrame(l, i); !f.empty()) frames.push_back(std::move(f));
         bool complete = savePacked(b, frames);
@@ -519,7 +529,8 @@ public:
             complete = savePacked(b, frames);
         }
         if (legacy_ && complete) eraseLegacy(b);
-        rooms_ = frames.empty() ? 0 : frames.size() - (frames[0][1] == LearnedState::globalKind);
+        // rc.5 (P1): only room frames count as rooms (not the arrival or the boiler's frame).
+        rooms_ = size_t(std::count_if(frames.begin(), frames.end(), [](const std::string& f) { return f[1] == LearnedState::roomKind; }));
         return complete;
     }
     // Parts erased behind the store's back (a plan save made room): the next save writes
@@ -570,7 +581,7 @@ private:
                 if ((present_ & bit) && id_[i] == id && !(unsure_ & bit)) { written = true; break; }
                 if (b.write(i, part)) { present_ |= bit; unsure_ &= ~bit; id_[i] = id; written = true; break; }
             }
-            if (written) stored += end - next;
+            if (written) for (size_t k = next; k < end; ++k) stored += frames[k][1] == LearnedState::roomKind; // rc.5 (P1): rooms only
             if (end < planned) {
                 // Refused (at least its last frames): an older part stays as it was.
                 complete = false;
@@ -579,7 +590,7 @@ private:
             next = planned;
         }
         if (next < frames.size()) complete = false; // beyond the last part: RAM only (not with 8 rooms of version 2)
-        storedRooms_ = stored - (stored && frames[0][1] == LearnedState::globalKind);
+        storedRooms_ = stored;
         pendingEntries_ = pending;
         return complete;
     }

@@ -1236,8 +1236,8 @@ a.btn{display:inline-flex;align-items:center;justify-content:center}.pd-section-
                 !applies ? "Smart warm-up is still learning: for now heating starts at {time} (estimate: from {start} it would be {target} °C on time)." :
                 start.lead_minutes === 0 && start.start_now !== true ? "Smart warm-up: warm enough for {target} °C at {time}, no early start needed." :
                 start.start_now === true ? (start.reachable === false ? "Smart warm-up: heating now; {target} °C may come a little after {time}." :
-                    start.estimate === true ? "Smart warm-up: heating now so it is {target} °C at {time} (estimate; it learns from every morning)." : "Smart warm-up: heating now so it is {target} °C at {time}.") :
-                start.estimate === true ? "Smart warm-up: starts at {start} so it is {target} °C at {time} (estimate; it learns from every morning)." : "Smart warm-up: starts at {start} so it is {target} °C at {time}.";
+                    start.estimate === true ? "Smart warm-up: heating now (estimate; it learns from every morning) so it is {target} °C at {time}." : "Smart warm-up: heating now so it is {target} °C at {time}.") :
+                start.estimate === true ? "Smart warm-up: starts at {start} (estimate; it learns from every morning) so it is {target} °C at {time}." : "Smart warm-up: starts at {start} so it is {target} °C at {time}.";
             return Object.keys(values).reduce(function(t, k) { return t.split('{' + k + '}').join(values[k]); }, uiText(text));
         }
         function comfortNoticeHtml(room) {

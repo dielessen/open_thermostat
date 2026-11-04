@@ -3,8 +3,9 @@
    One wide card, first on the Boiler view (dashboard.py _boiler_now, room_overview.BOILER_NOW_CARD_TYPE), drawn as
    the owner's sketch and in the family of the Overview's house card (house-card.js): a band in the full colour of
    what the boiler does now, its words in white (heating in deep orange, hot water in blue, resting in grey, a
-   fault of the boiler in red), with the display code in words under it ("Code -H: heating", what to do for a code
-   that is not normal operation) and on the right the connection with the boiler and whether it serves hot water;
+   fault of the boiler in red), with the display code in words under it ("Display code -H: heating", in Dutch
+   "Code -H: verwarmen", what to do for a code that is not normal operation) and on the right the connection with
+   the boiler and whether it serves hot water;
    under it four figures, large, two by two on a phone and in one row on a wide card: the water to the heating (what
    is asked of the boiler and the most the E32 asks near the target), the water back (the difference), the burner
    power with a small arc (low, half or full fire) and the burner starts in the last hour (calm or switching on and
@@ -21,8 +22,8 @@
    until white words on it read at 4.5:1 at least, in the light and the dark theme (the house card's rule). */
 const PREFIX = 'component.open_thermostat.entity.sensor.';
 const CARD = 'boiler_activity.state_attributes.card.state.';
-const TEXT = {title: 'The boiler now', no_data: 'No data from the boiler', boiler: 'Boiler', code: 'Code {code}: {meaning}',
- code_bare: 'Code {code}', code_fault: '{severity} · code {code}', link: 'connection with the boiler: {state}', link_good: 'good',
+const TEXT = {title: 'The boiler now', no_data: 'No data from the boiler', boiler: 'Boiler', code: 'Display code {code}: {meaning}',
+ code_bare: 'Display code {code}', code_fault: '{severity} · display code {code}', link: 'connection with the boiler: {state}', link_good: 'good',
  link_none: 'none', dhw: 'hot water: {state}', yes: 'yes', no: 'no', flow: 'Water to heating', asked: 'asked {flow} °C',
  would_ask: 'E32 would ask {flow} °C', no_request: 'no request', ceiling: 'at most {flow} °C', back: 'Water back',
  difference: 'difference {n} °C', power: 'Burner power', power_off: 'burner off', power_low: 'low fire, calm', power_mid: 'medium fire',
@@ -98,7 +99,7 @@ const bind = text => text.replace(/ (?=[−-]?\d)/g, NBSP);
 const SEP = NBSP + '· ';
 const known = st => !!st && typeof st.state === 'string' && !['unknown', 'unavailable', ''].includes(st.state);
 const entityId = value => typeof value === 'string' && value.includes('.') ? value : undefined;
-// "Heating" after "Code -H:" reads "heating"; a word in capitals ("EMS") keeps them.
+// "Heating" after "Display code -H:" reads "heating"; a word in capitals ("EMS") keeps them.
 const lower = text => /^\p{Lu}\p{Ll}/u.test(text) ? text[0].toLocaleLowerCase() + text.slice(1) : text;
 const SVG = 'http://www.w3.org/2000/svg';
 const make = (tag, attrs = {}, text) => {
@@ -295,7 +296,7 @@ class OpenThermostatBoilerNow extends HTMLElement {
   const main = make('div', {class: 'main'}), words = make('div', {class: 'words'});
   words.append(make('p', {class: 'line'}, status.line));
   if (code) {
-   // "Code -H: heating"; a fault (the band says what it is) "Lockout: the boiler needs a reset · code 3L 214".
+   // "Display code -H: heating"; a fault (the band says what it is) "Lockout: the boiler needs a reset · display code 3L 214".
    const sub = status.fault ? this.t('code_fault', {severity: code.severity_text || code.severity, code: code.code})
     : code.meaning ? this.t('code', {code: code.code, meaning: lower(code.meaning)}) : this.t('code_bare', {code: code.code});
    words.append(make('p', {class: 'sub', 'data-code': code.severity || ''}, sub));

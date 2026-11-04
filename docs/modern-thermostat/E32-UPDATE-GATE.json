@@ -10,6 +10,6 @@
   "candidate_plan": "docs/modern-thermostat/RC4-KANDIDAAT.json",
   "publication_exception": {
     "receipt": "docs/modern-thermostat/RC4-PUBLICATION-EXCEPTION-20261104.json",
-    "sha256": "5143d3fe19dbc2f1fdcaafda6e44b7c3bd1988b31e8f4050ffd6a2d36c96fd17"
+    "sha256": "dd6a02dcaac59d0f829324f220441a14582628f5646e1a70903186e5a1fe86a0"
   }
 }

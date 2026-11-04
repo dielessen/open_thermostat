@@ -1122,3 +1122,40 @@ def test_a_failing_listener_logs_once_a_minute(caplog):
     now[0] += LISTENER_LOG_SECONDS
     hub.notify()
     assert len([r for r in caplog.records if r.levelno == logging.ERROR]) == 2  # a minute later: once more
+
+
+def test_room_message_is_not_queued_twice():
+    """R4-03: the shadow connection (fw/#) leaves the hub's telemetry alone; the session's own traffic goes on."""
+    import asyncio
+    from custom_components.open_thermostat.heating_link import hub_only_topic
+    from custom_components.open_thermostat.v1_mqtt import NativeShadowConnection
+    connection = NativeShadowConnection.__new__(NativeShadowConnection)
+    connection.prefix, connection.closed = "fixture/v1/", False
+    connection.queue = asyncio.Queue(maxsize=64)
+    observed = []
+    connection.actuator_wire = SimpleNamespace(observe=lambda suffix, raw, retained: observed.append(suffix),
+                                               accepting=False)
+    connection.hass = SimpleNamespace(loop=SimpleNamespace(time=lambda: 1.0))
+
+    def message(suffix, retain=True):
+        return SimpleNamespace(topic="fixture/v1/" + suffix, payload='{"schema":1}', retain=retain)
+    # A retained flood at a start: 8 rooms, 16 Bluetooth sensors, valves, entity parts, learned rooms, summaries.
+    flood = ([f"fw/state/room/room_{n}" for n in range(8)] + [f"fw/state/ble/a4c1380000{n:02d}" for n in range(16)]
+             + [f"fw/state/trv/room_{n}" for n in range(8)] + [f"fw/telemetry/learned/room_{n}" for n in range(8)]
+             + ["fw/config/entities", "fw/config/entities/1", "fw/config/plan", "fw/state/heating",
+                "fw/telemetry/summary", "fw/telemetry/flow", "fw/telemetry/tuning", "fw/telemetry/shadow",
+                "fw/telemetry/readiness"])
+    for suffix in flood:
+        assert hub_only_topic(suffix), suffix
+        connection._received(message(suffix))
+        connection._received(message(suffix, retain=False))
+    assert connection.queue.qsize() == 0 and observed == []  # was 98 queued: the session reset at 64
+    session = ["fw/hello", "fw/session", "fw/availability", "fw/heartbeat", "fw/heartbeat_result", "fw/config_snapshot",
+               "fw/state/zones", "fw/state/boiler", "fw/state/boiler_fields/0", "fw/config/boiler_profile",
+               "fw/telemetry/ems_metrics", "fw/telemetry/boiler_fields"]
+    for suffix in session:
+        assert not hub_only_topic(suffix), suffix
+        connection._received(message(suffix, retain=False))
+    queued = [connection.queue.get_nowait() for _ in range(connection.queue.qsize())]
+    assert [kind for kind, _ in queued] == ["message"] * (len(session) - 1) + ["boiler_message"]
+    assert observed == session

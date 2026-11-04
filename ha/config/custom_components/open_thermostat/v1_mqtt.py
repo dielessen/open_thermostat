@@ -124,6 +124,41 @@ class NativeShadowConnection:
             raise ValueError('Actuator factory requires the API1 connection')
         self.actuator_wire = ActuatorWire(self, actuator_factory)
 
+    @callback
+    def _received(self, message):
+        """One message of the fw/# subscription: the session, boiler and actuator traffic go to the worker.
+
+        The E32's room, plan, learned and summary telemetry is the heating hub's (heating_link): this
+        session ignores it, so it is dropped here at once instead of being decoded twice and filling
+        the 64-slot queue (a retained flood at a start reset the session, R4-03).
+        """
+        from .actuator_wire import actuator_topic
+        from .heating_link import hub_only_topic
+        if message.topic.startswith(self.prefix):
+            suffix = message.topic[len(self.prefix):]
+            if hub_only_topic(suffix):
+                return
+            # Narrowing-only fence while the sole worker may await IO.
+            self.actuator_wire.observe(suffix, message.payload, retained=message.retain)
+        if actuator_topic(message.topic.removeprefix(self.prefix)):
+            if (not self.actuator_wire.accepting or message.retain
+                    or type(message.payload) is not str or len(message.payload) > 2048):
+                return
+            # Optional traffic leaves half the existing queue for control.
+            # Pressure retires only this route, never the shadow session.
+            if self.queue.qsize() >= 32:
+                self.actuator_wire.retire()
+                return
+            try:
+                # Original arrival includes time in the existing queue.
+                self.queue.put_nowait(("actuator_message", (message, self.client.clock())))
+            except Exception:
+                self.actuator_wire.retire()
+        elif message.topic == self.prefix + "fw/telemetry/boiler_fields":
+            self.enqueue(("boiler_message", (message,self.hass.loop.time())))
+        else:
+            self.enqueue(("message", message))
+
     def original_ingress_status(self):
         result = self.original_ingress.snapshot()
         result["closed"] = self.closed
@@ -203,32 +238,7 @@ class NativeShadowConnection:
         self.runtime.original_temperature_reports = self.original_reports
         self.runtime.original_tv02_reports = self.tv02_reports
         self.worker = self.hass.async_create_background_task(self.run(), "OpenThermostat shadow MQTT")
-
-        @callback
-        def received(message):
-            from .actuator_wire import actuator_topic
-            if message.topic.startswith(self.prefix):
-                # Narrowing-only fence while the sole worker may await IO.
-                self.actuator_wire.observe(message.topic[len(self.prefix):],
-                    message.payload, retained=message.retain)
-            if actuator_topic(message.topic.removeprefix(self.prefix)):
-                if (not self.actuator_wire.accepting or message.retain
-                        or type(message.payload) is not str or len(message.payload) > 2048):
-                    return
-                # Optional traffic leaves half the existing queue for control.
-                # Pressure retires only this route, never the shadow session.
-                if self.queue.qsize() >= 32:
-                    self.actuator_wire.retire()
-                    return
-                try:
-                    # Original arrival includes time in the existing queue.
-                    self.queue.put_nowait(("actuator_message", (message, self.client.clock())))
-                except Exception:
-                    self.actuator_wire.retire()
-            elif message.topic == self.prefix + "fw/telemetry/boiler_fields":
-                self.enqueue(("boiler_message", (message,self.hass.loop.time())))
-            else:
-                self.enqueue(("message", message))
+        received = self._received
 
         @callback
         def connection_status(connected):

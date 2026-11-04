@@ -110,6 +110,16 @@ FLOW_KEYS = ("flow", "night_gas")
 TUNING_TOPIC = "fw/telemetry/tuning"
 HEARTBEAT_TOPIC = "fw/heartbeat"
 AVAILABILITY_TOPIC = "fw/availability"
+# What only the hub reads: the shadow session (v1_mqtt.NativeShadowConnection, subscribed to fw/#)
+# drops these at once instead of decoding every E32 message a second time (R4-03).
+_HUB_ONLY = (HEATING_TOPIC, PLAN_TOPIC, ENTITIES_TOPIC, SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SHADOW_TOPIC,
+             READINESS_TOPIC)
+_HUB_ONLY_PARTS = (ROOM_TOPIC, BLE_TOPIC, TRV_TOPIC, LEARNED_TOPIC, ENTITIES_TOPIC + "/")
+
+
+def hub_only_topic(suffix):
+    """True for an E32 topic (after the prefix) that only the heating hub reads."""
+    return suffix in _HUB_ONLY or suffix.startswith(_HUB_ONLY_PARTS)
 
 
 def decode_document(payload, max_bytes=MAX_DOC_BYTES):

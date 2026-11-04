@@ -418,7 +418,8 @@ def content():
                 ["Luisteren naar de ketel", "Haalt de ketel de gevraagde watertemperatuur en slaat hij zelf af terwijl een ruimte nog warmte wil, "
                  "dan vroeg de E32 meer dan het huis opneemt. Gebeurt dat twee keer in één warmtevraag, dan leert de E32 een <b>plafond</b> voor "
                  "de watertemperatuur (per bereik van de buitentemperatuur) en vraagt hij niet meer dan dat: koeler water en minder branderstarts. "
-                 "Ook leert hij hoe lang de ketel dan zelf rust, en houdt hij zijn eigen brandrust minstens zo lang (hooguit 15 minuten), tenzij een "
+                 "Zolang de ruimte die het verst van haar doel zit 1 °C of meer te koud is, vraagt hij wel de volle watertemperatuur: een koude "
+                 "ochtend wordt niet vertraagd door de beperkingen van gisteren. Ook leert hij hoe lang de ketel dan zelf rust, en houdt hij zijn eigen brandrust minstens zo lang (hooguit 15 minuten), tenzij een "
                  "ruimte meer dan 0,3 °C te koud is: comfort gaat voor. Dit gebeurt alleen terwijl de E32 de ketel regelt, het plafond ook alleen "
                  "met <b>Slim opwarmen</b> aan. Hij gebruikt alleen waarden die elke ketel meldt en verandert geen ketelinstelling. Meldt je ketel "
                  "de retourtemperatuur niet, dan ziet hij niet hoeveel warmte het huis opneemt; al het andere werkt gewoon. Je leest het in één "
@@ -439,8 +440,9 @@ def content():
                  "<b>Huis → Wat de thermostaat heeft geleerd</b>."],
                 ["Gratis warmte", "Zon, koken en mensen verwarmen een ruimte zonder ketel. De E32 leert dat per ruimte en per dagdeel van vier uur. "
                  "Vanaf vijf metingen in een dagdeel begint Slim opwarmen in dat dagdeel later: de voorlooptijd wordt korter, nooit tot minder dan "
-                 "de helft, en de ochtendcontrole blijft elke start beoordelen. Je leest het bij de ruimte: \"'s Middags warmt deze ruimte "
-                 "vanzelf op, ongeveer 0,4 °C per uur (zon, koken of mensen).\""],
+                 "de helft, en de ochtendcontrole blijft elke start beoordelen. Je leest het bij de ruimte op de E32-pagina (Home Assistant "
+                 "toont het alleen als het bericht van de E32 voor die ruimte er plaats voor heeft): \"'s Middags warmt deze ruimte vanzelf op, "
+                 "ongeveer 0,4 °C per uur (zon, koken of mensen).\""],
                 ["Waarom verwarmt een ruimte?", "Op de E32-pagina <b>Overzicht</b> zegt elke ruimte in één regel waarom ze verwarmt of niet, "
                  "in dezelfde woorden als Home Assistant, bijvoorbeeld \"Warm genoeg: 21 °C (gewenst 21 °C)\", \"Gepauzeerd: er staat een raam "
                  "of deur open\" of \"Slim opwarmen: nu al verwarmen voor 08:00 (21 °C)\". Dat werkt ook zonder Home Assistant."],

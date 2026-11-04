@@ -16,9 +16,11 @@ controlling the boiler, the same code becomes 1.0.0. Install it with HA
   temperature the E32 asked and stops by itself while a room still wants heat,
   the E32 asked for more than the house takes. After this happens twice in one
   request, the E32 learns a ceiling for the water temperature at that outdoor
-  temperature and asks no more: cooler water and fewer burner starts. It also
-  learns how long the boiler itself rests after such a stop and keeps its own
-  burner rest at least as long, unless a room is clearly cold (comfort first).
+  temperature and asks no more: cooler water and fewer burner starts. A room
+  that is 1 °C or more below its target still gets the full water temperature,
+  so a cold morning is not slowed by yesterday's holds. The E32 also learns how
+  long the boiler itself rests after such a stop and keeps its own burner rest
+  at least as long, unless a room is clearly cold (comfort first).
   With a return temperature it also sees how much heat the house absorbs. It
   uses only values every EMS boiler reports and changes no boiler setting. It
   listens while the E32 controls the boiler; the ceiling also needs Smart

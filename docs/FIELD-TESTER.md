@@ -242,19 +242,23 @@ first two weeks.
   6 min each time it reaches its temperature; the E32 asks at most 41 °C now,
   so it starts less often") and the state of the sensor **Boiler response**.
   It only listens once the E32 controls the boiler. Does the ceiling it names
-  make sense for your boiler, do the burner starts per heating hour on the
-  **Yesterday** block go down over the days, and does any room stay cold? Tell
-  us at once if a room stays cold while the E32 says it asks at most a certain
-  temperature. Does your boiler report the return temperature
-  ("No return temperature" says it does not)? See
+  make sense for your boiler, and do the burner starts per heating hour on the
+  **Yesterday** block go down over the days? The ceiling holds near the target
+  temperatures: while a room is 1 °C or more below its target the E32 asks the
+  full water temperature, so a cold morning should not be slower than before.
+  Tell us at once if a room is late on a cold morning, or stays cold. Does
+  your boiler report the return temperature ("No return temperature" says it
+  does not)? See
   [listening to the boiler](USER-GUIDE.md#listening-to-the-boiler).
 - **Yesterday compared with usual.** From the fifth day: a plain sentence when
   a day stood out, with what can cause it. Was the cause something you know (a
   window left open, a guest, sun)? It is information only; a sentence that is
   plainly wrong is worth a report.
 - **Free heat.** On a sunny day, a room's learned details may say "In the
-  afternoon this room warms up by itself, about 0.4 °C per hour". Does that
-  match the room, and is the room still warm on time on those days?
+  afternoon this room warms up by itself, about 0.4 °C per hour". The E32 page
+  always shows it; Home Assistant shows it when the E32's report for that room
+  has room for it. Does it match the room, and is the room still warm on time
+  on those days?
 - **The chart.** **Water temperature by outdoor temperature** on the E32
   **Home** page (under **Heating settings**) and in Home Assistant on the
   **Learning and settings** tab. Is the line learned for your house below the
@@ -375,11 +379,13 @@ best report of all.
   every morning.
 - **What it learns from your boiler takes days.** It listens only while the
   E32 controls the boiler, and sets a ceiling only after your boiler stopped
-  by itself twice in one request. A boiler that never does that has nothing to
-  learn here, so that part of the knowledge figure can stay open. A boiler
-  without a return temperature learns no figure for the heat the house takes.
-  A settings backup does not carry what the E32 learned from the boiler; a
-  replacement E32 learns it again within days.
+  by itself twice in one request. A boiler that reports its return temperature
+  still counts as learned for the knowledge figure once the E32 knows how much
+  heat the house takes per °C of water temperature. Only a boiler that reports
+  no return temperature and never stops by itself has nothing to learn here:
+  its state stays "No return temperature" and the knowledge figure tops out
+  below 100 %. A settings backup does not carry what the E32 learned from the
+  boiler; a replacement E32 learns it again within days.
 - **Self-tuning** waits 24 hours after the first start or a change that
   touches the control, and 2 hours after a restart. It only changes settings
   on days the E32 controlled the boiler. During a trial run it only shows what

@@ -327,6 +327,18 @@
       },
       "gas_per_degree_day": {
         "default": "mdi:sun-thermometer-outline"
+      },
+      "knowledge": {
+        "default": "mdi:brain"
+      },
+      "boiler_response": {
+        "default": "mdi:water-boiler",
+        "state": {
+          "collecting": "mdi:ear-hearing",
+          "learned": "mdi:water-boiler",
+          "no_return": "mdi:thermometer-off",
+          "not_driving": "mdi:water-boiler-off"
+        }
       }
     },
     "switch": {

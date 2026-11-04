@@ -3205,6 +3205,58 @@
       "learned_overview": {
         "name": "Wat de thermostaat geleerd heeft"
       },
+      "knowledge": {
+        "name": "Kennis",
+        "state_attributes": {
+          "missing": {
+            "name": "Nog te leren"
+          },
+          "more": {
+            "name": "En nog meer"
+          },
+          "card": {
+            "name": "Kaart",
+            "state": {
+              "title": "De E32 kent je huis",
+              "ring": "De E32 kent je huis: {pct} %",
+              "hint": "Hij leert vanzelf terwijl de verwarming draait.",
+              "missing": "Nog te leren",
+              "more": "En nog {n}.",
+              "done": "Hij heeft alles geleerd wat hij nodig heeft; hij blijft het controleren als de seizoenen wisselen.",
+              "waiting": "De E32 heeft nog niet gemeld wat hij weet."
+            }
+          }
+        }
+      },
+      "boiler_response": {
+        "name": "Reactie van de ketel",
+        "state": {
+          "collecting": "Luistert nog",
+          "learned": "Geleerd",
+          "no_return": "Geen retourtemperatuur",
+          "not_driving": "E32 regelt de ketel niet"
+        },
+        "state_attributes": {
+          "held_today": {
+            "name": "Temperatuur vastgehouden vandaag"
+          },
+          "rest_min": {
+            "name": "Rust na vasthouden (min)"
+          },
+          "ceiling_c": {
+            "name": "E32 vraagt hooguit (°C)"
+          },
+          "absorbed_kw": {
+            "name": "Warmte die het huis opneemt (kW)"
+          },
+          "kw_per_k": {
+            "name": "kW per °C watertemperatuur"
+          },
+          "sentence": {
+            "name": "In woorden"
+          }
+        }
+      },
       "heating_gas": {
         "name": "Gas voor verwarmen"
       },
@@ -3227,7 +3279,48 @@
         }
       },
       "flow_curve": {
-        "name": "Watertemperatuur (weerafhankelijke regeling)"
+        "name": "Watertemperatuur (weerafhankelijke regeling)",
+        "state_attributes": {
+          "chart": {
+            "name": "Grafiek",
+            "state": {
+              "title": "Watertemperatuur bij buitentemperatuur",
+              "standard": "Standaard",
+              "learned": "Geleerd voor je huis",
+              "now": "Nu",
+              "frost": "Bij −10 °C: {flow} °C",
+              "now_point": "{outdoor} °C buiten → {flow} °C",
+              "at": "Bij {outdoor} °C buiten",
+              "lower": "{n} °C koeler dan standaard",
+              "higher": "{n} °C warmer dan standaard",
+              "outdoor": "Buitentemperatuur (°C)",
+              "water": "Water naar verwarming (°C)",
+              "caption": "Hoe kouder het buiten is, hoe warmer het water. De E32 leert de lijn voor je huis en houdt die zo laag als hij kan.",
+              "values": "Toon de waarden",
+              "outside": "Buiten",
+              "off": "De weerafhankelijke regeling staat uit; de lijnen tonen wat hij zou vragen.",
+              "waiting": "De E32 heeft zijn weerafhankelijke regeling nog niet gemeld."
+            }
+          },
+          "design_flow_c": {
+            "name": "Watertemperatuur bij strenge vorst (°C)"
+          },
+          "standard_slope": {
+            "name": "Standaard steilheid"
+          },
+          "room_c": {
+            "name": "Ruimtetemperatuur (°C)"
+          },
+          "outdoor_c": {
+            "name": "Buitentemperatuur nu (°C)"
+          },
+          "minimum_flow_c": {
+            "name": "Laagste watertemperatuur (°C)"
+          },
+          "maximum_flow_c": {
+            "name": "Hoogste watertemperatuur (°C)"
+          }
+        }
       },
       "flow_learned": {
         "name": "Geleerde watertemperatuur"

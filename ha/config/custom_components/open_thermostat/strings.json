@@ -2168,6 +2168,58 @@
       "learned_overview": {
         "name": "What the thermostat learned"
       },
+      "knowledge": {
+        "name": "Knowledge",
+        "state_attributes": {
+          "missing": {
+            "name": "Still to learn"
+          },
+          "more": {
+            "name": "And more"
+          },
+          "card": {
+            "name": "Card",
+            "state": {
+              "title": "The E32 knows your house",
+              "ring": "The E32 knows your house: {pct} %",
+              "hint": "It learns by itself while the heating runs.",
+              "missing": "Still to learn",
+              "more": "And {n} more.",
+              "done": "It has learned everything it needs; it keeps checking as the seasons change.",
+              "waiting": "The E32 has not reported what it knows yet."
+            }
+          }
+        }
+      },
+      "boiler_response": {
+        "name": "Boiler response",
+        "state": {
+          "collecting": "Still listening",
+          "learned": "Learned",
+          "no_return": "No return temperature",
+          "not_driving": "E32 not controlling the boiler"
+        },
+        "state_attributes": {
+          "held_today": {
+            "name": "Held its temperature today"
+          },
+          "rest_min": {
+            "name": "Rest after holding (min)"
+          },
+          "ceiling_c": {
+            "name": "E32 asks at most (°C)"
+          },
+          "absorbed_kw": {
+            "name": "Heat the house takes (kW)"
+          },
+          "kw_per_k": {
+            "name": "kW per °C of water temperature"
+          },
+          "sentence": {
+            "name": "In words"
+          }
+        }
+      },
       "heating_gas": {
         "name": "Gas for heating"
       },
@@ -2190,7 +2242,48 @@
         }
       },
       "flow_curve": {
-        "name": "Water temperature by weather compensation"
+        "name": "Water temperature by weather compensation",
+        "state_attributes": {
+          "chart": {
+            "name": "Chart",
+            "state": {
+              "title": "Water temperature by outdoor temperature",
+              "standard": "Standard",
+              "learned": "Learned for your house",
+              "now": "Now",
+              "frost": "At −10 °C: {flow} °C",
+              "now_point": "{outdoor} °C outside → {flow} °C",
+              "at": "At {outdoor} °C outside",
+              "lower": "{n} °C cooler than standard",
+              "higher": "{n} °C warmer than standard",
+              "outdoor": "Outdoor temperature (°C)",
+              "water": "Water to heating (°C)",
+              "caption": "The colder it is outside, the warmer the water. The E32 learns the line for your house and keeps it as low as it can.",
+              "values": "Show the values",
+              "outside": "Outside",
+              "off": "Weather compensation is off; the lines show what it would ask.",
+              "waiting": "The E32 has not reported its weather compensation yet."
+            }
+          },
+          "design_flow_c": {
+            "name": "Water temperature in hard frost (°C)"
+          },
+          "standard_slope": {
+            "name": "Standard steepness"
+          },
+          "room_c": {
+            "name": "Room temperature (°C)"
+          },
+          "outdoor_c": {
+            "name": "Outdoor temperature now (°C)"
+          },
+          "minimum_flow_c": {
+            "name": "Lowest water temperature (°C)"
+          },
+          "maximum_flow_c": {
+            "name": "Highest water temperature (°C)"
+          }
+        }
       },
       "flow_learned": {
         "name": "Learned water temperature"

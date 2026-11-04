@@ -39,6 +39,13 @@ only once the E32 reports its part:
 
 The boiler request itself (the flow in use) stays the existing "Boiler
 request (E32)" sensor.
+
+"Water temperature by weather compensation" also carries what the heating-curve
+card (frontend/heating-curve-card.js, E32 rc.5) draws: the standard slope from
+the water temperature in hard frost (WeatherCurve::slopeFor), the room
+temperature the curve starts from, the outdoor temperature the E32 uses now
+and the plan's water temperature limits, next to the curve's slope and where
+it comes from (standard, learned, or worked out from the house).
 """
 from __future__ import annotations
 
@@ -66,6 +73,18 @@ DESIGN_FLOW_AUTOMATIC = "automatic"  # the select option for the stored 0
 DESIGN_FLOW_LIMITS = (25, 80)  # the E32's own bound (WeatherCurve::min/maxDesignFlowC); 0 is automatic
 SOURCES = ["rule", "curve", "learned", "optimum_start"]
 GAS_STATUSES = ["no_meter", "collecting", "calibrated", "meter_stale"]
+# The Learning view's cards (E32 rc.5), the sixth card module (week_planner.card_modules), versioned with the
+# manifest like the other card URLs: "Water temperature by outdoor temperature" and what the E32 knows (a ring).
+CURVE_CARD_URL = "/open_thermostat/heating-curve-card-1.0.0rc5.js"
+CURVE_CARD_TYPE = "custom:openthermostat-heating-curve"
+KNOWLEDGE_CARD_TYPE = "custom:openthermostat-knowledge"
+# WeatherCurve (src/control/WeatherCurve.h): the standard slope follows the water temperature in hard frost
+# (−10 °C outside) for a 20 °C room; automatic is floor heating 40 °C, radiators 55 °C; the slope's limits.
+DESIGN_ROOM_C, DESIGN_OUTDOOR_C = 20, -10
+DESIGN_FLOW_BY_EMITTER = {"floor": 40, "radiator": 55}
+SLOPE_LIMITS = (0.2, 2.5)
+# What only the card reads; it changes with the weather: shown, not kept in the history.
+CURVE_CHART_KEYS = ("design_flow_c", "standard_slope", "room_c", "outdoor_c", "minimum_flow_c", "maximum_flow_c")
 
 
 def decode_settings(value):
@@ -360,6 +379,70 @@ def _flow(value):
     return number(value, 0, 90)
 
 
+def standard_slope(design_flow_c):
+    """WeatherCurve::slopeFor: K of water above the room per K the outdoor is below it, or None."""
+    if type(design_flow_c) is not int or not DESIGN_FLOW_LIMITS[0] <= design_flow_c <= DESIGN_FLOW_LIMITS[1]:
+        return None
+    slope = (design_flow_c - DESIGN_ROOM_C) / (DESIGN_ROOM_C - DESIGN_OUTDOOR_C)
+    return round(min(SLOPE_LIMITS[1], max(SLOPE_LIMITS[0], slope)), 3)
+
+
+def design_flow(settings, plan, learned=None):
+    """The water temperature in hard frost the E32 uses: the stored one, else 55 °C with any radiator room and
+    40 °C for floor heating only (as FlowPolicy decides), or None while neither is known."""
+    stored = settings.get(DESIGN_FLOW_KEY) if type(settings) is dict else None
+    if type(stored) is int and stored > 0:
+        return stored
+    rooms = plan.get("rooms") if type(plan) is dict and type(plan.get("rooms")) is list else None
+    emitters = [room.get("emitter") for room in (rooms if rooms else (learned or {}).values()) if type(room) is dict]
+    for emitter in ("radiator", "floor"):
+        if emitter in emitters:
+            return DESIGN_FLOW_BY_EMITTER[emitter]
+    return None
+
+
+def curve_room_c(rooms):
+    """The room temperature the curve is drawn for: the highest target of the rooms the E32 heats now
+    (FlowPolicy takes the highest base over its usable rooms), else 20 °C."""
+    targets = [number(room.get("setpoint"), 5, 30) for room in (rooms or {}).values()
+               if type(room) is dict and room.get("status") in ("ok", "fallback")]
+    targets = [value for value in targets if value is not None]
+    return max(targets) if targets else DESIGN_ROOM_C
+
+
+def _limit(value):
+    return value if type(value) is int and 20 <= value <= 90 else None
+
+
+def curve_chart(settings, plan, learned, rooms, outdoor_c):
+    """What the heating-curve card draws besides the curve's slope: {design_flow_c, standard_slope, room_c,
+    outdoor_c, minimum_flow_c, maximum_flow_c}; None for what is not known."""
+    design = design_flow(settings, plan, learned)
+    plan = plan if type(plan) is dict else {}
+    outdoor = number(outdoor_c, -50, 60)
+    return {"design_flow_c": design, "standard_slope": standard_slope(design), "room_c": curve_room_c(rooms),
+            "outdoor_c": round(outdoor, 1) if outdoor is not None else None,
+            "minimum_flow_c": _limit(plan.get("minimum_flow_c")), "maximum_flow_c": _limit(plan.get("maximum_flow_c"))}
+
+
+def curve_outdoor(hass, entry, hub):
+    """The outdoor temperature the E32 uses now (learned.inputs.outdoor) as Home Assistant sees it: the boiler's
+    own sensor, or the one set under Energy and outdoor temperature; None without one."""
+    from .energy_input import CONF_OUTDOOR, energy_options, outdoor_celsius
+    from .heating_link import celsius, learned_inputs
+    source = learned_inputs(hub.learned_header).get("outdoor")
+    if source == "ha":
+        entity_id = energy_options(entry).get(CONF_OUTDOOR)
+        return outdoor_celsius(hass.states.get(entity_id)) if type(entity_id) is str else None
+    if source == "boiler":
+        from homeassistant.helpers import entity_registry as er
+        entity_id = er.async_get(hass).async_get_entity_id(
+            "sensor", DOMAIN, f"{hub.prefix}_boiler_fields_v1_outdoor_temperature")
+        state = hass.states.get(entity_id) if entity_id else None
+        return celsius(state.state, state.attributes.get("unit_of_measurement"), -50, 60) if state else None
+    return None
+
+
 def _utc(value):
     if type(value) is not int or value <= 0:
         return None
@@ -422,11 +505,21 @@ class FlowTemperatureSensor(FlowSummarySensor):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     PATHS = {"flow_curve": ("curve", "flow_c"), "flow_learned": ("learned", "flow_c"), "flow_rule": (None, "rule_flow_c")}
+    _unrecorded_attributes = frozenset(CURVE_CHART_KEYS)
 
     def __init__(self, hub, key):
         super().__init__(hub, key)
         self.block, self.field = self.PATHS[key]
         self._attr_entity_registry_enabled_default = key != "flow_rule"
+
+    def _chart(self):
+        """The heating-curve card's figures (curve_chart) from the E32's options, plan, rooms and outdoor."""
+        hass = getattr(self, "hass", None)
+        entry = getattr(getattr(self, "platform", None), "config_entry", None)
+        state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}) if hass is not None and entry is not None else {}
+        outdoor = curve_outdoor(hass, entry, self.hub) if state else None
+        plan = getattr(self.hub.plan, "plan", None)
+        return curve_chart(getattr(state.get(KEY), "settings", None), plan, self.hub.learned, self.hub.rooms, outdoor)
 
     def _block(self):
         flow = self.data
@@ -445,6 +538,7 @@ class FlowTemperatureSensor(FlowSummarySensor):
         attributes = {"state": _text(block, "state")}
         if self.block == "curve":
             attributes.update(slope=number(block.get("slope"), 0, 10), slope_source=_text(block, "slope_source"))
+            attributes.update(self._chart())  # E32 rc.5: the heating-curve card
         return attributes
 
 

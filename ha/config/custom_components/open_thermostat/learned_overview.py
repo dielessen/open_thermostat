@@ -7,13 +7,16 @@ language (English, Dutch or Polish), each figure with a line on what it means:
 - ``rooms``: per room its learning progress and what was learned (how fast it warms and cools,
   the lowest water temperature that still warms it in time, Smart warm-up's start for the next
   program step, how the last morning went and what Smart warm-up changes for it (E32 rc.4), the
-  night advice), from ``fw/telemetry/learned/<room>``;
+  night advice, and the heat it gets for free from sun, cooking and people (E32 rc.5)), from
+  ``fw/telemetry/learned/<room>``;
 - ``house``: the heating curve, the burner (starts and burn time yesterday) and, once learned, the
   lowest water temperature the boiler starts heating at, from the summary; that last figure is
   also the attribute ``boiler_minimum_flow_c`` (absent until learned);
 - ``changes``: the self-tuning's changes, newest first. The E32 sends its newest four
   (``fw/telemetry/tuning``); this sensor keeps the last ten over restarts;
-- ``settings``: the knobs in effect by their plain names, "(automatic)" or "(set by you)".
+- ``settings``: the knobs in effect by their plain names, "(automatic)" or "(set by you)";
+- ``insights``: yesterday against the house's own usual days, each with what can cause it (E32 rc.5,
+  insight.py; also a notification each).
 
 Read only: the knobs are changed in Configure → Home → Comfort and boiler care (e32_care.py) or on
 the E32 page (Home -> Comfort and boiler care).
@@ -74,6 +77,11 @@ TEXT = {
         "lowest_mean": "Cooler water lets the boiler condense better, so it uses less gas.",
         "cools": "Loses about {rate} °C per hour at {out} °C outside.",
         "cools_mean": "This is how fast it cools when the heating is off, for example at night.",
+        "free_heat": "{when} this room warms up by itself, about {rate} °C per hour (sun, cooking or people).",
+        "free_heat_applied": "Smart warm-up now starts {m} min later for it, so it does not heat what comes for free.",
+        "free_heat_mean": "Smart warm-up takes this into account when it plans a warm-up at that time of day.",
+        "daypart.0": "At night", "daypart.1": "Early in the morning", "daypart.2": "In the morning",
+        "daypart.3": "In the afternoon", "daypart.4": "In the evening", "daypart.5": "Late in the evening",
         "start_only": "Starts heating at {start} for the next program step.",
         "start_mean": "So the room is warm on time, without heating longer than needed.",
         "warmup_on": "Smart warm-up: starts at {start} so it is {target} °C at {time}.",
@@ -107,12 +115,15 @@ TEXT = {
         "curve_status_learned": "Weather compensation: learned for your house.",
         "curve_status_learning": "Weather compensation: standard for now, learning from your house ({n} of {m} steady periods).",
         "curve_status_learning_plain": "Weather compensation: standard for now, learning from your house.",
+        "curve_status_house": "Weather compensation: estimated from your house for now, learning more ({n} of {m} steady periods).",
+        "curve_status_house_plain": "Weather compensation: estimated from your house for now, learning more.",
         "curve_status_mean": "The E32 decides by itself when what it learned is good enough to use.",
         "flow_status_collecting": "Coolest water: still learning from each warm-up.",
         "flow_status_ready": "Coolest water: learned for your house.",
         "flow_status_advice": "Coolest water: learned; used when Smart warm-up is on.",
         "flow_status_mean": "Cooler water lets the boiler condense better, so it uses less gas.",
         "curve_learned": "Weather compensation, learned from your house: the water gets about {s} °C warmer for every degree colder outside.",
+        "curve_house": "Weather compensation, estimated from your house: the water gets about {s} °C warmer for every degree colder outside.",
         "curve": "Weather compensation: the water gets about {s} °C warmer for every degree colder outside.",
         "curve_on": "Weather compensation sets the water temperature, so the boiler runs as cool as the weather allows.",
         "curve_off": "Weather compensation is not switched on; this is shown as advice.",
@@ -165,6 +176,11 @@ TEXT = {
         "lowest_mean": "Met koeler water condenseert de ketel beter, dus verbruikt hij minder gas.",
         "cools": "Verliest ongeveer {rate} °C per uur bij {out} °C buiten.",
         "cools_mean": "Zo snel koelt de ruimte af als de verwarming uit is, bijvoorbeeld 's nachts.",
+        "free_heat": "{when} warmt deze ruimte vanzelf op, ongeveer {rate} °C per uur (zon, koken of mensen).",
+        "free_heat_applied": "Slim opwarmen begint daardoor nu {m} min later, zodat hij niet verwarmt wat gratis komt.",
+        "free_heat_mean": "Slim opwarmen houdt hier rekening mee als het op dat moment van de dag opwarmt.",
+        "daypart.0": "'s Nachts", "daypart.1": "Vroeg in de ochtend", "daypart.2": "'s Ochtends",
+        "daypart.3": "'s Middags", "daypart.4": "'s Avonds", "daypart.5": "Laat op de avond",
         "start_only": "Begint om {start} met verwarmen voor de volgende stap van het programma.",
         "start_mean": "Zo is de ruimte op tijd warm, zonder langer te verwarmen dan nodig.",
         "warmup_on": "Slim opwarmen: begint om {start}, zodat het om {time} {target} °C is.",
@@ -198,12 +214,15 @@ TEXT = {
         "curve_status_learned": "Weerafhankelijke regeling: geleerd voor je huis.",
         "curve_status_learning": "Weerafhankelijke regeling: voorlopig standaard, hij leert van je huis ({n} van {m} rustige periodes).",
         "curve_status_learning_plain": "Weerafhankelijke regeling: voorlopig standaard, hij leert van je huis.",
+        "curve_status_house": "Weerafhankelijke regeling: voorlopig geschat uit je huis, hij leert nog bij ({n} van {m} rustige periodes).",
+        "curve_status_house_plain": "Weerafhankelijke regeling: voorlopig geschat uit je huis, hij leert nog bij.",
         "curve_status_mean": "De E32 beslist zelf wanneer wat hij leerde goed genoeg is om te gebruiken.",
         "flow_status_collecting": "Koelste water: leert nog van elke keer opwarmen.",
         "flow_status_ready": "Koelste water: geleerd voor je huis.",
         "flow_status_advice": "Koelste water: geleerd; wordt gebruikt als Slim opwarmen aan staat.",
         "flow_status_mean": "Met koeler water condenseert de ketel beter, dus verbruikt hij minder gas.",
         "curve_learned": "Weerafhankelijke regeling, geleerd van je huis: het water wordt ongeveer {s} °C warmer voor elke graad kouder buiten.",
+        "curve_house": "Weerafhankelijke regeling, geschat uit je huis: het water wordt ongeveer {s} °C warmer voor elke graad kouder buiten.",
         "curve": "Weerafhankelijke regeling: het water wordt ongeveer {s} °C warmer voor elke graad kouder buiten.",
         "curve_on": "De weerafhankelijke regeling bepaalt de watertemperatuur, zodat de ketel zo koel draait als het weer toelaat.",
         "curve_off": "De weerafhankelijke regeling staat niet aan; dit is een advies.",
@@ -256,6 +275,11 @@ TEXT = {
         "lowest_mean": "Chłodniejsza woda pozwala kotłowi lepiej kondensować, więc zużywa mniej gazu.",
         "cools": "Traci około {rate} °C na godzinę przy {out} °C na zewnątrz.",
         "cools_mean": "Tak szybko stygnie, gdy ogrzewanie jest wyłączone, na przykład w nocy.",
+        "free_heat": "{when} to pomieszczenie samo się nagrzewa, o około {rate} °C na godzinę (słońce, gotowanie lub ludzie).",
+        "free_heat_applied": "Inteligentne nagrzewanie zaczyna teraz dzięki temu {m} min później, więc nie grzeje tego, co przychodzi za darmo.",
+        "free_heat_mean": "Inteligentne nagrzewanie uwzględnia to, gdy planuje nagrzewanie o tej porze dnia.",
+        "daypart.0": "W nocy", "daypart.1": "Wcześnie rano", "daypart.2": "Rano",
+        "daypart.3": "Po południu", "daypart.4": "Wieczorem", "daypart.5": "Późnym wieczorem",
         "start_only": "Zaczyna grzać o {start} przed następnym krokiem programu.",
         "start_mean": "Dzięki temu pomieszczenie jest ciepłe na czas, bez grzania dłużej niż trzeba.",
         "warmup_on": "Inteligentne nagrzewanie: start o {start}, aby o {time} było {target} °C.",
@@ -289,12 +313,15 @@ TEXT = {
         "curve_status_learned": "Kompensacja pogodowa: wyuczona dla Twojego domu.",
         "curve_status_learning": "Kompensacja pogodowa: na razie standardowa, uczy się Twojego domu ({n} z {m} stabilnych okresów).",
         "curve_status_learning_plain": "Kompensacja pogodowa: na razie standardowa, uczy się Twojego domu.",
+        "curve_status_house": "Kompensacja pogodowa: na razie oszacowana na podstawie Twojego domu, wciąż się uczy ({n} z {m} stabilnych okresów).",
+        "curve_status_house_plain": "Kompensacja pogodowa: na razie oszacowana na podstawie Twojego domu, wciąż się uczy.",
         "curve_status_mean": "E32 sam decyduje, kiedy to, czego się nauczył, jest wystarczająco dobre, by tego używać.",
         "flow_status_collecting": "Najchłodniejsza woda: wciąż uczy się z każdego nagrzewania.",
         "flow_status_ready": "Najchłodniejsza woda: wyuczona dla Twojego domu.",
         "flow_status_advice": "Najchłodniejsza woda: wyuczona; używana, gdy Inteligentne nagrzewanie jest włączone.",
         "flow_status_mean": "Przy chłodniejszej wodzie kocioł lepiej kondensuje, więc zużywa mniej gazu.",
         "curve_learned": "Kompensacja pogodowa wyuczona z Twojego domu: woda jest cieplejsza o około {s} °C na każdy stopień zimniej na zewnątrz.",
+        "curve_house": "Kompensacja pogodowa oszacowana na podstawie Twojego domu: woda jest cieplejsza o około {s} °C na każdy stopień zimniej na zewnątrz.",
         "curve": "Kompensacja pogodowa: woda jest cieplejsza o około {s} °C na każdy stopień zimniej na zewnątrz.",
         "curve_on": "Kompensacja pogodowa ustala temperaturę wody, więc kocioł pracuje tak chłodno, jak pozwala pogoda.",
         "curve_off": "Kompensacja pogodowa nie jest włączona; to tylko porada.",
@@ -468,6 +495,47 @@ def arrival_line(arrival, lang, clock, day=None, today=None):
     return t[key].format(when=when, time=clock(at + minutes * 60), how=how, p=change), t["arrival_mean"]
 
 
+FREE_HEAT_DAYPARTS = 6        # FreeHeat: six local dayparts of 4 hours from midnight
+FREE_HEAT_MIN_COUNT = 5       # FreeHeat::rateKPerH: an expected free rise from 5 windows
+FREE_HEAT_MIN_RATE = 0.05     # K/h: below about 0.1 °C an hour it is not worth a line
+
+
+def free_heat(learned, plan=None):
+    """(daypart, rate in °C per hour, minutes Smart warm-up starts later) of the room's strongest free heat, or None.
+
+    ``free_heat`` (E32 rc.5, FreeHeat::addJson) of the learned room, else of its plan: {"rate": [6 x °C per hour
+    or null], "n": [6 counts], "applied_min": n}. A daypart counts with 5 windows or more, as on the E32.
+    """
+    part = learned.get("free_heat") if type(learned) is dict else None
+    if type(part) is not dict:
+        part = plan.get("free_heat") if type(plan) is dict else None
+    if type(part) is not dict:
+        return None
+    rates, counts = part.get("rate"), part.get("n")
+    if (type(rates) is not list or type(counts) is not list or len(rates) != FREE_HEAT_DAYPARTS
+            or len(counts) != FREE_HEAT_DAYPARTS):
+        return None
+    best = None
+    for daypart, (rate, count) in enumerate(zip(rates, counts)):
+        if (_ok(rate) and FREE_HEAT_MIN_RATE <= rate <= 10 and type(count) is int and count >= FREE_HEAT_MIN_COUNT
+                and (best is None or rate > best[1])):
+            best = (daypart, rate)
+    if best is None:
+        return None
+    applied = part.get("applied_min")
+    return best[0], best[1], applied if type(applied) is int and 0 < applied <= 1440 else 0
+
+
+def free_heat_line(learned, plan, lang):
+    """(text, meaning) on the heat the room gets for free (sun, cooking, people), or None."""
+    found = free_heat(learned, plan)
+    if found is None:
+        return None
+    t, (daypart, rate, applied) = TEXT[lang], found
+    text = t["free_heat"].format(when=t[f"daypart.{daypart}"], rate=number(rate, lang, 1))
+    return text, t["free_heat_applied"].format(m=applied) if applied else t["free_heat_mean"]
+
+
 def room_overview(name, learned, plan, lang, clock, smart=None, day=None, today=None):
     """{name, progress, lines: [{text, meaning}]} of one room; clock: utc -> "07:10" in local time.
 
@@ -491,6 +559,8 @@ def room_overview(name, learned, plan, lang, clock, smart=None, day=None, today=
     if _ok(learned.get("loss_per_h")):
         rate = max(0.0, learned["loss_per_h"] * (REFERENCE_ROOM_C - REFERENCE_OUTDOOR_C))
         lines.append(_line(t["cools"].format(rate=number(rate, lang, 2), out=REFERENCE_OUTDOOR_C), t["cools_mean"]))
+    if (free := free_heat_line(learned, plan, lang)) is not None:  # E32 rc.5: sun, cooking and people
+        lines.append(_line(*free))
     plan = plan if type(plan) is dict else {}
     start = plan.get("optimum_start") if type(plan.get("optimum_start")) is dict else {}
     if (warm := smart_warm_up_line(start, smart, lang, clock)) is not None:
@@ -540,17 +610,20 @@ def curve_status(curve, on, lang):
         return t["curve_status_no_outdoor"], t["curve_status_mean"]
     if curve.get("slope_source") == "learned":
         return t["curve_status_learned"], t["curve_status_mean"]
+    # E32 rc.5: until 6 steady periods, the slope the house model works out (HouseModel), else the standard one.
+    key = "curve_status_house" if curve.get("slope_source") == "house" else "curve_status_learning"
     windows = curve.get("windows")
     if type(windows) is int and windows >= 0:
-        return t["curve_status_learning"].format(n=min(windows, CURVE_STEPS), m=CURVE_STEPS), t["curve_status_mean"]
-    return t["curve_status_learning_plain"], t["curve_status_mean"]
+        return t[key].format(n=min(windows, CURVE_STEPS), m=CURVE_STEPS), t["curve_status_mean"]
+    return t[key + "_plain"], t["curve_status_mean"]
 
 
 def learned_flow_status(learned, smart, lang):
     """(text, meaning) for the learned coolest water (the summary's ``flow.learned``), or None."""
     t = TEXT[lang]
     state = learned.get("state") if type(learned) is dict else None
-    if type(state) is not str or state == "no_room":
+    # "held" (E32 rc.5): the boiler's own ceiling binds; the boiler sentence (insight.py) says so.
+    if type(state) is not str or state in ("no_room", "held"):
         return None
     if state == "not_ready":
         return t["flow_status_collecting"], t["flow_status_mean"]
@@ -572,7 +645,9 @@ def house_overview(summary, lang, options=None):
             lines.append(_line(*status))
     curve = (summary.get("flow") or {}).get("curve") if type(summary.get("flow")) is dict else None
     if type(curve) is dict and _ok(curve.get("slope")):
-        lines.append(_line(t["curve_learned" if curve.get("slope_source") == "learned" else "curve"].format(s=number(curve["slope"], lang, 2)),
+        source = curve.get("slope_source")
+        key = "curve_learned" if source == "learned" else "curve_house" if source == "house" else "curve"
+        lines.append(_line(t[key].format(s=number(curve["slope"], lang, 2)),
                            t["curve_on" if curve.get("state") == "applied" else "curve_off"]))
     tuning = summary.get("tuning") if type(summary.get("tuning")) is dict else {}
     yesterday = tuning.get("yesterday") if type(tuning.get("yesterday")) is dict else None
@@ -615,7 +690,7 @@ class LearnedOverviewSensor(RestoreEntity, SensorEntity):
     _attr_translation_key = "learned_overview"
     _attr_icon = "mdi:school-outline"
     # The texts are shown, not kept in the history.
-    _unrecorded_attributes = frozenset({"rooms", "house", "changes", "settings", "explanation"})
+    _unrecorded_attributes = frozenset({"rooms", "house", "changes", "settings", "explanation", "insights"})
 
     def __init__(self, entry, hub, clock=None):
         self.entry, self.hub = entry, hub
@@ -687,10 +762,12 @@ class LearnedOverviewSensor(RestoreEntity, SensorEntity):
                                day, today)
                  for room_id, name in names.items() if self.hub.rooms[room_id].get("state") != "inactive"]
         manual = tuning.get("manual") if type(tuning.get("manual")) is list else []
+        from .insight import insight_lines  # E32 rc.5: yesterday against the house's own usual days
         attributes = {"explanation": t.get("state." + str(tuning.get("state")), "") if tuning else t["unavailable"],
                       "rooms": rooms, "house": house_overview(self.hub.summary, lang, self._flow_options()),
                       "changes": changes or [{"time": None, "text": t["state.none"]}],
-                      "settings": settings(tuning.get("values"), manual, lang)}
+                      "settings": settings(tuning.get("values"), manual, lang),
+                      "insights": insight_lines(self.hub.summary, names, lang)}
         lowest = boiler_minimum_flow(self.hub.summary)
         if lowest is not None:  # only once learned
             attributes["boiler_minimum_flow_c"] = lowest

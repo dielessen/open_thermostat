@@ -2168,6 +2168,58 @@
       "learned_overview": {
         "name": "Czego nauczył się termostat"
       },
+      "knowledge": {
+        "name": "Wiedza",
+        "state_attributes": {
+          "missing": {
+            "name": "Jeszcze do nauczenia"
+          },
+          "more": {
+            "name": "I jeszcze"
+          },
+          "card": {
+            "name": "Karta",
+            "state": {
+              "title": "E32 zna Twój dom",
+              "ring": "E32 zna Twój dom w {pct} %",
+              "hint": "Uczy się sam, gdy ogrzewanie pracuje.",
+              "missing": "Jeszcze do nauczenia",
+              "more": "I jeszcze {n}.",
+              "done": "Nauczył się wszystkiego, czego potrzebuje; sprawdza to dalej wraz ze zmianą pór roku.",
+              "waiting": "E32 jeszcze nie przekazał, co wie."
+            }
+          }
+        }
+      },
+      "boiler_response": {
+        "name": "Reakcja kotła",
+        "state": {
+          "collecting": "Wciąż nasłuchuje",
+          "learned": "Wyuczona",
+          "no_return": "Brak temperatury powrotu",
+          "not_driving": "E32 nie steruje kotłem"
+        },
+        "state_attributes": {
+          "held_today": {
+            "name": "Utrzymanie temperatury dziś"
+          },
+          "rest_min": {
+            "name": "Przerwa po utrzymaniu (min)"
+          },
+          "ceiling_c": {
+            "name": "E32 zadaje najwyżej (°C)"
+          },
+          "absorbed_kw": {
+            "name": "Ciepło pobierane przez dom (kW)"
+          },
+          "kw_per_k": {
+            "name": "kW na °C temperatury wody"
+          },
+          "sentence": {
+            "name": "Słownie"
+          }
+        }
+      },
       "heating_gas": {
         "name": "Gaz na ogrzewanie"
       },
@@ -2190,7 +2242,48 @@
         }
       },
       "flow_curve": {
-        "name": "Temperatura wody wg kompensacji pogodowej"
+        "name": "Temperatura wody wg kompensacji pogodowej",
+        "state_attributes": {
+          "chart": {
+            "name": "Wykres",
+            "state": {
+              "title": "Temperatura wody a temperatura zewnętrzna",
+              "standard": "Standardowa",
+              "learned": "Wyuczona dla Twojego domu",
+              "now": "Teraz",
+              "frost": "Przy −10 °C: {flow} °C",
+              "now_point": "{outdoor} °C na zewnątrz → {flow} °C",
+              "at": "Przy {outdoor} °C na zewnątrz",
+              "lower": "o {n} °C chłodniej niż standardowo",
+              "higher": "o {n} °C cieplej niż standardowo",
+              "outdoor": "Temperatura zewnętrzna (°C)",
+              "water": "Woda do ogrzewania (°C)",
+              "caption": "Im zimniej na zewnątrz, tym cieplejsza woda. E32 uczy się linii dla Twojego domu i utrzymuje ją tak nisko, jak potrafi.",
+              "values": "Pokaż wartości",
+              "outside": "Na zewnątrz",
+              "off": "Kompensacja pogodowa jest wyłączona; linie pokazują, czego by żądała.",
+              "waiting": "E32 jeszcze nie przekazał danych kompensacji pogodowej."
+            }
+          },
+          "design_flow_c": {
+            "name": "Temperatura wody przy silnym mrozie (°C)"
+          },
+          "standard_slope": {
+            "name": "Standardowe nachylenie"
+          },
+          "room_c": {
+            "name": "Temperatura pomieszczenia (°C)"
+          },
+          "outdoor_c": {
+            "name": "Temperatura zewnętrzna teraz (°C)"
+          },
+          "minimum_flow_c": {
+            "name": "Najniższa temperatura wody (°C)"
+          },
+          "maximum_flow_c": {
+            "name": "Najwyższa temperatura wody (°C)"
+          }
+        }
       },
       "flow_learned": {
         "name": "Wyuczona temperatura wody"

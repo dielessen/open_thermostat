@@ -15,9 +15,11 @@ planner and, per room, the room status card (frontend/room-status-card.js):
   water, the heating advice, the reported boiler fields in groups (heating,
   hot water, status, counters, settings, the thermostat on the bus), their last
   24 hours, the gas per day and yesterday. Nothing about the boiler is on another view;
-* Learning and settings: what the thermostat learned (house and boiler, its own
-  changes), Smart warm-up and Weather compensation, the burner (short cycling
-  as information) and the takeover check;
+* Learning and settings: what the E32 knows (the knowledge tile, what it still
+  learns, the boiler's response, yesterday compared with usual; E32 rc.5), what
+  the thermostat learned (house and boiler, its own changes), Smart warm-up and
+  Weather compensation with its curve (water temperature by outdoor
+  temperature), the burner (short cycling as information) and the takeover check;
 * Diagnostics (last): the E32 itself, the hot water capability, the energy and hot
   water counters and the raw boiler data;
 * Comparison (subview, trial run with a thermostat on the bus only).
@@ -52,6 +54,7 @@ from homeassistant.helpers.event import async_call_later
 from homeassistant.util import slugify
 
 from .const import DOMAIN
+from .e32_flow import CURVE_CARD_TYPE, KNOWLEDGE_CARD_TYPE
 from .product import is_product
 from .week_planner import ROOM_CARD_TYPE
 
@@ -128,8 +131,9 @@ ESSENTIALS = (
     ("code", "display_code", "boiler_display_code"),
 )
 
-# Weather compensation and learning on the product device (e32_flow.py): unique ID f"{prefix}_flow_{key}".
-FLOW_KEYS = ("source", "weather_curve", "curve_design_flow_c", "apply_learned")
+# Weather compensation and learning on the product device (e32_flow.py): unique ID f"{prefix}_flow_{key}";
+# "curve" is what weather compensation asks now, which the heating-curve card draws (E32 rc.5).
+FLOW_KEYS = ("source", "weather_curve", "curve_design_flow_c", "apply_learned", "curve")
 COMPARISON_PATH = "comparison"
 # One icon per boiler value, the same in every view.
 ICONS = {"flow": "mdi:thermometer-chevron-up", "return": "mdi:thermometer-chevron-down",
@@ -293,6 +297,11 @@ TEXT = {
         "fix_sources": "Check the room sensors (battery, range) and give a room a second source.",
         "fix_boiler": "The E32 hears nothing from the boiler: check the bus cable.",
         "fix_boiler_limit": "The boiler has not reported its maximum: check the bus connection.",
+        # E32 rc.5: what the E32 knows, the boiler's response and yesterday's insights (insight.py).
+        "knowledge": "What the E32 knows",
+        "insights": "Yesterday compared with usual",
+        "knowledge_note": "The E32 learns all this by itself while the heating runs. Yesterday is compared with your "
+                          "house's own usual days; that is information and changes nothing.",
     },
     "nl": {
         "heating": "Verwarming", "boiler_view": "Ketel", "diagnostics": "Diagnose",
@@ -454,6 +463,10 @@ TEXT = {
         "fix_sources": "Controleer de ruimtesensoren (batterij, bereik) en geef een ruimte een tweede bron.",
         "fix_boiler": "De E32 hoort niets van de ketel: controleer de buskabel.",
         "fix_boiler_limit": "De ketel heeft zijn maximum niet gemeld: controleer de busverbinding.",
+        "knowledge": "Wat de E32 weet",
+        "insights": "Gisteren vergeleken met normaal",
+        "knowledge_note": "De E32 leert dit allemaal zelf terwijl de verwarming draait. Gisteren wordt vergeleken met de "
+                          "gewone dagen van je eigen huis; dat is informatie en verandert niets.",
     },
     # Polish: the terms of translations/pl.json and docs/UX-GLOSSARY.md; E32 page names stay English.
     "pl": {
@@ -617,6 +630,10 @@ TEXT = {
         "fix_sources": "Sprawdź czujniki w pomieszczeniach (bateria, zasięg) i dodaj pomieszczeniu drugie źródło.",
         "fix_boiler": "E32 nic nie słyszy z kotła: sprawdź kabel magistrali.",
         "fix_boiler_limit": "Kocioł nie zgłosił swojego maksimum: sprawdź połączenie z magistralą.",
+        "knowledge": "Co wie E32",
+        "insights": "Wczoraj w porównaniu ze zwykłymi dniami",
+        "knowledge_note": "E32 uczy się tego wszystkiego sam, gdy ogrzewanie pracuje. Wczoraj jest porównywane ze "
+                          "zwykłymi dniami Twojego domu; to tylko informacja i niczego nie zmienia.",
     },
 }
 
@@ -818,6 +835,38 @@ def _learned_sections(t, learned):
         section["visibility"] = shown
         sections.append(section)
     return sections
+
+
+def _knowledge_section(t, knowledge, boiler, learned=None):
+    """What the E32 knows (insight.py, E32 rc.5), first on the Learning view: the knowledge card (a ring with "The
+    E32 knows your house: 70 %" and what it still learns in words, frontend/heating-curve-card.js), the boiler's
+    response in one sentence and yesterday against the house's own usual days (the learned overview's
+    ``insights``).
+
+    Every card follows its sensor without a rebuild; the section stays hidden until the E32 reports the
+    knowledge or the boiler's response (firmware before rc.5 leaves both unknown).
+    """
+    entities = [entity for entity in (knowledge, boiler) if entity]
+    if not entities:
+        return None
+    cards = [_heading(t["knowledge"], "mdi:home-analytics")]
+    if knowledge:
+        cards.append(_wide({"type": KNOWLEDGE_CARD_TYPE, "entity": knowledge, "visibility": _known(knowledge)}))
+    if boiler:
+        quoted = json.dumps(boiler)
+        cards.append({"type": "markdown", "show_empty": False, "visibility": _known(boiler), "content": (
+            "{% set s = state_attr(" + quoted + ", 'sentence') %}{% if s %}"
+            "<ha-icon icon=\"mdi:water-boiler\"></ha-icon> {{ s }}{% endif %}")})
+    if learned:  # empty (and hidden) while nothing stood out yesterday
+        quoted = json.dumps(learned)
+        cards.append({"type": "markdown", "show_empty": False, "content": (
+            "{% set items = state_attr(" + quoted + ", 'insights') or [] %}{% if items %}**" + t["insights"] + "**\n"
+            "{% for line in items %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n"
+            "{% endfor %}{% endif %}")})
+    cards.append(_note(t, t["knowledge_note"]))
+    section = _section(*cards)
+    section["visibility"] = _any_known(entities)
+    return section
 
 
 def _energy_section(t, heating, hot_water, keep_warm=None):
@@ -1617,7 +1666,9 @@ class RoomDashboard:
             boiler_tail.append(yesterday)
 
         # -- Learning and settings -----------------------------------------------------------------
-        learning = _learned_sections(t, learned_overview)
+        # E32 rc.5: what the E32 knows first, then what it learned.
+        knows = _knowledge_section(t, hub.get("knowledge"), hub.get("boiler_response"), learned_overview)
+        learning = ([knows] if knows else []) + _learned_sections(t, learned_overview)
         # Yesterday's scoreboard (E32 rc.4): is it getting better? Only once the E32 reports it.
         scoreboard = _scoreboard_section(
             t, {room_id: {key: room[key] for key in ("warm_on_time", "overshoot") if room.get(key)}
@@ -1632,6 +1683,9 @@ class RoomDashboard:
             _wide(_tile(flow.get("apply_learned"), t["apply_learned"], "mdi:school-outline")),
             _wide(_tile(flow.get("weather_curve"), t["weather_curve"], "mdi:sun-thermometer")),
             _wide(_tile(flow.get("curve_design_flow_c"), t["design_flow"], "mdi:thermometer-lines")),
+            # E32 rc.5: water temperature by outdoor temperature (frontend/heating-curve-card.js), while it has a value.
+            _wide({"type": CURVE_CARD_TYPE, "entity": flow["curve"], "visibility": _known(flow["curve"])})
+            if flow.get("curve") else None,
             _wide(_tile(flow.get("source"), t["flow_source"], "mdi:thermometer-water")),
             _link(t["set_up_rooms"], "mdi:home-edit-outline", "/config/integrations/integration/" + DOMAIN)
             if e32_rooms else None,

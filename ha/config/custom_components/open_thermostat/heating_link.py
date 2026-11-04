@@ -21,7 +21,9 @@ most 1.5 KB, sent on a real change (deadbands), at most every 10 s, else every
   ``fw/telemetry/flow`` (the flow policy's ``flow`` and ``night_gas``),
   ``fw/telemetry/tuning`` (the self-tuning's ``tuning``, E32 rc.2) and
   ``fw/telemetry/scoreboard`` (yesterday's and today's ``scoreboard``, E32 rc.4;
-  rc.4 preview firmware carried it inside the summary itself), and
+  rc.4 preview firmware carried it inside the summary itself) and
+  ``fw/telemetry/insight`` (what the E32 knows, the house, the boiler's response and
+  yesterday's insights, E32 rc.5; merged as ``insight``, insight.py), and
   ``fw/telemetry/shadow`` (today's comparison; 5 min) and
   ``fw/telemetry/readiness`` (E32 1.0: ready to take over?, takeover_readiness.py; 5 min);
 - ``fw/availability`` (retained online/offline, the LWT) and ``fw/heartbeat``
@@ -109,19 +111,28 @@ SUMMARY_TOPIC = "fw/telemetry/summary"
 SHADOW_TOPIC = "fw/telemetry/shadow"
 READINESS_TOPIC = "fw/telemetry/readiness"
 # The flow policy's part of the summary ("flow", "night_gas"), sent apart to keep both within 1 KB.
+# E32 rc.5 adds the boiler's response ("boiler", BoilerResponse); kept whether it sits in "flow" or beside it.
 FLOW_TOPIC = "fw/telemetry/flow"
-FLOW_KEYS = ("flow", "night_gas")
+FLOW_KEYS = ("flow", "night_gas", "boiler")
 # The self-tuning's state, knobs and newest changes (rc.2, AutoTuner), merged into the summary as "tuning".
 TUNING_TOPIC = "fw/telemetry/tuning"
 # Yesterday's and today's scoreboard (rc.4, Scoreboard), {"schema": 1, "scoreboard": {...}}, merged into the
 # summary as "scoreboard" (scoreboard.py reads it there; a summary that still carries it keeps working).
 SCOREBOARD_TOPIC = "fw/telemetry/scoreboard"
+# What the E32 knows, the house model, the boiler's response and yesterday's insights (E32 rc.5, retained, every
+# 5 minutes): {"schema": 1, "knowledge": {..}, "house": {..}, "boiler": {..}, "insights": [..]}, merged into the
+# summary as "insight" (insight.py reads it there). The parts may also come in one "insight" object.
+INSIGHT_TOPIC = "fw/telemetry/insight"
+INSIGHT_KEYS = ("knowledge", "house", "boiler", "insights")
+# The E32 sends the insight every 5 minutes: after this many live heartbeats (one a minute) without one, a
+# retained insight left on the broker (firmware without the topic, after a downgrade) is dropped.
+INSIGHT_MISSED_HEARTBEATS = 16
 HEARTBEAT_TOPIC = "fw/heartbeat"
 AVAILABILITY_TOPIC = "fw/availability"
 # What only the hub reads: the shadow session (v1_mqtt.NativeShadowConnection, subscribed to fw/#)
 # drops these at once instead of decoding every E32 message a second time (R4-03).
 _HUB_ONLY = (HEATING_TOPIC, PLAN_TOPIC, ENTITIES_TOPIC, SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SCOREBOARD_TOPIC,
-             SHADOW_TOPIC, READINESS_TOPIC)
+             INSIGHT_TOPIC, SHADOW_TOPIC, READINESS_TOPIC)
 _HUB_ONLY_PARTS = (ROOM_TOPIC, BLE_TOPIC, TRV_TOPIC, LEARNED_TOPIC, ENTITIES_TOPIC + "/")
 
 
@@ -289,7 +300,26 @@ def decode_learned(topic_room, payload):
         return None
     if plan is not None and plan.get("id", topic_room) != topic_room:  # the plan may carry its room id
         return None
-    return {**learned, "id": topic_room}, ({**plan, "id": topic_room} if plan is not None else None)
+    room = {**learned, "id": topic_room}
+    # E32 rc.5 (FreeHeat): "free_heat" belongs to the room, also when it sits beside "learned".
+    if "free_heat" not in room and type(value.get("free_heat")) is dict:
+        room["free_heat"] = value["free_heat"]
+    return room, ({**plan, "id": topic_room} if plan is not None else None)
+
+
+def decode_insight(payload):
+    """``fw/telemetry/insight`` (E32 rc.5): {"knowledge", "house", "boiler", "insights"} (the parts it has), or None.
+
+    The parts sit at the top of the schema 1 document or in one "insight" object; a part of the wrong type
+    is left out (insight.py checks every value), and a document without any part is None.
+    """
+    value = decode_document(payload)
+    if value is None:
+        return None
+    body = value["insight"] if type(value.get("insight")) is dict else value
+    parts = {key: body[key] for key in INSIGHT_KEYS
+             if type(body.get(key)) is (list if key == "insights" else dict)}
+    return parts or None
 
 
 def decode_summary(payload):
@@ -428,12 +458,17 @@ class HeatingHub:
         # The latest summary (decode_summary) and when it arrived (monotonic).
         self.summary = None
         self.summary_received = None
-        # fw/telemetry/summary, fw/telemetry/flow, fw/telemetry/tuning and fw/telemetry/scoreboard as
-        # received; summary is the four merged.
+        # fw/telemetry/summary, fw/telemetry/flow, fw/telemetry/tuning, fw/telemetry/scoreboard and
+        # fw/telemetry/insight as received; summary is the five merged.
         self.summary_doc = None
         self.flow_doc = None
         self.tuning_doc = None
         self.scoreboard_doc = None
+        self.insight_doc = None
+        # True once an insight the E32 had sent is gone again (an empty or broken message, or none for
+        # INSIGHT_MISSED_HEARTBEATS live heartbeats): its notifications go (insight.InsightNotifier).
+        self.insight_gone = False
+        self._insight_beats = 0  # live heartbeats since the last insight message
         self.received = None
         # The last live sign of the E32 (monotonic), kept while it is silent.
         self.last_seen = None
@@ -617,6 +652,12 @@ class HeatingHub:
             self.heartbeat, self.heartbeat_received = beat, self.clock()
             self.online = True if self.online is None else self.online
             self.last_seen = self.heartbeat_received
+            if self.insight_doc is not None:
+                self._insight_beats += 1
+                if self._insight_beats > INSIGHT_MISSED_HEARTBEATS:
+                    # A live E32 that sends no insight (older firmware): a retained one is not current.
+                    self.insight_doc, self.insight_gone = None, True
+                    self.summary = self._merged_summary()
         elif suffix == HEATING_TOPIC:
             self.heating = None if empty else decode_document(payload)
         elif suffix == PLAN_TOPIC:
@@ -669,7 +710,7 @@ class HeatingHub:
                 if value is None:
                     return
                 self.learned_messages[room_id] = (self.clock(), *value)
-        elif suffix in (SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SCOREBOARD_TOPIC):
+        elif suffix in (SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SCOREBOARD_TOPIC, INSIGHT_TOPIC):
             if suffix == SUMMARY_TOPIC:
                 self.summary_doc = None if empty else decode_summary(payload)
             elif suffix == FLOW_TOPIC:
@@ -679,18 +720,14 @@ class HeatingHub:
             elif suffix == TUNING_TOPIC:
                 tuning = None if empty else decode_document(payload)
                 self.tuning_doc = tuning["tuning"] if tuning is not None and type(tuning.get("tuning")) is dict else None
-            else:
+            elif suffix == SCOREBOARD_TOPIC:
                 board = None if empty else decode_document(payload)
                 self.scoreboard_doc = (board["scoreboard"] if board is not None and type(board.get("scoreboard")) is dict
                                        else None)
-            summary = self.summary_doc
-            if summary is not None and self.flow_doc:
-                summary = {**summary, **self.flow_doc}
-            if summary is not None and self.tuning_doc is not None:
-                summary = {**summary, "tuning": self.tuning_doc}
-            if summary is not None and self.scoreboard_doc is not None:
-                summary = {**summary, "scoreboard": self.scoreboard_doc}  # the topic wins over an older summary's own
-            self.summary = summary
+            else:
+                self.insight_doc = None if empty else decode_insight(payload)
+                self.insight_gone, self._insight_beats = self.insight_doc is None, 0
+            summary = self.summary = self._merged_summary()
             self.summary_received = self.clock() if summary is not None else None
         elif suffix == SHADOW_TOPIC:
             self.shadow = None if empty else decode_document(payload)
@@ -701,6 +738,19 @@ class HeatingHub:
         if not retained and suffix != AVAILABILITY_TOPIC:
             self.last_seen = self.clock()
         self.refresh()
+
+    def _merged_summary(self):
+        """fw/telemetry/summary with its parts (flow, tuning, scoreboard, insight); None without the summary itself."""
+        summary = self.summary_doc
+        if summary is not None and self.flow_doc:
+            summary = {**summary, **self.flow_doc}
+        if summary is not None and self.tuning_doc is not None:
+            summary = {**summary, "tuning": self.tuning_doc}
+        if summary is not None and self.scoreboard_doc is not None:
+            summary = {**summary, "scoreboard": self.scoreboard_doc}  # the topic wins over an older summary's own
+        if summary is not None and self.insight_doc is not None:
+            summary = {**summary, "insight": self.insight_doc}
+        return summary
 
     @callback
     def update_learned(self, room_id, value):
@@ -1785,6 +1835,12 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
         except Exception:  # noqa: BLE001 - the advice is optional; the rooms and forwarding are not
             _LOGGER.exception("OpenThermostat: setting up the heating advice and gas use failed; "
                               "the E32 rooms still load")
+        # E32 rc.5: what the E32 knows, the boiler's response and yesterday's insights (notifications).
+        from .insight import async_setup_insight
+        try:
+            await async_setup_insight(hass, entry, async_add_entities, options, hub)
+        except Exception:  # noqa: BLE001 - information only; the rooms and forwarding are not
+            _LOGGER.exception("OpenThermostat: setting up what the E32 knows failed; the E32 rooms still load")
     forwarded = []
     unsubscribe_states = None
     was_fresh = False
@@ -1849,7 +1905,7 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     entry.async_on_unload(hub.add_listener(follow, first=True))
     for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", TRV_TOPIC + "+", PLAN_TOPIC,
                   ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SCOREBOARD_TOPIC,
-                  SHADOW_TOPIC, READINESS_TOPIC):
+                  INSIGHT_TOPIC, SHADOW_TOPIC, READINESS_TOPIC):
         entry.async_on_unload(await mqtt.async_subscribe(hass, base + topic, receive))
     entry.async_on_unload(async_track_time_interval(hass, refresh, timedelta(seconds=REFRESH_SECONDS)))
     entry.async_on_unload(async_track_time_interval(hass, hub.check_stale, STALE_CHECK))

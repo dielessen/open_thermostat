@@ -588,6 +588,9 @@ async def async_remove_entry(hass, entry):
     # Its E32 settings backups too (the passphrase that opens their secrets went with the entry).
     from .e32_backup import async_remove_backups
     await async_remove_backups(hass, entry.entry_id)
+    # Its insight notifications and the ones the owner dismissed (E32 rc.5, insight.py).
+    from .insight import async_remove_insight
+    await async_remove_insight(hass, entry.entry_id)
     # The last installation removed: browsers stop loading the dashboard cards (week_planner).
     if not any(other.entry_id != entry.entry_id for other in hass.config_entries.async_entries(DOMAIN)):
         from .week_planner import async_remove_card_modules

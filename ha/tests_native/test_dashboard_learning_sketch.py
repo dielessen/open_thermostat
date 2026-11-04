@@ -23,7 +23,7 @@ HEADINGS = {
            "Opgevallen", "Gratis warmte", "Slim opwarmen en weerafhankelijke regeling",
            "Wat de thermostaat heeft geleerd", "Huis en ketel", "Wat hij zelf heeft aangepast", "Wie regelt de ketel"],
     "pl": ["Co wie E32", "Twój kocioł", "Temperatura wody a temperatura zewnętrzna", "Wczoraj w liczbach",
-           "Spostrzeżenia", "Darmowe ciepło", "Inteligentne nagrzewanie i sterowanie pogodowe",
+           "Spostrzeżenia", "Darmowe ciepło", "Inteligentne nagrzewanie i kompensacja pogodowa",
            "Czego nauczył się termostat", "Dom i kocioł", "Co zmienił sam", "Kto steruje kotłem"]}
 ICONS = ["mdi:home-analytics", "mdi:water-boiler", "mdi:chart-bell-curve-cumulative", "mdi:scoreboard-outline",
          "mdi:information-outline", "mdi:weather-sunny", "mdi:cog-outline",

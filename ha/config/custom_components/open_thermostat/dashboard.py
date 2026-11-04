@@ -4,30 +4,41 @@ The views, built from the entity registry (renamed entity IDs are followed,
 disabled and absent entities are left out) with built-in cards, the week
 planner and, per room, the room status card (frontend/room-status-card.js):
 
-* Overview (first): the house (mode; the rooms that want heat with the boiler
-  request; the problem tile with its reason, only while there is a problem; a
-  tap leads to Repairs) and one status card per room: temperature against
-  target and, in one line, why it heats or not. Nothing else;
+* Overview (first): the house, with the house card on top (its slot in the
+  House section: what the boiler does now, today's heating, hot water and gas,
+  a problem with its reason that leads to Repairs, and the one room that is on;
+  until it is there, the rooms that want heat with the boiler request and the
+  problem tile), the house mode and the next holiday; then one status card per
+  other room: temperature against target and, in one line, why it heats or
+  not. Nothing else;
 * Rooms: per room its thermostat, 24-hour graph, sensors, windows and people,
   and what it learned for that room; then the sensors that feed no single room;
 * Week program (with an E32 room plan): the visual week planner card;
-* Boiler: what the boiler does in words, the burner starts and today's hot
-  water, the heating advice, the reported boiler fields in groups (heating,
-  hot water, status, counters, settings, the thermostat on the bus), their last
-  24 hours, the gas per day and yesterday. Nothing about the boiler is on another view;
+* Boiler, in this order: Now (what the boiler does in words and as one coloured
+  tile: heating, hot water or resting; the water to the heating and back; the
+  burner power and its starts per hour), the heating advice, Today and this week
+  (today's gas and burner as figures, the one chart of the gas per day and the
+  burner hours per day), Hot water (its temperature and target, today's taps and
+  keeping warm, what the boiler did in the last 24 hours), the last 24 hours,
+  What the boiler reports (its values in groups) and the boiler settings.
+  Nothing about the boiler is on another view, except the thermostat on the bus;
 * Learning and settings: what the E32 knows (the knowledge tile, what it still
-  learns, the boiler's response, yesterday compared with usual; E32 rc.5), what
-  the thermostat learned (house and boiler, its own changes), Smart warm-up and
-  Weather compensation with its curve (water temperature by outdoor
-  temperature), the burner (short cycling as information) and the takeover check;
-* Diagnostics (last): the E32 itself, the hot water capability, the energy and hot
-  water counters and the raw boiler data;
+  learns, the boiler's response, yesterday compared with usual; E32 rc.5),
+  yesterday in figures (the scoreboard and the daily summary, once), what the
+  thermostat learned (house and boiler, its own changes, how it learns), Smart
+  warm-up and Weather compensation with its curve (water temperature by outdoor
+  temperature) and who controls the boiler (short cycling as information, the
+  takeover check);
+* Diagnostics (last): the E32 itself, the thermostat on the boiler bus, the
+  energy and hot water counters, the raw boiler data and the hot water capability;
 * Comparison (subview, trial run with a thermostat on the bus only).
 
-Layout: every view is sections; a card is as wide as its section, or one of a
-tidy pair of tiles that appear together (never one half tile alone); a note is one
+Layout: every view is sections; a section hides as a whole while nothing in it
+has a value, so a heading never stands over nothing; a card is as wide as its
+section, or one of a tidy pair of half-width cards (tiles, figures, a gauge) that
+appear together on one condition (never one half card alone); a note is one
 sentence with the rest behind "More"; a card whose text can change is one card
-instead of cards that come and go.
+instead of cards that come and go; one icon per concept (ICONS).
 
 Rows, tiles and graphs without a value stay hidden until they have one, so a
 boiler that never reports a value shows no "Unknown" for it.
@@ -77,10 +88,10 @@ DEVICE_DIAGNOSTIC_METRICS = (
     "uptime",
 )
 
-# The Boiler view's groups, in this order: (key, icon). The raw group (unreliable raw values) goes to Diagnostics.
-BOILER_GROUPS = (("heating", "mdi:radiator"), ("dhw", "mdi:water-thermometer"),
-                 ("status", "mdi:information-outline"), ("counters", "mdi:counter"),
-                 ("settings", "mdi:cog-outline"), ("thermostat", "mdi:thermostat"))
+# The groups of boiler fields (boiler_group) under "What the boiler reports" on the Boiler view, one titled card
+# each, in this order. The settings are a section of their own (last on that view); the thermostat on the bus and
+# the raw group (unreliable raw values) are on Diagnostics (dashboard-spec §5.6, §5.7, §8).
+REPORTED_GROUPS = ("heating", "dhw", "status", "counters")
 STATUS_FIELDS = frozenset({"display_code", "service_number", "maintenance_message", "ionisation_current",
                            "plus_flame_current"})
 SETTINGS_FIELDS = frozenset({"maximum_burner_power", "pump_run_on", "minimum_burner_period", "pump_modulation_maximum",
@@ -135,10 +146,21 @@ ESSENTIALS = (
 # "curve" is what weather compensation asks now, which the heating-curve card draws (E32 rc.5).
 FLOW_KEYS = ("source", "weather_curve", "curve_design_flow_c", "apply_learned", "curve")
 COMPARISON_PATH = "comparison"
-# One icon per boiler value, the same in every view.
+# One icon per concept, the same in every view (dashboard-spec §1): the boiler's values, what the boiler does
+# (heating flame, hot water tap, resting boiler), the gas and the burner, and the sections that carry them.
 ICONS = {"flow": "mdi:thermometer-chevron-up", "return": "mdi:thermometer-chevron-down",
          "max_ch": "mdi:thermometer-high", "modulation": "mdi:fire", "pressure": "mdi:gauge",
-         "dhw": "mdi:water-thermometer", "code": "mdi:information-outline"}
+         "dhw": "mdi:water-thermometer", "dhw_target": "mdi:thermometer-water", "code": "mdi:information-outline",
+         "heating": "mdi:fire", "hot_water": "mdi:faucet", "gas": "mdi:meter-gas", "burner_starts": "mdi:counter",
+         "burner_time": "mdi:timer-outline", "house": "mdi:home-thermometer", "learning": "mdi:school-outline",
+         "boiler": "mdi:water-boiler", "now": "mdi:water-boiler", "week": "mdi:chart-bar",
+         "history": "mdi:chart-line", "settings": "mdi:cog-outline", "yesterday": "mdi:scoreboard-outline",
+         "thermostat": "mdi:thermostat"}
+# What the boiler does now (hub boiler_activity, heating_link.BOILER_ACTIVITIES) as one tile of three: its icon
+# (ICONS), its theme colour and the activities it stands for; exactly one shows at a time.
+ACTIVITY_TILES = (("heating", "deep-orange", ["heating"]),
+                  ("hot_water", "blue", ["tapping", "keep_warm", "charging", "hot_water"]),
+                  ("boiler", "grey", ["idle"]))
 
 TEXT = {
     "en": {
@@ -173,7 +195,6 @@ TEXT = {
         "smart_heating": "Smart warm-up and weather compensation",
         "cycling_ok": "The burner runs calmly.",
         "cycling_info": "The E32 lengthens the burner rest step by step.",
-        "control": "Boiler control",
         "burner": "Burner",
         "problem_more": "All reasons",
         "legacy_rooms": "Rooms (older setup)",
@@ -188,8 +209,8 @@ TEXT = {
         "e32_device": "E32",
         "estimates": "Energy and hot water counters",
         "estimates_empty": "This boiler reports no energy or hot water counters yet; boilers that do (EMS+) fill "
-                           "them in here. The Heating page estimates the gas per day from the burner power "
-                           "and the boiler's power.",
+                           "them in here. The Boiler tab and the E32's Home page estimate the gas per day from "
+                           "the burner power and the boiler's power.",
         "older_rooms": "Rooms (older setup)",
         "legacy_boiler_note": "What the boiler reports over its bus (EMS), not proof of an E32 command. Unknown or old values are not zero.",
         "flow_graph": "Water temperatures: target, to heating and back", "flow_selection": "Target (boiler)",
@@ -224,7 +245,6 @@ TEXT = {
         "gas_heating": "Heating", "gas_hot_water": "Hot water", "gas_keep_warm": "Of which keeping hot water warm",
         "gas_tapping": "Tapping", "gas_keeping_warm": "Keeping warm",
         "activity_timeline": "What the boiler does (24 hours)", "activity": "Boiler",
-        "gas_per_post": "Gas per day: heating, tapping, keeping warm",
         "dhw_use_note": "Tapping is hot water used at a tap; keeping warm is the boiler reheating its store or "
                         "exchanger without a tap, nothing more; a cylinder shows as charging. The E32 tells them apart "
                         "with the most direct signal your boiler reports.",
@@ -262,7 +282,7 @@ TEXT = {
         # rc.4: the next holiday under House (house.holidays.v1).
         "holiday_next": "Holiday from {from} to {until}", "holiday_now": "On holiday until {until}",
         "months": "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec",
-        "learned_latest": "Latest change", "learning_how": "How it learns",
+        "learned_latest": "Latest change",
         "compare_link": "E32 compared with your thermostat",
         "no_request": "No boiler request",
         "wanting_one": "1 room wants heat", "wanting_many": "{n} rooms want heat", "wanting_none": "No room wants heat",
@@ -302,6 +322,13 @@ TEXT = {
         "insights": "Yesterday compared with usual",
         "knowledge_note": "The E32 learns all this by itself while the heating runs. Yesterday is compared with your "
                           "house's own usual days; that is information and changes nothing.",
+        # rc.5 dashboard (dashboard-spec §1): the Boiler view's sections and today's figures, Yesterday once on the
+        # Learning view, who controls the boiler, and the rooms the house card does not show itself.
+        "today_week": "Today and this week", "gas_heating_today": "Gas for heating today",
+        "gas_hot_water_today": "Gas for hot water today", "starts_today": "Burner starts today",
+        "burner_today": "Burner time today", "boiler_values": "What the boiler reports",
+        "who_controls": "Who controls the boiler", "yesterday_figures": "Yesterday in figures",
+        "dhw_target_short": "Hot water target", "other_rooms": "Other rooms",
     },
     "nl": {
         "heating": "Verwarming", "boiler_view": "Ketel", "diagnostics": "Diagnose",
@@ -336,7 +363,6 @@ TEXT = {
         "smart_heating": "Slim opwarmen en weerafhankelijke regeling",
         "cycling_ok": "De brander loopt rustig.",
         "cycling_info": "De E32 verlengt de rusttijd van de brander stap voor stap.",
-        "control": "Aansturing van de ketel",
         "burner": "Brander",
         "problem_more": "Alle redenen",
         "legacy_rooms": "Ruimtes (oudere opzet)",
@@ -352,8 +378,8 @@ TEXT = {
         "e32_device": "E32",
         "estimates": "Tellers voor energie en warm water",
         "estimates_empty": "Deze ketel meldt nog geen tellers voor energie of warm water; ketels die dat wel doen "
-                           "(EMS+) vullen ze hier in. De pagina Verwarming schat het gas per dag uit het "
-                           "brandervermogen en het vermogen van de ketel.",
+                           "(EMS+) vullen ze hier in. Het tabblad Ketel en de pagina Huis van de E32 schatten het "
+                           "gas per dag uit het brandervermogen en het vermogen van de ketel.",
         "older_rooms": "Ruimtes (oudere opzet)",
         "legacy_boiler_note": "Wat de ketel via zijn bus (EMS) meldt, geen bewijs van een E32-opdracht. Onbekende of "
                               "oude waarden zijn geen nul.",
@@ -390,7 +416,6 @@ TEXT = {
         "gas_heating": "Verwarmen", "gas_hot_water": "Warm water", "gas_keep_warm": "Waarvan warm water warmhouden",
         "gas_tapping": "Tappen", "gas_keeping_warm": "Warmhouden",
         "activity_timeline": "Wat de ketel doet (24 uur)", "activity": "Ketel",
-        "gas_per_post": "Gas per dag: verwarmen, tappen, warmhouden",
         "dhw_use_note": "Tappen is warm water uit een kraan; warmhouden is de ketel die zijn voorraad of "
                         "warmtewisselaar opwarmt zonder dat er getapt wordt, meer niet; een boiler toont als laden. De E32 "
                         "houdt ze uit elkaar met het meest directe signaal dat je ketel geeft.",
@@ -427,7 +452,7 @@ TEXT = {
         "house_mode": "Huismodus", "boiler_now": "Ketel",
         "holiday_next": "Vakantie vanaf {from} t/m {until}", "holiday_now": "Op vakantie t/m {until}",
         "months": "jan,feb,mrt,apr,mei,jun,jul,aug,sep,okt,nov,dec",
-        "learned_latest": "Laatste aanpassing", "learning_how": "Hoe hij leert",
+        "learned_latest": "Laatste aanpassing",
         "compare_link": "E32 vergeleken met je thermostaat",
         "no_request": "Geen ketelvraag",
         "wanting_one": "1 ruimte vraagt warmte", "wanting_many": "{n} ruimtes vragen warmte",
@@ -467,6 +492,11 @@ TEXT = {
         "insights": "Gisteren vergeleken met normaal",
         "knowledge_note": "De E32 leert dit allemaal zelf terwijl de verwarming draait. Gisteren wordt vergeleken met de "
                           "gewone dagen van je eigen huis; dat is informatie en verandert niets.",
+        "today_week": "Vandaag en deze week", "gas_heating_today": "Gas verwarmen vandaag",
+        "gas_hot_water_today": "Gas warm water vandaag", "starts_today": "Branderstarts vandaag",
+        "burner_today": "Brandertijd vandaag", "boiler_values": "Wat de ketel meldt",
+        "who_controls": "Wie regelt de ketel", "yesterday_figures": "Gisteren in cijfers",
+        "dhw_target_short": "Doel warm water", "other_rooms": "Overige ruimtes",
     },
     # Polish: the terms of translations/pl.json and docs/UX-GLOSSARY.md; E32 page names stay English.
     "pl": {
@@ -502,7 +532,6 @@ TEXT = {
         "smart_heating": "Inteligentne nagrzewanie i sterowanie pogodowe",
         "cycling_ok": "Palnik pracuje spokojnie.",
         "cycling_info": "E32 stopniowo wydłuża przerwę palnika.",
-        "control": "Sterowanie kotłem",
         "burner": "Palnik",
         "problem_more": "Wszystkie powody",
         "legacy_rooms": "Pomieszczenia (starsza konfiguracja)",
@@ -517,8 +546,8 @@ TEXT = {
         "e32_device": "E32",
         "estimates": "Liczniki energii i ciepłej wody",
         "estimates_empty": "Ten kocioł nie zgłasza jeszcze liczników energii ani ciepłej wody; kotły, które to "
-                           "robią (EMS+), pokazują je tutaj. Strona Ogrzewanie szacuje gaz na dzień z mocy "
-                           "palnika i mocy kotła.",
+                           "robią (EMS+), pokazują je tutaj. Karta Kocioł i strona Dom w E32 szacują gaz na dzień "
+                           "z mocy palnika i mocy kotła.",
         "older_rooms": "Pomieszczenia (starsza konfiguracja)",
         "legacy_boiler_note": "To, co kocioł zgłasza przez swoją magistralę (EMS), a nie dowód polecenia E32. "
                               "Nieznane lub stare wartości to nie zero.",
@@ -555,7 +584,6 @@ TEXT = {
         "gas_heating": "Ogrzewanie", "gas_hot_water": "Ciepła woda", "gas_keep_warm": "W tym podtrzymanie ciepłej wody",
         "gas_tapping": "Pobór", "gas_keeping_warm": "Podtrzymanie",
         "activity_timeline": "Co robi kocioł (24 godziny)", "activity": "Kocioł",
-        "gas_per_post": "Gaz na dzień: ogrzewanie, pobór, podtrzymanie",
         "dhw_use_note": "Pobór to ciepła woda z kranu; podtrzymanie to kocioł, który dogrzewa swój zasobnik lub "
                         "wymiennik bez otwartego kranu, nic więcej; zasobnik c.w.u. jest pokazywany jako ładowanie. "
                         "E32 rozróżnia je po najbardziej bezpośrednim sygnale, jaki zgłasza Twój kocioł.",
@@ -593,7 +621,7 @@ TEXT = {
         "house_mode": "Tryb domu", "boiler_now": "Kocioł",
         "holiday_next": "Urlop od {from} do {until}", "holiday_now": "Urlop do {until}",
         "months": "sty,lut,mar,kwi,maj,cze,lip,sie,wrz,paź,lis,gru",
-        "learned_latest": "Ostatnia zmiana", "learning_how": "Jak się uczy",
+        "learned_latest": "Ostatnia zmiana",
         "compare_link": "E32 w porównaniu z Twoim termostatem",
         "no_request": "Brak żądania do kotła",
         "wanting_one": "1 pomieszczenie potrzebuje ciepła", "wanting_many": "Pomieszczenia potrzebujące ciepła: {n}",
@@ -634,6 +662,11 @@ TEXT = {
         "insights": "Wczoraj w porównaniu ze zwykłymi dniami",
         "knowledge_note": "E32 uczy się tego wszystkiego sam, gdy ogrzewanie pracuje. Wczoraj jest porównywane ze "
                           "zwykłymi dniami Twojego domu; to tylko informacja i niczego nie zmienia.",
+        "today_week": "Dziś i w tym tygodniu", "gas_heating_today": "Gaz na ogrzewanie dziś",
+        "gas_hot_water_today": "Gaz na ciepłą wodę dziś", "starts_today": "Starty palnika dziś",
+        "burner_today": "Czas pracy palnika dziś", "boiler_values": "Co zgłasza Twój kocioł",
+        "who_controls": "Kto steruje kotłem", "yesterday_figures": "Wczoraj w liczbach",
+        "dhw_target_short": "Cel ciepłej wody", "other_rooms": "Pozostałe pomieszczenia",
     },
 }
 
@@ -654,6 +687,24 @@ def view_cards(view):
 
 def _section(*cards):
     return {"type": "grid", "cards": [card for card in cards if card]}
+
+
+def _section_known(entities, *cards, hidden=None):
+    """A section that hides as a whole while none of ``entities`` has a value (dashboard-spec §1).
+
+    ``entities`` are the ones its cards show with: every card in it is visible whenever one of them has a value,
+    so its heading never stands over nothing. ``hidden``: {entity id: more states that count as no value}.
+    """
+    section = _section(*cards)
+    entities = [entity for entity in dict.fromkeys(entities) if entity]
+    if entities:
+        section["visibility"] = _any_known(entities, hidden)
+    return section
+
+
+def _filled(section):
+    """The section, or None when it would be its heading alone."""
+    return section if section is not None and len(section["cards"]) > 1 else None
 
 
 # Ready to take over? (takeover_readiness.py): the result attribute of each criterion, in order.
@@ -725,9 +776,12 @@ def _known_rows(entity_ids, hidden=None):
             for row in _rows(entity_ids)]
 
 
-def _any_known(entity_ids):
-    """Card visibility: while at least one of the entities has a value."""
-    return [{"condition": "or", "conditions": [condition for entity_id in entity_ids for condition in _known(entity_id)]}]
+def _any_known(entity_ids, hidden=None):
+    """Card visibility: while at least one of the entities has a value; ``hidden``: {entity id: more states that
+    count as none}, as for its row (_known_rows)."""
+    hidden = hidden or {}
+    return [{"condition": "or", "conditions": [condition for entity_id in entity_ids
+                                               for condition in _known(entity_id, hidden.get(entity_id, ()))]}]
 
 
 def _none_known(entity_ids):
@@ -735,9 +789,13 @@ def _none_known(entity_ids):
     return [{"condition": "state", "entity": entity_id, "state": ["unavailable", "unknown"]} for entity_id in entity_ids]
 
 
-def _known_entities_card(entity_ids, hidden=None):
-    """An entities card (no title: its section heading names it) of rows with a value; hidden while none has one."""
-    return {"type": "entities", "entities": _known_rows(entity_ids, hidden), "visibility": _any_known(entity_ids)}
+def _known_entities_card(entity_ids, hidden=None, title=None):
+    """An entities card of rows with a value, hidden while no row shows; no title where its section heading names
+    it, ``title`` where one section holds several such cards."""
+    card = {"type": "entities", "entities": _known_rows(entity_ids, hidden), "visibility": _any_known(entity_ids, hidden)}
+    if title:
+        card["title"] = title
+    return card
 
 
 def _room_lines_card(t, learned, names, on):
@@ -803,14 +861,20 @@ def _advice_section(t, advice):
 LEARNED_PATH = "learned"
 
 
-def _learned_sections(t, learned):
+def _learned_sections(t, learned, how=None):
     """What the thermostat learned (learned_overview.py), in the learning view: how far each room is, the house
     and boiler, and what it changed by itself. What it learned per room sits in that room's section.
 
-    Three sections, so a wide screen shows them side by side; a phone reads them one after another.
+    Three sections, so a wide screen shows them side by side; a phone reads them one after another. ``how``: the
+    note on how it learns (a card with its own visibility), the last card of the first section; without the
+    learned overview (an older integration) it stands alone under that section's heading.
     """
     if not learned:
-        return []
+        if not how:
+            return []
+        section = _section(_heading(t["learned"], ICONS["learning"], style="title"), how)
+        section["visibility"] = how["visibility"]
+        return [section]
     quoted = json.dumps(learned)
     lines = ("{% for line in items %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n"
              "{% endfor %}")
@@ -826,12 +890,11 @@ def _learned_sections(t, learned):
                "{{ as_timestamp(change.time) | timestamp_custom('%d-%m') }}: {% endif %}{{ change.text }}\n{% endfor %}")
     shown = [{"condition": "state", "entity": learned, "state_not": "unavailable"}]
     sections = []
-    for heading, icon, content, note in ((t["learned"], "mdi:school-outline", summary, None),
+    for heading, icon, content, note in ((t["learned"], ICONS["learning"], summary, how),
                                          (t["learned_house"], "mdi:home-thermometer-outline", house, None),
-                                         (t["learned_changes"], "mdi:history", changes, t["learned_note"])):
+                                         (t["learned_changes"], "mdi:history", changes, _note(t, t["learned_note"], shown))):
         section = _section(_heading(heading, icon, style="title", visibility=shown),
-                           {"type": "markdown", "content": content, "visibility": shown},
-                           _note(t, note, shown) if note else None)
+                           {"type": "markdown", "content": content, "visibility": shown}, note)
         section["visibility"] = shown
         sections.append(section)
     return sections
@@ -869,26 +932,55 @@ def _knowledge_section(t, knowledge, boiler, learned=None):
     return section
 
 
-def _energy_section(t, heating, hot_water, keep_warm=None):
-    """Gas for heating, hot water and (of that) keeping it warm per day (7 days); only with the sensors."""
-    entities = [entity for entity in (heating, hot_water) if entity]
-    if not entities:
-        return None
-    quoted = json.dumps(entities[0])
-    note = ("{% if state_attr(" + quoted + ", 'estimate') %}" + t["gas_estimate"] + "{% else %}"
-            + t["gas_measured"] + "{% endif %}" + _details(t, t["gas_note"]))
-    return _section(
-        _heading(t["gas_per_day"], "mdi:fire"),
-        {"type": "statistics-graph", "entities": [{"entity": entity_id, "name": name} for entity_id, name in (
-            (heating, t["gas_heating"]), (hot_water, t["gas_hot_water"]), (keep_warm, t["gas_keep_warm"])) if entity_id],
-         "stat_types": ["change"], "period": "day", "days_to_show": 7, "chart_type": "bar"},
-        {"type": "markdown", "content": note})
+def _per_day(title, entities, entity_id):
+    """A bar per day for the last 7 days (the day's change of a running total), shown while ``entity_id`` has a value."""
+    return {"type": "statistics-graph", "title": title, "chart_type": "bar", "period": "day", "days_to_show": 7,
+            "stat_types": ["change"], "entities": entities, "visibility": _known(entity_id)}
 
 
-def _yesterday_section(t, summary, burner_time, missed, gas_unit):
-    """What the heating did yesterday (the daily summary) and the burner hours and missed comfort per day."""
-    if not summary:
-        return None
+def _energy_section(t, hub):
+    """Today and this week (dashboard-spec §5.3): today's gas for heating and for hot water and today's burner
+    starts and time as figures, then the one chart of the gas per day (heating, tapping and keeping warm once the
+    E32 tells them apart; heating and hot water before), the burner hours per day and one note on how the gas is
+    counted.
+
+    hub: {key: entity id} of the hub sensors. Every card shows only with a value, the section hides as a whole
+    without one, and there is none without the gas and the daily-summary sensors.
+    """
+    heating, hot_water = hub.get("heating_gas"), hub.get("hot_water_gas")
+    starts, burner = hub.get("daily_burner_starts"), hub.get("daily_burner_time")
+    gas = heating or hot_water
+    posts = [(hub.get(key), t[name]) for key, name in (("heating_gas", "gas_heating"), ("tapping_gas", "gas_tapping"),
+                                                       ("keep_warm_gas", "gas_keeping_warm"))]
+    if not all(entity_id for entity_id, _ in posts):
+        posts = [(entity_id, t[name]) for entity_id, name in ((heating, "gas_heating"), (hot_water, "gas_hot_water"))
+                 if entity_id]
+    note = None
+    if gas:
+        quoted = json.dumps(gas)
+        note = {"type": "markdown", "visibility": _known(gas), "content": (
+            "{% if state_attr(" + quoted + ", 'estimate') %}" + t["gas_estimate"] + "{% else %}" + t["gas_measured"]
+            + "{% endif %}" + _details(t, t["gas_note"]))}
+    return _filled(_section_known(
+        [gas, starts, burner],
+        _heading(t["today_week"], ICONS["week"]),
+        *_pair(_statistic(heating, t["gas_heating_today"], ICONS["gas"]),
+               _statistic(hot_water, t["gas_hot_water_today"], ICONS["gas"]), rows=2),
+        *_pair(_statistic(starts, t["starts_today"], ICONS["burner_starts"]),
+               _statistic(burner, t["burner_today"], ICONS["burner_time"]), rows=2),
+        # The one gas chart of the dashboard; the Overview has today's figure, Learning yesterday's line.
+        _per_day(t["gas_per_day"], [{"entity": entity_id, "name": name} for entity_id, name in posts], gas)
+        if gas else None,
+        _per_day(t["burner_per_day"], [{"entity": burner}], burner) if burner else None,
+        note))
+
+
+def _summary_lines(t, summary, gas_unit, scoreboard_gas=None):
+    """Yesterday's daily summary (daily_summary.py) as list lines of "Yesterday in figures": the burner, the gas
+    (unless ``scoreboard_gas`` has a value: then the scoreboard's line says it, once) and the outdoor range, then
+    per room its heat demand, how fast it got warm and its missed comfort; a partial day says so. Before the first
+    full day: "tomorrow", unless the scoreboard has a line already (``shown.lines``, _yesterday_figures).
+    """
     q = json.dumps(summary)
 
     def fill(text, **names):
@@ -896,22 +988,21 @@ def _yesterday_section(t, summary, burner_time, missed, gas_unit):
             text = text.replace("{" + name + "}", "{{ " + expr + " }}")
         return text
     unit = " " + gas_unit if gas_unit else ""
-    content = (
-        "{% set d = state_attr(" + q + ", 'last_day') %}{% if d %}**{{ d.date }}**\n\n"
+    gas = "d.gas and d.gas.heating is not none and d.gas.hot_water is not none"
+    if scoreboard_gas:
+        gas += " and not is_number(states(" + json.dumps(scoreboard_gas) + "))"
+    return (
+        "{% set d = state_attr(" + q + ", 'last_day') %}{% if d %}- "
         + fill(t["day_burner"], h="d.burner_hours", n="d.burner_starts", short="d.short_runs")
-        + "{% if d.gas and d.gas.heating is not none and d.gas.hot_water is not none %} "
+        + "{% if " + gas + " %} "
         + fill(t["day_gas"], heating="d.gas.heating ~ '" + unit + "'", hot_water="d.gas.hot_water ~ '" + unit + "'")
         + "{% endif %}{% if d.outdoor %} " + fill(t["day_outdoor"], low="d.outdoor.min", high="d.outdoor.max")
-        + "{% endif %}{% for r in d.rooms %}\n- {% if r.time_to_target_minutes is not none %}"
+        + "{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}"
         + fill(t["day_room"], room="r.name", h="r.heat_hours", ttt="r.time_to_target_minutes",
                missed="r.missed_minutes")
         + "{% else %}" + fill(t["day_room_no_step"], room="r.name", h="r.heat_hours", missed="r.missed_minutes")
-        + "{% endif %}{% endfor %}{% if not d.complete %}\n\n_" + t["day_partial"] + "_{% endif %}"
-        + "{% else %}" + t["day_none"] + "{% endif %}")
-    charts = [{"type": "statistics-graph", "title": title, "entities": [{"entity": entity_id}],
-               "stat_types": ["change"], "period": "day", "days_to_show": 7, "chart_type": "bar"}
-              for entity_id, title in ((burner_time, t["burner_per_day"]), (missed, t["missed_per_day"])) if entity_id]
-    return _section(_heading(t["yesterday"], "mdi:calendar-today"), {"type": "markdown", "content": content}, *charts)
+        + "{% endif %}\n{% endfor %}{% if not d.complete %}\n_" + t["day_partial"] + "_{% endif %}"
+        + "{% elif not shown.lines %}" + t["day_none"] + "{% endif %}")
 
 
 def _figure(t, digits):
@@ -930,19 +1021,15 @@ def _jinja_text(text, **values):
     return " ~ ".join(pieces) or '""'
 
 
-def _scoreboard_section(t, rooms, names, house):
-    """Yesterday's scoreboard (scoreboard.py, E32 rc.4) in plain words: each room warm on time and how far it got
-    above its target; the heating time, the burner's starts per heating hour and its short runs; the gas for
-    heating, the degree-days and the gas per degree-day.
+def _scoreboard_lines(t, rooms, names, house):
+    """Yesterday's scoreboard (scoreboard.py, E32 rc.4) in plain words, as list lines of "Yesterday in figures":
+    each room warm on time and how far it got above its target; the heating time, the burner's starts per heating
+    hour and its short runs; the gas for heating, the degree-days and the gas per degree-day.
 
     rooms: {room id: {"warm_on_time": entity, "overshoot": entity}}; house: {key: entity}. The text follows the
-    sensors' states (the heating time and the degree-days their attributes), so a new day needs no rebuild;
-    hidden while none has a value (firmware before rc.4).
+    sensors' states (the heating time and the degree-days their attributes), so a new day needs no rebuild; a
+    figure without a value is left out. Every line it writes counts in ``shown.lines`` (_yesterday_figures).
     """
-    entities = [entity for keys in rooms.values() for entity in keys.values()] + list(house.values())
-    if not entities:
-        return None
-
     def part(entity, expression, attribute=None):
         """One figure from the entity's state, or from one of its attributes (the heating hours, the degree-days)."""
         value = ("state_attr(" + json.dumps(entity) + ", " + json.dumps(attribute) + ")" if attribute
@@ -950,7 +1037,8 @@ def _scoreboard_section(t, rooms, names, house):
         return "{% set v = " + value + " %}{% if is_number(v) %}{% set parts = parts + [" + expression + "] %}{% endif %}"
 
     def line(prefix):
-        return "{% if parts %}- " + prefix + "{{ parts | join(' · ') }}\n{% endif %}"
+        return ("{% if parts %}{% set shown.lines = shown.lines + 1 %}- " + prefix + "{{ parts | join(' · ') }}\n"
+                "{% endif %}")
     content = ""
     for room_id, keys in rooms.items():
         content += "{% set parts = [] %}"
@@ -977,10 +1065,27 @@ def _scoreboard_section(t, rooms, names, house):
                 if house.get(key):
                     content += part(house[key], _jinja_text(t[text], **{name: _figure(t, digits)}), attribute)
             content += line("")
-    section = _section(_heading(t["yesterday"], "mdi:scoreboard-outline"), {"type": "markdown", "content": content},
-                       _note(t, t["scoreboard_note"]))
-    section["visibility"] = _any_known(entities)  # the whole section, until one figure has a value
-    return section
+    return content
+
+
+def _yesterday_figures(t, rooms, names, house, summary=None, missed=None, gas_unit=None):
+    """Yesterday in figures (dashboard-spec §6), once, on the Learning view: the scoreboard (scoreboard.py, E32
+    rc.4) and the daily summary (daily_summary.py) in one card, then the missed comfort per day and one note.
+
+    rooms, house: the scoreboard's sensors (_scoreboard_lines); summary, missed: the daily summary's. The card
+    follows their states, so a new day needs no rebuild; the section hides as a whole until one figure has a value.
+    """
+    scoreboard = [entity for keys in rooms.values() for entity in keys.values()] + list(house.values())
+    if not scoreboard and not summary:
+        return None
+    content = ("{% set shown = namespace(lines=0) %}" + _scoreboard_lines(t, rooms, names, house)
+               + (_summary_lines(t, summary, gas_unit, house.get("heating_gas_yesterday")) if summary else ""))
+    return _section_known(
+        [*scoreboard, summary, missed],
+        _heading(t["yesterday_figures"], ICONS["yesterday"]),
+        {"type": "markdown", "content": content},
+        _per_day(t["missed_per_day"], [{"entity": missed}], missed) if missed else None,
+        _note(t, t["scoreboard_note"]))
 
 
 # The boiler's display code in words (display_codes.py: its attributes), for a look at a glance:
@@ -1016,27 +1121,60 @@ STATUS_ICONS = {"normal": "mdi:water-boiler", "waiting": "mdi:timer-sand", "serv
 
 def _hot_water_use_cards(t, hub, heating_active=None):
     """When hot water is tapped and when it is kept warm, for the Boiler view's hot-water section: the last 24 hours
-    of what the boiler does (next to heating active) and the gas per day per post (heating, tapping, keeping warm),
-    that graph once tapping or keeping warm has counted gas. No cards without the sensors."""
+    of what the boiler does (next to its own "heating" bit) and one note on tapping and keeping warm, both while the
+    activity has a value. The gas per day is the one chart under "Today and this week". No cards without the
+    activity (firmware before it)."""
     activity = hub.get("boiler_activity")
-    posts = [(hub.get(key), t[name]) for key, name in (("heating_gas", "gas_heating"), ("tapping_gas", "gas_tapping"),
-                                                       ("keep_warm_gas", "gas_keeping_warm")) if hub.get(key)]
-    cards = []
+    if not activity:
+        return []
+    rows = [(activity, t["activity"]), (heating_active, t["state_heating"])]
+    return [{"type": "history-graph", "title": t["activity_timeline"], "hours_to_show": 24,
+             "entities": [{"entity": entity_id, "name": name} for entity_id, name in rows if entity_id],
+             "visibility": _known(activity)},
+            _note(t, t["dhw_use_note"], _known(activity))]
+
+
+def _boiler_now(t, hub, fields, essential):
+    """Now (dashboard-spec §5.1), first on the Boiler view: the boiler in words, one coloured tile for what it does
+    (heating, hot water or resting; on an older integration the boiler's own "heating" bit), the water to the
+    heating next to the water back, and the burner power as a gauge next to its starts in the last hour (or the
+    pressure). Every card shows with its value; the section hides as a whole without any."""
+    code, flow, back, modulation = (essential(key) for key in ("code", "flow", "return", "modulation"))
+    activity = hub.get("boiler_activity")
+    doing = activity or fields.get("heating_active")
     if activity:
-        rows = [(activity, t["activity"]), (heating_active, t["state_heating"])]
-        cards.append({"type": "history-graph", "title": t["activity_timeline"], "hours_to_show": 24,
-                      "entities": [{"entity": entity_id, "name": name} for entity_id, name in rows if entity_id]})
-    if len(posts) == 3:
-        cards.append({"type": "statistics-graph", "title": t["gas_per_post"], "chart_type": "bar", "period": "day",
-                      "days_to_show": 7, "stat_types": ["change"],
-                      "entities": [{"entity": entity_id, "name": name} for entity_id, name in posts],
-                      # Only once tapping or keeping warm has counted gas (else "No statistics found").
-                      "visibility": [{"condition": "or", "conditions": [
-                          {"condition": "numeric_state", "entity": entity_id, "above": 0}
-                          for entity_id, _ in posts[1:]]}]})
-    if cards:
-        cards.append(_note(t, t["dhw_use_note"]))
-    return cards
+        tiles = [(t["boiler_now"], icon, color, states) for icon, color, states in ACTIVITY_TILES]
+    else:  # on and off of the boiler's own "heating" bit
+        tiles = [(t["state_heating"], "heating", "deep-orange", ["on"]), (t["state_heating"], "boiler", "grey", ["off"])]
+    starts = hub.get("burner_starts_last_hour")
+    beside = (_tile(starts, t["starts_hour"], ICONS["burner_starts"]) if starts
+              else _tile(essential("pressure"), t["pressure"], ICONS["pressure"]))
+    gauge = ({"type": "gauge", "entity": modulation, "name": t["modulation"], "min": 0, "max": 100, "needle": False}
+             if modulation else None)
+    return _filled(_section_known(
+        [code, doing, flow or back, modulation or (beside or {}).get("entity")],
+        _heading(t["now"], ICONS["now"]),
+        _boiler_status_card(t, code),
+        *(_wide(_tile(doing, name, ICONS[icon], color=color,
+                      visibility=[{"condition": "state", "entity": doing, "state": states}]))
+          for name, icon, color, states in (tiles if doing else ())),
+        *_pair(_tile(flow, t["flow_short"], ICONS["flow"]), _tile(back, t["return_short"], ICONS["return"])),
+        # The gauge needs two grid rows; the tile beside it takes the same, so the pair is one even row.
+        *_pair(gauge, beside, rows=2 if gauge else None)))
+
+
+def _hot_water_section(t, hub, fields, essential):
+    """Hot water (dashboard-spec §5.4): its temperature next to its target, today's taps, keeping warm and burner
+    time, and what the boiler did in the last 24 hours with one note on tapping and keeping warm."""
+    measured = essential("dhw")
+    target = fields.get("reported_dhw_target") or fields.get("selected_dhw_temperature")
+    today = [hub[key] for key in DHW_TODAY if key in hub]
+    return _filled(_section_known(
+        [measured, *today, hub.get("boiler_activity")],
+        _heading(t["group_dhw"], ICONS["hot_water"]),
+        *_pair(_tile(measured, t["dhw"], ICONS["dhw"]), _tile(target, t["dhw_target_short"], ICONS["dhw_target"])),
+        _known_entities_card(today) if today else None,
+        *_hot_water_use_cards(t, hub, fields.get("heating_active"))))
 
 
 def _value_tile(entity_id, name, icon, color=None):
@@ -1068,6 +1206,31 @@ def _wanting_card(t, request):
         + number("room.temperature") + " → " + number("room.setpoint") + " °C{% endif %}\n{% endfor %}"
         "{% if states(" + quoted + ") | float(0) > 0 %}\n" + t["boiler_request"] + ": "
         + number("states(" + quoted + ")") + " °C{% endif %}")}
+
+
+def house_rooms(rooms, heating_hub, names):
+    """The house card's ``rooms`` (dashboard-spec §2): [{"entity": its Reason sensor, "name": its name}] of the one
+    E32 room that is on, when exactly one is; otherwise [] (every room keeps its own card under "Rooms").
+
+    rooms: {room id: {key: entity id}} (RoomDashboard._e32_rooms). A room is on unless the E32 reports it inactive;
+    one without its Reason sensor (an older integration) is never taken into the house card. Switching a room on
+    or off rebuilds the dashboard (RoomDashboard._signature).
+    """
+    statuses = heating_hub.rooms if heating_hub is not None else {}
+    on = [room_id for room_id in rooms if (statuses.get(room_id) or {}).get("state") != "inactive"]
+    if len(on) != 1 or not rooms[on[0]].get("reason"):
+        return []
+    return [{"entity": rooms[on[0]]["reason"], "name": names.get(on[0], on[0])}]
+
+
+def _rooms_section(t, room_cards, house):
+    """The Overview's rooms: one status card per E32 room, except a room the house card shows itself (the entities
+    of its ``rooms``, house_rooms); those left are the "Other rooms", and with none left there is no section."""
+    inlined = {item.get("entity") for card in house["cards"] for item in card.get("rooms") or [] if type(item) is dict}
+    cards = [card for card in room_cards if card and card.get("entity") not in inlined]
+    if not cards:
+        return None
+    return _section(_heading(t["other_rooms"] if inlined else t["rooms"], "mdi:thermostat"), *cards)
 
 
 def _holiday_card(t, select):
@@ -1123,6 +1286,32 @@ def _wide(card):
     if card is not None:
         card["grid_options"] = {"columns": 12}
     return card
+
+
+def _pair(first, second, visibility=None, rows=None):
+    """Two half-width cards that appear together on one condition, side by side in one row; one alone takes the
+    whole width (dashboard-spec §1).
+
+    ``visibility``: their shared condition, by default while the first has a value. ``rows``: their height in grid
+    rows, set on both so the row is even (a figure or a gauge needs two, and so does a tile beside one).
+    """
+    cards = [card for card in (first, second) if card]
+    shown = visibility or (_known(cards[0]["entity"]) if cards else None)
+    for card in cards:
+        card["visibility"] = [dict(condition) for condition in shown]
+        if len(cards) == 1:
+            card["grid_options"] = {"columns": 12, **({"rows": rows} if rows else {})}
+        elif rows:
+            card["grid_options"] = {"columns": 6, "rows": rows}
+    return cards
+
+
+def _statistic(entity_id, name, icon):
+    """Today's figure of a running total (its change since local midnight): today's gas or burner."""
+    if not entity_id:
+        return None
+    return {"type": "statistic", "entity": entity_id, "name": name, "icon": icon,
+            "period": {"calendar": {"period": "day"}}, "stat_type": "change"}
 
 
 def _tile(entity_id, name=None, icon=None, features=None, visibility=None, color=None, tap_action=None,
@@ -1346,9 +1535,10 @@ class RoomDashboard:
         if hub is None or not hub.fresh:
             return None
         plan = hub.plan.plan if hub.plan is not None else None
-        # The E32 counts every plan save in its revision: no need to compare the whole plan (R4-11).
+        # The E32 counts every plan save in its revision: no need to compare the whole plan (R4-11). A room
+        # switched on or off changes the Overview: the house card shows the one room that is on (house_rooms).
         return (hub.status.get("mode"),
-                tuple((key, room.get("name"), room.get("source")) for key, room in hub.rooms.items()),
+                tuple((key, room.get("name"), room.get("source"), room.get("state")) for key, room in hub.rooms.items()),
                 tuple((key, sensor.get("name")) for key, sensor in hub.ble.items()),
                 plan.get("revision") if plan else None)
 
@@ -1486,9 +1676,8 @@ class RoomDashboard:
             return native_fields.get(field) or (hub_entities.get(metric) if metric else None)
 
         parts = self._heating_sections(t, entries, hub_entities, native_fields, essential, registry, e32_rooms, legacy)
-        boiler_sections, raw = self._boiler_sections(t, hub_entities, native_fields, graph)
-        boiler = [*parts["boiler_head"], *boiler_sections, *parts["boiler_tail"]]
-        diagnostics = self._diagnostics_sections(t, registry, hub_entities, raw)
+        boiler, raw, thermostat = self._boiler_sections(t, hub_entities, native_fields, graph, essential)
+        diagnostics = self._diagnostics_sections(t, registry, hub_entities, raw, thermostat)
 
         def view(title, path, icon, sections, columns=2, **more):
             # Sections side by side, a short one filling the gap under itself (never half-empty rows inside).
@@ -1547,14 +1736,13 @@ class RoomDashboard:
         return self._mode == "shadow"
 
     def _heating_sections(self, t, entries, hub, fields, essential, registry, e32_rooms, legacy):
-        """The sections of the views that come from the E32's heating: {overview, rooms, learning, comparison,
-        boiler_head, boiler_tail}.
+        """The sections of the views that come from the E32's heating: {overview, rooms, learning, comparison}.
 
         Overview: the house (mode, rooms that want heat and the boiler request, the problem with its reason, only
         while there is one) and one status card per room. Rooms: one section per room (thermostat, its day, sensors,
-        windows and people, what it learned), then the sensors that feed no single room. Learning: what it learned,
-        Smart warm-up and Weather compensation, the burner as information and the takeover check. The boiler's own
-        sections come first and last in the Boiler view (boiler_head, boiler_tail).
+        windows and people, what it learned), then the sensors that feed no single room. Learning: what the E32
+        knows, yesterday in figures, what it learned (and how), Smart warm-up and Weather compensation, and who
+        controls the boiler (the burner as information and the takeover check). The Boiler view is _boiler_sections.
 
         The comparison with the thermostat on the boiler bus means something only in the trial run
         and only while such a thermostat is heard: the Comparison subview exists only in the trial
@@ -1576,7 +1764,11 @@ class RoomDashboard:
         # -- Overview ------------------------------------------------------------------------------
         on = [{"condition": "state", "entity": problem, "state": "on"}] if problem else None
         house = _section(
-            _heading(t["house"], "mdi:home-account"),
+            _heading(t["house"], ICONS["house"]),
+            # >>> Slot for the house card (custom:openthermostat-house, dashboard-spec §2 and §7, package P11): it
+            # goes here, first and across the whole width. It takes over the rooms-that-want-heat card and the problem
+            # tile with its reasons below. Its `rooms` key is house_rooms(e32_room_entities, heating_hub, names): the
+            # one E32 room that is on, which the Rooms section below then leaves out ("Other rooms", _rooms_section).
             # Named: without a name the tile showed the device name, cut short on a phone.
             _wide(_tile(house_mode, t["house_mode"], "mdi:home-account", features=[{"type": "select-options"}],
                         color="teal")),
@@ -1608,9 +1800,7 @@ class RoomDashboard:
             else:  # a registry without the Reason sensor (older integration): the temperature at least
                 room_cards.append(_wide(_tile(room.get("temperature") or room.get("setpoint"), names[room_id],
                                               "mdi:home-thermometer-outline")))
-        overview = [section for section in (
-            house if len(house["cards"]) > 1 else None,
-            _section(_heading(t["rooms"], "mdi:thermostat"), *room_cards) if any(room_cards) else None) if section]
+        overview = [section for section in (_filled(house), _rooms_section(t, room_cards, house)) if section]
 
         # -- Rooms ---------------------------------------------------------------------------------
         learned_overview = hub.get("learned_overview")
@@ -1637,45 +1827,30 @@ class RoomDashboard:
         if loose:
             rooms.append(_section(_heading(t["bluetooth"], "mdi:bluetooth"), *loose))
 
-        # -- Boiler: what the other sections do not show --------------------------------------------
-        today = [hub[key] for key in DHW_TODAY if key in hub]
-        starts = hub.get("burner_starts_last_hour")
-        now_rows = ([{"type": "conditional", "conditions": _known(starts),
-                      "row": {"entity": starts, "name": t["starts_hour"]}}] if starts else [])
-        boiler_now = _section(
-            _heading(t["boiler"], "mdi:water-boiler"),
-            # The boiler in words ("Boiler: Hot water", "Boiler: Waiting: anti-cycle", "No flame after ignition").
-            _boiler_status_card(t, essential("code")),
-            {"type": "entities", "entities": now_rows, "visibility": _known(starts)} if now_rows else None,
-            _heading(t["dhw_today"], "mdi:faucet", style="subtitle", visibility=_any_known(today)) if today else None,
-            _known_entities_card(today) if today else None)
-        boiler_head = [boiler_now] if len(boiler_now["cards"]) > 1 else []
-        advice = _advice_section(t, hub.get("heating_advice"))
-        if advice:
-            boiler_head.append(advice)
-        boiler_tail = []
-        energy = _energy_section(t, hub.get("heating_gas"), hub.get("hot_water_gas"), hub.get("keep_warm_gas"))
-        if energy:
-            boiler_tail.append(energy)
+        # -- Learning and settings -----------------------------------------------------------------
+        # E32 rc.5: what the E32 knows first.
+        knows = _knowledge_section(t, hub.get("knowledge"), hub.get("boiler_response"), learned_overview)
+        learning = [knows] if knows else []
+        # Yesterday in figures, once (dashboard-spec §6): the scoreboard (E32 rc.4) and the daily summary, with the
+        # gas in the gas sensor's unit. Is it getting better? Only once one figure has a value.
         heating_gas = hub.get("heating_gas")
         gas_state = self.hass.states.get(heating_gas) if heating_gas and self.hass is not None else None
-        yesterday = _yesterday_section(t, hub.get("daily_summary"), hub.get("daily_burner_time"),
-                                       hub.get("daily_missed_comfort"),
-                                       gas_state.attributes.get("unit_of_measurement") if gas_state else None)
-        if yesterday:
-            boiler_tail.append(yesterday)
-
-        # -- Learning and settings -----------------------------------------------------------------
-        # E32 rc.5: what the E32 knows first, then what it learned.
-        knows = _knowledge_section(t, hub.get("knowledge"), hub.get("boiler_response"), learned_overview)
-        learning = ([knows] if knows else []) + _learned_sections(t, learned_overview)
-        # Yesterday's scoreboard (E32 rc.4): is it getting better? Only once the E32 reports it.
-        scoreboard = _scoreboard_section(
+        yesterday = _yesterday_figures(
             t, {room_id: {key: room[key] for key in ("warm_on_time", "overshoot") if room.get(key)}
                 for room_id, room in e32_room_entities.items() if room.get("warm_on_time") or room.get("overshoot")},
-            names, {key: hub[key] for key in SCOREBOARD_HOUSE if key in hub})
-        if scoreboard:
-            learning.append(scoreboard)
+            names, {key: hub[key] for key in SCOREBOARD_HOUSE if key in hub}, hub.get("daily_summary"),
+            hub.get("daily_missed_comfort"), gas_state.attributes.get("unit_of_measurement") if gas_state else None)
+        if yesterday:
+            learning.append(yesterday)
+        # What it learned, with how it learns as the note of its first section, only while the E32 reports it.
+        learning_entity = next((room["learning"] for room in e32_room_entities.values() if room.get("learning")), None)
+        how = None
+        if learning_entity:
+            quoted = json.dumps(learning_entity)
+            how = {"type": "markdown", "visibility": _known(learning_entity), "content": (
+                t["learning_note"] + "{% if not state_attr(" + quoted + ", 'applied') %}"
+                + _details(t, t["advice_only"]) + "{% endif %}")}
+        learning += _learned_sections(t, learned_overview, how)
         # The heating curve and learning switches (stored on the E32), and the rooms editor.
         settings = _section(
             _heading(t["smart_heating"], "mdi:chart-bell-curve-cumulative"),
@@ -1700,7 +1875,7 @@ class RoomDashboard:
         # The Comparison subview: the readiness check and the comparison, in the trial run only.
         subview = trial and bool(readiness or agreement)
         control = _section(
-            _heading(t["control"], "mdi:water-boiler"),
+            _heading(t["who_controls"], ICONS["boiler"]),
             self._explain_card(t, request) if request or e32_room_entities else None,
             # Short cycling is information, not a fault: the E32 deals with it by itself.
             self._cycling_card(t, hub.get("burner_short_cycling")),
@@ -1713,14 +1888,11 @@ class RoomDashboard:
             # while a thermostat is heard to compare with (the agreement has a value).
             _link(t["compare_link"], "mdi:compare-horizontal", sub_path, _known(agreement)) if agreement else None)
         if len(control["cards"]) > 1:
+            if all(card.get("visibility") for card in control["cards"][1:]):
+                # No sentence on who controls it (no heat request and no rooms): shown while one of its cards is.
+                control["visibility"] = [{"condition": "or", "conditions": [
+                    {"condition": "and", "conditions": card["visibility"]} for card in control["cards"][1:]]}]
             learning.append(control)
-        learning_entity = next((room["learning"] for room in e32_room_entities.values() if room.get("learning")), None)
-        if learning_entity:
-            quoted = json.dumps(learning_entity)
-            note = {"type": "markdown", "visibility": _known(learning_entity), "content": (
-                t["learning_note"] + "{% if not state_attr(" + quoted + ", 'applied') %}"
-                + _details(t, t["advice_only"]) + "{% endif %}")}
-            learning.append(_section(_heading(t["learning_how"], "mdi:help-circle-outline"), note))
 
         # -- Comparison subview (trial run only): the readiness check and the E32 next to the thermostat --
         comparison = []
@@ -1760,8 +1932,7 @@ class RoomDashboard:
             for card in (card for section in compared for card in section["cards"]):
                 card.setdefault("visibility", _known(agreement))
             comparison.extend(compared)
-        return {"overview": overview, "rooms": rooms, "learning": learning, "comparison": comparison if subview else [],
-                "boiler_head": boiler_head, "boiler_tail": boiler_tail}
+        return {"overview": overview, "rooms": rooms, "learning": learning, "comparison": comparison if subview else []}
 
     @staticmethod
     def _explain_card(t, request):
@@ -1833,6 +2004,10 @@ class RoomDashboard:
                                                            "below": 20}]})
         own = room.get("thermostat")
         thermostat = own or self._room_thermostat(room_id)
+        # The E32's own measurement only where the dial does not show it (dashboard-spec §3): never next to the
+        # room's own climate, and next to another thermostat only while the E32 measures (also) elsewhere; a room
+        # whose only source is the thermostat it follows shows its temperature once, on the dial.
+        measured = thermostat is None or (not own and self._measured_elsewhere(room_id, heating_hub, thermostat))
         working = self._room_has_working_source(room_id, heating_hub)
         history = [{"entity": room[key], "name": t[label]} for key, label in (("temperature", "room_measured"),
                                                                               ("setpoint", "room_target"))
@@ -1853,9 +2028,9 @@ class RoomDashboard:
             _heading(name, "mdi:home-thermometer-outline", badges),
             # An inactive room stays compact: its heading says "Off"; no dial, so no way to switch it on here.
             {"type": "thermostat", "entity": thermostat, **when_active} if thermostat else None,
-            # The E32's own measurement next to another thermostat (the room's own climate already shows it),
-            # the target without one and how far its radiator valves are open: pairs, an odd one across.
-            *_tiles(None if own else _tile(room.get("temperature"), t["measured"], visibility=active),
+            # The E32's own measurement where the dial does not show it, the target without a dial and how far its
+            # radiator valves are open: pairs, an odd one across.
+            *_tiles(_tile(room.get("temperature"), t["measured"], visibility=active) if measured else None,
                     None if thermostat else _tile(room.get("setpoint"), t["target"], visibility=active),
                     _tile(room["valve_position"], t["valve_position"], "mdi:valve", visibility=active)
                     if room.get("valve_position") else None),
@@ -1884,6 +2059,17 @@ class RoomDashboard:
             ]
         return _section(*cards)
 
+    def _measured_elsewhere(self, room_id, heating_hub, thermostat):
+        """Whether the E32 measures the room (also) from another source than ``thermostat``, the climate its dial
+        shows: a Bluetooth sensor or another Home Assistant entity in its plan; before the plan is read, the source
+        it reports using now."""
+        plan_room = self._plan_room(heating_hub, room_id)
+        if plan_room:
+            return any(not (source.get("type") == "ha" and source.get("id") == thermostat)
+                       for source in plan_room.get("sources", []) if type(source) is dict)
+        reported = (heating_hub.rooms.get(room_id) or {}).get("source") if heating_hub is not None else None
+        return reported is not None and reported != thermostat
+
     def _room_has_working_source(self, room_id, heating_hub):
         """Any source of the room that measures now: a Bluetooth sensor with a reading, or an HA entity with a state."""
         plan_room = self._plan_room(heating_hub, room_id)
@@ -1909,15 +2095,20 @@ class RoomDashboard:
                 if item.unique_id.startswith(head) and item.unique_id.removeprefix(head) in FLOW_KEYS
                 and item.domain != "number"}  # the design flow is a select (never a 0 °C number)
 
-    def _boiler_sections(self, t, hub, fields, graph):
-        """The boiler view, and the raw boiler fields (for Diagnostics).
+    def _boiler_sections(self, t, hub, fields, graph, essential):
+        """The Boiler view (dashboard-spec §5) and what of the boiler belongs on Diagnostics: (sections, the raw
+        boiler fields, the thermostat on the bus).
 
-        One section per group (heating, hot water, status, counters, settings, the thermostat on the bus),
-        each a heading and the rows that have a value, then the last 24 hours. Raw values the E32 does not
-        check go to Diagnostics.
+        In this order: Now (the boiler in words and at a glance), the advice, Today and this week (the gas and the
+        burner), Hot water, the last 24 hours, What the boiler reports (its values, one titled card per group) and
+        the boiler settings. Every section hides as a whole while nothing in it has a value, so a boiler that never
+        reports a value shows neither an "Unknown" nor a heading over nothing. Raw values the E32 does not check
+        and the thermostat on the bus go to Diagnostics.
         """
         from .boiler_fields import INDEX_BY_NAME, quality
-        raw = None
+        sections = [_boiler_now(t, hub, fields, essential), _advice_section(t, hub.get("heating_advice")),
+                    _energy_section(t, hub), _hot_water_section(t, hub, fields, essential)]
+        raw = thermostat = None
         if fields:
             # Native cards only. Reported selected flow is NOT a controller request,
             # and burner modulation percentage is NOT measured kW or power factor.
@@ -1929,41 +2120,40 @@ class RoomDashboard:
             groups = {}
             for name in sorted(fields, key=order):
                 groups.setdefault(boiler_group(name), []).append(fields[name])
-            raw = groups.pop("raw", None)
+            raw, thermostat = groups.pop("raw", None), groups.pop("thermostat", None)
             hidden = {fields[name]: states for name, states in HIDDEN_STATES.items() if name in fields}
-            sections = []
-            for key, icon in BOILER_GROUPS:
-                if groups.get(key):
-                    sections.append(_section(_heading(t["group_" + key], icon),
-                                             _known_entities_card(groups[key], hidden),
-                                             None if sections else _note(t, t["boiler_note"])))
-
-            def shown(card):
-                # A graph while all its series have a value: no "Unavailable" in its legend.
-                if card is not None:
-                    card["visibility"] = [condition for item in card["entities"] for condition in _known(item["entity"])]
-                return card
-            use = _hot_water_use_cards(t, hub, fields.get("heating_active"))
-            if use:  # in the hot-water section (its own one when the boiler reports no hot-water values)
-                dhw = next((section for section in sections if section["cards"][0]["heading"] == t["group_dhw"]), None)
-                if dhw is None:
-                    sections.append(dhw := _section(_heading(t["group_dhw"], dict(BOILER_GROUPS)["dhw"])))
-                dhw["cards"] += use
-            sections.append(_section(
-                _heading(t["history_24h"], "mdi:chart-line"),
-                shown(graph(t["flow_graph"], (
-                    ("reported_selected_flow_temperature", t["flow_selection"]),
-                    ("measured_flow_temperature", t["measured_flow"]),
-                    ("measured_return_temperature", t["measured_return"])), fields)),
-                shown(graph(t["modulation_graph"], (
-                    ("reported_burner_modulation", t["modulation_series"]),), fields)),
-                shown(graph(t["dhw_graph"], (
-                    ("selected_dhw_temperature", t["dhw_selected"]),
-                    ("measured_dhw_temperature", t["dhw_measured"]),
-                    ("reported_dhw_target", t["dhw_target"])), fields))))
+            # The last 24 hours: each graph once one of its series has a value, so a series the boiler does not
+            # send never hides the others (an empty series draws no line).
+            graphs = [card for card in (
+                graph(t["flow_graph"], (("reported_selected_flow_temperature", t["flow_selection"]),
+                                        ("measured_flow_temperature", t["measured_flow"]),
+                                        ("measured_return_temperature", t["measured_return"])), fields),
+                graph(t["modulation_graph"], (("reported_burner_modulation", t["modulation_series"]),), fields),
+                graph(t["dhw_graph"], (("selected_dhw_temperature", t["dhw_selected"]),
+                                       ("measured_dhw_temperature", t["dhw_measured"]),
+                                       ("reported_dhw_target", t["dhw_target"])), fields)) if card]
+            for card in graphs:
+                card["visibility"] = _any_known([item["entity"] for item in card["entities"]])
+            sections.append(_filled(_section_known([item["entity"] for card in graphs for item in card["entities"]],
+                                                   _heading(t["history_24h"], ICONS["history"]), *graphs)))
+            # What the boiler reports: one titled card per group (rows with a value), the first with the one note
+            # on what these values are (dashboard-spec §5.6).
+            reported = [key for key in REPORTED_GROUPS if groups.get(key)]
+            cards = [_known_entities_card(groups[key], hidden, t["group_" + key]) for key in reported]
+            if cards:
+                cards.insert(1, _note(t, t["boiler_note"], _any_known(groups[reported[0]], hidden)))
+            sections.append(_filled(_section_known(
+                [entity for key in reported for entity in groups[key]],
+                _heading(t["boiler_values"], ICONS["boiler"]), *cards, hidden=hidden)))
+            # The boiler's own settings, read only, last.
+            settings = groups.get("settings")
+            if settings:
+                sections.append(_section_known(settings, _heading(t["group_settings"], ICONS["settings"]),
+                                               _known_entities_card(settings, hidden), hidden=hidden))
         else:
-            sections = [_section(
-                _heading(t["boiler"], "mdi:water-boiler"),
+            # An older integration without the boiler fields: what the hub reports, as graphs.
+            legacy = _section(
+                _heading(t["boiler"], ICONS["boiler"]),
                 _note(t, t["legacy_boiler_note"]),
                 graph(t["flow_graph"], (
                     ("boiler_selected_flow_temperature", t["flow_selection"]),
@@ -1973,34 +2163,24 @@ class RoomDashboard:
                     ("boiler_heating_active", t["state_heating"]),
                     ("boiler_hot_water_active", t["state_dhw"]),
                     ("boiler_burner_active", t["state_flame"]),
-                    ("boiler_pump_active", t["state_pump"])), hub))]
-        # A heading and a note alone are no section.
-        return [section for section in sections
-                if any(card["type"] not in ("heading", "markdown") for card in section["cards"])], raw
+                    ("boiler_pump_active", t["state_pump"])), hub))
+            # A heading and a note alone are no section.
+            if any(card["type"] not in ("heading", "markdown") for card in legacy["cards"]):
+                sections.append(legacy)
+        return [section for section in sections if section], raw, thermostat
 
-    def _diagnostics_sections(self, t, registry, hub, raw):
-        """The Diagnostics view: the E32, the hot water capability, the counters, the raw boiler data and older rooms."""
+    def _diagnostics_sections(self, t, registry, hub, raw, thermostat):
+        """The Diagnostics view (dashboard-spec §8): the E32, the thermostat on the boiler bus, the energy and hot
+        water counters, the raw boiler data, the hot water capability and the older rooms."""
         sections = []
         device = [hub[metric] for metric in DEVICE_DIAGNOSTIC_METRICS if metric in hub]
         # Rows (not tiles) under each heading: whole names, also on a phone.
         if device:
-            sections.append(_section(_heading(t["e32_device"], "mdi:chip"), _known_entities_card(device)))
-        # Today's taps, keeping warm and burner time, as the E32 sorts them on the bus, and the
-        # read-only hot water capability (only on a connection that reports one).
-        dhw_id = hub.get("dhw_capabilities")
-        if dhw_id:  # today's taps and keeping warm are in the Boiler view
-            cards = [_heading(t["dhw"], "mdi:faucet")]
-            if dhw_id:
-                quoted = json.dumps(dhw_id)
-                note = (t["dhw_note"] + "\n\n" + t["dhw_profile"] + ": {{ state_attr(" + quoted + ", 'profile') or '"
-                        + t["unknown"] + "' }}; " + t["dhw_status"] + ": {{ states(" + quoted + ") }}.\n"
-                        "{% set fields = state_attr(" + quoted + ", 'fields') or {} %}"
-                        "{% for key, field in fields.items() %}{% if field.supported_read %}"
-                        "\n- {{ key | replace('_', ' ') }}: {{ field.value if field.value is not none else '"
-                        + t["unknown"] + "' }} {{ field.unit or '' }} ({{ field.quality }}){% endif %}{% endfor %}")
-                cards += [{"type": "entities", "title": t["dhw_card"], "entities": _rows([dhw_id])},
-                          {"type": "markdown", "content": note}]
-            sections.append(_section(*cards))
+            sections.append(_section_known(device, _heading(t["e32_device"], "mdi:chip"), _known_entities_card(device)))
+        # The thermostat still on the boiler bus (the trial run): what it asks of the boiler, as the boiler hears it.
+        if thermostat:
+            sections.append(_section_known(thermostat, _heading(t["group_thermostat"], ICONS["thermostat"]),
+                                           _known_entities_card(thermostat)))
         # The energy and hot water counters: only isolated definition-v2 IDs, no legacy counter aggregates or
         # backfill. Each shows once it has a value; until then one line says why there is none.
         counters = [hub[key + "_v2"] for key in COUNTER_KEYS if key + "_v2" in hub]
@@ -2023,8 +2203,22 @@ class RoomDashboard:
                 _note(t, t["estimates_empty"], _none_known(counters)),
                 *charts))
         if raw:
-            sections.append(_section(_heading(t["raw"], "mdi:wrench-outline"),
-                                     _note(t, t["raw_note"]), _known_entities_card(raw)))
+            sections.append(_section_known(raw, _heading(t["raw"], "mdi:wrench-outline"),
+                                           _note(t, t["raw_note"], _any_known(raw)), _known_entities_card(raw)))
+        # The read-only hot water capability, on a connection that reports one (today's taps and keeping warm are
+        # on the Boiler view).
+        dhw_id = hub.get("dhw_capabilities")
+        if dhw_id:
+            quoted = json.dumps(dhw_id)
+            note = (t["dhw_note"] + "\n\n" + t["dhw_profile"] + ": {{ state_attr(" + quoted + ", 'profile') or '"
+                    + t["unknown"] + "' }}; " + t["dhw_status"] + ": {{ states(" + quoted + ") }}.\n"
+                    "{% set fields = state_attr(" + quoted + ", 'fields') or {} %}"
+                    "{% for key, field in fields.items() %}{% if field.supported_read %}"
+                    "\n- {{ key | replace('_', ' ') }}: {{ field.value if field.value is not none else '"
+                    + t["unknown"] + "' }} {{ field.unit or '' }} ({{ field.quality }}){% endif %}{% endfor %}")
+            sections.append(_section(_heading(t["dhw"], ICONS["hot_water"]),
+                                     {"type": "entities", "title": t["dhw_card"], "entities": _rows([dhw_id])},
+                                     {"type": "markdown", "content": note}))
         # Older HA rooms: heat model estimates and target / measured history, by room name.
         devices = dr.async_get(self.hass)
         model_cards = []

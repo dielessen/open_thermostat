@@ -8,22 +8,28 @@ const root=path.resolve(__dirname,'..');
 const config=JSON.parse(fs.readFileSync(path.join(root,'test/fixtures/ha-dashboard-views.json'),'utf8'));
 const out=path.resolve(process.env.OPENTHERMOSTAT_DASHBOARD_VIEWS_EVIDENCE||path.join(root,'out/ha-dashboard-views-20261103'));
 const HEIGHT={heading:40,tile:64,thermostat:300,'history-graph':200,'statistics-graph':200,markdown:90,entities:150,glance:90,button:56,
- 'custom:openthermostat-room-status':150,'custom:openthermostat-e32-week':400};
+ statistic:120,gauge:120,'custom:openthermostat-room-status':150,'custom:openthermostat-e32-week':400,'custom:openthermostat-house':260};
+// Half-width by default (6 of 12 columns), as in Home Assistant's sections view; grid_options override both.
+const HALF=['tile','button','statistic','gauge'];
 const label=card=>card.heading||card.name||card.title||card.entity||(card.content||'').replace(/<[^>]+>|\{[%{#][^}]*[%}#]\}/g,' ').replace(/\s+/g,' ').trim().slice(0,70)||card.type;
+// A grid row is 56 px with an 8 px gap: a card of two rows (a gauge, a figure, the tile beside them) is 120 px.
+const height=card=>{const rows=card.grid_options&&card.grid_options.rows;return rows?rows*56+(rows-1)*8:(HEIGHT[card.type]||90);};
 const html=(view,hidden,width)=>{
  // Home Assistant fits as many section columns as the width allows (about 320 px each), up to max_columns.
  const columns=Math.max(1,Math.min(view.max_columns||1,Math.floor((width-32)/320)));
  const sections=(view.sections||[]).map(section=>`<section>${section.cards.filter(c=>!(hidden&&c.visibility)).map(card=>{
-  const span=(card.grid_options&&card.grid_options.columns)||(['tile','button'].includes(card.type)?6:12);
-  return `<div class="card ${card.type.replace(/[^a-z-]/g,'')}" data-span="${span}" style="grid-column:span ${span};min-height:${HEIGHT[card.type]||90}px">`+
+  const span=(card.grid_options&&card.grid_options.columns)||(HALF.includes(card.type)?6:12);
+  return `<div class="card ${card.type.replace(/[^a-z-]/g,'')}" data-span="${span}" style="grid-column:span ${span};min-height:${height(card)}px">`+
    `<small>${card.type.replace('custom:openthermostat-','')}</small><b>${String(label(card)).replace(/</g,'&lt;')}</b>${card.visibility&&!hidden?'<i>conditional</i>':''}</div>`;}).join('')}</section>`).join('');
- return `<style>body{margin:0;padding:16px;font:13px Roboto,Arial;background:#fafafa;color:#212121}h1{font-size:16px;margin:0 0 12px}
+ return `<style>:root{--bg:#fafafa;--fg:#212121;--card:#fff;--muted:#727272;--tile:#eef5ff;--note:#fffbe8;--chart:#f1f8f1;--tag:#b26a00}
+  @media (prefers-color-scheme:dark){:root{--bg:#111111;--fg:#e1e1e1;--card:#1c1c1c;--muted:#9b9b9b;--tile:#1d2a3a;--note:#2e2a1b;--chart:#1c2b1f;--tag:#e0a040}}
+  body{margin:0;padding:16px;font:13px Roboto,Arial;background:var(--bg);color:var(--fg)}h1{font-size:16px;margin:0 0 12px}
   .view{display:grid;grid-template-columns:repeat(${columns},minmax(0,1fr));gap:8px 12px;align-items:start}
   section{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px;box-sizing:border-box}
-  .card{background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.25);padding:8px 10px;overflow:hidden;box-sizing:border-box}
-  .card b{display:block;overflow-wrap:anywhere}.card small{color:#727272}.card i{float:right;color:#b26a00;font-size:11px}
-  .heading{background:none;box-shadow:none;padding:4px 0;font-size:15px}.tile{background:#eef5ff}.markdown{background:#fffbe8}
-  .thermostat,.history-graph,.statistics-graph{background:#f1f8f1}</style><h1>${view.title}</h1><div class="view">${sections}</div>`;
+  .card{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.25);padding:8px 10px;overflow:hidden;box-sizing:border-box}
+  .card b{display:block;overflow-wrap:anywhere}.card small{color:var(--muted)}.card i{float:right;color:var(--tag);font-size:11px}
+  .heading{background:none;box-shadow:none;padding:4px 0;font-size:15px}.tile,.statistic,.gauge{background:var(--tile)}.markdown{background:var(--note)}
+  .thermostat,.history-graph,.statistics-graph{background:var(--chart)}</style><h1>${view.title}</h1><div class="view">${sections}</div>`;
 };
 (async()=>{
  fs.mkdirSync(out,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[],problems=[];
@@ -44,7 +50,12 @@ const html=(view,hidden,width)=>{
    if(document.documentElement.scrollWidth>innerWidth)bad.push('sideways scroll');
    return bad;});
   const file=`${lang}-${view.path}-${width}${hidden?'-conditional-hidden':''}.png`;
-  if(!hidden)await page.screenshot({path:path.join(out,file),fullPage:true});
+  if(!hidden){
+   await page.screenshot({path:path.join(out,file),fullPage:true});
+   // The same layout in the dark scheme (only the colours change), for a look by eye.
+   await page.emulateMedia({colorScheme:'dark'});
+   await page.screenshot({path:path.join(out,file.replace('.png','-dark.png')),fullPage:true});
+  }
   results.push({lang,view:view.path,width,hidden,problems:found});
   for(const message of found)problems.push(`${lang} ${view.path} ${width}${hidden?' (conditional cards hidden)':''}: ${message}`);
   await page.close();}

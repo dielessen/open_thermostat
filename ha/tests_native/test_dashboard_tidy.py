@@ -2,7 +2,8 @@
 "0,0 °C" request, no bare "98 %", an inactive room without a dial, whole names and no gap under "Now".
 
 Shaped like the live installation: the living room follows a thermostat and a Bluetooth sensor, the
-bathroom is inactive with a working source of its own (it stays off and is never switched on here).
+bathroom is inactive with a working source of its own (it stays off and is never switched on here); the
+boiler fields of the owner's boiler, the gas, the daily summary, today's hot water and what the boiler does.
 """
 import json
 from types import SimpleNamespace
@@ -12,11 +13,17 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from custom_components.open_thermostat.dashboard import RoomDashboard, view_cards
 from test_dashboard_heating import installation, walk
+from test_dashboard_redesign import LIVE_FIELDS
 
 PLAN = {"rooms": [
     {"id": "woonkamer", "state": "active", "sources": [{"type": "ha", "id": "climate.tado_woonkamer"},
                                                        {"type": "ble", "id": "a4c138a3e8db"}]},
     {"id": "badkamer", "state": "inactive", "sources": [{"type": "ha", "id": "climate.thermostaat_badkamer"}]}]}
+# The hub sensors of the owner's E32 and integration that the Boiler and Learning views draw (rc.5): what the
+# boiler does, the gas (split into tapping and keeping warm), the daily summary, today's hot water and the advice.
+HUB_SENSORS = ("boiler_activity", "heating_gas", "hot_water_gas", "tapping_gas", "keep_warm_gas", "daily_summary",
+               "daily_burner_time", "daily_burner_starts", "daily_missed_comfort", "dhw_taps_today",
+               "dhw_keep_warm_today", "dhw_burner_time_today", "heating_advice")
 
 
 def known(entity_id):
@@ -39,9 +46,13 @@ def live(hass, language="en"):
         suggested_object_id="heating_problem").entity_id
     # Yesterday's scoreboard (E32 rc.4); what the E32 knows, the boiler's response and the learned overview (rc.5).
     for key in ("burner_starts_per_heating_hour", "short_cycling_hours", "heating_gas_yesterday", "gas_per_degree_day",
-                "knowledge", "boiler_response", "learned_overview"):
+                "knowledge", "boiler_response", "learned_overview", *HUB_SENSORS):
         hub[key] = entities.async_get_or_create("sensor", "open_thermostat", f"fixture_hub_{key}", config_entry=e,
                                                 device_id=product.id, suggested_object_id=key).entity_id
+    for name in LIVE_FIELDS:
+        fields[name] = entities.async_get_or_create("sensor", "open_thermostat", f"fixture_boiler_fields_v1_{name}",
+                                                    config_entry=e, device_id=product.id,
+                                                    suggested_object_id=f"boiler_{name}").entity_id
     flow = {key: entities.async_get_or_create(domain, "open_thermostat", f"fixture_flow_{key}", config_entry=e,
                                               device_id=product.id, suggested_object_id=f"flow_{key}").entity_id
             for domain, key in (("sensor", "source"), ("switch", "weather_curve"),
@@ -97,7 +108,7 @@ async def test_the_boiler_request_says_no_request_instead_of_zero_degrees(hass):
 async def test_the_comparison_is_a_link_that_explains_it_not_a_bare_percentage(hass):
     config, rooms, sensors, hub, fields, flow = live(hass)
     learning = next(v for v in config["views"] if v["path"] == "learned")
-    control = section(learning, "Boiler control")
+    control = section(learning, "Who controls the boiler")
     assert hub["shadow_agreement_today"] not in [c.get("entity") for c in control]
     link = next(c for c in control if c.get("heading") == "E32 compared with your thermostat")
     assert link["tap_action"]["navigation_path"].endswith("/comparison")
@@ -184,4 +195,7 @@ async def test_rows_in_entities_cards_are_named_by_the_entity_alone(hass):
     plain = [row["row"] if row.get("type") == "conditional" else row for row in rows]
     # The entity's own name (no device name in front) or a name this dashboard chose, written out.
     assert all(row.get("name", {"type": "entity"}) == {"type": "entity"} or isinstance(row["name"], str) for row in plain)
-    assert all(row["conditions"] == [known(row["row"]["entity"])] for row in rows if row.get("type") == "conditional")
+    # (The boiler's maintenance message also hides while it says there is none.)
+    hidden = {fields["maintenance_message"]: ["none"]}
+    assert all(row["conditions"] == [{**known(row["row"]["entity"]), "state_not": [
+        "unavailable", "unknown", *hidden.get(row["row"]["entity"], [])]}] for row in rows if row.get("type") == "conditional")

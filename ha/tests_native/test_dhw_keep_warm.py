@@ -196,16 +196,21 @@ def test_the_weekly_summary_names_the_keep_warm_part():
     assert "Daarvan voor warmhouden van het warme water: 2,4 m³ (41 keer)." in message(result, [], "nl")
 
 
-def test_the_dashboard_shows_keeping_warm_as_a_third_bar_next_to_hot_water():
+def test_the_one_gas_chart_shows_tapping_and_keeping_warm_once_the_e32_tells_them_apart():
+    """rc.5: one gas-per-day chart on the dashboard (Boiler, "Today and this week"): heating, tapping and keeping
+    warm once the E32 sorts its hot water; heating and hot water before."""
     from custom_components.open_thermostat.dashboard import TEXT, _energy_section
-    for lang, name in (("en", "Of which keeping hot water warm"), ("nl", "Waarvan warm water warmhouden")):
-        section = _energy_section(TEXT[lang], "sensor.heating_gas", "sensor.hot_water_gas", "sensor.keep_warm_gas")
+    split = {"heating_gas": "sensor.heating_gas", "hot_water_gas": "sensor.hot_water_gas",
+             "tapping_gas": "sensor.tapping_gas", "keep_warm_gas": "sensor.keep_warm_gas"}
+    for lang, names in (("en", ["Heating", "Tapping", "Keeping warm"]), ("nl", ["Verwarmen", "Tappen", "Warmhouden"])):
+        section = _energy_section(TEXT[lang], split)
         graph = next(card for card in section["cards"] if card["type"] == "statistics-graph")
-        assert [item["entity"] for item in graph["entities"]] == ["sensor.heating_gas", "sensor.hot_water_gas",
-                                                                  "sensor.keep_warm_gas"]
-        assert graph["entities"][2]["name"] == name
-    without = _energy_section(TEXT["en"], "sensor.heating_gas", "sensor.hot_water_gas")
-    assert len(next(card for card in without["cards"] if card["type"] == "statistics-graph")["entities"]) == 2
+        assert graph["title"] == TEXT[lang]["gas_per_day"]
+        assert [(item["entity"], item["name"]) for item in graph["entities"]] == list(zip(
+            ["sensor.heating_gas", "sensor.tapping_gas", "sensor.keep_warm_gas"], names))
+    without = _energy_section(TEXT["en"], {key: split[key] for key in ("heating_gas", "hot_water_gas")})
+    graph = next(card for card in without["cards"] if card["type"] == "statistics-graph")
+    assert [item["name"] for item in graph["entities"]] == ["Heating", "Hot water"]
 
 
 @pytest.mark.asyncio
@@ -285,53 +290,50 @@ HUB = {"boiler_activity": "sensor.boiler_activity", "heating_gas": "sensor.heati
 
 
 @pytest.mark.parametrize("lang", ["en", "nl"])
-def test_the_hot_water_cards_are_a_timeline_and_the_gas_per_post_once_there_are_statistics(lang):
+def test_the_hot_water_cards_are_the_timeline_and_one_note_while_the_activity_has_a_value(lang):
     from custom_components.open_thermostat.dashboard import TEXT, _hot_water_use_cards
     t = TEXT[lang]
-    timeline, gas, note = _hot_water_use_cards(t, HUB, "sensor.heating_active")
-    assert (timeline["type"], timeline["hours_to_show"]) == ("history-graph", 24)
+    timeline, note = _hot_water_use_cards(t, HUB, "sensor.heating_active")
+    assert (timeline["type"], timeline["hours_to_show"], timeline["title"]) == (
+        "history-graph", 24, t["activity_timeline"])
     assert [item["entity"] for item in timeline["entities"]] == ["sensor.boiler_activity", "sensor.heating_active"]
-    assert (gas["type"], gas["chart_type"], gas["period"], gas["days_to_show"], gas["stat_types"]) == (
-        "statistics-graph", "bar", "day", 7, ["change"])
-    assert [(item["entity"], item["name"]) for item in gas["entities"]] == [
-        ("sensor.heating_gas", t["gas_heating"]), ("sensor.tapping_gas", t["gas_tapping"]),
-        ("sensor.keep_warm_gas", t["gas_keeping_warm"])]
-    assert gas["visibility"] == [{"condition": "or", "conditions": [
-        {"condition": "numeric_state", "entity": "sensor.tapping_gas", "above": 0},
-        {"condition": "numeric_state", "entity": "sensor.keep_warm_gas", "above": 0}]}]
+    # The note carries the visibility of the timeline it explains.
+    assert timeline["visibility"] == note["visibility"] == [
+        {"condition": "state", "entity": "sensor.boiler_activity", "state_not": ["unavailable", "unknown"]}]
     assert note["type"] == "markdown" and t["gas_tapping"] in note["content"]
     assert {"Tapping": "en", "Tappen": "nl"}[t["gas_tapping"]] == lang
-    # Firmware without the activity: the gas alone; without the split: nothing.
-    assert [card["type"] for card in _hot_water_use_cards(t, {**HUB, "boiler_activity": None})] == [
-        "statistics-graph", "markdown"]
-    assert _hot_water_use_cards(t, {"heating_gas": "sensor.heating_gas", "hot_water_gas": "sensor.hot_water_gas"}) == []
+    # The gas per day per post is the one gas chart under "Today and this week", not here.
+    assert "statistics-graph" not in json.dumps(_hot_water_use_cards(t, HUB))
+    # Firmware without the activity: nothing.
+    assert _hot_water_use_cards(t, {**HUB, "boiler_activity": None}) == []
 
 
 @pytest.mark.asyncio
-async def test_the_boiler_views_hot_water_section_holds_the_timeline_and_the_gas_per_post(hass):
+async def test_the_boiler_views_hot_water_section_holds_the_timeline_and_the_gas_is_under_today(hass):
     from homeassistant.helpers import entity_registry as er
     from test_dashboard_redesign import headed, setup as dashboard, view
     from custom_components.open_thermostat.dashboard import RoomDashboard
     from test_dashboard_heating import walk
     config, hub, fields = dashboard(hass)
-    assert not any(card["type"] == "statistics-graph" for card in headed(view(config, "boiler"))["Hot water"])
     entities = er.async_get(hass)
     entry = next(iter(hass.config_entries.async_entries("open_thermostat")))
     device = entities.async_get(fields["dhw_active"]).device_id
-    for key in HUB:
-        entities.async_get_or_create("sensor", "open_thermostat", f"fixture_hub_{key}", config_entry=entry,
-                                     device_id=device, suggested_object_id=key)
+    for key in ("tapping_gas", "keep_warm_gas"):  # the E32 tells tapping and keeping warm apart
+        hub[key] = entities.async_get_or_create("sensor", "open_thermostat", f"fixture_hub_{key}", config_entry=entry,
+                                                device_id=device, suggested_object_id=key).entity_id
     config = RoomDashboard(hass, "fixture", entry.entry_id)._dashboard_config()
     assert None not in list(walk(config))
     sections = headed(view(config, "boiler"))
-    assert list(sections) == ["Boiler", "Heating", "Hot water", "Status and faults", "Boiler settings",
-                              "Thermostat on the bus", "Last 24 hours", "Gas per day"]  # no extra section for hot water
+    # No extra section for hot water or for the gas.
+    assert list(sections) == ["Now", "Today and this week", "Hot water", "Last 24 hours", "What the boiler reports",
+                              "Boiler settings"]
     cards = sections["Hot water"]
     timeline = next(card for card in cards if card["type"] == "history-graph")
-    assert [item["entity"] for item in timeline["entities"]] == ["sensor.boiler_activity", fields["heating_active"]]
-    gas = next(card for card in cards if card["type"] == "statistics-graph")
-    assert [item["entity"] for item in gas["entities"]] == ["sensor.heating_gas", "sensor.tapping_gas",
-                                                           "sensor.keep_warm_gas"]
+    assert [item["entity"] for item in timeline["entities"]] == [hub["boiler_activity"], fields["heating_active"]]
+    assert not any(card["type"] == "statistics-graph" for card in cards)
+    gas = next(card for card in sections["Today and this week"] if card["type"] == "statistics-graph")
+    assert [item["entity"] for item in gas["entities"]] == [hub[key] for key in ("heating_gas", "tapping_gas",
+                                                                                "keep_warm_gas")]
 
 
 # -- an optional water meter ------------------------------------------------------------------------------

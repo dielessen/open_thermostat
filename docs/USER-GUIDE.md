@@ -166,9 +166,9 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
   6. **Free heat**: per room the warmth it gets from sun, cooking and people
      without the boiler, once the E32 has seen it often enough, and what
      Smart warm-up does with it.
-  7. **Smart warm-up and weather compensation**: the two switches, the water
-     temperature in hard frost, what sets the water temperature now, and the
-     links to the room editor and the week program.
+  7. **Smart warm-up and weather compensation**: the two switches and the
+     water temperature in hard frost, and the links to the room editor and
+     the week program.
 
   After them come **What the thermostat has learned** (how far each room is,
   your house and your boiler, what the E32 changed by itself, and how it

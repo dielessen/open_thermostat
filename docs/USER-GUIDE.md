@@ -83,22 +83,24 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
   room's temperature and target and, in one line, why it heats or not: window
   open, away, warm enough, Smart warm-up heating early, and so on. The same
   line is the **Reason** sensor of the room. The house card shows:
-  - A **status strip** in the colour of what the boiler does now: heating
-    (with the water temperature), hot water, or "Boiler resting". The house
-    mode is on the right of the strip; tap it to open the house mode control.
-    While rooms want heat, a second line says how many and what the boiler
-    request is. A problem comes first: the strip turns red and says
-    "Attention" with the first reason. Tap it to open Repairs; **All reasons**
-    lists every reason.
-  - Today's figures: **Heating** (on, with the water temperature, or off),
-    **Hot water** (the taps so far today, or "running now"), **Gas today**
-    (heating and hot water together) with a small line of the last 7 days, and
-    **Burner starts today**. A figure that your boiler or the E32 does not
-    report is left out. The gas and the burner starts are read from Home
-    Assistant's statistics; on the first day, until it has some, they show "—".
+  - A **band** in the colour of what the boiler does now, in white letters:
+    orange while heating (with the water temperature), blue for hot water,
+    grey for "Boiler resting". The house mode is on the right of the band; tap
+    it to open the house mode control. While rooms want heat, a second line
+    says how many and what the boiler request is. A problem comes first: the
+    band turns red and says "Attention" with the first reason. Tap it to open
+    Repairs; **All reasons** lists every reason.
+  - Today's figures, large: **Hot water** (the taps so far today, or "running
+    now"), **Gas today** (heating and hot water together) with a small line of
+    the last 7 days beside it and the average day of the week before under it,
+    and **Burner starts today**. While the band shows a problem, **Heating**
+    (on, with the water temperature, or off) is added, because the band then
+    cannot say it. A figure that your boiler or the E32 does not report is left
+    out. The gas and the burner starts are read from Home Assistant's
+    statistics; on the first day, until it has some, they show "—".
   - A **day strip** from midnight until now: when the boiler was heating,
-    making hot water or keeping it warm. Point at a part for its start and end
-    time.
+    making hot water or keeping it warm, with the hours and "now" under it.
+    Point at a part for its start and end time.
   - In a house with only one room switched on, that room is the first figure
     of the card, with its temperature, its target and why it heats or not. The
     other rooms are then listed under **Other rooms**.
@@ -743,7 +745,7 @@ learning information.
 
 Each problem except the water pressure (which has its own message) also
 appears under **Settings → System → Repairs** as **Heating needs attention**,
-and clears itself once the cause is gone. On the dashboard, the strip of the
+and clears itself once the cause is gone. On the dashboard, the band of the
 **house card** turns red while the sensor is on and names the first reason; a
 tap on it opens Repairs. The sensor's `problems` and `reasons` attributes say
 what is wrong, so you can use it in your own notification automation.
@@ -993,8 +995,11 @@ restart; whatever the E32 did not measure is left out.
 | Per room | How many minutes late or early the room was warm ("warm 12 min late", "warm 5 min early" or "warm on time") and how far it went above its target ("0.3 °C too warm"). |
 
 In Home Assistant it is the section **Yesterday in figures** on the **Learning
-and settings** tab ("Living room: warm 12 min late · 0.3 °C too warm", "Burner:
-2.1 starts per heating hour", "Gas for heating: 8.4 kWh"). It is the only
+and settings** tab. Four figures stand large at the top: how many minutes early
+or late the first room that is switched on was warm, the burner starts per
+heating hour, the gas for heating and the degree days; tap one for its
+history. The rest follows in lines ("Bathroom: warm 12 min late · 0.3 °C too
+warm", "Heating time: 6.2 h · Short burner runs: 0.4 h"). It is the only
 Yesterday of the dashboard, so it also holds the daily summary (see
 [Daily summary and warnings](#daily-summary-and-warnings)): the burner time and
 starts, the gas for heating and hot water and, per room, how long it asked for

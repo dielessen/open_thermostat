@@ -1,4 +1,5 @@
 #pragma once
+#include "control/ArrivalLearner.h"
 #include "control/FlowLearner.h"
 #include "control/RoomSchedule.h"
 #include <cstdio>
@@ -70,8 +71,12 @@ struct WarmupPlanner {
         const char* confidence = "default";  // learned / default: the warm-up curve
         bool reachable = true, startNow = false;
         bool coolingLearned = false;          // the heat-loss model and the outdoor are known
-        // FlowPolicy may apply a start only when both the warm-up and the cooling are learned.
+        // Both the warm-up and the cooling are learned: the lead is a measurement, not an estimate.
         bool applicable() const { return confidence[0] == 'l' && coolingLearned; }
+        // rc.4 (L3): not fully learned. FlowPolicy applies it anyway (the owner: "op die tijd wil ik
+        // het warm hebben"), from the current room temperature, scaled by the arrival feedback and
+        // capped until that feedback is trusted; the pages say "estimate".
+        bool estimate = false;
     };
     // When heating must start, at the lowest acceptable flow, to reach the next
     // higher setpoint AT its switch time. Cooling until then follows the learned
@@ -82,7 +87,7 @@ struct WarmupPlanner {
     // and is advice only until both models are learned. Without a reading either,
     // the setback is assumed and the lead never exceeds the default lead.
     static Start optimumStart(const FlowLearner& l, size_t room, const RoomSchedule& s, int64_t utc,
-                              std::optional<int16_t> temperature, std::optional<int16_t> outdoor) {
+                              std::optional<int16_t> temperature, std::optional<int16_t> outdoor, LeadFactor factor = {}) {
         Start out;
         if (room >= l.rooms() || s.empty()) return out;
         const auto rise = nextRise(s, utc);
@@ -91,7 +96,8 @@ struct WarmupPlanner {
         const auto loss = l.heatModel(room).lossPerHour;
         out.coolingLearned = loss && outdoor;
         const int16_t lowest = out.coolingLearned || !temperature ? rise->fromCentiC : std::max(rise->fromCentiC, *temperature);
-        lead(l, room, *rise, lowest, temperature, utc, outdoor, loss, out, !out.coolingLearned && !temperature);
+        lead(l, room, *rise, lowest, temperature, utc, outdoor, loss, out, !out.coolingLearned && !temperature, factor);
+        out.estimate = !out.applicable();
         out.startUtc = rise->atUtc - out.leadS;
         out.startNow = utc >= out.startUtc && utc < rise->atUtc;
         return out;
@@ -100,13 +106,18 @@ struct WarmupPlanner {
     // temperature at that start: an earlier start is warmer, so the need falls
     // while the lead grows. Learned lowest acceptable flow, else the default lead;
     // assumed: the start temperature is a guess, never more than the default lead.
+    // rc.4: factor (the arrival feedback, ArrivalLearner) scales the lead, default or learned; an
+    // estimate no morning has judged yet is capped (floor 3 h, radiators 90 min).
+    static constexpr uint32_t estimateCapFloorS = 3 * 3600, estimateCapRadiatorS = 90 * 60;
     static void lead(const FlowLearner& l, size_t room, const Rise& rise, int16_t nightCentiC, std::optional<int16_t> temperature,
-                     int64_t utc, std::optional<int16_t> outdoor, std::optional<float> loss, Start& out, bool assumed = false) {
+                     int64_t utc, std::optional<int16_t> outdoor, std::optional<float> loss, Start& out, bool assumed = false,
+                     LeadFactor factor = {}) {
+        const bool floor = l.emitter(room) == RoomPlan::Emitter::floor;
         for (uint32_t lead = 0;; lead += 300) {
             const int64_t start = std::max(utc, rise.atUtc - int64_t(lead));
             out.startTemperatureCentiC = cooled(nightCentiC, temperature, rise.eveningCentiC, rise.nightUtc, utc, start, loss, outdoor);
             const int16_t shortfall = static_cast<int16_t>(rise.toCentiC - out.startTemperatureCentiC);
-            const auto a = l.advise(room, shortfall, outdoor);
+            const auto a = l.advise(room, shortfall, outdoor, true); // one filled bin times the warm-up (L4)
             uint32_t need;
             if (a.flowC) {
                 out.confidence = "learned"; out.flowC = *a.flowC;
@@ -117,6 +128,8 @@ struct WarmupPlanner {
                 out.confidence = "default"; out.flowC = l.ruleFlow(shortfall);
                 need = defaultLeadS(l.emitter(room), shortfall, l.tuning());
             }
+            need = static_cast<uint32_t>(std::min<double>(double(need) * std::clamp(factor.factor, 0.5f, 2.0f), double(maxLeadS)));
+            if (!a.flowC && !factor.trusted) need = std::min(need, floor ? estimateCapFloorS : estimateCapRadiatorS);
             if (need <= lead || lead >= maxLeadS) { out.leadS = lead; return; }
             if (start == utc) { out.leadS = need; out.reachable = false; return; } // too late already
         }
@@ -186,28 +199,31 @@ struct WarmupPlanner {
 
     // {"rooms":[{"id":..,"optimum_start":{..},"night":{..}}]}; temperatures per plan room.
     static cJSON* json(const FlowLearner& l, const RoomPlan& plan, int64_t utc,
-                       const std::optional<int16_t>* temperatures, std::optional<int16_t> outdoor) {
+                       const std::optional<int16_t>* temperatures, std::optional<int16_t> outdoor, const ArrivalLearner* arrival = nullptr) {
         cJSON* root = cJSON_CreateObject();
         cJSON* rooms = root ? cJSON_AddArrayToObject(root, "rooms") : nullptr;
         if (!rooms) { cJSON_Delete(root); return nullptr; }
         for (size_t i = 0; i < plan.rooms.size() && i < l.rooms(); ++i) {
-            cJSON* o = roomJson(l, plan, i, utc, temperatures[i], outdoor);
+            cJSON* o = roomJson(l, plan, i, utc, temperatures[i], outdoor, arrival);
             if (!o || !cJSON_AddItemToArray(rooms, o)) { cJSON_Delete(o); cJSON_Delete(root); return nullptr; }
         }
         return root;
     }
 
-    // One plan room of json(): {"id":..,"optimum_start":{..},"night":{..}}; nullptr: no memory.
+    // One plan room of json(): {"id":..,"optimum_start":{..},"night":{..},"arrival":{..}|null}; nullptr: no memory.
     static cJSON* roomJson(const FlowLearner& l, const RoomPlan& plan, size_t i, int64_t utc,
-                           std::optional<int16_t> temperature, std::optional<int16_t> outdoor) {
+                           std::optional<int16_t> temperature, std::optional<int16_t> outdoor, const ArrivalLearner* arrival = nullptr) {
         if (i >= plan.rooms.size() || i >= l.rooms()) return nullptr;
         cJSON* o = cJSON_CreateObject();
         cJSON* st = o ? cJSON_AddObjectToObject(o, "optimum_start") : nullptr;
         cJSON* ni = st ? cJSON_AddObjectToObject(o, "night") : nullptr;
         if (!ni) { cJSON_Delete(o); return nullptr; }
         cJSON_AddStringToObject(o, "id", plan.rooms[i].id.c_str());
+        // rc.4: the arrival feedback of this room ({"factor","events","last_error_min","last_at_utc"} or null).
+        cJSON* ar = arrival ? arrival->json(i) : cJSON_CreateNull();
+        if (!ar || !cJSON_AddItemToObject(o, "arrival", ar)) { cJSON_Delete(ar); cJSON_Delete(o); return nullptr; }
         const auto& schedule = plan.rooms[i].schedule;
-        const auto start = optimumStart(l, i, schedule, utc, temperature, outdoor);
+        const auto start = optimumStart(l, i, schedule, utc, temperature, outdoor, arrival ? arrival->lead(i) : LeadFactor{});
         cJSON_AddStringToObject(st, "reason", start.reason);
         if (start.reason[0] == 'p') {
             riseJson(st, start.rise);
@@ -219,8 +235,9 @@ struct WarmupPlanner {
             cJSON_AddStringToObject(st, "confidence", start.confidence);
             cJSON_AddBoolToObject(st, "reachable", start.reachable);
             cJSON_AddBoolToObject(st, "start_now", start.startNow);
-            // rc.3: Smart warm-up (FlowPolicy) uses this start; false: an estimate until the room is learned.
-            cJSON_AddBoolToObject(st, "applies", start.applicable());
+            // rc.3: Smart warm-up (FlowPolicy) uses this start. rc.4: also an estimate (L3), then "estimate" is true.
+            cJSON_AddBoolToObject(st, "applies", true);
+            cJSON_AddBoolToObject(st, "estimate", start.estimate);
         }
         const auto n = night(l, i, schedule, utc, temperature, outdoor);
         cJSON_AddStringToObject(ni, "reason", n.reason);

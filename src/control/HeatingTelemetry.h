@@ -22,6 +22,7 @@ struct LearnedContext {
     std::optional<int16_t> outdoorCentiC;
     const char* outdoorSource = nullptr;                  // "boiler", "ha" or nullptr (none)
     uint64_t now = 0;                                     // uptime ms
+    const ArrivalLearner* arrival = nullptr;              // rc.4: the arrival feedback (FlowPolicy::arrival())
 };
 // A gas meter counts as connected while its last total is at most 2 h old
 // (DSMR 4 meters report gas once an hour).
@@ -57,7 +58,7 @@ inline cJSON* learnedJson(const FlowLearner& learner, const RoomPlan& plan, cons
     if (!root) return nullptr;
     if (!addLearnedInputs(root, learner, c) || !addGasCalibration(root, learner, c)) { cJSON_Delete(root); return nullptr; }
     if (!c.utc || !c.temperatures) return root;
-    cJSON* plans = WarmupPlanner::json(learner, plan, *c.utc, c.temperatures, c.outdoorCentiC);
+    cJSON* plans = WarmupPlanner::json(learner, plan, *c.utc, c.temperatures, c.outdoorCentiC, c.arrival);
     if (!plans || !cJSON_AddItemToObject(root, "plans", plans)) { cJSON_Delete(plans); cJSON_Delete(root); return nullptr; }
     return root;
 }
@@ -107,7 +108,7 @@ inline void keepOnly(cJSON* o, std::initializer_list<const char*> keys) {
 // (no "id": the payload names its room once, HA takes the topic's).
 inline void compactLearnedRoom(cJSON* r) {
     using telemetry_detail::keepOnly;
-    keepOnly(r, {"emitter", "readiness", "segments", "periods", "loss_per_h", "capacity_kwh_per_k", "advice", "now"});
+    keepOnly(r, {"emitter", "readiness", "readiness_timing", "segments", "periods", "loss_per_h", "capacity_kwh_per_k", "advice", "now"});
     cJSON* advice = cJSON_GetObjectItemCaseSensitive(r, "advice");
     for (cJSON* a = cJSON_IsArray(advice) ? advice->child : nullptr; a;) {
         cJSON* next = a->next;
@@ -117,14 +118,14 @@ inline void compactLearnedRoom(cJSON* r) {
     }
 }
 // Plan room in its MQTT form (no "id" either): {"optimum_start":{"reason","predicted_start_utc",
-// "lead_minutes","flow_c","confidence","reachable","start_now","next_switch":{"utc","target_c"}},"night":{"reason",
-// "recommended","recommended_night_c","saving_m3","saving_eur"}} (fields of an
-// unplanned reason are absent, as in the full form).
+// "lead_minutes","flow_c","confidence","reachable","start_now","applies","estimate","next_switch":{"utc","target_c"}},
+// "night":{"reason","recommended","recommended_night_c","saving_m3","saving_eur"},"arrival":{..}|null}
+// (fields of an unplanned reason are absent, as in the full form). rc.4: "estimate" and "arrival".
 inline void compactPlanRoom(cJSON* p) {
     using telemetry_detail::keepOnly;
-    keepOnly(p, {"optimum_start", "night"});
+    keepOnly(p, {"optimum_start", "night", "arrival"});
     cJSON* start = cJSON_GetObjectItemCaseSensitive(p, "optimum_start");
-    keepOnly(start, {"reason", "predicted_start_utc", "lead_minutes", "flow_c", "confidence", "reachable", "start_now", "applies", "next_switch"});
+    keepOnly(start, {"reason", "predicted_start_utc", "lead_minutes", "flow_c", "confidence", "reachable", "start_now", "applies", "estimate", "next_switch"});
     keepOnly(cJSON_GetObjectItemCaseSensitive(start, "next_switch"), {"utc", "target_c"}); // rc.2: "to be 21 degC at 09:00"
     keepOnly(cJSON_GetObjectItemCaseSensitive(p, "night"), {"reason", "recommended", "recommended_night_c", "saving_m3", "saving_eur"});
 }
@@ -188,7 +189,7 @@ inline std::string learnedRoomTelemetry(const FlowLearner& learner, const RoomPl
     if (!learned || !cJSON_AddNumberToObject(root.get(), "schema", 1) || !cJSON_AddStringToObject(root.get(), "id", plan.rooms[room].id.c_str())
         || !cJSON_AddItemToObject(root.get(), "learned", learned)) { cJSON_Delete(learned); return {}; }
     compactLearnedRoom(learned);
-    cJSON* p = c.utc && c.temperatures ? WarmupPlanner::roomJson(learner, plan, room, *c.utc, c.temperatures[room], c.outdoorCentiC) : nullptr;
+    cJSON* p = c.utc && c.temperatures ? WarmupPlanner::roomJson(learner, plan, room, *c.utc, c.temperatures[room], c.outdoorCentiC, c.arrival) : nullptr;
     if (p) { if (!cJSON_AddItemToObject(root.get(), "plan", p)) { cJSON_Delete(p); return {}; } compactPlanRoom(p); }
     else if (c.utc && c.temperatures) return {};          // no memory
     else if (!cJSON_AddNullToObject(root.get(), "plan")) return {};

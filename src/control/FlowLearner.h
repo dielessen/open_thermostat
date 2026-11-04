@@ -93,6 +93,13 @@ public:
         bool bridgeHotWater = true;
         uint32_t maxBridgeMs = 900000;
         uint32_t bridgeHoldoffMs = 300000;             // with the bridge: hold-off after hot water
+        // rc.4 (L1): a hot-water round while the emitter coasts pauses the cool segment for at
+        // most this long instead of ending it and restarting the coast wait. With a working
+        // three-way valve no heat reaches the emitter then; a leaking valve shows as a room that
+        // warms during "cooling" and is rejected (cooling_unexplained). Before rc.4 every tap or
+        // keep-warm round reset the 2 h coast wait, so a boiler with a store never taught the
+        // heat-loss rate, and Smart warm-up, which needs it, never applied itself.
+        uint32_t maxCoolBridgeMs = 1800000;
     };
     // Condensing efficiency against the return temperature: 97.5 % at <= 35 degC,
     // linear to 88.9 % at 55 degC and above (lower flow -> higher efficiency).
@@ -200,7 +207,9 @@ public:
         // Only while heat is still asked for: a hot-water run inside a heating period.
         const bool wanted = known && (b.burnerOn.value_or(false) || requested) && !gap;
         afterHotWater_ = (hotWater && requested) || (afterHotWater_ && !heat && wanted);
-        if (!heat && (heating_ || gap || !known || hotWater)) offSince_ = now; // unknown: the emitter may be warm
+        // Unknown: the emitter may be warm. Hot water does not restart the wait (rc.4, L1): the
+        // emitter cools on while the boiler serves the store or a tap.
+        if (!heat && (heating_ || gap || !known)) offSince_ = now;
         heating_ = heat;
         status_ = !known ? "boiler_unknown" : hotWater ? "hot_water" : !heat ? "not_heating" : now < holdUntil_ ? "settling" : "learning";
         const bool usable = heat && now >= holdUntil_;
@@ -216,9 +225,11 @@ public:
                 * efficiency(b.returnCentiC ? *b.returnCentiC / 100.0f : *b.flowCentiC / 100.0f - p_.returnDropK);
         for (size_t i = 0; i < count && i < rooms_.size(); ++i) {
             auto& r = rooms_[i];
-            const bool coasted = known && !heat && !hotWater && now >= holdUntil_
-                && now - offSince_ >= (r.emitter == RoomPlan::Emitter::floor ? p_.floorCoastMs : p_.radiatorCoastMs);
-            step(r, now, gap, usable ? Kind::heat : coasted ? Kind::cool : paused ? Kind::pause : Kind::none, ref, b, heatKw, rooms[i]);
+            const bool offLong = known && !heat && now - offSince_ >= (r.emitter == RoomPlan::Emitter::floor ? p_.floorCoastMs : p_.radiatorCoastMs);
+            const bool coasted = offLong && !hotWater && now >= holdUntil_;
+            // Coasting, but hot water (or its hold-off) right now: a pause of the cool segment (rc.4, L1).
+            const bool coolPaused = offLong && !coasted;
+            step(r, now, gap, usable ? Kind::heat : coasted ? Kind::cool : (paused || coolPaused) ? Kind::pause : Kind::none, ref, b, heatKw, rooms[i]);
         }
     }
     // The gas meter total (m3, e.g. HA sensor.gas_consumed): GasCalibration
@@ -263,14 +274,16 @@ public:
     size_t rooms() const { return rooms_.size(); }
     RoomPlan::Emitter emitter(size_t room) const { return rooms_[room].emitter; }
 
-    // Lowest learned flow that closes shortfallCentiC within the room's acceptance.
-    Advice advise(size_t room, int16_t shortfallCentiC, std::optional<int16_t> outdoorCentiC) const {
+    // Lowest learned flow that closes shortfallCentiC within the room's acceptance. timing: for a
+    // warm-up TIME (the planner) one filled bin is enough (rc.4, L4): the room warms at that bin's
+    // flow at a known rate. Choosing the lowest flow (FlowPolicy) keeps the stricter readiness.
+    Advice advise(size_t room, int16_t shortfallCentiC, std::optional<int16_t> outdoorCentiC, bool timing = false) const {
         Advice a;
         if (room >= rooms_.size()) return a;
         const auto& r = rooms_[room];
         a.requiredRate = r.acceptance.requiredRate(shortfallCentiC);
         a.ruleFlowC = ruleFlow(shortfallCentiC);
-        if (!ready(r)) return a;
+        if (!(timing ? readyForTiming(r) : ready(r))) return a;
         Curve c; const size_t n = curve(r, outdoorCentiC, c);
         if (!n) return a;
         size_t k = 0;
@@ -300,9 +313,9 @@ public:
         fp.flowPerDegreeC = static_cast<uint8_t>(tuning_.flowPerDegreeC);
         return FlowDemand(fp).update(0, true, shortfallCentiC).flowC;
     }
-    // Predicted time to close a shortfall at a flow; nullopt while not ready.
+    // Predicted time to close a shortfall at a flow; nullopt while not ready for timing (one filled bin).
     std::optional<uint32_t> warmupSeconds(size_t room, int16_t shortfallCentiC, uint8_t flowC, std::optional<int16_t> outdoorCentiC) const {
-        if (room >= rooms_.size() || !ready(rooms_[room])) return std::nullopt;
+        if (room >= rooms_.size() || !readyForTiming(rooms_[room])) return std::nullopt;
         Curve c; const size_t n = curve(rooms_[room], outdoorCentiC, c);
         return warmup(c, n, flowC, shortfallCentiC);
     }
@@ -313,6 +326,8 @@ public:
         return rateAt(c, n, flowC);
     }
     const char* readiness(size_t room) const { return room < rooms_.size() ? readiness(rooms_[room]) : "collecting"; }
+    // "ready" once one bin is filled (3 segments in 2 periods): the warm-up time at that flow is known.
+    const char* readinessTiming(size_t room) const { return room < rooms_.size() ? readinessTiming(rooms_[room]) : "collecting"; }
     uint16_t segments(size_t room) const { return room < rooms_.size() ? rooms_[room].segments : 0; }
     std::optional<float> outdoorSlope(size_t room) const { return room < rooms_.size() ? outdoorSlope(rooms_[room]) : std::nullopt; }
     HeatModel heatModel(size_t room) const {
@@ -360,6 +375,7 @@ public:
         cJSON_AddStringToObject(o, "id", r.id.c_str());
         cJSON_AddStringToObject(o, "emitter", r.emitter == RoomPlan::Emitter::floor ? "floor" : "radiator");
         cJSON_AddStringToObject(o, "readiness", readiness(r));
+        cJSON_AddStringToObject(o, "readiness_timing", readinessTiming(r)); // rc.4: the warm-up time alone
         cJSON_AddNumberToObject(o, "segments", r.segments);
         cJSON_AddNumberToObject(o, "periods", r.periods);
         cJSON_AddNumberToObject(o, "rejected", r.rejected);
@@ -439,9 +455,16 @@ private:
 
     bool ready(const Bin& b) const { return b.segments >= p_.binSegments && b.periods >= p_.binPeriods; }
     bool ready(const Room& r) const { return readiness(r)[0] == 'r'; }
+    bool readyForTiming(const Room& r) const { return readinessTiming(r)[0] == 'r'; }
     const char* readiness(const Room& r) const {
         const auto bins = std::count_if(r.bins.begin(), r.bins.end(), [&](const Bin& b) { return ready(b); });
         if (bins >= p_.roomBins && r.segments >= p_.roomSegments && r.periods >= p_.roomPeriods) return "ready";
+        return r.segments ? "learning" : "collecting";
+    }
+    // One filled bin: with the curve on, the E32 asks nearly always the same water temperature, so
+    // the second bin fills in weeks; the time at the one flow it uses is known much sooner (rc.4, L4).
+    const char* readinessTiming(const Room& r) const {
+        if (std::any_of(r.bins.begin(), r.bins.end(), [&](const Bin& b) { return ready(b); })) return "ready";
         return r.segments ? "learning" : "collecting";
     }
     void step(Room& r, uint64_t now, bool gap, Kind kind, uint8_t ref, const Boiler& b, std::optional<float> heatKw, const RoomInput& in) {
@@ -449,8 +472,10 @@ private:
         r.shortfall = in.temperatureCentiC && in.setpointCentiC ? std::optional<int16_t>(*in.setpointCentiC - *in.temperatureCentiC) : std::nullopt;
         if (!in.temperatureCentiC) kind = Kind::none;
         if (kind == Kind::pause) {
-            // Bridged: the heating segment stays open over a short hot-water run; this sample is not used.
-            if (s.active && s.kind == Kind::heat && !gap && in.source == s.source && now - s.lastMs <= p_.maxBridgeMs) return;
+            // Bridged: the segment stays open over a short hot-water run (a heating segment up to
+            // maxBridgeMs, a cool segment up to maxCoolBridgeMs); this sample is not used.
+            const uint32_t bridge = s.kind == Kind::cool ? p_.maxCoolBridgeMs : p_.maxBridgeMs;
+            if (s.active && (s.kind == Kind::heat || s.kind == Kind::cool) && !gap && in.source == s.source && now - s.lastMs <= bridge) return;
             kind = Kind::none;
         }
         if (s.active) {

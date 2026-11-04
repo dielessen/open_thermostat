@@ -57,6 +57,9 @@ namespace heating::control {
 class AutoTuner {
 public:
     static constexpr uint64_t graceMs = 24 * 3600000ull, settleMs = 2 * 3600000ull, gapMs = 60000, dhwLookMs = 60000;
+    // rc.4 (L5): after a boot that restored its record the tuner waits 2 h, not a day: the house
+    // did not change with the restart, and the day's counters come back from the record.
+    static constexpr uint64_t bootGraceMs = 2 * 3600000ull, dayStoreMs = 3600000ull;
     static constexpr uint8_t minHours = 6, minStarts = 5;
     static constexpr size_t logSize = 10, ringSize = 24, roomIdBytes = 33;
     enum class Reason : uint8_t { manyStarts, coldDuringRest, shortBurns, overshoot, overshootGain, settled, hovering, fewStarts, roomResponse, learnedWarmup,
@@ -90,6 +93,20 @@ public:
     };
     // Per plan room at the day change: its emitter and, once learned, its minutes per degC.
     struct Learned { RoomPlan::Emitter emitter = RoomPlan::Emitter::radiator; std::optional<uint16_t> minutesPerC; };
+    // One local day of evidence (today, yesterday); rc.4: also each room's highest overshoot of
+    // the day (over, overSeen) for the scoreboard, and stored over a restart (stored(), restore()).
+    struct Day {
+        int32_t day = -1;
+        uint32_t hours = 0, observedS = 0, activeS = 0, shortS = 0, burnS = 0, deviationSum = 0, deviationS = 0;
+        uint16_t starts = 0, burns = 0, shortBurns = 0, insideShort = 0, requests = 0;
+        std::array<int16_t, ringSize> rests{};
+        std::array<uint8_t, ringSize> restRoom{};
+        uint8_t restCount = 0;
+        std::array<int16_t, RoomPlan::maxRooms> over{};
+        uint8_t overSeen = 0;
+    };
+    const Day& today() const { return today_; }
+    const Day& yesterday() const { return yesterday_; }
 
     const ControlTuning& values() const { return values_; }
     // The knobs in effect: the owner's where set (manual), else the automatic ones.
@@ -99,8 +116,68 @@ public:
         for (size_t i = 0; i < n; ++i) if ((ControlTuning::autoKnobs >> i & 1) && !(manual >> i & 1)) t.*k[i].field = values_.*k[i].field;
         return t;
     }
-    // A boot, a plan or a tuning change: 24 h without changes, today counts anew.
+    // A plan or a tuning change that touches the control: 24 h without changes, today counts anew.
     void restart(uint64_t now) { graceUntil_ = now + graceMs; const int32_t d = today_.day; today_ = {}; today_.day = d; open_ = {}; overCount_ = {}; }
+    // A boot (rc.4, L5): 2 h when the stored record (values and day counters) came back, else a day.
+    void boot(uint64_t now, bool restored) { graceUntil_ = now + (restored ? bootGraceMs : graceMs); }
+    // rc.4 (R1-04): a plan edit keeps each room's state by id; rooms that moved keep their evidence.
+    void setPlan(const RoomPlan& plan) {
+        std::array<RoomState, RoomPlan::maxRooms> rooms{};
+        std::array<std::array<int16_t, ringSize>, RoomPlan::maxRooms> over{};
+        std::array<uint8_t, RoomPlan::maxRooms> overCount{};
+        std::array<int8_t, RoomPlan::maxRooms> from{};
+        from.fill(-1);
+        for (size_t i = 0; i < plan.rooms.size() && i < RoomPlan::maxRooms; ++i) {
+            rooms[i].id = plan.rooms[i].id;
+            for (size_t o = 0; o < RoomPlan::maxRooms; ++o)
+                if (!rooms_[o].id.empty() && rooms_[o].id == plan.rooms[i].id) { rooms[i] = rooms_[o]; over[i] = over_[o]; overCount[i] = overCount_[o]; from[i] = int8_t(o); break; }
+        }
+        rooms_ = rooms; over_ = over; overCount_ = overCount; open_ = {};
+        for (Day* d : {&today_, &yesterday_}) remapDay(*d, from);
+    }
+    // The day's per-room overshoot follows the rooms (new index -> old index, -1: none).
+    static void remapDay(Day& d, const std::array<int8_t, RoomPlan::maxRooms>& from) {
+        std::array<int16_t, RoomPlan::maxRooms> over{};
+        uint8_t seen = 0;
+        for (size_t i = 0; i < RoomPlan::maxRooms; ++i)
+            if (from[i] >= 0 && (d.overSeen >> from[i] & 1)) { over[i] = d.over[from[i]]; seen |= uint8_t(1u << i); }
+        d.over = over; d.overSeen = seen;
+    }
+    // Whether an edit changes what the control does (rooms, their sources, programs, limits, mode):
+    // a renamed room, a pause, an away temperature or a level name do not (no restart then).
+    static bool controlChanged(const RoomPlan& a, const RoomPlan& b) {
+        if (a.mode != b.mode || a.minimumFlowC != b.minimumFlowC || a.maximumFlowC != b.maximumFlowC || a.rooms.size() != b.rooms.size()) return true;
+        for (size_t i = 0; i < a.rooms.size(); ++i) {
+            const auto& x = a.rooms[i]; const auto& y = b.rooms[i];
+            if (x.id != y.id || x.state != y.state || x.emitter != y.emitter || x.setpointEntity != y.setpointEntity
+                || x.fallbackCentiC != y.fallbackCentiC || x.minimumCentiC != y.minimumCentiC || x.maximumCentiC != y.maximumCentiC
+                || x.sources.size() != y.sources.size()) return true;
+            for (size_t k = 0; k < x.sources.size(); ++k) if (x.sources[k].type != y.sources[k].type || x.sources[k].id != y.sources[k].id) return true;
+            for (size_t d = 0; d < 7; ++d) {
+                if (x.schedule.days[d].count != y.schedule.days[d].count) return true;
+                for (size_t k = 0; k < x.schedule.days[d].count; ++k)
+                    if (x.schedule.days[d].points[k].minute != y.schedule.days[d].points[k].minute
+                        || x.schedule.days[d].points[k].centiC != y.schedule.days[d].points[k].centiC) return true;
+            }
+        }
+        return false;
+    }
+    // Once a trusted clock knows the local day: the stored day counters are today's (same day) or
+    // yesterday's (the day before; then evaluationPending() asks for their evaluation after the grace).
+    void adoptDay(int32_t today) {
+        if (adopted_) return;
+        adopted_ = true;
+        if (!hasStored_) return;
+        if (stored_.day == today) today_ = stored_;
+        else if (stored_.day == today - 1) { yesterday_ = stored_; if (today_.day < 0) today_.day = today; pendingYesterday_ = true; }
+        hasStored_ = false;
+    }
+    bool evaluationPending(uint64_t now) const { return pendingYesterday_ && now >= graceUntil_; }
+    // Every dayStoreMs: store the record (the day counters survive a restart).
+    bool dayStoreDue(uint64_t now) {
+        if (now - dayStoredAt_ < dayStoreMs) return false;
+        dayStoredAt_ = now; return true;
+    }
     // "Back to start values": the built-in values, an empty log, learning anew.
     void reset(uint64_t now) { values_ = {}; log_ = {}; logCount_ = 0; would_ = {}; wouldCount_ = 0; restCeiling_ = 0; state_ = "waiting"; restart(now); }
 
@@ -192,7 +269,7 @@ public:
     // Yesterday (after sample() returned true): the proposals, and with an active day
     // the changes to values() for the automatic knobs. learned: per plan room.
     void evaluate(uint64_t now, uint32_t utc, uint16_t manual, const RoomPlan& plan, const Learned* learned, size_t count) {
-        wouldCount_ = 0; changed_ = 0; proposed_ = 0;
+        wouldCount_ = 0; changed_ = 0; proposed_ = 0; pendingYesterday_ = false;
         if (now < graceUntil_ || yesterday_.day < 0) { state_ = "waiting"; return; }
         const Day& d = yesterday_;
         const int hours = __builtin_popcount(d.hours);
@@ -296,21 +373,34 @@ public:
         for (size_t i = 0; log && i < l; ++i) cJSON_AddItemToArray(log, changeJson(log_[i], true));
         return would && log && cJSON_GetArraySize(would) == int(w) && cJSON_GetArraySize(log) == int(l);
     }
-    // NVS: {"values":{ControlTuning},"log":[[utc,knob,from,to,reason,figure,room]]}; the newest maxLog
-    // entries (NVS short of room: fewer, the values first).
+    // NVS: {"values":{ControlTuning},"log":[[utc,knob,from,to,reason,figure,room]],"day":{..}}; the newest
+    // maxLog entries (NVS short of room: fewer, the values first). rc.4: "day" holds today's counters
+    // (d, obs, act, sh, bs, dv, ds, hrs, st, bn, sb, is, rq, ov[8]) so a restart loses at most an hour.
     std::string stored(size_t maxLog = logSize) const {
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_CreateObject(), cJSON_Delete);
         cJSON* values = root ? cJSON_Parse(values_.json().c_str()) : nullptr;
         if (!values || !cJSON_AddItemToObject(root.get(), "values", values)) { cJSON_Delete(values); return {}; }
         cJSON* log = cJSON_AddArrayToObject(root.get(), "log");
         for (size_t i = 0; log && i < logCount_ && i < maxLog; ++i) cJSON_AddItemToArray(log, changeJson(log_[i], true));
+        const Day& d = hasStored_ ? stored_ : today_; // not adopted yet (no trusted clock): the record as it came
+        if (log && d.day >= 0) {
+            cJSON* day = cJSON_AddObjectToObject(root.get(), "day");
+            if (day) cJSON_AddNumberToObject(day, "d", double(d.day));
+            const struct { const char* k; uint32_t v; } fields[] = {{"obs", d.observedS}, {"act", d.activeS}, {"sh", d.shortS},
+                {"bs", d.burnS}, {"dv", d.deviationSum}, {"ds", d.deviationS}, {"hrs", d.hours}, {"st", d.starts}, {"bn", d.burns},
+                {"sb", d.shortBurns}, {"is", d.insideShort}, {"rq", d.requests}};
+            for (const auto& f : fields) if (day) cJSON_AddNumberToObject(day, f.k, double(f.v));
+            cJSON* ov = day ? cJSON_AddArrayToObject(day, "ov") : nullptr;
+            for (size_t i = 0; ov && i < RoomPlan::maxRooms; ++i) cJSON_AddItemToArray(ov, d.overSeen >> i & 1 ? cJSON_CreateNumber(d.over[i]) : cJSON_CreateNull());
+        }
         char* text = log ? cJSON_PrintUnformatted(root.get()) : nullptr;
         std::string out = text ? text : "";
         cJSON_free(text);
         return out;
     }
-    static constexpr size_t storedMaxBytes = ControlTuning::maxBytes + 30 + logSize * 115;
-    // A stored record; anything unreadable keeps the built-in values (and no log).
+    static constexpr size_t storedMaxBytes = ControlTuning::maxBytes + 30 + logSize * 115 + 220;
+    // A stored record; anything unreadable keeps the built-in values (and no log). The day counters
+    // wait in stored_ until adoptDay() knows the local day.
     bool restore(const char* text) {
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(parseNestedJson(text, text ? std::strlen(text) : 0));
         ControlTuning v;
@@ -320,22 +410,37 @@ public:
         size_t count = 0;
         for (const cJSON* e = log->child; e && count < logSize; e = e->next) if (!parseChange(e, entries[count++])) return false;
         values_ = v; log_ = entries; logCount_ = count;
+        hasStored_ = parseDay(cJSON_GetObjectItemCaseSensitive(root.get(), "day"), stored_);
         return true;
     }
 
 private:
-    struct Day {
-        int32_t day = -1;
-        uint32_t hours = 0, observedS = 0, activeS = 0, shortS = 0, burnS = 0, deviationSum = 0, deviationS = 0;
-        uint16_t starts = 0, burns = 0, shortBurns = 0, insideShort = 0, requests = 0;
-        std::array<int16_t, ringSize> rests{};
-        std::array<uint8_t, ringSize> restRoom{};
-        uint8_t restCount = 0;
-    };
     struct RoomState {
+        std::string id;                                       // rc.4: the plan room (setPlan re-keys by it)
         std::optional<int16_t> setpoint; uint64_t changedAt = 0; std::optional<uint64_t> droppedAt; bool settled = false, measurable = false;
         int16_t todayMax = INT16_MIN, yesterdayMax = INT16_MIN; // the highest target of the local day
     };
+    static bool parseDay(const cJSON* o, Day& d) {
+        if (!cJSON_IsObject(o)) return false;
+        const auto num = [&](const char* k, uint32_t max, uint32_t& out) {
+            const cJSON* v = cJSON_GetObjectItemCaseSensitive(o, k);
+            if (!cJSON_IsNumber(v) || v->valuedouble < 0 || v->valuedouble > max) return false;
+            out = uint32_t(v->valuedouble); return true;
+        };
+        Day t;
+        uint32_t day = 0, st = 0, bn = 0, sb = 0, is = 0, rq = 0;
+        if (!num("d", 100000, day) || !num("obs", 86400 * 2, t.observedS) || !num("act", 86400 * 2, t.activeS) || !num("sh", 86400 * 2, t.shortS)
+            || !num("bs", 86400 * 2, t.burnS) || !num("dv", UINT32_MAX, t.deviationSum) || !num("ds", 86400 * 2, t.deviationS)
+            || !num("hrs", 0xFFFFFF, t.hours) || !num("st", UINT16_MAX, st) || !num("bn", UINT16_MAX, bn) || !num("sb", UINT16_MAX, sb)
+            || !num("is", UINT16_MAX, is) || !num("rq", UINT16_MAX, rq)) return false;
+        t.day = int32_t(day); t.starts = uint16_t(st); t.burns = uint16_t(bn); t.shortBurns = uint16_t(sb); t.insideShort = uint16_t(is); t.requests = uint16_t(rq);
+        const cJSON* ov = cJSON_GetObjectItemCaseSensitive(o, "ov");
+        size_t i = 0;
+        for (const cJSON* e = cJSON_IsArray(ov) ? ov->child : nullptr; e && i < RoomPlan::maxRooms; e = e->next, ++i)
+            if (cJSON_IsNumber(e) && std::fabs(e->valuedouble) <= 3000) { t.over[i] = int16_t(e->valuedouble); t.overSeen |= uint8_t(1u << i); }
+        d = t;
+        return true;
+    }
     struct Burn { bool on = false, measured = false, heating = false, offSeen = false; uint64_t at = 0; };
     // A burn awaiting its class; short: ended with the E32's request, inside: ended inside a request (the boiler's own).
     struct Ended { bool on = false, heating = false, shortBurn = false, inside = false; uint64_t at = 0; uint32_t s = 0; };
@@ -373,7 +478,11 @@ private:
     void closeCycle() {
         if (open_.used)
             for (size_t i = 0; i < RoomPlan::maxRooms; ++i)
-                if ((open_.demanded >> i & 1) && !(open_.invalid >> i & 1)) push(over_[i], overCount_[i], open_.over[i]);
+                if ((open_.demanded >> i & 1) && !(open_.invalid >> i & 1)) {
+                    push(over_[i], overCount_[i], open_.over[i]);
+                    // rc.4: the day's highest overshoot of the room (scoreboard).
+                    if (!(today_.overSeen >> i & 1) || open_.over[i] > today_.over[i]) { today_.over[i] = open_.over[i]; today_.overSeen |= uint8_t(1u << i); }
+                }
         open_ = {};
         for (auto& v : open_.over) v = INT16_MIN;
     }
@@ -443,6 +552,9 @@ private:
     std::array<std::array<int16_t, ringSize>, RoomPlan::maxRooms> over_{}; // per room the overshoot of the recent cycles
     std::array<uint8_t, RoomPlan::maxRooms> overCount_{};
     uint16_t restCeiling_ = 0; // this boot: the shortest rest that was too cold (0: none)
+    Day stored_;               // rc.4: the day counters of the stored record, until adoptDay()
+    bool hasStored_ = false, adopted_ = false, pendingYesterday_ = false;
+    uint64_t dayStoredAt_ = 0;
     uint64_t last_ = 0, graceUntil_ = graceMs;
     const RoomPlan* plan_ = nullptr;
     const char* state_ = "waiting";

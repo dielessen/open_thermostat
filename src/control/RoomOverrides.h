@@ -472,7 +472,9 @@ public:
         WarmupPlanner::Rise rise;
         rise.atUtc = untilUtc; rise.nightUtc = utc; rise.fromCentiC = awayCentiC; rise.toCentiC = targetCentiC;
         WarmupPlanner::Start start;
-        WarmupPlanner::lead(l, room, rise, awayCentiC, temperature, utc, outdoor, l.heatModel(room).lossPerHour, start);
+        // rc.4: no morning judges a return, so the default lead is taken as it is (the arrival
+        // feedback's cap on an untrusted estimate is for the program's rises; the return must be warm).
+        WarmupPlanner::lead(l, room, rise, awayCentiC, temperature, utc, outdoor, l.heatModel(room).lossPerHour, start, false, LeadFactor{1.0f, true});
         return start.leadS;
     }
     // The target at a holiday's end: the week program then (its local time, also across a

@@ -57,8 +57,10 @@ Pas als de afspeelbank het doel haalt, gaat het naar de firmware.
 - Per programmastap omhoog: aankomst = eerste meting ≥ doel − 0,1 °C na de
   geplande start, binnen 3 uur na de schakeltijd (anders: te laat). Fout =
   aankomst − schakeltijd.
-- Te laat (> 10 min): f × 1,10. Te vroeg (> 20 min vóór de schakeltijd, en
-  de start was toegepast): f × 0,92. Daartussen: ongewijzigd.
+- Te laat (> 10 min): f × 1,10. Te vroeg (> 15 min vóór de schakeltijd, en
+  de start was toegepast): f × 0,92. Daartussen: ongewijzigd. (Uitvoering: de
+  grens voor "te vroeg" is 15 in plaats van 20 min, anders eindigt een 2× te
+  lange voorlooptijd op 19 min te vroeg en haalt het doel hieronder niet.)
 - De planner gebruikt f op de standaard- én de geleerde voorlooptijd
   (`WarmupPlanner::lead`), binnen de bestaande maxima.
 - Telemetrie per ruimte: laatste fout in minuten, f, aantal ochtenden. HA en

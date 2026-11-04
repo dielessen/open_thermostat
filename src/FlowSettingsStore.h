@@ -5,6 +5,7 @@
 #include "control/BoundedJson.h"
 #include "control/FlowPolicy.h"
 #include "control/OptionalRecordPriority.h"
+#include "control/Scoreboard.h"
 #include "NvsOptionalRecords.h"
 #include <cstring>
 #include <memory>
@@ -49,14 +50,15 @@ struct FlowSettingsNvs {
 // learned record still needs); none: false.
 struct AutoTunerNvs {
     static constexpr const char* key = "autotune";
-    static void read(control::AutoTuner& tuner) {
+    // True when a record was read and restored (rc.4: the tuner then boots with the short grace).
+    static bool read(control::AutoTuner& tuner) {
         nvs_handle_t handle;
-        if (nvs_open("ot_heating", NVS_READONLY, &handle) != ESP_OK) return;
+        if (nvs_open("ot_heating", NVS_READONLY, &handle) != ESP_OK) return false;
         std::unique_ptr<char[]> text(new (std::nothrow) char[control::AutoTuner::storedMaxBytes + 1]());
         size_t size = control::AutoTuner::storedMaxBytes + 1;
         const bool ok = text && nvs_get_str(handle, key, text.get(), &size) == ESP_OK;
         nvs_close(handle);
-        if (ok) tuner.restore(text.get());
+        return ok && tuner.restore(text.get());
     }
     static bool write(const control::AutoTuner& tuner, size_t learnedPending = 0) {
         std::string record;
@@ -69,6 +71,28 @@ struct AutoTunerNvs {
         nvs_handle_t handle;
         if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
         const bool committed = nvs_set_str(handle, key, record.c_str()) == ESP_OK && nvs_commit(handle) == ESP_OK;
+        nvs_close(handle);
+        return committed;
+    }
+};
+// rc.4: the daily scoreboard (control/Scoreboard.h), one short string written hourly with the
+// self-tuning's record, gated like the other optional records (never erased to make room).
+struct ScoreboardNvs {
+    static constexpr const char* key = "scoreboard";
+    static std::string read() {
+        nvs_handle_t handle;
+        if (nvs_open("ot_heating", NVS_READONLY, &handle) != ESP_OK) return {};
+        char text[control::Scoreboard::storedMaxBytes + 1] = {};
+        size_t size = sizeof(text);
+        const bool ok = nvs_get_str(handle, key, text, &size) == ESP_OK;
+        nvs_close(handle);
+        return ok ? std::string(text) : std::string();
+    }
+    static bool write(const std::string& text) {
+        if (text.empty() || text.size() > control::Scoreboard::storedMaxBytes || !optionalHeatingRecordFits(key, text.size() + 1)) return false;
+        nvs_handle_t handle;
+        if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
+        const bool committed = nvs_set_str(handle, key, text.c_str()) == ESP_OK && nvs_commit(handle) == ESP_OK;
         nvs_close(handle);
         return committed;
     }

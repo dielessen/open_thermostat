@@ -79,6 +79,8 @@ public:
     uint16_t windows() const { return windows_; }
     uint16_t rejected() const { return rejected_; }
     const char* last() const { return last_; }
+    // A plan edit: the open window belonged to a room index that may have moved (rc.4, R1-04).
+    void interrupt() { if (w_.open) { w_.open = false; last_ = "window_interrupted"; } }
 
 private:
     friend class LearnedState;

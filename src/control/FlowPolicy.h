@@ -326,6 +326,15 @@ public:
     };
 
     void setSettings(const FlowSettings& s) { settings_ = s; }
+    // A plan edit (rc.4, R1-04): what was keyed by room index restarts or is re-keyed by id.
+    void setPlan(const RoomPlan& plan) {
+        arrival_.setPlan(plan);
+        starts_ = {}; heating_ = {}; start_ = {}; startHeating_ = false; startEnded_ = false; startMinute_ = -1;
+        lead_ = -1; copyId(leadId_, ""); copyId(startId_, "");
+        curveLearner_.interrupt();
+    }
+    const ArrivalLearner& arrival() const { return arrival_; }
+    ArrivalLearner& arrival() { return arrival_; }
     const FlowSettings& settings() const { return settings_; }
     const FlowDemand::Request& request() const { return applied_; }
     Source source() const { return source_; }
@@ -456,38 +465,64 @@ public:
 
 private:
     friend class LearnedState; // the curve learner, the comparison and the night ledger
+    // rc.4 (L3, R1-07): every room with a planned start is served (the highest flow wins), an
+    // estimate too, only on fresh readings, with the start's own minimum rest after it ended.
+    // The arrival learner (L2) watches every rise once a minute and judges each morning.
     template <class Bound> void optimumStart(const Inputs& in, const FlowLearner& learner, Bound bound) {
         const auto& plan = *in.plan;
-        if (!in.utc) { start_ = {}; startState_ = "no_clock"; startHeating_ = false; return; }
-        // Once a minute the planner walks the week program; a start that began stays
+        if (!in.utc) { starts_ = {}; heating_ = {}; start_ = {}; startState_ = "no_clock"; startHeating_ = false; return; }
+        const size_t n = std::min({plan.rooms.size(), size_t(RoomPlan::maxRooms), learner.rooms()});
+        const auto fresh = [](const RoomDemand::Result& r) {
+            return r.usable && r.temperature && (r.status == RoomDemand::Status::ok || r.status == RoomDemand::Status::fallback);
+        };
+        // Once a minute the planner walks each room's week program; a start that began stays
         // until its rise (the warming room would otherwise shorten its own lead).
-        const bool latched = startHeating_ && start_.room >= 0 && *in.utc < start_.riseUtc;
-        if (*in.utc / 60 != startMinute_ && !latched) {
-            startMinute_ = *in.utc / 60; start_ = {};
-            for (size_t i = 0; i < plan.rooms.size() && i < RoomPlan::maxRooms && i < learner.rooms(); ++i) {
+        if (*in.utc / 60 != startMinute_) {
+            startMinute_ = *in.utc / 60;
+            for (size_t i = 0; i < RoomPlan::maxRooms; ++i) {
+                const bool latched = i < n && heating_[i] && starts_[i].room >= 0 && *in.utc < starts_[i].riseUtc;
+                if (i >= n || in.rooms[i].status == RoomDemand::Status::inactive || !in.rooms[i].temperature) {
+                    if (!latched) starts_[i] = {};
+                    if (i < n) arrival_.observe(i, *in.utc, std::nullopt, false, std::nullopt);
+                    continue;
+                }
                 const auto& r = in.rooms[i];
-                if (r.status == RoomDemand::Status::inactive || !r.temperature) continue;
-                const auto s = WarmupPlanner::optimumStart(learner, i, plan.rooms[i].schedule, *in.utc, r.temperature, in.outdoorCentiC);
-                if (s.reason[0] != 'p' || !s.startNow) continue;
-                const bool learned = s.applicable(); // warm-up and cooling learned: else advice only
-                if (start_.room < 0 || (learned && !start_.learned) || (learned == start_.learned && s.flowC > start_.flowC))
-                    start_ = {int8_t(i), s.flowC, learned, s.rise.toCentiC, s.startUtc, s.rise.atUtc};
+                const auto s = WarmupPlanner::optimumStart(learner, i, plan.rooms[i].schedule, *in.utc, r.temperature, in.outdoorCentiC, arrival_.lead(i));
+                std::optional<ArrivalLearner::Rise> rise;
+                if (s.reason[0] == 'p') rise = ArrivalLearner::Rise{s.rise.atUtc, s.startUtc, s.rise.toCentiC};
+                arrival_.observe(i, *in.utc, rise, heating_[i], fresh(r) ? r.temperature : std::nullopt);
+                if (latched) continue;
+                starts_[i] = rise && s.startNow ? Start{int8_t(i), s.flowC, s.applicable(), s.estimate, s.rise.toCentiC, s.startUtc, s.rise.atUtc} : Start{};
             }
-            copyId(startId_, start_.room >= 0 ? plan.rooms[start_.room].id.c_str() : "");
         }
-        // Heat ahead of the rise while the room is below its coming target (0.1 degC to start).
-        bool wanted = false;
-        if (start_.room >= 0 && start_.room < int(plan.rooms.size())) {
-            const auto& r = in.rooms[start_.room];
-            wanted = r.usable && r.temperature && *r.temperature < start_.targetCentiC - (startHeating_ ? 0 : 10);
+        // Heat ahead of the rise while a room is below its coming target (0.1 degC to start).
+        bool wanted = false, arrived = false; uint8_t want = 0; int8_t primary = -1;
+        std::array<bool, RoomPlan::maxRooms> wants{};
+        for (size_t i = 0; i < n; ++i) {
+            const auto& st = starts_[i];
+            if (st.room < 0 || !fresh(in.rooms[i])) continue;
+            if (*in.rooms[i].temperature >= st.targetCentiC - (heating_[i] ? 0 : 10)) { arrived = arrived || heating_[i]; continue; }
+            wants[i] = wanted = true; want = std::max(want, st.flowC);
+            if (primary < 0 || (st.learned && !starts_[primary].learned) || (st.learned == starts_[primary].learned && st.flowC > starts_[primary].flowC)) primary = int8_t(i);
         }
+        start_ = primary >= 0 ? starts_[primary] : Start{};
+        copyId(startId_, start_.room >= 0 ? plan.rooms[start_.room].id.c_str() : "");
         const bool allowed = in.rule.reason == FlowDemand::Reason::idle || in.rule.reason == FlowDemand::Reason::satisfied || in.rule.heat;
-        startState_ = start_.room < 0 ? "none" : settings_.applyLearned && start_.learned ? "applied" : "advice";
-        const bool apply = settings_.applyLearned && allowed && ((wanted && start_.learned)
-            || (startHeating_ && in.now - startedAt_ < settings_.tuning.minOnS * 1000ull && in.rule.reason != FlowDemand::Reason::noDemand));
-        if (!apply) { startHeating_ = false; return; }
-        if (!startHeating_) { startHeating_ = true; startedAt_ = in.now; startFlowC_ = bound(start_.flowC); }
-        if (start_.room >= 0 && start_.learned) startFlowC_ = bound(start_.flowC);
+        const bool holdOn = startHeating_ && in.now - startedAt_ < settings_.tuning.minOnS * 1000ull && in.rule.reason != FlowDemand::Reason::noDemand;
+        // A start that ended because its room arrived rests the burner's minimum off before a dip
+        // starts it again; the rule's own rests (holdOff) and a stale reading end nothing. A burner
+        // the rule keeps on anyway needs no rest for a higher flow.
+        const bool rested = !startEnded_ || in.now - endedAt_ >= settings_.tuning.minOffS * 1000ull;
+        startState_ = start_.room < 0 ? "none" : settings_.applyLearned ? "applied" : "advice";
+        const bool apply = settings_.applyLearned && allowed && ((wanted && (rested || in.rule.heat)) || holdOn);
+        if (!apply) {
+            if (startHeating_ && arrived && !wanted) { startEnded_ = true; endedAt_ = in.now; }
+            startHeating_ = false; heating_ = {};
+            return;
+        }
+        if (!startHeating_) { startHeating_ = true; startedAt_ = in.now; startFlowC_ = bound(want ? want : startFlowC_); }
+        if (want) startFlowC_ = bound(want);
+        heating_ = wants;
         if (!applied_.heat) { applied_ = {true, startFlowC_, FlowDemand::Reason::heating}; source_ = Source::optimumStart; }
         else if (startFlowC_ > applied_.flowC) { applied_.flowC = startFlowC_; source_ = Source::optimumStart; }
     }
@@ -537,7 +572,9 @@ private:
         if (start_.room >= 0) cJSON_AddNumberToObject(start, "start_utc", double(start_.startUtc)); else cJSON_AddNullToObject(start, "start_utc");
         FlowLearner::number(start, "flow_c", start_.room >= 0 ? std::optional<float>(start_.flowC) : std::nullopt, 1);
         cJSON_AddStringToObject(start, "confidence", start_.room < 0 ? "none" : start_.learned ? "learned" : "default");
+        cJSON_AddBoolToObject(start, "estimate", start_.room >= 0 && start_.estimate); // rc.4: applied as an estimate (L3)
         cJSON_AddBoolToObject(start, "heating", startHeating_);
+        cJSON_AddNumberToObject(start, "rooms", double(std::count(heating_.begin(), heating_.end(), true)));
         if (!FlowCompare::dayJson(flow, "today", compare_.today())) return false;
         if (compare_.yesterday()) return FlowCompare::dayJson(flow, "yesterday", *compare_.yesterday());
         return cJSON_AddNullToObject(flow, "yesterday") != nullptr;
@@ -545,7 +582,7 @@ private:
     // Plan room ids ([a-z0-9_]{1,32}) kept by value: the plan may change between steps.
     static void copyId(char (&to)[33], const char* from) { std::snprintf(to, sizeof to, "%s", from); }
     static void id(cJSON* o, const char* value) { if (*value) cJSON_AddStringToObject(o, "room", value); else cJSON_AddNullToObject(o, "room"); }
-    struct Start { int8_t room = -1; uint8_t flowC = 0; bool learned = false; int16_t targetCentiC = 0; int64_t startUtc = 0, riseUtc = 0; };
+    struct Start { int8_t room = -1; uint8_t flowC = 0; bool learned = false, estimate = false; int16_t targetCentiC = 0; int64_t startUtc = 0, riseUtc = 0; };
     FlowSettings settings_;
     FlowDemand::Request rule_{}, applied_{};
     Source source_ = Source::rule;
@@ -553,14 +590,17 @@ private:
     std::optional<int16_t> curveBase_;
     uint8_t cap_ = FlowDemand::ceilingC, designFlowC_ = WeatherCurve::floorDesignFlowC, startFlowC_ = 0;
     float slope_ = 0;
-    bool slopeLearned_ = false, startHeating_ = false;
+    bool slopeLearned_ = false, startHeating_ = false, startEnded_ = false;
     int8_t lead_ = -1;
     char leadId_[33] = "", startId_[33] = "";
     const char* learnedReason_ = "no_room";
     const char* startState_ = "no_clock";
-    Start start_;
+    Start start_;                                      // the primary start (telemetry)
+    std::array<Start, RoomPlan::maxRooms> starts_{};   // rc.4: this minute's planned start per room
+    std::array<bool, RoomPlan::maxRooms> heating_{};   // rc.4: the rooms the applied start serves
     int64_t startMinute_ = -1;
-    uint64_t startedAt_ = 0;
+    uint64_t startedAt_ = 0, endedAt_ = 0;
+    ArrivalLearner arrival_;                           // rc.4 (L2), kept by LearnedState
     CurveLearner curveLearner_;
     FlowCompare compare_;
     NightLedger nights_;

@@ -5,6 +5,7 @@
 #include "IndexedReleaseCatalog.h"
 #include "VerifiedOta.h"
 #include "RestartTimer.h"
+#include "RollbackSequence.h"
 #include "DownloadTextBuffer.h"
 #include "DownloadFailure.h"
 #include "TlsAllocationPolicy.h"
@@ -95,6 +96,15 @@ bool pendingBoot() {esp_ota_img_states_t s;return esp_ota_get_state_partition(es
 const esp_partition_t *previous() {
     const auto p=esp_ota_get_next_update_partition(nullptr);esp_ota_img_states_t s;
     return p&&esp_ota_get_state_partition(p,&s)==ESP_OK&&s==ESP_OTA_IMG_VALID?p:nullptr;
+}
+// The previous firmware's version when its image is still there (R2-04): otadata may still call a
+// slot valid that a failed or aborted update has partly erased; its app description then does not
+// read back (no magic word) or has no version.
+bool previousVersion(const esp_partition_t *p,std::string &version) {
+    esp_app_desc_t desc{};
+    if(!p||esp_ota_get_partition_description(p,&desc)!=ESP_OK){version.clear();return false;}
+    version.assign(desc.version,strnlen(desc.version,sizeof(desc.version)));
+    return !version.empty();
 }
 bool ready() {return !wifiAPMode&&networkConnected()&&std::time(nullptr)>1700000000&&std::time(nullptr)<2082758400;}
 class Sink:public Stream {
@@ -286,12 +296,18 @@ bool requestRollback(){
     if(busy()||pendingBoot())return false;const auto p=previous();if(!p)return false;
     // The previous firmware (beta.22, rc.1) reads no learned or tuning record and keeps a
     // full 4 KB control replacement free for its plan and Bluetooth saves: the optional
-    // records stop and make that room first (NvsOptionalRecords.h).
+    // records stop and make that room (NvsOptionalRecords.h), but only once its image read
+    // back and the bootloader accepted it (RollbackSequence.h, R2-04).
+    struct Backend {
+        const esp_partition_t *p;bool room=false;
+        bool describe(std::string &version){return previousVersion(p,version);}
+        bool select(){return esp_ota_set_boot_partition(p)==ESP_OK;}
+        void prepareNvs(){room=heating::prepareNvsForPreviousFirmware();}
+    } backend{p};
     const auto evicted=heating::optionalRecordEvictions().load();
-    const bool room=heating::prepareNvsForPreviousFirmware();
-    if(esp_ota_set_boot_partition(p)!=ESP_OK){heating::optionalRecordsFrozen().store(false);return false;}
+    if(!runRollback(backend))return false;
     Serial.printf("Rollback: %u optional NVS record(s) erased for the previous firmware%s\n",
-        unsigned(heating::optionalRecordEvictions().load()-evicted),room?"":"; still short of its plan-save margin");
+        unsigned(heating::optionalRecordEvictions().load()-evicted),backend.room?"":"; still short of its plan-save margin");
     {std::lock_guard<std::mutex> lock(stateMutex);state.operation="rollback";state.downloadError={};}
     phase("rolling_back");rebootTimer.schedule(millis(),1000);return true;
 }
@@ -329,7 +345,13 @@ std::string status() {
     }
     cJSON_AddStringToObject(root.get(),"selected",snapshot.selected.c_str());cJSON_AddBoolToObject(root.get(),"busy",busy());
     cJSON_AddBoolToObject(root.get(),"can_check",ready()&&!busy()&&!snapshot.reboot&&!pendingBoot());cJSON_AddBoolToObject(root.get(),"boot_pending",pendingBoot());
-    cJSON_AddBoolToObject(root.get(),"reboot_required",snapshot.reboot);cJSON_AddBoolToObject(root.get(),"rollback_available",!pendingBoot()&&previous()!=nullptr);
+    cJSON_AddBoolToObject(root.get(),"reboot_required",snapshot.reboot);
+    // Offered only when it can succeed: the previous image reads back (R2-04); its version for the page.
+    std::string rollbackVersion;
+    const bool rollback=!pendingBoot()&&previousVersion(previous(),rollbackVersion);
+    cJSON_AddBoolToObject(root.get(),"rollback_available",rollback);
+    if(rollback)cJSON_AddStringToObject(root.get(),"rollback_version",rollbackVersion.c_str());
+    else cJSON_AddNullToObject(root.get(),"rollback_version");
     cJSON_AddBoolToObject(root.get(),"reboot_scheduled",rebootTimer.pending()||controlledRestart.pending());
     cJSON_AddNumberToObject(root.get(),"received",snapshot.received);cJSON_AddNumberToObject(root.get(),"total",snapshot.total);
     cJSON_AddNumberToObject(root.get(),"reset_reason",int(esp_reset_reason()));

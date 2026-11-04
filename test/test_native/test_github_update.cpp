@@ -1,6 +1,7 @@
 #include "update/VerifiedOta.h"
 #include "update/ReleaseCatalog.h"
 #include "update/RestartTimer.h"
+#include "update/RollbackSequence.h"
 #include "control/HttpAccessPolicy.h"
 #include "control/CaptivePortalPolicy.h"
 #include <gtest/gtest.h>
@@ -63,6 +64,30 @@ TEST(GitHubOtaRestart, SetupRestartWaitsForTheBoilerReleaseLikeTheOtherRestarts)
     BoilerReleaseHold hold; uint32_t now = 5000; int loops = 0;
     while (setupRestartHeld(true, [] { return false; }, [] { return false; }, [&] { return hold.ready(now, false); })) { now += 1000; ++loops; }
     EXPECT_EQ(loops, 90);
+}
+// Review R2-04: "restore previous firmware" erased the learned and tuning records before the
+// previous image was checked. After a failed or aborted update otadata can still call that slot
+// valid while its image is gone: nothing may be erased unless it reads back and is selected.
+TEST(GitHubOtaRollback, NothingIsErasedUnlessThePreviousImageReadsBackAndIsSelected) {
+    struct Backend {
+        bool described = true, selectable = true; std::string version = "v1.0.0-e32v2-rc.3";
+        std::vector<std::string> steps;
+        bool describe(std::string &v) { steps.push_back("describe"); v = described ? version : ""; return described; }
+        bool select() { steps.push_back("select"); return selectable; }
+        void prepareNvs() { steps.push_back("erase"); }
+    };
+    Backend ok;
+    EXPECT_TRUE(runRollback(ok));
+    EXPECT_EQ(ok.steps, (std::vector<std::string>{"describe", "select", "erase"}));
+    Backend gone; gone.described = false; // no app description (magic word): a partly erased slot
+    EXPECT_FALSE(runRollback(gone));
+    EXPECT_EQ(gone.steps, std::vector<std::string>{"describe"});
+    Backend unnamed; unnamed.version.clear();
+    EXPECT_FALSE(runRollback(unnamed));
+    EXPECT_EQ(unnamed.steps, std::vector<std::string>{"describe"});
+    Backend refused; refused.selectable = false; // the bootloader's image check fails
+    EXPECT_FALSE(runRollback(refused));
+    EXPECT_EQ(refused.steps, (std::vector<std::string>{"describe", "select"}));
 }
 namespace {
 Manifest manifest(){return {"v0.1.0-e32v2-alpha.2",std::string(40,'a'),std::string(64,'b'),std::string(64,'c'),1024};}

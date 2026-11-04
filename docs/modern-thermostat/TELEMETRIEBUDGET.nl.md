@@ -65,6 +65,7 @@ dat duurt soms langer dan de 300 ms die een bericht mag kosten → verbreken.
 | `fw/telemetry/learned/<id>` | wat per ruimte geleerd is, advies | elke 15 min of bij nieuw resultaat | ja |
 | `fw/telemetry/summary` | dagtotalen, tapwater vandaag, schaduwvergelijking | elke 5 min | ja |
 | `fw/telemetry/scoreboard` | scorebord van gisteren en vandaag (rc.4): per ruimte op tijd warm en te warm, starts per uur verwarmen, kort pendelen, gas voor verwarmen, graaddagen; vandaag zonder ruimtes | elke 5 min, tot 1,0 KB | ja |
+| `fw/telemetry/insight` | wat de E32 weet (rc.5): kennis in % met wat nog ontbreekt, het huismodel, de reactie van de ketel en de inzichten van gisteren; het vijfde deel van de samenvatting, naast `summary`, `flow`, `tuning` en `scoreboard` | elke 5 min, tot 0,7 KB (ergste geval 687 B, gewoonlijk ca. 360 B) | ja |
 | `fw/config/plan` + `fw/config/entities` | ruimteplan, lijst entiteiten (nu `ha_entities` in elk statusbericht) | alleen bij wijziging en bij verbinden | ja |
 | `fw/telemetry/ems_metrics` | ontvangststatistiek | elke 5 min | nee |
 | `fw/availability` | online / offline (LWT) | bij verbinden / verbreken | ja |

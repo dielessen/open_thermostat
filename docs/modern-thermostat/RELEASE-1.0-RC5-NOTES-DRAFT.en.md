@@ -56,6 +56,12 @@ notes).
 
 ## Fixed
 
+- Boiler settings the boiler reports only when asked (its heating temperature,
+  burner and pump settings, hot-water settings) stay on the pages with the
+  time of the last reading, instead of disappearing ten minutes after a read.
+- When Home Assistant's room values stop arriving, the E32 now says why it
+  refused the last input, subscribes again after a quarter of silence, and
+  the Home chip names the state instead of "last connected".
 - Publishing a release: the publish step now waits for GitHub to list a
   release or a file it has just created, the likely reason the first attempt
   failed for rc.3 and rc.4 and needed a re-run, and its log names every step.

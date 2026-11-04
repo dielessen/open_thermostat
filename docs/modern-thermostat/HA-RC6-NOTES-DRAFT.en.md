@@ -62,10 +62,21 @@ and `custom:openthermostat-heating-curve`.
 
 ## Fixed
 
-- The integration itself has no fixes in this release. The step that publishes
-  the releases now waits for GitHub to list a release or a file it has just
-  created, the likely reason its first attempt failed for rc.4 and needed a
-  re-run.
+- **Room values stopped reaching the E32 about four hours after every Home
+  Assistant start** (1.0.0rc5): a five-minute refresh ran on the wrong thread
+  and silently used up the send queue, so the E32 fell back to its own
+  setpoints until Home Assistant restarted. Fixed, with a watch: when the E32
+  accepts nothing for 15 minutes while Home Assistant sends, you get a repair
+  with advice and the values are sent again.
+- A new installation no longer reports a "restored room group" or duplicate
+  entity IDs.
+- Boiler settings the boiler reports only when asked (its heating temperature,
+  burner and pump settings, hot-water settings) stay visible with the time of
+  the last reading instead of going unknown after ten minutes.
+- The holiday line no longer shows an empty card; codes and counts show as
+  whole numbers; the dashboard tabs show their names.
+- The step that publishes the releases now waits for GitHub to list what it
+  has just created, the likely reason rc.4's first attempt needed a re-run.
 
 ## Updating
 

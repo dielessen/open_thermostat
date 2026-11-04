@@ -1,6 +1,8 @@
 """The Overview's house card (E32 rc.5, frontend/house-card.js): where it sits, what it reads, the one-room rule.
 
-The card heads the House section and reads only Home Assistant: the heat request, what the boiler does, the boiler's
+The card stands alone on top of the Overview, without a heading (the owner's sketch, P18: the House section with the
+house mode is further down, test_dashboard_overview_sketch.py), and reads only Home Assistant: the heat request, what
+the boiler does, the boiler's
 heating and hot-water bits, the water temperature to heating, today's taps, the gas sensors, today's burner starts,
 the house mode and the heating problem; a key is in its config only when its entity is in the registry. It takes the
 place of the rooms-that-want-heat card and the problem tile with its reasons, which stay only for a house card that
@@ -83,22 +85,29 @@ def section(config, number):
     return overview(config)["sections"][number]["cards"]
 
 
+def card(config):
+    """The house card: alone in the Overview's first section, without a heading (rc.5, the owner's sketch)."""
+    cards = section(config, 0)
+    assert len(cards) == 1 and cards[0]["type"] == HOUSE_CARD_TYPE
+    return cards[0]
+
+
 @pytest.mark.asyncio
 async def test_the_house_card_heads_the_overview_and_reads_every_entity_it_needs(hass):
     config, rooms, hub, fields, board, _ = house(hass)
-    cards = section(config, 0)
-    # Phone order: the house card, the house mode (with its options) and the holiday line; nothing else in House.
-    assert [card["type"] for card in cards] == ["heading", HOUSE_CARD_TYPE, "tile", "markdown"]
-    assert cards[0] == {"type": "heading", "heading": "House", "heading_style": "title", "icon": "mdi:home-thermometer"}
-    assert cards[1] == {
+    # The house card alone across the top, without a heading (rc.5, the owner's sketch: P18); the house mode and the
+    # holiday line are in the House section further down (test_dashboard_overview_sketch.py).
+    assert card(config) == {
         "type": HOUSE_CARD_TYPE, "grid_options": {"columns": 12}, "request": hub["heat_request"],
         "activity": hub["boiler_activity"], "heating": fields["heating_active"],
         "flow": fields["measured_flow_temperature"], "hot_water": fields["dhw_active"], "taps": hub["dhw_taps_today"],
         "gas": [hub["heating_gas"], hub["hot_water_gas"]], "starts": hub["daily_burner_starts"],
         "mode": hub["house_mode"], "problem": hub["heating_problem"]}
-    assert "visibility" not in cards[1]  # always there: it says itself when the E32 has not reported yet
-    assert cards[2]["entity"] == hub["house_mode"] and cards[2]["features"] == [{"type": "select-options"}]
-    assert cards[3]["show_empty"] is False and hub["house_mode"] in cards[3]["content"]
+    assert "visibility" not in card(config)  # always there: it says itself when the E32 has not reported yet
+    assert overview(config)["sections"][0]["column_span"] == 3 and "visibility" not in overview(config)["sections"][0]
+    house_section = overview(config)["sections"][-1]["cards"]
+    assert house_section[0]["heading"] == "House" and house_section[2]["show_empty"] is False
+    assert hub["house_mode"] in house_section[2]["content"]
     # What it absorbs is gone: the rooms that want heat, the problem tile and its reasons.
     text = json.dumps(overview(config))
     assert "set wanting" not in text and "'reasons'" not in text and "/config/repairs" not in text
@@ -106,7 +115,8 @@ async def test_the_house_card_heads_the_overview_and_reads_every_entity_it_needs
     # Both rooms are switched on: the card shows no room and the Rooms section keeps both status cards.
     rooms_section = section(config, 1)
     assert rooms_section[0]["heading"] == "Rooms"
-    assert rooms_section[1:] == [{"type": ROOM_STATUS_CARD_TYPE, "entity": rooms[key]["reason"], "name": name}
+    assert rooms_section[1:] == [{"type": ROOM_STATUS_CARD_TYPE, "entity": rooms[key]["reason"], "name": name,
+                                  "mode": hub["house_mode"]}
                                  for key, name in (("woonkamer", "Woonkamer"), ("badkamer", "Badkamer"))]
     # The card is the only one of its kind, on the Overview only.
     assert [card["type"] for view in config["views"] for card in view_cards(view)].count(HOUSE_CARD_TYPE) == 1
@@ -129,10 +139,8 @@ async def test_the_card_reads_only_what_the_registry_has(hass, case):
     else:
         extra, missing = {"remove": ("heat_request",)}, {"request"}
     config, rooms, hub, fields, board, _ = house(hass, hub_keys=hub_keys, **extra)
-    card = section(config, 0)[1]
-    assert card["type"] == HOUSE_CARD_TYPE
     keys = {"request", "activity", "heating", "flow", "hot_water", "taps", "gas", "starts", "mode", "problem"}
-    assert set(card) - {"type", "grid_options"} == keys - missing
+    assert set(card(config)) - {"type", "grid_options"} == keys - missing
 
 
 @pytest.mark.asyncio
@@ -141,7 +149,7 @@ async def test_gas_today_is_heating_and_hot_water_only(hass):
     hub_keys = (*(item for item in HUB if item[1] != "hot_water_gas"), ("sensor", "tapping_gas"),
                 ("sensor", "keep_warm_gas"))
     config, rooms, hub, fields, board, _ = house(hass, hub_keys=hub_keys)
-    assert section(config, 0)[1]["gas"] == [hub["heating_gas"]]
+    assert card(config)["gas"] == [hub["heating_gas"]]
 
 
 @pytest.mark.asyncio
@@ -153,11 +161,12 @@ async def test_without_request_and_activity_no_card_and_the_cards_it_replaces_st
     cards = section(config, 0)
     assert HOUSE_CARD_TYPE not in json.dumps(config)
     on = [{"condition": "state", "entity": hub["heating_problem"], "state": "on"}]
-    assert [card["type"] for card in cards] == ["heading", "tile", "markdown", "tile", "markdown"]
-    assert cards[3] == {"type": "tile", "entity": hub["heating_problem"], "name": "Heating", "visibility": on,
+    # In the house card's place on top (rc.5, P18), without a heading, while there is a problem.
+    assert [card["type"] for card in cards] == ["tile", "markdown"]
+    assert cards[0] == {"type": "tile", "entity": hub["heating_problem"], "name": "Heating", "visibility": on,
                         "state_content": ["reason"], "grid_options": {"columns": 12},
                         "tap_action": {"action": "navigate", "navigation_path": "/config/repairs"}}
-    assert cards[4]["visibility"] == on and "'reasons'" in cards[4]["content"]
+    assert cards[1]["visibility"] == on and "'reasons'" in cards[1]["content"]
     # And no room moves: there is no card to hold it, so one room switched on keeps its own card.
     hass.data["open_thermostat"][board.entry_id]["heating_hub"].update(reported({"badkamer": "inactive"}))
     rooms_section = section(board._dashboard_config(), 1)
@@ -169,11 +178,11 @@ async def test_one_room_switched_on_sits_in_the_house_card_and_the_others_follow
     """The owner's house: the living room is on, the bathroom off. The living room is in the card (its Reason
     sensor: now against target and why); the bathroom's status card under "Other rooms"."""
     config, rooms, hub, fields, board, _ = house(hass, states={"badkamer": "inactive"})
-    card = section(config, 0)[1]
-    assert card["rooms"] == [{"entity": rooms["woonkamer"]["reason"], "name": "Woonkamer"}]
+    assert card(config)["rooms"] == [{"entity": rooms["woonkamer"]["reason"], "name": "Woonkamer"}]
     others = section(config, 1)
     assert others == [{"type": "heading", "heading": "Other rooms", "heading_style": "title", "icon": "mdi:thermostat"},
-                      {"type": ROOM_STATUS_CARD_TYPE, "entity": rooms["badkamer"]["reason"], "name": "Badkamer"}]
+                      {"type": ROOM_STATUS_CARD_TYPE, "entity": rooms["badkamer"]["reason"], "name": "Badkamer",
+                       "mode": hub["house_mode"]}]
     # Nothing twice: the living room's Reason sensor is on the Overview once.
     assert json.dumps(overview(config)).count(rooms["woonkamer"]["reason"]) == 1
     # The Rooms view still has every room in full.
@@ -188,8 +197,8 @@ async def test_a_one_room_house_has_no_rooms_section_on_the_overview(hass):
     config, rooms, hub, fields, board, heating = house(hass)
     heating.update(reported({}, rooms=("woonkamer",)))  # the E32 reports only the living room
     config = board._dashboard_config()
-    assert [s["cards"][0]["heading"] for s in overview(config)["sections"]] == ["House"]
-    assert section(config, 0)[1]["rooms"] == [{"entity": rooms["woonkamer"]["reason"], "name": "Woonkamer"}]
+    assert [s["cards"][0].get("heading") for s in overview(config)["sections"]] == [None, "House"]
+    assert card(config)["rooms"] == [{"entity": rooms["woonkamer"]["reason"], "name": "Woonkamer"}]
 
 
 @pytest.mark.asyncio
@@ -200,7 +209,7 @@ async def test_a_one_room_house_has_no_rooms_section_on_the_overview(hass):
 ])
 async def test_otherwise_every_room_keeps_its_own_card(hass, states, reasons):
     config, rooms, hub, fields, board, _ = house(hass, states=states, reasons=reasons)
-    assert "rooms" not in section(config, 0)[1]
+    assert "rooms" not in card(config)
     cards = section(config, 1)
     assert cards[0]["heading"] == "Rooms" and len(cards) == 3
     # A room without its Reason sensor (an older integration's registry) keeps its temperature tile.
@@ -224,11 +233,11 @@ async def test_switching_a_room_on_or_off_rebuilds_the_overview(hass):
     board._watch_hub()
     heating.update(reported({}))
     await hass.async_block_till_done()
-    assert len(saved) == 1 and "rooms" not in section(saved[-1], 0)[1]
+    assert len(saved) == 1 and "rooms" not in card(saved[-1])
     heating.update(reported({"badkamer": "inactive"}))
     await hass.async_block_till_done()
     assert len(saved) == 2
-    assert section(saved[-1], 0)[1]["rooms"] == [{"entity": rooms["woonkamer"]["reason"], "name": "Woonkamer"}]
+    assert card(saved[-1])["rooms"] == [{"entity": rooms["woonkamer"]["reason"], "name": "Woonkamer"}]
     reading = reported({"badkamer": "inactive"})
     reading["rooms"][0]["temperature"] = 20.6
     heating.update(reading)

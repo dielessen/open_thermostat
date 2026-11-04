@@ -17,6 +17,7 @@ import pytest
 
 from custom_components.open_thermostat.dashboard import RoomDashboard
 from custom_components.open_thermostat.heating_link import BOILER_ACTIVITIES
+from custom_components.open_thermostat.room_overview import HOUSE_CARD_TYPE
 from test_dashboard_heating import installation, walk
 from test_dashboard_redesign import UNKNOWN, shown
 from test_dashboard_tidy import live
@@ -151,10 +152,11 @@ async def test_no_heading_stands_over_nothing_in_any_state(hass, language):
             heading = section["cards"][0]
             if not shown(section.get("visibility", []), states) or not shown(heading.get("visibility", []), states):
                 continue
-            content = [card for card in section["cards"][1:] if card["type"] != "heading"
-                       and not (card["type"] == "markdown" and card.get("show_empty") is False)
+            # (The house card stands alone on top of the Overview, without a heading: then every card counts.)
+            content = [card for card in section["cards"][1 if heading["type"] == "heading" else 0:]
+                       if card["type"] != "heading" and not (card["type"] == "markdown" and card.get("show_empty") is False)
                        and shown(card.get("visibility", []), states)]
-            assert content, (path, heading["heading"], {e: s for e, s in states.items() if s not in UNKNOWN})
+            assert content, (path, heading.get("heading"), {e: s for e, s in states.items() if s not in UNKNOWN})
 
 
 @pytest.mark.asyncio
@@ -163,9 +165,14 @@ async def test_every_section_starts_with_its_heading_and_every_view_is_sections(
     for view in config["views"]:
         if view.get("panel"):
             continue
-        assert view["type"] == "sections" and view["max_columns"] <= 2, view["path"]
-        for section in view["sections"]:
+        # The Overview has three columns (rc.5, the owner's sketch: Rooms, Today and House side by side), the others two.
+        assert view["type"] == "sections" and view["max_columns"] == (3 if view["path"] == "heating" else 2), view["path"]
+        for number, section in enumerate(view["sections"]):
+            if view["path"] == "heating" and number == 0:  # the house card alone on top: it says what it is
+                assert [card["type"] for card in section["cards"]] == [HOUSE_CARD_TYPE] and section["column_span"] == 3
+                continue
             assert section["cards"][0]["type"] == "heading", (view["path"], section["cards"][0])
+            assert "column_span" not in section, (view["path"], section["cards"][0])
     # The order the owner asked for: overview, rooms, week program, boiler, learning, diagnostics.
     assert [v["path"] for v in config["views"]] == ["heating", "rooms", "boiler", "learned", "diagnostics", "comparison"]
 

@@ -299,12 +299,14 @@ async def test_the_owners_boiler_shows_no_card_that_can_only_say_unknown(hass):
         for section in view_config.get("sections", []):
             if not shown(section.get("visibility", []), states):
                 continue
-            cards = [card for card in section["cards"][1:] if shown(card.get("visibility", []), states)]
-            assert cards, (view_config["path"], section["cards"][0]["heading"])
+            # (The house card stands alone on top of the Overview, without a heading.)
+            titled = section["cards"][0]["type"] == "heading"
+            cards = [card for card in section["cards"][1 if titled else 0:] if shown(card.get("visibility", []), states)]
+            assert cards, (view_config["path"], section["cards"][0].get("heading"))
             for card in cards:
                 refs = references(card, ids)
                 assert not refs or any(states[entity_id] not in UNKNOWN for entity_id in refs), (
-                    view_config["path"], section["cards"][0]["heading"], card)
+                    view_config["path"], section["cards"][0].get("heading"), card)
                 on_screen += 1
     assert on_screen > 40
     # The silent values are nowhere on the Boiler view, and the counters say in one line why they are empty.

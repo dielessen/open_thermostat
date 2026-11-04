@@ -36,7 +36,7 @@ background:var(--secondary-background-color);background:color-mix(in srgb,var(--
 .name{font-size:16px;font-weight:500;line-height:1.3;overflow-wrap:anywhere}
 .why,.missing{margin-top:2px;font-size:13px;line-height:1.35;color:var(--secondary-text-color);overflow-wrap:anywhere}
 .now{flex:none;font-size:26px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
-.now small{font-size:14px;font-weight:400;color:var(--secondary-text-color);margin-left:1px;vertical-align:top}
+.now small{font-size:14px;font-weight:400;color:var(--secondary-text-color);margin-left:1px}
 .now.none{color:var(--secondary-text-color);font-weight:400}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .chip{display:inline-flex;align-items:center;gap:4px;border-radius:16px;padding:4px 10px;font-size:12px;font-weight:500;line-height:16px;
@@ -48,6 +48,8 @@ ${Object.keys({heat: 0, warn: 0, error: 0, info: 0, away: 0, ok: 0, off: 0}).map
 @media(max-width:380px){ha-card{padding:12px}.now{font-size:24px}}`;
 
 const locale = hass => hass?.locale?.language || hass?.language || 'en';
+// A figure and its unit stay together on a narrow card ("21,2 °C" never breaks before the unit).
+const together = text => text.replace(/ (°C|%)/g, ' $1');
 const zone = hass => hass?.locale?.time_zone === 'server' ? hass?.config?.time_zone : undefined;
 // The viewer's 12/24-hour choice in Home Assistant (profile → time format); else the language's.
 const hour12 = hass => ({'12': true, '24': false})[hass?.locale?.time_format];
@@ -90,7 +92,7 @@ class OpenThermostatRoomStatus extends HTMLElement {
   const values = {contact: typeof v.contact === 'string' ? v.contact : '', since: moment(hass, v.since), time: moment(hass, v.time), until: moment(hass, v.until),
    temperature: degrees(hass, v.temperature, true) ?? '–', target: degrees(hass, v.target) ?? '–'};
   const line = typeof a.line === 'string' ? this._text('line.state.' + a.line, values) : '';
-  if (line) return line;
+  if (line) return together(line);
   try { return this._hass?.formatEntityState?.(st) || st.state; } catch (e) { return st.state; }
  }
  // The house in one word: the house mode when it names the house (at home, away, holiday), else who is home.
@@ -156,7 +158,7 @@ class OpenThermostatRoomStatus extends HTMLElement {
    chip('house', house, presence ? {title: presence, 'data-presence': a.presence} : {});
   }
   if (typeof a.valve_position === 'number' && Number.isFinite(a.valve_position)) {
-   const valves = chip('valves' + (a.valve_problem ? ' problem' : ''), label('valve_position') + ': ' + Math.round(a.valve_position) + ' %', {'data-valves': ''});
+   const valves = chip('valves' + (a.valve_problem ? ' problem' : ''), together(label('valve_position') + ': ' + Math.round(a.valve_position) + ' %'), {'data-valves': ''});
    valves.prepend(icon(a.valve_problem ? 'mdi:valve-closed' : 'mdi:valve'));
   }
   card.append(chips);

@@ -191,19 +191,35 @@ def test_every_reason_and_sentence_has_its_words_with_the_same_values(name):
         assert placeholders(attributes["line"]["state"][line]) == sorted(values), (name, line)
     assert set(attributes["presence"]["state"]) == set(PRESENCE) and set(attributes["window"]["state"]) == {"open", "pending"}
     assert all(attributes[key]["name"] for key in ("temperature", "setpoint", "valve_position"))
+    # rc.5 (the owner's sketch): each reason in one word for the card's chip, and the card's other chips.
+    assert set(attributes["chip"]["state"]) == set(REASONS), name
+    assert set(attributes["card"]["state"]) == {"smart_on", "home", "away", "holiday"}, name
+    assert all(text.strip() and "{" not in text for part in ("chip", "card") for text in attributes[part]["state"].values())
     # The words the owner asked for, in each language.
     english = {"strings.json", "translations/en.json"}
     heating = attributes["line"]["state"]["heating"]
     assert heating == ("Heating: {temperature} → {target} °C" if name in english else
                        "Verwarmt: {temperature} → {target} °C" if "nl" in name else "Grzeje: {temperature} → {target} °C")
+    chips = attributes["chip"]["state"]
+    assert (chips["heating"], chips["warm_enough"], chips["off"], attributes["card"]["state"]["smart_on"]) == (
+        ("Heating", "At temperature", "Off", "Smart warm-up on") if name in english else
+        ("Verwarmt", "Op temperatuur", "Uit", "Slim opwarmen aan") if "nl" in name else
+        ("Grzeje", "Temperatura osiągnięta", "Wyłączone", "Inteligentne nagrzewanie włączone"))
+
+
+def js_table(name):
+    """{key: text} of a ``const NAME = {key: 'text', ...};`` table in the card."""
+    return dict(re.findall(r"(\w+): '([^']*)'", re.search(r"const " + name + r" = \{(.*?)\};", CARD, re.S)[1]))
 
 
 def test_the_card_knows_every_reason_and_reads_the_integrations_words():
-    for table in ("TONE", "ICON"):
-        block = re.search(r"const " + table + r" = \{(.*?)\};", CARD, re.S)[1]
-        assert set(re.findall(r"(\w+): '", block)) == set(REASONS), table
+    assert set(js_table("TONE")) == set(REASONS)
+    # Its English last resorts are the integration's English words, key for key.
+    english = json.loads((COMPONENT / "strings.json").read_text(encoding="utf-8"))["entity"]["sensor"]["room_reason"]
+    assert js_table("CHIP") == english["state_attributes"]["chip"]["state"]
+    assert js_table("WORDS") == english["state_attributes"]["card"]["state"]
     assert "const KEY = 'component.open_thermostat.entity.sensor.room_reason.state_attributes.';" in CARD
-    assert set(re.findall(r"(\w+): 'mdi:", re.search(r"const PRESENCE = \{(.*?)\};", CARD, re.S)[1])) == set(PRESENCE)
+    assert set(js_table("PRESENCE")) == set(PRESENCE) and set(js_table("PRESENCE").values()) == {"home", "away"}
     # The same registry guard as the week card, and no innerHTML: names and contacts are text.
     assert CARD.count("customElements.define(") == 1 and "ensureDefined('openthermostat-room-status', OpenThermostatRoomStatus);" in CARD
     assert "setInterval(check, 500);" in CARD and "innerHTML" not in CARD

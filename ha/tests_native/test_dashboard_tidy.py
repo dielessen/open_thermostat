@@ -42,7 +42,8 @@ def live(hass, language="en"):
     for room_id in ("woonkamer", "badkamer"):
         device = devices.async_get_device_by_identifier(("open_thermostat", f"fixture_e32_room_{room_id}"), e.entry_id)
         for domain, key in (("climate", "thermostat"), ("sensor", "learning"), ("sensor", "flow_advice"),
-                            ("sensor", "heating_start"), ("sensor", "warm_on_time"), ("sensor", "overshoot")):
+                            ("sensor", "heating_start"), ("sensor", "warm_on_time"), ("sensor", "overshoot"),
+                            ("sensor", "reason")):
             rooms[room_id][key] = entities.async_get_or_create(
                 domain, "open_thermostat", f"fixture_e32_room_{room_id}_{key}", config_entry=e, device_id=device.id,
                 suggested_object_id=f"{room_id}_{key}").entity_id
@@ -50,6 +51,11 @@ def live(hass, language="en"):
     hub["heating_problem"] = entities.async_get_or_create(
         "binary_sensor", "open_thermostat", "fixture_hub_heating_problem", config_entry=e, device_id=product.id,
         suggested_object_id="heating_problem").entity_id
+    # The house mode (E32 beta.23) and the outdoor temperature set under Energy and outdoor temperature (rc.5: the
+    # Overview's House card, as in the owner's sketch).
+    hub["house_mode"] = entities.async_get_or_create("select", "open_thermostat", "fixture_house_mode", config_entry=e,
+                                                     device_id=product.id, suggested_object_id="house_mode").entity_id
+    hass.config_entries.async_update_entry(e, options={**e.options, "energy_outdoor_entity": "sensor.buitentemperatuur"})
     # Yesterday's scoreboard (E32 rc.4); what the E32 knows, the boiler's response and the learned overview (rc.5).
     for key in ("burner_starts_per_heating_hour", "short_cycling_hours", "heating_gas_yesterday", "gas_per_degree_day",
                 "knowledge", "boiler_response", "learned_overview", *HUB_SENSORS):
@@ -87,7 +93,7 @@ async def test_boiler_values_are_hidden_while_they_have_none_instead_of_showing_
             for row in card["entities"] if row.get("type") == "conditional"}
     for entity_id in values:
         assert rows[entity_id]["conditions"] == [known(entity_id)], entity_id
-    house = next(c for c in section(overview, "House") if c["type"] == HOUSE_CARD_TYPE)
+    house = next(c for c in view_cards(overview) if c["type"] == HOUSE_CARD_TYPE)
     assert house["flow"] == fields["measured_flow_temperature"]
     others = [c for c in view_cards(overview) if c["type"] != HOUSE_CARD_TYPE]
     assert not any(entity_id in json.dumps(others) for entity_id in values)
@@ -108,7 +114,7 @@ async def test_the_boiler_request_says_no_request_instead_of_zero_degrees(hass):
     from homeassistant.helpers.template import Template
     from custom_components.open_thermostat.dashboard import TEXT, _wanting_card
     config, rooms, sensors, hub, fields, flow = live(hass)
-    house = section(config["views"][0], "House")[1]
+    house = config["views"][0]["sections"][0]["cards"][0]  # alone on top of the Overview (rc.5, the owner's sketch)
     assert house["type"] == HOUSE_CARD_TYPE and house["request"] == hub["heat_request"]
     assert "visibility" not in house  # no card that comes and goes
     hass.states.async_set(hub["heat_request"], "0", {"rooms": []})
@@ -210,7 +216,10 @@ async def test_rows_in_entities_cards_are_named_by_the_entity_alone(hass):
     plain = [row["row"] if row.get("type") == "conditional" else row for row in rows]
     # The entity's own name (no device name in front) or a name this dashboard chose, written out.
     assert all(row.get("name", {"type": "entity"}) == {"type": "entity"} or isinstance(row["name"], str) for row in plain)
-    # (The boiler's maintenance message also hides while it says there is none.)
+    # (The boiler's maintenance message also hides while it says there is none; the House card's "Plan" row for the
+    # holidays shows with the house mode, rc.5.)
     hidden = {fields["maintenance_message"]: ["none"]}
-    assert all(row["conditions"] == [{**known(row["row"]["entity"]), "state_not": [
-        "unavailable", "unknown", *hidden.get(row["row"]["entity"], [])]}] for row in rows if row.get("type") == "conditional")
+    owner = lambda row: row["row"].get("entity") or hub["house_mode"]  # noqa: E731
+    assert all(row["conditions"] == [{**known(owner(row)), "state_not": [
+        "unavailable", "unknown", *hidden.get(owner(row), [])]}] for row in rows if row.get("type") == "conditional")
+    assert [row["row"]["type"] for row in rows if "entity" not in row.get("row", row)] == ["button"]

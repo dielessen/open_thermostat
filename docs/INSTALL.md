@@ -257,9 +257,10 @@ then asks you for it once (Settings → Devices & services).
 
 The E32 menu reads **Overview, Rooms, Home, Boiler** and **System**. System
 holds Network and Home Assistant, Password, Backup and restore, Bluetooth
-sensors, Firmware update, Diagnostics and system log, About and Restart device.
-In Dutch: Overzicht, Ruimtes, Huis, Ketel and Systeem. The language follows
-your browser; change it at the bottom of any page.
+sensors, Firmware update, Diagnostics and system log, About, Restart device
+and, once you are signed in, **Sign out**. In Dutch: Overzicht, Ruimtes, Huis,
+Ketel and Systeem (Sign out is Afmelden). The language follows your browser;
+change it at the bottom of any page.
 
 **System → Network and Home Assistant** opens a page titled **Settings**,
 with the sections Password, WiFi settings, Connection, Home Assistant, MQTT,
@@ -669,10 +670,24 @@ set on the boiler itself.
   everyone has been away for that time (15 minutes by default). A room can
   also have **persons of its own** (room form, section **Persons**): it goes
   to the away temperature when they are all away, also while others are home.
-- **Configure → House → House mode and holiday**: **Automatic**, **At home**,
-  **Away** or **Holiday**. For a holiday you also choose when it ends, and
-  **Stop holiday** ends it at once. The same control is on the E32 device, on
-  the dashboard and on the E32's **Home** page.
+- **Configure → House → House mode and holiday**: a small menu. **House
+  mode** sets **Automatic**, **At home**, **Away** or **Holiday** (for a
+  holiday that starts now you also choose when it ends); the same control is
+  on the E32 device, on the dashboard and on the E32's **Home** page. The other
+  items are the holiday planner, next.
+- **Holiday planner** (Configure → House → House mode and holiday → **Plan a
+  holiday**, **Change or remove a holiday** and **Temperature on holiday**; on
+  the E32: the **Home** page, block **Holidays**): plan up to 8 holidays ahead,
+  each with a start and an end (back home, at most a year ahead). A holiday
+  starts and ends by itself. During it every room stays at most **Temperature
+  on holiday** (5–25 °C; until you set one it is the away temperature; frost
+  protection stays on), the rooms warm up before the end, and afterwards the
+  house mode is as before. While a holiday runs, **Stop holiday** ends it at
+  once (Configure → House; on the E32 in the **Holidays** block). A holiday
+  needs the E32's clock. Home Assistant and the E32 page edit the same list,
+  and the **Overview** tab of the dashboard shows the next holiday. A holiday
+  set with **Holiday until** before rc.4 becomes a planned holiday with the
+  away temperature.
 - **Configure → House → Comfort defaults for rooms**: the Comfort and Night
   temperatures of a room without a week program, the pause after a window
   opens, and how long a manual change lasts in such a room.
@@ -681,6 +696,12 @@ set on the boiler itself.
   so a room is warm at the time in its week program. Weather compensation
   makes the water warmer when it is colder outside. The E32 learns both for
   your house.
+  *In the first days:* Smart warm-up starts early at once, as an **estimate**
+  (the pages say "starts at 07:40 (estimate; it learns from every morning)"),
+  and every morning it checks whether the room was warm on time. After a
+  morning more than 10 minutes late the next start is 10 % earlier; after one
+  more than 15 minutes early it is 8 % later. See
+  [Warm on time](USER-GUIDE.md#warm-on-time-smart-warm-up).
 - **Configure → Energy and outdoor temperature**: a gas meter, gas price,
   outdoor temperature and your boiler's power. All optional; they make the gas
   and cost estimates and the heating advice more accurate.
@@ -693,7 +714,8 @@ set on the boiler itself.
   tab. It shows which rooms want heat and the calculated boiler request, and a
   status card for each room with its temperature and target and, in one line,
   why the room heats or not. The **Rooms** tab has the 24-hour graph of each
-  room.
+  room. The E32's own **Overview** shows the same line on each room's card, in
+  the same words, also without Home Assistant.
 - Each room has its own group on the integration page, with a thermostat
   (climate entity).
 - The **Heating problem** sensor is off when all is well, and **Settings →
@@ -701,6 +723,12 @@ set on the boiler itself.
 - On the E32, the **Rooms** page shows the rooms read-only with "Managed in
   Home Assistant". **Edit here anyway** unlocks editing on the E32 for when
   Home Assistant is not reachable.
+- Once the E32 has measured a day, **Yesterday** shows how it went: heating
+  hours, burner starts per heating hour, short burner runs, gas for heating
+  (an estimate), degree-days and, per room, how many minutes late or early it
+  was warm and how far it overshot. In Home Assistant it is a section of the
+  **Learning and settings** tab (each figure is also a sensor); on the E32 it
+  is on the **Home** page, under **What the thermostat has learned**.
 
 **Without Home Assistant**, rooms are set up on the E32 **Rooms** page
 instead; see [Add your first room on the E32](USER-GUIDE.md#5-add-your-first-room-on-the-e32).
@@ -854,6 +882,25 @@ When a new release pair comes out, read its release notes first. They say
 which integration goes with which firmware. Usually: **update the integration
 first, then the firmware.**
 
+**From 1.0.0-rc.3 to 1.0.0-rc.4** (Home Assistant integration 1.0.0rc5), while
+someone is home:
+
+1. Update OpenThermostat in HACS to **1.0.0rc5** and restart Home Assistant
+   ([13.2](#132-update-the-integration)). HACS offers it only while the
+   **Pre-release** switch is on ([9.1](#91-with-hacs-recommended)).
+2. Install E32 1.0.0-rc.4 from the **Firmware** update entity
+   ([13.3](#133-update-the-e32-firmware-from-home-assistant-recommended)).
+3. Confirm the takeover again. A firmware update clears it, and until you
+   confirm, the E32 keeps only frost protection. In Home Assistant choose
+   **Fix** on the repair **Confirm again that the E32 may control the boiler**
+   (Settings → System → Repairs), or use the **Rooms** page on the E32.
+
+Settings, rooms, programs, sensors, valves and what the E32 learned are kept,
+and so are entity IDs and history in Home Assistant. From the first morning
+after the update Smart warm-up starts heating early (see
+[Warm on time](USER-GUIDE.md#warm-on-time-smart-warm-up)). The **Yesterday**
+sensors appear once the E32 has measured a day.
+
 ### 13.2 Update the integration
 
 **With HACS:** **Settings → Updates** shows the new OpenThermostat version.
@@ -902,7 +949,8 @@ the E32 goes back to the previous version by itself.
 
 Make a backup once your setup works, and again after big changes. It saves
 your network and time settings, MQTT and the Home Assistant link, rooms and
-week programs, Bluetooth sensors, flow settings, boiler model and language.
+week programs, planned holidays, Bluetooth sensors, flow settings, boiler model
+and language.
 
 ### 14.1 Make a backup
 
@@ -1183,10 +1231,9 @@ keeps the room measured when one drops out.
 **Settings → System → Repairs** shows **Heating needs attention** and the
 **Heating problem** sensor is on. The message says what is wrong, for example
 a room without a usable measurement for 30 minutes, no report from the E32
-for 10 minutes, the burner switching on and off too often for 2 hours, a room that asks for heat
-but stays more than 0.5 °C below its target for 3 hours, or no working link
-with the E32 for 15 minutes while the E32 is online. The message clears
-itself once the cause is gone.
+for 10 minutes, a room that asks for heat but stays more than 0.5 °C below its
+target for 3 hours, or no working link with the E32 for 15 minutes while the
+E32 is online. The message clears itself once the cause is gone.
 
 ### The setting device changes the temperature by itself
 

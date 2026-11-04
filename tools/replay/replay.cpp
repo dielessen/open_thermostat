@@ -35,6 +35,9 @@
 #include "control/BoilerResponse.h"
 #define REPLAY_BOILER_RESPONSE 1
 #endif
+#if __has_include("control/RestFloor.h")
+#include "control/RestFloor.h"
+#endif
 #if __has_include("control/HouseModel.h")
 #include "control/HouseModel.h"
 #define REPLAY_HOUSE_MODEL 1
@@ -104,6 +107,49 @@ template <class L> struct EffectiveMinimum<L, std::void_t<decltype(std::declval<
 template <class L> uint8_t lowestFlow(const L& l, uint8_t planMinimumC) {
     if constexpr (EffectiveMinimum<L>::value) return l.effectiveMinimumC(std::nullopt);
     else return planMinimumC;
+}
+// P1's Sample beside the contract: the lead room's shortfall, the ceiling's bounds.
+template <class S, class = void> struct SampleShortfall : std::false_type {};
+template <class S> struct SampleShortfall<S, std::void_t<decltype(std::declval<S&>().shortfallCentiC = std::optional<int16_t>())>> : std::true_type {};
+template <class S, class = void> struct SampleBounds : std::false_type {};
+template <class S> struct SampleBounds<S, std::void_t<decltype(std::declval<S&>().minimumC = uint8_t()), decltype(std::declval<S&>().maximumC = uint8_t())>> : std::true_type {};
+template <class S> void shortfall(S& s, std::optional<int16_t> v) {
+    if constexpr (SampleShortfall<S>::value) s.shortfallCentiC = v;
+}
+template <class S> void bounds(S& s, uint8_t lo, uint8_t hi) {
+    if constexpr (SampleBounds<S>::value) { s.minimumC = lo; s.maximumC = hi; }
+}
+// P3: FlowPolicy owns the FreeHeat it applies (FlowPolicy::freeHeat()), else one beside it; FreeHeat::heatDelivered.
+template <class P, class = void> struct PolicyFreeHeat : std::false_type {};
+template <class P> struct PolicyFreeHeat<P, std::void_t<decltype(std::declval<P&>().freeHeat())>> : std::true_type {};
+template <class F, class P> F& freeHeatOf(P& policy, F& own) {
+    if constexpr (PolicyFreeHeat<P>::value) return policy.freeHeat();
+    else return own;
+}
+template <class F, class = void> struct HeatDelivered : std::false_type {};
+template <class F> struct HeatDelivered<F, std::void_t<decltype(F::heatDelivered(std::optional<bool>(), std::optional<bool>(), std::optional<uint8_t>()))>> : std::true_type {};
+template <class F> bool heatDelivered(std::optional<bool> burnerOn, std::optional<bool> hotWater, std::optional<uint8_t> requestC) {
+    if constexpr (HeatDelivered<F>::value) return F::heatDelivered(burnerOn, hotWater, requestC);
+    else return (burnerOn.value_or(false) && !hotWater.value_or(false)) || (requestC && *requestC >= 20);
+}
+// P2: Scoreboard::step() tells the day change (rc.4: void); then Scoreboard::judge() and its insights.
+template <class B> bool boardStep(B& b, int64_t utc, uint32_t dtS, std::optional<int16_t> outdoorCentiC, double kwh) {
+    if constexpr (std::is_same_v<decltype(b.step(utc, dtS, outdoorCentiC, kwh)), bool>) return b.step(utc, dtS, outdoorCentiC, kwh);
+    else { b.step(utc, dtS, outdoorCentiC, kwh); return false; }
+}
+template <class B, class D, class = void> struct Judge : std::false_type {};
+template <class B, class D> struct Judge<B, D, std::void_t<decltype(std::declval<B&>().judge(std::declval<const D&>(), static_cast<const std::optional<uint16_t>*>(nullptr), size_t()))>>
+    : std::true_type {};
+template <class B, class D> bool judge(B& b, const D& day, const std::optional<uint16_t>* warmup, size_t count) {
+    if constexpr (Judge<B, D>::value) { b.judge(day, warmup, count); return true; }
+    else return false;
+}
+template <class B, class P, class = void> struct BoardInsights : std::false_type {};
+template <class B, class P> struct BoardInsights<B, P, std::void_t<decltype(std::declval<const B&>().insights().addJson(static_cast<cJSON*>(nullptr), std::declval<const P&>()))>>
+    : std::true_type {};
+template <class B, class P> bool insights(const B& b, cJSON* parent, const P& plan) {
+    if constexpr (BoardInsights<B, P>::value) return b.insights().addJson(parent, plan);
+    else return false;
 }
 }
 
@@ -576,12 +622,21 @@ cJSON* run(const Data& d, const Options& o, const RoomPlan& basePlan, const std:
     BoilerResponse boiler; replay_detect::setPlan(boiler, plan);
 #endif
 #ifdef REPLAY_HOUSE_MODEL
-    HouseModel house; replay_detect::setPlan(house, plan);
-    int64_t houseHour = -1;
-    int32_t houseDay = INT32_MIN;
+    HouseModel house;
+    std::optional<uint64_t> houseUpdatedAt; // HeatingController::updateHouse: hourly and at the scoreboard's day change
+    const auto updateHouse = [&](uint64_t now) {
+        HouseModel::Inputs hi;
+        hi.learner = &learner; hi.board = &board; hi.plan = &plan;
+#ifdef REPLAY_BOILER_RESPONSE
+        hi.kwPerFlowK = boiler.kwPerFlowK();
+#endif
+        house.update(hi);
+        houseUpdatedAt = now;
+    };
 #endif
 #ifdef REPLAY_FREE_HEAT
-    FreeHeat freeHeat; replay_detect::setPlan(freeHeat, plan);
+    FreeHeat ownFreeHeat; replay_detect::setPlan(ownFreeHeat, plan); // only when FlowPolicy owns none (P3: FlowPolicy::freeHeat())
+    FreeHeat& freeHeat = replay_detect::freeHeatOf(policy, ownFreeHeat);
 #endif
     FlowSettings settings; settings.weatherCurve = o.weatherCurve; settings.applyLearned = o.applyLearned;
     // HeatingController::effectiveTuning: AutoTuner's knobs; rc.5 (P1, RestFloor) with the boiler's own
@@ -672,13 +727,20 @@ cJSON* run(const Data& d, const Options& o, const RoomPlan& basePlan, const std:
         const Flag burner = burnerOf(*r);
         const auto flow = centi(r->flow), outdoor = centi(r->outdoor), ret = centi(r->ret);
 #ifdef REPLAY_BOILER_RESPONSE
-        // rc.5 (P1): the knobs follow the boiler's rest and the rooms' comfort (effectiveTuning).
+        // rc.5 (P1), HeatingController::refreshRestFloor: the knobs follow the boiler's rest and the rooms'
+        // comfort (a usable room more than 0.3 degC below its target: RestFloor::cold).
         cold = false;
-        for (size_t i = 0; i < rooms; ++i) cold = cold || (engine.result(i).usable && engine.result(i).errorCentiC > 30);
+        for (size_t i = 0; i < rooms; ++i) {
+            const auto& res = engine.result(i);
+            cold = cold || (res.usable && res.status != RoomDemand::Status::inactive && res.errorCentiC > 30);
+        }
         if (!(effective() == inEffect)) { applySettings(); ++score.restFloorChanges; }
 #endif
         // stepHeating: the rule, then the flow options.
         const auto rule = engine.step(now, unixNow);
+#ifdef REPLAY_HOUSE_MODEL
+        if (!houseUpdatedAt || now - *houseUpdatedAt >= 3600000ull) updateHouse(now); // rc.5 (P2): hourly, before the policy
+#endif
         std::array<RoomDemand::Result, RoomPlan::maxRooms> results{};
         for (size_t i = 0; i < rooms && i < results.size(); ++i) results[i] = engine.result(i);
         FlowPolicy::Inputs in;
@@ -731,55 +793,42 @@ cJSON* run(const Data& d, const Options& o, const RoomPlan& basePlan, const std:
             cJSON_AddItemToArray(learnerEvents, e);
             learnedBefore[i] = nowLearned;
         }
+#ifdef REPLAY_FREE_HEAT
+        {   // rc.5 (P3), HeatingController::stepFlowLearner: per room its fresh reading and whether heat reached
+            // it (the burner on for heating or the heating reference asking heat; hot water heats no room).
+            const bool heat = replay_detect::heatDelivered<FreeHeat>(burner, r->dhw, b.requestedFlowC);
+            std::array<FreeHeat::RoomSample, RoomPlan::maxRooms> free{};
+            for (size_t i = 0; i < rooms && i < free.size(); ++i) { free[i].temperatureCentiC = inputs[i].temperatureCentiC; free[i].heatDelivered = heat; }
+            freeHeat.sample(now, t, outdoor, free.data(), rooms);
+        }
+#endif
 #ifdef REPLAY_BOILER_RESPONSE
-        {   // rc.5 (P1), HeatingController::stepHeating: the boiler view, the guard's last command as the
-            // request, its output as ownRequest, the rooms' mean temperature and any demand.
+        {   // rc.5 (P1), HeatingController::stepBoilerResponse: the view FlowLearner gets, the guard's last
+            // command while the E32 drives, the usable rooms' mean, their demand and the lead room's shortfall;
+            // the ceiling's bounds are the lowest flow the E32 asks and the plan's maximum.
             BoilerResponse::Sample s;
             s.now = now; s.utc = t; s.requestC = prevCommand; s.ownRequest = prevActive;
-            int32_t sum = 0, n = 0;
-            bool demand = false;
-            for (size_t i = 0; i < rooms; ++i) {
-                const auto& res = engine.result(i);
-                demand = demand || (res.usable && engine.demand(i));
-                if (res.status == RoomDemand::Status::inactive) continue;
-                if (const auto temp = engine.fresh(i, now).temperature) { sum += *temp; ++n; }
-            }
-            s.demand = demand;
-            if (n) s.roomMeanCentiC = int16_t(sum / n);
             s.flowCentiC = flow; s.returnCentiC = ret; s.outdoorCentiC = outdoor;
             s.burnerOn = burner; s.hotWater = r->dhw; s.modulationPct = modulation;
             s.nominalKw = learner.nominalKw(); s.kwhPerM3 = learner.params().kwhPerM3;
+            replay_detect::bounds(s, replay_detect::lowestFlow(learner, plan.minimumFlowC), plan.maximumFlowC);
+            int32_t sum = 0, usable = 0;
+            bool demand = false;
+            std::optional<int16_t> shortfall;
+            for (size_t i = 0; i < rooms; ++i) {
+                const auto& res = engine.result(i);
+                if (!res.usable || res.status == RoomDemand::Status::inactive || !res.temperature) continue;
+                sum += *res.temperature; ++usable;
+                demand = demand || engine.demand(i);
+                shortfall = shortfall ? std::max(*shortfall, res.errorCentiC) : res.errorCentiC;
+            }
+            s.demand = demand;
+            replay_detect::shortfall(s, shortfall);
+            if (usable) s.roomMeanCentiC = int16_t(sum / usable);
             boiler.sample(s);
             const uint16_t held = boiler.heldToday();
             score.held += held >= score.heldLast ? uint64_t(held - score.heldLast) : held; // a new local day starts at 0
             score.heldLast = held;
-        }
-#endif
-#ifdef REPLAY_FREE_HEAT
-        {   // rc.5 (P3): no heat reached the rooms while the burner was off for heating and nothing asked heat
-            // (the E32's command while it drives, else the old thermostat's 0x1A).
-            const auto ref = heatingReference(prevActive, prevCommand, thermostat);
-            const bool delivered = (burner.value_or(false) && !r->dhw.value_or(false)) || (ref && *ref >= ShadowComparison::tadoHeatFromC);
-            std::array<FreeHeat::RoomSample, RoomPlan::maxRooms> free{};
-            for (size_t i = 0; i < rooms && i < free.size(); ++i) { free[i].temperatureCentiC = engine.fresh(i, now).temperature; free[i].heatDelivered = delivered; }
-            freeHeat.sample(now, t, outdoor, free.data(), rooms);
-        }
-#endif
-        // HeatingController::stepScoreboard: the day's outdoor and heating energy, and the judged mornings.
-        board.step(t, lastStep >= 0 && t > lastStep ? uint32_t(std::min<int64_t>(t - lastStep, 60)) : 0, outdoor, learner.gas().heatingKwh());
-        for (ArrivalLearner::Event ev; policy.arrival().pop(ev);) {
-            board.arrival(ev.room, ev.atUtc, ev.errorMin);
-            score.arrivals.push_back({ev.room < plan.rooms.size() ? plan.rooms[ev.room].id : std::to_string(ev.room), ev.atUtc, ev.errorMin});
-        }
-#ifdef REPLAY_HOUSE_MODEL
-        if (t / 3600 != houseHour || RoomSchedule::localDay(t) != houseDay) { // rc.5 (P2): hourly and at the day change
-            houseHour = t / 3600; houseDay = RoomSchedule::localDay(t);
-            HouseModel::Inputs hi;
-            hi.learner = &learner; hi.board = &board; hi.plan = &engine.plan();
-#ifdef REPLAY_BOILER_RESPONSE
-            hi.kwPerFlowK = boiler.kwPerFlowK();
-#endif
-            house.update(hi);
         }
 #endif
         score.step(request, policy.source() == FlowPolicy::Source::optimumStart, burner, r->dhw, flow, ret);
@@ -843,6 +892,24 @@ cJSON* run(const Data& d, const Options& o, const RoomPlan& basePlan, const std:
                 if (uint32_t(cJSON_GetArrayItem(a, 0)->valuedouble) == unixNow) addProposal(a, true);
             cJSON_AddItemToArray(evaluations, e);
             if (tuner.changed()) applySettings();
+        }
+        // HeatingController::stepScoreboard (after the self-tuning): the day's outdoor and heating energy and the
+        // judged mornings; rc.5 (P2) at its day change yesterday's insights (Scoreboard::judge with AutoTuner's
+        // finished day and the rooms' warm-up minutes per degC), then the house model again.
+        if (replay_detect::boardStep(board, t, lastStep >= 0 && t > lastStep ? uint32_t(std::min<int64_t>(t - lastStep, 60)) : 0, outdoor, learner.gas().heatingKwh())) {
+            std::array<std::optional<uint16_t>, RoomPlan::maxRooms> warmup{};
+            const size_t count = std::min({rooms, warmup.size(), learner.rooms()});
+            for (size_t i = 0; i < count; ++i)
+                if (const auto w = learner.warmupSeconds(i, 100, learner.ruleFlow(100), std::nullopt))
+                    warmup[i] = uint16_t(std::min<uint32_t>((*w + 30) / 60, 1000));
+            replay_detect::judge(board, tuner.yesterday(), warmup.data(), count);
+#ifdef REPLAY_HOUSE_MODEL
+            updateHouse(now);
+#endif
+        }
+        for (ArrivalLearner::Event ev; policy.arrival().pop(ev);) {
+            board.arrival(ev.room, ev.atUtc, ev.errorMin);
+            score.arrivals.push_back({ev.room < plan.rooms.size() ? plan.rooms[ev.room].id : std::to_string(ev.room), ev.atUtc, ev.errorMin});
         }
         // The flow options' comparison of yesterday, once a day.
         if (lastStep >= 0 && localDayText(t) != localDayText(lastStep)) {
@@ -923,6 +990,7 @@ cJSON* run(const Data& d, const Options& o, const RoomPlan& basePlan, const std:
 #ifdef REPLAY_HOUSE_MODEL
     house.addJson(out);  // rc.5 (P2): "house"
 #endif
+    replay_detect::insights(board, out, plan); // rc.5 (P2): "insights", yesterday against the house's baselines
     {   // rc.5 (P4): the figures tools/replay/score.py compares.
         cJSON* sc = cJSON_AddObjectToObject(out, "score");
         const auto mean = [&](const char* key, double sum, long n) { addOptional(sc, key, n ? Opt(round1(sum / n)) : std::nullopt); };
@@ -1143,7 +1211,7 @@ int main(int argc, char** argv) {
 #endif
 #ifdef REPLAY_FREE_HEAT
     freeHeatModule = true;
-    freeHeatHook = replay_detect::FreeHeatMember<FlowPolicy::Inputs, FreeHeat>::value;
+    freeHeatHook = replay_detect::PolicyFreeHeat<FlowPolicy>::value || replay_detect::FreeHeatMember<FlowPolicy::Inputs, FreeHeat>::value;
 #endif
     cJSON_AddBoolToObject(fw, "boiler_response", boilerResponse);
     cJSON_AddBoolToObject(fw, "flow_policy_ceiling", ceilingHook);

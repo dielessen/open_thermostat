@@ -269,8 +269,10 @@ public:
     // Yesterday (after sample() returned true): the proposals, and with an active day
     // the changes to values() for the automatic knobs. learned: per plan room.
     void evaluate(uint64_t now, uint32_t utc, uint16_t manual, const RoomPlan& plan, const Learned* learned, size_t count) {
-        wouldCount_ = 0; changed_ = 0; proposed_ = 0; pendingYesterday_ = false;
-        if (now < graceUntil_ || yesterday_.day < 0) { state_ = "waiting"; return; }
+        wouldCount_ = 0; changed_ = 0; proposed_ = 0;
+        if (now < graceUntil_) { pendingYesterday_ = yesterday_.day >= 0; state_ = "waiting"; return; } // judged after the grace
+        pendingYesterday_ = false;
+        if (yesterday_.day < 0) { state_ = "waiting"; return; }
         const Day& d = yesterday_;
         const int hours = __builtin_popcount(d.hours);
         apply_ = d.observedS && uint64_t(d.activeS) * 10 >= uint64_t(d.observedS) * 9;

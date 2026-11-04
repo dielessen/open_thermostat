@@ -222,24 +222,29 @@ private:
         if (Slot* s = doc ? slot("fw/state/boiler_fields/" + std::to_string(g), Kind::group) : nullptr) consider(*s, print(doc.get()), doc.get(), now);
     }
     // fw/telemetry/summary (learned header, hot water), fw/telemetry/flow (the
-    // flow policy's "flow" and "night_gas") and fw/telemetry/tuning (the
-    // self-tuning's "tuning"): split so each stays within 1 KB.
+    // flow policy's "flow" and "night_gas"), fw/telemetry/tuning (the
+    // self-tuning's "tuning") and fw/telemetry/scoreboard (rc.4, the days'
+    // "scoreboard"): split so each stays within 1 KB.
     void summary(uint64_t now) {
         Slot* s = slot("fw/telemetry/summary", Kind::summary);
         Slot* f = slot("fw/telemetry/flow", Kind::summary);
         Slot* t = slot("fw/telemetry/tuning", Kind::summary);
-        if (!s || !f || !t || budget_ < 3 || !s->state.due(now, summaryCadence, false)) return;
+        Slot* b = slot("fw/telemetry/scoreboard", Kind::summary);
+        if (!s || !f || !t || !b || budget_ < 4 || !s->state.due(now, summaryCadence, false)) return;
         const auto raw = sources_.summary();
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> doc(cJSON_ParseWithLength(raw.data(), raw.size()), cJSON_Delete);
         if (!doc) return;
         using Doc = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
-        Doc flow(cJSON_CreateObject(), cJSON_Delete), tuning(cJSON_CreateObject(), cJSON_Delete);
-        if (!flow || !tuning || !cJSON_AddNumberToObject(flow.get(), "schema", 1) || !cJSON_AddNumberToObject(tuning.get(), "schema", 1)) return;
-        for (const char* key : {"flow", "night_gas", "tuning"})
-            if (cJSON* part = cJSON_DetachItemFromObjectCaseSensitive(doc.get(), key)) cJSON_AddItemToObject((key[0] == 't' ? tuning : flow).get(), key, part);
+        Doc flow(cJSON_CreateObject(), cJSON_Delete), tuning(cJSON_CreateObject(), cJSON_Delete), board(cJSON_CreateObject(), cJSON_Delete);
+        if (!flow || !tuning || !board || !cJSON_AddNumberToObject(flow.get(), "schema", 1) || !cJSON_AddNumberToObject(tuning.get(), "schema", 1)
+            || !cJSON_AddNumberToObject(board.get(), "schema", 1)) return;
+        for (const char* key : {"flow", "night_gas", "tuning", "scoreboard"})
+            if (cJSON* part = cJSON_DetachItemFromObjectCaseSensitive(doc.get(), key))
+                cJSON_AddItemToObject((key[0] == 't' ? tuning : key[0] == 's' ? board : flow).get(), key, part);
         send(*s, print(doc.get()), now);
         if (cJSON_GetArraySize(flow.get()) > 1) send(*f, print(flow.get()), now);
         if (cJSON_GetArraySize(tuning.get()) > 1) send(*t, print(tuning.get()), now);
+        if (cJSON_GetArraySize(board.get()) > 1) send(*b, print(board.get()), now);
     }
     void learned(uint64_t now) {
         if (!sources_.roomCount || !sources_.learned || !budget_ || !planKnown_) return;

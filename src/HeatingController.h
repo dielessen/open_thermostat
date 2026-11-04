@@ -168,9 +168,6 @@ public:
         overrides_.restore(RoomOverridesNvs::read()); // waits for a trusted clock before it applies
         ems_.restoreDhw(DhwNvs::read()); // F2: today's and the week's hot water, joined once the clock is known
         overrides_.restoreHolidays(HolidaysNvs::read()); // rc.4: the planned holidays (absent: none)
-        // A holiday set before rc.4 (the comfort record's dated away): into its own record once.
-        if (overrides_.legacyHoliday() && HolidaysNvs::write(overrides_.holidaysStored()) && RoomOverridesNvs::write(overrides_.stored()))
-            overrides_.legacyHolidaySaved();
         // The takeover readiness counters; the stable time only after a planned restart.
         bool readinessThermostat = false;
         {
@@ -187,6 +184,12 @@ public:
             const auto rooms = learnedStore_.restore(nvs, flowLearner_, flowPolicy_, bleReceiptClock());
             DBGLOGFI(log_, logFeature_, "Learned state restored for %u room(s)\n", unsigned(rooms));
         }
+        // A holiday set before rc.4 (the comfort record's dated away): into its own record once. After the
+        // learned restore: the two writes may make room from the learned records, which are then written
+        // again where they fit (rewriteEvicted) instead of being erased before they were read.
+        if (overrides_.legacyHoliday() && HolidaysNvs::write(overrides_.holidaysStored()) && RoomOverridesNvs::write(overrides_.stored()))
+            overrides_.legacyHolidaySaved();
+        rewriteEvicted();
         // A stored "thermostat disconnected" (same firmware) resumes active heat
         // after 2 min of bus reception without a foreign 0x1A, which clears it.
         // One of other firmware (an update): wait for the owner to confirm again,
@@ -231,7 +234,7 @@ public:
             return control::heatingSummaryTelemetry(flowLearner_, learnedContext(now, temperatures), ems_.dhwSummaryJson(), &flowPolicy_,
                 [&](cJSON* root) {
                     return autoTuner_.addStatus(root, now, effectiveTuning(), flowSettings_.manual, control::AutoTuner::mqttEntries)
-                        && scoreboard_.addJson(root, autoTuner_, roomEngine_.plan()); // rc.4 (F1)
+                        && scoreboard_.addJson(root, autoTuner_, roomEngine_.plan(), true); // rc.4 (F1): its own topic, today without rooms
                 });
         });
 #endif
@@ -367,8 +370,10 @@ public:
         // Valves of rooms the plan no longer has leave their record (stored), so a later valve
         // save is not refused as unknown_room and their fw/state/trv/<room> topic is cleared.
         auto valves = trv_.config();
-        if (valves.dropRooms([&](const std::string& id) { return plan.find(id) != nullptr; }) && TrvNvs::write(valves))
+        if (valves.dropRooms([&](const std::string& id) { return plan.find(id) != nullptr; }) && TrvNvs::write(valves)) {
             trv_.setConfig(std::move(valves));
+            rewriteEvicted(); // R1-06: the valve record may have made room from what was learned
+        }
         // Overrides, windows and warm-up leads stay with their room's id; the views follow the new plan (R1-04).
         overrides_.planChanged(roomEngine_.plan(), bleReceiptClock(),
                                networkTimeTrusted ? std::optional<uint32_t>(static_cast<uint32_t>(std::time(nullptr))) : std::nullopt);
@@ -1231,7 +1236,8 @@ private:
         // rc.4 (L5): the day counters and the scoreboard every hour, so a restart loses at most an hour.
         if (unixNow && autoTuner_.dayStoreDue(now)) {
             if (!AutoTunerNvs::write(autoTuner_, learnedStore_.pendingEntries())) DBGLOGFI(log_, logFeature_, "Tuning day not saved (NVS short of room or write failed)\n");
-            if (const auto text = scoreboard_.stored(); !text.empty() && !ScoreboardNvs::write(text)) DBGLOGFI(log_, logFeature_, "Scoreboard not saved (NVS short of room or write failed)\n");
+            if (!scoreboardAdopted_) {} // not before the clock told the local day: the stored record is still the better one
+            else if (const auto text = scoreboard_.stored(); !text.empty() && !ScoreboardNvs::write(text)) DBGLOGFI(log_, logFeature_, "Scoreboard not saved (NVS short of room or write failed)\n");
         }
         if (!closed && !(unixNow && autoTuner_.evaluationPending(now))) return;
         std::array<control::AutoTuner::Learned, control::RoomPlan::maxRooms> learned{};

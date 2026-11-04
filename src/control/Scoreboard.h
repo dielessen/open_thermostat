@@ -77,13 +77,14 @@ public:
     // "scoreboard": {"yesterday":{..}|null,"today":{..}}; a day: {"day":"2026-11-04","heating_h",
     // "heating_starts_per_h","short_cycle_h","heating_kwh","degree_days","rooms":[{"id","on_time_min",
     // "overshoot_c"}]} with null where nothing was measured; rooms without any measurement that day
-    // are left out. false: no memory.
-    bool addJson(cJSON* parent, const AutoTuner& tuner, const RoomPlan& plan) const {
+    // are left out. compact (the MQTT topic fw/telemetry/scoreboard, at most 1.5 KB): today without
+    // its rooms, so eight rooms with 32-character ids stay within 1 KB. false: no memory.
+    bool addJson(cJSON* parent, const AutoTuner& tuner, const RoomPlan& plan, bool compact = false) const {
         cJSON* o = cJSON_AddObjectToObject(parent, "scoreboard");
         if (!o) return false;
-        if (hasYesterday_) { if (!dayJson(o, "yesterday", yesterday_, tuner.yesterday(), plan)) return false; }
+        if (hasYesterday_) { if (!dayJson(o, "yesterday", yesterday_, tuner.yesterday(), plan, true)) return false; }
         else if (!cJSON_AddNullToObject(o, "yesterday")) return false;
-        return today_.day >= 0 ? dayJson(o, "today", today_, tuner.today(), plan) : cJSON_AddNullToObject(o, "today") != nullptr;
+        return today_.day >= 0 ? dayJson(o, "today", today_, tuner.today(), plan, !compact) : cJSON_AddNullToObject(o, "today") != nullptr;
     }
     // {"t":{"d":..,"os":..,"on":..,"k":..,"a":[..]},"y":{..}|null}; a: the arrivals (null: none).
     std::string stored() const {
@@ -123,7 +124,7 @@ public:
     }
 
 private:
-    static bool dayJson(cJSON* parent, const char* key, const Day& d, const AutoTuner::Day& t, const RoomPlan& plan) {
+    static bool dayJson(cJSON* parent, const char* key, const Day& d, const AutoTuner::Day& t, const RoomPlan& plan, bool withRooms) {
         cJSON* o = cJSON_AddObjectToObject(parent, key);
         if (!o) return false;
         char date[11];
@@ -139,8 +140,9 @@ private:
         number("short_cycle_h", tuned ? std::optional<double>(t.shortS / 3600.0) : std::nullopt, 10);
         number("heating_kwh", d.heatingKwh > 0 ? std::optional<double>(d.heatingKwh) : std::nullopt, 10);
         number("degree_days", d.outdoorS ? std::optional<double>(std::max(0.0, degreeDayBaseC - d.outdoorSum / d.outdoorS)) : std::nullopt, 10);
-        // Only the rooms with a measurement that day (the summary goes out every 5 minutes; HA and the
-        // page read a missing room as "nothing measured", like a null).
+        // Only the rooms with a measurement that day (the topic goes out every 5 minutes; HA and the
+        // page read a missing room as "nothing measured", like a null). Without rooms: no "rooms" key.
+        if (!withRooms) return true;
         cJSON* rooms = cJSON_AddArrayToObject(o, "rooms");
         if (!rooms) return false;
         for (size_t i = 0; i < plan.rooms.size() && i < RoomPlan::maxRooms; ++i) {

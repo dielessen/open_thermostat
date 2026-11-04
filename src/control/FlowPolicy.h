@@ -522,7 +522,7 @@ private:
         }
         if (!startHeating_) { startHeating_ = true; startedAt_ = in.now; startFlowC_ = bound(want ? want : startFlowC_); }
         if (want) startFlowC_ = bound(want);
-        heating_ = wants;
+        if (wanted) heating_ = wants; // held on for the minimum on time: the rooms stay its rooms (they rest after it)
         if (!applied_.heat) { applied_ = {true, startFlowC_, FlowDemand::Reason::heating}; source_ = Source::optimumStart; }
         else if (startFlowC_ > applied_.flowC) { applied_.flowC = startFlowC_; source_ = Source::optimumStart; }
     }

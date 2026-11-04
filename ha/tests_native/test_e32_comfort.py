@@ -540,3 +540,27 @@ async def test_the_room_says_what_smart_warm_up_does(hass):
     hass.data.setdefault("open_thermostat", {})["e1"] = {"e32_flow": SimpleNamespace(settings={"apply_learned": False})}
     assert entity.extra_state_attributes["smart_warm_up"].startswith("Smart warm-up is off: heating starts at ")
     link.stop()
+
+
+@pytest.mark.asyncio
+async def test_the_room_says_how_the_last_morning_went(hass):
+    """E32 rc.4: the thermostat's smart_warm_up attribute ends with the morning's check and what it changes."""
+    entity, hub, link = await climate(hass, FakeE32(), room_state("living"))
+    entity.hass = hass
+    at = int(datetime(2026, 11, 4, 7, 0, tzinfo=timezone.utc).timestamp())
+    arrival = {"factor": 1.1, "events": 3, "last_error_min": 12,
+               "last_at_utc": int(datetime.now(timezone.utc).timestamp()) - 60}
+    learned = {"id": "living", "emitter": "floor", "readiness": "ready"}
+    hub.update_learned("living", (learned, {"id": "living", "arrival": arrival}))
+    text = entity.extra_state_attributes["smart_warm_up"]
+    assert text.startswith("Today warm at ") and text.endswith(" (12 min late); tomorrow 10 % earlier.")
+    start = {"reason": "planned", "predicted_start_utc": at - 6000, "estimate": True,
+             "next_switch": {"utc": at, "target_c": 21}, "lead_minutes": 100, "confidence": "default",
+             "reachable": True, "start_now": False, "applies": True}
+    hub.update_learned("living", (learned, {"id": "living", "arrival": arrival, "optimum_start": start}))
+    text = entity.extra_state_attributes["smart_warm_up"]
+    assert text.startswith("Smart warm-up: starts at ") and "(estimate; it learns from every morning)" in text
+    assert text.endswith(" (12 min late); tomorrow 10 % earlier.") and ". Today warm at " in text
+    hub.update_learned("living", (learned, None))
+    assert entity.extra_state_attributes["smart_warm_up"] is None  # no plan (no trusted clock): nothing
+    link.stop()

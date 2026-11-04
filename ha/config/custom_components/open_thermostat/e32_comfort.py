@@ -833,15 +833,19 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
                 "smart_warm_up": self._smart_warm_up()}
 
     def _smart_warm_up(self):
-        """E32 rc.3: what Smart warm-up does for the next program step, in the Home Assistant language, or None."""
+        """What Smart warm-up does for the next program step (E32 rc.3) and how the last step up turned out
+        (E32 rc.4: "Yesterday warm at 09:12 (12 min late); tomorrow 10 % earlier."), in the Home Assistant
+        language, or None."""
         if self.hass is None:
             return None
         from .e32_flow import smart_warm_up
-        from .learned_overview import language, local_clock, smart_warm_up_line
+        from .learned_overview import arrival_line, language, local_clock, local_day, smart_warm_up_line
         plan = self.hub.warmup.get(self.room_id) if type(getattr(self.hub, "warmup", None)) is dict else None
-        start = plan.get("optimum_start") if type(plan) is dict else None
-        line = smart_warm_up_line(start, smart_warm_up(self.hass, self.entry.entry_id), language(self.hass), local_clock(self.hass))
-        return line[0] if line else None
+        plan = plan if type(plan) is dict else {}
+        lang, clock = language(self.hass), local_clock(self.hass)
+        line = smart_warm_up_line(plan.get("optimum_start"), smart_warm_up(self.hass, self.entry.entry_id), lang, clock)
+        arrived = arrival_line(plan.get("arrival"), lang, clock, *local_day(self.hass))
+        return " ".join(item[0] for item in (line, arrived) if item) or None
 
     # -- commands ----------------------------------------------------------------
     def _write_state(self):

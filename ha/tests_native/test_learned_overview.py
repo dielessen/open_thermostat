@@ -326,3 +326,111 @@ def test_the_learned_water_says_whether_it_is_ready():
                              data={"open_thermostat": {"e": {"e32_flow": SimpleNamespace(settings={"weather_curve": True, "apply_learned": True})}}})
     assert [line["text"] for line in s.extra_state_attributes["house"]][:2] == [
         "Weather compensation: standard for now, learning from your house (2 of 6 steady periods).", "Coolest water: still learning from each warm-up."]
+
+
+# E32 rc.4: a start from the standard warm-up time is applied too ("estimate"), the warm-up time can be learned
+# before the coolest water ("readiness_timing") and every morning is checked ("arrival").
+def test_an_estimated_start_says_so():
+    clock = {1793257800: "07:30", 1793262600: "08:50"}.get
+    start = {**START, "confidence": "default", "estimate": True}
+    assert lo.smart_warm_up_line(start, True, "en", clock)[0] == (
+        "Smart warm-up: starts at 07:30 (estimate; it learns from every morning) so it is 21 °C at 08:50.")
+    assert lo.smart_warm_up_line(start, True, "nl", clock)[0] == (
+        "Slim opwarmen: begint om 07:30 (schatting; hij leert van elke ochtend), zodat het om 08:50 21 °C is.")
+    assert lo.smart_warm_up_line(start, True, "pl", clock)[0].startswith("Inteligentne nagrzewanie: start o 07:30 (")
+    # Heating now, or off: the same words as before; firmware without "estimate" too.
+    assert lo.smart_warm_up_line({**start, "start_now": True}, True, "en", clock)[0] == (
+        "Smart warm-up: heating now so it is 21 °C at 08:50.")
+    assert lo.smart_warm_up_line(start, False, "en", clock)[0] == "Smart warm-up is off: heating starts at 08:50."
+    assert lo.smart_warm_up_line({**start, "estimate": False}, True, "en", clock)[0] == (
+        "Smart warm-up: starts at 07:30 so it is 21 °C at 08:50.")
+
+
+def test_the_warm_up_time_can_be_learned_before_the_coolest_water():
+    learned = {"emitter": "floor", "readiness": "learning", "readiness_timing": "ready", "segments": 3}
+    room = lo.room_overview("Woonkamer", learned, None, "en", CLOCK.get)
+    assert room["lines"][0] == {
+        "text": "The warm-up time is learned; the coolest water is still being learned.",
+        "meaning": "Smart warm-up already plans with it; the coolest water needs a few more warm-ups at other "
+                   "water temperatures."}
+    assert lo.room_overview("Woonkamer", learned, None, "nl", CLOCK.get)["lines"][0]["text"] == (
+        "De opwarmtijd is geleerd; het koelste water leert hij nog.")
+    # Not yet (or firmware without it): the learning line as before; fully learned: no learning line at all.
+    for timing in ("learning", "collecting", None):
+        lines = lo.room_overview("Woonkamer", {**learned, "readiness_timing": timing}, None, "en", CLOCK.get)["lines"]
+        assert lines[0]["text"] == "It learns from every warm-up while the heating runs.", timing
+    ready = lo.room_overview("Woonkamer", {**LEARNED, "readiness_timing": "ready"}, None, "en", CLOCK.get)
+    assert "warm-up time is learned" not in str(ready["lines"])
+
+
+@pytest.mark.parametrize("arrival,english,dutch", [
+    ({"factor": 1.1, "events": 3, "last_error_min": 12, "last_at_utc": 1793265120},
+     "Yesterday warm at 09:12 (12 min late); tomorrow 10 % earlier.",
+     "Gisteren warm om 09:12 (12 min te laat); morgen 10 % eerder."),
+    ({"factor": 0.92, "events": 4, "last_error_min": -25, "last_at_utc": 1793265120},
+     "Yesterday warm at 09:12 (25 min early); tomorrow 8 % later.",
+     "Gisteren warm om 09:12 (25 min te vroeg); morgen 8 % later."),
+    ({"factor": 1.0, "events": 1, "last_error_min": 0.4, "last_at_utc": 1793265120},
+     "Yesterday warm at 09:12 (on time).", "Gisteren warm om 09:12 (op tijd)."),
+])
+def test_every_morning_is_checked(arrival, english, dutch):
+    from datetime import date, timedelta
+    clock = {1793265120: "09:12"}.get
+
+    def day(utc):
+        return date(2026, 10, 29) if utc == 1793265120 else None
+    text, meaning = lo.arrival_line(arrival, "en", clock, day, date(2026, 10, 30))
+    assert text == english
+    assert meaning == "It checks every morning whether the room was warm on time and adjusts its warm-up time."
+    assert lo.arrival_line(arrival, "nl", clock, day, date(2026, 10, 30))[0] == dutch
+    assert lo.arrival_line(arrival, "pl", clock, day, date(2026, 10, 30))[0].startswith("Wczoraj ciepło o 09:12 (")
+    assert lo.arrival_line(arrival, "en", clock, day, date(2026, 10, 29))[0].startswith("Today warm at 09:12 (")
+    assert lo.arrival_line(arrival, "en", clock, day, date(2026, 10, 29) + timedelta(days=5))[0].startswith(
+        "On 29 Oct warm at 09:12 (")
+    assert lo.arrival_line(arrival, "nl", clock, day, date(2026, 11, 3))[0].startswith("Op 29 okt warm om 09:12 (")
+
+
+def test_no_arrival_line_without_a_checked_morning():
+    def clock(utc):
+        return "09:12"
+    for arrival in (None, {}, {"factor": 1.0, "events": 0, "last_error_min": None, "last_at_utc": None},
+                    {"factor": 1.1, "events": 2, "last_error_min": 12, "last_at_utc": 0},
+                    {"factor": 1.1, "events": 2, "last_error_min": 9999, "last_at_utc": 1793265120}):
+        assert lo.arrival_line(arrival, "en", clock) is None, arrival
+
+
+def test_the_room_lines_end_with_how_the_morning_went():
+    from datetime import date
+    plan = {**PLAN, "arrival": {"factor": 1.1, "events": 3, "last_error_min": 12, "last_at_utc": 1793265120},
+            "optimum_start": {**PLAN["optimum_start"], "applies": True, "estimate": True}}
+    clock = {**CLOCK, 1793265120: "09:12"}.get
+    room = lo.room_overview("Woonkamer", LEARNED, plan, "en", clock, True,
+                            lambda utc: date(2026, 10, 29), date(2026, 10, 30))
+    texts = [line["text"] for line in room["lines"]]
+    assert texts[3:5] == [
+        "Smart warm-up: starts at 07:30 (estimate; it learns from every morning) so it is 21 °C at 08:50.",
+        "Yesterday warm at 09:12 (12 min late); tomorrow 10 % earlier."]
+    s = sensor()
+    s.hub.update_learned("woonkamer", ({**LEARNED, "id": "woonkamer"}, {**plan, "id": "woonkamer"}))
+    s._clock = clock
+    assert any(line["text"].endswith("warm at 09:12 (12 min late); tomorrow 10 % earlier.")
+               for line in s.extra_state_attributes["rooms"][0]["lines"])
+
+
+def test_the_learned_entities_carry_the_rc4_fields():
+    """The learning status names the learned warm-up time; the predicted start says whether it is an estimate."""
+    from custom_components.open_thermostat.heating_link import RoomHeatingStartSensor, RoomLearningSensor
+    h = HeatingHub("fixture")
+    h.update(STATUS)
+    room = STATUS["rooms"][0]
+    start = {"reason": "planned", "predicted_start_utc": 1793257800, "lead_minutes": 80, "confidence": "default",
+             "applies": True, "estimate": True}
+    h.update_learned("woonkamer", ({"id": "woonkamer", "readiness": "learning", "readiness_timing": "ready"},
+                                   {"id": "woonkamer", "optimum_start": start}))
+    assert RoomLearningSensor(h, room).extra_state_attributes["timing"] == "ready"
+    assert RoomHeatingStartSensor(h, room).extra_state_attributes["estimate"] is True
+    # Firmware before rc.4: the attributes are as before.
+    h.update_learned("woonkamer", ({"id": "woonkamer", "readiness": "learning"},
+                                   {"id": "woonkamer", "optimum_start": {k: v for k, v in start.items() if k != "estimate"}}))
+    assert "timing" not in RoomLearningSensor(h, room).extra_state_attributes
+    assert "estimate" not in RoomHeatingStartSensor(h, room).extra_state_attributes

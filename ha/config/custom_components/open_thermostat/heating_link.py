@@ -1401,12 +1401,15 @@ class RoomLearningSensor(LearnedRoomEntity, SensorEntity):
         if learned is None:
             return None
         whole = self.hub.learned_header or {}
-        return {"room_id": self.room_id, "emitter": _text(learned, "emitter"),
-                "segments": _count(learned.get("segments")), "periods": _count(learned.get("periods")),
-                "heating_periods": _count(whole.get("heating_periods")), "learner": _text(whole, "status"),
-                "loss_per_h": number(learned.get("loss_per_h"), 0, 1),
-                "capacity_kwh_per_k": number(learned.get("capacity_kwh_per_k"), 0, 100),
-                "applied": self._applied()}
+        result = {"room_id": self.room_id, "emitter": _text(learned, "emitter"),
+                  "segments": _count(learned.get("segments")), "periods": _count(learned.get("periods")),
+                  "heating_periods": _count(whole.get("heating_periods")), "learner": _text(whole, "status"),
+                  "loss_per_h": number(learned.get("loss_per_h"), 0, 1),
+                  "capacity_kwh_per_k": number(learned.get("capacity_kwh_per_k"), 0, 100),
+                  "applied": self._applied()}
+        if "readiness_timing" in learned:  # E32 rc.4: the warm-up time, learned before the coolest water
+            result["timing"] = learned["readiness_timing"] if learned["readiness_timing"] in LEARNING_STATES else None
+        return result
 
 
 class RoomFlowAdviceSensor(LearnedRoomEntity, SensorEntity):
@@ -1492,6 +1495,8 @@ class RoomHeatingStartSensor(RoomEntity, SensorEntity):
                   "night_saving_eur": number(night.get("saving_eur"), 0, 1000)}
         if "confidence" in night:
             result["night_confidence"] = _text(night, "confidence")
+        if "estimate" in start:  # E32 rc.4: a start from the standard warm-up time (it learns from every morning)
+            result["estimate"] = _flag(start, "estimate")
         if type(start.get("next_switch")) is dict:
             switch = start["next_switch"]
             at = _utc(switch.get("utc"))

@@ -287,7 +287,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   // Home Assistant is the main editor: read-only until unlocked for this tab, as on the Rooms page.
   assert.equal(await maxFlow.isDisabled(),true);
   const house=page.locator('#house-settings');
-  assert.match(await house.locator('[data-house-lock]').innerText(),/Configureren → Huis/);
+  assert.match(await house.locator('[data-house-lock]').innerText(),/Configureren → Verwarming en ketel/);
   await house.locator('[data-house-unlock]').click();assert.match(dialogs.at(-1),/tot je dit tabblad sluit/);
   await maxFlow.fill('45');assert.equal(await limits.locator('[data-limits-floor-warn]').isVisible(),false);
   const saved=plan,count=posts.length;

@@ -214,7 +214,7 @@ TEXT = {
         "advice_note": "Advice only: nothing is changed automatically.",
         "learned": "What the thermostat has learned", "learned_house": "House and boiler",
         "learned_changes": "What it changed by itself",
-        "learned_note": "The thermostat adjusts these settings itself; to change one: Configure → House → Comfort and boiler care "
+        "learned_note": "The thermostat adjusts these settings itself; to change one: Configure → Heating and boiler → Comfort and boiler care "
                         "(or the E32 page, Home).",
         "confidence_low": "low", "confidence_medium": "medium", "confidence_high": "high",
         "gas_heating": "Heating", "gas_hot_water": "Hot water", "gas_keep_warm": "Of which keeping hot water warm",
@@ -375,7 +375,7 @@ TEXT = {
         "advice_note": "Alleen advies: er wordt niets automatisch veranderd.",
         "learned": "Wat de thermostaat heeft geleerd", "learned_house": "Huis en ketel",
         "learned_changes": "Wat hij zelf heeft aangepast",
-        "learned_note": "De thermostaat past deze instellingen zelf aan; wijzigen kan onder Configureren → Huis → Comfort en "
+        "learned_note": "De thermostaat past deze instellingen zelf aan; wijzigen kan onder Configureren → Verwarming en ketel → Comfort en "
                         "zorg voor de ketel (of op de E32-pagina, Huis).",
         "confidence_low": "laag", "confidence_medium": "middel", "confidence_high": "hoog",
         "gas_heating": "Verwarmen", "gas_hot_water": "Warm water", "gas_keep_warm": "Waarvan warm water warmhouden",
@@ -536,7 +536,7 @@ TEXT = {
         "advice_note": "Tylko porada: nic nie jest zmieniane automatycznie.",
         "learned": "Czego nauczył się termostat", "learned_house": "Dom i kocioł",
         "learned_changes": "Co zmienił sam",
-        "learned_note": "Termostat sam dostosowuje te ustawienia; aby zmienić jedno z nich: Konfiguruj → Dom → Komfort i "
+        "learned_note": "Termostat sam dostosowuje te ustawienia; aby zmienić jedno z nich: Konfiguruj → Ogrzewanie i kocioł → Komfort i "
                         "dbałość o kocioł (lub strona E32, Dom).",
         "confidence_low": "niska", "confidence_medium": "średnia", "confidence_high": "wysoka",
         "gas_heating": "Ogrzewanie", "gas_hot_water": "Ciepła woda", "gas_keep_warm": "W tym podtrzymanie ciepłej wody",

@@ -1604,7 +1604,42 @@
         }
       },
       "heat_request": {
-        "name": "Boiler request (E32)"
+        "name": "Boiler request (E32)",
+        "state_attributes": {
+          "card": {
+            "name": "Card",
+            "state": {
+              "title": "Your house",
+              "heating": "Heating",
+              "status_heating": "Heating · water {flow} °C",
+              "status_heating_plain": "Heating",
+              "heating_on": "on · water {flow} °C",
+              "heating_on_plain": "on",
+              "heating_off": "off",
+              "request": "Boiler request {flow} °C",
+              "no_request": "No boiler request",
+              "wants": "{n} rooms want heat",
+              "wants_one": "1 room wants heat",
+              "hot_water": "Hot water",
+              "taps": "{n} taps today",
+              "taps_one": "1 tap today",
+              "taps_none": "no taps yet today",
+              "running": "running now",
+              "gas_today": "Gas today",
+              "week": "Last 7 days: {values}",
+              "starts_today": "Burner starts today",
+              "idle": "Boiler resting",
+              "attention": "Attention: {reason}",
+              "all_reasons": "All reasons",
+              "mode": "House mode: {mode}",
+              "today": "Today",
+              "legend_heating": "Heating",
+              "legend_hot_water": "Hot water",
+              "legend_keep_warm": "Keeping warm",
+              "waiting": "The E32 has not reported yet."
+            }
+          }
+        }
       },
       "burner_starts_last_hour": {
         "name": "Burner starts last hour"

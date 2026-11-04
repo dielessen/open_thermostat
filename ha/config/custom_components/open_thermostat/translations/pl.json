@@ -1604,7 +1604,42 @@
         }
       },
       "heat_request": {
-        "name": "Żądanie do kotła (E32)"
+        "name": "Żądanie do kotła (E32)",
+        "state_attributes": {
+          "card": {
+            "name": "Karta",
+            "state": {
+              "title": "Twój dom",
+              "heating": "Ogrzewanie",
+              "status_heating": "Grzeje · woda {flow} °C",
+              "status_heating_plain": "Grzeje",
+              "heating_on": "grzeje · woda {flow} °C",
+              "heating_on_plain": "grzeje",
+              "heating_off": "nie grzeje",
+              "request": "Żądanie do kotła {flow} °C",
+              "no_request": "Brak żądania do kotła",
+              "wants": "Pomieszczenia potrzebujące ciepła: {n}",
+              "wants_one": "1 pomieszczenie potrzebuje ciepła",
+              "hot_water": "Ciepła woda",
+              "taps": "Pobory dziś: {n}",
+              "taps_one": "1 pobór dziś",
+              "taps_none": "dziś jeszcze bez poboru",
+              "running": "teraz w użyciu",
+              "gas_today": "Gaz dziś",
+              "week": "Ostatnie 7 dni: {values}",
+              "starts_today": "Starty palnika dziś",
+              "idle": "Kocioł w spoczynku",
+              "attention": "Uwaga: {reason}",
+              "all_reasons": "Wszystkie powody",
+              "mode": "Tryb domu: {mode}",
+              "today": "Dziś",
+              "legend_heating": "Ogrzewanie",
+              "legend_hot_water": "Ciepła woda",
+              "legend_keep_warm": "Podtrzymanie",
+              "waiting": "E32 jeszcze niczego nie przekazał."
+            }
+          }
+        }
       },
       "burner_starts_last_hour": {
         "name": "Starty palnika w ostatniej godzinie"

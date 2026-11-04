@@ -2641,7 +2641,42 @@
         }
       },
       "heat_request": {
-        "name": "Ketelvraag (E32)"
+        "name": "Ketelvraag (E32)",
+        "state_attributes": {
+          "card": {
+            "name": "Kaart",
+            "state": {
+              "title": "Je huis",
+              "heating": "Verwarming",
+              "status_heating": "Verwarmt · water {flow} °C",
+              "status_heating_plain": "Verwarmt",
+              "heating_on": "aan · water {flow} °C",
+              "heating_on_plain": "aan",
+              "heating_off": "uit",
+              "request": "Ketelvraag {flow} °C",
+              "no_request": "Geen ketelvraag",
+              "wants": "{n} ruimtes vragen warmte",
+              "wants_one": "1 ruimte vraagt warmte",
+              "hot_water": "Warm water",
+              "taps": "{n}× getapt vandaag",
+              "taps_one": "1× getapt vandaag",
+              "taps_none": "vandaag nog niet getapt",
+              "running": "loopt nu",
+              "gas_today": "Gas vandaag",
+              "week": "Afgelopen 7 dagen: {values}",
+              "starts_today": "Branderstarts vandaag",
+              "idle": "Ketel in rust",
+              "attention": "Let op: {reason}",
+              "all_reasons": "Alle redenen",
+              "mode": "Huismodus: {mode}",
+              "today": "Vandaag",
+              "legend_heating": "Verwarmen",
+              "legend_hot_water": "Warm water",
+              "legend_keep_warm": "Warmhouden",
+              "waiting": "De E32 heeft nog niets gemeld."
+            }
+          }
+        }
       },
       "burner_starts_last_hour": {
         "name": "Branderstarts afgelopen uur"

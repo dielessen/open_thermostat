@@ -7,6 +7,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from custom_components.open_thermostat.dashboard import RoomDashboard, view_cards
 from custom_components.open_thermostat.heating_link import HeatingHub
+from custom_components.open_thermostat.room_overview import HOUSE_CARD_TYPE
 from test_v1_native import entry
 
 BUILT_IN = {"heading", "tile", "thermostat", "history-graph", "statistics-graph", "entities", "glance",
@@ -82,15 +83,18 @@ async def test_the_views_are_overview_rooms_boiler_learning_and_diagnostics(hass
     assert [v["title"] for v in config["views"]] == [
         "Overview", "Rooms", "Boiler", "Learning and settings", "Diagnostics", "Comparison"]
     assert comparison["subview"] is True and comparison["back_path"] == "/" + dashboard.path + "/heating"
-    assert {card["type"] for view in config["views"] for card in view_cards(view)} <= BUILT_IN
+    # Built-in cards, and on the Overview the integration's own house card (rc.5).
+    assert {card["type"] for view in config["views"] for card in view_cards(view)} <= BUILT_IN | {HOUSE_CARD_TYPE}
     assert None not in list(walk(config))
     # Every section starts with its heading.
     assert all(s["cards"][0]["type"] == "heading" for v in config["views"] for s in v["sections"])
 
-    # Overview: the house (the rooms that want heat with the boiler request), then one card per room. Nothing else.
+    # Overview: the house (the house card: what the boiler does, the rooms that want heat with the boiler request),
+    # then one card per room. Nothing else. Two rooms switched on: both have their own card.
     assert [s["cards"][0]["heading"] for s in overview["sections"]] == ["House", "Rooms"]
     house = overview["sections"][0]["cards"]
-    assert "set wanting" in house[1]["content"] and hub["heat_request"] in house[1]["content"]
+    assert house[1]["type"] == HOUSE_CARD_TYPE and house[1]["request"] == hub["heat_request"] and "rooms" not in house[1]
+    assert not any(c["type"] == "markdown" and "set wanting" in c["content"] for c in view_cards(overview))
     assert len(overview["sections"][1]["cards"]) == 3  # heading and two rooms, in the E32's order
     assert not any(c["type"] in ("history-graph", "statistics-graph", "entities") for c in view_cards(overview))
     # The comparison link and the takeover check are in the learning view, not here.
@@ -428,8 +432,11 @@ async def test_dashboard_rebuilds_for_new_rooms_or_language_but_not_every_readin
 
 
 @pytest.mark.asyncio
-async def test_the_problem_tile_names_the_problem_and_leads_to_the_fix_only_while_there_is_one(hass):
-    """The night-time check: the Overview says what is wrong, in a few words, and a tap opens Repairs."""
+async def test_the_house_card_names_the_problem_and_leads_to_the_fix_only_while_there_is_one(hass):
+    """The night-time check: the Overview says what is wrong, in a few words, and a tap opens Repairs.
+
+    rc.5: the house card carries the problem (its strip turns red with the reason, a tap opens Repairs and "All
+    reasons" lists them, frontend/house-card.js); no problem tile or reasons card of its own any more."""
     e, rooms, sensors, hub, fields = installation(hass)
     entities, devices = er.async_get(hass), dr.async_get(hass)
     product = devices.async_get_device_by_identifier(("open_thermostat", "fixture"), e.entry_id)
@@ -446,19 +453,17 @@ async def test_the_problem_tile_names_the_problem_and_leads_to_the_fix_only_whil
     assert [s["cards"][0]["heading"] for s in boiler_view["sections"]][:2] == ["Boiler", "Advice"]
     assert hub["heating_advice"] not in json.dumps(overview)
     house = overview["sections"][0]["cards"]
-    on = [{"condition": "state", "entity": hub["heating_problem"], "state": "on"}]
-    # Shown only while there is a problem; it shows the reason itself, not "Problem"; a tap opens Repairs.
-    assert house[2] == {"type": "tile", "entity": hub["heating_problem"], "name": "Heating", "visibility": on,
-                        "state_content": ["reason"], "grid_options": {"columns": 12},
-                        "tap_action": {"action": "navigate", "navigation_path": "/config/repairs"}}
-    reasons = house[3]
-    assert reasons["visibility"] == on and "'reasons'" in reasons["content"] and "<details>" in reasons["content"]
-    assert hub["heating_problem"] in reasons["content"]
+    assert house[1]["type"] == HOUSE_CARD_TYPE and house[1]["problem"] == hub["heating_problem"]
+    # The card reads the problem; no native tile or markdown card shows it a second time.
+    assert [c["type"] for c in house] == ["heading", HOUSE_CARD_TYPE]
+    assert [c for c in view_cards(overview) if c.get("entity") == hub["heating_problem"]] == []
+    assert "'reasons'" not in json.dumps(overview)
     # The boiler's own maximum (a knob on some boilers, a menu on others) is a boiler value, in the Boiler view only.
     assert field in json.dumps(boiler_view) and field not in json.dumps(overview)
     hass.config.language = "nl"
     text = json.dumps(RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config(), ensure_ascii=False)
-    assert '"Huis"' in text and '"Overzicht"' in text and "Alle redenen" in text
+    # "All reasons" is the card's own text now (translations, entity.sensor.heat_request.state_attributes.card).
+    assert '"Huis"' in text and '"Overzicht"' in text and "Alle redenen" not in text
 
 
 @pytest.mark.asyncio

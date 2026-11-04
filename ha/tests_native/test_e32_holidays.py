@@ -316,6 +316,8 @@ async def test_the_card_sits_under_house_on_the_overview(hass):
                                                     device_id=product_device.id, suggested_object_id="house_mode").entity_id
     overview = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"][0]
     house = overview["sections"][0]["cards"]
-    assert house[0]["heading"] == "House" and house[1]["entity"] == select
-    assert house[2]["type"] == "markdown" and house[2]["show_empty"] is False and select in house[2]["content"]
+    # rc.5: under the house card (which shows the house mode as a chip), the house mode tile and the holiday.
+    assert house[0]["heading"] == "House" and house[1]["type"] == "custom:openthermostat-house"
+    assert house[1]["mode"] == select and house[2]["entity"] == select
+    assert house[3]["type"] == "markdown" and house[3]["show_empty"] is False and select in house[3]["content"]
 

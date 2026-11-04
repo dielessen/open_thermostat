@@ -218,6 +218,10 @@ Pendelen: eerst meten met de nieuwe driewegklep (vanaf 4 november); geen regelwi
 
 **Gevolg:** de 14 dagen naar 1.0.0 beginnen opnieuw bij de installatie van rc.4; 1.0.0 eind november op zijn vroegst. Slim opwarmen werkt dan echt in 1.0.0.
 
+## rc.5 — luisteren naar de ketel, een huismodel, weten wat hij niet weet, inzichten en gratis warmte (besluit eigenaar 4 november)
+
+De eigenaar wil het zelfleren compleet in 1.0 ("top of the build self learning"), universeel voor alle EMS-ketels, zonder knoppen. rc.5 wordt mét opname geïnstalleerd (de geaccepteerde update) en is de code van v1.0.0; de 14 dagen lopen op rc.5. Ontwerp, contracten, werkpakketten P1–P7 en bewijs: [RC5-PLAN.md](RC5-PLAN.md). Kort: (1) `BoilerResponse` — vastgehouden doelen, het rustritme van de ketel en opgenomen warmte uit aanvoer–retour → een geleerd plafond op de aanvraag per buitentemperatuur-band en een bodem onder de branderrust; (2) `HouseModel` — warmteverlies per K en afgifte per K aanvoer, een vroege stookcurve; (3) `Knowledge` — één kennisgetal met wat nog ontbreekt; (4) `Insights` — gisteren tegen de eigen basislijnen, alleen informatie; (5) `FreeHeat` — gratis warmte per dagdeel, kortere opwarmstarts. Bewust niet: weersvoorspelling, dagplanning, aanwezigheidspatronen (na 1.0, zonder nieuwe structuur).
+
 ## Na 1.0
 
 - **Alleen-lezen API-sleutel voor assistenten** (eigenaar 2 november): een sleutel op de E32 voor gereedschap en assistenten, standaard uit en in te trekken; alleen GET-routes, zonder websessie, met een verzoeklimiet. Zo kan bijvoorbeeld de Claude van een vriend zijn E32 lezen zonder het admin-wachtwoord.

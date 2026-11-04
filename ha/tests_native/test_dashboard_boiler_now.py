@@ -50,7 +50,7 @@ async def test_the_owners_now_is_one_card_with_what_it_needs(hass):
     assert section["column_span"] == 2  # the four figures in one row on a wide screen, as the sketch (Ketel-desktop)
     heading, card = section["cards"]
     assert (heading["heading"], heading["icon"]) == ("Now", "mdi:water-boiler")
-    assert card == {"type": BOILER_NOW_CARD_TYPE, "grid_options": {"columns": 12}, "activity": hub["boiler_activity"],
+    assert card == {"type": BOILER_NOW_CARD_TYPE, "grid_options": {"columns": "full"}, "activity": hub["boiler_activity"],
                     "heating": fields["heating_active"], "hot_water": fields["dhw_active"], "code": fields["display_code"],
                     "flow": fields["measured_flow_temperature"], "return": fields["measured_return_temperature"],
                     "modulation": fields["reported_burner_modulation"], "starts": hub["burner_starts_last_hour"],
@@ -70,7 +70,9 @@ async def test_the_owners_now_is_one_card_with_what_it_needs(hass):
     assert list(headed(boiler)) == ["Now", "Advice", "Today and this week", "Hot water", "Last 24 hours",
                                     "What the boiler reports", "Boiler settings"]
     # As the desktop sketch: Now and the advice across the whole width, the other sections two by two under them.
+    # Such a section has 24 grid columns in Home Assistant: its cards take them all ("full"), not 12 of them.
     assert [s.get("column_span") for s in boiler["sections"]] == [2, 2, None, None, None, None, None]
+    assert all(c["grid_options"]["columns"] == "full" for s in boiler["sections"][:2] for c in s["cards"][1:])
     # Once, on the Boiler view only; its words are the card's own (strings.json), so the config is the same in every
     # language: entity ids only.
     assert sum(json.dumps(v).count(BOILER_NOW_CARD_TYPE) for v in config["views"]) == 1
@@ -100,7 +102,7 @@ async def test_now_is_there_with_what_the_boiler_reports_and_gone_without(hass):
     for entity_id in fields.values():
         registry.async_remove(entity_id)
     section = now()
-    assert section["cards"][1] == {"type": BOILER_NOW_CARD_TYPE, "grid_options": {"columns": 12},
+    assert section["cards"][1] == {"type": BOILER_NOW_CARD_TYPE, "grid_options": {"columns": "full"},
                                    "starts": hub["burner_starts_last_hour"], "cycling": hub["burner_short_cycling"],
                                    "request": hub["heat_request"]}
     assert section["visibility"] == [{"condition": "or", "conditions": [known(hub["burner_starts_last_hour"])]}]
@@ -121,7 +123,7 @@ def test_the_card_module_is_served_with_the_others_and_carries_the_version():
     assert """'room_overview.py|BOILER_NOW_CARD_URL = "/open_thermostat/boiler-now-card-'""" in script
     assert "versioned frontend URLs: all eight carry" in script
     assert "ensureDefined('openthermostat-boiler-now', OpenThermostatBoilerNow);" in CARD
-    assert "getGridOptions() { return {columns: 12, min_columns: 12}; }" in CARD and "getCardSize() { return 4; }" in CARD
+    assert "getGridOptions() { return {columns: 'full'}; }" in CARD and "getCardSize() { return 4; }" in CARD
     assert "custom:openthermostat-boiler-now" in dashboard.__doc__
 
 

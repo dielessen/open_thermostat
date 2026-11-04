@@ -24,7 +24,7 @@ const html=(view,hidden,width)=>{
  const columns=Math.max(1,Math.min(view.max_columns||1,Math.floor((width-32)/320)));
  // A section with column_span takes that many columns where there are (the Overview's sections, the Boiler view's Now).
  const sections=(view.sections||[]).map(section=>`<section style="grid-column:span ${Math.min(columns,section.column_span||1)}">${section.cards.filter(c=>!(hidden&&c.visibility)).map(card=>{
-  const span=(card.grid_options&&card.grid_options.columns)||(HALF.includes(card.type)?6:12);
+  const wide=(card.grid_options&&card.grid_options.columns)||(HALF.includes(card.type)?6:12),span=wide==='full'?12:wide;
   return `<div class="card ${card.type.replace(/[^a-z-]/g,'')}" data-span="${span}" style="grid-column:span ${span};min-height:${height(card)}px">`+
    `<small>${card.type.replace('custom:openthermostat-','')}</small><b>${String(label(card)).replace(/</g,'&lt;')}</b>${card.visibility&&!hidden?'<i>conditional</i>':''}</div>`;}).join('')}</section>`).join('');
  return `<style>:root{--bg:#fafafa;--fg:#212121;--card:#fff;--muted:#727272;--tile:#eef5ff;--note:#fffbe8;--chart:#f1f8f1;--tag:#b26a00}

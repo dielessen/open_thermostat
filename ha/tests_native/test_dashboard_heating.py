@@ -147,7 +147,7 @@ async def test_the_views_are_overview_rooms_boiler_learning_and_diagnostics(hass
     now_section = boiler_view["sections"][0]
     now = now_section["cards"]
     assert (now[0]["heading"], now[0]["icon"]) == ("Now", "mdi:water-boiler")
-    assert now[1:] == [{"type": BOILER_NOW_CARD_TYPE, "grid_options": {"columns": 12}, "code": fields["display_code"],
+    assert now[1:] == [{"type": BOILER_NOW_CARD_TYPE, "grid_options": {"columns": "full"}, "code": fields["display_code"],
                         "flow": fields["measured_flow_temperature"], "return": fields["measured_return_temperature"],
                         "modulation": fields["reported_burner_modulation"], "starts": hub["burner_starts_last_hour"],
                         "cycling": hub["burner_short_cycling"], "request": hub["heat_request"]}]

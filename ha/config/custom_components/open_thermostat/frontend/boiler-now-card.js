@@ -169,7 +169,7 @@ class OpenThermostatBoilerNow extends HTMLElement {
   else if (!wanted && this._timer) { clearInterval(this._timer); this._timer = null; }
  }
  getCardSize() { return 4; }
- getGridOptions() { return {columns: 12, min_columns: 12}; }
+ getGridOptions() { return {columns: 'full'}; }  // the whole section, also one across two columns
  entities() { return Object.values(this._config).filter(Boolean); }
  st(id) { return id ? this._hass?.states?.[id] || null : null; }
  // A text of the card (strings.json …boiler_activity.state_attributes.card), its {placeholders} filled; English as the last resort.

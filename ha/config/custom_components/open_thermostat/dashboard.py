@@ -1136,7 +1136,7 @@ def _boiler_now(t, hub, fields, essential, flow_source=None):
              "return": back, "modulation": modulation, "starts": starts, "starts_today": hub.get("daily_burner_starts"),
              "cycling": hub.get("burner_short_cycling"), "request": hub.get("heat_request"), "ceiling": flow_source}
     return _section_known(shown, _heading(t["now"], ICONS["now"]),
-                          {"type": BOILER_NOW_CARD_TYPE, "grid_options": {"columns": 12},
+                          {"type": BOILER_NOW_CARD_TYPE, "grid_options": {"columns": "full"},
                            **{key: value for key, value in reads.items() if value}})
 
 
@@ -2083,10 +2083,13 @@ class RoomDashboard:
         from .boiler_fields import INDEX_BY_NAME, quality
         now, advice = _boiler_now(t, hub, fields, essential, flow_source), _advice_section(t, hub.get("heating_advice"))
         # As the owner's sketch on a wide screen: Now across the whole width (its four figures in one row), the advice
-        # as a strip under it, then the other sections in two columns. A phone shows one column anyway.
+        # as a strip under it, then the other sections in two columns. A phone shows one column anyway. A section
+        # across two columns has a grid of 24 columns, so a card of 12 would fill half of it: its cards take it all.
         for section in (now, advice):
             if section:
                 section["column_span"] = 2
+                for card in section["cards"][1:]:
+                    card["grid_options"] = {**card.get("grid_options", {}), "columns": "full"}
         sections = [now, advice, _energy_section(t, hub), _hot_water_section(t, hub, fields, essential)]
         raw = thermostat = None
         if fields:

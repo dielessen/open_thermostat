@@ -177,7 +177,10 @@ async def test_every_section_starts_with_its_heading_and_every_view_is_sections(
                 assert [card["type"] for card in section["cards"]] == [HOUSE_CARD_TYPE] and section["column_span"] == 3
                 continue
             assert section["cards"][0]["type"] == "heading", (view["path"], section["cards"][0])
-            assert "column_span" not in section, (view["path"], section["cards"][0])
+            # rc.5: a section may span columns (the Boiler view's Now and Advice strips, the Learning view's chart),
+            # never more than the view has; a span of 1 is the default and is not written.
+            span = section.get("column_span", 1)
+            assert 1 < span <= view["max_columns"] if "column_span" in section else True, (view["path"], section["cards"][0])
     # The order the owner asked for: overview, rooms, week program, boiler, learning, diagnostics.
     assert [v["path"] for v in config["views"]] == ["heating", "rooms", "boiler", "learned", "diagnostics", "comparison"]
 

@@ -150,8 +150,8 @@ ketel.
    python3 -I tools/switchover/record_test.py --date $D init --firmware v1.0.0-e32v2-rc.5 --ha 1.0.0rc6
    ```
 
-2. Start de bewaking in een **eigen venster**; jij typt daar het E32-wachtwoord. Hij meet elke 30 s, schrijft naar
-   `out/switchover-<datum>/` en stopt na 3 uur zelf:
+2. Start de bewaking in een **eigen venster**; het vraagt "E32 password for admin:" en jij typt daar het E32-wachtwoord.
+   Hij meet elke 30 s, schrijft naar `out/switchover-<datum>/` en stopt na 3 uur zelf:
 
    ```powershell
    Start-Process powershell -WorkingDirectory $PWD.Path -ArgumentList '-NoExit','-Command',"python3 -I tools/switchover/monitor.py --host http://192.168.1.206 --interval 30 --duration-h 3 --out out/switchover-$D"
@@ -530,7 +530,7 @@ min, waterdruk 1,1–2,5 bar, geen storing. (4) Doel terug (**Terug naar het wee
 
 **[Claude]:**
 1. `python3 -I tools/switchover/record_test.py --date $D status`: alle twaalf `pass` (T12 mag `alternative`); geen `fail` of `open`.
-2. **Noteer het moment** (UTC) waarop de E32 na T11 weer `active` was: dat is `--since` voor `release_ready.py`, maar niet
+2. **Noteer het moment** (UTC: in de winter lokale tijd min 1 uur) waarop de E32 na T11 weer `active` was: dat is `--since` voor `release_ready.py`, maar niet
    vóór het einde van de rc.5-installatie (neem het latere).
 3. Laat `release_ready.py` het één keer lezen (alleen lezen). `failure_tests` moet `PASS` zijn; de rest `WAIT`, en
    `install_guide` en `trv_control` blijven `WAIT`:

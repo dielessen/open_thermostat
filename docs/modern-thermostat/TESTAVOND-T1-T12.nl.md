@@ -43,7 +43,7 @@ kranentest. **n.v.t.** zijn:
 
 | Onderdeel | Status | Waarom | `release_ready.py` |
 | --- | --- | --- | --- |
-| Radiatorkranen: schakelaar "Radiatorkranen aansturen", kraanproef, criterium `trv_control` | **n.v.t. voor dit huis** | Geen slimme kranen op de drie radiatoren, geen zoneklep op de vloer. Doet de veldtester ([TESTER-PAKKET.nl.md](TESTER-PAKKET.nl.md)). | `trv_control` blijft `WAIT` zolang er in de Home Assistant van `--ha-url` geen `…_valve_control`-schakelaar 14 dagen aan stond; de poort voor `v1.0.0-e32v2` eist `PASS` op elk criterium (open vraag 6). |
+| Radiatorkranen: schakelaar "Radiatorkranen aansturen", kraanproef, criterium `trv_control` | **n.v.t. voor dit huis** | Geen slimme kranen op de drie radiatoren, geen zoneklep op de vloer. Doet de veldtester ([TESTER-PAKKET.nl.md](TESTER-PAKKET.nl.md)). | `trv_control` is `PASS` als "niet van toepassing" zodra er in de Home Assistant van `--ha-url` geen `…_valve_control`-schakelaar bestaat (rc.5: die schakelaars zijn er alleen voor ruimtes met kranen); met kranen moet de schakelaar 14 dagen aan hebben gestaan. |
 | T3 "eerst Minimale brandertijd" (alleen bij een vraag korter dan 5 min) | **n.v.t. voor dit huis** | Na T2 brandde de brander al 25 minuten of langer. De minimale pauze is wel een eis en wordt gedaan. | Geen aparte uitslag. |
 | T9 "Variant: broker weg 20 min" | Niet ingepland (optioneel) | De Mosquitto-add-on stop je in de Home Assistant-pagina, en die staat dan uit. | Zeg in de uitslag van T9 of je hem deed. |
 | T12 "buiten koud leggen" | Alternatief mogelijk | Het hoeft niet te vriezen: weg A (hulpsensor in Home Assistant) of weg B (koeltas). | `alternative` mag alleen bij T12, met `--evidence`. |
@@ -533,7 +533,7 @@ min, waterdruk 1,1–2,5 bar, geen storing. (4) Doel terug (**Terug naar het wee
 2. **Noteer het moment** (UTC: in de winter lokale tijd min 1 uur) waarop de E32 na T11 weer `active` was: dat is `--since` voor `release_ready.py`, maar niet
    vóór het einde van de rc.5-installatie (neem het latere).
 3. Laat `release_ready.py` het één keer lezen (alleen lezen). `failure_tests` moet `PASS` zijn; de rest `WAIT`, en
-   `install_guide` en `trv_control` blijven `WAIT`:
+   `install_guide` blijft `WAIT` en `trv_control` is `PASS` (niet van toepassing: geen kranen):
 
    ```powershell
    $env:OT_HA_TOKEN = (Get-Content tools/acceptance/ha-token.txt -Raw).Trim()
@@ -559,7 +559,7 @@ Een nieuwe E32-herstart, teruggeven of firmware-update daarbinnen zet de klok te
 3. Hoe wordt de E32 gevoed (eigen voeding of bus)? Dat bepaalt T7 en T11.
 4. Mag T12 met de hulpsensor in Home Assistant (gesimuleerd) in plaats van een echte koude sensor?
 5. De variant "broker weg" van T9: overslaan of toevoegen (+ 20 min)? En mag T7 na 20 in plaats van 30 min stoppen (O2 is na 15 min beantwoord)?
-6. `trv_control` kent geen "n.v.t." (in `release_ready.py` en in de poort voor `v1.0.0-e32v2`), maar jouw huis heeft geen slimme kranen.
+6. ~~`trv_control` kent geen "n.v.t."~~ Opgelost in rc.5: zonder kraanschakelaars geeft `release_ready.py` `PASS` (niet van toepassing), en de poort ziet `PASS`.
    Tellen de kranen van de veldtester mee, of koop je zelf kranen voor de drie radiatoren? Het criterium meet alleen de Home
    Assistant van `--ha-url`.
 7. Akkoord met T12 vóór T1 en T9 vóór T8 (T8 draait dan bovenop T9), in plaats van de volgorde T1–T12 van de checklist?

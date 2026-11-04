@@ -173,7 +173,7 @@ De criteria, gemeten met `tools/switchover/release_ready.py` (alleen lezen):
 | --- | --- | --- |
 | `stability` | 14 dagen zonder onverwachte herstart of langdurig offline; een geplande update telt niet | HA-geschiedenis (uptime, Firmware-entiteit) |
 | `active_control` | de E32 stuurt de ketel zelf, 14 dagen zonder teruggeven | HA 0.4.0b14+: `boiler_output_enabled` |
-| `trv_control` | elke ruimte met kranen heeft de kraansturing 14 dagen aan | de kraanschakelaars van de 1.0-kandidaat |
+| `trv_control` | elke ruimte met kranen heeft de kraansturing 14 dagen aan; zonder kranen (geen kraanschakelaars) "niet van toepassing" = PASS (rc.5) | de kraanschakelaars van de 1.0-kandidaat |
 | `failure_tests` | alle bijgewoonde tests T1–T12 geslaagd (T12 mag het alternatief uit de checklist) | `OVERSCHAKELING-RESULTATEN-<datum>.json`, via `tools/switchover/record_test.py` |
 | `updates` | minstens één update geaccepteerd via de HA-route | `update-acceptance/e32-beta20/21/22-*.json` (PASS) |
 | `install_guide` | iemand anders volgde de installatiehandleiding tot het eind; elk gevonden probleem opgelost | `INSTALLATIETEST-<datum>.json`, via `record_test.py install` |

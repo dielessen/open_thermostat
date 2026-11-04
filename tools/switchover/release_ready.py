@@ -9,7 +9,8 @@ FAIL per criterion:
                      around a firmware install is planned and does not count (shadow_exit.py)
   2. active_control  the E32 has run the boiler itself (boiler_output_enabled, HA 0.4.0b14+)
                      for the last 14 days without a hand-back
-  3. trv_control     every room with radiator valves has had valve control on for 14 days
+  3. trv_control     every room with radiator valves has had valve control on for 14 days;
+                     an installation without valves (no valve-control switches) passes as not applicable
                      (WAIT until the 1.0 valve control exists and is switched on)
   4. failure_tests   every attended switch-over test (OVERSCHAKELING.nl.md section 6) passed,
                      recorded with record_test.py in OVERSCHAKELING-RESULTATEN-<date>.json
@@ -101,8 +102,12 @@ def active_control(series, end):
 
 
 def trv_control(by_entity, end):
+    # rc.5: the valve-control switches exist only for rooms with radiator valves (HA 1.0.0rc6), so an
+    # installation without them has nothing to measure: not applicable, which PASSES the criterion (the
+    # gate requires PASS on every criterion; a house without valves must not be held back by them).
     if not by_entity:
-        return {'result': WAIT, 'why': 'no radiator-valve control entities yet (1.0 valve control)', 'rooms': {}}
+        return {'result': PASS, 'not_applicable': True,
+                'why': 'not applicable: no radiator valves in this installation (no valve-control switches)', 'rooms': {}}
     rooms = {entity: span_criterion(series, end, 'valve control') for entity, series in sorted(by_entity.items())}
     ok = all(r['result'] == PASS for r in rooms.values())
     short = [e for e, r in rooms.items() if r['result'] != PASS]

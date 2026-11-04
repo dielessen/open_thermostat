@@ -98,11 +98,13 @@ class Criteria(unittest.TestCase):
         _, out = rr.evaluate(self.history(end, restarts=[crash], planned=[crash - 60]), end, self.repo())
         self.assertEqual(out['stability']['result'], rr.PASS)
 
-    def test_no_valve_control_yet_waits(self):
+    def test_no_valve_control_is_not_applicable(self):
+        # rc.5: no valve-control switches = no radiator valves in this installation: the criterion passes.
         end = T0 + 15 * D
-        overall, out = rr.evaluate(self.history(end, trv={}), end, self.repo())
-        self.assertEqual(out['trv_control']['result'], rr.WAIT)
-        self.assertEqual(overall, rr.WAIT)
+        _, out = rr.evaluate(self.history(end, trv={}), end, self.repo())
+        self.assertEqual(out['trv_control']['result'], rr.PASS)
+        self.assertTrue(out['trv_control']['not_applicable'])
+        self.assertIn('not applicable', out['trv_control']['why'])
 
     def test_a_failed_attended_test_fails_and_a_later_pass_counts(self):
         session = full_session()

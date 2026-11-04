@@ -1274,9 +1274,11 @@ def _holiday_card(t, select):
     def day(name):
         return "{{ " + name + ".day }} {{ months[" + name + ".month - 1] }}"
 
+    # Home Assistant renders a markdown card's template strictly: "| first" of an empty list is an error there (an empty
+    # box and a logged error on every render), so the first holiday is taken only when there is one.
     return {"type": "markdown", "show_empty": False, "content": (
-        "{% set h = (state_attr(" + json.dumps(select) + ", 'holidays') or []) | first %}"
-        "{% if h %}{% set months = " + json.dumps(t["months"], ensure_ascii=False) + ".split(',') %}"
+        "{% set planned = state_attr(" + json.dumps(select) + ", 'holidays') or [] %}"
+        "{% if planned %}{% set h = planned[0] %}{% set months = " + json.dumps(t["months"], ensure_ascii=False) + ".split(',') %}"
         "{% set f = as_local(as_datetime(h['from'])) %}{% set u = as_local(as_datetime(h['until'])) %}"
         "{% if f <= now() %}" + t["holiday_now"].replace("{until}", day("u"))
         + "{% else %}" + t["holiday_next"].replace("{from}", day("f")).replace("{until}", day("u"))
@@ -1612,7 +1614,9 @@ class RoomDashboard:
         if device_id in self._device_ids:
             return True
         device = dr.async_get(self.hass).async_get(device_id) if type(device_id) is str else None
-        return device is not None and self.entry_id in device.config_entries
+        # A device belongs to one config entry (Core 2026.10, the minimum): DeviceEntry.config_entries is a deprecated
+        # shim there, and every read of it is reported as deprecated use (a warning and a repair the user sees).
+        return device is not None and device.config_entry_id == self.entry_id
 
     @staticmethod
     @callback

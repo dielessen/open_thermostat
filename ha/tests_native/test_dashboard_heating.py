@@ -611,6 +611,9 @@ async def test_registry_events_of_other_integrations_never_rebuild_the_dashboard
     later = []
     monkeypatch.setattr(module, "async_call_later", lambda hass, delay, action: later.append((delay, action))
                         or (lambda: None))
+    # Never a deprecated registry read (DeviceEntry.config_entries, Core 2026.10): each one is a repair for the user.
+    deprecated = []
+    monkeypatch.setattr(dr, "report_usage", lambda what, **kwargs: deprecated.append(what))
     e, rooms, sensors, hub, fields = installation(hass)
     dashboard = RoomDashboard(hass, "fixture", e.entry_id)
     built = []
@@ -652,5 +655,13 @@ async def test_registry_events_of_other_integrations_never_rebuild_the_dashboard
     hass.bus.async_fire(EVENT_CORE_CONFIG_UPDATE, {"language": "nl"})
     await hass.async_block_till_done()
     assert len(later) == 1
+    # A new device of this entry (a room the E32 reports) rebuilds it too: known by its one config entry, read without
+    # the deprecated DeviceEntry.config_entries (none of the 150 other devices read it either).
+    later.pop()[1](None)
+    await hass.async_block_till_done()
+    devices.async_get_or_create(config_entry_id=e.entry_id, identifiers={("open_thermostat", "fixture_e32_room_zolder")},
+                                name="Zolder")
+    await hass.async_block_till_done()
+    assert len(later) == 1 and deprecated == []
     for unsubscribe in dashboard._unsubscribe:
         unsubscribe()

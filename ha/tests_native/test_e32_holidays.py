@@ -291,7 +291,10 @@ async def test_the_overview_names_the_next_holiday(hass):
     holidays = [{"from": dt_util.utc_from_timestamp(f).isoformat(), "until": dt_util.utc_from_timestamp(u).isoformat()}
                 for f, u in (first,)]
     hass.states.async_set(select, "auto", {"holidays": holidays})
-    render = lambda language: Template(_holiday_card(TEXT[language], select)["content"], hass).async_render()  # noqa: E731
+    # Strictly, as Home Assistant's markdown card renders it: an undefined value (the first of no holidays) is an error
+    # there, an empty box with an error logged on every render, not an empty text.
+    render = lambda language: Template(_holiday_card(TEXT[language], select)["content"], hass).async_render(  # noqa: E731
+        strict=True)
     assert render("en") == "Holiday from 20 Dec to 3 Jan"
     assert render("nl") == "Vakantie vanaf 20 dec t/m 3 jan"
     assert render("pl") == "Urlop od 20 gru do 3 sty"

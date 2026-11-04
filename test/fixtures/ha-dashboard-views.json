@@ -280,7 +280,7 @@
         ]
        },
        {
-        "content": "{% set h = (state_attr(\"select.house_mode\", 'holidays') or []) | first %}{% if h %}{% set months = \"Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec\".split(',') %}{% set f = as_local(as_datetime(h['from'])) %}{% set u = as_local(as_datetime(h['until'])) %}{% if f <= now() %}On holiday until {{ u.day }} {{ months[u.month - 1] }}{% else %}Holiday from {{ f.day }} {{ months[f.month - 1] }} to {{ u.day }} {{ months[u.month - 1] }}{% endif %}{% endif %}",
+        "content": "{% set planned = state_attr(\"select.house_mode\", 'holidays') or [] %}{% if planned %}{% set h = planned[0] %}{% set months = \"Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec\".split(',') %}{% set f = as_local(as_datetime(h['from'])) %}{% set u = as_local(as_datetime(h['until'])) %}{% if f <= now() %}On holiday until {{ u.day }} {{ months[u.month - 1] }}{% else %}Holiday from {{ f.day }} {{ months[f.month - 1] }} to {{ u.day }} {{ months[u.month - 1] }}{% endif %}{% endif %}",
         "show_empty": false,
         "type": "markdown"
        }
@@ -4771,7 +4771,7 @@
         ]
        },
        {
-        "content": "{% set h = (state_attr(\"select.house_mode\", 'holidays') or []) | first %}{% if h %}{% set months = \"jan,feb,mrt,apr,mei,jun,jul,aug,sep,okt,nov,dec\".split(',') %}{% set f = as_local(as_datetime(h['from'])) %}{% set u = as_local(as_datetime(h['until'])) %}{% if f <= now() %}Op vakantie t/m {{ u.day }} {{ months[u.month - 1] }}{% else %}Vakantie vanaf {{ f.day }} {{ months[f.month - 1] }} t/m {{ u.day }} {{ months[u.month - 1] }}{% endif %}{% endif %}",
+        "content": "{% set planned = state_attr(\"select.house_mode\", 'holidays') or [] %}{% if planned %}{% set h = planned[0] %}{% set months = \"jan,feb,mrt,apr,mei,jun,jul,aug,sep,okt,nov,dec\".split(',') %}{% set f = as_local(as_datetime(h['from'])) %}{% set u = as_local(as_datetime(h['until'])) %}{% if f <= now() %}Op vakantie t/m {{ u.day }} {{ months[u.month - 1] }}{% else %}Vakantie vanaf {{ f.day }} {{ months[f.month - 1] }} t/m {{ u.day }} {{ months[u.month - 1] }}{% endif %}{% endif %}",
         "show_empty": false,
         "type": "markdown"
        }

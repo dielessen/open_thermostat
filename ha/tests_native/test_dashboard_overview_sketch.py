@@ -89,7 +89,8 @@ def today_card(config, language="en"):
 
 
 def render(hass, card):
-    return Template(card["content"], hass).async_render(parse_result=False)
+    """The card's text as Home Assistant's markdown card renders it: strictly (an undefined value is an error)."""
+    return Template(card["content"], hass).async_render(parse_result=False, strict=True)
 
 
 def local(day, hour, minute):

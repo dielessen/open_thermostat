@@ -332,27 +332,32 @@ def content():
          KeepTogether([
          p("Het dashboard", "h2"),
          p("Open in de zijbalk het dashboard <b>OpenThermostat</b>. Het heeft zes tabbladen:"),
-         # The names that come with HA 1.0.0rc6 (docs/modern-thermostat/RC5-DASHBOARD-SPEC.md) are plain <b> until they are in the
-         # Dutch dashboard texts of dashboard.py (Overige ruimtes, Vandaag en deze week, Wat de ketel meldt, Gisteren in cijfers, Wie
-         # regelt de ketel) or in translations/nl.json (Wat de E32 weet, Watertemperatuur bij buitentemperatuur). Then move them
-         # into ui() so that tools/dev/test_manual_labels.py checks them.
+         # The dashboard as the owner sketched it (docs/modern-thermostat/RC5-DASHBOARD-SPEC.md, the rc5-design sketches). Names that
+         # are in the Dutch dashboard texts or in translations/nl.json already go through ui(), so that tools/dev/test_manual_labels.py
+         # checks them. These are plain <b> until the cards that bring them are merged and their texts are in the integration; then
+         # move them into ui(): Vandaag (the Overview's Today card), Huis (its House card), Je ketel, Opgevallen and Gratis warmte
+         # (sections of Leren en instellingen).
          table([["Tabblad", "Wat je ziet"],
-                [ui("Overzicht"), "Bovenaan de <b>huiskaart</b>: een strook in de kleur van wat de ketel nu doet (verwarmt, warm water of in rust), "
-                 "met de huismodus rechts. Bij een probleem wordt de strook rood met de reden; een tik brengt je bij Reparaties. Onder de strook "
-                 "staan de cijfers van vandaag (verwarming, warm water, gas met de laatste 7 dagen, branderstarts) en de dag tot nu toe als balk. "
-                 "Daaronder komen de huismodus, de volgende vakantie en een kaart per ruimte die in één regel zegt waarom ze verwarmt of niet. "
-                 "Staat er maar één ruimte aan, dan zit die in de huiskaart en staan de andere onder " + ui("Overige ruimtes") + "."],
+                [ui("Overzicht"), "Bovenaan de <b>huiskaart</b>: een band in de kleur van wat de ketel nu doet (verwarmt, warm water of in rust), "
+                 "met de huismodus rechts. Bij een probleem wordt de band rood met de reden; een tik brengt je bij Reparaties. Onder de band "
+                 "staan de cijfers van vandaag (de ruimte die aan staat, warm water, gas met de laatste 7 dagen, branderstarts) en de dag tot "
+                 "nu toe als balk. Daaronder komen " + ui("Ruimtes") + " (een kaart per ruimte die in één regel zegt waarom ze verwarmt of niet, "
+                 "met kleine labels voor haar toestand), <b>Vandaag</b> (hoe laat Slim opwarmen morgen begint en wat de weerafhankelijke regeling "
+                 "nu vraagt) en <b>Huis</b> (thuis of weg, vakantie en de buitentemperatuur)."],
                 [ui("Ruimtes"), "Per ruimte de thermostaat, de dag, de sensoren, ramen en personen, en wat de E32 leerde."],
                 [ui("Weekprogramma"), "De weekplanner voor alle ruimtes."],
-                [ui("Ketel"), "In de volgorde van wat je nodig hebt: " + ui("Nu") + " (wat de ketel doet, met de displaycode, de watertemperaturen "
-                 "en het brandervermogen), " + ui("Advies") + ", " + ui("Vandaag en deze week") + " (gas en branderstarts van vandaag, met één grafiek "
-                 "met het gas per dag van de laatste week), " + ui("Warm water") + ", " + ui("Afgelopen 24 uur") + ", " + ui("Wat de ketel meldt") + " en "
-                 + ui("Ketelinstellingen") + ". Een onderdeel verschijnt pas als de ketel er iets voor meldt. Gisteren staat hier niet; dat vind "
-                 "je bij " + ui("Leren en instellingen") + "."],
-                [ui("Leren en instellingen"), "Hier lees je wat de E32 zelf leerde en deed: " + ui("Wat de E32 weet") + " en nog moet leren, met de reactie "
-                 "van de ketel en gisteren vergeleken met normaal; " + ui("Gisteren in cijfers") + " (gisteren staat alleen hier); wat de "
-                 "thermostaat leerde over je ruimtes, je huis en je ketel, met de gratis warmte; Slim opwarmen en de weerafhankelijke regeling "
-                 "met de grafiek " + ui("Watertemperatuur bij buitentemperatuur") + "; en " + ui("Wie regelt de ketel") + ", met de controle voor de overname."],
+                [ui("Ketel"), "Bovenaan de kaart " + ui("Nu") + ": een band in de kleur van wat de ketel doet, met de ketel in woorden en de "
+                 "displaycode, en daaronder het water naar de verwarming en terug, het brandervermogen met een meter en de starts van het laatste "
+                 "uur. Dan, in de volgorde van wat je nodig hebt: " + ui("Advies") + ", " + ui("Vandaag en deze week") + " (gas en branderstarts "
+                 "van vandaag, met één grafiek met het gas per dag van de laatste week), " + ui("Warm water") + ", " + ui("Afgelopen 24 uur") + ", "
+                 + ui("Wat de ketel meldt") + " en " + ui("Ketelinstellingen") + ". Een onderdeel verschijnt pas als de ketel er iets voor meldt. "
+                 "Gisteren staat hier niet; dat vind je bij " + ui("Leren en instellingen") + "."],
+                [ui("Leren en instellingen"), "Hier lees je wat de E32 zelf leerde en deed, in zeven onderdelen: " + ui("Wat de E32 weet") + " (hoeveel "
+                 "van je huis hij kent en wat hij nog moet leren), <b>Je ketel</b> (hoe je ketel zijn temperatuur vasthoudt en wat de E32 daardoor "
+                 "vraagt), " + ui("Watertemperatuur bij buitentemperatuur") + " (de grafiek met de standaardlijn en de lijn die voor je huis is "
+                 "geleerd), " + ui("Gisteren in cijfers") + " (gisteren staat alleen hier), <b>Opgevallen</b> (gisteren vergeleken met je eigen "
+                 "gewone dagen), <b>Gratis warmte</b> (wat zon, koken en mensen een ruimte geven) en " + ui("Slim opwarmen en weerafhankelijke regeling")
+                 + " (de twee schakelaars)."],
                 [ui("Diagnose"), "Voor het zoeken naar fouten, met ook " + ui("Thermostaat op de bus") + ": wat een andere thermostaat aan de ketel "
                  "vraagt, zoals de E32 het hoort."]],
                [48 * mm, W - 48 * mm])]),

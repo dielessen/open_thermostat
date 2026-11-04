@@ -29,6 +29,14 @@ BATHROOM_THERMOSTAT = "climate.thermostaat_badkamer"
 OUTDOOR = "sensor.buitentemperatuur"
 
 COMFORT, ECO, NIGHT = 2100, 1950, 1850
+# Weather compensation: the standard line reaches 50 °C at -10 °C outside; the house learned a flatter one.
+DESIGN_FLOW_C, SLOPE = 50, 0.85
+REQUEST_NOW, STARTS_TODAY = 42, 14
+
+
+def curve_flow(outdoor, room=21.0):
+    """The learned line: water = room + slope x (room - outdoor), within 30..60 °C (the plan's limits)."""
+    return min(60.0, max(30.0, room + SLOPE * max(0.0, room - outdoor)))
 # Monday first (RoomSchedule.h: (tm_wday + 6) % 7). Weekdays up at 06:30, the weekend at 08:00.
 WEEKDAY = [[0, NIGHT], [390, COMFORT], [1350, NIGHT]]
 WEEKEND = [[0, NIGHT], [480, COMFORT], [1380, NIGHT]]
@@ -99,7 +107,7 @@ class Timeline:
 
     def _outdoor(self, local):
         hour = local.hour + local.minute / 60
-        return round(8.0 + 2.5 * math.sin((hour - 8.5) / 24 * 2 * math.pi) + 0.15 * math.sin(hour * 3.1), 1)
+        return round(4.0 + 3.0 * math.sin((hour - 9.0) / 24 * 2 * math.pi) + 0.15 * math.sin(hour * 3.1), 1)
 
     def _simulate(self):
         n, rng = self.minutes, self.rng
@@ -157,10 +165,10 @@ class Timeline:
         for i in range(n):
             a = self.activity[i]
             if a == "heating":
-                want = 41.0 + 0.6 * (8 - self.outdoor[i]) + rng.uniform(-0.6, 0.6)
+                want = curve_flow(self.outdoor[i]) + 3.5 + rng.uniform(-0.6, 0.6)
                 f += (want - f) * 0.25
                 r += ((f - 8.0) - r) * 0.2
-                m = 34 + 2.5 * (8 - self.outdoor[i]) + rng.uniform(-3, 3)
+                m = 30 + 2.0 * (8 - self.outdoor[i]) + rng.uniform(-3, 3)
             elif a in ("tapping", "keep_warm"):
                 f += (68.0 - f) * 0.3
                 r += (46.0 - r) * 0.25
@@ -184,8 +192,8 @@ class Timeline:
         mod[-1] = 38
         self.flow, self.ret, self.mod, self.dhw = flow, ret, mod, dhw
         # The E32's request: the learned water temperature while the room heats.
-        self.request = [(43 if a == "heating" else (43 if heating[i] else 0)) for i, a in enumerate(self.activity)]
-        self.request[-1] = 43
+        self.request = [round(curve_flow(self.outdoor[i]) + 4.5) if heating[i] else 0 for i in range(n)]
+        self.request[-1] = REQUEST_NOW
 
     # -- figures of today ---------------------------------------------------------------------------------
     def today_index(self):
@@ -306,7 +314,7 @@ def telemetry(tl, mode="active", uptime_s=86000, heat_today_s=None):
     summary = {"schema": 1,
                "learned": {"schema": 1, "applied": True, "status": "ready", "heating_periods": 38,
                            "inputs": {"gas_meter": False, "gas_price": False, "outdoor": "ha", "boiler_kw": 22,
-                                      "boiler_kw_source": "default", "gas_kwh_per_m3": 9.77,
+                                      "boiler_kw_source": "ha", "gas_kwh_per_m3": 9.77,
                                       "gas_kwh_per_m3_source": "default"},
                            "gas": {"status": "estimate", "confidence": "low", "factor": 1, "kw_at_full_modulation": 22,
                                    "kw_source": "boiler_kw"}},
@@ -316,10 +324,10 @@ def telemetry(tl, mode="active", uptime_s=86000, heat_today_s=None):
                                  "unknown": {"count": 0, "s": 0}, "charging": {"count": 0, "s": 0},
                                  "burner_s": tap_s + keep_s, "peak_flow_l_min": None}}}
     flow = {"schema": 1,
-            "flow": {"curve": {"state": "applied", "flow_c": 43, "base_c": 41.6, "slope": 0.58, "slope_source": "learned",
-                               "design_flow_c": 40, "windows": 23},
-                     "learned": {"state": "applied", "flow_c": 43},
-                     "source": "learned", "rule_flow_c": 40, "applied_flow_c": 43, "ceiling_c": None,
+            "flow": {"curve": {"state": "applied", "flow_c": REQUEST_NOW, "base_c": round(curve_flow(tl.outdoor[i]), 1),
+                               "slope": SLOPE, "slope_source": "learned", "design_flow_c": DESIGN_FLOW_C, "windows": 23},
+                     "learned": {"state": "applied", "flow_c": REQUEST_NOW},
+                     "source": "learned", "rule_flow_c": REQUEST_NOW - 2, "applied_flow_c": REQUEST_NOW, "ceiling_c": None,
                      "optimum_start": "applied",
                      "yesterday": {"rule_mean_c": 39.6, "applied_mean_c": 41.8, "curve_mean_c": 41.9,
                                    "learned_mean_c": 41.8}},
@@ -336,18 +344,18 @@ def telemetry(tl, mode="active", uptime_s=86000, heat_today_s=None):
                                     "radiator_lead_min_per_c": 60, "learned_accept_pct": 100,
                                     "night_saving_min_pct": 20},
                          "manual": [], "yesterday": {"starts": 21, "heating_h": 7.4},
-                         "today": {"starts": tl.starts_since(i0), "heating_h": round(heating_s / 3600, 1)},
+                         "today": {"starts": STARTS_TODAY, "heating_h": round(heating_s / 3600, 1)},
                          "would": [], "log": []}}
     scoreboard = {"schema": 1,
                   "scoreboard": {"yesterday": {"day": yesterday, "heating_h": 7.4, "heating_starts_per_h": 2.8,
-                                               "short_cycle_h": 0, "heating_kwh": 48.2, "degree_days": 10.4,
+                                               "short_cycle_h": 0, "heating_kwh": 27.4, "degree_days": 14.2,
                                                "rooms": [{"id": "woonkamer", "on_time_min": 4, "overshoot_c": 0.2}]},
                                  "today": {"day": today, "heating_h": round(heating_s / 3600, 1),
                                            "heating_starts_per_h": 2.5, "short_cycle_h": 0,
-                                           "heating_kwh": 31.5, "degree_days": 9.8}}}
+                                           "heating_kwh": 15.8, "degree_days": 13.6}}}
     insight = {"schema": 1,
                "knowledge": {"pct": 78, "missing": ["night:woonkamer", "curve:cold"], "more": 0},
-               "house": {"ua_kw_per_k": 0.21, "kw_per_flow_k": 0.42, "slope": 0.58, "state": "learned"},
+               "house": {"ua_kw_per_k": 0.21, "kw_per_flow_k": 0.42, "slope": SLOPE, "state": "learned"},
                "boiler": {"held": 0, "rest_s": 600, "ceiling_c": None, "absorbed_kw": 6.8, "kw_per_k": 0.42,
                           "state": "learned", "return": True},
                "insights": [{"kind": "warmup_faster", "pct": 12, "room": "woonkamer"},
@@ -361,51 +369,73 @@ def telemetry(tl, mode="active", uptime_s=86000, heat_today_s=None):
     return [(suffix, doc if isinstance(doc, str) else json.dumps(doc, separators=(",", ":"))) for suffix, doc in messages]
 
 
-# -- the boiler on the bus (boiler.fields.v1 ids, boiler_fields.py) -------------------------------------
+# -- the boiler on the bus (boiler.fields.v1, the integration's own catalog in boiler_fields.py) ---------
+# The owner's field set (EcomLine HRC behind an EasyControl adapter, dashboard spec: no pressure, no outdoor
+# sensor, no counters, no DHW flow); in active mode no thermostat talks on the bus, so no thermostat_* fields.
 SUPPORTED = [0, 1, 2, 4, 5, 10, 11, 12, 13, 14, 16, 17, 24, 25, 28, 29, 32, 40, 41, 52, 53, 54, 55, 56, 57,
              58, 59, 62]
 NOT_FITTED = [3, 6, 15, 30, 31, 38, 39, 60]
+_CATALOG = None
+
+
+def catalog():
+    """ha/config/custom_components/open_thermostat/boiler_fields.py (FIELDS, QUALITIES, GROUPS), loaded by path."""
+    global _CATALOG
+    if _CATALOG is None:
+        import importlib.util
+        from pathlib import Path
+        path = Path(__file__).resolve().parents[3] / "ha/config/custom_components/open_thermostat/boiler_fields.py"
+        spec = importlib.util.spec_from_file_location("openthermostat_boiler_fields", path)
+        _CATALOG = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_CATALOG)
+    return _CATALOG
+
+
+def text_code(code):
+    return (ord(code[0]) << 8) | ord(code[1])
 
 
 def boiler_values(tl, i=None):
-    """{field id: raw value} of the boiler at minute i (now by default), as the E32 sends them (scaled)."""
+    """{field index: raw value} of the boiler at minute i (now by default), scaled as the E32 sends them."""
     i = tl.minutes - 1 if i is None else i
     a = tl.activity[i]
     burning = a != "idle"
     dhw = a in ("tapping", "keep_warm")
-    return {0: int(tl.request[i] * 100) if burning and not dhw else (6000 if dhw else 0),
+    return {0: (6000 if dhw else int(tl.request[i] * 100)) if burning else 0,
             1: int(tl.flow[i] * 100), 2: int(tl.ret[i] * 100), 4: tl.mod[i], 5: 100,
             10: 0b1011 if burning else 0, 11: 1 if a == "heating" else 0, 12: 1 if dhw else 0,
-            13: 5500, 14: int(tl.dhw[i] * 100), 16: 1, 17: 1, 24: 0x2D33 if burning else 0x2D30,
-            25: 200 if burning else 203, 28: 7500, 29: 5800,
-            32: 48 if burning else 0, 40: int((tl.flow[i] - 1.2) * 100), 41: 64 if burning else 0,
-            52: 5, 53: 1, 54: 0, 55: 0, 56: 1, 57: 7000, 58: 1, 59: 1, 62: 3}
+            13: 5500, 14: int(tl.dhw[i] * 100), 16: 1, 17: 1,
+            24: text_code("=H" if dhw else "-H" if burning else "0H"), 25: 201 if dhw else 200 if burning else 203,
+            28: 7500, 29: 5500, 32: 48 if burning else 0, 40: int((tl.flow[i] - 1.2) * 100),
+            41: 64 if burning else 0, 52: 5, 53: 1, 54: 0, 55: 0, 56: 1, 57: 7000, 58: 1, 59: 1, 62: 3}
 
 
 def boiler_documents(tl, uptime_s):
+    cat = catalog()
     values = boiler_values(tl)
     ms = uptime_s * 1000
-    groups = {}
-    for field in SUPPORTED + NOT_FITTED:
-        groups.setdefault(field // 10, []).append(field)
-    docs = [("fw/config/boiler_profile", {"schema": 1, "boiler": {"address": 8, "family": "classic", "product_id": 95,
-                                                                  "version": "04.03"},
-                                          "supported": SUPPORTED, "not_fitted": NOT_FITTED,
-                                          "not_reported": [f for f in range(70) if f not in SUPPORTED + NOT_FITTED]})]
-    for group in range(7):
-        fields = []
-        for field in range(group * 10, group * 10 + 10):
-            if field in values:
-                fields.append([field, values[field], ms - 1500, 0, 24])
-            elif field in NOT_FITTED:
-                fields.append([field, None, ms - 1500, 0, 24])
-        if fields:
-            docs.append((f"fw/state/boiler_fields/{group}", {"schema": 1, "group": group, "values": {
-                "schema": 1, "sampled_at_ms": ms - 1000, "profile": "classic_observed", "fields": fields}}))
+    seen = ms - 1500
+
+    def row(index):
+        if index in values:
+            return [index, values[index], seen, cat.QUALITIES[index], cat.FIELDS[index][4]]
+        if index in NOT_FITTED:  # the boiler answers, without this value
+            return [index, None, seen, cat.QUALITIES[index], cat.FIELDS[index][4]]
+        return [index, None, None, 0, 0]  # never observed
+    docs = [("fw/config/boiler_profile", {
+        "schema": 1, "boiler": {"address": 8, "family": "classic", "product_id": None, "version": None},
+        "supported": SUPPORTED, "not_fitted": NOT_FITTED,
+        "not_reported": [f for f in range(len(cat.FIELDS)) if f not in SUPPORTED + NOT_FITTED],
+        "settled": True, "display_model": "nefit-ecomline-classic-hrc-22h"})]
+    for group in range(cat.GROUPS):
+        indexes = range(group * cat.PER_GROUP, min(len(cat.FIELDS), group * cat.PER_GROUP + cat.PER_GROUP))
+        docs.append((f"fw/state/boiler_fields/{group}", {"schema": 1, "group": group, "values": {
+            "schema": 1, "sampled_at_ms": ms - 1000, "profile": "classic_observed",
+            "fields": [row(index) for index in indexes]}}))
     main = [1, 2, 4, 11, 12, 14, 24, 25]
     docs.append(("fw/state/boiler", {"schema": 1, "values": {"schema": 1, "sampled_at_ms": ms - 800,
                                                               "profile": "classic_observed",
-                                                              "fields": [[f, values[f], ms - 900, 0, 24] for f in main]}}))
+                                                              "fields": [row(index) for index in main]}}))
     return docs
 
 

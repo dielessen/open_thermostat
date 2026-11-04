@@ -21,6 +21,7 @@ sys.path.insert(0, str(HERE))
 
 from hass_api import Hass, HassError  # noqa: E402
 from procs import Processes, wait_port  # noqa: E402
+import scenario  # noqa: E402
 
 E32_IP = "10.77.0.2"   # private (the integration refuses loopback E32 addresses); exists only in the namespace
 E32_PORT = 80
@@ -157,6 +158,32 @@ class Demo:
     async def onboard(self, hass):
         await hass.onboard("Demo", self.user["username"], self.user["password"], self.args.languages[0])
         say("onboarding: owner user, core config, analytics, integration step done")
+        # Core 2026.10 moves the YAML http settings into its store as a trial ("Confirm new HTTP server
+        # configuration", reverted after 5 minutes): confirm them as the frontend's Confirm button does, and drop
+        # the YAML (and its deprecation notice) so a restart uses the stored, confirmed settings.
+        if (await hass.ws("http/config")).get("pending"):
+            await hass.ws("http/config/promote")
+        text = (self.config / "configuration.yaml").read_text(encoding="utf-8")
+        start = text.index("http:\n")
+        end = text.index("frontend:\n")
+        (self.config / "configuration.yaml").write_text(text[:start] + text[end:], encoding="utf-8")
+        say(f"HTTP: 127.0.0.1:{HA_PORT} confirmed and stored")
+
+    async def tidy_notices(self, hass):
+        """Notices that come from the demo set-up itself, not from the integration: the http YAML deprecation and the
+        integrations whose packages the demo leaves out (setup errors). Everything else is listed and kept."""
+        issues = (await hass.ws("repairs/list_issues")).get("issues", [])
+        for issue in issues:
+            if issue["domain"] == "http" and issue["issue_id"].startswith("deprecated_yaml") and not issue.get("ignored"):
+                await hass.ws("repairs/ignore_issue", domain="http", issue_id=issue["issue_id"], ignore=True)
+        kept = [f"{i['domain']}/{i['issue_id']}" for i in issues if i["domain"] != "http"]
+        notifications = await hass.ws("persistent_notification/get")
+        for note in notifications:
+            if note["notification_id"] in ("invalid_config",):
+                await hass.ws("call_service", domain="persistent_notification", service="dismiss",
+                              service_data={"notification_id": note["notification_id"]})
+        say("repairs kept: " + (", ".join(kept) or "none") + "; notifications: "
+            + (", ".join(n["notification_id"] for n in notifications) or "none"))
 
     async def mqtt_entry(self, hass):
         entries = await hass.get("/api/config/config_entries/entry?domain=mqtt")
@@ -190,8 +217,8 @@ class Demo:
 
     async def house_states(self, hass):
         """The house's own Home Assistant entities the E32 plan reads (a tado-style thermostat, the bathroom
-        thermostat) and the outdoor temperature: plain states, as another integration would provide them."""
-        import scenario
+        thermostat) and the outdoor temperature: plain states, as another integration would provide them (set
+        again after every start: such states are not kept over a restart)."""
         tl = scenario.Timeline()
         for entity_id, state, attributes in (
                 (scenario.TADO, "heat", {"friendly_name": "tado Woonkamer", "current_temperature": 20.4,
@@ -238,11 +265,78 @@ class Demo:
             raise HassError(f"Connect E32 did not complete: {flow}")
         say(f"Connect E32: linked to http://{E32_IP} ({len(entries)} installation)")
 
-    async def run(self):
-        isolated_network()
-        write_ha_config(self.config, self.args.languages[0])
-        self.start_broker()
-        self.start_e32()
+    async def dashboard(self, hass):
+        """The generated dashboard's url path and views ({path, title, slug})."""
+        panels = await hass.ws("get_panels")
+        paths = [p for p in panels if p.startswith("open-thermostat-")]
+        if len(paths) != 1:
+            raise HassError(f"expected one OpenThermostat dashboard, found {paths}")
+        config = await hass.ws("lovelace/config", url_path=paths[0], force=True)
+        slugs = {"heating": "overview", "rooms": "rooms", "week-program": "week-program", "boiler": "boiler",
+                 "diagnostics": "diagnostics"}
+        views = [{"path": v["path"], "title": v.get("title", v["path"]),
+                  "slug": slugs.get(v["path"], "learning" if v["path"] == "learned" else v["path"])}
+                 for v in config["views"] if not v.get("subview")]
+        (self.work / f"dashboard-{self.language}.json").write_text(json.dumps(config, indent=1, ensure_ascii=False),
+                                                                    encoding="utf-8")
+        return paths[0], views
+
+    async def shoot(self, hass, language):
+        dashboard, views = await self.dashboard(hass)
+        say(f"dashboard /{dashboard}: " + ", ".join(f"{v['title']} ({v['path']})" for v in views))
+        await hass.refresh_access()
+        job = {"base": self.base, "tokens": {"access_token": hass.access, "refresh_token": hass.refresh,
+                                            "expires_in": hass.expires_in},
+               "dashboard": dashboard, "views": views, "language": language, "widths": self.args.widths,
+               "themes": self.args.themes, "out": str(self.out), "closeups": True, "learningPath": "learned",
+               "chrome": self.args.chrome}
+        path = self.work / f"shoot-{language}.json"
+        path.write_text(json.dumps(job), encoding="utf-8")
+        os.chmod(path, 0o600)
+        t0 = time.monotonic()
+        result = subprocess.run([self.args.node, str(HERE / "shoot.cjs"), str(path)], capture_output=True, text=True,
+                                timeout=1800)
+        (self.logs / f"shoot-{language}.log").write_text(result.stdout + result.stderr, encoding="utf-8")
+        if result.returncode != 0:
+            raise HassError(f"screenshots ({language}) failed: {result.stderr[-2000:]}")
+        say(f"screenshots ({language}): {result.stdout.strip()} in {time.monotonic() - t0:.0f} s")
+
+    async def energy_options(self, hass):
+        """Configure -> Energy and outdoor temperature: the outdoor sensor and the boiler's power, as the owner has them."""
+        flow = await self.options_menu(hass, "energy")
+        if flow["type"] != "form":
+            raise HassError(f"energy options: {flow}")
+        answer = hass.form_defaults(flow["data_schema"], outdoor_entity=scenario.OUTDOOR, boiler_kw=22)
+        flow = await hass.flow_step(flow["flow_id"], answer, kind="options")
+        # A saved step shows the menu again with "Saved." on top (options_navigation); Done closes it.
+        if flow["type"] == "menu" and "saved" in (flow.get("description_placeholders") or {}):
+            flow = await hass.flow_step(flow["flow_id"], {"next_step_id": "done"}, kind="options")
+        if flow["type"] not in ("abort", "create_entry"):
+            raise HassError(f"energy options: {flow}")
+        say("energy options: outdoor temperature from Home Assistant, boiler 22 kW")
+
+    async def wait_for(self, hass, check, what, timeout=120):
+        loop = asyncio.get_running_loop()
+        end = loop.time() + timeout
+        while True:
+            states = {s["entity_id"]: s for s in await hass.get("/api/states")}
+            if check(states):
+                return states
+            if loop.time() > end:
+                raise HassError(f"timed out waiting for {what}")
+            await asyncio.sleep(2)
+
+    @staticmethod
+    def live(states):
+        """The E32 is heard and the boiler's values and day sensors exist (the dashboard is complete)."""
+        reason = states.get("sensor.woonkamer_reason", {}).get("state")
+        flow = [s for e, s in states.items() if e.endswith("water_temperature_to_heating_flow")]
+        gas = [s for e, s in states.items() if e.endswith("gas_for_heating")]
+        return reason not in (None, "unknown", "unavailable") and flow and gas and flow[0]["state"] not in (
+            "unknown", "unavailable")
+
+    async def setup(self):
+        """First run: onboarding, MQTT, the installation and its E32, until every entity exists."""
         self.start_ha()
         async with Hass(self.base) as hass:
             await self.ha_ready(hass)
@@ -251,12 +345,41 @@ class Demo:
             await self.ot_entry(hass)
             await self.house_states(hass)
             await self.connect_e32(hass)
-            await asyncio.sleep(10)
-            states = await hass.get("/api/states")
-            ours = [s for s in states if "woonkamer" in s["entity_id"] or "boiler" in s["entity_id"]]
-            say(f"{len(states)} states, e.g. " + ", ".join(f"{s['entity_id']}={s['state']}" for s in ours[:30]))
-            panels = await hass.ws("get_panels")
-            say("panels: " + ", ".join(sorted(panels)))
+            await self.energy_options(hass)
+            states = await self.wait_for(hass, self.live, "the E32's entities")
+            say(f"{len(states)} states; the E32 is heard")
+            await asyncio.sleep(5)
+        self.stop_ha()
+
+    async def screenshots(self, language):
+        set_language(self.config, language)
+        self.language = language
+        self.start_ha()
+        async with Hass(self.base) as hass:
+            await self.ha_ready(hass)
+            await hass.login(self.user["username"], self.user["password"])
+            await self.house_states(hass)
+            await self.wait_for(hass, self.live, "the E32 after the restart")
+            await asyncio.sleep(8)  # the dashboard rebuilds after the start (registry and language)
+            await self.tidy_notices(hass)
+            await self.shoot(hass, language)
+        self.stop_ha()
+
+    async def run(self):
+        isolated_network()
+        write_ha_config(self.config, self.args.languages[0])
+        self.start_broker()
+        self.start_e32()
+        await self.setup()
+        t0 = time.monotonic()
+        result = subprocess.run([sys.executable, str(HERE / "history.py"), str(self.config), self.entry_id],
+                                capture_output=True, text=True, timeout=300)
+        (self.logs / "history.log").write_text(result.stdout + result.stderr, encoding="utf-8")
+        if result.returncode != 0:
+            raise HassError(f"history: {result.stderr[-2000:]}")
+        say(f"history: {result.stdout.strip()} ({time.monotonic() - t0:.0f} s)")
+        for language in self.args.languages:
+            await self.screenshots(language)
 
 
 def main():
@@ -268,8 +391,14 @@ def main():
     parser.add_argument("--mosquitto", default="/usr/sbin/mosquitto")
     parser.add_argument("--frontend-deps", required=True)
     parser.add_argument("--ha-timeout", type=int, default=240)
+    parser.add_argument("--node", required=True)
+    parser.add_argument("--chrome", required=True)
+    parser.add_argument("--widths", default="390,1280")
+    parser.add_argument("--themes", default="light,dark")
     args = parser.parse_args()
     args.languages = [x for x in args.languages.split(",") if x]
+    args.widths = [int(x) for x in args.widths.split(",") if x]
+    args.themes = [x for x in args.themes.split(",") if x]
     demo = Demo(args)
     t0 = time.monotonic()
     try:

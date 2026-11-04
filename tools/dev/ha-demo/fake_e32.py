@@ -56,7 +56,7 @@ class E32:
                      "native_source_live_apply": True}}
         self.control_mode = "legacy"  # the MQTT protocol: "shadow" once linked to Home Assistant
         self.plan = scenario.plan_document(mode=args.mode)
-        self.flow = {"weather_curve": True, "apply_learned": True, "curve_design_flow_c": 40,
+        self.flow = {"weather_curve": True, "apply_learned": True, "curve_design_flow_c": scenario.DESIGN_FLOW_C,
                      "tuning": {"min_on_s": 900, "min_off_s": 900, "heat_start_c": 0.2, "heat_stop_c": 0.1,
                                 "flow_per_degree_c": 6, "curve_correction_pct": 96, "floor_lead_min_per_c": 140,
                                 "radiator_lead_min_per_c": 60, "learned_accept_pct": 100, "night_saving_min_pct": 20},

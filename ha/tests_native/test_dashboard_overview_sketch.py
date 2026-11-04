@@ -126,6 +126,8 @@ async def test_the_overview_is_the_house_card_then_rooms_today_and_house(hass, l
     assert top["cards"][0]["type"] == HOUSE_CARD_TYPE and "heading" not in top["cards"][0]
     assert [s["cards"][0]["heading"] for s in rest] == HEADINGS[language]
     assert all(s["cards"][0]["type"] == "heading" and "column_span" not in s for s in rest)
+    # Rooms two rows high: in two columns (1280 px with Home Assistant's sidebar) Today and House stack beside it.
+    assert [s.get("row_span") for s in rest] == [2, None, None]
     # One icon per concept (dashboard-spec §1).
     assert [s["cards"][0]["icon"] for s in rest] == ["mdi:thermostat", ICONS["today"], ICONS["house"]]
     # Every other view keeps its two columns.
@@ -322,6 +324,7 @@ async def test_without_its_sensors_there_is_no_today(hass):
             er.async_get(hass).async_remove(room[key])
     config = board._dashboard_config()
     assert [s["cards"][0].get("heading") for s in overview(config)["sections"]] == [None, "Rooms", "House"]
+    assert "row_span" not in overview(config)["sections"][1]  # nothing to stack beside the rooms
     assert _today_section(TEXT["en"], []) is None
 
 

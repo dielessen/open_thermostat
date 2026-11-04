@@ -2068,10 +2068,13 @@ class RoomDashboard:
                          _house_rows(t, house_mode, outdoor, "/config/integrations/integration/" + DOMAIN),
                          _holiday_card(t, house_mode))
         house = _shown_while_one_is(house, house["cards"][1:])
-        overview = [section for section in (
-            top,
-            _section(_heading(t["rooms"], "mdi:thermostat"), *room_cards) if any(room_cards) else None,
-            today, house) if section]
+        rooms_section = _section(_heading(t["rooms"], "mdi:thermostat"), *room_cards) if any(room_cards) else None
+        if rooms_section is not None and today and house:
+            # Two rows high: where Home Assistant has room for two columns only (1280 px with its sidebar open), Today and
+            # House stand on top of each other beside the rooms instead of House under them; three columns side by side,
+            # and a phone in order, are the same as without it.
+            rooms_section["row_span"] = 2
+        overview = [section for section in (top, rooms_section, today, house) if section]
 
         # -- Rooms ---------------------------------------------------------------------------------
         learned_overview = hub.get("learned_overview")

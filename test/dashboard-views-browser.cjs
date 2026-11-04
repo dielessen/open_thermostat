@@ -24,9 +24,10 @@ const html=(view,hidden,width)=>{
  const columns=Math.max(1,Math.min(view.max_columns||1,Math.floor((width-32)/320)));
  // A section spans its column_span (the Overview's house card: all three columns), never more than there are, and
  // Home Assistant gives it 12 grid columns per view column: a card that asks for 12 is then a part of it (P16's real
- // render), "full" the whole; a card that asks nothing is drawn across it.
+ // render), "full" the whole; a card that asks nothing is drawn across it. A section's row_span rows (the Overview's
+ // Rooms: two, so Today and House stack beside it in two columns), as Home Assistant's grid-row span.
  const sections=(view.sections||[]).map(section=>{const wide=Math.min(section.column_span||1,columns);
-  return `<section style="grid-column:span ${wide};grid-template-columns:repeat(${12*wide},minmax(0,1fr))">${section.cards.filter(c=>!(hidden&&c.visibility)).map(card=>{
+  return `<section style="grid-column:span ${wide};grid-row:span ${section.row_span||1};grid-template-columns:repeat(${12*wide},minmax(0,1fr))">${section.cards.filter(c=>!(hidden&&c.visibility)).map(card=>{
   const asked=card.grid_options&&card.grid_options.columns,span=asked==='full'?12*wide:asked||(HALF.includes(card.type)?6:12*wide);
   return `<div class="card ${card.type.replace(/[^a-z-]/g,'')}" data-span="${span}" style="grid-column:span ${span};min-height:${height(card)}px">`+
    `<small>${card.type.replace('custom:openthermostat-','')}</small><b>${String(label(card)).replace(/</g,'&lt;')}</b>${card.visibility&&!hidden?'<i>conditional</i>':''}</div>`;}).join('')}</section>`;}).join('');

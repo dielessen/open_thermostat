@@ -131,19 +131,19 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
   right it shows the connection with the boiler and whether the boiler serves
   hot water. Under the band are four large figures: **Water to heating** (what
   the E32 asks, and the most it asks near the target), **Water back** (with the
-  difference), **Burner power** (a small arc and a word: low fire, medium fire,
-  full fire) and **Starts in the last hour** (calm, or switching on and off too
-  often, and today's starts). A figure that your boiler does not report is left
-  out. Then, from top to bottom: **Advice** (the heating advice, when there is
-  any), **Today and this week** (the gas for heating and for hot water, the
-  burner starts and the burner time of today, one chart with the gas per day of
-  the last week, and the burner hours per day), **Hot water** (its temperature
-  and target, the taps of today and a 24-hour timeline), **Last 24 hours**
-  (graphs of the water temperatures, the burner power and the hot water), **What
-  the boiler reports** (the values your boiler sends, in groups) and **Boiler
-  settings**. A section is hidden while the boiler reports nothing for it, so a
-  heading never stands over nothing. Yesterday is not here; it is on the
-  **Learning and settings** tab.
+  difference), **Burner power** (a small arc and a word, from "burner off" to
+  "full fire") and **Starts in the last hour** (calm, or switching on and off
+  too often, and today's starts). Tap a figure for its history. A figure that
+  your boiler does not report is left out. Then, from top to bottom: **Advice**
+  (the heating advice, when there is any), **Today and this week** (the gas for
+  heating and for hot water, the burner starts and the burner time of today, one
+  chart with the gas per day of the last week, and the burner hours per day),
+  **Hot water** (its temperature and target, the taps of today and a 24-hour
+  timeline), **Last 24 hours** (graphs of the water temperatures, the burner
+  power and the hot water), **What the boiler reports** (the values your boiler
+  sends, in groups) and **Boiler settings**. A section is hidden while the
+  boiler reports nothing for it, so a heading never stands over nothing.
+  Yesterday is not here; it is on the **Learning and settings** tab.
 - **Learning and settings**: what the E32 learned, so you read what it did.
   It starts with seven sections, in this order:
   1. **What the E32 knows**: a ring with how much of your house the E32

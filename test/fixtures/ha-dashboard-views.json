@@ -631,7 +631,7 @@
         "cycling": "binary_sensor.fixture_hub_burner_short_cycling",
         "flow": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
         "grid_options": {
-         "columns": 12
+         "columns": "full"
         },
         "heating": "sensor.boiler_heating_active",
         "hot_water": "sensor.boiler_dhw_active",
@@ -702,6 +702,9 @@
        },
        {
         "content": "{% set icons = {\"warning\": \"mdi:alert-outline\", \"suggestion\": \"mdi:lightbulb-on-outline\", \"info\": \"mdi:information-outline\"} %}{% set confidence = {\"low\": \"low\", \"medium\": \"medium\", \"high\": \"high\"} %}{% for item in state_attr(\"sensor.heating_advice\", 'items') or [] %}<ha-icon icon=\"{{ icons.get(item.severity, 'mdi:information-outline') }}\"></ha-icon> **{{ item.title }}**\n\n{{ item.action }}\n\n*Where: {{ item.where }} · Confidence: {{ confidence.get(item.confidence, item.confidence) }}*\n\n{% endfor %}Advice only: nothing is changed automatically.",
+        "grid_options": {
+         "columns": "full"
+        },
         "type": "markdown",
         "visibility": [
          {
@@ -4741,7 +4744,7 @@
         "cycling": "binary_sensor.fixture_hub_burner_short_cycling",
         "flow": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
         "grid_options": {
-         "columns": 12
+         "columns": "full"
         },
         "heating": "sensor.boiler_heating_active",
         "hot_water": "sensor.boiler_dhw_active",
@@ -4812,6 +4815,9 @@
        },
        {
         "content": "{% set icons = {\"warning\": \"mdi:alert-outline\", \"suggestion\": \"mdi:lightbulb-on-outline\", \"info\": \"mdi:information-outline\"} %}{% set confidence = {\"low\": \"laag\", \"medium\": \"middel\", \"high\": \"hoog\"} %}{% for item in state_attr(\"sensor.heating_advice\", 'items') or [] %}<ha-icon icon=\"{{ icons.get(item.severity, 'mdi:information-outline') }}\"></ha-icon> **{{ item.title }}**\n\n{{ item.action }}\n\n*Waar: {{ item.where }} · Zekerheid: {{ confidence.get(item.confidence, item.confidence) }}*\n\n{% endfor %}Alleen advies: er wordt niets automatisch veranderd.",
+        "grid_options": {
+         "columns": "full"
+        },
         "type": "markdown",
         "visibility": [
          {

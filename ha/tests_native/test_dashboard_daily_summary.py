@@ -194,7 +194,16 @@ async def test_the_lead_room_is_the_first_room_switched_on_that_has_a_warm_on_ti
 async def test_yesterday_in_figures_in_dutch(hass):
     config, hub = with_summary(hass, "nl")
     cards = heading_section(view(config, "learned"), "Gisteren in cijfers")
-    assert "Brander {{ d.burner_hours }} uur" in cards[1]["content"]
+    # In the language's decimal sign, as the rest of the Dutch dashboard ("7,4 uur", not "7.4 uur"; P16's real render).
+    day = {"date": "2026-11-03", "complete": True, "burner_hours": 7.4, "burner_starts": 21, "short_runs": 0,
+           "gas": {"heating": 1.25, "hot_water": 0.5}, "outdoor": {"min": 4.5, "max": 10.0},
+           "rooms": [{"room": "woonkamer", "name": "Woonkamer", "heat_hours": 7.0, "time_to_target_minutes": 25.0,
+                      "missed_minutes": 4}]}
+    hass.states.async_set(hub["daily_summary"], "2026-11-03", {"last_day": day})
+    assert Template(cards[1]["content"], hass).async_render(parse_result=False) == (
+        "- Brander 7,4 uur, 21 starts (0 korter dan 10 minuten). Gas: verwarmen 1,25 m³, warm water 0,5 m³. "
+        "Buiten 4,5 tot 10,0 °C.\n"
+        "- Woonkamer: vroeg 7,0 uur warmte; gemiddeld na 25 min op temperatuur; gemiste comfort 4 min.")
     assert [c["title"] for c in cards if c.get("type") == "statistics-graph"] == ["Gemiste comfort per dag (minuten)"]
     today = heading_section(view(config, "boiler"), "Vandaag en deze week")
     assert "Branderuren per dag" in [c.get("title") for c in today]

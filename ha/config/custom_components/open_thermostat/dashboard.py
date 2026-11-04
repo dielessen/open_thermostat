@@ -994,20 +994,29 @@ def _summary_lines(t, summary, gas_unit, scoreboard_gas=None):
         for name, expr in names.items():
             text = text.replace("{" + name + "}", "{{ " + expr + " }}")
         return text
+
+    def number(expr):
+        """The summary's number as it is, in the language's decimal sign ("7,4 uur", as elsewhere on the dashboard)."""
+        if t["decimal"] == ".":
+            return expr
+        return "(((" + expr + ") ~ '') | replace('.', " + json.dumps(t["decimal"]) + "))"
     unit = " " + gas_unit if gas_unit else ""
     gas = "d.gas and d.gas.heating is not none and d.gas.hot_water is not none"
     if scoreboard_gas:
         gas += " and not is_number(states(" + json.dumps(scoreboard_gas) + "))"
     return (
         "{% set d = state_attr(" + q + ", 'last_day') %}{% if d %}- "
-        + fill(t["day_burner"], h="d.burner_hours", n="d.burner_starts", short="d.short_runs")
+        + fill(t["day_burner"], h=number("d.burner_hours"), n="d.burner_starts", short="d.short_runs")
         + "{% if " + gas + " %} "
-        + fill(t["day_gas"], heating="d.gas.heating ~ '" + unit + "'", hot_water="d.gas.hot_water ~ '" + unit + "'")
-        + "{% endif %}{% if d.outdoor %} " + fill(t["day_outdoor"], low="d.outdoor.min", high="d.outdoor.max")
+        + fill(t["day_gas"], heating=number("d.gas.heating") + " ~ '" + unit + "'",
+               hot_water=number("d.gas.hot_water") + " ~ '" + unit + "'")
+        + "{% endif %}{% if d.outdoor %} "
+        + fill(t["day_outdoor"], low=number("d.outdoor.min"), high=number("d.outdoor.max"))
         + "{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}"
-        + fill(t["day_room"], room="r.name", h="r.heat_hours", ttt="r.time_to_target_minutes",
+        # Whole minutes ("25 min", not "25.0 min": the summary keeps the median as a float).
+        + fill(t["day_room"], room="r.name", h=number("r.heat_hours"), ttt="r.time_to_target_minutes | round | int",
                missed="r.missed_minutes")
-        + "{% else %}" + fill(t["day_room_no_step"], room="r.name", h="r.heat_hours", missed="r.missed_minutes")
+        + "{% else %}" + fill(t["day_room_no_step"], room="r.name", h=number("r.heat_hours"), missed="r.missed_minutes")
         + "{% endif %}\n{% endfor %}{% if not d.complete %}\n_" + t["day_partial"] + "_{% endif %}"
         + "{% elif not shown.lines %}" + t["day_none"] + "{% endif %}")
 
@@ -1296,6 +1305,14 @@ def _wide(card):
     """A card across the whole section (12 of 12 grid columns), so its state is not cut short."""
     if card is not None:
         card["grid_options"] = {"columns": 12}
+    return card
+
+
+def _full(card):
+    """A card across the whole section also where the section spans both columns of a wide view (the Overview's:
+    Home Assistant gives it 24 grid columns there, so 12 would be half the width); on a phone the same as _wide."""
+    if card is not None:
+        card["grid_options"] = {"columns": "full"}
     return card
 
 
@@ -1790,8 +1807,9 @@ class RoomDashboard:
                  "starts": hub.get("daily_burner_starts"), "mode": house_mode, "problem": problem,
                  "rooms": [{"entity": e32_room_entities[inline]["reason"],
                             "name": self._room_name(inline, heating_hub, label)}] if inline else None}
-        house_card = ({"type": HOUSE_CARD_TYPE, "grid_options": {"columns": 12},
-                       **{key: value for key, value in reads.items() if value}} if request or activity else None)
+        # Across the whole view on a wide screen too, as the sketch (the section spans both columns).
+        house_card = (_full({"type": HOUSE_CARD_TYPE, **{key: value for key, value in reads.items() if value}})
+                      if request or activity else None)
         before = () if house_card else (
             # Which rooms want heat and the boiler request: one card whose text follows the E32.
             _wanting_card(t, request),
@@ -1805,11 +1823,12 @@ class RoomDashboard:
         house = _section(
             _heading(t["house"], ICONS["house"]),  # one icon per concept (dashboard-spec §1)
             house_card,
-            # Named: without a name the tile showed the device name, cut short on a phone.
-            _wide(_tile(house_mode, t["house_mode"], "mdi:home-account", features=[{"type": "select-options"}],
+            # Named: without a name the tile showed the device name, cut short on a phone. Under the card, across the
+            # view as the card is (half of it would stand alone in its row on a wide screen).
+            _full(_tile(house_mode, t["house_mode"], "mdi:home-account", features=[{"type": "select-options"}],
                         color="teal")),
             # rc.4: the next holiday, only while one is planned.
-            _holiday_card(t, house_mode),
+            _full(_holiday_card(t, house_mode)),
             *before)
         from .e32_comfort import room_contacts, room_persons
         entry = self.hass.config_entries.async_get_entry(self.entry_id)

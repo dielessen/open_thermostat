@@ -3,7 +3,6 @@
   "views": [
    {
     "dense_section_placement": true,
-    "icon": "mdi:home-thermometer",
     "max_columns": 2,
     "path": "heating",
     "sections": [
@@ -73,7 +72,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:thermostat",
     "max_columns": 2,
     "path": "rooms",
     "sections": [
@@ -612,7 +610,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:water-boiler",
     "max_columns": 2,
     "path": "boiler",
     "sections": [
@@ -865,7 +862,7 @@
          "rows": 2
         },
         "icon": "mdi:meter-gas",
-        "name": "Gas for heating today",
+        "name": "Heating gas",
         "period": {
          "calendar": {
           "period": "day"
@@ -891,7 +888,7 @@
          "rows": 2
         },
         "icon": "mdi:meter-gas",
-        "name": "Gas for hot water today",
+        "name": "Hot water gas",
         "period": {
          "calendar": {
           "period": "day"
@@ -917,7 +914,7 @@
          "rows": 2
         },
         "icon": "mdi:counter",
-        "name": "Burner starts today",
+        "name": "Burner starts",
         "period": {
          "calendar": {
           "period": "day"
@@ -943,7 +940,7 @@
          "rows": 2
         },
         "icon": "mdi:timer-outline",
-        "name": "Burner time today",
+        "name": "Burner time",
         "period": {
          "calendar": {
           "period": "day"
@@ -2693,7 +2690,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:school-outline",
     "max_columns": 2,
     "path": "learned",
     "sections": [
@@ -3155,7 +3151,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:information-outline",
     "max_columns": 2,
     "path": "diagnostics",
     "sections": [
@@ -4043,7 +4038,6 @@
    {
     "back_path": "/open-thermostat-fixture-x/heating",
     "dense_section_placement": true,
-    "icon": "mdi:compare-horizontal",
     "max_columns": 2,
     "path": "comparison",
     "sections": [
@@ -4241,7 +4235,6 @@
   "views": [
    {
     "dense_section_placement": true,
-    "icon": "mdi:home-thermometer",
     "max_columns": 2,
     "path": "heating",
     "sections": [
@@ -4311,7 +4304,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:thermostat",
     "max_columns": 2,
     "path": "rooms",
     "sections": [
@@ -4850,7 +4842,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:water-boiler",
     "max_columns": 2,
     "path": "boiler",
     "sections": [
@@ -5103,7 +5094,7 @@
          "rows": 2
         },
         "icon": "mdi:meter-gas",
-        "name": "Gas verwarmen vandaag",
+        "name": "Gas verwarmen",
         "period": {
          "calendar": {
           "period": "day"
@@ -5129,7 +5120,7 @@
          "rows": 2
         },
         "icon": "mdi:meter-gas",
-        "name": "Gas warm water vandaag",
+        "name": "Gas warm water",
         "period": {
          "calendar": {
           "period": "day"
@@ -5155,7 +5146,7 @@
          "rows": 2
         },
         "icon": "mdi:counter",
-        "name": "Branderstarts vandaag",
+        "name": "Branderstarts",
         "period": {
          "calendar": {
           "period": "day"
@@ -5181,7 +5172,7 @@
          "rows": 2
         },
         "icon": "mdi:timer-outline",
-        "name": "Brandertijd vandaag",
+        "name": "Brandertijd",
         "period": {
          "calendar": {
           "period": "day"
@@ -6931,7 +6922,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:school-outline",
     "max_columns": 2,
     "path": "learned",
     "sections": [
@@ -7393,7 +7383,6 @@
    },
    {
     "dense_section_placement": true,
-    "icon": "mdi:information-outline",
     "max_columns": 2,
     "path": "diagnostics",
     "sections": [
@@ -8281,7 +8270,6 @@
    {
     "back_path": "/open-thermostat-fixture-x/heating",
     "dense_section_placement": true,
-    "icon": "mdi:compare-horizontal",
     "max_columns": 2,
     "path": "comparison",
     "sections": [

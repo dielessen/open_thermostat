@@ -6,6 +6,7 @@
 #include "VerifiedOta.h"
 #include "RestartTimer.h"
 #include "RollbackSequence.h"
+#include "PendingBootState.h"
 #include "DownloadTextBuffer.h"
 #include "DownloadFailure.h"
 #include "TlsAllocationPolicy.h"
@@ -92,7 +93,10 @@ void failedDownload(const DownloadFailure &failure,std::string &error) {
     error=downloadFailureMessage(failure);
     std::lock_guard<std::mutex> lock(stateMutex);state.downloadError=failure;
 }
-bool pendingBoot() {esp_ota_img_states_t s;return esp_ota_get_state_partition(esp_ota_get_running_partition(),&s)==ESP_OK&&s==ESP_OTA_IMG_PENDING_VERIFY;}
+bool readPendingBoot() {esp_ota_img_states_t s;return esp_ota_get_state_partition(esp_ota_get_running_partition(),&s)==ESP_OK&&s==ESP_OTA_IMG_PENDING_VERIFY;}
+// Read once (R2-01): the flash read ran on every loop pass through mutationBlocked().
+PendingBootState pendingState;
+bool pendingBoot() {return pendingState.pending(readPendingBoot);}
 const esp_partition_t *previous() {
     const auto p=esp_ota_get_next_update_partition(nullptr);esp_ota_img_states_t s;
     return p&&esp_ota_get_state_partition(p,&s)==ESP_OK&&s==ESP_OTA_IMG_VALID?p:nullptr;
@@ -408,7 +412,7 @@ void loop(bool automaticAllowed,bool supervisorAlive,bool networkProven,bool (*r
             static uint32_t failedAt=0; // a failing otadata write: once a minute, not every pass
             if(!BootConfirmation::attemptDue(now,failedAt))break;
             const esp_err_t result=esp_ota_mark_app_valid_cancel_rollback();
-            if(result==ESP_OK){pending=false;Serial.println("OTA boot confirmed: loop, supervisor and network ran normally");}
+            if(result==ESP_OK){pending=false;pendingState.confirmed();Serial.println("OTA boot confirmed: loop, supervisor and network ran normally");}
             else {failedAt=now?now:1;Serial.printf("OTA boot confirmation failed: %s (0x%x); retry in 60 s\n",esp_err_to_name(result),unsigned(result));}
             break;
         }

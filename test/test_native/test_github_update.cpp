@@ -2,6 +2,7 @@
 #include "update/ReleaseCatalog.h"
 #include "update/RestartTimer.h"
 #include "update/RollbackSequence.h"
+#include "update/PendingBootState.h"
 #include "control/HttpAccessPolicy.h"
 #include "control/CaptivePortalPolicy.h"
 #include <gtest/gtest.h>
@@ -88,6 +89,22 @@ TEST(GitHubOtaRollback, NothingIsErasedUnlessThePreviousImageReadsBackAndIsSelec
     Backend refused; refused.selectable = false; // the bootloader's image check fails
     EXPECT_FALSE(runRollback(refused));
     EXPECT_EQ(refused.steps, (std::vector<std::string>{"describe", "select"}));
+}
+// Review R2-01: REST asked the OTA state about 2000 times a second (mutationBlocked), each a flash
+// map and unmap. It is read once; only the boot confirmation changes it.
+TEST(GitHubOtaBoot, PendingBootIsReadOnceAndEndsWithTheConfirmation) {
+    PendingBootState pending; int reads = 0;
+    const auto unconfirmed = [&] { ++reads; return true; };
+    for (int i = 0; i < 1000; ++i) EXPECT_TRUE(pending.pending(unconfirmed));
+    EXPECT_EQ(reads, 1);
+    pending.confirmed();
+    for (int i = 0; i < 1000; ++i) EXPECT_FALSE(pending.pending(unconfirmed));
+    EXPECT_EQ(reads, 1);
+    PendingBootState normal; int normalReads = 0;
+    for (int i = 0; i < 10; ++i) EXPECT_FALSE(normal.pending([&] { ++normalReads; return false; }));
+    EXPECT_EQ(normalReads, 1);
+    PendingBootState early; early.confirmed(); // confirmed before anyone asked: never read
+    EXPECT_FALSE(early.pending([] { ADD_FAILURE() << "read after the confirmation"; return true; }));
 }
 namespace {
 Manifest manifest(){return {"v0.1.0-e32v2-alpha.2",std::string(40,'a'),std::string(64,'b'),std::string(64,'c'),1024};}

@@ -637,7 +637,8 @@ private:
     uint32_t burnerStartsSeen_ = 0;
     std::set<std::string> shape_;
     bool shapeKnown_ = false;
-    uint64_t activeOwningS_ = 0, comfortOutS_ = 0;
+    uint64_t activeOwningS_ = 0, comfortOutS_ = 0, comfortOverS_ = 0, comfortN_ = 0;
+    double comfortErrSum_ = 0;                     // living room - setpoint while owning (K), for the mean
     uint64_t nextMqtt_ = 0, nextLearned_ = 0, nextFull_ = 0, nextWarmupCheck_ = 0;
     size_t planTooLarge_ = 0, planRefused_ = 0, planApplied_ = 0, maxPlanBytes_ = 0;
     uint64_t stallUntil_ = 0, lastShadowAt_ = 0;   // loop stalls (an OTA upload blocks the loop for minutes)
@@ -1460,6 +1461,7 @@ void Chain::stepE32() {
         if (const auto i = std::find_if(plan.rooms.begin(), plan.rooms.end(), [](const RoomPlan::Room& r) { return r.id == "woonkamer"; }); i != plan.rooms.end()) {
             const auto sp = engine_.result(size_t(i - plan.rooms.begin())).setpoint;
             if (sp && std::fabs(phys_[0].air * 100 - *sp) > 150) ++comfortOutS_;
+            if (sp) { comfortErrSum_ += phys_[0].air - *sp / 100.0; ++comfortN_; if (phys_[0].air * 100 - *sp > 150) ++comfortOverS_; }
         }
     }
     if (claimedBefore && !guard_.claimsBoiler() && boilerSetpoint_ && boilerSetpoint_->from == 0x0b && boilerSetpoint_->flow > 0)
@@ -2404,6 +2406,8 @@ void Chain::finish() {
     counters[ctx.scenario + ":plan_max_bytes"] = maxPlanBytes_;
     counters[ctx.scenario + ":guard_owning_steps"] = activeOwningS_;
     counters[ctx.scenario + ":guard_owning_comfort_out_steps"] = comfortOutS_;
+    counters[ctx.scenario + ":guard_owning_comfort_over_steps"] = comfortOverS_; // of those: the living room more than 1.5 K too warm
+    if (comfortN_) observe("guard_owning_living_room", "mean " + std::to_string(comfortErrSum_ / double(comfortN_)).substr(0, 6) + " K from its setpoint while the E32 owns the boiler");
     counters[ctx.scenario + ":ble_decrypt_calls"] = crypto_.calls;
     counters[ctx.scenario + ":ble_queue_drops"] = ble_->queueDrops();
     for (size_t i = 0; i < engine_.plan().rooms.size(); ++i) {

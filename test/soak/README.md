@@ -22,8 +22,8 @@ Allocation-failure crash reports go to `oom-<scenario>-<builder>.log`.
 
 | Mode | What runs | Wall time (28-core WSL) |
 |---|---|---|
-| `full` (default) | every scenario below, in parallel | about 100 s (about 7 min run one after another) plus a 30 s cold build |
-| `smoke` | 1.5-day chains around a DST change and the 32-bit wrap, plus guard, active (3 runs per case), flow, supervisor, sizes and repro | 5 s plus a 30 s cold build |
+| `full` (default) | every scenario below, in parallel | about 200 s with the rc.5 scenarios (the 60-day chains take 150-200 s each when 18 run at once) plus a 30 s cold build |
+| `smoke` | 1.5-day chains around a DST change and the 32-bit wrap, the holding boiler (rc.5), plus guard, active (3 runs per case), flow, supervisor, sizes and repro | 10 s plus a 30 s cold build |
 | `repro` | only the deterministic reproducers of known findings | under 1 s |
 
 CI runs `smoke` in the `soak-smoke` job; a release waits for it.
@@ -357,3 +357,9 @@ Still a note: a realistic 8-room plan with 4 switch points per day is
 - The chain runs no AutoTuner: the knobs are the built-in ones (with P1's rest
   floor), and P2's insights (judged with AutoTuner's day) stay empty here; their worst
   case is P2's unit test. The replay wires both.
+- The house is no comfort benchmark: some valves sit below their room's program (the
+  bedroom's 17.5 degC against 18 degC), so while the E32 owns the boiler a room keeps
+  asking heat and the floor rooms without valves take it. The comfort counters
+  (`guard_owning_comfort_out_steps`, `..._over_steps` and the note
+  `guard_owning_living_room`, the mean deviation) show the living room mostly too warm,
+  in every chain with active phases; they are statistics, not invariants.

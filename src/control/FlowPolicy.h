@@ -27,7 +27,8 @@ namespace heating::control {
 // itself when what it learned is good enough. "Smart warm-up" (apply_learned): a
 // time in the week program means "warm at that time" (learned starts and flows
 // only once learned, FlowPolicy). The heating curve (weather_curve): the design
-// slope until CurveLearner has its steady periods, then the learned one; without
+// slope until CurveLearner has its steady periods, then the learned one (rc.5: in
+// between the house model's, HouseModel: heat loss over emitter output); without
 // a fresh outdoor temperature the rule's flow. Before rc.3 both defaulted off and
 // a record cannot tell that default from a choice: a record or backup of an older
 // format (no "version" >= 2) reads both as on; one this firmware wrote keeps the
@@ -314,6 +315,7 @@ class FlowPolicy {
 public:
     enum class Source : uint8_t { rule, curve, learned, optimumStart };
     static constexpr int16_t warmupFromCentiC = 30;
+    static constexpr float houseSlopeFloor = 0.5f; // rc.5 (P2): the house model's slope at least this share of the design slope
     struct Inputs {
         uint64_t now = 0;
         std::optional<int64_t> utc;                 // trusted clock only
@@ -324,6 +326,9 @@ public:
         std::optional<uint8_t> boilerLimitC;        // the boiler's 0x16 heating limit
         std::optional<int16_t> flowCentiC;          // fresh EMS view, for the curve learner
         std::optional<bool> burnerOn, hotWater;
+        // rc.5 (P2): HouseModel::slope(), the curve's slope until CurveLearner learned one, at least half the
+        // design slope (order: learned curve, house model, design; "slope_source" "learned" / "house" / "design").
+        std::optional<float> houseSlope;
     };
 
     void setSettings(const FlowSettings& s) { settings_ = s; }
@@ -367,7 +372,14 @@ public:
         copyId(leadId_, lead_ >= 0 ? plan.rooms[lead_].id.c_str() : "");
         designFlowC_ = settings_.designFlowC ? settings_.designFlowC : radiator ? WeatherCurve::radiatorDesignFlowC : WeatherCurve::floorDesignFlowC;
         const auto learnedSlope = curveLearner_.slope();
-        slope_ = learnedSlope.value_or(WeatherCurve::slopeFor(designFlowC_)); slopeLearned_ = learnedSlope.has_value();
+        // rc.5 (P2): the house model's slope (HouseModel) until the curve learned its own; comfort first, an
+        // estimate takes at most half off the design slope (only CurveLearner, from steady periods at the
+        // target, may go lower).
+        const bool house = !learnedSlope && in.houseSlope && std::isfinite(*in.houseSlope) && *in.houseSlope > 0;
+        const float design = WeatherCurve::slopeFor(designFlowC_);
+        slope_ = learnedSlope ? *learnedSlope
+            : house ? std::clamp(*in.houseSlope, std::max(WeatherCurve::minSlope, design * houseSlopeFloor), WeatherCurve::maxSlope) : design;
+        slopeSource_ = learnedSlope ? "learned" : house ? "house" : "design";
         // Weather curve: the highest base over the usable rooms (one circuit).
         if (in.outdoorCentiC && lead_ >= 0) {
             for (size_t i = 0; i < n; ++i)
@@ -443,7 +455,7 @@ public:
         cJSON_AddStringToObject(curve, "state", curveState());
         FlowLearner::number(curve, "flow_c", curveFlow_ ? std::optional<float>(*curveFlow_) : std::nullopt, 1);
         FlowLearner::number(curve, "slope", slope_, 100);
-        cJSON_AddStringToObject(curve, "slope_source", slopeLearned_ ? "learned" : "design");
+        cJSON_AddStringToObject(curve, "slope_source", slopeSource_); // rc.5: also "house" (HouseModel)
         cJSON_AddNumberToObject(curve, "windows", curveLearner_.windows()); // rc.3: "2 of 6 steady periods"
         cJSON_AddStringToObject(learned, "state", learnedState());
         FlowLearner::number(learned, "flow_c", learnedFlow_ ? std::optional<float>(*learnedFlow_) : std::nullopt, 1);
@@ -567,7 +579,7 @@ private:
         FlowLearner::number(curve, "flow_c", curveFlow_ ? std::optional<float>(*curveFlow_) : std::nullopt, 1);
         FlowLearner::number(curve, "base_c", curveBase_ ? std::optional<float>(*curveBase_ / 100.0f) : std::nullopt, 10);
         FlowLearner::number(curve, "slope", slope_, 100);
-        cJSON_AddStringToObject(curve, "slope_source", slopeLearned_ ? "learned" : "design");
+        cJSON_AddStringToObject(curve, "slope_source", slopeSource_);
         cJSON_AddNumberToObject(curve, "design_flow_c", designFlowC_);
         cJSON_AddNumberToObject(curve, "windows", curveLearner_.windows());
         cJSON_AddStringToObject(curve, "last", curveLearner_.last());
@@ -597,7 +609,8 @@ private:
     std::optional<int16_t> curveBase_;
     uint8_t cap_ = FlowDemand::ceilingC, designFlowC_ = WeatherCurve::floorDesignFlowC, startFlowC_ = 0;
     float slope_ = 0;
-    bool slopeLearned_ = false, startHeating_ = false, startEnded_ = false;
+    const char* slopeSource_ = "design"; // rc.5: "learned", "house" or "design"
+    bool startHeating_ = false, startEnded_ = false;
     int8_t lead_ = -1;
     char leadId_[33] = "", startId_[33] = "";
     const char* learnedReason_ = "no_room";

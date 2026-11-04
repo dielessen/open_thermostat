@@ -150,7 +150,9 @@ TEST(ControlPartitionBudget, TheScoreboardIsTheFirstOptionalRecordToGoAndTheHotW
         for (const char* key : B::optionalKeys) listed = listed || !std::strcmp(key, r.key);
         EXPECT_TRUE(listed) << r.key;
     }
-    EXPECT_EQ(B::blobEntries(Scoreboard::storedMaxBytes + 1), 14u); // 240 B: the widest record is 227 B (test_scoreboard.cpp)
+    // rc.5 (P2): 287 B with the Insights' baselines (rc.4: 240 B, 14 entries): the widest record is 213 B of days
+    // and 65 B of baselines (test_scoreboard.cpp); 16 entries would cost the owner's unit its learned record.
+    EXPECT_EQ(B::blobEntries(Scoreboard::storedMaxBytes + 1), 15u);
     EXPECT_EQ(B::blobEntries(DhwEpisodes::recordBytes), 22u);
 }
 TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAndBluetooth) {
@@ -198,7 +200,8 @@ TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAnd
         else { EXPECT_GE(630 - n, 2 + B::blobEntries(std::min(c.control + B::editBytes, B::configBytes)) + B::entriesPerPage); }
         EXPECT_LE(n, 630u - B::entriesPerPage) << "never physically full";
         // The owner's unit (plan ~0.93 KB, a session without rooms): everything is kept, the
-        // learned rooms beside the hourly records (rc.4: the hot water days and the scoreboard).
+        // learned rooms beside the hourly records (rc.4: the hot water days and the scoreboard;
+        // rc.5 (P2): the scoreboard with the Insights' baselines, 15 entries).
         // rc.5 (P3): with 8 typical rooms the learned record had 2 entries to spare before the free
         // heat; with the Home Assistant session's record (0.2 KB) the part goes without it (the
         // free heat stays in RAM, the rooms are kept), without that record with it. 200 entries stay free.

@@ -838,8 +838,8 @@ The trial run is optional. **The E32 does:**
 **The E32 does not, until you confirm the takeover:**
 
 - send any heat request to the boiler. Your existing thermostat keeps
-  controlling the boiler. The Overview says **Trial run** and **Your
-  thermostat controls the boiler**;
+  controlling the boiler. The Overview says **Your thermostat controls the
+  boiler** and, under **Who controls the boiler?**, that this is a trial run;
 - change any boiler setting;
 - drive radiator valves. A room's **Valve control** switch is off by default,
   and even when it is on, valves are only driven while the E32 controls the

@@ -3,6 +3,7 @@
 #include <nvs.h>
 #include "control/BoundedJson.h"
 #include "control/TrvConfig.h"
+#include "NvsOptionalRecords.h"
 #include <cstring>
 #include <memory>
 #include <string>
@@ -25,7 +26,12 @@ struct TrvNvs {
         control::TrvConfig parsed;
         return root && !control::TrvConfig::parse(root.get(), parsed) ? parsed : config;
     }
+    // rc.4 (R1-06): a record is written only while control's room stays free after it
+    // (userHeatingRecordFits, NvsOptionalRecords.h); erasing it needs no room.
     static bool write(const control::TrvConfig& config) {
+        const auto record = config.rooms.empty() ? std::string() : config.json();
+        if (!config.rooms.empty() && (record.empty() || record.size() > control::TrvConfig::maxBytes
+                                      || !userHeatingRecordFits(key, record.size() + 1))) return false;
         nvs_handle_t handle;
         if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
         bool committed;
@@ -33,9 +39,7 @@ struct TrvNvs {
             const auto erased = nvs_erase_key(handle, key);
             committed = (erased == ESP_OK || erased == ESP_ERR_NVS_NOT_FOUND) && nvs_commit(handle) == ESP_OK;
         } else {
-            const auto record = config.json();
-            committed = !record.empty() && record.size() <= control::TrvConfig::maxBytes
-                && nvs_set_str(handle, key, record.c_str()) == ESP_OK && nvs_commit(handle) == ESP_OK;
+            committed = nvs_set_str(handle, key, record.c_str()) == ESP_OK && nvs_commit(handle) == ESP_OK;
         }
         nvs_close(handle);
         return committed && read() == config;

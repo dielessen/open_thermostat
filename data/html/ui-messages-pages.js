@@ -1341,6 +1341,7 @@ window.OT_UI_PAGE_MESSAGES = {
   "Last 7 days": "Afgelopen 7 dagen",
   "Recognised by the hot water temperature dropping": "Herkend aan de dalende warmwatertemperatuur",
   "Hot water today": "Warm water vandaag",
+  "Counted since the restart at {time}.": "Geteld sinds de herstart om {time}.",
   "Burner starts (last hour)": "Branderstarts (afgelopen uur)",
   "Typical heating run": "Gangbare branderduur verwarming",
   "The burner switches on and off very often": "De brander slaat erg vaak aan en uit",

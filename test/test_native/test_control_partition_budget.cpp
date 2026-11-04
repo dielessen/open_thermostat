@@ -232,3 +232,68 @@ TEST(ControlPartitionBudget, ALargerPlanOrBluetoothSaveErasesTheOptionalRecordsL
     EXPECT_EQ(erased.size(), 0u);
     EXPECT_EQ(nvs.size(), worstCase().size());
 }
+// Review R1-06: the owner's records beside the plan ("comfort": overrides and away, at most 768
+// bytes; "trv": the radiator valves, at most 2 KB) and the "owned" note were written without the
+// ledger, so a plan or Bluetooth save could end in storage_full with nothing optional left to
+// erase. rc.4 gates them like an optional record (NvsOptionalRecords.h userHeatingRecordFits:
+// control's reserve stays free after them), but before what was learned: optional records are
+// erased first when that makes their room. The notes ("owned", "takeover_test") are gated without
+// erasing anything (HeatingNoteNvs::writeGated).
+TEST(ControlPartitionBudget, TheOwnersRecordsKeepThePlanSaveAndMakeRoomFromWhatWasLearned) {
+    constexpr size_t comfortBytes = 768 + 1, trvBytes = 2048 + 1, noteBytes = 64;
+    // The finding at its edge: nothing optional left to erase, exactly control's reserve free.
+    {
+        const size_t control = B::controlReplacementEntries(200, false), reserve = B::controlReserveEntries(930, control);
+        const size_t full = 630 - reserve, comfort = B::blobEntries(comfortBytes);
+        const auto ble = [&](size_t n) { return B::permitsBluetoothWrite(used(n), B::bluetoothBytes, {}, control); };
+        ASSERT_TRUE(ble(full));
+        EXPECT_FALSE(ble(full + 1 + comfort)) << "written without the ledger, comfort takes the private save's room";
+        EXPECT_FALSE(B::permitsOptionalWrite(used(full), comfortBytes, 0, reserve)) << "the gate refuses it instead";
+        EXPECT_TRUE(B::permitsOptionalWrite(used(full - 1 - comfort), comfortBytes, 0, reserve));
+        EXPECT_TRUE(ble(full - 1 - comfort + 1 + comfort));
+    }
+    // The worst case: every optional record its gate lets in, then comfort, the valves and both notes at their largest.
+    struct Case { size_t plan, control; bool graph; };
+    const Case cases[] = {{600, 200, false}, {930, 200, false}, {930, 0, false}, {2000, 1200, false}, {3000, 4000, false},
+                          {4096, 200, false}, {930, 1200, true}};
+    const size_t fixed = baselineUsed + B::blobEntries(B::flowRecordBytes) - B::blobEntries(96);
+    for (const auto& c : cases) {
+        const size_t control = B::controlReplacementEntries(c.control, c.graph), reserve = B::controlReserveEntries(c.plan, control);
+        std::map<std::string, size_t> nvs; // key -> stored bytes
+        const auto stats = [&] { size_t n = fixed; for (const auto& [k, b] : nvs) n += B::blobEntries(b); return used(std::min<size_t>(n, 630)); };
+        const auto bytes = [&](const char* key) -> size_t { const auto it = nvs.find(key); return it == nvs.end() ? 0 : it->second; };
+        std::vector<std::string> erased;
+        const auto erase = [&](const char* key) { if (nvs.erase(key)) erased.push_back(key); };
+        for (const auto& r : worstCase())
+            if ((std::strcmp(r.key, "learned_b") || nvs.count("learned_a")) && B::permitsOptionalWrite(stats(), r.bytes, 0, reserve)) nvs[r.key] = r.bytes;
+        const auto user = [&](const char* key, size_t size) { // userHeatingRecordFits, then the write
+            const auto kept = nvs; const size_t old = bytes(key);
+            if (!B::makeRoom([&](ControlPartitionStats s) { return B::permitsOptionalWrite(s, size, old, reserve); }, stats, bytes, erase)) {
+                EXPECT_EQ(nvs, kept) << key << ": refused, nothing erased";
+                return false;
+            }
+            nvs[key] = size;
+            return true;
+        };
+        const auto note = [&](const char* key) { // HeatingNoteNvs::writeGated
+            if (!B::permitsOptionalWrite(stats(), noteBytes, bytes(key), reserve)) return false;
+            nvs[key] = noteBytes;
+            return true;
+        };
+        const bool comfort = user("comfort", comfortBytes), valves = user("trv", trvBytes);
+        const bool owned = note("owned"), test = note("takeover_test");
+        std::string kept;
+        for (const auto& [k, b] : nvs) kept += k + " ";
+        std::printf("[ nvs ] plan %4zu B, control %4zu B%s: reserve %zu; comfort %d, valves %d, owned %d, test %d; erased %zu; kept: %s-> %zu free\n",
+                    c.plan, c.control, c.graph ? " (graph)" : "", reserve, comfort, valves, owned, test, erased.size(), kept.c_str(), stats().freeEntries);
+        for (const auto& k : erased) EXPECT_TRUE(k.rfind("learned", 0) == 0 || k == "readiness" || k == "autotune") << k; // optional only
+        EXPECT_EQ(nvs.count("comfort"), size_t(comfort));
+        // The invariant: the plan saved again at its size plus an edit, a 2 KB Bluetooth save,
+        // the handover and the largest flow record still fit, with the GC page.
+        EXPECT_TRUE(B::permitsHeatingPlanWrite(stats(), std::min(c.plan + B::editBytes, B::configBytes), {}, control)) << c.plan;
+        EXPECT_TRUE(B::permitsBluetoothWrite(stats(), B::bluetoothBytes, {}, control)) << c.plan;
+        EXPECT_GE(stats().freeEntries, B::handoverEntries + B::blobEntries(B::flowRecordBytes) + B::entriesPerPage) << c.plan;
+        // The owner's unit (plan ~0.93 KB, a session without rooms): the overrides and the valves are kept.
+        if (c.plan == 930 && c.control <= 200 && !c.graph) { EXPECT_TRUE(comfort); EXPECT_TRUE(valves); }
+    }
+}

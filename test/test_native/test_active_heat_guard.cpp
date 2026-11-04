@@ -447,6 +447,52 @@ TEST(ActiveHeatGuard, PlannedRestartWithFailingWritesIsNotReleased) {
     EXPECT_TRUE(b.guard.released());
 }
 
+// Review R2-03: a firmware upload holds the loop task for minutes. Before it is read the guard
+// pauses: the zero first, nothing positive while paused (no takeover, no frost), and resume()
+// takes over again under the usual conditions. withdraw() stays final for the boot.
+TEST(ActiveHeatGuard, UploadPauseSendsTheZeroFirstAndResumes) {
+    Bench b; b.runFor(minute);
+    ASSERT_EQ(b.guard.state(), State::active);
+    ASSERT_FALSE(b.guard.released());
+    const auto t0 = b.now;
+    b.guard.pause(b.now);
+    EXPECT_TRUE(b.guard.paused());
+    EXPECT_EQ(b.guard.state(), State::stopping);
+    EXPECT_FALSE(b.guard.outputActive());
+    b.runFor(10 * second);
+    ASSERT_FALSE(b.since(t0).empty());
+    EXPECT_EQ(b.since(t0).front().flowC, 0);
+    EXPECT_TRUE(b.guard.released());
+    EXPECT_TRUE(b.guard.claimsBoiler());
+    b.in.rooms.coldestCentiC = 500; // a frost reading asks nothing while paused
+    b.runFor(20 * minute);
+    for (const auto& s : b.since(t0)) EXPECT_EQ(s.flowC, 0);
+    EXPECT_EQ(b.guard.state(), State::stopping);
+    EXPECT_TRUE(b.guard.confirmed()); // the owner's confirmation stays
+    b.in.rooms.coldestCentiC = 2040;
+    const auto t1 = b.now;
+    b.guard.resume();
+    b.runFor(10 * second);
+    ASSERT_FALSE(b.since(t1).empty());
+    EXPECT_EQ(b.since(t1).back().flowC, 40); // the next step takes over again
+    EXPECT_EQ(b.guard.state(), State::active);
+    EXPECT_TRUE(b.guard.outputActive());
+    // A guard that does not own the boiler yet (arming after a restart) takes nothing over while paused.
+    Bench arming(false); arming.now = 0; arming.guard.restore(0); arming.guard.pause(0);
+    for (int i = 0; i < 60; ++i) { arming.in.boilerHeardAtMs = arming.now; arming.runFor(10 * second); }
+    ASSERT_EQ(arming.sent.size(), 1u); // the boot zero only
+    EXPECT_EQ(arming.guard.state(), State::arming);
+    arming.guard.resume();
+    arming.in.boilerHeardAtMs = arming.now + 10 * second; arming.runFor(10 * second);
+    EXPECT_EQ(arming.guard.state(), State::active);
+    // withdraw() during a pause stays final: resume() does not undo it.
+    b.guard.pause(b.now); b.guard.withdraw(b.now); b.guard.resume();
+    const auto t2 = b.now;
+    b.runFor(30 * minute);
+    for (const auto& s : b.since(t2)) EXPECT_EQ(s.flowC, 0);
+    EXPECT_EQ(b.guard.state(), State::stopping);
+}
+
 TEST(ActiveHeatGuard, WithdrawWithoutAClaimNeverSendsOrTakesOver) {
     Bench shadow(false); shadow.in.mode = RoomPlan::Mode::shadow;
     shadow.guard.withdraw(shadow.now);

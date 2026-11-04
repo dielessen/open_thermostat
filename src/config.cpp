@@ -1,4 +1,5 @@
 #include "config.h"
+#include "HeatingCurve.h"
 #include "SetupNetwork.h"
 #include "control/BoundedJson.h"
 #include "DeviceNetworkSettings.h"
@@ -654,17 +655,10 @@ BoilerConfig getBoilerConfig() {
 	config.heatingCurve.minHeatingCurveTemp = json::getInt(root.get(), "minHeatingCurveTemp");
 	config.heatingCurve.maxHeatingCurveTemp = json::getInt(root.get(), "maxHeatingCurveTemp");
 
-	auto heatingCurve = cJSON_GetObjectItem(root.get(), "heatingCurve");
-	if (!cJSON_IsArray(heatingCurve)) {
+	// Exactly nine points (R2-06): a longer list was copied past the array, at every boot.
+	if (!heating::readHeatingCurvePoints(cJSON_GetObjectItem(root.get(), "heatingCurve"), config.heatingCurve.heatingCurve)) {
+		DBGLOGFI(heating::logger, configLogFeature(), "Boiler config: heatingCurve needs nine numbers 0..100; defaults used\n");
 		return {};
-	}
-
-	auto noPoints = cJSON_GetArraySize(heatingCurve);
-	for (auto pt = 0; pt < noPoints; ++pt) {
-		auto item = cJSON_GetArrayItem(heatingCurve, pt);
-		if (cJSON_IsNumber(item)) {
-			config.heatingCurve.heatingCurve[pt] = item->valueint;
-		}
 	}
 
 	auto boiler = cJSON_GetObjectItem(root.get(), "boiler");

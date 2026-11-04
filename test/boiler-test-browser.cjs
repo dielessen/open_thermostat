@@ -9,10 +9,13 @@ const fixture = () => ({reception: {state:'classic_reports_received', report_cou
   test:{clock:'boot_monotonic_ms',stop_reference_emitted_at_ms:0},
   // BurnerCycleMonitor::writeJSON and DhwEpisodes::writeJSON (newer firmware only).
   burner_cycles:{known:true,short_cycling:true,starts_last_hour:9,heating_starts_last_hour:8,median_heating_run_s:240,observed_window_s:3600,observed_starts:30},
-  dhw_episodes:{method:'dhw_temperature_fall',clock_known:true,active_s:null,
+  dhw_episodes:{method:'dhw_temperature_fall',clock_known:true,since_restart_utc:null,active_s:null,
     today:{tapping:{count:3,s:540},keep_warm:{count:2,s:300},unknown:{count:0,s:0},burner_s:960,peak_flow_l_min:null},
     last_7_days:{tapping:{count:21,s:3600},keep_warm:{count:9,s:1500},unknown:{count:1,s:60},burner_s:6000,peak_flow_l_min:null}},
   fields:{measured_flow_temperature:{value:37.2,unit:'degC',state:'valid',quality:'reported',age_ms:100,observed_at_ms:200},
+    // The EasyControl adapter's own lifetime counters: always 0, so never shown (rc.4, R3-05).
+    reported_burner_starts:{value:0,unit:'count',state:'valid',quality:'reported',age_ms:100},
+    reported_burner_runtime:{value:0,unit:'min',state:'valid',quality:'reported',age_ms:100},
     raw_burner_bit:{value:1,unit:'bool',state:'valid',quality:'unreliable',age_ms:100},
     heating_active:{value:0,unit:'bool',state:'valid',quality:'inferred',age_ms:100},
     measured_return_temperature:{value:35,unit:'degC',state:'stale',quality:'reported',age_ms:31000},
@@ -48,6 +51,20 @@ const fixture = () => ({reception: {state:'classic_reports_received', report_cou
     const dhw = await page.locator('[data-dhw]').innerText();
     assert.match(dhw,/Tappen\s+3 × · 9 min/); assert.match(dhw,/Warmhouden\s+2 × · 5 min/); assert.match(dhw,/Brandertijd\s+16 min/);
     assert.doesNotMatch(dhw,/Hoogste warmwaterdoorstroming/); assert.match(dhw,/dalende warmwatertemperatuur/);
+    // rc.4 (F2, R3-05): the stored days joined (since_restart_utc null): no restart note; the
+    // adapter's own counters (always 0) are not shown. Without the stored days the note gives the time.
+    assert.doesNotMatch(dhw,/herstart/); assert.equal(await page.locator('[data-dhw-since]').isHidden(),true);
+    const essentials = await page.locator('[data-essentials]').innerText();
+    assert.doesNotMatch(essentials,/Branderstarts\s+0/); assert.doesNotMatch(essentials,/Branderuren/);
+    const restart = Math.floor(Date.now() / 1000) - 3 * 3600;
+    data.dhw_episodes.since_restart_utc = restart;
+    await page.locator('[data-dhw-since]').filter({hasText:'Geteld sinds de herstart om'}).waitFor();
+    const expected = await page.evaluate(utc => new Intl.DateTimeFormat('nl', {hour:'2-digit', minute:'2-digit'}).format(new Date(utc * 1000)), restart);
+    assert.equal(await page.locator('[data-dhw-since]').innerText(),`Geteld sinds de herstart om ${expected}.`);
+    data.fields.reported_burner_starts.value = 12345; data.fields.reported_burner_runtime.value = 6000;
+    await page.locator('[data-essentials]').filter({hasText:'Branderuren'}).waitFor();
+    assert.match(await page.locator('[data-essentials]').innerText(),/Branderstarts\s+12[.\s]?345/);
+    assert.match(await page.locator('[data-essentials]').innerText(),/Branderuren\s+100 h/);
     // Older firmware without these objects hides both blocks.
     delete data.burner_cycles; delete data.dhw_episodes;
     await page.locator('[data-dhw]').waitFor({state:'hidden'});

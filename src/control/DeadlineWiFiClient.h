@@ -74,7 +74,15 @@ public:
     const MqttOutbox& outbox()const{return outbox_;}
     // fw/heartbeat: the largest queue and the slowest frame since the last call.
     void takeWindow(size_t& peakBytes,uint32_t& latencyMaxMs){peakBytes=outbox_.peak();latencyMaxMs=windowLatencyMax_;outbox_.resetPeak();windowLatencyMax_=0;}
-    int available()override{if(!outbox_.empty())drain();return WiFiClient::available();}
+    // PubSubClient's connect() spins on available() until the CONNACK arrives (its 1 s socket
+    // timeout stays the bound): while handshake(true), an empty read yields 1 ms (review R2-09).
+    void handshake(bool waiting){handshake_=waiting;}
+    int available()override{
+        if(!outbox_.empty())drain();
+        const int bytes=WiFiClient::available();
+        if(!bytes&&handshake_)delay(1);
+        return bytes;
+    }
     // PubSubClient's DISCONNECT and the offline notice get one short chance.
     // A failure seen here (the peer already left) is not a write-path disconnect.
     void stop()override{
@@ -132,7 +140,7 @@ private:
     MqttOutbox outbox_;
     uint8_t* arena_=nullptr;
     std::string prefix_;
-    bool stopping_=false;
+    bool stopping_=false,handshake_=false;
     uint32_t windowLatencyMax_=0;
 };
 }

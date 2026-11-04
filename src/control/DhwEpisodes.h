@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <optional>
 #include <ostream>
+#include <string>
+#include <string_view>
 
 namespace heating::control {
 // Domestic hot water episodes from passive Classic reports (pure, boot-local,
@@ -43,6 +45,8 @@ namespace heating::control {
 //  - No DHW temperature either: unknown.
 // An episode counts on the local day it ends. A 0x18 gap > 60 s ends it at
 // the last report: no invented time. Older (reordered) reports are ignored.
+// rc.4 (F2): today and the last 6 days survive a restart through record() and
+// restore() (HeatingController keeps them in NVS); the rest stays boot-local.
 class DhwEpisodes {
 public:
     enum Kind : uint8_t { tapping, keepWarm, unknown, charging, kinds };
@@ -170,22 +174,89 @@ public:
         if (!unixNow) return;
         unixNow_ = *unixNow; unixAtMs_ = now;
         const int32_t d = ShadowComparison::localDay(*unixNow);
-        if (today_.day == unknownDay) today_.day = d;   // boot time joins the first known day
-        else if (d > today_.day) {                      // a clock step back stays today
+        if (today_.day == unknownDay) {                 // boot time joins the first known day
+            today_.day = firstDay_ = d;
+            bootUtc_ = *unixNow - uint32_t(std::min<uint64_t>(now / 1000, *unixNow));
+            if (pending_) applyPending();
+        } else if (d > today_.day) {                    // a clock step back stays today
             days_[head_] = today_; head_ = (head_ + 1) % history;
             if (count_ < history) ++count_;
-            today_ = {}; today_.day = d;
+            today_ = {}; today_.day = d; ++version_;
         }
     }
 
-    // {"method":..,"baseline":..,"clock_known":..,"active_s":null|s,"today":{..},"last_7_days":{..}}
+    // rc.4 (F2): the days over a restart. record(): "1" then today and each history day of the
+    // last 7 days, newest first, as ";day,count x4,seconds x4,burner_s,peak_flow" (at most
+    // recordBytes); empty until the day is known and a stored record was joined. restore(): that
+    // text at boot; it joins this boot's counts once the clock gives the day (today's are added,
+    // earlier days go back into the history). False: not a record (ignored).
+    static constexpr size_t recordBytes = 512;
+    std::string record() const {
+        if (today_.day == unknownDay || pending_) return {};
+        std::string out = "1";
+        const auto number = [&](uint32_t v) {
+            char digits[10]; size_t n = 0;
+            do { digits[n++] = char('0' + v % 10); v /= 10; } while (v);
+            while (n) out += digits[--n];
+        };
+        const auto add = [&](const Day& d) {
+            out += ';'; number(uint32_t(d.day));
+            for (size_t k = 0; k < kinds; ++k) { out += ','; number(d.count[k]); }
+            for (size_t k = 0; k < kinds; ++k) { out += ','; number(d.seconds[k]); }
+            out += ','; number(d.burnerS); out += ','; number(d.peakFlow);
+        };
+        add(today_);
+        for (size_t i = 0; i < count_; ++i) {
+            const Day& d = days_[(head_ + history - 1 - i) % history];
+            if (d.day != unknownDay && d.day < today_.day && d.day >= today_.day - int32_t(history)) add(d);
+        }
+        return out.size() <= recordBytes ? out : std::string();
+    }
+    bool restore(std::string_view text) {
+        pending_ = false; pendingCount_ = 0;
+        if (text.size() < 3 || text.size() > recordBytes || text.substr(0, 2) != "1;") return false;
+        text.remove_prefix(2);
+        std::array<Day, history + 1> days{};
+        size_t n = 0;
+        for (;;) {
+            const auto end = text.find(';');
+            if (n == days.size() || !parseDay(text.substr(0, end), days[n]) || (n && days[n].day >= days[n - 1].day)) return false;
+            ++n;
+            if (end == std::string_view::npos) break;
+            text.remove_prefix(end + 1);
+        }
+        pendingDays_ = days; pendingCount_ = n; pending_ = true;
+        if (today_.day != unknownDay) applyPending();
+        return true;
+    }
+    // Store now: a new day, or an hour after the last store with something new; never before
+    // the clock is known and a stored record joined. saved(): after each attempt (a refused write
+    // tries again in an hour).
+    bool saveDue(uint64_t now) const {
+        return unsaved() && (savedDay_ != today_.day || !savedAtMs_ || now - savedAtMs_ >= 3600000);
+    }
+    // Something new since the last store (a planned restart stores it at once).
+    bool unsaved() const { return today_.day != unknownDay && !pending_ && (savedDay_ != today_.day || version_ != savedVersion_); }
+    void saved(uint64_t now) { savedDay_ = today_.day; savedVersion_ = version_; savedAtMs_ = now ? now : 1; }
+    // Today's totals start at this boot (no stored record of today joined, the boot was today):
+    // the unix time of the boot, else nullopt (also while the clock is unknown).
+    std::optional<uint32_t> sinceRestartUtc() const {
+        if (today_.day == unknownDay || today_.day > firstDay_ || todayRestored_) return std::nullopt;
+        return bootUtc_;
+    }
+
+    // {"method":..,"baseline":..,"clock_known":..,"since_restart_utc":null|s,"active_s":null|s,"today":{..},"last_7_days":{..}}
     // baseline: what the DHW temperature rule compares the fall before a round with ("night": this
-    // installation's night rounds, "default"); null for the other methods.
+    // installation's night rounds, "default"); null for the other methods. since_restart_utc (rc.4):
+    // today's totals start at this boot (sinceRestartUtc): the Boiler page says "since the restart at
+    // hh:mm" (only here, not in the MQTT summary below).
     void writeJSON(std::ostream& out, uint64_t now) const {
         out << "{\"method\":\"" << method() << "\",\"baseline\":";
         if (const char* b = baseline()) out << '"' << b << '"'; else out << "null";
         out << ",\"clock_known\":"
-            << (today_.day != unknownDay ? "true" : "false") << ",\"active_s\":";
+            << (today_.day != unknownDay ? "true" : "false") << ",\"since_restart_utc\":";
+        if (const auto since = sinceRestartUtc()) out << *since; else out << "null";
+        out << ",\"active_s\":";
         if (open_ && now >= startMs_) out << (now - startMs_) / 1000; else out << "null";
         out << ",\"today\":"; day(out, today_);
         out << ",\"last_7_days\":"; day(out, lastSevenDays());
@@ -229,7 +300,56 @@ private:
         today_.seconds[kind] += static_cast<uint32_t>((endMs - startMs_) / 1000);
         today_.burnerS += static_cast<uint32_t>(burnerMs_ / 1000);
         if (flowLive_) today_.peakFlow = std::max(today_.peakFlow, peak_);
-        open_ = false; endMs_ = endMs; idlePeak_ = std::nullopt;
+        open_ = false; endMs_ = endMs; idlePeak_ = std::nullopt; ++version_;
+    }
+    // One stored day: "day,count x4,seconds x4,burner_s,peak_flow", unsigned decimals within bounds.
+    static bool parseDay(std::string_view s, Day& d) {
+        constexpr size_t fields = 3 + 2 * kinds;
+        uint32_t v[fields] = {};
+        for (size_t f = 0; f < fields; ++f) {
+            size_t len = 0;
+            uint64_t value = 0;
+            while (len < s.size() && len < 10 && s[len] >= '0' && s[len] <= '9') value = value * 10 + uint64_t(s[len++] - '0');
+            if (!len || value > UINT32_MAX) return false;
+            v[f] = uint32_t(value);
+            s.remove_prefix(len);
+            if (f + 1 == fields) break;
+            if (s.empty() || s.front() != ',') return false;
+            s.remove_prefix(1);
+        }
+        constexpr uint32_t dayLimit = 2 * 86400; // an episode across midnight counts on the day it ends
+        if (!s.empty() || !v[0] || v[0] > 1000000 || v[fields - 2] > dayLimit || v[fields - 1] > 255) return false;
+        d = {};
+        d.day = int32_t(v[0]);
+        for (size_t k = 0; k < kinds; ++k) {
+            if (v[1 + k] > UINT16_MAX || v[1 + kinds + k] > dayLimit) return false;
+            d.count[k] = uint16_t(v[1 + k]); d.seconds[k] = v[1 + kinds + k];
+        }
+        d.burnerS = v[fields - 2]; d.peakFlow = uint8_t(v[fields - 1]);
+        return true;
+    }
+    // A stored record joins this boot once the day is known: today's totals are added, earlier
+    // days of the last 7 go back into the (empty at boot) history; others are dropped.
+    void applyPending() {
+        pending_ = false;
+        const auto inHistory = [&](int32_t day) {
+            for (size_t i = 0; i < count_; ++i) if (days_[(head_ + history - 1 - i) % history].day == day) return true;
+            return false;
+        };
+        for (size_t i = pendingCount_; i-- > 0;) { // oldest first, as the day change fills the history
+            const Day& d = pendingDays_[i];
+            if (d.day == today_.day) {
+                for (size_t k = 0; k < kinds; ++k) {
+                    today_.count[k] = uint16_t(std::min<uint32_t>(UINT16_MAX, uint32_t(today_.count[k]) + d.count[k]));
+                    today_.seconds[k] += d.seconds[k];
+                }
+                today_.burnerS += d.burnerS; today_.peakFlow = std::max(today_.peakFlow, d.peakFlow);
+                todayRestored_ = true;
+            } else if (d.day < today_.day && d.day >= today_.day - int32_t(history) && count_ < history && !inHistory(d.day)) {
+                days_[head_] = d; head_ = (head_ + 1) % history; ++count_;
+            }
+        }
+        pendingCount_ = 0; ++version_;
     }
     void day(std::ostream& out, const Day& d) const {
         static constexpr const char* names[kinds] = {"tapping", "keep_warm", "unknown", "charging"};
@@ -277,5 +397,12 @@ private:
     uint8_t lastFlow_ = 0, peak_ = 0;
     bool open_ = false, flame_ = false, haveState_ = false, haveFlow_ = false, flowLive_ = false, flowSeen_ = false;
     bool haveCharging_ = false, chargingBit_ = false, chargingLive_ = false, chargingSeen_ = false, lastTempBelow_ = false;
+    // rc.4 (F2): the stored days over a restart.
+    std::array<Day, history + 1> pendingDays_{};       // a restored record until the day is known
+    size_t pendingCount_ = 0;
+    bool pending_ = false, todayRestored_ = false;
+    int32_t firstDay_ = unknownDay, savedDay_ = unknownDay; // the boot's first known day; the day last stored
+    uint32_t bootUtc_ = 0, version_ = 0, savedVersion_ = 0;  // version_: a counted episode or a new day
+    uint64_t savedAtMs_ = 0;
 };
 }

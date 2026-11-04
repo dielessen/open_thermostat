@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 #include "HeatingCurve.h"
+#include <memory>
+#include <string>
 
 class HeatingCurveTest : public ::testing::Test {
 protected:
@@ -50,4 +52,31 @@ TEST_F(HeatingCurveTest, FlatCurve) {
 	EXPECT_EQ(heating::calcHeatingTemperature(1500, flat), 4000);
 	EXPECT_EQ(heating::calcHeatingTemperature(0, flat), 4000);
 	EXPECT_EQ(heating::calcHeatingTemperature(-1500, flat), 4000);
+}
+
+// Review R2-06: cfgboiler.json's "heatingCurve" is copied into a 9-point array at every boot;
+// a longer list wrote past it on the stack. Only exactly nine numbers of 0..100 are taken.
+TEST(HeatingCurvePoints, OnlyExactlyNineNumbersInRangeAreTaken) {
+	const auto points = [](const std::string &json, std::array<uint8_t, 9> &out) {
+		std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(json.c_str()), cJSON_Delete);
+		return heating::readHeatingCurvePoints(root.get(), out);
+	};
+	const auto list = [](size_t n, const char *value = "50") {
+		std::string json = "[";
+		for (size_t i = 0; i < n; ++i) json += std::string(i ? "," : "") + value;
+		return json + "]";
+	};
+	const std::array<uint8_t, 9> kept{{1, 2, 3, 4, 5, 6, 7, 8, 9}};
+	std::array<uint8_t, 9> out = kept;
+	ASSERT_TRUE(points("[30,30,37,46,55,63,72,75,75]", out));
+	EXPECT_EQ(out, (std::array<uint8_t, 9>{{30, 30, 37, 46, 55, 63, 72, 75, 75}}));
+	EXPECT_TRUE(points("[0,100,37.9,0,0,0,0,0,0]", out));
+	EXPECT_EQ(out[1], 100); EXPECT_EQ(out[2], 37); // a fraction is cut like the old valueint
+	for (const std::string &bad : {list(0), list(8), list(10), list(1000), list(9, "-1"), list(9, "300"), list(9, "100.5"),
+	                              list(9, "\"40\""), list(9, "null"), list(9, "[40]"), std::string("{\"a\":1}"), std::string("40")}) {
+		out = kept;
+		EXPECT_FALSE(points(bad, out)) << bad.substr(0, 40);
+		EXPECT_EQ(out, kept) << bad.substr(0, 40); // untouched, nothing written past nine
+	}
+	EXPECT_FALSE(heating::readHeatingCurvePoints(nullptr, out));
 }

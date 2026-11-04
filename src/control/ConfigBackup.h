@@ -17,6 +17,7 @@
 #include "control/LearnedState.h"
 #include "control/ManagedDeviceSettings.h"
 #include "control/NativeSourceProvisioning.h"
+#include "control/RoomOverrides.h"
 #include "control/RoomPlan.h"
 #include "control/SessionAdmission.h"
 #include <cJSON.h>
@@ -54,6 +55,8 @@ struct DeviceState {
     std::string flow;          // FlowSettings::json()
     std::string display;       // boiler display model id
     std::string learned;       // LearnedState::bundle() (binary): what the thermostat learned
+    std::string holidays;      // RoomOverrides::holidaysStored(): the planned holidays (rc.4)
+    uint32_t utc = 0;          // the E32's clock (0: not known): holidays that ended stay out
     std::string wifiSsid;      // shown in the export only
     bool modernMode = false;   // HA-managed: legacy weather settings are read-only
     bool ethernetUp = false;   // an Ethernet link carries the network now
@@ -72,7 +75,7 @@ struct Secrets {
     ~Secrets() { wipe(); }
 };
 // Candidates; an empty one leaves its section as it is.
-struct Prepared { std::string network, bluetooth, plan, flow, display, learned, language; bool restart = false; };
+struct Prepared { std::string network, bluetooth, plan, flow, display, learned, language, holidays; bool restart = false; };
 // The summary the owner confirms: changes, warnings and what to re-enter.
 struct Report {
     ControlJson changes{cJSON_CreateArray(), cJSON_Delete}, warnings{cJSON_CreateArray(), cJSON_Delete},
@@ -285,6 +288,28 @@ inline void fitLearned(cJSON* r, std::string_view learned) {
         cJSON_ReplaceItemInObjectCaseSensitive(cJSON_GetObjectItemCaseSensitive(r, "learned"), "state", cJSON_CreateString(toHex(fewer).c_str()));
     }
 }
+// The planned holidays (rc.4, RoomOverrides::holidaysStored(), {"v":1,"c":1400,"p":[[from,until]]}) as the
+// backup's section {"temperature_c":14 (absent: the away temperature),"periods":[{"from","until"}]};
+// null without a readable record.
+inline ControlJson holidaysSection(const std::string& record) {
+    auto stored = parseStored(record, 3);
+    const auto list = item(stored.get(), "p");
+    if (!cJSON_IsArray(list)) return ControlJson(nullptr, cJSON_Delete);
+    ControlJson out(cJSON_CreateObject(), cJSON_Delete);
+    const auto c = item(stored.get(), "c");
+    if (out && cJSON_IsNumber(c) && !cJSON_AddNumberToObject(out.get(), "temperature_c", c->valuedouble / 100.0)) return ControlJson(nullptr, cJSON_Delete);
+    auto periods = out ? cJSON_AddArrayToObject(out.get(), "periods") : nullptr;
+    if (!periods) return ControlJson(nullptr, cJSON_Delete);
+    for (auto p = list->child; p; p = p->next) {
+        const auto from = cJSON_GetArrayItem(p, 0), until = cJSON_GetArrayItem(p, 1);
+        auto row = cJSON_CreateObject();
+        if (!row || !cJSON_AddItemToArray(periods, row)) { cJSON_Delete(row); return ControlJson(nullptr, cJSON_Delete); }
+        if (!cJSON_IsNumber(from) || !cJSON_IsNumber(until) || !cJSON_AddNumberToObject(row, "from", from->valuedouble)
+            || !cJSON_AddNumberToObject(row, "until", until->valuedouble)) return ControlJson(nullptr, cJSON_Delete);
+    }
+    return out;
+}
+
 // The whole backup document. sealedHex: the sealed secrets box (hex), or empty.
 // Printed unformatted it never exceeds maxBytes (what a restore accepts): the learned
 // state gives way first, its last rooms first.
@@ -342,6 +367,7 @@ inline ControlJson exportDocument(const DeviceState& s, const Meta& m, const std
         plan.release();
     }
     if (auto flow = parseStored(s.flow)) { if (!cJSON_AddItemToObject(r, "flow", flow.get())) return fail(); flow.release(); }
+    if (auto holidays = holidaysSection(s.holidays)) { if (!cJSON_AddItemToObject(r, "holidays", holidays.get())) return fail(); holidays.release(); }
     if (!s.display.empty()) if (auto d = cJSON_AddObjectToObject(r, "boiler_display")) cJSON_AddStringToObject(d, "model", s.display.c_str());
     // A replacement E32 keeps learning where this one was (LearnedState.h, at most backupBytes).
     if (!s.learned.empty()) if (auto l = cJSON_AddObjectToObject(r, "learned")) cJSON_AddStringToObject(l, "state", toHex(s.learned).c_str());
@@ -443,7 +469,8 @@ inline const char* checkEnvelope(const cJSON* b, const Meta& device, Report& rep
         if (k == "format" || k == "schema" || k == "board" || k == "firmware" || k == "created") continue;
         if (k == "not_included") { if (!cJSON_IsArray(c)) return "invalid_not_included"; continue; }
         if (k == "secrets") { if (!cJSON_IsNull(c) && !cJSON_IsObject(c)) return "invalid_secrets"; continue; }
-        if (k == "network" || k == "wifi" || k == "bluetooth" || k == "heating" || k == "flow" || k == "boiler_display" || k == "ui" || k == "learned") {
+        if (k == "network" || k == "wifi" || k == "bluetooth" || k == "heating" || k == "flow" || k == "boiler_display" || k == "ui" || k == "learned"
+            || k == "holidays") {
             if (!cJSON_IsObject(c)) return "invalid_section";
             continue;
         }
@@ -753,6 +780,58 @@ inline void prepareLearned(const cJSON* backup, const DeviceState& s, std::strin
     else report.change("learned", "learned", nullptr, nullptr, true);
 }
 
+// The planned holidays and the holiday temperature (rc.4): the backup's section as the holidays record,
+// checked like the record (at most 8 periods of whole unix seconds, from < until; 5-25 degC) and merged.
+// Periods that already ended stay out (with the E32's clock); a backup without the section, or one made
+// before rc.4, leaves the holidays as they are. A missing "periods" or "temperature_c" is none (the
+// away temperature).
+inline const char* prepareHolidays(const cJSON* backup, const DeviceState& s, std::string& out, Report& report) {
+    using O = RoomOverrides;
+    const auto section = item(backup, "holidays");
+    if (!section) return nullptr;
+    for (auto c = section->child; c; c = c->next)
+        if (!c->string || (std::strcmp(c->string, "temperature_c") && std::strcmp(c->string, "periods")))
+            report.warn("unknown_key", std::string("holidays.") + (c->string ? c->string : ""));
+    std::optional<int16_t> centiC;
+    if (const auto t = item(section, "temperature_c")) {
+        int16_t c = 0;
+        if (!O::holidayCelsius(t, c)) { report.warn("invalid_value", "holidays.temperature_c"); return "holidays_invalid"; }
+        centiC = c;
+    }
+    const auto periods = item(section, "periods");
+    if (periods && (!cJSON_IsArray(periods) || cJSON_GetArraySize(periods) > int(O::maxHolidays))) {
+        report.warn("invalid_value", "holidays.periods"); return "holidays_invalid";
+    }
+    const auto whole = [](const cJSON* v, double low) {
+        return cJSON_IsNumber(v) && std::isfinite(v->valuedouble) && std::floor(v->valuedouble) == v->valuedouble
+            && v->valuedouble >= low && v->valuedouble <= O::latestUtc;
+    };
+    O::Holidays list;
+    bool ended = false;
+    for (auto p = periods ? periods->child : nullptr; p; p = p->next) {
+        const auto from = item(p, "from"), until = item(p, "until");
+        if (!whole(from, 0) || !whole(until, 1) || from->valuedouble >= until->valuedouble) {
+            report.warn("invalid_value", "holidays.periods"); return "holidays_invalid";
+        }
+        if (s.utc && until->valuedouble <= s.utc) { ended = true; continue; }
+        list.add(O::Holiday{uint32_t(from->valuedouble), uint32_t(until->valuedouble)});
+    }
+    list.merge();
+    if (ended) report.warn("holidays_ended_skipped");
+    out = O::holidaysRecord(list, centiC);
+    if (out.empty()) return "out_of_memory";
+    if (out == s.holidays) { out.clear(); return nullptr; }
+    // The summary: the holiday temperature with its values (null: the away temperature), the periods by name.
+    auto was = parseStored(s.holidays, 3), now = parseStored(out, 3);
+    const auto celsius = [](const cJSON* c) {
+        return ControlJson(cJSON_IsNumber(c) ? cJSON_CreateNumber(c->valuedouble / 100.0) : cJSON_CreateNull(), cJSON_Delete);
+    };
+    auto a = celsius(item(was.get(), "c")), b = celsius(item(now.get(), "c"));
+    if (!same(item(was.get(), "c"), item(now.get(), "c"))) report.change("holidays", "temperature_c", a.get(), b.get());
+    if (!same(item(was.get(), "p"), item(now.get(), "p"))) report.change("holidays", "periods", nullptr, nullptr, true);
+    return nullptr;
+}
+
 inline const char* prepareDisplay(const cJSON* backup, const DeviceState& s, std::string& out, Report& report) {
     const auto display = item(backup, "boiler_display");
     if (!display) return nullptr;
@@ -780,6 +859,7 @@ inline const char* prepare(const cJSON* backup, const DeviceState& s, const Secr
     if (!e) e = preparePlan(backup, s, out.plan, report);
     if (!e) e = prepareFlow(backup, s, out.flow, report);
     if (!e) e = prepareDisplay(backup, s, out.display, report);
+    if (!e) e = prepareHolidays(backup, s, out.holidays, report);
     if (e) { out = Prepared{}; return e; }
     prepareLearned(backup, s, out.learned, report);
     if (const auto wifi = item(backup, "wifi"); !text(item(wifi, "ssid")).empty()) report.warn("wifi_not_restored");
@@ -812,8 +892,8 @@ inline std::string withoutSecrets(const std::string& stored) {
 inline std::string fingerprintInput(const DeviceState& s, const Prepared& p) {
     std::string out;
     // Not s.learned: it changes while the owner reads the summary.
-    for (const auto* part : {&s.network, &s.bluetooth, &s.plan, &s.flow, &s.display,
-                             &p.network, &p.bluetooth, &p.plan, &p.flow, &p.display, &p.learned}) {
+    for (const auto* part : {&s.network, &s.bluetooth, &s.plan, &s.flow, &s.display, &s.holidays,
+                             &p.network, &p.bluetooth, &p.plan, &p.flow, &p.display, &p.learned, &p.holidays}) {
         const bool secretBearing = part == &s.network || part == &s.bluetooth || part == &p.network || part == &p.bluetooth;
         const auto clean = secretBearing ? withoutSecrets(*part) : *part;
         out += std::to_string(clean.size()); out += ':'; out += clean; out += '\n';
@@ -823,13 +903,14 @@ inline std::string fingerprintInput(const DeviceState& s, const Prepared& p) {
 
 // Ordered writes with rollback: the cheapest first, the network (which needs
 // the restart) last. A failure restores every section already written.
-enum class Part : uint8_t { display, flow, plan, bluetooth, network, learned };
+enum class Part : uint8_t { display, flow, plan, bluetooth, network, learned, holidays };
 inline const char* partName(Part p) {
     switch (p) {
         case Part::display: return "boiler_display";
         case Part::flow: return "flow";
         case Part::plan: return "heating";
         case Part::learned: return "learned";
+        case Part::holidays: return "holidays";
         case Part::bluetooth: return "bluetooth";
         default: return "network";
     }
@@ -841,7 +922,8 @@ Applied apply(const DeviceState& s, const Prepared& p, Target& target, std::stri
     failed.clear();
     const std::pair<Part, std::pair<const std::string*, const std::string*>> steps[] = {
         {Part::display, {&p.display, &s.display}}, {Part::flow, {&p.flow, &s.flow}}, {Part::plan, {&p.plan, &s.plan}},
-        {Part::learned, {&p.learned, &s.learned}}, {Part::bluetooth, {&p.bluetooth, &s.bluetooth}}, {Part::network, {&p.network, &s.network}}};
+        {Part::learned, {&p.learned, &s.learned}}, {Part::holidays, {&p.holidays, &s.holidays}},
+        {Part::bluetooth, {&p.bluetooth, &s.bluetooth}}, {Part::network, {&p.network, &s.network}}};
     std::size_t done = 0;
     for (; done < sizeof steps / sizeof steps[0]; ++done) {
         const auto& step = steps[done];

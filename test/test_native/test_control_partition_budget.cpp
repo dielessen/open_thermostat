@@ -168,8 +168,10 @@ TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAnd
     EXPECT_EQ(B::controlReplacementEntries(200, false), 15u);
     EXPECT_EQ(B::controlReplacementEntries(200, true), 136u);
     EXPECT_EQ(B::controlReplacementEntries(4090, false), 136u);
-    EXPECT_EQ(B::controlReserveEntries(0, 8), 3u + 26u + (3u + 70u + 8u + 126u));    // handover, flow, a 2 KB Bluetooth save
-    EXPECT_EQ(B::controlReserveEntries(4096, 136), 3u + 26u + (3u + 136u + 136u + 126u));
+    // Handover, the holidays record (rc.4: 1 + 13 entries), flow, a 2 KB Bluetooth save.
+    EXPECT_EQ(B::holidayEntries(), 14u);
+    EXPECT_EQ(B::controlReserveEntries(0, 8), 3u + 14u + 26u + (3u + 70u + 8u + 126u));
+    EXPECT_EQ(B::controlReserveEntries(4096, 136), 3u + 14u + 26u + (3u + 136u + 136u + 126u));
     EXPECT_EQ(B::previousFirmwareReserveEntries(0, 0), 3u + 26u + (3u + 8u + 136u + 126u)); // rc2-fw-review2's ledger
     EXPECT_EQ(B::previousFirmwareReserveEntries(0, 2048), 3u + 26u + (3u + 70u + 136u + 126u));
     EXPECT_EQ(B::previousFirmwareReserveEntries(4096, 0), 3u + 26u + (3u + 136u + 136u + 126u));

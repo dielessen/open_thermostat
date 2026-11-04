@@ -95,6 +95,13 @@ public:
     static constexpr size_t bluetoothBytes=2048,editBytes=64;
     static constexpr size_t handoverEntries=3;   // nvs_set_str of < 64 bytes: 1 + 2
     static constexpr size_t flowRecordBytes=640; // >= FlowSettings::maxBytes + 1 (asserted in the tests)
+    // rc.4: the owner's holiday planner ("holidays", RoomOverrides::holidaysStored(): 8 periods and
+    // the holiday temperature, a string of at most holidayRecordBytes with its NUL). Its write is
+    // kept free like control's (controlReserveEntries), so the optional records never take its
+    // room; its own gated write is not charged for it a second time (HeatingNoteNvs::reserved).
+    // Not in optionalKeys: the owner's plan is never erased to make room.
+    static constexpr size_t holidayRecordBytes=224;
+    static constexpr size_t holidayEntries() { return 1+blobEntries(holidayRecordBytes); }
     static constexpr size_t privateSaveBytes(size_t planBytes,size_t bleBytes) {
         const size_t plan=planBytes+editBytes<configBytes?planBytes+editBytes:configBytes;
         return plan>bleBytes?plan:bleBytes;
@@ -102,7 +109,7 @@ public:
     // SIZE_MAX (never permitted) for a reservation the static ledger refuses or a `control` above a full replacement.
     static constexpr size_t controlReserveEntries(size_t planBytes,size_t control,ControlModelReservation future={}) {
         return !staticLedgerPermits(future)||control>blobEntries(configBytes)?SIZE_MAX
-            :handoverEntries+blobEntries(flowRecordBytes)+planSaveEntries(privateSaveBytes(planBytes,bluetoothBytes),future,control);
+            :handoverEntries+holidayEntries()+blobEntries(flowRecordBytes)+planSaveEntries(privateSaveBytes(planBytes,bluetoothBytes),future,control);
     }
     // The ledger of the firmware a rollback returns to (beta.22 and rc.1 gate a
     // plan or Bluetooth save with a full control replacement), as rc.2 kept it

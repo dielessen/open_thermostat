@@ -52,20 +52,24 @@ inline HeatingPlanSave saveHeatingPlan(const std::string& raw) {
     return committed && readHeatingPlan() == raw ? HeatingPlanSave::saved : HeatingPlanSave::failed;
 }
 // A short text beside the plan, written only when it changes: "takeover_test" (the guided
-// boiler test's result, control/TakeoverTest.h) and "owned" (the E32 took over the boiler once).
+// boiler test's result, control/TakeoverTest.h), "owned" (the E32 took over the boiler once)
+// and, since rc.4, "holidays" (RoomOverridesStore.h: up to 224 bytes, its room kept by the ledger).
 struct HeatingNoteNvs {
+    static constexpr size_t largestBytes = 256;
     const char* key;
+    size_t maxBytes = 64;   // the text with its NUL, at most largestBytes
+    size_t reserved = 0;    // entries the ledger already keeps free for this record (not charged twice)
     std::string read() const {
         nvs_handle_t handle;
-        if (nvs_open("ot_heating", NVS_READONLY, &handle) != ESP_OK) return {};
-        char text[64] = {};
-        size_t size = sizeof(text);
+        if (maxBytes > largestBytes || nvs_open("ot_heating", NVS_READONLY, &handle) != ESP_OK) return {};
+        char text[largestBytes] = {};
+        size_t size = maxBytes;
         const bool ok = nvs_get_str(handle, key, text, &size) == ESP_OK;
         nvs_close(handle);
         return ok ? std::string(text) : std::string();
     }
     bool write(const std::string& text) const {
-        if (text.empty() || text.size() >= 64) return false;
+        if (text.empty() || text.size() >= maxBytes || maxBytes > largestBytes) return false;
         nvs_handle_t handle;
         if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
         const bool committed = nvs_set_str(handle, key, text.c_str()) == ESP_OK && nvs_commit(handle) == ESP_OK;
@@ -79,7 +83,7 @@ struct HeatingNoteNvs {
     // (NvsOptionalRecords.h). The same key and size bound as rc.2 (< 64 bytes: 3 entries). It is
     // not in ControlPartitionBudget::optionalKeys: never erased to make room.
     bool writeGated(const std::string& text) const {
-        return !text.empty() && text.size() < 64 && optionalHeatingRecordFits(key, text.size() + 1) && write(text);
+        return !text.empty() && text.size() < maxBytes && optionalHeatingRecordFits(key, text.size() + 1, 0, reserved) && write(text);
     }
 };
 // The owner's handover confirmation (control/HandoverConfirmation.h): one short

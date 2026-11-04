@@ -92,6 +92,7 @@ struct FakeTarget {
             case b::Part::bluetooth: s.bluetooth = text; break;
             case b::Part::network: s.network = text; break;
             case b::Part::learned: if (!LearnedState::validBundle(text)) return false; s.learned = text; break;
+            case b::Part::holidays: { RoomOverrides o; if (!o.restoreHolidays(text)) return false; s.holidays = o.holidaysStored(); break; }
         }
         return true;
     }

@@ -20,6 +20,8 @@ namespace heating::control {
 //                             fw/config/plan then lists them ("trv":[ids]), fw/state/heating
 //                             carries "trv":{"output","flow_offset_c"[,"flow_reason"]}
 // Members other modules add to the status flow through unchanged.
+// Not from here: the summary topics fw/telemetry/summary, flow, tuning, scoreboard and (rc.5)
+// insight come from HeatingController's summary source, split by TelemetryPublisher::summary().
 enum class HeatingTopic : uint8_t { heating, room, ble, plan, entities, shadow, trv, readiness };
 inline constexpr size_t entityPartBytes = 800;
 

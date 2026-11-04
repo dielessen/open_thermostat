@@ -206,8 +206,13 @@ TEST(Knowledge, TheInsightDocumentStaysWithinItsBound) {
         EXPECT_STREQ(cJSON_GetObjectItem(cJSON_GetObjectItem(parsed.get(), "house"), "state")->valuestring, "learned");
         EXPECT_EQ(print(cJSON_GetObjectItem(parsed.get(), "insights")),
                   R"([{"kind":"gas_per_dd_up","pct":40},{"kind":"warmup_slower","pct":50,"room":"room1"}])");
+        // As HeatingController publishes it while the E32 drives the boiler (the stub until P1's BoilerResponse lands).
+        BoilerResponse::Sample driving; driving.ownRequest = true; driving.returnCentiC = 3500;
+        stub.sample(driving);
+        const auto withStubKnowledge = Knowledge::percent(l.house.learner, l.curve, l.arrival, &stub, l.model, l.house.plan);
         Json withStub(cJSON_CreateObject(), cJSON_Delete);
-        ASSERT_TRUE(addInsightJson(withStub.get(), r, l.model, &stub, insights, l.house.plan));
+        ASSERT_TRUE(addInsightJson(withStub.get(), withStubKnowledge, l.model, &stub, insights, l.house.plan));
+        std::printf("[ insight ] as published with the boiler stub %zu B: %s\n", published(withStub.get()).size(), published(withStub.get()).c_str());
         Json none(cJSON_CreateObject(), cJSON_Delete);
         ASSERT_TRUE(addInsightJson(none.get(), r, l.model, nullptr, insights, l.house.plan));
         EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(cJSON_GetObjectItem(none.get(), "insight"), "boiler")));

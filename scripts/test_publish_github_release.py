@@ -115,6 +115,51 @@ class Answers(FakeGitHub):
         return super().__call__(args)
 
 
+def is_create(call):
+    return call[:2] == ['release', 'create']
+
+
+def is_upload(call):
+    return call[:2] == ['release', 'upload']
+
+
+def is_publish(call):
+    return call[:2] == ['release', 'edit'] and '--draft=false' in call
+
+
+class Lagging(FakeGitHub):
+    """GitHub's release list lags behind its own writes (read after write): after the create, the upload or the
+    publishing edit, the next `create` / `upload` / `publish` reads of the list still show the state from before that
+    write. The writes themselves take effect at once (gh.releases is the truth)."""
+
+    def __init__(self, create=0, upload=0, publish=0, **kwargs):
+        super().__init__(**kwargs)
+        self.lag = {'create': create, 'upload': upload, 'publish': publish}
+        self.stale, self.stale_reads = None, 0
+
+    def __call__(self, args):
+        if args[:3] == ['api', '--paginate', '--slurp'] and self.stale_reads > 0:
+            self.calls.append(list(args))
+            self.stale_reads -= 1
+            return json.dumps([self.stale])
+        before = json.loads(json.dumps(self.releases))
+        result = super().__call__(args)
+        for kind, test in (('create', is_create), ('upload', is_upload), ('publish', is_publish)):
+            if test(args) and self.lag[kind]:
+                self.stale, self.stale_reads = before, self.lag[kind]
+        return result
+
+    def reads_after(self, test):
+        """How often the list was read after the first call that `test` accepts and before the next write."""
+        index = next(i for i, call in enumerate(self.calls) if test(call))
+        reads = 0
+        for call in self.calls[index + 1:]:
+            if call[0] == 'release':
+                break
+            reads += call[:3] == ['api', '--paginate', '--slurp']
+        return reads
+
+
 class PublishTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -127,14 +172,16 @@ class PublishTests(unittest.TestCase):
         self.write_sums()
         self.notes = self.root / 'notes.md'
         self.notes.write_text('# notes\n')
+        self.sleeps = []  # the seconds the publisher waited between two reads of a lagging list (nothing really sleeps)
 
     def write_sums(self):
         names = sorted(p.name for p in self.assets.iterdir() if p.name != 'SUMS.txt')
         (self.assets / 'SUMS.txt').write_text(''.join(
             hashlib.sha256((self.assets / n).read_bytes()).hexdigest() + '  ' + n + '\n' for n in names))
 
-    def publish(self, gh, prerelease=True, dry_run=False):
-        return publisher.publish(gh, REPO, TAG, 'Title', self.notes, self.assets, 'SUMS.txt', prerelease, dry_run)
+    def publish(self, gh, prerelease=True, dry_run=False, log=None):
+        return publisher.publish(gh, REPO, TAG, 'Title', self.notes, self.assets, 'SUMS.txt', prerelease, dry_run, log=log,
+                                 sleep=self.sleeps.append)
 
     def test_fresh_release_is_a_draft_until_everything_is_uploaded_and_checked(self):
         gh = FakeGitHub()
@@ -261,9 +308,9 @@ class PublishTests(unittest.TestCase):
         arguments = ['--repository', REPO, '--tag', TAG, '--title', 'Title', '--notes-file', str(self.notes),
                      '--assets-dir', str(self.assets), '--sums', 'SUMS.txt', '--channel', 'prerelease']
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            self.assertEqual(publisher.main(arguments, gh=gh), 1)
+            self.assertEqual(publisher.main(arguments, gh=gh, sleep=self.sleeps.append), 1)
             gh.fail_upload_after = None
-            self.assertEqual(publisher.main(arguments, gh=gh), 0)
+            self.assertEqual(publisher.main(arguments, gh=gh, sleep=self.sleeps.append), 0)
         self.assertFalse(gh.releases[0]['draft'])
 
 
@@ -276,7 +323,7 @@ class PublishTests(unittest.TestCase):
     def run_main(self, gh, *extra):
         lines, out, err = [], io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            status = publisher.main(self.arguments(*extra), gh=gh, log=lines.append)
+            status = publisher.main(self.arguments(*extra), gh=gh, log=lines.append, sleep=self.sleeps.append)
         return status, lines, out.getvalue(), err.getvalue()
 
     def test_verbose_logs_every_gh_command_before_it_runs_and_every_step(self):
@@ -326,7 +373,7 @@ class PublishTests(unittest.TestCase):
     def test_verbose_goes_to_stderr_by_default(self):
         gh, out, err = FakeGitHub(), io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            self.assertEqual(publisher.main(self.arguments('--verbose'), gh=gh), 0)
+            self.assertEqual(publisher.main(self.arguments('--verbose'), gh=gh, sleep=self.sleeps.append), 0)
         self.assertIn('[publish] step 1 of 6 (verify the local assets): start', err.getvalue())
         self.assertIn('[publish] $ gh --version', err.getvalue())
         self.assertEqual(json.loads(out.getvalue())['tag'], TAG)
@@ -414,6 +461,170 @@ class PublishTests(unittest.TestCase):
         self.assertIn("drafts: 'untagged-8a3f' named 'Title'", '\n'.join(lines))
         self.assertIn('FAIL step 3 of 6 (prepare the release)', err)
 
+    # ---- the read after a write waits for GitHub's list to catch up (up to 6 reads, 5 s apart), never repeats a write ----
+
+    def test_without_lag_nothing_waits(self):
+        gh = FakeGitHub()
+        self.publish(gh)
+        self.assertEqual(self.sleeps, [], 'an up-to-date list is read once after each write')
+        self.assertEqual(len([c for c in gh.calls if c[:3] == ['api', '--paginate', '--slurp']]), 4, 'find + 3 read-backs')
+
+    def test_a_list_that_shows_the_new_draft_on_the_third_read_is_waited_for(self):
+        gh = Lagging(create=2)
+        self.publish(gh)
+        self.assertFalse(gh.releases[0]['draft'])
+        self.assertEqual(len(gh.releases), 1)
+        self.assertEqual(gh.reads_after(is_create), 3, 'found on the third read')
+        self.assertEqual(self.sleeps, [5, 5], '5 s between two reads, none after the one that found it')
+        self.assertEqual(gh.verbs(), ['release create', 'release upload', 'release edit'], 'every write was sent once')
+
+    def test_a_list_that_still_misses_the_draft_after_six_reads_fails_as_before_and_sends_no_second_create(self):
+        gh = Lagging(create=99)
+        with self.assertRaises(publisher.Failure) as caught:
+            self.publish(gh)
+        self.assertEqual(str(caught.exception), f'step 3 of 6 (prepare the release): release {TAG} was not found after creating it')
+        self.assertEqual(gh.reads_after(is_create), 6)
+        self.assertEqual(self.sleeps, [5] * 5, 'at most 25 s of waiting')
+        self.assertEqual(gh.verbs(), ['release create'], 'the create is not repeated and nothing else was sent')
+        self.assertEqual(len(gh.releases), 1, 'the draft exists: a re-run finds it and completes it')
+
+    def test_assets_that_are_listed_on_the_third_read_are_waited_for(self):
+        gh = Lagging(upload=2)
+        self.publish(gh)
+        self.assertEqual(gh.reads_after(is_upload), 3)
+        self.assertEqual(self.sleeps, [5, 5])
+        self.assertEqual(gh.verbs(), ['release create', 'release upload', 'release edit'])
+        self.assertFalse(gh.releases[0]['draft'])
+
+    def test_assets_that_are_still_not_listed_after_six_reads_fail_as_before_and_nothing_is_published(self):
+        gh = Lagging(upload=99)
+        with self.assertRaises(publisher.Failure) as caught:
+            self.publish(gh)
+        self.assertTrue(str(caught.exception).startswith(
+            'step 5 of 6 (read the release back): after the upload the release is not complete: {"missing": ['),
+            str(caught.exception))
+        self.assertEqual(gh.reads_after(is_upload), 6)
+        self.assertEqual(self.sleeps, [5] * 5)
+        self.assertEqual(gh.verbs(), ['release create', 'release upload'], 'the upload is not repeated, nothing is published')
+        self.assertTrue(gh.releases[0]['draft'])
+
+    def test_a_draft_that_is_still_listed_as_a_draft_after_publishing_is_waited_for(self):
+        gh = Lagging(publish=2)
+        self.publish(gh)
+        self.assertEqual(gh.reads_after(is_publish), 3)
+        self.assertEqual(self.sleeps, [5, 5])
+        self.assertEqual(len([c for c in gh.calls if is_publish(c)]), 1, 'the publishing edit was sent once')
+
+    def test_a_draft_that_is_listed_as_a_draft_for_six_reads_fails_as_before_and_is_not_published_twice(self):
+        gh = Lagging(publish=99)
+        with self.assertRaises(publisher.Failure) as caught:
+            self.publish(gh)
+        self.assertEqual(str(caught.exception),
+                         f'step 6 of 6 (publish the draft): release {TAG} is still a draft after publishing it')
+        self.assertEqual(gh.reads_after(is_publish), 6)
+        self.assertEqual(self.sleeps, [5] * 5)
+        self.assertEqual(len([c for c in gh.calls if is_publish(c)]), 1)
+
+    def test_a_list_that_lags_after_every_write_costs_three_short_waits(self):
+        gh = Lagging(create=1, upload=1, publish=1)
+        self.publish(gh)
+        self.assertEqual(self.sleeps, [5, 5, 5])
+        self.assertEqual(gh.verbs(), ['release create', 'release upload', 'release edit'])
+
+    def test_a_missing_asset_of_a_published_release_is_waited_for_without_clobber(self):
+        done = FakeGitHub()
+        self.publish(done)
+        gh = Lagging(upload=2)
+        gh.releases, gh.next_id = done.releases, done.next_id
+        gh.releases[0]['assets'] = [a for a in gh.releases[0]['assets'] if a['name'] != 'notes.txt']
+        self.sleeps.clear()
+        summary = self.publish(gh)
+        self.assertEqual(summary['uploaded'], ['notes.txt'])
+        self.assertEqual(gh.reads_after(is_upload), 3)
+        self.assertEqual(self.sleeps, [5, 5])
+        self.assertEqual(gh.verbs(), ['release upload'], 'a published release is still not edited')
+        self.assertNotIn('--clobber', next(c for c in gh.calls if is_upload(c)))
+
+    def test_a_replaced_asset_that_is_still_listed_with_its_old_size_is_waited_for(self):
+        gh = Lagging(upload=2)
+        gh.releases.append({'id': 7, 'tag_name': TAG, 'draft': True, 'prerelease': True, 'name': 'old', 'body': '',
+                            'assets': [{'name': 'firmware.bin', 'size': 17, 'state': 'uploaded', 'digest': 'sha256:' + '0' * 64}]})
+        self.publish(gh)
+        self.assertEqual(gh.reads_after(is_upload), 3)
+        self.assertEqual(self.sleeps, [5, 5])
+        uploads = [c for c in gh.calls if is_upload(c)]
+        self.assertEqual(len(uploads), 1)
+        self.assertIn('--clobber', uploads[0])
+
+    def test_a_read_that_fails_is_not_waited_for(self):
+        class FailsOnTheReadAfterTheCreate(FakeGitHub):
+            def __call__(self, args):
+                if args[:3] == ['api', '--paginate', '--slurp'] and any(is_create(c) for c in self.calls):
+                    self.calls.append(list(args))
+                    raise publisher.Failure('gh api failed (1): HTTP 502 Bad Gateway')
+                return super().__call__(args)
+        gh = FailsOnTheReadAfterTheCreate()
+        with self.assertRaisesRegex(publisher.Failure, r'^step 3 of 6 \(prepare the release\): gh api failed \(1\): HTTP 502'):
+            self.publish(gh)
+        self.assertEqual(self.sleeps, [], 'only an answer that does not show the write yet is waited for')
+
+    def test_two_releases_with_the_tag_after_a_write_are_not_waited_for(self):
+        gh = FakeGitHub()
+        original = gh.__call__
+
+        def two_releases_after_the_create(args):
+            result = original(args)
+            if args[:3] == ['api', '--paginate', '--slurp'] and gh.releases:
+                row = json.loads(result)[0][0]
+                return json.dumps([[row, {**row, 'id': 99}]])
+            return result
+        with self.assertRaisesRegex(publisher.Failure, r'^step 3 of 6 \(prepare the release\): 2 releases'):
+            self.publish(two_releases_after_the_create)
+        self.assertEqual(self.sleeps, [])
+
+    def test_an_extra_asset_after_the_upload_is_not_lag_and_is_not_waited_for(self):
+        class AddsAStrayAsset(FakeGitHub):
+            def __call__(self, args):
+                result = super().__call__(args)
+                if is_upload(args):
+                    self.releases[0]['assets'].append({'name': 'stray.bin', 'size': 1, 'state': 'uploaded'})
+                return result
+        with self.assertRaisesRegex(publisher.Failure, r'^step 5 of 6 \(read the release back\): after the upload the release is '
+                                                       r'not complete: \{"extra": \["stray.bin"\]\}$'):
+            self.publish(AddsAStrayAsset())
+        self.assertEqual(self.sleeps, [])
+
+    def test_a_dry_run_reads_nothing_back_and_waits_for_nothing(self):
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.publish(Lagging(create=99, upload=99, publish=99), dry_run=True)
+        self.assertEqual(self.sleeps, [])
+
+    def test_verbose_logs_every_wait(self):
+        gh = Lagging(create=2)
+        status, lines, out, err = self.run_main(gh, '--verbose')
+        text = '\n'.join(lines)
+        self.assertEqual(status, 0)
+        self.assertIn(f'release {TAG} on the list: not there yet (read 1 of 6); reading again in 5 s', text)
+        self.assertIn(f'release {TAG} on the list: not there yet (read 2 of 6); reading again in 5 s', text)
+        self.assertIn(f'release {TAG} on the list: there now, on read 3 of 6', text)
+        self.assertEqual(self.sleeps, [5, 5])
+        reads = [line for line in lines if line.startswith('$ ') and ' api ' in line]
+        self.assertEqual(len(reads), 1 + 3 + 1 + 1, 'find, three reads after the create, one after the upload and one after publishing')
+
+    def test_verbose_logs_that_it_gave_up(self):
+        status, lines, out, err = self.run_main(Lagging(create=99), '--verbose')
+        text = '\n'.join(lines)
+        self.assertEqual(status, 1)
+        self.assertIn(f'release {TAG} on the list: not there yet (read 5 of 6); reading again in 5 s', text)
+        self.assertIn(f'release {TAG} on the list: still not there after 6 reads and 25 s of waiting', text)
+        self.assertIn(f'FAIL step 3 of 6 (prepare the release): release {TAG} was not found after creating it', err)
+
+    def test_the_waits_default_to_six_reads_five_seconds_apart(self):
+        self.assertEqual((publisher.READ_ATTEMPTS, publisher.READ_WAIT_S), (6, 5))
+        calls = []
+        publisher.read_back(Lagging(create=0), REPO, TAG, None, lambda release: True, 'x', calls.append)
+        self.assertEqual(calls, [])
+
     def test_an_unexpected_error_still_names_its_step_and_keeps_its_traceback(self):
         status, lines, out, err = self.run_main(Answers('[[1]]'), '--verbose')
         self.assertEqual(status, 1)
@@ -486,7 +697,7 @@ class PublishTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {'GH_TOKEN': token}), contextlib.redirect_stderr(err), \
                 contextlib.redirect_stdout(io.StringIO()):
             publisher.stderr_log(f'gh said: bad credentials {token}\nsecond line')
-            self.assertEqual(publisher.main(self.arguments('--verbose'), gh=leaky), 1)
+            self.assertEqual(publisher.main(self.arguments('--verbose'), gh=leaky, sleep=self.sleeps.append), 1)
         self.assertNotIn(token, err.getvalue())
         self.assertIn('[publish] gh said: bad credentials ***', err.getvalue())
         self.assertIn('FAIL step 4 of 6 (upload the assets): HTTP 502 while uploading', err.getvalue())

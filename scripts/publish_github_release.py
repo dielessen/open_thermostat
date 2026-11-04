@@ -14,6 +14,12 @@ re-run finds a release that exists and cannot repair it. This script works in sm
 A release that is already published is never overwritten: a complete one is left alone, a missing asset is
 uploaded (no --clobber), and an asset that differs from the local file stops the run.
 
+GitHub's release list can lag a few seconds behind a write (the first attempts of rc.3 and rc.4 most likely failed on a
+list that did not show the new draft yet; a re-run found it). So the read right after a write waits for the list to
+catch up: up to 6 reads, 5 s apart, after the create (is the release listed), after the upload (is every asset there,
+complete) and after the publishing edit (is it no longer a draft). Only reads are repeated; the create, the upload and
+the edit are never sent twice, and an answer that is still not there after the last read fails as it always did.
+
 Every failure names the step it comes from ("FAIL step 4 of 6 (upload the assets): ..."), so a first attempt that
 fails within seconds says where. --verbose adds a log on stderr, for the job log: the environment, the start and
 the end of every step with what it found and decided, and for every gh command the command line before it runs,
@@ -38,6 +44,7 @@ from pathlib import Path
 
 STEP_COUNT = 6
 TAIL_CHARS = 600  # how much of a command's stderr and stdout --verbose logs
+READ_ATTEMPTS, READ_WAIT_S = 6, 5  # reads of the release list after a write, and the seconds between two of them
 
 
 class Failure(Exception):
@@ -160,6 +167,26 @@ def find_release(gh, repository, tag, log=None):
     return found[0] if found else None
 
 
+def read_back(gh, repository, tag, log, ready, what, sleep=time.sleep):
+    """find_release() right after a write, repeated while GitHub's list does not show the result of that write yet
+    (`ready(release)` says whether it does): up to READ_ATTEMPTS reads, READ_WAIT_S seconds apart, because the list can
+    lag a few seconds behind. Only the read is repeated, never the write before it; a read that fails (a gh error, two
+    releases with the tag) is not retried either. Returns the last answer, ready or not: the step raises the Failure
+    for an answer that is still not ready after the last read, the same one as without the wait."""
+    log = log or (lambda line: None)
+    for attempt in range(1, READ_ATTEMPTS + 1):
+        release = find_release(gh, repository, tag, log)
+        if ready(release):
+            if attempt > 1:
+                log(f'{what}: there now, on read {attempt} of {READ_ATTEMPTS}')
+            return release
+        if attempt == READ_ATTEMPTS:
+            log(f'{what}: still not there after {READ_ATTEMPTS} reads and {(READ_ATTEMPTS - 1) * READ_WAIT_S} s of waiting')
+            return release
+        log(f'{what}: not there yet (read {attempt} of {READ_ATTEMPTS}); reading again in {READ_WAIT_S} s')
+        sleep(READ_WAIT_S)
+
+
 def make_step(log):
     """step(number, name): names the step a Failure comes from and logs where it starts and ends."""
     @contextlib.contextmanager
@@ -181,9 +208,11 @@ def make_step(log):
     return step
 
 
-def publish(gh, repository, tag, title, notes_file, assets_dir, sums_name, prerelease, dry_run=False, log=None):
+def publish(gh, repository, tag, title, notes_file, assets_dir, sums_name, prerelease, dry_run=False, log=None,
+            sleep=time.sleep):
     """Brings the release of `tag` to published and complete. `log` (a function of one line) turns on the verbose
-    log; the failures name their step either way."""
+    log; the failures name their step either way. `sleep` is what waits between two reads of a list that lags
+    (read_back); a test passes its own."""
     verbose = log is not None
     log = log or (lambda line: None)
     step = make_step(log)
@@ -210,6 +239,21 @@ def publish(gh, repository, tag, title, notes_file, assets_dir, sums_name, prere
             return ''
         return gh(args)
 
+    # What the list must show before a read after a write counts as the answer (see read_back): the release itself;
+    # every asset there and complete (a replaced asset of a draft may still be listed with its old size); the draft
+    # flag gone. An extra asset is no lag of the list, so it is not waited for.
+    def listed(found):
+        return found is not None
+
+    def assets_there(found):
+        if found is None:
+            return False
+        shown = compare(found.get('assets') or [], expected)
+        return not (shown['missing'] or shown['incomplete'] or shown['different'])
+
+    def published_now(found):
+        return found is not None and found.get('draft') is False
+
     with step(2, 'find the release of the tag'):
         release = find_release(gh, repository, tag, log)
     with step(3, 'prepare the release'):
@@ -221,7 +265,7 @@ def publish(gh, repository, tag, title, notes_file, assets_dir, sums_name, prere
             if dry_run:
                 release = {'draft': True, 'prerelease': prerelease, 'assets': []}
             else:
-                release = find_release(gh, repository, tag, log)
+                release = read_back(gh, repository, tag, log, listed, f'release {tag} on the list', sleep)
                 if release is None:
                     raise Failure(f'release {tag} was not found after creating it')
         if release.get('prerelease') is not prerelease:
@@ -253,7 +297,7 @@ def publish(gh, repository, tag, title, notes_file, assets_dir, sums_name, prere
             log('nothing to upload')
     with step(5, 'read the release back'):
         if upload and not dry_run:
-            release = find_release(gh, repository, tag, log)
+            release = read_back(gh, repository, tag, log, assets_there, 'every uploaded asset on the release', sleep)
             if release is None:
                 raise Failure(f'release {tag} was not found after the upload')
             state = compare(release.get('assets') or [], expected)
@@ -265,7 +309,7 @@ def publish(gh, repository, tag, title, notes_file, assets_dir, sums_name, prere
         if draft:
             run(['release', 'edit', tag, '--repo', repository, '--draft=false'], 'published')
             if not dry_run:
-                release = find_release(gh, repository, tag, log)
+                release = read_back(gh, repository, tag, log, published_now, f'release {tag} as published', sleep)
                 if release is None or release.get('draft') is not False:
                     raise Failure(f'release {tag} is still a draft after publishing it')
         elif not upload:
@@ -333,7 +377,7 @@ def stderr_log(text):
         print('[publish] ' + line, file=sys.stderr, flush=True)
 
 
-def main(argv=None, gh=gh_command, log=None):
+def main(argv=None, gh=gh_command, log=None, sleep=time.sleep):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--repository', required=True)
     parser.add_argument('--tag', required=True)
@@ -352,7 +396,7 @@ def main(argv=None, gh=gh_command, log=None):
         gh = traced(gh, sink)
     try:
         summary = publish(gh, args.repository, args.tag, args.title, args.notes_file, args.assets_dir, args.sums,
-                          args.channel == 'prerelease', args.dry_run, log=sink)
+                          args.channel == 'prerelease', args.dry_run, log=sink, sleep=sleep)
     except Failure as error:
         print(f'FAIL {redact(str(error))}', file=sys.stderr)
         if args.verbose and error.__cause__ is not None:

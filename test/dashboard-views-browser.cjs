@@ -25,7 +25,8 @@ const html=(view,hidden,width)=>{
  // gaps filled where dense_section_placement says so (hui-sections-view: grid-auto-flow dense).
  const columns=Math.max(1,Math.min(view.max_columns||1,Math.floor((width-32)/320)));
  const sections=(view.sections||[]).map(section=>`<section style="grid-column:span ${Math.min(section.column_span||1,columns)};grid-row:span ${section.row_span||1}">${section.cards.filter(c=>!(hidden&&c.visibility)).map(card=>{
-  const span=(card.grid_options&&card.grid_options.columns)||(HALF.includes(card.type)?6:12);
+  // "full": the whole section (also one spanning both view columns, which Home Assistant gives 24 grid columns).
+  const asked=card.grid_options&&card.grid_options.columns,span=asked==='full'?12:asked||(HALF.includes(card.type)?6:12);
   return `<div class="card ${card.type.replace(/[^a-z-]/g,'')}" data-span="${span}" style="grid-column:span ${span};min-height:${height(card)}px">`+
    `<small>${card.type.replace('custom:openthermostat-','')}</small><b>${String(label(card)).replace(/</g,'&lt;')}</b>${card.visibility&&!hidden?'<i>conditional</i>':''}</div>`;}).join('')}</section>`).join('');
  return `<style>:root{--bg:#fafafa;--fg:#212121;--card:#fff;--muted:#727272;--tile:#eef5ff;--note:#fffbe8;--chart:#f1f8f1;--tag:#b26a00}

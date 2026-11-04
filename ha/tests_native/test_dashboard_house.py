@@ -90,8 +90,9 @@ async def test_the_house_card_heads_the_overview_and_reads_every_entity_it_needs
     # Phone order: the house card, the house mode (with its options) and the holiday line; nothing else in House.
     assert [card["type"] for card in cards] == ["heading", HOUSE_CARD_TYPE, "tile", "markdown"]
     assert cards[0] == {"type": "heading", "heading": "House", "heading_style": "title", "icon": "mdi:home-thermometer"}
+    # Across the whole view on a wide screen too (the section spans both columns: 24 grid columns, so 12 is half).
     assert cards[1] == {
-        "type": HOUSE_CARD_TYPE, "grid_options": {"columns": 12}, "request": hub["heat_request"],
+        "type": HOUSE_CARD_TYPE, "grid_options": {"columns": "full"}, "request": hub["heat_request"],
         "activity": hub["boiler_activity"], "heating": fields["heating_active"],
         "flow": fields["measured_flow_temperature"], "hot_water": fields["dhw_active"], "taps": hub["dhw_taps_today"],
         "gas": [hub["heating_gas"], hub["hot_water_gas"]], "starts": hub["daily_burner_starts"],
@@ -99,6 +100,8 @@ async def test_the_house_card_heads_the_overview_and_reads_every_entity_it_needs
     assert "visibility" not in cards[1]  # always there: it says itself when the E32 has not reported yet
     assert cards[2]["entity"] == hub["house_mode"] and cards[2]["features"] == [{"type": "select-options"}]
     assert cards[3]["show_empty"] is False and hub["house_mode"] in cards[3]["content"]
+    assert [card["grid_options"] for card in cards[1:]] == [{"columns": "full"}] * 3  # never half a row alone
+    assert overview(config)["sections"][0]["column_span"] == 2
     # What it absorbs is gone: the rooms that want heat, the problem tile and its reasons.
     text = json.dumps(overview(config))
     assert "set wanting" not in text and "'reasons'" not in text and "/config/repairs" not in text

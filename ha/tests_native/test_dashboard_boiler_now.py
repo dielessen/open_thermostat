@@ -47,7 +47,7 @@ async def test_the_owners_now_is_one_card_with_what_it_needs(hass):
     pairs (water, gauge and starts) are gone; the rest of the Boiler view is as it was."""
     config, rooms, sensors, hub, fields, flow = live(hass)
     section = now_section(config)
-    assert section["column_span"] == 2  # the four figures in one row on a wide screen, as the sketch
+    assert section["column_span"] == 2  # the four figures in one row on a wide screen, as the sketch (Ketel-desktop)
     heading, card = section["cards"]
     assert (heading["heading"], heading["icon"]) == ("Now", "mdi:water-boiler")
     assert card == {"type": BOILER_NOW_CARD_TYPE, "grid_options": {"columns": 12}, "activity": hub["boiler_activity"],
@@ -69,6 +69,8 @@ async def test_the_owners_now_is_one_card_with_what_it_needs(hass):
                    for c in view_cards(boiler))
     assert list(headed(boiler)) == ["Now", "Advice", "Today and this week", "Hot water", "Last 24 hours",
                                     "What the boiler reports", "Boiler settings"]
+    # As the desktop sketch: Now and the advice across the whole width, the other sections two by two under them.
+    assert [s.get("column_span") for s in boiler["sections"]] == [2, 2, None, None, None, None, None]
     # Once, on the Boiler view only; its words are the card's own (strings.json), so the config is the same in every
     # language: entity ids only.
     assert sum(json.dumps(v).count(BOILER_NOW_CARD_TYPE) for v in config["views"]) == 1

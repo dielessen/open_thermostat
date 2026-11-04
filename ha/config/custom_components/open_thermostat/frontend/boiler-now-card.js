@@ -42,7 +42,9 @@ const STATS_MS = 5 * 60000, TICK_MS = 60000, PENDING_MS = 2 * 60000;
 // The house card's band and figures (house-card.js): the band in the theme colour darkened for white words; the figures
 // a small muted label over a large number, its unit small and muted, a muted line under it, 1 px lines between them
 // (shadows the grid's edge cuts off). The figures of one row share their label, number and line rows (a subgrid), so
-// the numbers stand on one line also when a label takes two lines on a narrow phone.
+// the numbers stand on one line also when a label takes two lines on a narrow phone. The burner power's arc and its
+// number fit side by side at every width ("100 %" on a 320 px phone, four figures on a 720 px tablet): a smaller arc
+// where a figure is narrow, and the number under the arc rather than cut off if a font is wider still.
 const STYLE = `:host{display:block}
 ha-card{display:block;overflow:hidden;color:var(--primary-text-color);
 --oth-surface:var(--ha-card-background,var(--card-background-color,#fff));--oth-muted:var(--secondary-text-color,#6b6b6b);
@@ -73,16 +75,17 @@ box-shadow:1px 0 0 var(--oth-line),0 1px 0 var(--oth-line);cursor:pointer}
 .value .unit{font-weight:400;color:var(--oth-muted)}
 .value.unknown{font-size:30px;line-height:1.1;color:var(--oth-muted)}
 .note{margin-top:4px;font-size:12px;line-height:16px;color:var(--oth-muted);overflow-wrap:anywhere}
-.dial{display:flex;align-items:center;gap:10px;margin-top:4px}.dial .value{margin-top:0}
+.dial{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:4px}.dial .value{margin-top:0}
 .arc{display:block;flex:none;width:56px;height:34px;overflow:visible}
 .arc path{fill:none;stroke-width:7;stroke-linecap:round}.arc .track{stroke:var(--oth-track)}.arc .level{stroke:var(--fire)}
 [data-focus]:focus{outline:none}[data-focus]:focus-visible{outline:2px solid var(--primary-color,#03a9f4);outline-offset:-3px}
-@container now (max-width:340px){.status{padding:12px}.figure{padding:12px 12px 10px}}
+@container now (max-width:360px){.status{padding:12px}.figure{padding:12px 12px 10px}.arc{width:44px;height:27px}.dial{column-gap:8px}}
 @container now (min-width:720px){.status{padding:14px 22px}.line{font-size:18px}.main>ha-icon{--mdc-icon-size:24px}
 .meta{flex:0 1 auto;margin-left:auto;font-size:13px;text-align:right}
 .figures{grid-template-columns:repeat(var(--n,4),minmax(0,1fr))}.p2{grid-column:auto}
 .figure{padding:18px 22px 16px}.label{font-size:13px}.value .num,.value.unknown{font-size:34px}.note{margin-top:6px;font-size:13px;line-height:18px}
-.arc{width:64px;height:38px}}`;
+.arc{width:64px;height:38px}}
+@container now (min-width:720px) and (max-width:899px){.figure{padding:16px 16px 14px}.arc{width:48px;height:29px}.dial{column-gap:8px}}`;
 
 const locale = hass => hass?.locale?.language || hass?.language || 'en';
 const finite = value => typeof value === 'number' && Number.isFinite(value);

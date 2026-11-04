@@ -7,7 +7,7 @@
 // with calm or not and today's starts) two by two on a phone and in one row on a wide card; "—" for what is not known;
 // a tap opens the figure's history. Then the reads: Home Assistant's statistic only (never the E32), at most every
 // 5 minutes and when the day changes, nothing after the card left the page. English, Dutch and Polish; light and dark;
-// desktop, phone and a narrow phone (no sideways scroll). Screenshots go to the evidence directory for the visual check.
+// desktop, a tablet (the narrowest four-column card), phone and a narrow phone (no sideways scroll, nothing cut). Screenshots go to the evidence directory for the visual check.
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),component=path.join(root,'ha/config/custom_components/open_thermostat');
@@ -64,7 +64,7 @@ const cardsFor=lang=>{const code=CODES[lang];return {
    return:'sensor.return_water',modulation:'sensor.power_water',starts:'sensor.starts_water',starts_today:'sensor.daily_burner_starts_water',
    cycling:'binary_sensor.cycling_water',request:'sensor.req_water',ceiling:'sensor.flow_source_off'},
   states:[ent('sensor.activity_water','tapping'),ent('sensor.dhw_water','on'),ent('sensor.code_water','=H',code.water),
-   ent('sensor.flow_water','55.2',C),ent('sensor.return_water','45.0',C),ent('sensor.power_water','86',PCT),ent('sensor.starts_water','7'),
+   ent('sensor.flow_water','55.2',C),ent('sensor.return_water','45.0',C),ent('sensor.power_water','100',PCT),ent('sensor.starts_water','7'),
    ent('sensor.daily_burner_starts_water','16'),ent('binary_sensor.cycling_water','on'),ent('sensor.req_water','0',{mode:'active'}),
    ent('sensor.flow_source_off','curve',{applied_flow_c:30,ceiling_c:null})]},
  idle:{config:{activity:'sensor.activity_idle',heating:'sensor.ch_idle',hot_water:'sensor.dhw_idle',code:'sensor.code_idle',flow:'sensor.flow_idle',
@@ -113,7 +113,7 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
  fs.mkdirSync(out,{recursive:true});
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[],ratios={};
  try{for(const [lang,width,theme,reads] of [['en',1280,'light',true],['en',390,'dark',false],['nl',390,'light',false],['nl',1280,'dark',false],
-  ['pl',390,'dark',false],['pl',320,'light',false]]){
+  ['pl',390,'dark',false],['pl',320,'light',false],['en',768,'light',false]]){
   const context=await browser.newContext({viewport:{width,height:900},timezoneId:'Europe/Amsterdam',locale:lang});
   const page=await context.newPage(),errors=[],foreign=[];page.on('pageerror',e=>errors.push(e.message));
   // No network: the page itself is answered here; anything else is a failure.
@@ -197,7 +197,7 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
   assert.deepEqual(await band('water'),['water',activityWord('tapping'),fill(W.code,{code:'=H',meaning:lower(CODES[lang].water.meaning)}),null,
    meta(W.link_good,W.yes),'mdi:faucet']);
   assert.deepEqual(await figures('water'),[['flow','55'+NB+'°C',note(W.no_request)],['return','45'+NB+'°C',note(fill(W.difference,{n:'10'}))],
-   ['power','86'+NB+'%',note(W.power_full)],['starts','7',note(W.often,fill(W.today,{n:'16'}))]]);
+   ['power','100'+NB+'%',note(W.power_full)],['starts','7',note(W.often,fill(W.today,{n:'16'}))]]);
   // 3. Resting in the trial run: grey; a waiting code with its cause number and what to do; what the E32 would ask.
   assert.deepEqual(await band('idle'),['rest',activityWord('idle'),fill(W.code,{code:'0A 202',meaning:lower(CODES[lang].waiting.meaning)}),
    CODES[lang].waiting.advice,meta(W.link_good,W.no),'mdi:water-boiler']);
@@ -239,14 +239,16 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
     numSize:g('.figure .num','fontSize'),numWeight:g('.figure .num','fontWeight'),line:g('.figure','boxShadow'),dark:r.querySelector('ha-card').classList.contains('dark')};});
   assert.equal(look.dark,theme==='dark');
   assert.deepEqual([look.num,look.label,look.unit,look.note,look.numWeight],[RGB[theme].text,RGB[theme].muted,RGB[theme].muted,RGB[theme].muted,'700']);
-  assert.equal(look.numSize,width>=1000?'34px':'30px');
+  const wide=await heating.evaluate(c=>c.getBoundingClientRect().width>=720);
+  assert.equal(wide,width>=768,'four figures in a row from a 720 px card');
+  assert.equal(look.numSize,wide?'34px':'30px');
   assert(/1px 0px 0px/.test(look.line)&&/0px 1px 0px/.test(look.line),'1 px lines between the figures: '+look.line);
   for(const fg of [look.label,look.note,look.num])assert(contrast(fg,RGB[theme].surface)>=4.5,`${fg} on the card`);
   assert.equal(arc.stroke,theme==='dark'?'rgb(255, 111, 34)':bg('heat'),'the arc: the heating colour (darkened as the band on light)');
   // Phone: two by two; wide: the four in one row.
   const boxes=await heating.locator('.figure').evaluateAll(f=>f.map(x=>{const b=x.getBoundingClientRect();return {x:b.x,y:b.y,w:b.width};}));
   const grid=await heating.locator('.figures').evaluate(g=>g.getBoundingClientRect().width);
-  if(width>=1000){
+  if(wide){
    assert(boxes.every(b=>b.y===boxes[0].y),'one row of four');
    assert(boxes.every(b=>Math.abs(b.w-grid/4)<1),'four equal columns');
    assert.equal(await heating.locator('.meta').evaluate(m=>getComputedStyle(m).textAlign),'right');
@@ -267,9 +269,16 @@ const contrast=(fg,bg)=>{const [a,b]=[luminance(channels(fg)),luminance(channels
   for(const row of rows)assert(row.values.every(v=>v===row.values[0]),`${row.card}: numbers on one line ${row.values} (label lines ${row.lines})`);
   // Phone width first: nothing scrolls sideways, no figure or line is cut off.
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
-  const cut=await page.locator('openthermostat-boiler-now').evaluateAll(cards=>cards.flatMap(c=>[...c.shadowRoot.querySelectorAll('.figure,.status,.words,.meta,.note,.value')]
+  const cut=await page.locator('openthermostat-boiler-now').evaluateAll(cards=>cards.flatMap(c=>[...c.shadowRoot.querySelectorAll('.figure,.status,.words,.meta,.note,.value,.dial,.label')]
    .filter(x=>x.scrollWidth>x.clientWidth+1).map(x=>c.dataset.card+' '+x.className)));
   assert.deepEqual(cut,[]);
+  // The burner power's arc and its number side by side inside the figure, also "100 %" on the narrowest phone and in
+  // the narrowest four-column card.
+  for(const name of ['heating','water']){
+   const [box,arcBox,value]=await figure(name,'power').evaluate(f=>[f,f.querySelector('svg.arc'),f.querySelector('.value')].map(x=>x.getBoundingClientRect()));
+   assert(value.left>=arcBox.right&&value.top<arcBox.bottom&&value.bottom>arcBox.top,`${name}: the number beside the arc`);
+   assert(arcBox.left>=box.left&&value.right<=box.right,`${name}: arc and number inside the figure`);
+  }
   await page.screenshot({path:path.join(out,`${lang}-${width}-${theme}.png`),fullPage:true});
   for(const name of ['heating','water','idle','fault'])await card(name).screenshot({path:path.join(out,`${lang}-${width}-${theme}-${name}.png`)});
   // A tap (or Enter) on a figure opens its entity's history; the focus stays over a redraw.

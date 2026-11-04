@@ -19,8 +19,8 @@ planner and, per room, the room status card (frontend/room-status-card.js):
   the boiler does in a band of its colour with its display code in words, the
   connection with the boiler and whether it serves hot water; the water to the
   heating and back, the burner power and its starts in the last hour as large
-  figures, across both columns on a wide screen), the heating advice, Today
-  and this week
+  figures, across both columns on a wide screen), the heating advice (a strip
+  across both columns too), Today and this week
   (today's gas and burner as figures, the one chart of the gas per day and the
   burner hours per day), Hot water (its temperature and target, today's taps and
   keeping warm, what the boiler did in the last 24 hours), the last 24 hours,
@@ -1115,9 +1115,9 @@ def _boiler_now(t, hub, fields, essential, flow_source=None):
     burner power and its starts in the last hour (calm or not, and today's starts).
 
     The card reads only the entities it is given and draws what it has (a figure without its entity is left out, one
-    without a value says "—"). The section spans both columns on a wide screen (the four figures in one row) and
-    hides as a whole while none of the display code, what the boiler does, the water to the heating or back and the
-    burner power or its starts has a value, so its heading never stands over nothing.
+    without a value says "—"). The section hides as a whole while none of the display code, what the boiler does, the
+    water to the heating or back and the burner power or its starts has a value, so its heading never stands over
+    nothing. (_boiler_sections lays it across both columns on a wide screen.)
 
     flow_source: the "Water temperature set by" sensor (e32_flow.FlowSourceSensor), whose ``ceiling_c`` is the most
     the E32 asks near the target now."""
@@ -1135,11 +1135,9 @@ def _boiler_now(t, hub, fields, essential, flow_source=None):
              "hot_water": fields.get("dhw_active") or hub.get("boiler_hot_water_active"), "code": code, "flow": flow,
              "return": back, "modulation": modulation, "starts": starts, "starts_today": hub.get("daily_burner_starts"),
              "cycling": hub.get("burner_short_cycling"), "request": hub.get("heat_request"), "ceiling": flow_source}
-    section = _section_known(shown, _heading(t["now"], ICONS["now"]),
-                             {"type": BOILER_NOW_CARD_TYPE, "grid_options": {"columns": 12},
-                              **{key: value for key, value in reads.items() if value}})
-    section["column_span"] = 2  # across the whole width on a wide screen, as the sketch: its figures in one row
-    return section
+    return _section_known(shown, _heading(t["now"], ICONS["now"]),
+                          {"type": BOILER_NOW_CARD_TYPE, "grid_options": {"columns": 12},
+                           **{key: value for key, value in reads.items() if value}})
 
 
 def _hot_water_section(t, hub, fields, essential):
@@ -2083,8 +2081,13 @@ class RoomDashboard:
         check and the thermostat on the bus go to Diagnostics. flow_source: the "Water temperature set by" sensor.
         """
         from .boiler_fields import INDEX_BY_NAME, quality
-        sections = [_boiler_now(t, hub, fields, essential, flow_source), _advice_section(t, hub.get("heating_advice")),
-                    _energy_section(t, hub), _hot_water_section(t, hub, fields, essential)]
+        now, advice = _boiler_now(t, hub, fields, essential, flow_source), _advice_section(t, hub.get("heating_advice"))
+        # As the owner's sketch on a wide screen: Now across the whole width (its four figures in one row), the advice
+        # as a strip under it, then the other sections in two columns. A phone shows one column anyway.
+        for section in (now, advice):
+            if section:
+                section["column_span"] = 2
+        sections = [now, advice, _energy_section(t, hub), _hot_water_section(t, hub, fields, essential)]
         raw = thermostat = None
         if fields:
             # Native cards only. Reported selected flow is NOT a controller request,

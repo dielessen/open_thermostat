@@ -496,6 +496,17 @@ class HeatingHub:
         self._listeners = []
         self._trackers = []  # each track_entities' forget_rooms(room_ids)
         self._failures_logged = {}  # listener: clock time its last failure was logged with a traceback
+        self.closed = False  # the entry is unloading: no new entities (close)
+
+    @callback
+    def close(self):
+        """The entry starts unloading: from now on no tracker adds an entity (track_entities).
+
+        Its platforms are removed before its MQTT subscriptions end, and an entity added in
+        between (the first E32 telemetry often arrives then) would outlive its platform: the next
+        setup's entity with the same unique ID was refused ("does not generate unique IDs").
+        """
+        self.closed = True
 
     @property
     def fresh(self):
@@ -917,6 +928,8 @@ def track_entities(hub, async_add_entities, options, wanted):
     @callback
     def refresh():
         nonlocal current
+        if getattr(hub, "closed", False):
+            return  # the entry is unloading (HeatingHub.close): an entity added now would outlive its platform
         new, keys = [], set()
         for key, factory in wanted(hub):
             keys.add(key)

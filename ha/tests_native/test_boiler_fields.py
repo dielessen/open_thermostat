@@ -395,3 +395,17 @@ async def test_first_real_value_creates_field_marks_record_and_restores_our_reti
     assert unreliable in by_index(added) and marked(odd)
     assert reg.async_get(odd).disabled_by is er.RegistryEntryDisabler.INTEGRATION  # Stays a default-off diagnostic.
     await r.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_no_value_entity_is_added_once_the_entry_unloads(hass):
+    """An entity added while the entry's platforms are removed outlives them (P21): once the unload closed the
+    entry's hub (HeatingHub.close), a first value adds no entity."""
+    from custom_components.open_thermostat.heating_link import HeatingHub
+    e,r,c,now=await system(hass);c.boiler_fields_supported=True;added=[]
+    hub=hass.data["open_thermostat"][e.entry_id]["heating_hub"]=HeatingHub("fixture")
+    await async_setup_boiler_fields(hass,e,lambda entities:added.extend(entities))
+    hub.close()
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c)));r._notify()
+    assert not added
+    await r.async_stop()

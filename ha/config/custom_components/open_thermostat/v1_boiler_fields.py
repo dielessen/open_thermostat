@@ -460,8 +460,15 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
     # One evaluation per pass, shared by every entity of it (client.ready costs ~1 ms).
     shared = {"valid": False, "live": False}
 
+    def unloading():
+        """The entry is unloading (heating_link.HeatingHub.close): a value entity added now would outlive its
+        platform and block the next setup's entity with the same unique ID."""
+        return getattr(state.get("heating_hub"), "closed", False)
+
     def refresh():
         nonlocal unconfirmed, placeholders, last_profile
+        if unloading():
+            return
         # A field (Classic or catalog) gets its entity only after its first real
         # value, like the BLE sensors: a boiler never shows rows it does not report.
         # Once created, an entity stays for this run even if a new session resets the cache.

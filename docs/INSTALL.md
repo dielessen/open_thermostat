@@ -714,8 +714,8 @@ set on the boiler itself.
   tab. It starts with the **house card**: what the boiler does now, the boiler
   request while rooms want heat, today's gas and burner starts and the day so
   far. Under it is a status card for each room with its temperature and target
-  and, in one line, why the room heats or not (a house with only one room
-  switched on shows that room inside the house card). Next to the room cards
+  and, in one line, why the room heats or not (the rooms that are on come
+  first; the house card shows the room that is on as a figure too). Next to the room cards
   stand **Today** (when each room warms up next) and **House** (home or away,
   holiday, outdoor temperature). The **Rooms** tab has the 24-hour graph of
   each room. The E32's own **Overview** shows the same line on

@@ -579,7 +579,7 @@ TEXT = {
         "learning_view": "Uczenie i ustawienia",
         "more": "Więcej",
         "sensors_presence": "Czujniki, okna i osoby",
-        "smart_heating": "Inteligentne nagrzewanie i sterowanie pogodowe",
+        "smart_heating": "Inteligentne nagrzewanie i kompensacja pogodowa",
         "cycling_ok": "Palnik pracuje spokojnie.",
         "cycling_info": "E32 stopniowo wydłuża przerwę palnika.",
         "burner": "Palnik",

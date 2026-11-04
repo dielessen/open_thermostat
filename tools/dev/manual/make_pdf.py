@@ -335,16 +335,15 @@ def content():
          # The dashboard as the owner sketched it (docs/modern-thermostat/RC5-DASHBOARD-SPEC.md, the rc5-design sketches). Names that
          # are in the Dutch dashboard texts or in translations/nl.json already go through ui(), so that tools/dev/test_manual_labels.py
          # checks them. These are plain <b> until the cards that bring them are merged and their texts are in the integration; then
-         # move them into ui(): Vandaag (the Overview's Today card), Huis (its House card), Je ketel, Opgevallen and Gratis warmte
          # (sections of Leren en instellingen).
          table([["Tabblad", "Wat je ziet"],
                 [ui("Overzicht"), "Bovenaan de <b>huiskaart</b>: een band in de kleur van wat de ketel nu doet (bij een probleem rood, met de "
                  "reden; een tik brengt je bij Reparaties) met de huismodus rechts, de cijfers van vandaag, groot (de ruimte die aan staat, warm "
-                 "water, gas met de laatste 7 dagen, branderstarts; bij een probleem ook de verwarming) en de dag tot nu toe als balk. Staat er maar één "
-                 "ruimte aan, dan zit die in de huiskaart en staan de andere onder " + ui("Overige ruimtes") + ". Daaronder, naast elkaar: "
+                 "water, gas met de laatste 7 dagen, branderstarts; bij een probleem ook de verwarming) en de dag tot nu toe als balk. Daaronder, "
+                 "naast elkaar: "
                  + ui("Ruimtes") + " (een kaart per "
-                 "ruimte, met in één regel waarom ze verwarmt of niet), <b>Vandaag</b> (wanneer elke ruimte opwarmt en wat de weerafhankelijke "
-                 "regeling vraagt) en <b>Huis</b> (thuis of weg, vakantie plannen, buiten)."],
+                 "ruimte, met in één regel waarom ze verwarmt of niet), " + ui("Vandaag") + " (wanneer elke ruimte opwarmt en wat de weerafhankelijke "
+                 "regeling vraagt) en " + ui("Huis") + " (thuis of weg, vakantie plannen, buiten)."],
                 [ui("Ruimtes"), "Per ruimte de thermostaat, de dag, de sensoren, ramen en personen, en wat de E32 leerde."],
                 [ui("Weekprogramma"), "De weekplanner voor alle ruimtes."],
                 [ui("Ketel"), "Bovenaan de kaart " + ui("Nu") + ": de ketel in woorden met de displaycode, het water naar de verwarming en terug, "
@@ -353,9 +352,9 @@ def content():
                  + ui("Warm water") + ", " + ui("Afgelopen 24 uur") + ", " + ui("Wat de ketel meldt") + " en " + ui("Ketelinstellingen") + ". Een "
                  "onderdeel verschijnt pas als de ketel er iets voor meldt. Gisteren staat hier niet; dat vind je bij " + ui("Leren en instellingen") + "."],
                 [ui("Leren en instellingen"), "Wat de E32 zelf leerde en deed, in zeven onderdelen: " + ui("Wat de E32 weet") + " (en nog moet "
-                 "leren), <b>Je ketel</b> (hoe hij zijn temperatuur vasthoudt), " + ui("Watertemperatuur bij buitentemperatuur") + " (de grafiek "
+                 "leren), " + ui("Je ketel") + " (hoe hij zijn temperatuur vasthoudt), " + ui("Watertemperatuur bij buitentemperatuur") + " (de grafiek "
                  "met de standaardlijn en de lijn voor jouw huis), " + ui("Gisteren in cijfers") + " (gisteren staat alleen hier), "
-                 "<b>Opgevallen</b> (gisteren tegenover je eigen gewone dagen), <b>Gratis warmte</b> (zon, koken en mensen) en "
+                 "" + ui("Opgevallen") + " (gisteren tegenover je eigen gewone dagen), " + ui("Gratis warmte") + " (zon, koken en mensen) en "
                  + ui("Slim opwarmen en weerafhankelijke regeling") + " (de schakelaars). Daarna " + ui("Wat de thermostaat heeft geleerd")
                  + " en " + ui("Wie regelt de ketel") + "."],
                 [ui("Diagnose"), "Voor het zoeken naar fouten, met ook " + ui("Thermostaat op de bus") + ": wat een andere thermostaat aan de ketel "
@@ -452,12 +451,12 @@ def content():
                  "graad kou, branderstarts per stookuur, stookuren per graad kou en per ruimte de opwarmtijd. Wijkt iets meer dan 30 % af, dan "
                  "staat er één gewone zin met wat het kan veroorzaken, bijvoorbeeld \"Gisteren ging er 35 % meer gas per graad kou door dan "
                  "normaal.\" Het is alleen informatie: nooit een storing en nooit een reparatie. Home Assistant: een melding per zin (weg te "
-                 "klikken) en de lijst <b>Opgevallen</b> op het tabblad " + ui("Leren en instellingen") + ". E32: "
+                 "klikken) en de lijst " + ui("Opgevallen") + " op het tabblad " + ui("Leren en instellingen") + ". E32: "
                  "<b>Huis → Wat de thermostaat heeft geleerd</b>."],
                 ["Gratis warmte", "Zon, koken en mensen verwarmen een ruimte zonder ketel. De E32 leert dat per ruimte en per dagdeel van vier uur. "
                  "Vanaf vijf metingen in een dagdeel begint Slim opwarmen in dat dagdeel later: de voorlooptijd wordt korter, nooit tot minder dan "
                  "de helft, en de ochtendcontrole blijft elke start beoordelen. Je leest het bij de ruimte op de E32-pagina, en per ruimte onder "
-                 "<b>Gratis warmte</b> op het tabblad " + ui("Leren en instellingen") + " (als het bericht van de E32 voor die ruimte er plaats "
+                 "" + ui("Gratis warmte") + " op het tabblad " + ui("Leren en instellingen") + " (als het bericht van de E32 voor die ruimte er plaats "
                  "voor heeft): \"'s Middags warmt deze ruimte vanzelf op, ongeveer 0,4 °C per uur (zon, koken of mensen).\""],
                 ["Waarom verwarmt een ruimte?", "Op de E32-pagina <b>Overzicht</b> zegt elke ruimte in één regel waarom ze verwarmt of niet, "
                  "in dezelfde woorden als Home Assistant, bijvoorbeeld \"Warm genoeg: 21 °C (gewenst 21 °C)\", \"Gepauzeerd: er staat een raam "
@@ -469,7 +468,7 @@ def content():
                  + ui("Eindigt (weer thuis)") + "; het einde ligt hooguit een jaar vooruit) en " + ui("Temperatuur op vakantie")
                  + " (5–25 °C; tot je die instelt is het de afwezigheidstemperatuur). Wijzigen of verwijderen kan met "
                  + ui("Vakantie wijzigen of verwijderen") + "; een lopende vakantie stop je met " + ui("Vakantie stoppen")
-                 + " onder <b>Configureren</b> → " + ui("Huis") + ". Op de E32: pagina <b>Huis</b>, blok <b>Vakanties</b> "
+                 + " onder <b>Configureren</b> → " + ui("Huis") + ". Op de E32: pagina " + ui("Huis") + ", blok <b>Vakanties</b> "
                  "(<b>Vakantie toevoegen</b> met <b>Van</b> en <b>Tot</b>, <b>Vakantie opslaan</b>, <b>Temperatuur op vakantie (°C)</b>). "
                  "Beide plekken wijzigen dezelfde lijst. Een vakantie heeft de klok van de E32 nodig."],
                 ["Zelfafstelling", "Branderrust, brandtijd en marges stelt hij zelf af, met hooguit één kleine stap per dag. "

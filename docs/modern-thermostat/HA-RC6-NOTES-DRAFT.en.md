@@ -57,7 +57,7 @@ Assistant 2026.10.0 or newer.
 
 The integration's dashboard is rebuilt by itself and your own dashboards keep
 working; the house card, the Now card and the water temperature chart are there
-for them too, as `custom:openthermostat-house`, `custom:openthermostat-boiler-now`
+for them too, as `custom:openthermostat-house`, `custom:openthermostat-boiler-now` and `custom:openthermostat-yesterday`
 and `custom:openthermostat-heating-curve`.
 
 ## Fixed

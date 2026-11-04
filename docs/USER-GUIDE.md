@@ -88,9 +88,9 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
       a second line says how many and what the boiler request is. A problem
       comes first: the band turns red and says "Attention" with the first
       reason. Tap it to open Repairs; **All reasons** lists every reason.
-    - Today's figures, large. In a house with only one room switched on, that
-      room is the first figure, with its temperature, its target and why it
-      heats or not; the other rooms are then listed under **Other rooms**.
+    - Today's figures, large. The first is the room that is on, with its
+      temperature, its target and why it heats or not (every room also keeps
+      its own card under **Rooms**, the rooms that are on first).
       Then **Hot water** (the taps so far today, or "running now"), **Gas
       today** (heating and hot water together) with a small line of the last
       7 days beside it and the average day of the week before under it, and

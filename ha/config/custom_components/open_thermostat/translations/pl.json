@@ -1642,7 +1642,10 @@
               "early": "{m} min za wcześnie",
               "late": "{m} min za późno",
               "on_time": "na czas",
-              "degree_days": "Stopniodni"
+              "degree_days": "Stopniodni",
+              "target": "cel {t} °C",
+              "per_day": "{n} dni: {value} dziennie",
+              "today_since": "Dziś od północy"
             }
           }
         }

@@ -88,6 +88,38 @@ function snapshot(){return {reception:{state:'classic_reports_received'},transpo
    assert.equal((await row.locator('.ems-value').innerText()).trim(),lang==='nl'?'Niet gemeld':'Not reported',id);
    assert(!/\b0 °C|\bOff\b|\bUit\b/.test(await row.innerText()),id);
   }
+  // rc.5: a setting the boiler sends only when asked (request_only) stays shown, with when it was read.
+  assert.equal(await page.locator('#ems-request-only').isVisible(),false,'no remark to explain without such a setting');
+  data=snapshot();const hour=3600000;
+  Object.assign(data.fields.configured_heating_temperature,{request_only:true,age_ms:5*hour,observed_at_ms:40000});
+  Object.assign(data.fields.minimum_burner_period,{request_only:true,age_ms:5*hour+20*60000,observed_at_ms:7*hour});
+  Object.assign(data.fields.pump_run_on,{request_only:true,age_ms:20*60000,observed_at_ms:9*hour});
+  data.ems_entities={schema:1,reference:'emsesp_offsets',verified_on_hardware:false,dropped:0,devices:[{address:8,entities:[
+   {id:'boiler_uptime',value:100000,unit:'min',source_type:20,age_ms:2*hour,request_only:true,observed_at_ms:3*hour}]}]};
+  await refresh();
+  const remark=id=>boiler.locator(`[data-field="${id}"] .ems-read`);await remark('pump_run_on').waitFor();
+  assert.equal(await remark('configured_heating_temperature').innerText(),lang==='nl'?'uitgelezen bij het opstarten':'read at start-up');
+  assert.equal(await remark('minimum_burner_period').innerText(),lang==='nl'?'5 uur geleden uitgelezen':'read 5 h ago');
+  assert.equal(await remark('pump_run_on').innerText(),lang==='nl'?'20 min geleden uitgelezen':'read 20 min ago');
+  assert.equal(await remark('boiler_uptime').innerText(),lang==='nl'?'2 uur geleden uitgelezen':'read 2 h ago','an EMS entity sent only when asked');
+  assert.match(await boiler.locator('[data-field="configured_heating_temperature"] .ems-value').innerText(),/^60 °C\s/);
+  assert.equal(await remark('measured_flow_temperature').isVisible(),false,'a live reading has no remark');
+  assert.equal(await remark('heating_enabled').isVisible(),false,'without the marker no remark');
+  // The remark is small and muted, below the value, and still readable (the page shrinks a bare <small>).
+  const look=n=>{const s=getComputedStyle(n),v=getComputedStyle(n.parentElement);
+   return {display:s.display,muted:s.color!==v.color,smaller:parseFloat(s.fontSize)<parseFloat(v.fontSize),readable:parseFloat(s.fontSize)>=12};};
+  assert.deepEqual(await remark('configured_heating_temperature').evaluate(look),{display:'block',muted:true,smaller:true,readable:true});
+  assert.equal(await page.locator('#ems-request-only').isVisible(),true);
+  assert.match(await page.locator('#ems-request-only').innerText(),lang==='nl'?/alleen als erom gevraagd wordt, zoals bij het opstarten en elke zes uur/:/only when asked, such as at start-up and every six hours/);
+  // The Now panel shows the same setting with the same remark.
+  const now=page.locator('[data-essentials] [data-read-remark]');
+  assert.equal(await now.innerText(),lang==='nl'?'uitgelezen bij het opstarten':'read at start-up');
+  assert.deepEqual(await now.evaluate(look),{display:'block',muted:true,smaller:true,readable:true});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'the remark fits the width');
+  fs.mkdirSync(output,{recursive:true});await boiler.locator('[data-field="configured_heating_temperature"]').screenshot({path:path.join(output,`${lang}-${width}-read.png`)});
+  await page.locator('[data-essentials]').screenshot({path:path.join(output,`${lang}-${width}-now.png`)});
+  // A failed read shows no old value and no old remark.
+  failed=true;await refresh();assert.equal(await remark('pump_run_on').isVisible(),false);failed=false;
   // A room thermostat with table-driven entities gets its own read-only card.
   data=snapshot();data.inventory.devices.push({address:16,frames:3,age_ms:300,product_id:null,version:null,brand_id:null,untracked_types:0,telegram_types:[177]});
   data.ems_entities={schema:1,reference:'emsesp_offsets',verified_on_hardware:false,devices:[{address:16,entities:[

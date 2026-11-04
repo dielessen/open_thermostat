@@ -74,6 +74,11 @@ window.OT_UI_MESSAGES = {
   "Day": "Dag",
   "Active control": "Actieve regeling",
   "{age} ago": "{age} geleden",
+  // rc.5: a boiler setting the boiler sends only when asked, after its value (boiler-data.js readRemark).
+  "read at start-up": "uitgelezen bij het opstarten",
+  "read just now": "zojuist uitgelezen",
+  "read {n} min ago": "{n} min geleden uitgelezen",
+  "read {n} h ago": "{n} uur geleden uitgelezen",
   "last sent": "laatst verzonden",
   "The boiler selection could not be loaded.": "De ketelkeuze kon niet worden geladen.",
   "Thermostat setpoint": "Gewenste temperatuur thermostaat",

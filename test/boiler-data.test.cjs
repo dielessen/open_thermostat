@@ -63,3 +63,20 @@ test('A failed panel does not poison the shared read or interrupt another consum
  assert.equal(seen.length,2);assert.equal(seen[1].data,null);assert.match(seen[1].error.message,/offline/);
  assert.equal(f.timers.size,1);broken();late();healthy();assert.equal(f.timers.size,0);
 });
+test('A setting the boiler sends only when asked says when it was read; any other field says nothing',()=>{
+ const load=require('./helpers/ui-language.cjs');
+ for(const [lang,words] of [['en',['read at start-up','read just now','read 20 min ago','read 5 h ago','read 2 h ago']],
+  ['nl',['uitgelezen bij het opstarten','zojuist uitgelezen','20 min geleden uitgelezen','5 uur geleden uitgelezen','2 uur geleden uitgelezen']]]){
+  const context={window:{},document:{visibilityState:'visible',addEventListener(){}},uiText:load(lang).uiText,
+   AbortController,JSON,Set,Promise,Error,setTimeout,clearTimeout};
+  vm.runInNewContext(code,context);
+  const remark=context.window.BoilerData.readRemark;
+  const setting=(age_ms,observed_at_ms)=>({value:62,unit:'degC',state:'valid',request_only:true,age_ms,observed_at_ms});
+  // Read in the E32's first 15 minutes; then by age: under a minute, minutes, hours (rounded).
+  assert.deepEqual([remark(setting(5*3600000,40000)),remark(setting(30000,7*3600000)),remark(setting(20*60000+59999,9*3600000)),
+   remark(setting(5*3600000+29*60000,7*3600000)),remark(setting(2*3600000,900000))],words,lang);
+  assert.equal(remark(setting(2*3600000,undefined)),words[4],'without an observation time: the age');
+  for(const other of [null,undefined,{value:62,age_ms:1000},{...setting(1000,0),request_only:false},{...setting(1000,0),value:null},setting(null,0),setting(-1,0)])
+   assert.equal(remark(other),'',JSON.stringify(other));
+ }
+});

@@ -5,12 +5,12 @@
 # so a harness cannot be compiled one way locally and another way in CI.
 #
 #   test/native_harnesses.sh build   compile and link every harness, in parallel, without running
-#                                    them (CI job "harnesses": a stale test stub fails in minutes)
-#   test/native_harnesses.sh run     build and run each harness in order (CI job "build (native)")
+#                                    them (a stale test stub fails in minutes)
+#   test/native_harnesses.sh run     build and run each harness in order
 #   test/native_harnesses.sh build onboarding web_auth    only the named harnesses
 #   HARNESS_PREBUILT=1 test/native_harnesses.sh run       run the binaries that `build` just made in
 #                                    the same HARNESS_OUT instead of compiling them again one by one
-#                                    (scripts/final_check.sh, whose HARNESS_OUT is fresh every run)
+#                                    (CI job "harnesses" and scripts/final_check.sh: build, then this)
 #
 # Run from the repository root after `pio pkg install -e native` (and, for run,
 # after `pio test -e native`, whose googletest library is reused when present).

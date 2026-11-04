@@ -34,20 +34,23 @@
 #
 # Environment (defaults in brackets): NODE_MODULES [<repo>/node_modules] with
 # playwright-core; HA_VENV [~/venvs/ha] with ha/requirements-test-native.txt;
-# PIO_VENV [~/venvs/pio] with platformio 6.2.0; LOGDIR [/tmp/final-check];
-# PIO_LOCK [/tmp/openthermostat-pio.lock], shared by worktrees that build at the
-# same time; MQTT_PORT [18839] for a local mosquitto (/usr/sbin/mosquitto; ha_min
-# uses MQTT_PORT+1 in lanes). CPU sets of the lanes: STRESS_CPUS, BROWSER_CPUS,
-# WORK_CPUS (pio, ha, host), e.g. 0-5, 6-14, 15-27 on 28 CPUs.
+# PIO_VENV [~/venvs/pio] with platformio 6.2.0; LOGDIR [/tmp/final-check-<worktree
+# name>], one per worktree so two checks never delete each other's logs; PIO_LOCK
+# [/tmp/openthermostat-pio.lock], shared by worktrees that build at the same time;
+# MQTT_PORT [an even port from 18800 to 18898 chosen by the worktree's path] for a
+# local mosquitto (/usr/sbin/mosquitto; ha_min uses MQTT_PORT+1 in lanes). All build
+# and evidence directories of a run are under LOGDIR. CPU sets of the lanes: STRESS_CPUS,
+# BROWSER_CPUS, WORK_CPUS (pio, ha, host), e.g. 0-5, 6-14, 15-27 on 28 CPUs.
 set -u
 R=$(cd "$(dirname "$0")/.." && pwd)
 SRC=$R
 NODE_MODULES=${NODE_MODULES:-$R/node_modules}
 HA_VENV=${HA_VENV:-$HOME/venvs/ha}
 PIO_VENV=${PIO_VENV:-$HOME/venvs/pio}
-L=${LOGDIR:-/tmp/final-check}
+# Per worktree (R5-23): the log directory is wiped at the start, and the broker port must not be shared.
+L=${LOGDIR:-/tmp/final-check-$(basename "$SRC")}
 LOCK=${PIO_LOCK:-/tmp/openthermostat-pio.lock}
-MQTT_PORT=${MQTT_PORT:-18839}
+MQTT_PORT=${MQTT_PORT:-$(( 18800 + 2 * ($(printf '%s' "$SRC" | cksum | cut -d' ' -f1) % 50) ))}
 STEPS="static verifiers harnesses native ha ha_min browser browser_stress soak replay fuzz builds literal_reach link_review unittests"
 # Durations of the last browser run on this machine: lanes start the longest tests first.
 DURATIONS=${BROWSER_TEST_DURATIONS:-${XDG_CACHE_HOME:-$HOME/.cache}/openthermostat-final-check/browser-durations.txt}
@@ -78,6 +81,13 @@ if [ $SERIAL = 0 ]; then
   BROWSER_CPUS=${BROWSER_CPUS:-$ns-$((ns + nb - 1))}
   WORK_CPUS=${WORK_CPUS:-$((ns + nb))-$((NCPU - 1))}
 fi
+
+cpu_count(){ # cpu_count "6-14,16" -> 10: how many CPUs a list names
+  local n=0 part parts; IFS=, read -ra parts <<< "$1"
+  for part in "${parts[@]}"; do
+    if [[ $part =~ ^([0-9]+)-([0-9]+)$ ]]; then n=$(( n + BASH_REMATCH[2] - BASH_REMATCH[1] + 1 )); else n=$(( n + 1 )); fi
+  done; echo "$n"
+}
 
 export PATH="$HOME/node/bin:$PIO_VENV/bin:$HA_VENV/bin:$PATH"
 export NODE_PATH=$NODE_MODULES ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1
@@ -154,9 +164,17 @@ c = ProjectConfig.get_instance(); clean_build_dir(c.get("platformio", "build_dir
 # --- steps --------------------------------------------------------------------
 s_static(){
   echo "release.json $FW, manifest.json $HA"
-  grep -q "e32-week-card-$HA.js" ha/config/custom_components/open_thermostat/e32_week.py \
-    && grep -q "week-editor-$HA.js" ha/config/custom_components/open_thermostat/frontend/e32-week-card.js \
-    || { echo "FAIL frontend asset URLs do not carry $HA"; return 1; }
+  # Cache busting (R5-12): the five versioned frontend URLs of the integration, and the test that routes one of
+  # them, carry the integration version. (week_planner.py keeps older URLs on purpose, in LEGACY_URLS.)
+  local ha_dir=ha/config/custom_components/open_thermostat missing="" entry
+  for entry in 'e32_week.py|CARD_URL = "/open_thermostat/e32-week-card-' 'e32_week.py|EDITOR_URL = "/open_thermostat/week-editor-' \
+               'frontend/e32-week-card.js|const EDITOR = '"'"'/open_thermostat/week-editor-' \
+               'room_overview.py|CARD_URL = "/open_thermostat/room-status-card-' 'week_planner.py|URL = "/open_thermostat/week-planner-'; do
+    grep -qF "${entry#*|}$HA.js" "$ha_dir/${entry%%|*}" || missing+=" ${entry%%|*}:${entry#*|}$HA.js"
+  done
+  grep -qF "p==='/open_thermostat/week-editor-$HA.js'" test/week-editor-browser.cjs || missing+=" test/week-editor-browser.cjs"
+  [ -z "$missing" ] || { echo "FAIL versioned frontend URLs do not carry $HA:$missing"; return 1; }
+  echo "versioned frontend URLs: all five carry $HA"
   # Since beta.22 only the E32 V2 build may send an active heat request (after the
   # owner's plan + handover); every other board keeps the gate closed.
   python3 - <<'PY' || { echo "FAIL active heat gate: only the E32 V2 branch of src/Board.h may be open"; return 1; }
@@ -201,20 +219,19 @@ s_verifiers(){
   python3 scripts/generate_boiler_catalog.py --check
   python3 scripts/generate_display_codes.py --check
 }
-# The harnesses are built once, in parallel, into $L/harnesses; `native` then runs those
-# binaries (HARNESS_PREBUILT) instead of compiling each of them again one after another.
+# The harnesses are built once, in parallel, into $L/harnesses and run from those binaries, as the CI job
+# "harnesses" does (R5-19: `native` no longer compiles them a second time).
 export HARNESS_OUT=$L/harnesses
 s_harnesses(){
   set -e
   if [ $SERIAL = 1 ]; then pio_locked pkg install -e native; else wait_native_deps; cat "$L/deps.log"; fi
-  locked bash test/native_harnesses.sh build
+  ci "Build and run every native harness" > "$L/ci-harnesses.sh"
+  locked bash -e "$L/ci-harnesses.sh"
   [ $SERIAL = 0 ] || locked bash test/interop/prepare_runners.sh
 }
 s_native(){
   set -e; ci "Run native tests" > "$L/ci-native.sh"
-  local prebuilt=0; passed harnesses && prebuilt=1
-  echo "harnesses: $([ $prebuilt = 1 ] && echo "the binaries of step harnesses ($HARNESS_OUT)" || echo "built here")"
-  HARNESS_PREBUILT=$prebuilt locked bash -e "$L/ci-native.sh"
+  locked bash -e "$L/ci-native.sh"
 }
 start_broker(){ # start_broker <port> <dir>
   D=$2; rm -rf "$D"; mkdir -p "$D"
@@ -254,9 +271,13 @@ s_ha_min(){ # the minimum accepted Core, its package overlaid on the shared venv
     --ignore=ha/tests_native/test_native_provider.py --ignore=ha/tests_native/test_native_schema_contract.py
 }
 s_browser(){
-  local fail=0 jobs=1
-  # In lanes a few tests at a time on the browser CPUs (no other lane runs there).
-  [ $SERIAL = 1 ] || jobs=$(( $(nproc) / 2 > 1 ? $(nproc) / 2 : 1 ))
+  local fail=0 jobs=1 cpus
+  # In lanes a few tests at a time on the browser CPUs (no other lane runs there), never more than half the CPUs of
+  # that set: more Chromiums than cores is a load CI never has, and only turns timing margins into flakes (R5-04).
+  if [ $SERIAL = 0 ]; then
+    cpus=$(cpu_count "$BROWSER_CPUS"); jobs=$(( cpus / 2 > 1 ? cpus / 2 : 1 ))
+    echo "browser lane: $jobs tests at a time on $cpus CPUs ($BROWSER_CPUS)"
+  fi
   BROWSER_TEST_LOGS=$L/browser BROWSER_TEST_DURATIONS=$DURATIONS bash test/run-browser-tests.sh --jobs "$jobs" | tee "$L/browser-results.txt" || fail=1
   # Remember how long each test took on this machine (the order of the next parallel run).
   mkdir -p "$(dirname "$DURATIONS")"
@@ -339,8 +360,8 @@ if [ $DRY = 1 ]; then
   for t in pio node npx flock taskset clang g++ /usr/sbin/mosquitto python3 "$HA_VENV/bin/python"; do
     command -v "$t" >/dev/null 2>&1 && echo "have $t" || { echo "MISSING $t"; ok=1; }; done
   [ -d "$NODE_MODULES/playwright-core" ] && echo "have playwright-core ($NODE_MODULES)" || { echo "MISSING playwright-core in $NODE_MODULES"; ok=1; }
-  for name in "Run native tests" "Test original Zigbee report producers (isolated APIs)" "Test page modules without a browser" \
-              "Verify actual firmware image fits every OTA app slot"; do
+  for name in "Build and run every native harness" "Run native tests" "Test original Zigbee report producers (isolated APIs)" \
+              "Test page modules without a browser" "Verify actual firmware image fits every OTA app slot"; do
     f="$L/dry-$(echo "$name" | tr -c 'a-zA-Z0-9' '_').sh"
     if ci "$name" > "$f" && bash -n "$f"; then echo "CI step ok: $name ($(wc -l < "$f") lines)"; else echo "CI step BROKEN: $name"; ok=1; fi
   done

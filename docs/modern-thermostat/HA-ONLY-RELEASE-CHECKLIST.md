@@ -16,9 +16,10 @@ Precedent: `075359b6` (HA 0.4.0b15 on E32 beta.22). Nothing is bumped yet.
 ## Files to change in the version commit
 
 1. `ha/config/custom_components/open_thermostat/manifest.json`: `"version": "1.0.0rc4"`.
-2. Versioned frontend URLs `-1.0.0rc3.js` to `-1.0.0rc4.js` (cache busting):
-   `e32_week.py` (CARD_URL, EDITOR_URL), `week_planner.py` (URL),
-   `frontend/e32-week-card.js` (EDITOR), `test/week-editor-browser.cjs` (route).
+2. Versioned frontend URLs `-1.0.0rc3.js` to `-1.0.0rc4.js` (cache busting), FIVE URLs in four files
+   plus the test route: `e32_week.py` (CARD_URL, EDITOR_URL), `week_planner.py` (URL),
+   `room_overview.py` (CARD_URL, the room status card), `frontend/e32-week-card.js` (EDITOR),
+   and `test/week-editor-browser.cjs` (route). `scripts/final_check.sh` (step static) checks all of them.
    Do this after the three integration branches have merged, to avoid conflicts.
 3. `docs/modern-thermostat/HA-RELEASE-NOTES.md`: prepend the finished
    `HA-RC4-NOTES-DRAFT.en.md` (all `<!-- pending -->` markers resolved). The

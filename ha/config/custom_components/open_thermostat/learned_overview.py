@@ -6,8 +6,8 @@ language (English, Dutch or Polish), each figure with a line on what it means:
 
 - ``rooms``: per room its learning progress and what was learned (how fast it warms and cools,
   the lowest water temperature that still warms it in time, Smart warm-up's start for the next
-  program step, the night advice),
-  from ``fw/telemetry/learned/<room>``;
+  program step, how the last morning went and what Smart warm-up changes for it (E32 rc.4), the
+  night advice), from ``fw/telemetry/learned/<room>``;
 - ``house``: the heating curve, the burner (starts and burn time yesterday) and, once learned, the
   lowest water temperature the boiler starts heating at, from the summary; that last figure is
   also the attribute ``boiler_minimum_flow_c`` (absent until learned);

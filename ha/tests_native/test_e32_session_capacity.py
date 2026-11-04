@@ -215,7 +215,7 @@ async def test_a_slow_sign_out_does_not_hold_the_lock(hass):
     """The sign-out of a finished request (up to 3 s on a busy E32) runs after the lock is released."""
     e32 = FullE32()
     entity, hub, plan = await climate(hass, e32, room_state("living"))
-    released = asyncio.Event()
+    signing_out, released, locked = asyncio.Event(), asyncio.Event(), []
     inner = e32.client
 
     def client():
@@ -223,13 +223,14 @@ async def test_a_slow_sign_out_does_not_hold_the_lock(hass):
 
         class Slow(type(made)):
             async def __aexit__(self, *_):
-                assert not plan._lock.locked()
+                locked.append(plan._lock.locked())
+                signing_out.set()
                 await released.wait()
         return Slow()
     plan._client = client
     first = asyncio.ensure_future(plan.async_read())
-    await asyncio.sleep(0.01)
-    assert not first.done() and not plan._lock.locked()  # signed in, read, now signing out
+    await asyncio.wait_for(signing_out.wait(), 1)  # signed in, read, now signing out
+    assert locked == [False] and not plan._lock.locked() and not first.done()
     released.set()
     await asyncio.wait_for(first, 1)
     plan.stop()

@@ -107,7 +107,8 @@ def heating_start(hass, entity, start, switch=None, target=20.5, start_now=False
 
 
 def curve(hass, entity, flow=30, outdoor=9.2, state="applied", source="design", windows=0):
-    """"Water temperature by weather compensation": what it asks (°C), the outdoor temperature it uses (°C), ..."""
+    """"Water temperature by weather compensation": what it asks and the outdoor temperature it uses (°C), whether it
+    is on (applied) or advice, where its line comes from and the steady periods seen so far."""
     hass.states.async_set(entity, str(flow) if flow is not None else "unknown", {
         "state": state, "slope": 0.67, "slope_source": source, "windows": windows, "outdoor_c": outdoor,
         "flow_c": flow, "unit_of_measurement": "°C"})

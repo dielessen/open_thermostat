@@ -166,6 +166,10 @@ public:
         loadFlowSettings();
         overrides_.restore(RoomOverridesNvs::read()); // waits for a trusted clock before it applies
         ems_.restoreDhw(DhwNvs::read()); // F2: today's and the week's hot water, joined once the clock is known
+        overrides_.restoreHolidays(HolidaysNvs::read()); // rc.4: the planned holidays (absent: none)
+        // A holiday set before rc.4 (the comfort record's dated away): into its own record once.
+        if (overrides_.legacyHoliday() && HolidaysNvs::write(overrides_.holidaysStored()) && RoomOverridesNvs::write(overrides_.stored()))
+            overrides_.legacyHolidaySaved();
         // The takeover readiness counters; the stable time only after a planned restart.
         bool readinessThermostat = false;
         {
@@ -353,6 +357,9 @@ public:
         auto valves = trv_.config();
         if (valves.dropRooms([&](const std::string& id) { return plan.find(id) != nullptr; }) && TrvNvs::write(valves))
             trv_.setConfig(std::move(valves));
+        // Overrides, windows and warm-up leads stay with their room's id; the views follow the new plan (R1-04).
+        overrides_.planChanged(roomEngine_.plan(), bleReceiptClock(),
+                               networkTimeTrusted ? std::optional<uint32_t>(static_cast<uint32_t>(std::time(nullptr))) : std::nullopt);
         return nullptr;
     }
     // The owner's handover on the page: true = "the tado is disconnected from
@@ -460,23 +467,27 @@ public:
         applyFlowSettings(settings);
         return nullptr;
     }
-    // GET/POST /config/heating/comfort (control/RoomOverrides.h): overrides and away,
-    // stored in NVS only when the record changes; the state is kept only once saved.
+    // GET/POST /config/heating/comfort (control/RoomOverrides.h): overrides, away and the
+    // holidays, stored in NVS only when a record changes; the state is kept only once saved.
     cJSON* heatingComfortJson() const { return overrides_.json(roomEngine_.plan(), bleReceiptClock()); }
     const char* setHeatingComfort(const cJSON* root) {
         std::unique_ptr<control::RoomOverrides> next(new (std::nothrow) control::RoomOverrides(overrides_));
         if (!next) return "save_unconfirmed";
         std::optional<uint32_t> utc;
         if (networkTimeTrusted) utc = static_cast<uint32_t>(std::time(nullptr));
-        bool persist = false;
-        if (const char* error = next->command(root, roomEngine_.plan(), bleReceiptClock(), utc, persist)) return error;
-        if (persist) {
-            const bool saved = RoomOverridesNvs::write(next->stored());
-            rewriteEvicted(); // R1-06: the record may have made room from what was learned
-            if (!saved) return "save_unconfirmed";
-        }
-        overrides_ = *next;
-        return nullptr;
+        bool persist = false, holidays = false;
+        if (const char* error = next->command(root, roomEngine_.plan(), bleReceiptClock(), utc, persist, &holidays)) return error;
+        return saveComfort(*next, persist, holidays);
+    }
+    // The settings backup (control/ConfigBackup.h "holidays"): the holidays record, and its restore.
+    std::string heatingHolidays() const { return overrides_.holidaysStored(); }
+    bool setHeatingHolidays(std::string_view record) {
+        std::unique_ptr<control::RoomOverrides> next(new (std::nothrow) control::RoomOverrides(overrides_));
+        if (!next || !next->restoreHolidays(record)) return false;
+        std::optional<uint32_t> utc;
+        if (networkTimeTrusted) utc = static_cast<uint32_t>(std::time(nullptr));
+        next->refresh(roomEngine_.plan(), bleReceiptClock(), utc);
+        return !saveComfort(*next, next->stored() != overrides_.stored(), next->holidaysStored() != overrides_.holidaysStored());
     }
     cJSON* activeHeatJson() const {
         const auto now = bleReceiptClock();
@@ -892,7 +903,27 @@ private:
     control::BleDeviceDiscovery bleDiscovery_;
     static_assert(sizeof(decltype(managedBle_)) <= 4096, "BLE observer resident budget changed");
     control::RoomEngine roomEngine_;
-    control::RoomOverrides overrides_; // beta.19: temporary overrides, window pauses, away (targets only)
+    control::RoomOverrides overrides_; // beta.19: temporary overrides, window pauses, away (targets only); rc.4: holidays
+    // Stores what a comfort change touched, the holidays record first (the comfort record keeps rc.3's
+    // copy of a running holiday for a rollback), and only then keeps it. A failed comfort write puts the
+    // holidays record back (best effort; gated like an optional record).
+    const char* saveComfort(const control::RoomOverrides& next, bool comfort, bool holidays) {
+        if (holidays) {
+            const bool saved = HolidaysNvs::write(next.holidaysStored());
+            rewriteEvicted(); // the holidays may have made room: the learned records are written again where they fit
+            if (!saved) return "save_unconfirmed";
+        }
+        if (comfort) {
+            const bool saved = RoomOverridesNvs::write(next.stored());
+            rewriteEvicted(); // R1-06: the record may have made room from what was learned
+            if (!saved) {
+                if (holidays) HolidaysNvs::write(overrides_.holidaysStored());
+                return "save_unconfirmed";
+            }
+        }
+        overrides_ = next;
+        return nullptr;
+    }
     control::ShadowComparison shadowComparison_; // E32 decision vs the tado's 0x1A, per day
     control::TakeoverReadiness readiness_;       // the shadow exit criteria over 7 days (NVS)
     bool readinessStored_ = false;               // stored for the coming planned restart

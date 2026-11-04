@@ -102,7 +102,11 @@
         "The backup contains invalid settings.": "De back-up bevat ongeldige instellingen.",
         "The request was not confirmed. Try again.": "Het verzoek is niet bevestigd. Probeer het opnieuw.",
         "will change": "verandert",
-        "Choose a backup file first.": "Kies eerst een back-upbestand."
+        "Choose a backup file first.": "Kies eerst een back-upbestand.",
+        "Holidays": "Vakanties",
+        "Planned holidays": "Geplande vakanties",
+        "Temperature on holiday": "Temperatuur op vakantie",
+        "Holidays that are already over are left out.": "Vakanties die al voorbij zijn, blijven weg."
     };
     const catalog = window.OT_UI_MESSAGES;
     if (catalog && typeof catalog === 'object') for (const [key, value] of Object.entries(dutch)) if (!Object.hasOwn(catalog, key)) catalog[key] = value;
@@ -110,7 +114,7 @@
     const fill = (value, v) => t(value).replace('{v}', v);
     const maxBytes = 24576;
     const sections = {network: "Network", bluetooth: "Bluetooth sensors", heating: "Rooms", flow: "Water temperature", boiler_display: "Boiler model",
-        learned: "What the thermostat has learned"};
+        learned: "What the thermostat has learned", holidays: "Holidays"};
     const fields = {
         hostname: "Device name", interface_mode: "Connection", listenPort: "Web page port", emsEnabled: "Boiler bus (EMS)",
         emsForwarderEnabled: "EMS forwarder", rtcEnabled: "Clock chip", ntpEnabled: "Time from the internet", ntpHost: "Time server",
@@ -125,7 +129,7 @@
         devices: "Sensors", rooms: "Rooms", room_settings: "Room settings", minimum_flow_c: "Lowest water temperature",
         maximum_flow_c: "Highest water temperature", weather_curve: "Weather compensation", apply_learned: "Smart warm-up",
         curve_design_flow_c: "Water temperature in hard frost (−10 °C)", tuning: "Comfort and boiler care", tuning_manual: "Comfort and boiler care: set by you",
-        model: "Boiler model", learned: "What the thermostat has learned"
+        model: "Boiler model", learned: "What the thermostat has learned", periods: "Planned holidays", temperature_c: "Temperature on holiday"
     };
     // Comfort and boiler care (house.html's settings): name, how its value reads, and whether the thermostat sets it.
     const knobs = {min_off_s: ["Burner rest between starts", 'rest', true], min_on_s: ["Burner run time", 'run', true],
@@ -151,7 +155,8 @@
         secrets_unbound: "This backup was made before 1.0 rc.2: its passwords are not tied to its network settings. Make a new backup after the restore.",
         unknown_boiler_model: "Unknown boiler model skipped: {v}", unknown_language: "Unknown language skipped.",
         heating: "Rooms: {v}", bluetooth: "Bluetooth sensors: {v}",
-        learned_skipped: "What the thermostat learned could not be read from this backup; it keeps learning from what it has."
+        learned_skipped: "What the thermostat learned could not be read from this backup; it keeps learning from what it has.",
+        holidays_ended_skipped: "Holidays that are already over are left out."
     };
     const errors = {
         not_a_backup: "This file is not an OpenThermostat E32 backup.", newer_schema: "This backup was made by newer firmware. Update this E32 first.",

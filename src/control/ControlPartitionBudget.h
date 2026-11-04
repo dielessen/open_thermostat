@@ -95,6 +95,15 @@ public:
     static constexpr size_t bluetoothBytes=2048,editBytes=64;
     static constexpr size_t handoverEntries=3;   // nvs_set_str of < 64 bytes: 1 + 2
     static constexpr size_t flowRecordBytes=640; // >= FlowSettings::maxBytes + 1 (asserted in the tests)
+    // rc.4: the owner's holiday planner ("holidays", RoomOverrides::holidaysStored(): 8 periods and
+    // the holiday temperature, a string of at most holidayRecordBytes with its NUL). Written like an
+    // optional record (permitsHolidayWrite: control keeps its room after it), but it is the owner's:
+    // like a plan save it makes room for itself (makeRoom erases what was learned, the least useful
+    // first, written again where it fits), and it is not in optionalKeys (never erased itself).
+    static constexpr size_t holidayRecordBytes=224;
+    static constexpr bool permitsHolidayWrite(ControlPartitionStats s,size_t bytes,size_t oldBytes,size_t reserve) {
+        return bytes<=holidayRecordBytes&&permitsOptionalWrite(s,bytes,oldBytes,reserve);
+    }
     static constexpr size_t privateSaveBytes(size_t planBytes,size_t bleBytes) {
         const size_t plan=planBytes+editBytes<configBytes?planBytes+editBytes:configBytes;
         return plan>bleBytes?plan:bleBytes;

@@ -200,6 +200,35 @@ TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAnd
     EXPECT_FALSE(B::permitsBluetoothWrite(used(630 - 212), 2048));
     EXPECT_FALSE(B::permitsBluetoothWrite(used(100), 2048, {}, 137));
 }
+// rc.4: the owner's holiday planner ("holidays", at most 224 bytes with its NUL) is written while
+// control keeps its room after it, and like a plan save it makes room for itself: on an NVS that
+// what was learned filled up to control's reserve, the learned rooms give way (never the knobs or
+// the record itself); without anything to erase it is refused and nothing changes.
+TEST(ControlPartitionBudget, TheHolidaysRecordMakesRoomForItselfLikeAPlanSave) {
+    const size_t reserve = B::controlReserveEntries(930, B::controlReplacementEntries(200, false));
+    EXPECT_FALSE(B::permitsHolidayWrite(used(630 - reserve), 224, 0, reserve)) << "no room left beside control's";
+    EXPECT_TRUE(B::permitsHolidayWrite(used(630 - reserve - 1 - B::blobEntries(224)), 224, 0, reserve));
+    EXPECT_FALSE(B::permitsHolidayWrite(used(100), 225, 0, reserve)) << "never larger than its bound";
+    // Its replacement needs only its growth (the old one comes back).
+    EXPECT_TRUE(B::permitsHolidayWrite(used(630 - reserve - 1 - B::blobEntries(224) + B::reclaimEntries(224)), 224, 224, reserve));
+    std::map<std::string, size_t> nvs;
+    for (const auto& r : worstCase()) nvs[r.key] = B::blobEntries(r.bytes);
+    const size_t fill = 630 - reserve - [&] { size_t n = 0; for (const auto& [k, e] : nvs) n += e; return n; }();
+    const auto stats = [&] { size_t n = fill; for (const auto& [k, e] : nvs) n += e; return used(std::min<size_t>(n, 630)); };
+    std::vector<std::string> erased;
+    const auto erase = [&](const char* key) { if (nvs.erase(key)) erased.push_back(key); };
+    const auto bytes = [&](const char* key) -> size_t { for (const auto& r : worstCase()) if (nvs.count(key) && r.key == std::string(key)) return r.bytes; return 0; };
+    const auto holidays = [&](ControlPartitionStats s) { return B::permitsHolidayWrite(s, 215, 0, reserve); };
+    EXPECT_FALSE(holidays(stats()));
+    ASSERT_TRUE(B::makeRoom(holidays, stats, bytes, erase));
+    EXPECT_TRUE(holidays(stats()));
+    ASSERT_EQ(erased, std::vector<std::string>{"learned_b"});  // the later learned rooms only
+    EXPECT_TRUE(nvs.count("autotune") && nvs.count("readiness") && nvs.count("learned_a"));
+    nvs.clear(); erased.clear();
+    EXPECT_FALSE(B::makeRoom(holidays, [&] { return used(630 - reserve); }, bytes, erase));
+    EXPECT_TRUE(erased.empty());
+}
+
 TEST(ControlPartitionBudget, ALargerPlanOrBluetoothSaveErasesTheOptionalRecordsLeastUsefulFirst) {
     // An NVS filled by rc.2 before this fix (every optional record, no budget): a larger plan
     // makes room by erasing the learned rooms first, then what else it needs.

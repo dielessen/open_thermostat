@@ -1541,13 +1541,14 @@ private:
 		} else if (server_.method() != HTTP_GET) { server_.send(405,"application/json","{\"error\":\"method_not_allowed\"}"); return; }
 		server_.sendView(200,"application/json"sv,controller_.trvJson());
 	}
-	// GET: overrides and away (control/RoomOverrides.h); POST one command:
-	// {"room","override":"boost"|"timed"|"next"|"none","temperature","minutes"} or
-	// {"away":true|false,"temperature","until"}. Answers the state like GET.
+	// GET: overrides, away and the holidays (control/RoomOverrides.h); POST one command:
+	// {"room","override":"boost"|"timed"|"next"|"none","temperature","minutes"},
+	// {"away":true|false,"temperature","until"}, {"house_mode",..} or (rc.4)
+	// {"holidays":[{"from","until"}],"holiday_temperature"}. Answers the state like GET.
 	void heatingComfort() {
 		if (server_.method() == HTTP_POST) {
 			const auto body = server_.arg("plain");
-			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= control::RoomOverrides::commandBytes ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));
+			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= control::RoomOverrides::commandBytes ? control::parseNestedJson(body,true,3) : control::ControlJson(nullptr,cJSON_Delete));
 			if (const char* error = root ? controller_.setHeatingComfort(root.get()) : "invalid_json") {
 				server_.send(!std::strcmp(error,"save_unconfirmed") ? 503 : !std::strcmp(error,"no_clock") ? 409 : 400,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
 			}

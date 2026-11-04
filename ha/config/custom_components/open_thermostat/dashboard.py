@@ -253,6 +253,9 @@ TEXT = {
         "design_flow": "Water temperature at −10 °C outside",
         "apply_learned": "Smart warm-up",
         "house_mode": "House mode", "boiler_now": "Boiler",
+        # rc.4: the next holiday under House (house.holidays.v1).
+        "holiday_next": "Holiday from {from} to {until}", "holiday_now": "On holiday until {until}",
+        "months": "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec",
         "learned_latest": "Latest change", "learning_how": "How it learns",
         "compare_link": "E32 compared with your thermostat",
         "no_request": "No boiler request",
@@ -409,6 +412,8 @@ TEXT = {
         "design_flow": "Watertemperatuur bij −10 °C buiten",
         "apply_learned": "Slim opwarmen",
         "house_mode": "Huismodus", "boiler_now": "Ketel",
+        "holiday_next": "Vakantie vanaf {from} t/m {until}", "holiday_now": "Op vakantie t/m {until}",
+        "months": "jan,feb,mrt,apr,mei,jun,jul,aug,sep,okt,nov,dec",
         "learned_latest": "Laatste aanpassing", "learning_how": "Hoe hij leert",
         "compare_link": "E32 vergeleken met je thermostaat",
         "no_request": "Geen ketelvraag",
@@ -567,6 +572,8 @@ TEXT = {
         "design_flow": "Temperatura wody przy −10 °C na zewnątrz",
         "apply_learned": "Inteligentne nagrzewanie",
         "house_mode": "Tryb domu", "boiler_now": "Kocioł",
+        "holiday_next": "Urlop od {from} do {until}", "holiday_now": "Urlop do {until}",
+        "months": "sty,lut,mar,kwi,maj,cze,lip,sie,wrz,paź,lis,gru",
         "learned_latest": "Ostatnia zmiana", "learning_how": "Jak się uczy",
         "compare_link": "E32 w porównaniu z Twoim termostatem",
         "no_request": "Brak żądania do kotła",
@@ -998,6 +1005,26 @@ def _wanting_card(t, request):
         + number("room.temperature") + " → " + number("room.setpoint") + " °C{% endif %}\n{% endfor %}"
         "{% if states(" + quoted + ") | float(0) > 0 %}\n" + t["boiler_request"] + ": "
         + number("states(" + quoted + ")") + " °C{% endif %}")}
+
+
+def _holiday_card(t, select):
+    """The next holiday (E32 rc.4, house.holidays.v1): "Holiday from 20 Dec to 3 Jan", or "On holiday until 3 Jan"
+    while it runs. From the house mode select's ``holidays`` attribute, so it follows the E32 without regenerating;
+    empty (and hidden) without a planned holiday or on firmware without them.
+    """
+    if not select:
+        return None
+
+    def day(name):
+        return "{{ " + name + ".day }} {{ months[" + name + ".month - 1] }}"
+
+    return {"type": "markdown", "show_empty": False, "content": (
+        "{% set h = (state_attr(" + json.dumps(select) + ", 'holidays') or []) | first %}"
+        "{% if h %}{% set months = " + json.dumps(t["months"], ensure_ascii=False) + ".split(',') %}"
+        "{% set f = as_local(as_datetime(h['from'])) %}{% set u = as_local(as_datetime(h['until'])) %}"
+        "{% if f <= now() %}" + t["holiday_now"].replace("{until}", day("u"))
+        + "{% else %}" + t["holiday_next"].replace("{from}", day("f")).replace("{until}", day("u"))
+        + "{% endif %}{% endif %}")}
 
 
 def _split(text):
@@ -1490,6 +1517,8 @@ class RoomDashboard:
             # Named: without a name the tile showed the device name, cut short on a phone.
             _wide(_tile(house_mode, t["house_mode"], "mdi:home-account", features=[{"type": "select-options"}],
                         color="teal")),
+            # rc.4: the next holiday, only while one is planned.
+            _holiday_card(t, house_mode),
             # Which rooms want heat and the boiler request: one card whose text follows the E32.
             _wanting_card(t, request),
             # A problem names itself ("Waiting for your confirmation"), and a tap leads to the fix in Repairs.

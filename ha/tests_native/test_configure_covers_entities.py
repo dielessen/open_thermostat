@@ -22,6 +22,7 @@ WRITABLE_CLASSES = {
     "HouseModeSelect": ("select", "house_mode"),
     "HolidayUntil": ("datetime", "holiday_until"),
     "AwayTemperature": ("number", "away_temperature"),
+    "HolidayTemperature": ("number", "holiday_temperature"),  # rc.4, house.holidays.v1
     "RoomStateSelect": ("select", "room_state"),
     "RoomInactiveUntil": ("datetime", "room_inactive_until"),
     "RoomFallbackSetpoint": ("number", "room_fallback_setpoint"),
@@ -40,6 +41,7 @@ CONFIGURE_STEP = {
     ("select", "house_mode"): "house_mode",
     ("datetime", "holiday_until"): "house_mode",
     ("number", "away_temperature"): "house_presence",
+    ("number", "holiday_temperature"): "house_holiday_temperature",  # in House mode and holiday (an E32 with holidays)
     ("select", "room_state"): "e32_room",
     ("datetime", "room_inactive_until"): "e32_room",
     ("number", "room_fallback_setpoint"): "e32_room",
@@ -56,7 +58,7 @@ ALLOWED_WITHOUT_STEP = {
 
 # Where a step is offered: its menu (Configure -> ... ), or the room list for the room form.
 OFFERED_IN = {"heating_weather": "heating_boiler", "heating_warm_up": "heating_boiler", "house_mode": "house",
-              "house_presence": "house", "e32_room": "e32_rooms"}
+              "house_presence": "house", "e32_room": "e32_rooms", "house_holiday_temperature": "house_holidays"}
 
 
 def classes():

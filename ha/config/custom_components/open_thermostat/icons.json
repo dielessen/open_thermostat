@@ -49,6 +49,9 @@
       },
       "away_temperature": {
         "default": "mdi:home-thermometer-outline"
+      },
+      "holiday_temperature": {
+        "default": "mdi:palm-tree"
       }
     },
     "select": {

@@ -2,7 +2,7 @@
 
 Per room "Warm on time" and "Overshoot", per house the burner starts per heating hour, the hours of
 short cycling, the gas for heating and per degree-day; each from fw/telemetry/summary "scoreboard",
-only once the E32 reported a value, and the "Yesterday" card on the Learning and settings view.
+only once the E32 reported a value, and "Yesterday in figures" on the Learning and settings view.
 """
 from copy import deepcopy
 
@@ -143,7 +143,7 @@ def yesterday_section(hass, entry_id):
 async def test_the_yesterday_card_says_it_in_words(hass):
     section, rooms, house, _ = scoreboard_installation(hass, "en")
     heading, card, note = section["cards"]
-    assert heading["heading"] == "Yesterday" and note["type"] == "markdown"
+    assert heading["heading"] == "Yesterday in figures" and note["type"] == "markdown"
     assert note["content"].startswith("Every day the thermostat checks whether each room was warm on time")
     # Hidden until one of its figures has a value (firmware before rc.4 never shows it).
     assert all("visibility" not in c for c in section["cards"])
@@ -175,7 +175,7 @@ async def test_the_yesterday_card_says_it_in_words(hass):
 async def test_the_yesterday_card_in_dutch_and_polish(hass):
     section, rooms, house, entry_id = scoreboard_installation(hass, "nl")
     card = section["cards"][1]
-    assert section["cards"][0]["heading"] == "Gisteren"
+    assert section["cards"][0]["heading"] == "Gisteren in cijfers"
     for entity_id, value in ((rooms["woonkamer"]["warm_on_time"], "12"), (rooms["woonkamer"]["overshoot"], "0.3"),
                              (house["heating_gas_yesterday"], "18.2")):
         hass.states.async_set(entity_id, value)

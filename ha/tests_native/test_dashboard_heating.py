@@ -11,7 +11,7 @@ from custom_components.open_thermostat.room_overview import HOUSE_CARD_TYPE
 from test_v1_native import entry
 
 BUILT_IN = {"heading", "tile", "thermostat", "history-graph", "statistics-graph", "entities", "glance",
-            "markdown", "button"}
+            "markdown", "button", "gauge", "statistic"}
 STATUS = {"schema": 1, "revision": 3, "mode": "shadow", "request": {"heat": True, "flow_c": 38, "reason": "heating"},
           "ha_entities": ["climate.tado_woonkamer"],
           "rooms": [{"id": "woonkamer", "name": "Woonkamer", "status": "ok", "source": "climate.tado_woonkamer",
@@ -116,10 +116,10 @@ async def test_the_views_are_overview_rooms_boiler_learning_and_diagnostics(hass
     # The thermostat it follows; only while the room is on (an inactive room stays compact).
     assert living[1] == {"type": "thermostat", "entity": "climate.tado_woonkamer", "visibility": active}
     tiles = {c["entity"]: c for c in living if c["type"] == "tile"}
-    # The mode and the temperature without Home Assistant stay on the room's device page.
-    assert list(tiles) == [rooms["woonkamer"][k] for k in ("temperature", "inactive_until")]
-    assert tiles[rooms["woonkamer"]["temperature"]]["name"] == "Measured by E32"
-    assert tiles[rooms["woonkamer"]["temperature"]]["visibility"] == active
+    # The mode and the temperature without Home Assistant stay on the room's device page. The E32 measures the
+    # living room with the thermostat it follows only: its temperature shows once, on the dial (rc.5).
+    assert list(tiles) == [rooms["woonkamer"]["inactive_until"]]
+    assert "Measured by E32" not in json.dumps(living)
     # A lone tile takes the whole width, never half a row.
     assert all(c["grid_options"] == {"columns": 12} for c in tiles.values())
     day = next(c for c in living if c["type"] == "history-graph")
@@ -139,19 +139,35 @@ async def test_the_views_are_overview_rooms_boiler_learning_and_diagnostics(hass
     assert bluetooth[1]["type"] == "glance" and bluetooth[1]["title"] == "Thermometer badkamer"
     assert [x["entity"] for x in bluetooth[1]["entities"]] == [sensors[k] for k in ("temperature", "humidity", "battery")]
 
-    # Boiler: the boiler in words and the burner starts; nothing of it on the other views.
-    now = boiler_view["sections"][0]["cards"]
-    assert now[0]["heading"] == "Boiler"
+    # Boiler, first "Now": the boiler in words, the water to the heating next to the water back, and the burner
+    # power next to its starts in the last hour; nothing of it on the other views.
+    known = lambda entity: [{"condition": "state", "entity": entity, "state_not": ["unavailable", "unknown"]}]
+    now_section = boiler_view["sections"][0]
+    now = now_section["cards"]
+    assert (now[0]["heading"], now[0]["icon"]) == ("Now", "mdi:water-boiler")
     words = [c for c in now if c["type"] == "markdown" and "'meaning'" in c["content"]]
-    assert len(words) == 1 and words[0]["visibility"] == [
-        {"condition": "state", "entity": fields["display_code"], "state_not": ["unavailable", "unknown"]}]
-    starts = next(c for c in now if c["type"] == "entities")
-    assert starts["entities"][0]["row"] == {"entity": hub["burner_starts_last_hour"], "name": "Starts per hour"}
+    assert len(words) == 1 and words[0]["visibility"] == known(fields["display_code"])
+    flow, back, gauge, starts = now[2:]
+    assert (flow["entity"], flow["name"], flow["icon"]) == (
+        fields["measured_flow_temperature"], "Water to heating", "mdi:thermometer-chevron-up")
+    assert (back["entity"], back["name"], back["icon"]) == (
+        fields["measured_return_temperature"], "Water back", "mdi:thermometer-chevron-down")
+    assert flow["visibility"] == back["visibility"] == known(fields["measured_flow_temperature"])
+    assert "grid_options" not in flow and "grid_options" not in back  # one row of two tiles
+    assert gauge == {"type": "gauge", "entity": fields["reported_burner_modulation"], "name": "Burner power",
+                     "min": 0, "max": 100, "needle": False, "grid_options": {"columns": 6, "rows": 2},
+                     "visibility": known(fields["reported_burner_modulation"])}
+    assert (starts["entity"], starts["name"], starts["icon"], starts["grid_options"], starts["visibility"]) == (
+        hub["burner_starts_last_hour"], "Starts per hour", "mdi:counter", {"columns": 6, "rows": 2},
+        known(fields["reported_burner_modulation"]))
+    # The section hides as a whole while the boiler reports none of it: never a heading over nothing.
+    assert now_section["visibility"] == [{"condition": "or", "conditions": [
+        known(fields[name])[0] for name in ("display_code", "measured_flow_temperature", "reported_burner_modulation")]}]
     assert hub["burner_short_cycling"] not in json.dumps(boiler_view)
     assert fields["display_code"] not in [c.get("entity") for v in (overview, rooms_view, learning) for c in view_cards(v)]
 
     # Learning and settings: the control line, short cycling as information, the takeover check and the comparison link.
-    control = next(s["cards"] for s in learning["sections"] if s["cards"][0]["heading"] == "Boiler control")
+    control = next(s["cards"] for s in learning["sections"] if s["cards"][0]["heading"] == "Who controls the boiler")
     explain, cycling = control[1], control[2]
     assert "<details>" in explain["content"] and "also without Home Assistant" in explain["content"]
     assert "Trial run" in explain["content"] and hub["heat_request"] in explain["content"]
@@ -198,6 +214,87 @@ async def test_each_room_says_why_in_one_status_card_on_the_overview(hass):
     rooms_view = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"][1]
     assert all(c["type"] != ROOM_STATUS_CARD_TYPE for c in view_cards(rooms_view))
     assert any(c.get("heading") == "Woonkamer settings" for c in view_cards(rooms_view))
+
+
+@pytest.mark.asyncio
+async def test_now_shows_what_the_boiler_does_as_one_coloured_tile(hass):
+    """rc.5 (dashboard-spec §5.1): heating (deep orange), hot water (blue) or resting (grey) as one wide tile:
+    exactly one shows for every state the boiler activity has. An older integration without the activity uses the
+    boiler's own heating bit, on and off."""
+    from custom_components.open_thermostat.dashboard import ACTIVITY_TILES
+    from custom_components.open_thermostat.heating_link import BOILER_ACTIVITIES
+    e, rooms, sensors, hub, fields = installation(hass)
+    entities, devices = er.async_get(hass), dr.async_get(hass)
+    product = devices.async_get_device_by_identifier(("open_thermostat", "fixture"), e.entry_id)
+    fields["heating_active"] = entities.async_get_or_create(
+        "sensor", "open_thermostat", "fixture_boiler_fields_v1_heating_active", config_entry=e, device_id=product.id,
+        suggested_object_id="boiler_heating_active").entity_id
+
+    def now():
+        config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
+        section = next(v for v in config["views"] if v["path"] == "boiler")["sections"][0]
+        assert section["cards"][0]["heading"] in ("Now", "Teraz")
+        return section
+    bit = [c for c in now()["cards"] if c.get("entity") == fields["heating_active"]]
+    assert [(c["name"], c["icon"], c["color"], c["grid_options"], c["visibility"]) for c in bit] == [
+        ("Reported heating", "mdi:fire", "deep-orange", {"columns": 12},
+         [{"condition": "state", "entity": fields["heating_active"], "state": ["on"]}]),
+        ("Reported heating", "mdi:water-boiler", "grey", {"columns": 12},
+         [{"condition": "state", "entity": fields["heating_active"], "state": ["off"]}])]
+    hub["boiler_activity"] = entities.async_get_or_create(
+        "sensor", "open_thermostat", "fixture_hub_boiler_activity", config_entry=e, device_id=product.id,
+        suggested_object_id="boiler_activity").entity_id
+    section = now()
+    tiles = [c for c in section["cards"] if c.get("entity") == hub["boiler_activity"]]
+    assert [(c["name"], c["icon"], c["color"], c["grid_options"]) for c in tiles] == [
+        ("Boiler", "mdi:fire", "deep-orange", {"columns": 12}), ("Boiler", "mdi:faucet", "blue", {"columns": 12}),
+        ("Boiler", "mdi:water-boiler", "grey", {"columns": 12})]
+    shown = [state for c in tiles for state in c["visibility"][0]["state"]]
+    assert sorted(shown) == sorted(BOILER_ACTIVITIES) and len(shown) == len(set(shown))  # one tile per state
+    assert len(ACTIVITY_TILES) == 3 and not any(c.get("entity") == fields["heating_active"] for c in section["cards"])
+    assert {"condition": "state", "entity": hub["boiler_activity"], "state_not": ["unavailable", "unknown"]} in (
+        section["visibility"][0]["conditions"])
+    hass.config.language = "pl"
+    assert now()["cards"][0]["heading"] == "Teraz"
+
+
+@pytest.mark.asyncio
+async def test_measured_by_e32_shows_only_what_the_dial_does_not(hass):
+    """rc.5 (dashboard-spec §3): next to the thermostat a room follows, the E32's own measurement only while it
+    measures (also) elsewhere; a room measured by that thermostat alone shows its temperature once, on the dial."""
+    e, rooms, sensors, hub, fields = installation(hass)
+    heating = hass.data["open_thermostat"][e.entry_id]["heating_hub"]
+
+    def measured(plan):
+        heating.plan = SimpleNamespace(plan=plan, room=lambda room_id: next(
+            (r for r in plan["rooms"] if r["id"] == room_id), None))
+        living = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"][1]["sections"][0]["cards"]
+        assert living[1] == {"type": "thermostat", "entity": "climate.tado_woonkamer", "visibility": [
+            {"condition": "state", "entity": rooms["woonkamer"]["state"], "state_not": "inactive"}]}
+        return [c["name"] for c in living if c.get("entity") == rooms["woonkamer"]["temperature"] and c["type"] == "tile"]
+    tado, ble = {"type": "ha", "id": "climate.tado_woonkamer"}, {"type": "ble", "id": "a4c138a3e8db"}
+    assert measured({"rooms": [{"id": "woonkamer", "sources": [tado]}]}) == []
+    assert measured({"rooms": [{"id": "woonkamer", "sources": [tado, ble]}]}) == ["Measured by E32"]
+    assert measured({"rooms": [{"id": "woonkamer", "setpoint_entity": "climate.tado_woonkamer",
+                                "sources": [ble]}]}) == ["Measured by E32"]
+
+
+@pytest.mark.asyncio
+async def test_a_room_heading_carries_at_most_its_five_badges_in_a_fixed_order(hass):
+    """Demand, a problem, off, a radiator valve that needs attention and a low sensor battery; nothing more."""
+    e, rooms, sensors, hub, fields = installation(hass)
+    entities, devices = er.async_get(hass), dr.async_get(hass)
+    device = devices.async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_woonkamer"), e.entry_id)
+    rooms["woonkamer"]["valve_problem"] = entities.async_get_or_create(
+        "binary_sensor", "open_thermostat", "fixture_e32_room_woonkamer_valve_problem", config_entry=e,
+        device_id=device.id, suggested_object_id="woonkamer_valve_problem").entity_id
+    plan = {"rooms": [{"id": "woonkamer", "sources": [{"type": "ble", "id": "a4c138a3e8db"}]}]}
+    hass.data["open_thermostat"][e.entry_id]["heating_hub"].plan = SimpleNamespace(
+        plan=plan, room=lambda room_id: next((r for r in plan["rooms"] if r["id"] == room_id), None))
+    living = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"][1]["sections"][0]["cards"]
+    assert [b["entity"] for b in living[0]["badges"]] == [
+        *(rooms["woonkamer"][k] for k in ("demand", "status", "state", "valve_problem")), sensors["battery"]]
+    assert all(b.get("visibility") for b in living[0]["badges"])  # each only while it says something
 
 
 @pytest.mark.asyncio
@@ -317,33 +414,48 @@ async def test_learning_area_per_room_and_hot_water_today_only_once_reported(has
         room["heating_start"], "Heating starts", [on, known(room["heating_start"])])
     # A room without learned entities gets no learning area.
     assert not any(c.get("heading") == "Learning" for c in rooms_view["sections"][1]["cards"])
-    # How the learning works: one note in the learning view, only while the E32 reports it.
-    how = next(x for x in learning["sections"] if x["cards"][0]["heading"] == "How it learns")
-    note = how["cards"][1]
+    # How the learning works: the note under what it learned (rc.5: no section of its own), only while the E32
+    # reports it; without the learned overview it stands alone under that heading.
+    how = next(x for x in learning["sections"] if x["cards"][0]["heading"] == "What the thermostat has learned")
+    note = how["cards"][-1]
     assert "learns how fast each room warms up" in note["content"] and room["learning"] in note["content"]
     assert "advice only" in note["content"] and "'applied'" in note["content"] and "<details>" in note["content"]
-    assert note["visibility"] == [known(room["learning"])]
+    assert note["visibility"] == how["visibility"] == [known(room["learning"])]
     assert "learns how fast" not in json.dumps([overview, rooms_view, boiler_view])
-    # Today's hot water is in the Boiler view (rows that appear once they have a value), nowhere else.
-    today = next(x["cards"] for x in boiler_view["sections"] if x["cards"][0]["heading"] == "Boiler")
-    rows = next(c for c in today if c.get("entities") and c["entities"][0]["row"]["entity"] == hub["dhw_taps_today"])
+    assert "How it learns" not in json.dumps(config)
+    # Today's hot water is in the Boiler view's "Hot water" (rows that appear once they have a value), nowhere else.
+    hot_water = next(x for x in boiler_view["sections"] if x["cards"][0]["heading"] == "Hot water")
+    rows = next(c for c in hot_water["cards"]
+                if c.get("entities") and c["entities"][0]["row"]["entity"] == hub["dhw_taps_today"])
     assert [row["row"]["entity"] for row in rows["entities"]] == [
         hub[k] for k in ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today")]
     assert all(row["conditions"] == [known(row["row"]["entity"])] for row in rows["entities"])
-    assert any(c.get("heading") == "Hot water today" for c in today)
+    # The section hides as a whole while neither the hot water temperature nor today's figures have a value.
+    assert hot_water["visibility"] == [{"condition": "or", "conditions": [known(fields["measured_dhw_temperature"]), *(
+        known(hub[k]) for k in ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today"))]}]
+    assert not any(c.get("heading") == "Hot water today" for c in view_cards(boiler_view))
     assert hub["dhw_taps_today"] not in json.dumps(config["views"][4])
     # In Dutch.
     hass.config.language = "nl"
     text = json.dumps(RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config(), ensure_ascii=False)
-    for words in ('"Leren"', "Geadviseerde watertemperatuur", "Start verwarmen", "Warm water vandaag",
-                  "leert ook hoe snel elke ruimte opwarmt", "alleen advies"):
+    for words in ('"Leren"', "Geadviseerde watertemperatuur", "Start verwarmen", '"Warm water"',
+                  "Wat de thermostaat heeft geleerd", "leert ook hoe snel elke ruimte opwarmt", "alleen advies"):
         assert words in text, words
 
 
-def test_dashboard_text_has_the_same_keys_in_both_languages():
+def test_dashboard_text_has_the_same_keys_in_every_language():
     from custom_components.open_thermostat.dashboard import TEXT
-    assert set(TEXT["en"]) == set(TEXT["nl"])
-    assert all(TEXT["nl"][key].strip() for key in TEXT["nl"])
+    assert set(TEXT["en"]) == set(TEXT["nl"]) == set(TEXT["pl"])
+    assert all(TEXT[language][key].strip() for language in ("nl", "pl") for key in TEXT[language])
+    # rc.5: the keys of the new Boiler and Learning sections, and the ones they replaced are gone.
+    assert {"today_week", "gas_heating_today", "gas_hot_water_today", "starts_today", "burner_today", "boiler_values",
+            "who_controls", "yesterday_figures", "dhw_target_short"} <= set(TEXT["en"])
+    assert not {"gas_per_post", "control", "learning_how"} & set(TEXT["en"])
+    # No "Heating page" any more: the gas per day is on the Boiler tab and the E32's Home page (named as the other
+    # Home Assistant texts name it).
+    assert [all(page in TEXT[language]["estimates_empty"] for page in pages) for language, pages in (
+        ("en", ("The Boiler tab", "the E32's Home page")), ("nl", ("Het tabblad Ketel", "de pagina Huis van de E32")),
+        ("pl", ("Karta Kocioł", "strona Dom w E32")))] == [True, True, True]
 
 
 @pytest.mark.asyncio
@@ -449,8 +561,8 @@ async def test_the_house_card_names_the_problem_and_leads_to_the_fix_only_while_
     config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
     overview, boiler_view = config["views"][0], config["views"][2]
     assert [s["cards"][0]["heading"] for s in overview["sections"]] == ["House", "Rooms"]
-    # The advice belongs to the boiler.
-    assert [s["cards"][0]["heading"] for s in boiler_view["sections"]][:2] == ["Boiler", "Advice"]
+    # The advice belongs to the boiler, second after "Now".
+    assert [s["cards"][0]["heading"] for s in boiler_view["sections"]][:2] == ["Now", "Advice"]
     assert hub["heating_advice"] not in json.dumps(overview)
     house = overview["sections"][0]["cards"]
     assert house[1]["type"] == HOUSE_CARD_TYPE and house[1]["problem"] == hub["heating_problem"]

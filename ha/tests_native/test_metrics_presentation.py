@@ -35,7 +35,11 @@ async def test_native_dashboard_three_views_reported_vs_estimated_no_legacy_coun
     dashboard=RoomDashboard(hass,"fixture",e.entry_id)
     config=dashboard._dashboard_config()
     assert [v["path"] for v in config["views"]]==["boiler","diagnostics"]
-    boiler=view_cards(config["views"][0])
+    now,legacy=config["views"][0]["sections"]
+    # rc.5: "Now" first, from the older hub's metrics: the water to the heating and the burner power as a gauge.
+    assert [(c["type"],c["entity"].rsplit("_hub_",1)[-1]) for c in now["cards"][1:]]==[
+        ("tile","boiler_current_flow_temperature"),("gauge","boiler_burner_power")]
+    boiler=legacy["cards"]
     assert [c["type"] for c in boiler]==["heading","markdown","history-graph","history-graph","history-graph"]
     assert [x["name"] for x in boiler[2]["entities"]]==["Target (boiler)","To heating, as the boiler reports it"]
     assert boiler[3]["title"]=="Burner power (%) — not kW"
@@ -265,10 +269,11 @@ async def test_native_boiler_view_uses_owned_enabled_renamed_fields_and_quality_
     text=str(boiler)
     assert "sensor.renamed_native_flow" in text and returned.entity_id in text
     # Grouped: the inferred activity sits last in its group, and the note says it is what the boiler reports, not a separate check.
-    heating=next(s["cards"] for s in boiler["sections"] if s["cards"][0]["heading"]=="Heating")
-    rows=[r["row"]["entity"] for r in heating[1]["entities"]]
+    reported=next(s["cards"] for s in boiler["sections"] if s["cards"][0]["heading"]=="What the boiler reports")
+    heating=next(c for c in reported if c.get("title")=="Heating")
+    rows=[r["row"]["entity"] for r in heating["entities"]]
     assert rows==["sensor.renamed_native_flow",returned.entity_id,inferred.entity_id]
-    assert "not a separate check" in heating[2]["content"]
+    assert "not a separate check" in reported[reported.index(heating)+1]["content"]
     for missing in [raw.entity_id,disabled.entity_id,foreign.entity_id,legacy.entity_id]:
         assert missing not in text
     graphs=[c for c in view_cards(boiler) if c["type"]=="history-graph"]

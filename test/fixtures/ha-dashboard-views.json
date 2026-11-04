@@ -610,7 +610,7 @@
      {
       "cards": [
        {
-        "heading": "Boiler",
+        "heading": "Now",
         "heading_style": "title",
         "icon": "mdi:water-boiler",
         "type": "heading"
@@ -630,30 +630,132 @@
         ]
        },
        {
-        "entities": [
-         {
-          "conditions": [
-           {
-            "condition": "state",
-            "entity": "sensor.fixture_hub_burner_starts_last_hour",
-            "state_not": [
-             "unavailable",
-             "unknown"
-            ]
-           }
-          ],
-          "row": {
-           "entity": "sensor.fixture_hub_burner_starts_last_hour",
-           "name": "Starts per hour"
-          },
-          "type": "conditional"
-         }
-        ],
-        "type": "entities",
+        "color": "deep-orange",
+        "entity": "sensor.boiler_activity",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:fire",
+        "name": "Boiler",
+        "type": "tile",
         "visibility": [
          {
           "condition": "state",
-          "entity": "sensor.fixture_hub_burner_starts_last_hour",
+          "entity": "sensor.boiler_activity",
+          "state": [
+           "heating"
+          ]
+         }
+        ]
+       },
+       {
+        "color": "blue",
+        "entity": "sensor.boiler_activity",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:faucet",
+        "name": "Boiler",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_activity",
+          "state": [
+           "tapping",
+           "keep_warm",
+           "charging",
+           "hot_water"
+          ]
+         }
+        ]
+       },
+       {
+        "color": "grey",
+        "entity": "sensor.boiler_activity",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:water-boiler",
+        "name": "Boiler",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_activity",
+          "state": [
+           "idle"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+        "icon": "mdi:thermometer-chevron-up",
+        "name": "Water to heating",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+        "icon": "mdi:thermometer-chevron-down",
+        "name": "Water back",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+        "grid_options": {
+         "columns": 6,
+         "rows": 2
+        },
+        "max": 100,
+        "min": 0,
+        "name": "Burner power",
+        "needle": false,
+        "type": "gauge",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_hub_burner_starts_last_hour",
+        "grid_options": {
+         "columns": 6,
+         "rows": 2
+        },
+        "icon": "mdi:counter",
+        "name": "Starts per hour",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
           "state_not": [
            "unavailable",
            "unknown"
@@ -662,18 +764,753 @@
         ]
        }
       ],
-      "type": "grid"
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_display_code",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_activity",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
      },
      {
       "cards": [
        {
-        "heading": "Heating",
+        "heading": "Advice",
         "heading_style": "title",
-        "icon": "mdi:radiator",
+        "icon": "mdi:lightbulb-on-outline",
+        "type": "heading",
+        "visibility": [
+         {
+          "above": 0,
+          "condition": "numeric_state",
+          "entity": "sensor.heating_advice"
+         }
+        ]
+       },
+       {
+        "content": "{% set icons = {\"warning\": \"mdi:alert-outline\", \"suggestion\": \"mdi:lightbulb-on-outline\", \"info\": \"mdi:information-outline\"} %}{% set confidence = {\"low\": \"low\", \"medium\": \"medium\", \"high\": \"high\"} %}{% for item in state_attr(\"sensor.heating_advice\", 'items') or [] %}<ha-icon icon=\"{{ icons.get(item.severity, 'mdi:information-outline') }}\"></ha-icon> **{{ item.title }}**\n\n{{ item.action }}\n\n*Where: {{ item.where }} · Confidence: {{ confidence.get(item.confidence, item.confidence) }}*\n\n{% endfor %}Advice only: nothing is changed automatically.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "above": 0,
+          "condition": "numeric_state",
+          "entity": "sensor.heating_advice"
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "above": 0,
+        "condition": "numeric_state",
+        "entity": "sensor.heating_advice"
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Today and this week",
+        "heading_style": "title",
+        "icon": "mdi:chart-bar",
+        "type": "heading"
+       },
+       {
+        "entity": "sensor.heating_gas",
+        "grid_options": {
+         "columns": 6,
+         "rows": 2
+        },
+        "icon": "mdi:meter-gas",
+        "name": "Gas for heating today",
+        "period": {
+         "calendar": {
+          "period": "day"
+         }
+        },
+        "stat_type": "change",
+        "type": "statistic",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.hot_water_gas",
+        "grid_options": {
+         "columns": 6,
+         "rows": 2
+        },
+        "icon": "mdi:meter-gas",
+        "name": "Gas for hot water today",
+        "period": {
+         "calendar": {
+          "period": "day"
+         }
+        },
+        "stat_type": "change",
+        "type": "statistic",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.daily_burner_starts",
+        "grid_options": {
+         "columns": 6,
+         "rows": 2
+        },
+        "icon": "mdi:counter",
+        "name": "Burner starts today",
+        "period": {
+         "calendar": {
+          "period": "day"
+         }
+        },
+        "stat_type": "change",
+        "type": "statistic",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.daily_burner_starts",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.daily_burner_time",
+        "grid_options": {
+         "columns": 6,
+         "rows": 2
+        },
+        "icon": "mdi:timer-outline",
+        "name": "Burner time today",
+        "period": {
+         "calendar": {
+          "period": "day"
+         }
+        },
+        "stat_type": "change",
+        "type": "statistic",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.daily_burner_starts",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         {
+          "entity": "sensor.heating_gas",
+          "name": "Heating"
+         },
+         {
+          "entity": "sensor.tapping_gas",
+          "name": "Tapping"
+         },
+         {
+          "entity": "sensor.keep_warm_gas",
+          "name": "Keeping warm"
+         }
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Gas per day",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         {
+          "entity": "sensor.daily_burner_time"
+         }
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Burner hours per day",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.daily_burner_time",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "{% if state_attr(\"sensor.heating_gas\", 'estimate') %}Estimated from the burner power and the boiler's heating power (no gas meter).{% else %}Measured with your gas meter, split by what the boiler did.{% endif %}\n\n<details><summary>More</summary>\n\nAdd heating and hot water to the Energy dashboard under Gas consumption; keeping warm is a part of hot water, so leave it out there.\n\n</details>",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.daily_burner_starts",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.daily_burner_time",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Hot water",
+        "heading_style": "title",
+        "icon": "mdi:faucet",
+        "type": "heading"
+       },
+       {
+        "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+        "icon": "mdi:water-thermometer",
+        "name": "Hot water",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.boiler_reported_dhw_target",
+        "icon": "mdi:thermometer-water",
+        "name": "Hot water target",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.dhw_taps_today",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.dhw_taps_today",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.dhw_keep_warm_today",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.dhw_keep_warm_today",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.dhw_burner_time_today",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.dhw_burner_time_today",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.dhw_taps_today",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.dhw_keep_warm_today",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.dhw_burner_time_today",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.boiler_activity",
+          "name": "Boiler"
+         },
+         {
+          "entity": "sensor.boiler_heating_active",
+          "name": "Reported heating"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "What the boiler does (24 hours)",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_activity",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Tapping is hot water used at a tap; keeping warm is the boiler reheating its store or exchanger without a tap, nothing more; a cylinder shows as charging.\n\n<details><summary>More</summary>\n\nThe E32 tells them apart with the most direct signal your boiler reports.\n\n</details>",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_activity",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.dhw_taps_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.dhw_keep_warm_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.dhw_burner_time_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_activity",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Last 24 hours",
+        "heading_style": "title",
+        "icon": "mdi:chart-line",
         "type": "heading"
        },
        {
         "entities": [
+         {
+          "entity": "sensor.boiler_reported_selected_flow_temperature",
+          "name": "Target (boiler)"
+         },
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "name": "To heating (flow)"
+         },
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+          "name": "Back (return)"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "Water temperatures: target, to heating and back",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_selected_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "name": "Burner power (%)"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "Burner power (%) — not kW",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.boiler_selected_dhw_temperature",
+          "name": "Reported selected hot water"
+         },
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "name": "Measured hot water"
+         },
+         {
+          "entity": "sensor.boiler_reported_dhw_target",
+          "name": "Reported hot water target"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "Hot water temperatures",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_selected_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_target",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_selected_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_selected_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_dhw_target",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "What the boiler reports",
+        "heading_style": "title",
+        "icon": "mdi:water-boiler",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_selected_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_reported_selected_flow_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
          {
           "conditions": [
            {
@@ -735,6 +1572,25 @@
           "conditions": [
            {
             "condition": "state",
+            "entity": "sensor.boiler_reported_requested_power_limit",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_reported_requested_power_limit",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
             "entity": "sensor.fixture_boiler_fields_v1_pressure",
             "state_not": [
              "unavailable",
@@ -749,13 +1605,98 @@
            }
           },
           "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_heating_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_heating_enabled",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_hydraulic_switch_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_hydraulic_switch_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_heating_pump_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_reported_heating_pump_modulation",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_heating_active",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_heating_active",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
          }
         ],
+        "title": "Heating",
         "type": "entities",
         "visibility": [
          {
           "condition": "or",
           "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_selected_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
            {
             "condition": "state",
             "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
@@ -782,7 +1723,47 @@
            },
            {
             "condition": "state",
+            "entity": "sensor.boiler_reported_requested_power_limit",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
             "entity": "sensor.fixture_boiler_fields_v1_pressure",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_heating_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_hydraulic_switch_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_heating_pump_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_heating_active",
             "state_not": [
              "unavailable",
              "unknown"
@@ -794,21 +1775,116 @@
        },
        {
         "content": "Values as the boiler reports them; a value the boiler does not send is left out.\n\n<details><summary>More</summary>\n\nBurner power is a percentage of the boiler's maximum, not kW; \"active\" is what the boiler reports, not a separate check.\n\n</details>",
-        "type": "markdown"
-       }
-      ],
-      "type": "grid"
-     },
-     {
-      "cards": [
-       {
-        "heading": "Hot water",
-        "heading_style": "title",
-        "icon": "mdi:water-thermometer",
-        "type": "heading"
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_selected_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_requested_power_limit",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_pressure",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_heating_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_hydraulic_switch_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_heating_pump_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_heating_active",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
        },
        {
         "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_selected_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_selected_dhw_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
          {
           "conditions": [
            {
@@ -827,8 +1903,66 @@
            }
           },
           "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_enabled",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_target",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_reported_dhw_target",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_active",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_active",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
          }
         ],
+        "title": "Hot water",
         "type": "entities",
         "visibility": [
          {
@@ -836,7 +1970,39 @@
           "conditions": [
            {
             "condition": "state",
+            "entity": "sensor.boiler_selected_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
             "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_target",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_active",
             "state_not": [
              "unavailable",
              "unknown"
@@ -845,17 +2011,6 @@
           ]
          }
         ]
-       }
-      ],
-      "type": "grid"
-     },
-     {
-      "cards": [
-       {
-        "heading": "Status and faults",
-        "heading_style": "title",
-        "icon": "mdi:information-outline",
-        "type": "heading"
        },
        {
         "entities": [
@@ -877,8 +2032,67 @@
            }
           },
           "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_service_number",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_service_number",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_ionisation_current",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_ionisation_current",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_maintenance_message",
+            "state_not": [
+             "unavailable",
+             "unknown",
+             "none"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_maintenance_message",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
          }
         ],
+        "title": "Status and faults",
         "type": "entities",
         "visibility": [
          {
@@ -891,20 +2105,205 @@
              "unavailable",
              "unknown"
             ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_service_number",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_ionisation_current",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_maintenance_message",
+            "state_not": [
+             "unavailable",
+             "unknown",
+             "none"
+            ]
            }
           ]
          }
         ]
        }
       ],
-      "type": "grid"
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_selected_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_requested_power_limit",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_pressure",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_heating_enabled",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_hydraulic_switch_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_heating_pump_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_heating_active",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_selected_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_dhw_enabled",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_dhw_target",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_dhw_active",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_display_code",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_service_number",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_ionisation_current",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_maintenance_message",
+          "state_not": [
+           "unavailable",
+           "unknown",
+           "none"
+          ]
+         }
+        ]
+       }
+      ]
      },
      {
       "cards": [
        {
-        "heading": "Thermostat on the bus",
+        "heading": "Boiler settings",
         "heading_style": "title",
-        "icon": "mdi:thermostat",
+        "icon": "mdi:cog-outline",
         "type": "heading"
        },
        {
@@ -913,7 +2312,7 @@
           "conditions": [
            {
             "condition": "state",
-            "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+            "entity": "sensor.boiler_configured_heating_temperature",
             "state_not": [
              "unavailable",
              "unknown"
@@ -921,7 +2320,178 @@
            }
           ],
           "row": {
-           "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+           "entity": "sensor.boiler_configured_heating_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_hysteresis_on",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_hysteresis_on",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_flow_temperature_offset",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_flow_temperature_offset",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_circulation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_circulation_enabled",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_circulation_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_configured_dhw_circulation_mode",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_disinfection_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_disinfection_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_charge_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_configured_dhw_charge_type",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_comfort_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_configured_dhw_comfort_mode",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_reported_dhw_type",
            "name": {
             "type": "entity"
            }
@@ -936,7 +2506,79 @@
           "conditions": [
            {
             "condition": "state",
-            "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+            "entity": "sensor.boiler_configured_heating_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_hysteresis_on",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_flow_temperature_offset",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_circulation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_circulation_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_disinfection_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_charge_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_comfort_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_type",
             "state_not": [
              "unavailable",
              "unknown"
@@ -947,34 +2589,14 @@
         ]
        }
       ],
-      "type": "grid"
-     },
-     {
-      "cards": [
+      "type": "grid",
+      "visibility": [
        {
-        "heading": "Last 24 hours",
-        "heading_style": "title",
-        "icon": "mdi:chart-line",
-        "type": "heading"
-       },
-       {
-        "entities": [
-         {
-          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-          "name": "To heating (flow)"
-         },
-         {
-          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
-          "name": "Back (return)"
-         }
-        ],
-        "hours_to_show": 24,
-        "title": "Water temperatures: target, to heating and back",
-        "type": "history-graph",
-        "visibility": [
+        "condition": "or",
+        "conditions": [
          {
           "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "entity": "sensor.boiler_configured_heating_temperature",
           "state_not": [
            "unavailable",
            "unknown"
@@ -982,49 +2604,71 @@
          },
          {
           "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+          "entity": "sensor.boiler_dhw_hysteresis_on",
           "state_not": [
            "unavailable",
            "unknown"
           ]
-         }
-        ]
-       },
-       {
-        "entities": [
-         {
-          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-          "name": "Burner power (%)"
-         }
-        ],
-        "hours_to_show": 24,
-        "title": "Burner power (%) — not kW",
-        "type": "history-graph",
-        "visibility": [
+         },
          {
           "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
           "state_not": [
            "unavailable",
            "unknown"
           ]
-         }
-        ]
-       },
-       {
-        "entities": [
-         {
-          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
-          "name": "Measured hot water"
-         }
-        ],
-        "hours_to_show": 24,
-        "title": "Hot water temperatures",
-        "type": "history-graph",
-        "visibility": [
+         },
          {
           "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "entity": "sensor.boiler_dhw_flow_temperature_offset",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_dhw_circulation_enabled",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_configured_dhw_circulation_mode",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_dhw_disinfection_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_configured_dhw_charge_type",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_configured_dhw_comfort_mode",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_dhw_type",
           "state_not": [
            "unavailable",
            "unknown"
@@ -1032,8 +2676,7 @@
          }
         ]
        }
-      ],
-      "type": "grid"
+      ]
      }
     ],
     "title": "Boiler",
@@ -1123,6 +2766,137 @@
      {
       "cards": [
        {
+        "heading": "Yesterday in figures",
+        "heading_style": "title",
+        "icon": "mdi:scoreboard-outline",
+        "type": "heading"
+       },
+       {
+        "content": "{% set shown = namespace(lines=0) %}{% set parts = [] %}{% set v = states(\"sensor.woonkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [(\"warm \" ~ (m) ~ \" min late\") if m > 0 else (\"warm \" ~ (-m) ~ \" min early\") if m < 0 else \"warm on time\"] %}{% endif %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [(\"warm \" ~ (m) ~ \" min late\") if m > 0 else (\"warm \" ~ (-m) ~ \" min early\") if m < 0 else \"warm on time\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = state_attr(\"sensor.burner_starts_per_heating_hour\", \"heating_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Heating time: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" h\"] %}{% endif %}{% set v = states(\"sensor.burner_starts_per_heating_hour\") %}{% if is_number(v) %}{% set parts = parts + [\"Burner starts per heating hour: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\")))] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Short burner runs: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" h\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.heating_gas_yesterday\") %}{% if is_number(v) %}{% set parts = parts + [\"Gas for heating (estimate): \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" kWh\"] %}{% endif %}{% set v = state_attr(\"sensor.gas_per_degree_day\", \"degree_days\") %}{% if is_number(v) %}{% set parts = parts + [\"Degree-days: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\")))] %}{% endif %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \".\"))) ~ \" kWh per degree-day\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set d = state_attr(\"sensor.daily_summary\", 'last_day') %}{% if d %}- Burner {{ d.burner_hours }} h, {{ d.burner_starts }} starts ({{ d.short_runs }} shorter than 10 minutes).{% if d.gas and d.gas.heating is not none and d.gas.hot_water is not none and not is_number(states(\"sensor.heating_gas_yesterday\")) %} Gas: heating {{ d.gas.heating ~ '' }}, hot water {{ d.gas.hot_water ~ '' }}.{% endif %}{% if d.outdoor %} Outdoor {{ d.outdoor.min }} to {{ d.outdoor.max }} °C.{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}{{ r.name }}: asked for heat {{ r.heat_hours }} h; warm after {{ r.time_to_target_minutes }} min on average; missed comfort {{ r.missed_minutes }} min.{% else %}{{ r.name }}: asked for heat {{ r.heat_hours }} h; missed comfort {{ r.missed_minutes }} min.{% endif %}\n{% endfor %}{% if not d.complete %}\n_Partial day: the E32 was not heard all day, so the figures are incomplete._{% endif %}{% elif not shown.lines %}The first full day appears here tomorrow.{% endif %}",
+        "type": "markdown"
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         {
+          "entity": "sensor.daily_missed_comfort"
+         }
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Missed comfort per day (minutes)",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.daily_missed_comfort",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Every day the thermostat checks whether each room was warm on time without getting too warm, how often the burner started and how much gas went to heating.\n\n<details><summary>More</summary>\n\nIt learns from this; every figure keeps its history on its own sensor.\n\n</details>",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_warm_on_time",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_overshoot",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_warm_on_time",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_overshoot",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.burner_starts_per_heating_hour",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.short_cycling_hours",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas_yesterday",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.gas_per_degree_day",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.daily_summary",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.daily_missed_comfort",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
         "heading": "What the thermostat has learned",
         "heading_style": "title",
         "icon": "mdi:school-outline",
@@ -1143,6 +2917,20 @@
           "condition": "state",
           "entity": "sensor.learned_overview",
           "state_not": "unavailable"
+         }
+        ]
+       },
+       {
+        "content": "The E32 also learns how fast each room warms up and works out the coolest water that still warms the room 1 °C in time (the recommended water temperature).{% if not state_attr(\"sensor.woonkamer_learning\", 'applied') %}\n\n<details><summary>More</summary>\n\nFor now this is advice only; the E32 keeps using its room control.\n\n</details>{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_learning",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
          }
         ]
        }
@@ -1242,96 +3030,6 @@
      {
       "cards": [
        {
-        "heading": "Yesterday",
-        "heading_style": "title",
-        "icon": "mdi:scoreboard-outline",
-        "type": "heading"
-       },
-       {
-        "content": "{% set parts = [] %}{% set v = states(\"sensor.woonkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [(\"warm \" ~ (m) ~ \" min late\") if m > 0 else (\"warm \" ~ (-m) ~ \" min early\") if m < 0 else \"warm on time\"] %}{% endif %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [(\"warm \" ~ (m) ~ \" min late\") if m > 0 else (\"warm \" ~ (-m) ~ \" min early\") if m < 0 else \"warm on time\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = state_attr(\"sensor.burner_starts_per_heating_hour\", \"heating_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Heating time: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" h\"] %}{% endif %}{% set v = states(\"sensor.burner_starts_per_heating_hour\") %}{% if is_number(v) %}{% set parts = parts + [\"Burner starts per heating hour: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\")))] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Short burner runs: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" h\"] %}{% endif %}{% if parts %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.heating_gas_yesterday\") %}{% if is_number(v) %}{% set parts = parts + [\"Gas for heating (estimate): \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" kWh\"] %}{% endif %}{% set v = state_attr(\"sensor.gas_per_degree_day\", \"degree_days\") %}{% if is_number(v) %}{% set parts = parts + [\"Degree-days: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\")))] %}{% endif %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \".\"))) ~ \" kWh per degree-day\"] %}{% endif %}{% if parts %}- {{ parts | join(' · ') }}\n{% endif %}",
-        "type": "markdown"
-       },
-       {
-        "content": "Every day the thermostat checks whether each room was warm on time without getting too warm, how often the burner started and how much gas went to heating.\n\n<details><summary>More</summary>\n\nIt learns from this; every figure keeps its history on its own sensor.\n\n</details>",
-        "type": "markdown"
-       }
-      ],
-      "type": "grid",
-      "visibility": [
-       {
-        "condition": "or",
-        "conditions": [
-         {
-          "condition": "state",
-          "entity": "sensor.woonkamer_warm_on_time",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.woonkamer_overshoot",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.badkamer_warm_on_time",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.badkamer_overshoot",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.burner_starts_per_heating_hour",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.short_cycling_hours",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.heating_gas_yesterday",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.gas_per_degree_day",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       }
-      ]
-     },
-     {
-      "cards": [
-       {
         "heading": "Smart warm-up and weather compensation",
         "heading_style": "title",
         "icon": "mdi:chart-bell-curve-cumulative",
@@ -1396,7 +3094,7 @@
      {
       "cards": [
        {
-        "heading": "Boiler control",
+        "heading": "Who controls the boiler",
         "heading_style": "title",
         "icon": "mdi:water-boiler",
         "type": "heading"
@@ -1441,31 +3139,6 @@
        }
       ],
       "type": "grid"
-     },
-     {
-      "cards": [
-       {
-        "heading": "How it learns",
-        "heading_style": "title",
-        "icon": "mdi:help-circle-outline",
-        "type": "heading"
-       },
-       {
-        "content": "The E32 also learns how fast each room warms up and works out the coolest water that still warms the room 1 °C in time (the recommended water temperature).{% if not state_attr(\"sensor.woonkamer_learning\", 'applied') %}\n\n<details><summary>More</summary>\n\nFor now this is advice only; the E32 keeps using its room control.\n\n</details>{% endif %}",
-        "type": "markdown",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.woonkamer_learning",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       }
-      ],
-      "type": "grid"
      }
     ],
     "title": "Learning and settings",
@@ -1476,7 +3149,885 @@
     "icon": "mdi:information-outline",
     "max_columns": 2,
     "path": "diagnostics",
-    "sections": [],
+    "sections": [
+     {
+      "cards": [
+       {
+        "heading": "E32",
+        "heading_style": "title",
+        "icon": "mdi:chip",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.memory_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.memory_free",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.memory_min_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.memory_min_free",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.cpu_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.cpu_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.uptime",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.uptime",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.memory_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.memory_min_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.cpu_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.uptime",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.memory_free",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.memory_min_free",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.cpu_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.uptime",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Thermostat on the bus",
+        "heading_style": "title",
+        "icon": "mdi:thermostat",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_requested_burner_power",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_thermostat_requested_burner_power",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_requested_pump_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_thermostat_requested_pump_modulation",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_setpoint",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_thermostat_setpoint",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_room_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_thermostat_room_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_requested_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_thermostat_requested_dhw_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_requested_burner_power",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_requested_pump_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_setpoint",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_room_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_requested_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_thermostat_requested_burner_power",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_thermostat_requested_pump_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_thermostat_setpoint",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_thermostat_room_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_thermostat_requested_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Energy and hot water counters",
+        "heading_style": "title",
+        "icon": "mdi:chart-bar",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.energy_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.energy_heating_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.energy_warm_water_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.warm_water_usage_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.burner_observed_time_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Energy and volume are estimates from reported values, not gas or heat meters.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "This boiler reports no energy or hot water counters yet; boilers that do (EMS+) fill them in here.\n\n<details><summary>More</summary>\n\nThe Boiler tab and the E32's Home page estimate the gas per day from the burner power and the boiler's power.\n\n</details>",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.energy_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.energy_heating_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.energy_warm_water_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.warm_water_usage_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.burner_observed_time_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         "sensor.energy_v2",
+         "sensor.energy_heating_v2",
+         "sensor.energy_warm_water_v2"
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Estimated energy per day (not a meter)",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         "sensor.warm_water_usage_v2"
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Hot water volume per day",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         "sensor.burner_observed_time_v2"
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Observed flame time per day",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Raw boiler data",
+        "heading_style": "title",
+        "icon": "mdi:wrench-outline",
+        "type": "heading"
+       },
+       {
+        "content": "For troubleshooting: values exactly as the boiler sends them, not checked by the E32.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_raw_boiler_state",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_raw_boiler_state",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_raw_boiler_state",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_raw_boiler_state",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_raw_boiler_state",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Hot water capability and quality",
+        "heading_style": "title",
+        "icon": "mdi:faucet",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.dhw_capabilities",
+          "name": {
+           "type": "entity"
+          }
+         }
+        ],
+        "type": "entities"
+       },
+       {
+        "content": "Hot water, view only: the last values the boiler reported (their age is not checked); nothing is sent to the boiler.\n\nProfile: {{ state_attr(\"sensor.dhw_capabilities\", 'profile') or 'Unknown' }}; status: {{ states(\"sensor.dhw_capabilities\") }}.\n{% set fields = state_attr(\"sensor.dhw_capabilities\", 'fields') or {} %}{% for key, field in fields.items() %}{% if field.supported_read %}\n- {{ key | replace('_', ' ') }}: {{ field.value if field.value is not none else 'Unknown' }} {{ field.unit or '' }} ({{ field.quality }}){% endif %}{% endfor %}",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid"
+     }
+    ],
     "title": "Diagnostics",
     "type": "sections"
    },
@@ -2288,7 +4839,7 @@
      {
       "cards": [
        {
-        "heading": "Ketel",
+        "heading": "Nu",
         "heading_style": "title",
         "icon": "mdi:water-boiler",
         "type": "heading"
@@ -2308,30 +4859,132 @@
         ]
        },
        {
-        "entities": [
-         {
-          "conditions": [
-           {
-            "condition": "state",
-            "entity": "sensor.fixture_hub_burner_starts_last_hour",
-            "state_not": [
-             "unavailable",
-             "unknown"
-            ]
-           }
-          ],
-          "row": {
-           "entity": "sensor.fixture_hub_burner_starts_last_hour",
-           "name": "Starts per uur"
-          },
-          "type": "conditional"
-         }
-        ],
-        "type": "entities",
+        "color": "deep-orange",
+        "entity": "sensor.boiler_activity",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:fire",
+        "name": "Ketel",
+        "type": "tile",
         "visibility": [
          {
           "condition": "state",
-          "entity": "sensor.fixture_hub_burner_starts_last_hour",
+          "entity": "sensor.boiler_activity",
+          "state": [
+           "heating"
+          ]
+         }
+        ]
+       },
+       {
+        "color": "blue",
+        "entity": "sensor.boiler_activity",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:faucet",
+        "name": "Ketel",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_activity",
+          "state": [
+           "tapping",
+           "keep_warm",
+           "charging",
+           "hot_water"
+          ]
+         }
+        ]
+       },
+       {
+        "color": "grey",
+        "entity": "sensor.boiler_activity",
+        "grid_options": {
+         "columns": 12
+        },
+        "icon": "mdi:water-boiler",
+        "name": "Ketel",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_activity",
+          "state": [
+           "idle"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+        "icon": "mdi:thermometer-chevron-up",
+        "name": "Aanvoerwater",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+        "icon": "mdi:thermometer-chevron-down",
+        "name": "Retourwater",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+        "grid_options": {
+         "columns": 6,
+         "rows": 2
+        },
+        "max": 100,
+        "min": 0,
+        "name": "Brandervermogen",
+        "needle": false,
+        "type": "gauge",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.fixture_hub_burner_starts_last_hour",
+        "grid_options": {
+         "columns": 6,
+         "rows": 2
+        },
+        "icon": "mdi:counter",
+        "name": "Starts per uur",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
           "state_not": [
            "unavailable",
            "unknown"
@@ -2340,18 +4993,753 @@
         ]
        }
       ],
-      "type": "grid"
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_display_code",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_activity",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
      },
      {
       "cards": [
        {
-        "heading": "Verwarming",
+        "heading": "Advies",
         "heading_style": "title",
-        "icon": "mdi:radiator",
+        "icon": "mdi:lightbulb-on-outline",
+        "type": "heading",
+        "visibility": [
+         {
+          "above": 0,
+          "condition": "numeric_state",
+          "entity": "sensor.heating_advice"
+         }
+        ]
+       },
+       {
+        "content": "{% set icons = {\"warning\": \"mdi:alert-outline\", \"suggestion\": \"mdi:lightbulb-on-outline\", \"info\": \"mdi:information-outline\"} %}{% set confidence = {\"low\": \"laag\", \"medium\": \"middel\", \"high\": \"hoog\"} %}{% for item in state_attr(\"sensor.heating_advice\", 'items') or [] %}<ha-icon icon=\"{{ icons.get(item.severity, 'mdi:information-outline') }}\"></ha-icon> **{{ item.title }}**\n\n{{ item.action }}\n\n*Waar: {{ item.where }} · Zekerheid: {{ confidence.get(item.confidence, item.confidence) }}*\n\n{% endfor %}Alleen advies: er wordt niets automatisch veranderd.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "above": 0,
+          "condition": "numeric_state",
+          "entity": "sensor.heating_advice"
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "above": 0,
+        "condition": "numeric_state",
+        "entity": "sensor.heating_advice"
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Vandaag en deze week",
+        "heading_style": "title",
+        "icon": "mdi:chart-bar",
+        "type": "heading"
+       },
+       {
+        "entity": "sensor.heating_gas",
+        "grid_options": {
+         "columns": 6,
+         "rows": 2
+        },
+        "icon": "mdi:meter-gas",
+        "name": "Gas verwarmen vandaag",
+        "period": {
+         "calendar": {
+          "period": "day"
+         }
+        },
+        "stat_type": "change",
+        "type": "statistic",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.hot_water_gas",
+        "grid_options": {
+         "columns": 6,
+         "rows": 2
+        },
+        "icon": "mdi:meter-gas",
+        "name": "Gas warm water vandaag",
+        "period": {
+         "calendar": {
+          "period": "day"
+         }
+        },
+        "stat_type": "change",
+        "type": "statistic",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.daily_burner_starts",
+        "grid_options": {
+         "columns": 6,
+         "rows": 2
+        },
+        "icon": "mdi:counter",
+        "name": "Branderstarts vandaag",
+        "period": {
+         "calendar": {
+          "period": "day"
+         }
+        },
+        "stat_type": "change",
+        "type": "statistic",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.daily_burner_starts",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.daily_burner_time",
+        "grid_options": {
+         "columns": 6,
+         "rows": 2
+        },
+        "icon": "mdi:timer-outline",
+        "name": "Brandertijd vandaag",
+        "period": {
+         "calendar": {
+          "period": "day"
+         }
+        },
+        "stat_type": "change",
+        "type": "statistic",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.daily_burner_starts",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         {
+          "entity": "sensor.heating_gas",
+          "name": "Verwarmen"
+         },
+         {
+          "entity": "sensor.tapping_gas",
+          "name": "Tappen"
+         },
+         {
+          "entity": "sensor.keep_warm_gas",
+          "name": "Warmhouden"
+         }
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Gas per dag",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         {
+          "entity": "sensor.daily_burner_time"
+         }
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Branderuren per dag",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.daily_burner_time",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "{% if state_attr(\"sensor.heating_gas\", 'estimate') %}Geschat uit het brandervermogen en het vermogen van de ketel (geen gasmeter).{% else %}Gemeten met je gasmeter, verdeeld naar wat de ketel deed.{% endif %}\n\n<details><summary>Meer</summary>\n\nVoeg verwarmen en warm water toe aan het energiedashboard onder Gasverbruik; warmhouden is een deel van warm water, laat dat daar weg.\n\n</details>",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.daily_burner_starts",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.daily_burner_time",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Warm water",
+        "heading_style": "title",
+        "icon": "mdi:faucet",
+        "type": "heading"
+       },
+       {
+        "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+        "icon": "mdi:water-thermometer",
+        "name": "Warm water",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entity": "sensor.boiler_reported_dhw_target",
+        "icon": "mdi:thermometer-water",
+        "name": "Doel warm water",
+        "type": "tile",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.dhw_taps_today",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.dhw_taps_today",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.dhw_keep_warm_today",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.dhw_keep_warm_today",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.dhw_burner_time_today",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.dhw_burner_time_today",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.dhw_taps_today",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.dhw_keep_warm_today",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.dhw_burner_time_today",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.boiler_activity",
+          "name": "Ketel"
+         },
+         {
+          "entity": "sensor.boiler_heating_active",
+          "name": "Gemeld verwarmen"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "Wat de ketel doet (24 uur)",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_activity",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Tappen is warm water uit een kraan; warmhouden is de ketel die zijn voorraad of warmtewisselaar opwarmt zonder dat er getapt wordt, meer niet; een boiler toont als laden.\n\n<details><summary>Meer</summary>\n\nDe E32 houdt ze uit elkaar met het meest directe signaal dat je ketel geeft.\n\n</details>",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_activity",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.dhw_taps_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.dhw_keep_warm_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.dhw_burner_time_today",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_activity",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Afgelopen 24 uur",
+        "heading_style": "title",
+        "icon": "mdi:chart-line",
         "type": "heading"
        },
        {
         "entities": [
+         {
+          "entity": "sensor.boiler_reported_selected_flow_temperature",
+          "name": "Doel (ketel)"
+         },
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "name": "Naar verwarming (aanvoer)"
+         },
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+          "name": "Terug (retour)"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "Watertemperaturen: doel, naar verwarming en terug",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_selected_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "name": "Brandervermogen (%)"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "Brandervermogen (%) — geen kW",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.boiler_selected_dhw_temperature",
+          "name": "Gemeld gekozen warm water"
+         },
+         {
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "name": "Gemeten warm water"
+         },
+         {
+          "entity": "sensor.boiler_reported_dhw_target",
+          "name": "Gemeld warmwaterdoel"
+         }
+        ],
+        "hours_to_show": 24,
+        "title": "Warmwatertemperaturen",
+        "type": "history-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_selected_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_target",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_selected_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_selected_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_dhw_target",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Wat de ketel meldt",
+        "heading_style": "title",
+        "icon": "mdi:water-boiler",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_selected_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_reported_selected_flow_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
          {
           "conditions": [
            {
@@ -2413,6 +5801,25 @@
           "conditions": [
            {
             "condition": "state",
+            "entity": "sensor.boiler_reported_requested_power_limit",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_reported_requested_power_limit",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
             "entity": "sensor.fixture_boiler_fields_v1_pressure",
             "state_not": [
              "unavailable",
@@ -2427,13 +5834,98 @@
            }
           },
           "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_heating_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_heating_enabled",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_hydraulic_switch_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_hydraulic_switch_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_heating_pump_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_reported_heating_pump_modulation",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_heating_active",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_heating_active",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
          }
         ],
+        "title": "Verwarming",
         "type": "entities",
         "visibility": [
          {
           "condition": "or",
           "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_selected_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
            {
             "condition": "state",
             "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
@@ -2460,7 +5952,47 @@
            },
            {
             "condition": "state",
+            "entity": "sensor.boiler_reported_requested_power_limit",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
             "entity": "sensor.fixture_boiler_fields_v1_pressure",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_heating_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_hydraulic_switch_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_heating_pump_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_heating_active",
             "state_not": [
              "unavailable",
              "unknown"
@@ -2472,21 +6004,116 @@
        },
        {
         "content": "Waarden zoals de ketel ze meldt; een waarde die de ketel niet stuurt, staat er niet.\n\n<details><summary>Meer</summary>\n\nBrandervermogen is een percentage van het maximum van de ketel, geen kW; \"actief\" is wat de ketel meldt, geen aparte controle.\n\n</details>",
-        "type": "markdown"
-       }
-      ],
-      "type": "grid"
-     },
-     {
-      "cards": [
-       {
-        "heading": "Warm water",
-        "heading_style": "title",
-        "icon": "mdi:water-thermometer",
-        "type": "heading"
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_selected_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_requested_power_limit",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_pressure",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_heating_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_hydraulic_switch_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_heating_pump_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_heating_active",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
        },
        {
         "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_selected_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_selected_dhw_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
          {
           "conditions": [
            {
@@ -2505,8 +6132,66 @@
            }
           },
           "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_enabled",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_target",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_reported_dhw_target",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_active",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_active",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
          }
         ],
+        "title": "Warm water",
         "type": "entities",
         "visibility": [
          {
@@ -2514,7 +6199,39 @@
           "conditions": [
            {
             "condition": "state",
+            "entity": "sensor.boiler_selected_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
             "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_target",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_active",
             "state_not": [
              "unavailable",
              "unknown"
@@ -2523,17 +6240,6 @@
           ]
          }
         ]
-       }
-      ],
-      "type": "grid"
-     },
-     {
-      "cards": [
-       {
-        "heading": "Status en storingen",
-        "heading_style": "title",
-        "icon": "mdi:information-outline",
-        "type": "heading"
        },
        {
         "entities": [
@@ -2555,8 +6261,67 @@
            }
           },
           "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_service_number",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_service_number",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_ionisation_current",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_ionisation_current",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_maintenance_message",
+            "state_not": [
+             "unavailable",
+             "unknown",
+             "none"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_maintenance_message",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
          }
         ],
+        "title": "Status en storingen",
         "type": "entities",
         "visibility": [
          {
@@ -2569,20 +6334,205 @@
              "unavailable",
              "unknown"
             ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_service_number",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_ionisation_current",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_maintenance_message",
+            "state_not": [
+             "unavailable",
+             "unknown",
+             "none"
+            ]
            }
           ]
          }
         ]
        }
       ],
-      "type": "grid"
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_selected_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_requested_power_limit",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_pressure",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_heating_enabled",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_hydraulic_switch_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_heating_pump_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_heating_active",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_selected_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_dhw_enabled",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_dhw_target",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_dhw_active",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_display_code",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_service_number",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_ionisation_current",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_maintenance_message",
+          "state_not": [
+           "unavailable",
+           "unknown",
+           "none"
+          ]
+         }
+        ]
+       }
+      ]
      },
      {
       "cards": [
        {
-        "heading": "Thermostaat op de bus",
+        "heading": "Ketelinstellingen",
         "heading_style": "title",
-        "icon": "mdi:thermostat",
+        "icon": "mdi:cog-outline",
         "type": "heading"
        },
        {
@@ -2591,7 +6541,7 @@
           "conditions": [
            {
             "condition": "state",
-            "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+            "entity": "sensor.boiler_configured_heating_temperature",
             "state_not": [
              "unavailable",
              "unknown"
@@ -2599,7 +6549,178 @@
            }
           ],
           "row": {
-           "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+           "entity": "sensor.boiler_configured_heating_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_hysteresis_on",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_hysteresis_on",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_flow_temperature_offset",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_flow_temperature_offset",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_circulation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_circulation_enabled",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_circulation_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_configured_dhw_circulation_mode",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_disinfection_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_dhw_disinfection_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_charge_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_configured_dhw_charge_type",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_comfort_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_configured_dhw_comfort_mode",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_reported_dhw_type",
            "name": {
             "type": "entity"
            }
@@ -2614,7 +6735,79 @@
           "conditions": [
            {
             "condition": "state",
-            "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+            "entity": "sensor.boiler_configured_heating_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_hysteresis_on",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_flow_temperature_offset",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_circulation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_circulation_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_disinfection_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_charge_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_comfort_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_type",
             "state_not": [
              "unavailable",
              "unknown"
@@ -2625,34 +6818,14 @@
         ]
        }
       ],
-      "type": "grid"
-     },
-     {
-      "cards": [
+      "type": "grid",
+      "visibility": [
        {
-        "heading": "Afgelopen 24 uur",
-        "heading_style": "title",
-        "icon": "mdi:chart-line",
-        "type": "heading"
-       },
-       {
-        "entities": [
-         {
-          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
-          "name": "Naar verwarming (aanvoer)"
-         },
-         {
-          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
-          "name": "Terug (retour)"
-         }
-        ],
-        "hours_to_show": 24,
-        "title": "Watertemperaturen: doel, naar verwarming en terug",
-        "type": "history-graph",
-        "visibility": [
+        "condition": "or",
+        "conditions": [
          {
           "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_flow_temperature",
+          "entity": "sensor.boiler_configured_heating_temperature",
           "state_not": [
            "unavailable",
            "unknown"
@@ -2660,49 +6833,71 @@
          },
          {
           "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_return_temperature",
+          "entity": "sensor.boiler_dhw_hysteresis_on",
           "state_not": [
            "unavailable",
            "unknown"
           ]
-         }
-        ]
-       },
-       {
-        "entities": [
-         {
-          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
-          "name": "Brandervermogen (%)"
-         }
-        ],
-        "hours_to_show": 24,
-        "title": "Brandervermogen (%) — geen kW",
-        "type": "history-graph",
-        "visibility": [
+         },
          {
           "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_reported_burner_modulation",
+          "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
           "state_not": [
            "unavailable",
            "unknown"
           ]
-         }
-        ]
-       },
-       {
-        "entities": [
-         {
-          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
-          "name": "Gemeten warm water"
-         }
-        ],
-        "hours_to_show": 24,
-        "title": "Warmwatertemperaturen",
-        "type": "history-graph",
-        "visibility": [
+         },
          {
           "condition": "state",
-          "entity": "sensor.fixture_boiler_fields_v1_measured_dhw_temperature",
+          "entity": "sensor.boiler_dhw_flow_temperature_offset",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_dhw_circulation_enabled",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_configured_dhw_circulation_mode",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_dhw_disinfection_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_configured_dhw_charge_type",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_configured_dhw_comfort_mode",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_reported_dhw_type",
           "state_not": [
            "unavailable",
            "unknown"
@@ -2710,8 +6905,7 @@
          }
         ]
        }
-      ],
-      "type": "grid"
+      ]
      }
     ],
     "title": "Ketel",
@@ -2801,6 +6995,137 @@
      {
       "cards": [
        {
+        "heading": "Gisteren in cijfers",
+        "heading_style": "title",
+        "icon": "mdi:scoreboard-outline",
+        "type": "heading"
+       },
+       {
+        "content": "{% set shown = namespace(lines=0) %}{% set parts = [] %}{% set v = states(\"sensor.woonkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [((m) ~ \" min te laat warm\") if m > 0 else ((-m) ~ \" min te vroeg warm\") if m < 0 else \"op tijd warm\"] %}{% endif %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [((m) ~ \" min te laat warm\") if m > 0 else ((-m) ~ \" min te vroeg warm\") if m < 0 else \"op tijd warm\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = state_attr(\"sensor.burner_starts_per_heating_hour\", \"heating_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Stooktijd: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" u\"] %}{% endif %}{% set v = states(\"sensor.burner_starts_per_heating_hour\") %}{% if is_number(v) %}{% set parts = parts + [\"Branderstarts per stookuur: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\")))] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Korte brandtijden: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" u\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.heating_gas_yesterday\") %}{% if is_number(v) %}{% set parts = parts + [\"Gas voor verwarming (schatting): \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" kWh\"] %}{% endif %}{% set v = state_attr(\"sensor.gas_per_degree_day\", \"degree_days\") %}{% if is_number(v) %}{% set parts = parts + [\"Graaddagen: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\")))] %}{% endif %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \",\"))) ~ \" kWh per graaddag\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set d = state_attr(\"sensor.daily_summary\", 'last_day') %}{% if d %}- Brander {{ d.burner_hours }} uur, {{ d.burner_starts }} starts ({{ d.short_runs }} korter dan 10 minuten).{% if d.gas and d.gas.heating is not none and d.gas.hot_water is not none and not is_number(states(\"sensor.heating_gas_yesterday\")) %} Gas: verwarmen {{ d.gas.heating ~ '' }}, warm water {{ d.gas.hot_water ~ '' }}.{% endif %}{% if d.outdoor %} Buiten {{ d.outdoor.min }} tot {{ d.outdoor.max }} °C.{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}{{ r.name }}: vroeg {{ r.heat_hours }} uur warmte; gemiddeld na {{ r.time_to_target_minutes }} min op temperatuur; gemiste comfort {{ r.missed_minutes }} min.{% else %}{{ r.name }}: vroeg {{ r.heat_hours }} uur warmte; gemiste comfort {{ r.missed_minutes }} min.{% endif %}\n{% endfor %}{% if not d.complete %}\n_Gedeeltelijke dag: de E32 was niet de hele dag te horen, dus de cijfers zijn onvolledig._{% endif %}{% elif not shown.lines %}Morgen staat hier de eerste volledige dag.{% endif %}",
+        "type": "markdown"
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         {
+          "entity": "sensor.daily_missed_comfort"
+         }
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Gemiste comfort per dag (minuten)",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.daily_missed_comfort",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Elke dag kijkt de thermostaat of elke ruimte op tijd warm was zonder te warm te worden, hoe vaak de brander startte en hoeveel gas naar verwarmen ging.\n\n<details><summary>Meer</summary>\n\nHij leert daarvan; elk getal houdt zijn geschiedenis bij op zijn eigen sensor.\n\n</details>",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_warm_on_time",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_overshoot",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_warm_on_time",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_overshoot",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.burner_starts_per_heating_hour",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.short_cycling_hours",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas_yesterday",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.gas_per_degree_day",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.daily_summary",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.daily_missed_comfort",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
         "heading": "Wat de thermostaat heeft geleerd",
         "heading_style": "title",
         "icon": "mdi:school-outline",
@@ -2821,6 +7146,20 @@
           "condition": "state",
           "entity": "sensor.learned_overview",
           "state_not": "unavailable"
+         }
+        ]
+       },
+       {
+        "content": "De E32 leert ook hoe snel elke ruimte opwarmt en berekent de laagste watertemperatuur die de ruimte nog op tijd 1 °C opwarmt (de geadviseerde watertemperatuur).{% if not state_attr(\"sensor.woonkamer_learning\", 'applied') %}\n\n<details><summary>Meer</summary>\n\nVoorlopig is dat alleen advies; de E32 blijft zijn ruimteregeling gebruiken.\n\n</details>{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_learning",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
          }
         ]
        }
@@ -2920,96 +7259,6 @@
      {
       "cards": [
        {
-        "heading": "Gisteren",
-        "heading_style": "title",
-        "icon": "mdi:scoreboard-outline",
-        "type": "heading"
-       },
-       {
-        "content": "{% set parts = [] %}{% set v = states(\"sensor.woonkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [((m) ~ \" min te laat warm\") if m > 0 else ((-m) ~ \" min te vroeg warm\") if m < 0 else \"op tijd warm\"] %}{% endif %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [((m) ~ \" min te laat warm\") if m > 0 else ((-m) ~ \" min te vroeg warm\") if m < 0 else \"op tijd warm\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = state_attr(\"sensor.burner_starts_per_heating_hour\", \"heating_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Stooktijd: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" u\"] %}{% endif %}{% set v = states(\"sensor.burner_starts_per_heating_hour\") %}{% if is_number(v) %}{% set parts = parts + [\"Branderstarts per stookuur: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\")))] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Korte brandtijden: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" u\"] %}{% endif %}{% if parts %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.heating_gas_yesterday\") %}{% if is_number(v) %}{% set parts = parts + [\"Gas voor verwarming (schatting): \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" kWh\"] %}{% endif %}{% set v = state_attr(\"sensor.gas_per_degree_day\", \"degree_days\") %}{% if is_number(v) %}{% set parts = parts + [\"Graaddagen: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\")))] %}{% endif %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \",\"))) ~ \" kWh per graaddag\"] %}{% endif %}{% if parts %}- {{ parts | join(' · ') }}\n{% endif %}",
-        "type": "markdown"
-       },
-       {
-        "content": "Elke dag kijkt de thermostaat of elke ruimte op tijd warm was zonder te warm te worden, hoe vaak de brander startte en hoeveel gas naar verwarmen ging.\n\n<details><summary>Meer</summary>\n\nHij leert daarvan; elk getal houdt zijn geschiedenis bij op zijn eigen sensor.\n\n</details>",
-        "type": "markdown"
-       }
-      ],
-      "type": "grid",
-      "visibility": [
-       {
-        "condition": "or",
-        "conditions": [
-         {
-          "condition": "state",
-          "entity": "sensor.woonkamer_warm_on_time",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.woonkamer_overshoot",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.badkamer_warm_on_time",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.badkamer_overshoot",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.burner_starts_per_heating_hour",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.short_cycling_hours",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.heating_gas_yesterday",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         },
-         {
-          "condition": "state",
-          "entity": "sensor.gas_per_degree_day",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       }
-      ]
-     },
-     {
-      "cards": [
-       {
         "heading": "Slim opwarmen en weerafhankelijke regeling",
         "heading_style": "title",
         "icon": "mdi:chart-bell-curve-cumulative",
@@ -3074,7 +7323,7 @@
      {
       "cards": [
        {
-        "heading": "Aansturing van de ketel",
+        "heading": "Wie regelt de ketel",
         "heading_style": "title",
         "icon": "mdi:water-boiler",
         "type": "heading"
@@ -3119,31 +7368,6 @@
        }
       ],
       "type": "grid"
-     },
-     {
-      "cards": [
-       {
-        "heading": "Hoe hij leert",
-        "heading_style": "title",
-        "icon": "mdi:help-circle-outline",
-        "type": "heading"
-       },
-       {
-        "content": "De E32 leert ook hoe snel elke ruimte opwarmt en berekent de laagste watertemperatuur die de ruimte nog op tijd 1 °C opwarmt (de geadviseerde watertemperatuur).{% if not state_attr(\"sensor.woonkamer_learning\", 'applied') %}\n\n<details><summary>Meer</summary>\n\nVoorlopig is dat alleen advies; de E32 blijft zijn ruimteregeling gebruiken.\n\n</details>{% endif %}",
-        "type": "markdown",
-        "visibility": [
-         {
-          "condition": "state",
-          "entity": "sensor.woonkamer_learning",
-          "state_not": [
-           "unavailable",
-           "unknown"
-          ]
-         }
-        ]
-       }
-      ],
-      "type": "grid"
      }
     ],
     "title": "Leren en instellingen",
@@ -3154,7 +7378,885 @@
     "icon": "mdi:information-outline",
     "max_columns": 2,
     "path": "diagnostics",
-    "sections": [],
+    "sections": [
+     {
+      "cards": [
+       {
+        "heading": "E32",
+        "heading_style": "title",
+        "icon": "mdi:chip",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.memory_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.memory_free",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.memory_min_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.memory_min_free",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.cpu_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.cpu_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.uptime",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.uptime",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.memory_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.memory_min_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.cpu_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.uptime",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.memory_free",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.memory_min_free",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.cpu_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.uptime",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Thermostaat op de bus",
+        "heading_style": "title",
+        "icon": "mdi:thermostat",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_requested_burner_power",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_thermostat_requested_burner_power",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_requested_pump_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_thermostat_requested_pump_modulation",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_setpoint",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_thermostat_setpoint",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_room_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_thermostat_room_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_requested_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_thermostat_requested_dhw_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_requested_burner_power",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_requested_pump_modulation",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_setpoint",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_room_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_thermostat_requested_dhw_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.fixture_boiler_fields_v1_thermostat_requested_flow_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_thermostat_requested_burner_power",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_thermostat_requested_pump_modulation",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_thermostat_setpoint",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_thermostat_room_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_thermostat_requested_dhw_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Tellers voor energie en warm water",
+        "heading_style": "title",
+        "icon": "mdi:chart-bar",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.energy_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.energy_heating_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.energy_warm_water_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.warm_water_usage_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.burner_observed_time_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Energie en volume zijn schattingen uit gemelde waarden, geen gas- of warmtemeter.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Deze ketel meldt nog geen tellers voor energie of warm water; ketels die dat wel doen (EMS+) vullen ze hier in.\n\n<details><summary>Meer</summary>\n\nHet tabblad Ketel en de pagina Huis van de E32 schatten het gas per dag uit het brandervermogen en het vermogen van de ketel.\n\n</details>",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.energy_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.energy_heating_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.energy_warm_water_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.warm_water_usage_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.burner_observed_time_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         "sensor.energy_v2",
+         "sensor.energy_heating_v2",
+         "sensor.energy_warm_water_v2"
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Geschatte energie per dag (geen meter)",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         "sensor.warm_water_usage_v2"
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Warmwatervolume per dag",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         "sensor.burner_observed_time_v2"
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Waargenomen vlamtijd per dag",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
+        "heading": "Ruwe keteldata",
+        "heading_style": "title",
+        "icon": "mdi:wrench-outline",
+        "type": "heading"
+       },
+       {
+        "content": "Voor het zoeken naar fouten: waarden precies zoals de ketel ze stuurt, niet gecontroleerd door de E32.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_raw_boiler_state",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_raw_boiler_state",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.boiler_raw_boiler_state",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_raw_boiler_state",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_raw_boiler_state",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Warmwatermogelijkheden en kwaliteit",
+        "heading_style": "title",
+        "icon": "mdi:faucet",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.dhw_capabilities",
+          "name": {
+           "type": "entity"
+          }
+         }
+        ],
+        "type": "entities"
+       },
+       {
+        "content": "Warm water, alleen bekijken: de laatste waarden die de ketel meldde (hun leeftijd wordt niet gecontroleerd); er gaat niets naar de ketel.\n\nProfiel: {{ state_attr(\"sensor.dhw_capabilities\", 'profile') or 'Onbekend' }}; status: {{ states(\"sensor.dhw_capabilities\") }}.\n{% set fields = state_attr(\"sensor.dhw_capabilities\", 'fields') or {} %}{% for key, field in fields.items() %}{% if field.supported_read %}\n- {{ key | replace('_', ' ') }}: {{ field.value if field.value is not none else 'Onbekend' }} {{ field.unit or '' }} ({{ field.quality }}){% endif %}{% endfor %}",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid"
+     }
+    ],
     "title": "Diagnose",
     "type": "sections"
    },

@@ -63,8 +63,10 @@ async def test_the_overview_is_short_and_what_it_learned_is_its_own_view(hass):
     learned = view(config, "learned")
     assert (learned["title"], learned["type"], "subview" in learned) == ("Learning and settings", "sections", False)
     assert [s["cards"][0]["heading"] for s in learned["sections"]] == [
-        "What the thermostat has learned", "House and boiler", "What it changed by itself", "Boiler control",
-        "How it learns"]
+        "What the thermostat has learned", "House and boiler", "What it changed by itself", "Who controls the boiler"]
+    # How it learns is the note of what it learned (rc.5), not a section of its own.
+    first = learned["sections"][0]["cards"]
+    assert first[-1]["type"] == "markdown" and "learns how fast each room warms up" in first[-1]["content"]
     # What it learned per room is in that room's section, not in the learning view.
     living = next(s["cards"] for s in view(config, "rooms")["sections"] if s["cards"][0]["heading"] == "Woonkamer")
     lines = next(c for c in living if c["type"] == "markdown" and "mine[0].lines" in c["content"])
@@ -85,7 +87,8 @@ async def test_the_overview_names_the_house_mode_and_long_states_get_the_whole_w
     mode = next(c for c in house if c.get("entity") == hub["house_mode"])
     assert mode["name"] == "House mode" and mode["grid_options"] == {"columns": 12}
     assert mode["features"] == [{"type": "select-options"}]
-    control = next(s["cards"] for s in view(config, "learned")["sections"] if s["cards"][0]["heading"] == "Boiler control")
+    control = next(s["cards"] for s in view(config, "learned")["sections"]
+                   if s["cards"][0]["heading"] == "Who controls the boiler")
     ready = next(c for c in control if c.get("entity") == hub["takeover_readiness"])
     assert ready["grid_options"] == {"columns": 12}
     words = next(c for c in view_cards(view(config, "boiler")) if c["type"] == "markdown" and "'meaning'" in c["content"])

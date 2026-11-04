@@ -108,10 +108,10 @@ async def test_the_heating_curve_has_a_section_of_its_own(hass):
     settings = headed["Smart warm-up and weather compensation"]["cards"]
     assert "openthermostat-heating-curve" not in json.dumps(settings)
     rows = settings[1]["entities"]
-    assert [row["entity"] for row in rows[:3]] == [controls[key] for key in ("apply_learned", "weather_curve",
-                                                                             "curve_design_flow_c")]
-    assert rows[3] == {"type": "conditional", "conditions": [known(controls["source"])], "row": {
-        "entity": controls["source"], "name": "Water temperature set by", "icon": "mdi:thermometer-water"}}
+    assert [row["entity"] for row in rows] == [controls[key] for key in ("apply_learned", "weather_curve",
+                                                                         "curve_design_flow_c")]
+    # What sets the water temperature now is no setting: it stays on the E32 device (the sketch has three rows).
+    assert controls["source"] not in json.dumps(learning)
 
 
 @pytest.mark.asyncio

@@ -994,25 +994,17 @@ def _free_heat_section(t, learned):
 
 def _settings_section(t, flow, rooms=None, week=None):
     """Smart warm-up and weather compensation: the two switches and the water temperature in hard frost as rows
-    (stored on the E32, e32_flow.py), what sets the water temperature now while it has a value, and the links to the
-    rooms editor (``rooms``) and the week program (``week``); None without any of them."""
+    (stored on the E32, e32_flow.py; always there to change), and the links to the rooms editor (``rooms``) and the
+    week program (``week``); None without any of them. What sets the water temperature now (the sensor "Water
+    temperature set by") is not a setting and stays on the E32 device: as a row its long state cut its name short on
+    a phone, and the sketch has the three rows only."""
     rows = [{"entity": flow[key], "name": t[name], "icon": icon} for key, name, icon in (
         ("apply_learned", "apply_learned", "mdi:school-outline"), ("weather_curve", "weather_curve", "mdi:sun-thermometer"),
         ("curve_design_flow_c", "design_flow", "mdi:thermometer-lines")) if flow.get(key)]
-    source = flow.get("source")
-    if source:  # what the E32 does, not a setting: only while it has a value
-        rows.append({"type": "conditional", "conditions": _known(source),
-                     "row": {"entity": source, "name": t["flow_source"], "icon": "mdi:thermometer-water"}})
-    card = {"type": "entities", "entities": rows} if rows else None
-    if card and all(row.get("type") == "conditional" for row in rows):
-        card["visibility"] = _known(source)
-    section = _filled(_section(
-        _heading(t["smart_heating"], ICONS["settings"]), card,
+    return _filled(_section(
+        _heading(t["smart_heating"], ICONS["settings"]), {"type": "entities", "entities": rows} if rows else None,
         _link(t["set_up_rooms"], "mdi:home-edit-outline", rooms) if rooms else None,
         _link(t["week_program"], "mdi:calendar-week", week) if week else None))
-    if section and all(item.get("visibility") for item in section["cards"][1:]):
-        section["visibility"] = card["visibility"]  # the reading alone: no heading over nothing
-    return section
 
 
 def _per_day(title, entities, entity_id):

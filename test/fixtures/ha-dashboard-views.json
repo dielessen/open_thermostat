@@ -3077,24 +3077,6 @@
           "entity": "select.flow_curve_design_flow_c",
           "icon": "mdi:thermometer-lines",
           "name": "Water temperature in hard frost (−10 °C)"
-         },
-         {
-          "conditions": [
-           {
-            "condition": "state",
-            "entity": "sensor.flow_source",
-            "state_not": [
-             "unavailable",
-             "unknown"
-            ]
-           }
-          ],
-          "row": {
-           "entity": "sensor.flow_source",
-           "icon": "mdi:thermometer-water",
-           "name": "Water temperature set by"
-          },
-          "type": "conditional"
          }
         ],
         "type": "entities"
@@ -7450,24 +7432,6 @@
           "entity": "select.flow_curve_design_flow_c",
           "icon": "mdi:thermometer-lines",
           "name": "Watertemperatuur bij strenge vorst (−10 °C)"
-         },
-         {
-          "conditions": [
-           {
-            "condition": "state",
-            "entity": "sensor.flow_source",
-            "state_not": [
-             "unavailable",
-             "unknown"
-            ]
-           }
-          ],
-          "row": {
-           "entity": "sensor.flow_source",
-           "icon": "mdi:thermometer-water",
-           "name": "Watertemperatuur bepaald door"
-          },
-          "type": "conditional"
          }
         ],
         "type": "entities"

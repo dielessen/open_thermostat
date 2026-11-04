@@ -190,16 +190,14 @@ async def test_long_choices_get_the_whole_width_and_sections_fill_the_gaps(hass)
     assert learning["dense_section_placement"] is True
     settings = section(learning, "Smart warm-up and weather compensation")
     # The settings carry their entities' own long names (as on the device page) and a long choice: rows of one card
-    # across the whole width (the owner's sketch, rc.5), none cut short; what sets the water temperature only while
-    # it has a value.
+    # across the whole width (the owner's sketch, rc.5), none cut short. What sets the water temperature now is no
+    # setting (its long state cut a row's name short on a phone): it stays on the E32 device.
     rows, = [c["entities"] for c in settings if c["type"] == "entities"]
     assert not any(c["type"] == "tile" for c in settings)
-    plain = [row.get("row", row) for row in rows]
-    assert [row["entity"] for row in plain] == [flow[k] for k in ("apply_learned", "weather_curve",
-                                                                  "curve_design_flow_c", "source")]
-    assert [row["name"] for row in plain] == ["Smart warm-up", "Weather compensation",
-                                              "Water temperature in hard frost (−10 °C)", "Water temperature set by"]
-    assert [row.get("conditions") for row in rows] == [None, None, None, [known(flow["source"])]]
+    assert [row["entity"] for row in rows] == [flow[k] for k in ("apply_learned", "weather_curve", "curve_design_flow_c")]
+    assert [row["name"] for row in rows] == ["Smart warm-up", "Weather compensation",
+                                             "Water temperature in hard frost (−10 °C)"]
+    assert flow["source"] not in json.dumps(learning)
 
 
 @pytest.mark.asyncio

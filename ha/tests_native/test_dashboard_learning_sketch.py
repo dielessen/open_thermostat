@@ -130,20 +130,17 @@ async def test_free_heat_names_each_room_behind_a_sun(hass):
 async def test_the_settings_are_rows_of_switches_and_the_water_temperature_in_hard_frost(hass):
     learning, hub, flow = learning_view(hass)
     heading, rows = learning["sections"][6]["cards"]
-    assert rows["entities"][:3] == [
+    assert rows == {"type": "entities", "entities": [
         {"entity": flow["apply_learned"], "name": "Smart warm-up", "icon": "mdi:school-outline"},
         {"entity": flow["weather_curve"], "name": "Weather compensation", "icon": "mdi:sun-thermometer"},
         {"entity": flow["curve_design_flow_c"], "name": "Water temperature in hard frost (−10 °C)",
-         "icon": "mdi:thermometer-lines"}]
-    assert rows["entities"][3]["row"]["entity"] == flow["source"]  # what sets it now, while it has a value
+         "icon": "mdi:thermometer-lines"}]}
     # With an E32 room plan, the rooms editor and the week program under the rows, as before.
     section = _settings_section(TEXT["nl"], flow, "/config/integrations/integration/open_thermostat", "/x/week-program")
     assert [(c.get("heading"), (c.get("tap_action") or {}).get("navigation_path")) for c in section["cards"][2:]] == [
         ("Ruimtes instellen", "/config/integrations/integration/open_thermostat"), ("Weekprogramma", "/x/week-program")]
-    # Only what sets the water temperature (firmware without the switches): shown while it has a value.
-    alone = _settings_section(TEXT["en"], {"source": flow["source"]})
-    assert alone["visibility"] == alone["cards"][1]["visibility"] == [
-        {"condition": "state", "entity": flow["source"], "state_not": ["unavailable", "unknown"]}]
+    # Firmware without the switches (what sets the water temperature is no setting): no section.
+    assert _settings_section(TEXT["en"], {"source": flow["source"]}) is None
     assert _settings_section(TEXT["en"], {}) is None
 
 

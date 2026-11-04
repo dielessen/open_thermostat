@@ -42,7 +42,16 @@ function status(code,cause){return {controlMode:'shadow',ems:{heatingActive:fals
   assert(size[0]>size[1],'the meaning is larger than the raw code');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.screenshot({path:path.join(out,language+'-fault.png'),fullPage:true});
-  const poll=async()=>{await page.clock.runFor(10500);await page.waitForTimeout(50);};
+  // One poll: stamp the status this test publishes, let the page time pass, then wait until the page has applied
+  // that very status. (A fixed 50 ms pause was not enough for the answer to cross Chromium, the route handler and
+  // the render on a loaded machine, so the next assertion read the previous state: R5-02.) lastLoadedStatus is
+  // set in the same synchronous step that renders it, so the DOM is already updated when this condition holds.
+  let polls=0;
+  const poll=async()=>{
+   const stamp=++polls;current.poll=stamp;
+   await page.clock.runFor(10500);
+   await page.waitForFunction(n=>lastLoadedStatus&&lastLoadedStatus.poll===n,stamp);
+  };
   // A lockout: an error box.
   current=status('3L',214);await poll();
   assert.match(await code.getAttribute('class'),/pd-code--err/);

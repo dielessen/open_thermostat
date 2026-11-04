@@ -385,6 +385,10 @@ class RoomPlanLink:
         except ControllerLinkError as err:
             _LOGGER.debug("E32 room plan read failed: %s", err)
             self._failed_at, self._seen_revision = self.clock(), None
+            if self.entry is not None:
+                from .native_entity_cleanup import absent_rooms
+                if absent_rooms(self.hass, self.entry):
+                    self._confirm_later(RETRY_SECONDS)  # a room missing from the plan still waits for its check
             return
         self._failed_at = None
         self._set(plan)

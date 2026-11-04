@@ -695,7 +695,15 @@ async def test_room_missing_on_two_reads_a_minute_apart_is_removed(hass, monkeyp
     await hub.plan.async_refresh()
     assert devices.async_get(gone[0]) is not None
     now[0] += 60
-    scheduled[-1][1](None)  # the scheduled read
+    attempts, client = [], hub.plan._client
+    hub.plan._client = lambda: _Failing(attempts)
+    scheduled[-1][1](None)  # the scheduled read fails (E32 busy): the check is tried again later
+    await hass.async_block_till_done()
+    assert attempts == [1] and devices.async_get(gone[0]) is not None
+    from custom_components.open_thermostat.room_plan import RETRY_SECONDS
+    assert [delay for delay, _ in scheduled] == [60, RETRY_SECONDS]
+    hub.plan._client = client
+    scheduled[-1][1](None)
     await hass.async_block_till_done()
     assert devices.async_get(gone[0]) is None and er.async_get(hass).async_get(gone[1]) is None
     assert devices.async_get(kept[0]) is not None

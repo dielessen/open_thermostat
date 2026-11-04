@@ -711,11 +711,13 @@ set on the boiler itself.
 ### 11.6 Check it
 
 - The **OpenThermostat** dashboard in the sidebar opens on the **Overview**
-  tab. It shows which rooms want heat and the calculated boiler request, and a
-  status card for each room with its temperature and target and, in one line,
-  why the room heats or not. The **Rooms** tab has the 24-hour graph of each
-  room. The E32's own **Overview** shows the same line on each room's card, in
-  the same words, also without Home Assistant.
+  tab. It starts with the **house card**: what the boiler does now, the boiler
+  request while rooms want heat, today's gas and burner starts and the day so
+  far. Under it is a status card for each room with its temperature and target
+  and, in one line, why the room heats or not (a house with only one room
+  switched on shows that room inside the house card). The **Rooms** tab has the
+  24-hour graph of each room. The E32's own **Overview** shows the same line on
+  each room's card, in the same words, also without Home Assistant.
 - Each room has its own group on the integration page, with a thermostat
   (climate entity).
 - The **Heating problem** sensor is off when all is well, and **Settings →
@@ -726,9 +728,10 @@ set on the boiler itself.
 - Once the E32 has measured a day, **Yesterday** shows how it went: heating
   hours, burner starts per heating hour, short burner runs, gas for heating
   (an estimate), degree-days and, per room, how many minutes late or early it
-  was warm and how far it overshot. In Home Assistant it is a section of the
-  **Learning and settings** tab (each figure is also a sensor); on the E32 it
-  is on the **Home** page, under **What the thermostat has learned**.
+  was warm and how far it overshot. In Home Assistant it is the section
+  **Yesterday in figures** of the **Learning and settings** tab (each figure is
+  also a sensor); on the E32 it is on the **Home** page, under **What the
+  thermostat has learned**.
 
 **Without Home Assistant**, rooms are set up on the E32 **Rooms** page
 instead; see [Add your first room on the E32](USER-GUIDE.md#5-add-your-first-room-on-the-e32).

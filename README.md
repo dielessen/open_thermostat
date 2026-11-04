@@ -68,7 +68,9 @@ broker (for example the Mosquitto add-on) and the MQTT integration.
   window is open.
 - **Radiator valves** through Zigbee2MQTT or Home Assistant, set per room.
 - **Your boiler at a glance:** water temperatures, pressure, burner starts,
-  hot water use and the boiler's display code in words.
+  hot water use and the boiler's display code in words. The Home Assistant
+  dashboard opens with one house card (what the boiler does now, gas today and
+  the day so far), and its Boiler tab lists what you need first.
 - **Backups.** Home Assistant keeps a daily backup of all E32 settings. A new or
   replaced E32 gets everything back in one step.
 - **Updates from Home Assistant** with one click. A new firmware that does not

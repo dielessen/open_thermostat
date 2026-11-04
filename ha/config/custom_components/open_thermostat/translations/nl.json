@@ -2604,6 +2604,37 @@
           },
           "valve_position": {
             "name": "Radiatorkranen open"
+          },
+          "chip": {
+            "name": "Statuswoord",
+            "state": {
+              "off": "Uit",
+              "window_open": "Gepauzeerd",
+              "window_pending": "Pauzeert zo",
+              "no_measurement": "Geen meting",
+              "hot_water": "Wacht",
+              "boiler_pause": "Wacht",
+              "warm_up": "Warmt op",
+              "away_return": "Warmt op",
+              "holiday": "Vakantie",
+              "away": "Afwezig",
+              "room_away": "Afwezig",
+              "house_away": "Afwezig",
+              "boost": "Boost",
+              "temporary": "Tijdelijk",
+              "heating": "Verwarmt",
+              "wants_heat": "Vraagt warmte",
+              "warm_enough": "Op temperatuur"
+            }
+          },
+          "card": {
+            "name": "Kaart",
+            "state": {
+              "smart_on": "Slim opwarmen aan",
+              "home": "Thuis",
+              "away": "Afwezig",
+              "holiday": "Vakantie"
+            }
           }
         }
       },

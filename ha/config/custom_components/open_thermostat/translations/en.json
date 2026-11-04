@@ -1567,6 +1567,37 @@
           },
           "valve_position": {
             "name": "Radiator valves open"
+          },
+          "chip": {
+            "name": "Status word",
+            "state": {
+              "off": "Off",
+              "window_open": "Paused",
+              "window_pending": "Pausing soon",
+              "no_measurement": "No measurement",
+              "hot_water": "Waiting",
+              "boiler_pause": "Waiting",
+              "warm_up": "Warming up",
+              "away_return": "Warming up",
+              "holiday": "Holiday",
+              "away": "Away",
+              "room_away": "Away",
+              "house_away": "Away",
+              "boost": "Boost",
+              "temporary": "Temporary",
+              "heating": "Heating",
+              "wants_heat": "Wants heat",
+              "warm_enough": "At temperature"
+            }
+          },
+          "card": {
+            "name": "Card",
+            "state": {
+              "smart_on": "Smart warm-up on",
+              "home": "At home",
+              "away": "Away",
+              "holiday": "Holiday"
+            }
           }
         }
       },

@@ -1567,6 +1567,37 @@
           },
           "valve_position": {
             "name": "Otwarcie zaworów grzejnikowych"
+          },
+          "chip": {
+            "name": "Stan jednym słowem",
+            "state": {
+              "off": "Wyłączone",
+              "window_open": "Wstrzymane",
+              "window_pending": "Wkrótce wstrzymanie",
+              "no_measurement": "Brak pomiaru",
+              "hot_water": "Czeka",
+              "boiler_pause": "Czeka",
+              "warm_up": "Nagrzewanie",
+              "away_return": "Nagrzewanie",
+              "holiday": "Urlop",
+              "away": "Nieobecność",
+              "room_away": "Nieobecność",
+              "house_away": "Nieobecność",
+              "boost": "Szybkie grzanie",
+              "temporary": "Tymczasowo",
+              "heating": "Grzeje",
+              "wants_heat": "Potrzebuje ciepła",
+              "warm_enough": "Temperatura osiągnięta"
+            }
+          },
+          "card": {
+            "name": "Karta",
+            "state": {
+              "smart_on": "Inteligentne nagrzewanie włączone",
+              "home": "W domu",
+              "away": "Nieobecność",
+              "holiday": "Urlop"
+            }
           }
         }
       },

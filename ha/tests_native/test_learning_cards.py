@@ -191,7 +191,8 @@ def test_the_curve_sensor_carries_what_the_card_draws(monkeypatch):
     hub.plan = SimpleNamespace(plan={"minimum_flow_c": 30, "maximum_flow_c": 60, "rooms": [{"emitter": "radiator"}]})
     sensor = e32_flow.FlowTemperatureSensor(hub, "flow_curve")
     assert sensor.unique_id == "fixture_flow_curve" and sensor.native_value == 46
-    assert sensor.extra_state_attributes == {"state": "applied", "slope": 0.71, "slope_source": "house", "design_flow_c": 55,
+    assert sensor.extra_state_attributes == {"state": "applied", "slope": 0.71, "slope_source": "house", "windows": 2,
+                                             "design_flow_c": 55,
                                              "standard_slope": 1.167, "room_c": 21.5, "outdoor_c": None,
                                              "minimum_flow_c": 30, "maximum_flow_c": 60, "base_c": 44.6, "flow_c": 46}
     assert set(e32_flow.CURVE_CHART_KEYS) <= sensor._unrecorded_attributes

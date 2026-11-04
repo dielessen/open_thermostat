@@ -123,8 +123,8 @@ function drawCurve(host, data, t, n, keep = {at: null, focus: false}) {
  }
  // Labels, most important first; each takes the first place where it overlaps no line, mark or earlier label
  // and stays inside the plot. An optional one that finds none is left out (the legend, tooltip and table still
- // carry it); a required one ("Now", the hard-frost point) takes the first place inside the plot, its halo
- // keeping it legible over a line.
+ // carry it); a required one ("Now", the hard-frost point) takes the best place it can get (inside the plot
+ // first), its halo keeping it legible over a line, with a thin leader to its point when it sits away from it.
  const taken = [], plot = {l: M.left, r: width - M.right, t: M.top - 4, b: M.top + plotH};
  const hits = box => lines.some(line => line.some(([x, y]) => x >= box.l - 2 && x <= box.r + 2 && y >= box.t - 2 && y <= box.b + 2))
   || taken.some(o => box.l < o.r && box.r > o.l && box.t < o.b && box.b > o.t);

@@ -71,7 +71,8 @@ async def test_every_topic_is_subscribed(hass, monkeypatch):
     assert sorted(t.removeprefix("fixture/v1/") for t in callbacks) == sorted([
         "fw/availability", "fw/heartbeat", "fw/state/heating", "fw/state/room/+", "fw/state/ble/+", "fw/state/trv/+", "fw/config/plan",
         "fw/config/entities", "fw/config/entities/+", "fw/telemetry/learned/+", "fw/telemetry/summary",
-        "fw/telemetry/flow", "fw/telemetry/tuning", "fw/telemetry/scoreboard", "fw/telemetry/shadow", "fw/telemetry/readiness"])
+        "fw/telemetry/flow", "fw/telemetry/tuning", "fw/telemetry/scoreboard", "fw/telemetry/shadow", "fw/telemetry/readiness",
+        "fw/telemetry/insight"])  # E32 rc.5: what the E32 knows, the boiler's response, yesterday's insights
 
 
 def test_topic_documents_are_strict():

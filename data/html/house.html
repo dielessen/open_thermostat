@@ -291,7 +291,7 @@
   const local = utc => { const d = new Date(utc * 1000); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
   const unix = value => value ? Math.floor(new Date(value).getTime() / 1000) : NaN;
   const nowS = () => Math.floor(Date.now() / 1000);
-  let holidays = null, shownC = null, editing = null, busy = false, seen = '';
+  let holidays = null, shownC = null, editing = null, busy = false, seen = '', rendered = '';
   async function json(url, options = {}) {
     const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), 8000), stop = () => controller.abort();
     lifecycle.signal.addEventListener('abort', stop, {once: true});
@@ -310,7 +310,9 @@
     q('[data-holiday-running]').hidden = !current;
     q('[data-holiday-now]').textContent = current ? fill("On holiday until {date}.", {date: when(current.until)}) : '';
     q('[data-holiday-empty]').hidden = holidays.length > 0;
-    list.replaceChildren(...holidays.map(h => {
+    // Rebuilt only when it changed, so the 10 s status never takes the focus from a button in it.
+    const key = JSON.stringify([holidays, current?.from, busy, OpenThermostatLanguage.language]);
+    if (key !== rendered) { rendered = key; list.replaceChildren(...holidays.map(h => {
       const item = document.createElement('li'), text = document.createElement('span'), actions = document.createElement('span');
       item.className = 'hh-item'; actions.className = 'ot-actions';
       text.textContent = fill("{from} to {until}", {from: when(h.from), until: when(h.until)});
@@ -323,7 +325,7 @@
       }
       item.append(text, actions);
       return item;
-    }));
+    })); }
     for (const b of box.querySelectorAll('[data-holiday-stop],[data-holiday-add],[data-holiday-save],[data-holiday-c-save]')) b.disabled = busy;
     form.hidden = editing === null;
   }

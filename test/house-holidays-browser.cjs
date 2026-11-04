@@ -7,11 +7,11 @@ const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),
 const assets=path.resolve(__dirname,'../data/html');
 const plan={schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[]};
 const texts={
- en:{heading:'Holidays',empty:'No holidays planned.',add:'Add a holiday',saved:'Holiday saved.',removed:'Holiday removed.',stopped:'Holiday stopped.',
+ en:{heading:'Holidays',empty:'No holidays planned.',add:'Plan a holiday',saved:'Holiday saved.',removed:'Holiday removed.',stopped:'Holiday stopped.',
   temperature:'Temperature saved.',dates:'Check the dates: a holiday ends after it starts.',past:'This holiday is already over. Choose an end in the future.',
   many:'At most 8 holidays can be planned. Remove one first.',change:'Change',remove:'Remove',stop:'Stop holiday',
   running:/^On holiday until .+\.$/,mode:/^Holiday until .+: every room at most 12\.0 °C, and warm again in time\.$/,to:' to '},
- nl:{heading:'Vakanties',empty:'Geen vakanties gepland.',add:'Vakantie toevoegen',saved:'Vakantie opgeslagen.',removed:'Vakantie verwijderd.',
+ nl:{heading:'Vakanties',empty:'Geen vakanties gepland.',add:'Vakantie plannen',saved:'Vakantie opgeslagen.',removed:'Vakantie verwijderd.',
   stopped:'Vakantie gestopt.',temperature:'Temperatuur opgeslagen.',dates:'Controleer de data: een vakantie eindigt na het begin.',
   past:'Deze vakantie is al voorbij. Kies een einde in de toekomst.',many:'Er kunnen hooguit 8 vakanties gepland worden. Verwijder er eerst een.',
   change:'Wijzigen',remove:'Verwijderen',stop:'Vakantie stoppen',running:/^Op vakantie tot .+\.$/,

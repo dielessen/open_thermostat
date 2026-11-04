@@ -149,21 +149,24 @@ async def test_the_yesterday_card_says_it_in_words(hass):
     assert all("visibility" not in c for c in section["cards"])
     assert {c["entity"] for c in section["visibility"][0]["conditions"]} == {
         rooms["woonkamer"]["warm_on_time"], rooms["woonkamer"]["overshoot"], *(house[key] for key in HOUSE)}
-    for entity_id, value in ((rooms["woonkamer"]["warm_on_time"], "12"), (rooms["woonkamer"]["overshoot"], "0.3"),
-                             (house["burner_starts_per_heating_hour"], "2.1"), (house["short_cycling_hours"], "0.5"),
-                             (house["heating_gas_yesterday"], "18.2"), (house["gas_per_degree_day"], "1.94")):
-        hass.states.async_set(entity_id, value)
+    # The heating hours and the degree-days are attributes of the burner-starts and gas-per-degree-day sensors.
+    for entity_id, value, attributes in (
+            (rooms["woonkamer"]["warm_on_time"], "12", None), (rooms["woonkamer"]["overshoot"], "0.3", None),
+            (house["burner_starts_per_heating_hour"], "2.1", {"heating_hours": 9}), (house["short_cycling_hours"], "0.5", None),
+            (house["heating_gas_yesterday"], "18.2", None), (house["gas_per_degree_day"], "1.94", {"degree_days": 9.4})):
+        hass.states.async_set(entity_id, value, attributes)
     text = Template(card["content"], hass).async_render(parse_result=False)
     assert text == ("- **Woonkamer**: warm 12 min late · 0.3 °C too warm\n"
-                    "- Burner: 2.1 starts per heating hour · 0.5 h switching on and off too often\n"
-                    "- Gas for heating: 18.2 kWh · 1.94 kWh per degree-day")
+                    "- Heating time: 9.0 h · Burner starts per heating hour: 2.1 · Short burner runs: 0.5 h\n"
+                    "- Gas for heating (estimate): 18.2 kWh · Degree-days: 9.4 · 1.94 kWh per degree-day")
     hass.states.async_set(rooms["woonkamer"]["warm_on_time"], "-4")
     hass.states.async_set(rooms["woonkamer"]["overshoot"], "unknown")
-    hass.states.async_set(house["gas_per_degree_day"], "unknown")
+    hass.states.async_set(house["gas_per_degree_day"], "unknown")  # and no degree_days attribute
     hass.states.async_set(house["short_cycling_hours"], "unavailable")
+    hass.states.async_set(house["burner_starts_per_heating_hour"], "2.1", {"heating_hours": None})
     text = Template(card["content"], hass).async_render(parse_result=False)
-    assert text == ("- **Woonkamer**: warm 4 min early\n- Burner: 2.1 starts per heating hour\n"
-                    "- Gas for heating: 18.2 kWh")
+    assert text == ("- **Woonkamer**: warm 4 min early\n- Burner starts per heating hour: 2.1\n"
+                    "- Gas for heating (estimate): 18.2 kWh")
     hass.states.async_set(rooms["woonkamer"]["warm_on_time"], "0.4")
     assert Template(card["content"], hass).async_render(parse_result=False).startswith("- **Woonkamer**: warm on time\n")
 
@@ -174,11 +177,12 @@ async def test_the_yesterday_card_in_dutch_and_polish(hass):
     card = section["cards"][1]
     assert section["cards"][0]["heading"] == "Gisteren"
     for entity_id, value in ((rooms["woonkamer"]["warm_on_time"], "12"), (rooms["woonkamer"]["overshoot"], "0.3"),
-                             (house["heating_gas_yesterday"], "18.2"), (house["gas_per_degree_day"], "1.94")):
+                             (house["heating_gas_yesterday"], "18.2")):
         hass.states.async_set(entity_id, value)
+    hass.states.async_set(house["gas_per_degree_day"], "1.94", {"degree_days": 9.4})
     text = Template(card["content"], hass).async_render(parse_result=False)
     assert text == ("- **Woonkamer**: 12 min te laat warm · 0,3 °C te warm\n"
-                    "- Gas voor verwarmen: 18,2 kWh · 1,94 kWh per graaddag")
+                    "- Gas voor verwarming (schatting): 18,2 kWh · Graaddagen: 9,4 · 1,94 kWh per graaddag")
     hass.config.language = "pl"
     card = yesterday_section(hass, entry_id)["cards"][1]
     assert Template(card["content"], hass).async_render(parse_result=False).startswith(

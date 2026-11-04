@@ -121,17 +121,17 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.textContent.replace(/\s+/g,' ')
   assert.equal(await cards.nth(1).locator('.hl-progress').innerText(),t('Learning: 3 of 6 warm-ups seen','Aan het leren: 3 van 6 keer opwarmen gezien'));
   const bedroom=await texts(cards.nth(1).locator('li'));
   // rc.4 (L3): a start on an estimate says so; it is used, and it learns from every morning.
-  assert.equal(bedroom[0],t(`Smart warm-up: starts at ${await clock(start+3000)} so it is 18 °C at ${await clock(rise)} (estimate; it learns from every morning). So the room is warm on time, without heating longer than needed.`,
-   `Slim opwarmen: begint om ${await clock(start+3000)}, zodat het om ${await clock(rise)} 18 °C is (schatting; hij leert van elke ochtend). Zo is de ruimte op tijd warm, zonder langer te verwarmen dan nodig.`));
+  assert.equal(bedroom[0],t(`Smart warm-up: starts at ${await clock(start+3000)} (estimate; it learns from every morning) so it is 18 °C at ${await clock(rise)}. So the room is warm on time, without heating longer than needed.`,
+   `Slim opwarmen: begint om ${await clock(start+3000)} (schatting; hij leert van elke ochtend), zodat het om ${await clock(rise)} 18 °C is. Zo is de ruimte op tijd warm, zonder langer te verwarmen dan nodig.`));
   // rc.4 (L4): the warm-up time is learned before the coolest water.
   assert.equal(bedroom[1],t('The warm-up time is learned; the coolest water is still being learned.','De opwarmtijd is geleerd; het koelste water leert hij nog.'));
   assert.equal(bedroom[2],t('Letting it cool down at night, as your program does, is the cheapest. This is advice: your week program stays as it is.',
    '\'s Nachts laten afkoelen, zoals je programma doet, is het goedkoopst. Dit is een advies: je weekprogramma blijft zoals het is.'));
   // The scoreboard's yesterday: the figures the E32 measured; a room without any is left out.
   const score=await learned.locator('[data-learned-score]').evaluate(dl=>[...dl.querySelectorAll('dt')].map(dt=>[dt.textContent,dt.nextElementSibling.textContent]));
-  assert.deepEqual(score,lang==='en'?[['Heating time','9 h'],['Burner starts per heating hour','2.1'],['Short burner runs','0.5 h'],['Gas for heating (estimate)','18.2 kWh'],
+  assert.deepEqual(score,lang==='en'?[['Heating time','9 h'],['Burner starts per heating hour','2.1'],['Short burner runs (h)','0.5'],['Gas for heating (estimate)','18.2 kWh'],
    ['Degree days (how cold it was)','9.4'],['Woonkamer','warm 12 min late · 0.3 °C too warm']]:[['Stooktijd','9 u'],['Branderstarts per stookuur','2,1'],
-   ['Korte brandtijden','0,5 u'],['Gas voor verwarmen (schatting)','18,2 kWh'],['Graaddagen (hoe koud het was)','9,4'],['Woonkamer','12 min te laat warm · 0,3 °C te warm']]);
+   ['Korte brandtijden (u)','0,5'],['Gas voor verwarming (schatting)','18,2 kWh'],['Graaddagen (hoe koud het was)','9,4'],['Woonkamer','12 min te laat warm · 0,3 °C te warm']]);
   assert.equal(await learned.locator('[data-learned-yesterday] h3').innerText(),t('Yesterday','Gisteren'));
   // House and boiler: the first item, the rest under "More"; the self-tuning's state and its changes in words, the newest first.
   assert.equal(await learned.locator('[data-learned-house] li').nth(1).isVisible(),false);

@@ -139,7 +139,7 @@
       },
       "comfort_settings": {
         "title": "Defaults for rooms and timing",
-        "description": "The thermostat of each E32 room offers the presets Comfort, Eco, Night and Boost: the levels of the room's week program, as in the week planner. A room without a week program starts from the two temperatures below. Away and holiday are the house mode (Configure → Home and the House mode control), not a preset of one room.",
+        "description": "The thermostat of each E32 room offers the presets Comfort, Eco, Night and Boost: the levels of the room's week program, as in the week planner. A room without a week program starts from the two temperatures below. Away and holiday are the house mode (Configure → House and the House mode control), not a preset of one room.",
         "data": {
           "comfort_temperature": "Comfort without a week program",
           "eco_temperature": "Night without a week program",
@@ -631,7 +631,7 @@
           },
           "persons": {
             "name": "Persons",
-            "description": "Optional. Who uses this room. While all of them are away, the room uses its own away temperature (or the house one), also when others are home. Empty: the room follows the house (Configure → Home → Presence).",
+            "description": "Optional. Who uses this room. While all of them are away, the room uses its own away temperature (or the house one), also when others are home. Empty: the room follows the house (Configure → House → Presence).",
             "data": {
               "persons": "Persons of this room",
               "away_temperature": "Temperature when this room's people are away"
@@ -2359,10 +2359,10 @@
         "name": "Burner starts per heating hour"
       },
       "short_cycling_hours": {
-        "name": "Short cycling hours"
+        "name": "Short burner runs (h)"
       },
       "heating_gas_yesterday": {
-        "name": "Heating gas yesterday"
+        "name": "Gas for heating (estimate)"
       },
       "gas_per_degree_day": {
         "name": "Gas per degree-day"

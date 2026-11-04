@@ -214,7 +214,7 @@ TEXT = {
         "advice_note": "Advice only: nothing is changed automatically.",
         "learned": "What the thermostat has learned", "learned_house": "House and boiler",
         "learned_changes": "What it changed by itself",
-        "learned_note": "The thermostat adjusts these settings itself; to change one: Configure → Home → Comfort and boiler care "
+        "learned_note": "The thermostat adjusts these settings itself; to change one: Configure → House → Comfort and boiler care "
                         "(or the E32 page, Home).",
         "confidence_low": "low", "confidence_medium": "medium", "confidence_high": "high",
         "gas_heating": "Heating", "gas_hot_water": "Hot water", "gas_keep_warm": "Of which keeping hot water warm",
@@ -240,9 +240,11 @@ TEXT = {
         "scoreboard_late": "warm {m} min late",
         "scoreboard_early": "warm {m} min early",
         "scoreboard_overshoot": "{c} °C too warm",
-        "scoreboard_burner": "Burner: {n} starts per heating hour",
-        "scoreboard_short": "{h} h switching on and off too often",
-        "scoreboard_gas": "Gas for heating: {kwh} kWh",
+        "scoreboard_hours": "Heating time: {h} h",
+        "scoreboard_burner": "Burner starts per heating hour: {n}",
+        "scoreboard_short": "Short burner runs: {h} h",
+        "scoreboard_gas": "Gas for heating (estimate): {kwh} kWh",
+        "scoreboard_degree_days": "Degree-days: {d}",
         "scoreboard_degree_day": "{v} kWh per degree-day",
         "scoreboard_note": "Every day the thermostat checks whether each room was warm on time without getting too warm, how often the burner started and how much gas went to heating. It learns from this; every figure keeps its history on its own sensor.",
         "day_none": "The first full day appears here tomorrow.",
@@ -250,7 +252,7 @@ TEXT = {
         "flow_settings": "Weather compensation and learning",
         "flow_source": "Water temperature set by",
         "weather_curve": "Weather compensation",
-        "design_flow": "Water temperature at −10 °C outside",
+        "design_flow": "Water temperature in hard frost (−10 °C)",
         "apply_learned": "Smart warm-up",
         "house_mode": "House mode", "boiler_now": "Boiler",
         # rc.4: the next holiday under House (house.holidays.v1).
@@ -399,9 +401,11 @@ TEXT = {
         "scoreboard_late": "{m} min te laat warm",
         "scoreboard_early": "{m} min te vroeg warm",
         "scoreboard_overshoot": "{c} °C te warm",
-        "scoreboard_burner": "Brander: {n} starts per uur verwarmen",
-        "scoreboard_short": "{h} uur te vaak aan en uit",
-        "scoreboard_gas": "Gas voor verwarmen: {kwh} kWh",
+        "scoreboard_hours": "Stooktijd: {h} u",
+        "scoreboard_burner": "Branderstarts per stookuur: {n}",
+        "scoreboard_short": "Korte brandtijden: {h} u",
+        "scoreboard_gas": "Gas voor verwarming (schatting): {kwh} kWh",
+        "scoreboard_degree_days": "Graaddagen: {d}",
         "scoreboard_degree_day": "{v} kWh per graaddag",
         "scoreboard_note": "Elke dag kijkt de thermostaat of elke ruimte op tijd warm was zonder te warm te worden, hoe vaak de brander startte en hoeveel gas naar verwarmen ging. Hij leert daarvan; elk getal houdt zijn geschiedenis bij op zijn eigen sensor.",
         "day_none": "Morgen staat hier de eerste volledige dag.",
@@ -409,7 +413,7 @@ TEXT = {
         "flow_settings": "Weerafhankelijke regeling en leren",
         "flow_source": "Watertemperatuur bepaald door",
         "weather_curve": "Weerafhankelijke regeling",
-        "design_flow": "Watertemperatuur bij −10 °C buiten",
+        "design_flow": "Watertemperatuur bij strenge vorst (−10 °C)",
         "apply_learned": "Slim opwarmen",
         "house_mode": "Huismodus", "boiler_now": "Ketel",
         "holiday_next": "Vakantie vanaf {from} t/m {until}", "holiday_now": "Op vakantie t/m {until}",
@@ -559,9 +563,11 @@ TEXT = {
         "scoreboard_late": "ciepło {m} min za późno",
         "scoreboard_early": "ciepło {m} min za wcześnie",
         "scoreboard_overshoot": "{c} °C za ciepło",
-        "scoreboard_burner": "Palnik: {n} startów na godzinę grzania",
-        "scoreboard_short": "{h} godz. zbyt częstego włączania i wyłączania",
-        "scoreboard_gas": "Gaz na ogrzewanie: {kwh} kWh",
+        "scoreboard_hours": "Czas grzania: {h} godz.",
+        "scoreboard_burner": "Starty palnika na godzinę grzania: {n}",
+        "scoreboard_short": "Krótkie cykle palnika: {h} godz.",
+        "scoreboard_gas": "Gaz na ogrzewanie (szacunek): {kwh} kWh",
+        "scoreboard_degree_days": "Stopniodni: {d}",
         "scoreboard_degree_day": "{v} kWh na stopniodzień",
         "scoreboard_note": "Każdego dnia termostat sprawdza, czy każde pomieszczenie było ciepłe na czas i nie za ciepłe, jak często startował palnik i ile gazu poszło na ogrzewanie. Uczy się z tego; każda liczba ma swoją historię na własnym czujniku.",
         "day_none": "Pierwszy pełny dzień pojawi się tu jutro.",
@@ -569,7 +575,7 @@ TEXT = {
         "flow_settings": "Kompensacja pogodowa i nauka",
         "flow_source": "Temperatura wody ustalana przez",
         "weather_curve": "Kompensacja pogodowa",
-        "design_flow": "Temperatura wody przy −10 °C na zewnątrz",
+        "design_flow": "Temperatura wody przy silnym mrozie (−10 °C)",
         "apply_learned": "Inteligentne nagrzewanie",
         "house_mode": "Tryb domu", "boiler_now": "Kocioł",
         "holiday_next": "Urlop od {from} do {until}", "holiday_now": "Urlop do {until}",
@@ -877,18 +883,22 @@ def _jinja_text(text, **values):
 
 def _scoreboard_section(t, rooms, names, house):
     """Yesterday's scoreboard (scoreboard.py, E32 rc.4) in plain words: each room warm on time and how far it got
-    above its target, the burner's starts and short cycling, the gas for heating and per degree-day.
+    above its target; the heating time, the burner's starts per heating hour and its short runs; the gas for
+    heating, the degree-days and the gas per degree-day.
 
     rooms: {room id: {"warm_on_time": entity, "overshoot": entity}}; house: {key: entity}. The text follows the
-    sensors' states, so a new day needs no rebuild; hidden while none has a value (firmware before rc.4).
+    sensors' states (the heating time and the degree-days their attributes), so a new day needs no rebuild;
+    hidden while none has a value (firmware before rc.4).
     """
     entities = [entity for keys in rooms.values() for entity in keys.values()] + list(house.values())
     if not entities:
         return None
 
-    def part(entity, expression):
-        return ("{% set v = states(" + json.dumps(entity) + ") %}{% if is_number(v) %}{% set parts = parts + ["
-                + expression + "] %}{% endif %}")
+    def part(entity, expression, attribute=None):
+        """One figure from the entity's state, or from one of its attributes (the heating hours, the degree-days)."""
+        value = ("state_attr(" + json.dumps(entity) + ", " + json.dumps(attribute) + ")" if attribute
+                 else "states(" + json.dumps(entity) + ")")
+        return "{% set v = " + value + " %}{% if is_number(v) %}{% set parts = parts + [" + expression + "] %}{% endif %}"
 
     def line(prefix):
         return "{% if parts %}- " + prefix + "{{ parts | join(' · ') }}\n{% endif %}"
@@ -904,15 +914,19 @@ def _scoreboard_section(t, rooms, names, house):
         if keys.get("overshoot"):
             content += part(keys["overshoot"], _jinja_text(t["scoreboard_overshoot"], c=_figure(t, 1)))
         content += line("**{{ " + json.dumps(names.get(room_id, room_id), ensure_ascii=False) + " }}**: ")
-    for figures in ((("burner_starts_per_heating_hour", "scoreboard_burner", "n", 1),
-                     ("short_cycling_hours", "scoreboard_short", "h", 1)),
-                    (("heating_gas_yesterday", "scoreboard_gas", "kwh", 1),
-                     ("gas_per_degree_day", "scoreboard_degree_day", "v", 2))):
+    # (sensor, its attribute or None for the state, text, placeholder, decimals): the heating hours and the
+    # degree-days ride as attributes on the burner-starts and gas-per-degree-day sensors (scoreboard.py).
+    for figures in ((("burner_starts_per_heating_hour", "heating_hours", "scoreboard_hours", "h", 1),
+                     ("burner_starts_per_heating_hour", None, "scoreboard_burner", "n", 1),
+                     ("short_cycling_hours", None, "scoreboard_short", "h", 1)),
+                    (("heating_gas_yesterday", None, "scoreboard_gas", "kwh", 1),
+                     ("gas_per_degree_day", "degree_days", "scoreboard_degree_days", "d", 1),
+                     ("gas_per_degree_day", None, "scoreboard_degree_day", "v", 2))):
         if any(house.get(key) for key, *_ in figures):
             content += "{% set parts = [] %}"
-            for key, text, name, digits in figures:
+            for key, attribute, text, name, digits in figures:
                 if house.get(key):
-                    content += part(house[key], _jinja_text(t[text], **{name: _figure(t, digits)}))
+                    content += part(house[key], _jinja_text(t[text], **{name: _figure(t, digits)}), attribute)
             content += line("")
     section = _section(_heading(t["yesterday"], "mdi:scoreboard-outline"), {"type": "markdown", "content": content},
                        _note(t, t["scoreboard_note"]))

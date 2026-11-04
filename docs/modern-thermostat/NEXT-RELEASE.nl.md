@@ -235,6 +235,7 @@ Pendelen: eerst meten met de nieuwe driewegklep (vanaf 4 november); geen regelwi
 - **Testerprogramma:** opt-in in HA; "Deel resultaat" opent een vooraf ingevuld GitHub-issue met alleen het ketelprofiel; een GitHub Action controleert het; een profiel komt pas na beoordeling mee.
 - **HACS-vermelding** van de integratie in de standaardlijst van HACS; sinds 2 november staat ze al als custom repository `dielessen/openthermostat-ha`.
 - De overige ruimtes (Badkamer, slaapkamers) zodra de eigenaar dat wil.
+- **Eigen wachttijd voor deur- en raamsensoren (eigenaar 4 november: "ik wil dat de deursensor en raamsensor allebei een eigen timer hebben"):** nu geldt per ruimte één "Pauzeer na" voor alle contacten (HA stuurt elke wijziging naar de E32, die de wachttijd en `window_pending` bijhoudt). Gewenst: een eigen wachttijd voor deuren (even doorlopen mag langer) en voor ramen (luchten pauzeert sneller), per ruimte en als huisstandaard, op basis van de sensorklasse in HA (window → raam; door, opening, garage_door → deur). Firmware + HA-integratie, dus pas na de 14 dagen van rc.4 (1.0.x); op een tak voor te bereiden met native tests.
 - **Bewust niet in rc.4 (uit de eindreviews van 4 november), voor 1.0.x of 1.1:**
   - R2-16 een eigen EMS-projectie voor `controller_request` (HA leest nu nog `fw/telemetry/controller_request`);
   - R2-26 generatietellers in `FlowLearner`/`RoomEngine`;

@@ -111,7 +111,7 @@ SUMMARY_TOPIC = "fw/telemetry/summary"
 SHADOW_TOPIC = "fw/telemetry/shadow"
 READINESS_TOPIC = "fw/telemetry/readiness"
 # The flow policy's part of the summary ("flow", "night_gas"), sent apart to keep both within 1 KB.
-# E32 rc.5 adds the boiler's response ("boiler", BoilerResponse); kept whether it sits in "flow" or beside it.
+# E32 rc.5 adds the boiler's response ("boiler", BoilerResponse) beside "flow"; merged into the summary as "boiler".
 FLOW_TOPIC = "fw/telemetry/flow"
 FLOW_KEYS = ("flow", "night_gas", "boiler")
 # The self-tuning's state, knobs and newest changes (rc.2, AutoTuner), merged into the summary as "tuning".
@@ -469,6 +469,10 @@ class HeatingHub:
         # INSIGHT_MISSED_HEARTBEATS live heartbeats): its notifications go (insight.InsightNotifier).
         self.insight_gone = False
         self._insight_beats = 0  # live heartbeats since the last insight message
+        # True once a live (not retained) insight message arrived in this Home Assistant run, until the insight
+        # is gone again: a retained one alone may be stale (left by a firmware downgrade), so the insight
+        # notifications wait for a live one (insight.InsightNotifier).
+        self.insight_live = False
         self.received = None
         # The last live sign of the E32 (monotonic), kept while it is silent.
         self.last_seen = None
@@ -656,7 +660,7 @@ class HeatingHub:
                 self._insight_beats += 1
                 if self._insight_beats > INSIGHT_MISSED_HEARTBEATS:
                     # A live E32 that sends no insight (older firmware): a retained one is not current.
-                    self.insight_doc, self.insight_gone = None, True
+                    self.insight_doc, self.insight_gone, self.insight_live = None, True, False
                     self.summary = self._merged_summary()
         elif suffix == HEATING_TOPIC:
             self.heating = None if empty else decode_document(payload)
@@ -709,7 +713,7 @@ class HeatingHub:
                 value = decode_learned(room_id, payload)
                 if value is None:
                     return
-                self.learned_messages[room_id] = (self.clock(), *value)
+                self.learned_messages[room_id] = (self.clock(), *self._keep_free_heat(room_id, value))
         elif suffix in (SUMMARY_TOPIC, FLOW_TOPIC, TUNING_TOPIC, SCOREBOARD_TOPIC, INSIGHT_TOPIC):
             if suffix == SUMMARY_TOPIC:
                 self.summary_doc = None if empty else decode_summary(payload)
@@ -727,6 +731,7 @@ class HeatingHub:
             else:
                 self.insight_doc = None if empty else decode_insight(payload)
                 self.insight_gone, self._insight_beats = self.insight_doc is None, 0
+                self.insight_live = self.insight_doc is not None and (self.insight_live or not retained)
             summary = self.summary = self._merged_summary()
             self.summary_received = self.clock() if summary is not None else None
         elif suffix == SHADOW_TOPIC:
@@ -757,9 +762,21 @@ class HeatingHub:
         """One room's learned message (decode_learned); None (invalid) is ignored."""
         if value is None:
             return
-        self.learned_messages[room_id] = (self.clock(), *value)
+        self.learned_messages[room_id] = (self.clock(), *self._keep_free_heat(room_id, value))
         self._merge_learned()
         self.notify()
+
+    def _keep_free_heat(self, room_id, value):
+        """(learned room, plan) with the room's previous ``free_heat`` when this message has no key at all.
+
+        The E32 (rc.5, HeatingTelemetry) leaves ``free_heat`` out only when the message would exceed its budget, so
+        an absent key keeps what the room had; ``null`` still means that no window was judged yet.
+        """
+        room, plan = value
+        previous = self.learned_messages.get(room_id)
+        if "free_heat" not in room and previous is not None and "free_heat" in previous[1]:
+            room = {**room, "free_heat": previous[1]["free_heat"]}
+        return room, plan
 
     @callback
     def update_summary(self, summary):

@@ -152,6 +152,7 @@ public:
             pending_.need = head.size + size_t(head.contentLength);
             pending_.limitMs = httpUploadRoute(head.path) ? HttpRequestBounds::uploadDeadlineMs : HttpRequestBounds::deadlineMs;
             pending_.boundary = head.multipart ? head.boundary : std::string();
+            head = HttpRequestHead{}; // its views would dangle once more bytes are read
         }
         if (pending_.buffered && pending_.bytes.size() < pending_.need) {
             take(pending_.need - pending_.bytes.size());

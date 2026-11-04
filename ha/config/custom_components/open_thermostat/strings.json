@@ -2359,10 +2359,10 @@
         "name": "Burner starts per heating hour"
       },
       "short_cycling_hours": {
-        "name": "Short cycling hours"
+        "name": "Short burner runs (h)"
       },
       "heating_gas_yesterday": {
-        "name": "Heating gas yesterday"
+        "name": "Gas for heating (estimate)"
       },
       "gas_per_degree_day": {
         "name": "Gas per degree-day"

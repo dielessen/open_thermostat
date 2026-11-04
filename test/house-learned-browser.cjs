@@ -129,9 +129,9 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.textContent.replace(/\s+/g,' ')
    '\'s Nachts laten afkoelen, zoals je programma doet, is het goedkoopst. Dit is een advies: je weekprogramma blijft zoals het is.'));
   // The scoreboard's yesterday: the figures the E32 measured; a room without any is left out.
   const score=await learned.locator('[data-learned-score]').evaluate(dl=>[...dl.querySelectorAll('dt')].map(dt=>[dt.textContent,dt.nextElementSibling.textContent]));
-  assert.deepEqual(score,lang==='en'?[['Heating time','9 h'],['Burner starts per heating hour','2.1'],['Short burner runs','0.5 h'],['Gas for heating (estimate)','18.2 kWh'],
+  assert.deepEqual(score,lang==='en'?[['Heating time','9 h'],['Burner starts per heating hour','2.1'],['Short burner runs (h)','0.5'],['Gas for heating (estimate)','18.2 kWh'],
    ['Degree days (how cold it was)','9.4'],['Woonkamer','warm 12 min late · 0.3 °C too warm']]:[['Stooktijd','9 u'],['Branderstarts per stookuur','2,1'],
-   ['Korte brandtijden','0,5 u'],['Gas voor verwarmen (schatting)','18,2 kWh'],['Graaddagen (hoe koud het was)','9,4'],['Woonkamer','12 min te laat warm · 0,3 °C te warm']]);
+   ['Korte brandtijden (u)','0,5'],['Gas voor verwarming (schatting)','18,2 kWh'],['Graaddagen (hoe koud het was)','9,4'],['Woonkamer','12 min te laat warm · 0,3 °C te warm']]);
   assert.equal(await learned.locator('[data-learned-yesterday] h3').innerText(),t('Yesterday','Gisteren'));
   // House and boiler: the first item, the rest under "More"; the self-tuning's state and its changes in words, the newest first.
   assert.equal(await learned.locator('[data-learned-house] li').nth(1).isVisible(),false);

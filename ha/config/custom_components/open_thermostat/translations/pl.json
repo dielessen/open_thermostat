@@ -2359,10 +2359,10 @@
         "name": "Starty palnika na godzinę grzania"
       },
       "short_cycling_hours": {
-        "name": "Godziny zbyt częstego włączania"
+        "name": "Krótkie cykle palnika (godz.)"
       },
       "heating_gas_yesterday": {
-        "name": "Gaz na ogrzewanie wczoraj"
+        "name": "Gaz na ogrzewanie (szacunek)"
       },
       "gas_per_degree_day": {
         "name": "Gaz na stopniodzień"

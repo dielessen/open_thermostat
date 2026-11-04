@@ -867,7 +867,7 @@
     if (day && typeof day === 'object') {
       if (ok(day.heating_h)) rows.push([uiText("Heating time"), fill(uiText("{h} h"), {h: num(day.heating_h, 1)})]);
       if (ok(day.heating_starts_per_h)) rows.push([uiText("Burner starts per heating hour"), num(day.heating_starts_per_h, 1)]);
-      if (ok(day.short_cycle_h)) rows.push([uiText("Short burner runs"), fill(uiText("{h} h"), {h: num(day.short_cycle_h, 1)})]);
+      if (ok(day.short_cycle_h)) rows.push([uiText("Short burner runs (h)"), num(day.short_cycle_h, 1)]); // the HA sensor's words, unit in the label
       if (ok(day.heating_kwh)) rows.push([uiText("Gas for heating (estimate)"), num(day.heating_kwh, 1) + ' kWh']);
       if (ok(day.degree_days)) rows.push([uiText("Degree days (how cold it was)"), num(day.degree_days, 1)]);
       for (const room of Array.isArray(day.rooms) ? day.rooms : []) {

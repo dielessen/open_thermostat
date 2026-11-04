@@ -3393,13 +3393,13 @@
         "name": "Warmer dan gewenst"
       },
       "burner_starts_per_heating_hour": {
-        "name": "Branderstarts per uur verwarmen"
+        "name": "Branderstarts per stookuur"
       },
       "short_cycling_hours": {
-        "name": "Uren te vaak aan en uit"
+        "name": "Korte brandtijden (u)"
       },
       "heating_gas_yesterday": {
-        "name": "Gas voor verwarmen gisteren"
+        "name": "Gas voor verwarming (schatting)"
       },
       "gas_per_degree_day": {
         "name": "Gas per graaddag"

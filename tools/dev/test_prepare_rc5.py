@@ -261,6 +261,20 @@ class PrepareTests(unittest.TestCase):
             self.assertEqual(plan[key], RC4_PLAN[key], key)
         self.assertIn('unaccepted rc.4', plan['publication_condition'])
 
+    def test_the_changes_file_may_bring_its_own_not_included_list(self):
+        lf(self.changes, json.dumps({'changes': ['One change.'], 'not_included': ['The weather forecast (after 1.0)']}))
+        self.run_prepare()
+        plan = json.loads(self.read(prep.PLAN))
+        self.assertEqual((plan['changes'], plan['not_included']), (['One change.'], ['The weather forecast (after 1.0)']))
+
+    def test_the_drafts_may_be_somewhere_else(self):
+        lf(self.root / 'docs/other-e32.md', E32_NOTES)
+        lf(self.root / 'docs/other-ha.md', HA_NOTES)
+        (self.root / prep.DEFAULT_E32_NOTES).unlink()
+        (self.root / prep.DEFAULT_HA_NOTES).unlink()
+        self.run_prepare('--e32-notes', 'docs/other-e32.md', '--ha-notes', 'docs/other-ha.md')
+        self.assertTrue(self.read(f'{DOCS}/RELEASE-NOTES.md').startswith(E32_NOTES.rstrip('\n') + '\n\n' + OLD_E32))
+
     def test_nothing_of_the_rc4_records_is_left_in_the_rc5_records(self):
         self.run_prepare()
         names = self.names()

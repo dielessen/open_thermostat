@@ -190,9 +190,12 @@ def publish(gh, repository, tag, title, notes_file, assets_dir, sums_name, prere
     channel = 'prerelease' if prerelease else 'stable'
     if verbose:
         with step(0, 'check the environment'):
-            log(f'{repository} {tag} as a {channel} release{" (dry run)" if dry_run else ""}; python '
-                f'{sys.version.split()[0]} on {sys.platform}; GH_TOKEN {"set" if os.environ.get("GH_TOKEN") else "NOT set"}'
-                f'; notes {notes_file}; assets {assets_dir}')
+            log(f'{repository} {tag} as a {channel} release{" (dry run)" if dry_run else ""}; notes {notes_file}; '
+                f'assets {assets_dir}')
+            ci = ''.join(f'; {name} {os.environ[name]}' for name in ('GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'RUNNER_OS')
+                         if os.environ.get(name))
+            log(f'python {sys.version.split()[0]} on {sys.platform}; GH_TOKEN '
+                f'{"set" if os.environ.get("GH_TOKEN") else "NOT set"}{ci}')
             gh(['--version'])
     with step(1, 'verify the local assets'):
         expected = local_assets(assets_dir, sums_name)

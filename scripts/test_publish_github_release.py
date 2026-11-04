@@ -309,6 +309,20 @@ class PublishTests(unittest.TestCase):
         self.assertEqual((status, lines, err), (0, [], ''))
         self.assertNotIn(['--version'], gh.calls)
 
+    def test_verbose_names_the_ci_run_and_attempt_and_whether_a_token_is_set(self):
+        ci = {'GITHUB_RUN_ID': '41641214816', 'GITHUB_RUN_ATTEMPT': '1', 'RUNNER_OS': 'Linux', 'GH_TOKEN': 'ghs_0123456789abcdef'}
+        with mock.patch.dict(os.environ, ci):
+            status, lines, out, err = self.run_main(FakeGitHub(), '--verbose')
+        text = '\n'.join(lines)
+        self.assertIn('GH_TOKEN set; GITHUB_RUN_ID 41641214816; GITHUB_RUN_ATTEMPT 1; RUNNER_OS Linux', text)
+        self.assertNotIn('ghs_0123456789abcdef', text)
+        with mock.patch.dict(os.environ):
+            for name in ci:
+                os.environ.pop(name, None)
+            status, lines, out, err = self.run_main(FakeGitHub(), '--verbose')
+        self.assertIn('GH_TOKEN NOT set', '\n'.join(lines))
+        self.assertNotIn('GITHUB_RUN_ID', '\n'.join(lines))
+
     def test_verbose_goes_to_stderr_by_default(self):
         gh, out, err = FakeGitHub(), io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):

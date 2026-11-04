@@ -138,3 +138,23 @@ TEST(Scoreboard, TheRecordComesBackForTodayOrYesterdayOnly) {
     EXPECT_FALSE(stale.restore("not json", day));
     EXPECT_FALSE(stale.restore(R"({"t":{"d":1,"os":0,"on":-5,"k":0,"a":null}})", 1));
 }
+
+// The record's bound (storedMaxBytes, 14 NVS entries): two days with the widest values that can occur.
+TEST(Scoreboard, TheWidestRecordStaysWithinItsBound) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    Scoreboard s;
+    const int64_t day0 = int64_t(ShadowComparison::daysFromCivil(2099, 12, 30)) * 86400 - 3600;  // a five-digit day number
+    for (int d = 0; d < 2; ++d) {                                                              // two whole days, up to 23:59
+        for (int64_t t = day0 + d * 86400 + 60; t < day0 + (d + 1) * 86400; t += 60)
+            s.step(t, 60, int16_t(-5000), 500.0 + d * 500.0);                                // -50 degC all day, 500 kWh a day
+        for (size_t r = 0; r < RoomPlan::maxRooms; ++r) s.arrival(r, day0 + d * 86400 + 3600, int16_t(-32000));
+    }
+    const auto text = s.stored();
+    std::printf("[ scoreboard ] widest record %zu B of %zu: %s\n", text.size(), Scoreboard::storedMaxBytes, text.c_str());
+    ASSERT_FALSE(text.empty()) << "a record wider than the bound is not stored at all";
+    EXPECT_LE(text.size(), Scoreboard::storedMaxBytes);
+    EXPECT_GE(text.size(), 200u) << "the widest values really are in it";
+    Scoreboard back;
+    ASSERT_TRUE(back.restore(text.c_str(), RoomSchedule::localDay(day0 + 86400 + 3600)));
+    ASSERT_TRUE(back.yesterday()); EXPECT_EQ(back.yesterday()->arrivalMin[7], -32000); EXPECT_EQ(back.today().arrivalSeen, 0xFF);
+}

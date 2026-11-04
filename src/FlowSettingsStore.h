@@ -76,7 +76,8 @@ struct AutoTunerNvs {
     }
 };
 // rc.4: the daily scoreboard (control/Scoreboard.h), one short string written hourly with the
-// self-tuning's record, gated like the other optional records (never erased to make room).
+// self-tuning's record, gated like the other optional records and after what was learned and is
+// not stored yet (OptionalRecordPriority::dayCounters); never erases anything to make room.
 struct ScoreboardNvs {
     static constexpr const char* key = "scoreboard";
     static std::string read() {
@@ -88,8 +89,9 @@ struct ScoreboardNvs {
         nvs_close(handle);
         return ok ? std::string(text) : std::string();
     }
-    static bool write(const std::string& text) {
-        if (text.empty() || text.size() > control::Scoreboard::storedMaxBytes || !optionalHeatingRecordFits(key, text.size() + 1)) return false;
+    static bool write(const std::string& text, size_t learnedPending = 0) {
+        if (text.empty() || text.size() > control::Scoreboard::storedMaxBytes
+            || !optionalHeatingRecordFits(key, text.size() + 1, control::OptionalRecordPriority::dayCounters(learnedPending))) return false;
         nvs_handle_t handle;
         if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
         const bool committed = nvs_set_str(handle, key, text.c_str()) == ESP_OK && nvs_commit(handle) == ESP_OK;

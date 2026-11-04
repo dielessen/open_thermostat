@@ -1237,7 +1237,8 @@ private:
         if (unixNow && autoTuner_.dayStoreDue(now)) {
             if (!AutoTunerNvs::write(autoTuner_, learnedStore_.pendingEntries())) DBGLOGFI(log_, logFeature_, "Tuning day not saved (NVS short of room or write failed)\n");
             if (!scoreboardAdopted_) {} // not before the clock told the local day: the stored record is still the better one
-            else if (const auto text = scoreboard_.stored(); !text.empty() && !ScoreboardNvs::write(text)) DBGLOGFI(log_, logFeature_, "Scoreboard not saved (NVS short of room or write failed)\n");
+            else if (const auto text = scoreboard_.stored(); !text.empty() && !ScoreboardNvs::write(text, learnedStore_.pendingEntries()))
+                DBGLOGFI(log_, logFeature_, "Scoreboard not saved (NVS short of room or write failed)\n");
         }
         if (!closed && !(unixNow && autoTuner_.evaluationPending(now))) return;
         std::array<control::AutoTuner::Learned, control::RoomPlan::maxRooms> learned{};

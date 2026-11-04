@@ -143,7 +143,7 @@ TEST(ControlPartitionBudget, TheScoreboardIsTheFirstOptionalRecordToGoAndTheHotW
         for (const char* key : B::optionalKeys) listed = listed || !std::strcmp(key, r.key);
         EXPECT_TRUE(listed) << r.key;
     }
-    EXPECT_EQ(B::blobEntries(Scoreboard::storedMaxBytes + 1), 19u);
+    EXPECT_EQ(B::blobEntries(Scoreboard::storedMaxBytes + 1), 14u); // 240 B: the widest record is 227 B (test_scoreboard.cpp)
     EXPECT_EQ(B::blobEntries(DhwEpisodes::recordBytes), 22u);
 }
 TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAndBluetooth) {

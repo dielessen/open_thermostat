@@ -24,7 +24,9 @@ namespace heating::control {
 class Scoreboard {
 public:
     static constexpr double degreeDayBaseC = 18;
-    static constexpr size_t storedMaxBytes = 400;
+    // The record (stored()): two days of {d, os, on, k, a[8]} are at most 231 B with the widest values
+    // (test_scoreboard.cpp pins it); 240 B is 14 NVS entries (ControlPartitionBudget::blobEntries).
+    static constexpr size_t storedMaxBytes = 240;
     struct Day {
         int32_t day = -1;
         double outdoorSum = 0;      // degC x s

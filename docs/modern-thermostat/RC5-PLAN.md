@@ -227,7 +227,10 @@ public:
   sixth Lovelace card `heating-curve-card.js`, versioned like the others; P6's card list is data-driven):
   the standard line (dashed, the design slope), the learned line (solid, when `slope_source` is "learned" or
   "house"), the point of now and the frost point at −10 °C; legend EN/NL/PL "Standard", "Learned for your
-  house", "Now".
+  house", "Now". The MQTT `flow.curve` also carries `base_c` (the line's own value at the outdoor
+  temperature, one decimal; `flow_c` adds the room correction) and `design_flow_c` (the standard line's
+  anchor), so the chart draws "now" on the line and the standard line from the E32's own numbers
+  (P14 review); the label shows `flow_c` as what the E32 asks.
 
 ### 2.6 Release tooling (P6)
 

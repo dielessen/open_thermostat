@@ -316,6 +316,27 @@ TEST(FlowPolicy, OptionsOffLeaveTheRuleAndAdvise) {
     EXPECT_STREQ(at(at(at(again.get(), "flow"), "curve"), "state")->valuestring, "no_outdoor");
 }
 
+// rc.5 (P14 review): the MQTT curve carries the line's own value and the standard line's anchor, so the
+// Home Assistant chart draws "now" on the line (flow_c adds the room correction) and the standard line
+// from the E32's own design flow instead of working both out again.
+TEST(FlowPolicy, TheSummaryCurveCarriesItsBaseAndTheDesignFlow) {
+    Step s;
+    FlowSettings on = Step::off(); on.weatherCurve = true; s.policy.setSettings(on);
+    s.rooms[0] = room(2000, 2100);
+    s.in.outdoorCentiC = -1000;
+    EXPECT_EQ(s.apply(heat40).flowC, 47);                   // 21 + 0.667 x 31 = 41.7 -> 42, + (40 - 30) / 2
+    Json o(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(s.policy.addSummary(o.get()));
+    const cJSON* curve = at(at(o.get(), "flow"), "curve");
+    EXPECT_EQ(at(curve, "flow_c")->valuedouble, 47);
+    EXPECT_EQ(at(curve, "base_c")->valuedouble, 41.7);
+    EXPECT_EQ(at(curve, "design_flow_c")->valuedouble, 40);  // the floor design flow
+    s.in.outdoorCentiC.reset(); s.apply(heat40);
+    Json again(cJSON_CreateObject(), cJSON_Delete);
+    ASSERT_TRUE(s.policy.addSummary(again.get()));
+    EXPECT_TRUE(cJSON_IsNull(at(at(at(again.get(), "flow"), "curve"), "base_c"))) << "no outdoor reading: no line value";
+}
+
 // rc.5 (P2): the curve's slope in this order: CurveLearner's once it has its six steady periods, else
 // the house model's (HouseModel: heat loss over emitter output, within the curve's bounds and at least
 // half the design slope), else the design slope. "slope_source" says which.

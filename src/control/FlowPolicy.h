@@ -474,8 +474,12 @@ public:
         FlowLearner::number(flow, "ceiling_c", ceiling_ ? std::optional<float>(*ceiling_) : std::nullopt, 1); // rc.5 (P1): the cap in effect
         cJSON_AddStringToObject(curve, "state", curveState());
         FlowLearner::number(curve, "flow_c", curveFlow_ ? std::optional<float>(*curveFlow_) : std::nullopt, 1);
+        // rc.5 (P14 review): the line's own value (flow_c adds the room correction) and the standard line's anchor,
+        // so the Home Assistant chart draws "now" on the line and the standard line from the E32's own numbers.
+        FlowLearner::number(curve, "base_c", curveBase_ ? std::optional<float>(*curveBase_ / 100.0f) : std::nullopt, 10);
         FlowLearner::number(curve, "slope", slope_, 100);
         cJSON_AddStringToObject(curve, "slope_source", slopeSource_); // rc.5: also "house" (HouseModel)
+        cJSON_AddNumberToObject(curve, "design_flow_c", designFlowC_);
         cJSON_AddNumberToObject(curve, "windows", curveLearner_.windows()); // rc.3: "2 of 6 steady periods"
         cJSON_AddStringToObject(learned, "state", learnedState());
         FlowLearner::number(learned, "flow_c", learnedFlow_ ? std::optional<float>(*learnedFlow_) : std::nullopt, 1);

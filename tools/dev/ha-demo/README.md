@@ -19,7 +19,8 @@ wsl -e bash -lc 'bash /tmp/copytree.sh /mnt/c/Users/m.dielessen/Downloads/<workt
 
 Options: `--languages en,nl` (default both), `--widths 390,1280`, `--themes light,dark`, `--work <dir>` (default a
 new temporary directory), `--keep-work` (keep it: the demo's Home Assistant config, database and logs).
-About six minutes for the full set (72 pictures); the first run also downloads about 300 MB of packages.
+About five minutes for the full set (72 pictures, measured 5 min 6 s); the first run also installs about 340 MB of
+packages into the cache once.
 
 ## What it does
 

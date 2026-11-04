@@ -1147,7 +1147,7 @@
          "columns": 12
         },
         "icon": "mdi:thermometer-lines",
-        "name": "Water temperature at −10 °C outside",
+        "name": "Water temperature in hard frost (−10 °C)",
         "type": "tile"
        },
        {
@@ -2594,7 +2594,7 @@
          "columns": 12
         },
         "icon": "mdi:thermometer-lines",
-        "name": "Watertemperatuur bij −10 °C buiten",
+        "name": "Watertemperatuur bij strenge vorst (−10 °C)",
         "type": "tile"
        },
        {

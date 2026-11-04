@@ -169,7 +169,7 @@ async def test_long_choices_get_the_whole_width_and_sections_fill_the_gaps(hass)
                                                               "source")]
     assert all(c["grid_options"] == {"columns": 12} for c in tiles)
     assert [c["name"] for c in tiles] == ["Smart warm-up", "Weather compensation",
-                                          "Water temperature at −10 °C outside", "Water temperature set by"]
+                                          "Water temperature in hard frost (−10 °C)", "Water temperature set by"]
 
 
 @pytest.mark.asyncio

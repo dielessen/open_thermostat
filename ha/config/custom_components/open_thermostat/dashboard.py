@@ -4,13 +4,14 @@ The views, built from the entity registry (renamed entity IDs are followed,
 disabled and absent entities are left out) with built-in cards, the week
 planner and, per room, the room status card (frontend/room-status-card.js):
 
-* Overview (first): the house, with the house card on top (its slot in the
-  House section: what the boiler does now, today's heating, hot water and gas,
-  a problem with its reason that leads to Repairs, and the one room that is on;
-  until it is there, the rooms that want heat with the boiler request and the
-  problem tile), the house mode and the next holiday; then one status card per
-  other room: temperature against target and, in one line, why it heats or
-  not. Nothing else;
+* Overview (first): the House section headed by the house card
+  (custom:openthermostat-house: what the boiler does now, today's heating, hot
+  water and gas, a problem with its reason that leads to Repairs, and the one
+  room that is on; without a heat request and boiler activity there is no card,
+  and the rooms that want heat with the boiler request and the problem tile
+  stand there instead), the house mode and the next holiday; then one status
+  card per other room: temperature against target and, in one line, why it
+  heats or not. Nothing else;
 * Rooms: per room its thermostat, 24-hour graph, sensors, windows and people,
   and what it learned for that room; then the sensors that feed no single room;
 * Week program (with an E32 room plan): the visual week planner card;
@@ -317,18 +318,18 @@ TEXT = {
         "fix_sources": "Check the room sensors (battery, range) and give a room a second source.",
         "fix_boiler": "The E32 hears nothing from the boiler: check the bus cable.",
         "fix_boiler_limit": "The boiler has not reported its maximum: check the bus connection.",
+        # rc.5 dashboard (dashboard-spec §1): the Boiler view's sections and today's figures, Yesterday once on the
+        # Learning view and who controls the boiler.
+        "today_week": "Today and this week", "gas_heating_today": "Gas for heating today",
+        "gas_hot_water_today": "Gas for hot water today", "starts_today": "Burner starts today",
+        "burner_today": "Burner time today", "boiler_values": "What the boiler reports",
+        "who_controls": "Who controls the boiler", "yesterday_figures": "Yesterday in figures",
+        "dhw_target_short": "Hot water target",
         # E32 rc.5: what the E32 knows, the boiler's response and yesterday's insights (insight.py).
         "knowledge": "What the E32 knows",
         "insights": "Yesterday compared with usual",
         "knowledge_note": "The E32 learns all this by itself while the heating runs. Yesterday is compared with your "
                           "house's own usual days; that is information and changes nothing.",
-        # rc.5 dashboard (dashboard-spec §1): the Boiler view's sections and today's figures, Yesterday once on the
-        # Learning view, who controls the boiler, and the rooms the house card does not show itself.
-        "today_week": "Today and this week", "gas_heating_today": "Gas for heating today",
-        "gas_hot_water_today": "Gas for hot water today", "starts_today": "Burner starts today",
-        "burner_today": "Burner time today", "boiler_values": "What the boiler reports",
-        "who_controls": "Who controls the boiler", "yesterday_figures": "Yesterday in figures",
-        "dhw_target_short": "Hot water target", "other_rooms": "Other rooms",
     },
     "nl": {
         "heating": "Verwarming", "boiler_view": "Ketel", "diagnostics": "Diagnose",
@@ -488,15 +489,15 @@ TEXT = {
         "fix_sources": "Controleer de ruimtesensoren (batterij, bereik) en geef een ruimte een tweede bron.",
         "fix_boiler": "De E32 hoort niets van de ketel: controleer de buskabel.",
         "fix_boiler_limit": "De ketel heeft zijn maximum niet gemeld: controleer de busverbinding.",
-        "knowledge": "Wat de E32 weet",
-        "insights": "Gisteren vergeleken met normaal",
-        "knowledge_note": "De E32 leert dit allemaal zelf terwijl de verwarming draait. Gisteren wordt vergeleken met de "
-                          "gewone dagen van je eigen huis; dat is informatie en verandert niets.",
         "today_week": "Vandaag en deze week", "gas_heating_today": "Gas verwarmen vandaag",
         "gas_hot_water_today": "Gas warm water vandaag", "starts_today": "Branderstarts vandaag",
         "burner_today": "Brandertijd vandaag", "boiler_values": "Wat de ketel meldt",
         "who_controls": "Wie regelt de ketel", "yesterday_figures": "Gisteren in cijfers",
-        "dhw_target_short": "Doel warm water", "other_rooms": "Overige ruimtes",
+        "dhw_target_short": "Doel warm water",
+        "knowledge": "Wat de E32 weet",
+        "insights": "Gisteren vergeleken met normaal",
+        "knowledge_note": "De E32 leert dit allemaal zelf terwijl de verwarming draait. Gisteren wordt vergeleken met de "
+                          "gewone dagen van je eigen huis; dat is informatie en verandert niets.",
     },
     # Polish: the terms of translations/pl.json and docs/UX-GLOSSARY.md; E32 page names stay English.
     "pl": {
@@ -658,15 +659,15 @@ TEXT = {
         "fix_sources": "Sprawdź czujniki w pomieszczeniach (bateria, zasięg) i dodaj pomieszczeniu drugie źródło.",
         "fix_boiler": "E32 nic nie słyszy z kotła: sprawdź kabel magistrali.",
         "fix_boiler_limit": "Kocioł nie zgłosił swojego maksimum: sprawdź połączenie z magistralą.",
-        "knowledge": "Co wie E32",
-        "insights": "Wczoraj w porównaniu ze zwykłymi dniami",
-        "knowledge_note": "E32 uczy się tego wszystkiego sam, gdy ogrzewanie pracuje. Wczoraj jest porównywane ze "
-                          "zwykłymi dniami Twojego domu; to tylko informacja i niczego nie zmienia.",
         "today_week": "Dziś i w tym tygodniu", "gas_heating_today": "Gaz na ogrzewanie dziś",
         "gas_hot_water_today": "Gaz na ciepłą wodę dziś", "starts_today": "Starty palnika dziś",
         "burner_today": "Czas pracy palnika dziś", "boiler_values": "Co zgłasza Twój kocioł",
         "who_controls": "Kto steruje kotłem", "yesterday_figures": "Wczoraj w liczbach",
-        "dhw_target_short": "Cel ciepłej wody", "other_rooms": "Pozostałe pomieszczenia",
+        "dhw_target_short": "Cel ciepłej wody",
+        "knowledge": "Co wie E32",
+        "insights": "Wczoraj w porównaniu ze zwykłymi dniami",
+        "knowledge_note": "E32 uczy się tego wszystkiego sam, gdy ogrzewanie pracuje. Wczoraj jest porównywane ze "
+                          "zwykłymi dniami Twojego domu; to tylko informacja i niczego nie zmienia.",
     },
 }
 
@@ -1208,31 +1209,6 @@ def _wanting_card(t, request):
         + number("states(" + quoted + ")") + " °C{% endif %}")}
 
 
-def house_rooms(rooms, heating_hub, names):
-    """The house card's ``rooms`` (dashboard-spec §2): [{"entity": its Reason sensor, "name": its name}] of the one
-    E32 room that is on, when exactly one is; otherwise [] (every room keeps its own card under "Rooms").
-
-    rooms: {room id: {key: entity id}} (RoomDashboard._e32_rooms). A room is on unless the E32 reports it inactive;
-    one without its Reason sensor (an older integration) is never taken into the house card. Switching a room on
-    or off rebuilds the dashboard (RoomDashboard._signature).
-    """
-    statuses = heating_hub.rooms if heating_hub is not None else {}
-    on = [room_id for room_id in rooms if (statuses.get(room_id) or {}).get("state") != "inactive"]
-    if len(on) != 1 or not rooms[on[0]].get("reason"):
-        return []
-    return [{"entity": rooms[on[0]]["reason"], "name": names.get(on[0], on[0])}]
-
-
-def _rooms_section(t, room_cards, house):
-    """The Overview's rooms: one status card per E32 room, except a room the house card shows itself (the entities
-    of its ``rooms``, house_rooms); those left are the "Other rooms", and with none left there is no section."""
-    inlined = {item.get("entity") for card in house["cards"] for item in card.get("rooms") or [] if type(item) is dict}
-    cards = [card for card in room_cards if card and card.get("entity") not in inlined]
-    if not cards:
-        return None
-    return _section(_heading(t["other_rooms"] if inlined else t["rooms"], "mdi:thermostat"), *cards)
-
-
 def _holiday_card(t, select):
     """The next holiday (E32 rc.4, house.holidays.v1): "Holiday from 20 Dec to 3 Jan", or "On holiday until 3 Jan"
     while it runs. From the house mode select's ``holidays`` attribute, so it follows the E32 without regenerating;
@@ -1288,17 +1264,13 @@ def _wide(card):
     return card
 
 
-def _pair(first, second, visibility=None, rows=None):
-    """Two half-width cards that appear together on one condition, side by side in one row; one alone takes the
-    whole width (dashboard-spec §1).
-
-    ``visibility``: their shared condition, by default while the first has a value. ``rows``: their height in grid
-    rows, set on both so the row is even (a figure or a gauge needs two, and so does a tile beside one).
-    """
+def _pair(first, second, rows=None):
+    """Two half-width cards that appear together on one condition, while the first has a value, side by side in one
+    row; one alone takes the whole width (dashboard-spec §1). ``rows``: their height in grid rows, set on both so the
+    row is even (a figure or a gauge needs two, and so does a tile beside one)."""
     cards = [card for card in (first, second) if card]
-    shown = visibility or (_known(cards[0]["entity"]) if cards else None)
     for card in cards:
-        card["visibility"] = [dict(condition) for condition in shown]
+        card["visibility"] = _known(cards[0]["entity"])
         if len(cards) == 1:
             card["grid_options"] = {"columns": 12, **({"rows": rows} if rows else {})}
         elif rows:
@@ -1535,10 +1507,9 @@ class RoomDashboard:
         if hub is None or not hub.fresh:
             return None
         plan = hub.plan.plan if hub.plan is not None else None
-        # The E32 counts every plan save in its revision: no need to compare the whole plan (R4-11). A room
-        # switched on or off changes the Overview: the house card shows the one room that is on (house_rooms).
+        # The E32 counts every plan save in its revision: no need to compare the whole plan (R4-11).
         return (hub.status.get("mode"),
-                tuple((key, room.get("name"), room.get("source"), room.get("state")) for key, room in hub.rooms.items()),
+                tuple((key, room.get("name"), room.get("source")) for key, room in hub.rooms.items()),
                 tuple((key, sensor.get("name")) for key, sensor in hub.ble.items()),
                 plan.get("revision") if plan else None)
 
@@ -1764,11 +1735,7 @@ class RoomDashboard:
         # -- Overview ------------------------------------------------------------------------------
         on = [{"condition": "state", "entity": problem, "state": "on"}] if problem else None
         house = _section(
-            _heading(t["house"], ICONS["house"]),
-            # >>> Slot for the house card (custom:openthermostat-house, dashboard-spec §2 and §7, package P11): it
-            # goes here, first and across the whole width. It takes over the rooms-that-want-heat card and the problem
-            # tile with its reasons below. Its `rooms` key is house_rooms(e32_room_entities, heating_hub, names): the
-            # one E32 room that is on, which the Rooms section below then leaves out ("Other rooms", _rooms_section).
+            _heading(t["house"], "mdi:home-account"),
             # Named: without a name the tile showed the device name, cut short on a phone.
             _wide(_tile(house_mode, t["house_mode"], "mdi:home-account", features=[{"type": "select-options"}],
                         color="teal")),
@@ -1800,7 +1767,9 @@ class RoomDashboard:
             else:  # a registry without the Reason sensor (older integration): the temperature at least
                 room_cards.append(_wide(_tile(room.get("temperature") or room.get("setpoint"), names[room_id],
                                               "mdi:home-thermometer-outline")))
-        overview = [section for section in (_filled(house), _rooms_section(t, room_cards, house)) if section]
+        overview = [section for section in (
+            house if len(house["cards"]) > 1 else None,
+            _section(_heading(t["rooms"], "mdi:thermostat"), *room_cards) if any(room_cards) else None) if section]
 
         # -- Rooms ---------------------------------------------------------------------------------
         learned_overview = hub.get("learned_overview")

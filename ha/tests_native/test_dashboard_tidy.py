@@ -19,11 +19,14 @@ PLAN = {"rooms": [
     {"id": "woonkamer", "state": "active", "sources": [{"type": "ha", "id": "climate.tado_woonkamer"},
                                                        {"type": "ble", "id": "a4c138a3e8db"}]},
     {"id": "badkamer", "state": "inactive", "sources": [{"type": "ha", "id": "climate.thermostaat_badkamer"}]}]}
-# The hub sensors of the owner's E32 and integration that the Boiler and Learning views draw (rc.5): what the
-# boiler does, the gas (split into tapping and keeping warm), the daily summary, today's hot water and the advice.
+# The hub sensors of the owner's E32 and integration that the Boiler, Learning and Diagnostics views draw (rc.5):
+# what the boiler does, the gas (split into tapping and keeping warm), the daily summary, today's hot water, the
+# advice, the E32 itself, the energy and hot water counters (empty on this boiler) and the hot water capability.
 HUB_SENSORS = ("boiler_activity", "heating_gas", "hot_water_gas", "tapping_gas", "keep_warm_gas", "daily_summary",
                "daily_burner_time", "daily_burner_starts", "daily_missed_comfort", "dhw_taps_today",
-               "dhw_keep_warm_today", "dhw_burner_time_today", "heating_advice")
+               "dhw_keep_warm_today", "dhw_burner_time_today", "heating_advice", "memory_free", "memory_min_free",
+               "cpu_temperature", "uptime", "energy_v2", "energy_heating_v2", "energy_warm_water_v2",
+               "warm_water_usage_v2", "burner_observed_time_v2", "dhw_capabilities")
 
 
 def known(entity_id):

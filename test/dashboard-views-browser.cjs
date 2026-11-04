@@ -8,12 +8,15 @@ const root=path.resolve(__dirname,'..');
 const config=JSON.parse(fs.readFileSync(path.join(root,'test/fixtures/ha-dashboard-views.json'),'utf8'));
 const out=path.resolve(process.env.OPENTHERMOSTAT_DASHBOARD_VIEWS_EVIDENCE||path.join(root,'out/ha-dashboard-views-20261103'));
 const HEIGHT={heading:40,tile:64,thermostat:300,'history-graph':200,'statistics-graph':200,markdown:90,entities:150,glance:90,button:56,
- statistic:120,gauge:120,'custom:openthermostat-room-status':150,'custom:openthermostat-e32-week':400,'custom:openthermostat-house':260};
+ 'custom:openthermostat-room-status':150,'custom:openthermostat-e32-week':400};
+const label=card=>card.heading||card.name||card.title||card.entity||(card.content||'').replace(/<[^>]+>|\{[%{#][^}]*[%}#]\}/g,' ').replace(/\s+/g,' ').trim().slice(0,70)||card.type;
 // Half-width by default (6 of 12 columns), as in Home Assistant's sections view; grid_options override both.
 const HALF=['tile','button','statistic','gauge'];
-const label=card=>card.heading||card.name||card.title||card.entity||(card.content||'').replace(/<[^>]+>|\{[%{#][^}]*[%}#]\}/g,' ').replace(/\s+/g,' ').trim().slice(0,70)||card.type;
-// A grid row is 56 px with an 8 px gap: a card of two rows (a gauge, a figure, the tile beside them) is 120 px.
-const height=card=>{const rows=card.grid_options&&card.grid_options.rows;return rows?rows*56+(rows-1)*8:(HEIGHT[card.type]||90);};
+// A grid row is 56 px with an 8 px gap. A figure (statistic) and a gauge are two rows (120 px), and so is the tile
+// beside one (its grid_options say so).
+const ROWS={statistic:2,gauge:2};
+const height=card=>{const rows=(card.grid_options&&card.grid_options.rows)||ROWS[card.type];
+ return rows?rows*56+(rows-1)*8:(HEIGHT[card.type]||90);};
 const html=(view,hidden,width)=>{
  // Home Assistant fits as many section columns as the width allows (about 320 px each), up to max_columns.
  const columns=Math.max(1,Math.min(view.max_columns||1,Math.floor((width-32)/320)));

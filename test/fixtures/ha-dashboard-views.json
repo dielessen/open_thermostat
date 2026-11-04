@@ -12,7 +12,7 @@
        {
         "heading": "House",
         "heading_style": "title",
-        "icon": "mdi:home-thermometer",
+        "icon": "mdi:home-account",
         "type": "heading"
        },
        {
@@ -3181,6 +3181,176 @@
      {
       "cards": [
        {
+        "heading": "E32",
+        "heading_style": "title",
+        "icon": "mdi:chip",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.memory_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.memory_free",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.memory_min_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.memory_min_free",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.cpu_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.cpu_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.uptime",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.uptime",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.memory_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.memory_min_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.cpu_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.uptime",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.memory_free",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.memory_min_free",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.cpu_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.uptime",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
         "heading": "Thermostat on the bus",
         "heading_style": "title",
         "icon": "mdi:thermostat",
@@ -3421,6 +3591,363 @@
      {
       "cards": [
        {
+        "heading": "Energy and hot water counters",
+        "heading_style": "title",
+        "icon": "mdi:chart-bar",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.energy_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.energy_heating_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.energy_warm_water_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.warm_water_usage_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.burner_observed_time_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Energy and volume are estimates from reported values, not gas or heat meters.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "This boiler reports no energy or hot water counters yet; boilers that do (EMS+) fill them in here.\n\n<details><summary>More</summary>\n\nThe Boiler tab and the E32's Home page estimate the gas per day from the burner power and the boiler's power.\n\n</details>",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.energy_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.energy_heating_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.energy_warm_water_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.warm_water_usage_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.burner_observed_time_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         "sensor.energy_v2",
+         "sensor.energy_heating_v2",
+         "sensor.energy_warm_water_v2"
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Estimated energy per day (not a meter)",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         "sensor.warm_water_usage_v2"
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Hot water volume per day",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         "sensor.burner_observed_time_v2"
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Observed flame time per day",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
         "heading": "Raw boiler data",
         "heading_style": "title",
         "icon": "mdi:wrench-outline",
@@ -3501,6 +4028,33 @@
         ]
        }
       ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Hot water",
+        "heading_style": "title",
+        "icon": "mdi:faucet",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.dhw_capabilities",
+          "name": {
+           "type": "entity"
+          }
+         }
+        ],
+        "title": "Hot water capability and quality",
+        "type": "entities"
+       },
+       {
+        "content": "Hot water, view only: the last values the boiler reported (their age is not checked); nothing is sent to the boiler.\n\nProfile: {{ state_attr(\"sensor.dhw_capabilities\", 'profile') or 'Unknown' }}; status: {{ states(\"sensor.dhw_capabilities\") }}.\n{% set fields = state_attr(\"sensor.dhw_capabilities\", 'fields') or {} %}{% for key, field in fields.items() %}{% if field.supported_read %}\n- {{ key | replace('_', ' ') }}: {{ field.value if field.value is not none else 'Unknown' }} {{ field.unit or '' }} ({{ field.quality }}){% endif %}{% endfor %}",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid"
      }
     ],
     "title": "Diagnostics",
@@ -3716,7 +4270,7 @@
        {
         "heading": "Huis",
         "heading_style": "title",
-        "icon": "mdi:home-thermometer",
+        "icon": "mdi:home-account",
         "type": "heading"
        },
        {
@@ -6885,6 +7439,176 @@
      {
       "cards": [
        {
+        "heading": "E32",
+        "heading_style": "title",
+        "icon": "mdi:chip",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.memory_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.memory_free",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.memory_min_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.memory_min_free",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.cpu_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.cpu_temperature",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.uptime",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.uptime",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.memory_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.memory_min_free",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.cpu_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.uptime",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.memory_free",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.memory_min_free",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.cpu_temperature",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.uptime",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
         "heading": "Thermostaat op de bus",
         "heading_style": "title",
         "icon": "mdi:thermostat",
@@ -7125,6 +7849,363 @@
      {
       "cards": [
        {
+        "heading": "Tellers voor energie en warm water",
+        "heading_style": "title",
+        "icon": "mdi:chart-bar",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.energy_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.energy_heating_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.energy_warm_water_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.warm_water_usage_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         },
+         {
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ],
+          "row": {
+           "entity": "sensor.burner_observed_time_v2",
+           "name": {
+            "type": "entity"
+           }
+          },
+          "type": "conditional"
+         }
+        ],
+        "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Energie en volume zijn schattingen uit gemelde waarden, geen gas- of warmtemeter.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Deze ketel meldt nog geen tellers voor energie of warm water; ketels die dat wel doen (EMS+) vullen ze hier in.\n\n<details><summary>Meer</summary>\n\nHet tabblad Ketel en de pagina Huis van de E32 schatten het gas per dag uit het brandervermogen en het vermogen van de ketel.\n\n</details>",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.energy_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.energy_heating_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.energy_warm_water_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.warm_water_usage_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.burner_observed_time_v2",
+          "state": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         "sensor.energy_v2",
+         "sensor.energy_heating_v2",
+         "sensor.energy_warm_water_v2"
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Geschatte energie per dag (geen meter)",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.energy_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_heating_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.energy_warm_water_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         "sensor.warm_water_usage_v2"
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Warmwatervolume per dag",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.warm_water_usage_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "chart_type": "bar",
+        "days_to_show": 7,
+        "entities": [
+         "sensor.burner_observed_time_v2"
+        ],
+        "period": "day",
+        "stat_types": [
+         "change"
+        ],
+        "title": "Waargenomen vlamtijd per dag",
+        "type": "statistics-graph",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.burner_observed_time_v2",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ],
+      "type": "grid"
+     },
+     {
+      "cards": [
+       {
         "heading": "Ruwe keteldata",
         "heading_style": "title",
         "icon": "mdi:wrench-outline",
@@ -7205,6 +8286,33 @@
         ]
        }
       ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Warm water",
+        "heading_style": "title",
+        "icon": "mdi:faucet",
+        "type": "heading"
+       },
+       {
+        "entities": [
+         {
+          "entity": "sensor.dhw_capabilities",
+          "name": {
+           "type": "entity"
+          }
+         }
+        ],
+        "title": "Warmwatermogelijkheden en kwaliteit",
+        "type": "entities"
+       },
+       {
+        "content": "Warm water, alleen bekijken: de laatste waarden die de ketel meldde (hun leeftijd wordt niet gecontroleerd); er gaat niets naar de ketel.\n\nProfiel: {{ state_attr(\"sensor.dhw_capabilities\", 'profile') or 'Onbekend' }}; status: {{ states(\"sensor.dhw_capabilities\") }}.\n{% set fields = state_attr(\"sensor.dhw_capabilities\", 'fields') or {} %}{% for key, field in fields.items() %}{% if field.supported_read %}\n- {{ key | replace('_', ' ') }}: {{ field.value if field.value is not none else 'Onbekend' }} {{ field.unit or '' }} ({{ field.quality }}){% endif %}{% endfor %}",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid"
      }
     ],
     "title": "Diagnose",

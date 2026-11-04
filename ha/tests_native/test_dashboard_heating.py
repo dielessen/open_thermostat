@@ -212,86 +212,6 @@ async def test_each_room_says_why_in_one_status_card_on_the_overview(hass):
     assert any(c.get("heading") == "Woonkamer settings" for c in view_cards(rooms_view))
 
 
-def _reasons(hass, e, rooms):
-    """The Reason sensor of both rooms (rc.4: the room status card's sensor)."""
-    entities, devices = er.async_get(hass), dr.async_get(hass)
-    for room_id in ("woonkamer", "badkamer"):
-        device = devices.async_get_device_by_identifier(("open_thermostat", f"fixture_e32_room_{room_id}"), e.entry_id)
-        rooms[room_id]["reason"] = entities.async_get_or_create(
-            "sensor", "open_thermostat", f"fixture_e32_room_{room_id}_reason", config_entry=e, device_id=device.id,
-            suggested_object_id=f"{room_id}_reason").entity_id
-
-
-@pytest.mark.asyncio
-async def test_the_one_room_that_is_on_goes_into_the_house_card_and_the_others_stay_under_rooms(hass):
-    """rc.5 (dashboard-spec §2): with exactly one E32 room on, the house card shows that room (its ``rooms``) and
-    the Overview lists only the other rooms, as "Other rooms"; the house card itself fills the House section's
-    slot (package P11). Without it every room keeps its own card under "Rooms"."""
-    from custom_components.open_thermostat.dashboard import ROOM_STATUS_CARD_TYPE, TEXT, _rooms_section, house_rooms
-    e, rooms, sensors, hub, fields = installation(hass)
-    _reasons(hass, e, rooms)
-    heating = hass.data["open_thermostat"][e.entry_id]["heating_hub"]
-    names = {"woonkamer": "Woonkamer", "badkamer": "Badkamer"}
-    # Both rooms on (the E32 reports neither inactive): no room goes into the house card.
-    assert house_rooms(rooms, heating, names) == []
-    # The bathroom off: the living room is the one room that is on.
-    heating.update({**STATUS, "rooms": [STATUS["rooms"][0], {**STATUS["rooms"][1], "state": "inactive"}]})
-    assert house_rooms(rooms, heating, names) == [{"entity": rooms["woonkamer"]["reason"], "name": "Woonkamer"}]
-    # Without its Reason sensor (an older integration) the room is never taken into the house card.
-    older = {**rooms, "woonkamer": {k: v for k, v in rooms["woonkamer"].items() if k != "reason"}}
-    assert house_rooms(older, heating, names) == []
-    # Both off: none.
-    heating.update({**STATUS, "rooms": [{**room, "state": "inactive"} for room in STATUS["rooms"]]})
-    assert house_rooms(rooms, heating, names) == []
-    # The Overview's rooms leave out the room a house card shows itself: the others are "Other rooms".
-    cards = [{"type": ROOM_STATUS_CARD_TYPE, "entity": rooms[r]["reason"], "name": names[r]} for r in names]
-    heading = {"type": "heading", "heading": "House"}
-    house_card = {"type": "custom:openthermostat-house", "grid_options": {"columns": 12},
-                  "rooms": [{"entity": rooms["woonkamer"]["reason"], "name": "Woonkamer"}]}
-    plain = _rooms_section(TEXT["en"], cards, {"type": "grid", "cards": [heading]})
-    assert plain["cards"] == [{"type": "heading", "heading": "Rooms", "heading_style": "title", "icon": "mdi:thermostat"},
-                              *cards]
-    for language, other in (("en", "Other rooms"), ("nl", "Overige ruimtes"), ("pl", "Pozostałe pomieszczenia")):
-        inlined = _rooms_section(TEXT[language], cards, {"type": "grid", "cards": [heading, house_card]})
-        assert inlined["cards"][0]["heading"] == other and inlined["cards"][1:] == [cards[1]]
-    # A house whose only room is in the house card has no Rooms section at all.
-    assert _rooms_section(TEXT["en"], cards[:1], {"type": "grid", "cards": [heading, house_card]}) is None
-    # This package leaves the house card's slot empty: both rooms keep their card under "Rooms".
-    overview = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()["views"][0]
-    assert [s["cards"][0]["heading"] for s in overview["sections"]] == ["House", "Rooms"]
-    assert [c["entity"] for c in overview["sections"][1]["cards"][1:]] == [rooms[r]["reason"] for r in names]
-
-
-@pytest.mark.asyncio
-async def test_switching_a_room_on_or_off_rebuilds_the_dashboard_a_reading_does_not(hass):
-    """The house card shows the one room that is on, so the room's state is part of the hub's signature."""
-    e, rooms, sensors, hub, fields = installation(hass)
-    dashboard = RoomDashboard(hass, "fixture", e.entry_id)
-    saved = []
-
-    class Store:
-        async def async_load(self, force):
-            return saved[-1] if saved else None
-
-        async def async_save(self, config):
-            saved.append(config)
-    dashboard._store = Store()
-    dashboard._watch_hub()
-    heating = hass.data["open_thermostat"][e.entry_id]["heating_hub"]
-    heating.update({**STATUS, "rooms": [{**room, "state": "active"} for room in STATUS["rooms"]]})
-    await hass.async_block_till_done()
-    signature = RoomDashboard._signature(heating)
-    heating.update({**STATUS, "rooms": [{**room, "state": "active", "temperature": 20.6} for room in STATUS["rooms"]]})
-    await hass.async_block_till_done()
-    assert RoomDashboard._signature(heating) == signature  # a reading: no rebuild
-    off = {**STATUS, "rooms": [{**STATUS["rooms"][0], "state": "active"}, {**STATUS["rooms"][1], "state": "inactive"}]}
-    heating.update(off)
-    await hass.async_block_till_done()
-    assert RoomDashboard._signature(heating) != signature
-    assert dashboard._hub_signature[0] == RoomDashboard._signature(heating)  # noticed: a rebuild was scheduled
-    dashboard._unwatch_hub()
-
-
 @pytest.mark.asyncio
 async def test_now_shows_what_the_boiler_does_as_one_coloured_tile(hass):
     """rc.5 (dashboard-spec §5.1): heating (deep orange), hot water (blue) or resting (grey) as one wide tile:
@@ -525,7 +445,7 @@ def test_dashboard_text_has_the_same_keys_in_every_language():
     assert all(TEXT[language][key].strip() for language in ("nl", "pl") for key in TEXT[language])
     # rc.5: the keys of the new Boiler and Learning sections, and the ones they replaced are gone.
     assert {"today_week", "gas_heating_today", "gas_hot_water_today", "starts_today", "burner_today", "boiler_values",
-            "who_controls", "yesterday_figures", "dhw_target_short", "other_rooms"} <= set(TEXT["en"])
+            "who_controls", "yesterday_figures", "dhw_target_short"} <= set(TEXT["en"])
     assert not {"gas_per_post", "control", "learning_how"} & set(TEXT["en"])
     # No "Heating page" any more: the gas per day is on the Boiler tab and the E32's Home page (named as the other
     # Home Assistant texts name it).

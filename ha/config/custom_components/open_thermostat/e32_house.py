@@ -147,49 +147,44 @@ def mode_command(away, mode, temperature=None, until=None):
 
 
 async def async_comfort_state(link):
-    """GET the E32's comfort state (every planned holiday) over the link's stored connection: one login, its lock."""
+    """GET the E32's comfort state (every planned holiday) over the link's stored connection (one sign-in,
+    RoomPlanLink.async_call: the one path that honours the refused-password latch and never waits)."""
     from .controller_link import ControllerLinkError
-    async with link._lock:
-        try:
-            async with link._client() as client:
-                await link._login(client)
-                state = await client.async_comfort_state()
-        except ControllerLinkError as err:
-            raise comfort_error(err) from None
+    try:
+        state = await link.async_call(lambda client: client.async_comfort_state())
+    except ControllerLinkError as err:
+        raise comfort_error(err) from None
     if type(state) is not dict or type(state.get("holidays")) is not list:
         raise HomeAssistantError(translation_domain=DOMAIN, translation_key="house_mode_update_required")
     return state
 
 
 async def async_change_holidays(link, change):
-    """Read, change and write the E32's planned holidays in one E32 web session, under the link's lock.
+    """Read, change and write the E32's planned holidays in one E32 web session (RoomPlanLink.async_call).
 
     change(periods) gets the list as the E32 holds it now ([(from, until)]) and returns the new one (it may raise
     a HomeAssistantError, e.g. house_holiday_changed); the E32 merges overlapping periods and refuses one that is
-    over (merged here already, so eight places hold a holiday that joins another). A newer change supersedes one
-    that still waits for an E32 web session: None, nothing sent. Returns the E32's answer, its comfort state.
+    over (merged here already, so eight places hold a holiday that joins another). With every E32 web session in
+    use it waits for one without holding up reads or other writes (R4-02); a newer change supersedes one that
+    still waits: None, nothing sent. Returns the E32's answer, its comfort state.
     """
     from .controller_link import ControllerLinkError
     from .room_plan import WriteSuperseded
-    wanted = link.claim(("holidays",))
-    async with link._lock:
-        try:
-            if not wanted():
-                raise WriteSuperseded()
-            async with link._client() as client:
-                await link._login(client, wanted)
-                state = await client.async_comfort_state()
-                if type(state) is not dict or type(state.get("holidays")) is not list:
-                    raise HomeAssistantError(translation_domain=DOMAIN, translation_key="house_mode_update_required")
-                periods = merge_periods(change(holiday_periods(state["holidays"])))
-                if len(periods) > MAX_HOLIDAYS:
-                    raise ServiceValidationError(translation_domain=DOMAIN, translation_key="house_holiday_too_many")
-                answer = await client.async_comfort_command(
-                    {"holidays": [{"from": int(f), "until": int(u)} for f, u in periods]})
-        except WriteSuperseded:
-            return None
-        except ControllerLinkError as err:
-            raise comfort_error(err) from None
+
+    async def save(client):
+        state = await client.async_comfort_state()
+        if type(state) is not dict or type(state.get("holidays")) is not list:
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="house_mode_update_required")
+        periods = merge_periods(change(holiday_periods(state["holidays"])))
+        if len(periods) > MAX_HOLIDAYS:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="house_holiday_too_many")
+        return await client.async_comfort_command({"holidays": [{"from": int(f), "until": int(u)} for f, u in periods]})
+    try:
+        answer = await link.async_call(save, write=True, key=("holidays",))
+    except WriteSuperseded:
+        return None
+    except ControllerLinkError as err:
+        raise comfort_error(err) from None
     if type(answer) is not dict or answer.get("schema") != 1:
         raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unconfirmed")
     return answer

@@ -3932,6 +3932,10 @@
       "title": "Geen recente back-up van de E32-instellingen",
       "description": "{name}: Home Assistant kon al meer dan 3 dagen geen back-up van de E32-instellingen maken (laatste back-up: {last}). Zonder recente back-up krijgt een vervangende E32 je huidige instellingen niet terug. Controleer of de E32 aan staat en zijn webpagina opent, en of zijn wachtwoord in Home Assistant nog klopt; druk daarna op Nu een back-up van de E32 maken op het E32-apparaat. Deze melding verdwijnt na de volgende geslaagde back-up."
     },
+    "heating_input_lost": {
+      "title": "De E32 ontvangt de kamerwaarden van Home Assistant niet",
+      "description": "De E32 heeft al {minutes} minuten geen kamerwaarden van Home Assistant aangenomen en regelt de kamers daarom met zijn eigen sensoren en weekprogramma. Home Assistant stuurde de laatste waarde om {last_sent} (laatste verzendfout: {error}). OpenThermostat is opnieuw begonnen met verzenden. Blijft deze melding staan, herstart dan Home Assistant: de integratie herladen is niet altijd genoeg. Deze melding verdwijnt vanzelf zodra de E32 de waarden weer aanneemt."
+    },
     "e32_time_zone": {
       "title": "De E32 gebruikt een andere tijdzone",
       "fix_flow": {

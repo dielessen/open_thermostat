@@ -343,6 +343,10 @@ public:
                          control::ModernTransport::HeatingSummary summary={}) {
         if(modern_)modern_->setHeatingRoute(std::move(input),std::move(status),std::move(roomCount),std::move(room),std::move(summary));
     }
+    // P22: ha/heating_input subscribed again after 15 silent minutes (control/HaInputSilence.h).
+    void setHeatingInputExpected(std::function<bool()> expected) { if(modern_)modern_->setHeatingInputExpected(std::move(expected)); }
+    std::optional<uint64_t> haResubscribedMs() const { return modernMode_&&modern_?modern_->haResubscribedMs():std::nullopt; }
+    uint32_t haResubscribes() const { return modernMode_&&modern_?modern_->haResubscribes():0; }
 #endif
 private:
 	void handleTemporaryCommand(uint8_t const *payload, unsigned int length) {

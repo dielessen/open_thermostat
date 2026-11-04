@@ -19,6 +19,7 @@
 #include "BrokerRetry.h"
 #include "PendingTcpConnect.h"
 #include "ControllerRequestTelemetry.h"
+#include "HaInputSilence.h"
 #include "HeatingTelemetry.h"
 #include "TelemetryPublisher.h"
 #include <PubSubClient.h>
@@ -186,6 +187,7 @@ public:
             const auto utc=std::time(nullptr);
             const auto suffix=full.substr(base_.size());
             if(suffix=="ha/heating_input") {
+                haSilence_.received(now); // the subscription works, whatever the message says (P22)
                 if(heatingInput_)heatingInput_(std::string_view(reinterpret_cast<char *>(payload),length));
                 return;
             }
@@ -206,6 +208,11 @@ public:
         ui_.write(out,static_cast<uint64_t>(esp_timer_get_time()/1000),valid_&&wasConnected_);
     }
     bool brokerConnected() const { return wasConnected_; }
+    // P22: whether the plan reads Home Assistant entities (then HA sends at least every five minutes), and
+    // when the E32 last subscribed ha/heating_input again after 15 silent minutes (HaInputSilence).
+    void setHeatingInputExpected(std::function<bool()> expected) { haExpected_=std::move(expected); }
+    std::optional<uint64_t> haResubscribedMs() const { return haSilence_.lastResubscribeMs(); }
+    uint32_t haResubscribes() const { return haSilence_.count(); }
     // The one route between the E32 room control and Home Assistant: HA sends
     // source states on ha/heating_input, the E32 reports its state in small
     // retained topics (TelemetryPublisher): fw/state/heating, room/<id>, ble/<id>,
@@ -384,6 +391,7 @@ public:
             subscribeTrv();
             now=monotonicMs();
             withOwner([&](auto& owner){owner.connected(now);}); wasConnected_=true; nextDeviceDiagnostics_=0; retry_.connected(now);
+            haSilence_.connected(now);
             // Retained like the will: a restarted HA sees at once whether the E32 is there.
             client_.publish(willTopic.c_str(),"online",true);
             if(telemetry_)telemetry_->connected(now);
@@ -392,6 +400,12 @@ public:
         withOwner([&](auto& owner){owner.tick(now,utc,clockValid());});
         client_.loop();
         if(trvTopics_&&trvGeneration_&&trvGeneration_()!=trvSubscribedGeneration_)subscribeTrv();
+        // P22: 15 minutes without any ha/heating_input on a live session while the plan reads Home Assistant
+        // entities: subscribe again (a lost subscription heals), counted and reported as ha.resubscribed_s.
+        if(heatingInput_&&client_.connected()&&haSilence_.due(now,[this]{return !haExpected_||haExpected_();})) {
+            client_.subscribe((base_+"ha/heating_input").c_str(),0);
+            haSilence_.resubscribed(now);
+        }
         network_.poll(); // drains the outbox; closes only on a real stall or a socket error
         if(actuatorChannels_)actuatorChannels_->checkCurrent();
         // Observation only, on the existing native connection. Never control input.
@@ -473,6 +487,8 @@ private:
     DeadlineWiFiClient network_; PubSubClient client_; NvsControlStore store_;
     StatusSnapshot controllerStatus_;
     HeatingInput heatingInput_;
+    std::function<bool()> haExpected_; // the plan reads Home Assistant entities (P22)
+    HaInputSilence haSilence_;
     std::function<std::vector<std::string>()> trvTopics_;
     std::function<uint32_t()> trvGeneration_;
     std::function<void(std::string_view,std::string_view)> trvInput_;

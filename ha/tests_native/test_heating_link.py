@@ -1067,23 +1067,28 @@ async def test_publish_failure_logs_once(hass, monkeypatch, caplog):
             raise HomeAssistantError("MQTT is not connected")
         sent.append((topic, payload))
     monkeypatch.setattr(mqtt, "async_publish", publish)
+    from custom_components.open_thermostat.const import DOMAIN
+    hass.data[DOMAIN] = {"e": {"v1_connection": SimpleNamespace(client=object(), prefix="fixture/v1/")}}
+    link = module.heating_input_link(hass, SimpleNamespace(entry_id="e", data={"topic_prefix": "fixture"},
+                                                           async_on_unload=lambda _: None))
     loop = asyncio.get_running_loop()
     unretrieved = []
     previous = loop.get_exception_handler()
     loop.set_exception_handler(lambda loop, context: unretrieved.append(context))
     try:
         for _ in range(5):
-            module.publish_input(hass, "fixture/v1/ha/heating_input", '{"entity": "climate.woonkamer"}')
+            link.send('{"entity": "climate.woonkamer"}')
         await hass.async_block_till_done()
         down[0] = False
-        module.publish_input(hass, "fixture/v1/ha/heating_input", '{"entity": "climate.woonkamer"}')
+        link.send('{"entity": "climate.woonkamer"}')
         await hass.async_block_till_done()
     finally:
         loop.set_exception_handler(previous)
     warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
     assert len(warnings) == 1 and "could not send room values to the E32" in warnings[0].getMessage()
     assert "sends room values to the E32 again" in caplog.text
-    assert unretrieved == [] and len(sent) == 1
+    assert unretrieved == [] and sent == [("fixture/v1/ha/heating_input", '{"entity": "climate.woonkamer"}')]
+    assert link.failures == 5 and link.error == "MQTT is not connected" and link.sent_at is not None
     # A broker that does not answer at all: at most MAX_PENDING_PUBLISHES sends wait, newer ones are dropped.
     release = asyncio.Event()
 
@@ -1092,12 +1097,12 @@ async def test_publish_failure_logs_once(hass, monkeypatch, caplog):
         sent.append((topic, payload))
     monkeypatch.setattr(mqtt, "async_publish", hanging)
     for _ in range(module.MAX_PENDING_PUBLISHES + 20):
-        module.publish_input(hass, "fixture/v1/ha/heating_input", "{}")
+        link.send("{}")
     await asyncio.sleep(0)
-    assert hass.data[module._PUBLISH_STATE]["pending"] == module.MAX_PENDING_PUBLISHES
+    assert link.pending == module.MAX_PENDING_PUBLISHES and link.dropped == 20
     release.set()
     await hass.async_block_till_done()
-    assert len(sent) == 1 + module.MAX_PENDING_PUBLISHES and hass.data[module._PUBLISH_STATE]["pending"] == 0
+    assert len(sent) == 1 + module.MAX_PENDING_PUBLISHES and link.pending == 0
 
 
 def test_a_failing_listener_logs_once_a_minute(caplog):

@@ -34,17 +34,21 @@ the shape of ``/status/heating``), so a restarted Home Assistant is complete at
 once from the retained messages. Values stay available until the E32 says it
 is offline or three heartbeats are missed (``STALE_SECONDS``). HA forwards
 exactly the listed entities' temperature and target to ``ha/heating_input`` on
-every change and every five minutes, so a steady thermostat stays fresh.
+every change and every five minutes, so a steady thermostat stays fresh. Every
+message goes through the entry's ``HeatingInputLink``; ``HeatingInputWatch``
+checks against the E32's ``ha.input_age_s`` that they arrive (P22).
 
 One ``HeatingHub`` per entry holds the latest state. Every platform (sensor,
 binary_sensor, select, number, datetime) creates its entities from it for the
 room and Bluetooth ids it actually reports; all of them are unavailable while
 the E32 is offline or silent.
 """
+import asyncio
 import json
 import logging
 import math
 import re
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -56,6 +60,7 @@ from homeassistant.core import callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event, async_track_time_interval
+from homeassistant.util import dt as dt_util
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
 
@@ -477,8 +482,12 @@ class HeatingHub:
         # The last live sign of the E32 (monotonic), kept while it is silent.
         self.last_seen = None
         self.plan = None  # room_plan.RoomPlanLink when the E32 credentials are stored
+        # Where the E32's telemetry arrives (``<prefix>/v1/``): its ha/heating_input listens there too (P22).
+        self.base = None
+        self.input_watch = None  # HeatingInputWatch: does the E32 accept what Home Assistant sends?
         # The retained parts the status is assembled from.
         self.heating = None
+        self.heating_received = None  # when fw/state/heating last arrived (its ha.input_age_s counts from then)
         self.room_states = {}
         self.ble_states = {}
         self.trv_states = {}
@@ -675,6 +684,7 @@ class HeatingHub:
                     self.summary = self._merged_summary()
         elif suffix == HEATING_TOPIC:
             self.heating = None if empty else decode_document(payload)
+            self.heating_received = self.clock() if self.heating is not None else None
         elif suffix == PLAN_TOPIC:
             plan = decode_plan(payload)
             if plan is None and not empty:
@@ -813,44 +823,304 @@ class HeatingHub:
         self._listeners.clear()
 
 
-# At most this many ha/heating_input messages wait for the broker at once (R4-07); more are dropped
-# while it does not answer: every value is sent again on its next change and every five minutes.
+# Every ha/heating_input message of an entry goes out through its HeatingInputLink (P22). At most
+# MAX_PENDING_PUBLISHES wait for the broker at once (R4-07), each at most PUBLISH_TIMEOUT_S (Home Assistant's
+# own MQTT publish stops waiting for the broker after 10 s); more are dropped while the broker does not
+# answer: every value is sent again on its next change and every five minutes.
 MAX_PENDING_PUBLISHES = 50
-_PUBLISH_STATE = DOMAIN + "_heating_input"
+PUBLISH_TIMEOUT_S = 30
+INPUT_LINK = "heating_input_link"  # hass.data[DOMAIN][entry id][INPUT_LINK]: the entry's HeatingInputLink
+# The E32 uses a Home Assistant value for 15 minutes (RoomEngine::setpointMaxAgeMs), then its own fallback.
+INPUT_LOST_S = 900
+INPUT_CHECK = timedelta(seconds=60)
+INPUT_ISSUE = "heating_input_lost"
 
 
-@callback
-def publish_input(hass, topic, payload):
-    """Send one ha/heating_input message in the background; a broker failure is logged, never raised.
+def _iso_time(moment):
+    return moment.isoformat() if moment is not None else None
 
-    The forwarders (room inputs, energy, comfort) call this on every state change: a broker that is
-    down logs one warning per outage (then debug lines) and one line when it works again, instead of
-    an unretrieved task error per message.
+
+def _iso_minute(moment):
+    """To the minute: an attribute that changes when something happens, not with every E32 message."""
+    return moment.replace(second=0, microsecond=0).isoformat() if moment is not None else None
+
+
+class HeatingInputLink:
+    """The route of one entry's room, energy and comfort values to the E32: ``<base>ha/heating_input``.
+
+    P22 (4 Nov 2026): the comfort refresh ran in a worker thread, where ``hass.async_create_task`` raises,
+    after the module-wide sender of 1.0.0rc5 had counted the message as pending; fifty such refreshes (four
+    hours) kept that count full and every later value was dropped, until Home Assistant restarted. Now:
+
+    - ``send`` never raises and never blocks; from a worker thread it hands the message to the event loop;
+    - the pending sends are the live tasks themselves (a send that never started holds no place), each
+      with its own deadline, and unloading the entry cancels them: a reload always starts afresh;
+    - the topic is resolved at each send: the E32's own base (``hub.base``, where its telemetry arrives),
+      else the entry's (``topic_base``); a difference is logged once;
+    - what happened is kept for HeatingInputWatch, the diagnostics and the ``ha_input`` attribute.
     """
-    state = hass.data.setdefault(_PUBLISH_STATE, {"pending": 0, "failing": False})
-    if state["pending"] >= MAX_PENDING_PUBLISHES:
-        _LOGGER.debug("OpenThermostat: %d messages to the E32 still wait for the MQTT broker; %s not sent",
-                      state["pending"], topic)
-        return
-    state["pending"] += 1
 
-    async def publish():
+    def __init__(self, hass, entry, hub=None, clock=time.monotonic):
+        self.hass, self.entry, self.hub, self.clock = hass, entry, hub, clock
+        self._tasks = set()
+        self.attempted = None  # monotonic: the last watched value handed to MQTT (or dropped)
+        self.sent = None       # monotonic: the last value the broker took
+        self.sent_at = None    # the same as a UTC datetime
+        self.error = None      # the last failure in words, kept after a send that works (see error_at)
+        self.error_at = None
+        self.failing = False   # the newest send failed: one warning per failure episode
+        self.failures = 0
+        self.dropped = 0       # values dropped while MAX_PENDING_PUBLISHES still waited
+        self._saturated = self._thread_warned = self._topic_warned = self._closed = False
+
+    @property
+    def pending(self):
+        return len(self._tasks)
+
+    @property
+    def topic(self):
+        own = topic_base(self.hass, self.entry)
+        e32 = getattr(self.hub, "base", None)
+        if e32 and e32 != own and not self._topic_warned:
+            self._topic_warned = True
+            _LOGGER.warning("OpenThermostat: the E32 reports on %s, this entry's topic is %s; room values go "
+                            "where the E32 reports", e32, own)
+        return (e32 or own) + "ha/heating_input"
+
+    def send(self, payload, watched=True):
+        """Send one message in the background: never raises, never blocks, also from a worker thread.
+
+        watched: a value the E32 counts in its ``ha.input_age_s`` (rooms and energy), so HeatingInputWatch may
+        expect it to arrive; contacts and presence pass False (E32 rc.4 does not count them).
+        """
+        hass = self.hass
+        if threading.get_ident() != hass.loop_thread_id:
+            if not self._thread_warned:
+                self._thread_warned = True
+                _LOGGER.warning("OpenThermostat: a value for the E32 came from a worker thread; "
+                                "it is sent from the event loop instead")
+            try:
+                hass.loop.call_soon_threadsafe(self.send, payload, watched)
+            except RuntimeError:  # the event loop has stopped: Home Assistant shuts down
+                pass
+            return
+        if self._closed:
+            return
+        if watched:
+            self.attempted = self.clock()
+        if len(self._tasks) >= MAX_PENDING_PUBLISHES:
+            self.dropped += 1
+            self._failed(f"{len(self._tasks)} messages still wait for the MQTT broker", dropped=True)
+            return
+        task = hass.async_create_task(self._publish(self.topic, payload), "OpenThermostat heating_input")
+        if not task.done():
+            self._tasks.add(task)
+            task.add_done_callback(self._tasks.discard)
+
+    async def _publish(self, topic, payload):
         try:
-            await mqtt.async_publish(hass, topic, payload, 0, False)
+            async with asyncio.timeout(PUBLISH_TIMEOUT_S):
+                await mqtt.async_publish(self.hass, topic, payload, 0, False)
+        except TimeoutError:
+            self._failed(f"the MQTT broker did not take it within {PUBLISH_TIMEOUT_S} s")
         except Exception as err:  # noqa: BLE001 - a broker failure never reaches the forwarders
-            if state["failing"]:
-                _LOGGER.debug("OpenThermostat: still no MQTT broker for %s (%s)", topic, err)
-            else:
-                state["failing"] = True
-                _LOGGER.warning("OpenThermostat could not send room values to the E32 over MQTT (%s); "
-                                "it sends them again once the broker answers", err)
+            self._failed(str(err) or type(err).__name__)
         else:
-            if state["failing"]:
-                state["failing"] = False
+            self.sent, self.sent_at = self.clock(), dt_util.utcnow()
+            if self.failing or self._saturated:
                 _LOGGER.info("OpenThermostat sends room values to the E32 again")
-        finally:
-            state["pending"] -= 1
-    hass.async_create_task(publish(), "OpenThermostat heating_input")
+            self.failing = self._saturated = False
+
+    def _failed(self, error, dropped=False):
+        """One warning per episode (a broker that is down, or one that keeps every place busy), then debug."""
+        self.error, self.error_at = error, dt_util.utcnow()
+        if dropped:
+            if not self._saturated:
+                self._saturated = True
+                _LOGGER.warning("OpenThermostat: %s; newer room values for the E32 are dropped until it answers",
+                                error)
+            return
+        self.failures += 1
+        if self.failing:
+            _LOGGER.debug("OpenThermostat: still no MQTT broker for the E32 (%s)", error)
+        else:
+            self.failing = True
+            _LOGGER.warning("OpenThermostat could not send room values to the E32 over MQTT (%s); "
+                            "it sends them again once the broker answers", error)
+
+    @callback
+    def restart(self):
+        """Start afresh (HeatingInputWatch): what still waits is cancelled; the warnings may come again."""
+        for task in list(self._tasks):
+            task.cancel()
+        self._tasks.clear()
+        self.failing = self._saturated = False
+
+    @callback
+    def close(self):
+        """The entry unloads: nothing more goes out, and what still waits is cancelled."""
+        self._closed = True
+        self.restart()
+
+    def diagnostics(self):
+        now = self.clock()
+        return {"pending": self.pending, "dropped": self.dropped, "failures": self.failures, "failing": self.failing,
+                "last_sent": _iso_time(self.sent_at),
+                "last_sent_age_s": round(now - self.sent, 1) if self.sent is not None else None,
+                "last_attempt_age_s": round(now - self.attempted, 1) if self.attempted is not None else None,
+                "last_error": self.error, "last_error_at": _iso_time(self.error_at)}
+
+
+def heating_input_link(hass, entry, hub=None):
+    """The entry's HeatingInputLink, made on first use; unloading the entry closes it (a reload starts afresh)."""
+    state = hass.data[DOMAIN][entry.entry_id]
+    link = state.get(INPUT_LINK)
+    if link is None:
+        link = state[INPUT_LINK] = HeatingInputLink(hass, entry, hub if hub is not None else state.get("heating_hub"))
+        entry.async_on_unload(link.close)
+    elif link.hub is None and hub is not None:
+        link.hub = hub
+    return link
+
+
+def e32_input_age(hub, now):
+    """Seconds since the E32 last accepted an ha/heating_input message, as far as its telemetry tells.
+
+    Its ``ha.input_age_s`` counts to when that status was sent, so the time since it arrived is added;
+    ``null`` means none since the E32 started: then its uptime. None while the E32 is silent, or on
+    firmware without the ``ha`` block.
+    """
+    ha = hub.status.get("ha") if hub.fresh else None
+    if type(ha) is not dict or "input_age_s" not in ha:
+        return None
+    age = ha["input_age_s"]
+    if age is None:
+        beat, at = hub.heartbeat, hub.heartbeat_received
+        uptime = beat.get("uptime_s") if type(beat) is dict else None
+        return uptime + max(0.0, now - at) if type(uptime) is int and at is not None else None
+    return _e32_age(hub, age, now)
+
+
+def _e32_age(hub, age, now):
+    """An age from the E32's heating status (seconds when it was sent) as of now, or None when it is no age."""
+    if type(age) not in (int, float) or not math.isfinite(age) or age < 0:
+        return None
+    at = hub.heating_received if hub.heating_received is not None else hub.received
+    return age + max(0.0, now - at) if at is not None else float(age)
+
+
+class HeatingInputWatch:
+    """Does the E32 accept what Home Assistant sends? The end-to-end check of ha/heating_input (P22).
+
+    The E32 reports how long ago it accepted a message of any kind (``ha.input_age_s``). Home Assistant
+    sends each value on every change and every five minutes, so while both sides work that age stays under
+    five minutes. Once it reaches INPUT_LOST_S (the E32's own fallback time) while Home Assistant has values
+    to send, they do not arrive: one warning, the link starts afresh and everything goes out again at once
+    (``resend``; again every INPUT_LOST_S while it lasts), and a repair says so, with the advice to restart
+    Home Assistant if it stays. It clears itself once the E32 accepts again. Nothing is judged within
+    INPUT_LOST_S of the start: the E32 may still report an age from before Home Assistant (re)started.
+    """
+
+    def __init__(self, hass, entry, hub, link, resend, clock=time.monotonic, wall=None):
+        self.hass, self.entry, self.hub, self.link, self.resend, self.clock = hass, entry, hub, link, resend, clock
+        self.wall = wall if wall is not None else dt_util.utcnow
+        self.started = clock()
+        self.lost_since = None  # monotonic: when the check found the values not arriving
+        self._resent = None
+
+    @property
+    def issue_id(self):
+        return f"{INPUT_ISSUE}_{self.entry.entry_id}"
+
+    def _expected(self, now):
+        """Home Assistant sends now (the last five minutes), or has a value for an entity the E32 reads."""
+        if self.link.attempted is not None and now - self.link.attempted <= REFRESH_SECONDS + 60:
+            return True
+        unit = self.hass.config.units.temperature_unit
+        return any(input_payload(self.hass.states.get(entity_id), unit) is not None
+                   for entity_id in (self.hub.status or {}).get("ha_entities") or [])
+
+    def state(self, age):
+        if self.lost_since is not None:
+            return "not_received"
+        if age is None:
+            return "unknown"
+        return "ok" if age < INPUT_LOST_S else "waiting"
+
+    @callback
+    def check(self, _now=None):
+        now = self.clock()
+        age = e32_input_age(self.hub, now)
+        if age is None:
+            return  # the E32 is silent, or its firmware does not say: its own entities show that
+        if age < INPUT_LOST_S:
+            if self.lost_since is not None:
+                self.lost_since = self._resent = None
+                _LOGGER.info("OpenThermostat: the E32 accepts room values from Home Assistant again")
+                self._issue(None)
+            return
+        if now - self.started < INPUT_LOST_S or not self._expected(now):
+            return
+        if self.lost_since is None:
+            self.lost_since = now
+            ha = self.hub.status.get("ha")
+            _LOGGER.warning(
+                "OpenThermostat: the E32 has accepted no room values from Home Assistant for %d min (Home Assistant "
+                "last sent one at %s; last send error: %s; E32 MQTT connected: %s; E32 last rejected: %s); "
+                "sending everything again. If this stays, restart Home Assistant.",
+                age // 60, _iso_time(self.link.sent_at) or "never", self.link.error or "none",
+                ha.get("broker_connected"), ha.get("last_rejected") or "nothing")
+        elif self._resent is not None and now - self._resent < INPUT_LOST_S:
+            return
+        self._resent = now
+        self.link.restart()
+        self.resend()
+        self._issue(age)
+
+    def _issue(self, age):
+        from homeassistant.helpers import issue_registry as ir
+        try:
+            if age is None:
+                ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
+                return
+            sent = self.link.sent_at
+            ir.async_create_issue(
+                self.hass, DOMAIN, self.issue_id, is_fixable=False, is_persistent=False,
+                severity=ir.IssueSeverity.WARNING, translation_key=INPUT_ISSUE,
+                translation_placeholders={
+                    "minutes": str(int(age // 60)), "error": self.link.error or "-",
+                    "last_sent": dt_util.as_local(sent).strftime("%Y-%m-%d %H:%M") if sent is not None else "-"})
+        except Exception:  # noqa: BLE001 - a repair that cannot be shown never stops the check or the sending
+            _LOGGER.debug("OpenThermostat: the heating input repair could not be updated", exc_info=True)
+
+    @callback
+    def stop(self):
+        """The entry unloads: the repair goes with it (the next run judges afresh)."""
+        self._issue(None)
+
+    def attributes(self):
+        """The ``ha_input`` attribute: does the E32 get Home Assistant's values, when it last took one (and refused
+        one, and why), the last send and error. Times to the minute (the diagnostics have the exact ages)."""
+        now, wall = self.clock(), self.wall()
+        age = e32_input_age(self.hub, now)
+        ha = self.hub.status.get("ha") if self.hub.fresh else None
+        rejected = ha.get("last_rejected") if type(ha) is dict else None
+        refused = _e32_age(self.hub, rejected.get("age_s"), now) if type(rejected) is dict else None
+        return {"state": self.state(age),
+                "e32_last_input": _iso_minute(wall - timedelta(seconds=age)) if age is not None else None,
+                "e32_last_rejected": {"reason": rejected.get("reason"), "at": _iso_minute(wall - timedelta(seconds=refused))}
+                if refused is not None and type(rejected.get("reason")) is str else None,
+                "last_sent": _iso_minute(self.link.sent_at), "last_error": self.link.error,
+                "last_error_at": _iso_minute(self.link.error_at), "dropped": self.link.dropped}
+
+    def diagnostics(self):
+        now = self.clock()
+        age = e32_input_age(self.hub, now)
+        ha = self.hub.status.get("ha") if self.hub.fresh else None
+        return {**self.link.diagnostics(), "state": self.state(age),
+                "e32_input_age_s": round(age, 1) if age is not None else None,
+                "e32_ha": ha if type(ha) is dict else None,
+                "not_received_for_s": round(now - self.lost_since, 1) if self.lost_since is not None else None}
 
 
 def topic_base(hass, entry):
@@ -1084,6 +1354,8 @@ class HeatRequestSensor(HubEntity, SensorEntity):
     _attr_translation_key = "heat_request"
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    # Whether the E32 gets Home Assistant's values (HeatingInputWatch.attributes): live only, not in the history.
+    _unrecorded_attributes = frozenset({"ha_input"})
 
     def __init__(self, hub):
         self._attach(hub, "hub_heat_request")
@@ -1105,9 +1377,11 @@ class HeatRequestSensor(HubEntity, SensorEntity):
             return None
         status = self.hub.status
         active = status.get("active") if type(status.get("active")) is dict else {}
+        watch = getattr(self.hub, "input_watch", None)
         # control: the active-control state (E32 1.0), e.g. awaiting_confirmation before the takeover.
         return {"mode": status["mode"], "reason": status["request"]["reason"], "rooms": status["rooms"],
-                "revision": self.hub.revision, "control": active.get("state") if type(active.get("state")) is str else None}
+                "revision": self.hub.revision, "control": active.get("state") if type(active.get("state")) is str else None,
+                "ha_input": watch.attributes() if watch is not None else None}
 
 
 class RoomTemperatureSensor(RoomEntity, SensorEntity):
@@ -1850,6 +2124,7 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
         connection = _RetainedLink(state, topic_base(hass, entry))
     base = topic_base(hass, entry)
     hub = heating_hub(hass, entry)
+    hub.base = base  # the E32's telemetry arrives here, so its ha/heating_input listens here (HeatingInputLink)
     options = add_options(hass, entry, options)
     sensor = HeatRequestSensor(hub)
     async_add_entities([sensor], **options)
@@ -1874,9 +2149,8 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     forwarded = []
     unsubscribe_states = None
     was_fresh = False
-
-    def send(payload):
-        publish_input(hass, base + "ha/heating_input", payload)
+    # Room, energy and comfort values all leave through the entry's link (P22: per entry, never stuck).
+    send = heating_input_link(hass, entry, hub).send
 
     def publish(entity_id):
         payload = input_payload(hass.states.get(entity_id), hass.config.units.temperature_unit)
@@ -1931,6 +2205,14 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
         if unsubscribe_states is not None:
             unsubscribe_states()
 
+    @callback
+    def resend():
+        """Everything at once through the fresh link (HeatingInputWatch): rooms, energy, contacts and presence."""
+        refresh()
+        comfort = state.get("comfort_forwarder")
+        if comfort is not None:
+            comfort.publish()
+
     await mqtt.async_wait_for_mqtt_client(hass)
     entry.async_on_unload(hub.add_listener(follow, first=True))
     for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", TRV_TOPIC + "+", PLAN_TOPIC,
@@ -1940,5 +2222,9 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     entry.async_on_unload(async_track_time_interval(hass, refresh, timedelta(seconds=REFRESH_SECONDS)))
     entry.async_on_unload(async_track_time_interval(hass, hub.check_stale, STALE_CHECK))
     entry.async_on_unload(unload)
+    # Does the E32 accept what is sent? A warning, a fresh resend and a repair when it does not (P22).
+    watch = hub.input_watch = HeatingInputWatch(hass, entry, hub, heating_input_link(hass, entry, hub), resend)
+    entry.async_on_unload(async_track_time_interval(hass, watch.check, INPUT_CHECK))
+    entry.async_on_unload(watch.stop)
     energy.reconfigure()
     entry.async_on_unload(energy.stop)

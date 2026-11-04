@@ -11,6 +11,11 @@ replays test/fixtures/replay/house-shadow.csv in shadow and active mode and chec
 
 Plus the converters on small inline inputs. Skipped without g++ or without the fixture.
 
+rc.5 (P4): synth.py on a small synthetic house made here (no recorded data): the boiler holds
+its target up to +5 K, stops there, rests its anti-cycle and keeps the rows; score.py on
+hand-made replay JSONs (the table, the change column, malformed input); and, with g++, a replay
+of the synthetic CSV scored by score.py (held events counted once the firmware has BoilerResponse).
+
     python3 tools/replay/test_replay.py [-v]
 Environment: as run.sh (REPLAY_BUILD, REPLAY_LIBDEPS, REPLAY_REV, CXX).
 """
@@ -40,6 +45,52 @@ EXPECTED_FAIL = {}
 sys.path.insert(0, str(HERE))
 import from_ha  # noqa: E402
 import from_mqtt  # noqa: E402
+import score  # noqa: E402
+import synth  # noqa: E402
+
+SYNTH_COLUMNS = ['utc', 'room1.temp_c', 'room1.target_c', 'flow_c', 'return_c', 'burner', 'heating_active', 'dhw_active', 'modulation_pct',
+                 'e32_heat', 'e32_flow_c', 'e32_reason', 'thermostat_flow_c', 'outdoor_c', 'mode']
+
+
+def synthetic_house(path, hours=6, step=10):
+    """A small made-up recording (no recorded data): one room warming while heat is asked, the E32
+    asking 32 C (a load the boiler's minimum is too much for), 50 C (it modulates) and nothing in
+    turns, the old thermostat asking 38 C in the first half (shadow), then active, and one 3-minute
+    hot-water run. The target rises 18.5 -> 21.0 after 2 h with the room less than 1 K below it (no
+    warm-up). Returns the rows written."""
+    rows, temp, t0 = [], 20.2, 1794283200  # 2026-11-10 04:00 UTC
+    for k in range(hours * 3600 // step):
+        t = t0 + k * step
+        minute = k * step // 60
+        phase = minute % 90
+        flow = 32 if phase < 40 else 50 if phase < 70 else 0
+        temp += (0.15 if flow else -0.2) * step / 3600
+        active = minute >= hours * 30
+        rows.append({'utc': t, 'room1.temp_c': f'{temp:.2f}', 'room1.target_c': '18.5' if minute < 120 else '21.0',
+                     'flow_c': '45.0', 'return_c': '40.0', 'burner': '0', 'heating_active': '0',
+                     'dhw_active': '1' if 150 <= minute < 153 else '0', 'modulation_pct': '0',
+                     'e32_heat': '1' if flow else '0', 'e32_flow_c': str(flow), 'e32_reason': 'heating' if flow else 'idle',
+                     'thermostat_flow_c': '' if active else ('38' if phase < 60 else '0'), 'outdoor_c': '6.0',
+                     'mode': 'active' if active else 'shadow'})
+    with open(path, 'w', encoding='utf-8', newline='\n') as fh:
+        fh.write('# made up for tools/replay/test_replay.py: one room, 6 h, no recorded data\n')
+        w = csv.DictWriter(fh, SYNTH_COLUMNS, lineterminator='\n')
+        w.writeheader()
+        w.writerows(rows)
+    return rows
+
+
+def read_synth(path):
+    with open(path, encoding='utf-8') as fh:
+        lines = fh.read().splitlines()
+    comments = [line for line in lines if line.startswith('#')]
+    return comments, list(csv.DictReader(line for line in lines if not line.startswith('#')))
+
+
+def quiet(fn, *args):
+    with contextlib.redirect_stdout(io.StringIO()) as out, contextlib.redirect_stderr(io.StringIO()) as err:
+        code = fn(*args)
+    return code, out.getvalue(), err.getvalue()
 
 
 def expected_fail(fn):
@@ -153,6 +204,186 @@ class Converters(unittest.TestCase):
         self.assertEqual((rows[0]['flow_c'], rows[0]['dhw_active'], rows[0]['room1.temp_c']), ('40.5', '1', ''))
         self.assertEqual((rows[1]['room1.temp_c'], rows[1]['room1.target_c']), ('20.1', '21.0'))  # attributes at last_updated
         self.assertEqual((rows[3]['flow_c'], rows[3]['e32_flow_c'], rows[3]['e32_heat'], rows[3]['mode']), ('', '35.0', '1', 'shadow'))
+
+
+class Synth(unittest.TestCase):
+    """synth.py: a holding boiler under the made-up house's requests."""
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.dir = Path(cls.tmp.name)
+        cls.house = cls.dir / 'house-made-up.csv'
+        cls.rows = synthetic_house(cls.house)
+        cls.out = cls.dir / 'synth.csv'
+        cls.code, cls.text, _ = quiet(synth.main, [str(cls.house), str(cls.out)])
+        cls.comments, cls.synth = read_synth(cls.out)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def test_keeps_the_rows_and_says_what_it_is(self):
+        self.assertEqual(self.code, 0)
+        self.assertEqual([r['utc'] for r in self.synth], [str(r['utc']) for r in self.rows])
+        self.assertTrue(self.comments[0].startswith('# synthetic (tools/replay/synth.py) from house-made-up.csv: a holding boiler'))
+        self.assertTrue(any(c.startswith('# input: made up for tools/replay/test_replay.py') for c in self.comments))
+        for a, b in zip(self.rows, self.synth):  # driver e32: active, no thermostat; rooms and requests are the input's
+            self.assertEqual((b['mode'], b['thermostat_flow_c'], b['dhw_active']), ('active', '', '0'))
+            self.assertEqual((b['room1.temp_c'], b['room1.target_c'], b['e32_heat'], b['e32_flow_c']),
+                             (a['room1.temp_c'], a['room1.target_c'], a['e32_heat'], a['e32_flow_c']))
+
+    def test_holds_its_target_and_rests_its_anti_cycle(self):
+        held, stopped = 0, None
+        for prev, row in zip(self.synth, self.synth[1:]):
+            req = float(row['e32_flow_c']) if row['e32_heat'] == '1' else 0
+            flow, at = float(row['flow_c']), int(row['utc'])
+            if prev['burner'] == '1' and row['burner'] == '0' and req >= 20:
+                self.assertGreaterEqual(flow, req + 5 - 0.5, f'stopped below its held target at {at}')
+                held, stopped = held + 1, at
+            if prev['burner'] == '0' and row['burner'] == '1' and stopped is not None:
+                self.assertGreaterEqual(at - stopped, 600 - 10, f'fired again inside its anti-cycle at {at}')
+                stopped = None
+            if row['burner'] == '1' and req >= 20:
+                self.assertLessEqual(flow, req + 5 + 1, f'ran past its held target at {at}')
+                self.assertGreaterEqual(float(row['modulation_pct']), 25, f'modulated below its minimum at {at}')
+            self.assertEqual(row['heating_active'], '1' if req >= 20 else '0')
+        self.assertGreaterEqual(held, 6, 'the 32 C requests are less than the boiler minimum: it must hold')
+        self.assertIn('held targets', self.text)
+
+    def test_recorded_driver_follows_the_controller_of_each_row(self):
+        out = self.dir / 'recorded.csv'
+        self.assertEqual(quiet(synth.main, [str(self.house), str(out), '--driver', 'recorded', '--hot-water', 'recorded'])[0], 0)
+        _, rows = read_synth(out)
+        self.assertEqual([(r['mode'], r['thermostat_flow_c']) for r in rows], [(r['mode'], r['thermostat_flow_c']) for r in self.rows])
+        self.assertEqual(sum(r['dhw_active'] == '1' for r in rows), 18)  # the 3-minute hot-water run
+        for r in rows:
+            if r['mode'] == 'shadow' and r['dhw_active'] == '0':  # the old thermostat's 38 C drives the shadow rows
+                self.assertEqual(r['heating_active'], '1' if r['thermostat_flow_c'] == '38' else '0')
+
+    def test_is_deterministic(self):
+        again = self.dir / 'again.csv'
+        quiet(synth.main, [str(self.house), str(again)])
+        self.assertEqual(again.read_bytes(), self.out.read_bytes())
+
+    def test_refuses_a_file_without_utc(self):
+        bad = self.dir / 'bad.csv'
+        bad.write_text('flow_c\n40\n41\n', encoding='utf-8')
+        with self.assertRaises(SystemExit):
+            quiet(synth.main, [str(bad), str(self.dir / 'never.csv')])
+
+
+def replay_json(**runs):
+    """A minimal replay JSON (replay.cpp's shape) with one score per mode."""
+    base = {'heating_h': 10.0, 'burner_starts': 30, 'heating_starts': 25, 'starts_per_heating_h': 2.5, 'request_mean_c': 44.0,
+            'flow_mean_c': 46.0, 'return_mean_c': 40.0, 'heating_kwh': 50.0, 'optimum_start_h': 1.0, 'arrivals': []}
+    return {'tool': 'openthermostat-replay', 'schema': 1, 'inputs': {'rows': 10, 'first_local': 'a', 'last_local': 'b'},
+            'firmware': {}, 'runs': [{'mode': m, 'score': {**base, **s}} for m, s in runs.items()]}
+
+
+class Score(unittest.TestCase):
+    """score.py on hand-made replay JSONs."""
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def write(self, name, doc):
+        path = Path(self.tmp.name) / name
+        path.write_text(doc if isinstance(doc, str) else json.dumps(doc), encoding='utf-8')
+        return str(path)
+
+    @staticmethod
+    def cells(out, label):
+        return next(line for line in out.splitlines() if line.strip().startswith(label))[40:].split()
+
+    def test_before_after_table(self):
+        before = self.write('before.json', replay_json(active={}))
+        after = self.write('after.json', replay_json(active={
+            'request_mean_c': 41.5, 'heating_starts': 20, 'starts_per_heating_h': 2.0, 'return_mean_c': None,
+            'arrivals': [{'room': 'room1', 'rise_local': '2026-11-10 07:00', 'error_min': 12}, {'room': 'room1', 'rise_local': '2026-11-11 07:00', 'error_min': -4}],
+            'boiler': {'held': 7, 'state': 'learned', 'rest_s': 610, 'ceiling_c': [None, None, 44, 42, None, None]}}))
+        code, out, err = quiet(score.main, [after, before])
+        self.assertEqual((code, err), (0, ''))
+        self.assertIn('[active]', out)
+        self.assertEqual(self.cells(out, 'mean request while heating (C)'), ['44.0', '41.5', '-2.5'])
+        self.assertEqual(self.cells(out, 'heating starts'), ['25', '20', '-5'])
+        self.assertEqual(self.cells(out, 'starts per heating hour'), ['2.50', '2.00', '-0.50'])
+        self.assertEqual(self.cells(out, 'mean return while heating (C)'), ['40.0', '-'])  # unknown: no change
+        self.assertEqual(self.cells(out, 'arrival room1: mean error (min)'), ['-', '4'])
+        self.assertEqual(self.cells(out, 'arrival room1: mean |error| (min)'), ['-', '8'])
+        self.assertEqual(self.cells(out, 'arrival room1: judged mornings'), ['-', '2'])
+        self.assertEqual(self.cells(out, 'held events'), ['-', '7'])
+        self.assertEqual(self.cells(out, 'ceiling, outdoor 5..10 C'), ['-', '42'])
+        self.assertIn('room1 2026-11-10 07:00 +12 min, room1 2026-11-11 07:00 -4 min', out)
+
+    def test_one_file_has_one_column(self):
+        code, out, _ = quiet(score.main, [self.write('one.json', replay_json(shadow={}, active={'heating_h': 3.25}))])
+        self.assertEqual(code, 0)
+        self.assertIn('[shadow]', out)
+        self.assertEqual(self.cells(out.split('[active]')[1], 'heating hours'), ['3.25'])
+
+    def test_malformed_input_exits_2(self):
+        good = replay_json(active={})
+        score_of = good['runs'][0]['score']
+        cases = {
+            'missing.json': None,
+            'text.json': 'not json',
+            'other.json': {'tool': 'something else', 'runs': []},
+            'no-runs.json': {**good, 'runs': []},
+            'no-score.json': {**good, 'runs': [{'mode': 'active'}]},
+            'bad-number.json': {**good, 'runs': [{'mode': 'active', 'score': {**score_of, 'heating_h': 'ten'}}]},
+            'bad-arrivals.json': {**good, 'runs': [{'mode': 'active', 'score': {**score_of, 'arrivals': [{'room': 1}]}}]},
+            'bad-boiler.json': {**good, 'runs': [{'mode': 'active', 'score': {**score_of, 'boiler': {'held': 1, 'ceiling_c': [40] * 5}}}]},
+            'twice.json': {**good, 'runs': good['runs'] * 2},
+        }
+        for name, doc in cases.items():
+            path = str(Path(self.tmp.name) / name) if doc is None else self.write(name, doc)
+            with self.subTest(name):
+                code, out, err = quiet(score.main, [path])
+                self.assertEqual((code, out), (2, ''))
+                self.assertIn('score.py:', err)
+        self.assertEqual(quiet(score.main, [])[0], 2)
+        self.assertEqual(quiet(score.main, ['-v'])[0], 2)
+
+
+@unittest.skipUnless(shutil.which('g++'), 'needs g++')
+class SyntheticReplay(unittest.TestCase):
+    """synth.py -> replay (active, the recorded request, the default plan: the CSV's target) -> score.py,
+    on the made-up house."""
+    @classmethod
+    def setUpClass(cls):
+        binary = build()
+        cls.tmp = tempfile.TemporaryDirectory()
+        d = Path(cls.tmp.name)
+        synthetic_house(d / 'house.csv')
+        quiet(synth.main, [str(d / 'house.csv'), str(d / 'synth.csv')])
+        cls.out, cls.text = replay(binary, '--mode', 'active', '--recorded-request', '--apply-learned', '--weather-curve', '--no-grace',
+                                   str(d / 'synth.csv'))
+        (d / 'replay.json').write_text(json.dumps(cls.out), encoding='utf-8')
+        cls.scored = quiet(score.main, [str(d / 'replay.json')])
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def test_the_replay_scores_the_synthetic_boiler(self):
+        s = self.out['runs'][0]['score']
+        self.assertGreater(s['heating_h'], 3)
+        self.assertGreater(s['heating_starts'], 3)
+        self.assertGreater(s['request_mean_c'], 32)   # the recorded 32 and 50 C
+        self.assertLess(s['request_mean_c'], 50)
+        code, out, _ = self.scored
+        self.assertEqual(code, 0)
+        self.assertIn('[active]', out)
+
+    def test_boiler_response_hears_the_held_targets(self):
+        if not self.out['firmware'].get('boiler_response'):
+            self.skipTest('the firmware has no BoilerResponse yet (rc.5 P1)')
+        boiler = self.out['runs'][0]['score']['boiler']
+        self.assertGreaterEqual(boiler['held'], 1, 'a boiler that holds the E32 target again and again is not heard')
+        self.assertIsNotNone(boiler['rest_s'])
+        self.assertGreaterEqual(boiler['rest_s'], 540)  # its own 10-minute anti-cycle
 
 
 if __name__ == '__main__':

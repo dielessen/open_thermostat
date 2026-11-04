@@ -338,6 +338,7 @@ struct Options {
     bool gains = false; // free heat a room shows without the boiler: afternoon sun in the living room, cooking in the kitchen
     std::string profile = "store";
     double activeFromH = -1;                  // the first switch to active mode after this many hours (default: 3-6 days)
+    bool mostlyActive = false;                // the E32 drives most of the time: active phases of 2-7 days, shadow phases of about 7 h
     std::string outDir = "/tmp";
 };
 Options opt;
@@ -920,7 +921,7 @@ void Chain::guardPhases() {
         case Phase::armingOwner:
             if (chance(0.9)) tadoConnected_ = false; // 10 %: the owner confirms but forgot to disconnect
             guard_.confirm(now_, true); confirmedAt_ = now_;
-            phase_ = Phase::active; nextPhase_ = now_ + uint64_t(uniformInt(6, 48)) * 3600000;
+            phase_ = Phase::active; nextPhase_ = now_ + uint64_t(o_.mostlyActive ? uniformInt(48, 168) : uniformInt(6, 48)) * 3600000;
             if (chance(0.3)) { phaseUntil_ = now_ + uint64_t(uniformInt(1, 5)) * 3600000; } else phaseUntil_ = 0; // tado comes back
             break;
         case Phase::active: case Phase::blockedWait: {
@@ -929,7 +930,7 @@ void Chain::guardPhases() {
             applyPlan(p, "mode_shadow");
             confirmedAt_.reset();
             tadoConnected_ = true;
-            phase_ = Phase::shadow; nextPhase_ = now_ + uint64_t(expo(4.0 * 86400.0) * 1000) + 6 * 3600000ull;
+            phase_ = Phase::shadow; nextPhase_ = now_ + uint64_t(expo(o_.mostlyActive ? 6.0 * 3600.0 : 4.0 * 86400.0) * 1000) + (o_.mostlyActive ? 3600000ull : 6 * 3600000ull);
             break;
         }
     }
@@ -3284,7 +3285,7 @@ void usage() {
     std::fprintf(stderr, "soak --scenario=chain|guard|active|flow|supervisor|sizes|repro|slowwifi [--name=] [--tz=POSIX] [--start=YYYY-MM-DDTHH:MM:SSZ] [--days=60]\n"
                          "     [--uptime0=ms] [--seed=n] [--step-ms=10000] [--mqtt-s=300] [--learned-s=900] [--full-s=3600] [--edit-h=4]\n"
                          "     [--live-dhw-flow] [--boiler-outdoor] [--no-oom] [--no-active] [--flow-options] [--out=/tmp/soak]\n"
-                         "     [--profile=store|no_return|holding|radiators_only|floor_only|gains[,...]] [--active-from-h=H]\n");
+                         "     [--profile=store|no_return|holding|radiators_only|floor_only|gains[,...]] [--active-from-h=H] [--mostly-active]\n");
 }
 
 // --profile=a,b: the boiler and emitter profile of the chain (README "Boiler profiles").
@@ -3331,6 +3332,7 @@ int main(int argc, char** argv) {
         else if (a == "--flow-options") opt.flowOptions = true;
         else if (const char* v = value("--profile=")) { if (!parseProfile(v)) { usage(); return 2; } }
         else if (const char* v = value("--active-from-h=")) opt.activeFromH = std::atof(v);
+        else if (a == "--mostly-active") opt.mostlyActive = true;
         else { usage(); return 2; }
     }
     if (opt.stepMs < 1000 || opt.stepMs % 1000 || opt.stepMs > 30000) { std::fprintf(stderr, "--step-ms must be whole seconds in 1..30 s\n"); return 2; }

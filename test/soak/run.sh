@@ -44,10 +44,10 @@ chain-santiago|--scenario=chain --tz=<-04>4<-03>,M9.1.6/24,M4.1.6/24 --start=202
 chain-sydney-churn|--scenario=chain --tz=AEST-10AEDT,M10.1.0,M4.1.0/3 --start=2026-09-25T00:00:00Z --days=20 --seed=5 --edit-h=0.25 --no-oom
 chain-kathmandu-30s|--scenario=chain --tz=<+0545>-5:45 --start=2026-12-01T00:00:00Z --days=60 --seed=6 --step-ms=30000 --no-oom
 chain-ams-options|--scenario=chain --tz=CET-1CEST,M3.5.0,M10.5.0/3 --start=2026-09-20T12:34:50Z --days=60 --seed=12 --flow-options --boiler-outdoor --no-oom
-chain-ams-holding|--scenario=chain --tz=CET-1CEST,M3.5.0,M10.5.0/3 --start=2026-09-20T12:34:50Z --days=60 --seed=13 --flow-options --boiler-outdoor --profile=holding,gains --no-oom
-chain-ams-no-return|--scenario=chain --tz=CET-1CEST,M3.5.0,M10.5.0/3 --start=2026-09-20T12:34:50Z --days=60 --seed=14 --flow-options --boiler-outdoor --profile=no_return,gains --no-oom
-chain-ams-radiators|--scenario=chain --tz=CET-1CEST,M3.5.0,M10.5.0/3 --start=2026-11-01T06:00:00Z --days=30 --seed=15 --flow-options --profile=radiators_only,holding,gains --no-oom
-chain-ams-floor|--scenario=chain --tz=CET-1CEST,M3.5.0,M10.5.0/3 --start=2026-11-01T06:00:00Z --days=30 --seed=16 --flow-options --boiler-outdoor --profile=floor_only,no_return,gains --no-oom
+chain-ams-holding|--scenario=chain --tz=CET-1CEST,M3.5.0,M10.5.0/3 --start=2026-09-20T12:34:50Z --days=60 --seed=13 --flow-options --boiler-outdoor --profile=holding,gains --mostly-active --active-from-h=6 --no-oom
+chain-ams-no-return|--scenario=chain --tz=CET-1CEST,M3.5.0,M10.5.0/3 --start=2026-09-20T12:34:50Z --days=60 --seed=14 --flow-options --boiler-outdoor --profile=no_return,gains --mostly-active --active-from-h=6 --no-oom
+chain-ams-radiators|--scenario=chain --tz=CET-1CEST,M3.5.0,M10.5.0/3 --start=2026-11-01T06:00:00Z --days=30 --seed=15 --flow-options --profile=radiators_only,holding,gains --mostly-active --active-from-h=6 --no-oom
+chain-ams-floor|--scenario=chain --tz=CET-1CEST,M3.5.0,M10.5.0/3 --start=2026-11-01T06:00:00Z --days=30 --seed=16 --flow-options --boiler-outdoor --profile=floor_only,no_return,gains --mostly-active --active-from-h=6 --no-oom
 guard|--scenario=guard --days=60 --seed=7
 active|--scenario=active --days=200 --seed=10
 flow|--scenario=flow --days=60 --seed=9

@@ -50,7 +50,8 @@ struct Deadband {
 };
 inline constexpr Deadband roomBands[] = {{"temperature", 0.1}};
 inline constexpr Deadband bleBands[] = {{"temperature", 0.1}, {"humidity", 1}, {"age_s", -1}};
-inline constexpr Deadband heatingBands[] = {{"flow_c", 1}, {"input_age_s", -1}, {"age_s", -1}, {"listened_s", -1}};
+inline constexpr Deadband heatingBands[] = {{"flow_c", 1}, {"input_age_s", -1}, {"age_s", -1}, {"listened_s", -1},
+                                            {"resubscribed_s", -1}};
 // learned/<room>: a new result, not the advice that follows the room minute by minute.
 inline constexpr Deadband learnedBands[] = {{"now", -1}, {"plan", -1}};
 

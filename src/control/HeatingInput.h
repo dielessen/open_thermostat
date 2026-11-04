@@ -19,7 +19,9 @@ namespace heating::control {
 //  - {"kind":"outdoor_c","entity":"sensor.outdoor","value":7.4}: -50..60 degC;
 //  - {"kind":"boiler_kw","value":22}: nominal boiler gas input, 3..60 kW;
 //  - {"kind":"gas_kwh_per_m3","value":9.77}: calorific value of the gas, 5..15.
-// Anything else (unknown kind, a value out of range, a missing entity) is ignored.
+// Anything else (unknown kind, a value out of range, a missing entity) is ignored; why is
+// reported as ha.last_rejected (P22): too_large, invalid_json, no_entity, unknown_kind,
+// invalid_value (and from RoomOverrides: unknown_room).
 struct HeatingInput {
     enum class Kind : uint8_t { room, gasM3, gasPrice, outdoorC, boilerKw, gasKwhPerM3 };
     static constexpr size_t maxBytes = 256, maxEntity = 80;
@@ -28,12 +30,17 @@ struct HeatingInput {
     std::optional<int16_t> temperatureCentiC, targetCentiC; // room
     double value = 0;                                       // typed kinds
 
-    static std::optional<HeatingInput> parse(std::string_view payload) {
-        if (payload.size() > maxBytes) return std::nullopt;
+    // why: set to the reason (a string literal) when the message is refused.
+    static std::optional<HeatingInput> parse(std::string_view payload, const char** why = nullptr) {
+        const auto refuse = [&](const char* reason) -> std::optional<HeatingInput> {
+            if (why) *why = reason;
+            return std::nullopt;
+        };
+        if (payload.size() > maxBytes) return refuse("too_large");
         // A retained deep message would otherwise crash every boot (cJSON recursion).
-        if (!jsonNestingWithin(payload.data(), payload.size(), 4)) return std::nullopt;
+        if (!jsonNestingWithin(payload.data(), payload.size(), 4)) return refuse("invalid_json");
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_ParseWithLength(payload.data(), payload.size()), cJSON_Delete);
-        if (!cJSON_IsObject(root.get())) return std::nullopt;
+        if (!cJSON_IsObject(root.get())) return refuse("invalid_json");
         const auto* o = root.get();
         HeatingInput in;
         const auto* entity = cJSON_GetObjectItemCaseSensitive(o, "entity");
@@ -42,7 +49,7 @@ struct HeatingInput {
         if (hasEntity) in.entity = entity->valuestring;
         const auto* kind = cJSON_GetObjectItemCaseSensitive(o, "kind");
         if (!kind) {
-            if (!hasEntity) return std::nullopt;
+            if (!hasEntity) return refuse("no_entity");
             const auto centi = [&](const char* key, double lo, double hi) -> std::optional<int16_t> {
                 const auto* v = cJSON_GetObjectItemCaseSensitive(o, key);
                 if (!cJSON_IsNumber(v) || !(v->valuedouble >= lo && v->valuedouble <= hi)) return std::nullopt;
@@ -52,18 +59,23 @@ struct HeatingInput {
             in.targetCentiC = centi("target", 5, 30);
             return in;
         }
-        if (!cJSON_IsString(kind) || !kind->valuestring) return std::nullopt;
-        const auto* v = cJSON_GetObjectItemCaseSensitive(o, "value");
-        if (!cJSON_IsNumber(v) || !std::isfinite(v->valuedouble)) return std::nullopt;
-        in.value = v->valuedouble;
+        if (!cJSON_IsString(kind) || !kind->valuestring) return refuse("unknown_kind");
         const std::string_view k = kind->valuestring;
-        const auto within = [&](double lo, double hi) { return in.value >= lo && in.value <= hi; };
-        if (k == "gas_m3" && hasEntity && within(0, 1e8)) in.kind = Kind::gasM3;
-        else if (k == "gas_price" && in.value > 0 && in.value <= FlowLearner::maxGasPrice) in.kind = Kind::gasPrice;
-        else if (k == "outdoor_c" && hasEntity && within(-50, 60)) in.kind = Kind::outdoorC;
-        else if (k == "boiler_kw" && within(3, 60)) in.kind = Kind::boilerKw;
-        else if (k == "gas_kwh_per_m3" && within(5, 15)) in.kind = Kind::gasKwhPerM3;
-        else return std::nullopt;
+        bool needsEntity = false;
+        double lo = 0, hi = 0;
+        if (k == "gas_m3") { in.kind = Kind::gasM3; needsEntity = true; hi = 1e8; }
+        else if (k == "gas_price") { in.kind = Kind::gasPrice; hi = FlowLearner::maxGasPrice; }
+        else if (k == "outdoor_c") { in.kind = Kind::outdoorC; needsEntity = true; lo = -50; hi = 60; }
+        else if (k == "boiler_kw") { in.kind = Kind::boilerKw; lo = 3; hi = 60; }
+        else if (k == "gas_kwh_per_m3") { in.kind = Kind::gasKwhPerM3; lo = 5; hi = 15; }
+        else return refuse("unknown_kind");
+        if (needsEntity && !hasEntity) return refuse("no_entity");
+        const auto* v = cJSON_GetObjectItemCaseSensitive(o, "value");
+        if (!cJSON_IsNumber(v) || !std::isfinite(v->valuedouble)) return refuse("invalid_value");
+        in.value = v->valuedouble;
+        // A gas price must be above zero; every other range includes its ends.
+        if (in.kind == Kind::gasPrice ? !(in.value > 0 && in.value <= hi) : !(in.value >= lo && in.value <= hi))
+            return refuse("invalid_value");
         return in;
     }
 };
@@ -74,8 +86,9 @@ class HeatingInputRoute {
 public:
     static constexpr uint64_t outdoorMaxAgeMs = 900000; // HA's outdoor expires after 15 min
     bool accept(std::string_view payload, uint64_t now, RoomEngine& rooms, FlowLearner& learner) {
-        const auto in = HeatingInput::parse(payload);
-        if (!in) return false;
+        const char* why = nullptr;
+        const auto in = HeatingInput::parse(payload, &why);
+        if (!in) { reject(why ? why : "invalid_json", now); return false; }
         switch (in->kind) {
             case HeatingInput::Kind::room: rooms.haState(in->entity, in->temperatureCentiC, in->targetCentiC, now); break;
             case HeatingInput::Kind::gasM3: learner.gasMeter(in->value, now); break;
@@ -90,6 +103,11 @@ public:
     }
     // Uptime ms of the last accepted message (any kind); nullopt: none this boot.
     std::optional<uint64_t> lastAcceptedMs() const { return lastAccepted_; }
+    // A refused message (parse() here, RoomOverrides::input for contacts and presence), for ha.last_rejected:
+    // "Home Assistant's values are refused" instead of "Home Assistant is gone" (P22). reason: a string literal.
+    struct Rejection { const char* reason = nullptr; uint64_t atMs = 0; };
+    void reject(const char* reason, uint64_t now) { lastRejected_ = {reason, now}; }
+    Rejection lastRejected() const { return lastRejected_; }
     struct Outdoor { std::optional<int16_t> centiC; const char* source = nullptr; };
     // The learner's outdoor: a fresh boiler value first, else HA's while fresh.
     Outdoor outdoor(std::optional<int16_t> boilerCentiC, uint64_t now) const {
@@ -100,6 +118,7 @@ public:
 
 private:
     std::optional<uint64_t> lastAccepted_;
+    Rejection lastRejected_;
     std::optional<int16_t> outdoorCentiC_;
     uint64_t outdoorAt_ = 0;
 };

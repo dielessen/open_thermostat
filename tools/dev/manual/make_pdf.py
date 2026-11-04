@@ -332,16 +332,29 @@ def content():
          KeepTogether([
          p("Het dashboard", "h2"),
          p("Open in de zijbalk het dashboard <b>OpenThermostat</b>. Het heeft zes tabbladen:"),
+         # The names that come with HA 1.0.0rc6 (docs/modern-thermostat/RC5-DASHBOARD-SPEC.md) are plain <b> until they are in the
+         # Dutch dashboard texts of dashboard.py (Overige ruimtes, Vandaag en deze week, Wat de ketel meldt, Gisteren in cijfers, Wie
+         # regelt de ketel) or in translations/nl.json (Wat de E32 weet, Watertemperatuur bij buitentemperatuur). Then move them
+         # into ui() so that tools/dev/test_manual_labels.py checks them.
          table([["Tabblad", "Wat je ziet"],
-                [ui("Overzicht"), "Het huis (met de huismodus en de volgende vakantie), een eventueel probleem met de reden, en een kaart per ruimte "
-                 "die in één regel zegt waarom ze verwarmt of niet."],
+                [ui("Overzicht"), "Bovenaan de <b>huiskaart</b>: een strook in de kleur van wat de ketel nu doet (verwarmt, warm water of in rust), "
+                 "met de huismodus rechts. Bij een probleem wordt de strook rood met de reden; een tik brengt je bij Reparaties. Onder de strook "
+                 "staan de cijfers van vandaag (verwarming, warm water, gas met de laatste 7 dagen, branderstarts) en de dag tot nu toe als balk. "
+                 "Daaronder komen de huismodus, de volgende vakantie en een kaart per ruimte die in één regel zegt waarom ze verwarmt of niet. "
+                 "Staat er maar één ruimte aan, dan zit die in de huiskaart en staan de andere onder <b>Overige ruimtes</b>."],
                 [ui("Ruimtes"), "Per ruimte de thermostaat, de dag, de sensoren, ramen en personen, en wat de E32 leerde."],
                 [ui("Weekprogramma"), "De weekplanner voor alle ruimtes."],
-                [ui("Ketel"), "Alles over de ketel op één plek."],
-                [ui("Leren en instellingen"), "Wat de E32 weet en nog moet leren, de reactie van de ketel, gisteren vergeleken met normaal, "
-                 "wat de E32 leerde, " + ui("Gisteren") + " in cijfers, Slim opwarmen, de weerafhankelijke regeling met haar grafiek "
-                 "en de controle voor de overname."],
-                [ui("Diagnose"), "Voor het zoeken naar fouten."]],
+                [ui("Ketel"), "In de volgorde van wat je nodig hebt: " + ui("Nu") + " (wat de ketel doet, met de displaycode, de watertemperaturen "
+                 "en het brandervermogen), " + ui("Advies") + ", <b>Vandaag en deze week</b> (gas en branderstarts van vandaag, met één grafiek "
+                 "met het gas per dag van de laatste week), " + ui("Warm water") + ", " + ui("Afgelopen 24 uur") + ", <b>Wat de ketel meldt</b> en "
+                 + ui("Ketelinstellingen") + ". Een onderdeel verschijnt pas als de ketel er iets voor meldt. Gisteren staat hier niet; dat vind "
+                 "je bij " + ui("Leren en instellingen") + "."],
+                [ui("Leren en instellingen"), "Hier lees je wat de E32 zelf leerde en deed: <b>Wat de E32 weet</b> en nog moet leren, met de reactie "
+                 "van de ketel en gisteren vergeleken met normaal; <b>Gisteren in cijfers</b> (gisteren staat alleen hier); wat de "
+                 "thermostaat leerde over je ruimtes, je huis en je ketel, met de gratis warmte; Slim opwarmen en de weerafhankelijke regeling "
+                 "met de grafiek <b>Watertemperatuur bij buitentemperatuur</b>; en <b>Wie regelt de ketel</b>, met de controle voor de overname."],
+                [ui("Diagnose"), "Voor het zoeken naar fouten, met ook " + ui("Thermostaat op de bus") + ": wat een andere thermostaat aan de ketel "
+                 "vraagt, zoals de E32 het hoort."]],
                [48 * mm, W - 48 * mm])]),
          Spacer(1, 4),
          p("In de proefperiode (de E32 rekent mee maar stuurt de ketel nog niet) is er ook een onderdeel " + ui("Vergelijking")
@@ -406,7 +419,8 @@ def content():
                 ["Gisteren in cijfers", "Zodra de E32 een dag heeft gemeten, toont <b>Gisteren</b> hoe die dag ging: stooktijd, branderstarts per "
                  "stookuur, korte brandtijden, gas voor verwarmen (schatting), graaddagen en per ruimte hoeveel minuten te laat of te vroeg "
                  "ze warm was en hoeveel graden te warm. Home Assistant: dashboardtabblad " + ui("Leren en instellingen") + ", blok "
-                 + ui("Gisteren") + ". E32: <b>Huis → Wat de thermostaat heeft geleerd</b>, blok <b>Gisteren</b>."],
+                 "<b>Gisteren in cijfers</b> (gisteren staat op het dashboard alleen daar). E32: <b>Huis → Wat de thermostaat heeft geleerd</b>, "
+                 "blok <b>Gisteren</b>."],
                 # The names below (Kennis, Reactie van de ketel, Wat de E32 weet, Watertemperatuur bij buitentemperatuur) come with
                 # HA 1.0.0rc6 (branch rc5-ha-pages); they are plain <b> until they are in translations/nl.json. Then move them into
                 # ui() so that tools/dev/test_manual_labels.py checks them.
@@ -467,8 +481,9 @@ def content():
                  "(7 dagen bewaard). Wat hij van je ketel leerde (plafond en rust) zit er niet in; dat leert hij binnen enkele dagen opnieuw. "
                  "Zelf maken kan op <b>Systeem → Backup and restore</b>."],
                 ["Afmelden", "Onderaan het menu <b>Systeem</b> staat <b>Afmelden</b>, zodra je bent aangemeld. Daarmee sluit je je sessie op de E32."],
-                ["Problemen zien", "Het tabblad " + ui("Overzicht") + " toont " + ui("Verwarming") + " met de reden eronder; elk probleem staat ook onder "
-                 "<b>Instellingen → Systeem → Reparaties</b>. Een blauwdruk stuurt desgewenst een melding naar je telefoon."]],
+                ["Problemen zien", "Op het tabblad " + ui("Overzicht") + " wordt de strook van de huiskaart rood met \"Let op\" en de eerste reden; een tik "
+                 "brengt je bij Reparaties. Elk probleem staat ook onder <b>Instellingen → Systeem → Reparaties</b>. Een blauwdruk stuurt "
+                 "desgewenst een melding naar je telefoon."]],
                [42 * mm, W - 42 * mm]),
          p("Terug naar je oude thermostaat?", "h2"),
          p("Kan altijd: op de E32 <b>Ruimtes → Active control</b> → regeling teruggeven, en de oude thermostaat weer aansluiten. "

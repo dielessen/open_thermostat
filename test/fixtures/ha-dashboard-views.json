@@ -1028,6 +1028,96 @@
      {
       "cards": [
        {
+        "heading": "Yesterday",
+        "heading_style": "title",
+        "icon": "mdi:scoreboard-outline",
+        "type": "heading"
+       },
+       {
+        "content": "{% set parts = [] %}{% set v = states(\"sensor.woonkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [(\"warm \" ~ (m) ~ \" min late\") if m > 0 else (\"warm \" ~ (-m) ~ \" min early\") if m < 0 else \"warm on time\"] %}{% endif %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [(\"warm \" ~ (m) ~ \" min late\") if m > 0 else (\"warm \" ~ (-m) ~ \" min early\") if m < 0 else \"warm on time\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.burner_starts_per_heating_hour\") %}{% if is_number(v) %}{% set parts = parts + [\"Burner: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" starts per heating hour\"] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" h switching on and off too often\"] %}{% endif %}{% if parts %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.heating_gas_yesterday\") %}{% if is_number(v) %}{% set parts = parts + [\"Gas for heating: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" kWh\"] %}{% endif %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \".\"))) ~ \" kWh per degree-day\"] %}{% endif %}{% if parts %}- {{ parts | join(' · ') }}\n{% endif %}",
+        "type": "markdown"
+       },
+       {
+        "content": "Every day the thermostat checks whether each room was warm on time without getting too warm, how often the burner started and how much gas went to heating.\n\n<details><summary>More</summary>\n\nIt learns from this; every figure keeps its history on its own sensor.\n\n</details>",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_warm_on_time",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_overshoot",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_warm_on_time",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_overshoot",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.burner_starts_per_heating_hour",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.short_cycling_hours",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas_yesterday",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.gas_per_degree_day",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
         "heading": "Smart warm-up and weather compensation",
         "heading_style": "title",
         "icon": "mdi:chart-bell-curve-cumulative",
@@ -2382,6 +2472,96 @@
     "max_columns": 2,
     "path": "learned",
     "sections": [
+     {
+      "cards": [
+       {
+        "heading": "Gisteren",
+        "heading_style": "title",
+        "icon": "mdi:scoreboard-outline",
+        "type": "heading"
+       },
+       {
+        "content": "{% set parts = [] %}{% set v = states(\"sensor.woonkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [((m) ~ \" min te laat warm\") if m > 0 else ((-m) ~ \" min te vroeg warm\") if m < 0 else \"op tijd warm\"] %}{% endif %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [((m) ~ \" min te laat warm\") if m > 0 else ((-m) ~ \" min te vroeg warm\") if m < 0 else \"op tijd warm\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.burner_starts_per_heating_hour\") %}{% if is_number(v) %}{% set parts = parts + [\"Brander: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" starts per uur verwarmen\"] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" uur te vaak aan en uit\"] %}{% endif %}{% if parts %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.heating_gas_yesterday\") %}{% if is_number(v) %}{% set parts = parts + [\"Gas voor verwarmen: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" kWh\"] %}{% endif %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \",\"))) ~ \" kWh per graaddag\"] %}{% endif %}{% if parts %}- {{ parts | join(' · ') }}\n{% endif %}",
+        "type": "markdown"
+       },
+       {
+        "content": "Elke dag kijkt de thermostaat of elke ruimte op tijd warm was zonder te warm te worden, hoe vaak de brander startte en hoeveel gas naar verwarmen ging.\n\n<details><summary>Meer</summary>\n\nHij leert daarvan; elk getal houdt zijn geschiedenis bij op zijn eigen sensor.\n\n</details>",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_warm_on_time",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_overshoot",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_warm_on_time",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_overshoot",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.burner_starts_per_heating_hour",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.short_cycling_hours",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.heating_gas_yesterday",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.gas_per_degree_day",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
      {
       "cards": [
        {

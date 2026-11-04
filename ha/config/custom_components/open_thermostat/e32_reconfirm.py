@@ -76,11 +76,8 @@ def update_reconfirm_issue(hass, entry, hub):
 
 
 async def async_handover(link, disconnected):
-    """POST the handover over the room-plan link's stored connection (one login, its lock)."""
-    async with link._lock:
-        async with link._client() as client:
-            await link._login(client, link.claim())  # waits for a free E32 web session
-            return await client.async_handover(disconnected)
+    """POST the handover over the room-plan link's stored connection; waits for a free E32 web session."""
+    return await link.async_call(lambda client: client.async_handover(disconnected), write=True)
 
 
 class ReconfirmTakeoverRepairFlow(RepairsFlow):

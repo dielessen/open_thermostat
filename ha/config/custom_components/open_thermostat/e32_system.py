@@ -144,11 +144,8 @@ def link_for(hass, entry):
 
 
 async def async_e32_call(link, call, *, write):
-    """call(client) in one sign-in under the link's lock; a write waits for a free E32 web session."""
-    async with link._lock:
-        async with link._client() as client:
-            await link._login(client, link.claim() if write else None)
-            return await call(client)
+    """call(client) in one sign-in (RoomPlanLink.async_call); a write waits for a free E32 web session."""
+    return await link.async_call(call, write=write)
 
 
 def failure(err):

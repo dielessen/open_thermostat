@@ -3302,6 +3302,24 @@
             "name": "Grootte van de nieuwste back-up"
           }
         }
+      },
+      "room_warm_on_time": {
+        "name": "Op tijd warm"
+      },
+      "room_overshoot": {
+        "name": "Warmer dan gewenst"
+      },
+      "burner_starts_per_heating_hour": {
+        "name": "Branderstarts per uur verwarmen"
+      },
+      "short_cycling_hours": {
+        "name": "Uren te vaak aan en uit"
+      },
+      "heating_gas_yesterday": {
+        "name": "Gas voor verwarmen gisteren"
+      },
+      "gas_per_degree_day": {
+        "name": "Gas per graaddag"
       }
     },
     "select": {
@@ -3903,6 +3921,9 @@
     },
     "e32_restart_failed": {
       "message": "De herstart van de E32 is niet bevestigd ({error}). Controleer de verbinding en probeer het opnieuw."
+    },
+    "set_comfort_unsupported": {
+      "message": "{entity} is een E32-ruimte: gebruik in plaats daarvan Tijdelijk overrulen, Overrulen beëindigen of Afwezig."
     }
   },
   "device": {

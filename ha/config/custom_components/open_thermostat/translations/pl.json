@@ -2265,6 +2265,24 @@
             "name": "Rozmiar najnowszej kopii"
           }
         }
+      },
+      "room_warm_on_time": {
+        "name": "Ciepło na czas"
+      },
+      "room_overshoot": {
+        "name": "Przegrzanie"
+      },
+      "burner_starts_per_heating_hour": {
+        "name": "Starty palnika na godzinę grzania"
+      },
+      "short_cycling_hours": {
+        "name": "Godziny zbyt częstego włączania"
+      },
+      "heating_gas_yesterday": {
+        "name": "Gaz na ogrzewanie wczoraj"
+      },
+      "gas_per_degree_day": {
+        "name": "Gaz na stopniodzień"
       }
     },
     "select": {
@@ -3903,6 +3921,9 @@
     },
     "e32_restart_failed": {
       "message": "Ponowne uruchomienie E32 nie zostało potwierdzone ({error}). Sprawdź połączenie i spróbuj ponownie."
+    },
+    "set_comfort_unsupported": {
+      "message": "{entity} to pomieszczenie E32: zamiast tego użyj akcji Ustaw tymczasową zmianę w pomieszczeniu, Zakończ zmianę w pomieszczeniu lub Nieobecność."
     }
   },
   "device": {

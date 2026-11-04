@@ -41,6 +41,58 @@ def default_password_issue_id(entry):
     return f"{DEFAULT_PASSWORD_ISSUE}_{entry.entry_id}"
 
 
+# hass.data key: {entry id: the stored E32 password the E32 refused}. Every part of an entry that
+# signs in with the stored password (the room plan and every write through it, the backups, the
+# firmware check, Configure forms) checks it first, so a password changed on the E32 costs one
+# failed sign-in in total, not one per part (R4-05): the E32 limits failed sign-ins and would lock
+# the owner's browser out as well. Kept over a reload of the entry; a saved password clears it.
+REJECTED_PASSWORDS = DOMAIN + "_rejected_password"
+
+
+def _rejected(hass, entry):
+    data = getattr(hass, "data", None)
+    if entry is None or not isinstance(data, dict):
+        return None
+    return data.setdefault(REJECTED_PASSWORDS, {})
+
+
+def _key(entry):
+    return getattr(entry, "entry_id", None) or id(entry)
+
+
+def password_rejected(hass, entry, password):
+    """True when the E32 already refused this password of the entry: do not sign in with it again."""
+    rejected = _rejected(hass, entry)
+    return rejected is not None and password is not None and rejected.get(_key(entry)) == password
+
+
+@callback
+def remember_rejected(hass, entry, password):
+    """Note the refused password for every part of the entry; True when it was not noted yet."""
+    rejected = _rejected(hass, entry)
+    if rejected is None:
+        return True
+    if rejected.get(_key(entry)) == password:
+        return False
+    rejected[_key(entry)] = password
+    return True
+
+
+@callback
+def mark_rejected(hass, entry, password):
+    """The E32 refused the stored password: no part of the entry tries it again; ask for the new one (once)."""
+    if remember_rejected(hass, entry, password):
+        login_rejected(hass, entry)
+
+
+@callback
+def clear_rejected(hass, entry):
+    """A new (or re-entered) password: every part may sign in again."""
+    rejected = _rejected(hass, entry)
+    if rejected is not None:
+        rejected.pop(_key(entry), None)
+
+
 @callback
 def login_rejected(hass, entry):
     """The stored E32 password no longer works: ask the user for the new one (once)."""
@@ -85,6 +137,7 @@ def save_password(hass, entry, password):
     """
     from homeassistant.config_entries import ConfigEntryState
     from .controller_setup_flow import CONTROLLER_PASSWORD
+    clear_rejected(hass, entry)  # the E32 accepted it just now (also the same password entered again)
     data = {**entry.data, CONTROLLER_PASSWORD: password}
     state = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     if entry.state is ConfigEntryState.LOADED and state is not None:
@@ -113,6 +166,7 @@ def password_only_update(state, entry):
 def apply_password(hass, entry, state):
     """The running entry uses the new password from now on (and may log in again)."""
     from .controller_setup_flow import CONTROLLER_PASSWORD
+    clear_rejected(hass, entry)
     hub = state.get("heating_hub")
     link = getattr(hub, "plan", None)
     if link is not None:
@@ -172,9 +226,11 @@ class ChooseE32PasswordRepairFlow(RepairsFlow):
         link = getattr(state.get("heating_hub"), "plan", None)
         lock = getattr(link, "_lock", None) or asyncio.Lock()
         try:
+            # The owner asks for this: one sign-in per submit, also with a password refused before.
             async with lock:
                 async with ControllerClient(address) as client:
                     await client.async_login(stored)
+                    clear_rejected(self.hass, entry)  # it works (again): every part may sign in
                     if client.default_password is False:
                         clear(self.hass, entry)
                         return self.async_abort(reason="e32_password_already_changed")
@@ -184,7 +240,7 @@ class ChooseE32PasswordRepairFlow(RepairsFlow):
                     if link is not None:
                         link.use_password(new)
         except ControllerLoginRejected:
-            login_rejected(self.hass, entry)  # Home Assistant asks for the current password (reauth)
+            mark_rejected(self.hass, entry, stored)  # Home Assistant asks for the current password (reauth)
             errors["base"] = "e32_password_stored_wrong"
         except PasswordChangeRejected as err:
             key = PASSWORD_REFUSALS.get(err.error, "e32_unreachable")

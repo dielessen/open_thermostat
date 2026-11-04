@@ -190,8 +190,55 @@ async def test_still_full_after_the_waits_a_clear_message_and_a_repairs_item(has
 
 
 @pytest.mark.asyncio
+async def test_read_is_not_blocked_by_a_write_waiting_for_a_session(hass):
+    """R4-02: a write that waits for a free E32 web session holds no lock, so reads go on meanwhile."""
+    e32 = FullE32()
+    entity, hub, plan = await climate(hass, e32, room_state("living"))
+    plan.session_waits = (0.4,) * 7
+    e32.full, e32.logins = True, 0
+    write = asyncio.ensure_future(entity.async_set_temperature(temperature=22))
+    while e32.logins < 1:
+        await asyncio.sleep(0.005)
+    e32.full = 0  # a session is free again; the write signs in once its wait is over
+    loop = asyncio.get_running_loop()
+    started = loop.time()
+    assert (await asyncio.wait_for(plan.async_read(), 0.2))["revision"] == 2  # not behind the waiting write
+    assert loop.time() - started < 0.2 and not write.done()
+    await write
+    assert e32.commands == [{"room": "living", "override": "next", "temperature": 22.0}]
+    assert e32.logins == 3  # the write's refused attempt, the read, the write
+    plan.stop()
+
+
+@pytest.mark.asyncio
+async def test_a_slow_sign_out_does_not_hold_the_lock(hass):
+    """The sign-out of a finished request (up to 3 s on a busy E32) runs after the lock is released."""
+    e32 = FullE32()
+    entity, hub, plan = await climate(hass, e32, room_state("living"))
+    signing_out, released, locked = asyncio.Event(), asyncio.Event(), []
+    inner = e32.client
+
+    def client():
+        made = inner()
+
+        class Slow(type(made)):
+            async def __aexit__(self, *_):
+                locked.append(plan._lock.locked())
+                signing_out.set()
+                await released.wait()
+        return Slow()
+    plan._client = client
+    first = asyncio.ensure_future(plan.async_read())
+    await asyncio.wait_for(signing_out.wait(), 1)  # signed in, read, now signing out
+    assert locked == [False] and not plan._lock.locked() and not first.done()
+    released.set()
+    await asyncio.wait_for(first, 1)
+    plan.stop()
+
+
+@pytest.mark.asyncio
 async def test_reads_never_wait_for_a_session(hass):
-    """A read holds the lock the user's writes need: it fails at once (the telemetry reads again later)."""
+    """A read fails at once while every E32 web session is in use (the telemetry reads again later)."""
     e32 = FullE32()
     entity, hub, plan = await climate(hass, e32, room_state("living"))
     plan.session_waits = (5,) * 7
@@ -209,17 +256,10 @@ async def test_other_writes_wait_too(hass):
     from custom_components.open_thermostat.e32_reconfirm import async_handover
     seen = []
 
-    class Plan:
-        _lock = asyncio.Lock()
-
-        def claim(self, key=None):
-            return lambda: True
-
-        def _client(self):
-            return Client()
-
-        async def _login(self, client, wanted=None):
-            seen.append(wanted is not None)
+    class Plan:  # RoomPlanLink.async_call: write=True waits for a free session, a read does not
+        async def async_call(self, call, *, write=False, key=None):
+            seen.append(write)
+            return await call(Client())
 
     class Client:
         async def __aenter__(self):

@@ -423,8 +423,17 @@ async def async_read_plan(hass, entry):
         if link is not None:
             return await link.async_read()
         from . import controller_setup_flow as setup
+        from .controller_link import ControllerLoginRejected
+        from .e32_access import mark_rejected, password_rejected
+        password = entry.data[setup.CONTROLLER_PASSWORD]
+        if password_rejected(hass, entry, password):
+            return None  # refused before: never tried again
         async with setup.ControllerClient(entry.data[setup.CONTROLLER_ADDRESS]) as client:
-            await client.async_login(entry.data[setup.CONTROLLER_PASSWORD])
+            try:
+                await client.async_login(password)
+            except ControllerLoginRejected:
+                mark_rejected(hass, entry, password)  # one latch for every part of the entry (R4-05)
+                raise
             return decode_plan(await client.async_read_heating_plan())
     except (HomeAssistantError, ControllerLinkError, KeyError):
         return None

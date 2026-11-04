@@ -28,7 +28,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from . import controller_link as link
 from .const import CONF_TOPIC_PREFIX, DOMAIN
-from .controller_link import ControllerLinkError, ControllerProvisioningError
+from .controller_link import ControllerLinkError, ControllerLoginRejected, ControllerProvisioningError
 
 FIRMWARE_VERSION = re.compile(r"v[0-9]+\.[0-9]+\.[0-9]+-e32v2(?:-(?:alpha|beta|rc)\.[0-9]+)?")
 CONTROLLER = re.compile(r"e32_[0-9a-f]{12}")
@@ -74,11 +74,19 @@ async def async_room_plan_firmware_problem(hass, entry):
     if hub is not None and hub.fresh:
         return None
     from . import controller_setup_flow as setup
+    from .e32_access import mark_rejected, password_rejected
+    password = entry.data.get(setup.CONTROLLER_PASSWORD)
+    if password_rejected(hass, entry, password):
+        return None  # refused before: never tried again (the action itself says so)
     try:
         # A short look only: an unreachable E32 never holds the form up.
         async with asyncio.timeout(PRECHECK_SECONDS):
             async with setup.ControllerClient(entry.data[setup.CONTROLLER_ADDRESS]) as client:
-                await client.async_login(entry.data[setup.CONTROLLER_PASSWORD])
+                try:
+                    await client.async_login(password)
+                except ControllerLoginRejected:
+                    mark_rejected(hass, entry, password)  # one latch for every part of the entry (R4-05)
+                    raise
                 await async_check_room_plan_firmware(hass, entry, client)
     except ControllerLinkError as err:
         return str(err) if str(err) == "controller_room_plan_update_required" else None

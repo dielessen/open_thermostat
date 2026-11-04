@@ -159,10 +159,7 @@ class ValveLink:
     async def async_read(self):
         from .controller_link import ControllerLinkError
         try:
-            async with self.plan._lock:
-                async with self.plan._client() as client:
-                    await self.plan._login(client)
-                    value = decode_config(await client.async_valves())
+            value = decode_config(await self.plan.async_call(lambda client: client.async_valves()))
         except ControllerLinkError as err:
             raise valve_error(err) from None
         if value is None:
@@ -174,19 +171,19 @@ class ValveLink:
         """POST the record with one room changed; the E32 answers with what it stored.
 
         The read, the change and the POST share one lock hold and one sign-in, so
-        two switches changed at once each build on the other's stored record.
+        two switches changed at once each build on the other's stored record. A
+        change waits for a free E32 web session (RoomPlanLink.async_call).
         """
         from .controller_link import ControllerLinkError
+
+        async def change(client):
+            current = decode_config(await client.async_valves())
+            if current is None:
+                raise unreadable()
+            self.config = current
+            return decode_config(await client.async_valves(with_room(current, room_id, control, valves)))
         try:
-            async with self.plan._lock:
-                async with self.plan._client() as client:
-                    # A change waits for a free E32 web session.
-                    await self.plan._login(client, self.plan.claim())
-                    current = decode_config(await client.async_valves())
-                    if current is None:
-                        raise unreadable()
-                    self.config = current
-                    answer = decode_config(await client.async_valves(with_room(current, room_id, control, valves)))
+            answer = await self.plan.async_call(change, write=True)
         except ControllerLinkError as err:
             raise valve_error(err) from None
         if answer is None:

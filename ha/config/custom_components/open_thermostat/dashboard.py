@@ -48,6 +48,7 @@ from homeassistant.const import EVENT_CORE_CONFIG_UPDATE
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.event import async_call_later
 from homeassistant.util import slugify
 
 from .const import DOMAIN
@@ -59,6 +60,9 @@ E32_WEEK_CARD_TYPE = "custom:openthermostat-e32-week"
 ROOM_STATUS_CARD_TYPE = "custom:openthermostat-room-status"
 
 _LOGGER = logging.getLogger(__name__)
+# Registry and language changes come in bursts (a start creates every entity one by one): one rebuild
+# once they settled this long after the first (R4-11).
+REGISTRY_SETTLE_SECONDS = 2
 
 DEVICE_DIAGNOSTIC_METRICS = (
     "connected",
@@ -105,8 +109,10 @@ def boiler_group(name):
 
 # E32 room entities: unique ID f"{prefix}_e32_room_{room id}_{key}" (longest key first).
 ROOM_KEYS = ("valve_position", "valve_battery", "valve_problem", "valve_control", "fallback_setpoint", "inactive_until", "heating_start", "flow_advice", "temperature", "thermostat",
-             "learning", "reason",
+             "learning", "reason", "warm_on_time", "overshoot",
              "setpoint", "status", "demand", "state")
+# Yesterday's scoreboard of the house (scoreboard.py, E32 rc.4): unique ID f"{prefix}_hub_{key}".
+SCOREBOARD_HOUSE = ("burner_starts_per_heating_hour", "short_cycling_hours", "heating_gas_yesterday", "gas_per_degree_day")
 # Today's hot water from the E32 (unique ID f"{prefix}_hub_{key}").
 DHW_TODAY = ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today")
 BLE_KEYS = ("temperature", "humidity", "battery")
@@ -230,6 +236,15 @@ TEXT = {
         "day_room_no_step": "{room}: asked for heat {h} h; missed comfort {missed} min.",
         "day_outdoor": "Outdoor {low} to {high} °C.",
         "day_partial": "Partial day: the E32 was not heard all day, so the figures are incomplete.",
+        "scoreboard_on_time": "warm on time",
+        "scoreboard_late": "warm {m} min late",
+        "scoreboard_early": "warm {m} min early",
+        "scoreboard_overshoot": "{c} °C too warm",
+        "scoreboard_burner": "Burner: {n} starts per heating hour",
+        "scoreboard_short": "{h} h switching on and off too often",
+        "scoreboard_gas": "Gas for heating: {kwh} kWh",
+        "scoreboard_degree_day": "{v} kWh per degree-day",
+        "scoreboard_note": "Every day the thermostat checks whether each room was warm on time without getting too warm, how often the burner started and how much gas went to heating. It learns from this; every figure keeps its history on its own sensor.",
         "day_none": "The first full day appears here tomorrow.",
         "outdoor": "Outdoor",
         "flow_settings": "Weather compensation and learning",
@@ -377,6 +392,15 @@ TEXT = {
         "day_room_no_step": "{room}: vroeg {h} uur warmte; gemiste comfort {missed} min.",
         "day_outdoor": "Buiten {low} tot {high} °C.",
         "day_partial": "Gedeeltelijke dag: de E32 was niet de hele dag te horen, dus de cijfers zijn onvolledig.",
+        "scoreboard_on_time": "op tijd warm",
+        "scoreboard_late": "{m} min te laat warm",
+        "scoreboard_early": "{m} min te vroeg warm",
+        "scoreboard_overshoot": "{c} °C te warm",
+        "scoreboard_burner": "Brander: {n} starts per uur verwarmen",
+        "scoreboard_short": "{h} uur te vaak aan en uit",
+        "scoreboard_gas": "Gas voor verwarmen: {kwh} kWh",
+        "scoreboard_degree_day": "{v} kWh per graaddag",
+        "scoreboard_note": "Elke dag kijkt de thermostaat of elke ruimte op tijd warm was zonder te warm te worden, hoe vaak de brander startte en hoeveel gas naar verwarmen ging. Hij leert daarvan; elk getal houdt zijn geschiedenis bij op zijn eigen sensor.",
         "day_none": "Morgen staat hier de eerste volledige dag.",
         "outdoor": "Buiten",
         "flow_settings": "Weerafhankelijke regeling en leren",
@@ -526,6 +550,15 @@ TEXT = {
         "day_room_no_step": "{room}: żądanie ciepła przez {h} godz.; utracony komfort {missed} min.",
         "day_outdoor": "Na zewnątrz od {low} do {high} °C.",
         "day_partial": "Niepełny dzień: E32 nie był słyszalny przez cały dzień, więc dane są niekompletne.",
+        "scoreboard_on_time": "ciepło na czas",
+        "scoreboard_late": "ciepło {m} min za późno",
+        "scoreboard_early": "ciepło {m} min za wcześnie",
+        "scoreboard_overshoot": "{c} °C za ciepło",
+        "scoreboard_burner": "Palnik: {n} startów na godzinę grzania",
+        "scoreboard_short": "{h} godz. zbyt częstego włączania i wyłączania",
+        "scoreboard_gas": "Gaz na ogrzewanie: {kwh} kWh",
+        "scoreboard_degree_day": "{v} kWh na stopniodzień",
+        "scoreboard_note": "Każdego dnia termostat sprawdza, czy każde pomieszczenie było ciepłe na czas i nie za ciepłe, jak często startował palnik i ile gazu poszło na ogrzewanie. Uczy się z tego; każda liczba ma swoją historię na własnym czujniku.",
         "day_none": "Pierwszy pełny dzień pojawi się tu jutro.",
         "outdoor": "Na zewnątrz",
         "flow_settings": "Kompensacja pogodowa i nauka",
@@ -819,6 +852,67 @@ def _yesterday_section(t, summary, burner_time, missed, gas_unit):
     return _section(_heading(t["yesterday"], "mdi:calendar-today"), {"type": "markdown", "content": content}, *charts)
 
 
+def _figure(t, digits):
+    """A Jinja expression: the number in v with digits decimals and the language's decimal sign."""
+    return "(('%." + str(digits) + "f' % (v | float)) | replace('.', " + json.dumps(t["decimal"]) + "))"
+
+
+def _jinja_text(text, **values):
+    """A translated text with {name} placeholders as one Jinja string expression: "warm " ~ (m) ~ " min late"."""
+    pieces = []
+    for k, piece in enumerate(re.split(r"\{(\w+)\}", text)):
+        if k % 2:
+            pieces.append("(" + values[piece] + ")")
+        elif piece:
+            pieces.append(json.dumps(piece, ensure_ascii=False))
+    return " ~ ".join(pieces) or '""'
+
+
+def _scoreboard_section(t, rooms, names, house):
+    """Yesterday's scoreboard (scoreboard.py, E32 rc.4) in plain words: each room warm on time and how far it got
+    above its target, the burner's starts and short cycling, the gas for heating and per degree-day.
+
+    rooms: {room id: {"warm_on_time": entity, "overshoot": entity}}; house: {key: entity}. The text follows the
+    sensors' states, so a new day needs no rebuild; hidden while none has a value (firmware before rc.4).
+    """
+    entities = [entity for keys in rooms.values() for entity in keys.values()] + list(house.values())
+    if not entities:
+        return None
+
+    def part(entity, expression):
+        return ("{% set v = states(" + json.dumps(entity) + ") %}{% if is_number(v) %}{% set parts = parts + ["
+                + expression + "] %}{% endif %}")
+
+    def line(prefix):
+        return "{% if parts %}- " + prefix + "{{ parts | join(' · ') }}\n{% endif %}"
+    content = ""
+    for room_id, keys in rooms.items():
+        content += "{% set parts = [] %}"
+        if keys.get("warm_on_time"):  # minutes after the switch time: late, early or on time
+            content += ("{% set v = states(" + json.dumps(keys["warm_on_time"]) + ") %}{% if is_number(v) %}"
+                        "{% set m = v | float | round(0) | int %}{% set parts = parts + [("
+                        + _jinja_text(t["scoreboard_late"], m="m") + ") if m > 0 else ("
+                        + _jinja_text(t["scoreboard_early"], m="-m") + ") if m < 0 else "
+                        + json.dumps(t["scoreboard_on_time"], ensure_ascii=False) + "] %}{% endif %}")
+        if keys.get("overshoot"):
+            content += part(keys["overshoot"], _jinja_text(t["scoreboard_overshoot"], c=_figure(t, 1)))
+        content += line("**{{ " + json.dumps(names.get(room_id, room_id), ensure_ascii=False) + " }}**: ")
+    for figures in ((("burner_starts_per_heating_hour", "scoreboard_burner", "n", 1),
+                     ("short_cycling_hours", "scoreboard_short", "h", 1)),
+                    (("heating_gas_yesterday", "scoreboard_gas", "kwh", 1),
+                     ("gas_per_degree_day", "scoreboard_degree_day", "v", 2))):
+        if any(house.get(key) for key, *_ in figures):
+            content += "{% set parts = [] %}"
+            for key, text, name, digits in figures:
+                if house.get(key):
+                    content += part(house[key], _jinja_text(t[text], **{name: _figure(t, digits)}))
+            content += line("")
+    section = _section(_heading(t["yesterday"], "mdi:scoreboard-outline"), {"type": "markdown", "content": content},
+                       _note(t, t["scoreboard_note"]))
+    section["visibility"] = _any_known(entities)  # the whole section, until one figure has a value
+    return section
+
+
 # The boiler's display code in words (display_codes.py: its attributes), for a look at a glance:
 # the meaning large with the raw code small next to it; a fault or lockout as a warning with
 # what to do. Severity names: display_code_table.SEVERITIES.
@@ -981,6 +1075,10 @@ class RoomDashboard:
         self._hub_signature = None
         self._mode = None  # the E32's last reported mode (shadow / active), kept while it is silent
         self._candidate: LovelaceStorage | None = None  # registered, panel not yet (async_start)
+        # This entry's entities and devices at the last build: registry events about others never rebuild.
+        self._entity_ids: set[str] = set()
+        self._device_ids: set[str] = set()
+        self._registry_timer = None  # the debounced rebuild after registry or language changes
 
     async def async_start(self) -> None:
         """Register a Lovelace panel without changing the user's dashboards.
@@ -1038,18 +1136,54 @@ class RoomDashboard:
             _LOGGER.warning("Cannot register OpenThermostat dashboard at %s", self.path)
             return
         self._store = store
-        self._unsubscribe = [
-            self.hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, self._registry_updated),
-            self.hass.bus.async_listen(dr.EVENT_DEVICE_REGISTRY_UPDATED, self._registry_updated),
-            self.hass.bus.async_listen(EVENT_CORE_CONFIG_UPDATE, self._registry_updated),
-        ]
+        self._listen()
         self._watch_hub()
+
+    @callback
+    def _listen(self) -> None:
+        """Rebuild after registry changes of this entry's own entities and devices and after a change of
+        language or units; the registry events of every other integration pass by (R4-11)."""
+        self._unsubscribe = [
+            self.hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, self._registry_updated,
+                                       event_filter=self._own_entity_event),
+            self.hass.bus.async_listen(dr.EVENT_DEVICE_REGISTRY_UPDATED, self._registry_updated,
+                                       event_filter=self._own_device_event),
+            self.hass.bus.async_listen(EVENT_CORE_CONFIG_UPDATE, self._registry_updated,
+                                       event_filter=self._language_or_units),
+        ]
+
+    @callback
+    def _own_entity_event(self, data) -> bool:
+        """An entity of this entry was created, renamed, enabled or removed."""
+        entity_id = data.get("entity_id")
+        if entity_id in self._entity_ids or data.get("old_entity_id") in self._entity_ids:
+            return True
+        item = er.async_get(self.hass).async_get(entity_id) if type(entity_id) is str else None
+        return item is not None and item.config_entry_id == self.entry_id
+
+    @callback
+    def _own_device_event(self, data) -> bool:
+        """A device of this entry was created, renamed or removed."""
+        device_id = data.get("device_id")
+        if device_id in self._device_ids:
+            return True
+        device = dr.async_get(self.hass).async_get(device_id) if type(device_id) is str else None
+        return device is not None and self.entry_id in device.config_entries
+
+    @staticmethod
+    @callback
+    def _language_or_units(data) -> bool:
+        """The language or the unit system changed (an update without data: Home Assistant starts)."""
+        return not data or "language" in data or "unit_system" in data
 
     async def async_stop(self) -> None:
         """Remove the panel when the integration is unloaded or disabled."""
         for unsubscribe in self._unsubscribe:
             unsubscribe()
         self._unsubscribe = []
+        if self._registry_timer is not None:
+            self._registry_timer()
+            self._registry_timer = None
         self._unwatch_hub()
         if self._refresh_task is not None:
             self._refresh_task.cancel()
@@ -1072,8 +1206,18 @@ class RoomDashboard:
 
     @callback
     def _registry_updated(self, event) -> None:
-        """Follow entity creation, entity ID and device name changes, and the HA language."""
+        """Follow entity creation, entity ID and device name changes, and the HA language.
+
+        Once per burst: the rebuild follows REGISTRY_SETTLE_SECONDS after the first event (a start
+        creates this entry's entities one by one, R4-11).
+        """
         self._watch_hub()
+        if self._registry_timer is None and self._store is not None:
+            self._registry_timer = async_call_later(self.hass, REGISTRY_SETTLE_SECONDS, self._registry_settled)
+
+    @callback
+    def _registry_settled(self, _now=None) -> None:
+        self._registry_timer = None
         self._schedule_refresh()
 
     def _heating_hub(self):
@@ -1112,10 +1256,11 @@ class RoomDashboard:
         if hub is None or not hub.fresh:
             return None
         plan = hub.plan.plan if hub.plan is not None else None
+        # The E32 counts every plan save in its revision: no need to compare the whole plan (R4-11).
         return (hub.status.get("mode"),
                 tuple((key, room.get("name"), room.get("source")) for key, room in hub.rooms.items()),
                 tuple((key, sensor.get("name")) for key, sensor in hub.ble.items()),
-                json.dumps(plan, sort_keys=True, default=str) if plan else None)
+                plan.get("revision") if plan else None)
 
     @callback
     def _schedule_refresh(self) -> None:
@@ -1212,6 +1357,9 @@ class RoomDashboard:
         t = TEXT[dashboard_language(self.hass)]
         registry = er.async_get(self.hass)
         entries = self._entries()
+        self._entity_ids = {item.entity_id for item in entries}
+        self._device_ids = {device.id for device in dr.async_entries_for_config_entry(dr.async_get(self.hass),
+                                                                                       self.entry_id)}
         hub_entities = {
             item.unique_id.removeprefix(f"{self.prefix}_hub_"): item.entity_id
             for item in entries if item.unique_id.startswith(f"{self.prefix}_hub_")
@@ -1427,6 +1575,13 @@ class RoomDashboard:
 
         # -- Learning and settings -----------------------------------------------------------------
         learning = _learned_sections(t, learned_overview)
+        # Yesterday's scoreboard (E32 rc.4): is it getting better? Only once the E32 reports it.
+        scoreboard = _scoreboard_section(
+            t, {room_id: {key: room[key] for key in ("warm_on_time", "overshoot") if room.get(key)}
+                for room_id, room in e32_room_entities.items() if room.get("warm_on_time") or room.get("overshoot")},
+            names, {key: hub[key] for key in SCOREBOARD_HOUSE if key in hub})
+        if scoreboard:
+            learning.append(scoreboard)
         # The heating curve and learning switches (stored on the E32), and the rooms editor.
         settings = _section(
             _heading(t["smart_heating"], "mdi:chart-bell-curve-cumulative"),

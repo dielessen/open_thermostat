@@ -607,9 +607,16 @@ async def test_a_plan_read_from_the_e32_removes_devices_of_rooms_it_no_longer_ha
                for d, e in kept + stale + [shared])
 
     e32.plan = deepcopy(PLAN)
+    now = [1000.0]
+    hub.plan.clock = lambda: now[0]
     await hub.plan.async_refresh()
     await hass.async_block_till_done()
     assert hub.plan.plan == PLAN
+    # One read is no proof (R4-01): the devices go once a read at least a minute later misses them too.
+    assert all(devices.async_get(d) is not None and entities.async_get(e) is not None for d, e in stale)
+    now[0] += 60
+    await hub.plan.async_refresh()
+    await hass.async_block_till_done()
     assert all(devices.async_get(d) is None and entities.async_get(e) is None for d, e in stale)
     assert all(devices.async_get(d) is not None and entities.async_get(e) is not None for d, e in kept)
     assert devices.async_get(product_device) is not None
@@ -628,6 +635,79 @@ async def test_a_plan_read_from_the_e32_removes_devices_of_rooms_it_no_longer_ha
     assert forgotten == [{"zolder"}] and reloads == []
     await hub.plan.async_refresh()
     assert forgotten == [{"zolder"}] and reloads == []  # once
+
+
+@pytest.mark.asyncio
+async def test_empty_plan_never_removes_rooms(hass, caplog):
+    """R4-01: the E32 answers {"revision": 0, "rooms": []} when its stored plan is unreadable."""
+    import logging
+    e32 = FakeE32({"schema": 1, "revision": 0, "rooms": []})
+    parent, hub = product(hass, e32)
+    hub.plan.entry = parent
+    now = [1000.0]
+    hub.plan.clock = lambda: now[0]
+    rooms = [room_device(hass, parent, "woonkamer"), room_device(hass, parent, "badkamer")]
+    devices, entities = dr.async_get(hass), er.async_get(hass)
+    caplog.set_level(logging.INFO, logger="custom_components.open_thermostat.native_entity_cleanup")
+    for _ in range(3):  # read again and again, well over a minute apart
+        await hub.plan.async_refresh()
+        await hass.async_block_till_done()
+        now[0] += 600
+    assert hub.plan.plan["rooms"] == []
+    assert all(devices.async_get(d) is not None and entities.async_get(e) is not None for d, e in rooms)
+    assert "lists no rooms; the devices of badkamer, woonkamer stay" in caplog.text
+    # A plan with rooms again starts counting afresh: one read with only the living room removes nothing.
+    e32.plan = {**deepcopy(PLAN), "revision": 5, "rooms": [PLAN["rooms"][0]]}
+    await hub.plan.async_refresh()
+    assert all(devices.async_get(d) is not None for d, _ in rooms)
+    assert "no longer lists badkamer; their devices stay until a plan read" in caplog.text
+    hub.plan.stop()
+
+
+@pytest.mark.asyncio
+async def test_room_missing_on_two_reads_a_minute_apart_is_removed(hass, monkeypatch):
+    from homeassistant.helpers import event
+    scheduled = []
+    monkeypatch.setattr(event, "async_call_later", lambda hass, delay, action: scheduled.append((delay, action))
+                        or (lambda: None))
+    e32 = FakeE32()
+    parent, hub = product(hass, e32)
+    hub.plan.entry = parent
+    now = [1000.0]
+    hub.plan.clock = lambda: now[0]
+    gone = room_device(hass, parent, "badkamer")
+    kept = room_device(hass, parent, "woonkamer")
+    devices = dr.async_get(hass)
+    e32.plan = {**deepcopy(PLAN), "rooms": [PLAN["rooms"][0]]}
+    await hub.plan.async_refresh()
+    assert devices.async_get(gone[0]) is not None
+    # The confirming read is scheduled a minute after the first one that missed the room.
+    assert [delay for delay, _ in scheduled] == [60]
+    now[0] += 30
+    await hub.plan.async_refresh()  # missed again, but only 30 s later
+    assert devices.async_get(gone[0]) is not None
+    e32.plan = deepcopy(PLAN)  # listed again (the E32 page saved it back): the count starts over
+    now[0] += 40
+    await hub.plan.async_refresh()
+    assert devices.async_get(gone[0]) is not None
+    e32.plan = {**deepcopy(PLAN), "rooms": [PLAN["rooms"][0]]}
+    now[0] += 5
+    await hub.plan.async_refresh()
+    assert devices.async_get(gone[0]) is not None
+    now[0] += 60
+    attempts, client = [], hub.plan._client
+    hub.plan._client = lambda: _Failing(attempts)
+    scheduled[-1][1](None)  # the scheduled read fails (E32 busy): the check is tried again later
+    await hass.async_block_till_done()
+    assert attempts == [1] and devices.async_get(gone[0]) is not None
+    from custom_components.open_thermostat.room_plan import RETRY_SECONDS
+    assert [delay for delay, _ in scheduled] == [60, RETRY_SECONDS]
+    hub.plan._client = client
+    scheduled[-1][1](None)
+    await hass.async_block_till_done()
+    assert devices.async_get(gone[0]) is None and er.async_get(hass).async_get(gone[1]) is None
+    assert devices.async_get(kept[0]) is not None
+    hub.plan.stop()
 
 
 @pytest.mark.asyncio

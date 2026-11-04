@@ -6,8 +6,8 @@ language (English, Dutch or Polish), each figure with a line on what it means:
 
 - ``rooms``: per room its learning progress and what was learned (how fast it warms and cools,
   the lowest water temperature that still warms it in time, Smart warm-up's start for the next
-  program step, the night advice),
-  from ``fw/telemetry/learned/<room>``;
+  program step, how the last morning went and what Smart warm-up changes for it (E32 rc.4), the
+  night advice), from ``fw/telemetry/learned/<room>``;
 - ``house``: the heating curve, the burner (starts and burn time yesterday) and, once learned, the
   lowest water temperature the boiler starts heating at, from the summary; that last figure is
   also the attribute ``boiler_minimum_flow_c`` (absent until learned);
@@ -19,7 +19,7 @@ Read only: the knobs are changed in Configure → Home → Comfort and boiler ca
 the E32 page (Home -> Comfort and boiler care).
 """
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import callback
@@ -84,6 +84,20 @@ TEXT = {
         "warmup_learning_mean": "Until the room has been learned, it does not start early on an estimate.",
         "warmup_off": "Smart warm-up is off: heating starts at {time}.",
         "warmup_off_mean": "Turn Smart warm-up on to be warm on time.",
+        "warmup_estimate": "Smart warm-up: starts at {start} (estimate; it learns from every morning) so it is {target} °C at {time}.",
+        "timing_learned": "The warm-up time is learned; the coolest water is still being learned.",
+        "timing_learned_mean": "Smart warm-up already plans with it; the coolest water needs a few more warm-ups at other water temperatures.",
+        "arrival": "{when} warm at {time} ({how}).",
+        "arrival_earlier": "{when} warm at {time} ({how}); tomorrow {p} % earlier.",
+        "arrival_later": "{when} warm at {time} ({how}); tomorrow {p} % later.",
+        "arrival_mean": "It checks every morning whether the room was warm on time and adjusts its warm-up time.",
+        "how_late": "{m} min late",
+        "how_early": "{m} min early",
+        "how_on_time": "on time",
+        "when_today": "Today",
+        "when_yesterday": "Yesterday",
+        "when_date": "On {date}",
+        "months": "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec",
         "saving_eur": "about {m3} m³ gas ({eur}) a night", "saving": "about {m3} m³ gas a night",
         "night_hold": "Keeping it at {night} °C at night is cheaper than letting it cool down: {saving}.",
         "night_program": "Letting it cool down at night, as your program does, is the cheapest.",
@@ -161,6 +175,20 @@ TEXT = {
         "warmup_learning_mean": "Zolang de ruimte niet geleerd is, begint hij niet eerder op een schatting.",
         "warmup_off": "Slim opwarmen staat uit: verwarmen begint om {time}.",
         "warmup_off_mean": "Zet Slim opwarmen aan om op tijd warm te zijn.",
+        "warmup_estimate": "Slim opwarmen: begint om {start} (schatting; hij leert van elke ochtend), zodat het om {time} {target} °C is.",
+        "timing_learned": "De opwarmtijd is geleerd; het koelste water leert hij nog.",
+        "timing_learned_mean": "Slim opwarmen plant daar al mee; voor het koelste water zijn nog een paar keer opwarmen bij andere watertemperaturen nodig.",
+        "arrival": "{when} warm om {time} ({how}).",
+        "arrival_earlier": "{when} warm om {time} ({how}); morgen {p} % eerder.",
+        "arrival_later": "{when} warm om {time} ({how}); morgen {p} % later.",
+        "arrival_mean": "Hij kijkt elke ochtend of de ruimte op tijd warm was en past zijn opwarmtijd daarop aan.",
+        "how_late": "{m} min te laat",
+        "how_early": "{m} min te vroeg",
+        "how_on_time": "op tijd",
+        "when_today": "Vandaag",
+        "when_yesterday": "Gisteren",
+        "when_date": "Op {date}",
+        "months": "jan feb mrt apr mei jun jul aug sep okt nov dec",
         "saving_eur": "ongeveer {m3} m³ gas ({eur}) per nacht", "saving": "ongeveer {m3} m³ gas per nacht",
         "night_hold": "'s Nachts op {night} °C houden is goedkoper dan laten afkoelen: {saving}.",
         "night_program": "'s Nachts laten afkoelen, zoals je programma doet, is het goedkoopst.",
@@ -238,6 +266,20 @@ TEXT = {
         "warmup_learning_mean": "Dopóki pomieszczenie nie zostanie wyuczone, nie zaczyna grzać wcześniej na podstawie szacunku.",
         "warmup_off": "Inteligentne nagrzewanie jest wyłączone: grzanie zaczyna się o {time}.",
         "warmup_off_mean": "Włącz Inteligentne nagrzewanie, aby było ciepło na czas.",
+        "warmup_estimate": "Inteligentne nagrzewanie: start o {start} (szacunek; uczy się z każdego poranka), aby o {time} było {target} °C.",
+        "timing_learned": "Czas nagrzewania jest wyuczony; najchłodniejszej wody wciąż się uczy.",
+        "timing_learned_mean": "Inteligentne nagrzewanie już z tego korzysta; do najchłodniejszej wody potrzeba jeszcze kilku nagrzewań przy innych temperaturach wody.",
+        "arrival": "{when} ciepło o {time} ({how}).",
+        "arrival_earlier": "{when} ciepło o {time} ({how}); jutro o {p} % wcześniej.",
+        "arrival_later": "{when} ciepło o {time} ({how}); jutro o {p} % później.",
+        "arrival_mean": "Każdego ranka sprawdza, czy pomieszczenie było ciepłe na czas, i dostosowuje czas nagrzewania.",
+        "how_late": "{m} min za późno",
+        "how_early": "{m} min za wcześnie",
+        "how_on_time": "na czas",
+        "when_today": "Dziś",
+        "when_yesterday": "Wczoraj",
+        "when_date": "Dnia {date}",
+        "months": "sty lut mar kwi maj cze lip sie wrz paź lis gru",
         "saving_eur": "około {m3} m³ gazu ({eur}) na noc", "saving": "około {m3} m³ gazu na noc",
         "night_hold": "Utrzymywanie {night} °C w nocy jest tańsze niż wychładzanie: {saving}.",
         "night_program": "Wychładzanie w nocy, tak jak robi to Twój program, jest najtańsze.",
@@ -389,19 +431,54 @@ def smart_warm_up_line(start, on, lang, clock):
         key = "warmup_ready"
     elif start.get("start_now") is True:
         key = "warmup_late" if start.get("reachable") is False else "warmup_now"
-    else:
-        key = "warmup_on"
+    else:  # E32 rc.4: a start from the standard warm-up time is applied too, as an estimate
+        key = "warmup_estimate" if start.get("estimate") is True else "warmup_on"
     return t[key].format(**values), t["start_mean"]
 
 
-def room_overview(name, learned, plan, lang, clock, smart=None):
-    """{name, progress, lines: [{text, meaning}]} of one room; clock: utc -> "07:10" in local time."""
+def arrival_line(arrival, lang, clock, day=None, today=None):
+    """(text, meaning) on how the room's last program step up turned out (E32 rc.4), or None.
+
+    ``arrival`` (the room's plan): ``last_at_utc`` when the room was warm, ``last_error_min`` how many
+    minutes after the switch time (negative: before it), ``factor`` what the E32 now does with the
+    warm-up time (above 1: it starts earlier). clock: utc -> "09:12"; day: utc -> the local date;
+    today: the local date now ("Yesterday warm at 09:12 (12 min late); tomorrow 10 % earlier.").
+    """
+    t = TEXT[lang]
+    arrival = arrival if type(arrival) is dict else {}
+    at, error, factor = arrival.get("last_at_utc"), arrival.get("last_error_min"), arrival.get("factor")
+    if not _ok(at) or at <= 0 or not _ok(error) or not -1440 <= error <= 1440:
+        return None
+    day = day or (lambda utc: datetime.fromtimestamp(utc, timezone.utc).date())
+    today = today or day(time.time())
+    on = day(at)
+    if on == today:
+        when = t["when_today"]
+    elif on == today - timedelta(days=1):
+        when = t["when_yesterday"]
+    else:
+        when = t["when_date"].format(date=f"{on.day} {t['months'].split()[on.month - 1]}")
+    minutes = round(error)
+    how = (t["how_late"].format(m=minutes) if minutes > 0 else t["how_early"].format(m=-minutes) if minutes < 0
+           else t["how_on_time"])
+    change = round(abs(factor - 1) * 100) if _ok(factor) and 0.1 <= factor <= 10 else 0
+    key = "arrival" if not change else "arrival_earlier" if factor > 1 else "arrival_later"
+    return t[key].format(when=when, time=clock(at), how=how, p=change), t["arrival_mean"]
+
+
+def room_overview(name, learned, plan, lang, clock, smart=None, day=None, today=None):
+    """{name, progress, lines: [{text, meaning}]} of one room; clock: utc -> "07:10" in local time.
+
+    day: utc -> the local date, today: the local date now (for "Yesterday warm at 09:12", arrival_line).
+    """
     t = TEXT[lang]
     learned = learned if type(learned) is dict else {}
     ready = learned.get("readiness") == "ready"
     seen = min(WARMUPS_TO_LEARN, learned["segments"]) if _ok(learned.get("segments")) else 0
     lines = []
-    if not ready:
+    if not ready and learned.get("readiness_timing") == "ready":  # E32 rc.4: the warm-up time from one water temperature
+        lines.append(_line(t["timing_learned"], t["timing_learned_mean"]))
+    elif not ready:
         lines.append(_line(t["learning_more" if seen >= WARMUPS_TO_LEARN else "learning_first"], t["learning_mean"]))
     advice = next((a for a in learned.get("advice") or [] if type(a) is dict and a.get("shortfall_c") == 1), None)
     if ready and advice and _ok(advice.get("rule_warmup_h")) and _ok(advice.get("rule_flow_c")):
@@ -418,6 +495,8 @@ def room_overview(name, learned, plan, lang, clock, smart=None):
         lines.append(_line(*warm))
     elif start.get("reason") == "planned" and _ok(start.get("predicted_start_utc")):  # firmware before rc.2: no next switch
         lines.append(_line(t["start_only"].format(start=clock(start["predicted_start_utc"])), t["start_mean"]))
+    if (arrived := arrival_line(plan.get("arrival"), lang, clock, day, today)) is not None:
+        lines.append(_line(*arrived))
     night = plan.get("night") if type(plan.get("night")) is dict else {}
     if night.get("reason") == "estimated" and type(night.get("recommended")) is str:
         hold = night["recommended"] not in ("program", "thermostat_like") and _ok(night.get("recommended_night_c"))
@@ -512,6 +591,12 @@ def local_clock(hass):
     return lambda utc: dt_util.as_local(datetime.fromtimestamp(utc, timezone.utc)).strftime("%H:%M")
 
 
+def local_day(hass):
+    """(utc -> the local date, today's local date) in Home Assistant's time zone."""
+    from homeassistant.util import dt as dt_util
+    return lambda utc: dt_util.as_local(datetime.fromtimestamp(utc, timezone.utc)).date(), dt_util.now().date()
+
+
 class LearnedStoredData(ExtraStoredData):
     def __init__(self, data):
         self.data = data
@@ -595,7 +680,9 @@ class LearnedOverviewSensor(RestoreEntity, SensorEntity):
                 changes.append({"time": datetime.fromtimestamp(change[0], timezone.utc).isoformat(timespec="seconds"), "text": text})
         from .e32_flow import smart_warm_up
         smart = smart_warm_up(self.hass, self.entry.entry_id) if getattr(self, "hass", None) is not None else None
-        rooms = [room_overview(name, self.hub.learned.get(room_id), self.hub.warmup.get(room_id), lang, clock, smart)
+        day, today = local_day(self.hass) if getattr(self, "hass", None) is not None and self._clock is None else (None, None)
+        rooms = [room_overview(name, self.hub.learned.get(room_id), self.hub.warmup.get(room_id), lang, clock, smart,
+                               day, today)
                  for room_id, name in names.items() if self.hub.rooms[room_id].get("state") != "inactive"]
         manual = tuning.get("manual") if type(tuning.get("manual")) is list else []
         attributes = {"explanation": t.get("state." + str(tuning.get("state")), "") if tuning else t["unavailable"],

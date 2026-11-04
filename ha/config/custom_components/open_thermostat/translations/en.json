@@ -2265,6 +2265,24 @@
             "name": "Size of the newest backup"
           }
         }
+      },
+      "room_warm_on_time": {
+        "name": "Warm on time"
+      },
+      "room_overshoot": {
+        "name": "Overshoot"
+      },
+      "burner_starts_per_heating_hour": {
+        "name": "Burner starts per heating hour"
+      },
+      "short_cycling_hours": {
+        "name": "Short cycling hours"
+      },
+      "heating_gas_yesterday": {
+        "name": "Heating gas yesterday"
+      },
+      "gas_per_degree_day": {
+        "name": "Gas per degree-day"
       }
     },
     "select": {
@@ -3903,6 +3921,9 @@
     },
     "e32_restart_failed": {
       "message": "The E32 restart was not confirmed ({error}). Check the connection and try again."
+    },
+    "set_comfort_unsupported": {
+      "message": "{entity} is an E32 room: use Set a temporary room override, End the room override or Away instead."
     }
   },
   "device": {

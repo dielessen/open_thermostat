@@ -107,7 +107,7 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
 - **Week program**: the visual week planner for all rooms.
 - **Boiler**, in the order you need it. From top to bottom: **Now** (what the
   boiler does in words, with the display code, then the water to heating and
-  back, the burner power and the burner starts in the last hour), **Advice**
+  back, the burner power and the burner starts per hour), **Advice**
   (the heating advice, when there is any), **Today and this week** (the gas
   for heating and for hot water, the burner starts and the burner time of
   today, one chart with the gas per day of the last week, and the burner hours

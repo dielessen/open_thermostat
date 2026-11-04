@@ -160,6 +160,11 @@ ICONS = {"flow": "mdi:thermometer-chevron-up", "return": "mdi:thermometer-chevro
          "boiler": "mdi:water-boiler", "now": "mdi:water-boiler", "week": "mdi:chart-bar",
          "history": "mdi:chart-line", "settings": "mdi:cog-outline", "yesterday": "mdi:scoreboard-outline",
          "thermostat": "mdi:thermostat"}
+# What the boiler does now (hub boiler_activity, heating_link.BOILER_ACTIVITIES) as one tile of three: its icon
+# (ICONS), its theme colour and the activities it stands for; exactly one shows at a time.
+ACTIVITY_TILES = (("heating", "deep-orange", ["heating"]),
+                  ("hot_water", "blue", ["tapping", "keep_warm", "charging", "hot_water"]),
+                  ("boiler", "grey", ["idle"]))
 
 TEXT = {
     "en": {

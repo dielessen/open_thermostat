@@ -296,6 +296,10 @@ Per test: tijden (lokaal en UTC), screenshot van Actieve regeling, het script
 loopt door. **Geslaagd** = alle punten onder "Geslaagd"; anders **niet
 geslaagd**: noteren, en bij een afbreekcriterium (§7) direct terug (§8).
 
+**De actuele avondplanning** (volgorde in twee delen, wie wat doet, de `record_test.py`-commando's en de
+woorden van rc.5) staat in [TESTAVOND-T1-T12.nl.md](TESTAVOND-T1-T12.nl.md); bij een verschil met dit
+hoofdstuk gaat die voor. Het bijbehorende pakket voor de veldtester: [TESTER-PAKKET.nl.md](TESTER-PAKKET.nl.md).
+
 ### T1 Start
 - **Doen:** gewenste temperatuur woonkamer (tado/HA) ~1 °C boven de meting.
 - **Verwacht:** binnen één stap (10 s) Ketelvraag ~40 °C (30 + 10 × 1 °C), direct verzonden.

@@ -56,7 +56,7 @@ background:var(--hc-surface);color:var(--primary-text-color);border:1px solid va
 .tip-row b{font-weight:600;font-variant-numeric:tabular-nums}.tip-row span{color:var(--hc-muted)}
 .caption{margin:8px 0 0;color:var(--hc-muted);font-size:.9rem}.note{margin:6px 0 0;font-size:.9rem}
 details{margin:8px 0 0}summary{cursor:pointer;color:var(--primary-color);font-size:.9rem;padding:6px 0;min-height:24px}
-table{border-collapse:collapse;color:inherit;font-size:.875rem;font-variant-numeric:tabular-nums;margin-top:4px}th,td{padding:4px 12px 4px 0;text-align:right;white-space:nowrap}
+table{border-collapse:collapse;color:inherit;font-size:.875rem;font-variant-numeric:tabular-nums;margin-top:4px}th,td{padding:4px 12px 4px 0;text-align:right;vertical-align:bottom}td{white-space:nowrap}
 th{font-weight:500;color:var(--hc-muted)}th:first-child,td:first-child{text-align:left}tr+tr td{border-top:1px solid var(--hc-grid)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}`;
 const KNOWLEDGE_STYLE = `${BASE}
@@ -121,14 +121,15 @@ function drawCurve(host, data, t, n, keep = {at: null, focus: false}) {
   marks.append(make('svg:circle', {class: 'halo', cx: px(data.outdoor), cy: py(data.now), r: 12}),
    make('svg:circle', {class: 'point now', 'data-point': 'now', cx: px(data.outdoor), cy: py(data.now), r: 5}));
  }
- // Labels, most important first; each takes the first place where it overlaps no line, mark or earlier label
+ // Labels, most important first; each takes the first of its places that overlaps no line, mark or earlier label
  // and stays inside the plot. An optional one that finds none is left out (the legend, tooltip and table still
- // carry it); a required one ("Now", the hard-frost point) takes the best place it can get (inside the plot
- // first), its halo keeping it legible over a line, with a thin leader to its point when it sits away from it.
+ // carry it). A required one ("Now", the hard-frost point) then takes the free place of the plot nearest to its
+ // point, with a thin leader; in a plot without one it crosses a line (its halo keeps it legible) rather than
+ // cover another label or point.
  const taken = [], plot = {l: M.left, r: width - M.right, t: M.top - 4, b: M.top + plotH};
- const hits = box => lines.some(line => line.some(([x, y]) => x >= box.l - 2 && x <= box.r + 2 && y >= box.t - 2 && y <= box.b + 2))
-  || taken.some(o => box.l < o.r && box.r > o.l && box.t < o.b && box.b > o.t);
- const place = (attrs, rows, spots, required) => {
+ const crosses = box => lines.some(line => line.some(([x, y]) => x >= box.l - 2 && x <= box.r + 2 && y >= box.t - 2 && y <= box.b + 2));
+ const covers = box => taken.some(o => box.l < o.r && box.r > o.l && box.t < o.b && box.b > o.t);
+ const place = (attrs, rows, spots, required, near) => {
   const text = make('svg:text', {class: 'label', ...attrs});
   rows.forEach((row, i) => text.append(make('svg:tspan', {class: i ? 'sub' : null, x: 0, dy: i ? 15 : 0}, row)));
   labels.append(text);
@@ -141,41 +142,47 @@ function drawCurve(host, data, t, n, keep = {at: null, focus: false}) {
    const l = anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x;
    return {l, r: l + w, t: y - 12, b: y - 12 + h};
   };
-  // How far a box sticks out of the plot (0: inside); a required label takes the best place it can get.
+  // How far a box sticks out of the plot (0: inside); covering a label or point weighs far more than a line.
   const outside = box => Math.max(0, plot.l - box.l) + Math.max(0, box.r - plot.r) + Math.max(0, plot.t - box.t) + Math.max(0, box.b - plot.b);
-  let best = null;
+  const score = box => outside(box) * 10 + (covers(box) ? 100 : 0) + (crosses(box) ? 1 : 0);
+  let best = null, size = null;
   for (const spot of spots) {
-   const box = at(spot), score = outside(box) * 10 + (hits(box) ? 1 : 0);
-   if (score === 0) { taken.push(box); return box; }
-   if (!best || score < best[0]) best = [score, spot];
+   const box = at(spot), s = score(box);
+   if (s === 0) { taken.push(box); return box; }
+   if (!best || s < best[0]) best = [s, 0, spot];
+   size = box;
   }
-  if (required && best) { const box = at(best[1]); taken.push(box); return box; }
-  text.remove();
-  return null;
+  if (!required || !best) { text.remove(); return null; }
+  // Every place of the plot on an 8 px grid: the lowest score, then the nearest to the point.
+  const w = size.r - size.l, h = size.b - size.t;
+  for (let y = plot.t + 12; y - 12 + h <= plot.b; y += 8) for (let x = plot.l + 4; x + w <= plot.r; x += 8) {
+   const box = {l: x, r: x + w, t: y - 12, b: y - 12 + h}, s = score(box);
+   const d = Math.hypot(Math.max(box.l - near[0], 0, near[0] - box.r), Math.max(box.t - near[1], 0, near[1] - box.b));
+   if (s < best[0] || (s === best[0] && d < best[1])) best = [s, d, [x, y, 'start']];
+  }
+  const box = at(best[2]); taken.push(box); return box;
  };
  // A label placed away from its point gets a thin leader to it.
  const leader = (x, y, r, box) => {
   const nx = Math.min(box.r, Math.max(box.l, x)), ny = Math.min(box.b, Math.max(box.t, y)), d = Math.hypot(nx - x, ny - y);
   if (d > r + 10) marks.append(make('svg:line', {class: 'leader', x1: x + (nx - x) / d * (r + 2), y1: y + (ny - y) / d * (r + 2), x2: nx, y2: ny}));
  };
- // The free corners of the plot, the last places a required label can go.
- const corners = [[plot.r, M.top + 12, 'end'], [plot.l + 4, M.top + 12, 'start'], [plot.r, plot.b - 6, 'end'], [plot.l + 4, plot.b - 6, 'start']];
  const dot = (x, y, r) => taken.push({l: x - r, r: x + r, t: y - r, b: y + r});
  dot(px(FROST), py(used(FROST)), 6);
  if (showNow) dot(px(data.outdoor), py(data.now), 12);
  const around = (x, y, gapX, gapY) => [[x + gapX, y - gapY, 'start'], [x + gapX, y + gapY + 12, 'start'], [x - gapX, y - gapY, 'end'],
   [x - gapX, y + gapY + 12, 'end'], [x, y - gapY - 6, 'middle'], [x, y + gapY + 18, 'middle']];
  if (showNow) {
-  const x = px(data.outdoor), y = py(data.now), edge = (side, dy) => [side === 'end' ? plot.r : plot.l + 4, y + dy, side];
+  const x = px(data.outdoor), y = py(data.now);
   const box = place({'data-label': 'now'}, [t('now_point', {outdoor: n(data.outdoor, 1), flow: n(data.now, 1)})],
-   [...around(x, y, 14, 12), ...around(x, y, 14, 28), edge('end', -16), edge('end', 30), edge('start', -16), edge('start', 30), ...corners], true);
+   [...around(x, y, 14, 12), ...around(x, y, 14, 28)], true, [x, y]);
   if (box) leader(x, y, 6, box);
  }
  const frostRows = [t('frost', {flow: n(frost)})];
  if (Math.abs(gain) >= 1) frostRows.push(t(gain > 0 ? 'lower' : 'higher', {n: n(Math.abs(gain))}));
  const fx = px(FROST), fy = py(used(FROST)), upper = Math.min(fy, standard ? py(standard(FROST)) : fy, own ? py(own(FROST)) : fy);
  const frostBox = place({'data-label': 'frost'}, frostRows,
-  [[fx + 10, upper - 14 - 15 * (frostRows.length - 1), 'start'], ...around(fx, fy, 10, 10), ...around(fx, fy, 10, 30), ...corners], true);
+  [[fx + 10, upper - 14 - 15 * (frostRows.length - 1), 'start'], ...around(fx, fy, 10, 10), ...around(fx, fy, 10, 30)], true, [fx, fy]);
  if (frostBox) leader(fx, fy, 5, frostBox);
  // Direct labels at the cold end, where the lines are furthest apart.
  for (const [f, key] of [[own, 'learned'], [standard, 'standard']]) {
@@ -315,9 +322,10 @@ class OpenThermostatHeatingCurve extends OpenThermostatCard {
   if (a.state === 'advice') card.append(make('p', {class: 'note'}, t('off')));
   const draw = () => {
    this._width = plot.clientWidth;
-   const model = drawCurve(plot, data, t, n, this._keep);
-   card.querySelector('details.values')?.remove();
-   card.append(table(model, t, n));
+   const model = drawCurve(plot, data, t, n, this._keep), old = card.querySelector('details.values'), values = table(model, t, n);
+   values.open = !!old?.open; // an open table stays open over a new width
+   old?.remove();
+   card.append(values);
   };
   draw();
   // Drawn at the card's own width, so the text stays 12 px on a phone; again when the width changes.

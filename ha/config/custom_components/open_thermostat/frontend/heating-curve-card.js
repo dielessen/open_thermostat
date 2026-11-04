@@ -56,7 +56,7 @@ background:var(--hc-surface);color:var(--primary-text-color);border:1px solid va
 .tip-row b{font-weight:600;font-variant-numeric:tabular-nums}.tip-row span{color:var(--hc-muted)}
 .caption{margin:8px 0 0;color:var(--hc-muted);font-size:.9rem}.note{margin:6px 0 0;font-size:.9rem}
 details{margin:8px 0 0}summary{cursor:pointer;color:var(--primary-color);font-size:.9rem;padding:6px 0;min-height:24px}
-table{border-collapse:collapse;font-size:.875rem;font-variant-numeric:tabular-nums;margin-top:4px}th,td{padding:4px 12px 4px 0;text-align:right;white-space:nowrap}
+table{border-collapse:collapse;color:inherit;font-size:.875rem;font-variant-numeric:tabular-nums;margin-top:4px}th,td{padding:4px 12px 4px 0;text-align:right;white-space:nowrap}
 th{font-weight:500;color:var(--hc-muted)}th:first-child,td:first-child{text-align:left}tr+tr td{border-top:1px solid var(--hc-grid)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}`;
 const KNOWLEDGE_STYLE = `${BASE}
@@ -82,8 +82,9 @@ const water = (slope, room, low, high) => outdoor =>
  Math.min(high ?? Infinity, Math.max(low ?? -Infinity, room + slope * Math.max(0, room - outdoor)));
 
 /* The chart, drawn into `host` (a .plot element) at its own width; `t(key, values)` gives a text and `n(value,
-   digits)` a number in the viewer's language. Returns what the tests and the table read. */
-function drawCurve(host, data, t, n) {
+   digits)` a number in the viewer's language. `keep` ({at, focus}) carries the crosshair and the keyboard focus
+   over a redraw (a new state, a new width), so a tooltip being read stays. Returns what the table reads. */
+function drawCurve(host, data, t, n, keep = {at: null, focus: false}) {
  const width = Math.max(260, Math.round(host.clientWidth || 320)), M = {left: 34, right: 12, top: 24, bottom: 42};
  const plotH = Math.round(Math.min(240, Math.max(168, width * 0.5))), height = M.top + plotH + M.bottom;
  const x0 = data.outdoor !== null && data.outdoor < X0 ? Math.floor((data.outdoor - 1) / 5) * 5 : X0;
@@ -92,6 +93,7 @@ function drawCurve(host, data, t, n) {
  const py = v => M.top + (Y1 - Math.min(Y1, Math.max(Y0, v))) / (Y1 - Y0) * plotH;
  const svg = make('svg:svg', {width, height, viewBox: `0 0 ${width} ${height}`, tabindex: '0', role: 'img'});
  const tip = make('div', {class: 'tip', hidden: ''}), live = make('span', {class: 'sr', 'aria-live': 'polite'});
+ const was = keep.at, refocus = keep.focus; // before the old chart goes (a browser may blur it on the way out)
  host.replaceChildren(svg, tip, live); // in the document first, so the labels can be measured
  const layer = cls => svg.appendChild(make('svg:g', {class: cls}));
  const grid = layer('axes'), marks = layer('marks'), labels = layer('labels'), cross = layer('crosshair');
@@ -120,37 +122,61 @@ function drawCurve(host, data, t, n) {
    make('svg:circle', {class: 'point now', 'data-point': 'now', cx: px(data.outdoor), cy: py(data.now), r: 5}));
  }
  // Labels, most important first; each takes the first place where it overlaps no line, mark or earlier label
- // and stays inside the plot, else it is left out (the legend, tooltip and table still carry it).
+ // and stays inside the plot. An optional one that finds none is left out (the legend, tooltip and table still
+ // carry it); a required one ("Now", the hard-frost point) takes the first place inside the plot, its halo
+ // keeping it legible over a line.
  const taken = [], plot = {l: M.left, r: width - M.right, t: M.top - 4, b: M.top + plotH};
  const hits = box => lines.some(line => line.some(([x, y]) => x >= box.l - 2 && x <= box.r + 2 && y >= box.t - 2 && y <= box.b + 2))
   || taken.some(o => box.l < o.r && box.r > o.l && box.t < o.b && box.b > o.t);
- const place = (attrs, rows, spots) => {
+ const place = (attrs, rows, spots, required) => {
   const text = make('svg:text', {class: 'label', ...attrs});
   rows.forEach((row, i) => text.append(make('svg:tspan', {class: i ? 'sub' : null, x: 0, dy: i ? 15 : 0}, row)));
   labels.append(text);
-  for (const [x, y, anchor] of spots) {
+  const at = ([x, y, anchor]) => {
    text.setAttribute('text-anchor', anchor);
    text.querySelectorAll('tspan').forEach(s => s.setAttribute('x', x));
    text.setAttribute('y', y);
    let b; try { b = text.getBBox(); } catch (e) { b = null; }
    const w = b && b.width ? b.width : Math.max(...rows.map(r => r.length)) * 7, h = 15 * rows.length;
    const l = anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x;
-   const box = {l, r: l + w, t: y - 12, b: y - 12 + h};
-   if (box.l >= plot.l && box.r <= plot.r && box.t >= plot.t && box.b <= plot.b && !hits(box)) { taken.push(box); return box; }
+   return {l, r: l + w, t: y - 12, b: y - 12 + h};
+  };
+  // How far a box sticks out of the plot (0: inside); a required label takes the best place it can get.
+  const outside = box => Math.max(0, plot.l - box.l) + Math.max(0, box.r - plot.r) + Math.max(0, plot.t - box.t) + Math.max(0, box.b - plot.b);
+  let best = null;
+  for (const spot of spots) {
+   const box = at(spot), score = outside(box) * 10 + (hits(box) ? 1 : 0);
+   if (score === 0) { taken.push(box); return box; }
+   if (!best || score < best[0]) best = [score, spot];
   }
+  if (required && best) { const box = at(best[1]); taken.push(box); return box; }
   text.remove();
   return null;
  };
+ // A label placed away from its point gets a thin leader to it.
+ const leader = (x, y, r, box) => {
+  const nx = Math.min(box.r, Math.max(box.l, x)), ny = Math.min(box.b, Math.max(box.t, y)), d = Math.hypot(nx - x, ny - y);
+  if (d > r + 10) marks.append(make('svg:line', {class: 'leader', x1: x + (nx - x) / d * (r + 2), y1: y + (ny - y) / d * (r + 2), x2: nx, y2: ny}));
+ };
+ // The free corners of the plot, the last places a required label can go.
+ const corners = [[plot.r, M.top + 12, 'end'], [plot.l + 4, M.top + 12, 'start'], [plot.r, plot.b - 6, 'end'], [plot.l + 4, plot.b - 6, 'start']];
  const dot = (x, y, r) => taken.push({l: x - r, r: x + r, t: y - r, b: y + r});
  dot(px(FROST), py(used(FROST)), 6);
  if (showNow) dot(px(data.outdoor), py(data.now), 12);
- const around = (x, y, gapX, gapY) => [[x + gapX, y - gapY, 'start'], [x + gapX, y + gapY + 12, 'start'], [x - gapX, y - gapY, 'end'], [x - gapX, y + gapY + 12, 'end']];
- if (showNow) place({'data-label': 'now'}, [t('now_point', {outdoor: n(data.outdoor, 1), flow: n(data.now, 1)})], around(px(data.outdoor), py(data.now), 14, 12));
+ const around = (x, y, gapX, gapY) => [[x + gapX, y - gapY, 'start'], [x + gapX, y + gapY + 12, 'start'], [x - gapX, y - gapY, 'end'],
+  [x - gapX, y + gapY + 12, 'end'], [x, y - gapY - 6, 'middle'], [x, y + gapY + 18, 'middle']];
+ if (showNow) {
+  const x = px(data.outdoor), y = py(data.now), edge = (side, dy) => [side === 'end' ? plot.r : plot.l + 4, y + dy, side];
+  const box = place({'data-label': 'now'}, [t('now_point', {outdoor: n(data.outdoor, 1), flow: n(data.now, 1)})],
+   [...around(x, y, 14, 12), ...around(x, y, 14, 28), edge('end', -16), edge('end', 30), edge('start', -16), edge('start', 30), ...corners], true);
+  if (box) leader(x, y, 6, box);
+ }
  const frostRows = [t('frost', {flow: n(frost)})];
  if (Math.abs(gain) >= 1) frostRows.push(t(gain > 0 ? 'lower' : 'higher', {n: n(Math.abs(gain))}));
  const fx = px(FROST), fy = py(used(FROST)), upper = Math.min(fy, standard ? py(standard(FROST)) : fy, own ? py(own(FROST)) : fy);
- const frostBox = place({'data-label': 'frost'}, frostRows, [[fx + 10, upper - 14 - 15 * (frostRows.length - 1), 'start'], ...around(fx, fy, 10, 10)]);
- if (frostBox && frostBox.b < fy - 6) marks.append(make('svg:line', {class: 'leader', x1: fx, x2: fx, y1: fy - 6, y2: frostBox.b + 2}));
+ const frostBox = place({'data-label': 'frost'}, frostRows,
+  [[fx + 10, upper - 14 - 15 * (frostRows.length - 1), 'start'], ...around(fx, fy, 10, 10), ...around(fx, fy, 10, 30), ...corners], true);
+ if (frostBox) leader(fx, fy, 5, frostBox);
  // Direct labels at the cold end, where the lines are furthest apart.
  for (const [f, key] of [[own, 'learned'], [standard, 'standard']]) {
   if (!f) continue;
@@ -164,7 +190,7 @@ function drawCurve(host, data, t, n) {
  cross.append(hair, ...dots, make('svg:rect', {class: 'hit', x: M.left, y: M.top, width: width - M.left - M.right, height: plotH}));
  let at = null;
  const show = (outdoor, announce) => {
-  at = Math.min(x1, Math.max(x0, Math.round(outdoor * 2) / 2));
+  at = keep.at = Math.min(x1, Math.max(x0, Math.round(outdoor * 2) / 2));
   const x = px(at);
   hair.setAttribute('x1', x); hair.setAttribute('x2', x); hair.setAttribute('visibility', 'visible');
   const rows = marksAt.map(([key, f], i) => {
@@ -182,13 +208,14 @@ function drawCurve(host, data, t, n) {
   tip.style.transform = `translate(${left}px, ${M.top}px)`;
   if (announce) live.textContent = [head.textContent, ...rows.map(([key, value]) => t(key) + ' ' + n(value) + ' °C')].join(', ');
  };
- const hide = () => { at = null; tip.hidden = true; hair.setAttribute('visibility', 'hidden'); dots.forEach(d => d.setAttribute('visibility', 'hidden')); };
+ const hide = () => { at = keep.at = null; tip.hidden = true; hair.setAttribute('visibility', 'hidden'); dots.forEach(d => d.setAttribute('visibility', 'hidden')); };
  const outdoorAt = event => { const box = svg.getBoundingClientRect(); return x0 + ((event.clientX - box.left) / box.width * width - M.left) / (width - M.left - M.right) * (x1 - x0); };
  svg.addEventListener('pointermove', e => show(outdoorAt(e)));
  svg.addEventListener('pointerdown', e => show(outdoorAt(e)));
  svg.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') hide(); });
- svg.addEventListener('focus', () => show(data.outdoor ?? 0, true));
- svg.addEventListener('blur', hide);
+ svg.addEventListener('focus', () => { keep.focus = true; show(at ?? data.outdoor ?? 0, true); });
+ // Leaving the chart hides the crosshair; a redraw that replaces this chart does not.
+ svg.addEventListener('blur', () => { if (svg.isConnected) { keep.focus = false; hide(); } });
  svg.addEventListener('keydown', e => {
   const step = {ArrowLeft: -1, ArrowRight: 1, ArrowDown: -1, ArrowUp: 1}[e.key];
   if (step) { e.preventDefault(); show((at ?? data.outdoor ?? 0) + step * (e.shiftKey ? 5 : 1), true); }
@@ -201,7 +228,10 @@ function drawCurve(host, data, t, n) {
  if (own) name.push(t('learned') + ': ' + t('frost', {flow: n(Math.round(own(FROST)))}));
  if (showNow) name.push(t('now') + ': ' + t('now_point', {outdoor: n(data.outdoor, 1), flow: n(data.now, 1)}));
  svg.setAttribute('aria-label', name.join('. '));
- return {standard, own, frost, gain, x0, x1, hide, show};
+ // A redraw keeps what the viewer had: the crosshair where it was, the keyboard focus on the chart.
+ if (refocus) svg.focus({preventScroll: true});
+ if (was !== null) show(was);
+ return {standard, own, frost, gain, x0, x1};
 }
 
 function table(model, t, n) {
@@ -260,7 +290,7 @@ class OpenThermostatCard extends HTMLElement {
 
 class OpenThermostatHeatingCurve extends OpenThermostatCard {
  static configError = 'This card needs the "Water temperature by weather compensation" sensor of OpenThermostat (entity: sensor.…); the OpenThermostat dashboard adds it for you.';
- constructor() { super(); this._resize = null; this._width = 0; }
+ constructor() { super(); this._resize = null; this._width = 0; this._keep = {at: null, focus: false}; }
  getCardSize() { return 6; }
  disconnectedCallback() { this._resize?.disconnect(); this._resize = null; }
  render() {
@@ -285,7 +315,7 @@ class OpenThermostatHeatingCurve extends OpenThermostatCard {
   if (a.state === 'advice') card.append(make('p', {class: 'note'}, t('off')));
   const draw = () => {
    this._width = plot.clientWidth;
-   const model = drawCurve(plot, data, t, n);
+   const model = drawCurve(plot, data, t, n, this._keep);
    card.querySelector('details.values')?.remove();
    card.append(table(model, t, n));
   };

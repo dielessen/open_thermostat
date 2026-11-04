@@ -9,6 +9,7 @@
 1 test/room-away-browser.cjs  # 8 s (away temperature per room, plan.room_away.v1)
 1 test/ha-room-status-card-browser.cjs  # 3 s (room status card)
 1 test/dashboard-views-browser.cjs  # 8 s (generated dashboard layout at phone and desktop width)
+1 test/ha-learning-cards-browser.cjs  # about 8 s (rc.5 the Learning view's cards: heating curve and knowledge ring)
 # shard 2: about 266 s
 2 test/onboarding/network-browser.cjs  # 1 s
 2 test/rooms/browser.cjs  # 35 s
@@ -28,6 +29,7 @@
 2 test/menu-browser.cjs  # 15 s (beta.23 menus)
 2 test/heating-valves-browser.cjs  # 23 s (beta.24 radiator valves)
 2 test/display-code-browser.cjs  # 3 s (1.0)
+2 test/house-curve-browser.cjs  # about 8 s (rc.5 water temperature by outdoor temperature on the Home page)
 # shard 3: about 266 s
 3 test/auth-body-browser.cjs  # 1 s
 3 test/boiler-display-browser.cjs  # 20 s
@@ -46,6 +48,7 @@
 3 test/house-browser.cjs  # 20 s (beta.23)
 3 test/takeover-test-browser.cjs  # 16 s (rc.2 boiler test and takeover)
 3 test/dashboard-room-why-browser.cjs  # 8 s (rc.4 why each room heats or not, two chips on a phone)
+3 test/house-insight-browser.cjs  # about 8 s (rc.5 what the E32 knows, the boiler's response, insights, free heat)
 # shard 4: about 270 s
 4 test/onboarding/browser.cjs  # 19 s
 4 test/onboarding/body-browser.cjs  # 2 s

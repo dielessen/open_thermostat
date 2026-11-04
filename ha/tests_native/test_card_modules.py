@@ -19,6 +19,8 @@ import custom_components.open_thermostat as integration
 from custom_components.open_thermostat import e32_week, week_planner
 from custom_components.open_thermostat.e32_week import CARD_URL, EDITOR_URL, WeekError, read_week
 from custom_components.open_thermostat.room_overview import CARD_URL as ROOM_URL
+# The Learning view's cards (E32 rc.5): water temperature by outdoor temperature and what the E32 knows.
+from custom_components.open_thermostat.e32_flow import CURVE_CARD_URL as CURVE_URL
 from test_e32_room_flow import product
 from test_room_plan import FakeE32
 
@@ -44,17 +46,17 @@ async def test_async_setup_registers_the_cards_once_without_any_installation(has
     events = browser_side(hass)
     assert hass.config_entries.async_entries("open_thermostat") == []
     assert await integration.async_setup(hass, {}) is True
-    # The cards (week program, room status) and the room editor modules, before any entry or dashboard exists.
-    assert modules(hass) == {CARD_URL, week_planner.URL, ROOM_URL}
+    # The cards (week program, room status, learning) and the room editor modules, before any entry or dashboard exists.
+    assert modules(hass) == {CARD_URL, week_planner.URL, ROOM_URL, CURVE_URL}
     served = {path.url_path for call in hass.http.async_register_static_paths.await_args_list for path in call.args[0]}
-    assert {CARD_URL, EDITOR_URL, week_planner.URL, ROOM_URL, *week_planner.LEGACY_URLS} <= served
+    assert {CARD_URL, EDITOR_URL, week_planner.URL, ROOM_URL, CURVE_URL, *week_planner.LEGACY_URLS} <= served
     handlers = hass.data["websocket_api"]
     assert {"open_thermostat/e32_week/get", "open_thermostat/e32_week/save", "open_thermostat/week/get"} <= set(handlers)
     # A dashboard start later (or a second installation) adds nothing twice.
     await week_planner.async_setup_planner(hass)
     await week_planner.async_setup_planner(hass)
-    assert events == [("added", CARD_URL), ("added", week_planner.URL), ("added", ROOM_URL)]
-    assert hass.http.async_register_static_paths.await_count == 6  # one route per URL, once
+    assert events == [("added", CARD_URL), ("added", week_planner.URL), ("added", ROOM_URL), ("added", CURVE_URL)]
+    assert hass.http.async_register_static_paths.await_count == 7  # one route per URL, once
 
 
 @pytest.mark.asyncio
@@ -62,22 +64,23 @@ async def test_a_module_already_listed_is_not_announced_again(hass):
     events = browser_side(hass)
     hass.data[frontend.DATA_EXTRA_MODULE_URL] = UrlManager(lambda change, url: events.append((change, url)), [CARD_URL])
     await week_planner.async_setup_planner(hass)
-    assert events == [("added", week_planner.URL), ("added", ROOM_URL)] and modules(hass) == {CARD_URL, week_planner.URL, ROOM_URL}
+    assert events == [("added", week_planner.URL), ("added", ROOM_URL), ("added", CURVE_URL)]
+    assert modules(hass) == {CARD_URL, week_planner.URL, ROOM_URL, CURVE_URL}
 
 
 @pytest.mark.asyncio
 async def test_a_failing_card_setup_never_blocks_the_installations_and_is_retried(hass, monkeypatch, caplog):
     events = browser_side(hass)
     # The first two files are served, the third fails: a retry serves only what is missing.
-    hass.http.async_register_static_paths = AsyncMock(side_effect=[None, None, None, RuntimeError("busy"), None, None, None])
+    hass.http.async_register_static_paths = AsyncMock(side_effect=[None, None, None, RuntimeError("busy"), None, None, None, None])
     assert await integration.async_setup(hass, {}) is True
     assert "dashboard cards could not be registered" in caplog.text and modules(hass) == set()
     await week_planner.async_setup_planner(hass)  # the dashboard start tries again
-    assert modules(hass) == {CARD_URL, week_planner.URL, ROOM_URL} and len(events) == 3
+    assert modules(hass) == {CARD_URL, week_planner.URL, ROOM_URL, CURVE_URL} and len(events) == 4
     urls = [call.args[0][0].url_path for call in hass.http.async_register_static_paths.await_args_list]
-    assert urls == [week_planner.URL, *week_planner.LEGACY_URLS, CARD_URL, CARD_URL, EDITOR_URL, ROOM_URL], "no duplicate route"
+    assert urls == [week_planner.URL, *week_planner.LEGACY_URLS, CARD_URL, CARD_URL, EDITOR_URL, ROOM_URL, CURVE_URL], "no duplicate route"
     await week_planner.async_setup_planner(hass)
-    assert hass.http.async_register_static_paths.await_count == 7
+    assert hass.http.async_register_static_paths.await_count == 8
 
 
 @pytest.mark.asyncio
@@ -107,16 +110,16 @@ async def test_removing_the_last_installation_removes_the_modules_and_a_new_one_
     second = SimpleNamespace(entry_id="other", domain="open_thermostat")
     hass.config_entries.async_entries = lambda domain=None: [first, second]
     await integration.async_remove_entry(hass, first)
-    assert modules(hass) == {CARD_URL, week_planner.URL, ROOM_URL}, "another installation still uses the cards"
+    assert modules(hass) == {CARD_URL, week_planner.URL, ROOM_URL, CURVE_URL}, "another installation still uses the cards"
     hass.config_entries.async_entries = lambda domain=None: [second]
     await integration.async_remove_entry(hass, second)
     assert modules(hass) == set()
-    assert events[-3:] == [("removed", CARD_URL), ("removed", ROOM_URL), ("removed", week_planner.URL)]
+    assert events[-4:] == [("removed", CARD_URL), ("removed", CURVE_URL), ("removed", ROOM_URL), ("removed", week_planner.URL)]
     await integration.async_remove_entry(hass, second)  # nothing left to remove: no error, no event
-    assert len(events) == 6
+    assert len(events) == 8
     # A new installation's dashboard start brings them back (HA keeps the static files served).
     await week_planner.async_setup_planner(hass)
-    assert modules(hass) == {CARD_URL, week_planner.URL, ROOM_URL}
+    assert modules(hass) == {CARD_URL, week_planner.URL, ROOM_URL, CURVE_URL}
 
 
 @pytest.mark.asyncio
@@ -162,7 +165,7 @@ async def test_an_installation_without_the_dashboard_brings_the_cards_back(hass)
     week_planner.async_remove_card_modules(hass)  # the last installation was removed
     assert modules(hass) == set()
     await week_planner.async_ensure_cards(hass)   # a new E32 installation's setup, no dashboard
-    assert modules(hass) == {CARD_URL, week_planner.URL, ROOM_URL}
+    assert modules(hass) == {CARD_URL, week_planner.URL, ROOM_URL, CURVE_URL}
     await week_planner.async_ensure_cards(hass)   # idempotent
     assert events.count(("added", CARD_URL)) == 2
     source = (COMPONENT / "__init__.py").read_text(encoding="utf-8")
@@ -201,7 +204,7 @@ def test_the_asset_urls_follow_the_integration_version():
     import json
     version = json.loads((COMPONENT / "manifest.json").read_text(encoding="utf-8"))["version"]
     # Every module the browser loads from this integration carries the version: no stale cached module.
-    for url in (CARD_URL, EDITOR_URL, week_planner.URL, ROOM_URL):
+    for url in (CARD_URL, EDITOR_URL, week_planner.URL, ROOM_URL, CURVE_URL):
         assert url.endswith(f"-{version}.js"), url
     assert f"const EDITOR = '{EDITOR_URL}';" in CARD
     served = {name for name in re.findall(r'"(?:frontend/)?([\w-]+\.js)"', (COMPONENT / "week_planner.py").read_text(encoding="utf-8"))}
@@ -214,7 +217,7 @@ def test_every_card_element_survives_a_replaced_registry():
     """A HACS card's scoped-registry polyfill may replace customElements after our modules ran: every
     OpenThermostat element goes through ensureDefined, which defines it again (browser case 6 in
     test/week-editor-browser.cjs)."""
-    for name in ("e32-week-card.js", "week-planner.js", "room-status-card.js"):
+    for name in ("e32-week-card.js", "week-planner.js", "room-status-card.js", "heating-curve-card.js"):
         source = (COMPONENT / "frontend" / name).read_text(encoding="utf-8")
         assert source.count("customElements.define(") == 1, name  # only inside ensureDefined
         assert "const ensureDefined = (name, cls) =>" in source and "'location-changed', check" in source, name
@@ -223,3 +226,6 @@ def test_every_card_element_survives_a_replaced_registry():
     from custom_components.open_thermostat.week_planner import ROOM_CARD_TYPE
     assert f"ensureDefined('{ROOM_CARD_TYPE.removeprefix('custom:')}'" in planner
     assert "ensureDefined('openthermostat-e32-week', OpenThermostatE32Week);" in CARD
+    curve = (COMPONENT / "frontend/heating-curve-card.js").read_text(encoding="utf-8")
+    assert "ensureDefined('openthermostat-heating-curve', OpenThermostatHeatingCurve);" in curve
+    assert "ensureDefined('openthermostat-knowledge', OpenThermostatKnowledge);" in curve

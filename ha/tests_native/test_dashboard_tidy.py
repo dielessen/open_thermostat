@@ -37,14 +37,15 @@ def live(hass, language="en"):
     hub["heating_problem"] = entities.async_get_or_create(
         "binary_sensor", "open_thermostat", "fixture_hub_heating_problem", config_entry=e, device_id=product.id,
         suggested_object_id="heating_problem").entity_id
-    # Yesterday's scoreboard (E32 rc.4).
-    for key in ("burner_starts_per_heating_hour", "short_cycling_hours", "heating_gas_yesterday", "gas_per_degree_day"):
+    # Yesterday's scoreboard (E32 rc.4); what the E32 knows, the boiler's response and the learned overview (rc.5).
+    for key in ("burner_starts_per_heating_hour", "short_cycling_hours", "heating_gas_yesterday", "gas_per_degree_day",
+                "knowledge", "boiler_response", "learned_overview"):
         hub[key] = entities.async_get_or_create("sensor", "open_thermostat", f"fixture_hub_{key}", config_entry=e,
                                                 device_id=product.id, suggested_object_id=key).entity_id
     flow = {key: entities.async_get_or_create(domain, "open_thermostat", f"fixture_flow_{key}", config_entry=e,
                                               device_id=product.id, suggested_object_id=f"flow_{key}").entity_id
             for domain, key in (("sensor", "source"), ("switch", "weather_curve"),
-                                ("select", "curve_design_flow_c"), ("switch", "apply_learned"))}
+                                ("select", "curve_design_flow_c"), ("switch", "apply_learned"), ("sensor", "curve"))}
     hass.states.async_set("climate.thermostaat_badkamer", "heat", {"current_temperature": 18.4, "temperature": 19})
     hass.data["open_thermostat"][e.entry_id]["heating_hub"].plan = SimpleNamespace(
         plan=PLAN, room=lambda room_id: next((r for r in PLAN["rooms"] if r["id"] == room_id), None))

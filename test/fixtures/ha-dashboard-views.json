@@ -274,6 +274,30 @@
         ]
        },
        {
+        "content": "{% set names = [\"Woonkamer\"] %}{% set mine = (state_attr(\"sensor.learned_overview\", 'rooms') or []) | selectattr('name', 'in', names) | list %}{% if mine and mine[0].lines %}{% for line in mine[0].lines %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n{% endfor %}{% else %}Nothing learned yet.{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_learning",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       },
+       {
         "entity": "sensor.woonkamer_flow_advice",
         "grid_options": {
          "columns": 12
@@ -492,6 +516,30 @@
            "unavailable",
            "unknown"
           ]
+         }
+        ]
+       },
+       {
+        "content": "{% set names = [\"Badkamer\"] %}{% set mine = (state_attr(\"sensor.learned_overview\", 'rooms') or []) | selectattr('name', 'in', names) | list %}{% if mine and mine[0].lines %}{% for line in mine[0].lines %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n{% endfor %}{% else %}Nothing learned yet.{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_learning",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
          }
         ]
        },
@@ -1028,6 +1076,200 @@
      {
       "cards": [
        {
+        "heading": "What the E32 knows",
+        "heading_style": "title",
+        "icon": "mdi:home-analytics",
+        "type": "heading"
+       },
+       {
+        "entity": "sensor.knowledge",
+        "grid_options": {
+         "columns": 12
+        },
+        "type": "custom:openthermostat-knowledge",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.knowledge",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "{% set s = state_attr(\"sensor.boiler_response\", 'sentence') %}{% if s %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> {{ s }}{% endif %}",
+        "show_empty": false,
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_response",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "{% set items = state_attr(\"sensor.learned_overview\", 'insights') or [] %}{% if items %}**Yesterday compared with usual**\n{% for line in items %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n{% endfor %}{% endif %}",
+        "show_empty": false,
+        "type": "markdown"
+       },
+       {
+        "content": "The E32 learns all this by itself while the heating runs.\n\n<details><summary>More</summary>\n\nYesterday is compared with your house's own usual days; that is information and changes nothing.\n\n</details>",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.knowledge",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_response",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "What the thermostat has learned",
+        "heading_style": "title",
+        "icon": "mdi:school-outline",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       },
+       {
+        "content": "{% set e = state_attr(\"sensor.learned_overview\", 'explanation') or '' %}{% set p = e.split('. ', 1) %}{{ p[0] }}{% if p | length > 1 %}.\n\n<details><summary>More</summary>\n\n{{ p[1] }}\n\n</details>{% endif %}\n\n{% for room in state_attr(\"sensor.learned_overview\", 'rooms') or [] %}- **{{ room.name }}** · {{ room.progress }}\n{% endfor %}{% for change in (state_attr(\"sensor.learned_overview\", 'changes') or [])[:1] %}\n*Latest change:* {{ change.text }}{% endfor %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": "unavailable"
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "House and boiler",
+        "heading_style": "title",
+        "icon": "mdi:home-thermometer-outline",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       },
+       {
+        "content": "{% set items = state_attr(\"sensor.learned_overview\", 'house') or [] %}{% for line in items %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n{% endfor %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": "unavailable"
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "What it changed by itself",
+        "heading_style": "title",
+        "icon": "mdi:history",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       },
+       {
+        "content": "{% for change in state_attr(\"sensor.learned_overview\", 'changes') or [] %}- {% if change.time %}{{ as_timestamp(change.time) | timestamp_custom('%d-%m') }}: {% endif %}{{ change.text }}\n{% endfor %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       },
+       {
+        "content": "The thermostat adjusts these settings itself; to change one: Configure → Heating and boiler → Comfort and boiler care (or the E32 page, Home).",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": "unavailable"
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
         "heading": "Yesterday",
         "heading_style": "title",
         "icon": "mdi:scoreboard-outline",
@@ -1149,6 +1391,23 @@
         "icon": "mdi:thermometer-lines",
         "name": "Water temperature in hard frost (−10 °C)",
         "type": "tile"
+       },
+       {
+        "entity": "sensor.flow_curve",
+        "grid_options": {
+         "columns": 12
+        },
+        "type": "custom:openthermostat-heating-curve",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.flow_curve",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
        },
        {
         "entity": "sensor.flow_source",
@@ -1721,6 +1980,30 @@
         ]
        },
        {
+        "content": "{% set names = [\"Woonkamer\"] %}{% set mine = (state_attr(\"sensor.learned_overview\", 'rooms') or []) | selectattr('name', 'in', names) | list %}{% if mine and mine[0].lines %}{% for line in mine[0].lines %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n{% endfor %}{% else %}Nog niets geleerd.{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_woonkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.woonkamer_learning",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       },
+       {
         "entity": "sensor.woonkamer_flow_advice",
         "grid_options": {
          "columns": 12
@@ -1939,6 +2222,30 @@
            "unavailable",
            "unknown"
           ]
+         }
+        ]
+       },
+       {
+        "content": "{% set names = [\"Badkamer\"] %}{% set mine = (state_attr(\"sensor.learned_overview\", 'rooms') or []) | selectattr('name', 'in', names) | list %}{% if mine and mine[0].lines %}{% for line in mine[0].lines %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n{% endfor %}{% else %}Nog niets geleerd.{% endif %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "select.fixture_e32_room_badkamer_state",
+          "state_not": "inactive"
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.badkamer_learning",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
          }
         ]
        },
@@ -2475,6 +2782,200 @@
      {
       "cards": [
        {
+        "heading": "Wat de E32 weet",
+        "heading_style": "title",
+        "icon": "mdi:home-analytics",
+        "type": "heading"
+       },
+       {
+        "entity": "sensor.knowledge",
+        "grid_options": {
+         "columns": 12
+        },
+        "type": "custom:openthermostat-knowledge",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.knowledge",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "{% set s = state_attr(\"sensor.boiler_response\", 'sentence') %}{% if s %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> {{ s }}{% endif %}",
+        "show_empty": false,
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_response",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       },
+       {
+        "content": "{% set items = state_attr(\"sensor.learned_overview\", 'insights') or [] %}{% if items %}**Gisteren vergeleken met normaal**\n{% for line in items %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n{% endfor %}{% endif %}",
+        "show_empty": false,
+        "type": "markdown"
+       },
+       {
+        "content": "De E32 leert dit allemaal zelf terwijl de verwarming draait.\n\n<details><summary>Meer</summary>\n\nGisteren wordt vergeleken met de gewone dagen van je eigen huis; dat is informatie en verandert niets.\n\n</details>",
+        "type": "markdown"
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "or",
+        "conditions": [
+         {
+          "condition": "state",
+          "entity": "sensor.knowledge",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         },
+         {
+          "condition": "state",
+          "entity": "sensor.boiler_response",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Wat de thermostaat heeft geleerd",
+        "heading_style": "title",
+        "icon": "mdi:school-outline",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       },
+       {
+        "content": "{% set e = state_attr(\"sensor.learned_overview\", 'explanation') or '' %}{% set p = e.split('. ', 1) %}{{ p[0] }}{% if p | length > 1 %}.\n\n<details><summary>Meer</summary>\n\n{{ p[1] }}\n\n</details>{% endif %}\n\n{% for room in state_attr(\"sensor.learned_overview\", 'rooms') or [] %}- **{{ room.name }}** · {{ room.progress }}\n{% endfor %}{% for change in (state_attr(\"sensor.learned_overview\", 'changes') or [])[:1] %}\n*Laatste aanpassing:* {{ change.text }}{% endfor %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": "unavailable"
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Huis en ketel",
+        "heading_style": "title",
+        "icon": "mdi:home-thermometer-outline",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       },
+       {
+        "content": "{% set items = state_attr(\"sensor.learned_overview\", 'house') or [] %}{% for line in items %}- {{ line.text }}{% if line.meaning %}<br>*{{ line.meaning }}*{% endif %}\n{% endfor %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": "unavailable"
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
+        "heading": "Wat hij zelf heeft aangepast",
+        "heading_style": "title",
+        "icon": "mdi:history",
+        "type": "heading",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       },
+       {
+        "content": "{% for change in state_attr(\"sensor.learned_overview\", 'changes') or [] %}- {% if change.time %}{{ as_timestamp(change.time) | timestamp_custom('%d-%m') }}: {% endif %}{{ change.text }}\n{% endfor %}",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       },
+       {
+        "content": "De thermostaat past deze instellingen zelf aan; wijzigen kan onder Configureren → Verwarming en ketel → Comfort en zorg voor de ketel (of op de E32-pagina, Huis).",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.learned_overview",
+          "state_not": "unavailable"
+         }
+        ]
+       }
+      ],
+      "type": "grid",
+      "visibility": [
+       {
+        "condition": "state",
+        "entity": "sensor.learned_overview",
+        "state_not": "unavailable"
+       }
+      ]
+     },
+     {
+      "cards": [
+       {
         "heading": "Gisteren",
         "heading_style": "title",
         "icon": "mdi:scoreboard-outline",
@@ -2596,6 +3097,23 @@
         "icon": "mdi:thermometer-lines",
         "name": "Watertemperatuur bij strenge vorst (−10 °C)",
         "type": "tile"
+       },
+       {
+        "entity": "sensor.flow_curve",
+        "grid_options": {
+         "columns": 12
+        },
+        "type": "custom:openthermostat-heating-curve",
+        "visibility": [
+         {
+          "condition": "state",
+          "entity": "sensor.flow_curve",
+          "state_not": [
+           "unavailable",
+           "unknown"
+          ]
+         }
+        ]
        },
        {
         "entity": "sensor.flow_source",

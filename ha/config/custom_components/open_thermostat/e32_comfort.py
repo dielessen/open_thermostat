@@ -51,7 +51,6 @@ from datetime import datetime, timedelta, timezone
 import json
 import time
 
-from homeassistant.components import mqtt
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
     PRESET_BOOST, PRESET_COMFORT, PRESET_ECO, PRESET_NONE, PRESET_SLEEP, ClimateEntityFeature, HVACAction, HVACMode)
@@ -1024,11 +1023,11 @@ async def async_setup_e32_climates(hass, entry, async_add_entities):
     pusher = state["setting_device_pusher"] = SettingDevicePusher(hass, entry, hub)
     entry.async_on_unload(pusher.start())
     # Only the MQTT prefix and the broker, not the shadow link (heating_link.topic_base).
-    from .heating_link import topic_base
+    from .heating_link import publish_input, topic_base
     topic = topic_base(hass, entry) + "ha/heating_input"
 
     def send(payload):
-        hass.async_create_task(mqtt.async_publish(hass, topic, payload, 0, False))
+        publish_input(hass, topic, payload)  # a broker failure is logged once, never an unretrieved task (R4-07)
 
     if PRESENCE_MEMORY not in hass.data:
         from homeassistant.helpers.storage import Store

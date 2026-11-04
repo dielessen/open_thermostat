@@ -48,6 +48,7 @@ from homeassistant.const import EVENT_CORE_CONFIG_UPDATE
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.event import async_call_later
 from homeassistant.util import slugify
 
 from .const import DOMAIN
@@ -59,6 +60,9 @@ E32_WEEK_CARD_TYPE = "custom:openthermostat-e32-week"
 ROOM_STATUS_CARD_TYPE = "custom:openthermostat-room-status"
 
 _LOGGER = logging.getLogger(__name__)
+# Registry and language changes come in bursts (a start creates every entity one by one): one rebuild
+# once they settled this long after the first (R4-11).
+REGISTRY_SETTLE_SECONDS = 2
 
 DEVICE_DIAGNOSTIC_METRICS = (
     "connected",
@@ -981,6 +985,10 @@ class RoomDashboard:
         self._hub_signature = None
         self._mode = None  # the E32's last reported mode (shadow / active), kept while it is silent
         self._candidate: LovelaceStorage | None = None  # registered, panel not yet (async_start)
+        # This entry's entities and devices at the last build: registry events about others never rebuild.
+        self._entity_ids: set[str] = set()
+        self._device_ids: set[str] = set()
+        self._registry_timer = None  # the debounced rebuild after registry or language changes
 
     async def async_start(self) -> None:
         """Register a Lovelace panel without changing the user's dashboards.
@@ -1038,18 +1046,54 @@ class RoomDashboard:
             _LOGGER.warning("Cannot register OpenThermostat dashboard at %s", self.path)
             return
         self._store = store
-        self._unsubscribe = [
-            self.hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, self._registry_updated),
-            self.hass.bus.async_listen(dr.EVENT_DEVICE_REGISTRY_UPDATED, self._registry_updated),
-            self.hass.bus.async_listen(EVENT_CORE_CONFIG_UPDATE, self._registry_updated),
-        ]
+        self._listen()
         self._watch_hub()
+
+    @callback
+    def _listen(self) -> None:
+        """Rebuild after registry changes of this entry's own entities and devices and after a change of
+        language or units; the registry events of every other integration pass by (R4-11)."""
+        self._unsubscribe = [
+            self.hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, self._registry_updated,
+                                       event_filter=self._own_entity_event),
+            self.hass.bus.async_listen(dr.EVENT_DEVICE_REGISTRY_UPDATED, self._registry_updated,
+                                       event_filter=self._own_device_event),
+            self.hass.bus.async_listen(EVENT_CORE_CONFIG_UPDATE, self._registry_updated,
+                                       event_filter=self._language_or_units),
+        ]
+
+    @callback
+    def _own_entity_event(self, data) -> bool:
+        """An entity of this entry was created, renamed, enabled or removed."""
+        entity_id = data.get("entity_id")
+        if entity_id in self._entity_ids or data.get("old_entity_id") in self._entity_ids:
+            return True
+        item = er.async_get(self.hass).async_get(entity_id) if type(entity_id) is str else None
+        return item is not None and item.config_entry_id == self.entry_id
+
+    @callback
+    def _own_device_event(self, data) -> bool:
+        """A device of this entry was created, renamed or removed."""
+        device_id = data.get("device_id")
+        if device_id in self._device_ids:
+            return True
+        device = dr.async_get(self.hass).async_get(device_id) if type(device_id) is str else None
+        return device is not None and self.entry_id in device.config_entries
+
+    @staticmethod
+    @callback
+    def _language_or_units(data) -> bool:
+        """The language or the unit system changed (an update without data: Home Assistant starts)."""
+        return not data or "language" in data or "unit_system" in data
 
     async def async_stop(self) -> None:
         """Remove the panel when the integration is unloaded or disabled."""
         for unsubscribe in self._unsubscribe:
             unsubscribe()
         self._unsubscribe = []
+        if self._registry_timer is not None:
+            self._registry_timer()
+            self._registry_timer = None
         self._unwatch_hub()
         if self._refresh_task is not None:
             self._refresh_task.cancel()
@@ -1072,8 +1116,18 @@ class RoomDashboard:
 
     @callback
     def _registry_updated(self, event) -> None:
-        """Follow entity creation, entity ID and device name changes, and the HA language."""
+        """Follow entity creation, entity ID and device name changes, and the HA language.
+
+        Once per burst: the rebuild follows REGISTRY_SETTLE_SECONDS after the first event (a start
+        creates this entry's entities one by one, R4-11).
+        """
         self._watch_hub()
+        if self._registry_timer is None and self._store is not None:
+            self._registry_timer = async_call_later(self.hass, REGISTRY_SETTLE_SECONDS, self._registry_settled)
+
+    @callback
+    def _registry_settled(self, _now=None) -> None:
+        self._registry_timer = None
         self._schedule_refresh()
 
     def _heating_hub(self):
@@ -1112,10 +1166,11 @@ class RoomDashboard:
         if hub is None or not hub.fresh:
             return None
         plan = hub.plan.plan if hub.plan is not None else None
+        # The E32 counts every plan save in its revision: no need to compare the whole plan (R4-11).
         return (hub.status.get("mode"),
                 tuple((key, room.get("name"), room.get("source")) for key, room in hub.rooms.items()),
                 tuple((key, sensor.get("name")) for key, sensor in hub.ble.items()),
-                json.dumps(plan, sort_keys=True, default=str) if plan else None)
+                plan.get("revision") if plan else None)
 
     @callback
     def _schedule_refresh(self) -> None:
@@ -1212,6 +1267,9 @@ class RoomDashboard:
         t = TEXT[dashboard_language(self.hass)]
         registry = er.async_get(self.hass)
         entries = self._entries()
+        self._entity_ids = {item.entity_id for item in entries}
+        self._device_ids = {device.id for device in dr.async_entries_for_config_entry(dr.async_get(self.hass),
+                                                                                       self.entry_id)}
         hub_entities = {
             item.unique_id.removeprefix(f"{self.prefix}_hub_"): item.entity_id
             for item in entries if item.unique_id.startswith(f"{self.prefix}_hub_")

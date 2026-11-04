@@ -1048,3 +1048,77 @@ async def test_bluetooth_readings_show_sensible_decimals_and_keep_their_value(ha
     assert precision == {"temperature": 1, "humidity": 0, "battery": 0}
     assert by_id["fixture_e32_ble_a4c138a3e8db_humidity"].native_value == 56.96
     assert by_id["fixture_e32_ble_a4c138a3e8db_battery"].native_value == 87.4
+
+
+@pytest.mark.asyncio
+async def test_publish_failure_logs_once(hass, monkeypatch, caplog):
+    """R4-07: a broker that is down logs one warning (no unretrieved task errors) and the pending sends stay few."""
+    import asyncio
+    import logging
+    from homeassistant.components import mqtt
+    from homeassistant.exceptions import HomeAssistantError
+    from custom_components.open_thermostat import heating_link as module
+    caplog.set_level(logging.DEBUG, logger="custom_components.open_thermostat.heating_link")
+    down = [True]
+    sent = []
+
+    async def publish(hass, topic, payload, qos, retain):
+        if down[0]:
+            raise HomeAssistantError("MQTT is not connected")
+        sent.append((topic, payload))
+    monkeypatch.setattr(mqtt, "async_publish", publish)
+    loop = asyncio.get_running_loop()
+    unretrieved = []
+    previous = loop.get_exception_handler()
+    loop.set_exception_handler(lambda loop, context: unretrieved.append(context))
+    try:
+        for _ in range(5):
+            module.publish_input(hass, "fixture/v1/ha/heating_input", '{"entity": "climate.woonkamer"}')
+        await hass.async_block_till_done()
+        down[0] = False
+        module.publish_input(hass, "fixture/v1/ha/heating_input", '{"entity": "climate.woonkamer"}')
+        await hass.async_block_till_done()
+    finally:
+        loop.set_exception_handler(previous)
+    warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == 1 and "could not send room values to the E32" in warnings[0].getMessage()
+    assert "sends room values to the E32 again" in caplog.text
+    assert unretrieved == [] and len(sent) == 1
+    # A broker that does not answer at all: at most MAX_PENDING_PUBLISHES sends wait, newer ones are dropped.
+    release = asyncio.Event()
+
+    async def hanging(hass, topic, payload, qos, retain):
+        await release.wait()
+        sent.append((topic, payload))
+    monkeypatch.setattr(mqtt, "async_publish", hanging)
+    for _ in range(module.MAX_PENDING_PUBLISHES + 20):
+        module.publish_input(hass, "fixture/v1/ha/heating_input", "{}")
+    await asyncio.sleep(0)
+    assert hass.data[module._PUBLISH_STATE]["pending"] == module.MAX_PENDING_PUBLISHES
+    release.set()
+    await hass.async_block_till_done()
+    assert len(sent) == 1 + module.MAX_PENDING_PUBLISHES and hass.data[module._PUBLISH_STATE]["pending"] == 0
+
+
+def test_a_failing_listener_logs_once_a_minute(caplog):
+    """R4-10: one broken listener used to log a traceback for every E32 message."""
+    import logging
+    from custom_components.open_thermostat.heating_link import LISTENER_LOG_SECONDS, HeatingHub
+    now = [1000.0]
+    hub = HeatingHub("fixture", clock=lambda: now[0])
+    heard = []
+
+    def broken():
+        raise RuntimeError("broken entity")
+    hub.add_listener(broken)
+    hub.add_listener(lambda: heard.append(True))
+    caplog.set_level(logging.DEBUG, logger="custom_components.open_thermostat.heating_link")
+    for _ in range(50):
+        hub.notify()
+        now[0] += 1
+    errors = [r for r in caplog.records if r.levelno == logging.ERROR]
+    assert len(errors) == 1 and errors[0].exc_info is not None
+    assert len(heard) == 50  # the other listeners still hear every message
+    now[0] += LISTENER_LOG_SECONDS
+    hub.notify()
+    assert len([r for r in caplog.records if r.levelno == logging.ERROR]) == 2  # a minute later: once more

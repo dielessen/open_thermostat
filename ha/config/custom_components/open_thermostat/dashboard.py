@@ -2185,8 +2185,9 @@ class RoomDashboard:
                     "{% for key, field in fields.items() %}{% if field.supported_read %}"
                     "\n- {{ key | replace('_', ' ') }}: {{ field.value if field.value is not none else '"
                     + t["unknown"] + "' }} {{ field.unit or '' }} ({{ field.quality }}){% endif %}{% endfor %}")
-            sections.append(_section(_heading(t["dhw"], ICONS["hot_water"]),
-                                     {"type": "entities", "title": t["dhw_card"], "entities": _rows([dhw_id])},
+            # Its name once, as the heading: the Boiler view has the everyday "Hot water".
+            sections.append(_section(_heading(t["dhw_card"], ICONS["hot_water"]),
+                                     {"type": "entities", "entities": _rows([dhw_id])},
                                      {"type": "markdown", "content": note}))
         # Older HA rooms: heat model estimates and target / measured history, by room name.
         devices = dr.async_get(self.hass)

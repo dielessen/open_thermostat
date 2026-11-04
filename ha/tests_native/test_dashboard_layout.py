@@ -67,9 +67,10 @@ def dashboards(hass):
 
 @pytest.mark.asyncio
 async def test_no_row_of_a_section_is_half_empty_in_any_state(hass):
-    config = dashboards(hass)
-    assert gaps(config) == []
-    assert None not in list(walk(config))
+    for language in ("en", "nl", "pl"):
+        config, *_ = live(hass, language)
+        assert gaps(config) == [], language
+        assert None not in list(walk(config))
     # The bare installation too (no thermostats, no learning): only the rooms' own tiles.
     e, *_ = installation(hass, "nl")
     assert gaps(RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()) == []

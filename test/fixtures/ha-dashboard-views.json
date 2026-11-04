@@ -4032,7 +4032,7 @@
      {
       "cards": [
        {
-        "heading": "Hot water",
+        "heading": "Hot water capability and quality",
         "heading_style": "title",
         "icon": "mdi:faucet",
         "type": "heading"
@@ -4046,7 +4046,6 @@
           }
          }
         ],
-        "title": "Hot water capability and quality",
         "type": "entities"
        },
        {
@@ -8290,7 +8289,7 @@
      {
       "cards": [
        {
-        "heading": "Warm water",
+        "heading": "Warmwatermogelijkheden en kwaliteit",
         "heading_style": "title",
         "icon": "mdi:faucet",
         "type": "heading"
@@ -8304,7 +8303,6 @@
           }
          }
         ],
-        "title": "Warmwatermogelijkheden en kwaliteit",
         "type": "entities"
        },
        {

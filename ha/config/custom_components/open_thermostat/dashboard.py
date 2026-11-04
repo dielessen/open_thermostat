@@ -205,6 +205,8 @@ TEXT = {
         "boiler_note": "Values as the boiler reports them; a value the boiler does not send is left out. "
                        "Burner power is a percentage of the boiler's maximum, not kW; \"active\" is what the boiler "
                        "reports, not a separate check.",
+        "settings_note": "Settings the boiler reports only when asked are read at start-up and every six hours; the "
+                         "time of the last reading is on the sensor.",
         "raw": "Raw boiler data",
         "raw_note": "For troubleshooting: values exactly as the boiler sends them, not checked by the E32.",
         "e32_device": "E32",
@@ -375,6 +377,8 @@ TEXT = {
         "boiler_note": "Waarden zoals de ketel ze meldt; een waarde die de ketel niet stuurt, staat er niet. "
                        "Brandervermogen is een percentage van het maximum van de ketel, geen kW; \"actief\" is wat de ketel "
                        "meldt, geen aparte controle.",
+        "settings_note": "Instellingen die de ketel alleen op verzoek meldt, leest de E32 bij het opstarten en daarna "
+                         "elke zes uur; wanneer ze voor het laatst zijn gelezen staat op de sensor.",
         "raw": "Ruwe keteldata",
         "raw_note": "Voor het zoeken naar fouten: waarden precies zoals de ketel ze stuurt, niet gecontroleerd "
                     "door de E32.",
@@ -545,6 +549,8 @@ TEXT = {
         "boiler_note": "Wartości tak, jak zgłasza je kocioł; wartości, której kocioł nie wysyła, tu nie ma. "
                        "Moc palnika to procent maksimum kotła, a nie kW; \"aktywny\" to to, co zgłasza kocioł, "
                        "a nie osobne sprawdzenie.",
+        "settings_note": "Ustawienia, które kocioł zgłasza tylko na żądanie, E32 odczytuje przy uruchomieniu, a potem "
+                         "co sześć godzin; czas ostatniego odczytu jest podany na czujniku.",
         "raw": "Surowe dane kotła",
         "raw_note": "Do szukania usterek: wartości dokładnie tak, jak wysyła je kocioł, niesprawdzane przez E32.",
         "e32_device": "E32",
@@ -2149,11 +2155,12 @@ class RoomDashboard:
             sections.append(_filled(_section_known(
                 [entity for key in reported for entity in groups[key]],
                 _heading(t["boiler_values"], ICONS["boiler"]), *cards, hidden=hidden)))
-            # The boiler's own settings, read only, last.
+            # The boiler's own settings, read only, last, with when the boiler reports them (only when asked).
             settings = groups.get("settings")
             if settings:
                 sections.append(_section_known(settings, _heading(t["group_settings"], ICONS["settings"]),
-                                               _known_entities_card(settings, hidden), hidden=hidden))
+                                               _known_entities_card(settings, hidden),
+                                               _note(t, t["settings_note"], _any_known(settings, hidden)), hidden=hidden))
         else:
             # An older integration without the boiler fields: what the hub reports, as graphs.
             legacy = _section(

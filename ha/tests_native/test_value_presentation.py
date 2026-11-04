@@ -35,7 +35,8 @@ class Shown(BoilerFieldEntity):
 
     def __init__(self, name, raw):
         super().__init__("fixture", SimpleNamespace(
-            ready=True, boiler_fields=SimpleNamespace(concept_state=lambda members: None, profile="classic")), AT[name])
+            ready=True, clock=lambda: 0.0, boiler_fields=SimpleNamespace(
+                concept_state=lambda members: None, profile="classic", source_age_ms=lambda index, now: None)), AT[name])
         self._reading = (AT[name], {"raw": raw, "usable": True, "measurement_state": "fresh", "quality": 0,
                                     "source_type": "retained", "observed_at_ms": 1, "availability_reason": "fresh"})
 

@@ -2593,6 +2593,97 @@
           ]
          }
         ]
+       },
+       {
+        "content": "Settings the boiler reports only when asked are read at start-up and every six hours; the time of the last reading is on the sensor.",
+        "type": "markdown",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_heating_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_hysteresis_on",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_flow_temperature_offset",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_circulation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_circulation_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_disinfection_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_charge_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_comfort_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
        }
       ],
       "type": "grid",
@@ -6738,6 +6829,97 @@
          }
         ],
         "type": "entities",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_heating_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_hysteresis_on",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_charge_optimisation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_flow_temperature_offset",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_circulation_enabled",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_circulation_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_dhw_disinfection_temperature",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_charge_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_configured_dhw_comfort_mode",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.boiler_reported_dhw_type",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "Instellingen die de ketel alleen op verzoek meldt, leest de E32 bij het opstarten en daarna elke zes uur; wanneer ze voor het laatst zijn gelezen staat op de sensor.",
+        "type": "markdown",
         "visibility": [
          {
           "condition": "or",

@@ -229,6 +229,23 @@ def test_todays_figures_have_names_a_phone_shows_in_full():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("language,heading,note", [
+    ("en", "Boiler settings", "Settings the boiler reports only when asked are read at start-up and every six hours; "
+                              "the time of the last reading is on the sensor."),
+    ("nl", "Ketelinstellingen", "Instellingen die de ketel alleen op verzoek meldt, leest de E32 bij het opstarten en "
+                                "daarna elke zes uur; wanneer ze voor het laatst zijn gelezen staat op de sensor."),
+    ("pl", "Ustawienia kotła", "Ustawienia, które kocioł zgłasza tylko na żądanie, E32 odczytuje przy uruchomieniu, "
+                               "a potem co sześć godzin; czas ostatniego odczytu jest podany na czujniku.")])
+async def test_the_boiler_settings_say_when_the_boiler_reports_them(hass, language, heading, note):
+    """The owner (4 Nov 2026): settings the boiler reports only once or at start-up are shown, with a remark. Under
+    the settings one sentence says when they are read and where the time of the last reading is."""
+    config, hub, fields = setup(hass, language)
+    cards = headed(view(config, "boiler"))[heading]
+    assert [card["type"] for card in cards] == ["heading", "entities", "markdown"]
+    assert cards[2]["content"] == note and cards[2]["visibility"] == cards[1]["visibility"]
+
+
+@pytest.mark.asyncio
 async def test_today_and_this_week_has_todays_figures_and_the_one_gas_chart(hass):
     """rc.5 (dashboard-spec §5.3): gas and burner of today as pairs of figures, one gas-per-day chart, the burner
     hours per day and one note on how the gas is counted; on the Boiler view only."""

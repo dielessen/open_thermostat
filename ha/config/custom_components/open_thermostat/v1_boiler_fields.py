@@ -12,8 +12,9 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.const import EntityCategory
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.util import dt as dt_util
 from .boiler_fields import (BoilerFieldCache, CATALOG_BASE, CATALOG_COUNTERS, INDEX_BY_NAME, INDEXES, concept,
-                            quality, spec)
+                            quality, request_only, spec)
 from .const import DOMAIN, CONF_TOPIC_PREFIX
 
 _LOGGER = logging.getLogger(__name__)
@@ -615,7 +616,7 @@ class BoilerFieldEntity(SensorEntity):
     _attr_has_entity_name = True
     # Diagnostics that change with every sample: shown, not recorded with each state.
     _unrecorded_attributes = frozenset({"source_observed_at_ms", "age_basis", "raw_divisor", "source_ttl_ms",
-                                        "protocol_profile", "source_fields"})
+                                        "protocol_profile", "source_fields", "last_read"})
 
     def __init__(self, prefix, client, index, translated=None, placeholder=False, shared=None):
         # shared: the setup's per-pass evaluation (whether the values may show at all).
@@ -775,6 +776,15 @@ class BoilerFieldEntity(SensorEntity):
         from .display_codes import attributes
         return attributes(self.code_description())
 
+    def _read_attributes(self, index, usable):
+        """A setting the boiler reports only on request (read at start-up and every six hours): its value stays until
+        the next reading, and when it was last read (UTC) is shown with it."""
+        if not request_only(index):
+            return {}
+        age = self.client.boiler_fields.source_age_ms(index, self.client.clock()) if usable else None
+        read = (dt_util.utcnow() - timedelta(milliseconds=age)).replace(microsecond=0) if age is not None else None
+        return {"request_only": True, "last_read": read.isoformat() if read is not None else None}
+
     @property
     def extra_state_attributes(self):
         index, value = self.source
@@ -792,6 +802,7 @@ class BoilerFieldEntity(SensorEntity):
                   value["availability_reason"] if value else "not_received")
         return {"data_role":"read_only_boiler_field", "control_qualified":False,
                 "field_name":name, "raw_divisor":divisor, "source_ttl_ms":ttl,
+                **self._read_attributes(index, usable),
                 "measurement_state":value["measurement_state"] if value else "unknown",
                 "availability_reason":reason,
                 "age_basis":"firmware_snapshot_plus_local_elapsed; network transit unmeasured",

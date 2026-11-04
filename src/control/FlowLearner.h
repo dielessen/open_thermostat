@@ -416,6 +416,7 @@ public:
 
 private:
     friend class LearnedState;
+    friend class HouseModel; // rc.5 (P2): the ready bins, for the emitter output per K of flow
     enum class Kind : uint8_t { none, heat, cool, pause };
     struct Bin {
         uint8_t segments = 0, periods = 0, outdoorSegments = 0;

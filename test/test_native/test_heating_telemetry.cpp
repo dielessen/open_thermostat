@@ -3,10 +3,12 @@
 #include "control/DhwEpisodes.h"
 #include "control/ControlPartitionBudget.h"
 #include "control/HeatingTelemetry.h"
+#include "control/Knowledge.h"
 #include "control/RoomEngine.h"
 #include "control/Scoreboard.h"
 #include "control/ShadowComparison.h"
 #include "control/TelemetryPolicy.h"
+#include "BoilerResponseWidest.h"
 #include "ScopedTz.h"
 #include <cmath>
 #include <cstdio>
@@ -106,6 +108,30 @@ void train(FlowLearner& learner, size_t rooms) {
 // 2026-10-28 (Wednesday) 23:00 CET.
 const int64_t wednesday23 = int64_t(ShadowComparison::daysFromCivil(2026, 10, 28)) * 86400 + 22 * 3600;
 constexpr uint64_t statusNow = 600 * minute;
+
+// rc.5 (P3): the widest "free_heat" for every room (test_free_heat.cpp): all six dayparts with a
+// rate of three characters and 99 windows, and a start moved by 240 min. A sawtooth of 40 min from
+// local midnight on (each tooth a window of 39:50 within its daypart, six a daypart), 18 days long.
+FreeHeat widestFreeHeat(const RoomPlan& plan) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    FreeHeat f; f.setPlan(plan);
+    const int64_t day0 = int64_t(ShadowComparison::daysFromCivil(2026, 10, 29)) * 86400 - 3600; // Thu 29 Oct 00:00 CET
+    std::vector<FreeHeat::RoomSample> s(plan.rooms.size());
+    uint64_t now = 0;
+    for (int64_t u = day0; u < day0 + 18 * 86400; u += 10) {
+        now += 10 * second;
+        const double hours = double((u - day0) % 2400) / 3600;
+        for (auto& r : s) r = {int16_t(std::lround((20.0 + 1.3 * hours) * 10) * 10), false};
+        f.sample(now, u, int16_t(500), s.data(), s.size());
+    }
+    for (size_t i = 0; i < plan.rooms.size(); ++i) {
+        WarmupPlanner::Start st;
+        st.reason = "planned"; st.rise.atUtc = day0 + 19 * 86400 + 16 * 3600; st.rise.toCentiC = 2400;
+        st.startTemperatureCentiC = 2000; st.leadS = WarmupPlanner::maxLeadS; st.reachable = true;
+        f.shorten(i, st.rise.atUtc - WarmupPlanner::maxLeadS, st);
+    }
+    return f;
+}
 
 struct Bench {
     RoomPlan plan;
@@ -289,6 +315,8 @@ TEST(HeatingTelemetry, SummaryCarriesTheLearnedHeaderAndTodaysHotWater) {
 // an upper bound). Split as TelemetryPublisher::summary() does, every part stays within the 1 KB
 // soft limit. Before 6c29aa50 the two days' rooms stayed inside fw/telemetry/summary, about 2.2 KB,
 // over the 1.5 KB hard limit: send() dropped the summary silently every 5 minutes.
+// rc.5 (P2): and the "insight" (fw/telemetry/insight) at its worst: nothing learned in eight rooms
+// with 32-character ids (28 missing keys), four rooms slower than usual, P1's widest boiler: within 700 B.
 TEST(HeatingTelemetry, WorstCaseSummaryPartsEachStayWithinTheSoftLimit) {
     ScopedTz tz(ScopedTz::amsterdam);
     const Bench b(true, true, true);
@@ -309,34 +337,57 @@ TEST(HeatingTelemetry, WorstCaseSummaryPartsEachStayWithinTheSoftLimit) {
     ControlTuning widest; size_t kn; const auto* kk = ControlTuning::knobs(kn);
     for (size_t i = 0; i < kn; ++i) widest.*kk[i].field = kk[i].high;
     FlowPolicy policy;
+    // rc.5 (P2): the insight's worst case: nothing learned (an idle learner on the same plan, Smart warm-up on).
+    FlowLearner idle; idle.setPlan(b.plan); idle.setApplied(true);
+    CurveLearner curve; ArrivalLearner arrival; arrival.setPlan(b.plan);
+    HouseModel house; house.update({&idle, nullptr, 0.123456f, &b.plan});
+    const auto knowledge = Knowledge::percent(idle, curve, arrival, nullptr, house, b.plan);
+    ASSERT_EQ(knowledge.count, 3 * 8 + 4u);
+    Insights insights;
+    for (int i = 0; i < 5; ++i) { Insights::Day d; d.heated = true; for (auto& w : d.warmupMinPerC) w = 20; insights.dayChange(d); }
+    Insights::Day slower; slower.heated = true; for (auto& w : slower.warmupMinPerC) w = 999;
+    insights.dayChange(slower);
+    ASSERT_EQ(insights.count(), 4u);
+    const BoilerResponse boiler = widestBoilerResponse(); // rc.5 (P1): "boiler" at its widest, sent with the flow and in the insight
     const auto more = [&](bool compact) {
         return [&, compact](cJSON* root) {
             return tuner.addStatus(root, b.context.now, widest, ControlTuning::autoKnobs, AutoTuner::mqttEntries)
-                && board.addJson(root, tuner, b.plan, compact);
+                && board.addJson(root, tuner, b.plan, compact) && boiler.addJson(root)
+                && addInsightJson(root, knowledge, house, &boiler, insights, b.plan);
         };
     };
     const auto summary = heatingSummaryTelemetry(b.learner, b.context, Bench::dhw().summaryJson(), &policy, more(true));
     ASSERT_FALSE(summary.empty());
     Json doc(cJSON_Parse(summary.c_str()), cJSON_Delete);
     ASSERT_TRUE(doc);
-    // The split of TelemetryPublisher::summary(): flow and night_gas, tuning and scoreboard each with a schema.
+    // The split of TelemetryPublisher::summary(): flow and night_gas, tuning and scoreboard each with a schema;
+    // rc.5: the insight's members after their own schema.
     Json flow(cJSON_CreateObject(), cJSON_Delete), tuning(cJSON_CreateObject(), cJSON_Delete), score(cJSON_CreateObject(), cJSON_Delete);
-    for (cJSON* part : {flow.get(), tuning.get(), score.get()}) cJSON_AddNumberToObject(part, "schema", 1);
-    for (const char* key : {"flow", "night_gas", "tuning", "scoreboard"})
+    Json insight(cJSON_CreateObject(), cJSON_Delete);
+    for (cJSON* part : {flow.get(), tuning.get(), score.get(), insight.get()}) cJSON_AddNumberToObject(part, "schema", 1);
+    for (const char* key : {"flow", "night_gas", "tuning", "scoreboard", "boiler"})
         if (cJSON* part = cJSON_DetachItemFromObjectCaseSensitive(doc.get(), key))
             cJSON_AddItemToObject(key[0] == 't' ? tuning.get() : key[0] == 's' ? score.get() : flow.get(), key, part);
+    if (Json part{cJSON_DetachItemFromObjectCaseSensitive(doc.get(), "insight"), cJSON_Delete}; part)
+        while (cJSON* member = cJSON_DetachItemViaPointer(part.get(), part->child)) cJSON_AddItemToObject(insight.get(), member->string, member);
     const struct { const char* topic; std::string payload; } parts[] = {
         {"fw/telemetry/summary", print(doc.get())}, {"fw/telemetry/flow", print(flow.get())},
-        {"fw/telemetry/tuning", print(tuning.get())}, {"fw/telemetry/scoreboard", print(score.get())}};
-    std::printf("[ heating telemetry ] worst-case summary parts: summary %zu B, flow %zu B, tuning %zu B, scoreboard %zu B (soft %zu B, hard %zu B)\n",
-                parts[0].payload.size(), parts[1].payload.size(), parts[2].payload.size(), parts[3].payload.size(), telemetrySoftBytes, telemetryHardBytes);
+        {"fw/telemetry/tuning", print(tuning.get())}, {"fw/telemetry/scoreboard", print(score.get())},
+        {"fw/telemetry/insight", print(insight.get())}};
+    std::printf("[ heating telemetry ] worst-case summary parts: summary %zu B, flow %zu B, tuning %zu B, scoreboard %zu B, insight %zu B (soft %zu B, hard %zu B)\n",
+                parts[0].payload.size(), parts[1].payload.size(), parts[2].payload.size(), parts[3].payload.size(), parts[4].payload.size(),
+                telemetrySoftBytes, telemetryHardBytes);
     for (const auto& p : parts) EXPECT_LE(p.payload.size(), telemetrySoftBytes) << p.topic << ": " << p.payload;
+    EXPECT_LE(parts[4].payload.size(), insightMaxBytes) << parts[4].payload;
+    EXPECT_GE(parts[4].payload.size(), insightMaxBytes - 50) << "the worst case fills the topic";
     EXPECT_GT(summary.size(), telemetryHardBytes) << "together they do not fit one topic: the split is what keeps the summary alive";
     // The summary keeps the learned header and today's hot water; nothing of the companions.
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(doc.get(), "learned")));
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(doc.get(), "dhw")));
-    for (const char* key : {"flow", "night_gas", "tuning", "scoreboard"}) EXPECT_FALSE(cJSON_GetObjectItem(doc.get(), key)) << key;
+    for (const char* key : {"flow", "night_gas", "tuning", "scoreboard", "boiler", "insight"}) EXPECT_FALSE(cJSON_GetObjectItem(doc.get(), key)) << key;
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(tuning.get(), "tuning")));
+    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(flow.get(), "boiler"))) << "rc.5: the boiler's object travels with the flow";
+    for (const char* key : {"knowledge", "house", "boiler", "insights"}) EXPECT_TRUE(cJSON_GetObjectItem(insight.get(), key)) << key;
     // The scoreboard's MQTT form: yesterday with every room, today without a "rooms" key.
     const cJSON* sb = cJSON_GetObjectItem(score.get(), "scoreboard");
     ASSERT_TRUE(cJSON_IsObject(sb));
@@ -483,9 +534,9 @@ TEST(HeatingTelemetry, BurnerKeepsItsKeysWhileUnknown) {
     EXPECT_EQ(print(active.get()), R"({"burner":{"starts_last_hour":7,"heating_starts_last_hour":6,"short_cycling":true,"activity":"keep_warm"}})");
 }
 
-// The budget (TELEMETRIEBUDGET.nl.md, the soak chain's sizes and fuzz_room_plan): 1000 B. rc.4
+// The budget (TELEMETRIEBUDGET.nl.md, the soak chain's sizes and fuzz_room_plan): learnedRoomBytes, rc.5 1100 B. rc.4
 // added "readiness_timing", "estimate" and "arrival" (an object once a morning was judged).
-TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder1000Bytes) {
+TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayWithinTheirBudget) {
     for (const bool worst : {false, true}) {
         Bench b(worst, true, true);                      // worst: 32-character ids and a judged morning
         if (worst) b.learner.gasPrice(FlowLearner::maxGasPrice); // the longest prices and savings
@@ -494,7 +545,7 @@ TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder1000Bytes) {
             const auto payload = learnedRoomTelemetry(b.learner, b.plan, i, b.context);
             ASSERT_FALSE(payload.empty());
             largest = std::max(largest, payload.size());
-            EXPECT_LE(payload.size(), 1000u) << i;
+            EXPECT_LE(payload.size(), learnedRoomBytes) << i;
             Json j(cJSON_Parse(payload.c_str()), cJSON_Delete);
             ASSERT_TRUE(j);
             EXPECT_EQ(cJSON_GetObjectItem(j.get(), "schema")->valuedouble, 1);
@@ -532,7 +583,65 @@ TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder1000Bytes) {
         }
         std::printf("[ heating telemetry ] per-room %s largest %zu B\n", worst ? "worst-case" : "realistic", largest);
         EXPECT_TRUE(learnedRoomTelemetry(b.learner, b.plan, 8, b.context).empty());
+        // rc.5 (P3): with the widest free heat in every room, "free_heat" (88 B and its comma) goes in
+        // "learned" while the payload keeps its budget with a 32-character id (the soak's rule), and stays
+        // out of a payload it would push over (/status/heating always has it).
+        const auto free = widestFreeHeat(b.plan);
+        b.context.freeHeat = &free;
+        size_t carried = 0, widest = 0;
+        for (size_t i = 0; i < b.plan.rooms.size(); ++i) {
+            const auto payload = learnedRoomTelemetry(b.learner, b.plan, i, b.context);
+            ASSERT_FALSE(payload.empty());
+            const size_t pad = 32 - std::min<size_t>(32, b.plan.rooms[i].id.size());
+            EXPECT_LE(payload.size() + pad, learnedRoomBytes) << i;
+            widest = std::max(widest, payload.size() + pad);
+            Json alone(cJSON_CreateObject(), cJSON_Delete);
+            ASSERT_TRUE(free.addJson(alone.get(), i));
+            const size_t member = print(alone.get()).size() - 2 + 1;
+            EXPECT_EQ(member, 89u);
+            Json j(cJSON_Parse(payload.c_str()), cJSON_Delete);
+            ASSERT_TRUE(j);
+            const cJSON* fh = cJSON_GetObjectItem(cJSON_GetObjectItem(j.get(), "learned"), "free_heat");
+            if (fh) {
+                ++carried;
+                EXPECT_TRUE(cJSON_IsObject(fh));
+                EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(fh, "rate")), 6);
+                EXPECT_EQ(cJSON_GetObjectItem(fh, "applied_min")->valueint, 240);
+            } else EXPECT_GT(payload.size() + member + pad, learnedRoomBytes) << i << ": left out only when it does not fit";
+        }
+        std::printf("[ heating telemetry ] per-room %s with free heat: carried in %zu of 8, widest %zu B with a 32-character id\n",
+                    worst ? "worst-case" : "realistic", carried, widest);
+        b.context.freeHeat = nullptr;
     }
+}
+
+// rc.5 (P3): the page (/status/heating "learned") has every room's "free_heat", an object once a
+// window was judged and null before; without the free heat in the context the document is as before.
+TEST(HeatingTelemetry, FreeHeatIsOnThePageForEveryRoom) {
+    Bench b(false, true, true);
+    const auto before = print(Json(learnedJson(b.learner, b.plan, b.context), cJSON_Delete).get());
+    EXPECT_EQ(before.find("free_heat"), std::string::npos);
+    const auto free = widestFreeHeat(b.plan);
+    b.context.freeHeat = &free;
+    Json learned(learnedJson(b.learner, b.plan, b.context), cJSON_Delete);
+    ASSERT_TRUE(learned);
+    const cJSON* rooms = cJSON_GetObjectItem(learned.get(), "rooms");
+    ASSERT_EQ(cJSON_GetArraySize(rooms), 8);
+    for (const cJSON* r = rooms->child; r; r = r->next) {
+        const cJSON* fh = cJSON_GetObjectItem(r, "free_heat");
+        ASSERT_TRUE(cJSON_IsObject(fh));
+        EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(fh, "n")), 6);
+        EXPECT_EQ(cJSON_GetArrayItem(cJSON_GetObjectItem(fh, "n"), 0)->valueint, 99);
+    }
+    FreeHeat none; none.setPlan(b.plan);
+    b.context.freeHeat = &none;
+    Json empty(learnedJson(b.learner, b.plan, b.context), cJSON_Delete);
+    for (const cJSON* r = cJSON_GetObjectItem(empty.get(), "rooms")->child; r; r = r->next) EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(r, "free_heat")));
+    // The per-room message without a judged window carries "free_heat":null where it fits.
+    const auto payload = learnedRoomTelemetry(b.learner, b.plan, 0, b.context);
+    Json j(cJSON_Parse(payload.c_str()), cJSON_Delete);
+    ASSERT_TRUE(j);
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(cJSON_GetObjectItem(j.get(), "learned"), "free_heat")));
 }
 
 TEST(HeatingTelemetry, WithoutClockPlansAreNullAndTheShapeStays) {

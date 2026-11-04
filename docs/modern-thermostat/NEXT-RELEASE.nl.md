@@ -173,7 +173,7 @@ De criteria, gemeten met `tools/switchover/release_ready.py` (alleen lezen):
 | --- | --- | --- |
 | `stability` | 14 dagen zonder onverwachte herstart of langdurig offline; een geplande update telt niet | HA-geschiedenis (uptime, Firmware-entiteit) |
 | `active_control` | de E32 stuurt de ketel zelf, 14 dagen zonder teruggeven | HA 0.4.0b14+: `boiler_output_enabled` |
-| `trv_control` | elke ruimte met kranen heeft de kraansturing 14 dagen aan | de kraanschakelaars van de 1.0-kandidaat |
+| `trv_control` | elke ruimte met kranen heeft de kraansturing 14 dagen aan; zonder kranen (geen kraanschakelaars) "niet van toepassing" = PASS (rc.5) | de kraanschakelaars van de 1.0-kandidaat |
 | `failure_tests` | alle bijgewoonde tests T1–T12 geslaagd (T12 mag het alternatief uit de checklist) | `OVERSCHAKELING-RESULTATEN-<datum>.json`, via `tools/switchover/record_test.py` |
 | `updates` | minstens één update geaccepteerd via de HA-route | `update-acceptance/e32-beta20/21/22-*.json` (PASS) |
 | `install_guide` | iemand anders volgde de installatiehandleiding tot het eind; elk gevonden probleem opgelost | `INSTALLATIETEST-<datum>.json`, via `record_test.py install` |
@@ -221,6 +221,8 @@ Pendelen: eerst meten met de nieuwe driewegklep (vanaf 4 november); geen regelwi
 ## rc.5 — luisteren naar de ketel, een huismodel, weten wat hij niet weet, inzichten en gratis warmte (besluit eigenaar 4 november)
 
 De eigenaar wil het zelfleren compleet in 1.0 ("top of the build self learning"), universeel voor alle EMS-ketels, zonder knoppen. rc.5 wordt mét opname geïnstalleerd (de geaccepteerde update) en is de code van v1.0.0; de 14 dagen lopen op rc.5. Ontwerp, contracten, werkpakketten P1–P7 en bewijs: [RC5-PLAN.md](RC5-PLAN.md). Kort: (1) `BoilerResponse` — vastgehouden doelen, het rustritme van de ketel en opgenomen warmte uit aanvoer–retour → een geleerd plafond op de aanvraag per buitentemperatuur-band en een bodem onder de branderrust; (2) `HouseModel` — warmteverlies per K en afgifte per K aanvoer, een vroege stookcurve; (3) `Knowledge` — één kennisgetal met wat nog ontbreekt; (4) `Insights` — gisteren tegen de eigen basislijnen, alleen informatie; (5) `FreeHeat` — gratis warmte per dagdeel, kortere opwarmstarts. Bewust niet: weersvoorspelling, dagplanning, aanwezigheidspatronen (na 1.0, zonder nieuwe structuur).
+
+**Documentatie (P7, tak `rc5-docs`):** bijgewerkt voor E32 rc.5 / HA 1.0.0rc6: `README.md` (status, "Updating from rc.4?", drie zinnen over het nieuwe leren), `docs/USER-GUIDE.md` (zes nieuwe secties: wat de E32 weet, luisteren naar de ketel, het huismodel, gisteren tegen je gewone dagen, gratis warmte, de grafiek), `docs/INSTALL.md` (13.1, sectie 12, de tagvoorbeelden), `docs/FIELD-TESTER.md`, `docs/INSTALL-CHECK.md`, `TELEMETRIEBUDGET.nl.md` (rij `fw/telemetry/insight`), de Nederlandse PDF-handleiding (`tools/dev/manual`, 11 pagina's, wordt niet gecommit) en de notitieontwerpen `RELEASE-1.0-RC5-NOTES-DRAFT.en.md` (5229 B gerenderd) en `HA-RC6-NOTES-DRAFT.en.md` (3330 B; grens 6000), beoordeeld met `organize_releases.py --publication-notes-for` op een wegwerpkopie. De integrator zet de ontwerpen vooraan in de versie-commit (`prepare_rc5.py`) en loopt na de integratie de namen en getallen in de teksten na (lijst in het rapport P7).
 
 ## Na 1.0
 

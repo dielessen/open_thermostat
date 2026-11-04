@@ -117,8 +117,10 @@ class Harness(unittest.TestCase):
         self.assertIn('heat_agreement', out['room_engine'])
         firmware = next(l for l in out['learner'] if l['variant'] == 'firmware')
         bridge = next(l for l in out['learner'] if l['variant'] == 'bridge_hot_water')
-        # The keep-warm store splits the firmware's periods; the bridge keeps them whole.
-        self.assertGreater(firmware['heating_periods'], bridge['heating_periods'])
+        # Since rc.2 the firmware bridges a hot-water run by default (FlowLearner::Params::bridgeHotWater), so
+        # the keep-warm store no longer splits its periods: the default and the explicit bridge variant agree.
+        self.assertTrue(firmware['bridge_hot_water'])
+        self.assertEqual(firmware['heating_periods'], bridge['heating_periods'])
 
 
 if __name__ == '__main__':

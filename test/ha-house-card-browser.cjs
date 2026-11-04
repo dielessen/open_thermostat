@@ -371,10 +371,12 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   assert.deepEqual(await figures('on_time'),[['room',fill(W.warm,{room:'Slaapkamer'}),W.on_time,true]]);
   const ylook=await yesterday('full').evaluate(el=>{const r=el.shadowRoot,g=(q,k)=>getComputedStyle(r.querySelector(q))[k];
    return {size:g('.value','fontSize'),weight:g('.value','fontWeight'),value:g('.value','color'),label:g('.label','color'),
-    boxes:[...r.querySelectorAll('.figure')].map(f=>{const b=f.getBoundingClientRect();return [b.x,b.y];})};});
+    boxes:[...r.querySelectorAll('.figure')].map(f=>{const b=f.getBoundingClientRect();return [b.x,b.y];}),
+    bottoms:[...r.querySelectorAll('.value')].map(v=>Math.round(v.getBoundingClientRect().bottom))};});
   assert.deepEqual([ylook.size,ylook.weight,ylook.value,ylook.label],['22px','700',RGB[theme].text,RGB[theme].muted]);
   const yb=ylook.boxes;
   assert(yb[0][1]===yb[1][1]&&yb[2][1]===yb[3][1]&&yb[2][1]>yb[0][1]&&yb[0][0]===yb[2][0],'a pair of pairs');
+  assert(ylook.bottoms[0]===ylook.bottoms[1]&&ylook.bottoms[2]===ylook.bottoms[3],'the values of a row on one line');
   // A tap (or Enter) shows that figure's history.
   await yesterday('full').locator('[data-figure="gas"]').click();
   await yesterday('full').locator('[data-figure="room"]').focus();await page.keyboard.press('Enter');
@@ -390,6 +392,7 @@ const over=(top,under)=>{const t=channels(top),u=channels(under),a=t.length>3?t[
   const cut=await page.locator('openthermostat-house,openthermostat-yesterday').evaluateAll(cards=>cards.flatMap(c=>[...c.shadowRoot.querySelectorAll(
    '.figure,.status,.strip,.today,.words,.value,.trend')].filter(x=>x.scrollWidth>x.clientWidth+1).map(x=>c.dataset.card+' '+x.className)));
   assert.deepEqual(cut,[]);
+  await page.mouse.click(2,2);  // the screenshots without a keyboard focus ring
   await page.screenshot({path:path.join(out,`${lang}-${width}-${theme}.png`),fullPage:true});
   for(const name of ['heating','water','idle','problem'])await card(name).screenshot({path:path.join(out,`${lang}-${width}-${theme}-${name}.png`)});
   await yesterday('full').screenshot({path:path.join(out,`${lang}-${width}-${theme}-yesterday.png`)});

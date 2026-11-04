@@ -140,14 +140,14 @@ border-top:1px solid var(--oth-line)}
 .today{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"title legend" "strip strip" "ticks ticks";padding:10px 22px 16px}
 .legend{margin:0 0 6px;justify-content:flex-end}}`;
 
-// Yesterday in figures, as the sketch (Leren): two by two, a 12 px muted label over a 22 px bold value; 13 px and more
-// room from 420 px of card.
+// Yesterday in figures, as the sketch (Leren): two by two, a 12 px muted label over a 22 px bold value, the values of a
+// row on one line (a label of two lines stands higher); 13 px and more room from 420 px of card.
 const YESTERDAY_STYLE = `:host{display:block}
 ha-card{display:block;color:var(--primary-text-color);--oth-muted:var(--secondary-text-color,#6b6b6b)}
 .wrap{container:yesterday/inline-size}
 p{margin:0}
 .figures{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:14px 16px}
-.figure{display:flex;flex-direction:column;min-width:0;border-radius:6px}.p2{grid-column:span 2}
+.figure{display:flex;flex-direction:column;justify-content:flex-end;min-width:0;border-radius:6px}.p2{grid-column:span 2}
 .label{font-size:12px;line-height:1.3;color:var(--oth-muted);overflow-wrap:anywhere}
 .value{font-size:22px;font-weight:700;line-height:1.15;overflow-wrap:anywhere}.value.unknown{font-weight:400;color:var(--oth-muted)}
 [role=button]{cursor:pointer}[data-focus]:focus{outline:none}

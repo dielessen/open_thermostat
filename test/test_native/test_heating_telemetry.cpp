@@ -8,6 +8,7 @@
 #include "control/Scoreboard.h"
 #include "control/ShadowComparison.h"
 #include "control/TelemetryPolicy.h"
+#include "BoilerResponseWidest.h"
 #include "ScopedTz.h"
 #include <cmath>
 #include <cstdio>
@@ -308,16 +309,6 @@ TEST(HeatingTelemetry, SummaryCarriesTheLearnedHeaderAndTodaysHotWater) {
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(f.get(), "night_gas")));
 }
 
-// rc.5 (P2): a stand-in for P1's BoilerResponse whose "boiler" member is P1's full 140 B.
-struct WideBoiler {
-    const char* state() const { return "not_driving"; }
-    bool addJson(cJSON* parent) const {
-        const std::string fill(140 - std::string(R"("boiler":{"state":""})").size(), 'x');
-        cJSON* o = cJSON_AddObjectToObject(parent, "boiler");
-        return o && cJSON_AddStringToObject(o, "state", fill.c_str());
-    }
-};
-
 // rc.4 (B1): the summary with everything HeatingController adds to it (the self-tuning's "tuning"
 // and the daily "scoreboard"), at its largest: eight rooms with 32-character ids, a judged morning
 // in every room on both days and a default AutoTuner (its nulls are longer than numbers, so this is
@@ -357,11 +348,12 @@ TEST(HeatingTelemetry, WorstCaseSummaryPartsEachStayWithinTheSoftLimit) {
     Insights::Day slower; slower.heated = true; for (auto& w : slower.warmupMinPerC) w = 999;
     insights.dayChange(slower);
     ASSERT_EQ(insights.count(), 4u);
-    const WideBoiler boiler;
+    const BoilerResponse boiler = widestBoilerResponse(); // rc.5 (P1): "boiler" at its widest, sent with the flow and in the insight
     const auto more = [&](bool compact) {
         return [&, compact](cJSON* root) {
             return tuner.addStatus(root, b.context.now, widest, ControlTuning::autoKnobs, AutoTuner::mqttEntries)
-                && board.addJson(root, tuner, b.plan, compact) && addInsightJson(root, knowledge, house, &boiler, insights, b.plan);
+                && board.addJson(root, tuner, b.plan, compact) && boiler.addJson(root)
+                && addInsightJson(root, knowledge, house, &boiler, insights, b.plan);
         };
     };
     const auto summary = heatingSummaryTelemetry(b.learner, b.context, Bench::dhw().summaryJson(), &policy, more(true));
@@ -373,7 +365,7 @@ TEST(HeatingTelemetry, WorstCaseSummaryPartsEachStayWithinTheSoftLimit) {
     Json flow(cJSON_CreateObject(), cJSON_Delete), tuning(cJSON_CreateObject(), cJSON_Delete), score(cJSON_CreateObject(), cJSON_Delete);
     Json insight(cJSON_CreateObject(), cJSON_Delete);
     for (cJSON* part : {flow.get(), tuning.get(), score.get(), insight.get()}) cJSON_AddNumberToObject(part, "schema", 1);
-    for (const char* key : {"flow", "night_gas", "tuning", "scoreboard"})
+    for (const char* key : {"flow", "night_gas", "tuning", "scoreboard", "boiler"})
         if (cJSON* part = cJSON_DetachItemFromObjectCaseSensitive(doc.get(), key))
             cJSON_AddItemToObject(key[0] == 't' ? tuning.get() : key[0] == 's' ? score.get() : flow.get(), key, part);
     if (Json part{cJSON_DetachItemFromObjectCaseSensitive(doc.get(), "insight"), cJSON_Delete}; part)
@@ -392,8 +384,9 @@ TEST(HeatingTelemetry, WorstCaseSummaryPartsEachStayWithinTheSoftLimit) {
     // The summary keeps the learned header and today's hot water; nothing of the companions.
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(doc.get(), "learned")));
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(doc.get(), "dhw")));
-    for (const char* key : {"flow", "night_gas", "tuning", "scoreboard", "insight"}) EXPECT_FALSE(cJSON_GetObjectItem(doc.get(), key)) << key;
+    for (const char* key : {"flow", "night_gas", "tuning", "scoreboard", "boiler", "insight"}) EXPECT_FALSE(cJSON_GetObjectItem(doc.get(), key)) << key;
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(tuning.get(), "tuning")));
+    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(flow.get(), "boiler"))) << "rc.5: the boiler's object travels with the flow";
     for (const char* key : {"knowledge", "house", "boiler", "insights"}) EXPECT_TRUE(cJSON_GetObjectItem(insight.get(), key)) << key;
     // The scoreboard's MQTT form: yesterday with every room, today without a "rooms" key.
     const cJSON* sb = cJSON_GetObjectItem(score.get(), "scoreboard");

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "control/ControlPartitionBudget.h"
 #include "control/AutoTuner.h"
+#include "control/BoilerResponse.h"
 #include "control/DhwEpisodes.h"
 #include "control/FlowPolicy.h"
 #include "control/LearnedState.h"
@@ -116,6 +117,9 @@ TEST(ControlPartitionBudget, TheKnobsWithoutTheirLogFitTheirPriorityReserve) {
 // first when the part is refused (it writes the part again without its last frames).
 struct Record { const char* key; size_t bytes; size_t tail = 0; };
 constexpr size_t globalBytes = 300;                                   // measured 240 (test_learned_state)
+// rc.5 (P1): the boiler's frame ('B', BoilerResponse, 41 B) is the record's last frame: within the
+// globals' allowance beside the measured 240 B, and the first to stay in RAM when NVS is short.
+static_assert(240 + BoilerResponse::frameBytes <= globalBytes && BoilerResponse::frameBytes <= BoilerResponse::storedMaxBytes);
 constexpr size_t typicalRoom = LearnedState::compactRoomBytes(10, 6);  // 6 bins with the outdoor: 190 B
 constexpr size_t worstRoom = LearnedState::compactRoomBytes(32, 0, FlowLearner::binCount); // 558 B
 // rc.5 (P3): frame 'F' after the rooms: 8 rooms with 10-character ids and 3 dayparts each, and its

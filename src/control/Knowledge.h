@@ -1,6 +1,6 @@
 #pragma once
 #include "control/ArrivalLearner.h"
-#include "control/BoilerResponseStub.h"
+#include "control/BoilerResponse.h"
 #include "control/FlowLearner.h"
 #include "control/HouseModel.h"
 #include "control/Insights.h"
@@ -30,7 +30,7 @@ namespace heating::control {
 //    heats at, or the E32 drives the boiler (BoilerResponse's state is not "not_driving"): a boiler
 //    that does not fire at the asked temperature is then found out within 15 minutes, so none was
 //    found means the plan's lowest works; key boiler_minimum;
-//  - boiler response learned 10: BoilerResponse's state "learned"; key boiler_response;
+//  - boiler response learned 10: BoilerResponse's state "learned", or its emitter output per K known; key boiler_response;
 //  - house model learned 10: HouseModel's state "learned"; key house.
 // The room parts are the share of the active plan rooms (none: those parts count 0). The figure
 // is rounded down: 100 % only when nothing is missing. Missing keys in this order (the weights'),
@@ -73,7 +73,8 @@ public:
             if (i < arrival.rooms() && arrival.lead(i).trusted) ++trusted; else add(Part::arrival, int(i));
         }
         const bool minimum = l.boilerMinimum().learnedC() > 0 || (boiler && std::strcmp(boiler->state(), "not_driving"));
-        const bool response = boiler && !std::strcmp(boiler->state(), "learned");
+        // rc.5: "learned" from the first ceiling or rest, or the emitter output per K from the return (a boiler that never holds).
+        const bool response = boiler && (!std::strcmp(boiler->state(), "learned") || boiler->kwPerFlowK().has_value());
         const bool model = !std::strcmp(house.state(), "learned");
         if (!minimum) add(Part::boilerMinimum);
         if (!response) add(Part::boilerResponse);

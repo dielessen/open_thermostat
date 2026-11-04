@@ -222,7 +222,7 @@ private:
         if (Slot* s = doc ? slot("fw/state/boiler_fields/" + std::to_string(g), Kind::group) : nullptr) consider(*s, print(doc.get()), doc.get(), now);
     }
     // fw/telemetry/summary (learned header, hot water), fw/telemetry/flow (the
-    // flow policy's "flow" and "night_gas"), fw/telemetry/tuning (the
+    // flow policy's "flow" and "night_gas", rc.5 the boiler's "boiler"), fw/telemetry/tuning (the
     // self-tuning's "tuning"), fw/telemetry/scoreboard (rc.4, the days'
     // "scoreboard") and fw/telemetry/insight (rc.5, the source's "insight":
     // its members knowledge, house, boiler and insights, at most 700 B):
@@ -242,7 +242,8 @@ private:
         Doc insight(cJSON_CreateObject(), cJSON_Delete);
         if (!flow || !tuning || !board || !insight || !cJSON_AddNumberToObject(flow.get(), "schema", 1) || !cJSON_AddNumberToObject(tuning.get(), "schema", 1)
             || !cJSON_AddNumberToObject(board.get(), "schema", 1) || !cJSON_AddNumberToObject(insight.get(), "schema", 1)) return;
-        for (const char* key : {"flow", "night_gas", "tuning", "scoreboard"})
+        // rc.5 (P1): "boiler" (BoilerResponse::addJson) travels with the flow.
+        for (const char* key : {"flow", "night_gas", "tuning", "scoreboard", "boiler"})
             if (cJSON* part = cJSON_DetachItemFromObjectCaseSensitive(doc.get(), key))
                 cJSON_AddItemToObject((key[0] == 't' ? tuning : key[0] == 's' ? board : flow).get(), key, part);
         // rc.5: the insight's members go out after its schema, under their own keys.

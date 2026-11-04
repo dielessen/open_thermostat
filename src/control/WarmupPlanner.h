@@ -86,8 +86,11 @@ struct WarmupPlanner {
     // 76..97 min were needed. The plan follows the room as it cools (every minute),
     // and is advice only until both models are learned. Without a reading either,
     // the setback is assumed and the lead never exceeds the default lead.
+    // rc.5 (P1): ceilingC, the boiler's ceiling FlowPolicy applies (BoilerResponse): the start's
+    // flow stays under it and a learned lead is the warm-up time at that flow.
     static Start optimumStart(const FlowLearner& l, size_t room, const RoomSchedule& s, int64_t utc,
-                              std::optional<int16_t> temperature, std::optional<int16_t> outdoor, LeadFactor factor = {}) {
+                              std::optional<int16_t> temperature, std::optional<int16_t> outdoor, LeadFactor factor = {},
+                              std::optional<uint8_t> ceilingC = std::nullopt) {
         Start out;
         if (room >= l.rooms() || s.empty()) return out;
         const auto rise = nextRise(s, utc);
@@ -96,7 +99,7 @@ struct WarmupPlanner {
         const auto loss = l.heatModel(room).lossPerHour;
         out.coolingLearned = loss && outdoor;
         const int16_t lowest = out.coolingLearned || !temperature ? rise->fromCentiC : std::max(rise->fromCentiC, *temperature);
-        lead(l, room, *rise, lowest, temperature, utc, outdoor, loss, out, !out.coolingLearned && !temperature, factor);
+        lead(l, room, *rise, lowest, temperature, utc, outdoor, loss, out, !out.coolingLearned && !temperature, factor, ceilingC);
         out.estimate = !out.applicable();
         out.startUtc = rise->atUtc - out.leadS;
         out.startNow = utc >= out.startUtc && utc < rise->atUtc;
@@ -111,7 +114,7 @@ struct WarmupPlanner {
     static constexpr uint32_t estimateCapFloorS = 3 * 3600, estimateCapRadiatorS = 90 * 60;
     static void lead(const FlowLearner& l, size_t room, const Rise& rise, int16_t nightCentiC, std::optional<int16_t> temperature,
                      int64_t utc, std::optional<int16_t> outdoor, std::optional<float> loss, Start& out, bool assumed = false,
-                     LeadFactor factor = {}) {
+                     LeadFactor factor = {}, std::optional<uint8_t> ceilingC = std::nullopt) {
         const bool floor = l.emitter(room) == RoomPlan::Emitter::floor;
         for (uint32_t lead = 0;; lead += 300) {
             const int64_t start = std::max(utc, rise.atUtc - int64_t(lead));
@@ -123,9 +126,14 @@ struct WarmupPlanner {
                 out.confidence = "learned"; out.flowC = *a.flowC;
                 out.reachable = a.reason[0] == 'l'; // learned / lowest_learned
                 need = std::min(a.warmupS.value_or(maxLeadS), maxLeadS);
+                if (ceilingC && *a.flowC > *ceilingC) { // rc.5 (P1): the warm-up at the boiler's ceiling (when learned there)
+                    out.flowC = *ceilingC;
+                    if (const auto w = l.warmupSeconds(room, shortfall, *ceilingC, outdoor)) need = std::min(*w, maxLeadS);
+                }
                 if (assumed) need = std::min(need, defaultLeadS(l.emitter(room), shortfall, l.tuning()));
             } else {
                 out.confidence = "default"; out.flowC = l.ruleFlow(shortfall);
+                if (ceilingC) out.flowC = std::min(out.flowC, *ceilingC); // rc.5 (P1); the default lead is no flow's
                 need = defaultLeadS(l.emitter(room), shortfall, l.tuning());
             }
             need = static_cast<uint32_t>(std::min<double>(double(need) * std::clamp(factor.factor, 0.5f, 2.0f), double(maxLeadS)));

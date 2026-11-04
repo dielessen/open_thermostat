@@ -1520,12 +1520,21 @@ FlowDemand::Request Chain::applyFlowPolicy(const FlowDemand::Request& rule, std:
     // rc.5 (P1): once a ceiling is learned for this outdoor band, nothing the E32 asks while it drives
     // the boiler goes above it (rule, curve, learned flow and optimum start alike), except that the
     // plan's minimum (or a lower boiler limit) always stays: FlowPolicy caps want at max(ceiling, lo).
+    // Comfort first (integration decision, 4 Nov): not during a warm-up, while the lead room (the
+    // usable room with the largest error) is 1 K or more below its target.
     if (soak_detect::CeilingInput<FlowPolicy::Inputs>::value && ceiling && ownRequest && policy_.settings().applyLearned && applied.heat) {
+        std::optional<int16_t> lead;
+        for (size_t i = 0; i < plan.rooms.size() && i < rooms.size(); ++i)
+            if (rooms[i].usable && (!lead || rooms[i].errorCentiC > *lead)) lead = rooms[i].errorCentiC;
         const uint8_t bound = std::max<uint8_t>(*ceiling, std::min(plan.minimumFlowC, cap));
-        count("boiler_ceiling_steps");
-        if (rule.heat && rule.flowC > bound) count("boiler_ceiling_below_rule_steps");
-        EXPECT(applied.flowC <= bound, "boiler_request_above_ceiling", "applied %u (%s) above the learned ceiling %u (bound %u, rule %u, outdoor %s)",
-               applied.flowC, FlowPolicy::name(policy_.source()), *ceiling, bound, rule.flowC, outdoorCentiC ? std::to_string(*outdoorCentiC).c_str() : "unknown");
+        if (lead && *lead >= 100) count("boiler_ceiling_warmup_steps");
+        else {
+            count("boiler_ceiling_steps");
+            if (rule.heat && rule.flowC > bound) count("boiler_ceiling_below_rule_steps");
+            EXPECT(applied.flowC <= bound, "boiler_request_above_ceiling", "applied %u (%s) above the learned ceiling %u (bound %u, rule %u, lead shortfall %d, outdoor %s)",
+                   applied.flowC, FlowPolicy::name(policy_.source()), *ceiling, bound, rule.flowC, lead.value_or(-1),
+                   outdoorCentiC ? std::to_string(*outdoorCentiC).c_str() : "unknown");
+        }
     }
     return applied;
 }

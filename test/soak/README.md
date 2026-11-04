@@ -43,6 +43,10 @@ status 0 means every scenario passed, with no sanitizer report and no crash.
 | `chain-santiago` | 21 days, DST change at 24:00 (the local midnight is repeated) |
 | `chain-sydney-churn` | 20 days, southern hemisphere, a plan edit every 15 min |
 | `chain-ams-options` | 60 days like `chain-ams`, with both flow options on (weather curve and learned flow/optimum start, `--flow-options`) and the boiler's outdoor sensor |
+| `chain-ams-holding` | rc.5: 60 days like `chain-ams-options` with the "0Y" boiler and free gains (`--profile=holding,gains`), the E32 driving most of the time (`--mostly-active`, first from 6 h) |
+| `chain-ams-no-return` | rc.5: the same with a boiler that reports no return (`--profile=no_return,gains`) |
+| `chain-ams-radiators` | rc.5: 30 days from 1 November, every heated room on radiators with valves, the "0Y" boiler, the outdoor from HA (`--profile=radiators_only,holding,gains`) |
+| `chain-ams-floor` | rc.5: 30 days from 1 November, every heated room on a floor, no return (`--profile=floor_only,no_return,gains`) |
 | `chain-kathmandu-30s` | 60 days, +05:45, 30 s steps (the larger step that ShadowComparison and FlowLearner allow) |
 | `guard` | ActiveHeatGuard alone for 60 days: mode switches, confirmations, the tado reconnecting, route flaps, failing writes, boiler limit 60/55/25/unknown, measurement loss, frost |
 | `active` | The switch-over failure cases, scripted, 200 runs each with random timing (see below) |
@@ -50,6 +54,29 @@ status 0 means every scenario passed, with no sanitizer report and no crash.
 | `supervisor` | SupervisorPolicy for 60 days at 5 s: Wi-Fi, broker, gateway, loop stall, stuck update and Bluetooth faults, with reboots and backoff counters |
 | `sizes` | fw/telemetry/heating and plan size for a realistic 8-room plan and two worst-case valid plans |
 | `repro` | deterministic reproducers of the findings listed below |
+
+Smoke runs `chain-ams-holding` for 1.5 days with `--profile=holding,no_return,gains` and the
+E32 driving from the second hour (`--active-from-h=2`).
+
+### Boiler profiles (`--profile=a,b,...`, rc.5)
+
+The chain's boiler and emitters. Without the option the boiler is the owner's kind: a small
+hot-water store kept warm several times a day, the return reported, a mixed house (a
+floor-heated living room and kitchen, five radiator rooms with valves). Tokens combine:
+
+| Token | Effect |
+|---|---|
+| `store` | the default above (only for clarity in a list) |
+| `no_return` | 0x18 reports the return as "not available" (0x8000), as a boiler without that sensor |
+| `holding` | the "0Y" boiler: it modulates down to 30 % and no further; when the open emitters take less (the default boiler's `wanted`: load x (request - 25) / 20), the water rises past the request; at the request + 5 K the burner stops, its own anti-cycle keeps it off for 10 min whatever is asked (display code `0Y`, also in 0x18), then it fires once the water is below the request. Resting, the open emitters cool the water, slowly when most valves are closed. Counters: `boiler_0y_stops`, `boiler_0y_stops_counting` (the E32's own request, settled, no hot water in the last 5 min, lead shortfall under 1 K), `boiler_0y_heating_starts`, `boiler_0y_rest_s` |
+| `radiators_only` | every heated room on radiators with valves (living room and kitchen valves above their programs) |
+| `floor_only` | every heated room on a floor, no valves |
+| `gains` | free heat: up to 1 K/h of afternoon sun in the living room on a warm (sunny) day and 1.5 K/h of cooking in the kitchen at 17:30-18:30, so FreeHeat (P3) has evidence |
+
+`--active-from-h=H` switches the plan to active mode after H hours instead of 3-6 days;
+`--mostly-active` keeps the E32 driving most of the time (active phases of 2-7 days, shadow
+phases of about 7 h) instead of the switch-over era's mostly shadow phases. BoilerResponse
+only learns while the E32 drives the boiler.
 
 ### Active mode (`active`)
 
@@ -99,6 +126,35 @@ ManagedBleObserver (synthetic pvvx BTHome v2 adverts, both plain and
 "encrypted" through a deterministic AES-CCM stand-in). Finally it covers
 HeatingInputRoute/HeatingInput (real `ha/heating_input` JSON) and
 HeatingTelemetry.
+
+Since rc.5 it also follows HeatingController where it had fallen behind: FlowPolicy
+gets the plan (`setPlan`, so the arrival feedback runs), the learned context carries
+the arrival feedback (`plan.arrival` in heating_learned/<id>), FlowLearner gets the
+E32's own command as its heating reference and `ownRequest` while the guard drives
+the boiler (`heatingReference`, BoilerMinimumFlow), and the guard's lowest flow is
+the learned boiler minimum (`effectiveMinimumC`).
+
+The rc.5 learners join as soon as their headers exist (`__has_include`; until then
+the hooks compile out, and the run's second line says which are on):
+
+- **BoilerResponse** (P1, `control/BoilerResponse.h`, `control/RestFloor.h`): sampled
+  after FlowLearner as `HeatingController::stepBoilerResponse` does (the guard's
+  command and output, the usable rooms' mean, demand and lead shortfall, the ceiling's
+  bounds); its ceiling goes into FlowPolicy while the guard drives (`ownRequest`,
+  `ceilingC`); RestFloor raises min_off_s in place each step it changes; "boiler"
+  joins fw/telemetry/flow.
+- **HouseModel** (P2, `control/HouseModel.h`, `control/Knowledge.h`): the Scoreboard
+  is stepped with the learner's heating energy and the judged mornings; HouseModel
+  updates hourly, at the scoreboard's day change and after a plan edit; its slope goes
+  into FlowPolicy (`houseSlope`); fw/telemetry/insight is built with
+  `Knowledge::percent` and `addInsightJson` and split as TelemetryPublisher does.
+- **FreeHeat** (P3, `control/FreeHeat.h`): the instance FlowPolicy owns
+  (`FlowPolicy::freeHeat()`) is sampled after FlowLearner with
+  `FreeHeat::heatDelivered`; the learned context points at it ("free_heat" per room).
+
+Hooks the plan's contract left open are detected rather than assumed (FlowPolicy's
+inputs and owned FreeHeat, Sample fields beside the contract, RestFloor, Scoreboard's
+day change); a module without its hook is reported as a `rc5_hook_missing` note.
 
 The house has 8 rooms: a floor-heated living room and kitchen, 5 radiator rooms
 with TRVs, and an unheated attic that drops below 8 °C during frost spells. The
@@ -202,6 +258,36 @@ Injected events:
 - **SupervisorPolicy**: no restart while healthy or during an update shorter
   than 20 min. A persisting fault restarts within its (backed-off) limit + 10 s.
   Backoff arithmetic is safe for every stored counter value.
+- **rc.5 documents**: fw/telemetry/flow (the summary's "flow" and "night_gas", with
+  P1's "boiler") ≤ 1024 B, fw/telemetry/insight ≤ 700 B, "boiler" ≤ 140 B, "house"
+  ≤ 110 B and every room's "free_heat" ≤ 90 B; heating_learned/<id> keeps its 1000 B
+  with or without "free_heat" (P3 leaves it out of a message it would push over).
+- **BoilerResponse** (P1): while the E32 drives the boiler with Smart warm-up on, no
+  request (rule, curve, learned flow or optimum start) goes above max(the learned
+  ceiling for the outdoor band, the plan's minimum) (`boiler_request_above_ceiling`),
+  except during a warm-up: while the lead room (the usable room with the largest
+  error) is 1 K or more below its target the ceiling does not apply (comfort first;
+  `boiler_ceiling_warmup_steps` counts those steps);
+  the rest floor is min(rest, 900 s) and never while a room is cold; the state is one
+  of collecting/learned/no_return/not_driving, the rest 60..1800 s, the absorbed kW
+  and kW per K finite and sane, both absent without a return, every band's ceiling in
+  20..80; the stored frame is ≤ 48 B and restores to itself (daily); with the holding
+  boiler, 20 held targets of the E32's own settled request are heard at least once
+  (`boiler_response_never_heard`).
+- **HouseModel** (P2): the slope within WeatherCurve's 0.2..2.5, UA and the emitters'
+  kW per K finite and positive, the state collecting or learned.
+- **FreeHeat** (P3): no lead shortened below half: hourly, for every room with a
+  planned start, `shortenLeadS` at the rise's and the opposite daypart with the
+  plan's implied warm-up rate and with 0, 0.01, 0.5 and 5 K/h stays within
+  [lead/2, lead] (`free_heat_lead_below_half`); every daypart's rate is finite and not
+  negative; the stored frame is ≤ 360 B and restores to itself (daily).
+- The allocation-failure sweep includes the flow and insight topics and the three
+  modules' addJson.
+
+The rc.5 invariants were proven against stand-ins of the three modules with the
+plan's hunks applied (not committed): removing the ceiling hunk from FlowPolicy was
+caught (`boiler_request_above_ceiling`, 61,512 times in 20 days of `holding`), and a
+FreeHeat that shortens to 20 % was caught (`free_heat_lead_below_half`).
 
 A mutation check (scratch copies of headers with one planted bug each:
 minimum on/off, reading carry-over, stale hold, day roll, DST offset, foreign
@@ -243,6 +329,22 @@ The notes were resolved as well:
 Still a note: a realistic 8-room plan with 4 switch points per day is
 4964 B, so `setHeatingPlan` refuses it as `plan_too_large`.
 
+## Findings of rc.5 (state 2026-11-04, open)
+
+6. **heating_learned/<id> over 1000 B with a long room id.** Since the chain passes
+   the arrival feedback as HeatingController does, a learned room with the longest
+   advice reasons in both "advice" and "now" (`above_learned_range`,
+   `below_learned_range`, `not_reachable_in_time`) and a judged morning is 977 B with
+   the id "hal": 1006-1008 B with a 32-character id (`mqtt_learned_room_32_char_id`
+   in the 60-day chains with the flow options). The per-room budget test's worst case
+   has shorter reasons. Below the publisher's soft limit (1024 B), but over the
+   budget; P3's "free_heat" is only added within it.
+7. **TelemetryPublisher::summary() leaks a part when its key copy fails.**
+   `cJSON_AddItemToObject(flow/tuning/board, key, part)` returns false when the key's
+   strdup fails, and the detached part is then nobody's. The soak's replica of the
+   split (the flow topic) leaked 43 cJSON blocks at one allocation of the sweep until
+   it deleted the part on that failure.
+
 ## Limits
 
 - `HeatingController` and `ModernTransport` are not host-buildable. The status
@@ -251,4 +353,7 @@ Still a note: a realistic 8-room plan with 4 switch points per day is
   a 32-bit one, so 2038 behaviour of `localtime_r` is not covered.
 - FlowLearner lives in RAM. Reboots are not simulated in the chain (a reboot
   simply starts over); the `active` scenario simulates them with the stored
-  confirmation.
+  confirmation. The rc.5 learners' stored frames are checked by a daily round trip.
+- The chain runs no AutoTuner: the knobs are the built-in ones (with P1's rest
+  floor), and P2's insights (judged with AutoTuner's day) stay empty here; their worst
+  case is P2's unit test. The replay wires both.

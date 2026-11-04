@@ -77,8 +77,23 @@ Several CSV files are joined in time order; on an equal timestamp the later file
 ## The modes
 
 Every 10 s step runs, as in `stepHeating`: RoomEngine (the rule), FlowPolicy (the flow
-options), FlowLearner, a simplified guard, then AutoTuner with BurnerCycleMonitor. The
-boiler values are always the recorded ones.
+options), FlowLearner, a simplified guard, then AutoTuner with BurnerCycleMonitor and the
+Scoreboard (the judged mornings, the day's outdoor and heating energy). The boiler values
+are always the recorded ones. FlowLearner gets `ownRequest` while the E32 drives (rc.2, its
+BoilerMinimumFlow learns), and the guard sends at least the learned boiler minimum.
+
+rc.5: the learners of RC5-PLAN.md 2.1-2.3 join as soon as their headers exist (until then
+the hooks compile out; the JSON's `firmware` says which are on and which of their hooks
+were found):
+
+- **BoilerResponse** (P1): sampled after FlowLearner as `HeatingController::stepBoilerResponse`
+  does (the guard's last command and output, the usable rooms' mean, demand and lead
+  shortfall, the ceiling's bounds); its ceiling goes into FlowPolicy while the E32 drives;
+  `RestFloor` puts the boiler's rest under min_off_s in effect while no room is cold.
+- **HouseModel** (P2): updated hourly and at the Scoreboard's day change, after
+  `Scoreboard::judge` with AutoTuner's finished day; its slope goes into FlowPolicy.
+- **FreeHeat** (P3): the instance FlowPolicy owns, sampled after FlowLearner with
+  `FreeHeat::heatDelivered`; FlowPolicy's optimum start applies it.
 
 - **shadow**: the old thermostat drives the boiler. FlowLearner's heating reference is
   its 0x1A (`thermostat_flow_c`). AutoTuner only shows its proposals ("would").
@@ -143,8 +158,78 @@ The JSON (`schema` 1) holds:
     that rise and the drop before it (`rises`: the first and last plan, when "start
     now" began, planned and actual lead). `checks` counts the plans made without a
     cooling model and any that exceeded the default lead.
+  - `score` (rc.5): the figures `score.py` compares. While the run's request (computed,
+    or the recorded one with `--recorded-request`) asks heat: `heating_h`,
+    `heating_starts` (a burner off->on edge that is not hot water; `burner_starts` over
+    the whole run), `starts_per_heating_h`, `request_mean_c`, and without hot water
+    `flow_mean_c` and `return_mean_c`; `heating_kwh` (the learner's estimate,
+    GasCalibration::heatingKwh, before a meter's calibration), `optimum_start_h`,
+    `arrivals` (every judged morning: room, switch time, error in minutes) and, with
+    BoilerResponse, `boiler` (`held` events over the run, `state`, `rest_s`,
+    `absorbed_kw`, `kw_per_k`, `ceiling_c` for the six outdoor bands of 5 K from -10 degC,
+    `rest_floor_changes`);
+  - with the rc.5 learners: `boiler` (BoilerResponse::addJson), `house`
+    (HouseModel::addJson), `insights` (the Scoreboard's, P2) and per learner room
+    `free_heat` (FreeHeat::addJson). `learner.boiler_minimum_flow_c` once learned.
 
-The text summary is a short overview of the same content.
+The text summary is a short overview of the same content, with a score line per run.
+
+## Scoring (`score.py`)
+
+```sh
+python3 -I tools/replay/score.py <replay.json> [<base.json>]
+```
+
+Prints, per mode, the base (before) and the replay (after) side by side with the change:
+heating hours, heating starts and starts per heating hour, the mean request, flow and
+return while heating, the heating energy estimate, the optimum-start hours, per room the
+mean error, mean absolute error and number of the judged mornings (and every judged
+morning below the table), and with BoilerResponse the held events, the boiler's rest and
+state and the ceiling per outdoor band. One file prints one column. The exit status is 2
+for a missing, unreadable or malformed file (not a replay JSON, a run without `score`, a
+wrong type), else 0. The two files usually come from the same driver built against two
+revisions (`REPLAY_REV`), so the change is the firmware's.
+
+On a recording the boiler does not answer the replay's request (the boiler columns are
+recorded): a change of the request shows in `request_mean_c` and the optimum-start hours,
+not in the measured flow, return or starts. BoilerResponse's own findings (held events,
+rest, ceilings) need data in which the boiler held its targets, below.
+
+## Synthetic data (`synth.py`)
+
+The owner's recording has few held targets, so it cannot show what BoilerResponse learns.
+`synth.py` writes the same rows (rooms, targets, outdoor, requests) with the boiler columns
+(`flow_c`, `return_c`, `burner`, `modulation_pct`, `heating_active`, `dhw_active`) of a "0Y"
+boiler driven by the recorded requests:
+
+```sh
+python3 -I tools/replay/synth.py out/replay-data/house-20261030-20261102.csv out/replay-data/synth-holding.csv
+tools/replay/run.sh out/replay-data/synth-holding.csv --plan out/replay-data/plan.json \
+    --mode active --recorded-request --apply-learned --weather-curve
+python3 -I tools/replay/score.py /tmp/openthermostat-replay/out/synth-holding.json [<base>.json]
+```
+
+The boiler cannot modulate below `--min-modulation` (25 %) of `--nominal-kw` (22); when
+the emitters (`--emitter-kw-per-k` 0.25 x (mean water - room), pump `--pump-kg-s` 0.15)
+take less, the water around the flow sensor (`--water-kwh-per-k` 0.03: a few minutes at
+the minimum to +5 K) rises past the request; at the request + `--hold-k` (5 K) the burner
+stops and `--anti-cycle-s` (600) keeps it off whatever is asked; it fires again once the
+water is below the request. Without a request the pump stops and the water cools slowly.
+`--driver e32` (default) drives it with the recorded E32 request in every row (mode
+`active`, no thermostat: replay it in active mode with `--recorded-request`, so the
+request BoilerResponse sees is the one the boiler answered); `--driver recorded` with
+the controller of each row (the E32 in active rows, else the old thermostat's 0x1A).
+`--hot-water none` (default) drops the recording's hot-water runs, so every held target is
+one of the heating; `--hot-water recorded` keeps them: with a store kept warm every few
+minutes (the owner's) the boiler is mostly hot from it and holds right after hot water,
+which BoilerResponse must not count. A gap over 120 s restarts the boiler cold. Comment
+lines at the top name the input and the parameters. On the owner's recording (2 Nov):
+9.8 h of E32 request, 19 heating starts, 13 held targets, 1.9 h resting; with the hot
+water kept, 47 held targets, 46 of them right after hot water.
+
+Without `--recorded-request` the replay computes its own request: a lower ceiling then
+shows in `request_mean_c`, but the synthetic boiler still answered the recorded request
+(no closed loop).
 
 ## Converters
 
@@ -222,6 +307,21 @@ with `--no-grace`, so the one day change is evaluated. It checks:
    the E32's own request as its reference.** At `e33cbbf` the reference is the absent
    0x1A and nothing is learned (0 segments). With `FlowLearner::heatingReference`
    (rc.2) the fixture gives 2, with or without hot-water bridging.
+
+rc.5 (P4) adds, on a made-up house generated in the test (one room, 8 h at 10 s, the E32
+asking 32 C, 50 C and nothing in turns, no recorded data):
+
+4. **synth.py holds and rests**: every burner stop under a request is at the request + 5 K
+   (within 0.5 K), the boiler never fires again within its 10-minute anti-cycle, never
+   runs past its held target or below its minimum, keeps every row and its input columns,
+   is deterministic, follows the controller per row with `--driver recorded`, and refuses
+   a file without `utc`.
+5. **score.py**: the before/after table (the change column, an unknown value, the
+   arrivals, held events and ceilings) on hand-made replay JSONs, one column for one file,
+   and exit status 2 for each kind of malformed input.
+6. **synth -> replay -> score**: the synthetic CSV replayed in active mode with the
+   recorded request has its `score` and scores; once the firmware has BoilerResponse its
+   held targets are heard (`held` ≥ 1, the rest at least 9 minutes when reported).
 
 A check for behaviour that is still being built can be listed in `EXPECTED_FAIL` in
 `test_replay.py`, with the branch that brings it. While it is listed, a failure counts

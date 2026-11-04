@@ -1,8 +1,9 @@
 // Home page (E32 rc.5) with simulated HTTP: "What the thermostat has learned" opens with what the E32 knows (a ring with
 // the percentage, what it still learns in words: three, the rest under "More"), the boiler's response in one sentence and
 // yesterday compared with usual; a room's free heat in words; weather compensation worked out from the house; the flow
-// detail names the most the E32 asks of the boiler while that holds the request. The parts at the top of /status/heating
-// or in one "insight" object; firmware without them shows none. English on a desktop in light, Dutch on a phone in dark.
+// detail names the most the E32 asks of the boiler while that holds the request. /status/heating as the firmware builds it
+// (the boiler at the top, the rest in one "insight" object); firmware without them shows none. English on a desktop in
+// light, Dutch on a phone in dark.
 // Screenshots go to the evidence directory for the visual check. Waits on element state only.
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
@@ -11,10 +12,13 @@ const out=path.resolve(process.env.OPENTHERMOSTAT_HOUSE_INSIGHT_EVIDENCE||path.j
 const plan={schema:1,revision:4,mode:'active',minimum_flow_c:28,maximum_flow_c:60,rooms:[
  {id:'woonkamer',name:'Woonkamer',state:'active',inactive_until:0,emitter:'floor',sources:[{type:'ha',id:'climate.woonkamer'}],fallback_centi_c:2000,minimum_centi_c:500,maximum_centi_c:2500},
  {id:'slaapkamer',name:'Slaapkamer',state:'active',inactive_until:0,emitter:'radiator',sources:[{type:'ha',id:'sensor.slaapkamer'}],fallback_centi_c:1800,minimum_centi_c:500,maximum_centi_c:2500}]};
-// RC5-PLAN.md 2.2 (the insight) and 2.3 (free heat), as /status/heating carries them.
+// The insight (Knowledge.h addInsightJson) and free heat (FreeHeat::addJson: rates null below five windows) as
+// /status/heating carries them (HeatingController: "boiler" at the top, then "insight" with the boiler again).
 const INSIGHT={knowledge:{pct:70,missing:['warmup:slaapkamer','arrival:slaapkamer','boiler_response','curve','house','something_new'],more:1},
+ house:{ua_kw_per_k:0.21,kw_per_flow_k:0.43,slope:0.71,state:'learned'},
  boiler:{held:3,rest_s:540,ceiling_c:48,absorbed_kw:7.4,kw_per_k:0.36,state:'learned',return:true},
  insights:[{kind:'gas_per_dd_up',pct:34},{kind:'warmup_slower',pct:40,room:'slaapkamer'}]};
+const copy=v=>JSON.parse(JSON.stringify(v));
 const fixture=()=>({schema:1,revision:4,mode:'active',request:{heat:true,flow_c:48,reason:'heating'},
  rooms:[{id:'woonkamer',name:'Woonkamer',state:'active',status:'ok',temperature:20.5,setpoint:21,demand:true},
   {id:'slaapkamer',name:'Slaapkamer',state:'active',status:'ok',temperature:18,setpoint:18,demand:false}],
@@ -25,10 +29,12 @@ const fixture=()=>({schema:1,revision:4,mode:'active',request:{heat:true,flow_c:
  learned:{schema:1,applied:true,status:'learning',outdoor_c:5,rooms:[
   {id:'woonkamer',emitter:'floor',readiness:'learning',segments:2,periods:1,loss_per_h:null,advice:[]},
   {id:'slaapkamer',emitter:'radiator',readiness:'learning',segments:3,periods:2,loss_per_h:null,advice:[],
-   free_heat:{rate:[0,null,0.2,0.4,0.1,null],n:[9,0,6,7,3,0],applied_min:12}}]},
+   free_heat:{rate:[0,null,0.2,0.4,null,null],n:[9,0,6,7,3,0],applied_min:12}}]},
  tuning:{state:'active',values:{min_on_s:300,min_off_s:300,heat_start_c:0.2,heat_stop_c:0.2,flow_per_degree_c:10,curve_correction_pct:50,
   floor_lead_min_per_c:120,radiator_lead_min_per_c:45,learned_accept_pct:100,night_saving_min_pct:2},manual:[],yesterday:null,today:null,would:[],log:[]},
- ...JSON.parse(JSON.stringify(INSIGHT))});
+ boiler:copy(INSIGHT.boiler),insight:copy(INSIGHT)});
+// The boiler's object in both places, as the firmware sends it.
+const boilerIs=(status,boiler)=>{status.boiler=copy(boiler);status.insight.boiler=copy(boiler);};
 const WORDS={
  en:{ring:'The E32 knows your house: 70 %',title:'The E32 knows your house',missingTitle:'Still to learn',
   missing:['It still has to see how fast Slaapkamer warms up.','It still has to check whether Slaapkamer is warm on time.',
@@ -38,7 +44,9 @@ const WORDS={
   insightsTitle:'Yesterday compared with usual',
   insights:['Yesterday used 34 % more gas per degree of cold than usual. A window or door left open, or a room set warmer, can cause this.',
    'Yesterday Slaapkamer warmed up 40 % more slowly than usual. A window left open, a closed radiator valve or furniture in front of the radiator can slow a room down.'],
-  free:'In the afternoon this room warms up by itself, about 0.4 °C per hour (sun, cooking or people). Smart warm-up now starts 12 min later for it, so it does not heat what comes for free.',
+  free:'In the afternoon this room warms up by itself, about 0.4 °C per hour (sun, cooking or people). Its next warm-up starts 12 min later, so Smart warm-up does not heat what comes for free.',
+  boilerOff:'Your boiler holds about 50 °C and rests 9 minutes. With Smart warm-up on, the E32 would ask at most 48 °C near the target.',
+  boilerOutput:'Your boiler has not held a water temperature by itself yet; every degree the water is warmer than the rooms gives your house about 0.25 kW. The E32 keeps listening.',
   house:'Weather compensation, estimated from your house: the water gets about 0.71 °C warmer for every degree colder outside.',
   curveState:'Weather compensation: estimated from your house for now, learning more (2 of 6 steady periods).',
   ceiling:['Asks at most (learned from your boiler)','48 °C'],learnedRow:['Learned water temperature','Limited by your boiler · 52 °C'],
@@ -52,7 +60,9 @@ const WORDS={
   insightsTitle:'Gisteren vergeleken met normaal',
   insights:['Gisteren ging er 34 % meer gas per graad kou door dan normaal. Een raam of deur die openstond, of een ruimte die warmer is ingesteld, kan dit veroorzaken.',
    'Gisteren warmde Slaapkamer 40 % langzamer op dan normaal. Een open raam, een dichte radiatorkraan of meubels voor de radiator kunnen een ruimte vertragen.'],
-  free:'\'s Middags warmt deze ruimte vanzelf op, ongeveer 0,4 °C per uur (zon, koken of mensen). Slim opwarmen begint daardoor nu 12 min later, zodat hij niet verwarmt wat gratis komt.',
+  free:'\'s Middags warmt deze ruimte vanzelf op, ongeveer 0,4 °C per uur (zon, koken of mensen). De volgende opwarming begint daardoor 12 min later, zodat Slim opwarmen niet verwarmt wat gratis komt.',
+  boilerOff:'Je ketel houdt ongeveer 50 °C vast en rust 9 minuten. Met Slim opwarmen aan zou de E32 dicht bij de doeltemperatuur hoogstens 48 °C vragen.',
+  boilerOutput:'Je ketel heeft nog niet zelf een watertemperatuur vastgehouden; elke graad dat het water warmer is dan de ruimtes, geeft je huis ongeveer 0,25 kW. De E32 blijft luisteren.',
   house:'Weerafhankelijke regeling, geschat uit je huis: het water wordt ongeveer 0,71 °C warmer voor elke graad kouder buiten.',
   curveState:'Weerafhankelijke regeling: voorlopig geschat uit je huis, hij leert nog bij (2 van 6 rustige periodes).',
   ceiling:['Vraagt hoogstens (geleerd van je ketel)','48 °C'],learnedRow:['Geleerde watertemperatuur','Begrensd door je ketel · 52 °C'],
@@ -117,12 +127,18 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.textContent.replace(/\s+/g,' ')
   // Phone width first: nothing scrolls sideways; the panel follows the theme.
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
   await learned.screenshot({path:path.join(out,`${lang}-${width}-${scheme}-learning.png`)});
-  // The same parts in one "insight" object.
-  status=fixture();for(const key of Object.keys(INSIGHT))delete status[key];status.insight=JSON.parse(JSON.stringify(INSIGHT));
-  status.knowledge=undefined;await push();
+  // The boiler only inside "insight" says the same.
+  status=fixture();delete status.boiler;await push();
   assert.equal(await knows.isVisible(),true);assert.equal(await knows.locator('[data-boiler-line]').innerText(),words.boiler);
+  // "Asks at most" only with the ceiling in effect (flow.ceiling_c); with Smart warm-up off the learned one waits for it.
+  status=fixture();status.flow.ceiling_c=null;status.flow.settings.apply_learned=false;await push();
+  await page.waitForFunction(([text])=>document.querySelector('[data-boiler-line]').textContent===text,[words.boilerOff]);
+  // Still collecting, but the emitters' output per K is known (what the E32 knows counts the boiler as learned then).
+  status=fixture();boilerIs(status,{held:0,rest_s:null,ceiling_c:null,absorbed_kw:6.1,kw_per_k:0.25,state:'collecting',return:true});await push();
+  await page.waitForFunction(([text])=>document.querySelector('[data-boiler-line]').textContent===text,[words.boilerOutput]);
   // Everything learned; another boiler state; nothing stood out yesterday.
-  status=fixture();status.knowledge={pct:100,missing:[],more:0};status.boiler={state:'no_return',return:false};status.insights=[];await push();
+  status=fixture();status.insight.knowledge={pct:100,missing:[],more:0};boilerIs(status,{state:'no_return',return:false});status.insight.insights=[];
+  await push();
   await knows.locator('.hl-done').waitFor();
   assert.equal(await knows.locator('.hl-done').innerText(),words.done);
   assert.equal(await knows.locator('[data-boiler-line]').innerText(),words.noReturn);
@@ -131,7 +147,7 @@ const texts=list=>list.evaluateAll(l=>l.map(e=>e.textContent.replace(/\s+/g,' ')
   status.flow.learned.state='not_ready';status.flow.applied_flow_c=44;await push();
   await page.waitForFunction(([label])=>![...document.querySelectorAll('[data-flow-status] dt')].some(dt=>dt.textContent===label),[words.ceiling[0]]);
   // Firmware before rc.5: no knowledge, boiler or insights, no free heat: the block and the line are gone.
-  status=fixture();for(const key of Object.keys(INSIGHT))delete status[key];delete status.flow.ceiling_c;delete status.learned.rooms[1].free_heat;await push();
+  status=fixture();delete status.boiler;delete status.insight;delete status.flow.ceiling_c;delete status.learned.rooms[1].free_heat;await push();
   await knows.waitFor({state:'hidden'});
   assert.equal((await texts(bedroom.locator('li'))).includes(words.free),false);
   assert.deepEqual(errors,[]);

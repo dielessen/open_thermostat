@@ -91,8 +91,11 @@ async def test_the_overview_names_the_house_mode_and_long_states_get_the_whole_w
                    if s["cards"][0]["heading"] == "Who controls the boiler")
     ready = next(c for c in control if c.get("entity") == hub["takeover_readiness"])
     assert ready["grid_options"] == {"columns": 12}
-    words = next(c for c in view_cards(view(config, "boiler")) if c["type"] == "markdown" and "'meaning'" in c["content"])
-    assert " Boiler: **{{ meaning }}**" in words["content"]
+    # The boiler's state in words: since rc.5 the Now card's band says what it does and its display code in words
+    # ("Heating", "Code -H: heating"; frontend/boiler-now-card.js, checked in test/ha-boiler-now-browser.cjs).
+    code = er.async_get(hass).async_get_entity_id("sensor", "open_thermostat", "fixture_boiler_fields_v1_display_code")
+    now = next(c for c in view_cards(view(config, "boiler")) if c["type"] == "custom:openthermostat-boiler-now")
+    assert code and now["code"] == code
 
 
 @pytest.mark.asyncio

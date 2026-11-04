@@ -243,7 +243,7 @@ def test_sensors_follow_the_summary_and_stay_few():
     assert source.extra_state_attributes == {
         "applied_flow_c": 41, "rule_flow_c": 38, "curve_state": "applied", "learned_state": "not_ready",
         "optimum_start": "advice", "yesterday_rule_mean_c": 38.4, "yesterday_applied_mean_c": 40.9,
-        "yesterday_curve_mean_c": 41.2, "yesterday_learned_mean_c": None}
+        "yesterday_curve_mean_c": 41.2, "yesterday_learned_mean_c": None, "ceiling_c": None}
     curve, learned, rule = (sensors[("flow", k)] for k in ("flow_curve", "flow_learned", "flow_rule"))
     assert (curve.native_value, learned.native_value, rule.native_value) == (41, None, 38)
     # E32 rc.5: also what the heating-curve card draws (here without an E32 plan, flow options or rooms: a 20 °C room;
@@ -273,6 +273,11 @@ def test_sensors_follow_the_summary_and_stay_few():
     assert source.native_value is None and source.extra_state_attributes["rule_flow_c"] is None
     assert curve.native_value is None and gas.native_value is None
     assert gas.extra_state_attributes["confidence"] is None
+    # E32 rc.5: the most the E32 asks near the target now (flow.ceiling_c, the ceiling in effect), whole degrees as the
+    # boiler's response says it, for the Boiler view's Now card ("at most 40 °C"); nothing implausible.
+    for ceiling, shown in ((47.6, 48), (40, 40), (None, None), (900, None), ("high", None)):
+        hub.update_summary(summary(flow={**FLOW, "ceiling_c": ceiling}))
+        assert source.extra_state_attributes["ceiling_c"] == shown, ceiling
     # Offline: unavailable, nothing invented.
     hub.update(None)
     assert not any(s.available for s in (*sensors.values(), night))

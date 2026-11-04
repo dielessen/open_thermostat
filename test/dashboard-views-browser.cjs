@@ -15,12 +15,15 @@ const HALF=['tile','button','statistic','gauge'];
 // A grid row is 56 px with an 8 px gap. A figure (statistic) and a gauge are two rows (120 px), and so is the tile
 // beside one (its grid_options say so).
 const ROWS={statistic:2,gauge:2};
+// rc.5 (P17): the Boiler view's Now card, a band and four figures (two rows of two on a phone, one row on a desktop).
+HEIGHT['custom:openthermostat-boiler-now']=250;
 const height=card=>{const rows=(card.grid_options&&card.grid_options.rows)||ROWS[card.type];
  return rows?rows*56+(rows-1)*8:(HEIGHT[card.type]||90);};
 const html=(view,hidden,width)=>{
  // Home Assistant fits as many section columns as the width allows (about 320 px each), up to max_columns.
  const columns=Math.max(1,Math.min(view.max_columns||1,Math.floor((width-32)/320)));
- const sections=(view.sections||[]).map(section=>`<section>${section.cards.filter(c=>!(hidden&&c.visibility)).map(card=>{
+ // A section with column_span takes that many columns where there are (the Overview's sections, the Boiler view's Now).
+ const sections=(view.sections||[]).map(section=>`<section style="grid-column:span ${Math.min(columns,section.column_span||1)}">${section.cards.filter(c=>!(hidden&&c.visibility)).map(card=>{
   const span=(card.grid_options&&card.grid_options.columns)||(HALF.includes(card.type)?6:12);
   return `<div class="card ${card.type.replace(/[^a-z-]/g,'')}" data-span="${span}" style="grid-column:span ${span};min-height:${height(card)}px">`+
    `<small>${card.type.replace('custom:openthermostat-','')}</small><b>${String(label(card)).replace(/</g,'&lt;')}</b>${card.visibility&&!hidden?'<i>conditional</i>':''}</div>`;}).join('')}</section>`).join('');

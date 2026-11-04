@@ -36,9 +36,12 @@ async def test_native_dashboard_three_views_reported_vs_estimated_no_legacy_coun
     config=dashboard._dashboard_config()
     assert [v["path"] for v in config["views"]]==["boiler","diagnostics"]
     now,legacy=config["views"][0]["sections"]
-    # rc.5: "Now" first, from the older hub's metrics: the water to the heating and the burner power as a gauge.
-    assert [(c["type"],c["entity"].rsplit("_hub_",1)[-1]) for c in now["cards"][1:]]==[
-        ("tile","boiler_current_flow_temperature"),("gauge","boiler_burner_power")]
+    # rc.5: "Now" first, from the older hub's metrics: one card (frontend/boiler-now-card.js) with the water to the
+    # heating, the burner power and the hub's own heating and hot water bits for what the boiler does.
+    assert [c["type"] for c in now["cards"]]==["heading","custom:openthermostat-boiler-now"]
+    assert {k:v.rsplit("_hub_",1)[-1] for k,v in now["cards"][1].items() if k not in ("type","grid_options")}=={
+        "flow":"boiler_current_flow_temperature","modulation":"boiler_burner_power","heating":"boiler_heating_active",
+        "hot_water":"boiler_hot_water_active"}
     boiler=legacy["cards"]
     assert [c["type"] for c in boiler]==["heading","markdown","history-graph","history-graph","history-graph"]
     assert [x["name"] for x in boiler[2]["entities"]]==["Target (boiler)","To heating, as the boiler reports it"]

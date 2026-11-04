@@ -15,9 +15,12 @@ planner and, per room, the room status card (frontend/room-status-card.js):
 * Rooms: per room its thermostat, 24-hour graph, sensors, windows and people,
   and what it learned for that room; then the sensors that feed no single room;
 * Week program (with an E32 room plan): the visual week planner card;
-* Boiler, in this order: Now (what the boiler does in words and as one coloured
-  tile: heating, hot water or resting; the water to the heating and back; the
-  burner power and its starts per hour), the heating advice, Today and this week
+* Boiler, in this order: Now (one card, custom:openthermostat-boiler-now: what
+  the boiler does in a band of its colour with its display code in words, the
+  connection with the boiler and whether it serves hot water; the water to the
+  heating and back, the burner power and its starts in the last hour as large
+  figures, across both columns on a wide screen), the heating advice, Today
+  and this week
   (today's gas and burner as figures, the one chart of the gas per day and the
   burner hours per day), Hot water (its temperature and target, today's taps and
   keeping warm, what the boiler did in the last 24 hours), the last 24 hours,
@@ -157,11 +160,6 @@ ICONS = {"flow": "mdi:thermometer-chevron-up", "return": "mdi:thermometer-chevro
          "boiler": "mdi:water-boiler", "now": "mdi:water-boiler", "week": "mdi:chart-bar",
          "history": "mdi:chart-line", "settings": "mdi:cog-outline", "yesterday": "mdi:scoreboard-outline",
          "thermostat": "mdi:thermostat"}
-# What the boiler does now (hub boiler_activity, heating_link.BOILER_ACTIVITIES) as one tile of three: its icon
-# (ICONS), its theme colour and the activities it stands for; exactly one shows at a time.
-ACTIVITY_TILES = (("heating", "deep-orange", ["heating"]),
-                  ("hot_water", "blue", ["tapping", "keep_warm", "charging", "hot_water"]),
-                  ("boiler", "grey", ["idle"]))
 
 TEXT = {
     "en": {
@@ -1093,37 +1091,6 @@ def _yesterday_figures(t, rooms, names, house, summary=None, missed=None, gas_un
         _note(t, t["scoreboard_note"]))
 
 
-# The boiler's display code in words (display_codes.py: its attributes), for a look at a glance:
-# the meaning large with the raw code small next to it; a fault or lockout as a warning with
-# what to do. Severity names: display_code_table.SEVERITIES.
-FAULT_SEVERITIES = ("blocking", "locking", "fault")
-
-
-def _boiler_status_card(t, entity_id):
-    """The boiler's state in words under "Now"; only while the display code has a value."""
-    if entity_id is None:
-        return None
-    quoted = json.dumps(entity_id)
-    content = (
-        "{% set e = " + quoted + " %}{% set code = states(e) %}{% set meaning = state_attr(e, 'meaning') %}"
-        "{% set severity = state_attr(e, 'severity') %}{% set advice = state_attr(e, 'advice') %}"
-        "{% set cause = state_attr(e, 'cause') %}{% set raw = code ~ (' ' ~ cause if cause else '') %}"
-        "{% if severity in " + json.dumps(list(FAULT_SEVERITIES)) + " %}"
-        "<ha-alert alert-type=\"{{ 'error' if severity == 'locking' else 'warning' }}\" "
-        "title=\"{{ meaning }}\">{{ state_attr(e, 'severity_text') }}.{% if advice %} {{ advice }}{% endif %} "
-        "<small>" + t["code"] + " {{ raw }}</small></ha-alert>"
-        "{% elif severity == 'unknown' %}<ha-icon icon=\"mdi:help-circle-outline\"></ha-icon> "
-        "**" + t["code"] + " {{ raw }}** · {{ meaning }}"
-        "{% elif meaning %}<ha-icon icon=\"{{ " + json.dumps(STATUS_ICONS) + ".get(severity, 'mdi:water-boiler') }}\">"
-        "</ha-icon> " + t["boiler_now"] + ": **{{ meaning }}** <small>{{ raw }}</small>"
-        "{% if advice and severity != 'normal' %}\n\n<small>{{ advice }}</small>{% endif %}"
-        "{% else %}<ha-icon icon=\"mdi:water-boiler\"></ha-icon> " + t["code"] + " **{{ code }}**{% endif %}")
-    return {"type": "markdown", "content": content, "visibility": _known(entity_id)}
-
-
-STATUS_ICONS = {"normal": "mdi:water-boiler", "waiting": "mdi:timer-sand", "service": "mdi:wrench-outline"}
-
-
 def _hot_water_use_cards(t, hub, heating_active=None):
     """When hot water is tapped and when it is kept warm, for the Boiler view's hot-water section: the last 24 hours
     of what the boiler does (next to its own "heating" bit) and one note on tapping and keeping warm, both while the
@@ -1139,33 +1106,40 @@ def _hot_water_use_cards(t, hub, heating_active=None):
             _note(t, t["dhw_use_note"], _known(activity))]
 
 
-def _boiler_now(t, hub, fields, essential):
-    """Now (dashboard-spec §5.1), first on the Boiler view: the boiler in words, one coloured tile for what it does
-    (heating, hot water or resting; on an older integration the boiler's own "heating" bit), the water to the
-    heating next to the water back, and the burner power as a gauge next to its starts in the last hour (or the
-    pressure). Every card shows with its value; the section hides as a whole without any."""
+def _boiler_now(t, hub, fields, essential, flow_source=None):
+    """Now (dashboard-spec §5.1; rc.5 as the owner's sketch), first on the Boiler view: one card
+    (frontend/boiler-now-card.js, custom:openthermostat-boiler-now). A band in the colour of what the boiler does
+    (heating, hot water or resting; red with what to do while its display code is a fault) with the display code in
+    words, the connection with the boiler and whether it serves hot water; under it, large, the water to the heating
+    (what is asked of the boiler and the most the E32 asks near the target), the water back (the difference), the
+    burner power and its starts in the last hour (calm or not, and today's starts).
+
+    The card reads only the entities it is given and draws what it has (a figure without its entity is left out, one
+    without a value says "—"). The section spans both columns on a wide screen (the four figures in one row) and
+    hides as a whole while none of the display code, what the boiler does, the water to the heating or back and the
+    burner power or its starts has a value, so its heading never stands over nothing.
+
+    flow_source: the "Water temperature set by" sensor (e32_flow.FlowSourceSensor), whose ``ceiling_c`` is the most
+    the E32 asks near the target now."""
+    from .room_overview import BOILER_NOW_CARD_TYPE
     code, flow, back, modulation = (essential(key) for key in ("code", "flow", "return", "modulation"))
-    activity = hub.get("boiler_activity")
+    activity, starts = hub.get("boiler_activity"), hub.get("burner_starts_last_hour")
     doing = activity or fields.get("heating_active")
-    if activity:
-        tiles = [(t["boiler_now"], icon, color, states) for icon, color, states in ACTIVITY_TILES]
-    else:  # on and off of the boiler's own "heating" bit
-        tiles = [(t["state_heating"], "heating", "deep-orange", ["on"]), (t["state_heating"], "boiler", "grey", ["off"])]
-    starts = hub.get("burner_starts_last_hour")
-    beside = (_tile(starts, t["starts_hour"], ICONS["burner_starts"]) if starts
-              else _tile(essential("pressure"), t["pressure"], ICONS["pressure"]))
-    gauge = ({"type": "gauge", "entity": modulation, "name": t["modulation"], "min": 0, "max": 100, "needle": False}
-             if modulation else None)
-    return _filled(_section_known(
-        [code, doing, flow or back, modulation or (beside or {}).get("entity")],
-        _heading(t["now"], ICONS["now"]),
-        _boiler_status_card(t, code),
-        *(_wide(_tile(doing, name, ICONS[icon], color=color,
-                      visibility=[{"condition": "state", "entity": doing, "state": states}]))
-          for name, icon, color, states in (tiles if doing else ())),
-        *_pair(_tile(flow, t["flow_short"], ICONS["flow"]), _tile(back, t["return_short"], ICONS["return"])),
-        # The gauge needs two grid rows; the tile beside it takes the same, so the pair is one even row.
-        *_pair(gauge, beside, rows=2 if gauge else None)))
+    shown = [code, doing, flow or back, modulation or starts]
+    if not any(shown):
+        return None
+    # Each only with its entity: the boiler's own heating and hot water bits (an older integration: the hub's), its
+    # display code, the water, the burner, the E32's starts count and short-cycling judgement, today's starts (their
+    # statistic), the E32's request and the ceiling in effect.
+    reads = {"activity": activity, "heating": fields.get("heating_active") or hub.get("boiler_heating_active"),
+             "hot_water": fields.get("dhw_active") or hub.get("boiler_hot_water_active"), "code": code, "flow": flow,
+             "return": back, "modulation": modulation, "starts": starts, "starts_today": hub.get("daily_burner_starts"),
+             "cycling": hub.get("burner_short_cycling"), "request": hub.get("heat_request"), "ceiling": flow_source}
+    section = _section_known(shown, _heading(t["now"], ICONS["now"]),
+                             {"type": BOILER_NOW_CARD_TYPE, "grid_options": {"columns": 12},
+                              **{key: value for key, value in reads.items() if value}})
+    section["column_span"] = 2  # across the whole width on a wide screen, as the sketch: its figures in one row
+    return section
 
 
 def _hot_water_section(t, hub, fields, essential):
@@ -1653,7 +1627,8 @@ class RoomDashboard:
             return native_fields.get(field) or (hub_entities.get(metric) if metric else None)
 
         parts = self._heating_sections(t, entries, hub_entities, native_fields, essential, registry, e32_rooms, legacy)
-        boiler, raw, thermostat = self._boiler_sections(t, hub_entities, native_fields, graph, essential)
+        boiler, raw, thermostat = self._boiler_sections(t, hub_entities, native_fields, graph, essential,
+                                                        self._flow_entities(entries).get("source"))
         diagnostics = self._diagnostics_sections(t, registry, hub_entities, raw, thermostat)
 
         def view(title, path, icon, sections, columns=2, **more):
@@ -2097,18 +2072,18 @@ class RoomDashboard:
                 if item.unique_id.startswith(head) and item.unique_id.removeprefix(head) in FLOW_KEYS
                 and item.domain != "number"}  # the design flow is a select (never a 0 °C number)
 
-    def _boiler_sections(self, t, hub, fields, graph, essential):
+    def _boiler_sections(self, t, hub, fields, graph, essential, flow_source=None):
         """The Boiler view (dashboard-spec §5) and what of the boiler belongs on Diagnostics: (sections, the raw
         boiler fields, the thermostat on the bus).
 
-        In this order: Now (the boiler in words and at a glance), the advice, Today and this week (the gas and the
-        burner), Hot water, the last 24 hours, What the boiler reports (its values, one titled card per group) and
-        the boiler settings. Every section hides as a whole while nothing in it has a value, so a boiler that never
-        reports a value shows neither an "Unknown" nor a heading over nothing. Raw values the E32 does not check
-        and the thermostat on the bus go to Diagnostics.
+        In this order: Now (the boiler at a glance: one card, _boiler_now), the advice, Today and this week (the gas
+        and the burner), Hot water, the last 24 hours, What the boiler reports (its values, one titled card per
+        group) and the boiler settings. Every section hides as a whole while nothing in it has a value, so a boiler
+        that never reports a value shows neither an "Unknown" nor a heading over nothing. Raw values the E32 does not
+        check and the thermostat on the bus go to Diagnostics. flow_source: the "Water temperature set by" sensor.
         """
         from .boiler_fields import INDEX_BY_NAME, quality
-        sections = [_boiler_now(t, hub, fields, essential), _advice_section(t, hub.get("heating_advice")),
+        sections = [_boiler_now(t, hub, fields, essential, flow_source), _advice_section(t, hub.get("heating_advice")),
                     _energy_section(t, hub), _hot_water_section(t, hub, fields, essential)]
         raw = thermostat = None
         if fields:

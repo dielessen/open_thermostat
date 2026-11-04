@@ -756,6 +756,35 @@ TEST(AutoTuner, ARestartKeepsTheDaysEvidenceAndWaitsTwoHours) {
     EXPECT_TRUE(t.dayStoreDue(AutoTuner::dayStoreMs)); EXPECT_FALSE(t.dayStoreDue(AutoTuner::dayStoreMs + 1000)); EXPECT_TRUE(t.dayStoreDue(2 * AutoTuner::dayStoreMs));
 }
 
+// rc.4 (L3): a restart between 22:00 and 24:00 (the usual update time) brought the day's counters
+// back from the record, but the day then closed inside the 2 h boot grace, where evaluate() cleared
+// the pending day and answered "waiting": the restart still lost the day L5 set out to keep. A day
+// that closes inside the boot grace stays pending and is judged once the grace has passed.
+TEST(AutoTuner, ADayThatClosesInsideTheBootGraceIsJudgedAfterIt) {
+    Driver d;
+    d.day(cycles(5, 5));                                                     // Monday: its changes are in the log
+    for (uint32_t t = 10; t <= 6 * 3600; t += 10) d.step(cycles(5, 5)(t));   // Tuesday 00:00..06:00: 6 heating hours, 6 starts an hour
+    const auto record = d.tuner.stored();
+    const auto changes = d.tuner.logCount();
+    ASSERT_GT(changes, 0u);
+    Driver late;                                                              // "booted" Tuesday 23:00 with the record
+    late.utc = monday + 86400 + 23 * 3600;
+    ASSERT_TRUE(late.tuner.restore(record.c_str()));
+    late.tuner.boot(late.now, true);
+    late.tuner.adoptDay(heating::control::RoomSchedule::localDay(late.utc));
+    EXPECT_EQ(late.tuner.today().hours, d.tuner.today().hours);
+    EXPECT_EQ(late.tuner.today().starts, d.tuner.today().starts);
+    for (int i = 0; i < 70 * 6; ++i) late.step(S{});                         // idle through midnight to 00:10
+    EXPECT_EQ(late.tuner.logCount(), changes) << "the day closed inside the grace: not judged yet";
+    EXPECT_STREQ(late.tuner.state(late.now), "waiting");
+    EXPECT_FALSE(late.tuner.evaluationPending(late.now));
+    EXPECT_TRUE(late.tuner.evaluationPending(late.now + AutoTuner::bootGraceMs)) << "kept pending for after the grace, not dropped";
+    late.tuner.evaluate(late.now + AutoTuner::bootGraceMs, late.utc, 0, late.rooms, late.learned.data(), 1);
+    EXPECT_GT(late.tuner.logCount(), changes) << "Tuesday had 6 heating hours with many starts: a change";
+    EXPECT_FALSE(late.tuner.evaluationPending(late.now + AutoTuner::bootGraceMs));
+    EXPECT_GT(late.tuning().minOffS, d.tuning().minOffS) << "the rest lengthened another step";
+}
+
 TEST(AutoTuner, OnlyControlChangesRestartTheTunerAndRoomsKeepTheirEvidenceById) {
     RoomPlan a = plan({RoomPlan::Emitter::floor, RoomPlan::Emitter::radiator});
     RoomPlan b = a;

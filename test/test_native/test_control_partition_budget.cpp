@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 #include "control/ControlPartitionBudget.h"
 #include "control/AutoTuner.h"
+#include "control/DhwEpisodes.h"
 #include "control/FlowPolicy.h"
 #include "control/LearnedState.h"
 #include "control/OptionalRecordPriority.h"
+#include "control/Scoreboard.h"
 #include "control/TakeoverReadiness.h"
 #include <algorithm>
 #include <cstdio>
@@ -106,21 +108,43 @@ TEST(ControlPartitionBudget, TheKnobsWithoutTheirLogFitTheirPriorityReserve) {
 }
 // The optional records (rc.2 learned-room review): the readiness counters, the knobs with a
 // full log and what was learned as one packed record (LearnedStore: the global frame and the
-// rooms' version 2 frames, at most 4000 bytes a part).
+// rooms' version 2 frames, at most 4000 bytes a part). rc.4 (review S3): the hot water days
+// ("dhw", DhwNvs, at most DhwEpisodes::recordBytes) and the daily scoreboard ("scoreboard",
+// ScoreboardNvs, at most Scoreboard::storedMaxBytes with its NUL), both written hourly with
+// priority 0 like the readiness and the knobs, before the 6-hourly learned record.
 struct Record { const char* key; size_t bytes; };
 constexpr size_t globalBytes = 300;                                   // measured 240 (test_learned_state)
 constexpr size_t typicalRoom = LearnedState::compactRoomBytes(10, 6);  // 6 bins with the outdoor: 190 B
 constexpr size_t worstRoom = LearnedState::compactRoomBytes(32, 0, FlowLearner::binCount); // 558 B
 std::vector<Record> typical() {
     return {{"readiness", sizeof(TakeoverReadiness::Stored)}, {"autotune", AutoTuner::storedMaxBytes + 1},
+            {"dhw", DhwEpisodes::recordBytes}, {"scoreboard", Scoreboard::storedMaxBytes + 1},
             {"learned_a", globalBytes + 8 * typicalRoom}};
 }
 std::vector<Record> worstCase() {
     // Whole frames per part: the globals and 6 rooms, then 2 rooms.
     static_assert(globalBytes + 6 * worstRoom <= LearnedStore::partBytes && globalBytes + 7 * worstRoom > LearnedStore::partBytes);
     return {{"readiness", sizeof(TakeoverReadiness::Stored)}, {"autotune", AutoTuner::storedMaxBytes + 1},
+            {"dhw", DhwEpisodes::recordBytes}, {"scoreboard", Scoreboard::storedMaxBytes + 1},
             {"learned_a", globalBytes + 6 * worstRoom}, {"learned_b", 2 * worstRoom}};
 }
+}
+// rc.4 (review S3): the scoreboard holds only today and yesterday, the least valuable record on the
+// device, so a save that needs room erases it first; the hot water days are an optional record too.
+TEST(ControlPartitionBudget, TheScoreboardIsTheFirstOptionalRecordToGoAndTheHotWaterDaysAreOne) {
+    ASSERT_GE(B::optionalKeyCount, 2u);
+    EXPECT_STREQ(B::optionalKeys[0], "scoreboard");
+    bool dhw = false, learned = false, knobs = false;
+    for (const char* key : B::optionalKeys) { dhw = dhw || !std::strcmp(key, "dhw"); learned = learned || !std::strcmp(key, "learned_a"); knobs = knobs || !std::strcmp(key, "autotune"); }
+    EXPECT_TRUE(dhw); EXPECT_TRUE(learned); EXPECT_TRUE(knobs);
+    EXPECT_STREQ(B::optionalKeys[B::optionalKeyCount - 1], "autotune") << "the knobs go last";
+    for (const auto& r : worstCase()) {  // every record in the budget is an optional key, and the sizes are their bounds
+        bool listed = false;
+        for (const char* key : B::optionalKeys) listed = listed || !std::strcmp(key, r.key);
+        EXPECT_TRUE(listed) << r.key;
+    }
+    EXPECT_EQ(B::blobEntries(Scoreboard::storedMaxBytes + 1), 19u);
+    EXPECT_EQ(B::blobEntries(DhwEpisodes::recordBytes), 22u);
 }
 TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAndBluetooth) {
     const size_t flowGrowth = B::blobEntries(B::flowRecordBytes) - B::blobEntries(96); // beta.19 flow record: <= 95 bytes
@@ -134,15 +158,17 @@ TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAnd
     struct Case { size_t plan, control; bool graph; };
     const Case cases[] = {{600, 200, false}, {930, 200, false}, {930, 0, false}, {2000, 1200, false}, {3000, 4000, false},
                           {4096, 200, false}, {930, 1200, true}};
-    for (const auto& records : {worstCase(), typical()})
+    for (const bool worst : {true, false})
     for (const auto& c : cases) {
+        const auto records = worst ? worstCase() : typical();
         const size_t control = B::controlReplacementEntries(c.control, c.graph);
         const size_t reserve = B::controlReserveEntries(c.plan, control);
         size_t n = baselineUsed + flowGrowth;
         std::string kept;
         for (const auto& r : records) {
             // As LearnedNvs and AutoTunerNvs: what was learned after the knobs and the readiness,
-            // the knobs' log after what was learned (else the values only).
+            // the knobs' log after what was learned (else the values only). rc.4: the hot water
+            // days and the scoreboard (DhwNvs, ScoreboardNvs) with priority 0, hourly, before the learned record.
             const bool knobs = !std::strcmp(r.key, "autotune");
             size_t bytes = r.bytes, priority = r.key[0] == 'l' ? OptionalRecordPriority::learned(kept.find("autotune") != std::string::npos, kept.find("readiness") != std::string::npos) : 0;
             if (knobs && !B::permitsOptionalWrite(used(n), bytes, 0, reserve, priority)) { bytes = OptionalRecordPriority::knobsBytes; priority = 0; }
@@ -151,7 +177,7 @@ TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAnd
             n += B::blobEntries(bytes); kept += std::string(r.key) + (bytes < r.bytes ? "(values) " : " ");
         }
         std::printf("[ nvs ] %s plan %4zu B, control %4zu B%s: reserve %zu; written: %s-> %zu used, %zu free\n",
-                    records.size() > 3 ? "worst case:" : "typical:   ", c.plan, c.control, c.graph ? " (graph)" : "", reserve, kept.c_str(), n, 630 - n);
+                    worst ? "worst case:" : "typical:   ", c.plan, c.control, c.graph ? " (graph)" : "", reserve, kept.c_str(), n, 630 - n);
         // The invariant: a plan save of the stored size plus an edit, a 2 KB Bluetooth save, the
         // handover confirmation, the largest flow record and the control record's replacement fit.
         EXPECT_TRUE(B::permitsHeatingPlanWrite(used(n), std::min(c.plan + B::editBytes, B::configBytes), {}, control)) << c.plan;
@@ -160,8 +186,12 @@ TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAnd
         if (c.graph) { EXPECT_TRUE(B::permitsGraphWrite(used(n), B::configBytes)); }
         else { EXPECT_GE(630 - n, 2 + B::blobEntries(std::min(c.control + B::editBytes, B::configBytes)) + B::entriesPerPage); }
         EXPECT_LE(n, 630u - B::entriesPerPage) << "never physically full";
-        // The owner's unit (plan ~0.93 KB, a session without rooms): everything is kept.
-        if (c.plan == 930 && c.control <= 200 && !c.graph && records.size() == 3) { EXPECT_EQ(kept, "readiness autotune learned_a "); }
+        // The owner's unit (plan ~0.93 KB, a session without rooms): everything is kept, the
+        // learned rooms beside the hourly records (rc.4: the hot water days and the scoreboard).
+        if (c.plan == 930 && c.control <= 200 && !c.graph && !worst)
+            EXPECT_EQ(kept, "readiness autotune dhw scoreboard learned_a ")
+                << "the owner's unit: " << 630 - n << " free after the records written, the learned record (" << typical().back().bytes
+                << " B) needs 1 + " << B::blobEntries(typical().back().bytes) << " entries beside the reserve of " << reserve;
     }
     // The gate itself: the edge, the record it replaces, invalid stats, sizes and reservations.
     EXPECT_EQ(B::controlReplacementEntries(0, false), 8u);
@@ -222,8 +252,9 @@ TEST(ControlPartitionBudget, TheHolidaysRecordMakesRoomForItselfLikeAPlanSave) {
     EXPECT_FALSE(holidays(stats()));
     ASSERT_TRUE(B::makeRoom(holidays, stats, bytes, erase));
     EXPECT_TRUE(holidays(stats()));
-    ASSERT_EQ(erased, std::vector<std::string>{"learned_b"});  // the later learned rooms only
-    EXPECT_TRUE(nvs.count("autotune") && nvs.count("readiness") && nvs.count("learned_a"));
+    // rc.4 (S3): the scoreboard (today and yesterday only) goes first; the learned rooms stay.
+    ASSERT_EQ(erased, std::vector<std::string>{"scoreboard"});
+    EXPECT_TRUE(nvs.count("autotune") && nvs.count("readiness") && nvs.count("learned_a") && nvs.count("learned_b") && nvs.count("dhw"));
     nvs.clear(); erased.clear();
     EXPECT_FALSE(B::makeRoom(holidays, [&] { return used(630 - reserve); }, bytes, erase));
     EXPECT_TRUE(erased.empty());
@@ -243,8 +274,9 @@ TEST(ControlPartitionBudget, ALargerPlanOrBluetoothSaveErasesTheOptionalRecordsL
     EXPECT_FALSE(plan(2000)(stats()));
     ASSERT_TRUE(B::makeRoom(plan(2000), stats, bytes, erase));
     EXPECT_TRUE(plan(2000)(stats()));
-    ASSERT_FALSE(erased.empty());
-    EXPECT_EQ(erased.front(), "learned_b");
+    // rc.4 (S3): the scoreboard and the hot water days (today and yesterday, counts) before the learned rooms.
+    ASSERT_GE(erased.size(), 3u);
+    EXPECT_EQ(erased[0], "scoreboard"); EXPECT_EQ(erased[1], "dhw"); EXPECT_EQ(erased[2], "learned_b");
     EXPECT_TRUE(nvs.count("autotune")) << "the knobs stay while the rooms make room";
     ASSERT_TRUE(B::makeRoom([](ControlPartitionStats s) { return B::permitsBluetoothWrite(s, 2048); }, stats, bytes, erase));
     ASSERT_TRUE(B::makeRoom(plan(4096), stats, bytes, erase));
@@ -315,7 +347,8 @@ TEST(ControlPartitionBudget, TheOwnersRecordsKeepThePlanSaveAndMakeRoomFromWhatW
         for (const auto& [k, b] : nvs) kept += k + " ";
         std::printf("[ nvs ] plan %4zu B, control %4zu B%s: reserve %zu; comfort %d, valves %d, owned %d, test %d; erased %zu; kept: %s-> %zu free\n",
                     c.plan, c.control, c.graph ? " (graph)" : "", reserve, comfort, valves, owned, test, erased.size(), kept.c_str(), stats().freeEntries);
-        for (const auto& k : erased) EXPECT_TRUE(k.rfind("learned", 0) == 0 || k == "readiness" || k == "autotune") << k; // optional only
+        for (const auto& k : erased) // optional records only (rc.4: the scoreboard and the hot water days are two)
+            EXPECT_TRUE(k.rfind("learned", 0) == 0 || k == "readiness" || k == "autotune" || k == "scoreboard" || k == "dhw") << k;
         EXPECT_EQ(nvs.count("comfort"), size_t(comfort));
         // The invariant: the plan saved again at its size plus an edit, a 2 KB Bluetooth save,
         // the handover and the largest flow record still fit, with the GC page.

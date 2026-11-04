@@ -1143,8 +1143,8 @@ def test_room_message_is_not_queued_twice():
     flood = ([f"fw/state/room/room_{n}" for n in range(8)] + [f"fw/state/ble/a4c1380000{n:02d}" for n in range(16)]
              + [f"fw/state/trv/room_{n}" for n in range(8)] + [f"fw/telemetry/learned/room_{n}" for n in range(8)]
              + ["fw/config/entities", "fw/config/entities/1", "fw/config/plan", "fw/state/heating",
-                "fw/telemetry/summary", "fw/telemetry/flow", "fw/telemetry/tuning", "fw/telemetry/shadow",
-                "fw/telemetry/readiness"])
+                "fw/telemetry/summary", "fw/telemetry/flow", "fw/telemetry/tuning", "fw/telemetry/scoreboard",
+                "fw/telemetry/shadow", "fw/telemetry/readiness"])
     for suffix in flood:
         assert hub_only_topic(suffix), suffix
         connection._received(message(suffix))

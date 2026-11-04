@@ -64,6 +64,7 @@ dat duurt soms langer dan de 300 ms die een bericht mag kosten → verbreken.
 | `fw/state/boiler_fields/<groep>` | overige ketelvelden (de huidige catalogus) | per groep bij verandering, hoogstens elke 60 s per groep; anders elke 15 min | ja |
 | `fw/telemetry/learned/<id>` | wat per ruimte geleerd is, advies | elke 15 min of bij nieuw resultaat | ja |
 | `fw/telemetry/summary` | dagtotalen, tapwater vandaag, schaduwvergelijking | elke 5 min | ja |
+| `fw/telemetry/scoreboard` | scorebord van gisteren en vandaag (rc.4): per ruimte op tijd warm en te warm, starts per uur verwarmen, kort pendelen, gas voor verwarmen, graaddagen; vandaag zonder ruimtes | elke 5 min, tot 1,0 KB | ja |
 | `fw/config/plan` + `fw/config/entities` | ruimteplan, lijst entiteiten (nu `ha_entities` in elk statusbericht) | alleen bij wijziging en bij verbinden | ja |
 | `fw/telemetry/ems_metrics` | ontvangststatistiek | elke 5 min | nee |
 | `fw/availability` | online / offline (LWT) | bij verbinden / verbreken | ja |

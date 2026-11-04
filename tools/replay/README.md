@@ -279,3 +279,34 @@ the rc.4 learning changes (L1-L5):
   (unchanged); computed vs recorded E32 heat 73 % of 5215 steps (was 76 %: the estimate start
   asks for heat where the recording shows none).
 - `tools/replay/test_replay.py`: 6/6 OK on rc.4.
+
+### rc.5 on the fixture and on the owner's recording (<...> Nov 2026)
+
+<!-- Template of the rc.5 baseline paragraph, written with the release tooling: the integrator replaces every
+"<...>" below (find them with: grep -n '<\.\.\.>' tools/replay/README.md), drops the lines that do not apply
+and deletes this comment. The figures come from `tools/replay/score.py`; a difference is explained in a
+sentence, not just shown. -->
+
+`tools/replay/run.sh test/fixtures/replay/house-shadow.csv --plan test/fixtures/replay/plan.json
+--mode shadow,active --apply-learned --weather-curve`, before (`REPLAY_REV=v1.0.0-e32v2-rc.4`) and after the
+rc.5 changes (<...>), then `python3 tools/replay/score.py <after json> <before json>` for the table. The same
+on the owner's recording (`out/replay-data/house-20261030-20261102.csv` with `out/replay-data/plan.json` of the
+main checkout, <...> - <...>, read only; the fixture is too short for the new modules to learn much):
+
+- Starts and request: <...> burner starts per heating hour (rc.4: <...>), mean request <...> degC (rc.4:
+  <...>), mean flow <...> degC and return <...> degC while heating, heating <...> kWh by the learner's
+  estimate (rc.4: <...>). The difference comes from <...>.
+- Listening to the boiler (`BoilerResponse`): <...> held-target events, rest rhythm <...> s, ceiling per
+  outdoor band <...>, absorbed <...> kW and <...> kW per K of flow, state "<...>". The recording is from shadow
+  mode (the old thermostat drove the boiler), so <...>.
+- The synthetic holding boiler (`tools/replay/synth.py`: the recorded requests of the owner's recording driven
+  through a boiler that holds its target up to +5 K): <...> held events; with the learned ceiling the request
+  falls from <...> to <...> degC and the burner starts per heating hour from <...> to <...>.
+- House model (`HouseModel`): heat loss <...> kW per K outside, emitter output <...> kW per K of flow, implied
+  slope <...> (design slope <...>), state "<...>". Weather compensation takes the <...> slope.
+- Knowledge: <...> % with <...> still missing (<...>). Insights: <...> items (<...>).
+- Free heat (`FreeHeat`): <...> dayparts with a rate (the best <...> K/h at <...>); the planned leads are
+  <...> min shorter on <...> mornings; arrival errors <...> min (rc.4: <...>).
+- Unchanged by design: cooling <...> and warm-up <...> segments, AutoTuner <...> proposals, computed vs
+  recorded E32 heat <...> % of <...> steps (rc.4: <...> %).
+- `tools/replay/test_replay.py`: <...>/<...> OK on rc.5.

@@ -5,12 +5,15 @@ Shaped like the live installation: the living room follows a thermostat and a Bl
 bathroom is inactive with a working source of its own (it stays off and is never switched on here).
 """
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
+from custom_components.open_thermostat import dashboard as module
 from custom_components.open_thermostat.dashboard import RoomDashboard, view_cards
+from custom_components.open_thermostat.room_overview import HOUSE_CARD_TYPE
 from test_dashboard_heating import installation, walk
 
 PLAN = {"rooms": [
@@ -64,33 +67,42 @@ async def test_boiler_values_are_hidden_while_they_have_none_instead_of_showing_
     overview, boiler = config["views"][0], next(v for v in config["views"] if v["path"] == "boiler")
     values = [fields[k] for k in ("measured_flow_temperature", "measured_dhw_temperature",
                                   "measured_return_temperature", "reported_burner_modulation", "pressure")]
-    # The boiler's values are all in the Boiler view, as rows that appear once they have a value; never on the Overview.
+    # The boiler's values are all in the Boiler view, as rows that appear once they have a value; never on the Overview,
+    # except the water temperature to heating that the house card (rc.5) says in its strip ("Heating · water 41 °C").
     rows = {row["row"]["entity"]: row for card in view_cards(boiler) if card["type"] == "entities"
             for row in card["entities"] if row.get("type") == "conditional"}
     for entity_id in values:
         assert rows[entity_id]["conditions"] == [known(entity_id)], entity_id
-    assert not any(entity_id in json.dumps(overview) for entity_id in values)
+    house = next(c for c in section(overview, "House") if c["type"] == HOUSE_CARD_TYPE)
+    assert house["flow"] == fields["measured_flow_temperature"]
+    others = [c for c in view_cards(overview) if c["type"] != HOUSE_CARD_TYPE]
+    assert not any(entity_id in json.dumps(others) for entity_id in values)
     # The display code in words: hidden as long as the boiler reports no code.
     words = [c for c in view_cards(boiler) if c["type"] == "markdown" and "'meaning'" in c["content"]]
     assert [c["visibility"] for c in words] == [[known(fields["display_code"])]]
-    # The "Heating" problem tile is shown only while there is a problem, with its reason.
-    status = next(c for c in section(overview, "House") if c.get("entity") == hub["heating_problem"])
-    assert status["name"] == "Heating" and status["state_content"] == ["reason"]
-    assert status["visibility"] == [{"condition": "state", "entity": hub["heating_problem"], "state": "on"}]
+    # The problem is the house card's (its strip turns red with the reason only while there is one); no tile of its own.
+    assert house["problem"] == hub["heating_problem"]
+    assert not any(c.get("entity") == hub["heating_problem"] for c in view_cards(overview))
 
 
 @pytest.mark.asyncio
 async def test_the_boiler_request_says_no_request_instead_of_zero_degrees(hass):
-    """One card whose text follows the E32: "Boiler request: 54,0 °C" or nothing but "No room wants heat"."""
+    """One card whose text follows the E32: "Boiler request 54 °C" or "No boiler request", never "0 °C".
+
+    rc.5: the house card reads the request (frontend/house-card.js; the words are checked in
+    test/ha-house-card-browser.cjs); the markdown card stays only for a house card without its sensors."""
     from homeassistant.helpers.template import Template
+    from custom_components.open_thermostat.dashboard import TEXT, _wanting_card
     config, rooms, sensors, hub, fields, flow = live(hass)
-    wanting = section(config["views"][0], "House")[1]
-    assert wanting["type"] == "markdown" and hub["heat_request"] in wanting["content"]
-    assert "visibility" not in wanting  # no card that comes and goes
+    house = section(config["views"][0], "House")[1]
+    assert house["type"] == HOUSE_CARD_TYPE and house["request"] == hub["heat_request"]
+    assert "visibility" not in house  # no card that comes and goes
     hass.states.async_set(hub["heat_request"], "0", {"rooms": []})
-    assert "0,0" not in Template(wanting["content"], hass).async_render()
-    nl, *_ = live(hass, "nl")
-    assert "Geen ruimte vraagt warmte" in json.dumps(nl, ensure_ascii=False)
+    wanting = _wanting_card(TEXT["nl"], hub["heat_request"])
+    assert Template(wanting["content"], hass).async_render() == "### Geen ruimte vraagt warmte"
+    texts = json.loads((Path(module.__file__).parent / "translations/nl.json").read_text(encoding="utf-8"))
+    card = texts["entity"]["sensor"]["heat_request"]["state_attributes"]["card"]["state"]
+    assert (card["no_request"], card["request"]) == ("Geen ketelvraag", "Ketelvraag {flow} °C")
 
 
 @pytest.mark.asyncio

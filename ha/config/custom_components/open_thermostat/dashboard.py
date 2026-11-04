@@ -302,6 +302,8 @@ TEXT = {
         "insights": "Yesterday compared with usual",
         "knowledge_note": "The E32 learns all this by itself while the heating runs. Yesterday is compared with your "
                           "house's own usual days; that is information and changes nothing.",
+        # rc.5 (P11): the Overview's rooms beside the one room the house card shows.
+        "other_rooms": "Other rooms",
     },
     "nl": {
         "heating": "Verwarming", "boiler_view": "Ketel", "diagnostics": "Diagnose",
@@ -467,6 +469,7 @@ TEXT = {
         "insights": "Gisteren vergeleken met normaal",
         "knowledge_note": "De E32 leert dit allemaal zelf terwijl de verwarming draait. Gisteren wordt vergeleken met de "
                           "gewone dagen van je eigen huis; dat is informatie en verandert niets.",
+        "other_rooms": "Overige ruimtes",
     },
     # Polish: the terms of translations/pl.json and docs/UX-GLOSSARY.md; E32 page names stay English.
     "pl": {
@@ -634,6 +637,7 @@ TEXT = {
         "insights": "Wczoraj w porównaniu ze zwykłymi dniami",
         "knowledge_note": "E32 uczy się tego wszystkiego sam, gdy ogrzewanie pracuje. Wczoraj jest porównywane ze "
                           "zwykłymi dniami Twojego domu; to tylko informacja i niczego nie zmienia.",
+        "other_rooms": "Pozostałe pomieszczenia",
     },
 }
 
@@ -1347,8 +1351,10 @@ class RoomDashboard:
             return None
         plan = hub.plan.plan if hub.plan is not None else None
         # The E32 counts every plan save in its revision: no need to compare the whole plan (R4-11).
+        # A room's state too: switched on or off, it moves into or out of the Overview's house card (rc.5).
         return (hub.status.get("mode"),
-                tuple((key, room.get("name"), room.get("source")) for key, room in hub.rooms.items()),
+                tuple((key, room.get("name"), room.get("source"), room.get("state"))
+                      for key, room in hub.rooms.items()),
                 tuple((key, sensor.get("name")) for key, sensor in hub.ble.items()),
                 plan.get("revision") if plan else None)
 
@@ -1575,13 +1581,28 @@ class RoomDashboard:
 
         # -- Overview ------------------------------------------------------------------------------
         on = [{"condition": "state", "entity": problem, "state": "on"}] if problem else None
-        house = _section(
-            _heading(t["house"], "mdi:home-account"),
-            # Named: without a name the tile showed the device name, cut short on a phone.
-            _wide(_tile(house_mode, t["house_mode"], "mdi:home-account", features=[{"type": "select-options"}],
-                        color="teal")),
-            # rc.4: the next holiday, only while one is planned.
-            _holiday_card(t, house_mode),
+        # rc.5 (P11): the house card (frontend/house-card.js) heads the House section: what the boiler does now (a
+        # problem first, with its reason, a tap to Repairs and all reasons inside), today in figures and the day so
+        # far, read from Home Assistant alone. It replaces the rooms-that-want-heat card and the problem tile with its
+        # reasons, which stay as before only without a heat request and boiler activity (then there is no card). A
+        # house with exactly one room switched on shows that room in the card (its Reason sensor), the others under
+        # "Other rooms"; _signature follows the rooms' state, so switching a room on or off rebuilds the dashboard.
+        from .room_overview import HOUSE_CARD_TYPE
+        activity = hub.get("boiler_activity")
+        reported = heating_hub.rooms if heating_hub is not None else {}
+        switched_on = [room_id for room_id in e32_room_entities
+                       if (reported.get(room_id) or {}).get("state") != "inactive"]
+        inline = (switched_on[0] if (request or activity) and len(switched_on) == 1
+                  and e32_room_entities[switched_on[0]].get("reason") else None)
+        reads = {"request": request, "activity": activity, "heating": fields.get("heating_active"),
+                 "flow": essential("flow"), "hot_water": fields.get("dhw_active"), "taps": hub.get("dhw_taps_today"),
+                 "gas": [hub[key] for key in ("heating_gas", "hot_water_gas") if key in hub],
+                 "starts": hub.get("daily_burner_starts"), "mode": house_mode, "problem": problem,
+                 "rooms": [{"entity": e32_room_entities[inline]["reason"],
+                            "name": self._room_name(inline, heating_hub, label)}] if inline else None}
+        house_card = ({"type": HOUSE_CARD_TYPE, "grid_options": {"columns": 12},
+                       **{key: value for key, value in reads.items() if value}} if request or activity else None)
+        before = () if house_card else (
             # Which rooms want heat and the boiler request: one card whose text follows the E32.
             _wanting_card(t, request),
             # A problem names itself ("Waiting for your confirmation"), and a tap leads to the fix in Repairs.
@@ -1591,6 +1612,15 @@ class RoomDashboard:
                 "<details><summary>" + t["problem_more"] + "</summary>\n\n{% for reason in state_attr("
                 + json.dumps(problem) + ", 'reasons') or [] %}- {{ reason }}\n{% endfor %}\n\n</details>")}
             if problem else None)
+        house = _section(
+            _heading(t["house"], "mdi:home-thermometer"),  # the icon of "house" (dashboard-spec §1, ICONS in rc.5)
+            house_card,
+            # Named: without a name the tile showed the device name, cut short on a phone.
+            _wide(_tile(house_mode, t["house_mode"], "mdi:home-account", features=[{"type": "select-options"}],
+                        color="teal")),
+            # rc.4: the next holiday, only while one is planned.
+            _holiday_card(t, house_mode),
+            *before)
         from .e32_comfort import room_contacts, room_persons
         entry = self.hass.config_entries.async_get_entry(self.entry_id)
         ble = self._e32_ble(entries)
@@ -1603,6 +1633,8 @@ class RoomDashboard:
         names = {room_id: self._room_name(room_id, heating_hub, label) for room_id in e32_room_entities}
         room_cards = []
         for room_id, room in e32_room_entities.items():
+            if room_id == inline:  # rc.5 (P11): inside the house card
+                continue
             if room.get("reason"):
                 room_cards.append({"type": ROOM_STATUS_CARD_TYPE, "entity": room["reason"], "name": names[room_id]})
             else:  # a registry without the Reason sensor (older integration): the temperature at least
@@ -1610,7 +1642,8 @@ class RoomDashboard:
                                               "mdi:home-thermometer-outline")))
         overview = [section for section in (
             house if len(house["cards"]) > 1 else None,
-            _section(_heading(t["rooms"], "mdi:thermostat"), *room_cards) if any(room_cards) else None) if section]
+            _section(_heading(t["other_rooms"] if inline else t["rooms"], "mdi:thermostat"), *room_cards)
+            if any(room_cards) else None) if section]
 
         # -- Rooms ---------------------------------------------------------------------------------
         learned_overview = hub.get("learned_overview")

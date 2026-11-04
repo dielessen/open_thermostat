@@ -42,7 +42,7 @@ const TEXT = {title: 'Your house', heating: 'Heating', status_heating: 'Heating 
 // The scoreboard sensors' own names (strings.json entity.sensor.<key>.name), English as the last resort.
 const NAMES = {burner_starts_per_heating_hour: 'Burner starts per heating hour', heating_gas_yesterday: 'Gas for heating (estimate)'};
 const DASH = '—';  // a figure not known yet: the same in every language
-const NBSP = ' ';
+const NBSP = '\u00a0';
 // What the boiler does (boiler_activity, heating_link.BOILER_ACTIVITIES): the kind in the strip and the status tone.
 const KIND = {heating: 'heat', tapping: 'water', hot_water: 'water', keep_warm: 'keep', charging: 'keep', idle: 'rest'};
 const RUNNING = new Set(['tapping', 'charging', 'hot_water']);
@@ -793,5 +793,5 @@ ensureDefined('openthermostat-yesterday', OpenThermostatYesterday);
 window.customCards = window.customCards || [];
 for (const [type, name, description] of [
  ['openthermostat-house', 'OpenThermostat house', 'The house at a glance: what the boiler does now, today in figures and the day so far.'],
- ['openthermostat-yesterday', 'OpenThermostat yesterday in figures', 'Yesterday’s headline figures: a room warm on time, burner starts per heating hour, gas for heating and degree-days.']])
+ ['openthermostat-yesterday', 'OpenThermostat yesterday in figures', 'Yesterday\u2019s headline figures: a room warm on time, burner starts per heating hour, gas for heating and degree-days.']])
  if (!window.customCards.some(c => c.type === type)) window.customCards.push({type, name, description});

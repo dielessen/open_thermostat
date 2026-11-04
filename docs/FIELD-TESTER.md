@@ -256,8 +256,8 @@ first two weeks.
   plainly wrong is worth a report.
 - **Free heat.** On a sunny day, a room's learned details may say "In the
   afternoon this room warms up by itself, about 0.4 °C per hour". The E32 page
-  always shows it; Home Assistant shows it when the E32's report for that room
-  has room for it. Does it match the room, and is the room still warm on time
+  always shows it; Home Assistant shows it under **Free heat** on the **Learning
+  and settings** tab when the E32's report for that room has room for it. Does it match the room, and is the room still warm on time
   on those days?
 - **The chart.** **Water temperature by outdoor temperature** on the E32
   **Home** page (under **Heating settings**) and in Home Assistant on the

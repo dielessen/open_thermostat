@@ -20,16 +20,17 @@ Assistant 2026.10.0 or newer.
   41 °C now, so it starts less often."
 - **Yesterday compared with usual:** one notification per insight ("Yesterday
   used 35 % more gas per degree of cold than usual", with what can cause it)
-  and the same list on the Learning and settings tab. It is information, not a
+  and the same list under **Noticed** on the Learning and settings tab. It is information, not a
   Repair: dismiss it and it stays dismissed until the insight changes.
 - **Water temperature by outdoor temperature:** a new chart card on the
   Learning and settings tab, with the standard line (dashed), the line learned
   for your house (solid), the point of now and the value at −10 °C. You can
   also add it to your own dashboard (`custom:openthermostat-heating-curve`).
-- **In the learned overview:** the free heat a room gets from sun, cooking and
-  people (when the E32's report for that room has room for it; the E32 page
-  always shows it), and the Weather compensation line estimated from your
-  house ("for now, learning more (2 of 6 steady periods)").
+- **Free heat:** a section on the Learning and settings tab with what a room
+  gets from sun, cooking and people (when the E32's report for that room has
+  room for it; the E32 page always shows it). The learned overview also says
+  when the Weather compensation line is estimated from your house ("for now,
+  learning more (2 of 6 steady periods)").
 - English, Dutch and Polish texts for all of it.
 
 ## The dashboard, redesigned

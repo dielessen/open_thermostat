@@ -119,8 +119,8 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
     or the line learned for your house.
   - **House**: **Home or away** (the house mode; tap it to change it),
     **Holiday** (**Plan** opens the integration's page, where you plan one
-    under Configure → House; the next planned holiday is shown under it) and
-    **Outdoor** (the outdoor temperature).
+    under Configure → House → House mode and holiday; the next planned
+    holiday is shown under it) and **Outdoor** (the outdoor temperature).
 - **Rooms**: per room its thermostat, a 24-hour graph, its sensors, windows and
   people, and what it learned for that room.
 - **Week program**: the visual week planner for all rooms.
@@ -149,8 +149,9 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
   1. **What the E32 knows**: a ring with how much of your house the E32
      knows ("The E32 knows your house: 62 %") and, in words, what it still
      has to learn.
-  2. **Your boiler**: one sentence on how your boiler holds its temperature
-     and how long it rests, and what the E32 asks because of it.
+  2. **Your boiler**: one sentence on what the E32 learned from your boiler:
+     how it holds its temperature, how long it rests and what the E32 asks
+     because of it, or that the E32 is still listening.
   3. **Water temperature by outdoor temperature**: the chart with the
      standard line (dashed), the line learned for your house (solid), the
      point of now and the water temperature in hard frost.
@@ -160,7 +161,8 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
      heating and the degree-days. Under them come the rest of yesterday and
      the missed comfort of the last days.
   5. **Noticed**: yesterday compared with your own usual days, one sentence
-     for each thing that stood out, with what can cause it.
+     for each thing that stood out, with what can cause it. It is
+     information and changes nothing.
   6. **Free heat**: per room the warmth it gets from sun, cooking and people
      without the boiler, once the E32 has seen it often enough, and what
      Smart warm-up does with it.
@@ -1155,8 +1157,9 @@ the boiler is still listening but the heat per °C is already known, the sentenc
 says that figure instead: "Your boiler has not held a water temperature by
 itself yet; every degree the water is warmer than the rooms gives your house
 about 0.3 kW. The E32 keeps listening."
-Home Assistant shows the same sentence on the **Learning and settings** tab and
-has the sensor **Boiler response** on the E32 device. Its state is:
+Home Assistant shows the same sentence under **Your boiler** on the **Learning
+and settings** tab and has the sensor **Boiler response** on the E32 device. Its
+state is:
 
 | State | Meaning |
 | --- | --- |
@@ -1218,8 +1221,8 @@ Repair, and you do not need to do anything.
 On the E32 you find the sentences on the **Home** page under **What the
 thermostat has learned**, under **Yesterday compared with usual**. In Home
 Assistant each one is a notification (dismiss it and it stays dismissed until
-the sentence changes) and the list **Yesterday compared with usual** is on the
-**Learning and settings** tab.
+the sentence changes) and the section **Noticed** on the **Learning and
+settings** tab lists them.
 
 ### Free heat from sun, cooking and people
 
@@ -1244,8 +1247,9 @@ The room's learned details say it in words, for example "In the afternoon this
 room warms up by itself, about 0.4 °C per hour (sun, cooking or people)" and,
 when it changes a start, "Smart warm-up now starts 20 min later for it, so it
 does not heat what comes for free." The E32 **Home** page always shows them,
-under **What the thermostat has learned**. Home Assistant's learned overview
-shows them when the E32's report for that room has room for them.
+under **What the thermostat has learned**. Home Assistant shows them under
+**Free heat** on the **Learning and settings** tab, when the E32's report for
+that room has room for them.
 
 ### The heating-curve chart
 

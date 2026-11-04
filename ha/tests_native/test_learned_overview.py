@@ -183,7 +183,7 @@ def test_the_learning_view_sums_it_up_and_shows_the_house_and_its_changes():
     assert "room.lines" not in summary["cards"][1]["content"]  # the lines are in the rooms
     assert "'explanation'" in summary["cards"][1]["content"] and "<details>" in summary["cards"][1]["content"]
     assert "'house'" in house["cards"][1]["content"] and "'changes'" in changes["cards"][1]["content"]
-    assert "Home → Comfort and boiler care" in changes["cards"][2]["content"]
+    assert "Configure → House → Comfort and boiler care" in changes["cards"][2]["content"]  # the rc4 menu path
     assert all(s["visibility"] == shown for s in (summary, house, changes))
     assert dashboard._learned_sections(dashboard.TEXT["nl"], None) == []
     assert dashboard._learned_sections(dashboard.TEXT["nl"], "sensor.x")[0]["cards"][0]["heading"] == "Wat de thermostaat heeft geleerd"

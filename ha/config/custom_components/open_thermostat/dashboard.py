@@ -214,7 +214,7 @@ TEXT = {
         "advice_note": "Advice only: nothing is changed automatically.",
         "learned": "What the thermostat has learned", "learned_house": "House and boiler",
         "learned_changes": "What it changed by itself",
-        "learned_note": "The thermostat adjusts these settings itself; to change one: Configure → Home → Comfort and boiler care "
+        "learned_note": "The thermostat adjusts these settings itself; to change one: Configure → House → Comfort and boiler care "
                         "(or the E32 page, Home).",
         "confidence_low": "low", "confidence_medium": "medium", "confidence_high": "high",
         "gas_heating": "Heating", "gas_hot_water": "Hot water", "gas_keep_warm": "Of which keeping hot water warm",

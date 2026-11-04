@@ -16,6 +16,7 @@ using heating::control::FlowLearner;
 using heating::control::FlowPolicy;
 using heating::control::FlowSettings;
 using heating::control::FlowSettingsRc2;
+using heating::control::FreeHeat;
 using heating::control::readFlowRecordRc2;
 using heating::control::RoomDemand;
 using heating::control::RoomPlan;
@@ -587,6 +588,48 @@ TEST(FlowPolicy, ALateMorningStartsTheNextOneEarlier) {
     EXPECT_EQ(at(at(r0, "arrival"), "events")->valueint, 1);
     EXPECT_TRUE(cJSON_IsTrue(at(at(r0, "optimum_start"), "estimate")));
     EXPECT_EQ(at(at(r0, "optimum_start"), "lead_minutes")->valueint, 135);
+}
+
+// rc.5 (P3): one morning of free heat for the policy's FreeHeat: the floor's heat ends at 02:00 and
+// the room rises `kPerH` without it until 07:00, so 04:00-07:00 is one judged window of the 4-8 daypart.
+void freeMorning(FreeHeat& f, uint64_t& now, int64_t midnight, double kPerH) {
+    const auto step = [&](int64_t u, double c, bool heat) {
+        now += 10 * second;
+        const FreeHeat::RoomSample s{int16_t(std::lround(c * 10) * 10), heat};
+        f.sample(now, u, int16_t(500), &s, 1);
+    };
+    for (int64_t u = midnight; u < midnight + 2 * 3600; u += 10) step(u, 20.0, true);
+    for (int64_t u = midnight + 2 * 3600; u < midnight + 7 * 3600; u += 10) step(u, 20.0 + kPerH * double(u - midnight - 2 * 3600) / 3600, false);
+    step(midnight + 7 * 3600, 21.0, true);
+}
+// rc.5 (P3): a room that warms by itself in the morning (5 judged windows of 4-8) starts Smart warm-up
+// later: lead x (1 - free / warm), never below half; with 4 windows the default lead stays.
+TEST(FlowPolicy, FreeHeatStartsTheWarmUpLaterNeverBelowHalf) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    RoomSchedule mild;                                         // 06:30 -> 21 degC, 22:30 -> 20 degC: 1 degC, 2 h by default
+    for (auto& d : mild.days) { d.points[0] = {390, 2100}; d.points[1] = {1350, 2000}; d.count = 2; }
+    const int64_t thursday = wednesday23 + 3600, monday = thursday + 4 * 86400; // local midnights, after the DST change
+    const int64_t rise = monday + 6 * 3600 + 1800;
+    const auto startOf = [&](int windows, double kPerH) {
+        Step s; s.p = plan(RoomPlan::Emitter::floor); s.p.rooms[0].schedule = mild; s.learner.setPlan(s.p); s.policy.setPlan(s.p);
+        FlowSettings on = Step::off(); on.applyLearned = true; s.policy.setSettings(on);
+        uint64_t now = 0;
+        for (int d = 0; d < windows; ++d) freeMorning(s.policy.freeHeat(), now, thursday + (d - 1) * 86400, kPerH);
+        EXPECT_EQ(s.policy.freeHeat().count(0, 5), windows);
+        int64_t startedAt = 0;
+        for (int64_t t = monday + 3 * 3600; t < rise && !startedAt; t += 60) {
+            s.rooms[0] = room(2000, 2000); s.in.now += minute; s.in.utc = t; s.in.rule = idle;
+            if (s.policy.apply(s.in, s.learner).heat) startedAt = t;
+        }
+        return std::pair<int64_t, uint16_t>{startedAt, s.policy.freeHeat().appliedMin(0)};
+    };
+    EXPECT_EQ(startOf(0, 0).first, rise - 7200) << "no free heat: the default 2 h";
+    EXPECT_EQ(startOf(4, 0.2).first, rise - 7200) << "4 windows: not yet";
+    const auto [start, applied] = startOf(5, 0.2);
+    EXPECT_EQ(start, rise - 4320) << "the warm-up (05:30) lies in 4-8: 1 - 0.2 / 0.5 of 2 h";
+    EXPECT_EQ(applied, 48);
+    EXPECT_EQ(startOf(5, 0.6).first, rise - 3600) << "1 - 1.2: never below half the lead";
+    EXPECT_EQ(startOf(5, -0.1).first, rise - 7200) << "a room that cools by itself keeps its lead";
 }
 
 TEST(FlowCompare, MeansAtTheSameMomentsPerDay) {

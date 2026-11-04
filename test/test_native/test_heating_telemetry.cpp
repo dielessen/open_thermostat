@@ -107,6 +107,30 @@ void train(FlowLearner& learner, size_t rooms) {
 const int64_t wednesday23 = int64_t(ShadowComparison::daysFromCivil(2026, 10, 28)) * 86400 + 22 * 3600;
 constexpr uint64_t statusNow = 600 * minute;
 
+// rc.5 (P3): the widest "free_heat" for every room (test_free_heat.cpp): all six dayparts with a
+// rate of three characters and 99 windows, and a start moved by 240 min. A sawtooth of 40 min from
+// local midnight on (each tooth a window of 39:50 within its daypart, six a daypart), 18 days long.
+FreeHeat widestFreeHeat(const RoomPlan& plan) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    FreeHeat f; f.setPlan(plan);
+    const int64_t day0 = int64_t(ShadowComparison::daysFromCivil(2026, 10, 29)) * 86400 - 3600; // Thu 29 Oct 00:00 CET
+    std::vector<FreeHeat::RoomSample> s(plan.rooms.size());
+    uint64_t now = 0;
+    for (int64_t u = day0; u < day0 + 18 * 86400; u += 10) {
+        now += 10 * second;
+        const double hours = double((u - day0) % 2400) / 3600;
+        for (auto& r : s) r = {int16_t(std::lround((20.0 + 1.3 * hours) * 10) * 10), false};
+        f.sample(now, u, int16_t(500), s.data(), s.size());
+    }
+    for (size_t i = 0; i < plan.rooms.size(); ++i) {
+        WarmupPlanner::Start st;
+        st.reason = "planned"; st.rise.atUtc = day0 + 19 * 86400 + 16 * 3600; st.rise.toCentiC = 2400;
+        st.startTemperatureCentiC = 2000; st.leadS = WarmupPlanner::maxLeadS; st.reachable = true;
+        f.shorten(i, st.rise.atUtc - WarmupPlanner::maxLeadS, st);
+    }
+    return f;
+}
+
 struct Bench {
     RoomPlan plan;
     FlowLearner learner;
@@ -532,7 +556,65 @@ TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder1000Bytes) {
         }
         std::printf("[ heating telemetry ] per-room %s largest %zu B\n", worst ? "worst-case" : "realistic", largest);
         EXPECT_TRUE(learnedRoomTelemetry(b.learner, b.plan, 8, b.context).empty());
+        // rc.5 (P3): with the widest free heat in every room, "free_heat" (88 B and its comma) goes in
+        // "learned" while the payload keeps its 1000 B with a 32-character id (the soak's rule), and stays
+        // out of a payload it would push over (/status/heating always has it).
+        const auto free = widestFreeHeat(b.plan);
+        b.context.freeHeat = &free;
+        size_t carried = 0, widest = 0;
+        for (size_t i = 0; i < b.plan.rooms.size(); ++i) {
+            const auto payload = learnedRoomTelemetry(b.learner, b.plan, i, b.context);
+            ASSERT_FALSE(payload.empty());
+            const size_t pad = 32 - std::min<size_t>(32, b.plan.rooms[i].id.size());
+            EXPECT_LE(payload.size() + pad, learnedRoomBytes) << i;
+            widest = std::max(widest, payload.size() + pad);
+            Json alone(cJSON_CreateObject(), cJSON_Delete);
+            ASSERT_TRUE(free.addJson(alone.get(), i));
+            const size_t member = print(alone.get()).size() - 2 + 1;
+            EXPECT_EQ(member, 89u);
+            Json j(cJSON_Parse(payload.c_str()), cJSON_Delete);
+            ASSERT_TRUE(j);
+            const cJSON* fh = cJSON_GetObjectItem(cJSON_GetObjectItem(j.get(), "learned"), "free_heat");
+            if (fh) {
+                ++carried;
+                EXPECT_TRUE(cJSON_IsObject(fh));
+                EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(fh, "rate")), 6);
+                EXPECT_EQ(cJSON_GetObjectItem(fh, "applied_min")->valueint, 240);
+            } else EXPECT_GT(payload.size() + member + pad, learnedRoomBytes) << i << ": left out only when it does not fit";
+        }
+        std::printf("[ heating telemetry ] per-room %s with free heat: carried in %zu of 8, widest %zu B with a 32-character id\n",
+                    worst ? "worst-case" : "realistic", carried, widest);
+        b.context.freeHeat = nullptr;
     }
+}
+
+// rc.5 (P3): the page (/status/heating "learned") has every room's "free_heat", an object once a
+// window was judged and null before; without the free heat in the context the document is as before.
+TEST(HeatingTelemetry, FreeHeatIsOnThePageForEveryRoom) {
+    Bench b(false, true, true);
+    const auto before = print(Json(learnedJson(b.learner, b.plan, b.context), cJSON_Delete).get());
+    EXPECT_EQ(before.find("free_heat"), std::string::npos);
+    const auto free = widestFreeHeat(b.plan);
+    b.context.freeHeat = &free;
+    Json learned(learnedJson(b.learner, b.plan, b.context), cJSON_Delete);
+    ASSERT_TRUE(learned);
+    const cJSON* rooms = cJSON_GetObjectItem(learned.get(), "rooms");
+    ASSERT_EQ(cJSON_GetArraySize(rooms), 8);
+    for (const cJSON* r = rooms->child; r; r = r->next) {
+        const cJSON* fh = cJSON_GetObjectItem(r, "free_heat");
+        ASSERT_TRUE(cJSON_IsObject(fh));
+        EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(fh, "n")), 6);
+        EXPECT_EQ(cJSON_GetArrayItem(cJSON_GetObjectItem(fh, "n"), 0)->valueint, 99);
+    }
+    FreeHeat none; none.setPlan(b.plan);
+    b.context.freeHeat = &none;
+    Json empty(learnedJson(b.learner, b.plan, b.context), cJSON_Delete);
+    for (const cJSON* r = cJSON_GetObjectItem(empty.get(), "rooms")->child; r; r = r->next) EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(r, "free_heat")));
+    // The per-room message without a judged window carries "free_heat":null where it fits.
+    const auto payload = learnedRoomTelemetry(b.learner, b.plan, 0, b.context);
+    Json j(cJSON_Parse(payload.c_str()), cJSON_Delete);
+    ASSERT_TRUE(j);
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(cJSON_GetObjectItem(j.get(), "learned"), "free_heat")));
 }
 
 TEST(HeatingTelemetry, WithoutClockPlansAreNullAndTheShapeStays) {

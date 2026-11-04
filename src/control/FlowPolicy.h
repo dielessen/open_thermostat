@@ -3,6 +3,7 @@
 #include "control/ControlTuning.h"
 #include "control/FlowDemand.h"
 #include "control/FlowLearner.h"
+#include "control/FreeHeat.h" // rc.5 (P3)
 #include "control/RoomDemand.h"
 #include "control/RoomPlan.h"
 #include "control/WarmupPlanner.h"
@@ -329,12 +330,16 @@ public:
     // A plan edit (rc.4, R1-04): what was keyed by room index restarts or is re-keyed by id.
     void setPlan(const RoomPlan& plan) {
         arrival_.setPlan(plan);
+        freeHeat_.setPlan(plan); // rc.5 (P3): the free heat per room id
         starts_ = {}; heating_ = {}; start_ = {}; startHeating_ = false; startEnded_ = false; startMinute_ = -1;
         lead_ = -1; copyId(leadId_, ""); copyId(startId_, "");
         curveLearner_.interrupt();
     }
     const ArrivalLearner& arrival() const { return arrival_; }
     ArrivalLearner& arrival() { return arrival_; }
+    // rc.5 (P3): sampled by HeatingController every step, applied in optimumStart(), kept by LearnedState.
+    const FreeHeat& freeHeat() const { return freeHeat_; }
+    FreeHeat& freeHeat() { return freeHeat_; }
     const FlowSettings& settings() const { return settings_; }
     const FlowDemand::Request& request() const { return applied_; }
     Source source() const { return source_; }
@@ -487,7 +492,9 @@ private:
                     continue;
                 }
                 const auto& r = in.rooms[i];
-                const auto s = WarmupPlanner::optimumStart(learner, i, plan.rooms[i].schedule, *in.utc, r.temperature, in.outdoorCentiC, arrival_.lead(i));
+                auto s = WarmupPlanner::optimumStart(learner, i, plan.rooms[i].schedule, *in.utc, r.temperature, in.outdoorCentiC, arrival_.lead(i));
+                // rc.5 (P3): free heat in the warm-up's daypart starts it later (5 judged windows, never below half the lead).
+                freeHeat_.shorten(i, *in.utc, s, !latched);
                 std::optional<ArrivalLearner::Rise> rise;
                 if (s.reason[0] == 'p') rise = ArrivalLearner::Rise{s.rise.atUtc, s.startUtc, s.rise.toCentiC};
                 arrival_.observe(i, *in.utc, rise, heating_[i], fresh(r) ? r.temperature : std::nullopt);
@@ -601,6 +608,7 @@ private:
     int64_t startMinute_ = -1;
     uint64_t startedAt_ = 0, endedAt_ = 0;
     ArrivalLearner arrival_;                           // rc.4 (L2), kept by LearnedState
+    FreeHeat freeHeat_;                                // rc.5 (P3), kept by LearnedState
     CurveLearner curveLearner_;
     FlowCompare compare_;
     NightLedger nights_;

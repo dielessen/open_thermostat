@@ -1064,6 +1064,7 @@ private:
         context.temperatures = temperatures.data();
         context.outdoorCentiC = outdoor.centiC; context.outdoorSource = outdoor.source; context.now = now;
         context.arrival = &flowPolicy_.arrival(); // rc.4 (L2)
+        context.freeHeat = &flowPolicy_.freeHeat(); // rc.5 (P3)
         return context;
     }
     // Every 10 s: feed the Bluetooth sources, then compute the (shadow) request.
@@ -1186,6 +1187,13 @@ private:
             rooms[i] = {fresh.temperature, roomEngine_.result(i).setpoint, fresh.source};
         }
         flowLearner_.sample(now, boiler, rooms.data(), count);
+        // rc.5 (P3): free heat (control/FreeHeat.h) per plan room: its fresh reading and whether heat reached
+        // it (the burner on for heating or the heating reference asking heat; hot water heats no room).
+        std::array<control::FreeHeat::RoomSample, control::RoomPlan::maxRooms> free{};
+        const bool heat = control::FreeHeat::heatDelivered(ems.burnerOn, ems.hotWater, boiler.requestedFlowC);
+        for (size_t i = 0; i < count; ++i) free[i] = {rooms[i].temperatureCentiC, heat};
+        flowPolicy_.freeHeat().sample(now, networkTimeTrusted ? std::optional<int64_t>(std::time(nullptr)) : std::nullopt,
+                                      boiler.outdoorCentiC, free.data(), count);
     }
     void loadFlowSettings() {
         const bool restored = AutoTunerNvs::read(autoTuner_);

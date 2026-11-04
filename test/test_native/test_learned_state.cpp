@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
+#include <cstring>
 #include <initializer_list>
 #include <map>
 #include <tuple>
@@ -1068,4 +1069,87 @@ TEST(LearnedState, TheArrivalFactorsTravelInTheBundleAndComeBackById) {
     FlowPolicy none; none.setPlan(plan2({"woonkamer"}));
     EXPECT_EQ(LearnedState::arrivalFrame(none), "");
     EXPECT_EQ(LearnedState::bundle(l, none, 4096), g);
+}
+
+// rc.5 (P3): the free heat travels as frame 'F' version 1 after the rooms, in the bundle and in the
+// packed record, and comes back by room id. A damaged frame (or a payload that is not one) makes a
+// bundle invalid and is skipped by the store; firmware before rc.5 reads an unknown kind as a room
+// frame, refuses it and skips it.
+TEST(LearnedState, TheFreeHeatTravelsAsItsOwnFrame) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    using heating::control::FreeHeat;
+    const auto plan2 = [](std::initializer_list<const char*> ids) {
+        RoomPlan p;
+        for (const char* id : ids) { RoomPlan::Room r; r.id = r.name = id; r.state = RoomDemand::State::active; r.emitter = RoomPlan::Emitter::radiator; p.rooms.push_back(r); }
+        return p;
+    };
+    FlowLearner l; l.setPlan(plan2({"woonkamer", "keuken"}));
+    FlowPolicy p; p.setPlan(plan2({"woonkamer", "keuken"}));
+    EXPECT_EQ(LearnedState::freeHeatFrame(p), "") << "nothing judged: no frame";
+    // Five afternoons without heat from 12:00 to 15:00: the kitchen warms 0.4 degC/h, the living room stays.
+    const int64_t thursday = wednesday23 + 3600;
+    uint64_t now = 0;
+    for (int d = 0; d < 5; ++d) {
+        const int64_t noon = thursday + d * 86400 + 12 * 3600;
+        for (int64_t u = noon - 3600; u <= noon + 3 * 3600; u += 10) {
+            const bool heat = u < noon || u == noon + 3 * 3600;
+            const std::array<FreeHeat::RoomSample, 2> s{{{int16_t(2000), heat}, {int16_t(std::lround((20 + 0.4 * double(u - noon) / 3600) * 10) * 10), heat}}};
+            now += 10 * second;
+            p.freeHeat().sample(now, u, int16_t(500), s.data(), s.size());
+        }
+    }
+    ASSERT_TRUE(p.freeHeat().rateKPerH(1, 13));
+    const float rate = *p.freeHeat().rateKPerH(1, 13);
+    EXPECT_NEAR(rate, 0.4f, 0.01f);
+    const auto f = LearnedState::freeHeatFrame(p);
+    ASSERT_EQ(f.size(), 8 + p.freeHeat().stored().size());
+    EXPECT_EQ(f[0], char(LearnedState::freeHeatVersion)); EXPECT_EQ(f[1], LearnedState::freeHeatKind);
+    const auto all = LearnedState::bundle(l, p, 4096);
+    EXPECT_EQ(all.substr(all.size() - f.size()), f) << "after the rooms";
+    EXPECT_TRUE(LearnedState::validBundle(all));
+    FlowLearner m; m.setPlan(plan2({"keuken", "woonkamer"}));
+    FlowPolicy q; q.setPlan(plan2({"keuken", "woonkamer"}));
+    EXPECT_EQ(LearnedState::restoreBundle(all, m, q), 0) << "no room frames";
+    EXPECT_NEAR(*q.freeHeat().rateKPerH(0, 13), rate, 0.001f);
+    EXPECT_EQ(q.freeHeat().count(1, 13), 5) << "the living room: five flat afternoons";
+    EXPECT_FLOAT_EQ(*q.freeHeat().rateKPerH(1, 13), 0.0f);
+    // A damaged frame: the bundle is invalid; the store path skips just that frame.
+    auto bad = all; bad[all.size() - f.size() + 6] = char(bad[all.size() - f.size() + 6] ^ 0x55);
+    EXPECT_FALSE(LearnedState::validBundle(bad));
+    FlowPolicy r; r.setPlan(plan2({"keuken"}));
+    uint32_t done = 0; bool global = false;
+    LearnedState::restoreFrames(bad, m, r, done, global);
+    EXPECT_TRUE(global); EXPECT_FALSE(r.freeHeat().rateKPerH(0, 13));
+    // Firmware before rc.5 tries an unknown kind as a room frame: refused, so skipped.
+    EXPECT_FALSE(LearnedState::restoreRoom(f, m, done));
+    // A sound frame of another version, or around a payload that is not one: ignored whole.
+    const auto seal = [](std::string frame) {
+        const uint32_t c = LearnedState::crc(frame.data(), frame.size() - 4);
+        std::memcpy(&frame[frame.size() - 4], &c, 4);
+        return frame;
+    };
+    auto v2 = f; v2[0] = 2; v2 = seal(v2);
+    const std::string payload = std::string("\x01\x06keuken") + char(8) + std::string("\x00\x90\x01", 3); // n 0
+    const auto wrong = seal(std::string("\x01" "F") + char(payload.size()) + '\0' + payload + std::string(4, '\0'));
+    for (const auto& frame : {v2, wrong}) {
+        EXPECT_FALSE(LearnedState::validBundle(LearnedState::globalFrame(l, p) + frame));
+        FlowPolicy s; s.setPlan(plan2({"keuken"}));
+        uint32_t d = 0; bool gl = false;
+        LearnedState::restoreFrames(frame, m, s, d, gl);
+        EXPECT_FALSE(s.freeHeat().rateKPerH(0, 13));
+        EXPECT_EQ(s.freeHeat().count(0, 13), 0);
+    }
+    // The packed record: the frame after the rooms, back after a restart.
+    Backend nvs;
+    LearnedStore store;
+    ASSERT_TRUE(store.save(nvs, l, p, 0));
+    ASSERT_GE(nvs.slots[0].size(), f.size());
+    EXPECT_EQ(nvs.slots[0].substr(nvs.slots[0].size() - f.size()), f);
+    FlowLearner l2; l2.setPlan(plan2({"woonkamer", "keuken"}));
+    FlowPolicy p2; p2.setPlan(plan2({"woonkamer", "keuken"}));
+    LearnedStore again;
+    again.restore(nvs, l2, p2, 0);
+    ASSERT_TRUE(p2.freeHeat().rateKPerH(1, 13));
+    EXPECT_NEAR(*p2.freeHeat().rateKPerH(1, 13), rate, 0.001f);
+    EXPECT_LE(LearnedState::freeHeatFrame(p).size(), 360u);
 }

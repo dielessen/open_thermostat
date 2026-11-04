@@ -135,7 +135,10 @@ class OpenThermostatBoilerNow extends HTMLElement {
    starts_today: id(config?.starts_today), cycling: id(config?.cycling), request: id(config?.request), ceiling: id(config?.ceiling)};
   if (!['activity', 'heating', 'hot_water', 'code', 'flow', 'return', 'modulation', 'starts'].some(key => c[key]))
    throw new Error('This card needs a boiler sensor of OpenThermostat (activity, heating, hot_water, code, flow, return, modulation or starts: sensor.…); the OpenThermostat dashboard adds it for you.');
-  this._config = c; this._key = null; this._today = null; this._fetched = {day: null, at: 0};
+  // A new config (the card editor sets it again while the card is on the page): an answer still on its way for the
+  // old one is dropped, and the timer follows whether there are today's starts to read.
+  this._config = c; this._key = null; this._today = null; this._fetched = {day: null, at: 0}; this._gen++; this._pending = 0;
+  this.arm();
   if (this._hass) { this.refresh(); this.render(); }
  }
  set hass(hass) {
@@ -148,14 +151,19 @@ class OpenThermostatBoilerNow extends HTMLElement {
   this._key = key; this.render();
  }
  connectedCallback() {
-  // Once a minute: today's starts are asked again when due (Home Assistant only).
-  if (!this._timer && this._config?.starts_today) this._timer = setInterval(() => this.refresh(), TICK_MS);
+  this.arm();
   if (this._hass && this._config) this.refresh();
  }
  disconnectedCallback() {
   clearInterval(this._timer); this._timer = null;
   this._gen++;  // what is still on its way is dropped when it comes
   this._pending = 0;
+ }
+ // Once a minute, while on the page and with today's starts to show: they are asked again when due (Home Assistant only).
+ arm() {
+  const wanted = this.isConnected && !!this._config?.starts_today;
+  if (wanted && !this._timer) this._timer = setInterval(() => this.refresh(), TICK_MS);
+  else if (!wanted && this._timer) { clearInterval(this._timer); this._timer = null; }
  }
  getCardSize() { return 4; }
  getGridOptions() { return {columns: 12, min_columns: 12}; }

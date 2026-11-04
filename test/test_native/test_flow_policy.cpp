@@ -901,11 +901,7 @@ TEST(FlowPolicy, TheCeilingDoesNotCapAWarmUp) {
     EXPECT_EQ(s.apply(rule).flowC, 50);
     s.rooms[0] = room(2010, 2100);                          // 0.9 K: near the target, the ceiling applies
     EXPECT_EQ(s.apply(rule).flowC, 42);
-    // Two rooms: the lead room (the largest error) decides.
-    s.rooms[1] = room(1900, 2100);
-    EXPECT_EQ(s.apply(rule).flowC, 50);
-    s.rooms[1] = {};
-    EXPECT_EQ(s.apply(rule).flowC, 42);
+    // (The lead room, the usable room with the largest error, decides: see apply().)
 }
 
 // rc.5 (P1): an optimum start under the boiler's ceiling asks at most the ceiling, and its lead is

@@ -642,10 +642,10 @@ learns your house's own from steady heating periods of three hours. The
 learned overview in Home Assistant says which it uses ("Weather compensation:
 standard for now, learning from your house (2 of 6 steady periods)" or
 "Weather compensation: learned for your house"); the E32 Home page says the
-same. Without an outdoor
-temperature (from the boiler or Home Assistant) the water temperature follows
-the rooms only, and the status says so. The coolest water per room is used
-once learned ("Coolest water: still learning from each warm-up" until then).
+same. Without an outdoor temperature (from the boiler or Home Assistant) the
+water temperature follows the rooms only, and the status says so. The coolest
+water per room is used once learned ("Coolest water: still learning from each
+warm-up" until then).
 
 **Water temperature in hard frost (−10 °C)** says how warm the water to your
 heating gets when it is −10 °C outside. In milder weather the E32 picks less.
@@ -658,11 +658,12 @@ selection on the E32 device, and on the E32's Home page under Heating settings
 Both are on for every installation. An installation that had the former
 option "Warm on time with the coolest water" or weather compensation (then the
 heating curve) off (their default) has them on after the update; what you
-switch off yourself stays off. Switch them off under E32 **Home → Heating settings → Advanced**, under
-**Configure → Heating and boiler** in Home Assistant (**Smart warm-up** and
-**Weather compensation**), or with the switches on the E32 device. Without Smart warm-up heating starts at the
-program time: it may be cooler for a while after each program time, and floor
-heating can take an hour or more.
+switch off yourself stays off. Switch them off under E32 **Home → Heating
+settings → Advanced**, under **Configure → Heating and boiler** in Home
+Assistant (**Smart warm-up** and **Weather compensation**), or with the
+switches on the E32 device. Without Smart warm-up heating starts at the program
+time: it may be cooler for a while after each program time, and floor heating
+can take an hour or more.
 
 ### Energy inputs and heating advice
 

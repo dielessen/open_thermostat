@@ -116,7 +116,8 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
     warm 4 minutes early"). Under it one line on Weather compensation: what
     it asks of the water temperature at today's outdoor temperature, and
     which line it follows: the standard line, one estimated from your house,
-    or the line learned for your house.
+    or the line learned for your house. Until the line is learned, the line
+    says after how many steady periods it follows.
   - **House**: **Home or away** (the house mode; tap it to change it),
     **Holiday** (**Plan** opens the integration's page, where you plan one
     under Configure → House → House mode and holiday; the next planned
@@ -127,7 +128,7 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
 - **Boiler**, in the order you need it. It opens with the **Now** card: a band
   in the colour of what the boiler does, in white letters (orange for heating,
   blue for hot water, grey for resting; red for a fault, with what to do). The
-  band says it in words, with the display code ("Code -H: Heating"), and on its
+  band says it in words, with the display code ("Code -H: heating"), and on its
   right it shows the connection with the boiler and whether the boiler serves
   hot water. Under the band are four large figures: **Water to heating** (what
   the E32 asks, and the most it asks near the target), **Water back** (with the

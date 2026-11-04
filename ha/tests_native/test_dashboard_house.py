@@ -19,7 +19,7 @@ from homeassistant.helpers import device_registry as dr, entity_registry as er
 from custom_components.open_thermostat import week_planner
 from custom_components.open_thermostat.dashboard import ROOM_STATUS_CARD_TYPE, TEXT, RoomDashboard, view_cards
 from custom_components.open_thermostat.heating_link import HeatingHub
-from custom_components.open_thermostat.room_overview import HOUSE_CARD_TYPE, HOUSE_CARD_URL
+from custom_components.open_thermostat.room_overview import HOUSE_CARD_TYPE, HOUSE_CARD_URL, YESTERDAY_CARD_TYPE
 from test_dashboard_heating import STATUS, installation, walk
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -253,6 +253,10 @@ def test_the_card_module_is_served_with_the_others_and_carries_the_version():
         ROOT / "scripts/final_check.sh").read_text(encoding="utf-8")
     assert "ensureDefined('openthermostat-house', OpenThermostatHouse);" in CARD
     assert "getGridOptions() { return {columns: 12, min_columns: 12}; }" in CARD and "getCardSize() { return 5; }" in CARD
+    # The Learning view's Yesterday figures (rc.5, P15) come from the same module: no eighth URL.
+    assert YESTERDAY_CARD_TYPE == "custom:openthermostat-yesterday"
+    assert "ensureDefined('openthermostat-yesterday', OpenThermostatYesterday);" in CARD
+    assert re.findall(r"\['(openthermostat-[\w-]+)', 'OpenThermostat", CARD) == ["openthermostat-house", "openthermostat-yesterday"]
 
 
 def test_the_card_asks_home_assistant_only_and_sparingly():
@@ -293,6 +297,15 @@ def test_the_card_texts_are_in_every_language_with_the_same_placeholders():
         "Verwarmt · water {flow} °C", "Gas vandaag", "Branderstarts vandaag", "Ketel in rust")
     assert nl["attention"].startswith("Let op: ") and nl["request"].startswith("Ketelvraag")
     assert nl["legend_keep_warm"] == "Warmhouden" and pl["legend_keep_warm"] == "Podtrzymanie"
+    # The words of the owner's sketch (rc.5 design, Main and Leren).
+    assert (nl["today_since"], nl["now"], nl["target"], nl["per_day"]) == (
+        "Vandaag sinds middernacht", "nu", "doel {t} °C", "{n} dagen: {value} per dag")
+    assert (nl["warm"], nl["early"], nl["late"], nl["degree_days"]) == (
+        "{room} warm", "{m} min te vroeg", "{m} min te laat", "Graaddagen")
+    # The Yesterday figures are labelled by their sensors' own names; the card's English last resort is the same.
+    names = dict(re.findall(r"(\w+): '([^']*)'", re.search(r"const NAMES = \{(.*?)\};", CARD, re.S)[1]))
+    sensors = json.loads((COMPONENT / "strings.json").read_text(encoding="utf-8"))["entity"]["sensor"]
+    assert names == {key: sensors[key]["name"] for key in ("burner_starts_per_heating_hour", "heating_gas_yesterday")}
     assert pl["request"].startswith("Żądanie do kotła") and pl["all_reasons"] == TEXT["pl"]["problem_more"]
     for words in (english, nl, pl):
         assert not any(term in text.lower() for text in words.values()

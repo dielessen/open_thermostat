@@ -2781,7 +2781,60 @@
         "type": "heading"
        },
        {
-        "content": "{% set shown = namespace(lines=0) %}{% set parts = [] %}{% set v = states(\"sensor.woonkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [(\"warm \" ~ (m) ~ \" min late\") if m > 0 else (\"warm \" ~ (-m) ~ \" min early\") if m < 0 else \"warm on time\"] %}{% endif %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [(\"warm \" ~ (m) ~ \" min late\") if m > 0 else (\"warm \" ~ (-m) ~ \" min early\") if m < 0 else \"warm on time\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = state_attr(\"sensor.burner_starts_per_heating_hour\", \"heating_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Heating time: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" h\"] %}{% endif %}{% set v = states(\"sensor.burner_starts_per_heating_hour\") %}{% if is_number(v) %}{% set parts = parts + [\"Burner starts per heating hour: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\")))] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Short burner runs: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" h\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.heating_gas_yesterday\") %}{% if is_number(v) %}{% set parts = parts + [\"Gas for heating (estimate): \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" kWh\"] %}{% endif %}{% set v = state_attr(\"sensor.gas_per_degree_day\", \"degree_days\") %}{% if is_number(v) %}{% set parts = parts + [\"Degree-days: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\")))] %}{% endif %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \".\"))) ~ \" kWh per degree-day\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set d = state_attr(\"sensor.daily_summary\", 'last_day') %}{% if d %}- Burner {{ d.burner_hours }} h, {{ d.burner_starts }} starts ({{ d.short_runs }} shorter than 10 minutes).{% if d.gas and d.gas.heating is not none and d.gas.hot_water is not none and not is_number(states(\"sensor.heating_gas_yesterday\")) %} Gas: heating {{ d.gas.heating ~ '' }}, hot water {{ d.gas.hot_water ~ '' }}.{% endif %}{% if d.outdoor %} Outdoor {{ d.outdoor.min }} to {{ d.outdoor.max }} °C.{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}{{ r.name }}: asked for heat {{ r.heat_hours }} h; warm after {{ r.time_to_target_minutes }} min on average; missed comfort {{ r.missed_minutes }} min.{% else %}{{ r.name }}: asked for heat {{ r.heat_hours }} h; missed comfort {{ r.missed_minutes }} min.{% endif %}\n{% endfor %}{% if not d.complete %}\n_Partial day: the E32 was not heard all day, so the figures are incomplete._{% endif %}{% elif not shown.lines %}The first full day appears here tomorrow.{% endif %}",
+        "degree_days": "sensor.gas_per_degree_day",
+        "gas": "sensor.heating_gas_yesterday",
+        "grid_options": {
+         "columns": 12
+        },
+        "room": {
+         "entity": "sensor.woonkamer_warm_on_time",
+         "name": "Woonkamer"
+        },
+        "starts": "sensor.burner_starts_per_heating_hour",
+        "type": "custom:openthermostat-yesterday",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.woonkamer_warm_on_time",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.burner_starts_per_heating_hour",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.heating_gas_yesterday",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.gas_per_degree_day",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "{% set shown = namespace(lines=0) %}{% if is_number(states(\"sensor.woonkamer_warm_on_time\")) or is_number(states(\"sensor.burner_starts_per_heating_hour\")) or is_number(states(\"sensor.heating_gas_yesterday\")) or is_number(states(\"sensor.gas_per_degree_day\")) %}{% set shown.lines = shown.lines + 1 %}{% endif %}{% set parts = [] %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [(\"warm \" ~ (m) ~ \" min late\") if m > 0 else (\"warm \" ~ (-m) ~ \" min early\") if m < 0 else \"warm on time\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" °C too warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = state_attr(\"sensor.burner_starts_per_heating_hour\", \"heating_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Heating time: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" h\"] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Short burner runs: \" ~ ((('%.1f' % (v | float)) | replace('.', \".\"))) ~ \" h\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \".\"))) ~ \" kWh per degree-day\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set d = state_attr(\"sensor.daily_summary\", 'last_day') %}{% if d %}- Burner {{ d.burner_hours }} h, {{ d.burner_starts }} starts ({{ d.short_runs }} shorter than 10 minutes).{% if d.gas and d.gas.heating is not none and d.gas.hot_water is not none and not is_number(states(\"sensor.heating_gas_yesterday\")) %} Gas: heating {{ d.gas.heating ~ '' }}, hot water {{ d.gas.hot_water ~ '' }}.{% endif %}{% if d.outdoor %} Outdoor {{ d.outdoor.min }} to {{ d.outdoor.max }} °C.{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}{{ r.name }}: asked for heat {{ r.heat_hours }} h; warm after {{ r.time_to_target_minutes }} min on average; missed comfort {{ r.missed_minutes }} min.{% else %}{{ r.name }}: asked for heat {{ r.heat_hours }} h; missed comfort {{ r.missed_minutes }} min.{% endif %}\n{% endfor %}{% if not d.complete %}\n_Partial day: the E32 was not heard all day, so the figures are incomplete._{% endif %}{% elif not shown.lines %}The first full day appears here tomorrow.{% endif %}",
+        "show_empty": false,
         "type": "markdown"
        },
        {
@@ -7019,7 +7072,60 @@
         "type": "heading"
        },
        {
-        "content": "{% set shown = namespace(lines=0) %}{% set parts = [] %}{% set v = states(\"sensor.woonkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [((m) ~ \" min te laat warm\") if m > 0 else ((-m) ~ \" min te vroeg warm\") if m < 0 else \"op tijd warm\"] %}{% endif %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [((m) ~ \" min te laat warm\") if m > 0 else ((-m) ~ \" min te vroeg warm\") if m < 0 else \"op tijd warm\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = state_attr(\"sensor.burner_starts_per_heating_hour\", \"heating_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Stooktijd: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" u\"] %}{% endif %}{% set v = states(\"sensor.burner_starts_per_heating_hour\") %}{% if is_number(v) %}{% set parts = parts + [\"Branderstarts per stookuur: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\")))] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Korte brandtijden: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" u\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.heating_gas_yesterday\") %}{% if is_number(v) %}{% set parts = parts + [\"Gas voor verwarming (schatting): \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" kWh\"] %}{% endif %}{% set v = state_attr(\"sensor.gas_per_degree_day\", \"degree_days\") %}{% if is_number(v) %}{% set parts = parts + [\"Graaddagen: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\")))] %}{% endif %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \",\"))) ~ \" kWh per graaddag\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set d = state_attr(\"sensor.daily_summary\", 'last_day') %}{% if d %}- Brander {{ d.burner_hours }} uur, {{ d.burner_starts }} starts ({{ d.short_runs }} korter dan 10 minuten).{% if d.gas and d.gas.heating is not none and d.gas.hot_water is not none and not is_number(states(\"sensor.heating_gas_yesterday\")) %} Gas: verwarmen {{ d.gas.heating ~ '' }}, warm water {{ d.gas.hot_water ~ '' }}.{% endif %}{% if d.outdoor %} Buiten {{ d.outdoor.min }} tot {{ d.outdoor.max }} °C.{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}{{ r.name }}: vroeg {{ r.heat_hours }} uur warmte; gemiddeld na {{ r.time_to_target_minutes }} min op temperatuur; gemiste comfort {{ r.missed_minutes }} min.{% else %}{{ r.name }}: vroeg {{ r.heat_hours }} uur warmte; gemiste comfort {{ r.missed_minutes }} min.{% endif %}\n{% endfor %}{% if not d.complete %}\n_Gedeeltelijke dag: de E32 was niet de hele dag te horen, dus de cijfers zijn onvolledig._{% endif %}{% elif not shown.lines %}Morgen staat hier de eerste volledige dag.{% endif %}",
+        "degree_days": "sensor.gas_per_degree_day",
+        "gas": "sensor.heating_gas_yesterday",
+        "grid_options": {
+         "columns": 12
+        },
+        "room": {
+         "entity": "sensor.woonkamer_warm_on_time",
+         "name": "Woonkamer"
+        },
+        "starts": "sensor.burner_starts_per_heating_hour",
+        "type": "custom:openthermostat-yesterday",
+        "visibility": [
+         {
+          "condition": "or",
+          "conditions": [
+           {
+            "condition": "state",
+            "entity": "sensor.woonkamer_warm_on_time",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.burner_starts_per_heating_hour",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.heating_gas_yesterday",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           },
+           {
+            "condition": "state",
+            "entity": "sensor.gas_per_degree_day",
+            "state_not": [
+             "unavailable",
+             "unknown"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "content": "{% set shown = namespace(lines=0) %}{% if is_number(states(\"sensor.woonkamer_warm_on_time\")) or is_number(states(\"sensor.burner_starts_per_heating_hour\")) or is_number(states(\"sensor.heating_gas_yesterday\")) or is_number(states(\"sensor.gas_per_degree_day\")) %}{% set shown.lines = shown.lines + 1 %}{% endif %}{% set parts = [] %}{% set v = states(\"sensor.woonkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Woonkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.badkamer_warm_on_time\") %}{% if is_number(v) %}{% set m = v | float | round(0) | int %}{% set parts = parts + [((m) ~ \" min te laat warm\") if m > 0 else ((-m) ~ \" min te vroeg warm\") if m < 0 else \"op tijd warm\"] %}{% endif %}{% set v = states(\"sensor.badkamer_overshoot\") %}{% if is_number(v) %}{% set parts = parts + [((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" °C te warm\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- **{{ \"Badkamer\" }}**: {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = state_attr(\"sensor.burner_starts_per_heating_hour\", \"heating_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Stooktijd: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" u\"] %}{% endif %}{% set v = states(\"sensor.short_cycling_hours\") %}{% if is_number(v) %}{% set parts = parts + [\"Korte brandtijden: \" ~ ((('%.1f' % (v | float)) | replace('.', \",\"))) ~ \" u\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set parts = [] %}{% set v = states(\"sensor.gas_per_degree_day\") %}{% if is_number(v) %}{% set parts = parts + [((('%.2f' % (v | float)) | replace('.', \",\"))) ~ \" kWh per graaddag\"] %}{% endif %}{% if parts %}{% set shown.lines = shown.lines + 1 %}- {{ parts | join(' · ') }}\n{% endif %}{% set d = state_attr(\"sensor.daily_summary\", 'last_day') %}{% if d %}- Brander {{ d.burner_hours }} uur, {{ d.burner_starts }} starts ({{ d.short_runs }} korter dan 10 minuten).{% if d.gas and d.gas.heating is not none and d.gas.hot_water is not none and not is_number(states(\"sensor.heating_gas_yesterday\")) %} Gas: verwarmen {{ d.gas.heating ~ '' }}, warm water {{ d.gas.hot_water ~ '' }}.{% endif %}{% if d.outdoor %} Buiten {{ d.outdoor.min }} tot {{ d.outdoor.max }} °C.{% endif %}\n{% for r in d.rooms %}- {% if r.time_to_target_minutes is not none %}{{ r.name }}: vroeg {{ r.heat_hours }} uur warmte; gemiddeld na {{ r.time_to_target_minutes }} min op temperatuur; gemiste comfort {{ r.missed_minutes }} min.{% else %}{{ r.name }}: vroeg {{ r.heat_hours }} uur warmte; gemiste comfort {{ r.missed_minutes }} min.{% endif %}\n{% endfor %}{% if not d.complete %}\n_Gedeeltelijke dag: de E32 was niet de hele dag te horen, dus de cijfers zijn onvolledig._{% endif %}{% elif not shown.lines %}Morgen staat hier de eerste volledige dag.{% endif %}",
+        "show_empty": false,
         "type": "markdown"
        },
        {

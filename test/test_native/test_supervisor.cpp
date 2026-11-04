@@ -27,12 +27,17 @@ TEST(SupervisorPolicy, HealthyDeviceIsNeverRestarted) {
     EXPECT_EQ(SupervisorPolicy::decide(healthy(100 * minute)), Reason::none);
 }
 TEST(SupervisorPolicy, LoopStallRestartsButNeverDuringAnUpdate) {
+    // rc.4 (R2-12): after one minute (was 5): the heating step is dead while the loop hangs.
     auto in = healthy(100 * minute);
-    in.loopAt = in.now - 4 * minute;
+    in.loopAt = in.now - (minute - 1000);
     EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
+    in.loopAt = in.now - minute;
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::loopStall);
     in.loopAt = in.now - 5 * minute;
     EXPECT_EQ(SupervisorPolicy::decide(in), Reason::loopStall);
-    in.updateRunning = true;
+    in.updateRunning = true; // an upload holds the loop for minutes: only updateMaxMs bounds it
+    EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
+    in.updateSince = in.now - 19 * minute;
     EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none);
 }
 TEST(SupervisorPolicy, WifiDownAfterReconnectAttemptsRestarts) {

@@ -8,7 +8,9 @@ struct SupervisorPolicy {
     enum class Reason : uint8_t { none = 0, loopStall = 1, wifiLost = 2, brokerLost = 3, networkDead = 4,
         updateStuck = 5, bluetoothApply = 6, bluetoothSilent = 7, settingsRestore = 8,
         controlFault = 9, setupReenter = 10 }; // append only; setupReenter: the owner asked for Wi-Fi setup (planned)
-    static constexpr uint32_t loopStallMs = 300000;   // a firmware upload blocks the loop for minutes
+    // A hung loop leaves the heating step dead (rc.4, R2-12: 60 s instead of 300 s). Firmware
+    // uploads, which do hold the loop for minutes, count as updateRunning and are bounded below.
+    static constexpr uint32_t loopStallMs = 60000;
     static constexpr uint32_t wifiLostMs = 900000;    // loop already calls WiFi.reconnect() every 10 s
     static constexpr uint32_t brokerLostMs = 900000;  // link "up" but the MQTT broker unreachable
     static constexpr uint32_t networkDeadMs = 180000; // Wi-Fi "connected", no IP traffic proven

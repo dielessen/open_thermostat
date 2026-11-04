@@ -171,16 +171,16 @@ public:
         std::string out(1, '\0');
         uint8_t rooms = 0;
         for (const auto& r : rooms_) {
-            std::array<uint8_t, dayparts> order{};
-            uint8_t used = 0;
-            for (uint8_t d = 0; d < dayparts; ++d) if (r.parts[d].n) order[used++] = d;
-            if (!used || rooms == RoomPlan::maxRooms) continue;
-            const auto value = [&](uint8_t d) { const auto& p = r.parts[d]; return p.n >= p_.minCount && p.rate > 0 ? p.rate : 0.0f; };
-            std::stable_sort(order.begin(), order.begin() + used, [&](uint8_t a, uint8_t b) {
-                return value(a) != value(b) ? value(a) > value(b) : r.parts[a].n > r.parts[b].n;
-            });
+            const auto value = [&](int d) { const auto& p = r.parts[d]; return p.n >= p_.minCount && p.rate > 0 ? p.rate : 0.0f; };
             uint8_t mask = 0;
-            for (uint8_t k = 0; k < std::min<uint8_t>(used, 3); ++k) mask = uint8_t(mask | 1u << order[k]);
+            for (int k = 0; k < 3; ++k) {                       // the highest value, then the most windows, then the earliest
+                int best = -1;
+                for (int d = 0; d < int(dayparts); ++d)
+                    if (r.parts[d].n && !(mask >> d & 1)
+                        && (best < 0 || value(d) > value(best) || (value(d) == value(best) && r.parts[d].n > r.parts[best].n))) best = d;
+                if (best >= 0) mask = uint8_t(mask | 1u << best);
+            }
+            if (!mask || rooms == RoomPlan::maxRooms) continue;
             const uint8_t size = uint8_t(std::min<size_t>(r.id.size(), 32));
             out += char(size); out.append(r.id, 0, size); out += char(mask);
             for (uint8_t d = 0; d < dayparts; ++d) {
@@ -197,21 +197,17 @@ public:
     // A payload of stored(), into the plan rooms with its ids (the others keep theirs); a room in it gets
     // exactly its stored dayparts. false: not one (nothing applied). With a plan: setPlan(plan) first.
     bool restore(std::string_view payload) {
-        std::vector<Stored> in;
-        if (!read(payload, in, p_)) return false;
-        for (auto& r : rooms_)
-            for (const auto& s : in)
-                if (r.id == s.id) { r.parts = s.parts; r.w = {}; }
-        return true;
+        return read(payload, p_, [&](std::string_view id, const std::array<Part, dayparts>& parts) {
+            for (auto& r : rooms_) if (r.id == id) { r.parts = parts; r.w = {}; }
+        });
     }
     bool restore(std::string_view payload, const RoomPlan& plan) {
-        std::vector<Stored> in;
-        if (!read(payload, in, p_)) return false;
+        if (!valid(payload, p_)) return false;
         setPlan(plan);
         return restore(payload);
     }
     // A payload that restore() would take (the settings backup's check); nothing is applied.
-    static bool valid(std::string_view payload, const Params& p) { std::vector<Stored> in; return read(payload, in, p); }
+    static bool valid(std::string_view payload, const Params& p) { return read(payload, p, [](std::string_view, const std::array<Part, dayparts>&) {}); }
     static bool valid(std::string_view payload) { return valid(payload, Params()); }
 
 private:
@@ -230,7 +226,6 @@ private:
         Window w;
         uint16_t appliedMin = 0;
     };
-    struct Stored { std::string id; std::array<Part, dayparts> parts{}; };
     void finish(Room& r) {
         auto& w = r.w;
         if (!w.open) return;
@@ -243,31 +238,36 @@ private:
         part.rate = part.n ? part.rate + p_.alpha * (rate - part.rate) : rate;
         if (part.n < maxCount) ++part.n;
     }
-    static bool read(std::string_view b, std::vector<Stored>& out, const Params& p) {
-        out.clear();
-        size_t at = 0;
-        const auto byte = [&](uint8_t& v) { if (at >= b.size()) return false; v = uint8_t(b[at++]); return true; };
-        uint8_t rooms = 0;
-        if (!byte(rooms) || !rooms || rooms > RoomPlan::maxRooms) return false;
-        for (uint8_t k = 0; k < rooms; ++k) {
-            Stored s;
-            uint8_t size = 0, mask = 0;
-            if (!byte(size) || !size || size > 32 || b.size() - at < size) return false;
-            s.id.assign(b.data() + at, size); at += size;
-            if (!byte(mask) || !mask || mask >> dayparts) return false;
-            uint8_t parts = 0;
-            for (uint8_t d = 0; d < dayparts; ++d) {
-                if (!(mask >> d & 1)) continue;
-                uint8_t n = 0, lo = 0, hi = 0;
-                if (++parts > 3 || !byte(n) || !byte(lo) || !byte(hi)) return false;
-                const float rate = float(lo | uint16_t(hi) << 8) / 1000.0f;
-                if (!n || n > maxCount || rate > p.maxRateKPerH + 0.0005f) return false;
-                s.parts[d] = {rate, n};
+    // A payload of stored(), walked twice: first all of it is checked, then `apply(id, dayparts)` per
+    // room, so nothing is applied unless all of it is valid (small: no copy on the loop stack).
+    template <class Apply> static bool read(std::string_view b, const Params& p, Apply&& apply) {
+        for (int pass = 0; pass < 2; ++pass) {
+            std::array<std::string_view, RoomPlan::maxRooms> seen{};
+            size_t at = 0;
+            const auto byte = [&](uint8_t& v) { if (at >= b.size()) return false; v = uint8_t(b[at++]); return true; };
+            uint8_t rooms = 0;
+            if (!byte(rooms) || !rooms || rooms > RoomPlan::maxRooms) return false;
+            for (uint8_t k = 0; k < rooms; ++k) {
+                uint8_t size = 0, mask = 0;
+                if (!byte(size) || !size || size > 32 || b.size() - at < size) return false;
+                seen[k] = b.substr(at, size); at += size;
+                for (uint8_t o = 0; o < k; ++o) if (seen[o] == seen[k]) return false; // a room twice: not ours
+                if (!byte(mask) || !mask || mask >> dayparts) return false;
+                std::array<Part, dayparts> parts{};
+                uint8_t used = 0;
+                for (uint8_t d = 0; d < dayparts; ++d) {
+                    if (!(mask >> d & 1)) continue;
+                    uint8_t n = 0, lo = 0, hi = 0;
+                    if (++used > 3 || !byte(n) || !byte(lo) || !byte(hi)) return false;
+                    const float rate = float(lo | uint16_t(hi) << 8) / 1000.0f;
+                    if (!n || n > maxCount || rate > p.maxRateKPerH + 0.0005f) return false;
+                    parts[d] = {rate, n};
+                }
+                if (pass) apply(seen[k], parts);
             }
-            for (const auto& o : out) if (o.id == s.id) return false;  // a room twice: not ours
-            out.push_back(std::move(s));
+            if (at != b.size()) return false;
         }
-        return at == b.size();
+        return true;
     }
 
     Params p_;

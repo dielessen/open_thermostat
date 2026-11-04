@@ -1074,7 +1074,7 @@ private:
         const auto now = bleReceiptClock();
         const char* rejected = nullptr;
         if (overrides_.input(payload, roomEngine_.plan(), now, &rejected)) { // window/door contacts, presence
-            if (rejected) haInput_.reject(rejected, now);
+            if (rejected) haInput_.reject(rejected, now); else haInput_.accepted(now);
             return;
         }
         haInput_.accept(payload, now, roomEngine_, flowLearner_);

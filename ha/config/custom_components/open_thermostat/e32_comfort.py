@@ -48,6 +48,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+from functools import partial
 import json
 import time
 
@@ -1053,7 +1054,8 @@ async def async_setup_e32_climates(hass, entry, async_add_entities):
         from homeassistant.helpers.storage import Store
         memory = hass.data[PRESENCE_MEMORY] = PresenceMemory(hass, Store(hass, 1, f"{DOMAIN}.presence"))
         await memory.async_load()
-    forwarder = state["comfort_forwarder"] = ComfortForwarder(hass, entry, hub, link.send)
+    # Not watched: E32 rc.4 does not count contacts and presence in ha.input_age_s (HeatingInputWatch).
+    forwarder = state["comfort_forwarder"] = ComfortForwarder(hass, entry, hub, partial(link.send, watched=False))
     entry.async_on_unload(hub.add_listener(forwarder.hub_changed))
     entry.async_on_unload(async_track_time_interval(hass, forwarder.refresh, REFRESH))
     forwarder.reconfigure()

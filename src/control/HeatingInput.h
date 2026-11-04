@@ -103,6 +103,9 @@ public:
     }
     // Uptime ms of the last accepted message (any kind); nullopt: none this boot.
     std::optional<uint64_t> lastAcceptedMs() const { return lastAccepted_; }
+    // A message RoomOverrides took (contacts, presence): Home Assistant is there too, also when it sends only
+    // those (before rc.5 the page then said "last connected ..." although it was, P22).
+    void accepted(uint64_t now) { lastAccepted_ = now; }
     // A refused message (parse() here, RoomOverrides::input for contacts and presence), for ha.last_rejected:
     // "Home Assistant's values are refused" instead of "Home Assistant is gone" (P22). reason: a string literal.
     struct Rejection { const char* reason = nullptr; uint64_t atMs = 0; };

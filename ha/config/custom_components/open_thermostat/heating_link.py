@@ -852,7 +852,7 @@ class HeatingInputLink:
     def __init__(self, hass, entry, hub=None, clock=time.monotonic):
         self.hass, self.entry, self.hub, self.clock = hass, entry, hub, clock
         self._tasks = set()
-        self.attempted = None  # monotonic: the last value handed to MQTT (or dropped)
+        self.attempted = None  # monotonic: the last watched value handed to MQTT (or dropped)
         self.sent = None       # monotonic: the last value the broker took
         self.sent_at = None    # the same as a UTC datetime
         self.error = None      # the last failure in words, kept after a send that works (see error_at)
@@ -876,8 +876,12 @@ class HeatingInputLink:
                             "where the E32 reports", e32, own)
         return (e32 or own) + "ha/heating_input"
 
-    def send(self, payload):
-        """Send one message in the background: never raises, never blocks, also from a worker thread."""
+    def send(self, payload, watched=True):
+        """Send one message in the background: never raises, never blocks, also from a worker thread.
+
+        watched: a value the E32 counts in its ``ha.input_age_s`` (rooms and energy), so HeatingInputWatch may
+        expect it to arrive; contacts and presence pass False (E32 rc.4 does not count them).
+        """
         hass = self.hass
         if threading.get_ident() != hass.loop_thread_id:
             if not self._thread_warned:
@@ -885,13 +889,14 @@ class HeatingInputLink:
                 _LOGGER.warning("OpenThermostat: a value for the E32 came from a worker thread; "
                                 "it is sent from the event loop instead")
             try:
-                hass.loop.call_soon_threadsafe(self.send, payload)
+                hass.loop.call_soon_threadsafe(self.send, payload, watched)
             except RuntimeError:  # the event loop has stopped: Home Assistant shuts down
                 pass
             return
         if self._closed:
             return
-        self.attempted = self.clock()
+        if watched:
+            self.attempted = self.clock()
         if len(self._tasks) >= MAX_PENDING_PUBLISHES:
             self.dropped += 1
             self._failed(f"{len(self._tasks)} messages still wait for the MQTT broker", dropped=True)

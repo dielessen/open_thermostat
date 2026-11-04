@@ -72,8 +72,9 @@ inline cJSON* learnedJson(const FlowLearner& learner, const RoomPlan& plan, cons
     return root;
 }
 
-// "ha": {"input_age_s": seconds since the last accepted ha/heating_input (null:
-// none this boot), "broker_connected": bool}, for the rooms page banner. P22, only once
+// "ha": {"input_age_s": seconds since the last accepted ha/heating_input (any kind, since
+// rc.5 also contacts and presence; null: none this boot), "broker_connected": bool}, for
+// the rooms page banner. P22, only once
 // there is something to say: "last_rejected": {"reason", "age_s"} of the last refused
 // message (HeatingInputRoute::Rejection) and "resubscribed_s": seconds since the E32
 // subscribed ha/heating_input again after 15 silent minutes (HaInputSilence).

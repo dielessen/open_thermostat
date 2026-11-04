@@ -87,6 +87,8 @@ TEST(HeatingInputLink, TheRouteKeepsTheLastRefusalApartFromTheLastAcceptance) {
     route.reject("unknown_room", 5000);
     EXPECT_STREQ(route.lastRejected().reason, "unknown_room");
     EXPECT_EQ(route.lastAcceptedMs(), 4000u);
+    route.accepted(6000);  // a contact or presence report RoomOverrides took
+    EXPECT_EQ(route.lastAcceptedMs(), 6000u);
 }
 
 TEST(HeatingInputLink, ContactsAndPresenceSayWhyTheyWereRefused) {

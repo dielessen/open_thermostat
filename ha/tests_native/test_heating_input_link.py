@@ -335,6 +335,26 @@ async def test_no_repair_right_after_a_start_or_without_anything_to_send(hass, m
 
 
 @pytest.mark.asyncio
+async def test_contacts_and_presence_alone_never_raise_the_repair(hass, monkeypatch):
+    """E32 rc.4 does not count contacts and presence in ha.input_age_s: an installation that sends only those
+    (Bluetooth rooms, no energy inputs) must not look like a lost route."""
+    from homeassistant.helpers import issue_registry as ir
+    await ir.async_load(hass)
+    now = [1000.0]
+    hub, link, watch, resent, published = _watch(hass, monkeypatch, now)
+    for minute in range(0, 40):
+        now[0] = 1000.0 + 60 * minute
+        if minute % 5 == 0:
+            link.send('{"kind":"presence","home":true}', watched=False)
+            await hass.async_block_till_done()
+        _e32(hub, 60 * minute, ha_entities=[])
+        watch.check()
+    assert len(published) == 8 and link.attempted is None
+    assert resent == [] and watch.lost_since is None
+    assert ir.async_get(hass).async_get_issue(DOMAIN, "heating_input_lost_e") is None
+
+
+@pytest.mark.asyncio
 async def test_every_value_goes_where_the_e32_reports(hass, monkeypatch, caplog):
     """The comfort forwarder and the room forwarder share one route: the topic where the E32's telemetry
     arrives, also when the entry's own topic changes afterwards (one warning)."""

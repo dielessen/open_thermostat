@@ -6,12 +6,22 @@ on:
     tags: ['v*', 'ha-v*']
   pull_request:
 
+# One run per ref (R5-18): a newer push to a branch cancels the run it replaces, so a superseded push does not keep
+# burning the whole workflow. A tag run is never cancelled: it publishes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+# A pull request from a branch of this repository would run everything a second time next to the push run of the same
+# commit. Only pull requests from forks run here: reuse, gates and source-reproduction are skipped for the others, and
+# every other job needs reuse (a skipped need skips the job).
 jobs:
   # A tag push reuses the test jobs of the green branch run of the exact same
   # commit (scripts/ci_reuse.py): only the gates, the source reproduction, the
   # E32 build, packaging and publication run again. Every other run, and a tag
   # without such a branch run, runs every job.
   reuse:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -32,6 +42,7 @@ jobs:
   # Fast policy and release-metadata checks; they run on every run, also when a
   # tag reuses the tests, because publication relies on them.
   gates:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -65,6 +76,10 @@ jobs:
           python3 -m unittest discover -s scripts -p test_browser_suite.py -v
       - name: Test the switch-over monitor and the shadow exit criteria (no device)
         run: python3 -I -m unittest discover -s tools/switchover -p "test_*.py" -v
+      - name: Test the install acceptance kit and its receipts against the update gate (no device)
+        run: python3 -I -m unittest discover -s tools/acceptance -p "test_*.py" -v
+      - name: Test the repeatable release publication
+        run: python3 -m unittest discover -s scripts -p test_publish_github_release.py -v
 
   # Compiles every hand-written native harness and HA interop runner within a
   # few minutes, so a stale test stub fails here and not after the native build.
@@ -92,8 +107,15 @@ jobs:
           pio pkg install -e native
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y libmbedtls-dev
-      - name: Build every native harness (compile and link, not run)
-        run: bash test/native_harnesses.sh build
+      - name: Build and run every native harness
+        # Compiled once, in parallel, and run from those binaries: build (native) used to compile every harness
+        # again one after another (R5-19).
+        env:
+          ASAN_OPTIONS: detect_leaks=1
+          UBSAN_OPTIONS: halt_on_error=1
+        run: |
+          bash test/native_harnesses.sh build
+          HARNESS_PREBUILT=1 bash test/native_harnesses.sh run
       - name: Build the HA interop runners
         run: bash test/interop/prepare_runners.sh
 
@@ -129,7 +151,7 @@ jobs:
         run: bash test/run-browser-tests.sh --shard "${{ matrix.shard }}/4"
 
   source-reproduction:
-    if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
+    if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -219,7 +241,6 @@ jobs:
           UBSAN_OPTIONS: halt_on_error=1
         run: |
           pio test -e native --verbose
-          bash test/native_harnesses.sh run
           python3 scripts/generate_boiler_catalog.py --check
           python3 scripts/generate_display_codes.py --check
           python3 scripts/generate_ems_reference.py --check
@@ -736,22 +757,24 @@ jobs:
               expected,name=line.split('  ',1)
               assert hashlib.sha256((assets/name).read_bytes()).hexdigest()==expected
           PYTHON
-      - name: Publish the release (a pre-release unless the tag is stable) without overwriting an existing release
+      - name: Publish the release (a pre-release unless the tag is stable); a partial release is completed, a published one never overwritten
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           python scripts/organize_releases.py --repository "$GITHUB_REPOSITORY" --publication-notes-for "$RELEASE_TAG" --output out/publication-notes.md
           # A stable tag (v1.0.0-e32v2, ha-v1.0.0) is a normal release; every other tag a pre-release.
-          channel=(--prerelease)
+          channel=prerelease
           if python3 - "$RELEASE_TAG" <<'PYTHON'
           import sys
           sys.path.insert(0, 'scripts')
           from organize_releases import classify, is_stable
           sys.exit(0 if is_stable(*classify(sys.argv[1])) else 1)
           PYTHON
-          then channel=(); fi
-          gh release create "$RELEASE_TAG" --verify-tag "${channel[@]}" --title "OpenThermostat E32 V2 $RELEASE_TAG" --notes-file out/publication-notes.md release-assets/*
+          then channel=stable; fi
+          # A draft first, the assets, a read-back, then publication: a failed upload leaves a draft that a re-run of
+          # this job completes (R5-14). See scripts/publish_github_release.py.
+          python scripts/publish_github_release.py --repository "$GITHUB_REPOSITORY" --tag "$RELEASE_TAG" --title "OpenThermostat E32 V2 $RELEASE_TAG" --notes-file out/publication-notes.md --assets-dir release-assets --sums RELEASE-SHA256SUMS.txt --channel "$channel"
       - name: Refresh release channels, current downloads and archive labels
         env:
           GH_TOKEN: ${{ github.token }}
@@ -873,22 +896,22 @@ jobs:
                   assert hashlib.sha256(package.read(name)).hexdigest()==expected
               assert checked==set(package.namelist())-{'SHA256SUMS.txt'}
           PYTHON
-      - name: Publish the HA release (a pre-release unless the tag is stable) without replacing previous releases
+      - name: Publish the HA release (a pre-release unless the tag is stable); a partial release is completed, a published one never overwritten
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           python scripts/organize_releases.py --repository "$GITHUB_REPOSITORY" --publication-notes-for "$RELEASE_TAG" --output out/publication-notes.md
           # A stable tag (v1.0.0-e32v2, ha-v1.0.0) is a normal release; every other tag a pre-release.
-          channel=(--prerelease)
+          channel=prerelease
           if python3 - "$RELEASE_TAG" <<'PYTHON'
           import sys
           sys.path.insert(0, 'scripts')
           from organize_releases import classify, is_stable
           sys.exit(0 if is_stable(*classify(sys.argv[1])) else 1)
           PYTHON
-          then channel=(); fi
-          gh release create "$RELEASE_TAG" --verify-tag "${channel[@]}" --title "OpenThermostat Home Assistant $RELEASE_TAG" --notes-file out/publication-notes.md ha-release-assets/*
+          then channel=stable; fi
+          python scripts/publish_github_release.py --repository "$GITHUB_REPOSITORY" --tag "$RELEASE_TAG" --title "OpenThermostat Home Assistant $RELEASE_TAG" --notes-file out/publication-notes.md --assets-dir ha-release-assets --sums HA-SHA256SUMS.txt --channel "$channel"
       - name: Refresh release channels, current downloads and archive labels
         env:
           GH_TOKEN: ${{ github.token }}

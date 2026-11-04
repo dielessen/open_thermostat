@@ -24,14 +24,17 @@ planner and, per room, the room status card (frontend/room-status-card.js):
   keeping warm, what the boiler did in the last 24 hours), the last 24 hours,
   What the boiler reports (its values in groups) and the boiler settings. The
   thermostat on the bus and the raw boiler data are on Diagnostics;
-* Learning and settings: what the E32 knows (the knowledge tile, what it still
-  learns, the boiler's response, yesterday compared with usual; E32 rc.5),
-  yesterday in figures (the four headline figures large on their own card,
-  custom:openthermostat-yesterday, then the rest of the scoreboard and the daily
-  summary, once), what the thermostat learned (house and boiler, its own
-  changes, how it learns), Smart warm-up and Weather compensation with its curve
-  (water temperature by outdoor temperature) and who controls the boiler (short
-  cycling as information, the takeover check);
+* Learning and settings, in the order of the owner's sketch (rc.5): what the
+  E32 knows (the knowledge ring and what it still learns), your boiler (its
+  response in one sentence), water temperature by outdoor temperature (the
+  curve), yesterday in figures (the four headline figures large on their own
+  card, custom:openthermostat-yesterday, then the rest of the scoreboard and the
+  daily summary, once), what stood out yesterday compared with usual, the free
+  heat per room, and Smart warm-up and Weather compensation as rows; then what
+  the thermostat learned (house and boiler, its own changes, how it learns) and
+  who controls the boiler (short cycling as information, the takeover check).
+  On a wide screen the sketch's two columns: the curve with what stood out and
+  the free heat under it beside your boiler, yesterday and the settings;
 * Diagnostics (last): the E32 itself, the thermostat on the boiler bus, the
   energy and hot water counters, the raw boiler data and the hot water capability;
 * Comparison (subview, trial run with a thermostat on the bus only).

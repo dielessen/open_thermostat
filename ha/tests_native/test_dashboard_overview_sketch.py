@@ -162,19 +162,22 @@ async def test_the_room_that_is_on_is_in_the_house_card_and_first_under_rooms(ha
     assert [s["cards"][0].get("heading") for s in overview(config)["sections"]] == [None, "Ruimtes", "Vandaag", "Huis"]
 
 
+# Today's two icons, blue as in the sketch (a markdown card keeps <font color> only, dashboard._icon).
+CLOCK = '<font color="#039be5"><ha-icon icon="mdi:clock-outline"></ha-icon></font> '
+WEATHER = '<font color="#039be5"><ha-icon icon="mdi:sun-thermometer"></ha-icon></font> '
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("language, words", [
-    ("en", "<ha-icon icon=\"mdi:clock-outline\"></ha-icon> Tomorrow Woonkamer warms up from **6:10** to be 20.5 °C at "
-           "**7:00**. Yesterday it was warm 4 minutes early.\n\n<ha-icon icon=\"mdi:sun-thermometer\"></ha-icon> Outside "
-           "9 °C: weather compensation asks for 30 °C water, standard line (the learned line follows after 6 steady "
-           "periods)."),
-    ("nl", "<ha-icon icon=\"mdi:clock-outline\"></ha-icon> Morgen warmt Woonkamer vanaf **6:10** op om **7:00** op 20,5 °C "
-           "te zijn. Gisteren was het 4 minuten te vroeg warm.\n\n<ha-icon icon=\"mdi:sun-thermometer\"></ha-icon> Buiten "
-           "9 °C: weerafhankelijke regeling vraagt 30 °C water, standaardlijn (de geleerde lijn volgt na 6 rustige "
-           "periodes)."),
-    ("pl", "<ha-icon icon=\"mdi:clock-outline\"></ha-icon> Woonkamer: jutro nagrzewanie od **6:10**, aby o **7:00** było "
-           "20,5 °C. Wczoraj ciepło 4 min za wcześnie.\n\n<ha-icon icon=\"mdi:sun-thermometer\"></ha-icon> Na zewnątrz "
-           "9 °C: kompensacja pogodowa zadaje 30 °C wody, linia standardowa (wyuczona linia po 6 stabilnych okresach)."),
+    ("en", CLOCK + "Tomorrow Woonkamer warms up from **6:10** to be 20.5 °C at **7:00**. Yesterday it was warm 4 minutes "
+           "early.\n\n" + WEATHER + "Outside 9 °C: weather compensation asks for 30 °C water, standard line (the learned "
+           "line follows after 6 steady periods)."),
+    ("nl", CLOCK + "Morgen warmt Woonkamer vanaf **6:10** op om **7:00** op 20,5 °C te zijn. Gisteren was het 4 minuten "
+           "te vroeg warm.\n\n" + WEATHER + "Buiten 9 °C: weerafhankelijke regeling vraagt 30 °C water, standaardlijn (de "
+           "geleerde lijn volgt na 6 rustige periodes)."),
+    ("pl", CLOCK + "Woonkamer: jutro nagrzewanie od **6:10**, aby o **7:00** było 20,5 °C. Wczoraj ciepło 4 min za "
+           "wcześnie.\n\n" + WEATHER + "Na zewnątrz 9 °C: kompensacja pogodowa zadaje 30 °C wody, linia standardowa "
+           "(wyuczona linia po 6 stabilnych okresach)."),
 ])
 async def test_today_says_the_sketchs_two_lines(hass, clock, language, words):
     config, rooms, hub, fields, flow, board = sketch(hass, language, inactive=("badkamer",))
@@ -200,7 +203,7 @@ async def test_today_says_every_case_of_a_warm_up_in_plain_words(hass, clock):
     hass.states.async_set(living["state"], "active", {})
     hass.states.async_set(rooms["badkamer"]["state"], "inactive", {})
     hass.states.async_set(flow["apply_learned"], "on", {})
-    first = lambda: render(hass, card).split("\n\n")[0].removeprefix('<ha-icon icon="mdi:clock-outline"></ha-icon> ')  # noqa: E731
+    first = lambda: render(hass, card).split("\n\n")[0].removeprefix(CLOCK)  # noqa: E731
     # Later today; on another day; already warming up (the start passed, or the E32 says so); a whole target.
     heating_start(hass, start, (4, 16, 10), (4, 17, 0), 21)
     assert first() == "Today Woonkamer warms up from **16:10** to be 21 °C at **17:00**."
@@ -253,7 +256,7 @@ async def test_today_says_what_weather_compensation_asks_and_which_line(hass, cl
     card = today_card(config)
     for room in rooms.values():
         hass.states.async_set(room["heating_start"], "unknown", {})
-    last = lambda: render(hass, card).removeprefix('<ha-icon icon="mdi:sun-thermometer"></ha-icon> ')  # noqa: E731
+    last = lambda: render(hass, card).removeprefix(WEATHER)  # noqa: E731
     curve(hass, flow["curve"], windows=2)
     assert last() == ("Outside 9 °C: weather compensation asks for 30 °C water, standard line (the learned line follows "
                       "after 6 steady periods, 2 of 6 so far).")

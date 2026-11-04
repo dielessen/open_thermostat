@@ -170,7 +170,9 @@ ICONS = {"flow": "mdi:thermometer-chevron-up", "return": "mdi:thermometer-chevro
          "house_mode": "mdi:home-account", "holiday": "mdi:calendar-month-outline"}
 # The sketch's coloured icons in a markdown line (_icon), in the colours of Home Assistant's default theme: heating
 # (--state-climate-heat-color, deep orange), information (--info-color) and the sun (--amber-color).
-ICON_COLOURS = {"heating": "#ff6f22", "insight": "#039be5", "free_heat": "#ffc107"}
+ICON_COLOURS = {"heating": "#ff6f22", "insight": "#039be5", "free_heat": "#ffc107",
+                # rc.5 (P18): the Overview's Today, blue as in the sketch (information: --info-color).
+                "warm_up": "#039be5", "weather": "#039be5"}
 # What the boiler does now (hub boiler_activity, heating_link.BOILER_ACTIVITIES) as one tile of three: its icon
 # (ICONS), its theme colour and the activities it stands for; exactly one shows at a time.
 ACTIVITY_TILES = (("heating", "deep-orange", ["heating"]),
@@ -1439,7 +1441,7 @@ def _warm_up_line(t, name, start, state=None, warm=None, smart=None):
             "{% if b is not none" + on + " %}{% set b = as_local(b) %}{% set at = state_attr(" + q + ", 'switch_at') %}"
             "{% set w = as_datetime(at, none) if at else none %}{% set w = as_local(w) if w is not none else none %}"
             "{% set g = state_attr(" + q + ", 'target_c') %}{% set d = (b.date() - now().date()).days %}"
-            "<ha-icon icon=\"" + ICONS["warm_up"] + "\"></ha-icon> {% if w is not none and g is number %}"
+            + _icon("warm_up") + " {% if w is not none and g is number %}"
             # Smart warm-up off: heating starts at the program time (the day of that time).
             "{% if " + off + " %}{% set d = (w.date() - now().date()).days %}"
             "{{ " + _jinja_text(t["warm_up_off"], when=_when(t, "d", "w"), **step) + " }}"
@@ -1483,7 +1485,7 @@ def _weather_line(t, curve):
             "{% set o = state_attr(" + q + ", 'outdoor_c') %}{% set n = state_attr(" + q + ", 'windows') %}"
             "{% set src = state_attr(" + q + ", 'slope_source') %}"
             "{% set advice = state_attr(" + q + ", 'state') == 'advice' %}"
-            "{% set main = " + main + " %}<ha-icon icon=\"" + ICONS["weather"] + "\"></ha-icon> "
+            "{% set main = " + main + " %}" + _icon("weather") + " "
             # Without an outdoor temperature the sentence starts with what it asks, from a capital.
             "{% if o is number %}{{ " + outside + " }}: {{ main }}{% else %}{{ main[:1] | upper }}{{ main[1:] }}{% endif %}"
             "{% if not advice and src in " + json.dumps(["design", "house", "learned"]) + " %}, {{ " + lines + "[src] }}"

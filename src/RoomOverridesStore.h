@@ -8,9 +8,10 @@
 namespace heating {
 // rc.4: the planned holidays and the holiday temperature (RoomOverrides::holidaysStored()) as
 // their own short record beside the comfort record ("ot_heating"/"holidays"), so the comfort
-// record keeps the form an older firmware reads after a rollback. Gated like an optional record,
-// with the room the ledger keeps for it (ControlPartitionBudget::holidayEntries()); read back
-// after the commit. Absent: no holidays (or the dated away of the comfort record, see restore()).
+// record keeps the form an older firmware reads after a rollback. Written while control keeps its
+// room after it (ControlPartitionBudget::permitsHolidayWrite); the owner's plan first: what was
+// learned makes room for it (makeNvsRoom, written again where it fits). Read back after the
+// commit. Absent: no holidays (or the dated away of the comfort record, see restore()).
 struct HolidaysNvs {
     using B = control::ControlPartitionBudget;
     static_assert(control::RoomOverrides::holidayStoreBytes < B::holidayRecordBytes, "the holidays record with its NUL");
@@ -18,7 +19,10 @@ struct HolidaysNvs {
     static constexpr const char* key = "holidays";
     static std::string read() { return HeatingNoteNvs{key, B::holidayRecordBytes}.read(); }
     static bool write(const std::string& record) {
-        return HeatingNoteNvs{key, B::holidayRecordBytes, B::holidayEntries()}.writeGated(record);
+        if (record.empty() || record.size() >= B::holidayRecordBytes || optionalRecordsFrozen().load()) return false;
+        const size_t old = storedNvsRecordBytes("ot_heating", key, B::configBytes), reserve = optionalRecordReserve();
+        makeNvsRoom([&](control::ControlPartitionStats s) { return B::permitsHolidayWrite(s, record.size() + 1, old, reserve); });
+        return HeatingNoteNvs{key, B::holidayRecordBytes}.writeGated(record);
     }
 };
 // The room overrides and away (control/RoomOverrides.h) as one short versioned

@@ -53,12 +53,11 @@ inline HeatingPlanSave saveHeatingPlan(const std::string& raw) {
 }
 // A short text beside the plan, written only when it changes: "takeover_test" (the guided
 // boiler test's result, control/TakeoverTest.h), "owned" (the E32 took over the boiler once)
-// and, since rc.4, "holidays" (RoomOverridesStore.h: up to 224 bytes, its room kept by the ledger).
+// and, since rc.4, "holidays" (RoomOverridesStore.h: up to 224 bytes, it makes room for itself).
 struct HeatingNoteNvs {
     static constexpr size_t largestBytes = 256;
     const char* key;
     size_t maxBytes = 64;   // the text with its NUL, at most largestBytes
-    size_t reserved = 0;    // entries the ledger already keeps free for this record (not charged twice)
     std::string read() const {
         nvs_handle_t handle;
         if (maxBytes > largestBytes || nvs_open("ot_heating", NVS_READONLY, &handle) != ESP_OK) return {};
@@ -83,7 +82,7 @@ struct HeatingNoteNvs {
     // (NvsOptionalRecords.h). The same key and size bound as rc.2 (< 64 bytes: 3 entries). It is
     // not in ControlPartitionBudget::optionalKeys: never erased to make room.
     bool writeGated(const std::string& text) const {
-        return !text.empty() && text.size() < maxBytes && optionalHeatingRecordFits(key, text.size() + 1, 0, reserved) && write(text);
+        return !text.empty() && text.size() < maxBytes && optionalHeatingRecordFits(key, text.size() + 1) && write(text);
     }
 };
 // The owner's handover confirmation (control/HandoverConfirmation.h): one short

@@ -56,23 +56,20 @@ inline bool nvsBootUnconfirmed() {
 }
 // What control needs kept free after an optional record: this firmware's ledger, or while the boot
 // is unconfirmed the previous firmware's (ControlPartitionBudget::previousFirmwareReserveEntries).
-// `reserved`: entries this firmware's ledger keeps for the record being written itself (the
-// holidays record), not charged again; the previous firmware's ledger keeps nothing for it.
-inline size_t optionalRecordReserve(size_t reserved = 0) {
+inline size_t optionalRecordReserve() {
     using B = control::ControlPartitionBudget;
     const size_t plan = storedNvsBlobBytes("ot_heating", "plan", B::configBytes);
     if (nvsBootUnconfirmed())
         return B::previousFirmwareReserveEntries(plan, storedNvsBlobBytes("ot_bluetooth", "settings", B::bluetoothBytes));
-    const size_t reserve = B::controlReserveEntries(plan, controlReplacementEntries(), control::controlModelStorageReservation.current());
-    return reserve == SIZE_MAX ? reserve : reserve - std::min(reserve, reserved);
+    return B::controlReserveEntries(plan, controlReplacementEntries(), control::controlModelStorageReservation.current());
 }
 // An optional record of `bytes` may replace "ot_heating"/`key`: the handover confirmation, the flow
 // record, a plan save, a 2 KB Bluetooth save and the control record's replacement keep their room.
-inline bool optionalHeatingRecordFits(const char* key, size_t bytes, size_t priority = 0, size_t reserved = 0) {
+inline bool optionalHeatingRecordFits(const char* key, size_t bytes, size_t priority = 0) {
     using B = control::ControlPartitionBudget;
     if (optionalRecordsFrozen().load()) return false;
     return B::permitsOptionalWrite(nvsPartitionStats(), bytes, storedNvsRecordBytes("ot_heating", key, B::configBytes),
-                                   optionalRecordReserve(reserved), priority);
+                                   optionalRecordReserve(), priority);
 }
 // Counts the optional records erased to make room; their owner writes again what fits.
 inline std::atomic<uint32_t>& optionalRecordEvictions() { static std::atomic<uint32_t> count{0}; return count; }

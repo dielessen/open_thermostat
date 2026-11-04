@@ -893,7 +893,11 @@ private:
     // copy of a running holiday for a rollback), and only then keeps it. A failed comfort write puts the
     // holidays record back (best effort; gated like an optional record).
     const char* saveComfort(const control::RoomOverrides& next, bool comfort, bool holidays) {
-        if (holidays && !HolidaysNvs::write(next.holidaysStored())) return "save_unconfirmed";
+        if (holidays) {
+            const bool saved = HolidaysNvs::write(next.holidaysStored());
+            rewriteEvicted(); // the holidays may have made room: the learned records are written again where they fit
+            if (!saved) return "save_unconfirmed";
+        }
         if (comfort && !RoomOverridesNvs::write(next.stored())) {
             if (holidays) HolidaysNvs::write(overrides_.holidaysStored());
             return "save_unconfirmed";

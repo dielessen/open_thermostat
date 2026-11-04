@@ -222,6 +222,12 @@ public:
   about {flow} °C and rests {rest} minutes; the E32 asks at most {ceiling} °C now".
 - Tests: fixture payloads for the new topic, entity tests, dashboard tests, browser tests for the pages
   (`test/browser-tests.txt`), translation completeness.
+- Owner's wish (4 Nov, "dat is wel mooi om te zien"): a heating-curve chart "Water temperature by outdoor
+  temperature" on the E32 Heating page (inline SVG from the flow document) and on the HA Learning view (a
+  sixth Lovelace card `heating-curve-card.js`, versioned like the others; P6's card list is data-driven):
+  the standard line (dashed, the design slope), the learned line (solid, when `slope_source` is "learned" or
+  "house"), the point of now and the frost point at −10 °C; legend EN/NL/PL "Standard", "Learned for your
+  house", "Now".
 
 ### 2.6 Release tooling (P6)
 

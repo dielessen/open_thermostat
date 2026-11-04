@@ -30,6 +30,21 @@
 #include "control/WarmupPlanner.h"
 #include "diagnostics/SupervisorPolicy.h"
 #include <cJSON.h>
+// rc.5 (RC5-PLAN.md 2.1-2.3): the learners of P1-P3 are wired as HeatingController wires them
+// once their headers exist; until then every hook below compiles out.
+#if __has_include("control/BoilerResponse.h")
+#include "control/BoilerResponse.h"
+#define SOAK_BOILER_RESPONSE 1
+#endif
+#if __has_include("control/HouseModel.h")
+#include "control/HouseModel.h"
+#include "control/Scoreboard.h"
+#define SOAK_HOUSE_MODEL 1
+#endif
+#if __has_include("control/FreeHeat.h")
+#include "control/FreeHeat.h"
+#define SOAK_FREE_HEAT 1
+#endif
 
 #include <algorithm>
 #include <array>
@@ -51,6 +66,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <fcntl.h>
@@ -70,6 +86,42 @@ extern "C" size_t __sanitizer_get_current_allocated_bytes(); // sanitizer/alloca
 #include <malloc.h>
 #endif
 
+// rc.5 hooks whose exact shape the contract leaves open are detected, not assumed: the
+// FlowPolicy inputs of P1-P3 (ownRequest/ceilingC, houseSlope, freeHeat), LearnedContext's
+// FreeHeat, the modules' setPlan() and P1's RestFloor helper (declared here, used once defined).
+// A module that exists without its hook is reported as a note ("rc5_hook_missing").
+namespace heating::control { struct RestFloor; }
+namespace soak_detect {
+template <class T, class = void> struct Complete : std::false_type {};
+template <class T> struct Complete<T, std::void_t<decltype(sizeof(T))>> : std::true_type {};
+template <class T, class = void> struct CeilingInput : std::false_type {};
+template <class T> struct CeilingInput<T, std::void_t<decltype(std::declval<T&>().ceilingC = std::optional<uint8_t>()),
+                                                     decltype(std::declval<T&>().ownRequest = true)>> : std::true_type {};
+template <class T, class = void> struct HouseSlopeInput : std::false_type {};
+template <class T> struct HouseSlopeInput<T, std::void_t<decltype(std::declval<T&>().houseSlope = std::optional<float>())>> : std::true_type {};
+template <class T, class F, class = void> struct FreeHeatMember : std::false_type {};
+template <class T, class F> struct FreeHeatMember<T, F, std::void_t<decltype(std::declval<T&>().freeHeat = static_cast<const F*>(nullptr))>> : std::true_type {};
+template <class T, class P, class = void> struct SetPlan : std::false_type {};
+template <class T, class P> struct SetPlan<T, P, std::void_t<decltype(std::declval<T&>().setPlan(std::declval<const P&>()))>> : std::true_type {};
+template <class In> void ceiling(In& in, bool ownRequest, std::optional<uint8_t> c) {
+    if constexpr (CeilingInput<In>::value) { in.ownRequest = ownRequest; in.ceilingC = c; }
+}
+template <class In> void houseSlope(In& in, std::optional<float> slope) {
+    if constexpr (HouseSlopeInput<In>::value) in.houseSlope = slope;
+}
+template <class F, class In> void freeHeat(In& in, const F* f) {
+    if constexpr (FreeHeatMember<In, F>::value) in.freeHeat = f;
+}
+template <class M, class P> void setPlan(M& m, const P& plan) {
+    if constexpr (SetPlan<M, P>::value) m.setPlan(plan);
+}
+template <class Tuning, class F = heating::control::RestFloor>
+bool restFloor(Tuning& t, std::optional<uint32_t> restS, bool coldNow) {
+    if constexpr (Complete<F>::value) { F::apply(t, restS, coldNow); return true; }
+    else return false;
+}
+}
+
 using namespace heating::control;
 namespace ems = heating::ems;
 namespace diag = heating::diagnostics;
@@ -77,6 +129,11 @@ namespace diag = heating::diagnostics;
 namespace {
 // ModernTransport.h (ESP-only): fw/telemetry/heating* above this size is dropped.
 constexpr size_t heatingTelemetryMaxBytes = 7900;
+// rc.5 (RC5-PLAN.md 2.1-2.3): the soft limits of the new documents. fw/telemetry/flow (with
+// P1's "boiler") and fw/telemetry/insight (P2); the addJson objects of P1-P3 as their contracts state.
+constexpr size_t flowTopicMaxBytes = 1024, insightTopicMaxBytes = 700;
+constexpr size_t boilerJsonMaxBytes = 140, houseJsonMaxBytes = 110, freeHeatJsonMaxBytes = 90;
+constexpr size_t boilerStoredMaxBytes = 48, freeHeatStoredMaxBytes = 360;
 
 // ============================================================================
 // Reporting
@@ -273,6 +330,14 @@ struct Options {
     uint32_t mqttEveryS = 300, learnedEveryS = 900, fullEveryS = 3600;
     double editEveryH = 4;
     bool liveDhwFlow = false, boilerOutdoor = false, oom = true, activePhases = true, flowOptions = false;
+    // rc.5 (P4): the boiler and its emitters (--profile=a,b,...). Default "store": the owner's kind
+    // of boiler, a small hot-water store kept warm several times a day, the return reported, a
+    // mixed house (two floor rooms, five radiator rooms with valves). no_return: 0x18 reports no
+    // return; holding: the "0Y" boiler (README); radiators_only / floor_only: every heated room.
+    bool noReturn = false, holding = false, radiatorsOnly = false, floorOnly = false;
+    bool gains = false; // free heat a room shows without the boiler: afternoon sun in the living room, cooking in the kitchen
+    std::string profile = "store";
+    double activeFromH = -1;                  // the first switch to active mode after this many hours (default: 3-6 days)
     std::string outDir = "/tmp";
 };
 Options opt;
@@ -429,6 +494,10 @@ private:
     double flow_ = 25, dhwTemp_ = 50;
     bool burner_ = false, cyclingOff_ = false;
     uint8_t modulation_ = 0;
+    uint64_t restUntil_ = 0;                 // holding: the end of the boiler's own anti-cycle ("0Y")
+    uint64_t dhwEndedAt_ = 0, heatAskedSince_ = 0;
+    uint8_t requestedBefore_ = 0;
+    struct HoldingStats { uint64_t stops = 0, stopsDriving = 0, starts = 0, restingS = 0; } holdStats_;
     double gasM3_ = 1234.0;
     const double trueNominalKw_ = 24;
     uint64_t busDownUntil_ = 0;
@@ -478,6 +547,22 @@ private:
     std::unique_ptr<ManagedBleObserver<SoakCrypto>> ble_;
     ManagedBleBindings bindings_;
     RoomRotation rotation_;
+    // rc.5: the learners of P1-P3, wired as HeatingController wires them (compiled out until they exist).
+#ifdef SOAK_BOILER_RESPONSE
+    BoilerResponse boilerResponse_;
+    struct BoilerTotals { uint64_t held = 0; uint16_t lastHeld = 0; } boilerTotals_; // held events over the run (heldToday per day)
+#endif
+#ifdef SOAK_HOUSE_MODEL
+    HouseModel house_;
+    Scoreboard board_;          // HouseModel's yesterday (heating kWh, degree-days), as HeatingController::stepScoreboard
+    int64_t houseHour_ = -1;
+    int32_t houseDay_ = INT32_MIN;
+    uint64_t boardLastMs_ = 0;
+#endif
+#ifdef SOAK_FREE_HEAT
+    FreeHeat freeHeat_;
+#endif
+    ControlTuning tuningApplied_;  // the knobs in effect (P1's rest floor on top of the built-in ones)
 
     // --- plan
     RoomPlan plan_;
@@ -528,6 +613,7 @@ private:
     void physics(double dtH);
     void tado();
     void boiler(double dtH);
+    void holdingBoiler(uint8_t requested, double load, int wanted, double dtH);
     void dhwGenerator();
     void emitTelegrams();
     void haMessages();
@@ -551,6 +637,18 @@ private:
     LearnedContext learnedContext(std::array<std::optional<int16_t>, RoomPlan::maxRooms>& temperatures) const;
     void oomSweep();
     void finish();
+    // rc.5 (P4): the new learners' wiring and invariants.
+    void applyRestFloor();
+    void stepRc5(const FlowDemand::Request& request, std::optional<int16_t> outdoorCentiC, std::optional<int16_t> flowCentiC,
+                 std::optional<int16_t> returnCentiC, std::optional<bool> burnerOn, std::optional<bool> hotWater,
+                 std::optional<uint8_t> modulationPct, std::optional<uint8_t> tadoFlowC);
+    void checkRc5Daily();
+    void checkRc5Hourly(std::optional<int16_t> outdoorCentiC);
+    std::string flowTopicPayload(const std::string& summary) const;
+#if defined(SOAK_BOILER_RESPONSE) || defined(SOAK_HOUSE_MODEL)
+    std::string insightTopicPayload() const;
+#endif
+    void finishRc5();
     size_t physIndex(const std::string& id) const {
         for (size_t i = 0; i < phys_.size(); ++i) if (phys_[i].id == id) return i;
         return SIZE_MAX;
@@ -583,6 +681,15 @@ void Chain::setupHouse() {
     room("zolder", "Zolder", false, 12.0);
     phys_[7].heated = false; phys_[7].b = 0.06; // unheated attic: frost rule
     phys_[2].trvSetC = 17.5; phys_[3].trvSetC = 19.5; phys_[4].trvSetC = 21.5; phys_[5].trvSetC = 19.5; phys_[6].trvSetC = 18;
+    // rc.5 profiles: every heated room on radiators (with valves) or on a floor (no valves). The plan's
+    // emitters follow (baseRoom). The living room and kitchen valves sit above their programs.
+    if (o_.radiatorsOnly || o_.floorOnly)
+        for (auto& r : phys_) {
+            if (!r.heated || r.floor == o_.floorOnly) continue;
+            r.floor = o_.floorOnly;
+            if (r.floor) { r.a = 0.12; r.b = 0.035; r.tauE = 2.5; } else { r.a = 0.07; r.b = 0.035; r.tauE = 0.3; }
+        }
+    if (o_.radiatorsOnly) { phys_[0].trvSetC = 21.5; phys_[1].trvSetC = 21; }
 }
 
 RoomPlan::Room Chain::baseRoom(size_t i) const {
@@ -648,6 +755,16 @@ void Chain::setupPlan() {
     cJSON_Delete(root);
     oracleSetPlan(parsed);
     engine_.setPlan(parsed); learner_.setPlan(parsed);
+    policy_.setPlan(parsed); // rc.4 (R1-04), HeatingController::loadHeatingPlan: the arrival factors by room id
+#ifdef SOAK_BOILER_RESPONSE
+    soak_detect::setPlan(boilerResponse_, parsed);
+#endif
+#ifdef SOAK_HOUSE_MODEL
+    soak_detect::setPlan(house_, parsed);
+#endif
+#ifdef SOAK_FREE_HEAT
+    soak_detect::setPlan(freeHeat_, parsed);
+#endif
     plan_ = parsed;
     maxPlanBytes_ = raw.size();
 }
@@ -708,6 +825,17 @@ bool Chain::applyPlan(const RoomPlan& candidate, const char* why) {
     const bool flowChanged = plan.minimumFlowC != engine_.plan().minimumFlowC || plan.maximumFlowC != engine_.plan().maximumFlowC;
     oracleSetPlan(plan);
     engine_.setPlan(plan); learner_.setPlan(plan);
+    policy_.setPlan(plan); // HeatingController::setHeatingPlan (rc.4, R1-04)
+#ifdef SOAK_HOUSE_MODEL
+    board_.remap(Scoreboard::roomMap(plan_, plan)); // the arrivals follow their rooms
+    soak_detect::setPlan(house_, plan);
+#endif
+#ifdef SOAK_BOILER_RESPONSE
+    soak_detect::setPlan(boilerResponse_, plan);
+#endif
+#ifdef SOAK_FREE_HEAT
+    soak_detect::setPlan(freeHeat_, plan);
+#endif
     plan_ = plan;
     if (flowChanged) { flowRebuiltAt_ = now_; haveHeatEdge_ = false; } // FlowDemand restarts: no minimum off time
     EXPECT(engine_.plan().storedJson() == raw, "plan_applied_differs", "engine plan differs from the saved plan");
@@ -841,7 +969,11 @@ void Chain::physics(double dtH) {
         const bool supply = spaceHeat && r.heated && (r.floor || r.trvOpen);
         const double target = supply ? (r.floor ? r.air + 0.55 * (flow_ - r.air) : flow_) : r.air;
         r.emitter += (target - r.emitter) * std::min(1.0, dtH / (supply ? r.tauE : r.tauE * 2));
-        const double sun = (hour > 10 && hour < 16) ? 0.12 * std::sin(M_PI * (hour - 10) / 6) : 0;
+        double sun = (hour > 10 && hour < 16) ? 0.12 * std::sin(M_PI * (hour - 10) / 6) : 0;
+        if (o_.gains) { // --profile=gains: up to 1 K/h of afternoon sun on a sunny (warm) day, 1.5 K/h while cooking
+            if (r.id == "woonkamer" && hour > 11 && hour < 16) sun += std::clamp(0.5 + weather_ / 6.0, 0.0, 1.0) * std::sin(M_PI * (hour - 11) / 5);
+            if (r.id == "keuken" && hour >= 17.5 && hour < 18.5) sun += 1.5;
+        }
         const double window = now_ < r.windowUntil ? 1.2 : 0;
         const double leak = r.heated ? 0 : 0.02 * (houseMean - r.air);
         const double dT = r.a * (r.emitter - r.air) - (r.b + window) * (r.air - outdoor_) + sun + leak + uniform(-0.02, 0.02);
@@ -884,7 +1016,7 @@ void Chain::dhwGenerator() {
                 ++d.count[size_t(kind)];
                 d.seconds[size_t(kind)] += uint32_t((now_ - dhwStartedAt_) / 1000);
             } else dhwOracleValid_ = false;
-            dhw_ = Dhw::idle; dhwFlowTenths_ = o_.liveDhwFlow ? 0 : 25;
+            dhw_ = Dhw::idle; dhwFlowTenths_ = o_.liveDhwFlow ? 0 : 25; dhwEndedAt_ = now_;
             count(kind == 0 ? "dhw_tap" : "dhw_keep_warm");
         }
         return;
@@ -908,6 +1040,8 @@ void Chain::boiler(double dtH) {
     // Who asks: the latest 0x1A (tado or E32); a setpoint older than 10 min lapses.
     if (boilerSetpoint_ && now_ - boilerSetpoint_->at > 600000) boilerSetpoint_.reset();
     const uint8_t requested = boilerSetpoint_ ? boilerSetpoint_->flow : 0;
+    if (requested >= 20 && requestedBefore_ < 20) heatAskedSince_ = now_;
+    requestedBefore_ = requested;
     if (dhw_ != Dhw::idle) {
         burner_ = true; modulation_ = dhw_ == Dhw::tap ? 90 : 45;
         flow_ += (65 - flow_) * std::min(1.0, dtH / 0.05);
@@ -917,13 +1051,16 @@ void Chain::boiler(double dtH) {
         double load = 0;
         for (const auto& r : phys_) if (r.heated && (r.floor || r.trvOpen)) load += r.floor ? 0.25 : 0.1;
         const int wanted = int(std::clamp(load * 100 * std::max(0.2, (requested - 25) / 20.0), 0.0, 100.0));
-        if (wanted < 20) { // below the minimum modulation: on/off cycling around the request
-            if (!cyclingOff_ && flow_ > requested + 5) cyclingOff_ = true;
-            else if (cyclingOff_ && flow_ < requested - 5) cyclingOff_ = false;
-        } else cyclingOff_ = false;
-        burner_ = !cyclingOff_;
-        modulation_ = burner_ ? uint8_t(std::max(20, wanted)) : 0;
-        flow_ += burner_ ? (requested + 2 - flow_) * std::min(1.0, dtH / 0.05) : (phys_[0].air + 5 - flow_) * std::min(1.0, dtH / 0.15);
+        if (o_.holding) holdingBoiler(requested, load, wanted, dtH);
+        else {
+            if (wanted < 20) { // below the minimum modulation: on/off cycling around the request
+                if (!cyclingOff_ && flow_ > requested + 5) cyclingOff_ = true;
+                else if (cyclingOff_ && flow_ < requested - 5) cyclingOff_ = false;
+            } else cyclingOff_ = false;
+            burner_ = !cyclingOff_;
+            modulation_ = burner_ ? uint8_t(std::max(20, wanted)) : 0;
+            flow_ += burner_ ? (requested + 2 - flow_) * std::min(1.0, dtH / 0.05) : (phys_[0].air + 5 - flow_) * std::min(1.0, dtH / 0.15);
+        }
         dhwTemp_ += (20 - dhwTemp_) * dtH / 30.0;
     } else {
         burner_ = false; modulation_ = 0; cyclingOff_ = false;
@@ -932,6 +1069,37 @@ void Chain::boiler(double dtH) {
     }
     if (dhw_ == Dhw::idle && dhwTemp_ > 50.5) dhwTemp_ -= 0.5 * dtH;
     gasM3_ += modulation_ / 100.0 * trueNominalKw_ * dtH / 9.77;
+}
+
+// The "0Y" boiler (--profile=holding, the owner's display code): it modulates down to 30 % and no
+// further. When the open emitters take less than that, the water rises past the request; at the
+// request + 5 K the burner stops and the boiler's own anti-cycle keeps it off for 10 min (the
+// display shows 0Y), whatever is asked meanwhile; then it fires again once the water is below the
+// request. The less the emitters take (valves closed, a low request), the faster the water rises:
+// the emitters take load x (request - 25) / 20 of the input (the default boiler's `wanted`). Resting,
+// the pump runs on and the open emitters cool the water, slowly when most valves are closed.
+void Chain::holdingBoiler(uint8_t requested, double load, int wanted, double dtH) {
+    constexpr int minModulation = 30;
+    constexpr double holdK = 5, riseKPerH = 30;
+    constexpr uint64_t antiCycleMs = 600000;
+    if (burner_ && flow_ >= requested + holdK) {
+        burner_ = false; restUntil_ = now_ + antiCycleMs;
+        ++holdStats_.stops; count("boiler_0y_stops");
+        // A held target BoilerResponse should hear (RC5-PLAN.md 2.1): the E32's own request, the
+        // water held, not just after hot water, past the settle time, no warm-up (lead shortfall < 1 K).
+        int16_t lead = INT16_MIN;
+        for (size_t i = 0; i < engine_.plan().rooms.size(); ++i)
+            if (engine_.result(i).usable) lead = std::max(lead, engine_.result(i).errorCentiC);
+        if (boilerSetpoint_ && boilerSetpoint_->from == 0x0b && guard_.outputActive() && now_ >= dhwEndedAt_ + 300000
+            && now_ >= heatAskedSince_ + 600000 && lead > INT16_MIN && lead < 100) { ++holdStats_.stopsDriving; count("boiler_0y_stops_counting"); }
+    } else if (!burner_ && now_ >= restUntil_ && flow_ < requested) {
+        burner_ = true; ++holdStats_.starts;
+    }
+    if (!burner_ && now_ < restUntil_) holdStats_.restingS += o_.stepMs / 1000;
+    modulation_ = burner_ ? uint8_t(std::clamp(wanted, minModulation, 100)) : 0;
+    if (!burner_) flow_ += (phys_[0].air + 5 - flow_) * std::min(1.0, dtH * std::max(0.2, load) / 0.15);
+    else if (flow_ < requested || wanted >= minModulation) flow_ += (requested + 1 - flow_) * std::min(1.0, dtH / 0.05); // heats up, or modulates at the request
+    else flow_ += (minModulation - wanted) / double(minModulation) * riseKPerH * dtH;                                     // the minimum is too much: it rises
 }
 
 void Chain::emitTelegrams() {
@@ -952,8 +1120,10 @@ void Chain::emitTelegrams() {
     const bool heating = boilerSetpoint_ && boilerSetpoint_->flow >= 20;
     fast[5] = uint8_t((burner_ ? 0x08 : 0) | (dhw_ != Dhw::idle ? 0x02 : 0) | (heating ? 0x01 : 0));
     putWord(fast, 9, 0x8000); putWord(fast, 11, 0x8000);
-    putWord(fast, 13, int(std::lround((flow_ - (burner_ ? 6 : 2)) * 10)));
-    putWord(fast, 15, 0x7D00); fast[17] = 15; fast[18] = '-'; fast[19] = 'H';
+    // The return (no_return: "not available", as boilers without a return sensor send it).
+    putWord(fast, 13, o_.noReturn ? 0x8000 : int(std::lround((flow_ - (burner_ ? 6 : 2)) * 10)));
+    const bool resting = o_.holding && !burner_ && now_ < restUntil_ && dhw_ == Dhw::idle; // the holding boiler shows 0Y
+    putWord(fast, 15, 0x7D00); fast[17] = 15; fast[18] = resting ? '0' : '-'; fast[19] = resting ? 'Y' : 'H';
     monitor_.receive(telegram(0x18, fast), at18);
     cycles_.observe(monitor_, at18);
     dhwEpisodes_.observe(monitor_, at18, unixAt(at18));
@@ -1166,6 +1336,7 @@ void Chain::stepE32() {
         }
     const std::optional<uint32_t> unixNow = clockKnown_ ? std::optional<uint32_t>(uint32_t(utc_)) : std::nullopt;
     const uint64_t calls0 = localtimeCalls;
+    applyRestFloor(); // rc.5 (P1): HeatingController::effectiveTuning
     engine_.setBoilerLimit(ems::ActiveHeatEnvelope::limitC(monitor_)); // HeatingController::stepHeating
     const auto rule = engine_.step(now_, unixNow);
     noteLocaltime("room_engine_step", localtimeCalls - calls0, utc_);
@@ -1178,11 +1349,16 @@ void Chain::stepE32() {
     const std::optional<bool> burnerOn = modulation ? std::optional<bool>(*modulation > 0) : std::nullopt;
     const std::optional<int16_t> flowCentiC = flow ? std::optional<int16_t>(int16_t(*flow)) : std::nullopt;
     const auto outdoorView = haRoute_.outdoor(monitor_.value(ems::BoilerField::outdoor, now_) ? std::optional<int16_t>(int16_t(*monitor_.value(ems::BoilerField::outdoor, now_))) : std::nullopt, now_);
-    const auto request = applyFlowPolicy(rule, outdoorView.centiC, flowCentiC, burnerOn, state ? std::optional<bool>((*state & 0x02) != 0) : std::nullopt);
+    const std::optional<bool> hotWater = state ? std::optional<bool>((*state & 0x02) != 0) : std::nullopt;
+    const auto request = applyFlowPolicy(rule, outdoorView.centiC, flowCentiC, burnerOn, hotWater);
     shadow_.sample(now_, unixNow, request, tadoFlowC);
-    FlowLearner::Boiler boiler{flowCentiC, burnerOn, state ? std::optional<bool>((*state & 0x02) != 0) : std::nullopt, tadoFlowC,
-        outdoorView.centiC, modulation && *modulation >= 0 && *modulation <= 100 ? std::optional<uint8_t>(uint8_t(*modulation)) : std::nullopt,
-        ret ? std::optional<int16_t>(int16_t(*ret)) : std::nullopt};
+    // HeatingController::stepFlowLearner: while the E32 drives the boiler its own last command is the
+    // heating reference (rc.2), and BoilerMinimumFlow learns from it (ownRequest).
+    const bool own = guard_.outputActive();
+    const auto modulationPct = modulation && *modulation >= 0 && *modulation <= 100 ? std::optional<uint8_t>(uint8_t(*modulation)) : std::nullopt;
+    const auto returnCentiC = ret ? std::optional<int16_t>(int16_t(*ret)) : std::nullopt;
+    FlowLearner::Boiler boiler{flowCentiC, burnerOn, hotWater, FlowLearner::heatingReference(own, guard_.command().flowC, tadoFlowC),
+        outdoorView.centiC, modulationPct, returnCentiC, own, std::nullopt};
     std::array<FlowLearner::RoomInput, RoomPlan::maxRooms> rooms{};
     const auto& plan = engine_.plan();
     for (size_t i = 0; i < plan.rooms.size(); ++i) {
@@ -1190,6 +1366,7 @@ void Chain::stepE32() {
         rooms[i] = {fresh.temperature, engine_.result(i).setpoint, fresh.source};
     }
     learner_.sample(now_, boiler, rooms.data(), plan.rooms.size());
+    stepRc5(request, outdoorView.centiC, flowCentiC, returnCentiC, burnerOn, hotWater, modulationPct, tadoFlowC);
     checkEngine(rule);
     checkShadow(request, tadoFlowC);
 
@@ -1212,7 +1389,8 @@ void Chain::stepE32() {
     if (foreign_.last) in.foreign = ActiveHeatGuard::Foreign{foreign_.last->address, foreign_.last->receivedAtMs};
     in.uptimeMs = now_ - bootMs_; in.routeReady = routeReady_; in.boilerLimitC = ems::ActiveHeatEnvelope::limitC(monitor_);
     in.boiler = {burnerOn, flowCentiC};
-    guard_.setFlowLimits(plan.minimumFlowC, plan.maximumFlowC);
+    // HeatingController::stepActiveHeat: the learned lowest flow the boiler fires at, below the plan's maximum.
+    guard_.setFlowLimits(learner_.effectiveMinimumC(in.boilerLimitC), plan.maximumFlowC);
     const bool claimedBefore = guard_.claimsBoiler();
     const auto c = guard_.step(now_, in);
     if (c.send) lastPost_ = std::make_pair(c.flowC, now_);
@@ -1267,6 +1445,19 @@ FlowDemand::Request Chain::applyFlowPolicy(const FlowDemand::Request& rule, std:
     if (clockKnown_) in.utc = utc_;
     in.outdoorCentiC = outdoorCentiC; in.boilerLimitC = ems::ActiveHeatEnvelope::limitC(monitor_);
     in.flowCentiC = flowCentiC; in.burnerOn = burnerOn; in.hotWater = hotWater;
+    // rc.5: the learned ceiling while the E32 drives (P1), the house model's slope (P2), free heat (P3).
+    const bool ownRequest = guard_.outputActive();
+    std::optional<uint8_t> ceiling;
+#ifdef SOAK_BOILER_RESPONSE
+    ceiling = boilerResponse_.ceilingC(outdoorCentiC);
+    soak_detect::ceiling(in, ownRequest, ceiling);
+#endif
+#ifdef SOAK_HOUSE_MODEL
+    soak_detect::houseSlope(in, house_.slope());
+#endif
+#ifdef SOAK_FREE_HEAT
+    soak_detect::freeHeat(in, &freeHeat_);
+#endif
     const auto applied = policy_.apply(in, learner_);
     if (!o_.flowOptions)
         EXPECT(applied.heat == rule.heat && applied.flowC == rule.flowC && applied.reason == rule.reason && applied.capped == rule.capped, "flow_policy_off_differs",
@@ -1285,6 +1476,16 @@ FlowDemand::Request Chain::applyFlowPolicy(const FlowDemand::Request& rule, std:
                in.boilerLimitC ? std::to_string(*in.boilerLimitC).c_str() : "unknown");
         if (applied.flowC != rule.flowC || !rule.heat) count("flow_policy_changed_steps");
     } else EXPECT(applied.flowC == 0, "flow_policy_off_nonzero", "no heat but %u", applied.flowC);
+    // rc.5 (P1): once a ceiling is learned for this outdoor band, nothing the E32 asks while it drives
+    // the boiler goes above it (rule, curve, learned flow and optimum start alike), except that the
+    // plan's minimum (or a lower boiler limit) always stays: FlowPolicy caps want at max(ceiling, lo).
+    if (soak_detect::CeilingInput<FlowPolicy::Inputs>::value && ceiling && ownRequest && policy_.settings().applyLearned && applied.heat) {
+        const uint8_t bound = std::max<uint8_t>(*ceiling, std::min(plan.minimumFlowC, cap));
+        count("boiler_ceiling_steps");
+        if (rule.heat && rule.flowC > bound) count("boiler_ceiling_below_rule_steps");
+        EXPECT(applied.flowC <= bound, "boiler_request_above_ceiling", "applied %u (%s) above the learned ceiling %u (bound %u, rule %u, outdoor %s)",
+               applied.flowC, FlowPolicy::name(policy_.source()), *ceiling, bound, rule.flowC, outdoorCentiC ? std::to_string(*outdoorCentiC).c_str() : "unknown");
+    }
     return applied;
 }
 
@@ -1411,6 +1612,7 @@ void Chain::checkDay() {
         }
     }
     prevCompleted_ = completed;
+    checkRc5Daily();
     // Heap: sampled once per local day after all JSON was freed.
     EXPECT(cjLive == 0, "cjson_leak", "%ld cJSON blocks live at midnight", long(cjLive));
     // The harness's own per-day oracles are pruned first, so only the modules can grow.
@@ -1515,7 +1717,257 @@ LearnedContext Chain::learnedContext(std::array<std::optional<int16_t>, RoomPlan
     if (clockKnown_) c.utc = utc_;
     c.temperatures = temperatures.data();
     c.outdoorCentiC = outdoor.centiC; c.outdoorSource = outdoor.source; c.now = now_;
+    c.arrival = &policy_.arrival(); // rc.4 (L2): plan.arrival in heating_learned/<id>, as HeatingController::learnedContext
+#ifdef SOAK_FREE_HEAT
+    soak_detect::freeHeat(c, &freeHeat_); // rc.5 (P3): "free_heat" in heating_learned/<id>
+#endif
     return c;
+}
+
+// ----------------------------------------------------------------------------
+// rc.5 (RC5-PLAN.md 2.1-2.4): BoilerResponse (P1), HouseModel (P2) and FreeHeat (P3), wired as the
+// plan describes HeatingController's wiring, and their invariants. Each part compiles out until its
+// module exists; the hooks the contract leaves open are detected (soak_detect).
+// ----------------------------------------------------------------------------
+// HeatingController::effectiveTuning (P1): the boiler's own rest (BoilerResponse::restS) is a floor
+// under the burner's minimum off time unless a room is more than 0.3 degC below its target. Applied
+// in place like applyFlowSettings: RoomEngine keeps its demands, timers and integral.
+void Chain::applyRestFloor() {
+#ifdef SOAK_BOILER_RESPONSE
+    ControlTuning t; // the built-in knobs (the soak runs no AutoTuner)
+    bool cold = false;
+    for (size_t i = 0; i < engine_.plan().rooms.size(); ++i) cold = cold || (engine_.result(i).usable && engine_.result(i).errorCentiC > 30);
+    if (!soak_detect::restFloor(t, boilerResponse_.restS(), cold)) return;
+    if (t.minOffS != ControlTuning{}.minOffS) count("boiler_rest_floor_steps");
+    if (t == tuningApplied_) return;
+    EXPECT(t.minOffS >= ControlTuning{}.minOffS && t.minOffS <= std::max<uint16_t>(900, ControlTuning{}.minOffS) && (!cold || t.minOffS == ControlTuning{}.minOffS),
+           "boiler_rest_floor", "min_off_s %u (rest %s, cold %d): the floor is min(rest, 900) and never while a room is cold", t.minOffS,
+           boilerResponse_.restS() ? std::to_string(*boilerResponse_.restS()).c_str() : "none", int(cold));
+    tuningApplied_ = t;
+    engine_.setTuning(t); learner_.setTuning(t);
+    FlowSettings f = policy_.settings(); f.tuning = t; policy_.setSettings(f);
+#endif
+}
+
+void Chain::stepRc5(const FlowDemand::Request& request, std::optional<int16_t> outdoorCentiC, std::optional<int16_t> flowCentiC,
+                    std::optional<int16_t> returnCentiC, std::optional<bool> burnerOn, std::optional<bool> hotWater,
+                    std::optional<uint8_t> modulationPct, std::optional<uint8_t> tadoFlowC) {
+    const auto& plan = engine_.plan();
+    (void)request; (void)outdoorCentiC; (void)flowCentiC; (void)returnCentiC; (void)burnerOn; (void)hotWater; (void)modulationPct; (void)tadoFlowC; (void)plan;
+#ifdef SOAK_BOILER_RESPONSE
+    {   // HeatingController::stepHeating: the EMS view, the guard's command as the request, the rooms' mean.
+        BoilerResponse::Sample s;
+        s.now = now_;
+        if (clockKnown_) s.utc = utc_;
+        s.requestC = guard_.command().flowC; s.ownRequest = guard_.outputActive();
+        int32_t sum = 0, n = 0;
+        bool demand = false;
+        for (size_t i = 0; i < plan.rooms.size(); ++i) {
+            const auto& r = engine_.result(i);
+            demand = demand || (r.usable && engine_.demand(i));
+            if (r.status == RoomDemand::Status::inactive) continue;
+            if (const auto t = engine_.freshTemperature(i, now_)) { sum += *t; ++n; }
+        }
+        s.demand = demand;
+        if (n) s.roomMeanCentiC = int16_t(sum / n);
+        s.flowCentiC = flowCentiC; s.returnCentiC = returnCentiC; s.outdoorCentiC = outdoorCentiC;
+        s.burnerOn = burnerOn; s.hotWater = hotWater; s.modulationPct = modulationPct;
+        s.nominalKw = learner_.nominalKw(); s.kwhPerM3 = learner_.params().kwhPerM3;
+        boilerResponse_.sample(s);
+        const uint16_t held = boilerResponse_.heldToday();
+        boilerTotals_.held += held >= boilerTotals_.lastHeld ? uint64_t(held - boilerTotals_.lastHeld) : held; // a new day starts at 0
+        boilerTotals_.lastHeld = held;
+        const char* state = boilerResponse_.state();
+        EXPECT(state && (!std::strcmp(state, "collecting") || !std::strcmp(state, "learned") || !std::strcmp(state, "no_return") || !std::strcmp(state, "not_driving")),
+               "boiler_response_state", "state %s", state ? state : "(null)");
+        if (const auto rest = boilerResponse_.restS()) EXPECT(*rest >= 60 && *rest <= 1800, "boiler_response_rest", "rest %u s outside the counted 60..1800 s", *rest);
+        const auto absorbed = boilerResponse_.absorbedKw();
+        const auto perK = boilerResponse_.kwPerFlowK();
+        if (absorbed) EXPECT(std::isfinite(*absorbed) && *absorbed >= 0 && *absorbed <= 100, "boiler_response_absorbed", "absorbed %f kW", double(*absorbed));
+        if (perK) EXPECT(std::isfinite(*perK) && *perK > 0 && *perK <= 100, "boiler_response_kw_per_k", "kW per K %f", double(*perK));
+        // Without the return nothing is absorbed or learned per K, and nothing else degrades.
+        if (o_.noReturn) EXPECT(!absorbed && !perK, "boiler_response_no_return", "absorbed %s, kW per K %s without a return",
+                                absorbed ? std::to_string(*absorbed).c_str() : "none", perK ? std::to_string(*perK).c_str() : "none");
+        for (int16_t band = -750; band <= 1750; band += 500)
+            if (const auto c = boilerResponse_.ceilingC(band)) EXPECT(*c >= 20 && *c <= FlowDemand::ceilingC, "boiler_response_ceiling_range", "ceiling %u at %d", *c, band);
+    }
+#endif
+#ifdef SOAK_FREE_HEAT
+    {   // No heat reached a room: the burner off for heating (or on for hot water) and no heat asked (the
+        // E32's command while it drives, else the controlling thermostat's 0x1A).
+        const bool asked = guard_.outputActive() ? guard_.command().flowC > 0 : tadoFlowC && *tadoFlowC >= ShadowComparison::tadoHeatFromC;
+        const bool delivered = (burnerOn.value_or(false) && !hotWater.value_or(false)) || asked;
+        std::array<FreeHeat::RoomSample, RoomPlan::maxRooms> rooms{};
+        for (size_t i = 0; i < plan.rooms.size() && i < rooms.size(); ++i) {
+            rooms[i].temperatureCentiC = engine_.freshTemperature(i, now_);
+            rooms[i].heatDelivered = delivered;
+        }
+        freeHeat_.sample(now_, clockKnown_ ? std::optional<int64_t>(utc_) : std::nullopt, outdoorCentiC, rooms.data(), plan.rooms.size());
+    }
+#endif
+#ifdef SOAK_HOUSE_MODEL
+    if (clockKnown_) { // HeatingController::stepScoreboard, then HouseModel once an hour and at the day change
+        const uint32_t dtS = boardLastMs_ && now_ > boardLastMs_ ? uint32_t(std::min<uint64_t>(now_ - boardLastMs_, 60000) / 1000) : 0;
+        boardLastMs_ = now_;
+        board_.step(utc_, dtS, outdoorCentiC, learner_.gas().heatingKwh());
+        for (ArrivalLearner::Event ev; policy_.arrival().pop(ev);) board_.arrival(ev.room, ev.atUtc, ev.errorMin);
+        const int64_t hour = utc_ / 3600;
+        const int32_t day = RoomSchedule::localDay(utc_);
+        if (hour != houseHour_ || day != houseDay_) {
+            houseHour_ = hour; houseDay_ = day;
+            HouseModel::Inputs in;
+            in.learner = &learner_; in.board = &board_; in.plan = &plan;
+#ifdef SOAK_BOILER_RESPONSE
+            in.kwPerFlowK = boilerResponse_.kwPerFlowK();
+#endif
+            house_.update(in);
+            const char* state = house_.state();
+            EXPECT(state && (!std::strcmp(state, "collecting") || !std::strcmp(state, "learned")), "house_model_state", "state %s", state ? state : "(null)");
+            if (const auto s = house_.slope()) EXPECT(std::isfinite(*s) && *s >= WeatherCurve::minSlope && *s <= WeatherCurve::maxSlope, "house_model_slope", "slope %f", double(*s));
+            if (const auto ua = house_.uaKwPerK()) EXPECT(std::isfinite(*ua) && *ua > 0 && *ua < 100, "house_model_ua", "UA %f kW/K", double(*ua));
+            if (const auto k = house_.kwPerFlowK()) EXPECT(std::isfinite(*k) && *k > 0 && *k < 100, "house_model_kw_per_k", "emitters %f kW/K", double(*k));
+        }
+    }
+#endif
+}
+
+// Once an hour: what FreeHeat lets the optimum start do (never below half the lead) and its rates.
+void Chain::checkRc5Hourly(std::optional<int16_t> outdoorCentiC) {
+    (void)outdoorCentiC;
+#ifdef SOAK_FREE_HEAT
+    if (!clockKnown_) return;
+    const auto& plan = engine_.plan();
+    for (size_t i = 0; i < plan.rooms.size(); ++i) {
+        for (int hour = 0; hour < 24; ++hour)
+            if (const auto rate = freeHeat_.rateKPerH(i, hour)) {
+                EXPECT(std::isfinite(*rate) && *rate >= 0, "free_heat_rate", "%s %02d h: %f K/h", plan.rooms[i].id.c_str(), hour, double(*rate));
+                auto& top = counters[ctx.scenario + ":free_heat_rate_max_mk_per_h"];
+                top = std::max<uint64_t>(top, std::isfinite(*rate) && *rate > 0 ? uint64_t(*rate * 1000) : 0);
+            }
+        if (plan.rooms[i].schedule.empty()) continue;
+        const auto start = WarmupPlanner::optimumStart(learner_, i, plan.rooms[i].schedule, utc_, engine_.freshTemperature(i, now_), outdoorCentiC, policy_.arrival().lead(i));
+        if (start.reason[0] != 'p' || !start.leadS) continue;
+        const int riseHour = RoomSchedule::localAt(start.rise.atUtc).minute / 60;
+        const float implied = float(std::max(0, start.rise.toCentiC - start.startTemperatureCentiC)) / 100.0f / (float(start.leadS) / 3600.0f);
+        for (const float warm : {implied, 0.0f, 0.01f, 0.5f, 5.0f})
+            for (const int hour : {riseHour, (riseHour + 12) % 24}) {
+                const uint32_t lead = freeHeat_.shortenLeadS(i, hour, start.leadS, warm);
+                EXPECT(lead <= start.leadS && uint64_t(lead) * 2 + 2 >= start.leadS, "free_heat_lead_below_half",
+                       "%s: lead %u s shortened to %u s (warm-up %.2f K/h, %02d h)", plan.rooms[i].id.c_str(), start.leadS, lead, double(warm), hour);
+                if (lead < start.leadS && warm == implied && hour == riseHour) count("free_heat_shortened_plans");
+            }
+    }
+#endif
+}
+
+// Once a local day: the learned state of P1 and P3 survives a restart (LearnedState frames 'B' and 'F').
+void Chain::checkRc5Daily() {
+#ifdef SOAK_BOILER_RESPONSE
+    if (const auto s = boilerResponse_.stored(); !s.empty()) {
+        EXPECT(s.size() <= boilerStoredMaxBytes, "boiler_response_stored_size", "%zu B > %zu B", s.size(), boilerStoredMaxBytes);
+        BoilerResponse back;
+        EXPECT(back.restore(s) && back.stored() == s, "boiler_response_stored_roundtrip", "the stored state does not restore to itself (%zu B)", s.size());
+    }
+#endif
+#ifdef SOAK_FREE_HEAT
+    if (const auto s = freeHeat_.stored(); !s.empty()) {
+        EXPECT(s.size() <= freeHeatStoredMaxBytes, "free_heat_stored_size", "%zu B > %zu B", s.size(), freeHeatStoredMaxBytes);
+        FreeHeat back;
+        EXPECT(back.restore(s, engine_.plan()) && back.stored() == s, "free_heat_stored_roundtrip", "the stored state does not restore to itself (%zu B)", s.size());
+    }
+#endif
+}
+
+// fw/telemetry/flow as TelemetryPublisher::summary() splits it off the summary document: "flow" and
+// "night_gas" (and P1's "boiler", wherever HeatingController puts it) with a schema.
+std::string Chain::flowTopicPayload(const std::string& summary) const {
+    std::unique_ptr<cJSON, decltype(&cJSON_Delete)> doc(parseBack(summary), cJSON_Delete), flow(cJSON_CreateObject(), cJSON_Delete);
+    if (!doc || !flow || !cJSON_AddNumberToObject(flow.get(), "schema", 1)) return {};
+    for (const char* key : {"flow", "night_gas", "boiler"})
+        if (cJSON* part = cJSON_DetachItemFromObjectCaseSensitive(doc.get(), key); part && !cJSON_AddItemToObject(flow.get(), key, part)) {
+            cJSON_Delete(part); // the key copy failed: the detached part is still ours (TelemetryPublisher::summary() leaks it here)
+            return {};
+        }
+#ifdef SOAK_BOILER_RESPONSE
+    if (!cJSON_GetObjectItemCaseSensitive(flow.get(), "boiler") && !cJSON_GetObjectItemCaseSensitive(cJSON_GetObjectItemCaseSensitive(flow.get(), "flow"), "boiler")
+        && !boilerResponse_.addJson(flow.get())) return {};
+#endif
+    return printed(flow.get());
+}
+
+// fw/telemetry/insight (P2): {"knowledge":..,"house":..,"boiler":..,"insights":[..]}. Built here from the
+// parts whose builders the contract names (HouseModel::addJson, BoilerResponse::addJson); the
+// knowledge figure and the insights items come with P2's own builder (the integrator adds it here).
+#if defined(SOAK_BOILER_RESPONSE) || defined(SOAK_HOUSE_MODEL)
+std::string Chain::insightTopicPayload() const {
+    std::unique_ptr<cJSON, decltype(&cJSON_Delete)> doc(cJSON_CreateObject(), cJSON_Delete);
+    if (!doc || !cJSON_AddNumberToObject(doc.get(), "schema", 1)) return {};
+#ifdef SOAK_HOUSE_MODEL
+    if (!house_.addJson(doc.get())) return {};
+#endif
+#ifdef SOAK_BOILER_RESPONSE
+    if (!boilerResponse_.addJson(doc.get())) return {};
+#endif
+    return printed(doc.get());
+}
+#endif
+
+void Chain::finishRc5() {
+#ifdef SOAK_BOILER_RESPONSE
+    {
+        std::string bands;
+        for (int16_t band = -750; band <= 1750; band += 500) {
+            const auto c = boilerResponse_.ceilingC(band);
+            bands += (bands.empty() ? "" : " ") + std::to_string(band / 100) + ":" + (c ? std::to_string(*c) : std::string("-"));
+        }
+        const auto rest = boilerResponse_.restS();
+        const auto absorbed = boilerResponse_.absorbedKw();
+        const auto perK = boilerResponse_.kwPerFlowK();
+        observe("boiler_response", std::string(boilerResponse_.state()) + ", " + std::to_string(boilerTotals_.held) + " held events, rest " + (rest ? std::to_string(*rest) + " s" : "-")
+                + ", absorbed " + (absorbed ? std::to_string(*absorbed) : "-") + " kW, " + (perK ? std::to_string(*perK) : "-") + " kW/K, ceiling by outdoor band " + bands);
+        counters[ctx.scenario + ":boiler_response_held_events"] = boilerTotals_.held;
+        // Liveness: a boiler that held the E32's target again and again (no hot water, settled, no
+        // warm-up) is heard at least once.
+        if (o_.holding && holdStats_.stopsDriving >= 20)
+            EXPECT(boilerTotals_.held >= 1, "boiler_response_never_heard", "the boiler held the E32's target %" PRIu64 " times (settled, no hot water, no warm-up) but no held event was counted",
+                   holdStats_.stopsDriving);
+    }
+#endif
+#ifdef SOAK_HOUSE_MODEL
+    {
+        const auto ua = house_.uaKwPerK();
+        const auto perK = house_.kwPerFlowK();
+        const auto slope = house_.slope();
+        observe("house_model", std::string(house_.state()) + ", UA " + (ua ? std::to_string(*ua) : "-") + " kW/K, emitters " + (perK ? std::to_string(*perK) : "-")
+                + " kW/K, slope " + (slope ? std::to_string(*slope) : "-"));
+    }
+#endif
+#ifdef SOAK_FREE_HEAT
+    for (size_t i = 0; i < engine_.plan().rooms.size(); ++i) {
+        std::string rates;
+        for (int part = 0; part < 6; ++part) {
+            const auto r = freeHeat_.rateKPerH(i, part * 4);
+            rates += (rates.empty() ? "" : " ") + (r ? std::to_string(*r).substr(0, 5) : std::string("-"));
+        }
+        observe("free_heat_" + engine_.plan().rooms[i].id, "K/h per 4-hour daypart from 00:00: " + rates);
+    }
+#endif
+    if (o_.holding) {
+        counters[ctx.scenario + ":boiler_0y_rest_s"] = holdStats_.restingS;
+        counters[ctx.scenario + ":boiler_0y_heating_starts"] = holdStats_.starts;
+    }
+    // A module whose header exists but whose hook in FlowPolicy/LearnedContext/RestFloor was not found.
+#ifdef SOAK_BOILER_RESPONSE
+    if (!soak_detect::CeilingInput<FlowPolicy::Inputs>::value) observe("rc5_hook_missing ceiling", "FlowPolicy::Inputs has no ownRequest/ceilingC: the ceiling invariant did not run");
+    if (!soak_detect::Complete<RestFloor>::value) observe("rc5_hook_missing rest_floor", "no RestFloor::apply: the boiler's rest is not a floor under min_off_s here");
+#endif
+#ifdef SOAK_HOUSE_MODEL
+    if (!soak_detect::HouseSlopeInput<FlowPolicy::Inputs>::value) observe("rc5_hook_missing house_slope", "FlowPolicy::Inputs has no houseSlope");
+#endif
+#ifdef SOAK_FREE_HEAT
+    if (!soak_detect::FreeHeatMember<FlowPolicy::Inputs, FreeHeat>::value) observe("rc5_hook_missing free_heat_policy", "FlowPolicy::Inputs has no freeHeat");
+    if (!soak_detect::FreeHeatMember<LearnedContext, FreeHeat>::value) observe("rc5_hook_missing free_heat_context", "LearnedContext has no freeHeat");
+#endif
 }
 
 // Replica of HeatingController::heatingStatusJson (keep in sync with src/HeatingController.h).
@@ -1603,6 +2055,24 @@ void Chain::publish(bool mqtt, bool learned, bool full) {
         const auto summary = heatingSummaryTelemetry(learner_, learnedContext(temperatures), dhwEpisodes_.summaryJson(), &policy_);
         checkPayload("mqtt_summary", summary, 1300); // the whole document; TelemetryPublisher splits it into summary, flow,
                                                  // tuning and scoreboard topics of at most 1 KB each (test_heating_telemetry.cpp)
+        // rc.5: fw/telemetry/flow with P1's "boiler" (soft limit 1 KB) and P2's fw/telemetry/insight (700 B).
+        checkPayload("mqtt_flow", flowTopicPayload(summary), flowTopicMaxBytes);
+#if defined(SOAK_BOILER_RESPONSE) || defined(SOAK_HOUSE_MODEL)
+        checkPayload("mqtt_insight", insightTopicPayload(), insightTopicMaxBytes);
+#endif
+#ifdef SOAK_BOILER_RESPONSE
+        { cJSON* o = cJSON_CreateObject(); if (o && boilerResponse_.addJson(o)) checkPayload("boiler_json", printed(o), boilerJsonMaxBytes + 2); cJSON_Delete(o); }
+#endif
+#ifdef SOAK_HOUSE_MODEL
+        { cJSON* o = cJSON_CreateObject(); if (o && house_.addJson(o)) checkPayload("house_json", printed(o), houseJsonMaxBytes + 2); cJSON_Delete(o); }
+#endif
+#ifdef SOAK_FREE_HEAT
+        for (size_t i = 0; i < engine_.plan().rooms.size(); ++i) {
+            cJSON* o = cJSON_CreateObject();
+            if (o && freeHeat_.addJson(o, i)) checkPayload("free_heat_json", printed(o), freeHeatJsonMaxBytes + 2);
+            cJSON_Delete(o);
+        }
+#endif
         // The plan and the per-module status objects.
         checkPayload("plan", engine_.plan().storedJson(), RoomPlan::storeBytes - 1);
         std::ostringstream b; cycles_.writeJSON(b, now_); checkPayload("burner_cycles", b.str(), 0);
@@ -1643,7 +2113,7 @@ void Chain::publish(bool mqtt, bool learned, bool full) {
             checkPayload("mqtt_learned_room", payload, 1000);
             // The id appears once; a 32-character id (the plan maximum) would add this much.
             const size_t worst = payload.size() + (32 - std::min<size_t>(32, engine_.plan().rooms[room].id.size()));
-            EXPECT(worst <= 1000, "mqtt_learned_room_32_char_id", "%zu B with a 32-character room id", worst);
+            EXPECT(worst <= 1000, "mqtt_learned_room_32_char_id", "%zu B with a 32-character room id: %.1100s", worst, payload.c_str());
             auto& w = counters[ctx.scenario + ":mqtt_learned_room_max_with_32_char_id"];
             w = std::max<uint64_t>(w, worst);
         });
@@ -1659,6 +2129,7 @@ void Chain::publish(bool mqtt, bool learned, bool full) {
         cJSON* plan = engine_.plan().rooms.empty() ? nullptr : engine_.plan().rooms[0].schedule.json();
         if (plan) { checkPayload("schedule", printed(plan), 0); cJSON_Delete(plan); }
         checkWarmup();
+        checkRc5Hourly(clockKnown_ ? std::optional<int16_t>(int16_t(outdoor_ * 100)) : std::nullopt);
     }
     EXPECT(cjLive == before, "cjson_leak_publish", "%ld cJSON blocks leaked by one publish", long(cjLive - before));
 }
@@ -1672,7 +2143,16 @@ void Chain::oomSweep() {
     const auto context = learnedContext(temperatures);
     const auto planText = engine_.plan().json();
     struct Builder { const char* name; std::function<std::string()> build; };
-    const std::vector<Builder> builders = {
+    // rc.5: an addJson(parent) of P1-P3 under a parent this builder owns (no parent: nothing to add to).
+    const auto part = [](const std::function<bool(cJSON*)>& add) {
+        cJSON* o = cJSON_CreateObject();
+        std::string t = o && add(o) ? printed(o) : std::string();
+        if (o && t.empty()) t = printed(o); // a failed add must still leave valid JSON behind
+        cJSON_Delete(o);
+        return t;
+    };
+    (void)part;
+    std::vector<Builder> builders = {
         {"room_engine_json", [&] { cJSON* o = engine_.json(); auto t = printed(o); cJSON_Delete(o); return t; }},
         {"shadow_json", [&] { cJSON* o = shadow_.json(); auto t = printed(o); cJSON_Delete(o); return t; }},
         {"guard_json", [&] { cJSON* o = guard_.json(now_); auto t = printed(o); cJSON_Delete(o); return t; }},
@@ -1687,7 +2167,20 @@ void Chain::oomSweep() {
         {"status_full", [&] { cJSON* o = heatingStatusJson(false); auto t = printed(o); cJSON_Delete(o); return t; }},
         {"plan_parse", [&] { cJSON* o = parseBack(planText); RoomPlan p; const char* e = o ? RoomPlan::parse(o, p) : "x"; cJSON_Delete(o); return std::string(e ? "" : "{}"); }},
         {"heating_input_parse", [&] { const auto in = HeatingInput::parse(R"({"entity":"climate.woonkamer","temperature":20.4,"target":21.0})"); return std::string(in ? "{}" : ""); }},
+        {"flow_topic", [&] { return flowTopicPayload(heatingSummaryTelemetry(learner_, context, dhwEpisodes_.summaryJson(), &policy_)); }},
     };
+#ifdef SOAK_BOILER_RESPONSE
+    builders.push_back({"boiler_response_json", [&] { return part([&](cJSON* o) { return boilerResponse_.addJson(o); }); }});
+#endif
+#ifdef SOAK_HOUSE_MODEL
+    builders.push_back({"house_model_json", [&] { return part([&](cJSON* o) { return house_.addJson(o); }); }});
+#endif
+#ifdef SOAK_FREE_HEAT
+    builders.push_back({"free_heat_json", [&] { return part([&](cJSON* o) { return freeHeat_.addJson(o, 0); }); }});
+#endif
+#if defined(SOAK_BOILER_RESPONSE) || defined(SOAK_HOUSE_MODEL)
+    builders.push_back({"insight_topic", [&] { return insightTopicPayload(); }});
+#endif
     for (const auto& b : builders) {
         cjCalls = 0; cjFailAt = 0;
         const long live0 = cjLive;
@@ -1837,6 +2330,7 @@ void Chain::finish() {
         if (m.lossPerHour || m.capacityKwhPerK)
             observe("heat_model_" + engine_.plan().rooms[i].id, "loss " + std::to_string(m.lossPerHour.value_or(-1)) + "/h capacity " + std::to_string(m.capacityKwhPerK.value_or(-1)) + " kWh/K");
     }
+    finishRc5();
     if (o_.oom) oomSweep();
 }
 
@@ -1849,7 +2343,7 @@ int Chain::run() {
     setupBle();
     setupPlan();
     nextEdit_ = now_ + 3600000;
-    nextPhase_ = now_ + uint64_t(uniformInt(3, 6)) * 86400000;
+    nextPhase_ = o_.activeFromH >= 0 ? now_ + uint64_t(o_.activeFromH * 3600000.0) : now_ + uint64_t(uniformInt(3, 6)) * 86400000;
     const uint64_t steps = uint64_t(o_.days * 86400000.0 / o_.stepMs);
     const auto t0 = std::chrono::steady_clock::now();
     for (uint64_t i = 0; i < steps; ++i) {
@@ -2789,7 +3283,26 @@ void reproScenario() {
 void usage() {
     std::fprintf(stderr, "soak --scenario=chain|guard|active|flow|supervisor|sizes|repro|slowwifi [--name=] [--tz=POSIX] [--start=YYYY-MM-DDTHH:MM:SSZ] [--days=60]\n"
                          "     [--uptime0=ms] [--seed=n] [--step-ms=10000] [--mqtt-s=300] [--learned-s=900] [--full-s=3600] [--edit-h=4]\n"
-                         "     [--live-dhw-flow] [--boiler-outdoor] [--no-oom] [--no-active] [--flow-options] [--out=/tmp/soak]\n");
+                         "     [--live-dhw-flow] [--boiler-outdoor] [--no-oom] [--no-active] [--flow-options] [--out=/tmp/soak]\n"
+                         "     [--profile=store|no_return|holding|radiators_only|floor_only|gains[,...]] [--active-from-h=H]\n");
+}
+
+// --profile=a,b: the boiler and emitter profile of the chain (README "Boiler profiles").
+bool parseProfile(const std::string& list) {
+    std::stringstream ss(list);
+    std::string p;
+    while (std::getline(ss, p, ',')) {
+        if (p == "store") continue; // the default: the hot-water store kept warm, return reported, mixed emitters
+        else if (p == "no_return") opt.noReturn = true;
+        else if (p == "holding") opt.holding = true;
+        else if (p == "radiators_only") opt.radiatorsOnly = true;
+        else if (p == "floor_only") opt.floorOnly = true;
+        else if (p == "gains") opt.gains = true;
+        else { std::fprintf(stderr, "unknown profile %s\n", p.c_str()); return false; }
+    }
+    if (opt.radiatorsOnly && opt.floorOnly) { std::fprintf(stderr, "radiators_only and floor_only exclude each other\n"); return false; }
+    opt.profile = list;
+    return true;
 }
 
 } // namespace
@@ -2816,6 +3329,8 @@ int main(int argc, char** argv) {
         else if (a == "--no-oom") opt.oom = false;
         else if (a == "--no-active") opt.activePhases = false;
         else if (a == "--flow-options") opt.flowOptions = true;
+        else if (const char* v = value("--profile=")) { if (!parseProfile(v)) { usage(); return 2; } }
+        else if (const char* v = value("--active-from-h=")) opt.activeFromH = std::atof(v);
         else { usage(); return 2; }
     }
     if (opt.stepMs < 1000 || opt.stepMs % 1000 || opt.stepMs > 30000) { std::fprintf(stderr, "--step-ms must be whole seconds in 1..30 s\n"); return 2; }
@@ -2825,8 +3340,20 @@ int main(int argc, char** argv) {
     setTz(opt.tz);
     ctx.scenario = opt.name.empty() ? opt.scenario : opt.name;
     ctx.startUtc = ctx.utc = opt.startUtc;
-    std::printf("soak %s: scenario %s, TZ %s, start %s (%s), %.1f days, step %u ms, uptime0 %" PRIu64 " ms, seed %" PRIu64 "\n", ctx.scenario.c_str(), opt.scenario.c_str(),
-                opt.tz.c_str(), isoUtc(opt.startUtc).c_str(), isoLocal(opt.startUtc).c_str(), opt.days, opt.stepMs, opt.uptime0, opt.seed);
+    std::printf("soak %s: scenario %s, TZ %s, start %s (%s), %.1f days, step %u ms, uptime0 %" PRIu64 " ms, seed %" PRIu64 ", profile %s\n", ctx.scenario.c_str(), opt.scenario.c_str(),
+                opt.tz.c_str(), isoUtc(opt.startUtc).c_str(), isoLocal(opt.startUtc).c_str(), opt.days, opt.stepMs, opt.uptime0, opt.seed, opt.profile.c_str());
+    // rc.5: which learners of P1-P3 this build wires (their headers exist) and which of their hooks it found.
+    const char *boilerModule = "off", *houseModule = "off", *freeHeatModule = "off";
+#ifdef SOAK_BOILER_RESPONSE
+    boilerModule = soak_detect::CeilingInput<FlowPolicy::Inputs>::value ? "on (ceiling in FlowPolicy)" : "on (no ceiling in FlowPolicy)";
+#endif
+#ifdef SOAK_HOUSE_MODEL
+    houseModule = soak_detect::HouseSlopeInput<FlowPolicy::Inputs>::value ? "on (slope in FlowPolicy)" : "on (no slope in FlowPolicy)";
+#endif
+#ifdef SOAK_FREE_HEAT
+    freeHeatModule = soak_detect::FreeHeatMember<FlowPolicy::Inputs, FreeHeat>::value ? "on (in FlowPolicy)" : "on (not in FlowPolicy)";
+#endif
+    std::printf("rc5 modules: boiler_response %s, house_model %s, free_heat %s\n", boilerModule, houseModule, freeHeatModule);
     const auto t0 = std::chrono::steady_clock::now();
     if (opt.scenario == "chain") { Chain chain(opt); chain.run(); }
     else if (opt.scenario == "guard") guardScenario();

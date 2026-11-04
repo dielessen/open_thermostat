@@ -20,8 +20,9 @@ Assistant 2026.10.0 or newer.
   41 °C now, so it starts less often."
 - **Yesterday compared with usual:** one notification per insight ("Yesterday
   used 35 % more gas per degree of cold than usual", with what can cause it)
-  and the same list under **Noticed** on the Learning and settings tab. It is information, not a
-  Repair: dismiss it and it stays dismissed until the insight changes.
+  and the same list under **Noticed** on the Learning and settings tab. It is
+  information, not a Repair: dismiss it and it stays dismissed until the
+  insight changes.
 - **Water temperature by outdoor temperature:** a new chart card on the
   Learning and settings tab, with the standard line (dashed), the line learned
   for your house (solid), the point of now and the value at −10 °C. You can

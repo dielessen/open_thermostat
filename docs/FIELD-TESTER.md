@@ -240,7 +240,8 @@ first two weeks.
   [what the E32 knows](USER-GUIDE.md#what-the-e32-knows-and-what-it-still-lacks).
 - **Your boiler.** The sentence about your boiler ("Your boiler rests about
   6 min each time it reaches its temperature; the E32 asks at most 41 °C now,
-  so it starts less often") and the state of the sensor **Boiler response**.
+  so it starts less often"; in Home Assistant under **Your boiler** on the
+  **Learning and settings** tab) and the state of the sensor **Boiler response**.
   It only listens once the E32 controls the boiler. Does the ceiling it names
   make sense for your boiler, and do the burner starts per heating hour on the
   **Yesterday** block go down over the days? The ceiling holds near the target
@@ -251,14 +252,16 @@ first two weeks.
   does not)? See
   [listening to the boiler](USER-GUIDE.md#listening-to-the-boiler).
 - **Yesterday compared with usual.** From the fifth day: a plain sentence when
-  a day stood out, with what can cause it. Was the cause something you know (a
+  a day stood out, with what can cause it (in Home Assistant under **Noticed**
+  on the **Learning and settings** tab). Was the cause something you know (a
   window left open, a guest, sun)? It is information only; a sentence that is
   plainly wrong is worth a report.
 - **Free heat.** On a sunny day, a room's learned details may say "In the
   afternoon this room warms up by itself, about 0.4 °C per hour". The E32 page
-  always shows it; Home Assistant shows it under **Free heat** on the **Learning
-  and settings** tab when the E32's report for that room has room for it. Does it match the room, and is the room still warm on time
-  on those days?
+  always shows it; Home Assistant shows it under **Free heat** on the
+  **Learning and settings** tab when the E32's report for that room has room
+  for it. Does it match the room, and is the room still warm on time on those
+  days?
 - **The chart.** **Water temperature by outdoor temperature** on the E32
   **Home** page (under **Heating settings**) and in Home Assistant on the
   **Learning and settings** tab. Is the line learned for your house below the

@@ -166,15 +166,16 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
   6. **Free heat**: per room the warmth it gets from sun, cooking and people
      without the boiler, once the E32 has seen it often enough, and what
      Smart warm-up does with it.
-  7. **Smart warm-up and Weather compensation**: the two switches, the water
+  7. **Smart warm-up and weather compensation**: the two switches, the water
      temperature in hard frost, what sets the water temperature now, and the
      links to the room editor and the week program.
 
   After them come **What the thermostat has learned** (how far each room is,
   your house and your boiler, what the E32 changed by itself, and how it
   learns) and **Who controls the boiler** (the burner as information and the
-  check before the E32 takes over). On a phone the sections stand under each
-  other in this order; on a wide screen they stand in columns.
+  check before the E32 takes over). Each part shows only once it has something
+  to say (E32 rc.5). On a phone the sections stand under each other in this
+  order; on a wide screen they stand in two columns.
 - **Diagnostics**: the E32 itself, **Thermostat on the bus** (what a
   thermostat on the boiler bus asks, as the E32 hears it; mostly of use in the
   trial run), the energy and hot water counters, the raw boiler data and the
@@ -1157,9 +1158,9 @@ the boiler is still listening but the heat per °C is already known, the sentenc
 says that figure instead: "Your boiler has not held a water temperature by
 itself yet; every degree the water is warmer than the rooms gives your house
 about 0.3 kW. The E32 keeps listening."
-Home Assistant shows the same sentence under **Your boiler** on the **Learning
-and settings** tab and has the sensor **Boiler response** on the E32 device. Its
-state is:
+Home Assistant shows the same sentence on the **Learning and settings** tab,
+under **Your boiler**, and has the sensor **Boiler response** on the E32 device.
+Its state is:
 
 | State | Meaning |
 | --- | --- |
@@ -1221,8 +1222,8 @@ Repair, and you do not need to do anything.
 On the E32 you find the sentences on the **Home** page under **What the
 thermostat has learned**, under **Yesterday compared with usual**. In Home
 Assistant each one is a notification (dismiss it and it stays dismissed until
-the sentence changes) and the section **Noticed** on the **Learning and
-settings** tab lists them.
+the sentence changes) and the list is on the **Learning and settings** tab,
+under **Noticed**.
 
 ### Free heat from sun, cooking and people
 
@@ -1247,9 +1248,9 @@ The room's learned details say it in words, for example "In the afternoon this
 room warms up by itself, about 0.4 °C per hour (sun, cooking or people)" and,
 when it changes a start, "Smart warm-up now starts 20 min later for it, so it
 does not heat what comes for free." The E32 **Home** page always shows them,
-under **What the thermostat has learned**. Home Assistant shows them under
-**Free heat** on the **Learning and settings** tab, when the E32's report for
-that room has room for them.
+under **What the thermostat has learned**. Home Assistant shows them, per room
+under **Free heat** on the **Learning and settings** tab, when the E32's report
+for that room has room for them.
 
 ### The heating-curve chart
 
@@ -1269,9 +1270,10 @@ values** lists the same as a table. With Weather compensation switched off the
 chart shows what it would ask.
 
 On the E32 it is on the **Home** page under **Heating settings**, in the water
-temperature block. In Home Assistant it is a card on the **Learning and
-settings** tab, which you can also add to a dashboard of your own
-(`custom:openthermostat-heating-curve`).
+temperature block. In Home Assistant it has its own part on the **Learning and
+settings** tab, and you can add the card to a dashboard of your own
+(`custom:openthermostat-heating-curve`; `show_name: false` leaves out its
+title).
 
 ### Gas for heating, hot water and keeping warm
 

@@ -2673,7 +2673,16 @@
               "legend_heating": "Verwarmen",
               "legend_hot_water": "Warm water",
               "legend_keep_warm": "Warmhouden",
-              "waiting": "De E32 heeft nog niets gemeld."
+              "waiting": "De E32 heeft nog niets gemeld.",
+              "now": "nu",
+              "warm": "{room} warm",
+              "early": "{m} min te vroeg",
+              "late": "{m} min te laat",
+              "on_time": "op tijd",
+              "degree_days": "Graaddagen",
+              "target": "doel {t} °C",
+              "per_day": "{n} dagen: {value} per dag",
+              "today_since": "Vandaag sinds middernacht"
             }
           }
         }

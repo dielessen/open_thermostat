@@ -1,4 +1,4 @@
-# HA 1.0.0rc6 — the companion of E32 rc.5: what the E32 knows, in Home Assistant
+# HA 1.0.0rc6 — the companion of E32 rc.5: what the E32 knows, and a redesigned dashboard
 <!-- user-release-notes:v2:en -->
 
 Companion release for the E32 1.0.0-rc.5 (install both). Needs Home

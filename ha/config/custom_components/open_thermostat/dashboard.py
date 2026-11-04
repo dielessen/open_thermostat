@@ -169,12 +169,6 @@ ICONS = {"flow": "mdi:thermometer-chevron-up", "return": "mdi:thermometer-chevro
 # The sketch's coloured icons in a markdown line (_icon), in the colours of Home Assistant's default theme: heating
 # (--state-climate-heat-color, deep orange), information (--info-color) and the sun (--amber-color).
 ICON_COLOURS = {"heating": "#ff6f22", "insight": "#039be5", "free_heat": "#ffc107"}
-# What the boiler does now (hub boiler_activity, heating_link.BOILER_ACTIVITIES) as one tile of three: its icon
-# (ICONS), its theme colour and the activities it stands for; exactly one shows at a time.
-ACTIVITY_TILES = (("heating", "deep-orange", ["heating"]),
-                  ("hot_water", "blue", ["tapping", "keep_warm", "charging", "hot_water"]),
-                  ("boiler", "grey", ["idle"]))
-
 TEXT = {
     "en": {
         "heating": "Heating", "boiler_view": "Boiler", "diagnostics": "Diagnostics",

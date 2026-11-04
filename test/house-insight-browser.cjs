@@ -55,7 +55,7 @@ const WORDS={
   free:'\'s Middags warmt deze ruimte vanzelf op, ongeveer 0,4 °C per uur (zon, koken of mensen). Slim opwarmen begint daardoor nu 12 min later, zodat hij niet verwarmt wat gratis komt.',
   house:'Weerafhankelijke regeling, geschat uit je huis: het water wordt ongeveer 0,71 °C warmer voor elke graad kouder buiten.',
   curveState:'Weerafhankelijke regeling: voorlopig geschat uit je huis, hij leert nog bij (2 van 6 rustige periodes).',
-  ceiling:['Vraagt hooguit (geleerd van je ketel)','48 °C'],learnedRow:['Geleerde watertemperatuur','Begrensd door je ketel · 52 °C'],
+  ceiling:['Vraagt hoogstens (geleerd van je ketel)','48 °C'],learnedRow:['Geleerde watertemperatuur','Begrensd door je ketel · 52 °C'],
   done:'Hij heeft alles geleerd wat hij nodig heeft; hij blijft het controleren als de seizoenen wisselen.',
   noReturn:'Je ketel meldt het terugkomende water niet, dus de E32 kan niet zien hoeveel warmte je huis opneemt; hij leert wel hoe je ketel zijn temperatuur vasthoudt.'}};
 const texts=list=>list.evaluateAll(l=>l.map(e=>e.textContent.replace(/\s+/g,' ').trim()));

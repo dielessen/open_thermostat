@@ -50,7 +50,7 @@ window.OT_UI_PAGE_MESSAGES = {
   "Weather compensation, estimated from your house: the water gets about {s} °C warmer for every degree colder outside.": "Weerafhankelijke regeling, geschat uit je huis: het water wordt ongeveer {s} °C warmer voor elke graad kouder buiten.",
   "Estimated from how your house loses heat": "Geschat uit hoe je huis warmte verliest",
   "Limited by your boiler": "Begrensd door je ketel",
-  "Asks at most (learned from your boiler)": "Vraagt hooguit (geleerd van je ketel)",
+  "Asks at most (learned from your boiler)": "Vraagt hoogstens (geleerd van je ketel)",
   "Water temperature by outdoor temperature": "Watertemperatuur bij buitentemperatuur",
   "The colder it is outside, the warmer the water. The E32 learns the line for your house and keeps it as low as it can.": "Hoe kouder het buiten is, hoe warmer het water. De E32 leert de lijn voor je huis en houdt die zo laag als hij kan.",
   "Weather compensation is off; the lines show what it would ask.": "De weerafhankelijke regeling staat uit; de lijnen tonen wat hij zou vragen.",

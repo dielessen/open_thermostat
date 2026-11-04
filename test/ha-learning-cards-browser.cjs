@@ -22,7 +22,13 @@ const MISSING={en:['It still has to see how fast Slaapkamer warms up.','It still
  'Hij moet nog nagaan of Slaapkamer op tijd warm is.','Hij luistert nog hoe je ketel zijn temperatuur vasthoudt.'],
  pl:['Musi jeszcze zobaczyć, jak szybko nagrzewa się pomieszczenie Slaapkamer.','Musi jeszcze sprawdzić, czy pomieszczenie Slaapkamer jest ciepłe na czas.',
  'Wciąż wsłuchuje się, jak Twój kocioł utrzymuje swoją temperaturę.']};
+// The words of these cells that the layout broke over two lines.
+const splitWords=cells=>cells.flatMap(cell=>[...cell.childNodes].filter(n=>n.nodeType===3).flatMap(node=>[...node.textContent.matchAll(/\S+/g)].filter(m=>{
+ const r=document.createRange();r.setStart(node,m.index);r.setEnd(node,m.index+m[0].length);return new Set([...r.getClientRects()].map(x=>Math.round(x.top))).size>1;}).map(m=>m[0])));
+// Two crowded drawings: hard frost in the radiator house, and a cold day in a house that needs hot water (steep lines).
+const COLD={outdoor_c:-15},STEEP={design_flow_c:70,standard_slope:1.667,slope:1.9,room_c:22,minimum_flow_c:30,maximum_flow_c:80,outdoor_c:-5};
 const states=lang=>({'sensor.curve':curve(),'sensor.curve_standard':curve({slope_source:'design',slope:1.167}),'sensor.curve_off':curve({state:'advice'}),
+ 'sensor.curve_cold':curve(COLD,'56'),'sensor.curve_steep':curve(STEEP,'73'),
  'sensor.curve_waiting':{state:'unknown',attributes:{}},'sensor.knowledge':{state:'70',attributes:{missing:MISSING[lang],more:2}},
  'sensor.knowledge_full':{state:'100',attributes:{missing:[],more:0}},'sensor.knowledge_unknown':{state:'unknown',attributes:{}}});
 const WORDS={
@@ -66,7 +72,7 @@ const LINE={light:'rgb(0, 135, 111)',dark:'rgb(35, 156, 138)'},NOW={light:'rgb(1
    window.hass={language:lang,locale:{language:lang},themes:{darkMode:dark},states,localize};
    for(const [id,type] of [['sensor.knowledge','knowledge'],['sensor.knowledge_full','knowledge'],['sensor.knowledge_unknown','knowledge'],
     ['sensor.curve','heating-curve'],['sensor.curve_standard','heating-curve'],['sensor.curve_off','heating-curve'],['sensor.curve_waiting','heating-curve'],
-    ['sensor.gone','heating-curve']]){
+    ['sensor.gone','heating-curve'],['sensor.curve_cold','heating-curve'],['sensor.curve_steep','heating-curve']]){
     const card=document.createElement('openthermostat-'+type);card.dataset.id=id.split('.')[1];card.setConfig({entity:id});
     document.querySelector('main').append(card);card.hass=hass;
    }
@@ -89,8 +95,23 @@ const LINE={light:'rgb(0, 135, 111)',dark:'rgb(35, 156, 138)'},NOW={light:'rgb(1
   assert.equal(style.learned,LINE[theme]);assert.equal(style.now,NOW[theme]);assert.equal(style.width,'2px');assert.equal(style.ring,'2px');
   assert.notEqual(style.dash,'none');assert.equal(style.solid,'none');assert(Number(style.r)>=4,'markers at least 8 px');
   assert.equal(style.label,theme==='dark'?'rgb(225, 225, 225)':'rgb(33, 33, 33)','labels wear the text colour, not the series colour');
+  // The labels stay inside the drawing and never cover each other or a point, also in the crowded drawings.
+  for(const id of ['curve','curve_standard','curve_cold','curve_steep']){
+   await card(id).locator('svg[role=img] [data-label=frost]').waitFor();
+   assert.deepEqual(await card(id).locator('svg[role=img]').evaluate(s=>{const vb=s.viewBox.baseVal,bad=[];
+    const box=e=>{const b=e.getBBox();return {k:e.dataset.label||e.dataset.point,l:b.x,r:b.x+b.width,t:b.y,b:b.y+b.height};};
+    const labels=[...s.querySelectorAll('[data-label]')].map(box),points=[...s.querySelectorAll('[data-point]')].map(box),meet=(a,c)=>a.l<c.r&&c.l<a.r&&a.t<c.b&&c.t<a.b;
+    labels.forEach((a,i)=>{if(a.l<0||a.t<0||a.r>vb.width||a.b>vb.height)bad.push(a.k+' leaves the drawing');
+     labels.slice(i+1).forEach(c=>{if(meet(a,c))bad.push(a.k+' covers '+c.k);});points.forEach(p=>{if(meet(a,p))bad.push(a.k+' covers point '+p.k);});});
+    return bad;}),[],id);
+  }
   // The table view: every 5 °C, both lines, within the plan's water temperature limits.
   await card('curve').locator('summary').click();
+  // Open, the table fits the card (a long header wraps, between words only), so the card keeps its width and the
+  // table stays open.
+  assert.equal(await card('curve').evaluate(c=>{const d=c.shadowRoot.querySelector('details.values');
+   return d.open&&d.scrollWidth<=d.clientWidth+1&&c.getBoundingClientRect().width<=c.parentElement.clientWidth+1;}),true,'the open table fits the card');
+  assert.deepEqual(await card('curve').locator('th').evaluateAll(splitWords),[]);
   const rows=await card('curve').locator('table tr').evaluateAll(r=>r.map(x=>[...x.children].map(c=>c.textContent)));
   assert.deepEqual(rows[0],[{en:'Outside',nl:'Buiten',pl:'Na zewnątrz'}[lang],...words.legend.slice(0,2)]);
   assert.deepEqual(rows.slice(1),TABLE.map(([o,s,l])=>[String(o).replace('-','−')+' °C',s+' °C',l+' °C']));

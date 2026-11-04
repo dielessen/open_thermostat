@@ -78,7 +78,7 @@ TEXT = {
         "cools": "Loses about {rate} °C per hour at {out} °C outside.",
         "cools_mean": "This is how fast it cools when the heating is off, for example at night.",
         "free_heat": "{when} this room warms up by itself, about {rate} °C per hour (sun, cooking or people).",
-        "free_heat_applied": "Smart warm-up now starts {m} min later for it, so it does not heat what comes for free.",
+        "free_heat_applied": "Its next warm-up starts {m} min later, so Smart warm-up does not heat what comes for free.",
         "free_heat_mean": "Smart warm-up takes this into account when it plans a warm-up at that time of day.",
         "daypart.0": "At night", "daypart.1": "Early in the morning", "daypart.2": "In the morning",
         "daypart.3": "In the afternoon", "daypart.4": "In the evening", "daypart.5": "Late in the evening",
@@ -177,7 +177,8 @@ TEXT = {
         "cools": "Verliest ongeveer {rate} °C per uur bij {out} °C buiten.",
         "cools_mean": "Zo snel koelt de ruimte af als de verwarming uit is, bijvoorbeeld 's nachts.",
         "free_heat": "{when} warmt deze ruimte vanzelf op, ongeveer {rate} °C per uur (zon, koken of mensen).",
-        "free_heat_applied": "Slim opwarmen begint daardoor nu {m} min later, zodat hij niet verwarmt wat gratis komt.",
+        "free_heat_applied": "De volgende opwarming begint daardoor {m} min later, zodat Slim opwarmen niet verwarmt wat "
+                             "gratis komt.",
         "free_heat_mean": "Slim opwarmen houdt hier rekening mee als het op dat moment van de dag opwarmt.",
         "daypart.0": "'s Nachts", "daypart.1": "Vroeg in de ochtend", "daypart.2": "'s Ochtends",
         "daypart.3": "'s Middags", "daypart.4": "'s Avonds", "daypart.5": "Laat op de avond",
@@ -276,7 +277,8 @@ TEXT = {
         "cools": "Traci około {rate} °C na godzinę przy {out} °C na zewnątrz.",
         "cools_mean": "Tak szybko stygnie, gdy ogrzewanie jest wyłączone, na przykład w nocy.",
         "free_heat": "{when} to pomieszczenie samo się nagrzewa, o około {rate} °C na godzinę (słońce, gotowanie lub ludzie).",
-        "free_heat_applied": "Inteligentne nagrzewanie zaczyna teraz dzięki temu {m} min później, więc nie grzeje tego, co przychodzi za darmo.",
+        "free_heat_applied": "Następne nagrzewanie zaczyna się dzięki temu {m} min później, więc Inteligentne nagrzewanie "
+                             "nie grzeje tego, co przychodzi za darmo.",
         "free_heat_mean": "Inteligentne nagrzewanie uwzględnia to, gdy planuje nagrzewanie o tej porze dnia.",
         "daypart.0": "W nocy", "daypart.1": "Wcześnie rano", "daypart.2": "Rano",
         "daypart.3": "Po południu", "daypart.4": "Wieczorem", "daypart.5": "Późnym wieczorem",

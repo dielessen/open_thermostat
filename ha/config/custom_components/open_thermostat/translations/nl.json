@@ -3291,7 +3291,7 @@
               "standard": "Standaard",
               "learned": "Geleerd voor je huis",
               "now": "Nu",
-              "frost": "Bij −10 °C: {flow} °C",
+              "frost": "Bij −10 °C en {room} °C binnen: {flow} °C",
               "now_point": "{outdoor} °C buiten → {flow} °C",
               "at": "Bij {outdoor} °C buiten",
               "lower": "{n} °C koeler dan standaard",
@@ -3302,7 +3302,9 @@
               "values": "Toon de waarden",
               "outside": "Buiten",
               "off": "De weerafhankelijke regeling staat uit; de lijnen tonen wat hij zou vragen.",
-              "waiting": "De E32 heeft zijn weerafhankelijke regeling nog niet gemeld."
+              "waiting": "De E32 heeft zijn weerafhankelijke regeling nog niet gemeld.",
+              "house": "Geschat uit je huis",
+              "asks": "E32 vraagt {flow} °C"
             }
           },
           "design_flow_c": {
@@ -3322,6 +3324,12 @@
           },
           "maximum_flow_c": {
             "name": "Hoogste watertemperatuur (°C)"
+          },
+          "base_c": {
+            "name": "Watertemperatuur op de lijn nu (°C)"
+          },
+          "flow_c": {
+            "name": "Weerafhankelijke regeling vraagt (°C)"
           }
         }
       },

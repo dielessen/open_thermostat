@@ -3,8 +3,9 @@
 The knowledge section comes first on the Learning view: the knowledge card (a ring, frontend/heating-curve-card.js),
 the boiler's response in one sentence and yesterday compared with usual; hidden until the E32 reports them. The
 heating-curve card sits with weather compensation's own controls and reads what "Water temperature by weather
-compensation" carries: the slope and where it comes from, the standard slope from the water temperature in hard
-frost (WeatherCurve::slopeFor), the room temperature, the outdoor temperature now and the plan's limits.
+compensation" carries, all in °C: the slope and where it comes from, the standard slope from the water temperature in
+hard frost the E32 publishes (WeatherCurve::slopeFor), the room temperature, the outdoor temperature now, the limits
+(the highest also within the boiler's own maximum), the line's value now and what weather compensation asks.
 """
 import json
 from types import SimpleNamespace
@@ -141,11 +142,25 @@ def test_the_room_temperature_the_curve_starts_from():
 
 def test_the_chart_figures():
     plan = {"minimum_flow_c": 28, "maximum_flow_c": 55, "rooms": [{"emitter": "floor"}]}
-    assert e32_flow.curve_chart({"curve_design_flow_c": 0}, plan, {}, {"a": {"status": "ok", "setpoint": 21}}, 6.46) == {
-        "design_flow_c": 40, "standard_slope": 0.667, "room_c": 21, "outdoor_c": 6.5, "minimum_flow_c": 28, "maximum_flow_c": 55}
+    rooms = {"a": {"status": "ok", "setpoint": 21}}
+    # Firmware before rc.5: the design flow worked out as FlowPolicy does, no line value.
+    assert e32_flow.curve_chart({"curve_design_flow_c": 0}, plan, {}, rooms, 6.46) == {
+        "design_flow_c": 40, "standard_slope": 0.667, "room_c": 21, "outdoor_c": 6.5, "minimum_flow_c": 28, "maximum_flow_c": 55,
+        "base_c": None, "flow_c": None}
     assert e32_flow.curve_chart(None, None, None, None, None) == {
         "design_flow_c": None, "standard_slope": None, "room_c": 20, "outdoor_c": None, "minimum_flow_c": None,
-        "maximum_flow_c": None}
+        "maximum_flow_c": None, "base_c": None, "flow_c": None}
+    # rc.5: the E32's own design flow (a custom one, too: no options link needed), its line value and what it asks, in
+    # °C; the highest water temperature also within the boiler's own maximum (FlowPolicy's cap).
+    curve = {"state": "applied", "flow_c": 47, "base_c": 41.7, "slope": 0.67, "slope_source": "design", "design_flow_c": 48}
+    assert e32_flow.curve_chart(None, plan, {}, rooms, -10, curve, 52) == {
+        "design_flow_c": 48, "standard_slope": 0.933, "room_c": 21, "outdoor_c": -10, "minimum_flow_c": 28, "maximum_flow_c": 52,
+        "base_c": 41.7, "flow_c": 47}
+    assert e32_flow.curve_chart(None, {**plan, "maximum_flow_c": 80}, {}, rooms, -10, curve, None)["maximum_flow_c"] == 80
+    assert e32_flow.curve_chart(None, {**plan, "maximum_flow_c": 90}, {}, rooms, -10, curve, 95)["maximum_flow_c"] == 80
+    assert e32_flow.curve_chart(None, None, {}, rooms, -10, curve, 65)["maximum_flow_c"] == 65  # the boiler's alone
+    for odd in (0, 24, 81, 55.0, "55", None):
+        assert e32_flow.curve_chart(None, plan, {}, rooms, -10, {**curve, "design_flow_c": odd})["design_flow_c"] == 40, odd
 
 
 @pytest.mark.asyncio
@@ -166,17 +181,25 @@ async def test_the_outdoor_temperature_is_the_one_the_e32_uses(hass):
     assert e32_flow.curve_outdoor(hass, entry, hub) is None
 
 
-def test_the_curve_sensor_carries_what_the_card_draws():
+def test_the_curve_sensor_carries_what_the_card_draws(monkeypatch):
     hub = HeatingHub("fixture")
     hub.update({"schema": 1, "revision": 1, "mode": "active", "request": {"heat": True, "flow_c": 46, "reason": "heating"},
                 "ha_entities": [], "rooms": [{"id": "a", "name": "A", "status": "ok", "setpoint": 21.5}]})
-    hub.update_summary({"schema": 1, "flow": {"curve": {"state": "applied", "flow_c": 46, "slope": 0.71, "slope_source": "house"}}})
+    # The flow document as the rc.5 firmware sends it (FlowPolicy::addSummary).
+    hub.update_summary({"schema": 1, "flow": {"curve": {"state": "applied", "flow_c": 46, "base_c": 44.6, "slope": 0.71,
+                                                        "slope_source": "house", "design_flow_c": 55, "windows": 2}}})
     hub.plan = SimpleNamespace(plan={"minimum_flow_c": 30, "maximum_flow_c": 60, "rooms": [{"emitter": "radiator"}]})
     sensor = e32_flow.FlowTemperatureSensor(hub, "flow_curve")
     assert sensor.unique_id == "fixture_flow_curve" and sensor.native_value == 46
     assert sensor.extra_state_attributes == {"state": "applied", "slope": 0.71, "slope_source": "house", "design_flow_c": 55,
                                              "standard_slope": 1.167, "room_c": 21.5, "outdoor_c": None,
-                                             "minimum_flow_c": 30, "maximum_flow_c": 60}
+                                             "minimum_flow_c": 30, "maximum_flow_c": 60, "base_c": 44.6, "flow_c": 46}
     assert set(e32_flow.CURVE_CHART_KEYS) <= sensor._unrecorded_attributes
+    # The boiler's own maximum (its 0x16 telegram, read from the E32's boiler fields) caps the lines as FlowPolicy does.
+    from custom_components.open_thermostat import heating_advice
+    monkeypatch.setattr(heating_advice, "boiler_maximum", lambda client: 52)
+    sensor.hass = SimpleNamespace(data={"open_thermostat": {"e": {"v1_connection": SimpleNamespace(client=object())}}})
+    sensor.platform = SimpleNamespace(config_entry=SimpleNamespace(entry_id="e", options={}))
+    assert sensor.extra_state_attributes["maximum_flow_c"] == 52
     learned = e32_flow.FlowTemperatureSensor(hub, "flow_learned")  # the other flow sensors stay as they were
     assert "standard_slope" not in (learned.extra_state_attributes or {})

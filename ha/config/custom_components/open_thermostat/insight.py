@@ -9,11 +9,12 @@ the summary as ``insight`` (heating_link.decode_insight):
   ``cooling:<room>``, ``arrival:<room>``, ``curve``, ``boiler_minimum``, ``boiler_response``, ``house``;
   at most 8, ``more`` counts the rest (a key this version does not know counts there too);
 - ``boiler``: the boiler's response (BoilerResponse): ``held`` (today's held temperatures), ``rest_s``
-  (the boiler's own rest after one), ``ceiling_c`` (the most the E32 asks near the target at this outdoor
-  temperature; a room 1 °C or more below its target gets the full water temperature), ``absorbed_kw``,
-  ``kw_per_k``, ``state`` (not_driving, collecting, learned, no_return: no return temperature, the ceiling
-  and the rest are still learned) and ``return`` (the return temperature is reported). The flow document
-  (fw/telemetry/flow) carries the same object; the insight's wins;
+  (the boiler's own rest after one), ``ceiling_c`` (the ceiling learned for this outdoor temperature, applied
+  or not; the one in effect is the flow document's ``flow.ceiling_c``, only with Smart warm-up on and never
+  in a warm-up), ``absorbed_kw``, ``kw_per_k`` (the emitters' output per K of water above the rooms),
+  ``state`` (not_driving, collecting, learned, no_return: no return temperature, the ceiling and the rest are
+  still learned) and ``return`` (the return temperature is reported). The flow document (fw/telemetry/flow)
+  carries the same object beside ``flow``; the insight's wins;
 - ``house``: the house model (heat loss, emitter output, the curve it implies); not shown on its own;
 - ``insights``: yesterday against the house's own usual days, at most 4: {"kind", "pct", "room"?}.
 
@@ -24,7 +25,9 @@ rc.5, or none for 16 minutes while it is heard) and are unavailable while the E3
 
 Each insight is a persistent notification (information, never a Repairs item): replaced when it
 changes, dismissed when it is gone. One the owner dismissed stays dismissed until it changes, also
-over a restart of Home Assistant (a small store per installation). The texts follow the Home Assistant
+over a restart of Home Assistant (a small store per installation). Notifications start only after a
+live insight message in this Home Assistant run: a retained one alone may be stale (left behind by a
+firmware downgrade) and would otherwise come back at every restart. The texts follow the Home Assistant
 language (English, Dutch or Polish), as the learned overview does; the E32 Home page says the same.
 """
 from __future__ import annotations
@@ -59,9 +62,14 @@ TEXT = {
         "boiler.learned_both": "Your boiler holds about {flow} °C and rests {rest}; near the target the E32 asks at most "
                                "{ceiling} °C.",
         "boiler.learned_ceiling": "Your boiler holds about {flow} °C; near the target the E32 asks at most {ceiling} °C.",
+        "boiler.learned_held_rest": "Your boiler holds about {flow} °C and rests {rest}.",
+        "boiler.learned_held": "Your boiler holds about {flow} °C.",
         "boiler.learned_rest": "Your boiler rests {rest} each time it reaches its temperature.",
         "boiler.learned": "The E32 has learned how your boiler holds its temperature.",
+        "boiler.ceiling_off": "With Smart warm-up on, the E32 would ask at most {ceiling} °C near the target.",
         "boiler.collecting": "The E32 is still listening to how your boiler holds its temperature.",
+        "boiler.collecting_output": "Your boiler has not held a water temperature by itself yet; every degree the water "
+                                    "is warmer than the rooms gives your house about {kw} kW. The E32 keeps listening.",
         "boiler.no_return": "Your boiler does not report the water coming back, so the E32 cannot see how much heat your "
                             "house takes; it still learns how your boiler holds its temperature.",
         "boiler.not_driving": "The E32 listens to your boiler once it controls the boiler itself.",
@@ -97,9 +105,16 @@ TEXT = {
                                "de E32 hoogstens {ceiling} °C.",
         "boiler.learned_ceiling": "Je ketel houdt ongeveer {flow} °C vast; dicht bij de doeltemperatuur vraagt de E32 "
                                   "hoogstens {ceiling} °C.",
+        "boiler.learned_held_rest": "Je ketel houdt ongeveer {flow} °C vast en rust {rest}.",
+        "boiler.learned_held": "Je ketel houdt ongeveer {flow} °C vast.",
         "boiler.learned_rest": "Je ketel rust {rest} telkens als hij zijn temperatuur bereikt.",
         "boiler.learned": "De E32 heeft geleerd hoe je ketel zijn temperatuur vasthoudt.",
+        "boiler.ceiling_off": "Met Slim opwarmen aan zou de E32 dicht bij de doeltemperatuur hoogstens {ceiling} °C "
+                              "vragen.",
         "boiler.collecting": "De E32 luistert nog hoe je ketel zijn temperatuur vasthoudt.",
+        "boiler.collecting_output": "Je ketel heeft nog niet zelf een watertemperatuur vastgehouden; elke graad dat het "
+                                    "water warmer is dan de ruimtes, geeft je huis ongeveer {kw} kW. De E32 blijft "
+                                    "luisteren.",
         "boiler.no_return": "Je ketel meldt het terugkomende water niet, dus de E32 kan niet zien hoeveel warmte je huis "
                             "opneemt; hij leert wel hoe je ketel zijn temperatuur vasthoudt.",
         "boiler.not_driving": "De E32 luistert naar je ketel zodra hij de ketel zelf regelt.",
@@ -136,9 +151,16 @@ TEXT = {
                                "zadaje najwyżej {ceiling} °C.",
         "boiler.learned_ceiling": "Twój kocioł utrzymuje około {flow} °C; blisko temperatury docelowej E32 zadaje najwyżej "
                                   "{ceiling} °C.",
+        "boiler.learned_held_rest": "Twój kocioł utrzymuje około {flow} °C i odpoczywa {rest}.",
+        "boiler.learned_held": "Twój kocioł utrzymuje około {flow} °C.",
         "boiler.learned_rest": "Twój kocioł odpoczywa {rest} za każdym razem, gdy osiągnie swoją temperaturę.",
         "boiler.learned": "E32 nauczył się, jak Twój kocioł utrzymuje swoją temperaturę.",
+        "boiler.ceiling_off": "Z włączonym Inteligentnym nagrzewaniem E32 zadawałby blisko temperatury docelowej "
+                              "najwyżej {ceiling} °C.",
         "boiler.collecting": "E32 wciąż wsłuchuje się, jak Twój kocioł utrzymuje swoją temperaturę.",
+        "boiler.collecting_output": "Twój kocioł jeszcze sam nie utrzymał temperatury wody; każdy stopień, o który woda "
+                                    "jest cieplejsza od pomieszczeń, daje Twojemu domowi około {kw} kW. E32 słucha "
+                                    "dalej.",
         "boiler.no_return": "Twój kocioł nie zgłasza temperatury wody powrotnej, więc E32 nie widzi, ile ciepła pobiera "
                             "Twój dom; nadal uczy się, jak Twój kocioł utrzymuje swoją temperaturę.",
         "boiler.not_driving": "E32 zacznie wsłuchiwać się w Twój kocioł, gdy sam będzie nim sterował.",
@@ -211,13 +233,19 @@ def missing_sentences(part, names, lang):
 
 
 def boiler_response(summary):
-    """The boiler's response (BoilerResponse): the insight's, else the flow document's, or None."""
+    """The boiler's response (BoilerResponse): the insight's, else the flow document's (beside "flow"), or None."""
     summary = summary if type(summary) is dict else {}
-    flow = summary.get("flow") if type(summary.get("flow")) is dict else {}
-    for part in ((insight_status(summary) or {}).get("boiler"), flow.get("boiler"), summary.get("boiler")):
+    for part in ((insight_status(summary) or {}).get("boiler"), summary.get("boiler")):
         if type(part) is dict:
             return part
     return None
+
+
+def ceiling_in_effect(summary):
+    """The ceiling FlowPolicy applies now (the flow document's ``flow.ceiling_c``: Smart warm-up on, the E32 driving
+    the boiler, no warm-up), or None."""
+    flow = summary.get("flow") if type(summary) is dict else None
+    return _figure(flow.get("ceiling_c"), 10, 90, 0) if type(flow) is dict else None
 
 
 def _figure(value, low, high, digits):
@@ -256,23 +284,34 @@ def minutes(count, lang):
 HELD_ABOVE_CEILING_C = 2
 
 
-def boiler_sentence(values, lang):
-    """The boiler's response in one sentence, or None while its state is unknown.
+def boiler_sentence(values, lang, cap=None, smart=None):
+    """The boiler's response in one sentence (two when the learned ceiling waits for Smart warm-up), or None while
+    its state is unknown.
 
-    The ceiling holds only near the target temperatures: a room 1 °C or more below its target gets the full water
-    temperature (FlowPolicy), so the sentence says "near the target", never "now".
+    ``cap``: the ceiling in effect (ceiling_in_effect); only then does the sentence say "near the target the E32 asks
+    at most", with that number: the ceiling holds only near the target temperatures (a room 1 °C or more below its
+    target gets the full water temperature) and only with Smart warm-up on. ``smart`` False: Smart warm-up is off, so
+    a learned ceiling is told as what the E32 would ask with it on. A boiler still "collecting" whose emitter output per
+    K is already known (it counts as learned in Knowledge) says that figure.
     """
     t, state = TEXT[lang], values.get("state")
+    if state == "collecting" and values.get("kw_per_k") is not None:
+        return t["boiler.collecting_output"].format(kw=decimal(values["kw_per_k"], lang, 2))
     if state != "learned":
         return t["boiler." + state] if state in BOILER_STATES else None
     # Whole minutes, halves up (as the E32 page's Math.round), so both say the same.
     rest = minutes(max(1, int(values["rest_s"] / 60 + 0.5)), lang) if values.get("rest_s") else None
     ceiling = values.get("ceiling_c")
-    shown = {"rest": rest, "ceiling": decimal(ceiling, lang, 0) if ceiling is not None else None,
-             "flow": decimal(ceiling + HELD_ABOVE_CEILING_C, lang, 0) if ceiling is not None else None}
-    key = ("learned_both" if rest and ceiling is not None else "learned_ceiling" if ceiling is not None
+    held = decimal(ceiling + HELD_ABOVE_CEILING_C, lang, 0) if ceiling is not None else None
+    if ceiling is not None and cap is not None:
+        key = "learned_both" if rest else "learned_ceiling"
+        return t["boiler." + key].format(rest=rest, flow=held, ceiling=decimal(cap, lang, 0))
+    key = ("learned_held_rest" if rest and ceiling is not None else "learned_held" if ceiling is not None
            else "learned_rest" if rest else "learned")
-    return t["boiler." + key].format(**shown)
+    sentence = t["boiler." + key].format(rest=rest, flow=held)
+    if ceiling is not None and smart is False:
+        sentence += " " + t["boiler.ceiling_off"].format(ceiling=decimal(ceiling, lang, 0))
+    return sentence
 
 
 def insight_items(summary):
@@ -362,12 +401,21 @@ class BoilerResponseSensor(_InsightSensor):
     # The heat the house takes now changes all the time; shown, not kept in the history.
     _unrecorded_attributes = frozenset({"absorbed_kw", "sentence"})
 
-    def __init__(self, hub):
+    def __init__(self, hub, entry_id=None):
         self._attach(hub, "hub_boiler_response")
+        self.entry_id = entry_id
 
     def _values(self):
         boiler = boiler_response(self.summary)
         return boiler_values(boiler) if boiler is not None else None
+
+    def _smart(self):
+        """Smart warm-up as the E32 last reported it (e32_flow), or None while unknown."""
+        hass = getattr(self, "hass", None)
+        if hass is None or self.entry_id is None:
+            return None
+        from .e32_flow import smart_warm_up
+        return smart_warm_up(hass, self.entry_id)
 
     @property
     def native_value(self):
@@ -379,9 +427,10 @@ class BoilerResponseSensor(_InsightSensor):
         values = self._values()
         if values is None:
             return None
+        sentence = boiler_sentence(values, self._lang(), ceiling_in_effect(self.summary), self._smart())
         return {**{key: values[key] for key in ("held_today", "rest_min", "ceiling_c", "absorbed_kw", "kw_per_k",
                                                 "return_reported")},
-                "sentence": boiler_sentence(values, self._lang())}
+                "sentence": sentence}
 
 
 # -- the notifications ------------------------------------------------------------------------------------------
@@ -404,6 +453,8 @@ class InsightNotifier:
     A new insight shows; a changed one (another percentage, another language or room name) replaces
     its notification; one that is gone is dismissed. While the E32 is silent nothing changes; once an
     insight the E32 had sent is gone (heating_link: HeatingHub.insight_gone) its notifications go.
+    Nothing shows before a live insight message in this Home Assistant run (HeatingHub.insight_live):
+    a retained insight alone may be stale, left on the broker by firmware that no longer sends it.
     """
 
     def __init__(self, hass, entry_id, hub, dismissed=None, store=None):
@@ -421,7 +472,8 @@ class InsightNotifier:
         if not self.hub.fresh:
             return
         if insight_status(self.hub.summary) is not None:
-            self.sync(insight_items(self.hub.summary))
+            if self.hub.insight_live:
+                self.sync(insight_items(self.hub.summary))
         elif self.hub.insight_gone:
             self.sync([])
 
@@ -472,7 +524,7 @@ def _store(hass, entry_id):
 
 async def async_setup_insight(hass, entry, async_add_entities, options, hub):
     """Product entries: the two sensors on the product device and the insight notifications."""
-    async_add_entities([KnowledgeSensor(hub), BoilerResponseSensor(hub)], **options)
+    async_add_entities([KnowledgeSensor(hub), BoilerResponseSensor(hub, entry.entry_id)], **options)
     from homeassistant.components import persistent_notification
     store = _store(hass, entry.entry_id)
     notifier = InsightNotifier(hass, entry.entry_id, hub, _dismissed(await store.async_load()), store)

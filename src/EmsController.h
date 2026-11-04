@@ -468,6 +468,20 @@ public:
         std::lock_guard<std::mutex> lock(telemetryMutex_);
         return dhwEpisodes_.summaryJson();
     }
+    // rc.4 (F2): the hot water days over a restart (DhwEpisodes::restore/record; HeatingController
+    // keeps them in NVS). dhwRecordDue: the record to store now, empty when nothing is due;
+    // restart: a planned restart is coming, store anything new at once.
+    void restoreDhw(std::string_view record) {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        dhwEpisodes_.restore(record);
+    }
+    std::string dhwRecordDue(uint64_t now, bool restart) {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        if (!(restart ? dhwEpisodes_.unsaved() : dhwEpisodes_.saveDue(now))) return {};
+        auto record = dhwEpisodes_.record();
+        dhwEpisodes_.saved(now); // a refused write tries again in an hour
+        return record;
+    }
     uint32_t activeHeatPost(std::optional<uint8_t> flowC, bool heatAllowed, bool claim) {
         std::lock_guard<std::mutex> lock(telemetryMutex_);
         return activeHeat_.post(static_cast<uint64_t>(esp_timer_get_time() / 1000), flowC, heatAllowed, claim);

@@ -165,6 +165,7 @@ public:
         history_.begin([](size_t size) { return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT); }, heap_caps_free);
         loadFlowSettings();
         overrides_.restore(RoomOverridesNvs::read()); // waits for a trusted clock before it applies
+        ems_.restoreDhw(DhwNvs::read()); // F2: today's and the week's hot water, joined once the clock is known
         // The takeover readiness counters; the stable time only after a planned restart.
         bool readinessThermostat = false;
         {
@@ -573,8 +574,9 @@ public:
     // still be held, or after BoilerReleaseHold::maxMs. Shadow mode: at once.
     bool releaseBoilerForRestart() {
         activeGuard_.withdraw(bleReceiptClock());
-        if (!readinessStored_) { // once: the counters and what was learned survive it
+        if (!readinessStored_) { // once: the counters, what was learned and the hot water days survive it
             readinessStored_ = true; ReadinessNvs::write(readiness_.stored()); saveLearned(bleReceiptClock());
+            saveDhw(bleReceiptClock(), true);
         }
         return restartHold_.ready(static_cast<uint32_t>(bleReceiptClock()), activeGuard_.released());
     }
@@ -957,6 +959,14 @@ private:
             DBGLOGFI(log_, logFeature_, "Learned state of %u of %u room(s) saved (NVS short of room or a write failed); the rest kept in RAM, retried in 6 h\n",
                      unsigned(learnedStore_.storedRooms()), unsigned(learnedStore_.rooms()));
     }
+    // F2 (rc.4): today's and the last 7 days' hot water over restarts (DhwEpisodes, NVS "dhw"): at a
+    // new day, hourly when it changed and before a planned restart; gated like an optional record.
+    static_assert(DhwNvs::maxBytes == control::DhwEpisodes::recordBytes, "the hot water record's bound");
+    void saveDhw(uint64_t now, bool restart) {
+        const auto record = ems_.dhwRecordDue(now, restart);
+        if (!record.empty() && !DhwNvs::write(record))
+            DBGLOGFD(log_, logFeature_, "Hot water days not saved (NVS short of room or write failed); kept in RAM\n");
+    }
     control::HeatingHistory history_; // 24 h of 5-minute averages, ~12.5 KB PSRAM, RAM only
     control::HeatingInputRoute haInput_;  // ha/heating_input: rooms, gas, price, outdoor, boiler power
     uint32_t activePosted_ = 0; uint64_t activePostedAt_ = 0; // the last command handed to the EMS route
@@ -1045,6 +1055,7 @@ private:
         });
         actuatorOutput_.store(trv_.actuatorOutput());
         sampleHistory(now, valved, ems, tadoFlowC); // the request after the valves' feedback
+        saveDhw(now, false); // F2: at a new day, hourly when it changed
     }
     // The rooms as the valve control sees them (control/TrvControl.h); empty without valves.
     std::vector<control::TrvControl::Room> trvRoomViews(uint64_t now) const {

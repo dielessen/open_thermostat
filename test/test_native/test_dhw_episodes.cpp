@@ -176,6 +176,69 @@ TEST(DhwEpisodes, DaysRollAtLocalMidnightAndTheWeekKeepsSevenDays) {
     EXPECT_EQ(e.lastSevenDays().seconds[DhwEpisodes::tapping], 7u * 20);
     EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(json(e, 9ull * 86400000).get(), "clock_known")));
 }
+// rc.4 (F2): today and the last 7 days survive a restart. The record is stored at a new day and
+// hourly when something changed; at boot it joins this boot's counts once the clock gives the day.
+// Without it, today's totals start at the restart and since_restart_utc says when.
+TEST(DhwEpisodes, TodayAndTheWeekSurviveARestart) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    const uint32_t day0 = 1792800000;                // 2026-10-24 00:00 UTC
+    const auto tap = [](DhwEpisodes& e, uint32_t utc, uint64_t ms) {
+        ClassicBoilerMonitor m;
+        e.observe(m, ms, utc);
+        e.temperature(6000, ms); e.state(0x0A, ms + 1000); e.temperature(4000, ms + 11000); e.state(0x00, ms + 21000);
+    };
+    DhwEpisodes before;
+    for (uint32_t i = 0; i < 9; ++i) tap(before, day0 + i * 86400 + 36000, uint64_t(i) * 86400000);
+    tap(before, day0 + 8 * 86400 + 39600, 8ull * 86400000 + 3600000); // a second tap on the last day
+    ASSERT_EQ(before.today().count[DhwEpisodes::tapping], 2);
+    ASSERT_EQ(before.lastSevenDays().count[DhwEpisodes::tapping], 8);
+    const std::string record = before.record();
+    EXPECT_EQ(record.rfind("1;", 0), 0u);
+    EXPECT_LE(record.size(), 260u) << record; // today and 6 days
+    // A restart the same day: a tap before the clock is known, then the clock; the stored day joins.
+    DhwEpisodes after;
+    ASSERT_TRUE(after.restore(record));
+    EXPECT_FALSE(after.saveDue(1000)); // never before the clock and the join
+    EXPECT_TRUE(after.record().empty());
+    after.temperature(6000, 1000); after.state(0x0A, 2000); after.temperature(4000, 12000); after.state(0x00, 22000);
+    ClassicBoilerMonitor m;
+    after.observe(m, 30000, day0 + 8 * 86400 + 43200);
+    EXPECT_EQ(after.today().count[DhwEpisodes::tapping], 3);
+    EXPECT_EQ(after.lastSevenDays().count[DhwEpisodes::tapping], 9);
+    EXPECT_EQ(after.lastSevenDays().seconds[DhwEpisodes::tapping], 9u * 20);
+    EXPECT_FALSE(after.sinceRestartUtc()); // today's totals are whole
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(json(after, 30000).get(), "since_restart_utc")));
+    EXPECT_TRUE(after.saveDue(30000)); // the joined record is stored at once
+    after.saved(30000);
+    EXPECT_FALSE(after.saveDue(30000 + 3600000)); // nothing new: no write
+    tap(after, day0 + 8 * 86400 + 45000, 60000);
+    EXPECT_FALSE(after.saveDue(82000));          // new, but within the hour
+    EXPECT_TRUE(after.saveDue(30000 + 3600000)); // hourly
+    // A restart on a later day: the stored day goes into the history, the oldest drops out.
+    DhwEpisodes nextDay;
+    ASSERT_TRUE(nextDay.restore(after.record()));
+    nextDay.observe(m, 5000, day0 + 9 * 86400 + 36000);
+    EXPECT_EQ(nextDay.today().count[DhwEpisodes::tapping], 0);
+    EXPECT_EQ(nextDay.lastSevenDays().count[DhwEpisodes::tapping], 9); // days 3..7 and day 8's four
+    ASSERT_TRUE(nextDay.sinceRestartUtc());
+    EXPECT_EQ(*nextDay.sinceRestartUtc(), day0 + 9 * 86400 + 36000 - 5);
+    EXPECT_TRUE(nextDay.saveDue(5000));
+    // No record at all: the totals start at this boot, until the boot's day has passed.
+    DhwEpisodes fresh;
+    fresh.observe(m, 2000, day0 + 36000);
+    EXPECT_DOUBLE_EQ(at(json(fresh, 3000).get(), "since_restart_utc"), day0 + 36000 - 2);
+    Json summary(fresh.summaryJson(), cJSON_Delete); // the MQTT summary keeps its size: the page's field only
+    EXPECT_FALSE(cJSON_GetObjectItem(summary.get(), "since_restart_utc"));
+    fresh.observe(m, 86400000, day0 + 86400 + 36000);
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(json(fresh, 86400000).get(), "since_restart_utc")));
+    // Malformed, foreign or out-of-order records are ignored.
+    for (const char* bad : {"", "1;", "2;20390,0,0,0,0,0,0,0,0,0,0", "1;20390,0,0,0,0,0,0,0,0,0", "1;20390,0,0,0,0,0,0,0,0,0,256",
+                            "1;20390,0,0,0,0,0,0,0,0,0,0;20391,0,0,0,0,0,0,0,0,0,0", "1;0,0,0,0,0,0,0,0,0,0,0",
+                            "1;20390,x,0,0,0,0,0,0,0,0,0", "1;20390,70000,0,0,0,0,0,0,0,0,0", "1;20390,0,0,0,0,0,0,0,0,0,0,"}) {
+        DhwEpisodes e;
+        EXPECT_FALSE(e.restore(bad)) << bad;
+    }
+}
 // The day boundary is the device's local midnight: 04:00 UTC in New York (EDT).
 TEST(DhwEpisodes, DaysRollAtTheDeviceTimeZonesMidnight) {
     const uint32_t day0 = 1792800000;                // 2026-10-24 00:00 UTC

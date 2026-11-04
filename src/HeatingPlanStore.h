@@ -83,6 +83,33 @@ struct HeatingNoteNvs {
         return !text.empty() && text.size() < 64 && optionalHeatingRecordFits(key, text.size() + 1) && write(text);
     }
 };
+// rc.4 (F2): today's and the last 7 days' hot water (control/DhwEpisodes.h record(), at most
+// maxBytes) as one NVS string beside the plan, stored at a new day, hourly when it changed and
+// before a planned restart. Gated like the optional records (optionalHeatingRecordFits) and the
+// first of them to go when control needs room (ControlPartitionBudget::optionalKeys).
+struct DhwNvs {
+    static constexpr const char* key = "dhw";
+    static constexpr size_t maxBytes = 512;
+    static std::string read() {
+        nvs_handle_t handle;
+        if (nvs_open("ot_heating", NVS_READONLY, &handle) != ESP_OK) return {};
+        std::string text(maxBytes + 1, '\0');
+        size_t size = text.size();
+        const bool ok = nvs_get_str(handle, key, text.data(), &size) == ESP_OK && size > 0;
+        nvs_close(handle);
+        if (!ok) return {};
+        text.resize(size - 1); // the stored size counts the NUL
+        return text;
+    }
+    static bool write(const std::string& record) {
+        if (record.empty() || record.size() > maxBytes || !optionalHeatingRecordFits(key, record.size() + 1)) return false;
+        nvs_handle_t handle;
+        if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
+        const bool committed = nvs_set_str(handle, key, record.c_str()) == ESP_OK && nvs_commit(handle) == ESP_OK;
+        nvs_close(handle);
+        return committed && read() == record;
+    }
+};
 // The owner's handover confirmation (control/HandoverConfirmation.h): one short
 // string beside the plan, written only when the confirmation changes.
 struct HandoverNvs {

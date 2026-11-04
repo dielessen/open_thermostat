@@ -43,6 +43,10 @@ public:
     // when (i64 utc). Restored into the plan room with that id; firmware before rc.4 skips the frame.
     static constexpr char arrivalKind = 'A';
     static constexpr uint8_t arrivalVersion = 1;
+    // rc.5 (P3): the free heat (FreeHeat::stored(): per room with evidence its id and at most 3 dayparts),
+    // kind 'F' version 1, at most 353 B; firmware before rc.5 skips the frame, a bad one is ignored whole.
+    static constexpr char freeHeatKind = 'F';
+    static constexpr uint8_t freeHeatVersion = 1;
     static constexpr size_t maxFrame = 1024;
     // A version 2 room frame's size: an id of `idBytes`, bins whose segments all had the
     // outdoor (19 B), bins where some had (23 B) and bins without it (13 B).
@@ -78,6 +82,16 @@ public:
             for (const auto& r : rooms)
                 if (t.id == r.id) { t.factor = r.factor; t.events = r.events; t.hasLast = r.hasLast; t.lastErrorMin = r.lastErrorMin; t.lastAtUtc = r.lastAtUtc; }
         return true;
+    }
+    // rc.5 (P3): empty while no room has a judged free-heat window.
+    static std::string freeHeatFrame(const FlowPolicy& p) {
+        const auto body = p.freeHeat_.stored();
+        if (body.empty()) return {};
+        return frame(freeHeatKind, freeHeatVersion, [&](Out& o) { o.s += body; });
+    }
+    static bool restoreFreeHeat(std::string_view f, FlowPolicy& p) {
+        In in;
+        return open(f, freeHeatKind, in) && p.freeHeat_.restore(std::string_view(in.p, in.n));
     }
     static std::string globalFrame(const FlowLearner& l, const FlowPolicy& p) {
         auto& m = const_cast<FlowLearner&>(l);   // Out only reads
@@ -131,6 +145,7 @@ public:
             const auto f = roomFrame(l, i);
             if (out.size() + f.size() <= maxBytes) out += f;
         }
+        if (const auto f = freeHeatFrame(p); out.size() + f.size() <= maxBytes) out += f; // rc.5 (P3), after the rooms
         return out;
     }
     // Every frame valid (the backup check); nothing is applied. Heap, not the loop stack.
@@ -141,7 +156,8 @@ public:
         std::string_view f;
         size_t frames = 0;
         for (; g && r && next(b, f); ++frames)
-            if (!(f[1] == globalKind ? readGlobal(f, *g) : f[1] == arrivalKind ? readArrival(f, a) : readRoom(f, *r))) return false;
+            if (!(f[1] == globalKind ? readGlobal(f, *g) : f[1] == arrivalKind ? readArrival(f, a)
+                  : f[1] == freeHeatKind ? readFreeHeat(f) : readRoom(f, *r))) return false; // rc.5 (P3): 'F'
         return frames && b.empty();
     }
     // A packed record part (LearnedStore): each valid frame applied (the global
@@ -153,6 +169,7 @@ public:
         while (next(b, f)) {
             if (f[1] == globalKind) { if (!global && restoreGlobal(f, l, p)) global = true; }
             else if (f[1] == arrivalKind) restoreArrival(f, p);
+            else if (f[1] == freeHeatKind) restoreFreeHeat(f, p); // rc.5 (P3)
             else rooms += restoreRoom(f, l, done);
         }
         return rooms;
@@ -166,6 +183,7 @@ public:
         while (next(b, f)) {
             if (f[1] == globalKind) restoreGlobal(f, l, p);
             else if (f[1] == arrivalKind) restoreArrival(f, p);
+            else if (f[1] == freeHeatKind) restoreFreeHeat(f, p); // rc.5 (P3)
             else rooms += restoreRoom(f, l, done);
         }
         return rooms;
@@ -209,7 +227,8 @@ private:
     static bool open(std::string_view f, char kind, In& in) {
         if (f.size() < 8 || f[1] != kind) return false;
         const uint8_t v = uint8_t(f[0]);
-        if (!(kind == globalKind ? v == 1 || v == globalVersion : kind == arrivalKind ? v == arrivalVersion : v == version || v == roomVersion)) return false;
+        if (!(kind == globalKind ? v == 1 || v == globalVersion : kind == arrivalKind ? v == arrivalVersion
+              : kind == freeHeatKind ? v == freeHeatVersion : v == version || v == roomVersion)) return false; // rc.5 (P3): 'F'
         const size_t n = uint8_t(f[2]) | size_t(uint8_t(f[3])) << 8;
         uint32_t c;
         if (f.size() != n + 8) return false;
@@ -255,6 +274,10 @@ private:
     static bool readRoom(std::string_view f, FlowLearner::Room& r) {
         In in;
         return open(f, roomKind, in) && (in.version == roomVersion ? compactRoom(in, r) : room(in, r), in.done());
+    }
+    static bool readFreeHeat(std::string_view f) { // rc.5 (P3)
+        In in;
+        return open(f, freeHeatKind, in) && FreeHeat::valid(std::string_view(in.p, in.n));
     }
     template <class IO, class T> static void optional(IO& io, std::optional<T>& v) {
         uint8_t has = v.has_value();
@@ -512,6 +535,8 @@ public:
         if (auto a = LearnedState::arrivalFrame(p); !a.empty()) frames.push_back(std::move(a)); // rc.4
         for (size_t i = 0; i < l.rooms(); ++i)
             if (auto f = LearnedState::roomFrame(l, i); !f.empty()) frames.push_back(std::move(f));
+        // rc.5 (P3): the free heat last: what NVS refuses first is dropped first, the rooms' models stay.
+        if (auto f = LearnedState::freeHeatFrame(p); !f.empty()) frames.push_back(std::move(f));
         bool complete = savePacked(b, frames);
         if (legacy_ && !complete) {
             // The old per-frame keys hold room the packed record needs: theirs is in RAM (restored).

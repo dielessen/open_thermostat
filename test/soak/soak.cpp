@@ -1515,6 +1515,7 @@ LearnedContext Chain::learnedContext(std::array<std::optional<int16_t>, RoomPlan
     if (clockKnown_) c.utc = utc_;
     c.temperatures = temperatures.data();
     c.outdoorCentiC = outdoor.centiC; c.outdoorSource = outdoor.source; c.now = now_;
+    c.freeHeat = &policy_.freeHeat(); // rc.5 (P3): "free_heat" per room, within mqtt_learned_room's 1000 B (its sampling: P4)
     return c;
 }
 

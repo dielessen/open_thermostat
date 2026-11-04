@@ -112,21 +112,28 @@ TEST(ControlPartitionBudget, TheKnobsWithoutTheirLogFitTheirPriorityReserve) {
 // ("dhw", DhwNvs, at most DhwEpisodes::recordBytes) and the daily scoreboard ("scoreboard",
 // ScoreboardNvs, at most Scoreboard::storedMaxBytes with its NUL), both written hourly with
 // priority 0 like the readiness and the knobs, before the 6-hourly learned record.
-struct Record { const char* key; size_t bytes; };
+// rc.5 (P3) `tail`: the free heat frame at the end of a learned part, which LearnedStore leaves out
+// first when the part is refused (it writes the part again without its last frames).
+struct Record { const char* key; size_t bytes; size_t tail = 0; };
 constexpr size_t globalBytes = 300;                                   // measured 240 (test_learned_state)
 constexpr size_t typicalRoom = LearnedState::compactRoomBytes(10, 6);  // 6 bins with the outdoor: 190 B
 constexpr size_t worstRoom = LearnedState::compactRoomBytes(32, 0, FlowLearner::binCount); // 558 B
+// rc.5 (P3): frame 'F' after the rooms: 8 rooms with 10-character ids and 3 dayparts each, and its
+// largest (32-character ids), within the 360 B of the plan.
+constexpr size_t typicalFreeHeat = 8 + 1 + 8 * (1 + 10 + 1 + 3 * 3);   // 177 B
+constexpr size_t freeHeatBytes = FreeHeat::maxStoredBytes + 8;         // 353 B
+static_assert(freeHeatBytes <= 360, "RC5-PLAN.md 2.3");
 std::vector<Record> typical() {
     return {{"readiness", sizeof(TakeoverReadiness::Stored)}, {"autotune", AutoTuner::storedMaxBytes + 1},
             {"dhw", DhwEpisodes::recordBytes}, {"scoreboard", Scoreboard::storedMaxBytes + 1},
-            {"learned_a", globalBytes + 8 * typicalRoom}};
+            {"learned_a", globalBytes + 8 * typicalRoom + typicalFreeHeat, typicalFreeHeat}};
 }
 std::vector<Record> worstCase() {
-    // Whole frames per part: the globals and 6 rooms, then 2 rooms.
+    // Whole frames per part: the globals and 6 rooms, then 2 rooms and the free heat.
     static_assert(globalBytes + 6 * worstRoom <= LearnedStore::partBytes && globalBytes + 7 * worstRoom > LearnedStore::partBytes);
     return {{"readiness", sizeof(TakeoverReadiness::Stored)}, {"autotune", AutoTuner::storedMaxBytes + 1},
             {"dhw", DhwEpisodes::recordBytes}, {"scoreboard", Scoreboard::storedMaxBytes + 1},
-            {"learned_a", globalBytes + 6 * worstRoom}, {"learned_b", 2 * worstRoom}};
+            {"learned_a", globalBytes + 6 * worstRoom}, {"learned_b", 2 * worstRoom + freeHeatBytes, freeHeatBytes}};
 }
 }
 // rc.4 (review S3): the scoreboard holds only today and yesterday, the least valuable record on the
@@ -173,8 +180,12 @@ TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAnd
             size_t bytes = r.bytes, priority = r.key[0] == 'l' ? OptionalRecordPriority::learned(kept.find("autotune") != std::string::npos, kept.find("readiness") != std::string::npos) : 0;
             if (knobs && !B::permitsOptionalWrite(used(n), bytes, 0, reserve, priority)) { bytes = OptionalRecordPriority::knobsBytes; priority = 0; }
             if (!std::strcmp(r.key, "learned_b") && kept.find("learned_a") == std::string::npos) continue; // whole frames in order
-            if (!B::permitsOptionalWrite(used(n), bytes, 0, reserve, priority)) continue;
-            n += B::blobEntries(bytes); kept += std::string(r.key) + (bytes < r.bytes ? "(values) " : " ");
+            if (!B::permitsOptionalWrite(used(n), bytes, 0, reserve, priority)) {
+                // rc.5 (P3): refused, the part is written again without its last frame, the free heat (RAM keeps it).
+                if (!r.tail || !B::permitsOptionalWrite(used(n), bytes - r.tail, 0, reserve, priority)) continue;
+                bytes -= r.tail;
+            }
+            n += B::blobEntries(bytes); kept += std::string(r.key) + (bytes < r.bytes ? (knobs ? "(values) " : "(no free heat) ") : " ");
         }
         std::printf("[ nvs ] %s plan %4zu B, control %4zu B%s: reserve %zu; written: %s-> %zu used, %zu free\n",
                     worst ? "worst case:" : "typical:   ", c.plan, c.control, c.graph ? " (graph)" : "", reserve, kept.c_str(), n, 630 - n);
@@ -188,10 +199,18 @@ TEST(ControlPartitionBudget, OptionalRecordsAlwaysLeaveRoomForThePlanHandoverAnd
         EXPECT_LE(n, 630u - B::entriesPerPage) << "never physically full";
         // The owner's unit (plan ~0.93 KB, a session without rooms): everything is kept, the
         // learned rooms beside the hourly records (rc.4: the hot water days and the scoreboard).
-        if (c.plan == 930 && c.control <= 200 && !c.graph && !worst)
-            EXPECT_EQ(kept, "readiness autotune dhw scoreboard learned_a ")
+        // rc.5 (P3): with 8 typical rooms the learned record had 2 entries to spare before the free
+        // heat; with the Home Assistant session's record (0.2 KB) the part goes without it (the
+        // free heat stays in RAM, the rooms are kept), without that record with it. 200 entries stay free.
+        if (c.plan == 930 && c.control <= 200 && !c.graph && !worst) {
+            EXPECT_EQ(kept, c.control ? "readiness autotune dhw scoreboard learned_a(no free heat) " : "readiness autotune dhw scoreboard learned_a ")
                 << "the owner's unit: " << 630 - n << " free after the records written, the learned record (" << typical().back().bytes
                 << " B) needs 1 + " << B::blobEntries(typical().back().bytes) << " entries beside the reserve of " << reserve;
+            EXPECT_GE(630 - n, 200u) << "rc.5 (P3): the owner's unit keeps 200 free entries";
+            // One room (the owner's today): the free heat is stored beside it.
+            const size_t oneRoom = globalBytes + typicalRoom + 8 + 1 + (1 + 10 + 1 + 3 * 3);
+            EXPECT_TRUE(B::permitsOptionalWrite(used(n - B::blobEntries(typical().back().bytes - (c.control ? typicalFreeHeat : 0))), oneRoom, 0, reserve));
+        }
     }
     // The gate itself: the edge, the record it replaces, invalid stats, sizes and reservations.
     EXPECT_EQ(B::controlReplacementEntries(0, false), 8u);

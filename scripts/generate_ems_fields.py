@@ -38,11 +38,14 @@ def fields():
 
 
 def block():
-    lines = [START, '# name, unit, raw divisor, source TTL ms, telegram types, raw minimum, raw maximum\n',
+    lines = [START, '# name, unit, raw divisor, source TTL ms (REQUEST_ONLY: sent only when asked, kept until a new\n',
+             '# report), telegram types, raw minimum, raw maximum\n',
              'CATALOG_FIELDS = (\n']
     for f in fields():
         types = '(' + ', '.join(str(t) for t in f['types']) + (',)' if len(f['types']) == 1 else ')')
-        lines.append(f"    ({f['id']!r}, {f['unit']!r}, {f['divisor']}, {f['ttl']}, {types}, {f['minimum']}, {f['maximum']}),\n")
+        # requestOnlyTtl (0) in the C++ table: no lifetime, as the Classic settings' REQUEST_ONLY in FIELDS.
+        ttl = 'REQUEST_ONLY' if f['ttl'] == 0 else f['ttl']
+        lines.append(f"    ({f['id']!r}, {f['unit']!r}, {f['divisor']}, {ttl}, {types}, {f['minimum']}, {f['maximum']}),\n")
     counters = ', '.join(repr(f['id']) for f in fields() if f['kind'] == 'u24')
     verified = ', '.join(f"({r['id']!r}, {r['type']})" for r in rows() if r['verified'])
     lines += [')\n', '# EMS 3-byte lifetime counters (EntityKind::u24): Home Assistant total_increasing\n',

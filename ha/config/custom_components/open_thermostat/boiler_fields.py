@@ -89,7 +89,8 @@ QUALITIES = (0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 2, 2, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1
 LIMITS = ((-6000, 13000), (-6000, 13000), (-6000, 13000), (-6000, 13000), (0, 100), (0, 100), (0, 254), (0, 1), (0, 1), (0, 1), (0, 255), (0, 1), (0, 1), (-6000, 13000), (-6000, 13000), (0, 254), (0, 1), (0, 1), (0, 16777214), (0, 16777214), (0, 16777214), (0, 16777214), (0, 16777214), (0, 16777214), (0, 65535), (0, 65534), (0, 100), (0, 16777214), (-6000, 13000), (-6000, 13000), (-6000, 13000), (-6000, 13000), (0, 65534), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (-6000, 13000), (-6000, 50000), (-6000, 13000), (0, 100), (0, 16777214), (-128, 254), (-128, 254), (0, 16777214), (0, 100), (0, 100), (0, 65534), (-128, 254), (-128, 254), (-6000, 13000), (-128, 254), (0, 1), (-128, 254), (0, 1), (0, 65534), (-6000, 13000), (0, 65534), (0, 65534), (-6000, 13000), (-6000, 13000), (0, 65534), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1))
 
 # BEGIN GENERATED CATALOG FIELDS (scripts/generate_ems_fields.py)
-# name, unit, raw divisor, source TTL ms, telegram types, raw minimum, raw maximum
+# name, unit, raw divisor, source TTL ms (REQUEST_ONLY: sent only when asked, kept until a new
+# report), telegram types, raw minimum, raw maximum
 CATALOG_FIELDS = (
     ('thermostat_requested_flow_temperature', 'degC', 1, 180000, (26,), 0, 100),
     ('thermostat_requested_burner_power', '%', 1, 180000, (26,), 0, 100),
@@ -118,14 +119,14 @@ CATALOG_FIELDS = (
     ('plus_dhw_flow', 'L/min', 10, 180000, (233,), 0, 250),
     ('plus_dhw_runtime', 'min', 1, 180000, (233,), 0, 16777214),
     ('plus_dhw_starts', 'starts', 1, 180000, (233,), 0, 16777214),
-    ('plus_dhw_selected_temperature', 'degC', 1, 600000, (234,), 0, 100),
-    ('plus_heating_temperature', 'degC', 1, 600000, (230,), 0, 100),
-    ('plus_maximum_burner_power', '%', 1, 600000, (230,), 0, 100),
-    ('last_locking_error_code', 'text', 1, 86400000, (16,), 8224, 32382),
-    ('last_locking_error_number', 'code', 1, 86400000, (16,), 0, 9999),
-    ('last_blocking_error_code', 'text', 1, 86400000, (17,), 8224, 32382),
-    ('last_blocking_error_number', 'code', 1, 86400000, (17,), 0, 9999),
-    ('boiler_uptime', 'min', 1, 600000, (20,), 0, 16777214),
+    ('plus_dhw_selected_temperature', 'degC', 1, REQUEST_ONLY, (234,), 0, 100),
+    ('plus_heating_temperature', 'degC', 1, REQUEST_ONLY, (230,), 0, 100),
+    ('plus_maximum_burner_power', '%', 1, REQUEST_ONLY, (230,), 0, 100),
+    ('last_locking_error_code', 'text', 1, REQUEST_ONLY, (16,), 8224, 32382),
+    ('last_locking_error_number', 'code', 1, REQUEST_ONLY, (16,), 0, 9999),
+    ('last_blocking_error_code', 'text', 1, REQUEST_ONLY, (17,), 8224, 32382),
+    ('last_blocking_error_number', 'code', 1, REQUEST_ONLY, (17,), 0, 9999),
+    ('boiler_uptime', 'min', 1, REQUEST_ONLY, (20,), 0, 16777214),
     ('thermostat_requested_dhw_temperature', 'degC', 1, 180000, (51,), 0, 100),
 )
 # EMS 3-byte lifetime counters (EntityKind::u24): Home Assistant total_increasing

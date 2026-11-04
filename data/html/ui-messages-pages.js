@@ -432,6 +432,8 @@ window.OT_UI_PAGE_MESSAGES = {
   "Configurable settings": "Instelbare waarden",
   "Everything the E32 receives from the EMS bus, per device. Boiler settings are read-only in this firmware.": "Alles wat de E32 per apparaat van de EMS-bus ontvangt. Ketelinstellingen zijn in deze firmware alleen-lezen.",
   "Received devices and values": "Ontvangen apparaten en waarden",
+  // rc.5: the boiler's request-only settings stay shown, with when they were read (ems_devices.html).
+  "The boiler sends its settings only when asked, such as at start-up and every six hours. Each setting shows the last value read and when it was read.": "De ketel stuurt zijn instellingen alleen als erom gevraagd wordt, zoals bij het opstarten en elke zes uur. Bij elke instelling zie je de laatst uitgelezen waarde en wanneer die is uitgelezen.",
   "Read only on E32": "Alleen lezen op E32",
   "Manual Classic trial only": "Alleen handmatige Classic-proef",
   "Classic setting; availability unknown": "Classic-instelling; beschikbaarheid onbekend",

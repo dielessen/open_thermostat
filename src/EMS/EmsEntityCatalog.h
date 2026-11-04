@@ -43,14 +43,16 @@ public:
                 const auto& slot=slots_[s];
                 if(slot.address!=address)continue;
                 const auto& spec=entityCatalog[slot.spec];
-                if(now<slot.observedMs||now-slot.observedMs>=spec.ttlMs)continue;
+                if(!spec.fresh(slot.observedMs,now))continue;
                 out<<(first?"":",")<<"{\"id\":\""<<spec.id<<"\",\"value\":";first=false;
                 if(!slot.valid)out<<"null";
                 else if(spec.kind==EntityKind::bit)out<<(slot.raw?"true":"false");
                 else if(spec.kind==EntityKind::text){out<<'"';for(char c:{char(slot.raw>>8),char(slot.raw&255)}){if(c=='"'||c=='\\')out<<'\\';out<<c;}out<<'"';}
                 else out<<static_cast<double>(slot.raw)/spec.divisor;
-                out<<",\"unit\":\""<<spec.unit<<"\",\"source_type\":"<<spec.type<<",\"age_ms\":"<<now-slot.observedMs
-                   <<(spec.verified?",\"verified\":true}":"}"); // table-wide flag stays false
+                out<<",\"unit\":\""<<spec.unit<<"\",\"source_type\":"<<spec.type<<",\"age_ms\":"<<now-slot.observedMs;
+                // Sent only when asked: valid until replaced; the page says when it was read (as ClassicBoilerMonitor).
+                if(spec.requestOnly())out<<",\"request_only\":true,\"observed_at_ms\":"<<slot.observedMs;
+                out<<(spec.verified?",\"verified\":true}":"}"); // table-wide flag stays false
             }
             out<<"]}";
         }
@@ -60,7 +62,7 @@ public:
     std::optional<double> value(uint8_t address,const char* id,uint64_t now) const {
         for(size_t s=0;s<used_;++s) {
             const auto& slot=slots_[s];const auto& spec=entityCatalog[slot.spec];
-            if(slot.address==address&&std::string_view(spec.id)==id&&slot.valid&&now>=slot.observedMs&&now-slot.observedMs<spec.ttlMs)
+            if(slot.address==address&&std::string_view(spec.id)==id&&slot.valid&&spec.fresh(slot.observedMs,now))
                 return static_cast<double>(slot.raw)/spec.divisor;
         }
         return {};
@@ -73,7 +75,7 @@ public:
         for (size_t s = 0; s < used_; ++s) {
             const auto& slot = slots_[s];
             if (!sameEntity(slot.spec, entityFieldRows[field])) continue;
-            if (now < slot.observedMs || now - slot.observedMs >= entityCatalog[slot.spec].ttlMs) continue;
+            if (!entityCatalog[slot.spec].fresh(slot.observedMs, now)) continue;
             if (!best || slot.observedMs > best->observedMs) best = &slot;
         }
         if (!best) return {};
@@ -106,7 +108,13 @@ private:
         if(!slot) {
             if(used_<capacity)slot=&slots_[used_++];
             else {
-                slot=&slots_[0];for(size_t s=1;s<used_;++s)if(slots_[s].observedMs<slot->observedMs)slot=&slots_[s];
+                // Full: a reading past its lifetime goes first, then the oldest report. A value sent only
+                // when asked never expires, so it gives way only when no reading has expired.
+                const auto expired=[&](const Slot& s){const auto& row=entityCatalog[s.spec];
+                    return !row.requestOnly()&&now>=s.observedMs&&now-s.observedMs>=row.ttlMs;};
+                slot=&slots_[0];
+                for(size_t s=1;s<used_;++s)
+                    if(expired(slots_[s])!=expired(*slot)?expired(slots_[s]):slots_[s].observedMs<slot->observedMs)slot=&slots_[s];
                 if(dropped_!=UINT32_MAX)++dropped_;
             }
         }

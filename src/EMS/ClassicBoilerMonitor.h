@@ -30,11 +30,23 @@ enum class BoilerField : size_t {
 };
 enum class BoilerQuality { reported, unreliable, inferred };
 
-struct BoilerFieldSpec { const char *name; const char *unit; int divisor; uint32_t ttlMs; };
-// Settings the boiler reports only on request (0x16 heating parameters, 0x33 hot-water parameters): the E32 reads
-// 0x16 at boot and every 6 h, so a setting stays valid for a day instead of the 10 minutes of a status value
-// (rc.5: the owner's "heating temperature setting" went unknown while the E32 still knew it).
-inline constexpr uint32_t settingTtlMs = 86400000;
+// One boiler field: name, unit, raw divisor and lifetime. ttlMs: how long a value the boiler sends on its
+// own (status, measurements, counters) stays valid after it arrived. requestOnlyTtlMs (ttlMs 0) marks a
+// request-only setting: the boiler sends 0x16 UBAParameters and 0x33 UBAParameterWW only when a
+// controller asks for them (the E32 reads 0x16 at boot and every 6 h, EMS/BoilerLimitRead.h), so the last
+// value read this boot stays valid until a newer report replaces it; it never expires (rc.5, owner: show
+// such values, with a remark); so do their EMS+ twins (EmsEntityTable.h requestOnlyTtl). The E32 pages'
+// JSON marks it "request_only":true (writeJSON); the MQTT rows are unchanged. Home Assistant mirrors the
+// catalog (boiler_fields.py FIELDS: TTL REQUEST_ONLY; its test reads these rows, the marker must name "request").
+inline constexpr uint32_t requestOnlyTtlMs = 0;
+struct BoilerFieldSpec {
+    const char *name; const char *unit; int divisor; uint32_t ttlMs;
+    constexpr bool requestOnly() const { return ttlMs == requestOnlyTtlMs; }
+    // Whether a value that arrived at observedMs is still valid at now (never before it arrived).
+    constexpr bool fresh(uint64_t observedMs, uint64_t now) const {
+        return now >= observedMs && (requestOnly() || now - observedMs < ttlMs);
+    }
+};
 inline constexpr std::array<BoilerFieldSpec, static_cast<size_t>(BoilerField::count)> boilerFieldSpecs{{
     {"reported_selected_flow_temperature", "degC", 100, 30000},
     {"measured_flow_temperature", "degC", 100, 30000},
@@ -49,11 +61,11 @@ inline constexpr std::array<BoilerFieldSpec, static_cast<size_t>(BoilerField::co
     {"raw_boiler_state", "bits", 1, 30000},
     {"heating_active", "bool", 1, 30000},
     {"dhw_active", "bool", 1, 30000},
-    {"selected_dhw_temperature", "degC", 100, settingTtlMs},
+    {"selected_dhw_temperature", "degC", 100, requestOnlyTtlMs},
     {"measured_dhw_temperature", "degC", 100, 30000},
     {"dhw_flow", "L/min", 10, 30000},
-    {"heating_enabled", "bool", 1, settingTtlMs},
-    {"dhw_enabled", "bool", 1, settingTtlMs},
+    {"heating_enabled", "bool", 1, requestOnlyTtlMs},
+    {"dhw_enabled", "bool", 1, requestOnlyTtlMs},
     {"reported_burner_starts", "starts", 1, 180000},
     {"reported_burner_runtime", "min", 1, 180000},
     {"reported_heating_runtime", "min", 1, 180000},
@@ -62,9 +74,9 @@ inline constexpr std::array<BoilerFieldSpec, static_cast<size_t>(BoilerField::co
     {"reported_dhw_starts", "starts", 1, 30000},
     {"display_code", "text", 1, 30000},
     {"service_number", "code", 1, 30000},
-    {"maximum_burner_power", "%", 1, settingTtlMs},
-    {"pump_run_on", "min", 1, settingTtlMs},
-    {"configured_heating_temperature", "degC", 100, settingTtlMs},
+    {"maximum_burner_power", "%", 1, requestOnlyTtlMs},
+    {"pump_run_on", "min", 1, requestOnlyTtlMs},
+    {"configured_heating_temperature", "degC", 100, requestOnlyTtlMs},
     {"reported_dhw_target", "degC", 100, 30000},
     {"storage_temperature_1", "degC", 100, 30000},
     {"storage_temperature_2", "degC", 100, 30000},
@@ -79,23 +91,23 @@ inline constexpr std::array<BoilerFieldSpec, static_cast<size_t>(BoilerField::co
     {"hydraulic_switch_temperature", "degC", 100, 180000},
     {"reported_heating_pump_modulation", "%", 1, 180000},
     {"reported_second_burner_runtime", "min", 1, 180000},
-    {"heating_hysteresis_off", "K", 1, settingTtlMs},
-    {"heating_hysteresis_on", "K", 1, settingTtlMs},
-    {"minimum_burner_period", "min", 1, settingTtlMs},
-    {"pump_modulation_maximum", "%", 1, settingTtlMs},
-    {"pump_modulation_minimum", "%", 1, settingTtlMs},
-    {"configured_pump_mode", "code", 1, settingTtlMs},
-    {"secondary_heating_hysteresis_off", "K", 1, settingTtlMs},
-    {"secondary_heating_hysteresis_on", "K", 1, settingTtlMs},
-    {"pump_start_temperature", "degC", 100, settingTtlMs},
-    {"dhw_hysteresis_on", "K", 1, settingTtlMs},
-    {"dhw_charge_optimisation_enabled", "bool", 1, settingTtlMs},
-    {"dhw_flow_temperature_offset", "K", 1, settingTtlMs},
-    {"dhw_circulation_enabled", "bool", 1, settingTtlMs},
-    {"configured_dhw_circulation_mode", "code", 1, settingTtlMs},
-    {"dhw_disinfection_temperature", "degC", 100, settingTtlMs},
-    {"configured_dhw_charge_type", "code", 1, settingTtlMs},
-    {"configured_dhw_comfort_mode", "code", 1, settingTtlMs},
+    {"heating_hysteresis_off", "K", 1, requestOnlyTtlMs},
+    {"heating_hysteresis_on", "K", 1, requestOnlyTtlMs},
+    {"minimum_burner_period", "min", 1, requestOnlyTtlMs},
+    {"pump_modulation_maximum", "%", 1, requestOnlyTtlMs},
+    {"pump_modulation_minimum", "%", 1, requestOnlyTtlMs},
+    {"configured_pump_mode", "code", 1, requestOnlyTtlMs},
+    {"secondary_heating_hysteresis_off", "K", 1, requestOnlyTtlMs},
+    {"secondary_heating_hysteresis_on", "K", 1, requestOnlyTtlMs},
+    {"pump_start_temperature", "degC", 100, requestOnlyTtlMs},
+    {"dhw_hysteresis_on", "K", 1, requestOnlyTtlMs},
+    {"dhw_charge_optimisation_enabled", "bool", 1, requestOnlyTtlMs},
+    {"dhw_flow_temperature_offset", "K", 1, requestOnlyTtlMs},
+    {"dhw_circulation_enabled", "bool", 1, requestOnlyTtlMs},
+    {"configured_dhw_circulation_mode", "code", 1, requestOnlyTtlMs},
+    {"dhw_disinfection_temperature", "degC", 100, requestOnlyTtlMs},
+    {"configured_dhw_charge_type", "code", 1, requestOnlyTtlMs},
+    {"configured_dhw_comfort_mode", "code", 1, requestOnlyTtlMs},
     {"secondary_dhw_temperature", "degC", 100, 30000},
     {"solar_dhw_temperature", "degC", 100, 30000},
     {"reported_dhw_type", "code", 1, 30000},
@@ -113,9 +125,12 @@ struct BoilerSample {
     uint16_t sourceType = 0;
     BoilerQuality quality = BoilerQuality::reported;
     bool observed = false;
+    // Against a lifetime of the caller's own (a trial's settings window, a live check).
     bool fresh(uint64_t now, uint32_t ttl) const {
         return observed && now >= observedMs && now - observedMs < ttl;
     }
+    // Against the field's catalog lifetime: a request-only setting stays valid once it arrived.
+    bool fresh(uint64_t now, const BoilerFieldSpec &spec) const { return observed && spec.fresh(observedMs, now); }
 };
 
 // Independent implementation from documented wire offsets. No copied EMS-ESP code.
@@ -131,7 +146,7 @@ public:
     bool notReported(size_t field) const { return profile_ && profile_->leftEmpty(field); }
     std::optional<int32_t> value(BoilerField f, uint64_t now, bool allowUnreliable = false) const {
         const auto &s = sample(f);
-        if (!s.fresh(now, boilerFieldSpecs[index(f)].ttlMs) || notReported(index(f)) ||
+        if (!s.fresh(now, boilerFieldSpecs[index(f)]) || notReported(index(f)) ||
             (!allowUnreliable && s.quality == BoilerQuality::unreliable)) return {};
         return s.raw;
     }
@@ -377,7 +392,7 @@ public:
         for (size_t i = 0; i < samples_.size(); ++i) {
             if (i) ss << ',';
             const auto &s = samples_[i]; const auto &spec = boilerFieldSpecs[i];
-            const bool fresh = s.fresh(now, spec.ttlMs), empty = notReported(i);
+            const bool fresh = s.fresh(now, spec), empty = notReported(i);
             // not_reported: the boiler leaves this field empty (BoilerProfile::leftEmpty), its 0 is no value.
             const char *state = !s.observed ? "unknown" : empty ? "not_reported" : !s.raw ? "invalid" : !fresh ? "stale" : "valid";
             ss << '"' << spec.name << "\":{\"value\":";
@@ -398,6 +413,8 @@ public:
             if (s.observed && now >= s.observedMs) ss << now - s.observedMs; else ss << "null";
             ss << ",\"observed_at_ms\":";
             if (s.observed) ss << s.observedMs; else ss << "null";
+            // A setting the boiler sends only when asked: valid until replaced; the page says when it was read.
+            if (spec.requestOnly()) ss << ",\"request_only\":true";
             ss << '}';
         }
         ss << "},\"telegram_inventory\":";
@@ -422,7 +439,7 @@ public:
         bool first = true;
         for (size_t i = 0; i < samples_.size(); ++i) {
             const auto &sample = samples_[i];
-            if (profile != BoilerProtocol::classic || !sample.raw || !sample.fresh(now, boilerFieldSpecs[i].ttlMs)
+            if (profile != BoilerProtocol::classic || !sample.raw || !sample.fresh(now, boilerFieldSpecs[i])
                 || sample.quality == BoilerQuality::unreliable || notReported(i)) continue;
             if (!first) ss << ',';
             first = false;

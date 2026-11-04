@@ -19,15 +19,27 @@ namespace heating::ems {
 enum class EntityKind : uint8_t { u8, s16, u16, u24, bit, text };
 enum class EntitySource : uint8_t { boiler, controller }; // controller: any non-boiler, non-service sender
 
+// Lifetimes (ttlMs): a value a device sends on its own lives monitorTtl (monitors, what another
+// controller writes) or statusTtl (the maintenance status). requestOnlyTtl (0) marks a value the
+// boiler sends only when a controller asks for it (0xE6/0xEA settings, 0x10/0x11 error records,
+// 0x14 uptime): the last one read this boot stays valid until a newer report replaces it; it never
+// expires (rc.5, the owner: show what is read only at start-up or once, with a remark), as the
+// Classic settings of 0x16/0x33 (ClassicBoilerMonitor.h). scripts/generate_ems_fields.py writes it
+// into Home Assistant's catalog as REQUEST_ONLY.
+inline constexpr uint32_t monitorTtl=180000, statusTtl=600000, requestOnlyTtl=0;
 struct EntitySpec {
     uint16_t type; uint8_t offset; EntityKind kind; uint8_t bit;
     uint16_t divisor; int32_t minimum, maximum; // range in raw units after sign handling
     EntitySource source; const char* id; const char* unit; uint32_t ttlMs;
     bool verified = false; // decoded from real frames with plausible values
+    constexpr bool requestOnly() const { return ttlMs == requestOnlyTtl; }
+    // Whether a report that arrived at observedMs is still valid at now (never before it arrived).
+    constexpr bool fresh(uint64_t observedMs, uint64_t now) const {
+        return now >= observedMs && (requestOnly() || now - observedMs < ttlMs);
+    }
 };
 inline constexpr bool verified = true;
 
-inline constexpr uint32_t monitorTtl=180000, settingTtl=600000, recordTtl=86400000;
 inline constexpr std::array<EntitySpec,46> entityCatalog{{
     // UBASetPoints written to the boiler by another controller (our own
     // service-address trial is excluded by the observer). tado: every ~40 s,
@@ -36,7 +48,7 @@ inline constexpr std::array<EntitySpec,46> entityCatalog{{
     {0x1A,1,EntityKind::u8,0,1,0,100,EntitySource::controller,"thermostat_requested_burner_power","%",monitorTtl,verified},
     {0x1A,2,EntityKind::u8,0,1,0,100,EntitySource::controller,"thermostat_requested_pump_modulation","%",monitorTtl,verified},
     // UBAMaintenanceStatus: message number, 0 = none, 3 = H03.
-    {0x1C,5,EntityKind::u8,0,1,0,254,EntitySource::boiler,"maintenance_message","code",settingTtl},
+    {0x1C,5,EntityKind::u8,0,1,0,254,EntitySource::boiler,"maintenance_message","code",statusTtl},
     // Room thermostats: setpoint is half degrees, room temperature tenths.
     // RC10 0xB1 from the tado every ~20 s: setpoint 19.0/21.0, room 20.9-21.4 degC.
     {0xB1,1,EntityKind::u8,0,2,0,70,EntitySource::controller,"thermostat_setpoint","degC",monitorTtl,verified}, // RC10
@@ -74,19 +86,20 @@ inline constexpr std::array<EntitySpec,46> entityCatalog{{
     {0xE9,11,EntityKind::u8,0,10,0,250,EntitySource::boiler,"plus_dhw_flow","L/min",monitorTtl},
     {0xE9,14,EntityKind::u24,0,1,0,16777214,EntitySource::boiler,"plus_dhw_runtime","min",monitorTtl},
     {0xE9,17,EntityKind::u24,0,1,0,16777214,EntitySource::boiler,"plus_dhw_starts","starts",monitorTtl},
-    {0xEA,6,EntityKind::u8,0,1,0,100,EntitySource::boiler,"plus_dhw_selected_temperature","degC",settingTtl},
-    {0xE6,1,EntityKind::u8,0,1,0,100,EntitySource::boiler,"plus_heating_temperature","degC",settingTtl},
-    {0xE6,4,EntityKind::u8,0,1,0,100,EntitySource::boiler,"plus_maximum_burner_power","%",settingTtl},
+    // EMS+ settings (UBAParameterWWPlus, UBAParametersPlus): sent only when asked, as Classic 0x33/0x16.
+    {0xEA,6,EntityKind::u8,0,1,0,100,EntitySource::boiler,"plus_dhw_selected_temperature","degC",requestOnlyTtl},
+    {0xE6,1,EntityKind::u8,0,1,0,100,EntitySource::boiler,"plus_heating_temperature","degC",requestOnlyTtl},
+    {0xE6,4,EntityKind::u8,0,1,0,100,EntitySource::boiler,"plus_maximum_burner_power","%",requestOnlyTtl},
     // Classic UBA records, appended so earlier field indexes stay stable. The
     // Nefit chain sends them only when asked (EasyControl, a one-shot read) or,
     // for 0x10/0x11, on a fault: no such frame in the live logs yet, unverified.
     // Offset 0 is the newest record: display code, then error number. Starts
     // and runtimes are already Classic fields 18-23 (0x19/0x34; 0 on this chain).
-    {0x10,0,EntityKind::text,0,1,8224,32382,EntitySource::boiler,"last_locking_error_code","text",recordTtl},  // UBAErrorMessage1
-    {0x10,2,EntityKind::u16,0,1,0,9999,EntitySource::boiler,"last_locking_error_number","code",recordTtl},
-    {0x11,0,EntityKind::text,0,1,8224,32382,EntitySource::boiler,"last_blocking_error_code","text",recordTtl}, // UBAErrorMessage2
-    {0x11,2,EntityKind::u16,0,1,0,9999,EntitySource::boiler,"last_blocking_error_number","code",recordTtl},
-    {0x14,0,EntityKind::u24,0,1,0,16777214,EntitySource::boiler,"boiler_uptime","min",settingTtl},          // UBATotalUptime
+    {0x10,0,EntityKind::text,0,1,8224,32382,EntitySource::boiler,"last_locking_error_code","text",requestOnlyTtl},  // UBAErrorMessage1
+    {0x10,2,EntityKind::u16,0,1,0,9999,EntitySource::boiler,"last_locking_error_number","code",requestOnlyTtl},
+    {0x11,0,EntityKind::text,0,1,8224,32382,EntitySource::boiler,"last_blocking_error_code","text",requestOnlyTtl}, // UBAErrorMessage2
+    {0x11,2,EntityKind::u16,0,1,0,9999,EntitySource::boiler,"last_blocking_error_number","code",requestOnlyTtl},
+    {0x14,0,EntityKind::u24,0,1,0,16777214,EntitySource::boiler,"boiler_uptime","min",requestOnlyTtl},          // UBATotalUptime
     // UBAParameterWW selected DHW temperature as another controller writes it
     // (tado: 17 08 33 02 37 = 55 degC every ~20 s). The boiler's own 0x33
     // broadcast is already Classic field 13 (selected_dhw_temperature).
@@ -119,10 +132,23 @@ constexpr bool consistentEntityFields() {
         for (size_t j = 0; j < i; ++j)
             if (sameEntity(i, j) && (entityCatalog[i].divisor != entityCatalog[j].divisor
                 || std::string_view(entityCatalog[i].unit) != entityCatalog[j].unit
-                || entityCatalog[i].source != entityCatalog[j].source)) return false;
+                || entityCatalog[i].source != entityCatalog[j].source
+                || entityCatalog[i].ttlMs != entityCatalog[j].ttlMs)) return false;
     return true;
 }
-static_assert(consistentEntityFields(), "rows of one entity must share unit, scale and source");
+static_assert(consistentEntityFields(), "rows of one entity must share unit, scale, source and lifetime");
+// The request-only rows are exactly the boiler's telegrams it sends only when asked: the EMS+ settings
+// (0xE6, 0xEA), the error records (0x10, 0x11) and the uptime (0x14). Monitors, the maintenance status
+// (0x1C) and what another controller writes (0x1A, 0x33, room thermostats) keep their lifetime.
+constexpr bool requestOnlyRowsAreTheAskedTelegrams() {
+    for (const auto& spec : entityCatalog) {
+        const bool asked = spec.source == EntitySource::boiler && (spec.type == 0xE6 || spec.type == 0xEA
+            || spec.type == 0x10 || spec.type == 0x11 || spec.type == 0x14);
+        if (spec.requestOnly() != asked) return false;
+    }
+    return true;
+}
+static_assert(requestOnlyRowsAreTheAskedTelegrams(), "request-only marks exactly the telegrams sent only when asked");
 // Whether a catalog row (telegram type) belongs to the field.
 constexpr bool entityFieldType(size_t field, uint16_t type) {
     for (size_t i = 0; i < entityCatalog.size(); ++i)

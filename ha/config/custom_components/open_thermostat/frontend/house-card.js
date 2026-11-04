@@ -136,7 +136,7 @@ border-top:1px solid var(--oth-line)}
 .line{font-size:18px}.sub,.chip{font-size:13px}
 .figures{grid-template-columns:repeat(var(--n,4),minmax(0,1fr))}.p2{grid-column:auto}.figure,.figure.top{padding:20px 22px}
 .label,.note,.today-title,.legend,.ticks{font-size:13px}.note{margin-top:6px}.value .num,.value.unknown{font-size:34px}
-.trend{gap:4px 12px}.spark{flex:0 0 110px;max-width:110px}.reasons{padding:8px 22px 10px}
+.trend{gap:4px 12px}.spark{flex:1 1 64px;min-width:64px;max-width:110px}.reasons{padding:8px 22px 10px}
 .today{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"title legend" "strip strip" "ticks ticks";padding:10px 22px 16px}
 .legend{margin:0 0 6px;justify-content:flex-end}}`;
 

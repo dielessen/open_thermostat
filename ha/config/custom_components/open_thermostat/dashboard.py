@@ -1302,7 +1302,9 @@ def _wanting_card(t, request):
 def _holiday_card(t, select):
     """The next holiday (E32 rc.4, house.holidays.v1): "Holiday from 20 Dec to 3 Jan", or "On holiday until 3 Jan"
     while it runs. From the house mode select's ``holidays`` attribute, so it follows the E32 without regenerating;
-    empty (and hidden) without a planned holiday or on firmware without them.
+    empty (and hidden) without a planned holiday or on firmware without them. The first holiday only once there is
+    one: Home Assistant's markdown card renders strictly, where "first" of an empty list is an error that left an
+    empty card standing (and an error in the log every 30 s).
     """
     if not select:
         return None
@@ -1310,12 +1312,10 @@ def _holiday_card(t, select):
     def day(name):
         return "{{ " + name + ".day }} {{ months[" + name + ".month - 1] }}"
 
-    # Home Assistant renders a markdown card's template strictly: "| first" of an empty list is an error there (an empty
-    # box and a logged error on every render), so the first holiday is taken only when there is one.
     return {"type": "markdown", "show_empty": False, "content": (
-        "{% set planned = state_attr(" + json.dumps(select) + ", 'holidays') or [] %}"
-        "{% if planned %}{% set h = planned[0] %}"
-        "{% set months = " + json.dumps(t["months"], ensure_ascii=False) + ".split(',') %}"
+        "{% set holidays = state_attr(" + json.dumps(select) + ", 'holidays') or [] %}"
+        "{% if holidays %}{% set h = holidays[0] %}{% set months = " + json.dumps(t["months"], ensure_ascii=False)
+        + ".split(',') %}"
         "{% set f = as_local(as_datetime(h['from'])) %}{% set u = as_local(as_datetime(h['until'])) %}"
         "{% if f <= now() %}" + t["holiday_now"].replace("{until}", day("u"))
         + "{% else %}" + t["holiday_next"].replace("{from}", day("f")).replace("{until}", day("u"))

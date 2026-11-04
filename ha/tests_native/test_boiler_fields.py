@@ -409,3 +409,42 @@ async def test_no_value_entity_is_added_once_the_entry_unloads(hass):
     await c.receive('fw/telemetry/boiler_fields',canonical(packet(c)));r._notify()
     assert not added
     await r.async_stop()
+
+
+def test_the_field_catalog_matches_the_firmware():
+    """FIELDS is the E32's own catalog (src/EMS/ClassicBoilerMonitor.h boilerFieldSpecs): the same names, units,
+    divisors and source TTLs in the same order, settingTtlMs for the settings the boiler reports only on request."""
+    import re
+    from pathlib import Path
+    from custom_components.open_thermostat.boiler_fields import SETTING_TTL_MS
+    header = (Path(__file__).resolve().parents[2] / "src/EMS/ClassicBoilerMonitor.h").read_text(encoding="utf-8")
+    constants = {name: int(value) for name, value in re.findall(r"constexpr uint32_t (\w+) = (\d+);", header)}
+    start = header.index("boilerFieldSpecs{{")
+    rows = re.findall(r'\{"(\w+)", "([^"]+)", (\d+), (\w+)\}', header[start:header.index("}};", start)])
+    firmware = [(name, unit, int(divisor), int(ttl) if ttl.isdigit() else constants[ttl])
+                for name, unit, divisor, ttl in rows]
+    assert firmware == [field[:4] for field in FIELDS]
+    assert constants["settingTtlMs"] == SETTING_TTL_MS == 86400000
+    assert sum(field[3] == SETTING_TTL_MS for field in FIELDS) == 23
+
+
+def test_a_boiler_setting_stays_valid_between_its_reads_while_a_live_value_expires():
+    """The owner's E32 page said "Boiler maximum (reported by the boiler) 62 °C · 5 h ago" while Home Assistant had
+    "Heating temperature setting" unknown: the settings (0x16, 0x33) are read at boot and every 6 hours, so they stay
+    valid for a day (SETTING_TTL_MS); a live reading keeps its 30 seconds."""
+    from custom_components.open_thermostat.boiler_fields import BoilerFieldCache, INDEX_BY_NAME, spec
+    setting, live = INDEX_BY_NAME['configured_heating_temperature'], INDEX_BY_NAME['measured_flow_temperature']
+    assert spec(setting)[3] == 86400000 and spec(live)[3] == 30000
+    cache = BoilerFieldCache()
+    cache.accept(values(0), 0, 1, 100)  # the flow temperatures (group 0), observed 1 s before the snapshot
+    cache.accept(values(2), 2, 2, 100)  # the 0x16 settings (group 2), the same moment
+    hours = 5 * 3600
+    # Five hours on, another report keeps the stream alive: the setting still reads, the live value is gone.
+    cache.accept(values(1, sampled=10000 + hours * 1000, observed=9000 + hours * 1000), 1, 3, 100 + hours)
+    reading = cache.reading(setting, 100 + hours)
+    assert reading['usable'] and reading['raw'] == 4500 and reading['availability_reason'] == 'ready'
+    assert cache.reading(live, 100 + hours)['availability_reason'] == 'source_expired'
+    # A day after it was observed, the setting expires too (the E32 has read it again long before).
+    day = 86400
+    cache.accept(values(1, sampled=10000 + day * 1000, observed=9000 + day * 1000), 1, 4, 100 + day)
+    assert cache.reading(setting, 100 + day)['availability_reason'] == 'source_expired'

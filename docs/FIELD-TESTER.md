@@ -1,4 +1,4 @@
-# Field tester pack: OpenThermostat 1.0 rc.2
+# Field tester pack: OpenThermostat 1.0 rc.4
 
 Thank you for testing. You are the first person other than the developer to
 install OpenThermostat, and the first on a **Nefit TopLine**. This page tells
@@ -13,8 +13,13 @@ us is a gap in the guide: please write it down. When you get through the guide
 on your own, that meets the 1.0 criterion "an install guide someone else has
 followed".
 
-Versions: E32 firmware **1.0.0-rc.2** with Home Assistant integration
-**1.0.0rc2**, or a newer pair that the release notes name together.
+Versions: E32 firmware **1.0.0-rc.4** with Home Assistant integration
+**1.0.0rc5**, or a newer pair that the release notes name together.
+
+Already testing rc.3? Do not start over: update with the three steps in
+[INSTALL.md section 13.1](INSTALL.md#131-update-order) (integration 1.0.0rc5
+first, then the E32's **Firmware** entity, then confirm the takeover again)
+and read [What to look at in rc.4](#what-to-look-at-in-rc4).
 
 ## 1. Before you start
 
@@ -83,7 +88,7 @@ it is done.
    3. Release candidates are pre-releases, which HACS does not offer by
       default. In the HACS list, open the three dots of **OpenThermostat**,
       choose **Download**, open **Need a different version?** and pick
-      **1.0.0rc2**.
+      **1.0.0rc5**.
    4. Restart Home Assistant (**Settings → System → Restart**).
 
    To be offered the next release candidate as an update, switch on the
@@ -221,6 +226,30 @@ only your home can tell us:
   whether the figures make sense for your home. Self-tuning only changes
   settings on days the E32 controlled the boiler.
 
+### What to look at in rc.4
+
+- **The morning line.** Smart warm-up now starts early from the first morning,
+  as an estimate ("starts at 07:40 (estimate; it learns from every morning)").
+  Every morning the E32 checks whether the room was warm at the program time
+  and says so: "Yesterday warm at 09:12 (12 min late); tomorrow 10 % earlier."
+  You find it in Home Assistant on the **Learning and settings** tab (and in
+  the thermostat's `smart_warm_up` attribute), and on the E32 under **Home →
+  What the thermostat has learned**. Follow it for a week: does the start move
+  the right way, and is the room warm at the program time after a few
+  mornings? Floor heating and radiators are worth telling apart.
+- **Yesterday.** Heating hours, burner starts per heating hour, short burner
+  runs, gas for heating (an estimate), degree-days and, per room, "warm 12 min
+  late · 0.3 °C too warm". It is on the same tab and on the same E32 card. Do
+  the figures match what you saw? Is a room often too warm?
+- **The holiday planner.** Plan a holiday that starts in the future, with its
+  own **Temperature on holiday**: in Home Assistant under **Configure → House →
+  House mode and holiday**, on the E32 on the **Home** page in the block
+  **Holidays**. Does it start and end by itself, is the house warm again when
+  you are back, and is the house mode afterwards what it was? Is the same
+  holiday listed in both places? A holiday needs the E32's clock.
+- **Why a room heats.** The line on each room's card, on the E32 **Overview**
+  and in Home Assistant. Does it say what the room really does?
+
 ## 6. How to share data (only if you want to)
 
 Sharing is always your choice. Send files privately, or attach them to a
@@ -284,6 +313,9 @@ one issue per problem, with a title that starts with "Field test:". Include:
   boiler display when it matters.
 - **Where you were in the guide:** the INSTALL.md section, or the
   INSTALL-CHECK.md row.
+- **For the rc.4 items:** the morning line, the **Yesterday** block or the
+  holiday list as text or a screenshot, with the date, the room and whether it
+  has floor heating or radiators.
 - If you are comfortable with it: the diagnostics file and the relevant part
   of the E32 log (section 6).
 
@@ -291,7 +323,7 @@ Notes on the guide itself (a word that did not match, a missing step) are
 just as welcome. The filled-in [INSTALL-CHECK.md](INSTALL-CHECK.md) is the
 best report of all.
 
-## 8. Known limits in rc.2
+## 8. Known limits in rc.4
 
 - **Radiator valve control is not yet verified on real valves.** You are the
   one verifying it. Switch **Valve control** on one room at a time, after the
@@ -301,9 +333,13 @@ best report of all.
 - **The three-way valve position** cannot be seen behind an adapter that does
   not report it (such as the Bosch EasyControl Adapter).
 - **Charts are lost** when the E32 restarts.
-- **Self-tuning** waits at least 24 hours and only changes settings on days
-  the E32 controlled the boiler. During a trial run it only shows what it
-  would change.
+- **Smart warm-up starts as an estimate.** Until a room has been checked on a
+  few mornings, it can be warm a little early or late; the E32 adjusts it
+  every morning.
+- **Self-tuning** waits 24 hours after the first start or a change that
+  touches the control, and 2 hours after a restart. It only changes settings
+  on days the E32 controlled the boiler. During a trial run it only shows what
+  it would change.
 - **HACS** lists OpenThermostat as a custom repository, not yet in the
   default HACS list.
 - **The E32 connects to the broker without TLS** (port 1883); keep the broker

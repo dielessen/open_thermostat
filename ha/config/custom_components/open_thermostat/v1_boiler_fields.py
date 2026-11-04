@@ -765,7 +765,9 @@ class BoilerFieldEntity(SensorEntity):
             return chr(raw >> 8) + chr(raw & 255)
         if self._presentation is not None:
             return shown_value(self._presentation, raw)
-        return raw / divisor
+        # A whole number on the wire stays one: Home Assistant shows a state without a unit as written, and
+        # raw / 1 read "Service number 200.0" and "Boiler state bits (raw) 11.0".
+        return raw if divisor == 1 else raw / divisor
 
     def _code_attributes(self):
         if not self._code_field:

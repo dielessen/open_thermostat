@@ -79,7 +79,7 @@ back in the menu, and **Done** closes Configure.
 The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
 
 - **Overview**, from top to bottom: the **house card**, then **Rooms**,
-  **Today** and **House**.
+  **Today** and **House**. On a wide screen the last three stand side by side.
   - The **house card** shows the whole house at a glance:
     - A **status band** in the colour of what the boiler does now: orange for
       heating (with the water temperature), blue for hot water, grey for
@@ -98,19 +98,26 @@ The **OpenThermostat** dashboard in the Home Assistant sidebar has these tabs:
     - A **day strip** from midnight until now: when the boiler was heating,
       making hot water or keeping it warm. Point at a part for its start and
       end time.
-  - **Rooms**: a card per room. It shows the room's temperature and target
-    and, in one line, why it heats or not: window open, away, warm enough,
-    Smart warm-up heating early, and so on. The same line is the **Reason**
-    sensor of the room. Chips under it show the state of the room: heating,
-    Smart warm-up on, at home or away.
-  - **Today**: two sentences. The first says when Smart warm-up starts
-    tomorrow so that the room is warm on time, and how early or late it was
-    yesterday. The second says what Weather compensation asks of the water
-    temperature at today's outdoor temperature, and whether it uses the
-    standard line or the line learned for your house.
-  - **House**: home or away (the house mode; tap it to change it), the
-    holiday (plan one, or see the next planned one) and the outdoor
-    temperature.
+    - In a house with only one room switched on, that room is the first figure
+      of the card. The other rooms are then listed under **Other rooms**.
+  - **Rooms**: a card per room, with a round icon in the colour of what the
+    room does, its name, its temperature, large, and, in one line, why it
+    heats or not: window open, away, warm enough, Smart warm-up heating
+    early, and so on. The same line is the **Reason** sensor of the room.
+    Chips under it say in a word what the room does, whether Smart warm-up is
+    on, whether the house is at home, away or on holiday, and how far the
+    radiator valves are open.
+  - **Today**: for each room that is switched on, when it warms up next and
+    what it will be then ("Tomorrow Living room warms up from 6:10 to be
+    20.5 °C at 7:00"), and how yesterday's warm-up went ("Yesterday it was
+    warm 4 minutes early"). Under it one line on Weather compensation: what
+    it asks of the water temperature at today's outdoor temperature, and
+    which line it follows: the standard line, one estimated from your house,
+    or the line learned for your house.
+  - **House**: **Home or away** (the house mode; tap it to change it),
+    **Holiday** (**Plan** opens the integration's page, where you plan one
+    under Configure → House; the next planned holiday is shown under it) and
+    **Outdoor** (the outdoor temperature).
 - **Rooms**: per room its thermostat, a 24-hour graph, its sensors, windows and
   people, and what it learned for that room.
 - **Week program**: the visual week planner for all rooms.

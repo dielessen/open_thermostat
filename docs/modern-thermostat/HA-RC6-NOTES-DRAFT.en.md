@@ -37,9 +37,10 @@ Assistant 2026.10.0 or newer.
 - **A house card opens the Overview:** a band in the colour of what the boiler
   does now (a problem turns it red and names the reason), the room that is on,
   hot water, today's gas with its last 7 days, burner starts, and the day so
-  far from midnight. Under it: a card per room with chips for its state,
-  **Today** (when Smart warm-up starts tomorrow, and what Weather compensation
-  asks now) and **House** (home or away, holiday, outdoor temperature).
+  far from midnight. Under it, side by side: **Rooms** (a card per room with
+  chips for its state), **Today** (when each room warms up next, and what
+  Weather compensation asks now) and **House** (home or away, holiday, outdoor
+  temperature).
 - **The Boiler tab opens with a Now card:** what the boiler does in words with
   its display code, the water to the heating and back, the burner power with a
   gauge and the starts in the last hour. After it: Advice, Today and this

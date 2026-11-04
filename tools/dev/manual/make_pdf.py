@@ -338,26 +338,24 @@ def content():
          # move them into ui(): Vandaag (the Overview's Today card), Huis (its House card), Je ketel, Opgevallen and Gratis warmte
          # (sections of Leren en instellingen).
          table([["Tabblad", "Wat je ziet"],
-                [ui("Overzicht"), "Bovenaan de <b>huiskaart</b>: een band in de kleur van wat de ketel nu doet (verwarmt, warm water of in rust), "
-                 "met de huismodus rechts. Bij een probleem wordt de band rood met de reden; een tik brengt je bij Reparaties. Onder de band "
-                 "staan de cijfers van vandaag (de ruimte die aan staat, warm water, gas met de laatste 7 dagen, branderstarts) en de dag tot "
-                 "nu toe als balk. Daaronder komen " + ui("Ruimtes") + " (een kaart per ruimte die in één regel zegt waarom ze verwarmt of niet, "
-                 "met kleine labels voor haar toestand), <b>Vandaag</b> (hoe laat Slim opwarmen morgen begint en wat de weerafhankelijke regeling "
-                 "nu vraagt) en <b>Huis</b> (thuis of weg, vakantie en de buitentemperatuur)."],
+                [ui("Overzicht"), "Bovenaan de <b>huiskaart</b>: een band in de kleur van wat de ketel nu doet (bij een probleem rood, met de "
+                 "reden; een tik brengt je bij Reparaties) met de huismodus rechts, de cijfers van vandaag (de ruimte die aan staat, warm water, "
+                 "gas met de laatste 7 dagen, branderstarts) en de dag tot nu toe als balk. Staat er maar één ruimte aan, dan zit die in de "
+                 "huiskaart en staan de andere onder " + ui("Overige ruimtes") + ". Daaronder, naast elkaar: " + ui("Ruimtes") + " (een kaart per "
+                 "ruimte, met in één regel waarom ze verwarmt of niet), <b>Vandaag</b> (wanneer elke ruimte opwarmt en wat de weerafhankelijke "
+                 "regeling vraagt) en <b>Huis</b> (thuis of weg, vakantie plannen, buiten)."],
                 [ui("Ruimtes"), "Per ruimte de thermostaat, de dag, de sensoren, ramen en personen, en wat de E32 leerde."],
                 [ui("Weekprogramma"), "De weekplanner voor alle ruimtes."],
-                [ui("Ketel"), "Bovenaan de kaart " + ui("Nu") + ": een band in de kleur van wat de ketel doet, met de ketel in woorden en de "
-                 "displaycode, en daaronder het water naar de verwarming en terug, het brandervermogen met een meter en de starts van het laatste "
-                 "uur. Dan, in de volgorde van wat je nodig hebt: " + ui("Advies") + ", " + ui("Vandaag en deze week") + " (gas en branderstarts "
-                 "van vandaag, met één grafiek met het gas per dag van de laatste week), " + ui("Warm water") + ", " + ui("Afgelopen 24 uur") + ", "
-                 + ui("Wat de ketel meldt") + " en " + ui("Ketelinstellingen") + ". Een onderdeel verschijnt pas als de ketel er iets voor meldt. "
-                 "Gisteren staat hier niet; dat vind je bij " + ui("Leren en instellingen") + "."],
-                [ui("Leren en instellingen"), "Hier lees je wat de E32 zelf leerde en deed, in zeven onderdelen: " + ui("Wat de E32 weet") + " (hoeveel "
-                 "van je huis hij kent en wat hij nog moet leren), <b>Je ketel</b> (hoe je ketel zijn temperatuur vasthoudt en wat de E32 daardoor "
-                 "vraagt), " + ui("Watertemperatuur bij buitentemperatuur") + " (de grafiek met de standaardlijn en de lijn die voor je huis is "
-                 "geleerd), " + ui("Gisteren in cijfers") + " (gisteren staat alleen hier), <b>Opgevallen</b> (gisteren vergeleken met je eigen "
-                 "gewone dagen), <b>Gratis warmte</b> (wat zon, koken en mensen een ruimte geven) en " + ui("Slim opwarmen en weerafhankelijke regeling")
-                 + " (de twee schakelaars)."],
+                [ui("Ketel"), "Bovenaan de kaart " + ui("Nu") + ": de ketel in woorden met de displaycode, het water naar de verwarming en terug, "
+                 "het brandervermogen en de starts van het laatste uur. Daarna, in de volgorde van wat je nodig hebt: " + ui("Advies") + ", "
+                 + ui("Vandaag en deze week") + " (gas en branderstarts van vandaag, met één grafiek met het gas per dag van de laatste week), "
+                 + ui("Warm water") + ", " + ui("Afgelopen 24 uur") + ", " + ui("Wat de ketel meldt") + " en " + ui("Ketelinstellingen") + ". Een "
+                 "onderdeel verschijnt pas als de ketel er iets voor meldt. Gisteren staat hier niet; dat vind je bij " + ui("Leren en instellingen") + "."],
+                [ui("Leren en instellingen"), "Wat de E32 zelf leerde en deed, in zeven onderdelen: " + ui("Wat de E32 weet") + " (en nog moet leren), "
+                 "<b>Je ketel</b> (hoe hij zijn temperatuur vasthoudt), " + ui("Watertemperatuur bij buitentemperatuur") + " (de grafiek met de "
+                 "standaardlijn en de lijn voor jouw huis), " + ui("Gisteren in cijfers") + " (gisteren staat alleen hier), <b>Opgevallen</b> "
+                 "(gisteren vergeleken met je eigen gewone dagen), <b>Gratis warmte</b> (zon, koken en mensen) en "
+                 + ui("Slim opwarmen en weerafhankelijke regeling") + " (de twee schakelaars)."],
                 [ui("Diagnose"), "Voor het zoeken naar fouten, met ook " + ui("Thermostaat op de bus") + ": wat een andere thermostaat aan de ketel "
                  "vraagt, zoals de E32 het hoort."]],
                [48 * mm, W - 48 * mm])]),
@@ -483,7 +481,7 @@ def content():
                  "(7 dagen bewaard). Wat hij van je ketel leerde (plafond en rust) zit er niet in; dat leert hij binnen enkele dagen opnieuw. "
                  "Zelf maken kan op <b>Systeem → Backup and restore</b>."],
                 ["Afmelden", "Onderaan het menu <b>Systeem</b> staat <b>Afmelden</b>, zodra je bent aangemeld. Daarmee sluit je je sessie op de E32."],
-                ["Problemen zien", "Op het tabblad " + ui("Overzicht") + " wordt de strook van de huiskaart rood met \"Let op\" en de eerste reden; een tik "
+                ["Problemen zien", "Op het tabblad " + ui("Overzicht") + " wordt de band van de huiskaart rood met \"Let op\" en de eerste reden; een tik "
                  "brengt je bij Reparaties. Elk probleem staat ook onder <b>Instellingen → Systeem → Reparaties</b>. Een blauwdruk stuurt "
                  "desgewenst een melding naar je telefoon."]],
                [42 * mm, W - 42 * mm]),

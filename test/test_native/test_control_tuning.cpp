@@ -147,7 +147,10 @@ struct Replay {
 // rc.5 (P1): the flow summary carries "ceiling_c" (null: no boiler ceiling in effect); still 12
 // starts and 5219 heating steps, and the same run with that key left out still gives the rc.4
 // hash 0x1a32287f37d8bf9a.
-constexpr uint64_t goldenHash = 0xce5e6c6f47d567daull;
+// rc.5 (P14 review): the summary's curve carries "base_c" and "design_flow_c" for the chart; still 12
+// starts and 5219 heating steps, and the same run with both keys left out still gives the P1 hash
+// 0xce5e6c6f47d567da.
+constexpr uint64_t goldenHash = 0x9c0515b1a13aa51dull;
 
 Replay replay(const std::function<void(Replay&)>& tune = nullptr) {
     ScopedTz tz(ScopedTz::amsterdam);

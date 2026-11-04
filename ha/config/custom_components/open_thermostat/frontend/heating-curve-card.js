@@ -1,14 +1,17 @@
 /* The Learning view's two cards (OpenThermostat, E32 rc.5): one module, one versioned URL.
 
-   openthermostat-heating-curve — water temperature by outdoor temperature. Reads the "Water temperature by
-   weather compensation" sensor (e32_flow.py): its state is what weather compensation asks now; its attributes
-   the slope in use and where it comes from (standard, learned, or worked out from the house), the standard slope
-   from the water temperature in hard frost, the room temperature the curve starts from, the outdoor temperature
-   now and the plan's water temperature limits. It draws what the E32 Home page draws (data/html/house.html):
+   openthermostat-heating-curve — water temperature by outdoor temperature. Reads the attributes of the "Water
+   temperature by weather compensation" sensor (e32_flow.py), all in °C (its state is converted on an imperial
+   system, so the card never draws from it): the slope in use and where it comes from (standard, learned, or
+   estimated from the house), the standard slope from the water temperature in hard frost, the room temperature
+   the curve starts from, the outdoor temperature now, the water temperature limits, the line's own value now
+   (base_c) and what weather compensation asks (flow_c). It draws what the E32 Home page draws
+   (data/html/house.html):
      water = room + slope × max(0, room − outdoor), within the lowest and highest water temperature,
-   the standard line dashed, the learned one solid with the gain between them as a soft band, "Now" and the
-   hard-frost point (−10 °C). A crosshair reads any outdoor temperature (pointer, touch or arrow keys); the
-   values are also a table. Plain inline SVG; marks 2 px, markers with a ring in the card colour.
+   the standard line dashed, the learned one solid with the gain between them as a soft band, "Now" on the line
+   (with what the E32 asks when the room correction adds to it) and the hard-frost point (−10 °C). A crosshair
+   reads any outdoor temperature (pointer, touch or arrow keys); the values are also a table. Plain inline SVG;
+   marks 2 px, markers with a ring in the card colour.
 
    openthermostat-knowledge — what the E32 knows: a ring with the percentage and, below it, what it still
    learns in words (the Knowledge sensor, insight.py).
@@ -19,7 +22,8 @@
    (history-chart.js), selected per mode, never an inverted light theme. */
 const PREFIX = 'component.open_thermostat.entity.sensor.';
 const CURVE_TEXT = {title: 'Water temperature by outdoor temperature', standard: 'Standard', learned: 'Learned for your house',
- now: 'Now', frost: 'At −10 °C: {flow} °C', now_point: '{outdoor} °C outside → {flow} °C', at: 'At {outdoor} °C outside',
+ house: 'Estimated from your house', now: 'Now', frost: 'At −10 °C with {room} °C inside: {flow} °C',
+ now_point: '{outdoor} °C outside → {flow} °C', asks: 'E32 asks {flow} °C', at: 'At {outdoor} °C outside',
  lower: '{n} °C cooler than standard', higher: '{n} °C warmer than standard', outdoor: 'Outdoor temperature (°C)',
  water: 'Water to heating (°C)', caption: 'The colder it is outside, the warmer the water. The E32 learns the line for your house and keeps it as low as it can.',
  values: 'Show the values', outside: 'Outside', off: 'Weather compensation is off; the lines show what it would ask.',
@@ -37,7 +41,7 @@ ha-card.dark{${DARK}}h2{margin:0 0 4px;font-size:1.05rem;font-weight:600;line-he
 p{margin:0;line-height:1.45}.muted{color:var(--hc-muted);font-size:.9rem}@media(max-width:480px){ha-card{padding:12px}}`;
 const CURVE_STYLE = `${BASE}
 .legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:2px 0 6px;padding:0;list-style:none;font-size:.875rem;color:var(--hc-muted)}
-.legend li{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.legend li{display:inline-flex;align-items:center;gap:6px;max-width:100%}
 .key{display:inline-block;flex:none;width:18px;border-top:2px solid var(--hc-learned)}.key.standard{border-top:2px dashed var(--hc-muted)}
 .key.now{width:10px;height:10px;border:0;border-radius:50%;background:var(--hc-now);box-shadow:0 0 0 3px var(--hc-now-soft)}
 .plot{position:relative;touch-action:pan-y}svg{display:block;max-width:100%;height:auto;overflow:visible;-webkit-tap-highlight-color:transparent}
@@ -115,11 +119,18 @@ function drawCurve(host, data, t, n, keep = {at: null, focus: false}) {
  if (own) { const s = sample(own); lines.push(s); marks.append(make('svg:path', {class: 'line learned', 'data-line': 'learned', d: path(s)})); }
  // The hard-frost point of the line in use (the learned one once there is one), and the gain over the standard.
  const used = own || standard, frost = Math.round(used(FROST)), gain = own && standard ? Math.round(standard(FROST) - own(FROST)) : 0;
+ const solid = data.house ? 'house' : 'learned'; // the solid line's words: learned, or estimated from the house
  marks.append(make('svg:circle', {class: 'point ' + (own ? 'learned' : 'standard'), 'data-point': 'frost', cx: px(FROST), cy: py(used(FROST)), r: 4.5}));
- const showNow = data.outdoor !== null && data.now !== null && data.now > 0;
+ // "Now" sits on the line: the E32's own value of it (base_c), else the line here at the outdoor temperature now;
+ // what weather compensation asks with the room correction (flow_c) is told beside it when it differs.
+ const base = data.outdoor === null ? null
+  : data.base !== null ? Math.min(data.high ?? Infinity, Math.max(data.low ?? -Infinity, data.base)) : used(data.outdoor);
+ const showNow = base !== null;
+ const nowRows = showNow ? [t('now_point', {outdoor: n(data.outdoor, 1), flow: n(Math.round(base))})] : [];
+ if (showNow && data.now !== null && Math.round(data.now) !== Math.round(base)) nowRows.push(t('asks', {flow: n(data.now)}));
  if (showNow) {
-  marks.append(make('svg:circle', {class: 'halo', cx: px(data.outdoor), cy: py(data.now), r: 12}),
-   make('svg:circle', {class: 'point now', 'data-point': 'now', cx: px(data.outdoor), cy: py(data.now), r: 5}));
+  marks.append(make('svg:circle', {class: 'halo', cx: px(data.outdoor), cy: py(base), r: 12}),
+   make('svg:circle', {class: 'point now', 'data-point': 'now', cx: px(data.outdoor), cy: py(base), r: 5}));
  }
  // Labels, most important first; each takes the first of its places that overlaps no line, mark or earlier label
  // and stays inside the plot. An optional one that finds none is left out (the legend, tooltip and table still
@@ -169,16 +180,18 @@ function drawCurve(host, data, t, n, keep = {at: null, focus: false}) {
  };
  const dot = (x, y, r) => taken.push({l: x - r, r: x + r, t: y - r, b: y + r});
  dot(px(FROST), py(used(FROST)), 6);
- if (showNow) dot(px(data.outdoor), py(data.now), 12);
+ if (showNow) dot(px(data.outdoor), py(base), 12);
  const around = (x, y, gapX, gapY) => [[x + gapX, y - gapY, 'start'], [x + gapX, y + gapY + 12, 'start'], [x - gapX, y - gapY, 'end'],
   [x - gapX, y + gapY + 12, 'end'], [x, y - gapY - 6, 'middle'], [x, y + gapY + 18, 'middle']];
  if (showNow) {
-  const x = px(data.outdoor), y = py(data.now);
-  const box = place({'data-label': 'now'}, [t('now_point', {outdoor: n(data.outdoor, 1), flow: n(data.now, 1)})],
-   [...around(x, y, 14, 12), ...around(x, y, 14, 28)], true, [x, y]);
+  const x = px(data.outdoor), y = py(base);
+  const box = place({'data-label': 'now'}, nowRows, [...around(x, y, 14, 12), ...around(x, y, 14, 28)], true, [x, y]);
   if (box) leader(x, y, 6, box);
  }
- const frostRows = [t('frost', {flow: n(frost)})];
+ // The hard-frost point is the line at −10 °C for the room temperature the curve starts from (WeatherCurve), so it
+ // names that room temperature: the setting "water temperature in hard frost" is for a 20 °C room.
+ const frostAt = flow => t('frost', {room: n(data.room, 1), flow: n(flow)});
+ const frostRows = [frostAt(frost)];
  if (Math.abs(gain) >= 1) frostRows.push(t(gain > 0 ? 'lower' : 'higher', {n: n(Math.abs(gain))}));
  const fx = px(FROST), fy = py(used(FROST)), upper = Math.min(fy, standard ? py(standard(FROST)) : fy, own ? py(own(FROST)) : fy);
  const frostBox = place({'data-label': 'frost'}, frostRows,
@@ -188,7 +201,7 @@ function drawCurve(host, data, t, n, keep = {at: null, focus: false}) {
  for (const [f, key] of [[own, 'learned'], [standard, 'standard']]) {
   if (!f) continue;
   const x = px(x0) + 6, y = py(f(x0 + 0.5));
-  place({'data-label': key}, [t(key)], [[x, y - 9, 'start'], [x, y + 19, 'start']]);
+  place({'data-label': key}, [t(key === 'learned' ? solid : key)], [[x, y - 9, 'start'], [x, y + 19, 'start']]);
  }
  // The crosshair: the nearest half degree under the pointer, or the arrow keys.
  const hair = make('svg:line', {class: 'cross', y1: M.top, y2: M.top + plotH, visibility: 'hidden'});
@@ -205,15 +218,16 @@ function drawCurve(host, data, t, n, keep = {at: null, focus: false}) {
    return [key, Math.round(f(at))];
   });
   const head = make('div', {class: 'tip-head'}, t('at', {outdoor: n(at, 1)}));
+  const words = key => t(key === 'learned' ? solid : key);
   tip.replaceChildren(head, ...rows.map(([key, value]) => {
    const row = make('div', {class: 'tip-row'});
-   row.append(make('i', {class: 'key ' + key}), make('b', {}, n(value) + ' °C'), make('span', {}, t(key)));
+   row.append(make('i', {class: 'key ' + key}), make('b', {}, n(value) + ' °C'), make('span', {}, words(key)));
    return row;
   }));
   tip.hidden = false;
   const left = Math.min(width - tip.offsetWidth - 2, Math.max(2, x + (x > width / 2 ? -tip.offsetWidth - 12 : 12)));
   tip.style.transform = `translate(${left}px, ${M.top}px)`;
-  if (announce) live.textContent = [head.textContent, ...rows.map(([key, value]) => t(key) + ' ' + n(value) + ' °C')].join(', ');
+  if (announce) live.textContent = [head.textContent, ...rows.map(([key, value]) => words(key) + ' ' + n(value) + ' °C')].join(', ');
  };
  const hide = () => { at = keep.at = null; tip.hidden = true; hair.setAttribute('visibility', 'hidden'); dots.forEach(d => d.setAttribute('visibility', 'hidden')); };
  const outdoorAt = event => { const box = svg.getBoundingClientRect(); return x0 + ((event.clientX - box.left) / box.width * width - M.left) / (width - M.left - M.right) * (x1 - x0); };
@@ -231,14 +245,14 @@ function drawCurve(host, data, t, n, keep = {at: null, focus: false}) {
  });
  // The chart's accessible name: what it shows, in one sentence per line.
  const name = [t('title')];
- if (standard) name.push(t('standard') + ': ' + t('frost', {flow: n(Math.round(standard(FROST)))}));
- if (own) name.push(t('learned') + ': ' + t('frost', {flow: n(Math.round(own(FROST)))}));
- if (showNow) name.push(t('now') + ': ' + t('now_point', {outdoor: n(data.outdoor, 1), flow: n(data.now, 1)}));
+ if (standard) name.push(t('standard') + ': ' + frostAt(Math.round(standard(FROST))));
+ if (own) name.push(t(solid) + ': ' + frostAt(Math.round(own(FROST))));
+ if (showNow) name.push(t('now') + ': ' + nowRows.join(', '));
  svg.setAttribute('aria-label', name.join('. '));
  // A redraw keeps what the viewer had: the crosshair where it was, the keyboard focus on the chart.
  if (refocus) svg.focus({preventScroll: true});
  if (was !== null) show(was);
- return {standard, own, frost, gain, x0, x1};
+ return {standard, own, frost, gain, x0, x1, solid};
 }
 
 function table(model, t, n) {
@@ -246,7 +260,7 @@ function table(model, t, n) {
  box.append(make('summary', {}, t('values')), body);
  const head = make('tr');
  head.append(make('th', {scope: 'col'}, t('outside')));
- for (const key of ['standard', 'learned']) if (model[key === 'learned' ? 'own' : 'standard']) head.append(make('th', {scope: 'col'}, t(key)));
+ for (const key of ['standard', 'learned']) if (model[key === 'learned' ? 'own' : 'standard']) head.append(make('th', {scope: 'col'}, t(key === 'learned' ? model.solid : key)));
  body.append(head);
  for (let v = Math.ceil(model.x0 / 5) * 5; v <= model.x1; v += 5) {
   const row = make('tr');
@@ -307,16 +321,18 @@ class OpenThermostatHeatingCurve extends OpenThermostatCard {
   const card = this.frame(CURVE_STYLE), st = hass.states?.[config.entity];
   card.append(make('h2', {}, config.name || t('title')));
   if (this.missing(card, config, st)) return;
-  const a = st.attributes || {}, slope = numeric(a.slope);
-  const data = {standardSlope: numeric(a.standard_slope), slope, room: numeric(a.room_c) ?? 20, low: numeric(a.minimum_flow_c),
-   high: numeric(a.maximum_flow_c), outdoor: numeric(a.outdoor_c), now: numeric(st.state),
-   learned: (a.slope_source === 'learned' || a.slope_source === 'house') && slope !== null && slope > 0};
+  // Everything in °C from the attributes, never from the state (Home Assistant converts that on an imperial system).
+  const a = st.attributes || {}, slope = numeric(a.slope), usable = slope !== null && slope > 0;
+  const data = {standardSlope: numeric(a.standard_slope) ?? (a.slope_source === 'design' && usable ? slope : null), slope,
+   room: numeric(a.room_c) ?? 20, low: numeric(a.minimum_flow_c), high: numeric(a.maximum_flow_c), outdoor: numeric(a.outdoor_c),
+   base: numeric(a.base_c), now: numeric(a.flow_c), house: a.slope_source === 'house',
+   learned: (a.slope_source === 'learned' || a.slope_source === 'house') && usable};
   if (data.standardSlope === null && !data.learned) { card.append(make('p', {class: 'muted'}, t('waiting'))); return; }
   const legend = make('ul', {class: 'legend'});
   const key = (cls, label) => { const li = make('li', {'data-key': cls}); li.append(make('i', {class: 'key ' + cls}), label); legend.append(li); };
   if (data.standardSlope !== null) key('standard', t('standard'));
-  if (data.learned) key('learned', t('learned'));
-  if (data.outdoor !== null && data.now !== null && data.now > 0) key('now', t('now'));
+  if (data.learned) key('learned', t(data.house ? 'house' : 'learned'));
+  if (data.outdoor !== null) key('now', t('now'));
   const plot = make('div', {class: 'plot'});
   card.append(legend, plot, make('p', {class: 'caption'}, t('caption')));
   if (a.state === 'advice') card.append(make('p', {class: 'note'}, t('off')));

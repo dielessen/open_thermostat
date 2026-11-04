@@ -2289,7 +2289,7 @@
               "standard": "Standardowa",
               "learned": "Wyuczona dla Twojego domu",
               "now": "Teraz",
-              "frost": "Przy −10 °C: {flow} °C",
+              "frost": "Przy −10 °C i {room} °C wewnątrz: {flow} °C",
               "now_point": "{outdoor} °C na zewnątrz → {flow} °C",
               "at": "Przy {outdoor} °C na zewnątrz",
               "lower": "o {n} °C chłodniej niż standardowo",
@@ -2300,7 +2300,9 @@
               "values": "Pokaż wartości",
               "outside": "Na zewnątrz",
               "off": "Kompensacja pogodowa jest wyłączona; linie pokazują, czego by żądała.",
-              "waiting": "E32 jeszcze nie przekazał danych kompensacji pogodowej."
+              "waiting": "E32 jeszcze nie przekazał danych kompensacji pogodowej.",
+              "house": "Oszacowana na podstawie Twojego domu",
+              "asks": "E32 zadaje {flow} °C"
             }
           },
           "design_flow_c": {
@@ -2320,6 +2322,12 @@
           },
           "maximum_flow_c": {
             "name": "Najwyższa temperatura wody (°C)"
+          },
+          "base_c": {
+            "name": "Temperatura wody na linii teraz (°C)"
+          },
+          "flow_c": {
+            "name": "Kompensacja pogodowa zadaje (°C)"
           }
         }
       },

@@ -41,11 +41,15 @@ The boiler request itself (the flow in use) stays the existing "Boiler
 request (E32)" sensor.
 
 "Water temperature by weather compensation" also carries what the heating-curve
-card (frontend/heating-curve-card.js, E32 rc.5) draws: the standard slope from
-the water temperature in hard frost (WeatherCurve::slopeFor), the room
-temperature the curve starts from, the outdoor temperature the E32 uses now
-and the plan's water temperature limits, next to the curve's slope and where
-it comes from (standard, learned, or worked out from the house).
+card (frontend/heating-curve-card.js, E32 rc.5) draws, all in °C whatever the
+unit system: the standard slope from the water temperature in hard frost the E32
+publishes (``curve.design_flow_c``; worked out as FlowPolicy does for firmware
+before rc.5), the room temperature the curve starts from, the outdoor
+temperature the E32 uses now, the water temperature limits (the plan's, the
+highest also within the boiler's own maximum, as FlowPolicy's cap), the line's
+own value now (``curve.base_c``) and what weather compensation asks with the
+room correction (``curve.flow_c``), next to the curve's slope and where it comes
+from (standard, learned, or worked out from the house).
 """
 from __future__ import annotations
 
@@ -83,8 +87,11 @@ KNOWLEDGE_CARD_TYPE = "custom:openthermostat-knowledge"
 DESIGN_ROOM_C, DESIGN_OUTDOOR_C = 20, -10
 DESIGN_FLOW_BY_EMITTER = {"floor": 40, "radiator": 55}
 SLOPE_LIMITS = (0.2, 2.5)
-# What only the card reads; it changes with the weather: shown, not kept in the history.
-CURVE_CHART_KEYS = ("design_flow_c", "standard_slope", "room_c", "outdoor_c", "minimum_flow_c", "maximum_flow_c")
+FLOW_CEILING_C = 80  # FlowDemand::ceilingC: the highest water temperature the E32 ever asks
+# What only the card reads; it changes with the weather: shown, not kept in the history. base_c and flow_c are the
+# curve's values in °C (the sensor's state is converted on an imperial system; the card draws in °C).
+CURVE_CHART_KEYS = ("design_flow_c", "standard_slope", "room_c", "outdoor_c", "minimum_flow_c", "maximum_flow_c",
+                    "base_c", "flow_c")
 
 
 def decode_settings(value):
@@ -414,15 +421,29 @@ def _limit(value):
     return value if type(value) is int and 20 <= value <= 90 else None
 
 
-def curve_chart(settings, plan, learned, rooms, outdoor_c):
+def _published_design(curve):
+    """The water temperature in hard frost the E32 publishes with its curve (rc.5), or None."""
+    value = curve.get("design_flow_c") if type(curve) is dict else None
+    return value if type(value) is int and DESIGN_FLOW_LIMITS[0] <= value <= DESIGN_FLOW_LIMITS[1] else None
+
+
+def curve_chart(settings, plan, learned, rooms, outdoor_c, curve=None, boiler_maximum_c=None):
     """What the heating-curve card draws besides the curve's slope: {design_flow_c, standard_slope, room_c,
-    outdoor_c, minimum_flow_c, maximum_flow_c}; None for what is not known."""
-    design = design_flow(settings, plan, learned)
+    outdoor_c, minimum_flow_c, maximum_flow_c, base_c, flow_c}, all in °C; None for what is not known.
+
+    The design flow is the one the E32 publishes (rc.5), else worked out as FlowPolicy does. The highest water
+    temperature is FlowPolicy's cap: the plan's maximum, at most 80 °C and the boiler's own maximum.
+    """
+    design = _published_design(curve) or design_flow(settings, plan, learned)
     plan = plan if type(plan) is dict else {}
-    outdoor = number(outdoor_c, -50, 60)
+    curve = curve if type(curve) is dict else {}
+    outdoor, base = number(outdoor_c, -50, 60), number(curve.get("base_c"), 0, 90)
+    highest = [value for value in (_limit(plan.get("maximum_flow_c")), _limit(boiler_maximum_c)) if value is not None]
     return {"design_flow_c": design, "standard_slope": standard_slope(design), "room_c": curve_room_c(rooms),
             "outdoor_c": round(outdoor, 1) if outdoor is not None else None,
-            "minimum_flow_c": _limit(plan.get("minimum_flow_c")), "maximum_flow_c": _limit(plan.get("maximum_flow_c"))}
+            "minimum_flow_c": _limit(plan.get("minimum_flow_c")),
+            "maximum_flow_c": min(*highest, FLOW_CEILING_C) if highest else None,
+            "base_c": round(base, 1) if base is not None else None, "flow_c": _flow(curve.get("flow_c"))}
 
 
 def curve_outdoor(hass, entry, hub):
@@ -512,14 +533,22 @@ class FlowTemperatureSensor(FlowSummarySensor):
         self.block, self.field = self.PATHS[key]
         self._attr_entity_registry_enabled_default = key != "flow_rule"
 
-    def _chart(self):
-        """The heating-curve card's figures (curve_chart) from the E32's options, plan, rooms and outdoor."""
+    def _chart(self, curve):
+        """The heating-curve card's figures (curve_chart) from the E32's curve, options, plan, rooms and outdoor and
+        the boiler's own maximum."""
         hass = getattr(self, "hass", None)
         entry = getattr(getattr(self, "platform", None), "config_entry", None)
         state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}) if hass is not None and entry is not None else {}
         outdoor = curve_outdoor(hass, entry, self.hub) if state else None
+        client = getattr(state.get("v1_connection"), "client", None)
+        if client is not None:
+            from .heating_advice import boiler_maximum
+            boiler = boiler_maximum(client)
+        else:
+            boiler = None
         plan = getattr(self.hub.plan, "plan", None)
-        return curve_chart(getattr(state.get(KEY), "settings", None), plan, self.hub.learned, self.hub.rooms, outdoor)
+        return curve_chart(getattr(state.get(KEY), "settings", None), plan, self.hub.learned, self.hub.rooms, outdoor,
+                           curve, boiler)
 
     def _block(self):
         flow = self.data
@@ -538,7 +567,7 @@ class FlowTemperatureSensor(FlowSummarySensor):
         attributes = {"state": _text(block, "state")}
         if self.block == "curve":
             attributes.update(slope=number(block.get("slope"), 0, 10), slope_source=_text(block, "slope_source"))
-            attributes.update(self._chart())  # E32 rc.5: the heating-curve card
+            attributes.update(self._chart(block))  # E32 rc.5: the heating-curve card
         return attributes
 
 

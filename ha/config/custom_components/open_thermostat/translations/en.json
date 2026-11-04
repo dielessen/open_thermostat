@@ -2289,7 +2289,7 @@
               "standard": "Standard",
               "learned": "Learned for your house",
               "now": "Now",
-              "frost": "At −10 °C: {flow} °C",
+              "frost": "At −10 °C with {room} °C inside: {flow} °C",
               "now_point": "{outdoor} °C outside → {flow} °C",
               "at": "At {outdoor} °C outside",
               "lower": "{n} °C cooler than standard",
@@ -2300,7 +2300,9 @@
               "values": "Show the values",
               "outside": "Outside",
               "off": "Weather compensation is off; the lines show what it would ask.",
-              "waiting": "The E32 has not reported its weather compensation yet."
+              "waiting": "The E32 has not reported its weather compensation yet.",
+              "house": "Estimated from your house",
+              "asks": "E32 asks {flow} °C"
             }
           },
           "design_flow_c": {
@@ -2320,6 +2322,12 @@
           },
           "maximum_flow_c": {
             "name": "Highest water temperature (°C)"
+          },
+          "base_c": {
+            "name": "Water temperature on the line now (°C)"
+          },
+          "flow_c": {
+            "name": "Weather compensation asks (°C)"
           }
         }
       },

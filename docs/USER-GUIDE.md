@@ -998,7 +998,10 @@ rounded down, so 100 % means nothing is missing.
 
 The room parts are the share of your active rooms. A part that does not apply
 counts as known: the morning check, for example, only counts rooms whose E32
-week program has a rise, and only while Smart warm-up is on.
+week program has a rise, and only while Smart warm-up is on. The part about
+how your boiler holds its temperature counts once the E32 has seen your boiler
+stop by itself in two requests; a boiler that never does that has nothing to
+hold back, so this part can stay open.
 
 On the E32 you find the figure on the **Home** page under **What the
 thermostat has learned**. In Home Assistant the **Learning and settings** tab

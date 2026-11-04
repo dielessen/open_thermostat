@@ -12,12 +12,24 @@ hacs.json in the clone (which must be on its main branch), commits them as "READ
 with --push, pushes main only. No package is downloaded, nothing else changes and no tag is made.
 Without --push, nothing leaves the clone: inspect README.md and the commit first.
 
+Before anything is written the script checks that the folder is a clone of the HACS repository: its origin is
+HACS_REMOTE, it is on main without uncommitted changes, and it is not a project worktree (platformio.ini, ha/config
+or src/ would mean the main repository, whose README and files this script must never replace). A new folder is
+created with that origin.
+
+The commits end with a Co-Authored-By line only when --co-author "Name <email>" (or OT_CO_AUTHOR) is given. The
+front page shows the version being published as its example of a test version, and the screenshots of the newest
+complete set in docs/img/screenshots (--example-version and --screenshots override both).
+
 Usage: python -I scripts/publish_hacs_repo.py <version, e.g. 1.0.0rc1> <path of the HACS repo clone> [--push]
-       python -I scripts/publish_hacs_repo.py --readme-only <path of the HACS repo clone> [--push]
+           [--co-author "Name <email>"] [--screenshots rc4] [--example-version 1.0.0rc1]
+       python -I scripts/publish_hacs_repo.py --readme-only <path of the HACS repo clone> [--push] [same options]
 """
+import argparse
 import hashlib
 import io
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -30,11 +42,13 @@ SOURCE = "https://github.com/dielessen/open_thermostat"
 HACS_REMOTE = "https://github.com/dielessen/openthermostat-ha.git"
 DOMAIN = "open_thermostat"
 MINIMUM_HA = "2026.10.0"
-CO_AUTHOR = "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+PROJECT_MARKERS = ("platformio.ini", "ha/config", "src")  # present in the main repository, never in the HACS one
+SCREENSHOTS = ("ha-week-card", "e32-home-learned", "e32-overview", "e32-rooms", "e32-boiler", "e32-overview-phone-dark")
 
 # The front page of the HACS repository. Images and links are absolute (the main repository's main
 # branch), so they work on GitHub and inside HACS. {source}, {source_raw} (raw files on main) and
-# {ha} are filled in by str.format: write a literal brace as {{ or }}.
+# {ha}, {example} (the version of a test release) and {shots} (the screenshot set, e.g. rc4) are filled in by
+# str.format: write a literal brace as {{ or }}.
 # One plain <img>: HACS shows <picture>/<source> as text.
 README = """<p align="center">
   <img src="{source_raw}/docs/brand/logo.svg" alt="OpenThermostat" width="420">
@@ -91,20 +105,20 @@ program when Home Assistant is offline.
 
 These use made-up example data, not a real home.
 
-![The week planner card in Home Assistant]({source_raw}/docs/img/screenshots/ha-week-card-rc2.png)
+![The week planner card in Home Assistant]({source_raw}/docs/img/screenshots/ha-week-card-{shots}.png)
 
-![What the thermostat has learned, per room]({source_raw}/docs/img/screenshots/e32-home-learned-rc2.png)
+![What the thermostat has learned, per room]({source_raw}/docs/img/screenshots/e32-home-learned-{shots}.png)
 
 <details>
 <summary>More screenshots</summary>
 
-![The E32 Overview with rooms and the boiler]({source_raw}/docs/img/screenshots/e32-overview-rc2.png)
+![The E32 Overview with rooms and the boiler]({source_raw}/docs/img/screenshots/e32-overview-{shots}.png)
 
-![A room with its week program on the E32]({source_raw}/docs/img/screenshots/e32-rooms-rc2.png)
+![A room with its week program on the E32]({source_raw}/docs/img/screenshots/e32-rooms-{shots}.png)
 
-![The E32 Boiler page]({source_raw}/docs/img/screenshots/e32-boiler-rc2.png)
+![The E32 Boiler page]({source_raw}/docs/img/screenshots/e32-boiler-{shots}.png)
 
-<img src="{source_raw}/docs/img/screenshots/e32-overview-phone-dark-rc2.png" alt="The E32 Overview on a phone in the dark theme" width="320">
+<img src="{source_raw}/docs/img/screenshots/e32-overview-phone-dark-{shots}.png" alt="The E32 Overview on a phone in the dark theme" width="320">
 
 </details>
 
@@ -126,7 +140,7 @@ The E32 then guides you further. If your old thermostat is still connected, it
 first runs beside it for a while without touching the boiler. Otherwise it
 starts with a short boiler test. It only controls your boiler after you confirm.
 
-**Test versions** (such as `1.0.0rc2`) are not shown by default. To install one,
+**Test versions** (such as `{example}`) are not shown by default. To install one,
 open OpenThermostat in HACS, choose **Download** and pick the version under
 **Need a different version?**.
 
@@ -187,27 +201,87 @@ def git(repo, *args):
     return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout.strip()
 
 
-def write_front_page(repo):
+def normal_remote(url):
+    return re.sub(r"(\.git)?/*$", "", url.strip()).lower()
+
+
+def check_clone(repo, remote=HACS_REMOTE):
+    """R5-16: refuse anything that is not a clean clone of the HACS repository on main, before any write.
+
+    `git add -A`, a tag and a push in the wrong folder would replace the README of a project worktree (there are
+    dozens) or publish unrelated changes."""
+    repo = Path(repo)
+    try:
+        origin = git(repo, "remote", "get-url", "origin")
+    except subprocess.CalledProcessError:
+        sys.exit(f"{repo} has no origin remote; expected a clone of {remote}")
+    if normal_remote(origin) != normal_remote(remote):
+        sys.exit(f"{repo}: origin is {origin}, not {remote}: this is not the HACS repository clone")
+    present = [marker for marker in PROJECT_MARKERS if (repo / marker).exists()]
+    if present:
+        sys.exit(f"{repo} contains {', '.join(present)}: that is the main project, not the HACS repository")
+    if git(repo, "rev-parse", "--abbrev-ref", "HEAD") != "main":
+        sys.exit(f"{repo} is not on its main branch")
+    if git(repo, "status", "--porcelain"):
+        sys.exit(f"{repo} has uncommitted changes; commit or discard them first (the script stages everything)")
+
+
+def co_author_trailer(value):
+    """R5-17: the trailer of the commits comes from the session, not from this script. None: no trailer."""
+    if not value:
+        return ""
+    if not re.fullmatch(r"[^<>\r\n]+ <[^<>\s@]+@[^<>\s]+>", value.strip()):
+        sys.exit(f"--co-author needs the form 'Name <email>', not {value!r}")
+    return "\n\nCo-Authored-By: " + value.strip()
+
+
+def screenshot_sets(directory):
+    """The suffixes (rc2, rc4 ...) for which every screenshot of the front page exists in `directory`."""
+    directory = Path(directory)
+    found = []
+    for path in directory.glob(f"{SCREENSHOTS[0]}-*.png"):
+        suffix = path.stem[len(SCREENSHOTS[0]) + 1:]
+        if all((directory / f"{name}-{suffix}.png").exists() for name in SCREENSHOTS):
+            found.append(suffix)
+
+    def order(suffix):
+        match = re.fullmatch(r"(alpha|beta|rc)(\d+)", suffix)
+        return (("alpha", "beta", "rc").index(match.group(1)), int(match.group(2))) if match else (-1, 0)
+    return sorted(found, key=order)
+
+
+def default_screenshots():
+    sets = screenshot_sets(Path(__file__).resolve().parents[1] / "docs" / "img" / "screenshots")
+    if not sets:
+        sys.exit("no complete screenshot set in docs/img/screenshots; give --screenshots")
+    return sets[-1]
+
+
+def write_front_page(repo, example_version, screenshots):
     """README.md and hacs.json: the files HACS and GitHub show for the repository."""
     (repo / "hacs.json").write_text(json.dumps({"name": "OpenThermostat", "homeassistant": MINIMUM_HA,
                                                 "render_readme": True,
                                                 "hide_default_branch": True}, indent=2) + "\n", encoding="utf-8", newline="\n")
     readme = README.format(source=SOURCE, source_raw=SOURCE.replace("https://github.com/", "https://raw.githubusercontent.com/") + "/main",
-                           ha=MINIMUM_HA)
+                           ha=MINIMUM_HA, example=example_version, shots=screenshots)
     (repo / "README.md").write_text(readme, encoding="utf-8", newline="\n")
 
 
-def readme_only(repo, push):
+def readme_only(repo, push, trailer, example_version=None, screenshots=None):
     if not (repo / ".git").exists():
         sys.exit(f"{repo} is not a clone of the HACS repository")
-    if git(repo, "rev-parse", "--abbrev-ref", "HEAD") != "main":
-        sys.exit(f"{repo} is not on its main branch")
-    write_front_page(repo)
+    check_clone(repo)
+    if example_version is None:
+        try:
+            example_version = json.loads((repo / "custom_components" / DOMAIN / "manifest.json").read_text(encoding="utf-8"))["version"]
+        except (OSError, ValueError, KeyError):
+            sys.exit("the clone has no released package to take the example version from; give --example-version")
+    write_front_page(repo, example_version, screenshots or default_screenshots())
     git(repo, "add", "--", "README.md", "hacs.json")
     if git(repo, "diff", "--cached", "--name-only"):
         git(repo, "commit", "-q", "-m", "README: refresh the front page from the main repository\n\n"
             "Requirements (the BBQKees Gateway E32 V2 with the OpenThermostat firmware), features,\n"
-            "screenshots, how it fits together and the install steps.\n\n" + CO_AUTHOR, "--", "README.md", "hacs.json")
+            "screenshots, how it fits together and the install steps." + trailer, "--", "README.md", "hacs.json")
         print(f"README: {git(repo, 'rev-parse', '--short', 'HEAD')}")
     else:
         print("README: unchanged, nothing committed")
@@ -216,21 +290,11 @@ def readme_only(repo, push):
         print("pushed main")
 
 
-def main():
-    flags = {"--push", "--readme-only"}
-    args = [a for a in sys.argv[1:] if a not in flags]
-    push = "--push" in sys.argv[1:]
-    if "--readme-only" in sys.argv[1:]:
-        if len(args) != 1:
-            sys.exit(__doc__)
-        return readme_only(Path(args[0]), push)
-    if len(args) != 2 or not re.fullmatch(r"\d+\.\d+\.\d+((a|b|rc)\d+)?", args[0]):
-        sys.exit(__doc__)
-    version, repo = args[0], Path(args[1])
+def publish(version, repo, push, trailer, example_version=None, screenshots=None, download=fetch):
     base = f"{SOURCE}/releases/download/ha-v{version}"
     name = f"OpenThermostat-HA-{version}.zip"
-    package = fetch(f"{base}/{name}")
-    sums = dict(line.split()[::-1] for line in fetch(f"{base}/HA-SHA256SUMS.txt").decode().splitlines() if line.strip())
+    package = download(f"{base}/{name}")
+    sums = dict(line.split()[::-1] for line in download(f"{base}/HA-SHA256SUMS.txt").decode().splitlines() if line.strip())
     digest = hashlib.sha256(package).hexdigest()
     if sums.get(name) != digest:
         sys.exit(f"{name}: SHA-256 {digest} does not match HA-SHA256SUMS.txt")
@@ -238,7 +302,12 @@ def main():
     manifest = json.loads(archive.read(f"custom_components/{DOMAIN}/manifest.json"))
     if manifest["version"] != version:
         sys.exit(f"manifest version {manifest['version']} is not {version}")
-    if not (repo / ".git").exists():
+    screenshots = screenshots or default_screenshots()
+    if (repo / ".git").exists():
+        check_clone(repo)
+    elif repo.exists() and any(repo.iterdir()):
+        sys.exit(f"{repo} exists and is not a clone of the HACS repository; give a new or empty folder")
+    else:
         repo.mkdir(parents=True, exist_ok=True)
         subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
         git(repo, "remote", "add", "origin", HACS_REMOTE)
@@ -251,13 +320,13 @@ def main():
         out = repo / member
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_bytes(archive.read(member))
-    write_front_page(repo)
+    write_front_page(repo, example_version or version, screenshots)
     workflow = repo / ".github" / "workflows" / "release.yml"
     workflow.parent.mkdir(parents=True, exist_ok=True)
     workflow.write_text(WORKFLOW, encoding="utf-8", newline="\n")
     git(repo, "add", "-A")
     if git(repo, "status", "--porcelain"):
-        git(repo, "commit", "-q", "-m", f"OpenThermostat {version} (ha-v{version}, package SHA-256 {digest})\n\n" + CO_AUTHOR)
+        git(repo, "commit", "-q", "-m", f"OpenThermostat {version} (ha-v{version}, package SHA-256 {digest})" + trailer)
     if version not in git(repo, "tag", "--list", version).split():
         git(repo, "tag", version)
     print(f"{version}: {git(repo, 'rev-parse', '--short', 'HEAD')}, package {digest}")
@@ -265,6 +334,25 @@ def main():
         git(repo, "push", "-q", "origin", "main")
         git(repo, "push", "-q", "origin", version)
         print("pushed main and tag", version)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("arguments", nargs="+", metavar="version clone | clone", help="see the usage lines above")
+    parser.add_argument("--readme-only", action="store_true")
+    parser.add_argument("--push", action="store_true")
+    parser.add_argument("--co-author", default=os.environ.get("OT_CO_AUTHOR"), help='"Name <email>" for the commits (or OT_CO_AUTHOR)')
+    parser.add_argument("--screenshots", help="the screenshot set of the front page, e.g. rc4 (default: the newest complete set)")
+    parser.add_argument("--example-version", help="the test version the front page names as an example (default: the published version)")
+    args = parser.parse_args(argv)
+    trailer = co_author_trailer(args.co_author)
+    if args.readme_only:
+        if len(args.arguments) != 1:
+            sys.exit(__doc__)
+        return readme_only(Path(args.arguments[0]), args.push, trailer, args.example_version, args.screenshots)
+    if len(args.arguments) != 2 or not re.fullmatch(r"\d+\.\d+\.\d+((a|b|rc)\d+)?", args.arguments[0]):
+        sys.exit(__doc__)
+    return publish(args.arguments[0], Path(args.arguments[1]), args.push, trailer, args.example_version, args.screenshots)
 
 
 if __name__ == "__main__":
